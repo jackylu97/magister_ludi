@@ -1,0 +1,2054 @@
+<title>Charter Technologies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fraunces:opsz,wght@9..144,400..700&family=Instrument+Sans:ital,wght@0,400..700;1,400..600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  /* Layout: one long table. Each step is a screen from the game, in play order,
+     with its note in the margin. A committed single look: the game's parchment
+     table, and the star chart's night surfaces where the game has them. Every
+     colour is set here, so the page reads the same on any host theme. */
+  :root {
+    --table: #e9e2cf;
+    --parchment: #f7f2e1;
+    --ink: #1d1a20;
+    --ink-soft: #56505a;
+    --ink-faint: rgba(29, 26, 32, 0.42);
+    --rule: rgba(29, 26, 32, 0.14);
+    --vermilion: #d4502e;
+    --vermilion-lit: #f28563;
+    --teal: #1f8a85;
+    --gilt: #c8901f;
+    --lapis: #3f639f;
+    --cobalt: #2757b8;
+    /* The charter's sepia is the game's --deck-charter. The lifted value is new:
+       the same ink, raised so it reads on the star chart's night ground. */
+    --charter: #7a6338;
+    --charter-lit: #d8b07a;
+    --night: #16141a;
+    --night-card: #1e1b22;
+    --night-hover: #262129;
+    --night-held: #221d1a;
+    --night-charter: #241e1a;
+    --on-night: #f7f2e1;
+    --on-night-soft: rgba(247, 242, 225, 0.62);
+    --on-night-faint: rgba(247, 242, 225, 0.42);
+    --on-night-line: rgba(247, 242, 225, 0.28);
+    --y-sci: #2757b8;
+    --y-sci-lit: #82aef2;
+    --y-prod: #c26a1d;
+    --y-gold-lit: #ecc154;
+    --unit-lit: #f0a48f;
+    --type-military: #a8361b;
+    --type-economic: #b5791b;
+    --type-civic: #4f78be;
+    --rank-pewter: #56505a;
+    --rank-pewter-fill: #e7e3da;
+    --board: #aab482;
+    --board-deep: #96a170;
+    --seat-you: #d4502e;
+    --seat-rival: #1f8a85;
+    --face-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+    --face-name: Fraunces, Georgia, 'Iowan Old Style', serif;
+    --face-ui: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --face-num: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --m-sci: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2'/%3E%3Cpath d='M6.453 15h11.094'/%3E%3Cpath d='M8.5 2h7'/%3E%3C/svg%3E");
+    --m-prod: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E");
+    --hexes: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34.64' height='60'%3E%3Cpath d='M17.32 0L34.64 10V30L17.32 40L0 30V10ZM17.32 40V60' fill='none' stroke='%231d1a20' stroke-opacity='0.13' stroke-width='1'/%3E%3C/svg%3E");
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding-inline: 16px;
+    background: var(--table);
+    color: var(--ink);
+    font-family: var(--face-ui);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible { outline: 2.5px solid var(--ink); outline-offset: 2px; }
+  .night :focus-visible, .techsheet :focus-visible { outline-color: var(--gilt); }
+
+  .wrap { max-width: 1240px; margin: 0 auto; padding-block: 28px 72px; }
+
+  code { font-family: var(--face-num); font-size: 0.84em; background: rgba(29, 26, 32, 0.06); padding: 0 3px; border-radius: 3px; overflow-wrap: anywhere; }
+  b { font-weight: 700; }
+
+  /* ---- masthead ---- */
+  .eyebrow { font: 600 0.7rem/1.3 var(--face-num); letter-spacing: 0.16em; text-transform: uppercase; color: var(--vermilion); margin: 0 0 0.6rem; }
+  h1 { font-family: var(--face-display); font-weight: 400; font-size: clamp(2.6rem, 8vw, 4.2rem); line-height: 1; margin: 0; letter-spacing: 0.005em; text-wrap: balance; }
+  h1 em { font-style: italic; color: var(--vermilion); }
+  .lede { max-width: 64ch; font-size: 1.05rem; margin: 1rem 0 0; }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 0.6rem 1.4rem; margin: 1.6rem 0 0; padding: 1rem 1.1rem; background: var(--parchment); border: 3px solid var(--ink); border-radius: 10px; box-shadow: 6px 6px 0 var(--ink); }
+  .facts div { min-width: 0; }
+  .facts dt { font: 600 0.62rem/1.2 var(--face-num); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); }
+  .facts dd { margin: 0.15rem 0 0; font-size: 0.92rem; }
+  .facts .num { font-family: var(--face-num); font-variant-numeric: tabular-nums; }
+  .inputs { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: baseline; margin: 1.3rem 0 0; }
+  .inputs strong { font: 600 0.68rem/1.2 var(--face-num); letter-spacing: 0.14em; text-transform: uppercase; background: var(--ink); color: var(--parchment); padding: 0.3rem 0.7rem; border-radius: 999px; }
+  .inputs span { max-width: 70ch; font-size: 0.95rem; }
+
+  /* ---- step rail ---- */
+  .rail { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; margin: 2rem -16px 0; padding: 0.55rem 16px; background: var(--table); border-bottom: 2px solid var(--ink); }
+  .rail ol { list-style: none; margin: 0 auto; padding: 0 0 2px; max-width: 1240px; display: flex; gap: 0.4rem; overflow-x: auto; scrollbar-width: thin; }
+  .rail a { display: inline-flex; align-items: baseline; gap: 0.4rem; white-space: nowrap; padding: 0.22rem 0.7rem; border: 2px solid var(--ink); border-radius: 999px; background: var(--parchment); color: var(--ink); text-decoration: none; font-size: 0.82rem; font-weight: 600; }
+  .rail a span { font-family: var(--face-num); font-size: 0.72rem; color: var(--ink-soft); }
+  .rail a:hover, .rail a.is-here { background: var(--ink); color: var(--parchment); }
+  .rail a:hover span, .rail a.is-here span { color: var(--parchment); }
+
+  /* ---- steps ---- */
+  .step { margin-top: 3rem; padding-top: 1.3rem; border-top: 3px solid var(--ink); scroll-margin-top: 4rem; }
+  .step-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem 1rem; margin-bottom: 1.2rem; }
+  .step-no { font: 600 0.8rem/1 var(--face-num); background: var(--vermilion); color: var(--parchment); border: 2px solid var(--ink); border-radius: 999px; padding: 0.35rem 0.62rem; }
+  .step h2 { font-family: var(--face-display); font-weight: 400; font-size: 2rem; line-height: 1.05; margin: 0; text-wrap: balance; }
+  .step h2 em { font-style: italic; color: var(--vermilion); }
+  .when { font: 500 0.75rem/1.2 var(--face-num); letter-spacing: 0.06em; color: var(--ink-soft); }
+  .step-grid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 28px; align-items: start; }
+  .step-grid.is-wide { grid-template-columns: minmax(0, 1fr); }
+  .step-grid.is-wide .note { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 28px; }
+  @media (max-width: 1000px) {
+    .step-grid { grid-template-columns: minmax(0, 1fr); }
+    .step-grid.is-wide .note { grid-template-columns: minmax(0, 1fr); }
+  }
+  .note { min-width: 0; }
+  .note section { min-width: 0; }
+  .note h3 { font: 600 0.66rem/1.2 var(--face-num); letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink-soft); margin: 0 0 0.35rem; padding-top: 0.55rem; border-top: 1px solid var(--rule); }
+  .note section + section h3 { margin-top: 1rem; }
+  .step-grid.is-wide .note section + section h3 { margin-top: 0; }
+  @media (max-width: 1000px) { .step-grid.is-wide .note section + section h3 { margin-top: 1rem; } }
+  .note p, .note li { font-size: 0.93rem; margin: 0 0 0.5rem; max-width: 62ch; }
+  .note ul { margin: 0; padding-left: 1.1rem; }
+  .next { display: inline-block; margin-top: 0.6rem; font: 600 0.78rem/1.2 var(--face-num); color: var(--ink); }
+
+  /* ---- a screen from the game ---- */
+  .screen { position: relative; min-width: 0; border: 3px solid var(--ink); border-radius: 10px; box-shadow: 6px 6px 0 var(--ink); overflow: hidden; background-color: var(--board); background-image: var(--hexes); }
+  .screen.is-dim::before { content: ''; position: absolute; inset: 0; background: rgba(18, 16, 21, 0.58); }
+  .screen.is-dark { background: #141217; background-image: none; }
+  .screen > * { position: relative; z-index: 1; }
+  .whose { display: inline-block; margin: 10px 0 0 10px; padding: 0.2rem 0.6rem; border-radius: 999px; background: var(--ink); color: var(--parchment); font: 600 0.62rem/1.3 var(--face-num); letter-spacing: 0.1em; text-transform: uppercase; }
+  .whose.is-rival { background: var(--seat-rival); }
+
+  .btn { display: inline-flex; align-items: center; gap: 0.4rem; font: 700 0.82rem/1.2 var(--face-ui); letter-spacing: 0.02em; padding: 0.42rem 0.9rem; border: 2px solid var(--ink); border-radius: 6px; background: var(--parchment); color: var(--ink); box-shadow: 3px 3px 0 var(--ink); cursor: pointer; }
+  .btn:hover { background: #fdfaef; }
+  .btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+  .controls { display: flex; flex-wrap: wrap; gap: 0.7rem; align-items: center; margin-top: 1rem; }
+  .controls p { margin: 0; font-size: 0.88rem; color: var(--ink-soft); }
+
+  /* ---- yield marks (the game's drawn marks, as masks) ---- */
+  .ym { display: inline-block; width: 1em; height: 1em; margin-left: 1px; vertical-align: -0.16em; background-color: currentColor; -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; }
+  .ym.sci { --m: var(--m-sci); }
+  .ym.prod { --m: var(--m-prod); }
+
+  .seal { display: inline-block; width: 12px; height: 12px; flex: none; vertical-align: -1px; color: var(--charter-lit); }
+  .seal path { fill: currentColor; }
+  .seal circle { fill: none; stroke: var(--seal-hole, var(--night-card)); stroke-width: 1.3; }
+
+  /* ---- the draft sheet ---- */
+  .sheet { margin: 18px auto 26px; width: min(760px, calc(100% - 24px)); padding: 16px 14px 16px; background: var(--parchment); border: 3px solid var(--ink); border-radius: 10px; box-shadow: 8px 8px 0 var(--ink); }
+  .sheet-head { text-align: center; padding-bottom: 12px; margin-bottom: 14px; border-bottom: 2px solid var(--ink); }
+  .sheet-eyebrow { font: 600 0.6rem/1.2 var(--face-num); letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink-soft); margin: 0; }
+  .sheet-title { font-family: var(--face-display); font-weight: 400; font-size: 1.85rem; line-height: 1.05; margin: 0.25rem 0; }
+  .sheet-note { margin: 0; font-size: 0.8rem; color: var(--ink-soft); }
+  .hand { display: flex; gap: 16px; overflow-x: auto; padding: 6px 8px 22px; }
+  .hand > :first-child { margin-left: auto; }
+  .hand > :last-child { margin-right: auto; }
+  .answers { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px 14px; margin-top: 6px; }
+  .answers .btn { font-size: 0.8rem; }
+  .answers small { font: 500 0.6rem/1.2 var(--face-num); letter-spacing: 0.06em; color: var(--ink-faint); }
+  .pick-says { min-height: 1.4em; margin: 10px 0 0; text-align: center; font-size: 0.85rem; }
+  .pick-says a { color: var(--ink); font-weight: 700; }
+
+  /* ---- the A3 card face ---- */
+  .a3 { --card-ink: var(--ink); position: relative; flex: none; display: flex; flex-direction: column; width: 212px; padding: 0; background: var(--parchment); color: var(--card-ink); border: 3px solid var(--card-ink); border-radius: 9px; box-shadow: 4px 4px 0 var(--ink); font-family: var(--face-ui); font-size: 15px; text-align: center; cursor: pointer; transition: transform 120ms, box-shadow 120ms, opacity 200ms; }
+  .a3[data-ink='military'] { --card-ink: var(--type-military); }
+  .a3[data-ink='economic'] { --card-ink: var(--type-economic); }
+  .a3[data-ink='civic'] { --card-ink: var(--type-civic); }
+  button.a3:hover, button.a3:focus-visible { box-shadow: 6px 6px 0 var(--ink); transform: translate(-1px, -1px); }
+  button.a3:active { box-shadow: 1px 1px 0 var(--ink); transform: translate(2px, 2px); }
+  .a3.is-passed { opacity: 0.4; }
+  .a3.is-taken { box-shadow: 0 0 0 3px var(--gilt), 6px 6px 0 var(--ink); }
+  .a3 .frame { position: absolute; border-style: solid; pointer-events: none; }
+  .frame-court { inset: 0.1875em; border-width: 1.5px; border-color: var(--rank-pewter); border-radius: 6px; }
+  .frame-court-inner { inset: 0.4375em; border-width: 1px; border-color: var(--rank-pewter); border-radius: 3px; opacity: 0.7; }
+  .frame-trump { inset: 0.125em; border-width: 2.5px; border-color: var(--ink); border-radius: 6px; }
+  .frame-trump-inner { inset: 0.47em; border-width: 1px; border-color: var(--ink); border-radius: 3px; }
+  .a3 .star { position: absolute; width: 0.8125em; height: 0.8125em; fill: var(--ink); pointer-events: none; }
+  .star.tl { top: 1px; left: 1px; } .star.tr { top: 1px; right: 1px; } .star.bl { bottom: 1px; left: 1px; } .star.br { bottom: 1px; right: 1px; }
+  .rank { position: absolute; z-index: 2; left: 0; right: 0; display: flex; justify-content: center; pointer-events: none; }
+  .rank svg { display: block; overflow: visible; }
+  .rank-uncommon { top: 0.25em; } .rank-rare { top: 0.0625em; }
+  .ribbon { width: 4.875em; height: 1.25em; }
+  .ribbon .rt { fill: var(--rank-pewter-fill); stroke: var(--rank-pewter); stroke-width: 1.2; stroke-linejoin: round; }
+  .ribbon .rb { fill: var(--parchment); stroke: var(--rank-pewter); stroke-width: 1.2; }
+  .ribbon text { font: 500 9px var(--face-num); letter-spacing: 1.5px; fill: var(--ink); }
+  .cartouche { width: 4.5em; height: 1.6875em; }
+  .cartouche .cg { fill: var(--ink); stroke: var(--ink); stroke-width: 2; stroke-linejoin: round; }
+  .cartouche .cr { fill: none; stroke: var(--parchment); stroke-width: 0.8; }
+  .cartouche text { font: 600 15px var(--face-name); fill: var(--parchment); }
+  .a3-body { position: relative; z-index: 1; display: flex; flex: 1 1 auto; flex-direction: column; align-items: center; width: 100%; min-width: 0; padding: 2em 0.85em 0.75em; }
+  .plate { display: block; width: 5.4em; height: 5.4em; color: var(--card-ink); }
+  .plate svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .ring-outer { fill: none; stroke: currentColor; stroke-width: 1.5; }
+  .ring-dots { fill: none; stroke: currentColor; stroke-width: 4; stroke-dasharray: 0.9 2.46; opacity: 0.45; }
+  .ring-inner { fill: currentColor; fill-opacity: 0.07; stroke: currentColor; stroke-width: 1; }
+  .ring-points { fill: currentColor; }
+  .suit { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
+  .a3-name { margin-top: 0.45em; font-family: var(--face-name); font-variation-settings: 'opsz' 60; font-weight: 600; font-size: 1.03em; line-height: 1.14; color: var(--ink); overflow-wrap: anywhere; }
+  .badges { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin-top: 0.4em; }
+  .badge { display: inline-flex; padding: 1px 7px; border: 1px solid var(--charter); border-radius: 999px; color: var(--charter); font: 600 0.56rem/1.5 var(--face-num); letter-spacing: 0.06em; text-transform: uppercase; }
+  .clauses { display: flex; flex-direction: column; gap: 5px; margin-top: 0.55em; font-size: 0.79em; font-weight: 500; line-height: 1.38; color: var(--ink); }
+  .stamp-seat { position: relative; margin-top: 0.55em; min-height: 1.2em; font-family: var(--face-name); font-size: 0.8em; letter-spacing: 0.2em; color: var(--card-ink); opacity: 0.55; }
+  .stamp-figure { margin-top: 0.4em; font: 600 1.05em/1.2 var(--face-num); color: var(--ink); background: radial-gradient(closest-side, rgba(181, 121, 27, 0.22), transparent); padding: 0.1em 0.6em; }
+  .flavor { margin-top: auto; padding-top: 0.7em; font-family: var(--face-display); font-style: italic; font-size: 0.93em; line-height: 1.25; color: var(--ink-soft); }
+  .flavor-label { display: block; margin-bottom: 2px; font: 600 0.5rem/1 var(--face-num); font-style: normal; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); }
+  .foot { display: flex; align-items: center; justify-content: center; gap: 6px; padding-top: 0.55em; font: 500 0.56rem/1 var(--face-num); letter-spacing: 0.2em; text-transform: uppercase; color: var(--card-ink); }
+  .foot i { display: block; width: 12px; height: 1.5px; background: currentColor; }
+  .foot span { color: var(--ink-soft); }
+  .ordinal { position: absolute; z-index: 3; bottom: -11px; left: 50%; transform: translateX(-50%); width: 20px; height: 20px; border-radius: 50%; background: var(--ink); color: var(--parchment); font: 600 0.62rem/20px var(--face-num); }
+  .a3.seat { width: 128px; font-size: 11.2px; border-width: 2.5px; box-shadow: 3px 3px 0 var(--ink); cursor: default; }
+  .a3.seat .a3-body { padding: 22px 9px 10px; }
+  .a3.seat .plate { width: 58px; height: 58px; }
+  .a3.seat .a3-name { font-size: 14px; }
+
+  /* The slip: a piece of the star chart printed on the charter card. */
+  .slip { position: relative; display: block; width: 100%; margin-top: 0.65em; padding: 7px 8px 5px; background: var(--night-card); color: var(--on-night); border: 1.5px solid var(--charter-lit); border-radius: 6px; text-align: left; overflow: hidden; }
+  .slip-head { display: flex; align-items: baseline; gap: 5px; }
+  .slip-glyph { color: var(--gilt); font-size: 12px; }
+  .slip-name { flex: 1; font-family: var(--face-name); font-weight: 600; font-size: 13.5px; letter-spacing: -0.01em; }
+  .slip-age { font: 600 8.5px/1 var(--face-num); letter-spacing: 0.14em; color: var(--gilt); }
+  .slip-lines { display: block; margin-top: 4px; }
+  .sl { display: flex; justify-content: space-between; gap: 6px; font-size: 10.5px; line-height: 1.55; color: var(--on-night-soft); }
+  .sl + .sl { border-top: 1px solid rgba(247, 242, 225, 0.1); }
+  .sl b { font: 500 10.5px/1.55 var(--face-num); font-variant-numeric: tabular-nums; color: var(--on-night); }
+  .sl.is-premium b { color: var(--charter-lit); }
+  .sl.total { border-top: 1px solid var(--on-night-line); color: var(--on-night); }
+  .sl.total b { color: var(--y-sci-lit); font-weight: 600; }
+  .sl .alone { font-style: italic; color: var(--charter-lit); }
+
+  /* The rubber stamp a charter takes on the pick. */
+  .thunk { position: absolute; left: 50%; top: 50%; z-index: 4; padding: 4px 10px 3px; border: 2.5px solid var(--charter-lit); outline: 1px solid var(--charter-lit); outline-offset: 2px; border-radius: 4px; background: rgba(30, 27, 34, 0.86); color: var(--charter-lit); text-align: center; transform: translate(-50%, -50%) rotate(-8deg); pointer-events: none; }
+  .thunk strong { display: block; font: 600 15px/1 var(--face-num); letter-spacing: 0.22em; }
+  .thunk span { display: block; margin-top: 3px; font: 500 8.5px/1 var(--face-num); letter-spacing: 0.12em; text-transform: uppercase; }
+  .thunk.is-landing { animation: thunk 320ms cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+  @keyframes thunk { from { opacity: 0; transform: translate(-50%, -50%) rotate(-8deg) scale(1.7); } to { opacity: 1; transform: translate(-50%, -50%) rotate(-8deg) scale(1); } }
+
+  /* ---- the star chart ---- */
+  .techsheet { margin: 14px; padding: 14px; background: var(--night); color: var(--on-night); border: 2px solid rgba(200, 144, 31, 0.5); border-radius: 10px; box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6); }
+  .tech-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px 16px; padding-bottom: 10px; border-bottom: 1.5px solid rgba(200, 144, 31, 0.35); }
+  .tech-titles { flex: 1 1 180px; min-width: 0; }
+  .tech-eyebrow { margin: 0 0 3px; font: 600 9px/1 var(--face-num); letter-spacing: 0.15em; text-transform: uppercase; color: var(--gilt); }
+  .tech-title { margin: 0; font-family: var(--face-display); font-weight: 400; font-size: 1.7rem; line-height: 1; color: var(--parchment); }
+  .tech-hint { flex: 1 1 240px; align-self: center; margin: 0; font: 500 10px/1.45 var(--face-num); letter-spacing: 0.03em; color: var(--on-night-faint); }
+  .tech-hint kbd { font: inherit; padding: 0 3px; border: 1px solid var(--on-night-line); border-radius: 3px; }
+  .tech-hint.is-refusing { color: var(--vermilion-lit); font-style: italic; }
+  .lead { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 1px; padding: 3px 9px 4px; border: 1.5px solid rgba(200, 144, 31, 0.55); border-radius: 6px; background: transparent; color: var(--gilt); cursor: help; }
+  .lead small { font: 600 8.5px/1 var(--face-num); letter-spacing: 0.18em; text-transform: uppercase; color: var(--gilt); }
+  .lead b { font: 600 20px/1 var(--face-num); font-variant-numeric: tabular-nums; color: var(--y-gold-lit); }
+  .lead:hover, .lead:focus-visible { background: rgba(200, 144, 31, 0.12); }
+  .tech-close { flex: none; width: 28px; height: 28px; border: 1.5px solid var(--on-night-line); border-radius: 6px; background: transparent; color: var(--on-night-soft); font: 600 13px/1 var(--face-ui); cursor: default; }
+  .chartwrap { display: grid; grid-template-columns: minmax(0, 1fr) 272px; gap: 12px; margin-top: 12px; align-items: start; }
+  @media (max-width: 760px) { .chartwrap { grid-template-columns: minmax(0, 1fr); } }
+  .chart-frame { position: relative; min-width: 0; }
+  .chart { position: relative; min-width: 0; overflow: auto; padding-bottom: 4px; scrollbar-color: rgba(200, 144, 31, 0.5) transparent; }
+  @media (max-width: 760px) { .chart { max-height: 70vh; } }
+  .chartwrap.is-narrow { grid-template-columns: minmax(0, 1fr); }
+  .chartwrap.is-narrow .chart-frame { width: min(340px, 100%); outline: 1px dashed var(--on-night-line); outline-offset: 5px; }
+  .chartwrap.is-narrow .chart { max-height: 420px; }
+  .shelf-tab { position: absolute; bottom: 14px; z-index: 5; display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px 5px 9px; border: 1.5px solid var(--charter-lit); border-radius: 999px; background: var(--night-charter); color: var(--charter-lit); font: 600 10px/1 var(--face-num); letter-spacing: 0.16em; text-transform: uppercase; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6); cursor: pointer; }
+  .shelf-tab[hidden] { display: none; }
+  .shelf-tab.at-left { left: 10px; }
+  .shelf-tab.at-right { right: 10px; }
+  .shelf-tab.at-centre { left: 50%; transform: translateX(-50%); }
+  .shelf-tab b { font: 600 11px/1 var(--face-num); letter-spacing: 0; color: var(--on-night); }
+  .shelf-tab .arrow { font: 600 13px/1 var(--face-ui); letter-spacing: 0; }
+  .shelf-tab .seal { --seal-hole: var(--night-charter); }
+  .shelf-tab:hover { background: #30281f; }
+  .shelf-tab.is-in { animation: toast-in 200ms ease-out both; }
+  .shelf-tab.at-centre.is-in { animation: none; }
+  .viewbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 16px; font: 500 0.74rem/1.3 var(--face-num); color: var(--ink-soft); }
+  .viewbar .btn { font-size: 0.78rem; padding: 0.3rem 0.75rem; }
+  .viewbar .btn[aria-pressed='true'] { background: var(--ink); color: var(--parchment); }
+  .beforeafter { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; margin-top: 14px; }
+  .beforeafter figure { margin: 0; min-width: 0; padding: 12px; background: var(--night); border: 2px solid var(--ink); border-radius: 8px; }
+  .beforeafter figcaption { margin-bottom: 8px; font: 500 10px/1.45 var(--face-num); color: var(--on-night-soft); }
+  .beforeafter figcaption b { display: block; font: 600 9px/1.3 var(--face-num); letter-spacing: 0.16em; text-transform: uppercase; color: var(--charter-lit); }
+  .ba-stage { min-width: 0; padding: 8px 0; }
+  .mini .shelf-rule, .mini .shelf-label { position: absolute; }
+  .field { position: relative; }
+  .dock { min-width: 0; }
+  .dock-cap { margin: 0 0 5px; font: 500 9px/1.3 var(--face-num); letter-spacing: 0.08em; color: var(--on-night-faint); }
+  .wash { position: absolute; top: 0; bottom: 0; border-radius: 6px; background: rgba(247, 242, 225, 0.022); overflow: hidden; pointer-events: none; }
+  .wash.is-seam { border-left: 1px solid rgba(200, 144, 31, 0.22); }
+  .wash-num { position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%); font-family: var(--face-display); font-size: 170px; line-height: 1; letter-spacing: 0.05em; color: rgba(200, 144, 31, 0.07); user-select: none; }
+  .wash-label { position: absolute; top: 4px; left: 8px; display: flex; gap: 8px; align-items: baseline; white-space: nowrap; }
+  .era { font: 600 10px/1 var(--face-num); letter-spacing: 0.22em; color: var(--gilt); }
+  .era-name { font-family: var(--face-display); font-style: italic; font-size: 13px; color: var(--on-night-soft); }
+  .shelf-rule { position: absolute; height: 0; border-top: 1.5px dashed rgba(216, 176, 122, 0.55); pointer-events: none; }
+  .shelf-label { position: absolute; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; pointer-events: none; }
+  .shelf-eyebrow { display: inline-flex; align-items: center; gap: 6px; font: 600 10px/1 var(--face-num); letter-spacing: 0.22em; text-transform: uppercase; color: var(--charter-lit); }
+  .shelf-words { font-family: var(--face-display); font-style: italic; font-size: 14px; color: var(--on-night-soft); }
+  .shelf-more { position: absolute; font: 500 10px/1.3 var(--face-num); color: var(--charter-lit); white-space: nowrap; }
+  .tlines { position: absolute; top: 0; left: 0; z-index: 0; overflow: visible; pointer-events: none; }
+  .tline { fill: none; stroke: rgba(247, 242, 225, 0.18); stroke-width: 1; stroke-dasharray: 2 5; transition: opacity 120ms; }
+  .tline.is-held { stroke: rgba(200, 144, 31, 0.55); stroke-dasharray: 2 4; }
+  .tline.is-charter { stroke: rgba(216, 176, 122, 0.7); stroke-width: 1.4; stroke-dasharray: 1 4; stroke-linecap: round; }
+  .tlines.is-reading .tline:not(.is-lit) { opacity: 0.28; }
+  .tline.is-lit { stroke: rgba(247, 242, 225, 0.8); stroke-width: 1.6; stroke-dasharray: none; }
+  .tline.is-held.is-lit { stroke: var(--gilt); }
+  .tline.is-charter.is-lit { stroke: var(--charter-lit); }
+
+  .tnode { position: absolute; z-index: 1; display: block; width: 164px; padding: 6px 8px 7px; border: 1.5px solid var(--on-night-line); border-radius: 6px; background: var(--night-card); color: var(--on-night); font: 500 12px/1.3 var(--face-ui); text-align: left; cursor: pointer; }
+  .tnode.is-static { position: relative; }
+  .tnode:hover { border-color: var(--gilt); background: var(--night-hover); }
+  .tnode:active { transform: translate(1px, 1px); }
+  .tnode.is-known { border-color: rgba(200, 144, 31, 0.55); background: var(--night-held); }
+  .tnode.is-current { border-color: var(--y-sci-lit); box-shadow: 0 0 0 1px rgba(130, 174, 242, 0.35); }
+  .tnode.is-locked { opacity: 0.42; }
+  .tnode.is-planned { border-color: rgba(200, 144, 31, 0.55); }
+  .tnode.is-locked.is-planned { opacity: 0.8; }
+  .tnode.is-charter { background: var(--night-charter); border-color: rgba(216, 176, 122, 0.62); }
+  .tnode.is-charter.is-known { border-color: rgba(200, 144, 31, 0.62); }
+  .tnode.is-charter.is-current { border-color: var(--y-sci-lit); }
+  .tnode.is-prereq { box-shadow: 0 0 0 2px rgba(200, 144, 31, 0.55); }
+  .tnode.is-heir { box-shadow: 0 0 0 2px rgba(247, 242, 225, 0.32); }
+  .tnode.is-locked.is-prereq, .tnode.is-locked.is-heir { opacity: 0.78; }
+  .tnode.is-lead::after { content: ''; position: absolute; top: -1.5px; right: -1.5px; width: 0; height: 0; border-top: 12px solid var(--gilt); border-left: 12px solid transparent; border-top-right-radius: 5px; }
+  .tnode.is-new { animation: ring 1.5s ease-out 3; }
+  @keyframes ring { 0% { box-shadow: 0 0 0 0 rgba(216, 176, 122, 0.9); } 100% { box-shadow: 0 0 0 14px rgba(216, 176, 122, 0); } }
+  .tn-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+  .tn-title { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
+  .tn-glyph { flex: none; font-size: 12px; color: var(--gilt); }
+  .tn-name { font-family: var(--face-name); font-variation-settings: 'opsz' 90; font-weight: 600; font-size: 13.5px; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+  .tn-marks { display: inline-flex; align-items: center; gap: 4px; flex: none; color: var(--gilt); font-size: 12px; padding-right: 4px; }
+  .tnode .seal { --seal-hole: var(--night-charter); }
+  .tn-fig { display: flex; gap: 8px; margin-top: 2px; font: 500 10px/1.4 var(--face-num); letter-spacing: 0.03em; font-variant-numeric: tabular-nums; }
+  .tn-cost { color: var(--y-sci-lit); }
+  .tn-turns { color: var(--on-night-soft); }
+  .tn-bar { display: block; height: 5px; margin: 6px 0 3px; border: 1px solid rgba(247, 242, 225, 0.3); border-radius: 999px; background: rgba(247, 242, 225, 0.08); overflow: hidden; }
+  .tn-bar i { display: block; height: 100%; background: var(--y-sci-lit); }
+  .tn-prog { display: block; font: 500 10px/1.3 var(--face-num); color: rgba(247, 242, 225, 0.72); }
+  .tn-unlocks { display: grid; gap: 2px; margin-top: 5px; }
+  .tn-u { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .mk { flex: none; display: grid; place-items: center; width: 15px; height: 15px; border: 1px solid rgba(247, 242, 225, 0.4); border-radius: 3px; font: 600 9px/1 var(--face-num); }
+  .mk.unit { border-color: rgba(212, 80, 46, 0.75); color: var(--unit-lit); }
+  .mk.bld { border-color: rgba(200, 144, 31, 0.7); color: var(--y-gold-lit); }
+  .mk.imp { border-color: rgba(127, 208, 108, 0.6); color: var(--on-night); }
+  .mk.rule { border-color: rgba(214, 160, 96, 0.6); color: var(--on-night); }
+  .un { flex: 1; min-width: 0; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .uv { flex: none; font: 500 10px var(--face-num); color: rgba(247, 242, 225, 0.5); }
+  .tn-more { padding-left: 21px; font: 500 10px var(--face-num); color: rgba(247, 242, 225, 0.5); }
+  .tn-place { position: absolute; top: -8px; left: -8px; width: 18px; height: 18px; border-radius: 50%; background: var(--gilt); color: var(--ink); font: 600 10px/18px var(--face-num); text-align: center; }
+
+  .planstrip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1.5px solid rgba(200, 144, 31, 0.35); }
+  .planstrip[hidden] { display: none; }
+  .ps-label { font: 600 9px/1 var(--face-num); letter-spacing: 0.18em; text-transform: uppercase; color: var(--gilt); }
+  .ps-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 4px; border: 1.5px solid var(--on-night-line); border-radius: 999px; font-size: 12px; color: var(--on-night); }
+  .chip:first-child { border-color: var(--y-sci-lit); }
+  .chip.is-charter { border-color: rgba(216, 176, 122, 0.7); }
+  .chip.is-charter:first-child { border-color: var(--y-sci-lit); }
+  .chip .place { width: 17px; height: 17px; border-radius: 50%; background: var(--gilt); color: var(--ink); font: 600 10px/17px var(--face-num); text-align: center; }
+  .chip .nm { font-family: var(--face-name); font-weight: 600; font-size: 12.5px; }
+  .chip .t { font: 500 10px var(--face-num); color: var(--on-night-soft); }
+  .chip .x { width: 18px; height: 18px; border: 0; border-radius: 50%; background: transparent; color: var(--on-night-soft); font: 600 11px/1 var(--face-ui); cursor: pointer; }
+  .chip .x:hover { background: rgba(247, 242, 225, 0.12); color: var(--on-night); }
+  .chart-foot { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-top: 10px; }
+  .chart-foot p { margin: 0; font: 500 10px/1.4 var(--face-num); color: var(--on-night-faint); }
+  .night-btn { padding: 4px 10px; border: 1.5px solid rgba(200, 144, 31, 0.55); border-radius: 6px; background: transparent; color: var(--gilt); font: 600 11px/1.2 var(--face-ui); cursor: pointer; }
+  .night-btn:hover { background: rgba(200, 144, 31, 0.12); }
+
+  /* The four states, laid out as a specimen. */
+  .legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 18px 14px; margin: 18px 0 0; padding: 16px; background: var(--night); border-radius: 8px; border: 2px solid var(--ink); }
+  .legend figure { margin: 0; min-width: 0; }
+  .legend figcaption { margin-top: 8px; font: 500 10px/1.45 var(--face-num); color: var(--on-night-soft); }
+  .legend figcaption b { display: block; font: 600 9px/1.3 var(--face-num); letter-spacing: 0.16em; text-transform: uppercase; color: var(--charter-lit); }
+
+  /* ---- hover cards ---- */
+  .icard { padding: 9px 11px 10px; border: 2px solid var(--ink); border-radius: 6px; background: var(--parchment); box-shadow: 3px 3px 0 var(--ink); color: var(--ink); font: 400 11.5px/1.42 var(--face-ui); text-align: left; }
+  .icard.night { border-color: rgba(200, 144, 31, 0.5); background: var(--night-card); box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55); color: var(--on-night); }
+  .ic-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .ic-name { display: flex; align-items: baseline; gap: 5px; min-width: 0; font-family: var(--face-name); font-variation-settings: 'opsz' 90; font-weight: 600; font-size: 15px; letter-spacing: -0.01em; }
+  .ic-glyph { color: var(--gilt); }
+  .ic-kind { flex: none; font: 500 8.5px/1.2 var(--face-num); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); text-align: right; }
+  .night .ic-kind { color: var(--on-night-soft); }
+  .ic-sub { display: flex; align-items: center; gap: 5px; margin-top: 3px; font: 600 8.5px/1.3 var(--face-num); letter-spacing: 0.14em; text-transform: uppercase; color: var(--charter); }
+  .night .ic-sub { color: var(--charter-lit); }
+  .ic-fig { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 5px; font: 500 10.5px/1.3 var(--face-num); font-variant-numeric: tabular-nums; }
+  .ic-cost { font-weight: 600; color: var(--y-sci); }
+  .night .ic-cost { color: var(--y-sci-lit); }
+  .ic-dim { color: var(--ink-soft); }
+  .night .ic-dim { color: var(--on-night-soft); }
+  .ic-heading { margin: 10px 0 3px; font: 500 8.5px/1 var(--face-num); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+  .night .ic-heading { color: var(--on-night-faint); }
+  .ic-state { margin: 6px 0 0; font: 500 10px/1.45 var(--face-num); color: var(--ink-soft); }
+  .night .ic-state { color: var(--on-night-soft); }
+  .ic-state.wanting { font-family: var(--face-ui); font-size: 11px; font-style: italic; color: var(--vermilion); }
+  .night .ic-state.wanting { color: var(--unit-lit); }
+  .ic-state.planned, .night .ic-state.planned { color: var(--gilt); }
+  .ic-p { margin: 6px 0 0; }
+  .ledger { list-style: none; margin: 0; padding: 0; }
+  .ledger li { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; font-size: 11px; }
+  .ledger li + li { border-top: 1px solid var(--rule); }
+  .night .ledger li + li { border-top-color: rgba(247, 242, 225, 0.12); }
+  .ledger .v { flex: none; font: 500 11px/1.42 var(--face-num); font-variant-numeric: tabular-nums; }
+  .ledger li.is-premium .v { color: var(--charter); }
+  .night .ledger li.is-premium .v { color: var(--charter-lit); }
+  .ledger li.total { border-top: 1px solid var(--ink); font-weight: 600; }
+  .night .ledger li.total { border-top-color: var(--on-night-line); }
+  .ledger li.total .v { color: var(--y-sci); font-weight: 600; }
+  .night .ledger li.total .v { color: var(--y-sci-lit); }
+  .gifts { display: grid; gap: 3px; list-style: none; margin: 0; padding: 0; }
+  .gifts li { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .gifts .gn { flex: 1; min-width: 0; }
+  .icard:not(.night) .mk { border-color: var(--ink-faint); }
+  .icard:not(.night) .mk.unit { border-color: var(--vermilion); color: var(--type-military); }
+  .icard .flav { margin: 8px 0 0; font-family: var(--face-display); font-style: italic; font-size: 14px; line-height: 1.25; color: var(--on-night-soft); }
+  .icard .flav span { display: block; font: 600 8px/1 var(--face-num); font-style: normal; letter-spacing: 0.14em; text-transform: uppercase; color: var(--on-night-faint); margin-bottom: 2px; }
+  .lead-list li { justify-content: space-between; }
+  .lead-tag { font: 600 8.5px/1 var(--face-num); letter-spacing: 0.12em; text-transform: uppercase; color: var(--charter-lit); }
+
+  /* ---- toasts, drawer, splash ---- */
+  .toasts { display: grid; gap: 6px; width: min(380px, 100%); }
+  .toast { display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 7px 10px; border: 2px solid var(--ink); border-radius: 6px; background: var(--parchment); box-shadow: 3px 3px 0 var(--ink); color: var(--ink); font: 400 12px/1.35 var(--face-ui); text-align: left; cursor: pointer; }
+  .toast:hover { background: var(--table); }
+  .toast:active { transform: translate(1px, 1px); }
+  .toast-turn { flex: none; font: 600 9.5px/1.3 var(--face-num); font-variant-numeric: tabular-nums; color: var(--ink-faint); }
+  .toast-go { flex: none; margin-left: auto; font: 600 11px/1 var(--face-num); color: var(--ink-soft); }
+  .toast.is-in { animation: toast-in 240ms ease-out both; }
+  @keyframes toast-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+  .drawer { width: min(300px, 100%); padding: 6px 8px 8px 10px; border: 2px solid var(--rule); border-left: 4px solid var(--cobalt); border-radius: 6px; background: var(--parchment); color: var(--ink); }
+  .drawer-wrap { padding: 10px; background: var(--parchment); border: 3px solid var(--ink); border-radius: 10px; box-shadow: 4px 4px 0 var(--ink); width: min(330px, 100%); }
+  .dr-title { display: flex; align-items: baseline; gap: 0.35em; font-family: var(--face-name); font-weight: 600; font-size: 13.5px; }
+  .dr-title kbd { margin-left: auto; padding: 0 4px; border: 1.5px solid var(--rule); border-radius: 3px; font: 500 10px var(--face-num); color: var(--ink-soft); }
+  .dr-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; margin-top: 3px; }
+  .dr-glyph { color: var(--gilt); }
+  .dr-name { font-family: var(--face-name); font-weight: 600; font-size: 13px; }
+  .drawer .seal { --seal-hole: var(--parchment); color: var(--charter); }
+  .dr-fig { margin-left: auto; font: 500 10.5px var(--face-num); font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+  .dr-fig b { color: var(--ink); font-weight: 600; }
+  .dr-bar { display: block; height: 6px; margin-top: 5px; border: 1px solid var(--ink-faint); border-radius: 999px; overflow: hidden; background: rgba(29, 26, 32, 0.05); }
+  .dr-bar i { display: block; height: 100%; background: var(--lapis); }
+  .dr-note { margin-top: 3px; font: 500 10px var(--face-num); color: var(--ink-soft); }
+
+  .splash { display: inline-block; max-width: 100%; padding: 8px 22px 11px; border: 3px solid var(--gilt); border-radius: 10px; background: var(--ink); color: var(--parchment); font-family: var(--face-display); font-size: 1.55rem; line-height: 1.1; text-align: center; box-shadow: 6px 6px 0 var(--ink); transform: rotate(-0.6deg); }
+  .sp-eyebrow { display: block; margin-bottom: 5px; font: 600 9px/1 var(--face-num); letter-spacing: 0.2em; text-transform: uppercase; color: var(--charter-lit); }
+  .sp-name { font-family: var(--face-name); font-variation-settings: 'opsz' 100; font-weight: 600; color: var(--y-gold-lit); }
+  .sp-note { display: block; margin-top: 5px; font: 500 0.62rem/1.35 var(--face-ui); letter-spacing: 0.01em; color: rgba(247, 242, 225, 0.82); }
+  .splash.is-in { animation: splash-pop 280ms cubic-bezier(0.2, 1.5, 0.4, 1) both; }
+  @keyframes splash-pop { from { opacity: 0; transform: rotate(-0.6deg) scale(0.86); } to { opacity: 1; transform: rotate(-0.6deg) scale(1); } }
+
+  /* ---- the board, drawn small ---- */
+  .board { position: relative; height: 210px; margin: 12px; border: 2px solid rgba(29, 26, 32, 0.35); border-radius: 8px; background-color: var(--board-deep); background-image: var(--hexes); overflow: hidden; }
+  .banner { position: absolute; display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.22rem 0.8rem 0.22rem 0.32rem; border-radius: 999px; background: var(--ink); color: var(--parchment); box-shadow: 3px 3px 0 rgba(29, 26, 32, 0.35); }
+  .banner .pop { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border: 2px solid var(--parchment); border-radius: 999px; background: var(--seat-rival); font: 500 0.8rem var(--face-num); }
+  .banner.is-you .pop { background: var(--seat-you); }
+  .banner .bn { font-family: var(--face-name); font-weight: 560; font-size: 1rem; }
+  .roundel { position: absolute; display: grid; place-items: center; width: 34px; height: 34px; border: 2px solid var(--ink); border-radius: 50%; background: var(--seat, var(--seat-you)); color: var(--parchment); font: 600 13px/1 var(--face-num); box-shadow: 2px 2px 0 var(--ink); }
+  .roundel.is-rival { --seat: var(--seat-rival); }
+  .roundel.is-flip { animation: flip 520ms ease-in-out both; }
+  .roundel.is-up { box-shadow: 0 0 0 3px var(--gilt), 2px 2px 0 var(--ink); }
+  .roundel.is-pointed { box-shadow: 0 0 0 3px var(--parchment), 0 0 0 5px var(--ink); }
+  @keyframes flip { 0% { transform: rotateY(0); } 50% { transform: rotateY(90deg); } 100% { transform: rotateY(0); } }
+
+  /* ---- layouts used inside the screens ---- */
+  .film { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 14px; padding: 14px; }
+  .film-cell { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+  .film-cap { font: 600 0.62rem/1.3 var(--face-num); letter-spacing: 0.12em; text-transform: uppercase; color: var(--parchment); background: rgba(29, 26, 32, 0.72); padding: 0.2rem 0.55rem; border-radius: 4px; align-self: flex-start; }
+  .film-stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 200px; padding: 12px; border-radius: 8px; background: rgba(29, 26, 32, 0.18); min-width: 0; }
+  .film-stage.is-night { background: var(--night); border: 2px solid rgba(200, 144, 31, 0.45); }
+  .mini { position: relative; margin: 0 auto; }
+  .row-of-nodes { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
+  .pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 14px; padding: 14px; }
+  .leadwrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 272px); gap: 12px; margin-top: 12px; align-items: start; }
+  @media (max-width: 760px) { .leadwrap { grid-template-columns: minmax(0, 1fr); } }
+  .panel { min-width: 0; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+  .panel > .film-cap { margin-bottom: 2px; }
+  .panel-night { padding: 12px; background: var(--night); border: 2px solid rgba(200, 144, 31, 0.45); border-radius: 8px; width: 100%; }
+  .panel-paper { padding: 12px; background: var(--parchment); border: 2px solid var(--ink); border-radius: 8px; width: 100%; }
+  .stack { display: flex; flex-direction: column; gap: 12px; padding: 14px; }
+  .center { display: flex; justify-content: center; }
+
+  .compendium h4 { margin: 0; font-family: var(--face-name); font-weight: 600; font-size: 1.15rem; }
+  .compendium .c-eyebrow { font: 600 0.58rem/1.2 var(--face-num); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); }
+  .compendium dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 12px; margin: 8px 0; font-size: 0.82rem; }
+  .compendium dt { color: var(--ink-soft); }
+  .compendium dd { margin: 0; }
+  .compendium ul { margin: 6px 0 0; padding-left: 1rem; font-size: 0.82rem; }
+  .hidden-list { margin: 0; padding-left: 1.1rem; font-size: 0.85rem; }
+  .hidden-list li { margin-bottom: 0.25rem; }
+  .meter-lines { list-style: none; margin: 4px 0 0; padding: 0; }
+  .meter-lines li { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; font-size: 11px; }
+  .meter-lines li + li { border-top: 1px solid var(--rule); }
+  .meter-lines li.is-you { font-weight: 700; }
+  .meter-lines .v { font: 500 11px var(--face-num); }
+
+  /* ---- decisions ---- */
+  .closing { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+  @media (max-width: 900px) { .closing { grid-template-columns: minmax(0, 1fr); } }
+  .closing section { min-width: 0; }
+  .closing h3 { font-family: var(--face-display); font-weight: 400; font-size: 1.5rem; margin: 0 0 0.6rem; }
+  .closing ol { margin: 0; padding-left: 1.4rem; }
+  .closing li { margin-bottom: 0.65rem; font-size: 0.94rem; max-width: 62ch; }
+  .closing li::marker { font-family: var(--face-num); font-size: 0.8rem; color: var(--ink-soft); }
+  .rec { display: block; font-size: 0.86rem; color: var(--ink-soft); }
+  .added { margin-top: 1.4rem; padding: 0.9rem 1rem; background: var(--parchment); border: 2px solid var(--ink); border-radius: 8px; }
+  .added h4 { margin: 0 0 0.4rem; font: 600 0.66rem/1.2 var(--face-num); letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink-soft); }
+  .added ul { margin: 0; padding-left: 1.1rem; font-size: 0.9rem; }
+  .colophon { margin-top: 3rem; padding-top: 0.8rem; border-top: 1px solid var(--rule); font: 500 0.72rem/1.5 var(--face-num); color: var(--ink-soft); max-width: 90ch; }
+
+  .un.vn { white-space: normal; overflow: visible; line-height: 1.2; }
+  .mk.ver { border-color: var(--gilt); color: var(--y-gold-lit); }
+  .icard:not(.night) .mk.ver { border-color: var(--gilt); color: var(--type-economic); }
+  .uv.up { color: var(--y-gold-lit); font-weight: 600; }
+  .ledger.is-strength li.total .v { color: var(--ink); }
+  .roundel.is-glow { animation: trait-glow 1.4s ease-out both; }
+  @keyframes trait-glow { 0% { box-shadow: 0 0 0 0 rgba(200, 144, 31, 0.9), 2px 2px 0 var(--ink); } 45% { box-shadow: 0 0 0 8px rgba(200, 144, 31, 0.5), 2px 2px 0 var(--ink); } 100% { box-shadow: 0 0 0 3px var(--gilt), 2px 2px 0 var(--ink); } }
+  .tn-ability { display: block; padding-left: 21px; margin-top: -1px; font: italic 500 10.5px/1.3 var(--face-ui); color: var(--on-night-soft); }
+  .trait { color: var(--charter); font-weight: 600; }
+  .unitpair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Magister Ludi · UX prototype · charters, Scientific deck</p>
+    <h1>Charter <em>technologies</em></h1>
+    <p class="lede">A clickable walk through one game. Hypatia drafts The Mechanists' Charter on turn 78, researches Mechanics, and on turn 95 her catapults outside Luoyang gain the Onager trait. They keep it when they become Trebuchets. Each step is a screen the game already has. Beside each screen is a short note: what the player sees, why I chose it, and which file it extends.</p>
+    <dl class="facts">
+      <div><dt>Seat</dt><dd>Hypatia: Scientific and Magisterial decks. Four towns: Alexandria, Cyrene, Ptolemais, Naucratis.</dd></div>
+      <div><dt>Turn 78</dt><dd>Tier II. Science <span class="num">+124</span> a turn. Researching Horology, <span class="num">530/1150</span>.</dd></div>
+      <div><dt>Holds</dt><dd>The Commonplace Book, seated: charter technologies cost <span class="num">15%</span> less.</dd></div>
+      <div><dt>Charter technologies known</dt><dd>Casting (turn <span class="num">30</span>) and Cataloguing (turn <span class="num">45</span>).</dd></div>
+      <div><dt>Met</dt><dd>Emperor Taizong and Mansa Musa.</dd></div>
+      <div><dt>Figures</dt><dd>Column prices from <code>docs/tech-tree.md</code>. Each charter technology costs its column times <span class="num">1.5</span>.</dd></div>
+      <div><dt>Line traits</dt><dd>Onager, Repeating Crossbow, Hoplite and Maryannu, from the deck pass (<code>docs/plans/scientific-themes.md</code>, section 3). A trait belongs to a unit line and stays when the unit upgrades.</dd></div>
+    </dl>
+    <p class="inputs"><strong>New player inputs: none</strong><span>The player drafts a card, clicks a star, shift-clicks to queue, and clicks a toast. All four exist today.</span></p>
+  </header>
+
+  <nav class="rail" aria-label="Steps">
+    <ol>
+      <li><a href="#step-1"><span>1</span>Draft</a></li>
+      <li><a href="#step-2"><span>2</span>Drafted</a></li>
+      <li><a href="#step-3"><span>3</span>Star chart</a></li>
+      <li><a href="#step-4"><span>4</span>Research</a></li>
+      <li><a href="#step-5"><span>5</span>Completion</a></li>
+      <li><a href="#step-6"><span>6</span>Rival</a></li>
+      <li><a href="#step-7"><span>7</span>The lead</a></li>
+      <li><a href="#decisions"><span>·</span>Decisions</a></li>
+    </ol>
+  </nav>
+
+  <!-- ===================================================== 1 -->
+  <section class="step" id="step-1" aria-labelledby="h-1">
+    <div class="step-head"><span class="step-no">1</span><h2 id="h-1">The draft hand, with a <em>charter</em> in it</h2><span class="when">Turn 78 · Tier II draft</span></div>
+    <div class="step-grid">
+      <div class="screen is-dim">
+        <span class="whose">Hypatia's screen · turn 78</span>
+        <div class="sheet" role="group" aria-label="Order draft">
+          <div class="sheet-head">
+            <p class="sheet-eyebrow">tier 11 · the culture meter is full</p>
+            <p class="sheet-title">Write it into law</p>
+            <p class="sheet-note">A new Order joins your collection. Placing it in a chair is a separate act.</p>
+          </div>
+          <div class="hand" id="hand"></div>
+          <div class="answers">
+            <button class="btn" type="button" id="pass-btn">⊘ Pass</button>
+            <span class="btn" aria-hidden="true" style="cursor:default">View map <small>M</small></span>
+            <small>the offer waits · nothing is spent</small>
+          </div>
+          <p class="pick-says" id="pick-says" aria-live="polite">Press a card to take it.</p>
+        </div>
+      </div>
+      <div class="note">
+        <section>
+          <h3>What the player sees</h3>
+          <p>The charter is dealt like any Order. Its face keeps the A3 frame: the suit for the deck, the ink for the type, the rank for the rarity. The chip says it takes no chair.</p>
+          <p>Two things are new. The first clause says what it opens and that no other empire may research it. Under the clauses sits a <b>slip</b>: a small piece of the star chart with the technology, its age, its price as a list, and the turns at the current rate.</p>
+        </section>
+        <section>
+          <h3>Why</h3>
+          <p>The choice here is a chair card now, or a research path. The player cannot judge the path without its price, and the price is not an ordinary column price. So the price list goes where the choice is made.</p>
+          <p>The slip uses the star chart's night colours. The player learns at once that this card is about the chart.</p>
+        </section>
+        <section>
+          <h3>Extends</h3>
+          <ul>
+            <li><code>offerCard.ts</code> <code>faceBody</code>: one optional slip block, beside the commission counter.</li>
+            <li><code>statecraft/describers.ts</code>: a live clause replaces today's struck-through "drafting this opens the study of mechanics for research".</li>
+            <li><code>deckBadges.ts</code> (the charter chip) and <code>suitFace.ts</code>: unchanged.</li>
+          </ul>
+          <a class="next" href="#step-2">Next: the pick →</a>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== 2 -->
+  <section class="step" id="step-2" aria-labelledby="h-2">
+    <div class="step-head"><span class="step-no">2</span><h2 id="h-2">The moment of <em>drafting</em></h2><span class="when">Turn 78 · three beats</span></div>
+    <div class="step-grid">
+      <div class="screen">
+        <span class="whose">Hypatia's screen · turn 78</span>
+        <div class="film">
+          <div class="film-cell">
+            <span class="film-cap">1 · the pick</span>
+            <div class="film-stage" id="film-pick"></div>
+          </div>
+          <div class="film-cell">
+            <span class="film-cap">2 · the sheet closes</span>
+            <div class="film-stage">
+              <div class="toasts" id="film-toasts"></div>
+              <div class="drawer-wrap" aria-label="Empire drawer, research section">
+                <div class="drawer">
+                  <div class="dr-title"><span>Research</span><span aria-hidden="true">→</span><kbd>T</kbd></div>
+                  <div class="dr-line"><span class="dr-glyph">⏳</span><span class="dr-name">Horology</span><span class="dr-fig"><b>530/1150</b><i class="ym sci"></i> · +124 a turn · 5t</span></div>
+                  <span class="dr-bar"><i style="width:46%"></i></span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="film-cell">
+            <span class="film-cap">3 · the toast opens the chart</span>
+            <div class="film-stage is-night"><div class="mini" id="film-chart"></div></div>
+          </div>
+        </div>
+        <div class="controls" style="padding:0 14px 14px"><button class="btn" type="button" id="replay-2">⟳ Play the three beats again</button></div>
+      </div>
+      <div class="note">
+        <section>
+          <h3>What the player sees</h3>
+          <p>The card takes a rubber stamp: <b>Opened · Mechanics</b>. The sheet closes. One toast says "Mechanics is open for research. Only you may research it."</p>
+          <p>A click on the toast opens the star chart, centred on Mechanics, with a ring around it for a moment. Research does not change. Horology goes on.</p>
+        </section>
+        <section>
+          <h3>Why</h3>
+          <p>The pick must not choose research for the player. The toast is the one line of news, and its click is the shortest way to the node. The game already makes "Granary completed in Uruk" a toast you can click.</p>
+          <p>The stamp is the "thunk" face that occasion cards already use. A charter pays nothing per turn, so a count-up figure would be wrong. A stamp is right.</p>
+        </section>
+        <section>
+          <h3>Extends</h3>
+          <ul>
+            <li><code>cardStamp.ts</code>: the thunk face, with "Opened" and the technology's name.</li>
+            <li><code>notifications.ts</code>: one new <code>NotificationAction</code> kind that opens the star chart at a technology. <code>toasts.ts</code> needs no change.</li>
+            <li><code>techTree.ts</code> <code>centreOn</code>, and a one-time ring class.</li>
+          </ul>
+          <a class="next" href="#step-3">Next: the chart →</a>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== 3 -->
+  <section class="step" id="step-3" aria-labelledby="h-3">
+    <div class="step-head"><span class="step-no">3</span><h2 id="h-3">The star chart, with a <em>charter shelf</em></h2><span class="when">Turn 78 · columns 3 to 9 of 13</span></div>
+    <div class="step-grid is-wide">
+      <div class="screen is-dark">
+        <div class="techsheet" id="chart-sheet">
+          <div class="tech-head">
+            <div class="tech-titles">
+              <p class="tech-eyebrow">the magister's star chart</p>
+              <h3 class="tech-title" id="chart-title">Horology</h3>
+            </div>
+            <p class="tech-hint" id="chart-hint" aria-live="polite">click a star to aim · <kbd>shift</kbd>-click to queue · scroll or drag to travel</p>
+            <button class="lead" type="button" id="chart-lead" aria-describedby="lead-desc"><small>lead</small><b id="chart-lead-n">3</b></button>
+            <span id="lead-desc" class="sr-only">Technologies you know that no empire you have met knows. Hover or focus to read the list.</span>
+            <button class="tech-close" type="button" aria-label="Close the star chart (inert in this prototype)" tabindex="-1">✕</button>
+          </div>
+          <div class="chartwrap" id="chartwrap">
+            <div class="chart-frame">
+              <div class="chart" id="chart" tabindex="0" aria-label="Star chart, columns 3 to 9">
+                <div class="field" id="field"></div>
+              </div>
+              <button class="shelf-tab" id="shelf-tab" type="button" hidden><span data-seal></span>Charters <b id="shelf-tab-n">3</b><span class="arrow" aria-hidden="true">↓</span></button>
+            </div>
+            <div class="dock">
+              <p class="dock-cap">The hover card. In the game it follows the pointer; here it is docked.</p>
+              <div id="dock" aria-live="polite"></div>
+            </div>
+          </div>
+          <div class="planstrip" id="planstrip" hidden></div>
+          <div class="chart-foot">
+            <p>Try: hover Mechanics. Click it to aim, or shift-click to queue it after Horology. Then press Narrow window below and scroll the chart.</p>
+            <button class="night-btn" type="button" id="chart-reset">Reset the chart</button>
+          </div>
+        </div>
+      </div>
+      <div class="viewbar" role="group" aria-label="Prototype view">
+        <span>Prototype view, not a game control:</span>
+        <button class="btn" type="button" id="view-wide" aria-pressed="true">Wide window</button>
+        <button class="btn" type="button" id="view-narrow" aria-pressed="false">Narrow window</button>
+      </div>
+      <div class="legend" id="legend" aria-label="The three states of a charter node"></div>
+      <div class="beforeafter">
+        <figure>
+          <figcaption><b>Turn 13 · no charter drafted yet</b>No shelf, no sepia rule, no tab. The chart is the sky alone.</figcaption>
+          <div class="ba-stage"><div class="mini" id="ba-before"></div></div>
+        </figure>
+        <figure>
+          <figcaption><b>Turn 14 · The Bronze-Founders' Charter drafted</b>The shelf appears with its first node, Casting, one column right of Bronzeworking.</figcaption>
+          <div class="ba-stage"><div class="mini" id="ba-after"></div></div>
+        </figure>
+      </div>
+      <div class="note">
+        <section>
+          <h3>What the player sees</h3>
+          <p>A shelf at the foot of the chart, under a sepia rule: <b>Charters · yours alone</b>. It holds only the charter technologies Hypatia has drafted: Casting, Cataloguing and Mechanics. Each sits one column right of its ordinary parent, with a dotted sepia line from the parent. The age washes run through the shelf.</p>
+          <p>The node face shows the total price, as every node does. The hover card lists the price: the column, the charter premium, The Commonplace Book's discount, the total.</p>
+          <p>A military charter gives a <b>trait</b> to a whole line of units you already build. On the face, a trait shows its name, its bonus and its ability where an unlock shows a price, because a trait changes no price.</p>
+        </section>
+        <section>
+          <h3>Why a shelf, and when</h3>
+          <p>The lanes are the user's drawing. A shelf leaves the sky as it is, keeps every charter path in one row, and keeps "a column is a price": column 8 times one and a half.</p>
+          <p>The shelf exists only after the first charter is drafted. Before that the chart has no shelf, no rule and no tab. The draft that brings the first charter also brings the shelf (the two crops above).</p>
+          <p>Considered and set aside: a node beside its parent in the sky (moves the lanes), and a separate charter screen (a new screen).</p>
+        </section>
+        <section>
+          <h3>The tab, when the shelf is out of view</h3>
+          <p>If no charter node is in view, a sepia tab sits on the chart's edge, on the side where the nearest one is: <b>Charters</b>, the count, and an arrow. A click scrolls to that node and rings it, as the toast does. When a charter node comes into view, the tab goes. Press <b>Narrow window</b> and scroll to try it.</p>
+          <h3 style="margin-top:1rem">Extends</h3>
+          <ul>
+            <li><code>techTree.ts</code>: <code>renderChart</code>, <code>paintNode</code>, <code>techCard</code>, and the tab, which reads the stage's scroll position and moves it as <code>centreOn</code> does.</li>
+            <li><code>techFit.ts</code>: <code>packChart</code> packs the shelf as a second field; <code>fitPacked</code> shrinks both together.</li>
+            <li><code>tech.ts</code>: a cost list <code>explainTechCost</code> and its fold (rule 5).</li>
+            <li><code>style.css</code>: <code>.tech-node.is-charter</code>, the tab, and one token for sepia on night.</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== 4 -->
+  <section class="step" id="step-4" aria-labelledby="h-4">
+    <div class="step-head"><span class="step-no">4</span><h2 id="h-4">Research it like <em>any</em> star</h2><span class="when">Turns 78 to 94</span></div>
+    <div class="step-grid">
+      <div class="screen is-dark">
+        <div class="pair">
+          <div class="panel">
+            <span class="film-cap">Turn 78 · shift-click Mechanics</span>
+            <div class="panel-night">
+              <div class="planstrip" style="margin:0;padding:0;border:0">
+                <span class="ps-label">the plan</span>
+                <ol class="ps-list">
+                  <li class="chip"><span class="place">1</span><span class="nm">Horology</span><span class="t">~5t</span><span class="x" aria-hidden="true">✕</span></li>
+                  <li class="chip is-charter"><span class="place">2</span><span data-seal></span><span class="nm">Mechanics</span><span class="t">~17t</span><span class="x" aria-hidden="true">✕</span></li>
+                </ol>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <span class="film-cap">Turn 78 · or a plain click</span>
+            <div id="setaside"></div>
+          </div>
+          <div class="panel">
+            <span class="film-cap">Turn 86 · the empire drawer</span>
+            <div class="drawer-wrap">
+              <div class="drawer">
+                <div class="dr-title"><span>Research</span><span aria-hidden="true">→</span><kbd>T</kbd></div>
+                <div class="dr-line"><span class="dr-glyph">⚙</span><span class="dr-name">Mechanics</span><span data-seal></span><span class="dr-fig"><b>372/1466</b><i class="ym sci"></i> · +124 a turn · 9t</span></div>
+                <span class="dr-bar"><i style="width:25.4%"></i></span>
+                <div class="dr-note">next: Theology</div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <span class="film-cap">Turn 86 · the node</span>
+            <div class="panel-night center"><div id="node-86"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="note">
+        <section>
+          <h3>What the player sees</h3>
+          <p>A click on Mechanics aims at it. A shift-click queues it behind Horology. The plan strip, the empire drawer and the node all show it as they show any technology, with the same lapis bar. The only mark is a small sepia seal beside its name.</p>
+          <p>A plain click sets Horology aside. Its 530 beakers stay on its node, as they do today.</p>
+        </section>
+        <section>
+          <h3>Why</h3>
+          <p>No new input, and no new rule to learn. The seal lets the player see at a glance which beakers go to a path nobody else has. The figure <b>1466</b> is the folded price, so the drawer and the chart quote one number.</p>
+        </section>
+        <section>
+          <h3>Extends</h3>
+          <ul>
+            <li><code>techTree.ts</code>: <code>renderPlanStrip</code> and <code>renderStatus</code> add the seal.</li>
+            <li><code>researchProgress.ts</code>: reads the folded cost, not <code>def.cost</code>.</li>
+            <li><code>empireDrawer.ts</code> and <code>queueTurns</code>: unchanged.</li>
+          </ul>
+          <a class="next" href="#step-5">Next: turn 95 →</a>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== 5 -->
+  <section class="step" id="step-5" aria-labelledby="h-5">
+    <div class="step-head"><span class="step-no">5</span><h2 id="h-5">Completion: the army gains its <em>trait</em> in place</h2><span class="when">Turn 95 · mid-siege</span></div>
+    <div class="step-grid">
+      <div class="screen">
+        <span class="whose">Hypatia's screen · turn 95</span>
+        <div class="stack">
+          <div class="center"><div class="splash" id="splash"><span class="sp-eyebrow">your charter technology</span><span class="sp-name">Mechanics</span> mastered<span class="sp-note">3 catapults gained Onager (+2, +1 range) · 2 composite bowmen gained Repeating Crossbow (+2, may move after they shoot)</span></div></div>
+          <div class="board" id="board-95" aria-label="The board outside Luoyang">
+            <span class="banner" style="right:6%;top:18%"><span class="pop">9</span><span class="bn">Luoyang</span></span>
+          </div>
+          <div class="toasts" id="toasts-95"></div>
+          <div class="unitpair">
+            <div class="panel">
+              <span class="film-cap">Turn 95 · the unit card</span>
+              <div class="icard" style="width:100%">
+                <div class="ic-head"><span class="ic-name"><span class="mk unit">K</span>Catapult <span class="trait">· Onager</span></span><span class="ic-kind">Hypatia · engine</span></div>
+                <div class="ic-fig"><span>Ranged <b>44</b></span><span>range <b>3</b></span><span class="ic-dim">71/100 hp</span></div>
+                <p class="ic-heading">Ranged strength</p>
+                <ul class="ledger is-strength"><li><span>Catapult</span><span class="v">42</span></li><li class="is-premium"><span>Mechanics · Onager</span><span class="v">+2</span></li><li class="total"><span>Total</span><span class="v">44</span></li></ul>
+                <p class="ic-heading">Range</p>
+                <ul class="ledger is-strength"><li><span>Catapult</span><span class="v">2</span></li><li class="is-premium"><span>Mechanics · Onager</span><span class="v">+1</span></li><li class="total"><span>Total</span><span class="v">3</span></li></ul>
+              </div>
+            </div>
+            <div class="panel">
+              <span class="film-cap">Turn 120 · after Natural Philosophy</span>
+              <div class="icard" style="width:100%">
+                <div class="ic-head"><span class="ic-name"><span class="mk unit">E</span>Trebuchet <span class="trait">· Onager</span></span><span class="ic-kind">Hypatia · engine</span></div>
+                <div class="ic-fig"><span>Ranged <b>50</b></span><span>range <b>3</b></span><span class="ic-dim">100/100 hp</span></div>
+                <p class="ic-heading">Ranged strength</p>
+                <ul class="ledger is-strength"><li><span>Trebuchet</span><span class="v">48</span></li><li class="is-premium"><span>Mechanics · Onager</span><span class="v">+2</span></li><li class="total"><span>Total</span><span class="v">50</span></li></ul>
+                <p class="ic-heading">Range</p>
+                <ul class="ledger is-strength"><li><span>Trebuchet</span><span class="v">2</span></li><li class="is-premium"><span>Mechanics · Onager</span><span class="v">+1</span></li><li class="total"><span>Total</span><span class="v">3</span></li></ul>
+                <p class="ic-state">Upgraded on turn 120. The trait stayed.</p>
+              </div>
+            </div>
+          </div>
+          <div class="panel-night"><div class="row-of-nodes" id="known-95"></div></div>
+          <div class="controls"><button class="btn" type="button" id="replay-5">⟳ Play turn 95 again</button></div>
+        </div>
+      </div>
+      <div class="note">
+        <section>
+          <h3>What the player sees</h3>
+          <p>The technology splash, as for any technology, with one new eyebrow line: "your charter technology". Under it, the tally says what changed: 3 catapults gained Onager (+2, +1 range), and 2 composite bowmen gained Repeating Crossbow.</p>
+          <p>On the board each piece glows once. Its type does not change, so it keeps its name, health and rank. The unit card shows the trait after the name, <b>Catapult · Onager</b>, and lists strength and range with the trait as its own line. On turn 120 Natural Philosophy turns it into a Trebuchet in place, and it is still <b>Trebuchet · Onager</b>, at range 3.</p>
+          <p>A toast says where the pieces are. A click pans the camera there. On the chart, Mechanics is now known, and it wears the gilt corner of the lead.</p>
+        </section>
+        <section>
+          <h3>Why</h3>
+          <p>A trait is not a new unit, so there is no new row, no flip and no new price. The trait tally takes the upgrade tally's place in the splash, because both answer one question: what did this technology do to my army? The trait belongs to the line, so every later upgrade keeps it (ruled 2026-10-21: "It keeps it once it upgrades").</p>
+          <p>The glow marks the pieces that changed this turn. A lasting badge on the piece is a later art decision, so none is drawn.</p>
+        </section>
+        <section>
+          <h3>Extends</h3>
+          <ul>
+            <li><code>turnSplash.ts</code> <code>announceTech</code>: one optional eyebrow.</li>
+            <li><code>tech.ts</code>: a trait tally beside <code>describeUpgrade</code> ("3 catapults gained Onager").</li>
+            <li><code>unitPanel.ts</code>: the trait after the unit's name, and its lines in the strength and range lists. The piece fingerprint does not change.</li>
+            <li><code>toasts.ts</code>: a toast with a <code>pan</code> action, the kind that exists.</li>
+          </ul>
+          <a class="next" href="#step-6">Next: what Taizong sees →</a>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== 6 -->
+  <section class="step" id="step-6" aria-labelledby="h-6">
+    <div class="step-head"><span class="step-no">6</span><h2 id="h-6">What a <em>rival</em> sees</h2><span class="when">Turn 97 · Emperor Taizong, who has met Hypatia</span></div>
+    <div class="step-grid">
+      <div class="screen">
+        <span class="whose is-rival">Taizong's screen · turn 97</span>
+        <div class="board" id="board-97" style="height:290px" aria-label="Taizong's board outside Luoyang">
+          <span class="banner is-you" style="right:5%;bottom:6%"><span class="pop">9</span><span class="bn">Luoyang</span></span>
+        </div>
+        <div class="pair" style="padding-top:0">
+          <div class="panel">
+            <span class="film-cap">The Compendium · public rules</span>
+            <div class="panel-paper compendium">
+              <span class="c-eyebrow">Empire technology · charter</span>
+              <h4>⚙ Mechanics</h4>
+              <dl>
+                <dt>Research cost</dt><dd><span style="font-family:var(--face-num)">1150</span> for column 8, and half again: <b style="font-family:var(--face-num)">1725</b><i class="ym sci" style="color:var(--y-sci)"></i></dd>
+                <dt>Requires first</dt><dd>Mathematics</dd>
+                <dt>Opened by</dt><dd><b>The Mechanists' Charter</b> (Scientific)</dd>
+              </dl>
+              <ul>
+                <li>Only an empire that drafted The Mechanists' Charter may research it.</li>
+                <li>Gives two line traits. A unit keeps its trait when it upgrades, and no unit costs more.</li>
+                <li><b>Onager</b>, catapult line (Catapult, Trebuchet): +2 strength and +1 range.</li>
+                <li><b>Repeating Crossbow</b>, archer line (Archer to Crossbowman): +2 strength, and it may move after it shoots.</li>
+                <li>When it lands, every unit of both lines gains its trait.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="panel">
+            <span class="film-cap">The age card · top bar</span>
+            <div class="icard" style="width:100%">
+              <div class="ic-head"><span class="ic-name">The Age of the World</span><span class="ic-kind">Æra III</span></div>
+              <p class="ic-heading">the empires</p>
+              <ul class="meter-lines">
+                <li class="is-you"><span>Emperor Taizong</span><span class="v">Æra III</span></li>
+                <li><span>Hypatia</span><span class="v">Æra III</span></li>
+                <li><span>Mansa Musa</span><span class="v">Æra II</span></li>
+              </ul>
+            </div>
+            <span class="film-cap">Never shown to Taizong</span>
+            <div class="panel-paper">
+              <ul class="hidden-list">
+                <li>Which charters Hypatia holds, beyond what her units and buildings show.</li>
+                <li>Her charter shelf.</li>
+                <li>Her research plan and her progress on Mechanics.</li>
+                <li>Her lead.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="note">
+        <section>
+          <h3>What Taizong sees</h3>
+          <p>Hypatia's catapults on the board, because units are public. The hover card on one shows the trait after the unit's name, <b>Catapult · Onager</b>, and lists strength and range with the trait as its own line: Catapult 42, Mechanics · Onager +2; range 2, Mechanics · Onager +1.</p>
+          <p>His own chart has no shelf, because he has drafted no charter. The Compendium lists Mechanics like every technology, because rules are public.</p>
+        </section>
+        <section>
+          <h3>Why</h3>
+          <p>The board is public and the rules are public. Your draft and your research are not.</p>
+          <p>A unit's figures are lists in this game (rule 5), so the trait is one labelled line, as terrain or a general is in a fight. The line prints on every unit of the line for every viewer. It says nothing about Hypatia that the unit on the board does not already say.</p>
+        </section>
+        <section>
+          <h3>Extends</h3>
+          <ul>
+            <li>The unit hover card (<code>unitPanel.ts</code>, the enemy-unit card): the trait after the name, and as labelled lines.</li>
+            <li><code>compendium.ts</code> <code>techEntry</code>: an "Opened by" row, and the price without any empire's cards.</li>
+            <li><code>topBar.ts</code> <code>ageCard</code>: unchanged.</li>
+          </ul>
+          <a class="next" href="#step-7">Next: the lead →</a>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== 7 -->
+  <section class="step" id="step-7" aria-labelledby="h-7">
+    <div class="step-head"><span class="step-no">7</span><h2 id="h-7">The <em>lead</em>: what only you know</h2><span class="when">Turn 96 · feature B, accepted 2026-10-20</span></div>
+    <div class="step-grid">
+      <div class="screen is-dark">
+        <div class="techsheet" style="margin:14px">
+          <div class="tech-head">
+            <div class="tech-titles">
+              <p class="tech-eyebrow">the magister's star chart</p>
+              <h3 class="tech-title">Theology</h3>
+            </div>
+            <p class="tech-hint">click a star to aim · <kbd>shift</kbd>-click to queue</p>
+            <button class="lead" type="button" aria-expanded="true" aria-controls="lead-card-96"><small>lead</small><b>4</b></button>
+          </div>
+          <div class="leadwrap">
+            <div class="row-of-nodes" id="lead-nodes" style="justify-content:flex-start;align-content:flex-start"></div>
+            <div id="lead-card-96"></div>
+          </div>
+        </div>
+        <div class="pair" style="padding-top:0">
+          <div class="panel">
+            <span class="film-cap">A seated card that reads the lead</span>
+            <div class="center" style="width:100%;padding:6px 0 10px" id="seat-secret"></div>
+          </div>
+          <div class="panel">
+            <span class="film-cap">Where the lead does not appear</span>
+            <div class="panel-paper">
+              <ul class="hidden-list">
+                <li>Not on the top bar. It changes a few times a game.</li>
+                <li>Not in the empire drawer. That shows what you are learning, not what you know.</li>
+                <li>Never on a rival's screen.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="note">
+        <section>
+          <h3>What the player sees</h3>
+          <p>One figure in the star chart's head: <b>lead 4</b>. Its hover card lists the four technologies and the empires counted against. Each node in the lead wears a gilt corner. A seated card that reads the lead, such as The Secret Arts, shows it in its stamp.</p>
+        </section>
+        <section>
+          <h3>Why here</h3>
+          <p>The lead is a fact about research, so it lives on the research screen. Charter technologies are always in it, which makes "yours alone" a number the player can watch. Mathematics left the lead on turn 90, when Taizong learned it. The corner shows that too.</p>
+          <p>It counts met empires only, so no hidden information leaks.</p>
+        </section>
+        <section>
+          <h3>Extends</h3>
+          <ul>
+            <li><code>techTree.ts</code>: the head figure, and one class in <code>paintNode</code>.</li>
+            <li>Feature B's memo over met empires, in the sim.</li>
+            <li><code>cardStamp.ts</code>: unchanged. The Secret Arts and The Proving Ground stamp what they pay.</li>
+          </ul>
+          <a class="next" href="#decisions">Next: decisions and questions →</a>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== decisions -->
+  <section class="step" id="decisions" aria-labelledby="h-d">
+    <div class="step-head"><span class="step-no">·</span><h2 id="h-d">Decisions, and the <em>questions</em> for you</h2></div>
+    <div class="closing">
+      <section>
+        <h3>Decisions</h3>
+        <ol>
+          <li><b>A charter shelf at the foot of the star chart.</b> Same columns and ages as the sky. Each node sits one column right of its one ordinary parent, so its column still sets its price. The user's lanes do not move.</li>
+          <li><b>The shelf holds drafted charter technologies only, and does not exist before the first charter.</b> <span class="rec">Ruled 2026-10-21: "only show if drafted. Also, if no charters have been drafted, don't show the section."</span></li>
+          <li><b>A tab shows a shelf that is out of view.</b> It sits on the chart's edge toward the nearest charter node, with the count and an arrow. A click scrolls there and rings the node. <span class="rec">Asked for in the same ruling: "some indicator that it's there for screens that aren't wide enough."</span></li>
+          <li><b>The premium is a labelled line, and The Commonplace Book takes 15% off the whole charter price.</b> The price list is on the hover card and the card's slip; a node face shows only the total. The list appears on any node with more than one price line. <span class="rec">The discount ruled "great", 2026-10-21.</span></li>
+          <li><b>A military charter gives a trait to a whole unit line, never a unit early.</b> A small bonus (+1 at Tier 0, +2 at Tier II) and one ability. The line gains it on the turn the technology lands and keeps it through every upgrade: <b>Catapult · Onager</b> becomes <b>Trebuchet · Onager</b>. No new unit row, no change in cost. A node face shows the trait where an unlock shows a price. <span class="rec">Ruled 2026-10-21: "It keeps it once it upgrades." This answers the earlier question about the line's next unit.</span></li>
+          <li><b>The charter card carries a slip of the star chart.</b> The technology, its age, its price list and its turns, on the card face.</li>
+          <li><b>Drafting changes no research.</b> A stamp, one toast, and a click to the chart.</li>
+          <li><b>Research is unchanged.</b> Click aims, shift-click queues. The plan strip, drawer and node add a small seal.</li>
+          <li><b>Completion uses the technology splash.</b> One eyebrow line, and a trait tally in the upgrade tally's place.</li>
+          <li><b>Rivals see the board and the rules.</b> Never your shelf, plan, progress or lead. A unit's hover card shows its trait after its name and as labelled lines, on every copy.</li>
+          <li><b>Charter technologies do not count in a rival's gap.</b> <span class="rec">Answered "yes, this seems fun" on that recommendation. Read as agreeing, to confirm.</span></li>
+          <li><b>The lead is one figure in the chart's head,</b> a gilt corner on each node in it, and the stamp of any card that reads it. Nowhere else.</li>
+        </ol>
+        <div class="added">
+          <h4>Added to existing pieces (no new inputs)</h4>
+          <ul>
+            <li>A <code>NotificationAction</code> kind that opens the star chart at a technology.</li>
+            <li>The out-of-view tab on the star chart. Its click only scrolls the chart, as a drag or the arrow keys already do.</li>
+            <li>The tech hover card: a price list, the line traits, and "these gain the trait" lines.</li>
+            <li>The unit card and the enemy-unit hover card: the trait after the unit's name, and its labelled lines.</li>
+            <li>The splash: a trait tally beside the upgrade tally.</li>
+            <li>One colour token: the charter sepia, lifted for the night chart.</li>
+          </ul>
+        </div>
+      </section>
+      <section>
+        <h3>Open questions</h3>
+        <ol>
+          <li><b>Does a charter technology count toward an empire's age?</b> <span class="rec">Working assumption: no. Gunfounding (Æra IV) learned early would otherwise move Hypatia's age, the world's age and the beads.</span></li>
+          <li><b>The parents, columns and glyphs of the charter technologies are placeholders.</b> <span class="rec">Your chart places them. I chose parents that keep each one inside its age.</span></li>
+        </ol>
+      </section>
+    </div>
+    <p class="colophon">Prototype only. Nothing in the game has changed. Sources: <code>docs/plans/scientific-themes.md</code> section 3 (the fifteen charters and the engine glue) and section 6 (feature B); <code>docs/decks/deck-design.md</code> "How charters work"; <code>docs/tech-tree.md</code> for column prices; <code>data/units.json</code> and <code>data/buildings.json</code> for sizes, glyphs and strengths. Unit and building prices follow the size table and <code>columnRate</code> 1.31.</p>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------------------------------------------------------------- figures
+  var COST = [5, 11, 24, 50, 100, 190, 360, 650, 1150, 1960, 3250, 5150, 8000];
+  var RATE = 124;
+  var DISCOUNT = 15;
+  var SEAT = 'Hypatia';
+  var MINUS = '−';
+  var SCI = '<i class="ym sci" role="img" aria-label="science"></i>';
+  var PROD = '<i class="ym prod" role="img" aria-label="production"></i>';
+  var SEAL = '<svg class="seal" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.2l1.5 1.3 2-.3.7 1.9 1.9.7-.3 2L15 8l-1.3 1.5.3 2-1.9.7-.7 1.9-2-.3L8 14.8l-1.5-1.3-2 .3-.7-1.9-1.9-.7.3-2L1 8l1.3-1.5-.3-2 1.9-.7.7-1.9 2 .3Z"/><circle cx="8" cy="8" r="3.1"/></svg>';
+  var NUM = ['', 'I', 'II', 'III', 'IV'];
+  var AGE_NAME = ['', 'Omens', 'Heroes', 'Empire', 'Cathedrals'];
+  function ageOf(col) { return col <= 3 ? 1 : col <= 5 ? 2 : col <= 8 ? 3 : 4; }
+  function signed(n) { return n < 0 ? MINUS + Math.abs(n) : '+' + n; }
+  var reduceMotion = false;
+  try { reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { reduceMotion = false; }
+
+  // disc: the seat's discount in percent (The Commonplace Book); a view may pass 0.
+  function priceOf(n, disc) {
+    var d = disc === undefined ? DISCOUNT : disc;
+    var base = COST[n.col];
+    if (!n.charter) return { lines: [{ label: 'Column ' + n.col, v: base }], total: base };
+    var prem = Math.floor(base / 2);
+    var sub = base + prem;
+    var lines = [
+      { label: 'Column ' + n.col, v: base },
+      { label: 'Charter, half again', v: prem, signed: true, premium: true }
+    ];
+    var total = sub;
+    if (d) {
+      total = Math.floor(sub * (100 - d) / 100);
+      lines.push({ label: 'The Commonplace Book ' + MINUS + d + '%', v: total - sub, signed: true });
+    }
+    return { lines: lines, total: total };
+  }
+
+  // ---------------------------------------------------------------- the slice of the tree
+  // [kind, name, price, glyph]; kind u = unit, b = building, i = improvement, r = rule
+  var NODES = [
+    { id: 'writing', name: 'Writing', g: '📜', col: 3, row: 1, pre: [], st: 'known', gifts: [['b', 'Library', 51], ['b', 'The Great Ziggurat', 223]], more: 1 },
+    { id: 'theWheel', name: 'The Wheel', g: '☸', col: 3, row: 3, pre: [], st: 'known', gifts: [['u', 'War Chariot', 51, 'C'], ['u', 'Chariot Archer', 51, 'Y']], more: 1 },
+    { id: 'epicPoetry', name: 'Epic Poetry', g: '🎼', col: 4, row: 0, pre: ['writing'], st: 'known', gifts: [['b', 'Amphitheater', 89], ['b', 'The Theatre of Dionysus', 292]], more: 1 },
+    { id: 'chronology', name: 'Chronology', g: '📿', col: 4, row: 1, pre: ['writing'], st: 'known', gifts: [['b', 'Chart the Stars', 134]] },
+    { id: 'bronzePanoply', name: 'Bronze Panoply', g: '🛡', col: 4, row: 3, pre: ['theWheel'], st: 'known', gifts: [['u', 'Phalanx', 46, 'L'], ['u', 'Swordsman', 46, 'X']], more: 2 },
+    { id: 'currency', name: 'Currency', g: '💰', col: 4, row: 5, pre: ['theWheel'], st: 'known', gifts: [['b', 'Market', 89], ['b', 'The Mausoleum', 292]], more: 1 },
+    { id: 'highTemple', name: 'The High Temple', g: '🕌', col: 5, row: 0, pre: ['epicPoetry'], st: 'known', gifts: [['b', 'Temple', 117], ['b', 'High Temple', 176]], more: 1 },
+    { id: 'codeOfLaws', name: 'Code of Laws', g: '👑', col: 5, row: 1, pre: ['chronology'], st: 'known', gifts: [['b', 'Imperial Throne', 176]] },
+    { id: 'irrigation', name: 'Irrigation', g: '💧', col: 5, row: 2, pre: ['chronology', 'bronzePanoply'], st: 'known', gifts: [['b', 'Garden', 117]] },
+    { id: 'siegecraft', name: 'Siegecraft', g: '🎯', col: 5, row: 4, pre: ['bronzePanoply'], st: 'known', gifts: [['u', 'Bowman', 61, 'M'], ['b', 'Stone Walls', 117]] },
+    { id: 'wayfinding', name: 'Wayfinding', g: '🧭', col: 5, row: 7, pre: ['currency'], st: 'open', gifts: [['u', 'Bireme', 61, 'B'], ['u', 'War Galley', 87, 'W']], more: 2 },
+    { id: 'rhetoric', name: 'Rhetoric', g: '🦉', col: 6, row: 0, pre: ['highTemple'], st: 'known', gifts: [['b', 'Forum', 231], ['b', 'The Great Library', 501]] },
+    { id: 'ironWorking', name: 'Iron Working', g: '⚒', col: 6, row: 3, pre: ['irrigation', 'siegecraft'], st: 'known', gifts: [['u', 'Legionary', 81, 'E'], ['u', 'Spear Wall', 81, 'J']], more: 3 },
+    { id: 'stateWorkforce', name: 'State Workforce', g: '🏗', col: 6, row: 5, pre: ['currency'], st: 'open', gifts: [['b', 'Public Bath', 154]] },
+    { id: 'silkRoad', name: 'The Silk Road', g: '🐪', col: 6, row: 7, pre: ['wayfinding'], st: 'open', gifts: [['b', 'Caravanserai', 231]] },
+    { id: 'civilService', name: 'The Civil Service', g: '🏛', col: 7, row: 1, pre: ['codeOfLaws'], st: 'open', gifts: [] },
+    { id: 'mathematics', name: 'Mathematics', g: '📐', col: 7, row: 2, pre: ['ironWorking'], st: 'known', gifts: [['u', 'Catapult', 174, 'K'], ['u', 'Composite Bowman', 105, 'B']], more: 2 },
+    { id: 'saddle', name: 'The Saddle', g: '🐎', col: 7, row: 3, pre: ['ironWorking'], st: 'open', gifts: [['u', 'Horseman', 151, 'H'], ['u', 'Horse Archer', 151, 'S']], more: 1 },
+    { id: 'satrapies', name: 'Satrapies', g: '📯', col: 7, row: 5, pre: ['stateWorkforce'], st: 'open', gifts: [['b', 'The Forbidden City', 657], ['b', 'The Great Wall', 657]] },
+    { id: 'shipwrights', name: 'Shipwrights', g: '🛠', col: 7, row: 7, pre: ['silkRoad'], st: 'open', gifts: [['u', 'Galley', 105, 'G'], ['u', 'Tower Ship', 174, 'H']], more: 2 },
+    { id: 'theology', name: 'Theology', g: '⛪', col: 8, row: 0, pre: ['rhetoric'], st: 'open', gifts: [['b', 'Cathedral', 397], ['b', 'Chichen Itza', 860]], more: 4 },
+    { id: 'daughterCities', name: 'Daughter Cities', g: '📋', col: 8, row: 1, pre: ['civilService'], st: 'open', gifts: [] },
+    { id: 'horology', name: 'Horology', g: '⏳', col: 8, row: 2, pre: ['mathematics'], st: 'open', gifts: [['b', 'The Water Clock of Su Song', 860]] },
+    { id: 'engineering', name: 'Engineering', g: '🔩', col: 8, row: 3, pre: ['saddle'], st: 'open', gifts: [['b', 'Aqueduct', 264], ['b', 'Watermill', 264]], more: 1 },
+    { id: 'guildhalls', name: 'Guildhalls', g: '🔨', col: 8, row: 5, pre: ['satrapies'], st: 'open', gifts: [['b', 'Workshop', 264]] },
+    { id: 'scholarship', name: 'Scholarship', g: '🎓', col: 9, row: 0, pre: ['theology'], st: 'open', gifts: [['b', 'University', 520], ['b', 'The House of Wisdom', 1127]], more: 1 },
+    { id: 'geomancy', name: 'Geomancy', g: '🪨', col: 9, row: 1, pre: ['daughterCities', 'horology'], st: 'open', gifts: [] },
+    { id: 'machinery', name: 'Machinery', g: '🔧', col: 9, row: 2, pre: ['horology', 'engineering'], st: 'open', gifts: [['u', 'Crossbowman', 181, 'R']] },
+    { id: 'divineRight', name: 'Divine Right', g: '⚖', col: 9, row: 5, pre: ['guildhalls'], st: 'open', gifts: [] },
+    { id: 'paperMoney', name: 'Paper Money', g: '🧾', col: 9, row: 7, pre: ['shipwrights', 'guildhalls'], st: 'open', gifts: [['b', 'Bazaar', 346], ['b', 'Bourse', 520]] },
+    // The charter shelf. One ordinary parent each; parents are placeholders.
+    // A line trait: ['t', name, the line's glyph, bonus, ability on the face, ability in full, the line, its units]. No cost.
+    { id: 'casting', name: 'Casting', g: '🔥', col: 3, pre: [], parentName: 'Bronzeworking', charter: "The Bronze-Founders' Charter", tier: '0', st: 'known', drafted: 14, knownTurn: 30, gifts: [['t', 'Hoplite', 'P', '+1', '+1 per four citizens at home', 'in one of your towns, +1 strength for every four citizens of that town', 'spear line', 'Spearman, Phalanx, Spear Wall, Pikeman'], ['t', 'Maryannu', 'C', '+1', '+5 against the wounded', '+5 strength against a unit below half health', 'chariot line', 'War Chariot, Horseman, Knight']] },
+    { id: 'cataloguing', name: 'Cataloguing', g: '🗂', col: 4, pre: ['writing'], charter: "The Librarians' Charter", tier: 'I', st: 'known', drafted: 40, knownTurn: 45, gifts: [['b', 'Forum', 231], ['b', 'The Great Library', 501]], early: 'Rhetoric' },
+    { id: 'mechanics', name: 'Mechanics', g: '⚙', col: 8, pre: ['mathematics'], charter: "The Mechanists' Charter", tier: 'II', st: 'open', drafted: 78, gifts: [['t', 'Onager', 'K', '+2', '+1 range', '+1 range: it shoots from three hexes', 'catapult line', 'Catapult, Trebuchet'], ['t', 'Repeating Crossbow', 'B', '+2', 'moves after it shoots', 'it may move after it shoots', 'archer line', 'Archer, Bowman, Composite Bowman, Crossbowman']], upgrades: ['3 Catapults gain Onager', '2 Composite Bowmen gain Repeating Crossbow'], flavor: 'Every lever is an argument.' },
+    // Shown only in the before-and-after crops, not in the live chart.
+    { id: 'bronzeWorking', name: 'Bronzeworking', g: '⚔', col: 2, row: 3, pre: [], st: 'known', mini: true, gifts: [['u', 'Spearman', 27, 'P'], ['b', 'The Walls of Uruk', 170]], more: 2 }
+  ];
+  var BY = {};
+  NODES.forEach(function (n) { BY[n.id] = n; });
+  var LIVE = NODES.filter(function (n) { return !n.mini; });
+  var FIRST_COL = 3, LAST_COL = 9;
+
+  // ---------------------------------------------------------------- live chart state
+  var S;
+  function freshState() {
+    var known = {};
+    NODES.forEach(function (n) { if (n.st === 'known') known[n.id] = true; });
+    return { known: known, plan: ['horology'], banked: { horology: 530 }, lead: { casting: true, cataloguing: true, mathematics: true } };
+  }
+  S = freshState();
+
+  function prereqsMet(n) { return n.pre.every(function (p) { return !BY[p] || S.known[p]; }); }
+  function stateOf(n) {
+    if (S.known[n.id]) return 'known';
+    if (S.plan[0] === n.id) return 'current';
+    return prereqsMet(n) ? 'open' : 'locked';
+  }
+  function remaining(id) { return Math.max(0, priceOf(BY[id]).total - (S.banked[id] || 0)); }
+  function planTurns(plan) {
+    var acc = 0, prev = 0;
+    return plan.map(function (id) {
+      acc += remaining(id);
+      var t = Math.max(prev + 1, Math.ceil(acc / RATE));
+      prev = t;
+      return t;
+    });
+  }
+  function expansion(id) {
+    var out = [];
+    var seen = {};
+    (function walk(x) {
+      BY[x].pre.forEach(function (p) {
+        if (BY[p] && !S.known[p] && !seen[p]) { seen[p] = true; walk(p); out.push(p); }
+      });
+    })(id);
+    out.sort(function (a, b) { return BY[a].col - BY[b].col || (BY[a].row || 0) - (BY[b].row || 0); });
+    out.push(id);
+    return out;
+  }
+
+  // ---------------------------------------------------------------- node faces
+  function giftRow(g) {
+    if (g[0] === 't') return '<span class="tn-u"><span class="mk ver">' + g[2] + '</span><span class="un vn">' + g[1] + '</span><span class="uv up">' + g[3] + '</span></span><span class="tn-ability">' + g[4] + '</span>';
+    var mk = g[0] === 'u' ? '<span class="mk unit">' + g[3] + '</span>' : g[0] === 'b' ? '<span class="mk bld">▣</span>' : g[0] === 'i' ? '<span class="mk imp">⌂</span>' : '<span class="mk rule">§</span>';
+    var v = g[2] ? '<span class="uv">' + g[2] + PROD + '</span>' : '';
+    return '<span class="tn-u">' + mk + '<span class="un">' + g[1] + '</span>' + v + '</span>';
+  }
+
+  // view: { state, lead, place, banked, rate, disc }
+  function faceHTML(n, view) {
+    var price = priceOf(n, view.disc);
+    var rate = view.rate || RATE;
+    var marks = '';
+    if (n.charter) marks += SEAL;
+    if (view.state === 'known') marks += '<span aria-hidden="true">✦</span>';
+    var turns = '';
+    if (view.state !== 'known') turns = '<span class="tn-turns">~' + Math.ceil(Math.max(0, price.total - (view.banked || 0)) / rate) + 't</span>';
+    var h = '<span class="tn-head"><span class="tn-title"><span class="tn-glyph" aria-hidden="true">' + n.g + '</span><span class="tn-name">' + n.name + '</span></span><span class="tn-marks">' + marks + '</span></span>';
+    h += '<span class="tn-fig"><span class="tn-cost">' + price.total + SCI + '</span>' + turns + '</span>';
+    if ((view.state === 'current' || view.banked > 0) && view.state !== 'known') {
+      var b = view.banked || 0;
+      var pct = Math.min(100, (b / price.total) * 100).toFixed(1);
+      h += '<span class="tn-bar"><i style="width:' + pct + '%"></i></span><span class="tn-prog">' + b + '/' + price.total + ' ' + SCI + ' · ' + Math.ceil((price.total - b) / rate) + 't</span>';
+    }
+    var shown = n.gifts.slice(0, 2);
+    if (shown.length) {
+      h += '<span class="tn-unlocks">' + shown.map(giftRow).join('');
+      var more = (n.more || 0) + Math.max(0, n.gifts.length - 2);
+      if (more) h += '<span class="tn-more">▸ +' + more + ' more</span>';
+      h += '</span>';
+    }
+    if (view.place) h += '<span class="tn-place" aria-hidden="true">' + view.place + '</span>';
+    var sr = n.charter ? ' Charter technology.' : '';
+    if (view.lead) sr += ' In your lead.';
+    if (sr) h += '<span class="sr-only">' + sr + '</span>';
+    return h;
+  }
+  function classFor(n, view) {
+    var c = 'tnode is-' + view.state;
+    if (n.charter) c += ' is-charter';
+    if (view.lead) c += ' is-lead';
+    if (view.place) c += ' is-planned';
+    return c;
+  }
+  function staticNode(id, view) {
+    var n = BY[id];
+    var el = document.createElement('div');
+    el.className = classFor(n, view) + ' is-static';
+    el.innerHTML = faceHTML(n, view);
+    return el;
+  }
+
+  // ---------------------------------------------------------------- hover cards
+  function techCardHTML(n, view, ctx) {
+    var price = priceOf(n);
+    var age = ageOf(n.col);
+    var h = '<div class="icard night">';
+    h += '<div class="ic-head"><span class="ic-name"><span class="ic-glyph" aria-hidden="true">' + n.g + '</span>' + n.name + '</span><span class="ic-kind">Æra ' + NUM[age] + ' · ' + AGE_NAME[age] + '</span></div>';
+    if (n.charter) h += '<div class="ic-sub">' + SEAL + 'Charter technology · yours alone' + '</div>';
+    h += '<div class="ic-fig"><span class="ic-cost">' + price.total + SCI + '</span>';
+    if (view.state !== 'known') h += '<span class="ic-dim">~' + Math.ceil(Math.max(0, price.total - (view.banked || 0)) / RATE) + ' turns</span><span class="ic-dim">+' + RATE + SCI + '/t</span>';
+    h += '</div>';
+    if (price.lines.length > 1) {
+      h += '<p class="ic-heading">The price</p><ul class="ledger">';
+      price.lines.forEach(function (l) {
+        h += '<li' + (l.premium ? ' class="is-premium"' : '') + '><span>' + l.label + '</span><span class="v">' + (l.signed ? signed(l.v) : l.v) + '</span></li>';
+      });
+      h += '<li class="total"><span>Total</span><span class="v">' + price.total + '</span></li></ul>';
+    }
+    if (view.state === 'known') h += '<p class="ic-state">Researched' + (view.knownTurn ? ' · turn ' + view.knownTurn : '') + '</p>';
+    else if (view.state === 'current') h += '<p class="ic-state">Being researched · ' + (view.banked || 0) + '/' + price.total + '</p>';
+    else if (view.banked > 0) h += '<p class="ic-state">Set aside · ' + view.banked + '/' + price.total + '</p>';
+    if (n.charter) {
+      h += '<p class="ic-state">Opened by <b style="color:var(--charter-lit)">' + n.charter + '</b>' + (n.tier ? ' · Scientific · tier ' + n.tier : '') + (n.drafted ? ' · drafted turn ' + n.drafted : '') + '</p>';
+      h += '<p class="ic-state">Requires first: ' + (n.parentName || n.pre.map(function (p) { return BY[p] ? BY[p].name : p; }).join(', ')) + '</p>';
+    }
+    if (ctx && ctx.place) h += '<p class="ic-state planned">' + ctx.place + ' in the plan · ~' + ctx.turns + ' turns</p>';
+    if (view.lead) h += '<p class="ic-state planned">In your lead: no empire you have met knows it</p>';
+    var units = n.gifts.filter(function (g) { return g[0] === 'u'; });
+    var vers = n.gifts.filter(function (g) { return g[0] === 't'; });
+    var blds = n.gifts.filter(function (g) { return g[0] === 'b'; });
+    var imps = n.gifts.filter(function (g) { return g[0] === 'i'; });
+    var rules = n.gifts.filter(function (g) { return g[0] === 'r'; });
+    function list(title, arr) {
+      if (!arr.length) return '';
+      var s = '<p class="ic-heading">' + title + '</p><ul class="gifts">';
+      arr.forEach(function (g) {
+        var mk = g[0] === 'u' ? '<span class="mk unit">' + g[3] + '</span>' : g[0] === 'b' ? '<span class="mk bld">▣</span>' : g[0] === 'i' ? '<span class="mk imp">⌂</span>' : '<span class="mk rule">§</span>';
+        var before = g[4] || n.early;
+        s += '<li>' + mk + '<span class="gn"><b>' + g[1] + '</b>' + (n.charter && before && g[0] !== 'r' && g[0] !== 'i' ? ' <span class="ic-dim">before ' + before + '</span>' : '') + '</span>' + (g[2] ? '<span class="uv">' + g[2] + PROD + '</span>' : '') + '</li>';
+      });
+      return s + '</ul>';
+    }
+    if (vers.length) {
+      h += '<p class="ic-heading">Line traits · kept through every upgrade</p><ul class="gifts">';
+      vers.forEach(function (g) {
+        h += '<li style="align-items:flex-start"><span class="mk ver">' + g[2] + '</span><span class="gn"><b>' + g[1] + '</b> <span class="uv up">' + g[3] + '</span><br><span class="ic-dim">' + g[6] + ' (' + g[7] + '): ' + g[5] + '</span></span></li>';
+      });
+      h += '</ul><p class="ic-state">No unit changes type or cost.</p>';
+    }
+    h += list('Units', units) + list('Buildings', blds) + list('Workers may build', imps) + list('Changes the rules', rules);
+    if (!vers.length && !units.length && !blds.length && !imps.length && !rules.length) h += '<p class="ic-state">Its gifts are rules: see the Compendium</p>';
+    if (n.upgrades && view.state !== 'known') {
+      h += '<p class="ic-heading">When it lands, these gain the trait</p><ul class="gifts">';
+      n.upgrades.forEach(function (u) { h += '<li><span class="mk ver">+</span><span class="gn">' + u + '</span></li>'; });
+      h += '</ul>';
+    }
+    if (n.flavor) h += '<p class="flav"><span>Flavour</span>' + n.flavor + '</p>';
+    return h + '</div>';
+  }
+
+  function leadCardHTML(ids, met) {
+    var h = '<div class="icard night"><div class="ic-head"><span class="ic-name">Your lead</span><span class="ic-kind" style="font-size:14px;color:var(--y-gold-lit)">' + ids.length + '</span></div>';
+    h += '<p class="ic-p ic-dim">Technologies you know that no empire you have met knows.</p><ul class="gifts lead-list" style="margin-top:6px">';
+    ids.forEach(function (id) {
+      var n = BY[id];
+      h += '<li><span class="gn"><span class="ic-glyph" aria-hidden="true">' + n.g + '</span> ' + n.name + '</span>' + (n.charter ? '<span class="lead-tag">charter</span>' : '') + '</li>';
+    });
+    h += '</ul><p class="ic-state">Counted against: ' + met + '</p>';
+    h += '<p class="ic-state">A charter technology never leaves your lead. An ordinary one leaves it when a met empire learns it.</p></div>';
+    return h;
+  }
+
+  // ---------------------------------------------------------------- the live chart
+  var W = 164, GX = 44, PAD = 14, TOP = 30, GAP_Y = 10, SHELF_GAP = 58;
+  var field = document.getElementById('field');
+  var chart = document.getElementById('chart');
+  var dock = document.getElementById('dock');
+  var hint = document.getElementById('chart-hint');
+  var hintHTML = hint.innerHTML;
+  var titleEl = document.getElementById('chart-title');
+  var strip = document.getElementById('planstrip');
+  var cards = {};
+  var paths = [];
+  var linesSvg = null;
+  var reading = null;
+  var docked = 'mechanics';
+  var refusalTimer = 0;
+
+  function colX(col) { return PAD + (col - FIRST_COL) * (W + GX); }
+
+  function viewFor(n) {
+    var st = stateOf(n);
+    var idx = S.plan.indexOf(n.id);
+    return {
+      state: st,
+      lead: !!S.lead[n.id],
+      place: S.plan.length > 1 && idx >= 0 ? idx + 1 : 0,
+      banked: S.banked[n.id] || 0,
+      knownTurn: n.knownTurn || (S.known[n.id] && n.id === 'mechanics' ? 95 : 0)
+    };
+  }
+
+  function buildChart() {
+    field.innerHTML = '';
+    cards = {};
+    paths = [];
+    var width = colX(LAST_COL) + W + PAD;
+    field.style.width = width + 'px';
+
+    // age washes
+    var bands = [[3, 3, 1], [4, 5, 2], [6, 8, 3], [9, 9, 4]];
+    bands.forEach(function (b) {
+      var left = colX(b[0]) - GX / 2;
+      var right = colX(b[1]) + W + GX / 2;
+      if (b[0] === FIRST_COL) left = 0;
+      if (b[1] === LAST_COL) right = width;
+      var w = document.createElement('div');
+      w.className = 'wash' + (b[0] === FIRST_COL ? '' : ' is-seam');
+      w.style.left = left + 'px';
+      w.style.width = (right - left) + 'px';
+      w.innerHTML = '<span class="wash-num" aria-hidden="true">' + NUM[b[2]] + '</span><span class="wash-label"><span class="era">ÆRA ' + NUM[b[2]] + '</span><span class="era-name">' + AGE_NAME[b[2]] + '</span></span>';
+      field.appendChild(w);
+    });
+
+    LIVE.forEach(function (n) {
+      var el = document.createElement('button');
+      el.type = 'button';
+      el.dataset.id = n.id;
+      field.appendChild(el);
+      cards[n.id] = el;
+      el.addEventListener('pointerenter', function () { read(n.id); });
+      el.addEventListener('pointerleave', function () { read(null); });
+      el.addEventListener('focus', function () { read(n.id); });
+      el.addEventListener('blur', function () { read(null); });
+      el.addEventListener('click', function (ev) { act(n.id, ev.shiftKey); });
+    });
+    paint();
+    layout();
+  }
+
+  function layout() {
+    var skyH = 0;
+    var cols = {};
+    LIVE.filter(function (n) { return !n.charter; }).sort(function (a, b) { return a.col - b.col || a.row - b.row; }).forEach(function (n) {
+      var y = cols[n.col] === undefined ? TOP : cols[n.col];
+      var el = cards[n.id];
+      el.style.left = colX(n.col) + 'px';
+      el.style.top = y + 'px';
+      cols[n.col] = y + el.offsetHeight + GAP_Y;
+      skyH = Math.max(skyH, cols[n.col]);
+    });
+    var shelfTop = skyH + SHELF_GAP;
+    var shelf = {};
+    var bottom = shelfTop;
+    LIVE.filter(function (n) { return n.charter; }).forEach(function (n) {
+      var y = shelf[n.col] === undefined ? shelfTop : shelf[n.col];
+      var el = cards[n.id];
+      el.style.left = colX(n.col) + 'px';
+      el.style.top = y + 'px';
+      shelf[n.col] = y + el.offsetHeight + GAP_Y;
+      bottom = Math.max(bottom, shelf[n.col]);
+    });
+    var height = bottom + PAD;
+    field.style.height = height + 'px';
+
+    // shelf rule and label
+    var old = field.querySelectorAll('.shelf-rule, .shelf-label, .shelf-more');
+    for (var i = 0; i < old.length; i++) old[i].remove();
+    var rule = document.createElement('div');
+    rule.className = 'shelf-rule';
+    rule.style.left = PAD + 'px';
+    rule.style.width = (parseFloat(field.style.width) - PAD * 2) + 'px';
+    rule.style.top = (shelfTop - 32) + 'px';
+    field.appendChild(rule);
+    var label = document.createElement('div');
+    label.className = 'shelf-label';
+    label.style.left = (PAD + 2) + 'px';
+    label.style.top = (shelfTop - 25) + 'px';
+    label.innerHTML = '<span class="shelf-eyebrow">' + SEAL + 'Charters</span><span class="shelf-words">yours alone · half again the price of their column</span>';
+    field.appendChild(label);
+
+    drawLines(parseFloat(field.style.width), height);
+  }
+
+  function drawLines(width, height) {
+    if (linesSvg) linesSvg.remove();
+    var NS = 'http://www.w3.org/2000/svg';
+    linesSvg = document.createElementNS(NS, 'svg');
+    linesSvg.setAttribute('class', 'tlines');
+    linesSvg.setAttribute('width', width);
+    linesSvg.setAttribute('height', height);
+    linesSvg.setAttribute('aria-hidden', 'true');
+    paths = [];
+    LIVE.forEach(function (n) {
+      n.pre.forEach(function (p) {
+        if (!BY[p]) return;
+        var a = cards[p], b = cards[n.id];
+        var x1 = a.offsetLeft + a.offsetWidth, y1 = a.offsetTop + a.offsetHeight / 2;
+        var x2 = b.offsetLeft, y2 = b.offsetTop + b.offsetHeight / 2;
+        var dx = Math.max(16, (x2 - x1) / 2);
+        var path = document.createElementNS(NS, 'path');
+        path.setAttribute('d', 'M' + x1 + ' ' + y1 + ' C' + (x1 + dx) + ' ' + y1 + ' ' + (x2 - dx) + ' ' + y2 + ' ' + x2 + ' ' + y2);
+        var cls = 'tline';
+        if (n.charter) cls += ' is-charter';
+        else if (S.known[p]) cls += ' is-held';
+        path.setAttribute('class', cls);
+        linesSvg.appendChild(path);
+        paths.push({ el: path, from: p, to: n.id });
+      });
+    });
+    field.insertBefore(linesSvg, field.firstChild);
+  }
+
+  function paint() {
+    LIVE.forEach(function (n) {
+      var el = cards[n.id];
+      if (!el) return;
+      var v = viewFor(n);
+      el.className = classFor(n, v);
+      el.innerHTML = faceHTML(n, v);
+      el.setAttribute('aria-disabled', v.state === 'known' ? 'true' : 'false');
+    });
+    titleEl.textContent = S.plan.length ? BY[S.plan[0]].name : 'Choose research…';
+    renderStrip();
+    showCard(docked);
+  }
+
+  function showCard(id) {
+    var n = BY[id];
+    var v = viewFor(n);
+    var idx = S.plan.indexOf(id);
+    var ctx = null;
+    if (S.plan.length > 1 && idx >= 0) ctx = { place: idx + 1, turns: planTurns(S.plan)[idx] };
+    dock.innerHTML = techCardHTML(n, v, ctx);
+  }
+
+  function read(id) {
+    if (reading === id) return;
+    reading = id;
+    if (id) { docked = id; showCard(id); }
+    if (linesSvg) linesSvg.classList.toggle('is-reading', id !== null);
+    paths.forEach(function (p) { p.el.classList.toggle('is-lit', id !== null && (p.from === id || p.to === id)); });
+    var needs = id ? BY[id].pre : [];
+    LIVE.forEach(function (n) {
+      var el = cards[n.id];
+      el.classList.toggle('is-prereq', needs.indexOf(n.id) >= 0);
+      el.classList.toggle('is-heir', id !== null && n.pre.indexOf(id) >= 0);
+    });
+  }
+
+  function refuse(text) {
+    hint.textContent = text;
+    hint.classList.add('is-refusing');
+    window.clearTimeout(refusalTimer);
+    refusalTimer = window.setTimeout(function () { hint.innerHTML = hintHTML; hint.classList.remove('is-refusing'); }, 2600);
+  }
+
+  function act(id, shift) {
+    var n = BY[id];
+    if (S.known[id]) { refuse(SEAT + ' has already researched ' + n.name); return; }
+    var add = expansion(id);
+    var next;
+    if (shift) {
+      if (S.plan.indexOf(id) >= 0) { refuse(n.name + ' is already in ' + SEAT + "'s research plan"); return; }
+      next = S.plan.slice();
+      add.forEach(function (x) { if (next.indexOf(x) < 0) next.push(x); });
+    } else {
+      if (S.plan.length === add.length && S.plan.every(function (x, i) { return x === add[i]; })) {
+        refuse(S.plan[0] === id ? n.name + ' is already being researched' : n.name + ' is already in ' + SEAT + "'s research plan");
+        return;
+      }
+      next = add;
+    }
+    S.plan = next;
+    docked = id;
+    reading = null;
+    paint();
+    read(id);
+  }
+
+  function renderStrip() {
+    if (S.plan.length < 2) { strip.hidden = true; strip.innerHTML = ''; return; }
+    strip.hidden = false;
+    var turns = planTurns(S.plan);
+    var h = '<span class="ps-label">the plan</span><ol class="ps-list">';
+    S.plan.forEach(function (id, i) {
+      var n = BY[id];
+      h += '<li class="chip' + (n.charter ? ' is-charter' : '') + '"><span class="place">' + (i + 1) + '</span>' + (n.charter ? SEAL : '') + '<span class="nm">' + n.name + '</span><span class="t">~' + turns[i] + 't</span><button type="button" class="x" data-drop="' + id + '" aria-label="Drop ' + n.name + ' from the plan">✕</button></li>';
+    });
+    strip.innerHTML = h + '</ol>';
+  }
+
+  strip.addEventListener('click', function (ev) {
+    var t = ev.target.closest('[data-drop]');
+    if (!t) return;
+    var id = t.getAttribute('data-drop');
+    var dropped = {};
+    dropped[id] = true;
+    // A cascade: anything later that needs a dropped row goes with it.
+    S.plan.forEach(function (x) {
+      if (BY[x].pre.some(function (p) { return dropped[p]; })) dropped[x] = true;
+    });
+    var next = S.plan.filter(function (x) { return !dropped[x]; });
+    if (!next.length) { refuse('The plan cannot be empty'); return; }
+    S.plan = next;
+    paint();
+  });
+
+  var leadBtn = document.getElementById('chart-lead');
+  function showLead() { dock.innerHTML = leadCardHTML(Object.keys(S.lead), 'Emperor Taizong, Mansa Musa'); }
+  leadBtn.addEventListener('pointerenter', showLead);
+  leadBtn.addEventListener('focus', showLead);
+  leadBtn.addEventListener('click', showLead);
+  leadBtn.addEventListener('pointerleave', function () { showCard(docked); });
+  leadBtn.addEventListener('blur', function () { showCard(docked); });
+
+  document.getElementById('chart-reset').addEventListener('click', function () {
+    S = freshState();
+    docked = 'mechanics';
+    reading = null;
+    paint();
+    read(null);
+    centreOn('mechanics');
+    updateTab();
+  });
+
+  function centreOn(id, smooth) {
+    var el = cards[id];
+    if (!el) return;
+    var left = Math.max(0, el.offsetLeft + el.offsetWidth / 2 - chart.clientWidth / 2);
+    var top = Math.max(0, el.offsetTop + el.offsetHeight / 2 - chart.clientHeight / 2);
+    if (smooth && !reduceMotion && chart.scrollTo) chart.scrollTo({ left: left, top: top, behavior: 'smooth' });
+    else { chart.scrollLeft = left; chart.scrollTop = top; }
+  }
+
+  // ---------------------------------------------------------------- the out-of-view tab
+  // Shown when no charter node is in the stage's view. It sits on the edge
+  // toward the nearest one; its click scrolls there, as the toast's does.
+  var tab = document.getElementById('shelf-tab');
+  var ARROWS = { '-1,-1': '↖', '0,-1': '↑', '1,-1': '↗', '-1,0': '←', '1,0': '→', '-1,1': '↙', '0,1': '↓', '1,1': '↘', '0,0': '↓' };
+  function updateTab() {
+    var ids = LIVE.filter(function (n) { return n.charter; }).map(function (n) { return n.id; });
+    if (!ids.length) { tab.hidden = true; return; }
+    var MIN = 28;
+    var vx0 = chart.scrollLeft, vy0 = chart.scrollTop;
+    var vx1 = vx0 + chart.clientWidth, vy1 = vy0 + chart.clientHeight;
+    var mx = (vx0 + vx1) / 2, my = (vy0 + vy1) / 2;
+    var seen = false, best = null;
+    ids.forEach(function (id) {
+      var el = cards[id];
+      var x0 = el.offsetLeft, y0 = el.offsetTop, x1 = x0 + el.offsetWidth, y1 = y0 + el.offsetHeight;
+      if (Math.min(x1, vx1) - Math.max(x0, vx0) >= MIN && Math.min(y1, vy1) - Math.max(y0, vy0) >= MIN) seen = true;
+      var d = Math.abs((x0 + x1) / 2 - mx) + Math.abs((y0 + y1) / 2 - my);
+      if (!best || d < best.d) best = { id: id, d: d, x0: x0, x1: x1, y0: y0, y1: y1 };
+    });
+    if (seen) { tab.hidden = true; return; }
+    var h = best.x1 < vx0 + MIN ? -1 : best.x0 > vx1 - MIN ? 1 : 0;
+    var v = best.y1 < vy0 + MIN ? -1 : best.y0 > vy1 - MIN ? 1 : 0;
+    var wasHidden = tab.hidden;
+    tab.className = 'shelf-tab ' + (h < 0 ? 'at-left' : h > 0 ? 'at-right' : 'at-centre') + (wasHidden && !reduceMotion ? ' is-in' : '');
+    tab.querySelector('.arrow').textContent = ARROWS[h + ',' + v];
+    document.getElementById('shelf-tab-n').textContent = String(ids.length);
+    tab.dataset.target = best.id;
+    tab.setAttribute('aria-label', ids.length + ' charter technologies are out of view. Scroll to ' + BY[best.id].name + '.');
+    tab.hidden = false;
+  }
+  tab.addEventListener('click', function () {
+    var id = tab.dataset.target;
+    if (!id) return;
+    centreOn(id, true);
+    var el = cards[id];
+    el.classList.remove('is-new');
+    void el.offsetWidth;
+    el.classList.add('is-new');
+    docked = id;
+    showCard(id);
+  });
+  chart.addEventListener('scroll', updateTab, { passive: true });
+  window.addEventListener('resize', updateTab);
+
+  // The prototype's own view switch: a narrow window, to show the tab working.
+  (function () {
+    var wrap = document.getElementById('chartwrap');
+    var wide = document.getElementById('view-wide');
+    var narrow = document.getElementById('view-narrow');
+    function set(isNarrow) {
+      wrap.classList.toggle('is-narrow', isNarrow);
+      wide.setAttribute('aria-pressed', String(!isNarrow));
+      narrow.setAttribute('aria-pressed', String(isNarrow));
+      if (isNarrow) {
+        // Start at the top of the sky, over Horology: the shelf is below the fold.
+        var el = cards.horology;
+        chart.scrollLeft = Math.max(0, el.offsetLeft + el.offsetWidth / 2 - chart.clientWidth / 2);
+        chart.scrollTop = 0;
+      } else {
+        centreOn('mechanics');
+      }
+      updateTab();
+    }
+    wide.addEventListener('click', function () { set(false); });
+    narrow.addEventListener('click', function () { set(true); });
+  })();
+
+  // Drag to travel, as the game's chart does.
+  (function () {
+    var down = null;
+    chart.addEventListener('pointerdown', function (e) {
+      if (e.pointerType !== 'mouse' || e.button !== 0) return;
+      down = { x: e.clientX, left: chart.scrollLeft, moved: false };
+    });
+    window.addEventListener('pointermove', function (e) {
+      if (!down) return;
+      var dx = e.clientX - down.x;
+      if (Math.abs(dx) > 4) down.moved = true;
+      if (down.moved) chart.scrollLeft = down.left - dx;
+    });
+    window.addEventListener('pointerup', function () {
+      if (down && down.moved) {
+        var swallow = function (ev) { ev.stopPropagation(); ev.preventDefault(); };
+        chart.addEventListener('click', swallow, { capture: true, once: true });
+        window.setTimeout(function () { chart.removeEventListener('click', swallow, { capture: true }); }, 0);
+      }
+      down = null;
+    });
+  })();
+
+  buildChart();
+  centreOn('mechanics');
+  updateTab();
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function () { layout(); centreOn('mechanics'); updateTab(); });
+  }
+
+  // ---------------------------------------------------------------- legend of states
+  (function () {
+    var legend = document.getElementById('legend');
+    var items = [
+      ['mechanics', { state: 'open' }, 'Open', 'Drafted. Click to aim, shift-click to queue, like any star.'],
+      ['mechanics', { state: 'current', banked: 372 }, 'Being researched', 'The lapis rim and bar every node uses. Turn 86.'],
+      ['cataloguing', { state: 'known', lead: true }, 'Known', 'The gilt star. The gilt corner: still in your lead.']
+    ];
+    items.forEach(function (it) {
+      var f = document.createElement('figure');
+      f.appendChild(staticNode(it[0], it[1]));
+      var cap = document.createElement('figcaption');
+      cap.innerHTML = '<b>' + it[2] + '</b>' + it[3];
+      f.appendChild(cap);
+      legend.appendChild(f);
+    });
+  })();
+
+  // ---------------------------------------------------------------- A3 cards
+  var SUIT = '<path class="suit" stroke-width="6.5" d="M11 28a21 21 0 1 0 42 0a21 21 0 1 0 -42 0Z"/><path class="suit" stroke-width="4.5" d="M11 28a21 6.5 0 1 0 42 0a21 6.5 0 1 0 -42 0Z"/><path class="suit" stroke-width="4.5" d="M23 7L41 49"/><path class="suit" stroke-width="6.5" d="M32 49V56"/><path class="suit" stroke-width="6.5" d="M22 59H42"/>';
+  var STAR = '<path d="M0 -6.5L1.8 -1.8L6.5 0L1.8 1.8L0 6.5L-1.8 1.8L-6.5 0L-1.8 -1.8Z"/>';
+  function plateSVG(hand) {
+    var s = '<svg viewBox="0 0 92 92" aria-hidden="true"><circle class="ring-outer" cx="46" cy="46" r="42.5"/>';
+    if (hand) s += '<circle class="ring-dots" cx="46" cy="46" r="38.5"/>';
+    s += '<circle class="ring-inner" cx="46" cy="46" r="34.5"/>';
+    if (hand) s += '<path class="ring-points" d="M46 0.6L48.4 3L46 5.4L43.6 3ZM46 86.6L48.4 89L46 91.4L43.6 89ZM3 43.6L5.4 46L3 48.4L0.6 46ZM89 43.6L91.4 46L89 48.4L86.6 46Z"/>';
+    s += '<svg x="24" y="23" width="44" height="44" viewBox="0 0 64 64">' + SUIT + '</svg></svg>';
+    return s;
+  }
+  function rankHTML(rank, numeral) {
+    if (rank === 'uncommon') {
+      return '<span class="rank rank-uncommon" aria-hidden="true"><svg class="ribbon" viewBox="0 0 78 20"><path class="rt" d="M15 6L3 6L8 11L3 16L15 16Z"/><path class="rt" d="M63 6L75 6L70 11L75 16L63 16Z"/><path class="rb" d="M11 2.5H67V14.5H11Z"/><text x="39" y="12" text-anchor="middle">' + numeral + '</text></svg></span>';
+    }
+    return '<span class="rank rank-rare" aria-hidden="true"><svg class="cartouche" viewBox="0 0 72 27"><path class="cg" d="M12 2H60Q60 9 69 9V18Q60 18 60 25H12Q12 18 3 18V9Q12 9 12 2Z"/><path class="cr" d="M15 5H57Q57.5 11.5 65.5 12V15Q57.5 15.5 57 22H15Q14.5 15.5 6.5 15V12Q14.5 11.5 15 5Z"/><text x="36" y="18.6" text-anchor="middle">' + numeral + '</text></svg></span>';
+  }
+  function frameHTML(rank) {
+    if (rank === 'uncommon') return '<span class="frame frame-court" aria-hidden="true"></span><span class="frame frame-court-inner" aria-hidden="true"></span>';
+    var s = '<span class="frame frame-trump" aria-hidden="true"></span><span class="frame frame-trump-inner" aria-hidden="true"></span>';
+    ['tl', 'tr', 'bl', 'br'].forEach(function (c) { s += '<svg class="star ' + c + '" viewBox="-7 -7 14 14" aria-hidden="true">' + STAR + '</svg>'; });
+    return s;
+  }
+  function slipHTML(id) {
+    var n = BY[id];
+    var p = priceOf(n);
+    var h = '<span class="slip" aria-label="' + n.name + ', a charter technology">';
+    h += '<span class="slip-head"><span class="slip-glyph" aria-hidden="true">' + n.g + '</span><span class="slip-name">' + n.name + '</span><span class="slip-age">ÆRA ' + NUM[ageOf(n.col)] + '</span></span><span class="slip-lines">';
+    p.lines.forEach(function (l) {
+      h += '<span class="sl' + (l.premium ? ' is-premium' : '') + '"><span>' + l.label.replace(' ' + MINUS + DISCOUNT + '%', '') + '</span><b>' + (l.signed ? signed(l.v) : l.v) + '</b></span>';
+    });
+    h += '<span class="sl total"><span>~' + Math.ceil(p.total / RATE) + ' turns · <span class="alone">yours alone</span></span><b>' + p.total + SCI + '</b></span>';
+    return h + '</span></span>';
+  }
+
+  var CARDS = {
+    enduring: { name: 'Enduring Institutions', ink: 'economic', type: 'Economic', rank: 'uncommon', tier: 'II', clauses: ['A town with an <b>empire building</b> at least twenty turns old gains +25% production.'], flavor: 'What is old enough to be trusted is old enough to be useful.' },
+    mechanists: { name: "The Mechanists' Charter", ink: 'military', type: 'Military', rank: 'rare', tier: 'II', charter: true, slip: 'mechanics', clauses: ['Opens <b>Mechanics</b> for you to research. No other empire may research it.', 'Knowing it: your catapult line gains <b>Onager</b> (+2 strength, +1 range) and your archer line gains <b>Repeating Crossbow</b> (+2 strength, may move after it shoots). Units keep the trait when they upgrade, and cost no more.'], flavor: 'Every lever is an argument.' },
+    roundCity: { name: 'The Round City', ink: 'civic', type: 'Civic', rank: 'uncommon', tier: 'II', clauses: ['+1% production and culture for each citizen in your capital, at most +30%.'], flavor: 'Four gates, and every road ends at the palace.' },
+    secretArts: { name: 'The Secret Arts', ink: 'economic', type: 'Economic', rank: 'uncommon', tier: 'I', clauses: [], flavor: '' }
+  };
+
+  function cardEl(key, opts) {
+    var c = CARDS[key];
+    opts = opts || {};
+    var seat = opts.size === 'seat';
+    var el = document.createElement(seat ? 'div' : 'button');
+    if (!seat) el.type = 'button';
+    el.className = 'a3' + (seat ? ' seat' : ' in-hand');
+    el.dataset.ink = c.ink;
+    el.dataset.rank = c.rank;
+    el.dataset.key = key;
+    var caption = c.name + '. ' + c.type + ' card, ' + c.rank + ', tier ' + c.tier + ', Scientific.' + (c.charter ? ' Charter: takes no chair.' : '');
+    var h = frameHTML(c.rank) + rankHTML(c.rank, c.tier);
+    h += '<span class="a3-body"><span class="sr-only">' + caption + '</span><span class="plate" role="img" aria-label="Spheres">' + plateSVG(!seat) + '</span>';
+    h += '<span class="a3-name">' + c.name + '</span>';
+    if (!seat) {
+      if (c.charter) h += '<span class="badges"><span class="badge">Charter · takes no chair</span></span>';
+      h += '<span class="clauses">' + c.clauses.map(function (t) { return '<span>' + t + '</span>'; }).join('') + '</span>';
+      if (c.slip) h += slipHTML(c.slip);
+      h += '<span class="stamp-seat" aria-hidden="true">— · ✶ · —</span>';
+      if (c.flavor) h += '<span class="flavor"><span class="flavor-label">Flavour</span>' + c.flavor + '</span>';
+      h += '<span class="foot"><i></i><span>Scientific</span><i></i></span>';
+    } else {
+      h += '<span class="stamp-figure">' + opts.stamp + '</span>';
+      h += '<span class="foot" style="margin-top:auto"><i style="width:26px;height:2px"></i></span>';
+    }
+    h += '</span>';
+    if (!seat && opts.index) h += '<span class="ordinal" aria-hidden="true">' + opts.index + '</span>';
+    el.innerHTML = h;
+    return el;
+  }
+
+  function stampCharter(card, animate) {
+    var slip = card.querySelector('.slip');
+    if (!slip) return;
+    var old = slip.querySelector('.thunk');
+    if (old) old.remove();
+    var t = document.createElement('span');
+    t.className = 'thunk' + (animate && !reduceMotion ? ' is-landing' : '');
+    t.innerHTML = '<strong>OPENED</strong><span>Mechanics · turn 78</span>';
+    slip.appendChild(t);
+    var seatMark = card.querySelector('.stamp-seat');
+    if (seatMark) seatMark.textContent = '';
+  }
+
+  // Step 1: the hand
+  (function () {
+    var hand = document.getElementById('hand');
+    var says = document.getElementById('pick-says');
+    var keys = ['enduring', 'mechanists', 'roundCity'];
+    function deal() {
+      hand.innerHTML = '';
+      keys.forEach(function (k, i) {
+        var el = cardEl(k, { index: i + 1 });
+        el.addEventListener('click', function () { take(k, el); });
+        hand.appendChild(el);
+      });
+      says.textContent = 'Press a card to take it.';
+    }
+    function take(key, el) {
+      if (key !== 'mechanists') {
+        says.innerHTML = 'This walkthrough follows the charter. Take the second card, or <button class="btn" type="button" id="redeal" style="padding:2px 8px;font-size:.75rem;box-shadow:2px 2px 0 var(--ink)">deal again</button>';
+        var rd = document.getElementById('redeal');
+        if (rd) rd.addEventListener('click', deal);
+        return;
+      }
+      Array.prototype.forEach.call(hand.children, function (c) {
+        c.classList.toggle('is-taken', c === el);
+        c.classList.toggle('is-passed', c !== el);
+      });
+      stampCharter(el, true);
+      says.innerHTML = 'Taken. The charter joins your collection and takes no chair. <a href="#step-2">See what happens next →</a> <button class="btn" type="button" id="redeal" style="margin-left:6px;padding:2px 8px;font-size:.75rem;box-shadow:2px 2px 0 var(--ink)">deal again</button>';
+      var rd = document.getElementById('redeal');
+      if (rd) rd.addEventListener('click', deal);
+    }
+    document.getElementById('pass-btn').addEventListener('click', function () {
+      says.textContent = 'A pass spends the hand and moves the odds toward rarer cards. This walkthrough takes the charter instead.';
+    });
+    deal();
+  })();
+
+  // Step 2: the three beats
+  var filmPick = document.getElementById('film-pick');
+  var filmToasts = document.getElementById('film-toasts');
+  var filmChart = document.getElementById('film-chart');
+  var pickCard = cardEl('mechanists', {});
+  pickCard.disabled = true;
+  pickCard.style.cursor = 'default';
+  pickCard.classList.add('is-taken');
+  filmPick.appendChild(pickCard);
+
+  function miniChart(host, items, links, rowH) {
+    host.innerHTML = '';
+    var w = 0, h = 0;
+    var els = {};
+    items.forEach(function (it) {
+      var el = staticNode(it.id, it.view);
+      el.style.position = 'absolute';
+      el.style.left = (it.c * (W + 30)) + 'px';
+      el.style.top = (it.r * rowH) + 'px';
+      host.appendChild(el);
+      els[it.id] = el;
+      w = Math.max(w, it.c * (W + 30) + W);
+      h = Math.max(h, it.r * rowH + rowH);
+    });
+    host.style.width = w + 'px';
+    host.style.height = h + 'px';
+    var NS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('class', 'tlines');
+    svg.setAttribute('width', w);
+    svg.setAttribute('height', h);
+    svg.setAttribute('aria-hidden', 'true');
+    links.forEach(function (l) {
+      var a = els[l[0]], b = els[l[1]];
+      var x1 = a.offsetLeft + a.offsetWidth, y1 = a.offsetTop + a.offsetHeight / 2;
+      var x2 = b.offsetLeft, y2 = b.offsetTop + b.offsetHeight / 2;
+      var dx = Math.max(12, (x2 - x1) / 2);
+      var p = document.createElementNS(NS, 'path');
+      p.setAttribute('d', 'M' + x1 + ' ' + y1 + ' C' + (x1 + dx) + ' ' + y1 + ' ' + (x2 - dx) + ' ' + y2 + ' ' + x2 + ' ' + y2);
+      p.setAttribute('class', 'tline ' + (l[2] || ''));
+      svg.appendChild(p);
+    });
+    host.insertBefore(svg, host.firstChild);
+    return els;
+  }
+
+  function scaleMini(host) {
+    var stage = host.parentNode;
+    var avail = stage.clientWidth - 24;
+    var natural = parseFloat(host.style.width) || 0;
+    var s = natural > avail && avail > 0 ? avail / natural : 1;
+    host.style.transform = s < 1 ? 'scale(' + s.toFixed(3) + ')' : '';
+    host.style.transformOrigin = 'top center';
+    host.style.marginBottom = s < 1 ? (-(1 - s) * parseFloat(host.style.height)) + 'px' : '';
+  }
+
+  function playBeats() {
+    stampCharter(pickCard, true);
+    filmToasts.innerHTML = '';
+    var t = document.createElement('button');
+    t.type = 'button';
+    t.className = 'toast' + (reduceMotion ? '' : ' is-in');
+    t.style.animationDelay = reduceMotion ? '0ms' : '450ms';
+    t.innerHTML = '<span class="toast-turn">78</span><span>Mechanics is open for research. Only you may research it.</span><span class="toast-go" aria-hidden="true">→</span>';
+    t.setAttribute('aria-label', 'Turn 78. Mechanics is open for research. Only you may research it. Opens the star chart.');
+    t.addEventListener('click', function () {
+      var target = document.getElementById('step-3');
+      target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+      var m = cards.mechanics;
+      if (m) {
+        centreOn('mechanics');
+        m.classList.remove('is-new');
+        void m.offsetWidth;
+        m.classList.add('is-new');
+        docked = 'mechanics';
+        showCard('mechanics');
+      }
+    });
+    filmToasts.appendChild(t);
+    var els = miniChart(filmChart, [
+      { id: 'mathematics', c: 0, r: 0, view: { state: 'known', lead: true } },
+      { id: 'mechanics', c: 1, r: 1, view: { state: 'open' } }
+    ], [['mathematics', 'mechanics', 'is-charter']], 104);
+    scaleMini(filmChart);
+    var mech = els.mechanics;
+    if (!reduceMotion) { mech.style.animationDelay = '900ms'; }
+    mech.classList.add('is-new');
+  }
+  playBeats();
+  document.getElementById('replay-2').addEventListener('click', playBeats);
+
+  // Step 3: the shelf before and after the first charter (turn 13 and 14, +9 science a turn, no discount yet)
+  function shelfCrop(host, withShelf) {
+    var items = [
+      { id: 'bronzeWorking', c: 0, r: 0, view: { state: 'known' } },
+      { id: 'theWheel', c: 1, r: 0, view: { state: 'open', rate: 9, disc: 0 } }
+    ];
+    var links = [['bronzeWorking', 'theWheel', 'is-held']];
+    if (withShelf) {
+      items.push({ id: 'casting', c: 1, r: 1, view: { state: 'open', rate: 9, disc: 0 } });
+      links.push(['bronzeWorking', 'casting', 'is-charter']);
+    }
+    miniChart(host, items, links, 150);
+    if (withShelf) {
+      var width = parseFloat(host.style.width);
+      var rule = document.createElement('div');
+      rule.className = 'shelf-rule';
+      rule.style.left = '0px';
+      rule.style.width = width + 'px';
+      rule.style.top = '116px';
+      host.appendChild(rule);
+      var label = document.createElement('div');
+      label.className = 'shelf-label';
+      label.style.left = '2px';
+      label.style.top = '124px';
+      label.innerHTML = '<span class="shelf-eyebrow">' + SEAL + 'Charters</span><span class="shelf-words">yours alone</span>';
+      host.appendChild(label);
+    }
+    scaleMini(host);
+  }
+  var baBefore = document.getElementById('ba-before');
+  var baAfter = document.getElementById('ba-after');
+  shelfCrop(baBefore, false);
+  shelfCrop(baAfter, true);
+
+  // Step 4: set aside, and the node at turn 86
+  document.getElementById('node-86').appendChild(staticNode('mechanics', { state: 'current', banked: 372 }));
+  (function () {
+    var host = document.getElementById('setaside');
+    var wrap = document.createElement('div');
+    wrap.className = 'panel-night';
+    wrap.innerHTML = techCardHTML(BY.horology, { state: 'open', banked: 530 }, null).replace('class="icard night"', 'class="icard night" style="border:0;box-shadow:none;padding:0;background:transparent"') + '<p class="ic-state" style="margin-top:8px;color:var(--on-night-soft)">A plain click on Mechanics aims at it alone. Horology keeps its beakers.</p>';
+    host.appendChild(wrap);
+  })();
+  Array.prototype.forEach.call(document.querySelectorAll('[data-seal]'), function (s) { s.outerHTML = SEAL; });
+
+  // Step 5: turn 95
+  var board95 = document.getElementById('board-95');
+  var toasts95 = document.getElementById('toasts-95');
+  var splash = document.getElementById('splash');
+  var UNITS_95 = [
+    { from: 'K', to: 'K', x: 12, y: 30, name: ['Catapult', 'Catapult · Onager: +2, range 3'] },
+    { from: 'K', to: 'K', x: 24, y: 52, name: ['Catapult', 'Catapult · Onager: +2, range 3'] },
+    { from: 'K', to: 'K', x: 36, y: 30, name: ['Catapult', 'Catapult · Onager: +2, range 3'] },
+    { from: 'B', to: 'B', x: 18, y: 72, name: ['Composite Bowman', 'Composite Bowman · Repeating Crossbow: +2, may move after it shoots'] },
+    { from: 'B', to: 'B', x: 42, y: 66, name: ['Composite Bowman', 'Composite Bowman · Repeating Crossbow: +2, may move after it shoots'] }
+  ];
+  var roundels95 = UNITS_95.map(function (u) {
+    var r = document.createElement('span');
+    r.className = 'roundel';
+    r.style.left = u.x + '%';
+    r.style.top = u.y + '%';
+    board95.appendChild(r);
+    return r;
+  });
+  var known95 = document.getElementById('known-95');
+  known95.appendChild(staticNode('horology', { state: 'known', lead: true }));
+  known95.appendChild(staticNode('mechanics', { state: 'known', lead: true }));
+  var timers95 = [];
+  function play95() {
+    timers95.forEach(function (t) { window.clearTimeout(t); });
+    timers95 = [];
+    UNITS_95.forEach(function (u, i) {
+      var r = roundels95[i];
+      r.textContent = u.from;
+      r.title = u.name[0];
+      r.setAttribute('aria-label', 'Hypatia\'s ' + u.name[0]);
+      r.classList.remove('is-up', 'is-flip', 'is-glow');
+    });
+    splash.classList.remove('is-in');
+    void splash.offsetWidth;
+    if (!reduceMotion) splash.classList.add('is-in');
+    toasts95.innerHTML = '';
+    UNITS_95.forEach(function (u, i) {
+      var r = roundels95[i];
+      var swap = function () {
+        r.textContent = u.to;
+        r.title = u.name[1] + ' · gained on turn 95';
+        r.setAttribute('aria-label', 'Hypatia\'s ' + u.name[1] + ', gained on turn 95');
+        r.classList.add('is-glow');
+      };
+      if (reduceMotion) { swap(); return; }
+      timers95.push(window.setTimeout(function () {
+        swap();
+      }, 500 + i * 160));
+    });
+    timers95.push(window.setTimeout(function () {
+      var t = document.createElement('button');
+      t.type = 'button';
+      t.className = 'toast' + (reduceMotion ? '' : ' is-in');
+      t.innerHTML = '<span class="toast-turn">95</span><span>Mechanics: 3 catapults near Luoyang gained Onager.</span><span class="toast-go" aria-hidden="true">⌖</span>';
+      t.setAttribute('aria-label', 'Turn 95. Mechanics: 3 catapults near Luoyang gained Onager. Pans the camera there.');
+      t.addEventListener('click', function () {
+        roundels95.forEach(function (r) { r.classList.remove('is-glow'); void r.offsetWidth; r.classList.add('is-glow'); });
+      });
+      toasts95.appendChild(t);
+    }, reduceMotion ? 0 : 1500));
+  }
+  play95();
+  document.getElementById('replay-5').addEventListener('click', play95);
+
+  // Step 6: Taizong's board
+  (function () {
+    var board = document.getElementById('board-97');
+    var mine = [{ g: 'J', x: 52, y: 80, n: 'Spear Wall' }, { g: 'E', x: 64, y: 66, n: 'Legionary' }];
+    mine.forEach(function (u) {
+      var r = document.createElement('span');
+      r.className = 'roundel';
+      r.style.left = u.x + '%';
+      r.style.top = u.y + '%';
+      r.textContent = u.g;
+      r.setAttribute('aria-label', 'Your ' + u.n);
+      board.appendChild(r);
+    });
+    var theirs = [{ g: 'K', x: 8, y: 22 }, { g: 'K', x: 20, y: 40, pointed: true }, { g: 'K', x: 8, y: 58 }, { g: 'B', x: 26, y: 70 }];
+    theirs.forEach(function (u) {
+      var r = document.createElement('span');
+      r.className = 'roundel is-rival' + (u.pointed ? ' is-pointed' : '');
+      r.style.left = u.x + '%';
+      r.style.top = u.y + '%';
+      r.textContent = u.g;
+      r.setAttribute('aria-label', u.g === 'K' ? "Hypatia's Catapult · Onager" : "Hypatia's Composite Bowman · Repeating Crossbow");
+      board.appendChild(r);
+    });
+    var card = document.createElement('div');
+    card.className = 'icard';
+    card.style.cssText = 'position:absolute;left:calc(20% + 46px);top:14px;width:min(260px, calc(80% - 56px));z-index:3';
+    card.innerHTML = '<div class="ic-head"><span class="ic-name"><span class="mk unit" style="border-color:var(--teal);color:var(--teal)">K</span>Catapult <span class="trait">· Onager</span></span><span class="ic-kind">Hypatia · engine</span></div>' +
+      '<div class="ic-fig"><span>Ranged <b>44</b></span><span>range <b>3</b></span><span class="ic-dim">100/100 hp</span></div>' +
+      '<ul class="ledger is-strength" style="margin-top:6px"><li><span>Catapult</span><span class="v">42</span></li><li class="is-premium"><span>Mechanics · Onager</span><span class="v">+2</span></li><li class="total"><span>Ranged strength</span><span class="v">44</span></li></ul>' +
+      '<ul class="ledger is-strength" style="margin-top:6px"><li><span>Catapult</span><span class="v">2</span></li><li class="is-premium"><span>Mechanics · Onager</span><span class="v">+1</span></li><li class="total"><span>Range</span><span class="v">3</span></li></ul>' +
+      '<p class="ic-p ic-dim">Onager is a line trait from Mechanics, a charter technology. It stays when the unit upgrades.</p>';
+    board.appendChild(card);
+  })();
+
+  // Step 7: the lead
+  (function () {
+    var host = document.getElementById('lead-nodes');
+    [['casting', { state: 'known', lead: true, knownTurn: 30 }], ['cataloguing', { state: 'known', lead: true }], ['mathematics', { state: 'known' }], ['horology', { state: 'known', lead: true }], ['mechanics', { state: 'known', lead: true }]].forEach(function (it) {
+      host.appendChild(staticNode(it[0], it[1]));
+    });
+    document.getElementById('lead-card-96').innerHTML = leadCardHTML(['casting', 'cataloguing', 'horology', 'mechanics'], 'Emperor Taizong, Mansa Musa') +
+      '<p class="ic-state" style="margin-top:8px">Mathematics left the lead on turn 90: Taizong learned it.</p>';
+    var seat = cardEl('secretArts', { size: 'seat', stamp: '+16' + PROD });
+    seat.setAttribute('role', 'img');
+    seat.setAttribute('aria-label', 'The Secret Arts, seated. It pays plus 4 production in each of 4 towns, 16 in all.');
+    var wrap = document.getElementById('seat-secret');
+    wrap.appendChild(seat);
+    var cap = document.createElement('p');
+    cap.style.cssText = 'margin:0 0 0 14px;max-width:24ch;font-size:.82rem;color:var(--ink-soft);align-self:center';
+    cap.innerHTML = '+1 production in each town for each technology in your lead, at most +5. Lead 4 × 4 towns = <b style="font-family:var(--face-num);color:var(--ink)">+16</b>.';
+    wrap.appendChild(cap);
+  })();
+
+  // ---------------------------------------------------------------- the rail
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll('.rail a'));
+    if (!('IntersectionObserver' in window)) return;
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        links.forEach(function (a) { a.classList.toggle('is-here', a.getAttribute('href') === '#' + e.target.id); });
+      });
+    }, { rootMargin: '-30% 0px -60% 0px' });
+    Array.prototype.forEach.call(document.querySelectorAll('.step'), function (s) { io.observe(s); });
+  })();
+
+  window.addEventListener('resize', function () { scaleMini(filmChart); scaleMini(baBefore); scaleMini(baAfter); });
+})();
+</script>
