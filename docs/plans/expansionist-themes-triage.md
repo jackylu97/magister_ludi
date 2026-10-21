@@ -181,6 +181,9 @@ The first six come from section 11 of the themes doc and its answers. The rest a
 34. The Rope Stretchers counts improved tiles inside each town's borders, worked or not, tended works left out (The Ambarvalia's count).
 35. The Staked Claims moves from band 3 to band 2, so it is dealt from Tier II.
 36. (E7) The sheet takes each row's text from the list doc as revised on 2026-10-21. The 32 proposed Doctrines stay as they are.
+37. (E7) E7 also wrote The Two Harvests' new text, its deferred sentence, its note and its `needsTendedWork` gate on its data row, so the Compendium shows the target card while it waits for E9.
+38. (E7) Two reward shapes lost their only card: the citizens to the smallest towns (The Wide Country) and each town paid from its own figure (The Domesday Survey). Both stay in the code; their tests run on a stand-in reward.
+39. (E8) The Land Hunger narrows to `class: { type: 'settler' }`, not the settler's model class, because the great person shares that model.
 
 ## The batches
 
@@ -209,6 +212,8 @@ The first six come from section 11 of the themes doc and its answers. The rest a
 
 ### E7: the sheet of record, the retirements and the cards changed in place
 
+**Built 2026-10-21** on `exp-work` (`971b174c`), merged into `decks` with E8. Readings 37 and 38 came from it.
+
 - **Builds:**
   - **The sheet.** Rewrite the five tier tables of `docs/decks/expansionist.md` from the list doc as revised on 2026-10-21:
     - the ten cards E7 builds, as `implemented`;
@@ -230,6 +235,8 @@ The first six come from section 11 of the themes doc and its answers. The rest a
 - **Done-gate:** `npx vitest run test/sim/decks/expansionist.test.ts test/sim/decks/expansionistThemeCards.test.ts test/sim/decks/expansionistCards.test.ts test/sim/decks/expansionistLand.test.ts test/sim/decks/expansionistMoments.test.ts test/sim/decks/expansionistLevies.test.ts test/sim/decks/expansionistWorks.test.ts test/sim/decks/expansionistMeters.test.ts test/sim/occasionRiders.test.ts test/sim/decks/dominion.test.ts test/sim/decks.test.ts test/sim/commissions.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`, and the fence's files typecheck.
 
 ### E8: the new data-only cards
+
+**Built 2026-10-21** on `exp-work` (`452e0ed5`), merged into `decks` with E7. Reading 39 came from it.
 
 - **Builds:** five group-1 rows: The Founding Furrow, The Horrea, The Land Hunger, The Many Hands, The Capitolia.
 - **Fence:** `data/decks/expansionist.json`, `docs/decks/expansionist.md`, the Expansionist shelf of `docs/orders-and-doctrines.md`, `test/fixtures/cardText.json`, `src/sim/state.ts` (the schema line) and `test/sim/state.test.ts`, `test/sim/decks.test.ts` (Expansionist's live rows 102 → 107), `test/sim/decks/expansionistThemeCards.test.ts`. The describers only if a sentence reads badly.
