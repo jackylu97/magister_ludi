@@ -7114,11 +7114,11 @@
   ],
   "theGlassmakersCharter": [
    {
-    "raw": "once drafted, opens Optics for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:optics|Optics]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Optics for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Optics, you may build the [[building:specularium|Specularium]]: +3 food; +1 science per 2 citizens in this city",
+    "raw": "once you know [[tech:optics|Optics]], you may build the [[building:specularium|Specularium]]: +3 food; +1 science per 2 citizens in this city",
     "text": "once you know Optics, you may build the Specularium: +3 food; +1 science per 2 citizens in this city"
    }
   ],
@@ -7281,11 +7281,11 @@
   ],
   "theMechanistsCharter": [
    {
-    "raw": "once drafted, opens Mechanics for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:mechanics|Mechanics]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Mechanics for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Mechanics, the Catapult line (Catapult and Trebuchet) gains the Onager trait and keeps it through every upgrade",
+    "raw": "once you know [[tech:mechanics|Mechanics]], the Catapult line (Catapult and Trebuchet) gains the Onager trait and keeps it through every upgrade",
     "text": "once you know Mechanics, the Catapult line (Catapult and Trebuchet) gains the Onager trait and keeps it through every upgrade"
    },
    {
@@ -7293,7 +7293,7 @@
     "text": "units of the Catapult line: +1 range"
    },
    {
-    "raw": "once you know Mechanics, the Archer line (Archer to Crossbowman) gains the Repeating Crossbow trait and keeps it through every upgrade",
+    "raw": "once you know [[tech:mechanics|Mechanics]], the Archer line (Archer to Crossbowman) gains the Repeating Crossbow trait and keeps it through every upgrade",
     "text": "once you know Mechanics, the Archer line (Archer to Crossbowman) gains the Repeating Crossbow trait and keeps it through every upgrade"
    },
    {
@@ -7303,11 +7303,11 @@
   ],
   "theAlchemistsCharter": [
    {
-    "raw": "once drafted, opens Chemistry for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:chemistry|Chemistry]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Chemistry for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Chemistry, the Warrior line (Warrior to Longswordsman) gains the Grenadier trait and keeps it through every upgrade",
+    "raw": "once you know [[tech:chemistry|Chemistry]], the Warrior line (Warrior to Longswordsman) gains the Grenadier trait and keeps it through every upgrade",
     "text": "once you know Chemistry, the Warrior line (Warrior to Longswordsman) gains the Grenadier trait and keeps it through every upgrade"
    },
    {
@@ -7315,7 +7315,7 @@
     "text": "+1 combat strength for units of the Warrior line, +1 more per charter technology you know"
    },
    {
-    "raw": "once you know Chemistry, your workers may build the [[improvement:niterBeds|Niter Beds]]: beside your farm or pasture; they supply one copy of [[resource:niter|Niter]]",
+    "raw": "once you know [[tech:chemistry|Chemistry]], your workers may build the [[improvement:niterBeds|Niter Beds]]: beside your farm or pasture; they supply one copy of [[resource:niter|Niter]]",
     "text": "once you know Chemistry, your workers may build the Niter Beds: beside your farm or pasture; they supply one copy of Niter"
    }
   ],
@@ -7370,25 +7370,25 @@
   ],
   "theHerbalistsCharter": [
    {
-    "raw": "once drafted, opens Herbals for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:herbals|Herbals]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Herbals for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Herbals, your workers may build the [[improvement:physicGarden|Physic Garden]]: +2 science; on flat land with fresh water, one in each city",
+    "raw": "once you know [[tech:herbals|Herbals]], your workers may build the [[improvement:physicGarden|Physic Garden]]: +2 science; on flat land with fresh water, one in each city",
     "text": "once you know Herbals, your workers may build the Physic Garden: +2 science; on flat land with fresh water, one in each city"
    },
    {
-    "raw": "once you know Herbals, +2 happiness per hex with a [[improvement:physicGarden|Physic Garden]] in your borders",
+    "raw": "once you know [[tech:herbals|Herbals]], +2 happiness per hex with a [[improvement:physicGarden|Physic Garden]] in your borders",
     "text": "once you know Herbals, +2 happiness per hex with a Physic Garden in your borders"
    }
   ],
   "theBronzeFoundersCharter": [
    {
-    "raw": "once drafted, opens Casting for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:casting|Casting]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Casting for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Casting, the Spearman line (Spearman to Pikeman) gains the Hoplite trait and keeps it through every upgrade",
+    "raw": "once you know [[tech:casting|Casting]], the Spearman line (Spearman to Pikeman) gains the Hoplite trait and keeps it through every upgrade",
     "text": "once you know Casting, the Spearman line (Spearman to Pikeman) gains the Hoplite trait and keeps it through every upgrade"
    },
    {
@@ -7396,7 +7396,7 @@
     "text": "+1 combat strength for units of the Spearman line, +1 more per 4 citizens of your city it stands in"
    },
    {
-    "raw": "once you know Casting, the War Chariot line (War Chariot to Knight) gains the Maryannu trait and keeps it through every upgrade",
+    "raw": "once you know [[tech:casting|Casting]], the War Chariot line (War Chariot to Knight) gains the Maryannu trait and keeps it through every upgrade",
     "text": "once you know Casting, the War Chariot line (War Chariot to Knight) gains the Maryannu trait and keeps it through every upgrade"
    },
    {
@@ -7410,25 +7410,25 @@
   ],
   "theSurveyorsCharter": [
    {
-    "raw": "once drafted, opens Surveying for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:surveying|Surveying]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Surveying for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Surveying, you may build the [[building:aqueduct|Aqueduct]] before Engineering: +15% food surplus stored toward growth; the city counts as standing beside fresh water",
+    "raw": "once you know [[tech:surveying|Surveying]], you may build the [[building:aqueduct|Aqueduct]] before [[tech:engineering|Engineering]]: +15% food surplus stored toward growth; the city counts as standing beside fresh water",
     "text": "once you know Surveying, you may build the Aqueduct before Engineering: +15% food surplus stored toward growth; the city counts as standing beside fresh water"
    },
    {
-    "raw": "once you know Surveying, your workers may build the [[improvement:qanat|Qanat]]: on flat land; your farms beside it count as having fresh water",
+    "raw": "once you know [[tech:surveying|Surveying]], your workers may build the [[improvement:qanat|Qanat]]: on flat land; your farms beside it count as having fresh water",
     "text": "once you know Surveying, your workers may build the Qanat: on flat land; your farms beside it count as having fresh water"
    }
   ],
   "theLibrariansCharter": [
    {
-    "raw": "once drafted, opens Cataloguing for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:cataloguing|Cataloguing]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Cataloguing for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Cataloguing, you may build the [[building:mouseion|Mouseion]]: +4 renown per turn, favouring scholars; +2 culture per empire building you hold",
+    "raw": "once you know [[tech:cataloguing|Cataloguing]], you may build the [[building:mouseion|Mouseion]]: +4 renown per turn, favouring scholars; +2 culture per empire building you hold",
     "text": "once you know Cataloguing, you may build the Mouseion: +4 renown per turn, favouring scholars; +2 culture per empire building you hold"
    }
   ],
@@ -7440,65 +7440,65 @@
   ],
   "thePaperMakersCharter": [
    {
-    "raw": "once drafted, opens Papermaking for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:papermaking|Papermaking]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Papermaking for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Papermaking, you may build the [[building:scriptorium|Scriptorium]]: +2 science; +10% science in every city with a [[building:scriptorium|Scriptorium]] with an [[improvement:academy|Academy]]; +2 renown per turn, favouring scholars",
+    "raw": "once you know [[tech:papermaking|Papermaking]], you may build the [[building:scriptorium|Scriptorium]]: +2 science; +10% science in every city with a [[building:scriptorium|Scriptorium]] with an [[improvement:academy|Academy]]; +2 renown per turn, favouring scholars",
     "text": "once you know Papermaking, you may build the Scriptorium: +2 science; +10% science in every city with a Scriptorium with an Academy; +2 renown per turn, favouring scholars"
    }
   ],
   "thePhysiciansCharter": [
    {
-    "raw": "once drafted, opens Medicine for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:medicine|Medicine]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Medicine for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Medicine, you may build the [[building:bimaristan|Bimaristan]]: +25% food in every city with a [[building:bimaristan|Bimaristan]]; all units: +10 healing per turn inside your territory",
+    "raw": "once you know [[tech:medicine|Medicine]], you may build the [[building:bimaristan|Bimaristan]]: +25% food in every city with a [[building:bimaristan|Bimaristan]]; all units: +10 healing per turn inside your territory",
     "text": "once you know Medicine, you may build the Bimaristan: +25% food in every city with a Bimaristan; all units: +10 healing per turn inside your territory"
    }
   ],
   "thePrintersCharter": [
    {
-    "raw": "once drafted, opens Printing for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:printing|Printing]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Printing for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Printing, you may build the [[building:aldinePress|Aldine Press]]: +2 culture; +2 science, +2 culture on every trade route sent from every city with an [[building:aldinePress|Aldine Press]]",
+    "raw": "once you know [[tech:printing|Printing]], you may build the [[building:aldinePress|Aldine Press]]: +2 culture; +2 science, +2 culture on every trade route sent from every city with an [[building:aldinePress|Aldine Press]]",
     "text": "once you know Printing, you may build the Aldine Press: +2 culture; +2 science, +2 culture on every trade route sent from every city with an Aldine Press"
    },
    {
-    "raw": "once you know Printing, +1 trade route",
+    "raw": "once you know [[tech:printing|Printing]], +1 trade route",
     "text": "once you know Printing, +1 trade route"
    }
   ],
   "theGunfoundersCharter": [
    {
-    "raw": "once drafted, opens Gunfounding for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:gunfounding|Gunfounding]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Gunfounding for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Gunfounding, you may build the [[building:tophane|Tophane]]: newly created military units in every city with a [[building:tophane|Tophane]] gain +4 combat strength; +25% production toward military units, in every city with a [[building:tophane|Tophane]]",
+    "raw": "once you know [[tech:gunfounding|Gunfounding]], you may build the [[building:tophane|Tophane]]: newly created military units in every city with a [[building:tophane|Tophane]] gain +4 combat strength; +25% production toward military units, in every city with a [[building:tophane|Tophane]]",
     "text": "once you know Gunfounding, you may build the Tophane: newly created military units in every city with a Tophane gain +4 combat strength; +25% production toward military units, in every city with a Tophane"
    }
   ],
   "theMilitaryEngineersCharter": [
    {
-    "raw": "once drafted, opens Military Architecture for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:militaryArchitecture|Military Architecture]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Military Architecture for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Military Architecture, you may build the [[building:bastion|Bastion]]: +5 to the city’s defence strength; +30 to how much punishment the city can take; +1 renown per turn, favouring engineers",
+    "raw": "once you know [[tech:militaryArchitecture|Military Architecture]], you may build the [[building:bastion|Bastion]]: +5 to the city’s defence strength; +30 to how much punishment the city can take; +1 renown per turn, favouring engineers",
     "text": "once you know Military Architecture, you may build the Bastion: +5 to the city’s defence strength; +30 to how much punishment the city can take; +1 renown per turn, favouring engineers"
    }
   ],
   "theNavalGunnersCharter": [
    {
-    "raw": "once drafted, opens Naval Gunnery for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:navalGunnery|Naval Gunnery]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Naval Gunnery for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Naval Gunnery, the Gun Galley line (Gun Galley and Frigate) gains the Galleass trait and keeps it through every upgrade",
+    "raw": "once you know [[tech:navalGunnery|Naval Gunnery]], the Gun Galley line (Gun Galley and Frigate) gains the Galleass trait and keeps it through every upgrade",
     "text": "once you know Naval Gunnery, the Gun Galley line (Gun Galley and Frigate) gains the Galleass trait and keeps it through every upgrade"
    },
    {

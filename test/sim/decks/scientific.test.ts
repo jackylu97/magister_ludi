@@ -52,6 +52,11 @@
  * 0 to II (batch S7), and `test/sim/decks/scientificHouses.test.ts` the great
  * people and the great houses (batch S8). `test/sim/decks/scientificArmy.test.ts`
  * pins the army and the Opus (batch S9).
+ *
+ * **Batch S11 is the final check.** Every row of the five tier tables is
+ * `implemented`, all thirteen charters are dealt, and no row is deferred. The
+ * shared table may still hold rows another deck's build owns (Commerce and
+ * Devotion), and nothing else.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -124,9 +129,9 @@ const CHARTERS = CURRENT.filter((id) => isCharter(id));
 /**
  * The charters whose whole gift is built, so they are dealt: three since batch
  * S1 (the line traits), eight more since batch S4 (the building charters) and
- * the last two since batch S5 (the Qanat and Niter Beds). A charter has no
- * effects: its gift is the research it opens and what the technology row
- * gives.
+ * the last two since batch S5 (the Qanat and Niter Beds). That is all thirteen
+ * (batch S11 pins it). A charter has no effects: its gift is the research it
+ * opens and what the technology row gives.
  */
 const DEALT_CHARTERS: readonly OrderId[] = [
   'theBronzeFoundersCharter',
@@ -574,6 +579,25 @@ describe('the Scientific deck: the sheet', () => {
     }
   });
 
+  it('marks every row of the five tier tables implemented: the build is complete', () => {
+    // Batch S11, the final check: no tier-table row still waits on a batch.
+    const waiting = sheetCards()
+      .filter((card) => card.status !== 'implemented')
+      .map((card) => `${card.name} (${card.status})`);
+    expect(waiting).toEqual([]);
+    expect(sheetCards()).toHaveLength(CURRENT.length);
+  });
+
+  it('leaves waiting on the shared table only rows another deck’s build owns', () => {
+    // The shared rows that are not implemented belong to the Commerce and
+    // Devotion builds (the triage's "Shared with another deck" table), not to
+    // a Scientific batch.
+    const waiting = sharedCards().filter((card) => card.status !== 'implemented');
+    for (const card of waiting) {
+      expect(['commerce', 'devotion'], `${card.name} waits on a ${card.alsoIn} build`).toContain(card.alsoIn);
+    }
+  });
+
   it('keeps every retired row off the tables', () => {
     const listed = new Set(
       [...sheetCards(), ...sharedCards()].flatMap((card) => [card.name, dataNameOf(card)]),
@@ -687,6 +711,8 @@ describe('the research charters', () => {
       expect(def.charter!.unlocks.rites, id).toBeUndefined();
     }
     for (const id of DEALT_CHARTERS) expect(CHARTERS, id).toContain(id);
+    // Batch S11: every charter is dealt.
+    expect([...DEALT_CHARTERS].sort()).toEqual([...CHARTERS].sort());
   });
 
   it('names nodes the tree holds off the sky, and the retired rows name none it holds', () => {

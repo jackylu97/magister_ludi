@@ -77,7 +77,7 @@ import {
   buildingDef,
   isWonder,
 } from '../sim/buildingData';
-import { buildingProductionCost, unitRosterCost } from '../sim/cities';
+import { buildingProductionCost, explainBuildingCost, unitRosterCost } from '../sim/cities';
 import {
   type Family,
   GREAT_PERSON_IDS,
@@ -156,7 +156,16 @@ import {
   orderSuitFace,
 } from './deckBadges';
 import { gatingTech } from '../sim/tech';
-import { ABILITY_TECH, TECH_IDS, type TechId, isAbilityId, techDef } from '../sim/techData';
+import {
+  ABILITY_TECH,
+  ALL_TECH_IDS,
+  CHARTER_TECH_IDS,
+  TECH_IDS,
+  type TechId,
+  isAbilityId,
+  isTechId,
+  techDef,
+} from '../sim/techData';
 import {
   LEADER_ABILITY_IDS,
   LEADER_IDS,
@@ -181,6 +190,7 @@ import {
 } from '../sim/unitData';
 import { buildingUpkeep, unitUpkeep } from '../sim/upkeep';
 import { CARD_LINE_NAME, lineOf } from './cardLine';
+import { charterOpening } from './charterTech';
 import { type SuitFace, suitMarksNode } from './suitFace';
 import { setDescriptorText } from './keywords';
 import { renderPamphletBody } from './pamphlet';
@@ -314,7 +324,8 @@ export interface CompendiumEntry {
   name: string;
   /**
    * **The sub-shelf this entry is filed under**, or absent for a shelf that
-   * has none (which is every shelf but Orders today).
+   * has none (every shelf but Orders, and every Technologies entry but the
+   * charter technologies, Scientific batch S12).
    *
    * A shelf, not a section: the Orders shelf is six decks, the cards two decks
    * share, the cards any leader may draw and the withdrawn rows behind them —
@@ -555,15 +566,36 @@ function badgeClassOf(def: UnitDef): string {
 export const OPENING_WORDS: readonly string[] = ['Unlocked ', 'Withdrawn: '];
 
 /**
- * `[[tech:mathematics|Mathematics]]`. A charter technology is named without a
- * mark, because the book has no page for one yet (Scientific batch S12 writes
- * them), and a mark to a page the book lacks is a dead link. Since batch S4 a
- * charter technology opens buildings and the Physic Garden, so their pages
- * name it.
+ * `[[tech:mathematics|Mathematics]]`. Every technology has a page, the
+ * charter technologies included since Scientific batch S12 (`charterTechEntry`),
+ * so every technology is named with a mark.
  */
 function techRef(id: TechId): string {
-  const def = techDef(id);
-  return def.charter === true ? def.name : ref('tech', id, def.name);
+  return ref('tech', id, techDef(id).name);
+}
+
+/**
+ * The charter that opens a charter technology, as a mark to its card, or
+ * `null` when no live charter names it. `charterOpening` (`charterTech.ts`) is
+ * the star chart's own reading of the same question, so the chart's hover card
+ * and the book name the same charter.
+ */
+function charterRef(tech: TechId): string | null {
+  const charter = charterOpening(tech, undefined);
+  return charter === null ? null : ref('order', charter, orderDef(charter).name);
+}
+
+/**
+ * The words after a charter technology's name in an opening line: which charter
+ * a reader must draft before the technology can be researched. Empty for an
+ * ordinary technology.
+ */
+function charterTechWords(tech: TechId): string {
+  if (techDef(tech).charter !== true) return '';
+  const charter = charterRef(tech);
+  return charter === null
+    ? ', a charter technology'
+    : `, a charter technology that only an empire holding ${charter} may research`;
 }
 
 /**
@@ -627,13 +659,22 @@ const OPENING_CARD_CLASSES: readonly {
     noun: 'the leader',
     anchor: (id) => leaderAbilityHome(id as Parameters<typeof leaderAbilityHome>[0]),
   },
+  // **A technology that opens a row early** (Scientific batch S5: Surveying's
+  // `unlocksBuilding` opens the Aqueduct before Engineering). A technology is
+  // a card class too (`anyCardDef`), and it is walked last, so a card that
+  // opens the same row is named first. `openedByCard` words this kind as
+  // research, not as a card.
+  { ids: ALL_TECH_IDS, kind: 'tech', noun: 'the technology' },
 ];
 
-/** The card that opens a row — its ref and the noun it is said with — or `null`. */
+/**
+ * The card that opens a row — its ref, the noun it is said with and the id of
+ * the page the ref points at — or `null`.
+ */
 function cardThatOpens(
   kind: 'unit' | 'building',
   id: string,
-): { ref: string; noun: string; kind: RefKind } | null {
+): { ref: string; noun: string; kind: RefKind; anchor: string } | null {
   for (const cardClass of OPENING_CARD_CLASSES) {
     for (const card of cardClass.ids) {
       const def = anyCardDef(card as Parameters<typeof anyCardDef>[0]);
@@ -649,15 +690,24 @@ function cardThatOpens(
       const anchor = cardClass.anchor === undefined ? card : cardClass.anchor(card);
       const name =
         cardClass.anchor === undefined ? def.name : leaderDef(anchor as LeaderId).name;
-      return { ref: ref(cardClass.kind, anchor, name), noun: cardClass.noun, kind: cardClass.kind };
+      return {
+        ref: ref(cardClass.kind, anchor, name),
+        noun: cardClass.noun,
+        kind: cardClass.kind,
+        anchor,
+      };
     }
   }
   return null;
 }
 
-/** "Unlocked by researching [[tech:…]]." — the line for a row the tree names. */
+/**
+ * "Unlocked by researching [[tech:…]]." — the line for a row the tree names.
+ * A charter technology also names the charter that opens it (Scientific batch
+ * S12), because a reader cannot research it without that card.
+ */
 function openedByTech(tech: TechId): CompendiumClause {
-  return { text: `Unlocked by researching ${techRef(tech)}.` };
+  return { text: `Unlocked by researching ${techRef(tech)}${charterTechWords(tech)}.` };
 }
 
 /**
@@ -691,6 +741,18 @@ function openedByLeader(kind: LeaderRowKind, id: string): CompendiumClause {
  */
 function openedByCard(kind: 'unit' | 'building', id: string, gate: TechId | null): CompendiumClause {
   const card = cardThatOpens(kind, id);
+  // A technology that opens the row early is research, so the line names the
+  // tree's own node first and the early one after it, with its charter.
+  if (card?.kind === 'tech') {
+    const early = card.anchor as TechId;
+    const earlyWords = `${techRef(early)}${charterTechWords(early)}`;
+    return {
+      text:
+        gate === null
+          ? `Unlocked by researching ${earlyWords}.`
+          : `Unlocked by researching ${techRef(gate)}, or earlier by researching ${earlyWords}.`,
+    };
+  }
   const by = card === null ? 'a card' : `${card.noun} ${card.ref}`;
   return {
     text:
@@ -1246,6 +1308,25 @@ function laterGiftIndex(): Partial<Record<BuildingId, CompendiumClause[]>> {
   return index;
 }
 
+/**
+ * **A row's own cost premium** (`BuildingDef.costPercent`, Scientific batch
+ * S4: the Mouseion), as the amount and its share ("+40⚙ (+30%)"), or empty
+ * for a row with none.
+ *
+ * The amount is the premium line of the cost fold with no empire in hand
+ * (`explainBuildingCost`). That fold puts the premium last, and with no empire
+ * there is no line after it, so the last line is the premium. The production
+ * cost row above it is the fold's total, the premium included.
+ */
+function costPremiumFigures(id: BuildingId): string {
+  const percent = buildingDef(id).costPercent ?? 0;
+  if (percent === 0) return '';
+  const lines = explainBuildingCost(id);
+  const premium = lines.length > 1 ? lines[lines.length - 1]! : null;
+  if (premium === null || premium.amount === 0) return '';
+  return `${signedFigure(premium.amount)}${YIELD_GLYPH.production} (${percentFigure(percent)})`;
+}
+
 function buildingEntry(id: BuildingId): CompendiumEntry {
   const def = buildingDef(id);
   const wonder = isWonder(id);
@@ -1254,6 +1335,7 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
       'Production cost',
       `${figure(buildingProductionCost(id))}${YIELD_GLYPH.production}`,
     ),
+    ...row('Cost premium', costPremiumFigures(id)),
     ...row('Yields each turn', buildingYieldFigures(def)),
     ...row(
       'Science per citizen',
@@ -1534,6 +1616,27 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
   if (def.onePerTown === true) {
     clauses.push({ text: 'A city may hold only one, counted over every hex inside its borders.' });
   }
+  // **The Scientific batch S5 rows' own rules** (the Qanat and Niter Beds),
+  // read off the row like the rules above, so a later row with the same field
+  // says the same thing.
+  if (def.besideImprovement !== undefined && def.besideImprovement.length > 0) {
+    const names = def.besideImprovement.map((work) => withArticle(improvementDef(work).name));
+    clauses.push({
+      text: `Can only be built next to ${eitherWords(names)} inside your borders. It keeps working if that improvement is removed later.`,
+    });
+  }
+  if (def.watersBeside === true) {
+    clauses.push({
+      text: 'Your farms on the hexes next to it count as having fresh water, for every rule that asks whether a farm has it. It waters only your own farms, and only while it stands.',
+    });
+  }
+  if (def.suppliesResource !== undefined) {
+    const resource = def.suppliesResource;
+    const name = resourceDef(resource).name;
+    clauses.push({
+      text: `Supplies your empire with a copy of ${ref('resource', resource, name)} while it stands inside your borders, with no seam needed on the hex. The copy counts only once your empire can see ${name}.`,
+    });
+  }
   if (def.copiesNeighbours === true) {
     clauses.push({
       text: 'Yields what each hex around it yields, counting only hexes inside your borders, and never a city or another hex of its kind. It pays only while a citizen works it.',
@@ -1800,6 +1903,119 @@ function techEntry(id: TechId): CompendiumEntry {
 }
 
 /**
+ * The heading the charter technologies are filed under, at the end of the
+ * Technologies shelf (Scientific batch S12). The tree's own technologies carry
+ * no heading, so the shelf reads as the tree and then this one group.
+ */
+export const CHARTER_TECH_GROUP = 'Charter technologies';
+
+/** A charter technology's price with no empire's cards in it. See `charterTechPrice`. */
+export interface CharterTechPrice {
+  /** The row's own `cost`: what an ordinary technology in its column costs. */
+  column: number;
+  /** What the charter premium adds to the column price. */
+  premium: number;
+  /** The two together: what the technology costs an empire with no card on it. */
+  total: number;
+}
+
+/**
+ * **A charter technology's price, before any card changes it**: the first two
+ * lines of `explainTechCost` (`tech.ts`), the column price and the charter
+ * premium, and their sum.
+ *
+ * The book takes no game, and `explainTechCost` needs one to read the cards an
+ * empire holds, so these two lines are worked out here from the row and from
+ * `rules.research.charterPremiumPercent`, by the fold's own arithmetic: the
+ * premium is the share of the column price, floored once.
+ * `test/ui/compendiumCharterTechs.test.ts` checks them against
+ * `explainTechCost` for a seat that holds no card, so the book and the price
+ * the game charges cannot drift apart.
+ */
+export function charterTechPrice(id: TechId): CharterTechPrice {
+  const column = techDef(id).cost;
+  const total = Math.floor((column * (100 + RULES.research.charterPremiumPercent)) / 100);
+  return { column, premium: total - column, total };
+}
+
+/**
+ * **One charter technology's page** (Scientific batch S12): a technology only
+ * an empire holding its charter may research (`TechDef.charter`).
+ *
+ * Generated from the row, like `techEntry`, with three differences:
+ *
+ *   - **The first clause names the charter** that opens it, as a mark to the
+ *     card's page. `charterOpening` (`charterTech.ts`) is the star chart's
+ *     reading of the same question.
+ *   - **The price is printed as its lines**: the column price, the charter
+ *     premium and their sum, before any card (`charterTechPrice`). The star
+ *     chart prints the same lines for an empire with its cards in them.
+ *   - **What knowing it gives is said in full** through `describeCard`, its
+ *     rules and its line traits both, never as a named rule. The book has room
+ *     for every clause, and the star chart's hover card prints a charter
+ *     technology's traits in full too.
+ *
+ * What it opens (buildings and improvements) is `techGifts` in the tree's own
+ * words (`giftWords`), as on every other technology's page.
+ */
+function charterTechEntry(id: TechId): CompendiumEntry {
+  const def = techDef(id);
+  const price = charterTechPrice(id);
+  const science = YIELD_GLYPH.science;
+  const rows: CompendiumRow[] = [
+    ...row('Research cost', `${figure(price.total)}${science}`),
+    ...row('Column price', `${figure(price.column)}${science}`),
+    ...row(
+      'Charter premium',
+      price.premium === 0
+        ? ''
+        : `${signedFigure(price.premium)}${science} (${percentFigure(RULES.research.charterPremiumPercent)})`,
+    ),
+    ...row('Requires first', words(def.prereqs.map((prereq) => techDef(prereq).name))),
+  ];
+  const charter = charterRef(id);
+  const clauses: CompendiumClause[] = [
+    {
+      text:
+        charter === null
+          ? 'Opened by drafting its charter. Only an empire that holds that charter may research it.'
+          : `Opened by drafting ${charter}. Only an empire that holds that charter may research it.`,
+    },
+    ...techGifts(id)
+      .filter((gift) => gift.kind !== 'techEffect')
+      .map((gift) => ({ text: giftWords(gift) })),
+    // Copied into the book's own clauses, which `entryNode` prints through
+    // `setDescriptorText`, as `cardClauses` does for a card.
+    ...describeCard(id)
+      .filter((entry) => entry.text.length > 0)
+      .map((entry) => ({ text: entry.text, deferred: entry.deferred })),
+  ];
+  if (clauses.length === 1) {
+    clauses.push({ text: 'Unlocks nothing by itself.' });
+  }
+  for (const line of techRuleNote(id)) clauses.push({ text: line, note: true });
+  clauses.push({
+    text: 'The column price is what an ordinary technology at the same point in the tree costs. These prices leave out the cards an empire holds, which can change them.',
+    note: true,
+  });
+  clauses.push({
+    text: 'A charter technology does not count toward your empire’s age, and completing one is never a first in the world.',
+    note: true,
+  });
+  return {
+    id: compendiumId('tech', id),
+    section: 'tech',
+    name: def.name,
+    group: CHARTER_TECH_GROUP,
+    eyebrow: `${ageWord(def.age)} charter technology`,
+    mark: { kind: 'glyph', glyph: def.glyph },
+    rows,
+    clauses,
+    flavor: def.flavor ?? null,
+  };
+}
+
+/**
  * One **named rule** — the page a node's `[[rule:…]]` clause points at.
  *
  * Generated, like every other entry on a generated shelf: the clauses are the
@@ -1914,21 +2130,19 @@ const BAND_WORDS: readonly string[] = ['early', 'middle', 'late', 'advanced', 'f
  * says so, because that is exactly the misreading the design doc warns about
  * (*"it grants neither a free technology nor a free building"*).
  *
- * **And it names only what the book has a page for.** Every one of the eight
- * charter rows today points at something that has not been drawn up — the five
- * off-lane studies and the three workshops are D2f's, and until then their ids
- * are in the card and in no table. A mark pointing at a page the book does not
- * have is a dead link, which is the one thing the keyword sweep exists to stop;
- * so an unbuilt target is simply not named here, and the row's own deferred
- * sentence — which is player prose and says what it opens in words — carries
- * that half.
+ * **It names only what the book has a page for.** A mark to a page the book
+ * does not have is a dead link, which the keyword sweep refuses. So a target
+ * with no table row (a retired charter's technology that the tree never held)
+ * is not named here. Every technology row has a page since Scientific batch
+ * S12, the charter technologies included, so a live charter's technology is
+ * always named.
  */
 function charterClause(def: ReturnType<typeof orderDef>): CompendiumClause[] {
   const spec = def.charter;
   if (spec === undefined) return [];
   const opened: string[] = [];
   const tech = spec.unlocks.tech;
-  if (tech !== undefined && TECH_IDS.includes(tech)) opened.push(techRef(tech));
+  if (tech !== undefined && isTechId(tech)) opened.push(techRef(tech));
   const building = spec.unlocks.building;
   if (building !== undefined && BUILDING_IDS.includes(building)) {
     opened.push(ref('building', building, buildingDef(building).name));
@@ -2883,6 +3097,11 @@ export function compendiumSections(): CompendiumSection[] {
   for (const age of [...new Set(TECH_IDS.map((id) => techDef(id).age))].sort((a, b) => a - b)) {
     for (const id of TECH_IDS) if (techDef(id).age === age) push(techEntry(id));
   }
+  // The charter technologies (Scientific batch S12), after the tree under one
+  // heading of their own, in age order and then file order. They are not on
+  // the tree every empire climbs, so they are not mixed into it.
+  const charterTechs = [...CHARTER_TECH_IDS].sort((a, b) => techDef(a).age - techDef(b).age);
+  for (const id of charterTechs) push(charterTechEntry(id));
   // The named rules, in the tree's own order — the pages the star chart's node
   // cards point at when a node's rules will not fit on one. See `ruleEntry`.
   for (const id of techsWithNamedRules(TECH_IDS)) push(ruleEntry(id));
@@ -2982,8 +3201,9 @@ export function filterSections(
  * Derived from the entries rather than declared beside them, for the reason
  * every list in this file is derived: a heading that could disagree with what
  * is under it is a heading that eventually will. A section whose entries carry
- * no `group` — every shelf but Orders — comes back empty, and the index and the
- * body both draw nothing.
+ * no `group` comes back empty, and the index and the body both draw nothing.
+ * Only the Orders shelf and the Technologies shelf have groups; on the
+ * Technologies shelf only the charter technologies carry one.
  *
  * Pure and exported for the same reason `compendiumView` is: this suite has no
  * jsdom, and "did the search leave a heading with nothing under it" has to be a

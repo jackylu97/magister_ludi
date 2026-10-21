@@ -791,11 +791,10 @@ export function describeCard(id: CardId): CardClause[] {
     // **A charter that opens a technology** (Scientific batch S0 and S1): the
     // pick opens the research, and what knowing the technology gives is the
     // rest of the card, so its traits are printed here in the technology's
-    // own words. The technology is named without a keyword mark, because the
-    // Compendium has no page for a charter technology yet (batch S12), and a
-    // mark to a page the book lacks is a dead link. A retired charter may name
-    // a technology the tree never held (the Metallurgists' Alloys), and says
-    // nothing here.
+    // own words. Since batch S12 the Compendium has a page for each charter
+    // technology, so the name is a keyword mark like any other technology's.
+    // A retired charter may name a technology the tree never held (the
+    // Metallurgists' Alloys), and says nothing here.
     const tech = orderDef(id).charter?.unlocks.tech;
     if (tech !== undefined && isTechId(tech)) clauses.push(...charterTechClauses(tech));
     // **A charter's rites are the whole of the card** (The Fast): taking it
@@ -855,10 +854,13 @@ export function describeCard(id: CardId): CardClause[] {
  *     Garden), batch S4;
  *   - the technology's own card effects (Herbals' happiness, Printing's trade
  *     route), batch S4.
+ *
+ * The technology's name is a keyword mark in every clause (batch S12), so a
+ * reader can open its Compendium page from any of them.
  */
 function charterTechClauses(tech: TechId): CardClause[] {
   const def = techDef(tech);
-  const name = def.name;
+  const name = ref('tech', tech, def.name);
   const known = `once you know ${name}, `;
   const clauses: CardClause[] = [
     {
@@ -883,7 +885,7 @@ function charterTechClauses(tech: TechId): CardClause[] {
     early.push(effect.building);
     const does = liveWords(describeBuildingRow(effect.building));
     const gate = BUILDING_UNLOCK_TECH.get(effect.building);
-    const before = gate === undefined ? '' : ` before ${techDef(gate).name}`;
+    const before = gate === undefined ? '' : ` before ${ref('tech', gate, techDef(gate).name)}`;
     clauses.push({
       text: `${known}you may build ${theBuilding(effect.building)}${before}${does === '' ? '' : `: ${does}`}`,
     });
