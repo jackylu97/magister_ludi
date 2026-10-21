@@ -256,7 +256,7 @@ describe('what a triumph pays', () => {
     found(g.state, 0);
     keepTheRites(g.state);
     const player = g.state.players[0]!;
-    player.renownPool = renownThreshold(player) - triumphDef('cityOfMarvels').pays;
+    player.renownPool = renownThreshold(g.state, player) - triumphDef('cityOfMarvels').pays;
     awardTriumph(g.state, 0, 'cityOfMarvels');
     expect(player.greatPersonOffer).toBeDefined();
   });

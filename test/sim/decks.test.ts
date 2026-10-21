@@ -518,6 +518,13 @@ describe('the schema, as landed', () => {
     // **And Scientific batch S6** (the research record): eleven more. Eleven
     // new Scientific rows came live, one of them a commission (The Royal
     // Charter Commission).
+    // **And Scientific batch S7** (the data-only cards of Tiers 0 to II):
+    // nine more. Nine new Scientific rows came live. Learned Foundations
+    // (the row `learnedCommissions`), Enduring Institutions and The Quiet
+    // Faculties were changed in place and were already live.
+    // **And Scientific batch S8** (great people and the great houses): eleven
+    // more. Ten new Scientific rows came live, one of them a commission (The
+    // Lynx-Eyed Academy), and The Second Seat left `deferred`.
     // **And Expansionist batch E7** (the themes sheet): fourteen fewer. The
     // fourteen live Expansionist rows the themes pass cut are retired (the
     // fifteenth, Public Works, was deferred and never counted). Ten rows were
@@ -525,8 +532,8 @@ describe('the schema, as landed', () => {
     // **And Expansionist batch E8** (the new data-only cards): five more. Five
     // new Expansionist rows came live (The Founding Furrow, The Horrea, The
     // Land Hunger, The Many Hands, The Capitolia).
-    expect(live).toBe(530);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(530);
+    expect(live).toBe(550);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(550);
   });
 
   /**
@@ -808,13 +815,18 @@ describe('the schema, as landed', () => {
     // 162 since Scientific batch S6 (the research record): eleven more
     // Scientific Orders come live, so a v161 log's Scientific hands hold
     // different cards.
-    // 163 since Expansionist batch E7 (the themes sheet): fifteen Expansionist
-    // rows are retired, ten change in place and five change type, so a v162
-    // log's Expansionist hands and chairs hold different cards.
-    // 164 since Expansionist batch E8 (five new data-only cards): five more
-    // Expansionist Orders come live, so a v163 log's Expansionist hands hold
-    // different cards.
-    expect(SCHEMA_VERSION).toBe(164);
+    // 163 since Scientific batch S7 (the data-only cards of Tiers 0 to II):
+    // nine more Scientific Orders come live and three change, so a v162
+    // log's Scientific hands hold different cards.
+    // 164 since Scientific batch S8 (great people and the great houses):
+    // eleven more Scientific Orders come live, so a v163 log's Scientific
+    // hands hold different cards.
+    // 165 since Expansionist batches E7 and E8, which landed together. E7
+    // (the themes sheet): fifteen Expansionist rows are retired, ten change in
+    // place and five change type. E8 (five new data-only cards): five more
+    // Expansionist Orders come live. So a v164 log's Expansionist hands and
+    // chairs hold different cards.
+    expect(SCHEMA_VERSION).toBe(165);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1053,12 +1065,14 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // The School of Mines (− 3).
       // **Dominion batch D14** freed two (The Relay Stations and
       // Circumvallation: − 2).
+      // **Scientific batch S8** freed The Second Seat, the last deferred
+      // Scientific row (− 1).
       // **Expansionist batch E7** retired the themes pass's fifteen cuts:
       // fourteen live rows and the deferred Public Works (− 1, and + 15
       // retired).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(34);
+      ).toHaveLength(33);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(188);
     }
   });

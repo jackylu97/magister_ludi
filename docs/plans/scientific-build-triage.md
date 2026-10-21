@@ -327,6 +327,9 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 82. (S6) The Age of Reason runs each Order's technology rider twice, so grants, units and renown pay twice; percentages and once-a-turn riders count once; the tallies are written with an amount of 2.
 83. (S6) `fromTownPopulation` pays food and production only, by each town's population when that town is paid.
 84. (S6) `chartersDrafted` counts charter rows in the collection from the pick, researched or not.
+85. (S7) The Roll of Scholars says "at most +28%" (`max: 7`), because a count's `max` counts steps; the triage's `max: 30` would give +120%. This follows the user's ruling on The Res Gestae. Alternative: +5% for each scholar, at most +30%.
+86. (S7) "Science building" is the `scienceBuildings` count: any building whose row gives science, the Monastery and science wonders included. The Royal Tutors reads it town by town (`within: 'city'`).
+87. (S7) The War Manuals and The Palace Schools reach military units only; their text says "Units".
 
 ## The batches
 
@@ -445,6 +448,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 - **Done-gate:** `npx vitest run test/sim/decks/scientificResearch.test.ts test/sim/commissions.test.ts test/sim/tech.test.ts test/sim/decks/scientific.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/statecraft.test.ts`.
 
 ### S7: the data-only cards of Tiers 0 to II
+
+**Built 2026-10-21** (`9379f79c`, schema 163). Readings 85 to 87 came from it. The `empireBuilding` rider field and the `buildingKind` record of firsts are named by no row until S8.
 
 - **Builds:** twelve group-1 cards: The Royal Tutors, The War Manuals, Learned Foundations, The Royal Estates, The Common Tables, The Free Cities, Enduring Institutions, The Quiet Faculties, The Roll of Scholars, The Palace Schools, The Round City, The City Architects. Learned Commissions is renamed; Enduring Institutions and The Quiet Faculties are brought to the docs' text and figures.
 - **Fence:** `data/decks/scientific.json`, the Scientific shelf of `docs/orders-and-doctrines.md`, `test/fixtures/cardText.json`, a new `test/sim/decks/scientificCards.test.ts`. The describers only if a sentence reads badly.

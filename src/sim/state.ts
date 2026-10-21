@@ -2105,9 +2105,58 @@ import {
  * now hold eleven more cards, so its hands differ. The branch migrates
  * nothing, for the reason given under v119.
  *
- * v163 (branch `decks`; Expansionist batch E7, `docs/plans/expansionist-
- * themes-triage.md`): **the themes sheet, the retirements and ten cards
- * changed in place.** No field joins the state. The rules that change:
+ * v163 (branch `decks`; Scientific batch S7, `docs/plans/scientific-build-
+ * triage.md`): **the data-only cards of Tiers 0 to II.** No field joins the
+ * state, and no shape is new. The rules that change:
+ *
+ *   · nine Scientific Orders come live: The Royal Tutors, The War Manuals,
+ *     The Royal Estates, The Common Tables, The Free Cities, The Roll of
+ *     Scholars, The Palace Schools, The Round City and The City Architects;
+ *   · Learned Commissions becomes Learned Foundations under the same id:
+ *     +25% toward empire buildings in a Library town, and its two riders
+ *     for a first empire building of each kind are gone;
+ *   · Enduring Institutions pays +25% production and no happiness;
+ *   · The Quiet Faculties reads a worked Academy, not any great person's
+ *     work, and pays +25% food and +20% production.
+ *
+ * **A v162 save is refused and does not replay.** A Scientific seat's pools
+ * now hold nine more cards, so its hands differ, and three live cards pay
+ * different figures. The branch migrates nothing, for the reason given under
+ * v119.
+ *
+ * v164 (branch `decks`; Scientific batch S8, `docs/plans/scientific-build-
+ * triage.md`): **great people and the great houses.** No field joins the
+ * state. The rules that change:
+ *
+ *   · a rider may grant a great person (`WindfallGrantSpec.greatPerson`),
+ *     dealt as a commission's is, and a completion rider may name an any-of
+ *     filter (`anyOf`);
+ *   · the great-person price reads the empire's cards (`renownThreshold`
+ *     takes the state; the `scholarLadderStep` rule);
+ *   · `buildsEverywhere` may lift the one-to-a-realm limit for a counted
+ *     number of copies of every great house, in the towns a scope admits, and
+ *     a queue being replaced counts its own building rows for it;
+ *   · `unlocksBuilding` may open a row in some towns only, and the University
+ *     is a row a card may open early;
+ *   · a commission may count the Academies inside the borders
+ *     (`academyHexes`);
+ *   · eleven Scientific Orders come live: The Forward Plans, The Dedications,
+ *     The Royal Readers, The Invitations, The Second Seat, The Doctorate, The
+ *     Royal Academies, The Queen of Cities, The Humanists, The Walls of
+ *     Learning and The Lynx-Eyed Academy.
+ *
+ * **A v163 save is refused and does not replay.** A Scientific seat's pools
+ * now hold eleven more cards, so its hands differ. The branch migrates
+ * nothing, for the reason given under v119.
+ *
+ * v165 (branch `decks`; Expansionist batches E7 and E8, `docs/plans/
+ * expansionist-themes-triage.md`): **the Expansionist themes sheet, the
+ * retirements, ten cards changed in place and five new Orders.** The two
+ * batches were built as 163 and 164 on their own branch and merged after S7
+ * and S8 together, so they share one number. No field joins the state.
+ *
+ * The rules that change in E7 (the sheet, the retirements and ten cards
+ * changed in place):
  *
  *   · fifteen Expansionist rows are retired: The Pyramid Builders, The
  *     Beating of the Bounds, The Prospectors, The Garden Frontier, The
@@ -2126,14 +2175,8 @@ import {
  *   · five Orders change type to civic, and The Two Harvests (still
  *     deferred) to wildcard.
  *
- * **A v162 save is refused and does not replay.** An Expansionist seat's
- * pools lose fourteen cards and five of its cards fit other chairs, so its
- * hands and its councils differ. The branch migrates nothing, for the reason
- * given under v119.
- *
- * v164 (branch `decks`; Expansionist batch E8, `docs/plans/expansionist-
- * themes-triage.md`): **five new Expansionist Orders in shapes that already
- * existed.** No field joins the state. The rules that change:
+ * The rules that change in E8 (five new Orders in shapes that already
+ * existed):
  *
  *   · The Founding Furrow (Tier 0): founding a town grants culture equal to
  *     five times the number of towns you hold, the new town included;
@@ -2146,11 +2189,12 @@ import {
  *   · The Capitolia (Tier III): each empire building you hold gives each of
  *     your towns +1 culture.
  *
- * **A v163 save is refused and does not replay.** An Expansionist seat's
- * pools hold five more cards, so its hands differ. The branch migrates
- * nothing, for the reason given under v119.
+ * **A v164 save is refused and does not replay.** An Expansionist seat's
+ * pools lose fourteen cards and gain five, and five of its cards fit other
+ * chairs, so its hands and its councils differ. The branch migrates nothing,
+ * for the reason given under v119.
  */
-export const SCHEMA_VERSION = 164;
+export const SCHEMA_VERSION = 165;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

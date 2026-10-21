@@ -72,7 +72,12 @@ import {
   type Player,
   realPlayers,
 } from './state';
-import { cardCityRenownShares, cardEmpireRenownShares, cardRenownLines } from './statecraft';
+import {
+  cardCityRenownShares,
+  cardEmpireRenownShares,
+  cardRenownLines,
+  cardRulePercent,
+} from './statecraft';
 import { triumphDef } from './triumphData';
 import { awardCountTriumphs } from './triumphs';
 
@@ -295,9 +300,36 @@ export function renownPerTurn(state: GameState, playerId: number): number {
  * than by turns is what keeps a wide empire's faster trickle from becoming a
  * faster *rate*; why the linear term is three times the base is `RenownRules`.
  */
-export function renownThreshold(player: Player): number {
-  const taken = Math.max(0, Math.floor(player.greatPeopleRecruited));
+export function renownThreshold(state: GameState, player: Player): number {
+  const taken = ladderSteps(state, player);
   return Math.floor(RENOWN.base + RENOWN.linear * taken + taken ** RENOWN.exponent);
+}
+
+/**
+ * **How far up the price ladder this empire stands**: one step for each great
+ * person recruited, except that each great scholar counts as a smaller step
+ * while a card's `scholarLadderStep` rule says so (Scientific batch S8, The
+ * Royal Readers' "half as much"; the triage's reading 38).
+ *
+ * The cards' percentages are added together and applied once, so two rows at
+ * −50 make a scholar a free step, and nothing makes one a negative step. Every
+ * scholar the empire has gained counts (`Player.greatPeopleByFamily`), the
+ * ones gained before the card was seated included. Not floored, so three
+ * scholars at half a step each are one and a half steps: only the price is
+ * floored.
+ *
+ * This is why the threshold takes the state as well as the player: a seated
+ * card is a fact about the empire's law, and the law is read through the
+ * state.
+ */
+export function ladderSteps(state: GameState, player: Player): number {
+  const taken = Math.max(0, Math.floor(player.greatPeopleRecruited));
+  let percent = 0;
+  for (const line of cardRulePercent(state, player.id, 'scholarLadderStep')) percent += line.percent;
+  if (percent === 0) return taken;
+  const scholars = Math.min(taken, Math.max(0, Math.floor(player.greatPeopleByFamily?.scholar ?? 0)));
+  const step = Math.max(0, 100 + percent) / 100;
+  return taken - scholars + scholars * step;
 }
 
 /** What a fill would do, without doing it. `planDraft`'s twin one bucket over. */
@@ -308,8 +340,12 @@ export interface RenownPlan {
   overflow: number;
 }
 
-export function planRecruitment(player: Player, renown = player.renownPool): RenownPlan | null {
-  const cost = renownThreshold(player);
+export function planRecruitment(
+  state: GameState,
+  player: Player,
+  renown = player.renownPool,
+): RenownPlan | null {
+  const cost = renownThreshold(state, player);
   if (renown < cost) return null;
   return { cost, overflow: renown - cost };
 }
@@ -388,7 +424,7 @@ export function settleRenownWindfall(
   let first: GreatPersonOffer | null = null;
   for (;;) {
     if (player.greatPersonOffer !== undefined) return first;
-    const plan = planRecruitment(player);
+    const plan = planRecruitment(state, player);
     if (!plan) return first;
     const offer = drawGreatPersonOffer(state, player);
     // The whole roster is spent. Nothing is deducted — see the docblock.
@@ -400,8 +436,8 @@ export function settleRenownWindfall(
 }
 
 /** What a lump of renown would open, in words, or `null`. The card's preview. */
-export function recruitmentSettledBy(player: Player, grant: number): string | null {
-  return planRecruitment(player, player.renownPool + grant) === null ? null : 'a great person';
+export function recruitmentSettledBy(state: GameState, player: Player, grant: number): string | null {
+  return planRecruitment(state, player, player.renownPool + grant) === null ? null : 'a great person';
 }
 
 // --- the phase --------------------------------------------------------------

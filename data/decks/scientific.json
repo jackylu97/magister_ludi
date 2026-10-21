@@ -287,35 +287,21 @@
       ]
     },
     "learnedCommissions": {
-      "name": "Learned Commissions",
+      "name": "Learned Foundations",
       "decks": ["scientific"],
       "band": 1,
       "line": "none",
       "rarity": "common",
       "type": "economic",
-      "flavor": "Commission the hall before you commission the statue.",
-      "text": "Library cities gain +38% production toward empire buildings. Completing each institution type for the first time grants 60 culture and 30 faith.",
+      "flavor": "Build the hall before you carve the statue.",
+      "text": "Cities with a Library build empire buildings 25% faster.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "building",
           "empireBuilding": true,
-          "percent": 38,
+          "percent": 25,
           "scope": { "test": "hasBuilding", "building": "library" }
-        },
-        {
-          "kind": "windfallRider",
-          "occasion": "buildingCompletion",
-          "empireBuilding": true,
-          "first": "buildingKind",
-          "grant": { "yield": "culture", "amount": 60 }
-        },
-        {
-          "kind": "windfallRider",
-          "occasion": "buildingCompletion",
-          "empireBuilding": true,
-          "first": "buildingKind",
-          "grant": { "yield": "faith", "amount": 30 }
         }
       ]
     },
@@ -539,18 +525,12 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "What is old enough to be trusted is old enough to be useful.",
-      "text": "A city with an empire building at least twenty turns old gains +2 happiness and +23% production, once per city.",
+      "text": "A town with an empire building at least twenty turns old gains +25% production.",
       "effects": [
-        {
-          "kind": "happiness",
-          "amount": 2,
-          "per": "city",
-          "scope": { "test": "hasEmpireBuilding", "standingTurns": 20 }
-        },
         {
           "kind": "percentYields",
           "yield": "production",
-          "percent": 23,
+          "percent": 25,
           "scope": { "test": "hasEmpireBuilding", "standingTurns": 20 }
         }
       ]
@@ -602,26 +582,26 @@
       "rarity": "rare",
       "type": "economic",
       "flavor": "Quiet halls, full barns, and very few drums.",
-      "text": "Cities working a great-person improvement gain +38% food and +30% production, but produce military units 25% more slowly.",
+      "text": "Cities working an Academy gain +25% food and +20% production, but produce military units 25% more slowly.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "food",
-          "percent": 38,
-          "scope": { "test": "workingGreatWork" }
+          "percent": 25,
+          "scope": { "test": "workingImprovement", "improvements": ["academy"] }
         },
         {
           "kind": "percentYields",
           "yield": "production",
-          "percent": 30,
-          "scope": { "test": "workingGreatWork" }
+          "percent": 20,
+          "scope": { "test": "workingImprovement", "improvements": ["academy"] }
         },
         {
           "kind": "productionBonus",
           "category": "unit",
           "class": { "category": "military" },
           "percent": -25,
-          "scope": { "test": "workingGreatWork" }
+          "scope": { "test": "workingImprovement", "improvements": ["academy"] }
         }
       ]
     },
@@ -657,10 +637,16 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "One of a kind is a habit, not a law.",
-      "deferred": [
-        "you may raise one further copy of an empire building, in a town that holds a university, and only one such copy may be building or standing at a time"
-      ],
-      "effects": []
+      "text": "You may build one second copy of an empire building, in a city with a University.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "buildsEverywhere",
+          "empireBuilding": true,
+          "max": 1,
+          "scope": { "test": "hasBuilding", "building": "university" }
+        }
+      ]
     },
     "theLongInheritance": {
       "name": "The Long Inheritance",
@@ -1427,6 +1413,419 @@
           "max": 4
         }
       ]
+    },
+    "theRoyalTutors": {
+      "name": "The Royal Tutors",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "The prince's tutors keep a list of the brightest pupils in the realm.",
+      "text": "+1 renown a turn for each science building you have, favouring great scholars.",
+      "effects": [
+        {
+          "kind": "renown",
+          "amount": 1,
+          "count": "scienceBuildings",
+          "within": "city",
+          "family": "scholar"
+        }
+      ]
+    },
+    "theWarManuals": {
+      "name": "The War Manuals",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "Every recruit reads the same book, and every old captain wrote a page of it.",
+      "text": "Units gained in a town with a Library start with +2 strength.",
+      "effects": [
+        {
+          "kind": "unitStamp",
+          "strength": 2,
+          "class": { "category": "military" },
+          "scope": { "test": "hasBuilding", "building": "library" }
+        }
+      ]
+    },
+    "theRoyalEstates": {
+      "name": "The Royal Estates",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "Each great house keeps fields of its own, and its town eats from them.",
+      "text": "Each empire building gives its town +2 food and +2 production.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "empireBuildings",
+          "within": "city",
+          "to": "food",
+          "amount": 2
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "empireBuildings",
+          "within": "city",
+          "to": "production",
+          "amount": 2
+        }
+      ]
+    },
+    "theCommonTables": {
+      "name": "The Common Tables",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "The students eat at one long table, and the town bakes the bread.",
+      "text": "Towns gain +2 food for each science building in them.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "scienceBuildings",
+          "to": "food",
+          "amount": 2
+        }
+      ]
+    },
+    "theFreeCities": {
+      "name": "The Free Cities",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "A few free towns, each with its own council, build faster than a crowd of provinces.",
+      "text": "While you hold at most five towns, your towns build buildings and wonders 20% faster.",
+      "effects": [
+        {
+          "kind": "conditionRule",
+          "when": { "test": "cityCountAtMost", "value": 5 },
+          "then": [
+            { "kind": "productionBonus", "category": "building", "percent": 20 },
+            { "kind": "productionBonus", "category": "wonder", "percent": 20 }
+          ]
+        }
+      ]
+    },
+    "theRollOfScholars": {
+      "name": "The Roll of Scholars",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Each name on the roll brings more students to the halls.",
+      "text": "+4% production and culture for each great scholar you have gained this game, at most +28%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "production",
+          "percent": 4,
+          "stage": "empire",
+          "count": "greatPeopleGained",
+          "family": "scholar",
+          "max": 7
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "percent": 4,
+          "stage": "empire",
+          "count": "greatPeopleGained",
+          "family": "scholar",
+          "max": 7
+        }
+      ]
+    },
+    "thePalaceSchools": {
+      "name": "The Palace Schools",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "The palace trains its officers, and the officers train the ranks.",
+      "text": "Units gained in a town with an empire building start with +4 strength.",
+      "effects": [
+        {
+          "kind": "unitStamp",
+          "strength": 4,
+          "class": { "category": "military" },
+          "scope": { "test": "hasEmpireBuilding" }
+        }
+      ]
+    },
+    "theRoundCity": {
+      "name": "The Round City",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Every road runs to the centre, and the centre keeps growing.",
+      "text": "+1% production and culture for each citizen in your capital, at most +30%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "production",
+          "percent": 1,
+          "stage": "empire",
+          "count": "capitalPopulation",
+          "max": 30
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "percent": 1,
+          "stage": "empire",
+          "count": "capitalPopulation",
+          "max": 30
+        }
+      ]
+    },
+    "theCityArchitects": {
+      "name": "The City Architects",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "A great city needs great builders, and only a great city can keep them.",
+      "text": "Towns of at least eight citizens build wonders 25% faster.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 25,
+          "scope": { "test": "populationAtLeast", "value": 8 }
+        }
+      ]
+    },
+    "theForwardPlans": {
+      "name": "The Forward Plans",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "Plan the lecture halls now, and the masters will come.",
+      "text": "You may build a University in any city whose Library has stood at least 30 turns, before you know Scholarship.",
+      "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "university",
+          "scope": { "test": "hasBuilding", "building": "library", "standingTurns": 30 }
+        }
+      ]
+    },
+    "theDedications": {
+      "name": "The Dedications",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The whole town comes out to hear the opening speech.",
+      "text": "Finishing a science building or an empire building grants culture equal to ten times the town's population.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "buildingCompletion",
+          "anyOf": [{ "buildingCategory": "science" }, { "empireBuilding": true }],
+          "grant": { "yield": "culture", "amount": 10, "fromOccasion": "population" }
+        }
+      ]
+    },
+    "theRoyalReaders": {
+      "name": "The Royal Readers",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "The crown pays the scholars, and the scholars find more scholars.",
+      "text": "Great scholars raise the price of your next great person by half as much.",
+      "effects": [{ "kind": "rulePercent", "rule": "scholarLadderStep", "percent": -50 }]
+    },
+    "theInvitations": {
+      "name": "The Invitations",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "A new house needs a famous name at its table.",
+      "text": "Completing an empire building grants a great scholar.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "buildingCompletion",
+          "empireBuilding": true,
+          "grant": { "greatPerson": "scholar" }
+        }
+      ]
+    },
+    "theDoctorate": {
+      "name": "The Doctorate",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "A new doctor is a holiday for the whole faculty.",
+      "text": "Gaining a great scholar grants culture equal to eight turns of your culture.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "greatPersonGained",
+          "family": "scholar",
+          "grant": { "yield": "culture", "amount": 8, "fromRate": "culturePerTurn" }
+        }
+      ]
+    },
+    "theRoyalAcademies": {
+      "name": "The Royal Academies",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Every great house adds its name to the crown's.",
+      "text": "+5% production and culture for each empire building you hold.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "production",
+          "percent": 5,
+          "stage": "empire",
+          "count": "empireBuildings"
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "percent": 5,
+          "stage": "empire",
+          "count": "empireBuildings"
+        }
+      ]
+    },
+    "theQueenOfCities": {
+      "name": "The Queen of Cities",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "All roads run to her gates, and all the grain with them.",
+      "text": "Towns of at least 15 citizens produce twice their food and production.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "food",
+          "percent": 100,
+          "scope": { "test": "populationAtLeast", "value": 15 }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "production",
+          "percent": 100,
+          "scope": { "test": "populationAtLeast", "value": 15 }
+        }
+      ]
+    },
+    "theHumanists": {
+      "name": "The Humanists",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "They read the old poets and write new ones.",
+      "text": "Cities with a University gain culture equal to half their base science.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
+          "from": "science",
+          "to": "culture",
+          "percent": 50,
+          "scope": { "test": "hasBuilding", "building": "university" }
+        }
+      ]
+    },
+    "theWallsOfLearning": {
+      "name": "The Walls of Learning",
+      "decks": ["scientific"],
+      "band": 4,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "The students keep the books, and the gate.",
+      "text": "Cities with a University gain +6 strength, and the city building your Magnum Opus gains +12 more.",
+      "effects": [
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 6,
+          "scope": { "test": "hasBuilding", "building": "university" }
+        },
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 12,
+          "scope": { "test": "raisingOpus" }
+        }
+      ]
+    },
+    "theLynxEyedAcademy": {
+      "name": "The Lynx-Eyed Academy",
+      "decks": ["scientific"],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "wildcard",
+      "flavor": "Sharp eyes find sharp minds.",
+      "text": "Commission. Hold four Academies while this is seated. Reward: a great scholar, and 300 production in each city with an Academy toward what it is building. Then it leaves its chair.",
+      "commission": {
+        "goals": [{ "kind": "reached", "figure": "academyHexes", "count": 4 }],
+        "reward": [
+          { "greatPerson": "scholar" },
+          {
+            "yield": "production",
+            "amount": 300,
+            "eachTown": true,
+            "scope": { "test": "hasImprovement", "improvement": "academy" }
+          }
+        ]
+      },
+      "effects": []
     }
   }
 }

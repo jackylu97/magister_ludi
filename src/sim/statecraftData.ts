@@ -3784,7 +3784,18 @@ export type CardRule =
    * `explainTechCost`, read only for an ordinary technology: the gap holds no
    * charter technology (the triage's readings 2 and 15).
    */
-  | 'gapTechCost';
+  | 'gapTechCost'
+  /**
+   * **How far one great scholar this empire has gained moves it up the
+   * great-person price ladder** (Scientific batch S8, The Royal Readers: −50,
+   * "half as much"; the triage's reading 38). A negative percentage is a
+   * smaller step. Read in `renownThreshold` (`renown.ts`): each scholar the
+   * empire has gained (`Player.greatPeopleByFamily`) counts as this share of
+   * one recruit, and every other great person counts as a whole one. Every
+   * scholar gained counts while the card is seated, the ones gained before it
+   * was seated too.
+   */
+  | 'scholarLadderStep';
 
 /** A constant of the two meters a card may rewrite. */
 export type MeterRuleId =
@@ -5217,6 +5228,21 @@ export interface WindfallGrantSpec {
    * Absent feeds no family.
    */
   renownFamily?: Family;
+  /**
+   * **A great person of this family** (Scientific batch S8, The Invitations:
+   * "completing an empire building grants a great scholar"; the triage's
+   * reading 37). `'any'` deals the ordinary offer.
+   *
+   * Dealt as a commission's `CommissionReward.greatPerson` is, through the
+   * same routine (`grantGreatPersonOffer`, `greatPeople.ts`): an offer
+   * narrowed to the family when the empire may call great people and has none
+   * waiting, and otherwise the renown that fills the ladder to its next rung,
+   * so the person arrives when the waiting offer is answered or the rites are
+   * known. A person is not a figure, so the era and the council do not
+   * multiply it. On the `tech` occasion The Age of Reason's second round
+   * grants a second one, as it gives a second unit (reading 82).
+   */
+  greatPerson?: Family | 'any';
   /**
    * Production from this grant goes to the town raising the Magnum Opus —
    * Spolia. When no town is raising it, the production is kept for the Opus
@@ -6861,6 +6887,19 @@ export interface CardWindfallRiderEffect {
    */
   empireBuilding?: boolean;
   /**
+   * The rider fires when the building finished passes **at least one** of
+   * these tests (Scientific batch S8, The Dedications: "a science building or
+   * an empire building"; the triage's reading 36).
+   *
+   * The other building filters on this shape must all hold. This one lets a
+   * row name two classes and still pay once for a building in both, such as
+   * Chart the Stars, which is a science building and an empire building. Two
+   * riders, one for each class, would pay that building twice. Read off
+   * `WindfallOccasionFacts.building`, so an occasion that names no building
+   * never pays it.
+   */
+  anyOf?: RiderBuildingTest[];
+  /**
    * The rider fires only when the occasion was about a **building at all**,
    * whichever one — Civic Receipts' rebate on every roof a town buys (batch C3).
    *
@@ -6962,6 +7001,21 @@ export interface CardWindfallRiderEffect {
    * `WindfallOccasionFacts.building`, the row the completion seam holds, so a
    * rider written onto an occasion that names no building never pays.
    */
+  building?: BuildingId;
+}
+
+/**
+ * **One test of a building row**, for a rider's any-of filter
+ * (`CardWindfallRiderEffect.anyOf`, Scientific batch S8). Each field means
+ * what the rider's field of the same name means, and every field a test
+ * carries must hold for the test to pass.
+ */
+export interface RiderBuildingTest {
+  /** The row's shelf (`BuildingDef.category`). */
+  buildingCategory?: BuildingCategory;
+  /** One of the realm's great houses (`isEmpireBuilding`), or, with `false`, not one. */
+  empireBuilding?: boolean;
+  /** This row. */
   building?: BuildingId;
 }
 
@@ -7376,11 +7430,26 @@ export interface CardRuleEffect {
    */
   building?: BuildingId;
   /**
+   * **Every great house, in place of one named row** (Scientific batch S8, The
+   * Second Seat: "one second copy of an empire building"). Read only by
+   * `buildsEverywhere`, through `cardLimitLifts`: the rule reaches every
+   * building that is one to a realm and is an empire building
+   * (`isEmpireBuilding`), except the Magnum Opus (`BuildingDef.endsTheGame`),
+   * because a second Opus would race itself (reading 89). Meaningless on every
+   * other member.
+   */
+  empireBuilding?: true;
+  /**
    * **Which towns the rule is true in** — The Lay Brothers' Temple towns and
-   * Consecrated Labor's Shrine towns. Read only by `cardActionRuleAt`, which
+   * Consecrated Labor's Shrine towns. Read by `cardActionRuleAt`, which
    * the three faith-purchase rules (`faithBuysUnits`, `faithBuysBuildings`,
    * `faithBuysWonders`) are asked through with the town in hand. Absent means
    * every town.
+   *
+   * Since Scientific batch S8 it is also read by `buildsEverywhere` (The
+   * Second Seat: "in a city with a University"): the extra copy may be built
+   * only in a town the scope admits, asked by `buildError` with the town in
+   * hand.
    */
   scope?: CityScope;
   /**
@@ -7396,9 +7465,15 @@ export interface CardRuleEffect {
   rank?: RankId;
   /**
    * **The most extra hexes the rule gives one town** (Dominion batch D13).
-   * Read only by `garrisonWorks`: a town works one more hex for each soldier
-   * in it, up to this many. Absent, every soldier counts. Meaningless on every
-   * other member.
+   * Read by `garrisonWorks`: a town works one more hex for each soldier
+   * in it, up to this many. Absent, every soldier counts.
+   *
+   * Since Scientific batch S8 it is also read by `buildsEverywhere` (The
+   * Second Seat): **the most extra copies of the rows it reaches, in all**,
+   * standing or being built. A copy is extra when the empire already holds or
+   * is building another of the same row, so `1` is one second copy of one row
+   * (the triage's reading 47). Absent, the rule lifts the limit outright, as
+   * Caravanserai Cities does. Meaningless on every other member.
    */
   max?: number;
   /**
@@ -7849,6 +7924,19 @@ export interface CardLandfallEffect {
 export interface CardUnlocksBuildingEffect {
   kind: 'unlocksBuilding';
   building: BuildingId;
+  /**
+   * **Which towns the row opens in** (Scientific batch S8, The Forward Plans:
+   * a University "in any city whose Library has stood at least 30 turns").
+   * Absent opens the row in every town, which is what every row written
+   * before it meant.
+   *
+   * Read by `cardUnlocksBuilding`. With a town in hand (`buildError`, through
+   * `isUnlocked`) the scope is asked of that town; with none (the build list,
+   * the Compendium) it is asked of each of the empire's towns, so the row
+   * shows while any town qualifies and a town that does not is refused with a
+   * sentence that says why.
+   */
+  scope?: CityScope;
 }
 
 /**
@@ -9214,7 +9302,17 @@ export type CommissionFigure =
    */
   | 'followingCityShare'
   /** Rival original capitals that follow a religion this empire is paid by — The Conversion of Kings. */
-  | 'rivalCapitalsFollowing';
+  | 'rivalCapitalsFollowing'
+  /**
+   * **The Academies inside this empire's borders** (Scientific batch S8, The
+   * Lynx-Eyed Academy: "hold four Academies"; the triage's reading 53). The
+   * count The Republic of Letters pays by (`tilesInBorders` with the tile test
+   * `improvement: academy`), asked through the same walk
+   * (`countTilesInBorders`), so a great-person work
+   * that counts as an Academy under The Studium Generale counts here too
+   * (reading 33).
+   */
+  | 'academyHexes';
 
 /** Every figure, for validation and the register test. */
 export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
@@ -9231,6 +9329,7 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'goldIncome',
   'followingCityShare',
   'rivalCapitalsFollowing',
+  'academyHexes',
 ];
 
 /**

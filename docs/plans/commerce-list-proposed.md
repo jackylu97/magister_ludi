@@ -2,6 +2,8 @@
 
 This is a review list, rebuilt on 2026-10-21. It puts every card on the deck sheet (`docs/decks/commerce.md`) in one list, with every new card and change from the themes pass (`docs/plans/commerce-themes.md`) folded in. It replaces the list of 2026-10-18, which folded in the superseded builds pass of 2026-10-17 (`docs/plans/commerce-builds.md`). It is not the spec of record: the sheet is unchanged, and the sheet's text wins wherever the two differ. It is grouped by tier, as you asked for the Scientific list, so you can cut cards by hand.
 
+**Revised 2026-10-21** after your reading (section 11 of the themes pass; the revision is its section 12). No card that needs a trade route is dealt before Tier II. Seven cards move (five to Tier II, two to Tier III), five route cards are cut, and five new early cards help a seat settle, raise Markets and develop its towns. Each changed row says "revised 2026-10-21 (section 12)", and the counts below are recomputed.
+
 - **Status:**
   - `implemented`: in the data, dealt, and the sheet's text is what the game does. The Commerce sheet still uses the older words (built, revised, deferred); this list maps them as the list of 2026-10-18 did.
   - `modify`: in the data, but not as the sheet writes it. The word after the colon says why: `revised` (the sheet changes the card), `deferred` (not dealt, because it needs a new shape) or `as built` (the game does something slightly different).
@@ -17,50 +19,56 @@ This is a review list, rebuilt on 2026-10-21. It puts every card on the deck she
 - **What this list follows:**
   - the direction of 2026-10-20 (`docs/decks/deck-design.md`): a few themes per deck with varied pay, no more than about a third of the cards paying the deck's own yield, and four of the five areas of the game;
   - your picture of Commerce: wealth, routes at home and abroad, deals, infrastructure through connections, the most flexibility, luxuries claimed and traded, trading posts that pay more through the ages, and passive bonuses as the world grows and connects;
-  - your taste from the Scientific, Dominion and Expansionist passes: cut what is not impactful, too strong or "win more"; rule-breakers that bend one core rule; late pay as a percentage; two cards with one job merged; bridging cards shared.
+  - your taste from the Scientific, Dominion and Expansionist passes: cut what is not impactful, too strong or "win more"; rule-breakers that bend one core rule; late pay as a percentage; two cards with one job merged; bridging cards shared;
+  - your revision of 2026-10-21: route cards from Tier II, and early cards for settling, Markets and towns, with one card that pays gold for each citizen and per-town cards for a wide and a tall seat. The early cards are the home market's first phase, "market towns" (themes pass, section 12).
 - **Doctrines:** Commerce has none yet. They come after your cuts.
 - **Cut cards:** the cards the themes pass cuts are in the last section, `## Cut by this pass`, with their sheet text and one line on why, so you can restore any of them. The three cards the pass moves to the shared cards are in the shared table.
 
-**By status** (charters included):
+**By status** (charters included; revised 2026-10-21, section 12):
 
 | Tier | Implemented | Modify | Add | New | All | Proposed change |
 |---|---|---|---|---|---|---|
-| Tier 0 | 9 | 0 | 0 | 0 | 9 | 1 |
-| Tier I | 15 | 1 | 0 | 4 | 20 | 6 |
-| Tier II | 13 | 2 | 0 | 6 | 21 | 4 |
-| Tier III | 11 | 1 | 0 | 6 | 18 | 3 |
+| Tier 0 | 9 | 0 | 0 | 2 | 11 | 1 |
+| Tier I | 7 | 1 | 0 | 5 | 13 | 2 |
+| Tier II | 15 | 2 | 0 | 7 | 24 | 7 |
+| Tier III | 13 | 1 | 0 | 6 | 20 | 5 |
 | Tier IV | 9 | 1 | 0 | 2 | 12 | 3 |
-| **All** | **57** | **5** | **0** | **18** | **80** | **17** |
-| Shared | 12 | 8 | 1 | 0 | 21 | 5 |
+| **All** | **53** | **5** | **0** | **22** | **80** | **18** |
+| Shared | 12 | 8 | 1 | 0 | 21 | 8 |
 
-**By type** (the chair a card fits; charters take no chair, and their type is for their face):
+**By type** (the chair a card fits; charters take no chair, and their type is for their face; revised 2026-10-21, section 12):
 
 | Tier | Military | Economic | Civic | Wildcard | All | Charters among them | Common / uncommon / rare |
 |---|---|---|---|---|---|---|---|
-| Tier 0 | 1 | 3 | 5 | 0 | 9 | 0 | 6 / 3 / 0 |
-| Tier I | 1 | 11 | 7 | 1 | 20 | 1 | 8 / 10 / 2 |
-| Tier II | 2 | 7 | 11 | 1 | 21 | 1 | 4 / 14 / 3 |
-| Tier III | 0 | 11 | 5 | 2 | 18 | 0 | 0 / 9 / 9 |
+| Tier 0 | 1 | 5 | 5 | 0 | 11 | 0 | 8 / 3 / 0 |
+| Tier I | 1 | 7 | 5 | 0 | 13 | 1 | 3 / 7 / 3 |
+| Tier II | 2 | 9 | 11 | 2 | 24 | 1 | 7 / 15 / 2 |
+| Tier III | 0 | 12 | 6 | 2 | 20 | 0 | 0 / 10 / 10 |
 | Tier IV | 1 | 6 | 3 | 2 | 12 | 0 | 0 / 3 / 9 |
-| **All** | **5** | **38** | **31** | **6** | **80** | **2** | **18 / 39 / 23** |
+| **All** | **5** | **39** | **30** | **6** | **80** | **2** | **18 / 38 / 24** |
 | Shared | 4 | 7 | 9 | 1 | 21 | 1 |  |
 
-Seatable cards (charters excluded): 78, that is 9 / 19 / 20 / 18 / 12 across Tiers 0 to IV. By type: 4 Military, 37 Economic, 31 Civic and 6 Wildcard. Before this pass the sheet held 69 cards: 4, 38, 21 and 6. Cards that pay gold: 18 of 78 (23%), against 30 of 69 (43%).
+Seatable cards (charters excluded): 78, that is 11 / 12 / 23 / 20 / 12 across Tiers 0 to IV. By type: 4 Military, 38 Economic, 30 Civic and 6 Wildcard. Before this pass the sheet held 69 cards: 4, 38, 21 and 6. Cards that pay gold: 17 of 78 (22%), against 30 of 69 (43%). (Revised 2026-10-21, section 12: before the revision, 9 / 19 / 20 / 18 / 12, with 37 Economic and 31 Civic, and 18 cards paying gold.)
 
 **Data notes:**
-- The Carters' Guild is Tier 0 in the data; this list has it at Tier I. The Spice Exchange and The Strongroom are Tier IV in the data; this list has them at Tiers II and III.
+- The Carters' Guild is Tier 0 in the data; this list has it at Tier II. The Spice Exchange and The Strongroom are Tier IV in the data; this list has them at Tiers II and III.
+- Revised 2026-10-21 (section 12): Provisioning Contracts, The Factors' Houses and The Common Road are Tier I in the data; this list has them at Tier II. Established Routes (Tier I in the data) and The Scholars' Roads (Tier II) are at Tier III here.
+- Revised 2026-10-21 (section 12): Frontier Investment, The Caravanserai Network, Ore Caravans and Venture Routes are live rows the revision cuts. The recommendation is to retire them (`## Cut by this pass`).
+- Revised 2026-10-21 (section 12): The Escorted Roads, Pilgrim Markets and The Grain Exchange are Tier I in `data/decks/common.json`; the shared table has them at Tier II, to confirm with the partner decks.
 - The Return Leg (Tier I in the data), Export Guilds (Tier II) and The Treaty Ports (Tier I) are deferred rows the sheet does not list. The pass reworks them, and this list has them at Tiers III, I and II.
 - The Consulate and The Post Riders are deferred rows the sheet does not list. The recommendation is to retire both (`## Cut by this pass`).
 - The 23 rows the sheet cut on 2026-10-06 are already retired in the data.
 - Shared rows whose data differs from the sheet: Merchant Scholars (data: Tier I, "Foreign routes from a city with a Library gain +5 science"), The Exchange of Discoveries (data: Tier III), Travelling Players (data: Tier 0, "+2 culture on foreign routes from a city with a Monument"). The Art Dealers has no row. Mercenary Contracts is deferred.
 - The Waqf, The Silk Road Monks and The Brokers' Redraw are rows in `data/decks/commerce.json`. If the moves are taken, their rows go to `data/decks/common.json`.
-- Shapes the new cards need: feature D's two counts do not exist. The `guildsmen` count (Scientific batch S2) and the `routeRider` count field exist. Section 7 of the themes pass lists the twenty new shapes.
+- Shapes the new cards need: feature D's two counts do not exist. The `guildsmen` count (Scientific batch S2) and the `routeRider` count field exist. Section 7 of the themes pass lists the twenty-one new shapes. Of the five new early cards, only Letters of Credit needs one (a credit line on the debt rules); the other four use shapes that exist (revised 2026-10-21, section 12).
 - The Plantation House (The Planters' Charter) is a placeholder design: +1 gold, and +1 food and +1 gold on each plantation its town works.
 
 ## Tier 0
 
 | Card | Rarity | Status | Ability | Type | Build |
 |---|---|---|---|---|---|
+| **Market Day** | common | new, revised 2026-10-21 (section 12) | Each town gains +1 gold for every two citizens. | Economic | home market: supply (market towns: citizens as buyers) |
+| **The Emporia** | common | new, revised 2026-10-21 (section 12) | Each town with an improved luxury gains +1 food and +1 production. | Economic | home market: widen (market towns: luxury towns develop); goods |
 | **The Mineral Trade** | common | implemented | Worked mines and quarries gain +2 gold but lose 1 production. | Economic | goods: widen (it shows the cost) |
 | **Salt Tithes** | common | implemented | Gain +3 gold per distinct accessible improved luxury you produce. Worked luxury tiles gain +1 food. | Economic | goods: supply |
 | **The Merchant Shrines** | common | implemented | Your capital gains +2 faith. Cities working an improved luxury gain +1 faith, once per city. | Civic | goods: widen (faith); the early faith |
@@ -71,6 +79,8 @@ Seatable cards (charters excluded): 78, that is 9 / 19 / 20 / 18 / 12 across Tie
 | **The Map Sellers** | common | implemented | Your capital gains +1 gold and +1 culture for every 40 hexes you have revealed, at most +8 of each. | Civic | far trade: widen |
 | **The Nest Egg** | common | implemented | Your capital gains +1 culture for every 50 gold in your treasury, at most +4. | Civic | bankers: widen |
 
+- **Market Day** is the card that pays gold for each citizen, for a wide and a tall seat alike. **The Emporia** is the wide seat's per-town card (revised 2026-10-21, section 12).
+
 ## Tier I
 
 | Card | Rarity | Status | Ability | Type | Build |
@@ -80,21 +90,19 @@ Seatable cards (charters excluded): 78, that is 9 / 19 / 20 / 18 / 12 across Tie
 | **Bought Swords** | uncommon | implemented; proposed: reworked (was "Your cities gain +38% gold. Military units take 10% more production to train. Purchased units count as trained."; type was Economic) | Your towns may buy two military units a turn instead of one. Towns build military units 10% more slowly. | Military | engine glue: the bought army |
 | **Private Patronage** | rare | implemented | Your cities gain +38% gold. Producing ordinary buildings normally takes 20% more production. Empire buildings and wonders are unaffected. | Economic | engine glue: buy, do not build |
 | **Financed Industry** | rare | implemented | Cities gain production equal to 30% of their gold yield. Every city loses 3 food. | Economic | engine glue: gold into production |
-| **Provisioning Contracts** | common | implemented | Domestic routes grant their destination +3 food and +3 production. | Economic | home market: supply |
-| **The Carters' Guild** | common | implemented; proposed: moved from Tier 0; proposed: reworked (was "Your cities connected to your capital by road, other than the capital, gain +1 food and +2 gold.") | Towns that receive a domestic trade route build buildings 25% faster. | Economic | home market: widen (infrastructure) |
-| **Frontier Investment** | uncommon | implemented; proposed: trimmed (its "and those cities gain +25% gold" goes) | In your cities of 5 population or fewer, domestic trade routes pay double. | Economic | home market: multiply (young towns) |
-| **The Factors' Houses** | common | implemented; proposed: trimmed (its "and +25% gold" goes); type was Economic | Your cities holding your trading post gain +2 gold and +4 culture. | Civic | home market: widen (culture); far trade |
-| **Commission: The Great Fair** | uncommon | new | Commission. Have domestic trade routes arrive in four of your towns at the same time. Then, for the rest of the game, you may run two more trade routes. The card leaves its chair. | Wildcard | home market: act (commission) |
-| **The Common Road** | common | implemented | Your foreign routes grant you +3 gold, +3 science and +3 culture. Each also grants its host city +3 gold. | Civic | far trade: widen |
-| **Venture Routes** | uncommon | implemented | Your trade routes gain two turns of range. Trade routes between cities at least fifteen hexes apart gain +100% gold. | Economic | far trade: supply (reach) |
-| **Established Routes** | uncommon | implemented; proposed: revised (thirty turns to twenty) | A trade route you have kept up for at least twenty turns pays 50% more. A route that lapses, is cancelled or is plundered begins its term again. | Economic | far trade: multiply (age); home market |
-| **The Homeward Cargoes** | common | new (10-17) | Each town gains +3 production for every trade route to another empire that sets out from it. | Economic | far trade: widen (production) |
+| **Letters of Credit** | rare | new, revised 2026-10-21 (section 12) | You may buy with gold until your treasury reaches −150. Debt disbands none of your units until your treasury falls below −150. | Economic | engine glue: spend before you earn (a rule-breaker) |
+| **The Agora** | uncommon | new, revised 2026-10-21 (section 12) | Towns you found start with a Market. | Economic | home market: supply (market towns: a Market in each new town) |
+| **The Market Halls** | common | new, revised 2026-10-21 (section 12) | Towns with a Market gain +1 food and +1 production for every three citizens. | Economic | home market: widen (market towns: Market towns pay by their size) |
 | **The Staple Right** | common | implemented | Gain +3 gold and +2 culture for each luxury you hold two or more copies of. | Economic | goods: widen (culture) |
-| **Ore Caravans** | common | implemented | Trade routes gain +1 gold for every mine in their origin city. | Economic | goods: bridge to the trade themes |
 | **Export Guilds** | uncommon | new (a deferred data row); proposed: reworked (was "A city working a luxury type you currently export through an active agreement gains +20% production toward ordinary buildings and +2 happiness, once per city.") | Each luxury you lend to another empire in a deal gives your capital +4 culture and +2 production. | Civic | goods: widen (exports); feature D |
 | **Commercial Education** | common | implemented | Gold buildings provide +3 science. | Civic | bankers: widen |
 | **The Market Writ** | uncommon | implemented; proposed: trimmed (its "Your cities gain +38% gold." goes); type was Economic | +1 authority for every two Markets in your empire. | Civic | bankers: widen (authority) |
 | **The Strongbox** | uncommon | new (10-17) | While seated, this card gains +1 science and +1 culture each turn you end with at least 300 gold in your treasury, up to +15 of each. | Civic | bankers: multiply (grower) |
+
+- **No route card is dealt here any more** (revised 2026-10-21, section 12). Ten left: five moved to Tier II, Established Routes to Tier III, and four were cut.
+- **The Agora:** reading, to confirm: the Market stands even before Currency, and the card does not open the Market for building.
+- **The Market Halls** is the tall seat's per-town card. Markets open with Currency, as routes do, so it and the other Market cards here (Commercial Education, The Market Writ) pay from Currency.
+- **Letters of Credit** keeps the game's own price for debt: while the treasury is below zero, the empire loses 25% science and culture. Buying may take the treasury to −150, and the disband line moves with it, from −10 to −150.
 
 ## Tier II
 
@@ -103,12 +111,15 @@ Seatable cards (charters excluded): 78, that is 9 / 19 / 20 / 18 / 12 across Tie
 | **Numidian Cavalry** (charter) | uncommon | modify: as built (every luxury counts in full; the half value for Silk Road luxuries is not built) | Once drafted, unlock Numidian Cavalry, a Horseman replacement. No chair required. Gains +1 combat strength per distinct luxury you control; luxuries obtained only through the Silk Road contribute +0.5 instead. Normal technology requirements apply. | Military | goods: widen (the army) |
 | **Names in Stone** (was The Benefactors' Roll, 10-17) | uncommon | new (10-17) | +1% science and culture for every 200 gold you have spent buying this game, at most +30%. | Civic | engine glue: "this game" count |
 | **Foreign Procurement** | uncommon | implemented | Ignore strategic resource requirements when purchasing units. All units cost 20% more. | Military | engine glue: the bought army |
+| **Provisioning Contracts** | common | implemented; proposed: moved from Tier I to Tier II (revised 2026-10-21, section 12) | Domestic routes grant their destination +3 food and +3 production. | Economic | home market: supply |
+| **The Carters' Guild** | common | implemented; proposed: moved from Tier 0 to Tier II (revised 2026-10-21, section 12); proposed: reworked (was "Your cities connected to your capital by road, other than the capital, gain +1 food and +2 gold.") | Towns that receive a domestic trade route build buildings 25% faster. | Economic | home market: widen (infrastructure) |
+| **The Factors' Houses** | common | implemented; proposed: trimmed (its "and +25% gold" goes); type was Economic; proposed: moved from Tier I to Tier II (revised 2026-10-21, section 12) | Your cities holding your trading post gain +2 gold and +4 culture. | Civic | home market: widen (culture); far trade |
+| **Commission: The Great Fair** | uncommon | new; moved from Tier I to Tier II (revised 2026-10-21, section 12) | Commission. Have domestic trade routes arrive in four of your towns at the same time. Then, for the rest of the game, you may run two more trade routes. The card leaves its chair. | Wildcard | home market: act (commission) |
 | **The Home Market** | common | implemented | Cities receiving at least two of your domestic routes gain +30% food, +30% production and +2 happiness, once per city. | Economic | home market: multiply (market towns) |
-| **The Caravanserai Network** | common | implemented; proposed: trimmed (its "+2 production and +2 gold on domestic trade routes" goes); type was Economic | Each city receiving a domestic trade route gains +2 happiness, once per city. | Civic | home market: widen (happiness) |
-| **The League of Cities** | rare | implemented | Cities with one of your paying outgoing routes gain +23% production and cost one less authority, minimum one. Cities without one lose 10% gold. | Economic | home market: multiply (with a cost) |
+| **The League of Cities** | rare | implemented | Cities with one of your paying outgoing routes gain +23% production and cost one less authority, minimum one. Cities without one lose 10% gold. | Economic | home market: multiply (with a cost); far trade (revised 2026-10-21, section 12) |
 | **The Hanse** | uncommon | new | +3% production and culture for each of your towns holding your trading post, at most +30%. | Civic | home market: multiply (scaler) |
+| **The Common Road** | common | implemented; proposed: moved from Tier I to Tier II (revised 2026-10-21, section 12) | Your foreign routes grant you +3 gold, +3 science and +3 culture. Each also grants its host city +3 gold. | Civic | far trade: widen |
 | **The Exchange** | uncommon | modify: as built (the second sentence pays your own foreign routes and the cities they reach, not routes sent to you) | Each different foreign empire your routes currently serve grants +5% science and culture empire-wide. Foreign routes to your cities grant +2 science and +2 culture to both you and the sender. | Civic | far trade: multiply (scaler) |
-| **The Scholars' Roads** | rare | implemented | Lose 4 route capacity. Your routes gain +2 science and +2 culture, and gain +50% science and culture. | Civic | far trade: multiply (with a cost) |
 | **The Foreign Factor** | common | implemented; proposed: reworked (was "Each foreign city holding your trading post grants you +5 gold and its host city +2 gold per turn while you are at peace and the host is not blockaded."; type was Economic) | Each foreign town holding your trading post gives you +1 science and +1 culture for every four of its citizens. Its owner gains +2 gold. | Civic | far trade: widen; scaler (the post grows with its town) |
 | **The Fondaci** | uncommon | new (the name is the 10-17 pass's) | Each time one of your trading posts is established, gain science and culture, each equal to twenty times the population of its town. | Civic | far trade: act; home market |
 | **Royal Assays** | uncommon | implemented | Each improved luxury resource deposit with a mine provides one additional copy of that luxury. | Economic | goods: supply (copies) |
@@ -122,6 +133,8 @@ Seatable cards (charters excluded): 78, that is 9 / 19 / 20 / 18 / 12 across Tie
 | **The Customs Houses** | uncommon | implemented; proposed: reworked (takes The Merchant Dynasties' job; was "Customs houses gain +5 gold and +1 renown. Cities with a customs house gain +38% gold."; type was Economic) | Each customs house in your borders gives its town +4 science and +4 culture, whether or not it is worked. | Civic | bankers: widen |
 | **The Merchant Guilds** | uncommon | new | You may run one more trade route for every two merchants in the trades. | Economic | bankers: bridge to the trade themes; feature A |
 
+- **Tier II is where the routes start** (revised 2026-10-21, section 12). It would have held 30 cards after the move; it holds 24 with the charter. The Caravanserai Network is cut, and The Scholars' Roads moves to Tier III.
+
 ## Tier III
 
 | Card | Rarity | Status | Ability | Type | Build |
@@ -133,6 +146,8 @@ Seatable cards (charters excluded): 78, that is 9 / 19 / 20 / 18 / 12 across Tie
 | **The Chartered Metropolis** | rare | implemented | Cities with at least three of your paying outgoing routes gain +38% food, production and culture, but each costs +4 authority while qualified. | Economic | home market: multiply (with a cost) |
 | **The Return Leg** | rare | new (a deferred data row); proposed: reworked (was "Your domestic routes also pay their origin one third of the non-conversion food, production and gold they pay the destination."), moved from Tier I, rarity was uncommon | Your trade routes between your own towns also pay their origin everything they pay their destination. | Economic | home market: capstone (doubler) |
 | **The Champagne Fairs** | uncommon | new (10-17), reworked (was culture equal to forty times the home routes) | Every ten turns, each town that receives a domestic trade route grants culture equal to ten times its population. | Civic | home market: act (the fair) |
+| **Established Routes** | uncommon | implemented; proposed: revised (thirty turns to twenty); proposed: moved from Tier I to Tier III (revised 2026-10-21, section 12) | A trade route you have kept up for at least twenty turns pays 50% more. A route that lapses, is cancelled or is plundered begins its term again. | Economic | far trade: multiply (age); home market |
+| **The Scholars' Roads** | rare | implemented; proposed: moved from Tier II to Tier III (revised 2026-10-21, section 12) | Lose 4 route capacity. Your routes gain +2 science and +2 culture, and gain +50% science and culture. | Civic | far trade: multiply (with a cost) |
 | **Safe Conduct** | rare | new (10-17) | Declaring war, or being declared on, does not end your trade routes, and your trading posts keep paying in war. | Economic | far trade: capstone (rule-breaker) |
 | **The Admiralty of Trade** | uncommon | implemented; proposed: reworked (was "A sea trade route between two cities that both hold your trading post has no range limit."), rarity was rare | Your trade routes to a town holding your trading post have no range limit. | Economic | far trade: supply (reach) |
 | **The Lingua Franca** | uncommon | new | +1% science and culture for every three trade routes running anywhere in the world, at most +30%. | Civic | far trade: multiply (the world connects) |
@@ -147,7 +162,7 @@ Seatable cards (charters excluded): 78, that is 9 / 19 / 20 / 18 / 12 across Tie
 
 - **Safe Conduct** is the largest rule change in the pass. A caravan can still be plundered, and no new route may be sent to an enemy.
 - **The Commenda:** each copy is still lent only once. The card stops a lent copy leaving your own count; it does not let you lend it twice.
-- **If you want less engine work,** the pass would cut The Grain Barges, The Lingua Franca and The Capitulations first.
+- **If you want less engine work,** the pass would cut The Grain Barges, The Lingua Franca and The Capitulations first, then Letters of Credit (revised 2026-10-21, section 12).
 
 ## Tier IV
 
@@ -173,14 +188,16 @@ Seatable cards (charters excluded): 78, that is 9 / 19 / 20 / 18 / 12 across Tie
 
 These rows live in `data/decks/common.json`, except The Waqf, The Silk Road Monks and The Brokers' Redraw, which this pass proposes to move there, and The Art Dealers, which has no row yet. A seat holding Commerce, or the deck named beside a card, may draw it, so a change here is felt in two decks. The types of the cards shared with Dominion, Expansionist and Scientific are in the data; the types of the cards shared with Devotion and Magisterial are proposals, to reconcile in those passes.
 
+Revised 2026-10-21 (section 12): The Escorted Roads, Pilgrim Markets and The Grain Exchange need a route to pay, so they are proposed for Tier II. Ruling (qqqqqq) 14 asks every pair to keep a shared card at Tier I or earlier, and the move leaves the Dominion and Devotion pairs with none. The themes pass recommends sharing **Bought Swords** with Dominion and **The Merchant Shrines** with Devotion, each in its own tier. That is not carried into the tables or counts until you rule. Market Gardens stays at Tier 0 as the Expansionist pair's early card.
+
 | Card | Also in | Tier | Rarity | Status | Ability | Type |
 |---|---|---|---|---|---|---|
-| **Market Gardens** | Expansionist | 0 | common | implemented; proposed: keep (the sheet's review recommended a cut; it serves the home market, and the Expansionist pass keeps it) | Farms beside a road gain +1 gold. Domestic routes grant an additional +1 food to their destination. | Economic |
-| **The Escorted Roads** | Dominion | I | uncommon | implemented | Routes whose origin has a garrison gain +5 gold. Naval units gain +2 strength while adjacent to one of your traders. | Economic |
-| **Pilgrim Markets** | Devotion | I | uncommon | implemented | Routes gain +3 gold and +3 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify. | Civic (to reconcile) |
+| **Market Gardens** | Expansionist | 0 | common | implemented; proposed: keep (the sheet's review recommended a cut; it serves the home market, and the Expansionist pass keeps it); stays at Tier 0, though in a seat without Expansionist its roads come only from caravans (revised 2026-10-21, section 12) | Farms beside a road gain +1 gold. Domestic routes grant an additional +1 food to their destination. | Economic |
 | **The Art Dealers** | Magisterial | I | common | add | Each card you draft grants 15 gold. | Economic (to reconcile) |
-| **The Grain Exchange** | Expansionist | I | uncommon | implemented | Domestic routes from a city with a Granary give +5 food to their destination. Cities receiving one gain +1 happiness. | Economic |
 | **The Exchange of Discoveries** | Scientific | I | uncommon | modify: revised (the data deals it at Tier III) | +2 science on mines and quarries on a resource. Additional +2 if the city has a market. | Civic |
+| **The Escorted Roads** | Dominion | II | uncommon | implemented; proposed: moved from Tier I to Tier II, because it needs a route to pay; to confirm with the partner deck (revised 2026-10-21, section 12) | Routes whose origin has a garrison gain +5 gold. Naval units gain +2 strength while adjacent to one of your traders. | Economic |
+| **Pilgrim Markets** | Devotion | II | uncommon | implemented; proposed: moved from Tier I to Tier II, because it needs a route to pay; to confirm with the partner deck (revised 2026-10-21, section 12) | Routes gain +3 gold and +3 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify. | Civic (to reconcile) |
+| **The Grain Exchange** | Expansionist | II | uncommon | implemented; proposed: moved from Tier I to Tier II, because it needs a route to pay; to confirm with the partner deck (revised 2026-10-21, section 12) | Domestic routes from a city with a Granary give +5 food to their destination. Cities receiving one gain +1 happiness. | Economic |
 | **Travelling Players** | Magisterial | II | uncommon | modify: revised (the data deals it at Tier 0, with the old text: +2 culture on foreign routes from a city with a Monument) | Foreign routes from a city with a Monument gain +1 culture; additional +2 culture for every unique deck type slotted in your government. | Civic (to reconcile) |
 | **The Provincial Fair** | Expansionist | II | uncommon | implemented; proposed: keep (the sheet's review recommended a cut; it serves the home market, and the Expansionist pass keeps it) | Connected noncapital cities with a Market gain +3 food. Their worked plantations, camps and pastures gain +2 gold. | Economic |
 | **The Tithe** | Devotion | II | rare | implemented | Cities with a Temple gain gold equal to 25% of their base faith, and +25% gold. | Economic (to reconcile) |
@@ -199,7 +216,7 @@ These rows live in `data/decks/common.json`, except The Waqf, The Silk Road Monk
 
 ## Cut by this pass
 
-Every card the themes pass cuts, so you can restore one. The first four rows are sheet cards, with the sheet's text. The next two are deferred data rows the sheet does not list, with their data text. The last eight are cards the 2026-10-17 pass proposed and the themes pass did not take; they are marked (10-17), with that pass's text.
+Every card the themes pass cuts, so you can restore one. The first four rows are sheet cards, with the sheet's text. The next two are deferred data rows the sheet does not list, with their data text. The next eight are cards the 2026-10-17 pass proposed and the themes pass did not take; they are marked (10-17), with that pass's text. The last five are the revision's cuts (revised 2026-10-21, section 12): four sheet cards with the sheet's text, and The Homeward Cargoes, a 10-17 card the themes pass had taken. Each was a route card at Tier I or II, cut because Tier II would have held 30 cards after the move.
 
 | Card | Tier | Ability (as on the sheet) | Why |
 |---|---|---|---|
@@ -217,3 +234,8 @@ Every card the themes pass cuts, so you can restore one. The first four rows are
 | **The Marble Towns** (10-17) | III | Each town gains +5% science and culture for every building bought there with gold, at most +30%. | Bought and Paid For takes the percentage on bought buildings. |
 | **The Bank of Saint George** (10-17) | III | Every town gains +1 science for every 500 gold in your treasury. | Money at Work takes it at Tier IV. |
 | **The Fondaci, old text** (10-17) | III | Gain +5 science and +5 culture for each foreign city holding your trading post. | The Foreign Factor does this job and grows with the towns. The name moves to the post moment. |
+| **Frontier Investment** | I | In your cities of 5 population or fewer, domestic trade routes pay double, and those cities gain +25% gold. | Revised 2026-10-21 (section 12). A route card at Tier I. At Tier II few towns are still five citizens or fewer, so the move would leave it nearly dead, and The Return Leg is the home market's doubler. Its row is live: retire it. |
+| **The Caravanserai Network** | II | Each city receiving a domestic trade route grants +2 happiness (once per city); +2 production and +2 gold on domestic trade routes. | Revised 2026-10-21 (section 12). After the move, four Tier II cards pay a town for receiving a domestic route, and its happiness repeats The Home Market's. Its row is live: retire it. |
+| **Ore Caravans** | I | Trade routes gain +1 gold for every mine in their origin city. | Revised 2026-10-21 (section 12). A route card at Tier I that pays one to three gold a route, the deck's own yield. Strategic Exports carries the goods onto the routes at Tier II. Its row is live: retire it. |
+| **Venture Routes** | I | Your trade routes gain two turns of range. Trade routes between cities at least fifteen hexes apart gain +100% gold. | Revised 2026-10-21 (section 12). A route card at Tier I. Reach is The Admiralty of Trade's and The Trade Winds' job, and its +100% gold, which made it a top bot earner, is the deck's own yield. Its row is live: retire it. If you keep one of the five, keep this one at Tier II. |
+| **The Homeward Cargoes** (10-17) | I | Each town gains +3 production for every trade route to another empire that sets out from it. | Revised 2026-10-21 (section 12). The Common Road pays the same foreign routes at the same tier, and The League of Cities gives the far trade its production. It has no row. |

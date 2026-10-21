@@ -752,6 +752,14 @@ function netCopies(
 export interface QueueReplacement {
   cityId: number;
   queued: readonly UnitTypeId[];
+  /**
+   * The building rows of the proposed queue accepted so far (Scientific batch
+   * S8, The Second Seat). `buildError` counts them in place of the town's
+   * standing queue when it counts the extra copies of the great houses, so
+   * two second copies sent in one command are refused as two sent in two
+   * commands are.
+   */
+  buildings?: readonly BuildingId[];
 }
 
 /**
