@@ -344,6 +344,11 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 99. (S9) Every siege blow on a rival town raising the Opus takes 5% of its banked production, at the walls or the garrison, even if the attacker dies.
 100. (S9) A commission reward from a figure, paid as food or production, is floored.
 101. (S9) The Soldier-Scholars' +5 reaches land military units, but its science counts every combat unit in the town, ships included. The Armoury Patterns also speeds civilians of the newest age.
+102. (S12) The charter technologies come after the tree in the Compendium, under one heading.
+103. (S12) The Compendium works out a charter technology's price itself, because `explainTechCost` needs a game; a test checks it against `explainTechCost`. Alternative: a seat-free price function in `tech.ts`.
+104. (S12) A charter technology's rules print in full, never as a named rule.
+105. (S12) A technology that opens a building early is named after the tree's own node.
+106. (S12) What a charter technology opens is printed by name and price with no link, as on other technology pages.
 
 ## The batches
 
@@ -517,6 +522,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 
 ### S11: the sheet of record, the types and the retirements
 
+**Done 2026-10-21** (`a75472ad`): every tier-table row implemented, thirteen charters dealt, every cut row retired; nothing in the data changed. Five shared rows wait on the Commerce and Devotion builds: The Monastery Libraries, The Exchange of Discoveries, Merchant Scholars, The Schoolmen's Charter and The Blessed Forges.
+
 - **Builds:** rewrite `docs/decks/scientific.md` from the two plan docs as built, with a Type column. Add `scientific` to `SORTED_DECKS` and write `type` on every Scientific row. Type the shared rows if question 5 allows it. Retire Field Notebooks, the ten old live rows, Discoveries through Great People, the twelve old deferred rows (reading 54) and The Hydraulic Commonwealth. Rewrite `test/sim/decks/scientific.test.ts` for the new deck: its row and band counts, thirteen live charters, and the sheet's rows ↔ the data's rows (the `statecraftDocSync.test.ts` pattern), retired rows excluded.
 - **Fence:** `docs/decks/scientific.md`, `data/decks/scientific.json`, `data/decks/common.json` (types, one retirement), `test/sim/decks/sortedSheets.ts`, `test/sim/decks/scientific.test.ts`, `test/sim/decks/dominion.test.ts`, `test/sim/decks/shared.test.ts`, `test/sim/decks/common.test.ts`, `docs/orders-and-doctrines.md`, `SCHEMA_VERSION` and its pins.
 - **Depends on:** S9 (every row exists).
@@ -525,6 +532,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 - **Done-gate:** `npx vitest run test/sim/decks/scientific.test.ts test/sim/decks/dominion.test.ts test/sim/decks/expansionist.test.ts test/sim/decks/shared.test.ts test/sim/decks/common.test.ts test/sim/statecraftDocSync.test.ts test/sim/typedChairs.test.ts`.
 
 ### S12: the Compendium
+
+**Built 2026-10-21** (`a75472ad`). Readings 102 to 106 came from it.
 
 - **Builds:** a charter technology entry generated from its row: "Opened by <charter>", the price as lines without any empire's cards, and the traits with their lines. The charter entries say what knowing the technology gives (they are generated from `CharterSpec` today). Entries for the five new buildings and three new improvements. The Physic Garden's happiness and every trait read through the describers, so no prose states a number.
 - **Fence:** `src/ui/compendium.ts`, `src/ui/compendiumText.ts`, `test/ui/compendium.test.ts`, `test/ui/compendiumDecks.test.ts`.
