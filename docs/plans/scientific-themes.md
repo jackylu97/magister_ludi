@@ -110,8 +110,8 @@ Revised 2026-10-21 (section 14): The Companions is now a shared card with a new 
 | The Herbalists' Charter | 0 | common | Herbals (1) | Workers may build the Physic Garden on flat land with fresh water, one in each town: +2 science, +2 happiness. | learned land | Civic | new; new row; revised 2026-10-21 (section 14) |
 | The Bronze-Founders' Charter | 0 | uncommon | Casting (1) | Two line traits: Hoplite (spear line: +1, and +1 for every four citizens of the town it fights in) and Maryannu (chariot line: +1, and +5 against a unit below half health). | elite army | Military | new; reworked 2026-10-21 (was the Phalanx and the Swordsman early) |
 | The Surveyors' Charter | I | uncommon | Surveying (2) | The Aqueduct before Engineering. Workers may build the Qanat, which waters the farms beside it. | great cities, land | Economic | kept |
-| The Glassmakers' Charter | I | uncommon | Optics (2) | The Specularium, a city building only you can build: +1 science, and +1 food for every three citizens of its town. | great cities | Civic | kept; revised 2026-10-21 (section 14): a new building, not the Observatory early |
-| The Librarians' Charter | I | rare | Cataloguing (2) | The Mouseion, an empire building only you can build: +1 science and +1 culture for each empire building you hold, itself included. | institutions | Civic | new; revised 2026-10-21 (section 14): a new building, not the Forum and the Great Library early |
+| The Glassmakers' Charter | I | uncommon | Optics (2) | The Specularium, a city building only you can build: +3 food, and +1 science for every two citizens of its town. | great cities | Civic | kept; revised 2026-10-21 (section 14): a new building, not the Observatory early; its figures revised 2026-10-21 (section 15) |
+| The Librarians' Charter | I | rare | Cataloguing (2) | The Mouseion, an empire building only you can build: +4 renown a turn, favouring great scholars, and +2 culture for each empire building you hold, itself included. It costs 30% more production than an ordinary empire building. | institutions, learned land | Civic | new; revised 2026-10-21 (section 14): a new building, not the Forum and the Great Library early; revised 2026-10-21 (section 15) |
 | The Paper-Makers' Charter | II | uncommon | Papermaking (3) | The Scriptorium: +2 science, and +10% science in a town with an Academy in its borders. | institutions, land | Civic | new; the row exists |
 | The Physicians' Charter | II | uncommon | Medicine (3) | The Bimaristan, an empire building: +25% food in its town; your units heal 10 more a turn in your land. | institutions, cities | Economic | new; new row |
 | The Mechanists' Charter | II | rare | Mechanics (3) | Two line traits, with no strength bonus: Onager (catapult line: +1 range) and Repeating Crossbow (archer line: it may move after it shoots). | elite army | Military | reworked 2026-10-21 (was the Trebuchet and the Crossbowman early); revised 2026-10-21 (section 14): no strength |
@@ -309,7 +309,7 @@ A Tier 0 card is marked (0). Charters drafted beside a council take no chair. Ch
 - **End of Tier II, the Republic (0 / 3 / 1 / 1):** The Free Cities, Enduring Institutions, The Great Designs; The Round City; The Dedications.
 - **Tier III, the Merchant League (1 / 3 / 2 / 2):** The Palace Schools; Enduring Institutions, The Queen of Cities, The Long Inheritance; The Round City, The Royal Academies; The Second Seat, The Age of Reason. Charters: the Physicians', the Gunfounders'.
 - **Tier IV, the Estates (2 / 4 / 2 / 3):** The Palace Schools, The Walls of Learning; Enduring Institutions, The Queen of Cities, The Long Inheritance, The Great Catalogue; The Round City, The Royal Academies; The Second Seat, The Foundation Stone, The Sum of Knowledge. Charter: the Military Engineers'.
-- **How it feels:** on turn 45 Cataloguing lands and the capital raises the Mouseion beside the Heroic Epic and the Imperial Throne. The Mouseion pays +3 science and +3 culture for the three houses, and The Royal Estates gives each house's town +2 food and +2 production. On turn 100 the capital starts a wonder whose technology no met empire knows yet, 30% faster under The Great Designs. On turn 150 the capital and the University town pass 15 citizens, The Queen of Cities doubles their food and production, and The Second Seat raises a second Forum.
+- **How it feels:** on turn 45 Cataloguing lands and the capital raises the Mouseion beside the Heroic Epic and the Imperial Throne. The Mouseion pays +6 culture for the three houses and +4 scholar renown a turn (section 15), and The Royal Estates gives each house's town +2 food and +2 production. On turn 100 the capital starts a wonder whose technology no met empire knows yet, 30% faster under The Great Designs. On turn 150 the capital and the University town pass 15 citizens, The Queen of Cities doubles their food and production, and The Second Seat raises a second Forum.
 
 ### Council 2: the campus (learned land and great cities), with Magisterial
 
@@ -604,3 +604,19 @@ Only the charter's holder can build them. The numbers are first guesses.
 - **Shapes added:** one work of a kind per town, and happiness from a work (the Physic Garden); a strength line against an empire that knows fewer technologies; production toward a wonder whose technology no met empire knows; units in your own towns as a count; a strength line that reads your great people and Academies within two hexes.
 - **Not commented, so unchanged:** the Surveyors' Charter still opens the Aqueduct before Engineering, The Forward Plans still opens a University early, and The Prototype Works still builds the current research's rows.
 - **Still open:** whether a charter technology counts toward an empire's age (section 12, item 2; working assumption no), and where the charter technologies sit on the user's chart (item 6).
+
+## 15. Rulings on the build plan, 2026-10-21
+
+The user answered the build plan's questions (`docs/plans/scientific-build-triage.md`, "Questions for the user") on the review page, then: *"ok i commented on the doc, you're good to proceed."* Verbatim, by question:
+
+1. **Does a charter technology count toward an empire's age?** *"no"*. So `highestAge` and the other age readings skip charter technologies (the triage's reading 1).
+2. **The three new buildings.** *"commented on the scientific themes page. use those rulings."* On the charter table:
+   - **The Specularium:** *"revise: +3 food, +1 science for every 2 citizens"*. New text: "+3 food, and +1 science for every two citizens of its town."
+   - **The Mouseion:** *"how about: +4 renown towards scholars, +2 culture for each empire building you hold. 30% more expensive to build than a regular empire building."* New text: "+4 renown a turn, favouring great scholars, and +2 culture for each empire building you hold, itself included. It costs 30% more production than an ordinary empire building." It now feeds the learned land (scholars) as well as the institutions.
+   - **The Aldine Press:** no comment, so it stands as section 14 proposed.
+3. **The Soldier-Scholars in attack.** *"attacking and defending"*. The +5 applies to every fight a unit takes from one of your towns (the triage's reading 9).
+4. **When to type the cards.** *"lets type them early on"*. The sheet of record and the chair types move forward: they land right after S1, and every later batch types its own rows as it adds them.
+5. **Types for cards shared with Commerce, Devotion and Magisterial.** *"approved"*.
+6. **The placeholder placement and the other readings.** *"great"*. The build uses them until the user marks one.
+
+The user also resolved the comment threads on the Grenadier (+1), the Tophane (+4), the Mechanists' traits (no strength) and the three building charters, so those readings stand.

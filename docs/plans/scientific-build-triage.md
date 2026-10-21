@@ -131,8 +131,8 @@ Naval Gunnery is the dearest. With Natural Philosophy (10) as its parent it woul
 | Card | Status | Group | Shape, what is missing, or the question |
 |---|---|---|---|
 | The Surveyors' Charter | add; wording | 2 | S5. The Aqueduct early: Surveying carries `unlocksBuilding: 'aqueduct'`, and the Aqueduct row gains `unlockedByCard: true`, the existing early arm of `isUnlocked` (reading 29). The Qanat row (`requiresTech: 'surveying'`, flat land) and a new improvement field `watersBeside: true`, read by `farmWaterField` as a source (reading 30). A map piece. |
-| The Glassmakers' Charter | modify: deferred; wording; revised (section 14) | 1 | S4. Optics names the Specularium in `unlocks.buildings`. The row: science 1, effects `pays` `where: 'city'`, `basis: 'count'`, `count: 'population'`, `within: 'city'`, `per: 3`, food 1, scope `hasBuilding` specularium. Drop the charter row's `deferred`. |
-| The Librarians' Charter | new; revised (section 14) | 1 | S4. Cataloguing names the Mouseion. The row: `oncePerEmpire`, `empireBuilding`, effects `pays` city count `empireBuildings` science 1 culture 1, scope `hasBuilding` mouseion. |
+| The Glassmakers' Charter | modify: deferred; wording; revised (section 14) | 1 | S4. Optics names the Specularium in `unlocks.buildings`. The row (revised by the user, themes doc section 15): food 3, effects `pays` `where: 'city'`, `basis: 'count'`, `count: 'population'`, `within: 'city'`, `per: 2`, science 1, scope `hasBuilding` specularium. Drop the charter row's `deferred`. |
+| The Librarians' Charter | new; revised (section 14) | 1 | S4. Cataloguing names the Mouseion. The row (revised by the user, themes doc section 15): `oncePerEmpire`, `empireBuilding`, effects `renown` 4 `family: 'scholar'`, and `pays` city count `empireBuildings` (empire-wide) culture 2, scope `hasBuilding` mouseion. Its price is 30% above an ordinary empire building of its column: a labelled line in `explainBuildingCost` from a row field, never a figure on the row (reading 56). |
 | The Old Academy | implemented | – | Built. |
 | Learned Foundations (was Learned Commissions) | modify: revised; trimmed | 1 | S7. Rename, keep the id. Keep the `productionBonus` (`empireBuilding: true`, scope `hasBuilding` library) at 25. Drop the two riders. |
 | The Commonplace Book | add; moved from Tier 0 | 2 | S0. A `rulePercent` rule `charterTechCost`, −15, read as a line of `explainTechCost` (reading 14). |
@@ -243,7 +243,7 @@ Naval Gunnery is the dearest. With Natural Philosophy (10) as its parent it woul
 
 The first twelve are the "to confirm" items of sections 12 to 14. The rest are new. Each gives the reading the build uses, then the alternative.
 
-1. A charter technology does not count toward an empire's age: `highestAge`, `columnReached` and `lastAgeTechCount` skip it. Alternative: it counts, so Gunfounding learned early moves the seat's age, the world clock and the age-entry bead.
+1. **Ruled 2026-10-21: no** (themes doc section 15). A charter technology does not count toward an empire's age: `highestAge`, `columnReached` and `lastAgeTechCount` skip it. Alternative: it counts, so Gunfounding learned early moves the seat's age, the world clock and the age-entry bead.
 2. A rival's charter technologies do not count in your gap (The Translation Movement, Books from the Ships). Alternative: they count, and those cards pay for technologies you can never research.
 3. The Naval Gunners' Charter gives the Galleass trait to the Gun Galley line, and opens no Frigate or Corvette. Alternative: it opens those `awaitsTech` hulls, which is a unit early.
 4. The Galleass bonus is +3. Alternative: no strength, as the Mechanists' traits since section 14.
@@ -251,10 +251,10 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 6. The Great Designs counts only the empires you have met. Alternative: every empire, which shows hidden information.
 7. The Edge of the Sword never applies against barbarians. Alternative: barbarians count as an empire with no technologies, so the line always applies.
 8. The Assay pays when a citizen works the hex, and only for a resource the seat can see. Alternative: every such hex in your borders, worked or not.
-9. The Soldier-Scholars: a military unit on the hex of one of your own towns; the +5 applies to every fight it takes from there, attack and defence. Alternative: defence only, through the existing `inCity` condition, with no new shape.
+9. **Ruled 2026-10-21: attack and defence** (themes doc section 15). The Soldier-Scholars: a military unit on the hex of one of your own towns; the +5 applies to every fight it takes from there, attack and defence. Alternative: defence only, through the existing `inCity` condition, with no new shape.
 10. The card is named The Soldier-Scholars. Alternative: keep The Companions.
 11. The Strategikon counts only your own great general, great scholar and Academies. Alternative: anyone's.
-12. The three new buildings are the Specularium, the Mouseion and the Aldine Press as section 14 proposes. Alternative: other buildings.
+12. The three new buildings are the Specularium, the Mouseion and the Aldine Press. **Ruled 2026-10-21** (themes doc section 15), with new figures for the Specularium and the Mouseion.
 13. A charter technology's row stores the column price as `cost`. The premium is a labelled line of `explainTechCost`, +50% of the column price, from `rules.research.charterPremiumPercent`. The total is floored once. Alternative: the row stores 1.5 × the column price, which breaks the column pin.
 14. The cost lines run: the column price, then the premium, then every card percentage added together and applied once to that sum. The Patent Office removes the premium line. Under both The Commonplace Book and The Patent Office a charter technology costs 85% of its column. Alternative: the percentages compound.
 15. The Translation Movement never discounts a charter technology (reading 2).
@@ -297,6 +297,7 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 52. The Breaching Batteries: each blow a siege unit lands on a town raising the Opus, on any beat, removes 5% of that town's banked Opus production, floored.
 53. The Lynx-Eyed Academy counts Academy hexes inside your borders, and pays 300 production to each town with an Academy inside its borders.
 54. S11 retires the twelve deferred rows the sheet cut on 2026-10-06, as well as the ten live rows. Alternative: leave them deferred; they are not dealt, so nothing in play changes.
+56. The Mouseion's 30% is a cost line, `explainBuildingCost`'s own, read from a row field such as `costPercent: 30`, so the row still carries a size and no figure. Alternative: one size larger, which is not 30%.
 55. The Schoolmen's Charter waits for the Devotion pass. Its "the Apostle before Theology" opens a unit early, which the ruling of section 12 may reach.
 
 ## The batches
@@ -496,6 +497,9 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 The 77 are the 64 seatable cards and the 13 charters of the list doc. Enduring Institutions is counted in group 1, because its row needs a change. Of the shared rows, The Assay, The Soldier-Scholars and Books from the Ships are in S batches; the other five with work belong to the Commerce and Devotion builds.
 
 ## Questions for the user
+
+**Answered 2026-10-21** (themes doc section 15): 1 no; 2 the user's figures for the Specularium and the Mouseion, the Aldine Press as proposed; 3 attack and defence; 4 type early: a batch **S1b** writes the sheet of record and the types right after S1, every later batch types its own rows as it lands, and S11 keeps only the retirements and the final sheet check; 5 approved; 6 approved.
+
 
 1. **The age.** Does a charter technology count toward an empire's age? S0 is built on "no" (reading 1). A "yes" removes the skips and moves the age-entry bead.
 2. **The three new buildings.** Are the Specularium, the Mouseion and the Aldine Press right (reading 12)? S4 builds them.
