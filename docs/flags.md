@@ -26,11 +26,12 @@ The user, after reading the six builds passes: *"each deck feels a bit one note,
   - a few themes per deck, with varied bonuses inside each theme;
   - the table of what each deck is paid for, when it is strongest and what it gives up;
   - wonders leave Expansionist, and Magisterial owns the government system;
-  - Scientific also plays around empire buildings;
+  - Scientific also plays around empire buildings, split with Expansionist;
   - Expansionist does not necessarily draft slower;
-  - victory conditions wait until the decks are fun to play.
-- **What it changes:** the builds passes of 2026-10-17 for Commerce, Devotion, Scientific and Magisterial (`docs/plans/*-builds.md`) are redone with this direction before any of their cards are built, Scientific first. The card-design skill's "one loop per build" method changes with them.
-- **Open:** that file's "Open questions", items 3 and 4.
+  - victory conditions wait until the decks are fun to play;
+  - the Scientific sketch, and the user's call to be bold and use the mechanics the game has.
+- **What it changes:** the builds passes of 2026-10-17 for Commerce, Devotion, Scientific and Magisterial (`docs/plans/*-builds.md`) are redone with this direction before any of their cards are built, Scientific first. The card-design skill now designs a deck from a few themes with four roles, in place of one loop per build.
+- **Open:** that file's "Open questions", item 3.
 
 **(eeeeeee) Order tiers open by draft count alone: RULED 2026-10-17, not built yet.**
 The user, while playtesting: *"the tier 1 orders don't require era 2, tier 2

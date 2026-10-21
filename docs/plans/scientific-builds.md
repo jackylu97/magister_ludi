@@ -1,5 +1,7 @@
 # Scientific: the research build, the learned city and the vanguard (proposal)
 
+**Superseded in method, 2026-10-20.** The user found the builds one note (`docs/decks/deck-design.md`, "Direction, 2026-10-20"). The map of the deck's materials, the six facts, the pairs and the leaders below still hold; the new pass is `docs/plans/scientific-themes.md`.
+
 **Status:** first draft, 2026-10-17. Nothing here is built. The deck sheet (`docs/decks/scientific.md`), the data and the code are unchanged. This is stages 1, 2 and 7 of the card-design skill's deck pass: the map, the finished builds and the card types. The sheet comes after your review. Three other agents run the same pass on Commerce, Devotion and Magisterial at the same time, so the types this file gives the cards Scientific shares with those decks are marked "shared, to reconcile".
 
 The user's request, 2026-10-17, verbatim:

@@ -1,6 +1,8 @@
 # Deck maps
 
-A deck map lists a deck's **themes** (its materials) and **throughlines** (directions a player can lean into), and places every card on them. Build or update the map before proposing cards for a deck. See SKILL.md, "Themes and throughlines", for why the two axes are kept apart.
+A deck map lists a deck's **materials**, the three or four **themes** it centres on, and its **throughlines** (the combinations a seat can lean into), and places every card on them. Build or update the map before proposing cards for a deck. See SKILL.md, "Materials, themes and the deck map".
+
+**Since 2026-10-20** a deck is designed from a few themes with four roles each, not from finished builds of one loop each (SKILL.md, "A way to play, built from a few themes"). Dominion's section below predates that: its materials table still holds, and its builds are revised with the new method later.
 
 A card is noted with: its themes, the throughlines it serves, its role (glue, pay-off, build-defining), the essential it pays (science, culture, production, or none), its band and its shape. These notes live in design docs only, never in the game.
 

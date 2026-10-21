@@ -27,10 +27,12 @@ The user read the six builds passes (`docs/plans/*-builds.md`) and ruled on 2026
 2. **Each deck is paid for something different, is strongest at a different time, and gives up something different:** the table below. The user: *"table looks right!"*
 3. **Wonders leave Expansionist.** Scientific gets earlier access to them, Magisterial gets bonuses for holding them, and both get production toward them (the user's picture of Magisterial, below). The user: *"i agree with taking wonders out of expansionist."*
 4. **Magisterial owns the government system:** chairs, Doctrines, adoption and re-seating. The user: *"magisterial should own the government system."*
-5. **Scientific also plays around empire buildings.** The user: *"scientific should also play around empire buildings!"* Expansionist's picture names empire buildings too, so the two decks share them (Open questions, item 4).
+5. **Scientific also plays around empire buildings.** The user: *"scientific should also play around empire buildings!"* Expansionist's picture names empire buildings too, so the two decks split them: Scientific opens them early and makes each one stronger, and Expansionist's cards on them scale with its number of towns. The user, on that split: *"great!! to the empire building point."*
 6. **Expansionist does not necessarily draft slower.** This reverses "It drafts slowly" in the Expansionist section. The user: *"Reverse my original decision, this faction shouldn't necessarily draft slower"*.
 7. **Victory conditions wait** until the decks are fun to play. The user: *"Let's think about victory conditions after we feel lke the decks are fun to play."*
 8. **Scientific goes first.** The user: *"starting with scientific mkes sense."* The builds passes of 2026-10-17 for Commerce, Devotion, Scientific and Magisterial are redone with this direction before any of their cards are built. Dominion and Expansionist are built and live, and are revised later *(proposal: after the first outside playtest)*.
+9. **The method: themes with four roles replace "one loop per build"** in the card-design skill (`.claude/skills/card-design/SKILL.md`, "A way to play, built from a few themes"). The user: *"yes, please update the card-design skill and then run the subagent."*
+10. **Be bold, and use the mechanics the game has.** The user: *"claude, i think you can do it. you can be a great card designer, don't be afraid to opinionated, bold, bias towards things that are interesting and fun rather than focusing on numbers. try to focus on not adding new sources of user inputs and operate on what mechanics we have. if there's an interesting compelling feature that would affect multiple decks, and could enable some design ideas, let me know."*
 
 | Deck | Paid for | Strongest | Gives up |
 |---|---|---|---|
@@ -41,17 +43,33 @@ The user read the six builds passes (`docs/plans/*-builds.md`) and ruled on 2026
 | Scientific | advancement: technologies, charters, Academies | in windows when it is ahead | numbers: few units, few cities |
 | Magisterial | governance: drafts, governments, great people | when its combinations come together | depth: it depends on what the draft offers |
 
-**How the passes apply it** *(proposal, 2026-10-20)*:
+**How the passes apply it.** The method below went into the card-design skill on 2026-10-20 (ruling 9). The splits marked *(proposal)* are working assumptions: a pass follows them and says when one causes trouble.
 - **A deck owns what it asks you to do. What it gives back can be anything:** any yield, happiness, authority, units or a rule change. What a deck asks for is a way to play, wider than one yield. Scientific asks you to research, grow great cities, call scholars and field elite units. Two decks can pay the same reward and still feel different, because the player did different things to earn it.
 - **Two checks for a deck:**
   - no more than about a third of its cards pay its own yield;
   - it reaches at least four of these five: the army, the land, the economy, civic life (happiness, authority, government), and great people and wonders.
+- **Four roles inside a theme:** supply (more of the thing), widen (the thing pays something it did not), multiply (the thing's output grows) and act (a choice or a moment around the thing). The user's Academy example fills the first three.
 - **Where two decks ask for the same thing, they split it:**
-  - authority and happiness: Devotion raises them in towns that follow its religion, and pays faith for it; Expansionist raises them through public works and empire buildings;
-  - institutions: Magisterial's are the government system (ruling 4); Scientific's are buildings its charters unlock; Dominion's are the lasting effects its commissions leave;
-  - flexibility: Commerce is flexible in what it buys, Devotion in how it wins, and Magisterial in which cards it holds;
-  - population: Expansionist spends citizens; Scientific grows a few great cities to feed its schools;
-  - elite units: Dominion's units earn ranks by fighting; Scientific's units start better.
+  - wonders (ruling 3) and empire buildings (ruling 5), as ruled;
+  - great-person works, as the user's picture of Magisterial says: Magisterial's bonuses come from works next to each other, towns with a work, and doubled great-person effects; Scientific's come from Academies and the works next to them;
+  - authority and happiness *(proposal)*: Devotion raises them in towns that follow its religion, and pays faith for it; Expansionist raises them through public works and empire buildings;
+  - institutions: Magisterial's are the government system (ruling 4); *(proposal)* Scientific's are buildings its charters unlock, and Dominion's are the lasting effects its commissions leave;
+  - flexibility *(proposal)*: Commerce is flexible in what it buys, Devotion in how it wins, and Magisterial in which cards it holds;
+  - population *(proposal)*: Expansionist spends citizens; Scientific grows a few great cities to feed its schools;
+  - elite units *(proposal)*: Dominion's units earn ranks by fighting; Scientific's units start better, so its cards do not use ranks or experience.
+
+**Scientific, sketched 2026-10-20.** The user's answer: *"great!!"*, then *"yes, please update the card-design skill and then run the subagent."* The pass builds on this sketch and may change it with reasons.
+
+| Theme | Area | Example bonuses |
+|---|---|---|
+| **The learned land:** Academies, great works next to them, improvements that only charters unlock | land, great people | Academies give food and production; a great work next to an Academy gains science; more scholar renown |
+| **Institutions:** empire buildings | economy | charters open them an age early; production toward them; each one pays production or scholar renown; they make more of their own yields |
+| **Great cities:** a few big towns with schools and wonders | growth, wonders | food in towns with science buildings; wonders open early; production toward them |
+| **The elite army:** few, advanced units | army | units ahead of their age from charters; strength for each technology you lead a rival by; a moment when you gain a unit no rival can build |
+
+- **The engine is technologies and charters.** Scientific has the most charters, and each charter opens something in one theme, so the charters connect the themes.
+- **Its cost is numbers:** small armies, few cities, and charter technologies that cost more research.
+- **It stays out of civic life** (happiness, authority and government), which Expansionist, Devotion and Magisterial share. So its institutions pay the economy. Its cards still pay science, culture and renown, which are Civic by the card types.
 
 **How the user sees each deck.** The user, 2026-10-20, verbatim. "Your description" under magisterial is the chat's summary of the five Magisterial builds (the Salon, the Cabinet, the Patrons, the Marvels and the Landscape).
 
@@ -693,4 +711,3 @@ The strongest of the "From history" lines above, as candidates for the card-list
 1. **Victory conditions.** Each deck must be able to win. Expansionist and Devotion currently have no wager family of their own to earn beads from. Victory conditions are open to change to fix this, and **the wager system is to be reworked in its own future pass**; commissions will not pay beads. *(proposal, for that pass)* For Expansionist: **cultivate a heartland** — hold a number of tiles raised to their richest level. It grows out of what the deck already does, only this deck pursues it, and it cannot be finished quickly. **Deferred 2026-10-20:** the user: *"Let's think about victory conditions after we feel lke the decks are fun to play."*
 2. **The "From history" mechanics** in the pairs section are proposals; they go into the card lists for the user to cut.
 3. **Expansionist's science and culture** (asked 2026-10-20). It no longer drafts slower, and the table in "Direction, 2026-10-20" names room as its cost. Does it stay weak at science and culture, taking them only from terrain? The Scientific pass does not need the answer.
-4. **Empire buildings, Scientific and Expansionist** (2026-10-20). Both decks play around them. *(proposal)* Scientific opens them early and makes each one stronger; Expansionist's cards on them scale with its number of towns.

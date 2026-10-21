@@ -1,6 +1,6 @@
 ---
 name: card-design
-description: Use when proposing, revising or reviewing Order cards or Doctrines for the six decks (Dominion, Expansionist, Commerce, Devotion, Scientific, Magisterial) in Magister Ludi, or when running a deck pass (map, builds, the deck sheet and the user's passes on it, rulings, Doctrines, card types and chairs, triage for the build). Covers the user's card principles, how synergy is built, finished builds (an early and a late version of each), themes and throughlines (the deck map), floor and ceiling roles, composition and variety, leaders, tedium against investment, what each age's player is trying to do, and how strong a card dealt at each band must be.
+description: Use when proposing, revising or reviewing Order cards or Doctrines for the six decks (Dominion, Expansionist, Commerce, Devotion, Scientific, Magisterial) in Magister Ludi, or when running a deck pass (map, themes, the deck sheet and the user's passes on it, rulings, Doctrines, card types and chairs, triage for the build). Covers the user's card principles, how synergy is built, each deck as a way to play built from a few themes (supply, widen, multiply and act cards, with example councils early and late), materials and the deck map, floor and ceiling roles, composition and variety, leaders, tedium against investment, what each age's player is trying to do, and how strong a card dealt at each band must be.
 ---
 
 # Designing deck cards
@@ -10,20 +10,26 @@ This skill is how we write and judge Order cards. It gathers the user's rulings,
 - `references/power-bar.md`: what the economy, units and seated cards look like in each age, and the size a new card must reach.
 - `references/age-goals.md`: what a player is trying to do in each age, generally and per deck.
 - `references/synergy-patterns.md`: the shared stats and moments cards can read, the patterns from other games, and the traps.
-- `references/deck-maps.md`: each deck's themes and throughlines, and where its cards sit. Build or update the deck's map before proposing cards for it.
+- `references/deck-maps.md`: each deck's materials, themes and throughlines, and where its cards sit. Build or update the deck's map before proposing cards for it.
 
 **The current priority is shape, not numbers** (the user, 2026-10-13): the goal is the right *shape* of cards for a closed beta test, and numbers can always be tweaked. Size numbers against the power bar as a sensible first guess, but spend the effort on what a card does, what it connects to, and how it feels to play.
 
+**Be bold** (the user, 2026-10-20): *"you can be a great card designer, don't be afraid to opinionated, bold, bias towards things that are interesting and fun rather than focusing on numbers. try to focus on not adding new sources of user inputs and operate on what mechanics we have. if there's an interesting compelling feature that would affect multiple decks, and could enable some design ideas, let me know."* So:
+- prefer the card that changes how a game plays over the card that adds a number;
+- take a position and say why, and offer the user choices only where the decision is really theirs;
+- add no new player input (no new button, menu, choice or target to pick); build on what the game has;
+- when one feature would open good cards in several decks, propose it to the user as a feature, with the cards it enables, and do not build cards on it before the user agrees.
+
 **The goal for a deck** (the user, 2026-10-13): every game should feel slightly different, and a player cannot force a specific build. Cards have synergy and clear throughlines across the game, so playing into a style is rewarded, and each card is also worth taking on its own.
 
-**Design from finished builds** (the user, 2026-10-14: *"we need an idea of a few 'finished builds' (i.e. what a complete set of chairs should look like in the endgame). I think we have too many cards that are individually useful"*). Each deck is designed toward four or five finished builds (Dominion has four, and the user asked for five for Expansionist, 2026-10-16); see "Finished builds" below. A card's own floor is real but modest, and most of its value is the build it joins. Each build has two versions (the user, 2026-10-15): an early build of Tier 0 to II cards, and a late build of Tier III and IV cards plus one or two early cards that scale. New cards are welcome.
+**A deck is a way to play, built from a few themes** (the user, 2026-10-20). Each deck has an engine and three or four themes from different parts of the game, and the bonuses inside each theme vary. See "A way to play, built from a few themes" below. This replaces the method of 2026-10-14 to 2026-10-17, which designed each deck as four or five finished builds of one loop each, and made every deck one note. Finished builds stay as **example councils**: a check that the themes come together into a satisfying set of chairs, early and late. New cards are welcome.
 
 ## The deck pass: the order we work in
 
 Dominion went through this in October 2026, and every deck is worked the same way (the user, 2026-10-16: *"could you edit the card-design skill to fold in this process that we're using?"*). Each stage ends with the user's review, and their words are recorded, verbatim and dated, before the next stage starts.
 
-1. **Map the deck:** its themes, the playstyles a player can lean into, how each reaches science, culture and production through the four ages, its pairs with the other five decks, its leaders, and where its sheet is thin. See "Themes and throughlines". It is written at the top of `docs/plans/<deck>-builds.md`, and goes into `references/deck-maps.md` once the user approves it.
-2. **Design four or five finished builds,** each in an early and a late version. See "Finished builds". The model is `docs/plans/dominion-builds.md`.
+1. **Map the deck:** its way to play (from `docs/decks/deck-design.md`, "Direction, 2026-10-20"), its engine, its materials, its three or four themes and the areas of the game they reach, how it reaches science, culture and production through the four ages, its pairs with the other five decks, its leaders, and where its sheet is thin. See "Materials, themes and the deck map". It is written at the top of `docs/plans/<deck>-themes.md`, and goes into `references/deck-maps.md` once the user approves it.
+2. **Design the themes:** cards in the four roles for each theme, tier by tier, and two or three example councils, early and late. See "A way to play, built from a few themes". Scientific's pass (2026-10-20) is the first on this method.
 3. **Put every card on the deck sheet,** the spec of record. See "The deck sheet". The builds' new cards go on it as `add` rows.
 4. **The user's passes on the sheet.** The user edits the sheet by hand, and each pass is folded in. See "Folding in the user's pass".
 5. **Questions and rulings.** See "Questions and rulings".
@@ -33,9 +39,9 @@ Dominion went through this in October 2026, and every deck is worked the same wa
 
 ## Specs of record (read before proposing)
 
-- `docs/decks/deck-design.md`: the goals, the rules (three essentials, one mechanic per deck, a real gap, each deck's currency), each deck's section, the pair grid, and the dated rulings: "Card design principles", the note that levies, tended works, commissions and charters stay, "Dominion is the tempo deck", "Only the current band is dealt", and what was declined (tags, a smaller pool per game).
+- `docs/decks/deck-design.md`: the goals, the rules (three essentials, one mechanic per deck, a real gap, each deck's currency), each deck's section, the pair grid, and the dated rulings: "Card design principles", the note that levies, tended works, commissions and charters stay, "Dominion is the tempo deck", "Only the current band is dealt", and what was declined (tags, a smaller pool per game). **Its section "Direction, 2026-10-20" wins where the file disagrees with itself:** the user's picture of each deck, verbatim; the table of what each deck is paid for, when it is strongest and what it gives up; and the splits where two decks claim the same thing.
 - `docs/decks/<deck>.md`: the deck's current cards, tier tables 0 to IV, with each row's status and type (see "The deck sheet"). The user's revisions and ideas outrank everything else. Ideas still under discussion live in `docs/plans/<deck>-ideas.md` (Dominion's exists).
-- `docs/plans/<deck>-builds.md`: the deck's map and its finished builds, with the user's rulings at the end.
+- `docs/plans/<deck>-builds.md`: the deck's map and its finished builds, with the user's rulings at the end. Dominion's and Expansionist's are built. The four of 2026-10-17 (Commerce, Devotion, Scientific, Magisterial) are superseded in method, but their maps of materials still hold. A pass on the new method writes `docs/plans/<deck>-themes.md`.
 - `docs/plans/doctrines-governments-chairs.md`: Doctrines, the governments' chair mixes and the card type rules, with the rulings in date order at the top.
 - `docs/plans/<deck>-build-triage.md` and `docs/plans/chairs-build.md`: what each card needs before it can be built, and the build order.
 - `docs/plans/card-measurements-2026-10-13.md`: what cards actually paid in bot games.
@@ -89,81 +95,73 @@ Synergy is what makes a draft feel like building something. Here it comes from *
 - Tags or labels written only to make cards combine (declined by the user).
 - Pay that grows with army size held at peace for Dominion: it punishes losses in war and compounds a conqueror's lead (the tempo ruling).
 
-## Finished builds: an early and a late version
+## A way to play, built from a few themes
 
-A **finished build** is what a seat's chairs look like once a plan has come together. Each deck has four or five, written in `references/deck-maps.md` (Dominion's, approved 2026-10-15, are in `docs/plans/dominion-builds.md`). They are the target the deck is designed toward: every card belongs to at least one of them, or is deliberately glue.
+**The direction** (the user, 2026-10-20, after reading the six builds passes; `docs/decks/deck-design.md`, "Direction, 2026-10-20"): *"each deck feels a bit one note, and needs diverse bonuses that aren't so squarely on theme with their central purpose/yield. Each deck should instead feel like a different way to play the game, and shouldn't be entirely focused on the corresponding yield."* On how the cards still hold together: *"i think we can centralize around a few themes, even if the bonuses and yields are varied. i.e. giving food and production from academies, and then a multiplier on the academy yields, and then a bonus towards generating great scholars, are all separate bonuses that play in a similar direction."*
 
-**Two versions of each build.** The user, 2026-10-15: *"lets do two versions, an early game build composed of tier 0/1/2 cards and a late game build composed of tier 3/4 cards (with possibly 1-2 earlier cards that scale throughout the game). You're not limited to cards that already exist or are proposed, focus on creating a satisfying playstyle and synergistic bonuses, with a mix of utility that fits with the build theme"*.
-- **The early build** is made of Tier 0, I and II cards.
-  - It has five chairs through Tiers I and II, because the tier-4 and tier-10 governments both seat five. So name its **five-chair core**.
-  - Tier 0 is dealt only for the first three drafts, because Tier I opens at draft 4 in any research age. So the build holds two Tier 0 cards, three at most.
-  - It switches the loop on: openers that start the build's quantity, the first pay-offs, at least one card that changes what the player does (a new action or a broken rule), and a grower or "this game" counter that will keep scaling.
-- **The late build** has eight chairs at Tier III (the tier-18 governments) and eleven at Tier IV (the tier-26 governments): Tier III and IV cards, plus the one or two early cards still seated because they grew.
-  - It runs the loop at full size: percentages on top of the flats (the yield layers), a capstone that breaks a rule or doubles a category, and a card that makes a visible moment.
-- **Reachability.** Since 2026-10-17 an Order tier opens at its draft rung alone: Tier I at 4 drafts, Tier II at 10, Tier III at 18 and Tier IV at 26. These are the government tiers. The research age plays no part: the user removed that gate the same day (`docs/flags.md` (eeeeeee)).
-  - Before the rung fix of that day, Tiers II to IV opened one government tier late (18, 29, 38), and a seat spent about 44 turns in age 3 still drafting Tier I.
-  - Modelled from the bot games' culture (`docs/plans/draft-pacing-2026-10-17.md`), the first hand of each tier comes at about turn 32 (Tier I), 72 (Tier II), 133 (Tier III) and 161 (Tier IV). Research age 2 comes at about turn 53, age 3 at 85 and age 4 at 146. So each tier opens before the age that used to gate it. A draft comes every 7 or 8 turns all game.
-  - Tier IV at 26 drafts is reached by 15 of 30 bot seats in 200 turns, in the model. Neither the rung at 26 nor the removed age gate is measured in play yet.
-  - Keep each build's capstone in Tier III so the build works without Tier IV, and use Tier IV for the long game and for the cards that break the game late.
-- **Rule-breakers are wanted.** The user, 2026-10-15, on Dominion's late capstones (a ranked unit ransomed instead of dying, a fallen unit rising again, pillage that eats a rival's build, captured towns pacified at once): *"these are great, if anything, we need more cards like this."*
+**Why the earlier method was one note.** From 2026-10-14 to 2026-10-17 each deck was designed as four or five finished builds. Each build was one loop on one quantity, and every chair had to raise that quantity, read it or pay from it. The builds were tidy, but:
+- each deck's themes stayed inside its own subject (Scientific's were technologies, schools and scholars);
+- each build fed one number, so its cards read alike;
+- most rewards were the deck's own yield or the three essentials.
 
-**Why.** A deck designed card by card, each with a full floor, ends up as a pile of individually useful cards. A seat then fills its chairs with whichever card pays most on its own. The endgame chairs look alike from game to game, and no draft feels like a plan coming together. The 2026-10-13 audit points the same way:
-- raisers outnumber readers: about twelve cards make more units and two read them; about twenty create citizens and four read them in the midgame;
-- most readers sit on saturating quantities (garrisons, military buildings), which pay the same with or without a plan.
+**A deck owns what it asks the player to do. What it gives back can be anything:** any yield, happiness, authority, units or a rule change. Two decks can pay the same reward and still feel different, because the player did different things to earn it. Dominion pays production for a captured town, and Devotion for a town that follows its religion. What a deck asks for is a way to play, wider than one yield: Scientific asks the player to research, grow great cities, call scholars and field elite units.
 
-The first Dominion draft (2026-10-14) fell flat for three reasons worth avoiding:
-- it was assembled from cards already on the sheet, mostly flats that barely touched each other;
-- it showed one endgame mixing Tier 0 and Tier IV cards, though only the current band is dealt, so it never showed the build coming together;
-- it had few moments and no capstone.
+**The parts of a deck:**
+- **The engine:** the currency the deck makes in bulk and the way it spends it (the currency table in `deck-design.md`). Scientific's engine is technologies and charters.
+- **Three or four themes** from different parts of the game. A theme is a material the deck centres on (Academies, empire buildings, elite units). It is a direction that many cards push, not a closed loop: a card only has to push its theme, not feed the next card in a cycle.
+- **Engine glue:** cards that raise or spend the engine itself, and so serve every theme.
+- **The cost:** what the deck gives up, from the table in "Direction, 2026-10-20". The cards must show the cost, or the deck has none.
 
-**What to write for each finished build:**
-- **The fantasy,** in a sentence or two, and **the loop in one line** (X → Y → more X), built on a quantity or moment the playstyle produces by itself.
-- **The early build:**
-  - a table of its chairs: card, tier, rarity, text, role, what it raises or reads, the essential it pays, and status and shape;
-  - the five-chair core;
-  - how a few turns feel.
-- **The late build:**
-  - the same table;
-  - which early scalers carried over, and how big they grew;
-  - the capstone and the moment;
-  - how a few turns feel.
-- **The utility mix, what the build gives up, its partner decks and its leader.**
-- **Alternatives for each version,** so several routes reach the build and none can be forced.
+**The five areas of the game:** the army, the land, the economy, civic life (happiness, authority and government), and great people and wonders. A deck reaches at least four of them. Where two decks claim the same thing, "Direction, 2026-10-20" splits it. Follow the split; if it gets in the way of a good card, say so.
 
-**New cards are welcome.** Do not limit a build to cards that exist or are proposed. Mark each new card, and mark each effect the vocabulary cannot express as a **new shape**, saying what is missing. Prefer a few new shapes that several cards share, reading mechanics the game already has, over many one-offs.
+**Four roles inside a theme.** Each theme has cards in all four roles, spread over the tiers. The user's Academy example fills three of them:
+- **Supply:** more of the thing (a bonus toward great scholars, who found Academies).
+- **Widen:** the thing pays something it did not pay before (Academies give food and production).
+- **Multiply:** the thing's output grows (Academy yields +X%). The Bourse (`buildingYieldPercent`) and Hypatia's The Commentaries (a great person's work pays half again) are the models in the data.
+- **Act:** a choice or a moment around the thing (a scholar founds an Academy or writes a treatise). Without an act card, a theme is set up once and then pays with no more decisions.
+
+**Rules for the roles:**
+- **Widen cards pay what the theme does not already make.** That is where the variety comes from.
+- **Supply and widen cards come early, multiply cards later.** A percentage is worth more once the flats exist (the yield layers, "How synergy is built here", item 4).
+- **About three cards per theme in each tier.** A seat can then find a theme in the long tiers (Tier II runs about nine drafts) but cannot count on it in Tier I (about five).
+- **No more than about a third of a deck's cards pay its own yield.**
+- **A scaler carries over.** Each theme has a grower or a "this game" counter in Tier I or II that is still worth its chair late.
+- **Rule-breakers are wanted.** The user, 2026-10-15, on Dominion's late capstones: *"these are great, if anything, we need more cards like this."* Each theme has a capstone in Tier III that breaks a rule or doubles a category, so the theme works without Tier IV.
+
+**Example councils.** Finished builds stay as a check, not as the unit of design. The user, 2026-10-14: *"we need an idea of a few 'finished builds' (i.e. what a complete set of chairs should look like in the endgame). I think we have too many cards that are individually useful"*. Each pass shows two or three example councils that mix themes, and some that mix in the partner deck:
+- **Early:** five chairs through Tiers I and II, because the tier-4 and tier-10 governments both seat five. Show the council at the end of Tier I and at the end of Tier II. Tier 0 is dealt only for the first three drafts, so a council holds two Tier 0 cards, three at most.
+- **Late:** eight chairs at Tier III (the tier-18 governments) and eleven at Tier IV (the tier-26 governments): Tier III and IV cards, plus the early scalers still seated.
+- **For each council:** its chairs (card, tier, theme, role), the government that seats it, and how a few turns feel.
+- **Reachability.** An Order tier opens at its draft rung alone: Tier I at 4 drafts, Tier II at 10, Tier III at 18 and Tier IV at 26 (`docs/flags.md` (eeeeeee)). Modelled from the bot games' culture (`docs/plans/draft-pacing-2026-10-17.md`), the first hand of each tier comes at about turn 32, 72, 133 and 161, and a draft comes every 7 or 8 turns all game. In the model, 15 of 30 bot seats reach Tier IV in 200 turns. Keep each theme's capstone in Tier III, and use Tier IV for the long game.
 
 **Checks:**
-- **One loop.** Every chair raises the build's quantity, reads it, or pays an essential or a fitting utility from it.
-- **Better together.** An engine card is clearly stronger in its build than in a seat without one.
-- **The build beats a pile.** A finished build should clearly out-earn the same number of the deck's strongest individual cards seated together: eight for the early build, eleven for the late one. If it does not, drafting for a plan is not worth it.
-- **Several routes.** Any two of a build's core cards turn it on; no build depends on one card.
-- **A scaler carries over.** At least one early card is still worth its chair in the late build, because of what the build did.
-- **The essentials along the way.** Science, culture and production in both versions, from the build's own quantity where possible.
-- **Every card has a home.** Each card belongs to at least one finished build or is deliberately glue. A card that serves two of a deck's builds is a bridge, and bridges make pivots possible.
-- **Individual usefulness falls with the band.**
-  - Tier 0 is mostly glue and openers that point toward builds.
-  - Tiers I and II mix openers and engine cards.
-  - Tiers III and IV are mostly pay-offs and capstones that cash in what the seat assembled.
-  - A late card that does little outside its build is acceptable; an early one is not.
-- **Glue is a minority.** Starting target (the orchestrator's proposal, 2026-10-14; the user may change it): about a quarter of a deck is glue, half engine cards, and a quarter pay-offs and capstones.
+- **Themes beat a pile.** A theme's cards are clearly stronger seated together than apart. A council of one theme's cards out-earns the same number of the deck's strongest single cards; if it does not, drafting for a theme is not worth it.
+- **Several routes.** Any two of a theme's cards start it; no theme depends on one card.
+- **Every card has a home:** a theme, or engine glue. A card that serves two themes is a bridge, and bridges make pivots possible.
+- **The essentials along the way.** A seat that leans on any one theme still reaches science, culture and production.
+- **Individual usefulness falls with the band.** Tier 0 is mostly glue and openers that point toward themes. Tiers I and II mix openers and engine cards. Tiers III and IV are mostly pay-offs and capstones. A late card that does little outside its theme is acceptable; an early one is not.
+- **Glue is a minority.** Starting target (2026-10-14; the user may change it): about a quarter glue, half engine cards, and a quarter pay-offs and capstones.
 
-**How this fits the principles.** Principle 4 ("fits in") and "each card is also worth taking on its own" still hold, read this way: a card fits two or three of its deck's finished builds rather than every seat, and its floor is enough to take it when the draft goes elsewhere, never so much that the build is pointless.
+**How this fits the principles.** Principle 4 ("fits in") and "each card is also worth taking on its own" still hold, read this way: a card fits its theme and often a second one, and its floor is enough to take it when the draft goes elsewhere, never so much that the theme is pointless.
 
-**Measuring it.** `explainCardImpact` (`src/sim/cardImpact.ts`) gives a seated card's ghost diff. Run it in two kinds of seat: one holding the card's build partners and one holding none. The gap is the card's synergy margin, and most engine cards should show a clear one.
+**New cards are welcome.** Mark each new card, and mark each effect the vocabulary cannot express as a **new shape**, saying what is missing. Prefer a few new shapes that several cards share, reading mechanics the game already has, over many one-offs.
 
-## Themes and throughlines: the deck map
+**Measuring it.** `explainCardImpact` (`src/sim/cardImpact.ts`) gives a seated card's ghost diff. Run it in a seat that holds the card's theme partners and in one that holds none. The gap is the card's synergy margin.
 
-Two different axes. Keep them apart.
+**Where the earlier passes stand.** Dominion's builds (2026-10-15) and Expansionist's (2026-10-16) are built and live, and are revised with this method later. The passes of 2026-10-17 for Commerce, Devotion, Scientific and Magisterial are superseded in method, but their maps of materials still hold.
 
-- **Themes are the deck's materials:** the pieces, quantities and moments its games are made of. For Dominion: great generals and citadels, garrisons, units trained, military buildings, barbarian camps, mounted, siege and naval units, captured towns, pillage, war and peace, logistics, upkeep, reparations, strategic resources and pastures. Cards are written on themes.
-- **Throughlines are directions a player can lean into.** For Dominion: the garrison state, raising the host, raiders, and conquest. They are not buckets cards belong to. They are a check: if a player leans this way, is there a rewarded path through all four ages, with access to science, culture and production along it?
-- **A strong theme serves several throughlines.** It offers a version that rewards each style and a version that is simply good. The user's example, generals and citadels: a unit standing on a citadel makes science (the garrison state); great generals give strength to adjacent units attacking cities (conquest); citadels gain food and production (good for anyone).
-- **The best anchors are themes the playstyle produces by itself.** A Dominion player fights, so earns general renown; generals make citadels; an army brings garrisons; barbarians bring camps. Cards that read these have a high floor, because the quantity shows up whether or not the player drafted for it, and set-up cards lift the ceiling. That is Balatro's played hands feeding the jokers. A quantity that only cards produce is a weaker anchor.
-- In the design docs (never in the game), note for each card its themes, the throughlines it serves, its role, the essential it pays, its band and its shape. `references/deck-maps.md` holds the map.
+## Materials, themes and the deck map
+
+- **Materials** are everything a deck's games are made of: the pieces, quantities and moments its cards could read. For Dominion: great generals and citadels, garrisons, units trained, military buildings, barbarian camps, mounted, siege and naval units, captured towns, pillage, war and peace, logistics, upkeep, reparations, strategic resources and pastures. The map lists them, with where each lives in the sim.
+- **Themes** are the three or four materials the deck centres on, chosen from different areas of the game (see "A way to play, built from a few themes").
+- **A strong theme rewards several styles, with varied bonuses.** The user's example, generals and citadels: a unit standing on a citadel makes science; great generals give strength to adjacent units attacking cities; citadels gain food and production, which is good for anyone. It is the same idea as the Academy example of 2026-10-20.
+- **The best anchors are materials the playstyle produces by itself.** A Dominion player fights, so earns general renown; generals make citadels; an army brings garrisons; barbarians bring camps. Cards that read these have a high floor, because the quantity shows up whether or not the player drafted for it, and supply cards lift the ceiling. That is Balatro's played hands feeding the jokers. A quantity that only cards produce is a weaker anchor.
+- **Throughlines** are the combinations a seat can lean into: two themes together, or a theme with the partner deck. The example councils show them. Each needs a rewarded path through all four ages.
+- In the design docs (never in the game), note for each card its theme, its role, what it pays, its band and its shape. `references/deck-maps.md` holds the maps the user has approved.
 
 ## Floor and ceiling: the three roles
 
-Every card has a **floor** (what it does in a seat that is not building around it) and a **ceiling** (what it does in a seat that is). Every card needs a real floor, but an engine card's floor is modest: most of its value is the finished build it joins (see "Finished builds").
+Every card has a **floor** (what it does in a seat that is not building around it) and a **ceiling** (what it does in a seat that is). Every card needs a real floor, but an engine card's floor is modest: most of its value is the theme it joins (see "A way to play, built from a few themes").
 
 | Role | Floor | Ceiling | Usually |
 |---|---|---|---|
@@ -175,26 +173,27 @@ A pay-off with no floor is a dead card. An opener whose ceiling matches a pay-of
 
 ## Composition: checks across a band and across the deck
 
-- **Theme check:** each major theme has cards serving at least two throughlines, plus one that is good to anyone, spread over several bands.
-- **Throughline check:** each throughline has a path through all four ages, with science, culture and production reachable along it. This is where "the deck needs science and culture" is answered for each style of play, not only for the deck as a whole.
+- **Theme check:** each theme has supply, widen, multiply and act cards spread over the bands, and its widen cards pay several different things.
+- **Area check:** the deck reaches at least four of the five areas of the game, and no more than about a third of its cards pay its own yield.
+- **Path check:** a seat that leans on any one theme has a path through all four ages, with science, culture and production reachable along it.
 - **Peace and war:** most of bands 0 and 1 is useful at peace. War cards are strong enough to be held through peace.
 - **Shapes:** a band mixes flats, percentages, payouts on moments, growers, rules, combat lines, commissions, charters and levies. No shape dominates.
 - **Rarities:** each band has glue, pay-offs and a few build-defining rares.
-- **Builds:** every card belongs to a finished build or is deliberately glue; glue is a minority, and individual usefulness falls from band 0 to band 4 (see "Finished builds").
+- **Homes:** every card belongs to a theme or is engine glue; glue is a minority, and individual usefulness falls from band 0 to band 4 (see "A way to play, built from a few themes").
 - **One job per card.** A card's job is what it reads, what it pays and where. Two cards with the same job are merged, or one changes what it reads.
 - **Theme and history:** each card names a real institution or practice, does what that institution did, and sits in the band of its era (no Knights Templar in band 0). The Soldier-Farmers paying food at peace (the Chinese *tuntian*) is the model.
 
 ## Variety: every game slightly different, no forced build
 
-- **No linchpin.** No throughline depends on one specific card; each has several routes.
+- **No linchpin.** No theme depends on one specific card; each has several routes.
 - **Density per band.** Each hand holds one or two cards of each deck, and long bands run a dozen drafts against about 13 deck cards, so a seat sees most of a long band. Variety then comes from band 0 (four drafts show four of about eleven cards), from the rares, from which cards the player seats, and from the partner deck. Band 0's openers do much of the work of making games differ: give them several directions.
-- **Themes that cross throughlines** let a player pivot when the draft goes elsewhere: a card bought for one style still counts toward another.
+- **Bridge cards** that serve two themes let a player pivot when the draft goes elsewhere: a card bought for one theme still counts toward another.
 - **Leaders colour, they do not narrow** (see below).
 
 ## Leaders
 
 - Each leader's ability points at a theme of its decks (Modu Chanyu: mounted units and pillage; Taizong: melee and garrisons; Joan: kills and faith; Mithridates: camps and plantations, and fighting wider empires).
-- That theme has at least three cards in the leader's two decks, across several bands and more than one throughline, so the leader has something to draft toward without being locked into one build.
+- That theme has at least three cards in the leader's two decks, across several bands and more than one throughline, so the leader has something to draft toward without being locked into one theme.
 - Nothing names a leader or a leader's unique unit or building.
 - Leaders will be tuned later; when a card proposal makes a leader's theme thin or rich, say so.
 
@@ -295,7 +294,7 @@ The user marks up the sheet by hand: rewritten abilities, changed rarities and t
 ## Doctrines
 
 - **What a Doctrine is.** It is a permanent rule, strong and game-warping, held for the whole game, and it takes no chair. The user, 2026-10-15: *"We should have permanent, strong bonuses in the game… They should be somewhat game-warping like before."*
-- **How many:** three to five per deck at each of Tiers I to IV, and none at Tier 0. Each is written for one of the deck's builds (the Build column), so each build gains a Doctrine at most tiers.
+- **How many:** three to five per deck at each of Tiers I to IV, and none at Tier 0. Each is written for one of the deck's themes (the sheet's Build column), so each theme gains a Doctrine at most tiers.
 - **When they are offered:** with a government, one Doctrine tier per government tier. Tier 4 offers Tier I, tier 10 Tier II, tier 18 Tier III and tier 26 Tier IV (ruled 2026-10-16; the user moved Tier IV from 29 to 26 on 2026-10-17).
   - The offer draws from both of the seat's decks.
   - It is all a new government brings: the reward hands are gone.
@@ -351,9 +350,9 @@ For each card:
 | Band, rarity | Band 0 to 4; common, uncommon or rare |
 | Text | The player-facing line, with numbers, in plain words |
 | Age goal | Which goal of that age it serves (from `age-goals.md`) |
-| Themes and throughlines | The themes it is written on, the throughlines it serves, and which deck-map gap it fills |
+| Theme and role | The theme it pushes and its role there (supply, widen, multiply, act), or "engine glue"; and which gap in the map it fills |
 | Role | Glue, pay-off or build-defining, with its floor (alone) and ceiling (built around) |
-| Builds | The finished builds it belongs to, in which version (early or late), and its role there (opener, engine, pay-off, scaler, capstone, utility), or "glue" |
+| Councils | The example councils it sits in, early or late, and what it does there (opener, engine, pay-off, scaler, capstone, utility) |
 | Attention | What the player does differently with it seated, what it leaves on the map, what must be tracked; where it sits on the attention-against-impact table |
 | Power | The arithmetic against the bar: what it pays at the start and end of its band in a typical seat, compared with the median and best seated card |
 | Synergy | Raises: … Reads: … with the live cards in a seat's pool that feed it and that it feeds, and how many raisers exist at or before its band |
@@ -367,11 +366,15 @@ Then a short note on the combinations the batch opens, each stated through a gen
 ## Before you hand it over
 
 - The deck map was read (or built) and each card says which gap it fills.
-- Each card names the finished builds it belongs to, the version (early or late) and its role there, or says it is glue; the batch does not add to the glue share without saying so.
+- Each card names its theme and role, or says it is engine glue; the batch does not add to the glue share without saying so.
+- Each theme has supply, widen, multiply and act cards, and its widen cards pay what the theme does not already make.
+- The deck reaches at least four of the five areas, no more than about a third of its cards pay its own yield, and its cost shows in its cards.
+- Where two decks claim the same thing, the split in `deck-design.md` ("Direction, 2026-10-20") is followed, or the conflict is named.
+- No card adds a new player input (a button, menu, choice or target to pick). A feature that would open cards in several decks is proposed to the user, not assumed.
 - Every card has a real floor, and the batch mixes roles, shapes and rarities without two cards doing the same job.
 - Each card's theme and era fit its band and its historical model.
 - No card is high attention and low impact; cards that create units or ask for tracking justify it.
-- No card is a linchpin that one throughline depends on.
+- No card is a linchpin that one theme depends on.
 - Each card has one effect and at most one condition, and its text fits on one line.
 - No card names another card.
 - Every pay-off has three or more set-ups available at or before its band in a two-deck pool.
