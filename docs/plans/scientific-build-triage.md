@@ -303,6 +303,10 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 58. (S0) The Patent Office's `charterPremium` is a percentage of the premium, so −100 removes it and −50 would halve it.
 59. (S0) `gameProgress` (the tile price) counts ordinary technologies only.
 60. (S0) `src/ai/value.ts` prices the two new rules at 0 until S13.
+61. (S1) The Galleass also counts in the line of battle (`navalLineLines`), because the line asks the same blockade question.
+62. (S1) The Maryannu's +5 applies in attack only, as Decisive Blows does: on defence `targetBelowHalf` would read the Maryannu's own health. It still pays against a town below half its hit points.
+63. (S1) Only ships blockade. A `blockades` rule given to a land line does nothing.
+64. (S1) `townCitizensHere` reads the hex the piece stands on, in attack and in defence.
 
 ## The batches
 
@@ -336,6 +340,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 - **Done-gate:** `npx vitest run test/sim/charterTechs.test.ts test/sim/tech.test.ts test/sim/techDocSync.test.ts test/ui/techChart.test.ts test/ui/techTreeCost.test.ts test/sim/charters.test.ts test/sim/decks/scientific.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts`, and the fence's files typecheck.
 
 ### S1: line traits
+
+**Built 2026-10-21** (`c7446216`, schema 153). Readings 61 to 64 came from it. The Alchemists' Charter has its Grenadier and stays deferred until S5. The slow bot digests will move, because Scientific seats are dealt three more charters.
 
 - **Builds:**
   - `UnitFilter.line?: UnitTypeId`. `unitMatches` admits the named unit and every unit its `upgradesTo` chain reaches (reading 22), from a table built once from `data/units.json`.
