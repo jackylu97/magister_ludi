@@ -494,7 +494,9 @@
       "flavor": "A realm is what its water agrees to.",
       "text": "Aqueducts cost 30% less production. Cities with an Aqueduct gain science equal to 20% of their base food surplus, minimum zero, and +1 production per three citizens.",
       "deferred": ["a share of the grain a town has left over is gained again as learning"],
-      "effects": []
+      "note": "Cut from both its decks. Other cards already pay in towns with an aqueduct, and it had too many parts.",
+      "effects": [],
+      "retired": true
     },
     "gardenCities": {
       "name": "Garden Cities",
@@ -616,6 +618,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "He went for pepper and came back with a grammar.",
       "text": "Foreign routes from a city with a Library gain +5 science.",
       "effects": [
@@ -634,6 +637,7 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "Two ports, two answers, and neither one wrong.",
       "text": "+2 science on mines and quarries on a resource. Additional +2 if the city has a market.",
       "effects": [
@@ -716,6 +720,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "Bread in the morning, letters in the afternoon.",
       "text": "Cities with both a Temple and a Library gain +5 food and +5 science.",
       "effects": [
@@ -740,6 +745,7 @@
       "band": 2,
       "line": "none",
       "rarity": "rare",
+      "type": "civic",
       "flavor": "The walls keep the world out and the argument in.",
       "text": "Cities with a Temple gain science equal to 30% of their base faith. Their Libraries and Universities each gain +3 food.",
       "effects": [
@@ -819,6 +825,7 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "Gold leaf on a proof nobody can read yet.",
       "text": "Cities with both a Library and a Monument gain +1 science and +1 culture.",
       "effects": [
@@ -843,6 +850,7 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "Translate everything, and argue afterwards.",
       "text": "Worked Academies gain +3 culture. Cities working an Academy gain +1 renown and +30% production toward wonders. Each city receives the city bonus once.",
       "effects": [
@@ -1003,6 +1011,7 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "Copy it twice: once for God, once for the shelf.",
       "text": "Monasteries give +3 science. Libraries give +2 faith.",
       "effects": [],
@@ -1017,6 +1026,7 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "The chart was drawn to find a market, and found a world.",
       "text": "Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +5 science.",
       "effects": [

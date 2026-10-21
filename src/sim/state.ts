@@ -1876,8 +1876,29 @@ import {
  * **A v152 save is refused and does not replay.** A Scientific seat's pool now
  * holds three more cards, so its hands differ from the opening draft on. The
  * branch migrates nothing, for the reason given under v119.
+ *
+ * v154 (branch `decks`; Scientific batch S1b, `docs/plans/scientific-build-
+ * triage.md`): **the Scientific sheet of record and the chair types.** No
+ * field joins the state. The rules that change:
+ *
+ *   · the Scientific deck is sorted: each of its twenty-six current rows
+ *     carries a type (`OrderDef.type`), from the Type column of
+ *     `docs/decks/scientific.md`. So is each shared row that sheet lists,
+ *     eight of them for the first time (the cards Scientific shares with
+ *     Commerce, Devotion and Magisterial). A typed card fits only a chair of
+ *     its own type or a Wildcard chair, so a seat command that seated one of
+ *     these cards in another chair is now refused;
+ *   · twenty-four Scientific rows are retired: Field Notebooks, the ten live
+ *     rows the sheet cut on 2026-10-06, Discoveries through Great People and
+ *     twelve deferred rows. The shared The Hydraulic Commonwealth is retired
+ *     too. A retired row leaves every pool.
+ *
+ * **A v153 save is refused and does not replay.** A Scientific seat's pool now
+ * holds eleven fewer cards, so its hands differ from the opening draft on, and
+ * a logged seat command may now be refused. The branch migrates nothing, for
+ * the reason given under v119.
  */
-export const SCHEMA_VERSION = 153;
+export const SCHEMA_VERSION = 154;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

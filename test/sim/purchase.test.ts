@@ -1505,6 +1505,9 @@ describe('the schema witness', () => {
     // v151 log's research and drafts meet a different tree and deck.
     // 153 since the line traits (Scientific batch S1): three Scientific
     // charters are dealt, so a v152 log's hands differ from the first draft.
-    expect(SCHEMA_VERSION).toBe(153);
+    // 154 since the Scientific types and retirements (batch S1b): a
+    // Scientific seat's pool loses eleven cards, and typed chairs refuse some
+    // seat commands a v153 log holds.
+    expect(SCHEMA_VERSION).toBe(154);
   });
 });

@@ -466,8 +466,11 @@ describe('the schema, as landed', () => {
     // **And Scientific batch S1** (the line traits): three more. Three
     // deferred charters were freed (the Bronze-Founders', the Mechanists' and
     // the Naval Gunners').
-    expect(live).toBe(503);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(503);
+    // **And Scientific batch S1b** (the sheet and the types): eleven fewer.
+    // Field Notebooks and the ten live rows the Scientific sheet cut on
+    // 2026-10-06 were retired.
+    expect(live).toBe(492);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(492);
   });
 
   /**
@@ -714,7 +717,10 @@ describe('the schema, as landed', () => {
     // v151 log's research and drafts meet a different tree and deck.
     // 153 since the line traits (Scientific batch S1): three Scientific
     // charters are dealt, so a v152 log's hands differ from the first draft.
-    expect(SCHEMA_VERSION).toBe(153);
+    // 154 since the Scientific types and retirements (batch S1b): a
+    // Scientific seat's pool loses eleven cards, and typed chairs refuse some
+    // seat commands a v153 log holds.
+    expect(SCHEMA_VERSION).toBe(154);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -942,10 +948,13 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // (− 2, and + 2 retired).
       // **Scientific batch S1** freed three charters (the Bronze-Founders',
       // the Mechanists' and the Naval Gunners': − 3).
+      // **Scientific batch S1b** retired thirteen deferred Scientific rows and
+      // the shared The Hydraulic Commonwealth (− 14), and eleven live
+      // Scientific rows (+ 25 retired in all).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(62);
-      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(138);
+      ).toHaveLength(48);
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(163);
     }
   });
 

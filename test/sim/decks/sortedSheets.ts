@@ -3,12 +3,12 @@
  * its sheet's Type column is in the data: each of its rows carries a `type`, so
  * each card fits only a chair of its own type or a Wildcard chair.
  *
- * Dominion was sorted in batch C1 and Expansionist in batch E0. A row may carry
- * a type only if one of these sheets lists it: a live or deferred row of a
- * sorted deck's own file, or a shared row in `common.json` that a sorted
- * sheet's shared table lists. Every other row is unsorted. The rule is checked
- * in `dominion.test.ts`; each sorted deck's own test checks that its rows carry
- * the sheet's type.
+ * Dominion was sorted in batch C1, Expansionist in batch E0 and Scientific in
+ * batch S1b. A row may carry a type only if one of these sheets lists it: a
+ * live or deferred row of a sorted deck's own file, or a shared row in
+ * `common.json` that a sorted sheet's shared table lists. Every other row is
+ * unsorted. The rule is checked in `dominion.test.ts`; each sorted deck's own
+ * test checks that its rows carry the sheet's type.
  *
  * A non-test module, so two test files can share it (CLAUDE.md: importing a
  * `.test.ts` file runs its tests again). The next deck to be sorted joins by
@@ -23,7 +23,7 @@ import {
 } from '../../../src/sim/statecraftData';
 
 /** The decks whose types are in the data. */
-export const SORTED_DECKS: readonly DeckId[] = ['dominion', 'expansionist'];
+export const SORTED_DECKS: readonly DeckId[] = ['dominion', 'expansionist', 'scientific'];
 
 const SHEETS = import.meta.glob('../../../docs/decks/*.md', {
   eager: true,

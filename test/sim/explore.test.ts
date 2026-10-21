@@ -863,10 +863,16 @@ describe('determinism', () => {
    * drafts, so no trait is ever known on this board, and no ship blockades by
    * a card. Checked with the change in place and the version printed as 152,
    * which gives the charter technologies' hashes exactly.
+   *
+   * **The Scientific types and retirements (batch S1b, schema 154) moved the
+   * hash and not the length** at both seeds: 153 became 154, and that is all.
+   * Nobody here drafts, so no card is dealt or seated on this board. Checked
+   * with the change in place and the version printed as 153, which gives the
+   * line traits' hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '35fe44b0:188931',
-    2026: 'efa221ad:188509',
+    11: '18ebe8f3:188931',
+    2026: '6db3cf0a:188509',
   };
 
   for (const seed of [11, 2026]) {

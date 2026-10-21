@@ -6,6 +6,7 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
+      "type": "economic",
       "flavor": "A year is a book; we learned to read ahead.",
       "text": "Libraries cost 25% less production and give +1 production.",
       "effects": [
@@ -24,6 +25,7 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "Every hand that can write is a hand that can teach.",
       "text": "Cities with a Library gain +1 science per four citizens and +1 culture per three citizens.",
       "effects": [
@@ -61,7 +63,9 @@
       "deferred": [
         "your capital gathers faith from the sky, and being the first to set eyes on each new kind of country or ground pays faith besides"
       ],
-      "effects": []
+      "note": "Cut from the deck. It paid faith, which is another deck's currency, and its other half repeated another card.",
+      "effects": [],
+      "retired": true
     },
     "fieldNotebooks": {
       "name": "Field Notebooks",
@@ -71,11 +75,13 @@
       "rarity": "common",
       "flavor": "Nothing is found twice unless it is written down.",
       "text": "Claiming a ruin grants 15 science, 20 culture and 20 gold.",
+      "note": "Cut from the deck. Exploring belongs to another deck, and this card served none of this deck's themes.",
       "effects": [
         { "kind": "windfallRider", "occasion": "discovery", "grant": { "yield": "science", "amount": 15 } },
         { "kind": "windfallRider", "occasion": "discovery", "grant": { "yield": "culture", "amount": 20 } },
         { "kind": "windfallRider", "occasion": "discovery", "grant": { "yield": "gold", "amount": 20 } }
-      ]
+      ],
+      "retired": true
     },
     "naturalPhilosophy": {
       "name": "Natural Philosophy",
@@ -87,7 +93,9 @@
       "deferred": [
         "being the first to set eyes on each new kind of country or ground pays science, and feeds your capital"
       ],
-      "effects": []
+      "note": "Cut from the deck. Paying for the first sight of new ground is exploring, which belongs to another deck.",
+      "effects": [],
+      "retired": true
     },
     "apprenticeEngineers": {
       "name": "Apprentice Engineers",
@@ -100,7 +108,8 @@
         "towns with a library raise workers faster, and the first works of each kind you build on ground of your own pay the town that holds them"
       ],
       "effects": [],
-      "note": "Not built: the world announces a wood felled, a hill surveyed and a hex bought, and never a work finished on the ground — so the first of each kind has no moment to be paid at, however well the ledger would remember it."
+      "note": "Cut from the deck. Its science on mines was a small flat bonus, and faster workers belong to another deck.",
+      "retired": true
     },
     "theLongStudy": {
       "name": "The Long Study",
@@ -108,6 +117,7 @@
       "band": 0,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "A roof, a lamp, and a long patience.",
       "text": "A Library at least twenty turns old grants +2 culture and +1 renown. At forty turns, these bonuses become +4 culture and +2 renown.",
       "effects": [
@@ -148,7 +158,8 @@
         "while this sits in council, your capital works and sings for every technology you have completed, up to a limit"
       ],
       "effects": [],
-      "note": "Not built: nothing counts the studies an empire has finished — the tree is a list no card can yet ask the length of."
+      "note": "Cut from the deck. Its words never settled what it paid.",
+      "retired": true
     },
     "practicalAstronomy": {
       "name": "Practical Astronomy",
@@ -158,6 +169,7 @@
       "rarity": "uncommon",
       "flavor": "The same stars that steer a ship will feed a town.",
       "text": "Scouts and ships gain +1 sight. Coastal cities with a Library gain +3 food.",
+      "note": "Cut from the deck. Once its sight went to another deck, food in coastal towns with a library served none of this deck's themes.",
       "effects": [
         { "kind": "unitStat", "stat": "sight", "amount": 1, "class": { "explores": true } },
         { "kind": "unitStat", "stat": "sight", "amount": 1, "class": { "category": "naval" } },
@@ -170,7 +182,8 @@
           },
           "food": 3
         }
-      ]
+      ],
+      "retired": true
     },
     "patientResearch": {
       "name": "Patient Research",
@@ -182,8 +195,9 @@
       "deferred": [
         "science buildings cost more to raise, and each one that has stood a long while feeds and works the town it stands in"
       ],
-      "note": "Half built, and so held whole. A shelf of one kind can be raised more slowly, and a town can be admitted for holding a house that has stood a long while — but this card pays a town once for every such house it keeps, and the count that walks a shelf cannot be held to the old ones.",
-      "effects": []
+      "note": "Cut from the deck. It repeated two other cards that pay for old buildings.",
+      "effects": [],
+      "retired": true
     },
     "theGlassmakersCharter": {
       "name": "The Glassmakers' Charter",
@@ -191,6 +205,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "Sand, fire, and a second look at everything.",
       "charter": { "unlocks": { "tech": "optics" } },
       "deferred": ["knowing Optics lets you build the Specularium"],
@@ -206,7 +221,9 @@
       "deferred": [
         "you gain more renown while no great person of yours is waiting to be spent"
       ],
-      "effects": []
+      "note": "Cut from the deck. Renown for every kind of great person belongs to another deck.",
+      "effects": [],
+      "retired": true
     },
     "workingEstates": {
       "name": "Working Estates",
@@ -216,6 +233,7 @@
       "rarity": "common",
       "flavor": "A great mind leaves a field behind it.",
       "text": "Worked great-person improvements gain +5 food and +3 gold.",
+      "note": "Cut from the deck. It paid on every great person's works, and other cards now pay on the academy.",
       "effects": [
         {
           "kind": "pays",
@@ -227,7 +245,8 @@
           "food": 5,
           "gold": 3
         }
-      ]
+      ],
+      "retired": true
     },
     "theOldAcademy": {
       "name": "The Old Academy",
@@ -235,6 +254,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "economic",
       "flavor": "Ivy is the proof of teaching.",
       "text": "An Academy at least twenty turns old gains +3 food and +3 production. At forty turns these bonuses become +6 of each.",
       "effects": [
@@ -272,6 +292,7 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
+      "type": "economic",
       "flavor": "Commission the hall before you commission the statue.",
       "text": "Library cities gain +38% production toward empire buildings. Completing each institution type for the first time grants 60 culture and 30 faith.",
       "effects": [
@@ -304,6 +325,7 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "Weigh it, burn it, then believe it.",
       "text": "Gain +3 science and +3 gold for each distinct strategic resource type you can access.",
       "effects": [
@@ -331,6 +353,7 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
+      "type": "economic",
       "flavor": "The second seam is the one that makes a trade.",
       "deferred": [
         "every improved strategic deposit past the first of its kind works and pays the town that holds it, and a great person's works count as improvements here"
@@ -347,7 +370,9 @@
       "deferred": [
         "technologies that match what your empire already does cost less to research, while ordinary soldiers cost more to raise"
       ],
-      "effects": []
+      "note": "Cut from the deck. It made ordinary research cheaper, and this deck spends its science on charters.",
+      "effects": [],
+      "retired": true
     },
     "researchThroughConstruction": {
       "name": "Research through Construction",
@@ -359,7 +384,9 @@
       "deferred": [
         "your towns' science becomes production instead, and finishing an ordinary building pays research worth part of its price"
       ],
-      "effects": []
+      "note": "Cut from the deck. It turned science into production, and it had too many parts.",
+      "effects": [],
+      "retired": true
     },
     "theEndowedProvinces": {
       "name": "The Endowed Provinces",
@@ -369,6 +396,7 @@
       "rarity": "uncommon",
       "flavor": "A gift of learning keeps giving grain.",
       "text": "Each city working at least one great-person improvement gains +6 food and +5 production, once per city.",
+      "note": "Cut from the deck. Another card already pays food and production for an old academy.",
       "effects": [
         {
           "kind": "pays",
@@ -377,7 +405,8 @@
           "production": 5,
           "scope": { "test": "workingGreatWork" }
         }
-      ]
+      ],
+      "retired": true
     },
     "theMetallurgistsCharter": {
       "name": "The Metallurgists' Charter",
@@ -413,6 +442,7 @@
       "rarity": "common",
       "flavor": "Letters after a name, and lamps in every window.",
       "text": "Each empire building grants +2 renown. Its city gains +2 happiness, once per city.",
+      "note": "Cut from the deck. Its happiness repeated another card, and renown for every kind of great person belongs to another deck.",
       "effects": [
         { "kind": "renown", "amount": 2, "count": "empireBuildings" },
         {
@@ -421,7 +451,8 @@
           "per": "city",
           "scope": { "test": "hasEmpireBuilding" }
         }
-      ]
+      ],
+      "retired": true
     },
     "theLearnedChancery": {
       "name": "The Learned Chancery",
@@ -431,6 +462,7 @@
       "rarity": "common",
       "flavor": "The clerk with a book governs further than the clerk with a seal.",
       "text": "Cities with an empire building cost one less authority, minimum one, and gain +50% border growth.",
+      "note": "Cut from the deck. Cheaper towns and faster borders belong to another deck.",
       "effects": [
         {
           "kind": "meterRule",
@@ -444,7 +476,8 @@
           "percent": 50,
           "scope": { "test": "hasEmpireBuilding" }
         }
-      ]
+      ],
+      "retired": true
     },
     "theAcademyQuarter": {
       "name": "The Academy Quarter",
@@ -454,6 +487,7 @@
       "rarity": "uncommon",
       "flavor": "Put the schools on one street and listen.",
       "text": "A city with an empire building gains +5 production and +5 gold per different great-person work type it works, at most +25 of each. Multiple institutions do not multiply this benefit.",
+      "note": "Cut from the deck. It was one card too many paying on academies.",
       "effects": [
         {
           "kind": "pays",
@@ -475,7 +509,8 @@
           "max": 5,
           "scope": { "test": "hasEmpireBuilding" }
         }
-      ]
+      ],
+      "retired": true
     },
     "theInheritedSchool": {
       "name": "The Inherited School",
@@ -487,8 +522,9 @@
       "deferred": [
         "worked academies and manufactories feed and work the better for each different family of great person whose legacy you still keep, up to a limit"
       ],
-      "note": "Held whole. The realm can now count the families whose legacies it keeps, but what a hex pays cannot be multiplied by a thing the realm holds — only by what stands beside the hex itself.",
-      "effects": []
+      "note": "Cut from the deck. Counting the kinds of great person belongs to another deck.",
+      "effects": [],
+      "retired": true
     },
     "discoveriesThroughGreatPeople": {
       "name": "Discoveries through Great People",
@@ -501,7 +537,8 @@
         "spending a great person on an act, a work or a legacy pays part of the research you are studying, at most once in a turn"
       ],
       "effects": [],
-      "note": "Half built and therefore not built: a gift may now be held to once a turn, but the moment announced is the boon alone and not the lasting work or the legacy, and nothing pays a share of what the study you are on would cost."
+      "note": "Cut from the deck. Other cards pay for a great scholar's moment.",
+      "retired": true
     },
     "husbandryStudies": {
       "name": "Husbandry Studies",
@@ -513,7 +550,9 @@
       "deferred": [
         "soldiers of yours that depend on horses are quicker on their feet from the day they are raised, and stay so"
       ],
-      "effects": []
+      "note": "Cut from the deck. Faster horsemen belong to another deck, and the gain was small.",
+      "effects": [],
+      "retired": true
     },
     "enduringInstitutions": {
       "name": "Enduring Institutions",
@@ -521,6 +560,7 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "economic",
       "flavor": "What is old enough to be trusted is old enough to be useful.",
       "text": "A city with an empire building at least twenty turns old gains +2 happiness and +23% production, once per city.",
       "effects": [
@@ -546,6 +586,7 @@
       "rarity": "uncommon",
       "flavor": "First is a fact, and facts are worth recording.",
       "text": "Completing a technology before any other empire grants 30 culture and 10 renown.",
+      "note": "Cut from the deck. Another card pays for finishing a technology first.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -559,7 +600,8 @@
           "first": "techWorld",
           "grant": { "renown": 10 }
         }
-      ]
+      ],
+      "retired": true
     },
     "commissionsOfService": {
       "name": "Commissions of Service",
@@ -571,7 +613,9 @@
       "deferred": [
         "spending a great person on an act or a legacy pays food and gold to your nearest town, though placing a work does not"
       ],
-      "effects": []
+      "note": "Cut from the deck. Paying for spending any great person belongs to another deck.",
+      "effects": [],
+      "retired": true
     },
     "theQuietFaculties": {
       "name": "The Quiet Faculties",
@@ -579,6 +623,7 @@
       "band": 2,
       "line": "none",
       "rarity": "rare",
+      "type": "economic",
       "flavor": "Quiet halls, full barns, and very few drums.",
       "text": "Cities working a great-person improvement gain +38% food and +30% production, but produce military units 25% more slowly.",
       "effects": [
@@ -609,6 +654,7 @@
       "band": 2,
       "line": "none",
       "rarity": "rare",
+      "type": "military",
       "flavor": "Every lever is an argument.",
       "text": "Drafting this opens Mechanics for research. Knowing it gives two lines a trait they keep through every upgrade. Onager (Catapult and Trebuchet): +1 range. Repeating Crossbow (Archer to Crossbowman): it may move after it shoots. No chair required.",
       "charter": { "unlocks": { "tech": "mechanics" } },
@@ -620,6 +666,7 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "Turn one thing into another and call it a trade.",
       "charter": { "unlocks": { "tech": "chemistry" } },
       "deferred": ["knowing Chemistry lets workers build Niter Beds beside a farm or pasture, which supply niter"],
@@ -631,6 +678,7 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
+      "type": "civic",
       "flavor": "One of a kind is a habit, not a law.",
       "deferred": [
         "you may raise one further copy of an empire building, in a town that holds a university, and only one such copy may be building or standing at a time"
@@ -643,6 +691,7 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
+      "type": "economic",
       "flavor": "Old works build the new ones.",
       "text": "Cities working a great-person improvement at least twenty turns old gain +45% production toward empire buildings, wonders and the Opus. A mature empire building there adds another +23%.",
       "effects": [
@@ -694,6 +743,7 @@
       "rarity": "uncommon",
       "flavor": "The hands that made the tools now make everything else.",
       "text": "Worked Academies and Manufactories gain +9 production and +9 gold.",
+      "note": "Cut from the deck. Another card already pays production on an academy.",
       "effects": [
         {
           "kind": "pays",
@@ -702,7 +752,8 @@
           "production": 9,
           "gold": 9
         }
-      ]
+      ],
+      "retired": true
     },
     "theDistantColleges": {
       "name": "The Distant Colleges",
@@ -714,7 +765,9 @@
       "deferred": [
         "a town holding an empire building may work your great people's works one hex beyond its usual reach, and gains no ground and no citizens by it"
       ],
-      "effects": []
+      "note": "Cut from the deck. It needed a new rule that no other card used.",
+      "effects": [],
+      "retired": true
     },
     "theSocietyOfArtificers": {
       "name": "The Society of Artificers",
@@ -724,6 +777,7 @@
       "rarity": "rare",
       "flavor": "Bread and song out of a workshop.",
       "text": "A city with an empire building working an Academy or Manufactory gains food and culture each equal to 30% of its base production, excluding conversion outputs.",
+      "note": "Cut from the deck. It stacked three conditions to say one thing.",
       "effects": [
         {
           "kind": "pays",
@@ -755,7 +809,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theLearnedRealm": {
       "name": "The Learned Realm",
@@ -765,6 +820,7 @@
       "rarity": "uncommon",
       "flavor": "A realm that reads is a realm that holds together.",
       "text": "Each city working a great-person improvement grants +1 authority capacity, at most +8. Cities with a Library at least twenty turns old gain +2 happiness.",
+      "note": "Cut from the deck. Authority belongs to another deck, and its two halves had nothing to do with each other.",
       "effects": [
         {
           "kind": "authority",
@@ -779,7 +835,8 @@
           "per": "city",
           "scope": { "test": "hasBuilding", "building": "library", "standingTurns": 20 }
         }
-      ]
+      ],
+      "retired": true
     },
     "theHerbalistsCharter": {
       "name": "The Herbalists' Charter",
@@ -787,6 +844,7 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "A walled garden, and a book for every bed in it.",
       "charter": { "unlocks": { "tech": "herbals" } },
       "deferred": ["knowing Herbals lets workers build the Physic Garden"],
@@ -798,6 +856,7 @@
       "band": 0,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "The guild keeps the mould, and the city keeps the guild.",
       "text": "Drafting this opens Casting for research. Knowing it gives two lines a trait they keep through every upgrade. Hoplite (Spearman to Pikeman): +1 strength, and in one of your towns +1 more for every four citizens there. Maryannu (War Chariot to Knight): +1 strength, and +5 against a unit below half health. No chair required.",
       "charter": { "unlocks": { "tech": "casting" } },
@@ -809,6 +868,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "economic",
       "flavor": "Chain, rod and level, and the land agrees to be measured.",
       "charter": { "unlocks": { "tech": "surveying" } },
       "deferred": ["knowing Surveying opens the Aqueduct early and lets workers build the Qanat"],
@@ -820,6 +880,7 @@
       "band": 1,
       "line": "none",
       "rarity": "rare",
+      "type": "civic",
       "flavor": "A shelf in order is a city in order.",
       "charter": { "unlocks": { "tech": "cataloguing" } },
       "deferred": ["knowing Cataloguing lets you build the Mouseion"],
@@ -831,6 +892,7 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "Copy out what you read, and you read it twice.",
       "text": "Charter technologies cost you 15% less research.",
       "effects": [{ "kind": "rulePercent", "rule": "charterTechCost", "percent": -15 }]
@@ -841,6 +903,7 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "The mill by the river turns rags into records.",
       "charter": { "unlocks": { "tech": "papermaking" } },
       "deferred": ["knowing Papermaking lets you build the Scriptorium"],
@@ -852,6 +915,7 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "economic",
       "flavor": "A house of healing, open to every traveller.",
       "charter": { "unlocks": { "tech": "medicine" } },
       "deferred": ["knowing Medicine lets you build the Bimaristan"],
@@ -863,6 +927,7 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "Small books, carried in a merchant's pocket.",
       "charter": { "unlocks": { "tech": "printing" } },
       "deferred": ["knowing Printing lets you build the Aldine Press and gives one more trade route"],
@@ -874,6 +939,7 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "The foundry by the arsenal never lets its fires go out.",
       "charter": { "unlocks": { "tech": "gunfounding" } },
       "deferred": ["knowing Gunfounding lets you build the Tophane"],
@@ -885,6 +951,7 @@
       "band": 4,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "The engineers draw the walls before the masons lay them.",
       "charter": { "unlocks": { "tech": "militaryArchitecture" } },
       "deferred": ["knowing Military Architecture lets you build the Bastion"],
@@ -896,6 +963,7 @@
       "band": 4,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "Oars for the calm, and guns for the battle.",
       "text": "Drafting this opens Naval Gunnery for research. Knowing it gives your Gun Galleys the Galleass trait: +3 strength, and they blockade: parked off a rival's port, a Gun Galley closes its sea lane and its trade. No chair required.",
       "charter": { "unlocks": { "tech": "navalGunnery" } },
@@ -907,6 +975,7 @@
       "band": 4,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "Register the invention, and the next one costs less to argue for.",
       "text": "Charter technologies cost you no more research than ordinary technologies at the same point in the tree.",
       "effects": [{ "kind": "rulePercent", "rule": "charterPremium", "percent": -100 }]
