@@ -56,6 +56,7 @@ import {
 } from '../../src/sim/tech';
 import {
   ABILITY_TECH,
+  ALL_TECH_IDS,
   BUILDING_UNLOCK_TECH,
   PROJECT_UNLOCK_TECH,
   TECH_IDS,
@@ -481,7 +482,10 @@ describe('tech data integrity', () => {
     // chart that has to climb from 5 to 8000 in twelve steps.
     const COLUMN_COSTS = [5, 11, 24, 50, 100, 190, 360, 650, 1150, 1960, 3250, 5150, 8000];
     expect(COLUMN_COSTS).toHaveLength(techColumnCount());
-    for (const id of TECH_IDS) {
+    // Every row, the charter rows too (Scientific batch S0): a charter row
+    // stores its column's price, and its premium is a line of
+    // `explainTechCost` rather than a second figure on the row (reading 13).
+    for (const id of ALL_TECH_IDS) {
       expect(techDef(id).cost, id).toBe(COLUMN_COSTS[techColumn(id)]);
     }
     // Which makes "a column is roughly a price" exact rather than aspirational,
@@ -1654,7 +1658,10 @@ describe('research in the log', () => {
     // 151 since the Order tiers open at their draft rung alone (flags item
     // eeeeeee), so a v150 log's hands from a seat ahead of its research age
     // come from a later tier.
-    expect(SCHEMA_VERSION).toBe(151);
+    // 152 since the charter technologies (Scientific batch S0): thirteen
+    // technologies join the tree and two Scientific cards come live, so a
+    // v151 log's research and drafts meet a different tree and deck.
+    expect(SCHEMA_VERSION).toBe(152);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -2042,6 +2049,9 @@ describe('the shape of the tree', () => {
     expect(techDef('banking').name).toBe('The Counting Houses');
     // Fifty nodes, and every one of them inside the lane budget.
     expect(TECH_IDS.length).toBe(50);
+    // And thirteen charter rows beside them, off the sky (Scientific batch S0;
+    // `test/sim/charterTechs.test.ts` pins the rest).
+    expect(ALL_TECH_IDS.length).toBe(63);
   });
 
   it('draws Æra I as the user drew it — twelve nodes, two gates, four columns', () => {

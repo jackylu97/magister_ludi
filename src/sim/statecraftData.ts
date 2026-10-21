@@ -3592,7 +3592,23 @@ export type CardRule =
    * which is priced off the full production cost, follows it. The row's
    * `class` names the units; a row that names no class reaches every unit.
    */
-  | 'unitCost';
+  | 'unitCost'
+  /**
+   * **What a charter technology costs this empire in research** (Scientific
+   * batch S0, The Commonplace Book: 15% less). A negative percentage is
+   * cheaper. It is a line of `explainTechCost` (`tech.ts`), read only for a
+   * charter technology, and taken of the column price with the premium
+   * together, so it takes 15% off the whole charter price (reading 14).
+   */
+  | 'charterTechCost'
+  /**
+   * **The premium a charter technology costs above its column's price**
+   * (Scientific batch S0, The Patent Office: −100 removes it). A percentage of
+   * `rules.research.charterPremiumPercent`, so −100 is no premium at all and
+   * −50 would halve it. Read in `explainTechCost`; when nothing is left of the
+   * premium, its line goes from the price list (reading 14).
+   */
+  | 'charterPremium';
 
 /** A constant of the two meters a card may rewrite. */
 export type MeterRuleId =
@@ -9788,10 +9804,17 @@ export function ordersForDecks(decks: readonly DeckId[]): OrderId[] {
  * about the charter that opens it and a tech row needs no second flag: a node
  * named here is researchable by a seat whose `charteredTechs` names it and by
  * nobody else, however the tree places it.
+ *
+ * **A retired row names nothing** (Scientific batch S0). The Metallurgists' and
+ * Naturalists' Charters were cut and name technologies the tree will never
+ * hold, so a retired charter is left out of the list. `TechDef.charter` marks
+ * the same rows on the tech side, and `test/sim/charterTechs.test.ts` checks
+ * that the two agree.
  */
 export function charteredTechIds(): TechId[] {
   const techs: TechId[] = [];
   for (const id of ORDER_IDS) {
+    if (orderDef(id).retired === true) continue;
     const tech = orderDef(id).charter?.unlocks.tech;
     if (tech !== undefined && !techs.includes(tech)) techs.push(tech);
   }

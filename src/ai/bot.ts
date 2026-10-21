@@ -324,12 +324,13 @@ import {
   slotLayout,
 } from '../sim/statecraftData';
 import { type BeliefId } from '../sim/religionData';
-import { TECH_IDS, type TechId, highestAge, techDef } from '../sim/techData';
+import { ALL_TECH_IDS, type TechId, highestAge, techDef } from '../sim/techData';
 import {
   availableTechs,
   buildError,
   researchExpansion,
   researchPlan,
+  techsShutByCharter,
   upgradeTargetForType,
 } from '../sim/tech';
 import { unitUpkeep, buildingUpkeep, unitUpkeepOf } from '../sim/upkeep';
@@ -3559,7 +3560,10 @@ function samePlan(a: readonly TechId[], b: readonly TechId[]): boolean {
  * work — a walk of fifty nodes' closures once a turn is nothing, a search over
  * the whole tree's power set would not be.
  *
- * Ties by `TECH_IDS` order, which is the roster and therefore part of the log.
+ * Ties by `ALL_TECH_IDS` order, which is the roster and therefore part of the
+ * log. The charter rows follow the sky in it, so they break no tie the sky had.
+ * A charter technology this seat has not drafted is never a candidate
+ * (Scientific batch S0): the reducer would refuse the plan.
  */
 export function bestTechGoal(state: GameState, player: Player): TechId | null {
   return techGoalTable(state, player).goal;
@@ -3614,8 +3618,10 @@ function techGoalTable(
   let best: TechId | null = null;
   let bestScore = -Infinity;
   let bestCandidate: BotCandidate | null = null;
-  for (const id of TECH_IDS) {
+  const shut = techsShutByCharter(player);
+  for (const id of ALL_TECH_IDS) {
     if (player.techsResearched.includes(id)) continue;
+    if (shut.includes(id)) continue;
     const road = researchExpansion(state, player.id, id);
     if (road.length === 0) continue;
     if (road.length > ai.research.goalHorizon) {

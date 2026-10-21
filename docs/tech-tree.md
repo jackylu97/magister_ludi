@@ -326,6 +326,26 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 - **Movable Type** — *A city joined to your capital reads what your presses print: it learns faster, and it builds faster.*
 - **Alchemy** — *Niter is named, and the first soldier who carries fire may be trained where it is dug. Completing this pays a glass bead, and the first empire in the world to complete it opens the Magnum Opus for everybody.*
 
+### The charter technologies
+
+Only a seat that drafted the charter may research these. Each sits one column right of its one parent, inside its own age, and costs its column's price plus 50% (`rules.research.charterPremiumPercent`). None moves an empire's age or counts as a world first.
+
+| node | æra | column | 🔬 column | 🔬 charter | prereq | opened by | units | buildings | abilities & gifts |
+|---|---|---|---|---|---|---|---|---|---|
+| Herbals | I | 2 | 24 | 36 | Pottery | The Herbalists' Charter | — | — | — |
+| Casting | I | 3 | 50 | 75 | Bronzeworking | The Bronze-Founders' Charter | — | — | — |
+| Surveying | II | 4 | 100 | 150 | The Wheel | The Surveyors' Charter | — | — | — |
+| Cataloguing | II | 4 | 100 | 150 | Writing | The Librarians' Charter | — | — | — |
+| Optics | II | 5 | 190 | 285 | Chronology | The Glassmakers' Charter | — | — | — |
+| Medicine | III | 6 | 360 | 540 | The High Temple | The Physicians' Charter | — | — | — |
+| Papermaking | III | 7 | 650 | 975 | Rhetoric | The Paper-Makers' Charter | — | — | — |
+| Printing | III | 7 | 650 | 975 | Rhetoric | The Printers' Charter | — | — | — |
+| Mechanics | III | 8 | 1150 | 1725 | Mathematics | The Mechanists' Charter | — | — | — |
+| Gunfounding | IV | 10 | 3250 | 4875 | Machinery | The Gunfounders' Charter | — | — | — |
+| Chemistry | IV | 10 | 3250 | 4875 | Geomancy | The Alchemists' Charter | — | — | — |
+| Military Architecture | IV | 11 | 5150 | 7725 | Castellany | The Military Engineers' Charter | — | — | — |
+| Naval Gunnery | IV | 12 | 8000 | 12000 | The Astrolabe | The Naval Gunners' Charter | — | — | — |
+
 ### The verbs the tree hands over
 
 | verb | node | who gains it | what it does |

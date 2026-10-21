@@ -594,6 +594,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Endowed Provinces | 1 | ◆ | P | Each city working at least one great-person improvement gains +6 food and +5 production, once per city. |
 | Learned Commissions | 1 | ● | S | Library cities gain +38% production toward empire buildings. Completing each institution type for the first time grants 60 culture and 30 faith. |
 | The Old Academy | 1 | ◆ | S | An Academy at least twenty turns old gains +3 food and +3 production. At forty turns these bonuses become +6 of each. |
+| The Commonplace Book | 1 | ● | S | Charter technologies cost you 15% less research. |
 | The Royal Society | 2 | ● | S | Each empire building grants +2 renown. Its city gains +2 happiness, once per city. |
 | The Learned Chancery | 2 | ● | S | Cities with an empire building cost one less authority, minimum one, and gain +50% border growth. |
 | The Academy Quarter | 2 | ◆ | P | A city with an empire building gains +5 production and +5 gold per different great-person work type it works, at most +25 of each. Multiple institutions do not multiply this benefit. |
@@ -604,6 +605,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Society of Artificers | 3 | ○ | P | A city with an empire building working an Academy or Manufactory gains food and culture each equal to 30% of its base production, excluding conversion outputs. |
 | The Long Inheritance | 3 | ○ | S | Cities working a great-person improvement at least twenty turns old gain +45% production toward empire buildings, wonders and the Opus. A mature empire building there adds another +23%. |
 | The Learned Realm | 3 | ◆ | S | Each city working a great-person improvement grants +1 authority capacity, at most +8. Cities with a Library at least twenty turns old gain +2 happiness. |
+| The Patent Office | 4 | ◆ | S | Charter technologies cost you no more research than ordinary technologies at the same point in the tree. |
 
 ### Magisterial
 

@@ -6875,8 +6875,8 @@
   ],
   "theGlassmakersCharter": [
    {
-    "raw": "drafting this opens the study of lenses for research — not built yet",
-    "text": "drafting this opens the study of lenses for research — not built yet",
+    "raw": "knowing Optics lets you build the Specularium — not built yet",
+    "text": "knowing Optics lets you build the Specularium — not built yet",
     "deferred": true
    }
   ],
@@ -7062,15 +7062,15 @@
   ],
   "theMechanistsCharter": [
    {
-    "raw": "drafting this opens the study of mechanics for research — not built yet",
-    "text": "drafting this opens the study of mechanics for research — not built yet",
+    "raw": "knowing Mechanics gives the catapult line and the archer line a trait each — not built yet",
+    "text": "knowing Mechanics gives the catapult line and the archer line a trait each — not built yet",
     "deferred": true
    }
   ],
   "theAlchemistsCharter": [
    {
-    "raw": "drafting this opens the study of chemistry for research — not built yet",
-    "text": "drafting this opens the study of chemistry for research — not built yet",
+    "raw": "knowing Chemistry gives the warrior line a trait and lets workers build Niter Beds — not built yet",
+    "text": "knowing Chemistry gives the warrior line a trait and lets workers build Niter Beds — not built yet",
     "deferred": true
    }
   ],
@@ -7130,6 +7130,88 @@
    {
     "raw": "+2 happiness in every city with a [[building:library|Library]] that has stood at least 20 turns",
     "text": "+2 happiness in every city with a Library that has stood at least 20 turns"
+   }
+  ],
+  "theHerbalistsCharter": [
+   {
+    "raw": "knowing Herbals lets workers build the Physic Garden — not built yet",
+    "text": "knowing Herbals lets workers build the Physic Garden — not built yet",
+    "deferred": true
+   }
+  ],
+  "theBronzeFoundersCharter": [
+   {
+    "raw": "knowing Casting gives the spear line and the chariot line a trait each — not built yet",
+    "text": "knowing Casting gives the spear line and the chariot line a trait each — not built yet",
+    "deferred": true
+   }
+  ],
+  "theSurveyorsCharter": [
+   {
+    "raw": "knowing Surveying opens the Aqueduct early and lets workers build the Qanat — not built yet",
+    "text": "knowing Surveying opens the Aqueduct early and lets workers build the Qanat — not built yet",
+    "deferred": true
+   }
+  ],
+  "theLibrariansCharter": [
+   {
+    "raw": "knowing Cataloguing lets you build the Mouseion — not built yet",
+    "text": "knowing Cataloguing lets you build the Mouseion — not built yet",
+    "deferred": true
+   }
+  ],
+  "theCommonplaceBook": [
+   {
+    "raw": "charter technologies cost you 15% less research",
+    "text": "charter technologies cost you 15% less research"
+   }
+  ],
+  "thePaperMakersCharter": [
+   {
+    "raw": "knowing Papermaking lets you build the Scriptorium — not built yet",
+    "text": "knowing Papermaking lets you build the Scriptorium — not built yet",
+    "deferred": true
+   }
+  ],
+  "thePhysiciansCharter": [
+   {
+    "raw": "knowing Medicine lets you build the Bimaristan — not built yet",
+    "text": "knowing Medicine lets you build the Bimaristan — not built yet",
+    "deferred": true
+   }
+  ],
+  "thePrintersCharter": [
+   {
+    "raw": "knowing Printing lets you build the Aldine Press and gives one more trade route — not built yet",
+    "text": "knowing Printing lets you build the Aldine Press and gives one more trade route — not built yet",
+    "deferred": true
+   }
+  ],
+  "theGunfoundersCharter": [
+   {
+    "raw": "knowing Gunfounding lets you build the Tophane — not built yet",
+    "text": "knowing Gunfounding lets you build the Tophane — not built yet",
+    "deferred": true
+   }
+  ],
+  "theMilitaryEngineersCharter": [
+   {
+    "raw": "knowing Military Architecture lets you build the Bastion — not built yet",
+    "text": "knowing Military Architecture lets you build the Bastion — not built yet",
+    "deferred": true
+   }
+  ],
+  "theNavalGunnersCharter": [
+   {
+    "raw": "knowing Naval Gunnery gives the gun galley line a trait — not built yet",
+    "text": "knowing Naval Gunnery gives the gun galley line a trait — not built yet",
+    "deferred": true
+   }
+  ],
+  "thePatentOffice": [
+   {
+    "raw": "charter technologies cost you no more research than ordinary technologies at the same point in the tree",
+    "text": "charter technologies cost you no more research than ordinary technologies at the same point in the tree"
    }
   ],
   "magisterialMasterMasons": [

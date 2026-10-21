@@ -193,7 +193,7 @@
       "rarity": "uncommon",
       "flavor": "Sand, fire, and a second look at everything.",
       "charter": { "unlocks": { "tech": "optics" } },
-      "deferred": ["drafting this opens the study of lenses for research"],
+      "deferred": ["knowing Optics lets you build the Specularium"],
       "effects": []
     },
     "theOpenCollegium": {
@@ -388,7 +388,9 @@
       "flavor": "Two metals, one temper.",
       "charter": { "unlocks": { "tech": "alloys" } },
       "deferred": ["drafting this opens the study of alloys for research"],
-      "effects": []
+      "note": "Cut from the deck. Its gift needed a new kind of soldier, and other charters now improve the land army instead.",
+      "effects": [],
+      "retired": true
     },
     "theNaturalistsCharter": {
       "name": "The Naturalists' Charter",
@@ -399,7 +401,9 @@
       "flavor": "Give the beast a name and the field a page.",
       "charter": { "unlocks": { "tech": "taxonomy" } },
       "deferred": ["drafting this opens the study of living things for research"],
-      "effects": []
+      "note": "Cut from the deck. It was a plain bonus to farmland behind a charter, the weakest of them.",
+      "effects": [],
+      "retired": true
     },
     "theRoyalSociety": {
       "name": "The Royal Society",
@@ -602,12 +606,12 @@
     "theMechanistsCharter": {
       "name": "The Mechanists' Charter",
       "decks": ["scientific"],
-      "band": 3,
+      "band": 2,
       "line": "none",
       "rarity": "rare",
       "flavor": "Every lever is an argument.",
       "charter": { "unlocks": { "tech": "mechanics" } },
-      "deferred": ["drafting this opens the study of mechanics for research"],
+      "deferred": ["knowing Mechanics gives the catapult line and the archer line a trait each"],
       "effects": []
     },
     "theAlchemistsCharter": {
@@ -618,7 +622,7 @@
       "rarity": "uncommon",
       "flavor": "Turn one thing into another and call it a trade.",
       "charter": { "unlocks": { "tech": "chemistry" } },
-      "deferred": ["drafting this opens the study of chemistry for research"],
+      "deferred": ["knowing Chemistry gives the warrior line a trait and lets workers build Niter Beds"],
       "effects": []
     },
     "theSecondSeat": {
@@ -776,6 +780,136 @@
           "scope": { "test": "hasBuilding", "building": "library", "standingTurns": 20 }
         }
       ]
+    },
+    "theHerbalistsCharter": {
+      "name": "The Herbalists' Charter",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A walled garden, and a book for every bed in it.",
+      "charter": { "unlocks": { "tech": "herbals" } },
+      "deferred": ["knowing Herbals lets workers build the Physic Garden"],
+      "effects": []
+    },
+    "theBronzeFoundersCharter": {
+      "name": "The Bronze-Founders' Charter",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The guild keeps the mould, and the city keeps the guild.",
+      "charter": { "unlocks": { "tech": "casting" } },
+      "deferred": ["knowing Casting gives the spear line and the chariot line a trait each"],
+      "effects": []
+    },
+    "theSurveyorsCharter": {
+      "name": "The Surveyors' Charter",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Chain, rod and level, and the land agrees to be measured.",
+      "charter": { "unlocks": { "tech": "surveying" } },
+      "deferred": ["knowing Surveying opens the Aqueduct early and lets workers build the Qanat"],
+      "effects": []
+    },
+    "theLibrariansCharter": {
+      "name": "The Librarians' Charter",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "A shelf in order is a city in order.",
+      "charter": { "unlocks": { "tech": "cataloguing" } },
+      "deferred": ["knowing Cataloguing lets you build the Mouseion"],
+      "effects": []
+    },
+    "theCommonplaceBook": {
+      "name": "The Commonplace Book",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Copy out what you read, and you read it twice.",
+      "text": "Charter technologies cost you 15% less research.",
+      "effects": [{ "kind": "rulePercent", "rule": "charterTechCost", "percent": -15 }]
+    },
+    "thePaperMakersCharter": {
+      "name": "The Paper-Makers' Charter",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The mill by the river turns rags into records.",
+      "charter": { "unlocks": { "tech": "papermaking" } },
+      "deferred": ["knowing Papermaking lets you build the Scriptorium"],
+      "effects": []
+    },
+    "thePhysiciansCharter": {
+      "name": "The Physicians' Charter",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "A house of healing, open to every traveller.",
+      "charter": { "unlocks": { "tech": "medicine" } },
+      "deferred": ["knowing Medicine lets you build the Bimaristan"],
+      "effects": []
+    },
+    "thePrintersCharter": {
+      "name": "The Printers' Charter",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Small books, carried in a merchant's pocket.",
+      "charter": { "unlocks": { "tech": "printing" } },
+      "deferred": ["knowing Printing lets you build the Aldine Press and gives one more trade route"],
+      "effects": []
+    },
+    "theGunfoundersCharter": {
+      "name": "The Gunfounders' Charter",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The foundry by the arsenal never lets its fires go out.",
+      "charter": { "unlocks": { "tech": "gunfounding" } },
+      "deferred": ["knowing Gunfounding lets you build the Tophane"],
+      "effects": []
+    },
+    "theMilitaryEngineersCharter": {
+      "name": "The Military Engineers' Charter",
+      "decks": ["scientific"],
+      "band": 4,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The engineers draw the walls before the masons lay them.",
+      "charter": { "unlocks": { "tech": "militaryArchitecture" } },
+      "deferred": ["knowing Military Architecture lets you build the Bastion"],
+      "effects": []
+    },
+    "theNavalGunnersCharter": {
+      "name": "The Naval Gunners' Charter",
+      "decks": ["scientific"],
+      "band": 4,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Oars for the calm, and guns for the battle.",
+      "charter": { "unlocks": { "tech": "navalGunnery" } },
+      "deferred": ["knowing Naval Gunnery gives the gun galley line a trait"],
+      "effects": []
+    },
+    "thePatentOffice": {
+      "name": "The Patent Office",
+      "decks": ["scientific"],
+      "band": 4,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Register the invention, and the next one costs less to argue for.",
+      "text": "Charter technologies cost you no more research than ordinary technologies at the same point in the tree.",
+      "effects": [{ "kind": "rulePercent", "rule": "charterPremium", "percent": -100 }]
     }
   }
 }

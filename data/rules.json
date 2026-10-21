@@ -334,7 +334,8 @@
     "startingTechs": [
       "agriculture"
     ],
-    "retoolCost": 0
+    "retoolCost": 0,
+    "charterPremiumPercent": 50
   },
   "religion": {
     "pressurePerConvert": 10,

@@ -168,7 +168,10 @@ describe('the schema says so', () => {
     // 151 since the Order tiers open at their draft rung alone (flags item
     // eeeeeee), so a v150 log's hands from a seat ahead of its research age
     // come from a later tier.
-    expect(SCHEMA_VERSION).toBe(151);
+    // 152 since the charter technologies (Scientific batch S0): thirteen
+    // technologies join the tree and two Scientific cards come live, so a
+    // v151 log's research and drafts meet a different tree and deck.
+    expect(SCHEMA_VERSION).toBe(152);
   });
 
   it('says in the changelog what a v110 log does now', () => {

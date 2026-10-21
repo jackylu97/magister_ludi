@@ -1829,8 +1829,32 @@ import {
  * ahead of its research age is now dealt hands from a later band, so the same
  * roll picks a different card and every later pick differs. The branch
  * migrates nothing, for the reason given under v119.
+ *
+ * v152 (branch `decks`; Scientific batch S0, `docs/plans/scientific-build-
+ * triage.md`): **the charter technologies.** No field joins the state. The
+ * rules that change:
+ *
+ *   · thirteen technologies join `data/techs.json`, each marked
+ *     `TechDef.charter`. Only a seat that drafted the charter naming one may
+ *     research it. They sit off the sky (`TECH_IDS` is still the fifty
+ *     ordinary rows; `ALL_TECH_IDS` holds all sixty-three), and none moves an
+ *     empire's age, marks a world first or counts as a node of the last age;
+ *   · a technology's price is a fold (`explainTechCost`, `foldTechCost`): the
+ *     column price, then for a charter technology a premium of
+ *     `rules.research.charterPremiumPercent`, then the cards' percentages,
+ *     added together and floored once. An ordinary technology with no card on
+ *     it costs what it cost before;
+ *   · two Scientific cards come live: The Commonplace Book (Tier I) and The
+ *     Patent Office (Tier IV). The thirteen charter rows are in the deck file
+ *     and stay deferred until their gifts are built. The Metallurgists' and
+ *     Naturalists' Charters are retired.
+ *
+ * **A v151 save is refused and does not replay.** A Scientific seat's pool now
+ * holds two more cards, so its hands from Tier I on differ, and the roster of
+ * technologies a log may name has changed. The branch migrates nothing, for
+ * the reason given under v119.
  */
-export const SCHEMA_VERSION = 151;
+export const SCHEMA_VERSION = 152;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

@@ -218,9 +218,9 @@ import {
   TECH_IDS,
   type TechId,
   UNIT_UNLOCK_TECH,
+  isCharterTech,
   isTechId,
   techColumn,
-  techDef,
 } from './techData';
 // **A function-level cycle, and the mirror of one that already existed**:
 // `tech.ts` asks this module what a city yields, and since the wonders' roster
@@ -229,7 +229,13 @@ import {
 // the top level of both files is a constant from a data table, which is the
 // condition the whole simulation's cycles are safe under — see the docblock in
 // `statecraft.ts`.
-import { buildError, isUnlocked, settleResearchWindfall } from './tech';
+import {
+  buildError,
+  explainTechCost,
+  foldTechCost,
+  isUnlocked,
+  settleResearchWindfall,
+} from './tech';
 import {
   UNIT_TYPE_IDS,
   type ModelClass,
@@ -4971,16 +4977,21 @@ export function settleRanksEarned(state: GameState, unit: Unit, ranks: readonly 
  * How many beakers this empire is still short of the node it is researching, or
  * `null` when it is aiming at nothing at all.
  *
- * The pure half of the Great Library's grant. It reads the aim and the table
+ * The pure half of the Great Library's grant. It reads the aim and the price
  * and nothing else, so the *completion* is still `settleResearch`'s — the grant
  * covers the shortfall and the one research-completion routine spends it, which
  * is how a wonder's technology earns the era check, the upgrade sweep and the
  * Lyceum's culture exactly as a turn's beakers would.
+ *
+ * The price is the fold `settleResearch` charges (`foldTechCost`, Scientific
+ * batch S0), so a charter technology's premium is covered too and the grant
+ * still completes the node.
  */
-function pendingResearchCost(player: Player): { missing: number } | null {
+function pendingResearchCost(state: GameState, player: Player): { missing: number } | null {
   const id = player.researching;
   if (id === null || !isTechId(id)) return null;
-  return { missing: Math.max(0, techDef(id).cost - player.sciencePool) };
+  const cost = foldTechCost(explainTechCost(state, player, id));
+  return { missing: Math.max(0, cost - player.sciencePool) };
 }
 
 /**
@@ -5201,7 +5212,7 @@ export function payGrants(
       continue;
     }
     if (grant.grant === 'tech') {
-      const plan = pendingResearchCost(player);
+      const plan = pendingResearchCost(state, player);
       if (plan === null) {
         reports.push({ grant: 'tech', name: 'a technology', done: false });
         continue;
@@ -5932,11 +5943,21 @@ export function settleBorderWindfall(state: GameState, city: City): BorderComple
  * Counted off `TECH_IDS`, so a tech added to `data/techs.json` re-scales the
  * curve rather than breaking it, and the starting techs count: an empire that
  * opens holding agriculture has already come a little way.
+ *
+ * **Ordinary technologies only, on both sides of the share** (Scientific batch
+ * S0). `TECH_IDS` is the sky and leaves the charter rows out, so the count
+ * leaves out the charter technologies the seat knows too. A charter path is
+ * not progress through the tree (reading 1), and counting it above a
+ * denominator that does not hold it would be a share of nothing.
  */
 export function gameProgress(state: GameState, playerId: number): number {
   const player = playerById(state, playerId);
   if (!player || TECH_IDS.length === 0) return 0;
-  return Math.min(1, player.techsResearched.length / TECH_IDS.length);
+  let known = 0;
+  for (const id of player.techsResearched) {
+    if (isTechId(id) && !isCharterTech(id)) known += 1;
+  }
+  return Math.min(1, known / TECH_IDS.length);
 }
 
 /** Hex distance from a city's centre to a cell — the ring a tile stands in. */

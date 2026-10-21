@@ -77,6 +77,12 @@
  * right as a schedule. The table itself lives in `tech.test.ts`'s
  * `COLUMN_COSTS`, which is the witness that the data still agrees with it.
  *
+ * Since Scientific batch S0 the row's `cost` is the first line of a price list
+ * rather than the whole price. `explainTechCost` adds the charter premium for a
+ * charter technology and the cards' percentages, and `foldTechCost` is the
+ * figure every reader charges and quotes. An ordinary technology with no card
+ * on it still costs exactly its column.
+ *
  * One fitted curve, 5 to 8000 (the user, 2026-09-09)
  * --------------------------------------------------
  * *"Could you fit a curve that fits roughly the shape, starting at 5 and ending
@@ -429,6 +435,10 @@ function columnReached(state: GameState, playerId: number, column: number): bool
   const player = playerById(state, playerId);
   if (!player) return false;
   for (const id of player.techsResearched) {
+    // A charter technology dates nothing (reading 1): it sits one column past
+    // its parent, and a seat that drafted it would otherwise reach a unique's
+    // column one step early by a path no other seat may take.
+    if (isCharterTech(id)) continue;
     if (techColumn(id) >= column) return true;
   }
   return false;
@@ -438,11 +448,12 @@ import type { CityScope, FirstKind } from './statecraftData';
 // Value imports from two runtime leaves (the JSON tables and their readers):
 // the charter gate asks the card rows which technologies a charter opens, and
 // the ability fold asks the rite table which ability a chartered rite is.
-import { techIsChartered } from './statecraftData';
+import { charteredTechIds, techIsChartered } from './statecraftData';
 import { riteAbility } from './religionData';
 import {
   cardBuildsEverywhere,
   cardGrantsAbility,
+  cardRulePercent,
   cardUnlocksBuilding,
   cardUnlocksUnit,
   charterOpensUnit,
@@ -476,13 +487,14 @@ import {
 } from './state';
 import {
   type AbilityId,
+  ALL_TECH_IDS,
   BUILDING_UNLOCK_TECH,
-  TECH_IDS,
   type TechId,
   LAST_TECH_AGE,
   PROJECT_UNLOCK_TECH,
   UNIT_UNLOCK_TECH,
   highestAge,
+  isCharterTech,
   isTechId,
   techColumn,
   techDef,
@@ -1461,7 +1473,9 @@ export function researchExpansion(
     for (const prereq of techDef(id).prereqs) walk(prereq);
   };
   walk(techId);
-  const order = new Map(TECH_IDS.map((id, index) => [id, index]));
+  // Every row, so a plan that ends on a charter technology still sorts. The
+  // charter rows follow the sky in the file, so the sky's ties are unchanged.
+  const order = new Map(ALL_TECH_IDS.map((id, index) => [id, index]));
   return [...needed].sort(
     (a, b) => techDepth(a) - techDepth(b) || order.get(a)! - order.get(b)!,
   );
@@ -1665,14 +1679,34 @@ function promoteResearchQueue(state: GameState, player: Player): void {
 }
 
 /**
+ * **The charter technologies this seat may not research**: every technology a
+ * charter opens, less the ones its own drafted charters opened (Scientific
+ * batch S0).
+ *
+ * The same reading `researchError` refuses by, asked once for a whole list, so
+ * a walk over the tree can leave these out without asking the card rows once a
+ * node. `availableTechs` and the bots' research goal search read it, so neither
+ * offers or plans a node the reducer would refuse.
+ */
+export function techsShutByCharter(player: Player): TechId[] {
+  return charteredTechIds().filter((id) => !player.charteredTechs.includes(id));
+}
+
+/**
  * Every technology this player could start on right now, in the tree's own
  * order — so the screen's columns and this list can never disagree.
+ *
+ * Every row, the charter rows included, less the charter technologies this
+ * seat has not drafted (`techsShutByCharter`): a node this list offers is a
+ * node `researchError` accepts.
  */
 export function availableTechs(state: GameState, playerId: number): TechId[] {
   const player = playerById(state, playerId);
   if (!player) return [];
-  return TECH_IDS.filter(
-    (id) => !player.techsResearched.includes(id) && prereqsMet(state, playerId, id),
+  const shut = techsShutByCharter(player);
+  return ALL_TECH_IDS.filter(
+    (id) =>
+      !player.techsResearched.includes(id) && !shut.includes(id) && prereqsMet(state, playerId, id),
   );
 }
 
@@ -1728,14 +1762,106 @@ export interface ResearchPlan {
 }
 
 export function planResearch(
+  state: GameState,
   player: Player,
   science: number = player.sciencePool,
 ): ResearchPlan | null {
   const id = player.researching;
   if (id === null || !isTechId(id)) return null;
-  const { cost } = techDef(id);
+  const cost = foldTechCost(explainTechCost(state, player, id));
   if (science < cost) return null;
   return { techId: id, cost };
+}
+
+// --- the price ---------------------------------------------------------------
+
+/** One line of a technology's price. `foldTechCost` is the sum. */
+export interface TechCostLine {
+  /** What the line is, as the price list prints it ("Column 7"). */
+  source: string;
+  /** Beakers this line adds to the running price. Signed, and a whole number. */
+  amount: number;
+}
+
+/**
+ * **What a technology costs this empire**, as the ordered list the price is the
+ * fold of (hard rule 5, said about a price; Scientific batch S0).
+ *
+ * Three kinds of line, in this order (readings 13 and 14):
+ *
+ *   1. **the column price**, which is the row's own `cost`. Every row, a
+ *      charter row too, stores its column's price, so "a column is a price"
+ *      holds across the whole table (`test/sim/tech.test.ts` pins it);
+ *   2. **the charter premium**, for a charter row only:
+ *      `rules.research.charterPremiumPercent` of the column price, scaled by
+ *      the empire's `charterPremium` cards. The Patent Office's −100 leaves
+ *      nothing, and then the line is not printed at all;
+ *   3. **one line for each card percentage** that reaches this technology
+ *      (today The Commonplace Book's `charterTechCost`, for a charter row).
+ *      The percentages are added together and applied once, to the column
+ *      price and the premium together. They never compound, so under both
+ *      cards a charter technology costs 85% of its column.
+ *
+ * **Floored once.** The total is one floor of the exact product, computed in
+ * whole numbers. Each line carries the difference it makes to the running
+ * figure, so the lines are whole numbers and still sum to the total:
+ * `explainBuildingCost`'s bargain, for its reason (a price list a surface
+ * prints must add up). A card line is the change its percentage makes when it
+ * joins the sum of the ones before it.
+ *
+ * An ordinary technology with no card on it is one line, its column price, so
+ * every reader that moved here from `techDef(id).cost` reads the same figure
+ * as before for it. The price never falls below one beaker: a free node would
+ * complete the turn it was chosen, every turn.
+ */
+export function explainTechCost(state: GameState, player: Player, tech: TechId): TechCostLine[] {
+  const def = techDef(tech);
+  const column = def.cost;
+  const lines: TechCostLine[] = [{ source: `Column ${techColumn(tech)}`, amount: column }];
+  if (def.charter !== true) return lines;
+
+  // The premium, in hundredths of a percent so a card that halves it stays a
+  // whole number: `charterPremiumPercent × (100 + Σ cards)`.
+  let premiumCut = 0;
+  for (const card of cardRulePercent(state, player.id, 'charterPremium')) premiumCut += card.percent;
+  const premium = RESEARCH.charterPremiumPercent * Math.max(0, 100 + premiumCut);
+  // The column and the premium together, as a multiplier in the same units:
+  // 10000 is the column price alone.
+  const priced = 10000 + premium;
+  let running = column;
+  if (premium > 0) {
+    const withPremium = Math.floor((column * priced) / 10000);
+    lines.push({ source: `Charter +${premium / 100}%`, amount: withPremium - running });
+    running = withPremium;
+  }
+
+  // The cards, added together and applied once to that sum.
+  let percent = 0;
+  for (const card of cardRulePercent(state, player.id, 'charterTechCost')) {
+    percent += card.percent;
+    const factor = Math.max(0, 100 + percent);
+    const total = Math.max(1, Math.floor((column * priced * factor) / 1_000_000));
+    const sign = card.percent > 0 ? '+' : '';
+    lines.push({ source: `${card.source} ${sign}${card.percent}%`, amount: total - running });
+    running = total;
+  }
+  return lines;
+}
+
+/**
+ * What a technology costs this empire: the fold of `explainTechCost`, and the
+ * only sum of one. The lines are whole numbers, so the one floor here changes
+ * nothing today; it is the floor reading 13 asks for, said where the sum is.
+ *
+ * Every reader of a technology's price in the simulation reads this:
+ * `planResearch` (so `settleResearch` charges it), `turnsToTech`,
+ * `queueTurns`, the Great Library's shortfall (`cities.ts`) and Copying the
+ * Enemy's share (`statecraft/evaluator.ts`).
+ */
+export function foldTechCost(lines: readonly TechCostLine[]): number {
+  let total = 0;
+  for (const line of lines) total += line.amount;
+  return Math.floor(total);
 }
 
 /** What a research settlement did, for the caller that has to say so out loud. */
@@ -1776,7 +1902,7 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
     player.researching = null;
     return null;
   }
-  const plan = planResearch(player);
+  const plan = planResearch(state, player);
   if (!plan) return null;
 
   // The era **before** the node lands, so "did this technology open a new age"
@@ -1834,7 +1960,9 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
   // the line above just pushed to, and the card decides whether that tally is
   // worth a bead. `TECH_AGES` says which age is last rather than a numeral here,
   // so a fifth age with nodes in it moves this with the chart.
-  if (techDef(plan.techId).age === LAST_TECH_AGE) {
+  // A charter row of the last age is not one of its nodes (reading 1), so it
+  // is no deed and its count would not move.
+  if (techDef(plan.techId).age === LAST_TECH_AGE && !isCharterTech(plan.techId)) {
     awardOrderBeads(state, player.id, 'lastAgeTechnology', lastAgeTechCount(player));
   }
   upgradeUnits(state, player);
@@ -1859,8 +1987,16 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
   // The contention is settled by the order this phase already walks —
   // `realPlayers` order within the research sweep, log order within a turn — and
   // that is stated on `markFirst` rather than re-argued here.
+  //
+  // **A charter technology is never a world first** (Scientific batch S0,
+  // reading 16). Only its charter's holders may research it, so "before any
+  // other empire" would be a race most of the world may not enter. It marks
+  // nothing, and every reading of a first (The Prize Essay among them) leaves
+  // it out.
   const firsts: FirstKind[] = [];
-  if (markFirst(state, player.id, 'techWorld', plan.techId)) firsts.push('techWorld');
+  if (!isCharterTech(plan.techId) && markFirst(state, player.id, 'techWorld', plan.techId)) {
+    firsts.push('techWorld');
+  }
   // The technology itself travels with the occasion since Dominion batch D5:
   // The Armourers' Secret raises the units it unlocks.
   const rider = windfallPayout(state, player.id, 'tech', 0, 0, { firsts, tech: plan.techId });
@@ -1890,6 +2026,9 @@ function lastAgeTechCount(player: Player): number {
   let count = 0;
   for (const id of player.techsResearched) {
     if (!isTechId(id)) continue;
+    // A charter row stands in its age's columns but is not one of its nodes
+    // (reading 1).
+    if (isCharterTech(id)) continue;
     if (techDef(id).age === LAST_TECH_AGE) count += 1;
   }
   return count;
@@ -1935,8 +2074,12 @@ export function settleResearchWindfall(
  * pool the boon would leave, so the promise on the button is made by the function
  * that will keep it.
  */
-export function researchSettledBy(player: Player, grant: number): string | null {
-  const plan = planResearch(player, player.sciencePool + grant);
+export function researchSettledBy(
+  state: GameState,
+  player: Player,
+  grant: number,
+): string | null {
+  const plan = planResearch(state, player, player.sciencePool + grant);
   return plan === null ? null : techDef(plan.techId).name;
 }
 
@@ -2134,7 +2277,7 @@ export function turnsToTech(
   const player = playerById(state, playerId);
   if (!player) return null;
   return turnsToFill(
-    techDef(techId).cost - bankedTowardTech(player, techId),
+    foldTechCost(explainTechCost(state, player, techId)) - bankedTowardTech(player, techId),
     rate ?? playerScience(state, playerId),
   );
 }
@@ -2183,7 +2326,7 @@ export function queueTurns(
   const steps: ResearchQueueStep[] = [];
   let owed = 0;
   for (const techId of researchPlan(player)) {
-    owed += techDef(techId).cost - bankedTowardTech(player, techId);
+    owed += foldTechCost(explainTechCost(state, player, techId)) - bankedTowardTech(player, techId);
     const turns = turnsToFill(owed, at);
     steps.push({ techId, turns: turns === null ? null : Math.max(steps.length + 1, turns) });
   }

@@ -4193,6 +4193,14 @@ function ruleRewriteValue(
       const bonus = -share / (1 + share);
       return voiceWeight(ctx, 'production') * bonus * nominalRate(ctx) * ctx.cities;
     }
+    case 'charterTechCost':
+    case 'charterPremium':
+      // **Not priced yet** (Scientific batch S0, The Commonplace Book and The
+      // Patent Office). A cheaper charter technology is worth the beakers it
+      // saves on a charter this seat holds, and the bot prices no charter
+      // technology until batch S13. Nought, not the stand-in: a seat that has
+      // drafted no charter saves nothing.
+      return 0;
     default:
       return unreadRule(rule, ctx);
   }

@@ -1464,6 +1464,17 @@ export interface ResearchRules {
    * A unit whose owner cannot afford it simply does not upgrade this turn.
    */
   retoolCost: number;
+  /**
+   * **What a charter technology costs above its column's price**, in percent
+   * (ruling (qqqqqq) 10: "its column's price × 1.5, one figure in
+   * `data/rules.json`"; Scientific batch S0).
+   *
+   * The row keeps its column's price as `cost`, so "a column is a price" holds
+   * for every row. This figure is the second line of `explainTechCost` (reading
+   * 13). It is a figure here, not a factor on the row, so a balance pass moves
+   * one number and every charter technology follows.
+   */
+  charterPremiumPercent: number;
 }
 
 /**

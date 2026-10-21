@@ -4628,6 +4628,20 @@ const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
       : percent < 0
         ? `towns you lose add ${-percent}% less war weariness`
         : `towns you lose add ${percent}% more war weariness`,
+  // The Commonplace Book (Scientific batch S0). A price, said as the saving.
+  charterTechCost: (percent) =>
+    percent < 0
+      ? `charter technologies cost you ${-percent}% less research`
+      : `charter technologies cost you ${percent}% more research`,
+  // The Patent Office (Scientific batch S0). At the whole cut the premium is
+  // gone, so the words say what is left: the price of an ordinary technology
+  // in the same column.
+  charterPremium: (percent) =>
+    percent <= -100
+      ? 'charter technologies cost you no more research than ordinary technologies at the same point in the tree'
+      : percent < 0
+        ? `the extra research a charter technology costs is ${-percent}% less`
+        : `the extra research a charter technology costs is ${percent}% more`,
 };
 
 const COMBAT_WORDS: Record<CombatCondition['test'], string> = {

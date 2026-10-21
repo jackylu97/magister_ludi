@@ -851,10 +851,16 @@ describe('determinism', () => {
    * Nobody here drafts, so the removed age gate never reaches this board.
    * Checked with the change in place and the version printed as 150, which
    * gives Tier IV at 26's hashes exactly.
+   *
+   * **The charter technologies (Scientific batch S0, schema 152) moved the
+   * hash and not the length** at both seeds: 151 became 152, and that is all.
+   * Nobody here drafts a charter, so no charter technology is ever researched
+   * on this board. Checked with the change in place and the version printed
+   * as 151, which gives the draft rung's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'f650c5c6:188931',
-    2026: '3c48e50f:188509',
+    11: 'b349da09:188931',
+    2026: 'bb4d1d54:188509',
   };
 
   for (const seed of [11, 2026]) {

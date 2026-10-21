@@ -344,7 +344,24 @@ export type TechId =
   | 'theSilkRoad'
   | 'banking'
   | 'theHolyOffice'
-  | 'alchemy';
+  | 'alchemy'
+  // The charter technologies (Scientific batch S0). Only a seat that drafted
+  // the charter may research one (`TechDef.charter`). Their places are the
+  // placeholders of `docs/plans/scientific-build-triage.md` until the user's
+  // chart places them.
+  | 'herbals'
+  | 'casting'
+  | 'surveying'
+  | 'cataloguing'
+  | 'optics'
+  | 'medicine'
+  | 'papermaking'
+  | 'printing'
+  | 'mechanics'
+  | 'gunfounding'
+  | 'chemistry'
+  | 'militaryArchitecture'
+  | 'navalGunnery';
 
 // Cut by tree revision 4 (2026-09-02, the user's redraw), and named here rather
 // than silently absent: `ancestorRites`, `chivalry` and `fortification`. The
@@ -637,6 +654,23 @@ export interface TechDef {
    */
   note?: string;
   /**
+   * **Only a charter opens this technology for research** (Scientific batch
+   * S0, `docs/plans/scientific-build-triage.md`).
+   *
+   * A charter row is not on the sky. It has one ordinary parent and sits one
+   * column right of it, inside its own age's columns (reading 19), so its
+   * column still sets its price. Its `row` is a lane on the charter shelf, not
+   * a lane of the sky. The layout, the age bands, the column count and the
+   * lane limit leave it out (`TECH_IDS` holds only the sky's rows).
+   *
+   * The marker is a copy of a fact the card rows already state
+   * (`charteredTechIds` in `statecraftData.ts` reads every charter's
+   * `unlocks.tech`). It is here so this file can tell the two kinds of row
+   * apart and stay a leaf. `test/sim/charterTechs.test.ts` checks that the
+   * marked rows are exactly the ones the charters name.
+   */
+  charter?: true;
+  /**
    * What this node's rule is **called**, where the tech's own name is the wrong
    * word for it (batch L1, §2).
    *
@@ -663,8 +697,31 @@ export interface TechData {
 
 export const TECH_DATA: TechData = techsJson as TechData;
 
-/** Every tech id, in file order — which is the order the screen lays them out. */
-export const TECH_IDS = Object.keys(TECH_DATA.techs) as TechId[];
+/**
+ * Every technology row, the charter rows included, in file order.
+ *
+ * Use this where a question is about any row at all: the unlock tables, the
+ * integrity check, the research list and the order of a research plan. Use
+ * `TECH_IDS` where the question is about the tree a player sees.
+ */
+export const ALL_TECH_IDS = Object.keys(TECH_DATA.techs) as TechId[];
+
+/**
+ * **The sky**: every ordinary technology, in file order, which is the order the
+ * star chart lays them out.
+ *
+ * The charter rows are left out (Scientific batch S0, reading 19). They are not
+ * part of the tree every empire climbs: only a seat that drafted the charter
+ * may research one, and the chart will draw them on a shelf of their own
+ * (batch S10). So the layout, the column count, the age bands, the
+ * Compendium's tech shelf and every "the whole tree" reading keep meaning the
+ * fifty ordinary rows. `ALL_TECH_IDS` is every row; `CHARTER_TECH_IDS` is the
+ * charter rows alone.
+ */
+export const TECH_IDS = ALL_TECH_IDS.filter((id) => TECH_DATA.techs[id].charter !== true);
+
+/** The charter technologies, in file order. See `TechDef.charter`. */
+export const CHARTER_TECH_IDS = ALL_TECH_IDS.filter((id) => TECH_DATA.techs[id].charter === true);
 
 export function techDef(id: TechId): TechDef {
   return TECH_DATA.techs[id];
@@ -680,11 +737,18 @@ export function isTechId(value: unknown): value is TechId {
   );
 }
 
+/** Is this a charter technology? See `TechDef.charter`. */
+export function isCharterTech(id: TechId): boolean {
+  return techDef(id).charter === true;
+}
+
 // --- the inverted table -----------------------------------------------------
 
 function invert<T extends string>(pick: (unlocks: TechUnlocks) => T[] | undefined): Map<T, TechId> {
   const index = new Map<T, TechId>();
-  for (const id of TECH_IDS) {
+  // Every row, the charter rows too: a charter technology may open a building
+  // that only its holder can build (batch S4), and the gate asks this table.
+  for (const id of ALL_TECH_IDS) {
     for (const unlocked of pick(techDef(id).unlocks) ?? []) {
       // First writer wins, and `techDataProblems` reports a second one: two
       // techs unlocking the same thing is a data bug, not a feature.
@@ -804,10 +868,14 @@ export function techsGrant(techs: readonly TechId[], ability: AbilityId): boolea
  * `techDataProblems`, which is the file that is *allowed* to complain.
  */
 function computeDepths(): Map<TechId, number> {
-  const depth = new Map<TechId, number>(TECH_IDS.map((id) => [id, 0]));
-  for (let pass = 0; pass < TECH_IDS.length; pass++) {
+  // Every row, so a charter row's depth is one past its parent's and a
+  // research plan that ends on one still sorts it after its parent
+  // (`researchExpansion`). No ordinary row may name a charter row as a
+  // prerequisite (`techDataProblems`), so the sky's depths do not move.
+  const depth = new Map<TechId, number>(ALL_TECH_IDS.map((id) => [id, 0]));
+  for (let pass = 0; pass < ALL_TECH_IDS.length; pass++) {
     let changed = false;
-    for (const id of TECH_IDS) {
+    for (const id of ALL_TECH_IDS) {
       let want = 0;
       for (const prereq of techDef(id).prereqs) {
         if (!isTechId(prereq)) continue;
@@ -849,8 +917,20 @@ export function techDepth(id: TechId): number {
  * because a child age's first column always follows its parent age's last.
  */
 export function techColumn(id: TechId): number {
-  ageColumnStarts ??= computeAgeColumnStarts();
   const def = techDef(id);
+  // **A charter row sits one column right of its one parent** (reading 19).
+  // It is said directly rather than through the age bands, because the bands
+  // are the sky's and a charter row is not in them. `techDataProblems` checks
+  // that the column falls inside the row's own age.
+  if (def.charter === true) {
+    const parent = def.prereqs[0];
+    // A parent that is itself a charter row is a data fault the check reports.
+    // It reads as column 0 here, so a loop of two such rows cannot recurse.
+    return parent !== undefined && isTechId(parent) && techDef(parent).charter !== true
+      ? techColumn(parent) + 1
+      : 0;
+  }
+  ageColumnStarts ??= computeAgeColumnStarts();
   return ageColumnStarts.starts.get(def.age)! + (techDepth(id) - ageColumnStarts.minDepth.get(def.age)!);
 }
 
@@ -1066,7 +1146,12 @@ export function highestAge(techs: readonly TechId[]): TechAge {
   let highest: TechAge = 1;
   for (const id of techs) {
     if (!isTechId(id)) continue;
-    const { age } = techDef(id);
+    const { age, charter } = techDef(id);
+    // **A charter technology does not move an empire's age** (Scientific batch
+    // S0, reading 1). Gunfounding learned early would otherwise move the
+    // seat's age, the world clock and the age-entry bead, all off a path no
+    // other empire may take.
+    if (charter === true) continue;
     if (age > highest) highest = age;
   }
   return highest;
@@ -1156,7 +1241,7 @@ export function techAgeBands(): TechAgeBand[] {
 export function techDataProblems(): string[] {
   const problems: string[] = [];
 
-  for (const id of TECH_IDS) {
+  for (const id of ALL_TECH_IDS) {
     const def = techDef(id);
     if (!TECH_AGES.includes(def.age)) {
       problems.push(
@@ -1174,7 +1259,9 @@ export function techDataProblems(): string[] {
     // are loud here.
     if (!Number.isInteger(def.row) || def.row < 0) {
       problems.push(`tech "${id}" has row ${String(def.row)}, which is not a lane number`);
-    } else if (def.row >= TECH_LANE_LIMIT) {
+    } else if (def.row >= TECH_LANE_LIMIT && def.charter !== true) {
+      // The sky's height budget. A charter row's lane is a lane of the
+      // charter shelf, which this budget does not cover (reading 19).
       // The height budget, enforced where the rest of the file's hand-authoring
       // faults are. See `TECH_LANE_LIMIT`: a sixth lane is a decision, not a
       // typo, and this is where somebody has to come and make it.
@@ -1191,7 +1278,14 @@ export function techDataProblems(): string[] {
       if (techDef(prereq).age > def.age) {
         problems.push(`tech "${id}" (age ${def.age}) requires a tech from age ${techDef(prereq).age}`);
       }
+      // No row may stand behind a charter row. An ordinary node behind one
+      // would be a node only the charter's holder could ever reach, and no
+      // card may depend on a charter technology (ruling (qqqqqq) 11).
+      if (techDef(prereq).charter === true) {
+        problems.push(`tech "${id}" requires the charter technology "${prereq}"`);
+      }
     }
+    if (def.charter === true) problems.push(...charterPlacementProblems(id));
 
     // Whether a node hands over *anything* is `unlockDataProblems`'s question
     // now: three other tables gate on a technology and none of them is visible
@@ -1252,18 +1346,56 @@ export function techDataProblems(): string[] {
 
   for (const id of cyclicTechs()) problems.push(`tech "${id}" is part of a prerequisite cycle`);
 
-  const occupied = new Map<string, TechId>();
-  for (const id of TECH_IDS) {
-    // The *drawn* cell (`techColumn`), for `techChartLayout`'s reason: two
-    // techs at one depth in different ages sit in different columns and do not
-    // collide, and two at different depths in one column would.
-    const cell = `${techColumn(id)},${techDef(id).row}`;
-    const sitting = occupied.get(cell);
-    if (sitting !== undefined) {
-      problems.push(`techs "${sitting}" and "${id}" both sit at chart cell (${cell})`);
-      continue;
+  // The sky and the charter shelf are two fields, each with its own lanes, so
+  // a cell is checked against the rows of its own field only.
+  for (const field of [TECH_IDS, CHARTER_TECH_IDS]) {
+    const occupied = new Map<string, TechId>();
+    for (const id of field) {
+      // The *drawn* cell (`techColumn`), for `techChartLayout`'s reason: two
+      // techs at one depth in different ages sit in different columns and do not
+      // collide, and two at different depths in one column would.
+      const cell = `${techColumn(id)},${techDef(id).row}`;
+      const sitting = occupied.get(cell);
+      if (sitting !== undefined) {
+        problems.push(`techs "${sitting}" and "${id}" both sit at chart cell (${cell})`);
+        continue;
+      }
+      occupied.set(cell, id);
     }
-    occupied.set(cell, id);
+  }
+  return problems;
+}
+
+/**
+ * **Where a charter row may stand** (Scientific batch S0, reading 19): one
+ * ordinary parent, one column right of it, and inside its own age's columns.
+ *
+ * The rule is what keeps "a column is a price" true for a row the sky does not
+ * draw. Its column is its parent's plus one (`techColumn`), so its `cost` is
+ * pinned to that column's price like any other row's, and the premium is a
+ * line of the price list rather than a second figure on the row
+ * (`explainTechCost`, reading 13). Staying inside its own age keeps the age
+ * bands honest: a charter row never sits under another age's banner.
+ */
+function charterPlacementProblems(id: TechId): string[] {
+  const def = techDef(id);
+  const problems: string[] = [];
+  if (def.prereqs.length !== 1) {
+    problems.push(`charter technology "${id}" has ${def.prereqs.length} parents; it needs exactly one`);
+    return problems;
+  }
+  const parent = def.prereqs[0]!;
+  if (!isTechId(parent)) return problems;
+  if (techDef(parent).charter === true) return problems;
+  if (def.columnShift !== undefined && def.columnShift !== 0) {
+    problems.push(`charter technology "${id}" carries a column shift; it sits one column right of its parent`);
+  }
+  const column = techColumn(id);
+  const band = techAgeBands().find((entry) => entry.age === def.age);
+  if (band === undefined || column < band.from || column > band.to) {
+    problems.push(
+      `charter technology "${id}" sits in column ${column}, outside the columns of age ${def.age}`,
+    );
   }
   return problems;
 }
@@ -1278,7 +1410,7 @@ function cyclicTechs(): TechId[] {
   let progress = true;
   while (progress) {
     progress = false;
-    for (const id of TECH_IDS) {
+    for (const id of ALL_TECH_IDS) {
       if (settled.has(id)) continue;
       const ready = techDef(id).prereqs.every((prereq) => settled.has(prereq));
       if (!ready) continue;
@@ -1286,5 +1418,5 @@ function cyclicTechs(): TechId[] {
       progress = true;
     }
   }
-  return TECH_IDS.filter((id) => !settled.has(id));
+  return ALL_TECH_IDS.filter((id) => !settled.has(id));
 }

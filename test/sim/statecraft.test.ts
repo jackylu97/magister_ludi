@@ -2059,7 +2059,10 @@ describe("determinism", () => {
     // 151 since the Order tiers open at their draft rung alone (flags item
     // eeeeeee), so a v150 log's hands from a seat ahead of its research age
     // come from a later tier.
-    expect(SCHEMA_VERSION).toBe(151);
+    // 152 since the charter technologies (Scientific batch S0): thirteen
+    // technologies join the tree and two Scientific cards come live, so a
+    // v151 log's research and drafts meet a different tree and deck.
+    expect(SCHEMA_VERSION).toBe(152);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {

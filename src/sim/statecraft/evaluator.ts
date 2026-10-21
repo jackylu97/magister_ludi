@@ -214,6 +214,11 @@ import {
   leaderDef,
 } from '../leaderData';
 import { beadCapEffects } from '../beads';
+// A function-level cycle, beside the one through `../cities`: `tech.ts` reads
+// the card lines through the index, and Copying the Enemy's share reads the
+// price of a technology. Nothing at the top level of either file calls the
+// other.
+import { explainTechCost, foldTechCost } from '../tech';
 import {
   type AbilityId,
   type TechId,
@@ -7755,8 +7760,13 @@ export function windfallPayout(
     // that unlocks the unit just killed, a share of its cost.
     if (grant.towardFallenTech !== undefined && facts.fallen !== undefined) {
       const tech = unbuiltTechFor(state, playerId, facts.fallen);
-      if (tech !== null) {
-        const amount = Math.floor((techDef(tech).cost * grant.towardFallenTech) / 100);
+      const learner = playerById(state, playerId);
+      if (tech !== null && learner !== undefined) {
+        // A share of what the technology costs **this** empire, the price it
+        // would pay (`foldTechCost`, Scientific batch S0), never the row's bare
+        // column figure.
+        const price = foldTechCost(explainTechCost(state, learner, tech));
+        const amount = Math.floor((price * grant.towardFallenTech) / 100);
         if (amount > 0) {
           (payout.techGrants ??= []).push({ card, source, tech, amount });
           payout.lines.push({ card, source, note: `+${amount} science toward ${techDef(tech).name}` });

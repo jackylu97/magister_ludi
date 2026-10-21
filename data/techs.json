@@ -1230,6 +1230,175 @@
         ]
       },
       "flavor": "Vows taken twice: once at the altar, once in the saddle."
+    },
+    "herbals": {
+      "name": "Herbals",
+      "glyph": "🌿",
+      "age": 1,
+      "row": 0,
+      "cost": 24,
+      "prereqs": [
+        "earthenware"
+      ],
+      "unlocks": {},
+      "charter": true,
+      "flavor": "Every weed has a use, once someone writes it down."
+    },
+    "casting": {
+      "name": "Casting",
+      "glyph": "🔔",
+      "age": 1,
+      "row": 0,
+      "cost": 50,
+      "prereqs": [
+        "bronzeWorking"
+      ],
+      "unlocks": {},
+      "charter": true,
+      "flavor": "Pour the bronze while it is bright, and the mould keeps the shape."
+    },
+    "surveying": {
+      "name": "Surveying",
+      "glyph": "📏",
+      "age": 2,
+      "row": 0,
+      "cost": 100,
+      "prereqs": [
+        "theWheel"
+      ],
+      "unlocks": {},
+      "charter": true,
+      "flavor": "Measure the fall of the land, and the water follows the line."
+    },
+    "cataloguing": {
+      "name": "Cataloguing",
+      "glyph": "🗂",
+      "age": 2,
+      "row": 1,
+      "cost": 100,
+      "prereqs": [
+        "letters"
+      ],
+      "unlocks": {},
+      "charter": true,
+      "flavor": "A book nobody can find is a book nobody has."
+    },
+    "optics": {
+      "name": "Optics",
+      "glyph": "🔭",
+      "age": 2,
+      "row": 0,
+      "cost": 190,
+      "prereqs": [
+        "theLongCount"
+      ],
+      "unlocks": {},
+      "charter": true,
+      "flavor": "A curve of glass, and the far thing comes near."
+    },
+    "medicine": {
+      "name": "Medicine",
+      "glyph": "⚕",
+      "age": 3,
+      "row": 0,
+      "cost": 360,
+      "prereqs": [
+        "theHighTemple"
+      ],
+      "unlocks": {},
+      "charter": true,
+      "flavor": "First the ward for the sick, then the school beside it."
+    },
+    "papermaking": {
+      "name": "Papermaking",
+      "glyph": "📄",
+      "age": 3,
+      "row": 0,
+      "cost": 650,
+      "prereqs": [
+        "philosophy"
+      ],
+      "unlocks": {},
+      "charter": true,
+      "flavor": "Rags in the vat, and a page for every hand."
+    },
+    "printing": {
+      "name": "Printing",
+      "glyph": "🖨",
+      "age": 3,
+      "row": 1,
+      "cost": 650,
+      "prereqs": [
+        "philosophy"
+      ],
+      "unlocks": {},
+      "charter": true,
+      "flavor": "Set the page once, and print it a thousand times."
+    },
+    "mechanics": {
+      "name": "Mechanics",
+      "glyph": "⚙",
+      "age": 3,
+      "row": 0,
+      "cost": 1150,
+      "prereqs": [
+        "mathematics"
+      ],
+      "unlocks": {},
+      "charter": true,
+      "flavor": "Gears teach patience to the arm that turns them."
+    },
+    "gunfounding": {
+      "name": "Gunfounding",
+      "glyph": "💣",
+      "age": 4,
+      "row": 0,
+      "cost": 3250,
+      "prereqs": [
+        "machinery"
+      ],
+      "unlocks": {},
+      "charter": true,
+      "flavor": "The founders cast the guns, and the guns redraw the borders."
+    },
+    "chemistry": {
+      "name": "Chemistry",
+      "glyph": "🧪",
+      "age": 4,
+      "row": 1,
+      "cost": 3250,
+      "prereqs": [
+        "prospecting"
+      ],
+      "unlocks": {},
+      "charter": true,
+      "flavor": "Weigh what goes in, weigh what comes out, and trust the scale."
+    },
+    "militaryArchitecture": {
+      "name": "Military Architecture",
+      "glyph": "🏯",
+      "age": 4,
+      "row": 0,
+      "cost": 5150,
+      "prereqs": [
+        "feudalism"
+      ],
+      "unlocks": {},
+      "charter": true,
+      "flavor": "Angle the walls, and no stretch of stone is left unseen."
+    },
+    "navalGunnery": {
+      "name": "Naval Gunnery",
+      "glyph": "⚓",
+      "age": 4,
+      "row": 0,
+      "cost": 8000,
+      "prereqs": [
+        "theAstrolabe"
+      ],
+      "unlocks": {},
+      "charter": true,
+      "flavor": "A row of guns turns a galley into a moving fort."
     }
   },
   "abilities": {

@@ -26,6 +26,14 @@
  * nobody (the clause the D1b audit asked for, `docs/plans/decks-shape-audit.md`
  * "A deferred charter is still dealt"). This file read the old answer when it
  * was written, and the two claims below are re-cut to the new one.
+ *
+ * **Re-cut for Scientific batch S0** (`docs/plans/scientific-build-triage.md`).
+ * The deck now holds fifty-two rows. Thirteen are charters, and each names a
+ * charter technology the tree holds off the sky (`TechDef.charter`). They stay
+ * deferred until their gifts are built (reading 21). The Metallurgists' and
+ * Naturalists' Charters are retired, and two cards are live: The Commonplace
+ * Book and The Patent Office. `test/sim/charterTechs.test.ts` pins the
+ * technologies themselves.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -63,21 +71,34 @@ import {
   orderDef,
   orderIsDealt,
 } from '../../../src/sim/statecraftData';
-import { TECH_IDS, type TechAge, type TechId, techDef } from '../../../src/sim/techData';
+import {
+  CHARTER_TECH_IDS,
+  TECH_IDS,
+  type TechAge,
+  type TechId,
+  isTechId,
+  techDef,
+} from '../../../src/sim/techData';
 import { found, game } from '../statecraftHelpers';
 import { createGame } from '../newGameHelpers';
 
 /** The ids of `data/decks/scientific.json`, in file order. */
 const DECK: readonly OrderId[] = DECK_FILE_ORDERS.scientific;
 
+/** The rows the design withdrew (Scientific batch S0), kept for the record. */
+const RETIRED = DECK.filter((id) => orderDef(id).retired === true);
+
+/** Every row that is not retired. */
+const CURRENT = DECK.filter((id) => orderDef(id).retired !== true);
+
 /** A row with effects — the half of the deck D1b could say in the vocabulary. */
-const LIVE = DECK.filter((id) => orderDef(id).effects.length > 0);
+const LIVE = CURRENT.filter((id) => orderDef(id).effects.length > 0);
 
 /** A row with a sentence and nothing to slot — what D2's waves un-defer. */
-const DEFERRED = DECK.filter((id) => orderDef(id).effects.length === 0);
+const DEFERRED = CURRENT.filter((id) => orderDef(id).effects.length === 0);
 
-/** The five research Charters, deferred and carrying their grant. */
-const CHARTERS = DECK.filter((id) => isCharter(id));
+/** The research charters, deferred and carrying their grant. */
+const CHARTERS = CURRENT.filter((id) => isCharter(id));
 
 const RARITIES: readonly OrderRarity[] = ['common', 'uncommon', 'rare'];
 
@@ -86,11 +107,12 @@ const MARK: Record<OrderRarity, string> = { common: '●', uncommon: '◆', rare
 
 // --- the rows ----------------------------------------------------------------
 
-describe('the forty rows', () => {
+describe('the rows', () => {
   it('is the whole deck, every row named for this deck alone, banded and rated', () => {
-    expect(DECK).toHaveLength(40);
-    expect(new Set(DECK).size).toBe(40);
-    for (const id of DECK) {
+    expect(DECK).toHaveLength(52);
+    expect(new Set(DECK).size).toBe(52);
+    expect(RETIRED).toEqual(['theMetallurgistsCharter', 'theNaturalistsCharter']);
+    for (const id of CURRENT) {
       const def = orderDef(id);
       expect(def.decks, id).toEqual(['scientific']);
       expect(BANDS, id).toContain(def.band);
@@ -104,13 +126,17 @@ describe('the forty rows', () => {
     }
   });
 
-  it('fills the design doc’s four tier tables — ten, ten, twelve and eight', () => {
-    const perBand = [0, 1, 2, 3].map((band) => DECK.filter((id) => orderDef(id).band === band).length);
-    expect(perBand).toEqual([10, 10, 12, 8]);
+  it('fills the five tier tables: twelve, thirteen, fourteen, eight and three', () => {
+    // S0 added ten charters and two cards, moved the Mechanists' Charter from
+    // band three to band two, and retired two band-two charters.
+    const perBand = [0, 1, 2, 3, 4].map(
+      (band) => CURRENT.filter((id) => orderDef(id).band === band).length,
+    );
+    expect(perBand).toEqual([12, 13, 14, 8, 3]);
   });
 
   it('splits into live rows with effects and deferred rows with a sentence, and nothing between', () => {
-    expect(LIVE.length + DEFERRED.length).toBe(DECK.length);
+    expect(LIVE.length + DEFERRED.length).toBe(CURRENT.length);
     for (const id of LIVE) {
       const def = orderDef(id);
       expect(def.text, `${id} is live and carries no ratified text`).toBeTruthy();
@@ -196,11 +222,12 @@ describe('the live rows’ effects', () => {
 
 // --- the charters ------------------------------------------------------------
 
-describe('the five research Charters', () => {
-  it('names the five detours the design doc lists, one row each, all deferred', () => {
-    expect(CHARTERS).toHaveLength(5);
+describe('the research charters', () => {
+  it('names the thirteen charter technologies, one row each, all deferred', () => {
+    expect(CHARTERS).toHaveLength(13);
     const techs = CHARTERS.map((id) => orderDef(id).charter!.unlocks.tech);
-    expect(techs).toEqual(['optics', 'alloys', 'taxonomy', 'mechanics', 'chemistry']);
+    expect(new Set(techs)).toEqual(new Set(CHARTER_TECH_IDS));
+    expect(techs).toHaveLength(CHARTER_TECH_IDS.length);
     for (const id of CHARTERS) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);
@@ -210,11 +237,15 @@ describe('the five research Charters', () => {
     }
   });
 
-  it('names five nodes the tree does not hold yet — D2 places them off-lane', () => {
-    const tree = new Set<string>(TECH_IDS);
+  it('names nodes the tree holds off the sky, and the retired rows name none it holds', () => {
+    const sky = new Set<string>(TECH_IDS);
     for (const id of CHARTERS) {
-      expect(tree.has(orderDef(id).charter!.unlocks.tech!), `${id} names a node the tree already holds`).toBe(false);
+      const tech = orderDef(id).charter!.unlocks.tech!;
+      expect(isTechId(tech), `${id} names "${tech}", which is no technology`).toBe(true);
+      expect(techDef(tech).charter, `${id} names "${tech}", which is not a charter row`).toBe(true);
+      expect(sky.has(tech), `${id} names a node of the sky`).toBe(false);
     }
+    for (const id of RETIRED) expect(isTechId(orderDef(id).charter!.unlocks.tech), id).toBe(false);
   });
 
   /**
@@ -227,7 +258,7 @@ describe('the five research Charters', () => {
    * no pool. D2 places the nodes and drops the `deferred` sentence, and the row
    * deals itself the same turn.
    */
-  it('is dealt by nobody until its node exists, and neither is any other deferred row', () => {
+  it('is dealt by nobody until its gift is built, and neither is any other deferred row', () => {
     for (const id of CHARTERS) {
       expect(orderDef(id).deferred, id).toBeDefined();
       expect(orderDef(id).effects, id).toEqual([]);
@@ -236,6 +267,7 @@ describe('the five research Charters', () => {
     for (const id of DEFERRED) {
       expect(orderIsDealt(id), `${id} is deferred and still dealt`).toBe(false);
     }
+    for (const id of RETIRED) expect(orderIsDealt(id), `${id} is retired and still dealt`).toBe(false);
     for (const id of LIVE) expect(orderIsDealt(id), id).toBe(true);
   });
 });

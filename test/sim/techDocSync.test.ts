@@ -31,17 +31,20 @@ import { describe, expect, it } from 'vitest';
 import { buildingDef, isWonder } from '../../src/sim/buildingData';
 import { improvementDef } from '../../src/sim/improvementData';
 import { projectDef } from '../../src/sim/projectData';
-import type { CardId } from '../../src/sim/statecraftData';
+import { type CardId, ORDER_IDS, orderDef } from '../../src/sim/statecraftData';
+import { RULES } from '../../src/sim/rulesData';
 import { describeCard, stripRefs } from '../../src/sim/statecraft';
 import {
   ABILITY_IDS,
   ABILITY_TECH,
+  CHARTER_TECH_IDS,
   type TechAge,
   TECH_AGES,
   TECH_IDS,
   type TechId,
   abilityDef,
   eraNumeral,
+  techColumn,
   techDef,
 } from '../../src/sim/techData';
 import { type TechGift, techGifts } from '../../src/sim/techUnlocks';
@@ -251,6 +254,48 @@ function ageSection(age: TechAge): string {
 }
 
 /**
+ * **The charter technologies** (Scientific batch S0), in a table of their own.
+ *
+ * They are not in the age tables above, because they are not on the sky: only
+ * a seat that drafted the charter may research one, and none moves an
+ * empire's age (reading 1). Each row says which charter opens it, the parent
+ * it sits one column right of, the column's price and the price with the
+ * premium (`rules.research.charterPremiumPercent`), then its gifts in the age
+ * tables' own three columns, so a later batch that fills a gift shows here.
+ */
+function charterSection(): string {
+  const premium = RULES.research.charterPremiumPercent;
+  const lines: string[] = [
+    '### The charter technologies',
+    '',
+    `Only a seat that drafted the charter may research these. Each sits one column right of its one parent, inside its own age, and costs its column's price plus ${premium}% (\`rules.research.charterPremiumPercent\`). None moves an empire's age or counts as a world first.`,
+    '',
+    '| node | æra | column | 🔬 column | 🔬 charter | prereq | opened by | units | buildings | abilities & gifts |',
+    '|---|---|---|---|---|---|---|---|---|---|',
+  ];
+  for (const id of CHARTER_TECH_IDS) {
+    const def = techDef(id);
+    const charter = ORDER_IDS.find(
+      (card) => orderDef(card).retired !== true && orderDef(card).charter?.unlocks.tech === id,
+    );
+    const units: string[] = [];
+    const buildings: string[] = [];
+    for (const gift of techGifts(id)) {
+      if (gift.kind === 'unit') units.push(unitCell(gift));
+      else if (gift.kind === 'building') buildings.push(buildingCell(gift));
+      else if (gift.kind === 'project') buildings.push(`*${projectDef(gift.id).name}* (project)`);
+    }
+    const charterPrice = Math.floor((def.cost * (100 + premium)) / 100);
+    lines.push(
+      `| ${def.name} | ${eraNumeral(def.age)} | ${techColumn(id)} | ${def.cost} | ${charterPrice} | ${cell(def.prereqs.map((prereq) => techDef(prereq).name))} | ${charter === undefined ? '—' : orderDef(charter).name} | ${cell(units)} | ${cell(buildings)} | ${giftsCell(id)} |`,
+    );
+  }
+  const bullets = CHARTER_TECH_IDS.flatMap((id) => nodeBullets(id));
+  if (bullets.length > 0) lines.push('', ...bullets);
+  return lines.join('\n');
+}
+
+/**
  * The verbs, in one table of their own.
  *
  * `abilityDef` carries a `summary` — the plain sentence the star chart prints
@@ -278,7 +323,7 @@ function verbSection(): string {
 
 /** Everything from the first `### Æra` heading to the end of the file. */
 export function generatePartTwo(): string {
-  const sections = [...TECH_AGES.map((age) => ageSection(age)), verbSection()];
+  const sections = [...TECH_AGES.map((age) => ageSection(age)), charterSection(), verbSection()];
   return `${sections.join('\n\n')}\n`;
 }
 

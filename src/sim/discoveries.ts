@@ -332,7 +332,7 @@ export function explainDiscoveryOption(
 
   if (effect.pool === 'science') {
     const player = playerById(state, playerId);
-    if (player) payoff.completes = researchSettledBy(player, effect.amount);
+    if (player) payoff.completes = researchSettledBy(state, player, effect.amount);
   }
   if (effect.pool === 'culture') {
     const player = playerById(state, playerId);

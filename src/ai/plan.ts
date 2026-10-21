@@ -119,8 +119,8 @@ import {
   createCity,
   playerById,
 } from '../sim/state';
-import { researchExpansion, researchPlan } from '../sim/tech';
-import { TECH_IDS, type TechId, techDef } from '../sim/techData';
+import { researchExpansion, researchPlan, techsShutByCharter } from '../sim/tech';
+import { ALL_TECH_IDS, type TechId, techDef } from '../sim/techData';
 import { TILE_YIELD_KEYS, type TileYield, emptyTileYield } from '../sim/terrainData';
 import { type UnitDef, type UnitTypeId, unitDef } from '../sim/unitData';
 import { type TileYieldContext, cityContext, foldTile, yieldContextFor } from '../sim/yields/hex';
@@ -568,11 +568,16 @@ export function reachableTechs(ctx: ValueContext): ReadonlyMap<TechId, number> {
   const rate = Math.max(1, ctx.scienceRate);
   const plan = researchPlan(player);
   const landings = new Map<TechId, number>();
-  for (const tech of TECH_IDS) {
+  // A charter technology this seat has not drafted never lands: the reducer
+  // refuses it (Scientific batch S0), so it is absent, as a node past the
+  // horizon is.
+  const shut = techsShutByCharter(player);
+  for (const tech of ALL_TECH_IDS) {
     if (player.techsResearched.includes(tech)) {
       landings.set(tech, 0);
       continue;
     }
+    if (shut.includes(tech)) continue;
     let landing: number;
     if (plan.includes(tech)) {
       landing = turnsUntilPlanned(player, ctx, tech);
@@ -631,7 +636,7 @@ function siteGround(ctx: ValueContext): SiteGround | null {
   if (player === undefined) return null;
   const reachable = reachableTechs(ctx);
   const techs = [...player.techsResearched];
-  for (const tech of TECH_IDS) {
+  for (const tech of ALL_TECH_IDS) {
     if (reachable.has(tech) && !techs.includes(tech)) techs.push(tech);
   }
   const state: GameState = {

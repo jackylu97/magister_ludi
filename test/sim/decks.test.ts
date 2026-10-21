@@ -461,8 +461,10 @@ describe('the schema, as landed', () => {
     // in place and were already live.
     // **And Expansionist batch E6** (the two cards that waited for D7): two
     // more. Two deferred rows were freed (The Breadbasket, Veteran Colonies).
-    expect(live).toBe(498);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(498);
+    // **And Scientific batch S0** (the charter technologies): two more. Two
+    // new Scientific rows came live (The Commonplace Book, The Patent Office).
+    expect(live).toBe(500);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(500);
   });
 
   /**
@@ -704,7 +706,10 @@ describe('the schema, as landed', () => {
     // 151 since the Order tiers open at their draft rung alone (flags item
     // eeeeeee), so a v150 log's hands from a seat ahead of its research age
     // come from a later tier.
-    expect(SCHEMA_VERSION).toBe(151);
+    // 152 since the charter technologies (Scientific batch S0): thirteen
+    // technologies join the tree and two Scientific cards come live, so a
+    // v151 log's research and drafts meet a different tree and deck.
+    expect(SCHEMA_VERSION).toBe(152);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -927,10 +932,13 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // **Expansionist batch E5** freed one more (The Heartland: − 1).
       // **Expansionist batch E6** freed two more (The Breadbasket, Veteran
       // Colonies: − 2).
+      // **Scientific batch S0** wrote ten new charter rows deferred (+ 10) and
+      // retired two deferred charters, the Metallurgists' and the Naturalists'
+      // (− 2, and + 2 retired).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(57);
-      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(136);
+      ).toHaveLength(65);
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(138);
     }
   });
 
