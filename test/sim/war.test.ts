@@ -1013,9 +1013,14 @@ describe('the schema witness', () => {
     // 152 since the charter technologies (Scientific batch S0): thirteen
     // technologies join the tree and two Scientific cards come live, so a
     // v151 log's research and drafts meet a different tree and deck.
-    // 153 since Dominion batch D9: ten Dominion Orders and one Doctrine are
-    // retired and one Order comes live, so a v152 log's Dominion hands and
+    // 153 since the line traits (Scientific batch S1): three Scientific
+    // charters are dealt, so a v152 log's hands differ from the first draft.
+    // 154 since the Scientific types and retirements (batch S1b): a
+    // Scientific seat's pool loses eleven cards, and typed chairs refuse some
+    // seat commands a v153 log holds.
+    // 155 since Dominion batch D9: ten Dominion Orders and one Doctrine are
+    // retired and one Order comes live, so a v154 log's Dominion hands and
     // Doctrine offers hold different cards.
-    expect(SCHEMA_VERSION).toBe(153);
+    expect(SCHEMA_VERSION).toBe(155);
   });
 });

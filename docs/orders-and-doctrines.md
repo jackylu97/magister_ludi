@@ -579,26 +579,18 @@ across the seven files. Ids are internal; the names in these tables are the card
 |---|---|---|---|---|
 | The Almanac | 0 | ● | P | Libraries cost 25% less production and give +1 production. |
 | The Scribes' Hall | 0 | ● | P | Cities with a Library gain +1 science per four citizens and +1 culture per three citizens. |
-| Field Notebooks | 0 | ● | S | Claiming a ruin grants 15 science, 20 culture and 20 gold. |
-| Practical Astronomy | 0 | ◆ | P | Scouts and ships gain +1 sight. Coastal cities with a Library gain +3 food. |
 | The Long Study | 0 | ◆ | P | A Library at least twenty turns old grants +2 culture and +1 renown. At forty turns, these bonuses become +4 culture and +2 renown. |
-| Working Estates | 1 | ● | S | Worked great-person improvements gain +5 food and +3 gold. |
+| The Bronze-Founders' Charter | 0 | ◆ | S | Drafting this opens Casting for research. Knowing it gives two lines a trait they keep through every upgrade. Hoplite (Spearman to Pikeman): +1 strength, and in one of your towns +1 more for every four citizens there. Maryannu (War Chariot to Knight): +1 strength, and +5 against a unit below half health. No chair required. |
 | The Assay | 1 | ● | P | Gain +3 science and +3 gold for each distinct strategic resource type you can access. |
-| The Endowed Provinces | 1 | ◆ | P | Each city working at least one great-person improvement gains +6 food and +5 production, once per city. |
 | Learned Commissions | 1 | ● | S | Library cities gain +38% production toward empire buildings. Completing each institution type for the first time grants 60 culture and 30 faith. |
 | The Old Academy | 1 | ◆ | S | An Academy at least twenty turns old gains +3 food and +3 production. At forty turns these bonuses become +6 of each. |
 | The Commonplace Book | 1 | ● | S | Charter technologies cost you 15% less research. |
-| The Royal Society | 2 | ● | S | Each empire building grants +2 renown. Its city gains +2 happiness, once per city. |
-| The Learned Chancery | 2 | ● | S | Cities with an empire building cost one less authority, minimum one, and gain +50% border growth. |
-| The Academy Quarter | 2 | ◆ | P | A city with an empire building gains +5 production and +5 gold per different great-person work type it works, at most +25 of each. Multiple institutions do not multiply this benefit. |
 | The Quiet Faculties | 2 | ○ | P | Cities working a great-person improvement gain +38% food and +30% production, but produce military units 25% more slowly. |
-| The Patent Rolls | 2 | ◆ | S | Completing a technology before any other empire grants 30 culture and 10 renown. |
 | Enduring Institutions | 2 | ◆ | P | A city with an empire building at least twenty turns old gains +2 happiness and +23% production, once per city. |
-| Master Artificers | 3 | ◆ | S | Worked Academies and Manufactories gain +9 production and +9 gold. |
-| The Society of Artificers | 3 | ○ | P | A city with an empire building working an Academy or Manufactory gains food and culture each equal to 30% of its base production, excluding conversion outputs. |
+| The Mechanists' Charter | 2 | ○ | S | Drafting this opens Mechanics for research. Knowing it gives two lines a trait they keep through every upgrade. Onager (Catapult and Trebuchet): +1 range. Repeating Crossbow (Archer to Crossbowman): it may move after it shoots. No chair required. |
 | The Long Inheritance | 3 | ○ | S | Cities working a great-person improvement at least twenty turns old gain +45% production toward empire buildings, wonders and the Opus. A mature empire building there adds another +23%. |
-| The Learned Realm | 3 | ◆ | S | Each city working a great-person improvement grants +1 authority capacity, at most +8. Cities with a Library at least twenty turns old gain +2 happiness. |
 | The Patent Office | 4 | ◆ | S | Charter technologies cost you no more research than ordinary technologies at the same point in the tree. |
+| The Naval Gunners' Charter | 4 | ◆ | S | Drafting this opens Naval Gunnery for research. Knowing it gives your Gun Galleys the Galleass trait: +3 strength, and they blockade: parked off a rival's port, a Gun Galley closes its sea lane and its trade. No chair required. |
 
 ### Magisterial
 
@@ -815,31 +807,14 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Sacred Treasury** — Not built: a bonus on building can name one row or one category, never a marvel and the last work of all at once. † a town with a cathedral, a relic and a worked holy site grows rich, sings, and builds the great works faster
 - **The Bishop's Choice** — Not built: a cathedral's consecration is settled as the roof goes on and there is no offer to put before anyone. † when you finish a cathedral you choose its consecration instead of being given one
 - **The Cloistered Realm** — Not built, both halves together: a proclamation's weight can be shifted by a flat figure and not by a share of itself. † cathedral towns keeping a rite learn and build far faster; and your proclamations press more gently for it
-- **The Celestial Rites** — † your capital gathers faith from the sky, and being the first to set eyes on each new kind of country or ground pays faith besides
-- **Natural Philosophy** — † being the first to set eyes on each new kind of country or ground pays science, and feeds your capital
-- **Apprentice Engineers** — Not built: the world announces a wood felled, a hill surveyed and a hex bought, and never a work finished on the ground — so the first of each kind has no moment to be paid at, however well the ledger would remember it. † towns with a library raise workers faster, and the first works of each kind you build on ground of your own pay the town that holds them
 - **The Long Study** — † a library that has stood a long while pays culture and renown, and pays more again once it is very old
-- **The Research Annals** — Not built: nothing counts the studies an empire has finished — the tree is a list no card can yet ask the length of. † while this sits in council, your capital works and sings for every technology you have completed, up to a limit
-- **Patient Research** — † science buildings cost more to raise, and each one that has stood a long while feeds and works the town it stands in
 - **The Glassmakers' Charter** — † drafting this opens the study of lenses for research
-- **The Open Collegium** — † you gain more renown while no great person of yours is waiting to be spent
 - **The Old Academy** — † an academy that has stood a long while feeds and works the town it serves, and more again once it is very old
 - **The Strategic Reserves** — † every improved strategic deposit past the first of its kind works and pays the town that holds it, and a great person's works count as improvements here
-- **The Practical Arts** — † technologies that match what your empire already does cost less to research, while ordinary soldiers cost more to raise
-- **Research through Construction** — † your towns' science becomes production instead, and finishing an ordinary building pays research worth part of its price
-- **The Metallurgists' Charter** — † drafting this opens the study of alloys for research
-- **The Naturalists' Charter** — † drafting this opens the study of living things for research
-- **The Inherited School** — Held whole. The realm can now count the families whose legacies it keeps, but what a hex pays cannot be multiplied by a thing the realm holds — only by what stands beside the hex itself. † worked academies and manufactories feed and work the better for each different family of great person whose legacy you still keep, up to a limit
-- **Discoveries through Great People** — Half built and therefore not built: a gift may now be held to once a turn, but the moment announced is the boon alone and not the lasting work or the legacy, and nothing pays a share of what the study you are on would cost. † spending a great person on an act, a work or a legacy pays part of the research you are studying, at most once in a turn
-- **Husbandry Studies** — † soldiers of yours that depend on horses are quicker on their feet from the day they are raised, and stay so
 - **Enduring Institutions** — † a town whose empire building has stood a long while is gladder and builds faster, once per town
-- **Commissions of Service** — † spending a great person on an act or a legacy pays food and gold to your nearest town, though placing a work does not
-- **The Mechanists' Charter** — † drafting this opens the study of mechanics for research
-- **The Alchemists' Charter** — † drafting this opens the study of chemistry for research
+- **The Alchemists' Charter** — The Grenadier trait is built; the card waits for Niter Beds. † knowing Chemistry lets workers build Niter Beds beside a farm or pasture, which supply niter
 - **The Second Seat** — † you may raise one further copy of an empire building, in a town that holds a university, and only one such copy may be building or standing at a time
 - **The Long Inheritance** — † towns working a great person's work that has stood a long while build empire buildings, wonders and the great work faster, and faster again where the empire building there is itself old
-- **The Distant Colleges** — † a town holding an empire building may work your great people's works one hex beyond its usual reach, and gains no ground and no citizens by it
-- **The Learned Realm** — Held whole. Nothing in the game remembers when a building was raised, so no law can tell an old library from a new one. † towns with a library that has stood a long while are gladder
 - **The Civic Guard** — † Towns that keep a Monument are harder to storm.; Soldiers defending beside such a town fight harder. A strength line can be told where the fight is happening — your ground, the hills, a town — but not which buildings stand in the town behind it.
 - **Festival Commissions** — Not built: a windfall is paid to an empire and cannot be told what stands in the town that grew; and the design pays only for growth past a town's own historical high, which nothing remembers. † a town that holds a monument is paid in song and bread each time it grows
 - **The Civic Annals** — Not built: a counter is a number on a card and carries no subject, so it cannot be told which towns to watch; and the design pays only for growth past a town's own historical high, which nothing remembers. † the card keeps count of every time one of your towns that holds a monument grows, and pays a little more each turn for it
@@ -857,7 +832,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Last Commission** — † Spending a great person pours production into whichever town is building the Great Work. A windfall's supplies go to the nearest town to where the deed happened, and cannot be sent to the town that is building a named thing.
 - **Letters of Marque** — The coin is for a kill made by one of your ships, wherever it happens. The extra gold and the slower shipyards both belong to the cities that have a Harbour.
 - **The Sacred Host** — A soldier bought with faith costs what it would cost to build, converted at the faith rate.
-- **The Hydraulic Commonwealth** — † a share of the grain a town has left over is gained again as learning
 - **Pilgrim Markets** — † a road pays when either of its two ends keeps a holy site
 - **The Exchange of Discoveries** — † a town counts the distinct realms its own caravans reach
 - **Sacred Patronage** — Half built and therefore not built: a gift may now be held to once a turn, but the moment the world announces is a great one spending themselves on their boon — so a card written on the spending would pay for one of the ways a person may be spent and stay silent for the others. † spending a great person pays faith, but never more than once in a turn

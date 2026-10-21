@@ -858,15 +858,28 @@ describe('determinism', () => {
    * on this board. Checked with the change in place and the version printed
    * as 151, which gives the draft rung's hashes exactly.
    *
-   * **Dominion batch D9 (schema 153) moved the hash and not the length** at
-   * both seeds: 152 became 153, and that is all. Nobody here drafts, so the
-   * retired and changed Dominion cards never reach this board. Checked with
-   * the change in place and the version printed as 152, which gives the
-   * charter technologies' hashes exactly.
+   * **The line traits (Scientific batch S1, schema 153) moved the hash and not
+   * the length** at both seeds: 152 became 153, and that is all. Nobody here
+   * drafts, so no trait is ever known on this board, and no ship blockades by
+   * a card. Checked with the change in place and the version printed as 152,
+   * which gives the charter technologies' hashes exactly.
+   *
+   * **The Scientific types and retirements (batch S1b, schema 154) moved the
+   * hash and not the length** at both seeds: 153 became 154, and that is all.
+   * Nobody here drafts, so no card is dealt or seated on this board. Checked
+   * with the change in place and the version printed as 153, which gives the
+   * line traits' hashes exactly.
+   *
+   * **Dominion batch D9 moved the hash and not the length** at both seeds, by
+   * the version alone. It was built at schema 153, without S1 and S1b, and
+   * merged after them, which renumbered it to 155, so the version went from
+   * 154 to 155. Nobody here drafts, so the retired and changed Dominion cards
+   * never reach this board. Checked with the merge in place and the version
+   * printed as 154, which gives the Scientific types' hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '35fe44b0:188931',
-    2026: 'efa221ad:188509',
+    11: 'a00b7a6a:188931',
+    2026: '9bab36fb:188509',
   };
 
   for (const seed of [11, 2026]) {

@@ -1255,6 +1255,68 @@
       ],
       "unlocks": {},
       "charter": true,
+      "traits": [
+        {
+          "name": "Hoplite",
+          "line": "spearman",
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 1,
+              "side": "both",
+              "when": {
+                "test": "always"
+              },
+              "class": {
+                "line": "spearman"
+              }
+            },
+            {
+              "kind": "combatLine",
+              "amount": 1,
+              "side": "both",
+              "when": {
+                "test": "always"
+              },
+              "class": {
+                "line": "spearman"
+              },
+              "scaled": {
+                "count": "townCitizensHere",
+                "per": 4
+              }
+            }
+          ]
+        },
+        {
+          "name": "Maryannu",
+          "line": "chariot",
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 1,
+              "side": "both",
+              "when": {
+                "test": "always"
+              },
+              "class": {
+                "line": "chariot"
+              }
+            },
+            {
+              "kind": "combatLine",
+              "amount": 5,
+              "side": "attack",
+              "when": {
+                "test": "targetBelowHalf"
+              },
+              "class": {
+                "line": "chariot"
+              }
+            }
+          ]
+        }
+      ],
       "flavor": "Pour the bronze while it is bright, and the mould keeps the shape."
     },
     "surveying": {
@@ -1346,6 +1408,35 @@
       ],
       "unlocks": {},
       "charter": true,
+      "traits": [
+        {
+          "name": "Onager",
+          "line": "catapult",
+          "effects": [
+            {
+              "kind": "unitStat",
+              "stat": "range",
+              "amount": 1,
+              "class": {
+                "line": "catapult"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Repeating Crossbow",
+          "line": "archer",
+          "effects": [
+            {
+              "kind": "rule",
+              "rule": "moveAfterAttack",
+              "class": {
+                "line": "archer"
+              }
+            }
+          ]
+        }
+      ],
       "flavor": "Gears teach patience to the arm that turns them."
     },
     "gunfounding": {
@@ -1372,6 +1463,40 @@
       ],
       "unlocks": {},
       "charter": true,
+      "traits": [
+        {
+          "name": "Grenadier",
+          "line": "warrior",
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 1,
+              "side": "both",
+              "when": {
+                "test": "always"
+              },
+              "class": {
+                "line": "warrior"
+              }
+            },
+            {
+              "kind": "combatLine",
+              "amount": 1,
+              "side": "both",
+              "when": {
+                "test": "always"
+              },
+              "class": {
+                "line": "warrior"
+              },
+              "scaled": {
+                "count": "charterTechsKnown",
+                "per": 1
+              }
+            }
+          ]
+        }
+      ],
       "flavor": "Weigh what goes in, weigh what comes out, and trust the scale."
     },
     "militaryArchitecture": {
@@ -1398,6 +1523,32 @@
       ],
       "unlocks": {},
       "charter": true,
+      "traits": [
+        {
+          "name": "Galleass",
+          "line": "gunGalley",
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 3,
+              "side": "both",
+              "when": {
+                "test": "always"
+              },
+              "class": {
+                "line": "gunGalley"
+              }
+            },
+            {
+              "kind": "rule",
+              "rule": "blockades",
+              "class": {
+                "line": "gunGalley"
+              }
+            }
+          ]
+        }
+      ],
       "flavor": "A row of guns turns a galley into a moving fort."
     }
   },

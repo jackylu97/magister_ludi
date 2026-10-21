@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import {
   applyCombat,
+  navalLineLines,
   previewCombat,
   seaDefenceLines,
   siegeField,
   underSiege,
 } from '../../src/sim/combat';
-import { cityBlockaded } from '../../src/sim/blockade';
+import { blockades, cityBlockaded } from '../../src/sim/blockade';
 import { foundCityAt, spawnTileFor } from '../../src/sim/cities';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { type Game, dispatch, snapshotState } from '../../src/sim/game';
@@ -851,6 +852,80 @@ describe('the blockade', () => {
       culture: 0,
       faith: 0,
     });
+  });
+});
+
+// --- the Galleass ------------------------------------------------------------
+
+/**
+ * **The Galleass** (Scientific batch S1, the Naval Gunners' Charter; the
+ * triage's readings 4 and 25): knowing Naval Gunnery gives the Gun Galley line
+ * +3 strength and the blockade. Whether a piece blockades is a question about
+ * the piece now: its row's marker, or its owner's `blockades` rule narrowed to
+ * the line. So the harbour, the sea lane and the line of battle all read it.
+ */
+describe('the Galleass', () => {
+  it('lets a Gun Galley blockade once its owner knows Naval Gunnery, and no other hull of the line before it', () => {
+    const state = seaState();
+    const town = foundCityAt(state, 0, at(state, 5, 4));
+    const galley = createUnit(state, 1, 'gunGalley', 4, 4);
+    expect(blockades(state, galley)).toBe(false);
+    expect(cityBlockaded(state, town)).toBe(false);
+    state.players[1]!.techsResearched.push('navalGunnery');
+    bumpRevision(state);
+    expect(blockades(state, galley)).toBe(true);
+    expect(cityBlockaded(state, town)).toBe(true);
+    // The Frigate is of the line; the Fire Ship before it is not.
+    galley.type = 'frigate';
+    expect(blockades(state, galley)).toBe(true);
+    galley.type = 'fireShip';
+    expect(blockades(state, galley)).toBe(false);
+    expect(cityBlockaded(state, town)).toBe(false);
+  });
+
+  it('closes the sea lane in the siege field, as a heavy hull does', () => {
+    const state = seaState();
+    for (const player of state.players) player.techsResearched.push('siegecraft');
+    bumpRevision(state);
+    const lane = at(state, 3, 4);
+    createUnit(state, 1, 'gunGalley', 4, 4);
+    const held = (): boolean => {
+      const field = siegeField(state, 0);
+      return field.held[lane.row * state.map.width + lane.col] === 1;
+    };
+    expect(held()).toBe(false);
+    state.players[1]!.techsResearched.push('navalGunnery');
+    bumpRevision(state);
+    expect(held()).toBe(true);
+  });
+
+  it('stands a Gun Galley in the line of battle, because the line asks the same question', () => {
+    const state = seaState();
+    const galley = createUnit(state, 0, 'gunGalley', 3, 4);
+    createUnit(state, 0, 'warGalley', 4, 4);
+    expect(navalLineLines(state, galley)).toEqual([]);
+    state.players[0]!.techsResearched.push('navalGunnery');
+    bumpRevision(state);
+    expect(navalLineLines(state, galley)).toEqual([{ source: 'The line', amount: RULES.naval.lineBonusPerHull }]);
+  });
+
+  it('adds three strength, labelled with the technology and the trait', () => {
+    const state = seaState();
+    seeEverything(state);
+    const galley = createUnit(state, 0, 'gunGalley', 2, 4);
+    createUnit(state, 1, 'trireme', 3, 4);
+    seeEverything(state);
+    const galleass = (): number => {
+      const view = previewCombat(state, galley.id, { col: 3, row: 4 });
+      if (!view.ok) throw new Error(view.error);
+      return view.attackerLines
+        .filter((line) => line.source === 'Naval Gunnery · Galleass')
+        .reduce((sum, line) => sum + line.amount, 0);
+    };
+    expect(galleass()).toBe(0);
+    state.players[0]!.techsResearched.push('navalGunnery');
+    bumpRevision(state);
+    expect(galleass()).toBe(3);
   });
 });
 

@@ -1453,7 +1453,9 @@ export function rowCombatLines(
  *
  * Four clauses, each a sentence. **Heavy hulls only**, asked of `blockades` —
  * the roster's own marker for the heavy line — so nothing here compares a type
- * against a name or switches on a model class, which is art. **Its own side**,
+ * against a name or switches on a model class, which is art. Since Scientific
+ * batch S1 the question is about a piece, so a hull that blockades by a card
+ * (the Galleass trait's Gun Galleys) stands in the line as well. **Its own side**,
  * the reading everything in this file gives "friendly". **Adjacent**, the six
  * neighbours and nothing further: a formation is contact, and a fleet spread
  * over a sea is not a line. **`state.units` in array order**, never a `Map`,
@@ -1465,7 +1467,7 @@ export function rowCombatLines(
 export function navalLineLines(state: GameState, unit: Unit): CombatStrengthLine[] {
   const per = RULES.naval.lineBonusPerHull;
   if (per === 0) return [];
-  if (!blockades(unitDef(unit.type))) return [];
+  if (!blockades(state, unit)) return [];
   const here = getTileAt(state.map, unit.col, unit.row);
   if (!here) return [];
   const eye = tileHex(here);
@@ -1473,7 +1475,7 @@ export function navalLineLines(state: GameState, unit: Unit): CombatStrengthLine
   for (const other of state.units) {
     if (other.id === unit.id) continue;
     if (other.ownerId !== unit.ownerId) continue;
-    if (!blockades(unitDef(other.type))) continue;
+    if (!blockades(state, other)) continue;
     const stands = getTileAt(state.map, other.col, other.row);
     if (!stands) continue;
     if (wrappedDistance(state.map, eye, tileHex(stands)) !== 1) continue;
@@ -3837,11 +3839,12 @@ export function siegeField(state: GameState, ownerId: number): SiegeField {
      * not merely `denied`, because `held` is precisely the grid `underSiege`
      * asks about the sea.
      *
-     * Asked of `blockades` (`blockade.ts`), the roster's own marker, so nothing
-     * here compares a type against a name — and the lane is water only, so this
-     * can never widen a siege on land.
+     * Asked of `blockades` (`blockade.ts`), the roster's own marker or a card's
+     * grant of it (the Galleass trait), so nothing here compares a type
+     * against a name. The lane is water only, so this can never widen a siege
+     * on land.
      */
-    if (!blockades(def)) continue;
+    if (!blockades(state, unit)) continue;
     const here = getTileAt(map, unit.col, unit.row);
     if (!here) continue;
     for (const lane of blockadedWaterAround(map, here)) mark(lane.col, lane.row);

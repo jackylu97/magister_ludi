@@ -473,12 +473,18 @@ describe('the schema, as landed', () => {
     // more. Two deferred rows were freed (The Breadbasket, Veteran Colonies).
     // **And Scientific batch S0** (the charter technologies): two more. Two
     // new Scientific rows came live (The Commonplace Book, The Patent Office).
+    // **And Scientific batch S1** (the line traits): three more. Three
+    // deferred charters were freed (the Bronze-Founders', the Mechanists' and
+    // the Naval Gunners').
+    // **And Scientific batch S1b** (the sheet and the types): eleven fewer.
+    // Field Notebooks and the ten live rows the Scientific sheet cut on
+    // 2026-10-06 were retired.
     // **And Dominion batch D9** (the themes pass): nine fewer. The ten cut
     // Dominion rows were live and are retired, and one new Dominion row came
     // live (The Champion's Portion). Four rows were changed in place and were
     // already live.
-    expect(live).toBe(491);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(491);
+    expect(live).toBe(483);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(483);
   });
 
   /**
@@ -723,10 +729,15 @@ describe('the schema, as landed', () => {
     // 152 since the charter technologies (Scientific batch S0): thirteen
     // technologies join the tree and two Scientific cards come live, so a
     // v151 log's research and drafts meet a different tree and deck.
-    // 153 since Dominion batch D9: ten Dominion Orders and one Doctrine are
-    // retired and one Order comes live, so a v152 log's Dominion hands and
+    // 153 since the line traits (Scientific batch S1): three Scientific
+    // charters are dealt, so a v152 log's hands differ from the first draft.
+    // 154 since the Scientific types and retirements (batch S1b): a
+    // Scientific seat's pool loses eleven cards, and typed chairs refuse some
+    // seat commands a v153 log holds.
+    // 155 since Dominion batch D9: ten Dominion Orders and one Doctrine are
+    // retired and one Order comes live, so a v154 log's Dominion hands and
     // Doctrine offers hold different cards.
-    expect(SCHEMA_VERSION).toBe(153);
+    expect(SCHEMA_VERSION).toBe(155);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -952,12 +963,17 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // **Scientific batch S0** wrote ten new charter rows deferred (+ 10) and
       // retired two deferred charters, the Metallurgists' and the Naturalists'
       // (− 2, and + 2 retired).
+      // **Scientific batch S1** freed three charters (the Bronze-Founders',
+      // the Mechanists' and the Naval Gunners': − 3).
+      // **Scientific batch S1b** retired thirteen deferred Scientific rows and
+      // the shared The Hydraulic Commonwealth (− 14), and eleven live
+      // Scientific rows (+ 25 retired in all).
       // **Dominion batch D9** retired the themes pass's ten cuts, all live
       // (+ 10 retired).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(65);
-      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(148);
+      ).toHaveLength(48);
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(173);
     }
   });
 

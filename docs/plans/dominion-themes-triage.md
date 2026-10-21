@@ -188,6 +188,8 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 35. The Longships (if you take the draft): at the end of the owner's turn (the drill phase, beside War Feeds Itself's harvest), each naval combat unit of yours pillages one improved land hex beside it that an empire at war with you owns. It takes the first such hex in neighbour order, never a tended work, one hex for each ship each turn. It is a full pillage: salvage, riders, tally and record.
 36. The Relay Stations (if you take the draft): +2 movement when the allowance refills at the start of the turn, for a land military unit standing in one of your towns with a road to the capital (the `connected` scope).
 37. Circumvallation (if you take the draft): a rival town that is under siege (`underSiege`), with at least one of the holder's units among the besiegers, adds no production toward an Opus at the front of its queue. The town's own breakdown shows the line and names the card (rule 5). The hammers are not banked anywhere else.
+38. (D9) The sheet uses this triage's text for The Res Gestae ("at most +28%", reading 19) and Rally to the Standard ("A military unit you gain…", reading 23), not the list doc's.
+39. (D9) A retired row carries no type, so a save that holds one reads it as unsorted, as the D0 cuts already do.
 
 ## The batches
 
@@ -213,6 +215,8 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 **The sheet.** Dominion's sheet is sorted and typed. D9 writes every row of the two plan docs onto it. Each later D batch sets its own rows to `implemented`, with the Ability cell equal to the data row's text and the Type column equal to the row's `type`, and recomputes the counts tables. A row is `implemented` only when its data text equals the sheet's Ability cell.
 
 ### D9: the sheet of record, the retirements and the Tier 0 data cards
+
+**Built 2026-10-21** on `dom-work` (`aab596fd`), to merge into `decks` after Scientific S1b. Readings 38 and 39 came from it. It also updated three tests the triage missed (`commissions.test.ts`, `decks/dominionCards.test.ts`, `decks/dominionWars.test.ts`).
 
 - **Builds:**
   - **The sheet.** Start from the working tree's `docs/decks/dominion.md`, which holds your uncommitted removal of The Servian Reforms. **Keep that removal.** Never rebuild the file from HEAD. Then write every card of the two plan docs onto it:
@@ -366,6 +370,16 @@ The 132 are the seatable cards of the list doc. Beside them, D9 retires ten Orde
 **The bot track:** D16 prices commissions for the first time. Until D16, a bot seats a commission only as filler, so bot games undervalue the deck's engine.
 
 ## Questions for the user
+
+**Answered 2026-10-21.** The user, on the six questions as listed in chat (this list's 2 to 7; question 1, The Servian Reforms, followed from their own sheet edit): *"recommendations seem fine"*. So:
+- The Servian Reforms' data row retires (D9).
+- D14 builds The Longships, The Relay Stations and Circumvallation as drafted; the user may rework them after a playtest.
+- The Limitanei keeps "at most two", and a ship counts (reading 24).
+- The institutions a seat holds get a read-only list under the council's chairs, built on the UI track after D11.
+- The Res Gestae: +4% for each commission, at most +28% (reading 19).
+- Rally to the Standard moves military units only, and its text says so (reading 23).
+- Readings 1 to 37 stand until the user marks one.
+
 
 1. **The Servian Reforms.** Retire its data row (recommended)? Your removal from the sheet fails the sheet test until the row retires or comes back. D9 retires it.
 2. **The three drafts.** Build The Longships, The Relay Stations and Circumvallation as drafted, in D14 (recommended: yes, and rework them after a playtest)? Or keep them deferred for your own rework?

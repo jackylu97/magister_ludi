@@ -1,39 +1,46 @@
 /**
- * **The Scientific deck, D1b** (`docs/plans/decks-rework.md` "D1b — the cards";
- * the design of record is `docs/six-decks-first-cut.md`, its "Scientific"
- * section — the four tier tables, "Rules for these forty cards" and "Charter
- * technologies and research conditions").
+ * **The Scientific deck**: `data/decks/scientific.json` checked against its
+ * sheet, `docs/decks/scientific.md`, which is the spec of record for the deck.
  *
- * Forty rows in `data/decks/scientific.json`, and what is pinned here is the
- * bargain D1b was given: a card whose text fits a shape the vocabulary already
- * has is **live** and carries `effects`; a card that needs a shape, a predicate,
- * an occasion, a count or a rule that does not exist is **deferred** — its own
- * sentence in plain words, no effects, in the data and the Compendium and in no
- * pool. Never bent, never a new shape.
+ * The sheet was rewritten in batch S1b (`docs/plans/scientific-build-triage.
+ * md`) from the review list `docs/plans/scientific-list-proposed.md`, in
+ * Dominion's sorted format: five tier tables (Card | Rarity | Status | Ability
+ * | Type), a shared table (Card | Rarity | Also in | Tier | Status | Ability |
+ * Type) and two counts tables. What this file checks:
  *
- * So the register below reads in both directions. Every live row's effects have
- * to print through the describers (a shape nobody wrote words for fails there,
- * not on a screen), and every deferred row has to be empty of effects and
- * carrying a sentence — because a half-built row that still pays something is
- * exactly the drift the deferral rule exists to stop.
+ *   · **the sheet matches the data.** The status says how a sheet row relates
+ *     to the data:
+ *       - `implemented`: a data row of that name exists, is dealt, and has the
+ *         sheet's rarity, tier and text;
+ *       - `modify`: a data row exists but differs. The words after the colon
+ *         say how (`deferred`, `revised`, `reworked`, `moved`, `rarity`,
+ *         `shared`), and the ones the data can answer are checked: a row
+ *         marked `deferred` is not dealt and a row not dealt is marked
+ *         `deferred`, a tier that differs is marked `moved`, a rarity that
+ *         differs is marked `rarity`, and a dealt row that matches the sheet in
+ *         every way must say `implemented`;
+ *       - `add`: no data row of that name exists yet.
+ *     Every row that is not retired is on the sheet once. The Assay is on the
+ *     shared table, marked `shared`, until batch S5 moves its row to
+ *     `common.json`;
+ *   · **the types** (batch S1b): every row the sheet lists, the shared ones
+ *     included, carries the Type cell's type in the data, and a retired row
+ *     carries none. `dominion.test.ts` checks that no other row is typed;
+ *   · **the counts tables** count the sheet's rows, the charters included;
+ *   · the retired rows are dealt to nobody and say in plain words why they
+ *     were cut;
+ *   · the live rows speak through the describers, the deferred rows carry a
+ *     plain sentence and no effects, and the thirteen charters name the
+ *     thirteen charter technologies;
+ *   · a Scientific seat is dealt only live rows;
+ *   · what the live rows do on a board, and that the rows a seat already
+ *     holds keep paying after they are retired;
+ *   · the Scientific shelf of `docs/orders-and-doctrines.md` says of each row
+ *     what the row says of itself. `statecraftDocSync.test.ts` is the strict
+ *     mirror of the live rows.
  *
- * **The five research Charters are deferred and still carry `charter`.** Optics,
- * Alloys, Taxonomy, Mechanics and Chemistry are not tech rows yet (D2 places
- * them off-lane), so the grant names a node the tree cannot answer for. The row
- * records the charter so D2 has one place to wire it, and `orderIsDealt` keeps
- * them off every shelf until it can be answered: a charter's grant is the whole
- * of the card, so a charter with no grant and a `deferred` sentence is dealt by
- * nobody (the clause the D1b audit asked for, `docs/plans/decks-shape-audit.md`
- * "A deferred charter is still dealt"). This file read the old answer when it
- * was written, and the two claims below are re-cut to the new one.
- *
- * **Re-cut for Scientific batch S0** (`docs/plans/scientific-build-triage.md`).
- * The deck now holds fifty-two rows. Thirteen are charters, and each names a
- * charter technology the tree holds off the sky (`TechDef.charter`). They stay
- * deferred until their gifts are built (reading 21). The Metallurgists' and
- * Naturalists' Charters are retired, and two cards are live: The Commonplace
- * Book and The Patent Office. `test/sim/charterTechs.test.ts` pins the
- * technologies themselves.
+ * `test/sim/charterTechs.test.ts` pins the charter technologies and
+ * `test/sim/decks/scientificTraits.test.ts` the line traits.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -62,14 +69,21 @@ import {
 } from '../../../src/sim/statecraft';
 import { explainRenown } from '../../../src/sim/renown';
 import {
+  type Band,
   type CardEffect,
+  type CardType,
+  type DeckId,
   type OrderId,
   type OrderRarity,
   BANDS,
   DECK_FILE_ORDERS,
+  DECK_WORDS,
+  ORDER_IDS,
+  isCardType,
   isCharter,
   orderDef,
   orderIsDealt,
+  orderType,
 } from '../../../src/sim/statecraftData';
 import {
   CHARTER_TECH_IDS,
@@ -85,33 +99,39 @@ import { createGame } from '../newGameHelpers';
 /** The ids of `data/decks/scientific.json`, in file order. */
 const DECK: readonly OrderId[] = DECK_FILE_ORDERS.scientific;
 
-/** The rows the design withdrew (Scientific batch S0), kept for the record. */
+/** The rows the design withdrew, kept so that old saves load. */
 const RETIRED = DECK.filter((id) => orderDef(id).retired === true);
 
 /** Every row that is not retired. */
 const CURRENT = DECK.filter((id) => orderDef(id).retired !== true);
 
-/** A row with effects — the half of the deck D1b could say in the vocabulary. */
-const LIVE = CURRENT.filter((id) => orderDef(id).effects.length > 0);
-
-/** A row with a sentence and nothing to slot — what D2's waves un-defer. */
-const DEFERRED = CURRENT.filter((id) => orderDef(id).effects.length === 0);
-
-/** The research charters, deferred and carrying their grant. */
+/** The research charters, carrying their grant. */
 const CHARTERS = CURRENT.filter((id) => isCharter(id));
+
+/**
+ * The charters whose whole gift is built, so they are dealt (batch S1). A
+ * charter has no effects: its gift is the research it opens and what the
+ * technology row gives.
+ */
+const DEALT_CHARTERS: readonly OrderId[] = ['theBronzeFoundersCharter', 'theMechanistsCharter', 'theNavalGunnersCharter'];
+
+/** A row with effects, or a dealt charter: the half of the deck that plays. */
+const LIVE = CURRENT.filter((id) => orderDef(id).effects.length > 0 || DEALT_CHARTERS.includes(id));
+
+/** A row with a sentence and nothing to slot: what later batches un-defer. */
+const DEFERRED = CURRENT.filter((id) => !LIVE.includes(id));
 
 const RARITIES: readonly OrderRarity[] = ['common', 'uncommon', 'rare'];
 
-/** The doc's rarity marks, the sync test's own table. */
+/** The worksheet's rarity marks, the sync test's own table. */
 const MARK: Record<OrderRarity, string> = { common: '●', uncommon: '◆', rare: '○' };
 
 // --- the rows ----------------------------------------------------------------
 
 describe('the rows', () => {
-  it('is the whole deck, every row named for this deck alone, banded and rated', () => {
+  it('is the whole deck, every current row named for this deck alone, banded and rated', () => {
     expect(DECK).toHaveLength(52);
     expect(new Set(DECK).size).toBe(52);
-    expect(RETIRED).toEqual(['theMetallurgistsCharter', 'theNaturalistsCharter']);
     for (const id of CURRENT) {
       const def = orderDef(id);
       expect(def.decks, id).toEqual(['scientific']);
@@ -122,21 +142,24 @@ describe('the rows', () => {
       // A row written after the rework carries neither of the old fields.
       expect(def.pool, id).toBeUndefined();
       expect(def.slot, id).toBeUndefined();
-      expect(def.retired, id).toBeUndefined();
     }
+    // Names are unique in the file, retired rows included.
+    const names = DECK.map((id) => orderDef(id).name);
+    expect(new Set(names).size, 'two rows share a name').toBe(names.length);
   });
 
-  it('fills the five tier tables: twelve, thirteen, fourteen, eight and three', () => {
-    // S0 added ten charters and two cards, moved the Mechanists' Charter from
-    // band three to band two, and retired two band-two charters.
+  it('fills the five tiers with five, eight, six, four and three current rows', () => {
+    // S0 added ten charters and two cards. S1b retired twenty-four rows and
+    // left twenty-six; the sheet's `add` rows join as later batches build them.
     const perBand = [0, 1, 2, 3, 4].map(
       (band) => CURRENT.filter((id) => orderDef(id).band === band).length,
     );
-    expect(perBand).toEqual([12, 13, 14, 8, 3]);
+    expect(perBand).toEqual([5, 8, 6, 4, 3]);
   });
 
   it('splits into live rows with effects and deferred rows with a sentence, and nothing between', () => {
     expect(LIVE.length + DEFERRED.length).toBe(CURRENT.length);
+    expect(LIVE).toHaveLength(14);
     for (const id of LIVE) {
       const def = orderDef(id);
       expect(def.text, `${id} is live and carries no ratified text`).toBeTruthy();
@@ -154,7 +177,7 @@ describe('the rows', () => {
     }
   });
 
-  it('keeps every deferred sentence plain — no identifiers, no figures, no marks', () => {
+  it('keeps every deferred sentence plain: no identifiers, no figures, no marks', () => {
     for (const id of DEFERRED) {
       for (const line of orderDef(id).deferred!) {
         expect(line, id).not.toMatch(/\d/);
@@ -162,6 +185,372 @@ describe('the rows', () => {
         expect(line, id).not.toMatch(/[%+]/);
       }
     }
+  });
+});
+
+// --- the retired rows ----------------------------------------------------------
+
+describe('the retired rows', () => {
+  it('retires the cut rows of S0 and S1b, and nothing else', () => {
+    expect(RETIRED).toEqual([
+      'theCelestialRites',
+      'fieldNotebooks',
+      'naturalPhilosophy',
+      'apprenticeEngineers',
+      'theResearchAnnals',
+      'practicalAstronomy',
+      'patientResearch',
+      'theOpenCollegium',
+      'workingEstates',
+      'thePracticalArts',
+      'researchThroughConstruction',
+      'theEndowedProvinces',
+      'theMetallurgistsCharter',
+      'theNaturalistsCharter',
+      'theRoyalSociety',
+      'theLearnedChancery',
+      'theAcademyQuarter',
+      'theInheritedSchool',
+      'discoveriesThroughGreatPeople',
+      'husbandryStudies',
+      'thePatentRolls',
+      'commissionsOfService',
+      'masterArtificers',
+      'theDistantColleges',
+      'theSocietyOfArtificers',
+      'theLearnedRealm',
+    ]);
+    // The one shared row both its sheets cut (batch S1b).
+    expect(orderDef('theHydraulicCommonwealth').retired).toBe(true);
+  });
+
+  it('deals none of them, types none of them, and says in plain words why each was cut', () => {
+    for (const id of [...RETIRED, 'theHydraulicCommonwealth' as OrderId]) {
+      const def = orderDef(id);
+      expect(orderIsDealt(id), `${id} is retired and still dealt`).toBe(false);
+      expect(def.type, `${id} is retired and carries a type`).toBeUndefined();
+      expect(orderType(id), id).toBe('unsorted');
+      // The Compendium prints the note under the card, so it is player prose.
+      expect(def.note, `${id} does not say why it was cut`).toMatch(/^Cut from (the deck|both its decks)\. /);
+      expect(def.note, id).not.toMatch(/\d/);
+      expect(def.note, id).not.toMatch(/\[\[/);
+    }
+  });
+});
+
+// --- the deck sheet, read ----------------------------------------------------
+
+/** The deck sheet, the spec of record for the deck's cards. */
+const sheetFiles = import.meta.glob('../../../docs/decks/scientific.md', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+});
+const SHEET = Object.values(sheetFiles)[0] as string;
+
+/** The sheet's tier headings, which are the bands. */
+const TIERS: Record<string, Band> = { '0': 0, I: 1, II: 2, III: 3, IV: 4 };
+
+/** How a sheet row relates to the data: the first word of its Status cell. */
+type SheetStatus = 'implemented' | 'modify' | 'add';
+const SHEET_STATUSES: readonly SheetStatus[] = ['implemented', 'modify', 'add'];
+
+/** The words a `modify` row may give after the colon (the sheet's own list). */
+const REASONS = ['deferred', 'revised', 'reworked', 'moved', 'rarity', 'shared'] as const;
+type Reason = (typeof REASONS)[number];
+
+/** One card the sheet lists, in a tier table or the shared table. */
+interface SheetCard {
+  /** The name the sheet prints, without the bold and the "(was …)" note. */
+  name: string;
+  /** The name in the "(was …)" note, when the sheet gives one. */
+  was?: string;
+  rarity: OrderRarity;
+  band: Band;
+  status: SheetStatus;
+  /** The words after the colon in the Status cell. */
+  reasons: Reason[];
+  text: string;
+  /** The Type cell, lowercased. */
+  type: CardType;
+}
+
+/** One card of the shared table. Its row lives in `data/decks/common.json`. */
+interface SharedCard extends SheetCard {
+  /** The other deck that may draw it, from the "Also in" cell. */
+  alsoIn: DeckId;
+}
+
+/** The Type cell read as a type. A row without one fails here, by name. */
+function typeOf(card: string, cell: string | undefined): CardType {
+  const type = (cell ?? '').toLowerCase();
+  expect(isCardType(type), `"${card}" has no type the game knows ("${cell ?? ''}")`).toBe(true);
+  return type as CardType;
+}
+
+/** A table row's cells, or `null` for a header, a rule or a line that is not a row. */
+function cellsOf(line: string): string[] | null {
+  if (!line.startsWith('|')) return null;
+  const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
+  if (cells[0] === 'Card' || cells.every((cell) => /^-+$/.test(cell))) return null;
+  return cells;
+}
+
+/** A Card cell read into the printed name and the "(was …)" name, if any. */
+function namesOf(cell: string): { name: string; was?: string } {
+  const plain = cell.replace(/\*\*/g, '').trim();
+  const match = /^(.*?)\s*\(was (.+)\)$/.exec(plain);
+  if (match === null) return { name: plain };
+  return { name: match[1]!.trim(), was: match[2]!.trim() };
+}
+
+/** A Status cell read into its first word and the reasons after the colon. */
+function statusOf(card: string, cell: string): { status: SheetStatus; reasons: Reason[] } {
+  const colon = cell.indexOf(':');
+  const head = (colon < 0 ? cell : cell.slice(0, colon)).trim();
+  expect(SHEET_STATUSES, `"${card}" has an unknown status "${cell}"`).toContain(head);
+  const reasons = colon < 0 ? [] : cell.slice(colon + 1).split(';').map((word) => word.trim());
+  for (const reason of reasons) {
+    expect(REASONS, `"${card}" gives an unknown reason "${reason}"`).toContain(reason);
+  }
+  if (head === 'modify') expect(reasons.length, `"${card}" says modify and gives no reason`).toBeGreaterThan(0);
+  else expect(reasons, `"${card}" gives a reason with "${head}"`).toEqual([]);
+  return { status: head as SheetStatus, reasons: reasons as Reason[] };
+}
+
+/**
+ * **The five tier tables**, in the sheet's own order: from the first tier
+ * heading to the first level-two heading that is not a tier, so the shared
+ * table and the retired rows after it are not read here.
+ */
+function sheetCards(): SheetCard[] {
+  const start = SHEET.indexOf('\n## Tier 0');
+  expect(start, 'the sheet has a Tier 0 table').toBeGreaterThanOrEqual(0);
+  const cards: SheetCard[] = [];
+  let band: Band | null = null;
+  for (const line of SHEET.slice(start + 1).split('\n')) {
+    const heading = /^## Tier (0|I|II|III|IV)$/.exec(line);
+    if (heading) {
+      band = TIERS[heading[1]!]!;
+      continue;
+    }
+    if (line.startsWith('## ')) break;
+    const cells = cellsOf(line);
+    if (cells === null || band === null || cells.length < 5) continue;
+    cards.push({
+      ...namesOf(cells[0]!),
+      rarity: cells[1] as OrderRarity,
+      band,
+      ...statusOf(cells[0]!, cells[2]!),
+      text: cells[3]!,
+      type: typeOf(cells[0]!, cells[4]),
+    });
+  }
+  return cards;
+}
+
+/** **The shared table** ("Shared with another deck"), to the next level-two heading. */
+function sharedCards(): SharedCard[] {
+  const start = SHEET.indexOf('\n## Shared with another deck');
+  expect(start, 'the sheet has a shared table').toBeGreaterThanOrEqual(0);
+  const deckByWord = new Map(
+    (Object.entries(DECK_WORDS) as [DeckId, string][]).map(([deck, word]) => [word, deck] as const),
+  );
+  const cards: SharedCard[] = [];
+  for (const line of SHEET.slice(start + 1).split('\n').slice(1)) {
+    if (line.startsWith('## ')) break;
+    const cells = cellsOf(line);
+    if (cells === null || cells.length < 7) continue;
+    const alsoIn = deckByWord.get(cells[2]!);
+    expect(alsoIn, `"${cells[0]}" is shared with an unknown deck "${cells[2]}"`).toBeDefined();
+    expect(alsoIn, `"${cells[0]}" is shared with Scientific itself`).not.toBe('scientific');
+    expect(Object.keys(TIERS), `"${cells[0]}" has an unknown tier "${cells[3]}"`).toContain(cells[3]);
+    cards.push({
+      ...namesOf(cells[0]!),
+      rarity: cells[1] as OrderRarity,
+      alsoIn: alsoIn!,
+      band: TIERS[cells[3]!]!,
+      ...statusOf(cells[0]!, cells[4]!),
+      text: cells[5]!,
+      type: typeOf(cells[0]!, cells[6]),
+    });
+  }
+  return cards;
+}
+
+/**
+ * **A counts table**, found by its header row: each body row's first cell
+ * (with the bold taken off) against its number cells, in order.
+ */
+function countsTable(header: string): Map<string, number[]> {
+  const start = SHEET.indexOf(header);
+  expect(start, `the sheet has the table "${header}"`).toBeGreaterThanOrEqual(0);
+  const rows = new Map<string, number[]>();
+  for (const line of SHEET.slice(start).split('\n').slice(2)) {
+    if (!line.startsWith('|')) break;
+    const cells = line.split('|').slice(1, -1).map((cell) => cell.replace(/\*\*/g, '').trim());
+    rows.set(
+      cells[0]!,
+      cells.slice(1).filter((cell) => /^\d+$/.test(cell)).map(Number),
+    );
+  }
+  return rows;
+}
+
+/** The name of the data row a sheet row stands for: the "(was …)" name if given. */
+const dataNameOf = (card: { name: string; was?: string }): string => card.was ?? card.name;
+
+/** A charter's text, as the sheet and the data write it. */
+const isCharterText = (text: string): boolean => text.startsWith('Drafting this opens ');
+
+/**
+ * The checks every sheet row with a data row shares, in either table: the
+ * type, the charter mark, and what the status and its reasons claim.
+ */
+function checkAgainstRow(card: SheetCard, id: OrderId): void {
+  const def = orderDef(id);
+  expect(def.type, `${card.name}: the sheet's type`).toBe(card.type);
+  expect(isCharter(id), `${card.name}: a charter on one side only`).toBe(isCharterText(card.text));
+  const dealt = orderIsDealt(id);
+  if (card.status === 'implemented') {
+    expect(card.was, `${card.name} is implemented and renamed`).toBeUndefined();
+    expect(dealt, `${card.name} is marked implemented but is not dealt`).toBe(true);
+    expect(def.rarity, `${card.name}: the sheet's rarity`).toBe(card.rarity);
+    expect(def.band, `${card.name}: the sheet's tier`).toBe(card.band);
+    expect(def.text, `${card.name}: the sheet's ability`).toBe(card.text);
+    return;
+  }
+  // Modify: the reasons the data can answer must be true, both ways.
+  expect(card.reasons.includes('deferred'), `${card.name}: deferred on one side only`).toBe(!dealt);
+  expect(card.reasons.includes('moved'), `${card.name}: a different tier on one side only`).toBe(
+    def.band !== card.band,
+  );
+  expect(card.reasons.includes('rarity'), `${card.name}: a different rarity on one side only`).toBe(
+    def.rarity !== card.rarity,
+  );
+  // A dealt row that matches the sheet in every way is implemented.
+  const same =
+    card.was === undefined && def.text === card.text && def.band === card.band && def.rarity === card.rarity;
+  expect(dealt && same, `${card.name} matches its row and should say implemented`).toBe(false);
+}
+
+/** Every name in the registry: a card still to be added may reuse none of them. */
+const TAKEN = new Set(ORDER_IDS.map((id) => orderDef(id).name));
+
+describe('the Scientific deck: the sheet', () => {
+  it('mirrors the five tier tables, card for card', () => {
+    const sheet = sheetCards();
+    const shared = sharedCards();
+    expect(sheet.length, 'the sheet lists cards under every tier heading').toBeGreaterThan(0);
+    const byName = new Map(CURRENT.map((id) => [orderDef(id).name, id] as const));
+    for (const card of sheet) {
+      if (card.status === 'add') {
+        expect(TAKEN.has(card.name), `"${card.name}" is marked add but the data has it`).toBe(false);
+        continue;
+      }
+      const id = byName.get(dataNameOf(card));
+      expect(id, `the deck file has no row for "${dataNameOf(card)}"`).toBeDefined();
+      expect(card.reasons, `${card.name} is in a tier table and marked shared`).not.toContain('shared');
+      checkAgainstRow(card, id!);
+    }
+    // Every current row is on the sheet once: on a tier table, or on the shared
+    // table while it waits to move to common.json.
+    const listed = [
+      ...sheet.filter((card) => card.status !== 'add'),
+      ...shared.filter((card) => card.reasons.includes('shared')),
+    ].map(dataNameOf);
+    expect(new Set(listed).size, 'a data row is listed twice').toBe(listed.length);
+    for (const name of byName.keys()) {
+      expect(listed.includes(name), `"${name}" is a row the sheet does not list`).toBe(true);
+    }
+    expect(listed.length).toBe(CURRENT.length);
+    // And the sheet prints no name twice, the shared table's included.
+    const printed = [...sheet, ...shared].map((card) => card.name);
+    expect(new Set(printed).size, 'the sheet prints a name twice').toBe(printed.length);
+  });
+
+  it('mirrors the shared table onto its rows in common.json', () => {
+    const shared = sharedCards();
+    expect(shared.length, 'the shared table lists cards').toBeGreaterThan(0);
+    const common = new Map(
+      DECK_FILE_ORDERS.common
+        .filter((id) => orderDef(id).retired !== true)
+        .map((id) => [orderDef(id).name, id] as const),
+    );
+    const own = new Map(CURRENT.map((id) => [orderDef(id).name, id] as const));
+    let checked = 0;
+    for (const card of shared) {
+      const name = dataNameOf(card);
+      if (card.status === 'add') {
+        expect(TAKEN.has(card.name), `"${card.name}" is marked add but the data has it`).toBe(false);
+        continue;
+      }
+      if (card.reasons.includes('shared')) {
+        // Still this deck's own row, waiting for its batch to move it.
+        const id = own.get(name);
+        expect(id, `"${name}" is marked shared and is not a row of this deck`).toBeDefined();
+        expect(common.has(name), `"${name}" is marked shared but common.json has it`).toBe(false);
+        checkAgainstRow(card, id!);
+        checked += 1;
+        continue;
+      }
+      const id = common.get(name);
+      expect(id, `common.json has no row for "${name}"`).toBeDefined();
+      // The row is the one the sheet means: shared by Scientific and the deck named.
+      expect(orderDef(id!).decks, name).toContain('scientific');
+      expect(orderDef(id!).decks, name).toContain(card.alsoIn);
+      checkAgainstRow(card, id!);
+      checked += 1;
+    }
+    expect(checked, 'every shared row in the data was checked').toBe(
+      shared.filter((card) => card.status !== 'add').length,
+    );
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  it('lists every shared row that names Scientific', () => {
+    const names = new Set(sharedCards().map(dataNameOf));
+    for (const id of DECK_FILE_ORDERS.common) {
+      const def = orderDef(id);
+      if (def.retired === true || !def.decks.includes('scientific')) continue;
+      expect(names.has(def.name), `"${def.name}" names Scientific and is not on the shared table`).toBe(true);
+    }
+  });
+
+  it('keeps every retired row off the tables', () => {
+    const listed = new Set(
+      [...sheetCards(), ...sharedCards()].flatMap((card) => [card.name, dataNameOf(card)]),
+    );
+    for (const id of [...RETIRED, 'theHydraulicCommonwealth' as OrderId]) {
+      expect(listed.has(orderDef(id).name), `${id} is retired and still on the sheet`).toBe(false);
+    }
+  });
+
+  it('counts its rows in the two counts tables, the charters included', () => {
+    const sheet = sheetCards();
+    const shared = sharedCards();
+    const status = countsTable('| Tier | Implemented | Modify | Add | All | Charters |');
+    const types = countsTable('| Tier | Military | Economic | Civic | Wildcard |');
+    const byStatus = (cards: readonly SheetCard[]): number[] => [
+      ...SHEET_STATUSES.map((s) => cards.filter((card) => card.status === s).length),
+      cards.length,
+      cards.filter((card) => isCharterText(card.text)).length,
+    ];
+    const byType = (cards: readonly SheetCard[]): number[] =>
+      (['military', 'economic', 'civic', 'wildcard'] as const).map(
+        (t) => cards.filter((card) => card.type === t).length,
+      );
+    for (const word of Object.keys(TIERS)) {
+      const cards = sheet.filter((card) => card.band === TIERS[word]);
+      expect(status.get(`Tier ${word}`), `Tier ${word}'s status counts`).toEqual(byStatus(cards));
+      expect(types.get(`Tier ${word}`), `Tier ${word}'s type counts`).toEqual(byType(cards));
+    }
+    expect(status.get('All'), 'the status totals').toEqual(byStatus(sheet));
+    expect(types.get('All'), 'the type totals').toEqual(byType(sheet));
+    expect(status.get('Shared'), 'the shared status counts').toEqual(byStatus(shared));
+    expect(types.get('Shared'), 'the shared type counts').toEqual(byType(shared));
+    // The thirteen charters are all on the tier tables.
+    expect(sheet.filter((card) => isCharterText(card.text))).toHaveLength(13);
   });
 });
 
@@ -184,7 +573,7 @@ describe('the live rows’ effects', () => {
     }
   });
 
-  it('prints through the describers with every keyword resolved — no raw marks on a surface', () => {
+  it('prints through the describers with every keyword resolved, no raw marks on a surface', () => {
     for (const id of DECK) {
       const said = describeCard(id).map((clause) => clause.text);
       for (const text of said) {
@@ -197,11 +586,10 @@ describe('the live rows’ effects', () => {
 
   it('pays only through pairs the yields sequence already carries', () => {
     // `docs/yields.md`'s register: the hex at step 2, the town's flats and
-    // counts at 3, its share of its own fold at 10, and the realm's counts at
-    // 16. A row reaching for a pair nobody folds is a shape decision rather
-    // than a JSON row. The last two joined with D2b — The Assay counts the
-    // seams the realm can reach, and the Society of Artificers takes a share of
-    // what its town builds.
+    // counts at 3, and the realm's counts at 16. A row reaching for a pair
+    // nobody folds is a shape decision rather than a JSON row. The town's
+    // share of its own fold left the live rows with The Society of Artificers
+    // (retired in batch S1b).
     const pairs = new Set<string>();
     for (const id of LIVE) {
       for (const effect of orderDef(id).effects) {
@@ -210,20 +598,14 @@ describe('the live rows’ effects', () => {
         if (effect.where === 'hex') expect(effect.on, `${id} pays a hex with no condition`).toBeDefined();
       }
     }
-    expect([...pairs].sort()).toEqual([
-      'city:count',
-      'city:flat',
-      'city:share',
-      'empire:count',
-      'hex:flat',
-    ]);
+    expect([...pairs].sort()).toEqual(['city:count', 'city:flat', 'empire:count', 'hex:flat']);
   });
 });
 
 // --- the charters ------------------------------------------------------------
 
 describe('the research charters', () => {
-  it('names the thirteen charter technologies, one row each, all deferred', () => {
+  it('names the thirteen charter technologies, one row each, deferred but for the three S1 deals', () => {
     expect(CHARTERS).toHaveLength(13);
     const techs = CHARTERS.map((id) => orderDef(id).charter!.unlocks.tech);
     expect(new Set(techs)).toEqual(new Set(CHARTER_TECH_IDS));
@@ -231,10 +613,11 @@ describe('the research charters', () => {
     for (const id of CHARTERS) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);
-      expect(def.deferred, id).toBeDefined();
+      expect(def.deferred === undefined, id).toBe(DEALT_CHARTERS.includes(id));
       expect(def.charter!.unlocks.building, id).toBeUndefined();
       expect(def.charter!.unlocks.rites, id).toBeUndefined();
     }
+    for (const id of DEALT_CHARTERS) expect(CHARTERS, id).toContain(id);
   });
 
   it('names nodes the tree holds off the sky, and the retired rows name none it holds', () => {
@@ -245,23 +628,27 @@ describe('the research charters', () => {
       expect(techDef(tech).charter, `${id} names "${tech}", which is not a charter row`).toBe(true);
       expect(sky.has(tech), `${id} names a node of the sky`).toBe(false);
     }
-    for (const id of RETIRED) expect(isTechId(orderDef(id).charter!.unlocks.tech), id).toBe(false);
+    for (const id of RETIRED) {
+      const tech = orderDef(id).charter?.unlocks.tech;
+      if (tech !== undefined) expect(isTechId(tech), id).toBe(false);
+    }
   });
 
   /**
-   * **Dealt by nobody, like every other deferred row.** This file pinned the
-   * opposite when it was written — `orderIsDealt` dealt a charter whatever else
-   * the row said, so the five sat in the pool although their grant named
-   * nothing, and the pin said so rather than wishing it away. `orderIsDealt`
-   * grew the clause the note asked for, so the charters are now exactly where
-   * the rest of the deferred catalogue is: in the data, in the Compendium, in
-   * no pool. D2 places the nodes and drops the `deferred` sentence, and the row
-   * deals itself the same turn.
+   * **Dealt by nobody until its gift is built.** A charter's grant is the
+   * whole card, so a charter with no grant and a `deferred` sentence is in no
+   * pool (`orderIsDealt`), like every other deferred row. A batch that builds
+   * a charter's gift drops its `deferred` sentence, and the row is dealt from
+   * the same turn.
    */
   it('is dealt by nobody until its gift is built, and neither is any other deferred row', () => {
     for (const id of CHARTERS) {
-      expect(orderDef(id).deferred, id).toBeDefined();
       expect(orderDef(id).effects, id).toEqual([]);
+      if (DEALT_CHARTERS.includes(id)) {
+        expect(orderIsDealt(id), `${id} has its whole gift and is not dealt`).toBe(true);
+        continue;
+      }
+      expect(orderDef(id).deferred, id).toBeDefined();
       expect(orderIsDealt(id), `${id} is a deferred charter and still dealt`).toBe(false);
     }
     for (const id of DEFERRED) {
@@ -274,7 +661,7 @@ describe('the research charters', () => {
 
 // --- the draw ----------------------------------------------------------------
 
-/** A duel with Hypatia in the first seat — Scientific and Magisterial. */
+/** A duel with Hypatia in the first seat: Scientific and Magisterial. */
 function seated(seed = 13): Game {
   return createGame({
     seed,
@@ -301,7 +688,7 @@ function openEveryBand(state: GameState, playerId: number): void {
 }
 
 describe('a Scientific seat’s draw', () => {
-  it('holds this deck’s live rows, its partner’s, the commons — and nothing deferred', () => {
+  it('holds this deck’s live rows, its partner’s, the commons, and nothing deferred or retired', () => {
     const g = seated();
     const hypatia = playerById(g.state, 0)!;
     expect(hypatia.decks).toEqual(['scientific', 'magisterial']);
@@ -312,23 +699,20 @@ describe('a Scientific seat’s draw', () => {
         .toBe(true);
       expect(orderIsDealt(id), id).toBe(true);
       // Nothing half-built reaches a hand: a dealt row of this deck either pays
-      // something or is one of the five Charters.
+      // something or is a charter whose gift is built.
       if (DECK.includes(id)) {
         expect(orderDef(id).effects.length > 0 || isCharter(id), id).toBe(true);
       }
     }
-    // Every live row of this deck is in it, and every deferred row — the five
-    // Charters among them, since the clause landed — is not.
     for (const id of LIVE) expect(pool, id).toContain(id);
     for (const id of DEFERRED) expect(pool, id).not.toContain(id);
+    for (const id of RETIRED) expect(pool, id).not.toContain(id);
   });
 
   it('deals an opening seat only band-nought rows of its own pool, over twenty seeded hands', () => {
-    // **Re-cut for the finished D1b.** Written while the other six files were
-    // empty, this pinned the opening shelf as *this deck's* band-nought live
-    // rows and nothing else. Hypatia also holds Magisterial, and the commons
-    // deal to everybody, so the shelf is the seat's whole pool at band nought —
-    // and this deck's own share of it is still claimed, below.
+    // Hypatia also holds Magisterial, and the commons deal to everybody, so the
+    // shelf is the seat's whole pool at band nought, and this deck's own share
+    // of it is checked as well.
     const g = seated(21);
     const hypatia = playerById(g.state, 0)!;
     const sc = hypatia.statecraft;
@@ -348,22 +732,22 @@ describe('a Scientific seat’s draw', () => {
         seen.add(id);
       }
     }
-    // Over twenty hands the draw is not quietly stuck on one row: it reaches
-    // well past a single hand's worth of the shelf.
+    // Over twenty hands the draw is not stuck on one row: it reaches well past
+    // a single hand's worth of the shelf.
     expect(seen.size).toBeGreaterThan(3);
   });
 
-  it('deals a fully opened seat nothing this deck defers, over forty seeded hands', () => {
+  it('deals a fully opened seat nothing this deck defers or retired, over forty seeded hands', () => {
     const g = seated(34);
     const hypatia = playerById(g.state, 0)!;
     const sc = hypatia.statecraft;
     openEveryBand(g.state, 0);
-    const refused = new Set(DEFERRED.filter((id) => !isCharter(id)));
+    const refused = new Set([...DEFERRED, ...RETIRED]);
     for (let n = 1; n <= 40; n++) {
       sc.drafts = 29;
       delete sc.pendingOrder;
       for (const id of drawOrderOffer(g.state, hypatia).options) {
-        expect(refused.has(id), `hand ${n} dealt the deferred "${id}"`).toBe(false);
+        expect(refused.has(id), `hand ${n} dealt the deferred or retired "${id}"`).toBe(false);
       }
     }
   });
@@ -378,7 +762,7 @@ describe('a Scientific seat’s draw', () => {
   });
 });
 
-// --- the six live rows, on a board -------------------------------------------
+// --- the live rows, on a board -------------------------------------------------
 
 /** Grants a card and seats it, the way `statecraft.test.ts` does. */
 function slot(state: GameState, playerId: number, id: OrderId): void {
@@ -389,7 +773,7 @@ function slot(state: GameState, playerId: number, id: OrderId): void {
 }
 
 describe('what the live rows do on a board', () => {
-  it('The Almanac — a Library town works one point harder, and the shelf is cheaper', () => {
+  it('The Almanac: a Library town works one point harder, and the shelf is cheaper', () => {
     const g = game();
     const city = found(g.state, 0);
     city.buildings.push('library');
@@ -403,13 +787,13 @@ describe('what the live rows do on a board', () => {
     const line = named();
     expect(line).toHaveLength(1);
     expect(line[0]!.production).toBe(1);
-    // And a town with no Library is untouched — the scope is the whole rule.
+    // And a town with no Library is untouched: the scope is the whole rule.
     city.buildings.splice(city.buildings.indexOf('library'), 1);
     refreshCityDerived(g.state, city);
     expect(named()).toEqual([]);
   });
 
-  it('The Scribes’ Hall — a Library town pays by its own citizens, not the realm’s', () => {
+  it('The Scribes’ Hall: a Library town pays by its own citizens, not the realm’s', () => {
     const g = game();
     const city = found(g.state, 0);
     city.buildings.push('library');
@@ -422,7 +806,161 @@ describe('what the live rows do on a board', () => {
     expect(after.culture).toBe(before.culture + 4);
   });
 
-  it('Working Estates and Master Artificers — the works pay, and the ordinary ground does not', () => {
+  // --- D2d, the age stamp ----------------------------------------------------
+  //
+  // These rows read `City.buildingTurns`, `Tile.improvedOn` and the scopes that
+  // read them. Each test checks both sides of the threshold, "not yet, and
+  // then yes", because a test that only checked the paying side would also
+  // pass if the scope admitted everything.
+
+  it('The Long Study: a young Library pays nothing, an old one pays, and a very old one pays twice', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    g.state.turn = 10;
+    addBuilding(g.state, city, 'library');
+    refreshCityDerived(g.state, city);
+    slot(g.state, 0, 'theLongStudy');
+    const lines = () =>
+      explainCity(g.state, city).lines.filter((line) =>
+        line.source.startsWith('Order · The Long Study'),
+      );
+    const renown = () =>
+      explainRenown(g.state, 0).filter((line: { source: string }) =>
+        line.source.includes('The Long Study'),
+      );
+    expect(lines(), 'a Library raised this turn is not an old Library').toEqual([]);
+    expect(renown()).toEqual([]);
+
+    g.state.turn = 30;
+    bumpRevision(g.state);
+    refreshCityDerived(g.state, city);
+    const twenty = lines();
+    expect(twenty).toHaveLength(1);
+    expect(twenty[0]!.culture).toBe(2);
+    expect(renown()).toHaveLength(1);
+
+    // At forty the second clause joins the first, so the card's printed "+4
+    // culture" is two labelled lines and not a figure computed beside them.
+    g.state.turn = 50;
+    bumpRevision(g.state);
+    refreshCityDerived(g.state, city);
+    const forty = lines();
+    expect(forty).toHaveLength(2);
+    expect(forty.reduce((sum, line) => sum + line.culture, 0)).toBe(4);
+    expect(renown()).toHaveLength(2);
+  });
+
+  it('The Old Academy: an old Academy pays on its hex, and a young one does not', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const tile = getTileAt(g.state.map, city.col, city.row)!;
+    const ctx = () => yieldContextFor(g.state, 0);
+    g.state.turn = 6;
+    raiseImprovement(tile, 'academy', g.state.turn);
+    slot(g.state, 0, 'theOldAcademy');
+    const paid = () =>
+      explainTileYield(tile, ctx()).filter((line) =>
+        line.source.startsWith('Order · The Old Academy'),
+      );
+    expect(paid()).toEqual([]);
+
+    g.state.turn = 26;
+    expect(paid()).toHaveLength(1);
+    expect(paid()[0]!.food).toBe(3);
+    expect(paid()[0]!.production).toBe(3);
+
+    // At forty the second clause joins the first. `explainTileYield` folds rows
+    // of one source together, so the two clauses read as one labelled entry,
+    // and the "+6 of each" is still their sum (rule 5).
+    g.state.turn = 46;
+    const old = paid();
+    expect(old.reduce((sum, line) => sum + line.food, 0)).toBe(6);
+    expect(old.reduce((sum, line) => sum + line.production, 0)).toBe(6);
+
+    // An Academy raised again on the same ground is a new Academy: the stamp
+    // belongs to the work.
+    razeImprovement(tile);
+    raiseImprovement(tile, 'academy', g.state.turn);
+    expect(paid()).toEqual([]);
+  });
+
+  it('Enduring Institutions: the oldest empire building is the one that admits the town', () => {
+    // The row still pays its old happiness until batch S7 brings it to the
+    // sheet's text (`modify: revised`).
+    const g = game();
+    const city = found(g.state, 0);
+    g.state.turn = 4;
+    addBuilding(g.state, city, 'forum');
+    slot(g.state, 0, 'enduringInstitutions');
+    const glad = () =>
+      cardHappiness(g.state, 0).filter((line) => line.card === 'enduringInstitutions');
+    expect(glad()).toEqual([]);
+
+    g.state.turn = 24;
+    bumpRevision(g.state);
+    expect(glad()).toHaveLength(1);
+    expect(glad()[0]!.amount).toBe(2);
+
+    // A second empire building raised this turn does not make the town's
+    // institutions young again: the reading is the oldest one.
+    addBuilding(g.state, city, 'caravanserai');
+    bumpRevision(g.state);
+    expect(glad()).toHaveLength(1);
+  });
+
+  it('The Long Inheritance: the production waits on the age of the work the citizens stand on', () => {
+    // The row still reads any great-person work, at its old figures, until
+    // batch S5 brings it to the sheet's text (`modify: revised; rarity`).
+    const g = game();
+    const city = found(g.state, 0);
+    const tile = getTileAt(g.state.map, city.col + 1, city.row)!;
+    tile.terrain = 'grassland';
+    tile.hills = false;
+    tile.feature = 'none';
+    g.state.turn = 2;
+    raiseImprovement(tile, 'academy', g.state.turn);
+    city.workedTiles = [{ col: tile.col, row: tile.row }];
+    slot(g.state, 0, 'theLongInheritance');
+    const toward = () =>
+      cardProduction(g.state, city, 'building', undefined, 'forum').filter(
+        (line) => line.card === 'theLongInheritance',
+      );
+    expect(toward(), 'an academy laid this turn is not an old academy').toEqual([]);
+
+    g.state.turn = 22;
+    bumpRevision(g.state);
+    expect(toward()).toHaveLength(1);
+    expect(toward()[0]!.percent).toBe(45);
+
+    // An old empire building in the same town adds the second clause, as a
+    // second labelled line.
+    addBuilding(g.state, city, 'forum');
+    g.state.turn = 42;
+    bumpRevision(g.state);
+    const both = toward();
+    expect(both).toHaveLength(2);
+    expect(both.reduce((sum, line) => sum + line.percent, 0)).toBe(68);
+    // An ordinary building is not an empire building and takes nothing from
+    // either clause.
+    expect(
+      cardProduction(g.state, city, 'building', undefined, 'granary').filter(
+        (line) => line.card === 'theLongInheritance',
+      ),
+    ).toEqual([]);
+  });
+});
+
+// --- retired rows a seat already holds ---------------------------------------
+
+/**
+ * **A retired card still pays a seat that holds it.** Retiring a row takes it
+ * out of every pool, but a seat that drafted it before keeps it, and it pays
+ * what it says (the Compendium's "Withdrawn" line). These rows were retired in
+ * batch S1b; the tests stay because they are the board checks for the shapes
+ * the rows use.
+ */
+describe('retired rows a seat already holds', () => {
+  it('Working Estates and Master Artificers: the works pay, and the ordinary ground does not', () => {
     const g = game();
     const city = found(g.state, 0);
     const tile = getTileAt(g.state.map, city.col, city.row)!;
@@ -443,159 +981,16 @@ describe('what the live rows do on a board', () => {
     expect(added[0]!.gold).toBe(3);
     expect(added[1]!.production).toBe(9);
     expect(added[1]!.gold).toBe(9);
-    // A holy site is a great person's work and is deliberately not one of these
-    // five: the design doc's rule names the Academy, the Landmark, the
-    // Manufactory, the Customs House and the Citadel, and nothing else.
+    // A holy site is a great person's work and is not one of the five these
+    // rows name: the Academy, the Landmark, the Manufactory, the Customs House
+    // and the Citadel.
     tile.improvement = 'holySite';
     expect(explainTileYield(tile, ctx()).length).toBeLessThan(paid.length);
     delete tile.improvement;
     expect(explainTileYield(tile, ctx())).toHaveLength(bare);
   });
 
-  // --- D2d, the age stamp ----------------------------------------------------
-  //
-  // Five of this deck's Continuity rows came live with `City.buildingTurns`,
-  // `Tile.improvedOn` and the three scopes that read them. Every claim below is
-  // the same claim twice — **not yet, and then yes** — because a card written on
-  // an age is a card whose whole subject is a threshold, and a test that only
-  // checked the paying half would pass just as well if the scope admitted
-  // everything.
-
-  it('The Long Study — a young Library pays nothing, an old one sings, and a very old one twice over', () => {
-    const g = game();
-    const city = found(g.state, 0);
-    g.state.turn = 10;
-    addBuilding(g.state, city, 'library');
-    refreshCityDerived(g.state, city);
-    slot(g.state, 0, 'theLongStudy');
-    const sung = () =>
-      explainCity(g.state, city).lines.filter((line) =>
-        line.source.startsWith('Order · The Long Study'),
-      );
-    const renown = () =>
-      explainRenown(g.state, 0).filter((line: { source: string }) =>
-        line.source.includes('The Long Study'),
-      );
-    expect(sung(), 'a Library raised this turn is not an old Library').toEqual([]);
-    expect(renown()).toEqual([]);
-
-    g.state.turn = 30;
-    bumpRevision(g.state);
-    refreshCityDerived(g.state, city);
-    const twenty = sung();
-    expect(twenty).toHaveLength(1);
-    expect(twenty[0]!.culture).toBe(2);
-    expect(renown()).toHaveLength(1);
-
-    // At forty the second clause joins the first, so the card's printed "+4
-    // culture" is two labelled lines and not a figure computed beside them.
-    g.state.turn = 50;
-    bumpRevision(g.state);
-    refreshCityDerived(g.state, city);
-    const forty = sung();
-    expect(forty).toHaveLength(2);
-    expect(forty.reduce((sum, line) => sum + line.culture, 0)).toBe(4);
-    expect(renown()).toHaveLength(2);
-  });
-
-  it('The Old Academy — the ivy is on the hex, and it is on no young academy', () => {
-    const g = game();
-    const city = found(g.state, 0);
-    const tile = getTileAt(g.state.map, city.col, city.row)!;
-    const ctx = () => yieldContextFor(g.state, 0);
-    g.state.turn = 6;
-    raiseImprovement(tile, 'academy', g.state.turn);
-    slot(g.state, 0, 'theOldAcademy');
-    const paid = () =>
-      explainTileYield(tile, ctx()).filter((line) =>
-        line.source.startsWith('Order · The Old Academy'),
-      );
-    expect(paid()).toEqual([]);
-
-    g.state.turn = 26;
-    expect(paid()).toHaveLength(1);
-    expect(paid()[0]!.food).toBe(3);
-    expect(paid()[0]!.production).toBe(3);
-
-    // At forty the second clause joins the first. The two are one *labelled*
-    // line, because `explainTileYield` folds rows of one source together — so
-    // the card's printed "+6 of each" reads as one entry on the hover and is
-    // still the sum of the two clauses rather than a figure computed beside
-    // them (rule 5).
-    g.state.turn = 46;
-    const old = paid();
-    expect(old.reduce((sum, line) => sum + line.food, 0)).toBe(6);
-    expect(old.reduce((sum, line) => sum + line.production, 0)).toBe(6);
-
-    // An academy raised again on the same ground is a new academy: the stamp
-    // goes with the work it is a fact about.
-    razeImprovement(tile);
-    raiseImprovement(tile, 'academy', g.state.turn);
-    expect(paid()).toEqual([]);
-  });
-
-  it('Enduring Institutions — the oldest great house is the one that admits the town', () => {
-    const g = game();
-    const city = found(g.state, 0);
-    g.state.turn = 4;
-    addBuilding(g.state, city, 'forum');
-    slot(g.state, 0, 'enduringInstitutions');
-    const glad = () =>
-      cardHappiness(g.state, 0).filter((line) => line.card === 'enduringInstitutions');
-    expect(glad()).toEqual([]);
-
-    g.state.turn = 24;
-    bumpRevision(g.state);
-    expect(glad()).toHaveLength(1);
-    expect(glad()[0]!.amount).toBe(2);
-
-    // A second house raised this turn does not make the realm's institutions
-    // young again — the reading is the *oldest* on the shelf.
-    addBuilding(g.state, city, 'caravanserai');
-    bumpRevision(g.state);
-    expect(glad()).toHaveLength(1);
-  });
-
-  it('The Long Inheritance — the hammers wait on the work the citizens stand on', () => {
-    const g = game();
-    const city = found(g.state, 0);
-    const tile = getTileAt(g.state.map, city.col + 1, city.row)!;
-    tile.terrain = 'grassland';
-    tile.hills = false;
-    tile.feature = 'none';
-    g.state.turn = 2;
-    raiseImprovement(tile, 'academy', g.state.turn);
-    city.workedTiles = [{ col: tile.col, row: tile.row }];
-    slot(g.state, 0, 'theLongInheritance');
-    const behind = () =>
-      cardProduction(g.state, city, 'building', undefined, 'forum').filter(
-        (line) => line.card === 'theLongInheritance',
-      );
-    expect(behind(), 'an academy laid this turn is not an old academy').toEqual([]);
-
-    g.state.turn = 22;
-    bumpRevision(g.state);
-    expect(behind()).toHaveLength(1);
-    expect(behind()[0]!.percent).toBe(45);
-
-    // And an old empire building standing in the same town adds the second
-    // helping — the card's "another +23%" as a second labelled line.
-    addBuilding(g.state, city, 'forum');
-    g.state.turn = 42;
-    bumpRevision(g.state);
-    const both = behind();
-    expect(both).toHaveLength(2);
-    expect(both.reduce((sum, line) => sum + line.percent, 0)).toBe(68);
-    // An ordinary building is not one of the realm's great houses and takes
-    // nothing from either clause.
-    expect(
-      cardProduction(g.state, city, 'building', undefined, 'granary').filter(
-        (line) => line.card === 'theLongInheritance',
-      ),
-    ).toEqual([]);
-  });
-
-  it('The Learned Realm — the writ counts every such town, the contentment only the old libraries', () => {
+  it('The Learned Realm: authority counts every such town, happiness only the old libraries', () => {
     const g = game();
     const city = found(g.state, 0);
     const tile = getTileAt(g.state.map, city.col + 1, city.row)!;
@@ -607,14 +1002,14 @@ describe('what the live rows do on a board', () => {
     city.workedTiles = [{ col: tile.col, row: tile.row }];
     addBuilding(g.state, city, 'library');
     slot(g.state, 0, 'theLearnedRealm');
-    const writ = () =>
+    const authority = () =>
       cardAuthority(g.state, 0).filter((line) => line.card === 'theLearnedRealm');
     const glad = () =>
       cardHappiness(g.state, 0).filter((line) => line.card === 'theLearnedRealm');
-    // The writ asks nothing about age — a town working a master's work widens
-    // it the turn the citizen is placed.
-    expect(writ()).toHaveLength(1);
-    expect(writ()[0]!.amount).toBe(1);
+    // The authority asks nothing about age: a town working a great work counts
+    // the turn the citizen is placed.
+    expect(authority()).toHaveLength(1);
+    expect(authority()[0]!.amount).toBe(1);
     expect(glad(), 'a Library raised this turn is not an old Library').toEqual([]);
 
     g.state.turn = 23;
@@ -624,14 +1019,13 @@ describe('what the live rows do on a board', () => {
   });
 });
 
-// --- the doc -----------------------------------------------------------------
+// --- the worksheet -------------------------------------------------------------
 
 /**
  * **The worksheet's Scientific shelf** (`docs/orders-and-doctrines.md`). The
- * strict mirror — every live row on the shelf and every shelf row a live row —
- * is `statecraftDocSync.test.ts`'s, and D1b's rows land in that table in the
- * orchestrator's own edit. What is asked here is the half this fence can answer:
- * whatever the table already says about a row of this deck agrees with the row.
+ * strict mirror (every live row on the shelf, and every shelf row a live row)
+ * is `statecraftDocSync.test.ts`'s. This checks the part this deck can answer:
+ * whatever the shelf says about a row of this deck agrees with the row.
  */
 describe('the worksheet’s Scientific shelf', () => {
   const docFiles = import.meta.glob('../../../docs/orders-and-doctrines.md', {
@@ -658,14 +1052,16 @@ describe('the worksheet’s Scientific shelf', () => {
 
   it('says of every row it carries exactly what that row says of itself', () => {
     const byName = new Map(DECK.map((id) => [orderDef(id).name, id] as const));
-    for (const cells of shelfRows()) {
+    const rows = shelfRows();
+    expect(rows).toHaveLength(LIVE.length);
+    for (const cells of rows) {
       const id = byName.get(cells[0]!);
       expect(id, `the shelf names "${cells[0]}", which is no row of this deck`).toBeDefined();
       const def = orderDef(id!);
-      expect(def.effects.length, `${cells[0]} is deferred and on the shelf`).toBeGreaterThan(0);
-      expect(Number(cells[1]), `${cells[0]} — band`).toBe(def.band);
-      expect(cells[2], `${cells[0]} — rarity`).toBe(MARK[def.rarity]);
-      expect(cells[4], `${cells[0]} — the row's own words`).toBe(def.text);
+      expect(LIVE, `${cells[0]} is deferred or retired and on the shelf`).toContain(id);
+      expect(Number(cells[1]), `${cells[0]}: band`).toBe(def.band);
+      expect(cells[2], `${cells[0]}: rarity`).toBe(MARK[def.rarity]);
+      expect(cells[4], `${cells[0]}: the row's own words`).toBe(def.text);
     }
   });
 });
