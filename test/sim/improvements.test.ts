@@ -197,6 +197,11 @@ describe('the improvement table', () => {
       // The Physic Garden (Scientific batch S4): an ordinary worker row whose
       // technology, Herbals, only the Herbalists' Charter opens.
       'physicGarden',
+      // The Qanat and Niter Beds (Scientific batch S5), opened by Surveying
+      // and Chemistry, which only the Surveyors' and the Alchemists' Charters
+      // open.
+      'qanat',
+      'niterBeds',
     ]);
     expect(isImprovementId('farm')).toBe(true);
     expect(isImprovementId('orchard')).toBe(false);
@@ -2077,11 +2082,19 @@ describe('explainTileYield', () => {
       const paid =
         entry!.food + entry!.production + entry!.gold +
         entry!.science + entry!.culture + entry!.faith;
-      // **Two rows pay nothing of their own, by design** (Expansionist batch
-      // E4). A Keep pays what the hexes around it pay, which a reading with no
-      // context cannot see (`expansionistWorks.test.ts` reads it with one), and
-      // an outpost's worth is the ground it claims (`claimsUnowned`).
-      if (def.copiesNeighbours === true || def.claimsUnowned !== undefined) {
+      // **Four rows pay nothing of their own, by design** (Expansionist batch
+      // E4, Scientific batch S5). A Keep pays what the hexes around it pay,
+      // which a reading with no context cannot see (`expansionistWorks.test.ts`
+      // reads it with one), and an outpost's worth is the ground it claims
+      // (`claimsUnowned`). A Qanat's worth is the water it gives the farms
+      // beside it (`watersBeside`), and Niter Beds' is the niter they supply
+      // (`suppliesResource`); `scientificLand.test.ts` reads both.
+      if (
+        def.copiesNeighbours === true ||
+        def.claimsUnowned !== undefined ||
+        def.watersBeside === true ||
+        def.suppliesResource !== undefined
+      ) {
         expect(paid, id).toBe(0);
         continue;
       }
@@ -2652,7 +2665,11 @@ describe('improvements in the log', () => {
     // five Dominion Orders come live and one changes. D12: two Dominion
     // Orders come live, three change, and resource lines read the sight gate.
     // So a v158 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(159);
+    // 160 since Scientific batch S5 (the learned land): the Surveyors' and
+    // the Alchemists' Charters are dealt, eight more Scientific Orders come
+    // live and The Assay is shared with Expansionist, so a v159 log's
+    // Scientific and Expansionist hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(160);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

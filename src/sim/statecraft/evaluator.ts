@@ -2181,16 +2181,21 @@ export function cityScopeAdmits(
       // `buildingsOfCategory` takes, so a card paid *per* culture house and a
       // card admitted *for having* two of them count the same houses.
       return buildingsOfCategoryIn(city, scope.category) >= scope.atLeast;
-    case 'workingImprovement':
+    case 'workingImprovement': {
       // **The assignment, not the borders** — `City.workedTiles`, so the line
       // moves the turn a governor moves a citizen. Asked through the hex's own
       // predicate, so a variant row that `countsAs` a quarry is a quarry here.
-      return (
-        worksHolding(state, city, {
-          test: 'anyImprovement',
-          improvements: scope.improvements,
-        }) >= (scope.atLeast ?? 1)
-      );
+      //
+      // The work's age, where the row names one (Scientific batch S5, The Long
+      // Inheritance), is `workingGreatWork`'s composite below: `all` of "is one
+      // of these works" and "has stood this long".
+      const works: TileCondition = { test: 'anyImprovement', improvements: scope.improvements };
+      const on: TileCondition =
+        scope.standingTurns === undefined
+          ? works
+          : { test: 'all', of: [works, { test: 'standingSince', turns: scope.standingTurns }] };
+      return worksHolding(state, city, on) >= (scope.atLeast ?? 1);
+    }
     case 'workingTiles':
       // `workingImprovement` with any hex condition: the same walk of the
       // worked hexes, asked through the hex's own predicate.
@@ -2258,11 +2263,18 @@ export function cityScopeAdmits(
       // what the centre stands on and from what touches it. `ownedTiles` is the
       // board's own answer, so a hex that changes hands changes this with it.
       return ownedTiles(state, city).some((tile) => tile.terrain === scope.terrain);
-    case 'hasImprovement':
+    case 'hasImprovement': {
       // `terrainInBorders` asked of what has been *built* rather than of the
       // ground, over the same sweep and for its reason: the quarry three hexes
       // out is this town's quarry, and the one over the border is not.
-      return ownedTiles(state, city).some((tile) => tile.improvement === scope.improvement);
+      //
+      // Asked through `workIsRow`, the one reading the tile test `improvement`
+      // also asks (Scientific batch S5), so a variant row counts as its base
+      // and a work that stands in for an Academy under The Studium Generale
+      // counts as one here too.
+      const standsIn = worksStandInFor(state, city.ownerId);
+      return ownedTiles(state, city).some((tile) => workIsRow(tile, scope.improvement, standsIn));
+    }
     case 'garrisoned':
       // Through the one sweep that answers "who is standing in this town"
       // (`garrisonOf`, which `CountKind`'s `garrison` counts), so a card that
@@ -2507,9 +2519,11 @@ function scopeNote(scope?: CityScope): string | null {
       const named = scope.improvements
         .map((id) => improvementDef(id).name.toLowerCase())
         .join('/');
-      return scope.atLeast !== undefined && scope.atLeast > 1
-        ? `working ${scope.atLeast} ${named}`
-        : `working a ${named}`;
+      const works =
+        scope.atLeast !== undefined && scope.atLeast > 1
+          ? `working ${scope.atLeast} ${named}`
+          : `working a ${named}`;
+      return scope.standingTurns === undefined ? works : `${works}, ${scope.standingTurns}+ turns`;
     }
     case 'workingTiles':
       return `working ${scope.atLeast ?? 1}+ ${shortTileNote(scope.on)} hexes`;
@@ -4574,17 +4588,18 @@ export function tileConditionHolds(
       // Nile's gift, the Dikes and the Tetzcotzinco all ask this one clause —
       // so a variant row joins the vocabulary by carrying `countsAs` and
       // nothing here learns its name.
-      return tile.improvement !== undefined && improvementCountsAs(tile.improvement, on.improvement);
+      //
+      // And through the empire's own law (Scientific batch S5, The Studium
+      // Generale): a work beside one of its Academies counts as an Academy.
+      // `workIsRow` is the one reading of both.
+      return workIsRow(tile, on.improvement, ground?.standsIn);
     case 'anyImprovement':
       // The `or` the composite does not have, said as a list — `anyFeature`'s
       // reading one field over, asked of `Tile.improvement` through the same
       // predicate the singular clause asks. Bare ground is absent from the
       // field and matches nothing, which is `unimproved`'s reading of the same
       // absence from the other side.
-      return (
-        tile.improvement !== undefined &&
-        on.improvements.some((wanted) => improvementCountsAs(tile.improvement!, wanted))
-      );
+      return on.improvements.some((wanted) => workIsRow(tile, wanted, ground?.standsIn));
     case 'greatWork':
       // Asked of the improvement table's own marker (`greatPerson`, presence is
       // the marker), never of a list of five names — so the sixth work joins
@@ -4706,7 +4721,10 @@ function resourceSeen(id: ResourceId, ground: GroundFacts | undefined): boolean 
  *   · `copiedHexes`, the ring a work that copies its neighbours pays for
  *     (Expansionist batch E4, The Keeps);
  *   · `techs`, the technologies the empire knows, for the sight gate on the
- *     three resource tests (Dominion batch D12).
+ *     three resource tests (Dominion batch D12);
+ *   · `standsIn`, which works count as another row by the empire's law, for
+ *     the tile tests `improvement` and `anyImprovement` (Scientific batch S5,
+ *     The Studium Generale).
  *
  * The yield context carries one (`TileYieldContext.ground`), so the hex fold,
  * the hover card and the lens all ask the same facts.
@@ -4738,6 +4756,93 @@ export interface GroundFacts {
    * the tile alone.
    */
   techs?: readonly TechId[];
+  /**
+   * **Whether this hex's work counts as that row by the asking empire's law**
+   * (Scientific batch S5, The Studium Generale; the triage's reading 33).
+   * Built by `worksStandInFor`, and absent when no card of the empire makes
+   * one work count as another, which is almost every empire. `workIsRow` is
+   * the one reader.
+   */
+  standsIn?: WorkStandIn;
+}
+
+/**
+ * **Does this hex's work count as `wanted` by an empire's law?** (Scientific
+ * batch S5, The Studium Generale.) The answer `worksStandInFor` builds. It is
+ * asked only of a hex whose work is not already the row or a variant of it.
+ */
+export type WorkStandIn = (tile: Tile, wanted: ImprovementId) => boolean;
+
+/**
+ * **Is this hex's work the row a card names?** The one reading behind the tile
+ * tests `improvement` and `anyImprovement` and the town scope `hasImprovement`
+ * (Scientific batch S5).
+ *
+ * Two answers, either of which is enough:
+ *
+ *   - the work is the row, or a variant of it (`improvementCountsAs`, batch
+ *     L8);
+ *   - the empire's law makes the work count as the row (`standsIn`, The
+ *     Studium Generale's great-person works beside an Academy).
+ *
+ * Bare ground is never a row.
+ */
+export function workIsRow(tile: Tile, wanted: ImprovementId, standsIn?: WorkStandIn): boolean {
+  const here = tile.improvement;
+  if (here === undefined) return false;
+  if (improvementCountsAs(here, wanted)) return true;
+  return standsIn !== undefined && standsIn(tile, wanted);
+}
+
+/**
+ * **The rows this empire's law lets a work stand in for** (Scientific batch
+ * S5, The Studium Generale): the `improvement` of each `worksCountAs` rule
+ * among its live effects, in walk order, each once.
+ */
+export function cardWorksCountAs(state: GameState, playerId: number): ImprovementId[] {
+  const rows: ImprovementId[] = [];
+  for (const { effect } of effectsOfKind(state, playerId, 'rule')) {
+    if (effect.rule !== 'worksCountAs' || effect.improvement === undefined) continue;
+    if (!rows.includes(effect.improvement)) rows.push(effect.improvement);
+  }
+  return rows;
+}
+
+/**
+ * **This empire's stand-in reading** (Scientific batch S5, The Studium
+ * Generale; the triage's reading 33), or `undefined` when its law makes no
+ * work count as another row.
+ *
+ * A hex counts as a named row R when three things hold:
+ *
+ *   - a rule names R (`cardWorksCountAs`), and R is the row asked about or a
+ *     variant of it;
+ *   - the hex holds a great person's work (`isGreatPersonWork`);
+ *   - one of the six hexes beside it holds R, inside this empire's borders.
+ *
+ * The neighbour must be R itself, not a work that stands in for R, so the
+ * reach is one hex and never a chain. The answer is a fact about the board
+ * and the law, so the hex fold, the counts and the town scopes all read it the
+ * same way.
+ */
+export function worksStandInFor(state: GameState, playerId: number): WorkStandIn | undefined {
+  const rows = cardWorksCountAs(state, playerId);
+  if (rows.length === 0) return undefined;
+  return (tile, wanted) => {
+    const here = tile.improvement;
+    if (here === undefined || !isGreatPersonWork(here)) return false;
+    for (const row of rows) {
+      if (!improvementCountsAs(row, wanted)) continue;
+      const beside = neighborTiles(state.map, tileHex(tile)).some(
+        (next) =>
+          next.improvement !== undefined &&
+          improvementCountsAs(next.improvement, row) &&
+          tileOwnerPlayerId(state, next.col, next.row) === playerId,
+      );
+      if (beside) return true;
+    }
+    return false;
+  };
 }
 
 /** The ground facts for one empire's questions. See `GroundFacts`. */
@@ -4769,6 +4874,10 @@ export function groundFactsFor(state: GameState, playerId: number): GroundFacts 
       ),
   };
   if (water !== null) facts.watered = (tile) => water.watered(tile);
+  // Scientific batch S5, The Studium Generale: absent for an empire whose law
+  // makes no work count as another row.
+  const standsIn = worksStandInFor(state, playerId);
+  if (standsIn !== undefined) facts.standsIn = standsIn;
   return facts;
 }
 
@@ -4806,6 +4915,13 @@ export interface FarmWater {
  * (`CombatCondition` `freshwater`) still read the map, because neither is a
  * question about a farm.
  *
+ * **A work that waters the hexes beside it** is a third source, and it needs
+ * no card (Scientific batch S5, the Qanat; the triage's reading 30): each such
+ * work inside this empire's borders (`ImprovementDef.watersBeside`) waters
+ * this empire's farms on the six hexes around it, and a farm built there would
+ * be watered. A farm it waters counts as a farm on fresh water, so The Water
+ * Courts' chain may start from it.
+ *
  * One walk of the map and one spread, remembered on the economy clock: a farm
  * built or torn up, a border moved and a card seated all move that clock
  * (`test/sim/slateRegister.test.ts`). The remembered answer is two sorted lists
@@ -4814,9 +4930,10 @@ export interface FarmWater {
 export function farmWaterOf(state: GameState, playerId: number): FarmWater | null {
   const river = cardBehaviorRule(state, playerId, 'riverFarmsWater');
   const chain = cardBehaviorRule(state, playerId, 'farmChainsWater');
-  if (!river && !chain) return null;
+  const wells = wateringWorksOf(state, playerId);
+  if (!river && !chain && wells.length === 0) return null;
   const field = slateMemo(state, 'economy', 'farmWater', String(playerId), () =>
-    farmWaterField(state, playerId, river, chain),
+    farmWaterField(state, playerId, river, chain, wells),
   );
   const { map } = state;
   return {
@@ -4833,11 +4950,39 @@ interface FarmWaterField {
   near: number[];
 }
 
+/**
+ * **The hexes of every work on the map that waters the hexes beside it**
+ * (Scientific batch S5, the Qanat), as tile indices in map order. One walk of
+ * the map for the whole world, remembered on the economy clock, which a work
+ * built or pillaged moves. Asked by every empire's farm water, so a game with
+ * no such work pays one walk a clock tick and nothing per empire.
+ */
+function wateringWorks(state: GameState): readonly number[] {
+  return slateMemo(state, 'economy', 'wateringWorks', 'map', () => {
+    const found: number[] = [];
+    const tiles = state.map.tiles;
+    for (let index = 0; index < tiles.length; index++) {
+      const here = tiles[index]!.improvement;
+      if (here !== undefined && improvementDef(here).watersBeside === true) found.push(index);
+    }
+    return found;
+  });
+}
+
+/** The watering works inside this empire's borders, in map order. See `wateringWorks`. */
+function wateringWorksOf(state: GameState, playerId: number): readonly number[] {
+  const all = wateringWorks(state);
+  if (all.length === 0) return all;
+  const owner = tileOwnerField(state);
+  return all.filter((index) => owner.at(index) === playerId);
+}
+
 function farmWaterField(
   state: GameState,
   playerId: number,
   river: boolean,
   chain: boolean,
+  wells: readonly number[],
 ): FarmWaterField {
   const { map } = state;
   const tiles = map.tiles;
@@ -4856,6 +5001,18 @@ function farmWaterField(
   };
   const watered = new Uint8Array(tiles.length);
   const near = new Uint8Array(tiles.length);
+  // The Qanat (Scientific batch S5; the triage's reading 30): each of this
+  // empire's watering works waters the farms on the six hexes around it. No
+  // card is needed, and the water goes no further by itself.
+  const welled = new Uint8Array(tiles.length);
+  for (const index of wells) {
+    for (const next of neighbourIndices(index)) {
+      near[next] = 1;
+      if (!isFarm(next)) continue;
+      watered[next] = 1;
+      welled[next] = 1;
+    }
+  }
   // The Watercourses: one step from a farm with a river edge.
   if (river) {
     for (let index = 0; index < tiles.length; index++) {
@@ -4873,7 +5030,9 @@ function farmWaterField(
     const wet = new Uint8Array(tiles.length);
     const queue: number[] = [];
     for (let index = 0; index < tiles.length; index++) {
-      if (!hasFreshWater(tiles[index]!) || !isFarm(index)) continue;
+      // A farm a Qanat waters counts as a farm on fresh water, so the chain
+      // may start from it (Scientific batch S5).
+      if ((!hasFreshWater(tiles[index]!) && welled[index] !== 1) || !isFarm(index)) continue;
       wet[index] = 1;
       queue.push(index);
     }
@@ -10633,6 +10792,42 @@ export function cardAmplifierFlat(
     amount += step;
   }
   return amount;
+}
+
+/**
+ * **The extra copies this empire's law adds for the works on its deposits**
+ * (Scientific batch S5, The School of Mines; the triage's reading 32): for
+ * each `depositWorkCopies` amplifier, its `amount` once for every deposit in
+ * `deposits` whose hex holds the effect's `improvement`.
+ *
+ * `deposits` are the opened deposits of one strategic resource that carry a
+ * work, as the copies sweep found them (`sweepOwnCopies`, `cities.ts`), so
+ * the sight gate and the borders are already applied. Each is asked the tile
+ * test `improvement` with the empire's ground facts, the one reading of "is
+ * an Academy" every card asks (`workIsRow`), so a work that stands in for an
+ * Academy under The Studium Generale counts too.
+ */
+export function cardDepositWorkCopies(
+  state: GameState,
+  playerId: number,
+  deposits: readonly Tile[],
+): number {
+  if (deposits.length === 0) return 0;
+  let extra = 0;
+  let standsIn: WorkStandIn | undefined;
+  let asked = false;
+  for (const { effect } of effectsOfKind(state, playerId, 'effectAmplifier')) {
+    if (effect.target !== 'depositWorkCopies') continue;
+    if (effect.amount === undefined || effect.improvement === undefined) continue;
+    if (!asked) {
+      standsIn = worksStandInFor(state, playerId);
+      asked = true;
+    }
+    const row = effect.improvement;
+    const held = deposits.filter((tile) => workIsRow(tile, row, standsIn)).length;
+    extra += Math.floor(effect.amount) * held;
+  }
+  return extra;
 }
 
 /** What a newly founded city of this empire is founded with. */

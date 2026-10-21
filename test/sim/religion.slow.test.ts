@@ -466,7 +466,11 @@ describe('determinism', () => {
     // five Dominion Orders come live and one changes. D12: two Dominion
     // Orders come live, three change, and resource lines read the sight gate.
     // So a v158 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(159);
+    // 160 since Scientific batch S5 (the learned land): the Surveyors' and
+    // the Alchemists' Charters are dealt, eight more Scientific Orders come
+    // live and The Assay is shared with Expansionist, so a v159 log's
+    // Scientific and Expansionist hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(160);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

@@ -79,6 +79,7 @@ import {
 import { FOLLOWER_BELIEF_IDS, beliefDef } from '../../src/sim/religionData';
 import { type City, type GameState, playerById, bumpRevision } from '../../src/sim/state';
 import { buildError, gatingTech, isUnlocked } from '../../src/sim/tech';
+import { ALL_TECH_IDS, techDef } from '../../src/sim/techData';
 import { resetVisibility } from '../../src/sim/visibility';
 import { newGame } from './newGameHelpers';
 
@@ -256,7 +257,15 @@ describe('the charters as a family', () => {
       const building = orderDef(id).charter?.unlocks.building;
       return building === undefined ? [] : [building];
     });
-    const everyOpener = [...opened, ...byDoctrine, ...byBelief, ...byCharter];
+    // And a technology whose card effects open a building early (Scientific
+    // batch S5: Surveying's Aqueduct, before Engineering opens it for
+    // everyone).
+    const byTech = ALL_TECH_IDS.flatMap((id) =>
+      (techDef(id).effects ?? [])
+        .filter((effect) => effect.kind === 'unlocksBuilding')
+        .map((effect) => effect.building),
+    );
+    const everyOpener = [...opened, ...byDoctrine, ...byBelief, ...byCharter, ...byTech];
     expect(new Set(everyOpener).size).toBe(everyOpener.length);
     for (const id of BUILDING_IDS) {
       if (buildingDef(id).unlockedByCard !== true) continue;

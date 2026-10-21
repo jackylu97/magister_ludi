@@ -812,6 +812,11 @@ export const PART_IDS = [
   // The Physic Garden (Scientific batch S4), opened by a charter technology.
   // Placeholder art: the pasture's fence ring, smaller and green.
   'physicGarden',
+  // The Qanat and Niter Beds (Scientific batch S5), opened by charter
+  // technologies. Placeholder art: the mine's shaft head in stone, and the
+  // farm's furrows in pale earth.
+  'qanat',
+  'niterBeds',
 ] as const;
 
 export const PART_CAPTIONS: Record<(typeof PART_IDS)[number], string> = {
@@ -841,4 +846,6 @@ export const PART_CAPTIONS: Record<(typeof PART_IDS)[number], string> = {
   outpost: 'the outpost: a hut under a pointed roof, and a flag on a tall pole beside it. Placeholder art',
   physicGarden:
     'the Physic Garden: the pasture’s fence ring, smaller and in green, as a hedged garden. Placeholder art',
+  qanat: 'the Qanat: the mine’s shaft head in grey stone, as the mouth of a well. Placeholder art',
+  niterBeds: 'Niter Beds: the farm’s furrows in pale earth, as heaped beds. Placeholder art',
 };

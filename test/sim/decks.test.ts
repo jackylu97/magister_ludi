@@ -502,8 +502,15 @@ describe('the schema, as landed', () => {
     // Commission: Harry the Border and Rally to the Standard came live. The
     // Gathering Host, The Soldier-Farmers and The Marshalate were changed in
     // place and were already live.
-    expect(live).toBe(515);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(515);
+    // **And Scientific batch S5** (the learned land): nine more. Six new
+    // Scientific rows came live (The Prospectors' Notes, The Founding Gift,
+    // The Latin Quarter, The Studium Generale, The Nizamiyya, The Republic of
+    // Letters), and three deferred rows were freed (the Surveyors' and the
+    // Alchemists' Charters, and The School of Mines). The Long Inheritance was
+    // changed in place, and The Assay moved to common.json; both were already
+    // live.
+    expect(live).toBe(524);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(524);
   });
 
   /**
@@ -537,7 +544,24 @@ describe('the schema, as landed', () => {
         orderDef(id).deferred !== undefined &&
         orderDef(id).retired !== true,
     );
-    expect(charters.length).toBeGreaterThan(0);
+    // **No charter is deferred since Scientific batch S5**, which built the
+    // last two gifts. The clause is still held, and it is about the deferral
+    // rather than about charters: a live charter given a deferred sentence
+    // for the length of the check leaves the pool, and the shelf takes it
+    // back the turn the sentence goes.
+    expect(charters).toEqual([]);
+    const live = [...DECK_ROWS].find(
+      (id) => orderDef(id).charter !== undefined && orderDef(id).retired !== true,
+    );
+    expect(live).toBeDefined();
+    const liveDef = orderDef(live!);
+    liveDef.deferred = ['a gift still to be drawn up'];
+    try {
+      expect(orderIsDealt(live!), `${live} is deferred and still dealt`).toBe(false);
+    } finally {
+      delete liveDef.deferred;
+    }
+    expect(orderIsDealt(live!), live).toBe(true);
     for (const id of charters) {
       const def = orderDef(id);
       // A deferred charter is never retired: the row says "waiting", not
@@ -547,17 +571,6 @@ describe('the schema, as landed', () => {
       expect(def.effects, id).toEqual([]);
       expect(orderIsDealt(id), `${id} is a deferred charter and still dealt`).toBe(false);
       expect(ordersForDecks(DECK_IDS), id).not.toContain(id);
-    }
-    // And the clause is about the deferral, not about charters: un-defer one and
-    // the shelf takes it back the same turn.
-    const [first] = charters;
-    const def = orderDef(first!);
-    const held = def.deferred;
-    delete def.deferred;
-    try {
-      expect(orderIsDealt(first!), first).toBe(true);
-    } finally {
-      def.deferred = held;
     }
   });
 
@@ -768,7 +781,11 @@ describe('the schema, as landed', () => {
     // five Dominion Orders come live and one changes. D12: two Dominion
     // Orders come live, three change, and resource lines read the sight gate.
     // So a v158 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(159);
+    // 160 since Scientific batch S5 (the learned land): the Surveyors' and
+    // the Alchemists' Charters are dealt, eight more Scientific Orders come
+    // live and The Assay is shared with Expansionist, so a v159 log's
+    // Scientific and Expansionist hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(160);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1003,9 +1020,11 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // (+ 10 retired).
       // **Scientific batch S4** freed eight charters (the building charters:
       // − 8).
+      // **Scientific batch S5** freed the last two Scientific charters and
+      // The School of Mines (− 3).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(40);
+      ).toHaveLength(37);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(173);
     }
   });

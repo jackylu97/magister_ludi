@@ -1681,7 +1681,11 @@ describe('research in the log', () => {
     // five Dominion Orders come live and one changes. D12: two Dominion
     // Orders come live, three change, and resource lines read the sight gate.
     // So a v158 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(159);
+    // 160 since Scientific batch S5 (the learned land): the Surveyors' and
+    // the Alchemists' Charters are dealt, eight more Scientific Orders come
+    // live and The Assay is shared with Expansionist, so a v159 log's
+    // Scientific and Expansionist hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(160);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

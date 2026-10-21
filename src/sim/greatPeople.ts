@@ -78,7 +78,7 @@ import {
   improvementDef,
   workForFamily,
 } from './improvementData';
-import { improvementErrorAt } from './improvements';
+import { improvementErrorAt, payWorkLaidRiders } from './improvements';
 import {
   type Tile,
   getTileAt,
@@ -1342,6 +1342,10 @@ export function greatPersonWorkAt(
     ? claimAround(state, player, tile, PEOPLE.citadelClaimRadius)
     : [];
   refreshTileDerived(state, tile);
+  // **A work laid is a work built** (Scientific batch S5, The Founding Gift;
+  // new reading 75): the riders on laying a work down are paid here as a
+  // worker's build pays them, with the hex as where the grant lands.
+  payWorkLaidRiders(state, player.id, tile, work);
 
   spendGreatPerson(state, player, unit, id, work);
   return {

@@ -905,10 +905,17 @@ describe('determinism', () => {
    * and the sight gate on the resource tests changes no line any seat here is
    * paid. Checked with the merge in place and the version printed as 158,
    * which gives the hashes of Scientific batch S4 exactly.
+   *
+   * **Scientific batch S5 (the learned land, schema 160) moved the hash and
+   * not the length** at both seeds: 159 became 160, and that is all. Nobody
+   * here drafts, so no Qanat, Niter Beds or new card reaches this board, and
+   * The Assay is seated by nobody. Checked with the change in place and the
+   * version printed as 159, which gives the hashes of Dominion batches D11 and
+   * D12 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '246d174e:188931',
-    2026: 'e3db9e57:188509',
+    11: 'a65b225a:188931',
+    2026: '8846850b:188509',
   };
 
   for (const seed of [11, 2026]) {

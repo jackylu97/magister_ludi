@@ -1059,7 +1059,11 @@ describe('a captured city, end to end', () => {
     // five Dominion Orders come live and one changes. D12: two Dominion
     // Orders come live, three change, and resource lines read the sight gate.
     // So a v158 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(159);
+    // 160 since Scientific batch S5 (the learned land): the Surveyors' and
+    // the Alchemists' Charters are dealt, eight more Scientific Orders come
+    // live and The Assay is shared with Expansionist, so a v159 log's
+    // Scientific and Expansionist hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(160);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

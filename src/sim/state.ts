@@ -2019,8 +2019,31 @@ import {
  * **A v158 save is refused and does not replay.** A Dominion seat's pools now
  * hold more cards, and every seat's resource lines read the sight gate. The
  * branch migrates nothing, for the reason given under v119.
+ *
+ * v160 (branch `decks`; Scientific batch S5, `docs/plans/scientific-build-
+ * triage.md`): **the learned land.** No field joins the state. The rules that
+ * change:
+ *
+ *   · the Surveyors' and the Alchemists' Charters are dealt. Surveying opens
+ *     the Aqueduct before Engineering and a new worker row, the Qanat, which
+ *     waters the farms beside it. Chemistry opens a new worker row, Niter
+ *     Beds, built beside a farm or pasture, which supply one niter;
+ *   · eight more Scientific Orders come live: The Prospectors' Notes, The
+ *     Founding Gift, The Latin Quarter, The Studium Generale, The Nizamiyya,
+ *     The Republic of Letters, The School of Mines (the old Strategic
+ *     Reserves row), and The Long Inheritance at its new text;
+ *   · The Assay moves to the shared cards (Expansionist and Scientific) with a
+ *     new text: hexes with a strategic resource gain science;
+ *   · a great person's work pays the riders on building an improvement, as a
+ *     worker's build does;
+ *   · a town scope `hasImprovement` reads a variant row as its base row.
+ *
+ * **A v159 save is refused and does not replay.** A Scientific or
+ * Expansionist seat's pools now hold different cards, and a logged Aqueduct
+ * meets a different gate. The branch migrates nothing, for the reason given
+ * under v119.
  */
-export const SCHEMA_VERSION = 159;
+export const SCHEMA_VERSION = 160;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

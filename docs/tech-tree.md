@@ -334,7 +334,7 @@ Only a seat that drafted the charter may research these. Each sits one column ri
 |---|---|---|---|---|---|---|---|---|---|
 | Herbals | I | 2 | 24 | 36 | Pottery | The Herbalists' Charter | — | — | workers may build Physic Garden |
 | Casting | I | 3 | 50 | 75 | Bronzeworking | The Bronze-Founders' Charter | — | — | — |
-| Surveying | II | 4 | 100 | 150 | The Wheel | The Surveyors' Charter | — | — | — |
+| Surveying | II | 4 | 100 | 150 | The Wheel | The Surveyors' Charter | — | — | workers may build Qanat |
 | Cataloguing | II | 4 | 100 | 150 | Writing | The Librarians' Charter | — | Mouseion ‡ | — |
 | Optics | II | 5 | 190 | 285 | Chronology | The Glassmakers' Charter | — | Specularium | — |
 | Medicine | III | 6 | 360 | 540 | The High Temple | The Physicians' Charter | — | Bimaristan ‡ | — |
@@ -342,7 +342,7 @@ Only a seat that drafted the charter may research these. Each sits one column ri
 | Printing | III | 7 | 650 | 975 | Rhetoric | The Printers' Charter | — | Aldine Press | — |
 | Mechanics | III | 8 | 1150 | 1725 | Mathematics | The Mechanists' Charter | — | — | — |
 | Gunfounding | IV | 10 | 3250 | 4875 | Machinery | The Gunfounders' Charter | — | Tophane ‡ | — |
-| Chemistry | IV | 10 | 3250 | 4875 | Geomancy | The Alchemists' Charter | — | — | — |
+| Chemistry | IV | 10 | 3250 | 4875 | Geomancy | The Alchemists' Charter | — | — | workers may build Niter Beds |
 | Military Architecture | IV | 11 | 5150 | 7725 | Castellany | The Military Engineers' Charter | — | Bastion | — |
 | Naval Gunnery | IV | 12 | 8000 | 12000 | The Astrolabe | The Naval Gunners' Charter | — | — | — |
 
@@ -352,6 +352,7 @@ Only a seat that drafted the charter may research these. Each sits one column ri
 - **Casting** — the War Chariot line (War Chariot to Knight) gains the Maryannu trait and keeps it through every upgrade
 - **Casting** — +1 combat strength for units of the War Chariot line
 - **Casting** — +5 combat strength for units of the War Chariot line against units below half strength
+- **Surveying** — unlocks the Aqueduct — +15% food surplus stored toward growth; the city counts as standing beside fresh water
 - **Printing** — +1 trade route
 - **Mechanics** — the Catapult line (Catapult and Trebuchet) gains the Onager trait and keeps it through every upgrade
 - **Mechanics** — units of the Catapult line: +1 range

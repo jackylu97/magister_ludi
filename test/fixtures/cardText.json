@@ -7094,21 +7094,10 @@
     "text": "completing a building (an empire building, the first of that kind your realm has finished) grants +30 faith"
    }
   ],
-  "scientificTheAssay": [
-   {
-    "raw": "+3 science per kind of strategic resource you can reach",
-    "text": "+3 science per kind of strategic resource you can reach"
-   },
-   {
-    "raw": "+3 gold per kind of strategic resource you can reach",
-    "text": "+3 gold per kind of strategic resource you can reach"
-   }
-  ],
   "theStrategicReserves": [
    {
-    "raw": "every improved strategic deposit past the first of its kind works and pays the town that holds it, and a great person's works count as improvements here — not built yet",
-    "text": "every improved strategic deposit past the first of its kind works and pays the town that holds it, and a great person's works count as improvements here — not built yet",
-    "deferred": true
+    "raw": "each [[improvement:academy|Academy]] of yours standing on a strategic resource supplies one more copy of it",
+    "text": "each Academy of yours standing on a strategic resource supplies one more copy of it"
    }
   ],
   "thePracticalArts": [
@@ -7273,9 +7262,8 @@
     "text": "+1 combat strength for units of the Warrior line, +1 more per charter technology you know"
    },
    {
-    "raw": "knowing Chemistry lets workers build Niter Beds beside a farm or pasture, which supply niter — not built yet",
-    "text": "knowing Chemistry lets workers build Niter Beds beside a farm or pasture, which supply niter — not built yet",
-    "deferred": true
+    "raw": "once you know Chemistry, your workers may build the [[improvement:niterBeds|Niter Beds]]: beside your farm or pasture; they supply one copy of [[resource:niter|Niter]]",
+    "text": "once you know Chemistry, your workers may build the Niter Beds: beside your farm or pasture; they supply one copy of Niter"
    }
   ],
   "theSecondSeat": [
@@ -7287,20 +7275,12 @@
   ],
   "theLongInheritance": [
    {
-    "raw": "+45% production toward empire buildings, in every city working a great person's work that has stood at least 20 turns",
-    "text": "+45% production toward empire buildings, in every city working a great person's work that has stood at least 20 turns"
+    "raw": "+30% production toward empire buildings, in every city working an [[improvement:academy|Academy]] that has stood at least 20 turns",
+    "text": "+30% production toward empire buildings, in every city working an Academy that has stood at least 20 turns"
    },
    {
-    "raw": "+45% production toward wonders, in every city working a great person's work that has stood at least 20 turns",
-    "text": "+45% production toward wonders, in every city working a great person's work that has stood at least 20 turns"
-   },
-   {
-    "raw": "+23% production toward empire buildings, in every city working a great person's work that has stood at least 20 turns holding an empire building that has stood at least 20 turns",
-    "text": "+23% production toward empire buildings, in every city working a great person's work that has stood at least 20 turns holding an empire building that has stood at least 20 turns"
-   },
-   {
-    "raw": "+23% production toward wonders, in every city working a great person's work that has stood at least 20 turns holding an empire building that has stood at least 20 turns",
-    "text": "+23% production toward wonders, in every city working a great person's work that has stood at least 20 turns holding an empire building that has stood at least 20 turns"
+    "raw": "+30% production toward wonders, in every city working an [[improvement:academy|Academy]] that has stood at least 20 turns",
+    "text": "+30% production toward wonders, in every city working an Academy that has stood at least 20 turns"
    }
   ],
   "masterArtificers": [
@@ -7382,9 +7362,12 @@
     "text": "once drafted, opens Surveying for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "knowing Surveying opens the Aqueduct early and lets workers build the Qanat — not built yet",
-    "text": "knowing Surveying opens the Aqueduct early and lets workers build the Qanat — not built yet",
-    "deferred": true
+    "raw": "once you know Surveying, you may build the [[building:aqueduct|Aqueduct]] before Engineering: +15% food surplus stored toward growth; the city counts as standing beside fresh water",
+    "text": "once you know Surveying, you may build the Aqueduct before Engineering: +15% food surplus stored toward growth; the city counts as standing beside fresh water"
+   },
+   {
+    "raw": "once you know Surveying, your workers may build the [[improvement:qanat|Qanat]]: on flat land; your farms beside it count as having fresh water",
+    "text": "once you know Surveying, your workers may build the Qanat: on flat land; your farms beside it count as having fresh water"
    }
   ],
   "theLibrariansCharter": [
@@ -7529,6 +7512,50 @@
    {
     "raw": "+1 combat strength per technology you know that no empire you have met knows (at most +8)",
     "text": "+1 combat strength per technology you know that no empire you have met knows (at most +8)"
+   }
+  ],
+  "theProspectorsNotes": [
+   {
+    "raw": "building a [[improvement:mine|Mine]] grants +25 production",
+    "text": "building a Mine grants +25 production"
+   },
+   {
+    "raw": "building a [[improvement:quarry|Quarry]] grants +25 production",
+    "text": "building a Quarry grants +25 production"
+   }
+  ],
+  "theFoundingGift": [
+   {
+    "raw": "a great scholar founding an [[improvement:academy|Academy]] grants +150 production",
+    "text": "a great scholar founding an Academy grants +150 production"
+   }
+  ],
+  "theLatinQuarter": [
+   {
+    "raw": "+1 production, +2 culture on every hex carrying a great person's work beside an [[improvement:academy|Academy]]",
+    "text": "+1 production, +2 culture on every hex carrying a great person's work beside an Academy"
+   }
+  ],
+  "theStudiumGenerale": [
+   {
+    "raw": "a great person's work beside an [[improvement:academy|Academy]] of yours counts as an [[improvement:academy|Academy]] for your cards",
+    "text": "a great person's work beside an Academy of yours counts as an Academy for your cards"
+   }
+  ],
+  "theNizamiyya": [
+   {
+    "raw": "the yields of every hex with an [[improvement:academy|Academy]] are +50%",
+    "text": "the yields of every hex with an Academy are +50%"
+   }
+  ],
+  "theRepublicOfLetters": [
+   {
+    "raw": "+4 production in your capital per hex with an [[improvement:academy|Academy]] in your borders",
+    "text": "+4 production in your capital per hex with an Academy in your borders"
+   },
+   {
+    "raw": "+4 culture in your capital per hex with an [[improvement:academy|Academy]] in your borders",
+    "text": "+4 culture in your capital per hex with an Academy in your borders"
    }
   ],
   "magisterialMasterMasons": [
@@ -8843,6 +8870,12 @@
    {
     "raw": "+1 science per technology the destination’s owner knows that you do not (at most +4 science), on trade routes that end in another empire’s city",
     "text": "+1 science per technology the destination’s owner knows that you do not (at most +4 science), on trade routes that end in another empire’s city"
+   }
+  ],
+  "scientificTheAssay": [
+   {
+    "raw": "+2 science on every hex carrying a strategic resource",
+    "text": "+2 science on every hex carrying a strategic resource"
    }
   ]
  },
