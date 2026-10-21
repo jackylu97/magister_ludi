@@ -92,8 +92,8 @@ import {
 // face and the gate cannot end up spelling it differently.
 import type { RouteMode } from '../routes';
 import { beadGrantDef } from '../beadData';
-import { ABILITY_TECH, abilityDef, techDef } from '../techData';
-import { type ModelClass, unitDef } from '../unitData';
+import { ABILITY_TECH, type TechId, type TechTrait, abilityDef, isTechId, techDef } from '../techData';
+import { type ModelClass, type UnitTypeId, unitDef, unitLine } from '../unitData';
 // A rank's name as every surface prints it (Dominion batch D1). A leaf.
 import { RANK_IDS, type RankId, rankName } from '../ranks';
 import { SLOT_WORDS } from './draft';
@@ -663,6 +663,13 @@ export function describeCard(id: CardId): CardClause[] {
   // below is worded against the subject the card's own class reads it against.
   // See `ClauseSubject`.
   const clauses: CardClause[] = describeEffects(def.effects, subjectOfCard(id));
+  // **A technology's line traits** (Scientific batch S1) are not in `effects`,
+  // and they are the whole of what Casting or Mechanics gives, so they are
+  // printed here: one clause naming the trait and its line, then the trait's
+  // own clauses.
+  if (isTechId(id)) {
+    for (const trait of techDef(id).traits ?? []) clauses.push(...describeTrait(trait));
+  }
   // **A completion grant is not an effect, and it still has to be printed.** It
   // happens once, at the moment the stones go up, so it is a field on the
   // building row rather than a shape in the vocabulary (`CompletionGrant`) — but
@@ -731,6 +738,16 @@ export function describeCard(id: CardId): CardClause[] {
         text: `once drafted, opens the ${ref('improvement', work, name)} for your workers to build; this card takes no chair`,
       });
     }
+    // **A charter that opens a technology** (Scientific batch S0 and S1): the
+    // pick opens the research, and what knowing the technology gives is the
+    // rest of the card, so its traits are printed here in the technology's
+    // own words. The technology is named without a keyword mark, because the
+    // Compendium has no page for a charter technology yet (batch S12), and a
+    // mark to a page the book lacks is a dead link. A retired charter may name
+    // a technology the tree never held (the Metallurgists' Alloys), and says
+    // nothing here.
+    const tech = orderDef(id).charter?.unlocks.tech;
+    if (tech !== undefined && isTechId(tech)) clauses.push(...charterTechClauses(tech));
     // **A charter's rites are the whole of the card** (The Fast): taking it
     // teaches the rite, said with the rite's own sentence.
     for (const rite of orderDef(id).charter?.unlocks.rites ?? []) {
@@ -769,6 +786,60 @@ export function describeCard(id: CardId): CardClause[] {
     clauses.push({ text: `${missing} — not built yet`, deferred: true });
   }
   return clauses;
+}
+
+/**
+ * **What a technology charter's card says** (Scientific batch S1): the
+ * research it opens, then each line trait the technology gives.
+ *
+ * Reading 20 lets two seats draft the same charter, so the clause says "only
+ * an empire holding this charter", not "only you". The traits are the
+ * technology's own (`describeTrait`), led by "once you know", because a
+ * charter takes no chair and gives nothing until the research is done.
+ */
+function charterTechClauses(tech: TechId): CardClause[] {
+  const name = techDef(tech).name;
+  const clauses: CardClause[] = [
+    {
+      text: `once drafted, opens ${name} for you to research; only an empire holding this charter may research it; this card takes no chair`,
+    },
+  ];
+  for (const trait of techDef(tech).traits ?? []) {
+    clauses.push(...describeTrait(trait, `once you know ${name}, `));
+  }
+  return clauses;
+}
+
+/**
+ * **One line trait, in words** (Scientific batch S1): a clause that names the
+ * trait, the line and the units the line reaches, then the trait's effects in
+ * the ordinary clauses. `lead` goes in front of the first clause ("once you
+ * know Mechanics, ").
+ *
+ * Each effect names the trait's line in its `class`, so its own clause says
+ * which units it reaches ("units of the Catapult line: +1 range") and reads
+ * correctly on its own.
+ */
+export function describeTrait(trait: TechTrait, lead = ''): CardClause[] {
+  const line = unitDef(trait.line).name;
+  return [
+    {
+      text: `${lead}the ${line} line (${lineReachWords(trait.line)}) gains the ${trait.name} trait and keeps it through every upgrade`,
+    },
+    ...describeEffects(trait.effects),
+  ];
+}
+
+/**
+ * The units a line reaches, as a player reads them: one name alone, two joined
+ * by "and", more as the first and the last joined by "to" ("Spearman to
+ * Pikeman").
+ */
+function lineReachWords(line: UnitTypeId): string {
+  const names = unitLine(line).map((id) => unitDef(id).name);
+  if (names.length <= 1) return names[0] ?? unitDef(line).name;
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names[0]} to ${names[names.length - 1]}`;
 }
 
 /**
@@ -4193,6 +4264,11 @@ function unitNounWords(filter: UnitFilter): string {
   // does not keep. Pluralised off the roster's own name (hard rule 7: the
   // player is told "workers", never `worker`).
   if (filter.type !== undefined) return `${unitDef(filter.type).name.toLowerCase()}s`;
+  // **One unit line** (Scientific batch S1, the line traits). Named by its
+  // first unit, as the trait's own clause names it ("the Spearman line"), so a
+  // reader can tell which units the trait reaches. Asked after the named row
+  // and before the silhouettes, for the named row's reason: it is narrower.
+  if (filter.line !== undefined) return `units of the ${unitDef(filter.line).name} line`;
   // The religious clause is asked **first** and reads as a whole noun phrase,
   // because it is the one filter that names a *vocation* rather than a
   // silhouette: an augur is a `worker` by model, and "worker units" is exactly
@@ -4787,6 +4863,18 @@ const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
     one: 'attack your units have already made on the same target this turn',
     many: 'attacks your units have already made on the same target this turn',
   },
+  // Scientific batch S1, the Hoplite. Said of the town, because only a town of
+  // your own counts and the line pays nothing outside one.
+  townCitizensHere: {
+    one: 'citizen of your city it stands in',
+    many: 'citizens of your city it stands in',
+  },
+  // Scientific batch S1, the Grenadier. "Know" is the word: a charter drafted
+  // and not yet researched does not count.
+  charterTechsKnown: {
+    one: 'charter technology you know',
+    many: 'charter technologies you know',
+  },
 };
 
 /** Where a `unitStat` applies, in words. `'anywhere'` is the absent field. */
@@ -5107,6 +5195,11 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   greatPeopleCalled: {
     one: 'great person you have called',
     many: 'great people you have called',
+  },
+  // Scientific batch S1: the Grenadier's count, said as `SCALE_WORDS` says it.
+  charterTechsKnown: {
+    one: 'charter technology you know',
+    many: 'charter technologies you know',
   },
   // The filter is not in these words: `countNoun` prints it, so that "per melee
   // unit" and "per ranged unit" are one entry — `buildingsOfKind`'s bargain.
@@ -5748,6 +5841,10 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   noFounding: 'you can no longer found new cities',
   noExperience: 'your units never gain experience',
   siegeScreened: 'your siege units beside one of your melee units cannot be attacked in melee',
+  // Scientific batch S1, the Galleass. What a blockade does, said once, because
+  // a player has met it only on a heavy warship's own description.
+  blockades:
+    'your ships blockade a foreign city they stand beside on the water: its sea lanes close and its trade routes pay nothing',
 };
 
 /**
@@ -5768,6 +5865,9 @@ const FLAG_RULE_CLASS_WORDS: Partial<Record<CardFlagRuleId, (who: string) => str
   moveAfterAttack: (who) => `${who} may move after attacking`,
   secondAttack: (who) => `${who} may attack twice a turn`,
   breachInOneBlow: (who) => `${who} break a town’s walls in one blow`,
+  // Scientific batch S1, the Galleass.
+  blockades: (who) =>
+    `${who} blockade a foreign city they stand beside on the water: its sea lanes close and its trade routes pay nothing`,
 };
 
 /**

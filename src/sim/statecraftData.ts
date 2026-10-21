@@ -1760,7 +1760,23 @@ export type CombatScaleCount =
    * attack is made, after its plan, so an attack does not count itself. Asked only of
    * the attacker's side; the defender's side counts nothing.
    */
-  | 'attacksOnTarget';
+  | 'attacksOnTarget'
+  /**
+   * **The citizens of the town the piece stands in**, when that town is its own
+   * empire's (Scientific batch S1, the Hoplite trait; the triage's reading 26).
+   *
+   * Read off the piece's own hex in attack and in defence: a defender stands
+   * on the contested hex, and an attacker strikes from its own. A piece outside
+   * its own towns counts nothing, so the line pays only in a town.
+   */
+  | 'townCitizensHere'
+  /**
+   * **Charter technologies this empire knows** (Scientific batch S1, the
+   * Grenadier trait; the triage's reading 27). The same reading as
+   * `CountKind`'s `charterTechsKnown`, asked of a fight. Charters drafted and
+   * not yet researched do not count.
+   */
+  | 'charterTechsKnown';
 
 /** A strength line that scales with a count, capped where the design caps it. */
 export interface CombatScale {
@@ -1898,6 +1914,18 @@ export interface UnitFilter {
    * fields above whenever one of them says the thing.
    */
   type?: UnitTypeId;
+  /**
+   * **One unit line**: the named unit and every unit its `upgradesTo` chain
+   * reaches (Scientific batch S1, the line traits; the triage's reading 22).
+   *
+   * A charter technology's trait (`TechDef.traits`) names its line here, so a
+   * Catapult with the Onager trait keeps it when it becomes a Trebuchet. The
+   * piece carries no new field: the filter reads the piece's type each time.
+   * Units before the named one are not members, so the Gun Galley line holds
+   * the Gun Galley and the Frigate and not the Fire Ship. The table is
+   * `unitLine` (`unitData.ts`).
+   */
+  line?: UnitTypeId;
 }
 
 /**
@@ -2374,6 +2402,14 @@ export type CountKind =
    * great person has already paid for it.
    */
   | 'greatPeopleCalled'
+  /**
+   * **Charter technologies this empire knows** (Scientific batch S1): the rows
+   * of `Player.techsResearched` that carry `TechDef.charter`. A charter drafted
+   * and not yet researched does not count (the triage's reading 27). The
+   * Grenadier trait reads it as a strength scale, and The Great Catalogue
+   * (batch S6) as a count.
+   */
+  | 'charterTechsKnown'
   /**
    * This empire's **living pieces**, narrowed by `CardPaysEffect.class`.
    *
@@ -4234,7 +4270,20 @@ export type BehaviorRuleId =
    * by `screenError` (`combat.ts`), the one clause the tint, the forecast and
    * the reducer ask.
    */
-  | 'siegeScreened';
+  | 'siegeScreened'
+  /**
+   * **This empire's ships blockade** as the heavy hulls do (Scientific batch
+   * S1, the Galleass trait; the triage's reading 25), narrowed by the row's
+   * `class`.
+   *
+   * Read through `blockades(state, unit)` (`blockade.ts`), which asks the row's
+   * own `UnitDef.blockades` marker first and this rule second. So the four
+   * places that ask whether a piece blockades (the harbour mouth, the sea lane
+   * in `siegeField`, and both halves of the line of battle) give a card's hulls
+   * what the marker gives the heavy line. Only a ship can blockade: the rule
+   * says nothing about a land piece.
+   */
+  | 'blockades';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId =

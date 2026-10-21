@@ -346,6 +346,21 @@ Only a seat that drafted the charter may research these. Each sits one column ri
 | Military Architecture | IV | 11 | 5150 | 7725 | Castellany | The Military Engineers' Charter | — | — | — |
 | Naval Gunnery | IV | 12 | 8000 | 12000 | The Astrolabe | The Naval Gunners' Charter | — | — | — |
 
+- **Casting** — the Spearman line (Spearman to Pikeman) gains the Hoplite trait and keeps it through every upgrade
+- **Casting** — +1 combat strength for units of the Spearman line, +1 more per 4 citizens of your city it stands in
+- **Casting** — the War Chariot line (War Chariot to Knight) gains the Maryannu trait and keeps it through every upgrade
+- **Casting** — +1 combat strength for units of the War Chariot line
+- **Casting** — +5 combat strength for units of the War Chariot line against units below half strength
+- **Mechanics** — the Catapult line (Catapult and Trebuchet) gains the Onager trait and keeps it through every upgrade
+- **Mechanics** — units of the Catapult line: +1 range
+- **Mechanics** — the Archer line (Archer to Crossbowman) gains the Repeating Crossbow trait and keeps it through every upgrade
+- **Mechanics** — units of the Archer line may move after attacking
+- **Chemistry** — the Warrior line (Warrior to Longswordsman) gains the Grenadier trait and keeps it through every upgrade
+- **Chemistry** — +1 combat strength for units of the Warrior line, +1 more per charter technology you know
+- **Naval Gunnery** — the Gun Galley line (Gun Galley and Frigate) gains the Galleass trait and keeps it through every upgrade
+- **Naval Gunnery** — +3 combat strength for units of the Gun Galley line
+- **Naval Gunnery** — units of the Gun Galley line blockade a foreign city they stand beside on the water: its sea lanes close and its trade routes pay nothing
+
 ### The verbs the tree hands over
 
 | verb | node | who gains it | what it does |

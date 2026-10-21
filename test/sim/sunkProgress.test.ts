@@ -171,7 +171,9 @@ describe('the schema says so', () => {
     // 152 since the charter technologies (Scientific batch S0): thirteen
     // technologies join the tree and two Scientific cards come live, so a
     // v151 log's research and drafts meet a different tree and deck.
-    expect(SCHEMA_VERSION).toBe(152);
+    // 153 since the line traits (Scientific batch S1): three Scientific
+    // charters are dealt, so a v152 log's hands differ from the first draft.
+    expect(SCHEMA_VERSION).toBe(153);
   });
 
   it('says in the changelog what a v110 log does now', () => {

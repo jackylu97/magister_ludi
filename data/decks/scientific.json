@@ -610,8 +610,8 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Every lever is an argument.",
+      "text": "Drafting this opens Mechanics for research. Knowing it gives two lines a trait they keep through every upgrade. Onager (Catapult and Trebuchet): +1 range. Repeating Crossbow (Archer to Crossbowman): it may move after it shoots. No chair required.",
       "charter": { "unlocks": { "tech": "mechanics" } },
-      "deferred": ["knowing Mechanics gives the catapult line and the archer line a trait each"],
       "effects": []
     },
     "theAlchemistsCharter": {
@@ -622,7 +622,7 @@
       "rarity": "uncommon",
       "flavor": "Turn one thing into another and call it a trade.",
       "charter": { "unlocks": { "tech": "chemistry" } },
-      "deferred": ["knowing Chemistry gives the warrior line a trait and lets workers build Niter Beds"],
+      "deferred": ["knowing Chemistry lets workers build Niter Beds beside a farm or pasture, which supply niter"],
       "effects": []
     },
     "theSecondSeat": {
@@ -799,8 +799,8 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The guild keeps the mould, and the city keeps the guild.",
+      "text": "Drafting this opens Casting for research. Knowing it gives two lines a trait they keep through every upgrade. Hoplite (Spearman to Pikeman): +1 strength, and in one of your towns +1 more for every four citizens there. Maryannu (War Chariot to Knight): +1 strength, and +5 against a unit below half health. No chair required.",
       "charter": { "unlocks": { "tech": "casting" } },
-      "deferred": ["knowing Casting gives the spear line and the chariot line a trait each"],
       "effects": []
     },
     "theSurveyorsCharter": {
@@ -897,8 +897,8 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Oars for the calm, and guns for the battle.",
+      "text": "Drafting this opens Naval Gunnery for research. Knowing it gives your Gun Galleys the Galleass trait: +3 strength, and they blockade: parked off a rival's port, a Gun Galley closes its sea lane and its trade. No chair required.",
       "charter": { "unlocks": { "tech": "navalGunnery" } },
-      "deferred": ["knowing Naval Gunnery gives the gun galley line a trait"],
       "effects": []
     },
     "thePatentOffice": {

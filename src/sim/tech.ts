@@ -500,6 +500,7 @@ import {
   techDef,
   techDepth,
   techsGrant,
+  traitsReaching,
 } from './techData';
 import { awardOccasion } from './triumphs';
 import { BEAD_RULES, isBeadEndeavourId } from './beadData';
@@ -2444,11 +2445,49 @@ export interface UnitUpgradeTally {
   count: number;
 }
 
+/**
+ * **Pieces that gained a line trait** (Scientific batch S1): "3 catapults
+ * gained Onager". `UnitUpgradeTally`'s sibling. A piece gains a trait when the
+ * technology that carries it lands, or when it upgrades into the trait's line.
+ */
+export interface UnitTraitTally {
+  /** The pieces' type now. */
+  type: UnitTypeId;
+  /** The trait's name, as `TechTrait.name` prints it. */
+  trait: string;
+  /** The technology that carries the trait. */
+  tech: TechId;
+  count: number;
+}
+
 export interface ResearchReport {
   /** Techs completed since the snapshot, in completion order. */
   techs: TechId[];
   /** Units that changed type, grouped by (from, to) in `state.units` order. */
   upgrades: UnitUpgradeTally[];
+  /**
+   * Units that gained a line trait, grouped by (type, technology, trait) in
+   * `state.units` order. A piece created since the snapshot is not counted:
+   * it was made with the trait and gained nothing.
+   */
+  traits: UnitTraitTally[];
+}
+
+/**
+ * **The names of the line traits that reach this piece** (Scientific batch
+ * S1), in the order its owner learnt the technologies: "Onager" for a
+ * Catapult whose owner knows Mechanics. For the unit card and the hover card
+ * (batch S10).
+ *
+ * Read off the owner's technologies and the piece's type each time, so the
+ * piece carries no field, a captured piece takes its captor's traits, and the
+ * piece fingerprint does not change. The strength and the ability come through
+ * `liveEffects`, which reads the same rows.
+ */
+export function unitTraits(state: GameState, unit: Unit): string[] {
+  const owner = playerById(state, unit.ownerId);
+  if (!owner) return [];
+  return traitsReaching(owner.techsResearched, unit.type).map(({ trait }) => trait.name);
 }
 
 export function researchSnapshot(state: GameState, playerId: number): ResearchSnapshot {
@@ -2473,15 +2512,33 @@ export function researchSince(
 
   const wasType = new Map(before.units.map((unit) => [unit.id, unit.type]));
   const upgrades: UnitUpgradeTally[] = [];
+  const traits: UnitTraitTally[] = [];
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;
     const from = wasType.get(unit.id);
-    if (from === undefined || from === unit.type) continue;
+    if (from === undefined) continue;
+    // **The traits it gained** (Scientific batch S1): the traits its type
+    // holds now, less the ones its old type held under the snapshot's
+    // technologies. Both readings are of the rows, so the snapshot needs no
+    // record of traits. A trait is never lost: a technology is never unlearnt
+    // and an upgrade stays inside a line.
+    if (player !== undefined) {
+      const had = traitsReaching(before.techs, from);
+      for (const { tech, trait } of traitsReaching(player.techsResearched, unit.type)) {
+        if (had.some((old) => old.tech === tech && old.trait.name === trait.name)) continue;
+        const gained = traits.find(
+          (entry) => entry.type === unit.type && entry.tech === tech && entry.trait === trait.name,
+        );
+        if (gained) gained.count += 1;
+        else traits.push({ type: unit.type, trait: trait.name, tech, count: 1 });
+      }
+    }
+    if (from === unit.type) continue;
     const tally = upgrades.find((entry) => entry.from === from && entry.to === unit.type);
     if (tally) tally.count += 1;
     else upgrades.push({ from, to: unit.type, count: 1 });
   }
-  return { techs, upgrades };
+  return { techs, upgrades, traits };
 }
 
 /**
@@ -2508,4 +2565,10 @@ export function describeUpgrade(tally: UnitUpgradeTally): string {
   const from = pluralUnitName(unitDef(tally.from).name, tally.count).toLowerCase();
   const to = pluralUnitName(unitDef(tally.to).name, tally.count).toLowerCase();
   return `${tally.count} ${from} became ${to}`;
+}
+
+/** "3 catapults gained Onager": one plain sentence per trait group (Scientific batch S1). */
+export function describeTraitGain(tally: UnitTraitTally): string {
+  const who = pluralUnitName(unitDef(tally.type).name, tally.count).toLowerCase();
+  return `${tally.count} ${who} gained ${tally.trait}`;
 }

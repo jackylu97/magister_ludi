@@ -32,20 +32,39 @@
  * Asked of the roster's own marker throughout. Nothing here compares a unit type
  * against a name and nothing switches on a naval `ModelClass`, which is art —
  * `blockades` is the row that says what this hull is for.
+ *
+ * **A card may grant it too** (Scientific batch S1, the Galleass trait; the
+ * triage's reading 25). The question is about a piece now, not a row: the
+ * row's marker first, then the `blockades` behaviour rule for the piece's
+ * owner and type. So this file reads the card evaluator. That is a
+ * function-level edge only (nothing at the top level here calls it), the same
+ * kind `state.ts` and `routeYields.ts` already have, and
+ * `test/mapgen/moduleCycles.test.ts` checks it.
  */
 
 import { type GameMap, type Tile, getTile, getTileAt, mapNeighbors, tileHex } from './map';
-import type { City, GameState } from './state';
+import type { City, GameState, Unit } from './state';
+import { cardBehaviorRuleFor } from './statecraft/evaluator';
 import { isWaterTerrain } from './terrainData';
-import { type UnitDef, unitDef } from './unitData';
+import { isNaval, unitDef } from './unitData';
 
 /**
- * Does this row blockade? THE reading of `UnitDef.blockades`, so that nothing
- * anywhere compares a type against `"warGalley"` — `trades`' and `isNaval`'s
- * discipline, one field over.
+ * Does this piece blockade? THE reading, so that nothing anywhere compares a
+ * type against `"warGalley"`: `trades`' and `isNaval`'s discipline, one field
+ * over.
+ *
+ * Three clauses, in this order. **A ship**: a blockade is a hull in a harbour
+ * mouth, so a land piece never blockades, whatever a card says. **The row's
+ * marker** (`UnitDef.blockades`), the heavy line's. **The `blockades` rule**
+ * of the piece's owner (the Galleass trait), narrowed by the rule's `class`.
+ * The rule is asked last and only of a ship without the marker, which keeps
+ * the four sweeps that ask this cheap.
  */
-export function blockades(def: UnitDef): boolean {
-  return def.blockades === true;
+export function blockades(state: GameState, unit: Unit): boolean {
+  const def = unitDef(unit.type);
+  if (!isNaval(def)) return false;
+  if (def.blockades === true) return true;
+  return cardBehaviorRuleFor(state, unit, 'blockades');
 }
 
 /**
@@ -101,8 +120,10 @@ export function cityBlockaded(state: GameState, city: City): boolean {
   if (ring.size === 0) return false;
   for (const unit of state.units) {
     if (unit.ownerId === city.ownerId) continue;
-    if (!blockades(unitDef(unit.type))) continue;
-    if (ring.has(`${unit.col},${unit.row}`)) return true;
+    // Where it stands first, because that is a string lookup and the piece's
+    // question may read its owner's cards.
+    if (!ring.has(`${unit.col},${unit.row}`)) continue;
+    if (blockades(state, unit)) return true;
   }
   return false;
 }

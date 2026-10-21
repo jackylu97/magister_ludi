@@ -273,7 +273,7 @@ import type { CardEffect } from './statecraftData';
 // cycle. `import type` is erased entirely.
 import type { BeadGrantId } from './beadData';
 import { type ProjectId, isProjectId } from './projectData';
-import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
+import { type UnitTypeId, isInUnitLine, isUnitTypeId, unitDef } from './unitData';
 
 export type TechId =
   // Æra I — The Age of Omens
@@ -574,6 +574,19 @@ export interface TechUnlocks {
   abilities?: AbilityId[];
 }
 
+/**
+ * **A line trait** (Scientific batch S1): a bonus and an ability that knowing a
+ * technology gives every unit of one line. See `TechDef.traits`.
+ */
+export interface TechTrait {
+  /** What the trait is called on the unit card and in the forecast: "Onager". */
+  name: string;
+  /** The line's first unit. Its members are `unitLine(line)` (`unitData.ts`). */
+  line: UnitTypeId;
+  /** Card effects, each naming `line` in its `class`. */
+  effects: CardEffect[];
+}
+
 export interface TechDef {
   name: string;
   /**
@@ -621,6 +634,23 @@ export interface TechDef {
    * fourth time.
    */
   effects?: CardEffect[];
+  /**
+   * **Line traits**: what knowing this technology gives one line of units
+   * (Scientific batch S1, `docs/plans/scientific-themes.md` section 3). Only a
+   * charter technology carries them today: the Hoplite and the Maryannu on
+   * Casting, the Onager and the Repeating Crossbow on Mechanics, the Grenadier
+   * on Chemistry and the Galleass on Naval Gunnery.
+   *
+   * A trait is a name, a line and effects. The effects are ordinary card
+   * effects, read by the same evaluator as `effects` above, and each one names
+   * the trait's line in its `class` (`UnitFilter.line`), so the piece keeps the
+   * trait through every upgrade. `liveEffects` labels each line
+   * "<technology> · <trait>", for example "Mechanics · Onager" (reading 23), so
+   * the combat forecast names the trait and not only the technology.
+   * `test/sim/decks/scientificTraits.test.ts` checks that every effect names
+   * its trait's line.
+   */
+  traits?: TechTrait[];
   /**
    * **Completing this hands the empire a glass bead** — Alchemy's, the closing
    * node of the chart (Entry LVIII, the endgame; the user's ruling: *every*
@@ -740,6 +770,33 @@ export function isTechId(value: unknown): value is TechId {
 /** Is this a charter technology? See `TechDef.charter`. */
 export function isCharterTech(id: TechId): boolean {
   return techDef(id).charter === true;
+}
+
+/** One line trait that reaches a unit type, with the technology that gives it. */
+export interface TraitReach {
+  tech: TechId;
+  trait: TechTrait;
+}
+
+/**
+ * **The line traits a unit type holds under these technologies** (Scientific
+ * batch S1), in the order the technologies are listed and then in row order.
+ *
+ * A pure reading of the rows: a trait reaches a type when the list holds the
+ * technology and the type is a member of the trait's line. `unitTraits`
+ * (`tech.ts`) asks it with an owner's `techsResearched`, and `researchSince`
+ * asks it twice, once with the technologies of the snapshot, to find the
+ * traits a piece gained.
+ */
+export function traitsReaching(techs: readonly TechId[], type: UnitTypeId): TraitReach[] {
+  const reach: TraitReach[] = [];
+  for (const tech of techs) {
+    if (!isTechId(tech)) continue;
+    for (const trait of techDef(tech).traits ?? []) {
+      if (isInUnitLine(type, trait.line)) reach.push({ tech, trait });
+    }
+  }
+  return reach;
 }
 
 // --- the inverted table -----------------------------------------------------
@@ -1286,6 +1343,14 @@ export function techDataProblems(): string[] {
       }
     }
     if (def.charter === true) problems.push(...charterPlacementProblems(id));
+    // A trait names its line by the line's first unit (Scientific batch S1).
+    // A misspelt id would be a trait that reaches no piece, which is silent on
+    // screen, so it is reported here.
+    for (const trait of def.traits ?? []) {
+      if (!isUnitTypeId(trait.line)) {
+        problems.push(`tech "${id}" gives the trait "${trait.name}" to "${trait.line}", which is not a unit`);
+      }
+    }
 
     // Whether a node hands over *anything* is `unlockDataProblems`'s question
     // now: three other tables gate on a technology and none of them is visible

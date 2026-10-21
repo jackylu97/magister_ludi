@@ -34,6 +34,14 @@
  * Naturalists' Charters are retired, and two cards are live: The Commonplace
  * Book and The Patent Office. `test/sim/charterTechs.test.ts` pins the
  * technologies themselves.
+ *
+ * **Re-cut for Scientific batch S1** (the line traits). Three charters are
+ * dealt now, because their whole gift is built: the Bronze-Founders' (Casting),
+ * the Mechanists' (Mechanics) and the Naval Gunners' (Naval Gunnery). A dealt
+ * charter has no effects, because a charter takes no chair: what knowing its
+ * technology gives sits on the technology row. So a row is live when it has
+ * effects or is a dealt charter, and deferred otherwise.
+ * `test/sim/decks/scientificTraits.test.ts` pins the traits.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -91,14 +99,21 @@ const RETIRED = DECK.filter((id) => orderDef(id).retired === true);
 /** Every row that is not retired. */
 const CURRENT = DECK.filter((id) => orderDef(id).retired !== true);
 
-/** A row with effects — the half of the deck D1b could say in the vocabulary. */
-const LIVE = CURRENT.filter((id) => orderDef(id).effects.length > 0);
-
-/** A row with a sentence and nothing to slot — what D2's waves un-defer. */
-const DEFERRED = CURRENT.filter((id) => orderDef(id).effects.length === 0);
-
-/** The research charters, deferred and carrying their grant. */
+/** The research charters, carrying their grant. */
 const CHARTERS = CURRENT.filter((id) => isCharter(id));
+
+/**
+ * The charters whose whole gift is built, so they are dealt (batch S1). A
+ * charter has no effects: its gift is the research it opens and what the
+ * technology row gives.
+ */
+const DEALT_CHARTERS: readonly OrderId[] = ['theBronzeFoundersCharter', 'theMechanistsCharter', 'theNavalGunnersCharter'];
+
+/** A row with effects, or a dealt charter: the half of the deck that plays. */
+const LIVE = CURRENT.filter((id) => orderDef(id).effects.length > 0 || DEALT_CHARTERS.includes(id));
+
+/** A row with a sentence and nothing to slot: what later batches un-defer. */
+const DEFERRED = CURRENT.filter((id) => !LIVE.includes(id));
 
 const RARITIES: readonly OrderRarity[] = ['common', 'uncommon', 'rare'];
 
@@ -223,7 +238,7 @@ describe('the live rows’ effects', () => {
 // --- the charters ------------------------------------------------------------
 
 describe('the research charters', () => {
-  it('names the thirteen charter technologies, one row each, all deferred', () => {
+  it('names the thirteen charter technologies, one row each, deferred but for the three S1 deals', () => {
     expect(CHARTERS).toHaveLength(13);
     const techs = CHARTERS.map((id) => orderDef(id).charter!.unlocks.tech);
     expect(new Set(techs)).toEqual(new Set(CHARTER_TECH_IDS));
@@ -231,10 +246,11 @@ describe('the research charters', () => {
     for (const id of CHARTERS) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);
-      expect(def.deferred, id).toBeDefined();
+      expect(def.deferred === undefined, id).toBe(DEALT_CHARTERS.includes(id));
       expect(def.charter!.unlocks.building, id).toBeUndefined();
       expect(def.charter!.unlocks.rites, id).toBeUndefined();
     }
+    for (const id of DEALT_CHARTERS) expect(CHARTERS, id).toContain(id);
   });
 
   it('names nodes the tree holds off the sky, and the retired rows name none it holds', () => {
@@ -260,8 +276,12 @@ describe('the research charters', () => {
    */
   it('is dealt by nobody until its gift is built, and neither is any other deferred row', () => {
     for (const id of CHARTERS) {
-      expect(orderDef(id).deferred, id).toBeDefined();
       expect(orderDef(id).effects, id).toEqual([]);
+      if (DEALT_CHARTERS.includes(id)) {
+        expect(orderIsDealt(id), `${id} has its whole gift and is not dealt`).toBe(true);
+        continue;
+      }
+      expect(orderDef(id).deferred, id).toBeDefined();
       expect(orderIsDealt(id), `${id} is a deferred charter and still dealt`).toBe(false);
     }
     for (const id of DEFERRED) {
@@ -662,7 +682,7 @@ describe('the worksheet’s Scientific shelf', () => {
       const id = byName.get(cells[0]!);
       expect(id, `the shelf names "${cells[0]}", which is no row of this deck`).toBeDefined();
       const def = orderDef(id!);
-      expect(def.effects.length, `${cells[0]} is deferred and on the shelf`).toBeGreaterThan(0);
+      expect(LIVE, `${cells[0]} is deferred and on the shelf`).toContain(id);
       expect(Number(cells[1]), `${cells[0]} — band`).toBe(def.band);
       expect(cells[2], `${cells[0]} — rarity`).toBe(MARK[def.rarity]);
       expect(cells[4], `${cells[0]} — the row's own words`).toBe(def.text);

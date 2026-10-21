@@ -463,8 +463,11 @@ describe('the schema, as landed', () => {
     // more. Two deferred rows were freed (The Breadbasket, Veteran Colonies).
     // **And Scientific batch S0** (the charter technologies): two more. Two
     // new Scientific rows came live (The Commonplace Book, The Patent Office).
-    expect(live).toBe(500);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(500);
+    // **And Scientific batch S1** (the line traits): three more. Three
+    // deferred charters were freed (the Bronze-Founders', the Mechanists' and
+    // the Naval Gunners').
+    expect(live).toBe(503);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(503);
   });
 
   /**
@@ -709,7 +712,9 @@ describe('the schema, as landed', () => {
     // 152 since the charter technologies (Scientific batch S0): thirteen
     // technologies join the tree and two Scientific cards come live, so a
     // v151 log's research and drafts meet a different tree and deck.
-    expect(SCHEMA_VERSION).toBe(152);
+    // 153 since the line traits (Scientific batch S1): three Scientific
+    // charters are dealt, so a v152 log's hands differ from the first draft.
+    expect(SCHEMA_VERSION).toBe(153);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -935,9 +940,11 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // **Scientific batch S0** wrote ten new charter rows deferred (+ 10) and
       // retired two deferred charters, the Metallurgists' and the Naturalists'
       // (− 2, and + 2 retired).
+      // **Scientific batch S1** freed three charters (the Bronze-Founders',
+      // the Mechanists' and the Naval Gunners': − 3).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(65);
+      ).toHaveLength(62);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(138);
     }
   });

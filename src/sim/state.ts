@@ -1853,8 +1853,31 @@ import {
  * holds two more cards, so its hands from Tier I on differ, and the roster of
  * technologies a log may name has changed. The branch migrates nothing, for
  * the reason given under v119.
+ *
+ * v153 (branch `decks`; Scientific batch S1, `docs/plans/scientific-build-
+ * triage.md`): **the line traits.** No field joins the state. The rules that
+ * change:
+ *
+ *   · a technology row may carry line traits (`TechDef.traits`): a name, a
+ *     unit line and card effects, read as `liveEffects`' tenth source and
+ *     labelled "<technology> · <trait>". A unit filter may name a line
+ *     (`UnitFilter.line`): the named unit and every unit its upgrade chain
+ *     reaches. Casting gives the Hoplite and the Maryannu, Mechanics the
+ *     Onager and the Repeating Crossbow, Chemistry the Grenadier and Naval
+ *     Gunnery the Galleass;
+ *   · two strength scales (the citizens of your own town a piece stands in,
+ *     and the charter technologies you know), one count (the second of
+ *     these) and one behaviour rule (`blockades`). Whether a piece blockades
+ *     is now a question about the piece, its row's marker or its owner's
+ *     cards, at all four places that ask it;
+ *   · three Scientific charters are dealt: the Bronze-Founders', the
+ *     Mechanists' and the Naval Gunners'.
+ *
+ * **A v152 save is refused and does not replay.** A Scientific seat's pool now
+ * holds three more cards, so its hands differ from the opening draft on. The
+ * branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 152;
+export const SCHEMA_VERSION = 153;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

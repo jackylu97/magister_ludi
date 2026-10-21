@@ -1044,6 +1044,56 @@ export function isFieldSoldier(def: UnitDef): boolean {
 }
 
 /**
+ * The members of each **unit line**, keyed by the line's first unit, built once
+ * on the first ask (Scientific batch S1, `docs/plans/scientific-build-
+ * triage.md` reading 22).
+ *
+ * A line is a named unit and every unit its `upgradesTo` chain reaches, in
+ * chain order. So the Spearman line is the Spearman, the Phalanx, the Spear
+ * Wall and the Pikeman, and the Gun Galley line is the Gun Galley and the
+ * Frigate but not the Fire Ship before it. A leader's unique that upgrades into
+ * a chain (the Fubing into the Spear Wall) is not a member: it joins the line
+ * when it upgrades, because then its type is a member.
+ *
+ * A charter technology's trait names a line (`TechDef.traits`), and
+ * `UnitFilter.line` asks this table, so a trait stays with a piece through
+ * every upgrade without a field on the piece.
+ *
+ * Built on the first ask, not at module load, so the table never depends on
+ * the order modules load in. Nothing iterates the map: it is a lookup only
+ * (hard rule 2), and each value is an array in chain order.
+ */
+let LINE_MEMBERS: Map<UnitTypeId, readonly UnitTypeId[]> | undefined;
+
+function lineMembersTable(): Map<UnitTypeId, readonly UnitTypeId[]> {
+  if (LINE_MEMBERS !== undefined) return LINE_MEMBERS;
+  const table = new Map<UnitTypeId, readonly UnitTypeId[]>();
+  for (const id of UNIT_TYPE_IDS) {
+    const members: UnitTypeId[] = [];
+    let at: UnitTypeId | undefined = id;
+    // A chain that loops back on itself is a data fault. The walk stops at the
+    // first repeat, so the table is still finite.
+    while (at !== undefined && !members.includes(at)) {
+      members.push(at);
+      at = unitDef(at).upgradesTo;
+    }
+    table.set(id, members);
+  }
+  LINE_MEMBERS = table;
+  return table;
+}
+
+/** The units of the line that starts at `line`, in chain order. See `lineMembersTable`. */
+export function unitLine(line: UnitTypeId): readonly UnitTypeId[] {
+  return lineMembersTable().get(line) ?? [];
+}
+
+/** Is `type` a member of the line that starts at `line`? See `lineMembersTable`. */
+export function isInUnitLine(type: UnitTypeId, line: UnitTypeId): boolean {
+  return unitLine(line).includes(type);
+}
+
+/**
  * What an empire's **law** stamped on a piece at the moment it was created —
  * The Muster Roll's ten hit points, Drums of War's point of strength.
  *

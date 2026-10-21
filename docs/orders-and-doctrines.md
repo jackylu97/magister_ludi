@@ -589,6 +589,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Field Notebooks | 0 | ● | S | Claiming a ruin grants 15 science, 20 culture and 20 gold. |
 | Practical Astronomy | 0 | ◆ | P | Scouts and ships gain +1 sight. Coastal cities with a Library gain +3 food. |
 | The Long Study | 0 | ◆ | P | A Library at least twenty turns old grants +2 culture and +1 renown. At forty turns, these bonuses become +4 culture and +2 renown. |
+| The Bronze-Founders' Charter | 0 | ◆ | S | Drafting this opens Casting for research. Knowing it gives two lines a trait they keep through every upgrade. Hoplite (Spearman to Pikeman): +1 strength, and in one of your towns +1 more for every four citizens there. Maryannu (War Chariot to Knight): +1 strength, and +5 against a unit below half health. No chair required. |
 | Working Estates | 1 | ● | S | Worked great-person improvements gain +5 food and +3 gold. |
 | The Assay | 1 | ● | P | Gain +3 science and +3 gold for each distinct strategic resource type you can access. |
 | The Endowed Provinces | 1 | ◆ | P | Each city working at least one great-person improvement gains +6 food and +5 production, once per city. |
@@ -601,11 +602,13 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Quiet Faculties | 2 | ○ | P | Cities working a great-person improvement gain +38% food and +30% production, but produce military units 25% more slowly. |
 | The Patent Rolls | 2 | ◆ | S | Completing a technology before any other empire grants 30 culture and 10 renown. |
 | Enduring Institutions | 2 | ◆ | P | A city with an empire building at least twenty turns old gains +2 happiness and +23% production, once per city. |
+| The Mechanists' Charter | 2 | ○ | S | Drafting this opens Mechanics for research. Knowing it gives two lines a trait they keep through every upgrade. Onager (Catapult and Trebuchet): +1 range. Repeating Crossbow (Archer to Crossbowman): it may move after it shoots. No chair required. |
 | Master Artificers | 3 | ◆ | S | Worked Academies and Manufactories gain +9 production and +9 gold. |
 | The Society of Artificers | 3 | ○ | P | A city with an empire building working an Academy or Manufactory gains food and culture each equal to 30% of its base production, excluding conversion outputs. |
 | The Long Inheritance | 3 | ○ | S | Cities working a great-person improvement at least twenty turns old gain +45% production toward empire buildings, wonders and the Opus. A mature empire building there adds another +23%. |
 | The Learned Realm | 3 | ◆ | S | Each city working a great-person improvement grants +1 authority capacity, at most +8. Cities with a Library at least twenty turns old gain +2 happiness. |
 | The Patent Office | 4 | ◆ | S | Charter technologies cost you no more research than ordinary technologies at the same point in the tree. |
+| The Naval Gunners' Charter | 4 | ◆ | S | Drafting this opens Naval Gunnery for research. Knowing it gives your Gun Galleys the Galleass trait: +3 strength, and they blockade: parked off a rival's port, a Gun Galley closes its sea lane and its trade. No chair required. |
 
 ### Magisterial
 
@@ -841,8 +844,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **Husbandry Studies** — † soldiers of yours that depend on horses are quicker on their feet from the day they are raised, and stay so
 - **Enduring Institutions** — † a town whose empire building has stood a long while is gladder and builds faster, once per town
 - **Commissions of Service** — † spending a great person on an act or a legacy pays food and gold to your nearest town, though placing a work does not
-- **The Mechanists' Charter** — † drafting this opens the study of mechanics for research
-- **The Alchemists' Charter** — † drafting this opens the study of chemistry for research
+- **The Alchemists' Charter** — The Grenadier trait is built; the card waits for Niter Beds. † knowing Chemistry lets workers build Niter Beds beside a farm or pasture, which supply niter
 - **The Second Seat** — † you may raise one further copy of an empire building, in a town that holds a university, and only one such copy may be building or standing at a time
 - **The Long Inheritance** — † towns working a great person's work that has stood a long while build empire buildings, wonders and the great work faster, and faster again where the empire building there is itself old
 - **The Distant Colleges** — † a town holding an empire building may work your great people's works one hex beyond its usual reach, and gains no ground and no citizens by it

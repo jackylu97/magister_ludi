@@ -225,6 +225,7 @@ import {
   UNIT_UNLOCK_TECH,
   eraNumeral,
   highestAge,
+  isCharterTech,
   isTechId,
   techDef,
 } from '../techData';
@@ -236,6 +237,7 @@ import {
   isCombatant,
   isExplorer,
   isFieldSoldier,
+  isInUnitLine,
   isUnitTypeId,
   unitDef,
   unitMaxHp,
@@ -950,9 +952,21 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
   // where an empire ends holding fifty of them.
   for (const id of playerById(state, playerId)?.techsResearched ?? []) {
     if (!isTechId(id)) continue;
-    const effects = techDef(id).effects;
-    if (effects === undefined || effects.length === 0) continue;
-    push(id, CLASS_WORD.tech, effects);
+    const def = techDef(id);
+    const effects = def.effects;
+    if (effects !== undefined && effects.length > 0) push(id, CLASS_WORD.tech, effects);
+    // **The line traits** (Scientific batch S1): read with the technology,
+    // after its own effects, one trait at a time in row order. Each line is
+    // labelled "<technology> · <trait>" ("Mechanics · Onager", reading 23), so
+    // the forecast and the unit card name the trait. The label is fixed here
+    // and kept for any clause nested inside a trait's effects.
+    for (const trait of def.traits ?? []) {
+      const source = `${def.name} · ${trait.name}`;
+      const pushTrait = (card: CardId, _word: string, nested: readonly CardEffect[]): void => {
+        pushEffects(state, playerId, list, card, source, nested, pushTrait, source);
+      };
+      pushTrait(id, source, trait.effects);
+    }
   }
   // **The seventh source** (`docs/religion-v2.md`, corrected by the user's
   // ruling of 2026-08-28): every religion whose **holy city this empire holds**.
@@ -1219,11 +1233,17 @@ function pushEffects(
   word: string,
   effects: readonly CardEffect[],
   recur: (card: CardId, word: string, effects: readonly CardEffect[]) => void,
+  /**
+   * The whole label, when the caller names it. A line trait (Scientific batch
+   * S1) is labelled "<technology> · <trait>", which is not the class word and
+   * the card's name that every other source uses.
+   */
+  label?: string,
 ): void {
   // One line for the whole card, built once: every effect of one card carries
   // the identical label, and this used to be a template and an `anyCardDef` per
   // effect — a ninth of a late turn between them (batch 10).
-  let source: string | undefined;
+  let source: string | undefined = label;
   for (const effect of effects) {
     if (effect.kind === 'conditionRule') {
       // The cut. Inside a condition's own evaluation every gate is closed, so
@@ -2868,6 +2888,8 @@ export function countOf(
       // never a walk of the pieces still standing: a house that learnt from the
       // scholar goes on learning after her academy is planted. See the count.
       return playerById(state, playerId)?.greatPeopleRecruited ?? 0;
+    case 'charterTechsKnown':
+      return charterTechsKnown(state, playerId);
     case 'unitsInField': {
       let total = 0;
       for (const unit of state.units) {
@@ -6471,6 +6493,18 @@ function combatScaleCount(
     case 'bankedGold':
       // War Bonds. The ledger count's own reading, asked of a fight.
       return Math.max(0, Math.floor(playerById(state, playerId)?.gold ?? 0));
+    case 'townCitizensHere': {
+      // The Hoplite (Scientific batch S1, reading 26). The piece's own hex in
+      // both postures: a defender stands on the contested hex, and an attacker
+      // strikes from its own (the comparison's imagined copy stands where it
+      // is imagined). Only a town of the piece's own empire counts.
+      const here = cityAt(state, unit.col, unit.row);
+      return here !== undefined && here.ownerId === unit.ownerId ? here.population : 0;
+    }
+    case 'charterTechsKnown':
+      // The Grenadier (Scientific batch S1). The ledger count's own reading,
+      // asked of a fight.
+      return charterTechsKnown(state, playerId);
     default: {
       const unhandled: never = count;
       void unhandled;
@@ -6511,6 +6545,21 @@ function greatPeopleEarned(state: GameState, playerId: number, family?: Family):
     const person = unit.person;
     if (person === undefined) continue;
     if (admits(person)) total += 1;
+  }
+  return total;
+}
+
+/**
+ * **The charter technologies this empire knows** (Scientific batch S1): the
+ * count both `CountKind` and `CombatScaleCount` name `charterTechsKnown`. One
+ * function, so the Grenadier's strength and a card that pays for the same
+ * count cannot disagree. A charter drafted and not yet researched does not
+ * count (the triage's reading 27).
+ */
+function charterTechsKnown(state: GameState, playerId: number): number {
+  let total = 0;
+  for (const id of playerById(state, playerId)?.techsResearched ?? []) {
+    if (isTechId(id) && isCharterTech(id)) total += 1;
   }
   return total;
 }
@@ -6640,6 +6689,10 @@ export function unitMatches(type: UnitTypeId, filter?: UnitFilter): boolean {
   // say — see `UnitFilter.type`. The *data* names a type here; no rule in
   // `src/sim/` does, which is the claim that has never moved.
   if (filter.type !== undefined && type !== filter.type) return false;
+  // One unit line (Scientific batch S1, the line traits): the named unit and
+  // every unit its upgrade chain reaches, read off the roster's own table, so
+  // a trait stays with a piece through every upgrade (reading 22).
+  if (filter.line !== undefined && !isInUnitLine(type, filter.line)) return false;
   return true;
 }
 
