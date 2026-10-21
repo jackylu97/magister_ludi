@@ -193,6 +193,11 @@ The first six come from section 11 of the themes doc and its answers. The rest a
 46. (E11) A public work granted by a completion or a commission counts for The Aediles; a founding rider's free Granary does not, because it does not pass through `realiseItem`.
 47. (E11) The Topping Out's hammers go into each basket at once but are settled at the production step, not during the completion; `payCompletionRiders` settles growth only.
 48. (E11) The Topping Out also pays for a granted empire building.
+49. (E12) The one reading of what a town holds lives in `statecraft/evaluator.ts`, not `cities.ts`: every reader may import the evaluator, but `yields/hex.ts`, `visibility.ts`, `renown.ts` and `routeYields.ts` may not import `cities.ts`.
+50. (E12) Every scope and count that asks what a town holds moves to it, not only the three the triage named, so The Public Good counts a held Aqueduct.
+51. (E12) Every reader of a building's effect moves to it; the readers of what was built stay on `City.buildings`.
+52. (E12) A card never grants a wonder or an empire building this way.
+53. (E12) A held building's lines print "Building · Aqueduct" without the card's name. A UI follow-up could name the card.
 
 ## The batches
 
@@ -307,6 +312,8 @@ The first six come from section 11 of the themes doc and its answers. The rest a
 - **Done-gate:** `npx vitest run test/sim/decks/expansionistPublicWorks.test.ts test/sim/decks/expansionistMoments.test.ts test/sim/decks/expansionist.test.ts test/sim/productionCosts.test.ts test/sim/decks.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/statecraft.test.ts`.
 
 ### E12: The Cura Aquarum
+
+**Built 2026-10-21** on `exp-work` (`3e375290`), to merge into `decks` with E11 after Scientific S13. Readings 49 to 53 came from it. Cost: a seat holding the card about doubles its town fold sweep (0.5 to 1.0 ms for eight towns), because the road fill is not cached and roads do not move the economy clock; a follow-up can cache it. Follow-ups: the city panel's Built list and its defence, hit points, queue floor and rite pay still read what was built (they agree today, because the Aqueduct has none of those facts); bots read what was built until E13.
 
 - **Builds:** a city rule with a `building` field (for example `holdsBuilding`), scope `connected`, and one reading of "this town holds this building" (for example `townHoldsBuilding(state, city, id)`) that answers yes for a real building or for the rule. The readers of the building's effect move to it: `buildingEffects.ts` (`waters`, its lists), the building's own effects as a `liveEffects` source, the building lines of the town fold (`yields/town.ts`), and the scopes and counts (`hasBuilding`, `citiesAdmitted`, `buildingsOfKind`). The readers of what was built keep reading `City.buildings` (reading 33). The batch lists every reader it moved and every reader it left, with the reason for each. Card: The Cura Aquarum.
 - **Fence:** the shared six (Expansionist parts), `docs/decks/expansionist.md`, `src/sim/cities.ts` (the helper), `src/sim/buildingEffects.ts`, `src/sim/yields/town.ts` (the building lines), `src/sim/state.ts` (the schema line) and `test/sim/state.test.ts`, `test/sim/decks.test.ts` (Expansionist's live rows 113 → 114), `test/sim/yieldsDocSync.test.ts` (read; the order of the folds must not move), `test/mapgen/moduleCycles.test.ts` (read: a helper `buildingEffects.ts` and the evaluator both need lives in a leaf), a new `test/sim/decks/expansionistCura.test.ts`.
