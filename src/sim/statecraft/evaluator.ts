@@ -22,6 +22,7 @@ import {
   capitalCityOf,
   cityAt,
   cityResources,
+  markHexesBeside,
   markTownLand,
   cityTile,
   controlledResources,
@@ -2266,11 +2267,22 @@ export function cityScopeAdmits(
       // fixed the day the settler stops, where `terrainInBorders` moves with
       // culture. Petra's desert.
       return isTerrainBeside(state, city, scope.terrain);
-    case 'terrainInBorders':
+    case 'terrainInBorders': {
       // What the *borders* have taken in, which is a different question from
       // what the centre stands on and from what touches it. `ownedTiles` is the
       // board's own answer, so a hex that changes hands changes this with it.
-      return ownedTiles(state, city).some((tile) => tile.terrain === scope.terrain);
+      //
+      // `atLeast` (Expansionist batch E9, The Mountain Schools; the triage's
+      // reading 15): so many such hexes, worked or not. Absent, one.
+      const wanted = Math.max(1, scope.atLeast ?? 1);
+      let found = 0;
+      for (const tile of ownedTiles(state, city)) {
+        if (tile.terrain !== scope.terrain) continue;
+        found += 1;
+        if (found >= wanted) return true;
+      }
+      return false;
+    }
     case 'hasImprovement': {
       // `terrainInBorders` asked of what has been *built* rather than of the
       // ground, over the same sweep and for its reason: the quarry three hexes
@@ -2559,7 +2571,9 @@ function scopeNote(scope?: CityScope): string | null {
     case 'terrainBeside':
       return `on or beside ${scope.terrain}`;
     case 'terrainInBorders':
-      return `${scope.terrain} in its borders`;
+      return (scope.atLeast ?? 1) > 1
+        ? `${scope.atLeast}+ ${scope.terrain} hexes in its borders`
+        : `${scope.terrain} in its borders`;
     case 'hasImprovement':
       return `${improvementDef(scope.improvement).name.toLowerCase()} in its borders`;
     case 'garrisoned':
@@ -4581,8 +4595,16 @@ export function tileConditionHolds(
       // so ground whose works were pillaged away is unimproved again — which is
       // the reading the 🌿 ladder's cards want. Tended land is wild too.
       return tile.improvement === undefined || isTendedWork(tile.improvement);
-    case 'tended':
-      return tile.improvement !== undefined && isTendedWork(tile.improvement);
+    case 'tended': {
+      const work = tile.improvement;
+      if (work === undefined) return false;
+      if (isTendedWork(work)) return true;
+      // The Two Harvests (Expansionist batch E9, the triage's reading 14): the
+      // asking empire's law makes these works count as tended too. `improved`
+      // and `unimproved` do not change, so "improved or tended" counts such a
+      // hex once and it is never wild.
+      return ground?.tendedFields?.some((row) => improvementCountsAs(work, row)) === true;
+    }
     case 'surveyed':
       return tile.surveyed === true;
     case 'any': {
@@ -4679,7 +4701,11 @@ export function tileConditionHolds(
       // ticks and bare ground answers no rather than nought.
       if (turn === undefined) return false;
       const age = improvementAge(tile, turn);
-      return age !== undefined && age >= on.turns;
+      // Commission: Break the Sod's institution (Expansionist batch E9, the
+      // triage's reading 13): the asking empire's works count as older. A
+      // caller with no ground facts reads the stamp alone; the callers that
+      // hand none in are listed on `GroundFacts.workAgeBonus`.
+      return age !== undefined && age + (ground?.workAgeBonus ?? 0) >= on.turns;
     }
     case 'beside':
       // **The ring the caller handed in**, or no ring and therefore no. Neither
@@ -4747,7 +4773,11 @@ function resourceSeen(id: ResourceId, ground: GroundFacts | undefined): boolean 
  *     three resource tests (Dominion batch D12);
  *   · `standsIn`, which works count as another row by the empire's law, for
  *     the tile tests `improvement` and `anyImprovement` (Scientific batch S5,
- *     The Studium Generale).
+ *     The Studium Generale);
+ *   · `workAgeBonus`, the turns the empire's law adds to a work's age, for
+ *     `standingSince` (Expansionist batch E9, Commission: Break the Sod);
+ *   · `tendedFields`, the works the empire's law counts as tended, for
+ *     `tended` (Expansionist batch E9, The Two Harvests).
  *
  * The yield context carries one (`TileYieldContext.ground`), so the hex fold,
  * the hover card and the lens all ask the same facts.
@@ -4787,6 +4817,39 @@ export interface GroundFacts {
    * the one reader.
    */
   standsIn?: WorkStandIn;
+  /**
+   * **The turns the asking empire's law adds to a work's age** (Expansionist
+   * batch E9, Commission: Break the Sod's institution; the triage's reading
+   * 13). Built by `cardWorkAgeBonus`, and absent when the law adds nothing.
+   * Added in `standingSince`, the one place a work's age is compared.
+   *
+   * **The callers that hand in no ground facts**, and so read a work's age
+   * off its stamp alone. None of them asks `standingSince`, and
+   * `test/sim/decks/expansionistThemeLand.test.ts` pins the list:
+   *
+   *   · `markOnHex` (`cities.ts`), the hex fold's mark lines
+   *     (`explainTileYield`, `yields/hex.ts`) and the bot's price of a `mark`
+   *     grant (`src/ai/value.ts`): each asks a hex mark's own `while`, and no
+   *     mark's `while` asks a work's age;
+   *   · the counts `workedUnimprovedTiles` and `distinctWorkedGreatWorks` in
+   *     this module: each asks one fixed test, `unimproved` or `greatWork`.
+   *
+   * The bot's price of a hex line (`src/ai/value.ts`) hands in the ground
+   * facts and no clock, so `standingSince` answers no there whatever the
+   * bonus. That is the bot's own reading, older than this field.
+   */
+  workAgeBonus?: number;
+  /**
+   * **The works the asking empire's law counts as tended** (Expansionist
+   * batch E9, The Two Harvests: farms, mines and lumber mills; the triage's
+   * reading 14). Built by `cardFieldsTended`, and absent when the law names
+   * none. Read by the tile test `tended` through `improvementCountsAs`, so a
+   * variant of a named row counts. `improved` and `unimproved` do not read
+   * it. The callers above that hand in no ground facts ask no `tended` that
+   * could change: a mark's `while` that asks `tended` also admits `improved`,
+   * which every named work already is.
+   */
+  tendedFields?: readonly ImprovementId[];
 }
 
 /**
@@ -4901,7 +4964,40 @@ export function groundFactsFor(state: GameState, playerId: number): GroundFacts 
   // makes no work count as another row.
   const standsIn = worksStandInFor(state, playerId);
   if (standsIn !== undefined) facts.standsIn = standsIn;
+  // Expansionist batch E9: Break the Sod's older works and The Two Harvests'
+  // tended fields, each absent for an empire whose law says nothing.
+  const older = cardWorkAgeBonus(state, playerId);
+  if (older !== 0) facts.workAgeBonus = older;
+  const fields = cardFieldsTended(state, playerId);
+  if (fields.length > 0) facts.tendedFields = fields;
   return facts;
+}
+
+/**
+ * **The turns this empire's law adds to a work's age** (Expansionist batch
+ * E9, Commission: Break the Sod's institution): the sum of its live
+ * `workAge` effects, or nought. See `GroundFacts.workAgeBonus`.
+ */
+export function cardWorkAgeBonus(state: GameState, playerId: number): number {
+  let turns = 0;
+  for (const { effect } of effectsOfKind(state, playerId, 'workAge')) turns += Math.floor(effect.turns);
+  return turns;
+}
+
+/**
+ * **The works this empire's law counts as tended** (Expansionist batch E9,
+ * The Two Harvests): the `improvements` of each `fieldsTended` rule among its
+ * live effects, in walk order, each once. See `GroundFacts.tendedFields`.
+ */
+export function cardFieldsTended(state: GameState, playerId: number): ImprovementId[] {
+  const rows: ImprovementId[] = [];
+  for (const { effect } of effectsOfKind(state, playerId, 'rule')) {
+    if (effect.rule !== 'fieldsTended') continue;
+    for (const row of effect.improvements ?? []) {
+      if (!rows.includes(row)) rows.push(row);
+    }
+  }
+  return rows;
 }
 
 /**
@@ -7499,6 +7595,13 @@ export interface WindfallPayout {
    */
   marks?: { card: CardId; source: string; mark: HexMarkId }[];
   /**
+   * **Lasting marks** a rider puts on the six hexes around the occasion's hex
+   * (`WindfallGrantSpec.markBeside`, Expansionist batch E9, The Marl Pits).
+   * Optional for D3's four's reason. Delivered by `payWindfallGrants` through
+   * `markHexesBeside` (`cities.ts`).
+   */
+  marksBeside?: { card: CardId; source: string; mark: HexMarkId }[];
+  /**
    * **The radius of a heal and of a rank** a rider pays the empire's pieces
    * around the occasion's hex (`WindfallGrantSpec.healWithin` and
    * `rankWithin`, Dominion batch D8, The Soldiers' Share). The widest asked
@@ -7751,6 +7854,7 @@ export function windfallPayoutIsEmpty(payout: WindfallPayout): boolean {
     payout.unrestBeside !== true &&
     payout.pillageBeside !== true &&
     (payout.marks ?? []).length === 0 &&
+    (payout.marksBeside ?? []).length === 0 &&
     (payout.techGrants ?? []).length === 0 &&
     payout.freeDraft !== true &&
     (payout.healWithin ?? 0) <= 0 &&
@@ -8076,6 +8180,12 @@ export function windfallPayout(
     if (grant.mark !== undefined) {
       (payout.marks ??= []).push({ card, source, mark: grant.mark });
       payout.lines.push({ card, source, note: 'marks the city’s land for good' });
+    }
+    // Expansionist batch E9, The Marl Pits: a lasting mark on the hexes around
+    // the moment's hex. No figure, as above.
+    if (grant.markBeside !== undefined) {
+      (payout.marksBeside ??= []).push({ card, source, mark: grant.markBeside });
+      payout.lines.push({ card, source, note: 'marks the land beside it for good' });
     }
     // Dominion batch D8: the heal and the rank around the hex (The Soldiers'
     // Share), and the timed effects hung on the piece that acted (The Scourge
@@ -9449,6 +9559,13 @@ export function payWindfallGrants(
   for (const entry of payout.marks ?? []) {
     const town = at ? nearestOwnedCity(state, player.id, at) : (capitalCityOf(state, player.id) ?? null);
     if (town) markTownLand(state, town, entry.mark);
+  }
+  // **The marks around the hex** (Expansionist batch E9, The Marl Pits): the
+  // six hexes beside the moment's hex, inside this empire's borders.
+  // `markHexesBeside` re-seats each town that gained a mark. An occasion with
+  // no hex marks nothing.
+  if (at) {
+    for (const entry of payout.marksBeside ?? []) markHexesBeside(state, player.id, at, entry.mark);
   }
   // **The whole army, made whole** — The Empire's. Written straight onto the
   // pieces rather than through `healUnits`, because that phase is the *rested*

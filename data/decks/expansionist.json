@@ -401,7 +401,7 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "Fire in the dry season, and green shoots after the rain.",
-      "text": "Once drafted, workers may tend wild grassland or plains into burned country for one charge: +1 food. No chair required.",
+      "text": "Once drafted, workers may burn a grassland or plains tile for one charge: +1 food. Bare ground becomes burned country; an improvement on the tile stays. No chair required.",
       "charter": { "unlocks": { "improvement": "burnedCountry" } },
       "effects": []
     },
@@ -903,7 +903,7 @@
       "rarity": "common",
       "type": "wildcard",
       "flavor": "The first furrow is the hardest, and the rest follow it.",
-      "text": "Commission. Work twelve improved tiles at the same time. Then every town gains +3 food for twenty turns, and your capital gains a free worker. The card leaves its chair.",
+      "text": "Commission. Work twelve improved tiles at the same time. Then, for the rest of the game, your improvements count as having stood ten turns longer. The card leaves its chair.",
       "commission": {
         "goals": [
           {
@@ -914,14 +914,10 @@
         ],
         "reward": [
           {
-            "timed": {
-              "turns": 20,
-              "effects": [
-                { "kind": "pays", "where": "city", "food": 3 }
-              ]
-            }
-          },
-          { "unit": "worker" }
+            "lasting": [
+              { "kind": "workAge", "turns": 10 }
+            ]
+          }
         ]
       },
       "effects": []
@@ -953,6 +949,30 @@
               "class": { "type": "settler" }
             }
           ]
+        }
+      ]
+    },
+    "theMarlPits": {
+      "name": "The Marl Pits",
+      "decks": ["expansionist"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "Dig the chalk from the hill, and spread it on the field below.",
+      "text": "When your workers finish a mine or quarry, each farm or pasture beside it gains +1 food for the rest of the game, at most +2 on one tile.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "improvementBuilt",
+          "improvement": "mine",
+          "grant": { "markBeside": "marl" }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "improvementBuilt",
+          "improvement": "quarry",
+          "grant": { "markBeside": "marl" }
         }
       ]
     },
@@ -1665,13 +1685,13 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Thin air and long views make for clear thinking.",
-      "text": "Towns beside a mountain gain +15% science. Worked mines and quarries beside a mountain gain +2 science.",
+      "text": "Towns with at least two mountains in their borders gain +15% science. Worked mines and quarries beside a mountain gain +2 science.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "science",
           "percent": 15,
-          "scope": { "test": "mountainAdjacent" }
+          "scope": { "test": "terrainInBorders", "terrain": "mountain", "atLeast": 2 }
         },
         {
           "kind": "pays",
@@ -2646,9 +2666,9 @@
       "flavor": "The field below and the orchard above.",
       "text": "Needs tended land. Your worked farms, mines and lumber mills also count as tended for your cards, but not as wild.",
       "needsTendedWork": true,
-      "effects": [],
-      "deferred": ["your farms, mines and lumber mills also count as tended land for your cards"],
-      "note": "No rule yet lets a farm, mine or lumber mill count as tended land."
+      "effects": [
+        { "kind": "rule", "rule": "fieldsTended", "improvements": ["farm", "mine", "lumbermill"] }
+      ]
     },
     "theTheodosianWalls": {
       "name": "The Theodosian Walls",

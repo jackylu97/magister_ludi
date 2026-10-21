@@ -2149,8 +2149,32 @@ import {
  * **A v163 save is refused and does not replay.** An Expansionist seat's
  * pools hold five more cards, so its hands differ. The branch migrates
  * nothing, for the reason given under v119.
+ *
+ * v165 (branch `decks`; Expansionist batch E9, `docs/plans/expansionist-
+ * themes-triage.md`): **the land: marks, ages and tended fields.** No field
+ * joins the state, but `Tile.marks` may now hold three more ids (`burned`,
+ * `marl`, `marlSecond`). The rules that change:
+ *
+ *   · The Burning Season: a worker may burn a grassland or plains hex that
+ *     holds an improvement. The improvement stays and the hex is marked
+ *     `burned` (+1 food while improved). A hex is burned once;
+ *   · The Marl Pits (a new Tier I Order): finishing a mine or quarry marks
+ *     each farm or pasture beside it, inside your borders, with marl (+1
+ *     food), and a second time with a second marl, at most;
+ *   · Commission: Break the Sod now leaves an institution: your works count
+ *     as ten turns older for your cards. The timed food and the worker go;
+ *   · The Two Harvests is built and dealt: your farms, mines and lumber
+ *     mills also count as tended land for your cards, the Six Gardens goal
+ *     included;
+ *   · The Mountain Schools: towns with at least two mountains in their
+ *     borders gain +15% science.
+ *
+ * **A v164 save is refused and does not replay.** An Expansionist seat's
+ * pools hold two more cards and a worker's build can do a new thing, so its
+ * hands and its land differ. The branch migrates nothing, for the reason
+ * given under v119.
  */
-export const SCHEMA_VERSION = 164;
+export const SCHEMA_VERSION = 165;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

@@ -3495,6 +3495,12 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // The Great Migration), on a board this bot cannot read ahead of time.
       // The stand-in over the cadence, as `periodicOffer` takes it.
       return ctx.ai.score.unknownEffect / Math.max(1, Math.floor(effect.every));
+    case 'workAge':
+      // **Not priced yet** (Expansionist batch E9, Break the Sod's
+      // institution). Works counted as older pay the cards that read a work's
+      // age, and the bot's hex lines carry no clock, so it reads no work's
+      // age. Nought until batch E13 prices it.
+      return 0;
     case 'drill': {
       // **Experience is strength paid in instalments** (Dominion batch D1). A
       // point of experience is priced at what the rank ladder pays for it: the

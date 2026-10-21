@@ -9,7 +9,10 @@
  *   · The Heartland: a goal one town meets, a mark on that town, and effects
  *     for the rest of the game (reading 40);
  *   · Commission: Break the Sod: improved tiles worked, tended ones not
- *     counted (reading 2), and its reward;
+ *     counted (reading 2), and its old reward. Since batch E9 of
+ *     `docs/plans/expansionist-themes-triage.md` the card leaves an
+ *     institution instead (`expansionistThemeLand.test.ts`), so the old
+ *     reward is tested on a stand-in;
  *   · The Domesday Survey's old reward: each town paid from its own figure
  *     (reading 44). Since batch E7 the card leaves an institution instead
  *     (`expansionistThemeCards.test.ts`), and no card uses this reward, so it
@@ -223,13 +226,23 @@ describe('the Expansionist batch E5: Commission: Break the Sod', () => {
     expect(townFigure(state, city, 'improvedOnlyTilesWorked')).toBe(worked - 1);
   });
 
+  // Since batch E9 of the themes triage the card leaves an institution
+  // (`expansionistThemeLand.test.ts`). Its old reward, timed food and a
+  // worker, has no Expansionist card now, but both shapes stay, so they are
+  // tested here on a stand-in reward.
   it('pays three food in every town for twenty turns, and a worker in the capital', () => {
     const state = bareState(16, 10);
     const capital = town(state, 0, 3, 5, 3);
     farm(state, capital);
     slot(state, 0, 'commissionBreakTheSod');
-    withGoals('commissionBreakTheSod', [{ kind: 'reached', figure: 'improvedOnlyTilesWorked', count: 1 }], () => {
-      runCommissions(state);
+    const oldReward: CommissionReward[] = [
+      { timed: { turns: 20, effects: [{ kind: 'pays', where: 'city', food: 3 }] } },
+      { unit: 'worker' },
+    ];
+    withReward('commissionBreakTheSod', oldReward, () => {
+      withGoals('commissionBreakTheSod', [{ kind: 'reached', figure: 'improvedOnlyTilesWorked', count: 1 }], () => {
+        runCommissions(state);
+      });
     });
     const timed = playerById(state, 0)!.timed ?? [];
     expect(timed.some((entry) => entry.effect.kind === 'pays' && entry.expiresTurn === state.turn + 20)).toBe(true);

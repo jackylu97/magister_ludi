@@ -575,7 +575,10 @@ describe('the live rows', () => {
 
 describe('the deferred rows', () => {
   it('state their sentence, carry no effects, and are dealt to nobody', () => {
-    expect(DEFERRED.length).toBeGreaterThan(0);
+    // None since batch E9 of the themes triage: The Two Harvests was the last
+    // deferred row, and it is built. The checks stay for the next row that
+    // waits on a shape.
+    expect(DEFERRED).toEqual([]);
     for (const id of DEFERRED) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);

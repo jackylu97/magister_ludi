@@ -758,8 +758,12 @@ export type CityScope =
    * It is **not** `mountainAdjacent`, which is the ring of six around the centre
    * and reaches ground nobody owns. A card may want either; the table now says
    * which.
+   *
+   * `atLeast` (Expansionist batch E9, The Mountain Schools: two mountains; the
+   * triage's reading 15) is how many such hexes the borders must hold, worked
+   * or not. Absent, one is enough.
    */
-  | { test: 'terrainInBorders'; terrain: TerrainId }
+  | { test: 'terrainInBorders'; terrain: TerrainId; atLeast?: number }
   /**
    * The town is **not** this empire's capital — Aššur-idī's colony trade.
    *
@@ -4399,6 +4403,20 @@ export type BehaviorRuleId =
    */
   | 'farmChainsWater'
   /**
+   * **This empire's works of the named rows also count as tended land for
+   * its cards, but not as wild land** (Expansionist batch E9, The Two
+   * Harvests: farms, mines and lumber mills; the triage's reading 14). The
+   * rows are the effect's `improvements`, so the card names them and no code
+   * does.
+   *
+   * Read by `cardFieldsTended` into the ground facts (`GroundFacts.
+   * tendedFields`), which the tile test `tended` asks, so a hex line, a count
+   * of hexes in borders and a town scope all see it. The commission figure
+   * `tendedTiles` reads the same facts. `unimproved` does not change, and a
+   * hex asked "improved or tended" counts once.
+   */
+  | 'fieldsTended'
+  /**
    * **A great person's work beside one of this empire's works of the named
    * row counts as that row for its cards** (Scientific batch S5, The Studium
    * Generale; the triage's reading 33). The row is the effect's
@@ -5425,6 +5443,20 @@ export interface WindfallGrantSpec {
    * mark has no figure, so the era and the council multiply nothing here.
    */
   mark?: HexMarkId;
+  /**
+   * **A lasting mark on the six hexes around the occasion's hex** (Expansionist
+   * batch E9, The Marl Pits: `marl`; the triage's reading 12).
+   *
+   * `mark`'s sibling, with the ring in place of a town's borders. A hex is
+   * marked when it lies inside this empire's borders at that moment and the
+   * mark's own condition holds there. A hex that already carries the mark
+   * takes the next one in the mark's chain (`HexMarkRule.then`: `marl`, then
+   * `marlSecond`), and a hex that carries the whole chain takes nothing.
+   * Delivered by `payWindfallGrants` through `markHexesBeside` (`cities.ts`).
+   * An occasion with no hex marks nothing. No figure, so the era and the
+   * council multiply nothing here.
+   */
+  markBeside?: HexMarkId;
   /**
    * **Every piece of this empire within this many hexes of the occasion's hex
    * is healed whole** (Dominion batch D8, The Soldiers' Share). `healAll`
@@ -7415,6 +7447,14 @@ export interface CardRuleEffect {
    * changes nothing. Meaningless on every other member.
    */
   improvement?: ImprovementId;
+  /**
+   * **Which works the rule is about** (Expansionist batch E9, The Two
+   * Harvests: farms, mines and lumber mills). Read only by `fieldsTended`,
+   * through `cardFieldsTended`. A variant of a named row counts as the row
+   * (`improvementCountsAs`), so a terrace is a farm here. Meaningless on
+   * every other member.
+   */
+  improvements?: ImprovementId[];
 }
 
 /**
@@ -7881,6 +7921,25 @@ export interface CardWorksBeyondEffect {
   kind: 'worksBeyond';
   works: 'tended';
   reach: number;
+}
+
+/**
+ * **This empire's works count as older than they are, for its cards**
+ * (Expansionist batch E9, Commission: Break the Sod's institution; the
+ * triage's reading 13). `turns` is added to the age of every work the
+ * empire's cards read: improvements, tended works and great people's works,
+ * in hex lines, counts of hexes and town scopes.
+ *
+ * Read by `cardWorkAgeBonus` into the ground facts (`GroundFacts.
+ * workAgeBonus`), and added in the one place a work's age is compared, the
+ * tile test `standingSince`. A building's age does not change, and neither
+ * does the age stamp on the hex (`Tile.improvedOn`): the stamp is a fact
+ * about the hex, and the bonus is the empire's law. A work with no stamp is
+ * still not shown to be old.
+ */
+export interface CardWorkAgeEffect {
+  kind: 'workAge';
+  turns: number;
 }
 
 /**
@@ -8954,6 +9013,8 @@ export type CardEffect =
   | CardWorksBeyondEffect
   | CardEncroachEffect
   | CardMigrationEffect
+  // Expansionist batch E9: a work counts as older for the empire's cards.
+  | CardWorkAgeEffect
   | CardPantheonSlotsEffect
   | CardPurchaseRiderEffect
   | CardProjectRiderEffect

@@ -5,22 +5,22 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 - **Status:**
   - `implemented`: in the data, dealt, and plays as written.
   - `modify`: in the data, but needs work. The word after the colon says why: `revised` (your comments on the review page of 2026-10-21, `docs/plans/expansionist-themes.md`, section 11), `reworked` (a rework in the themes pass of 2026-10-21), `deferred` (not dealt, because it needs a new shape), or `as built` (the game does something slightly different from the text). The ability shown is the target.
-  - `add`: not in the data yet. A new card of the themes pass, or The Marl Pits, which the pass reworked.
+  - `add`: not in the data yet. A new card of the themes pass.
 - **Type:** the last column of each card table says which chair the card fits: **Military**, **Economic**, **Civic** or **Wildcard**. A card fits a chair of its own type or a Wildcard chair, and a Wildcard card fits only a Wildcard chair. The sorting rules and every government's chairs are in `docs/plans/doctrines-governments-chairs.md`, section 4. The sync test checks this column against the `type` of every row the sheet lists, the `modify` rows and the shared table's cards included. A charter takes no chair; its type is for its face.
 - **Gates:** "Needs tended land" deals a card only to a seat holding a tended-work charter. "Needs a levy" deals a card only to a seat holding a card that grants a levy, in a chair or not.
 - **Why each card is here:** `docs/plans/expansionist-themes.md`, the themes pass of 2026-10-21. It gives the engine (citizens and the levy), the four themes (the raised land, the frontier, public works and the militia), and your rulings in section 11. Each card's theme and role are in `docs/plans/expansionist-list-proposed.md`. The earlier pass, the builds you accepted on 2026-10-16, is `docs/plans/expansionist-builds.md`.
-- **The build:** the plan is `docs/plans/expansionist-themes-triage.md` (batches E7 to E13). Batch E7 wrote this sheet from the themes pass, retired the fifteen cut cards that had a data row, and built the ten cards changed in place: The Rope Stretchers, Six Gardens, The Milestones, The Teeming Realm, The Staked Claims, Plenty, The Wide Country, The Measure of the Land, The Mother City and The Domesday Survey. Six Gardens, The Wide Country and The Domesday Survey now leave an institution: effects that hold for the rest of the game and take no chair. Batch E8 built five new cards in shapes that already existed: The Founding Furrow, The Horrea, The Land Hunger, The Many Hands and The Capitolia. The first round of batches, E0 to E6, is `docs/plans/expansionist-build-triage.md`.
+- **The build:** the plan is `docs/plans/expansionist-themes-triage.md` (batches E7 to E13). Batch E7 wrote this sheet from the themes pass, retired the fifteen cut cards that had a data row, and built the ten cards changed in place: The Rope Stretchers, Six Gardens, The Milestones, The Teeming Realm, The Staked Claims, Plenty, The Wide Country, The Measure of the Land, The Mother City and The Domesday Survey. Six Gardens, The Wide Country and The Domesday Survey now leave an institution: effects that hold for the rest of the game and take no chair. Batch E8 built five new cards in shapes that already existed: The Founding Furrow, The Horrea, The Land Hunger, The Many Hands and The Capitolia. Batch E9 built the land: The Burning Season burns an improved tile and keeps the work, The Marl Pits marks the farms and pastures beside a new mine or quarry, Commission: Break the Sod leaves works counted as ten turns older, The Two Harvests counts farms, mines and lumber mills as tended, and The Mountain Schools asks for two mountains in a town's borders. The first round of batches, E0 to E6, is `docs/plans/expansionist-build-triage.md`.
 - **Doctrines:** proposed on 2026-10-17, eight in each of Tiers I to IV, for your pass; none is built. Each tier's Doctrine table sits above its Orders, and the Build column names the build or flavour of 2026-10-16 that each is written for. The reasons, drawbacks, pairs and shapes, and the questions, are in `docs/plans/expansionist-builds.md`, "Doctrines, proposed 2026-10-17". The themes pass did not change them (`docs/plans/expansionist-themes.md`, section 8).
 - **The long form** (the D3 "built as" details, the tended works as built, the synergy section, the proposed cuts and the proposed revision of 2026-10-13): `docs/decks/reference/expansionist-2026-10-16.md`.
 
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
 | Tier 0 | 14 | 0 | 0 | 14 | none |
-| Tier I | 22 | 2 | 2 | 26 | 8 proposed |
+| Tier I | 25 | 0 | 1 | 26 | 8 proposed |
 | Tier II | 21 | 2 | 2 | 25 | 8 proposed |
-| Tier III | 28 | 2 | 1 | 31 | 8 proposed |
-| Tier IV | 16 | 1 | 1 | 18 | 8 proposed |
-| **All** | **101** | **7** | **6** | **114** | **32 proposed** |
+| Tier III | 29 | 1 | 1 | 31 | 8 proposed |
+| Tier IV | 17 | 0 | 1 | 18 | 8 proposed |
+| **All** | **106** | **3** | **5** | **114** | **32 proposed** |
 | Shared | 17 | 0 | 0 | 17 |  |
 
 **By type** (the chair a card fits):
@@ -81,7 +81,7 @@ The 114 cards are 111 that take a chair and three charters (The Fish Traps, The 
 | **The Old Songs** | common | implemented | Worked unimproved land gains +2 culture. | Civic |
 | **The Local Census** | common | implemented | A town working at least four improved or tended tiles costs one less authority, minimum one. | Civic |
 | **The Wild Orchards** | common | implemented | Once drafted, workers may tend a forest or jungle tile into a wild orchard for one charge: +1 food and +1 gold. No chair required. | Economic |
-| **The Burning Season** | uncommon | modify: revised | Once drafted, workers may burn a grassland or plains tile for one charge: +1 food. Bare ground becomes burned country; an improvement on the tile stays. No chair required. | Economic |
+| **The Burning Season** | uncommon | implemented | Once drafted, workers may burn a grassland or plains tile for one charge: +1 food. Bare ground becomes burned country; an improvement on the tile stays. No chair required. | Economic |
 | **Dark Earth** | uncommon | implemented | Worked farms gain +2 food once they have stood for 20 turns, and another +2 food once they have stood for 50 turns. | Economic |
 | **The Three Sisters** | common | implemented | Worked farms beside a plantation or a pasture gain +2 food and +2 production, once per farm. | Economic |
 | **The Commons** | uncommon | implemented | Each town gains +1 happiness for every two wild tiles it works, at most +3. | Civic |
@@ -89,9 +89,9 @@ The 114 cards are 111 that take a chair and three charters (The Fish Traps, The 
 | **The Master Builders** | common | implemented | Towns working at least three mines, quarries or lumber mills give +1 renown a turn, favouring great engineers. | Civic |
 | **Outposts** | uncommon | implemented | Workers may plant an outpost on a wild tile within three hexes of your border, for one charge. It claims its hex and the ring around it for your nearest town, and costs no authority. A town founded on an outpost keeps that land. | Economic |
 | **Six Gardens** | uncommon | implemented | Needs tended land. Commission. Have six tended tiles. Then, for the rest of the game, tended tiles gain +1 culture. The card leaves its chair. | Wildcard |
-| **The Marl Pits** | uncommon | add | When your workers finish a mine or quarry, each farm or pasture beside it gains +1 food for the rest of the game, at most +2 on one tile. | Economic |
+| **The Marl Pits** | uncommon | implemented | When your workers finish a mine or quarry, each farm or pasture beside it gains +1 food for the rest of the game, at most +2 on one tile. | Economic |
 | **The Forest Keepers** | common | implemented | Lumber mills that have stood for twenty turns gain +2 culture. | Civic |
-| **Commission: Break the Sod** | common | modify: reworked | Commission. Work twelve improved tiles at the same time. Then, for the rest of the game, your improvements count as having stood ten turns longer. The card leaves its chair. | Wildcard |
+| **Commission: Break the Sod** | common | implemented | Commission. Work twelve improved tiles at the same time. Then, for the rest of the game, your improvements count as having stood ten turns longer. The card leaves its chair. | Wildcard |
 | **The Grain Census** | uncommon | implemented | While seated, this card gains +1 production and +1 gold each time one of your towns grows past its largest size. It starts at +2 of each. | Economic |
 | **The Public Fountains** | common | implemented | Towns beside a river or lake gain +1 happiness for every four citizens, at most +3. | Civic |
 | **The Labour Feasts** | uncommon | implemented | Needs a levy. After a town spends a citizen on a levy, it gains +1 culture for every wild tile it works, for ten turns. At most once every ten turns. | Civic |
@@ -168,7 +168,7 @@ The 114 cards are 111 that take a chair and three charters (The Fish Traps, The 
 |---|---|---|---|---|
 | **Seasonal Levies** | uncommon | implemented | Needs a levy. After a city spends a citizen on a levy, it gains +60% food for ten turns. A city can gain this at most once every twenty turns. | Economic |
 | **The Long Tending** | rare | implemented | Needs tended land. Tended tiles gain +2 food for every 25 turns since they were tended, at most +6. | Economic |
-| **The Mountain Schools** | uncommon | modify: revised | Towns with at least two mountains in their borders gain +15% science. Worked mines and quarries beside a mountain gain +2 science. | Civic |
+| **The Mountain Schools** | uncommon | implemented | Towns with at least two mountains in their borders gain +15% science. Worked mines and quarries beside a mountain gain +2 science. | Civic |
 | **The Polders** | rare | implemented | Workers may raise a polder on a coast tile that touches at least three of your land tiles, for two charges. A polder yields as a farm on grassland. | Economic |
 | **A Court of Engineers** | rare | implemented | Gain +50% renown, but great-person offers contain only great engineers. | Civic |
 | **The Wide Country** | uncommon | implemented | Commission. Claim twelve hexes by outposts, cleared camps or buying while this card is seated. Then, for the rest of the game, your borders grow 25% faster. The card leaves its chair. | Wildcard |
@@ -230,7 +230,7 @@ The 114 cards are 111 that take a chair and three charters (The Fish Traps, The 
 | **The Great Migration** | rare | implemented | Every ten turns, each foreign town within three hexes of your border loses one citizen to your nearest town, if your town is happier and has room to grow. | Economic |
 | **The Encroaching Fields** | uncommon | implemented | Once every ten turns, each of your towns of at least twelve citizens takes one hex from the borders of a foreign town next to it, if nobody works that hex and your town is larger than the town that owns it. | Economic |
 | **The Domesday Survey** | rare | implemented | Commission. Own at least 120 hexes and work at least 40 improved or tended tiles at the same time. Then, for the rest of the game, each town gains +1 science for each improved or tended tile it works. The card leaves its chair. | Wildcard |
-| **The Two Harvests** | rare | modify: deferred | Needs tended land. Your worked farms, mines and lumber mills also count as tended for your cards, but not as wild. | Wildcard |
+| **The Two Harvests** | rare | implemented | Needs tended land. Your worked farms, mines and lumber mills also count as tended for your cards, but not as wild. | Wildcard |
 | **The Great Aqueducts** | rare | implemented | The town raising the Magnum Opus gains +5% production toward it for each of your towns with an Aqueduct, at most +40%. | Economic |
 | **The Imperial Highways** | rare | implemented | The town raising the Magnum Opus gains +3% production toward it for every town joined to your capital by road, at most +45%. | Economic |
 | **The Theodosian Walls** | uncommon | implemented | Your towns gain +1 defence for every two citizens. | Military |

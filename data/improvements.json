@@ -517,6 +517,7 @@
       "validFeatures": [
         "none"
       ],
+      "marksImproved": "burned",
       "clearsClutter": true
     },
     "townKeep": {

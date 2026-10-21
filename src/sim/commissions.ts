@@ -65,11 +65,13 @@ import {
   type WindfallPayout,
   cityScopeAdmits,
   commissionFulfilledTurn,
+  groundFactsFor,
   heldReligions,
   payWindfallGrants,
   settleCultureWindfall,
   slotOf,
   tallyOf,
+  tileConditionHolds,
 } from './statecraft';
 // Straight from its own layer rather than through the `statecraft.ts` index:
 // through the index, the build warns of a circular import between chunks.
@@ -82,6 +84,7 @@ import {
   type CommissionSpec,
   type GoalMeasure,
   type OrderId,
+  type TileCondition,
   isOrderId,
   orderDef,
 } from './statecraftData';
@@ -90,6 +93,9 @@ import { type UnitTypeId, unitDef } from './unitData';
 import { signedPlain } from './yieldFormat';
 
 // --- the figures ------------------------------------------------------------
+
+/** The cards' `tended` test, asked by the `tendedTiles` figure. */
+const TENDED: TileCondition = { test: 'tended' };
 
 /**
  * One figure about this empire, as it stands now. The one place each
@@ -138,6 +144,9 @@ export function commissionFigure(
       return hexes;
     }
     case 'improvedTilesWorked': {
+      // Any work counts, improved or tended, and a hex counts once. So The Two
+      // Harvests (Expansionist batch E9), which makes a farm tended as well as
+      // improved, changes nothing here (the triage's reading 14).
       let worked = 0;
       for (const city of state.cities) {
         if (city.ownerId !== playerId) continue;
@@ -182,13 +191,19 @@ export function commissionFigure(
     case 'tendedTiles': {
       // Owned, not worked: Six Gardens asks for tended land the empire holds.
       // The map's tile list and the owner field share one index.
+      //
+      // Asked through the cards' own `tended` test with this empire's ground
+      // facts (Expansionist batch E9), so under The Two Harvests a farm, mine
+      // or lumber mill counts here exactly as it counts for a card, and once
+      // (the triage's reading 14).
       const owners = tileOwnerField(state);
       const tiles = state.map.tiles;
+      const ground = groundFactsFor(state, playerId);
       let tended = 0;
       for (let index = 0; index < tiles.length; index++) {
-        const work = tiles[index]!.improvement;
-        if (work === undefined || !isTendedWork(work)) continue;
-        if (owners.at(index) === playerId) tended += 1;
+        const tile = tiles[index]!;
+        if (tile.improvement === undefined || owners.at(index) !== playerId) continue;
+        if (tileConditionHolds(tile, TENDED, undefined, undefined, state.turn, ground)) tended += 1;
       }
       return tended;
     }

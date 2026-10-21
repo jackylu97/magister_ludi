@@ -363,13 +363,14 @@ describe('the Expansionist batch E7: retirements and types', () => {
     }
   });
 
-  it('types the five reworked counts civic, and The Two Harvests wildcard while it waits', () => {
+  it('types the five reworked counts civic, and The Two Harvests wildcard', () => {
     for (const id of ['theRopeStretchers', 'theMilestones', 'theTeemingRealm', 'theMeasureOfTheLand', 'theMotherCity']) {
       expect(orderDef(id as OrderId).type, id).toBe('civic');
     }
     const harvests = 'theTwoHarvests' as OrderId;
     expect(orderDef(harvests).type).toBe('wildcard');
-    expect(orderIsDealt(harvests)).toBe(false);
+    // Dealt since batch E9 built it (`expansionistThemeLand.test.ts`).
+    expect(orderIsDealt(harvests)).toBe(true);
     expect(orderDef(harvests).needsTendedWork).toBe(true);
   });
 });

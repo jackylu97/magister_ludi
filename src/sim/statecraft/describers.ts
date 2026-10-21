@@ -47,8 +47,8 @@ import {
 import { projectDef } from '../projectData';
 import { beliefPoolOf, isBeliefId, isConsecrationId, isRiteId, riteDef } from '../religionData';
 import { type CityYieldKey, resourceDef } from '../resourceData';
-import { RULES } from '../rulesData';
-import { readTileYield, terrainDef } from '../terrainData';
+import { type HexMarkId, type HexMarkRule, RULES } from '../rulesData';
+import { TILE_YIELD_KEYS, type TileYield, emptyTileYield, readTileYield, terrainDef } from '../terrainData';
 import {
   type AmplifierTarget,
   type PressureRuleId,
@@ -393,6 +393,25 @@ function listWords(parts: readonly string[]): string {
   if (parts.length === 0) return '';
   if (parts.length === 1) return parts[0]!;
   return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
+}
+
+/**
+ * **What a mark and the rest of its chain pay together**, and how many marks
+ * the chain holds (Expansionist batch E9, The Marl Pits' cap: two marks of
+ * +1 food). Read off the rule book's table (`HexMarkRule.then`), so the cap a
+ * card prints is the chain's own. A mark named twice ends the walk.
+ */
+function markChainYield(mark: HexMarkId): { marks: number; yields: TileYield } {
+  const yields = emptyTileYield();
+  const seen: HexMarkId[] = [];
+  for (let next: HexMarkId | undefined = mark; next !== undefined && !seen.includes(next); ) {
+    seen.push(next);
+    const rule: HexMarkRule = RULES.improvements.hexMarks[next];
+    const paid = readTileYield(rule.yields);
+    for (const key of TILE_YIELD_KEYS) yields[key] += paid[key];
+    next = rule.then;
+  }
+  return { marks: seen.length, yields };
 }
 
 /**
@@ -747,6 +766,20 @@ export function describeCard(id: CardId): CardClause[] {
       clauses.push({
         text: `once drafted, opens the ${ref('improvement', work, name)} for your workers to build; this card takes no chair`,
       });
+      // **A row that marks an improved hex** (Expansionist batch E9, The
+      // Burning Season): what the build does where a work already stands,
+      // said from the mark's own row in the rule book.
+      const mark = improvementDef(work).marksImproved;
+      if (mark !== undefined) {
+        const rule = RULES.improvements.hexMarks[mark];
+        const hex = tileConditionWords(rule.while);
+        clauses.push({
+          text:
+            `on ${indefinite(hex)} ${hex}, the work stays, and the hex gains ` +
+            `${bagWords(readTileYield(rule.yields))} for the rest of the game while it stays improved; ` +
+            'a hex takes this only once',
+        });
+      }
     }
     // **A charter that opens a technology** (Scientific batch S0 and S1): the
     // pick opens the research, and what knowing the technology gives is the
@@ -1836,6 +1869,17 @@ function describeEffect(
         out.push({ text: FLAG_RULE_IMPROVEMENT_WORDS(effect.rule, effect.improvement) });
         return;
       }
+      // **A rule about several works names them** (Expansionist batch E9, The
+      // Two Harvests). Said of one hex at a time, so the names need no plural.
+      if (effect.rule === 'fieldsTended' && (effect.improvements ?? []).length > 0) {
+        const works = effect.improvements!.map((id) => ref('improvement', id, improvementDef(id).name));
+        const first = improvementDef(effect.improvements![0]!).name;
+        const or = works.length === 1 ? works[0]! : `${works.slice(0, -1).join(', ')} or ${works[works.length - 1]}`;
+        out.push({
+          text: `${indefinite(first)} ${or} of yours also counts as tended land for your cards, but not as wild land`,
+        });
+        return;
+      }
       // A rule of the whole realm reads as itself; a rule of one line of
       // soldiers is said **of that line**, because "mounted units: pillaging
       // costs your units no movement" is the plumbing showing through a sentence
@@ -2147,6 +2191,20 @@ function describeEffect(
           text:
             `${occasion} gives every ${hexes} in the borders of the city where it happens ` +
             `${bagWords(readTileYield(rule.yields))} for the rest of the game`,
+        });
+      }
+      // Expansionist batch E9, The Marl Pits: the same, on the six hexes
+      // beside the moment's hex. Where the mark has a chain, the cap is the
+      // whole chain's yield, read off the same table.
+      if (grant?.markBeside !== undefined) {
+        const rule = RULES.improvements.hexMarks[grant.markBeside];
+        const hexes = tileConditionWords(rule.while);
+        const chain = markChainYield(grant.markBeside);
+        const cap = chain.marks > 1 ? `, at most ${bagWords(chain.yields)} on one hex` : '';
+        out.push({
+          text:
+            `${occasion} gives every ${hexes} beside it, inside your borders, ` +
+            `${bagWords(readTileYield(rule.yields))} for the rest of the game${cap}`,
         });
       }
       if (grant?.timed !== undefined && grant.timed.effects.length > 0) {
@@ -3037,6 +3095,16 @@ function describeEffect(
       });
       return;
     }
+    case 'workAge': {
+      // Expansionist batch E9, Commission: Break the Sod's institution (the
+      // triage's reading 13). The three kinds of work are named, because a
+      // card that says "improved" leaves tended works out.
+      const turns = Math.floor(effect.turns);
+      out.push({
+        text: `your improvements, tended works and great people's works count as having stood ${turns} ${turns === 1 ? 'turn' : 'turns'} longer for your cards`,
+      });
+      return;
+    }
     case 'drill': {
       // Dominion batch D1. Who is drilled, how much, and how often; "combat
       // units" because only an empire's fighting units hold experience
@@ -3912,8 +3980,13 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
     case 'terrainInBorders':
       // A qualifier and not an adjective, because the ground is not what the
       // town *is*: "every mountain city" would name the hex the centre stands
-      // on, which is the neighbouring scope and a different card.
-      into.qualifiers.push(`with a ${scope.terrain} hex inside its borders`);
+      // on, which is the neighbouring scope and a different card. A count
+      // (Expansionist batch E9, The Mountain Schools) says how many.
+      into.qualifiers.push(
+        (scope.atLeast ?? 1) > 1
+          ? `with at least ${scope.atLeast} ${scope.terrain} hexes inside its borders`
+          : `with a ${scope.terrain} hex inside its borders`,
+      );
       return;
     case 'hasImprovement':
       // `terrainInBorders`' phrasing exactly, asked of the works: the quarry is
@@ -6193,6 +6266,10 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   riverFarmsWater: 'your farms beside one of your farms on a river count as having fresh water',
   farmChainsWater:
     'your farms joined to a farm on fresh water by a chain of your farms count as having fresh water',
+  // Expansionist batch E9, The Two Harvests. The row names the works, and the
+  // `rule` arm says them by name; this is the sentence for a row that names
+  // none, which changes nothing.
+  fieldsTended: 'the named works also count as tended land for your cards, but not as wild land',
   workMountains: 'your cities may work the mountains in their borders',
   widerReach: 'citizens may work owned hexes one ring beyond the usual reach',
   // Dominion batch D8: The Soldiers' Share, The Servian Reforms and Combined

@@ -4322,6 +4322,10 @@
    {
     "raw": "once drafted, opens the [[improvement:burnedCountry|Burned Country]] for your workers to build; this card takes no chair",
     "text": "once drafted, opens the Burned Country for your workers to build; this card takes no chair"
+   },
+   {
+    "raw": "on an improved hex, the work stays, and the hex gains +1 food for the rest of the game while it stays improved; a hex takes this only once",
+    "text": "on an improved hex, the work stays, and the hex gains +1 food for the rest of the game while it stays improved; a hex takes this only once"
    }
   ],
   "darkEarth": [
@@ -4488,8 +4492,8 @@
     "text": "Commission. Goal: work 12 improved tiles at the same time, not counting tended tiles, while this card is seated"
    },
    {
-    "raw": "Reward: for 20 turns, +3 food in every city, and a [[unit:worker|Worker]], trained in your capital free of upkeep",
-    "text": "Reward: for 20 turns, +3 food in every city, and a Worker, trained in your capital free of upkeep"
+    "raw": "Reward: for the rest of the game, your improvements, tended works and great people's works count as having stood 10 turns longer for your cards",
+    "text": "Reward: for the rest of the game, your improvements, tended works and great people's works count as having stood 10 turns longer for your cards"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -4500,6 +4504,16 @@
    {
     "raw": "while an empire you have met holds more towns than you: +25% production toward settlers; settlers: +1 movement",
     "text": "while an empire you have met holds more towns than you: +25% production toward settlers; settlers: +1 movement"
+   }
+  ],
+  "theMarlPits": [
+   {
+    "raw": "building a [[improvement:mine|Mine]] gives every hex with a [[improvement:farm|Farm]] or [[improvement:pasture|Pasture]] beside it, inside your borders, +1 food for the rest of the game, at most +2 food on one hex",
+    "text": "building a Mine gives every hex with a Farm or Pasture beside it, inside your borders, +1 food for the rest of the game, at most +2 food on one hex"
+   },
+   {
+    "raw": "building a [[improvement:quarry|Quarry]] gives every hex with a [[improvement:farm|Farm]] or [[improvement:pasture|Pasture]] beside it, inside your borders, +1 food for the rest of the game, at most +2 food on one hex",
+    "text": "building a Quarry gives every hex with a Farm or Pasture beside it, inside your borders, +1 food for the rest of the game, at most +2 food on one hex"
    }
   ],
   "theWatercourses": [
@@ -4714,8 +4728,8 @@
   ],
   "theMountainSchools": [
    {
-    "raw": "+15% science in every city beside a mountain",
-    "text": "+15% science in every city beside a mountain"
+    "raw": "+15% science in every city with at least 2 mountain hexes inside its borders",
+    "text": "+15% science in every city with at least 2 mountain hexes inside its borders"
    },
    {
     "raw": "+2 science on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] beside a mountain",
@@ -5051,9 +5065,8 @@
   ],
   "theTwoHarvests": [
    {
-    "raw": "your farms, mines and lumber mills also count as tended land for your cards — not built yet",
-    "text": "your farms, mines and lumber mills also count as tended land for your cards — not built yet",
-    "deferred": true
+    "raw": "a [[improvement:farm|Farm]], [[improvement:mine|Mine]] or [[improvement:lumbermill|Lumbermill]] of yours also counts as tended land for your cards, but not as wild land",
+    "text": "a Farm, Mine or Lumbermill of yours also counts as tended land for your cards, but not as wild land"
    }
   ],
   "theTheodosianWalls": [

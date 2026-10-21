@@ -74,6 +74,22 @@
         "name": "Aqueduct water",
         "yields": { "food": 1, "production": 0, "gold": 0 },
         "while": { "test": "improvement", "improvement": "farm" }
+      },
+      "burned": {
+        "name": "Burned land",
+        "yields": { "food": 1, "production": 0, "gold": 0 },
+        "while": { "test": "improved" }
+      },
+      "marl": {
+        "name": "Marl",
+        "yields": { "food": 1, "production": 0, "gold": 0 },
+        "while": { "test": "anyImprovement", "improvements": ["farm", "pasture"] },
+        "then": "marlSecond"
+      },
+      "marlSecond": {
+        "name": "Second marl",
+        "yields": { "food": 1, "production": 0, "gold": 0 },
+        "while": { "test": "anyImprovement", "improvements": ["farm", "pasture"] }
       }
     }
   },

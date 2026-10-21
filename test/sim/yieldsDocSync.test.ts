@@ -376,6 +376,10 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
     'worksBeyond',
     'encroach',
     'migration',
+    // Expansionist batch E9, Break the Sod's institution: a work counts as
+    // older for the empire's cards. It pays no voice itself; the hex lines that
+    // read a work's age pay at step 2.
+    'workAge',
   ];
 
   /** Every `kind: '…'` discriminant declared in the union's shapes. */

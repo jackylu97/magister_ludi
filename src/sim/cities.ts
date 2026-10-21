@@ -146,7 +146,9 @@ import {
   type CitizenFocus,
   type CitizenLean,
   type CitizenWeights,
+  HEX_MARK_IDS,
   type HexMarkId,
+  type HexMarkRule,
   RULES,
 } from './rulesData';
 import {
@@ -2719,6 +2721,12 @@ function chooseCitizens(
  *      taken up changes the fresh water of the farms on the six hexes around
  *      it, which may belong to another town than the Qanat's own hex, so each
  *      town beside it is re-seated as well.
+ *  31. **A lasting mark on the hexes beside a work** (`markHexesBeside`,
+ *      Expansionist batch E9's The Marl Pits). Entry 26's reason, with the six
+ *      hexes around a hex in place of a town's borders: the hexes may belong
+ *      to several of the empire's towns, so each town that owns a marked hex
+ *      is re-seated. The Burning Season's mark on an improved hex goes through
+ *      `buildImprovementAt` (entry 4), which re-seats the hex's town.
  *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
@@ -2779,18 +2787,80 @@ export function refreshTileDerived(state: GameState, tile: Tile): void {
  * every farm. A hex that already carries the mark is left alone, so a second
  * engineer raises only the hexes the first did not (the triage's reading 23).
  * The hexes are walked in index order (`ownedTiles`), and each is written
- * through `markHex`, the one writer of `Tile.marks`. The town is re-seated
- * when anything changed: entry 26 of the register above.
+ * through `markOnHex` (since batch E9), which follows a mark's chain and then
+ * calls `markHex`, the one writer of `Tile.marks`. The two marks this grant
+ * names have no chain, so each is written once, as before. The town is
+ * re-seated when anything changed: entry 26 of the register above.
  */
 export function markTownLand(state: GameState, city: City, mark: HexMarkId): number {
-  const rule = RULES.improvements.hexMarks[mark];
   let marked = 0;
   for (const tile of ownedTiles(state, city)) {
-    if (!tileConditionHolds(tile, rule.while)) continue;
-    if (markHex(tile, mark)) marked += 1;
+    if (markOnHex(tile, mark)) marked += 1;
   }
   if (marked > 0) refreshCityDerived(state, city);
   return marked;
+}
+
+/**
+ * **A lasting mark goes on the six hexes around one hex** (Expansionist batch
+ * E9, The Marl Pits; the triage's reading 12). `markTownLand`'s sibling: a
+ * windfall rider's `markBeside` grant reaches it through `payWindfallGrants`,
+ * with the moment's hex. Returns how many hexes were marked.
+ *
+ * A hex is marked when it lies inside this empire's borders at that moment
+ * and the mark's own condition holds there (a farm or a pasture, for marl).
+ * Each hex goes through `markOnHex`, so a hex that already carries `marl`
+ * takes `marlSecond`, and a hex that carries both takes nothing. The ring is
+ * walked in the map's neighbour order, so a replay marks the same hexes.
+ *
+ * Every town that owns a marked hex is re-seated once: entry 31 of the
+ * register above.
+ */
+export function markHexesBeside(
+  state: GameState,
+  playerId: number,
+  at: { col: number; row: number },
+  mark: HexMarkId,
+): number {
+  const centre = getTileAt(state.map, at.col, at.row);
+  if (!centre) return 0;
+  let marked = 0;
+  const towns: number[] = [];
+  for (const tile of neighborTiles(state.map, tileHex(centre))) {
+    if (tileOwnerPlayerId(state, tile.col, tile.row) !== playerId) continue;
+    if (!markOnHex(tile, mark)) continue;
+    marked += 1;
+    const townId = tileOwnerCityId(state, tile.col, tile.row);
+    if (townId !== null && !towns.includes(townId)) towns.push(townId);
+  }
+  for (const townId of towns) {
+    const town = cityById(state, townId);
+    if (town) refreshCityDerived(state, town);
+  }
+  return marked;
+}
+
+/**
+ * **Mark one hex, following the mark's chain** (Expansionist batch E9). The
+ * one reading of `HexMarkRule.then`, asked by both routines that mark land.
+ *
+ * The first mark in the chain that the hex does not carry yet is written,
+ * if its own condition holds on the hex. A hex that carries every mark in
+ * the chain takes nothing, which is the cap: two marl marks on one farm.
+ * The walk stops after as many steps as there are mark ids, so a chain that
+ * loops cannot hang the game. Each write goes through `markHex`, the one
+ * writer of `Tile.marks`. Returns whether a mark was written.
+ */
+export function markOnHex(tile: Tile, mark: HexMarkId): boolean {
+  let next: HexMarkId | undefined = mark;
+  for (let step = 0; next !== undefined && step < HEX_MARK_IDS.length; step++) {
+    const rule: HexMarkRule = RULES.improvements.hexMarks[next];
+    if (tile.marks?.includes(next) !== true) {
+      return tileConditionHolds(tile, rule.while) && markHex(tile, next);
+    }
+    next = rule.then;
+  }
+  return false;
 }
 
 /** What the citizens eat: `foodPerCitizen` each. */

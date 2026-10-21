@@ -3490,7 +3490,10 @@ describe('determinism with cities', () => {
     // 164 since Expansionist batch E8 (five new data-only cards): five more
     // Expansionist Orders come live, so a v163 log's Expansionist hands hold
     // different cards.
-    expect(SCHEMA_VERSION).toBe(164);
+    // 165 since Expansionist batch E9 (the land): two more Expansionist
+    // Orders come live and a worker's burn may mark an improved hex, so a
+    // v164 log's Expansionist hands and land differ.
+    expect(SCHEMA_VERSION).toBe(165);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

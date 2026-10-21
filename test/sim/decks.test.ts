@@ -525,8 +525,12 @@ describe('the schema, as landed', () => {
     // **And Expansionist batch E8** (the new data-only cards): five more. Five
     // new Expansionist rows came live (The Founding Furrow, The Horrea, The
     // Land Hunger, The Many Hands, The Capitolia).
-    expect(live).toBe(530);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(530);
+    // **And Expansionist batch E9** (the land): two more. The Marl Pits is a
+    // new row, and The Two Harvests left `deferred`. The Burning Season,
+    // Commission: Break the Sod and The Mountain Schools were changed in place
+    // and were already live.
+    expect(live).toBe(532);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(532);
   });
 
   /**
@@ -814,7 +818,10 @@ describe('the schema, as landed', () => {
     // 164 since Expansionist batch E8 (five new data-only cards): five more
     // Expansionist Orders come live, so a v163 log's Expansionist hands hold
     // different cards.
-    expect(SCHEMA_VERSION).toBe(164);
+    // 165 since Expansionist batch E9 (the land): two more Expansionist
+    // Orders come live and a worker's burn may mark an improved hex, so a
+    // v164 log's Expansionist hands and land differ.
+    expect(SCHEMA_VERSION).toBe(165);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1056,9 +1063,10 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // **Expansionist batch E7** retired the themes pass's fifteen cuts:
       // fourteen live rows and the deferred Public Works (− 1, and + 15
       // retired).
+      // **Expansionist batch E9** freed The Two Harvests (− 1).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(34);
+      ).toHaveLength(33);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(188);
     }
   });

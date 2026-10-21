@@ -103,6 +103,7 @@ import {
   type Tile,
   getTileAt,
   mapRange,
+  markHex,
   raiseImprovement,
   razeImprovement,
   tileHex,
@@ -110,7 +111,7 @@ import {
   wrappedDistance,
 } from './map';
 import { type ResourceId, resourceDef, resourceIsVisibleTo } from './resourceData';
-import { RULES } from './rulesData';
+import { type HexMarkId, RULES } from './rulesData';
 import { cardThatOpensImprovement, orderDef } from './statecraftData';
 // Expansionist batch E4, straight from the evaluator rather than through the
 // index: the index re-exports across a cycle, and the build splits such
@@ -330,6 +331,17 @@ export function improvementGroundError(
   if (tile.improvement === improvementId) {
     return `${where} already has ${aRow(def)}`;
   }
+  // **A row that marks an improved hex** (Expansionist batch E9, The Burning
+  // Season; the triage's readings 9 to 11). A hex that already carries the
+  // mark is refused, whatever stands on it now, because the mark is written
+  // once. On an improved hex the build writes the mark and keeps the work
+  // (`markInsteadOf`), so the seam clause below does not apply: the work that
+  // opens the seam stays.
+  const mark = def.marksImproved;
+  if (mark !== undefined && tile.marks?.includes(mark) === true) {
+    return `${where} is already ${IMPROVEMENTS.hexMarks[mark].name.toLowerCase()}`;
+  }
+  const marking = markInsteadOf(tile, improvementId) !== undefined;
   // **One in each town** (The Keeps, Expansionist batch E4; the triage's reading
   // 31): the town that owns this hex may hold the row on no other hex.
   if (def.onePerTown === true) {
@@ -454,7 +466,7 @@ export function improvementGroundError(
   // It is not a trap door: an improvement *replaces* whatever stands on the tile
   // (see `buildImprovementAt`), so a farm laid over an unrevealed seam is
   // recoverable the day the seam is named.
-  if (!anywhere && tile.resource !== undefined) {
+  if (!anywhere && !marking && tile.resource !== undefined) {
     const owningPlayer = playerById(state, ownerId);
     const wanted = improvementForResource(tile.resource);
     if (
@@ -876,6 +888,19 @@ export function buildImprovementAt(
   // was cut.
   // Whether the hex lay beyond the borders, asked before anything is claimed.
   const unowned = tileOwnerPlayerId(state, tile.col, tile.row) === null;
+  // **A burn on an improved hex** (Expansionist batch E9, The Burning Season;
+  // the triage's readings 1 and 9 to 11): the row writes its mark and the work
+  // on the hex stays, with its age stamp. The worker's charge and movement and
+  // the moment's riders are the same as for a build, so The Flood Festival
+  // pays for either (reading 11). The hex is inside the borders (an improved
+  // hex beyond them is refused), so nothing is claimed and no seam changes.
+  const mark = markInsteadOf(tile, improvementId);
+  if (mark !== undefined) {
+    markHex(tile, mark);
+    refreshTileDerived(state, tile);
+    payWorkLaidRiders(state, unit.ownerId, tile, improvementId);
+    return spendBuilderCharge(state, unit, improvementId);
+  }
   raiseImprovement(tile, improvementId, state.turn);
   // **The seam the spade opened** (batch M3, `slate.ts`): an improvement is one
   // of `openedResource`'s clauses, so what the empire holds — and the happiness
@@ -891,6 +916,14 @@ export function buildImprovementAt(
   claimGroundForWork(state, unit.ownerId, tile, improvementId, unowned);
   refreshWateredNeighbours(state, tile, improvementId);
   payWorkLaidRiders(state, unit.ownerId, tile, improvementId);
+  return spendBuilderCharge(state, unit, improvementId);
+}
+
+/**
+ * The worker's half of a build: all its movement, and the row's charges. A
+ * worker with no charge left is removed. Returns whether it survived.
+ */
+function spendBuilderCharge(state: GameState, unit: Unit, improvementId: ImprovementId): boolean {
   unit.movesLeft = 0;
   const left = chargesLeft(unit) - improvementDef(improvementId).chargeCost;
   if (left <= 0) {
@@ -899,6 +932,23 @@ export function buildImprovementAt(
   }
   unit.chargesLeft = left;
   return true;
+}
+
+/**
+ * **The mark this build writes instead of laying the row**, or `undefined`
+ * when the row is laid as usual (Expansionist batch E9, The Burning Season).
+ *
+ * A row with `marksImproved` marks a hex that holds an improvement, the
+ * cards' `improved` test: any work but a tended work (the triage's reading
+ * 9). Bare ground and a tended work take the row itself. The one reading of
+ * the case: the ground clauses, the build and the worker sheet's preview all
+ * ask it.
+ */
+export function markInsteadOf(tile: Tile, improvementId: ImprovementId): HexMarkId | undefined {
+  const mark = improvementDef(improvementId).marksImproved;
+  if (mark === undefined) return undefined;
+  if (tile.improvement === undefined || isTendedWork(tile.improvement)) return undefined;
+  return mark;
 }
 
 /**
@@ -1022,7 +1072,15 @@ export function improvementYieldDelta(
   ctx?: TileYieldContext,
 ): TileYield {
   const now = foldTile(tile, ctx);
-  const after = foldTile({ ...tile, improvement: improvementId }, ctx);
+  // A row that marks an improved hex (Expansionist batch E9, The Burning
+  // Season) leaves the work and adds its mark, so the candidate is the hex
+  // with the mark, not with the row.
+  const mark = markInsteadOf(tile, improvementId);
+  const candidate: Tile =
+    mark === undefined
+      ? { ...tile, improvement: improvementId }
+      : { ...tile, marks: [...(tile.marks ?? []), mark] };
+  const after = foldTile(candidate, ctx);
   const delta = emptyTileYield();
   for (const key of TILE_YIELD_KEYS) delta[key] = after[key] - now[key];
   return delta;

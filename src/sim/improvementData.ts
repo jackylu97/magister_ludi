@@ -161,6 +161,7 @@ import improvementsJson from '../../data/improvements.json';
 
 import { type Family, isFamily } from './greatPeopleData';
 import { RESOURCE_IDS, type ResourceId, resourceEffects } from './resourceData';
+import { HEX_MARK_IDS, type HexMarkId } from './rulesData';
 import {
   FEATURE_IDS,
   type FeatureId,
@@ -608,6 +609,20 @@ export interface ImprovementDef {
    */
   suppliesResource?: ResourceId;
   /**
+   * The mark this row **writes on an improved hex instead of replacing the
+   * work there** (Expansionist batch E9, The Burning Season: `burned`; the
+   * triage's readings 1 and 9 to 11).
+   *
+   * On a hex that holds an improvement (the cards' `improved` test: any work
+   * but a tended work), building this row writes the mark through `markHex`
+   * and leaves the improvement and its age stamp as they are. On any other
+   * hex the row is laid as usual. A hex that already carries the mark is
+   * refused (`improvementGroundError`), because the build would do nothing.
+   * Both cases fire the `improvementBuilt` moment with this row, so a rider
+   * that pays for the row pays for either.
+   */
+  marksImproved?: HexMarkId;
+  /**
    * Halves of this row's ratified design that the game **cannot do yet**, in a
    * first-time player's words and with no identifier in them.
    *
@@ -1029,6 +1044,15 @@ function validateTable(): void {
       if (def.greatPerson !== undefined) {
         throw new Error(`${where} is a great person's work and supplies a resource`);
       }
+    }
+    // **The Expansionist batch E9 field.** The mark must exist. Only a tended
+    // work may carry one: an improvement that marked another improvement would
+    // be two works on one hex.
+    if (def.marksImproved !== undefined) {
+      if (!HEX_MARK_IDS.includes(def.marksImproved)) {
+        throw new Error(`${where} marks with unknown mark "${String(def.marksImproved)}"`);
+      }
+      if (def.tended !== true) throw new Error(`${where} marks an improved hex but is not a tended work`);
     }
     // `isTechId` and not the sky's list: a row may require a charter
     // technology (Scientific batch S4, the Physic Garden on Herbals), which

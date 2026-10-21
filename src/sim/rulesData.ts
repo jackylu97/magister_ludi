@@ -427,11 +427,17 @@ export interface ImprovementRules {
   hexMarks: Record<HexMarkId, HexMarkRule>;
 }
 
-/** A lasting mark on a hex. See `ImprovementRules.hexMarks`. */
-export type HexMarkId = 'raised' | 'aqueductWater';
+/**
+ * A lasting mark on a hex. See `ImprovementRules.hexMarks`.
+ *
+ * Expansionist batch E9 adds three: `burned` (The Burning Season's burn on an
+ * improved hex) and `marl` and `marlSecond` (The Marl Pits, the first and the
+ * second mark on one farm or pasture).
+ */
+export type HexMarkId = 'raised' | 'aqueductWater' | 'burned' | 'marl' | 'marlSecond';
 
 /** Every mark id, in the table's order. */
-export const HEX_MARK_IDS: readonly HexMarkId[] = ['raised', 'aqueductWater'];
+export const HEX_MARK_IDS: readonly HexMarkId[] = ['raised', 'aqueductWater', 'burned', 'marl', 'marlSecond'];
 
 /** What one lasting mark pays, and while what. */
 export interface HexMarkRule {
@@ -445,6 +451,16 @@ export interface HexMarkRule {
    * this holds at that moment.
    */
   while: TileCondition;
+  /**
+   * **The mark a hex takes instead, when it already carries this one**
+   * (Expansionist batch E9, The Marl Pits). A hex is marked once with each
+   * id, so a card that may mark one hex twice names a second id here: a hex
+   * that carries `marl` and is marked again takes `marlSecond`. The chain is
+   * followed by `markOnHex` (`cities.ts`). A hex that carries every mark in
+   * the chain takes nothing more, and that is the cap. Absent, the mark is
+   * written once and a second marking does nothing.
+   */
+  then?: HexMarkId;
 }
 
 /**
