@@ -191,6 +191,7 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 38. (D9) The sheet uses this triage's text for The Res Gestae ("at most +28%", reading 19) and Rally to the Standard ("A military unit you gain…", reading 23), not the list doc's.
 39. (D9) A retired row carries no type, so a save that holds one reads it as unsorted, as the D0 cuts already do.
 40. (D10) The Ranks of Merit's production lands in the capital's basket at once but completes a build only at the turn's production step, because `settleRanksEarned` settles towns only through `settleGrowthWindfall`. D11 adds `settleProductionWindfall` there.
+41. (D11) A unit gained already holding a rank earns it inside a completion (`realiseItem`). There its hammers still wait for the production step, because `settleProduction` allows one item per town per call. The Ranks of Merit's science banks without settling research at once.
 
 ## The batches
 
@@ -251,6 +252,8 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 - **After D10 a playtest can start:** 116 of the 132 seatable cards play as written.
 
 ### D11: the commissions (feature C, goals and rewards)
+
+**Built 2026-10-21** on `dom-work` (`4137b6b2`), to merge into `decks` after Scientific S4. Reading 41 came from it. `settleRanksEarned` now settles production at once (reading 40).
 
 - **Builds:**
   - Feature C: a `WindfallOccasion` `commissionMet`, fired in `runCommissions` after `payCommission`, and a `CountKind` `commissionsMet` over `PlayerStatecraft.commissionsFulfilled`, with their words (reading 34).
