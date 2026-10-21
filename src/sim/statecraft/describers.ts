@@ -1750,7 +1750,14 @@ function describeEffect(
       // Who the line is for, when it is not for everybody — the Alhambra's
       // mounted +2 read as a bare "+2 combat strength" until `class` was
       // printed, which is a card that lies by omission.
-      const who = effect.class === undefined ? '' : ` for ${filterWords(effect.class)}`;
+      // Only the units a levy raised, where the row says so (Expansionist batch
+      // E10, Watch and Ward): "for units raised by a levy".
+      const who =
+        effect.levied === undefined
+          ? effect.class === undefined
+            ? ''
+            : ` for ${filterWords(effect.class)}`
+          : ` for ${effect.class === undefined ? 'units' : filterWords(effect.class)} ${leviedWords(effect.levied)}`;
       // And who it is *against*, for the same reason: Lautaro's line read as a
       // flat "+3 combat strength" until the horses were printed.
       const against = effect.vsClass === undefined ? '' : ` against ${filterWords(effect.vsClass)}`;
@@ -2206,6 +2213,16 @@ function describeEffect(
             `${occasion} gives every ${hexes} beside it, inside your borders, ` +
             `${bagWords(readTileYield(rule.yields))} for the rest of the game${cap}`,
         });
+      }
+      // Expansionist batch E10, Veteran Colonies: citizens in the town the
+      // moment names. The town was already named in the occasion's own phrase
+      // when the rider asks for one ("in one of your cities"), so the words
+      // point back at it. The grant needs a unit that was paid for, and the
+      // words say so.
+      if (grant?.citizens !== undefined && grant.citizens > 0) {
+        const town = effect.inTown === undefined ? 'the city where it happens' : 'that city';
+        const people = grant.citizens === 1 ? 'one more citizen' : `${grant.citizens} more citizens`;
+        out.push({ text: `${occasion} gives ${town} ${people}${per}, unless the unit was raised for free` });
       }
       if (grant?.timed !== undefined && grant.timed.effects.length > 0) {
         // Said in the **nested clauses' own words**, so a bill and a blessing
@@ -4985,6 +5002,10 @@ const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
       ? `units cost ${-percent}% less to build and to buy`
       : `units cost ${percent}% more to build and to buy`,
   growthSurplus: (percent) => `${signed(percent)}% food surplus stored toward growth`,
+  // The Burghers (Expansionist batch E10). Said as the speed, as
+  // `pacificationRate` is. The row's scope follows as ", in cities of ...".
+  guildInflow: (percent) =>
+    percent < 0 ? `the guild bar fills ${-percent}% slower` : `the guild bar fills ${percent}% faster`,
   // **"No maintenance" at the whole rebate**, because that is what −100% is and
   // "−100% the gold your units cost" is a sentence a player has to do algebra on.
   unitUpkeep: (percent) =>

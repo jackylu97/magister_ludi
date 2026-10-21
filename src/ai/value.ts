@@ -3011,6 +3011,10 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
     case 'happinessTierBoost':
       return effect.points * meterWeight(ctx, 'happiness');
     case 'combatLine':
+      // A line for the pieces a levy raised (Watch and Ward, Expansionist batch
+      // E10) reaches none of this bot's pieces: bots do not levy yet. Batch E13
+      // prices it.
+      if (effect.levied !== undefined) return 0;
       // A line against an empire that knows more technologies (Dominion batch
       // D15, The Upstarts) is worth the share of fights where that is true.
       // Every other condition keeps the full price it has always had.
@@ -4169,6 +4173,11 @@ function ruleRewriteValue(
       return -share * boardTempo(ctx).demand * meterWeight(ctx, 'happiness');
     case 'growthSurplus':
       return share * Math.max(0, ratesOf(ctx).foodPerTurn ?? 0) * voiceWeight(ctx, 'food');
+    case 'guildInflow':
+      // **Not priced yet** (Expansionist batch E10, The Burghers). A faster
+      // guild bar is worth the guildsmen it brings sooner, and the bot does not
+      // forecast guilds. Nought until batch E13 prices it.
+      return 0;
     case 'growthCarryover': {
       const rate = occasionRate('growth', ctx);
       if (rate <= 0) return 0;

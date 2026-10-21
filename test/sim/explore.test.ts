@@ -944,10 +944,17 @@ describe('determinism', () => {
    * drafts, so no seat burns, marls or holds one of the five changed cards.
    * Checked with the change in place and the version printed as 164, which
    * gives the hashes of Expansionist batch E8 exactly.
+   *
+   * **Expansionist batch E10 (the militia and the trades, schema 166) moved
+   * the hash and not the length** at both seeds: 165 became 166, and that is
+   * all. Nobody here drafts, so no seat holds Veteran Colonies, Watch and
+   * Ward or The Burghers. Checked with the change in place and the
+   * version printed as 165, which gives the hashes of Expansionist batch E9
+   * exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'bd94365f:188931',
-    2026: '348fb84e:188509',
+    11: '13988760:188931',
+    2026: 'a531c1bd:188509',
   };
 
   for (const seed of [11, 2026]) {

@@ -1079,7 +1079,10 @@ describe('a captured city, end to end', () => {
     // 165 since Expansionist batch E9 (the land): two more Expansionist
     // Orders come live and a worker's burn may mark an improved hex, so a
     // v164 log's Expansionist hands and land differ.
-    expect(SCHEMA_VERSION).toBe(165);
+    // 166 since Expansionist batch E10 (the militia and the trades): two
+    // more Expansionist Orders come live and a retired soldier pays a
+    // citizen, so a v165 log's Expansionist hands and towns differ.
+    expect(SCHEMA_VERSION).toBe(166);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

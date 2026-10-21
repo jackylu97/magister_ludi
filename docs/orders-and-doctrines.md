@@ -395,7 +395,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Waterworks | 2 | ◆ | P | Aqueducts cost 33% less production. Towns with an Aqueduct gain +1 happiness for every four citizens, at most +3. |
 | The Breadbasket | 2 | ◆ | S | A town told to stop growing adds its food surplus to its production. |
 | Migration | 2 | ○ | S | Every ten turns, each of your towns that is at its happiness limit sends one citizen to your smallest connected town that has room to grow. |
-| Veteran Colonies | 2 | ◆ | S | A military unit standing in one of your towns may retire there: the unit is removed and the town gains food equal to its production cost. |
+| Veteran Colonies | 2 | ◆ | S | A military unit standing in one of your towns may retire there: the unit is removed and the town gains one citizen. |
 | The Engineers' Yards | 2 | ● | S | Manufactories gain +3 production. Worked farms, mines, quarries and lumber mills beside a manufactory gain +2 production. |
 | The Tended Country | 2 | ◆ | S | Needs tended land. Tended tiles gain +2 production. |
 | The Old Fields | 2 | ◆ | P | +1% food and production for every three works that have stood thirty turns, at most +30%. |
@@ -410,6 +410,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Book of Settlements | 2 | ◆ | P | +3% production and gold for every town you have founded this game, at most +30%. |
 | The Staked Claims | 2 | ◆ | S | Each town you found claims every unowned hex within two hexes of it. |
 | The Many Hands | 2 | ◆ | S | Your towns build empire buildings 3% faster for each town you hold, at most +36%. |
+| The Burghers | 2 | ◆ | S | Towns of at least twelve citizens fill their guild bar half again as fast. |
+| Watch and Ward | 2 | ● | S | Needs a levy. Units a levy raised gain +5 strength in your own territory. |
 | Seasonal Levies | 3 | ◆ | S | Needs a levy. After a city spends a citizen on a levy, it gains +60% food for ten turns. A city can gain this at most once every twenty turns. |
 | The Long Tending | 3 | ○ | S | Needs tended land. Tended tiles gain +2 food for every 25 turns since they were tended, at most +6. |
 | The Mountain Schools | 3 | ◆ | P | Towns with at least two mountains in their borders gain +15% science. Worked mines and quarries beside a mountain gain +2 science. |

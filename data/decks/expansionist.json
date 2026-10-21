@@ -1177,14 +1177,14 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "Twenty years of marching, then a plot of land.",
-      "text": "A military unit standing in one of your towns may retire there: the unit is removed and the town gains food equal to its production cost.",
+      "text": "A military unit standing in one of your towns may retire there: the unit is removed and the town gains one citizen.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "disband",
           "class": { "category": "military" },
           "inTown": true,
-          "grant": { "yield": "food", "amount": 1, "fromOccasion": "unitCost" }
+          "grant": { "citizens": 1 }
         }
       ]
     },
@@ -1572,6 +1572,44 @@
           "percent": 3,
           "count": "cities",
           "max": 12
+        }
+      ]
+    },
+    "theBurghers": {
+      "name": "The Burghers",
+      "decks": ["expansionist"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Town air makes a man free, and a free man takes up a trade.",
+      "text": "Towns of at least twelve citizens fill their guild bar half again as fast.",
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "guildInflow",
+          "percent": 50,
+          "scope": { "test": "populationAtLeast", "value": 12 }
+        }
+      ]
+    },
+    "watchAndWard": {
+      "name": "Watch and Ward",
+      "decks": ["expansionist"],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "Every town keeps a watch by night and a ward by day.",
+      "text": "Needs a levy. Units a levy raised gain +5 strength in your own territory.",
+      "needsLevy": true,
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "side": "both",
+          "when": { "test": "ownTerritory" },
+          "levied": true
         }
       ]
     },

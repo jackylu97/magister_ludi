@@ -9,7 +9,8 @@
  *     78);
  *   · Veteran Colonies: disbanding a military unit on the hex of one of your
  *     towns pays that town food equal to the unit's production cost, through
- *     D7's disband moment (readings 42 and 79).
+ *     D7's disband moment (readings 42 and 79). Batch E10 of the themes triage
+ *     changed it: the town gains one citizen instead (its readings 25, 26).
  */
 
 import { describe, expect, it } from 'vitest';
@@ -186,26 +187,26 @@ describe('the Expansionist batch E6: The Breadbasket', () => {
   });
 });
 
+// Changed in place by batch E10 of the themes triage: a citizen in place of
+// the food (readings 25 and 26). `expansionistMilitia.test.ts` checks the
+// grant's own rules.
 describe('the Expansionist batch E6: Veteran Colonies', () => {
   function disband(state: GameState, unitId: number): void {
     const result = applyCommand(state, { type: 'disbandUnit', playerId: 0, unitId });
     expect(result.ok, result.ok ? '' : result.error).toBe(true);
   }
 
-  it('pays the town food equal to the unit’s production cost when a soldier is disbanded on its hex', () => {
+  it('gives the town one citizen when a soldier is disbanded on its hex, and no food', () => {
     const state = board();
     const city = town(state);
     slot(state, 'veteranColonies');
-    const cost = unitProductionCost(state, 0, 'warrior');
-    expect(cost).toBeGreaterThan(0);
-    expect(cost).toBeLessThan(growthThreshold(city.population));
     const soldier = createUnit(state, 0, 'warrior', city.col, city.row);
     disband(state, soldier.id);
-    expect(city.foodBasket).toBe(cost);
-    expect(city.population).toBe(3);
+    expect(city.population).toBe(4);
+    expect(city.foodBasket).toBe(0);
   });
 
-  it('grows the town at once when the food fills its basket, as a growth windfall', () => {
+  it('gives one citizen whatever the unit cost, and keeps the town’s food where it was', () => {
     const state = board();
     const city = town(state);
     slot(state, 'veteranColonies');
@@ -213,9 +214,10 @@ describe('the Expansionist batch E6: Veteran Colonies', () => {
     const soldier = createUnit(state, 0, 'warrior', city.col, city.row);
     disband(state, soldier.id);
     expect(city.population).toBe(4);
+    expect(city.foodBasket).toBe(growthThreshold(3) - 1);
   });
 
-  it('pays nothing for a unit raised for free, a unit outside the town’s hex, or a civilian', () => {
+  it('gives nothing for a unit raised for free, a unit outside the town’s hex, or a civilian', () => {
     const state = board();
     const city = town(state);
     slot(state, 'veteranColonies');
@@ -226,6 +228,7 @@ describe('the Expansionist batch E6: Veteran Colonies', () => {
     disband(state, afield.id);
     const worker = createUnit(state, 0, 'worker', city.col, city.row);
     disband(state, worker.id);
+    expect(city.population).toBe(3);
     expect(city.foodBasket).toBe(0);
   });
 
@@ -235,14 +238,14 @@ describe('the Expansionist batch E6: Veteran Colonies', () => {
     slot(state, 'veteranColonies');
     const levied = createUnit(state, 0, 'warrior', city.col, city.row);
     levied.levied = 'conscript';
-    const cost = unitProductionCost(state, 0, 'warrior');
+    expect(unitProductionCost(state, 0, 'warrior')).toBeGreaterThan(0);
     disband(state, levied.id);
-    expect(city.foodBasket).toBe(cost);
+    expect(city.population).toBe(4);
   });
 
   it('says what it does in plain words', () => {
     expect(said('veteranColonies')).toBe(
-      'for military units alone, disbanding a unit in one of your cities grants food equal to its production cost',
+      'for military units alone, disbanding a unit in one of your cities gives that city one more citizen, unless the unit was raised for free',
     );
   });
 });

@@ -4582,8 +4582,8 @@
   ],
   "veteranColonies": [
    {
-    "raw": "for military units alone, disbanding a unit in one of your cities grants food equal to its production cost",
-    "text": "for military units alone, disbanding a unit in one of your cities grants food equal to its production cost"
+    "raw": "for military units alone, disbanding a unit in one of your cities gives that city one more citizen, unless the unit was raised for free",
+    "text": "for military units alone, disbanding a unit in one of your cities gives that city one more citizen, unless the unit was raised for free"
    }
   ],
   "theLandscapeGarden": [
@@ -4692,6 +4692,18 @@
    {
     "raw": "+3% production toward empire buildings per city you hold (at most +36%)",
     "text": "+3% production toward empire buildings per city you hold (at most +36%)"
+   }
+  ],
+  "theBurghers": [
+   {
+    "raw": "the guild bar fills 50% faster, in every city of 12 or more citizens",
+    "text": "the guild bar fills 50% faster, in every city of 12 or more citizens"
+   }
+  ],
+  "watchAndWard": [
+   {
+    "raw": "+5 combat strength for units raised by a levy inside your territory",
+    "text": "+5 combat strength for units raised by a levy inside your territory"
    }
   ],
   "theWoodwrights": [

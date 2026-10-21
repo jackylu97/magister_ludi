@@ -529,8 +529,11 @@ describe('the schema, as landed', () => {
     // new row, and The Two Harvests left `deferred`. The Burning Season,
     // Commission: Break the Sod and The Mountain Schools were changed in place
     // and were already live.
-    expect(live).toBe(532);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(532);
+    // **And Expansionist batch E10** (the militia and the trades): two more.
+    // Watch and Ward and The Burghers are new rows. Veteran Colonies was
+    // changed in place and was already live.
+    expect(live).toBe(534);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(534);
   });
 
   /**
@@ -821,7 +824,10 @@ describe('the schema, as landed', () => {
     // 165 since Expansionist batch E9 (the land): two more Expansionist
     // Orders come live and a worker's burn may mark an improved hex, so a
     // v164 log's Expansionist hands and land differ.
-    expect(SCHEMA_VERSION).toBe(165);
+    // 166 since Expansionist batch E10 (the militia and the trades): two
+    // more Expansionist Orders come live and a retired soldier pays a
+    // citizen, so a v165 log's Expansionist hands and towns differ.
+    expect(SCHEMA_VERSION).toBe(166);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

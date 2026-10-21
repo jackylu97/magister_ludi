@@ -486,7 +486,10 @@ describe('determinism', () => {
     // 165 since Expansionist batch E9 (the land): two more Expansionist
     // Orders come live and a worker's burn may mark an improved hex, so a
     // v164 log's Expansionist hands and land differ.
-    expect(SCHEMA_VERSION).toBe(165);
+    // 166 since Expansionist batch E10 (the militia and the trades): two
+    // more Expansionist Orders come live and a retired soldier pays a
+    // citizen, so a v165 log's Expansionist hands and towns differ.
+    expect(SCHEMA_VERSION).toBe(166);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

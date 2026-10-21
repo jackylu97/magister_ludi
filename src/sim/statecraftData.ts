@@ -3640,6 +3640,15 @@ export type CardRule =
    */
   | 'growthSurplus'
   /**
+   * **How fast a town's guild bar fills** (Expansionist batch E10, The
+   * Burghers: half again as fast in towns of twelve citizens or more; the
+   * triage's reading 28). A positive percentage is faster. It is read in
+   * `explainGuildInflow` (`guilds.ts`) as one labelled line for each card:
+   * that percentage of the town's other lines. The row's scope is asked of the
+   * town. The share cap and the renown-building gate do not change.
+   */
+  | 'guildInflow'
+  /**
    * What this empire's army costs it every turn (`unitUpkeepTotal`).
    *
    * The eighth rule, and it exists because there is finally something to
@@ -5458,6 +5467,25 @@ export interface WindfallGrantSpec {
    */
   markBeside?: HexMarkId;
   /**
+   * **Citizens, granted outright in the town the moment names** (Expansionist
+   * batch E10, Veteran Colonies: a soldier who retires in one of your towns
+   * gives that town a citizen; the triage's readings 25 and 26).
+   *
+   * The town is `WindfallOccasionFacts.townId`, and it must be one of this
+   * empire's towns. The grant is paid only when the moment also carries a
+   * unit's cost (`WindfallOccasionFacts.unitCost`), so a unit raised for free
+   * gives nothing (the first triage's reading 79). Today the `disband` moment
+   * is the only one that carries both facts. A moment that lacks either pays
+   * nothing.
+   *
+   * Paid by `payWindfallGrants` through `settlePopulationWindfall` with no
+   * growth riders, because a soldier coming home is not growth. The citizen
+   * still counts toward the town's largest size. The era and the council
+   * multiply the figure as they multiply renown, and the result is rounded
+   * down.
+   */
+  citizens?: number;
+  /**
    * **Every piece of this empire within this many hexes of the occasion's hex
    * is healed whole** (Dominion batch D8, The Soldiers' Share). `healAll`
    * narrowed to a radius. Acted on by `payWindfallGrants`; an occasion with no
@@ -6387,6 +6415,16 @@ export interface CardCombatLineEffect {
    * town. A row that wants the walls says `when: { test: 'vsCity' }`.
    */
   vsClass?: UnitFilter;
+  /**
+   * **Only a unit a levy raised** (Expansionist batch E10, Watch and Ward; the
+   * triage's reading 27). `true` reaches a unit raised by any levy; a use
+   * reaches only units raised by a levy of that use. Read in
+   * `combatLineAmount` off the piece's own mark (`Unit.levied`), which a levy
+   * writes when it creates the piece, the same field `unitStamp` and
+   * `upkeepRebate` read. It is asked of this side's piece, whichever side the
+   * line pays. Absent reaches every unit.
+   */
+  levied?: true | LevyUse;
 }
 
 /** A stat on a class of unit. Each stat has exactly one evaluator downstream. */

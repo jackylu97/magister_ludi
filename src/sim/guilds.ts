@@ -70,6 +70,10 @@ import { SPECIALIST_FAMILIES, type SpecialistFamily } from './greatPeopleData';
 import { RULES } from './rulesData';
 import { canFormGuild, guildThreshold, totalSpecialists } from './specialists';
 import { type City, type GameState, hasEndedTurn } from './state';
+// The Burghers' line (Expansionist batch E10). Called inside a function and
+// never at load time, so the edge back through `cities.ts` stays a
+// function-level one (`test/mapgen/moduleCycles.test.ts`).
+import { cardRulePercent } from './statecraft/evaluator';
 import type { TurnReport } from './turn';
 
 const GUILDS = RULES.cities.guilds;
@@ -123,6 +127,13 @@ export interface GuildInflowLine {
  *      backstop, and worth twenty times the crowd per head. See
  *      `guildIdleLine`.
  *
+ * A fifth kind since Expansionist batch E10: a card's percentage on the inflow
+ * (`CardRule` `guildInflow`, The Burghers' "half again as fast" in towns of
+ * twelve citizens or more). Each card adds one line, worth its percentage of
+ * the four kinds above. The row's scope is asked of this town. The share cap
+ * and the renown-building gate stay as they are, so a faster bar converts no
+ * one in a town that has no renown building, and no more than the cap allows.
+ *
  * Fractional by design: `trickle` and `popWeight` are both fractions, the bar
  * carries its remainder like a food basket, and nothing here is floored. The
  * *threshold* is the whole number, and comparing a running total against it is
@@ -143,6 +154,15 @@ export function explainGuildInflow(state: GameState, city: City): GuildInflowLin
   }
   const idle = guildIdleLine(state, city);
   if (idle) lines.push(idle);
+  // The cards' lines, each a share of the lines above (Expansionist batch
+  // E10). Not rounded, for the reason above.
+  const base = foldGuildInflow(lines);
+  if (base > 0) {
+    for (const rule of cardRulePercent(state, city.ownerId, 'guildInflow', city)) {
+      const amount = (base * rule.percent) / 100;
+      if (amount !== 0) lines.push({ source: rule.source, amount });
+    }
+  }
   return lines;
 }
 

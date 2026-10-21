@@ -34,6 +34,7 @@ import {
   refreshCityDerived,
   resourceCopies,
   settleGrowthWindfall,
+  settlePopulationWindfall,
   settleProductionWindfall,
   settleRanksEarned,
   spawnTileFor,
@@ -6814,6 +6815,10 @@ export function combatLineAmount(
   // — the Alhambra's mounted +2. Of *this* piece, whichever side it is on, so
   // a line that pays both postures pays a knight in either.
   if (!unitMatches(situation.unit.type, effect.class)) return null;
+  // Only a piece a levy raised, where the row says so (Expansionist batch E10,
+  // Watch and Ward). The mark is on the piece, and the situation carries the
+  // piece, so a comparison's imagined copy keeps it too.
+  if (effect.levied !== undefined && !leviedMatches(effect.levied, situation.unit.levied)) return null;
   // And who it pays *against* — Lautaro's mounted. A line with `vsClass` never
   // fires at a city, which has no type at all: see `CardCombatLineEffect`.
   if (effect.vsClass !== undefined) {
@@ -7602,6 +7607,13 @@ export interface WindfallPayout {
    */
   marksBeside?: { card: CardId; source: string; mark: HexMarkId }[];
   /**
+   * **Citizens** a rider grants outright in the town the moment names
+   * (`WindfallGrantSpec.citizens`, Expansionist batch E10, Veteran Colonies).
+   * `amount` is already a whole number. Optional for D3's four's reason.
+   * Delivered by `payWindfallGrants` through `settlePopulationWindfall`.
+   */
+  citizens?: { card: CardId; source: string; amount: number; townId: number }[];
+  /**
    * **The radius of a heal and of a rank** a rider pays the empire's pieces
    * around the occasion's hex (`WindfallGrantSpec.healWithin` and
    * `rankWithin`, Dominion batch D8, The Soldiers' Share). The widest asked
@@ -7855,6 +7867,7 @@ export function windfallPayoutIsEmpty(payout: WindfallPayout): boolean {
     payout.pillageBeside !== true &&
     (payout.marks ?? []).length === 0 &&
     (payout.marksBeside ?? []).length === 0 &&
+    (payout.citizens ?? []).length === 0 &&
     (payout.techGrants ?? []).length === 0 &&
     payout.freeDraft !== true &&
     (payout.healWithin ?? 0) <= 0 &&
@@ -8186,6 +8199,31 @@ export function windfallPayout(
     if (grant.markBeside !== undefined) {
       (payout.marksBeside ??= []).push({ card, source, mark: grant.markBeside });
       payout.lines.push({ card, source, note: 'marks the land beside it for good' });
+    }
+    // Expansionist batch E10, Veteran Colonies: citizens in the town the moment
+    // names. Only a moment that also carries a unit's cost pays, so a unit
+    // raised for free gives nothing (the triage's reading 25). The era and the
+    // council multiply the figure as they multiply renown; a citizen is whole,
+    // so the figure is rounded down.
+    if (
+      grant.citizens !== undefined &&
+      grant.citizens > 0 &&
+      facts.unitCost !== undefined &&
+      facts.townId !== undefined
+    ) {
+      const town = cityById(state, facts.townId);
+      if (town !== undefined && town.ownerId === playerId) {
+        const amount = Math.floor(
+          grant.citizens *
+            (effect.perAge === true ? era : 1) *
+            (effect.perSlottedOrder === true ? slotted : 1) *
+            boostFor(card),
+        );
+        if (amount > 0) {
+          (payout.citizens ??= []).push({ card, source, amount, townId: town.id });
+          payout.lines.push({ card, source, note: `+${amount} ${amount === 1 ? 'citizen' : 'citizens'}` });
+        }
+      }
     }
     // Dominion batch D8: the heal and the rank around the hex (The Soldiers'
     // Share), and the timed effects hung on the piece that acted (The Scourge
@@ -9566,6 +9604,17 @@ export function payWindfallGrants(
   // no hex marks nothing.
   if (at) {
     for (const entry of payout.marksBeside ?? []) markHexesBeside(state, player.id, at, entry.mark);
+  }
+  // **The citizens** (Expansionist batch E10, Veteran Colonies): granted in the
+  // town the moment named, through `settlePopulationWindfall`, the one routine
+  // that grants a citizen outright. No growth riders, because a soldier coming
+  // home is not growth (the triage's reading 25); the size record still counts
+  // it. The routine re-seats the town itself. A town that changed hands since
+  // the payout was composed takes nothing.
+  for (const entry of payout.citizens ?? []) {
+    const town = cityById(state, entry.townId);
+    if (town === undefined || town.ownerId !== player.id) continue;
+    settlePopulationWindfall(state, town, entry.amount, { riders: false });
   }
   // **The whole army, made whole** — The Empire's. Written straight onto the
   // pieces rather than through `healUnits`, because that phase is the *rested*

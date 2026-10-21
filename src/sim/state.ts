@@ -2173,8 +2173,29 @@ import {
  * pools hold two more cards and a worker's build can do a new thing, so its
  * hands and its land differ. The branch migrates nothing, for the reason
  * given under v119.
+ *
+ * v166 (branch `decks`; Expansionist batch E10, `docs/plans/expansionist-
+ * themes-triage.md`): **the militia and the trades.** No field joins the
+ * state. The rules that change:
+ *
+ *   · Veteran Colonies: a military unit retired in one of your towns gives
+ *     that town one citizen, in place of food equal to its cost. A unit raised
+ *     for free gives nothing. The citizen comes with no growth riders and
+ *     counts toward the town's largest size (a `citizens` grant on the
+ *     disband moment);
+ *   · Watch and Ward (a new Tier II Order): units a levy raised gain +5
+ *     strength in your own territory, attacking and defending (`levied` on
+ *     `combatLine`);
+ *   · The Burghers (a new Tier II Order): towns of twelve citizens or more
+ *     fill their guild bar half again as fast (the `guildInflow` rule, one
+ *     line of `explainGuildInflow`).
+ *
+ * **A v165 save is refused and does not replay.** An Expansionist seat's
+ * pools hold two more cards, and a retired soldier now pays a citizen, so its
+ * hands and its towns differ. The branch migrates nothing, for the reason
+ * given under v119.
  */
-export const SCHEMA_VERSION = 165;
+export const SCHEMA_VERSION = 166;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
