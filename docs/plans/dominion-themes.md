@@ -690,3 +690,35 @@ Not changed. The Build column names the old builds, which map as: drilled legion
 10. **A Victor's Peace touches the government system** (it adds a chair), which Magisterial owns. *Recommended: keep it.* It is Dominion's clearest institution, and one card is not a system.
 
 After your answers: every card onto the sheet as `add` and `modify` rows, then the triage for the build.
+
+## 11. Rulings on the review page, 2026-10-21
+
+The user commented on 11 rows of the review page (version 6, built from commit `8374e8b6`), then: *"ok i've commented on the dominion pass, lets begin working on it."* The comments are verbatim. A reading marked "to confirm" is the build's until the user changes it.
+
+### The commissions
+
+| Commission | The user | What changes |
+|---|---|---|
+| Clear the Frontier (0) | *"kill 6 units"* | See the next row. |
+| Battle Honours (0) | *"clear two barbarian camps"* | **Reading, to confirm:** the two goals swap. Clearing two camps now brings the great general, and killing six units now brings the two citizens and the best melee unit. The names follow their goals, so **Clear the Frontier** is "clear two barbarian camps: a great general from a draft", and **Battle Honours** is "kill six units: two citizens in your capital, and the best melee unit you can build". |
+| The Ranks of Merit (I) | *"institution: each rank earned grants science and production equal to the strength of the unit to your capital"* | Institution: each rank a unit earns grants science and production, each equal to that unit's strength, in your capital. |
+| Harry the Border (I) | *"too strong. your mounted units gain +50% yields from pillaging"* | Institution: your mounted units' pillage pays half again. **Reading, to confirm:** +50% on every yield a pillage pays the pillager (the base plunder and every card's rider), as one percentage line. |
+| The First Province (I) | *"captured towns gain +5 food and +5 gold"* | Institution: towns you captured gain +5 food and +5 gold. |
+| Take the City (II) | *"8 citizens or more. institution: Upon capturing a city, gain 250 science and culture per age."* | Goal: capture a town of at least eight citizens. The reward becomes an institution: each town you capture grants science and culture. **Reading, to confirm:** 250 of each for each age of yours, so 750 in age 3. The free Barracks and the one-time payout go. |
+| The Border Fortress (II) | *"institution: +2 food and +2 production on citadels"* | Institution: your citadels gain +2 food and +2 production. The two-ring claim goes, so no new shape is needed. |
+| The Captured Marvel (IV) | *"gain institutions: captured cities with a wonder and captured capitals gain +30% science and culture."* | The reward becomes an institution: captured towns that hold a wonder, and captured original capitals, gain +30% science and culture. The one-time payout goes. |
+
+### Other cards
+
+| Card | The user | What changes |
+|---|---|---|
+| The Bards' Praise (0) | *"clearing a barbarian camp grants 30 culture"* | A cleared camp grants 30 culture, not 15. |
+| The Gathering Host (0) | *"each time you gain a military unit"* | It grows only when you gain a military unit, not a civilian. |
+| The Soldier-Farmers (I) | *"garrisoned cities gain +1 production and +1 gold on resource tiles."* | New text: "Garrisoned towns gain +1 production and +1 gold on each worked hex with a resource." The peace condition and the pastures and camps go. **Reading, to confirm:** any resource the seat can see, worked. |
+
+### What the rulings leave
+
+- **The questions in section 10:** the user answered none of them one by one and said to begin. **Reading, to confirm:** every recommendation in section 10 stands, feature C included.
+- **The Soldier-Scholars' type** (question 9): the Scientific pass typed it Military and this pass recommended Civic. **Reading, to confirm: Military.** Scientific has few Military cards, and the user ruled that the +5 applies in attack and in defence (`docs/plans/scientific-themes.md` section 15).
+- **Commissions:** still 13. The institutions are now seven: The Ranks of Merit, Harry the Border, The First Province, Take the City, The Border Fortress, A Victor's Peace and The Captured Marvel.
+- **Shapes no longer needed:** the citadel claim radius (The Border Fortress) and pillage at no movement (Harry the Border). **Shapes added:** a percentage on pillage pay for mounted units; a capture rider scaled by the seat's age; a percentage scoped to captured towns that hold a wonder or were a capital.
