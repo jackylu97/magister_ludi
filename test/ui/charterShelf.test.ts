@@ -21,7 +21,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { playerById } from '../../src/sim/state';
+import { bumpRevision, playerById } from '../../src/sim/state';
 import { CHARTER_TECH_IDS, type TechId, TECH_IDS } from '../../src/sim/techData';
 import {
   SHELF_TAB_MIN_SEEN,
@@ -240,12 +240,15 @@ describe('the lead (feature B, batch S3)', () => {
     rival.metSeats.push(0);
     me.techsResearched.push('earthenware', 'mining');
     rival.techsResearched.push('mining');
+    // A bench that moves the board says so (`test/sim/benches.test.ts`).
+    bumpRevision(g.state);
     return g;
   }
 
   it('shows no figure and no corner to a seat that has met no rival', () => {
     const g = researchingGame();
     playerById(g.state, 0)!.techsResearched.push('earthenware');
+    bumpRevision(g.state);
     expect(chartLead(g.state, 0)).toBeNull();
     expect(leadFigureOf(chartLead(g.state, 0))).toBeNull();
     for (const id of [...TECH_IDS, ...CHARTER_TECH_IDS]) {
@@ -272,6 +275,7 @@ describe('the lead (feature B, batch S3)', () => {
   it('keeps a charter technology in the lead, because no other empire may learn it', () => {
     const g = metGame();
     playerById(g.state, 0)!.techsResearched.push('casting');
+    bumpRevision(g.state);
     expect(wearsLeadCorner(chartLead(g.state, 0), 'casting')).toBe(true);
   });
 
@@ -279,6 +283,7 @@ describe('the lead (feature B, batch S3)', () => {
     const g = metGame();
     const rival = playerById(g.state, 1)!;
     rival.techsResearched = [...playerById(g.state, 0)!.techsResearched];
+    bumpRevision(g.state);
     expect(chartLead(g.state, 0)).toEqual([]);
     const figure = leadFigureOf(chartLead(g.state, 0));
     expect(figure).toEqual({
