@@ -367,6 +367,16 @@ The 132 are the seatable cards of the list doc. Beside them, D9 retires ten Orde
 
 ## Questions for the user
 
+**Answered 2026-10-21.** The user, on the six questions as listed in chat (this list's 2 to 7; question 1, The Servian Reforms, followed from their own sheet edit): *"recommendations seem fine"*. So:
+- The Servian Reforms' data row retires (D9).
+- D14 builds The Longships, The Relay Stations and Circumvallation as drafted; the user may rework them after a playtest.
+- The Limitanei keeps "at most two", and a ship counts (reading 24).
+- The institutions a seat holds get a read-only list under the council's chairs, built on the UI track after D11.
+- The Res Gestae: +4% for each commission, at most +28% (reading 19).
+- Rally to the Standard moves military units only, and its text says so (reading 23).
+- Readings 1 to 37 stand until the user marks one.
+
+
 1. **The Servian Reforms.** Retire its data row (recommended)? Your removal from the sheet fails the sheet test until the row retires or comes back. D9 retires it.
 2. **The three drafts.** Build The Longships, The Relay Stations and Circumvallation as drafted, in D14 (recommended: yes, and rework them after a playtest)? Or keep them deferred for your own rework?
 3. **The Limitanei's "at most two".** A town's hex holds one land soldier and one ship, so only a coastal town reaches two. Keep the text, with ships counting (recommended)? Or change it to "the town's garrison lets it work one more hex"?
