@@ -337,6 +337,13 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 92. (S8) The Royal Readers' steps are not floored; only the price is. Every scholar gained counts.
 93. (S8) With an offer already waiting, or before the ancestor rites, The Invitations pays renown toward the next rung. The Age of Reason doubles it on a technology rider.
 94. (S8) The Walls of Learning's +6 and +12 stack, so a University town raising the Opus gains +18.
+95. (S9) A piece The Model Army upgrades past the resource gate holds no copy for life (`Unit.unsupplied`).
+96. (S9) The completion hold reads the collection, not the chair: a seat that drafted The Prototype Works waits on a queued row whose technology is unknown, and one that drafted The Foundation Stone waits on its Opus until it knows Alchemy, even if a rival learned it first. The held row stays legal in its town's queue.
+97. (S9) A prototype costs double while its technology is unknown and only the card opens it, and buying one costs double too. A town's strength and free "best melee unit" grants may use a prototype; upgrades never do.
+98. (S9) The Closed Book refuses only a new Opus row; the ten turns run from the completion turn.
+99. (S9) Every siege blow on a rival town raising the Opus takes 5% of its banked production, at the walls or the garrison, even if the attacker dies.
+100. (S9) A commission reward from a figure, paid as food or production, is floored.
+101. (S9) The Soldier-Scholars' +5 reaches land military units, but its science counts every combat unit in the town, ships included. The Armoury Patterns also speeds civilians of the newest age.
 
 ## The batches
 
@@ -477,6 +484,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 - **Done-gate:** `npx vitest run test/sim/decks/scientificHouses.test.ts test/sim/renown.test.ts test/sim/greatPeople.test.ts test/sim/commissions.test.ts test/sim/decks/scientific.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts`.
 
 ### S9: the army and the Opus
+
+**Built 2026-10-21** (`26b5f191`, schema 166). Readings 95 to 101 came from it. **Every Scientific card of the themes pass is now built;** S11 to S13 remain.
 
 - **Builds:** behaviour rules `upgradeHeals` and `upgradeIgnoresResource`; `UnitFilter.newestAge`; the `CombatCondition`s `nearLearning` and `standingInOwnTown`; the Opus hit; the Opus door for one seat; the Closed Book record; the `tech` filter on the tally and the "not knowing a technology" deal gate; the current-research arm and its ×2 cost line. Cards (10): The Field Refits, The Model Army, The Armoury Patterns, The Strategikon, The Breaching Batteries, The Foundation Stone, The Closed Book, The Great Instrument, The Prototype Works, and the shared The Soldier-Scholars (a new `common.json` row, typed military, listed on the Dominion sheet).
 - **Fence:** the shared six, `src/sim/tech.ts` (`upgradeUnits`, `upgradeTargetFor`, `buildError`, `isUnlocked`), `src/sim/combat.ts`, `src/sim/cities.ts` (`explainBuildingCost`, `explainUnitCost`), `src/sim/statecraft/draft.ts` (`eligibleFor`), `src/sim/state.ts` (the Closed Book record), `data/decks/common.json`, `docs/decks/dominion.md` (one row), `test/sim/decks/dominion.test.ts`, `test/sim/ranks.test.ts`, `test/sim/combat.test.ts`, a new `test/sim/decks/scientificArmy.test.ts`.

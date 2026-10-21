@@ -184,6 +184,12 @@ The first six come from section 11 of the themes doc and its answers. The rest a
 37. (E7) E7 also wrote The Two Harvests' new text, its deferred sentence, its note and its `needsTendedWork` gate on its data row, so the Compendium shows the target card while it waits for E9.
 38. (E7) Two reward shapes lost their only card: the citizens to the smallest towns (The Wide Country) and each town paid from its own figure (The Domesday Survey). Both stay in the code; their tests run on a stand-in reward.
 39. (E8) The Land Hunger narrows to `class: { type: 'settler' }`, not the settler's model class, because the great person shares that model.
+40. (E9) The Two Harvests counts every farm, mine and lumber mill you own, worked or not, because a hex's yield cannot depend on whether it is worked. Hex lines still pay worked hexes only.
+41. (E9) A hex that carries the burned mark is refused after its work is gone, so bare land burned once cannot take burned country.
+42. (E9) A farm on a seam may be burned, because the farm stays.
+43. (E10) The Burghers' line is a share of all four kinds of guild line, the idle line included, and it is not rounded.
+44. (E10) The `citizens` grant takes the era and council multipliers as renown does, rounded down; no live row uses them.
+45. (E10) Watch and Ward reads the fight's hex: an attacker gains it only when the hex it attacks is inside its borders; a defender when it stands inside them.
 
 ## The batches
 
@@ -249,6 +255,8 @@ The first six come from section 11 of the themes doc and its answers. The rest a
 
 ### E9: the land (marks, ages and tended fields)
 
+**Built 2026-10-21** on `exp-work` (`8e0344a3`), merged into `decks` with E10. Readings 40 to 42 came from it.
+
 - **Builds:**
   - Three mark rows in `rules.improvements.hexMarks` and `HexMarkId`: `burned` (food 1, while `improved`), `marl` and `marlSecond` (food 1 each, while farm or pasture).
   - A field on the `burnedCountry` row, read in `improvementErrorAt` and `buildImprovementAt`: on an improved hex the build writes the mark and keeps the improvement, and a hex already burned is refused with a sentence (readings 9 to 11). Card: The Burning Season.
@@ -265,6 +273,8 @@ The first six come from section 11 of the themes doc and its answers. The rest a
 - **Done-gate:** `npx vitest run test/sim/decks/expansionistThemeLand.test.ts test/sim/decks/expansionistLand.test.ts test/sim/decks/expansionistWorks.test.ts test/sim/decks/expansionistMeters.test.ts test/sim/decks/expansionist.test.ts test/sim/improvements.test.ts test/sim/commissions.test.ts test/sim/cities.test.ts test/sim/decks.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/statecraft.test.ts test/mapgen/moduleCycles.test.ts`.
 
 ### E10: the militia and the trades
+
+**Built 2026-10-21** on `exp-work` (`d7347a61`), merged into `decks` with E9. Readings 43 to 45 came from it. Bots price a levied combat line at 0, as they price levied stamps.
 
 - **Builds:**
   - A grant field `citizens` on `WindfallGrantSpec`, settled through `settlePopulationWindfall`, paid only when the moment carries `unitCost` (readings 25, 26). Card: Veteran Colonies, changed in place.
