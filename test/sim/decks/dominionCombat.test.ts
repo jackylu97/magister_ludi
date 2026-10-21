@@ -15,6 +15,9 @@
  *     refill and as a hit-and-run hull too, and twice again the next turn;
  *   · The Great Bombards: a siege unit's blow on the walls takes the town to its
  *     floor, in the forecast and in the fight.
+ *
+ * Dominion batch D9 retired The Keshik and The Marching Camps. A save may still
+ * hold either, so their shapes are still checked here by seating them directly.
  */
 
 import { describe, expect, it } from 'vitest';

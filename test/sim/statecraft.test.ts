@@ -431,12 +431,13 @@ describe("the card table", () => {
     // adds The Soldiers' Share and The Servian Reforms to Tier I, Centurions,
     // The Plunder Economy, The Strategoi and Weight of Numbers to Tier II,
     // Combined Arms to Tier III and The Scourge of God to Tier IV.
+    // **Dominion batch D9** retires The Servian Reforms, which the user
+    // removed from the sheet, so Tier I deals four.
     expect(poolDoctrines(GOVERNMENT_TIERS[0]!)).toEqual([
       "theSteppeConfederacy",
       "theConsularRoads",
       "theMarianReforms",
       "theSoldiersShare",
-      "theServianReforms",
     ]);
     expect(poolDoctrines(GOVERNMENT_TIERS[1]!)).toEqual([
       "theLawsOfLordShang",
@@ -2062,7 +2063,10 @@ describe("determinism", () => {
     // 152 since the charter technologies (Scientific batch S0): thirteen
     // technologies join the tree and two Scientific cards come live, so a
     // v151 log's research and drafts meet a different tree and deck.
-    expect(SCHEMA_VERSION).toBe(152);
+    // 153 since Dominion batch D9: ten Dominion Orders and one Doctrine are
+    // retired and one Order comes live, so a v152 log's Dominion hands and
+    // Doctrine offers hold different cards.
+    expect(SCHEMA_VERSION).toBe(153);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {

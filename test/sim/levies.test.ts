@@ -164,6 +164,9 @@ describe('The Muster of the Fields — a trained melee unit', () => {
   it('raises the best melee unit, on the payroll, and the training cards pay for it', () => {
     const { g, city } = bench(6);
     seat(g, 'theMusterOfTheFields');
+    // Muster Rites is retired (Dominion batch D9). A save may still hold it,
+    // and it pays for every unit gained, so seating it is how these tests read
+    // that moment.
     seat(g, 'musterRites');
     const type = bestMeleeFor(g.state, 0)!;
     expect(type).not.toBeNull();

@@ -7,7 +7,8 @@
  *   · a capture that heals and raises the units around it, and the rule that
  *     stops founding (The Soldiers' Share);
  *   · a unit cost percentage, and the rule that stops experience (The Servian
- *     Reforms);
+ *     Reforms, retired in Dominion batch D9 after the user removed it from the
+ *     sheet; a save may still hold it, so its rules are still checked here);
  *   · a strength line for each adjacent Elite, and an upkeep surcharge on a
  *     rank, which a free unit does not pay (Centurions);
  *   · the raider's strength on a pillage, and a penalty on city assaults (The
@@ -151,7 +152,10 @@ describe('Dominion D8 — the eight rows', () => {
       const def = doctrineDef(id as DoctrineId);
       expect(def.band, id).toBe(band);
       expect(def.decks, id).toEqual(['dominion']);
-      expect(def.retired, id).toBeUndefined();
+      // Dominion batch D9 retired The Servian Reforms. It keeps its row and
+      // effects for a save that holds it, and no offer deals it.
+      if (id === 'theServianReforms') expect(def.retired, id).toBe(true);
+      else expect(def.retired, id).toBeUndefined();
       expect(def.deferred, id).toBeUndefined();
       expect(def.effects.length, id).toBeGreaterThan(0);
     }

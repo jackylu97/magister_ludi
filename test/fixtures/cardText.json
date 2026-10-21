@@ -2540,8 +2540,8 @@
     "text": "Commission. Goal: clear 2 barbarian camps, while this card is seated"
    },
    {
-    "raw": "Reward: +2 citizens in your capital, and the best melee unit you can build, trained in your capital free of upkeep",
-    "text": "Reward: +2 citizens in your capital, and the best melee unit you can build, trained in your capital free of upkeep"
+    "raw": "Reward: a great general to call",
+    "text": "Reward: a great general to call"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -2556,12 +2556,12 @@
   ],
   "dominionBattleHonours": [
    {
-    "raw": "Commission. Goal: kill 10 enemy units, while this card is seated",
-    "text": "Commission. Goal: kill 10 enemy units, while this card is seated"
+    "raw": "Commission. Goal: kill 6 enemy units, while this card is seated",
+    "text": "Commission. Goal: kill 6 enemy units, while this card is seated"
    },
    {
-    "raw": "Reward: a great general to call",
-    "text": "Reward: a great general to call"
+    "raw": "Reward: +2 citizens in your capital, and the best melee unit you can build, trained in your capital free of upkeep",
+    "text": "Reward: +2 citizens in your capital, and the best melee unit you can build, trained in your capital free of upkeep"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -2578,6 +2578,10 @@
    {
     "raw": "killing a unit grants faith equal to its strength",
     "text": "killing a unit grants faith equal to its strength"
+   },
+   {
+    "raw": "losing a unit grants faith equal to its strength",
+    "text": "losing a unit grants faith equal to its strength"
    }
   ],
   "theGrainTribute": [
@@ -2604,8 +2608,8 @@
     "text": "killing a unit grants culture equal to its strength"
    },
    {
-    "raw": "clearing a barbarian camp grants +15 culture",
-    "text": "clearing a barbarian camp grants +15 culture"
+    "raw": "clearing a barbarian camp grants +30 culture",
+    "text": "clearing a barbarian camp grants +30 culture"
    }
   ],
   "theCattleRaid": [
@@ -3994,6 +3998,12 @@
    {
     "raw": "towns you lose add nothing to war weariness",
     "text": "towns you lose add nothing to war weariness"
+   }
+  ],
+  "theChampionsPortion": [
+   {
+    "raw": "killing a unit grants renown equal to its strength, favouring a great general",
+    "text": "killing a unit grants renown equal to its strength, favouring a great general"
    }
   ],
   "smallholdings": [

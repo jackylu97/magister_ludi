@@ -165,9 +165,12 @@ governments, so Tier IV opened at 29.
   it. The faith reroll may redeal it. The bots take the best-scoring Doctrine when it scores
   above nothing, and pass otherwise.
 - **The spec of record** is each deck's sheet (`docs/decks/<deck>.md`), whose Doctrine tables
-  list a deck's sixteen Doctrines across the four tiers. A Doctrine with a data row matches its sheet
+  list a deck's Doctrines across the four tiers. A Doctrine with a data row matches its sheet
   row in name, tier and text (`test/sim/decks/<deck>.test.ts`). The table below mirrors the
   live rows (`statecraftDocSync.test.ts`).
+- **A retired Doctrine** keeps its row in the deck file, so a save that holds it reads the
+  same, and is on no sheet, in no offer and not in the table below. Dominion has one: The
+  Servian Reforms, which the user removed from the sheet (Dominion batch D9).
 
 | Doctrine | Decks | Tier | Offered with | Effect |
 |---|---|---|---|---|
@@ -175,7 +178,6 @@ governments, so Tier IV opened at 29.
 | The Consular Roads | Dominion | I | tier 4 | Cities connected to your capital by road and holding a garrison gain +5 science and +5 culture, and are pacified at once. |
 | The Marian Reforms | Dominion | I | tier 4 | Your military units cost no upkeep, but your towns build them at half speed. Buying them is unaffected. |
 | The Soldiers' Share | Dominion | I | tier 4 | Capturing a town fully heals every unit of yours within three hexes and raises each by one rank. You can no longer found new cities. |
-| The Servian Reforms | Dominion | I | tier 4 | Your military units are 25% cheaper to build and to buy. Your units never gain experience. |
 | The Laws of Lord Shang | Dominion | II | tier 10 | While a town builds a military unit, its surplus food goes into the unit instead of into growth. |
 | Centurions | Dominion | II | tier 10 | Each Elite unit gives +3 strength to your units beside it, and costs 2 more upkeep. |
 | The Plunder Economy | Dominion | II | tier 10 | Pillaging a hex yields production equal to 50% of your unit's strength in every city. Your units lose 4 strength when attacking cities. |
@@ -210,19 +212,17 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Order | Band | Rarity | Role | Effect |
 |---|---|---|---|---|
 | Blooded Spears | 0 | ● | S | Military units gain +2 strength, doubled against barbarians. |
-| Muster Rites | 0 | ● | S | Gaining a unit grants 8 faith and 8 food. |
 | The Standing Army | 0 | ◆ | S | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. |
 | Blood Brothers | 0 | ○ | S | A barbarian unit you kill joins your side. |
 | The King's Levy | 0 | ○ | S | Every fifteen turns your capital raises a melee unit for free. It costs no upkeep. |
-| Commission: Clear the Frontier | 0 | ● | S | Commission. Clear two barbarian camps while this card is seated. Then gain 2 population in your capital, and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair. |
+| Commission: Clear the Frontier | 0 | ● | S | Commission. Clear two barbarian camps while this card is seated. Then choose a great general from a draft. The card leaves its chair. |
 | The Horse Herds | 0 | ● | S | Worked pastures and camps give +1 food and +1 production. |
-| Battle Honours | 0 | ● | S | Commission. Kill ten units while this card is seated. Then choose a great general from a draft. The card leaves its chair. |
+| Battle Honours | 0 | ● | S | Commission. Kill six units while this card is seated. Then gain 2 population in your capital, and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair. |
 | Sword and Plough | 0 | ● | P | Each city with a garrison gains +1 culture and +2 production. |
-| The Camp Chaplains | 0 | ● | S | Killing a unit grants faith equal to its strength. |
+| The Camp Chaplains | 0 | ● | S | Killing or losing a unit grants faith equal to its strength. |
 | The Grain Tribute | 0 | ● | S | +1 food and +1 production in every city. |
 | The Scaling Ladders | 0 | ● | S | Melee units gain +4 strength against towns. |
-| The Funeral Games | 0 | ● | S | When one of your units falls, gain faith equal to its strength. |
-| The Bards' Praise | 0 | ● | S | Killing a unit grants culture equal to its strength. Clearing a barbarian camp grants 15 culture. |
+| The Bards' Praise | 0 | ● | S | Killing a unit grants culture equal to its strength. Clearing a barbarian camp grants 30 culture. |
 | The Cattle Raid | 0 | ● | S | Clearing a barbarian camp gives every city +3 food for ten turns. Clearing another restarts the ten turns. |
 | The Drill Grounds | 0 | ● | S | Units standing in your towns gain 1 experience every 4 turns. |
 | The Armed Colony | 0 | ● | S | A town founded beside one of your military units starts with three extra hexes, and that unit becomes a Veteran. |
@@ -231,13 +231,10 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Garrison Captains | 0 | ● | P | +1 authority for each garrisoned unit. |
 | The Captured Arms | 0 | ● | P | +1 science for every unit you have killed this game, no cap. |
 | The Gathering Host | 0 | ◆ | P | While seated, this card gains +1 science and +1 culture each time you gain a unit. It starts at +2 science and +2 culture. |
-| The Armourers' Secret | 0 | ◆ | S | While seated, researching a technology that unlocks a military unit grants one of that unit in your capital. It costs no upkeep. |
 | The Training Cadre | 1 | ● | S | Units gained in a town with a Barracks start with 2 experience. |
-| The Marching Camps | 1 | ● | S | Attacking does not break your units' fortification. |
 | The Quartermasters | 1 | ● | S | Worked strategic resources gain +3 food and +3 production. |
 | The Soldiers' Purse | 1 | ● | S | Military units cost 1 less upkeep for each rank they hold. |
 | Honours of the Legion | 1 | ◆ | S | Each time one of your units earns a rank, gain science and culture equal to its strength. |
-| The Marshals | 1 | ◆ | S | +2 strength per adjacent friendly combat unit, at most +6. |
 | The Pacified Marches | 1 | ◆ | P | Gains +1 authority capacity and +5 culture for every barbarian camp cleared this game, at most +8 authority and +40 culture. |
 | The Art of War | 1 | ◆ | S | Gaining a unit grants science equal to three quarters of its strength. |
 | War Foundries | 1 | ○ | P | Cities with a Barracks gain gold equal to 30% of their base production and +38% production toward military units. |
@@ -251,9 +248,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Captive Craftsmen | 1 | ◆ | P | Gains +1 science and +1 production each time you pillage a hex. |
 | The Satraps | 1 | ◆ | S | Garrisoned towns in unrest pacify twice as fast. |
 | The Acropolis | 1 | ◆ | P | +1 authority for each building in your capital. |
-| The Open Muster | 1 | ◆ | S | Passing a draft hand grants the best melee unit you can build in your capital. It costs no upkeep. |
 | The Sack | 1 | ◆ | S | Razing a town you captured grants production, gold and culture equal to fifteen times its population. |
-| The Cleruchy | 1 | ◆ | S | When drafted, gain a free settler in your capital. Seated, this card does nothing. |
 | Siege Works | 2 | ● | S | +38% production toward siege units. Siege units gain +4 strength against cities. |
 | Armoury Guilds | 2 | ● | S | When one of your units falls, your nearest town with an Armoury gains production equal to its strength. |
 | Conquered Archives | 2 | ● | P | Captured cities gain +6 science and +6 culture. |
@@ -266,7 +261,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Master Bowyers | 2 | ○ | S | Ranged and siege units gain +1 range. |
 | The Citadel Works | 2 | ● | S | Citadels gain +5 science. Each citadel inside your borders gives +1 renown a turn, favouring great generals. |
 | Commission: Take the City | 2 | ◆ | S | Commission. Capture a city with at least five citizens. Then gain culture and science equal to twenty-three times its population, and a free Barracks in that city. The card leaves its chair. |
-| The Valetudinaria | 2 | ● | S | Units in your territory heal 15 more hit points a turn. |
 | Living off the Land | 2 | ● | S | Military units outside your territory cost no upkeep. |
 | The Serried Ranks | 2 | ○ | S | Melee units beside another melee unit gain +10 strength when defending. |
 | The Conscription Rolls | 2 | ◆ | S | Every ten turns, each town of at least eight citizens raises the best melee unit you can build. |
@@ -278,7 +272,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Provincial Census | 2 | ◆ | S | Pacifying a town grants science equal to twenty times its population. |
 | Spear-won Land | 2 | ◆ | P | +3% production and science for every town you have captured this game, at most +30%. |
 | The Longbowmen | 2 | ● | S | Ranged units gain +4 strength and +4 ranged strength. +5 culture each time they attack from range. |
-| The State Forges | 2 | ○ | S | Each time you research a technology, your capital raises the best melee unit you can build. It costs no upkeep. |
 | War Reparations | 2 | ◆ | S | Making peace after taking cities in that war grants gold equal to twenty times their total population, and half as much culture. |
 | Standing Garrisons | 3 | ● | P | Per garrisoned unit, the city gains +12% production and +12% culture. |
 | The Siege Train | 3 | ◆ | S | Siege units gain +1 movement. Adjacent friendly land melee units gain +6 strength against cities. |
@@ -292,7 +285,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Devshirme | 3 | ○ | S | Captured towns of at least six citizens may spend a citizen to raise the best melee unit you can build, as a Veteran. |
 | The Regimental Schools | 3 | ● | P | At the end of your turn, each garrisoned unit gains 1 experience and gives its town +2 science. |
 | The Tagmata | 3 | ◆ | S | Veteran and Elite units gain +5 strength. |
-| The Keshik | 3 | ◆ | S | Mounted Veteran and Elite units gain +1 movement. |
 | Interior Lines | 3 | ◆ | S | A step along a road costs 40% less movement. A unit that has not moved this turn gains +4 strength when attacking. |
 | The Plunder Trains | 3 | ● | S | Pillaging grants 30 production and 15 food to your capital. |
 | The Yam | 3 | ◆ | S | Mounted units heal fully when they pillage. |
@@ -330,6 +322,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Double Time | 2 | ○ | S | Your Orders' effects that happen at the end of a turn or every few turns trigger twice. |
 | War Feeds Itself | 2 | ○ | S | At the end of your turn, each of your units in enemy territory yields you its hex's yields. |
 | The Glorious Dead | 4 | ○ | S | Your losses never count toward war weariness. |
+| The Champion's Portion | 0 | ● | S | Killing a unit grants renown equal to its strength, favouring great generals. |
 
 ### Expansionist
 

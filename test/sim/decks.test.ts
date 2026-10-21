@@ -205,6 +205,13 @@ function techOfAge(age: 1 | 2 | 3 | 4): TechId {
 const DECK_ROWS = new Set(DECK_FILES.flatMap((file) => [...DECK_FILE_ORDERS[file]]));
 const SHELF_ROWS = ORDER_IDS.filter((id) => !DECK_ROWS.has(id));
 
+/**
+ * The Doctrines in the deck files that are retired. The Servian Reforms left
+ * the Dominion sheet by the user's edit, and Dominion batch D9 retired its row
+ * (`docs/plans/dominion-themes-triage.md`, reading 7).
+ */
+const RETIRED_DECK_DOCTRINES: readonly DoctrineId[] = ['theServianReforms'];
+
 describe('the schema, as landed', () => {
   it('gives every Order and Doctrine row a deck list and a band', () => {
     for (const id of ORDER_IDS) {
@@ -230,7 +237,10 @@ describe('the schema, as landed', () => {
         expect(def.retired, id).toBe(true);
         continue;
       }
-      expect(def.retired, id).toBeUndefined();
+      // A deck may retire one of its own Doctrines, as it retires an Order.
+      // The row keeps its decks, tier and effects, because a save may hold it.
+      if (RETIRED_DECK_DOCTRINES.includes(id)) expect(def.retired, id).toBe(true);
+      else expect(def.retired, id).toBeUndefined();
       expect(def.decks.length, id).toBeGreaterThan(0);
       for (const deck of def.decks) expect(isDeckId(deck), `${id}: ${deck}`).toBe(true);
       expect([1, 2, 3, 4], id).toContain(def.band);
@@ -463,8 +473,12 @@ describe('the schema, as landed', () => {
     // more. Two deferred rows were freed (The Breadbasket, Veteran Colonies).
     // **And Scientific batch S0** (the charter technologies): two more. Two
     // new Scientific rows came live (The Commonplace Book, The Patent Office).
-    expect(live).toBe(500);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(500);
+    // **And Dominion batch D9** (the themes pass): nine fewer. The ten cut
+    // Dominion rows were live and are retired, and one new Dominion row came
+    // live (The Champion's Portion). Four rows were changed in place and were
+    // already live.
+    expect(live).toBe(491);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(491);
   });
 
   /**
@@ -709,7 +723,10 @@ describe('the schema, as landed', () => {
     // 152 since the charter technologies (Scientific batch S0): thirteen
     // technologies join the tree and two Scientific cards come live, so a
     // v151 log's research and drafts meet a different tree and deck.
-    expect(SCHEMA_VERSION).toBe(152);
+    // 153 since Dominion batch D9: ten Dominion Orders and one Doctrine are
+    // retired and one Order comes live, so a v152 log's Dominion hands and
+    // Doctrine offers hold different cards.
+    expect(SCHEMA_VERSION).toBe(153);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -935,10 +952,12 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // **Scientific batch S0** wrote ten new charter rows deferred (+ 10) and
       // retired two deferred charters, the Metallurgists' and the Naturalists'
       // (− 2, and + 2 retired).
+      // **Dominion batch D9** retired the themes pass's ten cuts, all live
+      // (+ 10 retired).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
       ).toHaveLength(65);
-      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(138);
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(148);
     }
   });
 
@@ -1383,13 +1402,13 @@ describe('with the shelf stocked', () => {
     const taizong = playerById(d.state, 0)!;
     taizong.statecraft.pendingGovernment = { tier: 4, options: governmentsAtTier(4) };
     const adopted = adoptGovernmentAt(d.state, taizong, 0)!;
-    // Since Dominion batch D8 Dominion has five Tier I Doctrines (The
-    // Soldiers' Share and The Servian Reforms joined the three of D4 and D7),
-    // so the offer holds three of the five, each once.
+    // Since Dominion batch D9 Dominion has four Tier I Doctrines (D8's The
+    // Soldiers' Share joined the three of D4 and D7, and D9 retired The
+    // Servian Reforms), so the offer holds three of the four, each once.
     const offered = adopted.doctrines?.options ?? [];
     expect(offered).toHaveLength(3);
     expect(new Set(offered).size).toBe(3);
-    const tierOne = ['theConsularRoads', 'theMarianReforms', 'theServianReforms', 'theSoldiersShare', 'theSteppeConfederacy'];
+    const tierOne = ['theConsularRoads', 'theMarianReforms', 'theSoldiersShare', 'theSteppeConfederacy'];
     for (const id of offered) expect(tierOne, id).toContain(id);
     expect(taizong.statecraft.pendingDoctrine?.options).toEqual(offered);
     // It blocks the turn until it is answered, as a draft does.

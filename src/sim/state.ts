@@ -1853,8 +1853,27 @@ import {
  * holds two more cards, so its hands from Tier I on differ, and the roster of
  * technologies a log may name has changed. The branch migrates nothing, for
  * the reason given under v119.
+ *
+ * v153 (branch `decks`; Dominion batch D9, `docs/plans/dominion-themes-
+ * triage.md`): **the Dominion themes pass, first batch.** No field joins the
+ * state. The rules that change:
+ *
+ *   · ten Dominion Orders are retired (Muster Rites, The Funeral Games, The
+ *     Armourers' Secret, The Marshals, The Marching Camps, The Open Muster,
+ *     The Cleruchy, The Valetudinaria, The State Forges, The Keshik), and so
+ *     is the Doctrine The Servian Reforms. No pool or offer deals them. A seat
+ *     that holds one keeps it, with its effects;
+ *   · one new Order comes live: The Champion's Portion (Tier 0);
+ *   · four Orders change: Clear the Frontier and Battle Honours trade rewards,
+ *     and Battle Honours asks for six kills, not ten; The Camp Chaplains also
+ *     pays faith when you lose a unit; The Bards' Praise pays 30 culture for
+ *     a camp, not 15.
+ *
+ * **A v152 save is refused and does not replay.** A Dominion seat's pool and
+ * its Tier I Doctrine offer now hold different cards, so its hands differ.
+ * The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 152;
+export const SCHEMA_VERSION = 153;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

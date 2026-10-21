@@ -1503,6 +1503,9 @@ describe('the schema witness', () => {
     // 152 since the charter technologies (Scientific batch S0): thirteen
     // technologies join the tree and two Scientific cards come live, so a
     // v151 log's research and drafts meet a different tree and deck.
-    expect(SCHEMA_VERSION).toBe(152);
+    // 153 since Dominion batch D9: ten Dominion Orders and one Doctrine are
+    // retired and one Order comes live, so a v152 log's Dominion hands and
+    // Doctrine offers hold different cards.
+    expect(SCHEMA_VERSION).toBe(153);
   });
 });

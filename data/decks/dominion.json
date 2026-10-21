@@ -72,7 +72,6 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
-      "type": "civic",
       "flavor": "A sword blessed, a bowl filled, a name on the roll.",
       "text": "Gaining a unit grants 8 faith and 8 food.",
       "effects": [
@@ -92,7 +91,8 @@
             "amount": 8
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theWarChronicle": {
       "name": "The War Chronicle",
@@ -272,7 +272,7 @@
       "rarity": "common",
       "type": "wildcard",
       "flavor": "A young state wins its first war against the camps at its edge.",
-      "text": "Commission. Clear two barbarian camps while this card is seated. Then gain 2 population in your capital, and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair.",
+      "text": "Commission. Clear two barbarian camps while this card is seated. Then choose a great general from a draft. The card leaves its chair.",
       "effects": [],
       "commission": {
         "goals": [
@@ -284,10 +284,7 @@
         ],
         "reward": [
           {
-            "citizens": 2
-          },
-          {
-            "unit": "bestMelee"
+            "greatPerson": "general"
           }
         ]
       }
@@ -329,19 +326,22 @@
       "rarity": "common",
       "type": "wildcard",
       "flavor": "The names go on the standard, one by one.",
-      "text": "Commission. Kill ten units while this card is seated. Then choose a great general from a draft. The card leaves its chair.",
+      "text": "Commission. Kill six units while this card is seated. Then gain 2 population in your capital, and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair.",
       "effects": [],
       "commission": {
         "goals": [
           {
             "kind": "counted",
             "occasion": "unitKilled",
-            "count": 10
+            "count": 6
           }
         ],
         "reward": [
           {
-            "greatPerson": "general"
+            "citizens": 2
+          },
+          {
+            "unit": "bestMelee"
           }
         ]
       }
@@ -379,11 +379,20 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "Every tent has a prayer said over it.",
-      "text": "Killing a unit grants faith equal to its strength.",
+      "text": "Killing or losing a unit grants faith equal to its strength.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "kill",
+          "grant": {
+            "yield": "faith",
+            "amount": 1,
+            "fromOccasion": "strength"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "death",
           "grant": {
             "yield": "faith",
             "amount": 1,
@@ -445,7 +454,6 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
-      "type": "civic",
       "flavor": "The games are held for the dead, and the living come to watch.",
       "text": "When one of your units falls, gain faith equal to its strength.",
       "effects": [
@@ -458,7 +466,8 @@
             "fromOccasion": "strength"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theBardsPraise": {
       "name": "The Bards' Praise",
@@ -470,7 +479,7 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "Every fight becomes a song, and every song finds a crowd.",
-      "text": "Killing a unit grants culture equal to its strength. Clearing a barbarian camp grants 15 culture.",
+      "text": "Killing a unit grants culture equal to its strength. Clearing a barbarian camp grants 30 culture.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -486,7 +495,7 @@
           "occasion": "camp",
           "grant": {
             "yield": "culture",
-            "amount": 15
+            "amount": 30
           }
         }
       ]
@@ -714,7 +723,6 @@
       "band": 0,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "The new weapon is drawn in the morning and forged by night.",
       "text": "While seated, researching a technology that unlocks a military unit grants one of that unit in your capital. It costs no upkeep.",
       "effects": [
@@ -726,7 +734,8 @@
             "toCapital": true
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "drillManuals": {
       "name": "The Training Cadre",
@@ -758,7 +767,6 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "military",
       "flavor": "Every night the legion digs a camp, and every morning it fights from one.",
       "text": "Attacking does not break your units' fortification.",
       "effects": [
@@ -766,7 +774,8 @@
           "kind": "rule",
           "rule": "attackKeepsFortification"
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionFieldSurgeons": {
       "name": "Field Surgeons",
@@ -1051,7 +1060,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "Nobody in the line is alone, and the enemy can count.",
       "text": "+2 strength per adjacent friendly combat unit, at most +6.",
       "effects": [
@@ -1068,7 +1076,8 @@
             "max": 6
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "foragersRight": {
       "name": "Foragers' Right",
@@ -1652,7 +1661,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "No new law today, so the drums call the men instead.",
       "text": "Passing a draft hand grants the best melee unit you can build in your capital. It costs no upkeep.",
       "effects": [
@@ -1664,7 +1672,8 @@
             "toCapital": true
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theSack": {
       "name": "The Sack",
@@ -1715,7 +1724,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "The conquered land is measured out in lots, and each lot goes to a citizen.",
       "text": "When drafted, gain a free settler in your capital. Seated, this card does nothing.",
       "onDraft": [
@@ -1724,7 +1732,8 @@
           "unit": "settler"
         }
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "siegeWorks": {
       "name": "Siege Works",
@@ -2672,7 +2681,6 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
-      "type": "military",
       "flavor": "A soldier mended at home is a soldier who marches again.",
       "text": "Units in your territory heal 15 more hit points a turn.",
       "effects": [
@@ -2682,7 +2690,8 @@
           "amount": 15,
           "where": "ownTerritory"
         }
-      ]
+      ],
+      "retired": true
     },
     "livingOffTheLand": {
       "name": "Living off the Land",
@@ -3012,7 +3021,6 @@
       "band": 2,
       "line": "none",
       "rarity": "rare",
-      "type": "military",
       "flavor": "Each new art of war goes first to the arsenal in the capital.",
       "text": "Each time you research a technology, your capital raises the best melee unit you can build. It costs no upkeep.",
       "effects": [
@@ -3024,7 +3032,8 @@
             "toCapital": true
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "standingGarrisons": {
       "name": "Standing Garrisons",
@@ -3782,7 +3791,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "The guard rides with the khan, and rides further than anyone.",
       "text": "Mounted Veteran and Elite units gain +1 movement.",
       "effects": [
@@ -3795,7 +3803,8 @@
           },
           "rank": "veteran"
         }
-      ]
+      ],
+      "retired": true
     },
     "interiorLines": {
       "name": "Interior Lines",
@@ -4880,6 +4889,29 @@
           "percent": -100
         }
       ]
+    },
+    "theChampionsPortion": {
+      "name": "The Champion's Portion",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "At the feast, the best cut of meat goes to the bravest warrior at the table.",
+      "text": "Killing a unit grants renown equal to its strength, favouring great generals.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "grant": {
+            "renown": 1,
+            "fromOccasion": "strength",
+            "renownFamily": "general"
+          }
+        }
+      ]
     }
   },
   "doctrines": {
@@ -5210,7 +5242,8 @@
           "kind": "rule",
           "rule": "noExperience"
         }
-      ]
+      ],
+      "retired": true
     },
     "centurions": {
       "name": "Centurions",

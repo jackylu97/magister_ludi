@@ -83,6 +83,8 @@ const FORTRESS: DoctrineId = 'theFortressEmpire';
 // Dominion batch D8's eight: two more at Tier I, four more at Tier II, a third
 // at Tier III and a third at Tier IV.
 const SHARE: DoctrineId = 'theSoldiersShare';
+// Retired in Dominion batch D9: the user removed it from the sheet. Its row
+// stays in the file for saves, and no tier deals it.
 const SERVIAN: DoctrineId = 'theServianReforms';
 const CENTURIONS: DoctrineId = 'centurions';
 const PLUNDER: DoctrineId = 'thePlunderEconomy';
@@ -90,8 +92,8 @@ const STRATEGOI: DoctrineId = 'theStrategoi';
 const WEIGHT: DoctrineId = 'weightOfNumbers';
 const COMBINED: DoctrineId = 'combinedArms';
 const SCOURGE: DoctrineId = 'theScourgeOfGod';
-/** Dominion's Tier I Doctrines, in the order the data lists them. */
-const TIER_ONE: readonly DoctrineId[] = [STEPPE, CONSULAR, MARIAN, SHARE, SERVIAN];
+/** Dominion's live Tier I Doctrines, in the order the data lists them. */
+const TIER_ONE: readonly DoctrineId[] = [STEPPE, CONSULAR, MARIAN, SHARE];
 /** Dominion's Tier II Doctrines, in the order the data lists them. */
 const TIER_TWO: readonly DoctrineId[] = [SHANG, CENTURIONS, PLUNDER, STRATEGOI, WEIGHT];
 /** Dominion's Tier III Doctrines, in the order the data lists them. */
@@ -163,7 +165,10 @@ describe('the Doctrine data model', () => {
       expect(STATECRAFT.doctrines[id], id).toBeDefined();
       expect(DOCTRINE_IDS, id).toContain(id);
       const def = doctrineDef(id);
-      expect(def.retired, id).toBeUndefined();
+      // Every deck Doctrine is live but The Servian Reforms (Dominion batch
+      // D9), which keeps its tier so that a save holding it reads the same.
+      if (id === SERVIAN) expect(def.retired, id).toBe(true);
+      else expect(def.retired, id).toBeUndefined();
       expect(def.tier, id).toBe(governmentTierForDoctrineBand(def.band));
     }
     const steppe = doctrineDef(STEPPE);
@@ -211,7 +216,7 @@ describe('the Doctrine offer’s bag and deal', () => {
     expect(doctrineBagFor(taizong, 26)).toEqual([...TIER_FOUR]);
     expect(doctrineBagFor(taizong, 10)).toEqual([...TIER_TWO]);
     taizong.statecraft.doctrines.push(STEPPE);
-    expect(doctrineBagFor(taizong, 4)).toEqual([CONSULAR, MARIAN, SHARE, SERVIAN]);
+    expect(doctrineBagFor(taizong, 4)).toEqual([CONSULAR, MARIAN, SHARE]);
   });
 
   it('deals nothing from an empty bag and spends no randomness', () => {
@@ -296,12 +301,12 @@ describe('the Doctrine offer’s bag and deal', () => {
     }
     // And a bag smaller than the offer deals the bag. Since Dominion batch D8
     // every tier holds three Doctrines or more, so the seat holds three of
-    // Tier I's five first.
+    // Tier I's four first (five until D9 retired The Servian Reforms).
     const g = duel('taizong', 'modu');
     const seat = playerById(g.state, 0)!;
     seat.statecraft.doctrines.push(STEPPE, CONSULAR, MARIAN);
     const dealt = drawDoctrineOffer(g.state, seat, 4).options;
-    expect([...dealt].sort()).toEqual([SHARE, SERVIAN].sort());
+    expect([...dealt]).toEqual([SHARE]);
   });
 });
 
@@ -313,7 +318,7 @@ describe('the adoption opens the offer, and the seat takes one or passes', () =>
     const taizong = playerById(g.state, 0)!;
     bankGovernment(taizong, 4);
     expect(dispatch(g, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 }).ok).toBe(true);
-    // Three of Tier I's five, each once.
+    // Three of Tier I's four, each once.
     const options = [...(taizong.statecraft.pendingDoctrine?.options ?? [])];
     expect(options).toHaveLength(3);
     expect(new Set(options).size).toBe(3);

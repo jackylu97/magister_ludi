@@ -282,7 +282,8 @@ describe('every generator draws offerSize cards', () => {
     // **And Dominion batch D4** added a second Tier I Doctrine (The Consular
     // Roads), and **Dominion batch D7** a third (The Marian Reforms). Since
     // **Dominion batch D8** the bag holds five (The Soldiers' Share and The
-    // Servian Reforms), so the seat is dealt three of them, each once.
+    // Servian Reforms), so the seat is dealt three of them, each once. Since
+    // **Dominion batch D9** it holds four: The Servian Reforms is retired.
     const dealt = drawDoctrineOffer(g.state, player, rung).options;
     expect(dealt).toHaveLength(3);
     expect(new Set(dealt).size).toBe(3);
@@ -290,7 +291,6 @@ describe('every generator draws offerSize cards', () => {
       expect([
         'theConsularRoads',
         'theMarianReforms',
-        'theServianReforms',
         'theSoldiersShare',
         'theSteppeConfederacy',
       ]).toContain(id);

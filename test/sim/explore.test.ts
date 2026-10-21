@@ -857,10 +857,16 @@ describe('determinism', () => {
    * Nobody here drafts a charter, so no charter technology is ever researched
    * on this board. Checked with the change in place and the version printed
    * as 151, which gives the draft rung's hashes exactly.
+   *
+   * **Dominion batch D9 (schema 153) moved the hash and not the length** at
+   * both seeds: 152 became 153, and that is all. Nobody here drafts, so the
+   * retired and changed Dominion cards never reach this board. Checked with
+   * the change in place and the version printed as 152, which gives the
+   * charter technologies' hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'b349da09:188931',
-    2026: 'bb4d1d54:188509',
+    11: '35fe44b0:188931',
+    2026: 'efa221ad:188509',
   };
 
   for (const seed of [11, 2026]) {

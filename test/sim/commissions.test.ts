@@ -138,9 +138,11 @@ describe('the commission rows', () => {
       expect(text.some((line) => line.startsWith('Reward: ')), id).toBe(true);
       for (const line of text) expect(line, id).not.toMatch(/\[\[/);
     }
+    // Since Dominion batch D9 the reward is Battle Honours' old one: a great
+    // general from a draft (the two commissions traded rewards).
     expect(describeCard(FRONTIER).map((clause) => clause.text)).toEqual([
       'Commission. Goal: clear 2 barbarian camps, while this card is seated',
-      'Reward: +2 citizens in your capital, and the best melee unit you can build, trained in your capital free of upkeep',
+      'Reward: a great general to call',
       'then this card leaves its chair and is never seated again',
     ]);
     expect(describeCard(STRONGROOM)[1]!.text).toBe(
@@ -193,6 +195,8 @@ describe('completion', () => {
   it('pays once, unseats the card, marks it fulfilled, and refuses to seat it again', () => {
     const g = solo();
     found(g.state, 0);
+    // The great-person gate, so the reward's general can be called.
+    keepTheRites(g.state);
     const index = seat(g.state, FRONTIER);
     clearCamp(g.state);
     clearCamp(g.state);
@@ -202,14 +206,11 @@ describe('completion', () => {
     const reports = runCommissions(g.state);
     expect(reports).toHaveLength(1);
     expect(reports[0]).toMatchObject({ playerId: 0, card: FRONTIER, turn: g.state.turn });
-    // Since Dominion batch D6 the reward is two citizens in the capital, as the
-    // sheet's revision says.
-    expect(reports[0]!.lines.some((line) => /^\+2 citizens in /.test(line))).toBe(true);
-    expect(reports[0]!.lines.some((line) => line.startsWith('a free '))).toBe(true);
-    expect(g.state.units.filter((u) => u.ownerId === 0).length).toBe(units + 1);
-    // The unit is on no payroll.
-    const free = g.state.units.filter((u) => u.ownerId === 0 && u.freeUpkeep === true);
-    expect(free.length).toBeGreaterThan(0);
+    // Since Dominion batch D9 the reward is a great general from a draft. The
+    // two citizens and the free unit moved to Battle Honours.
+    expect(reports[0]!.lines).toEqual(['a great general to call']);
+    expect(playerById(g.state, 0)!.greatPersonOffer?.family).toBe('general');
+    expect(g.state.units.filter((u) => u.ownerId === 0).length).toBe(units);
     expect(sc.slots[index]).toBeNull();
     expect(sc.commissionsFulfilled).toEqual([{ card: FRONTIER, turn: g.state.turn }]);
     // Still in the collection, never seated again, never paid again.

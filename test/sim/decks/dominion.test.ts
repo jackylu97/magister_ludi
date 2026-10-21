@@ -37,7 +37,8 @@
  *     name, its tier and its text, and the government tier the sheet says
  *     offers it. The sheet's Doctrine tables have three columns and no status,
  *     so a Doctrine with no data row yet is simply not checked; every data
- *     row must be on the sheet.
+ *     row that is not retired must be on the sheet, and a retired one must
+ *     not be (Dominion batch D9).
  */
 
 import { describe, expect, it } from 'vitest';
@@ -592,6 +593,12 @@ describe('the Dominion deck — its Doctrines', () => {
     for (const id of rows) {
       const def = doctrineDef(id);
       const sheet = SHEET.find((doctrine) => doctrine.name === def.name);
+      // A retired Doctrine is kept for saves and is on no table (Dominion
+      // batch D9: The Servian Reforms, which the user removed from the sheet).
+      if (def.retired === true) {
+        expect(sheet, `${id} is retired and still on the sheet`).toBeUndefined();
+        continue;
+      }
       expect(sheet, `${id} ("${def.name}") is not on the sheet`).toBeDefined();
       expect(def.band, `${id}'s tier`).toBe(sheet!.band);
       expect(def.text, `${id}'s text`).toBe(sheet!.text);

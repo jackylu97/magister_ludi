@@ -13,8 +13,8 @@
  *     it (The Praetorian Guard), and a strength line and a war condition
  *     against the empire raising one (The Grand Coalition);
  *   · Songs of the Fallen pays every loss, attacking or defending;
- *   · Battle Honours is a commission: ten kills while it is seated deal a
- *     great general;
+ *   · Battle Honours is a commission: six kills while it is seated pay two
+ *     citizens and the best melee unit (since Dominion batch D9);
  *   · The Pacified Marches reads the camps cleared this game, seated or not;
  *   · The Cattle Raid feeds every city for ten turns, and a second camp
  *     restarts the ten turns instead of stacking;
@@ -233,20 +233,25 @@ describe('the Dominion batch — riders and musters', () => {
     expect(windfallPayout(state, 0, 'death', 0, 0, { strength: 8, defending: true }).grants).toHaveLength(2);
   });
 
-  it('Battle Honours deals a great general once ten kills are counted while it is seated', () => {
+  it('Battle Honours pays its reward once six kills are counted while it is seated', () => {
+    // Since Dominion batch D9 it asks six kills, not ten, and pays Clear the
+    // Frontier's old reward: two citizens and the best melee unit, in the
+    // capital (the two commissions traded rewards).
     const state = flat();
     keepTheRites(state);
-    foundCityAt(state, 0, at(state, 4, 3));
+    const capital = foundCityAt(state, 0, at(state, 4, 3))!;
     slot(state, 0, 'dominionBattleHonours');
     const sc = playerById(state, 0)!.statecraft;
-    for (let kill = 1; kill <= 9; kill++) recordScalingOccasion(state, 0, 'unitKilled');
-    expect(tallyOf(sc, 'dominionBattleHonours' as OrderId)).toBe(9);
+    for (let kill = 1; kill <= 5; kill++) recordScalingOccasion(state, 0, 'unitKilled');
+    expect(tallyOf(sc, 'dominionBattleHonours' as OrderId)).toBe(5);
     expect(runCommissions(state)).toEqual([]);
     recordScalingOccasion(state, 0, 'unitKilled');
+    const population = capital.population;
     const reports = runCommissions(state);
     expect(reports.map((report) => report.card)).toEqual(['dominionBattleHonours']);
-    expect(reports[0]!.lines).toEqual(['a great general to call']);
-    expect(playerById(state, 0)!.greatPersonOffer?.family).toBe('general');
+    expect(reports[0]!.lines).toEqual(expect.arrayContaining([`+2 citizens in ${capital.name}`]));
+    expect(capital.population).toBe(population + 2);
+    expect(playerById(state, 0)!.greatPersonOffer).toBeUndefined();
   });
 
   it('The Pacified Marches reads the camps cleared this game, whether or not it was seated', () => {

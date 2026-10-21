@@ -49,6 +49,7 @@ import {
 import {
   adoptGovernmentAt,
   describeCard,
+  recordScalingOccasion,
   slotOrderAt,
   slotOrderError,
   slotTypesOf,
@@ -384,12 +385,13 @@ describe('Dominion D6 — a goal keeps the towns it counted', () => {
 });
 
 describe('Dominion D6 — citizens as a reward', () => {
-  it('Commission: Clear the Frontier grants two citizens in the capital', () => {
+  it('Battle Honours grants two citizens in the capital', () => {
+    // Clear the Frontier's reward until Dominion batch D9, when the two
+    // commissions traded rewards.
     const state = flat(false);
     const capital = foundCityAt(state, 0, at(state, 2, 2))!;
-    createUnit(state, 0, 'warrior', 3, 3);
-    seatCommission(state, 'dominionClearTheFrontier');
-    for (let index = 0; index < 2; index++) settleCampBounty(state, 0, { col: 3, row: 3 });
+    seatCommission(state, 'dominionBattleHonours');
+    for (let kill = 0; kill < 6; kill++) recordScalingOccasion(state, 0, 'unitKilled');
     const before = capital.population;
     const reports = runCommissions(state);
     expect(reports[0]!.lines).toEqual(expect.arrayContaining([`+2 citizens in ${capital.name}`]));

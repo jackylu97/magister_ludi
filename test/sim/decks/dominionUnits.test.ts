@@ -17,6 +17,10 @@
  *   · a free Order draft, at most once every ten turns (The New Code);
  *   · a muster that costs a citizen (Total Mobilisation);
  *   · a strength line beside a great general (The Landsturm).
+ *
+ * Dominion batch D9 retired The State Forges, The Armourers' Secret, The Open
+ * Muster and The Cleruchy. A save may still hold any of them, so their shapes
+ * are still checked here by seating them directly.
  */
 
 import { describe, expect, it } from 'vitest';
