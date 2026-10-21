@@ -153,6 +153,7 @@ import {
   cardAmplifier,
   cardAmplifierFlat,
   cardRallyRange,
+  cardGarrisonSeats,
   cardMeterFlag,
   cardCityRuleAt,
   cardFoundingRider,
@@ -2088,6 +2089,11 @@ export function townHoldsWork(state: GameState, townId: number, except: Tile, wo
  * Its reader is the guild bar (Entry XLVIII): `population − specialists − seats`
  * is how many of a town's people have nowhere to go, which is precisely the
  * problem specialists exist to answer and so the thing that hurries them along.
+ *
+ * The soldiers' seats of The Limitanei (Dominion batch D13) do not change it.
+ * The assigner fills the citizens' seats first, so a soldier takes a hex only
+ * when every citizen has one, and a town with idle citizens has no soldier on
+ * a hex.
  */
 export function workableSeats(state: GameState, city: City): number {
   return assignableTiles(state, city).length;
@@ -2096,7 +2102,9 @@ export function workableSeats(state: GameState, city: City): number {
 /**
  * Recomputes `city.workedTiles` from scratch: every honoured lock first, then
  * the best remaining assignable tiles by weighted yield, ties by tile index,
- * until `population − specialists` citizens are placed.
+ * until `population − specialists` citizens are placed. A card's
+ * `garrisonWorks` rule adds a seat for each soldier in the town, up to its cap
+ * (Dominion batch D13, see `chooseCitizens`).
  *
  * Specialists
  * -----------
@@ -2405,7 +2413,15 @@ function chooseCitizens(
   // one seat less, so the tile that goes is the last one it would have taken,
   // which is the worst-scoring hex the town was working. Honoured pins come
   // first as always, so a player's own choice is never what a guild costs them.
-  const cap = Math.max(0, city.population - totalSpecialists(city));
+  //
+  // **Then one more seat for each soldier in the town, up to the card's cap**
+  // (Dominion batch D13, The Limitanei, the triage's reading 24). The greedy
+  // takes the best hexes first, so the soldiers' seats are the ones it fills
+  // after the citizens'. When the town has fewer hexes than seats, the
+  // soldiers' seats are the ones left empty, and the guild bar's count of idle
+  // citizens (`workableSeats`) stays true. A soldier eats nothing, because
+  // food upkeep is per citizen (`foodUpkeep`).
+  const cap = Math.max(0, city.population - totalSpecialists(city)) + cardGarrisonSeats(state, city);
 
   const assignable = new Map<number, Tile>();
   for (const tile of candidates) assignable.set(index(tile), tile);

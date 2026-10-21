@@ -2019,8 +2019,23 @@ import {
  * **A v158 save is refused and does not replay.** A Dominion seat's pools now
  * hold more cards, and every seat's resource lines read the sight gate. The
  * branch migrates nothing, for the reason given under v119.
+ *
+ * v160 (branch `decks`; Dominion batch D13, `docs/plans/dominion-themes-
+ * triage.md`): **The Limitanei.** No field joins the state. The rules that
+ * change:
+ *
+ *   · one new Order comes live: The Limitanei (Tier III, rare);
+ *   · a card's `garrisonWorks` rule lets a town work one more hex for each
+ *     combat unit of its owner on the town's hex, ships included, up to the
+ *     rule's `max`. The assigner (`chooseCitizens`) fills these seats after
+ *     the citizens' seats. The extra hexes eat no food and count as worked
+ *     hexes for every card.
+ *
+ * **A v159 save is refused and does not replay.** A Dominion seat's pools from
+ * Tier III on now hold one more card, so its hands differ. The branch
+ * migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 159;
+export const SCHEMA_VERSION = 160;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

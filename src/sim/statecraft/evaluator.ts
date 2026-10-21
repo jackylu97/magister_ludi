@@ -9378,6 +9378,30 @@ export function cardCityRuleAt(state: GameState, city: City, rule: CityRuleId): 
 }
 
 /**
+ * **How many more hexes this town works for the soldiers standing in it**
+ * (Dominion batch D13, The Limitanei: the `garrisonWorks` rule and its
+ * `max`). It walks the rows as `cardCityRuleAt` does, scope included, and
+ * keeps the largest cap of the rows that hold here. A row with no `max` lets
+ * every soldier count. The answer is the town's garrison (`garrisonOf`, ships
+ * included) up to that cap, or 0 when no row holds.
+ *
+ * Read by `chooseCitizens` (`cities.ts`), which adds it to the citizens' seats.
+ * It is one function so that the assigner and any panel that wants to say how
+ * many of a town's worked hexes are the soldiers' read the same number.
+ */
+export function cardGarrisonSeats(state: GameState, city: City): number {
+  let cap: number | null = null;
+  for (const { effect } of effectsOfKind(state, city.ownerId, 'rule')) {
+    if (effect.rule !== 'garrisonWorks') continue;
+    if (effect.scope !== undefined && !cityScopeAdmits(state, city, effect.scope)) continue;
+    const most = effect.max ?? Number.POSITIVE_INFINITY;
+    cap = cap === null ? most : Math.max(cap, most);
+  }
+  if (cap === null || cap <= 0) return 0;
+  return Math.min(garrisonOf(state, city).length, cap);
+}
+
+/**
  * **May this empire raise this building in more than one town?** Caravanserai
  * Cities' one question (batch C7, `ActionRuleId`'s `buildsEverywhere`).
  *

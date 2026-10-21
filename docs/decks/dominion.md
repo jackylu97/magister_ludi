@@ -17,9 +17,9 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | Tier 0 | 25 | 0 | 0 | 25 | none |
 | Tier I | 24 | 0 | 1 | 25 | 4 |
 | Tier II | 32 | 2 | 0 | 34 | 5 |
-| Tier III | 26 | 0 | 1 | 27 | 3 |
+| Tier III | 27 | 0 | 0 | 27 | 3 |
 | Tier IV | 20 | 1 | 0 | 21 | 3 |
-| **All** | **127** | **3** | **2** | **132** | **15** |
+| **All** | **128** | **3** | **1** | **132** | **15** |
 | Shared | 26 | 1 | 0 | 27 |  |
 
 **By type** (the chair a card fits):
@@ -195,7 +195,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **Pax Romana** | rare | implemented | Towns you capture are pacified at once, and each costs 1 less authority to hold. | Civic |
 | **The Regimental Schools** | common | implemented | At the end of your turn, each garrisoned unit gains 1 experience and gives its town +2 science. | Civic |
 | **The Board of Ordnance** | common | implemented | While at war, each city with a Barracks gains +1 production and +1 science for every three citizens. | Civic |
-| **The Limitanei** | rare | add | Each military unit in one of your towns lets that town work one more hex, at most two more. | Economic |
+| **The Limitanei** | rare | implemented | Each military unit in one of your towns lets that town work one more hex, at most two more. | Economic |
 | **Commission: The Chosen Men** | uncommon | implemented | Commission. Have three of your units become Elite while this card is seated. Then, for the rest of the game, your Elite units ignore enemy zone of control. The card leaves its chair. | Wildcard |
 | **The March Revenues** | uncommon | implemented | +3% production for each pasture, camp and strategic resource inside your borders, at most +30%. | Economic |
 | **The Tributary Kings** | uncommon | implemented | Your capital gains +1 production and +1 gold for each citizen in your puppet towns. | Economic |
@@ -289,7 +289,7 @@ New names are placeholders; rename freely.
     - The Res Gestae reads "at most +28%", because seven commissions at +4% reach +28% (question 5, reading 19). The themes pass wrote "at most +30%".
     - Rally to the Standard moves only military units, and its text says "a military unit" (question 6, reading 23).
 - **Ruled 2026-10-21** (your comments on the themes pass, written into the rows above). Your words and the readings are in section 11 of `docs/plans/dominion-themes.md`. You said: *"ok i've commented on the dominion pass, lets begin working on it."*
-  - **The themes pass is on the sheet.** Its new cards are `add` rows, and its changes to live cards are `modify` rows with the target text. The build plan builds them in batches D10 to D15. Batch D9 built five: Clear the Frontier, Battle Honours, The Camp Chaplains, The Bards' Praise and The Champion's Portion. Batch D10 built eleven: The Acropolis, The Castle Demesne, The Spartan Discipline, The Ranks of Merit, The First Province, Take the City, The Naadam, The Taker of Cities, The Roll of Triumphs, The March Revenues and The Tributary Kings. Batch D11 built six: Man the Walls, The Ovation, The Res Gestae, The Border Fortress, The Chosen Men and The Captured Marvel. Meeting any commission, of either of your decks, now counts for The Ovation and The Res Gestae. Batch D12 built five: The Gathering Host, The Soldier-Farmers, Harry the Border, Rally to the Standard and The Marshalate. Since D12 no card pays on a resource you cannot see yet, so The Quartermasters and The March Revenues read only the strategic resources you can see.
+  - **The themes pass is on the sheet.** Its new cards are `add` rows, and its changes to live cards are `modify` rows with the target text. The build plan builds them in batches D10 to D15. Batch D9 built five: Clear the Frontier, Battle Honours, The Camp Chaplains, The Bards' Praise and The Champion's Portion. Batch D10 built eleven: The Acropolis, The Castle Demesne, The Spartan Discipline, The Ranks of Merit, The First Province, Take the City, The Naadam, The Taker of Cities, The Roll of Triumphs, The March Revenues and The Tributary Kings. Batch D11 built six: Man the Walls, The Ovation, The Res Gestae, The Border Fortress, The Chosen Men and The Captured Marvel. Meeting any commission, of either of your decks, now counts for The Ovation and The Res Gestae. Batch D12 built five: The Gathering Host, The Soldier-Farmers, Harry the Border, Rally to the Standard and The Marshalate. Since D12 no card pays on a resource you cannot see yet, so The Quartermasters and The March Revenues read only the strategic resources you can see. Batch D13 built The Limitanei: a town works one more hex for each military unit standing in it, ships included, at most two more. The extra hexes eat no food, and they are chosen after the citizens' hexes at the next assignment.
   - **Ten cards are cut** and their data rows are retired: Muster Rites, The Funeral Games, The Armourers' Secret, The Marshals, The Marching Camps, The Open Muster, The Cleruchy, The Valetudinaria, The State Forges and The Keshik. Their old text, and why each was cut, are in `docs/plans/dominion-list-proposed.md`, "Cut by this pass". A save that holds one keeps it.
   - **The Servian Reforms** left the Tier I Doctrines by your edit, and its data row is retired.
   - **Clear the Frontier and Battle Honours trade rewards** and keep their names. Clearing two camps now brings a great general from a draft. Killing six units (not ten) now brings two citizens and the best melee unit you can build in your capital.

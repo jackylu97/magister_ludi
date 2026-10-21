@@ -2652,7 +2652,9 @@ describe('improvements in the log', () => {
     // five Dominion Orders come live and one changes. D12: two Dominion
     // Orders come live, three change, and resource lines read the sight gate.
     // So a v158 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(159);
+    // 160 since Dominion batch D13: The Limitanei comes live, so a v159 log's
+    // Dominion hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(160);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

@@ -5482,6 +5482,25 @@
           }
         }
       ]
+    },
+    "theLimitanei": {
+      "name": "The Limitanei",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "The frontier soldiers farm the fields beside their forts.",
+      "text": "Each military unit in one of your towns lets that town work one more hex, at most two more.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "garrisonWorks",
+          "max": 2
+        }
+      ]
     }
   },
   "doctrines": {

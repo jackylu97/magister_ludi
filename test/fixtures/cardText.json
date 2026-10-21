@@ -4170,6 +4170,12 @@
     "text": "a military unit you gain appears beside your nearest great general instead of in its city, if that general stands within 10 hexes of the city"
    }
   ],
+  "theLimitanei": [
+   {
+    "raw": "each military unit in one of your cities lets that city work one more hex, at most 2 more",
+    "text": "each military unit in one of your cities lets that city work one more hex, at most 2 more"
+   }
+  ],
   "smallholdings": [
    {
     "raw": "+1 food, +1 gold on every hex with a [[improvement:farm|Farm]] or [[improvement:terraces|Terraces]] or [[improvement:pasture|Pasture]]",

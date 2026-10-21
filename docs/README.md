@@ -626,6 +626,13 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
     a unit gained beside the owner's great general nearest the town, if he
     stands within the range. `spawnTileFor` asks it first, so a built, bought
     or gifted unit rallies alike, on a hex that claims nothing.
+- **Soldiers work hexes** (Dominion batch D13, The Limitanei): the
+  `garrisonWorks` city rule (`CardRuleEffect.max`, `cardGarrisonSeats`) adds
+  one seat to a town for each combat unit of its owner on the town's hex,
+  ships included, up to the cap. `chooseCitizens` adds the seats to the
+  citizens' seats, so the soldiers take the hexes after the citizens'. The
+  extra hexes eat no food and count as worked hexes for every card. No new
+  caller of `assignCitizens`: the seats change at the next assignment.
 - **Defer, never bend**: a card whose text needs a missing shape ships deferred
   and annotated, in player-plain prose. This rule repeats across beliefs,
   legacies, wonders and leaders.

@@ -1800,6 +1800,13 @@ function describeEffect(
         });
         return;
       }
+      // The Limitanei (Dominion batch D13): the cap on the extra hexes is said
+      // after the towns the row names.
+      if (effect.rule === 'garrisonWorks' && effect.class === undefined && effect.rank === undefined) {
+        const cap = effect.max === undefined ? '' : `, at most ${effect.max} more`;
+        out.push({ text: `${FLAG_RULE_WORDS[effect.rule]}${inTowns}${cap}` });
+        return;
+      }
       if (effect.class === undefined && effect.rank === undefined) {
         out.push({ text: `${FLAG_RULE_WORDS[effect.rule]}${inTowns}` });
         return;
@@ -5991,6 +5998,9 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // The Bakufu and The Consular Roads (Dominion batch D4). The row's scope
   // follows as "in every city with ...".
   pacified: 'unrest ends at once',
+  // The Limitanei (Dominion batch D13). The rule arm adds the cap when the
+  // row names one.
+  garrisonWorks: 'each military unit in one of your cities lets that city work one more hex',
   // Things about the world that stop being true — or start. `BehaviorRuleId`.
   barbariansPassive: 'barbarians never attack you',
   // "At full health" since the user's card pass of 2026-09-03, which is the

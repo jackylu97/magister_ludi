@@ -6486,6 +6486,18 @@ export type CityRuleId =
    */
   | 'pacified'
   /**
+   * **Each soldier in a town lets it work one more hex** (Dominion batch D13,
+   * The Limitanei). The soldiers are the town's garrison (`garrisonOf`: every
+   * combat unit of the owner on the town's hex, ships included), and
+   * `CardRuleEffect.max` caps the extra hexes. Read by `chooseCitizens`
+   * (`cities.ts`) through `cardGarrisonSeats`, which asks the scope as
+   * `cardCityRuleAt` does. The extra hexes are filled after the citizens',
+   * eat no food (upkeep is per citizen), and count as worked hexes for every
+   * card. They are seated at the next assignment, not when a unit walks in
+   * (the triage's reading 24).
+   */
+  | 'garrisonWorks'
+  /**
    * **This town's citizens may work the mountains in its borders**
    * (Expansionist batch E3, The Mountain Terraces). Read by `assignableTiles`
    * through `cardCityRuleAt`. When the card leaves, the citizens on a mountain
@@ -7222,6 +7234,13 @@ export interface CardRuleEffect {
    * holds Veteran too.
    */
   rank?: RankId;
+  /**
+   * **The most extra hexes the rule gives one town** (Dominion batch D13).
+   * Read only by `garrisonWorks`: a town works one more hex for each soldier
+   * in it, up to this many. Absent, every soldier counts. Meaningless on every
+   * other member.
+   */
+  max?: number;
   /**
    * **How far, in hexes, the rule reaches** (Dominion batch D12). Read only by
    * `rallyToGeneral`: the farthest a great general may stand from the town for
