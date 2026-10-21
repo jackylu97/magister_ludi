@@ -544,6 +544,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 
 ### S13: bot pricing
 
+**Built 2026-10-21** (`ea71d103`). A charter is priced as what knowing its technology gives, discounted over the research turns at the folded price (`explainCharter`); research reads the folded price (`techCostFor`); knobs under `score.scientific`. Found, not fixed: a city-level count without `within` is counted once per town and then paid in each town, so it is over-priced. **The Scientific build plan is complete.**
+
 - **Builds:**
   - Drafting: a charter is priced as what knowing its technology gives (its traits as strength lines, its buildings through `scoreUnlockedBuilding`, its improvement rows), discounted for the research turns at the folded price. Today a technology charter scores nothing.
   - Research: the goal search skips a charter technology the seat has not drafted, and prices one it has at the folded cost. `chain.ts`, `plan.ts` and the cheapest fallback in `bot.ts` read `foldTechCost`.
