@@ -77,6 +77,9 @@ import { type LentCopies, lentCopiesAwayBy, lentCopiesToPlayer } from './deals';
 // leaf above nothing but the data tables, so the simulation can name a slice
 // without importing a screen (batch E2). See `ledgerClass.ts`.
 import { discoveryKindTech } from './discoveryData';
+// A data leaf: the table of great people and nothing else. Rally to the
+// Standard (Dominion batch D12) asks it which pieces are great generals.
+import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
 import type { Hex } from './hex';
 import {
   type GameMap,
@@ -97,7 +100,15 @@ import {
   improvementForResource,
   isGreatPersonWork,
 } from './improvementData';
-import { type Cell, type MoveProfile, findPath, isPassable, moveProfile, tileMoveCost } from './pathfind';
+import {
+  type Cell,
+  type MoveProfile,
+  canStopOn,
+  findPath,
+  isPassable,
+  moveProfile,
+  tileMoveCost,
+} from './pathfind';
 import {
   RESOURCE_IDS,
   type ResourceId,
@@ -141,6 +152,7 @@ import {
   cardActionRule,
   cardAmplifier,
   cardAmplifierFlat,
+  cardRallyRange,
   cardMeterFlag,
   cardCityRuleAt,
   cardFoundingRider,
@@ -3954,6 +3966,14 @@ function foreignUnitAt(state: GameState, ownerId: number, col: number, row: numb
  * (llll)) — `foreignUnitAt` above, asked of every neighbour in both arms. It is
  * a skip rather than a refusal: the walk goes on to the next hex, and only a
  * ring with no clear hex in it leaves the piece waiting.
+ *
+ * **Rally to the Standard comes first** (Dominion batch D12, the triage's
+ * reading 23). While the owner's law holds the `rallyToGeneral` rule for this
+ * type, the unit appears beside the owner's great general nearest the town,
+ * if that general stands within the rule's range. See `rallyTileFor`. It
+ * applies to every way a unit is placed through this function: a built unit,
+ * a bought one and a gift alike. With no such hex the walk below runs as it
+ * always did (reading 42).
  */
 export function spawnTileFor(
   state: GameState,
@@ -3961,6 +3981,8 @@ export function spawnTileFor(
   type: UnitTypeId,
   opts: { onCityHexOnly?: boolean } = {},
 ): Tile | null {
+  const rallied = rallyTileFor(state, city, type);
+  if (rallied !== null) return rallied;
   const def = unitDef(type);
   const { category } = def;
   const centre = cityTile(state.map, city);
@@ -4014,6 +4036,76 @@ export function spawnTileFor(
     if (!isPassable(tile)) continue;
     if (foreignUnitAt(state, city.ownerId, tile.col, tile.row)) continue;
     if (hasStackingRoom(state, tile.col, tile.row, category)) return tile;
+  }
+  return null;
+}
+
+/**
+ * **Where Rally to the Standard puts a unit gained** (Dominion batch D12, the
+ * triage's reading 23), or `null` when the rule does not move it.
+ *
+ *   · The rule holds for the type and names a range (`cardRallyRange`; the
+ *     card's row narrows it to the land military category).
+ *   · The general is the owner's great general nearest the town's centre,
+ *     the first in `state.units` order on a tie (hard rule 2), recognised as
+ *     `generalAuraLines` recognises one. If the general stands farther from
+ *     the town than the range, the rule does nothing.
+ *   · The hex is the first of the six beside the general, in the map's neighbour
+ *     order, that the unit could stop on (`canStopOn`), on dry ground, with no
+ *     piece of another empire on it, no discovery and no barbarian camp. So the
+ *     birth claims nothing and needs no `arriveOnTile` call. If no hex beside
+ *     the nearest general qualifies, the rule does nothing.
+ *
+ * The camp test reads `state.camps` directly rather than through `camps.ts`,
+ * because that module imports this one and a value import back would close a
+ * load-time cycle.
+ */
+function rallyTileFor(state: GameState, city: City, type: UnitTypeId): Tile | null {
+  const range = cardRallyRange(state, city.ownerId, type);
+  if (range === null) return null;
+  const centre = cityTile(state.map, city);
+  const home = tileHex(centre);
+  let general: Unit | null = null;
+  let nearest = Infinity;
+  for (const other of state.units) {
+    if (other.ownerId !== city.ownerId) continue;
+    if (unitDef(other.type).greatWork !== true) continue;
+    const person = other.person;
+    if (person === undefined || !isGreatPersonId(person)) continue;
+    if (greatPersonDef(person).family !== 'general') continue;
+    const stands = getTileAt(state.map, other.col, other.row);
+    if (!stands) continue;
+    const distance = wrappedDistance(state.map, home, tileHex(stands));
+    if (distance < nearest) {
+      nearest = distance;
+      general = other;
+    }
+  }
+  if (general === null || nearest > range) return null;
+  const at = getTileAt(state.map, general.col, general.row);
+  if (!at) return null;
+  // A probe rather than a real unit, as the ship's launch above asks: nothing
+  // has been made yet, so the question is asked of a piece of this type that
+  // belongs to the town's owner.
+  const def = unitDef(type);
+  const probe: Unit = {
+    id: -1,
+    ownerId: city.ownerId,
+    type,
+    col: at.col,
+    row: at.row,
+    hp: def.maxHp,
+    movesLeft: def.movement,
+    hasAttacked: false,
+  };
+  const mover = moveProfile(state, probe);
+  for (const tile of neighborTiles(state.map, tileHex(at))) {
+    if (!isPassable(tile)) continue;
+    if (tile.discovery !== undefined) continue;
+    if (state.camps.some((camp) => camp.col === tile.col && camp.row === tile.row)) continue;
+    if (foreignUnitAt(state, city.ownerId, tile.col, tile.row)) continue;
+    if (!canStopOn(state, probe, tile, mover)) continue;
+    return tile;
   }
   return null;
 }
@@ -4890,6 +4982,13 @@ export function realiseItem(
   // routine brings into being counts, bought, free and conscripted ones
   // included (the user's ruling that conscripts count as gained).
   recordScalingOccasion(state, city.ownerId, 'unitGained');
+  // **A land military unit gained** (Dominion batch D12, The Gathering Host;
+  // the triage's reading 20): the same moment narrowed to the land military
+  // category, so a ship, a worker or a settler does not count. A levied
+  // conscript does.
+  if (unitDef(item.id).category === 'military') {
+    recordScalingOccasion(state, city.ownerId, 'militaryGained');
+  }
   // The riders pay for every unit gained, a levied conscript included
   // (`RealiseOptions.untrained`). A conscript is kept out of the trained tally
   // and the escalation ladder above, and nowhere else.

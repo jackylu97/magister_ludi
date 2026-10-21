@@ -128,6 +128,12 @@ import { buildingTileLines, buildingsIrrigate } from '../buildingEffects';
  * better the moment you learnt what was on it" is the sentence a discovery is
  * supposed to earn. Nothing is stored and no flag is set — the reveal is derived
  * every time the yield is asked, exactly as `openedResource`'s first clause is.
+ *
+ * Since Dominion batch D12 the lines in `ctx.lines` keep the same gate. Their
+ * resource tests (`hasResource`, `resourceKind`, `resource`) read the
+ * technologies on `ctx.ground` (`GroundFacts.techs`, set by `groundFactsFor`),
+ * so a card, a building or a belief pays on a resource from the same turn the
+ * resource's own yield appears, and not before.
  */
 export type TileYieldKind = 'base' | 'override' | 'add';
 

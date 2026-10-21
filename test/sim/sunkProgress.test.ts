@@ -178,7 +178,9 @@ describe('the schema says so', () => {
     // change, so a v153 log's Dominion hands hold different cards.
     // 155 since Dominion batch D11: five Dominion Orders come live and one
     // changes, so a v154 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(155);
+    // 156 since Dominion batch D12: two Dominion Orders come live, three
+    // change, and resource lines read the sight gate, so a v155 log differs.
+    expect(SCHEMA_VERSION).toBe(156);
   });
 
   it('says in the changelog what a v110 log does now', () => {

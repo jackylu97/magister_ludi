@@ -3361,8 +3361,20 @@ export type TallyOccasion =
    * the user's ruling that conscripts count as gained). Written in
    * `realiseItem` (`cities.ts`) for every unit it brings into being. A unit
    * taken from someone else is not gained, and neither is a great person.
+   *
+   * Since Dominion batch D12 no live card reads it: The Gathering Host counts
+   * `militaryGained` instead. It stays hooked, with its meaning, for a later
+   * card (the triage's reading 20).
    */
   | 'unitGained'
+  /**
+   * This empire **gained a land military unit** (`category: 'military'`, as
+   * Rites of Passage reads it), in any of the ways `unitGained` counts, a
+   * levied conscript included. A ship does not count (Dominion batch D12, The
+   * Gathering Host; the triage's reading 20). Written in `realiseItem` beside
+   * `unitGained`.
+   */
+  | 'militaryGained'
   /**
    * A **war this empire was in ended**: by a peace both sides signed, or by the
    * other empire's destruction while the war stood (Dominion batch D6,
@@ -3409,6 +3421,7 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'rankEarned',
   'hexPillaged',
   'unitGained',
+  'militaryGained',
   'warEnded',
   'sizeRecord',
 ];
@@ -3736,6 +3749,14 @@ export type ActionRuleId =
    * once (The Provincial Census).
    */
   | 'pacifyOnCapture'
+  /**
+   * **A unit gained appears beside the nearest great general** (Dominion batch
+   * D12, Rally to the Standard; the triage's reading 23). Read in
+   * `spawnTileFor` (`cities.ts`) through `cardRallyRange`, with the unit's type
+   * asked against the row's `class` and the row's `range` (`CardRuleEffect`)
+   * as the farthest the general may stand from the town.
+   */
+  | 'rallyToGeneral'
   /** Production overflow from a completion is doubled. */
   | 'doubleOverflow'
   /** A unit further down the queue completes ahead of an unaffordable building. */
@@ -4436,10 +4457,27 @@ export type AmplifierTarget =
    */
   | 'captureRewards'
   /**
+   * **What a pillage pays the raider** (Dominion batch D12, Commission: Harry
+   * the Border: "your mounted units gain +50% yields from pillaging"). Read in
+   * `windfallPayout` on the `pillage` occasion. It scales every yield the raid
+   * pays: the base plunder and the yield grants of every card's rider,
+   * Doctrines included. It is applied once to each figure, after the riders'
+   * own percentages. Renown, faith pressed, heals, strikes and the spread are
+   * not yields and do not change (the triage's reading 2). A row's `class` is
+   * asked of the raider (`WindfallOccasionFacts.actor`), so the hexes The Horde
+   * spreads to count too.
+   */
+  | 'pillageRewards'
+  /**
    * **What a great general's aura is worth** (Dominion batch D8, The Strategoi:
    * "your great generals' strength aura is doubled"). Read in
    * `generalAuraLines` (`combat.ts`) on the rule book's figure. It does not
    * reach a general's one-time rally (the user's answer on the sheet).
+   *
+   * Since Dominion batch D12 the flat step (`amount`) is read too, and it may
+   * be scaled by a count (`perCount`, `max`): The Marshalate's +1 for each
+   * great general gained, at most +5. The step is added to the rule book's
+   * figure before the share, so The Strategoi doubles it too (reading 22).
    */
   | 'generalAura';
 
@@ -6919,6 +6957,27 @@ export interface CardEffectAmplifierEffect {
    * every row written before this field meant.
    */
   family?: Family;
+  /**
+   * **Which pieces the amplifier is for** (Dominion batch D12, Harry the
+   * Border's mounted raiders). `family`'s sibling for a unit: read only on the
+   * `pillageRewards` target, against the raider (`WindfallOccasionFacts.actor`).
+   * A reader with no piece in hand drops a narrowed row, as it drops a row
+   * narrowed to a family. Absent reaches every piece.
+   */
+  class?: UnitFilter;
+  /**
+   * **The flat step is paid once for each item a count finds** (Dominion batch
+   * D12, The Marshalate: "+1 more strength for each great general you have
+   * gained this game"). The count is the card vocabulary's own (`countOf`, as
+   * `WindfallGrantSpec.perCount` reads it). Read with `amount` only, by
+   * `cardAmplifierFlat`.
+   */
+  perCount?: GrantCount;
+  /**
+   * The most the flat step may be worth after the count, in the target's own
+   * units (The Marshalate's +5 strength). Absent is no cap.
+   */
+  max?: number;
 }
 
 /** A constant of the meters, replaced (`value`) or shifted (`delta`). */
@@ -7043,6 +7102,13 @@ export interface CardRuleEffect {
    * holds Veteran too.
    */
   rank?: RankId;
+  /**
+   * **How far, in hexes, the rule reaches** (Dominion batch D12). Read only by
+   * `rallyToGeneral`: the farthest a great general may stand from the town for
+   * a unit gained there to appear beside the general. Absent, that rule reaches
+   * nothing. Meaningless on every other member.
+   */
+  range?: number;
 }
 
 /**

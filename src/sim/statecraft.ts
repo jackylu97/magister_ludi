@@ -98,6 +98,7 @@ export {
   cardCityStat,
   cardCombatLines,
   cardCombatPercent,
+  cardRallyRange,
   // The per-effect half of `cardCombatLines`, which the resource evaluator calls
   // so that a card's strength line and a strategic resource's are read by one
   // function. See `combatLineAmount`.

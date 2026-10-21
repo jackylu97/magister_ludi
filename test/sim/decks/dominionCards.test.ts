@@ -366,16 +366,18 @@ describe('the Dominion batch — riders and musters', () => {
     expect(state.units.filter((unit) => unit.ownerId === 0).length).toBe(before + 2);
   });
 
-  it('The Soldier-Farmers pay a garrisoned town’s pastures at peace, and not at war', () => {
+  it('The Soldier-Farmers put their line on a garrisoned town, at war and at peace', () => {
     // A scoped hex line is read with its owning town in hand
     // (`scopedCardTileLines`, which `cityContext` calls), so it is asked here.
+    // Since Dominion batch D12 the card has no peace condition: it pays on
+    // resource hexes (`test/sim/decks/dominionRules.test.ts` checks the pay).
     for (const war of [false, true]) {
       const state = flat(war);
       const city = foundCityAt(state, 0, at(state, 4, 3))!;
       createUnit(state, 0, 'warrior', city.col, city.row);
       slot(state, 0, 'dominionTheSoldierFarmers');
       const lines = scopedCardTileLines(state, city);
-      expect(lines.length, war ? 'at war' : 'at peace').toBe(war ? 0 : 1);
+      expect(lines.length, war ? 'at war' : 'at peace').toBe(1);
     }
   });
 });

@@ -483,8 +483,12 @@ describe('the schema, as landed', () => {
     // **And Dominion batch D11** (the commissions): five more. Five new
     // Dominion rows came live. The Captured Marvel was changed in place and
     // was already live.
-    expect(live).toBe(505);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(505);
+    // **And Dominion batch D12** (five small automatic rules): two more.
+    // Commission: Harry the Border and Rally to the Standard came live. The
+    // Gathering Host, The Soldier-Farmers and The Marshalate were changed in
+    // place and were already live.
+    expect(live).toBe(507);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(507);
   });
 
   /**
@@ -736,7 +740,9 @@ describe('the schema, as landed', () => {
     // change, so a v153 log's Dominion hands hold different cards.
     // 155 since Dominion batch D11: five Dominion Orders come live and one
     // changes, so a v154 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(155);
+    // 156 since Dominion batch D12: two Dominion Orders come live, three
+    // change, and resource lines read the sight gate, so a v155 log differs.
+    expect(SCHEMA_VERSION).toBe(156);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

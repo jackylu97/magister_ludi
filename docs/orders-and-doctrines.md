@@ -230,7 +230,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Outriders | 0 | ● | S | Claiming a discovery or clearing a barbarian camp grants 8 production to every town. |
 | The Garrison Captains | 0 | ● | P | +1 authority for each garrisoned unit. |
 | The Captured Arms | 0 | ● | P | +1 science for every unit you have killed this game, no cap. |
-| The Gathering Host | 0 | ◆ | P | While seated, this card gains +1 science and +1 culture each time you gain a unit. It starts at +2 science and +2 culture. |
+| The Gathering Host | 0 | ◆ | P | While seated, this card gains +1 science and +1 culture each time you gain a military unit. It starts at +2 science and +2 culture. |
 | The Training Cadre | 1 | ● | S | Units gained in a town with a Barracks start with 2 experience. |
 | The Quartermasters | 1 | ● | S | Worked strategic resources gain +3 food and +3 production. |
 | The Soldiers' Purse | 1 | ● | S | Military units cost 1 less upkeep for each rank they hold. |
@@ -241,7 +241,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Songs of the Fallen | 1 | ○ | S | Killing or losing a unit grants science and culture equal to twice its strength. |
 | Horse Lords | 1 | ○ | S | Mounted units gain +3 strength and +1 movement. |
 | The General Staff | 1 | ● | P | Cities with a Barracks give +3 production and +2 renown a turn, favouring great generals. |
-| The Soldier-Farmers | 1 | ● | S | While at peace, garrisoned cities gain +2 food and +2 production on each worked pasture and camp. |
+| The Soldier-Farmers | 1 | ● | S | Garrisoned towns gain +1 production and +1 gold on each worked hex with a resource. |
 | Martial Law | 1 | ● | P | Each garrisoned unit grants its city +2 happiness and +4 food. |
 | Walled Towns | 1 | ● | P | Towns with a defensive building, such as a Palisade or walls, gain +15% food. |
 | The Swift Riders | 1 | ◆ | S | Mounted units may move after attacking. |
@@ -302,7 +302,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Praetorian Guard | 4 | ○ | S | The city raising your Magnum Opus gains +5 defence for each unit garrisoned there. Your military units within two hexes of it gain +6 strength. |
 | The Grand Army | 4 | ○ | P | Your capital gains +1 science and +1 culture for every military unit you have, at most +30 of each. |
 | The Annexed Provinces | 4 | ○ | P | Each captured city you hold gives +5% science and +5% culture in every city, at most +25%. |
-| The Marshalate | 4 | ○ | S | Each great general you have called gives your military units +1 strength, at most +5. Citadels give +3 culture and +3 production. |
+| The Marshalate | 4 | ○ | P | Your great generals' aura gives +1 more strength for each great general you have gained this game, at most +5. |
 | The Military Frontier | 4 | ○ | P | Each unit garrisoned in a city gives it +3 science and +3 culture, at most three units per city. |
 | The Nation in Arms | 4 | ○ | S | Every ten turns, each city with an Armoury raises the best melee unit you can build. They cost no upkeep. |
 | The Grand Coalition | 4 | ○ | S | While at war with an empire raising a Magnum Opus, your military units gain +6 strength against it, and cities with a Barracks produce military units 30% faster. |
@@ -337,6 +337,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Res Gestae | 2 | ◆ | P | +4% production and culture for each commission you have completed this game, at most +28%. |
 | Commission: The Border Fortress | 2 | ◆ | S | Commission. Plant a citadel while this card is seated. Then, for the rest of the game, your citadels gain +2 food and +2 production. The card leaves its chair. |
 | Commission: The Chosen Men | 3 | ◆ | S | Commission. Have three of your units become Elite while this card is seated. Then, for the rest of the game, your Elite units ignore enemy zone of control. The card leaves its chair. |
+| Commission: Harry the Border | 1 | ◆ | S | Commission. Pillage four hexes while this card is seated. Then, for the rest of the game, your mounted units gain +50% yields from pillaging. The card leaves its chair. |
+| Rally to the Standard | 3 | ○ | S | A military unit you gain appears beside your nearest great general instead of in its town, if that general stands within ten hexes of the town. |
 
 ### Expansionist
 

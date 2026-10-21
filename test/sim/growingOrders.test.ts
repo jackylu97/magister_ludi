@@ -133,7 +133,16 @@ describe('the growing-card vocabulary', () => {
         if (goal.kind === 'counted') watched.add(goal.occasion);
       }
     }
+    // **One occasion is kept with no reader, on purpose.** Dominion batch D12
+    // moved The Gathering Host, the one card that read `unitGained`, to the
+    // narrower `militaryGained`. The triage's reading 20 keeps `unitGained`
+    // hooked, with its meaning, for a later card. Nothing else may be unread.
+    const keptForLater = new Set<TallyOccasion>(['unitGained']);
     for (const occasion of TALLY_OCCASIONS) {
+      if (keptForLater.has(occasion)) {
+        expect(watched.has(occasion), `${occasion} has a reader now; take it off this list`).toBe(false);
+        continue;
+      }
       expect(watched.has(occasion), occasion).toBe(true);
     }
   });

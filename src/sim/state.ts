@@ -1912,8 +1912,30 @@ import {
  * **A v154 save is refused and does not replay.** A Dominion seat's pools now
  * hold more cards, so its hands differ. The branch migrates nothing, for the
  * reason given under v119.
+ *
+ * v156 (branch `decks`; Dominion batch D12, `docs/plans/dominion-themes-
+ * triage.md`): **five small automatic rules.** No field joins the state. The
+ * rules that change:
+ *
+ *   · two new Orders come live: Commission: Harry the Border (Tier I) and
+ *     Rally to the Standard (Tier III);
+ *   · three Orders change: The Gathering Host grows only for military units
+ *     gained; The Soldier-Farmers pay +1 production and +1 gold on each worked
+ *     hex with a resource in a garrisoned town, at war or at peace; The
+ *     Marshalate adds +1 to the great generals' aura for each great general
+ *     gained, at most +5, in place of its strength line and citadel yields;
+ *   · a card's resource tests (`hasResource`, `resourceKind`, `resource`)
+ *     answer only for a resource the empire can see, in hex lines, in counts
+ *     of hexes and in scopes over worked hexes. A card no longer pays on
+ *     copper, horses, camels, iron or niter before the technology that reveals
+ *     it;
+ *   · the `militaryGained` tally is written beside `unitGained`.
+ *
+ * **A v155 save is refused and does not replay.** A Dominion seat's pools now
+ * hold more cards, and every seat's resource lines read the sight gate. The
+ * branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 155;
+export const SCHEMA_VERSION = 156;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

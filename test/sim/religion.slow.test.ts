@@ -453,7 +453,9 @@ describe('determinism', () => {
     // change, so a v153 log's Dominion hands hold different cards.
     // 155 since Dominion batch D11: five Dominion Orders come live and one
     // changes, so a v154 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(155);
+    // 156 since Dominion batch D12: two Dominion Orders come live, three
+    // change, and resource lines read the sight gate, so a v155 log differs.
+    expect(SCHEMA_VERSION).toBe(156);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

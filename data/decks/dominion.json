@@ -687,7 +687,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Every new name on the muster roll is a line in the chronicle.",
-      "text": "While seated, this card gains +1 science and +1 culture each time you gain a unit. It starts at +2 science and +2 culture.",
+      "text": "While seated, this card gains +1 science and +1 culture each time you gain a military unit. It starts at +2 science and +2 culture.",
       "effects": [
         {
           "kind": "pays",
@@ -702,7 +702,7 @@
           "to": "science",
           "amount": 1,
           "count": "tally",
-          "tally": "unitGained"
+          "tally": "militaryGained"
         },
         {
           "kind": "pays",
@@ -711,7 +711,7 @@
           "to": "culture",
           "amount": 1,
           "count": "tally",
-          "tally": "unitGained"
+          "tally": "militaryGained"
         }
       ]
     },
@@ -1468,31 +1468,19 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "In spring they drill, in summer they reap.",
-      "text": "While at peace, garrisoned cities gain +2 food and +2 production on each worked pasture and camp.",
+      "text": "Garrisoned towns gain +1 production and +1 gold on each worked hex with a resource.",
       "effects": [
         {
-          "kind": "conditionRule",
-          "when": {
-            "test": "atPeace"
+          "kind": "pays",
+          "where": "hex",
+          "production": 1,
+          "gold": 1,
+          "on": {
+            "test": "hasResource"
           },
-          "then": [
-            {
-              "kind": "pays",
-              "where": "hex",
-              "food": 2,
-              "production": 2,
-              "on": {
-                "test": "anyImprovement",
-                "improvements": [
-                  "pasture",
-                  "camp"
-                ]
-              },
-              "scope": {
-                "test": "garrisoned"
-              }
-            }
-          ]
+          "scope": {
+            "test": "garrisoned"
+          }
         }
       ]
     },
@@ -4336,34 +4324,17 @@
       "rarity": "rare",
       "type": "military",
       "flavor": "Each baton was earned on a field with a name.",
-      "text": "Each great general you have called gives your military units +1 strength, at most +5. Citadels give +3 culture and +3 production.",
+      "text": "Your great generals' aura gives +1 more strength for each great general you have gained this game, at most +5.",
       "effects": [
         {
-          "kind": "combatLine",
+          "kind": "effectAmplifier",
+          "target": "generalAura",
           "amount": 1,
-          "side": "both",
-          "when": {
-            "test": "always"
+          "perCount": {
+            "count": "greatPeopleGained",
+            "family": "general"
           },
-          "class": {
-            "category": "military"
-          },
-          "scaled": {
-            "count": "greatPeopleOfFamily",
-            "family": "general",
-            "per": 1,
-            "max": 5
-          }
-        },
-        {
-          "kind": "pays",
-          "where": "hex",
-          "culture": 3,
-          "production": 3,
-          "on": {
-            "test": "improvement",
-            "improvement": "citadel"
-          }
+          "max": 5
         }
       ]
     },
@@ -5453,6 +5424,64 @@
           }
         ]
       }
+    },
+    "dominionHarryTheBorder": {
+      "name": "Commission: Harry the Border",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "flavor": "The riders burn one farm and the next, and the border learns to fear the dust.",
+      "text": "Commission. Pillage four hexes while this card is seated. Then, for the rest of the game, your mounted units gain +50% yields from pillaging. The card leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "counted",
+            "occasion": "hexPillaged",
+            "count": 4
+          }
+        ],
+        "reward": [
+          {
+            "lasting": [
+              {
+                "kind": "effectAmplifier",
+                "target": "pillageRewards",
+                "percent": 50,
+                "class": {
+                  "modelClass": "mounted"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "rallyToTheStandard": {
+      "name": "Rally to the Standard",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "military",
+      "flavor": "New recruits march to the general's banner, not to the barracks gate.",
+      "text": "A military unit you gain appears beside your nearest great general instead of in its town, if that general stands within ten hexes of the town.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "rallyToGeneral",
+          "range": 10,
+          "class": {
+            "category": "military"
+          }
+        }
+      ]
     }
   },
   "doctrines": {

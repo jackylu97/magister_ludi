@@ -357,7 +357,8 @@ describe('the audit holds in the source', () => {
     { path: 'src/sim/statecraft/evaluator.ts', snippet: 'line[voice] += paid[voice] * extra;' },
     // Dominion batch D6 multiplies it by the capture amplifier (Vae Victis),
     // a factor of one on every other occasion: still the exact product.
-    { path: 'src/sim/statecraft/evaluator.ts', snippet: 'const amount = turns * rate * boostFor(card);' },
+    // Dominion batch D12 adds the pillage share (Harry the Border), unfloored.
+    { path: 'src/sim/statecraft/evaluator.ts', snippet: 'const amount = turns * rate * boostFor(card) * yieldBoost();' },
     // D2c moved this line into a **first pass**: the occasion's own figure has
     // to be folded before the grants are composed, because a grant may be a
     // share of what the occasion paid (`OccasionMeasure`'s `payout`, the design

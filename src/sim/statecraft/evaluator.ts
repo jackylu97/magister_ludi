@@ -103,7 +103,14 @@ import { cityRite } from '../religion';
 // The same edge, one system over: `settleRenownWindfall` is the one place renown
 // is added, called from inside `payWindfallGrants` and never at load time.
 import { settleRenownWindfall } from '../renown';
-import { type CityYieldKey, type ResourceKind, resourceDef, resourceYield } from '../resourceData';
+import {
+  type CityYieldKey,
+  type ResourceId,
+  type ResourceKind,
+  resourceDef,
+  resourceIsVisibleTo,
+  resourceYield,
+} from '../resourceData';
 import { nextFloat } from '../rng';
 import { economyStamp, slateMemo, slateShadow } from '../slate';
 import { connectedCities } from '../roads';
@@ -4470,7 +4477,13 @@ export function tileConditionHolds(
   const test = on.test;
   switch (test) {
     case 'hasResource':
-      return tile.resource !== undefined;
+      // **The sight gate** (Dominion batch D12, the triage's reading 21): the
+      // three resource tests answer only for a resource the asking empire can
+      // see, so a card never pays on a seam its owner has no word for. That is
+      // the rule the hex fold already keeps for the resource's own yield
+      // (`resourceIsVisibleTo` in `yields/hex.ts`). A caller with no ground
+      // facts answers from the tile alone, which is the omniscient reading.
+      return tile.resource !== undefined && resourceSeen(tile.resource, ground);
     case 'hills':
       return tile.hills;
     case 'feature':
@@ -4539,6 +4552,8 @@ export function tileConditionHolds(
     case 'resourceKind': {
       const id = tile.resource;
       if (id === undefined) return false;
+      // The sight gate (Dominion batch D12). See `hasResource` above.
+      if (!resourceSeen(id, ground)) return false;
       const def = resourceDef(id);
       if (def.kind !== on.kind) return false;
       // "a bonus resource **that provides food**" — asked of the resource's own
@@ -4548,7 +4563,12 @@ export function tileConditionHolds(
       return resourceYield(id)[on.yields] > 0;
     }
     case 'resource':
-      return tile.resource !== undefined && on.resources.includes(tile.resource);
+      // The sight gate (Dominion batch D12). See `hasResource` above.
+      return (
+        tile.resource !== undefined &&
+        on.resources.includes(tile.resource) &&
+        resourceSeen(tile.resource, ground)
+      );
     case 'freshwater':
       // The map's water, or a farm the empire's law waters (The Watercourses,
       // The Water Courts, Expansionist batch E3): "counts as having fresh
@@ -4615,6 +4635,17 @@ export function tileConditionHolds(
 }
 
 /**
+ * **Can the asking empire see this resource?** (Dominion batch D12, the sight
+ * gate.) Asked of the technologies the ground facts carry
+ * (`GroundFacts.techs`). With no ground facts, or none that name the
+ * technologies, the answer is yes: a context-less question is the omniscient
+ * reading, as `explainTileYield(tile)` with no context is.
+ */
+function resourceSeen(id: ResourceId, ground: GroundFacts | undefined): boolean {
+  return ground?.techs === undefined || resourceIsVisibleTo(id, ground.techs);
+}
+
+/**
  * **What a hex question may ask beyond the tile itself** (Expansionist batch
  * E3; Dominion batch D7). Facts a tile cannot answer alone, built by the
  * caller that holds the board (`groundFactsFor`) and handed to
@@ -4630,7 +4661,9 @@ export function tileConditionHolds(
  *     empire stands, for `fortifiedUnit` (Dominion batch D7: The Farming
  *     Garrisons, The Castra);
  *   · `copiedHexes`, the ring a work that copies its neighbours pays for
- *     (Expansionist batch E4, The Keeps).
+ *     (Expansionist batch E4, The Keeps);
+ *   · `techs`, the technologies the empire knows, for the sight gate on the
+ *     three resource tests (Dominion batch D12).
  *
  * The yield context carries one (`TileYieldContext.ground`), so the hex fold,
  * the hover card and the lens all ask the same facts.
@@ -4653,6 +4686,15 @@ export interface GroundFacts {
    * which walks the units once, the first time it is asked.
    */
   fortified?: (tile: Tile) => boolean;
+  /**
+   * **The technologies the asking empire knows** (Dominion batch D12, the
+   * sight gate). `hasResource`, `resourceKind` and `resource` answer only for
+   * a resource these reveal (`resourceIsVisibleTo`), so a hex line, a count of
+   * hexes in borders and a scope over worked hexes never pay on a resource
+   * the empire cannot see (the triage's reading 21). Absent, the tests read
+   * the tile alone.
+   */
+  techs?: readonly TechId[];
 }
 
 /** The ground facts for one empire's questions. See `GroundFacts`. */
@@ -4660,6 +4702,10 @@ export function groundFactsFor(state: GameState, playerId: number): GroundFacts 
   const water = farmWaterOf(state, playerId);
   const facts: GroundFacts = {
     player: playerId,
+    // Dominion batch D12: the sight gate on the three resource tests. The
+    // same list the hex fold reads (`TileYieldContext.techs`), so a card line
+    // and the resource's own yield appear on the same turn.
+    techs: playerById(state, playerId)?.techsResearched ?? [],
     // Dominion batch D7: the hexes where this empire's fortified military
     // units stand, walked once, the first time a card line asks.
     fortified: fortifiedHexTest(state, playerId),
@@ -7591,6 +7637,22 @@ export function windfallPayout(
     captureBoosted = true;
     return captureBoost;
   };
+  // **Harry the Border** (Dominion batch D12, the triage's reading 2): on a
+  // pillage by a piece the row admits, every yield the raid pays is raised by
+  // the share. That is the base plunder and each rider's yield grant,
+  // Doctrines included, each applied once, after the riders' own percentages.
+  // Renown, faith pressed, heals and everything that is not a yield stay as
+  // they are. The card is named once on the payout's lines, when it raised
+  // something.
+  const pillageAmplifiers =
+    occasion === 'pillage' ? amplifierRows(state, playerId, 'pillageRewards', facts.actor) : [];
+  const pillageBoost = 1 + pillageAmplifiers.reduce((sum, row) => sum + row.percent, 0) / 100;
+  let pillageBoosted = false;
+  const yieldBoost = (): number => {
+    if (pillageBoost === 1) return 1;
+    pillageBoosted = true;
+    return pillageBoost;
+  };
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'windfallRider')) {
     if (!rides(effect, card)) continue;
     if (
@@ -7805,7 +7867,8 @@ export function windfallPayout(
       // The Master of Works): `amount` times the production per turn of each
       // other town the scope admits. Composed here with every other figure.
       if (grant.fromTowns !== undefined) {
-        const amount = grant.amount * townsProduction(state, playerId, grant.fromTowns, facts.townId) * boostFor(card);
+        const amount =
+          grant.amount * townsProduction(state, playerId, grant.fromTowns, facts.townId) * boostFor(card) * yieldBoost();
         if (amount !== 0) {
           payout.grants.push({ card, source, yield: grant.yield, amount, ...deliveryOf(grant) });
           payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
@@ -7819,7 +7882,7 @@ export function windfallPayout(
         // banked exactly, rounded only where it is printed). It used to floor,
         // which quietly paid nothing at all for The Natural Philosophers' fifth
         // of a turn in an empire making four science.
-        const amount = turns * rate * boostFor(card);
+        const amount = turns * rate * boostFor(card) * yieldBoost();
         if (amount !== 0) {
           payout.grants.push({ card, source, yield: grant.yield, amount, ...deliveryOf(grant) });
           payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
@@ -7853,7 +7916,8 @@ export function windfallPayout(
           figure *
           (effect.perAge === true ? era : 1) *
           (effect.perSlottedOrder === true ? slotted : 1) *
-          boostFor(card);
+          boostFor(card) *
+          yieldBoost();
         if (amount !== 0) {
           payout.grants.push({ card, source, yield: grant.yield, amount, ...deliveryOf(grant) });
           payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
@@ -7877,7 +7941,8 @@ export function windfallPayout(
         counted *
         (effect.perAge === true ? era : 1) *
         (effect.perSlottedOrder === true ? slotted : 1) *
-        boostFor(card);
+        boostFor(card) *
+        yieldBoost();
       if (amount !== 0) {
         payout.grants.push({ card, source, yield: grant.yield, amount, ...deliveryOf(grant) });
         payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
@@ -7896,9 +7961,17 @@ export function windfallPayout(
   payout.amount = paid;
   if (ageMultiplied) payout.amount *= era;
   if (slotMultiplied) payout.amount *= slotted;
+  // Harry the Border's share on the base plunder, last, on the figure the
+  // percentages, the era and the council already reached.
+  if (payout.amount !== 0) payout.amount *= yieldBoost();
   if (captureBoosted) {
     for (const row of captureAmplifiers) {
       payout.lines.push({ card: row.card, source: row.source, note: `×${captureBoost} capture rewards` });
+    }
+  }
+  if (pillageBoosted) {
+    for (const row of pillageAmplifiers) {
+      payout.lines.push({ card: row.card, source: row.source, note: `${signed(row.percent)}% yields from pillaging` });
     }
   }
   return payout;
@@ -7908,15 +7981,21 @@ export function windfallPayout(
  * Every live amplifier row on one target, with its card, for a payout that
  * names the card on its lines (Dominion batch D6, Vae Victis). `cardAmplifier`
  * sums the same rows for a caller that needs only the figure.
+ *
+ * `actor` is the piece that acted, where the moment carries one (Dominion
+ * batch D12, Harry the Border's mounted raiders). A row narrowed to a class is
+ * kept only when the actor matches it, and dropped when there is no actor.
  */
 function amplifierRows(
   state: GameState,
   playerId: number,
   target: AmplifierTarget,
+  actor?: UnitTypeId,
 ): { card: CardId; source: string; percent: number }[] {
   const rows: { card: CardId; source: string; percent: number }[] = [];
   for (const { card, source, effect } of effectsOfKind(state, playerId, 'effectAmplifier')) {
     if (effect.target !== target || effect.percent === undefined || effect.family !== undefined) continue;
+    if (effect.class !== undefined && (actor === undefined || !unitMatches(actor, effect.class))) continue;
     rows.push({ card, source, percent: effect.percent });
   }
   return rows;
@@ -9118,6 +9197,24 @@ function cardRuleHolds(
 /** Does this empire hold a card declaring this action rule? */
 export function cardActionRule(state: GameState, playerId: number, rule: ActionRuleId): boolean {
   return cardRuleHolds(state, playerId, rule);
+}
+
+/**
+ * **How far a great general may stand from a town for a unit gained there to
+ * appear beside the general** (Dominion batch D12, Rally to the Standard: the
+ * `rallyToGeneral` rule and its `range`). The largest range of the live rows
+ * whose `class` admits this type, or `null` when no row does. A row with no
+ * range reaches nothing. Read by `spawnTileFor` (`cities.ts`).
+ */
+export function cardRallyRange(state: GameState, playerId: number, type: UnitTypeId): number | null {
+  let reach: number | null = null;
+  for (const { effect } of effectsOfKind(state, playerId, 'rule')) {
+    if (effect.rule !== 'rallyToGeneral') continue;
+    if (effect.class !== undefined && !unitMatches(type, effect.class)) continue;
+    if (effect.range === undefined || effect.range < 0) continue;
+    reach = reach === null ? effect.range : Math.max(reach, effect.range);
+  }
+  return reach;
 }
 
 /**
@@ -10336,6 +10433,9 @@ export function cardAmplifier(
   for (const { effect } of effectsOfKind(state, playerId, 'effectAmplifier')) {
     if (effect.target !== target) continue;
     if (effect.family !== undefined && effect.family !== family) continue;
+    // A row narrowed to a class of piece (Dominion batch D12) is read only
+    // where the piece is in hand (`amplifierRows`), never here.
+    if (effect.class !== undefined) continue;
     if (effect.percent === undefined) continue;
     percent += effect.percent;
   }
@@ -10379,6 +10479,11 @@ export function cardExtraChairs(state: GameState, playerId: number): number {
  *
  * **Applied before the share**, so a card carrying both is one arithmetic and
  * not an argument about order.
+ *
+ * Since Dominion batch D12 a row's step may be paid once for each item a count
+ * finds (`perCount`) and capped (`max`): The Marshalate's +1 aura strength for
+ * each great general gained, at most +5. A row narrowed to a class of piece
+ * is not read here, as `cardAmplifier` does not read one.
  */
 export function cardAmplifierFlat(
   state: GameState,
@@ -10386,10 +10491,19 @@ export function cardAmplifierFlat(
   target: AmplifierTarget,
 ): number {
   let amount = 0;
-  for (const { effect } of effectsOfKind(state, playerId, 'effectAmplifier')) {
+  for (const { card, effect } of effectsOfKind(state, playerId, 'effectAmplifier')) {
     if (effect.target !== target) continue;
     if (effect.amount === undefined) continue;
-    amount += effect.amount;
+    if (effect.class !== undefined) continue;
+    let step =
+      effect.perCount === undefined
+        ? effect.amount
+        : effect.amount * grantCountHelpings(state, playerId, card, effect.perCount);
+    if (effect.max !== undefined) {
+      const ceiling = Math.abs(effect.max);
+      step = Math.max(-ceiling, Math.min(ceiling, step));
+    }
+    amount += step;
   }
   return amount;
 }

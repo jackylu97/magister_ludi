@@ -2672,12 +2672,12 @@
     "text": "+2 science, +2 culture to the empire"
    },
    {
-    "raw": "+1 science per unit you have gained, counted while this Order stands in a slot",
-    "text": "+1 science per unit you have gained, counted while this Order stands in a slot"
+    "raw": "+1 science per military unit you have gained, counted while this Order stands in a slot",
+    "text": "+1 science per military unit you have gained, counted while this Order stands in a slot"
    },
    {
-    "raw": "+1 culture per unit you have gained, counted while this Order stands in a slot",
-    "text": "+1 culture per unit you have gained, counted while this Order stands in a slot"
+    "raw": "+1 culture per military unit you have gained, counted while this Order stands in a slot",
+    "text": "+1 culture per military unit you have gained, counted while this Order stands in a slot"
    }
   ],
   "theArmourersSecret": [
@@ -2928,8 +2928,8 @@
   ],
   "dominionTheSoldierFarmers": [
    {
-    "raw": "while you are at peace: +2 food, +2 production on every hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]], in every city with a unit standing in it",
-    "text": "while you are at peace: +2 food, +2 production on every hex with a Pasture or Camp, in every city with a unit standing in it"
+    "raw": "+1 production, +1 gold on every hex carrying a resource, in every city with a unit standing in it",
+    "text": "+1 production, +1 gold on every hex carrying a resource, in every city with a unit standing in it"
    }
   ],
   "martialLaw": [
@@ -3835,12 +3835,8 @@
   ],
   "dominionTheMarshalate": [
    {
-    "raw": "+1 combat strength for military units per great general earned this game (at most +5)",
-    "text": "+1 combat strength for military units per great general earned this game (at most +5)"
-   },
-   {
-    "raw": "+3 production, +3 culture on every hex with a [[improvement:citadel|Citadel]]",
-    "text": "+3 production, +3 culture on every hex with a Citadel"
+    "raw": "your great generals' aura gives +1 more strength for each great general you have gained this game (at most +5)",
+    "text": "your great generals' aura gives +1 more strength for each great general you have gained this game (at most +5)"
    }
   ],
   "dominionTheMilitaryFrontier": [
@@ -4152,6 +4148,26 @@
    {
     "raw": "then this card leaves its chair and is never seated again",
     "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "dominionHarryTheBorder": [
+   {
+    "raw": "Commission. Goal: pillage 4 hexes, while this card is seated",
+    "text": "Commission. Goal: pillage 4 hexes, while this card is seated"
+   },
+   {
+    "raw": "Reward: for the rest of the game, your mounted units gain +50% yields from pillaging",
+    "text": "Reward: for the rest of the game, your mounted units gain +50% yields from pillaging"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "rallyToTheStandard": [
+   {
+    "raw": "a military unit you gain appears beside your nearest great general instead of in its city, if that general stands within 10 hexes of the city",
+    "text": "a military unit you gain appears beside your nearest great general instead of in its city, if that general stands within 10 hexes of the city"
    }
   ],
   "smallholdings": [

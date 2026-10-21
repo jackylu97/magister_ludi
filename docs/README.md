@@ -608,6 +608,24 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   - An amplifier can raise a great general's aura (`generalAura`, read in
     `generalAuraLines`), and a hex row can take a share of everything the hex
     pays (`wholePercent`, the hex's last line; see `docs/yields.md`).
+- **Five small automatic rules** (Dominion batch D12):
+  - **The sight gate.** The three resource tile tests (`hasResource`,
+    `resourceKind`, `resource`) answer only for a resource the asking empire
+    can see. `GroundFacts.techs` carries the empire's technologies, so a card
+    line on a hex, a count of hexes in borders and a scope over worked hexes
+    never pay on copper, horses, camels, iron or niter before the technology
+    that reveals it. A test with no ground facts reads the tile alone.
+  - An amplifier can raise what a pillage pays (`pillageRewards`), narrowed to
+    the raider's `class`: every yield of the raid, once, after the riders'
+    percentages. A flat amplifier step can be paid once for each item a count
+    finds (`perCount`, `max`, read by `cardAmplifierFlat`); the general's aura
+    adds it before the share.
+  - The `militaryGained` tally counts land military units gained, beside
+    `unitGained`, which no card reads now.
+  - The `rallyToGeneral` rule (`CardRuleEffect.range`, `cardRallyRange`) puts
+    a unit gained beside the owner's great general nearest the town, if he
+    stands within the range. `spawnTileFor` asks it first, so a built, bought
+    or gifted unit rallies alike, on a hex that claims nothing.
 - **Defer, never bend**: a card whose text needs a missing shape ships deferred
   and annotated, in player-plain prose. This rule repeats across beliefs,
   legacies, wonders and leaders.

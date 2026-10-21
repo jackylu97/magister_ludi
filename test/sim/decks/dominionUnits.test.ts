@@ -167,7 +167,7 @@ function captured(state: GameState): { city: City; home: City } {
 }
 
 describe('Dominion D5 — units gained', () => {
-  it('The Gathering Host grows by +1 science and +1 culture for each unit gained, free units included', () => {
+  it('The Gathering Host grows by +1 science and +1 culture for each military unit gained, free units included', () => {
     const state = flat();
     const city = foundCityAt(state, 0, at(state, 4, 4))!;
     slot(state, 0, 'theGatheringHost');
@@ -180,10 +180,10 @@ describe('Dominion D5 — units gained', () => {
     expect(raiseFreeUnit(state, city, 'warrior')).not.toBeNull();
     touch(state);
     expect(yields()).toEqual({ science: 3, culture: 3 });
-    // A civilian counts too.
+    // Since Dominion batch D12 a civilian does not count (reading 20).
     expect(raiseFreeUnit(state, city, 'worker')).not.toBeNull();
     touch(state);
-    expect(yields()).toEqual({ science: 4, culture: 4 });
+    expect(yields()).toEqual({ science: 3, culture: 3 });
   });
 
   it('The State Forges raise the best melee unit in the capital for each technology, free of upkeep', () => {

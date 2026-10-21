@@ -4328,6 +4328,12 @@ function scoreAmplifier(
       }
       return share * riders;
     }
+    case 'pillageRewards':
+      // **Not priced yet** (Dominion batch D12, Harry the Border). Only a
+      // commission's institution carries it, and the bot prices no commission
+      // until batch D16. Named so the exhaustiveness check below goes on
+      // catching the next member.
+      return ctx.ai.score.unknownEffect;
     case 'generalAura': {
       // **A share of the aura, for each great general the seat has in the
       // field** (Dominion batch D8, The Strategoi). The aura is strength on the

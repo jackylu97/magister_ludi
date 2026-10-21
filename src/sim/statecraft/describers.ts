@@ -1643,6 +1643,17 @@ function describeEffect(
       // A rule narrowed to some towns says which, at the end ("in every city
       // with a Temple"). Only the faith-purchase rules carry a scope.
       const inTowns = effect.scope === undefined ? '' : ` in ${scopeWordsFor(subject, effect.scope)}`;
+      // Rally to the Standard (Dominion batch D12): the kind of unit and the
+      // range belong inside the sentence, so it is said whole here.
+      if (effect.rule === 'rallyToGeneral' && effect.range !== undefined) {
+        const unit = effect.class === undefined ? 'unit' : filterWords(effect.class).replace(/s$/, '');
+        out.push({
+          text:
+            `${indefinite(unit)} ${unit} you gain appears beside your nearest great general instead of in its city, ` +
+            `if that general stands within ${effect.range} ${effect.range === 1 ? 'hex' : 'hexes'} of the city`,
+        });
+        return;
+      }
       if (effect.class === undefined && effect.rank === undefined) {
         out.push({ text: `${FLAG_RULE_WORDS[effect.rule]}${inTowns}` });
         return;
@@ -2213,10 +2224,22 @@ function describeEffect(
       // +100%, for artists" is that sentence apologising for itself.
       const who = effect.family;
       if (effect.amount !== undefined) {
-        out.push({ text: familyNarrowed(AMPLIFIER_FLAT_WORDS[effect.target](effect.amount), who) });
+        // Dominion batch D12, The Marshalate: a step paid once for each item a
+        // count finds, with its cap, said after the step it scales.
+        const each =
+          effect.perCount === undefined ? '' : ` for each ${grantCountWords(effect.perCount)}`;
+        const cap = effect.max === undefined ? '' : ` (at most ${signed(effect.max)})`;
+        out.push({
+          text: classNarrowed(
+            familyNarrowed(`${AMPLIFIER_FLAT_WORDS[effect.target](effect.amount)}${each}${cap}`, who),
+            effect.class,
+          ),
+        });
       }
       if (effect.percent !== undefined) {
-        out.push({ text: familyNarrowed(AMPLIFIER_WORDS[effect.target](effect.percent), who) });
+        out.push({
+          text: classNarrowed(familyNarrowed(AMPLIFIER_WORDS[effect.target](effect.percent), who), effect.class),
+        });
       }
       return;
     }
@@ -5405,8 +5428,11 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
   rankEarned: { one: 'rank your units have earned', many: 'ranks your units have earned' },
   // Dominion batch D3, The Captive Craftsmen.
   hexPillaged: { one: 'hex you have pillaged', many: 'hexes you have pillaged' },
-  // Dominion batch D5, The Gathering Host.
+  // Dominion batch D5. No growing card counts these since batch D12; the
+  // table is total.
   unitGained: { one: 'unit you have gained', many: 'units you have gained' },
+  // Dominion batch D12, The Gathering Host.
+  militaryGained: { one: 'military unit you have gained', many: 'military units you have gained' },
   // Dominion batch D6. No growing card counts these yet; the table is total.
   warEnded: { one: 'war you have ended', many: 'wars you have ended' },
   // Expansionist batch E2, The Grain Census. One for each citizen above a
@@ -5522,6 +5548,18 @@ function familyNarrowed(text: string, family?: Family): string {
   return text.replace("a great person's", `a great ${family}'s`);
 }
 
+/**
+ * **A class of piece narrows the noun inside the sentence** (Dominion batch
+ * D12, Harry the Border's mounted raiders), for `familyNarrowed`'s reason:
+ * "your mounted units gain +50% yields from pillaging" is the sentence. Only
+ * the targets whose words name "your units" can be narrowed this way, and
+ * `pillageRewards` is the one that does today.
+ */
+function classNarrowed(text: string, filter?: UnitFilter): string {
+  if (filter === undefined) return text;
+  return text.replace('your units', `your ${filterWords(filter)}`);
+}
+
 const AMPLIFIER_WORDS: Record<AmplifierTarget, (percent: number) => string> = {
   luxuryHappiness: (percent) => `happiness from unique luxuries ${signed(percent)}%`,
   luxuryDuplicates: (percent) => `duplicate luxury copies count at ${percent}%`,
@@ -5555,6 +5593,9 @@ const AMPLIFIER_WORDS: Record<AmplifierTarget, (percent: number) => string> = {
     percent === 100
       ? 'what your Orders pay for capturing a city is paid twice'
       : `what your Orders pay for capturing a city is ${signed(percent)}%`,
+  // Dominion batch D12, Harry the Border. "Your units" is the noun a class
+  // narrows (`classNarrowed`).
+  pillageRewards: (percent) => `your units gain ${signed(percent)}% yields from pillaging`,
   // Dominion batch D8, The Strategoi. A doubling is said as doubled, the
   // card's own word.
   generalAura: (percent) =>
@@ -5599,9 +5640,12 @@ const AMPLIFIER_FLAT_WORDS: Record<AmplifierTarget, (amount: number) => string> 
       : `each of your luxury deposits with a mine supplies ${signed(amount)} copies`,
   // A whole payout, so a flat step on it is a row nobody should write.
   captureRewards: (amount) => `what your Orders pay for capturing a city is ${signed(amount)} more`,
-  // Dominion batch D8. A flat step is read by nothing today (the aura is
-  // amplified by a share only), and the words say so plainly.
-  generalAura: (amount) => `the strength aura of your great generals is ${signed(amount)} more`,
+  // Dominion batch D12. A whole payout, so a flat step on it is a row nobody
+  // should write.
+  pillageRewards: (amount) => `your units gain ${signed(amount)} more of each yield from pillaging`,
+  // Dominion batch D8, and read since batch D12: The Marshalate's step, with
+  // its count and cap said after it.
+  generalAura: (amount) => `your great generals' aura gives ${signed(amount)} more strength`,
 };
 
 /**
@@ -5679,6 +5723,9 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   freeChop: 'clearing a forest or jungle costs no worker charge',
   // Pax Romana (Dominion batch D4).
   pacifyOnCapture: 'a city you capture is pacified at once',
+  // Rally to the Standard (Dominion batch D12). The rule arm says the range
+  // and the kind of unit when the row names them.
+  rallyToGeneral: 'a unit you gain appears beside your nearest great general instead of in its city',
   doubleOverflow: 'leftover production from a completed item is doubled',
   unitJumpsQueue: 'a unit that would finish sooner jumps ahead of a building in the queue',
   buyGreatPersonWithGold: 'a great person waiting to be called may be bought with gold',
@@ -5906,6 +5953,8 @@ const COMMISSION_COUNTED_WORDS: Record<
   rankEarned: { verb: 'earn', one: 'rank with your units', many: 'ranks with your units', counter: 'ranks earned' },
   hexPillaged: { verb: 'pillage', one: 'hex', many: 'hexes', counter: 'hexes pillaged' },
   unitGained: { verb: 'gain', one: 'unit', many: 'units', counter: 'units gained' },
+  // Dominion batch D12. No commission counts these yet; the table is total.
+  militaryGained: { verb: 'gain', one: 'military unit', many: 'military units', counter: 'military units gained' },
   // Dominion batch D6, Commission: A Victor's Peace.
   warEnded: {
     verb: 'end',

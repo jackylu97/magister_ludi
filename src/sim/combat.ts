@@ -353,7 +353,7 @@ import {
 import { cardBehaviorRuleFor } from './statecraft/evaluator';
 // Dominion batch D8: the general's aura amplified (The Strategoi), and whether
 // an empire's law counts its attacks on a target (Weight of Numbers).
-import { cardAmplifier, lawCountsStrikes } from './statecraft/evaluator';
+import { cardAmplifier, cardAmplifierFlat, lawCountsStrikes } from './statecraft/evaluator';
 import {
   type City,
   type GameState,
@@ -1325,8 +1325,11 @@ export function foldCombatStrength(lines: readonly CombatStrengthLine[]): number
  */
 export function generalAuraLines(state: GameState, unit: Unit): CombatStrengthLine[] {
   // The rule book's figure, and the share an empire's law adds to it (Dominion
-  // batch D8, The Strategoi doubles it), taken once and floored.
-  const base = RULES.greatPeople.generalAuraStrength;
+  // batch D8, The Strategoi doubles it), taken once and floored. Since
+  // Dominion batch D12 a flat step joins the figure before the share (The
+  // Marshalate's +1 for each great general gained, at most +5), so with both
+  // cards the aura is (3 + 5) × 2 (the triage's reading 22).
+  const base = RULES.greatPeople.generalAuraStrength + cardAmplifierFlat(state, unit.ownerId, 'generalAura');
   const amount = Math.floor((base * (100 + cardAmplifier(state, unit.ownerId, 'generalAura'))) / 100);
   if (amount === 0) return [];
   if (!isCombatant(unitDef(unit.type))) return [];

@@ -165,6 +165,7 @@ import {
   bumpRevision,
 } from "../../src/sim/state";
 import { isWaterTerrain } from "../../src/sim/terrainData";
+import { resourceDef } from "../../src/sim/resourceData";
 import {
   type CardYieldLine,
   anyCardDef,
@@ -4161,9 +4162,15 @@ describe("the ratified religion rows", () => {
     tile.resource = "iron";
     expect(paid()).toBeUndefined();
 
+    // Since Dominion batch D12 a belief pays on a seam only once its keeper
+    // can see it (the sight gate), so the mine on iron pays nothing until the
+    // technology that reveals iron is known.
+    tile.improvement = "mine";
+    expect(paid()).toBeUndefined();
+    playerById(g.state, 0)!.techsResearched.push(resourceDef("iron").requiresTech!);
+
     // A **mine** on a seam, and — the widening — a **quarry** on one. Iron is a
     // strategic seam, not a luxury: the old row would have paid neither.
-    tile.improvement = "mine";
     expect(paid()).toEqual({ culture: 1, faith: 1 });
     tile.improvement = "quarry";
     expect(paid()).toEqual({ culture: 1, faith: 1 });
@@ -4189,6 +4196,8 @@ describe("the ratified religion rows", () => {
     const tile = getTileAt(g.state.map, city.col, city.row + 1)!;
     tile.improvement = "mine";
     tile.resource = "iron";
+    // The keeper sees the iron (the sight gate, Dominion batch D12).
+    playerById(g.state, 0)!.techsResearched.push(resourceDef("iron").requiresTech!);
     const paid = explainTileYield(tile, yieldContextFor(g.state, 0)).find(
       (line) => line.source.includes("The Living Rock"),
     );
