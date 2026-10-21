@@ -190,6 +190,9 @@ The first six come from section 11 of the themes doc and its answers. The rest a
 43. (E10) The Burghers' line is a share of all four kinds of guild line, the idle line included, and it is not rounded.
 44. (E10) The `citizens` grant takes the era and council multipliers as renown does, rounded down; no live row uses them.
 45. (E10) Watch and Ward reads the fight's hex: an attacker gains it only when the hex it attacks is inside its borders; a defender when it stands inside them.
+46. (E11) A public work granted by a completion or a commission counts for The Aediles; a founding rider's free Granary does not, because it does not pass through `realiseItem`.
+47. (E11) The Topping Out's hammers go into each basket at once but are settled at the production step, not during the completion; `payCompletionRiders` settles growth only.
+48. (E11) The Topping Out also pays for a granted empire building.
 
 ## The batches
 
@@ -288,6 +291,8 @@ The first six come from section 11 of the themes doc and its answers. The rest a
 - **Done-gate:** `npx vitest run test/sim/decks/expansionistMilitia.test.ts test/sim/decks/expansionistSurplus.test.ts test/sim/guilds.test.ts test/sim/disband.test.ts test/sim/combat.test.ts test/sim/decks/expansionistLevies.test.ts test/sim/decks/expansionist.test.ts test/sim/decks.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/statecraft.test.ts`.
 
 ### E11: public works and empire buildings
+
+**Built 2026-10-21** on `exp-work` (`d280d797`), The Topping Out included (S6's grant was on the branch). Readings 46 to 48 came from it. Follow-ups: the Compendium does not name a public work (markers are labelled in `src/ui/compendium.ts`); `docs/README.md` still names The Topping Out as the card that reads a completion's population.
 
 - **Builds:**
   - A marker `BuildingDef.publicWork` on six rows of `data/buildings.json` (the Granary, Aqueduct, Watermill, Harbour, Public Bath and Cistern), read by an `isPublicWork` beside `isEmpireBuilding`, and a register test that the marked rows are exactly those six (reading 30).
