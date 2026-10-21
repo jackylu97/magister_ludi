@@ -136,9 +136,22 @@ describe('the register', () => {
 
   it('gives every charter technology one Scientific charter card, deferred until its gift is built', () => {
     const deck = DECK_FILE_ORDERS.scientific;
-    // Batch S1 built the line traits, so these three charters' whole gifts
-    // exist and they are dealt. Every other charter is still deferred.
-    const dealt = new Set<OrderId>(['theBronzeFoundersCharter', 'theMechanistsCharter', 'theNavalGunnersCharter']);
+    // Batch S1 built the line traits and batch S4 the buildings and the
+    // Physic Garden, so these eleven charters' whole gifts exist and they are
+    // dealt. The Surveyors' and the Alchemists' wait for batch S5.
+    const dealt = new Set<OrderId>([
+      'theBronzeFoundersCharter',
+      'theMechanistsCharter',
+      'theNavalGunnersCharter',
+      'theHerbalistsCharter',
+      'theGlassmakersCharter',
+      'theLibrariansCharter',
+      'thePaperMakersCharter',
+      'thePhysiciansCharter',
+      'thePrintersCharter',
+      'theGunfoundersCharter',
+      'theMilitaryEngineersCharter',
+    ]);
     for (const tech of CHARTER_TECH_IDS) {
       const card = CHARTER_OF[tech]!;
       expect(deck, card).toContain(card);

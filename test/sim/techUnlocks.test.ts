@@ -28,6 +28,7 @@ import { RESOURCE_IDS, resourceDef } from '../../src/sim/resourceData';
 import {
   ABILITY_BEARERS,
   ABILITY_IDS,
+  ALL_TECH_IDS,
   TECH_IDS,
   abilityDef,
   isAbilityId,
@@ -353,7 +354,10 @@ describe('techGifts', () => {
     // dropped on the floor, and no *buildable* is reachable from two nodes —
     // which is the data bug `techDataProblems` reports. Renewals are exempt on
     // purpose: an improvement is allowed to be renewed twice down the tree.
-    const seen = TECH_IDS.flatMap((id) => techGifts(id).map((gift) => `${gift.kind}:${gift.id}`));
+    // Every row of the tree, the charter technologies included: since
+    // Scientific batch S4 they open buildings and the Physic Garden, and a gift
+    // a charter technology hands over is still a gift some node must announce.
+    const seen = ALL_TECH_IDS.flatMap((id) => techGifts(id).map((gift) => `${gift.kind}:${gift.id}`));
     const buildables = seen.filter((key) => key.startsWith('unit:') || key.startsWith('building:'));
     expect(new Set(buildables).size).toBe(buildables.length);
 

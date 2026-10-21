@@ -2082,6 +2082,8 @@ export const BUILDING_ROW_SILENT: Readonly<Record<string, string>> = {
   category: 'a label the caravan reads — what it pays a route is priced in `routeYields.ts`, folded by `routeOutlook`',
   size: 'the price, not the worth: `explainBuildingCost`, which every caller charges as cost and turns',
   column: 'the price again — the column a row with no node is priced at',
+  costPercent:
+    'the price again: the row’s premium is a line of `explainBuildingCost` (Scientific batch S4, the Mouseion), so every caller charges it as cost and turns',
   food: 'the caller’s `foldCity` hypothetical pays it, staged and percentaged',
   production: 'the caller’s `foldCity` hypothetical pays it, and `hammerTerm` prices the compression',
   gold: 'the caller’s `foldCity` hypothetical pays it',

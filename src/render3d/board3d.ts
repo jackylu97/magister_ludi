@@ -805,6 +805,11 @@ const DRAWN_IMPROVEMENT_PROPS: Partial<
   townKeep: keepTower,
   polder: polderDyke,
   outpost: outpostFlag,
+  // **The Physic Garden** (Scientific batch S4, the Herbalists' Charter).
+  // Placeholder art: the pasture's fence ring, drawn smaller and in green so it
+  // reads as a hedged garden, until the art pass draws one. It is on the parts
+  // shelf of `flair.html` (`src/flairGallery/cityStage.ts`).
+  physicGarden: fenceRing,
 };
 
 /**

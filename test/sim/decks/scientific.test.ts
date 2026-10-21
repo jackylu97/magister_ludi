@@ -39,8 +39,10 @@
  *     what the row says of itself. `statecraftDocSync.test.ts` is the strict
  *     mirror of the live rows.
  *
- * `test/sim/charterTechs.test.ts` pins the charter technologies and
- * `test/sim/decks/scientificTraits.test.ts` the line traits.
+ * `test/sim/charterTechs.test.ts` pins the charter technologies,
+ * `test/sim/decks/scientificTraits.test.ts` the line traits and
+ * `test/sim/decks/scientificCharters.test.ts` the building charters (batch
+ * S4), which deal eight more charters.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -109,11 +111,24 @@ const CURRENT = DECK.filter((id) => orderDef(id).retired !== true);
 const CHARTERS = CURRENT.filter((id) => isCharter(id));
 
 /**
- * The charters whose whole gift is built, so they are dealt (batch S1). A
- * charter has no effects: its gift is the research it opens and what the
+ * The charters whose whole gift is built, so they are dealt: three since batch
+ * S1 (the line traits) and eight more since batch S4 (the building charters).
+ * A charter has no effects: its gift is the research it opens and what the
  * technology row gives.
  */
-const DEALT_CHARTERS: readonly OrderId[] = ['theBronzeFoundersCharter', 'theMechanistsCharter', 'theNavalGunnersCharter'];
+const DEALT_CHARTERS: readonly OrderId[] = [
+  'theBronzeFoundersCharter',
+  'theMechanistsCharter',
+  'theNavalGunnersCharter',
+  'theHerbalistsCharter',
+  'theGlassmakersCharter',
+  'theLibrariansCharter',
+  'thePaperMakersCharter',
+  'thePhysiciansCharter',
+  'thePrintersCharter',
+  'theGunfoundersCharter',
+  'theMilitaryEngineersCharter',
+];
 
 /** A row with effects, or a dealt charter: the half of the deck that plays. */
 const LIVE = CURRENT.filter((id) => orderDef(id).effects.length > 0 || DEALT_CHARTERS.includes(id));
@@ -160,7 +175,8 @@ describe('the rows', () => {
 
   it('splits into live rows with effects and deferred rows with a sentence, and nothing between', () => {
     expect(LIVE.length + DEFERRED.length).toBe(CURRENT.length);
-    expect(LIVE).toHaveLength(21);
+    // S4 dealt eight charters: 21 live rows became 29.
+    expect(LIVE).toHaveLength(29);
     for (const id of LIVE) {
       const def = orderDef(id);
       expect(def.text, `${id} is live and carries no ratified text`).toBeTruthy();
@@ -606,7 +622,7 @@ describe('the live rows’ effects', () => {
 // --- the charters ------------------------------------------------------------
 
 describe('the research charters', () => {
-  it('names the thirteen charter technologies, one row each, deferred but for the three S1 deals', () => {
+  it('names the thirteen charter technologies, one row each, deferred until their gift is built', () => {
     expect(CHARTERS).toHaveLength(13);
     const techs = CHARTERS.map((id) => orderDef(id).charter!.unlocks.tech);
     expect(new Set(techs)).toEqual(new Set(CHARTER_TECH_IDS));

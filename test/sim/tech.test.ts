@@ -1674,7 +1674,10 @@ describe('research in the log', () => {
     // log's Scientific and Commerce hands hold different cards.
     // 157 since Dominion batch D10: nine Dominion Orders come live and two
     // change, so a v156 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(157);
+    // 158 since Scientific batch S4 (the building charters): eight Scientific
+    // charters are dealt, and five buildings and the Physic Garden join the
+    // tables, so a v157 log's Scientific hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(158);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

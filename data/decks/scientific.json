@@ -207,8 +207,8 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Sand, fire, and a second look at everything.",
+      "text": "Drafting this opens Optics for research. Knowing it lets you build the Specularium, a city building only you can build: +3 food, and +1 science for every two citizens of its town. No chair required.",
       "charter": { "unlocks": { "tech": "optics" } },
-      "deferred": ["knowing Optics lets you build the Specularium"],
       "effects": []
     },
     "theOpenCollegium": {
@@ -846,8 +846,8 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "A walled garden, and a book for every bed in it.",
+      "text": "Drafting this opens Herbals for research. Knowing it lets workers build the Physic Garden on flat land with fresh water, one in each town: +2 science and +2 happiness. No chair required.",
       "charter": { "unlocks": { "tech": "herbals" } },
-      "deferred": ["knowing Herbals lets workers build the Physic Garden"],
       "effects": []
     },
     "theBronzeFoundersCharter": {
@@ -882,8 +882,8 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "A shelf in order is a city in order.",
+      "text": "Drafting this opens Cataloguing for research. Knowing it lets you build the Mouseion, an empire building only you can build: +4 renown a turn, favouring great scholars, and +2 culture for each empire building you hold, itself included. It costs 30% more production than an ordinary empire building. No chair required.",
       "charter": { "unlocks": { "tech": "cataloguing" } },
-      "deferred": ["knowing Cataloguing lets you build the Mouseion"],
       "effects": []
     },
     "theCommonplaceBook": {
@@ -905,8 +905,8 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "The mill by the river turns rags into records.",
+      "text": "Drafting this opens Papermaking for research. Knowing it lets you build the Scriptorium: +2 science, and +10% science in a town with an Academy in its borders. No chair required.",
       "charter": { "unlocks": { "tech": "papermaking" } },
-      "deferred": ["knowing Papermaking lets you build the Scriptorium"],
       "effects": []
     },
     "thePhysiciansCharter": {
@@ -917,8 +917,8 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "A house of healing, open to every traveller.",
+      "text": "Drafting this opens Medicine for research. Knowing it lets you build the Bimaristan, an empire building: +25% food in its town, and your units heal 10 more a turn in your land. No chair required.",
       "charter": { "unlocks": { "tech": "medicine" } },
-      "deferred": ["knowing Medicine lets you build the Bimaristan"],
       "effects": []
     },
     "thePrintersCharter": {
@@ -929,8 +929,8 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Small books, carried in a merchant's pocket.",
+      "text": "Drafting this opens Printing for research. Knowing it lets you build the Aldine Press, a city building only you can build: +2 culture, and trade routes from its town gain +2 science and +2 culture. It also gives +1 trade route. No chair required.",
       "charter": { "unlocks": { "tech": "printing" } },
-      "deferred": ["knowing Printing lets you build the Aldine Press and gives one more trade route"],
       "effects": []
     },
     "theGunfoundersCharter": {
@@ -941,8 +941,8 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "The foundry by the arsenal never lets its fires go out.",
+      "text": "Drafting this opens Gunfounding for research. Knowing it lets you build the Tophane, an empire building: military units gained in its town start with +4 strength, and it builds them 25% faster. No chair required.",
       "charter": { "unlocks": { "tech": "gunfounding" } },
-      "deferred": ["knowing Gunfounding lets you build the Tophane"],
       "effects": []
     },
     "theMilitaryEngineersCharter": {
@@ -953,8 +953,8 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "The engineers draw the walls before the masons lay them.",
+      "text": "Drafting this opens Military Architecture for research. Knowing it lets you build the Bastion (+5 defence, +30 hit points), which no ordinary technology opens. No chair required.",
       "charter": { "unlocks": { "tech": "militaryArchitecture" } },
-      "deferred": ["knowing Military Architecture lets you build the Bastion"],
       "effects": []
     },
     "theNavalGunnersCharter": {

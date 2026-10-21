@@ -3201,7 +3201,7 @@ function uniqueCostFactor(cities: number): number {
  * What one of this building — or this wonder — costs to raise, as the ordered
  * list the price is the fold of (hard rule 5, said about a price).
  *
- * Three lines, at most:
+ * Four lines, at most:
  *
  *   1. **what size of thing it is** — `sizeHammers[size]` off `data/rules.json`,
  *      printed in the size's own words ("Large building 60"). The row carries a
@@ -3212,6 +3212,9 @@ function uniqueCostFactor(cities: number): number {
  *      does not name it.
  *   3. **the empire's size**, for a `oncePerEmpire` row only — `uniqueCostFactor`
  *      on the columned figure, after the curve and never inside it.
+ *   4. **the row's own premium**, for a row with `costPercent` only (the
+ *      Mouseion, Scientific batch S4): that share of the figure the lines
+ *      above come to.
  *
  * **It takes a player now** (2026-09-07, item dd), and that is the reversal of a
  * statement this docblock used to make: "nothing an empire does changes what a
@@ -3263,6 +3266,17 @@ export function explainBuildingCost(
       });
       running = scaled;
     }
+  }
+  // **The row's own premium** (`BuildingDef.costPercent`, Scientific batch S4:
+  // the Mouseion). Last, on the figure every line above comes to, so it is a
+  // share of what an ordinary row of this size, column and class would cost.
+  // Floored once, as the unit fold's soldier line is.
+  const premium = def.costPercent ?? 0;
+  if (premium !== 0 && running > 0) {
+    lines.push({
+      source: `${def.name} ${premium > 0 ? '+' : '−'}${Math.abs(premium)}%`,
+      amount: Math.floor((running * premium) / 100),
+    });
   }
   return lines;
 }

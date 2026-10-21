@@ -426,7 +426,10 @@ describe("the bead catalogue", () => {
     // log's Scientific and Commerce hands hold different cards.
     // 157 since Dominion batch D10: nine Dominion Orders come live and two
     // change, so a v156 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(157);
+    // 158 since Scientific batch S4 (the building charters): eight Scientific
+    // charters are dealt, and five buildings and the Physic Garden join the
+    // tables, so a v157 log's Scientific hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(158);
   });
 
   it("puts the world clock after renown and the wager after it, with no bead phase left", () => {
@@ -711,8 +714,9 @@ describe("a building shipped ahead of its age", () => {
     // the row as an Æra V candidate rather than re-home it. Same shape as the
     // Hall's — no node names it, and `buildError` and `purchaseError` refuse it
     // outright, which is what stops "no tech gates it" reading as "available on
-    // turn one".
-    expect(dormant).toEqual(["hallOfDeeds", "bastion"]);
+    // turn one". It left again in Scientific batch S4: Military Architecture,
+    // the Military Engineers' charter technology, opens it now.
+    expect(dormant).toEqual(["hallOfDeeds"]);
   });
 
   it("is still refused by both the queue and the treasury when a row asks for it", () => {

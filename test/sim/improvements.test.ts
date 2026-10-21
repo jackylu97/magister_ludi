@@ -82,7 +82,7 @@ import {
   readTileYield,
   tileYield,
 } from '../../src/sim/terrainData';
-import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
+import { ALL_TECH_IDS, TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
 import { at, bareState, woodedWorker } from './improvementHelpers';
 import { unitAwaitsOrders } from '../../src/sim/units';
@@ -194,6 +194,9 @@ describe('the improvement table', () => {
       'townKeep',
       'polder',
       'outpost',
+      // The Physic Garden (Scientific batch S4): an ordinary worker row whose
+      // technology, Herbals, only the Herbalists' Charter opens.
+      'physicGarden',
     ]);
     expect(isImprovementId('farm')).toBe(true);
     expect(isImprovementId('orchard')).toBe(false);
@@ -1157,7 +1160,10 @@ describe('buildImprovement', () => {
         if (isCardOpenedWork(id)) continue;
         const gate = improvementDef(id).requiresTech;
         expect(gate, id).toBeDefined();
-        expect(TECH_IDS, id).toContain(gate!);
+        // Any row of the tree, a charter technology included: the Physic
+        // Garden waits for Herbals (Scientific batch S4), which only the
+        // Herbalists' Charter opens.
+        expect(ALL_TECH_IDS, id).toContain(gate!);
       }
     });
 
@@ -2639,7 +2645,10 @@ describe('improvements in the log', () => {
     // log's Scientific and Commerce hands hold different cards.
     // 157 since Dominion batch D10: nine Dominion Orders come live and two
     // change, so a v156 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(157);
+    // 158 since Scientific batch S4 (the building charters): eight Scientific
+    // charters are dealt, and five buildings and the Physic Garden join the
+    // tables, so a v157 log's Scientific hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(158);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

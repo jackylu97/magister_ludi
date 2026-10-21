@@ -1052,7 +1052,10 @@ describe('a captured city, end to end', () => {
     // log's Scientific and Commerce hands hold different cards.
     // 157 since Dominion batch D10: nine Dominion Orders come live and two
     // change, so a v156 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(157);
+    // 158 since Scientific batch S4 (the building charters): eight Scientific
+    // charters are dealt, and five buildings and the Physic Garden join the
+    // tables, so a v157 log's Scientific hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(158);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

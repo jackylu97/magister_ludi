@@ -332,25 +332,27 @@ Only a seat that drafted the charter may research these. Each sits one column ri
 
 | node | æra | column | 🔬 column | 🔬 charter | prereq | opened by | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|---|---|---|---|
-| Herbals | I | 2 | 24 | 36 | Pottery | The Herbalists' Charter | — | — | — |
+| Herbals | I | 2 | 24 | 36 | Pottery | The Herbalists' Charter | — | — | workers may build Physic Garden |
 | Casting | I | 3 | 50 | 75 | Bronzeworking | The Bronze-Founders' Charter | — | — | — |
 | Surveying | II | 4 | 100 | 150 | The Wheel | The Surveyors' Charter | — | — | — |
-| Cataloguing | II | 4 | 100 | 150 | Writing | The Librarians' Charter | — | — | — |
-| Optics | II | 5 | 190 | 285 | Chronology | The Glassmakers' Charter | — | — | — |
-| Medicine | III | 6 | 360 | 540 | The High Temple | The Physicians' Charter | — | — | — |
-| Papermaking | III | 7 | 650 | 975 | Rhetoric | The Paper-Makers' Charter | — | — | — |
-| Printing | III | 7 | 650 | 975 | Rhetoric | The Printers' Charter | — | — | — |
+| Cataloguing | II | 4 | 100 | 150 | Writing | The Librarians' Charter | — | Mouseion ‡ | — |
+| Optics | II | 5 | 190 | 285 | Chronology | The Glassmakers' Charter | — | Specularium | — |
+| Medicine | III | 6 | 360 | 540 | The High Temple | The Physicians' Charter | — | Bimaristan ‡ | — |
+| Papermaking | III | 7 | 650 | 975 | Rhetoric | The Paper-Makers' Charter | — | Scriptorium | — |
+| Printing | III | 7 | 650 | 975 | Rhetoric | The Printers' Charter | — | Aldine Press | — |
 | Mechanics | III | 8 | 1150 | 1725 | Mathematics | The Mechanists' Charter | — | — | — |
-| Gunfounding | IV | 10 | 3250 | 4875 | Machinery | The Gunfounders' Charter | — | — | — |
+| Gunfounding | IV | 10 | 3250 | 4875 | Machinery | The Gunfounders' Charter | — | Tophane ‡ | — |
 | Chemistry | IV | 10 | 3250 | 4875 | Geomancy | The Alchemists' Charter | — | — | — |
-| Military Architecture | IV | 11 | 5150 | 7725 | Castellany | The Military Engineers' Charter | — | — | — |
+| Military Architecture | IV | 11 | 5150 | 7725 | Castellany | The Military Engineers' Charter | — | Bastion | — |
 | Naval Gunnery | IV | 12 | 8000 | 12000 | The Astrolabe | The Naval Gunners' Charter | — | — | — |
 
+- **Herbals** — +2 happiness per hex with a Physic Garden in your borders
 - **Casting** — the Spearman line (Spearman to Pikeman) gains the Hoplite trait and keeps it through every upgrade
 - **Casting** — +1 combat strength for units of the Spearman line, +1 more per 4 citizens of your city it stands in
 - **Casting** — the War Chariot line (War Chariot to Knight) gains the Maryannu trait and keeps it through every upgrade
 - **Casting** — +1 combat strength for units of the War Chariot line
 - **Casting** — +5 combat strength for units of the War Chariot line against units below half strength
+- **Printing** — +1 trade route
 - **Mechanics** — the Catapult line (Catapult and Trebuchet) gains the Onager trait and keeps it through every upgrade
 - **Mechanics** — units of the Catapult line: +1 range
 - **Mechanics** — the Archer line (Archer to Crossbowman) gains the Repeating Crossbow trait and keeps it through every upgrade

@@ -37,7 +37,9 @@ import {
   isGreatPersonId,
 } from '../greatPeopleData';
 import {
+  type ImprovementDef,
   type ImprovementId,
+  IMPROVEMENT_IDS,
   improvementDef,
   isGreatPersonWork,
   workForFamily,
@@ -789,25 +791,82 @@ export function describeCard(id: CardId): CardClause[] {
 }
 
 /**
- * **What a technology charter's card says** (Scientific batch S1): the
- * research it opens, then each line trait the technology gives.
+ * **What a technology charter's card says** (Scientific batches S1 and S4):
+ * the research it opens, then everything knowing the technology gives.
  *
  * Reading 20 lets two seats draft the same charter, so the clause says "only
- * an empire holding this charter", not "only you". The traits are the
- * technology's own (`describeTrait`), led by "once you know", because a
- * charter takes no chair and gives nothing until the research is done.
+ * an empire holding this charter", not "only you". Each gift is led by "once
+ * you know", because a charter takes no chair and gives nothing until the
+ * research is done. The gifts come in this order:
+ *
+ *   - the line traits (`describeTrait`, batch S1);
+ *   - each building the technology names in its `unlocks`, in the building's
+ *     own words (`describeBuildingRow`, as a card's `unlocksBuilding` clause
+ *     prints it), batch S4;
+ *   - each worker row whose `requiresTech` is the technology (the Physic
+ *     Garden), batch S4;
+ *   - the technology's own card effects (Herbals' happiness, Printing's trade
+ *     route), batch S4.
  */
 function charterTechClauses(tech: TechId): CardClause[] {
-  const name = techDef(tech).name;
+  const def = techDef(tech);
+  const name = def.name;
+  const known = `once you know ${name}, `;
   const clauses: CardClause[] = [
     {
       text: `once drafted, opens ${name} for you to research; only an empire holding this charter may research it; this card takes no chair`,
     },
   ];
-  for (const trait of techDef(tech).traits ?? []) {
-    clauses.push(...describeTrait(trait, `once you know ${name}, `));
+  for (const trait of def.traits ?? []) {
+    clauses.push(...describeTrait(trait, known));
+  }
+  for (const building of def.unlocks.buildings ?? []) {
+    const does = liveWords(describeBuildingRow(building));
+    clauses.push({
+      text: `${known}you may build ${theBuilding(building)}${does === '' ? '' : `: ${does}`}`,
+    });
+  }
+  for (const work of IMPROVEMENT_IDS) {
+    const row = improvementDef(work);
+    if (row.requiresTech !== tech) continue;
+    const does = [bagWords(readTileYield(row.yields)), workGroundWords(row)]
+      .filter((part) => part !== '')
+      .join('; ');
+    clauses.push({
+      text: `${known}your workers may build the ${ref('improvement', work, row.name)}${does === '' ? '' : `: ${does}`}`,
+    });
+  }
+  for (const clause of describeEffects(def.effects ?? [])) {
+    if (clause.deferred === true) continue;
+    clauses.push({ text: `${known}${clause.text}` });
   }
   return clauses;
+}
+
+/** The live clauses of a list, joined with semicolons. Struck halves are left out. */
+function liveWords(clauses: readonly CardClause[]): string {
+  return clauses
+    .filter((clause) => clause.deferred !== true)
+    .map((clause) => clause.text)
+    .join('; ');
+}
+
+/**
+ * **Where a worker row may stand, and how many a town may hold**, for a
+ * charter's clause (Scientific batch S4, the Physic Garden). It says only
+ * what the row's fields say plainly: a row whose whole ground is watered ground
+ * (`validTerrain` empty, `freshwaterTerrain` set) needs fresh water, flat land
+ * when it refuses hills, and `onePerTown` limits a town to one. Any other
+ * ground rule is left to the Compendium's page for the row.
+ */
+function workGroundWords(row: ImprovementDef): string {
+  const parts: string[] = [];
+  const watered = (row.freshwaterTerrain ?? []).length > 0;
+  if (row.validTerrain !== undefined && row.validTerrain.length === 0 && watered) {
+    parts.push(row.requiresHills === false ? 'on flat land with fresh water' : 'on land with fresh water');
+  }
+  if (row.onePerTown === true) parts.push('one in each city');
+  return parts.join(', ');
 }
 
 /**

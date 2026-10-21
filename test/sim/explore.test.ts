@@ -890,10 +890,17 @@ describe('determinism', () => {
    * never reach this board. Checked with the merge in place and the version
    * printed as 156, which gives the hashes of Scientific batches S2 and S3
    * exactly.
+   *
+   * **Scientific batch S4 (the building charters, schema 158) moved the hash
+   * and not the length** at both seeds: 157 became 158, and that is all.
+   * Nobody here drafts, so no charter technology is researched and no new
+   * building or Physic Garden is raised on this board. Checked with the change
+   * in place and the version printed as 157, which gives Dominion batch D10's
+   * hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '20f08b14:188931',
-    2026: '7cfadce9:188509',
+    11: '1e125837:188931',
+    2026: '9c116366:188509',
   };
 
   for (const seed of [11, 2026]) {

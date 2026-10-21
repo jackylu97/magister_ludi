@@ -31,7 +31,7 @@ import {
 } from '../../src/sim/improvementData';
 import { type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { type GameState } from '../../src/sim/state';
-import { TECH_IDS } from '../../src/sim/techData';
+import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { computeFreshwater } from '../../src/sim/water';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import { newGame } from '../sim/newGameHelpers';
@@ -115,6 +115,32 @@ describe('the improvement prop registry', () => {
     // The forward direction is a compile error (`Record<ImprovementId, …>`);
     // this is the one the type system cannot see.
     expect(Object.keys(IMPROVEMENT_PROPS).sort()).toEqual([...IMPROVEMENT_IDS].sort());
+  });
+
+  /**
+   * **A new piece joins the flair gallery in the batch that ships it**
+   * (`CLAUDE.md`, "Traps — render & UI"). Read off the gallery's own source,
+   * because its parts shelf is a page module that draws on a canvas. Held for
+   * the rows a charter technology opens (Scientific batch S4, the Physic
+   * Garden), so a later charter's worker row is held to it too.
+   */
+  it('puts every row a charter technology opens on the flair gallery’s parts shelf', () => {
+    const source = Object.values(
+      import.meta.glob('../../src/flairGallery/cityStage.ts', {
+        eager: true,
+        query: '?raw',
+        import: 'default',
+      }) as Record<string, string>,
+    )[0]!;
+    const start = source.indexOf('export const PART_IDS = [');
+    expect(start).toBeGreaterThan(0);
+    const shelf = source.slice(start, source.indexOf('] as const;', start));
+    const charterRows = IMPROVEMENT_IDS.filter((id) => {
+      const gate = improvementDef(id).requiresTech;
+      return gate !== undefined && techDef(gate).charter === true;
+    });
+    expect(charterRows).toContain('physicGarden');
+    for (const id of charterRows) expect(shelf, id).toContain(`'${id}'`);
   });
 
   it('builds one shared geometry per improvement, all of them distinct', () => {

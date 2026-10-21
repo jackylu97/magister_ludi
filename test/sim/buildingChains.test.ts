@@ -316,9 +316,14 @@ describe('the five unique buildings', () => {
     // The three national bead rows wear the same marker and are not this set:
     // they are `oncePerEmpire` **doors** that grant a bead, so the fewer-things
     // five are picked out by the age and by paying no bead.
+    // The great houses a charter technology opens (Scientific batch S4: the
+    // Mouseion and the Bimaristan sit in Æra II and III) are not this set
+    // either: their node is off the sky, and only a charter's holder may
+    // research it.
     const set = priced.filter(
       (id) =>
         techDef(BUILDING_UNLOCK_TECH.get(id)!).age <= 3 &&
+        techDef(BUILDING_UNLOCK_TECH.get(id)!).charter !== true &&
         (buildingDef(id).onComplete ?? []).every((grant) => grant.grant !== 'bead'),
     );
     expect([...set].sort()).toEqual(

@@ -3,7 +3,7 @@
 The deck's cards, by tier: name, rarity, status, ability and type. This sheet is the spec of record for the deck. `test/sim/decks/scientific.test.ts` checks it against `data/decks/scientific.json` and, for the shared table, `data/decks/common.json`.
 
 - **Why each card is here:** `docs/plans/scientific-themes.md`. It designs the deck as a way to play: an engine of technologies and charters, and four themes (the learned land, institutions, great cities and the elite army). Sections 11 to 15 hold the user's rulings. `docs/plans/scientific-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
-- **The build plan:** `docs/plans/scientific-build-triage.md`. Batch S0 built the charter technologies and batch S1 the line traits. Batch S1b wrote this sheet, put the types into the data and retired the cut rows. Batch S2 built feature A (the guildsmen as a card count) and batch S3 built feature B (readings against the empires you have met). Each later batch updates its rows here when it builds them.
+- **The build plan:** `docs/plans/scientific-build-triage.md`. Batch S0 built the charter technologies and batch S1 the line traits. Batch S1b wrote this sheet, put the types into the data and retired the cut rows. Batch S2 built feature A (the guildsmen as a card count) and batch S3 built feature B (readings against the empires you have met). Batch S4 built the building charters: eight charters, five new buildings, the Physic Garden, and the Scriptorium and the Bastion opened by their charter technologies. Each later batch updates its rows here when it builds them.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -22,12 +22,12 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 
 | Tier | Implemented | Modify | Add | All | Charters |
 |---|---|---|---|---|---|
-| Tier 0 | 4 | 1 | 6 | 11 | 2 |
-| Tier I | 4 | 4 | 9 | 17 | 3 |
-| Tier II | 4 | 5 | 11 | 20 | 4 |
-| Tier III | 2 | 5 | 9 | 16 | 2 |
-| Tier IV | 2 | 1 | 10 | 13 | 2 |
-| **All** | **16** | **16** | **45** | **77** | **13** |
+| Tier 0 | 5 | 0 | 6 | 11 | 2 |
+| Tier I | 6 | 2 | 9 | 17 | 3 |
+| Tier II | 7 | 2 | 11 | 20 | 4 |
+| Tier III | 3 | 4 | 9 | 16 | 2 |
+| Tier IV | 3 | 0 | 10 | 13 | 2 |
+| **All** | **24** | **8** | **45** | **77** | **13** |
 | Shared | 11 | 4 | 3 | 18 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
@@ -48,7 +48,7 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Herbalists' Charter** | common | modify: deferred | Drafting this opens Herbals for research. Knowing it lets workers build the Physic Garden on flat land with fresh water, one in each town: +2 science and +2 happiness. No chair required. | Civic |
+| **The Herbalists' Charter** | common | implemented | Drafting this opens Herbals for research. Knowing it lets workers build the Physic Garden on flat land with fresh water, one in each town: +2 science and +2 happiness. No chair required. | Civic |
 | **The Bronze-Founders' Charter** | uncommon | implemented | Drafting this opens Casting for research. Knowing it gives two lines a trait they keep through every upgrade. Hoplite (Spearman to Pikeman): +1 strength, and in one of your towns +1 more for every four citizens there. Maryannu (War Chariot to Knight): +1 strength, and +5 against a unit below half health. No chair required. | Military |
 | **The Almanac** | common | implemented | Libraries cost 25% less production and give +1 production. | Economic |
 | **The Scribes' Hall** | common | implemented | Cities with a Library gain +1 science per four citizens and +1 culture per three citizens. | Civic |
@@ -64,9 +64,9 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Glassmakers' Charter** | uncommon | modify: deferred | Drafting this opens Optics for research. Knowing it lets you build the Specularium, a city building only you can build: +3 food, and +1 science for every two citizens of its town. No chair required. | Civic |
+| **The Glassmakers' Charter** | uncommon | implemented | Drafting this opens Optics for research. Knowing it lets you build the Specularium, a city building only you can build: +3 food, and +1 science for every two citizens of its town. No chair required. | Civic |
 | **The Surveyors' Charter** | uncommon | modify: deferred | Drafting this opens Surveying for research. Knowing it lets you build the Aqueduct before Engineering, and lets workers build the Qanat: an improvement on flat land that waters the farms beside it with no river or lake nearby. No chair required. | Economic |
-| **The Librarians' Charter** | rare | modify: deferred | Drafting this opens Cataloguing for research. Knowing it lets you build the Mouseion, an empire building only you can build: +4 renown a turn, favouring great scholars, and +2 culture for each empire building you hold, itself included. It costs 30% more production than an ordinary empire building. No chair required. | Civic |
+| **The Librarians' Charter** | rare | implemented | Drafting this opens Cataloguing for research. Knowing it lets you build the Mouseion, an empire building only you can build: +4 renown a turn, favouring great scholars, and +2 culture for each empire building you hold, itself included. It costs 30% more production than an ordinary empire building. No chair required. | Civic |
 | **The Old Academy** | uncommon | implemented | An Academy at least twenty turns old gains +3 food and +3 production. At forty turns these bonuses become +6 of each. | Economic |
 | **Learned Foundations** (was Learned Commissions) | common | modify: revised | Cities with a Library build empire buildings 25% faster. | Economic |
 | **The Commonplace Book** | common | implemented | Charter technologies cost you 15% less research. | Civic |
@@ -87,9 +87,9 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
 | **The Mechanists' Charter** | rare | implemented | Drafting this opens Mechanics for research. Knowing it gives two lines a trait they keep through every upgrade. Onager (Catapult and Trebuchet): +1 range. Repeating Crossbow (Archer to Crossbowman): it may move after it shoots. No chair required. | Military |
-| **The Printers' Charter** | uncommon | modify: deferred | Drafting this opens Printing for research. Knowing it lets you build the Aldine Press, a city building only you can build: +2 culture, and trade routes from its town gain +2 science and +2 culture. It also gives +1 trade route. No chair required. | Civic |
-| **The Paper-Makers' Charter** | uncommon | modify: deferred | Drafting this opens Papermaking for research. Knowing it lets you build the Scriptorium: +2 science, and +10% science in a town with an Academy in its borders. No chair required. | Civic |
-| **The Physicians' Charter** | uncommon | modify: deferred | Drafting this opens Medicine for research. Knowing it lets you build the Bimaristan, an empire building: +25% food in its town, and your units heal 10 more a turn in your land. No chair required. | Economic |
+| **The Printers' Charter** | uncommon | implemented | Drafting this opens Printing for research. Knowing it lets you build the Aldine Press, a city building only you can build: +2 culture, and trade routes from its town gain +2 science and +2 culture. It also gives +1 trade route. No chair required. | Civic |
+| **The Paper-Makers' Charter** | uncommon | implemented | Drafting this opens Papermaking for research. Knowing it lets you build the Scriptorium: +2 science, and +10% science in a town with an Academy in its borders. No chair required. | Civic |
+| **The Physicians' Charter** | uncommon | implemented | Drafting this opens Medicine for research. Knowing it lets you build the Bimaristan, an empire building: +25% food in its town, and your units heal 10 more a turn in your land. No chair required. | Economic |
 | **Enduring Institutions** | uncommon | modify: revised | A town with an empire building at least twenty turns old gains +25% production. | Economic |
 | **The Quiet Faculties** | rare | modify: revised | Cities working an Academy gain +25% food and +20% production, but produce military units 25% more slowly. | Economic |
 | **The Charter Rolls** | uncommon | add | Your capital gains +3 production and +3 culture for each charter you have drafted. | Civic |
@@ -112,7 +112,7 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
 | **The Alchemists' Charter** | uncommon | modify: deferred | Drafting this opens Chemistry for research. Knowing it gives the Grenadier trait to the Warrior line (Warrior to Longswordsman), kept through every upgrade: +1 strength, and +1 more for each charter technology you know. Workers may build Niter Beds beside a farm or pasture, which supply one niter. Chemistry does not open the Magnum Opus. No chair required. | Military |
-| **The Gunfounders' Charter** | uncommon | modify: deferred | Drafting this opens Gunfounding for research. Knowing it lets you build the Tophane, an empire building: military units gained in its town start with +4 strength, and it builds them 25% faster. No chair required. | Military |
+| **The Gunfounders' Charter** | uncommon | implemented | Drafting this opens Gunfounding for research. Knowing it lets you build the Tophane, an empire building: military units gained in its town start with +4 strength, and it builds them 25% faster. No chair required. | Military |
 | **The School of Mines** (was The Strategic Reserves) | common | modify: deferred; reworked; moved | An Academy standing on a strategic resource supplies one more copy of it. | Economic |
 | **The Second Seat** | rare | modify: deferred | You may build one second copy of an empire building, in a city with a University. | Civic |
 | **The Long Inheritance** | uncommon | modify: revised; rarity | Cities working an Academy at least twenty turns old gain +30% production toward empire buildings, wonders and the Magnum Opus. | Economic |
@@ -132,7 +132,7 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Military Engineers' Charter** | uncommon | modify: deferred | Drafting this opens Military Architecture for research. Knowing it lets you build the Bastion (+5 defence, +30 hit points), which no ordinary technology opens. No chair required. | Military |
+| **The Military Engineers' Charter** | uncommon | implemented | Drafting this opens Military Architecture for research. Knowing it lets you build the Bastion (+5 defence, +30 hit points), which no ordinary technology opens. No chair required. | Military |
 | **The Naval Gunners' Charter** | uncommon | implemented | Drafting this opens Naval Gunnery for research. Knowing it gives your Gun Galleys the Galleass trait: +3 strength, and they blockade: parked off a rival's port, a Gun Galley closes its sea lane and its trade. No chair required. | Military |
 | **The Great Instrument** | rare | add | Commission. Complete Alchemy while this is seated. Reward: production toward the Magnum Opus equal to a tenth of its cost. Then it leaves its chair. Not dealt to a seat that knows Alchemy. | Wildcard |
 | **The Great Catalogue** | rare | add | +10% production toward the Magnum Opus for each charter technology you know, at most +40%. | Economic |

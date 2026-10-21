@@ -1954,8 +1954,33 @@ import {
  * **A v156 save is refused and does not replay.** A Dominion seat's pools
  * from Tier I on now hold more cards, so its hands differ. The branch
  * migrates nothing, for the reason given under v119.
+ *
+ * v158 (branch `decks`; Scientific batch S4, `docs/plans/scientific-build-
+ * triage.md`): **the building charters.** No field joins the state. The rules
+ * that change:
+ *
+ *   · eight Scientific charters are dealt: the Herbalists', Glassmakers',
+ *     Librarians', Paper-Makers', Physicians', Printers', Gunfounders' and
+ *     Military Engineers';
+ *   · their charter technologies now give something. Optics, Cataloguing,
+ *     Medicine, Printing and Gunfounding open five new buildings (the
+ *     Specularium, the Mouseion, the Bimaristan, the Aldine Press and the
+ *     Tophane). Papermaking opens the Scriptorium, which no card opens any
+ *     more, and Military Architecture opens the Bastion, which waited for a
+ *     technology until now. Herbals opens a new worker row, the Physic Garden,
+ *     and pays happiness for each one inside your borders. Printing gives one
+ *     more trade route;
+ *   · a building row may cost a share more than its size and column say
+ *     (`BuildingDef.costPercent`, the Mouseion's premium), as one more line
+ *     of `explainBuildingCost`. The Scriptorium and the Bastion now cost what
+ *     their technologies' columns say.
+ *
+ * **A v157 save is refused and does not replay.** A Scientific seat's pool now
+ * holds eight more cards, so its hands differ from the opening draft on, and a
+ * logged build of a Scriptorium or a Bastion meets a different gate and price.
+ * The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 157;
+export const SCHEMA_VERSION = 158;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

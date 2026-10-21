@@ -798,6 +798,12 @@
         "size": 0.42,
         "jitter": 0.08
       },
+      "physicGarden": {
+        "color": "sage",
+        "shade": -0.08,
+        "size": 0.56,
+        "jitter": 0.04
+      },
       "floatingGardens": {
         "color": "brook",
         "shade": 0.24,

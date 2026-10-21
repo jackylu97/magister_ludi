@@ -1362,6 +1362,16 @@ describe('what opens a thing', () => {
     return [...text.matchAll(new RegExp(TECH_MARK.source, 'g'))].map((found) => found[1]!);
   }
 
+  /**
+   * What an opening line links for this gate: the node itself, or nothing for
+   * a charter technology, which the book names without a mark until batch S12
+   * gives it a page (Scientific batch S4 gave such rows their first gates).
+   */
+  function linkedGate(gate: TechId | null | undefined): TechId[] {
+    if (gate === null || gate === undefined) return [];
+    return techDef(gate).charter === true ? [] : [gate];
+  }
+
   /** The shelf a building row is filed on. */
   function buildingEntryId(id: string): string {
     return compendiumId(isWonder(id as never) ? 'wonder' : 'building', id);
@@ -1411,12 +1421,14 @@ describe('what opens a thing', () => {
       if (def.retired === true) continue;
       const line = openingOf(entryOf(buildingEntryId(id)));
       const gate = gatingTech('building', id) ?? def.worldUnlockTech ?? null;
-      expect(techsNamed(line), id).toEqual(gate === null ? [] : [gate]);
+      expect(techsNamed(line), id).toEqual(linkedGate(gate));
+      if (gate !== null) expect(line, id).toContain(techDef(gate).name);
     }
     for (const id of IMPROVEMENT_IDS) {
       const line = openingOf(entryOf(compendiumId('improvement', id)));
       const gate = improvementDef(id).requiresTech;
-      expect(techsNamed(line), id).toEqual(gate === undefined ? [] : [gate]);
+      expect(techsNamed(line), id).toEqual(linkedGate(gate));
+      if (gate !== undefined) expect(line, id).toContain(techDef(gate).name);
     }
     for (const id of RITE_IDS) {
       const line = openingOf(entryOf(compendiumId('rite', id)));

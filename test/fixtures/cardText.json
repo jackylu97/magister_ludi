@@ -6979,9 +6979,8 @@
     "text": "once drafted, opens Optics for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "knowing Optics lets you build the Specularium — not built yet",
-    "text": "knowing Optics lets you build the Specularium — not built yet",
-    "deferred": true
+    "raw": "once you know Optics, you may build the [[building:specularium|Specularium]]: +3 food; +1 science per 2 citizens in this city",
+    "text": "once you know Optics, you may build the Specularium: +3 food; +1 science per 2 citizens in this city"
    }
   ],
   "theOpenCollegium": [
@@ -7269,9 +7268,12 @@
     "text": "once drafted, opens Herbals for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "knowing Herbals lets workers build the Physic Garden — not built yet",
-    "text": "knowing Herbals lets workers build the Physic Garden — not built yet",
-    "deferred": true
+    "raw": "once you know Herbals, your workers may build the [[improvement:physicGarden|Physic Garden]]: +2 science; on flat land with fresh water, one in each city",
+    "text": "once you know Herbals, your workers may build the Physic Garden: +2 science; on flat land with fresh water, one in each city"
+   },
+   {
+    "raw": "once you know Herbals, +2 happiness per hex with a [[improvement:physicGarden|Physic Garden]] in your borders",
+    "text": "once you know Herbals, +2 happiness per hex with a Physic Garden in your borders"
    }
   ],
   "theBronzeFoundersCharter": [
@@ -7317,9 +7319,8 @@
     "text": "once drafted, opens Cataloguing for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "knowing Cataloguing lets you build the Mouseion — not built yet",
-    "text": "knowing Cataloguing lets you build the Mouseion — not built yet",
-    "deferred": true
+    "raw": "once you know Cataloguing, you may build the [[building:mouseion|Mouseion]]: +4 renown per turn, favouring scholars; +2 culture per empire building you hold",
+    "text": "once you know Cataloguing, you may build the Mouseion: +4 renown per turn, favouring scholars; +2 culture per empire building you hold"
    }
   ],
   "theCommonplaceBook": [
@@ -7334,9 +7335,8 @@
     "text": "once drafted, opens Papermaking for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "knowing Papermaking lets you build the Scriptorium — not built yet",
-    "text": "knowing Papermaking lets you build the Scriptorium — not built yet",
-    "deferred": true
+    "raw": "once you know Papermaking, you may build the [[building:scriptorium|Scriptorium]]: +2 science; +10% science in every city with a [[building:scriptorium|Scriptorium]] with an [[improvement:academy|Academy]]; +2 renown per turn, favouring scholars",
+    "text": "once you know Papermaking, you may build the Scriptorium: +2 science; +10% science in every city with a Scriptorium with an Academy; +2 renown per turn, favouring scholars"
    }
   ],
   "thePhysiciansCharter": [
@@ -7345,9 +7345,8 @@
     "text": "once drafted, opens Medicine for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "knowing Medicine lets you build the Bimaristan — not built yet",
-    "text": "knowing Medicine lets you build the Bimaristan — not built yet",
-    "deferred": true
+    "raw": "once you know Medicine, you may build the [[building:bimaristan|Bimaristan]]: +25% food in every city with a [[building:bimaristan|Bimaristan]]; all units: +10 healing per turn inside your territory",
+    "text": "once you know Medicine, you may build the Bimaristan: +25% food in every city with a Bimaristan; all units: +10 healing per turn inside your territory"
    }
   ],
   "thePrintersCharter": [
@@ -7356,9 +7355,12 @@
     "text": "once drafted, opens Printing for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "knowing Printing lets you build the Aldine Press and gives one more trade route — not built yet",
-    "text": "knowing Printing lets you build the Aldine Press and gives one more trade route — not built yet",
-    "deferred": true
+    "raw": "once you know Printing, you may build the [[building:aldinePress|Aldine Press]]: +2 culture; +2 science, +2 culture on every trade route sent from every city with an [[building:aldinePress|Aldine Press]]",
+    "text": "once you know Printing, you may build the Aldine Press: +2 culture; +2 science, +2 culture on every trade route sent from every city with an Aldine Press"
+   },
+   {
+    "raw": "once you know Printing, +1 trade route",
+    "text": "once you know Printing, +1 trade route"
    }
   ],
   "theGunfoundersCharter": [
@@ -7367,9 +7369,8 @@
     "text": "once drafted, opens Gunfounding for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "knowing Gunfounding lets you build the Tophane — not built yet",
-    "text": "knowing Gunfounding lets you build the Tophane — not built yet",
-    "deferred": true
+    "raw": "once you know Gunfounding, you may build the [[building:tophane|Tophane]]: newly created military units in every city with a [[building:tophane|Tophane]] gain +4 combat strength; +25% production toward military units, in every city with a [[building:tophane|Tophane]]",
+    "text": "once you know Gunfounding, you may build the Tophane: newly created military units in every city with a Tophane gain +4 combat strength; +25% production toward military units, in every city with a Tophane"
    }
   ],
   "theMilitaryEngineersCharter": [
@@ -7378,9 +7379,8 @@
     "text": "once drafted, opens Military Architecture for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "knowing Military Architecture lets you build the Bastion — not built yet",
-    "text": "knowing Military Architecture lets you build the Bastion — not built yet",
-    "deferred": true
+    "raw": "once you know Military Architecture, you may build the [[building:bastion|Bastion]]: +5 to the city’s defence strength; +30 to how much punishment the city can take; +1 renown per turn, favouring engineers",
+    "text": "once you know Military Architecture, you may build the Bastion: +5 to the city’s defence strength; +30 to how much punishment the city can take; +1 renown per turn, favouring engineers"
    }
   ],
   "theNavalGunnersCharter": [
@@ -9816,6 +9816,48 @@
    {
     "raw": "on completion, a glass bead is yours",
     "text": "on completion, a glass bead is yours"
+   }
+  ],
+  "specularium": [
+   {
+    "raw": "+1 science per 2 citizens in this city",
+    "text": "+1 science per 2 citizens in this city"
+   }
+  ],
+  "mouseion": [
+   {
+    "raw": "+4 renown per turn, favouring scholars",
+    "text": "+4 renown per turn, favouring scholars"
+   },
+   {
+    "raw": "+2 culture per empire building you hold",
+    "text": "+2 culture per empire building you hold"
+   }
+  ],
+  "aldinePress": [
+   {
+    "raw": "+2 science, +2 culture on every trade route sent from every city with an [[building:aldinePress|Aldine Press]]",
+    "text": "+2 science, +2 culture on every trade route sent from every city with an Aldine Press"
+   }
+  ],
+  "bimaristan": [
+   {
+    "raw": "+25% food in every city with a [[building:bimaristan|Bimaristan]]",
+    "text": "+25% food in every city with a Bimaristan"
+   },
+   {
+    "raw": "all units: +10 healing per turn inside your territory",
+    "text": "all units: +10 healing per turn inside your territory"
+   }
+  ],
+  "tophane": [
+   {
+    "raw": "newly created military units in every city with a [[building:tophane|Tophane]] gain +4 combat strength",
+    "text": "newly created military units in every city with a Tophane gain +4 combat strength"
+   },
+   {
+    "raw": "+25% production toward military units, in every city with a [[building:tophane|Tophane]]",
+    "text": "+25% production toward military units, in every city with a Tophane"
    }
   ],
   "chapel": [],

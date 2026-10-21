@@ -491,8 +491,12 @@ describe('the schema, as landed', () => {
     // **And Dominion batch D10** (the data-only cards of Tiers I to III): nine
     // more. Nine new Dominion rows came live. The Acropolis and Take the City
     // were changed in place and were already live.
-    expect(live).toBe(500);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(500);
+    // **And Scientific batch S4** (the building charters): eight more. Eight
+    // deferred charters were freed (the Herbalists', Glassmakers',
+    // Librarians', Paper-Makers', Physicians', Printers', Gunfounders' and
+    // Military Engineers').
+    expect(live).toBe(508);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(508);
   });
 
   /**
@@ -750,7 +754,10 @@ describe('the schema, as landed', () => {
     // log's Scientific and Commerce hands hold different cards.
     // 157 since Dominion batch D10: nine Dominion Orders come live and two
     // change, so a v156 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(157);
+    // 158 since Scientific batch S4 (the building charters): eight Scientific
+    // charters are dealt, and five buildings and the Physic Garden join the
+    // tables, so a v157 log's Scientific hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(158);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -983,9 +990,11 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // Scientific rows (+ 25 retired in all).
       // **Dominion batch D9** retired the themes pass's ten cuts, all live
       // (+ 10 retired).
+      // **Scientific batch S4** freed eight charters (the building charters:
+      // − 8).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(48);
+      ).toHaveLength(40);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(173);
     }
   });

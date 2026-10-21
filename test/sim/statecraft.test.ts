@@ -2076,7 +2076,10 @@ describe("determinism", () => {
     // log's Scientific and Commerce hands hold different cards.
     // 157 since Dominion batch D10: nine Dominion Orders come live and two
     // change, so a v156 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(157);
+    // 158 since Scientific batch S4 (the building charters): eight Scientific
+    // charters are dealt, and five buildings and the Physic Garden join the
+    // tables, so a v157 log's Scientific hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(158);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -9036,6 +9039,9 @@ describe("the engine shapes", () => {
       // Garden is the second row in the game to take a share of what one town
       // earns in renown, and the first ordinary building to.
       "garden · cityRenownPercent",
+      // Scientific batch S4: the Aldine Press pays the trade routes that leave
+      // its town, the Caravanserai's shape.
+      "aldinePress · routeYield",
       "heroicEpic · cityRenownPercent",
       // Batch L2a — the leaders' unique buildings (`docs/leaders.md`). The Tambo
       // pays a caravan at both ends of the road, which is two rows of one shape
