@@ -443,6 +443,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 
 ### S10: the charter UX (the approved prototype)
 
+**Built 2026-10-21** (`3996dc5a`; the glow's settings moved to `data/view3d.json` in `31817db6`). The lead on the chart (`chartLead` in `src/ui/charterTech.ts`) is a stub returning nothing until S3's lead reading lands; wiring it is one line. Not matched from the prototype: no turn number on the stamp, no town name in the toast, and a rival's range line is not shown off the forecast.
+
 - **Builds:**
   - The charter shelf at the foot of the star chart: drafted charter technologies only, and no shelf, rule or tab before the first charter. Same columns and age washes as the sky, a dotted sepia line from each parent, a small seal on the node. `packChart` packs the shelf as a second field and `fitPacked` shrinks both together.
   - The out-of-view tab: on the chart's edge toward the nearest charter node, with the count and an arrow. A click scrolls there and rings the node, as `centreOn` does.

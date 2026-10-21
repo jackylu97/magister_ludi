@@ -190,6 +190,7 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 37. Circumvallation (if you take the draft): a rival town that is under siege (`underSiege`), with at least one of the holder's units among the besiegers, adds no production toward an Opus at the front of its queue. The town's own breakdown shows the line and names the card (rule 5). The hammers are not banked anywhere else.
 38. (D9) The sheet uses this triage's text for The Res Gestae ("at most +28%", reading 19) and Rally to the Standard ("A military unit you gain…", reading 23), not the list doc's.
 39. (D9) A retired row carries no type, so a save that holds one reads it as unsorted, as the D0 cuts already do.
+40. (D10) The Ranks of Merit's production lands in the capital's basket at once but completes a build only at the turn's production step, because `settleRanksEarned` settles towns only through `settleGrowthWindfall`. D11 adds `settleProductionWindfall` there.
 
 ## The batches
 
@@ -238,6 +239,8 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 - **Done-gate:** `npx vitest run test/sim/decks/dominion.test.ts test/sim/decks/dominionThemeCards.test.ts test/sim/decks/dominionDoctrines.test.ts test/sim/decks/dominionUnits.test.ts test/sim/decks/dominionCombat.test.ts test/sim/doctrineOffer.test.ts test/sim/offers.test.ts test/sim/decks.test.ts test/sim/statecraft.test.ts test/sim/levies.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`, and the fence's files typecheck.
 
 ### D10: the data-only cards of Tiers I to III
+
+**Built 2026-10-21** on `dom-work` (`49b76f2b`), to merge into `decks` after Scientific S2 and S3. Reading 40 came from it. The describers now say "for each age you have reached" on an age-scaled grant (this also rewords Devotion's Rites of Blood).
 
 - **Builds:** eleven group-1 cards: The Acropolis, The Castle Demesne, The Spartan Discipline, Commission: The Ranks of Merit, Commission: The First Province, Commission: Take the City, The Naadam, The Taker of Cities, The Roll of Triumphs, The March Revenues, The Tributary Kings. The March Revenues lands without the sight gate, which D12 adds (reading 29).
 - **Fence:** `data/decks/dominion.json`, `docs/decks/dominion.md`, the Dominion shelf of `docs/orders-and-doctrines.md`, `test/fixtures/cardText.json`, `src/sim/state.ts` (the schema line) and `test/sim/state.test.ts`, `test/sim/decks/dominionThemeCards.test.ts`. `src/sim/statecraft/describers.ts` only if a sentence reads badly.
