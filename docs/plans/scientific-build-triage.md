@@ -317,6 +317,12 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 72. (S4) The Physic Garden has no feature list, so it may stand in a forest on flat land with fresh water. Alternative: open ground only.
 73. (S4) A Scriveners' Charter in an old save no longer opens the Scriptorium. The Scriptorium's price moves from column 4 to 7, the Bastion's from 10 to 11.
 74. (S4) Until S12, the Compendium names a charter technology without a link.
+75. (S5) A great person's work never ran through `buildImprovementAt`, so The Founding Gift paid nothing. `greatPersonWorkAt` now pays the build riders through `payWorkLaidRiders`.
+76. (S5) The Qanat stands on flat land, yields nothing, and waters only its owner's farms. A farm it waters may start The Water Courts' chain.
+77. (S5) Niter Beds may stand on any land, hills included, and yield nothing. They supply niter only once the seat can see niter, and Strategic Exports does not double them.
+78. (S5) The School of Mines' extra copy is added before Strategic Exports' share.
+79. (S5) The Studium Generale's neighbour must be a real Academy of yours. It also reaches building effects that read Academies, such as the Scriptorium's.
+80. (S5) `uniqueStrategicResources` and the `workingGreatWork` age term have no live rows now; `scientificLand.test.ts` pins both.
 
 ## The batches
 
@@ -407,6 +413,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 - **Done-gate:** `npx vitest run test/sim/decks/scientificCharters.test.ts test/sim/charters.test.ts test/sim/charterTechs.test.ts test/render/improvements3d.test.ts test/sim/decks/scientific.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts`.
 
 ### S5: the learned land
+
+**Built 2026-10-21** (`3476297f`, schema 160). Readings 75 to 80 came from it. Still open: `tech.ts`'s "no row reads this arm" comment and the Aqueduct's refusal sentence are stale; Merchant Scholars (optional here) is left to the Commerce build.
 
 - **Builds:**
   - The Surveyors' Charter: the Qanat row with `watersBeside`, read by `farmWaterField` (reading 30); the Aqueduct early (reading 29).

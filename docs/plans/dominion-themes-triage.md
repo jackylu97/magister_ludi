@@ -197,6 +197,10 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 44. (D12) The Marshalate counts `greatPeopleGained` with the general family, the count The Roll of Triumphs reads.
 45. (D13) A `garrisonWorks` row with no `max` lets every soldier count; of several rows, the largest cap wins.
 46. (D13) A town keeps pins up to its citizens' seats plus its soldiers' seats, so a town with specialists can keep more pins than it has citizens on the land.
+47. (D14) Double Time doubles The Longships, so a ship raids two hexes.
+48. (D14) A ship need not stand on water: a ship in a port raids an enemy improvement beside the town.
+49. (D14) Circumvallation's gate applies whenever production goes toward the Opus, not only at the front of the queue. A forecast of the Opus shows nothing. One-time grants into the Opus are not stopped.
+50. (D14) The Circumvallation holder must be able to lay a siege itself, so its unit counts among the besiegers.
 
 ## The batches
 
@@ -293,7 +297,7 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 
 ### D13: The Limitanei
 
-**Built 2026-10-21** on `dom-work` (`31314356`), to merge into `decks` after Scientific S5. Readings 45 and 46 came from it. Follow-ups: the city panel counts a soldier's hex as land a citizen works ("Citizens 2: 4 on land"), and `src/ai/bot.ts` copies the old citizen count without the soldiers' seats (D16).
+**Built 2026-10-21** on `dom-work` (`31314356`), merged into `decks` with D14 and D15 as `9b7e7836` (schema 161). Readings 45 and 46 came from it. Follow-ups: the city panel counts a soldier's hex as land a citizen works ("Citizens 2: 4 on land"), and `src/ai/bot.ts` copies the old citizen count without the soldiers' seats (D16).
 
 - **Builds:** a `CityRuleId` `garrisonWorks` with a cap (`max: 2`), read by `chooseCitizens` through `cardCityRuleAt` (reading 24). The seats are the citizens plus the town's garrison, up to the cap. No new caller of `assignCitizens`. Check the city panel's land count (`cityPanel.ts` reads `workedTiles.length`); a mark on a soldier's hex is a UI follow-up. Card: The Limitanei.
 - **Fence:** the shared six (Dominion parts), `docs/decks/dominion.md`, `src/sim/cities.ts` (`chooseCitizens`, `workableSeats`), `src/sim/state.ts` (the schema line) and `test/sim/state.test.ts`, `test/sim/cities.test.ts` and `test/sim/slateRegister.test.ts` (read; their pins must not move), a new `test/sim/decks/dominionLimitanei.test.ts`.
@@ -304,6 +308,8 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 
 ### D14: the three drafts (only if you take them)
 
+**Built 2026-10-21** with D15 (`4d055237`), merged into `decks` with D13 as `9b7e7836` (schema 161). Readings 47 to 50 came from it. The city panel prints Circumvallation's gate row.
+
 - **Builds:** The Longships (a shore pillage at the end of the turn, beside `harvestEnemyHexes`), The Relay Stations (`unitStat` `where: 'connectedTown'`, read in `resetMovement`) and Circumvallation (a production line on a besieged rival town's Opus) (readings 35 to 37). Each row leaves `deferred`, and The Longships' row `marineDrill` takes its new text. If Circumvallation's line is a new step of the town fold, `docs/yields.md` and its sync test name it.
 - **Fence:** the shared six (Dominion parts), `docs/decks/dominion.md`, `src/sim/improvements.ts` (`pillageAt` called with a shore hex), `src/sim/turn.ts` (`resetMovement`), `src/sim/yields/town.ts` (`productionModifiers`), `docs/yields.md` if needed, `src/sim/combat.ts` (read only: `underSiege`), `src/sim/state.ts` (the schema line) and `test/sim/state.test.ts`, a new `test/sim/decks/dominionDrafts.test.ts`.
 - **Shares with the S track:** the shared six (S1 to S9), `improvements.ts` (S5), `combat.ts` (S1, S3, S9; read only here), `state.ts`.
@@ -312,6 +318,8 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 - **Done-gate:** `npx vitest run test/sim/decks/dominionDrafts.test.ts test/sim/decks/dominionPillage.test.ts test/sim/naval.test.ts test/sim/decks/dominion.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts`, and the yields sync test if `docs/yields.md` changed.
 
 ### D15: The Upstarts (after S3)
+
+**Built 2026-10-21** with D14 (`4d055237`), merged as `9b7e7836`. Every card of the Dominion themes pass is now built; D16 (bot pricing) is running.
 
 - **Builds:** a `CombatCondition` `vsMoreTechs` beside S3's `vsFewerTechs`, read through `src/sim/rivals.ts`, and its words (reading 25). Card: The Upstarts.
 - **Fence:** the shared six (Dominion parts), `docs/decks/dominion.md`, `src/sim/combat.ts` (the condition's arm, beside S3's), `src/sim/rivals.ts` (read; a helper added only if S3's does not answer "knows more"), `src/sim/state.ts` (the schema line) and `test/sim/state.test.ts`, a new `test/sim/decks/dominionRivals.test.ts`.
