@@ -5,7 +5,8 @@
  * What is pinned here:
  *   · **the sheet matches the data.** Since 2026-10-16 the sheet is a compact
  *     list in Dominion's format: five tier tables (Card | Rarity | Status |
- *     Ability | Type) and a shared table. The status says how a row relates to
+ *     Ability | Type) and a shared table. Since batch E7 it lists the cards of
+ *     the themes pass of 2026-10-21. The status says how a row relates to
  *     the data:
  *       - `implemented`: a data row of that name exists, is dealt, and has the
  *         same rarity, tier and text;
@@ -316,8 +317,10 @@ describe('the Expansionist deck, as entered', () => {
   });
 
   it('retires the sheet\'s cuts, deals none of them, and types none of them', () => {
-    // 31 proposed cuts, and since batch E0 The Forest Gardens and Daughter Towns.
-    expect(RETIRED.length).toBe(33);
+    // 31 proposed cuts, since batch E0 The Forest Gardens and Daughter Towns,
+    // and since batch E7 the fifteen rows the themes pass cut (fourteen live
+    // rows and the deferred Public Works).
+    expect(RETIRED.length).toBe(48);
     for (const id of RETIRED) {
       expect(orderIsDealt(id), id).toBe(false);
       expect(ordersForDecks(['expansionist']), id).not.toContain(id);
@@ -798,6 +801,8 @@ describe('the deck’s other shapes', () => {
   });
 
   it('claims one more hex at founding under The Beating of the Bounds', () => {
+    // Retired in batch E7. A save may still hold the card, so its shape stays
+    // and this test seats the row directly (the triage's reading 7).
     const plain = bareState();
     const before = ownedTiles(plain, foundCityAt(plain, 0, at(plain, 5, 5))).length;
     const state = bareState();
@@ -844,7 +849,8 @@ describe('the deck’s other shapes', () => {
 
   it('pays The Prospectors only on a mine over a seam this empire surfaced', () => {
     // Since Expansionist batch E3 the bonus reads who struck the seam
-    // (`Tile.surfacedBy`), not only that the hill was surveyed.
+    // (`Tile.surfacedBy`), not only that the hill was surveyed. Retired in
+    // batch E7; the test seats the row directly, as a save may hold it.
     const { state, tile } = woodedWorker();
     seatCard(state, 'theProspectors' as OrderId);
     tile.feature = 'none';

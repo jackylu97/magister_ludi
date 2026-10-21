@@ -15,11 +15,17 @@
  *     with Sailing, since the lake ruling of 2026-10-16 (it replaced reading 27);
  *   · The Staked Claims: every unowned hex within two hexes of a new town
  *     (reading 15);
- *   · The Wide Country: the hexes claimed, and two citizens in each of the three
- *     smallest towns (reading 35);
+ *   · The Wide Country: the hexes claimed, and its old reward of two citizens in
+ *     each of the three smallest towns (reading 35). Since batch E7 the card
+ *     leaves an institution instead (`expansionistThemeCards.test.ts`), and no
+ *     card uses the old reward, so it is tested on a stand-in reward;
  *   · The Encroaching Fields, Migration and The Great Migration: the two
  *     ten-turn phases (readings 36 to 38);
  *   · the words of all ten.
+ *
+ * The Garden Frontier is retired since batch E7 of
+ * `docs/plans/expansionist-themes-triage.md`. A save may still hold it, so its
+ * test stays and seats the row directly (that triage's reading 7).
  */
 
 import { describe, expect, it } from 'vitest';
@@ -51,7 +57,7 @@ import {
   playerById,
 } from '../../../src/sim/state';
 import { describeCard, stripRefs, tallyOf } from '../../../src/sim/statecraft';
-import { type OrderId } from '../../../src/sim/statecraftData';
+import { type CommissionReward, type OrderId, orderDef } from '../../../src/sim/statecraftData';
 import { TILE_YIELD_KEYS, readTileYield, terrainDef } from '../../../src/sim/terrainData';
 import { explainTileYield, foldTile, yieldContextFor } from '../../../src/sim/yields/hex';
 import { at, bareState } from '../improvementHelpers';
@@ -99,6 +105,18 @@ function build(state: GameState, unitId: number, improvement: string): void {
     improvement: improvement as never,
   });
   expect(result.ok, result.ok ? '' : result.error).toBe(true);
+}
+
+/** Runs a commission with another reward, so a reward shape no card uses can still be tested. */
+function withReward(id: string, reward: CommissionReward[], run: () => void): void {
+  const spec = orderDef(id as OrderId).commission!;
+  const before = spec.reward;
+  spec.reward = reward;
+  try {
+    run();
+  } finally {
+    spec.reward = before;
+  }
 }
 
 const said = (id: string): string[] => describeCard(id as never).map((clause) => stripRefs(clause.text));
@@ -402,6 +420,9 @@ describe('the Expansionist batch E4: The Wide Country', () => {
     expect(tallyOf(sc, 'theWideCountry' as OrderId)).toBeGreaterThan(1);
   });
 
+  // Since batch E7 the card leaves an institution (`expansionistThemeCards.test.ts`).
+  // Its old reward has no card now, but the shape stays, so it is tested here
+  // on a stand-in reward.
   it('pays two citizens to each of the three smallest towns, ties to the earlier town', () => {
     const state = bareState(20, 10);
     const towns = [
@@ -415,7 +436,9 @@ describe('the Expansionist batch E4: The Wide Country', () => {
     const sc = playerById(state, 0)!.statecraft;
     sc.tallies.push({ card: 'theWideCountry' as OrderId, count: 12 });
     const before = towns.map((city) => city.population);
-    runCommissions(state);
+    withReward('theWideCountry', [{ citizens: 2, citizensTo: { smallest: 3 } }], () => {
+      runCommissions(state);
+    });
     expect(towns.map((city) => city.population)).toEqual([
       before[0],
       before[1]! + 2,
@@ -535,7 +558,7 @@ describe('the Expansionist batch E4: the words', () => {
     expect(said('theFishTraps').join(' ')).toContain('Fish Traps');
     expect(said('theStakedClaims').join(' ')).toContain('every unowned hex within 2 hexes');
     expect(said('theWideCountry').join(' ')).toContain('claim 12 hexes by outposts, cleared camps or buying');
-    expect(said('theWideCountry').join(' ')).toContain('+2 citizens in each of your 3 smallest cities');
+    expect(said('theWideCountry').join(' ')).toContain('for the rest of the game, +25% border expansion');
     expect(said('theEncroachingFields').join(' ')).toContain('every 10 turns, each of your cities of at least 12 citizens');
     expect(said('migration').join(' ')).toContain('your largest city sends one citizen');
     expect(said('theGreatMigration').join(' ')).toContain('within 3 hexes of your borders');

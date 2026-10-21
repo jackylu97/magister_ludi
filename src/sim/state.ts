@@ -2104,8 +2104,34 @@ import {
  * **A v161 save is refused and does not replay.** A Scientific seat's pools
  * now hold eleven more cards, so its hands differ. The branch migrates
  * nothing, for the reason given under v119.
+ *
+ * v163 (branch `decks`; Expansionist batch E7, `docs/plans/expansionist-
+ * themes-triage.md`): **the themes sheet, the retirements and ten cards
+ * changed in place.** No field joins the state. The rules that change:
+ *
+ *   · fifteen Expansionist rows are retired: The Pyramid Builders, The
+ *     Beating of the Bounds, The Prospectors, The Garden Frontier, The
+ *     Builders' Levy, The Plough Teams, The Polis, The Landscape Garden, The
+ *     Common Domain, The Woodwrights, Public Works, The Manors, The Assay
+ *     Office, The Managed Wild and The Land's Great Work. No draft deals them
+ *     again, and a seat that already holds one keeps it and its effects;
+ *   · ten Expansionist Orders change in place. The Rope Stretchers pays
+ *     science for the improved tiles in a town. The Milestones pays gold and
+ *     culture, and The Teeming Realm science and culture. The Measure of the
+ *     Land pays science, at most +10. The Mother City gives the capital +5%
+ *     production and culture for each town founded. Plenty pays five times
+ *     the new population. The Staked Claims moves to Tier II. Six Gardens,
+ *     The Wide Country and The Domesday Survey now leave an institution, and
+ *     the Domesday goal falls to 120 hexes and 40 tiles;
+ *   · five Orders change type to civic, and The Two Harvests (still
+ *     deferred) to wildcard.
+ *
+ * **A v162 save is refused and does not replay.** An Expansionist seat's
+ * pools lose fourteen cards and five of its cards fit other chairs, so its
+ * hands and its councils differ. The branch migrates nothing, for the reason
+ * given under v119.
  */
-export const SCHEMA_VERSION = 162;
+export const SCHEMA_VERSION = 163;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

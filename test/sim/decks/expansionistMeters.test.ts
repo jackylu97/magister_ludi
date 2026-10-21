@@ -10,7 +10,10 @@
  *     for the rest of the game (reading 40);
  *   · Commission: Break the Sod: improved tiles worked, tended ones not
  *     counted (reading 2), and its reward;
- *   · The Domesday Survey: each town paid from its own figure (reading 44);
+ *   · The Domesday Survey's old reward: each town paid from its own figure
+ *     (reading 44). Since batch E7 the card leaves an institution instead
+ *     (`expansionistThemeCards.test.ts`), and no card uses this reward, so it
+ *     is tested on a stand-in reward;
  *   · The Master of Works: the other manufactory towns' production, sent to
  *     the town raising the Opus (reading 43);
  *   · The Burhs: defence per fortification and production toward them
@@ -44,7 +47,12 @@ import {
   stripRefs,
   windfallPayout,
 } from '../../../src/sim/statecraft';
-import { type CommissionGoal, type OrderId, orderDef } from '../../../src/sim/statecraftData';
+import {
+  type CommissionGoal,
+  type CommissionReward,
+  type OrderId,
+  orderDef,
+} from '../../../src/sim/statecraftData';
 import { unitDef } from '../../../src/sim/unitData';
 import { foldCity } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
@@ -89,6 +97,18 @@ function withGoals(id: string, goals: CommissionGoal[], run: () => void): void {
     run();
   } finally {
     spec.goals = before;
+  }
+}
+
+/** Runs a commission with another reward, so a reward shape no card uses can still be tested. */
+function withReward(id: string, reward: CommissionReward[], run: () => void): void {
+  const spec = orderDef(id as OrderId).commission!;
+  const before = spec.reward;
+  spec.reward = reward;
+  try {
+    run();
+  } finally {
+    spec.reward = before;
   }
 }
 
@@ -219,6 +239,9 @@ describe('the Expansionist batch E5: Commission: Break the Sod', () => {
 });
 
 describe('the Expansionist batch E5: The Domesday Survey', () => {
+  // Since batch E7 the card leaves an institution (`expansionistThemeCards.test.ts`).
+  // Its old reward, each town paid from its own figure, has no card now, but
+  // the shape stays, so it is tested here on a stand-in reward.
   it('pays each town five times the improved or tended tiles it works, into its own basket', () => {
     const state = bareState(16, 10);
     const big = town(state, 0, 2, 5, 4);
@@ -232,8 +255,13 @@ describe('the Expansionist batch E5: The Domesday Survey', () => {
     bumpRevision(state);
     const owed = [townFigure(state, big, 'improvedTilesWorked')!, townFigure(state, small, 'improvedTilesWorked')!];
     slot(state, 0, 'theDomesdaySurvey');
-    withGoals('theDomesdaySurvey', [{ kind: 'reached', figure: 'improvedTilesWorked', count: 1 }], () => {
-      runCommissions(state);
+    const eachTown: CommissionReward[] = [
+      { yield: 'production', amount: 5, fromFigure: 'improvedTilesWorked', eachTown: true },
+    ];
+    withReward('theDomesdaySurvey', eachTown, () => {
+      withGoals('theDomesdaySurvey', [{ kind: 'reached', figure: 'improvedTilesWorked', count: 1 }], () => {
+        runCommissions(state);
+      });
     });
     expect([big.hammerBasket, small.hammerBasket]).toEqual([owed[0]! * 5, owed[1]! * 5]);
   });
@@ -305,7 +333,7 @@ describe('the Expansionist batch E5: the words', () => {
     expect(said('theHeartland')).toContain('that each yield 5 or more in total');
     expect(said('theHeartland')).toContain('for the rest of the game');
     expect(said('commissionBreakTheSod')).toContain('not counting tended tiles');
-    expect(said('theDomesdaySurvey')).toContain('each city gains production equal to 5 times');
+    expect(said('theDomesdaySurvey')).toContain('for the rest of the game, +1 science on every improved or tended hex');
     expect(said('theMasterOfWorks')).toContain('the production per turn of your other cities with a Manufactory');
     expect(said('theBurhs')).toContain('toward defensive buildings');
     expect(said('theFrontierMilitia')).toContain('new cities start with the best melee unit you can build');

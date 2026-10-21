@@ -926,10 +926,16 @@ describe('determinism', () => {
    * Nobody here drafts, so no seat holds a card that counts a technology.
    * Checked with the change in place and the version printed as 161, which
    * gives the hashes of Dominion batches D13, D14 and D15 exactly.
+   *
+   * **Expansionist batch E7 (the themes sheet, schema 163) moved the hash and
+   * not the length** at both seeds: 162 became 163, and that is all. Nobody
+   * here drafts, so no seat holds a retired or reworked Expansionist card.
+   * Checked with the change in place and the version printed as 162, which
+   * gives the hashes of Scientific batch S6 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '84366c84:188931',
-    2026: 'dd943b79:188509',
+    11: 'fcb10c9d:188931',
+    2026: '293e2900:188509',
   };
 
   for (const seed of [11, 2026]) {

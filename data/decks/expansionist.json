@@ -169,18 +169,20 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
+      "type": "civic",
       "flavor": "Two pegs and a knotted rope, and the field is laid out.",
-      "text": "Worked mines, quarries and lumber mills gain +1 production.",
+      "text": "Each town gains +1 science for every three improved tiles in its borders.",
       "effects": [
         {
           "kind": "pays",
-          "where": "hex",
-          "production": 1,
-          "on": {
-            "test": "anyImprovement",
-            "improvements": ["mine", "quarry", "lumbermill"]
-          }
+          "where": "city",
+          "basis": "count",
+          "count": "tilesInBorders",
+          "within": "city",
+          "tile": { "test": "improved" },
+          "to": "science",
+          "amount": 1,
+          "per": 3
         }
       ]
     },
@@ -190,13 +192,13 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
       "flavor": "Once a year the parish walks its edges, so nobody forgets where they are.",
       "text": "Each town you found claims one extra wild hex of your choice next to its borders.",
       "effects": [
         { "kind": "foundingRider", "claims": 1 }
       ],
-      "note": "For now the town takes the hex its borders would have grown into next, rather than one you choose."
+      "note": "For now the town takes the hex its borders would have grown into next, rather than one you choose.",
+      "retired": true
     },
     "thePyramidBuilders": {
       "name": "The Pyramid Builders",
@@ -204,7 +206,6 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
       "flavor": "When the river covers the fields, the farmers go to work on the king's stones.",
       "text": "+25% production toward wonders in your capital.",
       "effects": [
@@ -214,7 +215,8 @@
           "percent": 25,
           "scope": { "test": "capital" }
         }
-      ]
+      ],
+      "retired": true
     },
     "theRoadHome": {
       "name": "The Road Home",
@@ -519,7 +521,6 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
       "flavor": "Follow the colour in the stream up to the hill it came from.",
       "text": "Prospecting costs workers and explorers no charge. Worked mines on a seam you surfaced gain +3 production.",
       "effects": [
@@ -535,7 +536,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "sixGardens": {
       "name": "Six Gardens",
@@ -545,14 +547,18 @@
       "rarity": "uncommon",
       "type": "wildcard",
       "flavor": "One garden is a hobby; six are a way of life.",
-      "text": "Needs tended land. Goal: have six tended tiles. Reward: culture equal to fifteen times the tended tiles you hold. The card then leaves its chair.",
+      "text": "Needs tended land. Commission. Have six tended tiles. Then, for the rest of the game, tended tiles gain +1 culture. The card leaves its chair.",
       "needsTendedWork": true,
       "commission": {
         "goals": [
           { "kind": "reached", "figure": "tendedTiles", "count": 6 }
         ],
         "reward": [
-          { "yield": "culture", "amount": 15, "fromFigure": "tendedTiles" }
+          {
+            "lasting": [
+              { "kind": "pays", "where": "hex", "culture": 1, "on": { "test": "tended" } }
+            ]
+          }
         ]
       },
       "effects": []
@@ -587,7 +593,6 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
       "flavor": "Eight oxen to the plough, and the village owns them together.",
       "text": "Each town gains +1 food for every two improved tiles in its borders.",
       "effects": [
@@ -602,7 +607,8 @@
           "amount": 1,
           "per": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "thePolis": {
       "name": "The Polis",
@@ -610,7 +616,6 @@
       "band": 1,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "A city is the right size when one herald can be heard in all of it.",
       "text": "While you hold at most four towns, every town gains +25% food.",
       "effects": [
@@ -621,7 +626,8 @@
             { "kind": "percentYields", "yield": "food", "percent": 25 }
           ]
         }
-      ]
+      ],
+      "retired": true
     },
     "thePublicFountains": {
       "name": "The Public Fountains",
@@ -715,12 +721,12 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "Every town sends a cartload of stone to the king's great work.",
       "text": "Towns may spend a citizen to send production equal to the food it took to grow it to a world wonder being built in another of your towns.",
       "effects": [
         { "kind": "levy", "use": "wonder" }
-      ]
+      ],
+      "retired": true
     },
     "theLabourFeasts": {
       "name": "The Labour Feasts",
@@ -819,13 +825,13 @@
       "band": 1,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "The gardener goes first, and the border follows the garden.",
       "text": "Needs tended land. Workers may tend unowned wild hexes up to two hexes beyond your borders. A hex tended there joins your nearest town.",
       "needsTendedWork": true,
       "effects": [
         { "kind": "worksBeyond", "works": "tended", "reach": 2 }
-      ]
+      ],
+      "retired": true
     },
     "theBurhs": {
       "name": "The Burhs",
@@ -1100,7 +1106,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "A garden made to look as if nobody made it.",
       "text": "Needs tended land. Tended tiles beside a great-person work or a wonder gain +3 culture.",
       "needsTendedWork": true,
@@ -1129,7 +1134,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theEngineersYards": {
       "name": "The Engineers' Yards",
@@ -1302,15 +1308,15 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
+      "type": "civic",
       "flavor": "Count the stones, and you know how far the empire reaches.",
-      "text": "+1% production and gold for every three road hexes you have paved, at most +30%.",
+      "text": "+1% gold and culture for every three road hexes you have paved, at most +30%.",
       "effects": [
         {
           "kind": "pays",
           "where": "empire",
           "basis": "count",
-          "to": "production",
+          "to": "gold",
           "percent": 1,
           "stage": "empire",
           "count": "roadHexes",
@@ -1321,7 +1327,7 @@
           "kind": "pays",
           "where": "empire",
           "basis": "count",
-          "to": "gold",
+          "to": "culture",
           "percent": 1,
           "stage": "empire",
           "count": "roadHexes",
@@ -1336,15 +1342,15 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
+      "type": "civic",
       "flavor": "So many people that the roads are never empty.",
-      "text": "+1% production and food for every ten citizens in your empire, at most +30%.",
+      "text": "+1% science and culture for every ten citizens in your empire, at most +30%.",
       "effects": [
         {
           "kind": "pays",
           "where": "empire",
           "basis": "count",
-          "to": "production",
+          "to": "science",
           "percent": 1,
           "stage": "empire",
           "count": "population",
@@ -1355,7 +1361,7 @@
           "kind": "pays",
           "where": "empire",
           "basis": "count",
-          "to": "food",
+          "to": "culture",
           "percent": 1,
           "stage": "empire",
           "count": "population",
@@ -1467,12 +1473,12 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "Timber is patience, taken all at once.",
       "text": "Forest and jungle chops grant 150% more production.",
       "effects": [
         { "kind": "windfallRider", "occasion": "chop", "percent": 150 }
-      ]
+      ],
+      "retired": true
     },
     "theCommonDomain": {
       "name": "The Common Domain",
@@ -1480,7 +1486,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "The commons runs to where the walking stops.",
       "text": "Towns of at least ten population may work owned tiles one hex beyond their normal work radius.",
       "effects": [
@@ -1489,7 +1494,8 @@
           "rule": "widerReach",
           "scope": { "test": "populationAtLeast", "value": 10 }
         }
-      ]
+      ],
+      "retired": true
     },
     "seasonalLevies": {
       "name": "Seasonal Levies",
@@ -1612,14 +1618,14 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "Build it once, and build it for everyone.",
       "text": "A great engineer may spend its act in one of your towns to complete an Aqueduct there, or to raise terraces on every worked hill in its borders.",
       "effects": [],
       "deferred": [
         "a great engineer may finish an aqueduct in a town, or raise terraces on its worked hills"
       ],
-      "note": "A great engineer has no such act yet, and terraces belong to one leader alone."
+      "note": "A great engineer has no such act yet, and terraces belong to one leader alone.",
+      "retired": true
     },
     "aCourtOfEngineers": {
       "name": "A Court of Engineers",
@@ -1643,23 +1649,16 @@
       "rarity": "uncommon",
       "type": "wildcard",
       "flavor": "Room to grow, and the will to fill it.",
-      "text": "Goal: while this card is seated, claim twelve hexes by outposts, cleared camps or buying. Reward: your three smallest towns each gain two citizens, and every town gains +2 happiness for 30 turns. The card then leaves its chair.",
+      "text": "Commission. Claim twelve hexes by outposts, cleared camps or buying while this card is seated. Then, for the rest of the game, your borders grow 25% faster. The card leaves its chair.",
       "commission": {
         "goals": [
           { "kind": "counted", "occasion": "hexClaimed", "count": 12 }
         ],
         "reward": [
           {
-            "citizens": 2,
-            "citizensTo": { "smallest": 3 }
-          },
-          {
-            "timed": {
-              "turns": 30,
-              "effects": [
-                { "kind": "happiness", "amount": 2, "per": "city" }
-              ]
-            }
+            "lasting": [
+              { "kind": "rulePercent", "rule": "borderCulture", "percent": 25 }
+            ]
           }
         ]
       },
@@ -1698,7 +1697,6 @@
       "band": 3,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
       "flavor": "The hall, the mill, the church, and the fields around them.",
       "text": "Each town gains +1 production for every two improved tiles in its borders.",
       "effects": [
@@ -1713,7 +1711,8 @@
           "amount": 1,
           "per": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "theRoyalForests": {
       "name": "The Royal Forests",
@@ -1777,14 +1776,14 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "Every new mouth is fed, and still there is bread left over.",
-      "text": "When a town grows, it gains production equal to eight times its new population.",
+      "text": "When a town grows, it gains production equal to five times its new population.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "growth",
           "grant": {
             "yield": "production",
-            "amount": 8,
+            "amount": 5,
             "fromOccasion": "population"
           }
         }
@@ -1864,7 +1863,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "Weigh the ore, test the metal, and write the number down.",
       "text": "Each seam you surface grants 60 science.",
       "effects": [
@@ -1873,7 +1871,8 @@
           "occasion": "veinFound",
           "grant": { "yield": "science", "amount": 60 }
         }
-      ]
+      ],
+      "retired": true
     },
     "theStationes": {
       "name": "The Stationes",
@@ -1904,7 +1903,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "The wild was never empty. It was always somebody's garden.",
       "text": "Needs tended land. Each town gains +5% food for every tended tile in its borders, at most +25%.",
       "needsTendedWork": true,
@@ -1921,7 +1919,8 @@
           "tile": { "test": "tended" },
           "max": 5
         }
-      ]
+      ],
+      "retired": true
     },
     "theMita": {
       "name": "The Mit'a",
@@ -2169,7 +2168,7 @@
     "theStakedClaims": {
       "name": "The Staked Claims",
       "decks": ["expansionist"],
-      "band": 3,
+      "band": 2,
       "line": "none",
       "rarity": "uncommon",
       "type": "economic",
@@ -2216,7 +2215,6 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "The harvest raises the monument, and the monument eats the harvest.",
       "text": "The city building the Magnum Opus gains +5% production toward it for each of your towns of at least eight citizens, at most +40%.",
       "effects": [
@@ -2229,7 +2227,8 @@
           "admits": { "test": "populationAtLeast", "value": 8 },
           "max": 8
         }
-      ]
+      ],
+      "retired": true
     },
     "theGardenOfTheWorld": {
       "name": "The Garden of the World",
@@ -2406,9 +2405,9 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
+      "type": "civic",
       "flavor": "Count the land, and you know what the realm is worth.",
-      "text": "Every town gains +1 production for every 25 hexes your empire owns, at most +6.",
+      "text": "Every town gains +1 science for every 25 hexes your empire owns, at most +10.",
       "effects": [
         {
           "kind": "pays",
@@ -2416,10 +2415,10 @@
           "basis": "count",
           "count": "tilesInBorders",
           "tile": { "test": "all", "of": [] },
-          "to": "production",
+          "to": "science",
           "amount": 1,
           "per": 25,
-          "max": 6
+          "max": 10
         }
       ]
     },
@@ -2429,17 +2428,29 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
+      "type": "civic",
       "flavor": "All roads lead home.",
-      "text": "Your capital gains +1 production for every citizen it has.",
+      "text": "Your capital gains +5% production and +5% culture for each town you have founded this game.",
       "effects": [
         {
           "kind": "pays",
-          "where": "capital",
+          "where": "city",
           "basis": "count",
-          "count": "capitalPopulation",
+          "scope": { "test": "capital" },
+          "count": "citiesFounded",
           "to": "production",
-          "amount": 1
+          "percent": 5,
+          "stage": "city"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "scope": { "test": "capital" },
+          "count": "citiesFounded",
+          "to": "culture",
+          "percent": 5,
+          "stage": "city"
         }
       ]
     },
@@ -2496,20 +2507,23 @@
       "rarity": "rare",
       "type": "wildcard",
       "flavor": "Every field, every ox, every plough, written down.",
-      "text": "Goal: own at least 150 hexes and work at least 50 improved or tended tiles at the same time. Reward: each town gains production equal to five times the improved or tended tiles it works, toward what it is building, and you gain a great engineer. The card then leaves its chair.",
+      "text": "Commission. Own at least 120 hexes and work at least 40 improved or tended tiles at the same time. Then, for the rest of the game, each town gains +1 science for each improved or tended tile it works. The card leaves its chair.",
       "commission": {
         "goals": [
-          { "kind": "reached", "figure": "hexesOwned", "count": 150 },
-          { "kind": "reached", "figure": "improvedTilesWorked", "count": 50 }
+          { "kind": "reached", "figure": "hexesOwned", "count": 120 },
+          { "kind": "reached", "figure": "improvedTilesWorked", "count": 40 }
         ],
         "reward": [
           {
-            "yield": "production",
-            "amount": 5,
-            "fromFigure": "improvedTilesWorked",
-            "eachTown": true
-          },
-          { "greatPerson": "engineer" }
+            "lasting": [
+              {
+                "kind": "pays",
+                "where": "hex",
+                "science": 1,
+                "on": { "test": "any", "of": [{ "test": "improved" }, { "test": "tended" }] }
+              }
+            ]
+          }
         ]
       },
       "effects": []
@@ -2520,12 +2534,13 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
+      "type": "wildcard",
       "flavor": "The field below and the orchard above.",
-      "text": "Needs tended land. A worked farm, mine or lumber mill may also be tended, with any tended work the tile allows. It keeps the improvement, adds the tended work's yield, and counts as both improved and tended, but not as wild. Cards that pay culture on tended tiles do not pay it on these.",
+      "text": "Needs tended land. Your worked farms, mines and lumber mills also count as tended for your cards, but not as wild.",
+      "needsTendedWork": true,
       "effects": [],
-      "deferred": ["an improved hex may also be tended, and counts as both"],
-      "note": "A hex can hold only one work at a time."
+      "deferred": ["your farms, mines and lumber mills also count as tended land for your cards"],
+      "note": "No rule yet lets a farm, mine or lumber mill count as tended land."
     },
     "theTheodosianWalls": {
       "name": "The Theodosian Walls",

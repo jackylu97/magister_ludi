@@ -290,7 +290,10 @@ describe('the visibility grid', () => {
     // 162 since Scientific batch S6 (the research record): eleven more
     // Scientific Orders come live, so a v161 log's Scientific hands hold
     // different cards.
-    expect(SCHEMA_VERSION).toBe(162);
+    // 163 since Expansionist batch E7 (the themes sheet): fifteen Expansionist
+    // rows are retired, ten change in place and five change type, so a v162
+    // log's Expansionist hands and chairs hold different cards.
+    expect(SCHEMA_VERSION).toBe(163);
   });
 
   it('survives a JSON round trip as plain data', () => {

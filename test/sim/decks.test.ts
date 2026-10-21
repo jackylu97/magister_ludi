@@ -518,8 +518,12 @@ describe('the schema, as landed', () => {
     // **And Scientific batch S6** (the research record): eleven more. Eleven
     // new Scientific rows came live, one of them a commission (The Royal
     // Charter Commission).
-    expect(live).toBe(539);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(539);
+    // **And Expansionist batch E7** (the themes sheet): fourteen fewer. The
+    // fourteen live Expansionist rows the themes pass cut are retired (the
+    // fifteenth, Public Works, was deferred and never counted). Ten rows were
+    // changed in place and were already live.
+    expect(live).toBe(525);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(525);
   });
 
   /**
@@ -801,7 +805,10 @@ describe('the schema, as landed', () => {
     // 162 since Scientific batch S6 (the research record): eleven more
     // Scientific Orders come live, so a v161 log's Scientific hands hold
     // different cards.
-    expect(SCHEMA_VERSION).toBe(162);
+    // 163 since Expansionist batch E7 (the themes sheet): fifteen Expansionist
+    // rows are retired, ten change in place and five change type, so a v162
+    // log's Expansionist hands and chairs hold different cards.
+    expect(SCHEMA_VERSION).toBe(163);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1040,10 +1047,13 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // The School of Mines (− 3).
       // **Dominion batch D14** freed two (The Relay Stations and
       // Circumvallation: − 2).
+      // **Expansionist batch E7** retired the themes pass's fifteen cuts:
+      // fourteen live rows and the deferred Public Works (− 1, and + 15
+      // retired).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(35);
-      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(173);
+      ).toHaveLength(34);
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(188);
     }
   });
 

@@ -193,6 +193,8 @@ describe('the Expansionist batch E1: the new levy uses', () => {
   });
 
   it('The Builders\' Levy sends hammers to the nearest other town building a world wonder', () => {
+    // Retired in batch E7. A save may still hold the card, so the row is seated
+    // directly (the themes triage's reading 7).
     const state = bareState(24, 10);
     const city = town(state, 2, 4, 6);
     slot(state, 0, 'theBuildersLevy');

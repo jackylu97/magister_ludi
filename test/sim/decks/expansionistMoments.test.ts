@@ -300,6 +300,8 @@ describe('the Expansionist batch E2: founding and the counts', () => {
   });
 
   it('counts the towns a scope admits for the three Opus cards, the capital never joined to itself', () => {
+    // The Land's Great Work is retired since batch E7. A save may still hold it,
+    // so the row is seated directly (the themes triage's reading 7).
     const state = bareState(20, 10);
     slot(state, 0, 'theLandsGreatWork');
     slot(state, 0, 'theGreatAqueducts');

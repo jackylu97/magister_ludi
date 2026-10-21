@@ -16,6 +16,11 @@
  *     (reading 23);
  *   · The Age of Improvement: an amplifier on improved hexes only (reading 24);
  *   · the one writer of each new tile field, and the words of all ten.
+ *
+ * The Prospectors, The Landscape Garden, The Common Domain and The Manors are
+ * retired since batch E7 of `docs/plans/expansionist-themes-triage.md`. A save
+ * may still hold one, so their tests stay and seat the rows directly (that
+ * triage's reading 7).
  */
 
 import { describe, expect, it } from 'vitest';
@@ -343,7 +348,11 @@ describe('the Expansionist batch E3: The Age of Improvement', () => {
     raiseImprovement(garden, 'forestGarden', state.turn);
     const field = neighborInDirection(state.map, at(state, 4, 4), 1)!;
     raiseImprovement(field, 'farm', state.turn);
-    slot(state, 0, 'theRopeStretchers');
+    // The Highlands pays the mine on its hill. It replaced The Rope Stretchers
+    // here in batch E7, when that card became a count of a town's improved
+    // tiles. The Manors is retired since E7 and is seated directly, as a save
+    // may hold it.
+    slot(state, 0, 'theHighlands');
     slot(state, 0, 'theTendedCountry');
     slot(state, 0, 'theManors');
     const total = (tile: Tile): number => foldTile(tile, yieldContextFor(state, 0)).production;
@@ -351,11 +360,11 @@ describe('the Expansionist batch E3: The Age of Improvement', () => {
     const gardenBefore = total(garden);
     const ledgerBefore = explainCardCityYields(state, city).reduce((sum, line) => sum + line.production, 0);
     // Each of the three really pays before the amplifier is seated.
-    expect(paid(state, mine, 'Order · The Rope Stretchers', 'production')).toBe(1);
+    expect(paid(state, mine, 'Order · The Highlands', 'production')).toBe(1);
     expect(paid(state, garden, 'Order · The Tended Country', 'production')).toBe(2);
     expect(ledgerBefore).toBe(1);
     slot(state, 0, 'theAgeOfImprovement');
-    // The Rope Stretchers' +1 on the mine, once more.
+    // The Highlands' +1 production on the mine, once more.
     expect(total(mine)).toBe(mineBefore + 1);
     // The Tended Country's +2 on a tended work is not doubled.
     expect(total(garden)).toBe(gardenBefore);

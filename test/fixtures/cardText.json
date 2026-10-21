@@ -4238,8 +4238,8 @@
   ],
   "theRopeStretchers": [
    {
-    "raw": "+1 production on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] or [[improvement:lumbermill|Lumbermill]]",
-    "text": "+1 production on every hex with a Mine or Quarry or Lumbermill"
+    "raw": "+1 science in every city per 3 improved hexes there",
+    "text": "+1 science in every city per 3 improved hexes there"
    }
   ],
   "theBeatingOfTheBounds": [
@@ -4368,8 +4368,8 @@
     "text": "Commission. Goal: have 6 tended tiles inside your borders, while this card is seated"
    },
    {
-    "raw": "Reward: culture equal to 15 times your tended tiles at that moment",
-    "text": "Reward: culture equal to 15 times your tended tiles at that moment"
+    "raw": "Reward: for the rest of the game, +1 culture on every tended hex",
+    "text": "Reward: for the rest of the game, +1 culture on every tended hex"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -4606,22 +4606,22 @@
   ],
   "theMilestones": [
    {
-    "raw": "+1% production per 3 road hexes you have laid (at most +30% production)",
-    "text": "+1% production per 3 road hexes you have laid (at most +30% production)"
-   },
-   {
     "raw": "+1% gold per 3 road hexes you have laid (at most +30% gold)",
     "text": "+1% gold per 3 road hexes you have laid (at most +30% gold)"
+   },
+   {
+    "raw": "+1% culture per 3 road hexes you have laid (at most +30% culture)",
+    "text": "+1% culture per 3 road hexes you have laid (at most +30% culture)"
    }
   ],
   "theTeemingRealm": [
    {
-    "raw": "+1% production per 10 citizens (at most +30% production)",
-    "text": "+1% production per 10 citizens (at most +30% production)"
+    "raw": "+1% science per 10 citizens (at most +30% science)",
+    "text": "+1% science per 10 citizens (at most +30% science)"
    },
    {
-    "raw": "+1% food per 10 citizens (at most +30% food)",
-    "text": "+1% food per 10 citizens (at most +30% food)"
+    "raw": "+1% culture per 10 citizens (at most +30% culture)",
+    "text": "+1% culture per 10 citizens (at most +30% culture)"
    }
   ],
   "theLabourRolls": [
@@ -4727,8 +4727,8 @@
     "text": "Commission. Goal: claim 12 hexes by outposts, cleared camps or buying, while this card is seated"
    },
    {
-    "raw": "Reward: +2 citizens in each of your 3 smallest cities, and for 30 turns, +2 happiness in every city",
-    "text": "Reward: +2 citizens in each of your 3 smallest cities, and for 30 turns, +2 happiness in every city"
+    "raw": "Reward: for the rest of the game, +25% border expansion",
+    "text": "Reward: for the rest of the game, +25% border expansion"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -4765,8 +4765,8 @@
   ],
   "plenty": [
    {
-    "raw": "a city growing grants production equal to 8 times its population",
-    "text": "a city growing grants production equal to 8 times its population"
+    "raw": "a city growing grants production equal to 5 times its population",
+    "text": "a city growing grants production equal to 5 times its population"
    }
   ],
   "theMillWheels": [
@@ -4969,14 +4969,18 @@
   ],
   "theMeasureOfTheLand": [
    {
-    "raw": "+1 production in every city per 25 hexes in your borders (at most +6 production)",
-    "text": "+1 production in every city per 25 hexes in your borders (at most +6 production)"
+    "raw": "+1 science in every city per 25 hexes in your borders (at most +10 science)",
+    "text": "+1 science in every city per 25 hexes in your borders (at most +10 science)"
    }
   ],
   "theMotherCity": [
    {
-    "raw": "+1 production in your capital per citizen there",
-    "text": "+1 production in your capital per citizen there"
+    "raw": "+5% production in your capital per city you have founded this game",
+    "text": "+5% production in your capital per city you have founded this game"
+   },
+   {
+    "raw": "+5% culture in your capital per city you have founded this game",
+    "text": "+5% culture in your capital per city you have founded this game"
    }
   ],
   "theGeneralLevy": [
@@ -5003,12 +5007,12 @@
   ],
   "theDomesdaySurvey": [
    {
-    "raw": "Commission. Goal: own 150 hexes and work 50 improved tiles at the same time, while this card is seated",
-    "text": "Commission. Goal: own 150 hexes and work 50 improved tiles at the same time, while this card is seated"
+    "raw": "Commission. Goal: own 120 hexes and work 40 improved tiles at the same time, while this card is seated",
+    "text": "Commission. Goal: own 120 hexes and work 40 improved tiles at the same time, while this card is seated"
    },
    {
-    "raw": "Reward: each city gains production equal to 5 times the improved or tended tiles it works, toward what it is building, and a great engineer to call",
-    "text": "Reward: each city gains production equal to 5 times the improved or tended tiles it works, toward what it is building, and a great engineer to call"
+    "raw": "Reward: for the rest of the game, +1 science on every improved or tended hex",
+    "text": "Reward: for the rest of the game, +1 science on every improved or tended hex"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -5017,8 +5021,8 @@
   ],
   "theTwoHarvests": [
    {
-    "raw": "an improved hex may also be tended, and counts as both — not built yet",
-    "text": "an improved hex may also be tended, and counts as both — not built yet",
+    "raw": "your farms, mines and lumber mills also count as tended land for your cards — not built yet",
+    "text": "your farms, mines and lumber mills also count as tended land for your cards — not built yet",
     "deferred": true
    }
   ],

@@ -356,9 +356,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Sweet Water | 0 | ● | S | Towns beside a river or lake gain +1 happiness. Worked freshwater tiles gain +1 food. |
 | The Seed Grain | 0 | ◆ | S | Towns you found start with one extra citizen. |
 | The Ambarvalia | 0 | ● | P | Your capital gains +1 faith. Each town gains +1 faith for every two improved tiles in its borders. |
-| The Rope Stretchers | 0 | ● | S | Worked mines, quarries and lumber mills gain +1 production. |
-| The Beating of the Bounds | 0 | ● | S | Each town you found claims one extra wild hex of your choice next to its borders. |
-| The Pyramid Builders | 0 | ● | S | +25% production toward wonders in your capital. |
+| The Rope Stretchers | 0 | ● | P | Each town gains +1 science for every three improved tiles in its borders. |
 | The Road Home | 0 | ● | S | Each town you found is joined to your nearest town by road. |
 | The Work Gangs | 0 | ● | S | Towns of at least three citizens may spend a citizen to raise a worker. This shares the town's levy wait. |
 | The Woodland Bands | 0 | ● | S | Your units ignore the extra movement cost of forest and jungle, and gain +2 strength while they stand in forest or jungle. |
@@ -374,20 +372,15 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Hard Country | 1 | ● | S | Worked desert and tundra tiles gain +1 food and +1 production. |
 | The Master Builders | 1 | ● | S | Towns working at least three mines, quarries or lumber mills give +1 renown a turn, favouring great engineers. |
 | Outposts | 1 | ◆ | S | Workers may plant an outpost on a wild tile within three hexes of your border, for one charge. It claims its hex and the ring around it for your nearest town, and costs no authority. A town founded on an outpost keeps that land. |
-| The Prospectors | 1 | ● | S | Prospecting costs workers and explorers no charge. Worked mines on a seam you surfaced gain +3 production. |
-| Six Gardens | 1 | ◆ | S | Needs tended land. Goal: have six tended tiles. Reward: culture equal to fifteen times the tended tiles you hold. The card then leaves its chair. |
+| Six Gardens | 1 | ◆ | S | Needs tended land. Commission. Have six tended tiles. Then, for the rest of the game, tended tiles gain +1 culture. The card leaves its chair. |
 | The Forest Keepers | 1 | ● | S | Lumber mills that have stood for twenty turns gain +2 culture. |
-| The Plough Teams | 1 | ● | P | Each town gains +1 food for every two improved tiles in its borders. |
-| The Polis | 1 | ○ | S | While you hold at most four towns, every town gains +25% food. |
 | The Public Fountains | 1 | ● | P | Towns beside a river or lake gain +1 happiness for every four citizens, at most +3. |
 | The Wild Marches | 1 | ● | P | +1 culture for every four wild hexes you own. |
 | The Quiet Provinces | 1 | ◆ | P | Each town gains +1 production for every three points of spare authority, at most +3. |
 | The Road Towns | 1 | ● | P | Towns joined to your capital by road gain +2 production. |
-| The Builders' Levy | 1 | ◆ | S | Towns may spend a citizen to send production equal to the food it took to grow it to a world wonder being built in another of your towns. |
 | The Labour Feasts | 1 | ◆ | S | Needs a levy. After a town spends a citizen on a levy, it gains +1 culture for every wild tile it works, for ten turns. At most once every ten turns. |
 | The Gleaners | 1 | ● | S | Needs a levy. After a town spends a citizen on a levy, it gains +3 food for ten turns. At most once every ten turns. |
 | The Grain Census | 1 | ◆ | P | While seated, this card gains +1 production and +1 gold each time one of your towns grows past its largest size. It starts at +2 of each. |
-| The Garden Frontier | 1 | ○ | S | Needs tended land. Workers may tend unowned wild hexes up to two hexes beyond your borders. A hex tended there joins your nearest town. |
 | The Burhs | 1 | ● | S | Towns gain +3 defence for every defensive building in them, and +100% production toward defensive buildings. |
 | Commission: Break the Sod | 1 | ● | S | Commission. Work twelve improved tiles at the same time. Then every town gains +3 food for twenty turns, and your capital gains a free worker. The card leaves its chair. |
 | The Watercourses | 2 | ◆ | S | Farms directly beside a river irrigate adjacent farms. Irrigated worked farms gain +2 production. Water does not relay beyond that first step. |
@@ -399,38 +392,33 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Breadbasket | 2 | ◆ | S | A town told to stop growing adds its food surplus to its production. |
 | Migration | 2 | ○ | S | Every ten turns, each of your towns that is at its happiness limit sends one citizen to your smallest connected town that has room to grow. |
 | Veteran Colonies | 2 | ◆ | S | A military unit standing in one of your towns may retire there: the unit is removed and the town gains food equal to its production cost. |
-| The Landscape Garden | 2 | ◆ | S | Needs tended land. Tended tiles beside a great-person work or a wonder gain +3 culture. |
 | The Engineers' Yards | 2 | ● | S | Manufactories gain +3 production. Worked farms, mines, quarries and lumber mills beside a manufactory gain +2 production. |
 | The Tended Country | 2 | ◆ | S | Needs tended land. Tended tiles gain +2 production. |
 | The Old Fields | 2 | ◆ | P | +1% food and production for every three works that have stood thirty turns, at most +30%. |
 | The Hedgerows | 2 | ● | S | Needs tended land. Worked farms beside a tended tile gain +2 food, once per farm. |
 | The Great Households | 2 | ◆ | P | Each town gains +2% production for every citizen it has, at most +30%. |
 | The Harbour Cities | 2 | ● | P | Coastal towns gain +1 culture for every two citizens. |
-| The Milestones | 2 | ◆ | P | +1% production and gold for every three road hexes you have paved, at most +30%. |
-| The Teeming Realm | 2 | ◆ | P | +1% production and food for every ten citizens in your empire, at most +30%. |
+| The Milestones | 2 | ◆ | P | +1% gold and culture for every three road hexes you have paved, at most +30%. |
+| The Teeming Realm | 2 | ◆ | P | +1% science and culture for every ten citizens in your empire, at most +30%. |
 | The Labour Rolls | 2 | ◆ | P | Needs a levy. +1% production and food for every two citizens you have levied this game, at most +30%. |
 | The Terraces of Moray | 2 | ◆ | S | Towns beside a mountain may spend a citizen to gain science equal to the food it took to grow that citizen. |
 | The Colonists | 2 | ◆ | S | Towns of at least six citizens may spend a citizen to raise a settler. |
 | The Book of Settlements | 2 | ◆ | P | +3% production and gold for every town you have founded this game, at most +30%. |
-| The Woodwrights | 3 | ○ | S | Forest and jungle chops grant 150% more production. |
-| The Common Domain | 3 | ◆ | S | Towns of at least ten population may work owned tiles one hex beyond their normal work radius. |
+| The Staked Claims | 2 | ◆ | S | Each town you found claims every unowned hex within two hexes of it. |
 | Seasonal Levies | 3 | ◆ | S | Needs a levy. After a city spends a citizen on a levy, it gains +60% food for ten turns. A city can gain this at most once every twenty turns. |
 | The Long Tending | 3 | ○ | S | Needs tended land. Tended tiles gain +2 food for every 25 turns since they were tended, at most +6. |
 | The Mountain Schools | 3 | ◆ | P | Towns beside a mountain gain +15% science. Worked mines and quarries beside a mountain gain +2 science. |
 | The Polders | 3 | ○ | S | Workers may raise a polder on a coast tile that touches at least three of your land tiles, for two charges. A polder yields as a farm on grassland. |
 | A Court of Engineers | 3 | ○ | S | Gain +50% renown, but great-person offers contain only great engineers. |
-| The Wide Country | 3 | ◆ | S | Goal: while this card is seated, claim twelve hexes by outposts, cleared camps or buying. Reward: your three smallest towns each gain two citizens, and every town gains +2 happiness for 30 turns. The card then leaves its chair. |
+| The Wide Country | 3 | ◆ | S | Commission. Claim twelve hexes by outposts, cleared camps or buying while this card is seated. Then, for the rest of the game, your borders grow 25% faster. The card leaves its chair. |
 | Old Workings | 3 | ● | S | Worked mines, quarries and lumber mills that have stood for twenty turns gain +3 production. |
-| The Manors | 3 | ● | P | Each town gains +1 production for every two improved tiles in its borders. |
 | The Royal Forests | 3 | ◆ | P | Towns working at least three lumber mills gain +25% culture. |
 | The Megalopolis | 3 | ○ | P | Towns of ten or more citizens gain +1 science and +1 production for each citizen. |
-| Plenty | 3 | ● | S | When a town grows, it gains production equal to eight times its new population. |
+| Plenty | 3 | ● | S | When a town grows, it gains production equal to five times its new population. |
 | The Mill Wheels | 3 | ● | P | Towns with a Watermill gain +15% production. |
 | The Quitrents | 3 | ● | P | +1 gold for every two hexes you own. |
 | The Hallowed Woods | 3 | ◆ | P | Towns working at least five wild tiles gain +25% culture. |
-| The Assay Office | 3 | ◆ | S | Each seam you surface grants 60 science. |
 | The Stationes | 3 | ◆ | S | Land units gain +3 strength while they stand in a town connected to your capital by road. |
-| The Managed Wild | 3 | ◆ | P | Needs tended land. Each town gains +5% food for every tended tile in its borders, at most +25%. |
 | The Mit'a | 3 | ○ | S | Needs a levy. A citizen spent on a levy returns to its town twenty turns later. |
 | The Slack Season | 3 | ◆ | S | Needs a levy. Every twentieth turn, after the harvest, your towns may levy whatever their wait. |
 | The Trained Bands | 3 | ◆ | S | Needs a levy. Units raised by a levy start as Veterans. |
@@ -444,22 +432,20 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Water Courts | 3 | ○ | S | A farm joined to fresh water by a chain of your farms counts as having fresh water. |
 | The Coming of the Water | 3 | ◆ | S | When a town finishes an Aqueduct, every farm in its borders gains +1 food for the rest of the game. |
 | The Mountain Terraces | 3 | ○ | S | Your towns may work the mountains in their borders. A worked mountain yields 2 science and 1 production. |
-| The Staked Claims | 3 | ◆ | S | Each town you found claims every unowned hex within two hexes of it. |
 | The Sovereign Writ | 3 | ○ | S | Spare authority's bonus to production and border growth has no ceiling: +10% for every five points. |
 | The Imperial Roads | 3 | ○ | S | Towns joined to your capital by road cost no authority. |
-| The Land's Great Work | 4 | ○ | S | The city building the Magnum Opus gains +5% production toward it for each of your towns of at least eight citizens, at most +40%. |
 | The Garden of the World | 4 | ○ | S | Needs tended land. Tended tiles gain +2 food, +1 production and +1 culture. Towns working at least six tended tiles gain +3 happiness. |
 | The Heartland | 4 | ○ | S | Goal: one of your towns works twelve improved or tended tiles that each yield 5 or more in total. Reward: for the rest of the game that town costs no authority and gains +3 happiness and +20% food. The card then leaves its chair. |
 | The Corvée | 4 | ○ | S | While one of your cities builds the Magnum Opus, each of your other towns of at least ten citizens may spend one citizen for it, once every five turns. The Opus city gains production equal to the food that citizen took to grow. This shares the town's levy limit. |
 | The Master of Works | 4 | ○ | S | When a great engineer rushes the works in the city building the Magnum Opus, each of your towns with a manufactory also sends that city one turn of its own production. |
 | The Philosophers' Peaks | 4 | ◆ | P | Each town gains +2 science for every mountain in its borders, at most +6. |
 | The Inheritance of Fields | 4 | ◆ | S | Worked improvements and tended works that have stood for at least 60 turns gain +1 production. Tended ones also gain +1 culture. |
-| The Measure of the Land | 4 | ○ | P | Every town gains +1 production for every 25 hexes your empire owns, at most +6. |
-| The Mother City | 4 | ○ | P | Your capital gains +1 production for every citizen it has. |
+| The Measure of the Land | 4 | ○ | P | Every town gains +1 science for every 25 hexes your empire owns, at most +10. |
+| The Mother City | 4 | ○ | P | Your capital gains +5% production and +5% culture for each town you have founded this game. |
 | The General Levy | 4 | ○ | S | Your towns may spend one citizen to raise their best melee unit. At peace a town may do this once every five turns, sharing the levy limit; while you are at war, once every turn. Units raised this way cost no upkeep inside your borders. |
 | The Great Migration | 4 | ○ | S | Every ten turns, each foreign town within three hexes of your border loses one citizen to your nearest town, if your town is happier and has room to grow. |
 | The Encroaching Fields | 4 | ◆ | S | Once every ten turns, each of your towns of at least twelve citizens takes one hex from the borders of a foreign town next to it, if nobody works that hex and your town is larger than the town that owns it. |
-| The Domesday Survey | 4 | ○ | S | Goal: own at least 150 hexes and work at least 50 improved or tended tiles at the same time. Reward: each town gains production equal to five times the improved or tended tiles it works, toward what it is building, and you gain a great engineer. The card then leaves its chair. |
+| The Domesday Survey | 4 | ○ | S | Commission. Own at least 120 hexes and work at least 40 improved or tended tiles at the same time. Then, for the rest of the game, each town gains +1 science for each improved or tended tile it works. The card leaves its chair. |
 | The Theodosian Walls | 4 | ◆ | S | Your towns gain +1 defence for every two citizens. |
 | The Great Aqueducts | 4 | ○ | S | The town raising the Magnum Opus gains +5% production toward it for each of your towns with an Aqueduct, at most +40%. |
 | The Imperial Highways | 4 | ○ | S | The town raising the Magnum Opus gains +3% production toward it for every town joined to your capital by road, at most +45%. |
@@ -789,20 +775,16 @@ across the seven files. Ids are internal; the names in these tables are the card
 ### Notes and deferred halves (from the data rows)
 
 - **Riders of the Steppe** — A raid costs a single point of movement, so a rider who is forgiven one is forgiven the raid.
-- **The Beating of the Bounds** — For now the town takes the hex its borders would have grown into next, rather than one you choose.
 - **The Old Songs** — Open water your people work counts as unbuilt ground here: the game tells works from wild, and not land from sea.
 - **Outposts** — No work can yet be raised outside your borders, and only a town or a great general can claim ground. † a worker plants an outpost on wild ground near your border, and it claims that ground and the ring around it for your nearest town
 - **The Waterworks** — The saving on the aqueduct is paid as extra production toward it, which comes to the same price.
 - **Migration** — No rule yet moves a citizen from one town to another. † a crowded town sends a citizen to a small town joined to it
 - **The Polders** — The ground under a hex never changes during a game, by a deliberate rule, and the board would have to redraw the hex. † a worker turns shallow sea beside your land into grassland
-- **Public Works** — A great engineer has no such act yet, and terraces belong to one leader alone. † a great engineer may finish an aqueduct in a town, or raise terraces on its worked hills
-- **The Wide Country** — For now only hexes bought with gold count toward the goal, and instead of citizens in the smallest towns, small towns grow faster for the same span.
 - **The Heartland** — A reward cannot yet mark one town for the rest of the game. † one town working a great stretch of rich land becomes your heartland, cheaper to hold and happier for good
 - **The Master of Works** — For now a great engineer's act simply pays half as much again, wherever it is spent.
 - **The Great Migration** — No rule yet moves a citizen from one town to another, let alone between empires. † unhappy foreign towns near your border lose citizens to your happier towns
 - **The Encroaching Fields** — A hex never changes hands between empires except when its town is captured. † large towns take unworked hexes from the borders of smaller foreign towns beside them
-- **The Domesday Survey** — For now the whole production reward lands in your capital rather than in each town.
-- **The Two Harvests** — A hex can hold only one work at a time. † an improved hex may also be tended, and counts as both
+- **The Two Harvests** — No rule yet lets a farm, mine or lumber mill count as tended land. † your farms, mines and lumber mills also count as tended land for your cards
 - **Travellers' Letters** — Half built, and so held whole. Nothing in this game counts the empires you have met, so the letters have nobody to be addressed to. † your capital learns and sings a little more for every foreign empire you have met
 - **Letters of Introduction** — Held whole. The world does not announce a first meeting, and no law of yours can put coin in another realm's treasury. † meeting an empire for the first time pays you, and pays them; claiming a discovery pays gold
 - **Private Patronage** — Held whole. A discount here would reach the great national houses as well, and the card says it must not. † buying an ordinary building costs less, and raising one the slow way costs more

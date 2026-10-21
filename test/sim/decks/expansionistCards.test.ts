@@ -19,6 +19,10 @@
  *     tended work counting as wild (readings 1 and 2);
  *   · Plenty and The Assay Office: the growth and seam riders;
  *   · The Pyramid Builders: wonders in the capital only.
+ *
+ * The Polis, The Assay Office and The Pyramid Builders are retired since batch
+ * E7 of `docs/plans/expansionist-themes-triage.md`. A save may still hold one,
+ * so their tests stay and seat the rows directly (that triage's reading 7).
  */
 
 import { describe, expect, it } from 'vitest';
@@ -241,7 +245,10 @@ describe('the Expansionist batch E0: towns', () => {
 });
 
 describe('the Expansionist batch E0: riders', () => {
-  it('Plenty pays eight hammers a citizen when a town grows, and The Assay Office sixty beakers a seam', () => {
+  it('Plenty pays five hammers a citizen when a town grows, and The Assay Office sixty beakers a seam', () => {
+    // Plenty pays five times the new population since batch E7 (the user's
+    // revision of 2026-10-21). The Assay Office is retired since E7; the test
+    // seats the row directly, as a save may hold it.
     const state = bareState();
     foundCityAt(state, 0, at(state, 5, 5));
     slot(state, 0, 'plenty');
@@ -249,7 +256,7 @@ describe('the Expansionist batch E0: riders', () => {
     const grants = (payout: ReturnType<typeof windfallPayout>, card: string): [string, number][] =>
       payout.grants.filter((grant) => grant.card === card).map((grant) => [grant.yield, grant.amount]);
     expect(grants(windfallPayout(state, 0, 'growth', 0, 0, { population: 6 }), 'plenty')).toEqual([
-      ['production', 48],
+      ['production', 30],
     ]);
     expect(grants(windfallPayout(state, 0, 'veinFound'), 'theAssayOffice')).toEqual([['science', 60]]);
   });
