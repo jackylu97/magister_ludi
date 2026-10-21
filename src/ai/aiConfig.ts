@@ -1420,6 +1420,65 @@ export interface AiConfig {
         guildsmen: number;
       };
     };
+    /**
+     * **Stand-in prices for the Expansionist shapes of batches E9 to E12**
+     * (Expansionist batch E13). Each arm in `value.ts` reads what it can off
+     * the board (the seat's works, its live hex lines, its towns, its guild
+     * bars) and uses its knob only for the part the board cannot say.
+     *
+     * Some new shapes have no knob, because the board prices them fully or a
+     * bot never meets them:
+     *
+     *   · `atLeast` on the town scope `terrainInBorders` (The Mountain
+     *     Schools) is read by `townsAdmitting`, which asks the simulation;
+     *   · the `publicWorks` count (The Public Good) takes its promise from the
+     *     public works the towns could raise, as a count of buildings does;
+     *   · the `publicWorkCompleted` tally (The Aediles) reads its forecast
+     *     from `score.tallyForecast`, as every tally does;
+     *   · the `citizens` grant (Veteran Colonies) is priced at the food a
+     *     citizen costs, and the only moment that pays it, a soldier retired,
+     *     is a moment this bot never forecasts;
+     *   · a combat line for levied units (Watch and Ward) reaches nobody,
+     *     because a bot never levies;
+     *   · the `burned` mark is written only by burned country, which is not
+     *     in `workers.improvements`, so a bot never lays it. Where a mark
+     *     stands, the hex fold pays it like any other line.
+     */
+    expansionist: {
+      /**
+       * **The Marl Pits** (`markBeside`): of the six hexes around a new mine
+       * or quarry, how many lie inside this seat's borders. The share of
+       * those hexes that would take the mark is read off the board.
+       */
+      markBesideRing: number;
+      /**
+       * **Commission: Break the Sod** (`workAge`): points a turn for each work
+       * inside this seat's borders, for each turn the offset adds. This is
+       * the price of the cards that read a work's age that the seat may hold
+       * later. The age lines the seat holds now are read off the board.
+       */
+      workAge: number;
+      /**
+       * **The Two Harvests** (`fieldsTended`): points a turn for each work of
+       * the named rows inside this seat's borders. This is the price of the
+       * cards that pay on tended land that the seat may hold later. The
+       * tended-land lines the seat holds now are read off the board.
+       */
+      fieldsTended: number;
+      /**
+       * **The Burghers** (`guildInflow`): what one more point a turn into a
+       * town's guild bar is worth, in points. A guildsman costs a bar of
+       * about seventy points and moves a citizen off a hex into a trade.
+       */
+      guildPoint: number;
+      /**
+       * **The Cura Aquarum** (`holdsBuilding`): the share of this seat's other
+       * towns that the rule's scope does not admit today (towns not yet
+       * joined to the capital by road) that are expected to be admitted over
+       * the horizon.
+       */
+      heldLater: number;
+    };
   };
   /** What "an enemy is near my towns" means, and what it is worth. */
   threat: {

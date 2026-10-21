@@ -80,7 +80,7 @@ import type { BeadChain, ExpansionChain, TechChain } from './chain';
  */
 import type { RouteOutlook } from './routes';
 
-import { BUILDING_IDS, type BuildingId, buildingDef, isWonder } from '../sim/buildingData';
+import { BUILDING_IDS, type BuildingId, buildingDef, isPublicWork, isWonder } from '../sim/buildingData';
 // **The one place a building's non-yield facts are read** (CLAUDE.md), and batch
 // X8 reads five more of them through it: the demand a court forgives, the coin
 // an assay house takes off a price, the wages a throne rebates, what a keep
@@ -159,7 +159,7 @@ import { routeCities, routeHexes, routeIsLive } from '../sim/routes';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from '../sim/resourceData';
 import { availableRites, cityRite } from '../sim/religion';
 import { LIVE_RITE_IDS, riteDef } from '../sim/religionData';
-import { RULES } from '../sim/rulesData';
+import { HEX_MARK_IDS, type HexMarkId, type HexMarkRule, RULES } from '../sim/rulesData';
 import {
   type PlayerStatecraft,
   type EmpireRates,
@@ -179,7 +179,22 @@ import {
 // index: through the index, the build warns of a circular import between
 // chunks.
 import { draftCost } from '../sim/statecraft/draft';
-import { groundFactsFor, surplusRowReaches, unitMatches } from '../sim/statecraft/evaluator';
+import {
+  type GroundFacts,
+  cardRulePercent,
+  effectsOfKind,
+  groundFactsFor,
+  oneOfAKind,
+  surplusRowReaches,
+  townBuildings,
+  townHoldsBuilding,
+  townShelf,
+  unitMatches,
+} from '../sim/statecraft/evaluator';
+// Expansionist batch E13: The Burghers' faster guild bar is priced off the
+// simulation's own reading of a town's bar, its share cap and its trades.
+import { explainGuildInflow, idleCitizens, nextGuildFamily } from '../sim/guilds';
+import { canFormGuild } from '../sim/specialists';
 import {
   type CardPaysEffect,
   type CardEffect,
@@ -1658,14 +1673,35 @@ export function costOfUpkeep(gold: number, ctx: ValueContext): number {
  * function of a town's **size** — the demand a court forgives. `hammerPrice`'s
  * bargain exactly: absent, the fold prices the empire's middling town, which is
  * the honest fallback for a caller that does not say who is asking.
+ *
+ * **A town that already holds the row through a card gains nothing from what it
+ * does** (Expansionist batch E13): The Cura Aquarum's towns hold an Aqueduct
+ * they did not build (`townHoldsBuilding`, E12). A real one built there adds no
+ * water and no growth line, because the town fold counts a building once, so
+ * this fold prints one line at nought and keeps only the wager term, which
+ * reads what was built.
+ *
+ * `wager` false leaves the wager term out. The price of a building a card
+ * grants (`heldBuildingWorth`) asks it that way, because a held building is not
+ * built and a wager counts only what was built.
  */
 export function explainBuildingRow(
   id: BuildingId,
   ctx: ValueContext,
   city?: City,
+  wager = true,
 ): Appraisal {
   const def = buildingDef(id);
   const terms: ValueTerm[] = [];
+  if (city !== undefined && !city.buildings.includes(id) && townHoldsBuilding(ctx.state, city, id)) {
+    terms.push({
+      label: `${city.name} already holds the ${def.name} through a card, so it does nothing more here`,
+      value: 0,
+    });
+    const wagered = wager ? rowWagerTerm(id, ctx, city) : null;
+    if (wagered !== null) terms.push(wagered);
+    return appraise(terms);
+  }
   if (def.happiness !== undefined) {
     terms.push({
       label: `${signed(def.happiness)} happiness × ${meterWords(ctx, 'happiness')}`,
@@ -1738,7 +1774,10 @@ export function explainBuildingRow(
   const hp = foldBuildingCityStat(buildingCityHp({ buildings: [id] }));
   const walled = hp === 0 ? undefined : middlingTown(ctx, city);
   if (hp !== 0 && walled !== undefined) {
-    const share = hp / Math.max(1, cityMaxHp(townHolding(walled, id)));
+    // The bar is the one the town would have, its card-held walls included
+    // (`townShelf`, Expansionist batch E13), as the simulation's siege reads it.
+    const holding = townHolding(walled, id);
+    const share = hp / Math.max(1, cityMaxHp(holding, townShelf(ctx.state, holding)));
     const defence = cityBaseStrength(ctx.state, walled) * ctx.ai.weights.military;
     terms.push({
       label:
@@ -1814,19 +1853,25 @@ export function explainBuildingRow(
   const route = routeSlotTerm((def.routeSlots ?? 0) + grown, ctx);
   if (route !== null) terms.push(route);
   terms.push(nest('its written effects', explainEffects(def.effects ?? [], ctx)));
-  // **The bar this seat staked** (batch W2): three of the deck's readings count
-  // buildings and two count wonders, and a row that would be one of them is one
-  // unit of the shortfall. A lean and never a lock — the row is scored exactly
-  // as it was and this is one more printed line on it.
-  const wagered = wagerAppetiteTerm(
+  const wagered = wager ? rowWagerTerm(id, ctx, city) : null;
+  if (wagered !== null) terms.push(wagered);
+  return appraise(terms);
+}
+
+/**
+ * **The bar this seat staked** (batch W2): three of the deck's readings count
+ * buildings and two count wonders, and a row that would be one of them is one
+ * unit of the shortfall. It is a lean and never a lock: the row is scored
+ * exactly as it was, and this is one more printed line on it.
+ */
+function rowWagerTerm(id: BuildingId, ctx: ValueContext, city: City | undefined): ValueTerm | null {
+  return wagerAppetiteTerm(
     ctx,
     isWonder(id) ? 'wonder' : 'building',
     1,
     isWonder(id) ? 'one more wonder' : 'one more building',
     city?.id,
   );
-  if (wagered !== null) terms.push(wagered);
-  return appraise(terms);
 }
 
 /**
@@ -2143,7 +2188,7 @@ export const BUILDING_ROW_SILENT: Readonly<Record<string, string>> = {
   empireBuilding:
     'the *class*, split from the limit beside it in batch C7: it decides the price line (`docs/production-costs.md`) and which card clauses name the row, both of which are folded where they are read, so the marker itself is worth nothing on its own',
   publicWork:
-    'a class the cards read (Expansionist batch E11): The Aediles counts each one finished and The Public Good each one held, so what it is worth is the cards’ and is read where they are priced (batch E13). The marker is worth nothing on its own',
+    'a class the cards read (Expansionist batch E11): The Aediles counts each one finished and The Public Good each one held, so what it is worth is the cards’ and is read where they are priced (batch E13: the count’s promise in `potentialTownsFor`, the tally’s forecast in `score.tallyForecast`). The marker is worth nothing on its own',
   wonder: 'one per world: the production category and the claim, both the rules’ business; what a wonder pays is its `effects`, its `renown` and its grants, all folded above',
   consecrated: 'the patron roll — uniform over the consecrations, and this bot has no reading of a patron',
   acceptsContributions: 'a way to pay a basket; the bot has no contribution arm to price it for',
@@ -2372,7 +2417,9 @@ const PROMISE_MEMO = new WeakMap<ValueContext, PromisedBuilding[]>();
  * A town already holding the row is not promised anything: it is *held*, which
  * is the reading the arms take first, and counting it here as well would pay the
  * empire twice for one library. A row promised by two chains keeps the earlier
- * landing, which is when it will actually stand.
+ * landing, which is when it will actually stand. "Held" is what the town holds
+ * for the row's effects, a card's grant included (`townHoldsBuilding`,
+ * Expansionist batch E13), because the arms read the held rows that way.
  *
  * The list is built by walking arrays in the order the chain book holds them, so
  * two identical boards build identical lists (rule 2).
@@ -2390,7 +2437,7 @@ export function promisedBuildings(ctx: ValueContext): readonly PromisedBuilding[
       const id = step.id as BuildingId;
       for (const copy of step.copies) {
         const city = towns.get(copy.cityId);
-        if (city === undefined || city.buildings.includes(id)) continue;
+        if (city === undefined || townHoldsBuilding(ctx.state, city, id)) continue;
         const discount = delayDiscount(copy.delay, ctx);
         if (discount <= 0) continue;
         const key = `${copy.cityId}:${id}`;
@@ -2895,7 +2942,9 @@ function scorePays(effect: CardPaysEffect, ctx: ValueContext): number {
     for (const city of ctx.state.cities) {
       if (city.ownerId !== ctx.playerId) continue;
       if (!cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) continue;
-      for (const id of city.buildings) {
+      // What the town holds for the row's effects, a card's grant included
+      // (`townBuildings`, Expansionist batch E13), as the fold pays it.
+      for (const id of townBuildings(ctx.state, city)) {
         const def = buildingDef(id);
         if (def.category !== effect.category) continue;
         const base = def[effect.from as Voice] ?? 0;
@@ -3042,8 +3091,9 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       return effect.points * meterWeight(ctx, 'happiness');
     case 'combatLine':
       // A line for the pieces a levy raised (Watch and Ward, Expansionist batch
-      // E10) reaches none of this bot's pieces: bots do not levy yet. Batch E13
-      // prices it.
+      // E10) reaches none of this bot's pieces, because a bot never levies. So
+      // it stays at nought (batch E13). If bots learn to levy, this arm prices
+      // the line on the levied share of the army.
       if (effect.levied !== undefined) return 0;
       // A line against an empire that knows more technologies (Dominion batch
       // D15, The Upstarts) is worth the share of fights where that is true.
@@ -3107,7 +3157,8 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
     }
     case 'upkeepRebate':
       // A rebate on the pieces a levy raised (The General Levy, Expansionist
-      // batch E1) reaches none of this bot's pieces: bots do not levy yet.
+      // batch E1) reaches none of this bot's pieces, because a bot never
+      // levies. Nought, as batch E13 confirms.
       if (effect.levied !== undefined) return 0;
       // A rebate is gold that never leaves, priced at the same pressure-adjusted
       // rate the bill is charged at — so a card that pays the army's wages
@@ -3145,7 +3196,9 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       for (const city of ctx.state.cities) {
         if (city.ownerId !== ctx.playerId) continue;
         if (!cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) continue;
-        for (const id of city.buildings) {
+        // What the town holds, a card's grant included (`townBuildings`,
+        // Expansionist batch E13): the shelves the fold raises.
+        for (const id of townBuildings(ctx.state, city)) {
           if (!buildingMatchesYieldPercent(id, effect)) continue;
           const def = buildingDef(id);
           for (const voice of VOICES) {
@@ -3203,7 +3256,9 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
         if (city.ownerId !== ctx.playerId) continue;
         if (!cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) continue;
         towns += 1;
-        for (const id of city.buildings) total += buildingDef(id).renown?.perTurn ?? 0;
+        // What the town holds, as the renown fold reads it (`townBuildings`,
+        // Expansionist batch E13).
+        for (const id of townBuildings(ctx.state, city)) total += buildingDef(id).renown?.perTurn ?? 0;
       }
       const mean = towns === 0 ? 0 : total / towns;
       return mean * (effect.percent / 100) * ctx.ai.weights.renown;
@@ -3419,7 +3474,8 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // a line whose other half is the plan's arithmetic — rather than the full
       // reading, which would price a hired sword as a standing army.
       // A stamp on the pieces a levy raises (The Trained Bands, Expansionist
-      // batch E1) reaches none: bots do not levy yet.
+      // batch E1) reaches none, because a bot never levies. Nought, as batch
+      // E13 confirms.
       if (effect.levied !== undefined) return 0;
       const bought = effect.bought === undefined ? 1 : 0.5;
       const strength =
@@ -3493,6 +3549,12 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       if (effect.rule === 'shoreRaid') return shoreRaidWorth(ctx);
       if (effect.rule === 'opusSiege') return opusSiegeWorth(ctx);
       {
+        // **The rules of Expansionist batches E9 and E12**, each priced off
+        // the board with one stand-in knob in `score.expansionist` (batch E13).
+        const expansionist = expansionistRuleWorth(effect, ctx);
+        if (expansionist !== null) return expansionist;
+      }
+      {
         // **The rules of Scientific batches S1 to S9**, each priced off the
         // board with one stand-in knob in `score.scientific` (batch S13).
         const scientific = scientificRuleWorth(effect, ctx);
@@ -3524,8 +3586,9 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // the Observatory's great works in.
       return ctx.ai.weights.bead / Math.max(1, Math.floor(effect.every ?? 1));
     case 'levy':
-      // Bots do not levy yet (batch L), so a levy card does nothing for one and
-      // is worth nothing to it.
+      // Bots do not levy (batch L), so a levy card does nothing for one and is
+      // worth nothing to it. Batch E13 leaves it so: whether bots should learn
+      // to levy is a question the user has not answered yet.
       return 0;
     case 'unlocksImprovement':
       // **A work row this seat's workers may build while the card is seated**
@@ -3545,11 +3608,9 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // The stand-in over the cadence, as `periodicOffer` takes it.
       return ctx.ai.score.unknownEffect / Math.max(1, Math.floor(effect.every));
     case 'workAge':
-      // **Not priced yet** (Expansionist batch E9, Break the Sod's
-      // institution). Works counted as older pay the cards that read a work's
-      // age, and the bot's hex lines carry no clock, so it reads no work's
-      // age. Nought until batch E13 prices it.
-      return 0;
+      // **The age lines it brings forward** (Expansionist batch E9, Break the
+      // Sod's institution; priced in batch E13). See `workAgeWorth`.
+      return workAgeWorth(effect.turns, ctx);
     case 'drill': {
       // **Experience is strength paid in instalments** (Dominion batch D1). A
       // point of experience is priced at what the rank ladder pays for it: the
@@ -3886,7 +3947,9 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       return ctx.cities / turns;
     case 'disband':
       // Dominion batch D7. This bot disbands only to clear its arrears, and
-      // never to feed a wonder, so it forecasts no disbanding at all.
+      // never to feed a wonder, so it forecasts no disbanding at all. So a bot
+      // also never retires a soldier for a citizen, and Veteran Colonies'
+      // citizen (Expansionist batch E10) stays at nought (batch E13).
       return 0;
     default:
       return unreadOccasion(occasion);
@@ -4156,6 +4219,19 @@ function windfallGrantWorth(
     }
     worth += valueOfYields(bag, ctx);
   }
+  // **A lasting mark on the six hexes around the moment's hex** (Expansionist
+  // batch E9, The Marl Pits; priced in batch E13). A rate, as `mark` above is.
+  // See `markBesideWorth`.
+  if (grant.markBeside !== undefined) worth += markBesideWorth(grant.markBeside, ctx);
+  // **Citizens in the town the moment names** (Expansionist batch E10,
+  // Veteran Colonies; priced in batch E13): the food that grows them, as a
+  // lump, as a commission's citizens are priced. The grant is paid only on a
+  // moment that carries a unit's cost, which today is a soldier retired, and
+  // this bot forecasts no such moment (`occasionRate`'s `disband`). So
+  // Veteran Colonies stays at nought for a bot.
+  if (grant.citizens !== undefined && grant.citizens > 0) {
+    worth += explainLump({ food: Math.floor(grant.citizens) * growthThreshold(ctx) }, ctx).total;
+  }
   if (grant.pressure !== undefined) {
     // **A lump of faith pressed on somebody else's towns** — The Crusade's.
     // Named rather than priced, and the reason is the appraisal's own boundary:
@@ -4226,10 +4302,9 @@ function ruleRewriteValue(
     case 'growthSurplus':
       return share * Math.max(0, ratesOf(ctx).foodPerTurn ?? 0) * voiceWeight(ctx, 'food');
     case 'guildInflow':
-      // **Not priced yet** (Expansionist batch E10, The Burghers). A faster
-      // guild bar is worth the guildsmen it brings sooner, and the bot does not
-      // forecast guilds. Nought until batch E13 prices it.
-      return 0;
+      // **A share of what the guild bars take in** (Expansionist batch E10,
+      // The Burghers; priced in batch E13). See `guildInflowWorth`.
+      return guildInflowWorth(share, ctx);
     case 'growthCarryover': {
       const rate = occasionRate('growth', ctx);
       if (rate <= 0) return 0;
@@ -5608,6 +5683,12 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
  * A line narrowed to one town (`within: 'city'`) reads no potential: what it
  * pays is a fact about the town the payment is made in, and an empire-wide
  * count of buildable ground would be an answer to a different question.
+ *
+ * **One count names its rows by a marker, not by a field** (Expansionist batch
+ * E13): `publicWorks` (The Public Good) counts the rows that carry
+ * `BuildingDef.publicWork`, so its promise is the public works the towns could
+ * raise. It is the only place this fold reads a `CountKind`, because the
+ * effect carries no field that names the rows.
  */
 function potentialTownsFor(
   effect: CardPaysEffect,
@@ -5624,7 +5705,9 @@ function potentialTownsFor(
           // a promise half like every other row that names what a town builds.
           effect.categories !== undefined && effect.categories.length > 0
           ? BUILDING_IDS.filter((id) => effect.categories?.includes(buildingDef(id).category))
-          : [];
+          : effect.count === 'publicWorks'
+            ? BUILDING_IDS.filter(isPublicWork)
+            : [];
   if (wanted.length === 0) return null;
   let open = 0;
   let hammers = 0;
@@ -5636,8 +5719,10 @@ function potentialTownsFor(
       // pay the empire for the same barracks under both headings. Not a rule
       // restated: `buildError` is about whether a queue may hold the row (a town
       // rebuilding one is the reducer's business), and this is about whether the
-      // *count* would grow.
-      if (city.buildings.includes(id)) continue;
+      // *count* would grow. "Holds" is what the count reads: a card's grant
+      // included (`townHoldsBuilding`, Expansionist batch E13), so a town that
+      // The Cura Aquarum gives an Aqueduct is not promised a second one.
+      if (townHoldsBuilding(ctx.state, city, id)) continue;
       if (buildError(ctx.state, ctx.playerId, 'building', id, city) !== null) continue;
       open += 1;
       // The folded price, size and column and all, asked **of this empire**
@@ -5907,10 +5992,12 @@ function occasionRecord(occasion: TallyOccasion, ctx: ValueContext): number | nu
     case 'sizeRecord':
       return boardTempo(ctx).growths;
     case 'publicWorkCompleted':
-      // Expansionist batch E11, The Aediles. A stand-in: no record is read
-      // yet and `score.tallyForecast` names no default, so the promise is
-      // priced at 0. Batch E13 prices it.
-      return null;
+      // Expansionist batch E11, The Aediles (batch E13). No record of its own:
+      // the public works this seat's towns have built. It is partial, as
+      // `hexClaimed` is, because a captured town's works count here and not
+      // in the tally. A work a card holds for a town was never built, so it
+      // does not count.
+      return publicWorksBuilt(ctx);
     case 'techCompleted':
       // Scientific batch S6: every technology this seat holds, charters
       // included, as the tally counts them.
@@ -7113,4 +7200,340 @@ function researchGoalForecast(
     turns: turnsFor(nearest.beakers),
     why: `${round(nearest.beakers)} beakers to research ${techDef(nearest.tech).name}, the nearest charter technology opened`,
   };
+}
+
+// --- the Expansionist stand-ins (batch E13) ----------------------------------
+
+/**
+ * **Does a tile test ask this test, alone or nested?** Walks the three members
+ * that hold other tests: `all`, `any` and `beside`.
+ */
+function tileTestAsks(on: TileCondition, test: TileCondition['test']): boolean {
+  if (on.test === test) return true;
+  if (on.test === 'all' || on.test === 'any') return on.of.some((part) => tileTestAsks(part, test));
+  if (on.test === 'beside') return tileTestAsks(on.of, test);
+  return false;
+}
+
+/**
+ * **What this seat's live lines gain when its ground facts change**, in points
+ * a turn: the part of an Expansionist rule the board can say.
+ *
+ * Two rules change what the tile test answers for the seat's own cards:
+ * Commission: Break the Sod adds turns to a work's age (`workAgeBonus`), and
+ * The Two Harvests counts more works as tended (`tendedFields`). So the price
+ * of each is what the seat's live lines pay on the changed ground, less what
+ * they pay now. The lines read are:
+ *
+ *   · each live hex line (`where: 'hex'`, flat) whose tile test asks `test`,
+ *     over the hexes the seat's citizens work, at what the line pays on one
+ *     hex (`scorePays`' own reading);
+ *   · each live count of hexes in the borders (`tilesInBorders`, not narrowed
+ *     to one town) whose tile test asks `test`, at its helpings, its cap and
+ *     what one helping pays (`scorePayout`).
+ *
+ * The tile test is the simulation's own (`tileConditionHolds`), asked with the
+ * clock, the ring of six for a hex line, and the two sets of ground facts, so
+ * the bot and the rules agree about which hexes are old enough or tended. Two
+ * readings are left out, and each makes the price lower, not higher: a town
+ * scope (The Garden of the World's happiness in a town that works six tended
+ * hexes is the one live case) and a count narrowed to one town.
+ *
+ * The live list (`effectsOfKind`) holds the seated Orders, the Doctrines, the
+ * institutions of commissions met and the technologies, so a card already
+ * working for the seat is counted. This reading is the honest one for a hex
+ * line that asks a work's age, which `workedHexesAdmitting` prices with no
+ * clock and so at nought.
+ */
+function liveLinesGain(
+  ground: GroundFacts,
+  altered: GroundFacts,
+  test: TileCondition['test'],
+  ctx: ValueContext,
+): number {
+  const state = ctx.state;
+  const towns = citiesOf(state, ctx.playerId);
+  const turn = state.turn;
+  let gain = 0;
+  for (const { effect } of effectsOfKind(state, ctx.playerId, 'pays')) {
+    const basis = effect.basis ?? 'flat';
+    if (effect.where === 'hex' && basis === 'flat') {
+      const on = effect.on;
+      if (on === undefined || !tileTestAsks(on, test)) continue;
+      let more = 0;
+      for (const city of towns) {
+        if (effect.scope !== undefined && !cityScopeAdmits(state, city, effect.scope, ctx.playerId)) continue;
+        for (const cell of city.workedTiles) {
+          const tile = getTileAt(state.map, cell.col, cell.row);
+          if (tile === undefined) continue;
+          const ring = (): readonly Tile[] => tileNeighbors(state.map, tile);
+          const after = tileConditionHolds(tile, on, undefined, ring, turn, altered);
+          const before = tileConditionHolds(tile, on, undefined, ring, turn, ground);
+          more += (after ? 1 : 0) - (before ? 1 : 0);
+        }
+      }
+      if (more === 0) continue;
+      const each =
+        valueOfYields(bagOf(effect), ctx) +
+        ((effect.percent ?? 0) / 100) * nominalRate(ctx) * voiceWeight(ctx, 'production');
+      gain += more * each;
+      continue;
+    }
+    if (basis !== 'count' || effect.count !== 'tilesInBorders' || effect.within !== undefined) continue;
+    const rule = effect.tile;
+    if (rule === undefined || !tileTestAsks(rule, test)) continue;
+    let after = 0;
+    let before = 0;
+    for (const city of towns) {
+      for (const tile of ownedTiles(state, city)) {
+        if (tileConditionHolds(tile, rule, undefined, undefined, turn, altered)) after += 1;
+        if (tileConditionHolds(tile, rule, undefined, undefined, turn, ground)) before += 1;
+      }
+    }
+    if (after === before) continue;
+    const per = effect.per === undefined || effect.per <= 0 ? 1 : effect.per;
+    const helpings = (count: number): number => {
+      const whole = Math.floor(count / per);
+      return effect.max === undefined ? whole : Math.min(whole, Math.max(0, effect.max));
+    };
+    gain += (helpings(after) - helpings(before)) * scorePayout(effect, ctx);
+  }
+  return gain;
+}
+
+/** Every work: an improvement of any kind, a tended work or a great person's work. */
+const ANY_WORK: TileCondition = { test: 'any', of: [{ test: 'improved' }, { test: 'tended' }] };
+
+/**
+ * **Commission: Break the Sod** (`workAge`): the seat's works count `turns`
+ * older for its cards. Two parts:
+ *
+ *   · what the seat's live age lines gain now, read off the board
+ *     (`liveLinesGain` with the offset added to `workAgeBonus`). A line that
+ *     asks a work twenty turns old pays on the works that are ten turns old;
+ *   · `score.expansionist.workAge` for each work inside the borders and each
+ *     turn of the offset. This stands in for the age cards the seat may hold
+ *     later, and for the works laid later, which reach each age sooner.
+ *
+ * The offset is added to what the seat's law already adds. That is right for
+ * the one carrier, the institution of a commission not yet met: once it is
+ * met, the commission is worth nothing more (`explainCommission`).
+ */
+function workAgeWorth(turns: number, ctx: ValueContext): number {
+  const offset = Math.max(0, Math.floor(turns));
+  if (offset === 0) return 0;
+  const ground = groundFactsFor(ctx.state, ctx.playerId);
+  const altered: GroundFacts = { ...ground, workAgeBonus: (ground.workAgeBonus ?? 0) + offset };
+  const now = liveLinesGain(ground, altered, 'standingSince', ctx);
+  const works = tilesInBordersWhere(ctx, ANY_WORK);
+  return now + ctx.ai.score.expansionist.workAge * offset * works;
+}
+
+/**
+ * **The Two Harvests** (`fieldsTended`): the seat's works of the named rows
+ * count as tended for its cards. Two parts:
+ *
+ *   · what the seat's live tended-land lines gain, read off the board
+ *     (`liveLinesGain`, with the rows taken out of the seat's tended fields
+ *     and put back in). So a seated card is priced by what it adds, not at
+ *     nought because its own rows are already live;
+ *   · `score.expansionist.fieldsTended` for each work of the named rows inside
+ *     the borders. This stands in for the tended-land cards the seat may hold
+ *     later. A bot lays no tended works, so without this rule those cards pay
+ *     a bot nothing.
+ */
+function fieldsTendedWorth(rows: readonly ImprovementId[] | undefined, ctx: ValueContext): number {
+  if (rows === undefined || rows.length === 0) return 0;
+  const ground = groundFactsFor(ctx.state, ctx.playerId);
+  const others = (ground.tendedFields ?? []).filter((row) => !rows.includes(row));
+  const without: GroundFacts = { ...ground };
+  delete without.tendedFields;
+  if (others.length > 0) without.tendedFields = others;
+  const withRows: GroundFacts = { ...ground, tendedFields: [...others, ...rows] };
+  const now = liveLinesGain(without, withRows, 'tended', ctx);
+  const works = tilesInBordersWhere(ctx, { test: 'anyImprovement', improvements: [...rows] });
+  return now + ctx.ai.score.expansionist.fieldsTended * works;
+}
+
+/**
+ * **The Cura Aquarum** (`holdsBuilding`): the named building, held in every
+ * town the rule's scope admits, priced as that building's worth in each such
+ * town. The worth of one copy is the build arm's reading of a shelf, as a
+ * charter's shelf is priced (`scoreUnlockedBuilding`): the row's flat yields
+ * and what its row does beyond them (`explainBuildingRow`). It has no build
+ * wait and no hammers, because the card grants it at once, and no wager term,
+ * because a wager counts only what was built.
+ *
+ * The towns counted:
+ *
+ *   · each town the scope admits that did not build the row (a town that
+ *     built one gains nothing from the card);
+ *   · `score.expansionist.heldLater` of each other town that did not build the
+ *     row and that the scope does not admit yet. The capital is left out,
+ *     because the one live row's scope (`connected`) never admits it: the
+ *     capital is what the other towns are joined to.
+ *
+ * A row that names no building, or a wonder or an empire building, grants
+ * nothing (`oneOfAKind`, the simulation's own cut), so it is worth nothing.
+ */
+function heldBuildingWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueContext): number {
+  const id = effect.building;
+  if (id === undefined || oneOfAKind(id)) return 0;
+  const capital = capitalCityOf(ctx.state, ctx.playerId) ?? null;
+  let joined = 0;
+  let later = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    if (city.buildings.includes(id)) continue;
+    if (effect.scope === undefined || cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) {
+      joined += 1;
+    } else if (capital === null || city.id !== capital.id) {
+      later += 1;
+    }
+  }
+  const towns = joined + ctx.ai.score.expansionist.heldLater * later;
+  if (towns <= 0) return 0;
+  const def = buildingDef(id);
+  const bag: YieldBag = {};
+  for (const voice of VOICES) bag[voice] = def[voice] ?? 0;
+  const each = valueOfYields(bag, ctx) + explainBuildingRow(id, ctx, undefined, false).total;
+  return each * towns;
+}
+
+/**
+ * **The rules of Expansionist batches E9 and E12**, or `null` for a rule that
+ * is not one of them: The Two Harvests' `fieldsTended` and The Cura Aquarum's
+ * `holdsBuilding`.
+ */
+function expansionistRuleWorth(
+  effect: Extract<CardEffect, { kind: 'rule' }>,
+  ctx: ValueContext,
+): number | null {
+  switch (effect.rule) {
+    case 'fieldsTended':
+      return fieldsTendedWorth(effect.improvements, ctx);
+    case 'holdsBuilding':
+      return heldBuildingWorth(effect, ctx);
+    default:
+      return null;
+  }
+}
+
+/**
+ * **The mark a hex would take next**, or `null`: `markOnHex`'s walk of the
+ * mark's chain (`HexMarkRule.then`, `cities.ts`), read and never written. The
+ * first mark in the chain the hex does not carry yet, if its own condition
+ * holds there. A hex that carries the whole chain takes nothing.
+ */
+function nextMarkOn(tile: Tile, mark: HexMarkId, ground: GroundFacts, turn: number): HexMarkId | null {
+  let next: HexMarkId | undefined = mark;
+  for (let step = 0; next !== undefined && step < HEX_MARK_IDS.length; step++) {
+    const rule: HexMarkRule = RULES.improvements.hexMarks[next];
+    if (tile.marks?.includes(next) !== true) {
+      return tileConditionHolds(tile, rule.while, undefined, undefined, turn, ground) ? next : null;
+    }
+    next = rule.then;
+  }
+  return null;
+}
+
+/**
+ * **The Marl Pits** (`markBeside`): what one firing marks, as a rate, because
+ * a mark pays for the rest of the game (the `mark` grant's reading).
+ *
+ * The rider fires on a new mine or quarry, and the mark lands on the six hexes
+ * around it that lie inside the borders and pass the mark's test (a farm or a
+ * pasture). Where the next mine goes is the bot's plan, which this appraisal
+ * cannot ask, so the expected marks are read as:
+ *
+ *   · `score.expansionist.markBesideRing` hexes inside the borders around the
+ *     new work;
+ *   · each one marked at the board's own odds: of the hexes this seat owns,
+ *     the share that would take the next mark in the chain now (`nextMarkOn`),
+ *     each paying what that mark's row pays.
+ *
+ * Remembered for the sitting, because it walks the whole map and The Marl Pits
+ * asks it once for each of its two riders.
+ */
+const MARK_BESIDE_MEMO = new WeakMap<ValueContext, Map<HexMarkId, number>>();
+function markBesideWorth(mark: HexMarkId, ctx: ValueContext): number {
+  let held = MARK_BESIDE_MEMO.get(ctx);
+  if (held === undefined) {
+    held = new Map<HexMarkId, number>();
+    MARK_BESIDE_MEMO.set(ctx, held);
+  }
+  const found = held.get(mark);
+  if (found !== undefined) return found;
+  const worth = readMarkBeside(mark, ctx);
+  held.set(mark, worth);
+  return worth;
+}
+
+/** `markBesideWorth`'s walk, once a sitting. */
+function readMarkBeside(mark: HexMarkId, ctx: ValueContext): number {
+  const ground = groundFactsFor(ctx.state, ctx.playerId);
+  const owner = tileOwnerField(ctx.state);
+  const tiles = ctx.state.map.tiles;
+  let owned = 0;
+  const pays: YieldBag = {};
+  for (let index = 0; index < tiles.length; index++) {
+    if (owner.at(index) !== ctx.playerId) continue;
+    owned += 1;
+    const next = nextMarkOn(tiles[index]!, mark, ground, ctx.state.turn);
+    if (next === null) continue;
+    const row = readTileYield(RULES.improvements.hexMarks[next].yields);
+    for (const voice of VOICES) {
+      if (row[voice] !== 0) pays[voice] = (pays[voice] ?? 0) + row[voice];
+    }
+  }
+  if (owned === 0) return 0;
+  const ring = ctx.ai.score.expansionist.markBesideRing / owned;
+  const bag: YieldBag = {};
+  for (const voice of VOICES) {
+    const total = pays[voice];
+    if (total !== undefined) bag[voice] = total * ring;
+  }
+  return valueOfYields(bag, ctx);
+}
+
+/**
+ * **The Burghers** (`guildInflow`): `share` more of what each town's guild bar
+ * takes in a turn, at `score.expansionist.guildPoint` a point.
+ *
+ * Only the towns where a faster bar brings a guildsman count: a town with no
+ * renown building in a specialist family converts nobody however full its bar
+ * (`nextGuildFamily`), and a town at its share cap converts nobody until it
+ * grows (`canFormGuild`). The bar is the simulation's own list
+ * (`explainGuildInflow`) less the cards' lines on it, because the cards' lines
+ * are a share of the rest and a seated Burghers would otherwise be priced on
+ * its own line.
+ *
+ * The rule's scope takes its share of this outside (`scoreRulePercent`), as for
+ * every other rule: The Burghers' towns of twelve citizens or more.
+ */
+function guildInflowWorth(share: number, ctx: ValueContext): number {
+  let inflow = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    if (nextGuildFamily(city, townShelf(ctx.state, city)) === null) continue;
+    if (!canFormGuild(city, idleCitizens(ctx.state, city))) continue;
+    const cards = cardRulePercent(ctx.state, ctx.playerId, 'guildInflow', city).map((line) => line.source);
+    for (const line of explainGuildInflow(ctx.state, city)) {
+      if (!cards.includes(line.source)) inflow += line.amount;
+    }
+  }
+  return share * inflow * ctx.ai.score.expansionist.guildPoint;
+}
+
+/**
+ * **The public works this seat's towns have built** (`BuildingDef.publicWork`),
+ * the record The Aediles' tally is forecast from. What was built
+ * (`City.buildings`), so a work a card holds for a town does not count.
+ */
+function publicWorksBuilt(ctx: ValueContext): number {
+  let built = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    for (const id of city.buildings) {
+      if (isPublicWork(id)) built += 1;
+    }
+  }
+  return built;
 }

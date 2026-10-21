@@ -232,6 +232,7 @@
       "riteStarted": 3,
       "foreignCityConverted": 3,
       "militaryGained": 20,
+      "publicWorkCompleted": 6,
       "techCompleted": 15,
       "charterTechCompleted": 1
     },
@@ -276,6 +277,13 @@
         "techGap": 1,
         "guildsmen": 2
       }
+    },
+    "expansionist": {
+      "markBesideRing": 4,
+      "workAge": 0.02,
+      "fieldsTended": 1,
+      "guildPoint": 2,
+      "heldLater": 0.5
     }
   },
   "threat": {

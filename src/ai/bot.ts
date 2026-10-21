@@ -194,7 +194,10 @@ import {
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
 // The Vizier's Hall's law, read where the reducer reads it so the bot never
 // sends a queue the reducer would refuse (batch S2).
-import { cityQueueFloor } from '../sim/buildingEffects';
+import { cityKeepsRelics, cityQueueFloor } from '../sim/buildingEffects';
+// Expansionist batch E13: what a town holds for a building's effects, a card's
+// grant included. Straight from its layer, as `value.ts` imports it.
+import { townBuildings, townShelf } from '../sim/statecraft/evaluator';
 import { discoveryDef } from '../sim/discoveryData';
 import {
   type Family,
@@ -4397,7 +4400,9 @@ function cityCommand(
     state,
     player,
     city,
-    table.ranked.slice(0, Math.max(1, cityQueueFloor(city))),
+    // The floor is what the town holds (`townShelf`, Expansionist batch E13),
+    // which is what the reducer reads.
+    table.ranked.slice(0, Math.max(1, cityQueueFloor(townShelf(state, city)))),
   );
   if (queue.length === 0) return null;
   const behind = queue.slice(1);
@@ -5512,7 +5517,7 @@ export function explainCitizen(state: GameState, city: City, ctx: ValueContext):
       ),
     );
   }
-  const perPop = sciencePerPopOf(city);
+  const perPop = sciencePerPopOf(state, city);
   if (perPop > 0) {
     terms.push(nest('the science it makes by existing', explainYields({ science: perPop }, ctx)));
   }
@@ -5564,10 +5569,14 @@ function nextWorkableTile(state: GameState, city: City): { tile: Tile; yields: T
  * building's `sciencePerPop` rides on top of it — the same two sources
  * `foldCity` folds. Nothing here invents a rate; a library that changed what a
  * citizen was worth would change it here the same turn it changed it there.
+ *
+ * The buildings are what the town holds for their effects, a card's grant
+ * included (`townBuildings`, Expansionist batch E13), as the town fold reads
+ * them.
  */
-function sciencePerPopOf(city: City): number {
+function sciencePerPopOf(state: GameState, city: City): number {
   let rate = RULES.cities.sciencePerPop;
-  for (const id of city.buildings) rate += buildingDef(id).sciencePerPop;
+  for (const id of townBuildings(state, city)) rate += buildingDef(id).sciencePerPop;
   return rate;
 }
 
@@ -8454,7 +8463,7 @@ function apostleCommand(state: GameState, player: Player, unit: Unit): UnitChoic
     // reading of that this file keeps is the *shelf's* marker — the same clause
     // `explainRelic` prices the apostle by, so the piece walks to the town the
     // book bought it for.
-    if (!cityWouldKeepRelic(city)) continue;
+    if (!cityWouldKeepRelic(state, city)) continue;
     tried.push(chosenAt(`walk to ${city.name}`, tried.length));
     return {
       command: { type: 'moveUnit', playerId: player.id, unitId: unit.id, target: { col: city.col, row: city.row } },
@@ -8470,12 +8479,13 @@ function apostleCommand(state: GameState, player: Player, unit: Unit): UnitChoic
   );
 }
 
-/** Has this town a consecrated shelf — the clause `placeRelicError` calls `cityKeepsRelics`? */
-function cityWouldKeepRelic(city: City): boolean {
-  for (const id of city.buildings) {
-    if (buildingDef(id).consecrated === true) return true;
-  }
-  return false;
+/**
+ * Has this town a consecrated shelf, the clause `placeRelicError` calls
+ * `cityKeepsRelics`? Asked of what the town holds (`townShelf`, Expansionist
+ * batch E13), which is what the reducer asks.
+ */
+function cityWouldKeepRelic(state: GameState, city: City): boolean {
+  return cityKeepsRelics(townShelf(state, city));
 }
 
 /** A hex beside the prophet where its work would be legal, or `null`. */
