@@ -22,17 +22,21 @@
  * wash and `Renderer3D` steps the clock in its frame loop.
  */
 
-/** The interface's gilt (`--gilt` in `style.css`), the ink of "yours". */
-export const TRAIT_GLOW_COLOR = 0xc8901f;
+import { VIEW3D } from './lookData';
 
 /**
- * The glow's three tunables.
+ * The glow's ink: `units.traitGlow.color` in `data/view3d.json`, the
+ * interface's gilt (`--gilt` in `style.css`), the ink of "yours".
+ */
+export const TRAIT_GLOW_COLOR = VIEW3D.units.traitGlow.color;
+
+/**
+ * The glow's three timing tunables, read from `units.traitGlow` in
+ * `data/view3d.json`, where every renderer tunable lives.
  *
- * Here in code for this batch only: they move to `data/view3d.json`
- * (`units.traitGlowMs`, `units.traitGlowPeak`, `units.traitGlowRise`) when
- * that file is open to the batch that owns it.
- *
- * Mutable through `setTraitGlowTuning` so the Flair Cabinet can turn them live.
+ * A copy of the file's values rather than the values themselves, so the Flair
+ * Cabinet's sliders can turn it live through `setTraitGlowTuning` without
+ * writing into the loaded look.
  */
 export interface TraitGlowTuning {
   /** How long the whole glow lasts, in milliseconds. Zero or less is no glow. */
@@ -43,7 +47,11 @@ export interface TraitGlowTuning {
   rise: number;
 }
 
-const TUNING: TraitGlowTuning = { durationMs: 1400, peak: 0.85, rise: 0.3 };
+const TUNING: TraitGlowTuning = {
+  durationMs: VIEW3D.units.traitGlow.durationMs,
+  peak: VIEW3D.units.traitGlow.peak,
+  rise: VIEW3D.units.traitGlow.rise,
+};
 
 /** The glow's live tunables. Read at call time, so a gallery knob takes effect at once. */
 export function traitGlowTuning(): Readonly<TraitGlowTuning> {
@@ -85,7 +93,7 @@ export function traitGlowStrength(
  * layer can only set to the rest or the hover value (`setUnitOutline`). The
  * colour carries the smooth part; the width marks the strong middle of it.
  */
-export const TRAIT_GLOW_WIDEN_AT = 0.25;
+export const TRAIT_GLOW_WIDEN_AT = VIEW3D.units.traitGlow.widenAt;
 
 /** A shell wash: mix the outline's own ink `mix` of the way toward `target`. */
 export interface ShellWash {

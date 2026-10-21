@@ -958,7 +958,31 @@ export interface UnitStyleSpec {
    * ink outright.
    */
   hostileGlowMix: number;
+  /** The one-time glow on a piece that gained a line trait. See `TraitGlowSpec`. */
+  traitGlow: TraitGlowSpec;
   sprite: SpriteSpec;
+}
+
+/**
+ * **The trait glow** (Scientific batch S10): the gilt glow a piece wears for a
+ * moment on the turn its line gains a trait (`traitGlow.ts`). Its outline
+ * shell is washed toward `color` and back, so the glow restores the piece's
+ * resting look exactly.
+ */
+export interface TraitGlowSpec {
+  /** The glow's ink: the interface's gilt (`--gilt`), the ink of "yours". */
+  color: number;
+  /** How long the whole glow lasts, in milliseconds. Zero or less is no glow. */
+  durationMs: number;
+  /** How far toward `color` the outline goes at the top of the glow, 0 to 1. */
+  peak: number;
+  /** The share of the duration spent rising, 0 to 1. The rest is spent settling. */
+  rise: number;
+  /**
+   * The glow's strength above which the outline is drawn at the hover width.
+   * The width has two values only, so the colour carries the smooth part.
+   */
+  widenAt: number;
 }
 
 /**
@@ -2867,6 +2891,15 @@ export const VIEW3D: View3DData = {
     // Clamped for `pieces.routedWash`' reason exactly: outside [0, 1] is a typo
     // and both failure modes read as the renderer being broken.
     hostileGlowMix: Math.max(0, Math.min(1, viewJson.units.hostileGlowMix)),
+    // Clamped like the washes beside it: a peak or a rise outside its range is
+    // a typo, and the glow would then overshoot gilt or never rise at all.
+    traitGlow: {
+      color: parseColor(viewJson.units.traitGlow.color, 'units.traitGlow.color'),
+      durationMs: Math.max(0, viewJson.units.traitGlow.durationMs),
+      peak: Math.max(0, Math.min(1, viewJson.units.traitGlow.peak)),
+      rise: Math.max(0.01, Math.min(0.99, viewJson.units.traitGlow.rise)),
+      widenAt: Math.max(0, Math.min(1, viewJson.units.traitGlow.widenAt)),
+    },
     sprite: {
       heightInHexWidths: viewJson.units.sprite.heightInHexWidths,
       lift: viewJson.units.sprite.lift,

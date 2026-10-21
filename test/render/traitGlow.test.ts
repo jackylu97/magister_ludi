@@ -11,10 +11,13 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
+import viewJson from '../../data/view3d.json';
+import { VIEW3D } from '../../src/render3d/lookData';
 import { Renderer3D } from '../../src/render3d/renderer3d';
 import { UnitLayer } from '../../src/render3d/pieces';
 import {
   TRAIT_GLOW_COLOR,
+  TRAIT_GLOW_WIDEN_AT,
   TraitGlows,
   glowShellWash,
   setTraitGlowTuning,
@@ -226,5 +229,28 @@ describe('the piece fingerprint', () => {
     // it cannot come to depend on a unit field the fingerprint does not cover.
     const source = Object.values(GLOW)[0]!;
     expect(source).not.toMatch(/from '\.\.\/sim\//);
+  });
+});
+
+describe('the tunables live in data/view3d.json', () => {
+  it('reads the colour, the timing and the widen point from units.traitGlow', () => {
+    const spec = viewJson.units.traitGlow;
+    expect(TRAIT_GLOW_COLOR).toBe(Number.parseInt(spec.color.slice(1), 16));
+    expect(TRAIT_GLOW_COLOR).toBe(VIEW3D.units.traitGlow.color);
+    expect(TRAIT_GLOW_WIDEN_AT).toBe(spec.widenAt);
+    expect(traitGlowTuning()).toEqual({
+      durationMs: spec.durationMs,
+      peak: spec.peak,
+      rise: spec.rise,
+    });
+  });
+
+  it('keeps no tuned figure in the module itself', () => {
+    // The code holds the algorithm and the file holds the numbers (CLAUDE.md):
+    // every constant above is read from `VIEW3D`, never written as a literal.
+    const source = Object.values(GLOW)[0]!;
+    expect(source).toContain('VIEW3D.units.traitGlow.color');
+    expect(source).toContain('VIEW3D.units.traitGlow.widenAt');
+    expect(source).not.toMatch(/0xc8901f|durationMs: 1400|peak: 0\.85|= 0\.25;/);
   });
 });

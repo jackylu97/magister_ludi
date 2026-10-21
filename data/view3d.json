@@ -1048,6 +1048,13 @@
     "silhouetteAlpha": 0.35,
     "hostileGlow": "warRed",
     "hostileGlowMix": 0.85,
+    "traitGlow": {
+      "color": "#c8901f",
+      "durationMs": 1400,
+      "peak": 0.85,
+      "rise": 0.3,
+      "widenAt": 0.25
+    },
     "sprite": {
       "heightInHexWidths": 0.58,
       "lift": 0.055,
