@@ -129,6 +129,32 @@
  * measured in field coordinates, so scrolling moves the lines with the cards
  * for free — a diagram drawn in viewport coordinates would need repainting on
  * every scroll event and would still lag by a frame.
+ *
+ * The charter shelf (Scientific batch S10)
+ * ----------------------------------------
+ * A charter technology is a node only a charter's holder may research, and it
+ * is not on the sky the user drew. It sits on a shelf at the foot of the
+ * chart, under a dotted sepia rule, in the same columns and the same age
+ * washes as the sky, one column right of its one ordinary parent, so its
+ * column still sets its price (`docs/plans/mockups/charter-ux.html`, the
+ * approved prototype). The rulings are `docs/plans/scientific-themes.md`
+ * section 12:
+ *
+ *   - the shelf holds only the charter technologies this seat has drafted, and
+ *     before the first one there is no shelf, no rule and no tab
+ *     (`shelfTechs`);
+ *   - the shelf is packed as a second field under the sky (`packShelf`,
+ *     `stackFields` in `techFit.ts`), so the sky's own layout never moves, and
+ *     `fitPacked` shrinks both together;
+ *   - when no charter node is in view, a tab on the stage's foot says the
+ *     shelf is there, with the count and an arrow, and a click travels to the
+ *     nearest node and rings it (`updateTab`, `shelfTab`).
+ *
+ * Every price on this screen is the fold of the simulation's price list
+ * (`techCostFor`, `techPriceList` in `techPrice.ts`), never the row's `cost`,
+ * which since batch S0 is only the list's first line. The hover card prints
+ * the list whenever it has more than one line. A charter node wears a seal
+ * after its name, on the chart, in the plan strip and in the drawer.
  */
 
 import { buildingDef, isWonder } from '../sim/buildingData';
@@ -159,6 +185,7 @@ import {
   type TechId,
   abilityDef,
   isAbilityId,
+  isCharterTech,
   liveUnlocks,
   techAgeBands,
   techColumnCount,
@@ -167,7 +194,22 @@ import {
 } from '../sim/techData';
 import { type TechGift, techGifts } from '../sim/techUnlocks';
 import type { TileYield } from '../sim/terrainData';
-import { unitDef } from '../sim/unitData';
+import { isInUnitLine, unitDef } from '../sim/unitData';
+import { orderDef } from '../sim/statecraftData';
+import { describeTrait } from '../sim/statecraft/describers';
+import {
+  charterOpening,
+  charterSealNode,
+  chartLead,
+  leadFigureOf,
+  shelfTab,
+  shelfTabLabel,
+  shelfTechs,
+  traitFaceNote,
+  wearsLeadCorner,
+} from './charterTech';
+import { priceLineFigure, techCostFor, techPriceList } from './techPrice';
+import { wantsMotion } from './motion';
 import { HAMMER, PROJECT_GLYPHS, YIELD_GLYPH, turnsLabel } from './figures';
 import { setYieldText } from './yieldMark';
 import { createInfoCard } from './infoCard';
@@ -177,9 +219,12 @@ import {
   PACK_GAP_MIN,
   type PackCard,
   type PackedChart,
+  type PackedShelf,
   fitColumns,
   fitPacked,
   packChart,
+  packShelf,
+  stackFields,
 } from './techFit';
 import { BEAKER, researchProgress } from './researchProgress';
 import { resourceMarkNode } from './resourceMark';
@@ -551,6 +596,14 @@ export interface TechTree {
   toggle(): void;
   /** Rebuilds the chart if it is open, and always refreshes the drawer's research section. */
   render(): void;
+  /**
+   * Opens the chart centred on one technology, with a ring around its node for
+   * a moment (Scientific batch S10). The door of the `openTech` notification:
+   * the toast that says a drafted charter opened a technology. A technology the
+   * chart is not drawing (a charter this seat has not drafted) simply opens
+   * the chart where it would open anyway.
+   */
+  openAt(tech: TechId): void;
   /** Unbinds the window listeners. See the dispose method's docblock. */
   dispose(): void;
 }
@@ -653,6 +706,12 @@ const REFUSAL_MS = 1800;
 const TRAILING_AIR = 22;
 
 /**
+ * How long a node wears its ring where the charter toast or the shelf's tab
+ * lands (Scientific batch S10): the stylesheet's three rings of 1.5 seconds.
+ */
+const RING_MS = 4500;
+
+/**
  * The parts of a node card that the *state* decides, kept so that a render can
  * write over them instead of building twenty-seven new cards.
  *
@@ -679,6 +738,12 @@ interface NodeFace {
   star: HTMLElement;
   /** The mono line the cost and the estimate share. */
   figures: HTMLElement;
+  /**
+   * The price on the face: the fold of the price list (`techCostFor`). Painted
+   * rather than built once, because a card seated or unseated moves it (The
+   * Commonplace Book takes 15% off a charter technology).
+   */
+  cost: HTMLElement;
   turns: HTMLElement;
   bar: HTMLElement;
   fill: HTMLElement;
@@ -717,6 +782,12 @@ interface Pass {
   rate: number;
   plan: readonly TechId[];
   ended: boolean;
+  /**
+   * The lead, read once a render: the technologies this seat knows that no
+   * empire it has met knows (feature B, batch S3). `null` while the seat has
+   * met no rival; see `chartLead`.
+   */
+  lead: readonly TechId[] | null;
 }
 
 export function createTechTree(options: TechTreeOptions): TechTree {
@@ -756,6 +827,8 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   let lines: SVGSVGElement | null = null;
   /** The node the chart is currently reading out, or none. */
   let reading: TechId | null = null;
+  /** The timer that takes a ring off a node. See `ringNode`. */
+  let ringTimer = 0;
 
   // --- what one render knows -----------------------------------------------
 
@@ -780,6 +853,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       rate: playerScience(state, playerId),
       plan,
       ended: hasEndedTurn(state, playerId),
+      lead: chartLead(state, playerId),
     };
     return pass;
   }
@@ -909,12 +983,31 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     const list = element('ul', 'tech-unlocks');
     // The live lists: a retired row is not a gift (`liveUnlocks`).
     const { units, buildings } = liveUnlocks(id);
-    // The face's budget, spent on units before buildings. `more` is what the
-    // count line says and is a fact about the *whole* list, not about whichever
-    // half was reached first.
-    const shownUnits = units.slice(0, FACE_UNLOCKS);
-    const shownBuildings = buildings.slice(0, Math.max(0, FACE_UNLOCKS - shownUnits.length));
-    const more = units.length + buildings.length - (shownUnits.length + shownBuildings.length);
+    // **A line trait comes first** (Scientific batch S10): it is the whole of
+    // what Casting or Mechanics gives. It shows its name and its bonus where an
+    // unlock shows a price, because a trait changes no price; the ability is
+    // on the hover card, in the describers' words.
+    const traits = techDef(id).traits ?? [];
+    const shownTraits = traits.slice(0, FACE_UNLOCKS);
+    for (const trait of shownTraits) {
+      const row = element('li');
+      row.append(element('span', 'tech-mark is-trait', unitDef(trait.line).glyph));
+      row.append(element('span', 'tech-unlock-name', trait.name));
+      const note = traitFaceNote(trait);
+      if (note) row.append(element('span', 'tech-unlock-note is-trait', note));
+      list.append(row);
+    }
+    // The face's budget, spent on traits, then units, then buildings. `more` is
+    // what the count line says and is a fact about the *whole* list, not about
+    // whichever part was reached first.
+    const budget = Math.max(0, FACE_UNLOCKS - shownTraits.length);
+    const shownUnits = units.slice(0, budget);
+    const shownBuildings = buildings.slice(0, Math.max(0, budget - shownUnits.length));
+    const more =
+      traits.length +
+      units.length +
+      buildings.length -
+      (shownTraits.length + shownUnits.length + shownBuildings.length);
 
     for (const unit of shownUnits) {
       const def = unitDef(unit);
@@ -1004,9 +1097,15 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * number some other surface disagrees with.
    */
   function techCard(id: TechId): Node {
-    const { state, playerId, player, rate } = passNow();
+    const { state, playerId, player, rate, lead } = passNow();
     const def = techDef(id);
     const researched = player?.techsResearched.includes(id) ?? false;
+    const charter = isCharterTech(id);
+    // The price, as a list and its fold (Scientific batch S0's `explainTechCost`).
+    // Every figure on this card that is a price is `price.total`, so the card and
+    // the node's face cannot quote two prices.
+    const price = player ? techPriceList(state, player, id) : null;
+    const cost = price?.total ?? def.cost;
     const box = element('div');
 
     const head = element('div', 'info-card-head');
@@ -1019,8 +1118,17 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     );
     box.append(head);
 
+    // **A charter technology says so under its name** (Scientific batch S10),
+    // with the seal it wears on the chart: the one fact that makes this node
+    // different from every star in the sky.
+    if (charter) {
+      const sub = element('div', 'info-card-charter');
+      sub.append(charterSealNode(), document.createTextNode('Charter technology · yours alone'));
+      box.append(sub);
+    }
+
     const figures = element('div', 'info-card-figures');
-    figures.append(element('span', 'info-card-cost', `${def.cost}${BEAKER}`));
+    figures.append(element('span', 'info-card-cost', `${cost}${BEAKER}`));
     // A researched node has no schedule left to quote; everything else is
     // measured against the pool, which is what makes the estimate on a node
     // three columns away an honest answer to "and if I went for that instead?".
@@ -1035,6 +1143,26 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     }
     box.append(figures);
 
+    // **The price as a list** (Scientific batch S10), whenever it is more than
+    // one line: the column, the charter premium, and each card that changes
+    // it, then the total. A list of one line would only repeat the figure
+    // above. The lines are the simulation's own, so they add up to the total.
+    if (price !== null && price.lines.length > 1) {
+      box.append(element('p', 'info-card-heading', 'The price'));
+      const ledger = element('ul', 'info-card-ledger');
+      price.lines.forEach((line, index) => {
+        const row = element('li', line.premium ? 'is-premium' : undefined);
+        row.append(element('span', 'info-card-ledger-label', line.label));
+        row.append(element('span', 'info-card-ledger-figure', priceLineFigure(line, index)));
+        ledger.append(row);
+      });
+      const total = element('li', 'is-total');
+      total.append(element('span', 'info-card-ledger-label', 'Total'));
+      total.append(element('span', 'info-card-ledger-figure', String(price.total)));
+      ledger.append(total);
+      box.append(ledger);
+    }
+
     // The state of the node in one line: done, in hand, or the reducer's own
     // sentence about why not. `researchError` is the same function the node's
     // `disabled` is derived from, so the card and the card's button agree.
@@ -1048,7 +1176,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     if (researched) {
       box.append(element('p', 'info-card-state', 'Researched'));
     } else if (player?.researching === id) {
-      const progress = researchProgress(bankedTowardTech(player, id), def.cost, rate);
+      const progress = researchProgress(bankedTowardTech(player, id), cost, rate);
       box.append(
         element('p', 'info-card-state', `Being researched · ${progress.banked}/${progress.cost}`),
       );
@@ -1058,12 +1186,28 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       // the node's own. Ahead of the refusal, because "you have already paid for
       // some of this" is the more useful thing to say about a node the player is
       // looking at than "and you cannot start it yet".
-      const progress = researchProgress(bankedTowardTech(player, id), def.cost, rate);
+      const progress = researchProgress(bankedTowardTech(player, id), cost, rate);
       box.append(
         element('p', 'info-card-state', `Set aside · ${progress.banked}/${progress.cost}`),
       );
     } else if (problem) {
       box.append(element('p', 'info-card-state wanting', problem));
+    }
+
+    // Which charter opened it, for a charter technology: the card that made
+    // this node exist on this seat's chart.
+    if (charter) {
+      const opener = charterOpening(id, player);
+      if (opener !== null) {
+        box.append(element('p', 'info-card-state is-charter', `Opened by ${orderDef(opener).name}`));
+      }
+    }
+    // **In the lead** (feature B, batch S3): no empire this seat has met knows
+    // it. `lead` is `null` before the first meeting, so this says nothing then.
+    if (lead !== null && lead.includes(id)) {
+      box.append(
+        element('p', 'info-card-state is-planned', 'In your lead: no empire you have met knows it'),
+      );
     }
 
     // "3 in the plan · ~11 turns" — what the corner numeral means, spelled out
@@ -1091,7 +1235,12 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // loop so that "hands over nothing on its own" is asked of what will
     // actually be printed.
     const gifts = techGifts(id).filter((gift) => giftHeading(gift) !== null);
-    if (gifts.length === 0) {
+    // **Line traits** (Scientific batch S10): what a charter technology gives a
+    // line of units, in the describers' words, and which of this seat's pieces
+    // gain it when the technology lands.
+    const traits = def.traits ?? [];
+    if (traits.length > 0) appendTraits(box, id, researched);
+    if (gifts.length === 0 && traits.length === 0) {
       box.append(element('p', 'info-card-state', 'Hands over nothing on its own'));
     }
     let heading: string | null = null;
@@ -1166,6 +1315,65 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   }
 
   /**
+   * The line traits a technology gives, on its hover card (Scientific batch
+   * S10): one row per trait with the line's mark, its name and its face note,
+   * then the trait's own clauses (`describeTrait`), which name the line and
+   * the units it reaches. A trait stays through every upgrade and changes no
+   * price, so the heading says so once.
+   *
+   * Before the technology lands, a second list says which of this seat's
+   * pieces will gain each trait, counted by type: "Onager · Catapult 3". A
+   * count is a figure, so it is printed in the mono column, never in a
+   * sentence.
+   */
+  function appendTraits(box: HTMLElement, id: TechId, researched: boolean): void {
+    const { state, playerId } = passNow();
+    const traits = techDef(id).traits ?? [];
+    box.append(element('p', 'info-card-heading', 'Line traits · kept through every upgrade'));
+    const list = element('ul', 'info-card-gifts');
+    for (const trait of traits) {
+      const row = element('li', 'is-trait');
+      row.append(element('span', 'info-card-mark is-trait', unitDef(trait.line).glyph));
+      row.append(element('span', 'info-card-gift-name', trait.name));
+      const note = traitFaceNote(trait);
+      if (note) row.append(element('span', 'info-card-gift-note', note));
+      list.append(row);
+      for (const clause of describeTrait(trait)) {
+        const words = element('li', 'info-card-trait-words');
+        setDescriptorText(words, clause.text);
+        list.append(words);
+      }
+    }
+    box.append(list);
+    box.append(element('p', 'info-card-state', 'No unit changes type or cost.'));
+    if (researched) return;
+
+    // The pieces that will gain each trait, by type, in `state.units` order.
+    const gaining: { trait: string; type: string; count: number }[] = [];
+    for (const unit of state.units) {
+      if (unit.ownerId !== playerId) continue;
+      for (const trait of traits) {
+        if (!isInUnitLine(unit.type, trait.line)) continue;
+        const name = unitDef(unit.type).name;
+        const entry = gaining.find((held) => held.trait === trait.name && held.type === name);
+        if (entry) entry.count += 1;
+        else gaining.push({ trait: trait.name, type: name, count: 1 });
+      }
+    }
+    if (gaining.length === 0) return;
+    box.append(element('p', 'info-card-heading', 'When it lands, these gain the trait'));
+    const gains = element('ul', 'info-card-gifts');
+    for (const entry of gaining) {
+      const row = element('li');
+      row.append(element('span', 'info-card-mark is-trait', '+'));
+      row.append(element('span', 'info-card-gift-name', `${entry.trait} · ${entry.type}`));
+      row.append(element('span', 'info-card-gift-note', String(entry.count)));
+      gains.append(row);
+    }
+    box.append(gains);
+  }
+
+  /**
    * Puts a mark on a card or takes it off, and does nothing when it is already
    * where it belongs.
    *
@@ -1197,9 +1405,12 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * document; it is class toggles, text and five marks moving in and out.
    */
   function paintNode(id: TechId, face: NodeFace): void {
-    const { state, playerId, player, rate, plan, ended } = passNow();
-    const def = techDef(id);
+    const { state, playerId, player, rate, plan, ended, lead } = passNow();
     const card = face.card;
+    // The price this empire pays, which a seated card can move (Scientific
+    // batch S0's fold). Painted here, not built once in `renderNode`.
+    const cost = player ? techCostFor(state, player, id) : techDef(id).cost;
+    setYieldText(face.cost, `${cost}${BEAKER}`);
 
     const researched = player?.techsResearched.includes(id) ?? false;
     const current = player?.researching === id;
@@ -1230,6 +1441,10 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // player has already decided about it, and a decision should not be drawn
     // in the same grey as ground nobody has looked at.
     card.classList.toggle('is-planned', place !== null);
+    // **The gilt corner of the lead** (feature B, batch S3): a node no empire
+    // this seat has met knows. `lead` is `null` before the first meeting, so
+    // no corner then.
+    card.classList.toggle('is-lead', wearsLeadCorner(lead, id));
     card.disabled = !choosable;
 
     mark(face.star, face.head, researched);
@@ -1254,7 +1469,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       // panel's research bar draw, from the same helper: the bar on this node
       // and the bars at the top-left of the screen are one fact shown more
       // than once, and they must never round differently.
-      const progress = researchProgress(banked, def.cost, rate);
+      const progress = researchProgress(banked, cost, rate);
       face.fill.style.width = `${(progress.fraction * 100).toFixed(1)}%`;
       setYieldText(face.progress, `${progress.banked} / ${progress.cost}`);
     }
@@ -1309,6 +1524,10 @@ export function createTechTree(options: TechTreeOptions): TechTree {
 
     const card = element('button', 'tech-node');
     card.type = 'button';
+    // **A charter technology** (Scientific batch S10): the shelf's sepia node,
+    // with the seal after its name. Everything else about it is any node's.
+    const charter = isCharterTech(id);
+    card.classList.toggle('is-charter', charter);
 
     const head = element('div', 'tech-node-head');
     // Glyph and name are one group, so `space-between` still puts only the
@@ -1317,13 +1536,15 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     const title = element('span', 'tech-node-title');
     title.append(element('span', 'tech-node-glyph', def.glyph));
     title.append(element('span', 'tech-node-name', def.name));
+    if (charter) title.append(charterSealNode());
     head.append(title);
     card.append(head);
     const star = element('span', 'tech-node-star', '✦');
     star.setAttribute('aria-hidden', 'true');
 
     const figures = element('div', 'tech-node-figures');
-    figures.append(element('span', 'tech-node-cost', `${def.cost}${BEAKER}`));
+    const cost = element('span', 'tech-node-cost');
+    figures.append(cost);
     card.append(figures);
     const turns = element('span', 'tech-node-turns');
 
@@ -1346,6 +1567,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       head,
       star,
       figures,
+      cost,
       turns,
       bar,
       fill,
@@ -1418,6 +1640,25 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * `drawLines` bows the connectors `packChart` could not lay a card clear of.
    */
   let layout: PackedChart | null = null;
+  /**
+   * **The charter shelf this chart was built with** (Scientific batch S10): the
+   * drafted charter technologies, in the rows' order, or empty before the first
+   * charter (`shelfTechs`). Kept so a repaint can tell when a new charter has
+   * joined the shelf, which needs the chart built again (see `render`).
+   */
+  let shelf: TechId[] = [];
+  /**
+   * The rule over the shelf and its label, kept because they are positioned:
+   * `layoutField` writes their top from the packed sky's height. Both `null`
+   * while the shelf is empty, because an empty shelf is drawn as nothing.
+   */
+  let shelfRule: HTMLElement | null = null;
+  let shelfLabel: HTMLElement | null = null;
+
+  /** Every node the chart draws: the sky, then the shelf. */
+  function drawnIds(): TechId[] {
+    return [...TECH_IDS, ...shelf];
+  }
 
   // --- the plan strip ------------------------------------------------------
 
@@ -1458,6 +1699,12 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       const def = techDef(step.techId);
       const chip = element('li', 'tech-plan-chip');
       chip.append(element('span', 'tech-plan-place', String(index + 1)));
+      // A charter technology's seal, before its name (Scientific batch S10):
+      // the one mark that says these beakers go to a path nobody else has.
+      if (isCharterTech(step.techId)) {
+        chip.classList.add('is-charter');
+        chip.append(charterSealNode());
+      }
       chip.append(element('span', 'tech-plan-name', def.name));
       // "~5t", in the node figures' own idiom — a tilde because it is an
       // estimate at the current rate, and an em dash for an empire making no
@@ -1578,6 +1825,30 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       built.append(card);
     }
 
+    // **The charter shelf** (Scientific batch S10), at the foot of the chart:
+    // only the charter technologies this seat has drafted, and nothing at all
+    // (no rule, no label, no tab) before the first one. Same columns and the
+    // same age washes as the sky, because the washes run the field's whole
+    // height and the shelf is part of the field.
+    shelf = shelfTechs(passNow().player);
+    shelfRule = null;
+    shelfLabel = null;
+    if (shelf.length > 0) {
+      shelfRule = element('div', 'tech-shelf-rule');
+      shelfRule.setAttribute('aria-hidden', 'true');
+      built.append(shelfRule);
+      shelfLabel = element('div', 'tech-shelf-label');
+      const eyebrow = element('span', 'tech-shelf-eyebrow');
+      eyebrow.append(charterSealNode(), document.createTextNode('Charters'));
+      shelfLabel.append(eyebrow, element('span', 'tech-shelf-words', 'yours alone'));
+      built.append(shelfLabel);
+      for (const id of shelf) {
+        const card = renderNode(id);
+        card.dataset.column = String(techColumn(id));
+        built.append(card);
+      }
+    }
+
     field = built;
     chart.replaceChildren(built);
 
@@ -1636,7 +1907,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // An open card would be quoting the state before the command; it is taken
     // down rather than re-derived, exactly as a rebuild used to take it down.
     info.hide();
-    for (const id of TECH_IDS) {
+    for (const id of drawnIds()) {
       const face = faces.get(id);
       if (!face) continue;
       paintNode(id, face);
@@ -1740,24 +2011,48 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     for (const id of TECH_IDS) {
       for (const prereq of techDef(id).prereqs) edges.push([prereq, id]);
     }
+    // **The shelf's cards** (Scientific batch S10), measured the same way and
+    // packed as a second field, so the sky's own layout never moves for them.
+    // A charter row's `row` is its lane on the shelf, the order it stacks in.
+    const shelved: PackCard[] = [];
+    for (const id of shelf) {
+      const card = cards.get(id);
+      if (!card) continue;
+      shelved.push({ id, column: techColumn(id), order: techDef(id).row, height: card.offsetHeight });
+    }
 
     // The strip of age labels stands above the cards rather than over them, so
     // it is measured and every card's top is offset past it. One label is as
     // tall as another — they are the same two spans — so the first is the strip.
     const strip = ages[0]?.label.offsetHeight ?? 0;
 
-    let packed: PackedChart = packChart(measured, edges, PACK_GAP_MAX, geometry);
-    if (strip + packed.height > chart.clientHeight) {
-      packed = packChart(measured, edges, PACK_GAP_MIN, geometry);
+    // The sky and the shelf at one gap: the roomy one, and the closed-up one if
+    // the two together overrun the stage. Air is spent before type, for the
+    // shelf as for the sky.
+    const packAt = (gap: number): { sky: PackedChart; shelved: PackedShelf | null } => ({
+      sky: packChart(measured, edges, gap, geometry),
+      shelved: shelved.length > 0 ? packShelf(shelved, gap) : null,
+    });
+    let packed = packAt(PACK_GAP_MAX);
+    if (strip + stackFields(packed.sky.height, packed.shelved).height > chart.clientHeight) {
+      packed = packAt(PACK_GAP_MIN);
     }
-    layout = packed;
+    layout = packed.sky;
+    const fields = stackFields(packed.sky.height, packed.shelved);
 
     for (const id of TECH_IDS) {
       const card = cards.get(id);
-      const top = packed.tops.get(id);
+      const top = packed.sky.tops.get(id);
       if (!card || top === undefined) continue;
       card.style.left = `${(techColumn(id) * (columnWidth + columnGap)).toFixed(2)}px`;
       card.style.top = `${(strip + top).toFixed(2)}px`;
+    }
+    for (const id of shelf) {
+      const card = cards.get(id);
+      const top = packed.shelved?.tops.get(id);
+      if (!card || top === undefined) continue;
+      card.style.left = `${(techColumn(id) * (columnWidth + columnGap)).toFixed(2)}px`;
+      card.style.top = `${(strip + fields.shelfTop + top).toFixed(2)}px`;
     }
 
     // The chart is exactly as wide as its deepest chain, plus a hand's width of
@@ -1780,7 +2075,14 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       label.style.width = `${width.toFixed(2)}px`;
     }
 
-    const content = strip + packed.height;
+    // The shelf's rule runs the chart's width, with its label just under it.
+    if (shelfRule !== null && shelfLabel !== null) {
+      shelfRule.style.top = `${(strip + fields.ruleTop).toFixed(2)}px`;
+      shelfRule.style.width = `${span.toFixed(2)}px`;
+      shelfLabel.style.top = `${(strip + fields.ruleTop + 6).toFixed(2)}px`;
+    }
+
+    const content = strip + fields.height;
     built.style.height = `${content.toFixed(2)}px`;
     built.style.width = `${(span + TRAILING_AIR).toFixed(2)}px`;
 
@@ -1795,6 +2097,8 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       built.style.marginRight = `${(-(1 - fit.scale) * width).toFixed(2)}px`;
       built.style.marginBottom = `${(-(1 - fit.scale) * content).toFixed(2)}px`;
     }
+    // The shelf may have moved into view or out of it.
+    updateTab();
   }
 
   /**
@@ -1857,7 +2161,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       });
     }
     const drawnPaths = document.createDocumentFragment();
-    for (const id of TECH_IDS) {
+    for (const id of drawnIds()) {
       const to = boxes.get(id);
       if (!to) continue;
       const x2 = to.left;
@@ -1878,9 +2182,14 @@ export function createTechTree(options: TechTreeOptions): TechTree {
             `${x2.toFixed(1)} ${y2.toFixed(1)}`,
         );
         // A line out of ground the player has already covered is lit; the rest
-        // is the faint chart under it.
+        // is the faint chart under it. A line down to the charter shelf is its
+        // own dotted sepia (Scientific batch S10), held or not: it is the one
+        // path on the chart that is this seat's alone.
         const held = player?.techsResearched.includes(prereq) ?? false;
-        path.setAttribute('class', held ? 'tech-line is-held' : 'tech-line');
+        path.setAttribute(
+          'class',
+          isCharterTech(id) ? 'tech-line is-charter' : held ? 'tech-line is-held' : 'tech-line',
+        );
         drawnPaths.append(path);
         connectors.push({ path, from: prereq, to: id });
       }
@@ -1904,7 +2213,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     }
     let best: HTMLElement | null = null;
     let bestColumn = Number.POSITIVE_INFINITY;
-    for (const id of TECH_IDS) {
+    for (const id of drawnIds()) {
       const card = cards.get(id);
       if (!card || card.disabled) continue;
       if (techColumn(id) >= bestColumn) continue;
@@ -1929,7 +2238,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     const wanted = Number(anchor?.dataset.column ?? 0);
     let best: HTMLButtonElement | null = null;
     let bestDistance = Number.POSITIVE_INFINITY;
-    for (const id of TECH_IDS) {
+    for (const id of drawnIds()) {
       const card = cards.get(id);
       if (!card || card.disabled) continue;
       const distance = Math.abs(techColumn(id) - wanted);
@@ -1949,12 +2258,116 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * that had not travelled at all. Writing `scrollTop` on a chart that fits is
    * free — the browser clamps it to zero.
    */
-  function centreOn(card: HTMLElement): void {
+  function centreOn(card: HTMLElement, smooth = false): void {
     const seen = card.getBoundingClientRect();
     const stage = chart.getBoundingClientRect();
-    chart.scrollLeft += seen.left - stage.left - (chart.clientWidth - seen.width) / 2;
-    chart.scrollTop += seen.top - stage.top - (chart.clientHeight - seen.height) / 2;
+    const left = chart.scrollLeft + seen.left - stage.left - (chart.clientWidth - seen.width) / 2;
+    const top = chart.scrollTop + seen.top - stage.top - (chart.clientHeight - seen.height) / 2;
+    // A glide only for the shelf's tab, which is a click the player watches
+    // land; every other arrival jumps, as the chart has always opened.
+    if (smooth && wantsMotion()) {
+      chart.scrollTo({ left, top, behavior: 'smooth' });
+    } else {
+      chart.scrollLeft = left;
+      chart.scrollTop = top;
+    }
+    updateTab();
   }
+
+  /**
+   * A ring around one node for a moment (Scientific batch S10): where the
+   * charter toast and the shelf's tab land. A class the stylesheet animates a
+   * few times and then lets rest; taken off and put back so a second arrival
+   * rings again. Motion off, the stylesheet draws a still ring instead.
+   */
+  function ringNode(card: HTMLElement): void {
+    card.classList.remove('is-ringed');
+    void card.offsetWidth;
+    card.classList.add('is-ringed');
+    // Taken off after the stylesheet's three rings (or the still ring a reader
+    // who asked for less motion sees), so a ring is a moment and not a mark.
+    window.clearTimeout(ringTimer);
+    ringTimer = window.setTimeout(() => card.classList.remove('is-ringed'), RING_MS);
+  }
+
+  // --- the charter shelf's tab ------------------------------------------------
+
+  /**
+   * **The tab that says the shelf is there** when no charter node is in view
+   * (Scientific batch S10). The user's ruling of 2026-10-21 asked for "some
+   * indicator that it's there for screens that aren't wide enough".
+   *
+   * One button for the chart's whole life, beside the stage rather than inside
+   * it: the stage scrolls, and a tab that scrolled with the chart would leave
+   * the view with the shelf it points at. It sits on the stage's foot, on the
+   * side toward the nearest charter node, with the count and an arrow, and a
+   * click travels there and rings the node, as the toast does. `shelfTab`
+   * (`charterTech.ts`) decides; this measures and draws. Hidden whenever the
+   * shelf is empty, a charter node is in view, or the chart is shut.
+   */
+  const tab = element('button', 'tech-shelf-tab');
+  tab.type = 'button';
+  tab.hidden = true;
+  const tabCount = element('b', 'tech-shelf-tab-count');
+  const tabArrow = element('span', 'tech-shelf-tab-arrow');
+  tabArrow.setAttribute('aria-hidden', 'true');
+  tab.append(charterSealNode(), document.createTextNode('Charters'), tabCount, tabArrow);
+  chart.after(tab);
+  let tabTarget: TechId | null = null;
+
+  function updateTab(): void {
+    if (!open || shelf.length === 0) {
+      tab.hidden = true;
+      tabTarget = null;
+      return;
+    }
+    const stage = chart.getBoundingClientRect();
+    const nodes: { id: TechId; box: { left: number; top: number; width: number; height: number } }[] = [];
+    for (const id of shelf) {
+      const card = cards.get(id);
+      if (!card) continue;
+      const box = card.getBoundingClientRect();
+      nodes.push({
+        id,
+        box: { left: box.left - stage.left, top: box.top - stage.top, width: box.width, height: box.height },
+      });
+    }
+    const reading = shelfTab({ left: 0, top: 0, width: chart.clientWidth, height: chart.clientHeight }, nodes);
+    if (reading === null) {
+      tab.hidden = true;
+      tabTarget = null;
+      return;
+    }
+    tabTarget = reading.target;
+    tab.dataset.side = reading.side;
+    tabCount.textContent = String(reading.count);
+    tabArrow.textContent = reading.arrow;
+    tab.setAttribute('aria-label', shelfTabLabel(reading));
+    tab.title = shelfTabLabel(reading);
+    tab.hidden = false;
+    // On the stage's foot, in the sheet's frame (`.tech-sheet` is positioned).
+    const width = tab.offsetWidth;
+    const top = chart.offsetTop + chart.clientHeight - tab.offsetHeight - 12;
+    const left =
+      reading.side === 'left'
+        ? chart.offsetLeft + 10
+        : reading.side === 'right'
+          ? chart.offsetLeft + chart.clientWidth - width - 10
+          : chart.offsetLeft + (chart.clientWidth - width) / 2;
+    tab.style.top = `${top.toFixed(1)}px`;
+    tab.style.left = `${left.toFixed(1)}px`;
+  }
+
+  tab.addEventListener('click', () => {
+    const card = tabTarget === null ? undefined : cards.get(tabTarget);
+    if (!card) return;
+    centreOn(card, true);
+    ringNode(card);
+  });
+  // The stage's own scroll, so the tab goes the moment a charter node comes
+  // into view and comes back when the last one leaves. An element listener,
+  // which dies with the stage, so nothing has to unbind it.
+  chart.addEventListener('scroll', () => updateTab(), { passive: true });
 
   /** One column-ish, for the sideways arrow keys and for a wheel notch. */
   const NUDGE = 260;
@@ -2128,7 +2541,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
         statusFigures,
         prompting
           ? `${Math.floor(player.sciencePool)} ${BEAKER} banked · ${signedYield(rate)}/t`
-          : `${player.techsResearched.length}/${TECH_IDS.length} ✦`,
+          : `${skyKnown(player)}/${TECH_IDS.length} ✦`,
       );
       statusCard.title = prompting
         ? 'Choose what to research (T)'
@@ -2144,8 +2557,11 @@ export function createTechTree(options: TechTreeOptions): TechTree {
 
     statusCard.classList.remove('is-prompting', 'is-done');
     const def = techDef(current);
-    const progress = researchProgress(player.sciencePool, def.cost, rate);
+    const progress = researchProgress(player.sciencePool, techCostFor(state, player, current), rate);
     statusName.textContent = def.name;
+    // A charter technology's seal after its name (Scientific batch S10), as on
+    // its node and its chip in the plan.
+    if (isCharterTech(current)) statusName.append(charterSealNode());
     statusDial.style.setProperty('--progress', `${(progress.fraction * 100).toFixed(1)}%`);
     // Through the printer, like every other glyph on this screen: a tech whose
     // own glyph *is* one of the six yield marks — Agriculture, Bronze Working,
@@ -2166,6 +2582,34 @@ export function createTechTree(options: TechTreeOptions): TechTree {
         `${progress.turns === null ? 'no science being made' : `${progress.turns} turns left`}. ` +
         'Opens the star chart.',
     );
+  }
+
+  /**
+   * How many technologies of the sky this seat knows: the first figure of the
+   * finished tree's "50/50 ✦". A charter technology is left out of both
+   * figures, because the total is the sky's (`TECH_IDS`) and a charter
+   * technology is not on it (the S0 note in the build triage).
+   */
+  function skyKnown(player: Player): number {
+    return player.techsResearched.filter((id) => !isCharterTech(id)).length;
+  }
+
+  /**
+   * The lead's figure in the chart's head (feature B, batch S3): "lead 4", with
+   * the technologies in its title. Built once and hidden while `chartLead`
+   * answers `null`, which it does while the seat has met no rival.
+   */
+  const leadFigure = element('span', 'tech-lead');
+  leadFigure.hidden = true;
+  closeButton.before(leadFigure);
+
+  function paintLead(): void {
+    const figure = leadFigureOf(passNow().lead);
+    leadFigure.hidden = figure === null;
+    if (figure === null) return;
+    leadFigure.replaceChildren(element('small', undefined, 'lead'), element('b', undefined, String(figure.count)));
+    leadFigure.title = figure.title;
+    leadFigure.setAttribute('aria-label', `Lead ${figure.count}. ${figure.title}`);
   }
 
   /** What the last render drew for. See `render`. */
@@ -2208,6 +2652,10 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       drawn = { state, revision: state.revision, seat, open, field };
       return;
     }
+    paintLead();
+    // A charter drafted while the chart is up joins the shelf, and the shelf is
+    // part of the chart's layout, so the chart is built again (batch S10).
+    if (field !== null && !sameShelf(shelfTechs(passNow().player), shelf)) field = null;
     if (field === null) {
       renderChart();
       drawn = { state, revision: state.revision, seat, open, field };
@@ -2219,6 +2667,11 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // the height `refreshNodes` then spends on the lanes.
     renderPlanStrip();
     refreshNodes();
+  }
+
+  /** Do two shelves hold the same charter technologies, in the same order? */
+  function sameShelf(a: readonly TechId[], b: readonly TechId[]): boolean {
+    return a.length === b.length && a.every((id, index) => id === b[index]);
   }
 
   // --- opening and closing -------------------------------------------------
@@ -2260,6 +2713,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     onClose?.();
     info.hide();
     readNode(null);
+    tab.hidden = true;
     restoreTo?.focus();
     restoreTo = null;
     // The next visit builds a fresh sky rather than repainting this one: the
@@ -2375,5 +2829,16 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     },
     toggle: () => setOpen(!open),
     render,
+    openAt(tech: TechId): void {
+      setOpen(true);
+      if (!open) return;
+      // Brought up to date first: the toast that leads here follows the draft
+      // that put this node on the shelf.
+      render();
+      const card = cards.get(tech);
+      if (!card) return;
+      centreOn(card);
+      ringNode(card);
+    },
   };
 }

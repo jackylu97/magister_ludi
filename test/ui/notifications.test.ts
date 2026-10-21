@@ -182,6 +182,8 @@ describe('a notification action', () => {
         return 'open Statecraft';
       case 'openGreatPerson':
         return 'open the great person offer';
+      case 'openTech':
+        return `open the star chart at ${action.tech}`;
       default: {
         const unhandled: never = kind;
         return unhandled;
@@ -202,6 +204,12 @@ describe('a notification action', () => {
   it('is also an openGreatPerson, which carries no cell either', () => {
     const action: NotificationAction = { kind: 'openGreatPerson' };
     expect(describeKind(action)).toBe('open the great person offer');
+  });
+
+  it('is also an openTech, which carries the technology it opens the chart at', () => {
+    // Scientific batch S10: the charter toast's door.
+    const action: NotificationAction = { kind: 'openTech', tech: 'mechanics' };
+    expect(describeKind(action)).toBe('open the star chart at mechanics');
   });
 
   describe('isActionable', () => {

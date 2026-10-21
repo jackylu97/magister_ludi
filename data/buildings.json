@@ -2004,7 +2004,6 @@
       "name": "Bastion",
       "category": "military",
       "size": "large",
-      "column": 10,
       "food": 0,
       "production": 0,
       "gold": 0,
@@ -2016,12 +2015,11 @@
         "amount": 5
       },
       "cityHp": 30,
-      "awaitsTech": true,
       "renown": {
         "family": "engineer",
         "perTurn": 1
       },
-      "note": "A wall with corners, so that nobody may stand anywhere it cannot be shot at. No technology opens it yet: the age that does has not been written."
+      "note": "A wall with corners, so that nobody may stand anywhere it cannot be shot at."
     },
     "alchemicalSociety": {
       "name": "The Alchemical Society",
@@ -2200,6 +2198,162 @@
       },
       "note": "The great work of the age. Nobody may begin one until some empire in the world has reached Alchemy, and no empire may begin one until its own rod of beads is full. Gold and faith may be poured into it as well as production. The first one finished anywhere ends the game: the last measures of the age are taken for the record, and the empire that raised it wins."
     },
+    "specularium": {
+      "name": "Specularium",
+      "category": "food",
+      "size": "medium",
+      "food": 3,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "population",
+          "within": "city",
+          "per": 2,
+          "to": "science",
+          "amount": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "specularium"
+          }
+        }
+      ],
+      "note": "A glass house that grows fresh food in every season, and teaches the town a little more as it grows."
+    },
+    "mouseion": {
+      "name": "Mouseion",
+      "category": "culture",
+      "size": "large",
+      "costPercent": 30,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "oncePerEmpire": true,
+      "empireBuilding": true,
+      "effects": [
+        {
+          "kind": "renown",
+          "amount": 4,
+          "family": "scholar"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "empireBuildings",
+          "to": "culture",
+          "amount": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "mouseion"
+          }
+        }
+      ],
+      "note": "A house of scholars, fed and kept by the realm. Its town sings for every great house the realm holds, and it costs more to raise than other great houses. One realm, one Mouseion."
+    },
+    "aldinePress": {
+      "name": "Aldine Press",
+      "category": "culture",
+      "size": "large",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 2,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "science": 2,
+          "culture": 2,
+          "origin": {
+            "test": "hasBuilding",
+            "building": "aldinePress"
+          }
+        }
+      ],
+      "note": "A press that prints small books for travellers. Every trade route that leaves this town carries learning and song with the goods."
+    },
+    "bimaristan": {
+      "name": "Bimaristan",
+      "category": "food",
+      "size": "large",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "oncePerEmpire": true,
+      "empireBuilding": true,
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "food",
+          "percent": 25,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "bimaristan"
+          }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "heal",
+          "amount": 10,
+          "where": "ownTerritory"
+        }
+      ],
+      "note": "A house of healing, open to all. Its town eats better, and your units mend faster inside your borders. One realm, one Bimaristan."
+    },
+    "tophane": {
+      "name": "Tophane",
+      "category": "military",
+      "size": "large",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "oncePerEmpire": true,
+      "empireBuilding": true,
+      "effects": [
+        {
+          "kind": "unitStamp",
+          "strength": 4,
+          "class": {
+            "category": "military"
+          },
+          "scope": {
+            "test": "hasBuilding",
+            "building": "tophane"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 25,
+          "class": {
+            "category": "military"
+          },
+          "scope": {
+            "test": "hasBuilding",
+            "building": "tophane"
+          }
+        }
+      ],
+      "note": "The cannon foundry of the realm. Soldiers raised in its town are stronger for the rest of their lives, and the town raises them faster. One realm, one Tophane."
+    },
     "chapel": {
       "name": "Chapel",
       "category": "faith",
@@ -2237,14 +2391,12 @@
       "name": "Scriptorium",
       "category": "science",
       "size": "large",
-      "column": 4,
       "food": 0,
       "production": 0,
       "gold": 0,
       "science": 2,
       "culture": 0,
       "sciencePerPop": 0,
-      "unlockedByCard": true,
       "renown": {
         "family": "scholar",
         "perTurn": 2

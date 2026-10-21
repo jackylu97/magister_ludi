@@ -162,7 +162,7 @@ cityBlock.append(cityCaptions);
 const partsBlock = block(
   citySection,
   'The parts shelf',
-  'Each shape the ageing pass added, then the road corner, then the improvement props — the five works a great person plants and the lumbermill — alone, read off the same BoardGeometry the board builds, so a number tuned in view3d.json moves this shelf with it. Eight of them spend gold, and this is where that is checked side by side. The last three are the Keep, the polder and the outpost that Expansionist cards open, as placeholder art.',
+  'Each shape the ageing pass added, then the road corner, then the improvement props — the five works a great person plants and the lumbermill — alone, read off the same BoardGeometry the board builds, so a number tuned in view3d.json moves this shelf with it. Eight of them spend gold, and this is where that is checked side by side. Then the Keep, the polder and the outpost that Expansionist cards open, and last the Physic Garden that a Scientific charter opens, all as placeholder art.',
 );
 const partsCanvas = element('canvas', 'parts-canvas');
 partsBlock.append(partsCanvas);
@@ -366,6 +366,13 @@ drawPaletteAndRamp(
     'The twelve accepted primitive pieces, five great-person families, owner colours and movement on the painted board.');
   const link = element('a', undefined, 'Open the painted unit review');
   link.href = '/flair.html?review=units&unit=all&light=golden&detail=game'; root.append(link);
+  // The trait glow (Scientific batch S10) is a moment, not a standing mark, so
+  // it lives in the unit review as a button that replays it on the pieces in
+  // view, with its three tunables as knobs. Opened on the siege line here,
+  // because Mechanics' Onager is the trait the prototype shows it on.
+  const glow = element('a', undefined, 'Replay the trait glow on the siege line');
+  glow.href = '/flair.html?review=units&unit=siege&group=siege&light=golden&detail=game';
+  root.append(element('br'), glow);
 }
 
 // --- the index, and the atlas ----------------------------------------------

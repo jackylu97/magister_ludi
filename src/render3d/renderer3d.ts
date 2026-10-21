@@ -66,6 +66,7 @@ import type {
 } from '../ui/mapView';
 
 import { DeathAnimations3D, MoveAnimations3D } from './animation3d';
+import { TraitGlows } from './traitGlow';
 import { pickUnitModel as pickUnitBody, type UnitModelCandidate } from './unitModelPicking';
 import { TileIcons, UnitBadges, badgeHitRadius } from './badges3d';
 import {
@@ -316,6 +317,12 @@ export class Renderer3D implements MapView {
    * a corpse can be looked up in the state, so its visual is all there is.
    */
   private readonly deaths = new DeathAnimations3D();
+  /**
+   * Pieces glowing because they gained a line trait (Scientific batch S10).
+   * See `glowUnits` and `traitGlow.ts`. The glow is drawn on the resting
+   * instance, so unlike a walk or a fall it owns no mesh of its own.
+   */
+  private readonly glows = new TraitGlows();
   /** Temporary meshes for pieces mid-walk, one group of wrap copies per unit. */
   private readonly walkers = new Map<number, Group>();
   /** The same, for pieces mid-topple. See `animateDeath`. */
@@ -1843,6 +1850,9 @@ export class Renderer3D implements MapView {
     this.tints.dispose();
     this.animations.clear();
     this.deaths.clear();
+    // A new game's unit ids start again at one, so a glow left over from the
+    // old one would light some unrelated piece.
+    this.glows.clear();
     this.clearWalkers();
     this.clearFallers();
     // And the hides those walks were holding. `clearWalkers` takes the meshes
@@ -3119,6 +3129,24 @@ export class Renderer3D implements MapView {
   }
 
   /**
+   * A one-time gilt glow on these pieces: the ones that gained a line trait in
+   * the turn that just resolved (Scientific batch S10). See
+   * `MapView.glowUnits` and `traitGlow.ts`.
+   *
+   * Only a piece the unit layer is drawing as an outlined body glows. The
+   * layer already leaves out a piece the seat cannot watch, so the fog rule is
+   * the layer's own and is not asked again here. A billboard piece has no
+   * outline to light and is skipped too.
+   */
+  glowUnits(unitIds: readonly number[]): void {
+    if (!this.state) return;
+    const drawn = unitIds.filter((unitId) => this.units.isDrawing(unitId));
+    if (drawn.length === 0) return;
+    this.glows.start(drawn, performance.now());
+    this.invalidate();
+  }
+
+  /**
    * How much longer the walks in flight keep the board moving. See
    * `MapView.pendingAnimationMs`.
    *
@@ -3133,6 +3161,9 @@ export class Renderer3D implements MapView {
   skipAnimations(): void {
     this.animations.clear();
     this.deaths.clear();
+    // A glow ends with the rest. The rebuild below lays every shell back at
+    // rest, so nothing has to be written back by hand.
+    this.glows.clear();
     this.clearWalkers();
     this.clearFallers();
     this.units.clearHidden();
@@ -3404,6 +3435,33 @@ export class Renderer3D implements MapView {
       group.add(anchor);
     }
     return group;
+  }
+
+  /**
+   * Writes every glow in flight onto its piece, and the resting look back onto
+   * a piece whose glow has just ended. Returns true while at least one glow is
+   * still going, as `stepDeaths` does for the falls.
+   *
+   * Written every frame rather than once, so a unit-layer rebuild mid-glow
+   * (a rival's piece moved, say) costs the glow nothing: the rebuild lays the
+   * shell back at rest and this frame's write puts the glow back on top. A
+   * piece the layer no longer draws is forgotten.
+   */
+  private stepGlows(now: number): boolean {
+    let active = false;
+    for (const unitId of this.glows.activeUnits()) {
+      const strength = this.glows.strength(unitId, now);
+      if (strength === null) {
+        this.units.endGlow(unitId);
+        continue;
+      }
+      if (!this.units.setGlow(unitId, strength)) {
+        this.glows.forget(unitId);
+        continue;
+      }
+      active = true;
+    }
+    return active;
   }
 
   /**
@@ -3826,6 +3884,11 @@ export class Renderer3D implements MapView {
     // frame that finished one has to draw the board without it.
     const hadFallers = this.fallers.size > 0;
     if (hadFallers) this.stepDeaths(now);
+    // A glow forces frames on the same footing, and the frame that ends one
+    // has to draw the piece back at rest, so the question is asked before the
+    // step, as `hadWalkers` is.
+    const hadGlows = this.glows.pending;
+    if (hadGlows) this.stepGlows(now);
     // An animating camera forces frames the same way a walking piece does: it
     // moved the target, so the frame it moved it on has to be drawn. Nothing is
     // rebuilt when it arrives: the billboards were built for the destination the
@@ -3844,11 +3907,14 @@ export class Renderer3D implements MapView {
     // what is left over would throw that frame away.
     const revealing = (this.paintedBoard?.revealing ?? 0) > 0;
     if (revealing) this.paintedBoard!.advanceReveal(now);
-    if (!this.stateDirty && !this.frameDirty && !hadWalkers && !hadFallers && !panned && !fading && !revealing) return;
+    if (!this.stateDirty && !this.frameDirty && !hadWalkers && !hadFallers && !hadGlows && !panned && !fading && !revealing) return;
 
     const refreshState = this.stateDirty;
     this.stateDirty = false;
     if (refreshState) this.syncStateLayers();
+    // The sync may have rebuilt the unit layer, which lays every shell back at
+    // rest. Writing the glows again keeps this frame from showing a flicker.
+    if (hadGlows && refreshState) this.stepGlows(now);
     // Cleared after the sync, because the sync's own rebuilds (the lens, the
     // overlays) ask for a redraw, and this frame is that redraw.
     this.frameDirty = false;

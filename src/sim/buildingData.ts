@@ -413,6 +413,16 @@ export type BuildingId =
   | 'bank'
   | 'bastion'
   | 'alchemicalSociety'
+  // **The charter technologies' buildings** (Scientific batch S4). A charter
+  // technology names each one in its `unlocks`, and only a seat that drafted
+  // the charter may research that technology, so only the charter's holder
+  // can build these. The Scriptorium and the Bastion above are opened the
+  // same way now, by Papermaking and Military Architecture.
+  | 'specularium'
+  | 'mouseion'
+  | 'aldinePress'
+  | 'bimaristan'
+  | 'tophane'
   // The Holy Office's tenant (Entry LVIII, the faith rework): the tier-4 faith
   // building, and the one row that opens a bank (`faithPurchases`).
   | 'reliquary'
@@ -645,6 +655,20 @@ export interface BuildingDef {
    * stale number in the data is a number some future reader will believe.
    */
   size: BuildingSize;
+  /**
+   * **A row that costs more than its size and column say**, in whole percent
+   * (Scientific batch S4: the Mouseion, "30% more production than an ordinary
+   * empire building"). Absent means the standard price, which is every other
+   * row.
+   *
+   * The row still carries a size and never a figure, because the price is still
+   * the standard's. `explainBuildingCost` adds this as one labelled line after
+   * every other line, on the figure they come to, and floors it once. So the
+   * premium is a share of what this row would cost without it, the empire's
+   * line included, and the breakdown still sums to the price (the triage's
+   * reading 56).
+   */
+  costPercent?: number;
   /**
    * The tech-tree column this row is priced at, for a row **no technology
    * unlocks** — a charter's building, a row kept warm ahead of its node.

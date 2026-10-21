@@ -97,6 +97,12 @@ Charters — a building no technology opens, handed over by a card — take the
 IV 9, V 11. The Gilded Hall is a Doctrine of the Government III tier and takes
 column 6 with them.
 
+A building a **charter technology** opens (Scientific batch S4: the
+Specularium, the Mouseion, the Aldine Press, the Bimaristan, the Tophane, the
+Scriptorium and the Bastion) is a row the tree names, so it takes that
+technology's column like any other. Only the charter's holder can research the
+technology, so only the holder can build the row.
+
 The **four faith houses** a follower belief opens (batch B3 — the Mosque, the
 Wat, the Gurdwara, the Dar-e Mehr) take the column of the **Temple's** node,
 `theHighTemple`'s 5: a belief has no tier to read a column off, and the faith
@@ -117,6 +123,10 @@ about a price. The lines, in the order the arithmetic runs:
 3. **the empire**, for a `oncePerEmpire` row — "Empire of 9 cities ×1.50".
 4. **the ladder**, for a unit with `escalation` — "3 already built" — then the
    settler-named card rule, "Cards −20%".
+5. **the row's premium**, for a building with `costPercent`: "Mouseion +30%".
+   It is a share of the figure the lines above come to, floored once, so the
+   row still carries a size and no figure (Scientific batch S4, the triage's
+   reading 56). The Mouseion is the one row with a premium.
 
 `foldBuildingCost` is `buildingProductionCost`; `foldUnitCost` sums either list.
 `unitRosterCost` is lines 1–2 alone — what the roster charges before any empire
@@ -170,14 +180,19 @@ reading for a once-per-empire row.
 | `townCharter` | Town Charter | small | 8 | 198 |
 | `bank` | Bank | large | 11 | 893 |
 | `bourse` | Bourse | large | 9 | 520 |
-| `bastion` | Bastion | large | 10 | 681 |
+| `bastion` | Bastion | large | 11 | 893 |
+| `specularium` | Specularium | medium | 5 | 117 |
+| `mouseion` | Mouseion | large | 4 | 174 |
+| `aldinePress` | Aldine Press | large | 7 | 303 |
+| `bimaristan` | Bimaristan | large | 6 | 231 |
+| `tophane` | Tophane | large | 10 | 681 |
 | `alchemicalSociety` | The Alchemical Society | large | 12 | 1169 |
 | `chartTheStars` | Chart the Stars | large | 4 | 134 |
 | `theTurningHeavens` | The Turning Heavens | large | 9 | 520 |
 | `theAlchemicalCodex` | The Alchemical Codex | large | 12 | 1169 |
 | `theMagnumOpus` | The Magnum Opus | wonder | 12 | 2534 |
 | `chapel` | Chapel | medium | 2 | 52 |
-| `scriptorium` | Scriptorium | large | 4 | 134 |
+| `scriptorium` | Scriptorium | large | 7 | 303 |
 | `assayHouse` | Assay House | large | 4 | 134 |
 | `cistern` | Cistern | medium | 4 | 89 |
 | `assemblyHall` | Assembly Hall | large | 4 | 134 |

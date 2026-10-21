@@ -155,11 +155,25 @@ const CHARTERS: { order: OrderId; building: BuildingId }[] = ORDER_IDS.filter(
   // (every earlier withdrawal wrote one). D1b re-cuts this against the new
   // charter rows (`OrderDef.charter`, granted on the pick, never seated).
   (id) => orderDef(id).note === undefined,
-).flatMap((id) =>
-  orderDef(id)
-    .effects.filter((effect) => effect.kind === 'unlocksBuilding')
-    .map((effect) => ({ order: id, building: effect.building })),
-);
+)
+  .flatMap((id) =>
+    orderDef(id)
+      .effects.filter((effect) => effect.kind === 'unlocksBuilding')
+      .map((effect) => ({ order: id, building: effect.building })),
+  )
+  // **A building the tree opens has left the family** (Scientific batch S4).
+  // The retired Scriveners' Charter still names the Scriptorium, but
+  // Papermaking opens that row now (the Paper-Makers' Charter), as the tree
+  // pass moved the Smithy into the tree. A row a technology names is opened by
+  // the tree, not by a slotted card, so the claims below are not about it.
+  // `MOVED_INTO_THE_TREE` pins what moved.
+  .filter(({ building }) => gatingTech('building', building) === null);
+
+/**
+ * The retired charters whose building a technology opens now: the Scriveners'
+ * Charter, whose Scriptorium Papermaking opens since Scientific batch S4.
+ */
+const MOVED_INTO_THE_TREE: readonly OrderId[] = ['scrivenersCharter'];
 
 /**
  * **The shelf's eleven, and D1b's own** — the family splits in two now.
@@ -185,14 +199,15 @@ const THE_TREE_KEEPS: readonly BuildingId[] = ['mint', 'observatory'];
 // --- the register -----------------------------------------------------------
 
 describe('the charters as a family', () => {
-  it('ships eleven on the shelf and one in the decks, each opening one real building row', () => {
+  it('ships ten on the shelf and one in the decks, each opening one real building row', () => {
     // Eleven, then ten while the tree pass held the Toolmakers' Charter's door
     // shut, and eleven again since batch S2 re-opened that row as **The
     // Vizierate** over a different building — The Vizier's Hall. **D1b adds the
     // first live one**: the Magisterial deck's Senate Charter, which re-opens
     // the Assembly Hall its retired ancestor named. A thirteenth is a JSON row
-    // and inherits every claim in this file.
-    expect(SHELF_CHARTERS.length).toBe(11);
+    // and inherits every claim in this file. **Ten again since Scientific
+    // batch S4**: Papermaking opens the Scriveners' Scriptorium now.
+    expect(SHELF_CHARTERS.length).toBe(10);
     expect(LIVE_CHARTERS.map((entry) => entry.order)).toEqual(['theSenateCharter']);
     expect(CHARTERS.length).toBe(SHELF_CHARTERS.length + LIVE_CHARTERS.length);
     for (const { order, building } of CHARTERS) {
@@ -264,8 +279,10 @@ describe('the charters as a family', () => {
       justicesCharter: 'governmentIII',
     };
     // The shelf's eleven — the pools are a fact about the retired rows, which
-    // are the only ones that ever carried a `pool` (D1b's rows carry none).
-    expect(Object.keys(pools).length).toBe(SHELF_CHARTERS.length);
+    // are the only ones that ever carried a `pool` (D1b's rows carry none). The
+    // Scriveners' Charter is still one of them, though its building left the
+    // family in Scientific batch S4.
+    expect(Object.keys(pools).length).toBe(SHELF_CHARTERS.length + MOVED_INTO_THE_TREE.length);
     for (const [id, pool] of Object.entries(pools)) {
       const def = orderDef(id as OrderId);
       expect(def.pool, id).toBe(pool);
@@ -320,6 +337,26 @@ describe('the charters as a family', () => {
         'in one of your slots',
       );
     }
+  });
+
+  it('leaves the Scriptorium to Papermaking, as the tree pass left the Smithy to the tree', () => {
+    // Scientific batch S4: the row lost `unlockedByCard` and its own `column`,
+    // and Papermaking names it. The retired charter keeps its effect for old
+    // saves, but slotting it opens nothing the tree has not opened.
+    for (const order of MOVED_INTO_THE_TREE) {
+      expect(orderDef(order).retired, order).toBe(true);
+      const opened = orderDef(order).effects.filter((effect) => effect.kind === 'unlocksBuilding');
+      expect(opened.length, order).toBeGreaterThan(0);
+      for (const effect of opened) {
+        expect(gatingTech('building', effect.building), order).not.toBeNull();
+        expect(buildingDef(effect.building).unlockedByCard, order).toBeUndefined();
+        expect(buildingDef(effect.building).column, order).toBeUndefined();
+      }
+    }
+    expect(gatingTech('building', 'scriptorium')).toBe('papermaking');
+    const state = bench();
+    slot(state, 0, 'scrivenersCharter');
+    expect(isUnlocked(state, 0, 'building', 'scriptorium')).toBe(false);
   });
 
   it('opens a row of its own, and never a row the tree names', () => {

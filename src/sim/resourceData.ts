@@ -138,7 +138,7 @@ import {
   type TileYieldSpec,
   readTileYield,
 } from './terrainData';
-import { TECH_AGES, TECH_IDS, type TechAge, type TechId, eraNumeral } from './techData';
+import { TECH_AGES, type TechAge, type TechId, eraNumeral, isTechId } from './techData';
 // A leaf with no runtime imports of its own, so this edge cannot make a cycle.
 import { discardSlates } from './slate';
 
@@ -1006,7 +1006,9 @@ function validateTable(): void {
     for (const feature of def.validFeatures ?? []) {
       if (!FEATURE_IDS.includes(feature)) throw new Error(`${where} names unknown feature "${feature}"`);
     }
-    if (def.requiresTech !== undefined && !TECH_IDS.includes(def.requiresTech)) {
+    // `isTechId` and not the sky's list, so a row may name a charter
+    // technology (Scientific batches S4 and S5), which `TECH_IDS` leaves out.
+    if (def.requiresTech !== undefined && !isTechId(def.requiresTech)) {
       throw new Error(`${where} names unknown technology "${def.requiresTech}"`);
     }
     // A **buried** row is never in the surface draw, so it has no weight to

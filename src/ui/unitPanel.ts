@@ -67,6 +67,10 @@ import { seatName } from '../sim/leaderData';
 // the rank's own mark, the one the board's badge carries at its corner.
 import { experienceOf, nextRankOf, rankName, rankOf, rankStrength, rankThreshold } from '../sim/ranks';
 import { rankMarkDataUri } from '../art/rankMarks';
+// A piece's line traits (Scientific batch S10): the name after the type, and
+// the labelled lines in the strength and range lists.
+import { type UnitLedgerLine, type UnitTraitLedger, foldUnitLedger, unitTraitLedger } from './unitTraits';
+import { cardUnitStat } from '../sim/statecraft';
 
 /** The three voices an improvement can move, in the order the panel reads them. */
 const DELTA_KEYS = ['food', 'production', 'gold'] as const;
@@ -659,6 +663,47 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
    * once the unit is hurt, because a wounded unit is the one fact on this panel
    * that changes what the player should do next.
    */
+  /**
+   * **A piece's traits, as labelled lines** (Scientific batch S10): the strength
+   * list and the range list, each its row's figure, the trait's line and a
+   * total, then each trait's rule in the describers' words.
+   *
+   * A list is printed only when a trait adds a line to it, so a Repeating
+   * Crossbow archer shows no strength list (the trait gives none) and still
+   * shows its rule. A unit's figures are lists in this game (hard rule 5), so
+   * the trait is one labelled line, as terrain or a general is in a fight.
+   */
+  function traitLedgerNode(ledger: UnitTraitLedger): HTMLElement {
+    const block = element('div', 'unit-ledger');
+    const list = (heading: string, lines: readonly UnitLedgerLine[]): void => {
+      if (lines.length < 2) return;
+      block.append(element('p', 'unit-ledger-heading', heading));
+      const rows = element('ul', 'unit-ledger-lines');
+      lines.forEach((line, index) => {
+        const row = element('li', index === 0 ? undefined : 'is-trait');
+        row.append(element('span', 'unit-ledger-label', line.label));
+        row.append(element('span', 'unit-ledger-figure', index === 0 ? String(line.amount) : signedFigure(line.amount)));
+        rows.append(row);
+      });
+      const total = element('li', 'is-total');
+      total.append(element('span', 'unit-ledger-label', 'Total'));
+      total.append(element('span', 'unit-ledger-figure', String(foldUnitLedger(lines))));
+      rows.append(total);
+      block.append(rows);
+    };
+    list('Strength', ledger.strength);
+    if (ledger.range !== null) list('Range', ledger.range);
+    for (const words of ledger.words) {
+      const line = element('p', 'unit-trait-words');
+      line.append(element('span', 'unit-trait-source', words.source));
+      const clauses = element('span', 'unit-trait-clauses');
+      setDescriptorText(clauses, words.clauses.map((clause) => clause.text).join('; '));
+      line.append(clauses);
+      block.append(line);
+    }
+    return block;
+  }
+
   function stat(label: string, value: string, alarm: boolean): HTMLElement {
     const box = element('div', alarm ? 'unit-stat is-alarm' : 'unit-stat');
     box.append(element('span', 'unit-stat-value', value));
@@ -1362,7 +1407,15 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     const rank = rankOf(unit);
     const header = element('div', 'unit-header');
     const title = element('div', 'unit-title');
-    title.append(element('h2', undefined, person ? person.name : def.name));
+    // **A line trait after the type's name** (Scientific batch S10): "Catapult ·
+    // Onager". The type keeps its name, because the trait changes no row; the
+    // trait is set in the charter sepia, because a charter technology gave it.
+    const traits = person ? null : unitTraitLedger(getGame().state, unit);
+    const heading = element('h2', undefined, person ? person.name : def.name);
+    if (traits !== null) {
+      for (const words of traits.words) heading.append(element('span', 'unit-trait', ` · ${words.name}`));
+    }
+    title.append(heading);
     const ownerLine = element(
       'span',
       'unit-owner',
@@ -1420,9 +1473,19 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // does not carry a strength of zero, which would read as a statistic rather
     // than as "this is not a soldier".
     if (isCombatant(def)) {
-      stats.append(stat('Strength', String(def.combatStrength), false));
+      // With a trait, the figure is the fold of the strength list below it, so
+      // the box and the list cannot disagree (rule 5). Without one, the row's.
+      const strength = traits === null ? def.combatStrength : foldUnitLedger(traits.strength);
+      stats.append(stat('Strength', String(strength), false));
       if (isRanged(def)) {
-        stats.append(stat('Ranged', `${def.rangedStrength} · ${def.range}⌖`, false));
+        // The reach a ranged attack measures: the row's range and what the
+        // empire's cards add (`combat.ts` measures it the same way). With a
+        // trait it is the fold of the range list, which comes to the same.
+        const range =
+          traits !== null && traits.range !== null
+            ? foldUnitLedger(traits.range)
+            : (def.range ?? 0) + cardUnitStat(getGame().state, unit, 'range');
+        stats.append(stat('Ranged', `${def.rangedStrength} · ${range}⌖`, false));
       }
       // **Experience**, toward the next rank (batch WC3): "5/10" is five earned
       // of the ten Elite needs, and a piece at the top rank shows what it has
@@ -1436,6 +1499,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       stats.append(box);
     }
     container.append(stats);
+    if (traits !== null) container.append(traitLedgerNode(traits));
 
     // The epigram: one line, the roster's own, in the display italic the offer
     // card set it in. It is *flavour* and it is here anyway, because it is the

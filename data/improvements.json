@@ -581,6 +581,28 @@
       "beyondBorders": 3,
       "claimsUnowned": 1,
       "clearsClutter": false
+    },
+    "physicGarden": {
+      "name": "Physic Garden",
+      "emoji": "🪴",
+      "chargeCost": 1,
+      "requiresTech": "herbals",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 0,
+        "science": 2
+      },
+      "validTerrain": [],
+      "freshwaterTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra"
+      ],
+      "requiresHills": false,
+      "onePerTown": true,
+      "clearsClutter": true
     }
   }
 }

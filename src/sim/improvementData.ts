@@ -172,7 +172,7 @@ import {
   emptyTileYield,
   readTileYield,
 } from './terrainData';
-import { TECH_IDS, type TechId } from './techData';
+import { type TechId, isTechId } from './techData';
 
 export type ImprovementId =
   | 'farm'
@@ -224,7 +224,14 @@ export type ImprovementId =
   // because the retired Keep building keeps that id for old towns.
   | 'townKeep'
   | 'polder'
-  | 'outpost';
+  | 'outpost'
+  // **The Physic Garden** (Scientific batch S4, the Herbalists' Charter). An
+  // ordinary worker row whose `requiresTech` is a charter technology, Herbals.
+  // Only a seat that drafted the charter may research Herbals, so only the
+  // charter's holder can build it. Its happiness is a card effect on Herbals,
+  // which counts the gardens inside the seat's borders (the triage's reading
+  // 28).
+  | 'physicGarden';
 
 /**
  * Who plants a work: one of the five **great-person families**, or the
@@ -944,14 +951,17 @@ function validateTable(): void {
     if (def.claimsUnowned !== undefined && !(def.claimsUnowned >= 0)) {
       throw new Error(`${where} claims a negative radius`);
     }
-    if (def.requiresTech !== undefined && !TECH_IDS.includes(def.requiresTech)) {
+    // `isTechId` and not the sky's list: a row may require a charter
+    // technology (Scientific batch S4, the Physic Garden on Herbals), which
+    // `TECH_IDS` leaves out.
+    if (def.requiresTech !== undefined && !isTechId(def.requiresTech)) {
       throw new Error(`${where} needs unknown technology "${def.requiresTech}"`);
     }
     if (def.greatPerson !== undefined && !isWorkFamily(def.greatPerson)) {
       throw new Error(`${where} names unknown family "${String(def.greatPerson)}"`);
     }
     for (const upgrade of def.upgrades ?? []) {
-      if (!TECH_IDS.includes(upgrade.tech)) {
+      if (!isTechId(upgrade.tech)) {
         throw new Error(`${where} names unknown technology "${upgrade.tech}"`);
       }
     }
@@ -970,7 +980,7 @@ function validateTable(): void {
     // entry, and a row here would make the absence mean two different things.
     if (feature === 'none') throw new Error(`${where} cannot clear bare ground`);
     if (def.chargeCost <= 0) throw new Error(`${where} has a non-positive chargeCost`);
-    if (!TECH_IDS.includes(def.tech)) {
+    if (!isTechId(def.tech)) {
       throw new Error(`${where} needs unknown technology "${def.tech}"`);
     }
     const paid = readTileYield(def.yields);

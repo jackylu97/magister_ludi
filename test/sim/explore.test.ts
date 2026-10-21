@@ -858,32 +858,57 @@ describe('determinism', () => {
    * on this board. Checked with the change in place and the version printed
    * as 151, which gives the draft rung's hashes exactly.
    *
-   * **Dominion batch D9 (schema 153) moved the hash and not the length** at
-   * both seeds: 152 became 153, and that is all. Nobody here drafts, so the
-   * retired and changed Dominion cards never reach this board. Checked with
-   * the change in place and the version printed as 152, which gives the
-   * charter technologies' hashes exactly.
+   * **The line traits (Scientific batch S1, schema 153) moved the hash and not
+   * the length** at both seeds: 152 became 153, and that is all. Nobody here
+   * drafts, so no trait is ever known on this board, and no ship blockades by
+   * a card. Checked with the change in place and the version printed as 152,
+   * which gives the charter technologies' hashes exactly.
    *
-   * **Dominion batch D10 (schema 154) moved the hash and not the length** at
-   * both seeds: 153 became 154, and that is all. Nobody here drafts, so the
-   * new and changed Dominion cards never reach this board. Checked with the
-   * change in place and the version printed as 153, which gives D9's hashes
+   * **The Scientific types and retirements (batch S1b, schema 154) moved the
+   * hash and not the length** at both seeds: 153 became 154, and that is all.
+   * Nobody here drafts, so no card is dealt or seated on this board. Checked
+   * with the change in place and the version printed as 153, which gives the
+   * line traits' hashes exactly.
+   *
+   * **Dominion batch D9 moved the hash and not the length** at both seeds, by
+   * the version alone. It was built at schema 153, without S1 and S1b, and
+   * merged after them, which renumbered it to 155, so the version went from
+   * 154 to 155. Nobody here drafts, so the retired and changed Dominion cards
+   * never reach this board. Checked with the merge in place and the version
+   * printed as 154, which gives the Scientific types' hashes exactly.
+   *
+   * **Scientific batches S2 and S3 (schema 156) moved the hash and not the
+   * length** at both seeds: 155 became 156, and that is all. Nobody here
+   * drafts, so no new card is seated and no price carries a card line on this
+   * board. Checked with the change in place and the version printed as 155,
+   * which gives Dominion batch D9's hashes exactly.
+   *
+   * **Dominion batch D10 moved the hash and not the length** at both seeds, by
+   * the version alone. It was built at schema 154, without S1, S1b, S2 and S3,
+   * and merged after them, which renumbered it to 157, so the version went
+   * from 156 to 157. Nobody here drafts, so the new and changed Dominion cards
+   * never reach this board. Checked with the merge in place and the version
+   * printed as 156, which gives the hashes of Scientific batches S2 and S3
    * exactly.
    *
-   * **Dominion batch D11 (schema 155) moved the hash and not the length** at
-   * both seeds: 154 became 155, and that is all. Nobody here drafts or meets a
-   * commission. Checked with the change in place and the version printed as
-   * 154, which gives D10's hashes exactly.
+   * **Scientific batch S4 (the building charters, schema 158) moved the hash
+   * and not the length** at both seeds: 157 became 158, and that is all.
+   * Nobody here drafts, so no charter technology is researched and no new
+   * building or Physic Garden is raised on this board. Checked with the change
+   * in place and the version printed as 157, which gives Dominion batch D10's
+   * hashes exactly.
    *
-   * **Dominion batch D12 (schema 156) moved the hash and not the length** at
-   * both seeds: 155 became 156, and that is all. Nobody here holds a card, and
-   * the sight gate on the resource tests changes no line any seat here is
-   * paid. Checked with the change in place and the version printed as 155,
-   * which gives D11's hashes exactly.
+   * **Dominion batches D11 and D12 moved the hash and not the length** at both
+   * seeds, by the version alone. They were built at schemas 155 and 156,
+   * without S2, S3 and S4, and merged together after them as 159, so the
+   * version went from 158 to 159. Nobody here drafts or meets a commission,
+   * and the sight gate on the resource tests changes no line any seat here is
+   * paid. Checked with the merge in place and the version printed as 158,
+   * which gives the hashes of Scientific batch S4 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'c7b1b36d:188931',
-    2026: 'bcd6bc30:188509',
+    11: '246d174e:188931',
+    2026: 'e3db9e57:188509',
   };
 
   for (const seed of [11, 2026]) {

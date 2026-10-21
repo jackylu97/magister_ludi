@@ -500,6 +500,7 @@ import {
   techDef,
   techDepth,
   techsGrant,
+  traitsReaching,
 } from './techData';
 import { awardOccasion } from './triumphs';
 import { BEAD_RULES, isBeadEndeavourId } from './beadData';
@@ -517,6 +518,8 @@ import {
 import { bumpEconomy } from './slate';
 // The empire's live share of a piece's maximum health — iron's ten points (R2).
 import { unitHealthBonus } from './resourceEffects';
+// The gap (Scientific batch S3, The Translation Movement). A leaf, so no cycle.
+import { techGap } from './rivals';
 
 const RESEARCH = RULES.research;
 
@@ -1796,10 +1799,14 @@ export interface TechCostLine {
  *      `rules.research.charterPremiumPercent` of the column price, scaled by
  *      the empire's `charterPremium` cards. The Patent Office's −100 leaves
  *      nothing, and then the line is not printed at all;
- *   3. **one line for each card percentage** that reaches this technology
- *      (today The Commonplace Book's `charterTechCost`, for a charter row).
- *      The percentages are added together and applied once, to the column
- *      price and the premium together. They never compound, so under both
+ *   3. **one line for each card percentage** that reaches this technology:
+ *      The Commonplace Book's `charterTechCost` for a charter row, and The
+ *      Translation Movement's `gapTechCost` for an ordinary row in the gap,
+ *      one an empire this seat has met already knows (`techGap`, `rivals.ts`;
+ *      Scientific batch S3). The gap holds no charter technology, so the two
+ *      rules never reach the same row (the triage's readings 2 and 15). The
+ *      percentages are added together and applied once, to the column price
+ *      and the premium together. They never compound, so under both charter
  *      cards a charter technology costs 85% of its column.
  *
  * **Floored once.** The total is one floor of the exact product, computed in
@@ -1818,13 +1825,17 @@ export function explainTechCost(state: GameState, player: Player, tech: TechId):
   const def = techDef(tech);
   const column = def.cost;
   const lines: TechCostLine[] = [{ source: `Column ${techColumn(tech)}`, amount: column }];
-  if (def.charter !== true) return lines;
+  const charter = def.charter === true;
 
   // The premium, in hundredths of a percent so a card that halves it stays a
-  // whole number: `charterPremiumPercent × (100 + Σ cards)`.
-  let premiumCut = 0;
-  for (const card of cardRulePercent(state, player.id, 'charterPremium')) premiumCut += card.percent;
-  const premium = RESEARCH.charterPremiumPercent * Math.max(0, 100 + premiumCut);
+  // whole number: `charterPremiumPercent × (100 + Σ cards)`. An ordinary row
+  // has none.
+  let premium = 0;
+  if (charter) {
+    let premiumCut = 0;
+    for (const card of cardRulePercent(state, player.id, 'charterPremium')) premiumCut += card.percent;
+    premium = RESEARCH.charterPremiumPercent * Math.max(0, 100 + premiumCut);
+  }
   // The column and the premium together, as a multiplier in the same units:
   // 10000 is the column price alone.
   const priced = 10000 + premium;
@@ -1835,9 +1846,19 @@ export function explainTechCost(state: GameState, player: Player, tech: TechId):
     running = withPremium;
   }
 
+  // The cards that reach this row: the charter rule for a charter row, and the
+  // gap rule for an ordinary row an empire this seat has met already knows.
+  // The gap is asked only when a gap card is seated, because it walks the met
+  // empires' research.
+  let cards = charter ? cardRulePercent(state, player.id, 'charterTechCost') : [];
+  if (!charter) {
+    const gapCards = cardRulePercent(state, player.id, 'gapTechCost');
+    if (gapCards.length > 0 && techGap(state, player.id).includes(tech)) cards = gapCards;
+  }
+
   // The cards, added together and applied once to that sum.
   let percent = 0;
-  for (const card of cardRulePercent(state, player.id, 'charterTechCost')) {
+  for (const card of cards) {
     percent += card.percent;
     const factor = Math.max(0, 100 + percent);
     const total = Math.max(1, Math.floor((column * priced * factor) / 1_000_000));
@@ -2444,11 +2465,49 @@ export interface UnitUpgradeTally {
   count: number;
 }
 
+/**
+ * **Pieces that gained a line trait** (Scientific batch S1): "3 catapults
+ * gained Onager". `UnitUpgradeTally`'s sibling. A piece gains a trait when the
+ * technology that carries it lands, or when it upgrades into the trait's line.
+ */
+export interface UnitTraitTally {
+  /** The pieces' type now. */
+  type: UnitTypeId;
+  /** The trait's name, as `TechTrait.name` prints it. */
+  trait: string;
+  /** The technology that carries the trait. */
+  tech: TechId;
+  count: number;
+}
+
 export interface ResearchReport {
   /** Techs completed since the snapshot, in completion order. */
   techs: TechId[];
   /** Units that changed type, grouped by (from, to) in `state.units` order. */
   upgrades: UnitUpgradeTally[];
+  /**
+   * Units that gained a line trait, grouped by (type, technology, trait) in
+   * `state.units` order. A piece created since the snapshot is not counted:
+   * it was made with the trait and gained nothing.
+   */
+  traits: UnitTraitTally[];
+}
+
+/**
+ * **The names of the line traits that reach this piece** (Scientific batch
+ * S1), in the order its owner learnt the technologies: "Onager" for a
+ * Catapult whose owner knows Mechanics. For the unit card and the hover card
+ * (batch S10).
+ *
+ * Read off the owner's technologies and the piece's type each time, so the
+ * piece carries no field, a captured piece takes its captor's traits, and the
+ * piece fingerprint does not change. The strength and the ability come through
+ * `liveEffects`, which reads the same rows.
+ */
+export function unitTraits(state: GameState, unit: Unit): string[] {
+  const owner = playerById(state, unit.ownerId);
+  if (!owner) return [];
+  return traitsReaching(owner.techsResearched, unit.type).map(({ trait }) => trait.name);
 }
 
 export function researchSnapshot(state: GameState, playerId: number): ResearchSnapshot {
@@ -2473,15 +2532,33 @@ export function researchSince(
 
   const wasType = new Map(before.units.map((unit) => [unit.id, unit.type]));
   const upgrades: UnitUpgradeTally[] = [];
+  const traits: UnitTraitTally[] = [];
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;
     const from = wasType.get(unit.id);
-    if (from === undefined || from === unit.type) continue;
+    if (from === undefined) continue;
+    // **The traits it gained** (Scientific batch S1): the traits its type
+    // holds now, less the ones its old type held under the snapshot's
+    // technologies. Both readings are of the rows, so the snapshot needs no
+    // record of traits. A trait is never lost: a technology is never unlearnt
+    // and an upgrade stays inside a line.
+    if (player !== undefined) {
+      const had = traitsReaching(before.techs, from);
+      for (const { tech, trait } of traitsReaching(player.techsResearched, unit.type)) {
+        if (had.some((old) => old.tech === tech && old.trait.name === trait.name)) continue;
+        const gained = traits.find(
+          (entry) => entry.type === unit.type && entry.tech === tech && entry.trait === trait.name,
+        );
+        if (gained) gained.count += 1;
+        else traits.push({ type: unit.type, trait: trait.name, tech, count: 1 });
+      }
+    }
+    if (from === unit.type) continue;
     const tally = upgrades.find((entry) => entry.from === from && entry.to === unit.type);
     if (tally) tally.count += 1;
     else upgrades.push({ from, to: unit.type, count: 1 });
   }
-  return { techs, upgrades };
+  return { techs, upgrades, traits };
 }
 
 /**
@@ -2508,4 +2585,10 @@ export function describeUpgrade(tally: UnitUpgradeTally): string {
   const from = pluralUnitName(unitDef(tally.from).name, tally.count).toLowerCase();
   const to = pluralUnitName(unitDef(tally.to).name, tally.count).toLowerCase();
   return `${tally.count} ${from} became ${to}`;
+}
+
+/** "3 catapults gained Onager": one plain sentence per trait group (Scientific batch S1). */
+export function describeTraitGain(tally: UnitTraitTally): string {
+  const who = pluralUnitName(unitDef(tally.type).name, tally.count).toLowerCase();
+  return `${tally.count} ${who} gained ${tally.trait}`;
 }

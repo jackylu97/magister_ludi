@@ -554,9 +554,16 @@ function badgeClassOf(def: UnitDef): string {
  */
 export const OPENING_WORDS: readonly string[] = ['Unlocked ', 'Withdrawn: '];
 
-/** `[[tech:mathematics|Mathematics]]`. */
+/**
+ * `[[tech:mathematics|Mathematics]]`. A charter technology is named without a
+ * mark, because the book has no page for one yet (Scientific batch S12 writes
+ * them), and a mark to a page the book lacks is a dead link. Since batch S4 a
+ * charter technology opens buildings and the Physic Garden, so their pages
+ * name it.
+ */
 function techRef(id: TechId): string {
-  return ref('tech', id, techDef(id).name);
+  const def = techDef(id);
+  return def.charter === true ? def.name : ref('tech', id, def.name);
 }
 
 /**

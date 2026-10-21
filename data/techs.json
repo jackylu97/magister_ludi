@@ -1242,6 +1242,20 @@
       ],
       "unlocks": {},
       "charter": true,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "tilesInBorders",
+          "tile": {
+            "test": "improvement",
+            "improvement": "physicGarden"
+          },
+          "to": "happiness",
+          "amount": 2
+        }
+      ],
       "flavor": "Every weed has a use, once someone writes it down."
     },
     "casting": {
@@ -1255,6 +1269,68 @@
       ],
       "unlocks": {},
       "charter": true,
+      "traits": [
+        {
+          "name": "Hoplite",
+          "line": "spearman",
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 1,
+              "side": "both",
+              "when": {
+                "test": "always"
+              },
+              "class": {
+                "line": "spearman"
+              }
+            },
+            {
+              "kind": "combatLine",
+              "amount": 1,
+              "side": "both",
+              "when": {
+                "test": "always"
+              },
+              "class": {
+                "line": "spearman"
+              },
+              "scaled": {
+                "count": "townCitizensHere",
+                "per": 4
+              }
+            }
+          ]
+        },
+        {
+          "name": "Maryannu",
+          "line": "chariot",
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 1,
+              "side": "both",
+              "when": {
+                "test": "always"
+              },
+              "class": {
+                "line": "chariot"
+              }
+            },
+            {
+              "kind": "combatLine",
+              "amount": 5,
+              "side": "attack",
+              "when": {
+                "test": "targetBelowHalf"
+              },
+              "class": {
+                "line": "chariot"
+              }
+            }
+          ]
+        }
+      ],
       "flavor": "Pour the bronze while it is bright, and the mould keeps the shape."
     },
     "surveying": {
@@ -1279,7 +1355,11 @@
       "prereqs": [
         "letters"
       ],
-      "unlocks": {},
+      "unlocks": {
+        "buildings": [
+          "mouseion"
+        ]
+      },
       "charter": true,
       "flavor": "A book nobody can find is a book nobody has."
     },
@@ -1292,7 +1372,11 @@
       "prereqs": [
         "theLongCount"
       ],
-      "unlocks": {},
+      "unlocks": {
+        "buildings": [
+          "specularium"
+        ]
+      },
       "charter": true,
       "flavor": "A curve of glass, and the far thing comes near."
     },
@@ -1305,7 +1389,11 @@
       "prereqs": [
         "theHighTemple"
       ],
-      "unlocks": {},
+      "unlocks": {
+        "buildings": [
+          "bimaristan"
+        ]
+      },
       "charter": true,
       "flavor": "First the ward for the sick, then the school beside it."
     },
@@ -1318,7 +1406,11 @@
       "prereqs": [
         "philosophy"
       ],
-      "unlocks": {},
+      "unlocks": {
+        "buildings": [
+          "scriptorium"
+        ]
+      },
       "charter": true,
       "flavor": "Rags in the vat, and a page for every hand."
     },
@@ -1331,8 +1423,18 @@
       "prereqs": [
         "philosophy"
       ],
-      "unlocks": {},
+      "unlocks": {
+        "buildings": [
+          "aldinePress"
+        ]
+      },
       "charter": true,
+      "effects": [
+        {
+          "kind": "routeRider",
+          "extra": 1
+        }
+      ],
       "flavor": "Set the page once, and print it a thousand times."
     },
     "mechanics": {
@@ -1346,6 +1448,35 @@
       ],
       "unlocks": {},
       "charter": true,
+      "traits": [
+        {
+          "name": "Onager",
+          "line": "catapult",
+          "effects": [
+            {
+              "kind": "unitStat",
+              "stat": "range",
+              "amount": 1,
+              "class": {
+                "line": "catapult"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Repeating Crossbow",
+          "line": "archer",
+          "effects": [
+            {
+              "kind": "rule",
+              "rule": "moveAfterAttack",
+              "class": {
+                "line": "archer"
+              }
+            }
+          ]
+        }
+      ],
       "flavor": "Gears teach patience to the arm that turns them."
     },
     "gunfounding": {
@@ -1357,7 +1488,11 @@
       "prereqs": [
         "machinery"
       ],
-      "unlocks": {},
+      "unlocks": {
+        "buildings": [
+          "tophane"
+        ]
+      },
       "charter": true,
       "flavor": "The founders cast the guns, and the guns redraw the borders."
     },
@@ -1372,6 +1507,40 @@
       ],
       "unlocks": {},
       "charter": true,
+      "traits": [
+        {
+          "name": "Grenadier",
+          "line": "warrior",
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 1,
+              "side": "both",
+              "when": {
+                "test": "always"
+              },
+              "class": {
+                "line": "warrior"
+              }
+            },
+            {
+              "kind": "combatLine",
+              "amount": 1,
+              "side": "both",
+              "when": {
+                "test": "always"
+              },
+              "class": {
+                "line": "warrior"
+              },
+              "scaled": {
+                "count": "charterTechsKnown",
+                "per": 1
+              }
+            }
+          ]
+        }
+      ],
       "flavor": "Weigh what goes in, weigh what comes out, and trust the scale."
     },
     "militaryArchitecture": {
@@ -1383,7 +1552,11 @@
       "prereqs": [
         "feudalism"
       ],
-      "unlocks": {},
+      "unlocks": {
+        "buildings": [
+          "bastion"
+        ]
+      },
       "charter": true,
       "flavor": "Angle the walls, and no stretch of stone is left unseen."
     },
@@ -1398,6 +1571,32 @@
       ],
       "unlocks": {},
       "charter": true,
+      "traits": [
+        {
+          "name": "Galleass",
+          "line": "gunGalley",
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 3,
+              "side": "both",
+              "when": {
+                "test": "always"
+              },
+              "class": {
+                "line": "gunGalley"
+              }
+            },
+            {
+              "kind": "rule",
+              "rule": "blockades",
+              "class": {
+                "line": "gunGalley"
+              }
+            }
+          ]
+        }
+      ],
       "flavor": "A row of guns turns a galley into a moving fort."
     }
   },

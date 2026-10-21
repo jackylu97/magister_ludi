@@ -82,7 +82,7 @@ import {
   readTileYield,
   tileYield,
 } from '../../src/sim/terrainData';
-import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
+import { ALL_TECH_IDS, TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
 import { at, bareState, woodedWorker } from './improvementHelpers';
 import { unitAwaitsOrders } from '../../src/sim/units';
@@ -194,6 +194,9 @@ describe('the improvement table', () => {
       'townKeep',
       'polder',
       'outpost',
+      // The Physic Garden (Scientific batch S4): an ordinary worker row whose
+      // technology, Herbals, only the Herbalists' Charter opens.
+      'physicGarden',
     ]);
     expect(isImprovementId('farm')).toBe(true);
     expect(isImprovementId('orchard')).toBe(false);
@@ -1157,7 +1160,10 @@ describe('buildImprovement', () => {
         if (isCardOpenedWork(id)) continue;
         const gate = improvementDef(id).requiresTech;
         expect(gate, id).toBeDefined();
-        expect(TECH_IDS, id).toContain(gate!);
+        // Any row of the tree, a charter technology included: the Physic
+        // Garden waits for Herbals (Scientific batch S4), which only the
+        // Herbalists' Charter opens.
+        expect(ALL_TECH_IDS, id).toContain(gate!);
       }
     });
 
@@ -2626,16 +2632,27 @@ describe('improvements in the log', () => {
     // 152 since the charter technologies (Scientific batch S0): thirteen
     // technologies join the tree and two Scientific cards come live, so a
     // v151 log's research and drafts meet a different tree and deck.
-    // 153 since Dominion batch D9: ten Dominion Orders and one Doctrine are
-    // retired and one Order comes live, so a v152 log's Dominion hands and
+    // 153 since the line traits (Scientific batch S1): three Scientific
+    // charters are dealt, so a v152 log's hands differ from the first draft.
+    // 154 since the Scientific types and retirements (batch S1b): a
+    // Scientific seat's pool loses eleven cards, and typed chairs refuse some
+    // seat commands a v153 log holds.
+    // 155 since Dominion batch D9: ten Dominion Orders and one Doctrine are
+    // retired and one Order comes live, so a v154 log's Dominion hands and
     // Doctrine offers hold different cards.
-    // 154 since Dominion batch D10: nine Dominion Orders come live and two
-    // change, so a v153 log's Dominion hands hold different cards.
-    // 155 since Dominion batch D11: five Dominion Orders come live and one
-    // changes, so a v154 log's Dominion hands hold different cards.
-    // 156 since Dominion batch D12: two Dominion Orders come live, three
-    // change, and resource lines read the sight gate, so a v155 log differs.
-    expect(SCHEMA_VERSION).toBe(156);
+    // 156 since Scientific batches S2 and S3 (the guildsmen, and readings
+    // against the empires a seat has met): eight Orders come live, so a v155
+    // log's Scientific and Commerce hands hold different cards.
+    // 157 since Dominion batch D10: nine Dominion Orders come live and two
+    // change, so a v156 log's Dominion hands hold different cards.
+    // 158 since Scientific batch S4 (the building charters): eight Scientific
+    // charters are dealt, and five buildings and the Physic Garden join the
+    // tables, so a v157 log's Scientific hands hold different cards.
+    // 159 since Dominion batches D11 and D12, which landed together. D11:
+    // five Dominion Orders come live and one changes. D12: two Dominion
+    // Orders come live, three change, and resource lines read the sight gate.
+    // So a v158 log's Dominion hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(159);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

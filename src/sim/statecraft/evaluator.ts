@@ -226,12 +226,16 @@ import { beadCapEffects } from '../beads';
 // price of a technology. Nothing at the top level of either file calls the
 // other.
 import { explainTechCost, foldTechCost } from '../tech';
+// Feature B's readings (Scientific batch S3). A leaf, so no cycle.
+import { aheadOfMet, knowsFewerTechs, techGap, techLead, unitAheadOfMet } from '../rivals';
 import {
   type AbilityId,
   type TechId,
+  BUILDING_UNLOCK_TECH,
   UNIT_UNLOCK_TECH,
   eraNumeral,
   highestAge,
+  isCharterTech,
   isTechId,
   techDef,
 } from '../techData';
@@ -243,6 +247,7 @@ import {
   isCombatant,
   isExplorer,
   isFieldSoldier,
+  isInUnitLine,
   isUnitTypeId,
   unitDef,
   unitMaxHp,
@@ -957,9 +962,21 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
   // where an empire ends holding fifty of them.
   for (const id of playerById(state, playerId)?.techsResearched ?? []) {
     if (!isTechId(id)) continue;
-    const effects = techDef(id).effects;
-    if (effects === undefined || effects.length === 0) continue;
-    push(id, CLASS_WORD.tech, effects);
+    const def = techDef(id);
+    const effects = def.effects;
+    if (effects !== undefined && effects.length > 0) push(id, CLASS_WORD.tech, effects);
+    // **The line traits** (Scientific batch S1): read with the technology,
+    // after its own effects, one trait at a time in row order. Each line is
+    // labelled "<technology> · <trait>" ("Mechanics · Onager", reading 23), so
+    // the forecast and the unit card name the trait. The label is fixed here
+    // and kept for any clause nested inside a trait's effects.
+    for (const trait of def.traits ?? []) {
+      const source = `${def.name} · ${trait.name}`;
+      const pushTrait = (card: CardId, _word: string, nested: readonly CardEffect[]): void => {
+        pushEffects(state, playerId, list, card, source, nested, pushTrait, source);
+      };
+      pushTrait(id, source, trait.effects);
+    }
   }
   // **The seventh source** (`docs/religion-v2.md`, corrected by the user's
   // ruling of 2026-08-28): every religion whose **holy city this empire holds**.
@@ -1226,11 +1243,17 @@ function pushEffects(
   word: string,
   effects: readonly CardEffect[],
   recur: (card: CardId, word: string, effects: readonly CardEffect[]) => void,
+  /**
+   * The whole label, when the caller names it. A line trait (Scientific batch
+   * S1) is labelled "<technology> · <trait>", which is not the class word and
+   * the card's name that every other source uses.
+   */
+  label?: string,
 ): void {
   // One line for the whole card, built once: every effect of one card carries
   // the identical label, and this used to be a template and an `anyCardDef` per
   // effect — a ninth of a late turn between them (batch 10).
-  let source: string | undefined;
+  let source: string | undefined = label;
   for (const effect of effects) {
     if (effect.kind === 'conditionRule') {
       // The cut. Inside a condition's own evaluation every gate is closed, so
@@ -2882,6 +2905,8 @@ export function countOf(
       // never a walk of the pieces still standing: a house that learnt from the
       // scholar goes on learning after her academy is planted. See the count.
       return playerById(state, playerId)?.greatPeopleRecruited ?? 0;
+    case 'charterTechsKnown':
+      return charterTechsKnown(state, playerId);
     case 'unitsInField': {
       let total = 0;
       for (const unit of state.units) {
@@ -3397,6 +3422,24 @@ export function countOf(
       }
       return total;
     }
+    case 'guildsmen': {
+      // Scientific batch S2, The Scholars' Guild: the citizens in the trades,
+      // narrowed to one trade by the row's `family`, and to the town the line
+      // is paid in by `within: 'city'`.
+      if (effect.within === 'city') return city ? guildsmenIn(city, effect.family) : 0;
+      let total = 0;
+      for (const town of state.cities) {
+        if (town.ownerId === playerId) total += guildsmenIn(town, effect.family);
+      }
+      return total;
+    }
+    case 'techLead':
+      // Scientific batch S3, The Secret Arts. See `techLead` (`rivals.ts`).
+      return techLead(state, playerId).length;
+    case 'techGap':
+      // Scientific batch S3. Every met empire together here; a trade route
+      // asks it of the empire at the far end (`cardRouteYieldLines`).
+      return techGap(state, playerId).length;
     case 'beliefsHeld': {
       let total = 0;
       for (const religion of heldReligions(state, playerId)) {
@@ -5297,6 +5340,18 @@ export function cardProduction(
     if (effect.defensive === true) {
       if (building === undefined || !isFortification(building)) continue;
     }
+    // The Great Designs (Scientific batch S3): only while no empire this one
+    // has met knows the technology that names the row in its unlocks. A row no
+    // technology opens never matches (the triage's reading 46).
+    if (effect.aheadOfMet === true) {
+      const gate =
+        building !== undefined
+          ? BUILDING_UNLOCK_TECH.get(building)
+          : unitType !== undefined
+            ? UNIT_UNLOCK_TECH.get(unitType)
+            : undefined;
+      if (gate === undefined || !aheadOfMet(state, city.ownerId, gate)) continue;
+    }
     // *Where* the hammers land, where `modelClass` is *what* they land on. The
     // town is already in hand — a production modifier is asked of one city's
     // queue — so the scope is the ordinary one and needs no second reading.
@@ -6250,6 +6305,14 @@ function combatConditionHolds(
       if (them === undefined || them === situation.unit.ownerId) return false;
       return opusCityOf(state, them) !== null;
     }
+    case 'vsFewerTechs': {
+      // The Edge of the Sword (Scientific batch S3): the two empires' counts of
+      // technologies known, compared. The barbarian seat is not an empire and
+      // never satisfies it (the triage's reading 7).
+      const them = situation.vsOwnerId;
+      if (them === undefined) return false;
+      return knowsFewerTechs(state, situation.unit.ownerId, them);
+    }
     case 'notFollowingTerritory': {
       // The Crusader Orders. `followingTerritory`'s reading, answered the other
       // way: ground some town owns, where that town does not keep one of the
@@ -6528,6 +6591,22 @@ function combatScaleCount(
     case 'bankedGold':
       // War Bonds. The ledger count's own reading, asked of a fight.
       return Math.max(0, Math.floor(playerById(state, playerId)?.gold ?? 0));
+    case 'townCitizensHere': {
+      // The Hoplite (Scientific batch S1, reading 26). The piece's own hex in
+      // both postures: a defender stands on the contested hex, and an attacker
+      // strikes from its own (the comparison's imagined copy stands where it
+      // is imagined). Only a town of the piece's own empire counts.
+      const here = cityAt(state, unit.col, unit.row);
+      return here !== undefined && here.ownerId === unit.ownerId ? here.population : 0;
+    }
+    case 'charterTechsKnown':
+      // The Grenadier (Scientific batch S1). The ledger count's own reading,
+      // asked of a fight.
+      return charterTechsKnown(state, playerId);
+    case 'techLead':
+      // The Proving Ground (Scientific batch S3). The ledger count's own
+      // reading, asked of a fight.
+      return techLead(state, playerId).length;
     default: {
       const unhandled: never = count;
       void unhandled;
@@ -6568,6 +6647,36 @@ function greatPeopleEarned(state: GameState, playerId: number, family?: Family):
     const person = unit.person;
     if (person === undefined) continue;
     if (admits(person)) total += 1;
+  }
+  return total;
+}
+
+/**
+ * **The guildsmen of one town** (Scientific batch S2): the citizens of one
+ * trade, or of every trade when no family is named. Read off
+ * `City.specialists`, which the `guilds` phase writes. The general family has
+ * no trade, so it counts nobody.
+ */
+function guildsmenIn(city: City, family?: Family): number {
+  const held = city.specialists;
+  if (family === undefined) {
+    return held.scholar + held.merchant + held.engineer + held.artist;
+  }
+  if (family === 'general') return 0;
+  return Math.max(0, held[family] ?? 0);
+}
+
+/**
+ * **The charter technologies this empire knows** (Scientific batch S1): the
+ * count both `CountKind` and `CombatScaleCount` name `charterTechsKnown`. One
+ * function, so the Grenadier's strength and a card that pays for the same
+ * count cannot disagree. A charter drafted and not yet researched does not
+ * count (the triage's reading 27).
+ */
+function charterTechsKnown(state: GameState, playerId: number): number {
+  let total = 0;
+  for (const id of playerById(state, playerId)?.techsResearched ?? []) {
+    if (isTechId(id) && isCharterTech(id)) total += 1;
   }
   return total;
 }
@@ -6697,6 +6806,10 @@ export function unitMatches(type: UnitTypeId, filter?: UnitFilter): boolean {
   // say — see `UnitFilter.type`. The *data* names a type here; no rule in
   // `src/sim/` does, which is the claim that has never moved.
   if (filter.type !== undefined && type !== filter.type) return false;
+  // One unit line (Scientific batch S1, the line traits): the named unit and
+  // every unit its upgrade chain reaches, read off the roster's own table, so
+  // a trait stays with a piece through every upgrade (reading 22).
+  if (filter.line !== undefined && !isInUnitLine(type, filter.line)) return false;
   return true;
 }
 
@@ -7599,6 +7712,13 @@ export function windfallPayout(
     if (effect.fallenUnbuilt === true) {
       if (facts.fallen === undefined) return false;
       if (unbuiltTechFor(state, playerId, facts.fallen) === null) return false;
+    }
+    // Greek Fire (Scientific batch S3): the unit gained is one no empire this
+    // one has met can build (the triage's reading 45). A unit completion
+    // names the unit gained as its actor.
+    if (effect.unbuildableByMet === true) {
+      if (facts.actor === undefined) return false;
+      if (!unitAheadOfMet(state, playerId, facts.actor)) return false;
     }
     // The New Code (Dominion batch D5): a free draft rides only when it can
     // open, so the ten-turn stamp is not written for a draft that never came
@@ -10199,10 +10319,17 @@ export function cardRouteYieldLines(
     //
     // The bag is multiplied, which is the (route, count) pair's own rule — a
     // caravan's line is a bag and the road's fold multiplies bags.
+    //
+    // **The gap is the one count asked of the far end** (Scientific batch S3,
+    // Books from the Ships): the books come from the ships of the empire that
+    // owns the destination, so the count is the gap to that empire alone. A
+    // preview with no far end chosen counts nothing.
     const counted =
-      effect.basis === 'count' && effect.count !== undefined && effect.count !== 'routeLength'
-        ? helpings(countOf(state, from.ownerId, card, effect, from), effect.per, effect.max)
-        : 1;
+      effect.basis === 'count' && effect.count === 'techGap'
+        ? helpings(to === undefined ? 0 : techGap(state, from.ownerId, to.ownerId).length, effect.per, effect.max)
+        : effect.basis === 'count' && effect.count !== undefined && effect.count !== 'routeLength'
+          ? helpings(countOf(state, from.ownerId, card, effect, from), effect.per, effect.max)
+          : 1;
     const line: CardRouteLine = {
       card,
       source: label(source, routeScopeNote(effect)),

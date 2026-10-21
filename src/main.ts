@@ -59,10 +59,9 @@ import {
   realPlayers,
 } from './sim/state';
 import type { Tile } from './sim/map';
-import { describeUpgrade } from './sim/tech';
 import { isExploredBy, isVisibleTo } from './sim/visibility';
-import { techDef } from './sim/techData';
-import { unitDef, unitHp, unitMaxHp } from './sim/unitData';
+import { unitHp, unitMaxHp } from './sim/unitData';
+import { unitTitle } from './ui/unitTraits';
 // The empire's live share of a piece's maximum health — iron's ten points (R2).
 import { unitHealthBonus } from './sim/resourceEffects';
 import { heraldryFor, heraldryMarkDataUri } from './art/heraldryMarks';
@@ -216,7 +215,8 @@ import {
   slotCount,
 } from './sim/statecraftData';
 import { doctrineFaceOf, orderPayoff, orderSuitBadges, orderSuitFace } from './ui/deckBadges';
-import { createTurnSplash } from './ui/turnSplash';
+import { createTurnSplash, techSplashReading } from './ui/turnSplash';
+import { charterOfferParts } from './ui/charterTech';
 // A type only: the Compendium's code is imported on first open (see below).
 import type { Compendium } from './ui/compendium';
 import { type LazyOverlay, lazyOverlay, whenIdle } from './ui/lazyScreen';
@@ -1854,10 +1854,12 @@ function describeUnitsOn(state: GameState, playerId: number, tile: Tile): string
   const units = unitsOnTile(state, tile.col, tile.row);
   const first = units[0];
   if (!first) return null;
-  const def = unitDef(first.type);
   const more = units.length > 1 ? ` +${units.length - 1}` : '';
   const bonus = unitHealthBonus(state, first.ownerId);
-  return `${def.name} · ${unitHp(first, bonus)}/${unitMaxHp(first, bonus)} hp · ${seatName(state, first.ownerId)}${more}`;
+  // The type's name with any line trait after it, "Catapult · Onager"
+  // (Scientific batch S10): a rival's piece says what it gained, because the
+  // board shows nothing else of it.
+  return `${unitTitle(state, first)} · ${unitHp(first, bonus)}/${unitMaxHp(first, bonus)} hp · ${seatName(state, first.ownerId)}${more}`;
 }
 
 /**
@@ -3256,6 +3258,9 @@ async function boot(initial: Game | null): Promise<void> {
         // A commission's counter, so the hand shows where its goal starts.
         progress: commissionCounters(game.state, seat, id),
         ...cardStamp(seat, { kind: 'order', id }),
+        // A technology charter's slip of the star chart and its "Opened" stamp
+        // (Scientific batch S10). After the impact stamp, so it wins over it.
+        ...charterOfferParts(game.state, seat, id),
       }));
       offerCard.show(
         {
@@ -4235,9 +4240,11 @@ async function boot(initial: Game | null): Promise<void> {
       // and a technology lands twenty times in a game. The upgrade tally rides
       // underneath it, because a warrior that quietly became a swordsman is
       // exactly the change a player would otherwise miss.
-      const tech = research.techs[0];
-      if (tech) {
-        splash.announceTech(techDef(tech).name, research.upgrades.map(describeUpgrade));
+      // The trait tally rides beside it, and a charter technology wears one
+      // eyebrow line (Scientific batch S10). See `techSplashReading`.
+      const discovery = techSplashReading(research);
+      if (discovery) {
+        splash.announceTech(discovery.name, discovery.notes, discovery.eyebrow);
         return;
       }
       const local = game.state.players[controls.localPlayerId()];
@@ -4294,6 +4301,11 @@ async function boot(initial: Game | null): Promise<void> {
         return;
       case 'openGreatPerson':
         showGreatPersonOffer();
+        return;
+      // The charter toast's door (Scientific batch S10): the star chart, centred
+      // on the node, with a ring around it for a moment.
+      case 'openTech':
+        techTree?.openAt(action.tech);
         return;
       default: {
         const unhandled: never = kind;

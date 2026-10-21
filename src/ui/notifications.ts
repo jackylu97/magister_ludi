@@ -32,10 +32,11 @@
  */
 
 import { type DiscoveryKind, discoveryKindTech } from '../sim/discoveryData';
-import { type GameState, type ReligionId, cityReligion } from '../sim/state';
+import { type GameState, type ReligionId, cityReligion, playerById } from '../sim/state';
 import { hasTech } from '../sim/tech';
 import { HIDDEN, isVisibleTo, visibilityAt } from '../sim/visibility';
 import { beliefDef, isBeliefId } from '../sim/religionData';
+import { CHARTER_TECH_IDS, type TechId, techDef } from '../sim/techData';
 import type { CellRef } from './mapView';
 import { seatName } from '../sim/leaderData';
 
@@ -64,11 +65,18 @@ import { seatName } from '../sim/leaderData';
  * `greatPerson` turn blocker takes no camera move either. It exists so the line
  * that says a great person is waiting is a line the player can *press*, rather
  * than a sentence pointing at a chip and a keyboard shortcut nobody has learned.
+ *
+ * `openTech` is the fourth (Scientific batch S10). It carries a technology
+ * rather than a cell: its click opens the star chart centred on that node,
+ * with a ring around it for a moment. Its one sender is the line that says a
+ * drafted charter has opened a technology for research (`charterOpenedText`),
+ * because the shortest way from that news to the node is one click.
  */
 export type NotificationAction =
   | { kind: 'pan'; cell: CellRef }
   | { kind: 'openStatecraft' }
-  | { kind: 'openGreatPerson' };
+  | { kind: 'openGreatPerson' }
+  | { kind: 'openTech'; tech: TechId };
 
 /**
  * One thing that happened, as the player is told it.
@@ -565,6 +573,75 @@ export function createReligionWatcher(): ReligionWatcher {
     reset(): void {
       toldBySeat.clear();
       faithBySeat.clear();
+    },
+  };
+}
+
+// --- charters ------------------------------------------------------------------
+
+/**
+ * The line a drafted charter announces (Scientific batch S10): the technology
+ * it opened is now open for research. One toast and one chronicle line, and
+ * the click opens the star chart on the node (`openTech`).
+ *
+ * The second sentence is what makes a charter technology different from any
+ * other, and it is said exactly: two seats may draft the same charter
+ * (reading 20), so it is "an empire with this charter", not "only you".
+ * Research does not change on the pick; what the player is aiming at goes on.
+ */
+export function charterOpenedText(tech: TechId): string {
+  return `${techDef(tech).name} is open for research. Only an empire with this charter may research it.`;
+}
+
+/**
+ * The watcher behind the charter toast: which charter technologies a seat has
+ * newly drafted since it was last asked.
+ *
+ * The sighting watcher's shape (`createSightingWatcher`) and its reasons. A
+ * draft is answered on the offer card, and the command that takes the card
+ * (`chooseOrder`) names an index, not a card, so the news is read off the seat
+ * afterwards rather than off the command: `Player.charteredTechs` grows by
+ * presence and never shrinks, so a technology in it that this seat was not told
+ * about is the news. A seat sitting down is baselined silently, so a loaded
+ * game or a seat change does not announce charters drafted long ago.
+ *
+ * Arrays in the charter rows' order, never a set's order, so two technologies
+ * opened at once are announced in the same order every time.
+ */
+export interface CharterWatcher {
+  /** The charter technologies this seat drafted since the last poll or baseline. */
+  poll(state: GameState, seatId: number): TechId[];
+  /** Files everything this seat holds as told, and says nothing. */
+  baseline(state: GameState, seatId: number): void;
+  /** Forgets every seat. A new game, or a loaded one. */
+  reset(): void;
+}
+
+export function createCharterWatcher(): CharterWatcher {
+  const toldBySeat = new Map<number, TechId[]>();
+
+  function held(state: GameState, seatId: number): TechId[] {
+    const player = playerById(state, seatId);
+    if (player === undefined) return [];
+    return CHARTER_TECH_IDS.filter((id) => player.charteredTechs.includes(id));
+  }
+
+  return {
+    poll(state, seatId): TechId[] {
+      const now = held(state, seatId);
+      const told = toldBySeat.get(seatId);
+      toldBySeat.set(seatId, now);
+      // A seat never baselined has told nothing yet and is announced nothing:
+      // the first reading is its baseline. Only `controls.ts` polls, and it
+      // baselines every seat it sits down at before it polls.
+      if (told === undefined) return [];
+      return now.filter((id) => !told.includes(id));
+    },
+    baseline(state, seatId): void {
+      toldBySeat.set(seatId, held(state, seatId));
+    },
+    reset(): void {
+      toldBySeat.clear();
     },
   };
 }

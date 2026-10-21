@@ -303,6 +303,15 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 58. (S0) The Patent Office's `charterPremium` is a percentage of the premium, so −100 removes it and −50 would halve it.
 59. (S0) `gameProgress` (the tile price) counts ordinary technologies only.
 60. (S0) `src/ai/value.ts` prices the two new rules at 0 until S13.
+61. (S1) The Galleass also counts in the line of battle (`navalLineLines`), because the line asks the same blockade question.
+62. (S1) The Maryannu's +5 applies in attack only, as Decisive Blows does: on defence `targetBelowHalf` would read the Maryannu's own health. It still pays against a town below half its hit points.
+63. (S1) Only ships blockade. A `blockades` rule given to a land line does nothing.
+64. (S1) `townCitizensHere` reads the hex the piece stands on, in attack and in defence.
+65. (S3) An eliminated empire is not a met rival.
+66. (S3) With nobody met, The Great Designs and Greek Fire pay nothing (reading 18, widened to them).
+67. (S3) The Edge of the Sword also applies in a fight with that empire's towns, as `vsWiderEmpire` does. It does not ask whether you have met that empire.
+68. (S3) On a trade route, the gap counts only the destination owner's technologies, as Books from the Ships' text says. Elsewhere it counts every met empire.
+69. (S3) `aheadOfMet` also works on units, by the unit's unlocking technology.
 
 ## The batches
 
@@ -337,6 +346,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 
 ### S1: line traits
 
+**Built 2026-10-21** (`c7446216`, schema 153). Readings 61 to 64 came from it. The Alchemists' Charter has its Grenadier and stays deferred until S5. The slow bot digests will move, because Scientific seats are dealt three more charters.
+
 - **Builds:**
   - `UnitFilter.line?: UnitTypeId`. `unitMatches` admits the named unit and every unit its `upgradesTo` chain reaches (reading 22), from a table built once from `data/units.json`.
   - `TechDef.traits?: { name: string; line: UnitTypeId; effects: CardEffect[] }[]`. `liveEffects`' tenth source pushes a trait's effects with the label "<technology> · <trait>" (reading 23).
@@ -350,7 +361,13 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 - **Schema:** one bump.
 - **Done-gate:** `npx vitest run test/sim/decks/scientificTraits.test.ts test/sim/naval.test.ts test/sim/combat.test.ts test/sim/charterTechs.test.ts test/sim/decks/scientific.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/statecraft.test.ts`.
 
+### S1b: the sheet of record and the types (moved forward by the user's ruling)
+
+**Built 2026-10-21** (`7bb0ad31`, schema 154). `docs/decks/scientific.md` is the sorted sheet of record, every Scientific row and every shared row naming Scientific carries its type, and the 24 cut rows and The Hydraulic Commonwealth are retired. From here on each batch sets its own rows to `implemented` with their types. S11 keeps only the final sheet check.
+
 ### S2: feature A, the trades as a card quantity
+
+**Built 2026-10-21** with S3 (`6efbbc5e`, schema 156).
 
 - **Builds:** a `CountKind` `guildsmen` with `family`, for a town (`within: 'city'`) or the empire, and its words. Card: The Scholars' Guild. The share-cap rule is not built: no Scientific card needs it since The Fellowships was cut.
 - **Fence:** the shared six, `test/sim/guilds.test.ts` (read only), a new `test/sim/decks/scientificGuilds.test.ts`.
@@ -360,6 +377,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 - **Done-gate:** `npx vitest run test/sim/decks/scientificGuilds.test.ts test/sim/guilds.test.ts test/sim/decks/scientific.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts`.
 
 ### S3: feature B, reading rivals
+
+**Built 2026-10-21** with S2 (`6efbbc5e`, schema 156). `src/sim/rivals.ts` exports `metRivals`, `techLead`, `techGap`, `metEmpireKnows`, `aheadOfMet`, `metEmpireCanBuild`, `unitAheadOfMet`, `knowsFewerTechs` and `knowsMoreTechs` (Dominion's D15 reads the last). Readings 65 to 69 came from it.
 
 - **Builds:**
   - A leaf `src/sim/rivals.ts`: over `Player.metSeats`, the barbarian seat never counted. The lead (technologies the seat knows that no met empire knows, its charter technologies included; zero with no met empire, reading 18), the gap (technologies a met empire knows that the seat does not, their charter technologies left out, reading 2), "a met empire can build this unit type" (reading 45), and "a met empire knows this technology". Computed when asked; the lists are short.
@@ -432,6 +451,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 - **Done-gate:** `npx vitest run test/sim/decks/scientificArmy.test.ts test/sim/decks/dominion.test.ts test/sim/ranks.test.ts test/sim/combat.test.ts test/sim/tech.test.ts test/sim/decks/scientific.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts`.
 
 ### S10: the charter UX (the approved prototype)
+
+**Built 2026-10-21** (`3996dc5a`; the glow's settings moved to `data/view3d.json` in `31817db6`). The lead on the chart (`chartLead` in `src/ui/charterTech.ts`) is a stub returning nothing until S3's lead reading lands; wiring it is one line. Not matched from the prototype: no turn number on the stamp, no town name in the toast, and a rival's range line is not shown off the forecast.
 
 - **Builds:**
   - The charter shelf at the foot of the star chart: drafted charter technologies only, and no shelf, rule or tab before the first charter. Same columns and age washes as the sky, a dotted sepia line from each parent, a small seal on the node. `packChart` packs the shelf as a second field and `fitPacked` shrinks both together.
