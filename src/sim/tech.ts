@@ -395,6 +395,8 @@ import {
   isCoastalCity,
   refreshCityDerived,
   resourceCopies,
+  settleGrowthWindfall,
+  settleProductionWindfall,
   turnsToFill,
   type CityYields,
 } from './cities';
@@ -463,6 +465,7 @@ import {
   // exactly how the two would come apart. See `indefinite`.
   indefinite,
   payWindfallGrants,
+  recordScalingOccasion,
   settleCultureWindfall,
   windfallPayout,
 } from './statecraft';
@@ -470,6 +473,10 @@ import {
 // index, which re-exports across a cycle: the rule that stops an empire
 // founding cities.
 import { cardBehaviorRule } from './statecraft/evaluator';
+// Scientific batch S6, from the evaluator for the same reason: how many times
+// the Orders count a technology (The Age of Reason), and whether a payout
+// holds anything at all.
+import { techCountsFor, windfallPayoutIsEmpty } from './statecraft/evaluator';
 import {
   type City,
   type GameState,
@@ -2018,16 +2025,36 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
   if (!isCharterTech(plan.techId) && markFirst(state, player.id, 'techWorld', plan.techId)) {
     firsts.push('techWorld');
   }
+  // **The research record** (Scientific batch S6): the moment written down
+  // for every seated Order that counts technologies (The Astronomical
+  // Diaries) or charter technologies (The Royal Charter Commission). It
+  // carries the technology for a commission's `tech` floor. Under The Age of
+  // Reason each completion counts twice (`techCountsFor`).
+  const counts = techCountsFor(state, player.id);
+  const record = { tech: plan.techId };
+  recordScalingOccasion(state, player.id, 'techCompleted', counts, record);
+  if (isCharterTech(plan.techId)) {
+    recordScalingOccasion(state, player.id, 'charterTechCompleted', counts, record);
+  }
   // The technology itself travels with the occasion since Dominion batch D5:
-  // The Armourers' Secret raises the units it unlocks.
-  const rider = windfallPayout(state, player.id, 'tech', 0, 0, { firsts, tech: plan.techId });
-  if (
-    rider.grants.length > 0 ||
-    rider.units.length > 0 ||
-    rider.timed.length > 0 ||
-    rider.healAll
-  ) {
-    payWindfallGrants(state, player, rider);
+  // The Armourers' Secret raises the units it unlocks. Since Scientific batch
+  // S6 its price travels too: The Scholars' Fame pays a share of what the seat
+  // paid (`techCost`, the triage's reading 39).
+  const rider = windfallPayout(state, player.id, 'tech', 0, 0, {
+    firsts,
+    tech: plan.techId,
+    techCost: plan.cost,
+  });
+  // The evaluator's own emptiness test since Scientific batch S6: the old
+  // guard read four of the payout's lists and dropped a rider that paid
+  // renown alone (The Scholars' Fame).
+  if (!windfallPayoutIsEmpty(rider)) {
+    const touched = payWindfallGrants(state, player, rider);
+    // Food and production a rider paid settle at once, as a cleared camp's do
+    // (The Royal Workshops' and The Journeymen's production).
+    for (const town of touched) {
+      if (!settleGrowthWindfall(state, town)) settleProductionWindfall(state, town);
+    }
     settleCultureWindfall(state, player);
   }
   return { player, techId: plan.techId, name: techDef(plan.techId).name, cost: plan.cost };

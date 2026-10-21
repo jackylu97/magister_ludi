@@ -199,6 +199,7 @@ import {
   countedTypeOf,
   doctrineDef,
   governmentDef,
+  isCharter,
   isDoctrineId,
   isGovernmentId,
   isOrderId,
@@ -228,6 +229,8 @@ import { beadCapEffects } from '../beads';
 import { explainTechCost, foldTechCost } from '../tech';
 // Feature B's readings (Scientific batch S3). A leaf, so no cycle.
 import { aheadOfMet, knowsFewerTechs, techGap, techLead, unitAheadOfMet } from '../rivals';
+// The Sum of Knowledge's count (Scientific batch S6): the same reading.
+import { techsKnownCount } from '../rivals';
 // The Upstarts' mirror of `knowsFewerTechs` (Dominion batch D15).
 import { knowsMoreTechs } from '../rivals';
 // Circumvallation (Dominion batch D14): who can lay a siege, as `siegeField`
@@ -2926,6 +2929,21 @@ export function countOf(
       return playerById(state, playerId)?.greatPeopleRecruited ?? 0;
     case 'charterTechsKnown':
       return charterTechsKnown(state, playerId);
+    case 'techsKnown': {
+      // Scientific batch S6, The Sum of Knowledge. The count The Edge of the
+      // Sword compares, charter technologies included (reading 17).
+      const player = playerById(state, playerId);
+      return player ? techsKnownCount(player) : 0;
+    }
+    case 'chartersDrafted': {
+      // Scientific batch S6, The Charter Rolls: the charter rows held, from
+      // the pick, researched or not.
+      let total = 0;
+      for (const id of playerById(state, playerId)?.statecraft.orders ?? []) {
+        if (isCharter(id)) total += 1;
+      }
+      return total;
+    }
     case 'unitsInField': {
       let total = 0;
       for (const unit of state.units) {
@@ -7361,6 +7379,12 @@ export interface WindfallPayout {
     toCapital?: true;
     toEveryTown?: true | CityScope;
     toNearest?: CityScope;
+    /**
+     * `amount` is the figure for one citizen, and each town it lands in is
+     * paid that many times its own citizens (Scientific batch S6, The
+     * Journeymen; `WindfallGrantSpec.fromTownPopulation`).
+     */
+    fromTownPopulation?: true;
   }[];
   /** Hit points a rider restores to the acting unit. */
   heal: number;
@@ -7697,6 +7721,13 @@ export interface WindfallOccasionFacts {
    * for free (`Unit.freeUpkeep`). Read by the `unitCost` measure.
    */
   unitCost?: number;
+  /**
+   * The science the technology just completed cost this empire, on the
+   * `tech` occasion (Scientific batch S6, The Scholars' Fame): the folded
+   * price `settleResearch` took from the pool (`ResearchPlan.cost`, the
+   * triage's reading 39). Read by the `techCost` measure.
+   */
+  techCost?: number;
 }
 
 
@@ -7954,7 +7985,25 @@ export function windfallPayout(
     pillageBoosted = true;
     return pillageBoost;
   };
-  for (const { source, card, effect } of effectsOfKind(state, playerId, 'windfallRider')) {
+  // **The Age of Reason** (Scientific batch S6, the `techCountsTwice` rule):
+  // on the `tech` occasion an Order's rider rides once for each time the
+  // empire's Orders count the technology, so each of its grants is paid that
+  // many times. Only the grants repeat. A rider's percentage and its era and
+  // council notes are read on the first round alone, and a once-a-turn rider
+  // rides once, because its limit is a promise about the turn. Every other
+  // occasion, and every rider that is not an Order's, rides once.
+  const riders = effectsOfKind(state, playerId, 'windfallRider');
+  const orderRounds = occasion === 'tech' ? techCountsFor(state, playerId) : 1;
+  const walk: { row: (typeof riders)[number]; round: number }[] = [];
+  for (const row of riders) {
+    const limited = row.effect.oncePerTurn === true || row.effect.oncePerTurns !== undefined;
+    const rounds = !limited && isOrderId(row.card) ? orderRounds : 1;
+    for (let round = 0; round < rounds; round++) walk.push({ row, round });
+  }
+  for (const {
+    row: { source, card, effect },
+    round,
+  } of walk) {
     if (!rides(effect, card)) continue;
     if (
       (effect.oncePerTurn === true || effect.oncePerTurns !== undefined) &&
@@ -7964,7 +8013,7 @@ export function windfallPayout(
     }
     if (effect.perAge === true) {
       ageMultiplied = true;
-      if (era > 1) payout.lines.push({ card, source, note: `×${era} (Æra ${eraNumeral(era)})` });
+      if (era > 1 && round === 0) payout.lines.push({ card, source, note: `×${era} (Æra ${eraNumeral(era)})` });
     }
     if (effect.perSlottedOrder === true) {
       slotMultiplied = true;
@@ -7972,9 +8021,11 @@ export function windfallPayout(
       // Æra I exactly: a ×1 is not news, and a ×0 has already deleted every
       // line it would have annotated.
       const orders = slotted === 1 ? 'Order' : 'Orders';
-      if (slotted > 1) payout.lines.push({ card, source, note: `×${slotted} (slotted ${orders})` });
+      if (slotted > 1 && round === 0) {
+        payout.lines.push({ card, source, note: `×${slotted} (slotted ${orders})` });
+      }
     }
-    if (effect.percent !== undefined) {
+    if (effect.percent !== undefined && round === 0) {
       const share = effect.percent;
       if (share !== 0) {
         percent += share;
@@ -8244,6 +8295,21 @@ export function windfallPayout(
         (effect.perSlottedOrder === true ? slotted : 1) *
         boostFor(card) *
         yieldBoost();
+      // **A figure for each citizen of the town paid** (Scientific batch S6,
+      // The Journeymen): the amount above is for one citizen, and the delivery
+      // multiplies it by each town's own citizens (`payWindfallGrants`).
+      if (amount !== 0 && grant.fromTownPopulation === true) {
+        payout.grants.push({
+          card,
+          source,
+          yield: grant.yield,
+          amount,
+          ...deliveryOf(grant),
+          fromTownPopulation: true,
+        });
+        payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield} for each citizen of the city` });
+        continue;
+      }
       if (amount !== 0) {
         payout.grants.push({ card, source, yield: grant.yield, amount, ...deliveryOf(grant) });
         payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
@@ -8367,6 +8433,9 @@ function occasionMeasure(
     // Dominion batch D7: what a disbanded unit costs to build.
     case 'unitCost':
       return facts.unitCost;
+    // Scientific batch S6: what the technology cost this empire.
+    case 'techCost':
+      return facts.techCost;
     default: {
       const unhandled: never = measure;
       void unhandled;
@@ -9362,8 +9431,11 @@ export function payWindfallGrants(
         player.opusBank = (player.opusBank ?? 0) + grant.amount;
       } else {
         for (const city of grantTowns(state, player.id, grant, at)) {
-          if (grant.yield === 'food') city.foodBasket += grant.amount;
-          else city.hammerBasket += grant.amount;
+          // The Journeymen (Scientific batch S6): the figure is for one
+          // citizen, so each town is paid by its own citizens.
+          const amount = grant.fromTownPopulation === true ? grant.amount * city.population : grant.amount;
+          if (grant.yield === 'food') city.foodBasket += amount;
+          else city.hammerBasket += amount;
           if (!touched.includes(city)) touched.push(city);
         }
       }
@@ -11094,11 +11166,33 @@ export function turnEffectRepeats(state: GameState, playerId: number, card: Card
 }
 
 /**
+ * **How many times this empire's Orders count each technology it completes**
+ * (Scientific batch S6, The Age of Reason): the largest `techCountsTwice`
+ * value its law holds, and once otherwise. `turnEffectRepeats`' reading, one
+ * rule over, and for that rule's reason only Orders count twice.
+ *
+ * Two readers: `windfallPayout`, where the `tech` occasion pays an Order's
+ * riders, and `settleResearch` (`tech.ts`), where the technology tallies are
+ * written. Every tally belongs to an Order, so the second reader asks with no
+ * card. A `card` that is not an Order counts once.
+ */
+export function techCountsFor(state: GameState, playerId: number, card?: CardId): number {
+  if (card !== undefined && !isOrderId(card)) return 1;
+  let times = 1;
+  for (const { effect } of effectsOfKind(state, playerId, 'metaRule')) {
+    if (effect.rule !== 'techCountsTwice') continue;
+    times = Math.max(times, Math.floor(effect.value));
+  }
+  return times;
+}
+
+/**
  * How long slotting an Order seals it, for this empire.
  *
- * One of the `metaRule` hook's two consumers — a card that rewrites a rule of
- * Statecraft itself (Entry XV.b). The other is `turnEffectRepeats` (Dominion
- * batch D7, Double Time).
+ * One of the `metaRule` hook's three consumers — a card that rewrites a rule of
+ * Statecraft itself (Entry XV.b). The others are `turnEffectRepeats` (Dominion
+ * batch D7, Double Time) and `techCountsFor` (Scientific batch S6, The Age of
+ * Reason).
  *
  * **The table's figure is the same on every shelf**, and it stays that way: the
  * Æra III fork proposed a ten-turn seal from Government III on and the user

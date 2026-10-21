@@ -2455,6 +2455,21 @@ export type CountKind =
    */
   | 'charterTechsKnown'
   /**
+   * **Every technology this empire knows** (Scientific batch S6, The Sum of
+   * Knowledge), its charter technologies included (the triage's reading 17).
+   * Read through `techsKnownCount` (`rivals.ts`), the count The Edge of the
+   * Sword compares, so the two cards cannot disagree about what "know" means.
+   */
+  | 'techsKnown'
+  /**
+   * **The charters this empire has drafted** (Scientific batch S6, The
+   * Charter Rolls): the charter rows in its collection
+   * (`PlayerStatecraft.orders`). A charter counts from the pick, before its
+   * technology is researched, which is how this differs from
+   * `charterTechsKnown`.
+   */
+  | 'chartersDrafted'
+  /**
    * This empire's **living pieces**, narrowed by `CardPaysEffect.class`.
    *
    * Murasaki Shikibu's melee line. The second count in the union that takes an
@@ -3493,7 +3508,24 @@ export type TallyOccasion =
    * Magisterial convention blocks), and `City.largestSize` is that size. A
    * citizen that a levy took and that the town regrows is not counted again.
    */
-  | 'sizeRecord';
+  | 'sizeRecord'
+  /**
+   * This empire **completed a technology** (Scientific batch S6, The
+   * Astronomical Diaries). Written in `settleResearch` (`tech.ts`), the one
+   * completion routine, so a technology finished by a turn's science and one
+   * finished by a grant count the same. A charter technology counts too. The
+   * moment carries the technology (`TallyFacts.tech`), which a commission's
+   * `tech` floor reads (batch S9, The Great Instrument). Under The Age of
+   * Reason (`MetaRuleId`'s `techCountsTwice`) each completion counts twice.
+   */
+  | 'techCompleted'
+  /**
+   * This empire **completed a charter technology** (Scientific batch S6, The
+   * Royal Charter Commission). Written beside `techCompleted`, for a row that
+   * carries `TechDef.charter`, and counted twice under The Age of Reason in
+   * the same way.
+   */
+  | 'charterTechCompleted';
 // There is still no bare "a town grew" counter, and there should not be one:
 // it would pay twice for a citizen that a levy took and the fields gave back.
 // `sizeRecord` above is the counter the design doc's clause allows.
@@ -3520,6 +3552,8 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'militaryGained',
   'warEnded',
   'sizeRecord',
+  'techCompleted',
+  'charterTechCompleted',
 ];
 
 /** What a `pays` rate reads. A *rate* or a meter standing, never a bank. */
@@ -4446,7 +4480,18 @@ export type MetaRuleId =
    * triage's reading 3). Renown trickles, yields, timed effects, commissions
    * and Doctrines are not repeated. Read by `turnEffectRepeats`.
    */
-  | 'turnEffectRepeats';
+  | 'turnEffectRepeats'
+  /**
+   * **How many times this empire's Orders count each technology it
+   * completes** (Scientific batch S6, The Age of Reason; Double Time's
+   * shape). The value is the count: 2 is twice. Read by `techCountsFor` in
+   * two places: where the `tech` occasion pays an Order's riders (each rider
+   * rides that many times), and where `settleResearch` writes the
+   * `techCompleted` and `charterTechCompleted` tallies. A Doctrine, a
+   * building, a technology's own effects and a great person's legacy are
+   * read once.
+   */
+  | 'techCountsTwice';
 
 /** What an amplifier reaches into. */
 export type AmplifierTarget =
@@ -5045,7 +5090,16 @@ export type OccasionMeasure =
    * occasion, and never for a unit raised for free
    * (`WindfallOccasionFacts.unitCost`).
    */
-  | 'unitCost';
+  | 'unitCost'
+  /**
+   * **The science the technology just completed cost this empire**
+   * (Scientific batch S6, The Scholars' Fame): the folded price the seat paid
+   * (`foldTechCost`, the triage's reading 39), so a charter technology, with
+   * its premium, pays more than an ordinary one of its column. Filled only on
+   * the `tech` occasion, by `settleResearch` (`WindfallOccasionFacts.
+   * techCost`).
+   */
+  | 'techCost';
 
 /** What a rider adds on top of the occasion's own payout. */
 export interface WindfallGrantSpec {
@@ -5116,6 +5170,23 @@ export interface WindfallGrantSpec {
    * `windfallPayout`, before anything is banked.
    */
   fromTowns?: CityScope;
+  /**
+   * **Each town that receives the grant is paid `amount` times its own
+   * citizens** (Scientific batch S6, The Journeymen: "production equal to
+   * three times its population"; the triage's reading 40). Food or
+   * production only, and a flat grant only: never with `fromOccasion`,
+   * `fromRate` or `fromTowns`. The towns are the ones the delivery names
+   * (`toEveryTown`, `toCapital`, `toNearest`, or the town nearest the
+   * occasion), so the field is not tied to one card: Expansionist's The
+   * Topping Out may use it the same way.
+   *
+   * `windfallPayout` composes the figure for one citizen (the era and the
+   * council multiply it there, as they multiply any flat grant) and marks the
+   * payout's grant. `payWindfallGrants` multiplies it by each town's
+   * citizens as it pays that town, because the figure is different in each
+   * town and nothing between the two changes a town's size.
+   */
+  fromTownPopulation?: true;
   /** Hit points restored to the acting unit. Pillage's, today. */
   heal?: number;
   /**
@@ -9225,6 +9296,14 @@ export interface GoalFloor {
    * counts.
    */
   work?: ImprovementId;
+  /**
+   * Only the completion of this technology counts (Scientific batch S6, for
+   * S9's The Great Instrument: "complete Alchemy"). Read off `TallyFacts.tech`,
+   * which `settleResearch` writes on the `techCompleted` and
+   * `charterTechCompleted` moments, so a goal on any other occasion never
+   * counts.
+   */
+  tech?: TechId;
 }
 
 /**
@@ -9249,6 +9328,8 @@ export interface TallyFacts {
   rank?: RankId;
   /** The work a great person laid when spent (Dominion batch D11). A boon carries none. */
   improvement?: ImprovementId;
+  /** The technology just completed (Scientific batch S6). Read by a goal's `tech` floor. */
+  tech?: TechId;
 }
 
 /**

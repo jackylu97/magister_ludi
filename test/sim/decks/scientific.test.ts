@@ -45,6 +45,9 @@
  * S4), which deal eight more charters, and
  * `test/sim/decks/scientificLand.test.ts` the learned land (batch S5), which
  * deals the last two and builds the Academy cards.
+ * `test/sim/decks/scientificResearch.test.ts` pins the research record (batch
+ * S6): the cards that pay for completing technologies and for the
+ * technologies and charters a seat holds.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -136,8 +139,17 @@ const DEALT_CHARTERS: readonly OrderId[] = [
   'theAlchemistsCharter',
 ];
 
-/** A row with effects, or a dealt charter: the half of the deck that plays. */
-const LIVE = CURRENT.filter((id) => orderDef(id).effects.length > 0 || DEALT_CHARTERS.includes(id));
+/**
+ * A row with effects, a dealt charter, or a commission (batch S6, The Royal
+ * Charter Commission: its goal and reward are the card): the half of the deck
+ * that plays.
+ */
+const LIVE = CURRENT.filter(
+  (id) =>
+    orderDef(id).effects.length > 0 ||
+    DEALT_CHARTERS.includes(id) ||
+    orderDef(id).commission !== undefined,
+);
 
 /** A row with a sentence and nothing to slot: what later batches un-defer. */
 const DEFERRED = CURRENT.filter((id) => !LIVE.includes(id));
@@ -151,9 +163,9 @@ const MARK: Record<OrderRarity, string> = { common: '●', uncommon: '◆', rare
 
 describe('the rows', () => {
   it('is the whole deck, every current row named for this deck alone, banded and rated', () => {
-    // S5 moved The Assay to common.json and added six cards.
-    expect(DECK).toHaveLength(64);
-    expect(new Set(DECK).size).toBe(64);
+    // S5 moved The Assay to common.json and added six cards. S6 added eleven.
+    expect(DECK).toHaveLength(75);
+    expect(new Set(DECK).size).toBe(75);
     for (const id of CURRENT) {
       const def = orderDef(id);
       expect(def.decks, id).toEqual(['scientific']);
@@ -170,16 +182,17 @@ describe('the rows', () => {
     expect(new Set(names).size, 'two rows share a name').toBe(names.length);
   });
 
-  it('fills the five tiers with six, nine, ten, nine and four current rows', () => {
+  it('fills the five tiers with nine, eleven, twelve, eleven and six current rows', () => {
     // S0 added ten charters and two cards. S1b retired twenty-four rows and
     // left twenty-six; the sheet's `add` rows join as later batches build them.
     // S2 added one card (Tier II) and S3 six (two each in Tiers I, II and III).
     // S5 added six (one in each tier, and two in Tier III), moved The School
     // of Mines from Tier I to Tier III, and moved The Assay to common.json.
+    // S6 added eleven: three in Tier 0 and two in each of the others.
     const perBand = [0, 1, 2, 3, 4].map(
       (band) => CURRENT.filter((id) => orderDef(id).band === band).length,
     );
-    expect(perBand).toEqual([6, 9, 10, 9, 4]);
+    expect(perBand).toEqual([9, 11, 12, 11, 6]);
   });
 
   it('splits into live rows with effects and deferred rows with a sentence, and nothing between', () => {
@@ -187,7 +200,8 @@ describe('the rows', () => {
     // S4 dealt eight charters: 21 live rows became 29. S5 dealt two more
     // charters and The School of Mines, added six cards and moved The Assay
     // out: 29 became 37, and The Second Seat is the one deferred row left.
-    expect(LIVE).toHaveLength(37);
+    // S6 added eleven live rows, one of them a commission: 37 became 48.
+    expect(LIVE).toHaveLength(48);
     for (const id of LIVE) {
       const def = orderDef(id);
       expect(def.text, `${id} is live and carries no ratified text`).toBeTruthy();
@@ -728,9 +742,12 @@ describe('a Scientific seat’s draw', () => {
         .toBe(true);
       expect(orderIsDealt(id), id).toBe(true);
       // Nothing half-built reaches a hand: a dealt row of this deck either pays
-      // something or is a charter whose gift is built.
+      // something, is a charter whose gift is built, or is a commission.
       if (DECK.includes(id)) {
-        expect(orderDef(id).effects.length > 0 || isCharter(id), id).toBe(true);
+        expect(
+          orderDef(id).effects.length > 0 || isCharter(id) || orderDef(id).commission !== undefined,
+          id,
+        ).toBe(true);
       }
     }
     for (const id of LIVE) expect(pool, id).toContain(id);

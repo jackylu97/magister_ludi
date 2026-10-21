@@ -920,10 +920,16 @@ describe('determinism', () => {
    * soldier on a hex, no ship raids and no town's Opus is stopped. Checked
    * with the merge in place and the version printed as 160, which gives the
    * hashes of Scientific batch S5 exactly.
+   *
+   * **Scientific batch S6 (the research record, schema 162) moved the hash
+   * and not the length** at both seeds: 161 became 162, and that is all.
+   * Nobody here drafts, so no seat holds a card that counts a technology.
+   * Checked with the change in place and the version printed as 161, which
+   * gives the hashes of Dominion batches D13, D14 and D15 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'ccb598a3:188931',
-    2026: '530e31da:188509',
+    11: '84366c84:188931',
+    2026: 'dd943b79:188509',
   };
 
   for (const seed of [11, 2026]) {

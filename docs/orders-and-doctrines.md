@@ -603,6 +603,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Bronze-Founders' Charter | 0 | ◆ | S | Drafting this opens Casting for research. Knowing it gives two lines a trait they keep through every upgrade. Hoplite (Spearman to Pikeman): +1 strength, and in one of your towns +1 more for every four citizens there. Maryannu (War Chariot to Knight): +1 strength, and +5 against a unit below half health. No chair required. |
 | The Herbalists' Charter | 0 | ● | S | Drafting this opens Herbals for research. Knowing it lets workers build the Physic Garden on flat land with fresh water, one in each town: +2 science and +2 happiness. No chair required. |
 | The Prospectors' Notes | 0 | ◆ | S | Building a mine or a quarry grants its town 25 production. |
+| The Royal Workshops | 0 | ● | S | Completing a technology grants 15 production in your capital. |
+| The Prize Essay | 0 | ● | S | Completing a technology before any other empire grants 15 culture and 15 production in your capital. Charter technologies do not count. |
+| The Sky Watchers | 0 | ● | P | Shrines give +1 faith and +1 science. |
 | Learned Commissions | 1 | ● | S | Library cities gain +38% production toward empire buildings. Completing each institution type for the first time grants 60 culture and 30 faith. |
 | The Old Academy | 1 | ◆ | S | An Academy at least twenty turns old gains +3 food and +3 production. At forty turns these bonuses become +6 of each. |
 | The Commonplace Book | 1 | ● | S | Charter technologies cost you 15% less research. |
@@ -612,6 +615,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Surveyors' Charter | 1 | ◆ | S | Drafting this opens Surveying for research. Knowing it lets you build the Aqueduct before Engineering, and lets workers build the Qanat: an improvement on flat land that waters the farms beside it with no river or lake nearby. No chair required. |
 | The Founding Gift | 1 | ◆ | S | A great scholar who founds an Academy also grants its town 150 production. |
 | The Librarians' Charter | 1 | ○ | S | Drafting this opens Cataloguing for research. Knowing it lets you build the Mouseion, an empire building only you can build: +4 renown a turn, favouring great scholars, and +2 culture for each empire building you hold, itself included. It costs 30% more production than an ordinary empire building. No chair required. |
+| The Astronomical Diaries | 1 | ◆ | P | While seated, this card gains +1 culture and +1 production each time you complete a technology. It starts at +2 of each. |
+| The Scholars' Fame | 1 | ● | S | Completing a technology grants renown, favouring great scholars, equal to a twentieth of its cost. |
 | The Quiet Faculties | 2 | ○ | P | Cities working a great-person improvement gain +38% food and +30% production, but produce military units 25% more slowly. |
 | Enduring Institutions | 2 | ◆ | P | A city with an empire building at least twenty turns old gains +2 happiness and +23% production, once per city. |
 | The Mechanists' Charter | 2 | ○ | S | Drafting this opens Mechanics for research. Knowing it gives two lines a trait they keep through every upgrade. Onager (Catapult and Trebuchet): +1 range. Repeating Crossbow (Archer to Crossbowman): it may move after it shoots. No chair required. |
@@ -622,6 +627,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Physicians' Charter | 2 | ◆ | S | Drafting this opens Medicine for research. Knowing it lets you build the Bimaristan, an empire building: +25% food in its town, and your units heal 10 more a turn in your land. No chair required. |
 | The Printers' Charter | 2 | ◆ | S | Drafting this opens Printing for research. Knowing it lets you build the Aldine Press, a city building only you can build: +2 culture, and trade routes from its town gain +2 science and +2 culture. It also gives +1 trade route. No chair required. |
 | The Latin Quarter | 2 | ● | S | Great-person works beside an Academy gain +2 culture and +1 production. |
+| The Charter Rolls | 2 | ◆ | P | Your capital gains +3 production and +3 culture for each charter you have drafted. |
+| The Royal Charter Commission | 2 | ◆ | S | Commission. Complete a charter technology while this is seated. Reward: a great scholar and 100 culture. Then it leaves its chair. |
 | The Long Inheritance | 3 | ◆ | S | Cities working an Academy at least twenty turns old gain +30% production toward empire buildings, wonders and the Magnum Opus. |
 | Greek Fire | 3 | ◆ | S | Gaining a unit that no empire you have met can build grants science and culture equal to its strength. |
 | The Proving Ground | 3 | ◆ | S | Your units gain +1 strength for each technology you know that no empire you have met knows, at most +8. |
@@ -630,10 +637,14 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The School of Mines | 3 | ● | P | An Academy standing on a strategic resource supplies one more copy of it. |
 | The Studium Generale | 3 | ○ | S | Great-person works beside an Academy count as Academies for your cards. |
 | The Nizamiyya | 3 | ◆ | S | Academies produce half again of everything they make. |
+| The Age of Reason | 3 | ○ | S | Your Orders count each technology you complete twice. |
+| The Journeymen | 3 | ● | S | Completing a technology grants each town production equal to three times its population. |
 | The Patent Office | 4 | ◆ | S | Charter technologies cost you no more research than ordinary technologies at the same point in the tree. |
 | The Naval Gunners' Charter | 4 | ◆ | S | Drafting this opens Naval Gunnery for research. Knowing it gives your Gun Galleys the Galleass trait: +3 strength, and they blockade: parked off a rival's port, a Gun Galley closes its sea lane and its trade. No chair required. |
 | The Military Engineers' Charter | 4 | ◆ | S | Drafting this opens Military Architecture for research. Knowing it lets you build the Bastion (+5 defence, +30 hit points), which no ordinary technology opens. No chair required. |
 | The Republic of Letters | 4 | ◆ | P | Your capital gains +4 production and +4 culture for each Academy you hold. |
+| The Sum of Knowledge | 4 | ○ | P | Your capital gains +1 production and +1 culture for each technology you know. |
+| The Great Catalogue | 4 | ○ | S | +10% production toward the Magnum Opus for each charter technology you know, at most +40%. |
 
 ### Magisterial
 

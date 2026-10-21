@@ -525,7 +525,8 @@ describe('the member register', () => {
     // town had put into the Magnum Opus. Dominion batch D6 added three: what a
     // peace carries (War Reparations, Danegeld) and the works and wonders in a
     // captured town (Looted Art). Dominion batch D7 added `unitCost`, what a
-    // disbanded unit costs to build (The Legions' Labour).
+    // disbanded unit costs to build (The Legions' Labour). Scientific batch S6
+    // added `techCost`, what a technology cost the seat (The Scholars' Fame).
     expect([...measures].sort()).toEqual([
       'gold',
       'hexesPillaged',
@@ -534,6 +535,7 @@ describe('the member register', () => {
       'population',
       'strength',
       'takenPopulation',
+      'techCost',
       'unitCost',
       'worksAndWonders',
     ]);

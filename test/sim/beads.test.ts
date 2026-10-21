@@ -441,7 +441,10 @@ describe("the bead catalogue", () => {
     // The Limitanei comes live. D14 and D15: The Relay Stations,
     // Circumvallation and The Upstarts come live and Marine Drill becomes The
     // Longships. So a v160 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(161);
+    // 162 since Scientific batch S6 (the research record): eleven more
+    // Scientific Orders come live, so a v161 log's Scientific hands hold
+    // different cards.
+    expect(SCHEMA_VERSION).toBe(162);
   });
 
   it("puts the world clock after renown and the wager after it, with no bead phase left", () => {

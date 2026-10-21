@@ -1689,7 +1689,10 @@ describe('research in the log', () => {
     // The Limitanei comes live. D14 and D15: The Relay Stations,
     // Circumvallation and The Upstarts come live and Marine Drill becomes The
     // Longships. So a v160 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(161);
+    // 162 since Scientific batch S6 (the research record): eleven more
+    // Scientific Orders come live, so a v161 log's Scientific hands hold
+    // different cards.
+    expect(SCHEMA_VERSION).toBe(162);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

@@ -515,8 +515,11 @@ describe('the schema, as landed', () => {
     // Upstarts): three more. The Relay Stations and Circumvallation left
     // `deferred`, and The Upstarts is a new row. The Longships took over the
     // row `marineDrill`, which was already live.
-    expect(live).toBe(528);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(528);
+    // **And Scientific batch S6** (the research record): eleven more. Eleven
+    // new Scientific rows came live, one of them a commission (The Royal
+    // Charter Commission).
+    expect(live).toBe(539);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(539);
   });
 
   /**
@@ -795,7 +798,10 @@ describe('the schema, as landed', () => {
     // The Limitanei comes live. D14 and D15: The Relay Stations,
     // Circumvallation and The Upstarts come live and Marine Drill becomes The
     // Longships. So a v160 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(161);
+    // 162 since Scientific batch S6 (the research record): eleven more
+    // Scientific Orders come live, so a v161 log's Scientific hands hold
+    // different cards.
+    expect(SCHEMA_VERSION).toBe(162);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

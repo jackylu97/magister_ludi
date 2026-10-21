@@ -1067,7 +1067,10 @@ describe('a captured city, end to end', () => {
     // The Limitanei comes live. D14 and D15: The Relay Stations,
     // Circumvallation and The Upstarts come live and Marine Drill becomes The
     // Longships. So a v160 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(161);
+    // 162 since Scientific batch S6 (the research record): eleven more
+    // Scientific Orders come live, so a v161 log's Scientific hands hold
+    // different cards.
+    expect(SCHEMA_VERSION).toBe(162);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

@@ -2084,8 +2084,28 @@ import {
  * every tier from I to IV now hold more cards, so its hands differ, and
  * Marine Drill's strength lines are gone. The branch migrates nothing, for
  * the reason given under v119.
+ *
+ * v162 (branch `decks`; Scientific batch S6, `docs/plans/scientific-build-
+ * triage.md`): **the research record.** No field joins the state. The rules
+ * that change:
+ *
+ *   · eleven Scientific Orders come live: The Royal Workshops, The Prize
+ *     Essay, The Sky Watchers, The Astronomical Diaries, The Scholars' Fame,
+ *     The Charter Rolls, The Royal Charter Commission, The Age of Reason, The
+ *     Journeymen, The Sum of Knowledge and The Great Catalogue;
+ *   · completing a technology is written down for the seated Orders that
+ *     count it (`techCompleted`, and `charterTechCompleted` for a charter
+ *     technology), and its price travels with the `tech` occasion;
+ *   · the `tech` occasion now pays a rider that grants renown alone, and the
+ *     food and production its riders pay settle in their towns at once;
+ *   · a grant may pay each town by its own citizens (`fromTownPopulation`),
+ *     and The Age of Reason makes an Order count each technology twice.
+ *
+ * **A v161 save is refused and does not replay.** A Scientific seat's pools
+ * now hold eleven more cards, so its hands differ. The branch migrates
+ * nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 161;
+export const SCHEMA_VERSION = 162;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

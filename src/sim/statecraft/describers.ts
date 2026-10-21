@@ -2077,6 +2077,13 @@ function describeEffect(
           // town, and Dominion batch D3's three).
           const where = grantDeliveryWords(grant);
           out.push({ text: `${occasion} grants ${figure}${age}${where}${cap}${per}` });
+        } else if (grant.fromTownPopulation === true) {
+          // The Journeymen (Scientific batch S6): each town paid by its own
+          // citizens, so the town is named before the figure that reads it.
+          const share = grant.amount === 1 ? '' : `${grant.amount} times `;
+          out.push({
+            text: `${occasion} grants ${townPopulationGrantWords(grant)} ${grant.yield} equal to ${share}its population${age}${per}`,
+          });
         } else {
           // Once for each item a count finds (Dominion batch D5): Valhalla's
           // Monuments and The Mural Crown's great generals.
@@ -2568,6 +2575,17 @@ function describeEffect(
             effect.value === 2
               ? "your Orders' effects that happen at the end of a turn or every few turns happen twice"
               : `your Orders' effects that happen at the end of a turn or every few turns happen ${effect.value} times`,
+        });
+        return;
+      }
+      // The Age of Reason (Scientific batch S6) is the third rule: how many
+      // times your Orders count a technology you complete.
+      if (effect.rule === 'techCountsTwice') {
+        out.push({
+          text:
+            effect.value === 2
+              ? 'your Orders count each technology you complete twice'
+              : `your Orders count each technology you complete ${effect.value} times`,
         });
         return;
       }
@@ -4256,6 +4274,21 @@ function grantDeliveryWords(grant: WindfallGrantSpec): string {
 }
 
 /**
+ * The towns a grant paid by each town's own citizens lands in, said before the
+ * figure that reads them (Scientific batch S6, The Journeymen): "grants each of
+ * your cities production equal to 3 times its population". The same delivery
+ * marks as `grantDeliveryWords`, said as the receiver.
+ */
+function townPopulationGrantWords(grant: WindfallGrantSpec): string {
+  if (grant.toOpus === true) return 'your city raising the Magnum Opus';
+  if (grant.toCapital === true) return 'your capital';
+  if (grant.toEveryTown === true) return 'each of your cities';
+  if (grant.toEveryTown !== undefined) return `each ${eachWords(grant.toEveryTown)} of yours`;
+  if (grant.toNearest !== undefined) return `your nearest ${eachWords(grant.toNearest)}`;
+  return 'your nearest city';
+}
+
+/**
  * A rank as the least a piece must hold — "a Veteran or better" (Dominion
  * batch D2). An Elite holds Veteran too, so "or better" is the honest reading
  * of every rank narrowing in the vocabulary.
@@ -5461,6 +5494,10 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'charter technology you know',
     many: 'charter technologies you know',
   },
+  // Scientific batch S6: The Sum of Knowledge and The Charter Rolls. "Know"
+  // for a technology and "drafted" for a charter, the two verbs the cards use.
+  techsKnown: { one: 'technology you know', many: 'technologies you know' },
+  chartersDrafted: { one: 'charter you have drafted', many: 'charters you have drafted' },
   // The filter is not in these words: `countNoun` prints it, so that "per melee
   // unit" and "per ranged unit" are one entry — `buildingsOfKind`'s bargain.
   unitsInField: { one: 'unit in the field', many: 'units in the field' },
@@ -5750,6 +5787,13 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
     one: 'citizen your cities have grown past their largest size',
     many: 'citizens your cities have grown past their largest size',
   },
+  // Scientific batch S6, The Astronomical Diaries. No growing card counts
+  // charter technologies alone; the table is total.
+  techCompleted: { one: 'technology you have completed', many: 'technologies you have completed' },
+  charterTechCompleted: {
+    one: 'charter technology you have completed',
+    many: 'charter technologies you have completed',
+  },
 };
 
 /**
@@ -5775,6 +5819,8 @@ const MEASURE_WORDS: Record<OccasionMeasure, string | { each: string }> = {
   worksAndWonders: { each: 'great-person work and wonder inside its borders' },
   // Dominion batch D7, The Legions' Labour.
   unitCost: 'its production cost',
+  // Scientific batch S6, The Scholars' Fame: the price this empire paid.
+  techCost: 'the science it cost you',
 };
 
 /**
@@ -6321,6 +6367,15 @@ const COMMISSION_COUNTED_WORDS: Record<
     many: "citizens past your cities' largest sizes",
     counter: 'citizens past a record',
   },
+  // Scientific batch S6. The Royal Charter Commission counts charter
+  // technologies; no commission counts every technology yet.
+  techCompleted: { verb: 'complete', one: 'technology', many: 'technologies', counter: 'technologies completed' },
+  charterTechCompleted: {
+    verb: 'complete',
+    one: 'charter technology',
+    many: 'charter technologies',
+    counter: 'charter technologies completed',
+  },
 };
 
 /**
@@ -6415,6 +6470,11 @@ export function commissionGoalWords(goal: CommissionGoal): string {
       const rank =
         goal.rank === RANK_IDS[RANK_IDS.length - 1] ? rankName(goal.rank) : `${rankName(goal.rank)} or better`;
       return `have ${goal.count} of your units become ${rank}`;
+    }
+    // A technology floor (Scientific batch S6, for S9's The Great Instrument)
+    // names the technology, which is the whole goal: "complete Alchemy".
+    if (goal.tech !== undefined) {
+      return `complete ${ref('tech', goal.tech, techDef(goal.tech).name)}`;
     }
     // The floors (Dominion batch D6): "capture 1 city of 5 or more citizens",
     // "… after taking 2 or more of its cities in that war". Dominion batch
