@@ -214,15 +214,15 @@ describe('the ladder', () => {
     const g = game();
     const player = g.state.players[0]!;
     // The first rung is the base exactly — nothing else can contribute at zero.
-    expect(renownThreshold(player)).toBe(LADDER.base);
+    expect(renownThreshold(g.state, player)).toBe(LADDER.base);
     player.greatPeopleRecruited = 1;
-    expect(renownThreshold(player)).toBe(rung(1));
+    expect(renownThreshold(g.state, player)).toBe(rung(1));
     player.greatPeopleRecruited = 4;
-    expect(renownThreshold(player)).toBe(rung(4));
+    expect(renownThreshold(g.state, player)).toBe(rung(4));
     // And it is floored, exactly once, like every other threshold in the game:
     // a fractional exponent makes a fractional rung, and a pool of whole numbers
     // wants a whole price.
-    expect(Number.isInteger(renownThreshold(player))).toBe(true);
+    expect(Number.isInteger(renownThreshold(g.state, player))).toBe(true);
     // Monotone, and dearer every rung — the claim the whole rate rests on.
     for (let n = 1; n < 8; n++) expect(rung(n)).toBeGreaterThan(rung(n - 1));
   });
@@ -231,12 +231,12 @@ describe('the ladder', () => {
     const g = game();
     const player = g.state.players[0]!;
     player.renownPool = LADDER.base + 7;
-    expect(planRecruitment(player)).toEqual({ cost: LADDER.base, overflow: 7 });
-    expect(planRecruitment(player, LADDER.base - 1)).toBeNull();
-    expect(recruitmentSettledBy(player, 0)).toBe('a great person');
+    expect(planRecruitment(g.state, player)).toEqual({ cost: LADDER.base, overflow: 7 });
+    expect(planRecruitment(g.state, player, LADDER.base - 1)).toBeNull();
+    expect(recruitmentSettledBy(g.state, player, 0)).toBe('a great person');
     player.renownPool = 0;
-    expect(recruitmentSettledBy(player, LADDER.base)).toBe('a great person');
-    expect(recruitmentSettledBy(player, LADDER.base - 1)).toBeNull();
+    expect(recruitmentSettledBy(g.state, player, LADDER.base)).toBe('a great person');
+    expect(recruitmentSettledBy(g.state, player, LADDER.base - 1)).toBeNull();
   });
 });
 

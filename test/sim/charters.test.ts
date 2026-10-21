@@ -265,7 +265,16 @@ describe('the charters as a family', () => {
         .filter((effect) => effect.kind === 'unlocksBuilding')
         .map((effect) => effect.building),
     );
-    const everyOpener = [...opened, ...byDoctrine, ...byBelief, ...byCharter, ...byTech];
+    // And a dealt Order that opens a row the tree names, early and in some
+    // towns (Scientific batch S8, The Forward Plans' University). The row
+    // leaves `CHARTERS` because a technology names it, so it is counted here.
+    const byEarlyOrder = ORDER_IDS.filter((id) => orderIsDealt(id)).flatMap((id) =>
+      orderDef(id)
+        .effects.filter((effect) => effect.kind === 'unlocksBuilding')
+        .map((effect) => effect.building)
+        .filter((building) => gatingTech('building', building) !== null),
+    );
+    const everyOpener = [...opened, ...byDoctrine, ...byBelief, ...byCharter, ...byTech, ...byEarlyOrder];
     expect(new Set(everyOpener).size).toBe(everyOpener.length);
     for (const id of BUILDING_IDS) {
       if (buildingDef(id).unlockedByCard !== true) continue;

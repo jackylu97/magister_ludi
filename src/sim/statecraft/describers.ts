@@ -67,6 +67,7 @@ import {
   type LevyUse,
   type CardId,
   type CardRule,
+  type RiderBuildingTest,
   type CityScope,
   type CombatCondition,
   type CombatScale,
@@ -1821,6 +1822,12 @@ function describeEffect(
       return;
     }
     case 'rule': {
+      // **A counted lift of the one-to-a-realm limit** (Scientific batch S8,
+      // The Second Seat): how many extra copies, of what, and in which towns.
+      if (effect.rule === 'buildsEverywhere' && (effect.max !== undefined || effect.empireBuilding === true)) {
+        out.push({ text: limitLiftWords(effect) });
+        return;
+      }
       // **A rule about one building names it** (batch C7, Caravanserai Cities).
       // The stem in the table has a slot for the row's name rather than the
       // name baked in, so the words come from the building table exactly as
@@ -1906,6 +1913,11 @@ function describeEffect(
       }
       if (effect.empireBuilding === true) narrowings.push('an empire building');
       if (effect.empireBuilding === false) narrowings.push('not an empire building');
+      // The Dedications (Scientific batch S8): the any-of filter, one phrase
+      // with "or" between the tests.
+      if (effect.anyOf !== undefined && effect.anyOf.length > 0) {
+        narrowings.push(effect.anyOf.map(buildingTestWords).join(' or '));
+      }
       if (effect.first !== undefined) narrowings.push(FIRST_WORDS[effect.first]);
       if (effect.oncePerTurn === true) narrowings.push('at most once a turn');
       // Dominion batch D5: The New Code's ten turns. Copying the Enemy's "unit
@@ -2202,6 +2214,12 @@ function describeEffect(
             `${occasion} ${pays ? 'grants' : 'costs your empire'} ` +
             `${inner.map((clause) => clause.text).join('; ')} ${howLong}${per}`,
         });
+      }
+      // Scientific batch S8, The Invitations: a great person to call, the
+      // words a commission's reward uses.
+      if (grant?.greatPerson !== undefined) {
+        const who = grant.greatPerson === 'any' ? 'a great person' : `a great ${grant.greatPerson}`;
+        out.push({ text: `${occasion} grants ${who} to call${per}` });
       }
       if (grant?.healAll === true) {
         // A flag, so a sentence and not a figure — the ratified text is *heals
@@ -2663,8 +2681,12 @@ function describeEffect(
         .filter((clause) => clause.deferred !== true)
         .map((clause) => clause.text)
         .join('; ');
+      // The Forward Plans (Scientific batch S8): a row opened only in some
+      // towns says which, before what the building does.
+      const towns =
+        effect.scope === undefined ? '' : ` in ${cityScopeWords(effect.scope).replace(/^every /, 'any ')}`;
       out.push({
-        text: `unlocks ${theBuilding(effect.building)}${does === '' ? '' : ` — ${does}`}`,
+        text: `unlocks ${theBuilding(effect.building)}${towns}${does === '' ? '' : ` — ${does}`}`,
       });
       return;
     }
@@ -4998,6 +5020,16 @@ const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
     percent < 0
       ? `technologies that an empire you have met already knows cost you ${-percent}% less research`
       : `technologies that an empire you have met already knows cost you ${percent}% more research`,
+  // The Royal Readers (Scientific batch S8). Said as what a scholar does to
+  // the price of the next great person; −50 is "half as much".
+  scholarLadderStep: (percent) =>
+    percent <= -100
+      ? 'great scholars do not raise the price of your next great person'
+      : percent === -50
+        ? 'great scholars raise the price of your next great person by half as much'
+        : percent < 0
+          ? `great scholars raise the price of your next great person ${-percent}% less`
+          : `great scholars raise the price of your next great person ${percent}% more`,
 };
 
 const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
@@ -6259,6 +6291,50 @@ const FLAG_RULE_CLASS_WORDS: Partial<Record<CardFlagRuleId, (who: string) => str
 };
 
 /**
+ * One test of a rider's any-of filter as a noun phrase (Scientific batch S8,
+ * `RiderBuildingTest`): "a science building", "an empire building", "a
+ * Library". The fields a test carries are said together.
+ */
+function buildingTestWords(test: RiderBuildingTest): string {
+  if (test.building !== undefined) {
+    const name = buildingDef(test.building).name;
+    return `${indefinite(name)} ${ref('building', test.building, name)}`;
+  }
+  const kinds = [test.buildingCategory, test.empireBuilding === true ? 'empire' : undefined].filter(
+    (word): word is string => word !== undefined,
+  );
+  const noun =
+    [...kinds, 'building'].join(' ') + (test.empireBuilding === false ? ' that is not an empire building' : '');
+  return `${indefinite(noun)} ${noun}`;
+}
+
+/**
+ * **A lift of the one-to-a-realm limit, with a count or over every great
+ * house** (Scientific batch S8, The Second Seat): "you may build one second
+ * copy of an empire building, in a city with a University". The count is the
+ * most extra copies in all (`CardRuleEffect.max`); the towns are the row's
+ * scope.
+ */
+function limitLiftWords(effect: Extract<CardEffect, { kind: 'rule' }>): string {
+  const what =
+    effect.building !== undefined
+      ? (() => {
+          const name = buildingDef(effect.building).name;
+          return `${indefinite(name)} ${ref('building', effect.building, name)}`;
+        })()
+      : 'an empire building';
+  const copies =
+    effect.max === undefined
+      ? `more than one copy of ${what}`
+      : effect.max === 1
+        ? `one second copy of ${what}`
+        : `${effect.max} extra copies of ${what === 'an empire building' ? 'empire buildings' : what}, in all`;
+  const towns =
+    effect.scope === undefined ? '' : `, in ${cityScopeWords(effect.scope).replace(/^every /, 'a ')}`;
+  return `you may build ${copies}${towns}`;
+}
+
+/**
  * The rules that read differently **of one named building** —
  * `CardRuleEffect.building`, and Caravanserai Cities is the only row that
  * carries one (batch C7).
@@ -6462,7 +6538,22 @@ const COMMISSION_FIGURE_WORDS: Record<
     counter: 'rival capitals following',
     noun: 'the rival capitals following your religion',
   },
+  // Scientific batch S8, The Lynx-Eyed Academy.
+  academyHexes: {
+    goal: (count) =>
+      count === 1
+        ? `hold ${indefinite(improvementDef('academy').name)} ${academyRef()} inside your borders`
+        : `hold ${count} ${academyRef(true)} inside your borders`,
+    counter: 'Academies held',
+    noun: 'the Academies inside your borders',
+  },
 };
+
+/** The Academy as a keyword ref, for the commission figure that counts them. */
+function academyRef(many = false): string {
+  const name = improvementDef('academy').name;
+  return ref('improvement', 'academy', many ? buildingPlural(name, 2) : name);
+}
 
 /** One part of a commission's goal as a phrase: "clear 2 barbarian camps". */
 export function commissionGoalWords(goal: CommissionGoal): string {

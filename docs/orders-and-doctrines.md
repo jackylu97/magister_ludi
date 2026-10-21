@@ -622,6 +622,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Royal Estates | 1 | ● | P | Each empire building gives its town +2 food and +2 production. |
 | The Common Tables | 1 | ● | P | Towns gain +2 food for each science building in them. |
 | The Free Cities | 1 | ◆ | S | While you hold at most five towns, your towns build buildings and wonders 20% faster. |
+| The Forward Plans | 1 | ○ | S | You may build a University in any city whose Library has stood at least 30 turns, before you know Scholarship. |
+| The Dedications | 1 | ◆ | S | Finishing a science building or an empire building grants culture equal to ten times the town's population. |
 | The Quiet Faculties | 2 | ○ | P | Cities working an Academy gain +25% food and +20% production, but produce military units 25% more slowly. |
 | Enduring Institutions | 2 | ◆ | P | A town with an empire building at least twenty turns old gains +25% production. |
 | The Mechanists' Charter | 2 | ○ | S | Drafting this opens Mechanics for research. Knowing it gives two lines a trait they keep through every upgrade. Onager (Catapult and Trebuchet): +1 range. Repeating Crossbow (Archer to Crossbowman): it may move after it shoots. No chair required. |
@@ -638,6 +640,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Palace Schools | 2 | ◆ | S | Units gained in a town with an empire building start with +4 strength. |
 | The Round City | 2 | ◆ | P | +1% production and culture for each citizen in your capital, at most +30%. |
 | The City Architects | 2 | ● | S | Towns of at least eight citizens build wonders 25% faster. |
+| The Royal Readers | 2 | ○ | S | Great scholars raise the price of your next great person by half as much. |
+| The Invitations | 2 | ○ | S | Completing an empire building grants a great scholar. |
 | The Long Inheritance | 3 | ◆ | S | Cities working an Academy at least twenty turns old gain +30% production toward empire buildings, wonders and the Magnum Opus. |
 | Greek Fire | 3 | ◆ | S | Gaining a unit that no empire you have met can build grants science and culture equal to its strength. |
 | The Proving Ground | 3 | ◆ | S | Your units gain +1 strength for each technology you know that no empire you have met knows, at most +8. |
@@ -648,12 +652,19 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Nizamiyya | 3 | ◆ | S | Academies produce half again of everything they make. |
 | The Age of Reason | 3 | ○ | S | Your Orders count each technology you complete twice. |
 | The Journeymen | 3 | ● | S | Completing a technology grants each town production equal to three times its population. |
+| The Second Seat | 3 | ○ | S | You may build one second copy of an empire building, in a city with a University. |
+| The Doctorate | 3 | ● | S | Gaining a great scholar grants culture equal to eight turns of your culture. |
+| The Royal Academies | 3 | ◆ | P | +5% production and culture for each empire building you hold. |
+| The Queen of Cities | 3 | ○ | P | Towns of at least 15 citizens produce twice their food and production. |
+| The Humanists | 3 | ◆ | P | Cities with a University gain culture equal to half their base science. |
 | The Patent Office | 4 | ◆ | S | Charter technologies cost you no more research than ordinary technologies at the same point in the tree. |
 | The Naval Gunners' Charter | 4 | ◆ | S | Drafting this opens Naval Gunnery for research. Knowing it gives your Gun Galleys the Galleass trait: +3 strength, and they blockade: parked off a rival's port, a Gun Galley closes its sea lane and its trade. No chair required. |
 | The Military Engineers' Charter | 4 | ◆ | S | Drafting this opens Military Architecture for research. Knowing it lets you build the Bastion (+5 defence, +30 hit points), which no ordinary technology opens. No chair required. |
 | The Republic of Letters | 4 | ◆ | P | Your capital gains +4 production and +4 culture for each Academy you hold. |
 | The Sum of Knowledge | 4 | ○ | P | Your capital gains +1 production and +1 culture for each technology you know. |
 | The Great Catalogue | 4 | ○ | S | +10% production toward the Magnum Opus for each charter technology you know, at most +40%. |
+| The Walls of Learning | 4 | ● | S | Cities with a University gain +6 strength, and the city building your Magnum Opus gains +12 more. |
+| The Lynx-Eyed Academy | 4 | ○ | S | Commission. Hold four Academies while this is seated. Reward: a great scholar, and 300 production in each city with an Academy toward what it is building. Then it leaves its chair. |
 
 ### Magisterial
 
@@ -872,7 +883,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Long Study** — † a library that has stood a long while pays culture and renown, and pays more again once it is very old
 - **The Old Academy** — † an academy that has stood a long while feeds and works the town it serves, and more again once it is very old
 - **Enduring Institutions** — † a town whose empire building has stood a long while is gladder and builds faster, once per town
-- **The Second Seat** — † you may raise one further copy of an empire building, in a town that holds a university, and only one such copy may be building or standing at a time
 - **The Civic Guard** — † Towns that keep a Monument are harder to storm.; Soldiers defending beside such a town fight harder. A strength line can be told where the fight is happening — your ground, the hills, a town — but not which buildings stand in the town behind it.
 - **Festival Commissions** — Not built: a windfall is paid to an empire and cannot be told what stands in the town that grew; and the design pays only for growth past a town's own historical high, which nothing remembers. † a town that holds a monument is paid in song and bread each time it grows
 - **The Civic Annals** — Not built: a counter is a number on a card and carries no subject, so it cannot be told which towns to watch; and the design pays only for growth past a town's own historical high, which nothing remembers. † the card keeps count of every time one of your towns that holds a monument grows, and pays a little more each turn for it

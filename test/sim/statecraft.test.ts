@@ -2097,7 +2097,10 @@ describe("determinism", () => {
     // 163 since Scientific batch S7 (the data-only cards of Tiers 0 to II):
     // nine more Scientific Orders come live and three change, so a v162
     // log's Scientific hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(163);
+    // 164 since Scientific batch S8 (great people and the great houses):
+    // eleven more Scientific Orders come live, so a v163 log's Scientific
+    // hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(164);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -7584,12 +7587,13 @@ describe("a charter carries the description of the building it opens", () => {
     ),
   ];
 
-  it("finds the thirteen rows that open one", () => {
+  it("finds the fourteen rows that open one", () => {
     // Eleven charters, the Gilded Court's doctrine, and — since D1b — the
     // Magisterial deck's Senate Charter, which opens the Assembly Hall. A
     // fourteenth joins this list by being a JSON row, and inherits every claim
-    // below.
-    expect(OPENERS.length).toBe(13);
+    // below. Scientific batch S8's The Forward Plans is that fourteenth: it
+    // opens the University early, in a town whose Library is old.
+    expect(OPENERS.length).toBe(14);
   });
 
   it("says every live clause the building’s own describer says", () => {
@@ -9937,7 +9941,7 @@ describe("the Orders balance pass of 2026-09-08", () => {
     // The pool fills whatever the gate says (the tree pass of 2026-08-30), so a
     // realm that opens the door late finds a great person waiting.
     settleRenownWindfall(g.state, player, [
-      { family: null, amount: renownThreshold(player) },
+      { family: null, amount: renownThreshold(g.state, player) },
     ]);
     expect(player.greatPersonOffer).toBeUndefined();
 

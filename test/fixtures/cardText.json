@@ -7262,9 +7262,8 @@
   ],
   "theSecondSeat": [
    {
-    "raw": "you may raise one further copy of an empire building, in a town that holds a university, and only one such copy may be building or standing at a time — not built yet",
-    "text": "you may raise one further copy of an empire building, in a town that holds a university, and only one such copy may be building or standing at a time — not built yet",
-    "deferred": true
+    "raw": "you may build one second copy of an empire building, in a city with a [[building:university|University]]",
+    "text": "you may build one second copy of an empire building, in a city with a University"
    }
   ],
   "theLongInheritance": [
@@ -7710,6 +7709,86 @@
    {
     "raw": "+25% production toward wonders, in every city of 8 or more citizens",
     "text": "+25% production toward wonders, in every city of 8 or more citizens"
+   }
+  ],
+  "theForwardPlans": [
+   {
+    "raw": "unlocks the [[building:university|University]] in any city with a [[building:library|Library]] that has stood at least 30 turns — +1 science for every citizen; +2 renown per turn, favouring scholars",
+    "text": "unlocks the University in any city with a Library that has stood at least 30 turns — +1 science for every citizen; +2 renown per turn, favouring scholars"
+   }
+  ],
+  "theDedications": [
+   {
+    "raw": "completing a building (a science building or an empire building) grants culture equal to 10 times the city's population",
+    "text": "completing a building (a science building or an empire building) grants culture equal to 10 times the city's population"
+   }
+  ],
+  "theRoyalReaders": [
+   {
+    "raw": "great scholars raise the price of your next great person by half as much",
+    "text": "great scholars raise the price of your next great person by half as much"
+   }
+  ],
+  "theInvitations": [
+   {
+    "raw": "completing a building (an empire building) grants a great scholar to call",
+    "text": "completing a building (an empire building) grants a great scholar to call"
+   }
+  ],
+  "theDoctorate": [
+   {
+    "raw": "gaining a great scholar grants 8 extra turns of culture",
+    "text": "gaining a great scholar grants 8 extra turns of culture"
+   }
+  ],
+  "theRoyalAcademies": [
+   {
+    "raw": "+5% production per empire building you hold",
+    "text": "+5% production per empire building you hold"
+   },
+   {
+    "raw": "+5% culture per empire building you hold",
+    "text": "+5% culture per empire building you hold"
+   }
+  ],
+  "theQueenOfCities": [
+   {
+    "raw": "+100% food in every city of 15 or more citizens",
+    "text": "+100% food in every city of 15 or more citizens"
+   },
+   {
+    "raw": "+100% production in every city of 15 or more citizens",
+    "text": "+100% production in every city of 15 or more citizens"
+   }
+  ],
+  "theHumanists": [
+   {
+    "raw": "50% of the science in every city with a [[building:university|University]] is gained again as culture",
+    "text": "50% of the science in every city with a University is gained again as culture"
+   }
+  ],
+  "theWallsOfLearning": [
+   {
+    "raw": "every city with a [[building:university|University]]: +6 city defence",
+    "text": "every city with a University: +6 city defence"
+   },
+   {
+    "raw": "every city raising the Magnum Opus: +12 city defence",
+    "text": "every city raising the Magnum Opus: +12 city defence"
+   }
+  ],
+  "theLynxEyedAcademy": [
+   {
+    "raw": "Commission. Goal: hold 4 [[improvement:academy|Academies]] inside your borders, while this card is seated",
+    "text": "Commission. Goal: hold 4 Academies inside your borders, while this card is seated"
+   },
+   {
+    "raw": "Reward: a great scholar to call, and +300 production in every city with an [[improvement:academy|Academy]]",
+    "text": "Reward: a great scholar to call, and +300 production in every city with an Academy"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
    }
   ],
   "magisterialMasterMasons": [

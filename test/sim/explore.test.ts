@@ -932,10 +932,16 @@ describe('determinism', () => {
    * that is all. Nobody here drafts, so no seat holds a card. Checked with the
    * change in place and the version printed as 162, which gives the hashes of
    * Scientific batch S6 exactly.
+   *
+   * **Scientific batch S8 (great people and the great houses, schema 164)
+   * moved the hash and not the length** at both seeds: 163 became 164, and
+   * that is all. Nobody here drafts, so no seat holds a card. Checked with the
+   * change in place and the version printed as 163, which gives the hashes of
+   * Scientific batch S7 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'fcb10c9d:188931',
-    2026: '293e2900:188509',
+    11: 'efdc44b6:188931',
+    2026: 'd5cbe2df:188509',
   };
 
   for (const seed of [11, 2026]) {

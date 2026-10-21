@@ -91,6 +91,7 @@ export {
   cardBehaviorRule,
   cardBorderZoc,
   cardBuildsEverywhere,
+  cardLimitLifts,
   cardZocIgnored,
   cardBuildingHappiness,
   cardBuildingPercents,
@@ -148,6 +149,7 @@ export {
   cardUnitStamp,
   cardUnitStat,
   cardUnlocksBuilding,
+  cardUnlockScopes,
   cardUnlocksImprovement,
   holdsLevyGrant,
   holdsTendedUnlock,
@@ -228,6 +230,8 @@ export type {
   FoundingRider,
   GroundFacts,
   LiveCardEffect,
+  // Scientific batch S8, The Second Seat.
+  LimitLift,
   // Dominion batch D14, Circumvallation.
   OpusSiege,
   TileLine,

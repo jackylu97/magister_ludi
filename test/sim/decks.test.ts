@@ -522,8 +522,11 @@ describe('the schema, as landed', () => {
     // nine more. Nine new Scientific rows came live. Learned Foundations
     // (the row `learnedCommissions`), Enduring Institutions and The Quiet
     // Faculties were changed in place and were already live.
-    expect(live).toBe(548);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(548);
+    // **And Scientific batch S8** (great people and the great houses): eleven
+    // more. Ten new Scientific rows came live, one of them a commission (The
+    // Lynx-Eyed Academy), and The Second Seat left `deferred`.
+    expect(live).toBe(559);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(559);
   });
 
   /**
@@ -808,7 +811,10 @@ describe('the schema, as landed', () => {
     // 163 since Scientific batch S7 (the data-only cards of Tiers 0 to II):
     // nine more Scientific Orders come live and three change, so a v162
     // log's Scientific hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(163);
+    // 164 since Scientific batch S8 (great people and the great houses):
+    // eleven more Scientific Orders come live, so a v163 log's Scientific
+    // hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(164);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1047,9 +1053,11 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // The School of Mines (− 3).
       // **Dominion batch D14** freed two (The Relay Stations and
       // Circumvallation: − 2).
+      // **Scientific batch S8** freed The Second Seat, the last deferred
+      // Scientific row (− 1).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(35);
+      ).toHaveLength(34);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(173);
     }
   });

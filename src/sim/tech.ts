@@ -453,13 +453,15 @@ import type { CityScope, FirstKind } from './statecraftData';
 import { charteredTechIds, techIsChartered } from './statecraftData';
 import { riteAbility } from './religionData';
 import {
-  cardBuildsEverywhere,
   cardGrantsAbility,
+  cardLimitLifts,
   cardRulePercent,
+  cardUnlockScopes,
   cardUnlocksBuilding,
   cardUnlocksUnit,
   charterOpensUnit,
   cityScopeAdmits,
+  cityScopeWords,
   // The article rule, borrowed rather than rewritten: "needs **a** Library" and
   // "in **an** Amphitheater" must agree, and a second vowel test in this file is
   // exactly how the two would come apart. See `indefinite`.
@@ -467,6 +469,7 @@ import {
   payWindfallGrants,
   recordScalingOccasion,
   settleCultureWindfall,
+  stripRefs,
   windfallPayout,
 } from './statecraft';
 // Dominion batch D8, straight from the evaluator rather than through the
@@ -650,6 +653,14 @@ export function isUnlocked(
   playerId: number,
   kind: QueueKind,
   id: string,
+  /**
+   * The town the row is asked for (Scientific batch S8, The Forward Plans).
+   * Only a card that opens a building in some towns reads it: with a town in
+   * hand the card is asked of that town, and with none it is asked of every
+   * town the empire holds, so the build list shows the row while any town
+   * qualifies. `buildError` hands its town in.
+   */
+  city?: City,
 ): boolean {
   // **A row a card opens is asked of the cards**, before the tree, because it
   // has no gate in the tree to be asked about: a building no technology names is
@@ -673,17 +684,16 @@ export function isUnlocked(
     if (gatingTech(kind, id) === null) return false;
   }
   if (kind === 'building' && isBuildingId(id) && buildingDef(id).unlockedByCard === true) {
-    if (cardUnlocksBuilding(state, playerId, id)) return true;
+    if (cardUnlocksBuilding(state, playerId, id, city)) return true;
     // **A card stands in front of the tree's gate, never in place of it**
     // (2026-09-04): should a row ever be named by a node *and* handed over by a
     // card, the card is a way in **early** and the node still opens it in its
     // own age, so unslotting the card leaves the ordinary gate exactly where it
-    // was. No row reads this arm today — the charters' amendment gave the two
-    // charters that wanted a Mint and an Observatory rows of their own — and it
-    // stays because that is the honest answer to the question and it keeps a
-    // charter over a tree row a data decision rather than a code one. A row no
-    // node names at all — the Gilded Hall, the charters' eleven — has nothing
-    // to fall through to and is shut, the clause as originally written.
+    // was. Two rows read this arm since the Scientific deck: Surveying opens the
+    // Aqueduct before Engineering (batch S5), and The Forward Plans opens the
+    // University before Scholarship in a town whose Library is old (batch S8).
+    // A row no node names at all — the Gilded Hall, the charters' eleven — has
+    // nothing to fall through to and is shut, the clause as originally written.
     if (gatingTech(kind, id) === null) return false;
   }
   // **A placed row is never available**, to anybody, ever: a relic has no gate
@@ -914,6 +924,120 @@ export interface BuildGateOptions {
 }
 
 /**
+ * **The one-to-a-realm clause of `buildError`**, for a row marked
+ * `oncePerEmpire`: why this empire may not raise another copy of it here, or
+ * `null`.
+ *
+ * Without a card, a copy standing in any town of the empire, or a copy being
+ * built in another town, refuses it. A card may lift the limit
+ * (`buildsEverywhere`, read through `cardLimitLifts`) in two ways:
+ *
+ *   - outright, with no count and no towns: Caravanserai Cities' yards;
+ *   - for a counted number of extra copies in all, in the towns a scope admits:
+ *     The Second Seat's one second copy of one great house, in a town with a
+ *     University (the triage's reading 47).
+ *
+ * A copy is **extra** when the empire already holds or is building another
+ * copy of the same row. The count is over every row the limit still binds,
+ * standing or queued, and it counts the copy being asked about. A town is
+ * needed to ask a counted lift at all, so a caller with none gets the
+ * stricter reading.
+ *
+ * The queue of the town in hand is left out for this row (it is the row
+ * being asked about). While a replacement queue is validated
+ * (`options.replacing`), that town's standing queue is replaced by the
+ * replacement's earlier rows, so a player cannot queue two second copies in
+ * one command.
+ */
+function oneToARealmError(
+  state: GameState,
+  playerId: number,
+  id: BuildingId,
+  city: City | undefined,
+  options: BuildGateOptions | undefined,
+): string | null {
+  const lifts = cardLimitLifts(state, playerId, id);
+  if (lifts.some((lift) => lift.max === undefined && lift.scope === undefined)) return null;
+  const name = itemName('building', id);
+  // A town never holds two copies of one row, whatever a card lifts.
+  if (city !== undefined && city.ownerId === playerId && city.buildings.includes(id)) {
+    return `${name} already stands in ${city.name}`;
+  }
+  const standing = state.cities.find((other) => other.ownerId === playerId && other.buildings.includes(id));
+  const building = state.cities.find(
+    (other) =>
+      other.ownerId === playerId &&
+      other.id !== city?.id &&
+      other.queue.some((item) => item.kind === 'building' && item.id === id),
+  );
+  const plain =
+    standing !== undefined
+      ? `${name} already stands in ${standing.name}`
+      : building !== undefined
+        ? `${building.name} is already building ${name}`
+        : null;
+  if (plain === null) return null;
+  if (lifts.length === 0 || city === undefined) return plain;
+  const here = lifts.filter((lift) => lift.scope === undefined || cityScopeAdmits(state, city, lift.scope, playerId));
+  if (here.length === 0) {
+    const where = lifts
+      .map((lift) => stripRefs(cityScopeWords(lift.scope)).replace(/^every /, 'a '))
+      .join(' or ');
+    return `${plain}; your Order allows another copy only in ${where}`;
+  }
+  if (here.some((lift) => lift.max === undefined)) return null;
+  const allowed = here.reduce((sum, lift) => sum + (lift.max ?? 0), 0);
+  if (extraCopiesWith(state, playerId, id, city, options) <= allowed) return null;
+  const copies = allowed === 1 ? "your Order's one extra copy is" : `your Order's ${allowed} extra copies are`;
+  return `${plain}, and ${copies} already standing or being built`;
+}
+
+/**
+ * **How many extra copies of the great houses this empire would hold** if
+ * this town added one more copy of `adding` (Scientific batch S8, The Second
+ * Seat). For each row the one-to-a-realm limit still binds (marked
+ * `oncePerEmpire` and lifted outright by no card), every copy past the first
+ * is extra, standing or queued. See `oneToARealmError` for which queues
+ * count.
+ */
+function extraCopiesWith(
+  state: GameState,
+  playerId: number,
+  adding: BuildingId,
+  city: City,
+  options: BuildGateOptions | undefined,
+): number {
+  const copies: Partial<Record<BuildingId, number>> = {};
+  const count = (row: BuildingId): void => {
+    if (buildingDef(row).oncePerEmpire !== true) return;
+    copies[row] = (copies[row] ?? 0) + 1;
+  };
+  for (const town of state.cities) {
+    if (town.ownerId !== playerId) continue;
+    for (const row of town.buildings) count(row);
+    const replaced = options?.replacing?.cityId === town.id;
+    const queued: readonly BuildingId[] = replaced
+      ? (options?.replacing?.buildings ?? [])
+      : town.queue.flatMap((item) => (item.kind === 'building' && isBuildingId(item.id) ? [item.id] : []));
+    for (const row of queued) {
+      if (town.id === city.id && row === adding) continue;
+      count(row);
+    }
+  }
+  count(adding);
+  // A sum, so the order the rows were met in does not matter. A row a card
+  // lifts outright is not bound by the limit, so its copies are not extra.
+  let extra = 0;
+  for (const row of Object.keys(copies) as BuildingId[]) {
+    const lifted = cardLimitLifts(state, playerId, row).some(
+      (lift) => lift.max === undefined && lift.scope === undefined,
+    );
+    if (!lifted) extra += Math.max(0, (copies[row] ?? 0) - 1);
+  }
+  return extra;
+}
+
+/**
  * Why this player cannot build this thing, or `null` when they can.
  *
  * **The** production gate: `validateQueue` in `commands.ts` refuses with this
@@ -1021,19 +1145,38 @@ export function buildError(
   if (kind === 'building' && isBuildingId(id) && buildingDef(id).retired === true) {
     return `${itemName(kind, id)} is no longer built`;
   }
-  if (!isUnlocked(state, playerId, kind, id)) {
+  if (!isUnlocked(state, playerId, kind, id, city)) {
     const gate = gatingTech(kind, id);
+    // **A card that opens the row early in some towns, and not in this one**
+    // (Scientific batch S8, The Forward Plans): the sentence names the tree's
+    // gate and the towns the card reaches, so the player knows what would
+    // change the answer.
+    if (kind === 'building' && isBuildingId(id) && city !== undefined && gate !== null) {
+      const scopes = cardUnlockScopes(state, playerId, id);
+      if (scopes.length > 0) {
+        const where = scopes.map((scope) => stripRefs(cityScopeWords(scope)).replace(/^every /, 'a ')).join(' or ');
+        return `${itemName(kind, id)} needs ${techDef(gate).name}; until then your Order opens it only in ${where}`;
+      }
+    }
     // **A row an Order opens says so** (the charters, 2026-09-04). Every
     // charter building stands on no node at all, and "needs a technology you do
     // not have" is not a vaguer sentence than the truth — it is a false one,
     // and it sends a player to the tree for something the deck holds. Read off
     // `unlockedByCard`, so a twelfth charter building says it without anybody
-    // remembering to type it again; the second arm is `isUnlocked`'s dormant
-    // one a few lines up, and names both ways in should a row ever have both.
-    if (kind === 'building' && isBuildingId(id) && buildingDef(id).unlockedByCard === true) {
-      return gate === null
-        ? `${itemName(kind, id)} needs the Order that opens it in one of your slots`
-        : `${itemName(kind, id)} needs ${techDef(gate).name}, or the Order that opens it in one of your slots`;
+    // remembering to type it again.
+    //
+    // A row a node names as well (`isUnlocked`'s early arm: the Aqueduct,
+    // which Surveying opens early, and the University, which The Forward
+    // Plans opens early) falls through to the tree's own sentence. Its early
+    // way in is a technology or a card most seats never hold, and the clause
+    // above has already named the towns when the seat holds the card.
+    if (
+      kind === 'building' &&
+      isBuildingId(id) &&
+      buildingDef(id).unlockedByCard === true &&
+      gate === null
+    ) {
+      return `${itemName(kind, id)} needs the Order that opens it in one of your slots`;
     }
     // **A row a figure opens says so too** (batch L2a; L6a's words), and this one
     // covers both kinds where the charters' clause covers only buildings: half
@@ -1176,23 +1319,13 @@ export function buildError(
   // every one of them is still one of its great houses. Every other clause of
   // this gate still runs: the technology, the site, and the town's own "already
   // built it" check above are all asked exactly as they were.
-  if (
-    kind === 'building' &&
-    isBuildingId(id) &&
-    buildingDef(id).oncePerEmpire === true &&
-    !cardBuildsEverywhere(state, playerId, id)
-  ) {
-    for (const other of state.cities) {
-      if (other.ownerId !== playerId) continue;
-      if (other.buildings.includes(id)) {
-        return `${itemName(kind, id)} already stands in ${other.name}`;
-      }
-    }
-    for (const other of state.cities) {
-      if (other.ownerId !== playerId || other.id === city?.id) continue;
-      if (!other.queue.some((item) => item.kind === 'building' && item.id === id)) continue;
-      return `${other.name} is already building ${itemName(kind, id)}`;
-    }
+  //
+  // **And a card may lift it for a counted number of copies, in some towns**
+  // (Scientific batch S8, The Second Seat: one second copy of an empire
+  // building, in a town with a University). See `oneToARealmError`.
+  if (kind === 'building' && isBuildingId(id) && buildingDef(id).oncePerEmpire === true) {
+    const why = oneToARealmError(state, playerId, id, city, options);
+    if (why !== null) return why;
   }
   /**
    * **The finish line asks for a full rod** (ruled 2026-09-04, `docs/flags.md`:

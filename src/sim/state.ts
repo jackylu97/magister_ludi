@@ -2123,8 +2123,33 @@ import {
  * now hold nine more cards, so its hands differ, and three live cards pay
  * different figures. The branch migrates nothing, for the reason given under
  * v119.
+ *
+ * v164 (branch `decks`; Scientific batch S8, `docs/plans/scientific-build-
+ * triage.md`): **great people and the great houses.** No field joins the
+ * state. The rules that change:
+ *
+ *   · a rider may grant a great person (`WindfallGrantSpec.greatPerson`),
+ *     dealt as a commission's is, and a completion rider may name an any-of
+ *     filter (`anyOf`);
+ *   · the great-person price reads the empire's cards (`renownThreshold`
+ *     takes the state; the `scholarLadderStep` rule);
+ *   · `buildsEverywhere` may lift the one-to-a-realm limit for a counted
+ *     number of copies of every great house, in the towns a scope admits, and
+ *     a queue being replaced counts its own building rows for it;
+ *   · `unlocksBuilding` may open a row in some towns only, and the University
+ *     is a row a card may open early;
+ *   · a commission may count the Academies inside the borders
+ *     (`academyHexes`);
+ *   · eleven Scientific Orders come live: The Forward Plans, The Dedications,
+ *     The Royal Readers, The Invitations, The Second Seat, The Doctorate, The
+ *     Royal Academies, The Queen of Cities, The Humanists, The Walls of
+ *     Learning and The Lynx-Eyed Academy.
+ *
+ * **A v163 save is refused and does not replay.** A Scientific seat's pools
+ * now hold eleven more cards, so its hands differ. The branch migrates
+ * nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 163;
+export const SCHEMA_VERSION = 164;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

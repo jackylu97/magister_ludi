@@ -509,6 +509,7 @@ describe('the member register', () => {
     let limiter = false;
     let shelf = false;
     let greatHouse = false;
+    let anyOf = false;
     let ceiling = false;
     for (const id of ORDER_IDS) {
       for (const effect of orderDef(id).effects) {
@@ -517,6 +518,7 @@ describe('the member register', () => {
         if (effect.oncePerTurn === true) limiter = true;
         if (effect.buildingCategory !== undefined) shelf = true;
         if (effect.empireBuilding !== undefined) greatHouse = true;
+        if (effect.anyOf !== undefined && effect.anyOf.length > 0) anyOf = true;
         if (effect.grant?.fromOccasion !== undefined) measures.add(effect.grant.fromOccasion);
         if (effect.grant?.max !== undefined) ceiling = true;
       }
@@ -541,13 +543,14 @@ describe('the member register', () => {
     ]);
     expect(limiter, 'oncePerTurn').toBe(true);
     expect(shelf, 'buildingCategory').toBe(true);
-    // **The great-house narrowing is named by no row since Scientific batch
-    // S7.** Learned Commissions carried the only two riders that named it, and
-    // S7 renamed the card Learned Foundations and cut both riders (its culture
-    // goes to The Dedications). Batch S8's The Invitations and The Dedications
-    // name it again; until then the field stays read, and the arm is asserted
-    // here so it is not deleted with the riders.
-    expect(greatHouse, 'empireBuilding is named by no row until batch S8').toBe(false);
+    // **The great-house narrowing is named again since Scientific batch S8.**
+    // Learned Commissions carried the only two riders that named it until S7
+    // cut them; The Invitations names it now (a great scholar for each empire
+    // building completed). The Dedications names the class inside its any-of
+    // filter, which pays once for a building that is a science building and
+    // an empire building at the same time (the triage's reading 36).
+    expect(greatHouse, 'empireBuilding').toBe(true);
+    expect(anyOf, 'anyOf').toBe(true);
     expect(simSource('statecraft/evaluator.ts')).toContain('isEmpireBuilding(facts.building) !== effect.empireBuilding');
     // **A grant's ceiling is read and named by nobody**, and that is stated here
     // rather than forgotten — `conversion`'s bargain two claims down.

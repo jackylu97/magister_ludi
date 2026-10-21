@@ -1494,7 +1494,15 @@ describe('what opens a thing', () => {
           if (target === null) continue;
           const line = openingOf(entryOf(target));
           expect(line, `${card} → ${target}`).toContain(`[[${kind}:${card}|${def.name}]]`);
-          expect(line, target).toContain('not by any technology');
+          // A row the tree also names is a card's way in early, and the line
+          // credits both (Scientific batch S8, The Forward Plans' University).
+          const gate =
+            effect.kind === 'unlocksBuilding'
+              ? gatingTech('building', effect.building)
+              : effect.kind === 'unlocksUnit'
+                ? gatingTech('unit', effect.unit)
+                : null;
+          expect(line, target).toContain(gate === null ? 'not by any technology' : 'or by researching');
           named += 1;
         }
       }

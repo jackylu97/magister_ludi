@@ -4253,6 +4253,12 @@ function ruleRewriteValue(
       // the bot prices the new Scientific kinds in batch S13. Nought until
       // then.
       return 0;
+    case 'scholarLadderStep':
+      // **Not priced yet** (Scientific batch S8, The Royal Readers). A
+      // cheaper rung is worth the renown it saves on the next great person,
+      // and the bot prices the new Scientific kinds in batch S13. Nought
+      // until then.
+      return 0;
     default:
       return unreadRule(rule, ctx);
   }
@@ -5920,7 +5926,7 @@ function rewardTerms(
   if (reward.greatPerson !== undefined) {
     // A great person, priced at the renown the seat's next one would cost.
     const player = ctx.state.players[ctx.playerId];
-    const renown = player === undefined ? 0 : renownThreshold(player);
+    const renown = player === undefined ? 0 : renownThreshold(ctx.state, player);
     terms.push(
       nest(
         'a great person, at the renown one costs',
