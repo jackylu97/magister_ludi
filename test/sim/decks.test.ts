@@ -477,8 +477,11 @@ describe('the schema, as landed', () => {
     // Dominion rows were live and are retired, and one new Dominion row came
     // live (The Champion's Portion). Four rows were changed in place and were
     // already live.
-    expect(live).toBe(491);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(491);
+    // **And Dominion batch D10** (the data-only cards of Tiers I to III): nine
+    // more. Nine new Dominion rows came live. The Acropolis and Take the City
+    // were changed in place and were already live.
+    expect(live).toBe(500);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(500);
   });
 
   /**
@@ -726,7 +729,9 @@ describe('the schema, as landed', () => {
     // 153 since Dominion batch D9: ten Dominion Orders and one Doctrine are
     // retired and one Order comes live, so a v152 log's Dominion hands and
     // Doctrine offers hold different cards.
-    expect(SCHEMA_VERSION).toBe(153);
+    // 154 since Dominion batch D10: nine Dominion Orders come live and two
+    // change, so a v153 log's Dominion hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(154);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

@@ -299,30 +299,53 @@ describe('Dominion D6 — Commission: A Victor’s Peace', () => {
 });
 
 describe('Dominion D6 — a goal keeps the towns it counted', () => {
-  it('Take the City counts only a town of five or more, and builds a Barracks in it', () => {
-    const state = flat();
-    foundCityAt(state, 0, at(state, 2, 2));
-    foundCityAt(state, 1, at(state, 16, 9));
-    const small = foundCityAt(state, 1, at(state, 6, 4))!;
-    const big = foundCityAt(state, 1, at(state, 11, 8))!;
-    small.population = 4;
-    big.population = 6;
-    seatCommission(state, 'dominionTakeTheCity');
-    const sc = seat(state, 0).statecraft;
-    take(state, small);
-    expect(tallyOf(sc, 'dominionTakeTheCity' as OrderId)).toBe(0);
-    take(state, big);
-    expect(tallyOf(sc, 'dominionTakeTheCity' as OrderId)).toBe(1);
-    expect(commissionGoalTown(state, 0, 'dominionTakeTheCity' as OrderId)?.id).toBe(big.id);
-    seat(state, 0).statecraft.pendingOrder = { options: [] };
-    const reports = runCommissions(state);
-    expect(reports[0]!.lines).toEqual([
-      '+138 culture',
-      '+138 science',
-      `a free Barracks in ${big.name}`,
-    ]);
-    expect(big.buildings).toContain('barracks');
-    expect(small.buildings).not.toContain('barracks');
+  it('Take the City’s D6 row counts only a town of five or more, and builds a Barracks in it', () => {
+    // Since Dominion batch D10 Take the City asks for eight citizens and its
+    // reward is an institution (`dominionThemeCards.test.ts`). No row uses a
+    // building reward or a goal-scaled payout on a single capture now, so the
+    // D6 row is borrowed for this test and put back afterwards.
+    const def = orderDef('dominionTakeTheCity' as OrderId);
+    const kept = def.commission;
+    def.commission = {
+      goals: [{ kind: 'counted', occasion: 'cityCaptured', count: 1, minPopulation: 5 }],
+      reward: [
+        { yield: 'culture', amount: 23, fromGoal: 'population' },
+        { yield: 'science', amount: 23, fromGoal: 'population' },
+        { building: 'barracks' },
+      ],
+    };
+    try {
+      expect(
+        describeCard('dominionTakeTheCity' as OrderId)
+          .map((clause) => stripRefs(clause.text))
+          .join(' | '),
+      ).toContain('and a free Barracks in that city');
+      const state = flat();
+      foundCityAt(state, 0, at(state, 2, 2));
+      foundCityAt(state, 1, at(state, 16, 9));
+      const small = foundCityAt(state, 1, at(state, 6, 4))!;
+      const big = foundCityAt(state, 1, at(state, 11, 8))!;
+      small.population = 4;
+      big.population = 6;
+      seatCommission(state, 'dominionTakeTheCity');
+      const sc = seat(state, 0).statecraft;
+      take(state, small);
+      expect(tallyOf(sc, 'dominionTakeTheCity' as OrderId)).toBe(0);
+      take(state, big);
+      expect(tallyOf(sc, 'dominionTakeTheCity' as OrderId)).toBe(1);
+      expect(commissionGoalTown(state, 0, 'dominionTakeTheCity' as OrderId)?.id).toBe(big.id);
+      seat(state, 0).statecraft.pendingOrder = { options: [] };
+      const reports = runCommissions(state);
+      expect(reports[0]!.lines).toEqual([
+        '+138 culture',
+        '+138 science',
+        `a free Barracks in ${big.name}`,
+      ]);
+      expect(big.buildings).toContain('barracks');
+      expect(small.buildings).not.toContain('barracks');
+    } finally {
+      def.commission = kept;
+    }
   });
 
   it('The Grand Campaign pays ten times the citizens of the three towns it counted', () => {
@@ -548,9 +571,11 @@ describe('Dominion D6 — words and the bot', () => {
       'Commission. Goal: end 1 war by making peace or by destroying the other empire, after taking 2 or more of its cities in that war, while this card is seated | ' +
         'Reward: one more Wildcard chair for the rest of the game | then this card leaves its chair and is never seated again',
     );
-    expect(words('dominionTakeTheCity')).toContain('capture 1 city of 5 or more citizens');
+    // Since Dominion batch D10: eight citizens, and an institution for the
+    // captures after it. The D6 words are pinned by the borrowed row above.
+    expect(words('dominionTakeTheCity')).toContain('capture 1 city of 8 or more citizens');
     expect(words('dominionTakeTheCity')).toContain(
-      'culture equal to 23 times its population, and science equal to 23 times its population, and a free Barracks in that city',
+      'for the rest of the game, capturing a city grants +250 science for each age you have reached',
     );
     expect(words('dominionTheGrandCampaign')).toContain("science equal to 10 times those cities' total population");
     expect(words('dominionTheCapturedMarvel')).toContain('+200 science for each world wonder in it');

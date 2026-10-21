@@ -247,7 +247,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Swift Riders | 1 | ◆ | S | Mounted units may move after attacking. |
 | The Captive Craftsmen | 1 | ◆ | P | Gains +1 science and +1 production each time you pillage a hex. |
 | The Satraps | 1 | ◆ | S | Garrisoned towns in unrest pacify twice as fast. |
-| The Acropolis | 1 | ◆ | P | +1 authority for each building in your capital. |
+| The Acropolis | 1 | ◆ | P | Citadels give +2 culture and +1 authority each. |
 | The Sack | 1 | ◆ | S | Razing a town you captured grants production, gold and culture equal to fifteen times its population. |
 | Siege Works | 2 | ● | S | +38% production toward siege units. Siege units gain +4 strength against cities. |
 | Armoury Guilds | 2 | ● | S | When one of your units falls, your nearest town with an Armoury gains production equal to its strength. |
@@ -260,7 +260,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Hegemony | 2 | ○ | S | Captured cities you hold cost one less authority. Capturing a city grants +30% production in every city for ten turns. |
 | Master Bowyers | 2 | ○ | S | Ranged and siege units gain +1 range. |
 | The Citadel Works | 2 | ● | S | Citadels gain +5 science. Each citadel inside your borders gives +1 renown a turn, favouring great generals. |
-| Commission: Take the City | 2 | ◆ | S | Commission. Capture a city with at least five citizens. Then gain culture and science equal to twenty-three times its population, and a free Barracks in that city. The card leaves its chair. |
+| Commission: Take the City | 2 | ◆ | S | Commission. Capture a city with at least eight citizens. Then, for the rest of the game, each city you capture grants 250 science and 250 culture per age. The card leaves its chair. |
 | Living off the Land | 2 | ● | S | Military units outside your territory cost no upkeep. |
 | The Serried Ranks | 2 | ○ | S | Melee units beside another melee unit gain +10 strength when defending. |
 | The Conscription Rolls | 2 | ◆ | S | Every ten turns, each town of at least eight citizens raises the best melee unit you can build. |
@@ -323,6 +323,15 @@ across the seven files. Ids are internal; the names in these tables are the card
 | War Feeds Itself | 2 | ○ | S | At the end of your turn, each of your units in enemy territory yields you its hex's yields. |
 | The Glorious Dead | 4 | ○ | S | Your losses never count toward war weariness. |
 | The Champion's Portion | 0 | ● | S | Killing a unit grants renown equal to its strength, favouring great generals. |
+| The Castle Demesne | 1 | ◆ | S | Citadels give +3 food and +3 production. |
+| The Spartan Discipline | 1 | ◆ | S | Towns build military units 30% faster, but buildings 15% more slowly. |
+| Commission: The Ranks of Merit | 1 | ◆ | S | Commission. Have three of your units earn a rank while this card is seated. Then, for the rest of the game, each rank a unit earns grants science and production equal to its strength in your capital. The card leaves its chair. |
+| Commission: The First Province | 1 | ◆ | S | Commission. Capture a town while this card is seated. Then, for the rest of the game, towns you captured gain +5 food and +5 gold. The card leaves its chair. |
+| The Naadam | 2 | ● | P | Towns gain +2 culture and +1 happiness for each pasture and camp in their borders. |
+| The Taker of Cities | 2 | ◆ | S | Your units beside one of your great generals gain +5 strength against towns. |
+| The Roll of Triumphs | 2 | ◆ | P | +5% production and gold for each great general you have gained this game, at most +30%. |
+| The March Revenues | 3 | ◆ | P | +3% production for each pasture, camp and strategic resource inside your borders, at most +30%. |
+| The Tributary Kings | 3 | ◆ | P | Your capital gains +1 production and +1 gold for each citizen in your puppet towns. |
 
 ### Expansionist
 

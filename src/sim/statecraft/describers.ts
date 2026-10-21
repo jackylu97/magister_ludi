@@ -1786,6 +1786,19 @@ function describeEffect(
       // grants +5 science", "a kill pays once per Order", "a kill grants +5
       // culture", …). War Chief carries two grants, so it would say it twice.
       const per = effect.perSlottedOrder === true ? ' for each Order you have in a slot' : '';
+      // The age is a suffix on the figure too, when the rider grants a yield
+      // or renown (Dominion batch D10). Take the City has two such riders, one
+      // for science and one for culture. As a separate sentence, the age was
+      // printed once for each rider, and the two copies were folded into
+      // "×2" in the middle of the reward. A rider with no such figure
+      // multiplies only the moment's own payout (Keeper of the Calendar's
+      // ruin), so it keeps the separate sentence below. A heal is not
+      // multiplied by the age, so it never takes the suffix.
+      const ageOnFigure =
+        effect.perAge === true &&
+        ((grant?.yield !== undefined && grant.amount !== undefined) ||
+          (grant?.renown !== undefined && grant.renown !== 0));
+      const age = ageOnFigure ? ' for each age you have reached' : '';
       if (grant?.yield !== undefined && grant.amount !== undefined) {
         // A figure quoted in **turns** reads as turns, because that is the whole
         // sentence the card is making: "an extra turn of culture" is a promise
@@ -1802,14 +1815,14 @@ function describeEffect(
             Number.isInteger(turns)
               ? `${turns === 1 ? 'an extra turn' : `${turns} extra turns`} of ${grant.yield}`
               : `${Math.round(turns * 100)}% of a turn's ${grant.yield}`;
-          out.push({ text: `${occasion} grants ${figure}${per}` });
+          out.push({ text: `${occasion} grants ${figure}${age}${per}` });
         } else if (grant.fromTowns !== undefined) {
           // The Master of Works (Expansionist batch E5): the other towns' own
           // turn of production, read when the moment comes.
           const towns = eachWords(grant.fromTowns).replace(/\bcity\b/, 'cities');
           const share = grant.amount === 1 ? '' : `${grant.amount} times `;
           out.push({
-            text: `${occasion} grants ${grant.yield} equal to ${share}the production per turn of your other ${towns}${grantDeliveryWords(grant)}${per}`,
+            text: `${occasion} grants ${grant.yield} equal to ${share}the production per turn of your other ${towns}${age}${grantDeliveryWords(grant)}${per}`,
           });
         } else if (grant.fromOccasion !== undefined) {
           // **A share of the moment reads as a share of the moment**, for the
@@ -1831,13 +1844,13 @@ function describeEffect(
           // Where the food and hammers land, where the row says (Spolia's Opus
           // town, and Dominion batch D3's three).
           const where = grantDeliveryWords(grant);
-          out.push({ text: `${occasion} grants ${figure}${where}${cap}${per}` });
+          out.push({ text: `${occasion} grants ${figure}${age}${where}${cap}${per}` });
         } else {
           // Once for each item a count finds (Dominion batch D5): Valhalla's
           // Monuments and The Mural Crown's great generals.
           const each = grant.perCount === undefined ? '' : ` for each ${grantCountWords(grant.perCount)}`;
           out.push({
-            text: `${occasion} grants ${signed(grant.amount)} ${grant.yield}${each}${grantDeliveryWords(grant)}${per}`,
+            text: `${occasion} grants ${signed(grant.amount)} ${grant.yield}${each}${age}${grantDeliveryWords(grant)}${per}`,
           });
         }
       }
@@ -1852,7 +1865,7 @@ function describeEffect(
           grant.fromOccasion === undefined
             ? `${signed(grant.renown)} renown`
             : measuredWords('renown', grant.renown, grant.fromOccasion, effect.occasion);
-        out.push({ text: `${occasion} grants ${figure}${favours}${per}` });
+        out.push({ text: `${occasion} grants ${figure}${age}${favours}${per}` });
       }
       if (grant?.heal !== undefined) {
         // "**a further**" only where the occasion already pays a heal of its
@@ -2032,10 +2045,11 @@ function describeEffect(
       if (effect.percent !== undefined) {
         out.push({ text: `${occasion} pays ${signed(effect.percent)}%${per}` });
       }
-      if (effect.perAge === true) {
+      if (effect.perAge === true && !ageOnFigure) {
         // The multiplier is the age *number* (`highestAge`), so "once for each
         // age you have reached" is the exact reading and not a rounding of one:
-        // ×1 in the first age, ×3 in the third.
+        // ×1 in the first age, ×3 in the third. A rider that grants a yield or
+        // renown says the age on that figure instead (see `ageOnFigure`).
         out.push({ text: `${occasion} pays once for each age you have reached` });
       }
       // A rider that multiplies only the *occasion's own* figure has no clause
@@ -4461,6 +4475,18 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
       const words = parts.map((part) => [...part.adjectives, ...part.qualifiers].join(' '));
       if (parts.every((part) => part.qualifiers.length === 0)) {
         into.adjectives.push(words.join(' or '));
+      } else if (
+        into.adjectives.length === 0 &&
+        into.qualifiers.length === 0 &&
+        parts.every((part) => part.adjectives.length === 0)
+      ) {
+        // If the choice is the whole condition and each part is a qualifier,
+        // the parts follow the noun as they are (Dominion batch D10, The March
+        // Revenues): "hex with a Pasture or Camp or carrying a strategic
+        // resource", not "hex that is with a Pasture". "That is" stays where
+        // something stands before the choice, so the reader can see where the
+        // choice starts (The Watercourses, The Landscape Garden).
+        into.qualifiers.push(words.join(' or '));
       } else {
         into.qualifiers.push(`that is ${words.join(' or ')}`);
       }

@@ -5,7 +5,8 @@
  * the cards say:
  *
  *   · the writ counts a town-by-town count over the towns (The Garrison
- *     Captains, The Acropolis);
+ *     Captains, and The Acropolis' old row, which Dominion batch D10 moved to
+ *     citadels and which this file keeps as a probe);
  *   · three lifetime records are counts (The Captured Arms, The Hall of the
  *     Slain, Spear-won Land), and the kill record counts the wild's raiders;
  *   · pacification has a card line (The Satraps), a moment that pays (The
@@ -178,11 +179,29 @@ describe('Dominion D4: the writ counts town by town', () => {
     expect(cardWrit(state, 'theGarrisonCaptains')).toBe(3);
   });
 
-  it('The Acropolis pays a point of writ for each building in the capital, and only there', () => {
+  it('a scoped town count pays a point of writ for each building in the capital, and only there', () => {
+    // The Acropolis' row read this way until Dominion batch D10 moved it to
+    // citadels. No row reads a scoped town count into the writ now, so its old
+    // effect is hung on the empire as a timed effect, to keep the scope on
+    // this walk covered.
     const state = flat();
     const capital = foundCityAt(state, 0, at(state, 2, 2))!;
     const other = foundCityAt(state, 0, at(state, 9, 5))!;
-    slot(state, 0, 'theAcropolis');
+    playerById(state, 0)!.timed = [
+      {
+        card: 'theAcropolis' as OrderId,
+        effect: {
+          kind: 'pays',
+          where: 'empire',
+          basis: 'count',
+          to: 'authority',
+          amount: 1,
+          count: 'buildingsInCity',
+          scope: { test: 'capital' },
+        },
+        expiresTurn: state.turn + 10,
+      },
+    ];
     capital.buildings.push('monument', 'granary');
     other.buildings.push('library', 'monument');
     touch(state);
@@ -378,7 +397,11 @@ describe('Dominion D4: the words', () => {
     expect(said('theSatraps')).toEqual([
       'unrest ends twice as fast, in every city with a unit standing in it',
     ]);
-    expect(said('theAcropolis')).toEqual(['+1 authority capacity per building in your capital']);
+    // Since Dominion batch D10 The Acropolis pays for citadels.
+    expect(said('theAcropolis')).toEqual([
+      '+2 culture on every hex with a Citadel',
+      '+1 authority capacity per hex with a Citadel in your borders',
+    ]);
     expect(said('theHallOfTheSlain')).toEqual([
       '+1% production per 2 units you have lost this game (at most +30% production)',
       '+1% culture per 2 units you have lost this game (at most +30% culture)',

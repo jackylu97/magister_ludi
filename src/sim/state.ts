@@ -1872,8 +1872,26 @@ import {
  * **A v152 save is refused and does not replay.** A Dominion seat's pool and
  * its Tier I Doctrine offer now hold different cards, so its hands differ.
  * The branch migrates nothing, for the reason given under v119.
+ *
+ * v154 (branch `decks`; Dominion batch D10, `docs/plans/dominion-themes-
+ * triage.md`): **the Dominion themes pass, the data-only cards of Tiers I to
+ * III.** No field joins the state. The rules that change:
+ *
+ *   · nine new Orders come live: The Castle Demesne, The Spartan Discipline,
+ *     Commission: The Ranks of Merit and Commission: The First Province
+ *     (Tier I); The Naadam, The Taker of Cities and The Roll of Triumphs
+ *     (Tier II); The March Revenues and The Tributary Kings (Tier III);
+ *   · two Orders change: The Acropolis pays culture and authority for
+ *     citadels, not authority for the capital's buildings; Commission: Take
+ *     the City asks for a city of eight citizens, not five, and its reward
+ *     becomes science and culture for each later capture, for the rest of
+ *     the game, in place of a one-time payout and a Barracks.
+ *
+ * **A v153 save is refused and does not replay.** A Dominion seat's pools
+ * from Tier I on now hold more cards, so its hands differ. The branch
+ * migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 153;
+export const SCHEMA_VERSION = 154;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

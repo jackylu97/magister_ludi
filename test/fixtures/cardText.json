@@ -2972,8 +2972,12 @@
   ],
   "theAcropolis": [
    {
-    "raw": "+1 authority capacity per building in your capital",
-    "text": "+1 authority capacity per building in your capital"
+    "raw": "+2 culture on every hex with a [[improvement:citadel|Citadel]]",
+    "text": "+2 culture on every hex with a Citadel"
+   },
+   {
+    "raw": "+1 authority capacity per hex with a [[improvement:citadel|Citadel]] in your borders",
+    "text": "+1 authority capacity per hex with a Citadel in your borders"
    }
   ],
   "theOpenMuster": [
@@ -3331,12 +3335,12 @@
   ],
   "dominionTakeTheCity": [
    {
-    "raw": "Commission. Goal: capture 1 city of 5 or more citizens, while this card is seated",
-    "text": "Commission. Goal: capture 1 city of 5 or more citizens, while this card is seated"
+    "raw": "Commission. Goal: capture 1 city of 8 or more citizens, while this card is seated",
+    "text": "Commission. Goal: capture 1 city of 8 or more citizens, while this card is seated"
    },
    {
-    "raw": "Reward: culture equal to 23 times its population, and science equal to 23 times its population, and a free [[building:barracks|Barracks]] in that city",
-    "text": "Reward: culture equal to 23 times its population, and science equal to 23 times its population, and a free Barracks in that city"
+    "raw": "Reward: for the rest of the game, capturing a city grants +250 science for each age you have reached and capturing a city grants +250 culture for each age you have reached",
+    "text": "Reward: for the rest of the game, capturing a city grants +250 science for each age you have reached and capturing a city grants +250 culture for each age you have reached"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -4004,6 +4008,92 @@
    {
     "raw": "killing a unit grants renown equal to its strength, favouring a great general",
     "text": "killing a unit grants renown equal to its strength, favouring a great general"
+   }
+  ],
+  "theCastleDemesne": [
+   {
+    "raw": "+3 food, +3 production on every hex with a [[improvement:citadel|Citadel]]",
+    "text": "+3 food, +3 production on every hex with a Citadel"
+   }
+  ],
+  "theSpartanDiscipline": [
+   {
+    "raw": "+30% production toward military units",
+    "text": "+30% production toward military units"
+   },
+   {
+    "raw": "-15% production toward buildings",
+    "text": "-15% production toward buildings"
+   }
+  ],
+  "dominionTheRanksOfMerit": [
+   {
+    "raw": "Commission. Goal: earn 3 ranks with your units, while this card is seated",
+    "text": "Commission. Goal: earn 3 ranks with your units, while this card is seated"
+   },
+   {
+    "raw": "Reward: for the rest of the game, one of your units earning a rank grants science equal to its strength and one of your units earning a rank grants production equal to its strength to your capital",
+    "text": "Reward: for the rest of the game, one of your units earning a rank grants science equal to its strength and one of your units earning a rank grants production equal to its strength to your capital"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "dominionTheFirstProvince": [
+   {
+    "raw": "Commission. Goal: capture 1 city, while this card is seated",
+    "text": "Commission. Goal: capture 1 city, while this card is seated"
+   },
+   {
+    "raw": "Reward: for the rest of the game, +5 food, +5 gold in every captured city",
+    "text": "Reward: for the rest of the game, +5 food, +5 gold in every captured city"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theNaadam": [
+   {
+    "raw": "+2 culture in every city per hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]] there",
+    "text": "+2 culture in every city per hex with a Pasture or Camp there"
+   },
+   {
+    "raw": "+1 happiness in every city per hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]] there",
+    "text": "+1 happiness in every city per hex with a Pasture or Camp there"
+   }
+  ],
+  "theTakerOfCities": [
+   {
+    "raw": "+5 combat strength for military units against cities and beside a great general",
+    "text": "+5 combat strength for military units against cities and beside a great general"
+   }
+  ],
+  "theRollOfTriumphs": [
+   {
+    "raw": "+5% production per great general you have gained this game (at most +30% production)",
+    "text": "+5% production per great general you have gained this game (at most +30% production)"
+   },
+   {
+    "raw": "+5% gold per great general you have gained this game (at most +30% gold)",
+    "text": "+5% gold per great general you have gained this game (at most +30% gold)"
+   }
+  ],
+  "theMarchRevenues": [
+   {
+    "raw": "+3% production per hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]] or carrying a strategic resource in your borders (at most +30% production)",
+    "text": "+3% production per hex with a Pasture or Camp or carrying a strategic resource in your borders (at most +30% production)"
+   }
+  ],
+  "theTributaryKings": [
+   {
+    "raw": "+1 production in your capital per citizen living in a puppet of yours",
+    "text": "+1 production in your capital per citizen living in a puppet of yours"
+   },
+   {
+    "raw": "+1 gold in your capital per citizen living in a puppet of yours",
+    "text": "+1 gold in your capital per citizen living in a puppet of yours"
    }
   ],
   "smallholdings": [
@@ -8630,12 +8720,8 @@
   ],
   "ritesOfBlood": [
    {
-    "raw": "killing a unit grants +25 faith",
-    "text": "killing a unit grants +25 faith"
-   },
-   {
-    "raw": "killing a unit pays once for each age you have reached",
-    "text": "killing a unit pays once for each age you have reached"
+    "raw": "killing a unit grants +25 faith for each age you have reached",
+    "text": "killing a unit grants +25 faith for each age you have reached"
    }
   ],
   "oracleOfTheCrossroads": [

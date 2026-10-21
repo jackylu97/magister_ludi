@@ -119,8 +119,9 @@ describe('the Dominion batch — taking a city', () => {
 
   it('counts the capture for the commissions and pays them off the town that was taken', () => {
     const { state, theirs } = siege();
-    // Take the City counts only a town of five citizens or more (Dominion batch D6).
-    theirs.population = 6;
+    // Take the City counts only a town of eight citizens or more (five in
+    // Dominion batch D6, eight since D10).
+    theirs.population = 8;
     for (const id of ['dominionTakeTheCity', 'dominionTheCapturedMarvel', 'dominionTheGrandCampaign']) {
       slot(state, 0, id);
     }
@@ -136,19 +137,16 @@ describe('the Dominion batch — taking a city', () => {
     expect(commissionFigure(state, 0, 'originalCapitalsHeld')).toBe(1);
     // Since Dominion batch D6 the reward reads what the goal counted: the town
     // as it stood when it was taken.
-    expect(commissionGoalMeasure(state, 0, 'dominionTakeTheCity' as OrderId, 'population')).toBe(6);
+    expect(commissionGoalMeasure(state, 0, 'dominionTakeTheCity' as OrderId, 'population')).toBe(8);
 
     const reports = runCommissions(state);
     const people = theirs.population;
+    // Since Dominion batch D10 Take the City's reward is an institution: it
+    // pays for the captures after this one, so it pays nothing now and
+    // raises no Barracks.
     const take = reports.find((report) => report.card === 'dominionTakeTheCity')!;
-    expect(take.lines).toEqual(
-      expect.arrayContaining([
-        `+${23 * people} culture`,
-        `+${23 * people} science`,
-        `a free Barracks in ${theirs.name}`,
-      ]),
-    );
-    expect(theirs.buildings).toContain('barracks');
+    expect(take.lines).toEqual([]);
+    expect(theirs.buildings).not.toContain('barracks');
     const marvel = reports.find((report) => report.card === 'dominionTheCapturedMarvel')!;
     expect(marvel.lines).toEqual(expect.arrayContaining([`+${20 * people} culture`]));
     // Three captures are needed, so The Grand Campaign is still waiting.

@@ -1638,17 +1638,27 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "The high city holds the temples, the treasury and the will of the state.",
-      "text": "+1 authority for each building in your capital.",
+      "text": "Citadels give +2 culture and +1 authority each.",
       "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "culture": 2,
+          "on": {
+            "test": "improvement",
+            "improvement": "citadel"
+          }
+        },
         {
           "kind": "pays",
           "where": "empire",
           "basis": "count",
           "to": "authority",
           "amount": 1,
-          "count": "buildingsInCity",
-          "scope": {
-            "test": "capital"
+          "count": "tilesInBorders",
+          "tile": {
+            "test": "improvement",
+            "improvement": "citadel"
           }
         }
       ]
@@ -2645,7 +2655,7 @@
       "rarity": "uncommon",
       "type": "wildcard",
       "flavor": "One city taken is a lesson for the rest.",
-      "text": "Commission. Capture a city with at least five citizens. Then gain culture and science equal to twenty-three times its population, and a free Barracks in that city. The card leaves its chair.",
+      "text": "Commission. Capture a city with at least eight citizens. Then, for the rest of the game, each city you capture grants 250 science and 250 culture per age. The card leaves its chair.",
       "effects": [],
       "commission": {
         "goals": [
@@ -2653,22 +2663,31 @@
             "kind": "counted",
             "occasion": "cityCaptured",
             "count": 1,
-            "minPopulation": 5
+            "minPopulation": 8
           }
         ],
         "reward": [
           {
-            "yield": "culture",
-            "amount": 23,
-            "fromGoal": "population"
-          },
-          {
-            "yield": "science",
-            "amount": 23,
-            "fromGoal": "population"
-          },
-          {
-            "building": "barracks"
+            "lasting": [
+              {
+                "kind": "windfallRider",
+                "occasion": "capture",
+                "perAge": true,
+                "grant": {
+                  "yield": "science",
+                  "amount": 250
+                }
+              },
+              {
+                "kind": "windfallRider",
+                "occasion": "capture",
+                "perAge": true,
+                "grant": {
+                  "yield": "culture",
+                  "amount": 250
+                }
+              }
+            ]
           }
         ]
       }
@@ -4910,6 +4929,326 @@
             "fromOccasion": "strength",
             "renownFamily": "general"
           }
+        }
+      ]
+    },
+    "theCastleDemesne": {
+      "name": "The Castle Demesne",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "The fields under the castle walls feed the men who guard them.",
+      "text": "Citadels give +3 food and +3 production.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 3,
+          "production": 3,
+          "on": {
+            "test": "improvement",
+            "improvement": "citadel"
+          }
+        }
+      ]
+    },
+    "theSpartanDiscipline": {
+      "name": "The Spartan Discipline",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "Sparta built no walls. Its citizens were its walls.",
+      "text": "Towns build military units 30% faster, but buildings 15% more slowly.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 30,
+          "class": {
+            "category": "military"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": -15
+        }
+      ]
+    },
+    "dominionTheRanksOfMerit": {
+      "name": "Commission: The Ranks of Merit",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "flavor": "A rank is earned in the field and paid for at home.",
+      "text": "Commission. Have three of your units earn a rank while this card is seated. Then, for the rest of the game, each rank a unit earns grants science and production equal to its strength in your capital. The card leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "counted",
+            "occasion": "rankEarned",
+            "count": 3
+          }
+        ],
+        "reward": [
+          {
+            "lasting": [
+              {
+                "kind": "windfallRider",
+                "occasion": "rankEarned",
+                "grant": {
+                  "yield": "science",
+                  "amount": 1,
+                  "fromOccasion": "strength"
+                }
+              },
+              {
+                "kind": "windfallRider",
+                "occasion": "rankEarned",
+                "grant": {
+                  "yield": "production",
+                  "amount": 1,
+                  "fromOccasion": "strength",
+                  "toCapital": true
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "dominionTheFirstProvince": {
+      "name": "Commission: The First Province",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "flavor": "The first province is where an empire learns to govern.",
+      "text": "Commission. Capture a town while this card is seated. Then, for the rest of the game, towns you captured gain +5 food and +5 gold. The card leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "counted",
+            "occasion": "cityCaptured",
+            "count": 1
+          }
+        ],
+        "reward": [
+          {
+            "lasting": [
+              {
+                "kind": "pays",
+                "where": "city",
+                "food": 5,
+                "gold": 5,
+                "scope": {
+                  "test": "captured"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "theNaadam": {
+      "name": "The Naadam",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "Each summer the clans meet to race horses, shoot and wrestle.",
+      "text": "Towns gain +2 culture and +1 happiness for each pasture and camp in their borders.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "tilesInBorders",
+          "within": "city",
+          "tile": {
+            "test": "anyImprovement",
+            "improvements": [
+              "pasture",
+              "camp"
+            ]
+          },
+          "to": "culture",
+          "amount": 2
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "tilesInBorders",
+          "within": "city",
+          "tile": {
+            "test": "anyImprovement",
+            "improvements": [
+              "pasture",
+              "camp"
+            ]
+          },
+          "to": "happiness",
+          "amount": 1
+        }
+      ]
+    },
+    "theTakerOfCities": {
+      "name": "The Taker of Cities",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "His soldiers called him the Taker of Cities, and they climbed any wall he pointed at.",
+      "text": "Your units beside one of your great generals gain +5 strength against towns.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "side": "attack",
+          "when": {
+            "test": "all",
+            "of": [
+              {
+                "test": "vsCity"
+              },
+              {
+                "test": "besideGreatGeneral"
+              }
+            ]
+          },
+          "class": {
+            "category": "military"
+          }
+        }
+      ]
+    },
+    "theRollOfTriumphs": {
+      "name": "The Roll of Triumphs",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "Each general's triumph is cut into the stone below the last.",
+      "text": "+5% production and gold for each great general you have gained this game, at most +30%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "production",
+          "percent": 5,
+          "stage": "empire",
+          "count": "greatPeopleGained",
+          "family": "general",
+          "max": 6
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "percent": 5,
+          "stage": "empire",
+          "count": "greatPeopleGained",
+          "family": "general",
+          "max": 6
+        }
+      ]
+    },
+    "theMarchRevenues": {
+      "name": "The March Revenues",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "The border lords pay their tax in horses and iron.",
+      "text": "+3% production for each pasture, camp and strategic resource inside your borders, at most +30%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "production",
+          "percent": 3,
+          "stage": "empire",
+          "count": "tilesInBorders",
+          "tile": {
+            "test": "any",
+            "of": [
+              {
+                "test": "anyImprovement",
+                "improvements": [
+                  "pasture",
+                  "camp"
+                ]
+              },
+              {
+                "test": "resourceKind",
+                "kind": "strategic"
+              }
+            ]
+          },
+          "max": 10
+        }
+      ]
+    },
+    "theTributaryKings": {
+      "name": "The Tributary Kings",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "The client kings keep their crowns and send their taxes.",
+      "text": "Your capital gains +1 production and +1 gold for each citizen in your puppet towns.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "count": "puppetPopulation",
+          "to": "production",
+          "amount": 1
+        },
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "count": "puppetPopulation",
+          "to": "gold",
+          "amount": 1
         }
       ]
     }

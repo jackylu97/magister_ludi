@@ -1042,7 +1042,9 @@ describe('a captured city, end to end', () => {
     // 153 since Dominion batch D9: ten Dominion Orders and one Doctrine are
     // retired and one Order comes live, so a v152 log's Dominion hands and
     // Doctrine offers hold different cards.
-    expect(SCHEMA_VERSION).toBe(153);
+    // 154 since Dominion batch D10: nine Dominion Orders come live and two
+    // change, so a v153 log's Dominion hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(154);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));
