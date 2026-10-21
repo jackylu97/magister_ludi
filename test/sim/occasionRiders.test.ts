@@ -541,7 +541,14 @@ describe('the member register', () => {
     ]);
     expect(limiter, 'oncePerTurn').toBe(true);
     expect(shelf, 'buildingCategory').toBe(true);
-    expect(greatHouse, 'empireBuilding').toBe(true);
+    // **The great-house narrowing is named by no row since Scientific batch
+    // S7.** Learned Commissions carried the only two riders that named it, and
+    // S7 renamed the card Learned Foundations and cut both riders (its culture
+    // goes to The Dedications). Batch S8's The Invitations and The Dedications
+    // name it again; until then the field stays read, and the arm is asserted
+    // here so it is not deleted with the riders.
+    expect(greatHouse, 'empireBuilding is named by no row until batch S8').toBe(false);
+    expect(simSource('statecraft/evaluator.ts')).toContain('isEmpireBuilding(facts.building) !== effect.empireBuilding');
     // **A grant's ceiling is read and named by nobody**, and that is stated here
     // rather than forgotten — `conversion`'s bargain two claims down.
     //
@@ -559,8 +566,8 @@ describe('the member register', () => {
     // and a row that starts to must come back and say so here.
     expect(ceiling, "a grant's ceiling is named by no live row").toBe(false);
     expect(simSource('statecraft/evaluator.ts')).toContain('grant.max !== undefined');
-    // **Three of the five ledgers are named by a live row; two are named by
-    // none, and that is stated rather than forgotten.** `conversion` is written
+    // **Two of the five ledgers are named by a row; three are named by none,
+    // and that is stated rather than forgotten.** `conversion` is written
     // at its seam and *counted* by The Living Hymnal — the count is the whole of
     // what that card asks — but no rider narrows a moment by it, because the one
     // card that would (Missionary Hospitality) carries a second half about the
@@ -576,10 +583,17 @@ describe('the member register', () => {
     // and because deleting the mark would change what a save carries. What is
     // pinned is the honest state: nothing narrows by it today, and a row that
     // starts to must come back and say so here.
-    expect([...ledgers].sort()).toEqual(['buildingInCity', 'buildingKind', 'techWorld']);
+    //
+    // **`buildingKind` joined them in Scientific batch S7**, for the same
+    // reason as the great-house narrowing above: Learned Commissions' two
+    // riders were the only rows that asked for the realm's first building of
+    // each kind, and S7 cut them. The seam still marks it (`realiseItem`).
+    expect([...ledgers].sort()).toEqual(['buildingInCity', 'techWorld']);
     expect(ledgers.has('conversion')).toBe(false);
     expect(ledgers.has('purchaseInCity')).toBe(false);
+    expect(ledgers.has('buildingKind')).toBe(false);
     // The mark is still made, which is what keeps the member restorable.
     expect(simSource('purchase.ts')).toContain("'purchaseInCity'");
+    expect(simSource('cities.ts')).toContain("markFirst(state, city.ownerId, 'buildingKind'");
   });
 });

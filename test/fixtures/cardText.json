@@ -7088,16 +7088,8 @@
   ],
   "learnedCommissions": [
    {
-    "raw": "+38% production toward empire buildings, in every city with a [[building:library|Library]]",
-    "text": "+38% production toward empire buildings, in every city with a Library"
-   },
-   {
-    "raw": "completing a building (an empire building, the first of that kind your realm has finished) grants +60 culture",
-    "text": "completing a building (an empire building, the first of that kind your realm has finished) grants +60 culture"
-   },
-   {
-    "raw": "completing a building (an empire building, the first of that kind your realm has finished) grants +30 faith",
-    "text": "completing a building (an empire building, the first of that kind your realm has finished) grants +30 faith"
+    "raw": "+25% production toward empire buildings, in every city with a [[building:library|Library]]",
+    "text": "+25% production toward empire buildings, in every city with a Library"
    }
   ],
   "theStrategicReserves": [
@@ -7193,12 +7185,8 @@
   ],
   "enduringInstitutions": [
    {
-    "raw": "+2 happiness in every city holding an empire building that has stood at least 20 turns",
-    "text": "+2 happiness in every city holding an empire building that has stood at least 20 turns"
-   },
-   {
-    "raw": "+23% production in every city holding an empire building that has stood at least 20 turns",
-    "text": "+23% production in every city holding an empire building that has stood at least 20 turns"
+    "raw": "+25% production in every city holding an empire building that has stood at least 20 turns",
+    "text": "+25% production in every city holding an empire building that has stood at least 20 turns"
    }
   ],
   "thePatentRolls": [
@@ -7220,16 +7208,16 @@
   ],
   "theQuietFaculties": [
    {
-    "raw": "+38% food in every city working a great person's work",
-    "text": "+38% food in every city working a great person's work"
+    "raw": "+25% food in every city working an [[improvement:academy|Academy]]",
+    "text": "+25% food in every city working an Academy"
    },
    {
-    "raw": "+30% production in every city working a great person's work",
-    "text": "+30% production in every city working a great person's work"
+    "raw": "+20% production in every city working an [[improvement:academy|Academy]]",
+    "text": "+20% production in every city working an Academy"
    },
    {
-    "raw": "-25% production toward military units, in every city working a great person's work",
-    "text": "-25% production toward military units, in every city working a great person's work"
+    "raw": "-25% production toward military units, in every city working an [[improvement:academy|Academy]]",
+    "text": "-25% production toward military units, in every city working an Academy"
    }
   ],
   "theMechanistsCharter": [
@@ -7656,6 +7644,72 @@
    {
     "raw": "+10% production toward [[building:theMagnumOpus|The Magnum Opus]] per charter technology you know (at most +40%)",
     "text": "+10% production toward The Magnum Opus per charter technology you know (at most +40%)"
+   }
+  ],
+  "theRoyalTutors": [
+   {
+    "raw": "+1 renown per turn in every city, per building there that supplies science, favouring scholars",
+    "text": "+1 renown per turn in every city, per building there that supplies science, favouring scholars"
+   }
+  ],
+  "theWarManuals": [
+   {
+    "raw": "newly created military units in every city with a [[building:library|Library]] gain +2 combat strength",
+    "text": "newly created military units in every city with a Library gain +2 combat strength"
+   }
+  ],
+  "theRoyalEstates": [
+   {
+    "raw": "+2 food in every city per empire building you hold there",
+    "text": "+2 food in every city per empire building you hold there"
+   },
+   {
+    "raw": "+2 production in every city per empire building you hold there",
+    "text": "+2 production in every city per empire building you hold there"
+   }
+  ],
+  "theCommonTables": [
+   {
+    "raw": "+2 food in every city per building there that supplies science",
+    "text": "+2 food in every city per building there that supplies science"
+   }
+  ],
+  "theFreeCities": [
+   {
+    "raw": "while you hold at most 5 cities: +20% production toward buildings; +20% production toward wonders",
+    "text": "while you hold at most 5 cities: +20% production toward buildings; +20% production toward wonders"
+   }
+  ],
+  "theRollOfScholars": [
+   {
+    "raw": "+4% production per great scholar you have gained this game (at most +28% production)",
+    "text": "+4% production per great scholar you have gained this game (at most +28% production)"
+   },
+   {
+    "raw": "+4% culture per great scholar you have gained this game (at most +28% culture)",
+    "text": "+4% culture per great scholar you have gained this game (at most +28% culture)"
+   }
+  ],
+  "thePalaceSchools": [
+   {
+    "raw": "newly created military units in every city holding an empire building gain +4 combat strength",
+    "text": "newly created military units in every city holding an empire building gain +4 combat strength"
+   }
+  ],
+  "theRoundCity": [
+   {
+    "raw": "+1% production per citizen in your capital (at most +30% production)",
+    "text": "+1% production per citizen in your capital (at most +30% production)"
+   },
+   {
+    "raw": "+1% culture per citizen in your capital (at most +30% culture)",
+    "text": "+1% culture per citizen in your capital (at most +30% culture)"
+   }
+  ],
+  "theCityArchitects": [
+   {
+    "raw": "+25% production toward wonders, in every city of 8 or more citizens",
+    "text": "+25% production toward wonders, in every city of 8 or more citizens"
    }
   ],
   "magisterialMasterMasons": [

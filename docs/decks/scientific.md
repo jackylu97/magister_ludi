@@ -3,7 +3,7 @@
 The deck's cards, by tier: name, rarity, status, ability and type. This sheet is the spec of record for the deck. `test/sim/decks/scientific.test.ts` checks it against `data/decks/scientific.json` and, for the shared table, `data/decks/common.json`.
 
 - **Why each card is here:** `docs/plans/scientific-themes.md`. It designs the deck as a way to play: an engine of technologies and charters, and four themes (the learned land, institutions, great cities and the elite army). Sections 11 to 15 hold the user's rulings. `docs/plans/scientific-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
-- **The build plan:** `docs/plans/scientific-build-triage.md`. Batch S0 built the charter technologies and batch S1 the line traits. Batch S1b wrote this sheet, put the types into the data and retired the cut rows. Batch S2 built feature A (the guildsmen as a card count) and batch S3 built feature B (readings against the empires you have met). Batch S4 built the building charters: eight charters, five new buildings, the Physic Garden, and the Scriptorium and the Bastion opened by their charter technologies. Batch S5 built the learned land: the Surveyors' and the Alchemists' Charters with the Qanat and Niter Beds, the Aqueduct before Engineering, eight cards about Academies and the ground, and The Assay as a card shared with Expansionist. Batch S6 built the research record: eleven cards that pay for completing technologies, for the technologies and charter technologies you know, and for the charters you have drafted. Each later batch updates its rows here when it builds them.
+- **The build plan:** `docs/plans/scientific-build-triage.md`. Batch S0 built the charter technologies and batch S1 the line traits. Batch S1b wrote this sheet, put the types into the data and retired the cut rows. Batch S2 built feature A (the guildsmen as a card count) and batch S3 built feature B (readings against the empires you have met). Batch S4 built the building charters: eight charters, five new buildings, the Physic Garden, and the Scriptorium and the Bastion opened by their charter technologies. Batch S5 built the learned land: the Surveyors' and the Alchemists' Charters with the Qanat and Niter Beds, the Aqueduct before Engineering, eight cards about Academies and the ground, and The Assay as a card shared with Expansionist. Batch S6 built the research record: eleven cards that pay for completing technologies, for the technologies and charter technologies you know, and for the charters you have drafted. Batch S7 built twelve cards of Tiers 0 to II in shapes that already existed. It renamed Learned Commissions to Learned Foundations (the data row keeps its id `learnedCommissions`), and brought Enduring Institutions and The Quiet Faculties to this sheet's text. Each later batch updates its rows here when it builds them.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -22,12 +22,12 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 
 | Tier | Implemented | Modify | Add | All | Charters |
 |---|---|---|---|---|---|
-| Tier 0 | 9 | 0 | 2 | 11 | 2 |
-| Tier I | 10 | 1 | 6 | 17 | 3 |
-| Tier II | 10 | 2 | 8 | 20 | 4 |
+| Tier 0 | 11 | 0 | 0 | 11 | 2 |
+| Tier I | 14 | 0 | 3 | 17 | 3 |
+| Tier II | 16 | 0 | 4 | 20 | 4 |
 | Tier III | 10 | 1 | 5 | 16 | 2 |
 | Tier IV | 6 | 0 | 7 | 13 | 2 |
-| **All** | **45** | **4** | **28** | **77** | **13** |
+| **All** | **57** | **1** | **19** | **77** | **13** |
 | Shared | 12 | 3 | 3 | 18 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
@@ -57,8 +57,8 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 | **The Prospectors' Notes** | uncommon | implemented | Building a mine or a quarry grants its town 25 production. | Economic |
 | **The Sky Watchers** | common | implemented | Shrines give +1 faith and +1 science. | Civic |
 | **The Royal Workshops** | common | implemented | Completing a technology grants 15 production in your capital. | Economic |
-| **The Royal Tutors** | common | add | +1 renown a turn for each science building you have, favouring great scholars. | Civic |
-| **The War Manuals** | common | add | Units gained in a town with a Library start with +2 strength. | Military |
+| **The Royal Tutors** | common | implemented | +1 renown a turn for each science building you have, favouring great scholars. | Civic |
+| **The War Manuals** | common | implemented | Units gained in a town with a Library start with +2 strength. | Military |
 
 ## Tier I
 
@@ -68,17 +68,17 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 | **The Surveyors' Charter** | uncommon | implemented | Drafting this opens Surveying for research. Knowing it lets you build the Aqueduct before Engineering, and lets workers build the Qanat: an improvement on flat land that waters the farms beside it with no river or lake nearby. No chair required. | Economic |
 | **The Librarians' Charter** | rare | implemented | Drafting this opens Cataloguing for research. Knowing it lets you build the Mouseion, an empire building only you can build: +4 renown a turn, favouring great scholars, and +2 culture for each empire building you hold, itself included. It costs 30% more production than an ordinary empire building. No chair required. | Civic |
 | **The Old Academy** | uncommon | implemented | An Academy at least twenty turns old gains +3 food and +3 production. At forty turns these bonuses become +6 of each. | Economic |
-| **Learned Foundations** (was Learned Commissions) | common | modify: revised | Cities with a Library build empire buildings 25% faster. | Economic |
+| **Learned Foundations** | common | implemented | Cities with a Library build empire buildings 25% faster. | Economic |
 | **The Commonplace Book** | common | implemented | Charter technologies cost you 15% less research. | Civic |
 | **The Forward Plans** | rare | add | You may build a University in any city whose Library has stood at least 30 turns, before you know Scholarship. | Civic |
 | **The Astronomical Diaries** | uncommon | implemented | While seated, this card gains +1 culture and +1 production each time you complete a technology. It starts at +2 of each. | Civic |
 | **The Secret Arts** | uncommon | implemented | Each town gains +1 production for each technology you know that no empire you have met knows, at most +5. | Economic |
 | **The Scholars' Fame** | common | implemented | Completing a technology grants renown, favouring great scholars, equal to a twentieth of its cost. | Civic |
 | **The Founding Gift** | uncommon | implemented | A great scholar who founds an Academy also grants its town 150 production. | Economic |
-| **The Royal Estates** | common | add | Each empire building gives its town +2 food and +2 production. | Economic |
-| **The Common Tables** | common | add | Towns gain +2 food for each science building in them. | Economic |
+| **The Royal Estates** | common | implemented | Each empire building gives its town +2 food and +2 production. | Economic |
+| **The Common Tables** | common | implemented | Towns gain +2 food for each science building in them. | Economic |
 | **The Dedications** | uncommon | add | Finishing a science building or an empire building grants culture equal to ten times the town's population. | Civic |
-| **The Free Cities** | uncommon | add | While you hold at most five towns, your towns build buildings and wonders 20% faster. | Economic |
+| **The Free Cities** | uncommon | implemented | While you hold at most five towns, your towns build buildings and wonders 20% faster. | Economic |
 | **The Edge of the Sword** | uncommon | implemented | Your units gain +3 strength against the units of an empire that knows fewer technologies than you. | Military |
 | **The Field Refits** | uncommon | add | Each time research upgrades one of your units, it heals fully. | Military |
 
@@ -90,19 +90,19 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 | **The Printers' Charter** | uncommon | implemented | Drafting this opens Printing for research. Knowing it lets you build the Aldine Press, a city building only you can build: +2 culture, and trade routes from its town gain +2 science and +2 culture. It also gives +1 trade route. No chair required. | Civic |
 | **The Paper-Makers' Charter** | uncommon | implemented | Drafting this opens Papermaking for research. Knowing it lets you build the Scriptorium: +2 science, and +10% science in a town with an Academy in its borders. No chair required. | Civic |
 | **The Physicians' Charter** | uncommon | implemented | Drafting this opens Medicine for research. Knowing it lets you build the Bimaristan, an empire building: +25% food in its town, and your units heal 10 more a turn in your land. No chair required. | Economic |
-| **Enduring Institutions** | uncommon | modify: revised | A town with an empire building at least twenty turns old gains +25% production. | Economic |
-| **The Quiet Faculties** | rare | modify: revised | Cities working an Academy gain +25% food and +20% production, but produce military units 25% more slowly. | Economic |
+| **Enduring Institutions** | uncommon | implemented | A town with an empire building at least twenty turns old gains +25% production. | Economic |
+| **The Quiet Faculties** | rare | implemented | Cities working an Academy gain +25% food and +20% production, but produce military units 25% more slowly. | Economic |
 | **The Charter Rolls** | uncommon | implemented | Your capital gains +3 production and +3 culture for each charter you have drafted. | Civic |
 | **The Royal Charter Commission** | uncommon | implemented | Commission. Complete a charter technology while this is seated. Reward: a great scholar and 100 culture. Then it leaves its chair. | Wildcard |
 | **The Translation Movement** | uncommon | implemented | Technologies that an empire you have met already knows cost you 20% less research. | Civic |
-| **The Roll of Scholars** | uncommon | add | +4% production and culture for each great scholar you have gained this game, at most +30%. | Civic |
+| **The Roll of Scholars** | uncommon | implemented | +4% production and culture for each great scholar you have gained this game, at most +28%. | Civic |
 | **The Latin Quarter** | common | implemented | Great-person works beside an Academy gain +2 culture and +1 production. | Civic |
 | **The Royal Readers** | rare | add | Great scholars raise the price of your next great person by half as much. | Civic |
 | **The Invitations** | rare | add | Completing an empire building grants a great scholar. | Civic |
-| **The Palace Schools** | uncommon | add | Units gained in a town with an empire building start with +4 strength. | Military |
-| **The Round City** | uncommon | add | +1% production and culture for each citizen in your capital, at most +30%. | Civic |
+| **The Palace Schools** | uncommon | implemented | Units gained in a town with an empire building start with +4 strength. | Military |
+| **The Round City** | uncommon | implemented | +1% production and culture for each citizen in your capital, at most +30%. | Civic |
 | **The Great Designs** | rare | implemented | Your towns build a wonder 30% faster while no empire you have met knows the technology that opens it. | Economic |
-| **The City Architects** | common | add | Towns of at least eight citizens build wonders 25% faster. | Economic |
+| **The City Architects** | common | implemented | Towns of at least eight citizens build wonders 25% faster. | Economic |
 | **The Scholars' Guild** | uncommon | implemented | Scholars in the trades also pay +1 food and +1 production. | Economic |
 | **The Strategikon** | uncommon | add | Your units gain +4 strength while within two hexes of your great general, your great scholar or your Academy. | Military |
 | **The Armoury Patterns** | common | add | Towns build units of the newest age you know 25% faster. | Military |

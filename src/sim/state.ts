@@ -2104,8 +2104,27 @@ import {
  * **A v161 save is refused and does not replay.** A Scientific seat's pools
  * now hold eleven more cards, so its hands differ. The branch migrates
  * nothing, for the reason given under v119.
+ *
+ * v163 (branch `decks`; Scientific batch S7, `docs/plans/scientific-build-
+ * triage.md`): **the data-only cards of Tiers 0 to II.** No field joins the
+ * state, and no shape is new. The rules that change:
+ *
+ *   · nine Scientific Orders come live: The Royal Tutors, The War Manuals,
+ *     The Royal Estates, The Common Tables, The Free Cities, The Roll of
+ *     Scholars, The Palace Schools, The Round City and The City Architects;
+ *   · Learned Commissions becomes Learned Foundations under the same id:
+ *     +25% toward empire buildings in a Library town, and its two riders
+ *     for a first empire building of each kind are gone;
+ *   · Enduring Institutions pays +25% production and no happiness;
+ *   · The Quiet Faculties reads a worked Academy, not any great person's
+ *     work, and pays +25% food and +20% production.
+ *
+ * **A v162 save is refused and does not replay.** A Scientific seat's pools
+ * now hold nine more cards, so its hands differ, and three live cards pay
+ * different figures. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 162;
+export const SCHEMA_VERSION = 163;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

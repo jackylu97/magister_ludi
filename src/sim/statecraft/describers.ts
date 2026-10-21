@@ -2803,9 +2803,13 @@ function describeEffect(
                 // is the order the sentence has to be read in — "in every city
                 // with a culture building, per trade route to another empire
                 // leaving it" names the city before "it" refers back to it.
+                // A count that only a town can answer then says "there", as a
+                // `pays` line counted town by town does (`countPlace`), because
+                // the city it counts in was just named (Scientific batch S7,
+                // The Royal Tutors). Other counts keep their own words.
                 effect.count !== undefined
                 ? `${effect.within === 'city' ? ` in ${scopeWordsFor(subject, effect.scope)},` : ''}` +
-                  ` per ${countWords(effect.countPer, countNoun({ kind: 'pays', where: 'empire', basis: 'count', count: effect.count, tile: effect.tile, within: effect.within }, ''))}`
+                  ` per ${countWords(effect.countPer, countNoun({ kind: 'pays', where: 'empire', basis: 'count', count: effect.count, tile: effect.tile, within: effect.within }, effect.within === 'city' && CITY_SCOPED_COUNTS.includes(effect.count) ? 'there' : ''))}`
                 : '';
       // **The per-town ceiling, said out loud.** A cap on an empire count is
       // already inside the figure a player sees; a cap per town is not, and a

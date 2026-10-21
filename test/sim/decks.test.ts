@@ -518,8 +518,12 @@ describe('the schema, as landed', () => {
     // **And Scientific batch S6** (the research record): eleven more. Eleven
     // new Scientific rows came live, one of them a commission (The Royal
     // Charter Commission).
-    expect(live).toBe(539);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(539);
+    // **And Scientific batch S7** (the data-only cards of Tiers 0 to II):
+    // nine more. Nine new Scientific rows came live. Learned Foundations
+    // (the row `learnedCommissions`), Enduring Institutions and The Quiet
+    // Faculties were changed in place and were already live.
+    expect(live).toBe(548);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(548);
   });
 
   /**
@@ -801,7 +805,10 @@ describe('the schema, as landed', () => {
     // 162 since Scientific batch S6 (the research record): eleven more
     // Scientific Orders come live, so a v161 log's Scientific hands hold
     // different cards.
-    expect(SCHEMA_VERSION).toBe(162);
+    // 163 since Scientific batch S7 (the data-only cards of Tiers 0 to II):
+    // nine more Scientific Orders come live and three change, so a v162
+    // log's Scientific hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(163);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

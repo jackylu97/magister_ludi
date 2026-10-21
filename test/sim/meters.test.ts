@@ -1070,7 +1070,10 @@ describe('a captured city, end to end', () => {
     // 162 since Scientific batch S6 (the research record): eleven more
     // Scientific Orders come live, so a v161 log's Scientific hands hold
     // different cards.
-    expect(SCHEMA_VERSION).toBe(162);
+    // 163 since Scientific batch S7 (the data-only cards of Tiers 0 to II):
+    // nine more Scientific Orders come live and three change, so a v162
+    // log's Scientific hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(163);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));
