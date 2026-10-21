@@ -2093,6 +2093,11 @@ export function cityScopeAdmits(
       // the key and never of `captured`: a conquest the captor annexed is a
       // province and owes no tribute, and it is `captured` forever.
       return city.puppet === true;
+    case 'rivalCapital':
+      // The Captured Marvel's institution (Dominion batch D11): the town was
+      // founded as another empire's capital. The holder's own first town never
+      // admits, even taken back.
+      return city.originalCapitalOf !== undefined && city.originalCapitalOf !== city.ownerId;
     case 'capital':
       return capitalCityOf(state, city.ownerId)?.id === city.id;
     case 'notCapital':
@@ -2439,6 +2444,8 @@ function scopeNote(scope?: CityScope): string | null {
       return 'founded city';
     case 'puppet':
       return 'puppet';
+    case 'rivalCapital':
+      return "founded as a rival's capital";
     case 'capital':
       return 'capital';
     case 'notCapital':
@@ -3414,6 +3421,10 @@ export function countOf(
       if (effect.family === undefined) return Math.max(0, Math.floor(player.greatPeopleRecruited));
       return Math.max(0, Math.floor(player.greatPeopleByFamily?.[effect.family] ?? 0));
     }
+    // Dominion batch D11, The Res Gestae: the commissions this empire has met,
+    // of every deck, read off the record `runCommissions` writes.
+    case 'commissionsMet':
+      return playerById(state, playerId)?.statecraft.commissionsFulfilled?.length ?? 0;
     // Expansionist batch E2, The Book of Settlements: the towns this empire has
     // founded, its first included. A record, for `citiesCaptured`' reason: a
     // town lost or razed leaves nothing on the board to say who founded it.
@@ -9729,16 +9740,18 @@ export function cardBorderZoc(state: GameState, playerId: number): boolean {
  * Does this empire's law excuse **this piece** from a rival's picket? Riders of
  * the Steppe's, and `cardBorderZoc`'s opposite number.
  *
- * The type is required rather than optional, unlike the behaviour door: every
- * live row of this rule names a silhouette, and a caller with no piece in hand
- * has no business asking a question about how one moves.
+ * The piece is required rather than optional, unlike the behaviour door: a
+ * caller with no piece in hand has no business asking how one moves. Since
+ * Dominion batch D11 it takes the whole piece, not its type, so a row that
+ * names a `rank` is read too (Commission: The Chosen Men's Elite units, the
+ * triage's reading 16).
  */
 export function cardZocIgnored(
   state: GameState,
   playerId: number,
-  type: UnitTypeId,
+  piece: Unit,
 ): boolean {
-  return cardRuleHolds(state, playerId, 'ignored', type);
+  return cardRuleHolds(state, playerId, 'ignored', piece.type, piece);
 }
 
 /**

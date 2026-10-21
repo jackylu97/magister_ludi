@@ -1890,8 +1890,30 @@ import {
  * **A v153 save is refused and does not replay.** A Dominion seat's pools
  * from Tier I on now hold more cards, so its hands differ. The branch
  * migrates nothing, for the reason given under v119.
+ *
+ * v155 (branch `decks`; Dominion batch D11, `docs/plans/dominion-themes-
+ * triage.md`): **the Dominion commissions.** No field joins the state. The
+ * rules that change:
+ *
+ *   · five new Orders come live: Commission: Man the Walls (Tier 0), The
+ *     Ovation (Tier I), The Res Gestae and Commission: The Border Fortress
+ *     (Tier II), and Commission: The Chosen Men (Tier III);
+ *   · Commission: The Captured Marvel's reward becomes +30% science and
+ *     culture, for the rest of the game, in captured towns that hold a world
+ *     wonder or were founded as another empire's capital, in place of a
+ *     one-time payout;
+ *   · meeting a commission is a moment the empire's cards can pay on, and the
+ *     commissions met are a count;
+ *   · the `rankEarned` tally is written once for each rank, with the rank,
+ *     and the great-person spend tells the tally the work it laid;
+ *   · a rank's production lands and settles at once, except for a unit gained
+ *     already holding a rank, whose hammers still wait for the production step.
+ *
+ * **A v154 save is refused and does not replay.** A Dominion seat's pools now
+ * hold more cards, so its hands differ. The branch migrates nothing, for the
+ * reason given under v119.
  */
-export const SCHEMA_VERSION = 154;
+export const SCHEMA_VERSION = 155;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

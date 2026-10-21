@@ -748,11 +748,23 @@ function countedGoalFor(
 /**
  * Does this moment meet the goal's floor (Dominion batch D6)? A goal with no
  * floor counts every moment. A floor reads a fact the moment must carry, so a
- * moment without it never counts.
+ * moment without it never counts. Dominion batch D11 added the rank reached
+ * (The Chosen Men) and the work a great person laid (The Border Fortress).
  */
 function goalFloorMet(goal: Extract<CommissionGoal, { kind: 'counted' }>, facts: TallyFacts | undefined): boolean {
   if (goal.minPopulation !== undefined && (facts?.population ?? 0) < goal.minPopulation) return false;
   if (goal.minTownsTaken !== undefined && (facts?.townsTaken ?? 0) < goal.minTownsTaken) return false;
+  // The rank reached must be at least the floor's rank. The two are compared
+  // by the experience each rank needs, which is the rule book's order of the
+  // ranks (`holdsRank` reads the same thresholds).
+  if (goal.rank !== undefined) {
+    const reached = facts?.rank;
+    if (reached === undefined) return false;
+    const ladder = RULES.combat.ranks.ladder;
+    if (ladder[reached].experience < ladder[goal.rank].experience) return false;
+  }
+  // The great person must have laid this work.
+  if (goal.work !== undefined && facts?.improvement !== goal.work) return false;
   return true;
 }
 

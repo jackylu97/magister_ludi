@@ -140,15 +140,26 @@ describe('the Dominion batch — taking a city', () => {
     expect(commissionGoalMeasure(state, 0, 'dominionTakeTheCity' as OrderId, 'population')).toBe(8);
 
     const reports = runCommissions(state);
-    const people = theirs.population;
     // Since Dominion batch D10 Take the City's reward is an institution: it
     // pays for the captures after this one, so it pays nothing now and
     // raises no Barracks.
     const take = reports.find((report) => report.card === 'dominionTakeTheCity')!;
     expect(take.lines).toEqual([]);
     expect(theirs.buildings).not.toContain('barracks');
+    // Since Dominion batch D11 The Captured Marvel's reward is an institution
+    // too: it pays no one-time reward, and the town it took gains +30%
+    // science and culture from now on, because it was another empire's
+    // original capital.
     const marvel = reports.find((report) => report.card === 'dominionTheCapturedMarvel')!;
-    expect(marvel.lines).toEqual(expect.arrayContaining([`+${20 * people} culture`]));
+    expect(marvel.lines).toEqual([]);
+    bumpRevision(state);
+    const marvelPercent = explainCardPercentYields(state, theirs)
+      .filter((line) => line.card === 'dominionTheCapturedMarvel')
+      .map((line) => ({ yield: line.yield, percent: line.percent }));
+    expect(marvelPercent).toEqual([
+      { yield: 'science', percent: 30 },
+      { yield: 'culture', percent: 30 },
+    ]);
     // Three captures are needed, so The Grand Campaign is still waiting.
     expect(reports.some((report) => report.card === 'dominionTheGrandCampaign')).toBe(false);
   });

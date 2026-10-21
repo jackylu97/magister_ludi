@@ -308,7 +308,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Grand Coalition | 4 | ○ | S | While at war with an empire raising a Magnum Opus, your military units gain +6 strength against it, and cities with a Barracks produce military units 30% faster. |
 | The Proconsuls | 4 | ◆ | S | Captured cities with a garrison cost no authority and gain +10 defence. |
 | Commission: The Grand Campaign | 4 | ◆ | S | Commission. Capture three cities while this card is seated. Then gain a great general, and science and culture each equal to ten times those cities' total population. The card leaves its chair. |
-| Commission: The Captured Marvel | 4 | ○ | S | Commission. Capture a city that holds a world wonder or was another empire's original capital. Then gain science and culture each equal to twenty times its population, plus 200 of each for every world wonder in it. The card leaves its chair. |
+| Commission: The Captured Marvel | 4 | ○ | S | Commission. Capture a city that holds a world wonder or was another empire's original capital. Then, for the rest of the game, captured cities that hold a world wonder, and captured original capitals, gain +30% science and +30% culture. The card leaves its chair. |
 | The Varangian Guard | 4 | ○ | S | Elite units may attack twice a turn. |
 | The Great Bombards | 4 | ○ | S | Your siege units break a town's walls in one blow. |
 | The Horde | 4 | ○ | S | Pillaging a hex also pillages every enemy improvement beside it. |
@@ -332,6 +332,11 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Roll of Triumphs | 2 | ◆ | P | +5% production and gold for each great general you have gained this game, at most +30%. |
 | The March Revenues | 3 | ◆ | P | +3% production for each pasture, camp and strategic resource inside your borders, at most +30%. |
 | The Tributary Kings | 3 | ◆ | P | Your capital gains +1 production and +1 gold for each citizen in your puppet towns. |
+| Commission: Man the Walls | 0 | ● | S | Commission. Have military units standing in three of your towns at the same time. Then each town with a garrison gains 30 production. The card leaves its chair. |
+| The Ovation | 1 | ◆ | S | Completing a commission gives every town +30% production for ten turns. Completing another restarts the ten turns. |
+| The Res Gestae | 2 | ◆ | P | +4% production and culture for each commission you have completed this game, at most +28%. |
+| Commission: The Border Fortress | 2 | ◆ | S | Commission. Plant a citadel while this card is seated. Then, for the rest of the game, your citadels gain +2 food and +2 production. The card leaves its chair. |
+| Commission: The Chosen Men | 3 | ◆ | S | Commission. Have three of your units become Elite while this card is seated. Then, for the rest of the game, your Elite units ignore enemy zone of control. The card leaves its chair. |
 
 ### Expansionist
 

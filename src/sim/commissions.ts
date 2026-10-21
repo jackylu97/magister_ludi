@@ -32,6 +32,7 @@
 
 import {
   bestMeleeFor,
+  payOccasionRiders,
   realiseItem,
   resourceCopies,
   settleGrowthWindfall,
@@ -62,6 +63,7 @@ import { foldCity } from './yields/town';
 import {
   type PlayerStatecraft,
   type WindfallPayout,
+  cityScopeAdmits,
   commissionFulfilledTurn,
   heldReligions,
   payWindfallGrants,
@@ -166,6 +168,16 @@ export function commissionFigure(
         if (city.originalCapitalOf !== undefined && city.originalCapitalOf !== playerId) held += 1;
       }
       return held;
+    }
+    case 'garrisonedTowns': {
+      // Commission: Man the Walls (Dominion batch D11): the towns with a unit
+      // standing in them, asked through the `garrisoned` scope so the goal and
+      // the reward's scope cannot disagree (the triage's reading 17).
+      let manned = 0;
+      for (const city of citiesOf(state, playerId)) {
+        if (cityScopeAdmits(state, city, { test: 'garrisoned' }, playerId)) manned += 1;
+      }
+      return manned;
     }
     case 'tendedTiles': {
       // Owned, not worked: Six Gardens asks for tended land the empire holds.
@@ -368,6 +380,10 @@ export function runCommissions(state: GameState): CommissionReport[] {
       if (slotOf(sc, card) === index) sc.slots[index] = null;
       bumpEconomy(state);
       const lines = payCommission(state, player, card, spec);
+      // **The moment a commission is met** (Dominion batch D11, The Ovation;
+      // the triage's reading 34), once for each commission and after its
+      // reward, so a rider sees the empire the reward left.
+      payOccasionRiders(state, player, 'commissionMet');
       reports.push({ playerId: player.id, card, name: orderDef(card).name, turn: state.turn, lines });
     }
   }
@@ -520,14 +536,24 @@ export function commissionGoalTown(state: GameState, playerId: number, card: Ord
  * is read first, in founding order, and then each town is paid through the
  * one windfall delivery, at its own centre, so the food or production lands in
  * that town and settles at once. Says what it paid, town by town.
+ *
+ * Since Dominion batch D11 (Commission: Man the Walls) a reward with no
+ * `fromFigure` pays its `amount` flat, and `scope` says which towns are paid.
+ * The scope is asked of every town before anything is paid, as the figures
+ * are, so a payment cannot change which towns the reward reaches.
  */
 function payEachTown(state: GameState, player: Player, card: OrderId, reward: CommissionReward): string[] {
   const source = orderDef(card).name;
   const lines: string[] = [];
-  if (reward.yield === undefined || reward.fromFigure === undefined) return lines;
+  if (reward.yield === undefined) return lines;
+  const figure = reward.fromFigure;
   const owed = citiesOf(state, player.id).map((city) => ({
     city,
-    amount: (reward.amount ?? 0) * (townFigure(state, city, reward.fromFigure!) ?? 0),
+    amount: !cityScopeAdmits(state, city, reward.scope, player.id)
+      ? 0
+      : figure === undefined
+        ? (reward.amount ?? 0)
+        : (reward.amount ?? 0) * (townFigure(state, city, figure) ?? 0),
   }));
   for (const { city, amount } of owed) {
     if (amount === 0) continue;

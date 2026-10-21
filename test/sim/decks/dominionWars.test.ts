@@ -386,11 +386,35 @@ describe('Dominion D6 — a goal keeps the towns it counted', () => {
     theirs.buildings.push('stonehenge' as never);
     take(state, theirs);
     expect(tallyOf(sc, 'dominionTheCapturedMarvel' as OrderId)).toBe(1);
-    seat(state, 0).statecraft.pendingOrder = { options: [] };
-    const reports = runCommissions(state);
-    expect(reports[0]!.lines).toEqual(
-      expect.arrayContaining(['+100 science', '+100 culture', '+200 science', '+200 culture']),
-    );
+    // Since Dominion batch D11 the reward is an institution
+    // (`dominionCommissions.test.ts`). No row pays for the wonders a goal
+    // counted now, so the D6 reward is borrowed to check what the goal kept,
+    // and put back afterwards.
+    const def = orderDef('dominionTheCapturedMarvel' as OrderId);
+    const kept = def.commission;
+    def.commission = {
+      goals: kept!.goals,
+      reward: [
+        { yield: 'science', amount: 20, fromGoal: 'population' },
+        { yield: 'culture', amount: 20, fromGoal: 'population' },
+        { yield: 'science', amount: 200, fromGoal: 'wonders' },
+        { yield: 'culture', amount: 200, fromGoal: 'wonders' },
+      ],
+    };
+    try {
+      expect(
+        describeCard('dominionTheCapturedMarvel' as OrderId)
+          .map((clause) => stripRefs(clause.text))
+          .join(' | '),
+      ).toContain('+200 science for each world wonder in it');
+      seat(state, 0).statecraft.pendingOrder = { options: [] };
+      const reports = runCommissions(state);
+      expect(reports[0]!.lines).toEqual(
+        expect.arrayContaining(['+100 science', '+100 culture', '+200 science', '+200 culture']),
+      );
+    } finally {
+      def.commission = kept;
+    }
   });
 
   it('Hold the Capitals counts only other empires’ original capitals', () => {
@@ -578,7 +602,11 @@ describe('Dominion D6 — words and the bot', () => {
       'for the rest of the game, capturing a city grants +250 science for each age you have reached',
     );
     expect(words('dominionTheGrandCampaign')).toContain("science equal to 10 times those cities' total population");
-    expect(words('dominionTheCapturedMarvel')).toContain('+200 science for each world wonder in it');
+    // Since Dominion batch D11 an institution. The D6 words are pinned by the
+    // borrowed reward above.
+    expect(words('dominionTheCapturedMarvel')).toContain(
+      "for the rest of the game, +30% science in every captured city containing a wonder or founded as another empire's capital",
+    );
     expect(words('vaeVictis')).toBe('what your Orders pay for capturing a city is paid twice');
     expect(words('lootedArt')).toBe(
       'capturing a city grants +20 renown for each great-person work and wonder inside its borders',

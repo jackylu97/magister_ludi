@@ -869,10 +869,15 @@ describe('determinism', () => {
    * new and changed Dominion cards never reach this board. Checked with the
    * change in place and the version printed as 153, which gives D9's hashes
    * exactly.
+   *
+   * **Dominion batch D11 (schema 155) moved the hash and not the length** at
+   * both seeds: 154 became 155, and that is all. Nobody here drafts or meets a
+   * commission. Checked with the change in place and the version printed as
+   * 154, which gives D10's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '18ebe8f3:188931',
-    2026: '6db3cf0a:188509',
+    11: 'a00b7a6a:188931',
+    2026: '9bab36fb:188509',
   };
 
   for (const seed of [11, 2026]) {

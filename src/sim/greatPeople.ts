@@ -1144,7 +1144,9 @@ function stampTimed(
 
 /**
  * Takes the piece off the board and hangs its legacy on the empire. **The** one
- * place a great person is spent, reached by both verbs.
+ * place a great person is spent, reached by both verbs. `work` is the work the
+ * piece laid, when it laid one (Dominion batch D11): the `greatPersonSpent`
+ * tally carries it, so Commission: The Border Fortress counts only a citadel.
  *
  * The piece goes through `removeUnit` like every other disappearance, so the
  * owner's fog is refreshed without this function knowing fog exists. The legacy
@@ -1156,6 +1158,7 @@ function spendGreatPerson(
   player: Player,
   unit: Unit,
   id: GreatPersonId,
+  work?: ImprovementId,
 ): void {
   // Stamped with the empire's era, which is the one revocation that is a
   // comparison rather than an occasion: Boudica's revolt belonged to her
@@ -1170,7 +1173,7 @@ function spendGreatPerson(
   // The growing cards' occasion, written here because this is **the** one place
   // a great person is spent — both verbs reach it, so The Reliquary Rolls counts
   // a citadel exactly as it counts a boon, and neither caller has to remember.
-  recordScalingOccasion(state, player.id, 'greatPersonSpent');
+  recordScalingOccasion(state, player.id, 'greatPersonSpent', 1, work === undefined ? undefined : { improvement: work });
   removeUnit(state, unit.id);
 }
 
@@ -1340,7 +1343,7 @@ export function greatPersonWorkAt(
     : [];
   refreshTileDerived(state, tile);
 
-  spendGreatPerson(state, player, unit, id);
+  spendGreatPerson(state, player, unit, id, work);
   return {
     id,
     name: def.name,

@@ -14,12 +14,12 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
-| Tier 0 | 23 | 1 | 1 | 25 | none |
-| Tier I | 21 | 1 | 3 | 25 | 4 |
-| Tier II | 30 | 2 | 2 | 34 | 5 |
-| Tier III | 24 | 0 | 3 | 27 | 3 |
-| Tier IV | 18 | 3 | 0 | 21 | 3 |
-| **All** | **116** | **7** | **9** | **132** | **15** |
+| Tier 0 | 24 | 1 | 0 | 25 | none |
+| Tier I | 22 | 1 | 2 | 25 | 4 |
+| Tier II | 32 | 2 | 0 | 34 | 5 |
+| Tier III | 25 | 0 | 2 | 27 | 3 |
+| Tier IV | 19 | 2 | 0 | 21 | 3 |
+| **All** | **122** | **6** | **4** | **132** | **15** |
 | Shared | 26 | 1 | 0 | 27 |  |
 
 **By type** (the chair a card fits):
@@ -62,7 +62,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Hunting Grounds** | uncommon | implemented | Barbarian camps within ten hexes of your cities spawn 50% faster. Your units gain +4 strength in your own territory. | Military |
 | **The Campaign Annals** | rare | implemented | While seated, this card gains +1 science each time one of your units earns a rank. It starts at +3 science. | Civic |
 | **The Champion's Portion** | common | implemented | Killing a unit grants renown equal to its strength, favouring great generals. | Civic |
-| **Commission: Man the Walls** | common | add | Commission. Have military units standing in three of your towns at the same time. Then each town with a garrison gains 30 production. The card leaves its chair. | Wildcard |
+| **Commission: Man the Walls** | common | implemented | Commission. Have military units standing in three of your towns at the same time. Then each town with a garrison gains 30 production. The card leaves its chair. | Wildcard |
 
 ## Tier I
 
@@ -97,7 +97,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Satraps** | uncommon | implemented | Garrisoned towns in unrest pacify twice as fast. | Civic |
 | **The Sack** | uncommon | implemented | Razing a town you captured grants production, gold and culture equal to fifteen times its population. | Economic |
 | **The Acropolis** | uncommon | implemented | Citadels give +2 culture and +1 authority each. | Civic |
-| **The Ovation** | uncommon | add | Completing a commission gives every town +30% production for ten turns. Completing another restarts the ten turns. | Economic |
+| **The Ovation** | uncommon | implemented | Completing a commission gives every town +30% production for ten turns. Completing another restarts the ten turns. | Economic |
 | **The Spartan Discipline** | uncommon | implemented | Towns build military units 30% faster, but buildings 15% more slowly. | Military |
 | **Commission: The Ranks of Merit** | uncommon | implemented | Commission. Have three of your units earn a rank while this card is seated. Then, for the rest of the game, each rank a unit earns grants science and production equal to its strength in your capital. The card leaves its chair. | Wildcard |
 | **Commission: Harry the Border** | uncommon | add | Commission. Pillage four hexes while this card is seated. Then, for the rest of the game, your mounted units gain +50% yields from pillaging. The card leaves its chair. | Wildcard |
@@ -150,8 +150,8 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Tactica** | uncommon | implemented | At the end of your turn, great generals give 1 experience to every unit beside them. Each time one of your units earns a rank, gain 15 science. | Military |
 | **Double Time** | rare | implemented | Your Orders' effects that happen at the end of a turn or every few turns trigger twice. | Wildcard |
 | **War Feeds Itself** | rare | implemented | At the end of your turn, each of your units in enemy territory yields you its hex's yields. | Economic |
-| **The Res Gestae** | uncommon | add | +4% production and culture for each commission you have completed this game, at most +28%. | Civic |
-| **Commission: The Border Fortress** | uncommon | add | Commission. Plant a citadel while this card is seated. Then, for the rest of the game, your citadels gain +2 food and +2 production. The card leaves its chair. | Wildcard |
+| **The Res Gestae** | uncommon | implemented | +4% production and culture for each commission you have completed this game, at most +28%. | Civic |
+| **Commission: The Border Fortress** | uncommon | implemented | Commission. Plant a citadel while this card is seated. Then, for the rest of the game, your citadels gain +2 food and +2 production. The card leaves its chair. | Wildcard |
 | **The Naadam** | common | implemented | Towns gain +2 culture and +1 happiness for each pasture and camp in their borders. | Civic |
 | **The Taker of Cities** | uncommon | implemented | Your units beside one of your great generals gain +5 strength against towns. | Military |
 | **The Roll of Triumphs** | uncommon | implemented | +5% production and gold for each great general you have gained this game, at most +30%. | Economic |
@@ -196,7 +196,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Regimental Schools** | common | implemented | At the end of your turn, each garrisoned unit gains 1 experience and gives its town +2 science. | Civic |
 | **The Board of Ordnance** | common | implemented | While at war, each city with a Barracks gains +1 production and +1 science for every three citizens. | Civic |
 | **The Limitanei** | rare | add | Each military unit in one of your towns lets that town work one more hex, at most two more. | Economic |
-| **Commission: The Chosen Men** | uncommon | add | Commission. Have three of your units become Elite while this card is seated. Then, for the rest of the game, your Elite units ignore enemy zone of control. The card leaves its chair. | Wildcard |
+| **Commission: The Chosen Men** | uncommon | implemented | Commission. Have three of your units become Elite while this card is seated. Then, for the rest of the game, your Elite units ignore enemy zone of control. The card leaves its chair. | Wildcard |
 | **The March Revenues** | uncommon | implemented | +3% production for each pasture, camp and strategic resource inside your borders, at most +30%. | Economic |
 | **The Tributary Kings** | uncommon | implemented | Your capital gains +1 production and +1 gold for each citizen in your puppet towns. | Economic |
 
@@ -230,7 +230,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **Spolia** | rare | implemented | Capturing a city that was raising a Magnum Opus adds half the production it had put into that Opus to your own. If you have not begun one, the production is kept until you do. | Economic |
 | **The Legions' Labour** | rare | implemented | Disbanding a military unit in a town building a wonder or the Magnum Opus adds half its production cost toward it. Units raised for free add nothing, but units raised by a levy count. | Economic |
 | **The Nation in Arms** | rare | implemented | Every ten turns, each city with an Armoury raises the best melee unit you can build. They cost no upkeep. | Military |
-| **Commission: The Captured Marvel** | rare | modify: revised | Commission. Capture a city that holds a world wonder or was another empire's original capital. Then, for the rest of the game, captured cities that hold a world wonder, and captured original capitals, gain +30% science and +30% culture. The card leaves its chair. | Wildcard |
+| **Commission: The Captured Marvel** | rare | implemented | Commission. Capture a city that holds a world wonder or was another empire's original capital. Then, for the rest of the game, captured cities that hold a world wonder, and captured original capitals, gain +30% science and +30% culture. The card leaves its chair. | Wildcard |
 | **The Horde** | rare | implemented | Pillaging a hex also pillages every enemy improvement beside it. | Military |
 | **Vae Victis** | rare | implemented | Your capture rewards are paid twice. | Wildcard |
 | **The Varangian Guard** | rare | implemented | Elite units may attack twice a turn. | Military |
@@ -289,7 +289,7 @@ New names are placeholders; rename freely.
     - The Res Gestae reads "at most +28%", because seven commissions at +4% reach +28% (question 5, reading 19). The themes pass wrote "at most +30%".
     - Rally to the Standard moves only military units, and its text says "a military unit" (question 6, reading 23).
 - **Ruled 2026-10-21** (your comments on the themes pass, written into the rows above). Your words and the readings are in section 11 of `docs/plans/dominion-themes.md`. You said: *"ok i've commented on the dominion pass, lets begin working on it."*
-  - **The themes pass is on the sheet.** Its new cards are `add` rows, and its changes to live cards are `modify` rows with the target text. The build plan builds them in batches D10 to D15. Batch D9 built five: Clear the Frontier, Battle Honours, The Camp Chaplains, The Bards' Praise and The Champion's Portion. Batch D10 built eleven: The Acropolis, The Castle Demesne, The Spartan Discipline, The Ranks of Merit, The First Province, Take the City, The Naadam, The Taker of Cities, The Roll of Triumphs, The March Revenues and The Tributary Kings. The March Revenues still counts a strategic resource you cannot see, until batch D12 adds the sight gate.
+  - **The themes pass is on the sheet.** Its new cards are `add` rows, and its changes to live cards are `modify` rows with the target text. The build plan builds them in batches D10 to D15. Batch D9 built five: Clear the Frontier, Battle Honours, The Camp Chaplains, The Bards' Praise and The Champion's Portion. Batch D10 built eleven: The Acropolis, The Castle Demesne, The Spartan Discipline, The Ranks of Merit, The First Province, Take the City, The Naadam, The Taker of Cities, The Roll of Triumphs, The March Revenues and The Tributary Kings. The March Revenues still counts a strategic resource you cannot see, until batch D12 adds the sight gate. Batch D11 built six: Man the Walls, The Ovation, The Res Gestae, The Border Fortress, The Chosen Men and The Captured Marvel. Meeting any commission, of either of your decks, now counts for The Ovation and The Res Gestae.
   - **Ten cards are cut** and their data rows are retired: Muster Rites, The Funeral Games, The Armourers' Secret, The Marshals, The Marching Camps, The Open Muster, The Cleruchy, The Valetudinaria, The State Forges and The Keshik. Their old text, and why each was cut, are in `docs/plans/dominion-list-proposed.md`, "Cut by this pass". A save that holds one keeps it.
   - **The Servian Reforms** left the Tier I Doctrines by your edit, and its data row is retired.
   - **Clear the Frontier and Battle Honours trade rewards** and keep their names. Clearing two camps now brings a great general from a draft. Killing six units (not ten) now brings two citizens and the best melee unit you can build in your capital.

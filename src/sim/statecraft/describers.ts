@@ -3549,6 +3549,12 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       // after the town has been annexed.
       into.adjectives.push('puppet');
       return;
+    case 'rivalCapital':
+      // The Captured Marvel (Dominion batch D11). "Original capital" is the
+      // game's word for an empire's first town (Hold the Capitals), said here
+      // as a fact about how the town began.
+      into.qualifiers.push("founded as another empire's capital");
+      return;
     case 'connected':
       // A qualifier and not an adjective: "connected city" is a word the game
       // never defines, and what the rule stands for is a road that reaches home.
@@ -4905,6 +4911,8 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   greatPersonGained: 'gaining a great person',
   // Dominion batch D6, War Reparations and Danegeld.
   peace: 'making peace',
+  // Dominion batch D11, The Ovation.
+  commissionMet: 'completing a commission',
   // Expansionist batch E2: The Freedom of the City, The Tax Rolls and The
   // Opening of the Roads.
   sizeRecord: 'a city growing past its largest size',
@@ -5254,6 +5262,11 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   greatPeopleGained: {
     one: 'great person you have gained this game',
     many: 'great people you have gained this game',
+  },
+  // Dominion batch D11, The Res Gestae.
+  commissionsMet: {
+    one: 'commission you have completed this game',
+    many: 'commissions you have completed this game',
   },
   // Expansionist batch E2, The Book of Settlements.
   citiesFounded: {
@@ -5960,6 +5973,12 @@ const COMMISSION_FIGURE_WORDS: Record<
     counter: 'original capitals held',
     noun: 'the original capitals you hold',
   },
+  // Dominion batch D11, Commission: Man the Walls. The scope's own words.
+  garrisonedTowns: {
+    goal: (count) => `have a unit standing in each of ${count} of your cities at the same time`,
+    counter: 'cities with a unit standing in them',
+    noun: 'your cities with a unit standing in them',
+  },
   tendedTiles: {
     goal: (count) => `have ${count} tended tiles inside your borders`,
     counter: 'tended tiles',
@@ -5989,13 +6008,25 @@ const COMMISSION_FIGURE_WORDS: Record<
 export function commissionGoalWords(goal: CommissionGoal): string {
   if (goal.kind === 'counted') {
     const words = COMMISSION_COUNTED_WORDS[goal.occasion];
+    // A rank floor (Dominion batch D11, The Chosen Men) is the whole goal:
+    // "have 3 of your units become Elite".
+    if (goal.rank !== undefined) {
+      const rank =
+        goal.rank === RANK_IDS[RANK_IDS.length - 1] ? rankName(goal.rank) : `${rankName(goal.rank)} or better`;
+      return `have ${goal.count} of your units become ${rank}`;
+    }
     // The floors (Dominion batch D6): "capture 1 city of 5 or more citizens",
-    // "… after taking 2 or more of its cities in that war".
+    // "… after taking 2 or more of its cities in that war". Dominion batch
+    // D11 added the work a great person lays: "spend 1 great person on a
+    // Citadel".
     const floor =
       (goal.minPopulation === undefined ? '' : ` of ${goal.minPopulation} or more citizens`) +
       (goal.minTownsTaken === undefined
         ? ''
-        : `, after taking ${goal.minTownsTaken} or more of its cities in that war`);
+        : `, after taking ${goal.minTownsTaken} or more of its cities in that war`) +
+      (goal.work === undefined
+        ? ''
+        : ` on ${indefinite(improvementDef(goal.work).name)} ${ref('improvement', goal.work, improvementDef(goal.work).name)}`);
     return `${words.verb} ${goal.count} ${goal.count === 1 ? words.one : words.many}${floor}`;
   }
   // The floor on each hex (Expansionist batch E5, The Heartland).
@@ -6015,6 +6046,8 @@ const TOWN_FIGURE_WORDS: Partial<Record<CommissionFigure, string>> = {
 
 /** The short label a counter prints beside its figure: "camps cleared". */
 export function commissionCounterWords(goal: CommissionGoal): string {
+  // A rank floor counts units that became that rank (Dominion batch D11).
+  if (goal.kind === 'counted' && goal.rank !== undefined) return `units become ${rankName(goal.rank)}`;
   return goal.kind === 'counted'
     ? COMMISSION_COUNTED_WORDS[goal.occasion].counter
     : COMMISSION_FIGURE_WORDS[goal.figure].counter;
@@ -6030,10 +6063,12 @@ export function commissionRewardWords(reward: CommissionReward, towns = 1): stri
   const one = towns <= 1;
   if (reward.eachTown === true && reward.yield !== undefined && reward.amount !== undefined) {
     // The Domesday Survey (Expansionist batch E5): each town from its own count.
+    // Man the Walls (Dominion batch D11): a flat amount in the towns a scope
+    // admits, "+30 production in every city with a unit standing in it".
     const counted = reward.fromFigure === undefined ? undefined : TOWN_FIGURE_WORDS[reward.fromFigure];
     out.push(
       counted === undefined
-        ? `${signed(reward.amount)} ${reward.yield} in each city`
+        ? `${signed(reward.amount)} ${reward.yield} in ${reward.scope === undefined ? 'each city' : cityScopeWords(reward.scope)}`
         : `each city gains ${reward.yield} equal to ${reward.amount} times ${counted}, toward what it is building`,
     );
   } else if (reward.yield !== undefined && reward.amount !== undefined) {

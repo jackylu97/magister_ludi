@@ -578,6 +578,16 @@ export type CityScope =
    * makes can only say it here, because a share is a fact about one town's fold.
    */
   | { test: 'puppet' }
+  /**
+   * **The town was founded as another empire's capital**: Commission: The
+   * Captured Marvel's institution (Dominion batch D11, the triage's reading
+   * 14). Read off `City.originalCapitalOf`, which is written once at founding
+   * (Dominion batch D6). It admits a town whose mark names an empire other than
+   * the one that holds the town now, so an empire's own first town never
+   * admits, even after it was lost and taken back. Asked of the town's owner,
+   * as `captured` is.
+   */
+  | { test: 'rivalCapital' }
   /** The town is this empire's capital (`capitalCityOf`). */
   | { test: 'capital' }
   /** The town is at least this large. */
@@ -2618,6 +2628,14 @@ export type CountKind =
    */
   | 'greatPeopleGained'
   /**
+   * **Commissions this empire has met in the game**, of every deck: The Res
+   * Gestae (Dominion batch D11, the triage's readings 19 and 34). It reads
+   * `PlayerStatecraft.commissionsFulfilled`, which `runCommissions` writes once
+   * for each commission met, so a commission met before the card was seated
+   * counts too.
+   */
+  | 'commissionsMet'
+  /**
    * **Towns this empire has founded in the game**: The Book of Settlements
    * (Expansionist batch E2). It reads `Player.citiesFounded`, the record
    * `foundCityAt` raises for every town an empire founds, its first town
@@ -3213,7 +3231,11 @@ export type TallyOccasion =
    * deck of world-watchers would play itself.
    */
   | 'wonderAnywhere'
-  /** A great person spent on a work or a boon — The Reliquary Rolls. */
+  /**
+   * A great person spent on a work or a boon — The Reliquary Rolls. A work
+   * carries the improvement it laid (`TallyFacts.improvement`, Dominion batch
+   * D11), which Commission: The Border Fortress's floor reads.
+   */
   | 'greatPersonSpent'
   /**
    * One of this empire's own units **died in battle** — The Chroniclers of the
@@ -3321,7 +3343,9 @@ export type TallyOccasion =
    * twice. The same moment as `WindfallOccasion`'s `rankEarned` and the
    * lifetime record `Player.ranksEarned`: a card in a chair, a card that pays
    * on the moment and a card that reads the record each ask their own question
-   * about it.
+   * about it. Since Dominion batch D11 each rank is written on its own and
+   * carries the rank reached (`TallyFacts.rank`), which Commission: The Chosen
+   * Men's floor reads.
    */
   | 'rankEarned'
   /**
@@ -4678,6 +4702,14 @@ export type WindfallOccasion =
    * makes no peace, so this does not fire then.
    */
   | 'peace'
+  /**
+   * This empire **met a commission's goal** (Dominion batch D11, The Ovation;
+   * the triage's reading 34). Paid by `runCommissions` (`commissions.ts`) through
+   * `payOccasionRiders`, once for each commission met, after its reward is
+   * paid. A commission of any deck fires it. It carries no facts, and its food
+   * and production land in the capital.
+   */
+  | 'commissionMet'
   /**
    * **A town grew past the most citizens it has ever had** (Expansionist batch
    * E2): The Freedom of the City. Paid by `settleSizeRecord` (`cities.ts`)
@@ -8789,6 +8821,13 @@ export type CommissionFigure =
    * empire's own first town does not count however it came back.
    */
   | 'originalCapitalsHeld'
+  /**
+   * **This empire's towns with a unit standing in them** (Dominion batch D11,
+   * Commission: Man the Walls; the triage's reading 17). A town counts when a
+   * combat unit of its owner stands on its hex, a ship included: the
+   * `garrisoned` town scope, asked of each town.
+   */
+  | 'garrisonedTowns'
   /** Hexes inside this empire's borders that carry a tended work. Six Gardens. */
   | 'tendedTiles'
   /**
@@ -8815,6 +8854,7 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'improvedOnlyTilesWorked',
   'oneTownWorkedHexes',
   'originalCapitalsHeld',
+  'garrisonedTowns',
   'tendedTiles',
   'goldIncome',
   'followingCityShare',
@@ -8870,6 +8910,20 @@ export interface GoalFloor {
    * `TallyFacts.townsTaken`.
    */
   minTownsTaken?: number;
+  /**
+   * Only a rank of at least this rank counts: Commission: The Chosen Men's
+   * "become Elite" (Dominion batch D11, the triage's reading 16). Read off
+   * `TallyFacts.rank`, the rank the unit reached, so a Veteran rank does not
+   * count toward an Elite floor.
+   */
+  rank?: RankId;
+  /**
+   * Only a great person spent on this work counts: Commission: The Border
+   * Fortress's "plant a citadel" (Dominion batch D11, the triage's reading 15).
+   * Read off `TallyFacts.improvement`, so a great person spent on a boon never
+   * counts.
+   */
+  work?: ImprovementId;
 }
 
 /**
@@ -8890,6 +8944,10 @@ export interface TallyFacts {
   wonders?: number;
   /** The other empire's towns this empire took in the war that ended, and still holds. */
   townsTaken?: number;
+  /** The rank a unit reached (Dominion batch D11). `settleRanksEarned` writes one moment for each rank. */
+  rank?: RankId;
+  /** The work a great person laid when spent (Dominion batch D11). A boon carries none. */
+  improvement?: ImprovementId;
 }
 
 /**
@@ -8972,8 +9030,18 @@ export interface CommissionReward {
    * `fromFigure` read for that town alone, into its own baskets, and settles at
    * once (the triage's reading 44). Only a figure with a town reading may be
    * used (`improvedTilesWorked`, `improvedOnlyTilesWorked`).
+   *
+   * **Without `fromFigure`, `amount` is flat** (Dominion batch D11, Commission:
+   * Man the Walls): each town gains `amount`, and `scope` says which towns.
    */
   eachTown?: true;
+  /**
+   * **Which towns an `eachTown` reward pays** (Dominion batch D11, Commission:
+   * Man the Walls' towns with a garrison; Scientific's The Lynx-Eyed Academy
+   * reuses it). The ordinary `CityScope`, asked of each town when the goal is
+   * met. Absent pays every town. Read only with `eachTown`.
+   */
+  scope?: CityScope;
   /**
    * **Marks the town that met the goal** (`commissionGoalTown`) for the empire
    * that holds it then (Expansionist batch E5, The Heartland). Written on

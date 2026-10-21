@@ -716,9 +716,11 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
   // Riders of the Steppe's, asked once for the sweep beside the landing and for
   // its reason — a fact about the empire *and* this piece's silhouette, and a
   // step's price is asked tens of thousands of times inside one search. Written
-  // only when it is true, `freeLanding`'s bargain one field over.
+  // only when it is true, `freeLanding`'s bargain one field over. The whole
+  // piece is passed, so a rule narrowed to a rank (The Chosen Men's Elite
+  // units, Dominion batch D11) is read for a piece that holds the rank now.
   const ignoresZoc =
-    owner !== undefined && cardZocIgnored(state, owner.id, unit.type)
+    owner !== undefined && cardZocIgnored(state, owner.id, unit)
       ? { ignoresZoc: true as const }
       : {};
   // The Woodland Bands (Expansionist batch E3), asked once for the sweep and
@@ -1634,7 +1636,7 @@ export function inZoneOfControl(state: GameState, unit: Unit): boolean {
   // sheet does not say it is: `stepCost` charges it nothing, and a panel that
   // warned about a price nobody pays would be the interface disagreeing with the
   // march.
-  if (cardZocIgnored(state, unit.ownerId, unit.type)) return false;
+  if (cardZocIgnored(state, unit.ownerId, unit)) return false;
   const field = zocField(state, unit.ownerId);
   if (field.sources.length === 0) return false;
   const here = getTileAt(state.map, unit.col, unit.row);

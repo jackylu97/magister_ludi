@@ -3906,8 +3906,8 @@
     "text": "Commission. Goal: capture 1 city that holds a world wonder or was another empire's original capital, while this card is seated"
    },
    {
-    "raw": "Reward: science equal to 20 times its population, and culture equal to 20 times its population, and +200 science for each world wonder in it, and +200 culture for each world wonder in it",
-    "text": "Reward: science equal to 20 times its population, and culture equal to 20 times its population, and +200 science for each world wonder in it, and +200 culture for each world wonder in it"
+    "raw": "Reward: for the rest of the game, +30% science in every captured city containing a wonder or founded as another empire's capital and +30% culture in every captured city containing a wonder or founded as another empire's capital",
+    "text": "Reward: for the rest of the game, +30% science in every captured city containing a wonder or founded as another empire's capital and +30% culture in every captured city containing a wonder or founded as another empire's capital"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -4094,6 +4094,64 @@
    {
     "raw": "+1 gold in your capital per citizen living in a puppet of yours",
     "text": "+1 gold in your capital per citizen living in a puppet of yours"
+   }
+  ],
+  "dominionManTheWalls": [
+   {
+    "raw": "Commission. Goal: have a unit standing in each of 3 of your cities at the same time, while this card is seated",
+    "text": "Commission. Goal: have a unit standing in each of 3 of your cities at the same time, while this card is seated"
+   },
+   {
+    "raw": "Reward: +30 production in every city with a unit standing in it",
+    "text": "Reward: +30 production in every city with a unit standing in it"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theOvation": [
+   {
+    "raw": "completing a commission grants +30% production in every city for the next 10 turns, however often it happens",
+    "text": "completing a commission grants +30% production in every city for the next 10 turns, however often it happens"
+   }
+  ],
+  "theResGestae": [
+   {
+    "raw": "+4% production per commission you have completed this game (at most +28% production)",
+    "text": "+4% production per commission you have completed this game (at most +28% production)"
+   },
+   {
+    "raw": "+4% culture per commission you have completed this game (at most +28% culture)",
+    "text": "+4% culture per commission you have completed this game (at most +28% culture)"
+   }
+  ],
+  "dominionTheBorderFortress": [
+   {
+    "raw": "Commission. Goal: spend 1 great person on a [[improvement:citadel|Citadel]], while this card is seated",
+    "text": "Commission. Goal: spend 1 great person on a Citadel, while this card is seated"
+   },
+   {
+    "raw": "Reward: for the rest of the game, +2 food, +2 production on every hex with a [[improvement:citadel|Citadel]]",
+    "text": "Reward: for the rest of the game, +2 food, +2 production on every hex with a Citadel"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "dominionTheChosenMen": [
+   {
+    "raw": "Commission. Goal: have 3 of your units become Elite, while this card is seated",
+    "text": "Commission. Goal: have 3 of your units become Elite, while this card is seated"
+   },
+   {
+    "raw": "Reward: for the rest of the game, Elite units ignore enemy zone of control",
+    "text": "Reward: for the rest of the game, Elite units ignore enemy zone of control"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
    }
   ],
   "smallholdings": [

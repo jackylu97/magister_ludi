@@ -4903,7 +4903,7 @@ export function realiseItem(
     // completion rider carried a class before this, so nothing else moves.
     actor: item.id,
   });
-  settleRanksEarned(state, unit, ranksAtBirth);
+  settleRanksEarned(state, unit, ranksAtBirth, { insideCompletion: true });
   return { unitId: unit.id };
 }
 
@@ -4922,18 +4922,31 @@ export function realiseItem(
  *     of that record (The Veterans' Roll), so the record counts every rank ever
  *     earned, however it was earned.
  *   · The `rankEarned` tally is counted for the growing cards in a chair (The
- *     Campaign Annals).
+ *     Campaign Annals), once for each rank and with the rank reached as a fact
+ *     (Dominion batch D11), so a commission's floor can ask for Elite ranks
+ *     only (The Chosen Men).
  *   · The riders on the `rankEarned` occasion are paid once for each rank, with
  *     the rank, the unit's type and its strength as the facts (Honours of the
  *     Legion, The Tactica, Up Through the Ranks). The strength is read the way a
  *     completion reads it: the roster's figure plus the unit's stamp.
  *
- * Food and production a rider pays land in the town nearest the unit, and food
- * settles into growth at once. Hammers wait for the next production phase, for
- * `payCompletionRiders`' reason: this can run inside a completion. Culture
- * settles the draft basket.
+ * Food and production a rider pays land in the town nearest the unit, or where
+ * the rider sends them (The Ranks of Merit's capital). Food settles into growth
+ * at once. Since Dominion batch D11 production settles at once too, through
+ * `settleProductionWindfall` (the triage's reading 40), so it joins the
+ * register of mid-turn yield changes as entry 3 and owes it nothing more.
+ * **One exception:** a unit gained already holding a rank is earned inside a
+ * completion (`realiseItem`, which passes `insideCompletion`), and there the
+ * hammers wait for the next production step, for `payCompletionRiders`'
+ * reason: `settleProduction` completes at most one item for each town in each
+ * call. Culture settles the draft basket.
  */
-export function settleRanksEarned(state: GameState, unit: Unit, ranks: readonly RankId[]): void {
+export function settleRanksEarned(
+  state: GameState,
+  unit: Unit,
+  ranks: readonly RankId[],
+  options: { insideCompletion?: boolean } = {},
+): void {
   if (ranks.length === 0) return;
   const player = playerById(state, unit.ownerId);
   if (!player) return;
@@ -4941,7 +4954,7 @@ export function settleRanksEarned(state: GameState, unit: Unit, ranks: readonly 
   // A `count` may read the record (`ranksEarned`), and a count can reach the
   // meters, so the write is announced (the slate register).
   bumpEconomy(state);
-  recordScalingOccasion(state, player.id, 'rankEarned', ranks.length);
+  for (const rank of ranks) recordScalingOccasion(state, player.id, 'rankEarned', 1, { rank });
   const at = { col: unit.col, row: unit.row };
   const strength = Math.max(0, unitDef(unit.type).combatStrength + unitStampStrength(unit));
   for (const rank of ranks) {
@@ -4952,7 +4965,8 @@ export function settleRanksEarned(state: GameState, unit: Unit, ranks: readonly 
     });
     if (windfallPayoutIsEmpty(payout)) continue;
     for (const paid of payWindfallGrants(state, player, payout, at)) {
-      settleGrowthWindfall(state, paid);
+      if (settleGrowthWindfall(state, paid)) continue;
+      if (options.insideCompletion !== true) settleProductionWindfall(state, paid);
     }
   }
   settleCultureWindfall(state, player);

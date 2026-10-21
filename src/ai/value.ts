@@ -3769,6 +3769,10 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // Dominion batch D6. A war ends about as often as one is fought, so a
       // peace is read at the capture's rate, the threat over the horizon.
       return war;
+    case 'commissionMet':
+      // Dominion batch D11, The Ovation. This bot does not price a commission
+      // yet, so it forecasts none met. Batch D16 prices both.
+      return 0;
     case 'sizeRecord':
       // **A town passes its largest size about as often as it grows**
       // (Expansionist batch E2): a growth lost to a famine or a levy and grown

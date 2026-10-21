@@ -480,8 +480,11 @@ describe('the schema, as landed', () => {
     // **And Dominion batch D10** (the data-only cards of Tiers I to III): nine
     // more. Nine new Dominion rows came live. The Acropolis and Take the City
     // were changed in place and were already live.
-    expect(live).toBe(500);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(500);
+    // **And Dominion batch D11** (the commissions): five more. Five new
+    // Dominion rows came live. The Captured Marvel was changed in place and
+    // was already live.
+    expect(live).toBe(505);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(505);
   });
 
   /**
@@ -731,7 +734,9 @@ describe('the schema, as landed', () => {
     // Doctrine offers hold different cards.
     // 154 since Dominion batch D10: nine Dominion Orders come live and two
     // change, so a v153 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(154);
+    // 155 since Dominion batch D11: five Dominion Orders come live and one
+    // changes, so a v154 log's Dominion hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(155);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

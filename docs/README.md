@@ -528,6 +528,15 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
     commissions, its thirteenth source). A reached goal may set a floor on each
     hex it counts (`hexYieldAtLeast`), and a goal one town meets names its town
     in `commissionGoalTown` (`oneTownWorkedHexes`, `bestTownFor`).
+  - Since Dominion batch D11 a commission met is a moment (the
+    `commissionMet` windfall occasion, paid after the reward through
+    `payOccasionRiders`) and a count (`commissionsMet`, the length of
+    `commissionsFulfilled`). Both count commissions of every deck. A counted
+    goal may also floor the rank reached (`GoalFloor.rank`) or the work a great
+    person laid (`GoalFloor.work`), read off `TallyFacts.rank` and
+    `.improvement`. An `eachTown` reward with no `fromFigure` pays its `amount`
+    flat to each town its `scope` admits. The `garrisonedTowns` figure counts
+    the towns the `garrisoned` scope admits.
 - **Units a card raises, and the moments it pays on** (Dominion batch D5):
   - A grant can raise the best melee unit (`bestMeleeFor`) or each military
     unit a technology unlocks, in the capital or in each town a scope admits.
