@@ -518,6 +518,8 @@ import {
 import { bumpEconomy } from './slate';
 // The empire's live share of a piece's maximum health — iron's ten points (R2).
 import { unitHealthBonus } from './resourceEffects';
+// The gap (Scientific batch S3, The Translation Movement). A leaf, so no cycle.
+import { techGap } from './rivals';
 
 const RESEARCH = RULES.research;
 
@@ -1797,10 +1799,14 @@ export interface TechCostLine {
  *      `rules.research.charterPremiumPercent` of the column price, scaled by
  *      the empire's `charterPremium` cards. The Patent Office's −100 leaves
  *      nothing, and then the line is not printed at all;
- *   3. **one line for each card percentage** that reaches this technology
- *      (today The Commonplace Book's `charterTechCost`, for a charter row).
- *      The percentages are added together and applied once, to the column
- *      price and the premium together. They never compound, so under both
+ *   3. **one line for each card percentage** that reaches this technology:
+ *      The Commonplace Book's `charterTechCost` for a charter row, and The
+ *      Translation Movement's `gapTechCost` for an ordinary row in the gap,
+ *      one an empire this seat has met already knows (`techGap`, `rivals.ts`;
+ *      Scientific batch S3). The gap holds no charter technology, so the two
+ *      rules never reach the same row (the triage's readings 2 and 15). The
+ *      percentages are added together and applied once, to the column price
+ *      and the premium together. They never compound, so under both charter
  *      cards a charter technology costs 85% of its column.
  *
  * **Floored once.** The total is one floor of the exact product, computed in
@@ -1819,13 +1825,17 @@ export function explainTechCost(state: GameState, player: Player, tech: TechId):
   const def = techDef(tech);
   const column = def.cost;
   const lines: TechCostLine[] = [{ source: `Column ${techColumn(tech)}`, amount: column }];
-  if (def.charter !== true) return lines;
+  const charter = def.charter === true;
 
   // The premium, in hundredths of a percent so a card that halves it stays a
-  // whole number: `charterPremiumPercent × (100 + Σ cards)`.
-  let premiumCut = 0;
-  for (const card of cardRulePercent(state, player.id, 'charterPremium')) premiumCut += card.percent;
-  const premium = RESEARCH.charterPremiumPercent * Math.max(0, 100 + premiumCut);
+  // whole number: `charterPremiumPercent × (100 + Σ cards)`. An ordinary row
+  // has none.
+  let premium = 0;
+  if (charter) {
+    let premiumCut = 0;
+    for (const card of cardRulePercent(state, player.id, 'charterPremium')) premiumCut += card.percent;
+    premium = RESEARCH.charterPremiumPercent * Math.max(0, 100 + premiumCut);
+  }
   // The column and the premium together, as a multiplier in the same units:
   // 10000 is the column price alone.
   const priced = 10000 + premium;
@@ -1836,9 +1846,19 @@ export function explainTechCost(state: GameState, player: Player, tech: TechId):
     running = withPremium;
   }
 
+  // The cards that reach this row: the charter rule for a charter row, and the
+  // gap rule for an ordinary row an empire this seat has met already knows.
+  // The gap is asked only when a gap card is seated, because it walks the met
+  // empires' research.
+  let cards = charter ? cardRulePercent(state, player.id, 'charterTechCost') : [];
+  if (!charter) {
+    const gapCards = cardRulePercent(state, player.id, 'gapTechCost');
+    if (gapCards.length > 0 && techGap(state, player.id).includes(tech)) cards = gapCards;
+  }
+
   // The cards, added together and applied once to that sum.
   let percent = 0;
-  for (const card of cardRulePercent(state, player.id, 'charterTechCost')) {
+  for (const card of cards) {
     percent += card.percent;
     const factor = Math.max(0, 100 + percent);
     const total = Math.max(1, Math.floor((column * priced * factor) / 1_000_000));

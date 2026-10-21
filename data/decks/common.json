@@ -1748,6 +1748,27 @@
         { "kind": "pays", "where": "hex", "food": 1, "production": 1, "on": { "test": "fortifiedUnit" } },
         { "kind": "combatLine", "amount": 2, "side": "both", "when": { "test": "fortified" } }
       ]
+    },
+    "booksFromTheShips": {
+      "name": "Books from the Ships",
+      "decks": ["commerce", "scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Alexandria copied every book found on the ships in its harbour.",
+      "text": "Each foreign trade route you send gains +1 science for each technology the destination's owner knows that you do not, at most +4.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "crossing": "international",
+          "basis": "count",
+          "count": "techGap",
+          "science": 1,
+          "max": 4
+        }
+      ]
     }
   }
 }

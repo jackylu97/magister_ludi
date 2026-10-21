@@ -979,6 +979,135 @@
       "flavor": "Register the invention, and the next one costs less to argue for.",
       "text": "Charter technologies cost you no more research than ordinary technologies at the same point in the tree.",
       "effects": [{ "kind": "rulePercent", "rule": "charterPremium", "percent": -100 }]
+    },
+    "theScholarsGuild": {
+      "name": "The Scholars' Guild",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "The guild feeds its students and mends their tools, and asks for lessons in return.",
+      "text": "Scholars in the trades also pay +1 food and +1 production.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "food",
+          "amount": 1,
+          "count": "guildsmen",
+          "family": "scholar",
+          "within": "city"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "amount": 1,
+          "count": "guildsmen",
+          "family": "scholar",
+          "within": "city"
+        }
+      ]
+    },
+    "theSecretArts": {
+      "name": "The Secret Arts",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "What the workshop knows, the workshop keeps.",
+      "text": "Each town gains +1 production for each technology you know that no empire you have met knows, at most +5.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "amount": 1,
+          "count": "techLead",
+          "max": 5
+        }
+      ]
+    },
+    "theEdgeOfTheSword": {
+      "name": "The Edge of the Sword",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "Better steel ends the argument sooner.",
+      "text": "Your units gain +3 strength against the units of an empire that knows fewer technologies than you.",
+      "effects": [{ "kind": "combatLine", "amount": 3, "side": "both", "when": { "test": "vsFewerTechs" } }]
+    },
+    "theTranslationMovement": {
+      "name": "The Translation Movement",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "It is quicker to translate a book than to write it again.",
+      "text": "Technologies that an empire you have met already knows cost you 20% less research.",
+      "effects": [{ "kind": "rulePercent", "rule": "gapTechCost", "percent": -20 }]
+    },
+    "theGreatDesigns": {
+      "name": "The Great Designs",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "Raise it before anyone else knows how.",
+      "text": "Your towns build a wonder 30% faster while no empire you have met knows the technology that opens it.",
+      "effects": [{ "kind": "productionBonus", "category": "wonder", "percent": 30, "aheadOfMet": true }]
+    },
+    "greekFire": {
+      "name": "Greek Fire",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The recipe was a secret of the state, and it stayed one.",
+      "text": "Gaining a unit that no empire you have met can build grants science and culture equal to its strength.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "unitCompletion",
+          "unbuildableByMet": true,
+          "grant": { "yield": "science", "amount": 1, "fromOccasion": "strength" }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "unitCompletion",
+          "unbuildableByMet": true,
+          "grant": { "yield": "culture", "amount": 1, "fromOccasion": "strength" }
+        }
+      ]
+    },
+    "theProvingGround": {
+      "name": "The Proving Ground",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "Every new idea is tried in the field before it is trusted.",
+      "text": "Your units gain +1 strength for each technology you know that no empire you have met knows, at most +8.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "when": { "test": "always" },
+          "scaled": { "count": "techLead", "per": 1, "max": 8 }
+        }
+      ]
     }
   }
 }

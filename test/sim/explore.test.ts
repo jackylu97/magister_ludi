@@ -876,10 +876,16 @@ describe('determinism', () => {
    * 154 to 155. Nobody here drafts, so the retired and changed Dominion cards
    * never reach this board. Checked with the merge in place and the version
    * printed as 154, which gives the Scientific types' hashes exactly.
+   *
+   * **Scientific batches S2 and S3 (schema 156) moved the hash and not the
+   * length** at both seeds: 155 became 156, and that is all. Nobody here
+   * drafts, so no new card is seated and no price carries a card line on this
+   * board. Checked with the change in place and the version printed as 155,
+   * which gives Dominion batch D9's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'a00b7a6a:188931',
-    2026: '9bab36fb:188509',
+    11: 'c7b1b36d:188931',
+    2026: 'bcd6bc30:188509',
   };
 
   for (const seed of [11, 2026]) {

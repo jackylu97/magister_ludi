@@ -7317,6 +7317,56 @@
     "text": "charter technologies cost you no more research than ordinary technologies at the same point in the tree"
    }
   ],
+  "theScholarsGuild": [
+   {
+    "raw": "+1 food in every city per scholar in the trades there",
+    "text": "+1 food in every city per scholar in the trades there"
+   },
+   {
+    "raw": "+1 production in every city per scholar in the trades there",
+    "text": "+1 production in every city per scholar in the trades there"
+   }
+  ],
+  "theSecretArts": [
+   {
+    "raw": "+1 production in every city per technology you know that no empire you have met knows (at most +5 production)",
+    "text": "+1 production in every city per technology you know that no empire you have met knows (at most +5 production)"
+   }
+  ],
+  "theEdgeOfTheSword": [
+   {
+    "raw": "+3 combat strength against an empire that knows fewer technologies than you",
+    "text": "+3 combat strength against an empire that knows fewer technologies than you"
+   }
+  ],
+  "theTranslationMovement": [
+   {
+    "raw": "technologies that an empire you have met already knows cost you 20% less research",
+    "text": "technologies that an empire you have met already knows cost you 20% less research"
+   }
+  ],
+  "theGreatDesigns": [
+   {
+    "raw": "+30% production toward wonders, while no empire you have met knows the technology that opens it",
+    "text": "+30% production toward wonders, while no empire you have met knows the technology that opens it"
+   }
+  ],
+  "greekFire": [
+   {
+    "raw": "gaining a unit that no empire you have met can build grants science equal to its strength",
+    "text": "gaining a unit that no empire you have met can build grants science equal to its strength"
+   },
+   {
+    "raw": "gaining a unit that no empire you have met can build grants culture equal to its strength",
+    "text": "gaining a unit that no empire you have met can build grants culture equal to its strength"
+   }
+  ],
+  "theProvingGround": [
+   {
+    "raw": "+1 combat strength per technology you know that no empire you have met knows (at most +8)",
+    "text": "+1 combat strength per technology you know that no empire you have met knows (at most +8)"
+   }
+  ],
   "magisterialMasterMasons": [
    {
     "raw": "+25% production toward [[building:monument|Monuments]]",
@@ -8623,6 +8673,12 @@
    {
     "raw": "+2 combat strength while fortified",
     "text": "+2 combat strength while fortified"
+   }
+  ],
+  "booksFromTheShips": [
+   {
+    "raw": "+1 science per technology the destination’s owner knows that you do not (at most +4 science), on trade routes that end in another empire’s city",
+    "text": "+1 science per technology the destination’s owner knows that you do not (at most +4 science), on trade routes that end in another empire’s city"
    }
   ]
  },

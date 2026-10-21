@@ -1916,8 +1916,28 @@ import {
  * **A v154 save is refused and does not replay.** A Dominion seat's pool and
  * its Tier I Doctrine offer now hold different cards, so its hands differ.
  * The branch migrates nothing, for the reason given under v119.
+ *
+ * v156 (branch `decks`; Scientific batches S2 and S3, `docs/plans/scientific-
+ * build-triage.md`): **the guildsmen as a card count, and readings against
+ * the empires a seat has met.** No field joins the state. The rules that
+ * change:
+ *
+ *   · new card kinds: the count `guildsmen` (feature A); the counts `techLead`
+ *     and `techGap`, the strength scale `techLead`, the combat condition
+ *     `vsFewerTechs`, the production filter `aheadOfMet`, the rider filter
+ *     `unbuildableByMet` and the rule `gapTechCost` (feature B, read through
+ *     the new leaf `rivals.ts`). A technology a met empire already knows can
+ *     now carry a card line in `explainTechCost`;
+ *   · seven Scientific Orders come live (The Scholars' Guild, The Secret Arts,
+ *     The Edge of the Sword, The Translation Movement, The Great Designs, Greek
+ *     Fire, The Proving Ground), and one shared Commerce and Scientific Order
+ *     (Books from the Ships).
+ *
+ * **A v155 save is refused and does not replay.** A Scientific or Commerce
+ * seat's pool now holds more cards, so its hands differ from the opening draft
+ * on. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 155;
+export const SCHEMA_VERSION = 156;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

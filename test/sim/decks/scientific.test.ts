@@ -130,8 +130,8 @@ const MARK: Record<OrderRarity, string> = { common: '●', uncommon: '◆', rare
 
 describe('the rows', () => {
   it('is the whole deck, every current row named for this deck alone, banded and rated', () => {
-    expect(DECK).toHaveLength(52);
-    expect(new Set(DECK).size).toBe(52);
+    expect(DECK).toHaveLength(59);
+    expect(new Set(DECK).size).toBe(59);
     for (const id of CURRENT) {
       const def = orderDef(id);
       expect(def.decks, id).toEqual(['scientific']);
@@ -148,18 +148,19 @@ describe('the rows', () => {
     expect(new Set(names).size, 'two rows share a name').toBe(names.length);
   });
 
-  it('fills the five tiers with five, eight, six, four and three current rows', () => {
+  it('fills the five tiers with five, ten, nine, six and three current rows', () => {
     // S0 added ten charters and two cards. S1b retired twenty-four rows and
     // left twenty-six; the sheet's `add` rows join as later batches build them.
+    // S2 added one card (Tier II) and S3 six (two each in Tiers I, II and III).
     const perBand = [0, 1, 2, 3, 4].map(
       (band) => CURRENT.filter((id) => orderDef(id).band === band).length,
     );
-    expect(perBand).toEqual([5, 8, 6, 4, 3]);
+    expect(perBand).toEqual([5, 10, 9, 6, 3]);
   });
 
   it('splits into live rows with effects and deferred rows with a sentence, and nothing between', () => {
     expect(LIVE.length + DEFERRED.length).toBe(CURRENT.length);
-    expect(LIVE).toHaveLength(14);
+    expect(LIVE).toHaveLength(21);
     for (const id of LIVE) {
       const def = orderDef(id);
       expect(def.text, `${id} is live and carries no ratified text`).toBeTruthy();

@@ -4201,6 +4201,12 @@ function ruleRewriteValue(
       // technology until batch S13. Nought, not the stand-in: a seat that has
       // drafted no charter saves nothing.
       return 0;
+    case 'gapTechCost':
+      // **Not priced yet** (Scientific batch S3, The Translation Movement). It
+      // is worth the beakers it saves on technologies a met empire knows, and
+      // the bot prices the new Scientific kinds in batch S13. Nought until
+      // then.
+      return 0;
     default:
       return unreadRule(rule, ctx);
   }

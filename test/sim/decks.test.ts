@@ -483,8 +483,13 @@ describe('the schema, as landed', () => {
     // Dominion rows were live and are retired, and one new Dominion row came
     // live (The Champion's Portion). Four rows were changed in place and were
     // already live.
-    expect(live).toBe(483);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(483);
+    // **And Scientific batches S2 and S3** (the guildsmen and the readings of
+    // rivals): eight more. Seven new Scientific rows came live (The Scholars'
+    // Guild, The Secret Arts, The Edge of the Sword, The Translation Movement,
+    // The Great Designs, Greek Fire, The Proving Ground), and one new shared
+    // row (Books from the Ships).
+    expect(live).toBe(491);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(491);
   });
 
   /**
@@ -737,7 +742,10 @@ describe('the schema, as landed', () => {
     // 155 since Dominion batch D9: ten Dominion Orders and one Doctrine are
     // retired and one Order comes live, so a v154 log's Dominion hands and
     // Doctrine offers hold different cards.
-    expect(SCHEMA_VERSION).toBe(155);
+    // 156 since Scientific batches S2 and S3 (the guildsmen, and readings
+    // against the empires a seat has met): eight Orders come live, so a v155
+    // log's Scientific and Commerce hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(156);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

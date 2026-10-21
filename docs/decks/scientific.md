@@ -3,7 +3,7 @@
 The deck's cards, by tier: name, rarity, status, ability and type. This sheet is the spec of record for the deck. `test/sim/decks/scientific.test.ts` checks it against `data/decks/scientific.json` and, for the shared table, `data/decks/common.json`.
 
 - **Why each card is here:** `docs/plans/scientific-themes.md`. It designs the deck as a way to play: an engine of technologies and charters, and four themes (the learned land, institutions, great cities and the elite army). Sections 11 to 15 hold the user's rulings. `docs/plans/scientific-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
-- **The build plan:** `docs/plans/scientific-build-triage.md`. Batch S0 built the charter technologies and batch S1 the line traits. Batch S1b wrote this sheet, put the types into the data and retired the cut rows. Each later batch updates its rows here when it builds them.
+- **The build plan:** `docs/plans/scientific-build-triage.md`. Batch S0 built the charter technologies and batch S1 the line traits. Batch S1b wrote this sheet, put the types into the data and retired the cut rows. Batch S2 built feature A (the guildsmen as a card count) and batch S3 built feature B (readings against the empires you have met). Each later batch updates its rows here when it builds them.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -23,12 +23,12 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier | Implemented | Modify | Add | All | Charters |
 |---|---|---|---|---|---|
 | Tier 0 | 4 | 1 | 6 | 11 | 2 |
-| Tier I | 2 | 4 | 11 | 17 | 3 |
-| Tier II | 1 | 5 | 14 | 20 | 4 |
-| Tier III | 0 | 5 | 11 | 16 | 2 |
+| Tier I | 4 | 4 | 9 | 17 | 3 |
+| Tier II | 4 | 5 | 11 | 20 | 4 |
+| Tier III | 2 | 5 | 9 | 16 | 2 |
 | Tier IV | 2 | 1 | 10 | 13 | 2 |
-| **All** | **9** | **16** | **52** | **77** | **13** |
-| Shared | 10 | 4 | 4 | 18 | 1 |
+| **All** | **16** | **16** | **45** | **77** | **13** |
+| Shared | 11 | 4 | 3 | 18 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
 
@@ -72,14 +72,14 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 | **The Commonplace Book** | common | implemented | Charter technologies cost you 15% less research. | Civic |
 | **The Forward Plans** | rare | add | You may build a University in any city whose Library has stood at least 30 turns, before you know Scholarship. | Civic |
 | **The Astronomical Diaries** | uncommon | add | While seated, this card gains +1 culture and +1 production each time you complete a technology. It starts at +2 of each. | Civic |
-| **The Secret Arts** | uncommon | add | Each town gains +1 production for each technology you know that no empire you have met knows, at most +5. | Economic |
+| **The Secret Arts** | uncommon | implemented | Each town gains +1 production for each technology you know that no empire you have met knows, at most +5. | Economic |
 | **The Scholars' Fame** | common | add | Completing a technology grants renown, favouring great scholars, equal to a twentieth of its cost. | Civic |
 | **The Founding Gift** | uncommon | add | A great scholar who founds an Academy also grants its town 150 production. | Economic |
 | **The Royal Estates** | common | add | Each empire building gives its town +2 food and +2 production. | Economic |
 | **The Common Tables** | common | add | Towns gain +2 food for each science building in them. | Economic |
 | **The Dedications** | uncommon | add | Finishing a science building or an empire building grants culture equal to ten times the town's population. | Civic |
 | **The Free Cities** | uncommon | add | While you hold at most five towns, your towns build buildings and wonders 20% faster. | Economic |
-| **The Edge of the Sword** | uncommon | add | Your units gain +3 strength against the units of an empire that knows fewer technologies than you. | Military |
+| **The Edge of the Sword** | uncommon | implemented | Your units gain +3 strength against the units of an empire that knows fewer technologies than you. | Military |
 | **The Field Refits** | uncommon | add | Each time research upgrades one of your units, it heals fully. | Military |
 
 ## Tier II
@@ -94,16 +94,16 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 | **The Quiet Faculties** | rare | modify: revised | Cities working an Academy gain +25% food and +20% production, but produce military units 25% more slowly. | Economic |
 | **The Charter Rolls** | uncommon | add | Your capital gains +3 production and +3 culture for each charter you have drafted. | Civic |
 | **The Royal Charter Commission** | uncommon | add | Commission. Complete a charter technology while this is seated. Reward: a great scholar and 100 culture. Then it leaves its chair. | Wildcard |
-| **The Translation Movement** | uncommon | add | Technologies that an empire you have met already knows cost you 20% less research. | Civic |
+| **The Translation Movement** | uncommon | implemented | Technologies that an empire you have met already knows cost you 20% less research. | Civic |
 | **The Roll of Scholars** | uncommon | add | +4% production and culture for each great scholar you have gained this game, at most +30%. | Civic |
 | **The Latin Quarter** | common | add | Great-person works beside an Academy gain +2 culture and +1 production. | Civic |
 | **The Royal Readers** | rare | add | Great scholars raise the price of your next great person by half as much. | Civic |
 | **The Invitations** | rare | add | Completing an empire building grants a great scholar. | Civic |
 | **The Palace Schools** | uncommon | add | Units gained in a town with an empire building start with +4 strength. | Military |
 | **The Round City** | uncommon | add | +1% production and culture for each citizen in your capital, at most +30%. | Civic |
-| **The Great Designs** | rare | add | Your towns build a wonder 30% faster while no empire you have met knows the technology that opens it. | Economic |
+| **The Great Designs** | rare | implemented | Your towns build a wonder 30% faster while no empire you have met knows the technology that opens it. | Economic |
 | **The City Architects** | common | add | Towns of at least eight citizens build wonders 25% faster. | Economic |
-| **The Scholars' Guild** | uncommon | add | Scholars in the trades also pay +1 food and +1 production. | Economic |
+| **The Scholars' Guild** | uncommon | implemented | Scholars in the trades also pay +1 food and +1 production. | Economic |
 | **The Strategikon** | uncommon | add | Your units gain +4 strength while within two hexes of your great general, your great scholar or your Academy. | Military |
 | **The Armoury Patterns** | common | add | Towns build units of the newest age you know 25% faster. | Military |
 
@@ -116,7 +116,7 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 | **The School of Mines** (was The Strategic Reserves) | common | modify: deferred; reworked; moved | An Academy standing on a strategic resource supplies one more copy of it. | Economic |
 | **The Second Seat** | rare | modify: deferred | You may build one second copy of an empire building, in a city with a University. | Civic |
 | **The Long Inheritance** | uncommon | modify: revised; rarity | Cities working an Academy at least twenty turns old gain +30% production toward empire buildings, wonders and the Magnum Opus. | Economic |
-| **The Proving Ground** | uncommon | add | Your units gain +1 strength for each technology you know that no empire you have met knows, at most +8. | Military |
+| **The Proving Ground** | uncommon | implemented | Your units gain +1 strength for each technology you know that no empire you have met knows, at most +8. | Military |
 | **The Age of Reason** | rare | add | Your Orders count each technology you complete twice. | Wildcard |
 | **The Journeymen** | common | add | Completing a technology grants each town production equal to three times its population. | Economic |
 | **The Studium Generale** | rare | add | Great-person works beside an Academy count as Academies for your cards. | Wildcard |
@@ -126,7 +126,7 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 | **The Queen of Cities** | rare | add | Towns of at least 15 citizens produce twice their food and production. | Economic |
 | **The Humanists** | uncommon | add | Cities with a University gain culture equal to half their base science. | Civic |
 | **The Model Army** | rare | add | Research upgrades your units even when you lack the strategic resource the new unit needs. | Military |
-| **Greek Fire** | uncommon | add | Gaining a unit that no empire you have met can build grants science and culture equal to its strength. | Civic |
+| **Greek Fire** | uncommon | implemented | Gaining a unit that no empire you have met can build grants science and culture equal to its strength. | Civic |
 
 ## Tier IV
 
@@ -166,7 +166,7 @@ These rows live in `data/decks/common.json`. A seat holding Scientific or the de
 | **The Schoolmen's Charter** | uncommon | Devotion | I | add | Drafting this opens Scholasticism for research. Knowing it lets you build the Cathedral and train the Apostle before Theology. No chair required. | Civic |
 | **The Cloister** | rare | Devotion | II | implemented | Cities with a Temple gain science equal to 30% of their base faith. Their Libraries and Universities each gain +3 food. | Civic |
 | **The Merchant Navigators** | common | Commerce | II | implemented | Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +5 science. | Civic |
-| **Books from the Ships** | uncommon | Commerce | II | add | Each foreign trade route you send gains +1 science for each technology the destination's owner knows that you do not, at most +4. | Civic |
+| **Books from the Ships** | uncommon | Commerce | II | implemented | Each foreign trade route you send gains +1 science for each technology the destination's owner knows that you do not, at most +4. | Civic |
 | **The Blessed Forges** | uncommon | Devotion | II | add | Improved strategic resources gain +1 faith and +1 production. Cities with a Temple gain +2 faith and +2 production more. | Civic |
 | **Carried-Off Scholars** | common | Dominion | II | implemented | Capturing a city grants science equal to ten times its population. | Civic |
 | **The Soldier-Scholars** | uncommon | Dominion | II | add | Your military units in your towns gain +5 strength, and each supplies +2 science. | Military |

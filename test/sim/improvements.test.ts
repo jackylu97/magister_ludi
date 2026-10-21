@@ -2634,7 +2634,10 @@ describe('improvements in the log', () => {
     // 155 since Dominion batch D9: ten Dominion Orders and one Doctrine are
     // retired and one Order comes live, so a v154 log's Dominion hands and
     // Doctrine offers hold different cards.
-    expect(SCHEMA_VERSION).toBe(155);
+    // 156 since Scientific batches S2 and S3 (the guildsmen, and readings
+    // against the empires a seat has met): eight Orders come live, so a v155
+    // log's Scientific and Commerce hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(156);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

@@ -1146,12 +1146,22 @@ function describePays(
     // The Harbour Chain's coin by the distance reads as a coin on every road.
     // Said in the same words `routeWhose` uses, so the two clauses of one card
     // cannot describe the same roads differently.
-    const medium =
-      effect.where === 'route' && effect.mode !== undefined
-        ? effect.mode === 'sea'
-          ? ', on trade routes run by sea'
-          : ', on trade routes run overland'
-        : '';
+    //
+    // **And the crossing** (Scientific batch S3, Books from the Ships): a
+    // counted row narrowed to foreign or to home roads says which, in
+    // `routeWhose`'s words for it, for the same reason.
+    const roads: string[] = [];
+    if (effect.where === 'route') {
+      if (effect.mode !== undefined) roads.push(effect.mode === 'sea' ? 'run by sea' : 'run overland');
+      if (effect.crossing !== undefined) {
+        roads.push(
+          effect.crossing === 'international'
+            ? 'that end in another empire’s city'
+            : 'between two of your own cities',
+        );
+      }
+    }
+    const medium = roads.length === 0 ? '' : `, on trade routes ${roads.join(' and ')}`;
     out.push({
       text:
         `${payoutWords(effect, 1, voice)}${place.paidIn} per ${countWords(effect.per, words)}` +
@@ -1502,8 +1512,14 @@ function describeEffect(
       // The empire stage (Dominion batch D7, The Marian Reforms) multiplies what
       // the town's own bonuses made, and the words say so.
       const staged = effect.stage === 'empire' ? ", after the town's own bonuses" : '';
+      // The Great Designs (Scientific batch S3): the bonus holds only while no
+      // met empire knows the technology that opens what is being built.
+      const ahead =
+        effect.aheadOfMet === true
+          ? ', while no empire you have met knows the technology that opens it'
+          : '';
       out.push({
-        text: `${signed(effect.percent)}% production toward ${what}${counted}${whose}${staged}`,
+        text: `${signed(effect.percent)}% production toward ${what}${counted}${whose}${staged}${ahead}`,
       });
       return;
     }
@@ -1831,8 +1847,14 @@ function describeEffect(
             );
       // "killing a unit you cannot build yet" (Dominion batch D5, Copying the
       // Enemy), for the same reason "a building" narrows "anything".
+      // "gaining a unit that no empire you have met can build" (Scientific
+      // batch S3, Greek Fire), the same narrowing from the rivals' side.
       const unbuilt =
-        effect.fallenUnbuilt === true ? named.replace('a unit', 'a unit you cannot build yet') : named;
+        effect.fallenUnbuilt === true
+          ? named.replace('a unit', 'a unit you cannot build yet')
+          : effect.unbuildableByMet === true
+            ? named.replace('a unit', 'a unit that no empire you have met can build')
+            : named;
       // The town the moment happened in: "disbanding a unit in a city building
       // a wonder" (Dominion batch D7, the disband occasion), "a great
       // engineer's act in a city raising the Magnum Opus" (Expansionist batch
@@ -3273,6 +3295,13 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
     const at = place === '' ? 'in this city' : place;
     return { one: `wonder standing ${at}`, many: `wonders standing ${at}` };
   }
+  // **One trade's guildsmen** (Scientific batch S2, The Scholars' Guild).
+  if (effect.count === 'guildsmen' && effect.family !== undefined) {
+    return {
+      one: `${effect.family} in the trades`,
+      many: `${effect.family}s in the trades`,
+    };
+  }
   // **One family's great people** (Dominion batch D5, The Mural Crown).
   if (effect.count === 'greatPeopleGained' && effect.family !== undefined) {
     return {
@@ -3373,6 +3402,15 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
   if (effect.count === 'citiesAdmitted' && effect.admits !== undefined) {
     const one = eachWords(effect.admits);
     return { one, many: one.replace(/\bcity\b/, 'cities') };
+  }
+  // **The gap on a road is the gap to the far end** (Scientific batch S3,
+  // Books from the Ships): a route asks the count of the empire that owns the
+  // destination, so the words name that empire rather than every met one.
+  if (effect.count === 'techGap' && effect.where === 'route') {
+    return {
+      one: 'technology the destination’s owner knows that you do not',
+      many: 'technologies the destination’s owner knows that you do not',
+    };
   }
   if (effect.count === 'tilesInBorders' && effect.tile !== undefined) {
     const words = tileConditionWords(effect.tile);
@@ -4718,6 +4756,12 @@ const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
       : percent < 0
         ? `the extra research a charter technology costs is ${-percent}% less`
         : `the extra research a charter technology costs is ${percent}% more`,
+  // The Translation Movement (Scientific batch S3). A price, said as the
+  // saving, on the technologies a met empire already knows.
+  gapTechCost: (percent) =>
+    percent < 0
+      ? `technologies that an empire you have met already knows cost you ${-percent}% less research`
+      : `technologies that an empire you have met already knows cost you ${percent}% more research`,
 };
 
 const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
@@ -4769,6 +4813,9 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   // Expansionist batch E3, The Woodland Bands. The features are printed by
   // `combatWhenWords`, `onFeature`'s bargain.
   standingIn: 'while standing in',
+  // Scientific batch S3, The Edge of the Sword. `vsWiderEmpire`'s sibling:
+  // the two realms' technologies rather than their cities.
+  vsFewerTechs: 'against an empire that knows fewer technologies than you',
 };
 
 /** The `followingTerritory` line narrowed to somebody else's towns. */
@@ -4874,6 +4921,11 @@ const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
   charterTechsKnown: {
     one: 'charter technology you know',
     many: 'charter technologies you know',
+  },
+  // Scientific batch S3, The Proving Ground: the lead.
+  techLead: {
+    one: 'technology you know that no empire you have met knows',
+    many: 'technologies you know that no empire you have met knows',
   },
 };
 
@@ -5245,6 +5297,19 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   },
   citiesKeepingRite: { one: 'city of yours keeping a rite', many: 'cities of yours keeping a rite' },
   beliefsHeld: { one: 'belief your religion holds', many: 'beliefs your religion holds' },
+  // Scientific batch S2, feature A. The family is printed by `countNoun`, so
+  // that "per scholar in the trades" and "per merchant in the trades" are one
+  // entry, `greatPeopleGained`'s bargain.
+  guildsmen: { one: 'citizen in the trades', many: 'citizens in the trades' },
+  // Scientific batch S3, feature B: the lead and the gap.
+  techLead: {
+    one: 'technology you know that no empire you have met knows',
+    many: 'technologies you know that no empire you have met knows',
+  },
+  techGap: {
+    one: 'technology an empire you have met knows that you do not',
+    many: 'technologies an empire you have met knows that you do not',
+  },
   turnsSinceFounded: {
     one: 'turn since your religion was founded',
     many: 'turns since your religion was founded',
