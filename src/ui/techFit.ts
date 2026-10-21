@@ -26,6 +26,9 @@
  *     close the gaps first, then shrink the whole chart, and only then let it
  *     scroll.
  *   · **`fitColumns`** — unchanged, the sideways half.
+ *   · **`packShelf`** and **`stackFields`** (Scientific batch S10): the charter
+ *     shelf under the sky, packed as a second field so the sky's layout never
+ *     moves for it, and the two stacked into the one height `fitPacked` reads.
  *
  * All three are arithmetic over measurements rather than readers of the DOM, on
  * purpose and for one reason: the measuring belongs to the one place that has a
@@ -436,6 +439,88 @@ function clearChains(
     });
   }
   return [...bowed.values()];
+}
+
+// --- the charter shelf (Scientific batch S10) ---------------------------------
+//
+// The second field. A charter technology is not on the sky the user drew: it
+// sits on a shelf at the foot of the chart, under a rule, in the same columns
+// and the same age washes as the sky (`docs/plans/mockups/charter-ux.html`
+// step 3). The shelf holds only the charter technologies the seat has drafted,
+// and does not exist before the first one (ruled 2026-10-21).
+//
+// It is packed apart from the sky so the sky's own layout never moves: every
+// pin on `packChart` holds whether or not a shelf is drawn. The two fields are
+// then stacked into one height, and `fitPacked` is asked about that height, so
+// a chart that no longer fits shrinks the sky and the shelf together.
+
+/**
+ * The band between the sky and the shelf, in pixels: the air above the rule,
+ * the rule itself, and the label under it ("Charters · yours alone").
+ */
+export const SHELF_BAND = 46;
+
+/** The packed shelf: every charter card's top, from the shelf's own top. */
+export interface PackedShelf {
+  tops: ReadonlyMap<string, number>;
+  /** The tallest shelf column, which is the height the shelf needs. */
+  height: number;
+}
+
+/**
+ * Pack the shelf: each column stacked down from the shelf's top, in authored
+ * order, at the gap the sky was packed at.
+ *
+ * Top-aligned rather than centred like the sky. The shelf hangs from its rule,
+ * and a shelf of one card per column, which is the usual case, reads as a row
+ * only when every card starts on the same line.
+ *
+ * Deterministic for `packChart`'s reasons: the columns are walked in ascending
+ * order and the cards inside them in authored order, the file's order breaking
+ * a tie.
+ */
+export function packShelf(cards: readonly PackCard[], gap: number): PackedShelf {
+  const byColumn = new Map<number, PackCard[]>();
+  for (const card of cards) {
+    const column = byColumn.get(card.column);
+    if (column) column.push(card);
+    else byColumn.set(card.column, [card]);
+  }
+  const tops = new Map<string, number>();
+  let height = 0;
+  for (const column of [...byColumn.keys()].sort((a, b) => a - b)) {
+    const stack = byColumn.get(column)!.sort((a, b) => a.order - b.order);
+    let at = 0;
+    for (const card of stack) {
+      tops.set(card.id, at);
+      at += card.height + gap;
+    }
+    height = Math.max(height, at - gap);
+  }
+  return { tops, height };
+}
+
+/** The sky and the shelf, stacked into one field. */
+export interface ChartFields {
+  /** Where the shelf's cards start, measured from the sky's top. */
+  shelfTop: number;
+  /** Where the rule over the shelf is drawn, from the sky's top. */
+  ruleTop: number;
+  /** The whole field: the sky, and the band and the shelf when there is one. */
+  height: number;
+}
+
+/**
+ * Stack the shelf under the sky.
+ *
+ * With no shelf (`null`, or a shelf with no cards) the field is the sky alone,
+ * to the pixel: no band, no rule, no air. So a seat with no charter sees the
+ * chart exactly as it was before batch S10.
+ */
+export function stackFields(sky: number, shelf: PackedShelf | null, band = SHELF_BAND): ChartFields {
+  if (shelf === null || shelf.tops.size === 0) return { shelfTop: sky, ruleTop: sky, height: sky };
+  const shelfTop = sky + band;
+  return { shelfTop, ruleTop: sky + band / 3, height: shelfTop + shelf.height };
 }
 
 export interface PackedFit {

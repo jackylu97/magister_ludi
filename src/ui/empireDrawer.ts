@@ -106,6 +106,7 @@ import { element, requireElement } from './dom';
 import { figure, signedFigure, turnsLabel } from './figures';
 import { openKeyword } from './keywords';
 import { researchProgress } from './researchProgress';
+import { techCostFor } from './techPrice';
 import { type CopyCount, copiesFigureNode, strategicHoldings } from './resourceCopies';
 import { resourceMarkNode } from './resourceMark';
 
@@ -284,7 +285,10 @@ export function researchGlance(state: GameState, player: Player): ResearchGlance
     };
   }
   const def = techDef(current);
-  const progress = researchProgress(player.sciencePool, def.cost, rate);
+  // The folded price (Scientific batch S0), the figure the star chart quotes
+  // for the same node: a charter technology costs more than its column, and a
+  // seated card can move any price. `techCostFor` is the one reader.
+  const progress = researchProgress(player.sciencePool, techCostFor(state, player, current), rate);
   const following = researchPlan(player)[1];
   return {
     stage: 'learning',

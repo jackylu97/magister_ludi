@@ -50,6 +50,11 @@
  *     moment it is paid on ("+10🎵 · killing a barbarian unit"). Counting to a
  *     number that is true on no particular turn would be the wrong sentence
  *     said fluently.
+ *   · **the opened stamp** (Scientific batch S10), for a technology
+ *     charter's card. A charter pays nothing, so it has no figure. On the pick
+ *     it opens a research path, and the stamp says "Opened" over the
+ *     technology's name, dropped like the thunk. On the offer it lands on the card's slip of the
+ *     star chart (`offerCard.ts`).
  *
  * Where the number comes from
  * ---------------------------
@@ -163,6 +168,27 @@ export interface StampReading {
   occasion?: string;
   /** A grant with no countable figure — "heals 25", "gifts a piece". */
   note?: string;
+  /**
+   * **A charter's stamp** (Scientific batch S10): the name of the technology
+   * the charter opened. The stamp then reads "Opened" over that name, dropped
+   * like a rubber stamp. A charter pays nothing per turn and nothing on an
+   * occasion, so it has no figure to count; what it does on the pick is open a
+   * research path, and the stamp says so. See `openedStamp`.
+   */
+  opened?: string;
+}
+
+/** The word a charter's stamp prints over the technology's name. */
+export const STAMP_OPENED_WORD = 'Opened';
+
+/**
+ * A charter's stamp: "Opened" over the technology's name, and nothing else.
+ *
+ * The one constructor, so the stamp's shape is decided here and the caller
+ * (`charterOfferParts`) only names the technology.
+ */
+export function openedStamp(techName: string): StampReading {
+  return { figures: [], occasionFigures: [], knockOn: [], opened: techName };
 }
 
 /** True when there is nothing at all to print — the flourish stands. */
@@ -172,13 +198,45 @@ export function stampIsEmpty(reading: StampReading): boolean {
     reading.knockOn.length === 0 &&
     reading.occasionFigures.length === 0 &&
     reading.occasion === undefined &&
-    reading.note === undefined
+    reading.note === undefined &&
+    reading.opened === undefined
   );
 }
 
-/** True when the stamp thunks rather than counts. See the module docblock. */
+/**
+ * True when the stamp thunks rather than counts. See the module docblock. A
+ * charter's "Opened" stamp thunks too: it has no figure to count.
+ */
 export function stampThunks(reading: StampReading): boolean {
-  return reading.figures.length === 0 && reading.knockOn.length === 0 && reading.occasion !== undefined;
+  return (
+    reading.figures.length === 0 &&
+    reading.knockOn.length === 0 &&
+    (reading.occasion !== undefined || reading.opened !== undefined)
+  );
+}
+
+/**
+ * Which face a stamp lands on: a counted figure, an occasion's grant, or a
+ * charter's "Opened". The stylesheet draws each by `data-face`.
+ */
+function landedFace(reading: StampReading): 'figure' | 'occasion' | 'opened' {
+  if (reading.opened !== undefined && reading.figures.length === 0) return 'opened';
+  return stampThunks(reading) ? 'occasion' : 'figure';
+}
+
+/** The stamp's large line: the figures, or "Opened" for a charter. */
+function landedFigureText(reading: StampReading): string {
+  return landedFace(reading) === 'opened' ? STAMP_OPENED_WORD : stampText(stampFigures(reading));
+}
+
+/**
+ * The stamp's small line: the occasion or the note after a middle dot, or the
+ * technology's name under a charter's "Opened". Empty when there is nothing.
+ */
+function landedWordsText(reading: StampReading): string {
+  if (landedFace(reading) === 'opened') return reading.opened ?? '';
+  const said = reading.occasion ?? reading.note;
+  return said === undefined ? '' : `· ${said}`;
 }
 
 /**
@@ -407,11 +465,10 @@ function partsOf(stamp: HTMLElement): { figure: HTMLElement; occasion: HTMLEleme
 export function landCardStamp(stamp: HTMLElement, reading: StampReading): void {
   const parts = partsOf(stamp);
   if (!parts) return;
-  stamp.dataset.face = stampThunks(reading) ? 'occasion' : 'figure';
+  stamp.dataset.face = landedFace(reading);
   stamp.dataset.phase = 'landed';
-  setYieldText(parts.figure, stampText(stampFigures(reading)));
-  const said = reading.occasion ?? reading.note;
-  parts.occasion.textContent = said === undefined ? '' : `· ${said}`;
+  setYieldText(parts.figure, landedFigureText(reading));
+  parts.occasion.textContent = landedWordsText(reading);
 }
 
 /**
@@ -426,14 +483,15 @@ export function holdCardStamp(stamp: HTMLElement, reading: StampReading, from: '
   const parts = partsOf(stamp);
   if (!parts || stampIsEmpty(reading)) return;
   const figures = stampFigures(reading);
-  stamp.dataset.face = stampThunks(reading) ? 'occasion' : 'figure';
+  stamp.dataset.face = landedFace(reading);
   stamp.dataset.phase = from === 'zero' ? 'anticipate' : 'held';
   setYieldText(
     parts.figure,
-    stampText(from === 'zero' ? figures.map((figure) => ({ ...figure, amount: 0 })) : figures),
+    landedFace(reading) === 'opened'
+      ? STAMP_OPENED_WORD
+      : stampText(from === 'zero' ? figures.map((figure) => ({ ...figure, amount: 0 })) : figures),
   );
-  const said = reading.occasion ?? reading.note;
-  parts.occasion.textContent = said === undefined ? '' : `· ${said}`;
+  parts.occasion.textContent = landedWordsText(reading);
 }
 
 /**
@@ -486,14 +544,14 @@ export function playCardStamp(stamp: HTMLElement, reading: StampReading): () => 
     timers.length = 0;
   };
 
-  const said = reading.occasion ?? reading.note;
-  parts.occasion.textContent = said === undefined ? '' : `· ${said}`;
+  parts.occasion.textContent = landedWordsText(reading);
 
   if (stampThunks(reading)) {
     // The thunk: no counting, one drop. The figure is written first so the drop
-    // lands *on* the number rather than revealing it afterwards.
-    stamp.dataset.face = 'occasion';
-    setYieldText(parts.figure, stampText(stampFigures(reading)));
+    // lands *on* the number rather than revealing it afterwards. A charter's
+    // "Opened" drops the same way, on its own face.
+    stamp.dataset.face = landedFace(reading);
+    setYieldText(parts.figure, landedFigureText(reading));
     stamp.dataset.phase = 'thunk';
     timers.push(
       window.setTimeout(() => {

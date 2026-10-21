@@ -16,7 +16,7 @@ function fixture() {
   const data: Record<string, unknown> = {
     running: true, stateDirty: false, frameDirty: false,
     state: null, map: null, hover: null, hoveredUnitId: null,
-    animations: { pending: false }, walkers: new Map(), fallers: new Map(),
+    animations: { pending: false }, glows: { pending: false }, walkers: new Map(), fallers: new Map(),
     vignette: { step: () => false, place: vi.fn(), focus: () => null, setFocus: vi.fn() },
     view, paintedBoard: null, paintedLook: null,
     canvas: { clientWidth: 800, clientHeight: 600 },

@@ -366,6 +366,13 @@ drawPaletteAndRamp(
     'The twelve accepted primitive pieces, five great-person families, owner colours and movement on the painted board.');
   const link = element('a', undefined, 'Open the painted unit review');
   link.href = '/flair.html?review=units&unit=all&light=golden&detail=game'; root.append(link);
+  // The trait glow (Scientific batch S10) is a moment, not a standing mark, so
+  // it lives in the unit review as a button that replays it on the pieces in
+  // view, with its three tunables as knobs. Opened on the siege line here,
+  // because Mechanics' Onager is the trait the prototype shows it on.
+  const glow = element('a', undefined, 'Replay the trait glow on the siege line');
+  glow.href = '/flair.html?review=units&unit=siege&group=siege&light=golden&detail=game';
+  root.append(element('br'), glow);
 }
 
 // --- the index, and the atlas ----------------------------------------------

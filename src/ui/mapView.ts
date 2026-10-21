@@ -329,6 +329,23 @@ export interface MapView {
    */
   animateDeath?(fallen: FallenUnit): void;
 
+  /**
+   * Optional: a one-time gilt glow on these pieces (Scientific batch S10).
+   *
+   * The caller is the turn hand-over in `controls.ts`, and the pieces are the
+   * ones that gained a line trait in the turn that just resolved. A trait
+   * changes no unit type, so nothing else on the board moves when a whole line
+   * gains one, and the glow is how the player sees which pieces changed.
+   *
+   * Cosmetic and powerless, like `animateMove`: it reads nothing from the
+   * state that the piece fingerprint does not already cover, and it does not
+   * change the fingerprint. An id the board is not drawing (a piece in fog, or
+   * one gone since) is skipped.
+   *
+   * Optional for the usual reason: the 2D pipelines are frozen.
+   */
+  glowUnits?(unitIds: readonly number[]): void;
+
   /** Snaps every in-flight piece to its real tile. Called before a new order. */
   skipAnimations(): void;
 

@@ -200,6 +200,7 @@ import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { samplePaintedSurface } from './paintedSurface';
 import type { PaintedUnitKit, PaintedUnitModel } from './paintedUnits';
 import { paintedUnitSupport } from './paintedUnitPlacement';
+import { type ShellWash, TRAIT_GLOW_WIDEN_AT, glowShellWash } from './traitGlow';
 import { VIEW3D, playerPieceColor, shade } from './lookData';
 import { atWar } from '../sim/wars';
 import { isVisibleTo } from '../sim/visibility';
@@ -1025,6 +1026,13 @@ export class UnitLayer {
   private handles = new Map<number, InstanceHandle[]>();
   private bodies = new Map<number, InstanceHandle>();
   private hoveredUnitId: number | null = null;
+  /**
+   * The wash each body's outline shell rests in, by unit id: the routed fade,
+   * the hostile glow or the seat's trim. A body with no entry rests in the
+   * board's own ink. Kept so the trait glow (`setGlow`) can be mixed over it
+   * and `endGlow` can write it back exactly, rather than clobbering it.
+   */
+  private restingShell = new Map<number, ShellWash>();
   /** Billboard units, which are meshes rather than instances. See the docblock. */
   private spriteUnits = new Map<number, Group>();
   private hidden = new Set<number>();
@@ -1229,19 +1237,28 @@ export class UnitLayer {
         );
         slots.push(pieceHandle);
         this.bodies.set(unit.id, pieceHandle);
-        if (unitIsRouted(unit)) routedShellHandles.push(pieceHandle);
+        if (unitIsRouted(unit)) {
+          routedShellHandles.push(pieceHandle);
+          this.restingShell.set(unit.id, { target: ROUTED_WASH_TARGET, mix: PIECES.routedWash });
+        }
         // The other half of the mark: the outline shell, which is one shared
         // material for every piece on the board and can therefore only be
         // reddened per instance, once the buffers exist. Exclusive with the
         // routed wash by construction — a caravan is a civilian and reads as
         // busy; a hostile *soldier* reads as dangerous — so the two lists never
         // hold the same handle and neither overwrites the other.
-        if (hostile && !unitIsRouted(unit)) hostileShellHandles.push(pieceHandle);
+        if (hostile && !unitIsRouted(unit)) {
+          hostileShellHandles.push(pieceHandle);
+          this.restingShell.set(unit.id, { target: HOSTILE_GLOW, mix: VIEW3D.units.hostileGlowMix });
+        }
         // …and the seat's own trim, where neither of those two has claimed the
         // shell and the seat asks for something other than the board's ink.
         else if (!unitIsRouted(unit)) {
           const trim = unitTrimColor(state, unit);
-          if (trim !== DEFAULT_TRIM) trimShellHandles.push({ handle: pieceHandle, ink: trim });
+          if (trim !== DEFAULT_TRIM) {
+            trimShellHandles.push({ handle: pieceHandle, ink: trim });
+            this.restingShell.set(unit.id, { target: trim, mix: 1 });
+          }
         }
       }
 
@@ -1650,6 +1667,46 @@ export class UnitLayer {
     if (next) InstanceCollector.setUnitOutline(next, true);
   }
 
+  /**
+   * Is this piece drawn as an outlined body on the board now? False for a
+   * piece in fog, one covered by another, one drawn as a billboard, or one
+   * gone since the last build. The trait glow skips such a piece.
+   */
+  isDrawing(unitId: number): boolean {
+    return this.bodies.has(unitId);
+  }
+
+  /**
+   * Draws the trait glow on one piece at `strength` (0 to 1): its outline
+   * washed that far toward gilt over its resting wash, and drawn at the hover
+   * width while the glow is strong. False when the piece is not drawn.
+   *
+   * One instance write, like the hover outline: nothing is rebuilt, so the
+   * piece fingerprint is untouched. A rebuild mid-glow lays every shell back
+   * at rest, and the next frame's write puts the glow back on top.
+   */
+  setGlow(unitId: number, strength: number): boolean {
+    const handle = this.bodies.get(unitId);
+    if (!handle) return false;
+    const wash = glowShellWash(this.restingShell.get(unitId) ?? null, strength);
+    InstanceCollector.setShellWash(handle, wash.target, wash.mix);
+    InstanceCollector.setUnitOutline(handle, strength >= TRAIT_GLOW_WIDEN_AT || unitId === this.hoveredUnitId);
+    return true;
+  }
+
+  /**
+   * Ends the trait glow on one piece: its resting wash written back, and its
+   * outline back at the width the hover says. Does nothing for a piece that is
+   * not drawn.
+   */
+  endGlow(unitId: number): void {
+    const handle = this.bodies.get(unitId);
+    if (!handle) return;
+    const wash = glowShellWash(this.restingShell.get(unitId) ?? null, 0);
+    InstanceCollector.setShellWash(handle, wash.target, wash.mix);
+    InstanceCollector.setUnitOutline(handle, unitId === this.hoveredUnitId);
+  }
+
   modelCandidates() {
     return [...this.bodies].flatMap(([unitId, handle]) =>
       InstanceCollector.bodyInstances(handle).map(candidate => ({unitId, ...candidate})));
@@ -1698,6 +1755,7 @@ export class UnitLayer {
     disposeInstancedGroup(this.group);
     this.handles.clear();
     this.bodies.clear();
+    this.restingShell.clear();
     this.spriteUnits.clear();
   }
 

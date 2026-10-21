@@ -303,7 +303,13 @@ import {
   riteAbility,
   riteDef,
 } from '../sim/religionData';
-import { type ResearchReport, hasAbility, researchSince, researchSnapshot } from '../sim/tech';
+import {
+  type ResearchReport,
+  describeTraitGain,
+  hasAbility,
+  researchSince,
+  researchSnapshot,
+} from '../sim/tech';
 import {
   type CardClause,
   cardUnitStat,
@@ -313,7 +319,7 @@ import {
   statecraftBlocker,
   stripRefs,
 } from '../sim/statecraft';
-import { highestAge, techDef } from '../sim/techData';
+import { type TechId, highestAge, techDef } from '../sim/techData';
 import type { TileYield } from '../sim/terrainData';
 import type { TriumphAward } from '../sim/triumphs';
 import { triumphDef } from '../sim/triumphData';
@@ -369,9 +375,12 @@ import {
 } from './mapView';
 import {
   type NotificationEntry,
+  charterOpenedText,
+  createCharterWatcher,
   createReligionWatcher,
   createSightingWatcher,
 } from './notifications';
+import { type TraitGain, traitGainers } from './unitTraits';
 import {
   NO_ROUTE_CAPACITY,
   type RouteReading,
@@ -567,6 +576,13 @@ export interface AnnounceOptions {
    * to the empire and has no hex, so nothing sets both.
    */
   openGreatPerson?: boolean;
+  /**
+   * This news is a technology's door: its click opens the star chart centred
+   * on the node (Scientific batch S10). The one sender is the line a drafted
+   * charter announces (`reportCharters`). The same mutual exclusivity in
+   * practice as the two above.
+   */
+  openTech?: TechId;
 }
 
 /**
@@ -2683,6 +2699,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * here — see `createReligionWatcher`, which says why that is the right split.
    */
   const religionNews = createReligionWatcher();
+  /**
+   * The charter diff's memory: which charter technologies each seat has been
+   * told it may research (Scientific batch S10). `sightings`' sibling, reset and
+   * baselined with it. See `createCharterWatcher` for why the news is read off
+   * the seat rather than off the command.
+   */
+  const charterNews = createCharterWatcher();
 
   // --- the context card's message line -------------------------------------
 
@@ -2770,6 +2793,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       entry.action = { kind: 'openStatecraft' };
     } else if (opts.openGreatPerson) {
       entry.action = { kind: 'openGreatPerson' };
+    } else if (opts.openTech !== undefined) {
+      entry.action = { kind: 'openTech', tech: opts.openTech };
     }
     onNotify?.(entry, localPlayerId);
   }
@@ -2807,6 +2832,28 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // religion forty turns ago, nor that their own capital has always followed
     // it. See `createReligionWatcher`'s two structures.
     religionNews.baseline(getGame().state, localPlayerId);
+    // And the charters: a seat sitting down has not just drafted every charter
+    // it holds.
+    charterNews.baseline(getGame().state, localPlayerId);
+  }
+
+  /**
+   * **A drafted charter opened a technology** (Scientific batch S10): one toast
+   * and one chronicle line, whose click opens the star chart on the node.
+   *
+   * Polled from `reportCommand` rather than from `commit`, because the draft is
+   * answered on the offer card and `main.ts` sends `chooseOrder` itself; it
+   * reaches this file only through `reportCommand`. It reads the local seat
+   * alone, so a rival's command can never make it speak, and the watcher's
+   * told-list makes a second poll of the same draft say nothing.
+   *
+   * Research does not change: the pick opens a path, and the player decides
+   * whether to take it. The line only says the door is there.
+   */
+  function reportCharters(): void {
+    for (const tech of charterNews.poll(getGame().state, localPlayerId)) {
+      announce(charterOpenedText(tech), { openTech: tech });
+    }
   }
 
   /**
@@ -2980,6 +3027,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function reportCommand(command: Command, result: CommandResult): void {
     if (!result.ok) return;
     reportSharedNews(result);
+    // The local seat's own charters (Scientific batch S10). This is not shared
+    // news, because it reads this seat alone. It is here rather than in
+    // `commit` because `main.ts` sends the draft that causes it, and reports it
+    // through this line.
+    reportCharters();
     onCommand?.(command, result);
   }
 
@@ -7423,10 +7475,17 @@ export function createGameControls(options: GameControlsOptions): GameControls {
      * for itself or the two would both fire.
      */
     decided: number | null = null,
+    /** The pieces that gained a line trait in this resolution. See `traitGainers`. */
+    gains: readonly TraitGain[] = [],
   ): void {
     const marching = renderer.pendingAnimationMs?.() ?? 0;
     afterBeat(marching, () => {
       onTurnHandedOver?.(getGame().state.turn, research);
+      // **The army gained its trait in place** (Scientific batch S10): with the
+      // splash that names the technology and its tally, each piece that changed
+      // glows once, and a toast per group says where they are. After the
+      // marches, so the glow lands on pieces that have stopped moving.
+      reportTraitGains(research, gains);
       // **After the card, before the camera.** A Triumph earned in the
       // resolution is the loudest thing that happened in it, and it is raised
       // in the same beat the card is rather than on a fourth timer of its own:
@@ -7500,6 +7559,29 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         if (deficits.length > 0) announce(deficits.join(' '));
       });
     });
+  }
+
+  /**
+   * The board's half of a trait landing: the glow on every piece that gained
+   * one, and one toast per group ("Mechanics: 3 catapults gained Onager.") that
+   * pans to the first piece of the group.
+   *
+   * The words are the simulation's (`describeTraitGain`, over the sim's own
+   * tally), and the pieces are the same rule asked piece by piece
+   * (`traitGainers`), so the toast's count and the pieces that glow agree.
+   */
+  function reportTraitGains(research: ResearchReport, gains: readonly TraitGain[]): void {
+    if (gains.length === 0) return;
+    renderer.glowUnits?.(gains.map((gain) => gain.unitId));
+    for (const tally of research.traits) {
+      const first = gains.find(
+        (gain) => gain.type === tally.type && gain.tech === tally.tech && gain.trait === tally.trait,
+      );
+      announce(
+        `${techDef(tally.tech).name}: ${describeTraitGain(tally)}.`,
+        first === undefined ? {} : { cell: { col: first.col, row: first.row } },
+      );
+    }
   }
 
   // --- unfinished business -------------------------------------------------
@@ -7899,6 +7981,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // finished — see `scheduleHandOver`.
       animateResolvedMarches(orders, result.reroutes);
       const report = researchSince(getGame().state, localPlayerId, research);
+      // Which pieces gained a line trait (Scientific batch S10). The tally above
+      // says how many; this says which, for the glow and the toast's pan. Read
+      // now, against the same snapshot, because the snapshot is gone after this.
+      const gains = traitGainers(getGame().state, localPlayerId, research);
       // The world moved, and that is not an announcement: whoever is listening
       // takes their save now, before a card, a camera or a player can intervene.
       onTurnResolved?.(getGame().state.turn, report);
@@ -7913,7 +7999,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // makes it fire once is `victoryAnnounced`, claimed by `reportVictory`
       // before it handed the winner over — a game that has been won stays won,
       // and no later press, order or rival's command re-announces it.
-      scheduleHandOver(report, deficitLines(meters), earned, beadNews, decided);
+      scheduleHandOver(report, deficitLines(meters), earned, beadNews, decided, gains);
       return;
     }
     // The turn did not resolve — other seats are still playing — so there is no
@@ -8559,6 +8645,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // the watcher is emptied and immediately re-baselined for this seat.
       sightings.reset();
       religionNews.reset();
+      charterNews.reset();
       baselineSightings();
       // The board is masked by whoever is sitting at it, and this seat may not
       // be the one the last game left behind — the same first move

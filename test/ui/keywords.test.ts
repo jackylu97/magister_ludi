@@ -350,7 +350,13 @@ const DESCRIPTOR_SURFACES: readonly [string, string][] = [
  * sweep below cannot tell composing from printing and a silent skip is how a
  * real offender gets in wearing the same shape.
  */
-const CLAUSE_COMPOSERS: readonly string[] = ['greatPersonFace.ts', 'riteWords.ts'];
+const CLAUSE_COMPOSERS: readonly string[] = [
+  'greatPersonFace.ts',
+  'riteWords.ts',
+  // A piece's line traits in the describers' words (Scientific batch S10),
+  // printed by the unit card through `setDescriptorText`.
+  'unitTraits.ts',
+];
 
 const PLAIN_SINKS: readonly [string, string][] = [
   ['controls.ts', 'the rite sentence — a chronicle line and a toast'],
