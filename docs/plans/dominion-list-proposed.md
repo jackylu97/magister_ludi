@@ -1,6 +1,6 @@
 # The Dominion deck: the full list, with the themes pass folded in
 
-This is a review list, written on 2026-10-21. It puts every card on the deck sheet (`docs/decks/dominion.md`) in one list, with every new card and change from the themes pass (`docs/plans/dominion-themes.md`) folded in. It follows the format of the Scientific list (`docs/plans/scientific-list-proposed.md`). It is not the spec of record: the sheet is unchanged, and the sheet's text wins wherever the two differ. The sheet was read as it stands in the working tree, with your removal of The Servian Reforms.
+This is a review list, written on 2026-10-21 and revised the same day to agree with your comments on the review page (the themes doc, section 11). The build plan is `docs/plans/dominion-themes-triage.md`. It puts every card on the deck sheet (`docs/decks/dominion.md`) in one list, with every new card and change from the themes pass (`docs/plans/dominion-themes.md`) folded in. It follows the format of the Scientific list (`docs/plans/scientific-list-proposed.md`). It is not the spec of record: the sheet is unchanged, and the sheet's text wins wherever the two differ. The sheet was read as it stands in the working tree, with your removal of The Servian Reforms.
 
 - **Status:**
   - `implemented`: in the data, dealt, and the sheet's text is what the game does.
@@ -8,6 +8,7 @@ This is a review list, written on 2026-10-21. It puts every card on the deck she
   - `add`: on the sheet, not in the data.
   - `new`: proposed by the themes pass, not on the sheet.
   - `proposed: …` after the status names a change the themes pass makes to a sheet card: a rework, a merge, a change of rarity, or a version with no new input. The row already shows the change (the new text and rarity), and the status says what it was.
+  - `revised 2026-10-21 (section 11)` after the status: your comment on the review page changed the row. The row already shows the new text. Section 11 of the themes doc has your words and the readings marked "to confirm".
   - **(was …)** names the data row that a renamed card takes over.
 - **Type:** the chair the card fits (Military, Economic, Civic or Wildcard), from the sheet, or from the themes pass for a new card.
 - **Build:** the card's theme and role in the themes pass.
@@ -20,20 +21,23 @@ This is a review list, written on 2026-10-21. It puts every card on the deck she
   - "Direction, 2026-10-20" in `docs/decks/deck-design.md`: Dominion is paid for deeds, is strongest early, and gives up development at home unless it keeps acting; and your picture of it, with more commissions that use the soldiers, the soldier economy, and captured-town bonuses late.
   - Dominion is the tempo deck (2026-10-13), feeding units to die is a way to play (2026-10-13), and "a unit gained" covers every source (2026-10-13).
   - Your rulings on the Scientific pass (2026-10-21): The Companions becomes the shared Dominion and Scientific card The Soldier-Scholars, and an army-wide strength scaler gives way to a positional one.
+  - Your comments on this list's review page (2026-10-21, the themes doc, section 11). The build uses their readings until you change them, and the recommendations of the themes doc's section 10 stand.
 - **Doctrines:** not in this list. The sheet's Doctrines are yours to edit.
 - **Cut cards:** the ten cards the themes pass cuts are in the last section, `## Cut by this pass`, with their sheet text and one line on why, so you can restore any of them.
 
 **By status:**
 
-| Tier | Implemented | Modify | Add | New | All | Proposed change |
-|---|---|---|---|---|---|---|
-| Tier 0 | 23 | 0 | 0 | 2 | 25 | 1 |
-| Tier I | 18 | 0 | 0 | 7 | 25 | 1 |
-| Tier II | 27 | 2 | 0 | 5 | 34 | 2 |
-| Tier III | 22 | 0 | 1 | 4 | 27 | 1 |
-| Tier IV | 20 | 1 | 0 | 0 | 21 | 2 |
-| **All** | **110** | **3** | **1** | **18** | **132** | **7** |
-| Shared | 26 | 1 | 0 | 1 | 28 | 0 |
+| Tier | Implemented | Modify | Add | New | All | Proposed change | Revised (section 11) |
+|---|---|---|---|---|---|---|---|
+| Tier 0 | 23 | 0 | 0 | 2 | 25 | 1 | 4 |
+| Tier I | 18 | 0 | 0 | 7 | 25 | 1 | 4 |
+| Tier II | 27 | 2 | 0 | 5 | 34 | 2 | 2 |
+| Tier III | 22 | 0 | 1 | 4 | 27 | 1 | 0 |
+| Tier IV | 20 | 1 | 0 | 0 | 21 | 2 | 1 |
+| **All** | **110** | **3** | **1** | **18** | **132** | **7** | **11** |
+| Shared | 26 | 1 | 0 | 1 | 28 | 0 | 0 |
+
+"Revised (section 11)" counts the eleven rows your comments changed: seven sheet cards and four new cards. The other columns still count each row's status before your comments.
 
 **By type** (the chair a card fits):
 
@@ -45,26 +49,27 @@ This is a review list, written on 2026-10-21. It puts every card on the deck she
 | Tier III | 10 | 6 | 9 | 2 | 27 | 5 / 13 / 9 |
 | Tier IV | 9 | 3 | 5 | 4 | 21 | 0 / 3 / 18 |
 | **All** | **45** | **31** | **41** | **15** | **132** | **40 / 54 / 38** |
-| Shared | 11 | 8 | 8 | 1 | 28 | 5 / 19 / 4 |
+| Shared | 12 | 8 | 7 | 1 | 28 | 5 / 19 / 4 |
 
-Seatable cards: 132, that is 25 / 25 / 34 / 27 / 21 across Tiers 0 to IV. By type: 45 Military, 31 Economic, 41 Civic and 15 Wildcard. Commissions: 13, of which six leave an institution.
+Seatable cards: 132, that is 25 / 25 / 34 / 27 / 21 across Tiers 0 to IV. By type: 45 Military, 31 Economic, 41 Civic and 15 Wildcard. Commissions: 13, of which eight leave an institution (revised 2026-10-21, section 11). The Soldier-Scholars is counted as Military in the shared row (reading, to confirm; revised 2026-10-21, section 11).
 
 **Data notes:**
 - The ten cut rows are live: retire them (`retired: true`). The Funeral Games' faith on a loss moves into The Camp Chaplains' row.
 - The Longships' data row (`marineDrill`) still plays Marine Drill. The Relay Stations and Circumvallation are deferred rows. Rally to the Standard has no data row yet.
 - The Soldier-Scholars has no row yet. It goes into `data/decks/common.json`, naming Dominion and Scientific.
 - The Imperial Examinations and Triumphal Arches are rows in `common.json` that name Dominion and Magisterial, with no type. They wait for the Magisterial pass, so this list leaves them out, as the sheet does.
-- The six institutions use `CommissionReward.lasting`, which Expansionist batch E5 built for The Heartland.
+- The eight institutions use `CommissionReward.lasting`, which Expansionist batch E5 built for The Heartland (revised 2026-10-21, section 11).
+- Clear the Frontier and Battle Honours trade rewards and keep their data ids. Take the City drops its Barracks and its one-time payout, and The Captured Marvel its one-time payout (revised 2026-10-21, section 11).
 
 ## Tier 0
 
 | Card | Rarity | Status | Ability | Type | Build |
 |---|---|---|---|---|---|
 | **Blood Brothers** | rare | implemented | A barbarian unit you kill joins your side. | Military | the marches: act |
-| **Commission: Clear the Frontier** | common | implemented | Commission. Clear two barbarian camps while this card is seated. Then gain 2 population in your capital, and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair. | Wildcard | the marches: act (commission) |
+| **Commission: Clear the Frontier** | common | implemented; revised 2026-10-21 (section 11) | Commission. Clear two barbarian camps while this card is seated. Then choose a great general from a draft. The card leaves its chair. | Wildcard | the marches: act (commission); bridge to the captains |
 | **Blooded Spears** | common | implemented | Military units gain +2 strength, doubled against barbarians. | Military | the marches: supply |
 | **The Horse Herds** | common | implemented | Worked pastures and camps give +1 food and +1 production. | Economic | the marches: widen |
-| **Battle Honours** | common | implemented | Commission. Kill ten units while this card is seated. Then choose a great general from a draft. The card leaves its chair. | Wildcard | the captains: supply (commission) |
+| **Battle Honours** | common | implemented; revised 2026-10-21 (section 11) | Commission. Kill six units while this card is seated. Then gain 2 population in your capital, and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair. | Wildcard | engine glue: kills (commission) |
 | **Sword and Plough** | common | implemented | Each city with a garrison gains +1 culture and +2 production. | Economic | the garrison state: widen |
 | **The Camp Chaplains** | common | implemented; proposed: reworked (absorbs The Funeral Games) | Killing or losing a unit grants faith equal to its strength. | Civic | engine glue: early faith |
 | **The Standing Army** | uncommon | implemented | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. | Military | the garrison state: supply |
@@ -72,14 +77,14 @@ Seatable cards: 132, that is 25 / 25 / 34 / 27 / 21 across Tiers 0 to IV. By typ
 | **The Grain Tribute** | common | implemented | +1 food and +1 production in every city. | Economic | engine glue: a basic economy card |
 | **The Drill Grounds** | common | implemented | Units standing in your towns gain 1 experience every 4 turns. | Military | the garrison state: supply |
 | **The Scaling Ladders** | common | implemented | Melee units gain +4 strength against towns. | Military | the provinces: supply |
-| **The Bards' Praise** | common | implemented | Killing a unit grants culture equal to its strength. Clearing a barbarian camp grants 15 culture. | Civic | engine glue: kills |
+| **The Bards' Praise** | common | implemented; revised 2026-10-21 (section 11) | Killing a unit grants culture equal to its strength. Clearing a barbarian camp grants 30 culture. | Civic | engine glue: kills |
 | **The Cattle Raid** | common | implemented | Clearing a barbarian camp gives every city +3 food for ten turns. Clearing another restarts the ten turns. | Economic | the marches: act (momentum) |
 | **The Garrison Captains** | common | implemented | +1 authority for each garrisoned unit. | Civic | the garrison state: widen |
 | **The Spear Makers** | common | implemented | +30% production toward first- and second-age military units. | Military | engine glue: soldiers |
 | **The Armed Colony** | common | implemented | A town founded beside one of your military units starts with three extra hexes, and that unit becomes a Veteran. | Economic | the marches: supply (land); bridge to the garrison state |
 | **The Outriders** | common | implemented | Claiming a discovery or clearing a barbarian camp grants 8 production to every town. | Economic | the marches: widen |
 | **The Captured Arms** | common | implemented | +1 science for every unit you have killed this game, no cap. | Civic | engine glue: kills (this game) |
-| **The Gathering Host** | uncommon | implemented | While seated, this card gains +1 science and +1 culture each time you gain a unit. It starts at +2 science and +2 culture. | Civic | engine glue: units gained (grower) |
+| **The Gathering Host** | uncommon | implemented; revised 2026-10-21 (section 11) | While seated, this card gains +1 science and +1 culture each time you gain a military unit. It starts at +2 science and +2 culture. | Civic | engine glue: units gained (grower) |
 | **The Defiant Kingdom** | uncommon | implemented | While another empire holds more towns than you, you train military units 25% faster. | Military | the provinces: supply |
 | **The Hunting Grounds** | uncommon | implemented | Barbarian camps within ten hexes of your cities spawn 50% faster. Your units gain +4 strength in your own territory. | Military | the marches: supply |
 | **The Campaign Annals** | rare | implemented | While seated, this card gains +1 science each time one of your units earns a rank. It starts at +3 science. | Civic | the garrison state: act (grower) |
@@ -91,7 +96,7 @@ Seatable cards: 132, that is 25 / 25 / 34 / 27 / 21 across Tiers 0 to IV. By typ
 | Card | Rarity | Status | Ability | Type | Build |
 |---|---|---|---|---|---|
 | **The Quartermasters** | common | implemented | Worked strategic resources gain +3 food and +3 production. | Economic | the marches: widen |
-| **The Soldier-Farmers** | common | implemented | While at peace, garrisoned cities gain +2 food and +2 production on each worked pasture and camp. | Economic | the garrison state: widen; bridge to the marches |
+| **The Soldier-Farmers** | common | implemented; revised 2026-10-21 (section 11) | Garrisoned towns gain +1 production and +1 gold on each worked hex with a resource. | Economic | the garrison state: widen; bridge to the marches |
 | **War Foundries** | rare | implemented | Cities with a Barracks gain gold equal to 30% of their base production and +38% production toward military units. | Economic | the garrison state: widen |
 | **Horse Lords** | rare | implemented | Mounted units gain +3 strength and +1 movement. | Military | the marches: supply |
 | **Martial Law** | common | implemented | Each garrisoned unit grants its city +2 happiness and +4 food. | Civic | the garrison state: widen |
@@ -110,10 +115,10 @@ Seatable cards: 132, that is 25 / 25 / 34 / 27 / 21 across Tiers 0 to IV. By typ
 | **The Acropolis** | uncommon | implemented; proposed: reworked (was +1 authority for each building in your capital) | Citadels give +2 culture and +1 authority each. | Civic | the captains: widen |
 | **The Ovation** | uncommon | new | Completing a commission gives every town +30% production for ten turns. Completing another restarts the ten turns. | Economic | engine glue: commissions (momentum); feature C |
 | **The Spartan Discipline** | uncommon | new | Towns build military units 30% faster, but buildings 15% more slowly. | Military | engine glue: the cost |
-| **Commission: The Ranks of Merit** | uncommon | new | Commission. Have three of your units earn a rank while this card is seated. Then, for the rest of the game, each rank a unit earns grants 20 production to its nearest town. The card leaves its chair. | Wildcard | the garrison state: act (commission, institution) |
-| **Commission: Harry the Border** | uncommon | new | Commission. Pillage four hexes while this card is seated. Then, for the rest of the game, pillaging costs your mounted units no movement. The card leaves its chair. | Wildcard | the marches: act (commission, institution) |
+| **Commission: The Ranks of Merit** | uncommon | new; revised 2026-10-21 (section 11) | Commission. Have three of your units earn a rank while this card is seated. Then, for the rest of the game, each rank a unit earns grants science and production equal to its strength in your capital. The card leaves its chair. | Wildcard | the garrison state: act (commission, institution) |
+| **Commission: Harry the Border** | uncommon | new; revised 2026-10-21 (section 11) | Commission. Pillage four hexes while this card is seated. Then, for the rest of the game, your mounted units gain +50% yields from pillaging. The card leaves its chair. | Wildcard | the marches: act (commission, institution) |
 | **The Upstarts** | uncommon | new | Your units gain +3 strength against the units of an empire that knows more technologies than you. | Military | the provinces: supply; feature B |
-| **Commission: The First Province** | uncommon | new | Commission. Capture a town while this card is seated. Then, for the rest of the game, towns you captured gain +3 gold and +2 food. The card leaves its chair. | Wildcard | the provinces: act (commission, institution) |
+| **Commission: The First Province** | uncommon | new; revised 2026-10-21 (section 11) | Commission. Capture a town while this card is seated. Then, for the rest of the game, towns you captured gain +5 food and +5 gold. The card leaves its chair. | Wildcard | the provinces: act (commission, institution) |
 | **The Castle Demesne** | uncommon | new | Citadels give +3 food and +3 production. | Economic | the captains: widen |
 
 ## Tier II
@@ -133,7 +138,7 @@ Seatable cards: 132, that is 25 / 25 / 34 / 27 / 21 across Tiers 0 to IV. By typ
 | **The Longships (was Marine Drill)** | uncommon | modify: reworked; proposed: a version with no new input, for your rework | A ship of yours that ends its turn beside an enemy improvement on the shore pillages it. | Military | the marches: act |
 | **The Relay Stations** | uncommon | modify: deferred; proposed: a version with no new input, for your rework | Military units that start their turn in one of your towns connected to your capital gain +2 movement. | Military | the garrison state: act |
 | **War Reparations** | uncommon | implemented | Making peace after taking cities in that war grants gold equal to twenty times their total population, and half as much culture. | Economic | the provinces: act |
-| **Commission: Take the City** | uncommon | implemented | Commission. Capture a city with at least five citizens. Then gain culture and science equal to twenty-three times its population, and a free Barracks in that city. The card leaves its chair. | Wildcard | the provinces: act (commission) |
+| **Commission: Take the City** | uncommon | implemented; revised 2026-10-21 (section 11) | Commission. Capture a city with at least eight citizens. Then, for the rest of the game, each city you capture grants 250 science and 250 culture per age. The card leaves its chair. | Wildcard | the provinces: act (commission, institution) |
 | **The Fabricae** | common | implemented | Towns whose garrison is a Veteran or Elite gain +25% production. | Economic | the garrison state: multiply |
 | **Living off the Land** | common | implemented | Military units outside your territory cost no upkeep. | Military | the marches: supply |
 | **The Longbowmen** | common | implemented | Ranged units gain +4 strength and +4 ranged strength. +5 culture each time they attack from range. | Military | engine glue: a strength line |
@@ -150,7 +155,7 @@ Seatable cards: 132, that is 25 / 25 / 34 / 27 / 21 across Tiers 0 to IV. By typ
 | **Double Time** | rare | implemented | Your Orders' effects that happen at the end of a turn or every few turns trigger twice. | Wildcard | engine glue: capstone (doubles) |
 | **War Feeds Itself** | rare | implemented | At the end of your turn, each of your units in enemy territory yields you its hex's yields. | Economic | the marches: widen |
 | **The Res Gestae** | uncommon | new | +4% production and culture for each commission you have completed this game, at most +30%. | Civic | engine glue: commissions (this game); feature C |
-| **Commission: The Border Fortress** | uncommon | new | Commission. Plant a citadel while this card is seated. Then, for the rest of the game, your citadels claim the two rings of hexes around them instead of one. The card leaves its chair. | Wildcard | the captains: act (commission, institution) |
+| **Commission: The Border Fortress** | uncommon | new; revised 2026-10-21 (section 11) | Commission. Plant a citadel while this card is seated. Then, for the rest of the game, your citadels gain +2 food and +2 production. The card leaves its chair. | Wildcard | the captains: act (commission, institution) |
 | **The Naadam** | common | new | Towns gain +2 culture and +1 happiness for each pasture and camp in their borders. | Civic | the marches: widen |
 | **The Taker of Cities** | uncommon | new | Your units beside one of your great generals gain +5 strength against towns. | Military | the captains: widen; bridge to the provinces |
 | **The Roll of Triumphs** | uncommon | new | +5% production and gold for each great general you have gained this game, at most +30%. | Economic | the captains: multiply (scaler) |
@@ -207,7 +212,7 @@ Seatable cards: 132, that is 25 / 25 / 34 / 27 / 21 across Tiers 0 to IV. By typ
 | **Spolia** | rare | implemented | Capturing a city that was raising a Magnum Opus adds half the production it had put into that Opus to your own. If you have not begun one, the production is kept until you do. | Economic | the provinces: finisher |
 | **The Legions' Labour** | rare | implemented | Disbanding a military unit in a town building a wonder or the Magnum Opus adds half its production cost toward it. Units raised for free add nothing, but units raised by a levy count. | Economic | engine glue: the way to win |
 | **The Nation in Arms** | rare | implemented | Every ten turns, each city with an Armoury raises the best melee unit you can build. They cost no upkeep. | Military | the garrison state: supply |
-| **Commission: The Captured Marvel** | rare | implemented | Commission. Capture a city that holds a world wonder or was another empire's original capital. Then gain science and culture each equal to twenty times its population, plus 200 of each for every world wonder in it. The card leaves its chair. | Wildcard | the captains: act (commission) |
+| **Commission: The Captured Marvel** | rare | implemented; revised 2026-10-21 (section 11) | Commission. Capture a city that holds a world wonder or was another empire's original capital. Then, for the rest of the game, captured cities that hold a world wonder, and captured original capitals, gain +30% science and +30% culture. The card leaves its chair. | Wildcard | the captains: act (commission, institution) |
 | **The Horde** | rare | implemented | Pillaging a hex also pillages every enemy improvement beside it. | Military | the marches: finisher |
 | **Vae Victis** | rare | implemented | Your capture rewards are paid twice. | Wildcard | the provinces: doubler |
 | **The Varangian Guard** | rare | implemented | Elite units may attack twice a turn. | Military | the garrison state: capstone (rule-breaker) |
@@ -240,7 +245,7 @@ These rows live in `data/decks/common.json`. The Soldier-Scholars has no row yet
 | **The Crusader Orders** | Devotion | II | uncommon | implemented | Military units gain +3 strength in territory not following your religion. Capturing a city presses your religion into it. | Military | the provinces: supply |
 | **Carried-Off Scholars** | Scientific | II | common | implemented | Capturing a city grants science equal to ten times its population. | Civic | the provinces: widen |
 | **Looted Art** | Magisterial | II | uncommon | implemented | Capturing a city grants 20 renown for each great-person work and wonder inside its borders. | Civic | the captains: act (works and wonders taken) |
-| **The Soldier-Scholars** | Scientific | II | uncommon | new (your ruling on the Scientific review page, 2026-10-21; it replaces the Scientific card The Companions) | Your military units in your towns gain +5 strength, and each supplies +2 science. | Civic (recommended; both sheets must agree) | the garrison state: widen |
+| **The Soldier-Scholars** | Scientific | II | uncommon | new (your ruling on the Scientific review page, 2026-10-21; it replaces the Scientific card The Companions) | Your military units in your towns gain +5 strength, and each supplies +2 science. | Military (revised 2026-10-21, section 11: reading, to confirm; both sheets must agree) | the garrison state: widen |
 | **The Engineer Corps** | Scientific | III | uncommon | implemented | Siege units gain +1 movement. Cities with a Workshop gain +30% production toward siege units and +3 science while at war. | Military | the provinces: supply (siege) |
 | **War Bonds** | Commerce | III | uncommon | implemented | Military units gain +1 strength for every 150 gold in your treasury, at most +5. | Military | engine glue: a strength line |
 | **Professional Soldiers** | Commerce | III | uncommon | implemented | Units you purchase gain +3 combat strength. | Military | engine glue: soldiers (bought with gold) |
