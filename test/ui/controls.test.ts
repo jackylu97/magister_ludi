@@ -1053,8 +1053,10 @@ describe('the shared news register', () => {
     expect(press).toContain('heldVictory = { winner: null };');
     expect(press).toContain('const decided = heldVictory?.winner ?? null;');
     expect(press).toContain('heldVictory = null;');
+    // `gains` rides last since Scientific batch S10: the pieces that gained a
+    // line trait, for the glow and the toast in the same beat.
     expect(press).toContain(
-      'scheduleHandOver(report, deficitLines(meters), earned, beadNews, decided);',
+      'scheduleHandOver(report, deficitLines(meters), earned, beadNews, decided, gains);',
     );
     // And the beat puts it last of all, in front of a Triumph sheet earned on
     // the same turn.

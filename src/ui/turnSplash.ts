@@ -25,6 +25,46 @@
  */
 
 import { prefersReducedMotion } from './motion';
+import { type ResearchReport, describeTraitGain, describeUpgrade } from '../sim/tech';
+import { isCharterTech, techDef } from '../sim/techData';
+
+/**
+ * The eyebrow over a charter technology's splash (Scientific batch S10): the
+ * one line that tells the player this discovery was a path nobody else could
+ * take.
+ */
+export const CHARTER_SPLASH_EYEBROW = 'your charter technology';
+
+/** What the technology splash says, read off one resolution's research report. */
+export interface TechSplashReading {
+  /** The technology's name. */
+  name: string;
+  /**
+   * What it did to the army: the upgrade tally ("2 warriors became
+   * swordsmen") and the trait tally ("3 catapults gained Onager"), in that
+   * order. Both answer one question, so they share the line under the name.
+   */
+  notes: string[];
+  /** The eyebrow, for a charter technology; `null` for any other. */
+  eyebrow: string | null;
+}
+
+/**
+ * The splash for the first technology a resolution completed, or `null` when
+ * it completed none and the turn card is shown instead.
+ *
+ * Pure, so the suite can pin the words. The tallies are the simulation's own
+ * sentences (`describeUpgrade`, `describeTraitGain`).
+ */
+export function techSplashReading(report: ResearchReport): TechSplashReading | null {
+  const tech = report.techs[0];
+  if (tech === undefined) return null;
+  return {
+    name: techDef(tech).name,
+    notes: [...report.upgrades.map(describeUpgrade), ...report.traits.map(describeTraitGain)],
+    eyebrow: isCharterTech(tech) ? CHARTER_SPLASH_EYEBROW : null,
+  };
+}
 
 /** How long a full turn announcement stays up. */
 const TURN_MS = 1600;
@@ -45,8 +85,11 @@ export interface TurnSplash {
    * It takes the same slot as the turn announcement and, when both are true at
    * once, it is the one that gets shown: "your turn" happens every turn and a
    * discovery happens twenty times a game.
+   *
+   * `eyebrow` is one small line over the name, for a charter technology
+   * (Scientific batch S10, `techSplashReading`). Absent for every other.
    */
-  announceTech(techName: string, notes: readonly string[]): void;
+  announceTech(techName: string, notes: readonly string[], eyebrow?: string | null): void;
   /**
    * "<Name> is victorious" — one player is left standing.
    *
@@ -128,9 +171,18 @@ export function createTurnSplash(container: HTMLElement): TurnSplash {
     show(card, SEAT_MS);
   }
 
-  function announceTech(techName: string, notes: readonly string[]): void {
+  function announceTech(techName: string, notes: readonly string[], eyebrow?: string | null): void {
     const card = document.createElement('div');
     card.className = 'turn-splash is-tech';
+    // A charter technology's eyebrow, over the name: the one difference from
+    // any other discovery, said once and small.
+    if (eyebrow !== undefined && eyebrow !== null) {
+      card.classList.add('is-charter');
+      const over = document.createElement('span');
+      over.className = 'turn-splash-eyebrow';
+      over.textContent = eyebrow;
+      card.append(over);
+    }
     const name = document.createElement('span');
     name.className = 'turn-splash-name';
     name.textContent = techName;

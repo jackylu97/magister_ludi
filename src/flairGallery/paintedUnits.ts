@@ -1,4 +1,5 @@
 import { Renderer3D } from '../render3d/renderer3d';
+import { setTraitGlowTuning, traitGlowTuning } from '../render3d/traitGlow';
 import { FAMILIES, greatPersonDef, type Family } from '../sim/greatPeopleData';
 import { leaderDef } from '../sim/leaderData';
 import { unitDef } from '../sim/unitData';
@@ -9,7 +10,7 @@ import {
   createUnitsFixture, moveUnitsFixtureUnit, setUnitsFixtureVisibility, unitReviewGroup,
   type EquipmentReviewType, type InfantryReviewType, type UnitReviewContext, type UnitReviewGroup, type UnitReviewLeader, type UnitReviewType,
 } from './unitsFixture';
-import { button, checkbox, controls, element, select } from './sheet';
+import { button, checkbox, controls, element, select, slider } from './sheet';
 
 type LineGroup = Exclude<UnitReviewGroup, 'representatives'>;
 type Focus = UnitReviewType | InfantryReviewType | EquipmentReviewType | UnitReviewContext | 'all' | 'civilian' | LineGroup;
@@ -210,6 +211,25 @@ export async function drawPaintedUnits(into: HTMLElement): Promise<() => void> {
   });
   const resetButton = button(actions, 'Reset specimens', queueReset);
   button(actions, 'Reset view', frame);
+  // **The trait glow** (Scientific batch S10): the gilt glow a piece wears for a
+  // moment on the turn its line gains a trait. The board never shows it on
+  // demand, so this replays it on the pieces in view, through the renderer's
+  // own `glowUnits`, and the three knobs move its live tunables.
+  button(actions, 'Trait glow', () => {
+    if (!ready || remembered) return;
+    const overview = focus === 'all' || focus === 'civilian' || isLine(focus);
+    const ids = overview ? [...specimens.values()] : [currentUnit().id];
+    renderer.glowUnits(ids);
+    status.textContent = 'The trait glow, on the pieces in view: what a line wears on the turn it gains a trait.';
+  });
+  const glowKnobs = controls(into);
+  const tuning = traitGlowTuning();
+  slider(glowKnobs, 'glow length', { min: 400, max: 3000, step: 50, value: tuning.durationMs }, (v) => `${v.toFixed(0)} ms`,
+    (v) => setTraitGlowTuning({ durationMs: v }));
+  slider(glowKnobs, 'glow peak', { min: 0, max: 1, step: 0.05, value: tuning.peak }, (v) => v.toFixed(2),
+    (v) => setTraitGlowTuning({ peak: v }));
+  slider(glowKnobs, 'glow rise', { min: 0.05, max: 0.9, step: 0.05, value: tuning.rise }, (v) => v.toFixed(2),
+    (v) => setTraitGlowTuning({ rise: v }));
   updateActions();
   renderer.setFrameListener(() => {
     for (const { id, view, node } of labels) {

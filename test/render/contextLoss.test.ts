@@ -31,7 +31,7 @@ function runtime(extra: Record<string, unknown> = {}) {
   const data: Record<string, unknown> = {
     running: true, stateDirty: false, frameDirty: false, contextLost: false, recoveries: 0,
     state: null, map: null, hover: null, hoveredUnitId: null, board: null,
-    animations: { pending: false, clear: vi.fn() }, deaths: { clear: vi.fn() }, walkers: new Map(), fallers: new Map(),
+    animations: { pending: false, clear: vi.fn() }, deaths: { clear: vi.fn() }, glows: { pending: false, clear: vi.fn() }, walkers: new Map(), fallers: new Map(),
     vignette: { step: () => false, place: vi.fn(), focus: () => null },
     view: { stepPan: () => false, camera: { right: 1, left: -1 } },
     paintedBoard: null, paintedLook: null, daylight: 'golden',

@@ -87,6 +87,7 @@ import { DISCOVERY_KINDS } from '../sim/discoveryData';
 import { BELIEF_AXES, type BeliefAxis, type BeliefId } from '../sim/religionData';
 import { CORNER_STAR, PRINTER_DEVICE, cornerStarDataUri, printerDeviceDataUri } from '../ui/deviceMarks';
 import { CARD_LINE_NAME } from '../ui/cardLine';
+import { charterSealNode } from '../ui/charterTech';
 import { block, controls, element, markCell, markGrid, markSwatch, slider, uriOf } from './sheet';
 
 /** A `#rrggbb` string for a palette entry, which the data holds as a number. */
@@ -143,7 +144,45 @@ export function drawMarkFamilies(into: HTMLElement): void {
   heraldryFamily(into);
   cityMarkFamily(into);
   rankMarkFamily(into);
+  charterSealFamily(into);
   marginaliaFamily(into);
+}
+
+/**
+ * **The charter seal** (Scientific batch S10): the mark a charter technology
+ * wears after its name on the star chart, in the plan strip, in the drawer's
+ * research section, on the hover card, on the shelf's label and on its tab.
+ * Drawn live by the game's own `charterSealNode`, on the two grounds it meets:
+ * the night chart in the lifted sepia and the drawer's parchment in the plain
+ * one. The 12px swatch is the size the game prints, and the one to judge.
+ */
+function charterSealFamily(into: HTMLElement): void {
+  const root = block(
+    into,
+    'The charter seal · src/ui/charterTech.ts',
+    'A wax seal with a hole, in `currentColor`. The hole is a ring in the colour of the ground it sits on (`--seal-hole`), so it reads as a hole on the night chart and on parchment alike.',
+  );
+  const grounds: readonly [string, string, string][] = [
+    ['night', '#1e1b22', 'var(--deck-charter-lit)'],
+    ['parchment', 'var(--parchment)', 'var(--deck-charter)'],
+  ];
+  for (const [name, ground, ink] of grounds) {
+    const row = element('div', 'mark-row');
+    row.style.background = ground;
+    row.style.padding = '8px 10px';
+    row.style.borderRadius = '6px';
+    row.style.gap = '14px';
+    row.style.alignItems = 'center';
+    for (const size of [12, 18, 32]) {
+      const seal = charterSealNode();
+      seal.style.width = `${size}px`;
+      seal.style.height = `${size}px`;
+      seal.style.color = ink;
+      seal.style.setProperty('--seal-hole', ground);
+      row.append(seal);
+    }
+    root.append(row, element('div', 'mark-id', name));
+  }
 }
 
 function yieldFamily(into: HTMLElement): void {

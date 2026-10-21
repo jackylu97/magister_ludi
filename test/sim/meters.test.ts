@@ -1039,12 +1039,20 @@ describe('a captured city, end to end', () => {
     // 152 since the charter technologies (Scientific batch S0): thirteen
     // technologies join the tree and two Scientific cards come live, so a
     // v151 log's research and drafts meet a different tree and deck.
-    // 153 since Dominion batch D9: ten Dominion Orders and one Doctrine are
-    // retired and one Order comes live, so a v152 log's Dominion hands and
+    // 153 since the line traits (Scientific batch S1): three Scientific
+    // charters are dealt, so a v152 log's hands differ from the first draft.
+    // 154 since the Scientific types and retirements (batch S1b): a
+    // Scientific seat's pool loses eleven cards, and typed chairs refuse some
+    // seat commands a v153 log holds.
+    // 155 since Dominion batch D9: ten Dominion Orders and one Doctrine are
+    // retired and one Order comes live, so a v154 log's Dominion hands and
     // Doctrine offers hold different cards.
-    // 154 since Dominion batch D10: nine Dominion Orders come live and two
-    // change, so a v153 log's Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(154);
+    // 156 since Scientific batches S2 and S3 (the guildsmen, and readings
+    // against the empires a seat has met): eight Orders come live, so a v155
+    // log's Scientific and Commerce hands hold different cards.
+    // 157 since Dominion batch D10: nine Dominion Orders come live and two
+    // change, so a v156 log's Dominion hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(157);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

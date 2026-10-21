@@ -188,6 +188,9 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 35. The Longships (if you take the draft): at the end of the owner's turn (the drill phase, beside War Feeds Itself's harvest), each naval combat unit of yours pillages one improved land hex beside it that an empire at war with you owns. It takes the first such hex in neighbour order, never a tended work, one hex for each ship each turn. It is a full pillage: salvage, riders, tally and record.
 36. The Relay Stations (if you take the draft): +2 movement when the allowance refills at the start of the turn, for a land military unit standing in one of your towns with a road to the capital (the `connected` scope).
 37. Circumvallation (if you take the draft): a rival town that is under siege (`underSiege`), with at least one of the holder's units among the besiegers, adds no production toward an Opus at the front of its queue. The town's own breakdown shows the line and names the card (rule 5). The hammers are not banked anywhere else.
+38. (D9) The sheet uses this triage's text for The Res Gestae ("at most +28%", reading 19) and Rally to the Standard ("A military unit you gain…", reading 23), not the list doc's.
+39. (D9) A retired row carries no type, so a save that holds one reads it as unsorted, as the D0 cuts already do.
+40. (D10) The Ranks of Merit's production lands in the capital's basket at once but completes a build only at the turn's production step, because `settleRanksEarned` settles towns only through `settleGrowthWindfall`. D11 adds `settleProductionWindfall` there.
 
 ## The batches
 
@@ -214,6 +217,8 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 
 ### D9: the sheet of record, the retirements and the Tier 0 data cards
 
+**Built 2026-10-21** on `dom-work` (`aab596fd`), merged into `decks` as `e66e07d0` (schema 155, after S1b's 154). Readings 38 and 39 came from it. It also updated three tests the triage missed (`commissions.test.ts`, `decks/dominionCards.test.ts`, `decks/dominionWars.test.ts`).
+
 - **Builds:**
   - **The sheet.** Start from the working tree's `docs/decks/dominion.md`, which holds your uncommitted removal of The Servian Reforms. **Keep that removal.** Never rebuild the file from HEAD. Then write every card of the two plan docs onto it:
     - the five cards D9 builds, as `implemented`;
@@ -234,6 +239,8 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 - **Done-gate:** `npx vitest run test/sim/decks/dominion.test.ts test/sim/decks/dominionThemeCards.test.ts test/sim/decks/dominionDoctrines.test.ts test/sim/decks/dominionUnits.test.ts test/sim/decks/dominionCombat.test.ts test/sim/doctrineOffer.test.ts test/sim/offers.test.ts test/sim/decks.test.ts test/sim/statecraft.test.ts test/sim/levies.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`, and the fence's files typecheck.
 
 ### D10: the data-only cards of Tiers I to III
+
+**Built 2026-10-21** on `dom-work` (`49b76f2b`), to merge into `decks` after Scientific S2 and S3. Reading 40 came from it. The describers now say "for each age you have reached" on an age-scaled grant (this also rewords Devotion's Rites of Blood).
 
 - **Builds:** eleven group-1 cards: The Acropolis, The Castle Demesne, The Spartan Discipline, Commission: The Ranks of Merit, Commission: The First Province, Commission: Take the City, The Naadam, The Taker of Cities, The Roll of Triumphs, The March Revenues, The Tributary Kings. The March Revenues lands without the sight gate, which D12 adds (reading 29).
 - **Fence:** `data/decks/dominion.json`, `docs/decks/dominion.md`, the Dominion shelf of `docs/orders-and-doctrines.md`, `test/fixtures/cardText.json`, `src/sim/state.ts` (the schema line) and `test/sim/state.test.ts`, `test/sim/decks/dominionThemeCards.test.ts`. `src/sim/statecraft/describers.ts` only if a sentence reads badly.
@@ -366,6 +373,16 @@ The 132 are the seatable cards of the list doc. Beside them, D9 retires ten Orde
 **The bot track:** D16 prices commissions for the first time. Until D16, a bot seats a commission only as filler, so bot games undervalue the deck's engine.
 
 ## Questions for the user
+
+**Answered 2026-10-21.** The user, on the six questions as listed in chat (this list's 2 to 7; question 1, The Servian Reforms, followed from their own sheet edit): *"recommendations seem fine"*. So:
+- The Servian Reforms' data row retires (D9).
+- D14 builds The Longships, The Relay Stations and Circumvallation as drafted; the user may rework them after a playtest.
+- The Limitanei keeps "at most two", and a ship counts (reading 24).
+- The institutions a seat holds get a read-only list under the council's chairs, built on the UI track after D11.
+- The Res Gestae: +4% for each commission, at most +28% (reading 19).
+- Rally to the Standard moves military units only, and its text says so (reading 23).
+- Readings 1 to 37 stand until the user marks one.
+
 
 1. **The Servian Reforms.** Retire its data row (recommended)? Your removal from the sheet fails the sheet test until the row retires or comes back. D9 retires it.
 2. **The three drafts.** Build The Longships, The Relay Stations and Circumvallation as drafted, in D14 (recommended: yes, and rework them after a playtest)? Or keep them deferred for your own rework?

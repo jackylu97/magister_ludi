@@ -1854,7 +1854,51 @@ import {
  * technologies a log may name has changed. The branch migrates nothing, for
  * the reason given under v119.
  *
- * v153 (branch `decks`; Dominion batch D9, `docs/plans/dominion-themes-
+ * v153 (branch `decks`; Scientific batch S1, `docs/plans/scientific-build-
+ * triage.md`): **the line traits.** No field joins the state. The rules that
+ * change:
+ *
+ *   · a technology row may carry line traits (`TechDef.traits`): a name, a
+ *     unit line and card effects, read as `liveEffects`' tenth source and
+ *     labelled "<technology> · <trait>". A unit filter may name a line
+ *     (`UnitFilter.line`): the named unit and every unit its upgrade chain
+ *     reaches. Casting gives the Hoplite and the Maryannu, Mechanics the
+ *     Onager and the Repeating Crossbow, Chemistry the Grenadier and Naval
+ *     Gunnery the Galleass;
+ *   · two strength scales (the citizens of your own town a piece stands in,
+ *     and the charter technologies you know), one count (the second of
+ *     these) and one behaviour rule (`blockades`). Whether a piece blockades
+ *     is now a question about the piece, its row's marker or its owner's
+ *     cards, at all four places that ask it;
+ *   · three Scientific charters are dealt: the Bronze-Founders', the
+ *     Mechanists' and the Naval Gunners'.
+ *
+ * **A v152 save is refused and does not replay.** A Scientific seat's pool now
+ * holds three more cards, so its hands differ from the opening draft on. The
+ * branch migrates nothing, for the reason given under v119.
+ *
+ * v154 (branch `decks`; Scientific batch S1b, `docs/plans/scientific-build-
+ * triage.md`): **the Scientific sheet of record and the chair types.** No
+ * field joins the state. The rules that change:
+ *
+ *   · the Scientific deck is sorted: each of its twenty-six current rows
+ *     carries a type (`OrderDef.type`), from the Type column of
+ *     `docs/decks/scientific.md`. So is each shared row that sheet lists,
+ *     eight of them for the first time (the cards Scientific shares with
+ *     Commerce, Devotion and Magisterial). A typed card fits only a chair of
+ *     its own type or a Wildcard chair, so a seat command that seated one of
+ *     these cards in another chair is now refused;
+ *   · twenty-four Scientific rows are retired: Field Notebooks, the ten live
+ *     rows the sheet cut on 2026-10-06, Discoveries through Great People and
+ *     twelve deferred rows. The shared The Hydraulic Commonwealth is retired
+ *     too. A retired row leaves every pool.
+ *
+ * **A v153 save is refused and does not replay.** A Scientific seat's pool now
+ * holds eleven fewer cards, so its hands differ from the opening draft on, and
+ * a logged seat command may now be refused. The branch migrates nothing, for
+ * the reason given under v119.
+ *
+ * v155 (branch `decks`; Dominion batch D9, `docs/plans/dominion-themes-
  * triage.md`): **the Dominion themes pass, first batch.** No field joins the
  * state. The rules that change:
  *
@@ -1869,11 +1913,31 @@ import {
  *     pays faith when you lose a unit; The Bards' Praise pays 30 culture for
  *     a camp, not 15.
  *
- * **A v152 save is refused and does not replay.** A Dominion seat's pool and
+ * **A v154 save is refused and does not replay.** A Dominion seat's pool and
  * its Tier I Doctrine offer now hold different cards, so its hands differ.
  * The branch migrates nothing, for the reason given under v119.
  *
- * v154 (branch `decks`; Dominion batch D10, `docs/plans/dominion-themes-
+ * v156 (branch `decks`; Scientific batches S2 and S3, `docs/plans/scientific-
+ * build-triage.md`): **the guildsmen as a card count, and readings against
+ * the empires a seat has met.** No field joins the state. The rules that
+ * change:
+ *
+ *   · new card kinds: the count `guildsmen` (feature A); the counts `techLead`
+ *     and `techGap`, the strength scale `techLead`, the combat condition
+ *     `vsFewerTechs`, the production filter `aheadOfMet`, the rider filter
+ *     `unbuildableByMet` and the rule `gapTechCost` (feature B, read through
+ *     the new leaf `rivals.ts`). A technology a met empire already knows can
+ *     now carry a card line in `explainTechCost`;
+ *   · seven Scientific Orders come live (The Scholars' Guild, The Secret Arts,
+ *     The Edge of the Sword, The Translation Movement, The Great Designs, Greek
+ *     Fire, The Proving Ground), and one shared Commerce and Scientific Order
+ *     (Books from the Ships).
+ *
+ * **A v155 save is refused and does not replay.** A Scientific or Commerce
+ * seat's pool now holds more cards, so its hands differ from the opening draft
+ * on. The branch migrates nothing, for the reason given under v119.
+ *
+ * v157 (branch `decks`; Dominion batch D10, `docs/plans/dominion-themes-
  * triage.md`): **the Dominion themes pass, the data-only cards of Tiers I to
  * III.** No field joins the state. The rules that change:
  *
@@ -1887,11 +1951,11 @@ import {
  *     becomes science and culture for each later capture, for the rest of
  *     the game, in place of a one-time payout and a Barracks.
  *
- * **A v153 save is refused and does not replay.** A Dominion seat's pools
+ * **A v156 save is refused and does not replay.** A Dominion seat's pools
  * from Tier I on now hold more cards, so its hands differ. The branch
  * migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 154;
+export const SCHEMA_VERSION = 157;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

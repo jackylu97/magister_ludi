@@ -16,6 +16,13 @@
  * is also the only part of the research card an ordinary unit test can reach
  * (the card itself is DOM, and this suite has no jsdom).
  *
+ * **The cost a caller passes is the folded price** (Scientific batch S10): the
+ * fold of `explainTechCost`, read through `techCostFor` (`techPrice.ts`), and
+ * never `techDef(id).cost`. Since batch S0 the row's `cost` is only the first
+ * line of a price list. A charter technology costs its column and half again,
+ * and a seated card can move any price, so a bar drawn against the row's
+ * figure would fill before the research lands.
+ *
  * The turn count is `turnsToFill`, the same helper the city panel estimates
  * production with and `turnsToTech` estimates research with. `null` means the
  * empire makes no science at all and the answer is honestly unknowable — every

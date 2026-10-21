@@ -113,6 +113,11 @@
   --deck-scientific: #3f639f;
   --deck-magisterial: #a04a63;
   --deck-charter: #7a6338;
+  /* The same sepia lifted for the night chart (Scientific batch S10), the way
+     the yield voices are lifted for ink (`--y-sci-lit` and the rest). The star
+     chart's charter shelf, its seal, its dotted lines and the slip on a
+     charter's card draw in this; on parchment the seal keeps `--deck-charter`. */
+  --deck-charter-lit: #d8b07a;
 
   /* --- rarity ------------------------------------------------------------ */
   /* The chip the deck word vacated (U1). A *ladder* rather than three more
@@ -7535,6 +7540,78 @@ p.city-trade-link {
   color: var(--ink-soft);
 }
 
+/* A line trait after the type's name (Scientific batch S10): "Catapult ·
+   Onager", the trait in the charter's sepia. */
+.unit-trait {
+  color: var(--deck-charter);
+}
+
+/* The trait's labelled lines: the strength list and the range list, each the
+   row's figure, the trait's line and a total, then the trait's rule in words. */
+.unit-ledger {
+  margin: 9px 0 0;
+}
+
+.unit-ledger-heading {
+  margin: 6px 0 2px;
+  font-family: var(--face-num);
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.unit-ledger-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.unit-ledger-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 0;
+  font-size: 11px;
+}
+
+.unit-ledger-lines li + li {
+  border-top: 1px solid var(--rule);
+}
+
+.unit-ledger-figure {
+  flex: none;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.unit-ledger-lines li.is-trait .unit-ledger-figure {
+  color: var(--deck-charter);
+}
+
+.unit-ledger-lines li.is-total {
+  border-top-color: var(--ink);
+  font-weight: 600;
+}
+
+.unit-trait-words {
+  margin: 6px 0 0;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+.unit-trait-source {
+  display: block;
+  font-family: var(--face-num);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--deck-charter);
+}
+
 /* The standing orders, which are a *decision this player made* rather than an
    observation about the piece — so the rule down its hoist and the full-strength
    ink, where the notes above it are grey. Same mono figures: the "~4 turns" is a
@@ -7653,6 +7730,10 @@ p.city-trade-link {
      nothing about this screen has changed. */
   width: min(2880px, 100%);
   height: 100%;
+  /* Positioned so the charter shelf's tab (batch S10) can be placed on the
+     stage's foot in the sheet's own frame: the tab is a sibling of the stage,
+     not a child of it, because the stage scrolls. */
+  position: relative;
   padding: 16px 18px 18px;
   border: var(--border-thin) solid rgba(200, 144, 31, 0.5);
   border-radius: var(--radius);
@@ -8402,6 +8483,372 @@ p.city-trade-link {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: rgba(247, 242, 225, 0.7);
+}
+
+/* --- the charter technologies (Scientific batch S10) -----------------------
+   The approved prototype is docs/plans/mockups/charter-ux.html. A charter
+   technology sits on a shelf at the foot of the star chart, under a dotted
+   sepia rule, in the same columns and age washes as the sky. Its node, its
+   line from its parent and its seal are the charter sepia lifted for the night
+   (`--deck-charter-lit`); everything else about it is any node's. */
+
+/* The seal: a wax seal with a hole, drawn in `currentColor`. The hole is a
+   stroke in the colour of whatever the seal sits on (`--seal-hole`), so it
+   reads as a hole on the night card, the plan chip and the drawer alike. */
+.charter-seal {
+  display: inline-block;
+  flex: none;
+  width: 12px;
+  height: 12px;
+  vertical-align: -1px;
+  color: var(--deck-charter-lit);
+}
+
+.charter-seal path {
+  fill: currentColor;
+}
+
+.charter-seal circle {
+  fill: none;
+  stroke: var(--seal-hole, #1e1b22);
+  stroke-width: 1.3;
+}
+
+/* A charter node: a warmer card and a sepia rim, so the shelf reads as the
+   seat's own ground. Researched and current keep their own rims. */
+.tech-node.is-charter {
+  --seal-hole: #241e1a;
+  border-color: rgba(216, 176, 122, 0.62);
+  background: #241e1a;
+}
+
+.tech-node.is-charter:hover:not(:disabled) {
+  border-color: var(--deck-charter-lit);
+  background: #2c241e;
+}
+
+.tech-node.is-charter.is-researched {
+  border-color: rgba(200, 144, 31, 0.62);
+}
+
+.tech-node.is-charter.is-current {
+  border-color: var(--y-sci-lit);
+}
+
+/* A line trait on a node's face: the line's own glyph in a gilt box, and its
+   bonus where an unlock shows a price. */
+.tech-mark.is-trait {
+  border-color: rgba(200, 144, 31, 0.75);
+  color: var(--y-gold-lit);
+}
+
+.tech-unlock-note.is-trait {
+  color: var(--y-gold-lit);
+}
+
+/* The dotted sepia line from a charter node's parent, held or not: it is the
+   one path on the chart that is the seat's alone. */
+.tech-line.is-charter {
+  stroke: rgba(216, 176, 122, 0.7);
+  stroke-width: 1.4;
+  stroke-dasharray: 1 4;
+  stroke-linecap: round;
+}
+
+.tech-lines.is-reading .tech-line.is-charter {
+  stroke: rgba(216, 176, 122, 0.2);
+}
+
+.tech-line.is-charter.is-lit,
+.tech-lines.is-reading .tech-line.is-charter.is-lit {
+  stroke: var(--deck-charter-lit);
+  stroke-width: 1.6;
+  stroke-dasharray: none;
+}
+
+/* The shelf's rule and its label. Positioned by `layoutField` from the packed
+   sky's height; behind the cards like the age washes. */
+.tech-shelf-rule {
+  position: absolute;
+  left: 0;
+  z-index: 0;
+  height: 0;
+  border-top: 1.5px dashed rgba(216, 176, 122, 0.55);
+  pointer-events: none;
+}
+
+.tech-shelf-label {
+  position: absolute;
+  left: 2px;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.tech-shelf-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--deck-charter-lit);
+}
+
+.tech-shelf-eyebrow .charter-seal {
+  --seal-hole: #16141a;
+}
+
+.tech-shelf-words {
+  font-family: var(--face-display);
+  font-size: 14px;
+  font-style: italic;
+  color: rgba(247, 242, 225, 0.62);
+}
+
+/* The tab on the stage's foot while no charter node is in view: "Charters",
+   the count and an arrow toward the nearest one. Placed by `updateTab`. */
+.tech-shelf-tab {
+  position: absolute;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px 5px 9px;
+  border: 1.5px solid var(--deck-charter-lit);
+  border-radius: 999px;
+  background: #241e1a;
+  color: var(--deck-charter-lit);
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+  animation: tech-tab-in 200ms ease-out both;
+}
+
+.tech-shelf-tab[hidden] {
+  display: none;
+}
+
+.tech-shelf-tab:hover {
+  background: #30281f;
+}
+
+.tech-shelf-tab .charter-seal {
+  --seal-hole: #241e1a;
+}
+
+.tech-shelf-tab-count {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  color: var(--parchment);
+}
+
+.tech-shelf-tab-arrow {
+  font-family: var(--face-ui);
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+@keyframes tech-tab-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The ring a node wears for a moment where the charter toast or the tab lands
+   on it (`ringNode`). Motion off, a still ring for the same moment. */
+.tech-node.is-ringed {
+  animation: tech-ring 1.5s ease-out 3;
+}
+
+@keyframes tech-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(216, 176, 122, 0.9);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgba(216, 176, 122, 0);
+  }
+}
+
+/* The plan strip's chip for a charter technology: a sepia rim and the seal,
+   except at the head, which keeps the lapis of the research in hand. */
+.tech-plan-chip.is-charter {
+  --seal-hole: #1e1b22;
+  border-color: rgba(216, 176, 122, 0.7);
+}
+
+.tech-plan-chip.is-charter:first-child {
+  border-color: var(--y-sci-lit);
+}
+
+/* The drawer's research section is parchment, so its seal is the parchment
+   sepia with a parchment hole. */
+.drawer-name .charter-seal {
+  --seal-hole: var(--parchment);
+  margin-left: 4px;
+  color: var(--deck-charter);
+}
+
+/* The lead (feature B, batch S3): one figure in the chart's head and a gilt
+   corner on each node in it. Drawn only once `chartLead` answers. */
+.tech-lead {
+  display: inline-flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  align-self: center;
+  gap: 1px;
+  padding: 3px 9px 4px;
+  border: 1.5px solid rgba(200, 144, 31, 0.55);
+  border-radius: var(--radius-sm);
+  color: var(--gilt);
+  cursor: help;
+}
+
+.tech-lead[hidden] {
+  display: none;
+}
+
+.tech-lead small {
+  font-family: var(--face-num);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.tech-lead b {
+  font-family: var(--face-num);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--y-gold-lit);
+}
+
+.tech-node.is-lead::after {
+  content: '';
+  position: absolute;
+  top: -1.5px;
+  right: -1.5px;
+  width: 0;
+  height: 0;
+  border-top: 12px solid var(--gilt);
+  border-left: 12px solid transparent;
+  border-top-right-radius: var(--radius-sm);
+  pointer-events: none;
+}
+
+/* The hover card's charter lines: "Charter technology · yours alone" under the
+   name, the price as a ledger, "Opened by", and the line traits. */
+.info-card-charter {
+  --seal-hole: #1e1b22;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+  font-family: var(--face-num);
+  font-size: 8.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--deck-charter-lit);
+}
+
+.info-card-ledger {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.info-card-ledger li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 0;
+  font-size: 11px;
+}
+
+.info-card-ledger li + li {
+  border-top: 1px solid rgba(247, 242, 225, 0.12);
+}
+
+.info-card-ledger-figure {
+  flex: none;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.info-card-ledger li.is-premium .info-card-ledger-figure {
+  color: var(--deck-charter-lit);
+}
+
+.info-card-ledger li.is-total {
+  border-top-color: rgba(247, 242, 225, 0.28);
+  font-weight: 600;
+}
+
+.info-card-ledger li.is-total .info-card-ledger-figure {
+  color: var(--y-sci-lit);
+}
+
+.info-card.is-night .info-card-state.is-charter {
+  color: var(--deck-charter-lit);
+}
+
+.info-card.is-night .info-card-mark.is-trait {
+  border-color: rgba(200, 144, 31, 0.75);
+  color: var(--y-gold-lit);
+}
+
+.info-card-gifts li.info-card-trait-words {
+  display: block;
+  padding-left: 21px;
+  font-size: 10.5px;
+  font-style: italic;
+  line-height: 1.3;
+  color: rgba(247, 242, 225, 0.62);
+}
+
+/* The technology splash's eyebrow over a charter technology's name. */
+.turn-splash-eyebrow {
+  display: block;
+  margin-bottom: 5px;
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--deck-charter-lit);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tech-shelf-tab {
+    animation: none;
+  }
+
+  .tech-node.is-ringed {
+    animation: none;
+    box-shadow: 0 0 0 2px var(--deck-charter-lit);
+  }
 }
 
 /* --- the Abacus -----------------------------------------------------------
@@ -18085,6 +18532,151 @@ body.compendium-page {
   .offer-option.is-passed {
     transition: none;
   }
+}
+
+/* --- the slip of the star chart on a charter's card (batch S10) ------------
+   A technology charter's card carries a small piece of the night chart: the
+   technology, its age, its price as a list and the turns. It wears the
+   chart's night colours, so the card reads at a glance as one about the
+   chart. Sized in em so it scales with the A3 hand card. */
+.offer-slip {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin-top: 0.65em;
+  padding: 0.45em 0.55em 0.35em;
+  border: 1.5px solid var(--deck-charter-lit);
+  border-radius: var(--radius-sm);
+  background: #1e1b22;
+  color: var(--parchment);
+  text-align: left;
+  overflow: hidden;
+}
+
+.offer-slip-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35em;
+}
+
+.offer-slip-glyph {
+  font-size: 0.8em;
+  color: var(--gilt);
+}
+
+.offer-slip-name {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--face-name);
+  font-size: 0.9em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.offer-slip-age {
+  flex: none;
+  font-family: var(--face-num);
+  font-size: 0.56em;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--gilt);
+}
+
+.offer-slip-lines {
+  display: block;
+  margin-top: 0.25em;
+}
+
+.offer-slip-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.4em;
+  font-size: 0.7em;
+  line-height: 1.55;
+  color: rgba(247, 242, 225, 0.62);
+}
+
+.offer-slip-line + .offer-slip-line {
+  border-top: 1px solid rgba(247, 242, 225, 0.1);
+}
+
+.offer-slip-figure {
+  flex: none;
+  font-family: var(--face-num);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--parchment);
+}
+
+.offer-slip-line.is-premium .offer-slip-figure {
+  color: var(--deck-charter-lit);
+}
+
+.offer-slip-line.is-total {
+  border-top-color: rgba(247, 242, 225, 0.28);
+  color: var(--parchment);
+}
+
+.offer-slip-line.is-total .offer-slip-figure {
+  font-weight: 600;
+  color: var(--y-sci-lit);
+}
+
+.offer-slip-note {
+  font-style: italic;
+  color: var(--deck-charter-lit);
+}
+
+/* The "Opened" stamp lands on the slip, rotated like a rubber stamp. It stays
+   out of sight while it wears the flourish, which is the face of a card still
+   being chosen. */
+.offer-slip .card-stamp {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  margin: 0;
+  pointer-events: none;
+}
+
+.offer-slip .card-stamp[data-face='flourish'] {
+  display: none;
+}
+
+.card-stamp[data-face='opened'] {
+  --stamp-ink: var(--deck-charter-lit);
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2em;
+  min-height: 0;
+  padding: 0.3em 0.7em 0.25em;
+  border: 2.5px solid var(--deck-charter-lit);
+  border-radius: 4px;
+  outline: 1px solid var(--deck-charter-lit);
+  outline-offset: 2px;
+  background: rgba(30, 27, 34, 0.86);
+  line-height: 1;
+  transform: translate(-50%, -50%) rotate(-8deg);
+}
+
+.card-stamp[data-face='opened'] .card-stamp-flourish,
+.card-stamp[data-face='opened'] .card-stamp-glow {
+  display: none;
+}
+
+.card-stamp[data-face='opened'] .card-stamp-figure {
+  font-size: 0.95em;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.card-stamp[data-face='opened'] .card-stamp-occasion {
+  font-family: var(--face-num);
+  font-size: 0.55em;
+  font-style: normal;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--deck-charter-lit);
 }
 
 /* The stamp in the hand and in the offices (`statecraftScreen.ts`): the same

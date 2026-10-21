@@ -119,6 +119,38 @@ import { wantsMotion } from './motion';
 const REROLL_MARK = '⟳';
 const PASS_MARK = '⊘';
 
+/**
+ * **A slip of the star chart, printed on a charter's card** (Scientific batch
+ * S10, `docs/plans/mockups/charter-ux.html` step 1).
+ *
+ * A technology charter's choice is a chair card now or a research path, and a
+ * path cannot be judged without its price. So the card carries a small piece of
+ * the night chart: the technology, its age, its price as a list for this
+ * empire, the total, and the turns at the current rate. It wears the chart's
+ * night colours, so a player learns at a glance that the card is about the
+ * chart.
+ *
+ * Strings only, like everything else that crosses this boundary: the caller
+ * (`charterOfferParts` in `charterTech.ts`) has already read the simulation's
+ * price list and composed every figure.
+ */
+export interface OfferSlip {
+  /** The technology's glyph. */
+  glyph: string;
+  /** Its name. "Mechanics". */
+  name: string;
+  /** Its age, as the chart labels it. "ÆRA III". */
+  age: string;
+  /** The price list, one line each; the first figure plain, the rest signed. */
+  lines: readonly { label: string; figure: string; premium?: boolean }[];
+  /** The total, with its glyph. Printed through the yield printer. */
+  total: string;
+  /** "~14 turns" at the current rate. */
+  turns: string;
+  /** The words after the turns. "yours alone". */
+  note: string;
+}
+
 /** One thing a player may take. Strings only — see the module docblock. */
 export interface OfferOption {
   /** The name on the card. "Star tablets". */
@@ -273,6 +305,13 @@ export interface OfferOption {
    * face's caption says the rest.
    */
   suit?: SuitFace;
+  /**
+   * The slip of the star chart a technology charter's card carries (see
+   * `OfferSlip`), drawn under the clauses. Absent on every other card. When
+   * the card's stamp is a charter's "Opened" stamp, the stamp lands on the
+   * slip rather than in the usual seat.
+   */
+  slip?: OfferSlip;
 }
 
 /** What the card is asking about. */
@@ -699,13 +738,19 @@ function faceBody(option: OfferOption): HTMLElement[] {
   if (option.progress !== undefined && option.progress.length > 0) {
     nodes.push(goalCounterNode(option.progress));
   }
+  // A charter's "Opened" stamp lands **on the slip** (the prototype's step 2):
+  // the slip is the piece of the chart the pick opens, so the stamp marks it.
+  const stampOnSlip = option.slip !== undefined && option.stamp?.opened !== undefined;
+  if (option.slip !== undefined) {
+    nodes.push(offerSlipNode(option.slip, stampOnSlip ? cardStampNode() : null));
+  }
   if (option.warning !== undefined) {
     nodes.push(element('span', 'offer-warning', option.warning));
   }
   // The stamp's seat, **between the clauses and the flavour** (the design of
   // record). It is built wearing the flourish and never filled in here: the
   // number arrives on the pick and nowhere else.
-  if (option.stamp !== undefined && !stampIsEmpty(option.stamp)) {
+  if (option.stamp !== undefined && !stampIsEmpty(option.stamp) && !stampOnSlip) {
     nodes.push(cardStampNode());
   }
   // **Labelled, not merely italic** (copy pass, 2026-08-28 — the
@@ -725,6 +770,41 @@ function faceBody(option: OfferOption): HTMLElement[] {
     nodes.push(element('span', 'offer-footnote', option.footnote));
   }
   return nodes;
+}
+
+/**
+ * **The slip of the star chart on a charter's card** (Scientific batch S10).
+ *
+ * Head: the glyph, the name and the age. Then the price list, one line each,
+ * the premium inked in the charter sepia. Then the foot: the turns, the words
+ * "yours alone", and the total. Every figure is tabular mono.
+ *
+ * `stamp` is the "Opened" stamp's element when the card carries one. It sits
+ * inside the slip, hidden while it wears the flourish, and drops onto the slip
+ * on the pick (`take`, which finds it by its class wherever it is).
+ */
+export function offerSlipNode(slip: OfferSlip, stamp: HTMLElement | null): HTMLElement {
+  const box = element('span', 'offer-slip');
+  box.setAttribute('aria-label', `${slip.name}, a charter technology`);
+  const head = element('span', 'offer-slip-head');
+  const glyph = element('span', 'offer-slip-glyph', slip.glyph);
+  glyph.setAttribute('aria-hidden', 'true');
+  head.append(glyph, element('span', 'offer-slip-name', slip.name), element('span', 'offer-slip-age', slip.age));
+  box.append(head);
+  const lines = element('span', 'offer-slip-lines');
+  for (const line of slip.lines) {
+    const row = element('span', line.premium === true ? 'offer-slip-line is-premium' : 'offer-slip-line');
+    row.append(element('span', 'offer-slip-label', line.label), element('b', 'offer-slip-figure', line.figure));
+    lines.append(row);
+  }
+  const total = element('span', 'offer-slip-line is-total');
+  const when = element('span', 'offer-slip-label');
+  when.append(document.createTextNode(`${slip.turns} · `), element('span', 'offer-slip-note', slip.note));
+  total.append(when, element('b', 'offer-slip-figure', slip.total));
+  lines.append(total);
+  box.append(lines);
+  if (stamp !== null) box.append(stamp);
+  return box;
 }
 
 /**

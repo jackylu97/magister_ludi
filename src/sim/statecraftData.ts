@@ -1685,7 +1685,16 @@ export type CombatCondition =
    * today (the triage's reading 28), and the same row with `side: 'both'`
    * would pay an attack from the woods too, with no other change.
    */
-  | { test: 'standingIn'; features: string[] };
+  | { test: 'standingIn'; features: string[] }
+  /**
+   * **The other side's empire knows fewer technologies than this one**
+   * (Scientific batch S3, The Edge of the Sword). Asked of
+   * `CombatSituation.vsOwnerId` through `knowsFewerTechs` (`rivals.ts`), so it
+   * holds against that empire's units and its cities alike. Charter
+   * technologies count on both sides (the triage's reading 17). The barbarian
+   * seat is not an empire and never satisfies it (reading 7).
+   */
+  | { test: 'vsFewerTechs' };
 
 /** What a strength line counts, when it counts something. */
 export type CombatScaleCount =
@@ -1760,7 +1769,29 @@ export type CombatScaleCount =
    * attack is made, after its plan, so an attack does not count itself. Asked only of
    * the attacker's side; the defender's side counts nothing.
    */
-  | 'attacksOnTarget';
+  | 'attacksOnTarget'
+  /**
+   * **The citizens of the town the piece stands in**, when that town is its own
+   * empire's (Scientific batch S1, the Hoplite trait; the triage's reading 26).
+   *
+   * Read off the piece's own hex in attack and in defence: a defender stands
+   * on the contested hex, and an attacker strikes from its own. A piece outside
+   * its own towns counts nothing, so the line pays only in a town.
+   */
+  | 'townCitizensHere'
+  /**
+   * **Charter technologies this empire knows** (Scientific batch S1, the
+   * Grenadier trait; the triage's reading 27). The same reading as
+   * `CountKind`'s `charterTechsKnown`, asked of a fight. Charters drafted and
+   * not yet researched do not count.
+   */
+  | 'charterTechsKnown'
+  /**
+   * **The lead** (Scientific batch S3, The Proving Ground): technologies this
+   * empire knows that no empire it has met knows. The same reading as
+   * `CountKind`'s `techLead` (`techLead` in `rivals.ts`), asked of a fight.
+   */
+  | 'techLead';
 
 /** A strength line that scales with a count, capped where the design caps it. */
 export interface CombatScale {
@@ -1898,6 +1929,18 @@ export interface UnitFilter {
    * fields above whenever one of them says the thing.
    */
   type?: UnitTypeId;
+  /**
+   * **One unit line**: the named unit and every unit its `upgradesTo` chain
+   * reaches (Scientific batch S1, the line traits; the triage's reading 22).
+   *
+   * A charter technology's trait (`TechDef.traits`) names its line here, so a
+   * Catapult with the Onager trait keeps it when it becomes a Trebuchet. The
+   * piece carries no new field: the filter reads the piece's type each time.
+   * Units before the named one are not members, so the Gun Galley line holds
+   * the Gun Galley and the Frigate and not the Fire Ship. The table is
+   * `unitLine` (`unitData.ts`).
+   */
+  line?: UnitTypeId;
 }
 
 /**
@@ -2374,6 +2417,14 @@ export type CountKind =
    * great person has already paid for it.
    */
   | 'greatPeopleCalled'
+  /**
+   * **Charter technologies this empire knows** (Scientific batch S1): the rows
+   * of `Player.techsResearched` that carry `TechDef.charter`. A charter drafted
+   * and not yet researched does not count (the triage's reading 27). The
+   * Grenadier trait reads it as a strength scale, and The Great Catalogue
+   * (batch S6) as a count.
+   */
+  | 'charterTechsKnown'
   /**
    * This empire's **living pieces**, narrowed by `CardPaysEffect.class`.
    *
@@ -3113,6 +3164,32 @@ export type CountKind =
   /** This empire's towns **keeping a rite** right now — The Priest-Astronomers. */
   | 'citiesKeepingRite'
   /**
+   * **Guildsmen** (Scientific batch S2, feature A, The Scholars' Guild): the
+   * citizens in the trades (`City.specialists`, which the `guilds` phase
+   * fills). The row's `family` narrows the count to one trade; absent counts
+   * every trade. Empire-wide by default, and narrowed to the town the line is
+   * paid in by `within: 'city'`.
+   */
+  | 'guildsmen'
+  /**
+   * **The lead** (Scientific batch S3, feature B, The Secret Arts): the
+   * technologies this empire knows that no empire it has met knows, its
+   * charter technologies included. Zero while it has met nobody (the
+   * triage's reading 18). Read through `techLead` (`rivals.ts`).
+   */
+  | 'techLead'
+  /**
+   * **The gap** (Scientific batch S3, feature B, the shared Books from the
+   * Ships): the technologies an empire this one has met knows and this one
+   * does not, their charter technologies left out (the triage's reading 2).
+   * Read through `techGap` (`rivals.ts`).
+   *
+   * On a trade route it is asked of the empire that owns the town at the far
+   * end, because the books come from that empire's ships. Anywhere else it is
+   * asked of every met empire together, each technology counted once.
+   */
+  | 'techGap'
+  /**
    * The beliefs of the religions this empire is paid by (`heldReligions`):
    * pantheon, follower and enhancer together — The Creed.
    */
@@ -3608,7 +3685,16 @@ export type CardRule =
    * −50 would halve it. Read in `explainTechCost`; when nothing is left of the
    * premium, its line goes from the price list (reading 14).
    */
-  | 'charterPremium';
+  | 'charterPremium'
+  /**
+   * **What a technology in the gap costs this empire in research**
+   * (Scientific batch S3, The Translation Movement: 20% less). The gap is the
+   * technologies an empire this one has met already knows (`techGap`,
+   * `rivals.ts`). A negative percentage is cheaper. It is a line of
+   * `explainTechCost`, read only for an ordinary technology: the gap holds no
+   * charter technology (the triage's readings 2 and 15).
+   */
+  | 'gapTechCost';
 
 /** A constant of the two meters a card may rewrite. */
 export type MeterRuleId =
@@ -4234,7 +4320,20 @@ export type BehaviorRuleId =
    * by `screenError` (`combat.ts`), the one clause the tint, the forecast and
    * the reducer ask.
    */
-  | 'siegeScreened';
+  | 'siegeScreened'
+  /**
+   * **This empire's ships blockade** as the heavy hulls do (Scientific batch
+   * S1, the Galleass trait; the triage's reading 25), narrowed by the row's
+   * `class`.
+   *
+   * Read through `blockades(state, unit)` (`blockade.ts`), which asks the row's
+   * own `UnitDef.blockades` marker first and this rule second. So the four
+   * places that ask whether a piece blockades (the harbour mouth, the sea lane
+   * in `siegeField`, and both halves of the line of battle) give a card's hulls
+   * what the marker gives the heavy line. Only a ship can blockade: the rule
+   * says nothing about a land piece.
+   */
+  | 'blockades';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId =
@@ -5472,8 +5571,10 @@ export interface CardPaysEffect extends CardYieldBag {
    */
   tally?: TallyOccasion;
   /**
-   * Which family `greatPeopleGained` counts (Dominion batch D5). Absent counts
-   * every great person.
+   * Which family `greatPeopleGained` counts (Dominion batch D5), and which
+   * trade `guildsmen` counts (Scientific batch S2). Absent counts every great
+   * person, or every guildsman. No guildsman is a general, so `general`
+   * counts no guildsmen.
    */
   family?: Family;
   /**
@@ -5861,6 +5962,15 @@ export interface CardProductionBonusEffect {
    * reaches a wonder (the triage's reading 30).
    */
   defensive?: true;
+  /**
+   * **Only while no empire this one has met knows the technology that opens
+   * the row** (Scientific batch S3, The Great Designs; the triage's readings
+   * 6 and 46). The technology is the one that names the row in its unlocks.
+   * Read through `aheadOfMet` (`rivals.ts`), so the bonus stops the turn a met
+   * empire learns it, and it pays nothing while this empire has met nobody. A
+   * row no technology opens never matches.
+   */
+  aheadOfMet?: true;
   /**
    * **A share per helping of something counted** — The Great Consecration's
    * *"+5% toward the Magnum Opus for every foreign city that follows you, at
@@ -6587,6 +6697,16 @@ export interface CardWindfallRiderEffect {
    * `WindfallOccasionFacts.fallen`, which only the `kill` occasion carries.
    */
   fallenUnbuilt?: true;
+  /**
+   * The rider fires only when the unit the occasion is about is **one no
+   * empire this one has met can build** (Scientific batch S3, Greek Fire; the
+   * triage's reading 45): a technology opens the type and no met empire knows
+   * it. Read off `WindfallOccasionFacts.actor`, which a unit completion fills
+   * with the unit gained, through `unitAheadOfMet` (`rivals.ts`). A type no
+   * technology opens never counts, and nothing counts while this empire has
+   * met nobody.
+   */
+  unbuildableByMet?: true;
   /**
    * The rider fires only when the unit lost was **defending** — Songs of the
    * Fallen's losing half. Read off `WindfallOccasionFacts.defending`, which
