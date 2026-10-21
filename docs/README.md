@@ -233,7 +233,8 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
     `joinedToCapital` occasion (The Opening of the Roads).
   - The census pays the `census` occasion to every empire still in the game,
     with its citizens (The Tax Rolls). A completion now carries the town's
-    population (The Topping Out).
+    population (Scientific's The Dedications). The Topping Out pays each town
+    by its own citizens instead (`fromTownPopulation`, Scientific batch S6).
   - A founding rider's `fromLargest` starts a new town at a share of the
     largest town (The Great Colonies). Two counts: `citiesFounded` (The Book
     of Settlements) and `citiesAdmitted`, the towns a scope admits, which a
