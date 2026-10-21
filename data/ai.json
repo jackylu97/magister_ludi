@@ -251,6 +251,31 @@
       "shoreRaid": 0.5,
       "connectedTown": 0.3,
       "opusSiege": 60
+    },
+    "scientific": {
+      "traitLine": 0.3,
+      "worksPerTown": 1,
+      "workGift": 4,
+      "inOwnTown": 0.3,
+      "nearLearning": 0.3,
+      "vsFewerTechs": 0.5,
+      "aheadOfMet": 0.5,
+      "moveAfterAttack": 1.5,
+      "blockades": 2,
+      "upgradeHeals": 0.1,
+      "upgradeIgnoresResource": 0.1,
+      "opusBreach": 30,
+      "opusEarly": 0.05,
+      "closedBook": 0.05,
+      "prototypes": 3,
+      "worksCountAs": 4,
+      "strategicCopy": 2,
+      "countForecast": {
+        "chartersDrafted": 2,
+        "techLead": 1,
+        "techGap": 1,
+        "guildsmen": 2
+      }
     }
   },
   "threat": {

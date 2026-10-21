@@ -82,6 +82,7 @@ import {
   explainYields,
   hammerTerm,
   newResourceTerms,
+  techCostFor,
 } from './value';
 
 import {
@@ -518,9 +519,11 @@ function techYieldDelta(
  * node as very far off, not as never arriving at all.
  */
 function turnsUntilPlanned(player: Player, ctx: ValueContext, goal: TechId): number {
+  // Each node at the folded price this empire pays (`techCostFor`; Scientific
+  // batch S13), so a charter technology on the plan carries its premium.
   let owed = 0;
   for (const step of researchPlan(player)) {
-    owed += techDef(step).cost;
+    owed += techCostFor(ctx, step);
     if (step === goal) break;
   }
   const remaining = Math.max(0, owed - player.sciencePool);
@@ -583,7 +586,7 @@ export function reachableTechs(ctx: ValueContext): ReadonlyMap<TechId, number> {
       landing = turnsUntilPlanned(player, ctx, tech);
     } else {
       let owed = 0;
-      for (const step of researchExpansion(ctx.state, player.id, tech)) owed += techDef(step).cost;
+      for (const step of researchExpansion(ctx.state, player.id, tech)) owed += techCostFor(ctx, step);
       landing = Math.max(0, owed - player.sciencePool) / rate;
     }
     if (landing > horizon) continue;

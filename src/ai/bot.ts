@@ -169,6 +169,7 @@ import {
   realmResources,
   spareResourceCopies,
   sciencePrice,
+  techCostFor,
   townProduction,
   hammerTerm,
   valueOfYields,
@@ -3722,9 +3723,11 @@ function techGoalTable(
   if (best === null) {
     const open = availableTechs(state, player.id);
     if (open.length === 0) return { goal: null, candidates };
+    // Cheapest at the folded price this empire pays (`techCostFor`;
+    // Scientific batch S13), so a charter technology's premium counts.
     let cheapest: TechId = open[0]!;
     for (const id of open) {
-      if (techDef(id).cost < techDef(cheapest).cost) cheapest = id;
+      if (techCostFor(ctx, id) < techCostFor(ctx, cheapest)) cheapest = id;
     }
     candidates.push({
       label: techDef(cheapest).name,

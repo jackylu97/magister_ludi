@@ -113,9 +113,13 @@ import {
   capitalCityOf,
   channelSurplus,
   emptyCityYields,
+  ownedTiles,
   tileOwnerField,
   tileOwnerPlayerId,
 } from '../sim/cities';
+// Scientific batch S13: the ground half of a work's gate, asked of a row whose
+// technology the seat does not know yet (`worksForecast`).
+import { improvementGroundError } from '../sim/improvements';
 // Batch X5c: a wall's hit points are read as a share of the bar the simulation
 // itself keeps, and priced against the strength that same simulation says the
 // town fights with — `cityMaxHp` and `cityBaseStrength`, never a hand-read row.
@@ -134,16 +138,18 @@ import {
   stageEmpireFold,
 } from '../sim/yields/empire';
 import { explainEmpireGold } from '../sim/empireGold';
-import { getTileAt } from '../sim/map';
+import { type Tile, getTileAt, tileNeighbors } from '../sim/map';
 import { authorityOf, happinessDemand, happinessOf } from '../sim/meters';
-import { renownPerTurn, renownThreshold } from '../sim/renown';
+import { ladderSteps, renownPerTurn, renownThreshold } from '../sim/renown';
 // Dominion batch D16: a commission is priced off the simulation's own reading
 // of how far its goal has come and of the figures a reward reads, so the card
 // face, the HUD chip and the bot cannot disagree about either.
 import { commissionFigure, commissionProgress } from '../sim/commissions';
 // Dominion batch D16: The Upstarts' line is read through feature B's own
-// answer to "which empires know more technologies than this one".
-import { knowsMoreTechs, metRivals } from '../sim/rivals';
+// answer to "which empires know more technologies than this one". Scientific
+// batch S13 reads the mirror (The Edge of the Sword) and the gap (The
+// Translation Movement) through the same module.
+import { knowsFewerTechs, knowsMoreTechs, metRivals, techGap } from '../sim/rivals';
 // The pair resolution and a road's own length, off the leaf every fold reads
 // them from — so an appraisal and a caravan cannot disagree about which roads
 // are running or how far apart their two towns are.
@@ -199,8 +205,18 @@ import { type ProjectId, projectDef } from '../sim/projectData';
 // `citiesOf` is the one town walk every evaluator uses (CLAUDE.md) and batch
 // X2's scope reading is asked over it, so the import is no longer type-only.
 import { type City, type GameState, citiesOf, foundedReligion, playerById } from '../sim/state';
-import { buildError } from '../sim/tech';
-import { type TechAge, isTechId, techDef } from '../sim/techData';
+// Scientific batch S13: a technology's price is the simulation's own fold
+// (`explainTechCost`, `foldTechCost`), so the bot and the reducer charge the
+// same beakers for a charter technology and its premium.
+import {
+  availableTechs,
+  buildError,
+  explainTechCost,
+  foldTechCost,
+  researchExpansion,
+} from '../sim/tech';
+import { ALL_TECH_IDS, type TechAge, type TechId, isTechId, techDef } from '../sim/techData';
+import { IMPROVEMENT_IDS, type ImprovementId, improvementDef } from '../sim/improvementData';
 import { TILE_YIELD_KEYS, type TileYield, readTileYield } from '../sim/terrainData';
 import {
   UNIT_TYPE_IDS,
@@ -2785,7 +2801,14 @@ function productionOf(effect: CardEffect, ctx: ValueContext): number {
       return 0;
     }
     case 'productionBonus':
-      return (effect.percent / 100) * nominal * townsAdmitting(ctx, effect.scope);
+      // The same share the arm takes (`scientificBonusShare`, Scientific batch
+      // S13), so the premium is claimed on the hammers the arm believes in.
+      return (
+        (effect.percent / 100) *
+        nominal *
+        townsAdmitting(ctx, effect.scope) *
+        scientificBonusShare(effect, ctx)
+      );
     case 'percentYields':
       if (effect.yield !== 'production' && effect.yield !== 'all') return 0;
       return (effect.percent / 100) * nominal * townsAdmitting(ctx, effect.scope);
@@ -2985,11 +3008,16 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       return voiceWeight(ctx, effect.yield as Voice) * percent * nominal * towns;
     }
     case 'productionBonus':
+      // A bonus counted per charter technology known (The Great Catalogue) or
+      // held only while ahead of the met empires (The Great Designs) is scaled
+      // by `scientificBonusShare` (Scientific batch S13). Every other bonus
+      // multiplies by one there, so its price is unchanged.
       return (
         voiceWeight(ctx, 'production') *
         (effect.percent / 100) *
         nominal *
-        townsAdmitting(ctx, effect.scope)
+        townsAdmitting(ctx, effect.scope) *
+        scientificBonusShare(effect, ctx)
       );
     // The three constraint arms read the **live** meter price (batch 4), so a
     // card that supplies writ is worth more to an empire whose next town is
@@ -3018,11 +3046,15 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // A line against an empire that knows more technologies (Dominion batch
       // D15, The Upstarts) is worth the share of fights where that is true.
       // Every other condition keeps the full price it has always had.
+      // The Scientific conditions and counts (Scientific batch S13) take their
+      // share in `scientificLinePoints` and `scientificLineShare`. A line that
+      // names none of them gets its amount and a share of one there.
       return (
-        effect.amount *
+        scientificLinePoints(effect, ctx) *
         ctx.ai.weights.military *
         (1 + ctx.threat) *
-        (namesCondition(effect.when, 'vsMoreTechs') ? vsMoreTechsShare(ctx) : 1)
+        (namesCondition(effect.when, 'vsMoreTechs') ? vsMoreTechsShare(ctx) : 1) *
+        scientificLineShare(effect.when, ctx)
       );
     case 'unitStat':
       // One piece's worth, and — since batch X2 — nothing at all when the towns
@@ -3458,6 +3490,12 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       if (effect.rule === 'garrisonWorks') return garrisonWorksWorth(effect.max, effect.scope, ctx);
       if (effect.rule === 'shoreRaid') return shoreRaidWorth(ctx);
       if (effect.rule === 'opusSiege') return opusSiegeWorth(ctx);
+      {
+        // **The rules of Scientific batches S1 to S9**, each priced off the
+        // board with one stand-in knob in `score.scientific` (batch S13).
+        const scientific = scientificRuleWorth(effect, ctx);
+        if (scientific !== null) return scientific;
+      }
       return ctx.ai.score.unknownEffect;
     case 'metaRule':
       // A rule of Statecraft itself — how long a chair is sealed. What a seal
@@ -3466,6 +3504,11 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // repeats (Dominion batch D7) are the second rule, and take the same
       // stand-in: what they are worth is the seat's other Orders, which this
       // arm does not read.
+      //
+      // The Age of Reason's `techCountsTwice` (Scientific batch S6) is read
+      // off those Orders (batch S13): the technology riders and tallies the
+      // seat has seated, paid again.
+      if (effect.rule === 'techCountsTwice') return techCountsTwiceWorth(effect.value, ctx);
       return ctx.ai.score.unknownEffect;
     case 'beadPerOccasion':
       // **A glass bead the empire mints itself**, on a deed it chooses to do
@@ -4032,8 +4075,15 @@ function windfallGrantWorth(
     // A grant paid once for each item a count finds (Dominion batch D5) is
     // worth that many grants: the simulation's own count, read now.
     const counted = grant.perCount === undefined ? 1 : grantCountNow(ctx, grant.perCount);
-    worth += explainLump(bag, ctx).total * towns * counted;
+    // A grant scaled by each town's own citizens (Scientific batch S6, The
+    // Journeymen; priced in batch S13) is read at this seat's mean town.
+    const people = grant.fromTownPopulation === true ? meanPopulation(ctx) : 1;
+    worth += explainLump(bag, ctx).total * towns * counted * people;
   }
+  // **Scientific batch S13**: a great person handed over (S8, The Invitations)
+  // and renown scaled by the technology's folded price (S6, The Scholars'
+  // Fame). See `scientificGrantWorth`.
+  worth += scientificGrantWorth(grant, ctx);
   if (grant.heal !== undefined) worth += ctx.ai.score.unknownEffect;
   if (grant.healAll === true) worth += ctx.ai.score.unknownEffect;
   // **Dominion batch D3's four pillage extras**, each read close to the heal
@@ -4256,24 +4306,20 @@ function ruleRewriteValue(
     }
     case 'charterTechCost':
     case 'charterPremium':
-      // **Not priced yet** (Scientific batch S0, The Commonplace Book and The
-      // Patent Office). A cheaper charter technology is worth the beakers it
-      // saves on a charter this seat holds, and the bot prices no charter
-      // technology until batch S13. Nought, not the stand-in: a seat that has
-      // drafted no charter saves nothing.
-      return 0;
+      // **The beakers it saves on the charter technologies this seat will
+      // research** (Scientific batch S0, The Commonplace Book and The Patent
+      // Office; priced in batch S13). See `charterSavingWorth`. A seat that
+      // has drafted no charter and expects to draft none saves nothing.
+      return charterSavingWorth(rule, share, ctx);
     case 'gapTechCost':
-      // **Not priced yet** (Scientific batch S3, The Translation Movement). It
-      // is worth the beakers it saves on technologies a met empire knows, and
-      // the bot prices the new Scientific kinds in batch S13. Nought until
-      // then.
-      return 0;
+      // **The beakers it saves on the gap** (Scientific batch S3, The
+      // Translation Movement; priced in batch S13): the technologies a met
+      // empire already knows, at their folded price, as a lump.
+      return gapSavingWorth(share, ctx);
     case 'scholarLadderStep':
-      // **Not priced yet** (Scientific batch S8, The Royal Readers). A
-      // cheaper rung is worth the renown it saves on the next great person,
-      // and the bot prices the new Scientific kinds in batch S13. Nought
-      // until then.
-      return 0;
+      // **The renown it saves on each great person** (Scientific batch S8,
+      // The Royal Readers; priced in batch S13). See `scholarStepWorth`.
+      return scholarStepWorth(share, ctx);
     default:
       return unreadRule(rule, ctx);
   }
@@ -4384,9 +4430,12 @@ function scoreAmplifier(
       // happiness meter rather than in an amplifier arm.
       return ctx.ai.score.unknownEffect;
     case 'depositWorkCopies':
-      // **Not priced yet** (Scientific batch S5, The School of Mines). The bot
-      // prices the new Scientific kinds in batch S13. Nought until then.
-      return 0;
+      // **The extra copies, at a stand-in price each** (Scientific batch S5,
+      // The School of Mines; priced in batch S13). The board says how many
+      // works stand on a strategic deposit inside the borders. What one more
+      // copy is worth is weighed where a copy is spent, so it is the knob
+      // `score.scientific.strategicCopy`.
+      return depositCopiesWorth(effect, ctx);
     case 'captureRewards': {
       // **A share of what the seat's own capture riders are worth** (Dominion
       // batch D6, Vae Victis): each seated Order's capture rider, priced as the
@@ -4465,7 +4514,12 @@ function scoreUnlockedBuilding(id: BuildingId, ctx: ValueContext): number {
   // carries a line for the towns already held, so a context-less asking quotes
   // the four-town breakeven to a realm of one and to a realm of twelve alike.
   const turns = buildTurns(buildingProductionCost(id, ctx.state, ctx.playerId), ctx);
-  return each * ctx.cities * delayDiscount(turns, ctx);
+  // A great house stands once in the empire (`oncePerEmpire`), so it is one
+  // copy, not one a town (Scientific batch S13: the Mouseion, the Bimaristan
+  // and the Tophane a charter opens). No `unlocksBuilding` row names such a
+  // building, so no card's price moves.
+  const copies = def.oncePerEmpire === true ? Math.min(1, ctx.cities) : ctx.cities;
+  return each * copies * delayDiscount(turns, ctx);
 }
 
 /**
@@ -5213,10 +5267,15 @@ export function explainCardEffects(
   // worth nothing to a bot. A card that is not a commission returns its own
   // appraisal untouched, so no other price moves.
   const commission = isOrderId(id) ? explainCommission(id, ctx) : null;
-  if (commission === null) return own;
+  // **A technology charter is priced as what knowing the technology gives**
+  // (Scientific batch S13). Its row carries no effects and never takes a
+  // chair, so without this term every charter was worth nothing to a bot.
+  const charter = isOrderId(id) ? explainCharter(id, ctx) : null;
+  if (commission === null && charter === null) return own;
   const terms: ValueTerm[] = [];
   if (own.terms.length > 0) terms.push(nest('its own effects', own));
-  terms.push(nest('what meeting the commission pays', commission));
+  if (commission !== null) terms.push(nest('what meeting the commission pays', commission));
+  if (charter !== null) terms.push(nest('what knowing its technology gives', charter));
   return appraise(terms);
 }
 
@@ -5493,6 +5552,19 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
     const more = commissionMetRate(ctx) * Math.max(1, ctx.ai.priorities.horizonTurns);
     return [{ label: `+ ${round(more)} more commissions met, over the horizon`, value: more }];
   }
+  // **The Scientific counts that grow** (Scientific batch S13): technologies
+  // and charter technologies known, charters drafted, the lead, the gap and
+  // the guildsmen. The same reading as a tally's: what is still expected over
+  // the horizon, with no discount. See `scientificCountAhead`.
+  const ahead = effect.count === undefined ? null : scientificCountAhead(effect.count, ctx);
+  if (ahead !== null) {
+    return [
+      {
+        label: `+ ${round(ahead.more)} more ${effect.count} expected over the horizon (${ahead.why})`,
+        value: ahead.more,
+      },
+    ];
+  }
   const buildable = potentialTownsFor(effect, ctx);
   if (buildable === null) return [];
   const turns = buildTurns(buildable.cost, ctx);
@@ -5711,6 +5783,16 @@ function commissionForecast(id: OrderId, ctx: ValueContext): { turns: number; wh
     if (part.met) continue;
     const goal = part.goal;
     const remaining = part.need - part.have;
+    // A goal met by completing a technology is forecast from the research
+    // itself (Scientific batch S13): The Great Instrument's Alchemy and The
+    // Royal Charter Commission's charter technology. See `researchGoalForecast`.
+    const research = researchGoalForecast(goal, ctx);
+    if (research !== null) {
+      if (research.turns < turns) continue;
+      turns = Math.max(1, research.turns);
+      why = research.why;
+      continue;
+    }
     const floor = goalHasFloor(goal) ? ctx.ai.score.commission.floorShare : 1;
     const rate =
       goal.kind === 'counted'
@@ -6238,4 +6320,790 @@ function opusSiegeWorth(ctx: ValueContext): number {
     if (opusCityOf(ctx.state, rival.id) !== null) raising += 1;
   }
   return raising * ctx.ai.score.dominion.opusSiege;
+}
+
+// --- the Scientific stand-ins (batch S13) ------------------------------------
+
+/**
+ * **What a technology costs this seat, in beakers**: the simulation's own price
+ * list, folded (`foldTechCost(explainTechCost(...))`). A charter technology
+ * carries its premium, and every card that changes a price (The Commonplace
+ * Book, The Patent Office, The Translation Movement) is counted, so the bot
+ * and the reducer charge the same figure.
+ *
+ * Every reader of a technology's price in the bot asks this: the goal search
+ * and its chains (`chain.ts`), the plan's landings (`plan.ts`) and the cheapest
+ * fallback (`bot.ts`). It is remembered for the sitting, because those readers
+ * ask it of the same nodes many times in one decision, and the price cannot
+ * change inside one.
+ */
+const TECH_COST_MEMO = new WeakMap<ValueContext, Map<TechId, number>>();
+export function techCostFor(ctx: ValueContext, tech: TechId): number {
+  let held = TECH_COST_MEMO.get(ctx);
+  if (held === undefined) {
+    held = new Map<TechId, number>();
+    TECH_COST_MEMO.set(ctx, held);
+  }
+  const found = held.get(tech);
+  if (found !== undefined) return found;
+  const player = playerById(ctx.state, ctx.playerId);
+  const cost =
+    player === undefined
+      ? techDef(tech).cost
+      : foldTechCost(explainTechCost(ctx.state, player, tech));
+  held.set(tech, cost);
+  return cost;
+}
+
+/** Beakers to research a technology and every node it still needs, at the folded price. */
+function researchBeakersTo(ctx: ValueContext, tech: TechId): number {
+  let beakers = 0;
+  for (const step of researchExpansion(ctx.state, ctx.playerId, tech)) {
+    beakers += techCostFor(ctx, step);
+  }
+  return beakers;
+}
+
+/**
+ * **What a technology charter is worth to this seat**, or `null` for a row
+ * that opens no technology.
+ *
+ * A charter acts once, on the pick: it opens a technology this seat may then
+ * research (`applyCharter`). The row has no effects and never takes a chair,
+ * so before this batch every charter was worth nothing to a bot. Its worth is
+ * what knowing the technology gives (`explainCharterKnowledge`), discounted by
+ * `delayTerm` for the turns until the seat knows it. Those turns are the
+ * beakers of the technology and every node it still needs, at the folded price
+ * (the charter premium included), over the seat's science rate.
+ *
+ * The research beakers are a wait and not a cost, which is how the goal search
+ * reads every node (`techChain`): the wait is charged by the discount.
+ *
+ * A charter whose technology the seat already knows or has already opened is
+ * worth nothing more. That is also why a held charter is never worth a chair.
+ */
+export function explainCharter(id: OrderId, ctx: ValueContext): Appraisal | null {
+  const tech = orderDef(id).charter?.unlocks.tech;
+  // A retired charter may name a technology the tree no longer holds (the
+  // Metallurgists' and the Naturalists'). It opens nothing, so it is no charter.
+  if (tech === undefined || !isTechId(tech)) return null;
+  const player = playerById(ctx.state, ctx.playerId);
+  if (player === undefined) return null;
+  const name = techDef(tech).name;
+  if (player.techsResearched.includes(tech) || player.charteredTechs.includes(tech)) {
+    return appraise([{ label: `${name} is already open to this empire`, value: 0 }]);
+  }
+  const beakers = researchBeakersTo(ctx, tech);
+  const turns = beakers / Math.max(1, ctx.scienceRate);
+  return appraise([
+    nest(`what knowing ${name} gives`, explainCharterKnowledge(tech, ctx)),
+    delayTerm(
+      turns,
+      ctx,
+      `${round(beakers)} beakers to research ${name} and what it needs, at the folded price`,
+    ),
+  ]);
+}
+
+/**
+ * **What knowing a technology gives, before any wait**: its traits as strength
+ * lines (`explainTechTraits`), its buildings as the shelves they open
+ * (`scoreUnlockedBuilding`, the reading of a charter's shelf), its units as a
+ * piece each (the `unlocksUnit` reading), its work rows (`explainTechWorks`)
+ * and its own card effects (`explainTechEffects`).
+ *
+ * The goal search reads the buildings and units itself, town by town, so it
+ * asks only the traits, the works and the effects of this file
+ * (`readNodeGifts`, `chain.ts`).
+ */
+export function explainCharterKnowledge(tech: TechId, ctx: ValueContext): Appraisal {
+  const def = techDef(tech);
+  const terms: ValueTerm[] = [];
+  const traits = explainTechTraits(tech, ctx);
+  if (traits.terms.length > 0) terms.push(nest('the traits it gives a line of units', traits));
+  for (const id of def.unlocks.buildings ?? []) {
+    terms.push({
+      label: `the ${buildingDef(id).name}, in the towns that would raise it`,
+      value: scoreUnlockedBuilding(id, ctx),
+    });
+  }
+  for (const id of def.unlocks.units ?? []) {
+    terms.push({
+      label: `the ${unitDef(id).name}, a piece the towns may raise`,
+      value: ctx.ai.weights.military * ctx.ai.score.combatScale,
+    });
+  }
+  const works = explainTechWorks(tech, ctx);
+  if (works.terms.length > 0) terms.push(nest('the works it opens', works));
+  if ((def.effects ?? []).length > 0) {
+    terms.push(nest('the rules the technology itself carries', explainTechEffects(tech, ctx)));
+  }
+  return appraise(terms);
+}
+
+/**
+ * **A technology's traits, as strength lines on one line of units** (the
+ * traits of Scientific batch S1).
+ *
+ * Each trait's effects are priced as a card's are (`explainEffects`), and then
+ * taken at the share of the army the line makes up (`lineShare`). A card's
+ * strength line is priced as if it reached every unit; a trait never does, and
+ * the share says so.
+ */
+export function explainTechTraits(tech: TechId, ctx: ValueContext): Appraisal {
+  const terms: ValueTerm[] = [];
+  for (const trait of techDef(tech).traits ?? []) {
+    const share = lineShare(trait.line, ctx);
+    terms.push(
+      nest(
+        `${trait.name}, on the ${unitDef(trait.line).name} line`,
+        appraise([
+          nest('its lines, as a card pays them', explainEffects(trait.effects, ctx)),
+          {
+            label: `× ${round(share)}: the share of the army on that line`,
+            value: share,
+            op: 'mul',
+          },
+        ]),
+      ),
+    );
+  }
+  return appraise(terms);
+}
+
+/**
+ * **The share of this seat's combat units on one line**, never less than
+ * `score.scientific.traitLine`. The bot does not plan its army by line, so a
+ * seat with none of the line yet is assumed to field some; a seat that fields
+ * more is paid for what it fields.
+ */
+function lineShare(line: UnitTypeId, ctx: ValueContext): number {
+  let combatants = 0;
+  let onLine = 0;
+  for (const unit of ctx.state.units) {
+    if (unit.ownerId !== ctx.playerId || !isCombatant(unitDef(unit.type))) continue;
+    combatants += 1;
+    if (unitMatches(unit.type, { line })) onLine += 1;
+  }
+  const seen = combatants === 0 ? 0 : onLine / combatants;
+  return Math.max(ctx.ai.score.scientific.traitLine, seen);
+}
+
+/** The work rows a technology opens: every improvement that requires it. */
+function worksOpenedBy(tech: TechId): ImprovementId[] {
+  return IMPROVEMENT_IDS.filter((id) => improvementDef(id).requiresTech === tech);
+}
+
+/**
+ * **How many works of a row this seat is assumed to lay**: in each town, the
+ * hexes it owns where the row's ground allows it (`improvementGroundError`, the
+ * terrain, water and neighbour half of the gate, which does not ask for the
+ * technology), up to one for a row that may stand once in each town (the
+ * Physic Garden) and up to `score.scientific.worksPerTown` for any other row.
+ *
+ * The bot's improvement plan decides where works go, and it cannot be asked
+ * about a row whose technology the seat does not know yet, so this is the
+ * stand-in. Remembered for the sitting: it walks every hex the seat owns.
+ */
+const WORKS_MEMO = new WeakMap<ValueContext, Map<ImprovementId, number>>();
+function worksForecast(id: ImprovementId, ctx: ValueContext): number {
+  let held = WORKS_MEMO.get(ctx);
+  if (held === undefined) {
+    held = new Map<ImprovementId, number>();
+    WORKS_MEMO.set(ctx, held);
+  }
+  const found = held.get(id);
+  if (found !== undefined) return found;
+  const perTown = improvementDef(id).onePerTown === true ? 1 : ctx.ai.score.scientific.worksPerTown;
+  let works = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    let ground = 0;
+    for (const tile of ownedTiles(ctx.state, city)) {
+      if (improvementGroundError(ctx.state, ctx.playerId, tile, id) === null) ground += 1;
+    }
+    works += Math.min(ground, perTown);
+  }
+  held.set(id, works);
+  return works;
+}
+
+/**
+ * **The work rows a technology opens, priced as the works the towns would
+ * lay**: what one work yields (`explainYields` of the row's own yields), plus
+ * `score.scientific.workGift` for each gift that is not a yield (a Qanat's
+ * water for the farms beside it, Niter Beds' niter), times the works forecast.
+ */
+export function explainTechWorks(tech: TechId, ctx: ValueContext): Appraisal {
+  const terms: ValueTerm[] = [];
+  for (const id of worksOpenedBy(tech)) {
+    const row = improvementDef(id);
+    const works = worksForecast(id, ctx);
+    if (works <= 0) continue;
+    const parts: ValueTerm[] = [];
+    const yields = explainYields(bagOfTileYield(readTileYield(row.yields)), ctx);
+    if (yields.terms.length > 0) parts.push(nest('what one work yields', yields));
+    const gifts = (row.watersBeside === true ? 1 : 0) + (row.suppliesResource !== undefined ? 1 : 0);
+    if (gifts > 0) {
+      parts.push({
+        label: `${gifts} gift${gifts === 1 ? '' : 's'} that is not a yield × ${ctx.ai.score.scientific.workGift}`,
+        value: gifts * ctx.ai.score.scientific.workGift,
+      });
+    }
+    if (parts.length === 0) continue;
+    parts.push({ label: `× ${round(works)} works the towns would lay`, value: works, op: 'mul' });
+    terms.push(nest(`the ${row.name}`, appraise(parts)));
+  }
+  return appraise(terms);
+}
+
+/**
+ * **A technology's own card effects**, priced as a card's are, except that an
+ * effect counting the works the technology opens (Herbals' happiness for each
+ * Physic Garden) is priced at the works forecast (`explainForecastCount`). The
+ * board counts none of them before the seat knows the technology, so its own
+ * reading would be nought.
+ *
+ * With no such effect, this is `explainEffects` of the row, term for term.
+ */
+export function explainTechEffects(tech: TechId, ctx: ValueContext): Appraisal {
+  const works = worksOpenedBy(tech);
+  const terms: ValueTerm[] = [];
+  for (const effect of techDef(tech).effects ?? []) {
+    const work = countedWork(effect, works);
+    const priced =
+      work === null
+        ? explainEffects([effect], ctx)
+        : explainForecastCount(
+            [effect],
+            worksForecast(work, ctx),
+            `the ${improvementDef(work).name} works the towns would lay`,
+            ctx,
+          );
+    for (const term of priced.terms) terms.push(term);
+  }
+  return appraise(terms);
+}
+
+/** The work an effect counts in the borders, when it is one of `works`; else `null`. */
+function countedWork(effect: CardEffect, works: readonly ImprovementId[]): ImprovementId | null {
+  if (effect.kind !== 'pays' || effect.basis !== 'count' || effect.count !== 'tilesInBorders') {
+    return null;
+  }
+  const tile = effect.tile;
+  if (tile === undefined || tile.test !== 'improvement') return null;
+  return works.includes(tile.improvement) ? tile.improvement : null;
+}
+
+/**
+ * **How much more of a Scientific count this seat expects over the horizon**,
+ * and why, or `null` for a count that is not one of them.
+ *
+ *   · technologies known grow at this seat's pace of research, the
+ *     `techCompleted` forecast (`occasionForecastRate`);
+ *   · charter technologies known grow at the `charterTechCompleted` forecast,
+ *     and never by less than the charters already drafted and not yet known;
+ *   · charters drafted are smoothed with the seat's own record (the charters
+ *     it holds) toward `score.scientific.countForecast.chartersDrafted`;
+ *   · the lead, the gap and the guildsmen have no record of growth, so the
+ *     knob alone is the forecast.
+ */
+function scientificCountAhead(
+  count: NonNullable<CardPaysEffect['count']>,
+  ctx: ValueContext,
+): { more: number; why: string } | null {
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const table = ctx.ai.score.scientific.countForecast;
+  switch (count) {
+    case 'techsKnown':
+      return {
+        more: occasionForecastRate('techCompleted', ctx) * horizon,
+        why: 'at this seat’s pace of research',
+      };
+    case 'charterTechsKnown': {
+      const opened = openedCharterTechs(ctx).length;
+      const pace = occasionForecastRate('charterTechCompleted', ctx) * horizon;
+      return {
+        more: Math.max(opened, pace),
+        why: `${opened} charter technolog${opened === 1 ? 'y' : 'ies'} opened and not yet known`,
+      };
+    }
+    case 'chartersDrafted': {
+      const held = countProbe(ctx, 'chartersDrafted');
+      return {
+        more: smoothedRate(held, table.chartersDrafted / horizon, ctx) * horizon,
+        why: 'at this seat’s pace of drafting charters',
+      };
+    }
+    case 'techLead':
+      return { more: table.techLead, why: 'score.scientific.countForecast.techLead' };
+    case 'techGap':
+      return { more: table.techGap, why: 'score.scientific.countForecast.techGap' };
+    case 'guildsmen':
+      return { more: table.guildsmen, why: 'score.scientific.countForecast.guildsmen' };
+    default:
+      return null;
+  }
+}
+
+/** The charter technologies this seat has opened and does not know yet. */
+function openedCharterTechs(ctx: ValueContext): TechId[] {
+  const player = playerById(ctx.state, ctx.playerId);
+  if (player === undefined) return [];
+  return player.charteredTechs.filter((tech) => !player.techsResearched.includes(tech));
+}
+
+/**
+ * **A Scientific production bonus's share** (The Great Catalogue, The Great
+ * Designs). A bonus counted per charter technology known pays its percent for
+ * each one known or expected (`scientificCountAhead`), up to its cap. A bonus
+ * held only while no met empire knows the row's technology is taken at
+ * `score.scientific.aheadOfMet`. Every other bonus answers one.
+ */
+function scientificBonusShare(
+  effect: Extract<CardEffect, { kind: 'productionBonus' }>,
+  ctx: ValueContext,
+): number {
+  let share = 1;
+  if (effect.aheadOfMet === true) share *= ctx.ai.score.scientific.aheadOfMet;
+  if (effect.count !== undefined) {
+    const ahead = scientificCountAhead(effect.count, ctx);
+    if (ahead !== null) {
+      const per = effect.per === undefined || effect.per <= 0 ? 1 : effect.per;
+      let helpings = (countProbe(ctx, effect.count) + ahead.more) / per;
+      if (effect.max !== undefined) helpings = Math.min(helpings, Math.max(0, effect.max));
+      share *= helpings;
+    }
+  }
+  return share;
+}
+
+/**
+ * **The points a Scientific scaled strength line is worth** (the Hoplite and
+ * Grenadier traits, The Proving Ground). The scale's count is read as the
+ * Scientific counts are read (`scientificCountAhead`). The Hoplite's citizens
+ * are those of this seat's mean town, at the share of fights fought in one's
+ * own town (`score.scientific.inOwnTown`). The scale's cap holds. A line with
+ * any other scale, or none, answers its own amount.
+ */
+function scientificLinePoints(
+  effect: Extract<CardEffect, { kind: 'combatLine' }>,
+  ctx: ValueContext,
+): number {
+  const scale = effect.scaled;
+  if (scale === undefined) return effect.amount;
+  const per = scale.per > 0 ? scale.per : 1;
+  let helpings: number;
+  switch (scale.count) {
+    case 'townCitizensHere':
+      helpings = Math.floor(meanPopulation(ctx) / per) * ctx.ai.score.scientific.inOwnTown;
+      break;
+    case 'charterTechsKnown':
+    case 'techLead': {
+      const ahead = scientificCountAhead(scale.count, ctx);
+      helpings = (countProbe(ctx, scale.count) + (ahead?.more ?? 0)) / per;
+      break;
+    }
+    default:
+      return effect.amount;
+  }
+  const points = effect.amount * helpings;
+  return scale.max === undefined ? points : Math.min(points, Math.max(0, scale.max));
+}
+
+/**
+ * **The share of fights a Scientific condition holds in**: The Edge of the
+ * Sword's `vsFewerTechs` (`vsFewerTechsShare`), The Strategikon's
+ * `nearLearning` and The Soldier-Scholars' `standingInOwnTown`, each at its
+ * knob in `score.scientific`. Any other condition answers one.
+ */
+function scientificLineShare(when: CombatCondition, ctx: ValueContext): number {
+  const knobs = ctx.ai.score.scientific;
+  let share = 1;
+  if (namesCondition(when, 'vsFewerTechs')) share *= vsFewerTechsShare(ctx);
+  if (namesCondition(when, 'nearLearning')) share *= knobs.nearLearning;
+  if (namesCondition(when, 'standingInOwnTown')) share *= knobs.inOwnTown;
+  return share;
+}
+
+/**
+ * **The share of fights a line against a less learned empire pays in** (The
+ * Edge of the Sword): `vsMoreTechsShare`'s mirror. The empires met that know
+ * fewer technologies than this seat, over the empires met, times
+ * `score.scientific.vsFewerTechs`. Nothing while the seat has met nobody.
+ */
+function vsFewerTechsShare(ctx: ValueContext): number {
+  const rivals = metRivals(ctx.state, ctx.playerId);
+  if (rivals.length === 0) return 0;
+  let behind = 0;
+  for (const rival of rivals) {
+    if (knowsFewerTechs(ctx.state, ctx.playerId, rival.id)) behind += 1;
+  }
+  return (behind / rivals.length) * ctx.ai.score.scientific.vsFewerTechs;
+}
+
+/**
+ * **The rules of Scientific batches S1 to S9**, or `null` for a rule that is
+ * not one of them. Each reads the board where it can and its knob in
+ * `score.scientific` for the rest:
+ *
+ *   · `moveAfterAttack` and `blockades`: points of strength, priced as a
+ *     strength line is;
+ *   · `upgradeHeals` and `upgradeIgnoresResource`: points of strength a turn
+ *     for each combat unit with an upgrade ahead of it;
+ *   · `opusBreach`: points for each met rival raising the Magnum Opus;
+ *   · `opusEarly` and `closedBook`: a share of the bead race's worth, while no
+ *     empire knows the technology that opens the Opus;
+ *   · `prototypes`: points for each building or unit the current research
+ *     opens;
+ *   · `worksCountAs`: points for each great person's work beside the named
+ *     work.
+ */
+function scientificRuleWorth(
+  effect: Extract<CardEffect, { kind: 'rule' }>,
+  ctx: ValueContext,
+): number | null {
+  const knobs = ctx.ai.score.scientific;
+  const strength = ctx.ai.weights.military * (1 + ctx.threat);
+  switch (effect.rule) {
+    case 'moveAfterAttack':
+      return knobs.moveAfterAttack * strength;
+    case 'blockades':
+      return knobs.blockades * strength;
+    case 'upgradeHeals':
+      return knobs.upgradeHeals * upgradeableUnits(ctx) * strength;
+    case 'upgradeIgnoresResource':
+      return knobs.upgradeIgnoresResource * upgradeableUnits(ctx) * strength;
+    case 'opusBreach':
+      return knobs.opusBreach * rivalsRaisingOpus(ctx);
+    case 'opusEarly':
+      return knobs.opusEarly * raceWorthWhileShut(ctx);
+    case 'closedBook':
+      return knobs.closedBook * raceWorthWhileShut(ctx);
+    case 'prototypes':
+      return knobs.prototypes * rowsOfResearch(ctx);
+    case 'worksCountAs':
+      return knobs.worksCountAs * worksBeside(effect.improvement, ctx);
+    default:
+      return null;
+  }
+}
+
+/** This seat's combat units whose type upgrades to another. */
+function upgradeableUnits(ctx: ValueContext): number {
+  let units = 0;
+  for (const unit of ctx.state.units) {
+    if (unit.ownerId !== ctx.playerId) continue;
+    const def = unitDef(unit.type);
+    if (isCombatant(def) && def.upgradesTo !== undefined) units += 1;
+  }
+  return units;
+}
+
+/** Met rivals raising the Magnum Opus now (`opusCityOf`). */
+function rivalsRaisingOpus(ctx: ValueContext): number {
+  let raising = 0;
+  for (const rival of metRivals(ctx.state, ctx.playerId)) {
+    if (opusCityOf(ctx.state, rival.id) !== null) raising += 1;
+  }
+  return raising;
+}
+
+/**
+ * The bead race's worth (`ctx.race`), while no empire knows the technology
+ * that opens the Magnum Opus; nought once one does, or with no race at all.
+ * The race is worth nothing until it is within reach, so these cards are too.
+ */
+function raceWorthWhileShut(ctx: ValueContext): number {
+  const race = ctx.race;
+  if (race === null || race.open) return 0;
+  return Math.max(0, race.worth);
+}
+
+/** The buildings (never a wonder) and units the technology being researched opens. */
+function rowsOfResearch(ctx: ValueContext): number {
+  const tech = playerById(ctx.state, ctx.playerId)?.researching ?? null;
+  if (tech === null) return 0;
+  const unlocks = techDef(tech).unlocks;
+  const buildings = (unlocks.buildings ?? []).filter((id) => !isWonder(id)).length;
+  return buildings + (unlocks.units ?? []).length;
+}
+
+/** Hexes inside this seat's borders that pass a tile test, through `countOf`. */
+function tilesInBordersWhere(ctx: ValueContext, tile: TileCondition): number {
+  return countOf(ctx.state, ctx.playerId, '' as CardId, {
+    kind: 'pays',
+    where: 'empire',
+    basis: 'count',
+    count: 'tilesInBorders',
+    tile,
+    to: 'authority',
+    amount: 0,
+  });
+}
+
+/**
+ * Great people's works inside the borders that stand beside a work of the row.
+ *
+ * Walked here rather than asked of `countOf`, because the border count hands
+ * the tile test no ring of neighbours and so cannot answer `beside`. The test
+ * itself is the simulation's (`tileConditionHolds`), with the ring of six.
+ */
+function worksBeside(improvement: ImprovementId | undefined, ctx: ValueContext): number {
+  if (improvement === undefined) return 0;
+  const rule: TileCondition = {
+    test: 'all',
+    of: [{ test: 'greatWork' }, { test: 'beside', of: { test: 'improvement', improvement } }],
+  };
+  const ground = groundFactsFor(ctx.state, ctx.playerId);
+  let works = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    for (const tile of ownedTiles(ctx.state, city)) {
+      const ring = (): readonly Tile[] => tileNeighbors(ctx.state.map, tile);
+      if (tileConditionHolds(tile, rule, undefined, ring, ctx.state.turn, ground)) works += 1;
+    }
+  }
+  return works;
+}
+
+/**
+ * **The School of Mines**: one more copy, `amount` times, for each strategic
+ * deposit inside the borders under a work of the effect's row, each at
+ * `score.scientific.strategicCopy`.
+ */
+function depositCopiesWorth(
+  effect: Extract<CardEffect, { kind: 'effectAmplifier' }>,
+  ctx: ValueContext,
+): number {
+  const improvement = effect.improvement;
+  if (improvement === undefined) return 0;
+  const deposits = tilesInBordersWhere(ctx, {
+    test: 'all',
+    of: [
+      { test: 'improvement', improvement },
+      { test: 'resourceKind', kind: 'strategic' },
+    ],
+  });
+  return Math.floor(effect.amount ?? 0) * deposits * ctx.ai.score.scientific.strategicCopy;
+}
+
+/**
+ * **The Age of Reason** (`techCountsTwice`): each technology counted `value`
+ * times by this seat's Orders. So the riders on a technology its seated Orders
+ * carry pay `value − 1` more times (`scoreWindfallRider`), and a tally of
+ * technologies completed grows `value − 1` times faster over the horizon
+ * (`score.tallyForecast`, at what one helping pays). Nothing with no such Order
+ * seated.
+ */
+function techCountsTwiceWorth(value: number, ctx: ValueContext): number {
+  const extra = Math.max(0, Math.floor(value) - 1);
+  if (extra === 0) return 0;
+  let again = 0;
+  for (const held of slottedOrderEffects(ctx)) {
+    if (held.kind === 'windfallRider' && held.occasion === 'tech') {
+      again += scoreWindfallRider(held, ctx);
+      continue;
+    }
+    if (held.kind !== 'pays' || held.basis !== 'count' || held.count !== 'tally') continue;
+    if (held.tally !== 'techCompleted' && held.tally !== 'charterTechCompleted') continue;
+    const forecast = ctx.ai.score.tallyForecast[held.tally] ?? 0;
+    const per = held.per === undefined || held.per <= 0 ? 1 : held.per;
+    again += (forecast / per) * scorePayout(held, ctx);
+  }
+  return extra * again;
+}
+
+/**
+ * **The charter technologies this seat will research**: the ones it has opened
+ * and does not know, and, where the `charterTechCompleted` forecast expects
+ * more over the horizon, that many more at the mean price of the charter
+ * technologies of its age and the next that it has not opened. Returned as
+ * their folded price and their base premium
+ * (`rules.research.charterPremiumPercent` of the column price), in beakers.
+ */
+function charterBeakersAhead(ctx: ValueContext): { folded: number; premium: number } {
+  const player = playerById(ctx.state, ctx.playerId);
+  if (player === undefined) return { folded: 0, premium: 0 };
+  const premiumShare = RULES.research.charterPremiumPercent / 100;
+  const opened = openedCharterTechs(ctx);
+  let folded = 0;
+  let premium = 0;
+  for (const tech of opened) {
+    folded += techCostFor(ctx, tech);
+    premium += techDef(tech).cost * premiumShare;
+  }
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const future = occasionForecastRate('charterTechCompleted', ctx) * horizon - opened.length;
+  if (future > 0) {
+    const open = ALL_TECH_IDS.filter((tech) => {
+      const def = techDef(tech);
+      return (
+        def.charter === true &&
+        def.age <= ctx.age + 1 &&
+        !player.techsResearched.includes(tech) &&
+        !player.charteredTechs.includes(tech)
+      );
+    });
+    if (open.length > 0) {
+      let meanFolded = 0;
+      let meanColumn = 0;
+      for (const tech of open) {
+        meanFolded += techCostFor(ctx, tech) / open.length;
+        meanColumn += techDef(tech).cost / open.length;
+      }
+      folded += future * meanFolded;
+      premium += future * meanColumn * premiumShare;
+    }
+  }
+  return { folded, premium };
+}
+
+/**
+ * **The Commonplace Book and The Patent Office**: the beakers the cut saves on
+ * the charter technologies this seat will research (`charterBeakersAhead`),
+ * as a lump. The Commonplace Book's cut is taken of the whole folded price;
+ * The Patent Office's of the premium only. A cut never saves more than the
+ * whole of what it cuts.
+ */
+function charterSavingWorth(
+  rule: 'charterTechCost' | 'charterPremium',
+  share: number,
+  ctx: ValueContext,
+): number {
+  const ahead = charterBeakersAhead(ctx);
+  const base = rule === 'charterTechCost' ? ahead.folded : ahead.premium;
+  if (base <= 0) return 0;
+  const saved = -Math.max(-1, share) * base;
+  return explainLump({ science: saved }, ctx).total;
+}
+
+/**
+ * **The Translation Movement**: the beakers the cut saves on the gap (the
+ * technologies a met empire knows and this seat does not, `techGap`), at their
+ * folded price, as a lump. Nothing while the seat has met nobody or is behind
+ * nobody.
+ */
+function gapSavingWorth(share: number, ctx: ValueContext): number {
+  let beakers = 0;
+  for (const tech of techGap(ctx.state, ctx.playerId)) beakers += techCostFor(ctx, tech);
+  if (beakers <= 0) return 0;
+  return explainLump({ science: -Math.max(-1, share) * beakers }, ctx).total;
+}
+
+/**
+ * **The Royal Readers**: the renown each great person costs less, times how
+ * often this seat recruits one, at `weights.renown`.
+ *
+ * Each great scholar the seat has gained counts as a smaller step on the price
+ * ladder (`ladderSteps`, `renown.ts`), so the next price falls by the
+ * difference the fewer steps make on the ladder's own curve (`rules.renown`,
+ * the curve `renownThreshold` reads, as `growthThreshold` reads the growth
+ * curve). The recruiting pace is the renown the seat earns a turn over the
+ * price of the next great person. Nothing with no scholar gained.
+ */
+function scholarStepWorth(share: number, ctx: ValueContext): number {
+  const player = playerById(ctx.state, ctx.playerId);
+  if (player === undefined) return 0;
+  const recruited = Math.max(0, Math.floor(player.greatPeopleRecruited));
+  const scholars = Math.min(recruited, Math.max(0, Math.floor(player.greatPeopleByFamily?.scholar ?? 0)));
+  if (scholars === 0) return 0;
+  const steps = ladderSteps(ctx.state, player);
+  const fewer = Math.min(steps, scholars * Math.max(-1, Math.min(1, -share)));
+  const curve = RULES.renown;
+  const price = (at: number): number =>
+    Math.floor(curve.base + curve.linear * at + at ** curve.exponent);
+  const saved = price(steps) - price(Math.max(0, steps - fewer));
+  const pace = renownPerTurn(ctx.state, ctx.playerId) / Math.max(1, renownThreshold(ctx.state, player));
+  return saved * pace * ctx.ai.weights.renown;
+}
+
+/**
+ * **The Scientific grants**: a great person handed over (The Invitations),
+ * priced as a commission's great person is, at the renown the next one costs;
+ * and renown scaled by the folded price of the technology just completed (The
+ * Scholars' Fame), at the price of what the seat researches now
+ * (`researchCostNow`). Both are lumps. The renown grants of other decks keep
+ * the reading they had.
+ */
+function scientificGrantWorth(
+  grant: NonNullable<Extract<CardEffect, { kind: 'windfallRider' }>['grant']>,
+  ctx: ValueContext,
+): number {
+  let worth = 0;
+  if (grant.greatPerson !== undefined) {
+    const player = playerById(ctx.state, ctx.playerId);
+    const renown = player === undefined ? 0 : renownThreshold(ctx.state, player);
+    worth += lumpOfPoints(renown * ctx.ai.weights.renown, ctx).total;
+  }
+  if (grant.renown !== undefined && grant.fromOccasion === 'techCost') {
+    worth += lumpOfPoints(grant.renown * researchCostNow(ctx) * ctx.ai.weights.renown, ctx).total;
+  }
+  return worth;
+}
+
+/**
+ * The folded price of what this seat researches now, or the mean of what it
+ * could start when it researches nothing. Nought with nothing open.
+ */
+function researchCostNow(ctx: ValueContext): number {
+  const tech = playerById(ctx.state, ctx.playerId)?.researching ?? null;
+  if (tech !== null) return techCostFor(ctx, tech);
+  const open = availableTechs(ctx.state, ctx.playerId);
+  if (open.length === 0) return 0;
+  let sum = 0;
+  for (const id of open) sum += techCostFor(ctx, id);
+  return sum / open.length;
+}
+
+/**
+ * **A commission goal met by completing a technology, forecast from the
+ * research itself**, or `null` to keep the rate reading.
+ *
+ *   · A goal on one named technology (The Great Instrument's Alchemy) takes
+ *     the beakers of that technology and what it needs, at the folded price,
+ *     over the science rate. A technology the seat already knows, or may not
+ *     research (a charter technology it has not opened), is beyond the
+ *     horizon.
+ *   · A goal on any charter technology (The Royal Charter Commission) takes the
+ *     nearest charter technology the seat has opened and does not know. With
+ *     none opened, the seat may still draft one, so the rate reading stays.
+ *
+ * Never past the horizon, where the discount is already nothing.
+ */
+function researchGoalForecast(
+  goal: CommissionGoal,
+  ctx: ValueContext,
+): { turns: number; why: string } | null {
+  if (goal.kind !== 'counted') return null;
+  const player = playerById(ctx.state, ctx.playerId);
+  if (player === undefined) return null;
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const rate = Math.max(1, ctx.scienceRate);
+  const turnsFor = (beakers: number): number =>
+    Math.min(horizon, Math.max(1, Math.ceil(beakers / rate)));
+  if (goal.tech !== undefined) {
+    const tech = goal.tech;
+    const name = techDef(tech).name;
+    if (player.techsResearched.includes(tech)) {
+      return { turns: horizon, why: `${name} is already known, so it cannot be completed again` };
+    }
+    if (techDef(tech).charter === true && !player.charteredTechs.includes(tech)) {
+      return { turns: horizon, why: `${name} is a charter technology this empire has not opened` };
+    }
+    const beakers = researchBeakersTo(ctx, tech);
+    return {
+      turns: turnsFor(beakers),
+      why: `${round(beakers)} beakers to research ${name}, at the folded price`,
+    };
+  }
+  if (goal.occasion !== 'charterTechCompleted') return null;
+  let nearest: { tech: TechId; beakers: number } | null = null;
+  for (const tech of openedCharterTechs(ctx)) {
+    const beakers = researchBeakersTo(ctx, tech);
+    if (nearest === null || beakers < nearest.beakers) nearest = { tech, beakers };
+  }
+  if (nearest === null) return null;
+  return {
+    turns: turnsFor(nearest.beakers),
+    why: `${round(nearest.beakers)} beakers to research ${techDef(nearest.tech).name}, the nearest charter technology opened`,
+  };
 }
