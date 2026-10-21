@@ -18,8 +18,9 @@
  *   - `shelfTab`: whether the tab on the chart's edge shows, on which side,
  *     and which node it points at. The same ruling asked for "some indicator
  *     that it's there for screens that aren't wide enough".
- *   - `chartLead`: the lead, which feature B (batch S3) supplies. It answers
- *     `null` until S3 lands, and the chart then draws no figure and no corner.
+ *   - `chartLead`: the lead, read off feature B (batch S3, `techLead`). It
+ *     answers `null` while the seat has met no rival, and the chart then
+ *     draws no figure and no corner.
  *   - `charterOfferParts`: the slip of the star chart printed on a charter's
  *     card, and the "Opened" stamp it takes on the pick.
  *   - `traitFaceNote`: the short figure a line trait shows on a node's face.
@@ -32,6 +33,7 @@
  */
 
 import { type GameState, type Player, playerById } from '../sim/state';
+import { metRivals, techLead } from '../sim/rivals';
 import { turnsToTech } from '../sim/tech';
 import {
   CHARTER_TECH_IDS,
@@ -199,14 +201,46 @@ export function shelfTabLabel(tab: ShelfTab): string {
  * 18). The chart prints the count in its head and a gilt corner on each node
  * in it.
  *
- * A stub until batch S3 lands `src/sim/rivals.ts`. It answers `null`, which
- * the chart reads as "no lead to show": no figure in the head and no corner on
- * any node. When S3 lands, the body becomes `return techLead(state, playerId)`
- * (S3's reading) and nothing else on the chart changes, because the drawing
- * already reads this function.
+ * Read off batch S3's `techLead` (`src/sim/rivals.ts`), which counts met
+ * empires only, so the figure leaks nothing about an empire this seat has not
+ * met. **`null` while the seat has met no rival**: the lead is then empty by
+ * construction (reading 18), and a "lead 0" over a chart nobody else can see
+ * would be a figure about nothing. So the chart draws no figure in its head
+ * and no corner on any node until the first meeting. After it, the figure is
+ * drawn even at nought, because then nought is news: every technology this
+ * seat knows, a met empire knows too.
  */
-export function chartLead(_state: GameState, _playerId: number): readonly TechId[] | null {
-  return null;
+export function chartLead(state: GameState, playerId: number): readonly TechId[] | null {
+  if (metRivals(state, playerId).length === 0) return null;
+  return techLead(state, playerId);
+}
+
+/** What the chart's head prints for the lead: the count, and its words on hover. */
+export interface LeadFigure {
+  count: number;
+  /** The technologies by name, for the figure's title. */
+  title: string;
+}
+
+/**
+ * The head's lead figure, or `null` for no figure at all (a seat that has met
+ * no rival). The pure half of `paintLead` in `techTree.ts`.
+ */
+export function leadFigureOf(lead: readonly TechId[] | null): LeadFigure | null {
+  if (lead === null) return null;
+  const names = lead.map((id) => techDef(id).name).join(', ');
+  return {
+    count: lead.length,
+    title:
+      lead.length === 0
+        ? 'Technologies you know that no empire you have met knows: none yet'
+        : `Technologies you know that no empire you have met knows: ${names}`,
+  };
+}
+
+/** Does this node wear the gilt corner of the lead? The pure half of `paintNode`'s mark. */
+export function wearsLeadCorner(lead: readonly TechId[] | null, tech: TechId): boolean {
+  return lead !== null && lead.includes(tech);
 }
 
 // --- a trait on a node's face ---------------------------------------------------

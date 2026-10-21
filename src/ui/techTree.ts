@@ -201,10 +201,12 @@ import {
   charterOpening,
   charterSealNode,
   chartLead,
+  leadFigureOf,
   shelfTab,
   shelfTabLabel,
   shelfTechs,
   traitFaceNote,
+  wearsLeadCorner,
 } from './charterTech';
 import { priceLineFigure, techCostFor, techPriceList } from './techPrice';
 import { wantsMotion } from './motion';
@@ -782,8 +784,8 @@ interface Pass {
   ended: boolean;
   /**
    * The lead, read once a render: the technologies this seat knows that no
-   * empire it has met knows. `null` until feature B lands (batch S3); see
-   * `chartLead`.
+   * empire it has met knows (feature B, batch S3). `null` while the seat has
+   * met no rival; see `chartLead`.
    */
   lead: readonly TechId[] | null;
 }
@@ -1201,7 +1203,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       }
     }
     // **In the lead** (feature B, batch S3): no empire this seat has met knows
-    // it. `lead` is `null` until S3, so this says nothing yet.
+    // it. `lead` is `null` before the first meeting, so this says nothing then.
     if (lead !== null && lead.includes(id)) {
       box.append(
         element('p', 'info-card-state is-planned', 'In your lead: no empire you have met knows it'),
@@ -1440,8 +1442,9 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // in the same grey as ground nobody has looked at.
     card.classList.toggle('is-planned', place !== null);
     // **The gilt corner of the lead** (feature B, batch S3): a node no empire
-    // this seat has met knows. `lead` is `null` until S3, so no corner yet.
-    card.classList.toggle('is-lead', lead !== null && lead.includes(id));
+    // this seat has met knows. `lead` is `null` before the first meeting, so
+    // no corner then.
+    card.classList.toggle('is-lead', wearsLeadCorner(lead, id));
     card.disabled = !choosable;
 
     mark(face.star, face.head, researched);
@@ -2594,22 +2597,19 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   /**
    * The lead's figure in the chart's head (feature B, batch S3): "lead 4", with
    * the technologies in its title. Built once and hidden while `chartLead`
-   * answers `null`, which it does until S3 lands.
+   * answers `null`, which it does while the seat has met no rival.
    */
   const leadFigure = element('span', 'tech-lead');
   leadFigure.hidden = true;
   closeButton.before(leadFigure);
 
   function paintLead(): void {
-    const { lead } = passNow();
-    leadFigure.hidden = lead === null;
-    if (lead === null) return;
-    leadFigure.replaceChildren(element('small', undefined, 'lead'), element('b', undefined, String(lead.length)));
-    const names = lead.map((id) => techDef(id).name).join(', ');
-    leadFigure.title =
-      lead.length === 0
-        ? 'Technologies you know that no empire you have met knows: none yet'
-        : `Technologies you know that no empire you have met knows: ${names}`;
+    const figure = leadFigureOf(passNow().lead);
+    leadFigure.hidden = figure === null;
+    if (figure === null) return;
+    leadFigure.replaceChildren(element('small', undefined, 'lead'), element('b', undefined, String(figure.count)));
+    leadFigure.title = figure.title;
+    leadFigure.setAttribute('aria-label', `Lead ${figure.count}. ${figure.title}`);
   }
 
   /** What the last render drew for. See `render`. */

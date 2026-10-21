@@ -26,10 +26,14 @@ import { CHARTER_TECH_IDS, type TechId, TECH_IDS } from '../../src/sim/techData'
 import {
   SHELF_TAB_MIN_SEEN,
   type StageBox,
+  chartLead,
+  leadFigureOf,
   shelfTab,
   shelfTabLabel,
   shelfTechs,
+  wearsLeadCorner,
 } from '../../src/ui/charterTech';
+import { techLead } from '../../src/sim/rivals';
 import {
   PACK_GAP_MAX,
   SHELF_BAND,
@@ -226,16 +230,71 @@ describe('the status line', () => {
   });
 });
 
-describe('the lead waits for feature B', () => {
-  it('draws no figure and no corner until batch S3 supplies the lead', async () => {
-    const { chartLead } = await import('../../src/ui/charterTech');
+describe('the lead (feature B, batch S3)', () => {
+  /** Seat 0 has met seat 1, and knows two technologies seat 1 does not. */
+  function metGame() {
     const g = researchingGame();
+    const me = playerById(g.state, 0)!;
+    const rival = playerById(g.state, 1)!;
+    me.metSeats.push(1);
+    rival.metSeats.push(0);
+    me.techsResearched.push('earthenware', 'mining');
+    rival.techsResearched.push('mining');
+    return g;
+  }
+
+  it('shows no figure and no corner to a seat that has met no rival', () => {
+    const g = researchingGame();
+    playerById(g.state, 0)!.techsResearched.push('earthenware');
     expect(chartLead(g.state, 0)).toBeNull();
-    // The drawing already reads it, so S3 changes the one function.
+    expect(leadFigureOf(chartLead(g.state, 0))).toBeNull();
+    for (const id of [...TECH_IDS, ...CHARTER_TECH_IDS]) {
+      expect(wearsLeadCorner(chartLead(g.state, 0), id), id).toBe(false);
+    }
+  });
+
+  it('shows a seat with a lead the figure, and a corner on each node in it and no other', () => {
+    const g = metGame();
+    const lead = chartLead(g.state, 0);
+    expect(lead).toEqual(techLead(g.state, 0));
+    expect(lead).toContain('earthenware');
+    expect(lead).not.toContain('mining');
+    const figure = leadFigureOf(lead);
+    expect(figure?.count).toBe(lead!.length);
+    expect(figure?.title).toContain('Pottery');
+    for (const id of [...TECH_IDS, ...CHARTER_TECH_IDS]) {
+      expect(wearsLeadCorner(lead, id), id).toBe(lead!.includes(id));
+    }
+    expect(wearsLeadCorner(lead, 'earthenware')).toBe(true);
+    expect(wearsLeadCorner(lead, 'mining')).toBe(false);
+  });
+
+  it('keeps a charter technology in the lead, because no other empire may learn it', () => {
+    const g = metGame();
+    playerById(g.state, 0)!.techsResearched.push('casting');
+    expect(wearsLeadCorner(chartLead(g.state, 0), 'casting')).toBe(true);
+  });
+
+  it('shows the figure at nought once a rival is met and knows all this seat knows', () => {
+    const g = metGame();
+    const rival = playerById(g.state, 1)!;
+    rival.techsResearched = [...playerById(g.state, 0)!.techsResearched];
+    expect(chartLead(g.state, 0)).toEqual([]);
+    const figure = leadFigureOf(chartLead(g.state, 0));
+    expect(figure).toEqual({
+      count: 0,
+      title: 'Technologies you know that no empire you have met knows: none yet',
+    });
+  });
+
+  it('is what the chart draws: one reading a render, the figure in the head, the corner on the node', () => {
     expect(chartFunction('function beginPass(')).toContain('lead: chartLead(state, playerId)');
     expect(chartFunction('function paintNode(')).toContain(
-      "card.classList.toggle('is-lead', lead !== null && lead.includes(id));",
+      "card.classList.toggle('is-lead', wearsLeadCorner(lead, id));",
     );
-    expect(chartFunction('function paintLead(')).toContain('leadFigure.hidden = lead === null;');
+    const paint = chartFunction('function paintLead(');
+    expect(paint).toContain('const figure = leadFigureOf(passNow().lead);');
+    expect(paint).toContain('leadFigure.hidden = figure === null;');
+    expect(uiSource('style.css')).toContain('.tech-node.is-lead::after {');
   });
 });
