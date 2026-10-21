@@ -330,6 +330,8 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 
 ### D16: bot pricing
 
+**Built 2026-10-21** (`61aeda79`), merged into `decks` as `1fa700d3`. A commission is priced as its reward (a lump for a one-time reward, a rate for an institution), discounted over the turns its goal is forecast to take; it reads any deck's commissions. Knobs: `score.commission`, `score.dominion`, and `score.tallyForecast` entries for `militaryGained`, `techCompleted` and `charterTechCompleted`. **The Dominion plan is complete.**
+
 - **Builds:**
   - **A commission's price.** Today a commission scores nothing. Price it as its reward: a one-time reward as a lump, and a `lasting` reward as its effects for the rest of the game, discounted by a forecast of the turns to meet the goal from the seat's own rates. Dominion has 13 commissions, eight with an institution. S13 reuses this for the Scientific commissions.
   - Stand-in prices in `data/ai.json` for every new kind of D11 to D15: `commissionMet`, `commissionsMet`, `militaryGained`, `pillageRewards`, the aura step, `rallyToGeneral`, `garrisonWorks`, the rank on the zone-of-control rule, `vsMoreTechs`, and the draft shapes if D14 ran. The arena page shows each new knob with no page edit.

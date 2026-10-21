@@ -323,6 +323,10 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 78. (S5) The School of Mines' extra copy is added before Strategic Exports' share.
 79. (S5) The Studium Generale's neighbour must be a real Academy of yours. It also reaches building effects that read Academies, such as the Scriptorium's.
 80. (S5) `uniqueStrategicResources` and the `workingGreatWork` age term have no live rows now; `scientificLand.test.ts` pins both.
+81. (S6) `pays` has no capital-and-flat pair, so The Astronomical Diaries pays as city lines scoped to the capital, as The Honoured Dead does; its words say "in your capital".
+82. (S6) The Age of Reason runs each Order's technology rider twice, so grants, units and renown pay twice; percentages and once-a-turn riders count once; the tallies are written with an amount of 2.
+83. (S6) `fromTownPopulation` pays food and production only, by each town's population when that town is paid.
+84. (S6) `chartersDrafted` counts charter rows in the collection from the pick, researched or not.
 
 ## The batches
 
@@ -430,6 +434,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 - **Done-gate:** `npx vitest run test/sim/decks/scientificLand.test.ts test/sim/resourceCopies.test.ts test/sim/decks/expansionistLand.test.ts test/sim/decks/expansionist.test.ts test/sim/decks/dominion.test.ts test/sim/improvements.test.ts test/render/improvements3d.test.ts test/sim/decks/scientific.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts`.
 
 ### S6: the research record
+
+**Built 2026-10-21** (`544e9805`, schema 162). Readings 81 to 84 came from it. `settleResearch` now keeps a renown-only rider and settles a rider's food and production in its town at once. The `tech` goal floor for S9's The Great Instrument exists.
 
 - **Builds:** a `TallyOccasion` `techCompleted` (with an optional `tech` filter for S9) and `charterTechCompleted`; an `OccasionMeasure` `techCost`; `CountKind`s `techsKnown` and `chartersDrafted`; a grant scaled by each town's own population; the `MetaRuleId` `techCountsTwice`. Cards (11): The Royal Workshops, The Prize Essay, The Sky Watchers, The Astronomical Diaries, The Scholars' Fame, The Journeymen, The Age of Reason, The Charter Rolls, The Royal Charter Commission, The Sum of Knowledge, The Great Catalogue.
 - **Fence:** the shared six, `src/sim/tech.ts` (`settleResearch` raises the tallies), `src/sim/commissions.ts`, a new `test/sim/decks/scientificResearch.test.ts`.
