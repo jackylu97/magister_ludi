@@ -584,3 +584,15 @@ Commerce has no Doctrines yet, so none falls outside a theme. They come after yo
 9. **The deck's size:** 78 seatable cards and 2 charters. *Recommended: keep it for now and cut by hand on the list.* If you want it smaller, these are the next five cuts, weakest first: The Neutral Flag, Strategic Exports, Frontier Investment, Mining Districts, The Admiralty of Trade.
 
 After your answers: every card onto the sheet as `add` and `modify` rows, with the Type column, then Commerce's Doctrines, then the triage for the build.
+
+## 11. The user's revision, 2026-10-21
+
+The user, after reading the pass, verbatim: *"ok we need to do another pass - commerce has a bunch of trade route reliant cards that appear too early. Please fold in trade route related abilities to age 2, some of them probably should be cut if there are too many after moving them. Commerce needs some early cards that help settling, building markets, and generally good abilities to help them develop cities and infrastructure. Maybe include one card that grants gold per citizen and 1-2 per city bonuses for both wide/tall commerce players in the early game."*
+
+What it asks:
+1. **Trade-route cards move later.** **Reading, to confirm:** "age 2" means **Tier II**. Order tiers open by draft count alone (`docs/flags.md` (eeeeeee)), so Tier I can arrive before Currency, the age-2 technology that opens routes; the user's own note says they reached a high tier "on turn 29, not even age 2 yet". So no card that needs a trade route to pay is dealt before Tier II. Cards that read routes leave Tiers 0 and I.
+2. **Cut some** if Tier II is too crowded after the move.
+3. **New early cards (Tiers 0 and I)** that help a Commerce seat settle, build Markets, and develop its towns and infrastructure: generally good abilities, not route cards.
+4. **One card that grants gold per citizen**, and **one or two per-town bonuses**, so both a wide and a tall Commerce seat have an early card.
+
+Section 12 records how the revision applies this.
