@@ -550,3 +550,52 @@ The user, verbatim: *"how about this, lets do a smaller bonus, +1 in tier 0 and 
 - **The strength bonus is small:** +1 for a Tier 0 charter's versions, +2 for a Tier II charter's. Reading taken, to confirm: +3 for the Tier III and IV charters (the Alchemists' and the Naval Gunners').
 - **Every version also gets an interesting ability,** on top of the bonus.
 - **The ability stays when the unit upgrades.** So the bonus and the ability belong to the unit's line, not to one unit row: a Catapult line improved by Mechanics keeps its ability as Trebuchet and beyond. This answers the open question of what happens to a version when its line's next unit arrives.
+
+## 14. Rulings on the review page, 2026-10-21
+
+The user commented on 18 rows of the review page (https://claude.ai/artifact/UWXhWQ3Rfz9Bkmg8VTmZjS, version 4, built from commit `0a186aad`), then: *"ok i've made comments, let's implement."* The comments are verbatim. Where a comment needs a reading, the reading is marked and waits for the user's confirmation; the build uses it until then.
+
+### The charters
+
+| Charter | The user | What changes |
+|---|---|---|
+| The Herbalists' Charter (0) | *"physic garden: can be built once per city on flat land with fresh water access. +2 science +2 happiness"* | The Physic Garden pays +2 science and +2 happiness, and a town may have one. It is the deck's one source of happiness: the user's ruling outranks "it stays out of civic life". |
+| The Glassmakers' Charter (I) | *"have this unlock a new building, instead of granting access earlier"* | Optics opens a new building (below), not the Observatory early. |
+| The Librarians' Charter (I) | *"have this unlock a new building, instead of granting access earlier"* | Cataloguing opens a new building (below), not the Forum and the Great Library early. |
+| The Printers' Charter (II) | *"have this unlock a new building, instead of granting access earlier. keep the +1 trade route"* | Printing opens a new building (below), not the Printing House early. It keeps +1 trade route. |
+| The Mechanists' Charter (II) | *"no combat strength bonus"* | The Onager trait gives +1 range and no strength. The Repeating Crossbow trait lets the unit move after it shoots, and gives no strength. |
+| The Gunfounders' Charter (III) | *"+4 strength"* | Units gained in the Tophane's town start with +4 strength, not +8. |
+| The Alchemists' Charter (III) | *"+1"* | **Reading, to confirm:** the Grenadier trait gives +1, not +3, and still +1 for each charter technology you know. The user's two comments beside it set strength figures, so "+1" reads as a figure, not as agreement. |
+| The Hermetic Charter (III) | *"remove this, not very impactful. interesting ability though"* | Cut. |
+| The Experimenters' Charter (IV) | *"remove"* | Cut. The Great Experiment's rule, merged into it, goes with it. |
+
+### The three new buildings (proposed by Claude, to confirm)
+
+Only the charter's holder can build them. The numbers are first guesses.
+- **The Specularium** (the Glassmakers' Charter, Optics), a city building: +1 science, and +1 food for every three citizens of its town. Great cities, supply: it feeds the tall town. Flavour: the Roman glass houses that grew cucumbers for Tiberius all year.
+- **The Mouseion** (the Librarians' Charter, Cataloguing), an empire building: +1 science and +1 culture for each empire building you hold, itself included. Institutions, multiply: it is the theme's scaler at Tier I. Flavour: the house of scholars beside the Library of Alexandria.
+- **The Aldine Press** (the Printers' Charter, Printing), a city building: +2 culture, and trade routes from its town gain +2 science and +2 culture. Great cities, widen, with the Commerce pair. Flavour: the press of Aldus Manutius in Venice, whose small books went out with the merchants.
+
+### The cards
+
+| Card | The user | What changes |
+|---|---|---|
+| The Palace Archive (0) | *"remove, makes the pacing of the game weird"* | Cut. |
+| The Royal Estates (I) | *"change: each empire building provides +2 food and +2 production"* | New text: "Each empire building gives its town +2 food and +2 production." A town with two (The Second Seat) gains both. |
+| The Second Seat (III) | *"love this one"* | Kept. |
+| The Great Designs (II) | *"too strong. how about: if you are the only one with the technology to build a wonder, gain 30% production when building it."* | New text: "Your towns build a wonder 30% faster while no empire you have met knows the technology that opens it." **Reading, to confirm:** "the only one" counts the empires you have met, as feature B does, so the card shows nothing hidden. It uses feature B, not a new early-access shape. |
+| The Fellowships (III) | *"remove"* | Cut. Feature A keeps one Scientific card, The Scholars' Guild. |
+| The Edge of the Sword (I) | *"this card probably won't see play (too 'win more'). How about: +3 strength on units against empires who've researched fewer technologies than you."* | New text: "Your units gain +3 strength against the units of an empire that knows fewer technologies than you." Feature B. **Reading, to confirm:** barbarians are not an empire, so the line never applies against them. |
+| The Assay (I) | *"change: +2 science on strategic resource tiles, shared with expansionist."* | New text: "Hexes with a strategic resource gain +2 science." It becomes a shared Expansionist · Scientific card. **Reading, to confirm:** like any hex yield, it pays when a citizen works the hex, and only for a resource the seat can see. |
+| The Companions (II) | *"remove"*, then *"lets change to: your units stationed in a city gain +5 combat strength and supply +2 science. shared with dominion"* | New text: "Your military units in your towns gain +5 strength, and each supplies +2 science." It becomes a shared Dominion · Scientific card. **Readings, to confirm:** a unit "stationed in a city" is a military unit standing in one of your own towns, and the +5 applies to any fight it takes from there. The old name no longer fits; proposed: **The Soldier-Scholars**. |
+| The Strategikon (II) | *"remove too strong, swap with: Units gain +4 strength if they stand within two tiles of a great general, great scholar or an academy."* | New text: "Your units gain +4 strength while within two hexes of your great general, your great scholar or your Academy." New shape: a strength line that reads your great people and works nearby. **Reading, to confirm:** only your own great people and Academies count. |
+
+### What the rulings leave
+
+- **Cards:** the exclusive seatable cards go from 68 to 64 (two cut, two moved to the shared cards), and the charters from 15 to 13. Tier 0 holds 9 seatable cards: 1 Military, 3 Economic, 5 Civic.
+- **The cost** now shows in The Free Cities, The Quiet Faculties and the charter premium. The Companions no longer carries it.
+- **Feature B** is now read by six Scientific cards: The Secret Arts, The Translation Movement, The Edge of the Sword, The Great Designs, Greek Fire and The Proving Ground. **Feature A** by one, The Scholars' Guild.
+- **Shapes no longer needed:** empire buildings and wonders early in the capital (The Palace Archive, the old Great Designs), the share cap on the trades (The Fellowships), science as an Opus contribution (the Experimenters'), Alchemy's parent waiver (the Hermetic), and the second way into the Observatory, the Forum, the Great Library and the Printing House.
+- **Shapes added:** one work of a kind per town, and happiness from a work (the Physic Garden); a strength line against an empire that knows fewer technologies; production toward a wonder whose technology no met empire knows; units in your own towns as a count; a strength line that reads your great people and Academies within two hexes.
+- **Not commented, so unchanged:** the Surveyors' Charter still opens the Aqueduct before Engineering, The Forward Plans still opens a University early, and The Prototype Works still builds the current research's rows.
+- **Still open:** whether a charter technology counts toward an empire's age (section 12, item 2; working assumption no), and where the charter technologies sit on the user's chart (item 6).
