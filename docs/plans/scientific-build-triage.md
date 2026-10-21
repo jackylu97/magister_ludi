@@ -299,6 +299,10 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 54. S11 retires the twelve deferred rows the sheet cut on 2026-10-06, as well as the ten live rows. Alternative: leave them deferred; they are not dealt, so nothing in play changes.
 56. The Mouseion's 30% is a cost line, `explainBuildingCost`'s own, read from a row field such as `costPercent: 30`, so the row still carries a size and no figure. Alternative: one size larger, which is not 30%.
 55. The Schoolmen's Charter waits for the Devotion pass. Its "the Apostle before Theology" opens a unit early, which the ruling of section 12 may reach.
+57. (S0) `TECH_IDS` stays the fifty sky rows. `ALL_TECH_IDS` (63) is every row and `CHARTER_TECH_IDS` (13) the charter rows, so the chart's pins do not move.
+58. (S0) The Patent Office's `charterPremium` is a percentage of the premium, so −100 removes it and −50 would halve it.
+59. (S0) `gameProgress` (the tile price) counts ordinary technologies only.
+60. (S0) `src/ai/value.ts` prices the two new rules at 0 until S13.
 
 ## The batches
 
@@ -311,6 +315,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 **The card batches follow the two plan docs,** which hold the user's rulings. They do not edit `docs/decks/scientific.md`; S11 rewrites it.
 
 ### S0: the charter technologies
+
+**Built 2026-10-21** (`fa650736`, schema 152). Readings 57 to 60 came from it. Notes for later batches: the validators in `improvementData.ts` and `resourceData.ts` use `TECH_IDS.includes`, so S4 and S5 must move them to `isTechId` before a row may require a charter technology; the `n/total` status line in `techTree.ts` counts charter technologies in the first number but not the total (S10).
 
 - **Builds:**
   - A marker `TechDef.charter?: true`, and a register test that the marked rows are exactly `charteredTechIds()`. `techData.ts` stays a leaf: it reads its own marker and imports nothing from `statecraftData.ts`.
