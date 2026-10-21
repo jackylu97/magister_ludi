@@ -2414,6 +2414,24 @@
         }
       ]
     },
+    "theCuraAquarum": {
+      "name": "The Cura Aquarum",
+      "decks": ["expansionist"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "The water board in the capital sends the water down every road it built.",
+      "text": "Towns joined to your capital by road count as having an Aqueduct.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "holdsBuilding",
+          "building": "aqueduct",
+          "scope": { "test": "connected" }
+        }
+      ]
+    },
     "theLandsGreatWork": {
       "name": "The Land's Great Work",
       "decks": ["expansionist"],

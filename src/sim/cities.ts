@@ -193,6 +193,9 @@ import { cardBehaviorRule, cardUnitCostLines } from './statecraft/evaluator';
 // works standing on this empire's deposits, from the evaluator for the same
 // reason.
 import { cardDepositWorkCopies } from './statecraft/evaluator';
+// Expansionist batch E12: what a town holds, a card's grants included, from the
+// evaluator for the same reason.
+import { townShelf } from './statecraft/evaluator';
 // Ranks: a leaf over the rule book, the unit table and the state.
 import { type RankId, grantExperience, raiseToRank, rankThreshold } from './ranks';
 import {
@@ -2946,7 +2949,9 @@ export interface GrowthPercentLine {
  */
 export function explainGrowthPercent(state: GameState, city: City): GrowthPercentLine[] {
   const lines: GrowthPercentLine[] = [];
-  const dry = !cityHasFreshwater(state, city) && !cityIsWatered(city);
+  // What the town holds (`townShelf`, Expansionist batch E12), so an
+  // Aqueduct The Cura Aquarum gives a town waters it as a built one does.
+  const dry = !cityHasFreshwater(state, city) && !cityIsWatered(townShelf(state, city));
   if (dry && CITIES.drySettlePercent !== 0) {
     lines.push({ source: 'No fresh water', percent: CITIES.drySettlePercent });
   }
@@ -5098,7 +5103,8 @@ export function realiseItem(
   // ledger with no line to sit under. See `Unit.upkeepRebate`.
   if (!options.free) {
     let rebate = 0;
-    for (const line of buildingUnitUpkeepRebate(city)) rebate += line.amount;
+    // What the town holds (`townShelf`, Expansionist batch E12).
+    for (const line of buildingUnitUpkeepRebate(townShelf(state, city))) rebate += line.amount;
     if (rebate > 0) unit.upkeepRebate = rebate;
   }
   // **The mirror, stamped where the piece is made** (batch B2, `UnitDef.mirrors`).

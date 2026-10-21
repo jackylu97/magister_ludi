@@ -146,7 +146,7 @@ then the food surplus a card moves into production.
 | 5 | **The specialists** — `citySpecialistYields` | the town's guilds (a substitution for a hex left, never a bonus) | additive | — |
 | 6 | **The routes arriving** — `cityRouteYields` | each caravan's *origin* buildings; five voices, never faith; a route run **by sea** carries `rules.trade.seaYieldPercent` as a line of its own fold, after the cards' shares and before their amplifiers | additive | — |
 | 7 | **The palace** — `explainPalaceYield` | the seat of government — its coin, and since 2026-09-08 a beaker and a note; empty in every town but one | additive | — |
-| 8 | **The buildings** — `explainCityBuildings` | `city.buildings` in build order, plus each row's per-citizen science | additive | — |
+| 8 | **The buildings** — `explainCityBuildings` | the town's buildings (`townBuildings`: what it built, in build order, then any a card says it holds), plus each row's per-citizen science | additive | — |
 | 9 | **The cards' building shares** — `explainCardBuildingYields` | the block above, **plus what the law put on each building by name** (`cardLinesOnBuilding`) | multiplicative *within the step*, lands as a flat | — |
 | 10 | **The conversions** — `cardYieldConversions` | the **running flats** of one voice, paid again as another | multiplicative *within the step*, lands as a flat | — |
 | 11 | **The percent list** — `cityYieldPercents` (+ `productionModifiers` via `foldCityStages`) | the meter tiers, the luxuries', the cards', the arrears | gathered, never applied | city and empire |

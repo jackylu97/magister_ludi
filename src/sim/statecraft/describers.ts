@@ -1861,6 +1861,15 @@ function describeEffect(
       return;
     }
     case 'rule': {
+      // **A town that counts as holding a building** (Expansionist batch E12,
+      // The Cura Aquarum). The towns come first, as the card says them, and the
+      // building is named as a keyword.
+      if (effect.rule === 'holdsBuilding' && effect.building !== undefined) {
+        out.push({
+          text: `${scopeWordsFor(subject, effect.scope)} counts as having ${buildingWords(effect.building)}`,
+        });
+        return;
+      }
       // **A rule about one building names it** (batch C7, Caravanserai Cities).
       // The stem in the table has a slot for the row's name rather than the
       // name baked in, so the words come from the building table exactly as
@@ -6311,6 +6320,10 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   fieldsTended: 'the named works also count as tended land for your cards, but not as wild land',
   workMountains: 'your cities may work the mountains in their borders',
   widerReach: 'citizens may work owned hexes one ring beyond the usual reach',
+  // Expansionist batch E12, The Cura Aquarum. The row names the building and
+  // the `rule` arm says it by name with the row's towns; this is the sentence
+  // for a row that names none, which grants nothing.
+  holdsBuilding: 'your cities count as having the named building',
   // Dominion batch D8: The Soldiers' Share, The Servian Reforms and Combined
   // Arms (`BehaviorRuleId`).
   noFounding: 'you can no longer found new cities',

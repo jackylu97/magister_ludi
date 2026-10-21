@@ -144,6 +144,8 @@ import {
 // Straight from the evaluator: the drill phase (Dominion batch D1), and the
 // harvest that runs in it (Dominion batch D7).
 import { drillUnits, harvestEnemyHexes } from "./statecraft/evaluator";
+// Expansionist batch E12: what a town holds, a card's grants included.
+import { townShelf } from "./statecraft/evaluator";
 import { returnLeviedCitizens } from "./levies";
 import { runRoadJoinings } from "./roadJoinings";
 import { runEncroachment, runMigrations } from "./frontiers";
@@ -1099,7 +1101,8 @@ function keepHeal(state: GameState, unit: Unit): number {
     if (city.ownerId !== unit.ownerId) continue;
     const seat = getTileAt(state.map, city.col, city.row);
     if (!seat || wrappedDistance(state.map, eye, tileHex(seat)) > 1) continue;
-    for (const line of buildingAdjacentHeal(city)) total += line.amount;
+    // What the town holds (`townShelf`, Expansionist batch E12).
+    for (const line of buildingAdjacentHeal(townShelf(state, city))) total += line.amount;
   }
   return total;
 }

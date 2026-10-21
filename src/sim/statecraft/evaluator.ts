@@ -1479,13 +1479,17 @@ const ONE_OF_A_KIND = ANY_EMPIRE_BUILDING;
  * walk, and reading it from both ends would pay it twice in the town it stands
  * in. `oneOfAKind` is the one predicate both walks ask, so the two can never
  * disagree about which rows they are dividing between them.
+ *
+ * The town's buildings are `townBuildings` (Expansionist batch E12): a building
+ * a card says the town holds pays its own effects here as a built one does, so
+ * The Cura Aquarum's Aqueduct adds its growth in every joined town.
  */
 function cityBuildingEffects(state: GameState, city: City): LiveCardEffect[] {
   const list: LiveCardEffect[] = [];
   const push = (card: CardId, word: string, effects: readonly CardEffect[]): void => {
     pushEffects(state, city.ownerId, list, card, word, effects, push);
   };
-  for (const id of city.buildings) {
+  for (const id of townBuildings(state, city)) {
     if (oneOfAKind(id)) continue;
     const effects = buildingDef(id).effects;
     if (effects === undefined || effects.length === 0) continue;
@@ -1996,9 +2000,11 @@ function isFrontierCity(state: GameState, city: City, radius: number): boolean {
  * disagreeing about what a culture house is. The shelf is
  * `BuildingDef.category`, the one word every row declares.
  */
-function buildingsOfCategoryIn(city: City, category: BuildingCategory): number {
+function buildingsOfCategoryIn(state: GameState, city: City, category: BuildingCategory): number {
   let here = 0;
-  for (const id of city.buildings) {
+  // What the town holds (`townBuildings`, Expansionist batch E12), so a
+  // building a card grants counts on its shelf.
+  for (const id of townBuildings(state, city)) {
     if (buildingDef(id).category === category) here += 1;
   }
   return here;
@@ -2170,11 +2176,15 @@ export function cityScopeAdmits(
       return held.length > 0;
     }
     case 'hasBuilding': {
-      if (!city.buildings.includes(scope.building)) return false;
+      // What the town holds (`townHoldsBuilding`, Expansionist batch E12), so
+      // a town The Cura Aquarum gives an Aqueduct is a town with an Aqueduct
+      // to every card that asks.
+      if (!townHoldsBuilding(state, city, scope.building)) return false;
       if (scope.standingTurns === undefined) return true;
       // **The stamp, through the one reading** (`buildingAge`, `state.ts`): an
       // absolute turn subtracted from this one, so nothing ticks. A row on the
       // shelf with no stamp cannot be shown to be old enough and admits nothing.
+      // A building a card grants was never raised, so it has no stamp either.
       const age = buildingAge(state, city, scope.building);
       return age !== undefined && age >= scope.standingTurns;
     }
@@ -2191,7 +2201,7 @@ export function cityScopeAdmits(
       // The shelf counted through the one walk `CountKind`'s own
       // `buildingsOfCategory` takes, so a card paid *per* culture house and a
       // card admitted *for having* two of them count the same houses.
-      return buildingsOfCategoryIn(city, scope.category) >= scope.atLeast;
+      return buildingsOfCategoryIn(state, city, scope.category) >= scope.atLeast;
     case 'workingImprovement': {
       // **The assignment, not the borders** — `City.workedTiles`, so the line
       // moves the turn a governor moves a citizen. Asked through the hex's own
@@ -2255,7 +2265,8 @@ export function cityScopeAdmits(
     case 'hasBuildingYielding':
       // Asked of what a row *does*, off its own six voices, so a retuned library
       // moves the scope with it. `wonder: true` is Hero of Alexandria's half.
-      return city.buildings.some(
+      // Over what the town holds (`townBuildings`, Expansionist batch E12).
+      return townBuildings(state, city).some(
         (id) =>
           (scope.wonder !== true || isWonder(id)) &&
           buildingSupplies(state, city, id, scope.yields),
@@ -2837,8 +2848,9 @@ export function countOf(
       // Omen Reading. "Buildings that supply science" is read off the building
       // rows — flat science or science per citizen — so a retune of the library
       // moves the rite with it, and a new science building joins for free.
+      // Over what the town holds (`townBuildings`, Expansionist batch E12).
       let total = 0;
-      for (const id of city.buildings) {
+      for (const id of townBuildings(state, city)) {
         const def = buildingDef(id);
         if ((def.science ?? 0) > 0 || (def.sciencePerPop ?? 0) > 0) total += 1;
       }
@@ -2849,18 +2861,23 @@ export function countOf(
       // Maximus' barracks and Notre-Dame's temples. A row with no `building` is
       // a data error rather than "count everything": it would silently pay per
       // *city*, which is a count that already exists.
+      //
+      // A town counts when it holds the building (`townHoldsBuilding`,
+      // Expansionist batch E12), so a town a card gives an Aqueduct counts for
+      // a card that counts Aqueducts.
       const wanted = effect.building;
       if (wanted === undefined) return 0;
-      if (effect.within === 'city') return city?.buildings.includes(wanted) ? 1 : 0;
+      if (effect.within === 'city') return city && townHoldsBuilding(state, city, wanted) ? 1 : 0;
       let total = 0;
       for (const town of state.cities) {
         if (town.ownerId !== playerId) continue;
-        if (town.buildings.includes(wanted)) total += 1;
+        if (townHoldsBuilding(state, town, wanted)) total += 1;
       }
       return total;
     }
     case 'buildingsInCity':
-      return city ? city.buildings.length : 0;
+      // What the town holds (`townBuildings`, Expansionist batch E12).
+      return city ? townBuildings(state, city).length : 0;
     case 'workedTilesInCity':
       return city ? city.workedTiles.length : 0;
     case 'workedUnimprovedTiles': {
@@ -2979,12 +2996,12 @@ export function countOf(
         // Through the one walk, which `CityScope`'s own `buildingsOfCategory`
         // also asks — see `buildingsOfCategoryIn`.
         if (!city) return 0;
-        return buildingsOfCategoryIn(city, wanted);
+        return buildingsOfCategoryIn(state, city, wanted);
       }
       let total = 0;
       for (const town of state.cities) {
         if (town.ownerId !== playerId) continue;
-        total += buildingsOfCategoryIn(town, wanted);
+        total += buildingsOfCategoryIn(state, town, wanted);
       }
       return total;
     }
@@ -3019,13 +3036,14 @@ export function countOf(
       // `buildingsOfCategory` with a list rather than a word — The Long Count's
       // science *and* faith houses. An empty or absent list counts nothing, for
       // that count's stated reason: a question that never said which buildings
-      // must not quietly answer "all of them".
+      // must not quietly answer "all of them". Over what each town holds
+      // (`townBuildings`, Expansionist batch E12).
       const wanted = effect.categories;
       if (wanted === undefined || wanted.length === 0) return 0;
       if (effect.within === 'city') {
         if (!city) return 0;
         let here = 0;
-        for (const id of city.buildings) {
+        for (const id of townBuildings(state, city)) {
           if (wanted.includes(buildingDef(id).category)) here += 1;
         }
         return here;
@@ -3033,7 +3051,7 @@ export function countOf(
       let total = 0;
       for (const town of state.cities) {
         if (town.ownerId !== playerId) continue;
-        for (const id of town.buildings) {
+        for (const id of townBuildings(state, town)) {
           if (wanted.includes(buildingDef(id).category)) total += 1;
         }
       }
@@ -3077,9 +3095,10 @@ export function countOf(
       // strength a besieger has to beat (`cityStat.defense`) or the bar it has
       // to empty (`cityHp`) — so a watchtower added to the table joins The Long
       // Watch for free and no list of names is kept anywhere. One reading,
-      // `isFortification`, which The Burhs' production bonus asks too.
+      // `isFortification`, which The Burhs' production bonus asks too. Over
+      // what the town holds (`townBuildings`, Expansionist batch E12).
       let total = 0;
-      for (const id of city.buildings) {
+      for (const id of townBuildings(state, city)) {
         if (isFortification(id)) total += 1;
       }
       return total;
@@ -3418,10 +3437,11 @@ export function countOf(
     case 'distinctBuildingCategories': {
       // `buildingsInCity` counting shelves instead of roofs — wonders and empire
       // buildings included, for that count's stated reason: a marvel is a
-      // building, and the court is paid for what the town has raised.
+      // building, and the court is paid for what the town has raised. Over
+      // what the town holds (`townBuildings`, Expansionist batch E12).
       if (!city) return 0;
       const shelves: BuildingCategory[] = [];
-      for (const id of city.buildings) {
+      for (const id of townBuildings(state, city)) {
         const shelf = buildingDef(id).category;
         if (!shelves.includes(shelf)) shelves.push(shelf);
       }
@@ -3550,10 +3570,11 @@ export function countOf(
       // Expansionist batch E11, The Public Good: the public works standing in
       // this empire's towns, off each town's own `buildings` list, so pay
       // follows the stones. `within: 'city'` narrows it to one town, as it
-      // narrows `empireBuildings`.
+      // narrows `empireBuildings`. What each town holds (`townBuildings`,
+      // Expansionist batch E12), so a held Aqueduct is a public work you hold.
       const walk = (town: City): number => {
         let here = 0;
-        for (const id of town.buildings) {
+        for (const id of townBuildings(state, town)) {
           if (isPublicWork(id)) here += 1;
         }
         return here;
@@ -3618,7 +3639,9 @@ function followingCount(
       // is the same question asked at the other scale.
       foreignPopulation += city.population;
     }
-    if (effect.building !== undefined && city.buildings.includes(effect.building)) {
+    // What the town holds (`townHoldsBuilding`, Expansionist batch E12), for
+    // its owner's law.
+    if (effect.building !== undefined && townHoldsBuilding(state, city, effect.building)) {
       withBuilding += 1;
     }
     // **The town, once, however many marvels stand in it** — the count is of
@@ -3630,7 +3653,7 @@ function followingCount(
     // following city. A line naming no category counts nothing, which is the
     // count's own stated answer for a question that never said which.
     if (effect.category !== undefined) {
-      for (const id of city.buildings) {
+      for (const id of townBuildings(state, city)) {
         if (buildingDef(id).category === effect.category) shelved += 1;
       }
     }
@@ -3975,12 +3998,13 @@ export function explainCardCityYields(state: GameState, city: City): CardYieldLi
   // it lands before Entry XVII's percentages: a mirrored beaker is worth what a
   // library's beaker is worth, and staging it twice would be paying a science
   // bonus on faith. The sum is the buildings' own figures and never the town's
-  // total — see `CardPaysEffect`.
+  // total — see `CardPaysEffect`. Over what the town holds (`townBuildings`,
+  // Expansionist batch E12).
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'pays')) {
     if (effect.basis !== 'mirror' || effect.from === undefined || !paysAVoice(effect)) continue;
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
     let mirrored = 0;
-    for (const id of city.buildings) {
+    for (const id of townBuildings(state, city)) {
       const def = buildingDef(id);
       if (def.category !== effect.category) continue;
       mirrored += def[effect.from] ?? 0;
@@ -9838,6 +9862,115 @@ export function cardGarrisonSeats(state: GameState, city: City): number {
   return Math.min(garrisonOf(state, city).length, cap);
 }
 
+// --- what a town holds --------------------------------------------------------
+
+/** One building a card says a town holds, and the card that says so. */
+export interface HeldBuilding {
+  building: BuildingId;
+  card: CardId;
+  /** The card's live label, "Order · The Cura Aquarum". */
+  source: string;
+}
+
+/**
+ * Raised while `cardHeldBuildings` asks a row's scope. A scope that asks what
+ * a town holds then reads only what the town built, so a row scoped on its own
+ * building cannot ask this function for the answer it is computing. It is the
+ * cut `conditionDepth` and `suppliesDepth` make, one question over.
+ */
+let heldDepth = 0;
+
+/**
+ * **The buildings a card says this town holds, that it did not build**
+ * (Expansionist batch E12, The Cura Aquarum: the `holdsBuilding` city rule).
+ * The only reader of the rule.
+ *
+ * Each live row of the owner names a building and a scope. A row adds its
+ * building when:
+ *
+ *   · the building is not a wonder or an empire building. Those are read from
+ *     the empire's own walk (`buildLiveEffects`), which may not ask the law it
+ *     is building, so a card cannot grant one;
+ *   · the town did not build it. A building the town built is already held;
+ *   · no earlier row granted it;
+ *   · the row's scope admits the town. The Cura Aquarum's scope is
+ *     `connected`, which never admits the capital (the triage's reading 33).
+ *
+ * In the order of the owner's live list, so the answer is a fact about the
+ * state. Not remembered: the `connected` scope reads the roads, and a road is
+ * not announced on the slate. A seat that holds no such row pays one walk of
+ * its memoised rules.
+ */
+export function cardHeldBuildings(state: GameState, city: City): HeldBuilding[] {
+  if (heldDepth > 0) return [];
+  const rows = effectsOfKind(state, city.ownerId, 'rule');
+  let any = false;
+  for (const { effect } of rows) {
+    if (effect.rule === 'holdsBuilding' && effect.building !== undefined) {
+      any = true;
+      break;
+    }
+  }
+  if (!any) return [];
+  const list: HeldBuilding[] = [];
+  heldDepth += 1;
+  try {
+    for (const { source, card, effect } of rows) {
+      if (effect.rule !== 'holdsBuilding') continue;
+      const id = effect.building;
+      if (id === undefined || oneOfAKind(id)) continue;
+      if (city.buildings.includes(id)) continue;
+      if (list.some((held) => held.building === id)) continue;
+      if (effect.scope !== undefined && !cityScopeAdmits(state, city, effect.scope)) continue;
+      list.push({ building: id, card, source });
+    }
+  } finally {
+    heldDepth -= 1;
+  }
+  return list;
+}
+
+/**
+ * **The buildings this town holds, for what they do** (Expansionist batch E12,
+ * the triage's reading 33). What the town built (`City.buildings`, in build
+ * order), then each building a card says it holds (`cardHeldBuildings`).
+ *
+ * The one reading of a town's buildings for their effects. Every reader of a
+ * building's effect asks this or `townHoldsBuilding`: the building's own
+ * effects (`cityBuildingEffects`), its water and its other markers (the
+ * readings in `buildingEffects.ts`, which are handed this list), its lines in
+ * the town fold (`explainCityBuildings`, `productionModifiers`, the ground's
+ * lines in `cityContext`), and the card scopes and counts that ask what a
+ * town holds. The readers of what was built keep reading `City.buildings`:
+ * score, maintenance, triumphs, wagers, purchase, the build list, the
+ * completion moment and a building's age. `test/sim/decks/expansionistCura.test.ts`
+ * pins both lists.
+ *
+ * The town's own array when no card grants anything, which is every town in a
+ * game where nobody holds such a card.
+ */
+export function townBuildings(state: GameState, city: City): readonly BuildingId[] {
+  const held = cardHeldBuildings(state, city);
+  if (held.length === 0) return city.buildings;
+  return [...city.buildings, ...held.map((entry) => entry.building)];
+}
+
+/** **Does this town hold this building, for what it does?** See `townBuildings`. */
+export function townHoldsBuilding(state: GameState, city: City, id: BuildingId): boolean {
+  return townBuildings(state, city).includes(id);
+}
+
+/**
+ * `townBuildings` in the shape the readings of `buildingEffects.ts` are asked
+ * of (`BuildingShelf`). That file is a leaf and cannot ask the cards, so every
+ * caller in the simulation hands it this. The town itself when no card grants
+ * it anything.
+ */
+export function townShelf(state: GameState, city: City): { buildings: readonly BuildingId[] } {
+  const buildings = townBuildings(state, city);
+  return buildings === city.buildings ? city : { buildings };
+}
+
 /**
  * **How many hexes this ship raids at the end of its owner's turn** (Dominion
  * batch D14, The Longships: the `shoreRaid` rule, the triage's reading 35), or
@@ -10443,13 +10576,15 @@ export interface CardPressureSource {
  *
  * It follows the stones like every other wonder reading: a captured Hagia Sophia
  * presses for its captor's faith the turn the town changes hands, because this
- * asks the town's `buildings` list and nothing else.
+ * asks the town's `buildings` list and nothing else. What the town holds
+ * (`townBuildings`, Expansionist batch E12), so a building a card grants
+ * presses as a built one does.
  */
 export function cardPressureSources(state: GameState, playerId: number): CardPressureSource[] {
   const out: CardPressureSource[] = [];
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    for (const id of city.buildings) {
+    for (const id of townBuildings(state, city)) {
       for (const effect of buildingDef(id).effects ?? []) {
         if (effect.kind !== 'pressure') continue;
         const pressure: CardPressureEffect = effect;

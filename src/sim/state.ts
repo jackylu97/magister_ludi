@@ -2215,8 +2215,27 @@ import {
  * pools hold two more cards, and The Topping Out pays different towns for a
  * different building, so its hands and its towns differ. The branch migrates
  * nothing, for the reason given under v119.
+ *
+ * v168 (branch `decks`; Expansionist batch E12, `docs/plans/expansionist-
+ * themes-triage.md`): **The Cura Aquarum.** No field joins the state. A new
+ * city rule, `holdsBuilding`, says that the towns its scope admits hold its
+ * building. The rule that changes:
+ *
+ *   · The Cura Aquarum (a new Tier III Order): every town joined to the
+ *     capital by road counts as having an Aqueduct. The town gains what an
+ *     Aqueduct does (its growth, its water) and counts as having one for every
+ *     card that asks. It does not count for what was built: score, upkeep,
+ *     triumphs, wagers, buying, the build list or finishing one.
+ *
+ * The one reading of what a town holds is `townBuildings`
+ * (`statecraft/evaluator.ts`). With no such card seated it is the town's own
+ * list, so a game with no seat holding the card plays as it did.
+ *
+ * **A v167 save is refused and does not replay.** An Expansionist seat's
+ * pools hold one more card, so its hands differ. The branch migrates nothing,
+ * for the reason given under v119.
  */
-export const SCHEMA_VERSION = 167;
+export const SCHEMA_VERSION = 168;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

@@ -206,6 +206,8 @@ import {
   unslotOrderError,
 } from './statecraft';
 import type { WindfallOccasionFacts } from './statecraft/evaluator';
+// Expansionist batch E12: what a town holds, a card's grants included.
+import { townShelf } from './statecraft/evaluator';
 import {
   type LevyUse,
   type OrderId,
@@ -2660,7 +2662,8 @@ function applySetCityProduction(
   // Asked of the queue that would stand, so a town under the floor is a town
   // that cannot be *left* under it; a queue already short of it (the Hall was
   // captured, or finished while one row stood) may still be edited upward.
-  const floor = cityQueueFloor(city);
+  // The office is what the town holds (`townShelf`, Expansionist batch E12).
+  const floor = cityQueueFloor(townShelf(state, city));
   if (queue.length < floor && queue.length < city.queue.length) {
     return fail(queueFloorRefusal(city, floor));
   }

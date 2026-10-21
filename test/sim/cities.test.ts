@@ -1633,13 +1633,13 @@ describe('city yields', () => {
     const granary = buildingDef('granary');
 
     const before = foldCity(state, city).food;
-    expect(explainCityBuildings(city)).toHaveLength(1);
+    expect(explainCityBuildings(state, city)).toHaveLength(1);
 
     // The two nodes that used to renew the jar, learnt one after the other.
     for (const tech of ['theWheel', 'irrigation'] as const) {
       state.players[0]!.techsResearched.push(tech);
       bumpRevision(state);
-      const entries = explainCityBuildings(city);
+      const entries = explainCityBuildings(state, city);
       expect(entries.map((entry) => entry.source)).toEqual([granary.name]);
       expect(entries[0]!.food).toBe(granary.food);
       expect(foldCity(state, city).food).toBe(before);
@@ -1650,7 +1650,7 @@ describe('city yields', () => {
     const theirs = plant(state, 1, 12, 5);
     theirs.buildings = ['granary'];
     bumpRevision(state);
-    expect(explainCityBuildings(theirs)).toEqual(explainCityBuildings(city));
+    expect(explainCityBuildings(state, theirs)).toEqual(explainCityBuildings(state, city));
   });
 
   /**
@@ -3500,7 +3500,10 @@ describe('determinism with cities', () => {
     // two more Expansionist Orders come live and The Topping Out pays every
     // town for an empire building, so a v166 log's Expansionist hands and
     // towns differ.
-    expect(SCHEMA_VERSION).toBe(167);
+    // 168 since Expansionist batch E12 (The Cura Aquarum): one more
+    // Expansionist Order comes live, so a v167 log's Expansionist hands
+    // differ.
+    expect(SCHEMA_VERSION).toBe(168);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

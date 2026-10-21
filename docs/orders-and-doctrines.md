@@ -443,6 +443,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Sovereign Writ | 3 | ○ | S | Spare authority's bonus to production and border growth has no ceiling: +10% for every five points. |
 | The Imperial Roads | 3 | ○ | S | Towns joined to your capital by road cost no authority. |
 | The Capitolia | 3 | ◆ | P | Each empire building you hold gives each of your towns +1 culture. |
+| The Cura Aquarum | 3 | ○ | S | Towns joined to your capital by road count as having an Aqueduct. |
 | The Garden of the World | 4 | ○ | S | Needs tended land. Tended tiles gain +2 food, +1 production and +1 culture. Towns working at least six tended tiles gain +3 happiness. |
 | The Heartland | 4 | ○ | S | Goal: one of your towns works twelve improved or tended tiles that each yield 5 or more in total. Reward: for the rest of the game that town costs no authority and gains +3 happiness and +20% food. The card then leaves its chair. |
 | The Corvée | 4 | ○ | S | While one of your cities builds the Magnum Opus, each of your other towns of at least ten citizens may spend one citizen for it, once every five turns. The Opus city gains production equal to the food that citizen took to grow. This shares the town's levy limit. |

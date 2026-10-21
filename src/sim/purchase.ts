@@ -117,6 +117,8 @@ import {
   settleCultureWindfall,
   windfallPayout,
 } from './statecraft';
+// Expansionist batch E12: what a town holds, a card's grants included.
+import { townBuildings, townShelf } from './statecraft/evaluator';
 import { buildError, gatingTech, hasTech, isUnlocked, settleResearchWindfall } from './tech';
 import { techDef } from './techData';
 import { type UnitTypeId, isCivilian, isUnitTypeId, unitDef } from './unitData';
@@ -597,7 +599,9 @@ function faithBankOpen(
      * shelf decides, never what a thing costs.
      */
     if (isWonder(item.id)) {
-      return cityBuysWondersWithFaith(city) || faithFinishesWonder(state, city, item.id);
+      return (
+        cityBuysWondersWithFaith(townShelf(state, city)) || faithFinishesWonder(state, city, item.id)
+      );
     }
     // **The Devotion deck's laws** (`faithBuysBuildings`, scoped to the towns
     // the card names): every ordinary building, never the row that ends the game.
@@ -621,7 +625,8 @@ function faithBankOpen(
   // bucket that gets stamped cannot disagree about what a civilian is. Any one
   // building in the town may open the bank, which is why this is a walk and not
   // a fold: a Reliquary beside an Almshouse sells everything, as both rows say.
-  for (const id of city.buildings) {
+  // What the town holds (`townBuildings`, Expansionist batch E12).
+  for (const id of townBuildings(state, city)) {
     const opens = buildingDef(id).faithPurchases;
     if (opens === undefined) continue;
     if (opens === 'civilian' && !isCivilian(unitDef(item.id))) continue;
@@ -702,7 +707,8 @@ function applyRiders(
   // that stopped at one bank's door; assayers weigh coin, and an augur called
   // out of the faith pool never passes them.
   const city = currency === 'gold' ? at : undefined;
-  const built = city ? buildingPurchaseDiscount(city) : [];
+  // What the town holds (`townShelf`, Expansionist batch E12).
+  const built = city ? buildingPurchaseDiscount(townShelf(state, city)) : [];
   if (riders.length === 0 && built.length === 0) return;
   let percent = 0;
   for (const rider of riders) percent += rider.percent;
@@ -1050,7 +1056,8 @@ function clausesBeforeTheBank(
     isWonder(bought.id) &&
     !(
       currency === 'faith' &&
-      (cityBuysWondersWithFaith(city) || faithFinishesWonder(state, city, bought.id))
+      (cityBuysWondersWithFaith(townShelf(state, city)) ||
+        faithFinishesWonder(state, city, bought.id))
     ) &&
     !(currency === 'gold' && cardActionRule(state, playerId, 'goldBuysWonders'))
   ) {
@@ -1275,8 +1282,9 @@ function clausesBeforeTheBank(
   // (`purchaseItemAt`), so a town at the floor with the thing already queued is
   // refused until it lines up something else — the buy is not forbidden, it is
   // *not yet* affordable in rows. A row the queue does not hold takes nothing
-  // out of it and is never refused here.
-  const floor = cityQueueFloor(city);
+  // out of it and is never refused here. The office is what the town holds
+  // (`townShelf`, Expansionist batch E12).
+  const floor = cityQueueFloor(townShelf(state, city));
   if (
     floor > 0 &&
     city.queue.length <= floor &&

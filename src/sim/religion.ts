@@ -152,6 +152,8 @@ import {
 // asked by `riteTeachingCard`. Straight from the evaluator, as `levies.ts`
 // imports its readings, so the index needs no new line.
 import { effectsGrantAbility } from './statecraft/evaluator';
+// Expansionist batch E12: what a town holds, a card's grants included.
+import { townHoldsBuilding, townShelf } from './statecraft/evaluator';
 import { hasAbility, hasTech } from './tech';
 import { type TechId, eraNumeral, highestAge, techDef } from './techData';
 import type { BuildingId } from './buildingData';
@@ -1765,7 +1767,8 @@ function payRiteAtOnce(
  */
 function payRiteBuildings(state: GameState, player: Player, city: City): number {
   if (city.ownerId !== player.id) return 0;
-  const paid = buildingRitePay(city);
+  // What the town holds (`townShelf`, Expansionist batch E12).
+  const paid = buildingRitePay(townShelf(state, city));
   if (paid <= 0) return 0;
   player.culturePool += paid;
   // The banks are a line of the meters too (batch M3, `slate.ts`).
@@ -3284,7 +3287,12 @@ export function placeRelicError(
   if (!city || city.ownerId !== playerId) {
     return 'A relic is left in one of your own cities';
   }
-  if (!cityKeepsRelics(city)) return `${city.name} has no cathedral to keep a relic in`;
+  // The shelf is what the town holds (`townShelf`, Expansionist batch E12).
+  // Whether a relic already stands here is what an act placed, so it reads the
+  // town's own list.
+  if (!cityKeepsRelics(townShelf(state, city))) {
+    return `${city.name} has no cathedral to keep a relic in`;
+  }
   if (city.buildings.includes(RELIC)) return `${city.name} already keeps a relic`;
   return null;
 }
@@ -3683,7 +3691,8 @@ export function explainPressure(
   const here = getTileAt(state.map, city.col, city.row);
   if (!here) return lines;
   const eye = tileHex(here);
-  const hasTemple = city.buildings.includes(TEMPLE);
+  // What the town holds (`townHoldsBuilding`, Expansionist batch E12).
+  const hasTemple = townHoldsBuilding(state, city, TEMPLE);
   // One fill for the whole town rather than one per religion: which towns this
   // one is joined to by road is a fact about the board, not about a faith.
   const byRoad = roadReach(state, city);
@@ -4027,7 +4036,8 @@ export function templeShare(
   founder: number = religionFounder(state, religion),
 ): number {
   const shielded = rivalShare(state, city, religion, amount);
-  if (!city.buildings.includes(TEMPLE)) return shielded;
+  // What the town holds (`townHoldsBuilding`, Expansionist batch E12).
+  if (!townHoldsBuilding(state, city, TEMPLE)) return shielded;
   const rules = RULES.religion;
   const percent =
     cityReligion(city) === religion.id

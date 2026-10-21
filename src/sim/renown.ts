@@ -73,6 +73,9 @@ import {
   realPlayers,
 } from './state';
 import { cardCityRenownShares, cardEmpireRenownShares, cardRenownLines } from './statecraft';
+// Expansionist batch E12: what a town holds, a card's grants included.
+import { townShelf } from './statecraft/evaluator';
+import type { BuildingShelf } from './buildingEffects';
 import { triumphDef } from './triumphData';
 import { awardCountTriumphs } from './triumphs';
 
@@ -126,7 +129,8 @@ export function explainRenown(state: GameState, playerId: number): RenownLine[] 
   const lines: RenownLine[] = [];
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    for (const line of explainCityRenown(city, cardCityRenownShares(state, city))) lines.push(line);
+    const shares = cardCityRenownShares(state, city);
+    for (const line of explainCityRenown(city, shares, townShelf(state, city))) lines.push(line);
     // And what its guilds pay back (Entry XLVIII). *Beside* the buildings rather
     // than inside `explainCityRenown`, and the separation is load-bearing: that
     // list is what fills this town's guild bar, and a specialist feeding the bar
@@ -221,14 +225,20 @@ export function explainRenown(state: GameState, playerId: number): RenownLine[] 
  * two shares on one town must buy two shares rather than compounding. A share's
  * line names **no family**, `resourceRenown`'s construction: the pool grows and
  * the feed record that weights the draw does not.
+ *
+ * `shelf` is the town's buildings (Expansionist batch E12), handed in for the
+ * reason `shares` is: the callers with an empire hand `townShelf`, so a
+ * building a card says the town holds pays its renown. A caller passing none
+ * reads what the town built.
  */
 export function explainCityRenown(
   city: City,
   shares: readonly { source: string; percent: number }[] = [],
+  shelf: BuildingShelf = city,
 ): RenownLine[] {
   const lines: RenownLine[] = [];
   for (const id of BUILDING_IDS) {
-    if (!city.buildings.includes(id)) continue;
+    if (!shelf.buildings.includes(id)) continue;
     const renown = buildingDef(id).renown;
     if (renown === undefined || renown.perTurn === 0) continue;
     lines.push({

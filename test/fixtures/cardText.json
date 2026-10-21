@@ -4983,6 +4983,12 @@
     "text": "+1 culture in every city per empire building you hold"
    }
   ],
+  "theCuraAquarum": [
+   {
+    "raw": "every city joined to your capital by road counts as having an [[building:aqueduct|Aqueduct]]",
+    "text": "every city joined to your capital by road counts as having an Aqueduct"
+   }
+  ],
   "theLandsGreatWork": [
    {
     "raw": "+5% production toward [[building:theMagnumOpus|The Magnum Opus]] per city of 8 or more citizens (at most +40%)",

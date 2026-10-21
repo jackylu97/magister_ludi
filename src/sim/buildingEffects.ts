@@ -29,6 +29,16 @@
  * Cities are walked in `state.cities` order — founding order, and the order
  * every other sweep in the game uses — so the list a player reads this turn is
  * the list they read last turn with one more line on it.
+ *
+ * **Each reading is asked of a shelf**: anything holding a list of buildings
+ * (Expansionist batch E12). The simulation hands it `townShelf(state, city)`
+ * (`statecraft/evaluator.ts`): what the town built, plus what a card says it
+ * holds (The Cura Aquarum's Aqueduct). This file cannot ask the cards itself
+ * and stay a leaf, so the caller asks and hands the answer down, as
+ * `buildingHappiness` is handed the cards' own lines. A `City` is a shelf
+ * too, of what it built, which is what the bot's and the interface's callers
+ * still pass. `test/sim/decks/expansionistCura.test.ts` pins that every caller
+ * in `src/sim` hands `townShelf` or `townBuildings`.
  */
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from './buildingData';
@@ -52,6 +62,14 @@ export interface BuildingMeterLine {
    * and its figure are unchanged.
    */
   cards?: { card: CardId; amount: number }[];
+}
+
+/**
+ * What a reading here is asked of: a town's buildings. The simulation passes
+ * `townShelf(state, city)`. See the module docblock.
+ */
+export interface BuildingShelf {
+  buildings: readonly BuildingId[];
 }
 
 /** One line of what a building adds to its own city's defence or sight. */
@@ -82,17 +100,23 @@ export interface BuildingCityStatLine {
  * A card's line may light a row that pays nothing itself — a temple's own
  * happiness is zero — so the zero test is asked of the **sum**, after the grants
  * are folded, or the belief would have paid nothing at all.
+ *
+ * `shelfOf` gives each town's buildings (Expansionist batch E12). The meter
+ * hands `townBuildings`, so a building a card says a town holds pays here as a
+ * built one does. A caller passing none reads what each town built.
  */
 export function buildingHappiness(
   state: GameState,
   playerId: number,
   granted: readonly CardBuildingHappinessLine[] = [],
+  shelfOf: (city: City) => readonly BuildingId[] = (city) => city.buildings,
 ): BuildingMeterLine[] {
   const list: BuildingMeterLine[] = [];
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
+    const shelf = shelfOf(city);
     for (const id of BUILDING_IDS) {
-      if (!city.buildings.includes(id)) continue;
+      if (!shelf.includes(id)) continue;
       let amount = buildingDef(id).happiness ?? 0;
       const cards: string[] = [];
       const paidBy: { card: CardId; amount: number }[] = [];
@@ -121,7 +145,7 @@ export function buildingHappiness(
  * happened to build them.
  */
 export function buildingCityStat(
-  city: City,
+  city: BuildingShelf,
   stat: 'defense' | 'sight',
 ): BuildingCityStatLine[] {
   const list: BuildingCityStatLine[] = [];
@@ -155,7 +179,7 @@ export function buildingCityStat(
  * `cityMaxHp`'s. A `City` satisfies the shape, so every existing caller is
  * unchanged.
  */
-export function buildingCityHp(city: { buildings: readonly BuildingId[] }): BuildingCityStatLine[] {
+export function buildingCityHp(city: BuildingShelf): BuildingCityStatLine[] {
   const list: BuildingCityStatLine[] = [];
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id)) continue;
@@ -185,7 +209,7 @@ export function buildingCityHp(city: { buildings: readonly BuildingId[] }): Buil
  * (`statecraft.ts`) is the board's question and is untouched by anything built,
  * so an aqueduct feeds this city's people and still waters nobody's fields.
  */
-export function cityIsWatered(city: City): boolean {
+export function cityIsWatered(city: BuildingShelf): boolean {
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id)) continue;
     if (buildingDef(id).waters === true) return true;
@@ -227,9 +251,7 @@ export function buildingsIrrigate(buildings: readonly BuildingId[]): boolean {
  * row when it somehow holds two — a walk in `BUILDING_IDS` order, the table's
  * own, so two stables never resolve by `City.buildings`' insertion order.
  */
-export function buildingRestoresMovementOn(city: {
-  buildings: readonly BuildingId[];
-}): ImprovementId | undefined {
+export function buildingRestoresMovementOn(city: BuildingShelf): ImprovementId | undefined {
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id)) continue;
     const ground = buildingDef(id).restoresMovementOn;
@@ -252,7 +274,7 @@ export function buildingRestoresMovementOn(city: {
  * the bank that opens and the refusal that lifts cannot disagree about which
  * town has the shafts.
  */
-export function cityBuysWondersWithFaith(city: { buildings: readonly BuildingId[] }): boolean {
+export function cityBuysWondersWithFaith(city: BuildingShelf): boolean {
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id)) continue;
     if (buildingDef(id).faithBuysWonders === true) return true;
@@ -277,7 +299,7 @@ export function cityBuysWondersWithFaith(city: { buildings: readonly BuildingId[
  * rolls until it stands, which is what makes the Hall reachable — a queue of one
  * would otherwise be a queue the reducer could never accept.
  */
-export function cityQueueFloor(city: City): number {
+export function cityQueueFloor(city: BuildingShelf): number {
   let floor = 0;
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id)) continue;
@@ -329,7 +351,7 @@ export const PLACED_BUILDING: BuildingId | undefined = BUILDING_IDS.find(
  * is then two readings of the board and no register at all: this, and whether
  * the placed row is already on the shelf.
  */
-export function cityKeepsRelics(city: City): boolean {
+export function cityKeepsRelics(city: BuildingShelf): boolean {
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id)) continue;
     if (buildingDef(id).consecrated === true) return true;
@@ -357,9 +379,7 @@ export function cityKeepsRelics(city: City): boolean {
  * have to read `BuildingDef.healsAdjacent` itself — a second opinion about the
  * Keep beside `healUnits`'. A `City` satisfies the shape, so no caller moved.
  */
-export function buildingAdjacentHeal(city: {
-  buildings: readonly BuildingId[];
-}): BuildingCityStatLine[] {
+export function buildingAdjacentHeal(city: BuildingShelf): BuildingCityStatLine[] {
   const list: BuildingCityStatLine[] = [];
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id)) continue;
@@ -383,9 +403,7 @@ export function buildingAdjacentHeal(city: {
  * Asked of a list of buildings rather than of the town, `buildingCityHp`'s
  * widening (batch X8) — the appraisal prices the Assay House before it stands.
  */
-export function buildingPurchaseDiscount(city: {
-  buildings: readonly BuildingId[];
-}): BuildingCityStatLine[] {
+export function buildingPurchaseDiscount(city: BuildingShelf): BuildingCityStatLine[] {
   const list: BuildingCityStatLine[] = [];
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id)) continue;
@@ -414,7 +432,7 @@ export function buildingPurchaseDiscount(city: {
  * Asked of a list of buildings rather than of the town, `buildingCityHp`'s
  * widening (batch X8): the appraisal asks what a court *would* forgive.
  */
-export function buildingDemandRelief(city: { buildings: readonly BuildingId[] }): number {
+export function buildingDemandRelief(city: BuildingShelf): number {
   let percent = 0;
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id)) continue;
@@ -435,7 +453,7 @@ export function buildingDemandRelief(city: { buildings: readonly BuildingId[] })
  * Asked of a list of buildings rather than of the town, `buildingCityHp`'s
  * widening (batch X8): the appraisal asks what a Chapel *would* pay the augurs.
  */
-export function buildingRitePay(city: { buildings: readonly BuildingId[] }): number {
+export function buildingRitePay(city: BuildingShelf): number {
   let total = 0;
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id)) continue;
@@ -458,9 +476,7 @@ export function buildingRitePay(city: { buildings: readonly BuildingId[] }): num
  * appraisal prices the Throne before it stands, and the alternative was the bot
  * reading `BuildingDef.unitUpkeepRebate` — a second opinion about the payroll.
  */
-export function buildingUnitUpkeepRebate(city: {
-  buildings: readonly BuildingId[];
-}): BuildingCityStatLine[] {
+export function buildingUnitUpkeepRebate(city: BuildingShelf): BuildingCityStatLine[] {
   const list: BuildingCityStatLine[] = [];
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id)) continue;
@@ -483,7 +499,7 @@ export function buildingUnitUpkeepRebate(city: {
  * labelled line with the building's name on it. Walked in `BUILDING_IDS`
  * order, the table's own, like every other reading here.
  */
-export function buildingsEasingUnrest(city: { buildings: readonly BuildingId[] }): BuildingId[] {
+export function buildingsEasingUnrest(city: BuildingShelf): BuildingId[] {
   const list: BuildingId[] = [];
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id)) continue;
@@ -524,7 +540,7 @@ export function foldBuildingCityStat(list: readonly BuildingCityStatLine[]): num
  * not over the two arrays.
  */
 export function buildingTileLines(
-  city: City,
+  city: BuildingShelf,
   techs: readonly TechId[],
   hypothetical: readonly BuildingId[] = [],
 ): TileLine[] {

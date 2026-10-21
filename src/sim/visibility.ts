@@ -52,6 +52,8 @@
 import { buildingCityStat, foldBuildingCityStat } from './buildingEffects';
 import { type Hex, hexDistance } from './hex';
 import { cardCityStat, cardUnitStat, foldCityStat } from './statecraft';
+// Expansionist batch E12: what a town holds, a card's grants included.
+import { townShelf } from './statecraft/evaluator';
 import { hasLineOfSight } from './los';
 import { type GameMap, type Tile, getTileAt, mapRange, tileHex, tileIndex } from './map';
 import { RULES } from './rulesData';
@@ -264,8 +266,9 @@ export function sightSources(state: GameState, playerId: number): SightSource[] 
         VIS.citySight +
           foldCityStat(cardCityStat(state, city, 'sight')) +
           // And whatever the town has *built* that watches, through the same
-          // hook. Two tables, one radius — see `buildingEffects.ts`.
-          foldBuildingCityStat(buildingCityStat(city, 'sight')),
+          // hook. Two tables, one radius — see `buildingEffects.ts`. What the
+          // town holds (`townShelf`, Expansionist batch E12).
+          foldBuildingCityStat(buildingCityStat(townShelf(state, city), 'sight')),
       ),
     });
   }

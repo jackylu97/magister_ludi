@@ -61,6 +61,8 @@ import {
   removeUnit,
 } from './state';
 import { cardBehaviorRule } from './statecraft';
+// Expansionist batch E12: what a town holds, a card's grants included.
+import { townShelf } from './statecraft/evaluator';
 import { layRoadUnder } from './roads';
 // A leaf with no runtime imports of its own, so this edge cannot make a cycle.
 import { type TraderPlunder, settleTraderPlunder } from './trade';
@@ -406,7 +408,7 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
       town &&
       town.ownerId === unit.ownerId &&
       tile.improvement !== undefined &&
-      buildingRestoresMovementOn(town) === tile.improvement
+      buildingRestoresMovementOn(townShelf(state, town)) === tile.improvement
     ) {
       unit.movesLeft = fullMovement(unit, state);
     }

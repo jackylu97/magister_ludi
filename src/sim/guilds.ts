@@ -74,6 +74,9 @@ import { type City, type GameState, hasEndedTurn } from './state';
 // never at load time, so the edge back through `cities.ts` stays a
 // function-level one (`test/mapgen/moduleCycles.test.ts`).
 import { cardRulePercent } from './statecraft/evaluator';
+// Expansionist batch E12: what a town holds, a card's grants included.
+import { townShelf } from './statecraft/evaluator';
+import type { BuildingShelf } from './buildingEffects';
 import type { TurnReport } from './turn';
 
 const GUILDS = RULES.cities.guilds;
@@ -141,7 +144,8 @@ export interface GuildInflowLine {
  */
 export function explainGuildInflow(state: GameState, city: City): GuildInflowLine[] {
   const lines: GuildInflowLine[] = [];
-  for (const line of explainCityRenown(city)) {
+  // What the town holds (`townShelf`, Expansionist batch E12).
+  for (const line of explainCityRenown(city, [], townShelf(state, city))) {
     if (line.family === null || line.family === 'general') continue;
     lines.push({ source: line.source, amount: line.amount });
   }
@@ -226,10 +230,16 @@ export function cityGuildInflow(state: GameState, city: City): number {
  * whichever family happened to sort first. The share is the *reason*, the inflow
  * is the *rate*, and only the reason may name a family.
  */
-export function guildShares(city: City): Record<SpecialistFamily, number> {
+export function guildShares(
+  city: City,
+  shelf: BuildingShelf = city,
+): Record<SpecialistFamily, number> {
   const shares = {} as Record<SpecialistFamily, number>;
   for (const family of SPECIALIST_FAMILIES) shares[family] = 0;
-  for (const line of explainCityRenown(city)) {
+  // `shelf` is the town's buildings (Expansionist batch E12): `runGuilds`
+  // hands `townShelf`, as `explainGuildInflow` does, so the bar and the
+  // family it pays agree on what the town holds.
+  for (const line of explainCityRenown(city, [], shelf)) {
     if (line.family === null || line.family === 'general') continue;
     shares[line.family] += line.amount;
   }
@@ -249,8 +259,8 @@ export function guildShares(city: City): Record<SpecialistFamily, number> {
  * with no renown building in any specialist family never converts, however full
  * its bar. Pure — no `Rng`, no board.
  */
-export function nextGuildFamily(city: City): SpecialistFamily | null {
-  const shares = guildShares(city);
+export function nextGuildFamily(city: City, shelf: BuildingShelf = city): SpecialistFamily | null {
+  const shares = guildShares(city, shelf);
   let best: SpecialistFamily | null = null;
   for (const family of SPECIALIST_FAMILIES) {
     const share = shares[family];
@@ -350,7 +360,7 @@ export function runGuilds(state: GameState, report?: TurnReport): void {
       // specialist count and the idle count, so a second one this turn is judged
       // by the town the first one left behind.
       if (!canFormGuild(city, idleCitizens(state, city))) break;
-      const family = nextGuildFamily(city);
+      const family = nextGuildFamily(city, townShelf(state, city));
       // No family has a claim: the bar keeps its bank and waits for a building
       // to name a trade. See the module docblock's first gate.
       if (family === null) break;

@@ -304,7 +304,9 @@
 import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
 import { blockadedWaterAround, blockades } from './blockade';
 import { type BuildingId, BUILDING_IDS, buildingDef, isWonder } from './buildingData';
-import { buildingCityHp, buildingCityStat } from './buildingEffects';
+import { type BuildingShelf, buildingCityHp, buildingCityStat } from './buildingEffects';
+// Expansionist batch E12: what a town holds, a card's grants included.
+import { townShelf } from './statecraft/evaluator';
 import {
   assignCitizens,
   cityAt,
@@ -1083,7 +1085,7 @@ export function cityBaseStrength(state: GameState, city: City): number {
 export function cityWallsStrength(state: GameState, city: City): number {
   let total = cityBaseStrength(state, city);
   for (const line of cardCityStat(state, city, 'defense')) total += line.amount;
-  for (const line of buildingCityStat(city, 'defense')) total += line.amount;
+  for (const line of buildingCityStat(townShelf(state, city), 'defense')) total += line.amount;
   return total;
 }
 
@@ -1162,10 +1164,14 @@ export function strikeTownsNear(
  * are read). A wonder's stones pay whichever town holds them, so a captured
  * capital keeps the Walls of Uruk's hit points under its new flag with no
  * bookkeeping at all — Entry XXX's rule, unchanged.
+ *
+ * `shelf` is the town's buildings (Expansionist batch E12). The simulation
+ * hands `townShelf`, so walls a card says the town holds count. A caller
+ * passing none (the interface, the bot) reads what the town built.
  */
-export function explainCityMaxHp(city: City): CityStrengthLine[] {
+export function explainCityMaxHp(city: City, shelf: BuildingShelf = city): CityStrengthLine[] {
   const lines: CityStrengthLine[] = [{ source: 'Walls', amount: COMBAT.cityBaseHp }];
-  for (const line of buildingCityHp(city)) lines.push(line);
+  for (const line of buildingCityHp(shelf)) lines.push(line);
   return lines;
 }
 
@@ -1173,10 +1179,10 @@ export function explainCityMaxHp(city: City): CityStrengthLine[] {
  * A city's maximum hit points. The fold, and **the** answer — every place hit
  * points move asks it rather than `COMBAT.cityBaseHp`, so a town that builds a
  * palisade is deeper the same turn and one that is captured is capped by what it
- * actually holds.
+ * actually holds. `shelf` as in `explainCityMaxHp`.
  */
-export function cityMaxHp(city: City): number {
-  return foldCityLines(explainCityMaxHp(city));
+export function cityMaxHp(city: City, shelf: BuildingShelf = city): number {
+  return foldCityLines(explainCityMaxHp(city, shelf));
 }
 
 /**
@@ -1187,8 +1193,8 @@ export function cityMaxHp(city: City): number {
  * building today, but a future pillage that did would otherwise leave a town
  * standing above a bar that had shrunk under it.
  */
-function clampCityHp(city: City): void {
-  const max = cityMaxHp(city);
+function clampCityHp(city: City, shelf: BuildingShelf): void {
+  const max = cityMaxHp(city, shelf);
   if (city.hp > max) city.hp = max;
   if (city.hp < 1) city.hp = 1;
 }
@@ -2009,7 +2015,7 @@ function planCombat(
       ? target.city.hp
       : unitHp(target.unit!, unitHealthBonus(state, target.unit!.ownerId)),
     targetMaxHp: target.city
-      ? cityMaxHp(target.city)
+      ? cityMaxHp(target.city, townShelf(state, target.city))
       : unitMaxHp(target.unit!, unitHealthBonus(state, target.unit!.ownerId)),
     // **The piece on the other side**, whichever side is asking — Lautaro's "+3
     // vs mounted". Absent when the thing opposite is a city, which has no
@@ -2256,7 +2262,7 @@ function planCombat(
     // Two tables, one list: the forecast itemises a palisade exactly as it
     // itemises Frontier Forts, and `bonusFor` folds both without knowing which
     // is which.
-    for (const line of buildingCityStat(target.city, 'defense')) {
+    for (const line of buildingCityStat(townShelf(state, target.city), 'defense')) {
       bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
     }
     // **The town's own half**, and it is a fold like everything else: the
@@ -2269,7 +2275,7 @@ function planCombat(
     for (const line of own) defenderLines.push({ source: line.source, amount: line.amount });
     defenderName = target.city.name;
     defenderHp = target.city.hp;
-    defenderMaxHp = cityMaxHp(target.city);
+    defenderMaxHp = cityMaxHp(target.city, townShelf(state, target.city));
   } else {
     const defenderUnit = target.unit!;
     const defenderDef = unitDef(defenderUnit.type);
@@ -3519,8 +3525,9 @@ function captureCity(state: GameState, city: City, ownerId: number): void {
   // — buildings survive a capture, so the walls a conqueror inherits are the
   // walls the town was defended with. Clamped afterwards anyway, because the
   // fraction is data and a designer may set it above 1.
-  city.hp = Math.max(1, Math.round(cityMaxHp(city) * COMBAT.cityCaptureHpFraction));
-  clampCityHp(city);
+  const shelf = townShelf(state, city);
+  city.hp = Math.max(1, Math.round(cityMaxHp(city, shelf) * COMBAT.cityCaptureHpFraction));
+  clampCityHp(city, shelf);
   // The Taken. In the mechanism beside the change of hands, for
   // `awardFoundingTriumphs`' reason: capturing a town is one thing that happens
   // in one place, and an AI that storms a city earns what a player would.
@@ -3974,9 +3981,10 @@ export function healCities(state: GameState, report?: { sieges: SiegeReport[] })
     // the standing rule (one archer must not be able to hold a town at a
     // point forever) is about that town, not this one.
     if (cityBeatenDown(city) && enemyAtTheGate(state, city, field)) continue;
-    const max = cityMaxHp(city);
+    const shelf = townShelf(state, city);
+    const max = cityMaxHp(city, shelf);
     if (city.hp >= max) {
-      clampCityHp(city);
+      clampCityHp(city, shelf);
       continue;
     }
     city.hp = Math.min(max, city.hp + amount);

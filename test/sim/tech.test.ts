@@ -1708,7 +1708,10 @@ describe('research in the log', () => {
     // two more Expansionist Orders come live and The Topping Out pays every
     // town for an empire building, so a v166 log's Expansionist hands and
     // towns differ.
-    expect(SCHEMA_VERSION).toBe(167);
+    // 168 since Expansionist batch E12 (The Cura Aquarum): one more
+    // Expansionist Order comes live, so a v167 log's Expansionist hands
+    // differ.
+    expect(SCHEMA_VERSION).toBe(168);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

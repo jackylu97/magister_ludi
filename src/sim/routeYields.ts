@@ -52,6 +52,8 @@ import {
 } from './routes';
 import type { City, GameState, Unit } from './state';
 import { cardAmplifier, cardRouteShareLines, cardRouteYieldLines } from './statecraft';
+// Expansionist batch E12: what a town holds, a card's grants included.
+import { townBuildings } from './statecraft/evaluator';
 
 const TRADE = RULES.trade;
 const ABROAD = RULES.trade.international;
@@ -275,7 +277,11 @@ export function explainRouteYieldBetween(
   // (`buildingsPerFood`/`buildingsPerProduction`, 2 as ruled). The line still
   // names the buildings counted, because that is the figure a player can check
   // against the origin's own sheet.
-  const foodBuildings = buildingsInCategories(from.buildings, FOOD_CATEGORIES);
+  //
+  // The origin's buildings are what it holds (`townBuildings`, Expansionist
+  // batch E12), so a building a card says the town holds is carried too.
+  const shelf = townBuildings(state, from);
+  const foodBuildings = buildingsInCategories(shelf, FOOD_CATEGORIES);
   const food = Math.floor(foodBuildings / Math.max(1, Math.floor(TRADE.buildingsPerFood)));
   if (food > 0) {
     lines.push(
@@ -283,7 +289,7 @@ export function explainRouteYieldBetween(
     );
   }
 
-  const hammerBuildings = buildingsInCategories(from.buildings, PRODUCTION_CATEGORIES);
+  const hammerBuildings = buildingsInCategories(shelf, PRODUCTION_CATEGORIES);
   const hammers = Math.floor(
     hammerBuildings / Math.max(1, Math.floor(TRADE.buildingsPerProduction)),
   );

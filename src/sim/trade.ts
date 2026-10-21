@@ -168,6 +168,8 @@ import {
   settleCultureWindfall,
   windfallPayout,
 } from './statecraft';
+// Expansionist batch E12: what a town holds, a card's grants included.
+import { townBuildings } from './statecraft/evaluator';
 import { type UnitTypeId, trades, unitDef } from './unitData';
 import { fullMovement } from './units';
 // The two halves that had to leave (2026-08-28). `cities.ts` folds a caravan's
@@ -571,7 +573,8 @@ export function explainRouteSlots(state: GameState, playerId: number): RouteSlot
   const lines: RouteSlotLine[] = [];
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    for (const id of city.buildings) {
+    // What the town holds (`townBuildings`, Expansionist batch E12).
+    for (const id of townBuildings(state, city)) {
       const def = buildingDef(id);
       const slots = def.routeSlots;
       if (slots !== undefined && slots !== 0) {

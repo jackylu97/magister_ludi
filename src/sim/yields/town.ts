@@ -70,6 +70,9 @@ import { surplusMoverFor } from '../statecraft/evaluator';
 // itself. `combat.ts` imports `cities.ts`, which imports this module back; the
 // edge is function-level, so nothing here reads it while modules load.
 import { cardOpusSiegeBy } from '../statecraft/evaluator';
+// Expansionist batch E12: what a town holds, a card's grants included, straight
+// from the evaluator for the reason above.
+import { townBuildings } from '../statecraft/evaluator';
 import { siegeField, underSiege } from '../combat';
 import { type TileYieldContribution, cityContext, explainTileYield, foldTile, foldTileLines } from './hex';
 import { foldStageSums } from './stages';
@@ -332,26 +335,31 @@ export function explainBuildingYield(id: BuildingId): BuildingYieldContribution[
 }
 
 /**
- * Every line every building in this city pays, in `city.buildings` order —
- * which is the order they were *built*, so the list a player reads this turn is
- * the list they read last turn with one more group on it.
+ * Every line every building in this city pays, in `townBuildings` order — the
+ * order they were *built*, so the list a player reads this turn is the list
+ * they read last turn with one more group on it, then any building a card says
+ * the town holds (Expansionist batch E12, The Cura Aquarum's Aqueduct).
  *
  * `hypothetical` is `foldCity`'s preview hook, carried through so that "what
  * would a library be worth here" is explained by the same list it is totalled
- * from. A candidate the city already has is skipped, exactly as it is there.
+ * from. A candidate the city already holds is skipped, exactly as it is there.
  *
- * **No `state`, since the renewals axe** (2026-09-04): the only thing the empire
- * was ever asked for here was the technologies that renewed a building, and
- * nothing renews one any more. See `explainBuildingYield`.
+ * **`state` only for what the town holds.** Since the renewals axe
+ * (2026-09-04) the empire is asked nothing about a building's worth: a
+ * building pays what its row says in every empire. What the empire's cards may
+ * change is *which* buildings the town holds (`townBuildings`), and that is
+ * the one question `state` is here for.
  */
 export function explainCityBuildings(
+  state: GameState,
   city: City,
   hypothetical: readonly BuildingId[] = [],
 ): BuildingYieldContribution[] {
   const list: BuildingYieldContribution[] = [];
-  for (const id of city.buildings) list.push(...explainBuildingYield(id));
+  const held = townBuildings(state, city);
+  for (const id of held) list.push(...explainBuildingYield(id));
   for (const id of hypothetical) {
-    if (city.buildings.includes(id)) continue;
+    if (held.includes(id)) continue;
     list.push(...explainBuildingYield(id));
   }
   return list;
@@ -393,7 +401,7 @@ export function explainCardBuildingYields(
   const shares = cardBuildingPercents(state, city);
   if (shares.length === 0) return [];
   const byCard = new Map<CardBuildingPercentLine, BuildingPreviewLine>();
-  for (const entry of explainCityBuildings(city, hypothetical)) {
+  for (const entry of explainCityBuildings(state, city, hypothetical)) {
     // The building's own figure, per voice — the row's flats plus the per-citizen
     // beaker, exact exactly as `explainCity` is exact, so the share is taken of the
     // number the town actually banks — **plus what the law put on this building
@@ -779,8 +787,11 @@ export function productionModifiers(
   // same predicate: two answers to "is this a ship" is how a slipway and a card
   // start disagreeing about a trireme.
   const unitType = toward.kind === 'unit' && isUnitTypeId(toward.id) ? toward.id : undefined;
+  // What the town holds (`townBuildings`, Expansionist batch E12), and the
+  // candidate a preview counts as if it stood.
+  const held = townBuildings(state, city);
   for (const id of BUILDING_IDS) {
-    if (!city.buildings.includes(id) && !hypothetical.includes(id)) continue;
+    if (!held.includes(id) && !hypothetical.includes(id)) continue;
     const bonus = buildingDef(id).productionBonus;
     if (bonus === undefined || bonus.percent === 0 || bonus.category !== category) continue;
     if (bonus.class !== undefined) {
@@ -1539,7 +1550,7 @@ export function explainCity(
   // worth is read — a candidate the city already has is skipped in there, because
   // a preview that promised a second library would be a preview that lies. A
   // wonder is told from an ordinary building by `isWonder` and not by a name.
-  for (const entry of explainCityBuildings(city, hypothetical)) {
+  for (const entry of explainCityBuildings(state, city, hypothetical)) {
     say(
       8,
       entry.source,

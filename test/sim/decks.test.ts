@@ -535,8 +535,9 @@ describe('the schema, as landed', () => {
     // **And Expansionist batch E11** (public works and empire buildings): two
     // more. The Aediles and The Public Good are new rows. The Topping Out was
     // changed in place and was already live.
-    expect(live).toBe(536);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(536);
+    // **And Expansionist batch E12** (The Cura Aquarum): one more, a new row.
+    expect(live).toBe(537);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(537);
   });
 
   /**
@@ -834,7 +835,10 @@ describe('the schema, as landed', () => {
     // two more Expansionist Orders come live and The Topping Out pays every
     // town for an empire building, so a v166 log's Expansionist hands and
     // towns differ.
-    expect(SCHEMA_VERSION).toBe(167);
+    // 168 since Expansionist batch E12 (The Cura Aquarum): one more
+    // Expansionist Order comes live, so a v167 log's Expansionist hands
+    // differ.
+    expect(SCHEMA_VERSION).toBe(168);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

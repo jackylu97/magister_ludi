@@ -65,6 +65,8 @@ import {
   windfallPayout,
   windfallPayoutIsEmpty,
 } from './statecraft';
+// Expansionist batch E12: what a town holds, a card's grants included.
+import { townShelf } from './statecraft/evaluator';
 import { settleResearchWindfall } from './tech';
 import { type UnitTypeId, isFieldSoldier, unitDef } from './unitData';
 
@@ -185,7 +187,8 @@ export function explainPacification(state: GameState, city: City): PacificationL
     lines.push({ source: `Great general · ${name}`, amount: UNREST.generalRate });
   }
   if (UNREST.buildingRate !== 0) {
-    for (const id of buildingsEasingUnrest(city)) {
+    // What the town holds (`townShelf`, Expansionist batch E12).
+    for (const id of buildingsEasingUnrest(townShelf(state, city))) {
       lines.push({ source: buildingDef(id).name, amount: UNREST.buildingRate });
     }
   }

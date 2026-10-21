@@ -117,6 +117,8 @@ import { type City, type GameState, playerById } from './state';
 // index above: the build splits a re-export across a cycle into chunks it warns
 // about.
 import { cardMeterFlag } from './statecraft/evaluator';
+// Expansionist batch E12: what a town holds, a card's grants included.
+import { townBuildings, townShelf } from './statecraft/evaluator';
 import { eraNumeral, highestAge } from './techData';
 import { isCoastal } from './water';
 import { explainWeariness } from './weariness';
@@ -366,7 +368,14 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   // The card lines standing **on** those buildings ride in with them (batch B2,
   // Feast Days' temple half): resolved by the one evaluator, folded onto the row
   // they name, and skipped by `cardHappiness` above so nothing is counted twice.
-  for (const line of buildingHappiness(state, playerId, cardBuildingHappiness(state, playerId))) {
+  // Each town's buildings are what it holds (`townBuildings`, Expansionist
+  // batch E12), so a building a card grants pays here as a built one does.
+  for (const line of buildingHappiness(
+    state,
+    playerId,
+    cardBuildingHappiness(state, playerId),
+    (city) => townBuildings(state, city),
+  )) {
     // The cards standing on the building ride along by part (`cards`), so the
     // line still names one thing in one place and a split can still say who paid.
     const cards = line.cards?.map((paid) => ({ card: paid.card, value: paid.amount }));
@@ -444,7 +453,7 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
      * Through the one evaluator that reads a building's non-yield fields, so
      * this meter has still never heard of an assize court.
      */
-    const relief = (citizens * buildingDemandRelief(city)) / 100;
+    const relief = (citizens * buildingDemandRelief(townShelf(state, city))) / 100;
     if (relief > 0) {
       list.push({ source: `${city.name} · the justices sit`, part: 'gain', value: relief });
     }
@@ -640,7 +649,8 @@ function buildingCapacity(state: GameState, playerId: number): MeterContribution
     let count = 0;
     for (const city of state.cities) {
       if (city.ownerId !== playerId) continue;
-      if (city.buildings.includes(id)) count += 1;
+      // What the town holds (`townBuildings`, Expansionist batch E12).
+      if (townBuildings(state, city).includes(id)) count += 1;
     }
     if (count === 0) continue;
     const name = buildingDef(id).name;

@@ -169,6 +169,8 @@ import {
   combatWhenWords,
   filterWords,
 } from './statecraft';
+// Expansionist batch E12: what a town holds, a card's grants included.
+import { townBuildings } from './statecraft/evaluator';
 import { type City, type GameState, type Unit, citiesOf, playerById } from './state';
 import { type TechAge, highestAge } from './techData';
 
@@ -603,7 +605,7 @@ export function cityResourceYields(state: GameState, city: City): ResourceYieldL
       // the town the faith lands in. It carries no scope for that reason — the
       // buildings *are* the scope — and a town with none of them is not in the
       // list at all, which is `foldOne`'s filter below doing its usual job.
-      const held = matchingBuildings(city, effect);
+      const held = matchingBuildings(state, city, effect);
       if (held === 0) continue;
       const copies = copiesFor(state, owner, id, effect, imported);
       list.push(lineOf(id, effect, `${selectorNote(effect)} ×${held}`, copies, held, imported));
@@ -639,9 +641,10 @@ type BuildingCategoryEffect = Extract<ResourceEffect, { kind: 'buildingCategoryY
  * wonder, and `wonders: true` counts every wonder whatever shelf it is on —
  * two selectors that deliberately overlap rather than partition.
  */
-function matchingBuildings(city: City, effect: BuildingCategoryEffect): number {
+function matchingBuildings(state: GameState, city: City, effect: BuildingCategoryEffect): number {
   let count = 0;
-  for (const id of city.buildings) {
+  // What the town holds (`townBuildings`, Expansionist batch E12).
+  for (const id of townBuildings(state, city)) {
     const def = buildingDef(id);
     if (effect.wonders === true ? def.wonder === true : def.category === effect.category) {
       count += 1;
@@ -962,7 +965,7 @@ export function resourceHappiness(state: GameState, playerId: number): ResourceH
       let held = 0;
       for (const city of state.cities) {
         if (city.ownerId !== playerId) continue;
-        held += matchingBuildings(city, effect);
+        held += matchingBuildings(state, city, effect);
       }
       const total = Math.floor(amount * copies * held);
       if (total === 0) continue;

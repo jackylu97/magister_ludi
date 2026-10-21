@@ -42,7 +42,7 @@ import { HEX_MARK_IDS, RULES } from '../rulesData';
 // The ground facts (Expansionist batch E3; Dominion batch D7), straight from
 // the evaluator rather than through the `statecraft.ts` index, so the build
 // does not warn of a circular import between chunks.
-import { type GroundFacts, groundFactsFor } from '../statecraft/evaluator';
+import { type GroundFacts, groundFactsFor, townShelf } from '../statecraft/evaluator';
 import { type City, type GameState, playerById } from '../state';
 import {
   TERRAIN_DATA,
@@ -387,8 +387,12 @@ export function cityContext(
   // faith and culture on wild ground — a fact about one cathedral in one town).
   // Appended in that order, and the tile chain still cannot tell any producer
   // from another.
+  //
+  // The town's buildings are what it holds (`townShelf`, Expansionist batch
+  // E12): what it built, and what a card says it holds.
+  const shelf = townShelf(state, city);
   const own = [
-    ...buildingTileLines(city, ctx.techs, hypothetical),
+    ...buildingTileLines(shelf, ctx.techs, hypothetical),
     ...timedCityTileLines(state, city),
     ...scopedCardTileLines(state, city),
     ...followerCardTileLines(state, city),
@@ -398,7 +402,7 @@ export function cityContext(
   // building of its own irrigates the fields it works. The candidate is included,
   // so a build list pricing a Cistern sees the farms it would water — which is
   // `hypothetical`'s whole reason to be carried this far in.
-  const irrigates = buildingsIrrigate([...city.buildings, ...hypothetical]);
+  const irrigates = buildingsIrrigate([...shelf.buildings, ...hypothetical]);
   if (own.length === 0 && !irrigates) return ctx;
   const next: TileYieldContext = { ...ctx };
   if (own.length > 0) next.lines = [...(ctx.lines ?? []), ...own];

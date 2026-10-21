@@ -958,10 +958,16 @@ describe('determinism', () => {
    * Good or The Topping Out, and the new tally is written only for a seated
    * card. Checked with the change in place and the version printed as 166,
    * which gives the hashes of Expansionist batch E10 exactly.
+   *
+   * **Expansionist batch E12 (The Cura Aquarum, schema 168) moved the hash and
+   * not the length** at both seeds: 167 became 168, and that is all. Nobody
+   * here drafts, so no seat holds The Cura Aquarum, and with no such card a
+   * town holds what it built. Checked with the change in place and the version
+   * printed as 167, which gives the hashes of Expansionist batch E11 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '5a7cc3f9:188931',
-    2026: '053dd1a4:188509',
+    11: '00a8d802:188931',
+    2026: '7f6f2dd3:188509',
   };
 
   for (const seed of [11, 2026]) {

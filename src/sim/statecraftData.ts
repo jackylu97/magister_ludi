@@ -6753,7 +6753,27 @@ export type CityRuleId =
    * town reaches asks. When the scope stops admitting the town, its citizens
    * on the outer ring move at the next assignment (the triage's reading 21).
    */
-  | 'widerReach';
+  | 'widerReach'
+  /**
+   * **A town the rule's scope admits holds the rule's building, for what the
+   * building does** (Expansionist batch E12, The Cura Aquarum: an Aqueduct in
+   * every town joined to the capital by road). The row names the building
+   * (`CardRuleEffect.building`) and the towns (`CardRuleEffect.scope`).
+   *
+   * Read in one place, `cardHeldBuildings` (`statecraft/evaluator.ts`), which
+   * `townBuildings` and `townHoldsBuilding` ask. Those two are the one reading
+   * of "this town holds this building" for the building's effects: its own
+   * effects, its water and its other markers (`buildingEffects.ts`), its lines
+   * in the town fold, and every card scope and count that asks what a town
+   * holds. What was built still reads `City.buildings`: score, maintenance,
+   * triumphs, wagers, purchase, the build list, the completion moment and a
+   * building's age. So a town may still build a real one, and The Coming of
+   * the Water does not fire for a held one (the triage's reading 33).
+   *
+   * A row naming a wonder or an empire building grants nothing: those are
+   * read from the empire's own walk, which may not ask the law it is building.
+   */
+  | 'holdsBuilding';
 
 /** A rider on a windfall. See `WindfallOccasion` for what "rider" means. */
 export interface CardWindfallRiderEffect {
@@ -7462,14 +7482,19 @@ export interface CardRuleEffect {
    * and a missing building id would widen a rule that is about one row.
    *
    * Meaningless on every other member and simply never consulted there.
+   *
+   * **The second reader** (Expansionist batch E12): `holdsBuilding` names the
+   * building a town counts as holding. A row of that rule with no building
+   * grants nothing, for the reason above.
    */
   building?: BuildingId;
   /**
    * **Which towns the rule is true in** — The Lay Brothers' Temple towns and
-   * Consecrated Labor's Shrine towns. Read only by `cardActionRuleAt`, which
+   * Consecrated Labor's Shrine towns. Read by `cardActionRuleAt`, which
    * the three faith-purchase rules (`faithBuysUnits`, `faithBuysBuildings`,
-   * `faithBuysWonders`) are asked through with the town in hand. Absent means
-   * every town.
+   * `faithBuysWonders`) are asked through with the town in hand, and by the
+   * city rules' readers (`cardCityRuleAt`, `cardGarrisonSeats` and, since
+   * Expansionist batch E12, `cardHeldBuildings`). Absent means every town.
    */
   scope?: CityScope;
   /**
