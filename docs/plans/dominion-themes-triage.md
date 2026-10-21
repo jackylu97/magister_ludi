@@ -192,6 +192,9 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 39. (D9) A retired row carries no type, so a save that holds one reads it as unsorted, as the D0 cuts already do.
 40. (D10) The Ranks of Merit's production lands in the capital's basket at once but completes a build only at the turn's production step, because `settleRanksEarned` settles towns only through `settleGrowthWindfall`. D11 adds `settleProductionWindfall` there.
 41. (D11) A unit gained already holding a rank earns it inside a completion (`realiseItem`). There its hammers still wait for the production step, because `settleProduction` allows one item per town per call. The Ranks of Merit's science banks without settling research at once.
+42. (D12) Every unit placed through `spawnTileFor` rallies: built, bought, levied or gifted, and a bought unit rallies even when its town's hex is taken.
+43. (D12) The `unitGained` tally stays hooked with no reader; the register test lists it as an exception.
+44. (D12) The Marshalate counts `greatPeopleGained` with the general family, the count The Roll of Triumphs reads.
 
 ## The batches
 
@@ -253,7 +256,7 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 
 ### D11: the commissions (feature C, goals and rewards)
 
-**Built 2026-10-21** on `dom-work` (`4137b6b2`), to merge into `decks` after Scientific S4. Reading 41 came from it. `settleRanksEarned` now settles production at once (reading 40).
+**Built 2026-10-21** on `dom-work` (`4137b6b2`), merged into `decks` with D12 as `5aeca9ae` (schema 159). Reading 41 came from it. `settleRanksEarned` now settles production at once (reading 40).
 
 - **Builds:**
   - Feature C: a `WindfallOccasion` `commissionMet`, fired in `runCommissions` after `payCommission`, and a `CountKind` `commissionsMet` over `PlayerStatecraft.commissionsFulfilled`, with their words (reading 34).
@@ -270,6 +273,8 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 - **Done-gate:** `npx vitest run test/sim/decks/dominionCommissions.test.ts test/sim/commissions.test.ts test/sim/ranks.test.ts test/sim/decks/dominionRanks.test.ts test/sim/decks/dominion.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/statecraft.test.ts test/mapgen/moduleCycles.test.ts`.
 
 ### D12: five small automatic rules
+
+**Built 2026-10-21** on `dom-work` (`7225b532`), merged into `decks` with D11 as `5aeca9ae` (schema 159). Readings 42 to 44 came from it. The sight gate changes only the rows that read a strategic or any resource, because only copper, horses, camels, iron and niter have a reveal technology.
 
 - **Builds:**
   - An `AmplifierTarget` `pillageRewards` and a `class` field on `effectAmplifier`, read in `windfallPayout` on the `pillage` moment against `facts.actor` (reading 2). Card: Commission: Harry the Border.

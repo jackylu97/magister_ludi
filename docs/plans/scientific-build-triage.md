@@ -312,6 +312,11 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 67. (S3) The Edge of the Sword also applies in a fight with that empire's towns, as `vsWiderEmpire` does. It does not ask whether you have met that empire.
 68. (S3) On a trade route, the gap counts only the destination owner's technologies, as Books from the Ships' text says. Elsewhere it counts every met empire.
 69. (S3) `aheadOfMet` also works on units, by the unit's unlocking technology.
+70. (S4) Sizes: the Specularium medium, the Aldine Press large, and the three great houses large. Of the new rows, only the Mouseion pays renown.
+71. (S4) The Mouseion's 30% comes after the once-per-empire line, and the price is floored once.
+72. (S4) The Physic Garden has no feature list, so it may stand in a forest on flat land with fresh water. Alternative: open ground only.
+73. (S4) A Scriveners' Charter in an old save no longer opens the Scriptorium. The Scriptorium's price moves from column 4 to 7, the Bastion's from 10 to 11.
+74. (S4) Until S12, the Compendium names a charter technology without a link.
 
 ## The batches
 
@@ -391,6 +396,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 - **Done-gate:** `npx vitest run test/sim/decks/scientificRivals.test.ts test/mapgen/moduleCycles.test.ts test/sim/charterTechs.test.ts test/sim/decks/scientific.test.ts test/sim/decks/commerce.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts`.
 
 ### S4: the building charters
+
+**Built 2026-10-21** (`ad590e5d`, schema 158). Readings 70 to 74 came from it. `BuildingDef.costPercent` prices the Mouseion's premium.
 
 - **Builds:** eight charters dealt, all in existing shapes: the Herbalists', Glassmakers', Librarians', Paper-Makers', Physicians', Printers', Gunfounders' and Military Engineers'. Five new building rows (the Specularium, the Mouseion, the Aldine Press, the Bimaristan, the Tophane), the Scriptorium and the Bastion rewired to their technologies, and the Physic Garden improvement row. One placeholder map piece for the Physic Garden, built from an existing model, joins the flair gallery in the same batch. Buildings need no map piece.
 - **Fence:** the shared six, `data/buildings.json`, `data/improvements.json`, `data/techs.json`, the `BuildingId` and `ImprovementId` unions (`src/sim/buildingData.ts`, `src/sim/improvementData.ts`), the improvement piece in `src/render3d/` (one file) and `src/flairGallery/`, `test/render/improvements3d.test.ts`, `test/sim/unitsDocSync.test.ts` and any building doc-sync test, a new `test/sim/decks/scientificCharters.test.ts`.

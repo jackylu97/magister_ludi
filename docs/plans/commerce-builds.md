@@ -1,5 +1,7 @@
 # Commerce: the goods, trade and treasury builds (proposal)
 
+**Superseded in method, 2026-10-21.** The user found the builds one note (`docs/decks/deck-design.md`, "Direction, 2026-10-20"). The map of the deck's materials, the six facts and the leaders below still hold; the new pass is `docs/plans/commerce-themes.md`, and its list is `docs/plans/commerce-list-proposed.md`.
+
 The user's request, 2026-10-17, verbatim:
 
 > *"could you do the same builds/card-design skill treatment for the remaining decks? commerce science magisterial and devotion"*
