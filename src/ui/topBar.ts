@@ -485,7 +485,7 @@ export function tabFigures(state: GameState, playerId: number): TabFigures {
   const player = playerById(state, playerId);
   const ledger = tradeLedger(state, playerId);
   const pool = player?.renownPool ?? 0;
-  const rung = player ? renownThreshold(player) : 0;
+  const rung = player ? renownThreshold(state, player) : 0;
   const rate = player ? renownPerTurn(state, playerId) : 0;
   const beadCount = player?.beads.length ?? 0;
   return {
@@ -1089,7 +1089,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
         'span',
         'info-card-kind',
         player
-          ? `${figure(player.renownPool)} of ${figure(renownThreshold(player))}`
+          ? `${figure(player.renownPool)} of ${figure(renownThreshold(state, player))}`
           : `${figure(0)}`,
       ),
     );

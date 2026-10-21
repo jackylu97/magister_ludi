@@ -1085,6 +1085,9 @@ export function eligibleFor(
     if (band < def.band || band > (def.lastBand ?? def.band)) return false;
     if (def.needsTendedWork === true && !tends) return false;
     if (def.needsLevy === true && !levies) return false;
+    // The Great Instrument (Scientific batch S9): not dealt to a seat that
+    // already knows the technology its goal asks for.
+    if (def.notDealtKnowing !== undefined && player.techsResearched.includes(def.notDealtKnowing)) return false;
     return def.fromAge === undefined || age >= def.fromAge;
   });
 }

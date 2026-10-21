@@ -23,8 +23,9 @@
  * Rewards are paid through the existing paths and nothing else: the yields, the
  * unit and the timed effects through `payWindfallGrants`, then
  * `settleGrowthWindfall` and `settleCultureWindfall` exactly as a periodic boon
- * settles; a great person through `drawGreatPersonOffer`, or through
- * `settleRenownWindfall` when an offer cannot be dealt right now. Since
+ * settles; a great person through `grantGreatPersonOffer` (`greatPeople.ts`),
+ * which deals an offer or, when one cannot be dealt right now, fills the
+ * ladder through `settleRenownWindfall`. Since
  * Dominion batch D6 a reward may also grant citizens (`settlePopulationWindfall`),
  * raise a building in the town that met the goal (`realiseItem`), or add
  * Wildcard chairs for the rest of the game (`refitSlots`).
@@ -32,6 +33,7 @@
 
 import {
   bestMeleeFor,
+  buildingProductionCost,
   payOccasionRiders,
   realiseItem,
   resourceCopies,
@@ -40,10 +42,9 @@ import {
   settleProductionWindfall,
 } from './cities';
 import type { Family } from './greatPeopleData';
-import { drawGreatPersonOffer } from './greatPeople';
+import { grantGreatPersonOffer } from './greatPeople';
 import { isTendedWork } from './improvementData';
 import { getTileAt } from './map';
-import { planRecruitment, renownThreshold, settleRenownWindfall } from './renown';
 import { resourcesOfKind } from './resourceData';
 import { bumpEconomy } from './slate';
 import {
@@ -56,7 +57,7 @@ import {
   realPlayers,
   tileOwnerField,
 } from './state';
-import { buildingDef } from './buildingData';
+import { BUILDING_IDS, buildingDef } from './buildingData';
 import { explainEmpireLines, foldEmpireLines } from './yields/empire';
 import { cityContext, foldTile } from './yields/hex';
 import { foldCity } from './yields/town';
@@ -67,6 +68,7 @@ import {
   commissionFulfilledTurn,
   groundFactsFor,
   heldReligions,
+  opusCityOf,
   payWindfallGrants,
   settleCultureWindfall,
   slotOf,
@@ -76,6 +78,7 @@ import {
 // Straight from its own layer rather than through the `statecraft.ts` index:
 // through the index, the build warns of a circular import between chunks.
 import { refitSlots } from './statecraft/draft';
+import { countTilesInBorders } from './statecraft/evaluator';
 import {
   type CitizensTarget,
   type CommissionFigure,
@@ -88,7 +91,6 @@ import {
   isOrderId,
   orderDef,
 } from './statecraftData';
-import { hasAbility } from './tech';
 import { type UnitTypeId, unitDef } from './unitData';
 import { signedPlain } from './yieldFormat';
 
@@ -240,8 +242,25 @@ export function commissionFigure(
       }
       return capitals;
     }
+    case 'academyHexes':
+      // The Lynx-Eyed Academy (Scientific batch S8, the triage's reading 53):
+      // the count The Republic of Letters pays by, asked through the same walk
+      // (`countTilesInBorders`), so the two cards cannot disagree about how
+      // many Academies an empire holds, and a work The Studium Generale counts
+      // as an Academy counts here too.
+      return countTilesInBorders(state, playerId, ACADEMY);
+    case 'opusCost': {
+      // The Great Instrument (Scientific batch S9, the triage's reading 51):
+      // what the row that ends the game costs this empire now, through the
+      // one building fold. Found by its marker, never by name.
+      const opus = BUILDING_IDS.find((id) => buildingDef(id).endsTheGame === true);
+      return opus === undefined ? 0 : buildingProductionCost(opus, state, playerId);
+    }
   }
 }
+
+/** An Academy, as The Republic of Letters' tile test names it. */
+const ACADEMY: TileCondition = { test: 'improvement', improvement: 'academy' };
 
 /**
  * **A figure read for one town alone**, or `null` when the figure has no town
@@ -453,9 +472,19 @@ function payCommission(
     }
     const amount = rewardAmount(state, player.id, card, reward);
     if (reward.yield !== undefined && amount !== 0) {
-      payout.grants.push({ card, source, yield: reward.yield, amount });
-      const where =
-        (reward.yield === 'food' || reward.yield === 'production') && capital ? ` in ${capital.name}` : '';
+      // **Toward the Magnum Opus** (Scientific batch S9, The Great Instrument):
+      // the grant's own `toOpus`, so it lands in the town raising the Opus, or
+      // in `Player.opusBank` when no town is (`payWindfallGrants`).
+      const toOpus = reward.toOpus === true && reward.yield === 'production';
+      payout.grants.push({ card, source, yield: reward.yield, amount, ...(toOpus ? { toOpus: true } : {}) });
+      const opusTown = toOpus ? opusCityOf(state, player.id) : null;
+      const where = toOpus
+        ? opusTown !== null
+          ? ` toward the Magnum Opus in ${opusTown.name}`
+          : ' kept toward the Magnum Opus'
+        : (reward.yield === 'food' || reward.yield === 'production') && capital
+          ? ` in ${capital.name}`
+          : '';
       lines.push(`${signedPlain(amount)} ${reward.yield}${where}`);
     }
     if (reward.unit !== undefined) {
@@ -482,7 +511,7 @@ function payCommission(
   for (const city of touched) settleGrowthWindfall(state, city);
   settleCultureWindfall(state, player);
   for (const piece of realized) lines.push(`a free ${unitDef(piece.type).name} in ${piece.cityName}`);
-  for (const family of people) lines.push(grantGreatPerson(state, player, family));
+  for (const family of people) lines.push(grantGreatPersonOffer(state, player, family));
   // **Citizens** (Dominion batch D6, Commission: Clear the Frontier) through
   // the population windfall, which pays the growth riders for each one and
   // re-seats the town (`refreshCityDerived`'s register, entry 13).
@@ -650,29 +679,9 @@ function rewardAmount(
   const amount = reward.amount ?? 0;
   if (reward.fromGoal !== undefined) return amount * commissionGoalMeasure(state, playerId, card, reward.fromGoal);
   if (reward.fromFigure === undefined) return amount;
-  return amount * commissionFigure(state, playerId, reward.fromFigure);
-}
-
-/**
- * A great person as a reward. When the empire may call great people and has
- * none waiting, an offer is dealt now, narrowed to the family the card names
- * (the same draw the Academy's scholar draft uses). Otherwise the ladder is
- * filled to its next rung instead (the same grant The Laureate pays), so the
- * person arrives as soon as the waiting one is chosen or the rites are known.
- */
-function grantGreatPerson(state: GameState, player: Player, family: Family | 'any'): string {
-  const narrowed = family === 'any' ? undefined : family;
-  const word = narrowed === undefined ? 'a great person' : `a great ${narrowed}`;
-  if (player.greatPersonOffer === undefined && hasAbility(state, player.id, 'ancestorRites')) {
-    const offer = drawGreatPersonOffer(state, player, narrowed);
-    if (offer.options.length > 0) {
-      player.greatPersonOffer = offer;
-      bumpEconomy(state);
-      return `${word} to call`;
-    }
-  }
-  const plan = planRecruitment(player);
-  const owed = plan === null ? renownThreshold(player) - player.renownPool : 0;
-  settleRenownWindfall(state, player, [{ family: narrowed ?? null, amount: Math.max(0, owed) }]);
-  return `renown for ${word}`;
+  const scaled = amount * commissionFigure(state, playerId, reward.fromFigure);
+  // A basket holds whole food and whole hammers (Scientific batch S9, The
+  // Great Instrument's tenth of the Opus), so a share of a figure paid into
+  // one is floored. The banks keep their figure as it comes.
+  return reward.yield === 'food' || reward.yield === 'production' ? Math.floor(scaled) : scaled;
 }

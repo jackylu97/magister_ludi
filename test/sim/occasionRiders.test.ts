@@ -509,6 +509,7 @@ describe('the member register', () => {
     let limiter = false;
     let shelf = false;
     let greatHouse = false;
+    let anyOf = false;
     let ceiling = false;
     for (const id of ORDER_IDS) {
       for (const effect of orderDef(id).effects) {
@@ -517,6 +518,7 @@ describe('the member register', () => {
         if (effect.oncePerTurn === true) limiter = true;
         if (effect.buildingCategory !== undefined) shelf = true;
         if (effect.empireBuilding !== undefined) greatHouse = true;
+        if (effect.anyOf !== undefined && effect.anyOf.length > 0) anyOf = true;
         if (effect.grant?.fromOccasion !== undefined) measures.add(effect.grant.fromOccasion);
         if (effect.grant?.max !== undefined) ceiling = true;
       }
@@ -541,7 +543,15 @@ describe('the member register', () => {
     ]);
     expect(limiter, 'oncePerTurn').toBe(true);
     expect(shelf, 'buildingCategory').toBe(true);
+    // **The great-house narrowing is named again since Scientific batch S8.**
+    // Learned Commissions carried the only two riders that named it until S7
+    // cut them; The Invitations names it now (a great scholar for each empire
+    // building completed). The Dedications names the class inside its any-of
+    // filter, which pays once for a building that is a science building and
+    // an empire building at the same time (the triage's reading 36).
     expect(greatHouse, 'empireBuilding').toBe(true);
+    expect(anyOf, 'anyOf').toBe(true);
+    expect(simSource('statecraft/evaluator.ts')).toContain('isEmpireBuilding(facts.building) !== effect.empireBuilding');
     // **A grant's ceiling is read and named by nobody**, and that is stated here
     // rather than forgotten — `conversion`'s bargain two claims down.
     //
@@ -559,8 +569,8 @@ describe('the member register', () => {
     // and a row that starts to must come back and say so here.
     expect(ceiling, "a grant's ceiling is named by no live row").toBe(false);
     expect(simSource('statecraft/evaluator.ts')).toContain('grant.max !== undefined');
-    // **Three of the five ledgers are named by a live row; two are named by
-    // none, and that is stated rather than forgotten.** `conversion` is written
+    // **Two of the five ledgers are named by a row; three are named by none,
+    // and that is stated rather than forgotten.** `conversion` is written
     // at its seam and *counted* by The Living Hymnal — the count is the whole of
     // what that card asks — but no rider narrows a moment by it, because the one
     // card that would (Missionary Hospitality) carries a second half about the
@@ -576,10 +586,17 @@ describe('the member register', () => {
     // and because deleting the mark would change what a save carries. What is
     // pinned is the honest state: nothing narrows by it today, and a row that
     // starts to must come back and say so here.
-    expect([...ledgers].sort()).toEqual(['buildingInCity', 'buildingKind', 'techWorld']);
+    //
+    // **`buildingKind` joined them in Scientific batch S7**, for the same
+    // reason as the great-house narrowing above: Learned Commissions' two
+    // riders were the only rows that asked for the realm's first building of
+    // each kind, and S7 cut them. The seam still marks it (`realiseItem`).
+    expect([...ledgers].sort()).toEqual(['buildingInCity', 'techWorld']);
     expect(ledgers.has('conversion')).toBe(false);
     expect(ledgers.has('purchaseInCity')).toBe(false);
+    expect(ledgers.has('buildingKind')).toBe(false);
     // The mark is still made, which is what keeps the member restorable.
     expect(simSource('purchase.ts')).toContain("'purchaseInCity'");
+    expect(simSource('cities.ts')).toContain("markFirst(state, city.ownerId, 'buildingKind'");
   });
 });

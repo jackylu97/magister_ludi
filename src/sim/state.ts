@@ -2105,9 +2105,58 @@ import {
  * now hold eleven more cards, so its hands differ. The branch migrates
  * nothing, for the reason given under v119.
  *
- * v163 (branch `decks`; Expansionist batch E7, `docs/plans/expansionist-
- * themes-triage.md`): **the themes sheet, the retirements and ten cards
- * changed in place.** No field joins the state. The rules that change:
+ * v163 (branch `decks`; Scientific batch S7, `docs/plans/scientific-build-
+ * triage.md`): **the data-only cards of Tiers 0 to II.** No field joins the
+ * state, and no shape is new. The rules that change:
+ *
+ *   · nine Scientific Orders come live: The Royal Tutors, The War Manuals,
+ *     The Royal Estates, The Common Tables, The Free Cities, The Roll of
+ *     Scholars, The Palace Schools, The Round City and The City Architects;
+ *   · Learned Commissions becomes Learned Foundations under the same id:
+ *     +25% toward empire buildings in a Library town, and its two riders
+ *     for a first empire building of each kind are gone;
+ *   · Enduring Institutions pays +25% production and no happiness;
+ *   · The Quiet Faculties reads a worked Academy, not any great person's
+ *     work, and pays +25% food and +20% production.
+ *
+ * **A v162 save is refused and does not replay.** A Scientific seat's pools
+ * now hold nine more cards, so its hands differ, and three live cards pay
+ * different figures. The branch migrates nothing, for the reason given under
+ * v119.
+ *
+ * v164 (branch `decks`; Scientific batch S8, `docs/plans/scientific-build-
+ * triage.md`): **great people and the great houses.** No field joins the
+ * state. The rules that change:
+ *
+ *   · a rider may grant a great person (`WindfallGrantSpec.greatPerson`),
+ *     dealt as a commission's is, and a completion rider may name an any-of
+ *     filter (`anyOf`);
+ *   · the great-person price reads the empire's cards (`renownThreshold`
+ *     takes the state; the `scholarLadderStep` rule);
+ *   · `buildsEverywhere` may lift the one-to-a-realm limit for a counted
+ *     number of copies of every great house, in the towns a scope admits, and
+ *     a queue being replaced counts its own building rows for it;
+ *   · `unlocksBuilding` may open a row in some towns only, and the University
+ *     is a row a card may open early;
+ *   · a commission may count the Academies inside the borders
+ *     (`academyHexes`);
+ *   · eleven Scientific Orders come live: The Forward Plans, The Dedications,
+ *     The Royal Readers, The Invitations, The Second Seat, The Doctorate, The
+ *     Royal Academies, The Queen of Cities, The Humanists, The Walls of
+ *     Learning and The Lynx-Eyed Academy.
+ *
+ * **A v163 save is refused and does not replay.** A Scientific seat's pools
+ * now hold eleven more cards, so its hands differ. The branch migrates
+ * nothing, for the reason given under v119.
+ *
+ * v165 (branch `decks`; Expansionist batches E7 and E8, `docs/plans/
+ * expansionist-themes-triage.md`): **the Expansionist themes sheet, the
+ * retirements, ten cards changed in place and five new Orders.** The two
+ * batches were built as 163 and 164 on their own branch and merged after S7
+ * and S8 together, so they share one number. No field joins the state.
+ *
+ * The rules that change in E7 (the sheet, the retirements and ten cards
+ * changed in place):
  *
  *   · fifteen Expansionist rows are retired: The Pyramid Builders, The
  *     Beating of the Bounds, The Prospectors, The Garden Frontier, The
@@ -2126,14 +2175,8 @@ import {
  *   · five Orders change type to civic, and The Two Harvests (still
  *     deferred) to wildcard.
  *
- * **A v162 save is refused and does not replay.** An Expansionist seat's
- * pools lose fourteen cards and five of its cards fit other chairs, so its
- * hands and its councils differ. The branch migrates nothing, for the reason
- * given under v119.
- *
- * v164 (branch `decks`; Expansionist batch E8, `docs/plans/expansionist-
- * themes-triage.md`): **five new Expansionist Orders in shapes that already
- * existed.** No field joins the state. The rules that change:
+ * The rules that change in E8 (five new Orders in shapes that already
+ * existed):
  *
  *   · The Founding Furrow (Tier 0): founding a town grants culture equal to
  *     five times the number of towns you hold, the new town included;
@@ -2146,14 +2189,57 @@ import {
  *   · The Capitolia (Tier III): each empire building you hold gives each of
  *     your towns +1 culture.
  *
- * **A v163 save is refused and does not replay.** An Expansionist seat's
- * pools hold five more cards, so its hands differ. The branch migrates
- * nothing, for the reason given under v119.
+ * **A v164 save is refused and does not replay.** An Expansionist seat's
+ * pools lose fourteen cards and gain five, and five of its cards fit other
+ * chairs, so its hands and its councils differ. The branch migrates nothing,
+ * for the reason given under v119.
  *
- * v165 (branch `decks`; Expansionist batch E9, `docs/plans/expansionist-
- * themes-triage.md`): **the land: marks, ages and tended fields.** No field
- * joins the state, but `Tile.marks` may now hold three more ids (`burned`,
- * `marl`, `marlSecond`). The rules that change:
+ * v166 (branch `decks`; Scientific batch S9, `docs/plans/scientific-build-
+ * triage.md`): **the army and the Opus.** Two optional fields join the state:
+ * `Unit.unsupplied` and `GameState.closedBook`. The rules that change:
+ *
+ *   · nine Scientific Orders come live: The Field Refits, The Strategikon,
+ *     The Armoury Patterns, The Model Army, The Great Instrument, The
+ *     Foundation Stone, The Closed Book, The Breaching Batteries and The
+ *     Prototype Works; and one shared Order, The Soldier-Scholars (Dominion
+ *     and Scientific);
+ *   · an upgrade from research may heal the piece fully (`upgradeHeals`), or
+ *     go past the strategic resource gate for a piece on the board
+ *     (`upgradeIgnoresResource`). A piece upgraded that way holds no copy
+ *     (`Unit.unsupplied`), and the copies ledger skips it;
+ *   · a unit filter may ask for the owner's newest age (`newestAge`), and
+ *     `unitMatches` takes the owner's age;
+ *   · two strength conditions: `nearLearning` (your great people of named
+ *     families, or a named work in your borders, within some hexes) and
+ *     `standingInOwnTown` (the piece stands in its own empire's town, in
+ *     attack and in defence);
+ *   · a siege blow on a town raising the Magnum Opus may remove a share of
+ *     the production banked toward it (`opusBreach`);
+ *   · the Opus may open early to one empire (`opusEarly`), and then waits for
+ *     that empire to know the technology before it may finish;
+ *   · completing the Opus's technology first may close the Opus to the other
+ *     empires for some turns (`closedBook`, `GameState.closedBook`);
+ *   · a commission may pay production toward the Opus by a share of its cost
+ *     (`opusCost`, `toOpus`), and a row may refuse to be dealt to a seat that
+ *     knows a technology (`notDealtKnowing`);
+ *   · the rows of the current research may be built at a premium
+ *     (`prototypes`), a labelled cost line; a queued row whose research moved
+ *     on, or whose opening card left, waits for its technology before it may
+ *     finish, and stays legal in its town's queue.
+ *
+ * **A v165 save is refused and does not replay.** A Scientific seat's pools
+ * now hold nine more cards, and a Dominion or Scientific seat's one more, so
+ * their hands differ. The branch migrates nothing, for the reason given under
+ * v119.
+ *
+ * v167 (branch `decks`; Expansionist batches E9 and E10, `docs/plans/
+ * expansionist-themes-triage.md`): **the land (marks, ages and tended
+ * fields), and the militia and the trades.** The two batches were built as
+ * 165 and 166 on their own branch and merged after S9 together, so they
+ * share one number. No field joins the state, but `Tile.marks` may now hold
+ * three more ids (`burned`, `marl`, `marlSecond`).
+ *
+ * The rules that change in E9 (the land: marks, ages and tended fields):
  *
  *   · The Burning Season: a worker may burn a grassland or plains hex that
  *     holds an improvement. The improvement stays and the hex is marked
@@ -2169,14 +2255,7 @@ import {
  *   · The Mountain Schools: towns with at least two mountains in their
  *     borders gain +15% science.
  *
- * **A v164 save is refused and does not replay.** An Expansionist seat's
- * pools hold two more cards and a worker's build can do a new thing, so its
- * hands and its land differ. The branch migrates nothing, for the reason
- * given under v119.
- *
- * v166 (branch `decks`; Expansionist batch E10, `docs/plans/expansionist-
- * themes-triage.md`): **the militia and the trades.** No field joins the
- * state. The rules that change:
+ * The rules that change in E10 (the militia and the trades):
  *
  *   · Veteran Colonies: a military unit retired in one of your towns gives
  *     that town one citizen, in place of food equal to its cost. A unit raised
@@ -2190,12 +2269,12 @@ import {
  *     fill their guild bar half again as fast (the `guildInflow` rule, one
  *     line of `explainGuildInflow`).
  *
- * **A v165 save is refused and does not replay.** An Expansionist seat's
- * pools hold two more cards, and a retired soldier now pays a citizen, so its
- * hands and its towns differ. The branch migrates nothing, for the reason
- * given under v119.
+ * **A v166 save is refused and does not replay.** An Expansionist seat's
+ * pools hold four more cards, a worker's build can do a new thing, and a
+ * retired soldier now pays a citizen, so its hands, its land and its towns
+ * differ. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 166;
+export const SCHEMA_VERSION = 167;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -3783,6 +3862,19 @@ export interface Unit {
    */
   freeUpkeep?: true;
   /**
+   * **This piece holds no strategic copy** (Scientific batch S9, The Model
+   * Army; the triage's reading 42), or the key is absent.
+   *
+   * Written in one place, `upgradeUnits` (`tech.ts`), when research upgrades
+   * the piece past a resource gate its owner's law lifts
+   * (`upgradeIgnoresResource`). The copies walk (`resolveCommitments`,
+   * `cities.ts`) skips it, as it skips a free unit, so the piece takes no
+   * copy now and none when the resource arrives. It is kept for the life of
+   * the piece, through later upgrades and a change of owner. Presence is the
+   * state, `freeUpkeep`'s convention.
+   */
+  unsupplied?: true;
+  /**
    * **Gold a turn the town that raised this piece forgives it**, or the key is
    * absent — which it is for every unit not born under an Imperial Throne
    * (`BuildingDef.unitUpkeepRebate`, `docs/history/tech-gifts.md` §7).
@@ -4948,6 +5040,19 @@ export interface FirstRecord {
 }
 
 /**
+ * **The Closed Book's record** (Scientific batch S9): the empire that
+ * completed the Opus's technology first while holding the card, the turn it
+ * did, and the absolute turn the door opens again. See `GameState.closedBook`.
+ */
+export interface ClosedBookRecord {
+  playerId: number;
+  /** `state.turn` when the technology was completed. */
+  turn: number;
+  /** The first turn on which other empires may begin the Opus again. */
+  until: number;
+}
+
+/**
  * The key one first-of-a-kind record is filed under. **The one place a key is
  * spelt**, so the seam that writes a record and the count that reads one cannot
  * disagree about what "the same thing" means.
@@ -5283,6 +5388,20 @@ export interface GameState {
    * itself carries.
    */
   firsts: FirstRecord[];
+  /**
+   * **The Closed Book's record** (Scientific batch S9; the triage's reading
+   * 50), or the key is absent, which it is in almost every game.
+   *
+   * Written once, in `settleResearch` (`tech.ts`), when an empire completes the
+   * technology that opens the Magnum Opus before any other empire while its
+   * law holds the `closedBook` rule. `until` is an absolute turn, the
+   * discipline every timed effect keeps: `buildError` refuses the Opus to every
+   * other empire that does not know that technology while `state.turn` is
+   * below it. Nothing ticks it and nothing clears it; it simply stops
+   * refusing. A world first is marked once, so the record is written at most
+   * once a game.
+   */
+  closedBook?: ClosedBookRecord;
   /**
    * Every religion that has been founded, **in founding order** — which is also
    * what a `ReligionId` is.

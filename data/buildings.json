@@ -337,6 +337,7 @@
         "family": "scholar",
         "perTurn": 2
       },
+      "unlockedByCard": true,
       "requiresBuilding": "library"
     },
     "cathedral": {

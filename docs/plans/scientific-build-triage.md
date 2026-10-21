@@ -327,6 +327,16 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 82. (S6) The Age of Reason runs each Order's technology rider twice, so grants, units and renown pay twice; percentages and once-a-turn riders count once; the tallies are written with an amount of 2.
 83. (S6) `fromTownPopulation` pays food and production only, by each town's population when that town is paid.
 84. (S6) `chartersDrafted` counts charter rows in the collection from the pick, researched or not.
+85. (S7) The Roll of Scholars says "at most +28%" (`max: 7`), because a count's `max` counts steps; the triage's `max: 30` would give +120%. This follows the user's ruling on The Res Gestae. Alternative: +5% for each scholar, at most +30%.
+86. (S7) "Science building" is the `scienceBuildings` count: any building whose row gives science, the Monastery and science wonders included. The Royal Tutors reads it town by town (`within: 'city'`).
+87. (S7) The War Manuals and The Palace Schools reach military units only; their text says "Units".
+88. (S8) The Dedications' "science building" is the science shelf, as this triage writes it, not reading 86's "pays science".
+89. (S8) The Second Seat never reaches the Magnum Opus.
+90. (S8) A second copy counts while queued and while standing; a town never holds two copies of one row.
+91. (S8) The Forward Plans shows the University while any town qualifies; other towns get a sentence naming the Library rule.
+92. (S8) The Royal Readers' steps are not floored; only the price is. Every scholar gained counts.
+93. (S8) With an offer already waiting, or before the ancestor rites, The Invitations pays renown toward the next rung. The Age of Reason doubles it on a technology rider.
+94. (S8) The Walls of Learning's +6 and +12 stack, so a University town raising the Opus gains +18.
 
 ## The batches
 
@@ -446,6 +456,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 
 ### S7: the data-only cards of Tiers 0 to II
 
+**Built 2026-10-21** (`9379f79c`, schema 163). Readings 85 to 87 came from it. The `empireBuilding` rider field and the `buildingKind` record of firsts are named by no row until S8.
+
 - **Builds:** twelve group-1 cards: The Royal Tutors, The War Manuals, Learned Foundations, The Royal Estates, The Common Tables, The Free Cities, Enduring Institutions, The Quiet Faculties, The Roll of Scholars, The Palace Schools, The Round City, The City Architects. Learned Commissions is renamed; Enduring Institutions and The Quiet Faculties are brought to the docs' text and figures.
 - **Fence:** `data/decks/scientific.json`, the Scientific shelf of `docs/orders-and-doctrines.md`, `test/fixtures/cardText.json`, a new `test/sim/decks/scientificCards.test.ts`. The describers only if a sentence reads badly.
 - **Depends on:** nothing. It may run before S0 if the orchestrator wants these cards in a playtest sooner.
@@ -454,6 +466,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 - **Done-gate:** `npx vitest run test/sim/decks/scientificCards.test.ts test/sim/decks/scientific.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts`.
 
 ### S8: great people and the great houses
+
+**Built 2026-10-21** (`8964145d`, schema 164). Readings 88 to 94 came from it. It also fixed S5's stale Aqueduct refusal: a tree row opened early gets the tree's own sentence.
 
 - **Builds:** a great-person grant on `WindfallGrantSpec`; an any-of filter on the completion rider; a rule on `renownThreshold` (which takes the state); a count and a scope on `buildsEverywhere`; a town scope on `unlocksBuilding`; a commission figure for Academy hexes and a scope on `eachTown`. Cards (11): The Invitations, The Dedications, The Royal Readers, The Second Seat, The Forward Plans, The Lynx-Eyed Academy, and the data cards The Doctorate, The Royal Academies, The Queen of Cities, The Humanists, The Walls of Learning.
 - **Fence:** the shared six, `src/sim/renown.ts` and its callers, `src/sim/tech.ts` (`buildError`, `isUnlocked`), `src/sim/commissions.ts`, `src/sim/greatPeople.ts` (the offer), `test/sim/renown.test.ts`, `test/sim/greatPeople.test.ts`, a new `test/sim/decks/scientificHouses.test.ts`.

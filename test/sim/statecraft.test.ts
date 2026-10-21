@@ -2094,19 +2094,26 @@ describe("determinism", () => {
     // 162 since Scientific batch S6 (the research record): eleven more
     // Scientific Orders come live, so a v161 log's Scientific hands hold
     // different cards.
-    // 163 since Expansionist batch E7 (the themes sheet): fifteen Expansionist
-    // rows are retired, ten change in place and five change type, so a v162
-    // log's Expansionist hands and chairs hold different cards.
-    // 164 since Expansionist batch E8 (five new data-only cards): five more
-    // Expansionist Orders come live, so a v163 log's Expansionist hands hold
-    // different cards.
-    // 165 since Expansionist batch E9 (the land): two more Expansionist
-    // Orders come live and a worker's burn may mark an improved hex, so a
-    // v164 log's Expansionist hands and land differ.
-    // 166 since Expansionist batch E10 (the militia and the trades): two
-    // more Expansionist Orders come live and a retired soldier pays a
-    // citizen, so a v165 log's Expansionist hands and towns differ.
-    expect(SCHEMA_VERSION).toBe(166);
+    // 163 since Scientific batch S7 (the data-only cards of Tiers 0 to II):
+    // nine more Scientific Orders come live and three change, so a v162
+    // log's Scientific hands hold different cards.
+    // 164 since Scientific batch S8 (great people and the great houses):
+    // eleven more Scientific Orders come live, so a v163 log's Scientific
+    // hands hold different cards.
+    // 165 since Expansionist batches E7 and E8, which landed together. E7
+    // (the themes sheet): fifteen Expansionist rows are retired, ten change in
+    // place and five change type. E8 (five new data-only cards): five more
+    // Expansionist Orders come live. So a v164 log's Expansionist hands and
+    // chairs hold different cards.
+    // 166 since Scientific batch S9 (the army and the Opus): nine more
+    // Scientific Orders and the shared The Soldier-Scholars come live, so a
+    // v165 log's Scientific and Dominion hands hold different cards.
+    // 167 since Expansionist batches E9 and E10, which landed together. E9
+    // (the land): two more Expansionist Orders come live and a worker's burn
+    // may mark an improved hex. E10 (the militia and the trades): two more
+    // Expansionist Orders come live and a retired soldier pays a citizen. So a
+    // v166 log's Expansionist hands, land and towns differ.
+    expect(SCHEMA_VERSION).toBe(167);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -7593,12 +7600,13 @@ describe("a charter carries the description of the building it opens", () => {
     ),
   ];
 
-  it("finds the thirteen rows that open one", () => {
+  it("finds the fourteen rows that open one", () => {
     // Eleven charters, the Gilded Court's doctrine, and — since D1b — the
     // Magisterial deck's Senate Charter, which opens the Assembly Hall. A
     // fourteenth joins this list by being a JSON row, and inherits every claim
-    // below.
-    expect(OPENERS.length).toBe(13);
+    // below. Scientific batch S8's The Forward Plans is that fourteenth: it
+    // opens the University early, in a town whose Library is old.
+    expect(OPENERS.length).toBe(14);
   });
 
   it("says every live clause the building’s own describer says", () => {
@@ -9946,7 +9954,7 @@ describe("the Orders balance pass of 2026-09-08", () => {
     // The pool fills whatever the gate says (the tree pass of 2026-08-30), so a
     // realm that opens the door late finds a great person waiting.
     settleRenownWindfall(g.state, player, [
-      { family: null, amount: renownThreshold(player) },
+      { family: null, amount: renownThreshold(g.state, player) },
     ]);
     expect(player.greatPersonOffer).toBeUndefined();
 

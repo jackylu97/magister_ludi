@@ -1070,19 +1070,26 @@ describe('a captured city, end to end', () => {
     // 162 since Scientific batch S6 (the research record): eleven more
     // Scientific Orders come live, so a v161 log's Scientific hands hold
     // different cards.
-    // 163 since Expansionist batch E7 (the themes sheet): fifteen Expansionist
-    // rows are retired, ten change in place and five change type, so a v162
-    // log's Expansionist hands and chairs hold different cards.
-    // 164 since Expansionist batch E8 (five new data-only cards): five more
-    // Expansionist Orders come live, so a v163 log's Expansionist hands hold
-    // different cards.
-    // 165 since Expansionist batch E9 (the land): two more Expansionist
-    // Orders come live and a worker's burn may mark an improved hex, so a
-    // v164 log's Expansionist hands and land differ.
-    // 166 since Expansionist batch E10 (the militia and the trades): two
-    // more Expansionist Orders come live and a retired soldier pays a
-    // citizen, so a v165 log's Expansionist hands and towns differ.
-    expect(SCHEMA_VERSION).toBe(166);
+    // 163 since Scientific batch S7 (the data-only cards of Tiers 0 to II):
+    // nine more Scientific Orders come live and three change, so a v162
+    // log's Scientific hands hold different cards.
+    // 164 since Scientific batch S8 (great people and the great houses):
+    // eleven more Scientific Orders come live, so a v163 log's Scientific
+    // hands hold different cards.
+    // 165 since Expansionist batches E7 and E8, which landed together. E7
+    // (the themes sheet): fifteen Expansionist rows are retired, ten change in
+    // place and five change type. E8 (five new data-only cards): five more
+    // Expansionist Orders come live. So a v164 log's Expansionist hands and
+    // chairs hold different cards.
+    // 166 since Scientific batch S9 (the army and the Opus): nine more
+    // Scientific Orders and the shared The Soldier-Scholars come live, so a
+    // v165 log's Scientific and Dominion hands hold different cards.
+    // 167 since Expansionist batches E9 and E10, which landed together. E9
+    // (the land): two more Expansionist Orders come live and a worker's burn
+    // may mark an improved hex. E10 (the militia and the trades): two more
+    // Expansionist Orders come live and a retired soldier pays a citizen. So a
+    // v166 log's Expansionist hands, land and towns differ.
+    expect(SCHEMA_VERSION).toBe(167);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

@@ -95,7 +95,7 @@ describe('the renown figure', () => {
     // tooltip, and it still comes out of `poolFigure`.
     const source = sourceOf('topBar.ts');
     expect(source).toContain('const pool = player?.renownPool ?? 0;');
-    expect(source).toContain('renownThreshold(player)');
+    expect(source).toContain('renownThreshold(state, player)');
     expect(source).toContain('renownPerTurn(state, playerId)');
     expect(source).toContain('poolFigure(pool, rate, rung)');
     // The failure this pins: a chip that added its own `/` and its own parens
