@@ -1193,6 +1193,110 @@ export interface AiConfig {
      * nobody has priced is visibly unpriced rather than quietly guessed at.
      */
     tallyForecast: Partial<Record<TallyOccasion, number>>;
+    /**
+     * **What a commission is worth to a seat** (Dominion batch D16).
+     *
+     * A commission row has no effects of its own. It pays its reward once its
+     * goal is met, so the bot prices the reward and discounts it by a forecast of
+     * the turns the goal takes (`explainCommission`, `value.ts`). The forecast
+     * reads the seat's own record of each occasion: kills, ranks, captures,
+     * camps, pillage. These knobs set the cautious default the forecast starts
+     * from, for a seat whose record is short or missing.
+     */
+    commission: {
+      /**
+       * **How many turns of record the cautious default counts as.** The rate of
+       * an occasion is `(record + default × priorTurns) ÷ (turns played +
+       * priorTurns)`. A young seat leans on the default and an old seat on its
+       * own record. Nought trusts the record alone.
+       */
+      priorTurns: number;
+      /**
+       * **The share of `score.tallyForecast` the cautious default assumes.** That
+       * table says how many occasions a growing card expects over the horizon. A
+       * goal is forecast more slowly, because a late commission pays nothing for
+       * the wait. An occasion the table does not name has no default, and only
+       * the seat's record forecasts it.
+       */
+      priorShare: number;
+      /**
+       * **The share of an occasion's moments that pass a goal's floor**: a town
+       * of at least eight citizens, an Elite rank, a great person spent on a
+       * citadel, a war that took two towns. It is also the share of the seat's
+       * captures that took a town with a world wonder or another empire's first
+       * town, because the board keeps no record of those.
+       */
+      floorShare: number;
+      /**
+       * **Commissions a seat with no record is assumed to meet over the
+       * horizon.** The cautious default of the rate at which this seat meets
+       * commissions. The Ovation's moment (`commissionMet`) and The Res Gestae's
+       * count (`commissionsMet`) both read this rate, because both ask how often
+       * a commission is met.
+       */
+      metOverHorizon: number;
+    };
+    /**
+     * **Stand-in prices for the Dominion shapes of batches D11 to D15**
+     * (Dominion batch D16). One knob for each shape. Each arm in `value.ts`
+     * reads what it can off the board (the seat's generals, warships, towns,
+     * rivals) and uses its knob for the one thing the board cannot say.
+     */
+    dominion: {
+      /**
+       * **Harry the Border's raiders** (`pillageRewards`): the share of this
+       * seat's raids made by the units an amplifier's `class` names. The bot does
+       * not plan which unit raids, so this is the stand-in.
+       */
+      pillageRewards: number;
+      /**
+       * **The Marshalate's flat step on the aura** (`generalAura` with an
+       * `amount`): the share of the army one great general's aura reaches. A
+       * step of strength on those units is priced as that share of a strength
+       * line on every unit.
+       */
+      auraStep: number;
+      /**
+       * **Rally to the Standard** (`rallyToGeneral`): what a military unit gained
+       * is worth for appearing beside a great general instead of in its town, as
+       * a share of one piece (`weights.military × score.combatScale`).
+       */
+      rallyToGeneral: number;
+      /**
+       * **The Limitanei** (`garrisonWorks`): the hex a soldier lets a town work,
+       * as a share of the seat's mean worked hex. A town takes its best hexes
+       * first, so the extra hex is worth less than the mean.
+       */
+      garrisonWorks: number;
+      /**
+       * **The zone-of-control rule narrowed to a rank** (Commission: The Chosen
+       * Men): the share of the rule's stand-in (`score.unknownEffect`) that a
+       * rule for Elite units only keeps.
+       */
+      zocRank: number;
+      /**
+       * **The Upstarts** (`vsMoreTechs`): the share of this seat's fights fought
+       * against an empire rather than the wild. The line is then scaled by the
+       * share of the empires met that know more technologies.
+       */
+      vsMoreTechs: number;
+      /**
+       * **The Longships** (`shoreRaid`): the share of this seat's warships that
+       * find an enemy work on the shore beside them in a turn of war.
+       */
+      shoreRaid: number;
+      /**
+       * **The Relay Stations** (`where: 'connectedTown'` on a movement line): the
+       * share of the army that starts its turn in a town. The line is then
+       * scaled by the share of this seat's towns joined to the capital.
+       */
+      connectedTown: number;
+      /**
+       * **Circumvallation** (`opusSiege`): points for each met rival raising the
+       * Magnum Opus, whose work the rule could stop.
+       */
+      opusSiege: number;
+    };
   };
   /** What "an enemy is near my towns" means, and what it is worth. */
   threat: {

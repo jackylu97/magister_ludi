@@ -2197,6 +2197,9 @@ describe('the marginal draft reading', () => {
         engines += 1;
         continue;
       }
+      // A commission is also priced by its reward, on top of its walk
+      // (Dominion batch D16). `aiCommissions.test.ts` pins that sum.
+      if (def.commission !== undefined) continue;
       expect(marginal.total, id).toBe(walked.total);
       expect(marginal.terms, id).toEqual(walked.terms);
     }

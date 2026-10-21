@@ -136,7 +136,14 @@ import {
 import { explainEmpireGold } from '../sim/empireGold';
 import { getTileAt } from '../sim/map';
 import { authorityOf, happinessDemand, happinessOf } from '../sim/meters';
-import { renownPerTurn } from '../sim/renown';
+import { renownPerTurn, renownThreshold } from '../sim/renown';
+// Dominion batch D16: a commission is priced off the simulation's own reading
+// of how far its goal has come and of the figures a reward reads, so the card
+// face, the HUD chip and the bot cannot disagree about either.
+import { commissionFigure, commissionProgress } from '../sim/commissions';
+// Dominion batch D16: The Upstarts' line is read through feature B's own
+// answer to "which empires know more technologies than this one".
+import { knowsMoreTechs, metRivals } from '../sim/rivals';
 // The pair resolution and a road's own length, off the leaf every fold reads
 // them from — so an appraisal and a caravan cannot disagree about which roads
 // are running or how far apart their two towns are.
@@ -152,6 +159,7 @@ import {
   type EmpireRates,
   buildingMatchesYieldPercent,
   cityScopeAdmits,
+  commissionFulfilledTurn,
   countOf,
   opusCityOf,
   orderAtSlotPosition,
@@ -172,10 +180,15 @@ import {
   type CardId,
   type CardPeriodicEffect,
   type CityScope,
+  type CombatCondition,
+  type CommissionGoal,
+  type CommissionReward,
   type GrantCount,
   type OrderId,
   type RateSource,
+  type TallyOccasion,
   type TileCondition,
+  type UnitFilter,
   type WindfallOccasion,
   isDoctrineId,
   isOrderId,
@@ -2998,7 +3011,15 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
     case 'happinessTierBoost':
       return effect.points * meterWeight(ctx, 'happiness');
     case 'combatLine':
-      return effect.amount * ctx.ai.weights.military * (1 + ctx.threat);
+      // A line against an empire that knows more technologies (Dominion batch
+      // D15, The Upstarts) is worth the share of fights where that is true.
+      // Every other condition keeps the full price it has always had.
+      return (
+        effect.amount *
+        ctx.ai.weights.military *
+        (1 + ctx.threat) *
+        (namesCondition(effect.when, 'vsMoreTechs') ? vsMoreTechsShare(ctx) : 1)
+      );
     case 'unitStat':
       // One piece's worth, and — since batch X2 — nothing at all when the towns
       // the clause names do not exist: a stat handed to the pieces of coastal
@@ -3018,7 +3039,15 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       //   · **movement · sight · range · charges** are points of a piece's own
       //     quality, and stay at the rate this arm has always read them at. The
       //     day one of them wants a reading of its own it takes a case here.
-      return unitStatPoints(effect.stat, effect.amount, ctx) * (1 + ctx.threat);
+      //
+      // A line for units standing in a town joined to the capital (Dominion
+      // batch D14, The Relay Stations) reaches only the part of the army that
+      // starts its turn in such a town. See `connectedTownShare`.
+      return (
+        unitStatPoints(effect.stat, effect.amount, ctx) *
+        (1 + ctx.threat) *
+        (effect.where === 'connectedTown' ? connectedTownShare(ctx) : 1)
+      );
     case 'renown': {
       // **A counted trickle is worth what it counts today** — Patronage's
       // citizens (batch O2). `countProbe` is the simulation's own reading, the
@@ -3414,6 +3443,17 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // is real and not forecast, so it is the stand-in, as a cost.
       if (effect.rule === 'noFounding') return -(ctx.expansion?.payoff ?? 0);
       if (effect.rule === 'noExperience') return -ctx.ai.score.unknownEffect;
+      // **The rules of Dominion batches D11 to D14**, each priced off the board
+      // with one stand-in knob in `score.dominion` (Dominion batch D16).
+      if (effect.rule === 'ignored' && effect.rank !== undefined) {
+        // The Chosen Men's institution: the zone-of-control rule for Elite
+        // units only keeps a share of the rule's stand-in.
+        return ctx.ai.score.unknownEffect * ctx.ai.score.dominion.zocRank;
+      }
+      if (effect.rule === 'rallyToGeneral') return rallyWorth(effect.class, ctx);
+      if (effect.rule === 'garrisonWorks') return garrisonWorksWorth(effect.max, effect.scope, ctx);
+      if (effect.rule === 'shoreRaid') return shoreRaidWorth(ctx);
+      if (effect.rule === 'opusSiege') return opusSiegeWorth(ctx);
       return ctx.ai.score.unknownEffect;
     case 'metaRule':
       // A rule of Statecraft itself — how long a chair is sealed. What a seal
@@ -3772,9 +3812,9 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // peace is read at the capture's rate, the threat over the horizon.
       return war;
     case 'commissionMet':
-      // Dominion batch D11, The Ovation. This bot does not price a commission
-      // yet, so it forecasts none met. Batch D16 prices both.
-      return 0;
+      // Dominion batch D11, The Ovation. The rate at which this seat meets
+      // commissions: its own record, with a cautious default (batch D16).
+      return commissionMetRate(ctx);
     case 'sizeRecord':
       // **A town passes its largest size about as often as it grows**
       // (Expansionist batch E2): a growth lost to a famine or a levy and grown
@@ -4336,25 +4376,37 @@ function scoreAmplifier(
       }
       return share * riders;
     }
-    case 'pillageRewards':
-      // **Not priced yet** (Dominion batch D12, Harry the Border). Only a
-      // commission's institution carries it, and the bot prices no commission
-      // until batch D16. Named so the exhaustiveness check below goes on
-      // catching the next member.
-      return ctx.ai.score.unknownEffect;
+    case 'pillageRewards': {
+      // **A share of what this seat's raids pay** (Dominion batch D12, Harry
+      // the Border; priced in batch D16). Read as Vae Victis' capture share is
+      // read one target up: the plunder a raid pays this seat, at the rate it
+      // raids, times the share. A row narrowed to a class reaches only the
+      // raids those units make, and the bot does not plan which unit raids, so
+      // that part is the stand-in `score.dominion.pillageRewards`.
+      const reach = effect.class === undefined ? 1 : ctx.ai.score.dominion.pillageRewards;
+      return share * pillagePlunderWorth(ctx) * occasionRate('pillage', ctx) * reach;
+    }
     case 'generalAura': {
       // **A share of the aura, for each great general the seat has in the
       // field** (Dominion batch D8, The Strategoi). The aura is strength on the
       // units near the general, priced as a strength line is, at the share. A
       // seat with no general gains nothing from it yet.
-      let generals = 0;
-      for (const unit of ctx.state.units) {
-        if (unit.ownerId !== ctx.playerId || unit.person === undefined) continue;
-        if (!isGreatPersonId(unit.person)) continue;
-        if (greatPersonDef(unit.person).family === 'general') generals += 1;
-      }
+      const generals = generalsInField(ctx);
       const aura = RULES.greatPeople.generalAuraStrength;
-      return share * aura * ctx.ai.weights.military * (1 + ctx.threat) * generals;
+      const shared = share * aura * ctx.ai.weights.military * (1 + ctx.threat) * generals;
+      // **The flat step** (Dominion batch D12, The Marshalate; priced in batch
+      // D16): strength added to the aura, once for each item its count finds,
+      // up to its cap. The simulation reads one general's aura, so the step is
+      // worth one aura while any general stands in the field, and nothing
+      // before then. The aura reaches only the units near the general, which
+      // is the stand-in `score.dominion.auraStep`.
+      if (flat === 0 || generals === 0) return shared;
+      const counted = effect.perCount === undefined ? 1 : grantCountNow(ctx, effect.perCount);
+      const most = effect.max === undefined ? Number.POSITIVE_INFINITY : Math.max(0, effect.max);
+      const steps = Math.min(flat * counted, most);
+      return (
+        shared + steps * ctx.ai.score.dominion.auraStep * ctx.ai.weights.military * (1 + ctx.threat)
+      );
     }
     default:
       return unreadTarget(effect.target, ctx);
@@ -5128,9 +5180,19 @@ export function explainCardEffects(
   effects: readonly CardEffect[],
   ctx: ValueContext,
 ): Appraisal {
-  if (!hasFoldReadEngine(effects)) return explainEffects(effects, ctx, id);
-  const margin = deckMargin(ctx, id);
-  return margin ?? explainEffects(effects, ctx, id);
+  const own = hasFoldReadEngine(effects)
+    ? (deckMargin(ctx, id) ?? explainEffects(effects, ctx, id))
+    : explainEffects(effects, ctx, id);
+  // **A commission is priced as its reward** (Dominion batch D16). Its row
+  // usually carries no effects, so without this term every commission was
+  // worth nothing to a bot. A card that is not a commission returns its own
+  // appraisal untouched, so no other price moves.
+  const commission = isOrderId(id) ? explainCommission(id, ctx) : null;
+  if (commission === null) return own;
+  const terms: ValueTerm[] = [];
+  if (own.terms.length > 0) terms.push(nest('its own effects', own));
+  terms.push(nest('what meeting the commission pays', commission));
+  return appraise(terms);
 }
 
 /**
@@ -5397,6 +5459,15 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
       },
     ];
   }
+  if (effect.count === 'commissionsMet') {
+    // **The commissions still to be met** (Dominion batch D11, The Res
+    // Gestae; priced in batch D16). The tally path's reading for a count that
+    // is a record rather than a card's own counter: this seat's rate of
+    // meeting commissions over the horizon, with no discount, because the
+    // rate is the estimate already (see `commissionMetRate`).
+    const more = commissionMetRate(ctx) * Math.max(1, ctx.ai.priorities.horizonTurns);
+    return [{ label: `+ ${round(more)} more commissions met, over the horizon`, value: more }];
+  }
   const buildable = potentialTownsFor(effect, ctx);
   if (buildable === null) return [];
   const turns = buildTurns(buildable.cost, ctx);
@@ -5543,4 +5614,595 @@ function bagOf(effect: object): YieldBag {
     if (typeof amount === 'number') bag[voice] = amount;
   }
   return bag;
+}
+
+// --- commissions (Dominion batch D16) ----------------------------------------
+
+/**
+ * **What a commission is worth to this seat**, or `null` for a row that is not
+ * a commission (Dominion batch D16).
+ *
+ * A commission row usually carries no effects. It pays its reward once its goal
+ * is met, so before this batch every commission was worth nothing to a bot. It
+ * is priced in two steps:
+ *
+ *   · **the reward.** A one-time reward (yields, a unit, a great person,
+ *     citizens, a timed blessing) is a lump, through `explainLump` or
+ *     `lumpOfPoints`, the bot's one exchange rate between a stock and a flow. A
+ *     lasting reward (an institution, a free building, a Wildcard chair) pays
+ *     every turn for the rest of the game, so it is priced as a rate, as a
+ *     card's own effects are;
+ *   · **the wait.** The whole reward is discounted by `delayTerm` over the
+ *     turns the goal is forecast to take (`commissionForecast`), so a goal the
+ *     seat will not meet inside the horizon is worth nothing.
+ *
+ * It reads every deck's commissions the same way, because it reads only the
+ * row's `commission` field and the simulation's own progress on it. A
+ * commission this seat has already met is worth nothing more: its reward has
+ * been paid, and its institution is already one of the seat's live effects.
+ */
+export function explainCommission(id: OrderId, ctx: ValueContext): Appraisal | null {
+  const spec = orderDef(id).commission;
+  if (spec === undefined) return null;
+  const sc = statecraftOf(ctx.state, ctx.playerId);
+  if (sc !== undefined && commissionFulfilledTurn(sc, id) !== undefined) {
+    return appraise([{ label: 'already met, and its reward is paid', value: 0 }]);
+  }
+  const reward: ValueTerm[] = [];
+  for (const line of spec.reward) {
+    for (const term of rewardTerms(line, spec.goals, ctx)) reward.push(term);
+  }
+  const forecast = commissionForecast(id, ctx);
+  return appraise([
+    nest('the reward', appraise(reward)),
+    delayTerm(forecast.turns, ctx, forecast.why),
+  ]);
+}
+
+/**
+ * **How many turns this seat needs to meet a commission's goal**, and why.
+ *
+ * Every part of the goal must be met, so the forecast is the slowest part. A
+ * part already met takes one turn, because goals are checked at the end of the
+ * turn. The forecast never runs past the horizon, where the discount is
+ * already nothing.
+ *
+ *   · **A counted part** needs its remaining occasions at this seat's rate of
+ *     them (`occasionForecastRate`). A goal with a floor counts only some
+ *     moments, so its rate is cut to `score.commission.floorShare`. The
+ *     progress is the card's own tally, so a commission already part of the
+ *     way there is nearer.
+ *   · **A reached part** needs the rest of its figure at the pace the figure
+ *     has grown so far this game. Every figure starts the game near nothing,
+ *     so the figure over the turns played is its average growth. The same
+ *     `score.commission.priorTurns` slows a young seat's reading, with no
+ *     default behind it.
+ */
+function commissionForecast(id: OrderId, ctx: ValueContext): { turns: number; why: string } {
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  let turns = 1;
+  let why = 'the goal is met, and pays at the end of the turn';
+  for (const part of commissionProgress(ctx.state, ctx.playerId, id)) {
+    if (part.met) continue;
+    const goal = part.goal;
+    const remaining = part.need - part.have;
+    const floor = goalHasFloor(goal) ? ctx.ai.score.commission.floorShare : 1;
+    const rate =
+      goal.kind === 'counted'
+        ? occasionForecastRate(goal.occasion, ctx) * floor
+        : smoothedRate(part.have, 0, ctx);
+    const needed = rate > 0 ? Math.min(horizon, Math.ceil(remaining / rate)) : horizon;
+    if (needed < turns) continue;
+    turns = Math.max(1, needed);
+    const what = goal.kind === 'counted' ? goal.occasion : goal.figure;
+    why =
+      rate > 0
+        ? `${round(remaining)} more ${what} still to come, at about ${round(rate)} a turn`
+        : `${round(remaining)} more ${what} still to come, and no pace to forecast them from`;
+  }
+  return { turns, why };
+}
+
+/** Does a counted goal count only some moments (`GoalFloor`)? */
+function goalHasFloor(goal: CommissionGoal): boolean {
+  if (goal.kind !== 'counted') return false;
+  return (
+    goal.minPopulation !== undefined ||
+    goal.minTownsTaken !== undefined ||
+    goal.rank !== undefined ||
+    goal.work !== undefined
+  );
+}
+
+/**
+ * **A rate read off a record, with a cautious default behind it**: `(record +
+ * default × priorTurns) ÷ (turns played + priorTurns)`, per turn.
+ *
+ * A young seat's record is a few turns long and says little, so the default
+ * carries it. An old seat's record is long, so its own pace wins. A `null`
+ * record is an occasion the board keeps no record of, and the default is all
+ * there is to go on.
+ */
+function smoothedRate(record: number | null, fallback: number, ctx: ValueContext): number {
+  if (record === null) return fallback;
+  const weight = Math.max(0, ctx.ai.score.commission.priorTurns);
+  const span = Math.max(0, ctx.state.turn) + weight;
+  if (span <= 0) return fallback;
+  return (Math.max(0, record) + fallback * weight) / span;
+}
+
+/**
+ * **How often this seat meets an occasion a commission counts**, per turn.
+ *
+ * The seat's own record (`occasionRecord`), with a cautious default taken
+ * from `score.tallyForecast`: that table's occasions over the horizon, cut to
+ * `score.commission.priorShare`. An occasion the table does not name has no
+ * default.
+ */
+function occasionForecastRate(occasion: TallyOccasion, ctx: ValueContext): number {
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const forecast = ctx.ai.score.tallyForecast[occasion];
+  const fallback =
+    forecast === undefined ? 0 : (forecast * ctx.ai.score.commission.priorShare) / horizon;
+  return smoothedRate(occasionRecord(occasion, ctx), fallback, ctx);
+}
+
+/**
+ * **How many times this seat has met an occasion this game**, off the records
+ * the board keeps, or `null` where it keeps none.
+ *
+ * Every record here is a lifetime count the simulation writes for its own
+ * cards (`Player.enemiesKilled`, `ranksEarned`, `hexesPillaged` and so on), so
+ * the bot reads what the seat has done rather than guessing. Two records are
+ * partial and say so: buying a hex is one of the three ways to claim one, and
+ * a great person recruited stands in for one spent. Switches on an aliased
+ * discriminant and ends in a `never`, so a new occasion stops this compiling.
+ */
+function occasionRecord(occasion: TallyOccasion, ctx: ValueContext): number | null {
+  const player = ctx.state.players[ctx.playerId];
+  if (player === undefined) return null;
+  const kind = occasion;
+  switch (kind) {
+    case 'barbarianKill':
+      // Every kill, less the kills of other empires' units.
+      return Math.max(0, (player.enemiesKilled ?? 0) - player.unitsKilled);
+    case 'unitKilled':
+      return player.enemiesKilled ?? 0;
+    case 'unitLost':
+      return player.unitsLost;
+    case 'goldSpent':
+      return player.goldSpent;
+    case 'unitTrained':
+    case 'unitGained':
+      return unitsBuiltBy(ctx);
+    case 'militaryGained':
+      return unitsBuiltMatching(ctx, { category: 'military' });
+    case 'campCleared':
+      return player.campsCleared;
+    case 'cityCaptured':
+      return player.citiesCaptured;
+    case 'wonderOrCapitalCaptured':
+      // No record of its own. A town that held a wonder or was a first town
+      // is some of the towns taken, the share a goal's floor keeps.
+      return player.citiesCaptured * ctx.ai.score.commission.floorShare;
+    case 'hexClaimed':
+      return player.tilesPurchased;
+    case 'greatPersonSpent':
+      return player.greatPeopleRecruited;
+    case 'wonderAnywhere':
+      return ctx.state.wonders.length;
+    case 'rankEarned':
+      return player.ranksEarned ?? 0;
+    case 'hexPillaged':
+      return player.hexesPillaged ?? 0;
+    case 'sizeRecord':
+      return boardTempo(ctx).growths;
+    case 'buildingBoughtWithGold':
+    case 'riteStarted':
+    case 'foreignCityConverted':
+    case 'warEnded':
+      return null;
+    default:
+      return unreadTally(kind);
+  }
+}
+
+/** `occasion` is `never` here: a member added to `TallyOccasion` stops this compiling. */
+function unreadTally(_occasion: never): number | null {
+  return null;
+}
+
+/** Units this seat has completed whose type the filter admits. */
+function unitsBuiltMatching(ctx: ValueContext, filter?: UnitFilter): number {
+  let built = 0;
+  const player = ctx.state.players[ctx.playerId];
+  for (const type of UNIT_TYPE_IDS) {
+    const count = player?.unitsBuilt[type] ?? 0;
+    if (count === 0 || !unitMatches(type, filter)) continue;
+    built += count;
+  }
+  return built;
+}
+
+/**
+ * **How often this seat meets a commission**, per turn: its record of met
+ * commissions, with `score.commission.metOverHorizon` as the cautious default.
+ * The Ovation's moment and The Res Gestae's count both read it.
+ */
+function commissionMetRate(ctx: ValueContext): number {
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const sc = statecraftOf(ctx.state, ctx.playerId);
+  const record = sc?.commissionsFulfilled?.length ?? 0;
+  return smoothedRate(record, ctx.ai.score.commission.metOverHorizon / horizon, ctx);
+}
+
+/**
+ * **What one line of a commission's reward is worth**, as printed terms.
+ *
+ * Read in the order `payCommission` reads a row: a row paid to each town pays
+ * nothing else, and every other field adds its own term. Each figure the
+ * reward reads off the board when the goal is met is read now, and never as
+ * less than the goal itself guarantees (a treasury goal of 2,000 pays at least
+ * on 2,000).
+ */
+function rewardTerms(
+  reward: CommissionReward,
+  goals: readonly CommissionGoal[],
+  ctx: ValueContext,
+): ValueTerm[] {
+  const terms: ValueTerm[] = [];
+  if (reward.eachTown === true) {
+    if (reward.yield === undefined || reward.amount === undefined) return terms;
+    if (reward.fromFigure !== undefined) {
+      // Each town from its own figure: the towns' figures add up to the
+      // empire's, so the whole reward is the amount times the empire's figure.
+      const figure = rewardFigure(reward, goals, ctx);
+      const bag: YieldBag = { [reward.yield]: reward.amount * figure };
+      terms.push(
+        nest(
+          `${reward.amount} ${reward.yield} for each of ${round(figure)} ${reward.fromFigure}, once`,
+          explainLump(bag, ctx),
+        ),
+      );
+      return terms;
+    }
+    // A reward to the towns of a kind is priced at no fewer than one such town:
+    // the goal that pays it usually makes one (Man the Walls' garrisons).
+    const towns = Math.max(townsAdmitting(ctx, reward.scope), Math.min(1, ctx.cities));
+    const bag: YieldBag = { [reward.yield]: reward.amount * towns };
+    terms.push(
+      nest(
+        `${reward.amount} ${reward.yield} in each of ${round(towns)} towns, once`,
+        explainLump(bag, ctx),
+      ),
+    );
+    return terms;
+  }
+  if (reward.yield !== undefined && reward.amount !== undefined) {
+    const figure = rewardFigure(reward, goals, ctx);
+    const bag: YieldBag = { [reward.yield]: reward.amount * figure };
+    terms.push(
+      nest(`${round(reward.amount * figure)} ${reward.yield}, once`, explainLump(bag, ctx)),
+    );
+  }
+  if (reward.unit !== undefined) {
+    // A combat unit is a piece, as a gifted soldier is everywhere else in this
+    // file. A civilian is priced as a worker, the one civilian the weight table
+    // prices. Both arrive once, so both go through the lump.
+    const fights = reward.unit === 'bestMelee' || isCombatant(unitDef(reward.unit));
+    const points = fights
+      ? ctx.ai.weights.military * ctx.ai.score.combatScale
+      : ctx.ai.weights.worker;
+    terms.push(nest(`a free ${reward.unit}, once`, lumpOfPoints(points, ctx)));
+  }
+  if (reward.timed !== undefined) {
+    // The timed grant's reading in `windfallGrantWorth`: the effects for as
+    // many turns as they hold, as a share of the lump's turns.
+    const turns = Math.max(0, reward.timed.turns);
+    const share = turns / Math.max(1, ctx.ai.score.lumpTurns);
+    terms.push({
+      label: `its effects for ${turns} turns`,
+      value: scoreEffects(reward.timed.effects, ctx) * share,
+    });
+  }
+  if (reward.greatPerson !== undefined) {
+    // A great person, priced at the renown the seat's next one would cost.
+    const player = ctx.state.players[ctx.playerId];
+    const renown = player === undefined ? 0 : renownThreshold(player);
+    terms.push(
+      nest(
+        'a great person, at the renown one costs',
+        lumpOfPoints(renown * ctx.ai.weights.renown, ctx),
+      ),
+    );
+  }
+  if (reward.citizens !== undefined && reward.citizens > 0) {
+    const to = reward.citizensTo ?? 'capital';
+    const towns = to === 'capital' ? 1 : Math.min(Math.max(0, to.smallest), ctx.cities);
+    const food = reward.citizens * towns * growthThreshold(ctx);
+    terms.push(
+      nest(`${reward.citizens} citizens in ${towns} towns, once`, explainLump({ food }, ctx)),
+    );
+  }
+  if (reward.building !== undefined) {
+    // A building pays every turn it stands, so it is a rate: the founding
+    // rider's reading of a building raised free.
+    const def = buildingDef(reward.building);
+    const bag: YieldBag = {};
+    for (const voice of VOICES) bag[voice] = def[voice] ?? 0;
+    terms.push({
+      label: `a free ${reward.building}`,
+      value: valueOfYields(bag, ctx) + explainBuildingRow(reward.building, ctx).total,
+    });
+  }
+  if (reward.wildcardChairs !== undefined && reward.wildcardChairs > 0) {
+    // A chair for the rest of the game, as `slotRider` prices one.
+    terms.push({
+      label: `${reward.wildcardChairs} more Wildcard chairs`,
+      value: ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount * reward.wildcardChairs,
+    });
+  }
+  for (const effect of reward.lasting ?? []) {
+    terms.push({
+      label: `for the rest of the game: ${effect.kind}`,
+      value: lastingWorth(effect, ctx),
+    });
+  }
+  return terms;
+}
+
+/**
+ * The figure a reward's `amount` is scaled by: `fromFigure` read now, but
+ * never less than the goal guarantees; `fromGoal` from what the goal will
+ * count; otherwise one.
+ */
+function rewardFigure(
+  reward: CommissionReward,
+  goals: readonly CommissionGoal[],
+  ctx: ValueContext,
+): number {
+  if (reward.fromFigure !== undefined) {
+    const now = commissionFigure(ctx.state, ctx.playerId, reward.fromFigure);
+    return Math.max(now, goalFigure(reward.fromFigure, goals));
+  }
+  if (reward.fromGoal !== undefined) {
+    // The towns the goal takes, each at least as large as its floor and as
+    // large as this seat's own middling town, the one size the bot can read.
+    let figure = 0;
+    for (const goal of goals) {
+      if (goal.kind !== 'counted') continue;
+      figure +=
+        reward.fromGoal === 'population'
+          ? goal.count * Math.max(goal.minPopulation ?? 0, meanPopulation(ctx))
+          : goal.count;
+    }
+    return figure;
+  }
+  return 1;
+}
+
+/** The count a reached goal asks of this figure, or nought when no goal asks it. */
+function goalFigure(
+  figure: CommissionReward['fromFigure'],
+  goals: readonly CommissionGoal[],
+): number {
+  let most = 0;
+  for (const goal of goals) {
+    if (goal.kind === 'reached' && goal.figure === figure) most = Math.max(most, goal.count);
+  }
+  return most;
+}
+
+/** The mean citizens of this seat's towns, or one for a seat with none. */
+function meanPopulation(ctx: ValueContext): number {
+  let people = 0;
+  let towns = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    people += city.population;
+    towns += 1;
+  }
+  return towns === 0 ? 1 : people / towns;
+}
+
+/**
+ * **What an institution pays each turn, for the rest of the game.**
+ *
+ * The effect's own price on this board. One case reads more: an effect that
+ * pays in towns or hexes of a kind this seat holds none of (a captured town, a
+ * citadel, the town the goal marks) reads nothing today, but the goal that
+ * grants it usually makes one. So such an effect is priced at one town (or one
+ * hex) of what it pays: the same effect with the narrowing taken off, shared
+ * over the towns (or hexes) it would then reach. It is the wonder idiom of
+ * `townsAdmitting` read one shape over.
+ */
+function lastingWorth(effect: CardEffect, ctx: ValueContext): number {
+  const board = scoreEffects([effect], ctx);
+  if (board !== 0) return board;
+  if (effect.kind === 'pays' && effect.where === 'hex') {
+    if (effect.on === undefined && effect.scope === undefined) return board;
+    const open: CardPaysEffect = { ...effect };
+    delete open.on;
+    delete open.scope;
+    const hexes = workedHexesAdmitting(ctx, open);
+    return hexes <= 0 ? board : scoreEffects([open], ctx) / hexes;
+  }
+  if (!('scope' in effect) || effect.scope === undefined || ctx.cities <= 0) return board;
+  const open = { ...effect };
+  delete open.scope;
+  return scoreEffects([open], ctx) / ctx.cities;
+}
+
+// --- the Dominion stand-ins (batch D16) --------------------------------------
+
+/** Does a combat condition ask this test, alone or inside an `all`? */
+function namesCondition(when: CombatCondition, test: CombatCondition['test']): boolean {
+  if (when.test === test) return true;
+  if (when.test === 'all') return when.of.some((part) => namesCondition(part, test));
+  return false;
+}
+
+/**
+ * **The share of fights a line against a more learned empire pays in** (The
+ * Upstarts): the empires met that know more technologies than this seat, over
+ * the empires met, times `score.dominion.vsMoreTechs` (the share of fights
+ * against an empire rather than the wild). Nothing while the seat has met
+ * nobody.
+ */
+function vsMoreTechsShare(ctx: ValueContext): number {
+  const rivals = metRivals(ctx.state, ctx.playerId);
+  if (rivals.length === 0) return 0;
+  let ahead = 0;
+  for (const rival of rivals) {
+    if (knowsMoreTechs(ctx.state, ctx.playerId, rival.id)) ahead += 1;
+  }
+  return (ahead / rivals.length) * ctx.ai.score.dominion.vsMoreTechs;
+}
+
+/** The `connected` town scope, frozen once so the scope memo can remember it. */
+const CONNECTED_TOWNS: CityScope = { test: 'connected' };
+
+/**
+ * **The share of the army a line for units in a joined town reaches** (The
+ * Relay Stations): the share of this seat's towns joined to the capital, times
+ * `score.dominion.connectedTown` (the share of the army that starts a turn in
+ * a town).
+ */
+function connectedTownShare(ctx: ValueContext): number {
+  if (ctx.cities <= 0) return 0;
+  const joined = townsAdmitting(ctx, CONNECTED_TOWNS) / ctx.cities;
+  return joined * ctx.ai.score.dominion.connectedTown;
+}
+
+/** Great generals this seat has standing in the field. */
+function generalsInField(ctx: ValueContext): number {
+  let generals = 0;
+  for (const unit of ctx.state.units) {
+    if (unit.ownerId !== ctx.playerId || unit.person === undefined) continue;
+    if (!isGreatPersonId(unit.person)) continue;
+    if (greatPersonDef(unit.person).family === 'general') generals += 1;
+  }
+  return generals;
+}
+
+/**
+ * **Rally to the Standard**: the units of the rule's class this seat gains a
+ * turn (its record of units completed over the turns played), each worth
+ * `score.dominion.rallyToGeneral` of a piece for appearing beside a general.
+ * Nothing while no general stands in the field, because then the rule moves
+ * nobody.
+ */
+function rallyWorth(filter: UnitFilter | undefined, ctx: ValueContext): number {
+  if (generalsInField(ctx) === 0) return 0;
+  const rate = unitsBuiltMatching(ctx, filter) / Math.max(1, ctx.state.turn);
+  const piece = ctx.ai.weights.military * ctx.ai.score.combatScale;
+  return rate * ctx.ai.score.dominion.rallyToGeneral * piece;
+}
+
+/**
+ * **The Limitanei**: one more worked hex for each combat unit of this seat on
+ * the hex of a town the rule admits, up to the rule's cap, each worth
+ * `score.dominion.garrisonWorks` of the seat's mean worked hex. Counted off
+ * the board as it stands, as `cardGarrisonSeats` counts the garrison.
+ */
+function garrisonWorksWorth(
+  cap: number | undefined,
+  scope: CityScope | undefined,
+  ctx: ValueContext,
+): number {
+  const most = cap === undefined ? Number.POSITIVE_INFINITY : Math.max(0, cap);
+  let seats = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    if (scope !== undefined && !cityScopeAdmits(ctx.state, city, scope, ctx.playerId)) continue;
+    let garrison = 0;
+    for (const unit of ctx.state.units) {
+      if (unit.ownerId !== ctx.playerId || unit.col !== city.col || unit.row !== city.row) continue;
+      if (isCombatant(unitDef(unit.type))) garrison += 1;
+    }
+    seats += Math.min(garrison, most);
+  }
+  if (seats === 0) return 0;
+  return seats * meanWorkedHex(ctx) * ctx.ai.score.dominion.garrisonWorks;
+}
+
+/**
+ * What one hex this seat works is worth a turn, on average, through each
+ * town's own reading of its hexes. Remembered for the sitting.
+ */
+const WORKED_HEX_MEMO = new WeakMap<ValueContext, number>();
+function meanWorkedHex(ctx: ValueContext): number {
+  const held = WORKED_HEX_MEMO.get(ctx);
+  if (held !== undefined) return held;
+  let worth = 0;
+  let hexes = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    const context = cityContext(ctx.state, city);
+    for (const cell of city.workedTiles) {
+      const tile = getTileAt(ctx.state.map, cell.col, cell.row);
+      if (tile === undefined) continue;
+      worth += valueOfYields(bagOfTileYield(foldTile(tile, context)), ctx);
+      hexes += 1;
+    }
+  }
+  const mean = hexes === 0 ? 0 : worth / hexes;
+  WORKED_HEX_MEMO.set(ctx, mean);
+  return mean;
+}
+
+/**
+ * **What one raid pays this seat**: the base plunder (`improvements.
+ * pillageGold`) and the grants of every pillage rider on its seated Orders,
+ * each at the rider arm's own reading (a lump through `explainLump`). A
+ * rider's `percent` scales the base plunder, as `windfallPayout` scales it.
+ */
+function pillagePlunderWorth(ctx: ValueContext): number {
+  let share = 1;
+  let grants = 0;
+  for (const held of slottedOrderEffects(ctx)) {
+    if (held.kind !== 'windfallRider' || held.occasion !== 'pillage') continue;
+    share += (held.percent ?? 0) / 100;
+    if (held.grant !== undefined) grants += windfallGrantWorth(held.grant, ctx);
+  }
+  const base = explainLump({ gold: RULES.improvements.pillageGold }, ctx).total;
+  return base * share + grants;
+}
+
+/** The empires this seat is at war with, off the war register. */
+function enemiesOf(ctx: ValueContext): number[] {
+  const enemies: number[] = [];
+  for (const war of ctx.state.wars) {
+    if (war.a === ctx.playerId) enemies.push(war.b);
+    else if (war.b === ctx.playerId) enemies.push(war.a);
+  }
+  return enemies;
+}
+
+/**
+ * **The Longships**: each warship of this seat raids at the end of a turn of
+ * war, so the price is its warships, times the share that find an enemy work
+ * on the shore (`score.dominion.shoreRaid`), times what one raid pays.
+ * Nothing at peace, as War Feeds Itself's harvest is worth nothing at peace.
+ */
+function shoreRaidWorth(ctx: ValueContext): number {
+  if (enemiesOf(ctx).length === 0) return 0;
+  let ships = 0;
+  for (const unit of ctx.state.units) {
+    if (unit.ownerId !== ctx.playerId) continue;
+    const def = unitDef(unit.type);
+    if (def.category === 'naval' && isCombatant(def)) ships += 1;
+  }
+  if (ships === 0) return 0;
+  return ships * ctx.ai.score.dominion.shoreRaid * pillagePlunderWorth(ctx);
+}
+
+/**
+ * **Circumvallation**: `score.dominion.opusSiege` for each empire this seat
+ * has met that is raising the Magnum Opus now (`opusCityOf`). Nothing while
+ * nobody raises it, because then the rule stops nothing.
+ */
+function opusSiegeWorth(ctx: ValueContext): number {
+  let raising = 0;
+  for (const rival of metRivals(ctx.state, ctx.playerId)) {
+    if (opusCityOf(ctx.state, rival.id) !== null) raising += 1;
+  }
+  return raising * ctx.ai.score.dominion.opusSiege;
 }

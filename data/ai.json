@@ -230,7 +230,25 @@
       "hexClaimed": 6,
       "buildingBoughtWithGold": 6,
       "riteStarted": 3,
-      "foreignCityConverted": 3
+      "foreignCityConverted": 3,
+      "militaryGained": 20
+    },
+    "commission": {
+      "priorTurns": 20,
+      "priorShare": 0.75,
+      "floorShare": 0.5,
+      "metOverHorizon": 2
+    },
+    "dominion": {
+      "pillageRewards": 0.5,
+      "auraStep": 0.5,
+      "rallyToGeneral": 0.5,
+      "garrisonWorks": 0.6,
+      "zocRank": 0.5,
+      "vsMoreTechs": 0.5,
+      "shoreRaid": 0.5,
+      "connectedTown": 0.3,
+      "opusSiege": 60
     }
   },
   "threat": {

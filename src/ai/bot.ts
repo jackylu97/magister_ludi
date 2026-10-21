@@ -298,6 +298,7 @@ import { totalSpecialists } from '../sim/specialists';
 import {
   SLOT_WORDS,
   anyCardDef,
+  cardGarrisonSeats,
   draftCost,
   heldReligions,
   expectedHandBags,
@@ -1631,7 +1632,16 @@ function focusTable(
   // seated its fifth citizen on the way, and read five seats and the opposite
   // word a moment later. The cap is a fact about the town's people rather than
   // about when it was last swept, so it survives the sweep.
-  const seats = Math.min(Math.max(0, city.population - totalSpecialists(city)), tiles.length);
+  //
+  // **The soldiers' seats too** (Dominion batch D16): under The Limitanei
+  // (`garrisonWorks`) `chooseCitizens` adds one seat for each soldier in the
+  // town, up to the card's cap, and `cardGarrisonSeats` is the one function
+  // both read. Without them this copy of the cap was short, and the table
+  // priced two placements one or two hexes smaller than the town works.
+  const seats = Math.min(
+    Math.max(0, city.population - totalSpecialists(city)) + cardGarrisonSeats(state, city),
+    tiles.length,
+  );
   // **What the hexes the town stands on today pay**, read through the same
   // evaluator and the same context as the two sheets below — which is what makes
   // it exactly the tile half of `books.flats` (`explainCity` folds a worked hex's
