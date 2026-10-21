@@ -447,7 +447,10 @@ describe("the bead catalogue", () => {
     // 163 since Expansionist batch E7 (the themes sheet): fifteen Expansionist
     // rows are retired, ten change in place and five change type, so a v162
     // log's Expansionist hands and chairs hold different cards.
-    expect(SCHEMA_VERSION).toBe(163);
+    // 164 since Expansionist batch E8 (five new data-only cards): five more
+    // Expansionist Orders come live, so a v163 log's Expansionist hands hold
+    // different cards.
+    expect(SCHEMA_VERSION).toBe(164);
   });
 
   it("puts the world clock after renown and the wager after it, with no bead phase left", () => {

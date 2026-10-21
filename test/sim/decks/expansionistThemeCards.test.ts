@@ -20,6 +20,21 @@
  *     after the goal is met and the card has left its chair;
  *   · the fifteen rows retired with no type, and the six new types (readings
  *     7 and 8).
+ *
+ * Batch E8 adds five new cards in shapes that already existed, and this file
+ * checks what each one does:
+ *
+ *   · The Founding Furrow: a founding pays culture equal to five times the
+ *     towns you hold, the new town included (reading 16);
+ *   · The Horrea: +1 authority for each Granary you hold (reading 17);
+ *   · The Land Hunger: while a met empire holds more towns, settlers are built
+ *     25% faster and move one hex further. The great person shares the
+ *     settler's model, so the row names the settler itself (readings 18 and
+ *     39);
+ *   · The Many Hands: +3% toward empire buildings for each town you hold, at
+ *     most +36% (reading 19);
+ *   · The Capitolia: +1 culture in each town for each empire building you hold
+ *     (reading 20).
  */
 
 import { describe, expect, it } from 'vitest';
@@ -27,8 +42,16 @@ import { describe, expect, it } from 'vitest';
 import { foundCityAt, ownedTiles, refreshCityDerived } from '../../../src/sim/cities';
 import { runCommissions } from '../../../src/sim/commissions';
 import { type Tile, mapRange, raiseImprovement, tileHex, tileIndex } from '../../../src/sim/map';
+import { explainAuthority } from '../../../src/sim/meters';
 import { layRoad } from '../../../src/sim/roads';
-import { type City, type GameState, bumpRevision, playerById } from '../../../src/sim/state';
+import {
+  type City,
+  type GameState,
+  addBuilding,
+  bumpRevision,
+  createUnit,
+  playerById,
+} from '../../../src/sim/state';
 import {
   cardRulePercent,
   commissionFulfilledTurn,
@@ -45,7 +68,9 @@ import {
   orderIsDealt,
   ordersForDecks,
 } from '../../../src/sim/statecraftData';
+import { fullMovement } from '../../../src/sim/units';
 import { explainTileYield, yieldContextFor } from '../../../src/sim/yields/hex';
+import { productionModifiers } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
 
 /** Puts a card in a chair for this seat, the way the reading sees it. */
@@ -346,5 +371,155 @@ describe('the Expansionist batch E7: retirements and types', () => {
     expect(orderDef(harvests).type).toBe('wildcard');
     expect(orderIsDealt(harvests)).toBe(false);
     expect(orderDef(harvests).needsTendedWork).toBe(true);
+  });
+});
+
+describe('the Expansionist batch E8: five new cards in shapes that already existed', () => {
+  /** What one card's grants pay at a founding right now, as [voice, amount]. */
+  function foundingPays(state: GameState, card: string): [string, number][] {
+    return windfallPayout(state, 0, 'found')
+      .grants.filter((grant) => grant.card === card)
+      .map((grant) => [grant.yield, grant.amount]);
+  }
+
+  /** What one card's lines put on seat 0's authority. */
+  function cardAuthority(state: GameState, card: string): number {
+    return explainAuthority(state, 0)
+      .filter((line) => line.card === card)
+      .reduce((sum, line) => sum + line.value, 0);
+  }
+
+  /** The percentage one card's lines put behind a build in this town. */
+  function buildPercent(state: GameState, city: City, item: City['queue'][number], card: string): number {
+    return productionModifiers(state, city, item)
+      .filter((line) => line.card === card)
+      .reduce((sum, line) => sum + line.percent, 0);
+  }
+
+  it('deals all five from the tier the sheet names', () => {
+    const tiers: [string, number][] = [
+      ['theFoundingFurrow', 0],
+      ['theHorrea', 0],
+      ['theLandHunger', 1],
+      ['theManyHands', 2],
+      ['theCapitolia', 3],
+    ];
+    const pool = ordersForDecks(['expansionist']);
+    for (const [id, band] of tiers) {
+      expect(orderIsDealt(id as OrderId), id).toBe(true);
+      expect(pool, id).toContain(id);
+      expect(orderDef(id as OrderId).band, id).toBe(band);
+    }
+  });
+
+  it('The Founding Furrow pays five culture for each town you hold, the new town included', () => {
+    const state = bareState(20, 10);
+    slot(state, 0, 'theFoundingFurrow');
+    const seat = playerById(state, 0)!;
+    // The real founding: one town held after it, so 5 culture.
+    const before = seat.culturePool;
+    town(state, 2, 5, 1);
+    expect(seat.culturePool - before).toBe(5);
+    // The moment is paid after the town exists, so the second town pays 10
+    // (reading 16).
+    town(state, 9, 5, 1);
+    expect(foundingPays(state, 'theFoundingFurrow')).toEqual([['culture', 10]]);
+    // A rival's town is not yours.
+    foundCityAt(state, 1, at(state, 16, 5));
+    bumpRevision(state);
+    expect(foundingPays(state, 'theFoundingFurrow')).toEqual([['culture', 10]]);
+  });
+
+  it('The Horrea gives +1 authority for each Granary you hold', () => {
+    const state = bareState(20, 10);
+    const home = town(state, 2, 5, 3);
+    const other = town(state, 9, 5, 3);
+    const rival = foundCityAt(state, 1, at(state, 16, 5));
+    slot(state, 0, 'theHorrea');
+    expect(cardAuthority(state, 'theHorrea')).toBe(0);
+    addBuilding(state, home, 'granary');
+    bumpRevision(state);
+    expect(cardAuthority(state, 'theHorrea')).toBe(1);
+    addBuilding(state, other, 'granary');
+    // A rival's Granary pays the rival, not you.
+    addBuilding(state, rival, 'granary');
+    bumpRevision(state);
+    expect(cardAuthority(state, 'theHorrea')).toBe(2);
+  });
+
+  it('The Land Hunger speeds and moves settlers only while a met empire holds more towns', () => {
+    const state = bareState(20, 10);
+    const home = town(state, 2, 5, 3);
+    foundCityAt(state, 1, at(state, 12, 3));
+    slot(state, 0, 'theLandHunger');
+    const settler = createUnit(state, 0, 'settler', 4, 5);
+    const person = createUnit(state, 0, 'greatPerson', 4, 6);
+    const worker = createUnit(state, 0, 'worker', 4, 7);
+    const toward = (id: 'settler' | 'worker'): number => buildPercent(state, home, { kind: 'unit', id }, 'theLandHunger');
+    const settlerBase = fullMovement(settler);
+    const personBase = fullMovement(person);
+    const workerBase = fullMovement(worker);
+    // One town each: nobody holds more.
+    playerById(state, 0)!.metSeats = [1];
+    bumpRevision(state);
+    expect(toward('settler')).toBe(0);
+    expect(fullMovement(settler, state)).toBe(settlerBase);
+    // The rival founds a second town, but this empire has not met it.
+    foundCityAt(state, 1, at(state, 12, 7));
+    playerById(state, 0)!.metSeats = [];
+    bumpRevision(state);
+    expect(toward('settler')).toBe(0);
+    expect(fullMovement(settler, state)).toBe(settlerBase);
+    // Met, it counts (reading 18).
+    playerById(state, 0)!.metSeats = [1];
+    bumpRevision(state);
+    expect(toward('settler')).toBe(25);
+    expect(fullMovement(settler, state)).toBe(settlerBase + 1);
+    // Settlers only: not workers, and not the great person, who shares the
+    // settler's model (reading 39).
+    expect(toward('worker')).toBe(0);
+    expect(fullMovement(worker, state)).toBe(workerBase);
+    expect(fullMovement(person, state)).toBe(personBase);
+  });
+
+  it('The Many Hands puts +3% behind empire buildings for each town you hold, at most +36%', () => {
+    const state = bareState(30, 20);
+    const towns: City[] = [];
+    for (const row of [3, 11]) {
+      for (const col of [2, 6, 10, 14, 18, 22, 26]) towns.push(town(state, col, row, 1));
+    }
+    expect(towns).toHaveLength(14);
+    slot(state, 0, 'theManyHands');
+    const forum: City['queue'][number] = { kind: 'building', id: 'forum' };
+    const granary: City['queue'][number] = { kind: 'building', id: 'granary' };
+    // Fourteen towns, but twelve is the most that pays.
+    expect(buildPercent(state, towns[0]!, forum, 'theManyHands')).toBe(36);
+    // An ordinary building and a unit gain nothing.
+    expect(buildPercent(state, towns[0]!, granary, 'theManyHands')).toBe(0);
+    expect(buildPercent(state, towns[0]!, { kind: 'unit', id: 'settler' }, 'theManyHands')).toBe(0);
+    // Three towns pay 9%: the capital counts too (reading 19).
+    for (const city of towns.slice(3)) city.ownerId = 1;
+    bumpRevision(state);
+    expect(buildPercent(state, towns[0]!, forum, 'theManyHands')).toBe(9);
+  });
+
+  it('The Capitolia gives each town +1 culture for each empire building you hold', () => {
+    const state = bareState(20, 10);
+    const home = town(state, 2, 5, 3);
+    const other = town(state, 9, 5, 3);
+    slot(state, 0, 'theCapitolia');
+    expect(townPays(state, home, 'theCapitolia', 'culture')).toBe(0);
+    addBuilding(state, home, 'forum');
+    bumpRevision(state);
+    // The count is the empire's, so the town without one is paid too.
+    expect(townPays(state, home, 'theCapitolia', 'culture')).toBe(1);
+    expect(townPays(state, other, 'theCapitolia', 'culture')).toBe(1);
+    addBuilding(state, other, 'heroicEpic');
+    // An ordinary building is not an empire building.
+    addBuilding(state, other, 'granary');
+    bumpRevision(state);
+    expect(townPays(state, home, 'theCapitolia', 'culture')).toBe(2);
+    expect(townPays(state, other, 'theCapitolia', 'culture')).toBe(2);
+    expect(townPays(state, other, 'theCapitolia', 'science')).toBe(0);
   });
 });

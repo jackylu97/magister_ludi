@@ -4276,6 +4276,18 @@
     "text": "+2 combat strength while standing in forest or jungle"
    }
   ],
+  "theFoundingFurrow": [
+   {
+    "raw": "founding a city grants +5 culture for each city you hold",
+    "text": "founding a city grants +5 culture for each city you hold"
+   }
+  ],
+  "theHorrea": [
+   {
+    "raw": "+1 authority capacity per [[building:granary|Granary]]",
+    "text": "+1 authority capacity per Granary"
+   }
+  ],
   "levyOfTheLand": [
    {
     "raw": "a town may spend one citizen for production equal to the food it took to grow that citizen (once every 5 turns)",
@@ -4484,6 +4496,12 @@
     "text": "then this card leaves its chair and is never seated again"
    }
   ],
+  "theLandHunger": [
+   {
+    "raw": "while an empire you have met holds more towns than you: +25% production toward settlers; settlers: +1 movement",
+    "text": "while an empire you have met holds more towns than you: +25% production toward settlers; settlers: +1 movement"
+   }
+  ],
   "theWatercourses": [
    {
     "raw": "+2 production on every hex with a [[improvement:farm|Farm]] that is beside a river or beside a [[improvement:farm|Farm]] and beside a river",
@@ -4654,6 +4672,12 @@
    {
     "raw": "+3% gold per city you have founded this game (at most +30% gold)",
     "text": "+3% gold per city you have founded this game (at most +30% gold)"
+   }
+  ],
+  "theManyHands": [
+   {
+    "raw": "+3% production toward empire buildings per city you hold (at most +36%)",
+    "text": "+3% production toward empire buildings per city you hold (at most +36%)"
    }
   ],
   "theWoodwrights": [
@@ -4907,6 +4931,12 @@
    {
     "raw": "the authority a city joined to your capital by road costs is 0",
     "text": "the authority a city joined to your capital by road costs is 0"
+   }
+  ],
+  "theCapitolia": [
+   {
+    "raw": "+1 culture in every city per empire building you hold",
+    "text": "+1 culture in every city per empire building you hold"
    }
   ],
   "theLandsGreatWork": [

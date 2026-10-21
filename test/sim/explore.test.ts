@@ -932,10 +932,16 @@ describe('determinism', () => {
    * here drafts, so no seat holds a retired or reworked Expansionist card.
    * Checked with the change in place and the version printed as 162, which
    * gives the hashes of Scientific batch S6 exactly.
+   *
+   * **Expansionist batch E8 (five new data-only cards, schema 164) moved the
+   * hash and not the length** at both seeds: 163 became 164, and that is all.
+   * Nobody here drafts, so no seat holds one of the five new cards. Checked
+   * with the change in place and the version printed as 163, which gives the
+   * hashes of Expansionist batch E7 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'fcb10c9d:188931',
-    2026: '293e2900:188509',
+    11: 'efdc44b6:188931',
+    2026: 'd5cbe2df:188509',
   };
 
   for (const seed of [11, 2026]) {

@@ -522,8 +522,11 @@ describe('the schema, as landed', () => {
     // fourteen live Expansionist rows the themes pass cut are retired (the
     // fifteenth, Public Works, was deferred and never counted). Ten rows were
     // changed in place and were already live.
-    expect(live).toBe(525);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(525);
+    // **And Expansionist batch E8** (the new data-only cards): five more. Five
+    // new Expansionist rows came live (The Founding Furrow, The Horrea, The
+    // Land Hunger, The Many Hands, The Capitolia).
+    expect(live).toBe(530);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(530);
   });
 
   /**
@@ -808,7 +811,10 @@ describe('the schema, as landed', () => {
     // 163 since Expansionist batch E7 (the themes sheet): fifteen Expansionist
     // rows are retired, ten change in place and five change type, so a v162
     // log's Expansionist hands and chairs hold different cards.
-    expect(SCHEMA_VERSION).toBe(163);
+    // 164 since Expansionist batch E8 (five new data-only cards): five more
+    // Expansionist Orders come live, so a v163 log's Expansionist hands hold
+    // different cards.
+    expect(SCHEMA_VERSION).toBe(164);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

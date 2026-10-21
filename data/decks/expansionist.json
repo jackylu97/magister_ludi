@@ -263,6 +263,44 @@
         }
       ]
     },
+    "theFoundingFurrow": {
+      "name": "The Founding Furrow",
+      "decks": ["expansionist"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "The plough marks the wall before the first stone is laid.",
+      "text": "Founding a town grants culture equal to five times the number of towns you hold.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "found",
+          "grant": { "yield": "culture", "amount": 5, "perCount": { "count": "cities" } }
+        }
+      ]
+    },
+    "theHorrea": {
+      "name": "The Horrea",
+      "decks": ["expansionist"],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "A province with full granaries does not riot.",
+      "text": "Each Granary you hold gives +1 authority.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "authority",
+          "amount": 1,
+          "count": "buildingsOfKind",
+          "building": "granary"
+        }
+      ]
+    },
     "levyOfTheLand": {
       "name": "Levy of the Land",
       "decks": ["expansionist"],
@@ -888,6 +926,36 @@
       },
       "effects": []
     },
+    "theLandHunger": {
+      "name": "The Land Hunger",
+      "decks": ["expansionist"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "Their towns fill the valley. Ours will fill the next one.",
+      "text": "While another empire holds more towns than you, your towns build settlers 25% faster, and your settlers gain +1 movement.",
+      "effects": [
+        {
+          "kind": "conditionRule",
+          "when": { "test": "rivalHoldsMoreTowns" },
+          "then": [
+            {
+              "kind": "productionBonus",
+              "category": "unit",
+              "percent": 25,
+              "class": { "type": "settler" }
+            },
+            {
+              "kind": "unitStat",
+              "stat": "movement",
+              "amount": 1,
+              "class": { "type": "settler" }
+            }
+          ]
+        }
+      ]
+    },
     "theWatercourses": {
       "name": "The Watercourses",
       "decks": ["expansionist"],
@@ -1464,6 +1532,26 @@
           "stage": "empire",
           "count": "citiesFounded",
           "max": 10
+        }
+      ]
+    },
+    "theManyHands": {
+      "name": "The Many Hands",
+      "decks": ["expansionist"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "Every town sends a cart of stone to the capital.",
+      "text": "Your towns build empire buildings 3% faster for each town you hold, at most +36%.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "empireBuilding": true,
+          "percent": 3,
+          "count": "cities",
+          "max": 12
         }
       ]
     },
@@ -2206,6 +2294,26 @@
           "rule": "cityCost",
           "value": 0,
           "scope": { "test": "connected" }
+        }
+      ]
+    },
+    "theCapitolia": {
+      "name": "The Capitolia",
+      "decks": ["expansionist"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Every town raises its own small copy of the Capitol.",
+      "text": "Each empire building you hold gives each of your towns +1 culture.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "empireBuildings"
         }
       ]
     },

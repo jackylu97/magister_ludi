@@ -1695,7 +1695,10 @@ describe('research in the log', () => {
     // 163 since Expansionist batch E7 (the themes sheet): fifteen Expansionist
     // rows are retired, ten change in place and five change type, so a v162
     // log's Expansionist hands and chairs hold different cards.
-    expect(SCHEMA_VERSION).toBe(163);
+    // 164 since Expansionist batch E8 (five new data-only cards): five more
+    // Expansionist Orders come live, so a v163 log's Expansionist hands hold
+    // different cards.
+    expect(SCHEMA_VERSION).toBe(164);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

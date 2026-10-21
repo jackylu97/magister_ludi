@@ -9,18 +9,18 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 - **Type:** the last column of each card table says which chair the card fits: **Military**, **Economic**, **Civic** or **Wildcard**. A card fits a chair of its own type or a Wildcard chair, and a Wildcard card fits only a Wildcard chair. The sorting rules and every government's chairs are in `docs/plans/doctrines-governments-chairs.md`, section 4. The sync test checks this column against the `type` of every row the sheet lists, the `modify` rows and the shared table's cards included. A charter takes no chair; its type is for its face.
 - **Gates:** "Needs tended land" deals a card only to a seat holding a tended-work charter. "Needs a levy" deals a card only to a seat holding a card that grants a levy, in a chair or not.
 - **Why each card is here:** `docs/plans/expansionist-themes.md`, the themes pass of 2026-10-21. It gives the engine (citizens and the levy), the four themes (the raised land, the frontier, public works and the militia), and your rulings in section 11. Each card's theme and role are in `docs/plans/expansionist-list-proposed.md`. The earlier pass, the builds you accepted on 2026-10-16, is `docs/plans/expansionist-builds.md`.
-- **The build:** the plan is `docs/plans/expansionist-themes-triage.md` (batches E7 to E13). Batch E7 wrote this sheet from the themes pass, retired the fifteen cut cards that had a data row, and built the ten cards changed in place: The Rope Stretchers, Six Gardens, The Milestones, The Teeming Realm, The Staked Claims, Plenty, The Wide Country, The Measure of the Land, The Mother City and The Domesday Survey. Six Gardens, The Wide Country and The Domesday Survey now leave an institution: effects that hold for the rest of the game and take no chair. The first round of batches, E0 to E6, is `docs/plans/expansionist-build-triage.md`.
+- **The build:** the plan is `docs/plans/expansionist-themes-triage.md` (batches E7 to E13). Batch E7 wrote this sheet from the themes pass, retired the fifteen cut cards that had a data row, and built the ten cards changed in place: The Rope Stretchers, Six Gardens, The Milestones, The Teeming Realm, The Staked Claims, Plenty, The Wide Country, The Measure of the Land, The Mother City and The Domesday Survey. Six Gardens, The Wide Country and The Domesday Survey now leave an institution: effects that hold for the rest of the game and take no chair. Batch E8 built five new cards in shapes that already existed: The Founding Furrow, The Horrea, The Land Hunger, The Many Hands and The Capitolia. The first round of batches, E0 to E6, is `docs/plans/expansionist-build-triage.md`.
 - **Doctrines:** proposed on 2026-10-17, eight in each of Tiers I to IV, for your pass; none is built. Each tier's Doctrine table sits above its Orders, and the Build column names the build or flavour of 2026-10-16 that each is written for. The reasons, drawbacks, pairs and shapes, and the questions, are in `docs/plans/expansionist-builds.md`, "Doctrines, proposed 2026-10-17". The themes pass did not change them (`docs/plans/expansionist-themes.md`, section 8).
 - **The long form** (the D3 "built as" details, the tended works as built, the synergy section, the proposed cuts and the proposed revision of 2026-10-13): `docs/decks/reference/expansionist-2026-10-16.md`.
 
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
-| Tier 0 | 12 | 0 | 2 | 14 | none |
-| Tier I | 21 | 2 | 3 | 26 | 8 proposed |
-| Tier II | 20 | 2 | 3 | 25 | 8 proposed |
-| Tier III | 27 | 2 | 2 | 31 | 8 proposed |
+| Tier 0 | 14 | 0 | 0 | 14 | none |
+| Tier I | 22 | 2 | 2 | 26 | 8 proposed |
+| Tier II | 21 | 2 | 2 | 25 | 8 proposed |
+| Tier III | 28 | 2 | 1 | 31 | 8 proposed |
 | Tier IV | 16 | 1 | 1 | 18 | 8 proposed |
-| **All** | **96** | **7** | **11** | **114** | **32 proposed** |
+| **All** | **101** | **7** | **6** | **114** | **32 proposed** |
 | Shared | 17 | 0 | 0 | 17 |  |
 
 **By type** (the chair a card fits):
@@ -53,8 +53,8 @@ The 114 cards are 111 that take a chair and three charters (The Fish Traps, The 
 | **The Road Home** | common | implemented | Each town you found is joined to your nearest town by road. | Economic |
 | **The Work Gangs** | common | implemented | Towns of at least three citizens may spend a citizen to raise a worker. This shares the town's levy wait. | Economic |
 | **The Woodland Bands** | common | implemented | Your units ignore the extra movement cost of forest and jungle, and gain +2 strength while they stand in forest or jungle. | Military |
-| **The Founding Furrow** | common | add | Founding a town grants culture equal to five times the number of towns you hold. | Civic |
-| **The Horrea** | uncommon | add | Each Granary you hold gives +1 authority. | Civic |
+| **The Founding Furrow** | common | implemented | Founding a town grants culture equal to five times the number of towns you hold. | Civic |
+| **The Horrea** | uncommon | implemented | Each Granary you hold gives +1 authority. | Civic |
 
 ## Tier I
 
@@ -100,7 +100,7 @@ The 114 cards are 111 that take a chair and three charters (The Fish Traps, The 
 | **The Quiet Provinces** | uncommon | implemented | Each town gains +1 production for every three points of spare authority, at most +3. | Economic |
 | **The Road Towns** | common | implemented | Towns joined to your capital by road gain +2 production. | Economic |
 | **The Aediles** | uncommon | add | While seated, this card gains +1 production and +1 culture each time you finish a public work. It starts at +2 of each. | Civic |
-| **The Land Hunger** | uncommon | add | While another empire holds more towns than you, your towns build settlers 25% faster, and your settlers gain +1 movement. | Economic |
+| **The Land Hunger** | uncommon | implemented | While another empire holds more towns than you, your towns build settlers 25% faster, and your settlers gain +1 movement. | Economic |
 
 ## Tier II
 
@@ -143,7 +143,7 @@ The 114 cards are 111 that take a chair and three charters (The Fish Traps, The 
 | **The Colonists** | uncommon | implemented | Towns of at least six citizens may spend a citizen to raise a settler. | Economic |
 | **The Teeming Realm** | uncommon | implemented | +1% science and culture for every ten citizens in your empire, at most +30%. | Civic |
 | **The Staked Claims** | uncommon | implemented | Each town you found claims every unowned hex within two hexes of it. | Economic |
-| **The Many Hands** | uncommon | add | Your towns build empire buildings 3% faster for each town you hold, at most +36%. | Economic |
+| **The Many Hands** | uncommon | implemented | Your towns build empire buildings 3% faster for each town you hold, at most +36%. | Economic |
 | **The Burghers** | uncommon | add | Towns of at least twelve citizens fill their guild bar half again as fast. | Civic |
 | **Watch and Ward** | common | add | Needs a levy. Units a levy raised gain +5 strength in your own territory. | Military |
 
@@ -195,7 +195,7 @@ The 114 cards are 111 that take a chair and three charters (The Fish Traps, The 
 | **The Opening of the Roads** | uncommon | implemented | When one of your towns is first joined to your capital by road, it gains production equal to twenty times its population. | Economic |
 | **The Stationes** | uncommon | implemented | Land units gain +3 strength while they stand in a town connected to your capital by road. | Military |
 | **The Great Colonies** | rare | implemented | Towns you found start with a third of the citizens of your largest town. | Economic |
-| **The Capitolia** | uncommon | add | Each empire building you hold gives each of your towns +1 culture. | Civic |
+| **The Capitolia** | uncommon | implemented | Each empire building you hold gives each of your towns +1 culture. | Civic |
 | **The Cura Aquarum** | rare | add | Towns joined to your capital by road count as having an Aqueduct. | Economic |
 
 ## Tier IV

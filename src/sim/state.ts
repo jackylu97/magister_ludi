@@ -2130,8 +2130,27 @@ import {
  * pools lose fourteen cards and five of its cards fit other chairs, so its
  * hands and its councils differ. The branch migrates nothing, for the reason
  * given under v119.
+ *
+ * v164 (branch `decks`; Expansionist batch E8, `docs/plans/expansionist-
+ * themes-triage.md`): **five new Expansionist Orders in shapes that already
+ * existed.** No field joins the state. The rules that change:
+ *
+ *   · The Founding Furrow (Tier 0): founding a town grants culture equal to
+ *     five times the number of towns you hold, the new town included;
+ *   · The Horrea (Tier 0): each Granary you hold gives +1 authority;
+ *   · The Land Hunger (Tier I): while a met empire holds more towns than you,
+ *     your towns build settlers 25% faster and your settlers gain +1
+ *     movement;
+ *   · The Many Hands (Tier II): your towns build empire buildings 3% faster
+ *     for each town you hold, at most +36%;
+ *   · The Capitolia (Tier III): each empire building you hold gives each of
+ *     your towns +1 culture.
+ *
+ * **A v163 save is refused and does not replay.** An Expansionist seat's
+ * pools hold five more cards, so its hands differ. The branch migrates
+ * nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 163;
+export const SCHEMA_VERSION = 164;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
