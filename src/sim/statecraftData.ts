@@ -1143,8 +1143,18 @@ export type CityScope =
    * `buildingsOfCategory`'s reason: "working a quarry" and "working at least
    * two of them" are one question with a threshold on it. Absent is one, which
    * is what every "working a …" row means.
+   *
+   * `standingTurns` (Scientific batch S5, The Long Inheritance; the triage's
+   * reading 34) admits only a work that has stood that many turns. It is
+   * `workingGreatWork`'s field of the same name, passed down to the tile test
+   * `standingSince` in the same way.
    */
-  | { test: 'workingImprovement'; improvements: ImprovementId[]; atLeast?: number }
+  | {
+      test: 'workingImprovement';
+      improvements: ImprovementId[];
+      atLeast?: number;
+      standingTurns?: number;
+    }
   /**
    * **A citizen of this town is standing on a great person's work** — The
    * Master's Presence, The Laureate, and Scientific's whole distributed-works
@@ -2445,6 +2455,21 @@ export type CountKind =
    */
   | 'charterTechsKnown'
   /**
+   * **Every technology this empire knows** (Scientific batch S6, The Sum of
+   * Knowledge), its charter technologies included (the triage's reading 17).
+   * Read through `techsKnownCount` (`rivals.ts`), the count The Edge of the
+   * Sword compares, so the two cards cannot disagree about what "know" means.
+   */
+  | 'techsKnown'
+  /**
+   * **The charters this empire has drafted** (Scientific batch S6, The
+   * Charter Rolls): the charter rows in its collection
+   * (`PlayerStatecraft.orders`). A charter counts from the pick, before its
+   * technology is researched, which is how this differs from
+   * `charterTechsKnown`.
+   */
+  | 'chartersDrafted'
+  /**
    * This empire's **living pieces**, narrowed by `CardPaysEffect.class`.
    *
    * Murasaki Shikibu's melee line. The second count in the union that takes an
@@ -3483,7 +3508,24 @@ export type TallyOccasion =
    * Magisterial convention blocks), and `City.largestSize` is that size. A
    * citizen that a levy took and that the town regrows is not counted again.
    */
-  | 'sizeRecord';
+  | 'sizeRecord'
+  /**
+   * This empire **completed a technology** (Scientific batch S6, The
+   * Astronomical Diaries). Written in `settleResearch` (`tech.ts`), the one
+   * completion routine, so a technology finished by a turn's science and one
+   * finished by a grant count the same. A charter technology counts too. The
+   * moment carries the technology (`TallyFacts.tech`), which a commission's
+   * `tech` floor reads (batch S9, The Great Instrument). Under The Age of
+   * Reason (`MetaRuleId`'s `techCountsTwice`) each completion counts twice.
+   */
+  | 'techCompleted'
+  /**
+   * This empire **completed a charter technology** (Scientific batch S6, The
+   * Royal Charter Commission). Written beside `techCompleted`, for a row that
+   * carries `TechDef.charter`, and counted twice under The Age of Reason in
+   * the same way.
+   */
+  | 'charterTechCompleted';
 // There is still no bare "a town grew" counter, and there should not be one:
 // it would pay twice for a citizen that a levy took and the fields gave back.
 // `sizeRecord` above is the counter the design doc's clause allows.
@@ -3510,6 +3552,8 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'militaryGained',
   'warEnded',
   'sizeRecord',
+  'techCompleted',
+  'charterTechCompleted',
 ];
 
 /** What a `pays` rate reads. A *rate* or a meter standing, never a bank. */
@@ -4355,6 +4399,20 @@ export type BehaviorRuleId =
    */
   | 'farmChainsWater'
   /**
+   * **A great person's work beside one of this empire's works of the named
+   * row counts as that row for its cards** (Scientific batch S5, The Studium
+   * Generale; the triage's reading 33). The row is the effect's
+   * `improvement`, so the card names the Academy and no code does.
+   *
+   * Read by `cardWorksCountAs`, which `worksStandInFor` turns into the one
+   * reading every card question about a row goes through: the tile tests
+   * `improvement` and `anyImprovement` (hex lines, counts of hexes, worked
+   * hexes), the town scope `hasImprovement`, and The School of Mines' deposit
+   * count. The row's own yield is not a card, so a work that stands in for an
+   * Academy does not gain the Academy's science.
+   */
+  | 'worksCountAs'
+  /**
    * **This empire may not found new cities** (Dominion batch D8, The Soldiers'
    * Share). Refused in `foundingError`, and, because a settler would then be
    * worth nothing, a unit that founds cities may be neither built nor bought
@@ -4422,7 +4480,18 @@ export type MetaRuleId =
    * triage's reading 3). Renown trickles, yields, timed effects, commissions
    * and Doctrines are not repeated. Read by `turnEffectRepeats`.
    */
-  | 'turnEffectRepeats';
+  | 'turnEffectRepeats'
+  /**
+   * **How many times this empire's Orders count each technology it
+   * completes** (Scientific batch S6, The Age of Reason; Double Time's
+   * shape). The value is the count: 2 is twice. Read by `techCountsFor` in
+   * two places: where the `tech` occasion pays an Order's riders (each rider
+   * rides that many times), and where `settleResearch` writes the
+   * `techCompleted` and `charterTechCompleted` tallies. A Doctrine, a
+   * building, a technology's own effects and a great person's legacy are
+   * read once.
+   */
+  | 'techCountsTwice';
 
 /** What an amplifier reaches into. */
 export type AmplifierTarget =
@@ -4487,6 +4556,21 @@ export type AmplifierTarget =
    * mine is an improvement, so there is no second test for "improved".
    */
   | 'luxuryMineCopies'
+  /**
+   * **How many more copies a strategic deposit supplies while a named work
+   * stands on it** (Scientific batch S5, The School of Mines: one more for each
+   * Academy on a strategic resource; the triage's reading 32). A flat step per
+   * deposit (`amount`), and the work is the effect's `improvement`.
+   *
+   * `luxuryMineCopies`' bargain on the other kind: read in `ownCopies`
+   * (`cities.ts`), outside the copies memo, on the deposits this empire's own
+   * ground supplies. The sweep keeps the opened deposits that carry a work, and
+   * `cardDepositWorkCopies` asks each one the card vocabulary's `improvement`
+   * tile test with the empire's ground facts, so a work that stands in for an
+   * Academy under The Studium Generale counts too. Only a deposit the empire
+   * can see is opened, so the sight gate holds by construction.
+   */
+  | 'depositWorkCopies'
   /** The flat happiness every unique luxury pays. */
   | 'luxuryHappiness'
   /** What a *duplicate* copy of a luxury is worth, as a share of the first. */
@@ -5006,7 +5090,16 @@ export type OccasionMeasure =
    * occasion, and never for a unit raised for free
    * (`WindfallOccasionFacts.unitCost`).
    */
-  | 'unitCost';
+  | 'unitCost'
+  /**
+   * **The science the technology just completed cost this empire**
+   * (Scientific batch S6, The Scholars' Fame): the folded price the seat paid
+   * (`foldTechCost`, the triage's reading 39), so a charter technology, with
+   * its premium, pays more than an ordinary one of its column. Filled only on
+   * the `tech` occasion, by `settleResearch` (`WindfallOccasionFacts.
+   * techCost`).
+   */
+  | 'techCost';
 
 /** What a rider adds on top of the occasion's own payout. */
 export interface WindfallGrantSpec {
@@ -5077,6 +5170,23 @@ export interface WindfallGrantSpec {
    * `windfallPayout`, before anything is banked.
    */
   fromTowns?: CityScope;
+  /**
+   * **Each town that receives the grant is paid `amount` times its own
+   * citizens** (Scientific batch S6, The Journeymen: "production equal to
+   * three times its population"; the triage's reading 40). Food or
+   * production only, and a flat grant only: never with `fromOccasion`,
+   * `fromRate` or `fromTowns`. The towns are the ones the delivery names
+   * (`toEveryTown`, `toCapital`, `toNearest`, or the town nearest the
+   * occasion), so the field is not tied to one card: Expansionist's The
+   * Topping Out may use it the same way.
+   *
+   * `windfallPayout` composes the figure for one citizen (the era and the
+   * council multiply it there, as they multiply any flat grant) and marks the
+   * payout's grant. `payWindfallGrants` multiplies it by each town's
+   * citizens as it pays that town, because the figure is different in each
+   * town and nothing between the two changes a town's size.
+   */
+  fromTownPopulation?: true;
   /** Hit points restored to the acting unit. Pillage's, today. */
   heal?: number;
   /**
@@ -7153,6 +7263,13 @@ export interface CardEffectAmplifierEffect {
    * units (The Marshalate's +5 strength). Absent is no cap.
    */
   max?: number;
+  /**
+   * **The work that must stand on the deposit** (Scientific batch S5, The
+   * School of Mines: the Academy). Read only on the `depositWorkCopies`
+   * target, by `cardDepositWorkCopies`. A row on that target with no work
+   * names nothing and adds nothing.
+   */
+  improvement?: ImprovementId;
 }
 
 /** A constant of the meters, replaced (`value`) or shifted (`delta`). */
@@ -7291,6 +7408,13 @@ export interface CardRuleEffect {
    * nothing. Meaningless on every other member.
    */
   range?: number;
+  /**
+   * **Which work the rule is about** (Scientific batch S5, The Studium
+   * Generale's Academy). Read only by `worksCountAs`, through
+   * `cardWorksCountAs`. A row of that rule with no work names nothing and
+   * changes nothing. Meaningless on every other member.
+   */
+  improvement?: ImprovementId;
 }
 
 /**
@@ -9172,6 +9296,14 @@ export interface GoalFloor {
    * counts.
    */
   work?: ImprovementId;
+  /**
+   * Only the completion of this technology counts (Scientific batch S6, for
+   * S9's The Great Instrument: "complete Alchemy"). Read off `TallyFacts.tech`,
+   * which `settleResearch` writes on the `techCompleted` and
+   * `charterTechCompleted` moments, so a goal on any other occasion never
+   * counts.
+   */
+  tech?: TechId;
 }
 
 /**
@@ -9196,6 +9328,8 @@ export interface TallyFacts {
   rank?: RankId;
   /** The work a great person laid when spent (Dominion batch D11). A boon carries none. */
   improvement?: ImprovementId;
+  /** The technology just completed (Scientific batch S6). Read by a goal's `tech` floor. */
+  tech?: TechId;
 }
 
 /**

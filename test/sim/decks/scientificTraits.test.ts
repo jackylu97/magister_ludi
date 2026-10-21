@@ -425,16 +425,16 @@ function unitFull(type: 'archer' | 'crossbowman'): number {
 describe('the charters', () => {
   const DEALT: readonly OrderId[] = ['theBronzeFoundersCharter', 'theMechanistsCharter', 'theNavalGunnersCharter'];
 
-  it('deals the three whose gift is whole, and keeps the Alchemists’ back for Niter Beds', () => {
+  it('deals the three whose gift is whole, and the Alchemists’ once Niter Beds are built', () => {
     for (const id of DEALT) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
       expect(orderDef(id).text, id).toBeTruthy();
     }
-    expect(orderIsDealt('theAlchemistsCharter')).toBe(false);
-    expect(orderDef('theAlchemistsCharter').deferred).toEqual([
-      'knowing Chemistry lets workers build Niter Beds beside a farm or pasture, which supply niter',
-    ]);
+    // Batch S5 built Niter Beds, so the Alchemists' Charter is dealt too
+    // (`scientificLand.test.ts`).
+    expect(orderIsDealt('theAlchemistsCharter')).toBe(true);
+    expect(orderDef('theAlchemistsCharter').deferred).toBeUndefined();
     // Every charter technology but these four still gives no trait.
     const traited = new Set<TechId>(WITH_TRAITS);
     for (const id of CHARTER_TECH_IDS) {

@@ -2020,9 +2020,36 @@ import {
  * hold more cards, and every seat's resource lines read the sight gate. The
  * branch migrates nothing, for the reason given under v119.
  *
- * v160 (branch `decks`; Dominion batch D13, `docs/plans/dominion-themes-
- * triage.md`): **The Limitanei.** No field joins the state. The rules that
+ * v160 (branch `decks`; Scientific batch S5, `docs/plans/scientific-build-
+ * triage.md`): **the learned land.** No field joins the state. The rules that
  * change:
+ *
+ *   · the Surveyors' and the Alchemists' Charters are dealt. Surveying opens
+ *     the Aqueduct before Engineering and a new worker row, the Qanat, which
+ *     waters the farms beside it. Chemistry opens a new worker row, Niter
+ *     Beds, built beside a farm or pasture, which supply one niter;
+ *   · eight more Scientific Orders come live: The Prospectors' Notes, The
+ *     Founding Gift, The Latin Quarter, The Studium Generale, The Nizamiyya,
+ *     The Republic of Letters, The School of Mines (the old Strategic
+ *     Reserves row), and The Long Inheritance at its new text;
+ *   · The Assay moves to the shared cards (Expansionist and Scientific) with a
+ *     new text: hexes with a strategic resource gain science;
+ *   · a great person's work pays the riders on building an improvement, as a
+ *     worker's build does;
+ *   · a town scope `hasImprovement` reads a variant row as its base row.
+ *
+ * **A v159 save is refused and does not replay.** A Scientific or
+ * Expansionist seat's pools now hold different cards, and a logged Aqueduct
+ * meets a different gate. The branch migrates nothing, for the reason given
+ * under v119.
+ *
+ * v161 (branch `decks`; Dominion batches D13, D14 and D15, `docs/plans/
+ * dominion-themes-triage.md`): **The Limitanei, the three drafts and The
+ * Upstarts.** The three batches were built as 160 and 161 on their own
+ * branch and merged after S5 together, so they share one number. No field
+ * joins the state.
+ *
+ * The rules that change in D13 (The Limitanei):
  *
  *   · one new Order comes live: The Limitanei (Tier III, rare);
  *   · a card's `garrisonWorks` rule lets a town work one more hex for each
@@ -2031,17 +2058,11 @@ import {
  *     the citizens' seats. The extra hexes eat no food and count as worked
  *     hexes for every card.
  *
- * **A v159 save is refused and does not replay.** A Dominion seat's pools from
- * Tier III on now hold one more card, so its hands differ. The branch
- * migrates nothing, for the reason given under v119.
+ * The rules that change in D14 (the three drafts):
  *
- * v161 (branch `decks`; Dominion batches D14 and D15, `docs/plans/dominion-
- * themes-triage.md`): **the three drafts and The Upstarts.** No field joins
- * the state. The rules that change:
- *
- *   · three Orders come live: The Relay Stations (Tier II), Circumvallation
- *     (Tier IV) and The Upstarts (Tier I, a new row). The row `marineDrill`
- *     becomes The Longships and plays a new rule;
+ *   · two Orders come live: The Relay Stations (Tier II) and Circumvallation
+ *     (Tier IV). The row `marineDrill` becomes The Longships and plays a new
+ *     rule;
  *   · a card's `shoreRaid` rule makes each naval combat unit of its holder
  *     pillage, at the end of the turn (the `drill` phase), the first enemy
  *     improvement on land beside it (`raidFromTheSea`). The raids join the
@@ -2051,16 +2072,40 @@ import {
  *   · a card's `opusSiege` rule holds a rival town's production at nothing
  *     while it builds a Magnum Opus, is under siege, and a combat unit of the
  *     holder stands beside it (`explainOpusGate`, step 13 of
- *     `docs/yields.md`);
+ *     `docs/yields.md`).
+ *
+ * The rules that change in D15 (The Upstarts):
+ *
+ *   · one new Order comes live: The Upstarts (Tier I, a new row);
  *   · a strength line can ask `vsMoreTechs`: the other side's empire knows
  *     more technologies than this one.
  *
  * **A v160 save is refused and does not replay.** A Dominion seat's pools in
- * Tiers I, II and IV now hold more cards, so its hands differ, and Marine
- * Drill's strength lines are gone. The branch migrates nothing, for the reason
- * given under v119.
+ * every tier from I to IV now hold more cards, so its hands differ, and
+ * Marine Drill's strength lines are gone. The branch migrates nothing, for
+ * the reason given under v119.
+ *
+ * v162 (branch `decks`; Scientific batch S6, `docs/plans/scientific-build-
+ * triage.md`): **the research record.** No field joins the state. The rules
+ * that change:
+ *
+ *   · eleven Scientific Orders come live: The Royal Workshops, The Prize
+ *     Essay, The Sky Watchers, The Astronomical Diaries, The Scholars' Fame,
+ *     The Charter Rolls, The Royal Charter Commission, The Age of Reason, The
+ *     Journeymen, The Sum of Knowledge and The Great Catalogue;
+ *   · completing a technology is written down for the seated Orders that
+ *     count it (`techCompleted`, and `charterTechCompleted` for a charter
+ *     technology), and its price travels with the `tech` occasion;
+ *   · the `tech` occasion now pays a rider that grants renown alone, and the
+ *     food and production its riders pay settle in their towns at once;
+ *   · a grant may pay each town by its own citizens (`fromTownPopulation`),
+ *     and The Age of Reason makes an Order count each technology twice.
+ *
+ * **A v161 save is refused and does not replay.** A Scientific seat's pools
+ * now hold eleven more cards, so its hands differ. The branch migrates
+ * nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 161;
+export const SCHEMA_VERSION = 162;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

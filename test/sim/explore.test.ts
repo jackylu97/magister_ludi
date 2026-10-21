@@ -906,21 +906,30 @@ describe('determinism', () => {
    * paid. Checked with the merge in place and the version printed as 158,
    * which gives the hashes of Scientific batch S4 exactly.
    *
-   * **Dominion batch D13 (The Limitanei, schema 160) moved the hash and not
-   * the length** at both seeds: 159 became 160, and that is all. Nobody here
-   * drafts, so no seat holds the card and no town seats a soldier on a hex.
-   * Checked with the change in place and the version printed as 159, which
-   * gives the hashes of D11 and D12 exactly.
+   * **Scientific batch S5 (the learned land, schema 160) moved the hash and
+   * not the length** at both seeds: 159 became 160, and that is all. Nobody
+   * here drafts, so no Qanat, Niter Beds or new card reaches this board, and
+   * The Assay is seated by nobody. Checked with the change in place and the
+   * version printed as 159, which gives the hashes of Dominion batches D11 and
+   * D12 exactly.
    *
-   * **Dominion batches D14 and D15 (the three drafts and The Upstarts, schema
-   * 161) moved the hash and not the length** at both seeds: 160 became 161,
-   * and that is all. Nobody here drafts, so no seat holds a card, no ship
-   * raids and no town's Opus is stopped. Checked with the change in place and
-   * the version printed as 160, which gives the hashes of D13 exactly.
+   * **Dominion batches D13, D14 and D15 moved the hash and not the length** at
+   * both seeds, by the version alone. They were built at schemas 160 and 161,
+   * without S5, and merged together after it as 161, so the version went from
+   * 160 to 161. Nobody here drafts, so no seat holds a card, no town seats a
+   * soldier on a hex, no ship raids and no town's Opus is stopped. Checked
+   * with the merge in place and the version printed as 160, which gives the
+   * hashes of Scientific batch S5 exactly.
+   *
+   * **Scientific batch S6 (the research record, schema 162) moved the hash
+   * and not the length** at both seeds: 161 became 162, and that is all.
+   * Nobody here drafts, so no seat holds a card that counts a technology.
+   * Checked with the change in place and the version printed as 161, which
+   * gives the hashes of Dominion batches D13, D14 and D15 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'ccb598a3:188931',
-    2026: '530e31da:188509',
+    11: '84366c84:188931',
+    2026: 'dd943b79:188509',
   };
 
   for (const seed of [11, 2026]) {

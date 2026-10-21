@@ -140,6 +140,8 @@ export {
   surplusMoverFor,
   surplusRowReaches,
   turnEffectRepeats,
+  // Scientific batch S6: The Age of Reason's count.
+  techCountsFor,
   cardTierBoost,
   cardGrantsAbility,
   cardTileLines,

@@ -231,7 +231,9 @@
       "buildingBoughtWithGold": 6,
       "riteStarted": 3,
       "foreignCityConverted": 3,
-      "militaryGained": 20
+      "militaryGained": 20,
+      "techCompleted": 15,
+      "charterTechCompleted": 1
     },
     "commission": {
       "priorTurns": 20,

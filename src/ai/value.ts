@@ -200,7 +200,7 @@ import { type ProjectId, projectDef } from '../sim/projectData';
 // X2's scope reading is asked over it, so the import is no longer type-only.
 import { type City, type GameState, citiesOf, foundedReligion, playerById } from '../sim/state';
 import { buildError } from '../sim/tech';
-import { type TechAge } from '../sim/techData';
+import { type TechAge, isTechId, techDef } from '../sim/techData';
 import { TILE_YIELD_KEYS, type TileYield, readTileYield } from '../sim/terrainData';
 import {
   UNIT_TYPE_IDS,
@@ -4362,6 +4362,10 @@ function scoreAmplifier(
       // over the duplicate threshold, and that reading belongs beside the
       // happiness meter rather than in an amplifier arm.
       return ctx.ai.score.unknownEffect;
+    case 'depositWorkCopies':
+      // **Not priced yet** (Scientific batch S5, The School of Mines). The bot
+      // prices the new Scientific kinds in batch S13. Nought until then.
+      return 0;
     case 'captureRewards': {
       // **A share of what the seat's own capture riders are worth** (Dominion
       // batch D6, Vae Victis): each seated Order's capture rider, priced as the
@@ -5797,6 +5801,14 @@ function occasionRecord(occasion: TallyOccasion, ctx: ValueContext): number | nu
       return player.hexesPillaged ?? 0;
     case 'sizeRecord':
       return boardTempo(ctx).growths;
+    case 'techCompleted':
+      // Scientific batch S6: every technology this seat holds, charters
+      // included, as the tally counts them.
+      return player.techsResearched.length;
+    case 'charterTechCompleted':
+      // Scientific batch S6: the charter technologies among them.
+      return player.techsResearched.filter((id) => isTechId(id) && techDef(id).charter === true)
+        .length;
     case 'buildingBoughtWithGold':
     case 'riteStarted':
     case 'foreignCityConverted':

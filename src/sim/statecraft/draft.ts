@@ -750,6 +750,7 @@ function countedGoalFor(
  * floor counts every moment. A floor reads a fact the moment must carry, so a
  * moment without it never counts. Dominion batch D11 added the rank reached
  * (The Chosen Men) and the work a great person laid (The Border Fortress).
+ * Scientific batch S6 added the technology completed.
  */
 function goalFloorMet(goal: Extract<CommissionGoal, { kind: 'counted' }>, facts: TallyFacts | undefined): boolean {
   if (goal.minPopulation !== undefined && (facts?.population ?? 0) < goal.minPopulation) return false;
@@ -765,6 +766,9 @@ function goalFloorMet(goal: Extract<CommissionGoal, { kind: 'counted' }>, facts:
   }
   // The great person must have laid this work.
   if (goal.work !== undefined && facts?.improvement !== goal.work) return false;
+  // The technology completed must be this one (Scientific batch S6, for S9's
+  // The Great Instrument).
+  if (goal.tech !== undefined && facts?.tech !== goal.tech) return false;
   return true;
 }
 

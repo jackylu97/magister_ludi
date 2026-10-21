@@ -319,46 +319,23 @@
         }
       ]
     },
-    "scientificTheAssay": {
-      "name": "The Assay",
-      "decks": ["scientific"],
-      "band": 1,
-      "line": "none",
-      "rarity": "common",
-      "type": "civic",
-      "flavor": "Weigh it, burn it, then believe it.",
-      "text": "Gain +3 science and +3 gold for each distinct strategic resource type you can access.",
-      "effects": [
-        {
-          "kind": "pays",
-          "where": "empire",
-          "basis": "count",
-          "count": "uniqueStrategicResources",
-          "to": "science",
-          "amount": 3
-        },
-        {
-          "kind": "pays",
-          "where": "empire",
-          "basis": "count",
-          "count": "uniqueStrategicResources",
-          "to": "gold",
-          "amount": 3
-        }
-      ]
-    },
     "theStrategicReserves": {
-      "name": "The Strategic Reserves",
+      "name": "The School of Mines",
       "decks": ["scientific"],
-      "band": 1,
+      "band": 3,
       "line": "none",
       "rarity": "common",
       "type": "economic",
-      "flavor": "The second seam is the one that makes a trade.",
-      "deferred": [
-        "every improved strategic deposit past the first of its kind works and pays the town that holds it, and a great person's works count as improvements here"
-      ],
-      "effects": []
+      "flavor": "Teach the assayer on the hill, and the hill pays the fees.",
+      "text": "An Academy standing on a strategic resource supplies one more copy of it.",
+      "effects": [
+        {
+          "kind": "effectAmplifier",
+          "target": "depositWorkCopies",
+          "improvement": "academy",
+          "amount": 1
+        }
+      ]
     },
     "thePracticalArts": {
       "name": "The Practical Arts",
@@ -668,8 +645,8 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "Turn one thing into another and call it a trade.",
+      "text": "Drafting this opens Chemistry for research. Knowing it gives the Grenadier trait to the Warrior line (Warrior to Longswordsman), kept through every upgrade: +1 strength, and +1 more for each charter technology you know. Workers may build Niter Beds beside a farm or pasture, which supply one niter. Chemistry does not open the Magnum Opus. No chair required.",
       "charter": { "unlocks": { "tech": "chemistry" } },
-      "deferred": ["knowing Chemistry lets workers build Niter Beds beside a farm or pasture, which supply niter"],
       "effects": []
     },
     "theSecondSeat": {
@@ -690,48 +667,23 @@
       "decks": ["scientific"],
       "band": 3,
       "line": "none",
-      "rarity": "rare",
+      "rarity": "uncommon",
       "type": "economic",
       "flavor": "Old works build the new ones.",
-      "text": "Cities working a great-person improvement at least twenty turns old gain +45% production toward empire buildings, wonders and the Opus. A mature empire building there adds another +23%.",
+      "text": "Cities working an Academy at least twenty turns old gain +30% production toward empire buildings, wonders and the Magnum Opus.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "building",
           "empireBuilding": true,
-          "percent": 45,
-          "scope": { "test": "workingGreatWork", "standingTurns": 20 }
+          "percent": 30,
+          "scope": { "test": "workingImprovement", "improvements": ["academy"], "standingTurns": 20 }
         },
         {
           "kind": "productionBonus",
           "category": "wonder",
-          "percent": 45,
-          "scope": { "test": "workingGreatWork", "standingTurns": 20 }
-        },
-        {
-          "kind": "productionBonus",
-          "category": "building",
-          "empireBuilding": true,
-          "percent": 23,
-          "scope": {
-            "test": "all",
-            "of": [
-              { "test": "workingGreatWork", "standingTurns": 20 },
-              { "test": "hasEmpireBuilding", "standingTurns": 20 }
-            ]
-          }
-        },
-        {
-          "kind": "productionBonus",
-          "category": "wonder",
-          "percent": 23,
-          "scope": {
-            "test": "all",
-            "of": [
-              { "test": "workingGreatWork", "standingTurns": 20 },
-              { "test": "hasEmpireBuilding", "standingTurns": 20 }
-            ]
-          }
+          "percent": 30,
+          "scope": { "test": "workingImprovement", "improvements": ["academy"], "standingTurns": 20 }
         }
       ]
     },
@@ -870,8 +822,8 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "Chain, rod and level, and the land agrees to be measured.",
+      "text": "Drafting this opens Surveying for research. Knowing it lets you build the Aqueduct before Engineering, and lets workers build the Qanat: an improvement on flat land that waters the farms beside it with no river or lake nearby. No chair required.",
       "charter": { "unlocks": { "tech": "surveying" } },
-      "deferred": ["knowing Surveying opens the Aqueduct early and lets workers build the Qanat"],
       "effects": []
     },
     "theLibrariansCharter": {
@@ -1106,6 +1058,373 @@
           "side": "both",
           "when": { "test": "always" },
           "scaled": { "count": "techLead", "per": 1, "max": 8 }
+        }
+      ]
+    },
+    "theProspectorsNotes": {
+      "name": "The Prospectors' Notes",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "Mark where the rock changes colour, and dig there first.",
+      "text": "Building a mine or a quarry grants its town 25 production.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "improvementBuilt",
+          "improvement": "mine",
+          "grant": { "yield": "production", "amount": 25 }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "improvementBuilt",
+          "improvement": "quarry",
+          "grant": { "yield": "production", "amount": 25 }
+        }
+      ]
+    },
+    "theFoundingGift": {
+      "name": "The Founding Gift",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "The scholar brings the books, and the town brings the stone.",
+      "text": "A great scholar who founds an Academy also grants its town 150 production.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "improvementBuilt",
+          "improvement": "academy",
+          "grant": { "yield": "production", "amount": 150 }
+        }
+      ]
+    },
+    "theLatinQuarter": {
+      "name": "The Latin Quarter",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "The students speak one tongue, and the streets learn it.",
+      "text": "Great-person works beside an Academy gain +2 culture and +1 production.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "culture": 2,
+          "production": 1,
+          "on": {
+            "test": "all",
+            "of": [
+              { "test": "greatWork" },
+              { "test": "beside", "of": { "test": "improvement", "improvement": "academy" } }
+            ]
+          }
+        }
+      ]
+    },
+    "theStudiumGenerale": {
+      "name": "The Studium Generale",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "wildcard",
+      "flavor": "Any hall where masters teach is a school of the whole world.",
+      "text": "Great-person works beside an Academy count as Academies for your cards.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "worksCountAs",
+          "improvement": "academy"
+        }
+      ]
+    },
+    "theNizamiyya": {
+      "name": "The Nizamiyya",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Endow the chair, and the chair outlives the vizier.",
+      "text": "Academies produce half again of everything they make.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": { "test": "improvement", "improvement": "academy" },
+          "wholePercent": 50
+        }
+      ]
+    },
+    "theRepublicOfLetters": {
+      "name": "The Republic of Letters",
+      "decks": ["scientific"],
+      "band": 4,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "No borders but the margins, and every scholar a citizen.",
+      "text": "Your capital gains +4 production and +4 culture for each Academy you hold.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "count": "tilesInBorders",
+          "tile": { "test": "improvement", "improvement": "academy" },
+          "to": "production",
+          "amount": 4
+        },
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "count": "tilesInBorders",
+          "tile": { "test": "improvement", "improvement": "academy" },
+          "to": "culture",
+          "amount": 4
+        }
+      ]
+    },
+    "theRoyalWorkshops": {
+      "name": "The Royal Workshops",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "Each new idea goes first to the workshops behind the palace.",
+      "text": "Completing a technology grants 15 production in your capital.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "tech",
+          "grant": { "yield": "production", "amount": 15, "toCapital": true }
+        }
+      ]
+    },
+    "thePrizeEssay": {
+      "name": "The Prize Essay",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "The academy sets the question, and the whole country tries to answer it first.",
+      "text": "Completing a technology before any other empire grants 15 culture and 15 production in your capital. Charter technologies do not count.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "tech",
+          "first": "techWorld",
+          "grant": { "yield": "culture", "amount": 15 }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "tech",
+          "first": "techWorld",
+          "grant": { "yield": "production", "amount": 15, "toCapital": true }
+        }
+      ]
+    },
+    "theSkyWatchers": {
+      "name": "The Sky Watchers",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "The priests kept the calendar, so the priests watched the sky.",
+      "text": "Shrines give +1 faith and +1 science.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": { "test": "hasBuilding", "building": "shrine" },
+          "faith": 1,
+          "science": 1
+        }
+      ]
+    },
+    "theAstronomicalDiaries": {
+      "name": "The Astronomical Diaries",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Every night is written down, and the book is never finished.",
+      "text": "While seated, this card gains +1 culture and +1 production each time you complete a technology. It starts at +2 of each.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": { "test": "capital" },
+          "culture": 2,
+          "production": 2
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "tally",
+          "tally": "techCompleted",
+          "scope": { "test": "capital" }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "amount": 1,
+          "count": "tally",
+          "tally": "techCompleted",
+          "scope": { "test": "capital" }
+        }
+      ]
+    },
+    "theScholarsFame": {
+      "name": "The Scholars' Fame",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "A hard problem solved makes a name, and a name draws students.",
+      "text": "Completing a technology grants renown, favouring great scholars, equal to a twentieth of its cost.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "tech",
+          "grant": { "renown": 0.05, "renownFamily": "scholar", "fromOccasion": "techCost" }
+        }
+      ]
+    },
+    "theCharterRolls": {
+      "name": "The Charter Rolls",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Each charter is copied into the rolls, and each copy brings a fee.",
+      "text": "Your capital gains +3 production and +3 culture for each charter you have drafted.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "count": "chartersDrafted",
+          "to": "production",
+          "amount": 3
+        },
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "count": "chartersDrafted",
+          "to": "culture",
+          "amount": 3
+        }
+      ]
+    },
+    "theRoyalCharterCommission": {
+      "name": "The Royal Charter Commission",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "flavor": "The crown pays for the first result, and the scholars know it.",
+      "text": "Commission. Complete a charter technology while this is seated. Reward: a great scholar and 100 culture. Then it leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [{ "kind": "counted", "occasion": "charterTechCompleted", "count": 1 }],
+        "reward": [{ "greatPerson": "scholar" }, { "yield": "culture", "amount": 100 }]
+      }
+    },
+    "theAgeOfReason": {
+      "name": "The Age of Reason",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "wildcard",
+      "flavor": "Each discovery is worth two, because it teaches how to make the next.",
+      "text": "Your Orders count each technology you complete twice.",
+      "effects": [{ "kind": "metaRule", "rule": "techCountsTwice", "value": 2 }]
+    },
+    "theJourneymen": {
+      "name": "The Journeymen",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "The new method walks from town to town with the men who learned it.",
+      "text": "Completing a technology grants each town production equal to three times its population.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "tech",
+          "grant": { "yield": "production", "amount": 3, "toEveryTown": true, "fromTownPopulation": true }
+        }
+      ]
+    },
+    "theSumOfKnowledge": {
+      "name": "The Sum of Knowledge",
+      "decks": ["scientific"],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "Everything we know, in one place, in order.",
+      "text": "Your capital gains +1 production and +1 culture for each technology you know.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "count": "techsKnown",
+          "to": "production",
+          "amount": 1
+        },
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "count": "techsKnown",
+          "to": "culture",
+          "amount": 1
+        }
+      ]
+    },
+    "theGreatCatalogue": {
+      "name": "The Great Catalogue",
+      "decks": ["scientific"],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "Every chartered art has its page, and the last page is the Great Work.",
+      "text": "+10% production toward the Magnum Opus for each charter technology you know, at most +40%.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "theMagnumOpus",
+          "percent": 10,
+          "count": "charterTechsKnown",
+          "max": 4
         }
       ]
     }

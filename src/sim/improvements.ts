@@ -473,6 +473,27 @@ export function improvementGroundError(
       );
     }
   }
+  // **A named work beside it** (Scientific batch S5, Niter Beds: a farm or a
+  // pasture; the triage's reading 31): one of the six hexes around this one
+  // holds one of the rows, inside the builder's borders. Asked through
+  // `improvementCountsAs`, so a variant of a farm is a farm. Only the build is
+  // checked: the work stays if the farm goes later. Last, after the seam
+  // clause, because a seam that wants another work is the stronger refusal:
+  // no neighbour would make this hex right for this row.
+  const besides = def.besideImprovement;
+  if (!anywhere && besides !== undefined) {
+    const found = tileNeighbors(state.map, tile).some(
+      (next) =>
+        next.improvement !== undefined &&
+        besides.some((wanted) => improvementCountsAs(next.improvement!, wanted)) &&
+        tileOwnerPlayerId(state, next.col, next.row) === ownerId,
+    );
+    if (!found) {
+      const names = besides.map((id) => improvementDef(id).name.toLowerCase()).join(' or ');
+      const them = rowNeeds(def) === 'need' ? 'them' : 'it';
+      return `${ARow(def)} ${rowNeeds(def)} your ${names} beside ${them}`;
+    }
+  }
   return null;
 }
 
@@ -594,21 +615,24 @@ function hasAdjacentImprovement(
  * **Would this row have fresh water on this hex?** The map's water, or for a
  * farm the builder's farm water (Expansionist batch E3: The Watercourses and
  * The Water Courts water a farm beside a farm they already water, so a farm may
- * be placed there as if on fresh water; the triage's reading 22). Every other
- * row asks the map alone, because only farms carry the water.
+ * be placed there as if on fresh water; the triage's reading 22). A Qanat
+ * waters the hexes beside it in the same way (Scientific batch S5). Every
+ * other row asks the map alone, because only farms carry the water.
  */
 function drinks(state: GameState, ownerId: number, tile: Tile, improvementId: ImprovementId): boolean {
   if (hasFreshWater(tile)) return true;
   if (!improvementCountsAs(improvementId, 'farm')) return false;
-  // The water reaches a hex only beside one of this empire's farms, so the law
-  // is asked only there: most dry hexes answer without it.
-  const besideFarm = tileNeighbors(state.map, tile).some(
+  // The water reaches a hex only beside one of this empire's farms, or beside
+  // one of its works that waters the hexes around it (Scientific batch S5, the
+  // Qanat), so the law is asked only there: most dry hexes answer without it.
+  const besideSource = tileNeighbors(state.map, tile).some(
     (next) =>
       next.improvement !== undefined &&
-      improvementCountsAs(next.improvement, 'farm') &&
+      (improvementCountsAs(next.improvement, 'farm') ||
+        improvementDef(next.improvement).watersBeside === true) &&
       tileOwnerPlayerId(state, next.col, next.row) === ownerId,
   );
-  if (!besideFarm) return false;
+  if (!besideSource) return false;
   return farmWaterOf(state, ownerId)?.wouldWater(tile) === true;
 }
 
@@ -865,23 +889,8 @@ export function buildImprovementAt(
   // the riders below, so a rider that pays the nearest town pays a town that
   // already holds the hex.
   claimGroundForWork(state, unit.ownerId, tile, improvementId, unowned);
-  // **A rider on laying the work down** (batch S): The Flood Festival pays faith
-  // for each hex of burned country. The improvement is handed down as a fact so
-  // a rider can name the one it pays for. A grant of hammers goes through
-  // `settleProductionWindfall`, the register's entry 3, exactly as the
-  // prospect's payout above does.
-  const builder = playerById(state, unit.ownerId);
-  if (builder && builder.barbarian !== true) {
-    const payout = windfallPayout(state, builder.id, 'improvementBuilt', 0, 0, {
-      improvement: improvementId,
-    });
-    if (!windfallPayoutIsEmpty(payout)) {
-      const touched = payWindfallGrants(state, builder, payout, { col: tile.col, row: tile.row });
-      for (const town of touched) settleProductionWindfall(state, town);
-      settleCultureWindfall(state, builder);
-      settleResearchWindfall(state, builder);
-    }
-  }
+  refreshWateredNeighbours(state, tile, improvementId);
+  payWorkLaidRiders(state, unit.ownerId, tile, improvementId);
   unit.movesLeft = 0;
   const left = chargesLeft(unit) - improvementDef(improvementId).chargeCost;
   if (left <= 0) {
@@ -890,6 +899,63 @@ export function buildImprovementAt(
   }
   unit.chargesLeft = left;
   return true;
+}
+
+/**
+ * **The riders on laying a work down** (batch S): The Flood Festival pays faith
+ * for each hex of burned country, The Prospectors' Notes pay production for a
+ * mine or a quarry, and The Founding Gift pays production for an Academy
+ * (Scientific batch S5). The improvement is handed down as a fact so a rider
+ * can name the one it pays for, and the hex is where the grant lands, so a
+ * town's production goes to the town nearest the work.
+ *
+ * Two callers: `buildImprovementAt`, for a worker's build, and
+ * `greatPersonWorkAt` (`greatPeople.ts`), for a great person's work (the
+ * triage's reading 35, and new reading 75: a work laid by a great person is a
+ * work built). A grant of hammers goes through `settleProductionWindfall`, the
+ * register's entry 3. The wild pays no riders.
+ */
+export function payWorkLaidRiders(
+  state: GameState,
+  playerId: number,
+  tile: Tile,
+  improvementId: ImprovementId,
+): void {
+  const builder = playerById(state, playerId);
+  if (!builder || builder.barbarian === true) return;
+  const payout = windfallPayout(state, builder.id, 'improvementBuilt', 0, 0, {
+    improvement: improvementId,
+  });
+  if (windfallPayoutIsEmpty(payout)) return;
+  const touched = payWindfallGrants(state, builder, payout, { col: tile.col, row: tile.row });
+  for (const town of touched) settleProductionWindfall(state, town);
+  settleCultureWindfall(state, builder);
+  settleResearchWindfall(state, builder);
+}
+
+/**
+ * **The towns beside a work that waters the hexes around it** (Scientific
+ * batch S5, the Qanat) are re-seated when the work is built or pillaged: a
+ * farm beside it may belong to a town other than the one that owns the work's
+ * own hex, and its Irrigation food changes on the spot. Every other row
+ * changes no hex but its own, which `refreshTileDerived` already covers.
+ */
+export function refreshWateredNeighbours(
+  state: GameState,
+  tile: Tile,
+  improvementId: ImprovementId,
+): void {
+  if (improvementDef(improvementId).watersBeside !== true) return;
+  const seated: number[] = [];
+  const own = tileOwnerCityId(state, tile.col, tile.row);
+  if (own !== null) seated.push(own);
+  for (const next of tileNeighbors(state.map, tile)) {
+    const townId = tileOwnerCityId(state, next.col, next.row);
+    if (townId === null || seated.includes(townId)) continue;
+    seated.push(townId);
+    const town = cityById(state, townId);
+    if (town) refreshCityDerived(state, town);
+  }
 }
 
 /**
@@ -1057,6 +1123,7 @@ export function removeImprovementError(state: GameState, unitId: number): string
  * own (register entry 22, see `refreshCityDerived`).
  */
 export function removeImprovementAt(state: GameState, unit: Unit, tile: Tile): void {
+  const was = tile.improvement;
   // The age goes with the work — see `razeImprovement`. Ground cleared back to
   // bare is ground with no history to inherit.
   razeImprovement(tile);
@@ -1064,6 +1131,8 @@ export function removeImprovementAt(state: GameState, unit: Unit, tile: Tile): v
   // no seam (batch M3, `slate.ts`).
   bumpEconomy(state);
   refreshTileDerived(state, tile);
+  // A Qanat taken up dries the farms beside it (Scientific batch S5).
+  if (was !== undefined) refreshWateredNeighbours(state, tile, was);
   unit.movesLeft = 0;
 }
 
@@ -1817,6 +1886,8 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
   // `buildImprovementAt` announces, made by a raider (batch M3, `slate.ts`).
   bumpEconomy(state);
   refreshTileDerived(state, tile);
+  // A burnt Qanat dries the farms beside it (Scientific batch S5).
+  if (report.improvement !== undefined) refreshWateredNeighbours(state, tile, report.improvement);
   // Tyranny's `freePillage`, and the one place the raid's single point is
   // spent — so a law that says pillaging costs no movement is one clause read
   // here rather than a second pillage verb. The gate is untouched: a column

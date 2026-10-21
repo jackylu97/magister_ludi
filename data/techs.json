@@ -1344,6 +1344,12 @@
       ],
       "unlocks": {},
       "charter": true,
+      "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "aqueduct"
+        }
+      ],
       "flavor": "Measure the fall of the land, and the water follows the line."
     },
     "cataloguing": {

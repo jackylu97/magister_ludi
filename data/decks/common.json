@@ -1769,6 +1769,19 @@
           "max": 4
         }
       ]
+    },
+    "scientificTheAssay": {
+      "name": "The Assay",
+      "decks": ["expansionist", "scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "Weigh it, burn it, then believe it.",
+      "text": "Hexes with a strategic resource gain +2 science.",
+      "effects": [
+        { "kind": "pays", "where": "hex", "science": 2, "on": { "test": "resourceKind", "kind": "strategic" } }
+      ]
     }
   }
 }

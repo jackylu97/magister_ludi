@@ -20,9 +20,9 @@
  *         differs is marked `rarity`, and a dealt row that matches the sheet in
  *         every way must say `implemented`;
  *       - `add`: no data row of that name exists yet.
- *     Every row that is not retired is on the sheet once. The Assay is on the
- *     shared table, marked `shared`, until batch S5 moves its row to
- *     `common.json`;
+ *     Every row that is not retired is on the sheet once: on a tier table, or
+ *     on the shared table marked `shared` while it waits to move to
+ *     `common.json` (The Assay waited there until batch S5 moved it);
  *   · **the types** (batch S1b): every row the sheet lists, the shared ones
  *     included, carries the Type cell's type in the data, and a retired row
  *     carries none. `dominion.test.ts` checks that no other row is typed;
@@ -42,7 +42,12 @@
  * `test/sim/charterTechs.test.ts` pins the charter technologies,
  * `test/sim/decks/scientificTraits.test.ts` the line traits and
  * `test/sim/decks/scientificCharters.test.ts` the building charters (batch
- * S4), which deal eight more charters.
+ * S4), which deal eight more charters, and
+ * `test/sim/decks/scientificLand.test.ts` the learned land (batch S5), which
+ * deals the last two and builds the Academy cards.
+ * `test/sim/decks/scientificResearch.test.ts` pins the research record (batch
+ * S6): the cards that pay for completing technologies and for the
+ * technologies and charters a seat holds.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -70,6 +75,7 @@ import {
   stripRefs,
 } from '../../../src/sim/statecraft';
 import { explainRenown } from '../../../src/sim/renown';
+import { type BuildingId } from '../../../src/sim/buildingData';
 import {
   type Band,
   type CardEffect,
@@ -112,9 +118,10 @@ const CHARTERS = CURRENT.filter((id) => isCharter(id));
 
 /**
  * The charters whose whole gift is built, so they are dealt: three since batch
- * S1 (the line traits) and eight more since batch S4 (the building charters).
- * A charter has no effects: its gift is the research it opens and what the
- * technology row gives.
+ * S1 (the line traits), eight more since batch S4 (the building charters) and
+ * the last two since batch S5 (the Qanat and Niter Beds). A charter has no
+ * effects: its gift is the research it opens and what the technology row
+ * gives.
  */
 const DEALT_CHARTERS: readonly OrderId[] = [
   'theBronzeFoundersCharter',
@@ -128,10 +135,21 @@ const DEALT_CHARTERS: readonly OrderId[] = [
   'thePrintersCharter',
   'theGunfoundersCharter',
   'theMilitaryEngineersCharter',
+  'theSurveyorsCharter',
+  'theAlchemistsCharter',
 ];
 
-/** A row with effects, or a dealt charter: the half of the deck that plays. */
-const LIVE = CURRENT.filter((id) => orderDef(id).effects.length > 0 || DEALT_CHARTERS.includes(id));
+/**
+ * A row with effects, a dealt charter, or a commission (batch S6, The Royal
+ * Charter Commission: its goal and reward are the card): the half of the deck
+ * that plays.
+ */
+const LIVE = CURRENT.filter(
+  (id) =>
+    orderDef(id).effects.length > 0 ||
+    DEALT_CHARTERS.includes(id) ||
+    orderDef(id).commission !== undefined,
+);
 
 /** A row with a sentence and nothing to slot: what later batches un-defer. */
 const DEFERRED = CURRENT.filter((id) => !LIVE.includes(id));
@@ -145,8 +163,9 @@ const MARK: Record<OrderRarity, string> = { common: '●', uncommon: '◆', rare
 
 describe('the rows', () => {
   it('is the whole deck, every current row named for this deck alone, banded and rated', () => {
-    expect(DECK).toHaveLength(59);
-    expect(new Set(DECK).size).toBe(59);
+    // S5 moved The Assay to common.json and added six cards. S6 added eleven.
+    expect(DECK).toHaveLength(75);
+    expect(new Set(DECK).size).toBe(75);
     for (const id of CURRENT) {
       const def = orderDef(id);
       expect(def.decks, id).toEqual(['scientific']);
@@ -163,20 +182,26 @@ describe('the rows', () => {
     expect(new Set(names).size, 'two rows share a name').toBe(names.length);
   });
 
-  it('fills the five tiers with five, ten, nine, six and three current rows', () => {
+  it('fills the five tiers with nine, eleven, twelve, eleven and six current rows', () => {
     // S0 added ten charters and two cards. S1b retired twenty-four rows and
     // left twenty-six; the sheet's `add` rows join as later batches build them.
     // S2 added one card (Tier II) and S3 six (two each in Tiers I, II and III).
+    // S5 added six (one in each tier, and two in Tier III), moved The School
+    // of Mines from Tier I to Tier III, and moved The Assay to common.json.
+    // S6 added eleven: three in Tier 0 and two in each of the others.
     const perBand = [0, 1, 2, 3, 4].map(
       (band) => CURRENT.filter((id) => orderDef(id).band === band).length,
     );
-    expect(perBand).toEqual([5, 10, 9, 6, 3]);
+    expect(perBand).toEqual([9, 11, 12, 11, 6]);
   });
 
   it('splits into live rows with effects and deferred rows with a sentence, and nothing between', () => {
     expect(LIVE.length + DEFERRED.length).toBe(CURRENT.length);
-    // S4 dealt eight charters: 21 live rows became 29.
-    expect(LIVE).toHaveLength(29);
+    // S4 dealt eight charters: 21 live rows became 29. S5 dealt two more
+    // charters and The School of Mines, added six cards and moved The Assay
+    // out: 29 became 37, and The Second Seat is the one deferred row left.
+    // S6 added eleven live rows, one of them a commission: 37 became 48.
+    expect(LIVE).toHaveLength(48);
     for (const id of LIVE) {
       const def = orderDef(id);
       expect(def.text, `${id} is live and carries no ratified text`).toBeTruthy();
@@ -603,10 +628,11 @@ describe('the live rows’ effects', () => {
 
   it('pays only through pairs the yields sequence already carries', () => {
     // `docs/yields.md`'s register: the hex at step 2, the town's flats and
-    // counts at 3, and the realm's counts at 16. A row reaching for a pair
-    // nobody folds is a shape decision rather than a JSON row. The town's
-    // share of its own fold left the live rows with The Society of Artificers
-    // (retired in batch S1b).
+    // counts at 3, and the capital's counts. A row reaching for a pair nobody
+    // folds is a shape decision rather than a JSON row. The town's share of
+    // its own fold left the live rows with The Society of Artificers (retired
+    // in batch S1b). Batch S5 moved The Assay, the last realm count, to the
+    // shared cards, and The Republic of Letters pays the capital by a count.
     const pairs = new Set<string>();
     for (const id of LIVE) {
       for (const effect of orderDef(id).effects) {
@@ -615,7 +641,7 @@ describe('the live rows’ effects', () => {
         if (effect.where === 'hex') expect(effect.on, `${id} pays a hex with no condition`).toBeDefined();
       }
     }
-    expect([...pairs].sort()).toEqual(['city:count', 'city:flat', 'empire:count', 'hex:flat']);
+    expect([...pairs].sort()).toEqual(['capital:count', 'city:count', 'city:flat', 'hex:flat']);
   });
 });
 
@@ -716,9 +742,12 @@ describe('a Scientific seat’s draw', () => {
         .toBe(true);
       expect(orderIsDealt(id), id).toBe(true);
       // Nothing half-built reaches a hand: a dealt row of this deck either pays
-      // something or is a charter whose gift is built.
+      // something, is a charter whose gift is built, or is a commission.
       if (DECK.includes(id)) {
-        expect(orderDef(id).effects.length > 0 || isCharter(id), id).toBe(true);
+        expect(
+          orderDef(id).effects.length > 0 || isCharter(id) || orderDef(id).commission !== undefined,
+          id,
+        ).toBe(true);
       }
     }
     for (const id of LIVE) expect(pool, id).toContain(id);
@@ -925,9 +954,10 @@ describe('what the live rows do on a board', () => {
     expect(glad()).toHaveLength(1);
   });
 
-  it('The Long Inheritance: the production waits on the age of the work the citizens stand on', () => {
-    // The row still reads any great-person work, at its old figures, until
-    // batch S5 brings it to the sheet's text (`modify: revised; rarity`).
+  it('The Long Inheritance: the production waits on the age of the Academy the citizens stand on', () => {
+    // Batch S5 brought the row to the sheet's text: an Academy, not any
+    // great-person work, and +30% toward empire buildings, wonders and the
+    // Magnum Opus (an empire building), with no second clause.
     const g = game();
     const city = found(g.state, 0);
     const tile = getTileAt(g.state.map, city.col + 1, city.row)!;
@@ -938,32 +968,26 @@ describe('what the live rows do on a board', () => {
     raiseImprovement(tile, 'academy', g.state.turn);
     city.workedTiles = [{ col: tile.col, row: tile.row }];
     slot(g.state, 0, 'theLongInheritance');
-    const toward = () =>
-      cardProduction(g.state, city, 'building', undefined, 'forum').filter(
+    const toward = (category: 'building' | 'wonder', id: BuildingId) =>
+      cardProduction(g.state, city, category, undefined, id).filter(
         (line) => line.card === 'theLongInheritance',
       );
-    expect(toward(), 'an academy laid this turn is not an old academy').toEqual([]);
+    expect(toward('building', 'forum'), 'an academy laid this turn is not an old academy').toEqual([]);
 
     g.state.turn = 22;
     bumpRevision(g.state);
-    expect(toward()).toHaveLength(1);
-    expect(toward()[0]!.percent).toBe(45);
+    expect(toward('building', 'forum')).toHaveLength(1);
+    expect(toward('building', 'forum')[0]!.percent).toBe(30);
+    expect(toward('building', 'theMagnumOpus')[0]!.percent).toBe(30);
+    expect(toward('wonder', 'pyramids')[0]!.percent).toBe(30);
+    // An ordinary building is not an empire building and takes nothing.
+    expect(toward('building', 'granary')).toEqual([]);
 
-    // An old empire building in the same town adds the second clause, as a
-    // second labelled line.
-    addBuilding(g.state, city, 'forum');
-    g.state.turn = 42;
+    // Another great person's work is not an Academy.
+    razeImprovement(tile);
+    raiseImprovement(tile, 'landmark', 2);
     bumpRevision(g.state);
-    const both = toward();
-    expect(both).toHaveLength(2);
-    expect(both.reduce((sum, line) => sum + line.percent, 0)).toBe(68);
-    // An ordinary building is not an empire building and takes nothing from
-    // either clause.
-    expect(
-      cardProduction(g.state, city, 'building', undefined, 'granary').filter(
-        (line) => line.card === 'theLongInheritance',
-      ),
-    ).toEqual([]);
+    expect(toward('building', 'forum')).toEqual([]);
   });
 });
 

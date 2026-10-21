@@ -804,6 +804,18 @@
         "size": 0.56,
         "jitter": 0.04
       },
+      "qanat": {
+        "color": "slate",
+        "shade": 0.12,
+        "size": 0.38,
+        "jitter": 0.08
+      },
+      "niterBeds": {
+        "color": "bone",
+        "shade": 0.04,
+        "size": 0.5,
+        "jitter": 0.05
+      },
       "floatingGardens": {
         "color": "brook",
         "shade": 0.24,

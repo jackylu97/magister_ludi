@@ -154,10 +154,13 @@ describe('the register', () => {
     }
   });
 
-  it('leaves the Surveyors’ and the Alchemists’ charters deferred for batch S5', () => {
+  it('leaves the Surveyors’ and the Alchemists’ charters to batch S5, which deals them', () => {
+    // Batch S5 built the Qanat and Niter Beds, so both are dealt now.
+    // `scientificLand.test.ts` holds their gifts.
     for (const charter of ['theSurveyorsCharter', 'theAlchemistsCharter'] as OrderId[]) {
-      expect(orderIsDealt(charter), charter).toBe(false);
-      expect(orderDef(charter).deferred, charter).toBeDefined();
+      expect(orderIsDealt(charter), charter).toBe(true);
+      expect(orderDef(charter).deferred, charter).toBeUndefined();
+      expect(GIFTS.some((gift) => gift.charter === charter), charter).toBe(false);
     }
   });
 
