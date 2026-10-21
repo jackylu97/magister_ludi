@@ -1,6 +1,6 @@
 # Expansionist: a way to play, built from four themes (proposal)
 
-**Status:** first draft, 2026-10-21. Nothing here is built. The deck sheet (`docs/decks/expansionist.md`), the data and the code are unchanged. This is the Expansionist deck pass on the method of 2026-10-20 (the card-design skill, "A way to play, built from a few themes"), done in the same way as the Scientific pass (`docs/plans/scientific-themes.md`) and the Dominion pass (`docs/plans/dominion-themes.md`). It revises the builds of `docs/plans/expansionist-builds.md` (2026-10-16), which are built and live. The review list is `docs/plans/expansionist-list-proposed.md`.
+**Status:** first draft, 2026-10-21, revised the same day to agree with your comments on the review page and your answers to its two questions (section 11). Rows that changed are marked "revised 2026-10-21 (section 11)". The build plan is `docs/plans/expansionist-themes-triage.md`. Nothing here is built. The deck sheet (`docs/decks/expansionist.md`), the data and the code are unchanged. This is the Expansionist deck pass on the method of 2026-10-20 (the card-design skill, "A way to play, built from a few themes"), done in the same way as the Scientific pass (`docs/plans/scientific-themes.md`) and the Dominion pass (`docs/plans/dominion-themes.md`). It revises the builds of `docs/plans/expansionist-builds.md` (2026-10-16), which are built and live. The review list is `docs/plans/expansionist-list-proposed.md`.
 
 Your request, 2026-10-21, verbatim:
 
@@ -26,7 +26,8 @@ The rulings of 2026-10-20 that touch the deck: wonders leave Expansionist (rulin
   - *kept (as built)*: on the sheet as `modify: as built`, unchanged by this pass;
   - *reworked*: on the sheet, changed by this pass;
   - *new*: not on the sheet;
-  - *cut*: on the sheet; its data row is retired.
+  - *cut*: on the sheet; its data row is retired;
+  - *revised 2026-10-21 (section 11)*: changed by your comments on the review page or your answers to its two questions. Section 11 has your words, and the readings marked "to confirm".
 - **Shape:** *existing*, *near existing* (two built pieces joined), *new shape* (section 7), or *feature A* (section 6).
 - **Type:** Military, Economic, Civic or Wildcard (`docs/plans/doctrines-governments-chairs.md`, section 4).
 - **Institution:** an effect that a commission leaves for the rest of the game when it is met. It takes no chair. The shape exists: `CommissionReward.lasting`, built for The Heartland (batch E5).
@@ -43,7 +44,7 @@ The rulings of 2026-10-20 that touch the deck: wonders leave Expansionist (rulin
 
 ### The engine
 
-- **Citizens and the levy.** Food grows citizens, and every theme reads them. A levy spends a citizen on what one theme needs: a worker, a settler, a soldier, hammers for an empire building. So the levy joins the themes, as charters join Scientific's. Section 3 has the details.
+- **Citizens and the levy.** Food grows citizens, and every theme reads them. A levy spends a citizen on what one theme needs: a worker, a settler, a soldier, or hammers in its own town (revised 2026-10-21, section 11: the hammers for an empire building went with The Builders' Levy). So the levy joins the themes, as charters join Scientific's. Section 3 has the details.
 
 ### What changes from the builds
 
@@ -88,7 +89,7 @@ The rulings of 2026-10-20 that touch the deck: wonders leave Expansionist (rulin
 - **Age 1 (Tier 0): claim.** Found three or four towns fast (The Seed Grain, The Road Home, The Founding Furrow). Build the first Granaries (The Horrea). Raise the first works. The foundings pay culture for the first drafts.
 - **Age 2 (Tier I): fill the land.** Plant outposts and claim the gaps. Spend the first citizens on levies. Let the works come of age (Dark Earth, Break the Sod). Authority starts to bind at five or six towns, so worked land and Granaries pay it back (The Local Census, The Horrea).
 - **Age 3 (Tier II, then early Tier III): grow into it.** The scalers grow (The Old Fields, The Book of Settlements, The Teeming Realm, The Aediles). Aqueducts and baths let big towns grow. Many towns raise the empire buildings fast (The Many Hands). The deck is strongest here.
-- **Age 4 (Tiers III and IV): the land is full.** Break the rules that hold a wide empire back (The Imperial Roads, The Sovereign Writ, The Cura Aquarum). Make new room (The Polders, The Common Domain, The Mountain Terraces) or take it from neighbours (The Encroaching Fields, The Great Migration). Raise the Opus with many towns (The Corvée, The Great Aqueducts, The Imperial Highways).
+- **Age 4 (Tiers III and IV): the land is full.** Break the rules that hold a wide empire back (The Imperial Roads, The Sovereign Writ, The Cura Aquarum). Make new room (The Polders, The Mountain Terraces; revised 2026-10-21, section 11: The Common Domain is cut) or take it from neighbours (The Encroaching Fields, The Great Migration). Raise the Opus with many towns (The Corvée, The Great Aqueducts, The Imperial Highways).
 
 ### The areas it reaches
 
@@ -102,10 +103,10 @@ All five:
 ### Its cost
 
 Expansionist gives up room. Without land to claim, it stalls. The cards show it:
-- **Many cards pay only while there is land to take:** The Founding Furrow, The Seed Grain, The Beating of the Bounds, Outposts, The Garden Frontier, The Staked Claims, The Book of Settlements, The Mother City and The Wide Country pay on founding or claiming.
+- **Many cards pay only while there is land to take:** The Founding Furrow, The Seed Grain, Outposts, The Staked Claims, The Book of Settlements, The Mother City and The Wide Country pay on founding or claiming (revised 2026-10-21, section 11: The Beating of the Bounds and The Garden Frontier are cut).
 - **The race for room is open:** The Land Hunger pays only while a rival is wider.
-- **The answers come late, and each one is a broken rule or a push on a rival:** The Polders (new land from the sea), The Common Domain (a fourth ring for big towns), The Mountain Terraces (work the peaks), The Great Colonies (big towns seed new ones), The Encroaching Fields and The Great Migration (take hexes and citizens from smaller neighbours).
-- **The engine costs citizens:** every levy spends one, and only The Mit'a and Home for the Harvest bring them back.
+- **The answers come late, and each one is a broken rule or a push on a rival:** The Polders (new land from the sea), The Mountain Terraces (work the peaks), The Great Colonies (big towns seed new ones), The Encroaching Fields and The Great Migration (take hexes and citizens from smaller neighbours). Revised 2026-10-21 (section 11): The Common Domain is cut, because you ruled that towns work only within three hexes.
+- **The engine costs citizens:** every levy spends one, and only The Mit'a and Veteran Colonies (a soldier who retires in a town) bring them back (revised 2026-10-21, section 11).
 
 ### Science and culture: the open question
 
@@ -120,7 +121,7 @@ Expansionist gives up room. Without land to claim, it stalls. The cards show it:
   - **culture from founding and claiming:** The Founding Furrow, The Wild Marches, The Milestones, The Mother City;
   - **culture from wild land and public works:** The Old Songs, The Forest Keepers, The Hallowed Woods, The Aediles, The Capitolia, The Public Good;
   - **and through the meters:** spare happiness pays +10% science and culture at 5 points and +20% at 10.
-- **The share:** 12 of 116 seatable cards pay science (10%) and 18 pay culture (16%), against 8 and 12 of 117 before.
+- **The share** (revised 2026-10-21, section 11): 12 of 111 seatable cards pay science (11%) and 18 pay culture (16%), against 8 and 12 of 117 before. None of the five cards cut in section 11 paid either.
 
 ### Pairs
 
@@ -142,7 +143,7 @@ Expansionist gives up room. Without land to claim, it stalls. The cards show it:
 ### How the engine works
 
 - **Food grows citizens.** The deck reads growth as a moment (a town grows, a town passes its largest size) and citizens as a count (in a town, in the empire).
-- **A levy spends a citizen.** A town may levy once every five turns. Each use comes from a card, and most uses feed one theme. "Needs a levy" gates the cards that read a levy (ruled 2026-10-16).
+- **A levy spends a citizen.** A town may levy once every five turns. Each use comes from a card, and most uses feed one theme. "Needs a levy" gates the cards that read a levy (ruled 2026-10-16). Revised 2026-10-21 (section 11): public works have no levy use since The Builders' Levy was cut; Levy of the Land's hammers serve every theme.
 - **The census counts them.** Every 13 to 17 turns the world takes a census, and The Tax Rolls pays on it.
 - **Citizens are the second economy** (your picture): growth pays (Granary Levies, Plenty, The Freedom of the City), big towns pay (The Great Households, The Megalopolis), the whole people pays (The Teeming Realm), and the trades take in the citizens the land cannot use (The Burghers, feature A).
 
@@ -154,12 +155,13 @@ Expansionist gives up room. Without land to claim, it stalls. The cards show it:
 | a worker | The Work Gangs | 0 | the raised land |
 | a settler | The Colonists | II | the frontier |
 | science, in a town beside a mountain | The Terraces of Moray | II | the frontier's highlands |
-| production to your nearest town building an empire building | The Builders' Levy (reworked) | I | public works |
 | a melee unit | the shared The Muster of the Fields | I | the militia |
 | a melee unit, every turn while at war | The General Levy | IV | the militia |
 | production to the Opus | The Corvée | IV | the way to win |
 
-The cards that read a levy: The Labour Feasts and The Gleaners (I), The Labour Rolls and Watch and Ward (II), Seasonal Levies, The Slack Season, The Mit'a, The Trained Bands and Home for the Harvest (III).
+Revised 2026-10-21 (section 11): The Builders' Levy's row (production to your nearest town building an empire building) is gone, because you cut the card as too like Levy of the Land.
+
+The cards that read a levy: The Labour Feasts and The Gleaners (I), The Labour Rolls and Watch and Ward (II), Seasonal Levies, The Slack Season, The Mit'a and The Trained Bands (III). Revised 2026-10-21 (section 11): Home for the Harvest is cut.
 
 ### Engine glue
 
@@ -182,18 +184,18 @@ The cards that read a levy: The Labour Feasts and The Gleaners (I), The Labour R
 | Seasonal Levies | III | uncommon | the levy (regrowth) | Needs a levy. After a city spends a citizen on a levy, it gains +60% food for ten turns. A city can gain this at most once every twenty turns. | food | Economic | kept (built) |
 | The Megalopolis | III | rare | citizens (pay-off) | Towns of ten or more citizens gain +1 science and +1 production for each citizen. | science, production | Civic | kept (built) |
 | The Freedom of the City | III | uncommon | growth (a moment) | The first time each of your towns reaches fifteen citizens, and again at twenty, it gains production equal to forty times its population. | production | Economic | kept (built) |
-| Plenty | III | common | growth (a moment) | When a town grows, it gains production equal to eight times its new population. | production | Economic | kept (built) |
+| Plenty | III | common | growth (a moment) | When a town grows, it gains production equal to five times its new population. | production | Economic | revised 2026-10-21 (section 11): five times, not eight; data only |
 | The Mit'a | III | rare | capstone (rule-breaker) | Needs a levy. A citizen spent on a levy returns to its town twenty turns later. | citizens | Economic | kept (built) |
 | The Slack Season | III | uncommon | the levy (the moment) | Needs a levy. Every twentieth turn, after the harvest, your towns may levy whatever their wait. | levies | Economic | kept (built) |
 | The Tax Rolls | III | uncommon | the census | When the world takes a census, gain gold equal to five times your citizens. | gold | Economic | kept (built) |
 | The Corvée | IV | rare | the way to win (the levy) | While one of your cities builds the Magnum Opus, each of your other towns of at least ten citizens may spend one citizen for it, once every five turns. The Opus city gains production equal to the food that citizen took to grow. This shares the town's levy limit. | production toward the Opus | Economic | kept (built) |
 
-- **Glue is 22 of 116 seatable cards (19%).**
+- **Glue is 22 of 111 seatable cards (20%)** (revised 2026-10-21, section 11: no glue card is cut, and the deck is five cards smaller).
 - **Scalers:** The Grain Census (a grower from Tier I), The Labour Rolls and The Teeming Realm (Tier II).
 - **Capstone: The Mit'a.** A levied citizen comes home twenty turns later. It breaks the rule that a levy costs a citizen for good.
 - **The Teeming Realm** now pays science and culture, not production and food. A large people is the deck's own way to the two essentials (section 2). One hundred and twenty citizens at turn 130 give +12%; two hundred give +20%.
 - **The Burghers** (feature A) is the one card that reads the trades. Big towns put their spare citizens into the guilds half again as fast. That also feeds the partner's guild cards: Scientific's scholars, Commerce's merchants, Magisterial's artists.
-- **The growth moments** (Granary Levies, Plenty, The Freedom of the City) all pay production. That is the engine's job: a citizen grown is hammers now.
+- **The growth moments** (Granary Levies, Plenty, The Freedom of the City) all pay production. That is the engine's job: a citizen grown is hammers now. Plenty pays five times the new population, not eight (revised 2026-10-21, section 11).
 
 ## 4. The themes
 
@@ -213,7 +215,7 @@ The cards that read a levy: The Labour Feasts and The Gleaners (I), The Labour R
 | The Old Songs | I | common | widen (culture on wild land) | Worked unimproved land gains +2 culture. | culture | Civic | kept (built) |
 | The Local Census | I | common | widen (authority); bridge to the frontier | A town working at least four improved or tended tiles costs one less authority, minimum one. | authority | Civic | kept (built) |
 | The Wild Orchards | I | common | supply (a charter: a tended work) | Once drafted, workers may tend a forest or jungle tile into a wild orchard for one charge: +1 food and +1 gold. No chair required. | food, gold | Economic | kept (built, charter) |
-| The Burning Season | I | uncommon | supply (a charter: a tended work) | Once drafted, workers may tend wild grassland or plains into burned country for one charge: +1 food. No chair required. | food | Economic | kept (built, charter) |
+| The Burning Season | I | uncommon | supply (a charter: a tended work, or a lasting mark) | Once drafted, workers may burn a grassland or plains tile for one charge: +1 food. Bare ground becomes burned country; an improvement on the tile stays. No chair required. | food | Economic | revised 2026-10-21 (section 11): any grassland or plains, not only wild; new shape (a burn on an improved tile writes batch E3's hex mark and keeps the improvement) |
 | Dark Earth | I | uncommon | multiply (age) | Worked farms gain +2 food once they have stood for 20 turns, and another +2 food once they have stood for 50 turns. | food | Economic | kept (built) |
 | The Three Sisters | I | common | widen (neighbours) | Worked farms beside a plantation or a pasture gain +2 food and +2 production, once per farm. | food, production | Economic | kept (built) |
 | The Commons | I | uncommon | widen (happiness) | Each town gains +1 happiness for every two wild tiles it works, at most +3. | happiness | Civic | kept (built) |
@@ -241,6 +243,7 @@ The cards that read a levy: The Labour Feasts and The Gleaners (I), The Labour R
 | The Two Harvests | IV | rare | rule-breaker (tended) | Needs tended land. Your worked farms, mines and lumber mills also count as tended for your cards, but not as wild. | every card line on the hex | Wildcard | reworked; new shape (farms, mines and mills read as tended) |
 
 - **Charters:** The Fish Traps (0), The Wild Orchards and The Burning Season (I) open the tended works. Tended land stays a splash inside this theme, as you ruled on 2026-10-16: the default is the improvement.
+- **The Burning Season** (revised 2026-10-21, section 11) burns any grassland or plains, as you asked. On bare ground it is the tended work it is today. On a tile with an improvement, the improvement stays and the tile gains +1 food as a lasting mark, so a burn never replaces a farm (reading, to confirm).
 - **Scaler:** The Old Fields (Tier II). **Capstones:** The Age of Improvement (a doubler) and The Water Courts (a rule-breaker) at Tier III, and The Two Harvests at Tier IV.
 - **What its widen cards pay:** gold (Smallholdings), happiness (Sweet Water, The Commons), faith (The Ambarvalia), science (The Rope Stretchers, The Highlands), culture (The Old Songs, The Forest Keepers, The Coast), authority (The Local Census), and food and production (The Three Sisters, The Watercourses, The Tended Country, The Hedgerows).
 - **The Rope Stretchers** were Egypt's field surveyors, who measured the fields again after each flood. The card now pays science for measured land. Three towns that each work three improved tiles make +3 science at turn 40, about as much as the rest of an age 1 seat. The mines' production stays on Old Workings.
@@ -260,7 +263,6 @@ The cards that read a levy: The Labour Feasts and The Gleaners (I), The Labour R
 |---|---|---|---|---|---|---|---|
 | The Naturalists | 0 | uncommon | widen (science from the hill country) | Each city gains +1 science for every two hills or mountains in its borders, at most +3. | science | Civic | kept (built) |
 | The Seed Grain | 0 | uncommon | supply | Towns you found start with one extra citizen. | citizens | Economic | kept (built) |
-| The Beating of the Bounds | 0 | common | supply (land) | Each town you found also claims the next wild hex its borders would grow into. | land | Economic | reworked; wording only; it plays as built |
 | The Road Home | 0 | common | supply (roads) | Each town you found is joined to your nearest town by road. | roads | Economic | kept (built) |
 | The Founding Furrow | 0 | common | act (a founding) | Founding a town grants culture equal to five times the number of towns you hold. | culture | Civic | new; new shape, small (a founding rider read from a count) |
 | The Hard Country | I | common | widen (the hard country) | Worked desert and tundra tiles gain +1 food and +1 production. | food, production | Economic | kept (built) |
@@ -268,15 +270,13 @@ The cards that read a levy: The Labour Feasts and The Gleaners (I), The Labour R
 | The Wild Marches | I | common | widen (culture) | +1 culture for every four wild hexes you own. | culture | Civic | kept (built) |
 | The Quiet Provinces | I | uncommon | multiply (spare authority) | Each town gains +1 production for every three points of spare authority, at most +3. | production | Economic | kept (built) |
 | The Road Towns | I | common | widen (roads) | Towns joined to your capital by road gain +2 production. | production | Economic | kept (built) |
-| The Garden Frontier | I | rare | supply (claims); bridge to the raised land | Needs tended land. Workers may tend unowned wild hexes up to two hexes beyond your borders. A hex tended there joins your nearest town. | land | Economic | kept (built) |
-| The Land Hunger | I | uncommon | supply (a wider rival) | While another empire holds more towns than you, your towns build settlers 30% faster. | production toward settlers | Economic | new; existing (The Defiant Kingdom's condition) |
+| The Land Hunger | I | uncommon | supply (a wider rival) | While another empire holds more towns than you, your towns build settlers 25% faster, and your settlers gain +1 movement. | production toward settlers, settler movement | Economic | new; revised 2026-10-21 (section 11): 25%, and +1 movement; existing (The Defiant Kingdom's condition) |
 | Provincial Councils | II | uncommon | widen (authority) | Connected towns other than the capital cost one less authority, minimum one, and gain +1 happiness. | authority, happiness | Civic | kept (built) |
 | The Book of Settlements | II | uncommon | multiply (scaler) | +3% production and gold for every town you have founded this game, at most +30%. | production, gold | Economic | kept (built) |
 | The Milestones | II | uncommon | multiply (roads) | +1% gold and culture for every three road hexes you have paved, at most +30%. | gold, culture | Civic | reworked; data only |
 | The Colonists | II | uncommon | supply (a levy use: a settler) | Towns of at least six citizens may spend a citizen to raise a settler. | units | Economic | kept (built) |
 | The Staked Claims | II | uncommon | supply (land) | Each town you found claims every unowned hex within two hexes of it. | land | Economic | kept (built); moved from Tier III |
-| The Common Domain | III | uncommon | rule-breaker (room); bridge to the engine | Towns of at least ten population may work owned tiles one hex beyond their normal work radius. | land | Economic | kept (built) |
-| The Mountain Schools | III | uncommon | multiply (science) | Towns beside a mountain gain +15% science. Worked mines and quarries beside a mountain gain +2 science. | science | Civic | kept (built) |
+| The Mountain Schools | III | uncommon | multiply (science) | Towns with at least two mountains in their borders gain +15% science. Worked mines and quarries beside a mountain gain +2 science. | science | Civic | revised 2026-10-21 (section 11): two mountains in the borders, not one beside the town; new shape, small (a floor on the mountains in a town's borders) |
 | The Polders | III | rare | act (new land from the sea) | Workers may raise a polder on a coast tile that touches at least three of your land tiles, for two charges. A polder yields as a farm on grassland. | land, food | Economic | kept (built) |
 | The Wide Country | III | uncommon | act (commission, institution) | Commission. Claim twelve hexes by outposts, cleared camps or buying while this card is seated. Then, for the rest of the game, your borders grow 25% faster. The card leaves its chair. | border growth | Wildcard | reworked; existing (`lasting`, a border-growth percent) |
 | The Quitrents | III | common | widen (gold) | +1 gold for every two hexes you own. | gold | Economic | kept (built) |
@@ -286,17 +286,19 @@ The cards that read a levy: The Labour Feasts and The Gleaners (I), The Labour R
 | The Opening of the Roads | III | uncommon | act (roads) | When one of your towns is first joined to your capital by road, it gains production equal to twenty times its population. | production | Economic | kept (built) |
 | The Great Colonies | III | rare | capstone (rule-breaker); bridge to the engine | Towns you found start with a third of the citizens of your largest town. | citizens | Economic | kept (built) |
 | The Philosophers' Peaks | IV | uncommon | finisher (science) | Each town gains +2 science for every mountain in its borders, at most +6. | science | Civic | kept (built) |
-| The Measure of the Land | IV | rare | finisher (science) | Every town gains +1 science for every 25 hexes your empire owns, at most +6. | science | Civic | reworked; data only |
-| The Mother City | IV | rare | multiply (towns founded) | Your capital gains +3 production and +3 culture for each town you have founded this game. | production, culture | Civic | reworked; existing (the `citiesFounded` count) |
+| The Measure of the Land | IV | rare | finisher (science) | Every town gains +1 science for every 25 hexes your empire owns, at most +10. | science | Civic | reworked; revised 2026-10-21 (section 11): at most +10, not +6; data only |
+| The Mother City | IV | rare | multiply (towns founded) | Your capital gains +5% production and +5% culture for each town you have founded this game. | production, culture | Civic | reworked; revised 2026-10-21 (section 11): +5% of each, not +3 flat; existing (the `citiesFounded` count) |
 | The Great Migration | IV | rare | act (room, taken from rivals) | Every ten turns, each foreign town within three hexes of your border loses one citizen to your nearest town, if your town is happier and has room to grow. | citizens | Economic | kept (built) |
 | The Encroaching Fields | IV | uncommon | act (room, taken from rivals) | Once every ten turns, each of your towns of at least twelve citizens takes one hex from the borders of a foreign town next to it, if nobody works that hex and your town is larger than the town that owns it. | land | Economic | kept (built) |
 | The Imperial Highways | IV | rare | finisher (the Opus) | The town raising the Magnum Opus gains +3% production toward it for every town joined to your capital by road, at most +45%. | production toward the Opus | Economic | kept (built) |
 
-- **Scalers:** The Book of Settlements and The Milestones (Tier II). **Capstones:** The Great Colonies, The Imperial Roads and The Sovereign Writ. The Common Domain, The Mountain Terraces and The Polders also break rules, and each one makes new room.
+- **Revised 2026-10-21 (section 11): three frontier cards are cut.** The Beating of the Bounds (*"remove"*), The Garden Frontier (*"remove, cities should only be able to work within 3 hexes"*), and The Common Domain, by your answer to section 11's question (*"let's cut common domain"*). The theme has 30 cards, against 33.
+- **Scalers:** The Book of Settlements and The Milestones (Tier II). **Capstones:** The Great Colonies, The Imperial Roads and The Sovereign Writ. The Mountain Terraces and The Polders also break rules, and each one makes new room.
 - **The Founding Furrow** is the deck's first culture card at Tier 0. A Roman founder ploughed a furrow round each new town. The second town pays 10 culture, the third 15 and the fourth 20: 45 culture, when the first draft costs 12. Tier 0 had no culture card before, and the deck no longer drafts slower.
-- **The Land Hunger** is the race for room: while another empire holds more towns, settlers come 30% faster. It reads The Defiant Kingdom's built condition, and it is Mithridates' theme.
-- **The Mother City** now reads towns founded. The Greek mother city was honoured by the colonies it sent out. Twelve towns founded give the capital +36 production and +36 culture. One big capital on its own is Scientific's great city (The Round City).
-- **The Measure of the Land** pays science, not production. "Geometry" means the measure of the land. One hundred and fifty hexes give each town +6 science.
+- **The Land Hunger** is the race for room: while another empire holds more towns, settlers come 25% faster and move one hex further (revised 2026-10-21, section 11). It reads The Defiant Kingdom's built condition, and it is Mithridates' theme.
+- **The Mother City** now reads towns founded. The Greek mother city was honoured by the colonies it sent out. Twelve towns founded give the capital +60% production and +60% culture, with no cap (revised 2026-10-21, section 11: you judged a percentage the better late bonus). One big capital on its own is Scientific's great city (The Round City).
+- **The Measure of the Land** pays science, not production. "Geometry" means the measure of the land. Two hundred and fifty hexes give each town +10 science (revised 2026-10-21, section 11: the cap rises from +6).
+- **The Mountain Schools** (revised 2026-10-21, section 11) reads mountains inside a town's borders: a town with two of them gains +15% science. "Beside a mountain" was too strict, in your words. The mines' and quarries' half is unchanged (reading, to confirm).
 - **The Milestones** pay gold and culture, not production and gold. Roman milestones carried the emperor's name down every road, and three other frontier scalers pay production.
 - **The Staked Claims** moves to Tier II, where most towns are still being founded.
 - **The Wide Country** leaves an institution: your borders grow 25% faster.
@@ -315,7 +317,6 @@ The cards that read a levy: The Labour Feasts and The Gleaners (I), The Labour R
 | The Horrea | 0 | uncommon | widen (authority) | Each Granary you hold gives +1 authority. | authority | Civic | new; existing (an empire count of Granaries, paid to authority) |
 | The Master Builders | I | common | supply (engineers) | Towns working at least three mines, quarries or lumber mills give +1 renown a turn, favouring great engineers. | renown | Civic | kept (built) |
 | The Public Fountains | I | common | widen (happiness) | Towns beside a river or lake gain +1 happiness for every four citizens, at most +3. | happiness | Civic | kept (built) |
-| The Builders' Levy | I | uncommon | supply (a levy use); bridge to the engine | Towns may spend a citizen to send production equal to the food it took to grow that citizen to your nearest other town building an empire building. | production | Economic | reworked; small (the levy use names a new target) |
 | The Aediles | I | uncommon | multiply (grower) | While seated, this card gains +1 production and +1 culture each time you finish a public work. It starts at +2 of each. | production, culture | Civic | new; new shape (a tally of public works finished) |
 | The Grain Dole | II | common | widen (happiness); bridge to the engine | Cities of at least ten population gain +4 happiness and retain an additional 20% of food spent on growth. | happiness, food | Civic | kept (built) |
 | The Waterworks | II | uncommon | supply (Aqueducts) | Aqueducts cost 33% less production. Towns with an Aqueduct gain +1 happiness for every four citizens, at most +3. | happiness, production | Civic | kept (built) |
@@ -332,8 +333,7 @@ The cards that read a levy: The Labour Feasts and The Gleaners (I), The Labour R
 | The Great Aqueducts | IV | rare | finisher (the Opus) | The town raising the Magnum Opus gains +5% production toward it for each of your towns with an Aqueduct, at most +40%. | production toward the Opus | Economic | kept (built) |
 | The Public Good | IV | rare | multiply (finisher) | +1% science and culture for each public work you hold, at most +25%. | science, culture | Civic | new; new shape, small (a count of public works) |
 
-- **The split with Scientific** (ruling 5): Scientific opens empire buildings early and makes each one stronger. These four cards scale with towns:
-  - The Builders' Levy: any town may send a citizen's worth of hammers to the house being raised;
+- **The split with Scientific** (ruling 5): Scientific opens empire buildings early and makes each one stronger. These three cards scale with towns (revised 2026-10-21, section 11: The Builders' Levy, the fourth, is cut, because you found it too like Levy of the Land):
   - The Many Hands: 3% faster for each town you hold, so twelve towns raise a house 36% faster;
   - The Topping Out: every town gains production equal to five times its citizens when a house is finished, about 600 in all for twelve towns of ten;
   - The Capitolia: each house gives every town +1 culture. Roman provincial towns built copies of the Capitol of Rome. Five houses and twelve towns give +60 culture, band 3's regular card.
@@ -342,7 +342,7 @@ The cards that read a levy: The Labour Feasts and The Gleaners (I), The Labour R
 - **Capstone: The Cura Aquarum,** the Roman office that ran the city's aqueducts. Towns joined to your capital by road count as having an Aqueduct: +15% growth, and the town counts as standing on fresh water. It breaks the rule that a building serves only its own town. Ten joined towns save about 1,500 production, and each one counts for The Great Aqueducts, The Waterworks and Hydraulic Schools. It joins public works to the frontier's roads.
 - **The Public Good:** thirty public works in age 4 give +25% science and culture, about 230 a turn. It is a headline rare, and the deck's late answer to the two essentials.
 - **The engineers:** Watermills, Public Baths, Workshops and Forges earn engineer renown, and The Master Builders and A Court of Engineers add more. The engineer's act raises a town's land (The Raising of the Land), or, in the Opus town, draws a turn of production from every manufactory town (The Master of Works).
-- **Wonders left this theme** (ruling 3): The Builders' Levy and The Topping Out now serve empire buildings, and The Pyramid Builders and The Landscape Garden are cut (section 8).
+- **Wonders left this theme** (ruling 3): The Topping Out now serves empire buildings, and The Pyramid Builders and The Landscape Garden are cut (section 8). The Builders' Levy, reworked here for empire buildings, is cut too (revised 2026-10-21, section 11), so public works have no levy use.
 - **Shared cards that serve it:** Hydraulic Schools, The Grain Exchange.
 
 ### 4.4 The militia
@@ -353,16 +353,15 @@ The cards that read a levy: The Labour Feasts and The Gleaners (I), The Labour R
 |---|---|---|---|---|---|---|---|
 | The Woodland Bands | 0 | common | supply; bridge to the frontier | Your units ignore the extra movement cost of forest and jungle, and gain +2 strength while they stand in forest or jungle. | combat | Military | kept (built) |
 | The Burhs | I | common | multiply (walls) | Towns gain +3 defence for every defensive building in them, and +100% production toward defensive buildings. | defence, production | Military | kept (built) |
-| Veteran Colonies | II | uncommon | act (a soldier becomes food) | A military unit standing in one of your towns may retire there: the unit is removed and the town gains food equal to its production cost. | food | Economic | kept (built) |
+| Veteran Colonies | II | uncommon | act (a soldier becomes a citizen); bridge to the engine | A military unit standing in one of your towns may retire there: the unit is removed and the town gains one citizen. | citizens | Economic | revised 2026-10-21 (section 11): one citizen, not food; new shape, small (a citizen granted on the `disband` moment) |
 | Watch and Ward | II | common | multiply | Needs a levy. Units a levy raised gain +5 strength in your own territory. | combat | Military | new; existing (the levy mark, own territory) |
 | The Trained Bands | III | uncommon | supply (ranks) | Needs a levy. Units raised by a levy start as Veterans. | ranks | Military | kept (built) |
 | The Stationes | III | uncommon | multiply; bridge to the frontier | Land units gain +3 strength while they stand in a town connected to your capital by road. | combat | Military | kept (built) |
-| Home for the Harvest | III | rare | capstone (rule-breaker); bridge to the engine | Needs a levy. Disbanding a unit a levy raised, in one of your towns, returns its citizen to that town. | citizens | Economic | new; new shape, small (a disband rider that returns a citizen) |
 | The General Levy | IV | rare | supply (a levy use: soldiers) | Your towns may spend one citizen to raise their best melee unit. At peace a town may do this once every five turns, sharing the levy limit; while you are at war, once every turn. Units raised this way cost no upkeep inside your borders. | units | Military | kept (built) |
 | The Theodosian Walls | IV | uncommon | multiply (citizens) | Your towns gain +1 defence for every two citizens. | defence | Military | kept (built) |
 
-- **The smallest theme, on purpose.** Expansionist is not a war deck. The militia reaches the army, and it gives an Expansionist seat cards for its Military chairs.
-- **Capstone: Home for the Harvest.** Disbanding a levied unit in one of your towns returns its citizen. With Veteran Colonies, the same disband also pays food equal to the unit's cost. A war then costs the realm its hammers and nothing else. It breaks the rule that a levy costs a citizen for good, as The Mit'a does after a wait.
+- **The smallest theme, on purpose.** Expansionist is not a war deck. The militia reaches the army, and it gives an Expansionist seat cards for its Military chairs. It has 8 cards (revised 2026-10-21, section 11: 9 before Home for the Harvest's cut).
+- **Capstone: none** (revised 2026-10-21, section 11). Home for the Harvest is cut, by your answer to section 11's question (*"cut one of veteran colonies and home for harvest"*). Veteran Colonies now does its job for every soldier: a military unit retired in one of your towns gives that town a citizen. So a levied soldier who goes home after the war gives its citizen back, and the war costs the realm its hammers and little else. The General Levy is the theme's late pay-off.
 - **Watch and Ward** (the old English duty of every town to keep a watch): levied units fight at +5 in your own territory. That is band 2's regular combat line, for the units this theme makes.
 - **Ranks are Dominion's.** The Trained Bands, which makes levied units Veterans, is the one card here that touches them.
 - **Scaler:** none of its own. The Labour Rolls (engine) counts every levied citizen.
@@ -406,13 +405,13 @@ A Tier 0 card is marked (0). Charters drafted beside a council take no chair. Ch
 - **Opening, the Chiefdom (1 / 1 / 0 / 1):** the shared The Frontier Militia; The Seed Grain; Granary Levies.
 - **End of Tier I, the War Chief (2 / 1 / 1 / 1):** The Frontier Militia (0), the shared The Muster of the Fields; Levy of the Land; The Labour Feasts; The Grain Census.
 - **End of Tier II, Tyranny (3 / 1 / 0 / 1):** The Muster of the Fields, Watch and Ward, The Burhs; The Labour Rolls; Veteran Colonies.
-- **Tier III, Imperium (3 / 2 / 1 / 2):** The Muster of the Fields, Watch and Ward, The Trained Bands; The Labour Rolls, Seasonal Levies; The Megalopolis; Home for the Harvest, Veteran Colonies.
-- **Tier IV, the Sultanate (4 / 2 / 2 / 3):** The General Levy, The Trained Bands, Watch and Ward, The Theodosian Walls; The Labour Rolls, The Corvée; The Megalopolis, The Labour Feasts; Home for the Harvest, Veteran Colonies, The Mit'a.
+- **Tier III, Imperium (3 / 2 / 1 / 2):** The Muster of the Fields, Watch and Ward, The Trained Bands; The Labour Rolls, Seasonal Levies; The Megalopolis; The Slack Season, Veteran Colonies. Revised 2026-10-21 (section 11): The Slack Season takes Home for the Harvest's Wildcard chair.
+- **Tier IV, the Sultanate (4 / 2 / 2 / 3):** The General Levy, The Trained Bands, Watch and Ward, The Theodosian Walls; The Labour Rolls, The Corvée; The Megalopolis, The Labour Feasts; The Slack Season, Veteran Colonies, The Mit'a. Revised 2026-10-21 (section 11), as at Tier III.
 - **How it feels:**
   - Turn 25: each new town starts with a Spearman standing in it (The Frontier Militia).
   - Turn 60: a neighbour attacks. Three towns each spend a citizen on a Swordsman (The Muster of the Fields), and The Labour Feasts pays culture from their wild tiles.
-  - Turn 100: the levied soldiers fight at +5 inside the borders (Watch and Ward). After the peace they walk home and disband, and Veteran Colonies pays each town food equal to the soldier's cost.
-  - Turn 140: levied units start as Veterans (The Trained Bands), and Home for the Harvest returns each disbanded soldier's citizen. Between wars the army costs the realm almost nothing.
+  - Turn 100: the levied soldiers fight at +5 inside the borders (Watch and Ward). After the peace they walk home and retire, and Veteran Colonies gives each town its citizen back (revised 2026-10-21, section 11: a citizen, not food).
+  - Turn 140: levied units start as Veterans (The Trained Bands), and every twentieth turn each town may levy at once (The Slack Season). Between wars the army costs the realm almost nothing (revised 2026-10-21, section 11: Home for the Harvest is cut).
   - Turn 175: at war, The General Levy lets every town levy each turn. At peace, The Corvée sends citizens into the Opus.
 
 ## 6. Features that would open cards in several decks
@@ -443,20 +442,22 @@ None of these adds a player input.
 
 ## 7. New shapes
 
-Nine new shapes in seven groups. Most are small. All read what the game tracks.
+Ten new shapes in seven groups (revised 2026-10-21, section 11: nine before; The Builders' Levy's levy target and Home for the Harvest's rider went with their cuts, and The Burning Season, The Mountain Schools and Veteran Colonies each add one). Most are small. All read what the game tracks.
 
 1. **Public works:** a `publicWork` marker on six building rows (markers, not names: CLAUDE.md), read as a count (The Public Good) and as a tally of public works finished while a card is seated (The Aediles).
-2. **Empire buildings and towns:** The Many Hands joins two built pieces, the empire-building filter on `productionBonus` and a count of towns. The Topping Out joins a completion rider on an empire building with batch E5's delivery to every town from its own figure. The Builders' Levy names a new target for a levy use. The Capitolia uses the built `empireBuildings` count.
+2. **Empire buildings and towns:** The Many Hands joins two built pieces, the empire-building filter on `productionBonus` and a count of towns. The Topping Out joins a completion rider on an empire building with batch E5's delivery to every town from its own figure. The Capitolia uses the built `empireBuildings` count. Revised 2026-10-21 (section 11): The Builders' Levy, which named a new target for a levy use, is cut.
 3. **A town counts as holding a building:** The Cura Aquarum. Every reading of a town's buildings must see it: the Aqueduct's own effects, its water, `hasBuilding` and the counts. It is the largest piece of work in this pass. Scientific's The Studium Generale has the same idea for works.
 4. **The land:**
    - an age offset on works, read wherever `standingSince` is read (Break the Sod's institution);
    - a finished mine or quarry that writes batch E3's hex mark on the farms and pastures beside it, at most two marks a tile (The Marl Pits);
-   - farms, mines and lumber mills read as tended by the `tended` tile test, but not by `unimproved` (The Two Harvests).
+   - farms, mines and lumber mills read as tended by the `tended` tile test, but not by `unimproved` (The Two Harvests);
+   - a burn on an improved grassland or plains tile that writes batch E3's hex mark and keeps the improvement (The Burning Season; revised 2026-10-21, section 11);
+   - a floor on the mountains inside a town's borders, "at least two" (The Mountain Schools; revised 2026-10-21, section 11).
 5. **The frontier:** a founding rider whose figure reads a count, the towns you hold (The Founding Furrow).
-6. **The militia:** a rider on the `disband` moment for a unit a levy raised, which returns a citizen to that town (Home for the Harvest). The moment (Dominion batch D7) and the levy mark (batch E1) exist.
+6. **The militia:** a citizen granted on the `disband` moment, in the town where the unit retires (Veteran Colonies; revised 2026-10-21, section 11). The moment exists (Dominion batch D7). Home for the Harvest's rider for a unit a levy raised is no longer needed, because the card is cut.
 7. **The engine:** feature A's guild-bar percent, with a town scope (The Burghers).
 
-**The other changed and new cards use shapes that exist:** The Rope Stretchers (a town count of improved tiles), The Horrea (an empire count of Granaries paid to authority, as the Imperial Throne pays it), The Land Hunger (The Defiant Kingdom's condition), Watch and Ward (`combatLine` in your own territory, narrowed by the levy mark), The Capitolia, The Mother City (the `citiesFounded` count), The Teeming Realm, The Milestones and The Measure of the Land (data only), and the four commissions (`CommissionReward.lasting`).
+**The other changed and new cards use shapes that exist:** The Rope Stretchers (a town count of improved tiles), The Horrea (an empire count of Granaries paid to authority, as the Imperial Throne pays it), The Land Hunger (The Defiant Kingdom's condition, with a settler's movement inside it), Watch and Ward (`combatLine` in your own territory, narrowed by the levy mark), The Capitolia, The Mother City (the `citiesFounded` count, as a percentage in the capital), Plenty, The Teeming Realm, The Milestones and The Measure of the Land (data only), and the four commissions (`CommissionReward.lasting`). Revised 2026-10-21 (section 11) for The Land Hunger, The Mother City, Plenty and The Measure of the Land.
 
 **For less engine work, cut** The Burghers, The Marl Pits and The Two Harvests' rework (retire its row instead) first. The Cura Aquarum is the most work, but it is the public works' capstone.
 
@@ -475,7 +476,7 @@ Nine new shapes in seven groups. Most are small. All read what the game tracks.
 | The Seed Grain | 0 | kept | the frontier, supply |
 | The Ambarvalia | 0 | kept | the raised land, widen (faith); the early faith |
 | The Rope Stretchers | 0 | reworked | the raised land, widen; the name means the Egyptian field surveyors, so it now pays science for measured land; Old Workings keeps the mines' production |
-| The Beating of the Bounds | 0 | reworked | the frontier, supply; the wording answers the triage's UX question 3: the game picks the hex, as it does today |
+| The Beating of the Bounds | 0 | cut; revised 2026-10-21 (section 11) | you removed it (*"remove"*). This pass had reworded it to answer the triage's UX question 3 |
 | The Pyramid Builders | 0 | cut | wonders leave Expansionist (ruling 3). Offered to the Magisterial pass as a Tier 0 opener |
 | The Road Home | 0 | kept | the frontier, supply (roads) |
 | The Work Gangs | 0 | kept | the raised land, supply (a levy use: a worker) |
@@ -486,7 +487,7 @@ Nine new shapes in seven groups. Most are small. All read what the game tracks.
 | The Old Songs | I | kept | the raised land, widen (culture on wild land) |
 | The Local Census | I | kept | the raised land, widen (authority); bridge to the frontier |
 | The Wild Orchards | I | kept | the raised land, supply (a charter: a tended work) |
-| The Burning Season | I | kept | the raised land, supply (a charter: a tended work) |
+| The Burning Season | I | revised 2026-10-21 (section 11) | the raised land, supply (a charter); you widened it to any grassland or plains, so a burn on an improved tile keeps the improvement and adds a lasting +1 food |
 | Dark Earth | I | kept | the raised land, multiply (age) |
 | The Three Sisters | I | kept | the raised land, widen (neighbours) |
 | The Commons | I | kept | the raised land, widen (happiness) |
@@ -502,13 +503,13 @@ Nine new shapes in seven groups. Most are small. All read what the game tracks.
 | The Grain Census | I | kept | engine glue, growth (grower) |
 | The Polis | I | cut | a few towns is Scientific's way to play (The Free Cities); Expansionist goes tall by growing many towns |
 | The Public Fountains | I | kept | public works, widen (happiness) |
-| The Builders' Levy | I | reworked | public works, supply; wonders leave Expansionist, so the levy now raises empire buildings, which scales with towns (ruling 5) |
+| The Builders' Levy | I | cut; revised 2026-10-21 (section 11) | you found it *"too similar to levy of the land"*. This pass had reworked it to raise empire buildings |
 | The Labour Feasts | I | kept | engine glue, the levy (culture) |
 | The Gleaners | I | kept | engine glue, the levy (regrowth) |
 | The Wild Marches | I | kept | the frontier, widen (culture) |
 | The Quiet Provinces | I | kept | the frontier, multiply (spare authority) |
 | The Road Towns | I | kept | the frontier, widen (roads) |
-| The Garden Frontier | I | kept | the frontier, supply (claims); bridge to the raised land |
+| The Garden Frontier | I | cut; revised 2026-10-21 (section 11) | you removed it: *"cities should only be able to work within 3 hexes"* |
 | The Watercourses | II | kept | the raised land, widen (water) |
 | The Highlands | II | kept | the raised land, widen (science); bridge to the frontier |
 | The Coast | II | kept | the raised land, widen (culture at sea) |
@@ -517,7 +518,7 @@ Nine new shapes in seven groups. Most are small. All read what the game tracks.
 | The Waterworks | II | kept | public works, supply (Aqueducts) |
 | The Breadbasket | II | kept | engine glue, growth (surplus into production) |
 | Migration | II | kept | engine glue, citizens moved; bridge to the frontier |
-| Veteran Colonies | II | kept | the militia, act (a soldier becomes food) |
+| Veteran Colonies | II | revised 2026-10-21 (section 11) | the militia, act; a retired soldier now gives its town a citizen, not food, and the card takes over Home for the Harvest's job |
 | The Landscape Garden | II | cut | its "or a wonder" half leaves with the wonders, and the shared The Sculpted Landscape already pays beside great-person works. The wonder half is offered to the Magisterial pass |
 | The Engineers' Yards | II | kept | public works, widen (manufactories) |
 | The Tended Country | II | kept | the raised land, widen (tended production) |
@@ -532,10 +533,10 @@ Nine new shapes in seven groups. Most are small. All read what the game tracks.
 | The Colonists | II | kept | the frontier, supply (a levy use: a settler) |
 | The Teeming Realm | II | reworked | engine glue, the scaler of the people; it now pays science and culture, the deck's answer to the open question, and four other scalers already pay production |
 | The Woodwrights | III | cut | no theme: a chop spends the land, and by Tier III few forests are left to fell |
-| The Common Domain | III | kept | the frontier, rule-breaker (room); bridge to the engine |
+| The Common Domain | III | cut; revised 2026-10-21 (section 11) | your answer to section 11's question: *"let's cut common domain"*. Towns work only within three hexes |
 | Seasonal Levies | III | kept | engine glue, the levy (regrowth) |
 | The Long Tending | III | kept | the raised land, multiply (tended age) |
-| The Mountain Schools | III | kept | the frontier, multiply (science) |
+| The Mountain Schools | III | revised 2026-10-21 (section 11) | the frontier, multiply (science); the town half reads two mountains in the borders, because "beside a mountain" was too strict |
 | The Polders | III | kept | the frontier, act (new land from the sea) |
 | Public Works | III | cut | the sheet's recommendation: its land job is The Raising of the Land's, its terraces belong to one leader, and two engineer acts need a choice. Its name becomes the theme's word |
 | A Court of Engineers | III | kept | public works, supply (engineers, with a cost) |
@@ -548,7 +549,7 @@ Nine new shapes in seven groups. Most are small. All read what the game tracks.
 | The Royal Forests | III | kept | the raised land, multiply (culture) |
 | The Megalopolis | III | kept | engine glue, citizens (pay-off) |
 | The Freedom of the City | III | kept | engine glue, growth (a moment) |
-| Plenty | III | kept | engine glue, growth (a moment) |
+| Plenty | III | revised 2026-10-21 (section 11) | engine glue, growth (a moment); five times the new population, not eight |
 | The Water Courts | III | kept | the raised land, capstone (rule-breaker) |
 | The Coming of the Water | III | kept | public works, act (an Aqueduct); bridge to the raised land |
 | The Mill Wheels | III | kept | public works, multiply |
@@ -576,8 +577,8 @@ Nine new shapes in seven groups. Most are small. All read what the game tracks.
 | The Master of Works | IV | kept | public works, finisher (engineers and the Opus) |
 | The Philosophers' Peaks | IV | kept | the frontier, finisher (science) |
 | The Inheritance of Fields | IV | kept | the raised land, multiply (age) |
-| The Measure of the Land | IV | reworked | the frontier, finisher; "geometry" means the measure of the land, so the card now pays science, and the frontier's late science grows with the land it holds |
-| The Mother City | IV | reworked | the frontier, multiply; a big capital is Scientific's great city (The Round City). The Greek mother city was honoured by the colonies it founded, so it now reads towns founded |
+| The Measure of the Land | IV | reworked; revised 2026-10-21 (section 11) | the frontier, finisher; "geometry" means the measure of the land, so the card now pays science, and the frontier's late science grows with the land it holds. You raised the cap to +10 |
+| The Mother City | IV | reworked; revised 2026-10-21 (section 11) | the frontier, multiply; a big capital is Scientific's great city (The Round City). The Greek mother city was honoured by the colonies it founded, so it now reads towns founded. You made it +5% production and culture for each, a better late bonus |
 | The General Levy | IV | kept | the militia, supply (a levy use: soldiers) |
 | The Great Migration | IV | kept | the frontier, act (room, taken from rivals) |
 | The Encroaching Fields | IV | kept | the frontier, act (room, taken from rivals) |
@@ -587,7 +588,7 @@ Nine new shapes in seven groups. Most are small. All read what the game tracks.
 | The Imperial Highways | IV | kept | the frontier, finisher (the Opus) |
 | The Theodosian Walls | IV | kept | the militia, multiply (citizens) |
 
-**Tally:** 94 kept (one of them moved to Tier II), 14 reworked, 12 cut (eleven live rows to retire, and The Deep Workings, which has no row). With 11 new cards, the deck holds 116 seatable cards and 3 charters.
+**Tally** (revised 2026-10-21, section 11): 88 kept (one of them moved to Tier II), 4 revised by your comments (one of them the charter The Burning Season), 12 reworked (two of them revised by your comments), 16 cut. Fifteen of the cut cards have a data row to retire: fourteen live rows and the deferred Public Works. The Deep Workings has no row. With 10 new cards (one of them, The Land Hunger, revised by your comments), the deck holds 111 seatable cards and 3 charters. Home for the Harvest was new, so it is cut without reaching the sheet: 17 cuts in all.
 
 ### The shared cards (16, and one new)
 
@@ -597,7 +598,7 @@ All kept. Each pair keeps an early shared card (ruling (qqqqqq) 14).
 - **Public works:** Hydraulic Schools (I, Scientific), The Grain Exchange (I, Commerce).
 - **The militia:** The Frontier Militia (0, Dominion), The Muster of the Fields (I, Dominion), The Farming Garrisons (I, Dominion), The Road Garrisons (II, Dominion).
 - **Military Colonies** had no Dominion theme, and the Dominion pass left its fate to this one. It stays: Barracks towns that build settlers and workers are a bridge from the militia to the frontier.
-- **Retire:** The Hydraulic Commonwealth, a deferred row in `common.json` that no sheet lists (the sheet's recommendation, and the Scientific pass's).
+- **Retire:** The Hydraulic Commonwealth, a deferred row in `common.json` that no sheet lists (the sheet's recommendation, and the Scientific pass's). Scientific batch S1b has since retired it.
 
 ### Not taken from earlier proposals
 
@@ -612,23 +613,25 @@ Not changed. Two of the 32 proposed Doctrines no longer fit a theme, because the
 
 ### The type sort
 
-- **Tier 0 (14).** Military (1): The Woodland Bands. Economic (8): Smallholdings, Granary Levies, The Patient Harvest, Sweet Water, The Seed Grain, The Beating of the Bounds, The Road Home, The Work Gangs. Civic (5): The Naturalists, The Ambarvalia, The Rope Stretchers, The Founding Furrow, The Horrea. Charters: The Fish Traps (Economic).
-- **Tier I (26).** Military (1): The Burhs. Economic (14): Levy of the Land, Tinkers' Guild, Dark Earth, The Three Sisters, The Hard Country, Outposts, The Marl Pits, The Grain Census, The Builders' Levy, The Gleaners, The Quiet Provinces, The Road Towns, The Garden Frontier, The Land Hunger. Civic (9): The Old Songs, The Local Census, The Commons, The Master Builders, The Forest Keepers, The Public Fountains, The Labour Feasts, The Wild Marches, The Aediles. Wildcard (2): Six Gardens, Commission: Break the Sod. Charters: The Wild Orchards (Economic), The Burning Season (Economic).
+Revised 2026-10-21 (section 11): five cards leave the sort. The Beating of the Bounds (Tier 0), The Garden Frontier and The Builders' Levy (Tier I), and The Common Domain and Home for the Harvest (Tier III) were all Economic. No revised card changes its type.
+
+- **Tier 0 (13).** Military (1): The Woodland Bands. Economic (7): Smallholdings, Granary Levies, The Patient Harvest, Sweet Water, The Seed Grain, The Road Home, The Work Gangs. Civic (5): The Naturalists, The Ambarvalia, The Rope Stretchers, The Founding Furrow, The Horrea. Charters: The Fish Traps (Economic).
+- **Tier I (24).** Military (1): The Burhs. Economic (12): Levy of the Land, Tinkers' Guild, Dark Earth, The Three Sisters, The Hard Country, Outposts, The Marl Pits, The Grain Census, The Gleaners, The Quiet Provinces, The Road Towns, The Land Hunger. Civic (9): The Old Songs, The Local Census, The Commons, The Master Builders, The Forest Keepers, The Public Fountains, The Labour Feasts, The Wild Marches, The Aediles. Wildcard (2): Six Gardens, Commission: Break the Sod. Charters: The Wild Orchards (Economic), The Burning Season (Economic).
 - **Tier II (25).** Military (1): Watch and Ward. Economic (14): The Watercourses, The Breadbasket, Migration, Veteran Colonies, The Engineers' Yards, The Tended Country, The Old Fields, The Hedgerows, The Great Households, The Labour Rolls, The Book of Settlements, The Colonists, The Staked Claims, The Many Hands. Civic (10): The Highlands, The Coast, Provincial Councils, The Grain Dole, The Waterworks, The Harbour Cities, The Terraces of Moray, The Milestones, The Teeming Realm, The Burghers.
-- **Tier III (33).** Military (2): The Trained Bands, The Stationes. Economic (20): The Common Domain, Seasonal Levies, The Long Tending, The Polders, The Raising of the Land, Old Workings, The Freedom of the City, Plenty, The Water Courts, The Coming of the Water, The Mill Wheels, The Topping Out, The Mit'a, The Slack Season, The Quitrents, The Tax Rolls, The Opening of the Roads, The Great Colonies, The Cura Aquarum, Home for the Harvest. Civic (9): The Mountain Schools, A Court of Engineers, The Royal Forests, The Megalopolis, The Hallowed Woods, The Mountain Terraces, The Sovereign Writ, The Imperial Roads, The Capitolia. Wildcard (2): The Wide Country, The Age of Improvement.
+- **Tier III (31).** Military (2): The Trained Bands, The Stationes. Economic (18): Seasonal Levies, The Long Tending, The Polders, The Raising of the Land, Old Workings, The Freedom of the City, Plenty, The Water Courts, The Coming of the Water, The Mill Wheels, The Topping Out, The Mit'a, The Slack Season, The Quitrents, The Tax Rolls, The Opening of the Roads, The Great Colonies, The Cura Aquarum. Civic (9): The Mountain Schools, A Court of Engineers, The Royal Forests, The Megalopolis, The Hallowed Woods, The Mountain Terraces, The Sovereign Writ, The Imperial Roads, The Capitolia. Wildcard (2): The Wide Country, The Age of Improvement.
 - **Tier IV (18).** Military (2): The General Levy, The Theodosian Walls. Economic (9): The Keeps, The Garden of the World, The Corvée, The Master of Works, The Inheritance of Fields, The Great Migration, The Encroaching Fields, The Great Aqueducts, The Imperial Highways. Civic (4): The Philosophers' Peaks, The Measure of the Land, The Mother City, The Public Good. Wildcard (3): The Heartland, The Domesday Survey, The Two Harvests.
 
 | Tier | Military | Economic | Civic | Wildcard | Seatable | Charters | Common / uncommon / rare |
 |---|---|---|---|---|---|---|---|
-| 0 | 1 | 8 | 5 | 0 | 14 | 1 | 10 / 3 / 1 |
-| I | 1 | 14 | 9 | 2 | 26 | 2 | 13 / 12 / 1 |
+| 0 | 1 | 7 | 5 | 0 | 13 | 1 | 9 / 3 / 1 |
+| I | 1 | 12 | 9 | 2 | 24 | 2 | 13 / 11 / 0 |
 | II | 1 | 14 | 10 | 0 | 25 | 0 | 7 / 17 / 1 |
-| III | 2 | 20 | 9 | 2 | 33 | 0 | 4 / 15 / 14 |
+| III | 2 | 18 | 9 | 2 | 31 | 0 | 4 / 14 / 13 |
 | IV | 2 | 9 | 4 | 3 | 18 | 0 | 0 / 4 / 14 |
-| **All** | **7** | **65** | **37** | **7** | **116** | **3** | **34 / 51 / 31** |
+| **All** | **7** | **60** | **37** | **7** | **111** | **3** | **33 / 49 / 29** |
 
-- **By status (seatable):** 94 kept (91 seatable and 3 charters), 14 reworked, 11 new.
-- **Before this pass:** 117 seatable cards, of which 77 were Economic (66%), 28 Civic, 6 Military and 6 Wildcard. Now 116, of which 65 are Economic (56%), 37 Civic, 7 Military and 7 Wildcard.
+- **By status (seatable)** (revised 2026-10-21, section 11): 86 kept, 3 revised by your comments (Plenty, Veteran Colonies, The Mountain Schools), 12 reworked, 10 new. The 3 charters: The Fish Traps and The Wild Orchards are kept, and The Burning Season is revised.
+- **Before this pass:** 117 seatable cards, of which 77 were Economic (66%), 28 Civic, 6 Military and 6 Wildcard. Now 111, of which 60 are Economic (54%), 37 Civic, 7 Military and 7 Wildcard (revised 2026-10-21, section 11).
 - **Every government has something to seat** at every tier in its Economic and Civic chairs. Military chairs lean on the partner deck: Expansionist has one Military card at each of Tiers 0 to II and two at Tiers III and IV, so War Chief, Tyranny, Imperium and the Sultanate take most of their Military cards from the partner. That was so before this pass (your question 2 of 2026-10-16, deferred). Tier II has no Wildcard card, which costs nothing, because a Wildcard chair takes any card.
 
 ## 9. The checks
@@ -637,29 +640,29 @@ Not changed. Two of the 32 proposed Doctrines no longer fit a theme, because the
   - the raised land: Smallholdings, The Three Sisters, The Highlands; Dark Earth, The Old Fields; The Age of Improvement;
   - the frontier: The Road Towns, The Wild Marches, Provincial Councils; The Book of Settlements, The Quiet Provinces; The Imperial Roads, The Great Colonies;
   - public works: The Horrea, The Public Fountains, The Engineers' Yards; The Aediles, The Mill Wheels, The Public Good; The Cura Aquarum;
-  - the militia: The Burhs; Watch and Ward, The Stationes; Home for the Harvest.
+  - the militia: The Burhs; Watch and Ward, The Stationes; and no capstone since Home for the Harvest's cut (revised 2026-10-21, section 11). Veteran Colonies does its job for every soldier.
 - **Several routes.** Any two cards start a theme: Smallholdings and Dark Earth; The Seed Grain and The Founding Furrow; The Horrea and The Aediles; The Frontier Militia and The Burhs. The engine starts with Levy of the Land or any card that grants a levy use.
-- **Every card has a home:** four themes and 22 glue cards (19%), with 17 bridge cards.
+- **Every card has a home:** four themes and 22 glue cards (20%), with 14 bridge cards (revised 2026-10-21, section 11: 17 before; The Garden Frontier, The Builders' Levy, The Common Domain and Home for the Harvest were bridges, and Veteran Colonies becomes one).
 - **The essentials along the way.** By Tier II:
   - the raised land: production (The Three Sisters, The Tended Country), science (The Rope Stretchers, The Highlands), culture (The Old Songs, The Forest Keepers, The Coast);
   - the frontier: production (The Hard Country, The Road Towns, The Book of Settlements), science (The Naturalists), culture (The Founding Furrow, The Wild Marches, The Milestones);
-  - public works: production (The Builders' Levy, The Engineers' Yards), culture (The Aediles), and science only from the shared Hydraulic Schools or the glue (The Teeming Realm) until The Public Good at Tier IV;
+  - public works: production (The Engineers' Yards, and The Many Hands toward empire buildings; revised 2026-10-21, section 11: The Builders' Levy is cut), culture (The Aediles), and science only from the shared Hydraulic Schools or the glue (The Teeming Realm) until The Public Good at Tier IV;
   - the militia: production toward walls (The Burhs), and science and culture only from the glue (The Labour Feasts, The Teeming Realm). It is the small theme, and it leans on the engine.
-- **The deck's own yield stays a minority:** 24 of 116 seatable cards pay food (21%), against 29 of 117 (25%) before. Production is the most common pay: 35 cards (30%), against 45 (38%). Food or production: 52 (45%), against 65 (56%). Science: 12 (10%), against 8. Culture: 18 (16%), against 12. Happiness or authority: 11.
+- **The deck's own yield stays a minority** (revised 2026-10-21, section 11): 23 of 111 seatable cards pay food (21%), against 29 of 117 (25%) before; Veteran Colonies now pays a citizen, not food. Production is the most common pay: 34 cards (31%), against 45 (38%); The Builders' Levy is cut. Food or production: 50 (45%), against 65 (56%). Science: 12 (11%), against 8. Culture: 18 (16%), against 12. Happiness or authority: 11.
 - **Areas:** five of five. Great people only through the engineers and the trades, since the wonders left.
 - **Commissions:** five, and all five now leave an institution.
 - **The cost shows** in the founding and claiming cards, The Land Hunger, the late answers to a full map, and the citizens every levy spends.
-- **No new input.** Every card is automatic or uses founding, growing, working and improving land, building, a levy, disbanding, or a great engineer's act. The four cards that waited on a UX decision are answered: The Marl Pits is automatic, The Two Harvests is a rule, The Beating of the Bounds drops "of your choice", and Public Works is cut. The Deep Workings, which also needed a new worker order, is cut.
+- **No new input.** Every card is automatic or uses founding, growing, working and improving land, building, a levy, disbanding, or a great engineer's act. The four cards that waited on a UX decision are answered: The Marl Pits is automatic, The Two Harvests is a rule, and Public Works and The Beating of the Bounds are cut (revised 2026-10-21, section 11: this pass had reworded The Beating of the Bounds, and you removed it). The Deep Workings, which also needed a new worker order, is cut.
 - **The splits are followed:**
   - wonders: none left (ruling 3);
-  - empire buildings: four cards, all scaled by towns (ruling 5);
+  - empire buildings: three cards, all scaled by towns (ruling 5; revised 2026-10-21, section 11: The Builders' Levy is cut);
   - population: Expansionist spends citizens and grows many towns. One great city is Scientific's, so The Polis is cut and The Mother City reads towns founded;
   - authority and happiness: through worked land, roads and public works;
   - ranks: one card, The Trained Bands, on levied units only.
 - **Where the pass falls short:**
   - Every number is a guess; nothing is measured. Bots never levy, so the engine cannot be measured until they do.
-  - The deck is still 56% Economic, and Military chairs lean on the partner.
-  - The raised land and the frontier are large (33 cards each); the militia is small (9).
+  - The deck is still 54% Economic, and Military chairs lean on the partner.
+  - The raised land and the frontier are large (33 and 30 cards); the militia is small (8) and has no capstone (revised 2026-10-21, section 11).
   - Production is still the most common pay.
   - Tier IV has four Civic cards, so the Curia's four Civic chairs lean on carried cards (The Teeming Realm, The Capitolia).
   - The Cura Aquarum is the largest piece of new engine work.
@@ -670,16 +673,16 @@ Not changed. Two of the 32 proposed Doctrines no longer fit a theme, because the
 1. **The engine and four themes as written:** citizens and the levy as the engine; the raised land, the frontier, public works and the militia as the themes. *Recommended: yes.*
 2. **Expansionist's science and culture** (`deck-design.md`, open question 3, and the builds' question 1): drop the gap rule. The deck reaches both at about the median, from land and from its people, and both stall when room runs out. *Recommended: yes.*
 3. **"Public works" as a card word:** a marker on the Granary, Aqueduct, Watermill, Harbour, Public Bath and Cistern, read by The Aediles and The Public Good. *Recommended: yes.* Say if the Lighthouse or the Workshop should join.
-4. **The wonder cards:** The Pyramid Builders and The Landscape Garden are cut; The Builders' Levy and The Topping Out now serve empire buildings. Offered to the Magisterial pass: The Pyramid Builders (production toward wonders in the capital), The Topping Out's wonder version, and a tile beside a wonder that pays culture. The Opus cards stay, because the Opus is not a wonder. *Recommended: yes.*
-5. **The four UX questions of the triage,** answered with no new input: The Marl Pits becomes automatic and The Deep Workings is cut; The Two Harvests becomes a rule; The Beating of the Bounds drops "of your choice"; Public Works is cut. *Recommended: yes.*
+4. **The wonder cards:** The Pyramid Builders and The Landscape Garden are cut; The Builders' Levy and The Topping Out now serve empire buildings (revised 2026-10-21, section 11: The Builders' Levy is cut). Offered to the Magisterial pass: The Pyramid Builders (production toward wonders in the capital), The Topping Out's wonder version, and a tile beside a wonder that pays culture. The Opus cards stay, because the Opus is not a wonder. *Recommended: yes.*
+5. **The four UX questions of the triage,** answered with no new input: The Marl Pits becomes automatic and The Deep Workings is cut; The Two Harvests becomes a rule; The Beating of the Bounds drops "of your choice"; Public Works is cut. *Recommended: yes.* Revised 2026-10-21 (section 11): The Beating of the Bounds is cut.
 6. **Commissions leave institutions:** Six Gardens, Break the Sod, The Wide Country and The Domesday Survey, with the Domesday goal lowered to 120 hexes and 40 tiles. *Recommended: yes.*
-7. **Three new rule-breakers:** The Cura Aquarum (joined towns count as having an Aqueduct), Home for the Harvest (a levied soldier comes home), The Two Harvests (the field counts as tended). *Recommended: yes to all three.*
+7. **Three new rule-breakers:** The Cura Aquarum (joined towns count as having an Aqueduct), Home for the Harvest (a levied soldier comes home), The Two Harvests (the field counts as tended). *Recommended: yes to all three.* Revised 2026-10-21 (section 11): Home for the Harvest is cut, and Veteran Colonies returns a citizen for any soldier.
 8. **The reworks of live cards:** The Rope Stretchers (science), The Teeming Realm (science and culture), The Milestones (gold and culture), The Measure of the Land (science), The Mother City (towns founded). *Recommended: yes.* The first four move the pay away from production and read what they read before. The Mother City reads towns founded instead of a big capital.
-9. **The twelve cuts** in section 8, with their rows retired. *Recommended: yes.*
+9. **The twelve cuts** in section 8, with their rows retired. *Recommended: yes.* Revised 2026-10-21 (section 11): seventeen cuts now, fifteen of them with a row to retire.
 10. **The militia as a small fourth theme,** against folding its cards into the engine. *Recommended: keep it.* It reaches the army and gives the deck's Military cards a home.
 11. **The candidate feature, a town's age** (section 6). *Recommended: not now,* unless the Magisterial or Devotion pass wants it.
 
-After your answers: every card onto the sheet as `add` and `modify` rows, then the triage for the build.
+After your answers: every card onto the sheet as `add` and `modify` rows, then the triage for the build. The triage is `docs/plans/expansionist-themes-triage.md` (batches E7 to E13).
 
 ## 11. Rulings on the review page, 2026-10-21
 
@@ -690,7 +693,7 @@ The user commented on 10 rows of the review page (version 8, built from commit `
 | Plenty (III) | *"revise to five times"* | A town that grows gains production equal to five times its new population, not eight. |
 | The Burning Season (I, charter) | *"doesn't have to be wild. any grassland or plains get +1 food when burned"* | Workers may burn any grassland or plains hex, not only a wild one. **Reading, to confirm:** on a hex that holds an improvement, the burn keeps the improvement and adds +1 food as a lasting mark on the hex (batch E3's hex mark, as The Coming of the Water uses), so no work replaces another. On a hex with no improvement it is the tended work it is today. |
 | The Beating of the Bounds (0) | *"remove"* | Cut. |
-| The Garden Frontier (I) | *"remove, cities should only be able to work within 3 hexes"* | Cut. **Question:** the reason also touches The Common Domain (towns of ten may work one hex beyond their normal radius). It stays until the user says. |
+| The Garden Frontier (I) | *"remove, cities should only be able to work within 3 hexes"* | Cut. **Question:** the reason also touches The Common Domain (towns of ten may work one hex beyond their normal radius). Answered: see "Answered 2026-10-21" below. |
 | The Land Hunger (I) | *"revise: build settlers 25% faster, settlers have +1 movement"* | New text: "While another empire holds more towns than you, your towns build settlers 25% faster, and your settlers gain +1 movement." **Reading, to confirm:** the condition stays, because it is the card's idea; only the pay changes. |
 | The Mountain Schools (III) | *"towns with 2 mountain tiles (besides a mountain is too stringent)"* | The town half reads "Towns with at least two mountains in their borders gain +15% science." **Reading, to confirm:** the second half (mines and quarries beside a mountain gain +2 science) is unchanged. |
 | The Mother City (IV) | *"late game, +5% culture and production is a better bonus."* | New text: "Your capital gains +5% production and +5% culture for each town you have founded this game." **Reading, to confirm:** still the capital, still per town founded, with no cap. The alternative is a cap such as +50%. |
@@ -703,5 +706,13 @@ The user commented on 10 rows of the review page (version 8, built from commit `
 - **The questions in section 10:** the user answered none of them one by one and said to queue the changes. **Reading, to confirm:** every recommendation in section 10 stands.
 - **Cuts:** three more (The Beating of the Bounds, The Garden Frontier, The Builders' Levy), so 15 in all.
 - **Public works** keep empire buildings through The Many Hands, The Topping Out and The Capitolia, but no longer have a levy use.
-- **The militia's capstone** gains a partner: with Veteran Colonies paying a citizen, Home for the Harvest and Veteran Colonies both return citizens from soldiers. **Question:** the two now overlap. Keep both, or cut one?
-- **Open question:** The Common Domain, against the user's "cities should only be able to work within 3 hexes".
+- **The militia's capstone** gains a partner: with Veteran Colonies paying a citizen, Home for the Harvest and Veteran Colonies both return citizens from soldiers. **Question:** the two now overlap. Keep both, or cut one? Answered: see "Answered 2026-10-21" below.
+- **Open question:** The Common Domain, against the user's "cities should only be able to work within 3 hexes". Answered: see "Answered 2026-10-21" below.
+
+### Answered 2026-10-21
+
+The user, on the two questions above, verbatim: *"let's cut common domain. cut one of veteran colonies and home for harvest."*
+
+- **The Common Domain is cut.** Its data row retires with the other cuts.
+- **Home for the Harvest is cut, and Veteran Colonies stays.** The orchestrator chose which. Veteran Colonies is built, it is the broader card (any military unit retired in one of your towns gives that town a citizen), and its new text is the user's own revision. Home for the Harvest was a new shape for a narrower case (units a levy raised).
+- **So:** 17 cuts in all, of which 15 have a data row to retire. The deck holds 111 seatable cards and 3 charters. The militia has no capstone, and the disband rider for a unit a levy raised is no longer needed. Sections 2 to 10 carry both cuts.
