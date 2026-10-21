@@ -12,6 +12,59 @@ Items marked *(proposal)* are suggestions that have not been agreed yet. Everyth
 2. **Each pair of decks opens up interesting options** that neither deck has alone.
 3. **Each deck leaves room for different combinations from game to game**, so two games with the same decks still play differently.
 
+## Direction, 2026-10-20: a way to play, not a yield
+
+The user read the six builds passes (`docs/plans/*-builds.md`) and ruled on 2026-10-20. **Where this section and the rest of this file disagree, this section wins.** The deck sections below are rewritten as each deck's pass happens, starting with Scientific.
+
+**The finding.** The user, verbatim:
+
+> One big piece of feedback: each deck feels a bit one note, and needs diverse bonuses that aren't so squarely on theme with their central purpose/yield. Each deck should instead feel like a different way to play the game, and shouldn't be entirely focused on the corresponding yield.
+
+**The cause.** The builds method gave each build one loop on one quantity, and every chair had to raise that quantity, read it or pay from it (`docs/plans/dominion-builds.md`, "What changed from the first draft"). The passes for the other five decks copied it. So each deck's themes stayed inside its own subject (Scientific's were technologies, schools and scholars), and each build fed one number.
+
+**The rulings:**
+1. **A few themes per deck, with varied bonuses inside each theme.** The user: *"i think we can centralize around a few themes, even if the bonuses and yields are varied. i.e. giving food and production from academies, and then a multiplier on the academy yields, and then a bonus towards generating great scholars, are all separate bonuses that play in a similar direction."* A theme is a direction that many cards push, not a closed loop.
+2. **Each deck is paid for something different, is strongest at a different time, and gives up something different:** the table below. The user: *"table looks right!"*
+3. **Wonders leave Expansionist.** Scientific gets earlier access to them, Magisterial gets bonuses for holding them, and both get production toward them (the user's picture of Magisterial, below). The user: *"i agree with taking wonders out of expansionist."*
+4. **Magisterial owns the government system:** chairs, Doctrines, adoption and re-seating. The user: *"magisterial should own the government system."*
+5. **Scientific also plays around empire buildings.** The user: *"scientific should also play around empire buildings!"* Expansionist's picture names empire buildings too, so the two decks share them (Open questions, item 4).
+6. **Expansionist does not necessarily draft slower.** This reverses "It drafts slowly" in the Expansionist section. The user: *"Reverse my original decision, this faction shouldn't necessarily draft slower"*.
+7. **Victory conditions wait** until the decks are fun to play. The user: *"Let's think about victory conditions after we feel lke the decks are fun to play."*
+8. **Scientific goes first.** The user: *"starting with scientific mkes sense."* The builds passes of 2026-10-17 for Commerce, Devotion, Scientific and Magisterial are redone with this direction before any of their cards are built. Dominion and Expansionist are built and live, and are revised later *(proposal: after the first outside playtest)*.
+
+| Deck | Paid for | Strongest | Gives up |
+|---|---|---|---|
+| Dominion | deeds: fights, captures, commissions | early (tempo) | development at home, unless it keeps acting |
+| Expansionist | growth: towns, citizens, raised land | in the middle game, once its land is claimed | room: without land to claim, it stalls |
+| Commerce | connections: routes, posts, deals | steadily, more as the world connects | production; and it needs partners at peace |
+| Devotion | devotion: faith spent, devout towns, followers | late, when the investment pays back | early tempo, because it pays up front |
+| Scientific | advancement: technologies, charters, Academies | in windows when it is ahead | numbers: few units, few cities |
+| Magisterial | governance: drafts, governments, great people | when its combinations come together | depth: it depends on what the draft offers |
+
+**How the passes apply it** *(proposal, 2026-10-20)*:
+- **A deck owns what it asks you to do. What it gives back can be anything:** any yield, happiness, authority, units or a rule change. What a deck asks for is a way to play, wider than one yield. Scientific asks you to research, grow great cities, call scholars and field elite units. Two decks can pay the same reward and still feel different, because the player did different things to earn it.
+- **Two checks for a deck:**
+  - no more than about a third of its cards pay its own yield;
+  - it reaches at least four of these five: the army, the land, the economy, civic life (happiness, authority, government), and great people and wonders.
+- **Where two decks ask for the same thing, they split it:**
+  - authority and happiness: Devotion raises them in towns that follow its religion, and pays faith for it; Expansionist raises them through public works and empire buildings;
+  - institutions: Magisterial's are the government system (ruling 4); Scientific's are buildings its charters unlock; Dominion's are the lasting effects its commissions leave;
+  - flexibility: Commerce is flexible in what it buys, Devotion in how it wins, and Magisterial in which cards it holds;
+  - population: Expansionist spends citizens; Scientific grows a few great cities to feed its schools;
+  - elite units: Dominion's units earn ranks by fighting; Scientific's units start better.
+
+**How the user sees each deck.** The user, 2026-10-20, verbatim. "Your description" under magisterial is the chat's summary of the five Magisterial builds (the Salon, the Cabinet, the Patrons, the Marvels and the Landscape).
+
+> i think overall, the deck designs are too one note - i.e. the science builds are too focused on exclusively science, the decks should offer play that is synergistic and satisfying for a variety of playstyles. Here's how i see the decks in my head:
+> - dominion: goal oriented, many of the things in the deck are action oriented (i.e. doing things with your soldiers). I'd like this deck to have a higher percentage of commissions that involve using your soldiers actively. The soldier economy is also useful, gaining and deploying soldiers to cities. the dominion player should be taking advantage of early tempo (good basic economy cards that fit thematically, commissions that yield value earlier for an adept player) to create armies and be active on the map (think alexander the great, rome, qin china, etc. able to field and raise armies and create lasting institutions because of that active playstyle). The late game should have bonuses for captured cities, and involve a mix of economic/civic options for an already large army and taking advantage of shared deck cards.
+> - expansionist: focused on growing tall and wide, bonuses from population and number of cities, very quickly able to make land valuable and gain yields from enriching the land. Options for infrastructure, like public works and empire buildings, allow the expansionist player to grow very rapidly assuming they're able to claim and develop land. Population as a second economic engine. Late game, should offer bonuses scaling with number of cities/population, and have a variety of economic/civic abilities assuming they've spent the game building the proper engine. Reverse my original decision, this faction shouldn't necessarily draft slower
+> - commerce: aquire wealth, active on the map but more from a trade/commerce lens. Should encourage this player to send trade routes internally and externally, this should be the faction most interested in trade deals/diplomacy. Build infrastructure through connections and should offer the most flexibility of each of the builds. takes advantage and strength from claiming luxury resources and trading them to other players. Establishing trading posts, setting the seeds for commerce and seeing the effects of this expand throughout the ages. It would be cool to feel like a player that lets the economy grow and gain passive bonuses from wealth as populations grow and the world becomes more connected.
+> - devotion: should make faith feel like a win condition. like civ, i imagine this build to have higher up front costs (investing in faith when other factions don't need to) but having powerful bonuses from the additional investment in faith. thematically with history, faith allows greater authority and wider empires and allows larger population centers to remain happy (constantinople, the umayyad caliphates). This should be a flexible deck, as the faith economy should ostensibly allow you to play for any win condition, and should have the most shared deck cards. Strength from having more followers, performing religious actions, performing actions in devout cities, and playing around the bonuses from your religion.
+> - scientific: like history, this faction gains strength from technological advantages, this faction has the easiest time gaining science and gaining the population to support the sciences. The scientific player should feel like they have wondrous cities, gain access to unique technologies and advantages from the investment of science, and can build the right institutions from technocratic fovernance. This deck should have the most charters and uniquely has charter technologies to gain access to bonuses that no other civ is able to access. When fielding an army, focus around having strong, advanced elite units instead of many units. Bonuses to and from the patronage of great people, with a focus on great scholars and academies. They also develop the map, but through unique improvements from the draft, but also planting great people works, which is a separate mechanic than the expansionist player.
+> - magisterial: this focus is on being adaptable to the draft, i.e. being the best magister. historically, this is the faction that gains from strong governance and having the right social institutions to meet the challenges of the time (athenian democracy, the roman republic, the grand vizier). Your description here is more spot on, this player focuses on playing around the draft, the patronage of great people, erecting great monuments, gaining a culture engine. I think both the scientific and magisterial decks can have bonuses towards wonders (the scientific player gets earlier access to technologies, the magisterial player gets bonuses from having them, both gain production towards them). Like the scientific player, gains bonuses from great people works, but should have a separate system of gaining bonuses from them (magisterial: adjacent great works gain X bonus, cities with a great work gain X, the effects of great people are doubled. scientific: a great work adjacent to an academy gain X, all great works gain X science, academies gain X yields, gain X from each academy in your land).
+
+---
+
 ## The rules that follow from them
 
 **Three essentials, many means.** Under the current rules every player needs three things to win: **technology, culture and production.** Every deck must have a route to all three. Everything else is a *means* of progressing, not a requirement: an army, gold, faith, citizens, great people, trade routes, land. A deck uses some of these and not others, and the draft decides which ones a particular game leans on.
@@ -155,7 +208,7 @@ Considered and declined in the same conversation (`docs/plans/card-synergy-resea
 **Gap and workaround.** Expansionist is weak at **science and culture**: a large body with a small brain. It reaches both **only through particular terrain** — science from mountains, culture from old forest and wild land — so how much it gets depends on where it settles. A mountain start gives a learned empire; a lowland start gives a large, slow one. That dependence on the map is deliberate: it is where this deck gets its variety from game to game. Its natural partners are the decks that supply what it lacks — Scientific and Magisterial — and Dominion, which turns its size into an army.
 
 **Two consequences to accept on purpose.**
-- **It drafts slowly.** Culture is the draft currency, so this deck sees fewer cards than the others. It plays the board rather than the card game, but its early cards need to be strong for each card it gets.
+- **It drafts slowly.** *Reversed 2026-10-20: it does not necessarily draft slower ("Direction, 2026-10-20", ruling 6).* Culture is the draft currency, so this deck sees fewer cards than the others. It plays the board rather than the card game, but its early cards need to be strong for each card it gets.
 - **Authority relief should be earned.** Early settling is already among the strongest things in the game, and a deck that lifts the authority limit feeds that directly. Towns become cheaper to hold by developing — working improved or tended land, or connecting to the capital — rather than through flat extra capacity.
 
 **Reaching the three essentials.**
@@ -637,5 +690,7 @@ The strongest of the "From history" lines above, as candidates for the card-list
 
 ## Open questions
 
-1. **Victory conditions.** Each deck must be able to win. Expansionist and Devotion currently have no wager family of their own to earn beads from. Victory conditions are open to change to fix this, and **the wager system is to be reworked in its own future pass**; commissions will not pay beads. *(proposal, for that pass)* For Expansionist: **cultivate a heartland** — hold a number of tiles raised to their richest level. It grows out of what the deck already does, only this deck pursues it, and it cannot be finished quickly.
+1. **Victory conditions.** Each deck must be able to win. Expansionist and Devotion currently have no wager family of their own to earn beads from. Victory conditions are open to change to fix this, and **the wager system is to be reworked in its own future pass**; commissions will not pay beads. *(proposal, for that pass)* For Expansionist: **cultivate a heartland** — hold a number of tiles raised to their richest level. It grows out of what the deck already does, only this deck pursues it, and it cannot be finished quickly. **Deferred 2026-10-20:** the user: *"Let's think about victory conditions after we feel lke the decks are fun to play."*
 2. **The "From history" mechanics** in the pairs section are proposals; they go into the card lists for the user to cut.
+3. **Expansionist's science and culture** (asked 2026-10-20). It no longer drafts slower, and the table in "Direction, 2026-10-20" names room as its cost. Does it stay weak at science and culture, taking them only from terrain? The Scientific pass does not need the answer.
+4. **Empire buildings, Scientific and Expansionist** (2026-10-20). Both decks play around them. *(proposal)* Scientific opens them early and makes each one stronger; Expansionist's cards on them scale with its number of towns.

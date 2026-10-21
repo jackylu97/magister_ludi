@@ -19,6 +19,19 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(fffffff) Each deck is a way to play, not a yield: RULED 2026-10-20, not built yet.**
+The user, after reading the six builds passes: *"each deck feels a bit one note, and needs diverse bonuses that aren't so squarely on theme with their central purpose/yield."*
+- **The rulings** are in `docs/decks/deck-design.md`, "Direction, 2026-10-20":
+  - the user's picture of each deck, verbatim;
+  - a few themes per deck, with varied bonuses inside each theme;
+  - the table of what each deck is paid for, when it is strongest and what it gives up;
+  - wonders leave Expansionist, and Magisterial owns the government system;
+  - Scientific also plays around empire buildings;
+  - Expansionist does not necessarily draft slower;
+  - victory conditions wait until the decks are fun to play.
+- **What it changes:** the builds passes of 2026-10-17 for Commerce, Devotion, Scientific and Magisterial (`docs/plans/*-builds.md`) are redone with this direction before any of their cards are built, Scientific first. The card-design skill's "one loop per build" method changes with them.
+- **Open:** that file's "Open questions", items 3 and 4.
+
 **(eeeeeee) Order tiers open by draft count alone: RULED 2026-10-17, not built yet.**
 The user, while playtesting: *"the tier 1 orders don't require era 2, tier 2
 orders should require era 2. lets remove the research age altogether"*.
