@@ -157,6 +157,28 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
   });
 
   /**
+   * **Step 13 has two gates** (Dominion batch D14, Circumvallation): the
+   * unrest gate, then the siege on the Opus. The step's anchor is the first,
+   * so the walk above checks only that one. This checks that the doc's step 13
+   * names the second as well, and that `foldCity` calls the two in that order,
+   * after the stages and before step 14.
+   */
+  it('runs the siege on the Opus as the second gate of step 13', () => {
+    const row = docRows().find((cells) => cells[1] === '13');
+    expect(row, 'the doc has no step 13').toBeDefined();
+    expect(row![2]).toContain('`explainOpusGate`');
+    const fold = body(YIELDS, 'foldCity');
+    const stages = fold.indexOf('applyStages(');
+    const unrest = fold.indexOf('explainUnrestGate(');
+    const opus = fold.indexOf('explainOpusGate(');
+    const moved = fold.indexOf('explainSurplusMoved(');
+    expect(stages).toBeGreaterThanOrEqual(0);
+    expect(unrest).toBeGreaterThan(stages);
+    expect(opus).toBeGreaterThan(unrest);
+    expect(moved).toBeGreaterThan(opus);
+  });
+
+  /**
    * The steps a kind's register row may name — the same twenty.
    */
   it('gives every register row a step that exists', () => {

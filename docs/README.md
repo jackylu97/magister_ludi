@@ -633,6 +633,25 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   citizens' seats, so the soldiers take the hexes after the citizens'. The
   extra hexes eat no food and count as worked hexes for every card. No new
   caller of `assignCitizens`: the seats change at the next assignment.
+- **The three drafts and The Upstarts** (Dominion batches D14 and D15):
+  - The `shoreRaid` behaviour rule (The Longships): in the `drill` phase,
+    after the harvest, `raidFromTheSea` (`improvements.ts`) has each naval
+    combat unit of a holder pillage the first enemy improvement on land beside
+    it, through `pillageAt`. `cardShoreRaids` says how many hexes: one, or two
+    under Double Time. The raids join `TurnReport.pillages`, so the victim's
+    toast needs no new code.
+  - A `unitStat` line can name `where: 'connectedTown'` (The Relay Stations):
+    the unit stands in one of its owner's towns that the `connected` scope
+    admits. `fullMovement` reads it, so the allowance refilled in
+    `resetMovement` carries it.
+  - The `opusSiege` behaviour rule (Circumvallation) is read in the *rival's*
+    town: `explainOpusGate` (`yields/town.ts`), the second gate of step 13 in
+    `docs/yields.md`, holds production at nothing while the town builds a
+    Magnum Opus, is `underSiege`, and a holder that can lay a siege has a
+    combat unit beside it (`cardOpusSiegeBy`). The line names the card, and
+    the city panel prints it.
+  - The `vsMoreTechs` combat condition (The Upstarts) mirrors `vsFewerTechs`
+    through `knowsMoreTechs` (`rivals.ts`), and never holds against the wild.
 - **Defer, never bend**: a card whose text needs a missing shape ships deferred
   and annotated, in player-plain prose. This rule repeats across beliefs,
   legacies, wonders and leaders.

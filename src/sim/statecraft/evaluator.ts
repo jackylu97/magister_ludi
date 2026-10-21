@@ -228,6 +228,11 @@ import { beadCapEffects } from '../beads';
 import { explainTechCost, foldTechCost } from '../tech';
 // Feature B's readings (Scientific batch S3). A leaf, so no cycle.
 import { aheadOfMet, knowsFewerTechs, techGap, techLead, unitAheadOfMet } from '../rivals';
+// The Upstarts' mirror of `knowsFewerTechs` (Dominion batch D15).
+import { knowsMoreTechs } from '../rivals';
+// Circumvallation (Dominion batch D14): who can lay a siege, as `siegeField`
+// asks it.
+import { techsGrant } from '../techData';
 import {
   type AbilityId,
   type TechId,
@@ -6341,6 +6346,14 @@ function combatConditionHolds(
       // The Landsturm (Dominion batch D5): the same ring of six, asked for a
       // great general of the unit's owner.
       return besideGreatGeneral(state, situation.unit);
+    case 'vsMoreTechs': {
+      // The Upstarts (Dominion batch D15): `vsFewerTechs` the other way round.
+      // The barbarian seat is not an empire and never satisfies it (the
+      // Dominion triage's reading 25).
+      const them = situation.vsOwnerId;
+      if (them === undefined) return false;
+      return knowsMoreTechs(state, situation.unit.ownerId, them);
+    }
     case 'all': {
       // Recursion into the same evaluator, which is the whole reason the
       // composite is a condition rather than a second field on `combatLine` —
@@ -6873,6 +6886,15 @@ export function cardUnitStat(
       // where a horse *runs* rather than how flat the running is.
       const here = getTileAt(state.map, unit.col, unit.row);
       if (!here || (here.terrain !== 'grassland' && here.terrain !== 'plains')) continue;
+    }
+    if (effect.where === 'connectedTown') {
+      // The Relay Stations (Dominion batch D14, the triage's reading 36): a
+      // town of the piece's owner on its hex, joined to the capital by road.
+      // The `connected` scope is the one reading of "joined", the gold
+      // ledger's own, so the capital itself never admits.
+      const town = cityAt(state, unit.col, unit.row);
+      if (town === undefined || town.ownerId !== unit.ownerId) continue;
+      if (!cityScopeAdmits(state, town, { test: 'connected' })) continue;
     }
     total += effect.amount;
   }
@@ -9402,6 +9424,88 @@ export function cardGarrisonSeats(state: GameState, city: City): number {
 }
 
 /**
+ * **How many hexes this ship raids at the end of its owner's turn** (Dominion
+ * batch D14, The Longships: the `shoreRaid` rule, the triage's reading 35), or
+ * 0 when no live row of the owner holds the rule for this piece.
+ *
+ *   · Only a naval combat unit raids, because the card says "ships". A land
+ *     unit answers 0 whatever its row's `class` says.
+ *   · A row's `class` and `rank` are asked of the ship, as `cardRuleHolds`
+ *     asks them.
+ *   · One hex for each ship each turn, times Double Time's repeats when the
+ *     row is an Order's (`turnEffectRepeats`). The raid happens at the end of
+ *     a turn, and Double Time repeats an Order's end-of-turn effects.
+ *   · Of several rows, the largest count wins. Two rows never add up.
+ *
+ * Read by `raidFromTheSea` (`improvements.ts`).
+ */
+export function cardShoreRaids(state: GameState, unit: Unit): number {
+  const def = unitDef(unit.type);
+  if (def.category !== 'naval' || !isCombatant(def)) return 0;
+  let times = 0;
+  for (const { card, effect } of effectsOfKind(state, unit.ownerId, 'rule')) {
+    if (effect.rule !== 'shoreRaid') continue;
+    if (effect.class !== undefined && !unitMatches(unit.type, effect.class)) continue;
+    if (effect.rank !== undefined && !holdsRank(unit, effect.rank)) continue;
+    times = Math.max(times, turnEffectRepeats(state, unit.ownerId, card));
+  }
+  return times;
+}
+
+/** The besieger that stops a town's Magnum Opus, and the card its line names. */
+export interface OpusSiege {
+  /** The empire whose law holds the `opusSiege` rule. */
+  playerId: number;
+  /** The card that holds the rule. */
+  card: CardId;
+  /** The card's name, which labels the line in the town's breakdown. */
+  source: string;
+}
+
+/**
+ * **Which rival stops this town's work on a Magnum Opus** (Dominion batch D14,
+ * Circumvallation: the `opusSiege` rule, the triage's reading 37), or `null`.
+ *
+ * The first empire in `realPlayers` order that:
+ *
+ *   · is not the town's owner;
+ *   · holds the rule in its law;
+ *   · can lay a siege at all (the `siege` ability, the same test `siegeField`
+ *     asks), so its units count among the besiegers;
+ *   · has a combat unit on one of the six hexes around the town.
+ *
+ * The first of that empire's rows names the line.
+ *
+ * This does not ask whether the town is under siege or what it builds.
+ * `explainOpusGate` (`yields/town.ts`) asks both, because the siege reading
+ * (`underSiege`) lives in `combat.ts`, which this module does not import.
+ */
+export function cardOpusSiegeBy(state: GameState, city: City): OpusSiege | null {
+  const centre = getTileAt(state.map, city.col, city.row);
+  if (!centre) return null;
+  for (const player of realPlayers(state)) {
+    if (player.id === city.ownerId) continue;
+    const row = effectsOfKind(state, player.id, 'rule').find(({ effect }) => effect.rule === 'opusSiege');
+    if (row === undefined) continue;
+    if (!techsGrant(player.techsResearched, 'siege')) continue;
+    if (!combatUnitBeside(state, player.id, centre)) continue;
+    return { playerId: player.id, card: row.card, source: row.source };
+  }
+  return null;
+}
+
+/** Does a combat unit of this empire stand on one of the six hexes around this one? */
+function combatUnitBeside(state: GameState, playerId: number, centre: Tile): boolean {
+  const ring = neighborTiles(state.map, tileHex(centre));
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId) continue;
+    if (!isCombatant(unitDef(unit.type))) continue;
+    if (ring.some((hex) => hex.col === unit.col && hex.row === unit.row)) return true;
+  }
+  return false;
+}
+
+/**
  * **May this empire raise this building in more than one town?** Caravanserai
  * Cities' one question (batch C7, `ActionRuleId`'s `buildsEverywhere`).
  *
@@ -10780,8 +10884,9 @@ function escortAt(
  * Double Time): the largest `turnEffectRepeats` value this empire's law holds
  * when the card is an Order, and once otherwise. The user's ruling of
  * 2026-10-16 (the smaller reading): only Orders repeat, so a Doctrine, a
- * government, a wonder or a building is read once. The four readers are the
- * periodic boons, the periodic musters, the drills and the harvest.
+ * government, a wonder or a building is read once. The five readers are the
+ * periodic boons, the periodic musters, the drills, the harvest and The
+ * Longships' raid (`cardShoreRaids`, Dominion batch D14).
  */
 export function turnEffectRepeats(state: GameState, playerId: number, card: CardId): number {
   if (!isOrderId(card)) return 1;

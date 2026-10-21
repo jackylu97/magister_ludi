@@ -3111,12 +3111,8 @@
   ],
   "marineDrill": [
    {
-    "raw": "+4 combat strength for light warship and heavy warship units",
-    "text": "+4 combat strength for light warship and heavy warship units"
-   },
-   {
-    "raw": "a unit of yours that comes ashore from the water gains +3 combat strength for 1 turns",
-    "text": "a unit of yours that comes ashore from the water gains +3 combat strength for 1 turns"
+    "raw": "at the end of your turn, each of your ships pillages one enemy improvement on the shore beside it",
+    "text": "at the end of your turn, each of your ships pillages one enemy improvement on the shore beside it"
    }
   ],
   "dominionRidersOfTheSteppe": [
@@ -3318,9 +3314,8 @@
   ],
   "dominionTheRelayStations": [
    {
-    "raw": "Moving a unit from one connected city to another in a single order needs a new order on the map, which the game does not have yet. — not built yet",
-    "text": "Moving a unit from one connected city to another in a single order needs a new order on the map, which the game does not have yet. — not built yet",
-    "deferred": true
+    "raw": "military units: +2 movement when they start their turn in one of your cities joined to your capital",
+    "text": "military units: +2 movement when they start their turn in one of your cities joined to your capital"
    }
   ],
   "dominionWarReparations": [
@@ -3857,9 +3852,8 @@
   ],
   "dominionCircumvallation": [
    {
-    "raw": "Stopping a rival town's work on the great work, and seeing which rival towns are raising one, both need changes the game does not have yet. — not built yet",
-    "text": "Stopping a rival town's work on the great work, and seeing which rival towns are raising one, both need changes the game does not have yet. — not built yet",
-    "deferred": true
+    "raw": "a rival city under siege by your units adds no production toward a Magnum Opus",
+    "text": "a rival city under siege by your units adds no production toward a Magnum Opus"
    }
   ],
   "dominionTheGrandCoalition": [
@@ -4174,6 +4168,12 @@
    {
     "raw": "each military unit in one of your cities lets that city work one more hex, at most 2 more",
     "text": "each military unit in one of your cities lets that city work one more hex, at most 2 more"
+   }
+  ],
+  "theUpstarts": [
+   {
+    "raw": "+3 combat strength for military units against an empire that knows more technologies than you",
+    "text": "+3 combat strength for military units against an empire that knows more technologies than you"
    }
   ],
   "smallholdings": [

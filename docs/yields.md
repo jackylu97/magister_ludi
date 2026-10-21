@@ -134,8 +134,8 @@ and the phases that write nothing a walk reads.
 Fourteen steps. Steps 1–11 are `explainCity`, which returns **flats** and a
 **percent list** and applies neither to the other; steps 12 to 14 are
 `foldCity`: the two stages, which are the only place in the simulation a yield
-meets a percentage, then the unrest gate, then the food surplus a card moves
-into production.
+meets a percentage, then the gates (unrest, and a siege on the Magnum Opus),
+then the food surplus a card moves into production.
 
 | # | Step | Reads | Add / mult | Stage |
 |---|---|---|---|---|
@@ -151,8 +151,8 @@ into production.
 | 10 | **The conversions** — `cardYieldConversions` | the **running flats** of one voice, paid again as another | multiplicative *within the step*, lands as a flat | — |
 | 11 | **The percent list** — `cityYieldPercents` (+ `productionModifiers` via `foldCityStages`) | the meter tiers, the luxuries', the cards', the arrears | gathered, never applied | city and empire |
 | 12 | **The two stages** — `applyStages` (`foldCity`) | step 11's list, folded per voice by `foldStageSums` | multiplicative | city, then empire |
-| 13 | **The unrest gate** — `explainUnrestGate` (`foldCity`) | `City.unrest`: a town in unrest makes none of the voices `rules.war.unrest.halts` names (production, science, culture), one labelled line a voice | holds the voice at nothing | — |
-| 14 | **The surplus moved** — `explainSurplusMoved` (`foldCity`) | a card that moves the town's food surplus into production while it builds a row the card names (The Laws of Lord Shang, Dominion batch D7), or while its owner has told it to stop growing (The Breadbasket, Expansionist batch E6): the surplus as the growth channel computes it (`channelSurplus`), one labelled line; the food basket gains none of it. A deficit is never moved, and a town whose production the gate stops moves nothing | additive, production only | — |
+| 13 | **The gates** — `explainUnrestGate`, then `explainOpusGate` (`foldCity`) | `City.unrest`: a town in unrest makes none of the voices `rules.war.unrest.halts` names (production, science, culture), one labelled line a voice. Then the siege on the Opus (Circumvallation, Dominion batch D14): a town building a Magnum Opus makes no production while it is under siege (`underSiege`) and a rival whose law holds the `opusSiege` rule has a combat unit beside it, one line that names the rival's card | holds the voice at nothing | — |
+| 14 | **The surplus moved** — `explainSurplusMoved` (`foldCity`) | a card that moves the town's food surplus into production while it builds a row the card names (The Laws of Lord Shang, Dominion batch D7), or while its owner has told it to stop growing (The Breadbasket, Expansionist batch E6): the surplus as the growth channel computes it (`channelSurplus`), one labelled line; the food basket gains none of it. A deficit is never moved, and a town whose production a gate of step 13 stops moves nothing | additive, production only | — |
 
 ### Inside step 2 — the hex
 
@@ -297,6 +297,17 @@ banking (Entry XVIII.5).
   gold and faith pass through it untouched. The town's
   list and its percentages above the gate are still its real list, and the city
   panel prints them with the gate's line under them.
+- **The siege on the Opus is the second gate of step 13** (Dominion batch
+  D14, Circumvallation). It holds production at nothing, after both stages and
+  after the unrest gate, for the unrest gate's reason. It asks three things:
+  the row the town builds (`toward`) is a Magnum Opus, a rival whose law holds
+  the `opusSiege` rule has a combat unit beside the town and can lay a siege
+  (`cardOpusSiegeBy`), and the town is under siege (`underSiege`, off its
+  owner's `siegeField`). The line names the besieger's card, not one of the
+  town owner's. The hammers are not banked anywhere else, and step 14 moves
+  nothing into a town this gate has stopped. The rule is a `rule` effect, so
+  the kind stays in the register's silent list: it pays no voice, it only
+  stops one.
 - **The gate reaches the town and nothing else.** The empire's own lines (steps
   15–20) belong to the empire, so a card paying science to the empire still pays
   it while one of its towns is in unrest. A conversion (step 10) reads the
@@ -358,7 +369,8 @@ Itself) pays the yields of the hexes a unit stands on in enemy territory at the
 end of a turn, through `payWindfallGrants`, as a one-time grant does.
 
 Every other `CardEffect` kind moves no voice at all: it is a rule, a stat, a
-meter, a stamp, an unlock or an offer.
+meter, a stamp, an unlock or an offer. One rule stops a voice without paying
+one: `opusSiege` (Circumvallation) is read by the second gate of step 13.
 
 ---
 
@@ -374,7 +386,7 @@ production, borders, the purchase of a tile — and the sequence lives under
 |---|---|
 | the hex | `explainTileYield` · `src/sim/yields/hex.ts` |
 | the town's list | `explainCity` · `src/sim/yields/town.ts` |
-| the town's total | `foldCity` → `applyStages`, then `explainUnrestGate`, then `explainSurplusMoved` · `src/sim/yields/town.ts`, `src/sim/yields/stages.ts` |
+| the town's total | `foldCity` → `applyStages`, then `explainUnrestGate` and `explainOpusGate`, then `explainSurplusMoved` · `src/sim/yields/town.ts`, `src/sim/yields/stages.ts` |
 | the empire's list | `explainEmpireLines` · `src/sim/yields/empire.ts` |
 | the banks | `collectYields` · `src/sim/yields/empire.ts` |
 | the two stages | `applyStages`, `foldStageSums` · `src/sim/yields/stages.ts` (the old `modifiers.ts`) |

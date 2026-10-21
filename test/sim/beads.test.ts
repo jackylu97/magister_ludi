@@ -435,7 +435,10 @@ describe("the bead catalogue", () => {
     // So a v158 log's Dominion hands hold different cards.
     // 160 since Dominion batch D13: The Limitanei comes live, so a v159 log's
     // Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(160);
+    // 161 since Dominion batches D14 and D15: The Relay Stations,
+    // Circumvallation and The Upstarts come live and Marine Drill becomes The
+    // Longships, so a v160 log's Dominion hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(161);
   });
 
   it("puts the world clock after renown and the wager after it, with no bead phase left", () => {

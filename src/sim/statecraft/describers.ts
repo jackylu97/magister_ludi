@@ -4931,6 +4931,8 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   unmoved: 'when it has not moved this turn',
   // Dominion batch D5, The Landsturm.
   besideGreatGeneral: 'beside a great general',
+  // Dominion batch D15, The Upstarts: `vsFewerTechs` the other way round.
+  vsMoreTechs: 'against an empire that knows more technologies than you',
   // Expansionist batch E3, The Woodland Bands. The features are printed by
   // `combatWhenWords`, `onFeature`'s bargain.
   standingIn: 'while standing in',
@@ -5058,6 +5060,7 @@ const WHERE_WORDS: Record<
   | 'embarked'
   | 'fortified'
   | 'grassOrPlains'
+  | 'connectedTown'
   | 'garrison',
   string
 > = {
@@ -5070,6 +5073,10 @@ const WHERE_WORDS: Record<
   // when they look at the map — "on grassland and plains" is a rules cell, and
   // the open country is the ground a horse runs on.
   grassOrPlains: ' on grassland and plains',
+  // The Relay Stations (Dominion batch D14). "Start their turn" because the
+  // allowance is refilled where the unit stands when the turn begins, and
+  // "joined to your capital" is the `connected` scope's own phrase.
+  connectedTown: ' when they start their turn in one of your cities joined to your capital',
   // "Standing in", the words `inCity`'s condition already uses, so the two
   // readings of the same hex read as one sentence to a player.
   garrison: ' while standing in one of your cities',
@@ -6061,6 +6068,11 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   noFounding: 'you can no longer found new cities',
   noExperience: 'your units never gain experience',
   siegeScreened: 'your siege units beside one of your melee units cannot be attacked in melee',
+  // Dominion batch D14: The Longships and Circumvallation (`BehaviorRuleId`).
+  // "Enemy" is an empire at war with you, the word the cards already use.
+  shoreRaid:
+    'at the end of your turn, each of your ships pillages one enemy improvement on the shore beside it',
+  opusSiege: 'a rival city under siege by your units adds no production toward a Magnum Opus',
   // Scientific batch S1, the Galleass. What a blockade does, said once, because
   // a player has met it only on a heavy warship's own description.
   blockades:

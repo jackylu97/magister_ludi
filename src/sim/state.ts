@@ -2034,8 +2034,33 @@ import {
  * **A v159 save is refused and does not replay.** A Dominion seat's pools from
  * Tier III on now hold one more card, so its hands differ. The branch
  * migrates nothing, for the reason given under v119.
+ *
+ * v161 (branch `decks`; Dominion batches D14 and D15, `docs/plans/dominion-
+ * themes-triage.md`): **the three drafts and The Upstarts.** No field joins
+ * the state. The rules that change:
+ *
+ *   · three Orders come live: The Relay Stations (Tier II), Circumvallation
+ *     (Tier IV) and The Upstarts (Tier I, a new row). The row `marineDrill`
+ *     becomes The Longships and plays a new rule;
+ *   · a card's `shoreRaid` rule makes each naval combat unit of its holder
+ *     pillage, at the end of the turn (the `drill` phase), the first enemy
+ *     improvement on land beside it (`raidFromTheSea`). The raids join the
+ *     turn's pillage reports;
+ *   · a `unitStat` line can name `where: 'connectedTown'`: a unit standing in
+ *     one of its owner's towns joined to the capital by road;
+ *   · a card's `opusSiege` rule holds a rival town's production at nothing
+ *     while it builds a Magnum Opus, is under siege, and a combat unit of the
+ *     holder stands beside it (`explainOpusGate`, step 13 of
+ *     `docs/yields.md`);
+ *   · a strength line can ask `vsMoreTechs`: the other side's empire knows
+ *     more technologies than this one.
+ *
+ * **A v160 save is refused and does not replay.** A Dominion seat's pools in
+ * Tiers I, II and IV now hold more cards, so its hands differ, and Marine
+ * Drill's strength lines are gone. The branch migrates nothing, for the reason
+ * given under v119.
  */
-export const SCHEMA_VERSION = 160;
+export const SCHEMA_VERSION = 161;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

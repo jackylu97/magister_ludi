@@ -2070,7 +2070,7 @@
       "retired": true
     },
     "marineDrill": {
-      "name": "Marine Drill",
+      "name": "The Longships",
       "decks": [
         "dominion"
       ],
@@ -2078,37 +2078,12 @@
       "line": "none",
       "rarity": "uncommon",
       "type": "military",
-      "flavor": "The men who come off the boats come off them running.",
-      "text": "Naval melee units gain +4 strength. Land units attacking on the turn they disembark gain +3 strength.",
-      "note": "The blessing is hung on the piece the moment it wades ashore, and lasts the turn it landed.",
+      "flavor": "The farms nearest the sea were always the first to burn.",
+      "text": "A ship of yours that ends its turn beside an enemy improvement on the shore pillages it.",
       "effects": [
         {
-          "kind": "combatLine",
-          "amount": 4,
-          "side": "both",
-          "when": {
-            "test": "always"
-          },
-          "class": {
-            "modelClasses": [
-              "navalLight",
-              "navalHeavy"
-            ]
-          }
-        },
-        {
-          "kind": "landfall",
-          "turns": 1,
-          "effects": [
-            {
-              "kind": "combatLine",
-              "amount": 3,
-              "side": "attack",
-              "when": {
-                "test": "always"
-              }
-            }
-          ]
+          "kind": "rule",
+          "rule": "shoreRaid"
         }
       ]
     },
@@ -2595,10 +2570,17 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "Fresh horses wait at every post.",
-      "text": "Once a turn, a military unit that starts its turn in a city connected to your capital may move to any other connected city, ending its move there.",
-      "effects": [],
-      "deferred": [
-        "Moving a unit from one connected city to another in a single order needs a new order on the map, which the game does not have yet."
+      "text": "Military units that start their turn in one of your towns connected to your capital gain +2 movement.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 2,
+          "class": {
+            "category": "military"
+          },
+          "where": "connectedTown"
+        }
       ]
     },
     "dominionWarReparations": {
@@ -4404,10 +4386,12 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "A wall facing in, and a wall facing out.",
-      "text": "While a rival city is under siege with at least one of your units beside it, it adds no production toward a Magnum Opus. You can see which rival cities are raising one.",
-      "effects": [],
-      "deferred": [
-        "Stopping a rival town's work on the great work, and seeing which rival towns are raising one, both need changes the game does not have yet."
+      "text": "While a rival town is under siege by your units, it adds no production toward a Magnum Opus.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "opusSiege"
+        }
       ]
     },
     "dominionTheGrandCoalition": {
@@ -5499,6 +5483,31 @@
           "kind": "rule",
           "rule": "garrisonWorks",
           "max": 2
+        }
+      ]
+    },
+    "theUpstarts": {
+      "name": "The Upstarts",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "The old empire had the libraries. The young one had the spears.",
+      "text": "Your units gain +3 strength against the units of an empire that knows more technologies than you.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "vsMoreTechs"
+          },
+          "class": {
+            "category": "military"
+          }
         }
       ]
     }

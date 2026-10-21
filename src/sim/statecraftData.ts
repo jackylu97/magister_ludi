@@ -1686,6 +1686,15 @@ export type CombatCondition =
    */
   | { test: 'besideGreatGeneral' }
   /**
+   * **The other side's empire knows more technologies than this one**
+   * (Dominion batch D15, The Upstarts). The mirror of `vsFewerTechs`, asked of
+   * `CombatSituation.vsOwnerId` through `knowsMoreTechs` (`rivals.ts`), so it
+   * holds against that empire's units and its cities alike, in attack and in
+   * defence. Charter technologies count on both sides. The barbarian seat is
+   * not an empire and never satisfies it (the Dominion triage's reading 25).
+   */
+  | { test: 'vsMoreTechs' }
+  /**
    * **This side's piece stands on a hex carrying one of these features**
    * (Expansionist batch E3, The Woodland Bands' forest and jungle).
    *
@@ -4367,6 +4376,27 @@ export type BehaviorRuleId =
    */
   | 'siegeScreened'
   /**
+   * **This empire's ships raid the shore** (Dominion batch D14, The Longships;
+   * the triage's reading 35). At the end of the owner's turn, in the `drill`
+   * phase, each of its naval combat units pillages one improved land hex
+   * beside it that an empire at war with it owns: the first such hex in
+   * neighbour order, never a tended work. It is a full pillage through
+   * `pillageAt`, with salvage, riders, tally and record. Read by
+   * `raidFromTheSea` (`improvements.ts`) through `cardShoreRaids`, which
+   * also asks the row's `class` of each ship and Double Time's repeats.
+   */
+  | 'shoreRaid'
+  /**
+   * **A rival town this empire besieges adds no production toward a Magnum
+   * Opus** (Dominion batch D14, Circumvallation; the triage's reading 37).
+   * Held by the besieger and read in the rival's town: `explainOpusGate`
+   * (`yields/town.ts`) holds the town's production at nothing while the Opus
+   * is what it builds, the town is under siege (`underSiege`) and a combat
+   * unit of a holder who can lay a siege stands beside it
+   * (`cardOpusSiegeBy`). Step 13 of `docs/yields.md`, beside the unrest gate.
+   */
+  | 'opusSiege'
+  /**
    * **This empire's ships blockade** as the heavy hulls do (Scientific batch
    * S1, the Galleass trait; the triage's reading 25), narrowed by the row's
    * `class`.
@@ -6244,8 +6274,15 @@ export interface CardUnitStatEffect {
    *   · `'grassOrPlains'` — **the open country**: flat or hilled grassland and
    *     plains, the two terrains a horse runs on. Modu Chanyu's extra pace,
    *     which `docs/leaders.md` gives as "+1 movement on grassland and plains".
+   *   · `'connectedTown'` — **in one of the owner's towns joined to its capital
+   *     by road** (Dominion batch D14, The Relay Stations; the triage's reading
+   *     36). The piece stands on the hex of a town of its owner that the
+   *     `connected` city scope admits. The capital is what the other towns are
+   *     joined to, so it never admits. The allowance refills where the piece
+   *     stands (`resetMovement`), so a unit that starts its turn in such a town
+   *     has the extra movement for that turn.
    *
-   * All four are asked of the piece where it stands, in `cardUnitStat`, which
+   * All of them are asked of the piece where it stands, in `cardUnitStat`, which
    * is the only reading a per-turn allowance can have: a ship is quick because
    * it set out from the water, and the allowance is refilled where it stands.
    *
@@ -6259,7 +6296,13 @@ export interface CardUnitStatEffect {
    * water is read: a column that sets out across the grass rides further that
    * turn, and one that wakes up in the hills does not.
    */
-  where?: 'ownTerritory' | 'foreignTerritory' | 'embarked' | 'fortified' | 'grassOrPlains';
+  where?:
+    | 'ownTerritory'
+    | 'foreignTerritory'
+    | 'embarked'
+    | 'fortified'
+    | 'grassOrPlains'
+    | 'connectedTown';
   /**
    * Narrows the stat to *the town the piece was trained in*. Absent means every
    * one. Cuius Regio's augurs, raised in the cities that keep his faith.

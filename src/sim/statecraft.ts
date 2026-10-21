@@ -100,6 +100,9 @@ export {
   cardCombatPercent,
   cardRallyRange,
   cardGarrisonSeats,
+  // Dominion batch D14: The Longships' raid and Circumvallation's besieger.
+  cardShoreRaids,
+  cardOpusSiegeBy,
   // The per-effect half of `cardCombatLines`, which the resource evaluator calls
   // so that a card's strength line and a strategic resource's are read by one
   // function. See `combatLineAmount`.
@@ -223,6 +226,8 @@ export type {
   FoundingRider,
   GroundFacts,
   LiveCardEffect,
+  // Dominion batch D14, Circumvallation.
+  OpusSiege,
   TileLine,
   WindfallOccasionFacts,
   WindfallPayout,

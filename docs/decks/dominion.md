@@ -15,11 +15,11 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
 | Tier 0 | 25 | 0 | 0 | 25 | none |
-| Tier I | 24 | 0 | 1 | 25 | 4 |
-| Tier II | 32 | 2 | 0 | 34 | 5 |
+| Tier I | 25 | 0 | 0 | 25 | 4 |
+| Tier II | 34 | 0 | 0 | 34 | 5 |
 | Tier III | 27 | 0 | 0 | 27 | 3 |
-| Tier IV | 20 | 1 | 0 | 21 | 3 |
-| **All** | **128** | **3** | **1** | **132** | **15** |
+| Tier IV | 21 | 0 | 0 | 21 | 3 |
+| **All** | **132** | **0** | **0** | **132** | **15** |
 | Shared | 26 | 1 | 0 | 27 |  |
 
 **By type** (the chair a card fits):
@@ -101,7 +101,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Spartan Discipline** | uncommon | implemented | Towns build military units 30% faster, but buildings 15% more slowly. | Military |
 | **Commission: The Ranks of Merit** | uncommon | implemented | Commission. Have three of your units earn a rank while this card is seated. Then, for the rest of the game, each rank a unit earns grants science and production equal to its strength in your capital. The card leaves its chair. | Wildcard |
 | **Commission: Harry the Border** | uncommon | implemented | Commission. Pillage four hexes while this card is seated. Then, for the rest of the game, your mounted units gain +50% yields from pillaging. The card leaves its chair. | Wildcard |
-| **The Upstarts** | uncommon | add | Your units gain +3 strength against the units of an empire that knows more technologies than you. | Military |
+| **The Upstarts** | uncommon | implemented | Your units gain +3 strength against the units of an empire that knows more technologies than you. | Military |
 | **Commission: The First Province** | uncommon | implemented | Commission. Capture a town while this card is seated. Then, for the rest of the game, towns you captured gain +5 food and +5 gold. The card leaves its chair. | Wildcard |
 | **The Castle Demesne** | uncommon | implemented | Citadels give +3 food and +3 production. | Economic |
 
@@ -131,8 +131,8 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **Hegemony** | rare | implemented | Captured cities you hold cost one less authority. Capturing a city grants +30% production in every city for ten turns. | Economic |
 | **Master Bowyers** | rare | implemented | Ranged and siege units gain +1 range. | Military |
 | **Armoury Guilds** | common | implemented | When one of your units falls, your nearest town with an Armoury gains production equal to its strength. | Economic |
-| **The Longships** (was Marine Drill) | uncommon | modify: reworked | Your ships may pillage improvements on the shore beside them. | Military |
-| **The Relay Stations** | uncommon | modify: deferred | Once a turn, a military unit that starts its turn in a city connected to your capital may move to any other connected city, ending its move there. | Military |
+| **The Longships** | uncommon | implemented | A ship of yours that ends its turn beside an enemy improvement on the shore pillages it. | Military |
+| **The Relay Stations** | uncommon | implemented | Military units that start their turn in one of your towns connected to your capital gain +2 movement. | Military |
 | **War Reparations** | uncommon | implemented | Making peace after taking cities in that war grants gold equal to twenty times their total population, and half as much culture. | Economic |
 | **Commission: Take the City** | uncommon | implemented | Commission. Capture a city with at least eight citizens. Then, for the rest of the game, each city you capture grants 250 science and 250 culture per age. The card leaves its chair. | Wildcard |
 | **The Fabricae** | common | implemented | Towns whose garrison is a Veteran or Elite gain +25% production. | Economic |
@@ -225,7 +225,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Grand Coalition** | rare | implemented | While at war with an empire raising a Magnum Opus, your military units gain +6 strength against it, and cities with a Barracks produce military units 30% faster. | Military |
 | **The Proconsuls** | uncommon | implemented | Captured cities with a garrison cost no authority and gain +10 defence. | Civic |
 | **Commission: The Grand Campaign** | uncommon | implemented | Commission. Capture three cities while this card is seated. Then gain a great general, and science and culture each equal to ten times those cities' total population. The card leaves its chair. | Wildcard |
-| **Circumvallation** | uncommon | modify: deferred | While a rival city is under siege with at least one of your units beside it, it adds no production toward a Magnum Opus. You can see which rival cities are raising one. | Military |
+| **Circumvallation** | uncommon | implemented | While a rival town is under siege by your units, it adds no production toward a Magnum Opus. | Military |
 | **Commission: Hold the Capitals** | rare | implemented | Commission. Hold two original capitals other than your own at the same time. Then every city gains +25% production for twenty turns, and you gain a great general. The card leaves its chair. | Wildcard |
 | **Spolia** | rare | implemented | Capturing a city that was raising a Magnum Opus adds half the production it had put into that Opus to your own. If you have not begun one, the production is kept until you do. | Economic |
 | **The Legions' Labour** | rare | implemented | Disbanding a military unit in a town building a wonder or the Magnum Opus adds half its production cost toward it. Units raised for free add nothing, but units raised by a levy count. | Economic |
@@ -283,13 +283,13 @@ New names are placeholders; rename freely.
   - **The Art of War duplicate** (ruling 7): your "gaining a unit grants science equal to its strength" did the same job as The Art of War. It is reworked above as The Captured Arms (science from kills this game). Say if you would rather keep yours and change The Art of War instead.
   - **The Grain Tribute** had no rarity; it is set to common.
   - **The build plan's questions** (`docs/plans/dominion-themes-triage.md`, "Questions for the user"). Until you answer, the sheet shows the plan's readings:
-    - The Longships, The Relay Stations and Circumvallation keep their rows as they were. The themes pass's versions are drafts for your own rework (question 2).
+    - The Longships, The Relay Stations and Circumvallation are built as the themes pass drafted them, and you may rework them after a playtest (question 2, answered).
     - The Limitanei keeps "at most two more", and a ship in a coastal town counts (question 3).
     - Nothing shows the institutions a seat holds after the turn they are met (question 4).
     - The Res Gestae reads "at most +28%", because seven commissions at +4% reach +28% (question 5, reading 19). The themes pass wrote "at most +30%".
     - Rally to the Standard moves only military units, and its text says "a military unit" (question 6, reading 23).
 - **Ruled 2026-10-21** (your comments on the themes pass, written into the rows above). Your words and the readings are in section 11 of `docs/plans/dominion-themes.md`. You said: *"ok i've commented on the dominion pass, lets begin working on it."*
-  - **The themes pass is on the sheet.** Its new cards are `add` rows, and its changes to live cards are `modify` rows with the target text. The build plan builds them in batches D10 to D15. Batch D9 built five: Clear the Frontier, Battle Honours, The Camp Chaplains, The Bards' Praise and The Champion's Portion. Batch D10 built eleven: The Acropolis, The Castle Demesne, The Spartan Discipline, The Ranks of Merit, The First Province, Take the City, The Naadam, The Taker of Cities, The Roll of Triumphs, The March Revenues and The Tributary Kings. Batch D11 built six: Man the Walls, The Ovation, The Res Gestae, The Border Fortress, The Chosen Men and The Captured Marvel. Meeting any commission, of either of your decks, now counts for The Ovation and The Res Gestae. Batch D12 built five: The Gathering Host, The Soldier-Farmers, Harry the Border, Rally to the Standard and The Marshalate. Since D12 no card pays on a resource you cannot see yet, so The Quartermasters and The March Revenues read only the strategic resources you can see. Batch D13 built The Limitanei: a town works one more hex for each military unit standing in it, ships included, at most two more. The extra hexes eat no food, and they are chosen after the citizens' hexes at the next assignment.
+  - **The themes pass is on the sheet.** Its new cards are `add` rows, and its changes to live cards are `modify` rows with the target text. The build plan builds them in batches D10 to D15. Batch D9 built five: Clear the Frontier, Battle Honours, The Camp Chaplains, The Bards' Praise and The Champion's Portion. Batch D10 built eleven: The Acropolis, The Castle Demesne, The Spartan Discipline, The Ranks of Merit, The First Province, Take the City, The Naadam, The Taker of Cities, The Roll of Triumphs, The March Revenues and The Tributary Kings. Batch D11 built six: Man the Walls, The Ovation, The Res Gestae, The Border Fortress, The Chosen Men and The Captured Marvel. Meeting any commission, of either of your decks, now counts for The Ovation and The Res Gestae. Batch D12 built five: The Gathering Host, The Soldier-Farmers, Harry the Border, Rally to the Standard and The Marshalate. Since D12 no card pays on a resource you cannot see yet, so The Quartermasters and The March Revenues read only the strategic resources you can see. Batch D13 built The Limitanei: a town works one more hex for each military unit standing in it, ships included, at most two more. The extra hexes eat no food, and they are chosen after the citizens' hexes at the next assignment. Batch D14 built the three drafts as the themes pass wrote them, for you to rework after a playtest. The Longships: at the end of your turn, each of your ships pillages the first enemy improvement on land beside it, a full pillage, and Double Time makes it two. The Relay Stations: a military unit that starts its turn in one of your towns joined to your capital by road has +2 movement for that turn. The capital itself does not count, because it is what the other towns are joined to. Circumvallation: a rival town makes no production while it builds a Magnum Opus, is under siege, and one of your units stands beside it. The town's own breakdown names the card. Batch D15 built The Upstarts: your military units gain +3 strength, in attack and in defence, against the units and towns of an empire that knows more technologies than you, and never against barbarians.
   - **Ten cards are cut** and their data rows are retired: Muster Rites, The Funeral Games, The Armourers' Secret, The Marshals, The Marching Camps, The Open Muster, The Cleruchy, The Valetudinaria, The State Forges and The Keshik. Their old text, and why each was cut, are in `docs/plans/dominion-list-proposed.md`, "Cut by this pass". A save that holds one keeps it.
   - **The Servian Reforms** left the Tier I Doctrines by your edit, and its data row is retired.
   - **Clear the Frontier and Battle Honours trade rewards** and keep their names. Clearing two camps now brings a great general from a draft. Killing six units (not ten) now brings two citizens and the best melee unit you can build in your capital.

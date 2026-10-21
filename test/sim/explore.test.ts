@@ -911,10 +911,16 @@ describe('determinism', () => {
    * drafts, so no seat holds the card and no town seats a soldier on a hex.
    * Checked with the change in place and the version printed as 159, which
    * gives the hashes of D11 and D12 exactly.
+   *
+   * **Dominion batches D14 and D15 (the three drafts and The Upstarts, schema
+   * 161) moved the hash and not the length** at both seeds: 160 became 161,
+   * and that is all. Nobody here drafts, so no seat holds a card, no ship
+   * raids and no town's Opus is stopped. Checked with the change in place and
+   * the version printed as 160, which gives the hashes of D13 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'a65b225a:188931',
-    2026: '8846850b:188509',
+    11: 'ccb598a3:188931',
+    2026: '530e31da:188509',
   };
 
   for (const seed of [11, 2026]) {

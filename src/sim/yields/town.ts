@@ -65,6 +65,12 @@ import { type CityYields, channelSurplus, cityTile, emptyCityYields } from '../c
 // Straight from the evaluator rather than through the `statecraft.ts` index,
 // so the build does not warn of a circular import between chunks.
 import { surplusMoverFor } from '../statecraft/evaluator';
+// Dominion batch D14, Circumvallation: the besieger that stops a town's Opus,
+// straight from the evaluator for the reason above, and the siege reading
+// itself. `combat.ts` imports `cities.ts`, which imports this module back; the
+// edge is function-level, so nothing here reads it while modules load.
+import { cardOpusSiegeBy } from '../statecraft/evaluator';
+import { siegeField, underSiege } from '../combat';
 import { type TileYieldContribution, cityContext, explainTileYield, foldTile, foldTileLines } from './hex';
 import { foldStageSums } from './stages';
 
@@ -1136,6 +1142,10 @@ export function foldCity(
   // **13 — the unrest gate** (batch WC1). After both stages, so nothing a
   // percentage does can bring a stopped voice back; see `explainUnrestGate`.
   for (const gate of explainUnrestGate(city)) total[gate.yield] = 0;
+  // **13, second half — the siege on the Opus** (Dominion batch D14,
+  // Circumvallation). The same kind of gate for the same reason, on production
+  // toward a Magnum Opus alone; see `explainOpusGate`.
+  for (const gate of explainOpusGate(state, city, toward)) total[gate.yield] = 0;
   // **14 — the surplus moved** (Dominion batch D7). Last: a town whose law
   // moves its food surplus into production adds it here, as one labelled
   // line. See `explainSurplusMoved`.
@@ -1163,8 +1173,8 @@ export interface SurplusMovedLine {
  * it (`channelSurplus`), is added one for one to its production, after both
  * stages and the unrest gate, so no percentage multiplies it. The food basket
  * gains nothing that turn (`growthSurplus`). A deficit is never moved, and a
- * town whose production the unrest gate stops moves nothing: its food goes on
- * toward growth.
+ * town whose production a gate of step 13 stops (unrest, or a siege on its
+ * Opus) moves nothing: its food goes on toward growth.
  *
  * `yields` is the town's total so far, steps 1 to 13: the food it reads is the
  * staged figure the growth channel reads.
@@ -1176,6 +1186,10 @@ export function explainSurplusMoved(
   toward?: QueueItem | null,
 ): SurplusMovedLine[] {
   if (explainUnrestGate(city).some((gate) => gate.yield === 'production')) return [];
+  // A town whose work on the Opus is stopped by a siege moves nothing into it
+  // either (Dominion batch D14, Circumvallation): its food goes on toward
+  // growth, as in unrest.
+  if (explainOpusGate(state, city, toward).some((gate) => gate.yield === 'production')) return [];
   const mover = surplusMoverFor(state, city, toward);
   if (mover === null) return [];
   const amount = channelSurplus(state, city, yields);
@@ -1189,12 +1203,23 @@ export function explainSurplusMoved(
  */
 export const UNREST_SOURCE = 'In unrest';
 
-/** One voice a town in unrest makes none of, and why. See `explainUnrestGate`. */
+/**
+ * One voice a town makes none of, and why. See `explainUnrestGate` and
+ * `explainOpusGate`, the two gates of step 13.
+ */
 export interface CityYieldGate {
-  /** Why the voice is stopped — `UNREST_SOURCE`, the only gate there is. */
+  /**
+   * Why the voice is stopped: `UNREST_SOURCE`, or the name of the card that
+   * stops a town's Opus (Circumvallation, Dominion batch D14).
+   */
   source: string;
   /** The voice held at nothing. */
   yield: CityYieldKey;
+  /**
+   * The card that holds the voice at nothing, when a card does. The card is
+   * the besieger's, not the town owner's.
+   */
+  card?: CardId;
 }
 
 /**
@@ -1225,6 +1250,44 @@ export interface CityYieldGate {
 export function explainUnrestGate(city: City): CityYieldGate[] {
   if (city.unrest === undefined) return [];
   return RULES.war.unrest.halts.map((key) => ({ source: UNREST_SOURCE, yield: key }));
+}
+
+/**
+ * **Step 13 of `docs/yields.md`, second half — the siege on the Opus**
+ * (Dominion batch D14, Circumvallation; the triage's reading 37): one line on
+ * production, or an empty list.
+ *
+ * The town makes no production while all of these hold:
+ *
+ *   · `toward` is a Magnum Opus (`BuildingDef.endsTheGame`, never a name).
+ *     Every reader that banks or forecasts the town's hammers passes the row
+ *     at the front of its queue, so the Opus at the front is stopped;
+ *   · a rival holds the `opusSiege` rule and has a combat unit beside the town
+ *     (`cardOpusSiegeBy`);
+ *   · the town is under siege (`underSiege`, read off its owner's
+ *     `siegeField`).
+ *
+ * It is the unrest gate's kind of line for the unrest gate's reason: a −100%
+ * line would only cancel the stage's other lines, so the staged figure is set
+ * to nothing after both stages. The hammers are not banked anywhere else. The
+ * line names the besieger's card, so the town's own breakdown says why it
+ * makes nothing (rule 5).
+ *
+ * The cheap questions come first. The siege field walks every unit in the
+ * world, so it is built only for a town building the Opus with a holder of
+ * the rule at its walls.
+ */
+export function explainOpusGate(
+  state: GameState,
+  city: City,
+  toward?: QueueItem | null,
+): CityYieldGate[] {
+  if (!toward || toward.kind !== 'building' || !isBuildingId(toward.id)) return [];
+  if (buildingDef(toward.id).endsTheGame !== true) return [];
+  const besieger = cardOpusSiegeBy(state, city);
+  if (besieger === null) return [];
+  if (!underSiege(state, city, siegeField(state, city.ownerId))) return [];
+  return [{ source: besieger.source, yield: 'production', card: besieger.card }];
 }
 
 /**

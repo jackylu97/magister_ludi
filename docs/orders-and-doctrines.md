@@ -254,7 +254,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Conquered Archives | 2 | ● | P | Captured cities gain +6 science and +6 culture. |
 | Stockpiles | 2 | ● | P | Cities gain +8 food per defensive building. |
 | Triumphs | 2 | ● | S | Capturing a city grants culture equal to fifteen times its population. |
-| Marine Drill | 2 | ◆ | S | Naval melee units gain +4 strength. Land units attacking on the turn they disembark gain +3 strength. |
+| The Longships | 2 | ◆ | S | A ship of yours that ends its turn beside an enemy improvement on the shore pillages it. |
 | Riders of the Steppe | 2 | ◆ | S | Mounted units ignore enemy zone of control. Pillaging costs them one less movement point, minimum zero. |
 | Spoils of War | 2 | ◆ | S | Pillaging grants 15 production to your city nearest the pillaged hex. The first pillage each turn also grants 30 culture. |
 | Hegemony | 2 | ○ | S | Captured cities you hold cost one less authority. Capturing a city grants +30% production in every city for ten turns. |
@@ -340,6 +340,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Commission: Harry the Border | 1 | ◆ | S | Commission. Pillage four hexes while this card is seated. Then, for the rest of the game, your mounted units gain +50% yields from pillaging. The card leaves its chair. |
 | Rally to the Standard | 3 | ○ | S | A military unit you gain appears beside your nearest great general instead of in its town, if that general stands within ten hexes of the town. |
 | The Limitanei | 3 | ○ | S | Each military unit in one of your towns lets that town work one more hex, at most two more. |
+| The Relay Stations | 2 | ◆ | S | Military units that start their turn in one of your towns connected to your capital gain +2 movement. |
+| Circumvallation | 4 | ◆ | S | While a rival town is under siege by your units, it adds no production toward a Magnum Opus. |
+| The Upstarts | 1 | ◆ | S | Your units gain +3 strength against the units of an empire that knows more technologies than you. |
 
 ### Expansionist
 
@@ -765,10 +768,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 
 ### Notes and deferred halves (from the data rows)
 
-- **Marine Drill** — The blessing is hung on the piece the moment it wades ashore, and lasts the turn it landed.
 - **Riders of the Steppe** — A raid costs a single point of movement, so a rider who is forgiven one is forgiven the raid.
-- **The Relay Stations** — † Moving a unit from one connected city to another in a single order needs a new order on the map, which the game does not have yet.
-- **Circumvallation** — † Stopping a rival town's work on the great work, and seeing which rival towns are raising one, both need changes the game does not have yet.
 - **The Beating of the Bounds** — For now the town takes the hex its borders would have grown into next, rather than one you choose.
 - **The Old Songs** — Open water your people work counts as unbuilt ground here: the game tells works from wild, and not land from sea.
 - **Outposts** — No work can yet be raised outside your borders, and only a town or a great general can claim ground. † a worker plants an outpost on wild ground near your border, and it claims that ground and the ring around it for your nearest town

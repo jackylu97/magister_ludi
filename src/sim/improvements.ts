@@ -116,6 +116,9 @@ import { cardThatOpensImprovement, orderDef } from './statecraftData';
 // index: the index re-exports across a cycle, and the build splits such
 // re-exports into chunks it warns about.
 import { timedEffectIsLive, worksBeyondReach } from './statecraft/evaluator';
+// Dominion batch D14, The Longships: how many hexes a ship raids, for the same
+// reason as the line above.
+import { cardShoreRaids } from './statecraft/evaluator';
 import { type FeatureId } from './terrainData';
 import {
   type WindfallPayout,
@@ -136,6 +139,7 @@ import {
   type Unit,
   cityById,
   playerById,
+  realPlayers,
   removeUnit,
   unitById,
 } from './state';
@@ -1920,6 +1924,62 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
     report.heal = unit.hp - before;
   }
   return report;
+}
+
+/**
+ * **The Longships' raid** (Dominion batch D14, the `shoreRaid` rule, the
+ * triage's reading 35). It runs at the end of a turn, in the `drill` phase,
+ * after the harvest.
+ *
+ * Empires are taken in `realPlayers` order, and each empire's units in
+ * `state.units` order, listed before anything is burnt. `cardShoreRaids` says
+ * how many hexes each unit raids: none for a land unit or without the card,
+ * one for a ship, and two under Double Time. Each raid takes the first hex
+ * beside the ship, in the map's neighbour order, that:
+ *
+ *   · is land, not water;
+ *   · carries an improvement that is not a tended work;
+ *   · is owned by an empire at war with the ship's owner.
+ *
+ * Each raid is a full pillage through `pillageAt` with that hex: salvage,
+ * riders, tally and record, and The Horde's spread when the law holds it. The
+ * ship spends a movement point as any raider does. That costs nothing at the
+ * end of a turn, because `resetMovement` refills the allowance later in the
+ * same resolution.
+ *
+ * Returns the reports in the order the raids happened. The turn adds them to
+ * `TurnReport.pillages`, so the victim hears of each raid as it hears of the
+ * wild's.
+ */
+export function raidFromTheSea(state: GameState): PillageReport[] {
+  const reports: PillageReport[] = [];
+  for (const player of realPlayers(state)) {
+    const fleet = state.units.filter((unit) => unit.ownerId === player.id);
+    for (const ship of fleet) {
+      const times = cardShoreRaids(state, ship);
+      for (let raid = 0; raid < times; raid++) {
+        const target = shoreTarget(state, ship);
+        if (target === null) break;
+        reports.push(pillageAt(state, ship, target));
+      }
+    }
+  }
+  return reports;
+}
+
+/** The first enemy improvement on land beside this ship, in neighbour order, or `null`. */
+function shoreTarget(state: GameState, ship: Unit): Tile | null {
+  const here = getTileAt(state.map, ship.col, ship.row);
+  if (!here) return null;
+  for (const near of tileNeighbors(state.map, here)) {
+    if (isWaterTerrain(near.terrain)) continue;
+    if (near.improvement === undefined || isTendedWork(near.improvement)) continue;
+    const owner = tileOwnerPlayerId(state, near.col, near.row);
+    if (owner === null || owner === ship.ownerId) continue;
+    if (!atWar(state, ship.ownerId, owner)) continue;
+    return near;
+  }
+  return null;
 }
 
 /**

@@ -56,6 +56,7 @@ import {
 } from '../sim/cities';
 import {
   explainBuildingPreview,
+  explainOpusGate,
   explainSurplusMoved,
   explainUnrestGate,
   foldBuildingPreview,
@@ -1750,6 +1751,13 @@ export function chipLedgerRows(
     if (running !== 0) {
       rows.push({ label: UNREST_SOURCE, amount: -running, percent: null, kind: 'gate' });
     }
+  }
+  // 13, second half — a rival's siege stops the town's work on the Opus
+  // (Circumvallation, Dominion batch D14). The row names the besieger's card.
+  for (const gate of explainOpusGate(state, city, front)) {
+    if (gate.yield !== key) continue;
+    const running = sumOfRows(rows);
+    if (running !== 0) rows.push({ label: gate.source, amount: -running, percent: null, kind: 'gate' });
   }
 
   // 14 — the food surplus a card moves into production. Its amount reads the

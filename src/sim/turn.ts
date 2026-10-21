@@ -124,7 +124,7 @@ import {
   advanceFortify,
   healCities,
 } from "./combat";
-import type { PillageReport } from "./improvements";
+import { type PillageReport, raidFromTheSea } from "./improvements";
 import type { DisbandReport } from "./upkeep";
 import { hasLineOfSight } from "./los";
 import {
@@ -320,11 +320,14 @@ export interface TurnReport {
    * this returns the farm is simply not there, and nothing distinguishes a hex
    * the wild burnt last night from a hex nobody ever ploughed.
    *
-   * The wild's half of the pillage verb is the only writer. A player's own
-   * pillage is a command and rides `CommandResult.pillages`, which is the same
-   * split `routesEnded` makes with `cancelRoute`: a verb already knows what it
-   * did, and only the things that happen *to* a seat need the resolution to say
-   * so.
+   * The wild's half of the pillage verb was the only writer until Dominion
+   * batch D14. The second is The Longships' raid at the end of the turn
+   * (`raidFromTheSea`, in the `drill` phase), which happens *to* the seat
+   * whose shore burns, so it is reported here for the same reason. A player's
+   * own pillage is a command and rides `CommandResult.pillages`, which is the
+   * same split `routesEnded` makes with `cancelRoute`: a verb already knows
+   * what it did, and only the things that happen *to* a seat need the
+   * resolution to say so.
    */
   pillages: PillageReport[];
   /**
@@ -773,9 +776,16 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // phase rather than its own, so the phase list keeps its length and every
     // resolution moves the revision as many times as before. See
     // `harvestEnemyHexes`.
-    run: (state) => {
+    //
+    // The Longships' raid runs last (Dominion batch D14): each ship of an
+    // empire whose law holds the `shoreRaid` rule pillages an enemy
+    // improvement on the shore beside it. In this phase for the harvest's
+    // reason, and after it, so a harvested hex is read before a ship burns it.
+    // The raids join the turn's pillage reports. See `raidFromTheSea`.
+    run: (state, report) => {
       drillUnits(state);
       harvestEnemyHexes(state);
+      report.pillages.push(...raidFromTheSea(state));
     },
   },
   {
@@ -1510,6 +1520,11 @@ function collectCampBounties(
  * march above finished stands at its owner's next turn with a **full**
  * allowance and its remaining route intact — which is exactly what the player
  * is shown, and what the turn medallions count from.
+ *
+ * The allowance is `fullMovement`, which asks the cards' `unitStat` lines of
+ * the hex the piece stands on now. So a card's `where: 'connectedTown'` line
+ * (Dominion batch D14, The Relay Stations) pays a unit that starts its next
+ * turn in one of its owner's towns joined to the capital by road.
  */
 function resetMovement(state: GameState): void {
   for (const unit of state.units) {

@@ -504,8 +504,12 @@ describe('the schema, as landed', () => {
     // place and were already live.
     // **And Dominion batch D13** (The Limitanei): one more. One new Dominion
     // row came live.
-    expect(live).toBe(516);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(516);
+    // **And Dominion batches D14 and D15** (the three drafts and The
+    // Upstarts): three more. The Relay Stations and Circumvallation left
+    // `deferred`, and The Upstarts is a new row. The Longships took over the
+    // row `marineDrill`, which was already live.
+    expect(live).toBe(519);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(519);
   });
 
   /**
@@ -772,7 +776,10 @@ describe('the schema, as landed', () => {
     // So a v158 log's Dominion hands hold different cards.
     // 160 since Dominion batch D13: The Limitanei comes live, so a v159 log's
     // Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(160);
+    // 161 since Dominion batches D14 and D15: The Relay Stations,
+    // Circumvallation and The Upstarts come live and Marine Drill becomes The
+    // Longships, so a v160 log's Dominion hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(161);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1007,9 +1014,11 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // (+ 10 retired).
       // **Scientific batch S4** freed eight charters (the building charters:
       // − 8).
+      // **Dominion batch D14** freed two (The Relay Stations and
+      // Circumvallation: − 2).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(40);
+      ).toHaveLength(38);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(173);
     }
   });
