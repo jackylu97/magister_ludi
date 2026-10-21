@@ -4516,6 +4516,24 @@
     "text": "building a Quarry gives every hex with a Farm or Pasture beside it, inside your borders, +1 food for the rest of the game, at most +2 food on one hex"
    }
   ],
+  "theAediles": [
+   {
+    "raw": "+2 culture to the empire",
+    "text": "+2 culture to the empire"
+   },
+   {
+    "raw": "+2 production in your capital",
+    "text": "+2 production in your capital"
+   },
+   {
+    "raw": "+1 culture per public work you have finished, counted while this Order stands in a slot",
+    "text": "+1 culture per public work you have finished, counted while this Order stands in a slot"
+   },
+   {
+    "raw": "+1 production in your capital per public work you have finished, counted while this Order stands in a slot",
+    "text": "+1 production in your capital per public work you have finished, counted while this Order stands in a slot"
+   }
+  ],
   "theWatercourses": [
    {
     "raw": "+2 production on every hex with a [[improvement:farm|Farm]] that is beside a river or beside a [[improvement:farm|Farm]] and beside a river",
@@ -4885,8 +4903,8 @@
   ],
   "theToppingOut": [
    {
-    "raw": "completing a wonder grants production equal to 20 times the city's population",
-    "text": "completing a wonder grants production equal to 20 times the city's population"
+    "raw": "completing a building (an empire building) grants each of your cities production equal to 5 times its population",
+    "text": "completing a building (an empire building) grants each of your cities production equal to 5 times its population"
    }
   ],
   "theTaxRolls": [
@@ -5103,6 +5121,16 @@
    {
     "raw": "while this card is seated, your workers may build a [[improvement:townKeep|Keep]]: one in each city; it yields what each of your hexes around it yields, except a city or another of its kind; units on its hex gain +5 strength when defending",
     "text": "while this card is seated, your workers may build a Keep: one in each city; it yields what each of your hexes around it yields, except a city or another of its kind; units on its hex gain +5 strength when defending"
+   }
+  ],
+  "thePublicGood": [
+   {
+    "raw": "+1% science per public work you hold (at most +25% science)",
+    "text": "+1% science per public work you hold (at most +25% science)"
+   },
+   {
+    "raw": "+1% culture per public work you hold (at most +25% culture)",
+    "text": "+1% culture per public work you hold (at most +25% culture)"
    }
   ],
   "theGrovesAndTheStones": [

@@ -951,10 +951,17 @@ describe('determinism', () => {
    * Ward or The Burghers. Checked with the change in place and the
    * version printed as 165, which gives the hashes of Expansionist batch E9
    * exactly.
+   *
+   * **Expansionist batch E11 (public works and empire buildings, schema 167)
+   * moved the hash and not the length** at both seeds: 166 became 167, and
+   * that is all. Nobody here drafts, so no seat holds The Aediles, The Public
+   * Good or The Topping Out, and the new tally is written only for a seated
+   * card. Checked with the change in place and the version printed as 166,
+   * which gives the hashes of Expansionist batch E10 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '13988760:188931',
-    2026: 'a531c1bd:188509',
+    11: '5a7cc3f9:188931',
+    2026: '053dd1a4:188509',
   };
 
   for (const seed of [11, 2026]) {

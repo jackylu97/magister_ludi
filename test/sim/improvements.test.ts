@@ -2688,7 +2688,11 @@ describe('improvements in the log', () => {
     // 166 since Expansionist batch E10 (the militia and the trades): two
     // more Expansionist Orders come live and a retired soldier pays a
     // citizen, so a v165 log's Expansionist hands and towns differ.
-    expect(SCHEMA_VERSION).toBe(166);
+    // 167 since Expansionist batch E11 (public works and empire buildings):
+    // two more Expansionist Orders come live and The Topping Out pays every
+    // town for an empire building, so a v166 log's Expansionist hands and
+    // towns differ.
+    expect(SCHEMA_VERSION).toBe(167);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

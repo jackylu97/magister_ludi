@@ -2194,8 +2194,29 @@ import {
  * pools hold two more cards, and a retired soldier now pays a citizen, so its
  * hands and its towns differ. The branch migrates nothing, for the reason
  * given under v119.
+ *
+ * v167 (branch `decks`; Expansionist batch E11, `docs/plans/expansionist-
+ * themes-triage.md`): **public works and empire buildings.** No field joins
+ * the state. Six building rows carry a new marker, `publicWork` (the Granary,
+ * Aqueduct, Watermill, Harbour, Public Bath and Cistern). The rules that
+ * change:
+ *
+ *   · The Aediles (a new Tier I Order): +2 production in the capital and +2
+ *     culture, and +1 of each for every public work finished while it is
+ *     seated (the `publicWorkCompleted` tally, written in `realiseItem`);
+ *   · The Public Good (a new Tier IV Order): +1% science and culture for each
+ *     public work you hold, at most +25% (the `publicWorks` count);
+ *   · The Topping Out: finishing an empire building, in place of a wonder,
+ *     grants each of your towns production equal to five times its own
+ *     population (Scientific batch S6's per-town grant), in place of twenty
+ *     times the finishing town's.
+ *
+ * **A v166 save is refused and does not replay.** An Expansionist seat's
+ * pools hold two more cards, and The Topping Out pays different towns for a
+ * different building, so its hands and its towns differ. The branch migrates
+ * nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 166;
+export const SCHEMA_VERSION = 167;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

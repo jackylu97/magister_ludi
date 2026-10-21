@@ -9,18 +9,18 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 - **Type:** the last column of each card table says which chair the card fits: **Military**, **Economic**, **Civic** or **Wildcard**. A card fits a chair of its own type or a Wildcard chair, and a Wildcard card fits only a Wildcard chair. The sorting rules and every government's chairs are in `docs/plans/doctrines-governments-chairs.md`, section 4. The sync test checks this column against the `type` of every row the sheet lists, the `modify` rows and the shared table's cards included. A charter takes no chair; its type is for its face.
 - **Gates:** "Needs tended land" deals a card only to a seat holding a tended-work charter. "Needs a levy" deals a card only to a seat holding a card that grants a levy, in a chair or not.
 - **Why each card is here:** `docs/plans/expansionist-themes.md`, the themes pass of 2026-10-21. It gives the engine (citizens and the levy), the four themes (the raised land, the frontier, public works and the militia), and your rulings in section 11. Each card's theme and role are in `docs/plans/expansionist-list-proposed.md`. The earlier pass, the builds you accepted on 2026-10-16, is `docs/plans/expansionist-builds.md`.
-- **The build:** the plan is `docs/plans/expansionist-themes-triage.md` (batches E7 to E13). Batch E7 wrote this sheet from the themes pass, retired the fifteen cut cards that had a data row, and built the ten cards changed in place: The Rope Stretchers, Six Gardens, The Milestones, The Teeming Realm, The Staked Claims, Plenty, The Wide Country, The Measure of the Land, The Mother City and The Domesday Survey. Six Gardens, The Wide Country and The Domesday Survey now leave an institution: effects that hold for the rest of the game and take no chair. Batch E8 built five new cards in shapes that already existed: The Founding Furrow, The Horrea, The Land Hunger, The Many Hands and The Capitolia. Batch E9 built the land: The Burning Season burns an improved tile and keeps the work, The Marl Pits marks the farms and pastures beside a new mine or quarry, Commission: Break the Sod leaves works counted as ten turns older, The Two Harvests counts farms, mines and lumber mills as tended, and The Mountain Schools asks for two mountains in a town's borders. Batch E10 built the militia and the trades: Veteran Colonies gives a town one citizen when a soldier retires there, Watch and Ward gives units a levy raised +5 strength in your own territory, and The Burghers fill the guild bar half again as fast in towns of twelve citizens or more. The first round of batches, E0 to E6, is `docs/plans/expansionist-build-triage.md`.
+- **The build:** the plan is `docs/plans/expansionist-themes-triage.md` (batches E7 to E13). Batch E7 wrote this sheet from the themes pass, retired the fifteen cut cards that had a data row, and built the ten cards changed in place: The Rope Stretchers, Six Gardens, The Milestones, The Teeming Realm, The Staked Claims, Plenty, The Wide Country, The Measure of the Land, The Mother City and The Domesday Survey. Six Gardens, The Wide Country and The Domesday Survey now leave an institution: effects that hold for the rest of the game and take no chair. Batch E8 built five new cards in shapes that already existed: The Founding Furrow, The Horrea, The Land Hunger, The Many Hands and The Capitolia. Batch E9 built the land: The Burning Season burns an improved tile and keeps the work, The Marl Pits marks the farms and pastures beside a new mine or quarry, Commission: Break the Sod leaves works counted as ten turns older, The Two Harvests counts farms, mines and lumber mills as tended, and The Mountain Schools asks for two mountains in a town's borders. Batch E10 built the militia and the trades: Veteran Colonies gives a town one citizen when a soldier retires there, Watch and Ward gives units a levy raised +5 strength in your own territory, and The Burghers fill the guild bar half again as fast in towns of twelve citizens or more. Batch E11 built public works and empire buildings: six buildings (the Granary, Aqueduct, Watermill, Harbour, Public Bath and Cistern) are marked as public works, The Aediles grows with each public work you finish, The Public Good pays for each public work you hold, and The Topping Out pays every town when you finish an empire building. The first round of batches, E0 to E6, is `docs/plans/expansionist-build-triage.md`.
 - **Doctrines:** proposed on 2026-10-17, eight in each of Tiers I to IV, for your pass; none is built. Each tier's Doctrine table sits above its Orders, and the Build column names the build or flavour of 2026-10-16 that each is written for. The reasons, drawbacks, pairs and shapes, and the questions, are in `docs/plans/expansionist-builds.md`, "Doctrines, proposed 2026-10-17". The themes pass did not change them (`docs/plans/expansionist-themes.md`, section 8).
 - **The long form** (the D3 "built as" details, the tended works as built, the synergy section, the proposed cuts and the proposed revision of 2026-10-13): `docs/decks/reference/expansionist-2026-10-16.md`.
 
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
 | Tier 0 | 14 | 0 | 0 | 14 | none |
-| Tier I | 25 | 0 | 1 | 26 | 8 proposed |
+| Tier I | 26 | 0 | 0 | 26 | 8 proposed |
 | Tier II | 24 | 1 | 0 | 25 | 8 proposed |
-| Tier III | 29 | 1 | 1 | 31 | 8 proposed |
-| Tier IV | 17 | 0 | 1 | 18 | 8 proposed |
-| **All** | **109** | **2** | **3** | **114** | **32 proposed** |
+| Tier III | 30 | 0 | 1 | 31 | 8 proposed |
+| Tier IV | 18 | 0 | 0 | 18 | 8 proposed |
+| **All** | **112** | **1** | **1** | **114** | **32 proposed** |
 | Shared | 17 | 0 | 0 | 17 |  |
 
 **By type** (the chair a card fits):
@@ -99,7 +99,7 @@ The 114 cards are 111 that take a chair and three charters (The Fish Traps, The 
 | **The Wild Marches** | common | implemented | +1 culture for every four wild hexes you own. | Civic |
 | **The Quiet Provinces** | uncommon | implemented | Each town gains +1 production for every three points of spare authority, at most +3. | Economic |
 | **The Road Towns** | common | implemented | Towns joined to your capital by road gain +2 production. | Economic |
-| **The Aediles** | uncommon | add | While seated, this card gains +1 production and +1 culture each time you finish a public work. It starts at +2 of each. | Civic |
+| **The Aediles** | uncommon | implemented | While seated, this card gains +1 production and +1 culture each time you finish a public work. It starts at +2 of each. | Civic |
 | **The Land Hunger** | uncommon | implemented | While another empire holds more towns than you, your towns build settlers 25% faster, and your settlers gain +1 movement. | Economic |
 
 ## Tier II
@@ -182,7 +182,7 @@ The 114 cards are 111 that take a chair and three charters (The Fish Traps, The 
 | **The Water Courts** | rare | implemented | A farm joined to fresh water by a chain of your farms counts as having fresh water. | Economic |
 | **The Coming of the Water** | uncommon | implemented | When a town finishes an Aqueduct, every farm in its borders gains +1 food for the rest of the game. | Economic |
 | **The Mill Wheels** | common | implemented | Towns with a Watermill gain +15% production. | Economic |
-| **The Topping Out** | uncommon | modify: reworked | Finishing an empire building grants each of your towns production equal to five times its population. | Economic |
+| **The Topping Out** | uncommon | implemented | Finishing an empire building grants each of your towns production equal to five times its population. | Economic |
 | **The Mit'a** | rare | implemented | Needs a levy. A citizen spent on a levy returns to its town twenty turns later. | Economic |
 | **The Slack Season** | uncommon | implemented | Needs a levy. Every twentieth turn, after the harvest, your towns may levy whatever their wait. | Economic |
 | **The Trained Bands** | uncommon | implemented | Needs a levy. Units raised by a levy start as Veterans. | Military |
@@ -234,7 +234,7 @@ The 114 cards are 111 that take a chair and three charters (The Fish Traps, The 
 | **The Great Aqueducts** | rare | implemented | The town raising the Magnum Opus gains +5% production toward it for each of your towns with an Aqueduct, at most +40%. | Economic |
 | **The Imperial Highways** | rare | implemented | The town raising the Magnum Opus gains +3% production toward it for every town joined to your capital by road, at most +45%. | Economic |
 | **The Theodosian Walls** | uncommon | implemented | Your towns gain +1 defence for every two citizens. | Military |
-| **The Public Good** | rare | add | +1% science and culture for each public work you hold, at most +25%. | Civic |
+| **The Public Good** | rare | implemented | +1% science and culture for each public work you hold, at most +25%. | Civic |
 
 ## Shared with another deck
 

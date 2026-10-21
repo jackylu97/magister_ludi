@@ -1176,6 +1176,22 @@ export interface BuildingDef {
    */
   empireBuilding?: boolean;
   /**
+   * **This row is a public work** (Expansionist batch E11): one of the
+   * buildings that let a town grow. The six rows that carry it are the
+   * Granary, Aqueduct, Watermill, Harbour, Public Bath and Cistern
+   * (`docs/plans/expansionist-themes-triage.md`, reading 30). The Lighthouse
+   * and the Workshop are not public works.
+   *
+   * A marker beside `empireBuilding`, for the same reason: cards read the six
+   * rows as one group, so the group is a fact on each row and not a list of
+   * names in the code. `isPublicWork` is its one reader. Two cards read it
+   * through that function: The Aediles counts each one finished
+   * (`TallyOccasion`'s `publicWorkCompleted`), and The Public Good counts each
+   * one held (`CountKind`'s `publicWorks`). It changes nothing about the
+   * building itself.
+   */
+  publicWork?: true;
+  /**
    * **The world opens this row, not the tree** — the Magnum Opus, which becomes
    * buildable for *every* empire the moment the world's first seat completes
    * Alchemy (Entry LVIII; `docs/tree-worksheet.md`'s ruling: "the finish line
@@ -1507,6 +1523,16 @@ export function isFortification(id: BuildingId): boolean {
  */
 export function isEmpireBuilding(id: BuildingId): boolean {
   return buildingDef(id).empireBuilding === true;
+}
+
+/**
+ * **Is this row a public work?** The one reading of `BuildingDef.publicWork`
+ * (Expansionist batch E11). The tally of public works finished and the count
+ * of public works held both ask it, so a seventh row marked in the data joins
+ * both cards with no code change.
+ */
+export function isPublicWork(id: BuildingId): boolean {
+  return buildingDef(id).publicWork === true;
 }
 
 /**

@@ -3575,6 +3575,12 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
     const at = place === '' ? 'in this city' : place;
     return { one: `wonder standing ${at}`, many: `wonders standing ${at}` };
   }
+  // **One town's public works** (Expansionist batch E11): `publicWorks`
+  // narrowed to the town it is counted in, worded as `wonders` is above.
+  if (effect.count === 'publicWorks' && effect.within === 'city') {
+    const at = place === '' ? 'in this city' : place;
+    return { one: `public work standing ${at}`, many: `public works standing ${at}` };
+  }
   // **One trade's guildsmen** (Scientific batch S2, The Scholars' Guild).
   if (effect.count === 'guildsmen' && effect.family !== undefined) {
     return {
@@ -3755,6 +3761,9 @@ const TOWN_COUNT_WORDS: Partial<Record<CountKind, (at: string) => PluralWords>> 
   // already carries one. An unnarrowed `wonders` row never reaches this table,
   // because a line that is not city-scoped has no place to hand in.
   wonders: (at) => ({ one: `wonder standing ${at}`, many: `wonders standing ${at}` }),
+  // `publicWorks` narrowed to one town (Expansionist batch E11), here for
+  // `wonders`' reason: so the place is not printed twice.
+  publicWorks: (at) => ({ one: `public work standing ${at}`, many: `public works standing ${at}` }),
   // The three distinct-kind counts asked of a town (D2b). Each says **kind**
   // out loud and puts the place after the thing counted rather than after the
   // whole clause, which is the reason this table takes formatters at all: "per
@@ -5739,6 +5748,9 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   // Expansionist batch E2. The words are the scope's, in `countNoun`; this is
   // what a row that names no scope says, and such a row counts nothing.
   citiesAdmitted: { one: 'city', many: 'cities' },
+  // Expansionist batch E11, The Public Good. A row narrowed to one town is
+  // worded in `countNoun`.
+  publicWorks: { one: 'public work you hold', many: 'public works you hold' },
   followingCities: { one: 'city that follows you', many: 'cities that follow you' },
   followingForeign: {
     one: 'foreign city that follows you',
@@ -5880,6 +5892,12 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
   sizeRecord: {
     one: 'citizen your cities have grown past their largest size',
     many: 'citizens your cities have grown past their largest size',
+  },
+  // Expansionist batch E11, The Aediles. Built, bought or granted, as the
+  // tally counts them.
+  publicWorkCompleted: {
+    one: 'public work you have finished',
+    many: 'public works you have finished',
   },
   // Scientific batch S6, The Astronomical Diaries. No growing card counts
   // charter technologies alone; the table is total.
@@ -6464,6 +6482,13 @@ const COMMISSION_COUNTED_WORDS: Record<
     one: "citizen past a city's largest size",
     many: "citizens past your cities' largest sizes",
     counter: 'citizens past a record',
+  },
+  // Expansionist batch E11. No commission counts this yet; the table is total.
+  publicWorkCompleted: {
+    verb: 'finish',
+    one: 'public work',
+    many: 'public works',
+    counter: 'public works finished',
   },
   // Scientific batch S6. The Royal Charter Commission counts charter
   // technologies; no commission counts every technology yet.

@@ -2746,6 +2746,14 @@ export type CountKind =
    */
   | 'citiesAdmitted'
   /**
+   * **Public works this empire holds** (`BuildingDef.publicWork`): The Public
+   * Good (Expansionist batch E11; the triage's reading 31). Read off the
+   * towns' own `buildings` lists, so pay follows the stones: a captured
+   * town's Granary counts for its new owner from the turn it changes hands.
+   * Narrowed to one town by `within: 'city'`, as `empireBuildings` is.
+   */
+  | 'publicWorks'
+  /**
    * Wonders standing **anywhere in the world**, yours and everybody's — The
    * Grand Tour's "seen or not".
    *
@@ -3514,6 +3522,16 @@ export type TallyOccasion =
    */
   | 'sizeRecord'
   /**
+   * One of this empire's towns **finished a public work**
+   * (`BuildingDef.publicWork`): The Aediles (Expansionist batch E11; the
+   * triage's reading 29). Written in `realiseItem` (`cities.ts`), the one
+   * routine that means "the town now has the building", so a public work
+   * built with hammers, bought, or granted by a completion counts the same.
+   * A town taken with its public works passes through no such routine, so a
+   * captured Granary adds nothing.
+   */
+  | 'publicWorkCompleted'
+  /**
    * This empire **completed a technology** (Scientific batch S6, The
    * Astronomical Diaries). Written in `settleResearch` (`tech.ts`), the one
    * completion routine, so a technology finished by a turn's science and one
@@ -3556,6 +3574,7 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'militaryGained',
   'warEnded',
   'sizeRecord',
+  'publicWorkCompleted',
   'techCompleted',
   'charterTechCompleted',
 ];

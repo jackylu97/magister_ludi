@@ -2106,7 +2106,11 @@ describe("determinism", () => {
     // 166 since Expansionist batch E10 (the militia and the trades): two
     // more Expansionist Orders come live and a retired soldier pays a
     // citizen, so a v165 log's Expansionist hands and towns differ.
-    expect(SCHEMA_VERSION).toBe(166);
+    // 167 since Expansionist batch E11 (public works and empire buildings):
+    // two more Expansionist Orders come live and The Topping Out pays every
+    // town for an empire building, so a v166 log's Expansionist hands and
+    // towns differ.
+    expect(SCHEMA_VERSION).toBe(167);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -11729,6 +11733,8 @@ describe("D2b — counts and reach", () => {
     for (const count of [
       "capturedCities",
       "empireBuildings",
+      // Expansionist batch E11, The Public Good.
+      "publicWorks",
       // `uniqueStrategicResources` has no live row since Scientific batch S5
       // gave The Assay a hex line. The count's own behaviour is pinned in
       // `test/sim/decks/scientificLand.test.ts`, with Niter Beds.

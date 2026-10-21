@@ -976,6 +976,44 @@
         }
       ]
     },
+    "theAediles": {
+      "name": "The Aediles",
+      "decks": ["expansionist"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The aediles kept the streets, the baths and the grain, and every new roof was theirs to keep.",
+      "text": "While seated, this card gains +1 production and +1 culture each time you finish a public work. It starts at +2 of each.",
+      "effects": [
+        { "kind": "pays", "where": "empire", "culture": 2 },
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": { "test": "capital" },
+          "production": 2
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "tally",
+          "tally": "publicWorkCompleted"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "amount": 1,
+          "count": "tally",
+          "tally": "publicWorkCompleted",
+          "scope": { "test": "capital" }
+        }
+      ]
+    },
     "theWatercourses": {
       "name": "The Watercourses",
       "decks": ["expansionist"],
@@ -2154,17 +2192,18 @@
       "line": "none",
       "rarity": "uncommon",
       "type": "economic",
-      "flavor": "When the last stone is set, the whole town comes to the feast.",
-      "text": "Finishing a wonder grants that town production equal to twenty times its population.",
+      "flavor": "When the last stone is set, every town in the realm comes to the feast.",
+      "text": "Finishing an empire building grants each of your towns production equal to five times its population.",
       "effects": [
         {
           "kind": "windfallRider",
-          "occasion": "completion",
-          "wonder": true,
+          "occasion": "buildingCompletion",
+          "empireBuilding": true,
           "grant": {
             "yield": "production",
-            "amount": 20,
-            "fromOccasion": "population"
+            "amount": 5,
+            "toEveryTown": true,
+            "fromTownPopulation": true
           }
         }
       ]
@@ -2780,6 +2819,38 @@
       "text": "Workers may build a Keep, one in each town. A Keep gains the yields of every tile around it, and units on its tile gain +5 strength.",
       "effects": [
         { "kind": "unlocksImprovement", "improvement": "townKeep" }
+      ]
+    },
+    "thePublicGood": {
+      "name": "The Public Good",
+      "decks": ["expansionist"],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "What the town builds for everyone, everyone learns from.",
+      "text": "+1% science and culture for each public work you hold, at most +25%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "percent": 1,
+          "stage": "empire",
+          "count": "publicWorks",
+          "max": 25
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "percent": 1,
+          "stage": "empire",
+          "count": "publicWorks",
+          "max": 25
+        }
       ]
     },
     "theGrovesAndTheStones": {

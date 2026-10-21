@@ -7,8 +7,9 @@
  *     lowered (the triage's reading 6). The Grain Census counts each citizen
  *     past the record, and The Freedom of the City pays the first time a town
  *     reaches fifteen and twenty citizens (reading 7);
- *   · The Topping Out's production for a finished wonder, from the town's size
- *     on the completion (reading 16);
+ *   · The Topping Out's production for a finished empire building, paid to
+ *     each town from its own size (reading 16; reworked in batch E11 of
+ *     `docs/plans/expansionist-themes-triage.md`, reading 32);
  *   · The Tax Rolls' gold for every census (reading 17);
  *   · The Opening of the Roads' production for a town first joined to its
  *     capital by road, once for each owner, with nothing paid for the past
@@ -178,17 +179,28 @@ describe('the Expansionist batch E2: a town\'s largest size', () => {
 });
 
 describe('the Expansionist batch E2: completions, censuses and roads', () => {
-  it('The Topping Out pays twenty times the town\'s size for a wonder, and nothing for a building', () => {
-    const basket = (withCard: boolean, building: 'pyramids' | 'granary'): number => {
-      const state = bareState();
+  it('The Topping Out pays each town five times its own size for an empire building, and nothing for a wonder or a building', () => {
+    // Batch E11 (reading 32): every town of the empire is paid from its own
+    // citizens, into its own basket, when any of them finishes an empire
+    // building. A rival's town is paid nothing.
+    const baskets = (withCard: boolean, building: 'forum' | 'pyramids' | 'granary'): number[] => {
+      const state = bareState(16, 10);
       if (withCard) slot(state, 0, 'theToppingOut');
-      const city = town(state, 3, 3, 6);
-      city.hammerBasket = 0;
-      realiseItem(state, city, { kind: 'building', id: building });
-      return city.hammerBasket;
+      const home = town(state, 3, 3, 6);
+      const far = town(state, 9, 3, 3);
+      const rival = town(state, 13, 7, 4, 1);
+      for (const city of [home, far, rival]) city.hammerBasket = 0;
+      realiseItem(state, home, { kind: 'building', id: building });
+      return [home.hammerBasket, far.hammerBasket, rival.hammerBasket];
     };
-    expect(basket(true, 'pyramids') - basket(false, 'pyramids')).toBe(20 * 6);
-    expect(basket(true, 'granary') - basket(false, 'granary')).toBe(0);
+    const paid = (building: 'forum' | 'pyramids' | 'granary'): number[] => {
+      const withCard = baskets(true, building);
+      const without = baskets(false, building);
+      return withCard.map((value, index) => value - without[index]!);
+    };
+    expect(paid('forum')).toEqual([5 * 6, 5 * 3, 0]);
+    expect(paid('pyramids')).toEqual([0, 0, 0]);
+    expect(paid('granary')).toEqual([0, 0, 0]);
   });
 
   it('The Tax Rolls pays five gold a citizen on a census, to the empire holding it alone', () => {
@@ -352,7 +364,7 @@ describe('the Expansionist batch E2: the words', () => {
       'a city reaching 20 citizens for the first time grants production equal to 40 times its population',
     ]);
     expect(said('theToppingOut')).toEqual([
-      "completing a wonder grants production equal to 20 times the city's population",
+      'completing a building (an empire building) grants each of your cities production equal to 5 times its population',
     ]);
     expect(said('theTaxRolls')).toEqual([
       'the world taking a census grants gold equal to 5 times your citizens',

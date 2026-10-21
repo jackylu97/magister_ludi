@@ -532,8 +532,11 @@ describe('the schema, as landed', () => {
     // **And Expansionist batch E10** (the militia and the trades): two more.
     // Watch and Ward and The Burghers are new rows. Veteran Colonies was
     // changed in place and was already live.
-    expect(live).toBe(534);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(534);
+    // **And Expansionist batch E11** (public works and empire buildings): two
+    // more. The Aediles and The Public Good are new rows. The Topping Out was
+    // changed in place and was already live.
+    expect(live).toBe(536);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(536);
   });
 
   /**
@@ -827,7 +830,11 @@ describe('the schema, as landed', () => {
     // 166 since Expansionist batch E10 (the militia and the trades): two
     // more Expansionist Orders come live and a retired soldier pays a
     // citizen, so a v165 log's Expansionist hands and towns differ.
-    expect(SCHEMA_VERSION).toBe(166);
+    // 167 since Expansionist batch E11 (public works and empire buildings):
+    // two more Expansionist Orders come live and The Topping Out pays every
+    // town for an empire building, so a v166 log's Expansionist hands and
+    // towns differ.
+    expect(SCHEMA_VERSION).toBe(167);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

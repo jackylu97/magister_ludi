@@ -387,6 +387,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Commission: Break the Sod | 1 | ● | S | Commission. Work twelve improved tiles at the same time. Then, for the rest of the game, your improvements count as having stood ten turns longer. The card leaves its chair. |
 | The Land Hunger | 1 | ◆ | S | While another empire holds more towns than you, your towns build settlers 25% faster, and your settlers gain +1 movement. |
 | The Marl Pits | 1 | ◆ | S | When your workers finish a mine or quarry, each farm or pasture beside it gains +1 food for the rest of the game, at most +2 on one tile. |
+| The Aediles | 1 | ◆ | P | While seated, this card gains +1 production and +1 culture each time you finish a public work. It starts at +2 of each. |
 | The Watercourses | 2 | ◆ | S | Farms directly beside a river irrigate adjacent farms. Irrigated worked farms gain +2 production. Water does not relay beyond that first step. |
 | The Highlands | 2 | ● | S | Mines and quarries on hills gain +2 science and +1 production. |
 | The Coast | 2 | ● | S | Worked fishing boats gain +3 food and +3 culture. |
@@ -430,7 +431,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Slack Season | 3 | ◆ | S | Needs a levy. Every twentieth turn, after the harvest, your towns may levy whatever their wait. |
 | The Trained Bands | 3 | ◆ | S | Needs a levy. Units raised by a levy start as Veterans. |
 | The Freedom of the City | 3 | ◆ | S | The first time each of your towns reaches fifteen citizens, and again at twenty, it gains production equal to forty times its population. |
-| The Topping Out | 3 | ◆ | S | Finishing a wonder grants that town production equal to twenty times its population. |
+| The Topping Out | 3 | ◆ | S | Finishing an empire building grants each of your towns production equal to five times its population. |
 | The Tax Rolls | 3 | ◆ | S | When the world takes a census, gain gold equal to five times your citizens. |
 | The Opening of the Roads | 3 | ◆ | S | When one of your towns is first joined to your capital by road, it gains production equal to twenty times its population. |
 | The Great Colonies | 3 | ○ | S | Towns you found start with a third of the citizens of your largest town. |
@@ -459,6 +460,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Great Aqueducts | 4 | ○ | S | The town raising the Magnum Opus gains +5% production toward it for each of your towns with an Aqueduct, at most +40%. |
 | The Imperial Highways | 4 | ○ | S | The town raising the Magnum Opus gains +3% production toward it for every town joined to your capital by road, at most +45%. |
 | The Keeps | 4 | ○ | S | Workers may build a Keep, one in each town. A Keep gains the yields of every tile around it, and units on its tile gain +5 strength. |
+| The Public Good | 4 | ○ | P | +1% science and culture for each public work you hold, at most +25%. |
 
 ### Commerce
 

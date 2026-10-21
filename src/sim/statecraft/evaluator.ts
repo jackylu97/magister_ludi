@@ -57,6 +57,7 @@ import {
   isBuildingId,
   isEmpireBuilding,
   isFortification,
+  isPublicWork,
   isWonder,
 } from '../buildingData';
 import {
@@ -3543,6 +3544,23 @@ export function countOf(
       for (const town of citiesOf(state, playerId)) {
         if (cityScopeAdmits(state, town, test, playerId)) total += 1;
       }
+      return total;
+    }
+    case 'publicWorks': {
+      // Expansionist batch E11, The Public Good: the public works standing in
+      // this empire's towns, off each town's own `buildings` list, so pay
+      // follows the stones. `within: 'city'` narrows it to one town, as it
+      // narrows `empireBuildings`.
+      const walk = (town: City): number => {
+        let here = 0;
+        for (const id of town.buildings) {
+          if (isPublicWork(id)) here += 1;
+        }
+        return here;
+      };
+      if (effect.within === 'city') return city ? walk(city) : 0;
+      let total = 0;
+      for (const town of citiesOf(state, playerId)) total += walk(town);
       return total;
     }
     default: {

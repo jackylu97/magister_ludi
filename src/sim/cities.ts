@@ -67,6 +67,7 @@ import {
   buildingDef,
   isBuildingId,
   isEmpireBuilding,
+  isPublicWork,
   isWonder,
 } from './buildingData';
 // The two sides of the lending rule (schema 57). `deals.ts` is a leaf — it
@@ -5034,6 +5035,11 @@ export function realiseItem(
     if (markFirst(state, city.ownerId, 'buildingKind', item.id) && built) {
       firsts.push('buildingKind');
     }
+    // **A public work finished** (Expansionist batch E11, The Aediles; the
+    // triage's reading 29). Here, beside the unit tallies below, so a public
+    // work built, bought or granted counts the same. Asked of the row's own
+    // marker, so nothing here names a Granary.
+    if (isPublicWork(item.id)) recordScalingOccasion(state, city.ownerId, 'publicWorkCompleted');
     payCompletionRiders(state, city, 'building', {
       wonder: wonder !== undefined,
       building: item.id,

@@ -2126,6 +2126,8 @@ export const BUILDING_ROW_SILENT: Readonly<Record<string, string>> = {
   oncePerEmpire: 'one per realm: a refusal `buildError` makes, which a card may lift (batch C7) — never a worth',
   empireBuilding:
     'the *class*, split from the limit beside it in batch C7: it decides the price line (`docs/production-costs.md`) and which card clauses name the row, both of which are folded where they are read, so the marker itself is worth nothing on its own',
+  publicWork:
+    'a class the cards read (Expansionist batch E11): The Aediles counts each one finished and The Public Good each one held, so what it is worth is the cards’ and is read where they are priced (batch E13). The marker is worth nothing on its own',
   wonder: 'one per world: the production category and the claim, both the rules’ business; what a wonder pays is its `effects`, its `renown` and its grants, all folded above',
   consecrated: 'the patron roll — uniform over the consecrations, and this bot has no reading of a patron',
   acceptsContributions: 'a way to pay a basket; the bot has no contribution arm to price it for',
@@ -5816,6 +5818,11 @@ function occasionRecord(occasion: TallyOccasion, ctx: ValueContext): number | nu
       return player.hexesPillaged ?? 0;
     case 'sizeRecord':
       return boardTempo(ctx).growths;
+    case 'publicWorkCompleted':
+      // Expansionist batch E11, The Aediles. A stand-in: no record is read
+      // yet and `score.tallyForecast` names no default, so the promise is
+      // priced at 0. Batch E13 prices it.
+      return null;
     case 'techCompleted':
       // Scientific batch S6: every technology this seat holds, charters
       // included, as the tally counts them.
