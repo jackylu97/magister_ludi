@@ -240,7 +240,7 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 
 ### D10: the data-only cards of Tiers I to III
 
-**Built 2026-10-21** on `dom-work` (`49b76f2b`), to merge into `decks` after Scientific S2 and S3. Reading 40 came from it. The describers now say "for each age you have reached" on an age-scaled grant (this also rewords Devotion's Rites of Blood).
+**Built 2026-10-21** on `dom-work` (`49b76f2b`), merged into `decks` as `e76f7b04` (schema 157, after S2/S3's 156). Reading 40 came from it. The describers now say "for each age you have reached" on an age-scaled grant (this also rewords Devotion's Rites of Blood).
 
 - **Builds:** eleven group-1 cards: The Acropolis, The Castle Demesne, The Spartan Discipline, Commission: The Ranks of Merit, Commission: The First Province, Commission: Take the City, The Naadam, The Taker of Cities, The Roll of Triumphs, The March Revenues, The Tributary Kings. The March Revenues lands without the sight gate, which D12 adds (reading 29).
 - **Fence:** `data/decks/dominion.json`, `docs/decks/dominion.md`, the Dominion shelf of `docs/orders-and-doctrines.md`, `test/fixtures/cardText.json`, `src/sim/state.ts` (the schema line) and `test/sim/state.test.ts`, `test/sim/decks/dominionThemeCards.test.ts`. `src/sim/statecraft/describers.ts` only if a sentence reads badly.

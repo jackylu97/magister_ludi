@@ -307,6 +307,11 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 62. (S1) The Maryannu's +5 applies in attack only, as Decisive Blows does: on defence `targetBelowHalf` would read the Maryannu's own health. It still pays against a town below half its hit points.
 63. (S1) Only ships blockade. A `blockades` rule given to a land line does nothing.
 64. (S1) `townCitizensHere` reads the hex the piece stands on, in attack and in defence.
+65. (S3) An eliminated empire is not a met rival.
+66. (S3) With nobody met, The Great Designs and Greek Fire pay nothing (reading 18, widened to them).
+67. (S3) The Edge of the Sword also applies in a fight with that empire's towns, as `vsWiderEmpire` does. It does not ask whether you have met that empire.
+68. (S3) On a trade route, the gap counts only the destination owner's technologies, as Books from the Ships' text says. Elsewhere it counts every met empire.
+69. (S3) `aheadOfMet` also works on units, by the unit's unlocking technology.
 
 ## The batches
 
@@ -362,6 +367,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 
 ### S2: feature A, the trades as a card quantity
 
+**Built 2026-10-21** with S3 (`6efbbc5e`, schema 156).
+
 - **Builds:** a `CountKind` `guildsmen` with `family`, for a town (`within: 'city'`) or the empire, and its words. Card: The Scholars' Guild. The share-cap rule is not built: no Scientific card needs it since The Fellowships was cut.
 - **Fence:** the shared six, `test/sim/guilds.test.ts` (read only), a new `test/sim/decks/scientificGuilds.test.ts`.
 - **Depends on:** nothing beyond S0's order. It is small, so the orchestrator may give S2 and S3 to one agent.
@@ -370,6 +377,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 - **Done-gate:** `npx vitest run test/sim/decks/scientificGuilds.test.ts test/sim/guilds.test.ts test/sim/decks/scientific.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts`.
 
 ### S3: feature B, reading rivals
+
+**Built 2026-10-21** with S2 (`6efbbc5e`, schema 156). `src/sim/rivals.ts` exports `metRivals`, `techLead`, `techGap`, `metEmpireKnows`, `aheadOfMet`, `metEmpireCanBuild`, `unitAheadOfMet`, `knowsFewerTechs` and `knowsMoreTechs` (Dominion's D15 reads the last). Readings 65 to 69 came from it.
 
 - **Builds:**
   - A leaf `src/sim/rivals.ts`: over `Player.metSeats`, the barbarian seat never counted. The lead (technologies the seat knows that no met empire knows, its charter technologies included; zero with no met empire, reading 18), the gap (technologies a met empire knows that the seat does not, their charter technologies left out, reading 2), "a met empire can build this unit type" (reading 45), and "a met empire knows this technology". Computed when asked; the lists are short.

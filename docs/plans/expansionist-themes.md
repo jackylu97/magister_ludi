@@ -680,3 +680,28 @@ Not changed. Two of the 32 proposed Doctrines no longer fit a theme, because the
 11. **The candidate feature, a town's age** (section 6). *Recommended: not now,* unless the Magisterial or Devotion pass wants it.
 
 After your answers: every card onto the sheet as `add` and `modify` rows, then the triage for the build.
+
+## 11. Rulings on the review page, 2026-10-21
+
+The user commented on 10 rows of the review page (version 8, built from commit `4aa4be29`), then: *"ok, i commented on the expanionist themes, you can fold those into the expansionist doc, queue up the changes."* The comments are verbatim. A reading marked "to confirm" is the build's until the user changes it.
+
+| Card | The user | What changes |
+|---|---|---|
+| Plenty (III) | *"revise to five times"* | A town that grows gains production equal to five times its new population, not eight. |
+| The Burning Season (I, charter) | *"doesn't have to be wild. any grassland or plains get +1 food when burned"* | Workers may burn any grassland or plains hex, not only a wild one. **Reading, to confirm:** on a hex that holds an improvement, the burn keeps the improvement and adds +1 food as a lasting mark on the hex (batch E3's hex mark, as The Coming of the Water uses), so no work replaces another. On a hex with no improvement it is the tended work it is today. |
+| The Beating of the Bounds (0) | *"remove"* | Cut. |
+| The Garden Frontier (I) | *"remove, cities should only be able to work within 3 hexes"* | Cut. **Question:** the reason also touches The Common Domain (towns of ten may work one hex beyond their normal radius). It stays until the user says. |
+| The Land Hunger (I) | *"revise: build settlers 25% faster, settlers have +1 movement"* | New text: "While another empire holds more towns than you, your towns build settlers 25% faster, and your settlers gain +1 movement." **Reading, to confirm:** the condition stays, because it is the card's idea; only the pay changes. |
+| The Mountain Schools (III) | *"towns with 2 mountain tiles (besides a mountain is too stringent)"* | The town half reads "Towns with at least two mountains in their borders gain +15% science." **Reading, to confirm:** the second half (mines and quarries beside a mountain gain +2 science) is unchanged. |
+| The Mother City (IV) | *"late game, +5% culture and production is a better bonus."* | New text: "Your capital gains +5% production and +5% culture for each town you have founded this game." **Reading, to confirm:** still the capital, still per town founded, with no cap. The alternative is a cap such as +50%. |
+| The Measure of the Land (IV) | *"at most +10"* | The cap rises from +6 to +10 science in each town. |
+| The Builders' Levy (I) | *"too similar to levy of the land, lets just keep levy of the land"* | Cut. Levy of the Land stays. Public works lose their levy use; the levy's empire-building target goes with it. |
+| Veteran Colonies (II) | *"town gains +1 population"* | New text: "A military unit standing in one of your towns may retire there: the unit is removed and the town gains one citizen." The food equal to the unit's cost goes. |
+
+### What the rulings leave
+
+- **The questions in section 10:** the user answered none of them one by one and said to queue the changes. **Reading, to confirm:** every recommendation in section 10 stands.
+- **Cuts:** three more (The Beating of the Bounds, The Garden Frontier, The Builders' Levy), so 15 in all.
+- **Public works** keep empire buildings through The Many Hands, The Topping Out and The Capitolia, but no longer have a levy use.
+- **The militia's capstone** gains a partner: with Veteran Colonies paying a citizen, Home for the Harvest and Veteran Colonies both return citizens from soldiers. **Question:** the two now overlap. Keep both, or cut one?
+- **Open question:** The Common Domain, against the user's "cities should only be able to work within 3 hexes".
