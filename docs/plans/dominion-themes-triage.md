@@ -216,7 +216,7 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 
 ### D9: the sheet of record, the retirements and the Tier 0 data cards
 
-**Built 2026-10-21** on `dom-work` (`aab596fd`), to merge into `decks` after Scientific S1b. Readings 38 and 39 came from it. It also updated three tests the triage missed (`commissions.test.ts`, `decks/dominionCards.test.ts`, `decks/dominionWars.test.ts`).
+**Built 2026-10-21** on `dom-work` (`aab596fd`), merged into `decks` as `e66e07d0` (schema 155, after S1b's 154). Readings 38 and 39 came from it. It also updated three tests the triage missed (`commissions.test.ts`, `decks/dominionCards.test.ts`, `decks/dominionWars.test.ts`).
 
 - **Builds:**
   - **The sheet.** Start from the working tree's `docs/decks/dominion.md`, which holds your uncommitted removal of The Servian Reforms. **Keep that removal.** Never rebuild the file from HEAD. Then write every card of the two plan docs onto it:

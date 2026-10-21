@@ -356,6 +356,10 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 - **Schema:** one bump.
 - **Done-gate:** `npx vitest run test/sim/decks/scientificTraits.test.ts test/sim/naval.test.ts test/sim/combat.test.ts test/sim/charterTechs.test.ts test/sim/decks/scientific.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/statecraft.test.ts`.
 
+### S1b: the sheet of record and the types (moved forward by the user's ruling)
+
+**Built 2026-10-21** (`7bb0ad31`, schema 154). `docs/decks/scientific.md` is the sorted sheet of record, every Scientific row and every shared row naming Scientific carries its type, and the 24 cut rows and The Hydraulic Commonwealth are retired. From here on each batch sets its own rows to `implemented` with their types. S11 keeps only the final sheet check.
+
 ### S2: feature A, the trades as a card quantity
 
 - **Builds:** a `CountKind` `guildsmen` with `family`, for a town (`within: 'city'`) or the empire, and its words. Card: The Scholars' Guild. The share-cap rule is not built: no Scientific card needs it since The Fellowships was cut.
