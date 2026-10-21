@@ -327,6 +327,28 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 82. (S6) The Age of Reason runs each Order's technology rider twice, so grants, units and renown pay twice; percentages and once-a-turn riders count once; the tallies are written with an amount of 2.
 83. (S6) `fromTownPopulation` pays food and production only, by each town's population when that town is paid.
 84. (S6) `chartersDrafted` counts charter rows in the collection from the pick, researched or not.
+85. (S7) The Roll of Scholars says "at most +28%" (`max: 7`), because a count's `max` counts steps; the triage's `max: 30` would give +120%. This follows the user's ruling on The Res Gestae. Alternative: +5% for each scholar, at most +30%.
+86. (S7) "Science building" is the `scienceBuildings` count: any building whose row gives science, the Monastery and science wonders included. The Royal Tutors reads it town by town (`within: 'city'`).
+87. (S7) The War Manuals and The Palace Schools reach military units only; their text says "Units".
+88. (S8) The Dedications' "science building" is the science shelf, as this triage writes it, not reading 86's "pays science".
+89. (S8) The Second Seat never reaches the Magnum Opus.
+90. (S8) A second copy counts while queued and while standing; a town never holds two copies of one row.
+91. (S8) The Forward Plans shows the University while any town qualifies; other towns get a sentence naming the Library rule.
+92. (S8) The Royal Readers' steps are not floored; only the price is. Every scholar gained counts.
+93. (S8) With an offer already waiting, or before the ancestor rites, The Invitations pays renown toward the next rung. The Age of Reason doubles it on a technology rider.
+94. (S8) The Walls of Learning's +6 and +12 stack, so a University town raising the Opus gains +18.
+95. (S9) A piece The Model Army upgrades past the resource gate holds no copy for life (`Unit.unsupplied`).
+96. (S9) The completion hold reads the collection, not the chair: a seat that drafted The Prototype Works waits on a queued row whose technology is unknown, and one that drafted The Foundation Stone waits on its Opus until it knows Alchemy, even if a rival learned it first. The held row stays legal in its town's queue.
+97. (S9) A prototype costs double while its technology is unknown and only the card opens it, and buying one costs double too. A town's strength and free "best melee unit" grants may use a prototype; upgrades never do.
+98. (S9) The Closed Book refuses only a new Opus row; the ten turns run from the completion turn.
+99. (S9) Every siege blow on a rival town raising the Opus takes 5% of its banked production, at the walls or the garrison, even if the attacker dies.
+100. (S9) A commission reward from a figure, paid as food or production, is floored.
+101. (S9) The Soldier-Scholars' +5 reaches land military units, but its science counts every combat unit in the town, ships included. The Armoury Patterns also speeds civilians of the newest age.
+102. (S12) The charter technologies come after the tree in the Compendium, under one heading.
+103. (S12) The Compendium works out a charter technology's price itself, because `explainTechCost` needs a game; a test checks it against `explainTechCost`. Alternative: a seat-free price function in `tech.ts`.
+104. (S12) A charter technology's rules print in full, never as a named rule.
+105. (S12) A technology that opens a building early is named after the tree's own node.
+106. (S12) What a charter technology opens is printed by name and price with no link, as on other technology pages.
 
 ## The batches
 
@@ -446,6 +468,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 
 ### S7: the data-only cards of Tiers 0 to II
 
+**Built 2026-10-21** (`9379f79c`, schema 163). Readings 85 to 87 came from it. The `empireBuilding` rider field and the `buildingKind` record of firsts are named by no row until S8.
+
 - **Builds:** twelve group-1 cards: The Royal Tutors, The War Manuals, Learned Foundations, The Royal Estates, The Common Tables, The Free Cities, Enduring Institutions, The Quiet Faculties, The Roll of Scholars, The Palace Schools, The Round City, The City Architects. Learned Commissions is renamed; Enduring Institutions and The Quiet Faculties are brought to the docs' text and figures.
 - **Fence:** `data/decks/scientific.json`, the Scientific shelf of `docs/orders-and-doctrines.md`, `test/fixtures/cardText.json`, a new `test/sim/decks/scientificCards.test.ts`. The describers only if a sentence reads badly.
 - **Depends on:** nothing. It may run before S0 if the orchestrator wants these cards in a playtest sooner.
@@ -455,6 +479,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 
 ### S8: great people and the great houses
 
+**Built 2026-10-21** (`8964145d`, schema 164). Readings 88 to 94 came from it. It also fixed S5's stale Aqueduct refusal: a tree row opened early gets the tree's own sentence.
+
 - **Builds:** a great-person grant on `WindfallGrantSpec`; an any-of filter on the completion rider; a rule on `renownThreshold` (which takes the state); a count and a scope on `buildsEverywhere`; a town scope on `unlocksBuilding`; a commission figure for Academy hexes and a scope on `eachTown`. Cards (11): The Invitations, The Dedications, The Royal Readers, The Second Seat, The Forward Plans, The Lynx-Eyed Academy, and the data cards The Doctorate, The Royal Academies, The Queen of Cities, The Humanists, The Walls of Learning.
 - **Fence:** the shared six, `src/sim/renown.ts` and its callers, `src/sim/tech.ts` (`buildError`, `isUnlocked`), `src/sim/commissions.ts`, `src/sim/greatPeople.ts` (the offer), `test/sim/renown.test.ts`, `test/sim/greatPeople.test.ts`, a new `test/sim/decks/scientificHouses.test.ts`.
 - **Depends on:** S5 (The Lynx-Eyed Academy counts Academies as The Studium Generale reads them).
@@ -463,6 +489,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 - **Done-gate:** `npx vitest run test/sim/decks/scientificHouses.test.ts test/sim/renown.test.ts test/sim/greatPeople.test.ts test/sim/commissions.test.ts test/sim/decks/scientific.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts`.
 
 ### S9: the army and the Opus
+
+**Built 2026-10-21** (`26b5f191`, schema 166). Readings 95 to 101 came from it. **Every Scientific card of the themes pass is now built;** S11 to S13 remain.
 
 - **Builds:** behaviour rules `upgradeHeals` and `upgradeIgnoresResource`; `UnitFilter.newestAge`; the `CombatCondition`s `nearLearning` and `standingInOwnTown`; the Opus hit; the Opus door for one seat; the Closed Book record; the `tech` filter on the tally and the "not knowing a technology" deal gate; the current-research arm and its ×2 cost line. Cards (10): The Field Refits, The Model Army, The Armoury Patterns, The Strategikon, The Breaching Batteries, The Foundation Stone, The Closed Book, The Great Instrument, The Prototype Works, and the shared The Soldier-Scholars (a new `common.json` row, typed military, listed on the Dominion sheet).
 - **Fence:** the shared six, `src/sim/tech.ts` (`upgradeUnits`, `upgradeTargetFor`, `buildError`, `isUnlocked`), `src/sim/combat.ts`, `src/sim/cities.ts` (`explainBuildingCost`, `explainUnitCost`), `src/sim/statecraft/draft.ts` (`eligibleFor`), `src/sim/state.ts` (the Closed Book record), `data/decks/common.json`, `docs/decks/dominion.md` (one row), `test/sim/decks/dominion.test.ts`, `test/sim/ranks.test.ts`, `test/sim/combat.test.ts`, a new `test/sim/decks/scientificArmy.test.ts`.
@@ -494,6 +522,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 
 ### S11: the sheet of record, the types and the retirements
 
+**Done 2026-10-21** (`a75472ad`): every tier-table row implemented, thirteen charters dealt, every cut row retired; nothing in the data changed. Five shared rows wait on the Commerce and Devotion builds: The Monastery Libraries, The Exchange of Discoveries, Merchant Scholars, The Schoolmen's Charter and The Blessed Forges.
+
 - **Builds:** rewrite `docs/decks/scientific.md` from the two plan docs as built, with a Type column. Add `scientific` to `SORTED_DECKS` and write `type` on every Scientific row. Type the shared rows if question 5 allows it. Retire Field Notebooks, the ten old live rows, Discoveries through Great People, the twelve old deferred rows (reading 54) and The Hydraulic Commonwealth. Rewrite `test/sim/decks/scientific.test.ts` for the new deck: its row and band counts, thirteen live charters, and the sheet's rows ↔ the data's rows (the `statecraftDocSync.test.ts` pattern), retired rows excluded.
 - **Fence:** `docs/decks/scientific.md`, `data/decks/scientific.json`, `data/decks/common.json` (types, one retirement), `test/sim/decks/sortedSheets.ts`, `test/sim/decks/scientific.test.ts`, `test/sim/decks/dominion.test.ts`, `test/sim/decks/shared.test.ts`, `test/sim/decks/common.test.ts`, `docs/orders-and-doctrines.md`, `SCHEMA_VERSION` and its pins.
 - **Depends on:** S9 (every row exists).
@@ -502,6 +532,8 @@ The first twelve are the "to confirm" items of sections 12 to 14. The rest are n
 - **Done-gate:** `npx vitest run test/sim/decks/scientific.test.ts test/sim/decks/dominion.test.ts test/sim/decks/expansionist.test.ts test/sim/decks/shared.test.ts test/sim/decks/common.test.ts test/sim/statecraftDocSync.test.ts test/sim/typedChairs.test.ts`.
 
 ### S12: the Compendium
+
+**Built 2026-10-21** (`a75472ad`). Readings 102 to 106 came from it.
 
 - **Builds:** a charter technology entry generated from its row: "Opened by <charter>", the price as lines without any empire's cards, and the traits with their lines. The charter entries say what knowing the technology gives (they are generated from `CharterSpec` today). Entries for the five new buildings and three new improvements. The Physic Garden's happiness and every trait read through the describers, so no prose states a number.
 - **Fence:** `src/ui/compendium.ts`, `src/ui/compendiumText.ts`, `test/ui/compendium.test.ts`, `test/ui/compendiumDecks.test.ts`.

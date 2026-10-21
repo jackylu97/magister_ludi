@@ -196,6 +196,9 @@ import { cardDepositWorkCopies } from './statecraft/evaluator';
 // Expansionist batch E12: what a town holds, a card's grants included, from the
 // evaluator for the same reason.
 import { townShelf } from './statecraft/evaluator';
+// Scientific batch S9, The Prototype Works: the premium a row of the current
+// research costs, from the evaluator for the same reason.
+import { cardPrototypePercent } from './statecraft/evaluator';
 // Ranks: a leaf over the rule book, the unit table and the state.
 import { type RankId, grantExperience, raiseToRank, rankThreshold } from './ranks';
 import {
@@ -255,9 +258,11 @@ import {
 // `statecraft.ts`.
 import {
   buildError,
+  completionHeldFor,
   explainTechCost,
   foldTechCost,
   isUnlocked,
+  prototypePriced,
   settleResearchWindfall,
 } from './tech';
 import {
@@ -758,6 +763,14 @@ function netCopies(
 export interface QueueReplacement {
   cityId: number;
   queued: readonly UnitTypeId[];
+  /**
+   * The building rows of the proposed queue accepted so far (Scientific batch
+   * S8, The Second Seat). `buildError` counts them in place of the town's
+   * standing queue when it counts the extra copies of the great houses, so
+   * two second copies sent in one command are refused as two sent in two
+   * commands are.
+   */
+  buildings?: readonly BuildingId[];
 }
 
 /**
@@ -811,6 +824,9 @@ function resolveCommitments(
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;
     if (unit.freeUpkeep === true) continue;
+    // A piece The Model Army upgraded past a resource gate holds no copy
+    // (Scientific batch S9; the triage's reading 42).
+    if (unit.unsupplied === true) continue;
     const wants = requiredResourcesOf(unitDef(unit.type));
     if (wants.length > 0) takeOneCopy(ledger, wants);
   }
@@ -3461,12 +3477,43 @@ export function explainBuildingCost(
   // Floored once, as the unit fold's soldier line is.
   const premium = def.costPercent ?? 0;
   if (premium !== 0 && running > 0) {
+    const amount = Math.floor((running * premium) / 100);
     lines.push({
       source: `${def.name} ${premium > 0 ? '+' : '−'}${Math.abs(premium)}%`,
-      amount: Math.floor((running * premium) / 100),
+      amount,
     });
+    running += amount;
+  }
+  // **A prototype** (Scientific batch S9, The Prototype Works; the triage's
+  // reading 48): a row of the research under way, built before its
+  // technology is known, costs the card's share more. Last, on everything
+  // above, floored once. See `prototypePriced`.
+  if (state !== undefined && playerId !== undefined) {
+    const line = prototypeLine(state, playerId, 'building', id, running);
+    if (line !== null) lines.push(line);
   }
   return lines;
+}
+
+/**
+ * **The Prototype Works' cost line** (Scientific batch S9), or `null` when the
+ * row is not priced as a prototype for this empire. One line for both folds, so
+ * a building and a unit say the same words: "Prototype +100%".
+ */
+function prototypeLine(
+  state: GameState,
+  playerId: number,
+  kind: 'building' | 'unit',
+  id: string,
+  running: number,
+): UnitCostLine | null {
+  if (running <= 0 || !prototypePriced(state, playerId, kind, id)) return null;
+  const percent = cardPrototypePercent(state, playerId) ?? 0;
+  if (percent === 0) return null;
+  return {
+    source: `Prototype ${percent > 0 ? '+' : '−'}${Math.abs(percent)}%`,
+    amount: Math.floor((running * percent) / 100),
+  };
 }
 
 /**
@@ -3571,6 +3618,11 @@ export function explainUnitCost(
     lines.push({ source: `Cards ${law > 0 ? '+' : ''}${law}%`, amount: ruled - running });
     running = ruled;
   }
+
+  // **A prototype** (Scientific batch S9, The Prototype Works): last, on the
+  // figure every line above comes to, as the building fold adds it.
+  const prototype = prototypeLine(state, playerId, 'unit', type, running);
+  if (prototype !== null) lines.push(prototype);
 
   return lines;
 }
@@ -4426,6 +4478,10 @@ function payableUnitAt(
   if (!controlsAnyOf(state, city.ownerId, requiredResourcesOf(def))) {
     return null;
   }
+  // **A row waiting for its technology** (Scientific batch S9): a prototype
+  // whose research moved on finishes once the technology is known. See
+  // `completionHeldFor`.
+  if (completionHeldFor(state, city.ownerId, 'unit', id, city) !== null) return null;
   const cost = unitProductionCost(state, city.ownerId, id);
   if (hammers < cost) return null;
   return { id, cost };
@@ -4507,6 +4563,11 @@ function planQueueItem(
   if (isWonder(id) && wonderClaim(state, id) !== undefined) {
     return { kind: 'drop', item, index };
   }
+  // **A row waiting for a technology** (Scientific batch S9): a prototype
+  // whose research moved on, and the Magnum Opus begun early under The
+  // Foundation Stone, keep their place and their hammers and do not finish
+  // until the technology is known. See `completionHeldFor`.
+  if (completionHeldFor(state, city.ownerId, 'building', id, city) !== null) return null;
   const cost = buildingProductionCost(id, state, city.ownerId);
   if (hammers < cost) return null;
   return { kind: 'building', item, index, id, cost };

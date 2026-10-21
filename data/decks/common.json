@@ -1782,6 +1782,26 @@
       "effects": [
         { "kind": "pays", "where": "hex", "science": 2, "on": { "test": "resourceKind", "kind": "strategic" } }
       ]
+    },
+    "scientificTheSoldierScholars": {
+      "name": "The Soldier-Scholars",
+      "decks": ["dominion", "scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "The garrison keeps the library, and reads it on the long watches.",
+      "text": "Your military units in your towns gain +5 strength, and each supplies +2 science.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "side": "both",
+          "class": { "category": "military" },
+          "when": { "test": "standingInOwnTown" }
+        },
+        { "kind": "pays", "where": "city", "basis": "count", "to": "science", "amount": 2, "count": "garrison" }
+      ]
     }
   }
 }

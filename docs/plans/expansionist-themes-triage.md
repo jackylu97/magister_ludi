@@ -181,6 +181,23 @@ The first six come from section 11 of the themes doc and its answers. The rest a
 34. The Rope Stretchers counts improved tiles inside each town's borders, worked or not, tended works left out (The Ambarvalia's count).
 35. The Staked Claims moves from band 3 to band 2, so it is dealt from Tier II.
 36. (E7) The sheet takes each row's text from the list doc as revised on 2026-10-21. The 32 proposed Doctrines stay as they are.
+37. (E7) E7 also wrote The Two Harvests' new text, its deferred sentence, its note and its `needsTendedWork` gate on its data row, so the Compendium shows the target card while it waits for E9.
+38. (E7) Two reward shapes lost their only card: the citizens to the smallest towns (The Wide Country) and each town paid from its own figure (The Domesday Survey). Both stay in the code; their tests run on a stand-in reward.
+39. (E8) The Land Hunger narrows to `class: { type: 'settler' }`, not the settler's model class, because the great person shares that model.
+40. (E9) The Two Harvests counts every farm, mine and lumber mill you own, worked or not, because a hex's yield cannot depend on whether it is worked. Hex lines still pay worked hexes only.
+41. (E9) A hex that carries the burned mark is refused after its work is gone, so bare land burned once cannot take burned country.
+42. (E9) A farm on a seam may be burned, because the farm stays.
+43. (E10) The Burghers' line is a share of all four kinds of guild line, the idle line included, and it is not rounded.
+44. (E10) The `citizens` grant takes the era and council multipliers as renown does, rounded down; no live row uses them.
+45. (E10) Watch and Ward reads the fight's hex: an attacker gains it only when the hex it attacks is inside its borders; a defender when it stands inside them.
+46. (E11) A public work granted by a completion or a commission counts for The Aediles; a founding rider's free Granary does not, because it does not pass through `realiseItem`.
+47. (E11) The Topping Out's hammers go into each basket at once but are settled at the production step, not during the completion; `payCompletionRiders` settles growth only.
+48. (E11) The Topping Out also pays for a granted empire building.
+49. (E12) The one reading of what a town holds lives in `statecraft/evaluator.ts`, not `cities.ts`: every reader may import the evaluator, but `yields/hex.ts`, `visibility.ts`, `renown.ts` and `routeYields.ts` may not import `cities.ts`.
+50. (E12) Every scope and count that asks what a town holds moves to it, not only the three the triage named, so The Public Good counts a held Aqueduct.
+51. (E12) Every reader of a building's effect moves to it; the readers of what was built stay on `City.buildings`.
+52. (E12) A card never grants a wonder or an empire building this way.
+53. (E12) A held building's lines print "Building · Aqueduct" without the card's name. A UI follow-up could name the card.
 
 ## The batches
 
@@ -209,6 +226,8 @@ The first six come from section 11 of the themes doc and its answers. The rest a
 
 ### E7: the sheet of record, the retirements and the cards changed in place
 
+**Built 2026-10-21** on `exp-work` (`971b174c`), merged into `decks` with E8. Readings 37 and 38 came from it.
+
 - **Builds:**
   - **The sheet.** Rewrite the five tier tables of `docs/decks/expansionist.md` from the list doc as revised on 2026-10-21:
     - the ten cards E7 builds, as `implemented`;
@@ -231,6 +250,8 @@ The first six come from section 11 of the themes doc and its answers. The rest a
 
 ### E8: the new data-only cards
 
+**Built 2026-10-21** on `exp-work` (`452e0ed5`), merged into `decks` with E7. Reading 39 came from it.
+
 - **Builds:** five group-1 rows: The Founding Furrow, The Horrea, The Land Hunger, The Many Hands, The Capitolia.
 - **Fence:** `data/decks/expansionist.json`, `docs/decks/expansionist.md`, the Expansionist shelf of `docs/orders-and-doctrines.md`, `test/fixtures/cardText.json`, `src/sim/state.ts` (the schema line) and `test/sim/state.test.ts`, `test/sim/decks.test.ts` (Expansionist's live rows 102 → 107), `test/sim/decks/expansionistThemeCards.test.ts`. The describers only if a sentence reads badly.
 - **Shares with the S track:** as E7, without S5's files.
@@ -241,6 +262,8 @@ The first six come from section 11 of the themes doc and its answers. The rest a
 - **After E8 a playtest can start:** 102 of the 114 cards and charters play as written.
 
 ### E9: the land (marks, ages and tended fields)
+
+**Built 2026-10-21** on `exp-work` (`8e0344a3`), merged into `decks` with E10. Readings 40 to 42 came from it.
 
 - **Builds:**
   - Three mark rows in `rules.improvements.hexMarks` and `HexMarkId`: `burned` (food 1, while `improved`), `marl` and `marlSecond` (food 1 each, while farm or pasture).
@@ -259,6 +282,8 @@ The first six come from section 11 of the themes doc and its answers. The rest a
 
 ### E10: the militia and the trades
 
+**Built 2026-10-21** on `exp-work` (`d7347a61`), merged into `decks` with E9. Readings 43 to 45 came from it. Bots price a levied combat line at 0, as they price levied stamps.
+
 - **Builds:**
   - A grant field `citizens` on `WindfallGrantSpec`, settled through `settlePopulationWindfall`, paid only when the moment carries `unitCost` (readings 25, 26). Card: Veteran Colonies, changed in place.
   - A `levied` field on `combatLine`, read in `combatLineAmount` off the piece's levy mark. If the combat situation does not carry the piece, `combat.ts` hands it in (reading 27). Card: Watch and Ward.
@@ -271,6 +296,8 @@ The first six come from section 11 of the themes doc and its answers. The rest a
 - **Done-gate:** `npx vitest run test/sim/decks/expansionistMilitia.test.ts test/sim/decks/expansionistSurplus.test.ts test/sim/guilds.test.ts test/sim/disband.test.ts test/sim/combat.test.ts test/sim/decks/expansionistLevies.test.ts test/sim/decks/expansionist.test.ts test/sim/decks.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/statecraft.test.ts`.
 
 ### E11: public works and empire buildings
+
+**Built 2026-10-21** on `exp-work` (`d280d797`), The Topping Out included (S6's grant was on the branch). Readings 46 to 48 came from it. Follow-ups: the Compendium does not name a public work (markers are labelled in `src/ui/compendium.ts`); `docs/README.md` still names The Topping Out as the card that reads a completion's population.
 
 - **Builds:**
   - A marker `BuildingDef.publicWork` on six rows of `data/buildings.json` (the Granary, Aqueduct, Watermill, Harbour, Public Bath and Cistern), read by an `isPublicWork` beside `isEmpireBuilding`, and a register test that the marked rows are exactly those six (reading 30).
@@ -285,6 +312,8 @@ The first six come from section 11 of the themes doc and its answers. The rest a
 - **Done-gate:** `npx vitest run test/sim/decks/expansionistPublicWorks.test.ts test/sim/decks/expansionistMoments.test.ts test/sim/decks/expansionist.test.ts test/sim/productionCosts.test.ts test/sim/decks.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/statecraft.test.ts`.
 
 ### E12: The Cura Aquarum
+
+**Built 2026-10-21** on `exp-work` (`3e375290`), to merge into `decks` with E11 after Scientific S13. Readings 49 to 53 came from it. Cost: a seat holding the card about doubles its town fold sweep (0.5 to 1.0 ms for eight towns), because the road fill is not cached and roads do not move the economy clock; a follow-up can cache it. Follow-ups: the city panel's Built list and its defence, hit points, queue floor and rite pay still read what was built (they agree today, because the Aqueduct has none of those facts); bots read what was built until E13.
 
 - **Builds:** a city rule with a `building` field (for example `holdsBuilding`), scope `connected`, and one reading of "this town holds this building" (for example `townHoldsBuilding(state, city, id)`) that answers yes for a real building or for the rule. The readers of the building's effect move to it: `buildingEffects.ts` (`waters`, its lists), the building's own effects as a `liveEffects` source, the building lines of the town fold (`yields/town.ts`), and the scopes and counts (`hasBuilding`, `citiesAdmitted`, `buildingsOfKind`). The readers of what was built keep reading `City.buildings` (reading 33). The batch lists every reader it moved and every reader it left, with the reason for each. Card: The Cura Aquarum.
 - **Fence:** the shared six (Expansionist parts), `docs/decks/expansionist.md`, `src/sim/cities.ts` (the helper), `src/sim/buildingEffects.ts`, `src/sim/yields/town.ts` (the building lines), `src/sim/state.ts` (the schema line) and `test/sim/state.test.ts`, `test/sim/decks.test.ts` (Expansionist's live rows 113 → 114), `test/sim/yieldsDocSync.test.ts` (read; the order of the folds must not move), `test/mapgen/moduleCycles.test.ts` (read: a helper `buildingEffects.ts` and the evaluator both need lives in a leaf), a new `test/sim/decks/expansionistCura.test.ts`.

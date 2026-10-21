@@ -356,7 +356,7 @@ describe("the tabs' figures", () => {
     const player = state.players[0]!;
     player.renownPool = 57;
     const figures = tabFigures(state, 0);
-    const rung = renownThreshold(player);
+    const rung = renownThreshold(state, player);
     expect(figures.renownSpoken).toContain(`57 of ${rung}`);
     expect(figures.renownTitle).toContain(`57/${rung}`);
     expect(figures.beadsSpoken).toContain(`0 of ${BEAD_RULES.threshold}`);

@@ -20,7 +20,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | Tier III | 27 | 0 | 0 | 27 | 3 |
 | Tier IV | 21 | 0 | 0 | 21 | 3 |
 | **All** | **132** | **0** | **0** | **132** | **15** |
-| Shared | 26 | 1 | 0 | 27 |  |
+| Shared | 27 | 1 | 0 | 28 |  |
 
 **By type** (the chair a card fits):
 
@@ -32,7 +32,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | Tier III | 10 | 6 | 9 | 2 |
 | Tier IV | 9 | 3 | 5 | 4 |
 | **All** | **45** | **31** | **41** | **15** |
-| Shared | 11 | 8 | 7 | 1 |
+| Shared | 12 | 8 | 7 | 1 |
 
 ## Tier 0
 
@@ -263,6 +263,7 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 | **The Crusader Orders** | uncommon | Devotion | II | implemented | Military units gain +3 strength in territory not following your religion. Capturing a city presses your religion into it. | Military |
 | **Carried-Off Scholars** | common | Scientific | II | implemented | Capturing a city grants science equal to ten times its population. | Civic |
 | **Looted Art** | uncommon | Magisterial | II | implemented | Capturing a city grants 20 renown for each great-person work and wonder inside its borders. | Civic |
+| **The Soldier-Scholars** | uncommon | Scientific | II | implemented | Your military units in your towns gain +5 strength, and each supplies +2 science. | Military |
 | **The Engineer Corps** | uncommon | Scientific | III | implemented | Siege units gain +1 movement. Cities with a Workshop gain +30% production toward siege units and +3 science while at war. | Military |
 | **War Bonds** | uncommon | Commerce | III | implemented | Military units gain +1 strength for every 150 gold in your treasury, at most +5. | Military |
 | **Professional Soldiers** | uncommon | Commerce | III | implemented | Units you purchase gain +3 combat strength. | Military |
@@ -297,7 +298,7 @@ New names are placeholders; rename freely.
   - **Your comments also revised** four sheet cards (The Gathering Host, which now grows only for military units, The Soldier-Farmers, Take the City and The Captured Marvel) and four new cards (The Ranks of Merit, Harry the Border, The First Province and The Border Fortress).
   - **Eight commissions leave an institution,** a reward that lasts for the rest of the game and takes no chair: The Ranks of Merit, Harry the Border, The First Province, Take the City, The Border Fortress, A Victor's Peace, The Chosen Men and The Captured Marvel.
   - **Every recommendation of the themes pass's section 10 stands** (a reading, to confirm), feature C included. So Rally to the Standard is now automatic and rare, as the captains' capstone, and The Acropolis and The Marshalate are reworked.
-  - **The Soldier-Scholars** (shared with Scientific, typed Military, a reading to confirm) joins the shared table when Scientific batch S9 builds it.
+  - **The Soldier-Scholars** (shared with Scientific, typed Military, a reading to confirm) is on the shared table; Scientific batch S9 built it.
 - **Answered in your pass of 2026-10-16** (written into the rows above):
   - **The Longbowmen** gain +5 culture each time they attack from range.
   - **Interior Lines:** the +4 is for a unit that has not moved this turn.

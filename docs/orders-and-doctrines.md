@@ -604,7 +604,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Royal Workshops | 0 | ● | S | Completing a technology grants 15 production in your capital. |
 | The Prize Essay | 0 | ● | S | Completing a technology before any other empire grants 15 culture and 15 production in your capital. Charter technologies do not count. |
 | The Sky Watchers | 0 | ● | P | Shrines give +1 faith and +1 science. |
-| Learned Commissions | 1 | ● | S | Library cities gain +38% production toward empire buildings. Completing each institution type for the first time grants 60 culture and 30 faith. |
+| The Royal Tutors | 0 | ● | S | +1 renown a turn for each science building you have, favouring great scholars. |
+| The War Manuals | 0 | ● | S | Units gained in a town with a Library start with +2 strength. |
+| Learned Foundations | 1 | ● | S | Cities with a Library build empire buildings 25% faster. |
 | The Old Academy | 1 | ◆ | S | An Academy at least twenty turns old gains +3 food and +3 production. At forty turns these bonuses become +6 of each. |
 | The Commonplace Book | 1 | ● | S | Charter technologies cost you 15% less research. |
 | The Secret Arts | 1 | ◆ | P | Each town gains +1 production for each technology you know that no empire you have met knows, at most +5. |
@@ -615,8 +617,14 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Librarians' Charter | 1 | ○ | S | Drafting this opens Cataloguing for research. Knowing it lets you build the Mouseion, an empire building only you can build: +4 renown a turn, favouring great scholars, and +2 culture for each empire building you hold, itself included. It costs 30% more production than an ordinary empire building. No chair required. |
 | The Astronomical Diaries | 1 | ◆ | P | While seated, this card gains +1 culture and +1 production each time you complete a technology. It starts at +2 of each. |
 | The Scholars' Fame | 1 | ● | S | Completing a technology grants renown, favouring great scholars, equal to a twentieth of its cost. |
-| The Quiet Faculties | 2 | ○ | P | Cities working a great-person improvement gain +38% food and +30% production, but produce military units 25% more slowly. |
-| Enduring Institutions | 2 | ◆ | P | A city with an empire building at least twenty turns old gains +2 happiness and +23% production, once per city. |
+| The Royal Estates | 1 | ● | P | Each empire building gives its town +2 food and +2 production. |
+| The Common Tables | 1 | ● | P | Towns gain +2 food for each science building in them. |
+| The Free Cities | 1 | ◆ | S | While you hold at most five towns, your towns build buildings and wonders 20% faster. |
+| The Forward Plans | 1 | ○ | S | You may build a University in any city whose Library has stood at least 30 turns, before you know Scholarship. |
+| The Dedications | 1 | ◆ | S | Finishing a science building or an empire building grants culture equal to ten times the town's population. |
+| The Field Refits | 1 | ◆ | S | Each time research upgrades one of your units, it heals fully. |
+| The Quiet Faculties | 2 | ○ | P | Cities working an Academy gain +25% food and +20% production, but produce military units 25% more slowly. |
+| Enduring Institutions | 2 | ◆ | P | A town with an empire building at least twenty turns old gains +25% production. |
 | The Mechanists' Charter | 2 | ○ | S | Drafting this opens Mechanics for research. Knowing it gives two lines a trait they keep through every upgrade. Onager (Catapult and Trebuchet): +1 range. Repeating Crossbow (Archer to Crossbowman): it may move after it shoots. No chair required. |
 | The Scholars' Guild | 2 | ◆ | P | Scholars in the trades also pay +1 food and +1 production. |
 | The Translation Movement | 2 | ◆ | S | Technologies that an empire you have met already knows cost you 20% less research. |
@@ -627,6 +635,14 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Latin Quarter | 2 | ● | S | Great-person works beside an Academy gain +2 culture and +1 production. |
 | The Charter Rolls | 2 | ◆ | P | Your capital gains +3 production and +3 culture for each charter you have drafted. |
 | The Royal Charter Commission | 2 | ◆ | S | Commission. Complete a charter technology while this is seated. Reward: a great scholar and 100 culture. Then it leaves its chair. |
+| The Roll of Scholars | 2 | ◆ | P | +4% production and culture for each great scholar you have gained this game, at most +28%. |
+| The Palace Schools | 2 | ◆ | S | Units gained in a town with an empire building start with +4 strength. |
+| The Round City | 2 | ◆ | P | +1% production and culture for each citizen in your capital, at most +30%. |
+| The City Architects | 2 | ● | S | Towns of at least eight citizens build wonders 25% faster. |
+| The Royal Readers | 2 | ○ | S | Great scholars raise the price of your next great person by half as much. |
+| The Invitations | 2 | ○ | S | Completing an empire building grants a great scholar. |
+| The Strategikon | 2 | ◆ | S | Your units gain +4 strength while within two hexes of your great general, your great scholar or your Academy. |
+| The Armoury Patterns | 2 | ● | S | Towns build units of the newest age you know 25% faster. |
 | The Long Inheritance | 3 | ◆ | S | Cities working an Academy at least twenty turns old gain +30% production toward empire buildings, wonders and the Magnum Opus. |
 | Greek Fire | 3 | ◆ | S | Gaining a unit that no empire you have met can build grants science and culture equal to its strength. |
 | The Proving Ground | 3 | ◆ | S | Your units gain +1 strength for each technology you know that no empire you have met knows, at most +8. |
@@ -637,12 +653,25 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Nizamiyya | 3 | ◆ | S | Academies produce half again of everything they make. |
 | The Age of Reason | 3 | ○ | S | Your Orders count each technology you complete twice. |
 | The Journeymen | 3 | ● | S | Completing a technology grants each town production equal to three times its population. |
+| The Second Seat | 3 | ○ | S | You may build one second copy of an empire building, in a city with a University. |
+| The Doctorate | 3 | ● | S | Gaining a great scholar grants culture equal to eight turns of your culture. |
+| The Royal Academies | 3 | ◆ | P | +5% production and culture for each empire building you hold. |
+| The Queen of Cities | 3 | ○ | P | Towns of at least 15 citizens produce twice their food and production. |
+| The Humanists | 3 | ◆ | P | Cities with a University gain culture equal to half their base science. |
+| The Model Army | 3 | ○ | S | Research upgrades your units even when you lack the strategic resource the new unit needs. |
 | The Patent Office | 4 | ◆ | S | Charter technologies cost you no more research than ordinary technologies at the same point in the tree. |
 | The Naval Gunners' Charter | 4 | ◆ | S | Drafting this opens Naval Gunnery for research. Knowing it gives your Gun Galleys the Galleass trait: +3 strength, and they blockade: parked off a rival's port, a Gun Galley closes its sea lane and its trade. No chair required. |
 | The Military Engineers' Charter | 4 | ◆ | S | Drafting this opens Military Architecture for research. Knowing it lets you build the Bastion (+5 defence, +30 hit points), which no ordinary technology opens. No chair required. |
 | The Republic of Letters | 4 | ◆ | P | Your capital gains +4 production and +4 culture for each Academy you hold. |
 | The Sum of Knowledge | 4 | ○ | P | Your capital gains +1 production and +1 culture for each technology you know. |
 | The Great Catalogue | 4 | ○ | S | +10% production toward the Magnum Opus for each charter technology you know, at most +40%. |
+| The Walls of Learning | 4 | ● | S | Cities with a University gain +6 strength, and the city building your Magnum Opus gains +12 more. |
+| The Lynx-Eyed Academy | 4 | ○ | S | Commission. Hold four Academies while this is seated. Reward: a great scholar, and 300 production in each city with an Academy toward what it is building. Then it leaves its chair. |
+| The Great Instrument | 4 | ○ | S | Commission. Complete Alchemy while this is seated. Reward: production toward the Magnum Opus equal to a tenth of its cost. Then it leaves its chair. Not dealt to a seat that knows Alchemy. |
+| The Foundation Stone | 4 | ○ | S | You may begin the Magnum Opus before any empire knows Alchemy, once you have put half of Alchemy's cost into researching it. It cannot be finished until you know Alchemy, and your rod of beads must still be full to begin it. |
+| The Closed Book | 4 | ○ | S | If you complete Alchemy before any other empire, empires that do not know Alchemy may not begin the Magnum Opus for 10 turns. |
+| The Breaching Batteries | 4 | ◆ | S | Your siege units gain +5 strength against cities. Each hit they land on a city building the Magnum Opus removes 5% of the production banked toward it. |
+| The Prototype Works | 4 | ○ | S | You may build the buildings and train the units of the technology you are researching, at double their production cost. Wonders are excepted. |
 
 ### Magisterial
 
@@ -760,6 +789,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Chartered Company | Dominion · Commerce | 3 | ◆ | S | Once drafted, unlock the Company Guard, a unique gunpowder-age melee unit that can only be bought with gold, in cities with a Barracks. No chair required. |
 | The Muster of the Fields | Dominion · Expansionist | 1 | ◆ | S | Cities of at least five citizens may spend one citizen to muster their best legally available melee unit. This shares the city's five-turn levy limit. The unit counts as trained. |
 | Carried-Off Scholars | Dominion · Scientific | 2 | ● | S | Capturing a city grants science equal to ten times its population. |
+| The Soldier-Scholars | Dominion · Scientific | 2 | ◆ | P | Your military units in your towns gain +5 strength, and each supplies +2 science. |
 | The Sword of State | Dominion · Magisterial | 1 | ● | S | On draft: the best melee unit you can build is trained in your capital. It costs no upkeep. Seated, this card does nothing. |
 | Copying the Enemy | Dominion · Scientific | 1 | ◆ | S | Your first kill each turn of a unit you cannot yet build grants science toward the technology that unlocks it, equal to 10% of that technology's cost. |
 | The New Code | Dominion · Magisterial | 3 | ○ | S | Capturing a city opens a draft at once, at no culture cost. This can happen at most once every ten turns. |
@@ -856,7 +886,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Long Study** — † a library that has stood a long while pays culture and renown, and pays more again once it is very old
 - **The Old Academy** — † an academy that has stood a long while feeds and works the town it serves, and more again once it is very old
 - **Enduring Institutions** — † a town whose empire building has stood a long while is gladder and builds faster, once per town
-- **The Second Seat** — † you may raise one further copy of an empire building, in a town that holds a university, and only one such copy may be building or standing at a time
 - **The Civic Guard** — † Towns that keep a Monument are harder to storm.; Soldiers defending beside such a town fight harder. A strength line can be told where the fight is happening — your ground, the hills, a town — but not which buildings stand in the town behind it.
 - **Festival Commissions** — Not built: a windfall is paid to an empire and cannot be told what stands in the town that grew; and the design pays only for growth past a town's own historical high, which nothing remembers. † a town that holds a monument is paid in song and bread each time it grows
 - **The Civic Annals** — Not built: a counter is a number on a card and carries no subject, so it cannot be told which towns to watch; and the design pays only for growth past a town's own historical high, which nothing remembers. † the card keeps count of every time one of your towns that holds a monument grows, and pays a little more each turn for it

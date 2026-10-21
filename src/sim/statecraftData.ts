@@ -1727,7 +1727,33 @@ export type CombatCondition =
    * technologies count on both sides (the triage's reading 17). The barbarian
    * seat is not an empire and never satisfies it (reading 7).
    */
-  | { test: 'vsFewerTechs' };
+  | { test: 'vsFewerTechs' }
+  /**
+   * **This side's piece stands within `hexes` of one of this empire's great
+   * people of these families, or of one of its works of the named row**
+   * (Scientific batch S9, The Strategikon: "within two hexes of your great
+   * general, your great scholar or your Academy"; the triage's readings 11 and
+   * 44).
+   *
+   * It reads the hex the piece stands on, as `standingIn` does: the contested
+   * hex for a defender, and its own hex for an attacker. Only this empire's
+   * own count (reading 11). A great person counts while it stands unspent on
+   * the board. A work counts on a hex inside this empire's borders, through
+   * `workIsRow`, so a great person's work that The Studium Generale lets stand
+   * in for an Academy counts too. The line stacks with the general's aura
+   * (reading 44): the aura is its own line in `planCombat`.
+   */
+  | { test: 'nearLearning'; hexes: number; families: Family[]; improvement: ImprovementId }
+  /**
+   * **This side's piece stands in a town of its own empire** (Scientific batch
+   * S9, the shared The Soldier-Scholars; the triage's reading 9).
+   *
+   * `inCity` asks about the contested hex, which is the defender's own, so a
+   * row written `inCity` is a defence line. This reads the hex the piece
+   * stands on, as `standingIn` does, so with `side: 'both'` it pays a fight
+   * the piece takes from its town, in attack and in defence.
+   */
+  | { test: 'standingInOwnTown' };
 
 /** What a strength line counts, when it counts something. */
 export type CombatScaleCount =
@@ -1974,6 +2000,15 @@ export interface UnitFilter {
    * `unitLine` (`unitData.ts`).
    */
   line?: UnitTypeId;
+  /**
+   * **Only units of the newest age the owner knows** (Scientific batch S9, The
+   * Armoury Patterns; the triage's reading 43). A unit's age is its unlocking
+   * technology's (`unitAge`), and the owner's age is `highestAge`, which leaves
+   * charter technologies out. The type alone cannot answer it, so
+   * `unitMatches` takes the owner's age, and a caller that hands in none is
+   * told no.
+   */
+  newestAge?: true;
 }
 
 /**
@@ -3816,7 +3851,18 @@ export type CardRule =
    * `explainTechCost`, read only for an ordinary technology: the gap holds no
    * charter technology (the triage's readings 2 and 15).
    */
-  | 'gapTechCost';
+  | 'gapTechCost'
+  /**
+   * **How far one great scholar this empire has gained moves it up the
+   * great-person price ladder** (Scientific batch S8, The Royal Readers: −50,
+   * "half as much"; the triage's reading 38). A negative percentage is a
+   * smaller step. Read in `renownThreshold` (`renown.ts`): each scholar the
+   * empire has gained (`Player.greatPeopleByFamily`) counts as this share of
+   * one recruit, and every other great person counts as a whole one. Every
+   * scholar gained counts while the card is seated, the ones gained before it
+   * was seated too.
+   */
+  | 'scholarLadderStep';
 
 /** A constant of the two meters a card may rewrite. */
 export type MeterRuleId =
@@ -4181,7 +4227,29 @@ export type ActionRuleId =
    * Faith may buy a **world wonder at least half built**, in the towns the row's
    * `scope` admits — The Pious Masons. Never the Magnum Opus.
    */
-  | 'faithBuysWonders';
+  | 'faithBuysWonders'
+  /**
+   * **This empire may begin the Magnum Opus before any empire knows the
+   * technology that opens it** (Scientific batch S9, The Foundation Stone; the
+   * triage's reading 49), once it has banked the row's `percent` of that
+   * technology's folded cost toward it (`bankedTowardTech`). Read in
+   * `isUnlocked` and `buildError` (`tech.ts`) through `cardOpusEarlyPercent`.
+   * Every other clause of the Opus's gate still runs, the beads included.
+   * While the card is seated, and while no empire knows the technology, the
+   * Opus cannot be finished until this empire knows it (`opusHeldFor`).
+   */
+  | 'opusEarly'
+  /**
+   * **This empire may build the buildings and train the units of the
+   * technology it is researching** (Scientific batch S9, The Prototype Works;
+   * the triage's reading 48). Only `Player.researching`, not the queue, and
+   * never a wonder. Read in `isUnlocked` (`tech.ts`) through
+   * `cardPrototypePercent`. The row's `percent` is the extra production such a
+   * row costs, a labelled line of `explainBuildingCost` and `explainUnitCost`
+   * (`cities.ts`): 100 is double. A row queued this way cannot finish until
+   * its technology is known (`prototypeHeld`).
+   */
+  | 'prototypes';
 
 /**
  * Something about the world that stops being true — or starts.
@@ -4512,7 +4580,45 @@ export type BehaviorRuleId =
    * what the marker gives the heavy line. Only a ship can blockade: the rule
    * says nothing about a land piece.
    */
-  | 'blockades';
+  | 'blockades'
+  /**
+   * **A piece that research upgrades heals fully** (Scientific batch S9, The
+   * Field Refits; the triage's reading 41). Read in `upgradeUnits`
+   * (`tech.ts`) after each upgrade it makes, through `cardBehaviorRuleFor`, so
+   * a row may narrow it by `class`. Every upgrade counts: on the turn a
+   * technology lands, and later when the resource the new unit needs
+   * arrives. A trait a piece gains is not an upgrade and never heals.
+   */
+  | 'upgradeHeals'
+  /**
+   * **Research upgrades this empire's pieces without the strategic resource
+   * the new unit needs** (Scientific batch S9, The Model Army; the triage's
+   * reading 42). Read in `upgradeTargetFor` (`tech.ts`) for a piece on the
+   * board, and never in the type reading (`upgradeTargetForType`) that the
+   * build list and the obsolescence clause ask, so a new unit still needs the
+   * resource. A piece that climbs past the resource gate this way holds no
+   * copy (`Unit.unsupplied`).
+   */
+  | 'upgradeIgnoresResource'
+  /**
+   * **Each blow this empire's pieces land on a town raising the Magnum Opus
+   * removes a share of the production banked toward it** (Scientific batch
+   * S9, The Breaching Batteries; the triage's reading 52). The share is the
+   * row's `percent`, and the pieces are the row's `class`. Read in
+   * `applyCombat` (`combat.ts`) through `cardOpusBreachPercent`, after the
+   * blow lands, on any beat of the siege. The loss is floored.
+   */
+  | 'opusBreach'
+  /**
+   * **Completing the Opus's technology before any other empire closes the
+   * door on the others for a while** (Scientific batch S9, The Closed Book;
+   * the triage's reading 50). The turns are the row's `turns`. Read once, in
+   * `settleResearch` (`tech.ts`), when this empire completes the technology
+   * that opens the Magnum Opus as a world first while the card is seated: it
+   * writes `GameState.closedBook`. `buildError` then refuses the Opus to every
+   * other empire that does not know that technology until the record's turn.
+   */
+  | 'closedBook';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId =
@@ -5263,6 +5369,21 @@ export interface WindfallGrantSpec {
    * Absent feeds no family.
    */
   renownFamily?: Family;
+  /**
+   * **A great person of this family** (Scientific batch S8, The Invitations:
+   * "completing an empire building grants a great scholar"; the triage's
+   * reading 37). `'any'` deals the ordinary offer.
+   *
+   * Dealt as a commission's `CommissionReward.greatPerson` is, through the
+   * same routine (`grantGreatPersonOffer`, `greatPeople.ts`): an offer
+   * narrowed to the family when the empire may call great people and has none
+   * waiting, and otherwise the renown that fills the ladder to its next rung,
+   * so the person arrives when the waiting offer is answered or the rites are
+   * known. A person is not a figure, so the era and the council do not
+   * multiply it. On the `tech` occasion The Age of Reason's second round
+   * grants a second one, as it gives a second unit (reading 82).
+   */
+  greatPerson?: Family | 'any';
   /**
    * Production from this grant goes to the town raising the Magnum Opus —
    * Spolia. When no town is raising it, the production is kept for the Opus
@@ -6970,6 +7091,19 @@ export interface CardWindfallRiderEffect {
    */
   empireBuilding?: boolean;
   /**
+   * The rider fires when the building finished passes **at least one** of
+   * these tests (Scientific batch S8, The Dedications: "a science building or
+   * an empire building"; the triage's reading 36).
+   *
+   * The other building filters on this shape must all hold. This one lets a
+   * row name two classes and still pay once for a building in both, such as
+   * Chart the Stars, which is a science building and an empire building. Two
+   * riders, one for each class, would pay that building twice. Read off
+   * `WindfallOccasionFacts.building`, so an occasion that names no building
+   * never pays it.
+   */
+  anyOf?: RiderBuildingTest[];
+  /**
    * The rider fires only when the occasion was about a **building at all**,
    * whichever one — Civic Receipts' rebate on every roof a town buys (batch C3).
    *
@@ -7071,6 +7205,21 @@ export interface CardWindfallRiderEffect {
    * `WindfallOccasionFacts.building`, the row the completion seam holds, so a
    * rider written onto an occasion that names no building never pays.
    */
+  building?: BuildingId;
+}
+
+/**
+ * **One test of a building row**, for a rider's any-of filter
+ * (`CardWindfallRiderEffect.anyOf`, Scientific batch S8). Each field means
+ * what the rider's field of the same name means, and every field a test
+ * carries must hold for the test to pass.
+ */
+export interface RiderBuildingTest {
+  /** The row's shelf (`BuildingDef.category`). */
+  buildingCategory?: BuildingCategory;
+  /** One of the realm's great houses (`isEmpireBuilding`), or, with `false`, not one. */
+  empireBuilding?: boolean;
+  /** This row. */
   building?: BuildingId;
 }
 
@@ -7489,12 +7638,27 @@ export interface CardRuleEffect {
    */
   building?: BuildingId;
   /**
+   * **Every great house, in place of one named row** (Scientific batch S8, The
+   * Second Seat: "one second copy of an empire building"). Read only by
+   * `buildsEverywhere`, through `cardLimitLifts`: the rule reaches every
+   * building that is one to a realm and is an empire building
+   * (`isEmpireBuilding`), except the Magnum Opus (`BuildingDef.endsTheGame`),
+   * because a second Opus would race itself (reading 89). Meaningless on every
+   * other member.
+   */
+  empireBuilding?: true;
+  /**
    * **Which towns the rule is true in** — The Lay Brothers' Temple towns and
    * Consecrated Labor's Shrine towns. Read by `cardActionRuleAt`, which
    * the three faith-purchase rules (`faithBuysUnits`, `faithBuysBuildings`,
    * `faithBuysWonders`) are asked through with the town in hand, and by the
    * city rules' readers (`cardCityRuleAt`, `cardGarrisonSeats` and, since
    * Expansionist batch E12, `cardHeldBuildings`). Absent means every town.
+   *
+   * Since Scientific batch S8 it is also read by `buildsEverywhere` (The
+   * Second Seat: "in a city with a University"): the extra copy may be built
+   * only in a town the scope admits, asked by `buildError` with the town in
+   * hand.
    */
   scope?: CityScope;
   /**
@@ -7510,9 +7674,15 @@ export interface CardRuleEffect {
   rank?: RankId;
   /**
    * **The most extra hexes the rule gives one town** (Dominion batch D13).
-   * Read only by `garrisonWorks`: a town works one more hex for each soldier
-   * in it, up to this many. Absent, every soldier counts. Meaningless on every
-   * other member.
+   * Read by `garrisonWorks`: a town works one more hex for each soldier
+   * in it, up to this many. Absent, every soldier counts.
+   *
+   * Since Scientific batch S8 it is also read by `buildsEverywhere` (The
+   * Second Seat): **the most extra copies of the rows it reaches, in all**,
+   * standing or being built. A copy is extra when the empire already holds or
+   * is building another of the same row, so `1` is one second copy of one row
+   * (the triage's reading 47). Absent, the rule lifts the limit outright, as
+   * Caravanserai Cities does. Meaningless on every other member.
    */
   max?: number;
   /**
@@ -7537,6 +7707,27 @@ export interface CardRuleEffect {
    * every other member.
    */
   improvements?: ImprovementId[];
+  /**
+   * **The rule's one figure, as a percentage** (Scientific batch S9). Three
+   * rules read it, each in its own sense:
+   *
+   *   - `opusEarly` (The Foundation Stone): the share of the technology's
+   *     folded cost that must be banked toward it before the Opus may begin;
+   *   - `prototypes` (The Prototype Works): the extra production a row of the
+   *     current research costs, so 100 is double;
+   *   - `opusBreach` (The Breaching Batteries): the share of the banked Opus
+   *     production one blow removes.
+   *
+   * A row of one of these rules with no figure changes nothing. Meaningless
+   * on every other member.
+   */
+  percent?: number;
+  /**
+   * **How many turns the rule lasts once it fires** (Scientific batch S9, The
+   * Closed Book). Read only by `closedBook`, when the record is written.
+   * Meaningless on every other member.
+   */
+  turns?: number;
 }
 
 /**
@@ -7971,6 +8162,19 @@ export interface CardLandfallEffect {
 export interface CardUnlocksBuildingEffect {
   kind: 'unlocksBuilding';
   building: BuildingId;
+  /**
+   * **Which towns the row opens in** (Scientific batch S8, The Forward Plans:
+   * a University "in any city whose Library has stood at least 30 turns").
+   * Absent opens the row in every town, which is what every row written
+   * before it meant.
+   *
+   * Read by `cardUnlocksBuilding`. With a town in hand (`buildError`, through
+   * `isUnlocked`) the scope is asked of that town; with none (the build list,
+   * the Compendium) it is asked of each of the empire's towns, so the row
+   * shows while any town qualifies and a town that does not is refused with a
+   * sentence that says why.
+   */
+  scope?: CityScope;
 }
 
 /**
@@ -9357,7 +9561,24 @@ export type CommissionFigure =
    */
   | 'followingCityShare'
   /** Rival original capitals that follow a religion this empire is paid by — The Conversion of Kings. */
-  | 'rivalCapitalsFollowing';
+  | 'rivalCapitalsFollowing'
+  /**
+   * **What the Magnum Opus costs this empire** (Scientific batch S9, The Great
+   * Instrument's "a tenth of its cost"; the triage's reading 51): the folded
+   * production cost of the row that ends the game (`BuildingDef.endsTheGame`),
+   * priced for this empire. A reward reads it; no goal does.
+   */
+  | 'opusCost'
+  /**
+   * **The Academies inside this empire's borders** (Scientific batch S8, The
+   * Lynx-Eyed Academy: "hold four Academies"; the triage's reading 53). The
+   * count The Republic of Letters pays by (`tilesInBorders` with the tile test
+   * `improvement: academy`), asked through the same walk
+   * (`countTilesInBorders`), so a great-person work
+   * that counts as an Academy under The Studium Generale counts here too
+   * (reading 33).
+   */
+  | 'academyHexes';
 
 /** Every figure, for validation and the register test. */
 export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
@@ -9374,6 +9595,8 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'goldIncome',
   'followingCityShare',
   'rivalCapitalsFollowing',
+  'academyHexes',
+  'opusCost',
 ];
 
 /**
@@ -9510,6 +9733,14 @@ export interface CommissionReward {
   amount?: number;
   /** Scale `amount` by this figure, read the moment the goal is met. */
   fromFigure?: CommissionFigure;
+  /**
+   * **The production goes toward the Magnum Opus** (Scientific batch S9, The
+   * Great Instrument; the triage's reading 51): into the town raising it, or,
+   * when no town is, into `Player.opusBank` until one begins it. A grant's own
+   * `toOpus`, so it lands through `payWindfallGrants` as Spolia's does. Read
+   * only with `yield: 'production'`.
+   */
+  toOpus?: true;
   /**
    * A great person. A family narrows the offer to that family (a great
    * merchant); `'any'` deals the ordinary offer.
@@ -9748,6 +9979,13 @@ export interface OrderDef extends CardDefBase {
    * held keeps its chair. `needsTendedWork`'s twin.
    */
   needsLevy?: true;
+  /**
+   * **Not dealt to a seat that knows this technology** (Scientific batch S9,
+   * The Great Instrument: "not dealt to a seat that knows Alchemy"). Read in
+   * `eligibleFor` (`statecraft/draft.ts`), so the gate is on the deal only: a
+   * card already held keeps its chair. `describeCard` prints it.
+   */
+  notDealtKnowing?: TechId;
 }
 
 /** The escalating meter, and the seal. Every number the ladder is made of. */

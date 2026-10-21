@@ -379,7 +379,15 @@ const BUILT_READERS: Record<string, { reads: number; why: string }> = {
   'statecraft/evaluator.ts › cardHeldBuildings': { reads: 1, why: 'reading: a building the town built is no grant' },
   'statecraft/evaluator.ts › townBuildings': { reads: 2, why: 'reading' },
   'statecraft/evaluator.ts › townShelf': { reads: 1, why: 'reading' },
-  'tech.ts › buildError': { reads: 2, why: 'built: the build list (one to a realm, a parent building)' },
+  'tech.ts › buildError': { reads: 1, why: 'built: the build list (a parent building)' },
+  'tech.ts › oneToARealmError': {
+    reads: 2,
+    why: 'built: the build list, one to a realm (moved out of `buildError` by Scientific batch S8)',
+  },
+  'tech.ts › extraCopiesWith': {
+    reads: 2,
+    why: 'built: the great houses standing or queued, for The Second Seat; one read is the replacement queue',
+  },
   'tech.ts › buildingYieldDelta': { reads: 1, why: 'built: the build list\'s preview skips a town that built it' },
   'triumphs.ts › standingHolds': { reads: 1, why: 'one of a kind: wonders in one town, for a triumph' },
   'upkeep.ts › explainBuildingUpkeep': { reads: 1, why: 'built: maintenance' },

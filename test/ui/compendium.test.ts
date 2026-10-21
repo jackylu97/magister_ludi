@@ -45,7 +45,15 @@ import { anyCardDef, describeBuildingRow, stripRefs } from '../../src/sim/statec
 import { DOCTRINE_IDS, ORDER_IDS, doctrineDef, orderIsDealt } from '../../src/sim/statecraftData';
 import { newGame } from '../sim/newGameHelpers';
 import { gatingTech } from '../../src/sim/tech';
-import { ABILITY_TECH, TECH_IDS, type TechId, isAbilityId, techDef } from '../../src/sim/techData';
+import {
+  ABILITY_TECH,
+  ALL_TECH_IDS,
+  CHARTER_TECH_IDS,
+  TECH_IDS,
+  type TechId,
+  isAbilityId,
+  techDef,
+} from '../../src/sim/techData';
 import { techGifts } from '../../src/sim/techUnlocks';
 import { TRIUMPH_IDS, triumphDef } from '../../src/sim/triumphData';
 import { MALICE_IDS, maliceDef } from '../../src/sim/maliceData';
@@ -122,7 +130,9 @@ describe('the shelves', () => {
     expect(shelf('unit').entries).toHaveLength(UNIT_TYPE_IDS.length + LEAD);
     expect(shelf('improvement').entries).toHaveLength(IMPROVEMENT_IDS.length + LEAD);
     expect(shelf('resource').entries).toHaveLength(RESOURCE_IDS.length + LEAD);
-    expect(shelf('tech').entries).toHaveLength(TECH_IDS.length + LEAD);
+    // Every technology row has a page, the charter technologies included
+    // (Scientific batch S12).
+    expect(shelf('tech').entries).toHaveLength(ALL_TECH_IDS.length + LEAD);
     expect(shelf('order').entries).toHaveLength(ORDER_IDS.length + LEAD);
     expect(shelf('doctrine').entries).toHaveLength(DOCTRINE_IDS.length + LEAD);
     // **All three pools on one shelf** (religion v2), **and the cathedral's
@@ -240,13 +250,23 @@ describe('the shelves', () => {
     expect(shelf('concept').entries).toEqual(CONCEPT_ENTRIES);
   });
 
-  it('reads the technologies in age order', () => {
+  it('reads the technologies in age order, and then the charter technologies in age order', () => {
     // A reference is read forwards through the tree, which is not the order
-    // `techs.json` happens to list its rows in.
-    const ages = shelf('tech')
-      .entries.filter((entry) => entry.written !== true)
-      .map((entry) => techDef(entry.id.split(':')[1]! as never).age);
-    expect([...ages].sort((a, b) => a - b)).toEqual(ages);
+    // `techs.json` happens to list its rows in. The charter technologies come
+    // after the tree, under their own heading (Scientific batch S12), because
+    // they are not on the tree every empire climbs.
+    const entries = shelf('tech').entries.filter((entry) => entry.written !== true);
+    const tree = entries.filter((entry) => entry.group === undefined);
+    const charters = entries.filter((entry) => entry.group !== undefined);
+    expect(entries).toEqual([...tree, ...charters]);
+    for (const part of [tree, charters]) {
+      const ages = part.map((entry) => techDef(entry.id.split(':')[1]! as never).age);
+      expect([...ages].sort((a, b) => a - b)).toEqual(ages);
+    }
+    expect(tree.map((entry) => entry.id)).toHaveLength(TECH_IDS.length);
+    expect(charters.map((entry) => entry.id).sort()).toEqual(
+      CHARTER_TECH_IDS.map((id) => compendiumId('tech', id)).sort(),
+    );
   });
 });
 
@@ -1363,13 +1383,26 @@ describe('what opens a thing', () => {
   }
 
   /**
-   * What an opening line links for this gate: the node itself, or nothing for
-   * a charter technology, which the book names without a mark until batch S12
-   * gives it a page (Scientific batch S4 gave such rows their first gates).
+   * What an opening line links for this gate: the node itself. Since
+   * Scientific batch S12 a charter technology has a page too, so it is linked
+   * like any other node.
    */
   function linkedGate(gate: TechId | null | undefined): TechId[] {
     if (gate === null || gate === undefined) return [];
-    return techDef(gate).charter === true ? [] : [gate];
+    return [gate];
+  }
+
+  /**
+   * The technologies that open a building early through an `unlocksBuilding`
+   * effect (Scientific batch S5: Surveying opens the Aqueduct before
+   * Engineering). The opening line names them after the tree's own node.
+   */
+  function earlyOpeners(building: string): TechId[] {
+    return ALL_TECH_IDS.filter((tech) =>
+      (techDef(tech).effects ?? []).some(
+        (effect) => effect.kind === 'unlocksBuilding' && effect.building === building,
+      ),
+    );
   }
 
   /** The shelf a building row is filed on. */
@@ -1421,7 +1454,7 @@ describe('what opens a thing', () => {
       if (def.retired === true) continue;
       const line = openingOf(entryOf(buildingEntryId(id)));
       const gate = gatingTech('building', id) ?? def.worldUnlockTech ?? null;
-      expect(techsNamed(line), id).toEqual(linkedGate(gate));
+      expect(techsNamed(line), id).toEqual([...linkedGate(gate), ...earlyOpeners(id)]);
       if (gate !== null) expect(line, id).toContain(techDef(gate).name);
     }
     for (const id of IMPROVEMENT_IDS) {
@@ -1494,7 +1527,15 @@ describe('what opens a thing', () => {
           if (target === null) continue;
           const line = openingOf(entryOf(target));
           expect(line, `${card} → ${target}`).toContain(`[[${kind}:${card}|${def.name}]]`);
-          expect(line, target).toContain('not by any technology');
+          // A row the tree also names is a card's way in early, and the line
+          // credits both (Scientific batch S8, The Forward Plans' University).
+          const gate =
+            effect.kind === 'unlocksBuilding'
+              ? gatingTech('building', effect.building)
+              : effect.kind === 'unlocksUnit'
+                ? gatingTech('unit', effect.unit)
+                : null;
+          expect(line, target).toContain(gate === null ? 'not by any technology' : 'or by researching');
           named += 1;
         }
       }
@@ -1503,10 +1544,26 @@ describe('what opens a thing', () => {
     // retired, so the walk finds the beliefs' openings alone until D1b lands
     // the charters — the bar was ten while the old charters were live.
     expect(named).toBeGreaterThan(0);
+    // A technology that opens a row early (Scientific batch S5: Surveying and
+    // the Aqueduct) is named after the tree's own node, with its charter.
+    let early = 0;
+    for (const tech of ALL_TECH_IDS) {
+      for (const effect of techDef(tech).effects ?? []) {
+        if (effect.kind !== 'unlocksBuilding') continue;
+        const line = openingOf(entryOf(buildingEntryId(effect.building)));
+        expect(line, `${tech} → ${effect.building}`).toContain(`or earlier by researching [[tech:${tech}|`);
+        if (techDef(tech).charter === true) expect(line, tech).toContain('[[order:');
+        early += 1;
+      }
+    }
+    expect(early).toBeGreaterThan(0);
     // And a row that declares a card opens it always says so — by name where
     // the walk finds one, and as "a card" where it does not — never "from the
     // start", which is the trap `isUnlocked` closes for exactly these rows.
-    const cardOpening = /^Unlocked by (the (Order|Doctrine|belief|consecration|leader) \[\[|a card)/;
+    // A row a technology opens early (Scientific batch S5's Aqueduct) is
+    // research, so its line starts "Unlocked by researching".
+    const cardOpening =
+      /^Unlocked by (the (Order|Doctrine|belief|consecration|leader) \[\[|a card|researching \[\[tech:)/;
     for (const id of BUILDING_IDS) {
       if (buildingDef(id).retired === true || buildingDef(id).unlockedByCard !== true) continue;
       expect(openingOf(entryOf(buildingEntryId(id))), id).toMatch(cardOpening);

@@ -297,9 +297,11 @@ describe('the four cards the tally opened', () => {
     ).toEqual(['theLeagueOfCities']);
 
     // The renown trickle counted town by town, and the one count that takes the
-    // town narrowing.
+    // town narrowing. Scientific batch S7's The Royal Tutors also counts town
+    // by town: its count, science buildings, can only be asked of a town.
     expect(writers((effect) => effect.kind === 'renown' && effect.within === 'city')).toEqual([
       'theCosmopolitanCourt',
+      'theRoyalTutors',
     ]);
     expect(
       writers(

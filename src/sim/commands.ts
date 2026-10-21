@@ -59,7 +59,7 @@
  */
 
 import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
-import { isBuildingId } from './buildingData';
+import { type BuildingId, isBuildingId } from './buildingData';
 import { isProjectId } from './projectData';
 import {
   type CompletionGrantReport,
@@ -2601,6 +2601,10 @@ function validateQueue(state: GameState, city: City, raw: unknown): QueueItem[] 
    * town is already building for exactly the same reason.
    */
   const queued: UnitTypeId[] = [];
+  // The building rows accepted so far, for the same reason one table over
+  // (Scientific batch S8, The Second Seat): the extra copies of the great
+  // houses are counted with this queue in place of the standing one.
+  const buildings: BuildingId[] = [];
   for (let i = 0; i < raw.length; i++) {
     const item = readQueueItem(raw[i]);
     if (!item) return `Queue item ${i} is not a known unit, building or project`;
@@ -2609,10 +2613,11 @@ function validateQueue(state: GameState, city: City, raw: unknown): QueueItem[] 
     // already building it" (fine — it is what is being re-sent) from "another of
     // my towns is" (a second copy that could never complete). See `buildError`.
     const blocked = buildError(state, city.ownerId, item.kind, item.id, city, {
-      replacing: { cityId: city.id, queued },
+      replacing: { cityId: city.id, queued, buildings },
     });
     if (blocked !== null) return blocked;
     if (item.kind === 'unit') queued.push(item.id);
+    if (item.kind === 'building') buildings.push(item.id);
 
     if (item.kind === 'building') {
       if (city.buildings.includes(item.id)) {
@@ -3611,8 +3616,8 @@ function payMomentGrants(
     // rung is handed two and an empire that has just recruited is handed the
     // whole rung. The overflow it was already carrying is untouched, which is
     // what keeps the ladder's arithmetic the ladder's.
-    const plan = planRecruitment(actor);
-    const owed = plan === null ? renownThreshold(actor) - actor.renownPool : 0;
+    const plan = planRecruitment(state, actor);
+    const owed = plan === null ? renownThreshold(state, actor) - actor.renownPool : 0;
     settleRenownWindfall(state, actor, [{ family: null, amount: Math.max(0, owed) }]);
   }
 }

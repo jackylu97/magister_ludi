@@ -48,6 +48,15 @@
  * `test/sim/decks/scientificResearch.test.ts` pins the research record (batch
  * S6): the cards that pay for completing technologies and for the
  * technologies and charters a seat holds.
+ * `test/sim/decks/scientificCards.test.ts` pins the data-only cards of Tiers
+ * 0 to II (batch S7), and `test/sim/decks/scientificHouses.test.ts` the great
+ * people and the great houses (batch S8). `test/sim/decks/scientificArmy.test.ts`
+ * pins the army and the Opus (batch S9).
+ *
+ * **Batch S11 is the final check.** Every row of the five tier tables is
+ * `implemented`, all thirteen charters are dealt, and no row is deferred. The
+ * shared table may still hold rows another deck's build owns (Commerce and
+ * Devotion), and nothing else.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -72,6 +81,7 @@ import {
   describeEffects,
   drawOrderOffer,
   eligibleFor,
+  explainCardPercentYields,
   stripRefs,
 } from '../../../src/sim/statecraft';
 import { explainRenown } from '../../../src/sim/renown';
@@ -119,9 +129,9 @@ const CHARTERS = CURRENT.filter((id) => isCharter(id));
 /**
  * The charters whose whole gift is built, so they are dealt: three since batch
  * S1 (the line traits), eight more since batch S4 (the building charters) and
- * the last two since batch S5 (the Qanat and Niter Beds). A charter has no
- * effects: its gift is the research it opens and what the technology row
- * gives.
+ * the last two since batch S5 (the Qanat and Niter Beds). That is all thirteen
+ * (batch S11 pins it). A charter has no effects: its gift is the research it
+ * opens and what the technology row gives.
  */
 const DEALT_CHARTERS: readonly OrderId[] = [
   'theBronzeFoundersCharter',
@@ -164,8 +174,9 @@ const MARK: Record<OrderRarity, string> = { common: '●', uncommon: '◆', rare
 describe('the rows', () => {
   it('is the whole deck, every current row named for this deck alone, banded and rated', () => {
     // S5 moved The Assay to common.json and added six cards. S6 added eleven.
-    expect(DECK).toHaveLength(75);
-    expect(new Set(DECK).size).toBe(75);
+    // S7 added nine. S8 added ten and dealt The Second Seat. S9 added nine.
+    expect(DECK).toHaveLength(103);
+    expect(new Set(DECK).size).toBe(103);
     for (const id of CURRENT) {
       const def = orderDef(id);
       expect(def.decks, id).toEqual(['scientific']);
@@ -182,17 +193,21 @@ describe('the rows', () => {
     expect(new Set(names).size, 'two rows share a name').toBe(names.length);
   });
 
-  it('fills the five tiers with nine, eleven, twelve, eleven and six current rows', () => {
+  it('fills the five tiers with eleven, seventeen, twenty, sixteen and thirteen current rows', () => {
     // S0 added ten charters and two cards. S1b retired twenty-four rows and
     // left twenty-six; the sheet's `add` rows join as later batches build them.
     // S2 added one card (Tier II) and S3 six (two each in Tiers I, II and III).
     // S5 added six (one in each tier, and two in Tier III), moved The School
     // of Mines from Tier I to Tier III, and moved The Assay to common.json.
     // S6 added eleven: three in Tier 0 and two in each of the others.
+    // S7 added nine: two in Tier 0, three in Tier I and four in Tier II.
+    // S8 added ten: two in each of Tiers I, II and IV, and four in Tier III.
+    // S9 added nine: one in Tier I, two in Tier II, one in Tier III and five
+    // in Tier IV. Every row the sheet lists is now in the data.
     const perBand = [0, 1, 2, 3, 4].map(
       (band) => CURRENT.filter((id) => orderDef(id).band === band).length,
     );
-    expect(perBand).toEqual([9, 11, 12, 11, 6]);
+    expect(perBand).toEqual([11, 17, 20, 16, 13]);
   });
 
   it('splits into live rows with effects and deferred rows with a sentence, and nothing between', () => {
@@ -201,7 +216,12 @@ describe('the rows', () => {
     // charters and The School of Mines, added six cards and moved The Assay
     // out: 29 became 37, and The Second Seat is the one deferred row left.
     // S6 added eleven live rows, one of them a commission: 37 became 48.
-    expect(LIVE).toHaveLength(48);
+    // S7 added nine live rows: 48 became 57. S8 added ten live rows, one of
+    // them a commission, and dealt The Second Seat: 57 became 68, and no
+    // deferred row is left in the deck. S9 added nine live rows, one of them
+    // a commission: 68 became 77.
+    expect(LIVE).toHaveLength(77);
+    expect(DEFERRED).toEqual([]);
     for (const id of LIVE) {
       const def = orderDef(id);
       expect(def.text, `${id} is live and carries no ratified text`).toBeTruthy();
@@ -559,6 +579,25 @@ describe('the Scientific deck: the sheet', () => {
     }
   });
 
+  it('marks every row of the five tier tables implemented: the build is complete', () => {
+    // Batch S11, the final check: no tier-table row still waits on a batch.
+    const waiting = sheetCards()
+      .filter((card) => card.status !== 'implemented')
+      .map((card) => `${card.name} (${card.status})`);
+    expect(waiting).toEqual([]);
+    expect(sheetCards()).toHaveLength(CURRENT.length);
+  });
+
+  it('leaves waiting on the shared table only rows another deck’s build owns', () => {
+    // The shared rows that are not implemented belong to the Commerce and
+    // Devotion builds (the triage's "Shared with another deck" table), not to
+    // a Scientific batch.
+    const waiting = sharedCards().filter((card) => card.status !== 'implemented');
+    for (const card of waiting) {
+      expect(['commerce', 'devotion'], `${card.name} waits on a ${card.alsoIn} build`).toContain(card.alsoIn);
+    }
+  });
+
   it('keeps every retired row off the tables', () => {
     const listed = new Set(
       [...sheetCards(), ...sharedCards()].flatMap((card) => [card.name, dataNameOf(card)]),
@@ -633,6 +672,10 @@ describe('the live rows’ effects', () => {
     // its own fold left the live rows with The Society of Artificers (retired
     // in batch S1b). Batch S5 moved The Assay, the last realm count, to the
     // shared cards, and The Republic of Letters pays the capital by a count.
+    // Batch S7's The Roll of Scholars and The Round City pay the empire a
+    // percentage by a count, the pair Dominion's scalers already use. Batch
+    // S8's The Humanists pays a town a share of its own science, the pair The
+    // Cloister already uses.
     const pairs = new Set<string>();
     for (const id of LIVE) {
       for (const effect of orderDef(id).effects) {
@@ -641,7 +684,14 @@ describe('the live rows’ effects', () => {
         if (effect.where === 'hex') expect(effect.on, `${id} pays a hex with no condition`).toBeDefined();
       }
     }
-    expect([...pairs].sort()).toEqual(['capital:count', 'city:count', 'city:flat', 'hex:flat']);
+    expect([...pairs].sort()).toEqual([
+      'capital:count',
+      'city:count',
+      'city:flat',
+      'city:share',
+      'empire:count',
+      'hex:flat',
+    ]);
   });
 });
 
@@ -661,6 +711,8 @@ describe('the research charters', () => {
       expect(def.charter!.unlocks.rites, id).toBeUndefined();
     }
     for (const id of DEALT_CHARTERS) expect(CHARTERS, id).toContain(id);
+    // Batch S11: every charter is dealt.
+    expect([...DEALT_CHARTERS].sort()).toEqual([...CHARTERS].sort());
   });
 
   it('names nodes the tree holds off the sky, and the retired rows name none it holds', () => {
@@ -931,27 +983,29 @@ describe('what the live rows do on a board', () => {
   });
 
   it('Enduring Institutions: the oldest empire building is the one that admits the town', () => {
-    // The row still pays its old happiness until batch S7 brings it to the
-    // sheet's text (`modify: revised`).
+    // Batch S7 brought the row to the sheet's text: +25% production, and no
+    // happiness. `scientificCards.test.ts` checks the card in full.
     const g = game();
     const city = found(g.state, 0);
     g.state.turn = 4;
     addBuilding(g.state, city, 'forum');
     slot(g.state, 0, 'enduringInstitutions');
-    const glad = () =>
-      cardHappiness(g.state, 0).filter((line) => line.card === 'enduringInstitutions');
-    expect(glad()).toEqual([]);
+    const share = () =>
+      explainCardPercentYields(g.state, city).filter((line) => line.card === 'enduringInstitutions');
+    expect(share()).toEqual([]);
 
     g.state.turn = 24;
     bumpRevision(g.state);
-    expect(glad()).toHaveLength(1);
-    expect(glad()[0]!.amount).toBe(2);
+    expect(share()).toHaveLength(1);
+    expect(share()[0]!.yield).toBe('production');
+    expect(share()[0]!.percent).toBe(25);
 
     // A second empire building raised this turn does not make the town's
     // institutions young again: the reading is the oldest one.
     addBuilding(g.state, city, 'caravanserai');
     bumpRevision(g.state);
-    expect(glad()).toHaveLength(1);
+    expect(share()).toHaveLength(1);
+    expect(cardHappiness(g.state, 0).filter((line) => line.card === 'enduringInstitutions')).toEqual([]);
   });
 
   it('The Long Inheritance: the production waits on the age of the Academy the citizens stand on', () => {

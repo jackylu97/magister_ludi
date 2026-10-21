@@ -518,6 +518,13 @@ describe('the schema, as landed', () => {
     // **And Scientific batch S6** (the research record): eleven more. Eleven
     // new Scientific rows came live, one of them a commission (The Royal
     // Charter Commission).
+    // **And Scientific batch S7** (the data-only cards of Tiers 0 to II):
+    // nine more. Nine new Scientific rows came live. Learned Foundations
+    // (the row `learnedCommissions`), Enduring Institutions and The Quiet
+    // Faculties were changed in place and were already live.
+    // **And Scientific batch S8** (great people and the great houses): eleven
+    // more. Ten new Scientific rows came live, one of them a commission (The
+    // Lynx-Eyed Academy), and The Second Seat left `deferred`.
     // **And Expansionist batch E7** (the themes sheet): fourteen fewer. The
     // fourteen live Expansionist rows the themes pass cut are retired (the
     // fifteenth, Public Works, was deferred and never counted). Ten rows were
@@ -525,6 +532,10 @@ describe('the schema, as landed', () => {
     // **And Expansionist batch E8** (the new data-only cards): five more. Five
     // new Expansionist rows came live (The Founding Furrow, The Horrea, The
     // Land Hunger, The Many Hands, The Capitolia).
+    // **And Scientific batch S9** (the army and the Opus): ten more. Nine new
+    // Scientific rows came live, one of them a commission (The Great
+    // Instrument), and one shared row (The Soldier-Scholars, Dominion and
+    // Scientific).
     // **And Expansionist batch E9** (the land): two more. The Marl Pits is a
     // new row, and The Two Harvests left `deferred`. The Burning Season,
     // Commission: Break the Sod and The Mountain Schools were changed in place
@@ -536,8 +547,8 @@ describe('the schema, as landed', () => {
     // more. The Aediles and The Public Good are new rows. The Topping Out was
     // changed in place and was already live.
     // **And Expansionist batch E12** (The Cura Aquarum): one more, a new row.
-    expect(live).toBe(537);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(537);
+    expect(live).toBe(567);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(567);
   });
 
   /**
@@ -819,25 +830,30 @@ describe('the schema, as landed', () => {
     // 162 since Scientific batch S6 (the research record): eleven more
     // Scientific Orders come live, so a v161 log's Scientific hands hold
     // different cards.
-    // 163 since Expansionist batch E7 (the themes sheet): fifteen Expansionist
-    // rows are retired, ten change in place and five change type, so a v162
-    // log's Expansionist hands and chairs hold different cards.
-    // 164 since Expansionist batch E8 (five new data-only cards): five more
-    // Expansionist Orders come live, so a v163 log's Expansionist hands hold
-    // different cards.
-    // 165 since Expansionist batch E9 (the land): two more Expansionist
-    // Orders come live and a worker's burn may mark an improved hex, so a
-    // v164 log's Expansionist hands and land differ.
-    // 166 since Expansionist batch E10 (the militia and the trades): two
-    // more Expansionist Orders come live and a retired soldier pays a
-    // citizen, so a v165 log's Expansionist hands and towns differ.
-    // 167 since Expansionist batch E11 (public works and empire buildings):
-    // two more Expansionist Orders come live and The Topping Out pays every
-    // town for an empire building, so a v166 log's Expansionist hands and
-    // towns differ.
-    // 168 since Expansionist batch E12 (The Cura Aquarum): one more
-    // Expansionist Order comes live, so a v167 log's Expansionist hands
-    // differ.
+    // 163 since Scientific batch S7 (the data-only cards of Tiers 0 to II):
+    // nine more Scientific Orders come live and three change, so a v162
+    // log's Scientific hands hold different cards.
+    // 164 since Scientific batch S8 (great people and the great houses):
+    // eleven more Scientific Orders come live, so a v163 log's Scientific
+    // hands hold different cards.
+    // 165 since Expansionist batches E7 and E8, which landed together. E7
+    // (the themes sheet): fifteen Expansionist rows are retired, ten change in
+    // place and five change type. E8 (five new data-only cards): five more
+    // Expansionist Orders come live. So a v164 log's Expansionist hands and
+    // chairs hold different cards.
+    // 166 since Scientific batch S9 (the army and the Opus): nine more
+    // Scientific Orders and the shared The Soldier-Scholars come live, so a
+    // v165 log's Scientific and Dominion hands hold different cards.
+    // 167 since Expansionist batches E9 and E10, which landed together. E9
+    // (the land): two more Expansionist Orders come live and a worker's burn
+    // may mark an improved hex. E10 (the militia and the trades): two more
+    // Expansionist Orders come live and a retired soldier pays a citizen. So a
+    // v166 log's Expansionist hands, land and towns differ.
+    // 168 since Expansionist batches E11 and E12, which landed together. E11
+    // (public works and empire buildings): two more Expansionist Orders come
+    // live and The Topping Out pays every town for an empire building. E12
+    // (The Cura Aquarum): one more Expansionist Order comes live. So a v167
+    // log's Expansionist hands and towns differ.
     expect(SCHEMA_VERSION).toBe(168);
     const g = seated();
     const seat = playerById(g.state, 0)!;
@@ -1077,13 +1093,15 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // The School of Mines (− 3).
       // **Dominion batch D14** freed two (The Relay Stations and
       // Circumvallation: − 2).
+      // **Scientific batch S8** freed The Second Seat, the last deferred
+      // Scientific row (− 1).
       // **Expansionist batch E7** retired the themes pass's fifteen cuts:
       // fourteen live rows and the deferred Public Works (− 1, and + 15
       // retired).
       // **Expansionist batch E9** freed The Two Harvests (− 1).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(33);
+      ).toHaveLength(32);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(188);
     }
   });

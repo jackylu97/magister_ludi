@@ -215,7 +215,11 @@ import {
   explainMeterCall,
   explainProjectRow,
   explainSoldier,
+  explainTechEffects,
+  explainTechTraits,
+  explainTechWorks,
   explainYields,
+  techCostFor,
   wagerAppetiteTerm,
   yieldDelta,
 } from './value';
@@ -538,7 +542,9 @@ export function techChain(
   // its third node carries one crossing, however many Æra III nodes follow.
   let ageSoFar = ctx.age;
   for (const node of nodes) {
-    if (!held) owedSoFar += techDef(node).cost;
+    // The folded price (Scientific batch S13): a charter technology's premium
+    // and every card that changes a price, as `researchRoad` reads them.
+    if (!held) owedSoFar += techCostFor(ctx, node);
     // **Where this node lands**: the beakers owed for the road *through* it over
     // the empire's own science rate. The last node's landing is `researchDelay`
     // exactly, which is the identity that keeps the whole-road reading a
@@ -826,8 +832,11 @@ export function researchRoad(
   goal: TechId,
 ): { road: TechId[]; beakers: number; delay: number } {
   const road = researchExpansion(state, player.id, goal);
+  // Each node at the price this empire pays for it (`techCostFor`, the fold of
+  // `explainTechCost`; Scientific batch S13), so a drafted charter
+  // technology's road carries its premium and a card's cut is counted.
   let beakers = 0;
-  for (const step of road) beakers += techDef(step).cost;
+  for (const step of road) beakers += techCostFor(ctx, step);
   return { road, beakers, delay: beakers / Math.max(1, ctx.scienceRate) };
 }
 
@@ -1001,7 +1010,27 @@ function readNodeGifts(ctx: ValueContext, node: TechId, levy: LevyReading, folds
   }
   const effects = def.effects ?? [];
   if (effects.length > 0) {
-    flat.push(nest('the rules the node itself carries', explainEffects(effects, ctx)));
+    // A charter row's effects may count the works it opens (Herbals' Physic
+    // Gardens), which the board cannot count before the node is known, so it
+    // is read at the works forecast (`explainTechEffects`, Scientific batch
+    // S13). Every other row reads exactly as it always did.
+    flat.push(
+      nest(
+        'the rules the node itself carries',
+        def.charter === true ? explainTechEffects(node, ctx) : explainEffects(effects, ctx),
+      ),
+    );
+  }
+  // **What a charter technology gives beyond its unlocks** (Scientific batch
+  // S13): the traits it hands a line of units, as strength lines, and the work
+  // rows it opens. An ordinary node carries no trait, and its works are the
+  // improvement plan's to price, so neither term appears on it.
+  if ((def.traits ?? []).length > 0) {
+    flat.push(nest('the traits it gives a line of units', explainTechTraits(node, ctx)));
+  }
+  if (def.charter === true) {
+    const works = explainTechWorks(node, ctx);
+    if (works.terms.length > 0) flat.push(nest('the works it opens', works));
   }
   // **The door** (E1a, `docs/plans/bot-evolution.md` §2.3): the node that opens
   // the great work for the world earns `research.doorValue` for being the door,

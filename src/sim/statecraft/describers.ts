@@ -67,6 +67,7 @@ import {
   type LevyUse,
   type CardId,
   type CardRule,
+  type RiderBuildingTest,
   type CityScope,
   type CombatCondition,
   type CombatScale,
@@ -758,6 +759,12 @@ export function describeCard(id: CardId): CardClause[] {
   if (isOrderId(id)) {
     const spec = orderDef(id).commission;
     if (spec !== undefined) clauses.push(...describeCommission(spec));
+    // **The deal gate** (Scientific batch S9, The Great Instrument): a card a
+    // seat cannot be dealt once it knows a technology says so.
+    const known = orderDef(id).notDealtKnowing;
+    if (known !== undefined) {
+      clauses.push({ text: `not dealt to an empire that knows ${ref('tech', known, techDef(known).name)}` });
+    }
     // **A charter that opens an improvement** (the Expansionist tended works):
     // the grant is the whole card, so it is printed as its clause.
     const work = orderDef(id).charter?.unlocks.improvement;
@@ -784,11 +791,10 @@ export function describeCard(id: CardId): CardClause[] {
     // **A charter that opens a technology** (Scientific batch S0 and S1): the
     // pick opens the research, and what knowing the technology gives is the
     // rest of the card, so its traits are printed here in the technology's
-    // own words. The technology is named without a keyword mark, because the
-    // Compendium has no page for a charter technology yet (batch S12), and a
-    // mark to a page the book lacks is a dead link. A retired charter may name
-    // a technology the tree never held (the Metallurgists' Alloys), and says
-    // nothing here.
+    // own words. Since batch S12 the Compendium has a page for each charter
+    // technology, so the name is a keyword mark like any other technology's.
+    // A retired charter may name a technology the tree never held (the
+    // Metallurgists' Alloys), and says nothing here.
     const tech = orderDef(id).charter?.unlocks.tech;
     if (tech !== undefined && isTechId(tech)) clauses.push(...charterTechClauses(tech));
     // **A charter's rites are the whole of the card** (The Fast): taking it
@@ -848,10 +854,13 @@ export function describeCard(id: CardId): CardClause[] {
  *     Garden), batch S4;
  *   - the technology's own card effects (Herbals' happiness, Printing's trade
  *     route), batch S4.
+ *
+ * The technology's name is a keyword mark in every clause (batch S12), so a
+ * reader can open its Compendium page from any of them.
  */
 function charterTechClauses(tech: TechId): CardClause[] {
   const def = techDef(tech);
-  const name = def.name;
+  const name = ref('tech', tech, def.name);
   const known = `once you know ${name}, `;
   const clauses: CardClause[] = [
     {
@@ -876,7 +885,7 @@ function charterTechClauses(tech: TechId): CardClause[] {
     early.push(effect.building);
     const does = liveWords(describeBuildingRow(effect.building));
     const gate = BUILDING_UNLOCK_TECH.get(effect.building);
-    const before = gate === undefined ? '' : ` before ${techDef(gate).name}`;
+    const before = gate === undefined ? '' : ` before ${ref('tech', gate, techDef(gate).name)}`;
     clauses.push({
       text: `${known}you may build ${theBuilding(effect.building)}${before}${does === '' ? '' : `: ${does}`}`,
     });
@@ -1870,6 +1879,19 @@ function describeEffect(
         });
         return;
       }
+      // **A counted lift of the one-to-a-realm limit** (Scientific batch S8,
+      // The Second Seat): how many extra copies, of what, and in which towns.
+      if (effect.rule === 'buildsEverywhere' && (effect.max !== undefined || effect.empireBuilding === true)) {
+        out.push({ text: limitLiftWords(effect) });
+        return;
+      }
+      // **A rule with a figure** (Scientific batch S9): the Opus rules and the
+      // prototypes, said whole. See `figureRuleWords`.
+      const figured = figureRuleWords(effect);
+      if (figured !== null) {
+        out.push({ text: figured });
+        return;
+      }
       // **A rule about one building names it** (batch C7, Caravanserai Cities).
       // The stem in the table has a slot for the row's name rather than the
       // name baked in, so the words come from the building table exactly as
@@ -1966,6 +1988,11 @@ function describeEffect(
       }
       if (effect.empireBuilding === true) narrowings.push('an empire building');
       if (effect.empireBuilding === false) narrowings.push('not an empire building');
+      // The Dedications (Scientific batch S8): the any-of filter, one phrase
+      // with "or" between the tests.
+      if (effect.anyOf !== undefined && effect.anyOf.length > 0) {
+        narrowings.push(effect.anyOf.map(buildingTestWords).join(' or '));
+      }
       if (effect.first !== undefined) narrowings.push(FIRST_WORDS[effect.first]);
       if (effect.oncePerTurn === true) narrowings.push('at most once a turn');
       // Dominion batch D5: The New Code's ten turns. Copying the Enemy's "unit
@@ -2286,6 +2313,12 @@ function describeEffect(
             `${occasion} ${pays ? 'grants' : 'costs your empire'} ` +
             `${inner.map((clause) => clause.text).join('; ')} ${howLong}${per}`,
         });
+      }
+      // Scientific batch S8, The Invitations: a great person to call, the
+      // words a commission's reward uses.
+      if (grant?.greatPerson !== undefined) {
+        const who = grant.greatPerson === 'any' ? 'a great person' : `a great ${grant.greatPerson}`;
+        out.push({ text: `${occasion} grants ${who} to call${per}` });
       }
       if (grant?.healAll === true) {
         // A flag, so a sentence and not a figure — the ratified text is *heals
@@ -2747,8 +2780,12 @@ function describeEffect(
         .filter((clause) => clause.deferred !== true)
         .map((clause) => clause.text)
         .join('; ');
+      // The Forward Plans (Scientific batch S8): a row opened only in some
+      // towns says which, before what the building does.
+      const towns =
+        effect.scope === undefined ? '' : ` in ${cityScopeWords(effect.scope).replace(/^every /, 'any ')}`;
       out.push({
-        text: `unlocks ${theBuilding(effect.building)}${does === '' ? '' : ` — ${does}`}`,
+        text: `unlocks ${theBuilding(effect.building)}${towns}${does === '' ? '' : ` — ${does}`}`,
       });
       return;
     }
@@ -2887,9 +2924,13 @@ function describeEffect(
                 // is the order the sentence has to be read in — "in every city
                 // with a culture building, per trade route to another empire
                 // leaving it" names the city before "it" refers back to it.
+                // A count that only a town can answer then says "there", as a
+                // `pays` line counted town by town does (`countPlace`), because
+                // the city it counts in was just named (Scientific batch S7,
+                // The Royal Tutors). Other counts keep their own words.
                 effect.count !== undefined
                 ? `${effect.within === 'city' ? ` in ${scopeWordsFor(subject, effect.scope)},` : ''}` +
-                  ` per ${countWords(effect.countPer, countNoun({ kind: 'pays', where: 'empire', basis: 'count', count: effect.count, tile: effect.tile, within: effect.within }, ''))}`
+                  ` per ${countWords(effect.countPer, countNoun({ kind: 'pays', where: 'empire', basis: 'count', count: effect.count, tile: effect.tile, within: effect.within }, effect.within === 'city' && CITY_SCOPED_COUNTS.includes(effect.count) ? 'there' : ''))}`
                 : '';
       // **The per-town ceiling, said out loud.** A cap on an empire count is
       // already inside the figure a player sees; a cap per town is not, and a
@@ -4612,7 +4653,12 @@ export function filterWords(filter: UnitFilter): string {
   const noun = unitNounWords(filter);
   // The unit's age (Dominion batch D7, The Spear Makers) goes in front of the
   // noun as an adjective: "first- and second-age military units".
-  return filter.ageAtMost === undefined ? noun : `${ageWords(filter.ageAtMost)} ${noun}`;
+  const aged = filter.ageAtMost === undefined ? noun : `${ageWords(filter.ageAtMost)} ${noun}`;
+  // The owner's newest age (Scientific batch S9, The Armoury Patterns) goes
+  // after it: "units of the newest age you know". A filter that says nothing
+  // else is "units", not "all units", because the age narrows it.
+  if (filter.newestAge !== true) return aged;
+  return `${aged === 'all units' ? 'units' : aged} of the newest age you know`;
 }
 
 /** The ages up to `last`, as one adjective: "first-age", "first- and second-age". */
@@ -5106,6 +5152,16 @@ const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
     percent < 0
       ? `technologies that an empire you have met already knows cost you ${-percent}% less research`
       : `technologies that an empire you have met already knows cost you ${percent}% more research`,
+  // The Royal Readers (Scientific batch S8). Said as what a scholar does to
+  // the price of the next great person; −50 is "half as much".
+  scholarLadderStep: (percent) =>
+    percent <= -100
+      ? 'great scholars do not raise the price of your next great person'
+      : percent === -50
+        ? 'great scholars raise the price of your next great person by half as much'
+        : percent < 0
+          ? `great scholars raise the price of your next great person ${-percent}% less`
+          : `great scholars raise the price of your next great person ${percent}% more`,
 };
 
 const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
@@ -5162,6 +5218,12 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   // Scientific batch S3, The Edge of the Sword. `vsWiderEmpire`'s sibling:
   // the two realms' technologies rather than their cities.
   vsFewerTechs: 'against an empire that knows fewer technologies than you',
+  // Scientific batch S9, The Strategikon. The distance, the people and the
+  // work are printed by `combatWhenWords`, `withinOfCity`'s bargain.
+  nearLearning: 'while within',
+  // Scientific batch S9, The Soldier-Scholars. The words `inCity` uses, because
+  // to a player the two read as the same hex; this one pays in attack too.
+  standingInOwnTown: 'while standing in one of your cities',
 };
 
 /** The `followingTerritory` line narrowed to somebody else's towns. */
@@ -5211,6 +5273,21 @@ export function combatWhenWords(when: CombatCondition): string {
           ? (names[0] ?? '')
           : `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`;
       return `${COMBAT_WORDS.standingIn} ${words}`;
+    }
+    case 'nearLearning': {
+      // The Strategikon (Scientific batch S9): "while within 2 hexes of your
+      // great general, your great scholar or your Academy". The people and
+      // the work are alternatives, so the last is joined with "or".
+      const name = improvementDef(when.improvement).name;
+      const things = [
+        ...when.families.map((family) => `your great ${family}`),
+        `your ${ref('improvement', when.improvement, name)}`,
+      ];
+      const list =
+        things.length <= 1
+          ? (things[0] ?? '')
+          : `${things.slice(0, -1).join(', ')} or ${things[things.length - 1]}`;
+      return `${COMBAT_WORDS.nearLearning} ${when.hexes} ${when.hexes === 1 ? 'hex' : 'hexes'} of ${list}`;
     }
     case 'all':
       return when.of
@@ -6342,7 +6419,69 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // `FLAG_RULE_IMPROVEMENT_WORDS` says it with the work's name; this is the
   // sentence for a row that names none, which changes nothing.
   worksCountAs: "a great person's work beside the named work counts as it for your cards",
+  // Scientific batch S9: The Field Refits and The Model Army.
+  upgradeHeals: 'each time research upgrades one of your units, it heals fully',
+  upgradeIgnoresResource:
+    'research upgrades your units even when you lack the strategic resource the new unit needs',
+  // Scientific batch S9. These four carry a figure and are said whole by
+  // `figureRuleWords`; these are the sentences for a row with no figure,
+  // which changes nothing.
+  opusBreach: 'your units’ blows on a city building the Magnum Opus remove some of the production banked toward it',
+  closedBook: 'completing the technology that opens the Magnum Opus first shuts it to the other empires for a while',
+  opusEarly: 'you may begin the Magnum Opus before any empire knows the technology that opens it',
+  prototypes: 'you may build the buildings and train the units of the technology you are researching',
 };
+
+/**
+ * **The four rules of Scientific batch S9 that carry a figure**, said whole:
+ * The Breaching Batteries' share, The Closed Book's turns, The Foundation
+ * Stone's share and The Prototype Works' premium. `null` for any other rule,
+ * and for a row with no figure, which `FLAG_RULE_WORDS` then says plainly.
+ *
+ * The Magnum Opus and the technology that opens it are read off the row that
+ * ends the game (`BuildingDef.endsTheGame`, `worldUnlockTech`), so no card
+ * names Alchemy and no code does either.
+ */
+function figureRuleWords(effect: Extract<CardEffect, { kind: 'rule' }>): string | null {
+  const opus = BUILDING_IDS.find((id) => buildingDef(id).endsTheGame === true);
+  const world = opus === undefined ? undefined : buildingDef(opus).worldUnlockTech;
+  // "the Magnum Opus" with a small "the" inside a sentence, as the scope words
+  // say it, and still marked so the Compendium links it.
+  const opusName =
+    opus === undefined
+      ? 'the Magnum Opus'
+      : `the ${ref('building', opus, buildingDef(opus).name.replace(/^the\s+/i, ''))}`;
+  const tech = world === undefined ? 'the technology that opens it' : ref('tech', world, techDef(world).name);
+  switch (effect.rule) {
+    case 'opusBreach': {
+      if (effect.percent === undefined) return null;
+      const who = effect.class === undefined ? 'your units' : `your ${filterWords(effect.class)}`;
+      return `each blow ${who} land on a city building ${opusName} removes ${effect.percent}% of the production banked toward it`;
+    }
+    case 'closedBook':
+      if (effect.turns === undefined) return null;
+      return (
+        `if you complete ${tech} before any other empire, empires that do not know ${tech} ` +
+        `may not begin ${opusName} for ${effect.turns} turns`
+      );
+    case 'opusEarly':
+      if (effect.percent === undefined) return null;
+      return (
+        `you may begin ${opusName} before any empire knows ${tech}, once you have put ` +
+        `${effect.percent}% of ${tech}'s cost into researching it; it cannot be finished until you know ${tech}`
+      );
+    case 'prototypes': {
+      if (effect.percent === undefined) return null;
+      const price =
+        effect.percent === 100
+          ? 'at double their production cost'
+          : `at ${effect.percent}% more production`;
+      return `you may build the buildings and train the units of the technology you are researching, ${price}; wonders are excepted`;
+    }
+    default:
+      return null;
+  }
+}
 
 /**
  * The rules that read differently **of one named work** —
@@ -6382,6 +6521,50 @@ const FLAG_RULE_CLASS_WORDS: Partial<Record<CardFlagRuleId, (who: string) => str
   blockades: (who) =>
     `${who} blockade a foreign city they stand beside on the water: its sea lanes close and its trade routes pay nothing`,
 };
+
+/**
+ * One test of a rider's any-of filter as a noun phrase (Scientific batch S8,
+ * `RiderBuildingTest`): "a science building", "an empire building", "a
+ * Library". The fields a test carries are said together.
+ */
+function buildingTestWords(test: RiderBuildingTest): string {
+  if (test.building !== undefined) {
+    const name = buildingDef(test.building).name;
+    return `${indefinite(name)} ${ref('building', test.building, name)}`;
+  }
+  const kinds = [test.buildingCategory, test.empireBuilding === true ? 'empire' : undefined].filter(
+    (word): word is string => word !== undefined,
+  );
+  const noun =
+    [...kinds, 'building'].join(' ') + (test.empireBuilding === false ? ' that is not an empire building' : '');
+  return `${indefinite(noun)} ${noun}`;
+}
+
+/**
+ * **A lift of the one-to-a-realm limit, with a count or over every great
+ * house** (Scientific batch S8, The Second Seat): "you may build one second
+ * copy of an empire building, in a city with a University". The count is the
+ * most extra copies in all (`CardRuleEffect.max`); the towns are the row's
+ * scope.
+ */
+function limitLiftWords(effect: Extract<CardEffect, { kind: 'rule' }>): string {
+  const what =
+    effect.building !== undefined
+      ? (() => {
+          const name = buildingDef(effect.building).name;
+          return `${indefinite(name)} ${ref('building', effect.building, name)}`;
+        })()
+      : 'an empire building';
+  const copies =
+    effect.max === undefined
+      ? `more than one copy of ${what}`
+      : effect.max === 1
+        ? `one second copy of ${what}`
+        : `${effect.max} extra copies of ${what === 'an empire building' ? 'empire buildings' : what}, in all`;
+  const towns =
+    effect.scope === undefined ? '' : `, in ${cityScopeWords(effect.scope).replace(/^every /, 'a ')}`;
+  return `you may build ${copies}${towns}`;
+}
 
 /**
  * The rules that read differently **of one named building** —
@@ -6594,7 +6777,29 @@ const COMMISSION_FIGURE_WORDS: Record<
     counter: 'rival capitals following',
     noun: 'the rival capitals following your religion',
   },
+  // Scientific batch S9, The Great Instrument. A reward reads it; no goal does,
+  // so the goal phrase is only the plain truth.
+  opusCost: {
+    goal: (count) => `have the Magnum Opus cost you at least ${count} production`,
+    counter: 'production the Magnum Opus costs',
+    noun: 'the cost of the Magnum Opus',
+  },
+  // Scientific batch S8, The Lynx-Eyed Academy.
+  academyHexes: {
+    goal: (count) =>
+      count === 1
+        ? `hold ${indefinite(improvementDef('academy').name)} ${academyRef()} inside your borders`
+        : `hold ${count} ${academyRef(true)} inside your borders`,
+    counter: 'Academies held',
+    noun: 'the Academies inside your borders',
+  },
 };
+
+/** The Academy as a keyword ref, for the commission figure that counts them. */
+function academyRef(many = false): string {
+  const name = improvementDef('academy').name;
+  return ref('improvement', 'academy', many ? buildingPlural(name, 2) : name);
+}
 
 /** One part of a commission's goal as a phrase: "clear 2 barbarian camps". */
 export function commissionGoalWords(goal: CommissionGoal): string {
@@ -6669,7 +6874,14 @@ export function commissionRewardWords(reward: CommissionReward, towns = 1): stri
         : `each city gains ${reward.yield} equal to ${reward.amount} times ${counted}, toward what it is building`,
     );
   } else if (reward.yield !== undefined && reward.amount !== undefined) {
-    const where = reward.yield === 'food' || reward.yield === 'production' ? ' in your capital' : '';
+    // The Great Instrument (Scientific batch S9): production toward the
+    // Magnum Opus lands in the town raising it, not in the capital.
+    const toOpus = reward.toOpus === true && reward.yield === 'production';
+    const where = toOpus
+      ? ' toward the Magnum Opus'
+      : reward.yield === 'food' || reward.yield === 'production'
+        ? ' in your capital'
+        : '';
     if (reward.fromGoal === 'population') {
       // "culture equal to 23 times its population", "science equal to 10 times
       // those cities' total population" (Dominion batch D6).
@@ -6680,7 +6892,9 @@ export function commissionRewardWords(reward: CommissionReward, towns = 1): stri
     } else if (reward.fromFigure === undefined) {
       out.push(`${signed(reward.amount)} ${reward.yield}${where}`);
     } else {
-      const noun = COMMISSION_FIGURE_WORDS[reward.fromFigure].noun;
+      // "Its cost" when the production goes toward the very thing it measures.
+      const noun =
+        toOpus && reward.fromFigure === 'opusCost' ? 'its cost' : COMMISSION_FIGURE_WORDS[reward.fromFigure].noun;
       const share =
         reward.amount < 1 ? `${Math.round(reward.amount * 100)}% of` : `${reward.amount} times`;
       out.push(`${reward.yield}${where} equal to ${share} ${noun} at that moment`);

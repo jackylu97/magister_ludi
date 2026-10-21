@@ -104,7 +104,7 @@ import {
   unitById,
 } from './state';
 import { happinessOf } from './meters';
-import { renownThreshold, settleRenownWindfall } from './renown';
+import { planRecruitment, renownThreshold, settleRenownWindfall } from './renown';
 import {
   cardActionRule,
   cardAmplifier,
@@ -117,7 +117,7 @@ import {
   windfallPayoutIsEmpty,
 } from './statecraft';
 import type { ActionRuleId, CardEffect } from './statecraftData';
-import { settleResearchWindfall } from './tech';
+import { hasAbility, settleResearchWindfall } from './tech';
 import { highestAge } from './techData';
 import { unitDef, unitMaxHp } from './unitData';
 // The empire's live share of a piece's maximum health — iron's ten points (R2).
@@ -590,8 +590,38 @@ export function purchaseGreatPersonOfferAt(
     return offer;
   }
   chargeBank(state, player, def.currency, greatPersonOfferPrice(purchase));
-  const owed = Math.max(0, renownThreshold(player) - player.renownPool);
+  const owed = Math.max(0, renownThreshold(state, player) - player.renownPool);
   return settleRenownWindfall(state, player, [{ family: null, amount: owed }]);
+}
+
+/**
+ * **A great person granted outright**, by a commission's reward
+ * (`CommissionReward.greatPerson`) or a rider's grant
+ * (`WindfallGrantSpec.greatPerson`, Scientific batch S8, The Invitations).
+ * Returns the words for the report.
+ *
+ * When the empire may call great people and has none waiting, an offer is
+ * dealt now, narrowed to the family named (the draw the Academy's scholar
+ * draft uses). Otherwise the ladder is filled to its next rung instead (the
+ * grant The Laureate pays), so the person arrives as soon as the waiting one
+ * is chosen or the rites are known. Moved here from `commissions.ts` in batch
+ * S8, so the two callers share one routine.
+ */
+export function grantGreatPersonOffer(state: GameState, player: Player, family: Family | 'any'): string {
+  const narrowed = family === 'any' ? undefined : family;
+  const word = narrowed === undefined ? 'a great person' : `a great ${narrowed}`;
+  if (player.greatPersonOffer === undefined && hasAbility(state, player.id, 'ancestorRites')) {
+    const offer = drawGreatPersonOffer(state, player, narrowed);
+    if (offer.options.length > 0) {
+      player.greatPersonOffer = offer;
+      bumpEconomy(state);
+      return `${word} to call`;
+    }
+  }
+  const plan = planRecruitment(state, player);
+  const owed = plan === null ? renownThreshold(state, player) - player.renownPool : 0;
+  settleRenownWindfall(state, player, [{ family: narrowed ?? null, amount: Math.max(0, owed) }]);
+  return `renown for ${word}`;
 }
 
 /** Takes the price out of one of the two banks. The only subtraction here. */

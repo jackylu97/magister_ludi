@@ -1297,6 +1297,129 @@ export interface AiConfig {
        */
       opusSiege: number;
     };
+    /**
+     * **Stand-in prices for the Scientific shapes of batches S0 to S9**
+     * (Scientific batch S13). One knob for each shape that the board cannot
+     * price by itself. Each arm in `value.ts` reads what it can off the board
+     * (the seat's charters, its units, its rivals, its towns) and uses its knob
+     * only for the part the board cannot say. The shapes that the board prices
+     * fully (the cheaper research of The Commonplace Book, The Patent Office
+     * and The Translation Movement, The Royal Readers' ladder, The Age of
+     * Reason) have no knob here.
+     */
+    scientific: {
+      /**
+       * **A trait reaches one line of units** (the traits of batch S1): the
+       * least share of this seat's combat units that a line is assumed to make
+       * up. The seat's real share is used when it is larger, so a seat that
+       * already fields the line pays the trait's full worth on it.
+       */
+      traitLine: number;
+      /**
+       * **Works of a charter's new row that each town is assumed to lay**
+       * (the Qanat and the Niter Beds). A row that may stand once in each town
+       * (the Physic Garden) counts one a town, whatever this says.
+       */
+      worksPerTown: number;
+      /**
+       * **Points a turn for each such work whose gift is not a yield**: the
+       * Qanat's water for the farms beside it, the Niter Beds' niter.
+       */
+      workGift: number;
+      /**
+       * **The share of a unit's fights that it fights from or in its own
+       * town**: The Soldier-Scholars' `standingInOwnTown` line, and the
+       * Hoplite's line that counts the citizens of the town the unit stands in.
+       */
+      inOwnTown: number;
+      /**
+       * **The share of fights within reach of a great general, a great scholar
+       * or an Academy** (The Strategikon's `nearLearning` line).
+       */
+      nearLearning: number;
+      /**
+       * **The share of this seat's fights fought against an empire rather than
+       * the wild** (The Edge of the Sword's `vsFewerTechs` line). The line is
+       * then scaled by the share of the empires met that know fewer
+       * technologies.
+       */
+      vsFewerTechs: number;
+      /**
+       * **The share of the wonders this seat raises while no empire it has met
+       * knows the technology that opens them** (The Great Designs'
+       * `aheadOfMet` bonus).
+       */
+      aheadOfMet: number;
+      /**
+       * **What moving after an attack is worth, in points of strength**: the
+       * Repeating Crossbow trait and The Swift Riders (`moveAfterAttack`).
+       */
+      moveAfterAttack: number;
+      /**
+       * **What a hull that blockades is worth, in points of strength**: the
+       * Galleass trait (`blockades`).
+       */
+      blockades: number;
+      /**
+       * **The Field Refits** (`upgradeHeals`): points of strength a turn for
+       * each combat unit of this seat that has an upgrade ahead of it.
+       */
+      upgradeHeals: number;
+      /**
+       * **The Model Army** (`upgradeIgnoresResource`): points of strength a
+       * turn for each combat unit of this seat that has an upgrade ahead of
+       * it.
+       */
+      upgradeIgnoresResource: number;
+      /**
+       * **The Breaching Batteries** (`opusBreach`): points for each met rival
+       * raising the Magnum Opus, whose banked work the blows could take away.
+       */
+      opusBreach: number;
+      /**
+       * **The Foundation Stone** (`opusEarly`): the share of the bead race's
+       * worth that starting the Magnum Opus early adds, while no empire knows
+       * the technology that opens it.
+       */
+      opusEarly: number;
+      /**
+       * **The Closed Book** (`closedBook`): the share of the bead race's worth
+       * that shutting the other empires out of the Magnum Opus adds, while no
+       * empire knows the technology that opens it.
+       */
+      closedBook: number;
+      /**
+       * **The Prototype Works** (`prototypes`): points for each building or
+       * unit that the technology being researched opens.
+       */
+      prototypes: number;
+      /**
+       * **The Studium Generale** (`worksCountAs`): points a turn for each great
+       * person's work that stands beside the named work and so counts as one
+       * for this seat's cards.
+       */
+      worksCountAs: number;
+      /**
+       * **The School of Mines** (`depositWorkCopies`): points a turn for each
+       * extra copy of a strategic resource.
+       */
+      strategicCopy: number;
+      /**
+       * **More of a Scientific count expected over the horizon**: the
+       * potential half of a card that counts it, as `tallyForecast` is for a
+       * tally. `chartersDrafted` is smoothed with the seat's own record (the
+       * charters it holds); the lead, the gap and the guildsmen have no record
+       * of growth, so the figure stands alone. Technologies known and charter
+       * technologies known read the `techCompleted` and
+       * `charterTechCompleted` forecasts and need no row here.
+       */
+      countForecast: {
+        chartersDrafted: number;
+        techLead: number;
+        techGap: number;
+        guildsmen: number;
+      };
+    };
   };
   /** What "an enemy is near my towns" means, and what it is worth. */
   threat: {

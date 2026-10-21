@@ -7148,11 +7148,11 @@
   ],
   "theGlassmakersCharter": [
    {
-    "raw": "once drafted, opens Optics for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:optics|Optics]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Optics for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Optics, you may build the [[building:specularium|Specularium]]: +3 food; +1 science per 2 citizens in this city",
+    "raw": "once you know [[tech:optics|Optics]], you may build the [[building:specularium|Specularium]]: +3 food; +1 science per 2 citizens in this city",
     "text": "once you know Optics, you may build the Specularium: +3 food; +1 science per 2 citizens in this city"
    }
   ],
@@ -7181,16 +7181,8 @@
   ],
   "learnedCommissions": [
    {
-    "raw": "+38% production toward empire buildings, in every city with a [[building:library|Library]]",
-    "text": "+38% production toward empire buildings, in every city with a Library"
-   },
-   {
-    "raw": "completing a building (an empire building, the first of that kind your realm has finished) grants +60 culture",
-    "text": "completing a building (an empire building, the first of that kind your realm has finished) grants +60 culture"
-   },
-   {
-    "raw": "completing a building (an empire building, the first of that kind your realm has finished) grants +30 faith",
-    "text": "completing a building (an empire building, the first of that kind your realm has finished) grants +30 faith"
+    "raw": "+25% production toward empire buildings, in every city with a [[building:library|Library]]",
+    "text": "+25% production toward empire buildings, in every city with a Library"
    }
   ],
   "theStrategicReserves": [
@@ -7286,12 +7278,8 @@
   ],
   "enduringInstitutions": [
    {
-    "raw": "+2 happiness in every city holding an empire building that has stood at least 20 turns",
-    "text": "+2 happiness in every city holding an empire building that has stood at least 20 turns"
-   },
-   {
-    "raw": "+23% production in every city holding an empire building that has stood at least 20 turns",
-    "text": "+23% production in every city holding an empire building that has stood at least 20 turns"
+    "raw": "+25% production in every city holding an empire building that has stood at least 20 turns",
+    "text": "+25% production in every city holding an empire building that has stood at least 20 turns"
    }
   ],
   "thePatentRolls": [
@@ -7313,25 +7301,25 @@
   ],
   "theQuietFaculties": [
    {
-    "raw": "+38% food in every city working a great person's work",
-    "text": "+38% food in every city working a great person's work"
+    "raw": "+25% food in every city working an [[improvement:academy|Academy]]",
+    "text": "+25% food in every city working an Academy"
    },
    {
-    "raw": "+30% production in every city working a great person's work",
-    "text": "+30% production in every city working a great person's work"
+    "raw": "+20% production in every city working an [[improvement:academy|Academy]]",
+    "text": "+20% production in every city working an Academy"
    },
    {
-    "raw": "-25% production toward military units, in every city working a great person's work",
-    "text": "-25% production toward military units, in every city working a great person's work"
+    "raw": "-25% production toward military units, in every city working an [[improvement:academy|Academy]]",
+    "text": "-25% production toward military units, in every city working an Academy"
    }
   ],
   "theMechanistsCharter": [
    {
-    "raw": "once drafted, opens Mechanics for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:mechanics|Mechanics]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Mechanics for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Mechanics, the Catapult line (Catapult and Trebuchet) gains the Onager trait and keeps it through every upgrade",
+    "raw": "once you know [[tech:mechanics|Mechanics]], the Catapult line (Catapult and Trebuchet) gains the Onager trait and keeps it through every upgrade",
     "text": "once you know Mechanics, the Catapult line (Catapult and Trebuchet) gains the Onager trait and keeps it through every upgrade"
    },
    {
@@ -7339,7 +7327,7 @@
     "text": "units of the Catapult line: +1 range"
    },
    {
-    "raw": "once you know Mechanics, the Archer line (Archer to Crossbowman) gains the Repeating Crossbow trait and keeps it through every upgrade",
+    "raw": "once you know [[tech:mechanics|Mechanics]], the Archer line (Archer to Crossbowman) gains the Repeating Crossbow trait and keeps it through every upgrade",
     "text": "once you know Mechanics, the Archer line (Archer to Crossbowman) gains the Repeating Crossbow trait and keeps it through every upgrade"
    },
    {
@@ -7349,11 +7337,11 @@
   ],
   "theAlchemistsCharter": [
    {
-    "raw": "once drafted, opens Chemistry for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:chemistry|Chemistry]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Chemistry for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Chemistry, the Warrior line (Warrior to Longswordsman) gains the Grenadier trait and keeps it through every upgrade",
+    "raw": "once you know [[tech:chemistry|Chemistry]], the Warrior line (Warrior to Longswordsman) gains the Grenadier trait and keeps it through every upgrade",
     "text": "once you know Chemistry, the Warrior line (Warrior to Longswordsman) gains the Grenadier trait and keeps it through every upgrade"
    },
    {
@@ -7361,15 +7349,14 @@
     "text": "+1 combat strength for units of the Warrior line, +1 more per charter technology you know"
    },
    {
-    "raw": "once you know Chemistry, your workers may build the [[improvement:niterBeds|Niter Beds]]: beside your farm or pasture; they supply one copy of [[resource:niter|Niter]]",
+    "raw": "once you know [[tech:chemistry|Chemistry]], your workers may build the [[improvement:niterBeds|Niter Beds]]: beside your farm or pasture; they supply one copy of [[resource:niter|Niter]]",
     "text": "once you know Chemistry, your workers may build the Niter Beds: beside your farm or pasture; they supply one copy of Niter"
    }
   ],
   "theSecondSeat": [
    {
-    "raw": "you may raise one further copy of an empire building, in a town that holds a university, and only one such copy may be building or standing at a time — not built yet",
-    "text": "you may raise one further copy of an empire building, in a town that holds a university, and only one such copy may be building or standing at a time — not built yet",
-    "deferred": true
+    "raw": "you may build one second copy of an empire building, in a city with a [[building:university|University]]",
+    "text": "you may build one second copy of an empire building, in a city with a University"
    }
   ],
   "theLongInheritance": [
@@ -7417,25 +7404,25 @@
   ],
   "theHerbalistsCharter": [
    {
-    "raw": "once drafted, opens Herbals for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:herbals|Herbals]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Herbals for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Herbals, your workers may build the [[improvement:physicGarden|Physic Garden]]: +2 science; on flat land with fresh water, one in each city",
+    "raw": "once you know [[tech:herbals|Herbals]], your workers may build the [[improvement:physicGarden|Physic Garden]]: +2 science; on flat land with fresh water, one in each city",
     "text": "once you know Herbals, your workers may build the Physic Garden: +2 science; on flat land with fresh water, one in each city"
    },
    {
-    "raw": "once you know Herbals, +2 happiness per hex with a [[improvement:physicGarden|Physic Garden]] in your borders",
+    "raw": "once you know [[tech:herbals|Herbals]], +2 happiness per hex with a [[improvement:physicGarden|Physic Garden]] in your borders",
     "text": "once you know Herbals, +2 happiness per hex with a Physic Garden in your borders"
    }
   ],
   "theBronzeFoundersCharter": [
    {
-    "raw": "once drafted, opens Casting for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:casting|Casting]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Casting for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Casting, the Spearman line (Spearman to Pikeman) gains the Hoplite trait and keeps it through every upgrade",
+    "raw": "once you know [[tech:casting|Casting]], the Spearman line (Spearman to Pikeman) gains the Hoplite trait and keeps it through every upgrade",
     "text": "once you know Casting, the Spearman line (Spearman to Pikeman) gains the Hoplite trait and keeps it through every upgrade"
    },
    {
@@ -7443,7 +7430,7 @@
     "text": "+1 combat strength for units of the Spearman line, +1 more per 4 citizens of your city it stands in"
    },
    {
-    "raw": "once you know Casting, the War Chariot line (War Chariot to Knight) gains the Maryannu trait and keeps it through every upgrade",
+    "raw": "once you know [[tech:casting|Casting]], the War Chariot line (War Chariot to Knight) gains the Maryannu trait and keeps it through every upgrade",
     "text": "once you know Casting, the War Chariot line (War Chariot to Knight) gains the Maryannu trait and keeps it through every upgrade"
    },
    {
@@ -7457,25 +7444,25 @@
   ],
   "theSurveyorsCharter": [
    {
-    "raw": "once drafted, opens Surveying for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:surveying|Surveying]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Surveying for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Surveying, you may build the [[building:aqueduct|Aqueduct]] before Engineering: +15% food surplus stored toward growth; the city counts as standing beside fresh water",
+    "raw": "once you know [[tech:surveying|Surveying]], you may build the [[building:aqueduct|Aqueduct]] before [[tech:engineering|Engineering]]: +15% food surplus stored toward growth; the city counts as standing beside fresh water",
     "text": "once you know Surveying, you may build the Aqueduct before Engineering: +15% food surplus stored toward growth; the city counts as standing beside fresh water"
    },
    {
-    "raw": "once you know Surveying, your workers may build the [[improvement:qanat|Qanat]]: on flat land; your farms beside it count as having fresh water",
+    "raw": "once you know [[tech:surveying|Surveying]], your workers may build the [[improvement:qanat|Qanat]]: on flat land; your farms beside it count as having fresh water",
     "text": "once you know Surveying, your workers may build the Qanat: on flat land; your farms beside it count as having fresh water"
    }
   ],
   "theLibrariansCharter": [
    {
-    "raw": "once drafted, opens Cataloguing for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:cataloguing|Cataloguing]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Cataloguing for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Cataloguing, you may build the [[building:mouseion|Mouseion]]: +4 renown per turn, favouring scholars; +2 culture per empire building you hold",
+    "raw": "once you know [[tech:cataloguing|Cataloguing]], you may build the [[building:mouseion|Mouseion]]: +4 renown per turn, favouring scholars; +2 culture per empire building you hold",
     "text": "once you know Cataloguing, you may build the Mouseion: +4 renown per turn, favouring scholars; +2 culture per empire building you hold"
    }
   ],
@@ -7487,65 +7474,65 @@
   ],
   "thePaperMakersCharter": [
    {
-    "raw": "once drafted, opens Papermaking for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:papermaking|Papermaking]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Papermaking for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Papermaking, you may build the [[building:scriptorium|Scriptorium]]: +2 science; +10% science in every city with a [[building:scriptorium|Scriptorium]] with an [[improvement:academy|Academy]]; +2 renown per turn, favouring scholars",
+    "raw": "once you know [[tech:papermaking|Papermaking]], you may build the [[building:scriptorium|Scriptorium]]: +2 science; +10% science in every city with a [[building:scriptorium|Scriptorium]] with an [[improvement:academy|Academy]]; +2 renown per turn, favouring scholars",
     "text": "once you know Papermaking, you may build the Scriptorium: +2 science; +10% science in every city with a Scriptorium with an Academy; +2 renown per turn, favouring scholars"
    }
   ],
   "thePhysiciansCharter": [
    {
-    "raw": "once drafted, opens Medicine for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:medicine|Medicine]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Medicine for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Medicine, you may build the [[building:bimaristan|Bimaristan]]: +25% food in every city with a [[building:bimaristan|Bimaristan]]; all units: +10 healing per turn inside your territory",
+    "raw": "once you know [[tech:medicine|Medicine]], you may build the [[building:bimaristan|Bimaristan]]: +25% food in every city with a [[building:bimaristan|Bimaristan]]; all units: +10 healing per turn inside your territory",
     "text": "once you know Medicine, you may build the Bimaristan: +25% food in every city with a Bimaristan; all units: +10 healing per turn inside your territory"
    }
   ],
   "thePrintersCharter": [
    {
-    "raw": "once drafted, opens Printing for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:printing|Printing]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Printing for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Printing, you may build the [[building:aldinePress|Aldine Press]]: +2 culture; +2 science, +2 culture on every trade route sent from every city with an [[building:aldinePress|Aldine Press]]",
+    "raw": "once you know [[tech:printing|Printing]], you may build the [[building:aldinePress|Aldine Press]]: +2 culture; +2 science, +2 culture on every trade route sent from every city with an [[building:aldinePress|Aldine Press]]",
     "text": "once you know Printing, you may build the Aldine Press: +2 culture; +2 science, +2 culture on every trade route sent from every city with an Aldine Press"
    },
    {
-    "raw": "once you know Printing, +1 trade route",
+    "raw": "once you know [[tech:printing|Printing]], +1 trade route",
     "text": "once you know Printing, +1 trade route"
    }
   ],
   "theGunfoundersCharter": [
    {
-    "raw": "once drafted, opens Gunfounding for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:gunfounding|Gunfounding]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Gunfounding for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Gunfounding, you may build the [[building:tophane|Tophane]]: newly created military units in every city with a [[building:tophane|Tophane]] gain +4 combat strength; +25% production toward military units, in every city with a [[building:tophane|Tophane]]",
+    "raw": "once you know [[tech:gunfounding|Gunfounding]], you may build the [[building:tophane|Tophane]]: newly created military units in every city with a [[building:tophane|Tophane]] gain +4 combat strength; +25% production toward military units, in every city with a [[building:tophane|Tophane]]",
     "text": "once you know Gunfounding, you may build the Tophane: newly created military units in every city with a Tophane gain +4 combat strength; +25% production toward military units, in every city with a Tophane"
    }
   ],
   "theMilitaryEngineersCharter": [
    {
-    "raw": "once drafted, opens Military Architecture for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:militaryArchitecture|Military Architecture]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Military Architecture for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Military Architecture, you may build the [[building:bastion|Bastion]]: +5 to the city’s defence strength; +30 to how much punishment the city can take; +1 renown per turn, favouring engineers",
+    "raw": "once you know [[tech:militaryArchitecture|Military Architecture]], you may build the [[building:bastion|Bastion]]: +5 to the city’s defence strength; +30 to how much punishment the city can take; +1 renown per turn, favouring engineers",
     "text": "once you know Military Architecture, you may build the Bastion: +5 to the city’s defence strength; +30 to how much punishment the city can take; +1 renown per turn, favouring engineers"
    }
   ],
   "theNavalGunnersCharter": [
    {
-    "raw": "once drafted, opens Naval Gunnery for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "raw": "once drafted, opens [[tech:navalGunnery|Naval Gunnery]] for you to research; only an empire holding this charter may research it; this card takes no chair",
     "text": "once drafted, opens Naval Gunnery for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know Naval Gunnery, the Gun Galley line (Gun Galley and Frigate) gains the Galleass trait and keeps it through every upgrade",
+    "raw": "once you know [[tech:navalGunnery|Naval Gunnery]], the Gun Galley line (Gun Galley and Frigate) gains the Galleass trait and keeps it through every upgrade",
     "text": "once you know Naval Gunnery, the Gun Galley line (Gun Galley and Frigate) gains the Galleass trait and keeps it through every upgrade"
    },
    {
@@ -7749,6 +7736,222 @@
    {
     "raw": "+10% production toward [[building:theMagnumOpus|The Magnum Opus]] per charter technology you know (at most +40%)",
     "text": "+10% production toward The Magnum Opus per charter technology you know (at most +40%)"
+   }
+  ],
+  "theRoyalTutors": [
+   {
+    "raw": "+1 renown per turn in every city, per building there that supplies science, favouring scholars",
+    "text": "+1 renown per turn in every city, per building there that supplies science, favouring scholars"
+   }
+  ],
+  "theWarManuals": [
+   {
+    "raw": "newly created military units in every city with a [[building:library|Library]] gain +2 combat strength",
+    "text": "newly created military units in every city with a Library gain +2 combat strength"
+   }
+  ],
+  "theRoyalEstates": [
+   {
+    "raw": "+2 food in every city per empire building you hold there",
+    "text": "+2 food in every city per empire building you hold there"
+   },
+   {
+    "raw": "+2 production in every city per empire building you hold there",
+    "text": "+2 production in every city per empire building you hold there"
+   }
+  ],
+  "theCommonTables": [
+   {
+    "raw": "+2 food in every city per building there that supplies science",
+    "text": "+2 food in every city per building there that supplies science"
+   }
+  ],
+  "theFreeCities": [
+   {
+    "raw": "while you hold at most 5 cities: +20% production toward buildings; +20% production toward wonders",
+    "text": "while you hold at most 5 cities: +20% production toward buildings; +20% production toward wonders"
+   }
+  ],
+  "theRollOfScholars": [
+   {
+    "raw": "+4% production per great scholar you have gained this game (at most +28% production)",
+    "text": "+4% production per great scholar you have gained this game (at most +28% production)"
+   },
+   {
+    "raw": "+4% culture per great scholar you have gained this game (at most +28% culture)",
+    "text": "+4% culture per great scholar you have gained this game (at most +28% culture)"
+   }
+  ],
+  "thePalaceSchools": [
+   {
+    "raw": "newly created military units in every city holding an empire building gain +4 combat strength",
+    "text": "newly created military units in every city holding an empire building gain +4 combat strength"
+   }
+  ],
+  "theRoundCity": [
+   {
+    "raw": "+1% production per citizen in your capital (at most +30% production)",
+    "text": "+1% production per citizen in your capital (at most +30% production)"
+   },
+   {
+    "raw": "+1% culture per citizen in your capital (at most +30% culture)",
+    "text": "+1% culture per citizen in your capital (at most +30% culture)"
+   }
+  ],
+  "theCityArchitects": [
+   {
+    "raw": "+25% production toward wonders, in every city of 8 or more citizens",
+    "text": "+25% production toward wonders, in every city of 8 or more citizens"
+   }
+  ],
+  "theForwardPlans": [
+   {
+    "raw": "unlocks the [[building:university|University]] in any city with a [[building:library|Library]] that has stood at least 30 turns — +1 science for every citizen; +2 renown per turn, favouring scholars",
+    "text": "unlocks the University in any city with a Library that has stood at least 30 turns — +1 science for every citizen; +2 renown per turn, favouring scholars"
+   }
+  ],
+  "theDedications": [
+   {
+    "raw": "completing a building (a science building or an empire building) grants culture equal to 10 times the city's population",
+    "text": "completing a building (a science building or an empire building) grants culture equal to 10 times the city's population"
+   }
+  ],
+  "theRoyalReaders": [
+   {
+    "raw": "great scholars raise the price of your next great person by half as much",
+    "text": "great scholars raise the price of your next great person by half as much"
+   }
+  ],
+  "theInvitations": [
+   {
+    "raw": "completing a building (an empire building) grants a great scholar to call",
+    "text": "completing a building (an empire building) grants a great scholar to call"
+   }
+  ],
+  "theDoctorate": [
+   {
+    "raw": "gaining a great scholar grants 8 extra turns of culture",
+    "text": "gaining a great scholar grants 8 extra turns of culture"
+   }
+  ],
+  "theRoyalAcademies": [
+   {
+    "raw": "+5% production per empire building you hold",
+    "text": "+5% production per empire building you hold"
+   },
+   {
+    "raw": "+5% culture per empire building you hold",
+    "text": "+5% culture per empire building you hold"
+   }
+  ],
+  "theQueenOfCities": [
+   {
+    "raw": "+100% food in every city of 15 or more citizens",
+    "text": "+100% food in every city of 15 or more citizens"
+   },
+   {
+    "raw": "+100% production in every city of 15 or more citizens",
+    "text": "+100% production in every city of 15 or more citizens"
+   }
+  ],
+  "theHumanists": [
+   {
+    "raw": "50% of the science in every city with a [[building:university|University]] is gained again as culture",
+    "text": "50% of the science in every city with a University is gained again as culture"
+   }
+  ],
+  "theWallsOfLearning": [
+   {
+    "raw": "every city with a [[building:university|University]]: +6 city defence",
+    "text": "every city with a University: +6 city defence"
+   },
+   {
+    "raw": "every city raising the Magnum Opus: +12 city defence",
+    "text": "every city raising the Magnum Opus: +12 city defence"
+   }
+  ],
+  "theLynxEyedAcademy": [
+   {
+    "raw": "Commission. Goal: hold 4 [[improvement:academy|Academies]] inside your borders, while this card is seated",
+    "text": "Commission. Goal: hold 4 Academies inside your borders, while this card is seated"
+   },
+   {
+    "raw": "Reward: a great scholar to call, and +300 production in every city with an [[improvement:academy|Academy]]",
+    "text": "Reward: a great scholar to call, and +300 production in every city with an Academy"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theFieldRefits": [
+   {
+    "raw": "each time research upgrades one of your units, it heals fully",
+    "text": "each time research upgrades one of your units, it heals fully"
+   }
+  ],
+  "theStrategikon": [
+   {
+    "raw": "+4 combat strength while within 2 hexes of your great general, your great scholar or your [[improvement:academy|Academy]]",
+    "text": "+4 combat strength while within 2 hexes of your great general, your great scholar or your Academy"
+   }
+  ],
+  "theArmouryPatterns": [
+   {
+    "raw": "+25% production toward units of the newest age you know",
+    "text": "+25% production toward units of the newest age you know"
+   }
+  ],
+  "theModelArmy": [
+   {
+    "raw": "research upgrades your units even when you lack the strategic resource the new unit needs",
+    "text": "research upgrades your units even when you lack the strategic resource the new unit needs"
+   }
+  ],
+  "theGreatInstrument": [
+   {
+    "raw": "Commission. Goal: complete [[tech:alchemy|Alchemy]], while this card is seated",
+    "text": "Commission. Goal: complete Alchemy, while this card is seated"
+   },
+   {
+    "raw": "Reward: production toward the Magnum Opus equal to 10% of its cost at that moment",
+    "text": "Reward: production toward the Magnum Opus equal to 10% of its cost at that moment"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   },
+   {
+    "raw": "not dealt to an empire that knows [[tech:alchemy|Alchemy]]",
+    "text": "not dealt to an empire that knows Alchemy"
+   }
+  ],
+  "theFoundationStone": [
+   {
+    "raw": "you may begin the [[building:theMagnumOpus|Magnum Opus]] before any empire knows [[tech:alchemy|Alchemy]], once you have put 50% of [[tech:alchemy|Alchemy]]'s cost into researching it; it cannot be finished until you know [[tech:alchemy|Alchemy]]",
+    "text": "you may begin the Magnum Opus before any empire knows Alchemy, once you have put 50% of Alchemy's cost into researching it; it cannot be finished until you know Alchemy"
+   }
+  ],
+  "theClosedBook": [
+   {
+    "raw": "if you complete [[tech:alchemy|Alchemy]] before any other empire, empires that do not know [[tech:alchemy|Alchemy]] may not begin the [[building:theMagnumOpus|Magnum Opus]] for 10 turns",
+    "text": "if you complete Alchemy before any other empire, empires that do not know Alchemy may not begin the Magnum Opus for 10 turns"
+   }
+  ],
+  "theBreachingBatteries": [
+   {
+    "raw": "+5 combat strength for siege units against cities",
+    "text": "+5 combat strength for siege units against cities"
+   },
+   {
+    "raw": "each blow your siege units land on a city building the [[building:theMagnumOpus|Magnum Opus]] removes 5% of the production banked toward it",
+    "text": "each blow your siege units land on a city building the Magnum Opus removes 5% of the production banked toward it"
+   }
+  ],
+  "thePrototypeWorks": [
+   {
+    "raw": "you may build the buildings and train the units of the technology you are researching, at double their production cost; wonders are excepted",
+    "text": "you may build the buildings and train the units of the technology you are researching, at double their production cost; wonders are excepted"
    }
   ],
   "magisterialMasterMasons": [
@@ -9069,6 +9272,16 @@
    {
     "raw": "+2 science on every hex carrying a strategic resource",
     "text": "+2 science on every hex carrying a strategic resource"
+   }
+  ],
+  "scientificTheSoldierScholars": [
+   {
+    "raw": "+5 combat strength for military units while standing in one of your cities",
+    "text": "+5 combat strength for military units while standing in one of your cities"
+   },
+   {
+    "raw": "+2 science in every city per combat unit standing there",
+    "text": "+2 science in every city per combat unit standing there"
    }
   ]
  },
