@@ -2311,8 +2311,45 @@ import {
  * pools hold three more cards, and The Topping Out pays different towns for
  * a different building, so its hands and its towns differ. The branch
  * migrates nothing, for the reason given under v119.
+ *
+ * v169 (branch `decks`; Commerce batch T1, `docs/plans/commerce-themes-
+ * triage.md`): **the Commerce sheet of record.** No field joins the state.
+ * The rules that change:
+ *
+ *   · the deck is sorted: every Commerce row that `docs/decks/commerce.md`
+ *     lists carries a type, so it fits only a chair of that type or a
+ *     Wildcard chair. Four shared rows gain a type too (Pilgrim Markets, The
+ *     Tithe, Travelling Players and The Cosmopolitan Court);
+ *   · eleven rows are retired: Coastal Estates, Bought Swords, Frontier
+ *     Investment, Ore Caravans, Venture Routes, The Caravanserai Network,
+ *     Patrons Abroad and The Merchant Dynasties (all live), and The
+ *     Consulate, The Post Riders and The Embargo (all deferred);
+ *   · four rows move from the Commerce file to the shared file, with their
+ *     ids, texts and tiers: The Merchant Shrines, The Waqf and The Silk Road
+ *     Monks (shared with Devotion) and The Brokers' Redraw (shared with
+ *     Magisterial);
+ *   · fifteen cards change in place. Private Patronage pays +40% gold. The
+ *     Market Writ, The Factors' Houses and Caravanserai Cities lose their
+ *     gold percentage. The Carters' Guild becomes +25% production toward
+ *     buildings in towns a domestic trade route reaches. Corner the Market
+ *     leaves an institution: +2 happiness for each luxury held twice or more.
+ *     The Customs Houses pays science and culture for each customs house in a
+ *     town's borders. Established Routes asks for twenty turns. The
+ *     Strongroom asks for 1,500 gold. Bought and Paid For pays a percentage
+ *     for each building bought with gold. Money at Work pays every town
+ *     science for its treasury. Six cards change tier;
+ *   · the shared The Escorted Roads, Pilgrim Markets, The Grain Exchange and
+ *     Travelling Players move to Tier II, and The Exchange of Discoveries to
+ *     Tier I;
+ *   · the deferred The Return Leg, Export Guilds and The Treaty Ports take
+ *     their new text, tier and rarity, and stay out of every pool.
+ *
+ * **A v168 save is refused and does not replay.** A Commerce seat's pools and
+ * chairs hold different cards, and so do the pools of a seat whose deck
+ * shares a moved card. The branch migrates nothing, for the reason given
+ * under v119.
  */
-export const SCHEMA_VERSION = 168;
+export const SCHEMA_VERSION = 169;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

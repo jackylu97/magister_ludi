@@ -968,10 +968,16 @@ describe('determinism', () => {
    * such card a town holds what it built. Checked with the merge in place and
    * the version printed as 167, which gives the hashes of Expansionist
    * batches E9 and E10 exactly.
+   *
+   * **Commerce batch T1 (the Commerce sheet of record, schema 169) moved the
+   * hash and not the length** at both seeds: 168 became 169, and that is all.
+   * Nobody here drafts, so no seat holds a retired, moved, retyped or changed
+   * Commerce card. Checked with the change in place and the version printed
+   * as 168, which gives the hashes of the bot levy merge exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '00a8d802:188931',
-    2026: '7f6f2dd3:188509',
+    11: 'ce39ecab:188931',
+    2026: '426a8842:188509',
   };
 
   for (const seed of [11, 2026]) {

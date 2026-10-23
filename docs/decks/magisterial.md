@@ -150,6 +150,8 @@ Deep enough for eleven chairs: 46 exclusive cards and 15 shared ones are availab
 
 A Magisterial seat may draw every one of these, and so may a seat holding the deck named beside it. A shared card is spent out of two shelves, so a change here is felt in two decks.
 
+**Moved by Commerce batch T1 (2026-10-23), for this deck's pass to confirm.** The Brokers' Redraw (Tier II) moved from the Commerce file to `data/decks/common.json`, shared with Magisterial, with its id, text and tier, and typed Wildcard by the Commerce sheet. Travelling Players moved from Tier 0 to Tier II, because it needs a trade route to pay. It keeps its built text until this deck's pass, and is typed Civic. The Cosmopolitan Court is typed Civic. The Commerce sheet (`docs/decks/commerce.md`) lists all three; this table does not list The Brokers' Redraw yet.
+
 | Card | Rarity | Also in | Status | The card | What the game does, or why not |
 |---|---|---|---|---|---|
 | **Travelling Players** | uncommon | Commerce | revised | Foreign routes from a city with a Monument gain +1 culture; additional +2 culture for every unique deck type slotted in your government. | Revised on the Commerce sheet by the user; this sheet takes that text. Was: foreign routes from a city with a Monument gain +2 culture. The new half needs a count of the different decks among your seated cards. Recommend keep. |

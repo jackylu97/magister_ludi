@@ -145,6 +145,8 @@ Before the first pass: 44 cards (18 built, 26 deferred). The first pass cut ten 
 
 A Devotion seat may draw every one of these, and so may a seat holding the deck named beside it — a shared card is spent out of two shelves, so a change here is felt in two decks. Listed in band order.
 
+**Moved by Commerce batch T1 (2026-10-23), for this deck's pass to confirm.** The Merchant Shrines (Tier 0), The Waqf (Tier II) and The Silk Road Monks (Tier II) moved from the Commerce file to `data/decks/common.json`, shared with Devotion, with their ids, texts and tiers, and typed Civic by the Commerce sheet. Pilgrim Markets moved from Tier I to Tier II, because it needs a trade route to pay, and is typed Civic. The Tithe is typed Economic. The Commerce sheet (`docs/decks/commerce.md`) lists all five; this table does not list the three moved cards yet.
+
 | Card | Rarity | Also in | Status | The card | What the game does, or why not |
 |---|---|---|---|---|---|
 | **Rites of Passage** | common | Dominion | built | Gaining a military unit grants 12 faith. | *no blocker recorded on the row.* Review: keep. It is the holy-war strand's only early card. User, 2026-10-12: keep (Dominion had recommended cutting it). Built by batch S (the shared-cards batch, 2026-10-12): completing a military unit, including one bought at the counter, grants 12 faith. The completion now tells the cards which unit was finished, so the rider can name military units. Dominion batch D0 (2026-10-16) changed "completing" to "gaining" (the ruling of 2026-10-13), so every unit gained pays: one trained, bought, raised for free or raised by any levy, including a levy that does not count as trained (the user's ruling of 2026-10-16). |

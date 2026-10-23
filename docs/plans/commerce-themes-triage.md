@@ -328,6 +328,12 @@ The first nine come from section 13. The rest are new. Each gives the reading th
 - **Schema:** one bump (11 rows leave the pools, 4 rows change decks, every listed row gains a type).
 - **Done-gate:** `npx vitest run test/sim/decks/commerce.test.ts test/sim/decks/commerceSheet.test.ts test/sim/decks/commerceThemeCards.test.ts test/sim/decks/common.test.ts test/sim/decks/shared.test.ts test/sim/decks/dominion.test.ts test/sim/decks/expansionist.test.ts test/sim/decks/scientific.test.ts test/sim/decks.test.ts test/sim/statecraft.test.ts test/sim/routeTally.test.ts test/sim/commissions.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`, and the fence's files typecheck.
 
+**Built 2026-10-23** (`e482ebae`). Schema 169. The explore digests moved by the version alone (checked with the version printed as 168). The plan missed 14 more schema pins, and four tests outside the fence that pinned The Strongroom's 2,000 gold (`commissions.test.ts`, which also opens a second Wildcard chair now that The Strongroom is Wildcard; `test/ui/commissionRail.test.ts`; `test/sim/aiCommissions.test.ts`; the Scientific sheet's header count). The "Notes and deferred halves" section of `docs/orders-and-doctrines.md` is left for T2. New readings:
+
+43. (T1) Merchant Scholars stays at Tier I until T2. The age gate names it as a second exception, and pins its band, so T2 must remove the exception.
+44. (T1) The live rows that wait on a later shape keep their old text and rarity in the data until their batch: Land Speculation, The Foreign Factor, The Admiralty of Trade (still rare) and The World's Fair.
+45. (T1) The sheet has a seventh status reason, `as built`, which the sync test checks. The Standing Army joins the shared table in T7.
+
 ### T2: the new data-only cards
 
 - **Builds:** eight Commerce rows (Market Day, The Emporia, The Grain Banks, The Market Halls, Names in Stone, The Hanse, Bills of Exchange, The Grain Barges) and the shared Merchant Scholars. The route · count row of `docs/yields.md` names the counts read at the origin (The Grain Barges, Merchant Scholars).

@@ -4,7 +4,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 
 - **Why each card is here:** `docs/plans/scientific-themes.md`. It designs the deck as a way to play: an engine of technologies and charters, and four themes (the learned land, institutions, great cities and the elite army). Sections 11 to 15 hold the user's rulings. `docs/plans/scientific-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
 - **The build plan:** `docs/plans/scientific-build-triage.md`. Batch S0 built the charter technologies and batch S1 the line traits. Batch S1b wrote this sheet, put the types into the data and retired the cut rows. Batch S2 built feature A (the guildsmen as a card count) and batch S3 built feature B (readings against the empires you have met). Batch S4 built the building charters: eight charters, five new buildings, the Physic Garden, and the Scriptorium and the Bastion opened by their charter technologies. Batch S5 built the learned land: the Surveyors' and the Alchemists' Charters with the Qanat and Niter Beds, the Aqueduct before Engineering, eight cards about Academies and the ground, and The Assay as a card shared with Expansionist. Batch S6 built the research record: eleven cards that pay for completing technologies, for the technologies and charter technologies you know, and for the charters you have drafted. Batch S7 built twelve cards of Tiers 0 to II in shapes that already existed. It renamed Learned Commissions to Learned Foundations (the data row keeps its id `learnedCommissions`), and brought Enduring Institutions and The Quiet Faculties to this sheet's text. Batch S8 built eleven cards about great people and the great houses: a great scholar granted for an empire building, a cheaper step on the great-person price for each great scholar, one second copy of an empire building, the University before Scholarship in a town with an old Library, and a commission that counts Academies. Batch S9 built the army and the Opus: nine cards, and The Soldier-Scholars as a card shared with Dominion. An upgrade from research can now heal a unit, or go ahead without the strategic resource. Two new strength lines read your great people and Academies nearby, and a unit standing in your own town. Towns can build the units of your newest age faster, and the rows of the technology you are researching at double cost. Four cards act on the Magnum Opus: an early start, a delay for the other empires, a commission to complete Alchemy, and siege blows that remove some of its banked production. Batch S10 built the charter screens: the charter shelf on the star chart, the price lists, and the traits on the unit card.
-- **The build is complete.** Batch S11 checked this sheet against the data on 2026-10-21. Every card on the five tier tables is in the data, dealt and `implemented`, and every row the plan cut is retired. Batch S12 gave each charter technology a page in the Compendium. The five shared rows that are not `implemented` are for the Commerce and Devotion builds, not for this deck's.
+- **The build is complete.** Batch S11 checked this sheet against the data on 2026-10-21. Every card on the five tier tables is in the data, dealt and `implemented`, and every row the plan cut is retired. Batch S12 gave each charter technology a page in the Compendium. The four shared rows that are not `implemented` are for the Commerce and Devotion builds, not for this deck's.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -29,7 +29,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 16 | 0 | 0 | 16 | 2 |
 | Tier IV | 13 | 0 | 0 | 13 | 2 |
 | **All** | **77** | **0** | **0** | **77** | **13** |
-| Shared | 13 | 3 | 2 | 18 | 1 |
+| Shared | 14 | 2 | 2 | 18 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
 
@@ -151,7 +151,7 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 
 These rows live in `data/decks/common.json`. A seat holding Scientific or the deck named beside each one may draw it, so a change here is felt in two decks. Each pair of decks keeps a shared card at Tier I or earlier (ruling (qqqqqq) 14).
 
-- **Types:** since batch S1b every shared row carries the type below. The user approved the types of the cards shared with Commerce, Devotion and Magisterial on 2026-10-21 (`docs/plans/scientific-themes.md`, section 15, item 5). The cards shared with Dominion and Expansionist carry the types those sheets give them. The Commerce, Devotion and Magisterial sheets have no Type column yet.
+- **Types:** since batch S1b every shared row carries the type below. The user approved the types of the cards shared with Commerce, Devotion and Magisterial on 2026-10-21 (`docs/plans/scientific-themes.md`, section 15, item 5). The cards shared with Dominion, Expansionist and Commerce carry the types those sheets give them. The Devotion and Magisterial sheets have no Type column yet.
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
@@ -162,7 +162,7 @@ These rows live in `data/decks/common.json`. A seat holding Scientific or the de
 | **Hydraulic Schools** | common | Expansionist | I | implemented | Cities with an Aqueduct gain +20% production toward science buildings. Those beside a mountain also gain +1 science per three citizens. | Civic |
 | **Cloister Schools** | uncommon | Devotion | I | implemented | Cities with both a Temple and a Library gain +5 food and +5 science. | Civic |
 | **The Monastery Libraries** | common | Devotion | I | modify: deferred; revised | Libraries give +2 faith. Temples give +2 science. | Civic |
-| **The Exchange of Discoveries** | uncommon | Commerce | I | modify: moved | +2 science on mines and quarries on a resource. Additional +2 if the city has a market. | Civic |
+| **The Exchange of Discoveries** | uncommon | Commerce | I | implemented | +2 science on mines and quarries on a resource. Additional +2 if the city has a market. | Civic |
 | **The Schoolmen's Charter** | uncommon | Devotion | I | add | Drafting this opens Scholasticism for research. Knowing it lets you build the Cathedral and train the Apostle before Theology. No chair required. | Civic |
 | **The Cloister** | rare | Devotion | II | implemented | Cities with a Temple gain science equal to 30% of their base faith. Their Libraries and Universities each gain +3 food. | Civic |
 | **The Merchant Navigators** | common | Commerce | II | implemented | Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +5 science. | Civic |

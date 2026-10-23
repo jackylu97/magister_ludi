@@ -39,6 +39,13 @@
  *      timing rule for this deck;
  *   6. **a seeded draft for a Commerce figure deals this deck and nothing
  *      else** — Mansa Musa, over thirty hands.
+ *
+ * Since Commerce batch T1 (`docs/plans/commerce-themes-triage.md`), this file
+ * also checks the sheet of record, `docs/decks/commerce.md`, against the data:
+ * every status and type, the two counts tables, every listed row once, and the
+ * shared table against `common.json`. The age gate follows the themes pass's
+ * section 12: no card reads a trade route, a trader or a trading post before
+ * Tier II.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -104,21 +111,27 @@ import {
   describeCard,
   describeEffects,
   drawOrderOffer,
+  explainCardCityYields,
   eligibleFor,
   explainOfferSize,
   foldOfferSize,
   stripRefs,
 } from '../../../src/sim/statecraft';
 import {
+  type Band,
   type CardEffect,
+  type CardType,
+  type DeckId,
   type OrderId,
   BANDS,
   DECK_FILES,
   DECK_FILE_ORDERS,
+  DECK_WORDS,
   ORDER_IDS,
   STATECRAFT,
   TIER_LADDER,
   bandTierAt,
+  isCardType,
   orderDef,
   orderIsDealt,
   ordersForDecks,
@@ -149,7 +162,7 @@ const deferred = (): OrderId[] =>
   COMMERCE.filter((id) => !isLive(id) && orderDef(id).retired !== true);
 
 describe('the Commerce deck is one deck', () => {
-  it('carries seventy-one rows, every one of them a Commerce card', () => {
+  it('carries ninety-three rows, every one of them a Commerce card', () => {
     // Sixty after C1; C2 adds the six the sheet proposed and nobody had written
     // down yet (Ore Caravans, Frontier Investment, Luxury Caravans, Mining
     // Districts, The Capital Arsenal, Foreign Procurement). C3 adds one more,
@@ -169,8 +182,11 @@ describe('the Commerce deck is one deck', () => {
     // The Commerce implementation batch adds twenty-three, every new row on the
     // user's sheet (`docs/decks/commerce.md`), and retires the twenty-three
     // rows its Proposed cuts name, which stay in the file for saves.
-    expect(COMMERCE.length).toBe(97);
-    expect(retired().length).toBe(23);
+    // Batch T1 retires eleven more (the themes pass's cuts) and moves four
+    // rows to common.json (The Merchant Shrines, The Waqf, The Silk Road
+    // Monks and The Brokers' Redraw), so 97 rows become 93.
+    expect(COMMERCE.length).toBe(93);
+    expect(retired().length).toBe(34);
     for (const id of COMMERCE) {
       expect(orderDef(id).decks, id).toEqual(['commerce']);
     }
@@ -215,10 +231,13 @@ describe('the Commerce deck is one deck', () => {
     // Merchant Works to Tier IV). Retired rows keep their band. Leaving them
     // out, the deck is the sheet's 11 / 15 / 17 / 11 / 15 plus five deferred
     // rows the sheet no longer lists (three in Tier I, two in Tier II).
-    expect([count(0), count(1), count(2), count(3), count(4)]).toEqual([15, 22, 30, 15, 15]);
+    // Batch T1 moves rows by the themes pass's tiers, takes four rows to
+    // common.json, and retires eleven. Leaving the retired rows out, the
+    // deck is the sheet's rows that have a data row: 8 / 8 / 18 / 15 / 10.
+    expect([count(0), count(1), count(2), count(3), count(4)]).toEqual([13, 17, 31, 19, 13]);
     const kept = COMMERCE.filter((id) => orderDef(id).retired !== true).map((id) => orderDef(id).band);
     expect([0, 1, 2, 3, 4].map((band) => kept.filter((b) => b === band).length)).toEqual([
-      11, 18, 19, 11, 15,
+      8, 8, 18, 15, 10,
     ]);
     expect(orderDef('civicReceipts' as OrderId).band).toBe(1);
   });
@@ -327,7 +346,9 @@ describe('a live Commerce row is a card', () => {
     // rows are dealt and two came off the deferred list (The Planters' Charter,
     // whose house now exists, and The Exchange, built as an approximation);
     // eighteen live rows were retired by the sheet's Proposed cuts.
-    expect(live().length).toBe(68);
+    // **Batch T1**: fifty-six. Eight live rows are retired and four move to
+    // common.json.
+    expect(live().length).toBe(56);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -426,6 +447,9 @@ describe('a live Commerce row is a card', () => {
     // and an upkeep surcharge), and two joined: a percentage on a building's
     // own yields (The Bourse) and a shift on a number of the religious tide
     // (The Silk Road Monks).
+    //
+    // Batch T1 moved The Silk Road Monks to common.json, so the shift on the
+    // religious tide left this file.
     expect([...kinds].sort()).toEqual([
       'buildingYieldPercent',
       'cityRenownPercent',
@@ -435,7 +459,6 @@ describe('a live Commerce row is a card', () => {
       'offerRider',
       'pays',
       'percentYields',
-      'pressureRule',
       'productionBonus',
       'purchaseRider',
       'renown',
@@ -486,7 +509,10 @@ describe('a deferred Commerce row is a promise, not a card', () => {
     // dealt now, and The Embargo is a new deferred row. The other five are
     // rows the sheet no longer lists (The Return Leg, The Treaty Ports, The
     // Post Riders, The Consulate, Export Guilds), left as they were.
-    expect(deferred().length).toBe(6);
+    // Batch T1: three. The Consulate, The Post Riders and The Embargo are
+    // retired. The Return Leg, Export Guilds and The Treaty Ports take their
+    // new text, tier and rarity and wait for their batches.
+    expect(deferred().length).toBe(3);
     for (const id of deferred()) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);
@@ -559,20 +585,388 @@ describe('the three building Charters', () => {
 });
 
 describe('the age-2 gate', () => {
-  it('keeps routes, traders, posts and Markets off the opening shelf', () => {
-    // The doc's own first timing rule for this deck: *"Markets, caravans and
-    // route cards begin in age 2. Tier 0 uses actual resources, exploration,
-    // purchases, faith and the age-1 Lighthouse."*
-    const forbidden = /\b(route|routes|trader|traders|caravan|caravans|commercial post|posts?|Market|Markets)\b/;
-    for (const id of COMMERCE) {
+  /**
+   * The rows a Commerce seat may be dealt that the gate reads: this file's rows
+   * and the shared rows that name Commerce, retired rows left out.
+   */
+  const gated = (): OrderId[] =>
+    [...COMMERCE, ...DECK_FILE_ORDERS.common].filter((id) => {
       const def = orderDef(id);
-      if (def.band !== 0) continue;
-      expect(def.text ?? '', `${id}: ${def.text}`).not.toMatch(forbidden);
+      return def.retired !== true && def.decks.includes('commerce');
+    });
+
+  /** Words and data that read a trade route, a trader or a trading post. */
+  const ROUTE_WORDS = /\b(routes?|traders?|caravans?|trading posts?|posts?)\b/i;
+  const ROUTE_DATA = /routeEndsHere|holdsPost|postCities|tradeRoutes|foreignTradeRoutes|tradePartnerEmpires/;
+
+  it('keeps routes, traders and posts off Tiers 0 and I, with Market Gardens the one exception', () => {
+    // The themes pass's section 12, which you approved on 2026-10-23: no card
+    // that needs a trade route to pay is dealt before Tier II. A card that
+    // reads trading posts needs a route too, because only a route leaves a
+    // post. Market Gardens stays at Tier 0 by your answer, as the Expansionist
+    // pair's early card (the triage's reading 38).
+    //
+    // Merchant Scholars is the second exception, for now: batch T2 moves it
+    // to Tier III with its new text, and then this exception goes.
+    const LATER: readonly string[] = ['merchantScholars'];
+    expect(orderDef('merchantScholars' as OrderId).band).toBe(1);
+    const early = gated().filter((id) => orderDef(id).band < 2);
+    expect(early.length).toBeGreaterThan(0);
+    for (const id of early) {
+      if (id === 'marketGardens' || LATER.includes(id)) continue;
+      const def = orderDef(id);
+      expect(def.text, `${id}: ${def.text}`).not.toMatch(ROUTE_WORDS);
       for (const effect of def.effects) {
         expect(effect.kind, id).not.toBe('routeRider');
         if (effect.kind === 'pays') expect(effect.where, id).not.toBe('route');
+        expect(JSON.stringify(effect), id).not.toMatch(ROUTE_DATA);
       }
     }
+    expect(orderDef('marketGardens' as OrderId).band).toBe(0);
+  });
+
+  it('keeps Markets off Tier 0, and allows them from Tier I', () => {
+    for (const id of gated()) {
+      const def = orderDef(id);
+      if (def.band !== 0) continue;
+      expect(def.text, `${id}: ${def.text}`).not.toMatch(/\bMarkets?\b/);
+      expect(JSON.stringify(def.effects), id).not.toContain('"market"');
+    }
+    // The Market Writ reads Markets at Tier I.
+    expect(orderDef('theMarketWrit' as OrderId).band).toBe(1);
+  });
+});
+
+// --- the sheet of record (batch T1) -------------------------------------------
+
+/**
+ * **The deck sheet**, `docs/decks/commerce.md`, the spec of record since batch
+ * T1 (`docs/plans/commerce-themes-triage.md`). It is in the sorted format of
+ * the Scientific and Expansionist sheets: five tier tables (Card | Rarity |
+ * Status | Ability | Type) and a shared table (Card | Rarity | Also in | Tier |
+ * Status | Ability | Type). The empty Doctrine tables have three columns, so
+ * the reader below skips them.
+ */
+const sheetFiles = import.meta.glob('../../../docs/decks/commerce.md', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+});
+const SHEET = Object.values(sheetFiles)[0] as string;
+
+/** The sheet's tier headings, which are the bands. */
+const TIERS: Record<string, Band> = { '0': 0, I: 1, II: 2, III: 3, IV: 4 };
+
+/** How a sheet row relates to the data: the first word of its Status cell. */
+type SheetStatus = 'implemented' | 'modify' | 'add';
+const SHEET_STATUSES: readonly SheetStatus[] = ['implemented', 'modify', 'add'];
+
+/**
+ * The words a `modify` row may give after the colon: the sheet's own list.
+ * `as built` is Commerce's seventh: the data's text is the sheet's, and the
+ * game does something slightly different.
+ */
+const REASONS = ['deferred', 'revised', 'reworked', 'moved', 'rarity', 'shared', 'as built'] as const;
+type Reason = (typeof REASONS)[number];
+
+/** One card the sheet lists, in a tier table or the shared table. */
+interface SheetCard {
+  /** The name the sheet prints, without the bold and the "(was …)" note. */
+  name: string;
+  /** The name in the "(was …)" note, when the sheet gives one. */
+  was?: string;
+  rarity: string;
+  band: Band;
+  status: SheetStatus;
+  /** The words after the colon in the Status cell. */
+  reasons: Reason[];
+  text: string;
+  /** The Type cell, lowercased. */
+  type: CardType;
+}
+
+/** One card of the shared table. Its row lives in `data/decks/common.json`. */
+interface SharedCard extends SheetCard {
+  /** The other deck that may draw it, from the "Also in" cell. */
+  alsoIn: DeckId;
+}
+
+/** The Type cell read as a type. A row without one fails here, by name. */
+function typeOf(card: string, cell: string | undefined): CardType {
+  const type = (cell ?? '').toLowerCase();
+  expect(isCardType(type), `"${card}" has no type the game knows ("${cell ?? ''}")`).toBe(true);
+  return type as CardType;
+}
+
+/** A table row's cells, or `null` for a header, a rule or a line that is not a row. */
+function cellsOf(line: string): string[] | null {
+  if (!line.startsWith('|')) return null;
+  const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
+  if (cells[0] === 'Card' || cells.every((cell) => /^-+$/.test(cell))) return null;
+  return cells;
+}
+
+/** A Card cell read into the printed name and the "(was …)" name, if any. */
+function namesOf(cell: string): { name: string; was?: string } {
+  const plain = cell.replace(/\*\*/g, '').trim();
+  const match = /^(.*?)\s*\(was (.+)\)$/.exec(plain);
+  if (match === null) return { name: plain };
+  return { name: match[1]!.trim(), was: match[2]!.trim() };
+}
+
+/** A Status cell read into its first word and the reasons after the colon. */
+function statusOf(card: string, cell: string): { status: SheetStatus; reasons: Reason[] } {
+  const colon = cell.indexOf(':');
+  const head = (colon < 0 ? cell : cell.slice(0, colon)).trim();
+  expect(SHEET_STATUSES, `"${card}" has an unknown status "${cell}"`).toContain(head);
+  const reasons = colon < 0 ? [] : cell.slice(colon + 1).split(';').map((word) => word.trim());
+  for (const reason of reasons) {
+    expect(REASONS, `"${card}" gives an unknown reason "${reason}"`).toContain(reason);
+  }
+  if (head === 'modify') expect(reasons.length, `"${card}" says modify and gives no reason`).toBeGreaterThan(0);
+  else expect(reasons, `"${card}" gives a reason with "${head}"`).toEqual([]);
+  return { status: head as SheetStatus, reasons: reasons as Reason[] };
+}
+
+/** The five tier tables, from the first tier heading to the first other level-two heading. */
+function sheetCards(): SheetCard[] {
+  const start = SHEET.indexOf('\n## Tier 0');
+  expect(start, 'the sheet has a Tier 0 table').toBeGreaterThanOrEqual(0);
+  const cards: SheetCard[] = [];
+  let band: Band | null = null;
+  for (const line of SHEET.slice(start + 1).split('\n')) {
+    const heading = /^## Tier (0|I|II|III|IV)$/.exec(line);
+    if (heading) {
+      band = TIERS[heading[1]!]!;
+      continue;
+    }
+    if (line.startsWith('## ')) break;
+    const cells = cellsOf(line);
+    if (cells === null || band === null || cells.length < 5) continue;
+    cards.push({
+      ...namesOf(cells[0]!),
+      rarity: cells[1]!,
+      band,
+      ...statusOf(cells[0]!, cells[2]!),
+      text: cells[3]!,
+      type: typeOf(cells[0]!, cells[4]),
+    });
+  }
+  return cards;
+}
+
+/** The shared table ("Shared with another deck"), to the next level-two heading. */
+function sharedCards(): SharedCard[] {
+  const start = SHEET.indexOf('\n## Shared with another deck');
+  expect(start, 'the sheet has a shared table').toBeGreaterThanOrEqual(0);
+  const deckByWord = new Map(
+    (Object.entries(DECK_WORDS) as [DeckId, string][]).map(([deck, word]) => [word, deck] as const),
+  );
+  const cards: SharedCard[] = [];
+  for (const line of SHEET.slice(start + 1).split('\n').slice(1)) {
+    if (line.startsWith('## ')) break;
+    const cells = cellsOf(line);
+    if (cells === null || cells.length < 7) continue;
+    const alsoIn = deckByWord.get(cells[2]!);
+    expect(alsoIn, `"${cells[0]}" is shared with an unknown deck "${cells[2]}"`).toBeDefined();
+    expect(alsoIn, `"${cells[0]}" is shared with Commerce itself`).not.toBe('commerce');
+    expect(Object.keys(TIERS), `"${cells[0]}" has an unknown tier "${cells[3]}"`).toContain(cells[3]);
+    cards.push({
+      ...namesOf(cells[0]!),
+      rarity: cells[1]!,
+      alsoIn: alsoIn!,
+      band: TIERS[cells[3]!]!,
+      ...statusOf(cells[0]!, cells[4]!),
+      text: cells[5]!,
+      type: typeOf(cells[0]!, cells[6]),
+    });
+  }
+  return cards;
+}
+
+/** A counts table, found by its header row: each body row's first cell against its numbers. */
+function countsTable(header: string): Map<string, number[]> {
+  const start = SHEET.indexOf(header);
+  expect(start, `the sheet has the table "${header}"`).toBeGreaterThanOrEqual(0);
+  const rows = new Map<string, number[]>();
+  for (const line of SHEET.slice(start).split('\n').slice(2)) {
+    if (!line.startsWith('|')) break;
+    const cells = line.split('|').slice(1, -1).map((cell) => cell.replace(/\*\*/g, '').trim());
+    rows.set(cells[0]!, cells.slice(1).filter((cell) => /^\d+$/.test(cell)).map(Number));
+  }
+  return rows;
+}
+
+/** The name of the data row a sheet row stands for: the "(was …)" name if given. */
+const dataNameOf = (card: { name: string; was?: string }): string => card.was ?? card.name;
+
+/** The rows the sheet's tier tables must list: every row of this file that is not retired. */
+const LISTED: readonly OrderId[] = COMMERCE.filter((id) => orderDef(id).retired !== true);
+
+/** Every name in the registry: a card still to be added may reuse none of them. */
+const TAKEN = new Set(ORDER_IDS.map((id) => orderDef(id).name));
+
+/**
+ * The checks every sheet row with a data row shares, in either table: the
+ * type, and what the status and its reasons claim. Each reason the data can
+ * answer must be true both ways.
+ */
+function checkAgainstRow(card: SheetCard, id: OrderId): void {
+  const def = orderDef(id);
+  expect(def.type, `${card.name}: the sheet's type`).toBe(card.type);
+  const dealt = orderIsDealt(id);
+  const sameText = def.text === card.text;
+  if (card.status === 'implemented') {
+    expect(card.was, `${card.name} is implemented and renamed`).toBeUndefined();
+    expect(dealt, `${card.name} is marked implemented but is not dealt`).toBe(true);
+    expect(def.rarity, `${card.name}: the sheet's rarity`).toBe(card.rarity);
+    expect(def.band, `${card.name}: the sheet's tier`).toBe(card.band);
+    expect(def.text, `${card.name}: the sheet's ability`).toBe(card.text);
+    return;
+  }
+  const has = (reason: Reason): boolean => card.reasons.includes(reason);
+  expect(has('deferred'), `${card.name}: deferred on one side only`).toBe(!dealt);
+  expect(has('moved'), `${card.name}: a different tier on one side only`).toBe(def.band !== card.band);
+  expect(has('rarity'), `${card.name}: a different rarity on one side only`).toBe(
+    def.rarity !== card.rarity,
+  );
+  expect(has('revised') || has('reworked'), `${card.name}: different words on one side only`).toBe(
+    !sameText,
+  );
+  if (has('as built')) {
+    // The game does something slightly different, and the words are the same.
+    expect(dealt, `${card.name} plays as built but is not dealt`).toBe(true);
+    expect(sameText, `${card.name} plays as built, so its words are the data's`).toBe(true);
+    return;
+  }
+  // A dealt row that matches the sheet in every way is implemented.
+  const same = card.was === undefined && sameText && def.band === card.band && def.rarity === card.rarity;
+  expect(dealt && same, `${card.name} matches its row and should say implemented`).toBe(false);
+}
+
+describe('the Commerce deck: the sheet of record', () => {
+  it('mirrors the five tier tables, card for card', () => {
+    const sheet = sheetCards();
+    const shared = sharedCards();
+    expect(sheet.length, 'the sheet lists cards under every tier heading').toBeGreaterThan(0);
+    const byName = new Map(LISTED.map((id) => [orderDef(id).name, id] as const));
+    for (const card of sheet) {
+      if (card.status === 'add') {
+        expect(TAKEN.has(card.name), `"${card.name}" is marked add but the data has it`).toBe(false);
+        continue;
+      }
+      const id = byName.get(dataNameOf(card));
+      expect(id, `the deck file has no row for "${dataNameOf(card)}"`).toBeDefined();
+      expect(card.reasons, `${card.name} is in a tier table and marked shared`).not.toContain('shared');
+      checkAgainstRow(card, id!);
+    }
+    // Every row that is not retired is on the sheet once.
+    const listed = sheet.filter((card) => card.status !== 'add').map(dataNameOf);
+    expect(new Set(listed).size, 'a data row is listed twice').toBe(listed.length);
+    for (const name of byName.keys()) {
+      expect(listed.includes(name), `"${name}" is a row the sheet does not list`).toBe(true);
+    }
+    expect(listed.length).toBe(LISTED.length);
+    // And the sheet prints no name twice, the shared table's included.
+    const printed = [...sheet, ...shared].map((card) => card.name);
+    expect(new Set(printed).size, 'the sheet prints a name twice').toBe(printed.length);
+  });
+
+  it('mirrors the shared table onto its rows in common.json', () => {
+    const shared = sharedCards();
+    expect(shared.length, 'the shared table lists cards').toBeGreaterThan(0);
+    const common = new Map(
+      DECK_FILE_ORDERS.common
+        .filter((id) => orderDef(id).retired !== true)
+        .map((id) => [orderDef(id).name, id] as const),
+    );
+    let checked = 0;
+    for (const card of shared) {
+      const name = dataNameOf(card);
+      if (card.status === 'add') {
+        expect(TAKEN.has(card.name), `"${card.name}" is marked add but the data has it`).toBe(false);
+        continue;
+      }
+      const id = common.get(name);
+      expect(id, `common.json has no row for "${name}"`).toBeDefined();
+      // The row is the one the sheet means: shared by Commerce and the deck named.
+      expect(orderDef(id!).decks, name).toContain('commerce');
+      expect(orderDef(id!).decks, name).toContain(card.alsoIn);
+      checkAgainstRow(card, id!);
+      checked += 1;
+    }
+    expect(checked, 'every shared row in the data was checked').toBe(
+      shared.filter((card) => card.status !== 'add').length,
+    );
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  it('lists every shared row that names Commerce', () => {
+    const names = new Set(sharedCards().map(dataNameOf));
+    for (const id of DECK_FILE_ORDERS.common) {
+      const def = orderDef(id);
+      if (def.retired === true || !def.decks.includes('commerce')) continue;
+      expect(names.has(def.name), `"${def.name}" names Commerce and is not on the shared table`).toBe(true);
+    }
+  });
+
+  it('keeps every retired row off the tables, with no type', () => {
+    const listed = new Set(
+      [...sheetCards(), ...sharedCards()].flatMap((card) => [card.name, dataNameOf(card)]),
+    );
+    for (const id of retired()) {
+      expect(listed.has(orderDef(id).name), `${id} is retired and still on the sheet`).toBe(false);
+      expect(orderDef(id).type, `${id} is retired and carries a type`).toBeUndefined();
+      expect(orderIsDealt(id), `${id} is retired and still dealt`).toBe(false);
+    }
+  });
+
+  it('counts its rows in the two counts tables, the charters included', () => {
+    const sheet = sheetCards();
+    const shared = sharedCards();
+    const status = countsTable('| Tier | Implemented | Modify | Add | All | Charters |');
+    const types = countsTable('| Tier | Military | Economic | Civic | Wildcard |');
+    // A charter is a row with a grant: the sheet's own words cannot say so, so
+    // the data is asked.
+    const charterNames = new Set(
+      ORDER_IDS.filter((id) => orderDef(id).charter !== undefined).map((id) => orderDef(id).name),
+    );
+    const byStatus = (cards: readonly SheetCard[]): number[] => [
+      ...SHEET_STATUSES.map((s) => cards.filter((card) => card.status === s).length),
+      cards.length,
+      cards.filter((card) => card.status !== 'add' && charterNames.has(dataNameOf(card))).length,
+    ];
+    const byType = (cards: readonly SheetCard[]): number[] =>
+      (['military', 'economic', 'civic', 'wildcard'] as const).map(
+        (t) => cards.filter((card) => card.type === t).length,
+      );
+    for (const word of Object.keys(TIERS)) {
+      const cards = sheet.filter((card) => card.band === TIERS[word]);
+      expect(status.get(`Tier ${word}`), `Tier ${word}'s status counts`).toEqual(byStatus(cards));
+      expect(types.get(`Tier ${word}`), `Tier ${word}'s type counts`).toEqual(byType(cards));
+    }
+    expect(status.get('All'), 'the status totals').toEqual(byStatus(sheet));
+    expect(types.get('All'), 'the type totals').toEqual(byType(sheet));
+    expect(status.get('Shared'), 'the shared status counts').toEqual(byStatus(shared));
+    expect(types.get('Shared'), 'the shared type counts').toEqual(byType(shared));
+    // Batch T1's sheet: 77 cards with the two charters, and 22 shared cards.
+    expect(sheet).toHaveLength(77);
+    expect(shared).toHaveLength(22);
+  });
+
+  it('types every listed row, 59 of this file and 21 shared, and nothing else of this file', () => {
+    expect(LISTED).toHaveLength(59);
+    for (const id of COMMERCE) {
+      const def = orderDef(id);
+      if (def.retired === true) expect(def.type, id).toBeUndefined();
+      else expect(isCardType(def.type ?? ''), `${id} is listed and has no type`).toBe(true);
+    }
+    const sharedRows = DECK_FILE_ORDERS.common.filter((id) => {
+      const def = orderDef(id);
+      return def.retired !== true && def.decks.includes('commerce');
+    });
+    expect(sharedRows).toHaveLength(21);
+    for (const id of sharedRows) expect(isCardType(orderDef(id).type ?? ''), id).toBe(true);
   });
 });
 
@@ -720,8 +1114,9 @@ describe('Established Routes — a road kept up', () => {
     // A preview holds no caravan and is promised nothing — the crossing's own
     // bargain, read on a date.
     expect(named()).toEqual([]);
-    expect(named(29), 'twenty-nine turns is not thirty').toEqual([]);
-    const kept = named(30);
+    // Twenty turns since batch T1 (the themes pass's section 12).
+    expect(named(19), 'nineteen turns is not twenty').toEqual([]);
+    const kept = named(20);
     expect(kept.length).toBeGreaterThan(0);
     // A share of what the road already carries, so the figure is half again of
     // the flats above it rather than a number of its own.
@@ -945,19 +1340,25 @@ describe('C2 — the counts, the ring and the two counter rules', () => {
     expect(foldRouteYield(named()).gold).toBe(2);
   });
 
-  it('pays the realm a renown a turn for each customs house it holds', () => {
+  it('pays a town science and culture for each customs house in its borders', () => {
+    // Since batch T1 The Customs Houses does what The Merchant Dynasties did,
+    // at +4 of each, and pays no renown (the triage's reading 33).
     const g = bench(['theCustomsHouses']);
     const city = town(g);
-    const named = () =>
-      cardRenownLines(g.state, 0).filter((line) => line.card === 'theCustomsHouses');
-    expect(named()).toEqual([]);
+    city.workedTiles = [];
+    const paid = (voice: 'science' | 'culture') =>
+      explainCardCityYields(g.state, city)
+        .filter((line) => line.card === 'theCustomsHouses')
+        .reduce((sum, line) => sum + line[voice], 0);
+    expect(paid('science')).toBe(0);
     for (const tile of around(g, city).slice(0, 2)) {
       raiseImprovement(tile, 'customsHouse', g.state.turn);
     }
     bumpRevision(g.state);
-    const lines = named();
-    expect(lines.length).toBe(1);
-    expect(lines[0]!.amount).toBe(2);
+    // Two customs houses, and nobody works either of them.
+    expect(paid('science')).toBe(8);
+    expect(paid('culture')).toBe(8);
+    expect(cardRenownLines(g.state, 0).filter((line) => line.card === 'theCustomsHouses')).toEqual([]);
   });
 
   it('counts the empires a seat has met, and never the wild or itself', () => {
@@ -1178,9 +1579,14 @@ describe('C3 — the five cards that lift a rule', () => {
     expect(
       writers((effect) => effect.kind === 'rule' && effect.rule === 'goldBuysWonders'),
     ).toEqual(['theGildedScaffold']);
+    // The Brokers' Redraw is a shared row since batch T1, so its rule is
+    // looked for in common.json.
     expect(
-      writers((effect) => effect.kind === 'rule' && effect.rule === 'goldBuysRedraw'),
+      DECK_FILE_ORDERS.common.filter((id) =>
+        orderDef(id).effects.some((effect) => effect.kind === 'rule' && effect.rule === 'goldBuysRedraw'),
+      ),
     ).toEqual(['theBrokersRedraw']);
+    expect(writers((effect) => effect.kind === 'rule' && effect.rule === 'goldBuysRedraw')).toEqual([]);
     expect(
       writers((effect) => effect.kind === 'rulePercent' && effect.rule === 'routeTerm'),
     ).toEqual(['ventureRoutes']);
@@ -1663,7 +2069,8 @@ describe('C4 — the great-house marker, read from both sides', () => {
         stripRefs(clause.text),
       );
       expect(words.filter((clause) => clause.includes('ordinary buildings'))).toHaveLength(1);
-      expect(words.some((clause) => clause.includes('+38% gold'))).toBe(true);
+      // +40% since batch T1 (the user's comment of 2026-10-21).
+      expect(words.some((clause) => clause.includes('+40% gold'))).toBe(true);
     });
   });
 
@@ -2157,9 +2564,11 @@ describe('C8 — faith on a road, either end, and a bought roof', () => {
       ),
     ).toEqual(['theGrainExchange']);
     // The Commerce implementation batch adds two that narrow the count by bank.
+    // Batch T1 moved The Waqf to common.json, which this walk reads after the
+    // Commerce file.
     expect(
       writers((effect) => effect.kind === 'pays' && effect.count === 'purchasedBuildings'),
-    ).toEqual(['theEndowment', 'theWaqf', 'boughtAndPaidFor']);
+    ).toEqual(['theEndowment', 'boughtAndPaidFor', 'theWaqf']);
     expect(
       writers(
         (effect) => effect.kind === 'effectAmplifier' && effect.target === 'luxuryMineCopies',

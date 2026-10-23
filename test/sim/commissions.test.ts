@@ -20,6 +20,7 @@ import { capitalCityOf, playerById, bumpRevision, type GameState } from '../../s
 import {
   adoptGovernmentAt,
   describeCard,
+  refitSlots,
   slotOrderAt,
   slotOrderError,
   slotTypesOf,
@@ -229,7 +230,8 @@ describe('completion', () => {
     // Held but not seated: the treasury is there and nothing is checked.
     expect(runCommissions(g.state)).toEqual([]);
     seat(g.state, STRONGROOM);
-    player.gold = 1999;
+    // The goal is 1,500 gold since Commerce batch T1.
+    player.gold = 1499;
     expect(runCommissions(g.state)).toEqual([]);
     player.gold = 2500;
     const reports = runCommissions(g.state);
@@ -319,6 +321,12 @@ describe('the phase', () => {
       const g = solo(11);
       found(g.state, 0);
       keepTheRites(g.state);
+      // Both commissions are Wildcard cards since Commerce batch T1 sorted
+      // The Strongroom, so the seat needs a second Wildcard chair. A won chair
+      // gives one, as Commission: A Victor's Peace does.
+      const sc = playerById(g.state, 0)!.statecraft;
+      sc.chairsWon = 1;
+      refitSlots(g.state, playerById(g.state, 0)!);
       seat(g.state, STRONGROOM);
       seat(g.state, FRONTIER);
       clearCamp(g.state);

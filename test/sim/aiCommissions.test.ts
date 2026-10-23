@@ -274,13 +274,14 @@ describe('a commission is priced as its reward, discounted by the wait (D16)', (
 
   it('reads a reward scaled by a figure no lower than the goal guarantees', () => {
     // The Strongroom: culture equal to a fifth of the treasury, once the
-    // treasury reaches 2,000. A poorer seat is still paid on 2,000.
+    // treasury reaches 1,500 (Commerce batch T1). A poorer seat is still paid
+    // on 1,500.
     const id = 'theStrongroom' as OrderId;
     const { state, player } = board(1, 4);
     player.gold = 100;
     bumpRevision(state);
     const ctx = valueContext(state, player);
-    const culture = explainLump({ culture: 0.2 * 2000 }, ctx).total;
+    const culture = explainLump({ culture: 0.2 * 1500 }, ctx).total;
     const priced = explainCommission(id, ctx)!.terms[0]!.parts!;
     expect(priced[0]!.value).toBe(culture);
   });
