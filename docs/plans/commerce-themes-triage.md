@@ -359,6 +359,8 @@ The first nine come from section 13. The rest are new. Each gives the reading th
 - **Schema:** one bump.
 - **Done-gate:** `npx vitest run test/sim/decks/commerceRoutes.test.ts test/sim/trade.test.ts test/sim/commercialPosts.test.ts test/sim/routeTally.test.ts test/sim/yieldsDocSync.test.ts test/sim/decks/commerce.test.ts test/sim/decks.test.ts test/sim/statecraft.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts test/mapgen/moduleCycles.test.ts`.
 
+**Built 2026-10-23** (`0469bec8`). Schema 172; the explore digests moved by the version alone. The post sweep (`runPostEstablishments`) runs inside the `roadJoinings` phase and compares `turn − since === term`, so it stores nothing and adds no phase; it runs before `commissions`, so T4's writer can call `payPostEstablished` (`trade.ts`) without paying twice. Where the plan was wrong: `routes.ts` is a leaf and cannot pay riders, so it holds the date comparison and the helper is in `trade.ts`; The Foreign Factor needed a `perTown` field on its count; the Commerce shape list in `commerce.test.ts` gains `periodic`. Outside the fence: `commerceThemeCards.test.ts`, `expansionistCura.test.ts` (the route body is renamed `routeLinesBetween`), `statecraft.test.ts` and the Commerce notes of `docs/orders-and-doctrines.md`.
+
 ### T4: the trade commissions
 
 - **Builds:**
