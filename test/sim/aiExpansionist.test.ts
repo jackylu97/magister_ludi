@@ -11,9 +11,11 @@
  *     The Marl Pits;
  *   · **the shapes the board prices with no knob**: The Mountain Schools'
  *     `atLeast`, The Public Good's promise and The Aediles' forecast;
- *   · **the shapes that stay at nought**, because a bot never levies and never
- *     retires a soldier for a citizen: Watch and Ward, The Trained Bands and
- *     Veteran Colonies;
+ *   · **the shapes at nought for a seat with no levy card**: Watch and Ward,
+ *     The Trained Bands and Veteran Colonies. Since the bot levy batch they
+ *     are priced on the levy rate (`aiLevy.test.ts`), and a seat that holds
+ *     no card raising a soldier, with no army over what it wants, reads
+ *     nought for all three;
  *   · **the five Expansionist commissions**, priced by Dominion batch D16's
  *     commission price, with their institutions priced as their effects;
  *   · **what a town holds**: a town that The Cura Aquarum gives an Aqueduct
@@ -325,10 +327,10 @@ describe('a price for each Expansionist shape of E9 to E12 (E13)', () => {
   });
 });
 
-// --- what stays at nought ------------------------------------------------------
+// --- what reads nought without a levy card ------------------------------------
 
-describe('the levy cards and the retired soldier stay at nought (E13)', () => {
-  it('prices Watch and Ward, The Trained Bands and Veteran Colonies at nought', () => {
+describe('the levy cards and the retired soldier read nought without a levy card (E13)', () => {
+  it('prices Watch and Ward, The Trained Bands and Veteran Colonies at nought for a seat with no levy card', () => {
     const { state, player } = board(2, 20);
     const ctx = valueContext(state, player);
     for (const id of ['watchAndWard', 'theTrainedBands', 'veteranColonies']) {
@@ -336,13 +338,14 @@ describe('the levy cards and the retired soldier stay at nought (E13)', () => {
     }
   });
 
-  it('prices a grant of citizens at the food that grows them, on a moment a bot forecasts', () => {
+  it('prices a grant of citizens at the food that grows them, at the rate of its moment', () => {
     const { state, player } = board(2, 20);
     const ctx = valueContext(state, player);
     const rider = (occasion: string): CardEffect[] => [
       { kind: 'windfallRider', occasion, grant: { citizens: 1 } } as CardEffect,
     ];
-    // A soldier retired is a moment this bot never forecasts.
+    // A soldier retired: this seat holds no army over what it wants and no
+    // levy that raises one, so it forecasts no retirement (`retireRate`).
     expect(scoreEffects(rider('disband'), ctx)).toBe(0);
     // Growth is: five growths in each of two towns, over twenty turns.
     const lump = explainLump({ food: 1 * growthFood(6) }, ctx).total;

@@ -198,7 +198,7 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   Trained Bands, The General Levy). Cards marked "Needs a levy"
   (`OrderDef.needsLevy`) are dealt only to a seat holding a card that grants a
   levy. Refusals are `levyError`; the city panel's "Levy a citizen" menu is
-  `src/ui/levyMenu.ts`. Bots do not levy yet.
+  `src/ui/levyMenu.ts`. Bots levy too: see **The bots**.
 - **A town's reach and its mountains** (Expansionist batch E3). How far a
   town's citizens reach is `workRadiusOf`: the rule book's work radius, and one
   ring more under The Common Domain's `widerReach` city rule (towns of ten). It
@@ -838,6 +838,23 @@ unchanged. A **wounded veteran** (batch WC3: a ranked piece below
 `military.veteranCautionBelow` of its health) refuses a blow that is not
 decisive when the counter could kill it or the blow deals no more than it
 takes, whatever the seat's appetite or the siege appetite says.
+
+**The citizen levy** (the bot levy batch, 2026-10-23). A seat whose seated
+cards grant a levy spends a citizen when the levy is worth more than the
+citizen (`levyDecision`, `bot.ts`). One reading prices a levy for the decision
+and for the cards (`explainCitizenLevy`, `value.ts`):
+
+- what the citizen buys: hammers or beakers, or the hammers of a piece the seat
+  wants now (a soldier while the army or a garrison is short, a worker while a
+  town is raising one, a settler while the next town waits on one);
+- less the citizen: the food it took to grow it, a small town's premium and,
+  taken off, the contentment it stops demanding while the town grows it back;
+- plus what the seated cards add to a levy.
+
+The levy cards are priced on the levy rate the seat expects (`levyOutlook`,
+knobs `score.citizenLevy`). A seat holding Veteran Colonies retires a soldier
+in one of its towns for the citizen, but only while its army stands over what
+it wants by a whole soldier and it is at peace (`retireCommand`).
 
 ## The surfaces
 

@@ -143,6 +143,11 @@ export interface BotCandidate {
  *   · `unitOrder` — one idle piece told what to do.
  *   · `purchase` — a bank spent: `purchaseItem`, `contribute`.
  *   · `disband` — a wage stopped.
+ *     Since the bot levy batch it is also a surplus soldier retired in a town
+ *     for the citizen a card pays for it.
+ *   · `levy`: a town spends a citizen on a levy (`levyCitizen`, the bot levy
+ *     batch). This is the citizen levy of the cards, not the standing army
+ *     that `levyReading` (`campaign.ts`) also calls the levy.
  *   · `war` — a declaration, or a peace put on the table or signed
  *     (`declareWar`, `proposePeace`). Its candidate table carries **every** war
  *     the seat is in, because declining a peace is not a command and the only
@@ -163,6 +168,7 @@ export type BotDecisionKind =
   | 'unitOrder'
   | 'purchase'
   | 'disband'
+  | 'levy'
   | 'war'
   | 'deal'
   | 'endTurn';

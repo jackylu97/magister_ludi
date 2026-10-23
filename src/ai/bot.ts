@@ -176,6 +176,7 @@ import {
   yieldDelta,
   yieldWeight,
   ageBand,
+  explainCitizenLevy,
 } from './value';
 import { citizenKeepTerm } from './citizen';
 import {
@@ -198,6 +199,11 @@ import { cityKeepsRelics, cityQueueFloor } from '../sim/buildingEffects';
 // Expansionist batch E13: what a town holds for a building's effects, a card's
 // grant included. Straight from its layer, as `value.ts` imports it.
 import { townBuildings, townShelf } from '../sim/statecraft/evaluator';
+// The bot levy batch: which seated cards grant a levy or pay for a soldier
+// retired, read the way the simulation reads them.
+import { effectsOfKind, unitMatches } from '../sim/statecraft/evaluator';
+// The levy menu, with each line's refusal, exactly as the city panel lists it.
+import { levyOptions } from '../sim/levies';
 import { discoveryDef } from '../sim/discoveryData';
 import {
   type Family,
@@ -257,6 +263,7 @@ import { type CombatForecast, fortifyError, previewCombat } from '../sim/combat'
 import { rankName, rankOf } from '../sim/ranks';
 import type { Command } from '../sim/commands';
 import { disbandError } from '../sim/commands';
+import { cityAt } from '../sim/cities';
 import { explainEmpireGold } from '../sim/empireGold';
 import { autoExploreError, exploreTarget } from '../sim/explore';
 import {
@@ -303,6 +310,7 @@ import {
   SLOT_WORDS,
   anyCardDef,
   cardGarrisonSeats,
+  cityScopeAdmits,
   draftCost,
   heldReligions,
   expectedHandBags,
@@ -320,6 +328,7 @@ import {
   type GovernmentId,
   type OrderId,
   type ChairType,
+  type LevyUse,
   DECK_WORDS,
   doctrineDef,
   isDoctrineId,
@@ -668,6 +677,19 @@ export interface BotSitting {
    * the next ask, for ever. Membership only; nothing iterates it.
    */
   called: Set<number>;
+  /**
+   * The towns whose levy menu this seat has weighed this turn and found
+   * nothing worth taking (`levyDecision`, the bot levy batch). Membership
+   * only; nothing iterates it.
+   *
+   * A town's levy is weighed after every command, because housekeeping is,
+   * and each weighing asks the simulation which piece a levy would raise. A
+   * town with nothing worth taking keeps that answer until the seat sits down
+   * again, as a pointed town keeps its focus (`focused`). A town with a levy
+   * worth taking is not remembered, so it is taken on a later ask if a better
+   * town went first.
+   */
+  levyWeighed: Set<number>;
 }
 
 /** A fresh sitting for one seat's turn. The driver and the stepper open these. */
@@ -679,6 +701,7 @@ export function botSitting(playerId: number): BotSitting {
     focused: new Set<number>(),
     reasked: new Map<number, number>(),
     called: new Set<number>(),
+    levyWeighed: new Set<number>(),
   };
 }
 
@@ -1443,6 +1466,15 @@ function housekeeping(
   // each other four hundred times in one turn before batch 9 bounded it.
   const beeline = reaimBeeline(state, player, sitting);
   if (beeline !== null) return beeline;
+
+  // **A citizen spent on a levy**, and **a surplus soldier retired for a
+  // citizen** (the bot levy batch). Both block nothing. They come before the
+  // focus, because a levy changes how many people a town has to place. See
+  // `levyDecision` and `retireCommand`.
+  const levied = levyDecision(state, player, sitting);
+  if (levied !== null) return levied;
+  const retired = retireCommand(state, player, sitting);
+  if (retired !== null) return retired;
 
   // **Where a town's people stand** — the hammer price's own arm (batch 6). It
   // blocks nothing, so `firstBlocker` cannot see it, which is what makes it
@@ -3318,6 +3350,189 @@ function isRedundant(state: GameState, player: Player, unit: Unit): boolean {
     if (cityIsThreatened(state, player, city)) return false;
   }
   return true;
+}
+
+// --- the citizen levy ---------------------------------------------------------
+
+/**
+ * **A citizen spent on a levy** (the bot levy batch; the user's answer of
+ * 2026-10-23 to question 2 of `docs/plans/expansionist-themes-triage.md`).
+ *
+ * Every town of this seat, every line of its levy menu (`levyOptions`, the city
+ * panel's own list, each line with the reducer's own refusal), priced by
+ * `explainCitizenLevy` (`value.ts`): what the citizen buys, less the citizen
+ * it spends, plus what the seated cards add to a levy. The best line worth
+ * more than nothing is taken. A tie goes to the first town in founding order
+ * and then to the first line in the menu's order, so a replay takes the same
+ * levy.
+ *
+ * Kept cheap, because housekeeping is asked after every command:
+ *
+ *   · a seat whose seated cards grant no levy answers at once;
+ *   · a town that has levied this turn is not weighed again. The waiting
+ *     period is at least a turn, and on The Slack Season's turns there is no
+ *     wait, so without this one town could spend citizen after citizen on one
+ *     board;
+ *   · a town with no line worth taking is weighed once a turn
+ *     (`BotSitting.levyWeighed`).
+ *
+ * Monotone, which keeps the driver's loop finite: a levy stamps its town
+ * (`City.levy.turn`), so no town is proposed twice in a turn.
+ */
+function levyDecision(state: GameState, player: Player, sitting?: BotSitting): BotDecision | null {
+  let grants = false;
+  for (const { effect } of effectsOfKind(state, player.id, 'levy')) {
+    if (effect.use !== undefined) {
+      grants = true;
+      break;
+    }
+  }
+  if (!grants) return null;
+  const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
+  const ctx = seatContext(state, player, sitting);
+  const candidates: BotCandidate[] = [];
+  let best: { city: City; use: LevyUse; candidate: BotCandidate } | null = null;
+  for (const city of state.cities) {
+    if (city.ownerId !== player.id || city.puppet === true) continue;
+    if (city.levy?.turn === state.turn) continue;
+    if (own !== null && own.levyWeighed.has(city.id)) continue;
+    let worthTaking = false;
+    for (const option of levyOptions(state, player.id, city)) {
+      const label = `${city.name}: ${option.label}`;
+      if (option.blocked !== null) {
+        candidates.push(refused(label, option.blocked));
+        continue;
+      }
+      const appraisal = explainCitizenLevy(city, option.use, ctx, option.unit);
+      const candidate: BotCandidate = {
+        label,
+        score: appraisal.total,
+        chosen: false,
+        terms: appraisal.terms,
+      };
+      candidates.push(candidate);
+      if (appraisal.total <= 0) continue;
+      worthTaking = true;
+      if (best === null || appraisal.total > best.candidate.score) best = { city, use: option.use, candidate };
+    }
+    if (!worthTaking && own !== null) own.levyWeighed.add(city.id);
+  }
+  if (best === null) return null;
+  best.candidate.chosen = true;
+  const scored = candidates.filter((candidate) => candidate.rejected === undefined).length;
+  return {
+    kind: 'levy',
+    command: { type: 'levyCitizen', playerId: player.id, cityId: best.city.id, use: best.use },
+    subject: townSubject(best.city),
+    summary:
+      `${best.city.name} spends a citizen on a levy (${best.candidate.label}): worth ` +
+      `${round1(best.candidate.score)} after the citizen it costs, the best of ${scored} ` +
+      `levy line${scored === 1 ? '' : 's'} the rules allow now.`,
+    candidates,
+    focus: { col: best.city.col, row: best.city.row },
+  };
+}
+
+/**
+ * The seated cards that pay a citizen for a soldier retired in one of this
+ * seat's towns (Veteran Colonies): `disband` riders whose grant has citizens.
+ * Read off the live law, as the simulation reads it when the moment comes.
+ */
+function retireRiders(state: GameState, playerId: number) {
+  return effectsOfKind(state, playerId, 'windfallRider').filter(
+    (row) => row.effect.occasion === 'disband' && (row.effect.grant?.citizens ?? 0) > 0,
+  );
+}
+
+/**
+ * **A surplus soldier retired for a citizen** (the bot levy batch).
+ *
+ * Veteran Colonies pays a citizen for a soldier retired in one of the seat's
+ * towns. Reading 26 of `docs/plans/expansionist-themes-triage.md` is the loop
+ * it makes with a levy: a citizen spent on a soldier comes home when the
+ * soldier retires. This arm is the bot's half of that loop, and the rate it
+ * implies is what prices the card (`occasionRate`'s `disband`, `value.ts`).
+ *
+ * It fires only when all of these hold. Each one stops it from leaving the
+ * seat weaker than it means to be:
+ *
+ *   · a seated card pays a citizen for the retirement (`retireRiders`);
+ *   · the seat is at war with no other empire, and no enemy is near its towns;
+ *   · the army stands over what the seat wants (`levyReading`) by at least a
+ *     whole soldier, so the retirement leaves it at or over that figure;
+ *   · the piece stands in one of the seat's towns that the card admits, the
+ *     simulation would let it go (`disbandError`), and it is not the last
+ *     garrison of its town or in a threatened town (`isRedundant`).
+ *
+ * Which piece: the weakest, then the first in `state.units` order. A unit
+ * raised for free counts as well (the user's ruling of 2026-10-23 on reading
+ * 25: every military unit that retires in a town gives a citizen).
+ *
+ * Monotone: each retirement removes a piece, and the army count it is gated
+ * on falls with it.
+ */
+function retireCommand(state: GameState, player: Player, sitting?: BotSitting): BotDecision | null {
+  const riders = retireRiders(state, player.id);
+  if (riders.length === 0) return null;
+  if (atWarWithAnybody(state, player.id)) return null;
+  const ctx = seatContext(state, player, sitting);
+  if (ctx.threat > 0) return null;
+  const army = levyReading(ctx);
+  if (army.held - 1 < army.wanted) return null;
+
+  const candidates: BotCandidate[] = [];
+  let pick: { unit: Unit; town: City; source: string; candidate: BotCandidate } | null = null;
+  for (const unit of state.units) {
+    if (unit.ownerId !== player.id) continue;
+    const def = unitDef(unit.type);
+    if (!isFieldSoldier(def)) continue;
+    const town = cityAt(state, unit.col, unit.row);
+    if (town === undefined || town.ownerId !== player.id) continue;
+    const rider = riders.find(
+      (row) =>
+        (row.effect.class === undefined || unitMatches(unit.type, row.effect.class)) &&
+        (row.effect.inTown === undefined ||
+          row.effect.inTown === true ||
+          cityScopeAdmits(state, town, row.effect.inTown, player.id)),
+    );
+    if (rider === undefined) continue;
+    const label = `${unitLabel(unit)} in ${town.name}`;
+    const rule = disbandError(state, player.id, unit.id);
+    if (rule !== null) {
+      candidates.push(refused(label, rule));
+      continue;
+    }
+    if (!isRedundant(state, player, unit)) {
+      candidates.push(refused(label, 'it is the last thing holding its town, or its town is threatened'));
+      continue;
+    }
+    const strength = Math.max(def.combatStrength, def.rangedStrength ?? 0);
+    // **The lowest score is the one sent home**, as in the arrears arm: the
+    // weakest piece is the one the army misses least.
+    const candidate: BotCandidate = {
+      label,
+      score: strength,
+      chosen: false,
+      terms: [{ label: `${strength} strength: the weakest goes home first`, value: strength }],
+    };
+    candidates.push(candidate);
+    if (pick === null || strength < pick.candidate.score) {
+      pick = { unit, town, source: rider.source, candidate };
+    }
+  }
+  if (pick === null) return null;
+  pick.candidate.chosen = true;
+  return {
+    kind: 'disband',
+    command: { type: 'disbandUnit', playerId: player.id, unitId: pick.unit.id },
+    subject: unitLabel(pick.unit),
+    summary:
+      `Retires ${unitLabel(pick.unit)} in ${pick.town.name}: the army holds ${army.held} soldiers ` +
+      `against the ${round1(army.wanted)} this seat wants, and ${pick.source} gives the town a ` +
+      'citizen for it. Lowest score wins here.',
+    candidates,
+    focus: { col: pick.unit.col, row: pick.unit.row },
+  };
 }
 
 /** Is anybody else's soldier standing within `threat.radius` of this town? */

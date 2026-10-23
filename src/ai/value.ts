@@ -103,6 +103,9 @@ import {
 // module names this one's context as a **type** and nothing else, so it is a
 // leaf and this is not a cycle.
 import { levyReading } from './campaign';
+// The citizen levy (the bot levy batch) reads the same leaf for the garrison a
+// town is owed, whether a war is on, and which pieces are field soldiers.
+import { atWarWithAnybody, fieldSoldiersOf, garrisonAt, garrisonOwed } from './campaign';
 // The town's and the empire's published readings, remembered on
 // `state.revision` — the bot subscribes to the same source of truth the panel,
 // the top bar and the Ledger do (batch E2). See `readings.ts`.
@@ -110,12 +113,14 @@ import { readCity, readEmpirePercents } from '../sim/readings';
 import {
   availableCopies,
   buildingProductionCost,
+  bestOfClassFor,
   capitalCityOf,
   channelSurplus,
   emptyCityYields,
   ownedTiles,
   tileOwnerField,
   tileOwnerPlayerId,
+  unitProductionCost,
 } from '../sim/cities';
 // Scientific batch S13: the ground half of a work's gate, asked of a row whose
 // technology the seat does not know yet (`worksForecast`).
@@ -154,7 +159,7 @@ import { knowsFewerTechs, knowsMoreTechs, metRivals, techGap } from '../sim/riva
 // them from — so an appraisal and a caravan cannot disagree about which roads
 // are running or how far apart their two towns are.
 import { FAMILIES, greatPersonDef, isGreatPersonId } from '../sim/greatPeopleData';
-import { holdsRank } from '../sim/ranks';
+import { holdsRank, rankStrength } from '../sim/ranks';
 import { routeCities, routeHexes, routeIsLive } from '../sim/routes';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from '../sim/resourceData';
 import { availableRites, cityRite } from '../sim/religion';
@@ -190,7 +195,13 @@ import {
   townHoldsBuilding,
   townShelf,
   unitMatches,
+  anyCardDef,
+  cardLevyAftermaths,
+  cardLevyReturnDelay,
 } from '../sim/statecraft/evaluator';
+// The citizen levy's own figures, read where the levy verb reads them, so the
+// bot and the city panel price one levy alike (the bot levy batch).
+import { levyHammers, opusWorkshop, wonderWorkshop } from '../sim/levies';
 // Expansionist batch E13: The Burghers' faster guild bar is priced off the
 // simulation's own reading of a town's bar, its share cap and its trades.
 import { explainGuildInflow, idleCitizens, nextGuildFamily } from '../sim/guilds';
@@ -211,6 +222,9 @@ import {
   type TileCondition,
   type UnitFilter,
   type WindfallOccasion,
+  type LevyUse,
+  type CardLevyEffect,
+  LEVY_USES,
   isDoctrineId,
   isOrderId,
   orderDef,
@@ -237,10 +251,11 @@ import {
   UNIT_TYPE_IDS,
   type UnitTypeId,
   isCombatant,
+  isUnitTypeId,
   unitDef,
   unitMaxHp,
 } from '../sim/unitData';
-import { unitUpkeepTotal } from '../sim/upkeep';
+import { unitUpkeep, unitUpkeepTotal } from '../sim/upkeep';
 import { isExploredBy } from '../sim/visibility';
 import { round } from './decision';
 import { signed } from './decision';
@@ -3090,23 +3105,24 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
     case 'happinessTierBoost':
       return effect.points * meterWeight(ctx, 'happiness');
     case 'combatLine':
-      // A line for the pieces a levy raised (Watch and Ward, Expansionist batch
-      // E10) reaches none of this bot's pieces, because a bot never levies. So
-      // it stays at nought (batch E13). If bots learn to levy, this arm prices
-      // the line on the levied share of the army.
-      if (effect.levied !== undefined) return 0;
       // A line against an empire that knows more technologies (Dominion batch
       // D15, The Upstarts) is worth the share of fights where that is true.
       // Every other condition keeps the full price it has always had.
       // The Scientific conditions and counts (Scientific batch S13) take their
       // share in `scientificLinePoints` and `scientificLineShare`. A line that
       // names none of them gets its amount and a share of one there.
+      //
+      // A line for the pieces a levy raised (Watch and Ward, Expansionist batch
+      // E10) is worth the share of the army that levies raise. Bots levy since
+      // the bot levy batch, so the share is read off the levied pieces standing
+      // and the levy rate this seat expects. See `leviedArmyShare`.
       return (
         scientificLinePoints(effect, ctx) *
         ctx.ai.weights.military *
         (1 + ctx.threat) *
         (namesCondition(effect.when, 'vsMoreTechs') ? vsMoreTechsShare(ctx) : 1) *
-        scientificLineShare(effect.when, ctx)
+        scientificLineShare(effect.when, ctx) *
+        (effect.levied === undefined ? 1 : leviedArmyShare(effect.levied, ctx))
       );
     case 'unitStat':
       // One piece's worth, and — since batch X2 — nothing at all when the towns
@@ -3156,14 +3172,17 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       return effect.amount * capped * ctx.ai.weights.renown;
     }
     case 'upkeepRebate':
-      // A rebate on the pieces a levy raised (The General Levy, Expansionist
-      // batch E1) reaches none of this bot's pieces, because a bot never
-      // levies. Nought, as batch E13 confirms.
-      if (effect.levied !== undefined) return 0;
       // A rebate is gold that never leaves, priced at the same pressure-adjusted
       // rate the bill is charged at — so a card that pays the army's wages
       // becomes the best card in the hand exactly when the treasury is bleeding.
-      return costOfUpkeep((effect.amount ?? 1) * ctx.ai.score.nominalCount, ctx);
+      //
+      // A rebate on the pieces a levy raised (The General Levy, Expansionist
+      // batch E1) reaches the share of the army that levies raise, as the
+      // levied combat line does (the bot levy batch). See `leviedArmyShare`.
+      return (
+        costOfUpkeep((effect.amount ?? 1) * ctx.ai.score.nominalCount, ctx) *
+        (effect.levied === undefined ? 1 : leviedArmyShare(effect.levied, ctx))
+      );
     // --- the engine shapes (batch A of `docs/fewer-things-plan.md`) ----------
     // Every one of them is priced off **what this empire actually holds**, which
     // is `explainCounted`'s own rule read one shape over: an engine is worth what
@@ -3474,13 +3493,22 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // a line whose other half is the plan's arithmetic — rather than the full
       // reading, which would price a hired sword as a standing army.
       // A stamp on the pieces a levy raises (The Trained Bands, Expansionist
-      // batch E1) reaches none, because a bot never levies. Nought, as batch
-      // E13 confirms.
-      if (effect.levied !== undefined) return 0;
+      // batch E1) reaches the share of new soldiers that levies raise, read
+      // off the levy rate this seat expects (the bot levy batch). See
+      // `leviedRecruitShare`.
+      //
+      // **A levied stamp's rank is priced as the strength the rank adds**
+      // (`rankStrength`), because The Trained Bands' whole text is a rank and
+      // would otherwise read nought. Every other stamp still prices a rank at
+      // nothing, the Dominion batch D1 reading; whether to price those too is
+      // a follow-up, not this batch's.
       const bought = effect.bought === undefined ? 1 : 0.5;
+      const levied = effect.levied === undefined ? 1 : leviedRecruitShare(effect.levied, ctx);
+      const rank =
+        effect.levied !== undefined && effect.rank !== undefined ? rankStrength(effect.rank) : 0;
       const strength =
-        (effect.strength ?? 0) * bought * ctx.ai.weights.military * (1 + ctx.threat);
-      return strength + (effect.hp === undefined ? 0 : ctx.ai.score.unknownEffect);
+        ((effect.strength ?? 0) + rank) * bought * levied * ctx.ai.weights.military * (1 + ctx.threat);
+      return strength + (effect.hp === undefined ? 0 : ctx.ai.score.unknownEffect * levied);
     }
     case 'rule':
       // **A flag-shaped rule declared true.** Four kinds came in here before
@@ -3586,10 +3614,11 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // the Observatory's great works in.
       return ctx.ai.weights.bead / Math.max(1, Math.floor(effect.every ?? 1));
     case 'levy':
-      // Bots do not levy (batch L), so a levy card does nothing for one and is
-      // worth nothing to it. Batch E13 leaves it so: whether bots should learn
-      // to levy is a question the user has not answered yet.
-      return 0;
+      // **Bots levy since the bot levy batch** (the user's answer of
+      // 2026-10-23 to question 2 of `docs/plans/expansionist-themes-triage.md`).
+      // A levy row is priced at the levy rate this seat expects, by the four
+      // halves a row may carry. See `levyCardWorth`.
+      return levyCardWorth(effect, ctx);
     case 'unlocksImprovement':
       // **A work row this seat's workers may build while the card is seated**
       // (Expansionist batch E4: The Keeps, The Polders, Outposts). What the row
@@ -3946,11 +3975,15 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // batch E2), so the founding's own reading.
       return ctx.cities / turns;
     case 'disband':
-      // Dominion batch D7. This bot disbands only to clear its arrears, and
-      // never to feed a wonder, so it forecasts no disbanding at all. So a bot
-      // also never retires a soldier for a citizen, and Veteran Colonies'
-      // citizen (Expansionist batch E10) stays at nought (batch E13).
-      return 0;
+      // **A soldier retired in a town** (Dominion batch D7; the bot levy
+      // batch). This bot retires a surplus soldier in one of its towns when a
+      // seated card pays a citizen for it (`retireCommand`, `bot.ts`), and it
+      // never disbands to feed a wonder. So the rate is what that arm would
+      // retire: the soldiers standing over what the seat wants, spread over
+      // the horizon, and the share of levied soldiers it expects to send home
+      // once the need that raised them has passed. `scoreWindfallRider` gives
+      // this rate only to a grant of citizens.
+      return retireRate(ctx);
     default:
       return unreadOccasion(occasion);
   }
@@ -4014,6 +4047,11 @@ function scoreWindfallRider(
   effect: Extract<CardEffect, { kind: 'windfallRider' }>,
   ctx: ValueContext,
 ): number {
+  // **A soldier is retired only for a citizen** (the bot levy batch). The
+  // retire arm (`retireCommand`, `bot.ts`) fires only when a seated card pays
+  // one, so a disband rider that pays anything else (The Legions' Labour's
+  // hammers toward a wonder) rides a moment this bot never makes.
+  if (effect.occasion === 'disband' && (effect.grant?.citizens ?? 0) <= 0) return 0;
   let rate = occasionRate(effect.occasion, ctx);
   // **A family is one of five**, and unlike the three flags above it really does
   // narrow a rate the forecast gives whole: a great person is called and spent
@@ -4225,10 +4263,11 @@ function windfallGrantWorth(
   if (grant.markBeside !== undefined) worth += markBesideWorth(grant.markBeside, ctx);
   // **Citizens in the town the moment names** (Expansionist batch E10,
   // Veteran Colonies; priced in batch E13): the food that grows them, as a
-  // lump, as a commission's citizens are priced. The grant is paid only on a
-  // moment that carries a unit's cost, which today is a soldier retired, and
-  // this bot forecasts no such moment (`occasionRate`'s `disband`). So
-  // Veteran Colonies stays at nought for a bot.
+  // lump, as a commission's citizens are priced. The moment is a soldier
+  // retired in one of the seat's towns, and since the bot levy batch this bot
+  // retires one when the card pays for it, so `occasionRate`'s `disband` is
+  // no longer nought. The user's ruling of 2026-10-23 (reading 25) counts a
+  // unit raised for free too, so the price does not ask what the unit cost.
   if (grant.citizens !== undefined && grant.citizens > 0) {
     worth += explainLump({ food: Math.floor(grant.citizens) * growthThreshold(ctx) }, ctx).total;
   }
@@ -5628,6 +5667,20 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
     // rate is the estimate already (see `commissionMetRate`).
     const more = commissionMetRate(ctx) * Math.max(1, ctx.ai.priorities.horizonTurns);
     return [{ label: `+ ${round(more)} more commissions met, over the horizon`, value: more }];
+  }
+  if (effect.count === 'citizensLevied') {
+    // **The citizens still to be levied** (The Labour Rolls; the bot levy
+    // batch). The tally path's reading for a count that is a record: the levy
+    // rate this seat expects, over the horizon, with no discount, because the
+    // rate is the estimate already (see `levyOutlook`).
+    const outlook = levyOutlook(ctx);
+    const more = outlook.rate * Math.max(1, ctx.ai.priorities.horizonTurns);
+    return [
+      {
+        label: `+ ${round(more)} more citizens levied over the horizon, at about ${round(outlook.rate)} a turn (${outlook.why})`,
+        value: more,
+      },
+    ];
   }
   // **The Scientific counts that grow** (Scientific batch S13): technologies
   // and charter technologies known, charters drafted, the lead, the gap and
@@ -7536,4 +7589,555 @@ function publicWorksBuilt(ctx: ValueContext): number {
     }
   }
   return built;
+}
+
+// --- the citizen levy -----------------------------------------------------------
+
+/**
+ * **What this seat expects of its levies** (the bot levy batch, the user's
+ * answer of 2026-10-23 to question 2 of
+ * `docs/plans/expansionist-themes-triage.md`).
+ *
+ * A levy is the `levyCitizen` command: a town gives up one citizen for what a
+ * seated card lets it buy (`levies.ts`). This file also calls the standing
+ * army "the levy" (`levyReading`, `campaign.ts`). In this section the word
+ * means the citizen levy only.
+ *
+ *   · `rate`: the levies a turn this seat expects while it holds a card that
+ *     grants one. The prior is each town that may levy at all, once in each
+ *     waiting period, at `score.citizenLevy.priorShare` of those chances. Once
+ *     the seat has levied, its own record (`Player.citizensLevied`) is
+ *     smoothed with the prior (`smoothedRate`). Before that the prior stands
+ *     alone, because a record of nought may only say the seat held no levy
+ *     card yet;
+ *   · `uses`: what the seat's seated cards let a levy buy, in `LEVY_USES`
+ *     order;
+ *   · `soldierRate`: the part of `rate` that raises a soldier, an even share
+ *     for each use granted;
+ *   · `towns`: the towns that may levy at all (not a puppet, at least the
+ *     rule's smallest size).
+ *
+ * The rate is read whether or not a card that grants a levy is seated, because
+ * such a card is priced as if it were held. It is remembered for the context,
+ * as the board tempo is.
+ */
+export interface LevyOutlook {
+  rate: number;
+  /** Why the rate reads what it does, for a label. */
+  why: string;
+  uses: readonly LevyUse[];
+  soldierRate: number;
+  towns: number;
+}
+
+const LEVY_OUTLOOK_MEMO = new WeakMap<ValueContext, LevyOutlook>();
+
+export function levyOutlook(ctx: ValueContext): LevyOutlook {
+  const held = LEVY_OUTLOOK_MEMO.get(ctx);
+  if (held !== undefined) return held;
+  const rule = RULES.cities.levy;
+  let towns = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    if (city.puppet === true || city.population < rule.minPopulation) continue;
+    towns += 1;
+  }
+  const every = Math.max(1, Math.floor(rule.everyTurns));
+  const prior = (towns * Math.max(0, ctx.ai.score.citizenLevy.priorShare)) / every;
+  const record = playerById(ctx.state, ctx.playerId)?.citizensLevied ?? 0;
+  const rate = record > 0 ? smoothedRate(record, prior, ctx) : prior;
+  const granted = new Set<LevyUse>();
+  for (const { effect } of effectsOfKind(ctx.state, ctx.playerId, 'levy')) {
+    if (effect.use !== undefined) granted.add(effect.use);
+  }
+  const uses = LEVY_USES.filter((use) => granted.has(use));
+  const soldiers = uses.filter(raisesSoldier).length;
+  const outlook: LevyOutlook = {
+    rate,
+    why: `${record} levied so far, ${towns} town${towns === 1 ? '' : 's'} that may levy`,
+    uses,
+    soldierRate: uses.length === 0 ? 0 : (rate * soldiers) / uses.length,
+    towns,
+  };
+  LEVY_OUTLOOK_MEMO.set(ctx, outlook);
+  return outlook;
+}
+
+/** Does this use raise a soldier? The muster and the conscript do. */
+function raisesSoldier(use: LevyUse): boolean {
+  return use === 'muster' || use === 'conscript';
+}
+
+/** Does this use raise a piece of any kind? */
+function raisesPiece(use: LevyUse): boolean {
+  return raisesSoldier(use) || use === 'worker' || use === 'settler';
+}
+
+/** Does a card narrowed to levied pieces (`levied`) reach a piece this use raised? */
+function leviedReaches(levied: true | LevyUse | undefined, use: LevyUse): boolean {
+  return levied !== undefined && (levied === true || levied === use);
+}
+
+/**
+ * Levied soldiers a turn that a card narrowed to `levied` would reach: every
+ * soldier a levy raises for `true`, and one use's even share of the rate for a
+ * use that raises a soldier.
+ */
+function leviedSoldierRate(levied: true | LevyUse, outlook: LevyOutlook): number {
+  if (levied === true) return outlook.soldierRate;
+  if (!raisesSoldier(levied) || !outlook.uses.includes(levied)) return 0;
+  return outlook.rate / outlook.uses.length;
+}
+
+/**
+ * **The share of the army that levies raise**: what a line or a rebate
+ * narrowed to levied pieces reaches (Watch and Ward, The General Levy).
+ *
+ * The levied soldiers standing now, plus those the levy rate brings over the
+ * horizon, against the army this seat keeps (`levyReading`'s wanted army, or
+ * the soldiers it holds if that is more). Capped at the whole army.
+ */
+function leviedArmyShare(levied: true | LevyUse, ctx: ValueContext): number {
+  const soldiers = fieldSoldiersOf(ctx.state, ctx.playerId);
+  let standing = 0;
+  for (const unit of soldiers) {
+    if (unit.levied === undefined) continue;
+    if (levied !== true && unit.levied !== levied) continue;
+    standing += 1;
+  }
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const coming = leviedSoldierRate(levied, levyOutlook(ctx)) * horizon;
+  const army = Math.max(1, soldiers.length, levyReading(ctx).wanted);
+  return Math.min(1, (standing + coming) / army);
+}
+
+/**
+ * **The share of new soldiers that levies raise**: what a stamp narrowed to
+ * levied pieces reaches (The Trained Bands). The levied soldier rate against
+ * that rate plus the pieces this seat completes a turn (`unitsBuiltBy`).
+ */
+function leviedRecruitShare(levied: true | LevyUse, ctx: ValueContext): number {
+  const levies = leviedSoldierRate(levied, levyOutlook(ctx));
+  if (levies <= 0) return 0;
+  const built = unitsBuiltBy(ctx) / Math.max(1, ctx.state.turn);
+  return levies / (levies + built);
+}
+
+/**
+ * **How often this seat retires a soldier in one of its towns**, per turn:
+ * the `disband` moment's rate (see `occasionRate`).
+ *
+ * The retire arm (`retireCommand`, `bot.ts`) lets go a soldier only while the
+ * army stands over what the seat wants. So the rate is the soldiers over that
+ * figure now, spread over the horizon, plus the share of levied soldiers the
+ * seat expects to send home once the need that raised them has passed
+ * (`score.citizenLevy.retireShare`).
+ */
+function retireRate(ctx: ValueContext): number {
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const army = levyReading(ctx);
+  const surplus = Math.max(0, army.held - army.wanted);
+  return (
+    surplus / horizon +
+    levyOutlook(ctx).soldierRate * Math.max(0, ctx.ai.score.citizenLevy.retireShare)
+  );
+}
+
+/**
+ * **What a levy card is worth to this seat**, by the four halves a `levy` row
+ * may carry. Each half is priced at the levy rate this seat expects
+ * (`levyOutlook`):
+ *
+ *   · `use` (Levy of the Land, The Muster of the Fields, The Work Gangs and the
+ *     rest): what one levy of this use is worth in each town the row lets levy
+ *     (`explainCitizenLevy`, never below nought, because the bot does not take
+ *     a levy that is worth less than nothing), at each town's share of the
+ *     rate. A row that lets a town levy more often at war (The General Levy)
+ *     takes that pace while a war is on;
+ *   · `after` (Seasonal Levies, The Gleaners, The Labour Feasts): what it hangs
+ *     on a town, as one town's share of what the effects pay the empire, for
+ *     the turns they hang, at each town's share of the rate but no more often
+ *     than the row allows;
+ *   · `returnsAfter` (The Mit'a): the citizen that comes home, priced as the
+ *     food that grows one and discounted for the wait, once for each levy;
+ *   · `noWaitEvery` (The Slack Season): one more levy in each town whose best
+ *     levy is worth taking, once every so many turns.
+ */
+function levyCardWorth(effect: CardLevyEffect, ctx: ValueContext): number {
+  const outlook = levyOutlook(ctx);
+  const rule = RULES.cities.levy;
+  const perTown = outlook.rate / Math.max(1, outlook.towns);
+  let worth = 0;
+  if (effect.use !== undefined) {
+    const floor = Math.max(rule.minPopulation, Math.floor(effect.minPopulation ?? 0));
+    let sum = 0;
+    for (const city of citiesOf(ctx.state, ctx.playerId)) {
+      if (city.puppet === true || city.population < floor) continue;
+      if (effect.scope !== undefined && !cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) {
+        continue;
+      }
+      sum += Math.max(0, explainCitizenLevy(city, effect.use, ctx).total);
+    }
+    let pace = perTown;
+    if (effect.everyAtWar !== undefined && atWarWithAnybody(ctx.state, ctx.playerId)) {
+      pace *= Math.max(1, Math.floor(rule.everyTurns)) / Math.max(1, Math.floor(effect.everyAtWar));
+    }
+    worth += pace * sum;
+  }
+  if (effect.after !== undefined && effect.after.effects.length > 0) {
+    const every = Math.max(1, Math.floor(effect.after.every));
+    const turns = Math.max(0, effect.after.turns);
+    const hung =
+      (scoreEffects(effect.after.effects, ctx) / Math.max(1, ctx.cities)) *
+      (turns / Math.max(1, ctx.ai.score.lumpTurns));
+    worth += outlook.towns * Math.min(perTown, 1 / every) * hung;
+  }
+  if (effect.returnsAfter !== undefined) {
+    const citizen = explainLump({ food: growthThreshold(ctx) }, ctx).total;
+    const wait = Math.max(1, Math.floor(effect.returnsAfter));
+    worth += outlook.rate * citizen * delayDiscount(wait, ctx);
+  }
+  if (effect.noWaitEvery !== undefined) {
+    const every = Math.max(1, Math.floor(effect.noWaitEvery));
+    let best = 0;
+    for (const city of citiesOf(ctx.state, ctx.playerId)) {
+      if (city.puppet === true || city.population < rule.minPopulation) continue;
+      let top = 0;
+      for (const use of outlook.uses) top = Math.max(top, explainCitizenLevy(city, use, ctx).total);
+      best += top;
+    }
+    worth += best / every;
+  }
+  return worth;
+}
+
+/**
+ * **What one levy of `use` is worth in this town**, now. It is the one reading
+ * the levy arm (`levyDecision`, `bot.ts`) and the levy cards' prices
+ * (`levyCardWorth`) share, so the bot does not draft a levy card on one
+ * opinion and use it on another.
+ *
+ * Three parts, in the one currency:
+ *
+ *   · **what the citizen buys**. Hammers and beakers are a lump
+ *     (`explainLump`). A piece is worth the hammers the seat would otherwise
+ *     spend on it, as a lump, and only while the seat wants one
+ *     (`levyPieceWant`): a soldier while the army is short or a town is short
+ *     of its garrison; a worker while a town is raising one; a settler while
+ *     the next town waits on one. Enemies near the towns multiply a soldier's
+ *     worth by the share of the army that is missing, as they multiply a unit
+ *     step in the tech chain. A piece nobody wants is charged the wage it
+ *     would draw;
+ *   · **the citizen it spends**: the food it took to grow it, as a lump. That
+ *     is what this file prices a citizen at everywhere (a citizens grant, a
+ *     commission's citizens, Total Mobilisation's muster). A town left small
+ *     adds `growth.smallCityPremium`, as `explainCitizen` does, and the
+ *     contentment the citizen stops demanding is taken off at the happiness
+ *     price. Both of those last only while the town grows the citizen back, so
+ *     each is taken for that share of `score.lumpTurns`, at most all of it;
+ *   · **what the seated cards add**: what a card hangs on the town after a
+ *     levy, the citizen The Mit'a sends home, one more citizen on The Labour
+ *     Rolls, and the lines, stamps and rebates a card gives a soldier a levy
+ *     raised.
+ *
+ * `piece` is the unit the levy menu says it would raise, when the caller has
+ * it (`LevyOption.unit`); otherwise it is read here.
+ */
+export function explainCitizenLevy(
+  city: City,
+  use: LevyUse,
+  ctx: ValueContext,
+  piece?: UnitTypeId | null,
+): Appraisal {
+  const hammers = levyHammers(city);
+  const unit = !raisesPiece(use) ? null : piece !== undefined ? piece : levyPieceFor(use, ctx);
+  const want = unit === null ? null : levyPieceWant(city, use, ctx);
+  const terms: ValueTerm[] = [
+    nest('what the citizen buys', explainLevyGain(city, use, hammers, unit, want, ctx)),
+    nest('the citizen it spends', explainLevyCitizen(city, hammers, ctx), 'sub'),
+  ];
+  const cards = explainLevyCards(city, use, hammers, unit !== null && want?.wanted === true ? unit : null, ctx);
+  if (cards.terms.length > 0) terms.push(nest('what the seated cards add to it', cards));
+  return appraise(terms);
+}
+
+/** What the citizen buys. See `explainCitizenLevy`. */
+function explainLevyGain(
+  city: City,
+  use: LevyUse,
+  hammers: number,
+  unit: UnitTypeId | null,
+  want: { wanted: boolean; why: string } | null,
+  ctx: ValueContext,
+): Appraisal {
+  switch (use) {
+    case 'production':
+      return appraise([nest(`${hammers} hammers in ${city.name}`, explainLump({ production: hammers }, ctx))]);
+    case 'opus':
+    case 'wonder': {
+      const target =
+        use === 'opus'
+          ? opusWorkshop(ctx.state, city.ownerId, city)
+          : wonderWorkshop(ctx.state, city.ownerId, city);
+      const what = use === 'opus' ? 'the Magnum Opus' : 'a world wonder';
+      if (target === null) return appraise([{ label: `no other town is raising ${what}`, value: 0 }]);
+      return appraise([
+        nest(`${hammers} hammers toward ${what} in ${target.name}`, explainLump({ production: hammers }, ctx)),
+      ]);
+    }
+    case 'science':
+      return appraise([nest(`${hammers} beakers`, explainLump({ science: hammers }, ctx))]);
+    case 'muster':
+    case 'conscript':
+    case 'worker':
+    case 'settler': {
+      if (unit === null || want === null) {
+        return appraise([{ label: 'nothing this empire can raise yet', value: 0 }]);
+      }
+      const name = unitDef(unit).name;
+      // A piece nobody wants saves no hammers, and it still draws a wage.
+      if (!want.wanted) {
+        return appraise([
+          { label: `${name}, but ${want.why}`, value: 0 },
+          nest('the wage it would draw', explainUpkeepCost(unitUpkeep(unit), ctx), 'sub'),
+        ]);
+      }
+      const cost = unitProductionCost(ctx.state, ctx.playerId, unit);
+      const terms: ValueTerm[] = [
+        nest(`the ${round(cost)} hammers ${name} would cost to build, as ${want.why}`, explainLump({ production: cost }, ctx)),
+      ];
+      // **The threat swing, against the shortfall** (`chain.ts`' `unitTerm`):
+      // a soldier now is worth more than one built later while enemies are
+      // near a town and the army is short of what it wants, and no more than
+      // its hammers once the army is whole. Without the shortfall, one raid
+      // would make every town levy every time it may.
+      if (raisesSoldier(use) && ctx.threat > 0) {
+        const army = levyReading(ctx);
+        const short = Math.min(1, army.wanted <= 0 ? 0 : army.shortfall / army.wanted);
+        const factor = 1 + ctx.threat * short;
+        if (factor > 1) {
+          terms.push({
+            label:
+              `× ${round(factor)}: ${round(ctx.threat)} enemy piece${ctx.threat === 1 ? '' : 's'} near the towns, ` +
+              `and the army is ${round(army.shortfall)} of ${round(army.wanted)} soldiers short`,
+            value: factor,
+            op: 'mul',
+          });
+        }
+      }
+      return appraise(terms);
+    }
+    default: {
+      const unhandled: never = use;
+      void unhandled;
+      return appraise([]);
+    }
+  }
+}
+
+/**
+ * **Does this seat want the piece a levy of this use would raise?** And the
+ * plain sentence why or why not, for the feed.
+ *
+ *   · a soldier: while this town holds fewer soldiers than it is owed
+ *     (`garrisonOwed`), or while the army is short of what the seat wants
+ *     (`levyReading`, which already counts the enemies near the towns and a
+ *     war's strike force);
+ *   · a worker: while one of the seat's towns has a worker in its queue, which
+ *     is the production table's own word that a worker is wanted;
+ *   · a settler: while the expansion chain still owes the settler for the next
+ *     town (`ExpansionChain.hammers` is nought once one is walking).
+ */
+function levyPieceWant(
+  city: City,
+  use: LevyUse,
+  ctx: ValueContext,
+): { wanted: boolean; why: string } {
+  if (raisesSoldier(use)) {
+    if (garrisonAt(ctx.state, ctx.playerId, city) < garrisonOwed(ctx.ai, city)) {
+      return { wanted: true, why: `${city.name} is short of its garrison` };
+    }
+    const army = levyReading(ctx);
+    const words = `the army holds ${army.held} of the ${round(army.wanted)} soldiers this seat wants`;
+    return army.shortfall > 0 ? { wanted: true, why: words } : { wanted: false, why: words };
+  }
+  if (use === 'worker') {
+    for (const town of citiesOf(ctx.state, ctx.playerId)) {
+      for (const item of town.queue) {
+        if (item.kind !== 'unit' || !isUnitTypeId(item.id)) continue;
+        if (unitDef(item.id).modelClass === 'worker') return { wanted: true, why: `${town.name} is raising one` };
+      }
+    }
+    return { wanted: false, why: 'no town is raising a worker' };
+  }
+  const chain = ctx.expansion;
+  if (chain === null) return { wanted: false, why: 'there is nowhere legal to found a town' };
+  if (chain.hammers <= 0 || chain.stepsRemaining <= 0) {
+    return { wanted: false, why: 'the next town is not waiting on a settler' };
+  }
+  return { wanted: true, why: 'the next town is waiting on one' };
+}
+
+const LEVY_PIECE_MEMO = new WeakMap<ValueContext, Map<LevyUse, UnitTypeId | null>>();
+
+/**
+ * The piece a levy of this use raises for this seat. It is the levy verb's own
+ * reading (`bestOfClassFor` by model class, `levies.ts`). Remembered for the
+ * context, because it walks the roster through `buildError`.
+ */
+function levyPieceFor(use: LevyUse, ctx: ValueContext): UnitTypeId | null {
+  let memo = LEVY_PIECE_MEMO.get(ctx);
+  if (memo === undefined) {
+    memo = new Map();
+    LEVY_PIECE_MEMO.set(ctx, memo);
+  }
+  const known = memo.get(use);
+  if (known !== undefined) return known;
+  const piece =
+    use === 'worker'
+      ? bestOfClassFor(ctx.state, ctx.playerId, 'worker')
+      : use === 'settler'
+        ? bestOfClassFor(ctx.state, ctx.playerId, 'settler')
+        : bestOfClassFor(ctx.state, ctx.playerId, 'melee');
+  memo.set(use, piece);
+  return piece;
+}
+
+/** The citizen a levy spends. See `explainCitizenLevy`. */
+function explainLevyCitizen(city: City, hammers: number, ctx: ValueContext): Appraisal {
+  const terms: ValueTerm[] = [
+    nest(`the ${hammers} food it took to grow`, explainLump({ food: hammers }, ctx)),
+  ];
+  // Two lines are per-turn figures, and both last only while the town grows
+  // the citizen back. So each is taken for that share of a lump's turns
+  // (`score.lumpTurns`), and never for more than a whole lump.
+  const away = regrowTurns(city, hammers, ctx);
+  const lump = Math.max(1, ctx.ai.score.lumpTurns);
+  const share = Math.min(1, away / lump);
+  const regrow = `for the ${round(away)} turns the town takes to grow it back (at most ${lump})`;
+  // The town as the levy leaves it, against this age's band of what this seat
+  // calls small (`explainCitizen`'s line, read for the citizen that leaves).
+  const small = ageBand(ctx.ai.growth.smallCityPop, ctx.age);
+  const after = city.population - 1;
+  if (after < small) {
+    terms.push({
+      label: `a small town's premium: ${after} citizens left, under the ${small} this seat calls small, ${regrow}`,
+      value: ctx.ai.growth.smallCityPremium * share,
+    });
+  }
+  // The keep `citizenKeepTerm` (`citizen.ts`) charges one more citizen, read
+  // for the one that leaves. Asked of the simulation's curve here because
+  // `citizen.ts` imports this module and cannot be imported back.
+  const demand = happinessDemand(city.population) - happinessDemand(after);
+  if (demand > 0) {
+    terms.push({
+      label: `less the contentment it stops demanding: ${round(demand)} × ${meterWords(ctx, 'happiness')}, ${regrow}`,
+      value: demand * meterWeight(ctx, 'happiness') * share,
+      op: 'sub',
+    });
+  }
+  return appraise(terms);
+}
+
+/**
+ * Turns this town takes to grow back the citizen a levy spends: the food it
+ * took over the town's food surplus (`channelSurplus`), and the horizon for a
+ * town that is not growing.
+ */
+function regrowTurns(city: City, hammers: number, ctx: ValueContext): number {
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const surplus = channelSurplus(ctx.state, city, foldCity(ctx.state, city, [], null, readCity(ctx.state, city)));
+  if (surplus <= 0) return horizon;
+  return Math.min(horizon, hammers / surplus);
+}
+
+/**
+ * What the seated cards add to one levy in this town. See
+ * `explainCitizenLevy`. `soldier` is the piece the levy raises when it is a
+ * soldier the seat wants, else `null`, so a line on a levied piece is never
+ * counted for a piece nobody wants.
+ */
+function explainLevyCards(
+  city: City,
+  use: LevyUse,
+  hammers: number,
+  soldier: UnitTypeId | null,
+  ctx: ValueContext,
+): Appraisal {
+  const state = ctx.state;
+  const terms: ValueTerm[] = [];
+  const lump = Math.max(1, ctx.ai.score.lumpTurns);
+  // What a card hangs on the town after a levy, at most once every so many
+  // turns a town (`hangAftermaths`, `levies.ts`).
+  for (const { card, after } of cardLevyAftermaths(state, ctx.playerId)) {
+    const name = anyCardDef(card).name;
+    const last = city.levy?.after?.[card];
+    const every = Math.max(1, Math.floor(after.every));
+    if (last !== undefined && state.turn < last + every) {
+      terms.push({ label: `${name}: hung here ${state.turn - last} turns ago, so not this time`, value: 0 });
+      continue;
+    }
+    const turns = Math.max(0, after.turns);
+    terms.push(
+      nest(
+        `${name}: what it hangs on ${city.name} for ${turns} turns`,
+        appraise([
+          nest('what it would pay in every town', explainEffects(after.effects, ctx)),
+          { label: `÷ ${ctx.cities} towns, as it is hung on one`, value: Math.max(1, ctx.cities), op: 'div' },
+          { label: `× ${turns} turns`, value: turns, op: 'mul' },
+          { label: `÷ ${lump}, as it pays for a while and not for good`, value: lump, op: 'div' },
+        ]),
+      ),
+    );
+  }
+  // The Mit'a: the citizen comes home after so many turns.
+  const back = cardLevyReturnDelay(state, ctx.playerId);
+  if (back !== null) {
+    terms.push(
+      nest(
+        `the citizen comes home in ${back} turns`,
+        appraise([
+          nest(`the ${hammers} food it took to grow`, explainLump({ food: hammers }, ctx)),
+          delayTerm(back, ctx, 'the citizen is away'),
+        ]),
+      ),
+    );
+  }
+  // The Labour Rolls: one more citizen on a count of citizens levied, which
+  // pays for the rest of the game, up to the row's cap.
+  const levied = playerById(state, ctx.playerId)?.citizensLevied ?? 0;
+  for (const { source, effect } of effectsOfKind(state, ctx.playerId, 'pays')) {
+    if (effect.basis !== 'count' || effect.count !== 'citizensLevied') continue;
+    const per = effect.per === undefined || effect.per <= 0 ? 1 : effect.per;
+    if (effect.max !== undefined && Math.floor(levied / per) >= effect.max) {
+      terms.push({ label: `${source}: already at its cap`, value: 0 });
+      continue;
+    }
+    terms.push({
+      label: `${source}: one more citizen on its count, at ${per} a helping, for the rest of the game`,
+      value: scorePayout(effect, ctx) / per,
+    });
+  }
+  if (soldier !== null) {
+    const military = ctx.ai.weights.military * (1 + ctx.threat);
+    for (const { source, effect } of effectsOfKind(state, ctx.playerId, 'combatLine')) {
+      if (!leviedReaches(effect.levied, use)) continue;
+      const { levied: _levied, ...line } = effect;
+      void _levied;
+      terms.push({ label: `${source}: its line on the soldier, which a levy raised`, value: scoreEffect(line, ctx) });
+    }
+    for (const { source, effect } of effectsOfKind(state, ctx.playerId, 'unitStamp')) {
+      if (!leviedReaches(effect.levied, use)) continue;
+      const { levied: _levied, ...stamp } = effect;
+      void _levied;
+      const rank = effect.rank === undefined ? 0 : rankStrength(effect.rank) * military;
+      terms.push({ label: `${source}: what it stamps on the soldier at its birth`, value: scoreEffect(stamp, ctx) + rank });
+    }
+    for (const { source, effect } of effectsOfKind(state, ctx.playerId, 'upkeepRebate')) {
+      if (!leviedReaches(effect.levied, use)) continue;
+      const wage = unitUpkeep(soldier);
+      const off = effect.free === true ? wage : Math.min(wage, effect.amount ?? 1);
+      terms.push({ label: `${source}: the wage the soldier does not draw`, value: costOfUpkeep(off, ctx) });
+    }
+  }
+  return appraise(terms);
 }

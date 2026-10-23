@@ -33,7 +33,9 @@
  * Dominion batch D1 made a row's reach depend on the town (The Devshirme's
  * captured towns) and gave a row a starting rank for the unit it raises.
  *
- * Bots ignore levies for now.
+ * Bots levy through the same command and the same `levyOptions` menu
+ * (`levyDecision`, `src/ai/bot.ts`), and price the levy cards in
+ * `src/ai/value.ts` (`explainCitizenLevy`). Nothing here knows about them.
  */
 
 import {

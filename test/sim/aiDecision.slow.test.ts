@@ -347,8 +347,14 @@ describe('a hundred turns of arithmetic', () => {
       // the two seats meet under arms inside the hundred turns. The war arm is
       // unchanged and pinned deliberately in `aiWar.test.ts`; this list records
       // what a board happens to reach, which is what it has always done.
+      //
+      // **`levy` joined the incidental list, 2026-10-23 (the bot levy batch)**:
+      // a seat now spends a citizen on a levy when a seated card grants one and
+      // the levy is worth more than the citizen. Whether this board's seats
+      // draft such a card inside the hundred turns is incidental; the arm is
+      // pinned deliberately in `aiLevy.test.ts`.
       const always = ['build', 'draft', 'endTurn', 'focus', 'purchase', 'research', 'unitOrder'];
-      const incidental = ['deal', 'disband', 'war'];
+      const incidental = ['deal', 'disband', 'levy', 'war'];
       for (const kind of always) expect([...kinds], kind).toContain(kind);
       for (const kind of kinds) expect([...always, ...incidental], kind).toContain(kind);
       for (const step of walked.steps) {

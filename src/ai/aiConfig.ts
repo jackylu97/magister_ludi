@@ -1436,10 +1436,11 @@ export interface AiConfig {
      *   · the `publicWorkCompleted` tally (The Aediles) reads its forecast
      *     from `score.tallyForecast`, as every tally does;
      *   · the `citizens` grant (Veteran Colonies) is priced at the food a
-     *     citizen costs, and the only moment that pays it, a soldier retired,
-     *     is a moment this bot never forecasts;
-     *   · a combat line for levied units (Watch and Ward) reaches nobody,
-     *     because a bot never levies;
+     *     citizen costs, at the rate this bot retires a soldier in a town
+     *     (`score.citizenLevy`, since the bot levy batch);
+     *   · a combat line for levied units (Watch and Ward) is priced on the
+     *     share of the army that levies raise (`score.citizenLevy`, since the
+     *     bot levy batch);
      *   · the `burned` mark is written only by burned country, which is not
      *     in `workers.improvements`, so a bot never lays it. Where a mark
      *     stands, the hex fold pays it like any other line.
@@ -1478,6 +1479,35 @@ export interface AiConfig {
        * the horizon.
        */
       heldLater: number;
+    };
+    /**
+     * **The citizen levy** (the bot levy batch, the user's answer of
+     * 2026-10-23 to question 2 of `docs/plans/expansionist-themes-triage.md`).
+     * A levy is the `levyCitizen` command: a town spends a citizen on what a
+     * seated card lets it buy. It is not the standing army that
+     * `military.levyCapMultiple` and `levyReading` call the levy.
+     *
+     * Whether one levy is worth taking is read off the board and the sheet's
+     * other weights (`explainCitizenLevy`, `value.ts`), with no knob. These
+     * two say how often the bot expects to levy and to retire a soldier, for
+     * the prices of the levy cards.
+     */
+    citizenLevy: {
+      /**
+       * **How often a town levies, before the seat has a record.** Of the
+       * chances a town has to levy (one in each waiting period,
+       * `rules.cities.levy.everyTurns`), the share this seat expects to take
+       * while it holds a card that grants a levy. The seat's own record of
+       * citizens levied takes over as the game goes on (`smoothedRate`).
+       */
+      priorShare: number;
+      /**
+       * **How many levied soldiers come home.** The share of the soldiers a
+       * levy raises that this seat expects to retire in one of its towns
+       * once the need that raised them has passed. It prices the citizen
+       * Veteran Colonies gives for a retired soldier.
+       */
+      retireShare: number;
     };
   };
   /** What "an enemy is near my towns" means, and what it is worth. */

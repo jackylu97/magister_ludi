@@ -284,6 +284,10 @@
       "fieldsTended": 1,
       "guildPoint": 2,
       "heldLater": 0.5
+    },
+    "citizenLevy": {
+      "priorShare": 0.25,
+      "retireShare": 0.5
     }
   },
   "threat": {
