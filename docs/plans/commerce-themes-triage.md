@@ -391,6 +391,14 @@ The fence missed `commerceSheet.test.ts`, the "no third writer" docblock on `Cit
 - **Schema:** one bump.
 - **Done-gate:** `npx vitest run test/sim/decks/commerceGoods.test.ts test/sim/deals.test.ts test/sim/resourceCopies.test.ts test/sim/resourceEffects.test.ts test/sim/meters.test.ts test/sim/tilePurchaseGate.test.ts test/sim/occasionRiders.test.ts test/ui/tradeImports.test.ts test/sim/decks/commerce.test.ts test/sim/decks.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/statecraft.test.ts test/mapgen/moduleCycles.test.ts`.
 
+**Built 2026-10-23** (the commit "Commerce batch T5"). Schema 174; the explore digests moved by the version alone. The Commenda's half is an amplifier target (`lentLuxuryCopies`, 50 on the row), so the figure lives in the data. The Casa da Índia is `luxuryDuplicates` at 100 with `yieldsOnly`, read by `cardYieldsOnlyAmplifier` (renamed from a name the verbs register refuses). New readings:
+
+48. (T5) A kind both kept through lent copies and borrowed is held once, as a loan.
+49. (T5) The Commenda's half also counts toward silver's and gold's per-copy lines and The Casa da Índia's extra copies (exact, not rounded).
+50. (T5) Numidian Cavalry's luxury count includes The Commenda's half copies.
+
+Reading 24's "rounded down" needed a new grant field, `whole` (Civic Receipts' grant pays exact fractions). `decks.test.ts` pins 573 → 578 and its deferred count 28 → 26. Outside the fence: `aiWants.test.ts` (21 fold-read engines), `commerceSheet.test.ts` (Land Speculation's old +25% gold), `commerceThemeCards.test.ts`, `explore.test.ts`, the `statecraft.ts` index and `docs/orders-and-doctrines.md`.
+
 ### T6: the purse and the hoard
 
 - **Builds:**
