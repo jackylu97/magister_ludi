@@ -343,6 +343,8 @@ The first nine come from section 13. The rest are new. Each gives the reading th
 - **Done-gate:** `npx vitest run test/sim/decks/commerceThemeCards.test.ts test/sim/decks/commerce.test.ts test/sim/decks/scientific.test.ts test/sim/yieldsDocSync.test.ts test/sim/decks.test.ts test/sim/statecraft.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`.
 - **After T2 a playtest can start:** 60 of the 77 cards and charters play as written.
 
+**Built 2026-10-23** (`3aa02fc8`). Schema 170; the explore digests moved by the version alone. All nine cards are data only. The fence missed `test/sim/decks/commerce.test.ts`, the route-flat list in `statecraft.test.ts`, the Scientific sheet's counts row and header, and 14 schema pins; `decks.test.ts` pins the total of dealt rows (559 → 567). One describer line changed: a route line counted at its origin says "in the origin city", which also rewords Strategic Exports. Out-of-date notes found in the data, left for later batches: The Money Lenders' note (it pays 4%), The World's Exchange's ("Held whole"), and The Admiralty of Trade's and The Foreign Factor's (their old cards, until T3).
+
 ### T3: routes and posts
 
 - **Builds:**
