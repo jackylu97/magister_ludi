@@ -11,10 +11,14 @@
  *     towns pays that town food equal to the unit's production cost, through
  *     D7's disband moment (readings 42 and 79). Batch E10 of the themes triage
  *     changed it: the town gains one citizen instead (its readings 25, 26).
+ *     The user changed reading 25 on 2026-10-23: a unit raised for free gives
+ *     a citizen too, so the player does not have to track which units were
+ *     free.
  */
 
 import { describe, expect, it } from 'vitest';
 
+import { WONDER_IDS } from '../../../src/sim/buildingData';
 import {
   channelSurplus,
   foundCityAt,
@@ -217,13 +221,41 @@ describe('the Expansionist batch E6: Veteran Colonies', () => {
     expect(city.foodBasket).toBe(growthThreshold(3) - 1);
   });
 
-  it('gives nothing for a unit raised for free, a unit outside the town’s hex, or a civilian', () => {
+  it('gives one citizen for a unit raised for free that retires in the town', () => {
     const state = board();
     const city = town(state);
     slot(state, 'veteranColonies');
     const free = createUnit(state, 0, 'warrior', city.col, city.row);
     free.freeUpkeep = true;
     disband(state, free.id);
+    expect(city.population).toBe(4);
+    expect(city.foodBasket).toBe(0);
+  });
+
+  it('gives a citizen for a free unit while The Legions’ Labour still pays nothing for it', () => {
+    const state = board();
+    const city = town(state);
+    city.queue = [{ kind: 'building', id: WONDER_IDS[0]! } as City['queue'][number]];
+    city.hammerBasket = 0;
+    slot(state, 'veteranColonies');
+    slot(state, 'dominionTheLegionsLabour');
+    const free = createUnit(state, 0, 'warrior', city.col, city.row);
+    free.freeUpkeep = true;
+    disband(state, free.id);
+    // The Legions' Labour pays a share of the unit's cost, and a free unit has none.
+    expect(city.hammerBasket).toBe(0);
+    expect(city.population).toBe(4);
+    // A unit that was paid for feeds both cards.
+    const paid = createUnit(state, 0, 'warrior', city.col, city.row);
+    disband(state, paid.id);
+    expect(city.hammerBasket).toBe(unitProductionCost(state, 0, 'warrior') / 2);
+    expect(city.population).toBe(5);
+  });
+
+  it('gives nothing for a unit outside the town’s hex, or a civilian', () => {
+    const state = board();
+    const city = town(state);
+    slot(state, 'veteranColonies');
     const afield = createUnit(state, 0, 'warrior', city.col + 1, city.row);
     disband(state, afield.id);
     const worker = createUnit(state, 0, 'worker', city.col, city.row);
@@ -245,7 +277,7 @@ describe('the Expansionist batch E6: Veteran Colonies', () => {
 
   it('says what it does in plain words', () => {
     expect(said('veteranColonies')).toBe(
-      'for military units alone, disbanding a unit in one of your cities gives that city one more citizen, unless the unit was raised for free',
+      'for military units alone, disbanding a unit in one of your cities gives that city one more citizen',
     );
   });
 });

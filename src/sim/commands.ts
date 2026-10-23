@@ -4737,7 +4737,9 @@ function applyDisbandUnit(state: GameState, command: DisbandUnitCommand): Comman
   // Expansionist's Veteran Colonies after it). Its facts are read before the
   // unit goes: the town of this empire the unit stood in, and what the unit
   // costs this empire to build now. A unit raised for free carries no cost,
-  // so a rider scaled by it pays nothing; a unit a levy raised was not free.
+  // so a rider scaled by it pays nothing (The Legions' Labour); a unit a levy
+  // raised was not free. Veteran Colonies' citizen does not read the cost, so
+  // a free unit that retires in a town still gives one.
   const at = { col: unit.col, row: unit.row };
   const town = cityAt(state, unit.col, unit.row);
   const facts: WindfallOccasionFacts = { actor: unit.type };

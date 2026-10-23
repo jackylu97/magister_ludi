@@ -264,7 +264,9 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
     (`capFoodSurplus`), so the town keeps its citizens on its food and the card
     has a surplus to move. This reaches The Laws of Lord Shang too.
   - Veteran Colonies is a rider on D7's `disband` moment (`inTown: true`, a
-    military unit, food from `unitCost`), paid as a growth windfall.
+    military unit). Since batch E10 it grants the town one citizen (the
+    `citizens` grant, with no growth riders). It does not read `unitCost`, so
+    a unit raised for free gives a citizen too (the user, 2026-10-23).
 
 ## Units, movement, combat, siege
 

@@ -5,11 +5,11 @@
  * Colonies through the disband command. This file checks the three shapes the
  * batch added:
  *
- *   · the `citizens` grant: citizens in the town the moment names, only when
- *     the moment carries a unit's cost, with no growth riders, and counted
- *     toward the town's largest size. With The Mit'a, a levied soldier who
- *     retires gives its citizen back, and the levy's return gives another
- *     (readings 25 and 26);
+ *   · the `citizens` grant: citizens in the town the moment names, with no
+ *     growth riders, and counted toward the town's largest size. A unit raised
+ *     for free gives one too (the user's change to reading 25, 2026-10-23).
+ *     With The Mit'a, a levied soldier who retires gives its citizen back, and
+ *     the levy's return gives another (readings 25 and 26);
  *   · `levied` on `combatLine`: Watch and Ward's +5 reaches only a piece a
  *     levy raised, in attack and in defence, while the fight's hex is inside
  *     the piece's own borders (reading 27);
@@ -82,7 +82,7 @@ function disband(state: GameState, unitId: number): void {
 const said = (id: string): string => describeCard(id as never).map((clause) => stripRefs(clause.text)).join(' ');
 
 describe('the Expansionist batch E10: the citizens grant (Veteran Colonies)', () => {
-  it('pays one citizen in the town the moment names, and only when the moment carries a unit’s cost', () => {
+  it('pays one citizen in the town the moment names, whether or not the moment carries a unit’s cost', () => {
     const state = bareState();
     const city = town(state, 5, 5, 3);
     slot(state, 0, 'veteranColonies');
@@ -90,8 +90,9 @@ describe('the Expansionist batch E10: the citizens grant (Veteran Colonies)', ()
     expect(paid.citizens).toEqual([{ card: 'veteranColonies', source: expect.any(String), amount: 1, townId: city.id }]);
     expect(paid.lines.map((line) => line.note)).toContain('+1 citizen');
     expect(paid.grants).toEqual([]);
-    // A unit raised for free carries no cost, so the moment pays nothing.
-    expect(windfallPayoutIsEmpty(windfallPayout(state, 0, 'disband', 0, 0, { actor: 'warrior', townId: city.id }))).toBe(true);
+    // A unit raised for free carries no cost, and still gives its citizen.
+    const free = windfallPayout(state, 0, 'disband', 0, 0, { actor: 'warrior', townId: city.id });
+    expect(free.citizens).toEqual([{ card: 'veteranColonies', source: expect.any(String), amount: 1, townId: city.id }]);
     // A moment in no town pays nothing, and neither does a civilian.
     expect(windfallPayoutIsEmpty(windfallPayout(state, 0, 'disband', 0, 0, { actor: 'warrior', unitCost: 20 }))).toBe(true);
     expect(
@@ -270,7 +271,7 @@ describe('the Expansionist batch E10: the rows', () => {
 
   it('says what each does in plain words', () => {
     expect(said('veteranColonies')).toBe(
-      'for military units alone, disbanding a unit in one of your cities gives that city one more citizen, unless the unit was raised for free',
+      'for military units alone, disbanding a unit in one of your cities gives that city one more citizen',
     );
     expect(said('watchAndWard')).toBe('+5 combat strength for units raised by a levy inside your territory');
     expect(said('theBurghers')).toBe('the guild bar fills 50% faster, in every city of 12 or more citizens');

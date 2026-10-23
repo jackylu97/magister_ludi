@@ -5612,11 +5612,12 @@ export interface WindfallGrantSpec {
    * gives that town a citizen; the triage's readings 25 and 26).
    *
    * The town is `WindfallOccasionFacts.townId`, and it must be one of this
-   * empire's towns. The grant is paid only when the moment also carries a
-   * unit's cost (`WindfallOccasionFacts.unitCost`), so a unit raised for free
-   * gives nothing (the first triage's reading 79). Today the `disband` moment
-   * is the only one that carries both facts. A moment that lacks either pays
-   * nothing.
+   * empire's towns. A moment that names no town pays nothing. The grant does
+   * not read the unit's cost (`WindfallOccasionFacts.unitCost`), so a unit
+   * raised for free gives a citizen too: the player should not have to
+   * remember which units were free (the user's change to reading 25,
+   * 2026-10-23, which replaces the first triage's reading 79). Veteran
+   * Colonies asks for the `disband` moment.
    *
    * Paid by `payWindfallGrants` through `settlePopulationWindfall` with no
    * growth riders, because a soldier coming home is not growth. The citizen
