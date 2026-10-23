@@ -465,6 +465,8 @@ Outside the fence: `state.ts` (`createUnit`), the `statecraft.ts` index, the ord
 - **Schema:** none.
 - **Done-gate:** `npx vitest run test/sim/aiAppraisal.test.ts test/sim/aiDiplomacy.test.ts test/sim/aiCommissions.test.ts test/sim/explore.test.ts`. The digest re-pin is the orchestrator's push-gate work (`npm run test:all`). **The Commerce build plan is then complete.**
 
+**Built 2026-10-23** (the commit "Commerce batch T9"). Knobs: `score.commerce` (`postsOverHorizon` 3, `postRangeWaiver` 0.25, `postWorth` 20, `boughtUnitShare` 0.5), `score.commerce.countForecast` (`copiesLent` 1, `dealPartners` 1, `postCitizens` 1, `worldTradeRoutes` 6) and `score.tallyForecast.treasuryHeld` 10. The purse reads `spendableGold`; the disband choice skips a waived unit; the deal appraisal prices a lent copy and a new partner. The debt warning in `src/ui/controls.ts` reads `disbandFloor`. A six-seat 100-turn bot game: 37 offers of Commerce cards, 18 picks, 13 seated. Follow-ups: other decks' `fromOccasion` grants are still priced flat; a gold stamp and a faith stamp each take the bought-unit share; D16 forecasts the reached-figure commission goals at almost nothing early; the new knobs have no `data/ai.bounds.json` rows. The slow bot digests are re-cut at the push gate. **The Commerce build plan is complete.**
+
 ### Order and overlaps
 
 - The track: T1 → T2 → T3 → T4 → T5 → T6 → T9, one at a time. T7 runs after T1 once questions 3 and 4 are answered. T8 runs after T1 and before T9.
