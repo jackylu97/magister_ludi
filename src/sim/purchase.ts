@@ -115,6 +115,7 @@ import {
   payWindfallGrants,
   recordScalingOccasion,
   settleCultureWindfall,
+  spendableGold,
   windfallPayout,
 } from './statecraft';
 // Expansionist batch E12: what a town holds, a card's grants included.
@@ -947,11 +948,19 @@ export function purchaseGate(
   const reached = clausesBeforeTheBank(state, playerId, cityId, item, currency);
   if (typeof reached === 'string') return { refusal: reached, shortfall: null };
   const { player, name, bank, price } = reached;
+  // **What the bank may spend**, which for gold is not always what it holds:
+  // Letters of Credit lets a purchase take the treasury below zero (Commerce
+  // batch T6, the triage's reading 25). `spendableGold` is the one helper the
+  // three gold gates ask, so a hex, a draft and a thing cannot disagree.
   const held = bankOf(player, bank);
-  if (held < price) {
+  const spendable = bank === 'gold' ? spendableGold(state, playerId) : held;
+  if (spendable < price) {
     return {
-      refusal: `${name} costs ${price} ${bank}; ${player.name} has ${Math.floor(held)}`,
-      shortfall: price - held,
+      refusal:
+        spendable === held
+          ? `${name} costs ${price} ${bank}; ${player.name} has ${Math.floor(held)}`
+          : `${name} costs ${price} ${bank}; ${player.name} may spend ${Math.floor(spendable)}, credit included`,
+      shortfall: price - spendable,
     };
   }
   return { refusal: null, shortfall: null };

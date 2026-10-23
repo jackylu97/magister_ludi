@@ -6083,6 +6083,11 @@ function occasionRecord(occasion: TallyOccasion, ctx: ValueContext): number | nu
     case 'foreignCityConverted':
     case 'warEnded':
       return null;
+    case 'treasuryHeld':
+      // **A stand-in** (Commerce batch T6, The Strongbox). No record of its
+      // own, and a turn counts only above the row's floor. Commerce batch T9
+      // prices it from the seat's treasury.
+      return null;
     default:
       return unreadTally(kind);
   }

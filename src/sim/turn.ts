@@ -138,6 +138,7 @@ import {
   cardBehaviorRule,
   cardUnitStat,
   musterPeriodicUnits,
+  recordTreasuryHeld,
   runPeriodicBoons,
   runStatecraft,
 } from "./statecraft";
@@ -669,9 +670,17 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // else. At the head of the phase because the reading is the Ledger's own
     // memo, fresh on this phase's revision, and the yields chain may not import
     // the readings to take it in the middle of the banks (`ledgerFold.ts`).
+    //
+    // **The end of the turn's treasury is written last** (Commerce batch T6,
+    // The Strongbox): `recordTreasuryHeld` raises the `treasuryHeld` moment
+    // for every real empire after the yields bank, so the treasury it
+    // carries includes the turn's income, interest and upkeep. In this phase
+    // rather than its own, so the phase list keeps its length. A seat whose
+    // seated cards do not watch the moment writes nothing.
     run: (state, report) => {
       recordDeckTally(state);
       collectYields(state, report);
+      recordTreasuryHeld(state);
     },
   },
   {

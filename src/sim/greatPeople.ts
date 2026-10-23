@@ -113,6 +113,7 @@ import {
   payWindfallGrants,
   recordScalingOccasion,
   settleCultureWindfall,
+  spendableGold,
   windfallPayout,
   windfallPayoutIsEmpty,
 } from './statecraft';
@@ -536,8 +537,13 @@ export function greatPersonPurchaseError(
   }
   const price = greatPersonOfferPrice(purchase);
   const held = def.currency === 'gold' ? player.gold : player.faithPool;
-  if (held < price) {
-    return `${player.name} needs ${price} ${def.currency} and has ${held}`;
+  // Gold may go below zero under Letters of Credit (Commerce batch T6, the
+  // triage's reading 25), through the one helper the three gold gates ask.
+  const spendable = def.currency === 'gold' ? spendableGold(state, playerId) : held;
+  if (spendable < price) {
+    return spendable === held
+      ? `${player.name} needs ${price} ${def.currency} and has ${held}`
+      : `${player.name} needs ${price} ${def.currency} and may spend ${Math.floor(spendable)}, credit included`;
   }
   return null;
 }

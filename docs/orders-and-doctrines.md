@@ -540,6 +540,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Commenda | 3 | ○ | P | Luxuries you lend in a deal count as half a copy for you. |
 | The Capitulations | 3 | ◆ | S | Each foreign town holding your trading post lends you one of its luxuries that you lack, at half value. |
 | The Casa da Índia | 4 | ○ | P | Every copy of a luxury you hold pays its yields, not only the first. |
+| Letters of Credit | 1 | ○ | S | You may buy with gold until your treasury reaches −150. Debt disbands none of your units until your treasury falls below −150. |
+| The Strongbox | 1 | ◆ | P | While seated, this card gains +1 science and +1 culture each turn you end with at least 300 gold in your treasury, up to +15 of each. |
+| The Merchant Guilds | 2 | ◆ | S | You may run one more trade route for every two merchants in the trades. |
 
 ### Devotion
 
@@ -806,6 +809,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Brokers' Redraw | Commerce · Magisterial | 2 | ○ | S | You may reroll a draft with gold instead of faith. All other purchasing is 10% more expensive. |
 | The Standing Army | Dominion · Commerce | 0 | ◆ | S | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. |
 | The Art Dealers | Commerce · Magisterial | 1 | ● | S | Each card you draft grants 15 gold. |
+| Mercenary Contracts | Dominion · Commerce | 3 | ◆ | S | Military units you buy cost no upkeep for twenty turns. |
 
 ### Generic
 
@@ -878,6 +882,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Commenda** — The deal still takes the copy, so you can never lend the same copy twice. For your cards and goals, two copies lent count as one copy you hold. A luxury you now hold only through copies you lent still pays you half of its happiness and half of its yields while the deals run.
 - **The Capitulations** — Only a trading post that is established and paying lends: not during a war with the town's owner, and not while the town is blockaded. Each town lends the first luxury it has improved that you do not hold and that no trade route or other post already brings you, and the towns are taken in the order they were founded. A borrowed luxury pays half of its happiness and half of its yields.
 - **The Casa da Índia** — Only the luxury's own food, production, gold, science, culture and faith are paid for each copy. Its happiness and every other effect still count once for each kind. Silver and gold already pay some lines for each copy, and those lines are not paid twice.
+- **Letters of Credit** — Buildings, units, trade caravans, hexes and great-person drafts may all be bought on credit. Gold poured into a wonder or the Magnum Opus, and gold paid to redraw a hand of cards, must still come from gold you hold. While your treasury is below zero you still lose a share of your science and culture.
+- **The Strongbox** — Your treasury is checked at the end of each turn, after your income, interest and upkeep are paid. The card counts only while it is seated, and it keeps what it has counted when it leaves its chair.
+- **The Merchant Guilds** — Merchants in the trades are counted in all of your cities together.
 - **Pastoral Shrines** — Not built, both halves together: the law can dress a herder's ground, and nothing can yet ask whether the realm keeps a single pen anywhere at all, which is the clause the capital's hammers hang on. † worked pastures pay an offering of faith and a little more food; your capital works harder while you keep a penned herd anywhere at all
 - **Hearth Blessings** — Not built: a town remembers how many people live in it and not how many ever did, so nothing can tell a new high from an ordinary birth. † a town growing past the largest it has ever been gives thanks in faith; a shrine there sets bread on the table besides
 - **The Book of Mercy** — Not built: neither observance has been written into the book of rites, so the charter has nothing to open. The row is kept so the two may be written. † a town may mourn, and while it grieves its people ask far less of it and it raises no soldiers; a town may keep a watch, seeing the raiders' camps around it and taking faith for every kill near its walls
@@ -933,7 +940,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Flood Festival** — Burned country is laid down one tile at a time by a worker, so the faith is paid tile by tile as each one is burned.
 - **Professional Soldiers** — The strength is given when the unit is bought while this card is held, and the unit keeps it for life.
 - **The Chartered Company** — Once the charter is drafted, the Company Guard can be hired from late in the last age of the technology tree.
-- **Mercenary Contracts** — Not built yet: a unit that leaves the game on its own after a set time is a new kind of unit, and this card needs one. † hired soldiers who serve for a set time and then leave
+- **Mercenary Contracts** — A military unit bought with gold or with faith while this card is seated is covered from the turn it is bought. It keeps the waiver for the whole term, even if the card leaves its chair. Ships are not covered.
 - **The Grain Exchange** — Both halves name the same roads, so the grain and the contentment can never disagree about which towns they mean: a domestic route out of a town with a granary. The contentment is paid once per town however many such carts arrive, and it goes the turn the last of them lapses.
 - **The Silk Road Monks** — The religious pressure a trade route carries is doubled by adding the same amount again.
 - **The Brokers' Redraw** — Gold opens the door and pays a premium for it: the price is the faith ladder's own figure, multiplied, so faith stays the cheaper way to ask for a fresh hand and the card is a convenience rather than a replacement. The ladder itself is untouched — a redraw in either bank climbs the same rungs and raises the same count — and a hand whose first asking is free stays free in both. The surcharge on the second line reaches every unit and every building this empire buys, in either bank.

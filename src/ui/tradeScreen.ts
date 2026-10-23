@@ -99,7 +99,7 @@ import {
   runningRouteImports,
   wouldImportFor,
 } from '../sim/routeImports';
-import { ref } from '../sim/statecraft';
+import { ref, spendableGold } from '../sim/statecraft';
 import { techDef } from '../sim/techData';
 import { type City, type GameState, playerById } from '../sim/state';
 import { cityDisplayName } from './cityDisplay';
@@ -321,7 +321,17 @@ export interface TradeContext {
    * uses.
    */
   rows: readonly RouteReadingRow[];
+  /** The treasury, as the purse line prints it. */
   gold: number;
+  /**
+   * **What the purse may spend on a hire**: the sim's own figure
+   * (`spendableGold`), which the purchase gate asks too. It is the treasury,
+   * or more under Letters of Credit, which lets a purchase take the treasury
+   * below zero (Commerce batch T6). The three places the sheet asks whether
+   * the purse can pay compare the price with this, so the sheet never refuses
+   * a hire the reducer would take.
+   */
+  spendable: number;
   /** Ids of this seat's towns that already reach the capital by road. */
   connected: ReadonlySet<number>;
   /** True while the empire has a route slot to spend. */
@@ -362,6 +372,7 @@ export function tradeContext(state: GameState, seat: number): TradeContext {
     reading,
     rows,
     gold: playerById(state, seat)?.gold ?? 0,
+    spendable: spendableGold(state, seat),
     connected,
     slotFree: hasFreeRouteSlot(state, seat),
     lends: routesLendLuxuries(state, seat),
@@ -679,7 +690,7 @@ export function routeCard(ctx: TradeContext, row: RouteReadingRow, mode: RouteMo
     facts: routeFacts(ctx, row, mode),
     imports: routeImportNote(ctx, row),
     price: ctx.reading.price,
-    affordable: ctx.gold >= ctx.reading.price,
+    affordable: ctx.spendable >= ctx.reading.price,
   };
 }
 
@@ -1122,7 +1133,7 @@ export function buyCommandFor(
   mode: RouteMode,
 ): { fromCityId: number; toCityId: number; mode: RouteMode } | null {
   if (!row.modes.includes(mode)) return null;
-  if (ctx.gold < ctx.reading.price) return null;
+  if (ctx.spendable < ctx.reading.price) return null;
   return { fromCityId: row.from.id, toCityId: row.to.id, mode };
 }
 
@@ -1510,7 +1521,7 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
     const send = button('trade-send', sendLabel(command, ctx.reading.price));
     if (command === null) {
       send.disabled = true;
-      send.title = ctx.gold < ctx.reading.price
+      send.title = ctx.spendable < ctx.reading.price
         ? `The hire costs ${figure(ctx.reading.price)} gold`
         : 'This route cannot be sent by that way';
     } else {

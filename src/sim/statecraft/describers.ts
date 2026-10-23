@@ -1872,6 +1872,27 @@ function describeEffect(
       if (effect.rank !== undefined) {
         out.push({ text: `${gained} start as ${rankName(effect.rank)}s` });
       }
+      // **What is hung on the unit for a while** (Commerce batch T6,
+      // Mercenary Contracts), with the turns it runs from the birth. An upkeep
+      // waiver, the only thing hung today, is said whole. Anything else is
+      // said in the hung effects' own words, as a landing's blessing is.
+      const timed = effect.timed;
+      if (timed !== undefined && timed.effects.length > 0) {
+        const turns = Math.max(1, Math.floor(timed.turns));
+        const waiver = timed.effects.every(
+          (inner) => inner.kind === 'upkeepRebate' && inner.free === true,
+        );
+        if (waiver) {
+          out.push({ text: `${born} cost no upkeep for ${turns} turns` });
+        } else {
+          const inner = describeEffects(timed.effects, subject)
+            .filter((clause) => clause.deferred !== true)
+            .map((clause) => clause.text);
+          if (inner.length > 0) {
+            out.push({ text: `newly created ${born} gain ${listWords(inner)} for ${turns} turns` });
+          }
+        }
+      }
       return;
     }
     case 'rule': {
@@ -2559,6 +2580,8 @@ function describeEffect(
                   basis: 'count',
                   count: effect.count,
                   building: effect.building,
+                  // The Merchant Guilds' merchants (Commerce batch T6).
+                  family: effect.family,
                 },
                 '',
               ),
@@ -3737,6 +3760,13 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
   // barbarian you have killed". `buildingsOfKind`'s bargain a sixth time: the
   // argument is printed here, so five cards are one table entry.
   if (effect.count === 'tally' && effect.tally !== undefined) {
+    // **A floor on the moment** (Commerce batch T6, The Strongbox): a turn
+    // counts only when it ends with the treasury at the row's floor or above,
+    // so the floor is part of the noun.
+    if (effect.tally === 'treasuryHeld' && effect.minTreasury !== undefined) {
+      const words = `with at least ${effect.minTreasury} gold in your treasury`;
+      return { one: `turn you have ended ${words}`, many: `turns you have ended ${words}` };
+    }
     return TALLY_WORDS[effect.tally];
   }
   // **The ground, said in the hex conditions' own words** (batch C2) — "per hex
@@ -6065,6 +6095,9 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
     one: 'charter technology you have completed',
     many: 'charter technologies you have completed',
   },
+  // Commerce batch T6, The Strongbox. A row with a treasury floor says the
+  // floor in `countNoun`; this is the sentence for a row that names none.
+  treasuryHeld: { one: 'turn you have ended', many: 'turns you have ended' },
 };
 
 /**
@@ -6412,6 +6445,9 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // The Return Leg (Commerce batch T3).
   homeRoutesPayOrigin:
     'your trade routes between your own cities also pay the city they leave everything they pay the city they reach',
+  // Letters of Credit (Commerce batch T6). The row's credit is said by
+  // `figureRuleWords`; this is the sentence for a row that names none.
+  buysOnCredit: 'you may buy with gold on credit',
   // Facts a card declares true of every town. `CityRuleId`.
   freshwater: 'every city of yours counts as being on fresh water',
   // The Bakufu and The Consular Roads (Dominion batch D4). The row's scope
@@ -6557,6 +6593,16 @@ function figureRuleWords(effect: Extract<CardEffect, { kind: 'rule' }>): string 
         `you may begin ${opusName} before any empire knows ${tech}, once you have put ` +
         `${effect.percent}% of ${tech}'s cost into researching it; it cannot be finished until you know ${tech}`
       );
+    case 'buysOnCredit': {
+      // Letters of Credit (Commerce batch T6): the floor a purchase may reach,
+      // and the same floor for the creditors. A minus sign, as the card's
+      // face prints it.
+      if (effect.credit === undefined || effect.credit <= 0) return null;
+      return (
+        `you may buy with gold until your treasury reaches −${effect.credit}; ` +
+        `debt disbands none of your units until your treasury falls below −${effect.credit}`
+      );
+    }
     case 'prototypes': {
       if (effect.percent === undefined) return null;
       const price =
@@ -6782,6 +6828,8 @@ const COMMISSION_COUNTED_WORDS: Record<
     many: 'charter technologies',
     counter: 'charter technologies completed',
   },
+  // Commerce batch T6. No commission counts this yet; the table is total.
+  treasuryHeld: { verb: 'end', one: 'turn', many: 'turns', counter: 'turns ended' },
 };
 
 /**

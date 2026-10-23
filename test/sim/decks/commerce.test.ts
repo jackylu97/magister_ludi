@@ -191,8 +191,9 @@ describe('the Commerce deck is one deck', () => {
     // Batch T3 adds The Fondaci, The Champagne Fairs and The Lingua Franca,
     // so 101 rows become 104. Batch T4 adds Commission: The Great Fair, so
     // 104 rows become 105. Batch T5 adds The Commenda, The Capitulations and
-    // The Casa da Índia, so 105 rows become 108.
-    expect(COMMERCE.length).toBe(108);
+    // The Casa da Índia, so 105 rows become 108. Batch T6 adds Letters of
+    // Credit, The Strongbox and The Merchant Guilds, so 108 rows become 111.
+    expect(COMMERCE.length).toBe(111);
     expect(retired().length).toBe(34);
     for (const id of COMMERCE) {
       expect(orderDef(id).decks, id).toEqual(['commerce']);
@@ -249,10 +250,12 @@ describe('the Commerce deck is one deck', () => {
     // / 23 / 17 / 11.
     // Batch T5 adds two rows at Tier III (The Commenda, The Capitulations)
     // and one at Tier IV (The Casa da Índia): 10 / 10 / 23 / 19 / 12.
-    expect([count(0), count(1), count(2), count(3), count(4)]).toEqual([15, 19, 36, 23, 15]);
+    // Batch T6 adds two rows at Tier I (Letters of Credit, The Strongbox) and
+    // one at Tier II (The Merchant Guilds): 10 / 12 / 24 / 19 / 12.
+    expect([count(0), count(1), count(2), count(3), count(4)]).toEqual([15, 21, 37, 23, 15]);
     const kept = COMMERCE.filter((id) => orderDef(id).retired !== true).map((id) => orderDef(id).band);
     expect([0, 1, 2, 3, 4].map((band) => kept.filter((b) => b === band).length)).toEqual([
-      10, 10, 23, 19, 12,
+      10, 12, 24, 19, 12,
     ]);
     expect(orderDef('civicReceipts' as OrderId).band).toBe(1);
   });
@@ -372,7 +375,9 @@ describe('a live Commerce row is a card', () => {
     // **Batch T5**: seventy-four. Three new rows (The Commenda, The
     // Capitulations, The Casa da Índia), and Export Guilds and The Treaty
     // Ports left the deferred list.
-    expect(live().length).toBe(74);
+    // **Batch T6**: seventy-seven. Three new rows (Letters of Credit, The
+    // Strongbox, The Merchant Guilds).
+    expect(live().length).toBe(77);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -420,10 +425,12 @@ describe('a live Commerce row is a card', () => {
         case 'unitStamp':
           // Three marks a birth can carry now — the league joined the pair with
           // C1's Charter Fleet. A stamp naming none of them writes nothing.
+          // Since Commerce batch T6 a stamp may instead hang timed effects.
           expect(
             effect.hp !== undefined ||
               effect.strength !== undefined ||
-              effect.movement !== undefined,
+              effect.movement !== undefined ||
+              effect.timed !== undefined,
             where,
           ).toBe(true);
           break;
@@ -985,10 +992,10 @@ describe('the Commerce deck: the sheet of record', () => {
     expect(shared).toHaveLength(23);
   });
 
-  it('types every listed row, 74 of this file and 23 shared, and nothing else of this file', () => {
+  it('types every listed row, 77 of this file and 23 shared, and nothing else of this file', () => {
     // 59 after batch T1, the eight new rows of batch T2, the three of batch
-    // T3, the one of batch T4 and the three of batch T5.
-    expect(LISTED).toHaveLength(74);
+    // T3, the one of batch T4, the three of batch T5 and the three of batch T6.
+    expect(LISTED).toHaveLength(77);
     for (const id of COMMERCE) {
       const def = orderDef(id);
       if (def.retired === true) expect(def.type, id).toBeUndefined();

@@ -371,7 +371,9 @@ describe('the audit holds in the source', () => {
     { path: 'src/sim/routeYields.ts', snippet: 'gold: (total.gold * percent) / 100,' },
     { path: 'src/sim/empireGold.ts', snippet: 'connectionGold = (connectionGold * (100 + share)) / 100;' },
     { path: 'src/sim/renown.ts', snippet: 'const amount = (base * share.percent) / 100;' },
-    { path: 'src/sim/upkeep.ts', snippet: 'const rebate = Math.min(gross - given, (gross * -percent) / 100);' },
+    // Commerce batch T6 takes the share of the payroll the upkeep waivers left
+    // (`payroll`, the gross with no waiver): still the exact product.
+    { path: 'src/sim/upkeep.ts', snippet: 'const rebate = Math.min(gross - given, (payroll * -percent) / 100);' },
     { path: 'src/sim/resourceEffects.ts', snippet: '(bag[key] ?? 0) * copies * scale;' },
     { path: 'src/sim/triumphs.ts', snippet: 'const pays = (def.pays * (100 + boost)) / 100;' },
   ];

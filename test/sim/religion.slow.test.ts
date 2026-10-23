@@ -525,7 +525,11 @@ describe('determinism', () => {
     // deal register, a lent luxury may still count for its lender, a
     // foreign post may lend a luxury, and five more Commerce cards are
     // dealt. So a v173 log's Commerce hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(174);
+    // 175 since Commerce batch T6 (the purse and the hoard): purchases may
+    // go into debt under a credit line, a turn's end is a tally moment, a
+    // bought unit may carry an upkeep waiver, and four more cards are dealt.
+    // So a v174 log's Commerce hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(175);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

@@ -106,6 +106,9 @@ export {
   cardPrototypePercent,
   cardOpusBreachPercent,
   cardClosedBookTurns,
+  // Commerce batch T6: Letters of Credit's floor, and what an empire may spend.
+  cardSpendFloor,
+  spendableGold,
   ownerAgeOf,
   cardGarrisonSeats,
   // Dominion batch D14: The Longships' raid and Circumvallation's besieger.
@@ -154,6 +157,8 @@ export {
   cardGrantsAbility,
   cardTileLines,
   cardUnitStamp,
+  // Commerce batch T6: the timed effects a birth hangs on a unit.
+  cardBirthTimedEffects,
   cardUnitStat,
   cardUnlocksBuilding,
   cardUnlockScopes,
@@ -164,6 +169,9 @@ export {
   charterOpensUnit,
   cardUpkeepRebateLines,
   cardUpkeepSurchargeLines,
+  // Commerce batch T6: the upkeep waiver a unit carries (Mercenary Contracts).
+  cardUpkeepWaiverLines,
+  upkeepWaived,
   cardYieldConversions,
   cityBeliefUnlocksBuilding,
   cityHasFreshwater,
@@ -328,6 +336,7 @@ export {
   rarityFirstOdds,
   rarityOdds,
   recordScalingOccasion,
+  recordTreasuryHeld,
   recordWorldScalingOccasion,
   refitSlots,
   researchAgeOf,

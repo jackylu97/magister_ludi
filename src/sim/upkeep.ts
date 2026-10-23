@@ -91,9 +91,12 @@ import { RULES } from './rulesData';
 import { resourceUpkeepRebateLines } from './resourceEffects';
 import {
   cardRulePercent,
+  cardSpendFloor,
   cardUpkeepRebateLines,
   cardUpkeepSurchargeLines,
+  cardUpkeepWaiverLines,
   foldCardRulePercent,
+  upkeepWaived,
 } from './statecraft';
 import type { GameState, Unit } from './state';
 
@@ -276,6 +279,21 @@ export function explainUnitUpkeepRebate(state: GameState, playerId: number): Upk
   const gross = unitUpkeepTotal(state, playerId);
   if (gross <= 0) return [];
   const out: UpkeepLine[] = [];
+  let given = 0;
+  // **A waiver hung on the unit itself, first** (Commerce batch T6, Mercenary
+  // Contracts: a military unit you buy costs no upkeep for twenty turns). It
+  // is the most particular line of all, a fact about one unit written when it
+  // was bought, and it forgives the whole price, so every line below is asked
+  // of what the army still owes (`owed`) and takes nothing more off a waived
+  // unit. Without a waiver `owed` is `unitUpkeepOf`, so nothing else moves.
+  const waivers = cardUpkeepWaiverLines(state, playerId, unitUpkeepOf);
+  for (const waiver of waivers) {
+    const share = Math.min(waiver.gold, gross - given);
+    if (share <= 0) break;
+    given += share;
+    out.push({ source: waiver.source, gold: share });
+  }
+  const owed = owedUpkeepOf(state);
   // **The birthplace's bargain, before the empire's law** — the Imperial
   // Throne's shilling off every piece the town that holds it raised
   // (`Unit.upkeepRebate`, stamped in `realiseItem`). First because it is the
@@ -285,16 +303,15 @@ export function explainUnitUpkeepRebate(state: GameState, playerId: number): Upk
   // labelled with the row that promised it — the rows are read off the table
   // rather than off the board, so a Throne razed since does not leave the ledger
   // with an unexplained give-back.
-  let given = 0;
   let birth = 0;
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;
     const rebate = unit.upkeepRebate ?? 0;
     if (rebate <= 0) continue;
-    birth += Math.min(rebate, unitUpkeepOf(unit));
+    birth += Math.min(rebate, owed(unit));
   }
   if (birth > 0) {
-    const share = Math.min(birth, gross);
+    const share = Math.min(birth, gross - given);
     given += share;
     out.push({ source: upkeepRebateRowWords(), gold: share });
   }
@@ -304,7 +321,7 @@ export function explainUnitUpkeepRebate(state: GameState, playerId: number): Upk
   // Before the percentage because that is the order a player reads them: the
   // quartermasters shave a shilling off each man, and *then* the law takes its
   // share of what is left. Both are clamped against the same gross below.
-  for (const flat of cardUpkeepRebateLines(state, playerId, unitUpkeepOf)) {
+  for (const flat of cardUpkeepRebateLines(state, playerId, owed)) {
     const share = Math.min(flat.gold, gross - given);
     if (share <= 0) break;
     given += share;
@@ -316,7 +333,7 @@ export function explainUnitUpkeepRebate(state: GameState, playerId: number): Upk
   // from — so it is a second *source* feeding one give-back list, never a second
   // subtraction under the total. After the cards because the law is the older
   // reading and a player who has both should see the charter first.
-  for (const flat of resourceUpkeepRebateLines(state, playerId, unitUpkeepOf)) {
+  for (const flat of resourceUpkeepRebateLines(state, playerId, owed)) {
     const share = Math.min(flat.gold, gross - given);
     if (share <= 0) break;
     given += share;
@@ -335,8 +352,11 @@ export function explainUnitUpkeepRebate(state: GameState, playerId: number): Upk
   // The whole rebate first, then shared out in the lines' own order so the parts
   // sum to it exactly — `explainUnitCost`'s running-difference discipline, one
   // ledger over. Exact since batch X: a quarter off a payroll of three is three
-  // quarters of a coin, where the floor forgave nothing.
-  const rebate = Math.min(gross - given, (gross * -percent) / 100);
+  // quarters of a coin, where the floor forgave nothing. Taken of the payroll
+  // the waivers left (Commerce batch T6), so a waived unit is not discounted
+  // twice; with no waiver that is the gross.
+  const payroll = gross - foldUpkeepLines(waivers);
+  const rebate = Math.min(gross - given, (payroll * -percent) / 100);
   if (rebate <= 0) return out;
   let paid = 0;
   for (let i = 0; i < lines.length; i++) {
@@ -403,9 +423,11 @@ export function explainUnitUpkeepSurcharge(state: GameState, playerId: number): 
   const out: UpkeepLine[] = [];
   // **The flat half first**, for the reason the rebate takes its flats first: a
   // figure per soldier is counted off the pieces themselves, and the share of
-  // the payroll below is a fact about the total. `unitUpkeepOf` is handed to the
-  // card reader so the arrow between the two modules stays one-way.
-  for (const flat of cardUpkeepSurchargeLines(state, playerId, unitUpkeepOf)) {
+  // the payroll below is a fact about the total. What the army still owes is
+  // handed to the card reader so the arrow between the two modules stays
+  // one-way, and so a unit under a waiver (Commerce batch T6, Mercenary
+  // Contracts) pays no surcharge, as a unit the law makes free pays none.
+  for (const flat of cardUpkeepSurchargeLines(state, playerId, owedUpkeepOf(state))) {
     out.push({ source: flat.source, gold: flat.gold });
   }
   const lines = cardRulePercent(state, playerId, 'unitUpkeep');
@@ -414,8 +436,10 @@ export function explainUnitUpkeepSurcharge(state: GameState, playerId: number): 
   // Exact since batch X, like every other share in the ledger: a tenth of a
   // payroll of three is three tenths of a coin, not nothing. Taken of the
   // **gross**, never of the gross plus the flats above: two cards must not
-  // multiply each other, which is Entry XVII's argument one ledger over.
-  const charge = (gross * percent) / 100;
+  // multiply each other, which is Entry XVII's argument one ledger over. Less
+  // the waived units (Commerce batch T6), which owe nothing to surcharge.
+  const payroll = gross - foldUpkeepLines(cardUpkeepWaiverLines(state, playerId, unitUpkeepOf));
+  const charge = (payroll * percent) / 100;
   let paid = 0;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
@@ -425,6 +449,24 @@ export function explainUnitUpkeepSurcharge(state: GameState, playerId: number): 
     out.push({ source: line.source, gold: share });
   }
   return out;
+}
+
+/**
+ * What one unit still owes after a waiver hung on it (Commerce batch T6,
+ * Mercenary Contracts): nothing while a waiver runs, its price otherwise. The
+ * price the rebates and surcharges are asked of, so none of them reaches a
+ * waived unit. `unitUpkeepOf` itself is unchanged, because the gross list
+ * still prints what each unit costs and the creditors still choose by it.
+ */
+function owedUpkeepOf(state: GameState): (unit: Unit) => number {
+  return (unit) => (upkeepWaived(state, unit) ? 0 : unitUpkeepOf(unit));
+}
+
+/** The sum of a list of upkeep lines. */
+function foldUpkeepLines(lines: readonly { gold: number }[]): number {
+  let total = 0;
+  for (const line of lines) total += line.gold;
+  return total;
 }
 
 /**
@@ -471,6 +513,18 @@ export interface DisbandReport {
 }
 
 /**
+ * **The lowest treasury this empire may hold before the creditors take a
+ * unit**: `rules.upkeep.disbandBelow`, or the floor Letters of Credit sets for
+ * purchases where that is lower (Commerce batch T6, the triage's reading 25:
+ * "your units are not disbanded until the treasury falls below" the card's
+ * figure). One reading of the floor (`cardSpendFloor`), so the line a purchase
+ * may reach and the line the creditors wait for are the same line.
+ */
+export function disbandFloor(state: GameState, playerId: number): number {
+  return Math.min(RULES.upkeep.disbandBelow, cardSpendFloor(state, playerId));
+}
+
+/**
  * The piece the creditors take, or `null` when this empire owes nothing it
  * cannot carry.
  *
@@ -487,7 +541,8 @@ export interface DisbandReport {
 export function disbandCandidate(state: GameState, playerId: number): UnitUpkeepLine | null {
   const player = state.players[playerId];
   if (!player || player.barbarian) return null;
-  if (player.gold >= RULES.upkeep.disbandBelow) return null;
+  // Below the floor, not at it: Letters of Credit moves the floor (`disbandFloor`).
+  if (player.gold >= disbandFloor(state, playerId)) return null;
   let best: UnitUpkeepLine | null = null;
   for (const line of explainUnitUpkeep(state, playerId)) {
     if (best === null) {

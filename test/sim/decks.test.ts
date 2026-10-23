@@ -568,8 +568,11 @@ describe('the schema, as landed', () => {
     // The Capitulations and The Casa da Índia are new Commerce rows, and
     // Export Guilds and The Treaty Ports left `deferred`. Land Speculation
     // changed in place and was already live.
-    expect(live).toBe(578);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(578);
+    // **And Commerce batch T6** (the purse and the hoard): four more. Letters
+    // of Credit, The Strongbox and The Merchant Guilds are new Commerce rows,
+    // and the shared Mercenary Contracts left `deferred`.
+    expect(live).toBe(582);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(582);
   });
 
   /**
@@ -899,7 +902,11 @@ describe('the schema, as landed', () => {
     // deal register, a lent luxury may still count for its lender, a
     // foreign post may lend a luxury, and five more Commerce cards are
     // dealt. So a v173 log's Commerce hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(174);
+    // 175 since Commerce batch T6 (the purse and the hoard): purchases may
+    // go into debt under a credit line, a turn's end is a tally moment, a
+    // bought unit may carry an upkeep waiver, and four more cards are dealt.
+    // So a v174 log's Commerce hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(175);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1149,9 +1156,10 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // The Embargo (− 3, and + 11 retired).
       // **Commerce batch T3** freed The Return Leg (− 1).
       // **Commerce batch T5** freed Export Guilds and The Treaty Ports (− 2).
+      // **Commerce batch T6** freed Mercenary Contracts (− 1).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(26);
+      ).toHaveLength(25);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(199);
     }
   });

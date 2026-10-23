@@ -189,15 +189,17 @@ describe('the shared cards of the four approved decks', () => {
     expect(orderDef('theMusterOfTheFields' as OrderId).decks).toEqual(['dominion', 'expansionist']);
   });
 
-  it('retires the two shared cuts and defers Mercenary Contracts with its reason', () => {
+  it('retires the two shared cuts, and deals Mercenary Contracts since Commerce batch T6', () => {
     for (const id of ['frontierGarrisons', 'harvestOfferings']) {
       expect(orderDef(id as OrderId).retired, id).toBe(true);
       expect(orderIsDealt(id as OrderId), id).toBe(false);
     }
+    // Deferred from batch S until Commerce batch T6 built its timed upkeep
+    // waiver (the Commerce triage's reading 27).
     const hire = orderDef('mercenaryContracts' as OrderId);
-    expect(hire.deferred?.length).toBeGreaterThan(0);
-    expect(hire.note).toMatch(/^Not built yet/);
-    expect(orderIsDealt('mercenaryContracts' as OrderId)).toBe(false);
+    expect(hire.deferred).toBeUndefined();
+    expect(hire.effects.length).toBeGreaterThan(0);
+    expect(orderIsDealt('mercenaryContracts' as OrderId)).toBe(true);
   });
 
   it('turns the two purchase discounts into gold, ruling (qqqqqq) 1', () => {

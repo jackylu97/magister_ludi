@@ -1638,13 +1638,23 @@
       "line": "none",
       "rarity": "uncommon",
       "type": "military",
-      "flavor": "The captain signs for fifteen turns, and not one more.",
-      "text": "Cities with a Barracks may hire the best melee or mounted unit you can build for half its gold price. A hired unit costs no upkeep and leaves after fifteen turns.",
-      "deferred": [
-        "hired soldiers who serve for a set time and then leave"
+      "flavor": "The captain signs for twenty turns, and not one more.",
+      "text": "Military units you buy cost no upkeep for twenty turns.",
+      "effects": [
+        {
+          "kind": "unitStamp",
+          "class": { "category": "military" },
+          "bought": "gold",
+          "timed": { "turns": 20, "effects": [{ "kind": "upkeepRebate", "free": true }] }
+        },
+        {
+          "kind": "unitStamp",
+          "class": { "category": "military" },
+          "bought": "faith",
+          "timed": { "turns": 20, "effects": [{ "kind": "upkeepRebate", "free": true }] }
+        }
       ],
-      "effects": [],
-      "note": "Not built yet: a unit that leaves the game on its own after a set time is a new kind of unit, and this card needs one."
+      "note": "A military unit bought with gold or with faith while this card is seated is covered from the turn it is bought. It keeps the waiver for the whole term, even if the card leaves its chair. Ships are not covered."
     },
     "theMusterOfTheFields": {
       "name": "The Muster of the Fields",

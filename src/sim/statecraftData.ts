@@ -3628,7 +3628,21 @@ export type TallyOccasion =
    * carries `TechDef.charter`, and counted twice under The Age of Reason in
    * the same way.
    */
-  | 'charterTechCompleted';
+  | 'charterTechCompleted'
+  /**
+   * This empire **ended a turn**, with its treasury as the moment's fact
+   * (`TallyFacts.treasury`): The Strongbox (Commerce batch T6, the triage's
+   * reading 26).
+   *
+   * It is the one occasion raised on a condition rather than by an event.
+   * `recordTreasuryHeld` (`statecraft/draft.ts`) raises it once a turn for
+   * every real empire, in the `collectYields` phase after the yields bank,
+   * so the treasury it carries includes the turn's income, interest and
+   * upkeep. A row counts the moment only when the treasury meets its floor
+   * (`CardPaysEffect.minTreasury`), so the floor is a figure on the card's
+   * row and not in the code.
+   */
+  | 'treasuryHeld';
 // There is still no bare "a town grew" counter, and there should not be one:
 // it would pay twice for a citizen that a levy took and the fields gave back.
 // `sizeRecord` above is the counter the design doc's clause allows.
@@ -3658,6 +3672,7 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'publicWorkCompleted',
   'techCompleted',
   'charterTechCompleted',
+  'treasuryHeld',
 ];
 
 /** What a `pays` rate reads. A *rate* or a meter standing, never a bank. */
@@ -4220,6 +4235,27 @@ export type ActionRuleId =
    * leaves it out. A route to another empire is not copied.
    */
   | 'homeRoutesPayOrigin'
+  /**
+   * **Purchases with gold may take the treasury below zero**: Letters of
+   * Credit (Commerce batch T6, the triage's reading 25). The row's `credit`
+   * says how far below zero, in gold.
+   *
+   * Read through `cardSpendFloor` (`statecraft/evaluator.ts`), which turns the
+   * credit into the lowest treasury a purchase may leave. Two places ask it:
+   *
+   *   - `spendableGold`, which the three gold gates ask: `purchaseGate`
+   *     (buildings, units and caravans), `tilePurchaseGate` (hexes) and
+   *     `greatPersonPurchaseError` (great-person drafts). The Trade screen
+   *     asks the same helper before it offers a hire;
+   *   - `disbandFloor` (`upkeep.ts`), so the creditors take no unit until the
+   *     treasury falls below the same floor.
+   *
+   * Gold poured into a wonder or the Magnum Opus (`contributeError`) and a
+   * gold reroll (`rerollError`) are not purchases, so they keep their own
+   * checks. The debt penalty to science and culture still starts below zero
+   * (`treasuryInDebt`). With two rows, the largest credit applies.
+   */
+  | 'buysOnCredit'
   /**
    * **The named building may be raised in every town** — Caravanserai Cities
    * (batch C7).
@@ -6149,6 +6185,14 @@ export interface CardPaysEffect extends CardYieldBag {
    */
   tally?: TallyOccasion;
   /**
+   * **The least treasury a moment must carry to be counted** by this `tally`
+   * row (Commerce batch T6, The Strongbox's 300 gold). Read in
+   * `recordScalingOccasion` against `TallyFacts.treasury`. A moment that
+   * carries no treasury is never counted by a row with a floor. Absent counts
+   * every moment, as every row written before it does.
+   */
+  minTreasury?: number;
+  /**
    * Which family `greatPeopleGained` counts (Dominion batch D5), and which
    * trade `guildsmen` counts (Scientific batch S2). Absent counts every great
    * person, or every guildsman. No guildsman is a general, so `general`
@@ -6980,6 +7024,25 @@ export interface CardUnitStampEffect {
    * Absent reaches every unit, as every row written before it does.
    */
   levied?: true | LevyUse;
+  /**
+   * **Effects hung on the unit for a number of turns from its birth**:
+   * Mercenary Contracts' "military units you buy cost no upkeep for twenty
+   * turns" (Commerce batch T6, the triage's reading 27).
+   *
+   * `CardLandfallEffect`'s pair of fields, read at a different moment. At the
+   * birth, `cardBirthTimedEffects` writes one `TimedEffect` on `Unit.timed`
+   * for each effect, with an absolute `expiresTurn` (`state.turn` plus
+   * `turns`). It is narrowed as the marks above are (`class`, `bought`,
+   * `scope`, `levied`), so Mercenary Contracts reaches only a military unit
+   * bought with gold or faith.
+   *
+   * The effects belong to the unit, not to the card: a unit keeps them when
+   * the card leaves its chair, as it keeps a strength stamp, and they end on
+   * their own turn. The only reader today is the upkeep fold, which reads a
+   * hung `upkeepRebate` with `free` as a waiver on that unit
+   * (`cardUpkeepWaiverLines`). `Unit.freeUpkeep` is not written.
+   */
+  timed?: { turns: number; effects: CardEffect[] };
 }
 
 /**
@@ -7602,6 +7665,13 @@ export interface CardRouteRiderEffect {
   max?: number;
   /** Which building `count: 'buildingsOfKind'` counts. The Harbour Chain's harbour. */
   building?: BuildingId;
+  /**
+   * **Which trade `count: 'guildsmen'` counts** (Commerce batch T6, The
+   * Merchant Guilds: one more route for every two merchants in the trades).
+   * `CardPaysEffect.family`'s reading, passed to the same `countOf` by
+   * `cardRouteSlots`. Absent counts every trade.
+   */
+  family?: Family;
 }
 
 /**
@@ -7916,6 +7986,13 @@ export interface CardRuleEffect {
    * Meaningless on every other member.
    */
   turns?: number;
+  /**
+   * **How far below zero, in gold, the treasury may go** (Commerce batch T6,
+   * Letters of Credit). Read only by `buysOnCredit`, through `cardSpendFloor`.
+   * A row of that rule with no credit, or a credit of zero or less, changes
+   * nothing. Meaningless on every other member.
+   */
+  credit?: number;
 }
 
 /**
@@ -9925,6 +10002,11 @@ export interface TallyFacts {
   improvement?: ImprovementId;
   /** The technology just completed (Scientific batch S6). Read by a goal's `tech` floor. */
   tech?: TechId;
+  /**
+   * The empire's treasury when the turn ended (Commerce batch T6, the
+   * `treasuryHeld` moment). Read by a `tally` row's `minTreasury` floor.
+   */
+  treasury?: number;
 }
 
 /**

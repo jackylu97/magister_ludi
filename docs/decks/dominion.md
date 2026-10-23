@@ -20,7 +20,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | Tier III | 27 | 0 | 0 | 27 | 3 |
 | Tier IV | 21 | 0 | 0 | 21 | 3 |
 | **All** | **131** | **0** | **0** | **131** | **15** |
-| Shared | 28 | 1 | 0 | 29 |  |
+| Shared | 29 | 0 | 0 | 29 |  |
 
 **By type** (the chair a card fits):
 
@@ -243,6 +243,8 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 
 **Moved by Commerce batch T7 (2026-10-23).** The Standing Army moved from this deck's file to `data/decks/common.json`, shared with Commerce, with its id, text, tier, rarity and type. It is the early shared card of the Dominion and Commerce pair (ruling (qqqqqq) 14), and a Commerce seat's Military card at Tier 0.
 
+**Built by Commerce batch T6 (2026-10-23).** Mercenary Contracts takes the Commerce themes pass's text: a military unit bought with gold or faith while the card is seated costs no upkeep for twenty turns, and keeps the waiver if the card leaves its chair (`docs/plans/commerce-themes-triage.md`, reading 27). The hired unit that left after fifteen turns is gone.
+
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
 | **Rites of Passage** | common | Devotion | 0 | implemented | Gaining a military unit grants 12 faith. | Civic |
@@ -272,7 +274,7 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 | **The Chartered Company** | uncommon | Commerce | III | implemented | Once drafted, unlock the Company Guard, a unique gunpowder-age melee unit that can only be bought with gold, in cities with a Barracks. No chair required. | Military |
 | **The Holy Army** | uncommon | Devotion | III | implemented | Worked Holy Sites and citadels that stand beside each other each gain +3 faith and +3 culture. | Civic |
 | **Letters of Marque** | rare | Commerce | III | implemented | Naval combat kills grant 60 gold. Cities with a Harbour gain +38% gold, but produce naval combat units 20% more slowly. | Economic |
-| **Mercenary Contracts** | uncommon | Commerce | III | modify: deferred | Cities with a Barracks may hire the best melee or mounted unit you can build for half its gold price. A hired unit costs no upkeep and leaves after fifteen turns. | Military |
+| **Mercenary Contracts** | uncommon | Commerce | III | implemented | Military units you buy cost no upkeep for twenty turns. | Military |
 | **The New Code** | rare | Magisterial | III | implemented | Capturing a city opens a draft at once, at no culture cost. This can happen at most once every ten turns. | Wildcard |
 
 ## Open for your pass

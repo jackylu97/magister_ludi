@@ -171,6 +171,7 @@ import {
   recordScalingOccasion,
   recordWorldScalingOccasion,
   settleCultureWindfall,
+  spendableGold,
   tileConditionHolds,
   type WindfallOccasionFacts,
   windfallPayout,
@@ -6679,8 +6680,18 @@ export function tilePurchaseGate(
   if (frozen !== null) return { refusal: frozen, shortfall: null };
 
   const price = tilePurchasePrice(state, playerId, cityId, cell);
-  if (player.gold < price) {
-    return { refusal: `Costs ${price} gold; you have ${player.gold}`, shortfall: price - player.gold };
+  // The treasury down to its floor, which Letters of Credit lowers (Commerce
+  // batch T6, the triage's reading 25). `spendableGold` is the one helper the
+  // three gold gates ask; without the card it is the treasury itself.
+  const spendable = spendableGold(state, playerId);
+  if (spendable < price) {
+    return {
+      refusal:
+        spendable === player.gold
+          ? `Costs ${price} gold; you have ${player.gold}`
+          : `Costs ${price} gold; you may spend ${Math.floor(spendable)}, credit included`,
+      shortfall: price - spendable,
+    };
   }
 
   return { refusal: null, shortfall: null };

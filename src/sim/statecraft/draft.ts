@@ -719,7 +719,7 @@ export function recordScalingOccasion(
   for (const slot of sc.slots) {
     const card = slot?.card;
     if (card === undefined || !isOrderId(card)) continue;
-    if (!orderWatches(card, occasion)) continue;
+    if (!orderWatches(card, occasion, facts)) continue;
     // A commission counts only a moment that meets its goal's floor.
     const goal = countedGoalFor(card, occasion);
     if (goal !== null && !goalFloorMet(goal, facts)) continue;
@@ -802,14 +802,40 @@ export function recordWorldScalingOccasion(
 }
 
 /**
+ * **The end of a turn, with each empire's treasury** (Commerce batch T6, The
+ * Strongbox; the triage's reading 26). Raises `treasuryHeld` once for every
+ * real empire, in seat order, carrying its treasury as the moment's fact. A
+ * card counts it only when the treasury meets the floor on its own row
+ * (`CardPaysEffect.minTreasury`), and only while seated, as every tally does.
+ *
+ * Called by the `collectYields` phase (`turn.ts`) after the yields bank, so
+ * the treasury includes the turn's income, interest and upkeep. A seat with
+ * no card watching the moment writes nothing, so a game without The Strongbox
+ * is unchanged.
+ */
+export function recordTreasuryHeld(state: GameState): void {
+  for (const player of realPlayers(state)) {
+    recordScalingOccasion(state, player.id, 'treasuryHeld', 1, { treasury: player.gold });
+  }
+}
+
+/**
  * Is this card watching for this moment? Read off the row's own effects, so what
  * a card counts and what it pays for counting are one declaration.
+ *
+ * A row with a treasury floor (`minTreasury`, The Strongbox) watches only a
+ * moment whose treasury meets it. A moment that carries no treasury does not.
  */
-function orderWatches(id: OrderId, occasion: TallyOccasion): boolean {
+function orderWatches(id: OrderId, occasion: TallyOccasion, facts?: TallyFacts): boolean {
   for (const effect of orderDef(id).effects) {
     if (effect.kind !== 'pays' || effect.basis !== 'count') continue;
     if (effect.count !== 'tally') continue;
-    if (effect.tally === occasion) return true;
+    if (effect.tally !== occasion) continue;
+    if (effect.minTreasury !== undefined) {
+      const treasury = facts?.treasury;
+      if (treasury === undefined || treasury < effect.minTreasury) continue;
+    }
+    return true;
   }
   // A commission's counted goal uses the same per-card tally, so its progress
   // follows the same rules: it grows only while the card is seated and it is
@@ -1305,6 +1331,9 @@ export function cardRouteSlots(state: GameState, playerId: number): OfferSizeLin
             amount: 0,
             count: effect.count,
             building: effect.building,
+            // The Merchant Guilds' merchants (Commerce batch T6): the trade
+            // `guildsmen` counts, read as a counted line reads it.
+            family: effect.family,
           }),
           effect.per,
           effect.max,

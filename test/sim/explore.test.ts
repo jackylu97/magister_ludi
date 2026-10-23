@@ -1009,10 +1009,18 @@ describe('determinism', () => {
    * rider asks the bought hex anything. Checked with the change in place and
    * the version printed as 173, which gives the hashes of Commerce batch T4
    * exactly.
+   *
+   * **Commerce batch T6 (the purse and the hoard, schema 175) moved the hash
+   * and not the length** at both seeds: 174 became 175, and that is all. The
+   * treasury moment is raised inside the `collectYields` phase, so the phase
+   * list keeps its length; nobody here drafts, so no seated card watches it,
+   * nobody buys on credit, and no unit is born with a waiver. Checked with
+   * the change in place and the version printed as 174, which gives the
+   * hashes of Commerce batch T5 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '7de9ce05:188931',
-    2026: 'f469e388:188509',
+    11: '48ab232c:188931',
+    2026: 'f0d568a1:188509',
   };
 
   for (const seed of [11, 2026]) {

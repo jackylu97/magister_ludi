@@ -1740,7 +1740,11 @@ describe('research in the log', () => {
     // deal register, a lent luxury may still count for its lender, a
     // foreign post may lend a luxury, and five more Commerce cards are
     // dealt. So a v173 log's Commerce hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(174);
+    // 175 since Commerce batch T6 (the purse and the hoard): purchases may
+    // go into debt under a credit line, a turn's end is a tally moment, a
+    // bought unit may carry an upkeep waiver, and four more cards are dealt.
+    // So a v174 log's Commerce hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(175);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

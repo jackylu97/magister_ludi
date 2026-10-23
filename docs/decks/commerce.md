@@ -3,7 +3,7 @@
 The deck's cards, by tier: name, rarity, status, ability and type. This sheet is the spec of record for the deck. `test/sim/decks/commerce.test.ts` checks it against `data/decks/commerce.json` and, for the shared table, `data/decks/common.json`.
 
 - **Why each card is here:** `docs/plans/commerce-themes.md`, the themes pass of 2026-10-21. It designs the deck as a way to play: an engine of gold and what gold buys, and four themes (the home market, the far trade, the goods and the bankers). Section 12 is the revision of 2026-10-21, which moved the route cards to Tier II. Section 13 holds your answers of 2026-10-23, and it outranks the sections before it. `docs/plans/commerce-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
-- **The build plan:** `docs/plans/commerce-themes-triage.md` (batches T1 to T9). Batch T1 wrote this sheet, put the types into the data, retired the eleven cut rows, moved four rows to the shared file, and changed fifteen cards in place. Batch T2 built the eight new cards that need no new shape (Market Day, The Emporia, The Grain Banks, The Market Halls, Names in Stone, The Hanse, Bills of Exchange and The Grain Barges), and moved Merchant Scholars to Tier III with its new text. Batch T7 built the shared The Art Dealers and the moment a card is drafted, and moved Dominion's The Standing Army to the shared file. Batch T3 built the route and post cards: The Foreign Factor, The Fondaci, The Return Leg, The Champagne Fairs, The Admiralty of Trade and The Lingua Franca. Batch T4 built the two trade commissions: Commission: The Great Fair, and The World's Fair with its new goal and reward. Batch T5 built the goods and deals cards: Export Guilds and The Treaty Ports (two new counts, the luxuries you lend and the empires you hold a deal with), The Commenda, The Capitulations, The Casa da Índia, and Land Speculation's new text. Each later batch sets its own rows to `implemented`.
+- **The build plan:** `docs/plans/commerce-themes-triage.md` (batches T1 to T9). Batch T1 wrote this sheet, put the types into the data, retired the eleven cut rows, moved four rows to the shared file, and changed fifteen cards in place. Batch T2 built the eight new cards that need no new shape (Market Day, The Emporia, The Grain Banks, The Market Halls, Names in Stone, The Hanse, Bills of Exchange and The Grain Barges), and moved Merchant Scholars to Tier III with its new text. Batch T7 built the shared The Art Dealers and the moment a card is drafted, and moved Dominion's The Standing Army to the shared file. Batch T3 built the route and post cards: The Foreign Factor, The Fondaci, The Return Leg, The Champagne Fairs, The Admiralty of Trade and The Lingua Franca. Batch T4 built the two trade commissions: Commission: The Great Fair, and The World's Fair with its new goal and reward. Batch T5 built the goods and deals cards: Export Guilds and The Treaty Ports (two new counts, the luxuries you lend and the empires you hold a deal with), The Commenda, The Capitulations, The Casa da Índia, and Land Speculation's new text. Batch T6 built the purse and the hoard: Letters of Credit (purchases with gold may take the treasury down to a floor, and the creditors wait for the same floor), The Strongbox (a count of the turns you end holding gold), The Merchant Guilds (route slots counted from merchants in the trades) and the shared Mercenary Contracts (a waiver of upkeep hung on a unit you buy). After batch T6 every card on this sheet plays as written, except the rows marked `as built`.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -24,12 +24,12 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier | Implemented | Modify | Add | All | Charters |
 |---|---|---|---|---|---|
 | Tier 0 | 10 | 0 | 0 | 10 | 0 |
-| Tier I | 9 | 1 | 2 | 12 | 1 |
-| Tier II | 21 | 2 | 1 | 24 | 1 |
+| Tier I | 11 | 1 | 0 | 12 | 1 |
+| Tier II | 22 | 2 | 0 | 24 | 1 |
 | Tier III | 18 | 1 | 0 | 19 | 0 |
 | Tier IV | 11 | 1 | 0 | 12 | 0 |
-| **All** | **69** | **5** | **3** | **77** | **2** |
-| Shared | 19 | 4 | 0 | 23 | 1 |
+| **All** | **72** | **5** | **0** | **77** | **2** |
+| Shared | 20 | 3 | 0 | 23 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
 
@@ -75,14 +75,14 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 | **Civic Receipts** | uncommon | implemented | Buying any building grants culture equal to 15% of the gold paid, with no cap. | Civic |
 | **Private Patronage** | rare | implemented | Your cities gain +40% gold. Producing ordinary buildings normally takes 20% more production. Empire buildings and wonders are unaffected. | Economic |
 | **Financed Industry** | rare | implemented | Cities gain production equal to 30% of their gold yield. Every city loses 3 food. | Economic |
-| **Letters of Credit** | rare | add | You may buy with gold until your treasury reaches −150. Debt disbands none of your units until your treasury falls below −150. | Economic |
+| **Letters of Credit** | rare | implemented | You may buy with gold until your treasury reaches −150. Debt disbands none of your units until your treasury falls below −150. | Economic |
 | **The Grain Banks** | uncommon | implemented | Cities with a Granary gain +3 gold. | Economic |
 | **The Market Halls** | common | implemented | Towns with a Market gain +1 food and +1 production for every three citizens. | Economic |
 | **The Staple Right** | common | implemented | Gain +3 gold and +2 culture for each luxury you hold two or more copies of. | Economic |
 | **Export Guilds** | uncommon | implemented | Each luxury you lend to another empire in a deal gives your capital +4 culture and +2 production. | Civic |
 | **Commercial Education** | common | implemented | Gold buildings provide +3 science. | Civic |
 | **The Market Writ** | uncommon | implemented | +1 authority for every two Markets in your empire. | Civic |
-| **The Strongbox** | uncommon | add | While seated, this card gains +1 science and +1 culture each turn you end with at least 300 gold in your treasury, up to +15 of each. | Civic |
+| **The Strongbox** | uncommon | implemented | While seated, this card gains +1 science and +1 culture each turn you end with at least 300 gold in your treasury, up to +15 of each. | Civic |
 
 ## Tier II
 
@@ -118,7 +118,7 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 | **Houses of Account** | common | implemented | Gold buildings provide +2 happiness and +1 renown. | Civic |
 | **Bills of Exchange** | uncommon | implemented | Every town gains +1% production for every 100 gold in your treasury, at most +30%. | Economic |
 | **The Customs Houses** | uncommon | implemented | Each customs house in your borders gives its town +4 science and +4 culture, whether or not it is worked. | Civic |
-| **The Merchant Guilds** | uncommon | add | You may run one more trade route for every two merchants in the trades. | Economic |
+| **The Merchant Guilds** | uncommon | implemented | You may run one more trade route for every two merchants in the trades. | Economic |
 
 ## Tier III
 
@@ -205,7 +205,7 @@ These rows live in `data/decks/common.json`. A seat holding Commerce or the deck
 | **The Brokers' Redraw** | rare | Magisterial | II | modify: as built | You may reroll a draft with gold instead of faith. All other purchasing is 10% more expensive. | Wildcard |
 | **Merchant Scholars** | uncommon | Scientific | III | implemented | Foreign routes gain +2 science for each Academy in the origin city. | Civic |
 | **Letters of Marque** | rare | Dominion | III | implemented | Naval combat kills grant 60 gold. Cities with a Harbour gain +38% gold, but produce naval combat units 20% more slowly. | Economic |
-| **Mercenary Contracts** | uncommon | Dominion | III | modify: deferred; reworked | Military units you buy cost no upkeep for twenty turns. | Military |
+| **Mercenary Contracts** | uncommon | Dominion | III | implemented | Military units you buy cost no upkeep for twenty turns. | Military |
 | **War Bonds** | uncommon | Dominion | III | implemented | Military units gain +1 strength for every 150 gold in your treasury, at most +5. | Military |
 | **Professional Soldiers** | uncommon | Dominion | III | implemented | Units you purchase gain +3 combat strength. | Military |
 | **The Chartered Company** | uncommon | Dominion | III | implemented | Once drafted, unlock the Company Guard, a unique gunpowder-age melee unit that can only be bought with gold, in cities with a Barracks. No chair required. | Military |

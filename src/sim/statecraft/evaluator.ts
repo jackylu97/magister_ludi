@@ -1323,6 +1323,21 @@ export function timedTurnsLeft(state: GameState, timed: TimedEffect): number {
 }
 
 /**
+ * The class word and the name of the card that hung a timed effect: "Rite ·
+ * Omen Reading", "Order · Mercenary Contracts", "Legacy · Archimedes". Read by
+ * `timedLive` and by the upkeep waiver's line (`cardUpkeepWaiverLines`), so a
+ * timed effect is named the same way everywhere.
+ */
+function timedSourceWords(card: CardId): string {
+  const kind = isGreatPersonId(card)
+    ? CLASS_WORD.legacy
+    : isOrderId(card)
+      ? CLASS_WORD.order
+      : CLASS_WORD.rite;
+  return `${kind} · ${anyCardDef(card).name}`;
+}
+
+/**
  * The live effects a holder's own rites contribute, labelled with what they are
  * and how long they have left.
  *
@@ -1345,15 +1360,7 @@ function timedLive(
     // same mechanism, and the only thing that differs is what to call it. One
     // question, in the one place the label is written.
     // A levy's aftermath (Seasonal Levies) is hung by an Order, and says so.
-    const kind = isGreatPersonId(entry.card)
-      ? CLASS_WORD.legacy
-      : isOrderId(entry.card)
-        ? CLASS_WORD.order
-        : CLASS_WORD.rite;
-    const word = `${kind} · ${anyCardDef(entry.card).name} (${timedTurnsLeft(
-      state,
-      entry,
-    )} turns left)`;
+    const word = `${timedSourceWords(entry.card)} (${timedTurnsLeft(state, entry)} turns left)`;
     // The label is already whole, so the walk is handed a word that produces it:
     // `pushEffects` writes `word · name`, and a rite's name is in the word.
     const push = (card: CardId, _word: string, effects: readonly CardEffect[]): void => {
@@ -5955,6 +5962,78 @@ function freeByLaw(state: GameState, playerId: number, unit: Unit): boolean {
 }
 
 /**
+ * **The card whose waiver this unit carries**, or `null` (Commerce batch T6,
+ * Mercenary Contracts). A waiver is a live `upkeepRebate` with `free` hung on
+ * the unit itself (`Unit.timed`, written at its birth by
+ * `cardBirthTimedEffects`), which still reaches the unit as a rebate row
+ * would (`rebateReaches`). The first live entry wins, so two waivers on one
+ * unit still waive its upkeep once.
+ *
+ * It asks the unit's current owner, so a captured unit keeps its waiver for
+ * its new owner until the entry ends, as it keeps a blessing.
+ */
+function upkeepWaiverOf(state: GameState, unit: Unit): CardId | null {
+  const timed = unit.timed;
+  if (timed === undefined) return null;
+  for (const entry of timed) {
+    if (!timedEffectIsLive(state, entry)) continue;
+    const effect = entry.effect;
+    if (effect.kind !== 'upkeepRebate' || effect.free !== true) continue;
+    if (rebateReaches(state, unit.ownerId, effect, unit) === 0) continue;
+    return entry.card;
+  }
+  return null;
+}
+
+/**
+ * Is this unit's upkeep waived by an effect hung on it? See `upkeepWaiverOf`.
+ * `explainUnitUpkeepRebate` and `explainUnitUpkeepSurcharge` (`upkeep.ts`)
+ * ask it so that no other rebate or surcharge is taken off a waived unit.
+ */
+export function upkeepWaived(state: GameState, unit: Unit): boolean {
+  return upkeepWaiverOf(state, unit) !== null;
+}
+
+/**
+ * What the waivers hung on this empire's units take off its payroll, one line
+ * for each card that hung them (Commerce batch T6, Mercenary Contracts: a
+ * military unit you buy costs no upkeep for twenty turns).
+ *
+ * A give-back line, as The Standing Army's is, and for the reason
+ * `explainUnitUpkeepRebate` gives: the ledger shows what the army costs and
+ * then what is forgiven, and the creditors keep choosing by what each unit
+ * costs. Each waived unit gives back its whole price (`costOf`, handed in for
+ * `cardUpkeepRebateLines`' reason). Units are walked in `state.units` order
+ * and the lines come out in the order their cards first appear, so a replay
+ * prints the same ledger.
+ */
+export function cardUpkeepWaiverLines(
+  state: GameState,
+  playerId: number,
+  costOf: (unit: Unit) => number,
+): CardUpkeepLine[] {
+  // The cards in the order they first appear, and the sum for each beside it.
+  // Summed in a plain array rather than on a line's `gold`, so the slate
+  // register (`slateRegister.test.ts`) does not read it as a bank.
+  const cards: CardId[] = [];
+  const sums: number[] = [];
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId) continue;
+    const card = upkeepWaiverOf(state, unit);
+    if (card === null) continue;
+    const cost = costOf(unit);
+    if (cost <= 0) continue;
+    const at = cards.indexOf(card);
+    if (at >= 0) sums[at] = (sums[at] ?? 0) + cost;
+    else {
+      cards.push(card);
+      sums.push(cost);
+    }
+  }
+  return cards.map((card, i) => ({ card, source: timedSourceWords(card), gold: sums[i] ?? 0 }));
+}
+
+/**
  * What this empire's cards **add** to its payroll, piece by piece — The Reckless
  * Levy's coin a soldier.
  *
@@ -7545,6 +7624,55 @@ export function cardUnitStamp(
   if (strength !== 0) stamp.strength = strength;
   if (movement !== 0) stamp.movement = movement;
   return stamp;
+}
+
+/**
+ * **The timed effects this empire's law hangs on a unit born now**
+ * (`CardUnitStampEffect.timed`, Commerce batch T6): Mercenary Contracts'
+ * twenty turns without upkeep for a military unit bought with gold or faith.
+ *
+ * Read by `createUnit`, once, at the birth, beside `cardUnitStamp`, and
+ * narrowed by the same fields in the same way: the birth town's scope, the
+ * unit's class, the bank that paid and the levy that raised it. A row that
+ * names a bank is silent at every birth that was not bought from it.
+ *
+ * Each hung effect becomes one `TimedEffect` with an absolute expiry
+ * (`state.turn` plus the row's turns, at least one), so nothing counts down
+ * and the broom (`pruneTimedEffects`) only tidies. The entries belong to the
+ * unit, so the unit keeps them when the card leaves its chair. An empty list
+ * means nothing is written (`createUnit`, where presence is the state).
+ */
+export function cardBirthTimedEffects(
+  state: GameState,
+  playerId: number,
+  at?: { col: number; row: number },
+  type?: UnitTypeId,
+  bought?: 'gold' | 'faith',
+  levied?: LevyUse,
+): TimedEffect[] {
+  const hung: TimedEffect[] = [];
+  const born = at ? cityAt(state, at.col, at.row) : undefined;
+  const live = born
+    ? cityEffectsOfKind(state, born, 'unitStamp')
+    : effectsOfKind(state, playerId, 'unitStamp');
+  for (const { card, effect } of live) {
+    const timed = effect.timed;
+    if (timed === undefined || timed.effects.length === 0) continue;
+    // The same narrowings as `cardUnitStamp`, in the same order.
+    if (effect.scope !== undefined) {
+      if (!born) continue;
+      if (!cityScopeAdmits(state, born, effect.scope, playerId)) continue;
+    }
+    if (effect.class !== undefined) {
+      if (type === undefined) continue;
+      if (!unitMatches(type, effect.class)) continue;
+    }
+    if (effect.bought !== undefined && effect.bought !== bought) continue;
+    if (effect.levied !== undefined && !leviedMatches(effect.levied, levied)) continue;
+    const expiresTurn = state.turn + Math.max(1, Math.floor(timed.turns));
+    for (const inner of timed.effects) hung.push({ card, effect: inner, expiresTurn });
+  }
+  return hung;
 }
 
 /** What a unit is gained with, in experience. See `cardBirthExperience`. */
@@ -10463,7 +10591,7 @@ function ruleFigures(
   state: GameState,
   playerId: number,
   rule: CardFlagRuleId,
-  field: 'percent' | 'turns',
+  field: 'percent' | 'turns' | 'credit',
   type?: UnitTypeId,
 ): number[] {
   const figures: number[] = [];
@@ -10518,6 +10646,45 @@ export function cardOpusBreachPercent(state: GameState, unit: Unit): number {
 export function cardClosedBookTurns(state: GameState, playerId: number): number | null {
   const turns = ruleFigures(state, playerId, 'closedBook', 'turns');
   return turns.length === 0 ? null : Math.max(0, Math.floor(Math.max(...turns)));
+}
+
+/**
+ * **The lowest treasury a purchase with gold may leave this empire** (Commerce
+ * batch T6, Letters of Credit: the `buysOnCredit` rule and its `credit`).
+ * Zero without the card, so a purchase may never take the treasury below
+ * zero; minus the credit with it. With two rows the largest credit applies,
+ * because a floor is one line and two cards do not lower it twice.
+ *
+ * Read by `spendableGold` (the purchase gates) and by `disbandFloor`
+ * (`upkeep.ts`), which is the triage's reading 25: the creditors take no unit
+ * until the treasury falls below the same floor.
+ */
+export function cardSpendFloor(state: GameState, playerId: number): number {
+  const credits = ruleFigures(state, playerId, 'buysOnCredit', 'credit');
+  let credit = 0;
+  for (const figure of credits) credit = Math.max(credit, figure);
+  return credit > 0 ? -credit : 0;
+}
+
+/**
+ * **The gold this empire may spend on a purchase now**: its treasury less the
+ * lowest treasury a purchase may leave (`cardSpendFloor`). Without Letters of
+ * Credit it is the treasury itself.
+ *
+ * The one helper the gold gates ask, so they cannot disagree about it:
+ * `purchaseGate` (buildings, units and caravans), `tilePurchaseGate` (hexes)
+ * and `greatPersonPurchaseError` (great-person drafts). The Trade screen asks
+ * it before it offers a hire, so the screen never refuses a hire the reducer
+ * would take. Gold poured into a wonder or the Opus and a gold reroll are not
+ * purchases and keep their own checks (the triage's reading 25).
+ *
+ * Not floored at zero: an empire already below its floor may spend nothing,
+ * and a negative figure says so to every gate that compares it with a price.
+ */
+export function spendableGold(state: GameState, playerId: number): number {
+  const player = playerById(state, playerId);
+  if (!player) return 0;
+  return player.gold - cardSpendFloor(state, playerId);
 }
 
 /**

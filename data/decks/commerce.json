@@ -3109,6 +3109,85 @@
         }
       ],
       "note": "Only the luxury's own food, production, gold, science, culture and faith are paid for each copy. Its happiness and every other effect still count once for each kind. Silver and gold already pay some lines for each copy, and those lines are not paid twice."
+    },
+    "lettersOfCredit": {
+      "name": "Letters of Credit",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "A letter from a good house is as good as the gold it names.",
+      "text": "You may buy with gold until your treasury reaches −150. Debt disbands none of your units until your treasury falls below −150.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "buysOnCredit",
+          "credit": 150
+        }
+      ],
+      "note": "Buildings, units, trade caravans, hexes and great-person drafts may all be bought on credit. Gold poured into a wonder or the Magnum Opus, and gold paid to redraw a hand of cards, must still come from gold you hold. While your treasury is below zero you still lose a share of your science and culture."
+    },
+    "theStrongbox": {
+      "name": "The Strongbox",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Three locks, three keys, and three clerks who never meet.",
+      "text": "While seated, this card gains +1 science and +1 culture each turn you end with at least 300 gold in your treasury, up to +15 of each.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "tally",
+          "tally": "treasuryHeld",
+          "minTreasury": 300,
+          "max": 15
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "tally",
+          "tally": "treasuryHeld",
+          "minTreasury": 300,
+          "max": 15
+        }
+      ],
+      "note": "Your treasury is checked at the end of each turn, after your income, interest and upkeep are paid. The card counts only while it is seated, and it keeps what it has counted when it leaves its chair."
+    },
+    "theMerchantGuilds": {
+      "name": "The Merchant Guilds",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "Every guild hall keeps a yard of mules and a ledger of roads.",
+      "text": "You may run one more trade route for every two merchants in the trades.",
+      "effects": [
+        {
+          "kind": "routeRider",
+          "extra": 1,
+          "count": "guildsmen",
+          "family": "merchant",
+          "per": 2
+        }
+      ],
+      "note": "Merchants in the trades are counted in all of your cities together."
     }
   }
 }

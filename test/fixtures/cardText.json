@@ -6430,6 +6430,28 @@
     "text": "every copy of a luxury you hold pays its yields, not only the first"
    }
   ],
+  "lettersOfCredit": [
+   {
+    "raw": "you may buy with gold until your treasury reaches −150; debt disbands none of your units until your treasury falls below −150",
+    "text": "you may buy with gold until your treasury reaches −150; debt disbands none of your units until your treasury falls below −150"
+   }
+  ],
+  "theStrongbox": [
+   {
+    "raw": "+1 science per turn you have ended with at least 300 gold in your treasury (at most +15 science), counted while this Order stands in a slot",
+    "text": "+1 science per turn you have ended with at least 300 gold in your treasury (at most +15 science), counted while this Order stands in a slot"
+   },
+   {
+    "raw": "+1 culture per turn you have ended with at least 300 gold in your treasury (at most +15 culture), counted while this Order stands in a slot",
+    "text": "+1 culture per turn you have ended with at least 300 gold in your treasury (at most +15 culture), counted while this Order stands in a slot"
+   }
+  ],
+  "theMerchantGuilds": [
+   {
+    "raw": "+1 trade route per 2 merchants in the trades",
+    "text": "+1 trade route per 2 merchants in the trades"
+   }
+  ],
   "devotionFirstRites": [
    {
     "raw": "+25% production toward [[building:shrine|Shrines]]",
@@ -9264,9 +9286,12 @@
   "theCharteredCompany": [],
   "mercenaryContracts": [
    {
-    "raw": "hired soldiers who serve for a set time and then leave — not built yet",
-    "text": "hired soldiers who serve for a set time and then leave — not built yet",
-    "deferred": true
+    "raw": "military units bought with gold cost no upkeep for 20 turns",
+    "text": "military units bought with gold cost no upkeep for 20 turns"
+   },
+   {
+    "raw": "military units bought with faith cost no upkeep for 20 turns",
+    "text": "military units bought with faith cost no upkeep for 20 turns"
    }
   ],
   "theMusterOfTheFields": [

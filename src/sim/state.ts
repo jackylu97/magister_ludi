@@ -93,6 +93,7 @@ import type { Truce, WarState } from "./wars";
 import type { DealProposal, DealState } from "./deals";
 import {
   type PlayerStatecraft,
+  cardBirthTimedEffects,
   cardExtraCharges,
   cardUnitStamp,
   newPlayerStatecraft,
@@ -2458,8 +2459,39 @@ import {
  * **A v173 save is refused and does not replay.** A Commerce seat's pools
  * hold five more cards, and a seat holding Land Speculation is paid
  * differently. The branch migrates nothing, for the reason given under v119.
+ *
+ * v175 (branch `decks`; Commerce batch T6, `docs/plans/commerce-themes-
+ * triage.md`): **the purse and the hoard.** No field joins the state; an
+ * existing field, `Unit.timed`, gains a new writer. The rules that change:
+ *
+ *   · a new action rule, `buysOnCredit`, with a `credit` figure on the row:
+ *     purchases with gold (buildings, units, caravans, hexes and great-person
+ *     drafts) may take the treasury down to minus the credit, and the
+ *     creditors take no unit until the treasury falls below the same floor.
+ *     The gold gates ask one helper, `spendableGold`, and so does the Trade
+ *     screen. Gold poured into a wonder or the Opus and a gold reroll keep
+ *     their own checks;
+ *   · a new tally occasion, `treasuryHeld`, raised once a turn for every real
+ *     empire after the yields bank, with the treasury as its fact. A `tally`
+ *     row may carry `minTreasury`, the least treasury a turn must end with to
+ *     be counted;
+ *   · a route rider may carry `family`, which narrows its `guildsmen` count
+ *     to one trade;
+ *   · a unit stamp may carry `timed`: effects hung on the unit at its birth
+ *     for a number of turns, written to `Unit.timed` by `createUnit`. A hung
+ *     upkeep waiver is a give-back line in the upkeep fold, and no other
+ *     rebate or surcharge reaches the waived unit;
+ *   · Letters of Credit, The Strongbox and The Merchant Guilds are new
+ *     Commerce cards, and the shared Mercenary Contracts leaves `deferred`
+ *     with its new text (a military unit you buy costs no upkeep for twenty
+ *     turns).
+ *
+ * **A v174 save is refused and does not replay.** A Commerce seat's pools
+ * hold three more cards, and a Commerce or Dominion seat may be dealt
+ * Mercenary Contracts. The branch migrates nothing, for the reason given
+ * under v119.
  */
-export const SCHEMA_VERSION = 174;
+export const SCHEMA_VERSION = 175;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -6286,6 +6318,12 @@ export function createUnit(
   // answered. A creation on open ground has no town and a scoped stamp is silent
   // there; see `CardUnitStampEffect.scope`.
   const stamp = cardUnitStamp(state, ownerId, { col, row }, type, bought, levied);
+  // **What the law hangs on the piece for a while** (Commerce batch T6,
+  // Mercenary Contracts' twenty turns without upkeep). Read here, beside the
+  // stamp and narrowed the same way, because this is the one place a piece
+  // comes into existence and the bank that paid is known only here. Each entry
+  // carries an absolute expiry; see `cardBirthTimedEffects`.
+  const hung = cardBirthTimedEffects(state, ownerId, { col, row }, type, bought, levied);
   // The caller's own mark, folded into the law's before anything is read off it:
   // one field, one writer, and a piece that is a veteran twice over carries the
   // sum. Voice by voice, because a mark on a levy and a mark on the whole army
@@ -6352,6 +6390,9 @@ export function createUnit(
   // The levy that raised it, written last and only when there was one, for the
   // same reason (Expansionist batch E1). See `Unit.levied`.
   if (levied !== undefined) unit.levied = levied;
+  // The timed effects the law hung on it at birth, written only when there are
+  // some, for the same reason (Commerce batch T6). See `Unit.timed`.
+  if (hung.length > 0) unit.timed = hung;
   state.units.push(unit);
   // **A piece standing in a town is a line of the empire's contentment** (batch
   // M3, `slate.ts`): The Long Watch pays "+1 happiness for each unit standing in
