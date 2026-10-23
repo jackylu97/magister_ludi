@@ -980,10 +980,56 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * age 3 (Tier III, not Tier II); on the standard board one at 20 drafts in
  * age 3 (Tier III, not Tier II). Hands dealt earlier in the game moved the
  * same way. Nothing stalled and no command was refused.
+ *
+ * ---
+ *
+ * **The Scientific, Dominion, Expansionist and Commerce builds, and the bot
+ * changes that came with them (schemas 152 to 175, `d9d7390b..6cc886aa`).**
+ * Duel `9f1e136f:262163` → `4ae3b573:274890`, standard `97ff33bf:896332` →
+ * `f663ac08:988016`. No commit in this range re-cut the pin, so every change
+ * in it is measured as one move, and no control run took the movers apart.
+ * They fall in six groups:
+ *
+ *   · the version, 151 to 175, which changes the state's own bytes;
+ *   · the Scientific build, S0 to S13. Thirteen charter technologies join the
+ *     tree, and only a seat that drafted the charter may research one. A
+ *     technology's price becomes a list with a charter premium. S1 to S9 add
+ *     line traits, guildsmen counts (feature A), readings of the empires a
+ *     seat has met (feature B), the building charters, the research record
+ *     and new cards. S1b and S11 retire the rows the plan cut;
+ *   · the Dominion build, D9 to D15. D9 retires the ten cards the pass cut
+ *     and The Servian Reforms. D10 to D15 add new and changed cards, the
+ *     commission moment and count (feature C), the resource sight gate and
+ *     The Limitanei's extra worked hexes;
+ *   · the Expansionist build, E7 to E12. E7 retires fifteen rows and changes
+ *     ten. E8 to E12 add new cards, the hex marks, public works, and The Cura
+ *     Aquarum's one answer to what a town holds. Veteran Colonies now gives a
+ *     citizen for a free unit too (`6a836b49`);
+ *   · the Commerce build, T1 to T7. T1 retires eleven rows, moves four to the
+ *     shared file and changes fifteen. T2 to T7 add new cards, the
+ *     `cardDrafted` and `postEstablished` moments, the trade commissions,
+ *     deals as a card quantity (feature D), buying on credit, the
+ *     `treasuryHeld` tally and Mercenary Contracts;
+ *   · the bots. D16, S13, E13 and T9 give the new kinds a price, where many
+ *     were priced at nothing or at a stand-in before (commissions, charters,
+ *     and the new Expansionist and Commerce kinds). S13 also makes research
+ *     read the folded price. Bots now levy a citizen when a seated card
+ *     grants a levy, and retire a soldier in a town for Veteran Colonies'
+ *     citizen (`e3edb81b`). T8 makes the bots renew their trade routes.
+ *
+ * **Both prints grew**: the duel by 12,727 characters (about 5 per cent) and
+ * the standard board by 91,684 (about 10 per cent). The commit messages do
+ * not say which mover adds the most bytes, so this re-cut does not assign the
+ * growth. They name some likely sources: new records written during play (the
+ * research tallies of S6, D12's `militaryGained` tally, E11's
+ * `publicWorkCompleted` tally, T6's `treasuryHeld` tally) and trade routes
+ * that now renew instead of lapsing (T8). Measured twice, same bytes both
+ * runs. Nothing stalled and no command was refused, which the assertion above
+ * this one checks before the hash does.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '9f1e136f:262163',
-  standard: '97ff33bf:896332',
+  duel: '4ae3b573:274890',
+  standard: 'f663ac08:988016',
 };
 
 /**
