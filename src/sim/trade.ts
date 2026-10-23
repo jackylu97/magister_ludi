@@ -130,6 +130,7 @@
 import { buildingDef } from './buildingData';
 import {
   nearestOwnedCity,
+  payOccasionRiders,
   refreshCityDerived,
   settleGrowthWindfall,
   settleProductionWindfall,
@@ -157,6 +158,7 @@ import {
   type Unit,
   cityById,
   playerById,
+  realPlayers,
   unitById,
 } from './state';
 import { atWar } from './wars';
@@ -169,7 +171,8 @@ import {
   windfallPayout,
 } from './statecraft';
 // Expansionist batch E12: what a town holds, a card's grants included.
-import { townBuildings } from './statecraft/evaluator';
+// Commerce batch T3: the card that makes a home route pay its origin a copy.
+import { cardReturnLeg, townBuildings } from './statecraft/evaluator';
 import { type UnitTypeId, trades, unitDef } from './unitData';
 import { fullMovement } from './units';
 // The two halves that had to leave (2026-08-28). `cities.ts` folds a caravan's
@@ -188,6 +191,7 @@ import {
   ROUTE_MODES,
   caravanTypeFor,
   cityPostPays,
+  postEstablishedThisTurn,
   postTermTurns,
 } from './routes';
 import { bumpEconomy } from './slate';
@@ -343,6 +347,30 @@ export function endRoute(state: GameState, unit: Unit): void {
   closePost(state, cityById(state, route.to), unit.ownerId);
   const to = cityById(state, route.to);
   if (to && to.ownerId === unit.ownerId) refreshCityDerived(state, to);
+  refreshReturnLegOrigin(state, unit.ownerId, cityById(state, route.from), to);
+}
+
+/**
+ * **Re-seats the town a home route left, when The Return Leg pays it**
+ * (Commerce batch T3). A domestic route under the `homeRoutesPayOrigin` rule
+ * pays its origin a copy of what it pays its destination
+ * (`cityReturnLegYields`, `routeYields.ts`), so opening or ending one changes
+ * the origin's yields too. That is the mid-turn register's rule
+ * (`refreshCityDerived`), and it is part of the trade verbs' entry there.
+ *
+ * Asked only when the route's owner holds the rule, so an empire without the
+ * card re-seats exactly the towns it re-seated before.
+ */
+function refreshReturnLegOrigin(
+  state: GameState,
+  playerId: number,
+  from: City | undefined,
+  to: City | undefined,
+): void {
+  if (from === undefined || to === undefined) return;
+  if (from.ownerId !== playerId || to.ownerId !== playerId) return;
+  if (cardReturnLeg(state, playerId) === null) return;
+  refreshCityDerived(state, from);
 }
 
 // --- commercial posts -------------------------------------------------------
@@ -361,8 +389,9 @@ export function endRoute(state: GameState, unit: Unit): void {
  * (`postTermTurns`, `routes.ts`), because a date compared against `state.turn`
  * needs nobody to visit it; and a route that ends *before* it ripened takes it
  * away again, which is exactly what "starting and cancelling does not qualify"
- * asks for. So there is no post phase, nothing ticks, and the whole rule lives
- * in the two functions below.
+ * asks for. So nothing ticks, and the whole rule lives in the two functions
+ * below. The one sweep of the records (`runPostEstablishments`, Commerce batch
+ * T3) only reads them, to pay the moment a post is established.
  *
  * What continuity means here: **at least one route touching the town**. An
  * empire that keeps a trade route to Uruk running, renews it, replaces the caravan or
@@ -407,6 +436,86 @@ function closePost(state: GameState, city: City | undefined, playerId: number): 
   // Presence is the state, `Unit.trade`'s rule: a town no empire keeps a house
   // in serialises exactly as a town that never had one.
   if (posts.length === 0) delete city.posts;
+}
+
+/**
+ * **Pays the moment one of this empire's posts is established**: the
+ * `postEstablished` windfall occasion (Commerce batch T3, The Fondaci; the
+ * triage's reading 12). Returns whether anything was paid.
+ *
+ * The one helper that fires the moment, so every way a post becomes
+ * established pays the same riders. Its callers are the moment's seams:
+ *
+ *   · `runPostEstablishments` below, the sweep of `City.posts` in the
+ *     `roadJoinings` phase, for each post whose term ends on the turn that is
+ *     resolving;
+ *   · a writer that puts down a post already established (Commerce batch T4,
+ *     The World's Fair) calls this itself, and joins this list. Such a writer
+ *     must date its post so that the sweep never sees it ripen: a post written
+ *     in the `commissions` phase and dated a full term back is past this
+ *     turn's sweep, and the next sweep finds it a turn past its term.
+ *
+ * The facts are the post's town (`townId`) and its citizens (`population`), so
+ * a rider pays by the size of the town the post stands in. Food and
+ * production land in this empire's town nearest to the post
+ * (`payOccasionRiders`). A barbarian holds no post and is paid nothing.
+ */
+export function payPostEstablished(state: GameState, city: City, playerId: number): boolean {
+  const player = playerById(state, playerId);
+  if (player === undefined || player.eliminated === true) return false;
+  return payOccasionRiders(
+    state,
+    player,
+    'postEstablished',
+    { col: city.col, row: city.row },
+    { townId: city.id, population: city.population },
+  );
+}
+
+/**
+ * **The sweep that pays the moment a post is established** (Commerce batch
+ * T3, The Fondaci). It runs once a turn, inside the `roadJoinings` phase
+ * (`turn.ts`), and asks every post record whether its term ends on the turn
+ * that is resolving (`postEstablishedThisTurn`, `routes.ts`). For each one
+ * that does, it calls `payPostEstablished`.
+ *
+ * **Why a sweep, and why in that phase.** A post becomes established by date
+ * alone (`cityHoldsPost`): no command and no phase writes anything on that
+ * turn, so the only way to notice the turn is to compare every record's date
+ * with the turn. A stamp on the record (for example a "paid" flag) would need
+ * the same sweep to write it, and it would put a new key in every save that
+ * holds a post. The comparison stores nothing, and it is true on one turn only
+ * for each record. The sweep runs in an existing phase rather than a new one,
+ * because each phase raises `GameState.revision` once, and a new phase would
+ * change the bytes of every game for a sweep that writes nothing in a game
+ * where no card pays the moment. The `roadJoinings` phase pays the other
+ * "first time" moment (a town joined to its capital), before `collectYields`,
+ * so a culture or science grant reaches this turn's draft and research. It
+ * also runs before `commissions`, which is what lets a writer in that phase
+ * call the helper itself (see `payPostEstablished`).
+ *
+ * The walk is `state.cities` in array order, then each town's records in
+ * their own order, so a replay pays in the same sequence. Every post counts,
+ * at home or abroad, whether or not it pays that turn: a war or a blockade
+ * stops a post's income, not its record (the triage's reading 12). A route
+ * writes a post at both of its ends, so one route can establish two.
+ */
+export function runPostEstablishments(state: GameState): void {
+  const seats = new Set<number>();
+  for (const player of realPlayers(state)) {
+    if (player.eliminated !== true) seats.add(player.id);
+  }
+  // Copies of both lists, so a rider that founds or changes a town cannot
+  // move the walk under itself.
+  for (const city of [...state.cities]) {
+    const posts = city.posts;
+    if (posts === undefined) continue;
+    for (const post of [...posts]) {
+      if (!seats.has(post.by)) continue;
+      if (!postEstablishedThisTurn(state, post)) continue;
+      payPostEstablished(state, city, post.by);
+    }
+  }
 }
 
 /**
@@ -668,30 +777,25 @@ export function routeRange(
 }
 
 /**
- * **Is the range waived between these two towns?** The Admiralty of Trade's one
- * clause (batch C7, `ActionRuleId`'s `postsWaiveSeaRouteRange`).
+ * **Is the range waived for a route to this town?** The Admiralty of Trade's
+ * one clause (batch C7; widened in Commerce batch T3, `ActionRuleId`'s
+ * `postsWaiveRouteRange`, the triage's reading 18).
  *
- * Three conditions, all of them the card's own printed words: the road runs by
- * sea, both towns hold a **paying** post of this empire's, and the law is held.
- * `cityPostPays` rather than `cityHoldsPost` because the design says so out loud
- * — *"foreign post income and card range privileges are suspended during war or
- * while the host city is blockaded"* — and a privilege is exactly what this is.
+ * Two conditions, both the card's own printed words: the law is held, and the
+ * **destination** holds a **paying** post of this empire's. A land route and a
+ * sea route are asked the same, and the origin needs no post. `cityPostPays`
+ * rather than `cityHoldsPost`, because the design says so: *"foreign post
+ * income and card range privileges are suspended during war or while the host
+ * city is blockaded"*, and a privilege is what this is.
  *
  * It waives the range clause and nothing else. Every other refusal in
- * `gateRoute` still runs, which is the card's second sentence: a sea lane a
- * caravan cannot sail, a partner not met, a war, a full slot table and a route
- * already running that way are all still refused.
+ * `routeStartable` still runs: a lane no caravan can use, a partner not met, a
+ * war, a full slot table and a route already running that way are all still
+ * refused.
  */
-function rangeWaived(
-  state: GameState,
-  playerId: number,
-  from: City,
-  to: City,
-  mode: RouteMode,
-): boolean {
-  if (mode !== 'sea') return false;
-  if (!cardActionRule(state, playerId, 'postsWaiveSeaRouteRange')) return false;
-  return cityPostPays(state, from, playerId) && cityPostPays(state, to, playerId);
+function rangeWaived(state: GameState, playerId: number, to: City): boolean {
+  if (!cardActionRule(state, playerId, 'postsWaiveRouteRange')) return false;
+  return cityPostPays(state, to, playerId);
 }
 
 /**
@@ -1209,7 +1313,7 @@ function gateRoute(
   // of Trade. It is the last clause of the gate because it is the narrowest: a
   // pair that is in range anyway never has to ask, and a pair that is not is
   // still refused for every other reason above.
-  const refused = turns > range && !rangeWaived(state, playerId, from, to, survey.mode);
+  const refused = turns > range && !rangeWaived(state, playerId, to);
   // The march is reported either way — a row refused for distance is still a row
   // a screen prints the distance of.
   return {
@@ -1371,6 +1475,7 @@ export function startRouteAt(
     delete unit.path;
   }
   refreshCityDerived(state, to);
+  refreshReturnLegOrigin(state, unit.ownerId, from, to);
 }
 
 // --- plunder ----------------------------------------------------------------

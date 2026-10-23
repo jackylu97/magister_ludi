@@ -144,7 +144,7 @@ then the food surplus a card moves into production.
 | 3 | **The cards' city lines** — `explainCardCityYields` | the law reaching this town | additive | — |
 | 4 | **The luxuries' city lines** — `cityResourceYields` | the empire's improved seams | additive | — |
 | 5 | **The specialists** — `citySpecialistYields` | the town's guilds (a substitution for a hex left, never a bonus) | additive | — |
-| 6 | **The routes arriving** — `cityRouteYields` | each caravan's *origin* buildings; five voices, never faith; a route run **by sea** carries `rules.trade.seaYieldPercent` as a line of its own fold, after the cards' shares and before their amplifiers | additive | — |
+| 6 | **The routes arriving** — `cityRouteYields` | each caravan's *origin* buildings; five voices, never faith; a route run **by sea** carries `rules.trade.seaYieldPercent` as a line of its own fold, after the cards' shares and before their amplifiers. Then, under The Return Leg's rule (`homeRoutesPayOrigin`), a copy of what each domestic route leaving the town pays its destination (`cityReturnLegYields`), line for line, filed under the card | additive | — |
 | 7 | **The palace** — `explainPalaceYield` | the seat of government — its coin, and since 2026-09-08 a beaker and a note; empty in every town but one | additive | — |
 | 8 | **The buildings** — `explainCityBuildings` | the town's buildings (`townBuildings`: what it built, in build order, then any a card says it holds), plus each row's per-citizen science | additive | — |
 | 9 | **The cards' building shares** — `explainCardBuildingYields` | the block above, **plus what the law put on each building by name** (`cardLinesOnBuilding`) | multiplicative *within the step*, lands as a flat | — |
@@ -308,6 +308,15 @@ banking (Entry XVIII.5).
   nothing into a town this gate has stopped. The rule is a `rule` effect, so
   the kind stays in the register's silent list: it pays no voice, it only
   stops one.
+- **The Return Leg's copy is not a route line** (Commerce batch T3). Step 6
+  reads it after the routes arriving: for each domestic route leaving the
+  town, the route's own list as its destination receives it (the base, every
+  card line, every share, the sea premium, the amplifier and the blockade),
+  each line named for the card. It is not in `cityRouteYields`, so no card
+  that reads or multiplies a route reaches it and it never travels again, and
+  `Player.routeYieldsThisAge` leaves it out. It is a flat like the routes
+  arriving, so step 12 stages it with the town's percentages. A route to
+  another empire is not copied.
 - **The gate reaches the town and nothing else.** The empire's own lines (steps
   15–20) belong to the empire, so a card paying science to the empire still pays
   it while one of its towns is in unrest. A conversion (step 10) reads the
@@ -371,6 +380,11 @@ end of a turn, through `payWindfallGrants`, as a one-time grant does.
 Every other `CardEffect` kind moves no voice at all: it is a rule, a stat, a
 meter, a stamp, an unlock or an offer. One rule stops a voice without paying
 one: `opusSiege` (Circumvallation) is read by the second gate of step 13.
+One rule pays a voice, and it pays at step 6: `homeRoutesPayOrigin` (The
+Return Leg, Commerce batch T3) copies a home route's pay to the town it left
+(`cityReturnLegYields`). The `rule` kind stays in neither list, because what
+a rule pays is decided by its id, and these two ids are pinned by the sync
+test.
 
 ---
 

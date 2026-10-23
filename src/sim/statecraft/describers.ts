@@ -3423,6 +3423,7 @@ export function periodicProbe(effect: CardPeriodicEffect): CardPaysEffect {
     voice: effect.voice,
     class: effect.class,
     tally: effect.tally,
+    admits: effect.admits,
   };
 }
 
@@ -3743,6 +3744,22 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
   if (effect.count === 'citiesAdmitted' && effect.admits !== undefined) {
     const one = eachWords(effect.admits);
     return { one, many: one.replace(/\bcity\b/, 'cities') };
+  }
+  // **The citizens of the towns a scope admits** (Commerce batch T3, The
+  // Champagne Fairs): "citizen in a city one of your own trade routes ends
+  // at". The scope's words, as the count of towns above uses them.
+  if (effect.count === 'population' && effect.admits !== undefined) {
+    const town = eachWords(effect.admits);
+    return {
+      one: `citizen in a ${town}`,
+      many: `citizens in ${town.replace(/\bcity\b/, 'cities')}`,
+    };
+  }
+  // **A share of each foreign town's citizens** (Commerce batch T3, The
+  // Foreign Factor): the divisor is per town, so the words say "each".
+  if (effect.count === 'postCitizens' && effect.perTown !== undefined && effect.perTown > 1) {
+    const words = `${Math.floor(effect.perTown)} citizens of each foreign city holding your trading post`;
+    return { one: words, many: words };
   }
   // **The gap on a road is the gap to the far end** (Scientific batch S3,
   // Books from the Ships): a route asks the count of the empire that owns the
@@ -5463,6 +5480,8 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   disband: 'disbanding a unit',
   // Commerce batch T7, The Art Dealers. A charter is drafted too.
   cardDrafted: 'drafting a card',
+  // Commerce batch T3, The Fondaci. At home or abroad.
+  postEstablished: 'one of your trading posts being established',
 };
 
 /**
@@ -5491,6 +5510,9 @@ const OCCASION_MEASURE_WORDS: Partial<
   unitCompletion: { population: "the city's population" },
   // The Plunder Economy (Dominion batch D8): the piece is the raider.
   pillage: { strength: "the pillaging unit's strength" },
+  // The Fondaci (Commerce batch T3): "its" after "a trading post" would name
+  // the post, and the figure is the town's.
+  postEstablished: { population: 'the population of its city' },
 };
 
 /** The founding shares with a common name (The Great Colonies' "a third"). */
@@ -5767,6 +5789,17 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   postCities: {
     one: 'foreign city holding your trading post',
     many: 'foreign cities holding your trading post',
+  },
+  // Commerce batch T3, The Foreign Factor. A row with `perTown` is worded in
+  // `countNoun`; this is a row that counts every citizen.
+  postCitizens: {
+    one: 'citizen of a foreign city holding your trading post',
+    many: 'citizens of foreign cities holding your trading post',
+  },
+  // Commerce batch T3, The Lingua Franca. Every empire's routes, yours too.
+  worldTradeRoutes: {
+    one: 'trade route running anywhere in the world',
+    many: 'trade routes running anywhere in the world',
   },
   foreignTradeRoutes: {
     one: 'trade route to another empire',
@@ -6330,13 +6363,14 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   faithBuysUnits: 'units may be bought with faith',
   faithBuysBuildings: 'buildings other than wonders may be bought with faith',
   faithBuysWonders: 'a world wonder at least half built may be bought with faith',
-  // Said as what the distance stops mattering for, and it names the two
-  // conditions the rule carries in its own id — a player told only "your sea
-  // routes ignore range" would try it between a pair of towns that has never
-  // traded. Everything else the gate asks is still asked, which is the card's
-  // own second sentence and is left to the card to print.
-  postsWaiveSeaRouteRange:
-    'your sea routes may join two cities that both hold your trading post however far apart they are',
+  // The Admiralty of Trade (Commerce batch T3). It names the condition the
+  // gate asks, so a player knows the post must already stand at the far end.
+  // Everything else the gate asks is still asked.
+  postsWaiveRouteRange:
+    'your trade routes to a city holding your trading post have no range limit',
+  // The Return Leg (Commerce batch T3).
+  homeRoutesPayOrigin:
+    'your trade routes between your own cities also pay the city they leave everything they pay the city they reach',
   // Facts a card declares true of every town. `CityRuleId`.
   freshwater: 'every city of yours counts as being on fresh water',
   // The Bakufu and The Consular Roads (Dominion batch D4). The row's scope

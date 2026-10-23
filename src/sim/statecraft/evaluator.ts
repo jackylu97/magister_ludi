@@ -132,6 +132,7 @@ import {
   countRoutesAt,
   foreignPostCities,
   routeIsInternational,
+  routeIsLive,
 } from '../routes';
 import {
   type City,
@@ -2790,10 +2791,22 @@ export function countOf(
       // exactly what it means there: the sweep is over one town rather than the
       // realm, so a card written on it pays each town for its own citizens
       // instead of paying every town for the empire's.
-      if (effect.within === 'city') return city?.population ?? 0;
+      //
+      // **`admits` narrows the towns** (Commerce batch T3, The Champagne
+      // Fairs): only the citizens of the towns the scope admits count, asked
+      // through the ordinary scope question. A row with no scope counts every
+      // town, which is what every row written before it meant.
+      const admits = effect.admits;
+      if (effect.within === 'city') {
+        if (city === undefined) return 0;
+        if (admits !== undefined && !cityScopeAdmits(state, city, admits, playerId)) return 0;
+        return city.population;
+      }
       let total = 0;
       for (const town of state.cities) {
-        if (town.ownerId === playerId) total += town.population;
+        if (town.ownerId !== playerId) continue;
+        if (admits !== undefined && !cityScopeAdmits(state, town, admits, playerId)) continue;
+        total += town.population;
       }
       return total;
     }
@@ -3173,6 +3186,32 @@ export function countOf(
       // counts and the houses it pays are the same houses. Foreign by
       // construction; see the count.
       return foreignPostCities(state, playerId);
+    case 'postCitizens': {
+      // Commerce batch T3, The Foreign Factor: the towns `postCities` counts,
+      // asked through the same `cityPostPays`, with each town's citizens
+      // divided by `perTown` and rounded down town by town (the triage's
+      // reading 14). `state.cities` order, as `foreignPostCities` walks.
+      const each = effect.perTown === undefined || effect.perTown < 1 ? 1 : Math.floor(effect.perTown);
+      let total = 0;
+      for (const town of state.cities) {
+        if (town.ownerId === playerId) continue;
+        if (!cityPostPays(state, town, playerId)) continue;
+        total += Math.floor(town.population / each);
+      }
+      return total;
+    }
+    case 'worldTradeRoutes': {
+      // Commerce batch T3, The Lingua Franca: every live route in the world,
+      // whoever sent it, through the one test of an active route
+      // (`routeIsLive`). A renewed route is the same caravan, so it counts
+      // once (the triage's reading 15).
+      let total = 0;
+      for (const unit of state.units) {
+        if (unit.trade === undefined) continue;
+        if (routeIsLive(state, unit)) total += 1;
+      }
+      return total;
+    }
     case 'foreignTradeRoutes': {
       // **Narrowed to one town** (batch C5, The Cosmopolitan Court): the foreign
       // routes setting out from it, through the same `countRoutesAt` the scope
@@ -9471,6 +9510,8 @@ function payPeriodicBoon(
       voice: effect.voice,
       class: effect.class,
       tally: effect.tally,
+      // The Champagne Fairs (Commerce batch T3): which towns' citizens count.
+      admits: effect.admits,
     };
     figure = helpings(countOf(state, player.id, card, probe), effect.per, effect.max) * each;
   }
@@ -9925,6 +9966,28 @@ function cardRuleHolds(
 /** Does this empire hold a card declaring this action rule? */
 export function cardActionRule(state: GameState, playerId: number, rule: ActionRuleId): boolean {
   return cardRuleHolds(state, playerId, rule);
+}
+
+/**
+ * **The card that makes this empire's domestic routes pay their origin a
+ * copy**, or `null` (Commerce batch T3, The Return Leg: the
+ * `homeRoutesPayOrigin` rule).
+ *
+ * `cardActionRule` with the card kept, because the copy is labelled lines in
+ * the origin's fold and a line names the card that pays it (rule 5). The first
+ * live row naming the rule wins: two cards holding it would still pay one
+ * copy, because the rule says the origin is paid a copy and not a copy per
+ * card. Read by `cityReturnLegYields` (`routeYields.ts`) and by `trade.ts`,
+ * which refreshes the origin when a home route starts or ends.
+ */
+export function cardReturnLeg(
+  state: GameState,
+  playerId: number,
+): { card: CardId; source: string } | null {
+  for (const { card, source, effect } of effectsOfKind(state, playerId, 'rule')) {
+    if (effect.rule === 'homeRoutesPayOrigin') return { card, source };
+  }
+  return null;
 }
 
 /**

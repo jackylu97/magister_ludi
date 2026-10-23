@@ -2333,7 +2333,14 @@ export type CountKind =
   | 'improvedStrategicResources'
   /** Cities held. */
   | 'cities'
-  /** Citizens across the empire. */
+  /**
+   * Citizens across the empire. `within: 'city'` narrows it to one town.
+   *
+   * A row that names `admits` counts only the citizens of the towns that
+   * scope admits (Commerce batch T3, The Champagne Fairs: towns a domestic
+   * route of yours arrives at). A row with no `admits` counts every town, as
+   * every row written before it did.
+   */
   | 'population'
   /** Citizens in the capital. */
   | 'capitalPopulation'
@@ -2619,6 +2626,27 @@ export type CountKind =
    * counting the same houses.
    */
   | 'postCities'
+  /**
+   * **The citizens of the foreign towns holding this empire's paying post**
+   * (Commerce batch T3, The Foreign Factor; the triage's reading 14).
+   *
+   * The same towns `postCities` counts, through the same `cityPostPays`, so
+   * a post a war or a blockade suspends counts nothing. The row's `perTown`
+   * divides each town's citizens before the towns are summed, and each
+   * town's share is rounded down on its own: a quarter of 7 and a quarter of
+   * 5 is 1 and 1, never 3. A row with no `perTown` counts every citizen.
+   */
+  | 'postCitizens'
+  /**
+   * **Every live trade route in the world**, this empire's and every other
+   * empire's, foreign and domestic (Commerce batch T3, The Lingua Franca; the
+   * triage's reading 15).
+   *
+   * A route is counted while `routeIsLive` (`routes.ts`) says it runs, which is
+   * the one test of an active route. A renewed route is one route, because a
+   * route is the caravan that carries it. A walk of `state.units` in id order.
+   */
+  | 'worldTradeRoutes'
   /**
    * Trade routes this empire runs whose **partner is one of its own towns** —
    * The Provisioners' grain, which never leaves the realm.
@@ -4139,27 +4167,41 @@ export type ActionRuleId =
    */
   | 'goldBuysFrozenTiles'
   /**
-   * **A sea route between two towns that both hold this empire's trading post
-   * may be sent any distance** — The Admiralty of Trade (batch C7).
+   * **A route whose destination holds this empire's paying trading post may
+   * be sent any distance**, by land or by sea: The Admiralty of Trade (batch
+   * C7; widened and renamed in Commerce batch T3, the triage's reading 18).
    *
-   * The range clause in `gateRoute` (`trade.ts`) compares the march against
-   * `routeRange`, and this is one more condition on that comparison rather than
-   * a change to the figure — `goldBuysWonders`' and `goldBuysFrozenTiles`' shape
-   * exactly, and for their reason: every other clause of the gate still runs, so
-   * a sea lane that does not exist, a partner not met, a war, a full slot table
-   * and a route already running that way are all still refused. The card's own
-   * sentence says as much.
+   * The range clause in `routeStartable` (`trade.ts`) compares the march with
+   * `routeRange`. This rule adds one condition to that comparison
+   * (`rangeWaived`) and does not change the figure. Every other clause of the
+   * gate still runs, so a lane no caravan can use, a partner not met, a war, a
+   * full slot table and a route already running that way are all still
+   * refused.
    *
-   * The two narrowings are named in the rule because a flag rule carries no
-   * scope (`cardActionRule` asks the empire), which is `capitalBuysWithoutLimit`'s
-   * stated bargain. The gate holds both towns and the mode when it asks, so it
-   * can answer them itself: the mode must be `sea`, and both towns must hold a
-   * **paying** post (`cityPostPays`), which is the design's own suspension —
-   * *"foreign post income and card range privileges are suspended during war or
-   * while the host city is blockaded"*. A card that wanted the same licence by
-   * land would be a second member here.
+   * The narrowing is in the gate, because a flag rule carries no scope
+   * (`cardActionRule` asks the empire). The gate holds both towns when it asks,
+   * and it asks only that the **destination** holds a **paying** post
+   * (`cityPostPays`): a war or a blockade stops the waiver, as it stops a
+   * post's income. The origin needs no post. Until batch T3 the rule was
+   * `postsWaiveSeaRouteRange`, which asked for a sea route and a post at both
+   * ends.
    */
-  | 'postsWaiveSeaRouteRange'
+  | 'postsWaiveRouteRange'
+  /**
+   * **A domestic route also pays its origin a copy of everything it pays its
+   * destination**: The Return Leg (Commerce batch T3, the triage's reading
+   * 16).
+   *
+   * Read by `cityReturnLegYields` (`routeYields.ts`) through
+   * `cardReturnLeg` (`statecraft/evaluator.ts`), which names the card for the
+   * label. The copy is labelled lines at step 6 of the origin's fold
+   * (`docs/yields.md`), after the routes arriving. It copies the route's whole
+   * list as the destination receives it: the base, every card line, every
+   * share and the blockade. The copy is not a route line: no card that reads or
+   * multiplies a route reaches it, and the age's count of what caravans carried
+   * leaves it out. A route to another empire is not copied.
+   */
+  | 'homeRoutesPayOrigin'
   /**
    * **The named building may be raised in every town** — Caravanserai Cities
    * (batch C7).
@@ -5179,7 +5221,29 @@ export type WindfallOccasion =
    * Magisterial's The Court Painter. A card that pays from the price of the
    * hand (Magisterial's The Accessions Register) adds that price as a fact.
    */
-  | 'cardDrafted';
+  | 'cardDrafted'
+  /**
+   * **One of this empire's trading posts became established** (Commerce batch
+   * T3): The Fondaci. A post is established when a full route term has passed
+   * since its record opened (`cityHoldsPost`, `routes.ts`). It fires once for
+   * each post, at home or abroad. A route writes a post at both of its ends,
+   * so one route to a new town can establish two.
+   *
+   * Paid by `payPostEstablished` (`trade.ts`) through `payOccasionRiders`,
+   * with the post's town as `townId` and its citizens as `population`. Food
+   * and production a rider pays land in the town of this empire nearest to
+   * the post.
+   *
+   * Two seams call that helper, and its docblock names them:
+   *
+   *   · `runPostEstablishments` (`trade.ts`), a sweep of `City.posts` in the
+   *     `roadJoinings` phase. It fires for each post whose term ends on the
+   *     turn that is resolving. The moment fires whether or not the post pays
+   *     that turn: a war or a blockade stops a post's pay, not its record;
+   *   · a writer that puts down a post already established (Commerce batch
+   *     T4, The World's Fair) calls the helper itself.
+   */
+  | 'postEstablished';
 
 /**
  * **What a grant is a share of, where it is a share of the occasion itself.**
@@ -5994,10 +6058,24 @@ export interface CardPaysEffect extends CardYieldBag {
    * Which towns `citiesAdmitted` counts: the ordinary `CityScope` (Expansionist
    * batch E2). Absent counts nothing; see the count.
    *
+   * Since Commerce batch T3 it also narrows `population` to the citizens of
+   * the towns it admits (The Champagne Fairs). There an absent scope counts
+   * every town, as `population` always has.
+   *
    * Named apart from `scope`, which says which towns a line is *paid* in. The
    * two are different questions, and a row could carry both.
    */
   admits?: CityScope;
+  /**
+   * **How many of one town's citizens make one counted thing**, rounded down
+   * in each town before the towns are summed (Commerce batch T3, The Foreign
+   * Factor's "for every four of its citizens"). Read only by `postCitizens`.
+   *
+   * It is not `per`, which divides the empire's total once. A town of 7 and a
+   * town of 5 at four citizens each count 1 and 1 here, and `per: 4` would
+   * have counted 3. Absent or below one counts every citizen.
+   */
+  perTown?: number;
   /**
    * Which type `slottedOrdersOfSlot` counts. Absent counts every seated Order
    * whatever its type, which is the honest reading of an unnamed argument
@@ -9071,6 +9149,12 @@ export interface CardPeriodicEffect {
   voice?: CityYieldKey;
   class?: UnitFilter;
   tally?: TallyOccasion;
+  /**
+   * Which towns the count reads, `CardPaysEffect.admits` exactly (Commerce
+   * batch T3, The Champagne Fairs: the citizens of towns a domestic route of
+   * yours arrives at). Passed into the probe the count is asked through.
+   */
+  admits?: CityScope;
 }
 
 /**

@@ -987,10 +987,18 @@ describe('determinism', () => {
    * nobody holds The Standing Army in its new file. Checked with the change in
    * place and the version printed as 170, which gives the hashes of Commerce
    * batch T2 exactly.
+   *
+   * **Commerce batch T3 (routes and posts, schema 172) moved the hash and not
+   * the length** at both seeds: 171 became 172, and that is all. The post
+   * sweep runs inside the `roadJoinings` phase, so the phase list keeps its
+   * length and the revision moves as before; nobody here runs a route, so no
+   * post is established, and nobody holds a T3 card. Checked with the change
+   * in place and the version printed as 171, which gives the hashes of
+   * Commerce batch T7 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '0ab81fc8:188931',
-    2026: '6f5dbd85:188509',
+    11: '585be607:188931',
+    2026: 'e2410616:188509',
   };
 
   for (const seed of [11, 2026]) {

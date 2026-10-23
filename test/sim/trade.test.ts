@@ -2863,13 +2863,16 @@ describe('the gate is asked once and hands back what it measured', () => {
  *   · The Harbour Chain **lengthens** it — `CardRule`'s `seaRouteRange`, a
  *     percentage on the table's own figure, exactly as Venture Routes is a
  *     percentage on the term;
- *   · The Admiralty of Trade **waives** it between one pair of towns —
- *     `ActionRuleId`'s `postsWaiveSeaRouteRange`, read as one more condition
+ *   · The Admiralty of Trade **waives** it for a route to one town:
+ *     `ActionRuleId`'s `postsWaiveRouteRange`, read as one more condition
  *     beside the clause it lifts, which is the shape three other live rows in
  *     that deck already use for a refusal.
  *
- * Both are asked only of a sea route, and both leave every other clause of the
- * gate where it was. That second half is the part worth pinning: a waiver that
+ * The Harbour Chain is asked only of a sea route. The Admiralty asked only of
+ * a sea route between two posts until Commerce batch T3, which widened it to
+ * any route whose destination holds a paying post (the triage's reading 18;
+ * `test/sim/decks/commerceRoutes.test.ts` checks a land route). Both leave
+ * every other clause of the gate where it was. That second half is the part worth pinning: a waiver that
  * quietly admitted a pair with no lane between them, or one more caravan than
  * the seat had markets for, would be a much larger card than the one printed.
  */
@@ -2939,23 +2942,25 @@ describe('a route’s reach', () => {
   it('refuses a lane that is simply too long, card or no card', () => {
     const { state, home, partner } = farSeaWorld();
     expect(routeStartable(state, 0, home.id, partner.id, 'sea')).toMatch(/turns away/);
-    // The law alone is not enough: the two houses are half the sentence.
+    // The law alone is not enough: the post at the far end is half the
+    // sentence.
     slot(state, 0, 'theAdmiraltyOfTrade');
     expect(routeStartable(state, 0, home.id, partner.id, 'sea')).toMatch(/turns away/);
   });
 
-  it('opens it once both towns hold a paying post of this empire’s', () => {
+  it('opens it once the destination holds a paying post of this empire’s', () => {
     const { state, home, partner } = farSeaWorld();
     slot(state, 0, 'theAdmiraltyOfTrade');
     const ripe = state.turn - RULES.trade.routeTurns;
-    home.posts = [{ by: 0, since: ripe }];
     partner.posts = [{ by: 0, since: ripe }];
     bumpRevision(state);
+    // The origin needs no post (Commerce batch T3).
     expect(routeStartable(state, 0, home.id, partner.id, 'sea')).toBeNull();
 
-    // **One house is not two.** The card says both, and a post at one end only
-    // is exactly the case a looser reading would have let through.
+    // **The post must be at the far end.** A post at the origin alone does
+    // not open the lane.
     partner.posts = [];
+    home.posts = [{ by: 0, since: ripe }];
     bumpRevision(state);
     expect(routeStartable(state, 0, home.id, partner.id, 'sea')).toMatch(/turns away/);
   });

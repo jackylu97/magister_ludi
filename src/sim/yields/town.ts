@@ -58,7 +58,7 @@ import { isUnitTypeId } from '../unitData';
 import { type MeterId, meterEffects } from '../meters';
 import { cityResourceYields, resourcePercentYields, resourceProduction } from '../resourceEffects';
 import { citySpecialistYields } from '../specialists';
-import { cityRouteYields } from '../routeYields';
+import { cityReturnLegYields, cityRouteYields } from '../routeYields';
 import { treasuryInDebt } from '../upkeep';
 import { type CityYields, channelSurplus, cityTile, emptyCityYields } from '../cities';
 // Dominion batch D7: which card moves a town's food surplus into production.
@@ -1539,6 +1539,15 @@ export function explainCity(
   // Markets) needed no edit here — `say` spreads all six and a line that says
   // nothing about faith carries nought.
   for (const line of cityRouteYields(state, city)) say(6, line.source, 'trade', line);
+  // **And the routes leaving, copied home** (Commerce batch T3, The Return
+  // Leg): under the `homeRoutesPayOrigin` rule, each domestic route that sets
+  // out from this town pays it a copy of what it pays its destination. Read
+  // after the routes arriving and inside this step, so the copy is staged like
+  // every other flat. Filed under the card that pays it, because the copy is
+  // the card's and not a caravan's. See `cityReturnLegYields`.
+  for (const line of cityReturnLegYields(state, city)) {
+    say(6, line.source, classifyCard(line.card), line, { card: line.card });
+  }
 
   // **7 — the palace.** The seat of government, a line like every other rather
   // than a term added on the side, so the palace's coin is staged like a

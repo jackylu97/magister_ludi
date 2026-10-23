@@ -43,6 +43,7 @@ import { endpointLuxuryCount, resourceRouteYields } from './resourceEffects';
 import { RULES } from './rulesData';
 import {
   type RouteMode,
+  liveRouteCities,
   routeAge,
   routeCities,
   routeHexes,
@@ -53,7 +54,9 @@ import {
 import type { City, GameState, Unit } from './state';
 import { cardAmplifier, cardRouteShareLines, cardRouteYieldLines } from './statecraft';
 // Expansionist batch E12: what a town holds, a card's grants included.
-import { townBuildings } from './statecraft/evaluator';
+// Commerce batch T3: the card that makes a home route pay its origin a copy.
+import { cardReturnLeg, townBuildings } from './statecraft/evaluator';
+import type { CardId } from './statecraftData';
 
 const TRADE = RULES.trade;
 const ABROAD = RULES.trade.international;
@@ -255,11 +258,28 @@ export function explainRouteYieldBetween(
   mode: RouteMode = 'land',
   age?: number,
 ): RouteYieldLine[] {
-  const lines: RouteYieldLine[] = [];
   // Printed on the *destination's* sheet ("Caravan from Uruk · 3 buildings"),
   // naming the origin — the town this figure was read off, not the town
   // reading it.
-  const label = (note: string): string => `Caravan from ${from.name} · ${note}`;
+  return routeLinesBetween(state, from, to, mode, age, (note) => `Caravan from ${from.name} · ${note}`);
+}
+
+/**
+ * `explainRouteYieldBetween`'s body, with the label handed in (Commerce batch
+ * T3). The destination's fold names the origin ("Caravan from Uruk"), and The
+ * Return Leg's copy at the origin names the destination ("Caravan to
+ * Lagash"). The label is words only: every figure is the same either way, so
+ * the copy and the route it copies cannot disagree.
+ */
+function routeLinesBetween(
+  state: GameState,
+  from: City,
+  to: City,
+  mode: RouteMode,
+  age: number | undefined,
+  label: (note: string) => string,
+): RouteYieldLine[] {
+  const lines: RouteYieldLine[] = [];
 
   if (routeIsInternational(from, to)) {
     const host = Math.floor(ABROAD.hostGold);
@@ -788,6 +808,65 @@ export function foldRouteYield(lines: readonly RouteYieldLine[]): {
     total.faith += entry.faith;
   }
   return total;
+}
+
+/**
+ * One line of The Return Leg's copy: a route line, with the card that pays it.
+ */
+export interface ReturnLegLine extends RouteYieldLine {
+  card: CardId;
+}
+
+/**
+ * **What this town's home routes pay it back** (Commerce batch T3, The Return
+ * Leg; the triage's reading 16): a copy of everything each domestic route
+ * leaving this town pays its destination, while the town's owner holds the
+ * `homeRoutesPayOrigin` rule. Read at step 6 of `explainCity`, after the
+ * routes arriving (`docs/yields.md`).
+ *
+ * The copy is the route's own list, line by line, as `explainRouteYield`
+ * gives it to the destination: the base, every card line, every share, the
+ * sea premium, the amplifier and the blockade. The same function makes both,
+ * with a different label (`routeLinesBetween`), so the figures cannot drift.
+ * Each line names the card first: "Order · The Return Leg · Caravan to
+ * Lagash · 3 buildings".
+ *
+ * **The copy is not a route line**, and three things follow:
+ *
+ *   · it is not in `cityRouteYields`, so a card that reads or multiplies a
+ *     route never sees it, and it never travels again;
+ *   · the age's count of what caravans carried (`Player.routeYieldsThisAge`)
+ *     leaves it out;
+ *   · it is staged with the town's other flats at step 12, as the routes
+ *     arriving are.
+ *
+ * A route to another empire is not copied: its sender's half is already the
+ * sender's (`explainRouteSenderYieldBetween`). A lapsed or broken route pays
+ * its destination nothing, so it copies nothing. `state.units` order.
+ */
+export function cityReturnLegYields(state: GameState, city: City): ReturnLegLine[] {
+  const lines: ReturnLegLine[] = [];
+  const law = cardReturnLeg(state, city.ownerId);
+  if (law === null) return lines;
+  for (const unit of state.units) {
+    const route = unit.trade;
+    if (route?.from !== city.id) continue;
+    const pair = liveRouteCities(state, unit);
+    if (pair === null || routeIsInternational(pair.from, pair.to)) continue;
+    const to = pair.to;
+    const copy = routeLinesBetween(
+      state,
+      pair.from,
+      to,
+      routeMode(route),
+      routeAge(state, route),
+      (note) => `Caravan to ${to.name} · ${note}`,
+    );
+    for (const copied of copy) {
+      lines.push({ ...copied, source: `${law.source} · ${copied.source}`, card: law.card });
+    }
+  }
+  return lines;
 }
 
 /**

@@ -188,7 +188,9 @@ describe('the Commerce deck is one deck', () => {
     // Batch T2 adds the eight new cards that need no new shape (Market Day,
     // The Emporia, The Grain Banks, The Market Halls, Names in Stone, The
     // Hanse, Bills of Exchange and The Grain Barges), so 93 rows become 101.
-    expect(COMMERCE.length).toBe(101);
+    // Batch T3 adds The Fondaci, The Champagne Fairs and The Lingua Franca,
+    // so 101 rows become 104.
+    expect(COMMERCE.length).toBe(104);
     expect(retired().length).toBe(34);
     for (const id of COMMERCE) {
       expect(orderDef(id).decks, id).toEqual(['commerce']);
@@ -239,10 +241,12 @@ describe('the Commerce deck is one deck', () => {
     // deck is the sheet's rows that have a data row: 8 / 8 / 18 / 15 / 10.
     // Batch T2 adds two rows at Tier 0, two at Tier I, three at Tier II and
     // one at Tier IV: 10 / 10 / 21 / 15 / 11.
-    expect([count(0), count(1), count(2), count(3), count(4)]).toEqual([15, 19, 34, 19, 14]);
+    // Batch T3 adds one row at Tier II (The Fondaci) and two at Tier III (The
+    // Champagne Fairs, The Lingua Franca): 10 / 10 / 22 / 17 / 11.
+    expect([count(0), count(1), count(2), count(3), count(4)]).toEqual([15, 19, 35, 21, 14]);
     const kept = COMMERCE.filter((id) => orderDef(id).retired !== true).map((id) => orderDef(id).band);
     expect([0, 1, 2, 3, 4].map((band) => kept.filter((b) => b === band).length)).toEqual([
-      10, 10, 21, 15, 11,
+      10, 10, 22, 17, 11,
     ]);
     expect(orderDef('civicReceipts' as OrderId).band).toBe(1);
   });
@@ -355,7 +359,9 @@ describe('a live Commerce row is a card', () => {
     // common.json.
     // **Batch T2**: sixty-four. Eight new rows, each written in shapes that
     // already existed.
-    expect(live().length).toBe(64);
+    // **Batch T3**: sixty-eight. Three new rows (The Fondaci, The Champagne
+    // Fairs, The Lingua Franca), and The Return Leg left the deferred list.
+    expect(live().length).toBe(68);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -457,6 +463,9 @@ describe('a live Commerce row is a card', () => {
     //
     // Batch T1 moved The Silk Road Monks to common.json, so the shift on the
     // religious tide left this file.
+    //
+    // Batch T3 adds a boon on a cadence: The Champagne Fairs' fair every ten
+    // turns.
     expect([...kinds].sort()).toEqual([
       'buildingYieldPercent',
       'cityRenownPercent',
@@ -466,6 +475,7 @@ describe('a live Commerce row is a card', () => {
       'offerRider',
       'pays',
       'percentYields',
+      'periodic',
       'productionBonus',
       'purchaseRider',
       'renown',
@@ -519,7 +529,8 @@ describe('a deferred Commerce row is a promise, not a card', () => {
     // Batch T1: three. The Consulate, The Post Riders and The Embargo are
     // retired. The Return Leg, Export Guilds and The Treaty Ports take their
     // new text, tier and rarity and wait for their batches.
-    expect(deferred().length).toBe(3);
+    // Batch T3: two. The Return Leg is dealt.
+    expect(deferred().length).toBe(2);
     for (const id of deferred()) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);
@@ -962,9 +973,10 @@ describe('the Commerce deck: the sheet of record', () => {
     expect(shared).toHaveLength(23);
   });
 
-  it('types every listed row, 67 of this file and 23 shared, and nothing else of this file', () => {
-    // 59 after batch T1, and the eight new rows of batch T2.
-    expect(LISTED).toHaveLength(67);
+  it('types every listed row, 70 of this file and 23 shared, and nothing else of this file', () => {
+    // 59 after batch T1, the eight new rows of batch T2 and the three of
+    // batch T3.
+    expect(LISTED).toHaveLength(70);
     for (const id of COMMERCE) {
       const def = orderDef(id);
       if (def.retired === true) expect(def.type, id).toBeUndefined();
@@ -2445,9 +2457,10 @@ describe('C4 — the great-house marker, read from both sides', () => {
     const writers = (match: (effect: CardEffect) => boolean): string[] =>
       COMMERCE.filter((id) => orderDef(id).effects.some(match));
 
-    // The route gate's two: one waives the reach, one lengthens it.
+    // The route gate's two: one waives the reach, one lengthens it. The
+    // waiver was `postsWaiveSeaRouteRange` until Commerce batch T3 widened it.
     expect(
-      writers((effect) => effect.kind === 'rule' && effect.rule === 'postsWaiveSeaRouteRange'),
+      writers((effect) => effect.kind === 'rule' && effect.rule === 'postsWaiveRouteRange'),
     ).toEqual(['theAdmiraltyOfTrade']);
     expect(
       writers((effect) => effect.kind === 'rulePercent' && effect.rule === 'seaRouteRange'),

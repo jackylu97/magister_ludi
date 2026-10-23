@@ -3,7 +3,7 @@
 The deck's cards, by tier: name, rarity, status, ability and type. This sheet is the spec of record for the deck. `test/sim/decks/commerce.test.ts` checks it against `data/decks/commerce.json` and, for the shared table, `data/decks/common.json`.
 
 - **Why each card is here:** `docs/plans/commerce-themes.md`, the themes pass of 2026-10-21. It designs the deck as a way to play: an engine of gold and what gold buys, and four themes (the home market, the far trade, the goods and the bankers). Section 12 is the revision of 2026-10-21, which moved the route cards to Tier II. Section 13 holds your answers of 2026-10-23, and it outranks the sections before it. `docs/plans/commerce-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
-- **The build plan:** `docs/plans/commerce-themes-triage.md` (batches T1 to T9). Batch T1 wrote this sheet, put the types into the data, retired the eleven cut rows, moved four rows to the shared file, and changed fifteen cards in place. Batch T2 built the eight new cards that need no new shape (Market Day, The Emporia, The Grain Banks, The Market Halls, Names in Stone, The Hanse, Bills of Exchange and The Grain Barges), and moved Merchant Scholars to Tier III with its new text. Batch T7 built the shared The Art Dealers and the moment a card is drafted, and moved Dominion's The Standing Army to the shared file. Each later batch sets its own rows to `implemented`.
+- **The build plan:** `docs/plans/commerce-themes-triage.md` (batches T1 to T9). Batch T1 wrote this sheet, put the types into the data, retired the eleven cut rows, moved four rows to the shared file, and changed fifteen cards in place. Batch T2 built the eight new cards that need no new shape (Market Day, The Emporia, The Grain Banks, The Market Halls, Names in Stone, The Hanse, Bills of Exchange and The Grain Barges), and moved Merchant Scholars to Tier III with its new text. Batch T7 built the shared The Art Dealers and the moment a card is drafted, and moved Dominion's The Standing Army to the shared file. Batch T3 built the route and post cards: The Foreign Factor, The Fondaci, The Return Leg, The Champagne Fairs, The Admiralty of Trade and The Lingua Franca. Each later batch sets its own rows to `implemented`.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -18,17 +18,17 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
   - **(was …)** names the data row that a renamed card takes over.
 - **Type:** the last column says which chair the card fits: **Military**, **Economic**, **Civic** or **Wildcard** (`docs/plans/doctrines-governments-chairs.md`, section 4). Since batch T1 the types are in the data. A Commerce card fits only a chair of its own type or a Wildcard chair. The sync test checks this column for every row in the data, the shared table's included.
 - **Charters:** two, counted in the Charters column below: The Planters' Charter (Tier I) and Numidian Cavalry (Tier II). A charter never takes a chair. Its type is only for the card's face.
-- **Doctrines:** none yet. Each of Tiers I to IV has an empty Doctrine table above its Orders. The Doctrines are the deck pass's next stage, after this build (the triage's "Doctrines" section).
+- **Doctrines:** none built. Each of Tiers I to IV has an empty Doctrine table above its Orders. Sixteen are proposed, four a tier, in `docs/plans/commerce-doctrines.md` (2026-10-23), for your review.
 - **The sheet of 2026-10-07** (69 cards, in the old format) is in git history: `git show 48f37cf8:docs/decks/commerce.md`.
 
 | Tier | Implemented | Modify | Add | All | Charters |
 |---|---|---|---|---|---|
 | Tier 0 | 9 | 1 | 0 | 10 | 0 |
 | Tier I | 8 | 2 | 2 | 12 | 1 |
-| Tier II | 17 | 4 | 3 | 24 | 1 |
-| Tier III | 12 | 3 | 4 | 19 | 0 |
+| Tier II | 19 | 3 | 2 | 24 | 1 |
+| Tier III | 16 | 1 | 2 | 19 | 0 |
 | Tier IV | 9 | 2 | 1 | 12 | 0 |
-| **All** | **55** | **12** | **10** | **77** | **2** |
+| **All** | **61** | **9** | **7** | **77** | **2** |
 | Shared | 19 | 4 | 0 | 23 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
@@ -107,8 +107,8 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 | **The Hanse** | uncommon | implemented | +3% production and culture for each of your towns holding your trading post, at most +30%. | Civic |
 | **The Common Road** | common | implemented | Your foreign routes grant you +3 gold, +3 science and +3 culture. Each also grants its host city +3 gold. | Civic |
 | **The Exchange** | uncommon | modify: as built | Each different foreign empire your routes currently serve grants +5% science and culture empire-wide. Foreign routes to your cities grant +2 science and +2 culture to both you and the sender. | Civic |
-| **The Foreign Factor** | common | modify: reworked | Each foreign town holding your trading post gives you +1 science and +1 culture for every four of its citizens. Its owner gains +2 gold. | Civic |
-| **The Fondaci** | uncommon | add | Each time one of your trading posts is established, gain science and culture, each equal to twenty times the population of its town. | Civic |
+| **The Foreign Factor** | common | implemented | Each foreign town holding your trading post gives you +1 science and +1 culture for every four of its citizens. Its owner gains +2 gold. | Civic |
+| **The Fondaci** | uncommon | implemented | Each time one of your trading posts is established, gain science and culture, each equal to twenty times the population of its town. | Civic |
 | **Royal Assays** | uncommon | implemented | Each improved luxury resource deposit with a mine provides one additional copy of that luxury. | Economic |
 | **Mining Districts** | uncommon | implemented | Worked mines gain +2 gold and +2 science for every two adjacent mines. | Civic |
 | **The Spice Exchange** | rare | implemented | Every city gains +5% science and +5% culture for each luxury you hold two or more copies of, at most +30%. | Civic |
@@ -136,12 +136,12 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 | **A Guild Commission** | uncommon | implemented | Commission. Goal: buy five buildings with gold while seated. Reward: a free great-person draft, the same offer Merchant Princes sells for gold. The card then leaves its chair. | Wildcard |
 | **Caravanserai Cities** | uncommon | implemented | Caravanserais can be built in every city. | Economic |
 | **The Chartered Metropolis** | rare | implemented | Cities with at least three of your paying outgoing routes gain +38% food, production and culture, but each costs +4 authority while qualified. | Economic |
-| **The Return Leg** | rare | modify: deferred | Your trade routes between your own towns also pay their origin everything they pay their destination. | Economic |
-| **The Champagne Fairs** | uncommon | add | Every ten turns, each town that receives a domestic trade route grants culture equal to ten times its population. | Civic |
+| **The Return Leg** | rare | implemented | Your trade routes between your own towns also pay their origin everything they pay their destination. | Economic |
+| **The Champagne Fairs** | uncommon | implemented | Every ten turns, each town that receives a domestic trade route grants culture equal to ten times its population. | Civic |
 | **Established Routes** | uncommon | implemented | A trade route you have kept up for at least twenty turns pays 50% more. A route that lapses, is cancelled or is plundered begins its term again. | Economic |
 | **The Scholars' Roads** | rare | implemented | Lose 4 route capacity. Your routes gain +2 science and +2 culture, and gain +50% science and culture. | Civic |
-| **The Admiralty of Trade** | uncommon | modify: reworked; rarity | Your trade routes to a town holding your trading post have no range limit. | Economic |
-| **The Lingua Franca** | uncommon | add | +1% science and culture for every three trade routes running anywhere in the world, at most +30%. | Civic |
+| **The Admiralty of Trade** | uncommon | implemented | Your trade routes to a town holding your trading post have no range limit. | Economic |
+| **The Lingua Franca** | uncommon | implemented | +1% science and culture for every three trade routes running anywhere in the world, at most +30%. | Civic |
 | **The Monopoly** | rare | modify: as built | For each luxury you hold three or more copies of and no other empire holds, gain +8 gold, +5 culture and +1 happiness in every city. | Economic |
 | **The Commenda** | rare | add | Luxuries you lend in a deal count as half a copy for you. | Economic |
 | **The Capitulations** | uncommon | add | Each foreign town holding your trading post lends you one of its luxuries that you lack, at half value. | Economic |
@@ -231,7 +231,7 @@ These rows stay in the data so that old saves load. They are dealt to nobody, th
   - **Approved as recommended:** the engine and the four themes, feature D (deals as a card quantity), the rule-breakers, the trims, the moves to the shared cards, the cuts, Established Routes at twenty turns with bots that renew a route, and Tier II as the first tier for route cards.
   - **The triage's questions 1 to 7** (*"approved, lets begin implementation. for 1-7, go with the recommendations."*): the build uses readings 1 to 42, shares Dominion's The Standing Army with Commerce, and builds The Art Dealers (both in batch T7).
 - **Still open:**
-  - **Commerce's Doctrines:** none designed. The deck pass's next stage writes three to five for each of Tiers I to IV, and a triage of their own builds them.
+  - **Commerce's Doctrines:** sixteen proposed on 2026-10-23 (`docs/plans/commerce-doctrines.md`), waiting for your review; a triage of their own builds them.
   - **Seven rows play as built:** The Planters' Charter, Numidian Cavalry, The Exchange, The Monopoly, The Great Loan, The Silk Road Monks and The Brokers' Redraw. The list doc's row for each says what the game does. A later pass either rewrites their text to what the game does or builds the text.
   - **The Merchant Works** touches the wonder split. It stays as written. Say if you want "a world wonder" dropped from its text.
   - **The cards shared with Devotion and Magisterial** keep their built text and this sheet's types until those decks' passes. Travelling Players keeps its built text until the Magisterial pass (the triage's reading 38).

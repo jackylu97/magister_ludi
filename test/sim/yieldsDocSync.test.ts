@@ -179,6 +179,39 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
   });
 
   /**
+   * **Step 6 has a second half** (Commerce batch T3, The Return Leg): under
+   * the `homeRoutesPayOrigin` rule, a copy of what each home route leaving the
+   * town pays its destination. The step's anchor is the routes arriving, so
+   * the walk above checks only that one. This checks that the doc's step 6
+   * names the copy, that `explainCity` reads it after the routes arriving and
+   * before the palace, and that the doc names the rule that pays it.
+   *
+   * The `rule` kind stays silent in the kind lists below, because a rule pays
+   * nothing by its kind; the two rule ids that touch a voice inside the
+   * sequence are pinned here by name instead.
+   */
+  it('reads The Return Leg’s copy inside step 6, after the routes arriving', () => {
+    const row = docRows().find((cells) => cells[1] === '6');
+    expect(row, 'the doc has no step 6').toBeDefined();
+    // The Reads cell, beside the step's anchor.
+    expect(row![3]).toContain('`cityReturnLegYields`');
+    expect(row![3]).toContain('`homeRoutesPayOrigin`');
+    const town = body(YIELDS, 'explainCity');
+    const arriving = town.indexOf('cityRouteYields(');
+    const copy = town.indexOf('cityReturnLegYields(');
+    const palace = town.indexOf('explainPalaceYield(');
+    expect(arriving).toBeGreaterThanOrEqual(0);
+    expect(copy).toBeGreaterThan(arriving);
+    expect(palace).toBeGreaterThan(copy);
+    // The register's prose names both rules that touch a voice, each with its
+    // step: the one that stops a voice and the one that pays one.
+    const register = section('## The register — every kind that pays a yield');
+    expect(register).toContain('`opusSiege`');
+    expect(register).toContain('`homeRoutesPayOrigin`');
+    expect(register).toMatch(/pays a voice, and it pays at step 6/);
+  });
+
+  /**
    * The steps a kind's register row may name — the same twenty.
    */
   it('gives every register row a step that exists', () => {

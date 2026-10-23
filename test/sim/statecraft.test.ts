@@ -2130,7 +2130,11 @@ describe("determinism", () => {
     // is dealt and pays on a card drafted, and The Standing Army moves to the
     // shared file for Dominion and Commerce. So a v170 log's Commerce,
     // Magisterial and Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(171);
+    // 172 since Commerce batch T3 (routes and posts): four Commerce cards come
+    // live, a post established is a new moment, a home route may pay its
+    // origin, and The Admiralty of Trade's waiver widens. So a v171 log's
+    // Commerce hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(172);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -8988,6 +8992,9 @@ describe("the engine shapes", () => {
     "theCustomsService · routeYield",
     "theBourse · buildingYieldPercent",
     "theNeutralFlag · routeYield",
+    // Commerce batch T3: The Champagne Fairs' fair every ten turns, counted
+    // off the citizens of the towns a home route arrives at.
+    "theChampagneFairs · periodic",
     // The Devotion deck batch: The Alms Roads' faith on roads out of Temple
     // towns (a route flat), The Penitents' Roll's pay per Order hand rerolled
     // while it is seated (the chair's counter, two voices), and The Doctors of

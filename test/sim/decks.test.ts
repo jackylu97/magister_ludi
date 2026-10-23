@@ -557,8 +557,12 @@ describe('the schema, as landed', () => {
     // **And Commerce batch T7** (the pair cards): one more. The Art Dealers is
     // a new shared row. The Standing Army moved from the Dominion file to the
     // shared file and was already live.
-    expect(live).toBe(568);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(568);
+    // **And Commerce batch T3** (routes and posts): four more. The Fondaci,
+    // The Champagne Fairs and The Lingua Franca are new Commerce rows, and The
+    // Return Leg left `deferred`. The Foreign Factor and The Admiralty of
+    // Trade changed in place and were already live.
+    expect(live).toBe(572);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(572);
   });
 
   /**
@@ -876,7 +880,11 @@ describe('the schema, as landed', () => {
     // is dealt and pays on a card drafted, and The Standing Army moves to the
     // shared file for Dominion and Commerce. So a v170 log's Commerce,
     // Magisterial and Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(171);
+    // 172 since Commerce batch T3 (routes and posts): four Commerce cards come
+    // live, a post established is a new moment, a home route may pay its
+    // origin, and The Admiralty of Trade's waiver widens. So a v171 log's
+    // Commerce hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(172);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1124,9 +1132,10 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // **Commerce batch T1** retired the themes pass's eleven cuts: eight
       // live rows and three deferred ones, The Consulate, The Post Riders and
       // The Embargo (− 3, and + 11 retired).
+      // **Commerce batch T3** freed The Return Leg (− 1).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(29);
+      ).toHaveLength(28);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(199);
     }
   });

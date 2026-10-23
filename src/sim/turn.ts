@@ -173,6 +173,7 @@ import {
   routeMode,
   routeTarget,
   routeTermFor,
+  runPostEstablishments,
 } from "./trade";
 import { type TriumphAward, triumphMarks, triumphsSince } from "./triumphs";
 import {
@@ -642,7 +643,17 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // production is settled. Every real empire's joined towns are recorded,
     // with or without the card, so a card seated later pays nothing for the
     // past. See `runRoadJoinings`.
-    run: (state) => runRoadJoinings(state),
+    //
+    // The posts established this turn pay their moment here too (The Fondaci,
+    // Commerce batch T3), after the joinings. In this phase rather than its
+    // own, so the phase list keeps its length and every resolution raises the
+    // revision as many times as before. Before `commissions`, which is what
+    // lets a commission that writes a post call the helper itself. See
+    // `runPostEstablishments` (`trade.ts`).
+    run: (state) => {
+      runRoadJoinings(state);
+      runPostEstablishments(state);
+    },
   },
   {
     name: "collectYields",

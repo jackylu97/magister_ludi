@@ -5616,9 +5616,8 @@
   ],
   "theReturnLeg": [
    {
-    "raw": "a trade route between two of your towns also pays the town it left everything it pays the town it reaches — not built yet",
-    "text": "a trade route between two of your towns also pays the town it left everything it pays the town it reaches — not built yet",
-    "deferred": true
+    "raw": "your trade routes between your own cities also pay the city they leave everything they pay the city they reach",
+    "text": "your trade routes between your own cities also pay the city they leave everything they pay the city they reach"
    }
   ],
   "ventureRoutes": [
@@ -5778,8 +5777,12 @@
   ],
   "theForeignFactor": [
    {
-    "raw": "+5 gold per foreign city holding your trading post",
-    "text": "+5 gold per foreign city holding your trading post"
+    "raw": "+1 science per 4 citizens of each foreign city holding your trading post",
+    "text": "+1 science per 4 citizens of each foreign city holding your trading post"
+   },
+   {
+    "raw": "+1 culture per 4 citizens of each foreign city holding your trading post",
+    "text": "+1 culture per 4 citizens of each foreign city holding your trading post"
    },
    {
     "raw": "+2 gold in every foreign city holding your trading post",
@@ -6047,8 +6050,8 @@
   ],
   "theAdmiraltyOfTrade": [
    {
-    "raw": "your sea routes may join two cities that both hold your trading post however far apart they are",
-    "text": "your sea routes may join two cities that both hold your trading post however far apart they are"
+    "raw": "your trade routes to a city holding your trading post have no range limit",
+    "text": "your trade routes to a city holding your trading post have no range limit"
    }
   ],
   "entrenchedInterests": [
@@ -6369,6 +6372,32 @@
    {
     "raw": "+1 food, +1 production per 4 citizens in the origin city, on trade routes between two of your own cities",
     "text": "+1 food, +1 production per 4 citizens in the origin city, on trade routes between two of your own cities"
+   }
+  ],
+  "theFondaci": [
+   {
+    "raw": "one of your trading posts being established grants science equal to 20 times the population of its city",
+    "text": "one of your trading posts being established grants science equal to 20 times the population of its city"
+   },
+   {
+    "raw": "one of your trading posts being established grants culture equal to 20 times the population of its city",
+    "text": "one of your trading posts being established grants culture equal to 20 times the population of its city"
+   }
+  ],
+  "theChampagneFairs": [
+   {
+    "raw": "every 10 turns, 10 culture for every citizen in a city one of your own trade routes ends at",
+    "text": "every 10 turns, 10 culture for every citizen in a city one of your own trade routes ends at"
+   }
+  ],
+  "theLinguaFranca": [
+   {
+    "raw": "+1% science in every city per 3 trade routes running anywhere in the world (at most +30% science)",
+    "text": "+1% science in every city per 3 trade routes running anywhere in the world (at most +30% science)"
+   },
+   {
+    "raw": "+1% culture in every city per 3 trade routes running anywhere in the world (at most +30% culture)",
+    "text": "+1% culture in every city per 3 trade routes running anywhere in the world (at most +30% culture)"
    }
   ],
   "devotionFirstRites": [

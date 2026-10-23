@@ -493,6 +493,10 @@ describe("the clock as a register", () => {
     // is dealt and pays on a card drafted, and The Standing Army moves to the
     // shared file for Dominion and Commerce. So a v170 log's Commerce,
     // Magisterial and Dominion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(171);
+    // 172 since Commerce batch T3 (routes and posts): four Commerce cards come
+    // live, a post established is a new moment, a home route may pay its
+    // origin, and The Admiralty of Trade's waiver widens. So a v171 log's
+    // Commerce hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(172);
   });
 });

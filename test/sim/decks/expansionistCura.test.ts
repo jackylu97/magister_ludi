@@ -425,7 +425,9 @@ const MOVED_READERS: Record<string, string> = {
   'religion.ts › templeShare': 'the temple',
   'renown.ts › explainRenown': 'the renown',
   'resourceEffects.ts › matchingBuildings': 'a luxury that pays per building of a category',
-  'routeYields.ts › explainRouteYieldBetween': 'the buildings a caravan counts',
+  // `explainRouteYieldBetween`'s body since Commerce batch T3, which gave it a
+  // label argument for The Return Leg's copy.
+  'routeYields.ts › routeLinesBetween': 'the buildings a caravan counts',
   'statecraft/evaluator.ts › cityBuildingEffects': 'the building\'s own effects (a `liveEffects` source)',
   'statecraft/evaluator.ts › buildingsOfCategoryIn': 'the `buildingsOfCategory` scope and count',
   'statecraft/evaluator.ts › cityScopeAdmits': '`hasBuilding` and `hasBuildingYielding`',

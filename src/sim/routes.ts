@@ -21,7 +21,14 @@
 import { cityBlockaded } from './blockade';
 import { offsetToAxial, wrappedDistance } from './map';
 import { RULES } from './rulesData';
-import { type City, type GameState, type TradeRoute, type Unit, cityById } from './state';
+import {
+  type City,
+  type CommercialPost,
+  type GameState,
+  type TradeRoute,
+  type Unit,
+  cityById,
+} from './state';
 // The war register, and the only thing this leaf asks about diplomacy.
 // `wars.ts` imports the rules, the state and the deal terms and nothing else.
 import { atWar } from './wars';
@@ -371,6 +378,22 @@ export function cityPostPays(state: GameState, city: City, playerId: number): bo
   if (!cityHoldsPost(state, city, playerId)) return false;
   if (atWar(state, playerId, city.ownerId)) return false;
   return !cityBlockaded(state, city);
+}
+
+/**
+ * **Does this post become established on the turn that is resolving?**
+ * (Commerce batch T3, The Fondaci.)
+ *
+ * `cityHoldsPost` asks whether the term has passed, and this asks whether it
+ * passes on this very turn: the turn on which `cityHoldsPost` first says yes.
+ * It is a comparison of two absolute turns, so nothing ticks and nothing is
+ * stored. It is true on one turn only for each record, because `since` never
+ * moves once a post is established. The sweep that pays the moment
+ * (`runPostEstablishments`, `trade.ts`) runs once a turn and asks this of
+ * every record.
+ */
+export function postEstablishedThisTurn(state: GameState, post: CommercialPost): boolean {
+  return state.turn - post.since === postTermTurns();
 }
 
 /**

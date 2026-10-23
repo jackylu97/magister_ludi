@@ -2382,8 +2382,35 @@ import {
  * seat's pools hold a new card, a Commerce seat's pools hold The Standing
  * Army, and the order of the rows in a Dominion seat's pools changes. The
  * branch migrates nothing, for the reason given under v119.
+ *
+ * v172 (branch `decks`; Commerce batch T3, `docs/plans/commerce-themes-
+ * triage.md`): **routes and posts.** No field joins the state. The rules that
+ * change:
+ *
+ *   · a new windfall moment, `postEstablished`, is paid once for each trading
+ *     post of an empire that becomes established, at home or abroad, with the
+ *     post's town and its citizens. A sweep in the `roadJoinings` phase pays
+ *     it; it writes nothing, so a game where no card pays the moment is
+ *     unchanged;
+ *   · a new rule, `homeRoutesPayOrigin`, makes a domestic route pay its origin
+ *     a copy of what it pays its destination, at step 6 of the town's fold;
+ *   · the rule `postsWaiveSeaRouteRange` is renamed `postsWaiveRouteRange`,
+ *     and it now waives the range of any route, by land or sea, whose
+ *     destination holds the sender's paying post;
+ *   · two new counts (the citizens of the foreign towns holding your paying
+ *     post, and every live route in the world), `population` narrowed by a
+ *     town scope, and a periodic boon that passes that scope to its count;
+ *   · The Fondaci, The Champagne Fairs and The Lingua Franca are new Commerce
+ *     cards; The Return Leg is dealt; The Foreign Factor and The Admiralty of
+ *     Trade (now uncommon) take their new text.
+ *
+ * **A v171 save is refused and does not replay.** A Commerce seat's pools
+ * hold four more cards, The Admiralty of Trade is drawn at a different
+ * rarity, and a seat holding The Foreign Factor or The Admiralty of Trade is
+ * paid and gated differently. The branch migrates nothing, for the reason
+ * given under v119.
  */
-export const SCHEMA_VERSION = 171;
+export const SCHEMA_VERSION = 172;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

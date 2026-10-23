@@ -340,8 +340,14 @@ describe('Commerce batch T1: tiers, retirements and moves', () => {
   });
 
   it('gives the three deferred rows their new text, tier and rarity, and deals none of them', () => {
+    // Commerce batch T3 built The Return Leg, so two rows are still deferred.
+    // The third keeps the tier, rarity and text T1 gave it, and is dealt.
+    expect([orderDef('theReturnLeg' as OrderId).band, orderDef('theReturnLeg' as OrderId).rarity]).toEqual([
+      3,
+      'rare',
+    ]);
+    expect(orderIsDealt('theReturnLeg' as OrderId)).toBe(true);
     const rows: Record<string, [number, string]> = {
-      theReturnLeg: [3, 'rare'],
       exportGuilds: [1, 'uncommon'],
       theTreatyPorts: [2, 'uncommon'],
     };

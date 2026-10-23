@@ -438,11 +438,13 @@
       "type": "economic",
       "flavor": "The cart comes back. Something should be in it.",
       "text": "Your trade routes between your own towns also pay their origin everything they pay their destination.",
-      "effects": [],
-      "deferred": [
-        "a trade route between two of your towns also pays the town it left everything it pays the town it reaches"
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "homeRoutesPayOrigin"
+        }
       ],
-      "note": "Waiting on a new rule. A trade route pays only the town it reaches, and nothing yet copies that pay to the town it left."
+      "note": "The town a trade route between your own cities leaves is paid what the town it reaches is paid, line for line: the route's own pay, every card's addition to it, and a blockade that stops it. The copy stays in the town it was paid to, and no card that raises what trade routes pay raises it a second time. A trade route to another empire is not copied."
     },
     "ventureRoutes": {
       "name": "Venture Routes",
@@ -952,15 +954,25 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "Our man in their market, and their man in ours.",
-      "text": "Each foreign city holding your trading post grants you +5 gold and its host city +2 gold per turn while you are at peace and the host is not blockaded.",
+      "text": "Each foreign town holding your trading post gives you +1 science and +1 culture for every four of its citizens. Its owner gains +2 gold.",
       "effects": [
         {
           "kind": "pays",
           "where": "empire",
           "basis": "count",
-          "to": "gold",
-          "amount": 5,
-          "count": "postCities"
+          "count": "postCitizens",
+          "perTown": 4,
+          "to": "science",
+          "amount": 1
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "postCitizens",
+          "perTown": 4,
+          "to": "culture",
+          "amount": 1
         },
         {
           "kind": "pays",
@@ -969,7 +981,7 @@
           "gold": 2
         }
       ],
-      "note": "A trading post is established after a full route term of unbroken trading with a town, and it is yours from then on. The two provisos the card prints are the rule every post follows and not this card's own: a post pays nobody while its holder and the host are at war, or while the host city is blockaded. Both halves count the same posts, so the coin you take and the coin the host takes always match."
+      "note": "A trading post is established after a full route term of unbroken trading with a town, and it is yours from then on. A post pays nobody while its holder and the host are at war, or while the host city is blockaded. Each town's citizens are counted on their own, so what is left over in one town does not add to another's. Both halves count the same posts."
     },
     "theConsulate": {
       "name": "The Consulate",
@@ -1790,17 +1802,17 @@
       ],
       "band": 3,
       "line": "none",
-      "rarity": "rare",
+      "rarity": "uncommon",
       "type": "economic",
       "flavor": "The sea has no middle, only two ends.",
-      "text": "A sea trade route between two cities that both hold your trading post has no range limit.",
+      "text": "Your trade routes to a town holding your trading post have no range limit.",
       "effects": [
         {
           "kind": "rule",
-          "rule": "postsWaiveSeaRouteRange"
+          "rule": "postsWaiveRouteRange"
         }
       ],
-      "note": "The waiver is one named rule read at the one place the gate prices a route's reach, beside the clause it lifts. It is narrow on purpose: the road must run by sea, and both towns must hold a post of yours that is actually paying — a war or a blockade suspends the privilege exactly as it suspends a post's income, which is the rule every post already follows. Nothing else about the gate moves, so the card's second sentence is true by construction: a sea lane no caravan could sail, a partner you have not met, a war, a full slot table and a route already running that way are all still refused."
+      "note": "Only the town the route goes to needs your trading post, and the post must be paying: a war or a blockade suspends the waiver as it suspends a post's income. Routes by land and by sea are treated alike. Nothing else about sending a route changes: a lane no caravan could use, a partner you have not met, a war, a full set of trade routes and a route already running that way are all still refused."
     },
     "entrenchedInterests": {
       "name": "Entrenched Interests",
@@ -2894,6 +2906,102 @@
           "production": 1
         }
       ]
+    },
+    "theFondaci": {
+      "name": "The Fondaci",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "A house in their harbour, with our name over the door.",
+      "text": "Each time one of your trading posts is established, gain science and culture, each equal to twenty times the population of its town.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "postEstablished",
+          "grant": {
+            "yield": "science",
+            "amount": 20,
+            "fromOccasion": "population"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "postEstablished",
+          "grant": {
+            "yield": "culture",
+            "amount": 20,
+            "fromOccasion": "population"
+          }
+        }
+      ],
+      "note": "A trading post is established after a full route term of unbroken trading with a town. A trade route leaves your trading post at both of its ends, so one route to a new town can establish two posts, and each pays by the size of its own town. A town that already holds your trading post does not establish it again. The moment comes whether or not the post is paying that turn."
+    },
+    "theChampagneFairs": {
+      "name": "The Champagne Fairs",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The fair comes round, and the whole province comes to it.",
+      "text": "Every ten turns, each town that receives a domestic trade route grants culture equal to ten times its population.",
+      "effects": [
+        {
+          "kind": "periodic",
+          "everyTurns": 10,
+          "pays": "culture",
+          "amount": 10,
+          "count": "population",
+          "admits": {
+            "test": "routeEndsHere",
+            "crossing": "domestic"
+          }
+        }
+      ],
+      "note": "A fair counts each of your cities that one of your own trade routes reaches on the turn the fair is held, and pays for every citizen living there. The culture goes to your empire. The fairs are counted from the turn you seat the card."
+    },
+    "theLinguaFranca": {
+      "name": "The Lingua Franca",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Half of every word is borrowed, and every port understands it.",
+      "text": "+1% science and culture for every three trade routes running anywhere in the world, at most +30%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "worldTradeRoutes",
+          "to": "science",
+          "percent": 1,
+          "per": 3,
+          "stage": "city",
+          "max": 30
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "worldTradeRoutes",
+          "to": "culture",
+          "percent": 1,
+          "per": 3,
+          "stage": "city",
+          "max": 30
+        }
+      ],
+      "note": "Every trade route that is running counts, whoever sent it and wherever it goes, your own included. A route that is renewed is still one route."
     }
   }
 }
