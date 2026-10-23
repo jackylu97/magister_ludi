@@ -18,7 +18,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
   - **(was …)** names the data row that a renamed card takes over.
 - **Type:** the last column says which chair the card fits: **Military**, **Economic**, **Civic** or **Wildcard** (`docs/plans/doctrines-governments-chairs.md`, section 4). Since batch S1b the types are in the data. A Scientific card fits only a chair of its own type or a Wildcard chair. The sync test checks this column for every row in the data, the shared table's included.
 - **Charters:** thirteen, counted in the Charters column below. A charter never takes a chair. Drafting it opens its charter technology for research, and knowing that technology gives what the text says. Its type is only for the card's face. A charter's text starts "Drafting this opens" and ends "No chair required.", as the data writes it. A charter stayed deferred until its whole gift was built (the triage's reading 21). All thirteen are dealt since batch S5.
-- **Doctrines:** none yet.
+- **Doctrines:** none built. Sixteen are proposed, four a tier, in `docs/plans/scientific-doctrines.md` (2026-10-23), for your review.
 - **The sheet of 2026-10-12** (61 cards, 11 charters) is in git history: `git show 4aa4be29:docs/decks/scientific.md`.
 
 | Tier | Implemented | Modify | Add | All | Charters |
