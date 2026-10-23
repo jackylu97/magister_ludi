@@ -91,17 +91,25 @@ import {
   type BotDecision,
   type ValueTerm,
   appraise,
+  foldTerms,
   nest,
 } from './decision';
-import type { ValueContext } from './value';
+import { type ValueContext, explainCountStep, voiceWeight } from './value';
 
 import { buildingCityStat, foldBuildingCityStat } from '../sim/buildingEffects';
-import { controlledResources, hasResource, resourceCopies } from '../sim/cities';
+import { controlledResources, hasResource, lentCopyPercent, resourceCopies } from '../sim/cities';
 import { cityBaseStrength } from '../sim/combat';
 import { explainTerrainDefense } from '../sim/terrainData';
 import { foldEmpireRates } from '../sim/yields/empire';
 import type { Command } from '../sim/commands';
-import { type DealProposal, type DealTerms, proposalsFor, termsAreEmpty } from '../sim/deals';
+import {
+  type DealProposal,
+  type DealTerms,
+  dealIsOngoing,
+  dealPartnerSeats,
+  proposalsFor,
+  termsAreEmpty,
+} from '../sim/deals';
 import {
   answerDealError,
   bargainSeatError,
@@ -579,6 +587,18 @@ function explainStanding(
  * `lacking` is the *receiving* side's clause: a luxury is a signature and a
  * second copy of one pays nothing new (`resourceEffects.ts`), so a kind already
  * in hand arrives worth nothing however many tiles of it change hands.
+ *
+ * **What lending pays this seat** (Commerce batch T9), on the giving side only
+ * (`lacking === null`). Each copy that leaves costs the baseline, less two
+ * things a card may pay back:
+ *
+ *   · the share of each copy the seat still counts while it is lent (The
+ *     Commenda, `lentCopyPercent`), at the same baseline;
+ *   · what the copies lent pay the seat's counted lines a turn (Export Guilds'
+ *     capital, `explainCountStep` on `copiesLent`), in coin at the gold price,
+ *     over a deal's life at this seat's price for a turn's tribute.
+ *
+ * Both are terms of their own, so a paper the cards make worth signing says why.
  */
 function explainSide(
   terms: DealTerms,
@@ -609,6 +629,10 @@ function explainSide(
       value: wanted ? ai.war.luxuryGoldBaseline : 0,
     });
   }
+  const lent = terms.luxuries ?? [];
+  if (lacking === null && lent.length > 0) {
+    for (const line of lendingTerms(lent.length, ctx)) lines.push(line);
+  }
   if (terms.openBorders === true) {
     // **Priced since the audience** (§12): it read as nought while nothing could
     // ask for one, and a term worth nothing is a term a counter can neither put
@@ -626,12 +650,79 @@ function explainSide(
 }
 
 /**
+ * **A per-turn figure in points, as coin over a deal's life**, one printed
+ * term whose parts fold to its value: the points ÷ this seat's price of a coin
+ * (`voiceWeight`), times its price for a turn's tribute
+ * (`war.luxuryGoldBaseline ÷ war.luxuryGptBaseline`), the rate `explainSide`
+ * already turns a tribute into coin by. `sign` is −1 for a term that takes
+ * away from what leaves.
+ */
+function dealCoinTerm(label: string, perTurn: Appraisal, sign: 1 | -1, ctx: ValueContext): ValueTerm {
+  const rate = ctx.ai.war.luxuryGoldBaseline / Math.max(1, ctx.ai.war.luxuryGptBaseline);
+  const coin = Math.max(Number.EPSILON, voiceWeight(ctx, 'gold'));
+  const parts: ValueTerm[] = [
+    nest('what it pays this seat’s cards a turn, in points', perTurn),
+    { label: `÷ ${round1(coin)} points a coin`, value: coin, op: 'div' },
+    { label: `× ${round1(rate)}, this seat’s price for a turn’s tribute`, value: rate, op: 'mul' },
+  ];
+  if (sign < 0) parts.push({ label: '× −1, taken off what leaves', value: -1, op: 'mul' });
+  return { label, value: foldTerms(parts), parts };
+}
+
+/**
+ * **What lending `copies` luxuries pays this seat back**, as negative terms on
+ * the giving side (Commerce batch T9). See `explainSide`.
+ */
+function lendingTerms(copies: number, ctx: ValueContext): ValueTerm[] {
+  const terms: ValueTerm[] = [];
+  const kept = lentCopyPercent(ctx.state, ctx.playerId) / 100;
+  if (kept > 0) {
+    terms.push({
+      label: `less ${round1(kept * 100)}% of each copy, which this seat still counts while it is lent`,
+      value: -kept * copies * ctx.ai.war.luxuryGoldBaseline,
+    });
+  }
+  const step = explainCountStep('copiesLent', copies, ctx);
+  if (step.total > 0) {
+    terms.push(dealCoinTerm('less what the copies lent pay this seat’s cards, over a deal', step, -1, ctx));
+  }
+  return terms;
+}
+
+/**
+ * **A new deal partner, as this seat's cards count one** (Commerce batch T9,
+ * The Treaty Ports), or `null`. Only a paper that leaves a deal row makes a
+ * partner (`dealIsOngoing`: a lump of coin alone leaves none), and only an
+ * empire the seat holds no live deal with yet is new (`dealPartnerSeats`).
+ * Priced as what one more partner pays the seat's counted lines a turn
+ * (`explainCountStep` on `dealPartners`), in coin over a deal's life.
+ */
+function newPartnerTerm(
+  state: GameState,
+  player: Player,
+  partner: number | undefined,
+  take: DealTerms,
+  give: DealTerms,
+  ctx: ValueContext,
+): ValueTerm | null {
+  if (partner === undefined || !dealIsOngoing(take, give)) return null;
+  if (dealPartnerSeats(state, player.id).includes(partner)) return null;
+  const step = explainCountStep('dealPartners', 1, ctx);
+  if (step.total <= 0) return null;
+  return dealCoinTerm('a new deal partner, which this seat’s cards count, over a deal', step, 1, ctx);
+}
+
+/**
  * A whole paper from one seat's side: what arrives, less what leaves.
  *
  * The two sides ask different questions of the board and that asymmetry is the
  * design: what **arrives** is worth something only if this empire lacks the
  * kind, and what **leaves** costs the baseline whatever it is. Whether a seam
  * may leave at all is a separate, harder clause — see `asksOurLastCopy`.
+ *
+ * `partner` is the other seat, where the caller knows it. A paper with a new
+ * deal partner on it arrives with one more term (`newPartnerTerm`, Commerce
+ * batch T9).
  */
 function explainPaper(
   state: GameState,
@@ -639,8 +730,11 @@ function explainPaper(
   take: DealTerms,
   give: DealTerms,
   ctx: ValueContext,
+  partner?: number,
 ): { appraisal: Appraisal; taken: number; given: number } {
-  const gained = explainSide(take, ctx, (id) => !hasResource(state, player.id, id), 'to us');
+  const side = explainSide(take, ctx, (id) => !hasResource(state, player.id, id), 'to us');
+  const partnerTerm = newPartnerTerm(state, player, partner, take, give, ctx);
+  const gained = partnerTerm === null ? side : appraise([...side.terms, partnerTerm]);
   const lost = explainSide(give, ctx, null, 'from us');
   return {
     appraisal: appraise([
@@ -725,7 +819,7 @@ export function answerProposal(
   ctx: ValueContext,
 ): BotDecision {
   // From this seat's side the proposer's `give` is what arrives.
-  const read = explainPaper(state, player, row.give, row.take, ctx);
+  const read = explainPaper(state, player, row.give, row.take, ctx, row.by);
   const paper = read.appraisal;
   const arriving = read.taken;
   const lastCopy = asksOurLastCopy(state, player, row.take);
@@ -1034,6 +1128,7 @@ function readPeaceOffer(
           sideOf(paper, enemy.id, player.id),
           sideOf(paper, player.id, enemy.id),
           ctx,
+          enemy.id,
         ).appraisal;
   const fair = value.total >= -owed;
   const refusal = proposePeaceError(state, player.id, enemy.id);
@@ -1268,7 +1363,7 @@ export function counterTerms(
     appraisal: appraise([]),
   };
   const askingForNothing = termsAreEmpty(counter.take) && !termsAreEmpty(counter.give);
-  const read = explainPaper(state, bot, counter.give, counter.take, ctx);
+  const read = explainPaper(state, bot, counter.give, counter.take, ctx, askerSeat);
 
   if (askingForNothing) {
     // **What would you give for this?** — the bot's own side, down to even.
@@ -1327,7 +1422,7 @@ export function counterTerms(
     if (dealSideError(state, askerSeat, botSeat, counter.give, peace) !== null) return null;
   }
 
-  const settled = explainPaper(state, bot, counter.give, counter.take, ctx);
+  const settled = explainPaper(state, bot, counter.give, counter.take, ctx, askerSeat);
   counter.appraisal = appraise([
     nest('the counter, from our side', settled.appraisal),
     { label: `the bar this seat signs at is ${round1(bar)}`, value: 0 },
@@ -2043,7 +2138,7 @@ function writeSwap(
   }
   const refusal = proposeDealError(state, player.id, enemy.id, written.give, written.take);
   if (refusal !== null) return { ...written, rejected: refusal };
-  const read = explainPaper(state, player, written.take, written.give, ctx).appraisal;
+  const read = explainPaper(state, player, written.take, written.give, ctx, enemy.id).appraisal;
   const lines =
     written.sweetener === null
       ? read.terms

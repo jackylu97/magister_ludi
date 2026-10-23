@@ -167,6 +167,7 @@ import {
   explainYields,
   newResourceTerms,
   realmResources,
+  voiceWeight,
   spareResourceCopies,
   sciencePrice,
   techCostFor,
@@ -186,6 +187,7 @@ import {
   type WantInputs,
   expectedBestOrder,
   meterPrices,
+  purseOf,
   shadowPrices,
   stepAsideFor,
   wantBook,
@@ -320,6 +322,9 @@ import {
   sealTurnsFor,
   slotTypesOf,
   unslotOrderError,
+  // Commerce batch T9: a unit whose upkeep a card has waived for a while
+  // (Mercenary Contracts) saves nothing when it is let go.
+  upkeepWaived,
 } from '../sim/statecraft';
 import {
   type CardId,
@@ -613,7 +618,7 @@ export function valueContext(state: GameState, player: Player): ValueContext {
  * What a sitting is **not** is a licence to appraise against a board that has
  * moved. Anything a mid-turn mutation invalidates is re-read from `state` by the
  * arm that needs it and never by rebuilding the book: the spend arm asks
- * `purchaseError` and `bankOf` at the moment it fires (see `bankSpend`), the
+ * `purchaseError` and the purse (`purseOf`) at the moment it fires (see `bankSpend`), the
  * contribution arm asks `contributeError`, and every arm's command is validated
  * by the simulation before it is proposed exactly as it always was.
  *
@@ -1042,6 +1047,81 @@ function goldReserveFor(state: GameState, player: Player): number {
   const ai = aiFor(player);
   const turns = Math.max(0, ai.solvency.reserveTurnsOfUpkeep);
   return Math.floor(turns * upkeepBill(state, player.id));
+}
+
+/** The books' half of a debt charge: the gold income, and what a turn of debt loses. */
+export interface DebtReading {
+  /** Gold a turn (`netGoldPerTurn`). */
+  net: number;
+  /** The share of science and culture a turn of debt takes (`rules.upkeep.debtPercent`). */
+  share: number;
+  /** What that share of this turn's science and culture is worth, in points. */
+  lost: number;
+}
+
+/**
+ * The books' half of `withDebtCharge`, read once for every want the purse
+ * weighs: two empire folds, which are the dear part.
+ */
+function debtReading(state: GameState, player: Player, ctx: ValueContext): DebtReading {
+  const rates = foldEmpireRates(state, player.id);
+  const share = Math.max(0, -RULES.upkeep.debtPercent) / 100;
+  const lost =
+    share *
+    (Math.max(0, rates.sciencePerTurn ?? 0) * voiceWeight(ctx, 'science') +
+      Math.max(0, rates.culturePerTurn ?? 0) * voiceWeight(ctx, 'culture'));
+  return { net: netGoldPerTurn(state, player.id), share, lost };
+}
+
+/**
+ * **A gold want, charged for the debt it would run up**, or `null` when the
+ * charge leaves it worth nothing (Commerce batch T9).
+ *
+ * Only Letters of Credit lets a purchase take the treasury below zero, and a
+ * treasury below zero costs a share of the empire's science and culture every
+ * turn (`rules.upkeep.debtPercent`, `treasuryInDebt`). So a purchase that
+ * leaves the treasury below zero is charged:
+ *
+ *   · the turns the treasury takes to climb back to zero at the seat's gold
+ *     income (`netGoldPerTurn`), never more than the horizon, and the whole
+ *     horizon while the income is not positive;
+ *   · times the share of this turn's science and culture the debt takes, at
+ *     their weights;
+ *   · as a one-time cost, converted to a per-turn figure by
+ *     `score.lumpTurns`, the bot's one rate between a stock and a flow.
+ *
+ * The charge is one more printed term on the want, so the want's worth stays
+ * the fold of its terms. A purchase that keeps the treasury at zero or above
+ * is returned unchanged, so a seat without the card is priced as before.
+ */
+export function withDebtCharge(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  want: Want,
+  /** The books' half of the charge, when the caller has read it already. */
+  reading?: DebtReading,
+): Want | null {
+  const below = want.price - Math.max(0, player.gold);
+  if (below <= 0) return want;
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const { net, lost, share } = reading ?? debtReading(state, player, ctx);
+  const turns = net > 0 ? Math.min(horizon, below / net) : horizon;
+  const charge = (lost * turns) / Math.max(1, ctx.ai.score.lumpTurns);
+  if (charge <= 0) return want;
+  const terms: ValueTerm[] = [
+    ...want.terms,
+    {
+      label:
+        `− the debt: about ${round1(turns)} turns below zero, each losing ` +
+        `${round1(share * 100)}% of science and culture, once`,
+      value: charge,
+      op: 'sub',
+    },
+  ];
+  const worth = foldTerms(terms);
+  if (worth <= 0) return null;
+  return { ...want, worth, terms };
 }
 
 /**
@@ -3283,7 +3363,9 @@ function heldInDecks(player: Player, decks: readonly DeckId[]): number {
  *     empire with no army at all is not solvent, it is finished;
  *   · it only takes a piece that **is actually on the payroll** (`unitUpkeepOf`,
  *     which is the *piece's* reading and so respects `Unit.freeUpkeep`): letting
- *     go of a settler saves nothing at all.
+ *     go of a settler saves nothing at all. Since Commerce batch T9 the reading
+ *     is net of a waiver hung on the piece (`upkeepWaived`, Mercenary
+ *     Contracts), so a unit that costs nothing for now is not let go first.
  *
  * Which piece: the one paying the most gold per point of strength — the worst
  * value on the payroll, which is exactly what "redundant" means when every piece
@@ -3307,7 +3389,10 @@ function disbandCommand(state: GameState, player: Player): BotDecision | null {
   let worstCandidate: BotCandidate | null = null;
   for (const unit of state.units) {
     if (unit.ownerId !== player.id) continue;
-    const upkeep = unitUpkeepOf(unit);
+    // **What letting it go saves**, net of a waiver hung on the unit (Commerce
+    // batch T9, Mercenary Contracts' twenty turns): a waived unit costs the
+    // payroll nothing until its waiver runs out, so it is not on the payroll.
+    const upkeep = upkeepWaived(state, unit) ? 0 : unitUpkeepOf(unit);
     if (upkeep <= 0) {
       candidates.push(refused(unitLabel(unit), 'it is not on the payroll — letting it go saves nothing'));
       continue;
@@ -4325,6 +4410,7 @@ function bankSpend(
   // asking it once per candidate would be one empire sweep per row for sale.
   const reserve = currency === 'gold' ? goldReserveFor(state, player) : 0;
   const candidates: BotCandidate[] = [];
+  let debt: DebtReading | undefined;
 
   let bar: Want | null = null;
   // The buyable rows the treasury still covers, each beside the candidate row it
@@ -4347,16 +4433,33 @@ function bankSpend(
     }
     // **The treasury is read live, never off the book** (batch 6). The book was
     // priced when the seat sat down and a purchase since then has spent from it,
-    // so the cover is asked of `bankOf` at the moment the question is put.
-    if (bankOf(player, currency) - want.price < reserve) {
+    // so the cover is asked of the purse at the moment the question is put.
+    //
+    // **The purse includes the seat's credit** (Commerce batch T9): what the
+    // gold gates let it spend (`purseOf`, the simulation's `spendableGold`), so
+    // a seat holding Letters of Credit may buy below zero. It keeps its own
+    // reserve above the lowest treasury the credit allows.
+    if (purseOf(state, player, currency) - want.price < reserve) {
       candidates.push(
         refused(want.label, `${reserve} ${currency} of cover would not survive the price`),
       );
       continue;
     }
-    const candidate = wantCandidate(want, currency, false);
+    // **A purchase that runs the treasury into debt pays for the debt**
+    // (Commerce batch T9). See `withDebtCharge`. The books are read once, and
+    // only when some purchase would leave the treasury below zero.
+    const owes = currency === 'gold' && want.price > Math.max(0, player.gold);
+    if (owes) debt ??= debtReading(state, player, ctx);
+    const priced = owes ? withDebtCharge(state, player, ctx, want, debt) : want;
+    if (priced === null) {
+      candidates.push(
+        refused(want.label, 'the debt it would run up costs more than it brings'),
+      );
+      continue;
+    }
+    const candidate = wantCandidate(priced, currency, false);
     candidates.push(candidate);
-    offers.push({ want, candidate });
+    offers.push({ want: priced, candidate });
   }
 
   // **The rules are asked again at the moment of firing** — the other half of the

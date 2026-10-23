@@ -113,6 +113,8 @@ import {
   explainUpkeepCost,
   explainYields,
   bagOfTileYield,
+  hexPurchaseRiderTerm,
+  holdsHexPurchaseRider,
   newResourceTerms,
   yieldDelta,
   yieldWeight,
@@ -185,6 +187,7 @@ import {
   expectedHandBags,
   nextDraftCost,
   rarityFirstOdds,
+  spendableGold,
 } from '../sim/statecraft';
 import { type OrderId } from '../sim/statecraftData';
 import { hasAbility } from '../sim/tech';
@@ -393,6 +396,22 @@ export function worthPerCoin(want: Want): number {
   return want.worth / Math.max(1, want.price);
 }
 
+/**
+ * **What this seat may spend from a bank on a purchase now** (Commerce batch
+ * T9). Gold is the simulation's own figure, `spendableGold`: the treasury,
+ * plus the credit Letters of Credit opens. It is the one reading every gold
+ * purchase gate asks, so the purse and the gates agree about what is within
+ * reach. Without the card it is the treasury itself. Faith has no credit, so
+ * it is the pool.
+ *
+ * The bot keeps its own reserve on top of this figure (`bankSpend`, `bot.ts`).
+ * Gold poured into a wonder or the Magnum Opus is not a purchase and still
+ * reads the treasury itself (`contributionCommand`).
+ */
+export function purseOf(state: GameState, player: Player, currency: BankCurrency): number {
+  return currency === 'gold' ? spendableGold(state, player.id) : bankOf(player, currency);
+}
+
 /** Both plans, in one book. */
 export function wantBook(
   state: GameState,
@@ -515,7 +534,11 @@ export function purchasingPlan(
 
   const reserve = wageReserveRow(ctx, inputs.wageReserve);
   if (reserve !== null) wants.push(reserve);
-  for (const row of savingRows(wants, ctx, bankOf(player, 'gold'), inputs.goldRate)) wants.push(row);
+  // The purse, credit included (`purseOf`, Commerce batch T9), so a want the
+  // credit already reaches is not also a row the seat saves toward.
+  for (const row of savingRows(wants, ctx, purseOf(state, player, 'gold'), inputs.goldRate)) {
+    wants.push(row);
+  }
   return wants;
 }
 
@@ -675,7 +698,7 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
   const next = bestExpansionTile(state, city);
   const soonShare = wait === null ? 1 : Math.min(1, wait / horizon);
 
-  const quote = (tile: Tile): Appraisal | null => {
+  const quote = (tile: Tile, price: number | null): Appraisal | null => {
     const yields = foldTileLines(explainTileYield(tile, here));
     const terms: ValueTerm[] = [];
     const beats = poorest === null || yieldScore(yields) > poorest.score;
@@ -715,7 +738,16 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
       value: share,
       op: 'mul',
     };
-    const folded = appraise([nest(`the hex at (${tile.col},${tile.row})`, appraise(terms)), claim]);
+    // **What the seat's cards pay once for buying it** (Commerce batch T9,
+    // Land Speculation's culture on a hex with a resource): after the claim
+    // share and not scaled by it, because the borders claiming the hex fire no
+    // rider. Only the coin's purchase pays it. See `hexPurchaseRiderTerm`.
+    const rider = price === null ? null : hexPurchaseRiderTerm(ctx, tile, price);
+    const folded = appraise([
+      nest(`the hex at (${tile.col},${tile.row})`, appraise(terms)),
+      claim,
+      ...(rider === null ? [] : [rider]),
+    ]);
     return folded.total <= 0 ? null : folded;
   };
 
@@ -762,9 +794,12 @@ interface PricedHex {
  *   · **a hex nobody would work and no seam sits on is not priced at all.** Its
  *     appraisal was already nought — the ground term is a printed zero and there
  *     is no seam beside it — and a want of nought was dropped one line later.
- *     `quote` returns `null` for it before the ladder is asked anything. This is
+ *     `quote` returns `null` for it before the rule is asked anything. This is
  *     the cut that does the work: most of a town's frontier is ground its
- *     citizens would not move to;
+ *     citizens would not move to. Since Commerce batch T9, a seat holding a
+ *     card that pays on a hex bought asks the ladder's price first, because the
+ *     card may pay a share of it (`hexPurchaseRiderTerm`); the ladder is the
+ *     cheap half;
  *   · **the rest are ranked and the best `expansion.hexOffersPriced` of them are
  *     put to the rule.** The ranking is **worth per coin** — the book's own
  *     ordering, the very number `spendCommand` picks the top of — so what the
@@ -797,15 +832,20 @@ function pricedOffers(
   state: GameState,
   ctx: ValueContext,
   city: City,
-  quote: (tile: Tile) => Appraisal | null,
+  quote: (tile: Tile, price: number | null) => Appraisal | null,
 ): PricedHex[] {
   const owner = city.ownerId;
+  // Whether a card of this seat pays on a hex bought (Commerce batch T9).
+  const riders = holdsHexPurchaseRider(ctx);
   const { map } = state;
   // The sweep reading of who owns a hex, hoisted for exactly this loop's lifetime
   // (`tileOwnerField`'s own rule): `state.tileOwner` holds a **town's** id, and
   // the frontier is an empire's.
   const owners = tileOwnerField(state);
-  const purse = playerById(state, owner)?.gold ?? 0;
+  // What the seat may spend on a hex, credit included (`purseOf`, Commerce
+  // batch T9), which is what `tilePurchaseError` asks.
+  const seat = playerById(state, owner);
+  const purse = seat === undefined ? 0 : purseOf(state, seat, 'gold');
   const asked: (PricedHex & { index: number; rank: number })[] = [];
   // The town's own reach (`workRadiusOf`, The Common Domain since Expansionist
   // batch E3), the same one the purchase gate asks.
@@ -813,10 +853,21 @@ function pricedOffers(
     const index = tileIndex(map, tile.col, tile.row);
     if (state.tileOwner[index] !== null) continue;
     if (!atTheFrontier(map, owners, owner, tile)) continue;
-    const worth = quote(tile);
+    // The price first where a card pays on the hex bought (Commerce batch T9,
+    // Land Speculation), because what it pays is read off the price. The two
+    // cuts are the same cuts either way, asked in the other order; a seat with
+    // no such card asks the ladder only of the hexes it quotes, as before.
+    let price: number | null = null;
+    if (riders) {
+      price = tilePurchasePrice(state, owner, city.id, { col: tile.col, row: tile.row });
+      if (price > purse) continue;
+    }
+    const worth = quote(tile, price);
     if (worth === null) continue;
-    const price = tilePurchasePrice(state, owner, city.id, { col: tile.col, row: tile.row });
-    if (price > purse) continue;
+    if (price === null) {
+      price = tilePurchasePrice(state, owner, city.id, { col: tile.col, row: tile.row });
+      if (price > purse) continue;
+    }
     asked.push({
       col: tile.col,
       row: tile.row,
@@ -2393,7 +2444,7 @@ function reachOf(
     if (blocker !== null) {
       // A seat that cannot pay is short whatever the blocker does, so the walk
       // that looks for somewhere to put it is never taken for one.
-      if (bankOf(player, currency) < price.total) return { price: price.total, outOfReach: true };
+      if (purseOf(state, player, currency) < price.total) return { price: price.total, outOfReach: true };
       const stuck = stepAsideForBlocker(state, player, city, blocker) === null;
       return { price: price.total, outOfReach: stuck };
     }

@@ -116,8 +116,11 @@ import {
   bestOfClassFor,
   capitalCityOf,
   channelSurplus,
+  cityResources,
+  controlledResources,
   emptyCityYields,
   ownedTiles,
+  resourceCopies,
   tileOwnerField,
   tileOwnerPlayerId,
   unitProductionCost,
@@ -160,7 +163,29 @@ import { knowsFewerTechs, knowsMoreTechs, metRivals, techGap } from '../sim/riva
 // are running or how far apart their two towns are.
 import { FAMILIES, greatPersonDef, isGreatPersonId } from '../sim/greatPeopleData';
 import { holdsRank, rankStrength } from '../sim/ranks';
-import { routeCities, routeHexes, routeIsLive } from '../sim/routes';
+import {
+  cityHoldsPost,
+  cityPostPays,
+  liveRouteCities,
+  postSince,
+  routeCities,
+  routeHexes,
+  routeIsInternational,
+  routeIsLive,
+} from '../sim/routes';
+// Commerce batch T9: The Return Leg is priced off the route's own fold, the
+// list the rule copies.
+import { explainRouteYield, foldRouteYield } from '../sim/routeYields';
+// Commerce batch T9: the luxuries a seat holds, lends and borrows, read where
+// the happiness meter and the luxury yields read them.
+import {
+  cityResourceYields,
+  empireResourceYields,
+  importedLuxuries,
+  luxuryLoans,
+} from '../sim/resourceEffects';
+import { dealPartnerSeats, lentCopiesAwayBy, seatsMayBargain } from '../sim/deals';
+import { atWar } from '../sim/wars';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from '../sim/resourceData';
 import { availableRites, cityRite } from '../sim/religion';
 import { LIVE_RITE_IDS, riteDef } from '../sim/religionData';
@@ -189,7 +214,9 @@ import {
   cardRulePercent,
   effectsOfKind,
   groundFactsFor,
+  helpings,
   oneOfAKind,
+  tradePartnerSeats,
   surplusRowReaches,
   townBuildings,
   townHoldsBuilding,
@@ -215,7 +242,9 @@ import {
   type CombatCondition,
   type CommissionGoal,
   type CommissionReward,
+  type CountKind,
   type GrantCount,
+  type OccasionMeasure,
   type OrderId,
   type RateSource,
   type TallyOccasion,
@@ -3320,7 +3349,20 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // town, so the appraisal counts the same towns — `townsAdmitting`, the
       // scope reading batch X2 gave every other arm — and a realm with no
       // harbour is offered a card worth nothing, which is what it is.
-      const towns = effect.scope === undefined ? 1 : townsAdmitting(ctx, effect.scope);
+      //
+      // **Once per helping of a count**, where the row counts something and
+      // has no scope (The Harbour Chain's harbours, The Merchant Guilds'
+      // merchants; read since Commerce batch T9). The count is the
+      // simulation's own (`countOf`, with the row's `building` and `family`,
+      // as `cardRouteSlots` asks it), with what the seat expects to gain over
+      // the horizon, and then the row's own `per` and `max` (`helpings`). A
+      // scope is read first and a count is ignored beside it, as the fold does.
+      const towns =
+        effect.scope !== undefined
+          ? townsAdmitting(ctx, effect.scope)
+          : effect.count !== undefined
+            ? routeRiderHelpings(effect, ctx)
+            : 1;
       if (towns === 0) return 0;
       const slot = routeSlotTerm((effect.extra ?? 1) * towns, ctx);
       return slot === null ? 0 : slot.value;
@@ -3502,13 +3544,21 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // would otherwise read nought. Every other stamp still prices a rank at
       // nothing, the Dominion batch D1 reading; whether to price those too is
       // a follow-up, not this batch's.
-      const bought = effect.bought === undefined ? 1 : 0.5;
+      //
+      // The share a bought stamp reaches is `score.commerce.boughtUnitShare`
+      // since Commerce batch T9 (one half, the figure this arm always used).
+      //
+      // **A timed effect hung on the stamped unit** (Commerce batch T6,
+      // Mercenary Contracts' upkeep waiver; priced in batch T9) is read as the
+      // units it reaches costing less. See `timedStampWorth`.
+      const bought = effect.bought === undefined ? 1 : ctx.ai.score.commerce.boughtUnitShare;
       const levied = effect.levied === undefined ? 1 : leviedRecruitShare(effect.levied, ctx);
       const rank =
         effect.levied !== undefined && effect.rank !== undefined ? rankStrength(effect.rank) : 0;
       const strength =
         ((effect.strength ?? 0) + rank) * bought * levied * ctx.ai.weights.military * (1 + ctx.threat);
-      return strength + (effect.hp === undefined ? 0 : ctx.ai.score.unknownEffect * levied);
+      const timed = effect.timed === undefined ? 0 : timedStampWorth(effect, bought * levied, ctx);
+      return strength + (effect.hp === undefined ? 0 : ctx.ai.score.unknownEffect * levied) + timed;
     }
     case 'rule':
       // **A flag-shaped rule declared true.** Four kinds came in here before
@@ -3587,6 +3637,13 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
         // board with one stand-in knob in `score.scientific` (batch S13).
         const scientific = scientificRuleWorth(effect, ctx);
         if (scientific !== null) return scientific;
+      }
+      {
+        // **The rules of Commerce batches T3 to T6**, each priced off the
+        // board, with one knob in `score.commerce` where the board cannot say
+        // enough (batch T9).
+        const commerce = commerceRuleWorth(effect, ctx);
+        if (commerce !== null) return commerce;
       }
       return ctx.ai.score.unknownEffect;
     case 'metaRule':
@@ -3984,16 +4041,23 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // once the need that raised them has passed. `scoreWindfallRider` gives
       // this rate only to a grant of citizens.
       return retireRate(ctx);
-    case 'cardDrafted':
-      // **A stand-in** (Commerce batch T7, The Art Dealers). Commerce batch T9
-      // prices a card drafted; until then a rider on it is worth nothing to
-      // the bot.
-      return 0;
+    case 'cardDrafted': {
+      // **A card enters the collection about as often as this seat drafts**
+      // (Commerce batch T7, The Art Dealers; priced in batch T9). The rate is
+      // the seat's pace of drafting: the culture it makes a turn over the
+      // price of its next draft. A draft ends in a pick unless the seat
+      // passes, and this bot seldom passes, so the whole pace is used. A
+      // charter pick and a free draft also fire the moment, and they are left
+      // out, so the rate reads low rather than high.
+      const culture = Math.max(0, ratesOf(ctx).culturePerTurn ?? 0);
+      const next = draftCost((player?.statecraft.drafts ?? 0) + 1);
+      return culture / Math.max(1, next);
+    }
     case 'postEstablished':
-      // **A stand-in** (Commerce batch T3, The Fondaci). Commerce batch T9
-      // prices a post established, from the routes the seat runs; until then
-      // a rider on it is worth nothing to the bot.
-      return 0;
+      // **A trading post established** (Commerce batch T3, The Fondaci; priced
+      // in batch T9), forecast from the posts the seat's routes have opened
+      // and its own record. See `postEstablishedRate`.
+      return postEstablishedRate(ctx);
     default:
       return unreadOccasion(occasion);
   }
@@ -4062,6 +4126,16 @@ function scoreWindfallRider(
   // one, so a disband rider that pays anything else (The Legions' Labour's
   // hammers toward a wonder) rides a moment this bot never makes.
   if (effect.occasion === 'disband' && (effect.grant?.citizens ?? 0) <= 0) return 0;
+  // **A hex bought, read hex by hex** (Commerce batch T9, Land Speculation): a
+  // rider with a tile test or a grant scaled by the price is priced off the
+  // hexes this seat would buy. See `tilePurchaseFiringWorth`.
+  if (
+    effect.occasion === 'tilePurchase' &&
+    (effect.on !== undefined || effect.grant?.fromOccasion !== undefined)
+  ) {
+    const rate = occasionRate('tilePurchase', ctx);
+    return rate <= 0 ? 0 : rate * tilePurchaseFiringWorth(effect, ctx);
+  }
   let rate = occasionRate(effect.occasion, ctx);
   // **A family is one of five**, and unlike the three flags above it really does
   // narrow a rate the forecast gives whole: a great person is called and spent
@@ -4074,7 +4148,7 @@ function scoreWindfallRider(
   if (effect.percent !== undefined) {
     each += (effect.percent / 100) * ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
   }
-  if (effect.grant !== undefined) each += windfallGrantWorth(effect.grant, ctx);
+  if (effect.grant !== undefined) each += windfallGrantWorth(effect.grant, ctx, effect.occasion);
   if (each === 0) return 0;
   if (effect.perAge === true) each *= Math.max(1, ctx.age);
   if (effect.perSlottedOrder === true) each *= slottedOrderCount(ctx);
@@ -4160,14 +4234,33 @@ export function onDraftWorth(id: CardId, ctx: ValueContext): number {
 function windfallGrantWorth(
   grant: NonNullable<Extract<CardEffect, { kind: 'windfallRider' }>['grant']>,
   ctx: ValueContext,
+  /**
+   * The moment the grant rides, when the caller knows it. Commerce batch T9
+   * reads a grant scaled by the moment's own measure (`fromOccasion`) for the
+   * one moment it can forecast a measure for (`occasionMeasureForecast`).
+   * Without it, or for any other moment, the row's `amount` is priced as it
+   * stands, the reading every rider had before.
+   */
+  occasion?: WindfallOccasion,
 ): number {
   let worth = 0;
   if (grant.yield !== undefined && grant.amount !== undefined) {
     const bag: YieldBag = {};
-    const figure =
+    const measure =
+      grant.fromOccasion === undefined || occasion === undefined
+        ? null
+        : occasionMeasureForecast(occasion, grant.fromOccasion, ctx);
+    let figure =
       grant.fromRate === undefined
         ? grant.amount
         : grant.amount * rateSourceValue(grant.fromRate, ctx);
+    if (measure !== null) {
+      // The moment's measure is read first and the rate is not asked, as
+      // `windfallPayout` reads it; then the row's ceiling and its rounding.
+      figure = grant.amount * measure;
+      if (grant.max !== undefined) figure = Math.min(figure, grant.max);
+      if (grant.whole === true) figure = Math.floor(figure);
+    }
     bag[grant.yield as Voice] = figure;
     // **Where the food and hammers land** (Dominion batch D3). A grant to every
     // town pays once for each town. A grant to the nearest town a scope admits
@@ -4526,10 +4619,13 @@ function scoreAmplifier(
     }
     case 'luxuryHappiness':
     case 'luxuryDuplicates': {
-      // **A stand-in** (Commerce batch T5, The Casa da Índia): a share narrowed
-      // to a luxury's yields pays no happiness, so the happiness reading below
-      // would be wrong. Commerce batch T9 prices it through the luxury fold.
-      if (effect.yieldsOnly === true) return ctx.ai.score.unknownEffect;
+      // **A share narrowed to a luxury's yields** (Commerce batch T5, The Casa
+      // da Índia; priced in batch T9) pays no happiness, so the happiness
+      // reading below would be wrong. An Order carrying it is read by the
+      // marginal reading (`foldReadsAmplifier`), the luxury fold itself; this
+      // is the cruder reading for a row the margin has no pair for. See
+      // `extraCopyYieldsWorth`.
+      if (effect.yieldsOnly === true) return share * extraCopyYieldsWorth(ctx);
       const goods = countProbe(ctx, 'uniqueLuxuries');
       const each = RULES.meters.happiness.perUniqueLuxury;
       return (flat + share * each) * goods * meterWeight(ctx, 'happiness');
@@ -4560,10 +4656,20 @@ function scoreAmplifier(
       // happiness meter rather than in an amplifier arm.
       return ctx.ai.score.unknownEffect;
     case 'lentLuxuryCopies':
-      // **A stand-in** (Commerce batch T5, The Commenda). Commerce batch T9
-      // prices what a lent copy still pays this seat, through the luxury fold
-      // and the deal appraisal (`explainSide`).
-      return ctx.ai.score.unknownEffect;
+      // **What a copy lent away still pays this seat** (Commerce batch T5, The
+      // Commenda; priced in batch T9). An Order carrying it is read by the
+      // marginal reading (`foldReadsAmplifier`), the luxury fold itself, and
+      // the deal appraisal prices the share kept when it lends a copy
+      // (`lentCopyPercent`, read by `explainSide` in `diplomacy.ts`). This is
+      // the cruder reading for a row the margin has no pair for: each kind the
+      // seat holds only through copies it lent, at the share of a luxury's
+      // happiness. A kind's yields are left out, so it reads low.
+      return (
+        share *
+        lentOnlyKinds(ctx) *
+        RULES.meters.happiness.perUniqueLuxury *
+        meterWeight(ctx, 'happiness')
+      );
     case 'depositWorkCopies':
       // **The extra copies, at a stand-in price each** (Scientific batch S5,
       // The School of Mines; priced in batch S13). The board says how many
@@ -5281,15 +5387,23 @@ function foldReadEngine(effect: CardEffect): boolean {
       return true;
     case 'effectAmplifier':
       return foldReadsAmplifier(effect.target);
+    case 'rule':
+      // **The Capitulations' loans** (Commerce batch T5; read here since batch
+      // T9). Each foreign town holding the seat's paying post lends it a
+      // luxury at half value, and the happiness meter and the luxury yields
+      // already carry a loan (The Silk Road's), so the books see exactly what
+      // the rule adds. It is the luxury fold, read with the card and without.
+      return effect.rule === 'postsLendLuxuries';
     default:
       return false;
   }
 }
 
 /**
- * Which `AmplifierTarget`s land in the per-turn books. **Five** do — a route's
- * pay, a founder's trickle, the two luxury readings (which are happiness) and,
- * since batch H2, the roads' own coin: `connectionYields` is folded into
+ * Which `AmplifierTarget`s land in the per-turn books. **Six** do since Commerce
+ * batch T9, which adds the copies lent away (The Commenda). The first five are
+ * a route's pay, a founder's trickle, the two luxury readings (which are
+ * happiness) and, since batch H2, the roads' own coin: `connectionYields` is folded into
  * `explainEmpireGold`'s connection line, which is inside `goldPerTurn`, so the
  * fold reads it exactly. No Order or Doctrine carries that one today — the two
  * live rows are a technology's and a great person's, and `deckPair` answers
@@ -5307,7 +5421,11 @@ function foldReadsAmplifier(target: string): boolean {
     target === 'founderTrickle' ||
     target === 'luxuryHappiness' ||
     target === 'luxuryDuplicates' ||
-    target === 'connectionYields'
+    target === 'connectionYields' ||
+    // The Commenda (Commerce batch T5; read here since batch T9): a copy lent
+    // away still counts as a share of a copy, so the counts, the happiness
+    // and the luxury yields in the books move with it.
+    target === 'lentLuxuryCopies'
   );
 }
 
@@ -5671,6 +5789,20 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
         },
       ];
     }
+    if (occasion === 'treasuryHeld') {
+      // **The Strongbox** (Commerce batch T6; priced in batch T9): a turn
+      // counts only when the treasury ends it at the row's floor or above. A
+      // treasury at the floor today is read at the whole forecast, and one
+      // below it at the share of the floor it holds. See
+      // `treasuryHeldShare`.
+      const share = treasuryHeldShare(effect, ctx);
+      return [
+        {
+          label: `+ ${round(forecast * share)} more turns ending at the treasury’s floor, over the horizon (${round(share)} of ${forecast}: the treasury against the floor)`,
+          value: forecast * share,
+        },
+      ];
+    }
     return [
       {
         label: `+ ${forecast} more ${occasion} to come, over the horizon`,
@@ -5705,7 +5837,15 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
   // and charter technologies known, charters drafted, the lead, the gap and
   // the guildsmen. The same reading as a tally's: what is still expected over
   // the horizon, with no discount. See `scientificCountAhead`.
-  const ahead = effect.count === undefined ? null : scientificCountAhead(effect.count, ctx);
+  //
+  // **The Commerce counts that grow** (Commerce batch T9): copies lent, deal
+  // partners, the citizens of foreign towns holding the seat's post, and the
+  // world's routes. The same reading, with no discount. See
+  // `commerceCountAhead`.
+  const ahead =
+    effect.count === undefined
+      ? null
+      : (scientificCountAhead(effect.count, ctx) ?? commerceCountAhead(effect, ctx));
   if (ahead !== null) {
     return [
       {
@@ -6084,10 +6224,12 @@ function occasionRecord(occasion: TallyOccasion, ctx: ValueContext): number | nu
     case 'warEnded':
       return null;
     case 'treasuryHeld':
-      // **A stand-in** (Commerce batch T6, The Strongbox). No record of its
-      // own, and a turn counts only above the row's floor. Commerce batch T9
-      // prices it from the seat's treasury.
-      return null;
+      // Commerce batch T6, The Strongbox (batch T9). No record of its own: the
+      // board keeps no count of the turns a treasury held a floor. The tally
+      // of a card watching the moment is a partial record, as `hexClaimed`'s
+      // is, because it counts only while the card is seated. With no such
+      // card, there is no record and the forecast reads the default.
+      return treasuryHeldRecord(ctx);
     default:
       return unreadTally(kind);
   }
@@ -6229,15 +6371,29 @@ function rewardTerms(
     });
   }
   for (const effect of reward.lasting ?? []) {
+    // **Never less than the goal guarantees** (Commerce batch T9, Corner the
+    // Market): a goal of four copies of one luxury leaves at least one luxury
+    // held twice, so an institution paying for each luxury held twice pays at
+    // least once when the goal is met. `guaranteedCount` says what a goal
+    // guarantees; the reading is `explainForecastCount`'s, at that count.
+    const guaranteed = guaranteedCount(effect, goals);
+    const board = lastingWorth(effect, ctx);
+    const floor =
+      guaranteed === 0
+        ? 0
+        : explainForecastCount([effect], guaranteed, 'what the goal guarantees', ctx).total;
     terms.push({
-      label: `for the rest of the game: ${effect.kind}`,
-      value: lastingWorth(effect, ctx),
+      label:
+        floor > board
+          ? `for the rest of the game: ${effect.kind}, at the ${guaranteed} the goal guarantees`
+          : `for the rest of the game: ${effect.kind}`,
+      value: Math.max(board, floor),
     });
   }
   if (reward.postsInPartnerCapitals === true) {
-    // Commerce batch T4, The World's Fair: a stand-in at nothing. Batch T9
-    // prices the posts written in the partners' capitals.
-    terms.push({ label: 'trading posts in the partners’ capitals, not yet priced', value: 0 });
+    // **Your trading post in each partner's capital** (Commerce batch T4, The
+    // World's Fair; priced in batch T9). See `partnerPostTerms`.
+    for (const term of partnerPostTerms(goals, ctx)) terms.push(term);
   }
   return terms;
 }
@@ -7618,6 +7774,661 @@ function publicWorksBuilt(ctx: ValueContext): number {
     }
   }
   return built;
+}
+
+// --- the Commerce stand-ins (batch T9) ----------------------------------------
+
+/**
+ * **The towns holding this seat's trading-post records**, split by whether
+ * each post is established yet (`cityHoldsPost`). A route writes a record at
+ * both of its ends, so the seat's own towns are here as well as foreign ones.
+ * `state.cities` order.
+ */
+function postRecords(ctx: ValueContext): { pending: City[]; established: City[] } {
+  const pending: City[] = [];
+  const established: City[] = [];
+  for (const city of ctx.state.cities) {
+    if (postSince(city, ctx.playerId) === undefined) continue;
+    if (cityHoldsPost(ctx.state, city, ctx.playerId)) established.push(city);
+    else pending.push(city);
+  }
+  return { pending, established };
+}
+
+/**
+ * **How often one of this seat's trading posts is established**, per turn: the
+ * rate of The Fondaci's moment (`postEstablished`). Two parts:
+ *
+ *   · the posts the seat's routes have opened and not yet established, read
+ *     off the board. Each is established within one route term if its route
+ *     keeps running, so each is one moment over the horizon;
+ *   · the seat's record of established posts over the turns played, smoothed
+ *     toward `score.commerce.postsOverHorizon` (`smoothedRate`). This is the
+ *     pace at which its later routes open new posts.
+ */
+function postEstablishedRate(ctx: ValueContext): number {
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const posts = postRecords(ctx);
+  const fallback = Math.max(0, ctx.ai.score.commerce.postsOverHorizon) / horizon;
+  return posts.pending.length / horizon + smoothedRate(posts.established.length, fallback, ctx);
+}
+
+/**
+ * **The citizens of a town where this seat's next post is established**: the
+ * mean of the towns holding a post not yet established, or the seat's own mean
+ * town when it has none.
+ */
+function postTownPopulation(ctx: ValueContext): number {
+  const { pending } = postRecords(ctx);
+  if (pending.length === 0) return meanPopulation(ctx);
+  let people = 0;
+  for (const city of pending) people += city.population;
+  return people / pending.length;
+}
+
+/**
+ * **What a moment's measure is expected to read**, for a grant scaled by it
+ * (`WindfallGrantSpec.fromOccasion`), or `null` where this file keeps no
+ * forecast of the measure. Only The Fondaci's is read (batch T9): a post's
+ * town, at `postTownPopulation`. Land Speculation's price is read hex by hex
+ * (`tilePurchaseFiringWorth`). Every other scaled grant keeps the reading it
+ * had before, the row's `amount` as it stands.
+ */
+function occasionMeasureForecast(
+  occasion: WindfallOccasion,
+  measure: OccasionMeasure,
+  ctx: ValueContext,
+): number | null {
+  if (occasion === 'postEstablished' && measure === 'population') return postTownPopulation(ctx);
+  return null;
+}
+
+/** Does this hex pass a rider's tile test, asked as the simulation asks it? */
+function hexPasses(tile: Tile, on: TileCondition, ctx: ValueContext): boolean {
+  return tileConditionHolds(
+    tile,
+    on,
+    undefined,
+    () => tileNeighbors(ctx.state.map, tile),
+    ctx.state.turn,
+    groundFactsFor(ctx.state, ctx.playerId),
+  );
+}
+
+/**
+ * **What one firing of a hex-bought rider pays on one hex at one price**, as a
+ * per-turn figure (a lump through `explainLump`). The rider's tile test is the
+ * simulation's (`hexPasses`); the grant is composed in `windfallPayout`'s
+ * order: a share of the price (`fromOccasion: 'gold'`), the row's ceiling, the
+ * rounding down (`whole`), then the era and the council. Only a yield grant is
+ * read: the one live rider with a tile test pays culture. A grant scaled by a
+ * measure the moment does not carry pays nothing, as in the simulation.
+ */
+function hexRiderWorth(
+  effect: Extract<CardEffect, { kind: 'windfallRider' }>,
+  tile: Tile,
+  price: number,
+  ctx: ValueContext,
+): number {
+  if (effect.occasion !== 'tilePurchase') return 0;
+  if (effect.on !== undefined && !hexPasses(tile, effect.on, ctx)) return 0;
+  const grant = effect.grant;
+  if (grant === undefined || grant.yield === undefined || grant.amount === undefined) return 0;
+  const measure = grant.fromOccasion;
+  if (measure !== undefined && measure !== 'gold') return 0;
+  let figure = measure === 'gold' ? grant.amount * price : grant.amount;
+  if (measure !== undefined && grant.max !== undefined) figure = Math.min(figure, grant.max);
+  if (measure !== undefined && grant.whole === true) figure = Math.floor(figure);
+  if (effect.perAge === true) figure *= Math.max(1, ctx.age);
+  if (effect.perSlottedOrder === true) figure *= slottedOrderCount(ctx);
+  if (figure === 0) return 0;
+  const bag: YieldBag = {};
+  bag[grant.yield as Voice] = figure;
+  return explainLump(bag, ctx).total;
+}
+
+/**
+ * **What one firing of a hex-bought rider is worth on the hexes this seat
+ * would buy** (Commerce batch T9, Land Speculation): the mean of
+ * `hexRiderWorth` over the hexes in the gold book (`Want.ground`), each at its
+ * own price. With no hex in the book, the seat's own ground stands in for the
+ * ground it would buy, at the ladder's first price
+ * (`rules.cities.tilePurchase.ringBase`, as the `tilePurchase` rule arm reads
+ * it). Remembered for the sitting, because the second reading walks the map.
+ */
+const HEX_RIDER_MEMO = new WeakMap<ValueContext, Map<CardEffect, number>>();
+function tilePurchaseFiringWorth(
+  effect: Extract<CardEffect, { kind: 'windfallRider' }>,
+  ctx: ValueContext,
+): number {
+  let held = HEX_RIDER_MEMO.get(ctx);
+  if (held === undefined) {
+    held = new Map<CardEffect, number>();
+    HEX_RIDER_MEMO.set(ctx, held);
+  }
+  const found = held.get(effect);
+  if (found !== undefined) return found;
+  let worth = 0;
+  let hexes = 0;
+  for (const want of ctx.wants.gold) {
+    const ground = want.ground;
+    if (ground === undefined) continue;
+    const tile = getTileAt(ctx.state.map, ground.col, ground.row);
+    if (tile === undefined) continue;
+    hexes += 1;
+    worth += hexRiderWorth(effect, tile, want.price, ctx);
+  }
+  if (hexes === 0) {
+    const price = RULES.cities.tilePurchase.ringBase[0] ?? 0;
+    const owner = tileOwnerField(ctx.state);
+    const tiles = ctx.state.map.tiles;
+    for (let index = 0; index < tiles.length; index++) {
+      if (owner.at(index) !== ctx.playerId) continue;
+      hexes += 1;
+      worth += hexRiderWorth(effect, tiles[index]!, price, ctx);
+    }
+  }
+  const mean = hexes === 0 ? 0 : worth / hexes;
+  held.set(effect, mean);
+  return mean;
+}
+
+/**
+ * **What this seat's live cards pay when it buys this hex at this price**, or
+ * `null` when they pay nothing (Commerce batch T9: Land Speculation's culture
+ * on a hex with a resource, and any flat grant on a hex bought). The hex
+ * planner (`tileWants`, `wants.ts`) adds it to a hex's worth, once, beside the
+ * hex's own appraisal and not scaled by it: the borders claiming a hex fire no
+ * rider, so the grant is paid only if the coin buys the hex.
+ *
+ * Read without `windfallPayout`, which may draw a unit with the game's own
+ * random numbers: an appraisal never moves `state.rng`.
+ */
+export function hexPurchaseRiderTerm(
+  ctx: ValueContext,
+  tile: Tile,
+  price: number,
+): ValueTerm | null {
+  let worth = 0;
+  for (const { effect } of effectsOfKind(ctx.state, ctx.playerId, 'windfallRider')) {
+    worth += hexRiderWorth(effect, tile, price, ctx);
+  }
+  if (worth === 0) return null;
+  return { label: `what this seat’s cards pay once when it buys (${tile.col},${tile.row})`, value: worth };
+}
+
+/**
+ * **Does a live card of this seat ride the moment a hex is bought?** The hex
+ * planner asks it once a town, so a seat with no such card prices its hexes
+ * exactly as before (`pricedOffers`, `wants.ts`).
+ */
+export function holdsHexPurchaseRider(ctx: ValueContext): boolean {
+  return effectsOfKind(ctx.state, ctx.playerId, 'windfallRider').some(
+    (row) => row.effect.occasion === 'tilePurchase',
+  );
+}
+
+/**
+ * **The rules of Commerce batches T3 to T6**, or `null` for a rule that is not
+ * one of them (batch T9):
+ *
+ *   · The Return Leg (`homeRoutesPayOrigin`): `returnLegWorth`;
+ *   · The Admiralty of Trade (`postsWaiveRouteRange`): `postRangeWorth`;
+ *   · The Capitulations (`postsLendLuxuries`): `postLoansWorth`. An Order
+ *     carrying it is read by the marginal reading instead (`foldReadEngine`);
+ *   · Letters of Credit (`buysOnCredit`): `creditWorth`.
+ */
+function commerceRuleWorth(
+  effect: Extract<CardEffect, { kind: 'rule' }>,
+  ctx: ValueContext,
+): number | null {
+  switch (effect.rule) {
+    case 'homeRoutesPayOrigin':
+      return returnLegWorth(ctx);
+    case 'postsWaiveRouteRange':
+      return postRangeWorth(ctx);
+    case 'postsLendLuxuries':
+      return postLoansWorth(ctx);
+    case 'buysOnCredit':
+      return creditWorth(effect.credit, ctx);
+    default:
+      return null;
+  }
+}
+
+/**
+ * **The Return Leg**: what this seat's home routes pay their destinations, a
+ * second time, because the rule copies it to each origin. Each live domestic
+ * route of the seat, read through the route's own fold (`explainRouteYield`),
+ * so the copy and the price are one list. A seat running no home route gains
+ * nothing from the card yet.
+ */
+function returnLegWorth(ctx: ValueContext): number {
+  let worth = 0;
+  for (const unit of ctx.state.units) {
+    if (unit.ownerId !== ctx.playerId || unit.trade === undefined) continue;
+    const pair = liveRouteCities(ctx.state, unit);
+    if (pair === null || routeIsInternational(pair.from, pair.to)) continue;
+    worth += valueOfYields(foldRouteYield(explainRouteYield(ctx.state, unit)), ctx);
+  }
+  return worth;
+}
+
+/**
+ * **The Admiralty of Trade**: for each town, at home or abroad, holding this
+ * seat's paying post (`cityPostPays`), `score.commerce.postRangeWaiver` of the
+ * pay of the best route the seat could run, read off the route outlook as the
+ * route share arms read it (`ctx.routes`). A route to such a town ignores the
+ * range limit. A seat with no paying post, or no route to run, gains nothing
+ * from the card yet.
+ */
+function postRangeWorth(ctx: ValueContext): number {
+  let towns = 0;
+  for (const city of ctx.state.cities) {
+    if (cityPostPays(ctx.state, city, ctx.playerId)) towns += 1;
+  }
+  if (towns === 0) return 0;
+  const best = ctx.routes.open?.pay.total ?? ctx.routes.next?.pay.total ?? 0;
+  return towns * ctx.ai.score.commerce.postRangeWaiver * Math.max(0, best);
+}
+
+/**
+ * **The Capitulations**, read without the marginal reading: the luxuries this
+ * seat's paying posts abroad would lend it. Each foreign town holding its
+ * paying post lends the first kind it has opened that the seat does not hold
+ * and that no route has lent, as `luxuryLoans` walks them; each kind is priced
+ * at the loan's share of a luxury's happiness
+ * (`rules.trade.importedLuxuryPercent`). A kind's yields are left out, so it
+ * reads low.
+ */
+function postLoansWorth(ctx: ValueContext): number {
+  const held = controlledResources(ctx.state, ctx.playerId, 'luxury');
+  const claimed: ResourceId[] = [];
+  for (const loan of luxuryLoans(ctx.state, ctx.playerId)) {
+    if (loan.via === 'route') claimed.push(loan.id);
+  }
+  let kinds = 0;
+  for (const town of ctx.state.cities) {
+    if (town.ownerId === ctx.playerId) continue;
+    if (!cityPostPays(ctx.state, town, ctx.playerId)) continue;
+    for (const id of cityResources(ctx.state, town, 'luxury')) {
+      if (held.includes(id) || claimed.includes(id)) continue;
+      claimed.push(id);
+      kinds += 1;
+      break;
+    }
+  }
+  const share = Math.max(0, RULES.trade.importedLuxuryPercent) / 100;
+  return kinds * share * RULES.meters.happiness.perUniqueLuxury * meterWeight(ctx, 'happiness');
+}
+
+/**
+ * **Letters of Credit**: the saving the credit cuts from the best want the
+ * purse is saving for. For each gold want that costs more than the treasury
+ * holds, the credit buys it up to `credit` coins sooner, which is that many
+ * turns of the seat's gold income; the gain is the want's worth for those
+ * turns, over the horizon. The best such gain is the price. The debt the
+ * purchase runs up is charged where the purse spends (`bot.ts`), and the
+ * creditors' later floor is not priced.
+ */
+function creditWorth(credit: number | undefined, ctx: ValueContext): number {
+  const line = Math.max(0, credit ?? 0);
+  const player = playerById(ctx.state, ctx.playerId);
+  if (line === 0 || player === undefined) return 0;
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const rate = Math.max(1, ratesOf(ctx).goldPerTurn ?? 0);
+  let best = 0;
+  for (const want of ctx.wants.gold) {
+    if (want.holding !== undefined || want.price <= 0) continue;
+    const short = want.price - player.gold;
+    if (short <= 0) continue;
+    const sooner = Math.min(short, line) / rate;
+    const gain = want.worth * Math.min(1, sooner / horizon);
+    if (gain > best) best = gain;
+  }
+  return best;
+}
+
+/**
+ * **How many helpings of a route rider's count this seat holds**, with what
+ * it expects to gain over the horizon (Commerce batch T9; The Merchant Guilds'
+ * merchants, The Harbour Chain's harbours). The count is `countOf`'s, asked as
+ * `cardRouteSlots` asks it, with the row's `building` and `family`. The gain
+ * is the Scientific or Commerce count forecast, where the count has one. The
+ * row's `per` and `max` are the simulation's own `helpings`.
+ */
+function routeRiderHelpings(
+  effect: Extract<CardEffect, { kind: 'routeRider' }>,
+  ctx: ValueContext,
+): number {
+  if (effect.count === undefined) return 1;
+  const probe: CardPaysEffect = {
+    kind: 'pays',
+    where: 'empire',
+    basis: 'count',
+    to: 'authority',
+    amount: 0,
+    count: effect.count,
+    ...(effect.building !== undefined ? { building: effect.building } : {}),
+    ...(effect.family !== undefined ? { family: effect.family } : {}),
+  };
+  const now = countOf(ctx.state, ctx.playerId, '' as CardId, probe);
+  const ahead = scientificCountAhead(effect.count, ctx) ?? commerceCountAhead(probe, ctx);
+  return helpings(now + (ahead?.more ?? 0), effect.per, effect.max);
+}
+
+/**
+ * **A timed effect a stamp hangs on each unit it reaches** (Commerce batch T6,
+ * Mercenary Contracts: no upkeep for twenty turns; priced in batch T9), as the
+ * units costing less. The units the stamp reaches a turn are the seat's units
+ * of the stamp's class gained over the turns played (`unitsBuiltMatching`),
+ * times `reach` (the bought share and the levied share). Each is waived a
+ * wage of the seat's age (`rules.upkeep.goldPerUnitAge`, the price of a unit
+ * of its age, `unitUpkeep`) for the effect's turns, so the gold a turn saved
+ * is the three multiplied, priced as an upkeep bill is (`costOfUpkeep`).
+ *
+ * Only the waiver is read: it is the one timed effect a live stamp carries.
+ * Any other timed effect on a stamp is priced at nothing.
+ */
+function timedStampWorth(
+  effect: Extract<CardEffect, { kind: 'unitStamp' }>,
+  reach: number,
+  ctx: ValueContext,
+): number {
+  const timed = effect.timed;
+  if (timed === undefined || reach <= 0) return 0;
+  const turns = Math.max(0, Math.floor(timed.turns));
+  if (turns === 0) return 0;
+  const waives = timed.effects.some((held) => held.kind === 'upkeepRebate' && held.free === true);
+  if (!waives) return 0;
+  const rate = unitsBuiltMatching(ctx, effect.class) / Math.max(1, ctx.state.turn);
+  const wage = Math.max(1, ctx.age) * RULES.upkeep.goldPerUnitAge;
+  return costOfUpkeep(rate * reach * turns * wage, ctx);
+}
+
+/**
+ * **What the extra copies of this seat's luxuries would pay in flat yields**:
+ * The Casa da Índia's reading when the marginal reading has no pair. Each
+ * luxury yield line (`empireResourceYields`, and `cityResourceYields` in each
+ * town), times the copies of its kind past the first (`resourceCopies`). An
+ * amplifier already live is not taken out, so the reading is rough.
+ */
+function extraCopyYieldsWorth(ctx: ValueContext): number {
+  const lines = [...empireResourceYields(ctx.state, ctx.playerId)];
+  for (const city of citiesOf(ctx.state, ctx.playerId)) lines.push(...cityResourceYields(ctx.state, city));
+  let worth = 0;
+  for (const line of lines) {
+    if (resourceDef(line.resource).kind !== 'luxury') continue;
+    const extra = Math.max(0, resourceCopies(ctx.state, ctx.playerId, line.resource) - 1);
+    if (extra === 0) continue;
+    worth += extra * valueOfYields(bagOf(line), ctx);
+  }
+  return worth;
+}
+
+/**
+ * **The kinds this seat holds only through copies it lends away**: lent in a
+ * live deal, not held on its own ground and not lent to it. The Commenda's
+ * subject, read whether or not the card is live (`lentLuxuriesKept` answers
+ * only for a seat holding it). Resource-table order.
+ */
+function lentOnlyKinds(ctx: ValueContext): number {
+  const lent = lentCopiesAwayBy(ctx.state, ctx.playerId);
+  const held = controlledResources(ctx.state, ctx.playerId, 'luxury');
+  const borrowed = importedLuxuries(ctx.state, ctx.playerId);
+  let kinds = 0;
+  for (const id of RESOURCE_IDS) {
+    if ((lent[id] ?? 0) <= 0 || resourceDef(id).kind !== 'luxury') continue;
+    if (held.includes(id) || borrowed.includes(id)) continue;
+    kinds += 1;
+  }
+  return kinds;
+}
+
+/**
+ * **How near the treasury is to a tally's floor** (The Strongbox's
+ * `minTreasury`), from nought to one: one at the floor or above, and the share
+ * of the floor the treasury holds below it. A row with no floor counts every
+ * turn the treasury is not in debt.
+ */
+function treasuryHeldShare(effect: CardPaysEffect, ctx: ValueContext): number {
+  const gold = playerById(ctx.state, ctx.playerId)?.gold ?? 0;
+  const floor = effect.minTreasury ?? 0;
+  if (floor <= 0) return gold >= floor ? 1 : 0;
+  return Math.min(1, Math.max(0, gold) / floor);
+}
+
+/**
+ * **The turns this seat's treasury held a card's floor**, from the tally of
+ * each card watching `treasuryHeld` (the largest), or `null` when no card
+ * watches it. A partial record: a tally counts only while its card is seated.
+ */
+function treasuryHeldRecord(ctx: ValueContext): number | null {
+  const sc = statecraftOf(ctx.state, ctx.playerId);
+  if (sc === undefined) return null;
+  let record: number | null = null;
+  for (const row of sc.tallies) {
+    if (!isOrderId(row.card)) continue;
+    const watches = orderDef(row.card).effects.some(
+      (effect) => effect.kind === 'pays' && effect.count === 'tally' && effect.tally === 'treasuryHeld',
+    );
+    if (!watches) continue;
+    record = Math.max(record ?? 0, row.count);
+  }
+  return record;
+}
+
+/**
+ * **How much more of a Commerce count this seat expects over the horizon**,
+ * and why, or `null` for a count that is not one of them. Each reads the board
+ * first and a knob in `score.commerce.countForecast` for the rest:
+ *
+ *   · copies lent: the spare copies the seat could lend (every copy of a kind
+ *     past the first), at most the knob;
+ *   · deal partners: the met empires at peace it holds no deal with, at most
+ *     the knob;
+ *   · the citizens of foreign towns holding its post: the towns where its post
+ *     is not established yet, each counted as the row counts a town (`perTown`),
+ *     and never less than the knob;
+ *   · every route in the world: the knob alone.
+ */
+function commerceCountAhead(
+  effect: CardPaysEffect,
+  ctx: ValueContext,
+): { more: number; why: string } | null {
+  const state = ctx.state;
+  const playerId = ctx.playerId;
+  const table = ctx.ai.score.commerce.countForecast;
+  switch (effect.count) {
+    case 'copiesLent': {
+      let spare = 0;
+      for (const id of controlledResources(state, playerId, 'luxury')) {
+        spare += Math.max(0, resourceCopies(state, playerId, id) - 1);
+      }
+      return {
+        more: Math.min(spare, Math.max(0, table.copiesLent)),
+        why: `${spare} spare copies this seat could lend, at most ${table.copiesLent}`,
+      };
+    }
+    case 'dealPartners': {
+      const partners = dealPartnerSeats(state, playerId);
+      let open = 0;
+      for (const rival of metRivals(state, playerId)) {
+        if (partners.includes(rival.id)) continue;
+        if (!seatsMayBargain(state, playerId, rival.id) || atWar(state, playerId, rival.id)) continue;
+        open += 1;
+      }
+      return {
+        more: Math.min(open, Math.max(0, table.dealPartners)),
+        why: `${open} met empires at peace with no deal yet, at most ${table.dealPartners}`,
+      };
+    }
+    case 'postCitizens': {
+      const each = perTownOf(effect);
+      let pending = 0;
+      for (const city of state.cities) {
+        if (city.ownerId === playerId) continue;
+        if (postSince(city, playerId) === undefined || cityHoldsPost(state, city, playerId)) continue;
+        pending += Math.floor(city.population / each);
+      }
+      return {
+        more: Math.max(pending, Math.max(0, table.postCitizens)),
+        why: `${pending} from the posts this seat’s routes will establish, at least ${table.postCitizens}`,
+      };
+    }
+    case 'worldTradeRoutes':
+      return {
+        more: Math.max(0, table.worldTradeRoutes),
+        why: 'score.commerce.countForecast.worldTradeRoutes',
+      };
+    default:
+      return null;
+  }
+}
+
+/**
+ * **How many citizens of a town make one of a `postCitizens` count**: the row's
+ * `perTown`, read as `countOf` reads it (whole, and one at the least).
+ */
+function perTownOf(effect: CardPaysEffect): number {
+  const perTown = effect.perTown;
+  return perTown === undefined || perTown < 1 ? 1 : Math.floor(perTown);
+}
+
+/**
+ * **The count a commission's goal guarantees for a lasting effect**, or nought
+ * (Commerce batch T9). Corner the Market's goal, four copies of one luxury,
+ * leaves at least one luxury held two or more times, so its institution (+2
+ * happiness for each such luxury) pays at least once when the goal is met.
+ */
+function guaranteedCount(effect: CardEffect, goals: readonly CommissionGoal[]): number {
+  if (effect.kind !== 'pays' || effect.basis !== 'count') return 0;
+  if (effect.count !== 'duplicateLuxuries') return 0;
+  for (const goal of goals) {
+    if (goal.kind === 'reached' && goal.figure === 'luxuryCopies' && goal.count >= 2) return 1;
+  }
+  return 0;
+}
+
+/**
+ * **What one more paying foreign post, in a town of this many citizens, adds
+ * to this seat's live counted lines**, in points a turn: a line counting the
+ * foreign towns holding its paying post (`postCities`) counts one more, and a
+ * line counting their citizens (`postCitizens`) counts the town as the row
+ * counts one (`perTown`). Each at its helpings, its cap and what one helping
+ * pays (`scorePayout`).
+ */
+function onePostGain(population: number, ctx: ValueContext): number {
+  let gain = 0;
+  for (const { card, effect } of effectsOfKind(ctx.state, ctx.playerId, 'pays')) {
+    if (effect.basis !== 'count') continue;
+    let step = 0;
+    if (effect.count === 'postCities') step = 1;
+    else if (effect.count === 'postCitizens') step = Math.floor(population / perTownOf(effect));
+    if (step <= 0) continue;
+    const now = countOf(ctx.state, ctx.playerId, card, effect);
+    const more = helpings(now + step, effect.per, effect.max) - helpings(now, effect.per, effect.max);
+    if (more > 0) gain += more * scorePayout(effect, ctx);
+  }
+  return gain;
+}
+
+/**
+ * **What The Fondaci's moment pays once for a post in a town of this many
+ * citizens**, summed over the seat's live riders on `postEstablished`, as a
+ * per-turn figure (a lump through `explainLump`). The grant is composed in
+ * `windfallPayout`'s order, as `hexRiderWorth` composes one.
+ */
+function postRiderWorth(population: number, ctx: ValueContext): number {
+  let worth = 0;
+  for (const { effect } of effectsOfKind(ctx.state, ctx.playerId, 'windfallRider')) {
+    if (effect.occasion !== 'postEstablished') continue;
+    const grant = effect.grant;
+    if (grant === undefined || grant.yield === undefined || grant.amount === undefined) continue;
+    const measure = grant.fromOccasion;
+    if (measure !== undefined && measure !== 'population') continue;
+    let figure = measure === 'population' ? grant.amount * population : grant.amount;
+    if (measure !== undefined && grant.max !== undefined) figure = Math.min(figure, grant.max);
+    if (measure !== undefined && grant.whole === true) figure = Math.floor(figure);
+    if (effect.perAge === true) figure *= Math.max(1, ctx.age);
+    if (effect.perSlottedOrder === true) figure *= slottedOrderCount(ctx);
+    const bag: YieldBag = {};
+    bag[grant.yield as Voice] = figure;
+    worth += explainLump(bag, ctx).total;
+  }
+  return worth;
+}
+
+/**
+ * **The World's Fair's reward**: this seat's post, established at once, in
+ * the capital of each empire its routes reach (`writeEstablishedPost`).
+ *
+ *   · How many: the goal's count of partners, or the partners the seat has
+ *     now if more, less the partners whose capital already holds its
+ *     established post.
+ *   · Each post, for the rest of the game: `score.commerce.postWorth`, for the
+ *     post cards the seat may hold later, and what its live counted lines gain
+ *     from one more post (`onePostGain`), at the partners' mean capital.
+ *   · Each post, once: The Fondaci's moment, where the seat holds a rider on
+ *     it (`postRiderWorth`).
+ */
+function partnerPostTerms(goals: readonly CommissionGoal[], ctx: ValueContext): ValueTerm[] {
+  const partners = tradePartnerSeats(ctx.state, ctx.playerId);
+  const wanted = Math.max(goalFigure('tradePartnerEmpires', goals), partners.length);
+  let held = 0;
+  let people = 0;
+  let capitals = 0;
+  for (const seat of partners) {
+    const capital = capitalCityOf(ctx.state, seat) ?? null;
+    if (capital === null) continue;
+    if (cityHoldsPost(ctx.state, capital, ctx.playerId)) {
+      held += 1;
+      continue;
+    }
+    people += capital.population;
+    capitals += 1;
+  }
+  const posts = Math.max(0, wanted - held);
+  if (posts === 0) {
+    return [{ label: 'every partner’s capital already holds this seat’s post', value: 0 }];
+  }
+  const population = capitals > 0 ? people / capitals : meanPopulation(ctx);
+  const each = ctx.ai.score.commerce.postWorth + onePostGain(population, ctx);
+  const terms: ValueTerm[] = [
+    {
+      label: `${posts} trading posts in the partners’ capitals, for the rest of the game`,
+      value: posts * each,
+    },
+  ];
+  const once = postRiderWorth(population, ctx);
+  if (once > 0) {
+    terms.push({ label: `the moment each post is established, ${posts} times`, value: posts * once });
+  }
+  return terms;
+}
+
+/**
+ * **What `step` more of a count pays this seat a turn**, through its live
+ * counted lines: each `pays` line counting it, at its helpings, its cap and
+ * what one helping pays (`scorePayout`), the reading `explainCounted` prices a
+ * card's count by. Commerce batch T9 exports it for the deal appraisal
+ * (`explainSide`, `diplomacy.ts`): a copy lent counts for Export Guilds
+ * (`copiesLent`), and a new partner for The Treaty Ports (`dealPartners`).
+ */
+export function explainCountStep(count: CountKind, step: number, ctx: ValueContext): Appraisal {
+  const terms: ValueTerm[] = [];
+  if (step <= 0) return appraise(terms);
+  for (const { source, card, effect } of effectsOfKind(ctx.state, ctx.playerId, 'pays')) {
+    if (effect.basis !== 'count' || effect.count !== count) continue;
+    const now = countOf(ctx.state, ctx.playerId, card, effect);
+    const more = helpings(now + step, effect.per, effect.max) - helpings(now, effect.per, effect.max);
+    if (more <= 0) continue;
+    terms.push({
+      label: `${source}: ${more} more helping${more === 1 ? '' : 's'} a turn`,
+      value: more * scorePayout(effect, ctx),
+    });
+  }
+  return appraise(terms);
 }
 
 // --- the citizen levy -----------------------------------------------------------

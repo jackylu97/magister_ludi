@@ -32,8 +32,9 @@ import { describe, expect, it } from 'vitest';
 import { RULES } from '../../src/sim/rulesData';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
-import { buildingUpkeep, unitUpkeep } from '../../src/sim/upkeep';
-import { type Unit, createUnit } from '../../src/sim/state';
+import { buildingUpkeep, disbandFloor, unitUpkeep } from '../../src/sim/upkeep';
+import { type GameState, type Unit, bumpRevision, createUnit, playerById } from '../../src/sim/state';
+import { type OrderId } from '../../src/sim/statecraftData';
 import { debtWarning, disbandSentence } from '../../src/ui/controls';
 import { upkeepNote } from '../../src/ui/unitPanel';
 import { bareState } from '../sim/improvementHelpers';
@@ -166,44 +167,92 @@ describe('the Compendium’s two shelves', () => {
 });
 
 describe('the treasury under water', () => {
+  /** Seat 0 of a blank board, with this much gold. */
+  function treasury(gold: number): GameState {
+    const state = bareState();
+    playerById(state, 0)!.gold = gold;
+    bumpRevision(state);
+    return state;
+  }
+
+  /** Seats Letters of Credit for seat 0, which lowers the disband floor. */
+  function withCredit(state: GameState): void {
+    const sc = playerById(state, 0)!.statecraft;
+    const letters = 'lettersOfCredit' as OrderId;
+    if (!sc.orders.includes(letters)) sc.orders.push(letters);
+    sc.slots.push({ card: letters, sealedUntil: state.turn });
+    bumpRevision(state);
+  }
+
   it('names the disbanded piece and the threshold it crossed', () => {
-    const said = disbandSentence({ unitId: 3, ownerId: 0, type: 'swordsman', upkeep: 2 });
+    const state = treasury(0);
+    const said = disbandSentence(state, { unitId: 3, ownerId: 0, type: 'swordsman', upkeep: 2 });
     expect(said).toContain(unitDef('swordsman').name);
     expect(said).toContain('was disbanded');
     expect(said).toContain(String(Math.abs(RULES.upkeep.disbandBelow)));
   });
 
   it('says nothing at all while the treasury is solvent', () => {
-    expect(debtWarning({ gold: 0, barbarian: false } as never)).toBeNull();
-    expect(debtWarning({ gold: 12, barbarian: false } as never)).toBeNull();
-    expect(debtWarning(undefined)).toBeNull();
+    const state = treasury(0);
+    expect(debtWarning(state, { gold: 0, barbarian: false } as never)).toBeNull();
+    expect(debtWarning(state, { gold: 12, barbarian: false } as never)).toBeNull();
+    expect(debtWarning(state, undefined)).toBeNull();
   });
 
   it('warns about the yields in debt, and about the army below the floor', () => {
-    const mild = debtWarning({ gold: -1 } as never)!;
+    const owing = treasury(-1);
+    const mild = debtWarning(owing, playerById(owing, 0))!;
     expect(mild).toContain('science and culture');
     expect(mild).toContain(String(Math.abs(RULES.upkeep.debtPercent)));
     expect(mild).not.toContain('disbanded');
 
-    const sharp = debtWarning({ gold: RULES.upkeep.disbandBelow - 1 } as never)!;
+    const low = treasury(RULES.upkeep.disbandBelow - 1);
+    const sharp = debtWarning(low, playerById(low, 0))!;
     expect(sharp).toContain('disbanded');
     expect(sharp).toContain(String(Math.abs(RULES.upkeep.disbandBelow)));
     expect(sharp).not.toBe(mild);
   });
 
   /**
+   * Commerce batch T9: Letters of Credit lowers the line the creditors wait
+   * for to −150 (`disbandFloor`, `upkeep.ts`). The warning and the news ask
+   * the same floor, so a seat holding the card is told −150 and is not warned
+   * of a disband the creditors will not make.
+   */
+  it('names the lower floor Letters of Credit sets, in the warning and the news', () => {
+    const state = treasury(RULES.upkeep.disbandBelow - 1);
+    withCredit(state);
+    const floor = disbandFloor(state, 0);
+    expect(floor).toBe(-150);
+    // Below −10 but above −150: in debt, and no unit goes.
+    const mild = debtWarning(state, playerById(state, 0))!;
+    expect(mild).toContain('science and culture');
+    expect(mild).not.toContain('disbanded');
+    // Below −150: the warning names −150, not −10.
+    playerById(state, 0)!.gold = floor - 1;
+    bumpRevision(state);
+    const sharp = debtWarning(state, playerById(state, 0))!;
+    expect(sharp).toContain('disbanded');
+    expect(sharp).toContain(String(Math.abs(floor)));
+    expect(sharp).not.toContain(`${Math.abs(RULES.upkeep.disbandBelow)}💰`);
+    const said = disbandSentence(state, { unitId: 3, ownerId: 0, type: 'swordsman', upkeep: 2 });
+    expect(said).toContain(String(Math.abs(floor)));
+  });
+
+  /**
    * The one property that would survive every behavioural test and still be
    * wrong: a threshold written into a sentence rather than read off the rules.
-   * Both sentences are built out of `RULES.upkeep`, so a designer who moves the
-   * line moves the words with it.
+   * The penalty is read off `RULES.upkeep` and the floor off the simulation's
+   * `disbandFloor`, so a designer who moves the line moves the words with it.
    */
-  it('reads both figures off RULES.upkeep rather than writing them down', () => {
+  it('reads both figures off the rules rather than writing them down', () => {
     const controls = source('controls.ts');
     const body = controls.slice(
       controls.indexOf('export function disbandSentence'),
       controls.indexOf('export interface GameControlsOptions'),
     );
-    expect(body).toContain('RULES.upkeep.disbandBelow');
+    expect(body).toContain('disbandFloor(state, report.ownerId)');
+    expect(body).toContain('disbandFloor(state, player.id)');
     expect(body).toContain('RULES.upkeep.debtPercent');
     const code = body.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
     expect(code).not.toMatch(/−?\b10💰/);
@@ -213,7 +262,9 @@ describe('the treasury under water', () => {
   it('warns on End Turn without ever blocking it', () => {
     const controls = source('controls.ts');
     // Read before the dispatch and said after it succeeded — never a `return`.
-    expect(controls).toContain('const debt = debtWarning(playerById(getGame().state, localPlayerId));');
+    expect(controls).toContain(
+      'const debt = debtWarning(getGame().state, playerById(getGame().state, localPlayerId));',
+    );
     expect(controls).toContain('if (debt !== null) announce(debt);');
     // And the disband news goes through the same funnel every other report
     // does. It takes the command as well as the result since 2026-08-29: a

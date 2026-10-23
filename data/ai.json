@@ -235,7 +235,8 @@
       "militaryGained": 20,
       "publicWorkCompleted": 6,
       "techCompleted": 15,
-      "charterTechCompleted": 1
+      "charterTechCompleted": 1,
+      "treasuryHeld": 10
     },
     "commission": {
       "priorTurns": 20,
@@ -285,6 +286,18 @@
       "fieldsTended": 1,
       "guildPoint": 2,
       "heldLater": 0.5
+    },
+    "commerce": {
+      "postsOverHorizon": 3,
+      "postRangeWaiver": 0.25,
+      "postWorth": 20,
+      "boughtUnitShare": 0.5,
+      "countForecast": {
+        "copiesLent": 1,
+        "dealPartners": 1,
+        "postCitizens": 1,
+        "worldTradeRoutes": 6
+      }
     },
     "citizenLevy": {
       "priorShare": 0.25,

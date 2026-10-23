@@ -2223,8 +2223,12 @@ describe('the marginal draft reading', () => {
     // on improved hexes. Twenty-one since Commerce batch T5 wrote The Casa da
     // Índia, whose amplifier pays every copy of a luxury its flat yields: a
     // share of what the luxuries already pay, on the `luxuryDuplicates`
-    // target the books already read.
-    expect(engines).toBe(21);
+    // target the books already read. Twenty-three since Commerce batch T9 reads
+    // two more Commerce rows this way: The Commenda, whose lent copies still
+    // count at a share in the counts, the happiness and the luxury yields; and
+    // The Capitulations, whose loans the happiness meter and the luxury
+    // yields already carry (The Silk Road's loans are read the same way).
+    expect(engines).toBe(23);
     // Batch F named The Exchequer the deck's clearest trade payoff and the one
     // the bot most under-priced — `effectAmplifier` fell to `score.unknownEffect`,
     // six points for doubling every caravan in the realm. It is read by the books

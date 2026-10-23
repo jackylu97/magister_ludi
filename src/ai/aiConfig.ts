@@ -1495,6 +1495,81 @@ export interface AiConfig {
       heldLater: number;
     };
     /**
+     * **Stand-in prices for the Commerce shapes of batches T3 to T7**
+     * (Commerce batch T9). Each arm in `value.ts` reads what it can off the
+     * board (the seat's routes, its trading posts, its deals, its treasury,
+     * its towns) and uses a knob here only for the part the board cannot say.
+     *
+     * Some new shapes have no knob, because the board prices them fully:
+     *
+     *   · The Return Leg (`homeRoutesPayOrigin`) is what the seat's home
+     *     routes pay their destinations, read off the route fold;
+     *   · The Commenda and The Capitulations are read by the marginal reading
+     *     (`deckMargin`), the seat's books with the card and without it, as
+     *     The Casa da Índia is;
+     *   · The Art Dealers' moment (`cardDrafted`) comes at the seat's pace of
+     *     drafting: its culture a turn over the price of its next draft;
+     *   · Land Speculation's rider pays a share of what the seat's hex wants
+     *     cost, on the share of them its tile test admits;
+     *   · Letters of Credit is the saving the credit cuts from the best want
+     *     the purse cannot reach yet;
+     *   · The Strongbox's tally reads `score.tallyForecast.treasuryHeld`,
+     *     scaled by how near the treasury is to the row's floor;
+     *   · The Merchant Guilds' route rider counts the merchants through the
+     *     simulation's own count, with its `per` and `max`.
+     */
+    commerce: {
+      /**
+       * **Trading posts a seat with no record is assumed to establish over the
+       * horizon**: the cautious default behind the rate of the
+       * `postEstablished` moment (The Fondaci). The posts the seat's routes
+       * have opened and not yet established are read off the board and added
+       * to it, and the seat's own record of established posts takes over as
+       * the game goes on.
+       */
+      postsOverHorizon: number;
+      /**
+       * **The Admiralty of Trade** (`postsWaiveRouteRange`): the share of a
+       * route's pay that one town holding this seat's paying post is worth,
+       * because the rule frees routes to it from the range limit. The route is
+       * the best one the seat could run (`RouteOutlook`). Whether a pair is out
+       * of range is the route gate's question, which this appraisal cannot ask
+       * of every pair.
+       */
+      postRangeWaiver: number;
+      /**
+       * **The World's Fair** (`postsInPartnerCapitals`): points a turn for each
+       * post the reward writes. This stands in for the post cards the seat may
+       * hold later. What the seat's live post lines gain from the new posts is
+       * read off the board and added to it.
+       */
+      postWorth: number;
+      /**
+       * **The share of this seat's new military units it buys rather than
+       * builds.** A stamp that reaches only bought units (`CardUnitStampEffect.
+       * bought`) reaches this share of them, and Mercenary Contracts' upkeep
+       * waiver is paid on this share of the units the seat gains. The bot keeps
+       * no record of which units it bought, so this is the stand-in.
+       */
+      boughtUnitShare: number;
+      /**
+       * **More of a Commerce count expected over the horizon**: the potential
+       * half of a card that counts it, as `score.scientific.countForecast` is.
+       * Each figure is a ceiling on what the board says could still come: the
+       * spare copies the seat could lend (`copiesLent`), the met empires at
+       * peace it holds no deal with (`dealPartners`). The posts the seat's
+       * routes will establish are read off the board and never counted as less
+       * than `postCitizens`. The world's routes have no board reading, so
+       * `worldTradeRoutes` stands alone.
+       */
+      countForecast: {
+        copiesLent: number;
+        dealPartners: number;
+        postCitizens: number;
+        worldTradeRoutes: number;
+      };
+    };
+    /**
      * **The citizen levy** (the bot levy batch, the user's answer of
      * 2026-10-23 to question 2 of `docs/plans/expansionist-themes-triage.md`).
      * A levy is the `levyCitizen` command: a town spends a citizen on what a

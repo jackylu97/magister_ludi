@@ -332,7 +332,7 @@ import { autoExploreError } from '../sim/explore';
 import { type UnitDef, isExplorer, trades, unitDef, unitHp, unitMaxHp } from '../sim/unitData';
 // The empire's live share of a piece's maximum health — iron's ten points (R2).
 import { unitHealthBonus } from '../sim/resourceEffects';
-import { type DisbandReport, treasuryInDebt } from '../sim/upkeep';
+import { type DisbandReport, disbandFloor, treasuryInDebt } from '../sim/upkeep';
 import {
   sleepError,
   sleepingSnapshot,
@@ -1252,11 +1252,12 @@ export function pillageVictimSentence(state: GameState, report: PillageReport): 
  *
  * The one piece of news in the game where the *simulation took something away
  * from the player for a reason they can fix*, so it says the reason in the same
- * breath as the loss. Reading the threshold off `RULES.upkeep.disbandBelow`
- * rather than writing "−10" into the sentence is the usual discipline — a
- * designer who moves the line moves this sentence with it — and it is the same
- * figure the End Turn warning quotes, so the warning and the loss can never
- * name two different numbers.
+ * breath as the loss. The threshold is the simulation's own `disbandFloor`
+ * (`upkeep.ts`): `rules.upkeep.disbandBelow`, or the lower floor Letters of
+ * Credit sets (Commerce batch T9), so a seat holding the card reads −150. It is
+ * never written into the sentence, so a designer who moves the line moves this
+ * sentence with it, and it is the same figure the End Turn warning quotes, so
+ * the warning and the loss can never name two different numbers.
  *
  * Pure and exported: this suite has no DOM, and a sentence that is merely wrong
  * throws nothing.
@@ -1316,8 +1317,8 @@ export function campSentence(bounty: CampBounty): string {
   return `⚔ Camp cleared: ${parts.join(', ')}`;
 }
 
-export function disbandSentence(report: DisbandReport): string {
-  const floor = `${signedFigure(RULES.upkeep.disbandBelow)}${YIELD_GLYPH.gold}`;
+export function disbandSentence(state: GameState, report: DisbandReport): string {
+  const floor = `${signedFigure(disbandFloor(state, report.ownerId))}${YIELD_GLYPH.gold}`;
   return `Your ${unitDef(report.type).name} was disbanded — the treasury is below ${floor}.`;
 }
 
@@ -1379,16 +1380,20 @@ export function unrestSentence(report: UnrestReport, cityName: string): string {
  *
  * **Two sentences, because there are two states and only the second is
  * urgent.** In debt costs yields, which is recoverable by doing nothing much;
- * below `disbandBelow` costs a *unit every turn*, which is not. A player who
+ * below the disband floor costs a *unit every turn*, which is not. A player who
  * saw one sentence for both would learn the mild one and stop reading it.
  *
- * Both figures are read off `RULES.upkeep`, for `disbandSentence`'s reason.
+ * The penalty is read off `RULES.upkeep.debtPercent`, and the floor is the
+ * simulation's `disbandFloor` (Commerce batch T9), for `disbandSentence`'s
+ * reason: a seat holding Letters of Credit is told −150, the line its
+ * creditors actually wait for.
  */
-export function debtWarning(player: Player | undefined): string | null {
+export function debtWarning(state: GameState, player: Player | undefined): string | null {
   if (!player || !treasuryInDebt(player)) return null;
   const penalty = `science and culture ${percentFigure(RULES.upkeep.debtPercent)}`;
-  if (player.gold < RULES.upkeep.disbandBelow) {
-    const floor = `${signedFigure(RULES.upkeep.disbandBelow)}${YIELD_GLYPH.gold}`;
+  const below = disbandFloor(state, player.id);
+  if (player.gold < below) {
+    const floor = `${signedFigure(below)}${YIELD_GLYPH.gold}`;
     return `⚠ Treasury below ${floor}: ${penalty}, and a unit is disbanded every turn.`;
   }
   return `⚠ Treasury in debt: ${penalty}.`;
@@ -3479,7 +3484,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (!result.ok || !result.disbanded) return;
     for (const report of result.disbanded) {
       if (report.ownerId !== localPlayerId) continue;
-      announce(disbandSentence(report));
+      announce(disbandSentence(getGame().state, report));
     }
   }
 
@@ -7949,7 +7954,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // the turn resolves and never held for the hand-over: it is not news about
     // a turn that went by, it is a standing condition the player has to act on,
     // and it repeats every turn until they do — which is the point of it.
-    const debt = debtWarning(playerById(getGame().state, localPlayerId));
+    const debt = debtWarning(getGame().state, playerById(getGame().state, localPlayerId));
     // And the end of the game, on exactly the terms the two holders above are
     // opened on: a race decided inside this resolution belongs behind the turn
     // card, not in front of the marches. The *check* is not here — it is
