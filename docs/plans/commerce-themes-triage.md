@@ -411,6 +411,8 @@ The first nine come from section 13. The rest are new. Each gives the reading th
 - **Schema:** none.
 - **Done-gate:** `npx vitest run test/sim/aiRouteRenewal.test.ts test/sim/aiBot.test.ts test/sim/aiDecision.test.ts`. The digests move; T9 re-pins them.
 
+**Built 2026-10-23** (`b1c2e54f`, merged as `314edfb0`). The knob is `score.routeLapseMultiple` (1.5); `src/ai/aiConfig.ts` carries its type, outside the fence. In a six-seat 100-turn game, 16 routes were set to renew, 7 renewed and none lapsed. Follow-ups: the knob has no row in `data/ai.bounds.json`, so the tuner does not move it; a lapsed caravan earns nothing on its walk home. The fact above, "Bots never renew a route", held when this plan was written.
+
 ### T9: bot pricing
 
 - **Builds:**

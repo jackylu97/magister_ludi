@@ -858,6 +858,16 @@ knobs `score.citizenLevy`). A seat holding Veteran Colonies retires a soldier
 in one of its towns for the citizen, but only while its army stands over what
 it wants by a whole soldier and it is at peace (`retireCommand`).
 
+**Route renewal** (Commerce batch T8, 2026-10-23). A bot sets every caravan it
+sends to renew its route when the term ends (`setAutoResend`,
+`routeRenewalDecision` in `bot.ts`), so a route can grow old enough for
+Established Routes. On the turn a term ends, the bot lets the route lapse only
+when every route slot is in use, a different pair would open in the freed slot,
+no other caravan of the seat is lapsing, and that pair pays more than the
+renewed route by the knob `score.routeLapseMultiple` (1.5). The renewed pay
+counts what cards pay an old route, at the route's age halfway through the new
+term.
+
 ## The surfaces
 
 Eight root pages, all named in `vite.config.ts` inputs:
