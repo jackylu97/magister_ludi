@@ -405,6 +405,8 @@ The first nine come from section 13. The rest are new. Each gives the reading th
 - **Schema:** one bump.
 - **Done-gate:** `npx vitest run test/sim/decks/commercePairs.test.ts test/sim/decks/dominion.test.ts test/sim/decks/common.test.ts test/sim/decks/shared.test.ts test/sim/decks/commerce.test.ts test/sim/offers.test.ts test/sim/decks.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`.
 
+**Built 2026-10-23** (`d14967b2`). Schema 171; the explore digests moved by the version alone. The moment is `cardDrafted`, fired once, at the end of `applyChooseOrder`, for a pick, a charter pick and a free-draft pick (not a pass, a Doctrine or a refused pick), and paid at the capital by `payCardDrafted` (`statecraft/draft.ts`). The fence missed `commands.ts`, the `statecraft.ts` index, the Dominion shelf of `docs/orders-and-doctrines.md`, `explore.test.ts` and two counts in `commerce.test.ts`. The Money Lenders' and The World's Exchange's notes were rewritten (The Money Lenders' interest is read after the cities' gold banks and before upkeep).
+
 ### T8: bots renew their routes
 
 - **Builds:** a step in `src/ai/bot.ts` that turns `autoResend` on for the bot's own caravans (`setAutoResend`, `on: true`), one step after the hire, because a hired caravan has its id only after the reducer runs. A knob in `data/ai.json` beside the bot's route knobs says when a bot lets a route lapse instead (for example when a new partner pays more). The arena panel shows it with no page edit. This is section 10's item 8, answered yes.
