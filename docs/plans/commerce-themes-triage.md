@@ -412,6 +412,14 @@ Reading 24's "rounded down" needed a new grant field, `whole` (Civic Receipts' g
 - **Done-gate:** `npx vitest run test/sim/decks/commercePurse.test.ts test/sim/purchase.test.ts test/sim/upkeep.test.ts test/sim/uniqueUpkeep.test.ts test/sim/tilePurchaseGate.test.ts test/sim/greatPeople.test.ts test/sim/guilds.test.ts test/sim/decks/shared.test.ts test/sim/decks/dominion.test.ts test/ui/tradeScreen.test.ts test/sim/decks/commerce.test.ts test/sim/decks.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`.
 - **After T6 every card of the plan plays as written:** 77 of 77.
 
+**Built 2026-10-23** (the commit "Commerce batch T6"). Schema 175; the explore digests moved by the version alone. Every card of the plan now plays as written. The spend floor is `cardSpendFloor`, asked through `spendableGold` by `purchaseGate`, `tilePurchaseGate` and `greatPersonPurchaseError`, by the Trade screen (`ctx.spendable`) and, as `disbandFloor` (`upkeep.ts`), by `disbandCandidate`. The Strongbox's tally is `treasuryHeld`, raised by `recordTreasuryHeld` inside `collectYields`. Mercenary Contracts' waiver is a timed effect written at the unit's birth (`cardBirthTimedEffects`) and read as a give-back line (`cardUpkeepWaiverLines`). New readings:
+
+51. (T6) Mercenary Contracts covers land military units only; a bought ship still costs upkeep.
+52. (T6) The creditors still choose a unit to disband by its gross price, so a waived unit can be disbanded, as with The Standing Army.
+53. (T6) With two credit rows, the largest credit applies.
+
+Outside the fence: `state.ts` (`createUnit`), the `statecraft.ts` index, the orders doc's Cross-type table and notes, `commerce.test.ts`, `shared.test.ts`, `exactYields.test.ts`, `explore.test.ts`, and `slateRegister.test.ts`. `decks.test.ts` pins 578 → 582 and its deferred count 26 → 25. Follow-ups: the debt warning in `src/ui/controls.ts` still prints −10; the bot's disband choice reads gross upkeep (T9).
+
 ### T7: the pair cards (questions 3 and 4, answered yes)
 
 - **Builds:**
