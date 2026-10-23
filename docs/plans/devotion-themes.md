@@ -605,3 +605,7 @@ The charters are uncommon. The 29 shared cards are 4 Military, 3 Economic and 22
 11. **The deck's size:** 64 seatable cards and 2 charters. *Recommended: keep it and cut by hand on the list.* If you want it smaller, these are the next five cuts, weakest first: The Offering Chests, The Confessors, The Octave, The Holy Inquisition, The Sabbath Laws.
 
 After your answers: every card onto the sheet as `add` and `modify` rows, with the Type column, then Devotion's Doctrines, then the triage for the build.
+
+## 11. Where the Devotion and Magisterial passes meet (added 2026-10-23)
+
+The Magisterial pass (`docs/plans/magisterial-themes.md`) ran at the same time as this one. Its section 11 lists where the two touch, with a recommendation for each: the feature names (its adoption moment is renamed feature G, so this pass keeps E and F), rerolls (both passes leave them to the Devotion pair), the three cards this pass shares with Magisterial, Sacred Commissions' tier, and Sacred Patronage's second clause.
