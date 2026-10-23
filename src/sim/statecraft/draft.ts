@@ -2021,6 +2021,35 @@ export function applyCharter(player: Player, id: OrderId): boolean {
 }
 
 /**
+ * **Pays the cards that pay when a card enters the collection** (Commerce
+ * batch T7, The Art Dealers): the `cardDrafted` moment, paid at the capital
+ * through `payOccasionRiders`. Without a capital, food and production land
+ * where that function puts them.
+ *
+ * It is a function of its own, beside `applyCharter`, so that every way a card
+ * enters the collection pays the same riders. Its callers are the moment's
+ * seams, and there is one:
+ *
+ *   · `applyChooseOrder` (`commands.ts`), the pick of an Order draft, called
+ *     last: after `settleOrderChoice` has added the card and applied its
+ *     charter, after the law has been dropped for a charter, and after the
+ *     on-draft units are raised. So the riders read the law the pick left.
+ *
+ * `settleOrderChoice` takes no state, which is why the pick calls this
+ * rather than the verb. A new way to add a card (Magisterial's The Cabinet of
+ * Curiosities) calls it too, and joins this list.
+ */
+export function payCardDrafted(state: GameState, player: Player): void {
+  const capital = capitalCityOf(state, player.id);
+  payOccasionRiders(
+    state,
+    player,
+    'cardDrafted',
+    capital ? { col: capital.col, row: capital.row } : undefined,
+  );
+}
+
+/**
  * **Can a free Order draft open for this seat now?** (Dominion batch D5, The
  * New Code.) Not while a draft or a Doctrine offer is waiting, and not when
  * the seat's decks have nothing left to deal at its current draft count (the

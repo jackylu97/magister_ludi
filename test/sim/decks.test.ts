@@ -554,8 +554,11 @@ describe('the schema, as landed', () => {
     // **And Commerce batch T2** (the new data-only cards): eight more. The
     // eight are new Commerce rows. Merchant Scholars changed in place and was
     // already live.
-    expect(live).toBe(567);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(567);
+    // **And Commerce batch T7** (the pair cards): one more. The Art Dealers is
+    // a new shared row. The Standing Army moved from the Dominion file to the
+    // shared file and was already live.
+    expect(live).toBe(568);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(568);
   });
 
   /**
@@ -869,7 +872,11 @@ describe('the schema, as landed', () => {
     // Commerce cards are dealt, and the shared Merchant Scholars moves to
     // Tier III with new text. So a v169 log's Commerce and Scientific hands
     // hold different cards.
-    expect(SCHEMA_VERSION).toBe(170);
+    // 171 since Commerce batch T7 (the pair cards): the shared The Art Dealers
+    // is dealt and pays on a card drafted, and The Standing Army moves to the
+    // shared file for Dominion and Commerce. So a v170 log's Commerce,
+    // Magisterial and Dominion hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(171);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

@@ -956,12 +956,13 @@ describe('the Commerce deck: the sheet of record', () => {
     expect(status.get('Shared'), 'the shared status counts').toEqual(byStatus(shared));
     expect(types.get('Shared'), 'the shared type counts').toEqual(byType(shared));
     // Batch T1's sheet: 77 cards with the two charters, and 22 shared cards.
-    // Batch T2 changes statuses only, so the totals stay.
+    // Batch T2 changes statuses only, so the totals stay. Batch T7 adds The
+    // Standing Army to the shared table (23), and builds The Art Dealers.
     expect(sheet).toHaveLength(77);
-    expect(shared).toHaveLength(22);
+    expect(shared).toHaveLength(23);
   });
 
-  it('types every listed row, 67 of this file and 21 shared, and nothing else of this file', () => {
+  it('types every listed row, 67 of this file and 23 shared, and nothing else of this file', () => {
     // 59 after batch T1, and the eight new rows of batch T2.
     expect(LISTED).toHaveLength(67);
     for (const id of COMMERCE) {
@@ -973,7 +974,9 @@ describe('the Commerce deck: the sheet of record', () => {
       const def = orderDef(id);
       return def.retired !== true && def.decks.includes('commerce');
     });
-    expect(sharedRows).toHaveLength(21);
+    // 21 after batch T1. Batch T7 adds two: The Art Dealers (a new row) and
+    // The Standing Army (moved from the Dominion file).
+    expect(sharedRows).toHaveLength(23);
     for (const id of sharedRows) expect(isCardType(orderDef(id).type ?? ''), id).toBe(true);
   });
 });

@@ -1049,7 +1049,7 @@
           "per": 50
         }
       ],
-      "note": "The interest is a coin for every fiftieth in the treasury, which is the two per hundred the card quotes, counted off the bank as it stood when the books were opened and floored once."
+      "note": "The interest is counted on the treasury after your cities add their gold for the turn and before upkeep is paid. It is paid in whole steps, so the last few coins earn nothing, and a treasury in debt earns nothing."
     },
     "theCharteredArsenal": {
       "name": "The Chartered Arsenal",
@@ -1726,7 +1726,7 @@
           "max": 4
         }
       ],
-      "note": "Held whole. Hammers behind a thing are raised by a flat share, never by a share counted off how far your roads reach."
+      "note": "An empire counts once, however many of your trade routes reach it, and only while one of those routes is running. The bonus goes to the Opus and to nothing else a city builds."
     },
     "theCharteredMetropolis": {
       "name": "The Chartered Metropolis",

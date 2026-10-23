@@ -1887,6 +1887,40 @@
         { "kind": "purchaseRider", "class": {}, "on": "all", "percent": 10 }
       ],
       "note": "Gold opens the door and pays a premium for it: the price is the faith ladder's own figure, multiplied, so faith stays the cheaper way to ask for a fresh hand and the card is a convenience rather than a replacement. The ladder itself is untouched — a redraw in either bank climbs the same rungs and raises the same count — and a hand whose first asking is free stays free in both. The surcharge on the second line reaches every unit and every building this empire buys, in either bank."
+    },
+    "dominionTheStandingArmy": {
+      "name": "The Standing Army",
+      "decks": ["dominion", "commerce"],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "Not raised for a war. Simply raised.",
+      "text": "Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units.",
+      "effects": [
+        { "kind": "upkeepRebate", "free": true, "where": "garrison" },
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 30,
+          "class": { "category": "military" },
+          "scope": { "test": "hasBuilding", "building": "barracks" }
+        }
+      ]
+    },
+    "theArtDealers": {
+      "name": "The Art Dealers",
+      "decks": ["commerce", "magisterial"],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "Every new piece in the collection raises the price of the rest.",
+      "text": "Each card you draft grants 15 gold.",
+      "effects": [
+        { "kind": "windfallRider", "occasion": "cardDrafted", "grant": { "yield": "gold", "amount": 15 } }
+      ],
+      "note": "A charter you draft counts. Passing a draft does not, and neither does taking a Doctrine."
     }
   }
 }

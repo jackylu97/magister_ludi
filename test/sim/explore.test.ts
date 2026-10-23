@@ -980,10 +980,17 @@ describe('determinism', () => {
    * Nobody here drafts, so no seat holds one of the eight new Commerce cards
    * or Merchant Scholars. Checked with the change in place and the version
    * printed as 169, which gives the hashes of Commerce batch T1 exactly.
+   *
+   * **Commerce batch T7 (the pair cards, schema 171) moved the hash and not
+   * the length** at both seeds: 170 became 171, and that is all. Nobody here
+   * drafts, so no card enters a collection, nobody holds The Art Dealers, and
+   * nobody holds The Standing Army in its new file. Checked with the change in
+   * place and the version printed as 170, which gives the hashes of Commerce
+   * batch T2 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'a97866c1:188931',
-    2026: '852257ac:188509',
+    11: '0ab81fc8:188931',
+    2026: '6f5dbd85:188509',
   };
 
   for (const seed of [11, 2026]) {

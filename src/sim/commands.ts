@@ -195,6 +195,7 @@ import {
   governmentChoiceError,
   orderChoiceError,
   orderSkipError,
+  payCardDrafted,
   recordScalingOccasion,
   settleDoctrineChoice,
   settleDoctrineSkip,
@@ -3463,6 +3464,10 @@ function applyChooseOrder(state: GameState, command: ChooseOrderCommand): Comman
     forgetTheLaw(state);
     bumpEconomy(state);
   }
+  // **The cards that pay on a card drafted** (Commerce batch T7, The Art
+  // Dealers). Last, so the riders read the law this pick left, a charter's
+  // grant included.
+  if (taken) payCardDrafted(state, actor);
   return ok();
 }
 

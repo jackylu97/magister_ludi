@@ -3,7 +3,7 @@
 The deck's cards, by tier: name, rarity, status, ability and type. This sheet is the spec of record for the deck. `test/sim/decks/commerce.test.ts` checks it against `data/decks/commerce.json` and, for the shared table, `data/decks/common.json`.
 
 - **Why each card is here:** `docs/plans/commerce-themes.md`, the themes pass of 2026-10-21. It designs the deck as a way to play: an engine of gold and what gold buys, and four themes (the home market, the far trade, the goods and the bankers). Section 12 is the revision of 2026-10-21, which moved the route cards to Tier II. Section 13 holds your answers of 2026-10-23, and it outranks the sections before it. `docs/plans/commerce-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
-- **The build plan:** `docs/plans/commerce-themes-triage.md` (batches T1 to T9). Batch T1 wrote this sheet, put the types into the data, retired the eleven cut rows, moved four rows to the shared file, and changed fifteen cards in place. Batch T2 built the eight new cards that need no new shape (Market Day, The Emporia, The Grain Banks, The Market Halls, Names in Stone, The Hanse, Bills of Exchange and The Grain Barges), and moved Merchant Scholars to Tier III with its new text. Each later batch sets its own rows to `implemented`.
+- **The build plan:** `docs/plans/commerce-themes-triage.md` (batches T1 to T9). Batch T1 wrote this sheet, put the types into the data, retired the eleven cut rows, moved four rows to the shared file, and changed fifteen cards in place. Batch T2 built the eight new cards that need no new shape (Market Day, The Emporia, The Grain Banks, The Market Halls, Names in Stone, The Hanse, Bills of Exchange and The Grain Barges), and moved Merchant Scholars to Tier III with its new text. Batch T7 built the shared The Art Dealers and the moment a card is drafted, and moved Dominion's The Standing Army to the shared file. Each later batch sets its own rows to `implemented`.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -29,7 +29,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 12 | 3 | 4 | 19 | 0 |
 | Tier IV | 9 | 2 | 1 | 12 | 0 |
 | **All** | **55** | **12** | **10** | **77** | **2** |
-| Shared | 17 | 4 | 1 | 22 | 1 |
+| Shared | 19 | 4 | 0 | 23 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
 
@@ -41,7 +41,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 0 | 11 | 6 | 2 |
 | Tier IV | 1 | 6 | 3 | 2 |
 | **All** | **4** | **38** | **29** | **6** |
-| Shared | 4 | 7 | 10 | 1 |
+| Shared | 5 | 7 | 10 | 1 |
 
 Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 and 12 across Tiers 0 to IV. By type they are 3 Military, 37 Economic, 29 Civic and 6 Wildcard.
 
@@ -181,15 +181,17 @@ These rows live in `data/decks/common.json`. A seat holding Commerce or the deck
 
 - **Types:** since batch T1 every shared row carries the type below. The cards shared with Dominion, Expansionist and Scientific carry the types those sheets give them. Batch T1 typed the cards shared with Devotion and Magisterial by this sheet, as batch E0 typed the shared rows of decks not yet sorted. The Devotion and Magisterial passes may change a type, and their triage then changes both sheets (the triage's reading 37).
 - **Moved in batch T1:** The Merchant Shrines, The Waqf and The Silk Road Monks (with Devotion) and The Brokers' Redraw (with Magisterial) came here from the Commerce file, with their ids, texts and tiers. The Escorted Roads, Pilgrim Markets, The Grain Exchange and Travelling Players moved to Tier II, because each needs a trade route to pay. The Exchange of Discoveries moved to Tier I.
-- **Each pair's early shared card:** Expansionist, Market Gardens (Tier 0); Devotion, The Merchant Shrines (Tier 0); Scientific, The Exchange of Discoveries (Tier I); Magisterial, The Art Dealers (Tier I, added in batch T7); Dominion, The Standing Army (Tier 0, shared in batch T7).
+- **Moved in batch T7:** The Standing Army came here from the Dominion file, with its id, text, tier, rarity and type. It is a Commerce seat's Military card at Tier 0.
+- **Each pair's early shared card:** Expansionist, Market Gardens (Tier 0); Devotion, The Merchant Shrines (Tier 0); Scientific, The Exchange of Discoveries (Tier I); Magisterial, The Art Dealers (Tier I, built in batch T7); Dominion, The Standing Army (Tier 0, shared in batch T7).
 - **Market Gardens** is the one route card shared before Tier II. Its farms pay beside a road from Tier 0, and its route half waits for the caravans (section 12 of the themes pass, answered).
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
 | **Market Gardens** | common | Expansionist | 0 | implemented | Farms beside a road gain +1 gold. Domestic routes grant an additional +1 food to their destination. | Economic |
 | **The Merchant Shrines** | common | Devotion | 0 | implemented | Your capital gains +2 faith. Cities working an improved luxury gain +1 faith, once per city. | Civic |
+| **The Standing Army** | uncommon | Dominion | 0 | implemented | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. | Military |
 | **The Exchange of Discoveries** | uncommon | Scientific | I | implemented | +2 science on mines and quarries on a resource. Additional +2 if the city has a market. | Civic |
-| **The Art Dealers** | common | Magisterial | I | add | Each card you draft grants 15 gold. | Economic |
+| **The Art Dealers** | common | Magisterial | I | implemented | Each card you draft grants 15 gold. | Economic |
 | **The Escorted Roads** | uncommon | Dominion | II | implemented | Routes whose origin has a garrison gain +5 gold. Naval units gain +2 strength while adjacent to one of your traders. | Economic |
 | **Pilgrim Markets** | uncommon | Devotion | II | implemented | Routes gain +3 gold and +3 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify. | Civic |
 | **The Grain Exchange** | uncommon | Expansionist | II | implemented | Domestic routes from a city with a Granary give +5 food to their destination. Cities receiving one gain +1 happiness. | Economic |
@@ -230,7 +232,6 @@ These rows stay in the data so that old saves load. They are dealt to nobody, th
   - **The triage's questions 1 to 7** (*"approved, lets begin implementation. for 1-7, go with the recommendations."*): the build uses readings 1 to 42, shares Dominion's The Standing Army with Commerce, and builds The Art Dealers (both in batch T7).
 - **Still open:**
   - **Commerce's Doctrines:** none designed. The deck pass's next stage writes three to five for each of Tiers I to IV, and a triage of their own builds them.
-  - **The Standing Army** joins the shared table when batch T7 moves its row to `common.json`.
   - **Seven rows play as built:** The Planters' Charter, Numidian Cavalry, The Exchange, The Monopoly, The Great Loan, The Silk Road Monks and The Brokers' Redraw. The list doc's row for each says what the game does. A later pass either rewrites their text to what the game does or builds the text.
   - **The Merchant Works** touches the wonder split. It stays as written. Say if you want "a world wonder" dropped from its text.
   - **The cards shared with Devotion and Magisterial** keep their built text and this sheet's types until those decks' passes. Travelling Players keeps its built text until the Magisterial pass (the triage's reading 38).

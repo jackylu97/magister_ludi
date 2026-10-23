@@ -193,37 +193,6 @@
       ],
       "retired": true
     },
-    "dominionTheStandingArmy": {
-      "name": "The Standing Army",
-      "decks": [
-        "dominion"
-      ],
-      "band": 0,
-      "line": "none",
-      "rarity": "uncommon",
-      "type": "military",
-      "flavor": "Not raised for a war. Simply raised.",
-      "text": "Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units.",
-      "effects": [
-        {
-          "kind": "upkeepRebate",
-          "free": true,
-          "where": "garrison"
-        },
-        {
-          "kind": "productionBonus",
-          "category": "unit",
-          "percent": 30,
-          "class": {
-            "category": "military"
-          },
-          "scope": {
-            "test": "hasBuilding",
-            "building": "barracks"
-          }
-        }
-      ]
-    },
     "bloodBrothers": {
       "name": "Blood Brothers",
       "decks": [

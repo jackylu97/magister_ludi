@@ -3984,6 +3984,11 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // once the need that raised them has passed. `scoreWindfallRider` gives
       // this rate only to a grant of citizens.
       return retireRate(ctx);
+    case 'cardDrafted':
+      // **A stand-in** (Commerce batch T7, The Art Dealers). Commerce batch T9
+      // prices a card drafted; until then a rider on it is worth nothing to
+      // the bot.
+      return 0;
     default:
       return unreadOccasion(occasion);
   }

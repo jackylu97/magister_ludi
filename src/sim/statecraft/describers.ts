@@ -5461,6 +5461,8 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   joinedToCapital: 'a city being joined to your capital by road for the first time',
   // Dominion batch D7, The Legions' Labour.
   disband: 'disbanding a unit',
+  // Commerce batch T7, The Art Dealers. A charter is drafted too.
+  cardDrafted: 'drafting a card',
 };
 
 /**

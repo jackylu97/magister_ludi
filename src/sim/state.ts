@@ -2365,8 +2365,25 @@ import {
  * hold eight more cards, and a Commerce or Scientific seat is dealt Merchant
  * Scholars at a different tier. The branch migrates nothing, for the reason
  * given under v119.
+ *
+ * v171 (branch `decks`; Commerce batch T7, `docs/plans/commerce-themes-
+ * triage.md`): **the pair cards.** No field joins the state. The rules that
+ * change:
+ *
+ *   · a new windfall moment, `cardDrafted`, is paid each time a card enters
+ *     an empire's collection from an Order draft, a charter included. A pass,
+ *     a Doctrine and a belief do not count;
+ *   · the shared The Art Dealers (Commerce and Magisterial, Tier I, common) is
+ *     new and dealt: each card you draft grants 15 gold;
+ *   · The Standing Army moves from the Dominion file to the shared file,
+ *     shared by Dominion and Commerce, with its id, text, tier and type.
+ *
+ * **A v170 save is refused and does not replay.** A Commerce or Magisterial
+ * seat's pools hold a new card, a Commerce seat's pools hold The Standing
+ * Army, and the order of the rows in a Dominion seat's pools changes. The
+ * branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 170;
+export const SCHEMA_VERSION = 171;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

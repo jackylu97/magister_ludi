@@ -509,7 +509,11 @@ describe('determinism', () => {
     // Commerce cards are dealt, and the shared Merchant Scholars moves to
     // Tier III with new text. So a v169 log's Commerce and Scientific hands
     // hold different cards.
-    expect(SCHEMA_VERSION).toBe(170);
+    // 171 since Commerce batch T7 (the pair cards): the shared The Art Dealers
+    // is dealt and pays on a card drafted, and The Standing Army moves to the
+    // shared file for Dominion and Commerce. So a v170 log's Commerce,
+    // Magisterial and Dominion hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(171);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

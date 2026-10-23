@@ -2512,16 +2512,6 @@
     "text": "+8 combat strength for scout units"
    }
   ],
-  "dominionTheStandingArmy": [
-   {
-    "raw": "all units cost no gold in maintenance while standing in one of your cities",
-    "text": "all units cost no gold in maintenance while standing in one of your cities"
-   },
-   {
-    "raw": "+30% production toward military units, in every city with a [[building:barracks|Barracks]]",
-    "text": "+30% production toward military units, in every city with a Barracks"
-   }
-  ],
   "bloodBrothers": [
    {
     "raw": "a barbarian you kill joins you at full health instead of dying",
@@ -9326,6 +9316,22 @@
    {
     "raw": "all units and buildings cost +10% to buy",
     "text": "all units and buildings cost +10% to buy"
+   }
+  ],
+  "dominionTheStandingArmy": [
+   {
+    "raw": "all units cost no gold in maintenance while standing in one of your cities",
+    "text": "all units cost no gold in maintenance while standing in one of your cities"
+   },
+   {
+    "raw": "+30% production toward military units, in every city with a [[building:barracks|Barracks]]",
+    "text": "+30% production toward military units, in every city with a Barracks"
+   }
+  ],
+  "theArtDealers": [
+   {
+    "raw": "drafting a card grants +15 gold",
+    "text": "drafting a card grants +15 gold"
    }
   ]
  },

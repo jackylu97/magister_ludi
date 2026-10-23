@@ -5150,7 +5150,36 @@ export type WindfallOccasion =
    * unit's production cost (`unitCost`), which a unit raised for free does not
    * carry. Creditors taking a unit for debt is not a disband.
    */
-  | 'disband';
+  | 'disband'
+  /**
+   * **A card entered this empire's collection** (Commerce batch T7): the
+   * shared The Art Dealers. Paid by `payCardDrafted` (`statecraft/draft.ts`)
+   * through `payOccasionRiders`, at the capital, so food and production a
+   * rider pays land there.
+   *
+   * One seam fires it: the pick of an Order draft. `applyChooseOrder`
+   * (`commands.ts`) calls `payCardDrafted` as its last step, after
+   * `settleOrderChoice` has put the card in the collection, the charter's
+   * grant has been applied and the on-draft units have been raised. So:
+   *
+   *   · an ordinary card and a charter both count, because both enter the
+   *     collection through that pick;
+   *   · a pick from a free draft (The New Code) counts, because it is the same
+   *     pick;
+   *   · passing a draft does not count (that is `draftPassed`), and neither
+   *     does a Doctrine, a belief, a discovery, a great person or a malice the
+   *     world seats.
+   *
+   * The card just drafted is in the collection and not in a chair, so it does
+   * not pay for itself. A future way to add a card to the collection
+   * (Magisterial's The Cabinet of Curiosities) calls `payCardDrafted` too,
+   * and the docblock above it names every caller.
+   *
+   * It carries no facts yet. The Art Dealers pays a flat figure, and so would
+   * Magisterial's The Court Painter. A card that pays from the price of the
+   * hand (Magisterial's The Accessions Register) adds that price as a fact.
+   */
+  | 'cardDrafted';
 
 /**
  * **What a grant is a share of, where it is a share of the occasion itself.**
