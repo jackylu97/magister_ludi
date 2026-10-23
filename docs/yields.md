@@ -338,7 +338,7 @@ lands. The `where · basis` cell is blank for the kinds that are still one thing
 | `pays` | city · mirror | 3 | additive — a voice paid again off one category's buildings |
 | `cardYieldAmplifier` | | 2, 3, 18 | additive flat and a percentage, over the *card lines* of the fold it reads |
 | `pays` | route · flat | 6, 16 | additive (arrivals at 6, the caravans abroad at 16); `crossing` narrows a row to one of the two |
-| `pays` | route · count | 6, 16 | additive, same two steps — the helpings multiply the **bag**, as `perEndpointLuxury` does; the count is the road's own length (`routeLength`) |
+| `pays` | route · count | 6, 16 | additive, at the same two steps. The helpings multiply the **bag**, as `perEndpointLuxury` does. The count is the road's own length (`routeLength`), the technologies the destination's owner knows that you do not (`techGap`), or a count read at the **origin** town with `within: 'city'`: its improved strategic resources (Strategic Exports), its citizens (The Grain Barges) or the Academies in its borders (`tilesInBorders`, Merchant Scholars) |
 | `buildingYieldPercent` | | 9 | multiplicative within the step; lands as a flat |
 | `pays` | city · share | 10 | multiplicative within the step; lands as a flat |
 | `percentYields` | | 11 | multiplicative, at whichever stage the row names |

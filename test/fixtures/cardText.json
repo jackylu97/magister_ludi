@@ -5952,8 +5952,8 @@
   ],
   "strategicExports": [
    {
-    "raw": "+2 science per improved strategic resource there",
-    "text": "+2 science per improved strategic resource there"
+    "raw": "+2 science per improved strategic resource in the origin city",
+    "text": "+2 science per improved strategic resource in the origin city"
    },
    {
     "raw": "your strategic resource deposits supply twice as many copies",
@@ -6319,6 +6319,66 @@
    {
     "raw": "your trade routes reach 50% further",
     "text": "your trade routes reach 50% further"
+   }
+  ],
+  "marketDay": [
+   {
+    "raw": "+1 gold in your capital per citizen there",
+    "text": "+1 gold in your capital per citizen there"
+   }
+  ],
+  "theEmporia": [
+   {
+    "raw": "+1 food, +1 production on every improved hex carrying a luxury resource",
+    "text": "+1 food, +1 production on every improved hex carrying a luxury resource"
+   }
+  ],
+  "theGrainBanks": [
+   {
+    "raw": "+3 gold in every city with a [[building:granary|Granary]]",
+    "text": "+3 gold in every city with a Granary"
+   }
+  ],
+  "theMarketHalls": [
+   {
+    "raw": "+1 food in every city with a [[building:market|Market]] per 3 citizens there",
+    "text": "+1 food in every city with a Market per 3 citizens there"
+   },
+   {
+    "raw": "+1 production in every city with a [[building:market|Market]] per 3 citizens there",
+    "text": "+1 production in every city with a Market per 3 citizens there"
+   }
+  ],
+  "namesInStone": [
+   {
+    "raw": "+1% science in every city per 200 gold you have spent buying (at most +30% science)",
+    "text": "+1% science in every city per 200 gold you have spent buying (at most +30% science)"
+   },
+   {
+    "raw": "+1% culture in every city per 200 gold you have spent buying (at most +30% culture)",
+    "text": "+1% culture in every city per 200 gold you have spent buying (at most +30% culture)"
+   }
+  ],
+  "theHanse": [
+   {
+    "raw": "+3% production in every city per city that holds your trading post (at most +30% production)",
+    "text": "+3% production in every city per city that holds your trading post (at most +30% production)"
+   },
+   {
+    "raw": "+3% culture in every city per city that holds your trading post (at most +30% culture)",
+    "text": "+3% culture in every city per city that holds your trading post (at most +30% culture)"
+   }
+  ],
+  "billsOfExchange": [
+   {
+    "raw": "+1% production in every city per 100 gold in the treasury (at most +30% production)",
+    "text": "+1% production in every city per 100 gold in the treasury (at most +30% production)"
+   }
+  ],
+  "theGrainBarges": [
+   {
+    "raw": "+1 food, +1 production per 4 citizens in the origin city, on trade routes between two of your own cities",
+    "text": "+1 food, +1 production per 4 citizens in the origin city, on trade routes between two of your own cities"
    }
   ],
   "devotionFirstRites": [
@@ -8814,8 +8874,8 @@
   ],
   "merchantScholars": [
    {
-    "raw": "+5 science on every trade route sent from every city with a [[building:library|Library]] and that ends in another empire’s city",
-    "text": "+5 science on every trade route sent from every city with a Library and that ends in another empire’s city"
+    "raw": "+2 science per hex with an [[improvement:academy|Academy]] in the origin city, on trade routes that end in another empire’s city",
+    "text": "+2 science per hex with an Academy in the origin city, on trade routes that end in another empire’s city"
    }
   ],
   "theExchangeOfDiscoveries": [

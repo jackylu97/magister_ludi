@@ -2647,6 +2647,253 @@
           "percent": 50
         }
       ]
+    },
+    "marketDay": {
+      "name": "Market Day",
+      "decks": [
+        "commerce"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "Once a week the square is full, and every stall pays its fee.",
+      "text": "Your capital gains +1 gold for every citizen.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "count": "capitalPopulation",
+          "to": "gold",
+          "amount": 1
+        }
+      ]
+    },
+    "theEmporia": {
+      "name": "The Emporia",
+      "decks": [
+        "commerce"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "Where the fine goods are dug, the merchants build their halls.",
+      "text": "Improved luxury hexes gain +1 food and +1 production.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "improved"
+              },
+              {
+                "test": "resourceKind",
+                "kind": "luxury"
+              }
+            ]
+          },
+          "food": 1,
+          "production": 1
+        }
+      ]
+    },
+    "theGrainBanks": {
+      "name": "The Grain Banks",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "The farmer deposits wheat and pays his debts with a written order.",
+      "text": "Cities with a Granary gain +3 gold.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "gold": 3,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "granary"
+          }
+        }
+      ]
+    },
+    "theMarketHalls": {
+      "name": "The Market Halls",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "A roof over the market, and the market never closes.",
+      "text": "Towns with a Market gain +1 food and +1 production for every three citizens.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "population",
+          "within": "city",
+          "per": 3,
+          "to": "food",
+          "amount": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "market"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "population",
+          "within": "city",
+          "per": 3,
+          "to": "production",
+          "amount": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "market"
+          }
+        }
+      ]
+    },
+    "namesInStone": {
+      "name": "Names in Stone",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Every donor wants a name over the door.",
+      "text": "+1% science and culture for every 200 gold you have spent buying this game, at most +30%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "goldSpent",
+          "to": "science",
+          "percent": 1,
+          "per": 200,
+          "stage": "city",
+          "max": 30
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "goldSpent",
+          "to": "culture",
+          "percent": 1,
+          "per": 200,
+          "stage": "city",
+          "max": 30
+        }
+      ],
+      "note": "Gold counts when you spend it on units, buildings, hexes, caravans and great people, and when you pour it into the Opus. Upgrades, gold given in a deal and gold spent to reroll a draft do not count."
+    },
+    "theHanse": {
+      "name": "The Hanse",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The towns of the league answer to the league before their lords.",
+      "text": "+3% production and culture for each of your towns holding your trading post, at most +30%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "citiesAdmitted",
+          "admits": {
+            "test": "holdsPost"
+          },
+          "to": "production",
+          "percent": 3,
+          "stage": "city",
+          "max": 10
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "citiesAdmitted",
+          "admits": {
+            "test": "holdsPost"
+          },
+          "to": "culture",
+          "percent": 3,
+          "stage": "city",
+          "max": 10
+        }
+      ],
+      "note": "A trade route leaves your trading post at both of its ends, so a town counts when one of your routes sets out from it as well as when one arrives. A town counts once your post there is established, and not while the town is blockaded."
+    },
+    "billsOfExchange": {
+      "name": "Bills of Exchange",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "The gold stays in the vault. The paper travels.",
+      "text": "Every town gains +1% production for every 100 gold in your treasury, at most +30%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "bankedGold",
+          "to": "production",
+          "percent": 1,
+          "per": 100,
+          "stage": "city",
+          "max": 30
+        }
+      ]
+    },
+    "theGrainBarges": {
+      "name": "The Grain Barges",
+      "decks": [
+        "commerce"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "The big town eats, and the barges keep coming.",
+      "text": "Your domestic trade routes pay their destination +1 food and +1 production for every four citizens of their origin.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "crossing": "domestic",
+          "basis": "count",
+          "count": "population",
+          "within": "city",
+          "per": 4,
+          "food": 1,
+          "production": 1
+        }
+      ]
     }
   }
 }

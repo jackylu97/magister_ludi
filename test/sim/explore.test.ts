@@ -974,10 +974,16 @@ describe('determinism', () => {
    * Nobody here drafts, so no seat holds a retired, moved, retyped or changed
    * Commerce card. Checked with the change in place and the version printed
    * as 168, which gives the hashes of the bot levy merge exactly.
+   *
+   * **Commerce batch T2 (the new data-only cards, schema 170) moved the hash
+   * and not the length** at both seeds: 169 became 170, and that is all.
+   * Nobody here drafts, so no seat holds one of the eight new Commerce cards
+   * or Merchant Scholars. Checked with the change in place and the version
+   * printed as 169, which gives the hashes of Commerce batch T1 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'ce39ecab:188931',
-    2026: '426a8842:188509',
+    11: 'a97866c1:188931',
+    2026: '852257ac:188509',
   };
 
   for (const seed of [11, 2026]) {

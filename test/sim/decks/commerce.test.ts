@@ -185,7 +185,10 @@ describe('the Commerce deck is one deck', () => {
     // Batch T1 retires eleven more (the themes pass's cuts) and moves four
     // rows to common.json (The Merchant Shrines, The Waqf, The Silk Road
     // Monks and The Brokers' Redraw), so 97 rows become 93.
-    expect(COMMERCE.length).toBe(93);
+    // Batch T2 adds the eight new cards that need no new shape (Market Day,
+    // The Emporia, The Grain Banks, The Market Halls, Names in Stone, The
+    // Hanse, Bills of Exchange and The Grain Barges), so 93 rows become 101.
+    expect(COMMERCE.length).toBe(101);
     expect(retired().length).toBe(34);
     for (const id of COMMERCE) {
       expect(orderDef(id).decks, id).toEqual(['commerce']);
@@ -234,10 +237,12 @@ describe('the Commerce deck is one deck', () => {
     // Batch T1 moves rows by the themes pass's tiers, takes four rows to
     // common.json, and retires eleven. Leaving the retired rows out, the
     // deck is the sheet's rows that have a data row: 8 / 8 / 18 / 15 / 10.
-    expect([count(0), count(1), count(2), count(3), count(4)]).toEqual([13, 17, 31, 19, 13]);
+    // Batch T2 adds two rows at Tier 0, two at Tier I, three at Tier II and
+    // one at Tier IV: 10 / 10 / 21 / 15 / 11.
+    expect([count(0), count(1), count(2), count(3), count(4)]).toEqual([15, 19, 34, 19, 14]);
     const kept = COMMERCE.filter((id) => orderDef(id).retired !== true).map((id) => orderDef(id).band);
     expect([0, 1, 2, 3, 4].map((band) => kept.filter((b) => b === band).length)).toEqual([
-      8, 8, 18, 15, 10,
+      10, 10, 21, 15, 11,
     ]);
     expect(orderDef('civicReceipts' as OrderId).band).toBe(1);
   });
@@ -348,7 +353,9 @@ describe('a live Commerce row is a card', () => {
     // eighteen live rows were retired by the sheet's Proposed cuts.
     // **Batch T1**: fifty-six. Eight live rows are retired and four move to
     // common.json.
-    expect(live().length).toBe(56);
+    // **Batch T2**: sixty-four. Eight new rows, each written in shapes that
+    // already existed.
+    expect(live().length).toBe(64);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -606,14 +613,13 @@ describe('the age-2 gate', () => {
     // post. Market Gardens stays at Tier 0 by your answer, as the Expansionist
     // pair's early card (the triage's reading 38).
     //
-    // Merchant Scholars is the second exception, for now: batch T2 moves it
-    // to Tier III with its new text, and then this exception goes.
-    const LATER: readonly string[] = ['merchantScholars'];
-    expect(orderDef('merchantScholars' as OrderId).band).toBe(1);
+    // Batch T2 moved Merchant Scholars to Tier III, so it is no longer an
+    // exception (the triage's reading 43).
+    expect(orderDef('merchantScholars' as OrderId).band).toBe(3);
     const early = gated().filter((id) => orderDef(id).band < 2);
     expect(early.length).toBeGreaterThan(0);
     for (const id of early) {
-      if (id === 'marketGardens' || LATER.includes(id)) continue;
+      if (id === 'marketGardens') continue;
       const def = orderDef(id);
       expect(def.text, `${id}: ${def.text}`).not.toMatch(ROUTE_WORDS);
       for (const effect of def.effects) {
@@ -950,12 +956,14 @@ describe('the Commerce deck: the sheet of record', () => {
     expect(status.get('Shared'), 'the shared status counts').toEqual(byStatus(shared));
     expect(types.get('Shared'), 'the shared type counts').toEqual(byType(shared));
     // Batch T1's sheet: 77 cards with the two charters, and 22 shared cards.
+    // Batch T2 changes statuses only, so the totals stay.
     expect(sheet).toHaveLength(77);
     expect(shared).toHaveLength(22);
   });
 
-  it('types every listed row, 59 of this file and 21 shared, and nothing else of this file', () => {
-    expect(LISTED).toHaveLength(59);
+  it('types every listed row, 67 of this file and 21 shared, and nothing else of this file', () => {
+    // 59 after batch T1, and the eight new rows of batch T2.
+    expect(LISTED).toHaveLength(67);
     for (const id of COMMERCE) {
       const def = orderDef(id);
       if (def.retired === true) expect(def.type, id).toBeUndefined();

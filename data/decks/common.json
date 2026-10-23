@@ -617,19 +617,22 @@
     "merchantScholars": {
       "name": "Merchant Scholars",
       "decks": ["commerce", "scientific"],
-      "band": 1,
+      "band": 3,
       "line": "none",
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "He went for pepper and came back with a grammar.",
-      "text": "Foreign routes from a city with a Library gain +5 science.",
+      "text": "Foreign routes gain +2 science for each Academy in the origin city.",
       "effects": [
         {
           "kind": "pays",
           "where": "route",
-          "science": 5,
-          "origin": { "test": "hasBuilding", "building": "library" },
-          "crossing": "international"
+          "crossing": "international",
+          "basis": "count",
+          "count": "tilesInBorders",
+          "within": "city",
+          "tile": { "test": "improvement", "improvement": "academy" },
+          "science": 2
         }
       ]
     },

@@ -230,7 +230,11 @@ describe('the schema says so', () => {
     // are retired, four move to the shared file, fifteen change in place, and
     // every listed Commerce row carries a type. So a v168 log's Commerce hands
     // and chairs hold different cards.
-    expect(SCHEMA_VERSION).toBe(169);
+    // 170 since Commerce batch T2 (the new data-only cards): eight new
+    // Commerce cards are dealt, and the shared Merchant Scholars moves to
+    // Tier III with new text. So a v169 log's Commerce and Scientific hands
+    // hold different cards.
+    expect(SCHEMA_VERSION).toBe(170);
   });
 
   it('says in the changelog what a v110 log does now', () => {

@@ -21,11 +21,34 @@
  *     rarity (reading 41), the eleven retirements (reading 39), the four rows
  *     moved to `common.json` (reading 37), and the five shared rows that change
  *     tier.
+ *
+ * Batch T2 adds the new cards that need no new shape, and the tests for what
+ * each one pays:
+ *
+ *   · Market Day: +1 gold in the capital for every citizen (reading 5);
+ *   · The Emporia: +1 food and +1 production on an improved luxury hex
+ *     (reading 6);
+ *   · The Grain Banks: +3 gold in a town with a Granary (reading 7);
+ *   · The Market Halls: +1 food and +1 production for every three citizens
+ *     in a town with a Market (reading 35);
+ *   · Names in Stone: +1% science and culture for every 200 gold spent, at
+ *     most +30% (readings 29 and 30);
+ *   · The Hanse: +3% production and culture for each of your towns holding
+ *     your trading post, at most +30% (readings 13 and 30);
+ *   · Bills of Exchange: +1% production for every 100 gold in the treasury,
+ *     at most +30% (reading 30);
+ *   · The Grain Barges: a domestic trade route pays its destination +1 food
+ *     and +1 production for every four citizens of its origin (reading 40);
+ *   · Merchant Scholars, shared with Scientific: Tier III, and a foreign trade
+ *     route gains +2 science for each Academy in its origin's borders
+ *     (reading 36).
  */
 
 import { describe, expect, it } from 'vitest';
 
 import { foundCityAt, ownedTiles, refreshCityDerived, resourceCopies } from '../../../src/sim/cities';
+import { postTermTurns } from '../../../src/sim/routes';
+import { explainRouteSenderYieldBetween, explainRouteYieldBetween, foldRouteYield } from '../../../src/sim/routeYields';
 import { runCommissions } from '../../../src/sim/commissions';
 import { type Tile, raiseImprovement } from '../../../src/sim/map';
 import { happinessOf } from '../../../src/sim/meters';
@@ -48,6 +71,7 @@ import {
   ordersForDecks,
 } from '../../../src/sim/statecraftData';
 import type { UnitTypeId } from '../../../src/sim/unitData';
+import { explainTileYield, yieldContextFor } from '../../../src/sim/yields/hex';
 import { productionModifiers } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
 
@@ -98,7 +122,12 @@ function townPercent(state: GameState, city: City, card: string, voice: string):
 }
 
 /** What one card's town lines pay this town, in one voice. */
-function townPays(state: GameState, city: City, card: string, voice: 'science' | 'production'): number {
+function townPays(
+  state: GameState,
+  city: City,
+  card: string,
+  voice: 'food' | 'production' | 'gold' | 'science' | 'culture',
+): number {
   return explainCardCityYields(state, city)
     .filter((line) => line.card === card)
     .reduce((sum, line) => sum + line[voice], 0);
@@ -395,5 +424,215 @@ describe('Commerce batch T1: tiers, retirements and moves', () => {
     expect(orderDef('travellingPlayers' as OrderId).text).toBe(
       'Foreign routes from a city with a Monument gain +2 culture.',
     );
+  });
+});
+
+/** What one card's lines pay on one hex, as seat 0 sees it. */
+function hexPays(state: GameState, tile: Tile, card: string): { food: number; production: number } {
+  const name = orderDef(card as OrderId).name;
+  const total = { food: 0, production: 0 };
+  for (const line of explainTileYield(tile, yieldContextFor(state, 0))) {
+    if (!line.source.includes(name)) continue;
+    total.food += line.food;
+    total.production += line.production;
+  }
+  return total;
+}
+
+/** Shows a luxury on a hex to seat 0, and raises the work that opens it. */
+function improvedLuxury(state: GameState, tile: Tile, luxury: string): void {
+  const player = playerById(state, 0)!;
+  const reveal = resourceDef(luxury as never).requiresTech;
+  if (reveal && !player.techsResearched.includes(reveal)) player.techsResearched.push(reveal);
+  tile.resource = luxury as never;
+  raiseImprovement(tile, improvementForResource(luxury as never)!, state.turn);
+  bumpRevision(state);
+}
+
+describe('Commerce batch T2: the town and capital cards', () => {
+  it('Market Day pays the capital +1 gold for every citizen, and no other town', () => {
+    const state = bareState(16, 10);
+    const capital = town(state, 3, 5, 6);
+    const other = town(state, 11, 5, 4);
+    slot(state, 0, 'marketDay');
+    expect(townPays(state, capital, 'marketDay', 'gold')).toBe(6);
+    expect(townPays(state, other, 'marketDay', 'gold')).toBe(0);
+    capital.population = 9;
+    bumpRevision(state);
+    expect(townPays(state, capital, 'marketDay', 'gold')).toBe(9);
+  });
+
+  it('The Grain Banks pays +3 gold in a town with a Granary, and nothing in a town without one', () => {
+    const state = bareState(16, 10);
+    const granary = town(state, 3, 5, 3);
+    const bare = town(state, 11, 5, 3);
+    addBuilding(state, granary, 'granary');
+    slot(state, 0, 'theGrainBanks');
+    expect(townPays(state, granary, 'theGrainBanks', 'gold')).toBe(3);
+    expect(townPays(state, bare, 'theGrainBanks', 'gold')).toBe(0);
+  });
+
+  it('The Market Halls pays +1 food and +1 production for every three citizens in a town with a Market', () => {
+    const state = bareState(16, 10);
+    const market = town(state, 3, 5, 8);
+    const bare = town(state, 11, 5, 8);
+    addBuilding(state, market, 'market');
+    slot(state, 0, 'theMarketHalls');
+    // Eight citizens are two helpings: the division floors.
+    expect(townPays(state, market, 'theMarketHalls', 'food')).toBe(2);
+    expect(townPays(state, market, 'theMarketHalls', 'production')).toBe(2);
+    expect(townPays(state, bare, 'theMarketHalls', 'food')).toBe(0);
+    expect(townPays(state, bare, 'theMarketHalls', 'production')).toBe(0);
+    market.population = 9;
+    bumpRevision(state);
+    expect(townPays(state, market, 'theMarketHalls', 'food')).toBe(3);
+  });
+
+  it('The Emporia pays +1 food and +1 production on an improved luxury hex, and on no other hex', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 4);
+    const luxury = RESOURCE_IDS.find(
+      (id) => resourceDef(id).kind === 'luxury' && improvementForResource(id) !== null,
+    )!;
+    expect(luxury).toBeDefined();
+    const hexes = ring(state, city);
+    const [improved, wild, farm] = [hexes[0]!, hexes[1]!, hexes[2]!];
+    improvedLuxury(state, improved, luxury);
+    // The same luxury with nothing built on it.
+    wild.resource = luxury as never;
+    // A farm with no luxury under it.
+    raiseImprovement(farm, 'farm', state.turn);
+    bumpRevision(state);
+    slot(state, 0, 'theEmporia');
+    expect(hexPays(state, improved, 'theEmporia')).toEqual({ food: 1, production: 1 });
+    expect(hexPays(state, wild, 'theEmporia')).toEqual({ food: 0, production: 0 });
+    expect(hexPays(state, farm, 'theEmporia')).toEqual({ food: 0, production: 0 });
+  });
+});
+
+describe('Commerce batch T2: the percentages on a count', () => {
+  it('Names in Stone pays +1% science and culture for every 200 gold spent, at most +30%', () => {
+    const state = bareState(16, 10);
+    const one = town(state, 3, 5, 3);
+    const two = town(state, 11, 5, 3);
+    slot(state, 0, 'namesInStone');
+    const player = playerById(state, 0)!;
+    player.goldSpent = 199;
+    bumpRevision(state);
+    expect(townPercent(state, one, 'namesInStone', 'science')).toBe(0);
+    player.goldSpent = 1000;
+    bumpRevision(state);
+    for (const city of [one, two]) {
+      expect(townPercent(state, city, 'namesInStone', 'science')).toBe(5);
+      expect(townPercent(state, city, 'namesInStone', 'culture')).toBe(5);
+      expect(townPercent(state, city, 'namesInStone', 'production')).toBe(0);
+    }
+    player.goldSpent = 100000;
+    bumpRevision(state);
+    expect(townPercent(state, one, 'namesInStone', 'science')).toBe(30);
+    expect(townPercent(state, one, 'namesInStone', 'culture')).toBe(30);
+    // City-stage lines (reading 30).
+    for (const line of explainCardPercentYields(state, one).filter((l) => l.card === 'namesInStone')) {
+      expect(line.stage).toBe('city');
+    }
+  });
+
+  it('Bills of Exchange pays +1% production for every 100 gold in the treasury, at most +30%', () => {
+    const state = bareState(16, 10);
+    const one = town(state, 3, 5, 3);
+    const two = town(state, 11, 5, 3);
+    slot(state, 0, 'billsOfExchange');
+    const player = playerById(state, 0)!;
+    player.gold = 250;
+    bumpRevision(state);
+    expect(townPercent(state, one, 'billsOfExchange', 'production')).toBe(2);
+    expect(townPercent(state, two, 'billsOfExchange', 'production')).toBe(2);
+    expect(townPercent(state, one, 'billsOfExchange', 'gold')).toBe(0);
+    player.gold = 9000;
+    bumpRevision(state);
+    expect(townPercent(state, one, 'billsOfExchange', 'production')).toBe(30);
+    // A treasury below zero counts as nothing.
+    player.gold = -400;
+    bumpRevision(state);
+    expect(townPercent(state, one, 'billsOfExchange', 'production')).toBe(0);
+    for (const line of explainCardPercentYields(state, two).filter((l) => l.card === 'billsOfExchange')) {
+      expect(line.stage).toBe('city');
+    }
+  });
+
+  it('The Hanse counts your towns that hold your established trading post, foreign towns left out', () => {
+    const state = bareState(24, 10);
+    const capital = town(state, 3, 5, 3);
+    const second = town(state, 9, 5, 3);
+    const young = town(state, 15, 5, 3);
+    const foreign = foundCityAt(state, 1, at(state, 21, 5));
+    slot(state, 0, 'theHanse');
+    expect(townPercent(state, capital, 'theHanse', 'production')).toBe(0);
+    state.turn = 60;
+    const ripe = state.turn - postTermTurns();
+    capital.posts = [{ by: 0, since: ripe }];
+    second.posts = [{ by: 0, since: ripe }];
+    // A post opened this turn is not established yet.
+    young.posts = [{ by: 0, since: state.turn }];
+    // Your post in another empire's town is not one of your towns.
+    foreign.posts = [{ by: 0, since: ripe }];
+    bumpRevision(state);
+    // Two towns: +6% in every town, the young one included.
+    for (const city of [capital, second, young]) {
+      expect(townPercent(state, city, 'theHanse', 'production')).toBe(6);
+      expect(townPercent(state, city, 'theHanse', 'culture')).toBe(6);
+    }
+    expect(townPercent(state, capital, 'theHanse', 'gold')).toBe(0);
+    // "At most +30%" is ten helpings.
+    for (const effect of orderDef('theHanse' as OrderId).effects) {
+      expect(effect).toMatchObject({ count: 'citiesAdmitted', admits: { test: 'holdsPost' }, percent: 3, max: 10 });
+    }
+  });
+});
+
+describe('Commerce batch T2: the route cards', () => {
+  it('The Grain Barges pays the destination of a domestic route +1 food and +1 production for every four citizens of its origin', () => {
+    const state = bareState(24, 10);
+    const from = town(state, 3, 5, 9);
+    const to = town(state, 9, 5, 2);
+    const foreign = foundCityAt(state, 1, at(state, 18, 5));
+    slot(state, 0, 'theGrainBarges');
+    const named = (lines: ReturnType<typeof explainRouteYieldBetween>) =>
+      foldRouteYield(lines.filter((line) => line.source.includes('The Grain Barges')));
+    // Nine citizens at the origin are two helpings.
+    const paid = named(explainRouteYieldBetween(state, from, to));
+    expect([paid.food, paid.production]).toEqual([2, 2]);
+    // The count is the origin's: the small town sends less.
+    const back = named(explainRouteYieldBetween(state, to, from));
+    expect([back.food, back.production]).toEqual([0, 0]);
+    // A foreign route pays nothing from this card.
+    const abroad = named(explainRouteSenderYieldBetween(state, from, foreign));
+    expect([abroad.food, abroad.production]).toEqual([0, 0]);
+  });
+
+  it('Merchant Scholars sits at Tier III and pays foreign routes +2 science for each Academy in the origin city', () => {
+    const def = orderDef('merchantScholars' as OrderId);
+    expect([def.band, def.rarity, def.type]).toEqual([3, 'uncommon', 'civic']);
+    expect(def.decks).toEqual(['commerce', 'scientific']);
+    expect(DECK_FILE_ORDERS.common).toContain('merchantScholars');
+    expect(orderIsDealt('merchantScholars' as OrderId)).toBe(true);
+    const state = bareState(24, 10);
+    const from = town(state, 3, 5, 4);
+    const home = town(state, 9, 5, 4);
+    const foreign = foundCityAt(state, 1, at(state, 18, 5));
+    slot(state, 0, 'merchantScholars');
+    const named = (lines: ReturnType<typeof explainRouteSenderYieldBetween>) =>
+      foldRouteYield(lines.filter((line) => line.source.includes('Merchant Scholars'))).science;
+    // A Library no longer pays anything.
+    addBuilding(state, from, 'library');
+    bumpRevision(state);
+    expect(named(explainRouteSenderYieldBetween(state, from, foreign))).toBe(0);
+    for (const tile of ring(state, from).slice(0, 2)) raiseImprovement(tile, 'academy', state.turn);
+    bumpRevision(state);
+    expect(named(explainRouteSenderYieldBetween(state, from, foreign))).toBe(4);
+    // A domestic route pays nothing from this card.
+    expect(named(explainRouteYieldBetween(state, from, home))).toBe(0);
+    // The count is the origin's: Academies at the far end buy nothing.
+    expect(named(explainRouteSenderYieldBetween(state, home, foreign))).toBe(0);
   });
 });

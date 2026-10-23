@@ -2122,7 +2122,11 @@ describe("determinism", () => {
     // are retired, four move to the shared file, fifteen change in place, and
     // every listed Commerce row carries a type. So a v168 log's Commerce hands
     // and chairs hold different cards.
-    expect(SCHEMA_VERSION).toBe(169);
+    // 170 since Commerce batch T2 (the new data-only cards): eight new
+    // Commerce cards are dealt, and the shared Merchant Scholars moves to
+    // Tier III with new text. So a v169 log's Commerce and Scientific hands
+    // hold different cards.
+    expect(SCHEMA_VERSION).toBe(170);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -9004,7 +9008,9 @@ describe("the engine shapes", () => {
     // an ordinary route line whose other half is the happiness clause that
     // needed a town to be able to ask what the far end of its roads holds.
     "pilgrimMarkets · routeYield",
-    "merchantScholars · routeYield",
+    // Commerce batch T2 took Merchant Scholars off this list: it now counts
+    // the Academies in the origin city, so it is a route count and no longer
+    // a route flat.
     "travellingPlayers · routeYield",
     "theGrainExchange · routeYield",
     "theMerchantNavigators · routeYield",

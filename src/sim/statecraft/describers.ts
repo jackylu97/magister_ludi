@@ -1549,6 +1549,11 @@ function countPlace(effect: CardPaysEffect, subject: ClauseSubject): CountPlace 
         : '';
   if (!cityScoped) return { paidIn, counted: '' };
   if (subject === 'here') return { paidIn, counted: 'in this city' };
+  // A route line is counted in the town the trade route left (Commerce batch
+  // T2, The Grain Barges). Its clause names no town before the count, so
+  // "there" would point at nothing. `tilesInBorders` says the same words in
+  // its own noun.
+  if (effect.where === 'route') return { paidIn, counted: 'in the origin city' };
   if (effect.where !== 'empire') return { paidIn, counted: 'there' };
   // A scope names which towns the empire's sum walks (The Acropolis' capital,
   // Dominion batch D4), so the words name them too.

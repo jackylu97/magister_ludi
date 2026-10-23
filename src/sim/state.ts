@@ -2348,8 +2348,25 @@ import {
  * chairs hold different cards, and so do the pools of a seat whose deck
  * shares a moved card. The branch migrates nothing, for the reason given
  * under v119.
+ *
+ * v170 (branch `decks`; Commerce batch T2, `docs/plans/commerce-themes-
+ * triage.md`): **the new Commerce cards that need no new shape.** No field
+ * joins the state. The rules that change:
+ *
+ *   · eight Commerce cards are new and dealt: Market Day and The Emporia
+ *     (Tier 0), The Grain Banks and The Market Halls (Tier I), Names in
+ *     Stone, The Hanse and Bills of Exchange (Tier II), and The Grain Barges
+ *     (Tier IV);
+ *   · the shared Merchant Scholars (Commerce and Scientific) moves from Tier I
+ *     to Tier III. Its foreign routes now gain +2 science for each Academy in
+ *     the origin city, in place of +5 science from a city with a Library.
+ *
+ * **A v169 save is refused and does not replay.** A Commerce seat's pools
+ * hold eight more cards, and a Commerce or Scientific seat is dealt Merchant
+ * Scholars at a different tier. The branch migrates nothing, for the reason
+ * given under v119.
  */
-export const SCHEMA_VERSION = 169;
+export const SCHEMA_VERSION = 170;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
