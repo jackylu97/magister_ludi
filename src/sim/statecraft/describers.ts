@@ -2253,12 +2253,12 @@ function describeEffect(
       // Expansionist batch E10, Veteran Colonies: citizens in the town the
       // moment names. The town was already named in the occasion's own phrase
       // when the rider asks for one ("in one of your cities"), so the words
-      // point back at it. The grant needs a unit that was paid for, and the
-      // words say so.
+      // point back at it. A unit raised for free gives a citizen too, so the
+      // words name no exception.
       if (grant?.citizens !== undefined && grant.citizens > 0) {
         const town = effect.inTown === undefined ? 'the city where it happens' : 'that city';
         const people = grant.citizens === 1 ? 'one more citizen' : `${grant.citizens} more citizens`;
-        out.push({ text: `${occasion} gives ${town} ${people}${per}, unless the unit was raised for free` });
+        out.push({ text: `${occasion} gives ${town} ${people}${per}` });
       }
       if (grant?.timed !== undefined && grant.timed.effects.length > 0) {
         // Said in the **nested clauses' own words**, so a bill and a blessing

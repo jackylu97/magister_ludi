@@ -4600,8 +4600,8 @@
   ],
   "veteranColonies": [
    {
-    "raw": "for military units alone, disbanding a unit in one of your cities gives that city one more citizen, unless the unit was raised for free",
-    "text": "for military units alone, disbanding a unit in one of your cities gives that city one more citizen, unless the unit was raised for free"
+    "raw": "for military units alone, disbanding a unit in one of your cities gives that city one more citizen",
+    "text": "for military units alone, disbanding a unit in one of your cities gives that city one more citizen"
    }
   ],
   "theLandscapeGarden": [

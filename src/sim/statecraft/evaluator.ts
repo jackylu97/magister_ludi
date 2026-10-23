@@ -8378,16 +8378,12 @@ export function windfallPayout(
       payout.lines.push({ card, source, note: 'marks the land beside it for good' });
     }
     // Expansionist batch E10, Veteran Colonies: citizens in the town the moment
-    // names. Only a moment that also carries a unit's cost pays, so a unit
-    // raised for free gives nothing (the triage's reading 25). The era and the
-    // council multiply the figure as they multiply renown; a citizen is whole,
-    // so the figure is rounded down.
-    if (
-      grant.citizens !== undefined &&
-      grant.citizens > 0 &&
-      facts.unitCost !== undefined &&
-      facts.townId !== undefined
-    ) {
+    // names. The grant does not ask for the unit's cost, so a unit raised for
+    // free gives a citizen too. The player should not have to remember which
+    // units were free (the user's change to the triage's reading 25,
+    // 2026-10-23). The era and the council multiply the figure as they
+    // multiply renown; a citizen is whole, so the figure is rounded down.
+    if (grant.citizens !== undefined && grant.citizens > 0 && facts.townId !== undefined) {
       const town = cityById(state, facts.townId);
       if (town !== undefined && town.ownerId === playerId) {
         const amount = Math.floor(

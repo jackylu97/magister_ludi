@@ -4225,10 +4225,10 @@ function windfallGrantWorth(
   if (grant.markBeside !== undefined) worth += markBesideWorth(grant.markBeside, ctx);
   // **Citizens in the town the moment names** (Expansionist batch E10,
   // Veteran Colonies; priced in batch E13): the food that grows them, as a
-  // lump, as a commission's citizens are priced. The grant is paid only on a
-  // moment that carries a unit's cost, which today is a soldier retired, and
-  // this bot forecasts no such moment (`occasionRate`'s `disband`). So
-  // Veteran Colonies stays at nought for a bot.
+  // lump, as a commission's citizens are priced. Veteran Colonies pays it when
+  // a soldier retires in one of this empire's towns, free or not, and this
+  // bot forecasts no such moment (`occasionRate`'s `disband`). So Veteran
+  // Colonies stays at nought for a bot.
   if (grant.citizens !== undefined && grant.citizens > 0) {
     worth += explainLump({ food: Math.floor(grant.citizens) * growthThreshold(ctx) }, ctx).total;
   }
