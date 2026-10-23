@@ -3,7 +3,7 @@
 The deck's cards, by tier: name, rarity, status, ability and type. This sheet is the spec of record for the deck. `test/sim/decks/commerce.test.ts` checks it against `data/decks/commerce.json` and, for the shared table, `data/decks/common.json`.
 
 - **Why each card is here:** `docs/plans/commerce-themes.md`, the themes pass of 2026-10-21. It designs the deck as a way to play: an engine of gold and what gold buys, and four themes (the home market, the far trade, the goods and the bankers). Section 12 is the revision of 2026-10-21, which moved the route cards to Tier II. Section 13 holds your answers of 2026-10-23, and it outranks the sections before it. `docs/plans/commerce-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
-- **The build plan:** `docs/plans/commerce-themes-triage.md` (batches T1 to T9). Batch T1 wrote this sheet, put the types into the data, retired the eleven cut rows, moved four rows to the shared file, and changed fifteen cards in place. Batch T2 built the eight new cards that need no new shape (Market Day, The Emporia, The Grain Banks, The Market Halls, Names in Stone, The Hanse, Bills of Exchange and The Grain Barges), and moved Merchant Scholars to Tier III with its new text. Batch T7 built the shared The Art Dealers and the moment a card is drafted, and moved Dominion's The Standing Army to the shared file. Batch T3 built the route and post cards: The Foreign Factor, The Fondaci, The Return Leg, The Champagne Fairs, The Admiralty of Trade and The Lingua Franca. Each later batch sets its own rows to `implemented`.
+- **The build plan:** `docs/plans/commerce-themes-triage.md` (batches T1 to T9). Batch T1 wrote this sheet, put the types into the data, retired the eleven cut rows, moved four rows to the shared file, and changed fifteen cards in place. Batch T2 built the eight new cards that need no new shape (Market Day, The Emporia, The Grain Banks, The Market Halls, Names in Stone, The Hanse, Bills of Exchange and The Grain Barges), and moved Merchant Scholars to Tier III with its new text. Batch T7 built the shared The Art Dealers and the moment a card is drafted, and moved Dominion's The Standing Army to the shared file. Batch T3 built the route and post cards: The Foreign Factor, The Fondaci, The Return Leg, The Champagne Fairs, The Admiralty of Trade and The Lingua Franca. Batch T4 built the two trade commissions: Commission: The Great Fair, and The World's Fair with its new goal and reward. Each later batch sets its own rows to `implemented`.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -25,10 +25,10 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 |---|---|---|---|---|---|
 | Tier 0 | 9 | 1 | 0 | 10 | 0 |
 | Tier I | 8 | 2 | 2 | 12 | 1 |
-| Tier II | 19 | 3 | 2 | 24 | 1 |
+| Tier II | 20 | 3 | 1 | 24 | 1 |
 | Tier III | 16 | 1 | 2 | 19 | 0 |
-| Tier IV | 9 | 2 | 1 | 12 | 0 |
-| **All** | **61** | **9** | **7** | **77** | **2** |
+| Tier IV | 10 | 1 | 1 | 12 | 0 |
+| **All** | **63** | **8** | **6** | **77** | **2** |
 | Shared | 19 | 4 | 0 | 23 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
@@ -101,7 +101,7 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 | **Provisioning Contracts** | common | implemented | Domestic routes grant their destination +3 food and +3 production. | Economic |
 | **The Carters' Guild** | common | implemented | Towns that receive a domestic trade route build buildings 25% faster. | Economic |
 | **The Factors' Houses** | common | implemented | Your cities holding your trading post gain +2 gold and +4 culture. | Civic |
-| **Commission: The Great Fair** | uncommon | add | Commission. Have domestic trade routes arrive in four of your towns at the same time. Then, for the rest of the game, you may run two more trade routes. The card leaves its chair. | Wildcard |
+| **Commission: The Great Fair** | uncommon | implemented | Commission. Have domestic trade routes arrive in four of your towns at the same time. Then, for the rest of the game, you may run two more trade routes. The card leaves its chair. | Wildcard |
 | **The Home Market** | common | implemented | Cities receiving at least two of your domestic routes gain +30% food, +30% production and +2 happiness, once per city. | Economic |
 | **The League of Cities** | rare | implemented | Cities with one of your paying outgoing routes gain +23% production and cost one less authority, minimum one. Cities without one lose 10% gold. | Economic |
 | **The Hanse** | uncommon | implemented | +3% production and culture for each of your towns holding your trading post, at most +30%. | Civic |
@@ -170,7 +170,7 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 | **The Trade Winds** | rare | implemented | Gain +3 trade route capacity. Your trade routes reach 50% farther. | Economic |
 | **The World's Exchange** | rare | implemented | +10% production toward the Opus for each foreign empire your trade routes reach, at most +40%. | Economic |
 | **The Neutral Flag** | uncommon | implemented | Your trade routes to an empire that is at war with another empire gain +100% gold and +50% science. | Economic |
-| **The World's Fair** | rare | modify: reworked | Commission. Have trade routes to four other empires at the same time. Then your trading post is established in the capital of each of them. The card leaves its chair. | Wildcard |
+| **The World's Fair** | rare | implemented | Commission. Have trade routes to four other empires at the same time. Then your trading post is established in the capital of each of them. The card leaves its chair. | Wildcard |
 | **The Casa da Índia** | rare | add | Every copy of a luxury you hold pays its yields, not only the first. | Economic |
 | **Money at Work** | rare | implemented | Every town gains +1 science for every 500 gold in your treasury. | Civic |
 | **Merchant Princes** | rare | implemented | Gold may purchase great-person drafts at the existing escalating offer price, with normal availability and purchase limits. | Civic |

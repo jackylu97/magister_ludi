@@ -2409,8 +2409,29 @@ import {
  * rarity, and a seat holding The Foreign Factor or The Admiralty of Trade is
  * paid and gated differently. The branch migrates nothing, for the reason
  * given under v119.
+ *
+ * v173 (branch `decks`; Commerce batch T4, `docs/plans/commerce-themes-
+ * triage.md`): **the trade commissions.** No field joins the state. The rules
+ * that change:
+ *
+ *   · two new commission figures: your towns that the goal's town scope
+ *     admits (`citiesAdmitted`, with the scope on the goal as `admits`), and
+ *     the other empires your trade routes reach (`tradePartnerEmpires`);
+ *   · a new commission reward, `postsInPartnerCapitals`, writes your trading
+ *     post in the capital of each empire your routes reach, dated a full
+ *     route term back so it is established at once. It goes through a third
+ *     writer of `City.posts`, `writeEstablishedPost` (`trade.ts`), which pays
+ *     the moment a post is established once for each post it writes;
+ *   · Commission: The Great Fair is a new Commerce card (four towns that a
+ *     domestic route arrives at; two more trade routes for the rest of the
+ *     game). The World's Fair takes its new goal (routes to four other
+ *     empires) and reward (the posts), and loses its timed bonus.
+ *
+ * **A v172 save is refused and does not replay.** A Commerce seat's pools
+ * hold one more card, and a seat holding The World's Fair is paid
+ * differently. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 172;
+export const SCHEMA_VERSION = 173;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -4308,6 +4329,10 @@ export interface CommercialPost {
   /**
    * The absolute turn this empire's unbroken trading presence in the town
    * began — the turn its first still-running route here opened.
+   *
+   * A post written established by a reward (`writeEstablishedPost`, Commerce
+   * batch T4) is dated a full route term before the turn it was written, so
+   * it is established from that turn on. The date can be below zero.
    */
   since: number;
 }
@@ -4635,7 +4660,8 @@ export interface City {
    *
    * One record per empire, appended in the order the presences began, and read
    * by index nowhere — so the order is stable under replay and never an outcome.
-   * `trade.ts` holds both writers and there is no third.
+   * `trade.ts` holds the three writers (`openPost`, `closePost` and, since
+   * Commerce batch T4, `writeEstablishedPost`), and there is no fourth.
    */
   posts?: CommercialPost[];
   /**

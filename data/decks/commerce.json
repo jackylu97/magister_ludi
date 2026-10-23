@@ -2564,36 +2564,23 @@
       "rarity": "rare",
       "type": "wildcard",
       "flavor": "Bring everything you make, and see everything everyone else makes.",
-      "text": "Commission. Goal: have six trade routes running at the same time, foreign or domestic. Reward: +50% science and +50% culture in every city for ten turns. The card then leaves its chair.",
+      "text": "Commission. Have trade routes to four other empires at the same time. Then your trading post is established in the capital of each of them. The card leaves its chair.",
       "effects": [],
       "commission": {
         "goals": [
           {
             "kind": "reached",
-            "figure": "tradeRoutes",
-            "count": 6
+            "figure": "tradePartnerEmpires",
+            "count": 4
           }
         ],
         "reward": [
           {
-            "timed": {
-              "turns": 10,
-              "effects": [
-                {
-                  "kind": "percentYields",
-                  "yield": "science",
-                  "percent": 50
-                },
-                {
-                  "kind": "percentYields",
-                  "yield": "culture",
-                  "percent": 50
-                }
-              ]
-            }
+            "postsInPartnerCapitals": true
           }
         ]
-      }
+      },
+      "note": "Each empire counts once, however many of your trade routes reach it. A capital that already holds your established trading post gains nothing more. The new posts pay as any other post does: not during a war, and not while the town is blockaded."
     },
     "theGreatLoan": {
       "name": "The Great Loan",
@@ -3002,6 +2989,43 @@
         }
       ],
       "note": "Every trade route that is running counts, whoever sent it and wherever it goes, your own included. A route that is renewed is still one route."
+    },
+    "commissionTheGreatFair": {
+      "name": "Commission: The Great Fair",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "flavor": "Four towns, one market week, and a cart on every road between them.",
+      "text": "Commission. Have domestic trade routes arrive in four of your towns at the same time. Then, for the rest of the game, you may run two more trade routes. The card leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "reached",
+            "figure": "citiesAdmitted",
+            "count": 4,
+            "admits": {
+              "test": "routeEndsHere",
+              "crossing": "domestic"
+            }
+          }
+        ],
+        "reward": [
+          {
+            "lasting": [
+              {
+                "kind": "routeRider",
+                "extra": 2
+              }
+            ]
+          }
+        ]
+      },
+      "note": "A town counts while at least one of your trade routes from another of your towns ends there. The goal is checked at the end of each turn."
     }
   }
 }

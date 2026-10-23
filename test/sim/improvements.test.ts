@@ -2716,7 +2716,11 @@ describe('improvements in the log', () => {
     // live, a post established is a new moment, a home route may pay its
     // origin, and The Admiralty of Trade's waiver widens. So a v171 log's
     // Commerce hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(172);
+    // 173 since Commerce batch T4 (the trade commissions): Commission: The
+    // Great Fair is a new Commerce card, and The World's Fair has a new goal
+    // and a reward that writes posts. So a v172 log's Commerce hands hold
+    // different cards.
+    expect(SCHEMA_VERSION).toBe(173);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

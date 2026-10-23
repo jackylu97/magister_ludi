@@ -519,7 +519,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Bought and Paid For | 4 | ○ | P | Each town gains +4% production and culture for each building you bought there with gold, at most +24%. |
 | The Hired Garrison | 4 | ◆ | S | A city with a world wonder or the Magnum Opus at the front of its queue may buy any number of military units with gold each turn. |
 | The Neutral Flag | 4 | ◆ | P | Your trade routes to an empire that is at war with another empire gain +100% gold and +50% science. |
-| The World's Fair | 4 | ○ | S | Commission. Goal: have six trade routes running at the same time, foreign or domestic. Reward: +50% science and +50% culture in every city for ten turns. The card then leaves its chair. |
+| The World's Fair | 4 | ○ | S | Commission. Have trade routes to four other empires at the same time. Then your trading post is established in the capital of each of them. The card leaves its chair. |
 | The Great Loan | 4 | ○ | S | When you seat this card, gain gold equal to twenty turns of your gold income. For the next forty turns your cities lose 25% gold. The card then leaves its chair. |
 | The Trade Winds | 4 | ○ | S | Gain +3 trade route capacity. Your trade routes reach 50% farther. |
 | Market Day | 0 | ● | P | Your capital gains +1 gold for every citizen. |
@@ -534,6 +534,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Fondaci | 2 | ◆ | S | Each time one of your trading posts is established, gain science and culture, each equal to twenty times the population of its town. |
 | The Champagne Fairs | 3 | ◆ | S | Every ten turns, each town that receives a domestic trade route grants culture equal to ten times its population. |
 | The Lingua Franca | 3 | ◆ | P | +1% science and culture for every three trade routes running anywhere in the world, at most +30%. |
+| Commission: The Great Fair | 2 | ◆ | S | Commission. Have domestic trade routes arrive in four of your towns at the same time. Then, for the rest of the game, you may run two more trade routes. The card leaves its chair. |
 
 ### Devotion
 
@@ -860,12 +861,14 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **A Court of Merchants** — The share is taken of everything the realm earns in renown each turn, and never of a lump a triumph pays. The narrowing is a strong nudge and not a lock: when every great merchant in the world has been called, the draft goes back to showing the whole roster, so a court that has run out of merchants still deals a hand. A draft somebody bought narrowed to another family is dealt as what it was bought as.
 - **Numidian Cavalry** — The rider can be built beside the Horseman rather than in place of it, once you reach the age of the Horseman's technology. Every kind of luxury you control counts in full, however you came by it.
 - **The Monopoly** — The happiness is paid once to your empire for each such luxury, not once in every city.
+- **The World's Fair** — Each empire counts once, however many of your trade routes reach it. A capital that already holds your established trading post gains nothing more. The new posts pay as any other post does: not during a war, and not while the town is blockaded.
 - **The Great Loan** — The loan is paid at the end of the turn you seat the card, as long as your gold income is above nothing.
 - **Names in Stone** — Gold counts when you spend it on units, buildings, hexes, caravans and great people, and when you pour it into the Opus. Upgrades, gold given in a deal and gold spent to reroll a draft do not count.
 - **The Hanse** — A trade route leaves your trading post at both of its ends, so a town counts when one of your routes sets out from it as well as when one arrives. A town counts once your post there is established, and not while the town is blockaded.
 - **The Fondaci** — A trading post is established after a full route term of unbroken trading with a town. A trade route leaves your trading post at both of its ends, so one route to a new town can establish two posts, and each pays by the size of its own town. A town that already holds your trading post does not establish it again. The moment comes whether or not the post is paying that turn.
 - **The Champagne Fairs** — A fair counts each of your cities that one of your own trade routes reaches on the turn the fair is held, and pays for every citizen living there. The culture goes to your empire. The fairs are counted from the turn you seat the card.
 - **The Lingua Franca** — Every trade route that is running counts, whoever sent it and wherever it goes, your own included. A route that is renewed is still one route.
+- **Commission: The Great Fair** — A town counts while at least one of your trade routes from another of your towns ends there. The goal is checked at the end of each turn.
 - **Pastoral Shrines** — Not built, both halves together: the law can dress a herder's ground, and nothing can yet ask whether the realm keeps a single pen anywhere at all, which is the clause the capital's hammers hang on. † worked pastures pay an offering of faith and a little more food; your capital works harder while you keep a penned herd anywhere at all
 - **Hearth Blessings** — Not built: a town remembers how many people live in it and not how many ever did, so nothing can tell a new high from an ordinary birth. † a town growing past the largest it has ever been gives thanks in faith; a shrine there sets bread on the table besides
 - **The Book of Mercy** — Not built: neither observance has been written into the book of rites, so the charter has nothing to open. The row is kept so the two may be written. † a town may mourn, and while it grieves its people ask far less of it and it raises no soldiers; a town may keep a watch, seeing the raiders' camps around it and taking faith for every kill near its walls

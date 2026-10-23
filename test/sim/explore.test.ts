@@ -995,10 +995,17 @@ describe('determinism', () => {
    * post is established, and nobody holds a T3 card. Checked with the change
    * in place and the version printed as 171, which gives the hashes of
    * Commerce batch T7 exactly.
+   *
+   * **Commerce batch T4 (the trade commissions, schema 173) moved the hash
+   * and not the length** at both seeds: 172 became 173, and that is all.
+   * Nobody here drafts or runs a route, so nobody holds Commission: The Great
+   * Fair or The World's Fair and no post is written. Checked with the change
+   * in place and the version printed as 172, which gives the hashes of
+   * Commerce batch T3 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '585be607:188931',
-    2026: 'e2410616:188509',
+    11: '1ba483de:188931',
+    2026: '0fe01ac7:188509',
   };
 
   for (const seed of [11, 2026]) {

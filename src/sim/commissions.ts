@@ -28,7 +28,10 @@
  * ladder through `settleRenownWindfall`. Since
  * Dominion batch D6 a reward may also grant citizens (`settlePopulationWindfall`),
  * raise a building in the town that met the goal (`realiseItem`), or add
- * Wildcard chairs for the rest of the game (`refitSlots`).
+ * Wildcard chairs for the rest of the game (`refitSlots`). Since Commerce
+ * batch T4 a reward may also write the empire's trading post, established at
+ * once, in the capital of each empire its routes reach
+ * (`writeEstablishedPost`, `trade.ts`).
  */
 
 import {
@@ -78,7 +81,11 @@ import {
 // Straight from its own layer rather than through the `statecraft.ts` index:
 // through the index, the build warns of a circular import between chunks.
 import { refitSlots } from './statecraft/draft';
-import { countTilesInBorders } from './statecraft/evaluator';
+import {
+  countCitiesAdmitted,
+  countTilesInBorders,
+  tradePartnerSeats,
+} from './statecraft/evaluator';
 import {
   type CitizensTarget,
   type CommissionFigure,
@@ -91,6 +98,8 @@ import {
   isOrderId,
   orderDef,
 } from './statecraftData';
+// Commerce batch T4: The World's Fair writes posts through the third writer.
+import { writeEstablishedPost } from './trade';
 import { type UnitTypeId, unitDef } from './unitData';
 import { signedPlain } from './yieldFormat';
 
@@ -256,6 +265,18 @@ export function commissionFigure(
       const opus = BUILDING_IDS.find((id) => buildingDef(id).endsTheGame === true);
       return opus === undefined ? 0 : buildingProductionCost(opus, state, playerId);
     }
+    case 'citiesAdmitted': {
+      // Commission: The Great Fair (Commerce batch T4, the triage's reading
+      // 10): the towns the goal's own scope admits, through the
+      // `citiesAdmitted` count's walk. With no scope it counts nothing, as the
+      // count does.
+      const scope = goal?.kind === 'reached' ? goal.admits : undefined;
+      return scope === undefined ? 0 : countCitiesAdmitted(state, playerId, scope);
+    }
+    case 'tradePartnerEmpires':
+      // The World's Fair (Commerce batch T4, the triage's reading 11): the
+      // `tradePartnerEmpires` count's walk, which the reward reads again.
+      return tradePartnerSeats(state, playerId).length;
   }
 }
 
@@ -455,6 +476,11 @@ function payCommission(
   // The town that met the goal, read before anything is paid (Dominion batch
   // D6): Take the City's Barracks goes up there.
   const goalTown = commissionGoalTown(state, player.id, card);
+  // The empires the routes reach, read before anything is paid (Commerce batch
+  // T4, The World's Fair): the goal's own walk, read again now.
+  const partners = spec.reward.some((reward) => reward.postsInPartnerCapitals === true)
+    ? tradePartnerSeats(state, player.id)
+    : [];
   // Citizens, buildings and chairs land after the windfall, so they are kept
   // here in row order.
   const citizens: { amount: number; to: CitizensTarget }[] = [];
@@ -533,6 +559,19 @@ function payCommission(
   // **Each town from its own figure** (The Domesday Survey, Expansionist batch
   // E5): read for every town before anything is paid, then paid town by town.
   for (const reward of eachTown) lines.push(...payEachTown(state, player, card, reward));
+  // **Your trading post in each partner's capital** (Commerce batch T4, The
+  // World's Fair; the triage's reading 11), in the order the routes first
+  // reach the partners. Each post is written established, and the writer pays
+  // the moment a post is established once for it (The Fondaci). A capital
+  // that already holds your established post, and a partner with no capital,
+  // give nothing.
+  for (const seat of partners) {
+    const capital = capitalCityOf(state, seat);
+    if (!capital) continue;
+    if (writeEstablishedPost(state, capital, player.id)) {
+      lines.push(`your trading post in ${capital.name}`);
+    }
+  }
   // **The goal's town is marked** (The Heartland): its lasting effects are
   // scoped to it (`markedBy`), and they live from this turn on.
   if (mark && goalTown && goalTown.ownerId === player.id) {

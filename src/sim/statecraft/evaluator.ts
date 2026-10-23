@@ -2708,6 +2708,53 @@ export function countTilesInBorders(
 }
 
 /**
+ * **This empire's towns that a scope admits**: the `citiesAdmitted` count's
+ * walk (Expansionist batch E2). Founding order, through the one town walk, and
+ * the ordinary scope question asked of each town.
+ *
+ * Exported for the commission figure of the same name (Commerce batch T4,
+ * Commission: The Great Fair), so the figure and a card that counts the same
+ * towns cannot disagree.
+ */
+export function countCitiesAdmitted(state: GameState, playerId: number, scope: CityScope): number {
+  let total = 0;
+  for (const town of citiesOf(state, playerId)) {
+    if (cityScopeAdmits(state, town, scope, playerId)) total += 1;
+  }
+  return total;
+}
+
+/**
+ * **The other empires this empire's trade routes reach**, each once, as seat
+ * ids in the order the routes are first met in `state.units`: the
+ * `tradePartnerEmpires` count's walk.
+ *
+ * `foreignTradeRoutes`' sweep with the *partner* remembered instead of
+ * tallied: three routes to one neighbour are one empire reached. A route
+ * whose term has run out does not count, and the far end is resolved fresh
+ * every turn, so a partner town that changes hands moves the count with it.
+ * An array, walked and searched, because this is an outcome and nothing in
+ * this game iterates a keyed collection for one.
+ *
+ * Exported for the commission figure of the same name and for The World's
+ * Fair's reward (Commerce batch T4), which reads the partners again to write
+ * a post in each one's capital.
+ */
+export function tradePartnerSeats(state: GameState, playerId: number): number[] {
+  const seats: number[] = [];
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId) continue;
+    const route = unit.trade;
+    if (route === undefined) continue;
+    if (state.turn >= route.expiresTurn) continue;
+    const partner = state.cities.find((entry) => entry.id === route.to);
+    if (partner === undefined || partner.ownerId === playerId) continue;
+    if (!seats.includes(partner.ownerId)) seats.push(partner.ownerId);
+  }
+  return seats;
+}
+
+/**
  * What a `pays` count counts, in one place.
  *
  * `city` is present for the city-scoped counts and ignored by the rest; a
@@ -3239,23 +3286,10 @@ export function countOf(
       }
       return total;
     }
-    case 'tradePartnerEmpires': {
-      // `foreignTradeRoutes`' sweep with the *partner* remembered instead of
-      // tallied: three roads to one neighbour are one court reached. An array,
-      // walked and searched — this is an outcome, and nothing in this game
-      // iterates a keyed collection for one.
-      const seats: number[] = [];
-      for (const unit of state.units) {
-        if (unit.ownerId !== playerId) continue;
-        const route = unit.trade;
-        if (route === undefined) continue;
-        if (state.turn >= route.expiresTurn) continue;
-        const partner = state.cities.find((entry) => entry.id === route.to);
-        if (partner === undefined || partner.ownerId === playerId) continue;
-        if (!seats.includes(partner.ownerId)) seats.push(partner.ownerId);
-      }
-      return seats.length;
-    }
+    case 'tradePartnerEmpires':
+      // The walk is its own function since Commerce batch T4, so The World's
+      // Fair's goal and reward read the same partners (`tradePartnerSeats`).
+      return tradePartnerSeats(state, playerId).length;
     case 'authoritySurplus': {
       // **The meter's own fold**, so the sheet and the helpings agree by
       // construction — and the cut, because a row paying `to: 'authority'` off
@@ -3622,13 +3656,11 @@ export function countOf(
       // The Great Aqueducts, The Imperial Highways). Founding order, through
       // the one town walk, and the ordinary scope question asked of each town.
       // A row with no scope counts nothing, the reading of a missing argument.
+      // The walk is its own function since Commerce batch T4, so The Great
+      // Fair's goal counts the same towns (`countCitiesAdmitted`).
       const test = effect.admits;
       if (test === undefined) return 0;
-      let total = 0;
-      for (const town of citiesOf(state, playerId)) {
-        if (cityScopeAdmits(state, town, test, playerId)) total += 1;
-      }
-      return total;
+      return countCitiesAdmitted(state, playerId, test);
     }
     case 'publicWorks': {
       // Expansionist batch E11, The Public Good: the public works standing in

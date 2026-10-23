@@ -6278,12 +6278,12 @@
   ],
   "theWorldsFair": [
    {
-    "raw": "Commission. Goal: have 6 trade routes running at the same time, while this card is seated",
-    "text": "Commission. Goal: have 6 trade routes running at the same time, while this card is seated"
+    "raw": "Commission. Goal: have trade routes to 4 other empires at the same time, while this card is seated",
+    "text": "Commission. Goal: have trade routes to 4 other empires at the same time, while this card is seated"
    },
    {
-    "raw": "Reward: for 10 turns, +50% science in every city and +50% culture in every city",
-    "text": "Reward: for 10 turns, +50% science in every city and +50% culture in every city"
+    "raw": "Reward: your trading post, established at once, in the capital of each empire your trade routes reach",
+    "text": "Reward: your trading post, established at once, in the capital of each empire your trade routes reach"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -6398,6 +6398,20 @@
    {
     "raw": "+1% culture in every city per 3 trade routes running anywhere in the world (at most +30% culture)",
     "text": "+1% culture in every city per 3 trade routes running anywhere in the world (at most +30% culture)"
+   }
+  ],
+  "commissionTheGreatFair": [
+   {
+    "raw": "Commission. Goal: have 4 cities one of your own trade routes ends at, at the same time, while this card is seated",
+    "text": "Commission. Goal: have 4 cities one of your own trade routes ends at, at the same time, while this card is seated"
+   },
+   {
+    "raw": "Reward: for the rest of the game, +2 trade routes",
+    "text": "Reward: for the rest of the game, +2 trade routes"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
    }
   ],
   "devotionFirstRites": [

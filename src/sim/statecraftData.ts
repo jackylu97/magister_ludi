@@ -9692,7 +9692,25 @@ export type CommissionFigure =
    * that counts as an Academy under The Studium Generale counts here too
    * (reading 33).
    */
-  | 'academyHexes';
+  | 'academyHexes'
+  /**
+   * **This empire's towns that the goal's town scope admits** (Commerce batch
+   * T4, Commission: The Great Fair; the triage's reading 10). The scope is the
+   * goal's `admits` field. The walk is `CountKind` `citiesAdmitted`'s
+   * (`countCitiesAdmitted`, `statecraft/evaluator.ts`), so a card that counts
+   * the same towns and this goal cannot disagree. A goal with no scope counts
+   * nothing, which is the count's reading of a missing scope.
+   */
+  | 'citiesAdmitted'
+  /**
+   * **The other empires this empire's trade routes reach** (Commerce batch T4,
+   * The World's Fair; the triage's reading 11). Each empire counts once,
+   * however many routes run to it. The walk is `CountKind`
+   * `tradePartnerEmpires`' (`tradePartnerSeats`, `statecraft/evaluator.ts`),
+   * and the reward that writes posts in the partners' capitals reads the same
+   * walk.
+   */
+  | 'tradePartnerEmpires';
 
 /** Every figure, for validation and the register test. */
 export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
@@ -9711,6 +9729,8 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'rivalCapitalsFollowing',
   'academyHexes',
   'opusCost',
+  'citiesAdmitted',
+  'tradePartnerEmpires',
 ];
 
 /**
@@ -9728,7 +9748,22 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
  */
 export type CommissionGoal =
   | ({ kind: 'counted'; occasion: TallyOccasion; count: number } & GoalFloor)
-  | ({ kind: 'reached'; figure: CommissionFigure; count: number } & HexFloor);
+  | ({ kind: 'reached'; figure: CommissionFigure; count: number } & HexFloor & GoalTowns);
+
+/**
+ * **Which towns a reached figure counts** (Commerce batch T4). `HexFloor`'s
+ * sibling for towns rather than for hexes.
+ */
+export interface GoalTowns {
+  /**
+   * Only a town of this empire that this scope admits counts: Commission: The
+   * Great Fair's "towns that a domestic trade route arrives at" is
+   * `{ test: 'routeEndsHere', crossing: 'domestic' }`. The ordinary
+   * `CityScope`, asked of each town as the `citiesAdmitted` count asks it.
+   * Read by `citiesAdmitted`; every other figure ignores it.
+   */
+  admits?: CityScope;
+}
 
 /**
  * **A floor on each hex a reached figure counts** (Expansionist batch E5).
@@ -9925,6 +9960,23 @@ export interface CommissionReward {
    * them. An effect about the town the goal marked is scoped `markedBy`.
    */
   lasting?: CardEffect[];
+  /**
+   * **Your trading post, established at once, in the capital of each empire
+   * your trade routes reach** (Commerce batch T4, The World's Fair; the
+   * triage's reading 11).
+   *
+   * The partners are read when the goal is met, through the walk the
+   * `tradePartnerEmpires` figure uses. In each partner's current capital the
+   * post is written by `writeEstablishedPost` (`trade.ts`), dated a full route
+   * term back, so it is established on the turn it is written and a route
+   * that ends later never removes it. The writer pays the moment a post is
+   * established (The Fondaci) once for each post it writes.
+   *
+   * A capital that already holds your established post gains nothing. A
+   * partner with no capital gives nothing. The post pays by the ordinary rule
+   * (`cityPostPays`: not during a war, not while the town is blockaded).
+   */
+  postsInPartnerCapitals?: true;
 }
 
 /**

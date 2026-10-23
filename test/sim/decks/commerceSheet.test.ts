@@ -282,10 +282,13 @@ describe('the commissions', () => {
     expect(musa.timed?.some((t) => JSON.stringify(t).includes('"percent":-25'))).toBe(true);
   });
 
-  it("writes The World's Fair as six trade routes and a timed reward", () => {
+  it("writes The World's Fair as routes to four other empires and posts in their capitals", () => {
+    // Commerce batch T4 changed the row in place: the goal counts the empires
+    // your routes reach, and the timed reward is gone.
+    // `commerceCommissions.test.ts` checks what the reward does.
     const spec = orderDef('theWorldsFair' as OrderId).commission!;
-    expect(spec.goals).toEqual([{ kind: 'reached', figure: 'tradeRoutes', count: 6 }]);
-    expect(spec.reward[0]!.timed!.turns).toBe(10);
+    expect(spec.goals).toEqual([{ kind: 'reached', figure: 'tradePartnerEmpires', count: 4 }]);
+    expect(spec.reward).toEqual([{ postsInPartnerCapitals: true }]);
   });
 });
 

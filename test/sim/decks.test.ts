@@ -561,8 +561,11 @@ describe('the schema, as landed', () => {
     // The Champagne Fairs and The Lingua Franca are new Commerce rows, and The
     // Return Leg left `deferred`. The Foreign Factor and The Admiralty of
     // Trade changed in place and were already live.
-    expect(live).toBe(572);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(572);
+    // **And Commerce batch T4** (the trade commissions): one more.
+    // Commission: The Great Fair is a new Commerce row. The World's Fair
+    // changed in place and was already live.
+    expect(live).toBe(573);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(573);
   });
 
   /**
@@ -884,7 +887,11 @@ describe('the schema, as landed', () => {
     // live, a post established is a new moment, a home route may pay its
     // origin, and The Admiralty of Trade's waiver widens. So a v171 log's
     // Commerce hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(172);
+    // 173 since Commerce batch T4 (the trade commissions): Commission: The
+    // Great Fair is a new Commerce card, and The World's Fair has a new goal
+    // and a reward that writes posts. So a v172 log's Commerce hands hold
+    // different cards.
+    expect(SCHEMA_VERSION).toBe(173);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

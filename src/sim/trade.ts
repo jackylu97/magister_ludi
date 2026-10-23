@@ -376,7 +376,13 @@ function refreshReturnLegOrigin(
 // --- commercial posts -------------------------------------------------------
 
 /**
- * **The two writers of `City.posts`, and there is no third.**
+ * **The writers of `City.posts`.** There are three, all in this file:
+ *
+ *   · `openPost` (this function): a route opens a record at each of its ends;
+ *   · `closePost`: a record that has not yet ripened is dropped when this
+ *     empire's last route to the town ends;
+ *   · `writeEstablishedPost` (Commerce batch T4, The World's Fair): a reward
+ *     puts down a post that is established at once.
  *
  * The design (`docs/six-decks-first-cut.md`): *"A paying route that reaches its
  * destination and completes a normal twenty-turn term establishes that
@@ -389,9 +395,9 @@ function refreshReturnLegOrigin(
  * (`postTermTurns`, `routes.ts`), because a date compared against `state.turn`
  * needs nobody to visit it; and a route that ends *before* it ripened takes it
  * away again, which is exactly what "starting and cancelling does not qualify"
- * asks for. So nothing ticks, and the whole rule lives in the two functions
- * below. The one sweep of the records (`runPostEstablishments`, Commerce batch
- * T3) only reads them, to pay the moment a post is established.
+ * asks for. So nothing ticks, and the route's rule lives in this function and
+ * `closePost`. The one sweep of the records (`runPostEstablishments`, Commerce
+ * batch T3) only reads them, to pay the moment a post is established.
  *
  * What continuity means here: **at least one route touching the town**. An
  * empire that keeps a trade route to Uruk running, renews it, replaces the caravan or
@@ -439,6 +445,48 @@ function closePost(state: GameState, city: City | undefined, playerId: number): 
 }
 
 /**
+ * **The third writer of `City.posts`**: puts down this empire's post in this
+ * town, established at once (Commerce batch T4, The World's Fair; the
+ * triage's reading 11). Returns whether a post was written. The three writers
+ * are `openPost`, `closePost` and this function, all in this file (see
+ * `openPost`).
+ *
+ * The record is dated a full route term back (`postTermTurns`), so
+ * `cityHoldsPost` is true from this turn on. `closePost` never drops a
+ * record that old, so no route ending later can remove it.
+ *
+ *   · **A town that already holds this empire's established post** gains
+ *     nothing, and nothing is paid.
+ *   · **A record that has not yet ripened** (a route opened it less than a
+ *     term ago) is dated back in place. The empire keeps one record a town,
+ *     and the post is established now rather than when the route's term
+ *     ends.
+ *   · **No record**: one is added.
+ *
+ * Each post written pays the moment a post is established once, through
+ * `payPostEstablished`, so The Fondaci pays for it. The sweep
+ * (`runPostEstablishments`) never pays it a second time: it pays a record
+ * only on the turn that is exactly one term after its date. The commissions
+ * phase, which calls this writer, runs after the sweep in the same turn, and
+ * from the next turn on the record is more than a term old.
+ *
+ * The write is announced (`bumpEconomy`), because a post reaches the counts
+ * and scopes the empire-wide walks read (`holdsPost`, `postCities`).
+ */
+export function writeEstablishedPost(state: GameState, city: City, playerId: number): boolean {
+  const since = state.turn - postTermTurns();
+  const posts = city.posts ?? [];
+  const held = posts.find((post) => post.by === playerId);
+  if (held !== undefined && state.turn - held.since >= postTermTurns()) return false;
+  if (held !== undefined) held.since = since;
+  else posts.push({ by: playerId, since });
+  city.posts = posts;
+  bumpEconomy(state);
+  payPostEstablished(state, city, playerId);
+  return true;
+}
+
+/**
  * **Pays the moment one of this empire's posts is established**: the
  * `postEstablished` windfall occasion (Commerce batch T3, The Fondaci; the
  * triage's reading 12). Returns whether anything was paid.
@@ -449,11 +497,11 @@ function closePost(state: GameState, city: City | undefined, playerId: number): 
  *   · `runPostEstablishments` below, the sweep of `City.posts` in the
  *     `roadJoinings` phase, for each post whose term ends on the turn that is
  *     resolving;
- *   · a writer that puts down a post already established (Commerce batch T4,
- *     The World's Fair) calls this itself, and joins this list. Such a writer
- *     must date its post so that the sweep never sees it ripen: a post written
- *     in the `commissions` phase and dated a full term back is past this
- *     turn's sweep, and the next sweep finds it a turn past its term.
+ *   · `writeEstablishedPost` below (Commerce batch T4, The World's Fair),
+ *     which puts down a post already established and calls this itself. It
+ *     dates its post so that the sweep never sees it ripen: a post written in
+ *     the `commissions` phase and dated a full term back is past this turn's
+ *     sweep, and the next sweep finds it a turn past its term.
  *
  * The facts are the post's town (`townId`) and its citizens (`population`), so
  * a rider pays by the size of the town the post stands in. Food and

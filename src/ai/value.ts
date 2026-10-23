@@ -6220,6 +6220,11 @@ function rewardTerms(
       value: lastingWorth(effect, ctx),
     });
   }
+  if (reward.postsInPartnerCapitals === true) {
+    // Commerce batch T4, The World's Fair: a stand-in at nothing. Batch T9
+    // prices the posts written in the partners' capitals.
+    terms.push({ label: 'trading posts in the partners’ capitals, not yet priced', value: 0 });
+  }
   return terms;
 }
 

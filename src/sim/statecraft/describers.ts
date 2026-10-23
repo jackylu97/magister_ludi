@@ -6834,7 +6834,35 @@ const COMMISSION_FIGURE_WORDS: Record<
     counter: 'Academies held',
     noun: 'the Academies inside your borders',
   },
+  // Commerce batch T4, Commission: The Great Fair. These are the words for a
+  // goal with no scope, which counts nothing; a goal with a scope is said in
+  // the scope's own words by `commissionGoalWords` (`citiesAdmittedWords`).
+  citiesAdmitted: {
+    goal: (count) => `have ${count} cities of the kind this card names`,
+    counter: 'cities of that kind',
+    noun: 'your cities of that kind',
+  },
+  // Commerce batch T4, The World's Fair.
+  tradePartnerEmpires: {
+    goal: (count) =>
+      count === 1
+        ? 'have trade routes to another empire'
+        : `have trade routes to ${count} other empires at the same time`,
+    counter: 'empires your trade routes reach',
+    noun: 'the empires your trade routes reach',
+  },
 };
+
+/**
+ * **The towns a `citiesAdmitted` goal counts, in its scope's words** (Commerce
+ * batch T4): "city one of your own trade routes ends at" and its plural. The
+ * count's own words for the same towns (`countNoun`), so a card and a goal
+ * that count them say them the same way.
+ */
+function citiesAdmittedWords(scope: CityScope): { one: string; many: string } {
+  const one = eachWords(scope);
+  return { one, many: one.replace(/\bcity\b/, 'cities') };
+}
 
 /** The Academy as a keyword ref, for the commission figure that counts them. */
 function academyRef(many = false): string {
@@ -6872,6 +6900,12 @@ export function commissionGoalWords(goal: CommissionGoal): string {
         : ` on ${indefinite(improvementDef(goal.work).name)} ${ref('improvement', goal.work, improvementDef(goal.work).name)}`);
     return `${words.verb} ${goal.count} ${goal.count === 1 ? words.one : words.many}${floor}`;
   }
+  // The towns a scope admits (Commerce batch T4, The Great Fair): "have 4
+  // cities one of your own trade routes ends at, at the same time".
+  if (goal.figure === 'citiesAdmitted' && goal.admits !== undefined) {
+    const towns = citiesAdmittedWords(goal.admits);
+    return `have ${goal.count} ${goal.count === 1 ? towns.one : towns.many}, at the same time`;
+  }
   // The floor on each hex (Expansionist batch E5, The Heartland).
   const each = goal.hexYieldAtLeast === undefined ? '' : ` that each yield ${goal.hexYieldAtLeast} or more in total`;
   return `${COMMISSION_FIGURE_WORDS[goal.figure].goal(goal.count)}${each}`;
@@ -6891,6 +6925,10 @@ const TOWN_FIGURE_WORDS: Partial<Record<CommissionFigure, string>> = {
 export function commissionCounterWords(goal: CommissionGoal): string {
   // A rank floor counts units that became that rank (Dominion batch D11).
   if (goal.kind === 'counted' && goal.rank !== undefined) return `units become ${rankName(goal.rank)}`;
+  // The towns a scope admits, in the scope's words (Commerce batch T4).
+  if (goal.kind === 'reached' && goal.figure === 'citiesAdmitted' && goal.admits !== undefined) {
+    return citiesAdmittedWords(goal.admits).many;
+  }
   return goal.kind === 'counted'
     ? COMMISSION_COUNTED_WORDS[goal.occasion].counter
     : COMMISSION_FIGURE_WORDS[goal.figure].counter;
@@ -6988,6 +7026,10 @@ export function commissionRewardWords(reward: CommissionReward, towns = 1): stri
   if (reward.lasting !== undefined && reward.lasting.length > 0) {
     const said = describeEffects(reward.lasting, 'empire').map((clause) => clause.text);
     out.push(`for the rest of the game, ${said.join(' and ')}`);
+  }
+  // Commerce batch T4, The World's Fair.
+  if (reward.postsInPartnerCapitals === true) {
+    out.push('your trading post, established at once, in the capital of each empire your trade routes reach');
   }
   return out;
 }

@@ -125,9 +125,23 @@ describe('the commission rows', () => {
           // Expansionist batch E5, The Heartland: a mark on the town, and
           // effects for the rest of the game.
           reward.markTown === true ||
-          reward.lasting !== undefined;
+          reward.lasting !== undefined ||
+          // Commerce batch T4, The World's Fair: posts in the partners'
+          // capitals.
+          reward.postsInPartnerCapitals === true;
         expect(says, `${id} has a reward line that pays nothing`).toBe(true);
         if (reward.fromFigure !== undefined) expect(COMMISSION_FIGURES, id).toContain(reward.fromFigure);
+      }
+    }
+  });
+
+  it('give a town scope only to a goal that counts towns', () => {
+    // Commerce batch T4: `admits` is read by the `citiesAdmitted` figure and
+    // ignored by every other, so a scope anywhere else is a mistake in a row.
+    for (const id of rows) {
+      for (const goal of orderDef(id).commission!.goals) {
+        if (goal.kind !== 'reached') continue;
+        expect(goal.admits !== undefined, id).toBe(goal.figure === 'citiesAdmitted');
       }
     }
   });
@@ -257,9 +271,10 @@ describe('completion', () => {
 });
 
 describe('a timed reward', () => {
-  it('hangs its effects on the empire until an absolute turn, as The World’s Fair will', () => {
-    // No row uses a timed reward yet (The World's Fair is a deck batch's), so
+  it('hangs its effects on the empire until an absolute turn', () => {
+    // The Great Loan's charge is a timed reward, but its loan pays first, so
     // the Strongroom's row is borrowed for the test and put back afterwards.
+    // (The World's Fair carried a timed reward until Commerce batch T4.)
     const def = orderDef(STRONGROOM);
     const kept = def.commission;
     def.commission = {
@@ -306,6 +321,18 @@ describe('the figures', () => {
     expect(commissionFigure(g.state, 0, 'improvedTilesWorked')).toBe(0);
     expect(commissionFigure(g.state, 0, 'luxuryCopies')).toBeGreaterThanOrEqual(0);
     expect(capitalCityOf(g.state, 0)?.id).toBe(city.id);
+    // Commerce batch T4: no route reaches another empire yet, and a town
+    // figure counts the towns its goal's scope admits, or nothing without one.
+    expect(commissionFigure(g.state, 0, 'tradePartnerEmpires')).toBe(0);
+    expect(commissionFigure(g.state, 0, 'citiesAdmitted')).toBe(0);
+    expect(
+      commissionFigure(g.state, 0, 'citiesAdmitted', {
+        kind: 'reached',
+        figure: 'citiesAdmitted',
+        count: 1,
+        admits: { test: 'capital' },
+      }),
+    ).toBe(1);
   });
 });
 
