@@ -1002,10 +1002,17 @@ describe('determinism', () => {
    * Fair or The World's Fair and no post is written. Checked with the change
    * in place and the version printed as 172, which gives the hashes of
    * Commerce batch T3 exactly.
+   *
+   * **Commerce batch T5 (goods and deals, schema 174) moved the hash and not
+   * the length** at both seeds: 173 became 174, and that is all. Nobody here
+   * drafts, signs a deal or buys a hex, so nobody holds a T5 card and no
+   * rider asks the bought hex anything. Checked with the change in place and
+   * the version printed as 173, which gives the hashes of Commerce batch T4
+   * exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '1ba483de:188931',
-    2026: '0fe01ac7:188509',
+    11: '7de9ce05:188931',
+    2026: 'f469e388:188509',
   };
 
   for (const seed of [11, 2026]) {

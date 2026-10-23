@@ -286,22 +286,23 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Buy the field before anyone knows what it is for.",
-      "text": "Your cities gain +25% gold. Your capital loses 2 happiness.",
+      "text": "Buying a hex with a resource on it grants culture equal to half the gold paid.",
       "effects": [
         {
-          "kind": "percentYields",
-          "yield": "gold",
-          "percent": 25
-        },
-        {
-          "kind": "happiness",
-          "amount": -2,
-          "per": "city",
-          "scope": {
-            "test": "capital"
+          "kind": "windfallRider",
+          "occasion": "tilePurchase",
+          "on": {
+            "test": "hasResource"
+          },
+          "grant": {
+            "yield": "culture",
+            "amount": 0.5,
+            "fromOccasion": "gold",
+            "whole": true
           }
         }
-      ]
+      ],
+      "note": "The culture is rounded down. The resource must be one your people can see: a resource they have no word for yet does not count."
     },
     "foundingCapital": {
       "name": "Founding Capital",
@@ -630,11 +631,19 @@
       "type": "economic",
       "flavor": "Two seals on one page, and the harbour opens.",
       "text": "+5% production for each empire you hold a deal with, at most +25%.",
-      "effects": [],
-      "deferred": [
-        "every empire you hold a deal with raises your production"
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "dealPartners",
+          "to": "production",
+          "percent": 5,
+          "stage": "city",
+          "max": 5
+        }
       ],
-      "note": "Waiting on a new count. Nothing yet counts the empires you hold a deal with."
+      "note": "An empire counts once, however many deals you hold with it. A deal that only hands over gold at once leaves nothing running, so it does not count, and a war ends every deal between the two empires."
     },
     "thePostRiders": {
       "name": "The Post Riders",
@@ -1327,11 +1336,25 @@
       "type": "civic",
       "flavor": "The province that sells abroad builds at home.",
       "text": "Each luxury you lend to another empire in a deal gives your capital +4 culture and +2 production.",
-      "effects": [],
-      "deferred": [
-        "each luxury you lend to another empire in a deal pays your capital culture and production"
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "count": "copiesLent",
+          "to": "culture",
+          "amount": 4
+        },
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "count": "copiesLent",
+          "to": "production",
+          "amount": 2
+        }
       ],
-      "note": "Waiting on a new count. Nothing yet counts the luxuries you lend in your deals."
+      "note": "Each copy counts, so two copies of one luxury lent in two deals count twice. A copy counts while its deal runs, and a war ends every deal between the two empires."
     },
     "theExchange": {
       "name": "The Exchange",
@@ -3026,6 +3049,66 @@
         ]
       },
       "note": "A town counts while at least one of your trade routes from another of your towns ends there. The goal is checked at the end of each turn."
+    },
+    "theCommenda": {
+      "name": "The Commenda",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "One partner sails and one stays home, and both own the cargo.",
+      "text": "Luxuries you lend in a deal count as half a copy for you.",
+      "effects": [
+        {
+          "kind": "effectAmplifier",
+          "target": "lentLuxuryCopies",
+          "percent": 50
+        }
+      ],
+      "note": "The deal still takes the copy, so you can never lend the same copy twice. For your cards and goals, two copies lent count as one copy you hold. A luxury you now hold only through copies you lent still pays you half of its happiness and half of its yields while the deals run."
+    },
+    "theCapitulations": {
+      "name": "The Capitulations",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "Their port, our house, and our law inside the door.",
+      "text": "Each foreign town holding your trading post lends you one of its luxuries that you lack, at half value.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "postsLendLuxuries"
+        }
+      ],
+      "note": "Only a trading post that is established and paying lends: not during a war with the town's owner, and not while the town is blockaded. Each town lends the first luxury it has improved that you do not hold and that no trade route or other post already brings you, and the towns are taken in the order they were founded. A borrowed luxury pays half of its happiness and half of its yields."
+    },
+    "theCasaDaIndia": {
+      "name": "The Casa da Índia",
+      "decks": [
+        "commerce"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "Every crate on the quay is weighed, taxed and sold.",
+      "text": "Every copy of a luxury you hold pays its yields, not only the first.",
+      "effects": [
+        {
+          "kind": "effectAmplifier",
+          "target": "luxuryDuplicates",
+          "percent": 100,
+          "yieldsOnly": true
+        }
+      ],
+      "note": "Only the luxury's own food, production, gold, science, culture and faith are paid for each copy. Its happiness and every other effect still count once for each kind. Silver and gold already pay some lines for each copy, and those lines are not paid twice."
     }
   }
 }

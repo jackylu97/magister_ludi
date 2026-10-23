@@ -36,7 +36,8 @@ import { applyCommand } from '../../src/sim/commands';
 import { tileIndex } from '../../src/sim/map';
 import { EXPLORED } from '../../src/sim/visibility';
 import { RULES } from '../../src/sim/rulesData';
-import { importedLuxuries } from '../../src/sim/resourceEffects';
+import { importedLuxuries, luxuryLoans } from '../../src/sim/resourceEffects';
+import { postTermTurns } from '../../src/sim/routes';
 import { explainHappiness } from '../../src/sim/meters';
 import { resourceDef } from '../../src/sim/resourceData';
 import { stripRefs } from '../../src/sim/statecraft';
@@ -156,6 +157,38 @@ describe('the sheet’s reading of a loan', () => {
       expect(unit?.ownerId).toBe(0);
       expect(unit?.trade).toBeDefined();
     }
+  });
+
+  it('is the route half of the loans when posts lend too (The Capitulations)', () => {
+    // Commerce batch T5: The Capitulations' posts lend after the routes, in
+    // the same walk (`luxuryLoans`), so the route half is still this sheet's
+    // reading exactly and the posts take only what the routes left.
+    const { state, home, silkTown, wineTown, wineFar } = world();
+    learn(state);
+    const sc = state.players[0]!.statecraft;
+    sc.orders.push('theCapitulations' as never);
+    sc.slots.push({ card: 'theCapitulations' as never, sealedUntil: state.turn });
+    const established = state.turn - postTermTurns();
+    wineTown.posts = [{ by: 0, since: established }];
+    wineFar.posts = [{ by: 0, since: established }];
+    const trader = createUnit(state, 0, 'trader', 3, 4);
+    bumpRevision(state);
+    const sent = applyCommand(state, {
+      type: 'startRoute',
+      playerId: 0,
+      unitId: trader.id,
+      fromCityId: home.id,
+      toCityId: silkTown.id,
+    });
+    expect(sent.ok, sent.ok ? '' : sent.error).toBe(true);
+    bumpRevision(state);
+    const loans = luxuryLoans(state, 0);
+    const routeHalf = loans.filter((loan) => loan.via === 'route').map((loan) => loan.id);
+    expect(routeHalf.sort()).toEqual(runningRouteImports(state, 0).map((claim) => claim.id).sort());
+    expect(routeHalf).toEqual(['silk']);
+    // The first post town lends its wine; the second has nothing left to lend.
+    expect(loans.filter((loan) => loan.via === 'post').map((loan) => loan.id)).toEqual(['wine']);
+    expect([...importedLuxuries(state, 0)].sort()).toEqual(['silk', 'wine']);
   });
 
   it('answers for a pair that is not running, and never promises a kind twice', () => {

@@ -367,6 +367,45 @@ export function lentCopiesToPlayer(state: GameState, playerId: number): LentCopi
   return copies;
 }
 
+/**
+ * **How many luxury copies this empire lends in its live deals**, all kinds
+ * together (Commerce batch T5, feature D: `CountKind`'s `copiesLent`, Export
+ * Guilds).
+ *
+ * The sum of `lentCopiesAwayBy`'s figures, walked over the register itself so
+ * no keyed collection is iterated: one for each kind each live row names on
+ * this empire's side.
+ */
+export function lentCopyCount(state: GameState, playerId: number): number {
+  let total = 0;
+  for (const deal of state.deals) {
+    if (!dealIsLive(state, deal)) continue;
+    total += (sideGivenBy(deal, playerId).luxuries ?? []).length;
+  }
+  return total;
+}
+
+/**
+ * **The empires this empire holds at least one live deal with**, each once,
+ * in seat order (Commerce batch T5, feature D: `CountKind`'s `dealPartners`,
+ * The Treaty Ports).
+ *
+ * A deal of gold alone leaves no row (`termsAreOngoing`), so it makes no
+ * partner, and a war takes every row between the two with it
+ * (`cancelDealsBetween`). An array, searched and sorted, because this is an
+ * outcome.
+ */
+export function dealPartnerSeats(state: GameState, playerId: number): number[] {
+  const seats: number[] = [];
+  for (const deal of state.deals) {
+    if (!dealIsLive(state, deal)) continue;
+    const other = otherSeatOf(deal, playerId);
+    if (other === null || seats.includes(other)) continue;
+    seats.push(other);
+  }
+  return seats.sort((x, y) => x - y);
+}
+
 /** One turn's tribute, as a line in somebody's ledger. */
 export interface TributeLine {
   /** "Tribute to the Crimson Banner" · "Tribute from the Crimson Banner". */

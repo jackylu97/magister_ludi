@@ -339,9 +339,10 @@ describe('Commerce batch T1: tiers, retirements and moves', () => {
     expect(orderDef('establishedRoutes' as OrderId).effects[0]).toMatchObject({ where: 'route', standingTurns: 20 });
   });
 
-  it('gives the three deferred rows their new text, tier and rarity, and deals none of them', () => {
-    // Commerce batch T3 built The Return Leg, so two rows are still deferred.
-    // The third keeps the tier, rarity and text T1 gave it, and is dealt.
+  it('gives the three deferred rows their new text, tier and rarity, and deals them once built', () => {
+    // Commerce batch T3 built The Return Leg, and batch T5 built Export
+    // Guilds and The Treaty Ports. Each keeps the tier, rarity and text T1
+    // gave it, and is dealt.
     expect([orderDef('theReturnLeg' as OrderId).band, orderDef('theReturnLeg' as OrderId).rarity]).toEqual([
       3,
       'rare',
@@ -354,10 +355,11 @@ describe('Commerce batch T1: tiers, retirements and moves', () => {
     for (const [id, [band, rarity]] of Object.entries(rows)) {
       const def = orderDef(id as OrderId);
       expect([def.band, def.rarity], id).toEqual([band, rarity]);
-      expect(def.effects, id).toEqual([]);
-      expect(orderIsDealt(id as OrderId), id).toBe(false);
+      expect(def.deferred, id).toBeUndefined();
+      expect(def.effects.length, id).toBeGreaterThan(0);
+      expect(orderIsDealt(id as OrderId), id).toBe(true);
       // Player prose with no figure in it (rule 7).
-      for (const sentence of [...(def.deferred ?? []), def.note ?? '']) expect(sentence, id).not.toMatch(/[0-9]/);
+      expect(def.note ?? '', id).not.toMatch(/[0-9]/);
     }
     expect(orderDef('exportGuilds' as OrderId).text).toContain('lend to another empire in a deal');
     expect(orderDef('theTreatyPorts' as OrderId).text).toContain('each empire you hold a deal with');

@@ -86,6 +86,7 @@ export {
   cardAmplifier,
   cardExtraChairs,
   cardAmplifierFlat,
+  cardYieldsOnlyAmplifier,
   cardAuthority,
   cardBeadOccasions,
   cardBehaviorRule,

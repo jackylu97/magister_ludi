@@ -4526,6 +4526,10 @@ function scoreAmplifier(
     }
     case 'luxuryHappiness':
     case 'luxuryDuplicates': {
+      // **A stand-in** (Commerce batch T5, The Casa da Índia): a share narrowed
+      // to a luxury's yields pays no happiness, so the happiness reading below
+      // would be wrong. Commerce batch T9 prices it through the luxury fold.
+      if (effect.yieldsOnly === true) return ctx.ai.score.unknownEffect;
       const goods = countProbe(ctx, 'uniqueLuxuries');
       const each = RULES.meters.happiness.perUniqueLuxury;
       return (flat + share * each) * goods * meterWeight(ctx, 'happiness');
@@ -4554,6 +4558,11 @@ function scoreAmplifier(
       // what an extra copy is worth depends on whether the empire is already
       // over the duplicate threshold, and that reading belongs beside the
       // happiness meter rather than in an amplifier arm.
+      return ctx.ai.score.unknownEffect;
+    case 'lentLuxuryCopies':
+      // **A stand-in** (Commerce batch T5, The Commenda). Commerce batch T9
+      // prices what a lent copy still pays this seat, through the luxury fold
+      // and the deal appraisal (`explainSide`).
       return ctx.ai.score.unknownEffect;
     case 'depositWorkCopies':
       // **The extra copies, at a stand-in price each** (Scientific batch S5,

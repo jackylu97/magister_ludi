@@ -564,8 +564,12 @@ describe('the schema, as landed', () => {
     // **And Commerce batch T4** (the trade commissions): one more.
     // Commission: The Great Fair is a new Commerce row. The World's Fair
     // changed in place and was already live.
-    expect(live).toBe(573);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(573);
+    // **And Commerce batch T5** (goods and deals): five more. The Commenda,
+    // The Capitulations and The Casa da Índia are new Commerce rows, and
+    // Export Guilds and The Treaty Ports left `deferred`. Land Speculation
+    // changed in place and was already live.
+    expect(live).toBe(578);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(578);
   });
 
   /**
@@ -891,7 +895,11 @@ describe('the schema, as landed', () => {
     // Great Fair is a new Commerce card, and The World's Fair has a new goal
     // and a reward that writes posts. So a v172 log's Commerce hands hold
     // different cards.
-    expect(SCHEMA_VERSION).toBe(173);
+    // 174 since Commerce batch T5 (goods and deals): two counts read the
+    // deal register, a lent luxury may still count for its lender, a
+    // foreign post may lend a luxury, and five more Commerce cards are
+    // dealt. So a v173 log's Commerce hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(174);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1140,9 +1148,10 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // live rows and three deferred ones, The Consulate, The Post Riders and
       // The Embargo (− 3, and + 11 retired).
       // **Commerce batch T3** freed The Return Leg (− 1).
+      // **Commerce batch T5** freed Export Guilds and The Treaty Ports (− 2).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(28);
+      ).toHaveLength(26);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(199);
     }
   });

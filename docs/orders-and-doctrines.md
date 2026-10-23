@@ -471,7 +471,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Pathfinders' Company | 0 | ◆ | S | Scouts gain +1 sight and +1 movement. |
 | The Assayer's Rule | 0 | ◆ | S | Worked resource tiles that supply gold gain +1 gold. |
 | The Mineral Trade | 0 | ● | S | Worked mines and quarries gain +2 gold but lose 1 production. |
-| Land Speculation | 0 | ◆ | P | Your cities gain +25% gold. Your capital loses 2 happiness. |
+| Land Speculation | 0 | ◆ | S | Buying a hex with a resource on it grants culture equal to half the gold paid. |
 | Private Patronage | 1 | ○ | P | Your cities gain +40% gold. Producing ordinary buildings normally takes 20% more production. Empire buildings and wonders are unaffected. |
 | Civic Receipts | 1 | ◆ | S | Buying any building grants culture equal to 15% of the gold paid, with no cap. |
 | Provisioning Contracts | 2 | ● | S | Domestic routes grant their destination +3 food and +3 production. |
@@ -535,6 +535,11 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Champagne Fairs | 3 | ◆ | S | Every ten turns, each town that receives a domestic trade route grants culture equal to ten times its population. |
 | The Lingua Franca | 3 | ◆ | P | +1% science and culture for every three trade routes running anywhere in the world, at most +30%. |
 | Commission: The Great Fair | 2 | ◆ | S | Commission. Have domestic trade routes arrive in four of your towns at the same time. Then, for the rest of the game, you may run two more trade routes. The card leaves its chair. |
+| Export Guilds | 1 | ◆ | P | Each luxury you lend to another empire in a deal gives your capital +4 culture and +2 production. |
+| The Treaty Ports | 2 | ◆ | P | +5% production for each empire you hold a deal with, at most +25%. |
+| The Commenda | 3 | ○ | P | Luxuries you lend in a deal count as half a copy for you. |
+| The Capitulations | 3 | ◆ | S | Each foreign town holding your trading post lends you one of its luxuries that you lack, at half value. |
+| The Casa da Índia | 4 | ○ | P | Every copy of a luxury you hold pays its yields, not only the first. |
 
 ### Devotion
 
@@ -838,7 +843,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Common Road** — The host's two gold are paid to the foreign city the caravan reaches, and appear on that city's own sheet under this card's name. They are a flat grant: the sea premium and any percentage of yours raise what the trade route pays you, never what it pays your host. A blockade at either end stops both halves, as it stops everything a caravan carries.
 - **The Return Leg** — The town a trade route between your own cities leaves is paid what the town it reaches is paid, line for line: the route's own pay, every card's addition to it, and a blockade that stops it. The copy stays in the town it was paid to, and no card that raises what trade routes pay raises it a second time. A trade route to another empire is not copied.
 - **The Planters' Charter** — The Plantation House is bought with gold and never built. Every plantation its city works gains a little food and a little gold.
-- **The Treaty Ports** — Waiting on a new count. Nothing yet counts the empires you hold a deal with. † every empire you hold a deal with raises your production
+- **The Treaty Ports** — An empire counts once, however many deals you hold with it. A deal that only hands over gold at once leaves nothing running, so it does not count, and a war ends every deal between the two empires.
 - **Financed Industry** — The share is taken of the town's own flat coin as it stood before any conversion spoke, so a card that turns coin into hammers cannot feed a card that turns hammers into coin.
 - **The Home Market** — A city has to be the end of two trade routes between your own cities at once, and the contentment is paid once per city however many arrive.
 - **The Foreign Factor** — A trading post is established after a full route term of unbroken trading with a town, and it is yours from then on. A post pays nobody while its holder and the host are at war, or while the host city is blockaded. Each town's citizens are counted on their own, so what is left over in one town does not add to another's. Both halves count the same posts.
@@ -847,7 +852,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **Royal Assays** — No hex is changed. What grows is the number of copies your realm holds, taken of what your own deposits supply — so a copy another empire lent you is untouched, and a copy you lent away comes off the raised figure rather than being raised with it. A mine is an improvement, so there is no second test for improved. The deposit has to be open to you, like every other seam you count.
 - **Foreign Procurement** — The waiver is for the counter alone — a town still cannot put a knight in its queue without horses. A piece bought this way is an ordinary piece afterwards and still takes a copy, so an empire that buys past its iron finds the iron spoken for.
 - **The League of Cities** — A paying trade route is simply an active one — a route that has lapsed, been cancelled or been plundered is not counted. The discount never takes a city below one authority and never charges a city that was already free.
-- **Export Guilds** — Waiting on a new count. Nothing yet counts the luxuries you lend in your deals. † each luxury you lend to another empire in a deal pays your capital culture and production
+- **Export Guilds** — Each copy counts, so two copies of one luxury lent in two deals count twice. A copy counts while its deal runs, and a war ends every deal between the two empires.
 - **The Exchange** — The exchange runs along the trade routes you send: each pays you, and the city it reaches, the same science and culture. A trade route another empire sends to you pays you nothing from this card.
 - **The Customs Houses** — A customs house counts for the town whose borders hold it, whether or not anyone works it.
 - **Strategic Exports** — The beaker on the trade route is an ordinary counted line, asked of the town the caravan left. The doubling touches no ground at all, which is the user's ruling: the seams on the map are what they always were, and what changes is the total your realm holds. It is taken of the copies your own opened seams supply and of nothing else, so a copy another empire lent you is not doubled and a copy you lent away comes off the doubled figure rather than being doubled with it. It is applied outside the walk that is remembered from turn to turn, because that walk is remembered on a clock that does not move when a card is taken up — a law read inside it would leave every count stale for the rest of the turn, and a stale count is a unit a seat can or cannot build, which is how a played game starts disagreeing with a replay of its own log.
@@ -869,6 +874,10 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Champagne Fairs** — A fair counts each of your cities that one of your own trade routes reaches on the turn the fair is held, and pays for every citizen living there. The culture goes to your empire. The fairs are counted from the turn you seat the card.
 - **The Lingua Franca** — Every trade route that is running counts, whoever sent it and wherever it goes, your own included. A route that is renewed is still one route.
 - **Commission: The Great Fair** — A town counts while at least one of your trade routes from another of your towns ends there. The goal is checked at the end of each turn.
+- **Land Speculation** — The culture is rounded down. The resource must be one your people can see: a resource they have no word for yet does not count.
+- **The Commenda** — The deal still takes the copy, so you can never lend the same copy twice. For your cards and goals, two copies lent count as one copy you hold. A luxury you now hold only through copies you lent still pays you half of its happiness and half of its yields while the deals run.
+- **The Capitulations** — Only a trading post that is established and paying lends: not during a war with the town's owner, and not while the town is blockaded. Each town lends the first luxury it has improved that you do not hold and that no trade route or other post already brings you, and the towns are taken in the order they were founded. A borrowed luxury pays half of its happiness and half of its yields.
+- **The Casa da Índia** — Only the luxury's own food, production, gold, science, culture and faith are paid for each copy. Its happiness and every other effect still count once for each kind. Silver and gold already pay some lines for each copy, and those lines are not paid twice.
 - **Pastoral Shrines** — Not built, both halves together: the law can dress a herder's ground, and nothing can yet ask whether the realm keeps a single pen anywhere at all, which is the clause the capital's hammers hang on. † worked pastures pay an offering of faith and a little more food; your capital works harder while you keep a penned herd anywhere at all
 - **Hearth Blessings** — Not built: a town remembers how many people live in it and not how many ever did, so nothing can tell a new high from an ordinary birth. † a town growing past the largest it has ever been gives thanks in faith; a shrine there sets bread on the table besides
 - **The Book of Mercy** — Not built: neither observance has been written into the book of rites, so the charter has nothing to open. The row is kept so the two may be written. † a town may mourn, and while it grieves its people ask far less of it and it raises no soldiers; a town may keep a watch, seeing the raiders' camps around it and taking faith for every kill near its walls

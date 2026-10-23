@@ -2430,8 +2430,36 @@ import {
  * **A v172 save is refused and does not replay.** A Commerce seat's pools
  * hold one more card, and a seat holding The World's Fair is paid
  * differently. The branch migrates nothing, for the reason given under v119.
+ *
+ * v174 (branch `decks`; Commerce batch T5, `docs/plans/commerce-themes-
+ * triage.md`): **goods and deals.** No field joins the state. The rules that
+ * change:
+ *
+ *   · two new counts read the deal register: the luxury copies an empire
+ *     lends in its live deals (`copiesLent`), and the empires it holds a live
+ *     deal with (`dealPartners`);
+ *   · a new amplifier target, `lentLuxuryCopies`, keeps a share of each lent
+ *     copy for its lender. The luxury counts and Corner the Market's figure
+ *     add the share of the lent copies, rounded down, and a kind held only
+ *     through lent copies pays at the share. The deal gate does not change;
+ *   · a new behaviour rule, `postsLendLuxuries`: each foreign town holding
+ *     the empire's paying post lends it one luxury, after the routes'
+ *     loans, at the Silk Road's share;
+ *   · an amplifier row may carry `yieldsOnly`, which narrows the
+ *     `luxuryDuplicates` share to a luxury's flat yields;
+ *   · the `tilePurchase` moment carries the price and the hex, a windfall
+ *     rider may ask a tile test of the hex (`on`), and a scaled grant may be
+ *     rounded down (`whole`);
+ *   · Export Guilds and The Treaty Ports leave `deferred`; The Commenda, The
+ *     Capitulations and The Casa da Índia are new Commerce cards; Land
+ *     Speculation pays culture for a hex with a resource on it, in place of
+ *     its gold and its unhappy capital.
+ *
+ * **A v173 save is refused and does not replay.** A Commerce seat's pools
+ * hold five more cards, and a seat holding Land Speculation is paid
+ * differently. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 173;
+export const SCHEMA_VERSION = 174;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

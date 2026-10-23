@@ -3,7 +3,7 @@
 The deck's cards, by tier: name, rarity, status, ability and type. This sheet is the spec of record for the deck. `test/sim/decks/commerce.test.ts` checks it against `data/decks/commerce.json` and, for the shared table, `data/decks/common.json`.
 
 - **Why each card is here:** `docs/plans/commerce-themes.md`, the themes pass of 2026-10-21. It designs the deck as a way to play: an engine of gold and what gold buys, and four themes (the home market, the far trade, the goods and the bankers). Section 12 is the revision of 2026-10-21, which moved the route cards to Tier II. Section 13 holds your answers of 2026-10-23, and it outranks the sections before it. `docs/plans/commerce-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
-- **The build plan:** `docs/plans/commerce-themes-triage.md` (batches T1 to T9). Batch T1 wrote this sheet, put the types into the data, retired the eleven cut rows, moved four rows to the shared file, and changed fifteen cards in place. Batch T2 built the eight new cards that need no new shape (Market Day, The Emporia, The Grain Banks, The Market Halls, Names in Stone, The Hanse, Bills of Exchange and The Grain Barges), and moved Merchant Scholars to Tier III with its new text. Batch T7 built the shared The Art Dealers and the moment a card is drafted, and moved Dominion's The Standing Army to the shared file. Batch T3 built the route and post cards: The Foreign Factor, The Fondaci, The Return Leg, The Champagne Fairs, The Admiralty of Trade and The Lingua Franca. Batch T4 built the two trade commissions: Commission: The Great Fair, and The World's Fair with its new goal and reward. Each later batch sets its own rows to `implemented`.
+- **The build plan:** `docs/plans/commerce-themes-triage.md` (batches T1 to T9). Batch T1 wrote this sheet, put the types into the data, retired the eleven cut rows, moved four rows to the shared file, and changed fifteen cards in place. Batch T2 built the eight new cards that need no new shape (Market Day, The Emporia, The Grain Banks, The Market Halls, Names in Stone, The Hanse, Bills of Exchange and The Grain Barges), and moved Merchant Scholars to Tier III with its new text. Batch T7 built the shared The Art Dealers and the moment a card is drafted, and moved Dominion's The Standing Army to the shared file. Batch T3 built the route and post cards: The Foreign Factor, The Fondaci, The Return Leg, The Champagne Fairs, The Admiralty of Trade and The Lingua Franca. Batch T4 built the two trade commissions: Commission: The Great Fair, and The World's Fair with its new goal and reward. Batch T5 built the goods and deals cards: Export Guilds and The Treaty Ports (two new counts, the luxuries you lend and the empires you hold a deal with), The Commenda, The Capitulations, The Casa da Índia, and Land Speculation's new text. Each later batch sets its own rows to `implemented`.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -23,12 +23,12 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 
 | Tier | Implemented | Modify | Add | All | Charters |
 |---|---|---|---|---|---|
-| Tier 0 | 9 | 1 | 0 | 10 | 0 |
-| Tier I | 8 | 2 | 2 | 12 | 1 |
-| Tier II | 20 | 3 | 1 | 24 | 1 |
-| Tier III | 16 | 1 | 2 | 19 | 0 |
-| Tier IV | 10 | 1 | 1 | 12 | 0 |
-| **All** | **63** | **8** | **6** | **77** | **2** |
+| Tier 0 | 10 | 0 | 0 | 10 | 0 |
+| Tier I | 9 | 1 | 2 | 12 | 1 |
+| Tier II | 21 | 2 | 1 | 24 | 1 |
+| Tier III | 18 | 1 | 0 | 19 | 0 |
+| Tier IV | 11 | 1 | 0 | 12 | 0 |
+| **All** | **69** | **5** | **3** | **77** | **2** |
 | Shared | 19 | 4 | 0 | 23 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
@@ -54,7 +54,7 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 | **The Mineral Trade** | common | implemented | Worked mines and quarries gain +2 gold but lose 1 production. | Economic |
 | **Salt Tithes** | common | implemented | Gain +3 gold per distinct accessible improved luxury you produce. Worked luxury tiles gain +1 food. | Economic |
 | **The Assayer's Rule** | uncommon | implemented | Worked resource tiles that supply gold gain +1 gold. | Economic |
-| **Land Speculation** | uncommon | modify: reworked | Buying a hex with a resource on it grants culture equal to half the gold paid. | Civic |
+| **Land Speculation** | uncommon | implemented | Buying a hex with a resource on it grants culture equal to half the gold paid. | Civic |
 | **Travellers' Letters** | common | implemented | Your capital gains +2 science and +2 culture, plus +1 of each per foreign empire met, no cap. | Civic |
 | **The Pathfinders' Company** | uncommon | implemented | Scouts gain +1 sight and +1 movement. | Military |
 | **The Map Sellers** | common | implemented | Your capital gains +1 gold and +1 culture for every 40 hexes you have revealed, at most +8 of each. | Civic |
@@ -79,7 +79,7 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 | **The Grain Banks** | uncommon | implemented | Cities with a Granary gain +3 gold. | Economic |
 | **The Market Halls** | common | implemented | Towns with a Market gain +1 food and +1 production for every three citizens. | Economic |
 | **The Staple Right** | common | implemented | Gain +3 gold and +2 culture for each luxury you hold two or more copies of. | Economic |
-| **Export Guilds** | uncommon | modify: deferred | Each luxury you lend to another empire in a deal gives your capital +4 culture and +2 production. | Civic |
+| **Export Guilds** | uncommon | implemented | Each luxury you lend to another empire in a deal gives your capital +4 culture and +2 production. | Civic |
 | **Commercial Education** | common | implemented | Gold buildings provide +3 science. | Civic |
 | **The Market Writ** | uncommon | implemented | +1 authority for every two Markets in your empire. | Civic |
 | **The Strongbox** | uncommon | add | While seated, this card gains +1 science and +1 culture each turn you end with at least 300 gold in your treasury, up to +15 of each. | Civic |
@@ -114,7 +114,7 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 | **The Spice Exchange** | rare | implemented | Every city gains +5% science and +5% culture for each luxury you hold two or more copies of, at most +30%. | Civic |
 | **Corner the Market** | uncommon | implemented | Commission. Hold four copies of one luxury, counting copies you receive in deals. Then, for the rest of the game, gain +2 happiness for each luxury you hold two or more copies of. The card leaves its chair. | Wildcard |
 | **Strategic Exports** | uncommon | implemented | Trade routes gain +2 science per improved strategic resource deposit in their origin city. Your strategic resource deposits provide twice their normal quantity. | Economic |
-| **The Treaty Ports** | uncommon | modify: deferred | +5% production for each empire you hold a deal with, at most +25%. | Economic |
+| **The Treaty Ports** | uncommon | implemented | +5% production for each empire you hold a deal with, at most +25%. | Economic |
 | **Houses of Account** | common | implemented | Gold buildings provide +2 happiness and +1 renown. | Civic |
 | **Bills of Exchange** | uncommon | implemented | Every town gains +1% production for every 100 gold in your treasury, at most +30%. | Economic |
 | **The Customs Houses** | uncommon | implemented | Each customs house in your borders gives its town +4 science and +4 culture, whether or not it is worked. | Civic |
@@ -143,8 +143,8 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 | **The Admiralty of Trade** | uncommon | implemented | Your trade routes to a town holding your trading post have no range limit. | Economic |
 | **The Lingua Franca** | uncommon | implemented | +1% science and culture for every three trade routes running anywhere in the world, at most +30%. | Civic |
 | **The Monopoly** | rare | modify: as built | For each luxury you hold three or more copies of and no other empire holds, gain +8 gold, +5 culture and +1 happiness in every city. | Economic |
-| **The Commenda** | rare | add | Luxuries you lend in a deal count as half a copy for you. | Economic |
-| **The Capitulations** | uncommon | add | Each foreign town holding your trading post lends you one of its luxuries that you lack, at half value. | Economic |
+| **The Commenda** | rare | implemented | Luxuries you lend in a deal count as half a copy for you. | Economic |
+| **The Capitulations** | uncommon | implemented | Each foreign town holding your trading post lends you one of its luxuries that you lack, at half value. | Economic |
 | **The Money Lenders** | rare | implemented | Earn interest equal to 4% of your treasury each turn, with no cap. | Economic |
 | **A Court of Merchants** | rare | implemented | Gain +50% renown, but great-person offers contain only Great Merchants. | Civic |
 | **The Bourse** | rare | implemented | Gold buildings produce 75% more of their own yields. | Economic |
@@ -171,7 +171,7 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 | **The World's Exchange** | rare | implemented | +10% production toward the Opus for each foreign empire your trade routes reach, at most +40%. | Economic |
 | **The Neutral Flag** | uncommon | implemented | Your trade routes to an empire that is at war with another empire gain +100% gold and +50% science. | Economic |
 | **The World's Fair** | rare | implemented | Commission. Have trade routes to four other empires at the same time. Then your trading post is established in the capital of each of them. The card leaves its chair. | Wildcard |
-| **The Casa da Índia** | rare | add | Every copy of a luxury you hold pays its yields, not only the first. | Economic |
+| **The Casa da Índia** | rare | implemented | Every copy of a luxury you hold pays its yields, not only the first. | Economic |
 | **Money at Work** | rare | implemented | Every town gains +1 science for every 500 gold in your treasury. | Civic |
 | **Merchant Princes** | rare | implemented | Gold may purchase great-person drafts at the existing escalating offer price, with normal availability and purchase limits. | Civic |
 

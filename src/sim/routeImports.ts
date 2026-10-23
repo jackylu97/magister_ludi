@@ -30,9 +30,11 @@
  * evaluator, and nothing that imports it back — and because what the sheet
  * needs is a *finer* reading than the rule's rather than a second one.
  * `test/ui/tradeImports.test.ts` pins the two together: with the rule held, the
- * kinds this walk assigns are `importedLuxuries`' list exactly. If the rule ever
- * changes shape that pin is what fails, and the two are folded rather than left
- * to drift.
+ * kinds this walk assigns are the route half of the rule's loans
+ * (`luxuryLoans`). Since Commerce batch T5 foreign posts lend too (The
+ * Capitulations), after the routes, so they never move what a road carries and
+ * this walk stays the route half. If the rule ever changes shape that pin is
+ * what fails, and the two are folded rather than left to drift.
  *
  * **The rule gates the pay, not the forecast.** The walk takes live
  * international routes whether or not the seat holds the rule, so a sheet drawn

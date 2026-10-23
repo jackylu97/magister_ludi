@@ -26,6 +26,8 @@ import {
   markTownLand,
   cityTile,
   controlledResources,
+  countedLuxuries,
+  countedLuxuryCopies,
   isCoastalCity,
   loseCitizen,
   nearestOwnedCity,
@@ -121,6 +123,9 @@ import {
 import { nextFloat } from '../rng';
 import { economyStamp, slateMemo, slateShadow } from '../slate';
 import { connectedCities } from '../roads';
+// Commerce batch T5, feature D: the deal register is a leaf
+// (`deals.ts`), so its two readings come straight from it with no cycle.
+import { dealPartnerSeats, lentCopyCount } from '../deals';
 // A leaf, exactly as `roads.ts` beside it is, and it became one so this line
 // could exist: `routeEndsHere` asks how many trade routes meet a town,
 // `routeYields.ts` imports this file for the lines a card puts on a caravan,
@@ -2797,11 +2802,16 @@ export function countOf(
       // `cityResources` is the uniqueness reading every city-scale resource
       // question takes (`resourceEffects.ts`).
       if (effect.within === 'city') return city ? cityResources(state, city, 'luxury').length : 0;
-      return controlledResources(state, playerId, 'luxury').length;
+      // **The counted kinds** (Commerce batch T5, The Commenda): the kinds the
+      // empire controls, and the kinds it lends whose share comes to a copy.
+      // With no such card this is `controlledResources` exactly.
+      return countedLuxuries(state, playerId).length;
     case 'luxuryCopies': {
+      // `countedLuxuryCopies` is `resourceCopies` plus The Commenda's share of
+      // each lent copy, rounded down (Commerce batch T5, reading 2).
       let total = 0;
-      for (const id of controlledResources(state, playerId, 'luxury')) {
-        total += resourceCopies(state, playerId, id);
+      for (const id of countedLuxuries(state, playerId)) {
+        total += countedLuxuryCopies(state, playerId, id);
       }
       return total;
     }
@@ -2810,8 +2820,8 @@ export function countOf(
       // sweep `luxuryCopies` takes, counting names instead of copies, which is
       // why it is a member here rather than a second traversal somewhere else.
       let total = 0;
-      for (const id of controlledResources(state, playerId, 'luxury')) {
-        if (resourceCopies(state, playerId, id) >= 2) total += 1;
+      for (const id of countedLuxuries(state, playerId)) {
+        if (countedLuxuryCopies(state, playerId, id) >= 2) total += 1;
       }
       return total;
     }
@@ -3290,6 +3300,14 @@ export function countOf(
       // The walk is its own function since Commerce batch T4, so The World's
       // Fair's goal and reward read the same partners (`tradePartnerSeats`).
       return tradePartnerSeats(state, playerId).length;
+    case 'copiesLent':
+      // Commerce batch T5, feature D (Export Guilds): one for each kind each
+      // live deal row names on this empire's side (the triage's reading 21).
+      return lentCopyCount(state, playerId);
+    case 'dealPartners':
+      // Commerce batch T5, feature D (The Treaty Ports): the empires holding
+      // a live deal row with this one, each once (the triage's reading 20).
+      return dealPartnerSeats(state, playerId).length;
     case 'authoritySurplus': {
       // **The meter's own fold**, so the sheet and the helpings agree by
       // construction — and the cut, because a row paying `to: 'authority'` off
@@ -3461,11 +3479,14 @@ export function countOf(
     case 'monopolyLuxuries': {
       // Three or more copies held here, and not one copy held by any other real
       // empire — The Monopoly. `resourceCopies` is the net figure, so a copy
-      // lent away leaves the lender and counts for whoever received it.
+      // lent away leaves the lender and counts for whoever received it. This
+      // empire's own figure adds The Commenda's share of the copies it lends
+      // (`countedLuxuryCopies`, Commerce batch T5); the other empires' figures
+      // are theirs, so a copy lent to one of them still breaks the monopoly.
       let total = 0;
       const others = realPlayers(state).filter((seat) => seat.id !== playerId);
-      for (const id of controlledResources(state, playerId, 'luxury')) {
-        if (resourceCopies(state, playerId, id) < 3) continue;
+      for (const id of countedLuxuries(state, playerId)) {
+        if (countedLuxuryCopies(state, playerId, id) < 3) continue;
         if (others.some((seat) => resourceCopies(state, seat.id, id) > 0)) continue;
         total += 1;
       }
@@ -7075,8 +7096,9 @@ function combatScaleCount(
     case 'capitalGreatWorks':
       return capitalGreatWorks(state, playerId);
     case 'uniqueLuxuries':
-      // The ledger count's own reading, asked of a fight (Numidian Cavalry).
-      return controlledResources(state, playerId, 'luxury').length;
+      // The ledger count's own reading, asked of a fight (Numidian Cavalry),
+      // The Commenda's lent kinds included (Commerce batch T5).
+      return countedLuxuries(state, playerId).length;
     case 'bankedGold':
       // War Bonds. The ledger count's own reading, asked of a fight.
       return Math.max(0, Math.floor(playerById(state, playerId)?.gold ?? 0));
@@ -7975,9 +7997,16 @@ export interface WindfallOccasionFacts {
    * The purchase verb is the only place the figure is in hand: a price is
    * composed out of the row's cost, the empire's discounts and the bank it was
    * paid from, and a moment later the treasury simply holds less. Carried by the
-   * `purchase` occasion alone.
+   * `purchase` occasion, and since Commerce batch T5 by `tilePurchase` too (the
+   * hex's price, Land Speculation).
    */
   gold?: number;
+  /**
+   * **The hex the occasion is about** (Commerce batch T5, Land Speculation):
+   * the hex just bought, on the `tilePurchase` occasion. Read by
+   * `CardWindfallRiderEffect.on`, which asks a tile test of it.
+   */
+  hex?: { col: number; row: number };
   /**
    * The **building** finished or bought, where the occasion is about one.
    *
@@ -8309,6 +8338,13 @@ export function windfallPayout(
     // The Coming of the Water pays for an Aqueduct and not for a granary
     // (Expansionist batch E3). Only a completion carries the row it finished.
     if (effect.building !== undefined && facts.building !== effect.building) return false;
+    // Land Speculation pays for a hex with a resource on it (Commerce batch
+    // T5). The tile test is asked of the hex the moment names, with this
+    // empire's ground facts, so a resource test sees only a resource the
+    // empire can name. An occasion that names no hex never satisfies it.
+    if (effect.on !== undefined && !occasionHexPasses(state, playerId, effect.on, facts.hex)) {
+      return false;
+    }
     return true;
   };
   // **The occasion's own figure, folded first.** The percentages sum and apply
@@ -8667,6 +8703,10 @@ export function windfallPayout(
           const ceiling = Math.abs(grant.max);
           figure = Math.max(-ceiling, Math.min(ceiling, figure));
         }
+        // Commerce batch T5, Land Speculation: half the price, rounded down
+        // (the triage's reading 24). After the ceiling, before the era and the
+        // council, as the field says.
+        if (grant.whole === true) figure = Math.floor(figure);
         const amount =
           figure *
           (effect.perAge === true ? era : 1) *
@@ -8766,6 +8806,9 @@ function amplifierRows(
   for (const { card, source, effect } of effectsOfKind(state, playerId, 'effectAmplifier')) {
     if (effect.target !== target || effect.percent === undefined || effect.family !== undefined) continue;
     if (effect.class !== undefined && (actor === undefined || !unitMatches(actor, effect.class))) continue;
+    // A row narrowed to a luxury's yields (Commerce batch T5) is read only by
+    // `cardYieldsOnlyAmplifier`.
+    if (effect.yieldsOnly === true) continue;
     rows.push({ card, source, percent: effect.percent });
   }
   return rows;
@@ -8803,6 +8846,31 @@ function townsProduction(
     total += Math.floor(foldCity(state, town, [], town.queue[0]).production);
   }
   return total;
+}
+
+/**
+ * **Does the hex an occasion names pass this tile test?** (Commerce batch T5,
+ * `CardWindfallRiderEffect.on`.) The tile's own test, asked with the empire's
+ * ground facts and the six hexes beside it, as a card's hex line asks it. No
+ * hex, or a hex off the map, never passes.
+ */
+function occasionHexPasses(
+  state: GameState,
+  playerId: number,
+  on: TileCondition,
+  hex: { col: number; row: number } | undefined,
+): boolean {
+  if (hex === undefined) return false;
+  const tile = getTileAt(state.map, hex.col, hex.row);
+  if (tile === undefined) return false;
+  return tileConditionHolds(
+    tile,
+    on,
+    undefined,
+    () => neighborTiles(state.map, tileHex(tile)),
+    state.turn,
+    groundFactsFor(state, playerId),
+  );
 }
 
 function occasionMeasure(
@@ -11632,6 +11700,35 @@ export function cardAmplifier(
     // A row narrowed to a class of piece (Dominion batch D12) is read only
     // where the piece is in hand (`amplifierRows`), never here.
     if (effect.class !== undefined) continue;
+    // A row narrowed to a luxury's yields (Commerce batch T5, The Casa da
+    // Índia) is read only by `cardYieldsOnlyAmplifier`, never here.
+    if (effect.yieldsOnly === true) continue;
+    if (effect.percent === undefined) continue;
+    percent += effect.percent;
+  }
+  return percent;
+}
+
+/**
+ * **The share an amplifier narrowed to a luxury's yields adds**, summed
+ * (Commerce batch T5, The Casa da Índia; the triage's reading 23):
+ * `cardAmplifier`'s rows that carry `yieldsOnly`, and only those.
+ *
+ * Asked by the luxury evaluator (`copiesFor`, `resourceEffects.ts`) when it
+ * counts the copies behind a flat yield line, and added to the ordinary
+ * `luxuryDuplicates` share there. Every other reading of a luxury (its
+ * happiness, authority, renown and percentages) asks `cardAmplifier`, which
+ * drops these rows, so those still count once a kind.
+ */
+export function cardYieldsOnlyAmplifier(
+  state: GameState,
+  playerId: number,
+  target: AmplifierTarget,
+): number {
+  let percent = 0;
+  for (const { effect } of effectsOfKind(state, playerId, 'effectAmplifier')) {
+    if (effect.target !== target || effect.yieldsOnly !== true) continue;
+    if (effect.family !== undefined || effect.class !== undefined) continue;
     if (effect.percent === undefined) continue;
     percent += effect.percent;
   }
@@ -11691,6 +11788,9 @@ export function cardAmplifierFlat(
     if (effect.target !== target) continue;
     if (effect.amount === undefined) continue;
     if (effect.class !== undefined) continue;
+    // Commerce batch T5: a row narrowed to a luxury's yields is a share, read
+    // only by `cardYieldsOnlyAmplifier`.
+    if (effect.yieldsOnly === true) continue;
     let step =
       effect.perCount === undefined
         ? effect.amount

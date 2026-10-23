@@ -2007,6 +2007,11 @@ function describeEffect(
         narrowings.push(`at most once every ${effect.oncePerTurns} turns`);
       }
       if (effect.defending === true) narrowings.push('only while it defends');
+      // Land Speculation (Commerce batch T5): the tile test on the hex the
+      // moment names. Said inside the occasion's own phrase where it has a
+      // hex ("buying a hex carrying a resource"), and in the parenthesis
+      // otherwise.
+      const hexWords = effect.on === undefined ? undefined : tileConditionWords(effect.on);
       // **"A building" narrows the moment from the inside** (batch C3), the way
       // the family does and for the family's stated reason: "buying anything (a
       // building)" is a parenthesis undoing the word in front of it, where
@@ -2090,10 +2095,16 @@ function describeEffect(
       // a wonder" (Dominion batch D7, the disband occasion), "a great
       // engineer's act in a city raising the Magnum Opus" (Expansionist batch
       // E5, The Master of Works).
+      const onHex =
+        hexWords === undefined
+          ? unbuilt
+          : unbuilt.includes('a hex')
+            ? unbuilt.replace('a hex', `a ${hexWords}`)
+            : `${unbuilt} on a ${hexWords}`;
       const placed =
         effect.inTown === undefined
-          ? unbuilt
-          : `${unbuilt} in ${effect.inTown === true ? 'one of your cities' : `a city ${scopeCondition(effect.inTown)}`}`;
+          ? onHex
+          : `${onHex} in ${effect.inTown === true ? 'one of your cities' : `a city ${scopeCondition(effect.inTown)}`}`;
       const occasion =
         only +
         (effect.anyBuilding === true ? placed.replace('anything', 'a building') : placed) +
@@ -2582,6 +2593,19 @@ function describeEffect(
           effect.amount === 1 ? 'one more copy of it' : `${signed(effect.amount ?? 0)} copies of it`;
         out.push({
           text: `each ${ref('improvement', effect.improvement, name)} of yours standing on a strategic resource supplies ${copies}`,
+        });
+        return;
+      }
+      // **The Casa da Índia** (Commerce batch T5): a share narrowed to a
+      // luxury's yields is its own sentence, because "duplicate copies count"
+      // would promise the happiness too.
+      if (effect.target === 'luxuryDuplicates' && effect.yieldsOnly === true) {
+        const percent = effect.percent ?? 0;
+        out.push({
+          text:
+            percent === 100
+              ? 'every copy of a luxury you hold pays its yields, not only the first'
+              : `each further copy of a luxury you hold pays ${percent}% of its yields`,
         });
         return;
       }
@@ -5801,6 +5825,15 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'trade route running anywhere in the world',
     many: 'trade routes running anywhere in the world',
   },
+  // Commerce batch T5, feature D: Export Guilds and The Treaty Ports.
+  copiesLent: {
+    one: 'luxury you lend to another empire in a deal',
+    many: 'luxuries you lend to other empires in deals',
+  },
+  dealPartners: {
+    one: 'empire you hold a deal with',
+    many: 'empires you hold a deal with',
+  },
   foreignTradeRoutes: {
     one: 'trade route to another empire',
     many: 'trade routes to another empire',
@@ -6156,6 +6189,12 @@ function classNarrowed(text: string, filter?: UnitFilter): string {
 const AMPLIFIER_WORDS: Record<AmplifierTarget, (percent: number) => string> = {
   luxuryHappiness: (percent) => `happiness from unique luxuries ${signed(percent)}%`,
   luxuryDuplicates: (percent) => `duplicate luxury copies count at ${percent}%`,
+  // Commerce batch T5, The Commenda. Half is said as half, the card's own
+  // word, as a doubling is said as twice below.
+  lentLuxuryCopies: (percent) =>
+    percent === 50
+      ? 'each luxury you lend in a deal still counts as half a copy for you'
+      : `each luxury you lend in a deal still counts as ${percent}% of a copy for you`,
   riteDuration: (percent) => `rites last ${signed(percent)}% longer`,
   // **No "more" after a signed percent** (batch L1, §1c) — the sign already says
   // the direction, and "pays +100% more" read as a quadrupling.
@@ -6219,6 +6258,8 @@ const AMPLIFIER_FLAT_WORDS: Record<AmplifierTarget, (amount: number) => string> 
       ? `every luxury you hold counts ${-amount} fewer toward happiness`
       : `every luxury you hold counts ${amount} more toward happiness`,
   luxuryDuplicates: (amount) => `duplicate luxury copies count ${signed(amount)}`,
+  // A share of one copy, so a flat step on it is a row nobody should write.
+  lentLuxuryCopies: (amount) => `each luxury you lend in a deal counts ${signed(amount)} copies for you`,
   riteDuration: (amount) => `rites last ${signed(amount)} turns longer`,
   routeYields: (amount) => `each trade route pays ${signed(amount)} more`,
   founderTrickle: (amount) => `each follower pays you ${signed(amount)} more`,
@@ -6415,6 +6456,11 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   routesImportLuxuries:
     'a trade route ending in another empire’s city lends you one luxury resource that ' +
     'city has improved, worth a share of your own',
+  // The Capitulations (Commerce batch T5). The Silk Road's sentence, read from
+  // a post; no figure in it, for the reason above.
+  postsLendLuxuries:
+    'each foreign city holding your trading post lends you one luxury resource it has ' +
+    'improved that you lack, worth a share of your own',
   // The zone of control, both rules of it. `ZocRuleId`. The second is written
   // for the whole army, and `FLAG_RULE_CLASS_WORDS` says it of a line.
   borders: 'every hex you own exerts zone of control on enemy units, as a unit of yours would',

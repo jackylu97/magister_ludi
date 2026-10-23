@@ -1736,7 +1736,11 @@ describe('research in the log', () => {
     // Great Fair is a new Commerce card, and The World's Fair has a new goal
     // and a reward that writes posts. So a v172 log's Commerce hands hold
     // different cards.
-    expect(SCHEMA_VERSION).toBe(173);
+    // 174 since Commerce batch T5 (goods and deals): two counts read the
+    // deal register, a lent luxury may still count for its lender, a
+    // foreign post may lend a luxury, and five more Commerce cards are
+    // dealt. So a v173 log's Commerce hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(174);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

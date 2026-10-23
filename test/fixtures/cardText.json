@@ -5568,12 +5568,8 @@
   ],
   "landSpeculation": [
    {
-    "raw": "+25% gold in every city",
-    "text": "+25% gold in every city"
-   },
-   {
-    "raw": "-2 happiness in your capital",
-    "text": "-2 happiness in your capital"
+    "raw": "buying a hex carrying a resource grants culture equal to 50% of the gold paid",
+    "text": "buying a hex carrying a resource grants culture equal to 50% of the gold paid"
    }
   ],
   "foundingCapital": [
@@ -5679,9 +5675,8 @@
   ],
   "theTreatyPorts": [
    {
-    "raw": "every empire you hold a deal with raises your production — not built yet",
-    "text": "every empire you hold a deal with raises your production — not built yet",
-    "deferred": true
+    "raw": "+5% production in every city per empire you hold a deal with (at most +25% production)",
+    "text": "+5% production in every city per empire you hold a deal with (at most +25% production)"
    }
   ],
   "thePostRiders": [
@@ -5896,9 +5891,12 @@
   ],
   "exportGuilds": [
    {
-    "raw": "each luxury you lend to another empire in a deal pays your capital culture and production — not built yet",
-    "text": "each luxury you lend to another empire in a deal pays your capital culture and production — not built yet",
-    "deferred": true
+    "raw": "+4 culture in your capital per luxury you lend to another empire in a deal",
+    "text": "+4 culture in your capital per luxury you lend to another empire in a deal"
+   },
+   {
+    "raw": "+2 production in your capital per luxury you lend to another empire in a deal",
+    "text": "+2 production in your capital per luxury you lend to another empire in a deal"
    }
   ],
   "theExchange": [
@@ -6412,6 +6410,24 @@
    {
     "raw": "then this card leaves its chair and is never seated again",
     "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theCommenda": [
+   {
+    "raw": "each luxury you lend in a deal still counts as half a copy for you",
+    "text": "each luxury you lend in a deal still counts as half a copy for you"
+   }
+  ],
+  "theCapitulations": [
+   {
+    "raw": "each foreign city holding your trading post lends you one luxury resource it has improved that you lack, worth a share of your own",
+    "text": "each foreign city holding your trading post lends you one luxury resource it has improved that you lack, worth a share of your own"
+   }
+  ],
+  "theCasaDaIndia": [
+   {
+    "raw": "every copy of a luxury you hold pays its yields, not only the first",
+    "text": "every copy of a luxury you hold pays its yields, not only the first"
    }
   ],
   "devotionFirstRites": [

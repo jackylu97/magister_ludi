@@ -2648,6 +2648,24 @@ export type CountKind =
    */
   | 'worldTradeRoutes'
   /**
+   * **The luxury copies this empire lends in its live deals** (Commerce batch
+   * T5, feature D, Export Guilds; the triage's readings 20 and 21).
+   *
+   * One for each kind each live deal row names on this empire's side, so two
+   * copies of silk lent in two deals count twice. A copy lent while The
+   * Commenda is seated is still lent. Read by `lentCopyCount` (`deals.ts`).
+   */
+  | 'copiesLent'
+  /**
+   * **The empires this empire holds a live deal with**, each once (Commerce
+   * batch T5, feature D, The Treaty Ports; the triage's reading 20).
+   *
+   * A deal of gold alone leaves no row, so it makes no partner, and a war
+   * cancels every deal between the two. Read by `dealPartnerSeats`
+   * (`deals.ts`).
+   */
+  | 'dealPartners'
+  /**
    * Trade routes this empire runs whose **partner is one of its own towns** —
    * The Provisioners' grain, which never leaves the realm.
    *
@@ -4472,6 +4490,18 @@ export type BehaviorRuleId =
    */
   | 'routesImportLuxuries'
   /**
+   * **A foreign town holding this empire's paying post lends it a luxury**:
+   * The Capitulations (Commerce batch T5; the triage's reading 22).
+   *
+   * `routesImportLuxuries`' loan read from posts instead of routes: each
+   * foreign town where `cityPostPays` holds lends one kind it has opened, at
+   * the same share. Read in the same walk (`luxuryLoans`,
+   * `resourceEffects.ts`), after the routes, in `state.cities` order, so a
+   * kind a route already brings or the empire already holds is never lent
+   * twice. It needs no Silk Road.
+   */
+  | 'postsLendLuxuries'
+  /**
    * **An attack does not break this empire's fortification** — The Marching
    * Camps (Dominion batch D2).
    *
@@ -4767,8 +4797,30 @@ export type AmplifierTarget =
   | 'depositWorkCopies'
   /** The flat happiness every unique luxury pays. */
   | 'luxuryHappiness'
-  /** What a *duplicate* copy of a luxury is worth, as a share of the first. */
+  /**
+   * What a *duplicate* copy of a luxury is worth, as a share of the first.
+   *
+   * A row with `yieldsOnly` reaches only the luxury's flat yields (Commerce
+   * batch T5, The Casa da Índia). See that field.
+   */
   | 'luxuryDuplicates'
+  /**
+   * **What a luxury copy this empire lends in a deal is still worth to it**, as
+   * a share of one copy (Commerce batch T5, The Commenda; the triage's reading
+   * 2). Read in three places, all outside the holdings memo, because a card
+   * seated mid-turn does not move the economy clock:
+   *
+   *   · the card counts and Corner the Market's figure add the share of each
+   *     lent copy, rounded down (`countedLuxuryCopies`, `cities.ts`);
+   *   · a kind the empire now holds only through lent copies is held at the
+   *     share (`lentLuxuriesKept`, `resourceEffects.ts`), as a Silk Road loan
+   *     is held, and the happiness meter pays it at the share (`meters.ts`);
+   *   · a per-copy line pays the share for each lent copy.
+   *
+   * The deal gate (`availableCopies`) and the bots' last-copy checks do not
+   * read it, so one copy is never lent twice. Clamped to 0 to 100.
+   */
+  | 'lentLuxuryCopies'
   /**
    * How long a **timed** effect runs — Chichen Itza's fifty percent.
    *
@@ -5387,6 +5439,14 @@ export interface WindfallGrantSpec {
    * what the most is.
    */
   max?: number;
+  /**
+   * **The scaled figure is rounded down to a whole number** (Commerce batch
+   * T5, Land Speculation: culture equal to half the gold paid, rounded down;
+   * the triage's reading 24). Read only with `fromOccasion`, after the
+   * ceiling and before the era and the council multiply the figure. Absent,
+   * the figure is exact, as Civic Receipts' share is.
+   */
+  whole?: true;
   /**
    * The figure is **that many turns of a rate**, read at the moment the occasion
    * fires, rather than a number printed on the row — The Lyceum's *"completing a
@@ -7314,6 +7374,15 @@ export interface CardWindfallRiderEffect {
    * rider written onto an occasion that names no building never pays.
    */
   building?: BuildingId;
+  /**
+   * The rider fires only when **the hex the occasion is about** passes this
+   * tile test (Commerce batch T5, Land Speculation: a hex with a resource on
+   * it; the triage's reading 24). Read off `WindfallOccasionFacts.hex`, which
+   * only the `tilePurchase` occasion carries today, and asked with the
+   * empire's ground facts, so a resource test sees only a resource the empire
+   * can name. An occasion that names no hex never pays it.
+   */
+  on?: TileCondition;
 }
 
 /**
@@ -7636,6 +7705,17 @@ export interface CardEffectAmplifierEffect {
    * names nothing and adds nothing.
    */
   improvement?: ImprovementId;
+  /**
+   * **The share reaches only a luxury's flat yields** (Commerce batch T5, The
+   * Casa da Índia; the triage's reading 23). Read only on the
+   * `luxuryDuplicates` target, by `cardYieldsOnlyAmplifier`, where the luxury
+   * evaluator (`resourceEffects.ts`) counts the copies behind a yield line:
+   * food, production, gold, science, culture and faith. A luxury's happiness,
+   * authority, renown and percentages still count once a kind, and a per-copy
+   * row (silver's, gold's) is not counted twice. `cardAmplifier` drops a row
+   * that carries it.
+   */
+  yieldsOnly?: true;
 }
 
 /** A constant of the meters, replaced (`value`) or shifted (`delta`). */

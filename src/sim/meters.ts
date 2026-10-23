@@ -82,6 +82,7 @@ import {
   cityTile,
   controlledHoldings,
   isCoastalCity,
+  lentCopyPercent,
   nextCityName,
 } from './cities';
 import type { Tile } from './map';
@@ -89,6 +90,7 @@ import { type ResourceRule, resourceDef } from './resourceData';
 import {
   foldRulePercent,
   importedLuxuries,
+  lentLuxuriesKept,
   resourceAuthority,
   resourceHappiness,
   resourceRulePercent,
@@ -328,6 +330,20 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
     const value = Math.floor((each * (100 + luxuryBoost) * RULES.trade.importedLuxuryPercent) / 10000);
     if (value === 0) continue;
     list.push({ source: `${resourceDef(id).name} · on loan`, part: 'gain', value });
+  }
+  // **The kinds kept only through copies lent away** (Commerce batch T5, The
+  // Commenda; the triage's reading 2): at the card's share, in the same two
+  // amplifiers and floored per line, as a loan above is. A kind the empire
+  // still controls is paid in full by the first loop and is not here.
+  const kept = lentLuxuriesKept(state, playerId);
+  if (kept.length > 0) {
+    const share = lentCopyPercent(state, playerId);
+    for (const id of kept) {
+      const each = Math.max(0, rules.perUniqueLuxury + luxuryStep);
+      const value = Math.floor((each * (100 + luxuryBoost) * share) / 10000);
+      if (value === 0) continue;
+      list.push({ source: `${resourceDef(id).name} · lent out`, part: 'gain', value });
+    }
   }
   // A luxury whose signature is *more happiness* says so on a line of its own
   // rather than swelling the flat line above it — "Wine +4" is what a luxury is

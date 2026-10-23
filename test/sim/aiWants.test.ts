@@ -2220,8 +2220,11 @@ describe('the marginal draft reading', () => {
     // The Doctors of the Church, whose amplifier doubles what the follower
     // beliefs already pay a town. Twenty since Expansionist batch E3 wrote The
     // Age of Improvement, whose amplifier doubles what the Orders already pay
-    // on improved hexes.
-    expect(engines).toBe(20);
+    // on improved hexes. Twenty-one since Commerce batch T5 wrote The Casa da
+    // Índia, whose amplifier pays every copy of a luxury its flat yields: a
+    // share of what the luxuries already pay, on the `luxuryDuplicates`
+    // target the books already read.
+    expect(engines).toBe(21);
     // Batch F named The Exchequer the deck's clearest trade payoff and the one
     // the bot most under-priced — `effectAmplifier` fell to `score.unknownEffect`,
     // six points for doubling every caravan in the realm. It is read by the books

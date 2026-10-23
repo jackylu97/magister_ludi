@@ -37,9 +37,9 @@
 import {
   bestMeleeFor,
   buildingProductionCost,
+  countedLuxuryCopies,
   payOccasionRiders,
   realiseItem,
-  resourceCopies,
   settleGrowthWindfall,
   settlePopulationWindfall,
   settleProductionWindfall,
@@ -132,10 +132,12 @@ export function commissionFigure(
     case 'luxuryCopies': {
       // The luxury this empire holds most copies of. `resourceCopies` is the
       // net figure, so copies received in a deal count and copies lent away do
-      // not — the sheet's "counting copies you receive in deals".
+      // not — the sheet's "counting copies you receive in deals". Under The
+      // Commenda half of each lent copy counts, rounded down
+      // (`countedLuxuryCopies`, Commerce batch T5; the triage's reading 2).
       let most = 0;
       for (const id of resourcesOfKind('luxury')) {
-        most = Math.max(most, resourceCopies(state, playerId, id));
+        most = Math.max(most, countedLuxuryCopies(state, playerId, id));
       }
       return most;
     }

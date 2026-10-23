@@ -1114,7 +1114,11 @@ describe('a captured city, end to end', () => {
     // Great Fair is a new Commerce card, and The World's Fair has a new goal
     // and a reward that writes posts. So a v172 log's Commerce hands hold
     // different cards.
-    expect(SCHEMA_VERSION).toBe(173);
+    // 174 since Commerce batch T5 (goods and deals): two counts read the
+    // deal register, a lent luxury may still count for its lender, a
+    // foreign post may lend a luxury, and five more Commerce cards are
+    // dealt. So a v173 log's Commerce hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(174);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

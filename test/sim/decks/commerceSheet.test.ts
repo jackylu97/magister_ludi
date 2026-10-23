@@ -83,11 +83,14 @@ describe('ruling (qqqqqq) 1 — a discount becomes +25% gold', () => {
   // Factors' Houses and The Market Writ lose their gold percentage (the
   // trims). Bought Swords and Frontier Investment are retired, and their rows
   // keep their effects for old saves (the triage's reading 39).
+  //
+  // Commerce batch T5 reworked Land Speculation: it pays culture for a hex
+  // with a resource on it (the triage's reading 24), so it leaves this list.
+  // `commerceGoods.test.ts` checks what it does now.
   const RULED: Record<
     string,
     { percent: number; scope?: string; downside?: (effect: CardEffect) => boolean }
   > = {
-    landSpeculation: { percent: 25, downside: (e) => e.kind === 'happiness' && e.amount === -2 },
     privatePatronage: {
       percent: 40,
       downside: (e) => e.kind === 'productionBonus' && e.percent === -20,
@@ -129,10 +132,11 @@ describe('ruling (qqqqqq) 1 — a discount becomes +25% gold', () => {
   });
 
   it('puts the share on the city stage of a town that holds the card', () => {
-    const g = bench(['landSpeculation']);
+    // Private Patronage since Commerce batch T5 reworked Land Speculation.
+    const g = bench(['privatePatronage']);
     const city = town(g);
-    const lines = percentLines(g, city, 'Land Speculation');
-    expect(lines.map((line) => [line.yield, line.percent])).toEqual([['gold', 25]]);
+    const lines = percentLines(g, city, 'Private Patronage');
+    expect(lines.map((line) => [line.yield, line.percent])).toEqual([['gold', 40]]);
   });
 });
 

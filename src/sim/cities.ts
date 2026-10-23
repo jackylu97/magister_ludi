@@ -747,6 +747,63 @@ function netCopies(
 }
 
 /**
+ * **What a luxury copy this empire lends in a deal is still worth to it**, as
+ * a whole percent of one copy, clamped to 0 to 100 (Commerce batch T5, The
+ * Commenda: `AmplifierTarget`'s `lentLuxuryCopies`; the triage's reading 2).
+ *
+ * The one reading of the card, so the counts here and the luxury evaluator
+ * (`resourceEffects.ts`) and the happiness meter (`meters.ts`) use the same
+ * figure. Outside every memo, for `resourceCopies`' reason: a card seated
+ * mid-turn does not move the economy clock.
+ */
+export function lentCopyPercent(state: GameState, playerId: number): number {
+  const percent = cardAmplifier(state, playerId, 'lentLuxuryCopies');
+  return Math.min(100, Math.max(0, percent));
+}
+
+/**
+ * **How many copies of a luxury this empire counts for its cards and goals**:
+ * the net figure (`resourceCopies`), plus The Commenda's share of each copy
+ * it lends away, rounded down (the triage's reading 2). Two copies of silk
+ * lent count as one silk.
+ *
+ * Read by the luxury counts (`uniqueLuxuries`, `luxuryCopies`,
+ * `duplicateLuxuries`, `monopolyLuxuries`) and by Corner the Market's figure.
+ * **The deal gate does not read it** (`availableCopies` reads `resourceCopies`),
+ * and neither do the bots' last-copy checks, so one copy is never lent twice.
+ * A seat with no such card reads `resourceCopies` exactly.
+ */
+export function countedLuxuryCopies(
+  state: GameState,
+  playerId: number,
+  resourceId: ResourceId,
+): number {
+  const net = resourceCopies(state, playerId, resourceId);
+  const percent = lentCopyPercent(state, playerId);
+  if (percent === 0 || resourceDef(resourceId).kind !== 'luxury') return net;
+  const lent = lentCopiesAwayBy(state, playerId)[resourceId] ?? 0;
+  return net + Math.floor((lent * percent) / 100);
+}
+
+/**
+ * **The luxury kinds this empire counts for its cards**, in the resource
+ * table's order: the kinds it controls, and, under The Commenda, the kinds it
+ * has lent away whose share comes to at least one copy (`countedLuxuryCopies`).
+ * A seat with no such card reads `controlledResources` exactly.
+ */
+export function countedLuxuries(state: GameState, playerId: number): ResourceId[] {
+  const held = controlledResources(state, playerId, 'luxury');
+  const percent = lentCopyPercent(state, playerId);
+  if (percent === 0) return held;
+  const lent = lentCopiesAwayBy(state, playerId);
+  return RESOURCE_IDS.filter((id) => {
+    if (held.includes(id)) return true;
+    if (resourceDef(id).kind !== 'luxury') return false;
+    return Math.floor(((lent[id] ?? 0) * percent) / 100) >= 1;
+  });
+}
+
+/**
  * A city's queue being replaced, for the one caller that has to ask about a
  * queue the board does not hold yet.
  *
@@ -6783,7 +6840,14 @@ export function purchaseTileAt(state: GameState, city: City, tile: Tile): void {
   recordScalingOccasion(state, player.id, 'hexClaimed');
   // Chartered Companies' survey. A rider on an occasion that has no figure of
   // its own, so the base is zero and only the grants are read.
-  const payout = windfallPayout(state, player.id, 'tilePurchase');
+  //
+  // Commerce batch T5 (Land Speculation, the triage's reading 24): the moment
+  // carries the price that left the treasury and the hex that was bought, so
+  // a rider can pay a share of the price and ask a tile test of the hex.
+  const payout = windfallPayout(state, player.id, 'tilePurchase', 0, 0, {
+    gold: price,
+    hex: { col: tile.col, row: tile.row },
+  });
   // **A timed grant is a grant** (batch C4, Purchased Prosperity): the yield
   // grants and the effects hung on the empire are two lists on one payout, and
   // a gate that asked only the first silently dropped a rider whose whole
