@@ -387,7 +387,7 @@ The first nine come from section 13. The rest are new. Each gives the reading th
 - **Done-gate:** `npx vitest run test/sim/decks/commercePurse.test.ts test/sim/purchase.test.ts test/sim/upkeep.test.ts test/sim/uniqueUpkeep.test.ts test/sim/tilePurchaseGate.test.ts test/sim/greatPeople.test.ts test/sim/guilds.test.ts test/sim/decks/shared.test.ts test/sim/decks/dominion.test.ts test/ui/tradeScreen.test.ts test/sim/decks/commerce.test.ts test/sim/decks.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`.
 - **After T6 every card of the plan plays as written:** 77 of 77.
 
-### T7: the pair cards (only if you answer yes to questions 3 and 4)
+### T7: the pair cards (questions 3 and 4, answered yes)
 
 - **Builds:**
   - The Art Dealers: a `WindfallOccasion` paid when a card enters your collection (a pick or a charter), fired where the pick is settled, and the row in `common.json`, `decks: ['commerce', 'magisterial']`, Economic. Magisterial's The Court Painter and The Accessions Register can read the same moment later.
@@ -512,6 +512,18 @@ The first nine come from section 13. The rest are new. Each gives the reading th
 - Commerce's Doctrines: the deck pass's stage 6.
 
 ## Questions for the user
+
+**Answered 2026-10-23**, verbatim: *"approved, lets begin implementation. for 1-7, go with the recommendations."* So:
+1. The Great Fair and Corner the Market become institutions; The Strongroom, A Guild Commission and The World's Fair keep one-time rewards.
+2. The Granary card is The Grain Banks.
+3. Dominion's The Standing Army is shared with Commerce (T7).
+4. The Art Dealers and its draft moment are built now (T7).
+5. The Casa da Índia pays each copy's flat yields only, a small new shape (T5).
+6. The Commenda's half copy is reading 2 as written.
+7. Readings 1 to 42 stand.
+
+The track: T1, T2, T7, T3, T4, T5, T6, then T8 and T9 after the bot levy batch lands.
+
 
 1. **The commissions mix.** The Great Fair and Corner the Market become institutions; The Strongroom, A Guild Commission and The World's Fair keep one-time rewards. Corner the Market's institution: "for the rest of the game, gain +2 happiness for each luxury you hold two or more copies of." *Recommended: yes.* The alternative is a third institution for The Strongroom, which repeats the hoard cards.
 2. **The Granary card's name: The Grain Banks.** In Ptolemaic Egypt the royal granaries kept accounts of grain for farmers and merchants, and paid by moving grain from one account to another on a written order: a bank that held wheat. No card in any deck uses the name. *Recommended: The Grain Banks.* The alternative is The Harvest Loans (the grain lent at interest from Mesopotamian temple stores), which shares a word with several Expansionist cards.
