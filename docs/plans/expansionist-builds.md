@@ -816,6 +816,8 @@ So:
 
 ## Doctrines, proposed 2026-10-17
 
+**Revised 2026-10-23** after your comments on the review page: 8 cut, 14 revised, 10 unchanged, so 24 remain. Each entry carries your comment, and "Your comments, 2026-10-23" at the end of this section has the readings and the questions they raise. The reasons, pairs and shapes under a revised entry were written for its old text.
+
 The user, verbatim: *"could you also propose some doctrines for the expansionist deck? aim for 8 for each tier (tier 1-4) and i'll filter them down/make edits"*.
 
 **What a Doctrine is here** (the card-design skill and `docs/plans/doctrines-governments-chairs.md`):
@@ -862,19 +864,22 @@ The user, verbatim: *"could you also propose some doctrines for the expansionist
 - **Pairs with:** Empire Without End (its towns cost nothing, which cancels the drawback); The Grain Census, The Great Households, The Grain Dole.
 - **Shape:** existing. `growthSurplus` +30 with a `populationAtLeast` scope; `cityCost` +2 with the `notCaptured` scope (The Universal Monarchy's).
 
-**The Gift of the River** (tall: waterworks), after Herodotus on Egypt: *"Worked tiles beside a river gain +1 food and +1 production. You can found towns only on fresh water or the coast."*
+**The Gift of the River** (tall: waterworks), after Herodotus on Egypt: *"Worked tiles beside a river gain +1 food and +1 production. Towns away from fresh water cost 2 more authority and 2 more happiness."* **Revised 2026-10-23.**
+- **Your comment, 2026-10-23:** *"revise: instead of can't fount downs off fresh, towns off fresh water cost +2 authority and +2 happiness"* The text before: *"Worked tiles beside a river gain +1 food and +1 production. You can found towns only on fresh water or the coast."*
 - **Why:** the waterworks begins on the river. River tiles are the best tiles of a river town, and the bonus comes early.
 - **Drawback:** a town may not stand away from water, so the empire's shape follows its rivers, lakes and coast.
 - **Pairs with:** The Curator of Waters; Sweet Water, The Watercourses, The Coast.
 - **Shape:** existing hex `pays` on the `river` test. New: a founding refused by its site.
 
-**The Seven Fat Years** (tall: breadbasket), after Joseph's granaries: *"Your towns keep half of their stored food when they grow. Your towns cannot grow beyond twelve citizens."*
+**The Seven Fat Years** (tall: breadbasket), after Joseph's granaries: ~~*"Your towns keep half of their stored food when they grow. Your towns cannot grow beyond twelve citizens."*~~ **Cut 2026-10-23.**
+- **Your comment, 2026-10-23:** *"remove"*
 - **Why:** the breadbasket grows food beyond need and spends it. Half the store kept makes every growth quicker, and the cap turns the food into citizens to spend.
 - **Drawback:** a town of twelve stops growing, so the seat must levy to use its food. It matters from about turn 120.
 - **Pairs with:** The Annona (the capped towns' food feeds the small ones); Levy of the Land, Granary Levies, The Breadbasket.
 - **Shape:** existing `growthCarryover` +50. New: a cap on a town's size (question 1).
 
-**The Sacred Spring** (wide), after the *ver sacrum*, when Italic peoples sent a generation out to found new towns: *"Settlers cost half as much to build and to buy. Your towns of eight or more citizens grow 25% more slowly."*
+**The Sacred Spring** (wide), after the *ver sacrum*, when Italic peoples sent a generation out to found new towns: ~~*"Settlers cost half as much to build and to buy. Your towns of eight or more citizens grow 25% more slowly."*~~ **Cut 2026-10-23.**
+- **Your comment, 2026-10-23:** *"remove"*
 - **Why:** the wide core's quantity is towns founded. Half-price settlers double the pace of the first expansion.
 - **Drawback:** big towns grow slowly, so the seat must stay wide or flex late.
 - **Pairs with:** Synoecism (its faster growth for towns of six or more cancels part of this); The Seed Grain, The Book of Settlements, The Staked Claims.
@@ -892,7 +897,8 @@ The user, verbatim: *"could you also propose some doctrines for the expansionist
 - **Pairs with:** The Mandarinate (each cancels the other's change to a town's price); The Local Census, The Quiet Provinces.
 - **Shape:** existing. `cityCost` −1, minimum one; `borderCulture` −30.
 
-**The Royal Road** (wide: road network), after the Persian road from Sardis to Susa: *"Each town you found is joined to your capital by road. Your roads cost twice as much gold to keep."*
+**The Royal Road** (wide: road network), after the Persian road from Sardis to Susa: ~~*"Each town you found is joined to your capital by road. Your roads cost twice as much gold to keep."*~~ **Cut 2026-10-23.**
+- **Your comment, 2026-10-23:** *"remove"*
 - **Why:** the road network needs roads, and only caravans and foundings lay them. This founding lays the whole road home.
 - **Drawback:** long roads cost gold every turn.
 - **Pairs with:** All Roads Lead to Rome and The Inward Roads; The Road Towns, The Milestones, The Opening of the Roads.
@@ -900,19 +906,22 @@ The user, verbatim: *"could you also propose some doctrines for the expansionist
 
 ### Tier II (with the tier-10 governments)
 
-**The Georgics** (improvement), after Virgil's poem on farming: *"Your works count as having stood twice as long. Each improvement costs your workers two charges."*
+**The Georgics** (improvement), after Virgil's poem on farming: *"Your works count as having stood twice as long. Improvements that have stood for twenty turns gain +1 production."* **Revised 2026-10-23.**
+- **Your comment, 2026-10-23:** *"no malice,  just 'your works count as having stood twice as long'. Add: improvements that have been standing for 20 turns gain +1 production."* The text before: *"Your works count as having stood twice as long. Each improvement costs your workers two charges."*
 - **Why:** the build's second quantity is the age of its works. Every card that reads it pays twice as soon: Dark Earth, The Forest Keepers, The Old Fields, Old Workings and The Inheritance of Fields.
 - **Drawback:** each new work costs two charges, so the build raises fewer of them.
 - **Pairs with:** Bound to the Soil, which cancels the drawback.
 - **Shape:** new. An age multiplier read by the `standingSince` test, and a build that costs two charges.
 
-**The Curator of Waters** (tall: waterworks), after Rome's water office: *"Every town of yours counts as having fresh water. Aqueducts cost 50% more production."*
+**The Curator of Waters** (tall: waterworks), after Rome's water office: *"Aqueducts give +3 happiness and are built 50% faster."* **Revised 2026-10-23.**
+- **Your comment, 2026-10-23:** *"rework: Aqueducts supply +3 happiness and are built 50% faster."* The text before: *"Every town of yours counts as having fresh water. Aqueducts cost 50% more production."*
 - **Why:** the waterworks lives on fresh water, and this makes every town a river town for every card that asks.
 - **Drawback:** the Aqueduct, the flavour's moment, is dearer.
 - **Pairs with:** The Hydraulic Empire (cancels its drawback); Sweet Water, The Public Fountains, Hydraulic Schools, The Waterworks.
 - **Shape:** existing. The `freshwater` city rule (Cistern Works'), and the Aqueduct price shape The Waterworks uses, here at −33%.
 
-**The Royal Works** (tall: great works): *"While your capital builds a wonder, each of your other towns sends it 20% of its production."*
+**The Royal Works** (tall: great works): ~~*"While your capital builds a wonder, each of your other towns sends it 20% of its production."*~~ **Cut 2026-10-23.**
+- **Your comment, 2026-10-23:** *"remove"*
 - **Why:** the great works raises wonders in the great city, and this makes the whole empire build them.
 - **Drawback:** the sent production is lost to the other towns while a wonder stands in the capital's queue.
 - **Pairs with:** The Builder Kings; The Pyramid Builders, The Topping Out, The Builders' Levy.
@@ -924,25 +933,29 @@ The user, verbatim: *"could you also propose some doctrines for the expansionist
 - **Pairs with:** The Annona; Levy of the Land, The Builders' Levy, The Labour Rolls, The Mit'a.
 - **Shape:** new. The levy wait shortened (the rule book's `everyTurns` read through a rule), the size cap, and the "Needs a levy" gate on a Doctrine offer (question 5).
 
-**Free Mining** (wide: highlands), after the medieval miners' right to prospect and dig anywhere: *"Your workers may build mines on hills up to two hexes beyond your borders, and each claims its hex for your nearest town. Hexes cost twice as much gold to buy."*
+**Free Mining** (wide: highlands), after the medieval miners' right to prospect and dig anywhere: ~~*"Your workers may build mines on hills up to two hexes beyond your borders, and each claims its hex for your nearest town. Hexes cost twice as much gold to buy."*~~ **Cut 2026-10-23.**
+- **Your comment, 2026-10-23:** *"remove"*
 - **Why:** the highlands settles the hard country; here its mines go first and the borders follow.
 - **Drawback:** bought hexes cost double, so the seat claims land with workers, not gold.
 - **Pairs with:** The Highland Clans; The Highlands, The Mountain Schools, The Prospectors.
 - **Shape:** nearly existing. E4's `worksBeyond` (The Garden Frontier) for mines on hills; existing `tilePurchase` +100.
 
-**The Censors** (wide: well-ordered realm), after Rome's census-takers: *"When the world takes a census, each of your towns gains a citizen. Your towns' food surplus counts 20% less toward growth."*
+**The Censors** (wide: well-ordered realm), after Rome's census-takers: *"When the world takes a census, each of your towns gains a citizen. If you lead the census, each of your towns also gains +1 happiness for the rest of the game."* **Revised 2026-10-23.**
+- **Your comment, 2026-10-23:** *"rework: When the world takes a census, gain a citizen in each town. If you win the census, gain a additional permanent +1 happiness in each town."* The text before: *"When the world takes a census, each of your towns gains a citizen. Your towns' food surplus counts 20% less toward growth."*
 - **Why:** the realm's moment is the census, and a realm of many towns gains many citizens from it.
 - **Drawback:** slower growth between censuses, so a town grows by the census more than by its food.
 - **Pairs with:** The Tax Rolls (paid on the same census); The Quiet Provinces.
 - **Shape:** existing `census` occasion. Nearly existing: a citizen granted to every town, as the commission rewards grant them. Existing `growthSurplus` −20.
 
-**The Hiving** (flex), after bees that swarm when the hive is full: *"The first time each of your towns reaches twelve citizens, it raises a free settler. You can no longer build or buy settlers."*
+**The Hiving** (flex), after bees that swarm when the hive is full: ~~*"The first time each of your towns reaches twelve citizens, it raises a free settler. You can no longer build or buy settlers."*~~ **Cut 2026-10-23.**
+- **Your comment, 2026-10-23:** *"remove"*
 - **Why:** the flex from tall to wide. The big towns seed the new ones.
 - **Drawback:** no settler until a town reaches twelve, so early width stops.
 - **Pairs with:** The Planted Towns (its citizen cost falls on trained settlers, and here none are trained); The Colonists (a settler raised by a levy is not built or bought), The Great Colonies.
 - **Shape:** existing `sizeRecord` occasion at twelve. New, small: a settler as a granted unit, and a rule that refuses building and buying settlers while founding stays allowed.
 
-**The Wildwood Compact** (tended land): *"Needs tended land. Tended works cost your workers no charge. Your workers can no longer build farms."*
+**The Wildwood Compact** (tended land): *"Needs tended land. Tended works cost your workers no charge. Workers you gain from now on have one less charge."* **Revised 2026-10-23.**
+- **Your comment, 2026-10-23:** *"remove the malice. All new workers have one less charge."* The text before: *"Needs tended land. Tended works cost your workers no charge. Your workers can no longer build farms."*
 - **Why:** the splash at full size. The tended works become the empire's fields.
 - **Drawback:** no new farms, the food every other build relies on.
 - **Pairs with:** The Garden Peoples and Arcadia; the four charters, The Tended Country, The Long Tending.
@@ -956,7 +969,8 @@ The user, verbatim: *"could you also propose some doctrines for the expansionist
 - **Pairs with:** Arcadia (its tended tiles count as improved, so they are spared); The Old Fields, The Manors, The Age of Improvement.
 - **Shape:** existing. Hex `pays` with `percent` +100 on `improved` (the works share), and `wholePercent` −100 on `unimproved` (Dominion batch D8). The town's own hex keeps its base yield.
 
-**The Contented City** (tall): *"Your citizens ask half as much happiness. Your gold income is halved."*
+**The Contented City** (tall): *"Your citizens ask 20% less happiness. Your gold income is halved."* **Revised 2026-10-23.**
+- **Your comment, 2026-10-23:** *"revise: happiness demand -20%, your gold income is halved"* The text before: *"Your citizens ask half as much happiness. Your gold income is halved."*
 - **Why:** the tall build's limit is happiness, and this halves it.
 - **Drawback:** half the gold, so less buying of hexes and buildings.
 - **Pairs with:** The Builder Kings (which ends buying, so less gold is lost); The Megalopolis, The Grain Dole.
@@ -968,13 +982,15 @@ The user, verbatim: *"could you also propose some doctrines for the expansionist
 - **Pairs with:** The Royal Works, The Contented City; The Topping Out, A Court of Engineers.
 - **Shape:** existing `productionBonus` toward wonders. New, small: a rule that refuses purchases.
 
-**The Annona** (tall: breadbasket), after Rome's grain supply: *"Each turn, every town of fifteen or more citizens sends its food surplus to your smallest town."*
+**The Annona** (tall: breadbasket), after Rome's grain supply: ~~*"Each turn, every town of fifteen or more citizens sends its food surplus to your smallest town."*~~ **Cut 2026-10-23.**
+- **Your comment, 2026-10-23:** *"remove"*
 - **Why:** the breadbasket feeds the empire. The big towns stop growing and levy instead, and the food raises the small towns.
 - **Drawback:** the big towns no longer grow by food.
 - **Pairs with:** The Seven Fat Years and The Liturgies (their caps send the big towns' food here); The Mit'a, Seasonal Levies, The Grain Exchange.
 - **Shape:** new. Food sent each turn from one town to another, shared with The Royal Works.
 
-**Empire Without End** (wide), after Virgil's *imperium sine fine*: *"Towns you found cost no authority. Your towns cannot grow beyond twelve citizens."*
+**Empire Without End** (wide), after Virgil's *imperium sine fine*: *"+1 authority for each town you hold. Your towns grow 40% more slowly."* **Revised 2026-10-23.**
+- **Your comment, 2026-10-23:** *"+1 authority in every town. your towns have -40% growth."* The text before: *"Towns you found cost no authority. Your towns cannot grow beyond twelve citizens."*
 - **Why:** the wide build's late capstone. Width no longer costs authority.
 - **Drawback:** no town grows past twelve, which ends the tall half of a flex.
 - **Pairs with:** Synoecism (cancels its founding cost); The Great Colonies, The Book of Settlements, The Staked Claims.
@@ -992,7 +1008,8 @@ The user, verbatim: *"could you also propose some doctrines for the expansionist
 - **Pairs with:** The Hiving (cancels the drawback); The Great Colonies, The Seed Grain.
 - **Shape:** existing founding rider (citizens and a building). New, small: a settler that costs its town a citizen when trained.
 
-**The Garden Peoples** (tended land): *"Needs tended land. Tended tiles gain +1 food, +1 production and +1 culture. Your other improvements yield 1 less food."*
+**The Garden Peoples** (tended land): *"Needs tended land. Tended tiles gain +1 food, +1 production and +1 culture."* **Revised 2026-10-23.**
+- **Your comment, 2026-10-23:** *"remove malice"* The text before: *"Needs tended land. Tended tiles gain +1 food, +1 production and +1 culture. Your other improvements yield 1 less food."*
 - **Why:** the splash as a way of life, and culture from wild land under the gap rule.
 - **Drawback:** every farm and mine loses a food.
 - **Pairs with:** The Wildwood Compact, Arcadia; The Managed Wild, The Hallowed Woods, The Old Songs.
@@ -1000,25 +1017,29 @@ The user, verbatim: *"could you also propose some doctrines for the expansionist
 
 ### Tier IV (with the tier-26 governments)
 
-**The Physiocrats** (improvement), after the French economists who held that land is the source of all wealth: *"Every improved tile gains +1 food, +1 production and +1 gold. Your towns build buildings 30% more slowly."*
+**The Physiocrats** (improvement), after the French economists who held that land is the source of all wealth: *"Every improved tile gains +2 food, +2 production and +2 gold."* **Revised 2026-10-23.**
+- **Your comment, 2026-10-23:** *"no malice. This seems worse than crop rotation, needs to be stronger."* The text before: *"Every improved tile gains +1 food, +1 production and +1 gold. Your towns build buildings 30% more slowly."*
 - **Why:** the improvement build's endgame. Eighty improved tiles pay about 240 a turn.
 - **Drawback:** the late buildings, such as universities and banks, come slowly.
 - **Pairs with:** Crop Rotation; The Age of Improvement, The Domesday Survey, The Heartland.
 - **Shape:** existing. Hex `pays` on `improved`, and `productionBonus` −30 toward buildings.
 
-**The Hydraulic Empire** (tall: waterworks), after the old thesis that whoever rules the water rules the state: *"Worked farms with fresh water gain +2 food and +2 production. Towns away from fresh water cost 2 more authority."*
+**The Hydraulic Empire** (tall: waterworks), after the old thesis that whoever rules the water rules the state: *"Worked tiles with fresh water gain +1 food and +1 production for each public work in their town."* **Revised 2026-10-23.**
+- **Your comment, 2026-10-23:** *"fresh water tiles gain +1 food and +1 production for each public work in their city. no malice"* The text before: *"Worked farms with fresh water gain +2 food and +2 production. Towns away from fresh water cost 2 more authority."*
 - **Why:** the waterworks at full size. The watered farms carry the empire.
 - **Drawback:** a dry town is dear.
 - **Pairs with:** The Curator of Waters (cancels the drawback); The Water Courts (chained farms count as watered), The Coming of the Water.
 - **Shape:** existing. Hex `pays` on farms with fresh water (watered farms count, Expansionist batch E3); `cityCost` +2 with `notFreshwater`.
 
-**The Cathedral Lodges** (tall: great works), after the masons' lodges that kept a cathedral's works going for generations: *"A great engineer's act does not use it up: it may act again twenty turns later. You earn half as much renown."*
+**The Cathedral Lodges** (tall: great works), after the masons' lodges that kept a cathedral's works going for generations: *"Manufactories yield twice as much. Towns with a Manufactory gain +30% production toward wonders and the Magnum Opus."* **Revised 2026-10-23.**
+- **Your comment, 2026-10-23:** *"change: double the yields on all manufactories. Cities with a manufactory gain +30% production towards wonders and the magnum opus"* The text before: *"A great engineer's act does not use it up: it may act again twenty turns later. You earn half as much renown."*
 - **Why:** the great works' engineers become a standing guild, and every act raises the land again with The Raising of the Land.
 - **Drawback:** half the renown, which slows every great person, the artists and scholars too.
 - **Pairs with:** A Court of Engineers (its +50% renown offsets the drawback); The Raising of the Land, The Master of Works.
 - **Shape:** new. A great person kept after its act, with a wait before the next. The unit panel needs a line saying when it may act again. Existing renown percentage −50 (`cityRenownPercent` with `where: 'empire'`).
 
-**The High Towns** (wide: highlands), after the cities of the Andes: *"Your settlers may cross mountains and found towns on them. A town on a mountain gains +4 science and cannot grow beyond eight citizens."*
+**The High Towns** (wide: highlands), after the cities of the Andes: *"Your towns may work mountains. Mountains gain +4 production, and each gives +1 production to the hexes beside it."* **Revised 2026-10-23.**
+- **Your comment, 2026-10-23:** *"revise: You can work mountains. Mountain tiles gain +4 production and provide +1 production to adjacent tiles."* The text before: *"Your settlers may cross mountains and found towns on them. A town on a mountain gains +4 science and cannot grow beyond eight citizens."*
 - **Why:** the highlands' late rule-breaker. The empire settles where nobody else can, and its science comes from the mountains.
 - **Drawback:** a mountain town stays small.
 - **Pairs with:** The Highland Clans; The Mountain Terraces, The Philosophers' Peaks.
@@ -1030,19 +1051,22 @@ The user, verbatim: *"could you also propose some doctrines for the expansionist
 - **Pairs with:** The Commanderies (cancels the drawback); The Sovereign Writ, The Imperial Roads.
 - **Shape:** existing. Empire `pays` with the `authoritySurplus` count, as a percentage to science and culture; `cityCost` +1. It pays science and culture straight from a meter, which bends the gap rule (question 2).
 
-**The Inward Roads** (wide: road network), after the Inca roads that carried no markets: *"Towns joined to your capital by road gain +20% food and production. Your caravans may not travel to other empires."*
+**The Inward Roads** (wide: road network), after the Inca roads that carried no markets: *"Towns joined to your capital by road gain +20% science and culture. Your caravans may not travel to other empires."* **Revised 2026-10-23.**
+- **Your comment, 2026-10-23:** *"revise: +20% science and culture."* The text before: *"Towns joined to your capital by road gain +20% food and production. Your caravans may not travel to other empires."*
 - **Why:** the road network turns inward and feeds itself.
 - **Drawback:** no foreign trade routes, which a Commerce partner relies on.
 - **Pairs with:** The Royal Road; The Road Towns, Provincial Councils.
 - **Shape:** existing `percentYields` +20 with `connected`. New, small: a rule that refuses foreign trade routes.
 
-**Town and Country** (flex): *"Your towns of ten or more citizens cost no authority, and the citizens of your smaller towns ask no happiness. Your towns grow 30% more slowly."*
+**Town and Country** (flex): ~~*"Your towns of ten or more citizens cost no authority, and the citizens of your smaller towns ask no happiness. Your towns grow 30% more slowly."*~~ **Cut 2026-10-23.**
+- **Your comment, 2026-10-23:** *"remove, probably don't need to think about settling new cities in age 4."*
 - **Why:** the flexing empire's late shape. Big towns are free of the authority limit and small towns of the happiness one, so both kinds can grow in number.
 - **Drawback:** every town grows slowly.
 - **Pairs with:** Synoecism (its faster growth for towns of six or more offsets the drawback); The Teeming Realm, The Great Households.
 - **Shape:** existing. `cityCost` value 0 with `populationAtLeast` 10, `happinessDemand` −100 with `populationAtMost` 9, and `growthSurplus` −30.
 
-**Arcadia** (tended land): *"Needs tended land. Your tended tiles also count as improved for every card. Your workers can build only tended works."*
+**Arcadia** (tended land): *"Needs tended land. Your tended tiles also count as improved for every card."* **Revised 2026-10-23.**
+- **Your comment, 2026-10-23:** *"remove the malice."* The text before: *"Needs tended land. Your tended tiles also count as improved for every card. Your workers can build only tended works."*
 - **Why:** the splash's rule-breaker. The tended land pays the improvement build's cards too.
 - **Drawback:** no new farms, mines or mills.
 - **Pairs with:** Crop Rotation (its tended tiles count as improved, so they are not zeroed); The Manors, The Plough Teams, The Old Fields.
@@ -1069,3 +1093,31 @@ Twelve of the 32 use shapes that exist or nearly exist, and The Garden Peoples n
 5. **Deal gates on Doctrine offers.** *Recommended: yes,* "Needs a levy" and "Needs tended land" as on the Orders, so that a seat is not offered a Doctrine it cannot use.
 6. **Bans as drawbacks.** Five Doctrines forbid something outright: buying, new farms, foreign caravans, settlers, or all works but tended ones. *Recommended: accept them.* Each is clear on the card, and each binds only the seat that chose the plan.
 7. **How many to keep.** The card-design skill plans three to five a tier. *Recommended: keep four or five a tier,* with every flavour reaching at least two tiers.
+
+### Your comments, 2026-10-23
+
+You commented on 22 of the 32 Doctrines on the review page. Each comment is quoted under its entry above. The result:
+
+| Tier | Kept as written | Revised | Cut | Remain |
+|---|---|---|---|---|
+| I | Bound to the Soil, Synoecism, The Highland Clans, The Commanderies | The Gift of the River | The Seven Fat Years, The Sacred Spring, The Royal Road | 5 |
+| II | The Liturgies | The Georgics, The Curator of Waters, The Censors, The Wildwood Compact | The Royal Works, Free Mining, The Hiving | 5 |
+| III | Crop Rotation, The Builder Kings, All Roads Lead to Rome, The Planted Towns | The Contented City, Empire Without End, The Garden Peoples | The Annona | 7 |
+| IV | The Mandarinate | The Physiocrats, The Hydraulic Empire, The Cathedral Lodges, The High Towns, The Inward Roads, Arcadia | Town and Country | 7 |
+
+Most revisions remove the drawback (your word was "malice"). Six of the 24 now carry none: The Georgics, The Curator of Waters, The Garden Peoples, The Physiocrats, The Hydraulic Empire and Arcadia.
+
+**Readings, to confirm:**
+1. **The Gift of the River:** "cost +2 happiness" means each town away from fresh water has 2 less happiness. It uses the `notFreshwater` scope that The Hydraulic Empire used.
+2. **The Censors:** "win the census" means leading it. Each census already names a leader (`censusLeaderOf`, `census.ts`). The +1 happiness adds up: each census you lead gives every town +1 more for the rest of the game.
+3. **The Wildwood Compact:** the new drawback replaces the old one (no farms). "All new workers" means the workers you train, buy or are granted after you take the Doctrine.
+4. **Empire Without End:** "+1 authority in every town" means +1 authority for each town you hold, not a town that costs 1 less. Both its old halves go (free founding and the cap at twelve).
+5. **The Hydraulic Empire:** "fresh water tiles" means worked hexes with fresh water, the test the farms' renewal reads. There are six public works, so a hex gains at most +6 of each. No cap is needed.
+6. **The High Towns:** each mountain gives +1 production to every hex beside it, so a hex beside two mountains gains +2. The other reading is +1 once, whatever the number of mountains. Working mountains is a new shape.
+7. **The Inward Roads:** your comment changed the yields only, so the drawback (no foreign caravans) stays. If you meant "no malice" here too, it goes.
+8. **The Physiocrats:** you asked for it to be stronger than Crop Rotation. The proposal is +2 food, +2 production and +2 gold on every improved tile, with no drawback: about 480 a turn across eighty improved tiles in age 4. Change the numbers if that is too much.
+
+**Questions:**
+1. **The Builder Kings** is still about wonders, which left Expansionist on 2026-10-20 (the themes pass flagged it with The Royal Works, which you cut). *Recommended: cut it,* or move it to Magisterial's Doctrines when that deck gets its own.
+2. **The Cathedral Lodges'** new second clause gives production toward wonders and the Opus. It is your own text, so it stands; it is the one place Expansionist reaches wonders now.
+3. **What your cuts and revisions change in the questions above:** question 1 (caps on town size) now covers only The Liturgies; question 3 (Bound to the Soil) is unchanged; question 4 (settlers on mountains) is gone, because The High Towns now works mountains instead; question 6 (bans) now covers only The Builder Kings and The Inward Roads. Two families of new shapes are gone: food or production sent between towns (The Royal Works, The Annona) and founding refused by site.
