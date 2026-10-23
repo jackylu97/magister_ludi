@@ -1094,7 +1094,11 @@ describe('a captured city, end to end', () => {
     // live and The Topping Out pays every town for an empire building. E12
     // (The Cura Aquarum): one more Expansionist Order comes live. So a v167
     // log's Expansionist hands and towns differ.
-    expect(SCHEMA_VERSION).toBe(168);
+    // 169 since Commerce batch T1 (the sheet of record): eleven Commerce rows
+    // are retired, four move to the shared file, fifteen change in place, and
+    // every listed Commerce row carries a type. So a v168 log's Commerce hands
+    // and chairs hold different cards.
+    expect(SCHEMA_VERSION).toBe(169);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

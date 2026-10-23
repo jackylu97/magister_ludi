@@ -77,13 +77,19 @@ describe('ruling (qqqqqq) 1 — a discount becomes +25% gold', () => {
   // buff pass of 2026-10-13 reached (`docs/plans/deck-midgame-changes.md`, A3).
   // Land Speculation is band 0, and Frontier Investment and The Factors' Houses
   // are among the top earners the pass left alone.
+  //
+  // Commerce batch T1 (the themes pass) changed four of the seven. Private
+  // Patronage pays +40% (your comment of 2026-10-21). The Customs Houses, The
+  // Factors' Houses and The Market Writ lose their gold percentage (the
+  // trims). Bought Swords and Frontier Investment are retired, and their rows
+  // keep their effects for old saves (the triage's reading 39).
   const RULED: Record<
     string,
     { percent: number; scope?: string; downside?: (effect: CardEffect) => boolean }
   > = {
     landSpeculation: { percent: 25, downside: (e) => e.kind === 'happiness' && e.amount === -2 },
     privatePatronage: {
-      percent: 38,
+      percent: 40,
       downside: (e) => e.kind === 'productionBonus' && e.percent === -20,
     },
     boughtSwords: {
@@ -91,10 +97,10 @@ describe('ruling (qqqqqq) 1 — a discount becomes +25% gold', () => {
       downside: (e) => e.kind === 'productionBonus' && e.percent === -10,
     },
     frontierInvestment: { percent: 25, scope: 'populationAtMost' },
-    theCustomsHouses: { percent: 38, scope: 'hasImprovement' },
-    theFactorsHouses: { percent: 25, scope: 'holdsPost' },
-    theMarketWrit: { percent: 38 },
   };
+
+  /** The three cards batch T1 trimmed: no gold percentage is left on them. */
+  const TRIMMED = ['theCustomsHouses', 'theFactorsHouses', 'theMarketWrit'];
 
   it('gives each card +25% gold in the same scope, and nothing at the counter', () => {
     for (const [id, want] of Object.entries(RULED)) {
@@ -113,6 +119,12 @@ describe('ruling (qqqqqq) 1 — a discount becomes +25% gold', () => {
       ).toBe(false);
       if (want.downside) expect(effects.some(want.downside), `${id} keeps its downside`).toBe(true);
       expect(orderDef(id as OrderId).text, id).toContain(`+${want.percent}% gold`);
+    }
+    for (const id of TRIMMED) {
+      const effects = orderDef(id as OrderId).effects;
+      expect(effects.some((e) => e.kind === 'percentYields' && e.yield === 'gold'), id).toBe(false);
+      expect(effects.some((e) => e.kind === 'purchaseRider'), id).toBe(false);
+      expect(orderDef(id as OrderId).text, id).not.toContain('% gold');
     }
   });
 

@@ -2118,7 +2118,11 @@ describe("determinism", () => {
     // live and The Topping Out pays every town for an empire building. E12
     // (The Cura Aquarum): one more Expansionist Order comes live. So a v167
     // log's Expansionist hands and towns differ.
-    expect(SCHEMA_VERSION).toBe(168);
+    // 169 since Commerce batch T1 (the sheet of record): eleven Commerce rows
+    // are retired, four move to the shared file, fifteen change in place, and
+    // every listed Commerce row carries a type. So a v168 log's Commerce hands
+    // and chairs hold different cards.
+    expect(SCHEMA_VERSION).toBe(169);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -8971,8 +8975,8 @@ describe("the engine shapes", () => {
     // The Commerce implementation batch's new rows: three trade route lines
     // (one narrowed by the religion the far end keeps, one by a customs house
     // at the origin, one by the far end's owner being at war) and The Bourse,
-    // a share of what gold buildings pay.
-    "theSilkRoadMonks · routeYield",
+    // a share of what gold buildings pay. Commerce batch T1 moved the first,
+    // The Silk Road Monks, to common.json, so it is listed with the commons.
     "theCustomsService · routeYield",
     "theBourse · buildingYieldPercent",
     "theNeutralFlag · routeYield",
@@ -9004,6 +9008,9 @@ describe("the engine shapes", () => {
     "travellingPlayers · routeYield",
     "theGrainExchange · routeYield",
     "theMerchantNavigators · routeYield",
+    // Commerce batch T1: The Silk Road Monks, moved here from the Commerce
+    // file, last in common.json.
+    "theSilkRoadMonks · routeYield",
   ];
 
   it("registers exactly which live rows use each shape batch A declared", () => {

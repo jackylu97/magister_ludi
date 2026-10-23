@@ -468,29 +468,22 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Order | Band | Rarity | Role | Effect |
 |---|---|---|---|---|
 | Salt Tithes | 0 | ● | P | Gain +3 gold per distinct accessible improved luxury you produce. Worked luxury tiles gain +1 food. |
-| The Merchant Shrines | 0 | ● | P | Your capital gains +2 faith. Cities working an improved luxury gain +1 faith, once per city. |
 | Travellers' Letters | 0 | ● | P | Your capital gains +2 science and +2 culture, plus +1 of each per foreign empire met, no cap. |
 | The Pathfinders' Company | 0 | ◆ | S | Scouts gain +1 sight and +1 movement. |
 | The Assayer's Rule | 0 | ◆ | S | Worked resource tiles that supply gold gain +1 gold. |
 | The Mineral Trade | 0 | ● | S | Worked mines and quarries gain +2 gold but lose 1 production. |
-| Coastal Estates | 0 | ● | S | Worked plantations and fishing boats gain +1 food and +1 gold. |
 | Land Speculation | 0 | ◆ | P | Your cities gain +25% gold. Your capital loses 2 happiness. |
-| Private Patronage | 1 | ○ | P | Your cities gain +38% gold. Producing ordinary buildings normally takes 20% more production. Empire buildings and wonders are unaffected. |
+| Private Patronage | 1 | ○ | P | Your cities gain +40% gold. Producing ordinary buildings normally takes 20% more production. Empire buildings and wonders are unaffected. |
 | Civic Receipts | 1 | ◆ | S | Buying any building grants culture equal to 15% of the gold paid, with no cap. |
-| Provisioning Contracts | 1 | ● | S | Domestic routes grant their destination +3 food and +3 production. |
-| The Common Road | 1 | ● | S | Your foreign routes grant you +3 gold, +3 science and +3 culture. Each also grants its host city +3 gold. |
-| Venture Routes | 1 | ◆ | P | Your trade routes gain two turns of range. Trade routes between cities at least fifteen hexes apart gain +100% gold. |
-| The Factors' Houses | 1 | ● | P | Your cities holding your trading post gain +2 gold and +4 culture, and +25% gold. |
+| Provisioning Contracts | 2 | ● | S | Domestic routes grant their destination +3 food and +3 production. |
+| The Common Road | 2 | ● | S | Your foreign routes grant you +3 gold, +3 science and +3 culture. Each also grants its host city +3 gold. |
+| The Factors' Houses | 2 | ● | P | Your cities holding your trading post gain +2 gold and +4 culture. |
 | The Planters' Charter | 1 | ◆ | S | Once drafted, unlock the Plantation House for construction. No chair required. The building is purchased with gold; its payload is specified below. |
-| Bought Swords | 1 | ◆ | P | Your cities gain +38% gold. Military units take 10% more production to train. Purchased units count as trained. |
-| Established Routes | 1 | ◆ | P | A trade route you have kept up for at least thirty turns pays 50% more. A route that lapses, is cancelled or is plundered begins its term again. |
-| The Market Writ | 1 | ◆ | P | +1 authority for every two Markets in your empire. Your cities gain +38% gold. |
+| Established Routes | 3 | ◆ | P | A trade route you have kept up for at least twenty turns pays 50% more. A route that lapses, is cancelled or is plundered begins its term again. |
+| The Market Writ | 1 | ◆ | P | +1 authority for every two Markets in your empire. |
 | Commercial Education | 1 | ● | P | Gold buildings provide +3 science. |
-| Ore Caravans | 1 | ● | P | Trade routes gain +1 gold for every mine in their origin city. |
-| Frontier Investment | 1 | ◆ | P | In your cities of 5 population or fewer, domestic trade routes pay double, and those cities gain +25% gold. |
 | Financed Industry | 1 | ○ | P | Cities gain production equal to 30% of their gold yield. Every city loses 3 food. |
 | The Home Market | 2 | ● | P | Cities receiving at least two of your domestic routes gain +30% food, +30% production and +2 happiness, once per city. |
-| The Caravanserai Network | 2 | ● | S | Each city receiving a domestic trade route grants +2 happiness (once per city); +2 production and +2 gold on domestic trade routes. |
 | The Foreign Factor | 2 | ● | P | Each foreign city holding your trading post grants you +5 gold and its host city +2 gold per turn while you are at peace and the host is not blockaded. |
 | The Money Lenders | 3 | ○ | P | Earn interest equal to 4% of your treasury each turn, with no cap. |
 | Mining Districts | 2 | ◆ | S | Worked mines gain +2 gold and +2 science for every two adjacent mines. |
@@ -498,11 +491,10 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Foreign Procurement | 2 | ◆ | S | Ignore strategic resource requirements when purchasing units. All units cost 20% more. |
 | The League of Cities | 2 | ○ | P | Cities with one of your paying outgoing routes gain +23% production and cost one less authority, minimum one. Cities without one lose 10% gold. |
 | The Exchange | 2 | ◆ | P | Each different foreign empire your routes currently serve grants +5% science and culture empire-wide. Foreign routes to your cities grant +2 science and +2 culture to both you and the sender. |
-| The Brokers' Redraw | 2 | ○ | S | You may reroll a draft with gold instead of faith. All other purchasing is 10% more expensive. |
-| The Scholars' Roads | 2 | ○ | P | Lose 4 route capacity. Your routes gain +2 science and +2 culture, and gain +50% science and culture. |
-| The Customs Houses | 2 | ◆ | P | Customs houses gain +5 gold and +1 renown. Cities with a customs house gain +38% gold. |
+| The Scholars' Roads | 3 | ○ | P | Lose 4 route capacity. Your routes gain +2 science and +2 culture, and gain +50% science and culture. |
+| The Customs Houses | 2 | ◆ | P | Each customs house in your borders gives its town +4 science and +4 culture, whether or not it is worked. |
 | Strategic Exports | 2 | ◆ | P | Trade routes gain +2 science per improved strategic resource deposit in their origin city. Your strategic resource deposits provide twice their normal quantity. |
-| Caravanserai Cities | 3 | ◆ | P | Caravanserais can be built in every city. Cities with a Caravanserai gain +30% gold. |
+| Caravanserai Cities | 3 | ◆ | S | Caravanserais can be built in every city. |
 | The Endowment | 3 | ◆ | P | Purchased buildings provide +2 science each, at most +6 per town. |
 | Merchant Princes | 4 | ○ | S | Gold may purchase great-person drafts at the existing escalating offer price, with normal availability and purchase limits. |
 | The World's Exchange | 4 | ○ | S | +10% production toward the Opus for each foreign empire your trade routes reach, at most +40%. |
@@ -511,25 +503,21 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Merchant Works | 4 | ○ | P | Cities building a world wonder, an empire building or the Opus gain production equal to 25% of their gold, and lose 20% of their gold. |
 | The Gilded Scaffold | 3 | ○ | P | You may purchase world wonders. All your cities lose 15% production. |
 | A Court of Merchants | 3 | ○ | S | Gain +50% renown, but great-person offers contain only Great Merchants. |
-| Corner the Market | 2 | ◆ | S | Commission. Goal: control four copies of one luxury, counting copies you receive in deals. Reward: a great merchant and 225 gold. The card then leaves its chair. |
-| The Strongroom | 4 | ○ | S | Commission. Goal: end a turn with at least 2,000 gold in your treasury. Reward: culture equal to a fifth of your treasury at that moment, and a great merchant. The card then leaves its chair. |
+| Corner the Market | 2 | ◆ | S | Commission. Hold four copies of one luxury, counting copies you receive in deals. Then, for the rest of the game, gain +2 happiness for each luxury you hold two or more copies of. The card leaves its chair. |
+| The Strongroom | 3 | ◆ | S | Commission. Goal: end a turn with at least 1,500 gold in your treasury. Reward: culture equal to a fifth of your treasury at that moment, and a great merchant. The card then leaves its chair. |
 | The Map Sellers | 0 | ● | P | Your capital gains +1 gold and +1 culture for every 40 hexes you have revealed, at most +8 of each. |
-| The Carters' Guild | 0 | ● | P | Your cities connected to your capital by road, other than the capital, gain +1 food and +2 gold. |
+| The Carters' Guild | 2 | ● | S | Towns that receive a domestic trade route build buildings 25% faster. |
 | The Nest Egg | 0 | ● | P | Your capital gains +1 culture for every 50 gold in your treasury, at most +4. |
 | The Staple Right | 1 | ● | P | Gain +3 gold and +2 culture for each luxury you hold two or more copies of. |
-| The Waqf | 2 | ● | P | Faith buildings you bought with gold provide +3 faith and +2 culture. |
-| The Silk Road Monks | 2 | ◆ | S | Your trade routes carry 100% more religious pressure. Trade routes you send to a city that follows your religion gain +3 gold and +3 culture. |
 | Numidian Cavalry | 2 | ◆ | S | Once drafted, unlock Numidian Cavalry, a Horseman replacement. No chair required. Gains +1 combat strength per distinct luxury you control; luxuries obtained only through the Silk Road contribute +0.5 instead. Normal technology requirements apply. |
 | Houses of Account | 2 | ● | P | Gold buildings provide +2 happiness and +1 renown. |
 | A Guild Commission | 3 | ◆ | S | Commission. Goal: buy five buildings with gold while seated. Reward: a free great-person draft, the same offer Merchant Princes sells for gold. The card then leaves its chair. |
 | The Monopoly | 3 | ○ | P | For each luxury you hold three or more copies of and no other empire holds, gain +8 gold, +5 culture and +1 happiness in every city. |
 | The Customs Service | 3 | ◆ | S | Trade routes leaving a city whose borders hold a customs house gain +3 gold and +3 culture. |
 | The Bourse | 3 | ○ | E | Gold buildings produce 75% more of their own yields. |
-| Patrons Abroad | 4 | ○ | P | Your city building the Magnum Opus gains +3 production for each foreign city holding your trading post. |
-| The Merchant Dynasties | 4 | ◆ | P | Each customs house inside your borders gives its city +3 science and +3 culture, whether or not it is worked. |
-| The Spice Exchange | 4 | ○ | P | Every city gains +5% science and +5% culture for each luxury you hold two or more copies of, at most +30%. |
-| Money at Work | 4 | ○ | P | Your capital gains +1 production for every 50 gold in your treasury, at most +40. |
-| Bought and Paid For | 4 | ○ | P | Buildings you bought with gold provide +1 production and +2 culture each, counting at most six per city. |
+| The Spice Exchange | 2 | ○ | P | Every city gains +5% science and +5% culture for each luxury you hold two or more copies of, at most +30%. |
+| Money at Work | 4 | ○ | P | Every town gains +1 science for every 500 gold in your treasury. |
+| Bought and Paid For | 4 | ○ | P | Each town gains +4% production and culture for each building you bought there with gold, at most +24%. |
 | The Hired Garrison | 4 | ◆ | S | A city with a world wonder or the Magnum Opus at the front of its queue may buy any number of military units with gold each turn. |
 | The Neutral Flag | 4 | ◆ | P | Your trade routes to an empire that is at war with another empire gain +100% gold and +50% science. |
 | The World's Fair | 4 | ○ | S | Commission. Goal: have six trade routes running at the same time, foreign or domestic. Reward: +50% science and +50% culture in every city for ten turns. The card then leaves its chair. |
@@ -746,7 +734,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 |---|---|---|---|---|---|
 | The Frontier Militia | Dominion · Expansionist | 0 | ● | S | Each town you found starts with the best melee unit you can build standing in it. |
 | Military Colonies | Dominion · Expansionist | 1 | ◆ | S | Cities with a Barracks gain +45% production toward settlers and workers. |
-| The Escorted Roads | Dominion · Commerce | 1 | ◆ | S | Routes whose origin has a garrison gain +5 gold. Naval units gain +2 strength while adjacent to one of your traders. |
+| The Escorted Roads | Dominion · Commerce | 2 | ◆ | S | Routes whose origin has a garrison gain +5 gold. Naval units gain +2 strength while adjacent to one of your traders. |
 | Field Academies | Dominion · Scientific | 1 | ◆ | S | Your first combat kill each turn grants 23 science. Cities with a Library produce siege units 38% faster. |
 | The Engineer Corps | Dominion · Scientific | 3 | ◆ | S | Siege units gain +1 movement. Cities with a Workshop gain +30% production toward siege units and +3 science while at war. |
 | The Imperial Examinations | Dominion · Magisterial | 1 | ◆ | P | Garrisoned cities with a Monument gain +3 culture and +1 scholar renown. |
@@ -759,7 +747,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Sculpted Landscape | Expansionist · Magisterial | 3 | ◆ | S | Farms beside a great-person improvement gain +2 food and +2 culture. Each farm receives this once regardless of the number of adjacent works. |
 | The Tithe | Commerce · Devotion | 2 | ○ | P | Cities with a Temple gain gold equal to 25% of their base faith, and +25% gold. |
 | Merchant Scholars | Commerce · Scientific | 1 | ◆ | S | Foreign routes from a city with a Library gain +5 science. |
-| Travelling Players | Commerce · Magisterial | 0 | ◆ | S | Foreign routes from a city with a Monument gain +2 culture. |
+| Travelling Players | Commerce · Magisterial | 2 | ◆ | S | Foreign routes from a city with a Monument gain +2 culture. |
 | Cloister Schools | Devotion · Scientific | 1 | ◆ | P | Cities with both a Temple and a Library gain +5 food and +5 science. |
 | The Cloister | Devotion · Scientific | 2 | ○ | P | Cities with a Temple gain science equal to 30% of their base faith. Their Libraries and Universities each gain +3 food. |
 | Sacred Commissions | Devotion · Magisterial | 1 | ◆ | S | Cities with a Holy Site gain +38% production toward wonders. Completing a wonder grants 60 faith. |
@@ -768,12 +756,12 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Marcher Lords | Dominion · Expansionist | 2 | ◆ | P | Cities founded within four hexes of a foreign border gain +3 defence and +2 production, and cost one less authority, minimum one. |
 | The Merchant Navigators | Commerce · Scientific | 2 | ● | S | Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +5 science. |
 | Letters of Marque | Dominion · Commerce | 3 | ○ | P | Naval combat kills grant 60 gold. Cities with a Harbour gain +38% gold, but produce naval combat units 20% more slowly. |
-| The Exchange of Discoveries | Commerce · Scientific | 3 | ◆ | S | +2 science on mines and quarries on a resource. Additional +2 if the city has a market. |
+| The Exchange of Discoveries | Commerce · Scientific | 1 | ◆ | S | +2 science on mines and quarries on a resource. Additional +2 if the city has a market. |
 | Books from the Ships | Commerce · Scientific | 2 | ◆ | P | Each foreign trade route you send gains +1 science for each technology the destination's owner knows that you do not, at most +4. |
 | Garden Provinces | Expansionist · Magisterial | 2 | ● | P | Connected cities with a Monument gain +3 food and +3 culture. |
 | Garden Cities | Expansionist · Magisterial | 1 | ◆ | P | Cities with a Monument gain +1 culture per three worked wild tiles, at most +3. Cities of at least eight population with an Aqueduct gain +1 happiness. |
-| Pilgrim Markets | Commerce · Devotion | 1 | ◆ | S | Routes gain +3 gold and +3 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify. |
-| The Grain Exchange | Expansionist · Commerce | 1 | ◆ | S | Domestic routes from a city with a Granary give +5 food to their destination. Cities receiving one gain +1 happiness. |
+| Pilgrim Markets | Commerce · Devotion | 2 | ◆ | S | Routes gain +3 gold and +3 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify. |
+| The Grain Exchange | Expansionist · Commerce | 2 | ◆ | S | Domestic routes from a city with a Granary give +5 food to their destination. Cities receiving one gain +1 happiness. |
 | The Cosmopolitan Court | Commerce · Magisterial | 3 | ○ | S | Cities with a culture building gain +1 renown per outgoing foreign route, at most +3 per city. Great-person improvements worked by such cities gain +3 gold. |
 | Rites of Passage | Dominion · Devotion | 0 | ● | S | Gaining a military unit grants 12 faith. |
 | The Sacred Host | Dominion · Devotion | 1 | ○ | S | Military units may be purchased with faith in cities with a Temple at the escalating conversion price. Combat kills grant 15 faith. |
@@ -795,6 +783,10 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The New Code | Dominion · Magisterial | 3 | ○ | S | Capturing a city opens a draft at once, at no culture cost. This can happen at most once every ten turns. |
 | Looted Art | Dominion · Magisterial | 2 | ◆ | S | Capturing a city grants 20 renown for each great-person work and wonder inside its borders. |
 | The Farming Garrisons | Dominion · Expansionist | 1 | ● | S | Hexes with a fortified military unit gain +1 food and +1 production. Fortified units gain +2 strength. |
+| The Merchant Shrines | Commerce · Devotion | 0 | ● | P | Your capital gains +2 faith. Cities working an improved luxury gain +1 faith, once per city. |
+| The Waqf | Commerce · Devotion | 2 | ● | P | Faith buildings you bought with gold provide +3 faith and +2 culture. |
+| The Silk Road Monks | Commerce · Devotion | 2 | ◆ | S | Your trade routes carry 100% more religious pressure. Trade routes you send to a city that follows your religion gain +3 gold and +3 culture. |
+| The Brokers' Redraw | Commerce · Magisterial | 2 | ○ | S | You may reroll a draft with gold instead of faith. All other purchasing is 10% more expensive. |
 
 ### Generic
 

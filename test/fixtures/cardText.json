@@ -5508,16 +5508,6 @@
     "text": "+1 food on every hex with a Camp or Plantation"
    }
   ],
-  "theMerchantShrines": [
-   {
-    "raw": "+2 faith in your capital",
-    "text": "+2 faith in your capital"
-   },
-   {
-    "raw": "+1 faith in every city holding an improved luxury resource",
-    "text": "+1 faith in every city holding an improved luxury resource"
-   }
-  ],
   "travellersLetters": [
    {
     "raw": "+2 science, +2 culture in your capital",
@@ -5604,8 +5594,8 @@
   ],
   "privatePatronage": [
    {
-    "raw": "+38% gold in every city",
-    "text": "+38% gold in every city"
+    "raw": "+40% gold in every city",
+    "text": "+40% gold in every city"
    },
    {
     "raw": "-20% production toward ordinary buildings",
@@ -5636,8 +5626,8 @@
   ],
   "theReturnLeg": [
    {
-    "raw": "a road pays the town it left as well as the town it reaches, and the second helping never travels again — not built yet",
-    "text": "a road pays the town it left as well as the town it reaches, and the second helping never travels again — not built yet",
+    "raw": "a trade route between two of your towns also pays the town it left everything it pays the town it reaches — not built yet",
+    "text": "a trade route between two of your towns also pays the town it left everything it pays the town it reaches — not built yet",
     "deferred": true
    }
   ],
@@ -5667,10 +5657,6 @@
    {
     "raw": "+2 gold, +4 culture in every city that holds your trading post",
     "text": "+2 gold, +4 culture in every city that holds your trading post"
-   },
-   {
-    "raw": "+25% gold in every city that holds your trading post",
-    "text": "+25% gold in every city that holds your trading post"
    }
   ],
   "thePlantersCharter": [],
@@ -5704,8 +5690,8 @@
   ],
   "theTreatyPorts": [
    {
-    "raw": "every partner you have a standing agreement with pays your capital, and theirs — not built yet",
-    "text": "every partner you have a standing agreement with pays your capital, and theirs — not built yet",
+    "raw": "every empire you hold a deal with raises your production — not built yet",
+    "text": "every empire you hold a deal with raises your production — not built yet",
     "deferred": true
    }
   ],
@@ -5718,18 +5704,14 @@
   ],
   "establishedRoutes": [
    {
-    "raw": "+50% everything on every trade route you have kept up for at least 30 turns",
-    "text": "+50% everything on every trade route you have kept up for at least 30 turns"
+    "raw": "+50% everything on every trade route you have kept up for at least 20 turns",
+    "text": "+50% everything on every trade route you have kept up for at least 20 turns"
    }
   ],
   "theMarketWrit": [
    {
     "raw": "+1 authority capacity per 2 [[building:market|Markets]]",
     "text": "+1 authority capacity per 2 Markets"
-   },
-   {
-    "raw": "+38% gold in every city",
-    "text": "+38% gold in every city"
    }
   ],
   "commercialEducation": [
@@ -5921,8 +5903,8 @@
   ],
   "exportGuilds": [
    {
-    "raw": "a town working a good you are currently selling abroad builds faster and rests easier — not built yet",
-    "text": "a town working a good you are currently selling abroad builds faster and rests easier — not built yet",
+    "raw": "each luxury you lend to another empire in a deal pays your capital culture and production — not built yet",
+    "text": "each luxury you lend to another empire in a deal pays your capital culture and production — not built yet",
     "deferred": true
    }
   ],
@@ -5944,16 +5926,6 @@
     "text": "+2 science, +2 culture on every trade route that ends in another empire’s city, paid to the city it reaches"
    }
   ],
-  "theBrokersRedraw": [
-   {
-    "raw": "you may pay gold for a fresh hand, at a higher price than faith would ask",
-    "text": "you may pay gold for a fresh hand, at a higher price than faith would ask"
-   },
-   {
-    "raw": "all units and buildings cost +10% to buy",
-    "text": "all units and buildings cost +10% to buy"
-   }
-  ],
   "theScholarsRoads": [
    {
     "raw": "-4 trade routes",
@@ -5970,16 +5942,12 @@
   ],
   "theCustomsHouses": [
    {
-    "raw": "+5 gold on every hex with a [[improvement:customsHouse|Customs House]]",
-    "text": "+5 gold on every hex with a Customs House"
+    "raw": "+4 science in every city per hex with a [[improvement:customsHouse|Customs House]] there",
+    "text": "+4 science in every city per hex with a Customs House there"
    },
    {
-    "raw": "+1 renown per turn per hex with a [[improvement:customsHouse|Customs House]] in your borders",
-    "text": "+1 renown per turn per hex with a Customs House in your borders"
-   },
-   {
-    "raw": "+38% gold in every city with a [[improvement:customsHouse|Customs House]]",
-    "text": "+38% gold in every city with a Customs House"
+    "raw": "+4 culture in every city per hex with a [[improvement:customsHouse|Customs House]] there",
+    "text": "+4 culture in every city per hex with a Customs House there"
    }
   ],
   "strategicExports": [
@@ -6032,10 +6000,6 @@
    {
     "raw": "you may build a [[building:caravanserai|Caravanserai]] in every city",
     "text": "you may build a Caravanserai in every city"
-   },
-   {
-    "raw": "+30% gold in every city with a [[building:caravanserai|Caravanserai]]",
-    "text": "+30% gold in every city with a Caravanserai"
    }
   ],
   "theDyeVats": [
@@ -6149,8 +6113,8 @@
     "text": "Commission. Goal: hold 4 copies of one luxury, counting copies you receive in deals, while this card is seated"
    },
    {
-    "raw": "Reward: a great merchant to call, and +225 gold",
-    "text": "Reward: a great merchant to call, and +225 gold"
+    "raw": "Reward: for the rest of the game, +2 happiness per luxury you hold two or more copies of",
+    "text": "Reward: for the rest of the game, +2 happiness per luxury you hold two or more copies of"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -6159,8 +6123,8 @@
   ],
   "theStrongroom": [
    {
-    "raw": "Commission. Goal: end a turn with at least 2000 gold in your treasury, while this card is seated",
-    "text": "Commission. Goal: end a turn with at least 2000 gold in your treasury, while this card is seated"
+    "raw": "Commission. Goal: end a turn with at least 1500 gold in your treasury, while this card is seated",
+    "text": "Commission. Goal: end a turn with at least 1500 gold in your treasury, while this card is seated"
    },
    {
     "raw": "Reward: culture equal to 20% of the gold in your treasury at that moment, and a great merchant to call",
@@ -6183,8 +6147,8 @@
   ],
   "theCartersGuild": [
    {
-    "raw": "+1 food, +2 gold in every city joined to your capital by road but your capital",
-    "text": "+1 food, +2 gold in every city joined to your capital by road but your capital"
+    "raw": "+25% production toward buildings, in every city one of your own trade routes ends at",
+    "text": "+25% production toward buildings, in every city one of your own trade routes ends at"
    }
   ],
   "theNestEgg": [
@@ -6201,26 +6165,6 @@
    {
     "raw": "+2 culture per luxury you hold two or more copies of",
     "text": "+2 culture per luxury you hold two or more copies of"
-   }
-  ],
-  "theWaqf": [
-   {
-    "raw": "+3 faith in every city per building bought with gold there",
-    "text": "+3 faith in every city per building bought with gold there"
-   },
-   {
-    "raw": "+2 culture in every city per building bought with gold there",
-    "text": "+2 culture in every city per building bought with gold there"
-   }
-  ],
-  "theSilkRoadMonks": [
-   {
-    "raw": "caravans carry +3 faith",
-    "text": "caravans carry +3 faith"
-   },
-   {
-    "raw": "+3 gold, +3 culture on every trade route that ends in a city that follows the religion",
-    "text": "+3 gold, +3 culture on every trade route that ends in a city that follows the religion"
    }
   ],
   "numidianCavalryCharter": [],
@@ -6302,18 +6246,18 @@
   ],
   "moneyAtWork": [
    {
-    "raw": "+1 production in your capital per 50 gold in the treasury (at most +40 production)",
-    "text": "+1 production in your capital per 50 gold in the treasury (at most +40 production)"
+    "raw": "+1 science in every city per 500 gold in the treasury",
+    "text": "+1 science in every city per 500 gold in the treasury"
    }
   ],
   "boughtAndPaidFor": [
    {
-    "raw": "+1 production in every city per building bought with gold there (at most +6 production)",
-    "text": "+1 production in every city per building bought with gold there (at most +6 production)"
+    "raw": "+4% production in every city per building bought with gold there (at most +24% production)",
+    "text": "+4% production in every city per building bought with gold there (at most +24% production)"
    },
    {
-    "raw": "+2 culture in every city per building bought with gold there (at most +12 culture)",
-    "text": "+2 culture in every city per building bought with gold there (at most +12 culture)"
+    "raw": "+4% culture in every city per building bought with gold there (at most +24% culture)",
+    "text": "+4% culture in every city per building bought with gold there (at most +24% culture)"
    }
   ],
   "theEmbargo": [
@@ -9282,6 +9226,46 @@
    {
     "raw": "+2 science in every city per combat unit standing there",
     "text": "+2 science in every city per combat unit standing there"
+   }
+  ],
+  "theMerchantShrines": [
+   {
+    "raw": "+2 faith in your capital",
+    "text": "+2 faith in your capital"
+   },
+   {
+    "raw": "+1 faith in every city holding an improved luxury resource",
+    "text": "+1 faith in every city holding an improved luxury resource"
+   }
+  ],
+  "theWaqf": [
+   {
+    "raw": "+3 faith in every city per building bought with gold there",
+    "text": "+3 faith in every city per building bought with gold there"
+   },
+   {
+    "raw": "+2 culture in every city per building bought with gold there",
+    "text": "+2 culture in every city per building bought with gold there"
+   }
+  ],
+  "theSilkRoadMonks": [
+   {
+    "raw": "caravans carry +3 faith",
+    "text": "caravans carry +3 faith"
+   },
+   {
+    "raw": "+3 gold, +3 culture on every trade route that ends in a city that follows the religion",
+    "text": "+3 gold, +3 culture on every trade route that ends in a city that follows the religion"
+   }
+  ],
+  "theBrokersRedraw": [
+   {
+    "raw": "you may pay gold for a fresh hand, at a higher price than faith would ask",
+    "text": "you may pay gold for a fresh hand, at a higher price than faith would ask"
+   },
+   {
+    "raw": "all units and buildings cost +10% to buy",
+    "text": "all units and buildings cost +10% to buy"
    }
   ]
  },

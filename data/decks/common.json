@@ -58,7 +58,7 @@
     "commonTheEscortedRoads": {
       "name": "The Escorted Roads",
       "decks": ["dominion", "commerce"],
-      "band": 1,
+      "band": 2,
       "line": "none",
       "rarity": "uncommon",
       "type": "economic",
@@ -561,9 +561,10 @@
     "pilgrimMarkets": {
       "name": "Pilgrim Markets",
       "decks": ["commerce", "devotion"],
-      "band": 1,
+      "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "Every shrine grows a street of stalls.",
       "text": "Routes gain +3 gold and +3 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify.",
       "effects": [
@@ -586,6 +587,7 @@
       "band": 2,
       "line": "none",
       "rarity": "rare",
+      "type": "economic",
       "flavor": "A tenth of everything, counted twice.",
       "text": "Cities with a Temple gain gold equal to 25% of their base faith, and +25% gold.",
       "effects": [
@@ -634,7 +636,7 @@
     "theExchangeOfDiscoveries": {
       "name": "The Exchange of Discoveries",
       "decks": ["commerce", "scientific"],
-      "band": 3,
+      "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "type": "civic",
@@ -672,9 +674,10 @@
     "travellingPlayers": {
       "name": "Travelling Players",
       "decks": ["commerce", "magisterial"],
-      "band": 0,
+      "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "The cart is a stage with wheels on it.",
       "text": "Foreign routes from a city with a Monument gain +2 culture.",
       "effects": [
@@ -693,6 +696,7 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
+      "type": "civic",
       "flavor": "Six languages at one table, and the wine does the translating.",
       "text": "Cities with a culture building gain +1 renown per outgoing foreign route, at most +3 per city. Great-person improvements worked by such cities gain +3 gold.",
       "effects": [
@@ -979,7 +983,7 @@
     "theGrainExchange": {
       "name": "The Grain Exchange",
       "decks": ["expansionist", "commerce"],
-      "band": 1,
+      "band": 2,
       "line": "none",
       "rarity": "uncommon",
       "type": "economic",
@@ -1802,6 +1806,84 @@
         },
         { "kind": "pays", "where": "city", "basis": "count", "to": "science", "amount": 2, "count": "garrison" }
       ]
+    },
+    "theMerchantShrines": {
+      "name": "The Merchant Shrines",
+      "decks": ["commerce", "devotion"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "Every scale has a god leaning on it.",
+      "text": "Your capital gains +2 faith. Cities working an improved luxury gain +1 faith, once per city.",
+      "effects": [
+        { "kind": "pays", "where": "city", "scope": { "test": "capital" }, "faith": 2 },
+        { "kind": "pays", "where": "city", "scope": { "test": "holdingCategory", "category": "luxury" }, "faith": 1 }
+      ]
+    },
+    "theWaqf": {
+      "name": "The Waqf",
+      "decks": ["commerce", "devotion"],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "Given once, and given for ever.",
+      "text": "Faith buildings you bought with gold provide +3 faith and +2 culture.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "purchasedBuildings",
+          "within": "city",
+          "bank": "gold",
+          "category": "faith",
+          "to": "faith",
+          "amount": 3
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "purchasedBuildings",
+          "within": "city",
+          "bank": "gold",
+          "category": "faith",
+          "to": "culture",
+          "amount": 2
+        }
+      ]
+    },
+    "theSilkRoadMonks": {
+      "name": "The Silk Road Monks",
+      "decks": ["commerce", "devotion"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "They travelled with the silk, and left more than they sold.",
+      "text": "Your trade routes carry 100% more religious pressure. Trade routes you send to a city that follows your religion gain +3 gold and +3 culture.",
+      "effects": [
+        { "kind": "pressureRule", "rule": "routeStrength", "delta": 3 },
+        { "kind": "pays", "where": "route", "gold": 3, "culture": 3, "destination": { "test": "follows" } }
+      ],
+      "note": "The religious pressure a trade route carries is doubled by adding the same amount again."
+    },
+    "theBrokersRedraw": {
+      "name": "The Brokers' Redraw",
+      "decks": ["commerce", "magisterial"],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "type": "wildcard",
+      "flavor": "Anything can be bought, including another look at the table.",
+      "text": "You may reroll a draft with gold instead of faith. All other purchasing is 10% more expensive.",
+      "effects": [
+        { "kind": "rule", "rule": "goldBuysRedraw" },
+        { "kind": "purchaseRider", "class": {}, "on": "all", "percent": 10 }
+      ],
+      "note": "Gold opens the door and pays a premium for it: the price is the faith ladder's own figure, multiplied, so faith stays the cheaper way to ask for a fresh hand and the card is a convenience rather than a replacement. The ladder itself is untouched — a redraw in either bank climbs the same rungs and raises the same count — and a hand whose first asking is free stays free in both. The surcharge on the second line reaches every unit and every building this empire buys, in either bank."
     }
   }
 }

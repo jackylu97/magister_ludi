@@ -79,20 +79,22 @@ describe('the chips', () => {
     seat(state, FRONTIER);
     seat(state, STRONGROOM);
     clearCamp(state);
-    playerById(state, 0)!.gold = 500;
+    // A quarter of The Strongroom's goal, which is 1,500 gold since Commerce
+    // batch T1.
+    playerById(state, 0)!.gold = 375;
     const chips = commissionChips(state, 0);
     expect(chips.map((chip) => chip.card)).toEqual([FRONTIER, STRONGROOM]);
     expect(chips[0]!.name).toBe('Clear the Frontier');
     // The A3 face's ink and suit (batch C1): Clear the Frontier is a Dominion
-    // commission, typed Wildcard on its deck's sheet; The Strongroom's deck is
-    // not sorted yet, so it borrows the Wildcard ink too.
+    // commission, typed Wildcard on its deck's sheet. The Strongroom is typed
+    // Wildcard on the Commerce sheet since batch T1.
     expect(chips[0]!.ink).toBe('wildcard');
     expect(chips[0]!.suits).toEqual(['swords']);
     expect(chips[1]!.ink).toBe('wildcard');
     expect(chips[1]!.suits).toEqual(['coins']);
     expect(chipCountWords(chips[0]!)).toBe('1 / 2 camps cleared');
     expect(chipRing(chips[0]!)).toBe(50);
-    expect(chipCountWords(chips[1]!)).toBe('500 / 2000 gold in the treasury');
+    expect(chipCountWords(chips[1]!)).toBe('375 / 1500 gold in the treasury');
     expect(chipRing(chips[1]!)).toBe(25);
   });
 
