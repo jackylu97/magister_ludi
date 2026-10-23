@@ -211,6 +211,7 @@
   "score": {
     "unknownEffect": 2,
     "caravanScale": 3,
+    "routeLapseMultiple": 1.5,
     "nominalCount": 3,
     "synergyBonus": 14,
     "combatScale": 7.5,

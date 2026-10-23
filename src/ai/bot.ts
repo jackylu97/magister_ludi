@@ -146,7 +146,7 @@ import {
   rankWorkSites,
   reachableGroundOn,
 } from './plan';
-import { NO_ROUTES, explainRoutePay, routeOutlook } from './routes';
+import { NO_ROUTES, type RouteOffer, explainRoutePay, routeOutlook } from './routes';
 import {
   type ValueContext,
   type YieldBag,
@@ -351,10 +351,17 @@ import { unitUpkeep, buildingUpkeep, unitUpkeepOf } from '../sim/upkeep';
 import {
   type RouteMode,
   ROUTE_MODES,
+  explainRouteSenderYieldBetween,
+  explainRouteYieldBetween,
+  foldRouteYield,
+  routeCities,
   routeIsInternational,
+  routeMode,
   routeStartable,
+  routeTermFor,
   startRouteError,
 } from '../sim/trade';
+import { routeAge } from '../sim/routes';
 import {
   type UnitTypeId,
   UNIT_TYPE_IDS,
@@ -690,6 +697,17 @@ export interface BotSitting {
    * town went first.
    */
   levyWeighed: Set<number>;
+  /**
+   * The caravans whose route this seat has weighed this turn, on the turn the
+   * route's term runs out (`routeRenewalDecision`, Commerce batch T8).
+   * Membership only; nothing iterates it.
+   *
+   * Weighing a due route compares it with the best pair a freed slot would
+   * open, and the rest of the seat's turn can move both figures. The answer
+   * holds until the seat sits down again, so a route is set to renew or to
+   * lapse once a turn and never flips back and forth.
+   */
+  renewalsWeighed: Set<number>;
 }
 
 /** A fresh sitting for one seat's turn. The driver and the stepper open these. */
@@ -702,6 +720,7 @@ export function botSitting(playerId: number): BotSitting {
     reasked: new Map<number, number>(),
     called: new Set<number>(),
     levyWeighed: new Set<number>(),
+    renewalsWeighed: new Set<number>(),
   };
 }
 
@@ -1475,6 +1494,12 @@ function housekeeping(
   if (levied !== null) return levied;
   const retired = retireCommand(state, player, sitting);
   if (retired !== null) return retired;
+
+  // **A route set to renew, or let lapse** (Commerce batch T8). It blocks
+  // nothing. A hired caravan gets its id only after the reducer runs, so this
+  // is the step after the hire. See `routeRenewalDecision`.
+  const renewal = routeRenewalDecision(state, player, sitting);
+  if (renewal !== null) return renewal;
 
   // **Where a town's people stand** — the hammer price's own arm (batch 6). It
   // blocks nothing, so `firstBlocker` cannot see it, which is what makes it
@@ -3548,6 +3573,263 @@ function cityIsThreatened(state: GameState, player: Player, city: City): boolean
     if (wrappedDistance(state.map, here, tileHex(at)) <= aiFor(player).threat.radius) return true;
   }
   return false;
+}
+
+// --- renewing a route ---------------------------------------------------------
+
+/**
+ * **A route renews when its term runs out** (Commerce batch T8: "### T8" in
+ * `docs/plans/commerce-themes-triage.md`, and the user's answer of 2026-10-23
+ * to item 8 of section 10 of `docs/plans/commerce-themes.md`).
+ *
+ * A route runs for a term (`routeTermFor`, twenty turns). When the term runs
+ * out, the route renews only if its caravan has `autoResend` on
+ * (`marchOneTrader`, `turn.ts`). A renewal keeps `TradeRoute.startedTurn`, so
+ * only a renewed route grows old enough for Established Routes. Before this
+ * batch no bot sent `setAutoResend`, so every bot route lapsed after one term
+ * and the card paid nothing in bot games.
+ *
+ * The arm looks at this seat's caravans in `state.units` order and sends one
+ * command at most:
+ *
+ *   · a route inside its term that will not renew is set to renew. This is the
+ *     step after the hire: a hired caravan (`buyRoute`) gets its id only after
+ *     the reducer runs, so the hire and the renewal are two commands. A caravan
+ *     sent by `traderCommand` is set to renew in the same way;
+ *   · on the turn the term runs out, the route is weighed once
+ *     (`routeLapseReading`). If a better pair is open, the bot lets the route
+ *     lapse: it turns `autoResend` off, the caravan walks home, and the idle
+ *     caravan is then sent on the best pair (`traderCommand`). If not, the
+ *     route is set to renew;
+ *   · a route that has already lapsed, with its caravan walking home, is left
+ *     alone.
+ *
+ * The driver's loop stays finite: each command sets a caravan's flag to the
+ * value the arm wants, so the next ask finds nothing to change, and a due
+ * route is weighed once a sitting (`BotSitting.renewalsWeighed`).
+ */
+function routeRenewalDecision(
+  state: GameState,
+  player: Player,
+  sitting?: BotSitting,
+): BotDecision | null {
+  const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
+  for (const unit of state.units) {
+    if (unit.ownerId !== player.id) continue;
+    const route = unit.trade;
+    if (route === undefined) continue;
+    // A route whose partner changed hands, or went to war with this seat, ends
+    // at this turn's march whatever its flag says (`routeTarget`, `turn.ts`).
+    const pair = routeCities(state, unit);
+    if (pair === null) continue;
+    if (state.turn < route.expiresTurn) {
+      if (route.autoResend) continue;
+      const ctx = seatContext(state, player, sitting);
+      const kept = renewedRoutePay(state, unit, pair, ctx);
+      const left = route.expiresTurn - state.turn;
+      return renewalDecision(player, unit, pair, {
+        kept,
+        rival: null,
+        lapse: false,
+        why: `its term has ${left} turn${left === 1 ? '' : 's'} to run`,
+      });
+    }
+    // Past the turn its term ran out and not renewed: the route has lapsed and
+    // its caravan is walking home.
+    if (state.turn > route.expiresTurn && !route.autoResend) continue;
+    if (own !== null && own.renewalsWeighed.has(unit.id)) continue;
+    const reading = routeLapseReading(state, player, unit, pair, sitting);
+    own?.renewalsWeighed.add(unit.id);
+    if (route.autoResend === !reading.lapse) continue;
+    return renewalDecision(player, unit, pair, reading);
+  }
+  return null;
+}
+
+/**
+ * What the arm weighed about one route: the route renewed, against the best
+ * pair a freed slot would open.
+ */
+interface LapseReading {
+  /** What the route pays a turn if it renews. See `renewedRoutePay`. */
+  kept: Appraisal;
+  /**
+   * The best pair a freed slot would open, with its pay divided by
+   * `score.routeLapseMultiple`, or `null` when there is no other pair to weigh.
+   */
+  rival: { offer: RouteOffer; score: Appraisal } | null;
+  /** True when the bot lets the route lapse. */
+  lapse: boolean;
+  /** Why, as one clause for the feed's summary. */
+  why: string;
+}
+
+/**
+ * **Does a route renew, or lapse?** Asked on the turn its term runs out.
+ *
+ * The route lapses only when all of these hold:
+ *
+ *   · every route slot of this seat is in use (`RouteOutlook.bound`). With a
+ *     slot free, the better pair can be hired beside this route, so there is
+ *     no reason to give this one up;
+ *   · the best pair a freed slot would open (`RouteOutlook.next`) is a
+ *     different pair from this route's own;
+ *   · no other caravan of this seat is already letting its route lapse. One
+ *     freed slot takes one new pair, so a second lapse would give up a road
+ *     for a pair the first caravan will take;
+ *   · that pair's pay, divided by `score.routeLapseMultiple`, is more than
+ *     what this route pays if it renews (`renewedRoutePay`). The multiple pays
+ *     for the walk home, when the caravan earns nothing, and for the road's
+ *     age, which starts again at nought.
+ *
+ * `RouteOutlook` is read once a sitting (`ValueContext.routes`), and it is a
+ * fair reading here: setting a flag moves no slot and no pair.
+ */
+function routeLapseReading(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  pair: { from: City; to: City },
+  sitting?: BotSitting,
+): LapseReading {
+  const ctx = seatContext(state, player, sitting);
+  const kept = renewedRoutePay(state, unit, pair, ctx);
+  const routes = ctx.routes;
+  if (!routes.bound) {
+    return { kept, rival: null, lapse: false, why: 'a route slot is free, so a better pair can be hired beside it' };
+  }
+  const offer = routes.next;
+  if (offer === null || (offer.from.id === pair.from.id && offer.to.id === pair.to.id)) {
+    return { kept, rival: null, lapse: false, why: 'no other pair pays more' };
+  }
+  // Below 1 the bot would drop a road for a pair that pays less, so 1 is the floor.
+  const multiple = Math.max(1, ctx.ai.score.routeLapseMultiple);
+  const rival = {
+    offer,
+    score: appraise([
+      nest(`what ${offer.from.name} → ${offer.to.name} by ${offer.mode} would pay`, offer.pay),
+      {
+        label: `÷ ${round1(multiple)}, what a new pair must pay over a road it replaces (route lapse multiple)`,
+        value: multiple,
+        op: 'div',
+      },
+    ]),
+  };
+  for (const other of state.units) {
+    if (other.id === unit.id || other.ownerId !== player.id) continue;
+    const route = other.trade;
+    if (route === undefined || route.autoResend || state.turn < route.expiresTurn) continue;
+    return {
+      kept,
+      rival,
+      lapse: false,
+      why: `${unitLabel(other)} already lets its route lapse, and one freed slot takes one new pair`,
+    };
+  }
+  if (rival.score.total <= kept.total) {
+    return {
+      kept,
+      rival,
+      lapse: false,
+      why:
+        `${offer.from.name} → ${offer.to.name} would pay ${round1(offer.pay.total)} a turn, ` +
+        `not more than ${round1(multiple)} times what this road pays`,
+    };
+  }
+  return {
+    kept,
+    rival,
+    lapse: true,
+    why:
+      `${offer.from.name} → ${offer.to.name} would pay ${round1(offer.pay.total)} a turn, ` +
+      `more than ${round1(multiple)} times the ${round1(kept.total)} this road pays`,
+  };
+}
+
+/**
+ * **What a route pays a turn if it renews**, in the one currency.
+ *
+ * `explainRoutePay` prices the pair as a new route would run. A renewed route
+ * keeps its start (`TradeRoute.startedTurn`), so a card that pays a road by its
+ * age (Established Routes, `standingTurns`) pays this one too. That extra is
+ * one more term: the simulation's own route fold read at the road's age, less
+ * the same fold with no age.
+ *
+ * The age is the one the road reaches halfway through the term it renews for.
+ * A road that passes a card's threshold during that term is paid for about
+ * half of it, and a road already past the threshold is paid in full. A route
+ * with no start date (a hand-built fixture) is priced as a new route.
+ */
+function renewedRoutePay(
+  state: GameState,
+  unit: Unit,
+  pair: { from: City; to: City },
+  ctx: ValueContext,
+): Appraisal {
+  const route = unit.trade!;
+  const mode = routeMode(route);
+  const fresh = explainRoutePay(state, pair.from, pair.to, ctx, mode);
+  const now = routeAge(state, route);
+  if (now === undefined) return fresh;
+  const age =
+    now + Math.max(0, route.expiresTurn - state.turn) + Math.floor(routeTermFor(state, unit.ownerId) / 2);
+  const abroad = routeIsInternational(pair.from, pair.to);
+  const paid = (at?: number) =>
+    foldRouteYield(
+      abroad
+        ? explainRouteSenderYieldBetween(state, pair.from, pair.to, mode, at)
+        : explainRouteYieldBetween(state, pair.from, pair.to, mode, at),
+    );
+  const old = paid(age);
+  const young = paid(undefined);
+  const extra = explainYields(
+    {
+      food: old.food - young.food,
+      production: old.production - young.production,
+      gold: old.gold - young.gold,
+      science: old.science - young.science,
+      culture: old.culture - young.culture,
+    },
+    ctx,
+  );
+  if (extra.terms.length === 0) return fresh;
+  return appraise([
+    nest('what the pair pays a new route', fresh),
+    nest(`what a road kept up ${age} turns adds`, extra),
+  ]);
+}
+
+/** One route set to renew, or let lapse, as the feed prints it. */
+function renewalDecision(
+  player: Player,
+  unit: Unit,
+  pair: { from: City; to: City },
+  reading: LapseReading,
+): BotDecision {
+  const renew = !reading.lapse;
+  const name = `${pair.from.name} → ${pair.to.name}`;
+  const candidates: BotCandidate[] = [
+    { label: `Renew ${name}`, score: reading.kept.total, chosen: renew, terms: reading.kept.terms },
+  ];
+  if (reading.rival !== null) {
+    const offer = reading.rival.offer;
+    candidates.push({
+      label: `Let it lapse for ${offer.from.name} → ${offer.to.name}`,
+      score: reading.rival.score.total,
+      chosen: !renew,
+      terms: reading.rival.score.terms,
+    });
+  }
+  return {
+    kind: 'unitOrder',
+    command: { type: 'setAutoResend', playerId: player.id, unitId: unit.id, on: renew },
+    subject: unitLabel(unit),
+    summary: renew
+      ? `Sets ${name} to renew when its term runs out. It pays ${round1(reading.kept.total)} a turn, and ${reading.why}.`
+      : `Lets ${name} lapse: ${reading.why}.`,
+    candidates,
+    focus: { col: unit.col, row: unit.row },
+  };
 }
 
 /**

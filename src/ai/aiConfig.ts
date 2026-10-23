@@ -1136,6 +1136,20 @@ export interface AiConfig {
      * written, not that the multiplier should stay.
      */
     caravanScale: number;
+    /**
+     * **When a route lapses instead of renewing** (Commerce batch T8). A bot
+     * sets every route it runs to renew (`autoResend`), so a road can grow old
+     * enough for Established Routes. On the turn a route's term runs out, the
+     * bot lets it lapse only when every route slot is in use and the best pair
+     * a freed slot would open pays more than this multiple of what the route
+     * pays if it renews (`routeRenewalDecision`, `bot.ts`).
+     *
+     * The multiple pays for what a lapse costs: the caravan walks home and
+     * earns nothing on the way, and the new route starts its age at nought. A
+     * value below 1 is read as 1, because a bot never drops a route for a
+     * pair that pays less.
+     */
+    routeLapseMultiple: number;
     /** How many things a `pays` count — or an unread rate — is assumed to count. */
     nominalCount: number;
     // `nominalTiles` stood here until E1a and is **retired** (the `weights.die`
