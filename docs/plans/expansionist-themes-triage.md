@@ -396,6 +396,11 @@ The 114 are the 111 seatable cards and the 3 charters of the list doc. Migration
 
 ## Questions for the user
 
+**Answered 2026-10-23**, verbatim: *"Expansionist build plan: #1 keep both, #2 yes #3 what do you mean by readings"*
+- **Question 1:** keep both readings (25 and 26) as built. No guard for now.
+- **Question 2:** yes. A bot-track batch, outside this plan, teaches the bots to levy, so the arena can measure the levy cards.
+- **Question 3:** open. The user asked what a reading is; the answer was given in chat on 2026-10-23. Readings 1 to 53 stay in use until the user marks one.
+
 1. **Veteran Colonies and the citizens it makes.** Two readings follow from your new text. A levied soldier who retires gives its citizen back, and The Mit'a gives it back again twenty turns later, so each levy nets a citizen while both are seated (reading 26). And any soldier that was not free counts, whatever it cost, so a cheap unit trained and retired turns its hammers into a citizen (reading 25). Recommended: keep both as written for the playtest, and add a guard later if the loop shows. The alternatives are a citizen that comes home once, and a floor on the unit's cost.
 2. **Bots and the levy.** Should a bot-track batch teach the bots to levy, so the arena can measure the engine? Recommended: yes, after E10, as a bot-track batch outside this plan.
 3. **The readings.** May the build use readings 1 to 36 until you mark one?

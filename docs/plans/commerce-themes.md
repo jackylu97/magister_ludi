@@ -2,6 +2,8 @@
 
 **Status:** first draft, 2026-10-21. Nothing here is built. The deck sheet (`docs/decks/commerce.md`), the data and the code are unchanged. This is the Commerce deck pass on the method of 2026-10-20 (the card-design skill, "A way to play, built from a few themes"), done in the same way as the Scientific, Dominion and Expansionist passes (`docs/plans/scientific-themes.md`, `docs/plans/dominion-themes.md`, `docs/plans/expansionist-themes.md`). It replaces the builds of `docs/plans/commerce-builds.md` (2026-10-17); that file's map of materials, its six facts and its leaders still hold, and they are refreshed here. The review list is `docs/plans/commerce-list-proposed.md`.
 
+**Answered 2026-10-23** (section 13): your answers to sections 10 and 12, and five comments from the review page. Section 13 outranks the sections before it.
+
 **Revised 2026-10-21** after your reading (section 11). No card that needs a trade route is dealt before Tier II, five route cards are cut, and five new early cards help a seat settle, raise Markets and develop its towns. Section 12 records the revision. Sections 2 to 10 carry it, and each changed row or line says "revised 2026-10-21 (section 12)".
 
 Your request, 2026-10-21, verbatim:
@@ -600,7 +602,7 @@ Revised 2026-10-21 (section 12): every tier line, the table and both bullets.
   - The deck grows from 69 cards to 78 seatable cards and 2 charters.
   - No leader points at the bankers. Doctrines are not in this pass.
 
-## 10. Open questions for the user
+## 10. Open questions for the user (answered 2026-10-23, section 13)
 
 1. **The engine and four themes as written:** gold and what it buys as the engine; the home market, the far trade, the goods and the bankers as the themes. *Recommended: yes.*
 2. **Feature D, deals as a card quantity** (copies lent, and deal partners), with Export Guilds and The Treaty Ports on it. *Recommended: yes.* It is small, it uses the deals the game already has, and it makes Commerce the deck that wants the table.
@@ -749,10 +751,55 @@ Three shared cards at Tier I need a route to pay, and a Commerce seat draws them
   - Tier I: The Market Halls (a capital of 12 with a Market gains +4 food and +4 production), Commercial Education (+3 science for each Market), and The Strongbox for the purse it keeps.
 - **Both** take the first swap at the table (Export Guilds), and both reach Currency during Tier I. The caravans then come at Tier II into towns that already hold Markets, so the first Tier II hand can seat the home market's route cards at once.
 
-### Questions for the user
+### Questions for the user (answered 2026-10-23, section 13)
 
 1. **"Age 2" as Tier II,** so no route card is dealt before Tier II. *Recommended: yes.*
 2. **The five cuts:** Frontier Investment, The Caravanserai Network, Ore Caravans, Venture Routes and The Homeward Cargoes. *Recommended: yes.* Venture Routes is the strongest of them; if you want to keep one, keep it at Tier II and cut The Factors' Houses, whose towns The Hanse also reads.
 3. **The five new cards,** and The Agora's Market before Currency. *Recommended: yes.* The alternative reading, a Market only once you know Currency, needs a new condition on the founding rider.
 4. **Letters of Credit,** a new shape on the debt rules. *Recommended: yes.* It is the first to drop if you want fewer new shapes.
 5. **The shared route cards:** move The Escorted Roads, Pilgrim Markets and The Grain Exchange to Tier II, share Bought Swords with Dominion and The Merchant Shrines with Devotion, and leave Market Gardens at Tier 0. *Recommended: yes, each to confirm in the partner's pass.*
+
+## 13. Your answers, 2026-10-23
+
+Your answers to sections 10 and 12, verbatim: *"1. yes, 2. yes 3. remove safe conduct (your trade can just get pillaged), nerf the commenda (luxuries you lend are counted as half). #4 approved. #5 institutions are ok, do a mix of institutions and one time boons #6 approved #7 approved #8 yes #9 agreed. commerce section 12: #1 yes #2 approved #3 approved #4 yes #5 yes ."*
+
+Your comments on the review page, 2026-10-21, verbatim:
+- **Market Day:** *"change to: your capital gains +1 gold for every citizen"*
+- **The Emporia:** *"improved luxuries gain +1 food +1 production"*
+- **The Agora:** *"too strong, and too early. how about: +3 gold in all cities with a granary."*
+- **Private Patronage:** *"lets make this an even +40% gold"*
+- **Bought Swords** (the engine glue table's second row, on an older version of the page): *"remove, not that helpful, especially in age 1"*
+
+These answers outrank sections 2 to 12 where they disagree. Sections 2 to 12 are not rewritten; the triage carries this section onto the sheet.
+
+### Section 10
+
+1. **The engine and the four themes:** yes.
+2. **Feature D, deals as a card quantity:** yes.
+3. **The rule-breakers:**
+   - The Return Leg, The Capitulations and The Casa da Índia stand.
+   - **Safe Conduct is cut.** A war ends your routes and stops your posts in the enemy's towns, as it does today. The far trade has no rule-breaking capstone at Tier III.
+   - **The Commenda is weaker:** a luxury you lend counts as half a copy for you. **Reading, to confirm in the triage:** where the game counts copies (monopolies, copy counts, goals), two lent copies count as one, rounded down; where one copy pays happiness or yields, a lent copy pays half, rounded down.
+   - **Bought Swords is removed** (your comment). Its live row retires. It is not shared with Dominion.
+4. **The trims:** approved. **Private Patronage pays +40% gold** (your comment), and keeps its drawback.
+5. **Commerce's commissions: a mix of institutions and one-time rewards.** Today the five commissions are The Great Fair, Corner the Market, The Strongroom, A Guild Commission and The World's Fair. The triage proposes which become institutions (a lasting reward, `CommissionReward.lasting`, that takes no chair) and which keep a one-time reward, with at least two of each, as readings to confirm.
+6. **The moves to the shared cards:** approved.
+7. **The cuts:** approved.
+8. **Established Routes at twenty turns, and the bots learn to renew a route:** yes.
+9. **The deck's size:** agreed. Keep the list and cut by hand.
+
+### Section 12
+
+1. **"Age 2" is Tier II:** yes.
+2. **The five cuts:** approved.
+3. **The five new early cards:** approved, with three changed by your comments:
+   - **Market Day** (Tier 0): your capital gains +1 gold for every citizen. It becomes the tall seat's gold card.
+   - **The Emporia** (Tier 0): improved luxury hexes gain +1 food and +1 production. It is a hex line, not a town line.
+   - **The Agora** (Tier I) becomes: +3 gold in every city with a Granary. It gives no free Market, so the question of a Market before Currency falls away. **Reading, to confirm:** it stays at Tier I, uncommon. The name no longer fits (an agora is a market square), so the triage proposes a new one.
+4. **Letters of Credit:** yes.
+5. **The shared route cards:** yes, except that Bought Swords is removed, so it is not shared with Dominion.
+
+### What follows
+
+- **Counts:** 76 seatable cards and 2 charters (Safe Conduct and Bought Swords leave). Tier I loses its only Military card; the triage says whether a shared card fills it.
+- **Next:** the triage (`docs/plans/commerce-themes-triage.md`) puts every card onto the sheet as add, modify and retire rows with the Type column, plans Commerce's Doctrines, and splits the build into batches.
