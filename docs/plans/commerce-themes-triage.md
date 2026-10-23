@@ -371,6 +371,13 @@ The first nine come from section 13. The rest are new. Each gives the reading th
 - **Schema:** one bump.
 - **Done-gate:** `npx vitest run test/sim/decks/commerceCommissions.test.ts test/sim/commissions.test.ts test/sim/aiCommissions.test.ts test/sim/commercialPosts.test.ts test/sim/decks/commerce.test.ts test/sim/decks.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`.
 
+**Built 2026-10-23** (see the commit "Commerce batch T4"). Schema 173; the explore digests moved by the version alone. The Great Fair is `commissionTheGreatFair`; its goal figure reads the goal's own scope (`admits`). The World's Fair's reward is `postsInPartnerCapitals`, written by `writeEstablishedPost` (`trade.ts`), the third post writer, which pays The Fondaci once; a test pins that the route's own record does not pay again. New readings:
+
+46. (T4) "Already holds your post" means an established post. A capital whose post a route opened recently has that record re-dated, so it is established at once and pays The Fondaci once.
+47. (T4) Both rows carry a player note.
+
+The fence missed `commerceSheet.test.ts`, the "no third writer" docblock on `City.posts`, 14 schema pins and `explore.test.ts`; `decks.test.ts` pins 572 → 573 (the plan's 68 → 69 is `commerce.test.ts`'s live count).
+
 ### T5: goods and deals (feature D)
 
 - **Builds:**
