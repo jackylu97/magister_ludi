@@ -16,11 +16,11 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
 | Tier 0 | 14 | 0 | 0 | 14 | none |
-| Tier I | 26 | 0 | 0 | 26 | 8 proposed |
-| Tier II | 24 | 1 | 0 | 25 | 8 proposed |
-| Tier III | 31 | 0 | 0 | 31 | 8 proposed |
-| Tier IV | 18 | 0 | 0 | 18 | 8 proposed |
-| **All** | **113** | **1** | **0** | **114** | **32 proposed** |
+| Tier I | 26 | 0 | 0 | 26 | 5 proposed |
+| Tier II | 24 | 1 | 0 | 25 | 5 proposed |
+| Tier III | 31 | 0 | 0 | 31 | 7 proposed |
+| Tier IV | 18 | 0 | 0 | 18 | 7 proposed |
+| **All** | **113** | **1** | **0** | **114** | **24 proposed** |
 | Shared | 17 | 0 | 0 | 17 |  |
 
 **By type** (the chair a card fits):
@@ -254,6 +254,7 @@ These rows live in `data/decks/common.json`. A seat holding Expansionist or the 
 
 ## Open for your pass
 
+- **Ruled 2026-10-23** (the build plan's three questions, `docs/plans/expansionist-themes-triage.md`): keep both of Veteran Colonies' loops; the bots learn to levy (built, commit e3edb81b); the readings are approved, and reading 25 now counts a unit raised for free, so every military unit that retires in your town gives it a citizen.
 - **Ruled 2026-10-21** (`docs/plans/expansionist-themes.md`, section 11: your comments on the review page and your answers to its two questions, in your words, with what each changes). They are written into the rows above:
   - **Changed:** Plenty (five times the new population, not eight), The Burning Season (any grassland or plains), The Land Hunger (settlers built faster and with +1 movement), The Mountain Schools (at least two mountains in the town's borders), The Mother City (+5% production and culture for each town founded), The Measure of the Land (at most +10) and Veteran Colonies (the town gains one citizen).
   - **Cut:** The Beating of the Bounds, The Garden Frontier and The Builders' Levy (your comments), then The Common Domain and Home for the Harvest (your answers). Veteran Colonies stays.
@@ -261,7 +262,6 @@ These rows live in `data/decks/common.json`. A seat holding Expansionist or the 
   - **Retired in batch E7:** the fifteen cut cards that had a data row: The Pyramid Builders, The Beating of the Bounds, The Prospectors, The Garden Frontier, The Builders' Levy, The Plough Teams, The Polis, The Landscape Garden, The Common Domain, The Woodwrights, Public Works, The Manors, The Assay Office, The Managed Wild and The Land's Great Work. The Deep Workings had no row and left the sheet. The last section of `docs/plans/expansionist-list-proposed.md`, "Cut by this pass", gives each card's old text and the reason for the cut, so you can restore one.
 - **Still open:**
   - **The proposed Doctrines:** 24 after your comments of 2026-10-23 (8 cut, 14 revised). Their reasons, drawbacks, pairs and shapes, your comments, eight readings and the open questions are in `docs/plans/expansionist-builds.md`, "Doctrines, proposed 2026-10-17".
-  - **The build plan's three questions** (`docs/plans/expansionist-themes-triage.md`, "Questions for the user"): the citizens Veteran Colonies makes, whether the bots should learn to levy, and the readings.
   - **Migration** plays as built. The first triage's reading 36 still waits for you.
   - **The one-effect trims and splits of 2026-10-13** that the builds did not need. The themes pass did not apply them. Recommended: apply them; the long form has each one.
     - Sweet Water: split, The Wellsprings takes the happiness.
