@@ -79,9 +79,9 @@ Seatable cards (charters excluded): 64, that is 8 / 6 / 20 / 16 / 14 across Tier
 
 | Card | Rarity | Status | Ability | Type | Build |
 |---|---|---|---|---|---|
-| **The Rites Commonwealth** | rare | implemented | Cities keeping a rite demand 25% less population happiness. Your cities without a rite gain −1 happiness. | Civic | devout realm: widen (happiness), with a cost |
+| **The Rites Commonwealth** | rare | implemented; revised 2026-10-25 (your comment: *"remove malice"*), batch R1 changes it | Cities keeping a rite demand 25% less population happiness. | Civic | devout realm: widen (happiness), with a cost |
 | **The Octave** | uncommon | implemented | Rites you start while this is seated last 50% longer. | Civic | devout realm: supply (rites last) |
-| **The Fast** (charter) | uncommon | implemented | Once drafted, unlock the Rite of Fasting. A city keeping it stores no food toward growth for ten turns and gains faith equal to its population each turn. No chair required. | Civic | devout realm: act (a rite with a cost) |
+| **The Fast** (charter) | uncommon | implemented; revised 2026-10-25 (your comment: *"gain science and culture instead of faith"*), batch R1 changes it | Once drafted, unlock the Rite of Fasting. A city keeping it stores no food toward growth for ten turns and gains science and culture equal to its population each turn. No chair required. | Civic | devout realm: act (a rite with a cost) |
 | **The Creed** | uncommon | implemented; proposed: reworked, counts the gods a seat holds before it founds a religion, so it pays from Tier I (was "...for every belief your religion holds.") | Your capital gains +3 faith and +3 culture for every god and belief you hold. | Civic | spreading faith: widen; scaler (beliefs) |
 | **The Sacred Precincts** | common | new (10-17, was The Fortified Churches) | Towns gain +3 defence for every religious building in them. | Military | holy war: widen (defence); devout realm |
 | **Consecrated Labor** | common | implemented | Cities with a Shrine may buy workers with faith. | Economic | engine glue: faith buys workers |

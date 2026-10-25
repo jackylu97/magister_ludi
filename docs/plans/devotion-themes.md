@@ -609,3 +609,30 @@ After your answers: every card onto the sheet as `add` and `modify` rows, with t
 ## 11. Where the Devotion and Magisterial passes meet (added 2026-10-23)
 
 The Magisterial pass (`docs/plans/magisterial-themes.md`) ran at the same time as this one. Its section 11 lists where the two touch, with a recommendation for each: the feature names (its adoption moment is renamed feature G, so this pass keeps E and F), rerolls (both passes leave them to the Devotion pair), the three cards this pass shares with Magisterial, Sacred Commissions' tier, and Sacred Patronage's second clause.
+
+## 12. Your comments and answers (2026-10-25)
+
+Your request, 2026-10-25, verbatim:
+
+> *"ok i've commented on both, please fold those in and begin implementing devotion and magisterial. Please do a pass on the doctrines for the remaining decks"*
+
+**Your two comments on the review list.** Both are live cards, so batch R1 changes them (`docs/plans/review-revisions-2026-10-25.md`), and the Devotion build treats them as done:
+- **The Fast (charter):** *"gain science and culture instead of faith"*. A town keeping the Rite of Fasting gains science and culture equal to its population each turn, in place of faith.
+- **The Rites Commonwealth:** *"remove malice"*. It keeps only "Cities keeping a rite demand 25% less population happiness."
+
+**The questions of section 10.** You asked to begin the build and did not answer them one by one, so the build takes every recommendation, as you did for the Commerce build plan (*"for 1-7, go with the recommendations"*). Each is a reading you can still change:
+1. The engine and the four themes: yes.
+2. The religion's cards from Tier II: yes.
+3. Feature E, "devout towns" as a card word: yes.
+4. Feature F, a conversion as a moment, with Pentecost and The Mass Baptisms: yes.
+5. The six rule-breakers (The Caliphate, The Abbeys, The Turning of Swords, The Double Feast, The Interdict, The Pious Masons at Tier III): yes.
+6. The commissions, two institutions and three one-time rewards: yes.
+7. The reworks of live cards: yes.
+8. The cuts: yes.
+9. The shared cards as listed, 29 in all: yes.
+10. A rite started is a season: yes.
+11. The deck's size: keep 64 seatable cards and 2 charters.
+
+**Section 11, where the passes meet:** each recommendation is taken. The Painted Chapels, The Festival Calendar and The Penitents' Roll are shared with Magisterial. Sacred Commissions moves to Tier II. Sacred Patronage keeps its second clause, because the Magisterial build keeps The Last Commission and builds the moment for a great person spent.
+
+**Next:** Devotion's Doctrines (`docs/plans/devotion-doctrines.md`) and the build plan (`docs/plans/devotion-themes-triage.md`). The Devotion build makes the cards shared with Magisterial, so the two builds do not make them twice.

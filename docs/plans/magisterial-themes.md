@@ -662,3 +662,34 @@ The Devotion pass (`docs/plans/devotion-themes.md`) ran at the same time as this
 - **Three more cards the Devotion pass shares with Magisterial:** The Painted Chapels (Tier I: religious buildings give +3 culture each), The Festival Calendar (Tier II: towns keeping a rite gain +30% food and culture) and The Penitents' Roll (Tier II). This pass did not list them. *Recommended: take all three.* Each pays culture, which a Magisterial seat wants.
 - **Sacred Commissions' tier.** This pass keeps it at Tier I as the pair's early card. The Devotion pass moves it to Tier II, because it pays only in a town with a holy site, and holy sites come with prophets in age 2. *Recommended: the Devotion pass's reading,* as you ruled for Commerce's routes. The Painted Chapels then becomes the pair's early card.
 - **Sacred Patronage.** This pass keeps its second clause ("spending a great person grants 30 faith"), which needs the same new moment as The Last Commission. The Devotion pass drops that clause, so the card uses only a rule that exists. *Recommended: keep the clause if you keep The Last Commission,* because the moment is then built anyway. If The Last Commission is cut, take the Devotion pass's text.
+
+## 12. Your comments and answers (2026-10-25)
+
+Your request, 2026-10-25, verbatim:
+
+> *"ok i've commented on both, please fold those in and begin implementing devotion and magisterial. Please do a pass on the doctrines for the remaining decks"*
+
+**Your five comments on the review list:**
+- **The Prytaneion** (Tier 0): *"for every card"*. "Each town gains +1 food for each card you have seated." (It was one for every two cards.)
+- **The Markstones** (Tier 0): *"remove"*. Cut. Its new shape (a border windfall the size of the town's next hex, section 7) is no longer needed.
+- **Gifts at Court** (Tier 0): *"remove"*. Cut. `OrderDef.onDraft` still needs the windfall grant spec for The Wandering Muse.
+- **A new commission at Tier 0:** *"add commission: build a wonder. Reward: wonders grant +3 culture and +5 renown"*. "Commission. Complete a wonder while this is seated. Reward: each wonder you hold grants +3 culture and +5 renown." **Readings, to confirm:** the reward is an institution (a lasting effect), and both amounts are paid each turn, for every wonder you hold, built before or after. The name is the build plan's to choose, checked against the data and the docs.
+- **The Art Dealers** (shared with Commerce, Tier I): *"revise: +3 gold for each card slotted in your government"*. It is a live card, so batch R1 changes it (`docs/plans/review-revisions-2026-10-25.md`). The moment a card is drafted stays, for The Court Painter and The Accessions Register.
+
+**The questions of section 10.** You asked to begin the build and did not answer them one by one, so the build takes every recommendation, as you did for the Commerce build plan (*"for 1-7, go with the recommendations"*). Each is a reading you can still change:
+1. The engine and the four themes: yes.
+2. Feature G, a government adopted as a moment, with The Sed Festival: yes.
+3. The Grand Vizier: keep it.
+4. The five capstones (The Mixed Constitution, The Universal Genius, The Divine Proportion, Magnificence, The Second Sitting): yes.
+5. The Commerce cards: yes. The Brokers' Redraw's move and The Art Dealers are already built; Travelling Players takes the revised text.
+6. Rerolls go to the Devotion pair: yes.
+7. The cuts: yes, with the rows retired.
+8. The commissions mix: yes. With the new wonder commission, the deck has seven commissions: four institutions and three one-time rewards.
+9. Expansionist's wonder cards: yes.
+10. The Nomarchs and The Keepers of Wonders: keep both.
+11. The deck's size: 72 seatable cards less your two cuts plus the new commission, so 71.
+12. A Victor's Peace stays Dominion's: yes.
+
+**Section 11, where the passes meet:** each recommendation is taken. The Painted Chapels, The Festival Calendar and The Penitents' Roll are shared with Devotion. Sacred Commissions moves to Tier II, and The Painted Chapels becomes the pair's early card. Sacred Patronage keeps its second clause, because The Last Commission stays and its moment is built.
+
+**Next:** Magisterial's Doctrines (`docs/plans/magisterial-doctrines.md`) and the build plan (`docs/plans/magisterial-themes-triage.md`). The Devotion build makes the cards the two decks share.

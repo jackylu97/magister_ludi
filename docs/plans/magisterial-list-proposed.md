@@ -61,20 +61,21 @@ All 72 cards take a chair; the deck has no charters. By theme: the council 13, t
 
 | Card | Rarity | Status | Ability | Type | Build |
 |---|---|---|---|---|---|
-| **The Prytaneion** | uncommon | new | Each town gains +1 food for every two cards you have seated. | Economic | council: widen; scaler |
+| **The Prytaneion** | uncommon | new; revised 2026-10-25 (your comment: *"for every card"*; was one for every two cards) | Each town gains +1 food for each card you have seated. | Economic | council: widen; scaler |
 | **The Polemarch** | common | new | Your units gain +2 strength for each Military card you have seated. | Military | council: widen (the army) |
 | **The Court Painter** | common | add; proposed: number changed (was 5 renown) | Each card you draft grants 15 renown. A charter counts. | Civic | patrons: supply; engine |
-| **The Markstones** | common | add; proposed: wording | Completing a culture building claims the next hex its town's borders would take. | Economic | landscape: supply (land from culture buildings) |
+| **The Markstones** | common | cut 2026-10-25 (your comment: *"remove"*) | Completing a culture building claims the next hex its town's borders would take. | Economic | landscape: supply (land from culture buildings) |
 | **The Cornerstone** | common | add; proposed: reworked (was "+25% production toward wonders until you have completed one. Completing your first wonder grants 40 renown."; takes Expansionist's The Pyramid Builders' job) | Towns that hold no wonder build wonders 30% faster. | Economic | monuments: supply (the first wonders) |
 | **Civic Granaries** | common | modify: revised (the data pays +2 food and +2 production) | Monuments give +1 food and +1 production. | Economic | engine: Monuments build towns |
 | **Master Masons** | common | implemented | Gain +25% production toward Monuments. Completing a culture building for the first time in a city grants 20 production there. | Economic | engine: supply (culture buildings) |
 | **The Temple of the Muses** | common | implemented | Culture buildings give +2 faith each. | Civic | engine: widen (the early faith) |
 | **The Repertory** | common | add | Culture buildings give +1 culture each. | Civic | engine: supply (culture) |
-| **Gifts at Court** | common | add | On draft: your capital gains 40 production. Seated, this card does nothing. | Economic | engine: act (boon) |
+| **Gifts at Court** | common | cut 2026-10-25 (your comment: *"remove"*) | On draft: your capital gains 40 production. Seated, this card does nothing. | Economic | engine: act (boon) |
 | **The Second Reading** | uncommon | add; proposed: rarity was common; reworded (was "costs no faith"; the built rule frees the first reroll of every Order, Doctrine and great-person hand) | The first reroll of each hand is free. | Wildcard | engine: supply (rerolls) |
+| **Commission: The Votive Monument** | uncommon | new 2026-10-25 (your comment: *"add commission: build a wonder. Reward: wonders grant +3 culture and +5 renown"*); name to confirm | Commission. Complete a wonder while this is seated. Reward: for the rest of the game, each wonder you hold grants +3 culture and +5 renown. | Civic | monuments: act (an institution) |
 
 - **Six of the eleven Tier 0 cards build a town or claim land** (your Commerce revision of 2026-10-21): food from the council and from Monuments, production toward Monuments, wonders and the capital, and hexes from culture buildings. The Temple of the Muses is the early faith, The Repertory the culture, The Polemarch the army, and The Court Painter and The Second Reading point at the draft.
-- **The Prytaneion** grows with the council: +1 food a town under the Chiefdom, +2 with five chairs, +4 with eight, +5 with eleven.
+- **The Prytaneion** grows with the council: +3 food a town under the Chiefdom, +5 with five chairs, +8 with eight, +11 with eleven (revised 2026-10-25).
 
 ## Tier I
 
@@ -182,7 +183,7 @@ These rows live in `data/decks/common.json`, except The Brokers' Redraw, which C
 | **The Sword of State** | Dominion | I | common | implemented | On draft: the best melee unit you can build is trained in your capital. It costs no upkeep. Seated, this card does nothing. | Military |
 | **Garden Cities** | Expansionist | I | uncommon | implemented | Cities with a Monument gain +1 culture per three worked wild tiles, at most +3. Cities of at least eight population with an Aqueduct gain +1 happiness. | Civic |
 | **Sacred Commissions** | Devotion | I | uncommon | implemented | Cities with a Holy Site gain +38% production toward wonders. Completing a wonder grants 60 faith. | Economic (to reconcile) |
-| **The Art Dealers** | Commerce | I | common | add; confirmed (Commerce batch T7 builds it and the moment a card is drafted, which The Court Painter and The Accessions Register also read) | Each card you draft grants 15 gold. | Economic |
+| **The Art Dealers** | Commerce | I | common | built in Commerce batch T7; revised 2026-10-25 (your comment: *"revise: +3 gold for each card slotted in your government"*), batch R1 changes it. The moment a card is drafted stays for The Court Painter and The Accessions Register | +3 gold for each card seated in your government. | Economic |
 | **Examinations of State** | Dominion | II | rare | implemented | Cities with a Monument and a garrison gain +2 science and +2 culture per three citizens. Ungarrisoned cities receive no bonus. | Civic |
 | **Garden Provinces** | Expansionist | II | common | implemented; proposed: keep (this sheet recommended a cut; the Expansionist pass keeps it for the frontier) | Connected cities with a Monument gain +3 food and +3 culture. | Civic |
 | **Looted Art** | Dominion | II | uncommon | implemented | Capturing a city grants 20 renown for each great-person work and wonder inside its borders. | Civic |
