@@ -1,6 +1,6 @@
 # Magisterial Doctrines (proposal)
 
-**Status:** proposal, 2026-10-25. Nothing is built. No code, data or deck sheet changed. This is stage 6 of the deck pass (the card-design skill, "Doctrines") for Magisterial. The build plan (`docs/plans/magisterial-themes-triage.md`) is not written yet; it takes these Doctrines after your pass.
+**Status:** proposal, 2026-10-25. Nothing is built. No code, data or deck sheet changed. This is stage 6 of the deck pass (the card-design skill, "Doctrines") for Magisterial. The build plan (`docs/plans/magisterial-themes-triage.md`, written at the same time) does not include them; they join it after your pass.
 
 The user's request, 2026-10-25, verbatim: *"Please do a pass on the doctrines for the remaining decks"*. Devotion and Magisterial had no Doctrines. Devotion's were written at the same time, in `docs/plans/devotion-doctrines.md`.
 
