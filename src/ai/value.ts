@@ -4043,7 +4043,8 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       return retireRate(ctx);
     case 'cardDrafted': {
       // **A card enters the collection about as often as this seat drafts**
-      // (Commerce batch T7, The Art Dealers; priced in batch T9). The rate is
+      // (Commerce batch T7; priced in batch T9). The Art Dealers rode this
+      // moment until batch R1, and no row rides it today. The rate is
       // the seat's pace of drafting: the culture it makes a turn over the
       // price of its next draft. A draft ends in a pick unless the seat
       // passes, and this bot seldom passes, so the whole pace is used. A
@@ -4519,6 +4520,26 @@ function ruleRewriteValue(
       // bonus is (`productionBonus` in `scoreEffect`): the production weight,
       // the nominal rate and every town. A cost that rises is the same reading
       // with the sign turned round.
+      if (share <= -1) return ctx.ai.score.unknownEffect;
+      const bonus = -share / (1 + share);
+      return voiceWeight(ctx, 'production') * bonus * nominalRate(ctx) * ctx.cities;
+    }
+    case 'buildingCost': {
+      // **A cheaper building is hammers saved** (batch R1, The Almanac). For a
+      // named building, the saving is the share of its price, once in each of
+      // this empire's towns that does not hold it yet, as a lump. A town that
+      // holds one, a card's grant included (`townHoldsBuilding`), saves
+      // nothing. A row that names no building is read as `unitCost` reads a
+      // cost cut: as the production bonus it equals.
+      if (effect.building !== undefined) {
+        const id = effect.building;
+        const price = buildingProductionCost(id, ctx.state, ctx.playerId);
+        let towns = 0;
+        for (const city of ctx.state.cities) {
+          if (city.ownerId === ctx.playerId && !townHoldsBuilding(ctx.state, city, id)) towns += 1;
+        }
+        return explainLump({ production: -share * price * towns }, ctx).total;
+      }
       if (share <= -1) return ctx.ai.score.unknownEffect;
       const bonus = -share / (1 + share);
       return voiceWeight(ctx, 'production') * bonus * nominalRate(ctx) * ctx.cities;
@@ -8230,7 +8251,10 @@ function treasuryHeldRecord(ctx: ValueContext): number | null {
  *   · the citizens of foreign towns holding its post: the towns where its post
  *     is not established yet, each counted as the row counts a town (`perTown`),
  *     and never less than the knob;
- *   · every route in the world: the knob alone.
+ *   · every route in the world: the knob alone;
+ *   · the Orders in a chair (batch R1, The Art Dealers): the chairs still
+ *     empty, which this seat fills as it drafts. A full council counts every
+ *     chair already, so nothing more is expected.
  */
 function commerceCountAhead(
   effect: CardPaysEffect,
@@ -8281,6 +8305,11 @@ function commerceCountAhead(
         more: Math.max(0, table.worldTradeRoutes),
         why: 'score.commerce.countForecast.worldTradeRoutes',
       };
+    case 'slottedOrders': {
+      const slots = statecraftOf(state, playerId)?.slots ?? [];
+      const empty = slots.filter((slotted) => slotted === null).length;
+      return { more: empty, why: `${empty} empty chairs this seat fills as it drafts` };
+    }
     default:
       return null;
   }

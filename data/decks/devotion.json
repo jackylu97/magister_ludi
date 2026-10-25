@@ -335,7 +335,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The table is set and left bare, and the faithful count what they did not eat.",
-      "text": "Once drafted, unlock the Rite of Fasting. A city keeping it stores no food toward growth for ten turns and gains faith equal to its population each turn. No chair required.",
+      "text": "Once drafted, unlock the Rite of Fasting. A city keeping it stores no food toward growth for ten turns and gains science and culture equal to its population each turn. No chair required.",
       "effects": [],
       "charter": {
         "unlocks": {
@@ -561,7 +561,7 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "A realm at prayer together, and one village that is not.",
-      "text": "Cities keeping a rite demand 25% less population happiness. Your cities without a rite gain −1 happiness.",
+      "text": "Cities keeping a rite demand 25% less population happiness.",
       "effects": [
         {
           "kind": "rulePercent",
@@ -569,14 +569,6 @@
           "percent": -25,
           "scope": {
             "test": "keepingRite"
-          }
-        },
-        {
-          "kind": "happiness",
-          "amount": -1,
-          "per": "city",
-          "scope": {
-            "test": "notKeepingRite"
           }
         }
       ]

@@ -216,12 +216,18 @@
       "decks": [
         "dominion"
       ],
-      "band": 0,
+      "band": 1,
       "line": "none",
       "rarity": "rare",
       "type": "military",
       "flavor": "The king remembers the villages, and the villages remember the king.",
-      "text": "Every fifteen turns your capital raises a melee unit for free. It costs no upkeep.",
+      "text": "When drafted, your capital gains a melee unit. Every fifteen turns it raises another for free. They cost no upkeep.",
+      "onDraft": [
+        {
+          "grant": "unit",
+          "unit": "bestMelee"
+        }
+      ],
       "effects": [
         {
           "kind": "periodicMuster",
@@ -477,7 +483,6 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
       "flavor": "Burn the camp, and drive its cattle home.",
       "text": "Clearing a barbarian camp gives every city +3 food for ten turns. Clearing another restarts the ten turns.",
       "effects": [
@@ -498,7 +503,8 @@
             }
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theDrillGrounds": {
       "name": "The Drill Grounds",
@@ -509,14 +515,14 @@
       "line": "none",
       "rarity": "common",
       "type": "military",
-      "flavor": "Every fourth morning, the whole garrison drills in the square.",
-      "text": "Units standing in your towns gain 1 experience every 4 turns.",
+      "flavor": "Every third morning, the whole garrison drills in the square.",
+      "text": "Units standing in your towns gain 1 experience every 3 turns.",
       "effects": [
         {
           "kind": "drill",
           "experience": 1,
           "where": "garrison",
-          "every": 4
+          "every": 3
         }
       ]
     },
@@ -552,7 +558,7 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "Every promotion is written down, with the battle that earned it.",
-      "text": "While seated, this card gains +1 science each time one of your units earns a rank. It starts at +3 science.",
+      "text": "While seated, this card gains +3 science each time one of your units earns a rank. It starts at +3 science.",
       "effects": [
         {
           "kind": "pays",
@@ -564,7 +570,7 @@
           "where": "empire",
           "basis": "count",
           "to": "science",
-          "amount": 1,
+          "amount": 3,
           "count": "tally",
           "tally": "rankEarned"
         }
@@ -4699,7 +4705,6 @@
       "band": 0,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "The smaller the realm, the sharper its spears.",
       "text": "While another empire holds more towns than you, you train military units 25% faster.",
       "effects": [
@@ -4719,7 +4724,8 @@
             }
           ]
         }
-      ]
+      ],
+      "retired": true
     },
     "theHuntingGrounds": {
       "name": "The Hunting Grounds",

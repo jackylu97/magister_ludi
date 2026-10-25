@@ -2051,9 +2051,10 @@ export function applyCharter(player: Player, id: OrderId): boolean {
 
 /**
  * **Pays the cards that pay when a card enters the collection** (Commerce
- * batch T7, The Art Dealers): the `cardDrafted` moment, paid at the capital
- * through `payOccasionRiders`. Without a capital, food and production land
- * where that function puts them.
+ * batch T7): the `cardDrafted` moment, paid at the capital through
+ * `payOccasionRiders`. Without a capital, food and production land where that
+ * function puts them. The Art Dealers rode the moment until batch R1, and no
+ * row rides it today.
  *
  * It is a function of its own, beside `applyCharter`, so that every way a card
  * enters the collection pays the same riders. Its callers are the moment's

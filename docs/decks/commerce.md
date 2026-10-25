@@ -181,17 +181,18 @@ These rows live in `data/decks/common.json`. A seat holding Commerce or the deck
 
 - **Types:** since batch T1 every shared row carries the type below. The cards shared with Dominion, Expansionist and Scientific carry the types those sheets give them. Batch T1 typed the cards shared with Devotion and Magisterial by this sheet, as batch E0 typed the shared rows of decks not yet sorted. The Devotion and Magisterial passes may change a type, and their triage then changes both sheets (the triage's reading 37).
 - **Moved in batch T1:** The Merchant Shrines, The Waqf and The Silk Road Monks (with Devotion) and The Brokers' Redraw (with Magisterial) came here from the Commerce file, with their ids, texts and tiers. The Escorted Roads, Pilgrim Markets, The Grain Exchange and Travelling Players moved to Tier II, because each needs a trade route to pay. The Exchange of Discoveries moved to Tier I.
-- **Moved in batch T7:** The Standing Army came here from the Dominion file, with its id, text, tier, rarity and type. It is a Commerce seat's Military card at Tier 0.
-- **Each pair's early shared card:** Expansionist, Market Gardens (Tier 0); Devotion, The Merchant Shrines (Tier 0); Scientific, The Exchange of Discoveries (Tier I); Magisterial, The Art Dealers (Tier I, built in batch T7); Dominion, The Standing Army (Tier 0, shared in batch T7).
+- **Moved in batch T7:** The Standing Army came here from the Dominion file, with its id, text, tier, rarity and type.
+- **Changed in batch R1 (2026-10-25):** The Standing Army moved to Tier I in both decks (the user, on the Dominion list: *"move to tier 1 (barracks appear later)"*). The Art Dealers now pays +3 gold for each card seated in your government (*"revise: +3 gold for each card slotted in your government"*). The Pathfinders' Company is now Commerce's only Military card at Tier 0.
+- **Each pair's early shared card:** Expansionist, Market Gardens (Tier 0); Devotion, The Merchant Shrines (Tier 0); Scientific, The Exchange of Discoveries (Tier I); Magisterial, The Art Dealers (Tier I, built in batch T7); Dominion, The Standing Army (Tier I since batch R1, shared in batch T7).
 - **Market Gardens** is the one route card shared before Tier II. Its farms pay beside a road from Tier 0, and its route half waits for the caravans (section 12 of the themes pass, answered).
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
 | **Market Gardens** | common | Expansionist | 0 | implemented | Farms beside a road gain +1 gold. Domestic routes grant an additional +1 food to their destination. | Economic |
 | **The Merchant Shrines** | common | Devotion | 0 | implemented | Your capital gains +2 faith. Cities working an improved luxury gain +1 faith, once per city. | Civic |
-| **The Standing Army** | uncommon | Dominion | 0 | implemented | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. | Military |
+| **The Standing Army** | uncommon | Dominion | I | implemented | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. | Military |
 | **The Exchange of Discoveries** | uncommon | Scientific | I | implemented | +2 science on mines and quarries on a resource. Additional +2 if the city has a market. | Civic |
-| **The Art Dealers** | common | Magisterial | I | implemented | Each card you draft grants 15 gold. | Economic |
+| **The Art Dealers** | common | Magisterial | I | implemented | +3 gold for each card seated in your government. | Economic |
 | **The Escorted Roads** | uncommon | Dominion | II | implemented | Routes whose origin has a garrison gain +5 gold. Naval units gain +2 strength while adjacent to one of your traders. | Economic |
 | **Pilgrim Markets** | uncommon | Devotion | II | implemented | Routes gain +3 gold and +3 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify. | Civic |
 | **The Grain Exchange** | uncommon | Expansionist | II | implemented | Domestic routes from a city with a Granary give +5 food to their destination. Cities receiving one gain +1 happiness. | Economic |

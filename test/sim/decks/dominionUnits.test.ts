@@ -229,6 +229,27 @@ describe('Dominion D5 — units gained', () => {
     // Seated, neither card does anything: they have no effects.
     expect(player.statecraft.orders).toEqual(['theSwordOfState', 'theCleruchy']);
   });
+
+  it('The King’s Levy raises its melee unit in the capital when drafted, and the levy raises the same unit', () => {
+    // Batch R1 (the user, 2026-10-23: "add 'gain a melee unit in your
+    // capital'"). The reading: the drafted unit is the unit the fifteen-turn
+    // levy raises, and it costs no upkeep either.
+    const state = flat();
+    const capital = foundCityAt(state, 0, at(state, 4, 4))!;
+    const player = seat(state, 0);
+    player.statecraft.pendingOrder = { options: ['theKingsLevy' as OrderId] };
+    expect(applyCommand(state, { type: 'chooseOrder', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+    const drafted = unitsNear(state, capital, 'warrior');
+    expect(drafted).toHaveLength(1);
+    expect(drafted[0]!.freeUpkeep).toBe(true);
+    // Seated, the levy raises another of the same type on its calendar.
+    slot(state, 0, 'theKingsLevy');
+    state.turn = 15;
+    musterPeriodicUnits(state);
+    const levied = unitsNear(state, capital, 'warrior');
+    expect(levied).toHaveLength(2);
+    for (const unit of levied) expect(unit.freeUpkeep).toBe(true);
+  });
 });
 
 describe('Dominion D5 — new moments', () => {

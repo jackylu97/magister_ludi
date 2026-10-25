@@ -1687,7 +1687,14 @@ function describeEffect(
               // units, Dominion batch D8) takes the place of "units".
               effect.rule === 'unitCost' && effect.class !== undefined
               ? RULE_WORDS[effect.rule](effect.percent).replace(/^units/, filterWords(effect.class))
-              : RULE_WORDS[effect.rule](effect.percent)
+              : // The building a cost rule names (The Almanac's Libraries,
+                // batch R1) takes the place of "buildings".
+                effect.rule === 'buildingCost' && effect.building !== undefined
+                ? RULE_WORDS[effect.rule](effect.percent).replace(
+                    /^buildings/,
+                    buildingPluralName(effect.building),
+                  )
+                : RULE_WORDS[effect.rule](effect.percent)
             : RULE_WORDS[effect.rule](effect.percent).replace(
                 'near your towns',
                 `within ${effect.range} hexes of your towns`,
@@ -5141,6 +5148,14 @@ const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
     percent < 0
       ? `units cost ${-percent}% less to build and to buy`
       : `units cost ${percent}% more to build and to buy`,
+  // Batch R1, The Almanac. "Buildings" is the word when the row names none;
+  // the `rulePercent` arm puts the named building in its place. Said as
+  // production, as the card says it. The gold price follows, because a
+  // building's gold price is always its production cost converted.
+  buildingCost: (percent) =>
+    percent < 0
+      ? `buildings cost ${-percent}% less production`
+      : `buildings cost ${percent}% more production`,
   growthSurplus: (percent) => `${signed(percent)}% food surplus stored toward growth`,
   // The Burghers (Expansionist batch E10). Said as the speed, as
   // `pacificationRate` is. The row's scope follows as ", in cities of ...".
@@ -5818,10 +5833,12 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   // that "per scholar in the trades" and "per merchant in the trades" are one
   // entry, `greatPeopleGained`'s bargain.
   guildsmen: { one: 'citizen in the trades', many: 'citizens in the trades' },
-  // Scientific batch S3, feature B: the lead and the gap.
+  // Scientific batch S3, feature B: the lead and the gap. The lead has always
+  // counted charter technologies (the triage's reading 17), and since batch R1
+  // the words say so, because the user asked for them to count.
   techLead: {
-    one: 'technology you know that no empire you have met knows',
-    many: 'technologies you know that no empire you have met knows',
+    one: 'technology you know that no empire you have met knows, charter technologies included',
+    many: 'technologies you know that no empire you have met knows, charter technologies included',
   },
   techGap: {
     one: 'technology an empire you have met knows that you do not',

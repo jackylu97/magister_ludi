@@ -198,7 +198,8 @@ describe('Dominion D1 — earning a rank is a moment', () => {
     expect(percent('science')).toBe(30);
   });
 
-  it('grows The Campaign Annals from its starting +3 science', () => {
+  it('grows The Campaign Annals by +3 science for each rank, from its starting +3 science', () => {
+    // Batch R1: +3 for each rank, not +1 (the user, 2026-10-23).
     const state = flat();
     foundCityAt(state, 0, at(state, 4, 4));
     slot(state, 0, 'theCampaignAnnals');
@@ -206,7 +207,10 @@ describe('Dominion D1 — earning a rank is a moment', () => {
     expect(science()).toBe(3);
     drill(state, createUnit(state, 0, 'warrior', 6, 4), VETERAN);
     bumpRevision(state);
-    expect(science()).toBe(4);
+    expect(science()).toBe(6);
+    drill(state, createUnit(state, 0, 'warrior', 7, 4), VETERAN);
+    bumpRevision(state);
+    expect(science()).toBe(9);
   });
 });
 
@@ -217,17 +221,18 @@ describe('Dominion D1 — the drill', () => {
     expect(names.indexOf('renown')).toBe(names.indexOf('drill') + 1);
   });
 
-  it('The Drill Grounds drill the units standing in your towns every fourth turn', () => {
+  it('The Drill Grounds drill the units standing in your towns every third turn', () => {
+    // Batch R1: every 3 turns, not every 4 (the user, 2026-10-23).
     const state = flat();
     const city = foundCityAt(state, 0, at(state, 4, 4))!;
     slot(state, 0, 'theDrillGrounds');
     const inTown = createUnit(state, 0, 'warrior', city.col, city.row);
     const outside = createUnit(state, 0, 'warrior', 9, 4);
     const worker = createUnit(state, 0, 'worker', city.col, city.row);
-    state.turn = 7;
+    state.turn = 8;
     drillUnits(state);
     expect(inTown.experience).toBeUndefined();
-    state.turn = 8;
+    state.turn = 9;
     drillUnits(state);
     expect(inTown.experience).toBe(1);
     expect(outside.experience).toBeUndefined();
@@ -259,7 +264,7 @@ describe('Dominion D1 — the drill', () => {
     slot(state, 0, 'theRegimentalSchools');
     const soldier = createUnit(state, 0, 'warrior', city.col, city.row);
     soldier.experience = VETERAN - 2;
-    state.turn = 8;
+    state.turn = 9;
     drillUnits(state);
     expect(soldier.experience).toBe(VETERAN);
     expect(playerById(state, 0)!.ranksEarned).toBe(1);
@@ -430,7 +435,7 @@ describe('Dominion D1 — the words', () => {
   it('describes each card in a first-time player’s words', () => {
     const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
     expect(said('theDrillGrounds')).toEqual([
-      'your combat units standing in one of your cities gain 1 experience every 4 turns',
+      'your combat units standing in one of your cities gain 1 experience every 3 turns',
     ]);
     expect(said('theDrillMasters')).toEqual(['units you gain start as Veterans']);
     expect(said('upThroughTheRanks')).toEqual([

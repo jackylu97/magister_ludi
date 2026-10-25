@@ -2522,6 +2522,10 @@
    {
     "raw": "every 15 turns, the best melee unit you can build musters in your capital",
     "text": "every 15 turns, the best melee unit you can build musters in your capital"
+   },
+   {
+    "raw": "when drafted, the best melee unit you can build joins you in your capital",
+    "text": "when drafted, the best melee unit you can build joins you in your capital"
    }
   ],
   "dominionClearTheFrontier": [
@@ -2610,8 +2614,8 @@
   ],
   "theDrillGrounds": [
    {
-    "raw": "your combat units standing in one of your cities gain 1 experience every 4 turns",
-    "text": "your combat units standing in one of your cities gain 1 experience every 4 turns"
+    "raw": "your combat units standing in one of your cities gain 1 experience every 3 turns",
+    "text": "your combat units standing in one of your cities gain 1 experience every 3 turns"
    }
   ],
   "theArmedColony": [
@@ -2630,8 +2634,8 @@
     "text": "+3 science to the empire"
    },
    {
-    "raw": "+1 science per rank your units have earned, counted while this Order stands in a slot",
-    "text": "+1 science per rank your units have earned, counted while this Order stands in a slot"
+    "raw": "+3 science per rank your units have earned, counted while this Order stands in a slot",
+    "text": "+3 science per rank your units have earned, counted while this Order stands in a slot"
    }
   ],
   "theOutriders": [
@@ -6550,8 +6554,8 @@
   ],
   "theFast": [
    {
-    "raw": "once drafted, your cities may keep [[rite:riteOfFasting|Rite of Fasting]]: this city does not grow and gains faith for every citizen, while the rite runs",
-    "text": "once drafted, your cities may keep Rite of Fasting: this city does not grow and gains faith for every citizen, while the rite runs"
+    "raw": "once drafted, your cities may keep [[rite:riteOfFasting|Rite of Fasting]]: this city does not grow and gains science and culture for every citizen, while the rite runs",
+    "text": "once drafted, your cities may keep Rite of Fasting: this city does not grow and gains science and culture for every citizen, while the rite runs"
    }
   ],
   "theLivingHymnal": [
@@ -6627,10 +6631,6 @@
    {
     "raw": "-25% happiness demanded per citizen, in every city while it is keeping a rite",
     "text": "-25% happiness demanded per citizen, in every city while it is keeping a rite"
-   },
-   {
-    "raw": "-1 happiness in every city while it is keeping no rite",
-    "text": "-1 happiness in every city while it is keeping no rite"
    }
   ],
   "devotionTheSaintsFields": [
@@ -7122,12 +7122,12 @@
   ],
   "scientificTheAlmanac": [
    {
-    "raw": "-25% production toward [[building:library|Libraries]]",
-    "text": "-25% production toward Libraries"
+    "raw": "[[building:library|Libraries]] cost 25% less production",
+    "text": "Libraries cost 25% less production"
    },
    {
-    "raw": "+1 production in every city with a [[building:library|Library]]",
-    "text": "+1 production in every city with a Library"
+    "raw": "+2 production in every city with a [[building:library|Library]]",
+    "text": "+2 production in every city with a Library"
    }
   ],
   "scientificTheScribesHall": [
@@ -7637,8 +7637,8 @@
   ],
   "theSecretArts": [
    {
-    "raw": "+1 production in every city per technology you know that no empire you have met knows (at most +5 production)",
-    "text": "+1 production in every city per technology you know that no empire you have met knows (at most +5 production)"
+    "raw": "+1 production in every city per technology you know that no empire you have met knows, charter technologies included (at most +5 production)",
+    "text": "+1 production in every city per technology you know that no empire you have met knows, charter technologies included (at most +5 production)"
    }
   ],
   "theEdgeOfTheSword": [
@@ -9414,8 +9414,8 @@
   ],
   "theArtDealers": [
    {
-    "raw": "drafting a card grants +15 gold",
-    "text": "drafting a card grants +15 gold"
+    "raw": "+3 gold per Order you have placed in a slot",
+    "text": "+3 gold per Order you have placed in a slot"
    }
   ]
  },
@@ -9865,8 +9865,12 @@
     "text": "-100% food surplus stored toward growth"
    },
    {
-    "raw": "+1 faith per citizen in this city",
-    "text": "+1 faith per citizen in this city"
+    "raw": "+1 science per citizen in this city",
+    "text": "+1 science per citizen in this city"
+   },
+   {
+    "raw": "+1 culture per citizen in this city",
+    "text": "+1 culture per citizen in this city"
    }
   ],
   "votiveOffering": [

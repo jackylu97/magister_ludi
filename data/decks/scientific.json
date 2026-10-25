@@ -8,14 +8,14 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "A year is a book; we learned to read ahead.",
-      "text": "Libraries cost 25% less production and give +1 production.",
+      "text": "Libraries cost 25% less production and give +2 production.",
       "effects": [
-        { "kind": "productionBonus", "category": "building", "building": "library", "percent": -25 },
+        { "kind": "rulePercent", "rule": "buildingCost", "building": "library", "percent": -25 },
         {
           "kind": "pays",
           "where": "city",
           "scope": { "test": "hasBuilding", "building": "library" },
-          "production": 1
+          "production": 2
         }
       ]
     },
@@ -958,7 +958,7 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "What the workshop knows, the workshop keeps.",
-      "text": "Each town gains +1 production for each technology you know that no empire you have met knows, at most +5.",
+      "text": "Each town gains +1 production for each technology you know that no empire you have met knows, charter technologies included, at most +5.",
       "effects": [
         {
           "kind": "pays",

@@ -14,25 +14,25 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
-| Tier 0 | 24 | 0 | 0 | 24 | none |
-| Tier I | 25 | 0 | 0 | 25 | 4 |
+| Tier 0 | 21 | 0 | 0 | 21 | none |
+| Tier I | 26 | 0 | 0 | 26 | 4 |
 | Tier II | 34 | 0 | 0 | 34 | 5 |
 | Tier III | 27 | 0 | 0 | 27 | 3 |
 | Tier IV | 21 | 0 | 0 | 21 | 3 |
-| **All** | **131** | **0** | **0** | **131** | **15** |
-| Shared | 29 | 0 | 0 | 29 |  |
+| **All** | **129** | **0** | **0** | **129** | **15** |
+| Shared | 28 | 0 | 0 | 28 |  |
 
 **By type** (the chair a card fits):
 
 | Tier | Military | Economic | Civic | Wildcard |
 |---|---|---|---|---|
-| Tier 0 | 8 | 6 | 7 | 3 |
-| Tier I | 6 | 8 | 8 | 3 |
+| Tier 0 | 6 | 5 | 7 | 3 |
+| Tier I | 7 | 8 | 8 | 3 |
 | Tier II | 11 | 8 | 12 | 3 |
 | Tier III | 10 | 6 | 9 | 2 |
 | Tier IV | 9 | 3 | 5 | 4 |
-| **All** | **44** | **31** | **41** | **15** |
-| Shared | 13 | 8 | 7 | 1 |
+| **All** | **43** | **30** | **41** | **15** |
+| Shared | 13 | 8 | 6 | 1 |
 
 ## Tier 0
 
@@ -45,21 +45,18 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **Battle Honours** | common | implemented | Commission. Kill six units while this card is seated. Then gain 2 population in your capital, and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair. | Wildcard |
 | **Sword and Plough** | common | implemented | Each city with a garrison gains +1 culture and +2 production. | Economic |
 | **The Camp Chaplains** | common | implemented | Killing or losing a unit grants faith equal to its strength. | Civic |
-| **The King's Levy** | rare | implemented | Every fifteen turns your capital raises a melee unit for free. It costs no upkeep. | Military |
 | **The Grain Tribute** | common | implemented | +1 food and +1 production in every city. | Economic |
-| **The Drill Grounds** | common | implemented | Units standing in your towns gain 1 experience every 4 turns. | Military |
+| **The Drill Grounds** | common | implemented | Units standing in your towns gain 1 experience every 3 turns. | Military |
 | **The Scaling Ladders** | common | implemented | Melee units gain +4 strength against towns. | Military |
 | **The Bards' Praise** | common | implemented | Killing a unit grants culture equal to its strength. Clearing a barbarian camp grants 30 culture. | Civic |
-| **The Cattle Raid** | common | implemented | Clearing a barbarian camp gives every city +3 food for ten turns. Clearing another restarts the ten turns. | Economic |
 | **The Garrison Captains** | common | implemented | +1 authority for each garrisoned unit. | Civic |
 | **The Spear Makers** | common | implemented | +30% production toward first- and second-age military units. | Military |
 | **The Armed Colony** | common | implemented | A town founded beside one of your military units starts with three extra hexes, and that unit becomes a Veteran. | Economic |
 | **The Outriders** | common | implemented | Claiming a discovery or clearing a barbarian camp grants 8 production to every town. | Economic |
 | **The Captured Arms** | common | implemented | +1 science for every unit you have killed this game, no cap. | Civic |
 | **The Gathering Host** | uncommon | implemented | While seated, this card gains +1 science and +1 culture each time you gain a military unit. It starts at +2 science and +2 culture. | Civic |
-| **The Defiant Kingdom** | uncommon | implemented | While another empire holds more towns than you, you train military units 25% faster. | Military |
 | **The Hunting Grounds** | uncommon | implemented | Barbarian camps within ten hexes of your cities spawn 50% faster. Your units gain +4 strength in your own territory. | Military |
-| **The Campaign Annals** | rare | implemented | While seated, this card gains +1 science each time one of your units earns a rank. It starts at +3 science. | Civic |
+| **The Campaign Annals** | rare | implemented | While seated, this card gains +3 science each time one of your units earns a rank. It starts at +3 science. | Civic |
 | **The Champion's Portion** | common | implemented | Killing a unit grants renown equal to its strength, favouring great generals. | Civic |
 | **Commission: Man the Walls** | common | implemented | Commission. Have military units standing in three of your towns at the same time. Then each town with a garrison gains 30 production. The card leaves its chair. | Wildcard |
 
@@ -82,6 +79,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Soldier-Farmers** | common | implemented | Garrisoned towns gain +1 production and +1 gold on each worked hex with a resource. | Economic |
 | **War Foundries** | rare | implemented | Cities with a Barracks gain gold equal to 30% of their base production and +38% production toward military units. | Economic |
 | **Horse Lords** | rare | implemented | Mounted units gain +3 strength and +1 movement. | Military |
+| **The King's Levy** | rare | implemented | When drafted, your capital gains a melee unit. Every fifteen turns it raises another for free. They cost no upkeep. | Military |
 | **Martial Law** | common | implemented | Each garrisoned unit grants its city +2 happiness and +4 food. | Civic |
 | **The General Staff** | common | implemented | Cities with a Barracks give +3 production and +2 renown a turn, favouring great generals. | Economic |
 | **The Training Cadre** | common | implemented | Units gained in a town with a Barracks start with 2 experience. | Military |
@@ -243,12 +241,14 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 
 **Moved by Commerce batch T7 (2026-10-23).** The Standing Army moved from this deck's file to `data/decks/common.json`, shared with Commerce, with its id, text, tier, rarity and type. It is the early shared card of the Dominion and Commerce pair (ruling (qqqqqq) 14), and a Commerce seat's Military card at Tier 0.
 
+**Changed by batch R1 (2026-10-25).** The Standing Army moved to Tier I in both decks (*"move to tier 1 (barracks appear later)"*). It is still the early shared card of the Dominion and Commerce pair. Copying the Enemy is retired, so it leaves both decks (*"remove"*, your comment on this table). It paid only for kills, so a Scientific seat alone would rarely use it.
+
 **Built by Commerce batch T6 (2026-10-23).** Mercenary Contracts takes the Commerce themes pass's text: a military unit bought with gold or faith while the card is seated costs no upkeep for twenty turns, and keeps the waiver if the card leaves its chair (`docs/plans/commerce-themes-triage.md`, reading 27). The hired unit that left after fifteen turns is gone.
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
 | **Rites of Passage** | common | Devotion | 0 | implemented | Gaining a military unit grants 12 faith. | Civic |
-| **The Standing Army** | uncommon | Commerce | 0 | implemented | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. | Military |
+| **The Standing Army** | uncommon | Commerce | I | implemented | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. | Military |
 | **Military Colonies** | uncommon | Expansionist | I | implemented | Cities with a Barracks gain +45% production toward settlers and workers. | Economic |
 | **The Escorted Roads** | uncommon | Commerce | II | implemented | Routes whose origin has a garrison gain +5 gold. Naval units gain +2 strength while adjacent to one of your traders. | Economic |
 | **Field Academies** | uncommon | Scientific | I | implemented | Your first combat kill each turn grants 23 science. Cities with a Library produce siege units 38% faster. | Civic |
@@ -256,7 +256,6 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 | **The Oriflamme** | uncommon | Devotion | I | implemented | Military units beside one of your religious units gain +4 strength. | Military |
 | **The Sacred Host** | rare | Devotion | I | implemented | Military units may be purchased with faith in cities with a Temple at the escalating conversion price. Combat kills grant 15 faith. | Military |
 | **The Sword of State** | common | Magisterial | I | implemented | On draft: the best melee unit you can build is trained in your capital. It costs no upkeep. Seated, this card does nothing. | Military |
-| **Copying the Enemy** | uncommon | Scientific | I | implemented | Your first kill each turn of a unit you cannot yet build grants science toward the technology that unlocks it, equal to 10% of that technology's cost. | Civic |
 | **The Muster of the Fields** | uncommon | Expansionist | I | implemented | Cities of at least five citizens may spend one citizen to muster their best legally available melee unit. This shares the city's five-turn levy limit. The unit counts as trained. | Military |
 | **The Frontier Militia** | common | Expansionist | 0 | implemented | Each town you found starts with the best melee unit you can build standing in it. | Military |
 | **The Farming Garrisons** | common | Expansionist | I | implemented | Hexes with a fortified military unit gain +1 food and +1 production. Fortified units gain +2 strength. | Economic |
@@ -281,6 +280,14 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 
 New names are placeholders; rename freely.
 
+- **Your review comments of 2026-10-23, built in batch R1 (2026-10-25)** (`docs/plans/review-revisions-2026-10-25.md`, written into the rows above):
+  - **The King's Levy** moved to Tier I, and a drafted copy gives your capital a melee unit at once (*"revise: add "gain a melee unit in your capital". move to tier 1"*). The unit is the one the levy raises every fifteen turns, and it also costs no upkeep.
+  - **The Drill Grounds** drills every 3 turns (*"revise: every 3 turns"*).
+  - **The Campaign Annals** gains +3 science for each rank (*"revise: this card gains +3 science each time one of your units earns a rank."*). It still starts at +3 science.
+  - **The Cattle Raid** is cut, and its data row is retired (*"remove, too similar a shape to the bards' praise"*).
+  - **The Defiant Kingdom** is cut, and its data row is retired (*"remove"*).
+  - **The Standing Army** (shared) moved to Tier I, and **Copying the Enemy** (shared) is retired. The note above the shared table says more.
+  - Tier 0 still has six Military cards after the moves: Blood Brothers, Blooded Spears, The Drill Grounds, The Scaling Ladders, The Spear Makers and The Hunting Grounds.
 - **Still open:**
   - **Combined Arms' second clause** (my proposal, since the old one repeated The Siege Train and The Engineer Corps): siege units beside one of your melee units cannot be attacked in melee. The infantry screens the guns. It is the same kind of rule as The Testudo's.
   - **The endless host's new Doctrines** (my proposal): Weight of Numbers and The Laws of Lord Shang at Tier II. The reasoning is in `docs/plans/doctrines-governments-chairs.md`, section 2. You removed the third, The Servian Reforms at Tier I, on 2026-10-21.

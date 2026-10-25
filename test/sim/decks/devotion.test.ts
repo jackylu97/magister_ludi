@@ -44,6 +44,7 @@ import {
 import { explainContribution, purchaseError } from '../../../src/sim/purchase';
 import { commissionFigure } from '../../../src/sim/commissions';
 import {
+  cardHappiness,
   describeCard,
   drawOrderOffer,
   eligibleFor,
@@ -340,7 +341,9 @@ describe('the card-taught rites', () => {
     expect(riteError(g.state, 0, city.id, 'votiveOffering' as RiteId)).toMatch(/wonder/);
   });
 
-  it('The Fast’s charter opens a rite that stops growth and pays faith for every citizen', () => {
+  it('The Fast’s charter opens a rite that stops growth and pays science and culture for every citizen', () => {
+    // Batch R1 (the user, 2026-10-25: "gain science and culture instead of
+    // faith"): each equal to the town's population, and no faith.
     const g = akhenaten();
     const { seat: player, city } = town(g);
     player.charteredRites.push('riteOfFasting' as RiteId);
@@ -349,8 +352,22 @@ describe('the card-taught rites', () => {
     expect(riteError(g.state, 0, city.id, 'riteOfFasting' as RiteId)).toBeNull();
     performRiteAt(g.state, player, city, 'riteOfFasting' as RiteId);
     expect(explainGrowthPercent(g.state, city).some((line) => line.percent === -100)).toBe(true);
-    const faith = linesOf(g.state, city, 'riteOfFasting').reduce((sum, line) => sum + line.faith, 0);
-    expect(faith).toBe(4);
+    const lines = linesOf(g.state, city, 'riteOfFasting');
+    expect(lines.reduce((sum, line) => sum + line.science, 0)).toBe(4);
+    expect(lines.reduce((sum, line) => sum + line.culture, 0)).toBe(4);
+    expect(lines.reduce((sum, line) => sum + line.faith, 0)).toBe(0);
+  });
+
+  it('The Rites Commonwealth costs nothing in a city without a rite', () => {
+    // Batch R1 (the user, 2026-10-25: "remove malice"): the −1 happiness in
+    // every city without a rite is gone, and the discount on demand stays.
+    const g = akhenaten();
+    town(g);
+    seat(g.state, ['theRitesCommonwealth' as OrderId]);
+    expect(cardHappiness(g.state, 0)).toEqual([]);
+    expect(describeCard('theRitesCommonwealth' as OrderId).map((clause) => stripRefs(clause.text))).toEqual([
+      '-25% happiness demanded per citizen, in every city while it is keeping a rite',
+    ]);
   });
 
   it('The Host Restored heals the units standing in land that follows the faith, and no others', () => {

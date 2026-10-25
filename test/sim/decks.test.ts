@@ -571,8 +571,11 @@ describe('the schema, as landed', () => {
     // **And Commerce batch T6** (the purse and the hoard): four more. Letters
     // of Credit, The Strongbox and The Merchant Guilds are new Commerce rows,
     // and the shared Mercenary Contracts left `deferred`.
-    expect(live).toBe(582);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(582);
+    // **And batch R1** (the review comments of 2026-10-23 and 2026-10-25):
+    // three fewer. The Cattle Raid, The Defiant Kingdom and the shared
+    // Copying the Enemy were live and are retired.
+    expect(live).toBe(579);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(579);
   });
 
   /**
@@ -1157,10 +1160,12 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // **Commerce batch T3** freed The Return Leg (− 1).
       // **Commerce batch T5** freed Export Guilds and The Treaty Ports (− 2).
       // **Commerce batch T6** freed Mercenary Contracts (− 1).
+      // **Batch R1** retired three live rows: The Cattle Raid, The Defiant
+      // Kingdom and the shared Copying the Enemy (+ 3 retired).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
       ).toHaveLength(25);
-      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(199);
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(202);
     }
   });
 

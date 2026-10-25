@@ -189,7 +189,7 @@ import {
 // Dominion batch D8, from the evaluator for the same reason: the rule that
 // stops an empire founding cities (The Soldiers' Share), and the law's
 // percentages on a unit's cost (The Servian Reforms).
-import { cardBehaviorRule, cardUnitCostLines } from './statecraft/evaluator';
+import { cardBehaviorRule, cardBuildingCostLines, cardUnitCostLines } from './statecraft/evaluator';
 // Scientific batch S5, The School of Mines: the law's extra copies for the
 // works standing on this empire's deposits, from the evaluator for the same
 // reason.
@@ -3477,6 +3477,12 @@ function uniqueCostFactor(cities: number): number {
  *   4. **the row's own premium**, for a row with `costPercent` only (the
  *      Mouseion, Scientific batch S4): that share of the figure the lines
  *      above come to.
+ *   5. **the empire's law**, for an empire whose cards carry a `buildingCost`
+ *      rule that reaches this row (batch R1, The Almanac's cheaper
+ *      Libraries): the rows summed, as one line, floored once and never below
+ *      one hammer. `explainUnitCost`'s `unitCost` line one table over.
+ *
+ * A prototype's surcharge (Scientific batch S9) comes after all of these.
  *
  * **It takes a player now** (2026-09-07, item dd), and that is the reversal of a
  * statement this docblock used to make: "nothing an empire does changes what a
@@ -3542,11 +3548,20 @@ export function explainBuildingCost(
     });
     running += amount;
   }
-  // **A prototype** (Scientific batch S9, The Prototype Works; the triage's
-  // reading 48): a row of the research under way, built before its
-  // technology is known, costs the card's share more. Last, on everything
-  // above, floored once. See `prototypePriced`.
   if (state !== undefined && playerId !== undefined) {
+    // **The empire's law** (batch R1, The Almanac): one line for every
+    // `buildingCost` row that reaches this building, summed and floored once,
+    // never below one hammer. A purchase is priced off this fold, so it follows.
+    const law = foldCardRulePercent(cardBuildingCostLines(state, playerId, id));
+    if (law !== 0 && running > 0) {
+      const ruled = Math.max(1, Math.floor((running * (100 + law)) / 100));
+      lines.push({ source: `Cards ${law > 0 ? '+' : ''}${law}%`, amount: ruled - running });
+      running = ruled;
+    }
+    // **A prototype** (Scientific batch S9, The Prototype Works; the triage's
+    // reading 48): a row of the research under way, built before its
+    // technology is known, costs the card's share more. Last, on everything
+    // above, floored once. See `prototypePriced`.
     const line = prototypeLine(state, playerId, 'building', id, running);
     if (line !== null) lines.push(line);
   }

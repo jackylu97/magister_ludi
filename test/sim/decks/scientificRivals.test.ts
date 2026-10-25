@@ -310,6 +310,26 @@ describe('The Secret Arts', () => {
     expect(count()).toBe(7);
     expect(lines(home)).toBe(5);
   });
+
+  it('counts each charter technology it knows (batch R1)', () => {
+    // The user, 2026-10-23: "this should count charter technologies". The
+    // lead has always counted them (the triage's reading 17); this pins it.
+    const state = flat();
+    const home = foundCityAt(state, 0, at(state, 3, 3));
+    bumpRevision(state);
+    const effect = orderDef('theSecretArts').effects[0] as CardPaysEffect;
+    const count = (): number => countOf(state, 0, 'theSecretArts', effect, home);
+    slot(state, 0, 'theSecretArts');
+    meet(state, 0, 1);
+    expect(count()).toBe(0);
+    const [first, second] = CHARTER_TECH_IDS as readonly TechId[];
+    learn(state, 0, first!, second!);
+    expect(count()).toBe(2);
+    // While no empire has been met, the lead is empty (reading 18), charter
+    // technologies included.
+    meet(state, 0);
+    expect(count()).toBe(0);
+  });
 });
 
 describe('The Translation Movement', () => {
@@ -534,7 +554,7 @@ describe('the rows', () => {
   it('are said in a first-time player’s words', () => {
     const said = (id: OrderId): string[] => describeCard(id).map((clause) => stripRefs(clause.text));
     expect(said('theSecretArts')).toEqual([
-      '+1 production in every city per technology you know that no empire you have met knows (at most +5 production)',
+      '+1 production in every city per technology you know that no empire you have met knows, charter technologies included (at most +5 production)',
     ]);
     expect(said('theEdgeOfTheSword')).toEqual([
       '+3 combat strength against an empire that knows fewer technologies than you',

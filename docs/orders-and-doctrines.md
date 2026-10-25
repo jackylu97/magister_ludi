@@ -213,7 +213,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 |---|---|---|---|---|
 | Blooded Spears | 0 | ● | S | Military units gain +2 strength, doubled against barbarians. |
 | Blood Brothers | 0 | ○ | S | A barbarian unit you kill joins your side. |
-| The King's Levy | 0 | ○ | S | Every fifteen turns your capital raises a melee unit for free. It costs no upkeep. |
 | Commission: Clear the Frontier | 0 | ● | S | Commission. Clear two barbarian camps while this card is seated. Then choose a great general from a draft. The card leaves its chair. |
 | The Horse Herds | 0 | ● | S | Worked pastures and camps give +1 food and +1 production. |
 | Battle Honours | 0 | ● | S | Commission. Kill six units while this card is seated. Then gain 2 population in your capital, and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair. |
@@ -222,14 +221,14 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Grain Tribute | 0 | ● | S | +1 food and +1 production in every city. |
 | The Scaling Ladders | 0 | ● | S | Melee units gain +4 strength against towns. |
 | The Bards' Praise | 0 | ● | S | Killing a unit grants culture equal to its strength. Clearing a barbarian camp grants 30 culture. |
-| The Cattle Raid | 0 | ● | S | Clearing a barbarian camp gives every city +3 food for ten turns. Clearing another restarts the ten turns. |
-| The Drill Grounds | 0 | ● | S | Units standing in your towns gain 1 experience every 4 turns. |
+| The Drill Grounds | 0 | ● | S | Units standing in your towns gain 1 experience every 3 turns. |
 | The Armed Colony | 0 | ● | S | A town founded beside one of your military units starts with three extra hexes, and that unit becomes a Veteran. |
-| The Campaign Annals | 0 | ○ | P | While seated, this card gains +1 science each time one of your units earns a rank. It starts at +3 science. |
+| The Campaign Annals | 0 | ○ | P | While seated, this card gains +3 science each time one of your units earns a rank. It starts at +3 science. |
 | The Outriders | 0 | ● | S | Claiming a discovery or clearing a barbarian camp grants 8 production to every town. |
 | The Garrison Captains | 0 | ● | P | +1 authority for each garrisoned unit. |
 | The Captured Arms | 0 | ● | P | +1 science for every unit you have killed this game, no cap. |
 | The Gathering Host | 0 | ◆ | P | While seated, this card gains +1 science and +1 culture each time you gain a military unit. It starts at +2 science and +2 culture. |
+| The King's Levy | 1 | ○ | S | When drafted, your capital gains a melee unit. Every fifteen turns it raises another for free. They cost no upkeep. |
 | The Training Cadre | 1 | ● | S | Units gained in a town with a Barracks start with 2 experience. |
 | The Quartermasters | 1 | ● | S | Worked strategic resources gain +3 food and +3 production. |
 | The Soldiers' Purse | 1 | ● | S | Military units cost 1 less upkeep for each rank they hold. |
@@ -314,7 +313,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Harrying | 4 | ○ | S | Pillaging a hex beside a rival town with no garrison throws that town into unrest. |
 | Vae Victis | 4 | ○ | P | Your capture rewards are paid twice. |
 | The Spear Makers | 0 | ● | S | +30% production toward first- and second-age military units. |
-| The Defiant Kingdom | 0 | ◆ | S | While another empire holds more towns than you, you train military units 25% faster. |
 | The Hunting Grounds | 0 | ◆ | S | Barbarian camps within ten hexes of your cities spawn 50% faster. Your units gain +4 strength in your own territory. |
 | The Funeral Oration | 2 | ◆ | S | Units you lose count half toward war weariness. |
 | The Castra | 2 | ◆ | S | Your own hexes with a fortified military unit gain +1 science and +1 production. Citadels gain +3 production and +3 science. |
@@ -560,7 +558,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Priest-Astronomers | 1 | ● | P | Your capital gains +2 science and +2 faith for every city of yours keeping a rite, at most +16 of each. |
 | Consecrated Labor | 1 | ● | S | Cities with a Shrine may buy workers with faith. |
 | The Octave | 1 | ◆ | P | Rites you start while this is seated last 50% longer. |
-| The Fast | 1 | ◆ | S | Once drafted, unlock the Rite of Fasting. A city keeping it stores no food toward growth for ten turns and gains faith equal to its population each turn. No chair required. |
+| The Fast | 1 | ◆ | S | Once drafted, unlock the Rite of Fasting. A city keeping it stores no food toward growth for ten turns and gains science and culture equal to its population each turn. No chair required. |
 | The Living Hymnal | 1 | ◆ | P | Your capital gains +3 science and +3 culture for every city following your religion, with no cap. |
 | The Alms Roads | 1 | ◆ | S | Your trade routes from Temple cities gain +5 faith. |
 | The Mission | 1 | ◆ | S | Commission. Convert two foreign cities to your religion while this is seated. Reward: a free Apostle in your capital and 150 culture. Then this card leaves its chair. |
@@ -568,7 +566,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Monastic Builders | 1 | ◆ | S | Science buildings may be bought with faith. |
 | The Creed | 1 | ◆ | P | Your capital gains +3 faith and +3 culture for every belief your religion holds. |
 | The Painted Chapels | 1 | ◆ | P | Religious buildings give +3 culture each. |
-| The Rites Commonwealth | 1 | ○ | S | Cities keeping a rite demand 25% less population happiness. Your cities without a rite gain −1 happiness. |
+| The Rites Commonwealth | 1 | ○ | S | Cities keeping a rite demand 25% less population happiness. |
 | The Saints' Fields | 2 | ● | S | Worked Holy Sites give +5 food and +8 gold. A city working one gains +2 happiness, once per city. |
 | The Cathedral Works | 2 | ● | P | Gain +45% production toward Cathedrals. Cities with one gain +8 science and +2 happiness. |
 | The Old Holy Places | 2 | ● | S | Holy Sites that have stood for 20 turns gain +3 faith. Those that have stood for 40 turns gain +3 faith and +3 culture more. |
@@ -603,7 +601,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 
 | Order | Band | Rarity | Role | Effect |
 |---|---|---|---|---|
-| The Almanac | 0 | ● | P | Libraries cost 25% less production and give +1 production. |
+| The Almanac | 0 | ● | P | Libraries cost 25% less production and give +2 production. |
 | The Scribes' Hall | 0 | ● | P | Cities with a Library gain +1 science per four citizens and +1 culture per three citizens. |
 | The Long Study | 0 | ◆ | P | A Library at least twenty turns old grants +2 culture and +1 renown. At forty turns, these bonuses become +4 culture and +2 renown. |
 | The Bronze-Founders' Charter | 0 | ◆ | S | Drafting this opens Casting for research. Knowing it gives two lines a trait they keep through every upgrade. Hoplite (Spearman to Pikeman): +1 strength, and in one of your towns +1 more for every four citizens there. Maryannu (War Chariot to Knight): +1 strength, and +5 against a unit below half health. No chair required. |
@@ -617,7 +615,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Learned Foundations | 1 | ● | S | Cities with a Library build empire buildings 25% faster. |
 | The Old Academy | 1 | ◆ | S | An Academy at least twenty turns old gains +3 food and +3 production. At forty turns these bonuses become +6 of each. |
 | The Commonplace Book | 1 | ● | S | Charter technologies cost you 15% less research. |
-| The Secret Arts | 1 | ◆ | P | Each town gains +1 production for each technology you know that no empire you have met knows, at most +5. |
+| The Secret Arts | 1 | ◆ | P | Each town gains +1 production for each technology you know that no empire you have met knows, charter technologies included, at most +5. |
 | The Edge of the Sword | 1 | ◆ | S | Your units gain +3 strength against the units of an empire that knows fewer technologies than you. |
 | The Glassmakers' Charter | 1 | ◆ | S | Drafting this opens Optics for research. Knowing it lets you build the Specularium, a city building only you can build: +3 food, and +1 science for every two citizens of its town. No chair required. |
 | The Surveyors' Charter | 1 | ◆ | S | Drafting this opens Surveying for research. Knowing it lets you build the Aqueduct before Engineering, and lets workers build the Qanat: an improvement on flat land that waters the farms beside it with no river or lake nearby. No chair required. |
@@ -799,7 +797,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Carried-Off Scholars | Dominion · Scientific | 2 | ● | S | Capturing a city grants science equal to ten times its population. |
 | The Soldier-Scholars | Dominion · Scientific | 2 | ◆ | P | Your military units in your towns gain +5 strength, and each supplies +2 science. |
 | The Sword of State | Dominion · Magisterial | 1 | ● | S | On draft: the best melee unit you can build is trained in your capital. It costs no upkeep. Seated, this card does nothing. |
-| Copying the Enemy | Dominion · Scientific | 1 | ◆ | S | Your first kill each turn of a unit you cannot yet build grants science toward the technology that unlocks it, equal to 10% of that technology's cost. |
 | The New Code | Dominion · Magisterial | 3 | ○ | S | Capturing a city opens a draft at once, at no culture cost. This can happen at most once every ten turns. |
 | Looted Art | Dominion · Magisterial | 2 | ◆ | S | Capturing a city grants 20 renown for each great-person work and wonder inside its borders. |
 | The Farming Garrisons | Dominion · Expansionist | 1 | ● | S | Hexes with a fortified military unit gain +1 food and +1 production. Fortified units gain +2 strength. |
@@ -807,8 +804,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Waqf | Commerce · Devotion | 2 | ● | P | Faith buildings you bought with gold provide +3 faith and +2 culture. |
 | The Silk Road Monks | Commerce · Devotion | 2 | ◆ | S | Your trade routes carry 100% more religious pressure. Trade routes you send to a city that follows your religion gain +3 gold and +3 culture. |
 | The Brokers' Redraw | Commerce · Magisterial | 2 | ○ | S | You may reroll a draft with gold instead of faith. All other purchasing is 10% more expensive. |
-| The Standing Army | Dominion · Commerce | 0 | ◆ | S | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. |
-| The Art Dealers | Commerce · Magisterial | 1 | ● | S | Each card you draft grants 15 gold. |
+| The Standing Army | Dominion · Commerce | 1 | ◆ | S | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. |
+| The Art Dealers | Commerce · Magisterial | 1 | ● | E | +3 gold for each card seated in your government. |
 | Mercenary Contracts | Dominion · Commerce | 3 | ◆ | S | Military units you buy cost no upkeep for twenty turns. |
 
 ### Generic
@@ -944,7 +941,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Grain Exchange** — Both halves name the same roads, so the grain and the contentment can never disagree about which towns they mean: a domestic route out of a town with a granary. The contentment is paid once per town however many such carts arrive, and it goes the turn the last of them lapses.
 - **The Silk Road Monks** — The religious pressure a trade route carries is doubled by adding the same amount again.
 - **The Brokers' Redraw** — Gold opens the door and pays a premium for it: the price is the faith ladder's own figure, multiplied, so faith stays the cheaper way to ask for a fresh hand and the card is a convenience rather than a replacement. The ladder itself is untouched — a redraw in either bank climbs the same rungs and raises the same count — and a hand whose first asking is free stays free in both. The surcharge on the second line reaches every unit and every building this empire buys, in either bank.
-- **The Art Dealers** — A charter you draft counts. Passing a draft does not, and neither does taking a Doctrine.
+- **The Art Dealers** — Only the Orders sitting in a chair count, this one included. A charter takes no chair, so it does not count, and neither does a Doctrine.
 - **The Monastery Libraries** — Held whole. One half of this asks for a house the realm no longer raises, so that half can never pay — and a card is never bent to fit the half that can. † a house of quiet study teaches as well as prays, and a library prays as well as teaches
 - **Common Tools** — † the hammers are for workers and buildings, and for nothing else
 - **Road Crews** — † a worker that wakes on one of your roads travels further that day

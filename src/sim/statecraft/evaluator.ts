@@ -6150,6 +6150,26 @@ export function cardUnitCostLines(
 }
 
 /**
+ * **The percentages this empire's law puts on the cost of one building**
+ * (batch R1, The Almanac's cheaper Libraries): the `buildingCost` rule's rows
+ * that name this building, or name none. `cardUnitCostLines`' twin for
+ * buildings. Read by `explainBuildingCost` (`cities.ts`) as one line.
+ */
+export function cardBuildingCostLines(
+  state: GameState,
+  playerId: number,
+  id: BuildingId,
+): CardRuleLine[] {
+  const list: CardRuleLine[] = [];
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'rulePercent')) {
+    if (effect.rule !== 'buildingCost' || effect.percent === 0) continue;
+    if (effect.building !== undefined && effect.building !== id) continue;
+    list.push({ card, source, percent: effect.percent });
+  }
+  return list;
+}
+
+/**
  * **How much faster a barbarian camp raises its units** (Dominion batch D7, The
  * Hunting Grounds): the largest `campMuster` percentage among the empires with
  * a town within the row's `range` of the camp, or nought when no such row

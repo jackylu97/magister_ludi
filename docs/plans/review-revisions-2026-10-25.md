@@ -47,3 +47,20 @@ These two are live cards that the Devotion pass keeps. The Devotion build plan t
 - **Bot pricing** (`src/ai/value.ts`): The Art Dealers' new shape and The Fast's new pay.
 - **Saves.** A retired row stays in the data for old saves. Raise `SCHEMA_VERSION` only if a stored shape changes.
 - **The sheets.** Each changed card's row shows the new text and stays `implemented`. A retired card leaves the tables and gets a line in the sheet's notes, with the date and the user's words.
+
+## Built (2026-10-25)
+
+Batch R1 built every change above. The gate passed: the type check, 9,543 core tests and the build. `SCHEMA_VERSION` did not change.
+
+- **The Almanac:** the data row was the cause, not the code. It wrote "cost 25% less" as a −25% production bonus, which slows the build and leaves the price alone. A new rule, `rulePercent` `buildingCost` with a `building` field, now lowers the price itself: the hammers, the printed cost and the gold price. It is the building version of `unitCost`. A test compares a Library's cost with and without the card.
+- **The Secret Arts:** the count already included charter technologies, so only the text changed ("charter technologies included"). A charter technology that a met rival also knows does not count, because two empires can draft the same charter.
+- **The Art Dealers:** pays through the count `slottedOrders`. It counts itself when seated. The `cardDrafted` moment stays for the Magisterial cards that will read it.
+- **The King's Levy:** the drafted unit is the levy's own unit (`bestMelee`), free of upkeep.
+- **Retired:** The Cattle Raid, The Defiant Kingdom and Copying the Enemy. Their rows stay for old saves.
+- **Tier 0 Military cards left:** Dominion 7, Commerce 1 (The Pathfinders' Company).
+
+**Follow-ups, not done:**
+- The Rites Commonwealth's flavour line ("and one village that is not") still points at the removed penalty.
+- The Waterworks reads "Aqueducts cost 33% less production" and is built as +50% production toward Aqueducts. The build time is about the same, but the gold price does not fall. `buildingCost` can make the text exact in one data line, if the user wants it.
+- The town scope `notKeepingRite` has no reader now. The Devotion build keeps or removes it.
+- `docs/decks/magisterial.md` still describes The Art Dealers as paying for each draft in two prose lines (the Magisterial build rewrites that sheet).

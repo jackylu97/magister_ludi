@@ -122,9 +122,15 @@ describe('the shared shelf is two kinds of row and no third', () => {
   });
 
   it('keeps a retired shared row out of every pool', () => {
-    // Batch S retired the two shared cards both their sheets cut, and
-    // Scientific batch S1b a third, The Hydraulic Commonwealth.
-    expect([...RETIRED].sort()).toEqual(['frontierGarrisons', 'harvestOfferings', 'theHydraulicCommonwealth']);
+    // Batch S retired the two shared cards both their sheets cut, Scientific
+    // batch S1b a third, The Hydraulic Commonwealth, and batch R1 a fourth,
+    // Copying the Enemy.
+    expect([...RETIRED].sort()).toEqual([
+      'copyingTheEnemy',
+      'frontierGarrisons',
+      'harvestOfferings',
+      'theHydraulicCommonwealth',
+    ]);
     for (const id of RETIRED) {
       expect(orderIsDealt(id), `${id} is retired and dealt`).toBe(false);
       expect(orderDef(id).decks.length, `${id} names ${orderDef(id).decks.length} deck(s)`).toBe(2);

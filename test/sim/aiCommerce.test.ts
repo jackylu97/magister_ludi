@@ -309,8 +309,11 @@ describe('The Fondaci', () => {
 
 // --- the moments of T5 and T7 ----------------------------------------------------
 
-describe('The Art Dealers', () => {
+describe('the card-drafted moment', () => {
   it('comes round at the seat’s pace of drafting', () => {
+    // The Art Dealers rode this moment until batch R1. No row rides it now,
+    // so the rider is written here: The Court Painter and The Accessions
+    // Register will ride it when the Magisterial build makes them.
     const { state, player, towns } = board([6]);
     towns[0]!.buildings.push('monument');
     refreshCityDerived(state, towns[0]!);
@@ -319,9 +322,36 @@ describe('The Art Dealers', () => {
     const culture = foldEmpireRates(state, 0).culturePerTurn ?? 0;
     expect(culture).toBeGreaterThan(0);
     const rate = culture / draftCost(player.statecraft.drafts + 1);
-    const price = scoreEffects(effectsOf(ART_DEALERS), ctx);
+    const rider: CardEffect = {
+      kind: 'windfallRider',
+      occasion: 'cardDrafted',
+      grant: { yield: 'gold', amount: 15 },
+    };
+    const price = scoreEffects([rider], ctx);
     expect(price).toBeCloseTo(rate * explainLump({ gold: 15 }, ctx).total, 10);
     expect(price).toBeGreaterThan(0);
+  });
+});
+
+describe('The Art Dealers', () => {
+  it('prices +3 gold for each chair of the council, filled or still empty', () => {
+    // Batch R1: the card pays +3 gold for each Order in a chair. The Orders
+    // seated today are counted, and the empty chairs are what the seat will
+    // fill as it drafts (`commerceCountAhead`).
+    const { state, player } = board([6]);
+    const helping = (ctx: ValueContext): number => valueOfYields({ gold: 3 }, ctx);
+    let ctx = valueContext(state, player);
+    const chairs = player.statecraft.slots.length;
+    expect(chairs).toBeGreaterThan(0);
+    expect(player.statecraft.slots.every((slotted) => slotted === null)).toBe(true);
+    expect(scoreEffects(effectsOf(ART_DEALERS), ctx)).toBeCloseTo(chairs * helping(ctx), 10);
+    // A card seated in a chair of its own counts today, and the empty chairs
+    // still count as promise.
+    hold(state, 0, 'marketDay' as OrderId);
+    ctx = valueContext(state, player);
+    expect(player.statecraft.slots).toHaveLength(chairs + 1);
+    expect(scoreEffects(effectsOf(ART_DEALERS), ctx)).toBeCloseTo((chairs + 1) * helping(ctx), 10);
+    expect(scoreEffects(effectsOf(ART_DEALERS), ctx)).toBeGreaterThan(0);
   });
 });
 

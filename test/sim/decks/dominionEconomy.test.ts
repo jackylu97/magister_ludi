@@ -170,6 +170,8 @@ describe('The Spear Makers: a unit filter by age', () => {
 });
 
 describe('The Defiant Kingdom: a rival with more towns', () => {
+  // Retired in batch R1 (the user, 2026-10-23: "remove"). A seat that held it
+  // in an old save keeps it, so its effect is still pinned here.
   it('trains military units 25% faster only while an empire it has met holds more towns', () => {
     const state = flat(false);
     const home = foundCityAt(state, 0, at(state, 4, 4))!;
@@ -588,7 +590,8 @@ describe('Double Time: Orders’ turn effects happen twice', () => {
     slot(state, 0, 'theDrillGrounds');
     slot(state, 0, 'doubleTime');
     const soldier = createUnit(state, 0, 'warrior', city.col, city.row);
-    state.turn = 8;
+    // The Drill Grounds drill every third turn (batch R1).
+    state.turn = 9;
     drillUnits(state);
     expect(soldier.experience).toBe(2);
   });

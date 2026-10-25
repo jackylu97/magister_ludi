@@ -401,6 +401,24 @@ describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
     expect(scoreEffects(book, ctx)).toBeGreaterThan(0);
   });
 
+  it('prices The Almanac’s cheaper Libraries by the hammers saved in towns without one (R1)', () => {
+    // Batch R1 made the discount a cost rule (`buildingCost`). It is worth a
+    // quarter of a Library's price once in each town that has none yet, as a
+    // lump, and nothing in a town that has one.
+    const { state, player, cities } = board(2, 20);
+    const [rule] = orderDef('scientificTheAlmanac' as OrderId).effects;
+    expect(rule).toMatchObject({ kind: 'rulePercent', rule: 'buildingCost', building: 'library' });
+    let ctx = valueContext(state, player);
+    const price = buildingProductionCost('library', state, 0);
+    expect(scoreEffects([rule!], ctx)).toBe(explainLump({ production: 0.25 * price * 2 }, ctx).total);
+    expect(scoreEffects([rule!], ctx)).toBeGreaterThan(0);
+    cities[0]!.buildings.push('library');
+    cities[1]!.buildings.push('library');
+    bumpRevision(state);
+    ctx = valueContext(state, player);
+    expect(scoreEffects([rule!], ctx)).toBe(0);
+  });
+
   it('prices The Translation Movement by the beakers it saves on the gap', () => {
     const { state, player } = board(1, 20);
     const effects = orderDef('theTranslationMovement' as OrderId).effects;

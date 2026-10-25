@@ -1227,8 +1227,10 @@ export type CityScope =
    */
   | { test: 'notHasWonder' }
   /**
-   * **No rite is running in this town** — The Rites Commonwealth's penalty,
-   * which is the whole point of a card that rewards the towns that do keep one.
+   * **No rite is running in this town.** The Rites Commonwealth used it for
+   * its penalty until batch R1 removed the penalty (the user, 2026-10-25:
+   * "remove malice"). No row names it today. It is kept because the Devotion
+   * themes pass lists it among the scopes its cards may use.
    *
    * `keepingRite`'s mirror, through the same `cityRite` reading so the two
    * halves of one card cannot both be true of one town. A named member for
@@ -3889,6 +3891,19 @@ export type CardRule =
    */
   | 'unitCost'
   /**
+   * **What a building costs this empire to build** (batch R1, The Almanac:
+   * Libraries 25% cheaper). The building twin of `unitCost`. A negative
+   * percentage is cheaper. It is a line of `explainBuildingCost`, so the
+   * printed price, the hammers a town must bank and the gold price all
+   * follow it. The row's `building` names the building; a row that names
+   * none reaches every building.
+   *
+   * It is not a `productionBonus`. A production bonus changes how fast a
+   * town builds, and the price stays the same. A negative production bonus
+   * makes a build slower, which is the opposite of "costs less".
+   */
+  | 'buildingCost'
+  /**
    * **What a charter technology costs this empire in research** (Scientific
    * batch S0, The Commonplace Book: 15% less). A negative percentage is
    * cheaper. It is a line of `explainTechCost` (`tech.ts`), read only for a
@@ -5282,10 +5297,12 @@ export type WindfallOccasion =
    */
   | 'disband'
   /**
-   * **A card entered this empire's collection** (Commerce batch T7): the
-   * shared The Art Dealers. Paid by `payCardDrafted` (`statecraft/draft.ts`)
-   * through `payOccasionRiders`, at the capital, so food and production a
-   * rider pays land there.
+   * **A card entered this empire's collection** (Commerce batch T7). The
+   * shared The Art Dealers rode it until batch R1, when it became a pay for
+   * each card seated, so no row rides it today. Magisterial's The Court
+   * Painter and The Accessions Register will. Paid by `payCardDrafted`
+   * (`statecraft/draft.ts`) through `payOccasionRiders`, at the capital, so
+   * food and production a rider pays land there.
    *
    * One seam fires it: the pick of an Order draft. `applyChooseOrder`
    * (`commands.ts`) calls `payCardDrafted` as its last step, after
@@ -5305,9 +5322,9 @@ export type WindfallOccasion =
    * (Magisterial's The Cabinet of Curiosities) calls `payCardDrafted` too,
    * and the docblock above it names every caller.
    *
-   * It carries no facts yet. The Art Dealers pays a flat figure, and so would
-   * Magisterial's The Court Painter. A card that pays from the price of the
-   * hand (Magisterial's The Accessions Register) adds that price as a fact.
+   * It carries no facts yet. Magisterial's The Court Painter would pay a flat
+   * figure. A card that pays from the price of the hand (Magisterial's The
+   * Accessions Register) adds that price as a fact.
    */
   | 'cardDrafted'
   /**
@@ -6655,6 +6672,11 @@ export interface CardRulePercentEffect {
    * military units). Read only by `unitCost`.
    */
   class?: UnitFilter;
+  /**
+   * **Which building the rule is about** (batch R1, The Almanac's Libraries).
+   * Read only by `buildingCost`. Absent reaches every building.
+   */
+  building?: BuildingId;
 }
 
 /** Flat happiness, once for the empire or once per city a scope admits. */

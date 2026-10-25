@@ -5,9 +5,10 @@
  * sheets. This file checks what the batch built:
  *
  *   · the `cardDrafted` moment: which seams fire it, and which do not;
- *   · The Art Dealers, a shared Commerce and Magisterial card that pays on it;
+ *   · The Art Dealers, a shared Commerce and Magisterial card. It paid on the
+ *     moment until batch R1, and now pays +3 gold for each Order in a chair;
  *   · The Standing Army, moved from the Dominion file to the shared file and
- *     now dealt to Commerce seats too;
+ *     now dealt to Commerce seats too (Tier I since batch R1);
  *   · every pair of decks that holds Commerce keeps a shared card at Tier I or
  *     earlier (ruling (qqqqqq) 14).
  */
@@ -20,7 +21,13 @@ import { createMap, getTileAt } from '../../../src/sim/map';
 import { makeRng } from '../../../src/sim/rng';
 import { bumpEconomy } from '../../../src/sim/slate';
 import { type GameState, type Player, bumpRevision, playerById } from '../../../src/sim/state';
-import { describeCard, stripRefs, windfallPayout } from '../../../src/sim/statecraft';
+import {
+  describeCard,
+  explainCardEmpireYields,
+  foldCardYields,
+  stripRefs,
+  windfallPayout,
+} from '../../../src/sim/statecraft';
 import { openFreeDraft } from '../../../src/sim/statecraft/draft';
 import {
   type DeckId,
@@ -87,8 +94,29 @@ function pick(state: GameState): void {
 
 // --- the moment --------------------------------------------------------------
 
+/**
+ * **The moment has no rider since batch R1.** The Art Dealers paid 15 gold on
+ * it, and now pays for each card seated instead. The Court Painter and The
+ * Accessions Register will ride it when the Magisterial build makes them. So
+ * these tests lend The Art Dealers its old rider for the length of one test,
+ * and give the row its own effects back after: the worker keeps its modules
+ * between files, so a row left changed would change other files' tests.
+ */
+function withDraftRider(run: () => void): () => void {
+  return () => {
+    const def = orderDef(ART_DEALERS);
+    const own = def.effects;
+    def.effects = [{ kind: 'windfallRider', occasion: 'cardDrafted', grant: { yield: 'gold', amount: 15 } }];
+    try {
+      run();
+    } finally {
+      def.effects = own;
+    }
+  };
+}
+
 describe('the card-drafted moment', () => {
-  it('pays The Art Dealers 15 gold when a card is picked from a draft', () => {
+  it('pays a rider on it 15 gold when a card is picked from a draft', withDraftRider(() => {
     const { state, player } = board();
     seat(state, player, ART_DEALERS);
     offer(player, 'marketDay' as OrderId);
@@ -101,9 +129,9 @@ describe('the card-drafted moment', () => {
     // Gold only: the card pays nothing else.
     expect(player.culturePool).toBe(culture);
     expect(player.sciencePool).toBe(science);
-  });
+  }));
 
-  it('counts a charter, after its grant is applied', () => {
+  it('counts a charter, after its grant is applied', withDraftRider(() => {
     const { state, player } = board();
     seat(state, player, ART_DEALERS);
     offer(player, 'thePlantersCharter' as OrderId);
@@ -111,18 +139,18 @@ describe('the card-drafted moment', () => {
     pick(state);
     expect(player.charteredBuildings).toContain('plantationHouse');
     expect(player.gold - gold).toBe(15);
-  });
+  }));
 
-  it('counts a pick from a free draft, which is the same pick', () => {
+  it('counts a pick from a free draft, which is the same pick', withDraftRider(() => {
     const { state, player } = board();
     seat(state, player, ART_DEALERS);
     expect(openFreeDraft(state, player)).toBe(true);
     const gold = player.gold;
     pick(state);
     expect(player.gold - gold).toBe(15);
-  });
+  }));
 
-  it('pays once for each card drafted', () => {
+  it('pays once for each card drafted', withDraftRider(() => {
     const { state, player } = board();
     seat(state, player, ART_DEALERS);
     const gold = player.gold;
@@ -131,9 +159,9 @@ describe('the card-drafted moment', () => {
     offer(player, 'theMineralTrade' as OrderId);
     pick(state);
     expect(player.gold - gold).toBe(30);
-  });
+  }));
 
-  it('pays nothing for a pass, a Doctrine or a refused pick', () => {
+  it('pays nothing for a pass, a Doctrine or a refused pick', withDraftRider(() => {
     const { state, player } = board();
     seat(state, player, ART_DEALERS);
     const gold = player.gold;
@@ -150,9 +178,9 @@ describe('the card-drafted moment', () => {
     offer(player, 'marketDay' as OrderId);
     expect(applyCommand(state, { type: 'chooseOrder', playerId: 0, optionIndex: 3 }).ok).toBe(false);
     expect(player.gold).toBe(gold);
-  });
+  }));
 
-  it('pays nothing while The Art Dealers sits in the collection and not in a chair', () => {
+  it('pays nothing while the rider sits in the collection and not in a chair', withDraftRider(() => {
     const { state, player } = board();
     player.statecraft.orders.push(ART_DEALERS);
     touch(state);
@@ -160,18 +188,18 @@ describe('the card-drafted moment', () => {
     const gold = player.gold;
     pick(state);
     expect(player.gold).toBe(gold);
-  });
+  }));
 
-  it('does not pay The Art Dealers for drafting itself', () => {
+  it('does not pay a rider for drafting itself', withDraftRider(() => {
     const { state, player } = board();
     offer(player, ART_DEALERS);
     const gold = player.gold;
     pick(state);
     expect(player.statecraft.orders).toContain(ART_DEALERS);
     expect(player.gold).toBe(gold);
-  });
+  }));
 
-  it('is a payout of 15 gold and nothing else, read off the seated card', () => {
+  it('is a payout of 15 gold and nothing else, read off the seated card', withDraftRider(() => {
     const { state, player } = board();
     seat(state, player, ART_DEALERS);
     const payout = windfallPayout(state, 0, 'cardDrafted');
@@ -179,6 +207,12 @@ describe('the card-drafted moment', () => {
     expect(payout.grants[0]).toMatchObject({ yield: 'gold', amount: 15 });
     // A different moment is not this one.
     expect(windfallPayout(state, 0, 'draftPassed').grants).toHaveLength(0);
+  }));
+
+  it('has no rider in the data since batch R1', () => {
+    const { state, player } = board();
+    seat(state, player, ART_DEALERS);
+    expect(windfallPayout(state, 0, 'cardDrafted').grants).toHaveLength(0);
   });
 });
 
@@ -260,9 +294,11 @@ describe('The Art Dealers', () => {
     expect(def.band).toBe(1);
     expect(def.rarity).toBe('common');
     expect(orderType(ART_DEALERS)).toBe('economic');
-    expect(def.text).toBe('Each card you draft grants 15 gold.');
+    // Batch R1 (the user, 2026-10-25: "revise: +3 gold for each card slotted
+    // in your government").
+    expect(def.text).toBe('+3 gold for each card seated in your government.');
     expect(def.effects).toEqual([
-      { kind: 'windfallRider', occasion: 'cardDrafted', grant: { yield: 'gold', amount: 15 } },
+      { kind: 'pays', where: 'empire', basis: 'count', to: 'gold', amount: 3, count: 'slottedOrders' },
     ]);
     expect(orderIsDealt(ART_DEALERS)).toBe(true);
     expect(ordersForDecks(['commerce', 'dominion'])).toContain(ART_DEALERS);
@@ -272,7 +308,30 @@ describe('The Art Dealers', () => {
 
   it('says what it does in words', () => {
     const words = describeCard(ART_DEALERS).map((clause) => stripRefs(clause.text));
-    expect(words).toEqual(['drafting a card grants +15 gold']);
+    expect(words).toEqual(['+3 gold per Order you have placed in a slot']);
+  });
+
+  it('pays +3 gold for each Order in a chair, itself included, and nothing for a charter or a card off the council', () => {
+    const { state, player } = board();
+    const gold = (): number => foldCardYields(explainCardEmpireYields(state, 0)).gold;
+    // In the collection and not in a chair, it pays nothing.
+    player.statecraft.orders.push(ART_DEALERS);
+    touch(state);
+    expect(gold()).toBe(0);
+    // Seated alone, it counts itself.
+    seat(state, player, ART_DEALERS);
+    expect(gold()).toBe(3);
+    seat(state, player, 'marketDay' as OrderId);
+    expect(gold()).toBe(6);
+    // A card held and not seated does not count.
+    player.statecraft.orders.push('theMineralTrade' as OrderId);
+    touch(state);
+    expect(gold()).toBe(6);
+    // A charter takes no chair, so drafting one adds nothing.
+    offer(player, 'thePlantersCharter' as OrderId);
+    pick(state);
+    expect(player.statecraft.orders).toContain('thePlantersCharter');
+    expect(gold()).toBe(6);
   });
 });
 
@@ -283,7 +342,8 @@ describe('The Standing Army', () => {
     const def = orderDef(STANDING_ARMY);
     expect(def.name).toBe('The Standing Army');
     expect(def.decks).toEqual(['dominion', 'commerce']);
-    expect(def.band).toBe(0);
+    // Tier I since batch R1 (the user: "move to tier 1 (barracks appear later)").
+    expect(def.band).toBe(1);
     expect(def.rarity).toBe('uncommon');
     expect(orderType(STANDING_ARMY)).toBe('military');
     expect(def.text).toBe(

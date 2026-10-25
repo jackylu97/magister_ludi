@@ -5,6 +5,10 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 - **Why each card is here:** `docs/plans/scientific-themes.md`. It designs the deck as a way to play: an engine of technologies and charters, and four themes (the learned land, institutions, great cities and the elite army). Sections 11 to 15 hold the user's rulings. `docs/plans/scientific-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
 - **The build plan:** `docs/plans/scientific-build-triage.md`. Batch S0 built the charter technologies and batch S1 the line traits. Batch S1b wrote this sheet, put the types into the data and retired the cut rows. Batch S2 built feature A (the guildsmen as a card count) and batch S3 built feature B (readings against the empires you have met). Batch S4 built the building charters: eight charters, five new buildings, the Physic Garden, and the Scriptorium and the Bastion opened by their charter technologies. Batch S5 built the learned land: the Surveyors' and the Alchemists' Charters with the Qanat and Niter Beds, the Aqueduct before Engineering, eight cards about Academies and the ground, and The Assay as a card shared with Expansionist. Batch S6 built the research record: eleven cards that pay for completing technologies, for the technologies and charter technologies you know, and for the charters you have drafted. Batch S7 built twelve cards of Tiers 0 to II in shapes that already existed. It renamed Learned Commissions to Learned Foundations (the data row keeps its id `learnedCommissions`), and brought Enduring Institutions and The Quiet Faculties to this sheet's text. Batch S8 built eleven cards about great people and the great houses: a great scholar granted for an empire building, a cheaper step on the great-person price for each great scholar, one second copy of an empire building, the University before Scholarship in a town with an old Library, and a commission that counts Academies. Batch S9 built the army and the Opus: nine cards, and The Soldier-Scholars as a card shared with Dominion. An upgrade from research can now heal a unit, or go ahead without the strategic resource. Two new strength lines read your great people and Academies nearby, and a unit standing in your own town. Towns can build the units of your newest age faster, and the rows of the technology you are researching at double cost. Four cards act on the Magnum Opus: an early start, a delay for the other empires, a commission to complete Alchemy, and siege blows that remove some of its banked production. Batch S10 built the charter screens: the charter shelf on the star chart, the price lists, and the traits on the unit card.
 - **The build is complete.** Batch S11 checked this sheet against the data on 2026-10-21. Every card on the five tier tables is in the data, dealt and `implemented`, and every row the plan cut is retired. Batch S12 gave each charter technology a page in the Compendium. The three shared rows that are not `implemented` are for the Devotion build, not for this deck's.
+- **Your review comments of 2026-10-23, built in batch R1 (2026-10-25)** (`docs/plans/review-revisions-2026-10-25.md`):
+  - **The Almanac** made Libraries slower to build, not cheaper (*"implemented incorrectly, it's making libraries more expensive, when it should be less expensive"*). Its row was a production bonus of −25%, which slows a build and leaves the price alone. It is now a cost rule, so a Library's price is 25% lower. It also gives +2 production now, not +1 (*"revise: give +2 production"*).
+  - **The Secret Arts** has always counted charter technologies, and its text now says so (*"this should count charter technologies"*). While you have met no empire, it still pays nothing (the triage's reading 18).
+  - **Copying the Enemy** (shared with Dominion) is retired, so it leaves both decks. The user's comment on the Dominion list was *"remove"*.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -29,7 +33,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 16 | 0 | 0 | 16 | 2 |
 | Tier IV | 13 | 0 | 0 | 13 | 2 |
 | **All** | **77** | **0** | **0** | **77** | **13** |
-| Shared | 15 | 1 | 2 | 18 | 1 |
+| Shared | 14 | 1 | 2 | 17 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
 
@@ -41,7 +45,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 4 | 4 | 6 | 2 |
 | Tier IV | 4 | 3 | 4 | 2 |
 | **All** | **16** | **24** | **32** | **5** |
-| Shared | 2 | 0 | 16 | 0 |
+| Shared | 2 | 0 | 15 | 0 |
 
 Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 and 11 across Tiers 0 to IV. By type they are 10 Military, 22 Economic, 27 Civic and 5 Wildcard.
 
@@ -51,7 +55,7 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 |---|---|---|---|---|
 | **The Herbalists' Charter** | common | implemented | Drafting this opens Herbals for research. Knowing it lets workers build the Physic Garden on flat land with fresh water, one in each town: +2 science and +2 happiness. No chair required. | Civic |
 | **The Bronze-Founders' Charter** | uncommon | implemented | Drafting this opens Casting for research. Knowing it gives two lines a trait they keep through every upgrade. Hoplite (Spearman to Pikeman): +1 strength, and in one of your towns +1 more for every four citizens there. Maryannu (War Chariot to Knight): +1 strength, and +5 against a unit below half health. No chair required. | Military |
-| **The Almanac** | common | implemented | Libraries cost 25% less production and give +1 production. | Economic |
+| **The Almanac** | common | implemented | Libraries cost 25% less production and give +2 production. | Economic |
 | **The Scribes' Hall** | common | implemented | Cities with a Library gain +1 science per four citizens and +1 culture per three citizens. | Civic |
 | **The Long Study** | uncommon | implemented | A Library at least twenty turns old grants +2 culture and +1 renown. At forty turns, these bonuses become +4 culture and +2 renown. | Civic |
 | **The Prize Essay** | common | implemented | Completing a technology before any other empire grants 15 culture and 15 production in your capital. Charter technologies do not count. | Civic |
@@ -73,7 +77,7 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 | **The Commonplace Book** | common | implemented | Charter technologies cost you 15% less research. | Civic |
 | **The Forward Plans** | rare | implemented | You may build a University in any city whose Library has stood at least 30 turns, before you know Scholarship. | Civic |
 | **The Astronomical Diaries** | uncommon | implemented | While seated, this card gains +1 culture and +1 production each time you complete a technology. It starts at +2 of each. | Civic |
-| **The Secret Arts** | uncommon | implemented | Each town gains +1 production for each technology you know that no empire you have met knows, at most +5. | Economic |
+| **The Secret Arts** | uncommon | implemented | Each town gains +1 production for each technology you know that no empire you have met knows, charter technologies included, at most +5. | Economic |
 | **The Scholars' Fame** | common | implemented | Completing a technology grants renown, favouring great scholars, equal to a twentieth of its cost. | Civic |
 | **The Founding Gift** | uncommon | implemented | A great scholar who founds an Academy also grants its town 150 production. | Economic |
 | **The Royal Estates** | common | implemented | Each empire building gives its town +2 food and +2 production. | Economic |
@@ -157,7 +161,6 @@ These rows live in `data/decks/common.json`. A seat holding Scientific or the de
 |---|---|---|---|---|---|---|
 | **Illuminated Treatises** | common | Magisterial | 0 | implemented | Cities with both a Library and a Monument gain +1 science and +1 culture. | Civic |
 | **Field Academies** | uncommon | Dominion | I | implemented | Your first combat kill each turn grants 23 science. Cities with a Library produce siege units 38% faster. | Civic |
-| **Copying the Enemy** | uncommon | Dominion | I | implemented | Your first kill each turn of a unit you cannot yet build grants science toward the technology that unlocks it, equal to 10% of that technology's cost. | Civic |
 | **The Assay** | common | Expansionist | I | implemented | Hexes with a strategic resource gain +2 science. | Civic |
 | **Hydraulic Schools** | common | Expansionist | I | implemented | Cities with an Aqueduct gain +20% production toward science buildings. Those beside a mountain also gain +1 science per three citizens. | Civic |
 | **Cloister Schools** | uncommon | Devotion | I | implemented | Cities with both a Temple and a Library gain +5 food and +5 science. | Civic |
@@ -184,4 +187,5 @@ These rows stay in the data so that old saves load. They are dealt to nobody, th
   - twelve deferred rows: The Celestial Rites, Natural Philosophy, Apprentice Engineers, The Research Annals, Patient Research, The Open Collegium, The Practical Arts, Research through Construction, The Inherited School, Husbandry Studies, Commissions of Service and The Distant Colleges;
   - in `data/decks/common.json`, the shared The Hydraulic Commonwealth, cut on both its sheets.
 - **Retired in batch S0:** The Metallurgists' Charter and The Naturalists' Charter.
+- **Retired in batch R1 (2026-10-25):** in `data/decks/common.json`, the shared Copying the Enemy (the user, on the Dominion list: *"remove"*). It paid only for kills, so a Scientific seat alone would rarely use it.
 - Cards cut before they had a data row (The Palace Archive, The Fellowships, the Hermetic and Experimenters' Charters, and the others in the list doc's cut table) have nothing to retire.

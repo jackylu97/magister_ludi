@@ -63,7 +63,8 @@ import { describe, expect, it } from 'vitest';
 
 import { type Game } from '../../../src/sim/game';
 import { getTileAt, raiseImprovement, razeImprovement } from '../../../src/sim/map';
-import { refreshCityDerived } from '../../../src/sim/cities';
+import { buildingProductionCost, explainBuildingCost, refreshCityDerived } from '../../../src/sim/cities';
+import { explainPurchaseCost } from '../../../src/sim/purchase';
 import { explainTileYield, yieldContextFor } from '../../../src/sim/yields/hex';
 import { explainCity, foldCity } from '../../../src/sim/yields/town';
 import {
@@ -871,20 +872,52 @@ function slot(state: GameState, playerId: number, id: OrderId): void {
 }
 
 describe('what the live rows do on a board', () => {
-  it('The Almanac: a Library town works one point harder, and the shelf is cheaper', () => {
+  it('The Almanac: a Library costs 25% less production with the card seated', () => {
+    // Batch R1. The user saw Libraries cost more with the card seated. The
+    // row was a −25% production bonus, which slows the build. It is now a
+    // cost rule, so the price itself falls.
+    const g = game();
+    const city = found(g.state, 0);
+    const toward = { kind: 'building', id: 'library' } as const;
+    const without = buildingProductionCost('library', g.state, 0);
+    const monument = buildingProductionCost('monument', g.state, 0);
+    const rate = foldCity(g.state, city, [], toward).production;
+    const gold = explainPurchaseCost(g.state, 0, city.id, toward, 'gold')!.total;
+    slot(g.state, 0, 'scientificTheAlmanac');
+    const seated = buildingProductionCost('library', g.state, 0);
+    expect(seated).toBeLessThan(without);
+    expect(seated).toBe(Math.floor((without * 75) / 100));
+    // The price list says why, in one line.
+    const lines = explainBuildingCost('library', g.state, 0);
+    expect(lines[lines.length - 1]).toEqual({
+      source: 'Cards -25%',
+      amount: seated - without,
+    });
+    // The town works on a Library as fast as before: the card no longer
+    // slows the build.
+    expect(foldCity(g.state, city, [], toward).production).toBe(rate);
+    // The gold price is the production cost converted, so it falls too.
+    expect(explainPurchaseCost(g.state, 0, city.id, toward, 'gold')!.total).toBeLessThan(gold);
+    // Other buildings keep their price.
+    expect(buildingProductionCost('monument', g.state, 0)).toBe(monument);
+    // And another empire's Libraries keep theirs.
+    expect(buildingProductionCost('library', g.state, 1)).toBe(without);
+  });
+
+  it('The Almanac: a Library town gains +2 production', () => {
     const g = game();
     const city = found(g.state, 0);
     city.buildings.push('library');
     refreshCityDerived(g.state, city);
     // The line hangs on the shelf it names (`cardLinesOnBuilding`), so the
-    // ledger says which building the point came from.
+    // ledger says which building the points came from.
     const named = () =>
       explainCity(g.state, city).lines.filter((line) => line.source.startsWith('Order · The Almanac'));
     expect(named()).toEqual([]);
     slot(g.state, 0, 'scientificTheAlmanac');
     const line = named();
     expect(line).toHaveLength(1);
-    expect(line[0]!.production).toBe(1);
+    expect(line[0]!.production).toBe(2);
     // And a town with no Library is untouched: the scope is the whole rule.
     city.buildings.splice(city.buildings.indexOf('library'), 1);
     refreshCityDerived(g.state, city);

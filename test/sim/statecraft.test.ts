@@ -11249,10 +11249,16 @@ describe("D2a — the predicates", () => {
       "workingGreatWork",
       "hasWonder",
       "notHasWonder",
-      "notKeepingRite",
     ]) {
       expect(scopes.has(test), test).toBe(true);
     }
+    // `notKeepingRite` has had no row since batch R1, which removed The Rites
+    // Commonwealth's penalty (the user, 2026-10-25: "remove malice"). The
+    // predicate stays, because the Devotion themes pass lists it among the
+    // scopes its cards may use. The test "names the towns keeping no rite as a
+    // member rather than as a negation" above still evaluates it and prints
+    // its words. If a Devotion row comes to use it, it joins the list again;
+    // if none does, the predicate goes.
     expect(conditions.has("atPeace")).toBe(true);
     for (const test of ["beside", "road"]) expect(tiles.has(test), test).toBe(true);
   });

@@ -1704,7 +1704,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "Every captured weapon is taken apart to see how it was made.",
       "text": "Your first kill each turn of a unit you cannot yet build grants science toward the technology that unlocks it, equal to 10% of that technology's cost.",
       "effects": [
@@ -1715,7 +1714,9 @@
           "fallenUnbuilt": true,
           "grant": { "towardFallenTech": 10 }
         }
-      ]
+      ],
+      "note": "Cut from both its decks. It paid only for kills, so a Scientific empire alone would rarely use it.",
+      "retired": true
     },
     "theNewCode": {
       "name": "The New Code",
@@ -1901,7 +1902,7 @@
     "dominionTheStandingArmy": {
       "name": "The Standing Army",
       "decks": ["dominion", "commerce"],
-      "band": 0,
+      "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "type": "military",
@@ -1926,11 +1927,11 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "Every new piece in the collection raises the price of the rest.",
-      "text": "Each card you draft grants 15 gold.",
+      "text": "+3 gold for each card seated in your government.",
       "effects": [
-        { "kind": "windfallRider", "occasion": "cardDrafted", "grant": { "yield": "gold", "amount": 15 } }
+        { "kind": "pays", "where": "empire", "basis": "count", "to": "gold", "amount": 3, "count": "slottedOrders" }
       ],
-      "note": "A charter you draft counts. Passing a draft does not, and neither does taking a Doctrine."
+      "note": "Only the Orders sitting in a chair count, this one included. A charter takes no chair, so it does not count, and neither does a Doctrine."
     }
   }
 }
