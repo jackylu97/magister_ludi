@@ -759,14 +759,15 @@ describe('the Magisterial deck: the sheet of record', () => {
     expect(types.get('All'), 'the type totals').toEqual(byType(sheet));
     expect(status.get('Shared'), 'the shared status counts').toEqual(byStatus(shared));
     expect(types.get('Shared'), 'the shared type counts').toEqual(byType(shared));
-    // Batch MG1's sheet: the 71 cards of the triage's tier tables, and 16
-    // shared cards (19 once the Devotion plan moves its three to the shared
-    // file).
+    // Batch MG1's sheet: the 71 cards of the triage's tier tables, and 19
+    // shared cards. Batch MG1 listed 16. Devotion batch DV1 moved The Painted
+    // Chapels, The Festival Calendar and The Penitents' Roll to the shared
+    // file, and the merge of the two batches added them here.
     expect(sheet).toHaveLength(71);
-    expect(shared).toHaveLength(16);
+    expect(shared).toHaveLength(19);
   });
 
-  it('types every listed row, 15 of this file and 15 shared, and nothing else of this file', () => {
+  it('types every listed row, 15 of this file and 18 shared, and nothing else of this file', () => {
     expect(LISTED).toHaveLength(15);
     for (const id of MAGISTERIAL) {
       const def = orderDef(id);
@@ -777,7 +778,9 @@ describe('the Magisterial deck: the sheet of record', () => {
       const def = orderDef(id);
       return def.retired !== true && def.decks.includes('magisterial');
     });
-    expect(sharedRows).toHaveLength(15);
+    // 18: the 19 rows of the shared table, less The Rising Nave, which has no
+    // data row yet.
+    expect(sharedRows).toHaveLength(18);
     for (const id of sharedRows) expect(isCardType(orderDef(id).type ?? ''), id).toBe(true);
   });
 

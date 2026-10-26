@@ -3538,8 +3538,8 @@ describe('determinism with cities', () => {
     // So a v174 log's Commerce hands hold different cards.
     // 177 since Magisterial batch MG1 (the sheet of record): the deck's
     // rows carry types, 64 rows are retired and four cards change in
-    // place. So a v175 log's Magisterial hands hold different cards. The
-    // Devotion build plan takes 176.
+    // place. Devotion batch DV1 took 176 for its own sheet of record. So a
+    // v175 log's Devotion and Magisterial hands hold different cards.
     expect(SCHEMA_VERSION).toBe(177);
 
     const loaded = loadGame(json);

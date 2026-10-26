@@ -134,35 +134,6 @@
         { "kind": "foundingRider", "population": 1 }
       ]
     },
-    "theSpiritsOfPlace": {
-      "name": "The Ambarvalia",
-      "decks": ["expansionist"],
-      "band": 0,
-      "line": "none",
-      "rarity": "common",
-      "type": "civic",
-      "flavor": "The procession walks three times around the fields before the sowing.",
-      "text": "Your capital gains +1 faith. Each town gains +1 faith for every two improved tiles in its borders.",
-      "effects": [
-        {
-          "kind": "pays",
-          "where": "city",
-          "scope": { "test": "capital" },
-          "faith": 1
-        },
-        {
-          "kind": "pays",
-          "where": "city",
-          "basis": "count",
-          "count": "tilesInBorders",
-          "within": "city",
-          "tile": { "test": "improved" },
-          "to": "faith",
-          "amount": 1,
-          "per": 2
-        }
-      ]
-    },
     "theRopeStretchers": {
       "name": "The Rope Stretchers",
       "decks": ["expansionist"],

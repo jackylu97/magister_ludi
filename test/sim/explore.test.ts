@@ -1018,13 +1018,19 @@ describe('determinism', () => {
    * the change in place and the version printed as 174, which gives the
    * hashes of Commerce batch T5 exactly.
    *
+   * **Devotion batch DV1 (the Devotion sheet of record, schema 176) moved the
+   * hash and not the length** at both seeds: 175 became 176, and that is all.
+   * Nobody here drafts, so no seat holds a retired, moved, retyped or changed
+   * Devotion card. Checked with the change in place and the version printed
+   * as 175, which gives the hashes of Commerce batch T6 exactly.
+   *
    * **Magisterial batch MG1 (the sheet of record, schema 177) moved the hash
-   * and not the length** at both seeds: 175 became 177, and that is all. The
+   * and not the length** at both seeds: 176 became 177, and that is all. The
    * batch changes only card rows: types, retirements and four cards in place.
-   * Nobody here drafts, so no seat holds a Magisterial card. Checked with the
-   * change in place and the version printed as 175, which gives the hashes of
-   * Commerce batch T6 exactly. The Devotion build plan takes 176, so whichever
-   * track merges second re-cuts these two hashes.
+   * Nobody here drafts, so no seat holds a Magisterial card. MG1 ran beside
+   * DV1 and merged after it. Checked on the merged tree with the version
+   * printed as 175, which gives the hashes of Commerce batch T6 exactly, and
+   * as 176, which gives the hashes of DV1 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
     11: '2034a322:188931',

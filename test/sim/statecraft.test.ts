@@ -2148,8 +2148,8 @@ describe("determinism", () => {
     // So a v174 log's Commerce hands hold different cards.
     // 177 since Magisterial batch MG1 (the sheet of record): the deck's
     // rows carry types, 64 rows are retired and four cards change in
-    // place. So a v175 log's Magisterial hands hold different cards. The
-    // Devotion build plan takes 176.
+    // place. Devotion batch DV1 took 176 for its own sheet of record. So a
+    // v175 log's Devotion and Magisterial hands hold different cards.
     expect(SCHEMA_VERSION).toBe(177);
     const g = game(19);
     const player = g.state.players[0]!;
@@ -9012,13 +9012,12 @@ describe("the engine shapes", () => {
     // off the citizens of the towns a home route arrives at.
     "theChampagneFairs · periodic",
     // The Devotion deck batch: The Alms Roads' faith on roads out of Temple
-    // towns (a route flat), The Penitents' Roll's pay per Order hand rerolled
-    // while it is seated (the chair's counter, two voices), and The Doctors of
-    // the Church, the first amplifier that reads follower beliefs' lines
-    // instead of the Orders' (`CardYieldAmplifierEffect.reads`).
+    // towns (a route flat; retired in Devotion batch DV1, and kept for saves),
+    // and The Doctors of the Church, the first amplifier that reads follower
+    // beliefs' lines instead of the Orders' (`CardYieldAmplifierEffect.reads`).
+    // Devotion batch DV1 moved The Penitents' Roll to common.json, so it is
+    // listed with the commons.
     "theAlmsRoads · routeYield",
-    "thePenitentsRoll · rerollsWhileSlotted",
-    "thePenitentsRoll · rerollsWhileSlotted",
     "theDoctorsOfTheChurch · cardYieldAmplifier",
     "thePatronsRoad · routeYield",
     // D2a: The Muses' Call's *"+20% renown"*, un-deferred with the worked-work
@@ -9044,6 +9043,11 @@ describe("the engine shapes", () => {
     // Commerce batch T1: The Silk Road Monks, moved here from the Commerce
     // file, last in common.json.
     "theSilkRoadMonks · routeYield",
+    // Devotion batch DV1: The Penitents' Roll, moved here from the Devotion
+    // file. It pays for each Order hand rerolled while it is seated (the
+    // chair's counter, two voices).
+    "thePenitentsRoll · rerollsWhileSlotted",
+    "thePenitentsRoll · rerollsWhileSlotted",
   ];
 
   it("registers exactly which live rows use each shape batch A declared", () => {

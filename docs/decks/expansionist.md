@@ -15,27 +15,27 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
-| Tier 0 | 14 | 0 | 0 | 14 | none |
+| Tier 0 | 13 | 0 | 0 | 13 | none |
 | Tier I | 26 | 0 | 0 | 26 | 5 proposed |
 | Tier II | 24 | 1 | 0 | 25 | 5 proposed |
 | Tier III | 31 | 0 | 0 | 31 | 7 proposed |
 | Tier IV | 18 | 0 | 0 | 18 | 7 proposed |
-| **All** | **113** | **1** | **0** | **114** | **24 proposed** |
-| Shared | 17 | 0 | 0 | 17 |  |
+| **All** | **112** | **1** | **0** | **113** | **24 proposed** |
+| Shared | 19 | 0 | 0 | 19 |  |
 
 **By type** (the chair a card fits):
 
 | Tier | Military | Economic | Civic | Wildcard |
 |---|---|---|---|---|
-| Tier 0 | 1 | 8 | 5 | 0 |
+| Tier 0 | 1 | 8 | 4 | 0 |
 | Tier I | 1 | 14 | 9 | 2 |
 | Tier II | 1 | 14 | 10 | 0 |
 | Tier III | 2 | 18 | 9 | 2 |
 | Tier IV | 2 | 9 | 4 | 3 |
-| **All** | **7** | **63** | **37** | **7** |
-| Shared | 2 | 8 | 7 | 0 |
+| **All** | **7** | **63** | **36** | **7** |
+| Shared | 2 | 8 | 9 | 0 |
 
-The 114 cards are 111 that take a chair and three charters (The Fish Traps, The Wild Orchards and The Burning Season).
+The 113 cards are 110 that take a chair and three charters (The Fish Traps, The Wild Orchards and The Burning Season).
 
 ## Tier 0
 
@@ -48,7 +48,6 @@ The 114 cards are 111 that take a chair and three charters (The Fish Traps, The 
 | **The Fish Traps** | common | implemented | Once drafted, workers may tend a lake or coastal tile into fish traps for one charge: +1 food and +1 production. No chair required. | Economic |
 | **Sweet Water** | common | implemented | Towns beside a river or lake gain +1 happiness. Worked freshwater tiles gain +1 food. | Economic |
 | **The Seed Grain** | uncommon | implemented | Towns you found start with one extra citizen. | Economic |
-| **The Ambarvalia** | common | implemented | Your capital gains +1 faith. Each town gains +1 faith for every two improved tiles in its borders. | Civic |
 | **The Rope Stretchers** | common | implemented | Each town gains +1 science for every three improved tiles in its borders. | Civic |
 | **The Road Home** | common | implemented | Each town you found is joined to your nearest town by road. | Economic |
 | **The Work Gangs** | common | implemented | Towns of at least three citizens may spend a citizen to raise a worker. This shares the town's levy wait. | Economic |
@@ -230,13 +229,15 @@ The 114 cards are 111 that take a chair and three charters (The Fish Traps, The 
 
 ## Shared with another deck
 
-These rows live in `data/decks/common.json`. A seat holding Expansionist or the deck named beside each one may draw it, so a change here is felt in two decks. The types of the nine cards shared with the four decks not yet sorted are final (the user, 2026-10-16: *"we can confirm any shared cards now yes"*), and the five shared with Dominion carry the types its sheet gave them.
+These rows live in `data/decks/common.json`. A seat holding Expansionist or the deck named beside each one may draw it, so a change here is felt in two decks. The types of the nine cards shared with the four decks not yet sorted are final (the user, 2026-10-16: *"we can confirm any shared cards now yes"*), and the five shared with Dominion carry the types its sheet gave them. Devotion batch DV1 (`docs/plans/devotion-themes-triage.md`) moved The Ambarvalia here from this sheet's Tier 0 table; its row keeps the id `theSpiritsOfPlace`. It also shared The Holy Spring from the Devotion file. Both keep their texts, tiers and rarities, and both are Civic.
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
 | **Market Gardens** | common | Commerce | 0 | implemented | Farms beside a road gain +1 gold. Domestic routes grant an additional +1 food to their destination. | Economic |
 | **Sacred Groves** | uncommon | Devotion | 0 | implemented | Worked, unimproved forests gain +1 food and +1 faith. | Civic |
 | **The Frontier Militia** | common | Dominion | 0 | implemented | Each town you found starts with the best melee unit you can build standing in it. | Military |
+| **The Ambarvalia** | common | Devotion | 0 | implemented | Your capital gains +1 faith. Each town gains +1 faith for every two improved tiles in its borders. | Civic |
+| **The Holy Spring** | common | Devotion | 0 | implemented | Cities whose centre stands beside a mountain or a lake gain +2 faith and +1 culture. | Civic |
 | **Military Colonies** | uncommon | Dominion | I | implemented | Cities with a Barracks gain +45% production toward settlers and workers. | Economic |
 | **The Muster of the Fields** | uncommon | Dominion | I | implemented | Cities of at least five citizens may spend one citizen to muster their best legally available melee unit. This shares the city's five-turn levy limit. The unit counts as trained. | Military |
 | **The Barbarian Frontier** | uncommon | Dominion | I | implemented | Clearing a barbarian camp claims the camp's hex and every unowned hex around it for your nearest town within five hexes. | Economic |

@@ -318,6 +318,8 @@ The first eleven come from section 12, from R1 and from section 11. The rest are
 - **Schema:** one bump (4 rows leave the pools, 7 rows change files, every listed row gains a type).
 - **Done-gate:** `npx vitest run test/sim/decks/devotion.test.ts test/sim/decks/devotionThemeCards.test.ts test/sim/decks/common.test.ts test/sim/decks/shared.test.ts test/sim/decks/dominion.test.ts test/sim/decks/expansionist.test.ts test/sim/decks/expansionistCards.test.ts test/sim/decks/scientific.test.ts test/sim/decks/commerce.test.ts test/sim/decks/magisterial.test.ts test/sim/decks.test.ts test/sim/statecraft.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts test/sim/ritePreview.test.ts test/ui/ritesTab.test.ts`, every schema pin, and the fence's files typecheck.
 
+- **Built (2026-10-25):** as planned, except the line in `docs/decks/magisterial.md`, which the Magisterial track writes. The gate passed: the type check, 9,562 core tests and the build. Schema 176. Readings added: The Founding Vows is `modify: as built` until DV4; The Interdict is `modify: deferred` with its target text; The Creed is `modify: reworked` until DV3; the Charters column counts "No chair required."; the age gate also forbids "foreign" and "follower". `notKeepingRite` has no reader and stays in the code. Not done: Lay Offerings prints "a Pasture or Camp or Plantation"; two texts say "every city that follows your religion" until DV2's word; old notes for retired rows stay in the "Notes and deferred halves" section of `docs/orders-and-doctrines.md`.
+
 ### DV2: the new data-only cards, feature E's word and the shared Scientific rows
 
 - **Builds:**

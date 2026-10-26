@@ -33,7 +33,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 16 | 0 | 0 | 16 | 2 |
 | Tier IV | 13 | 0 | 0 | 13 | 2 |
 | **All** | **77** | **0** | **0** | **77** | **13** |
-| Shared | 14 | 1 | 2 | 17 | 1 |
+| Shared | 16 | 1 | 2 | 19 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
 
@@ -45,7 +45,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 4 | 4 | 6 | 2 |
 | Tier IV | 4 | 3 | 4 | 2 |
 | **All** | **16** | **24** | **32** | **5** |
-| Shared | 2 | 0 | 15 | 0 |
+| Shared | 2 | 0 | 17 | 0 |
 
 Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 and 11 across Tiers 0 to IV. By type they are 10 Military, 22 Economic, 27 Civic and 5 Wildcard.
 
@@ -155,7 +155,8 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 
 These rows live in `data/decks/common.json`. A seat holding Scientific or the deck named beside each one may draw it, so a change here is felt in two decks. Each pair of decks keeps a shared card at Tier I or earlier (ruling (qqqqqq) 14).
 
-- **Types:** since batch S1b every shared row carries the type below. The user approved the types of the cards shared with Commerce, Devotion and Magisterial on 2026-10-21 (`docs/plans/scientific-themes.md`, section 15, item 5). The cards shared with Dominion, Expansionist and Commerce carry the types those sheets give them. The Devotion and Magisterial sheets have no Type column yet.
+- **Types:** since batch S1b every shared row carries the type below. The user approved the types of the cards shared with Commerce, Devotion and Magisterial on 2026-10-21 (`docs/plans/scientific-themes.md`, section 15, item 5). The cards shared with Dominion, Expansionist, Commerce, Devotion and Magisterial carry the types those sheets give them.
+- **Moved in Devotion batch DV1** (`docs/plans/devotion-themes-triage.md`): The Priest-Astronomers and The Monastic University came here from the Devotion file, with their ids, texts, tiers and rarities, and are typed Civic.
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
@@ -167,6 +168,7 @@ These rows live in `data/decks/common.json`. A seat holding Scientific or the de
 | **The Monastery Libraries** | common | Devotion | I | modify: deferred; revised | Libraries give +2 faith. Temples give +2 science. | Civic |
 | **The Exchange of Discoveries** | uncommon | Commerce | I | implemented | +2 science on mines and quarries on a resource. Additional +2 if the city has a market. | Civic |
 | **The Schoolmen's Charter** | uncommon | Devotion | I | add | Drafting this opens Scholasticism for research. Knowing it lets you build the Cathedral and train the Apostle before Theology. No chair required. | Civic |
+| **The Priest-Astronomers** | common | Devotion | I | implemented | Your capital gains +2 science and +2 faith for every city of yours keeping a rite, at most +16 of each. | Civic |
 | **The Cloister** | rare | Devotion | II | implemented | Cities with a Temple gain science equal to 30% of their base faith. Their Libraries and Universities each gain +3 food. | Civic |
 | **The Merchant Navigators** | common | Commerce | II | implemented | Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +5 science. | Civic |
 | **Books from the Ships** | uncommon | Commerce | II | implemented | Each foreign trade route you send gains +1 science for each technology the destination's owner knows that you do not, at most +4. | Civic |
@@ -176,6 +178,7 @@ These rows live in `data/decks/common.json`. A seat holding Scientific or the de
 | **Merchant Scholars** | uncommon | Commerce | III | implemented | Foreign routes gain +2 science for each Academy in the origin city. | Civic |
 | **The Engineer Corps** | uncommon | Dominion | III | implemented | Siege units gain +1 movement. Cities with a Workshop gain +30% production toward siege units and +3 science while at war. | Military |
 | **The House of Wisdom** | uncommon | Magisterial | III | implemented | Worked Academies gain +3 culture. Cities working an Academy gain +1 renown and +30% production toward wonders. Each city receives the city bonus once. | Civic |
+| **The Monastic University** | rare | Devotion | III | implemented | A Holy Site and an academy standing beside each other each gain +5 science and +3 faith. | Civic |
 
 ## Retired rows
 
