@@ -3148,6 +3148,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // Two sentences, because they are two different pieces of news: a town
         // that had banked nothing simply stops building it, and a town that had
         // banked a hundred hammers wants to know where they went.
+        // Under The Envious Eye (Magisterial batch MG9) the hammers moved to
+        // the town's next item, and no gold was paid.
+        if (refund.hammers > 0 && refund.movedTo !== undefined) {
+          announce(
+            `${name}'s ${roundYield(refund.hammers)}${HAMMER} toward ${done.name} moved to ${refund.movedTo}`,
+            { cell },
+          );
+          continue;
+        }
         if (refund.hammers > 0) {
           announce(
             `${name}'s ${roundYield(refund.hammers)}${HAMMER} toward ${done.name} returned as ` +

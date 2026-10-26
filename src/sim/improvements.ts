@@ -964,6 +964,13 @@ export function markInsteadOf(tile: Tile, improvementId: ImprovementId): HexMark
  * triage's reading 35, and new reading 75: a work laid by a great person is a
  * work built). A grant of hammers goes through `settleProductionWindfall`, the
  * register's entry 3. The wild pays no riders.
+ *
+ * **The hex is a fact of the moment too** (Magisterial batch MG9, The Landmark
+ * Bounds; the triage's reading 29), so a rider's tile test (`on`) can ask
+ * what now stands there: a great-person work. It is carried only when the row
+ * now stands on the hex. A burn that marks an improved hex keeps the work that
+ * stood there (`markInsteadOf`), so the hex would answer for that work and
+ * not for the burn, and the moment names no hex.
  */
 export function payWorkLaidRiders(
   state: GameState,
@@ -973,8 +980,10 @@ export function payWorkLaidRiders(
 ): void {
   const builder = playerById(state, playerId);
   if (!builder || builder.barbarian === true) return;
+  const laid = tile.improvement === improvementId;
   const payout = windfallPayout(state, builder.id, 'improvementBuilt', 0, 0, {
     improvement: improvementId,
+    ...(laid ? { hex: { col: tile.col, row: tile.row } } : {}),
   });
   if (windfallPayoutIsEmpty(payout)) return;
   const touched = payWindfallGrants(state, builder, payout, { col: tile.col, row: tile.row });

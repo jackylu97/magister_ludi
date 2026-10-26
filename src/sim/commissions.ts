@@ -50,7 +50,7 @@ import {
 } from './cities';
 import type { Family } from './greatPeopleData';
 import { grantGreatPersonOffer } from './greatPeople';
-import { type WorkFamily, improvementDef, isTendedWork } from './improvementData';
+import { type WorkFamily, improvementDef, isGreatPersonWork, isTendedWork } from './improvementData';
 import { getTileAt } from './map';
 import { resourcesOfKind } from './resourceData';
 import { bumpEconomy } from './slate';
@@ -64,7 +64,7 @@ import {
   realPlayers,
   tileOwnerField,
 } from './state';
-import { BUILDING_IDS, buildingDef } from './buildingData';
+import { BUILDING_IDS, buildingDef, isWonder } from './buildingData';
 import { explainEmpireLines, foldEmpireLines } from './yields/empire';
 import { cityContext, foldTile } from './yields/hex';
 import { foldCity } from './yields/town';
@@ -309,7 +309,65 @@ export function commissionFigure(
       // Commission: The Patron's Gallery (Magisterial batch MG8, the
       // triage's reading 32).
       return workFamiliesHeld(state, playerId).length;
+    case 'oneTownWorksWorked': {
+      // Commission: The Ideal City (Magisterial batch MG9, the triage's
+      // reading 33): the best town among those holding enough wonders.
+      const floor = goal?.kind === 'reached' ? goal.wondersAtLeast : undefined;
+      let best = 0;
+      for (const city of citiesOf(state, playerId)) {
+        if (townWonders(city) < (floor ?? 0)) continue;
+        best = Math.max(best, townWorksWorked(state, city));
+      }
+      return best;
+    }
   }
+}
+
+/**
+ * **The world wonders standing in one town** (Magisterial batch MG9,
+ * Commission: The Ideal City). The class the data declares (`isWonder`), as
+ * the `hasWonder` scope and the `wonders` count read it, so a captured wonder
+ * counts and the Magnum Opus does not.
+ */
+function townWonders(city: City): number {
+  let held = 0;
+  for (const id of city.buildings) if (isWonder(id)) held += 1;
+  return held;
+}
+
+/**
+ * **The great-person works one town's citizens work** (Magisterial batch MG9,
+ * Commission: The Ideal City). The `greatWork` tile test's reading
+ * (`isGreatPersonWork`), asked of each hex in `City.workedTiles`, so a work
+ * counts whoever laid it, and a Holy Site counts.
+ */
+function townWorksWorked(state: GameState, city: City): number {
+  let worked = 0;
+  for (const cell of city.workedTiles) {
+    const work = getTileAt(state.map, cell.col, cell.row)?.improvement;
+    if (work !== undefined && isGreatPersonWork(work)) worked += 1;
+  }
+  return worked;
+}
+
+/**
+ * **The town an `oneTownWorksWorked` goal names** (Magisterial batch MG9,
+ * Commission: The Ideal City; the triage's reading 33): the first of this
+ * empire's towns, in founding order, that holds at least `wondersAtLeast`
+ * world wonders and works at least `works` great-person works. `null` when
+ * no town meets both.
+ */
+export function worksTownFor(
+  state: GameState,
+  playerId: number,
+  wondersAtLeast: number | undefined,
+  works: number,
+): City | null {
+  for (const city of citiesOf(state, playerId)) {
+    if (townWonders(city) < (wondersAtLeast ?? 0)) continue;
+    if (townWorksWorked(state, city) >= works) return city;
+  }
+  return null;
 }
 
 /** An Academy, as The Republic of Letters' tile test names it. */
@@ -719,8 +777,16 @@ export function commissionGoalTown(state: GameState, playerId: number, card: Ord
   // **A goal one town meets by a figure** (The Heartland, Expansionist batch
   // E5): the town that holds the figure's best count now.
   for (const goal of orderDef(card).commission?.goals ?? []) {
-    if (goal.kind !== 'reached' || goal.figure !== 'oneTownWorkedHexes') continue;
-    return bestTownFor(state, playerId, goal.hexYieldAtLeast)?.city ?? null;
+    if (goal.kind !== 'reached') continue;
+    if (goal.figure === 'oneTownWorkedHexes') {
+      return bestTownFor(state, playerId, goal.hexYieldAtLeast)?.city ?? null;
+    }
+    // **The first town that meets both floors** (Magisterial batch MG9, The
+    // Ideal City; the triage's reading 33), so the town the reward marks is
+    // a town that met the goal.
+    if (goal.figure === 'oneTownWorksWorked') {
+      return worksTownFor(state, playerId, goal.wondersAtLeast, goal.count);
+    }
   }
   const id = sc.tallies.find((row) => row.card === card)?.town;
   if (id === undefined) return null;

@@ -169,6 +169,12 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   (`City.itemProgress`); switching starts the new thing at nought and the old
   thing is still standing when you come back. Overflow is the opposite rule and
   follows the *queue*.
+- **A lost wonder race** pays back, as gold, what each losing town banked
+  toward the wonder, at any position of its queue (`refundBeatenWonders`).
+  Since Magisterial batch MG9 a town whose owner holds `wonderHammersMoveOn`
+  (The Envious Eye) and lost to a rival keeps the hammers toward its new front
+  row instead, and settles through `settleProductionWindfall`. A town with an
+  empty queue still takes the gold.
 - **Purchases** (`purchase.ts`): `purchaseItem {cityId, item, currency}`, gated by
   `explainPurchaseCost` + `purchaseError`. A row naming its own bank sells only
   there; everything else sells for gold at `goldPerHammer` × the full production
@@ -558,6 +564,11 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
     great-person works on hexes the empire owns (the `workFamilies` figure,
     `workFamiliesHeld`): a Holy Site is the prophet's family, and who laid the
     work does not matter.
+  - Since Magisterial batch MG9 a goal may count the great-person works one
+    town works, among the towns that hold at least `wondersAtLeast` world
+    wonders (the `oneTownWorksWorked` figure). `commissionGoalTown` names the
+    first town in founding order that meets both floors (`worksTownFor`), so
+    a `markTown` reward marks that town (Commission: The Ideal City).
 - **Units a card raises, and the moments it pays on** (Dominion batch D5):
   - A grant can raise the best melee unit (`bestMeleeFor`) or each military
     unit a technology unlocks, in the capital or in each town a scope admits.
@@ -816,6 +827,14 @@ Reference: **`docs/great-people.md`** (generated roster, sync-tested).
   the tally and the piece's removal. A rider can pay only while one of the
   empire's towns raises the Magnum Opus (`whileRaisingOpus`, The Last
   Commission).
+- Since Magisterial batch MG9 the work-laid moment (`improvementBuilt`, paid by
+  `payWorkLaidRiders` for a worker's build and a great person's work) carries
+  its hex when the row now stands on it, so a rider's tile test can ask for a
+  great-person work there. A grant can give the unowned hexes beside the
+  moment's hex to the nearest town (`claimBeside`, `claimUnownedBeside` in
+  `cities.ts`, entry 32 of the register of mid-turn yield changes; The
+  Landmark Bounds). A combat line can ask for a piece standing on a
+  great-person work, whoever owns it (`standingOnWork`; The Custodians).
 - Three card clauses buy a great person (`OFFER_PURCHASES`), all issued from the
   Reliquary's rail.
 - **Triumphs**: `Player.triumphs` is append-only and turn-stamped, read by

@@ -722,6 +722,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Commission: The Roll of the Senate | 1 | ◆ | S | Commission. Hold ten Orders. Then, for the rest of the game, you have one more Wildcard chair. The card leaves its chair. |
 | The Open Door | 1 | ◆ | S | Order hands cost 15% less culture. |
 | The Wandering Muse | 1 | ◆ | S | On draft: gain a free great-person draft. Seated, this card does nothing. |
+| The Landmark Bounds | 1 | ◆ | S | Laying a great-person work claims every unowned hex beside it. |
 | The Learned Patron | 2 | ◆ | P | Cities with at least two culture buildings gain science equal to 15% of their base culture, at most +18 science per city. Conversion outputs are excluded. |
 | The Senate Charter | 2 | ◆ | S | Unlocks the capital-only Assembly Hall. A city with one gains +3 happiness and +30% production toward buildings. |
 | The Masters' Domain | 3 | ◆ | S | Worked great-person works give +3 food and +3 production. |
@@ -737,6 +738,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Unwritten Chapter | 2 | ● | S | Each time you pass on an Order hand, gain science equal to half the culture the hand cost. |
 | The Sed Festival | 2 | ○ | S | Each time you adopt a government, gain a free great-person draft. |
 | Commission: The Patron's Gallery | 2 | ◆ | S | Commission. Have great-person works of three different families in your borders. Then gain a free great-person draft and 200 culture. The card leaves its chair. |
+| The Custodians | 2 | ● | S | Your units standing on a great-person work gain +4 strength. |
+| The Envious Eye | 2 | ◆ | S | When a rival completes a wonder you were building, the production you put into it moves to the next item in that town's queue. |
 | The Living Canon | 3 | ○ | P | Your cities gain +4% food and +4% production per distinct great-person family whose legacy you currently hold, at most +20% each. |
 | The Wonder Commonwealth | 3 | ○ | P | Cities containing a wonder gain +38% production and +38% food. Your cities without a wonder gain +15% culture instead. |
 | The Boule | 3 | ◆ | E | +2% science and culture for each card you have seated. |
@@ -754,6 +757,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Hall of Wonders | 4 | ○ | S | Order hands deal one more card for every two wonders you hold, at most two more. |
 | The Last Commission | 4 | ○ | S | Spending a great person grants the city building your Magnum Opus 150 production, at most once per turn. No Opus under construction means no payout. Each person can pay once. |
 | The Immortals | 4 | ○ | S | The legacies of your great people count twice. |
+| Commission: The Ideal City | 4 | ○ | S | Commission. Have one of your towns hold two wonders and work three great-person works. Then, for the rest of the game, that town gains +25% culture, science and production. The card leaves its chair. |
 
 ### Cross-type
 
@@ -968,6 +972,10 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **Commission: The Golden Bull** — A chair held by a malice is left out. An empty Military, Economic or Civic chair is not in order. While no Doctrine of your government's tier is left to offer you, or a Doctrine offer is already waiting for your answer, the card stays in its chair and pays when an offer can be made.
 - **Commission: The Patron's Gallery** — A work counts wherever it stands in your borders, whoever laid it, and whether or not a city works it. A Holy Site counts as a family of its own. If a great person is already waiting for your choice, or you cannot call great people yet, you gain the renown still needed for your next great person instead.
 - **The Immortals** — A legacy you have lost counts for nothing. A legacy that only allows something gains nothing from counting twice. The cards that count your great people, or their families, still count each person once.
+- **The Landmark Bounds** — The hexes join your nearest city. A hex that a city already owns, yours or a rival's, is left alone. A Holy Site that a prophet raises is not laid by a great person, so it claims nothing. A Citadel still takes the hexes around it, as it always does.
+- **The Custodians** — Your units gain it when they attack and when they defend. Any great-person work counts, whoever owns it.
+- **The Envious Eye** — It counts wherever the wonder stood in the queue. If the production covers the next item, that item is finished at once. A city with nothing else in its queue gets gold back, as it would without this card.
+- **Commission: The Ideal City** — A wonder you captured counts, and the Magnum Opus is not a wonder. A great-person work counts when one of the city's citizens works it, whoever laid it. If more than one city meets the goal, the oldest of them gains the bonus.
 - **Letters of Marque** — The coin is for a kill made by one of your ships, wherever it happens. The extra gold and the slower shipyards both belong to the cities that have a Harbour.
 - **The Sacred Host** — A soldier bought with faith costs what it would cost to build, converted at the faith rate.
 - **Pilgrim Markets** — The first card to pay a trade route in faith; nothing carried it before this one asked. The test is a disjunction, so one shrine is enough and two are not more — a road with a holy site at each end is paid once, which is the card's second sentence. The site is the prophet's work on the ground, anywhere inside either town's borders, and nobody has to be working the hex.

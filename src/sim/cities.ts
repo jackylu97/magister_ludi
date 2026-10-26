@@ -2829,6 +2829,13 @@ function chooseCitizens(
  *      to several of the empire's towns, so each town that owns a marked hex
  *      is re-seated. The Burning Season's mark on an improved hex goes through
  *      `buildImprovementAt` (entry 4), which re-seats the hex's town.
+ *  32. **The unowned hexes beside a great-person work** (`claimUnownedBeside`,
+ *      Magisterial batch MG9's The Landmark Bounds). A windfall rider's
+ *      `claimBeside` grant gives the unowned hexes around the moment's hex to
+ *      the empire's nearest town, so that town has new hexes to work before
+ *      the turn ends. Entry 27's reason, with the ring of six in place of an
+ *      outpost's reach. Only unowned hexes are claimed, so no other town loses
+ *      ground and only the nearest town is re-seated.
  *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
@@ -2940,6 +2947,47 @@ export function markHexesBeside(
     if (town) refreshCityDerived(state, town);
   }
   return marked;
+}
+
+/**
+ * **The unowned hexes around one hex join this empire's nearest town**
+ * (Magisterial batch MG9, The Landmark Bounds; the triage's reading 29). A
+ * windfall rider's `claimBeside` grant reaches it through
+ * `payWindfallGrants`, with the moment's hex. Returns the town that gained
+ * ground, or `null` when nothing was claimed.
+ *
+ * The town is the one nearest the hex (`nearestOwnedCity`, ties to the
+ * older town). The six hexes around the hex are walked in the map's
+ * neighbour order, so a replay claims the same hexes, and each goes through
+ * `claimTile`, which refuses a hex any town owns. So a rival loses nothing
+ * here, and a hex already held by another of this empire's towns stays with
+ * it. The centre hex is not claimed: a great-person work is always laid
+ * inside its owner's borders.
+ *
+ * The town is re-seated (entry 32 of the register above), and the empire's
+ * map is redrawn, because ground it now owns is ground it can see. The
+ * renderer's border layer reads `state.tileOwner` through its own
+ * fingerprint, so it redraws without being told. The claim is not a
+ * `hexClaimed` tally: that counts an outpost's, a cleared camp's and a bought
+ * hex, and a work's claim, like the citadel's, is not one of them.
+ */
+export function claimUnownedBeside(
+  state: GameState,
+  playerId: number,
+  at: { col: number; row: number },
+): City | null {
+  const centre = getTileAt(state.map, at.col, at.row);
+  if (!centre) return null;
+  const seat = nearestOwnedCity(state, playerId, at);
+  if (!seat) return null;
+  let claimed = 0;
+  for (const tile of neighborTiles(state.map, tileHex(centre))) {
+    if (claimTile(state, seat, tile)) claimed += 1;
+  }
+  if (claimed === 0) return null;
+  refreshCityDerived(state, seat);
+  recomputeVisibility(state, playerId);
+  return seat;
 }
 
 /**
@@ -4764,10 +4812,20 @@ export interface WonderRefund {
   building: BuildingId;
   cityId: number;
   playerId: number;
-  /** Hammers that were in the basket toward it — zero unless it was the front row. */
+  /**
+   * Hammers this town had banked toward it, at any position of its queue
+   * (the sunk-progress rule): the basket when it was the front row, or the
+   * bucket parked under its name.
+   */
   hammers: number;
   /** Gold paid for them, at `production.wonderRefundGoldPerHammer`. */
   gold: number;
+  /**
+   * The name of the row the hammers went to instead of the gold, under The
+   * Envious Eye (Magisterial batch MG9, the `wonderHammersMoveOn` rule).
+   * `gold` is then nought. Absent when the hammers were paid as gold.
+   */
+  movedTo?: string;
 }
 
 /**
@@ -5907,6 +5965,18 @@ function claimWonderFor(state: GameState, city: City, building: BuildingId): Won
  *
  * Cities are walked in `state.cities` order, so the report is in founding order
  * whichever seat is reading it.
+ *
+ * **The Envious Eye** (Magisterial batch MG9, the `wonderHammersMoveOn` rule;
+ * the triage's reading 34). A town whose owner holds the rule, and which lost
+ * the race to a rival, keeps its hammers: once the wonder's row is removed
+ * they go into the basket, toward the row now at the front, and no gold is
+ * paid. A town whose queue is then empty takes the gold. The towns that kept
+ * their hammers settle through `settleProductionWindfall` after every refund
+ * of this wonder is written, so a basket that now covers the next item
+ * completes it, as any windfall of hammers does. That is a second way a
+ * town's hammers can finish a row this turn, which the windfall routine
+ * already allows. A completion there is reported by nobody, as for every
+ * windfall paid inside another routine.
  */
 function refundBeatenWonders(
   state: GameState,
@@ -5915,6 +5985,8 @@ function refundBeatenWonders(
 ): WonderRefund[] {
   const rate = RULES.production.wonderRefundGoldPerHammer;
   const refunds: WonderRefund[] = [];
+  // The towns that kept their hammers (The Envious Eye), settled after the loop.
+  const kept: City[] = [];
   for (const city of state.cities) {
     if (city.id === winner.id) continue;
     const index = city.queue.findIndex(
@@ -5940,6 +6012,27 @@ function refundBeatenWonders(
     // basket picks up whatever came up behind it.
     forgetItemProgress(city, row);
     reaimProduction(city, before, false);
+    // **The Envious Eye**: the hammers go to the row that now stands at the
+    // front, for a town whose owner holds the rule and lost to a rival.
+    const next = city.queue[0];
+    if (
+      hammers > 0 &&
+      next !== undefined &&
+      city.ownerId !== winner.ownerId &&
+      cardActionRule(state, city.ownerId, 'wonderHammersMoveOn')
+    ) {
+      city.hammerBasket += hammers;
+      kept.push(city);
+      refunds.push({
+        building,
+        cityId: city.id,
+        playerId: city.ownerId,
+        hammers,
+        gold: 0,
+        movedTo: queueItemName(next),
+      });
+      continue;
+    }
     const player = playerById(state, city.ownerId);
     if (player) {
       player.gold += gold;
@@ -5948,6 +6041,7 @@ function refundBeatenWonders(
     }
     refunds.push({ building, cityId: city.id, playerId: city.ownerId, hammers, gold });
   }
+  for (const city of kept) settleProductionWindfall(state, city);
   return refunds;
 }
 

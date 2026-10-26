@@ -2905,8 +2905,41 @@ import {
  * seat's pools hold more cards, and a great person spent now pays the cards
  * that ride the moment. The branch migrates nothing, for the reason given
  * under v119.
+ *
+ * v192 (branch `decks`; Magisterial batch MG9, `docs/plans/magisterial-
+ * themes-triage.md`): **works on the land, and the wonder towns.** No field
+ * joins the state. The rules that change:
+ *
+ *   · the work-laid moment (`improvementBuilt`, paid by `payWorkLaidRiders`)
+ *     carries its hex when the row now stands on it, so a rider's tile test
+ *     can ask what stands there. A burn that marks an improved hex names no
+ *     hex;
+ *   · one windfall grant is new, `claimBeside`: the unowned hexes beside the
+ *     moment's hex join the empire's nearest town (`claimUnownedBeside`,
+ *     `cities.ts`), which is re-seated and whose empire's map is redrawn.
+ *     It is entry 32 of the register of mid-turn yield changes (the
+ *     triage's reading 29);
+ *   · one combat condition is new, `standingOnWork`: the piece stands on a
+ *     great-person work, whoever owns it (reading 30);
+ *   · one commission figure is new, `oneTownWorksWorked`, with a goal floor,
+ *     `wondersAtLeast`: the most great-person works one town works among the
+ *     towns holding that many wonders. `commissionGoalTown` names the first
+ *     town in founding order that meets both (`worksTownFor`,
+ *     `commissions.ts`; reading 33);
+ *   · one action rule is new, `wonderHammersMoveOn`: in
+ *     `refundBeatenWonders`, a town of the holder that lost a wonder race to
+ *     a rival keeps its hammers toward its new front row in place of the
+ *     gold, and settles through `settleProductionWindfall`. A refund that
+ *     moved names the row (`WonderRefund.movedTo`) (reading 34);
+ *   · four Magisterial cards are new and dealt: The Landmark Bounds (Tier
+ *     I), The Custodians and The Envious Eye (Tier II) and Commission: The
+ *     Ideal City (Tier IV).
+ *
+ * **A v191 save is refused and does not replay.** A Magisterial seat's pools
+ * hold more cards. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 191;
+export const SCHEMA_VERSION = 192;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

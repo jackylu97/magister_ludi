@@ -24,6 +24,7 @@ import {
   cityResources,
   markHexesBeside,
   markTownLand,
+  claimUnownedBeside,
   cityTile,
   controlledResources,
   countedLuxuries,
@@ -7088,6 +7089,13 @@ function combatConditionHolds(
     case 'nearLearning':
       // The Strategikon (Scientific batch S9, the triage's readings 11 and 44).
       return nearLearning(state, situation.unit, when);
+    case 'standingOnWork': {
+      // The Custodians (Magisterial batch MG9, the triage's reading 30). The
+      // piece's own hex in both postures, as `standingInOwnTown` reads it, and
+      // any great-person work there, whoever owns the hex.
+      const here = getTileAt(state.map, situation.unit.col, situation.unit.row);
+      return here?.improvement !== undefined && isGreatPersonWork(here.improvement);
+    }
     case 'all': {
       // Recursion into the same evaluator, which is the whole reason the
       // composite is a condition rather than a second field on `combatLine` —
@@ -8187,6 +8195,13 @@ export interface WindfallPayout {
    */
   marksBeside?: { card: CardId; source: string; mark: HexMarkId }[];
   /**
+   * True when a rider claims the unowned hexes beside the occasion's hex for
+   * the nearest town (`WindfallGrantSpec.claimBeside`, Magisterial batch MG9,
+   * The Landmark Bounds). Optional for D3's four's reason. Delivered by
+   * `payWindfallGrants` through `claimUnownedBeside` (`cities.ts`).
+   */
+  claimBeside?: boolean;
+  /**
    * **Citizens** a rider grants outright in the town the moment names
    * (`WindfallGrantSpec.citizens`, Expansionist batch E10, Veteran Colonies).
    * `amount` is already a whole number. Optional for D3's four's reason.
@@ -8354,6 +8369,11 @@ export interface WindfallOccasionFacts {
    * **The hex the occasion is about** (Commerce batch T5, Land Speculation):
    * the hex just bought, on the `tilePurchase` occasion. Read by
    * `CardWindfallRiderEffect.on`, which asks a tile test of it.
+   *
+   * Since Magisterial batch MG9 the `improvementBuilt` occasion carries the
+   * hex the work now stands on (`payWorkLaidRiders`), for a worker's build
+   * and a great person's work alike, so The Landmark Bounds can ask for a
+   * great-person work there.
    */
   hex?: { col: number; row: number };
   /**
@@ -8485,6 +8505,7 @@ export function windfallPayoutIsEmpty(payout: WindfallPayout): boolean {
     payout.pillageBeside !== true &&
     (payout.marks ?? []).length === 0 &&
     (payout.marksBeside ?? []).length === 0 &&
+    payout.claimBeside !== true &&
     (payout.citizens ?? []).length === 0 &&
     (payout.techGrants ?? []).length === 0 &&
     payout.freeDraft !== true &&
@@ -8852,6 +8873,13 @@ export function windfallPayout(
     if (grant.markBeside !== undefined) {
       (payout.marksBeside ??= []).push({ card, source, mark: grant.markBeside });
       payout.lines.push({ card, source, note: 'marks the land beside it for good' });
+    }
+    // Magisterial batch MG9, The Landmark Bounds: the unowned hexes around the
+    // moment's hex join the nearest town. No figure, as above, and two riders
+    // that both claim make one claim.
+    if (grant.claimBeside === true) {
+      payout.claimBeside = true;
+      payout.lines.push({ card, source, note: 'claims the unowned land beside it' });
     }
     // Expansionist batch E10, Veteran Colonies: citizens in the town the moment
     // names. The grant does not ask for the unit's cost, so a unit raised for
@@ -10310,6 +10338,12 @@ export function payWindfallGrants(
     const town = at ? nearestOwnedCity(state, player.id, at) : (capitalCityOf(state, player.id) ?? null);
     if (town) markTownLand(state, town, entry.mark);
   }
+  // **The land around the hex** (Magisterial batch MG9, The Landmark Bounds):
+  // the unowned hexes beside the moment's hex join the nearest town. Before
+  // the marks below, so a mark laid on the same moment sees the new borders.
+  // `claimUnownedBeside` re-seats the town and redraws the empire's map. An
+  // occasion with no hex claims nothing.
+  if (at && payout.claimBeside === true) claimUnownedBeside(state, player.id, at);
   // **The marks around the hex** (Expansionist batch E9, The Marl Pits): the
   // six hexes beside the moment's hex, inside this empire's borders.
   // `markHexesBeside` re-seats each town that gained a mark. An occasion with

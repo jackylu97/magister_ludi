@@ -595,7 +595,13 @@ describe('determinism', () => {
     // commission may count the families of the works in your borders, and four
     // Magisterial and shared cards are dealt. So a v190 log's Magisterial and
     // Devotion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(191);
+    // 192 since Magisterial batch MG9 (works on the land, and the wonder
+    // towns): a great-person work may claim the unowned hexes beside it, a
+    // unit may gain strength standing on a work, a commission may ask for one
+    // town with wonders and worked works, a lost wonder race may move its
+    // hammers on, and four Magisterial cards are dealt. So a v191 log's
+    // Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(192);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

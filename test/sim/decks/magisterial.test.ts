@@ -218,7 +218,7 @@ describe('the Magisterial deck', () => {
     }
   });
 
-  it('carries 118 rows: 56 live, none deferred and 62 retired', () => {
+  it('carries 122 rows: 60 live, none deferred and 62 retired', () => {
     // Batch MG1 retired the 61 rows the old sheet cut on 2026-10-06 and The
     // Performers' Treasury (the triage's reading 43). The rows stay so that
     // old saves load. Batch MG2 added fourteen live rows: six at Tier 0 and
@@ -230,9 +230,10 @@ describe('the Magisterial deck', () => {
     // each of Tiers I, III and IV. Batch MG7 added three live rows: one at
     // Tier II and two at Tier III. Batch MG8 added two live rows, one at Tier
     // II and one at Tier IV, and dealt The Last Commission, the last deferred
-    // row.
-    expect(MAGISTERIAL).toHaveLength(118);
-    expect(MAGISTERIAL.filter(live)).toHaveLength(56);
+    // row. Batch MG9 added four live rows: one at Tier I, two at Tier II and
+    // one at Tier IV.
+    expect(MAGISTERIAL).toHaveLength(122);
+    expect(MAGISTERIAL.filter(live)).toHaveLength(60);
     expect(MAGISTERIAL.filter(deferred)).toHaveLength(0);
     expect(MAGISTERIAL.filter(isRetired)).toHaveLength(62);
     for (const id of MAGISTERIAL.filter(isRetired)) {
@@ -240,7 +241,7 @@ describe('the Magisterial deck', () => {
     }
     // The rows the sheet lists, by band: Tiers 0 to IV.
     const kept = MAGISTERIAL.filter((id) => !isRetired(id)).map((id) => orderDef(id).band);
-    expect(BANDS.map((band) => kept.filter((b) => b === band).length)).toEqual([10, 14, 14, 10, 8]);
+    expect(BANDS.map((band) => kept.filter((b) => b === band).length)).toEqual([10, 15, 16, 10, 9]);
   });
 
   it('gives every row an id nothing else in the eight files uses', () => {
@@ -791,11 +792,12 @@ describe('the Magisterial deck: the sheet of record', () => {
     expect(shared).toHaveLength(19);
   });
 
-  it('types every listed row, 56 of this file and 19 shared, and nothing else of this file', () => {
+  it('types every listed row, 60 of this file and 19 shared, and nothing else of this file', () => {
     // 15 since batch MG1, the fourteen rows of batch MG2, the eleven new rows
     // of batch MG3, the five of batch MG4, the three of batch MG5, the three
-    // of batch MG6, the three of batch MG7 and the two new rows of batch MG8.
-    expect(LISTED).toHaveLength(56);
+    // of batch MG6, the three of batch MG7, the two new rows of batch MG8 and
+    // the four of batch MG9.
+    expect(LISTED).toHaveLength(60);
     for (const id of MAGISTERIAL) {
       const def = orderDef(id);
       if (isRetired(id)) expect(def.type, id).toBeUndefined();

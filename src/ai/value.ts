@@ -3175,6 +3175,11 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // E10) is worth the share of the army that levies raise. Bots levy since
       // the bot levy batch, so the share is read off the levied pieces standing
       // and the levy rate this seat expects. See `leviedArmyShare`.
+      //
+      // **A line for a piece standing on a great-person work** (Magisterial
+      // batch MG9, The Custodians) is a stand-in until batch MG17 prices it
+      // off the works this seat holds and the fights it takes on them.
+      if (namesCondition(effect.when, 'standingOnWork')) return ctx.ai.score.unknownEffect;
       return (
         scientificLinePoints(effect, ctx) *
         ctx.ai.weights.military *
@@ -3699,6 +3704,10 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // nothing: it rerolls only a free belief hand (`beliefRedeal`), never an
       // Order hand. The stand-in until batch MG17 prices the card.
       if (effect.rule === 'noOrderReroll') return 0;
+      // **The Envious Eye's `wonderHammersMoveOn`** (Magisterial batch MG9) is
+      // a stand-in until batch MG17 prices it off the wonder races this seat
+      // runs.
+      if (effect.rule === 'wonderHammersMoveOn') return ctx.ai.score.unknownEffect;
       return ctx.ai.score.unknownEffect;
     case 'metaRule':
       // A rule of Statecraft itself — how long a chair is sealed. What a seal
@@ -4481,6 +4490,10 @@ function windfallGrantWorth(
   // batch E9, The Marl Pits; priced in batch E13). A rate, as `mark` above is.
   // See `markBesideWorth`.
   if (grant.markBeside !== undefined) worth += markBesideWorth(grant.markBeside, ctx);
+  // **The unowned hexes beside the moment's hex** (Magisterial batch MG9, The
+  // Landmark Bounds): a stand-in until batch MG17 prices the land a claim
+  // takes.
+  if (grant.claimBeside === true) worth += ctx.ai.score.unknownEffect;
   // **Citizens in the town the moment names** (Expansionist batch E10,
   // Veteran Colonies; priced in batch E13): the food that grows them, as a
   // lump, as a commission's citizens are priced. The moment is a soldier

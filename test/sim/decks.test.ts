@@ -625,8 +625,11 @@ describe('the schema, as landed', () => {
     // **And Magisterial batch MG8** (great people spent): four more. The
     // Immortals and Commission: The Patron's Gallery are new Magisterial rows,
     // and The Last Commission and the shared Sacred Patronage left `deferred`.
-    expect(live).toBe(600);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(600);
+    // **And Magisterial batch MG9** (works on the land, and the wonder towns):
+    // four more. The Landmark Bounds, The Custodians, The Envious Eye and
+    // Commission: The Ideal City are new Magisterial rows.
+    expect(live).toBe(604);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(604);
   });
 
   /**
@@ -1026,7 +1029,13 @@ describe('the schema, as landed', () => {
     // commission may count the families of the works in your borders, and four
     // Magisterial and shared cards are dealt. So a v190 log's Magisterial and
     // Devotion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(191);
+    // 192 since Magisterial batch MG9 (works on the land, and the wonder
+    // towns): a great-person work may claim the unowned hexes beside it, a
+    // unit may gain strength standing on a work, a commission may ask for one
+    // town with wonders and worked works, a lost wonder race may move its
+    // hammers on, and four Magisterial cards are dealt. So a v191 log's
+    // Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(192);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

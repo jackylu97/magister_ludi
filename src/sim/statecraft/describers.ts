@@ -2180,12 +2180,21 @@ function describeEffect(
       // a wonder" (Dominion batch D7, the disband occasion), "a great
       // engineer's act in a city raising the Magnum Opus" (Expansionist batch
       // E5, The Master of Works).
+      // A tile test the occasion's own phrase can say whole (Magisterial
+      // batch MG9, The Landmark Bounds: "a great person laying a work") takes
+      // the place of that phrase, where no improvement narrows it already.
+      const hexSaid =
+        effect.on === undefined || effect.improvement !== undefined
+          ? undefined
+          : ON_HEX_OCCASION_WORDS[effect.occasion]?.[effect.on.test];
       const onHex =
         hexWords === undefined
           ? unbuilt
-          : unbuilt.includes('a hex')
-            ? unbuilt.replace('a hex', `a ${hexWords}`)
-            : `${unbuilt} on a ${hexWords}`;
+          : hexSaid !== undefined
+            ? hexSaid
+            : unbuilt.includes('a hex')
+              ? unbuilt.replace('a hex', `a ${hexWords}`)
+              : `${unbuilt} on a ${hexWords}`;
       // One town of the class the scope names, with its adjectives in front
       // of the noun ("a devout city", Devotion batch DV4, The Psalter) and its
       // qualifiers after it ("a city building a wonder"). A scope that already
@@ -2365,6 +2374,11 @@ function describeEffect(
             `${occasion} gives every ${hexes} beside it, inside your borders, ` +
             `${bagWords(readTileYield(rule.yields))} for the rest of the game${cap}`,
         });
+      }
+      // Magisterial batch MG9, The Landmark Bounds: the unowned hexes beside
+      // the moment's hex join the nearest city.
+      if (grant?.claimBeside === true) {
+        out.push({ text: `${occasion} claims every unowned hex beside it for your nearest city` });
       }
       // Expansionist batch E10, Veteran Colonies: citizens in the town the
       // moment names. The town was already named in the occasion's own phrase
@@ -5483,6 +5497,9 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   // Scientific batch S9, The Soldier-Scholars. The words `inCity` uses, because
   // to a player the two read as the same hex; this one pays in attack too.
   standingInOwnTown: 'while standing in one of your cities',
+  // Magisterial batch MG9, The Custodians. Whose work it is does not matter,
+  // so the words name no owner.
+  standingOnWork: 'while standing on a great-person work',
 };
 
 /** The `followingTerritory` line narrowed to somebody else's towns. */
@@ -5838,6 +5855,19 @@ const FIRST_WORDS: Record<FirstKind, string> = {
  */
 const FIRST_OCCASION_WORDS: Partial<Record<WindfallOccasion, Partial<Record<FirstKind, string>>>> = {
   townConverted: { conversion: 'a foreign city turning to your religion for the first time' },
+};
+
+/**
+ * An occasion narrowed by a tile test on its hex, said in one phrase where
+ * the two say one thing (Magisterial batch MG9, The Landmark Bounds).
+ * Building an improvement whose hex then carries a great-person work is a
+ * great person laying a work, because a worker may not lay one, so the card
+ * reads "a great person laying a work" and not "building an improvement on a
+ * hex carrying a great person's work". A pair missing here prints the tile
+ * test's own words, as before.
+ */
+const ON_HEX_OCCASION_WORDS: Partial<Record<WindfallOccasion, Partial<Record<TileCondition['test'], string>>>> = {
+  improvementBuilt: { greatWork: 'a great person laying a work' },
 };
 
 /**
@@ -6665,6 +6695,9 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // Devotion batch DV8, The Double Feast. "Different" because the same rite is
   // never kept twice in one town.
   twoRites: 'each of your cities may keep two different rites at once',
+  // Magisterial batch MG9, The Envious Eye.
+  wonderHammersMoveOn:
+    "when a rival completes a wonder one of your cities was building, the production that city put into it moves to the next item in its queue",
   capitalBuysWithoutLimit: 'your capital may buy as many units in a turn as it can pay for',
   goldBuysWonders: 'you may buy world wonders with gold',
   // Said as the bank that opens, with the price in the same breath: a player who
@@ -7267,7 +7300,25 @@ const COMMISSION_FIGURE_WORDS: Record<
     counter: 'families of great-person works',
     noun: 'the families of the great-person works in your borders',
   },
+  // Magisterial batch MG9, Commission: The Ideal City. The goal's floor on
+  // the town's wonders is said by `commissionGoalWords`.
+  oneTownWorksWorked: {
+    goal: (count) =>
+      count === 1
+        ? 'have one of your cities work a great-person work'
+        : `have one of your cities work ${count} great-person works`,
+    counter: 'great-person works worked by one city',
+    noun: 'the great-person works your best city works',
+  },
 };
+
+/**
+ * **"Hold 2 wonders"**: the floor a goal puts on the wonders of the town it
+ * counts (Magisterial batch MG9, Commission: The Ideal City).
+ */
+function wondersFloorWords(count: number): string {
+  return count === 1 ? 'hold a wonder' : `hold ${count} wonders`;
+}
 
 /**
  * **The towns a `citiesAdmitted` goal counts, in its scope's words** (Commerce
@@ -7336,6 +7387,12 @@ export function commissionGoalWords(goal: CommissionGoal): string {
     const towns = citiesAdmittedWords(goal.admits);
     return `have ${goal.count} ${goal.count === 1 ? towns.one : towns.many}, at the same time`;
   }
+  // The floor on the town's wonders (Magisterial batch MG9, The Ideal City):
+  // "have one of your cities hold 2 wonders and work 3 great-person works".
+  if (goal.figure === 'oneTownWorksWorked' && goal.wondersAtLeast !== undefined && goal.wondersAtLeast > 0) {
+    const works = goal.count === 1 ? 'a great-person work' : `${goal.count} great-person works`;
+    return `have one of your cities ${wondersFloorWords(goal.wondersAtLeast)} and work ${works}`;
+  }
   // The floor on each hex (Expansionist batch E5, The Heartland).
   const each = goal.hexYieldAtLeast === undefined ? '' : ` that each yield ${goal.hexYieldAtLeast} or more in total`;
   return `${COMMISSION_FIGURE_WORDS[goal.figure].goal(goal.count)}${each}`;
@@ -7361,6 +7418,16 @@ export function commissionCounterWords(goal: CommissionGoal): string {
   if (goal.kind === 'reached' && goal.figure === 'citiesAdmitted' && goal.admits !== undefined) {
     if (goal.every === true) return `cities, ${everyAdmittedWords(goal.admits)}`;
     return citiesAdmittedWords(goal.admits).many;
+  }
+  // The floor on the town's wonders (Magisterial batch MG9, The Ideal City).
+  if (
+    goal.kind === 'reached' &&
+    goal.figure === 'oneTownWorksWorked' &&
+    goal.wondersAtLeast !== undefined &&
+    goal.wondersAtLeast > 0
+  ) {
+    const wonders = goal.wondersAtLeast === 1 ? 'a wonder' : `${goal.wondersAtLeast} wonders`;
+    return `great-person works worked by one city holding ${wonders}`;
   }
   return goal.kind === 'counted'
     ? COMMISSION_COUNTED_WORDS[goal.occasion].counter

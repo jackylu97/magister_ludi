@@ -9197,6 +9197,38 @@
     "text": "then this card leaves its chair and is never seated again"
    }
   ],
+  "theLandmarkBounds": [
+   {
+    "raw": "a great person laying a work claims every unowned hex beside it for your nearest city",
+    "text": "a great person laying a work claims every unowned hex beside it for your nearest city"
+   }
+  ],
+  "theCustodians": [
+   {
+    "raw": "+4 combat strength while standing on a great-person work",
+    "text": "+4 combat strength while standing on a great-person work"
+   }
+  ],
+  "theEnviousEye": [
+   {
+    "raw": "when a rival completes a wonder one of your cities was building, the production that city put into it moves to the next item in its queue",
+    "text": "when a rival completes a wonder one of your cities was building, the production that city put into it moves to the next item in its queue"
+   }
+  ],
+  "magisterialTheIdealCity": [
+   {
+    "raw": "Commission. Goal: have one of your cities hold 2 wonders and work 3 great-person works, while this card is seated",
+    "text": "Commission. Goal: have one of your cities hold 2 wonders and work 3 great-person works, while this card is seated"
+   },
+   {
+    "raw": "Reward: that city is marked, and for the rest of the game, +25% culture in every city marked by [[order:magisterialTheIdealCity|Commission: The Ideal City]] and +25% science in every city marked by [[order:magisterialTheIdealCity|Commission: The Ideal City]] and +25% production in every city marked by [[order:magisterialTheIdealCity|Commission: The Ideal City]]",
+    "text": "Reward: that city is marked, and for the rest of the game, +25% culture in every city marked by Commission: The Ideal City and +25% science in every city marked by Commission: The Ideal City and +25% production in every city marked by Commission: The Ideal City"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
   "frontierGarrisons": [
    {
     "raw": "+2 food in every city with a unit standing in it of 5 or fewer citizens",

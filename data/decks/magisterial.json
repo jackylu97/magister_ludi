@@ -2989,6 +2989,89 @@
         "reward": [{ "greatPerson": "any" }, { "yield": "culture", "amount": 200 }]
       },
       "note": "A work counts wherever it stands in your borders, whoever laid it, and whether or not a city works it. A Holy Site counts as a family of its own. If a great person is already waiting for your choice, or you cannot call great people yet, you gain the renown still needed for your next great person instead."
+    },
+    "theLandmarkBounds": {
+      "name": "The Landmark Bounds",
+      "decks": ["magisterial"],
+      "band": 1,
+      "rarity": "uncommon",
+      "type": "economic",
+      "line": "none",
+      "flavor": "The masons set boundary stones around the new monument, and the town grew out to meet them.",
+      "text": "Laying a great-person work claims every unowned hex beside it.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "improvementBuilt",
+          "on": { "test": "greatWork" },
+          "grant": { "claimBeside": true }
+        }
+      ],
+      "note": "The hexes join your nearest city. A hex that a city already owns, yours or a rival's, is left alone. A Holy Site that a prophet raises is not laid by a great person, so it claims nothing. A Citadel still takes the hexes around it, as it always does."
+    },
+    "theCustodians": {
+      "name": "The Custodians",
+      "decks": ["magisterial"],
+      "band": 2,
+      "rarity": "common",
+      "type": "military",
+      "line": "none",
+      "flavor": "They guard the old works, and they know every stone of them.",
+      "text": "Your units standing on a great-person work gain +4 strength.",
+      "effects": [{ "kind": "combatLine", "amount": 4, "side": "both", "when": { "test": "standingOnWork" } }],
+      "note": "Your units gain it when they attack and when they defend. Any great-person work counts, whoever owns it."
+    },
+    "theEnviousEye": {
+      "name": "The Envious Eye",
+      "decks": ["magisterial"],
+      "band": 2,
+      "rarity": "uncommon",
+      "type": "economic",
+      "line": "none",
+      "flavor": "The king watched the rival's dome go up, and told his masons to start on something else.",
+      "text": "When a rival completes a wonder you were building, the production you put into it moves to the next item in that town's queue.",
+      "effects": [{ "kind": "rule", "rule": "wonderHammersMoveOn" }],
+      "note": "It counts wherever the wonder stood in the queue. If the production covers the next item, that item is finished at once. A city with nothing else in its queue gets gold back, as it would without this card."
+    },
+    "magisterialTheIdealCity": {
+      "name": "Commission: The Ideal City",
+      "decks": ["magisterial"],
+      "band": 4,
+      "rarity": "rare",
+      "type": "wildcard",
+      "line": "none",
+      "flavor": "The streets, the squares and the monuments were all drawn on one plan.",
+      "text": "Commission. Have one of your towns hold two wonders and work three great-person works. Then, for the rest of the game, that town gains +25% culture, science and production. The card leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [{ "kind": "reached", "figure": "oneTownWorksWorked", "count": 3, "wondersAtLeast": 2 }],
+        "reward": [
+          { "markTown": true },
+          {
+            "lasting": [
+              {
+                "kind": "percentYields",
+                "yield": "culture",
+                "percent": 25,
+                "scope": { "test": "markedBy", "card": "magisterialTheIdealCity" }
+              },
+              {
+                "kind": "percentYields",
+                "yield": "science",
+                "percent": 25,
+                "scope": { "test": "markedBy", "card": "magisterialTheIdealCity" }
+              },
+              {
+                "kind": "percentYields",
+                "yield": "production",
+                "percent": 25,
+                "scope": { "test": "markedBy", "card": "magisterialTheIdealCity" }
+              }
+            ]
+          }
+        ]
+      },
+      "note": "A wonder you captured counts, and the Magnum Opus is not a wonder. A great-person work counts when one of the city's citizens works it, whoever laid it. If more than one city meets the goal, the oldest of them gains the bonus."
     }
   }
 }

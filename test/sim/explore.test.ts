@@ -1161,10 +1161,21 @@ describe('determinism', () => {
    * or drafts, so the moment pays no rider and no legacy is read. Checked
    * with the change in place and the version printed as 190, which gives the
    * hashes of Devotion batch DV8 exactly.
+   *
+   * **Magisterial batch MG9 (works on the land, and the wonder towns, schema
+   * 192) moved the hash and not the length** at both seeds: 191 became 192,
+   * and that is all. The batch carries the hex on the work-laid moment, adds
+   * a grant that claims the unowned hexes beside it, a combat condition for a
+   * unit standing on a great-person work, a commission figure for one town
+   * with wonders and worked works, a rule that moves a lost wonder's hammers
+   * on, and four card rows. Nobody here lays a work, drafts or builds a
+   * wonder, so no hex is claimed, no line is asked and no refund is paid.
+   * Checked with the change in place and the version printed as 191, which
+   * gives the hashes of Magisterial batch MG8 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '8ab61b66:188976',
-    2026: 'b6086bcb:188554',
+    11: '9afba7bb:188976',
+    2026: '20ce2f7e:188554',
   };
 
   for (const seed of [11, 2026]) {

@@ -1765,7 +1765,17 @@ export type CombatCondition =
    * stands on, as `standingIn` does, so with `side: 'both'` it pays a fight
    * the piece takes from its town, in attack and in defence.
    */
-  | { test: 'standingInOwnTown' };
+  | { test: 'standingInOwnTown' }
+  /**
+   * **This side's piece stands on a hex carrying a great-person work**
+   * (Magisterial batch MG9, The Custodians; the triage's reading 30).
+   *
+   * It reads the hex the piece stands on, as `standingInOwnTown` does: the
+   * contested hex for a defender, and its own hex for an attacker. Any of the
+   * six works counts (`isGreatPersonWork`, the `greatWork` tile test's
+   * reading), whoever owns the hex and whoever laid the work.
+   */
+  | { test: 'standingOnWork' };
 
 /** What a strength line counts, when it counts something. */
 export type CombatScaleCount =
@@ -4503,7 +4513,20 @@ export type ActionRuleId =
    * (`ritesDisplacedBy`). The Votive Offering and the Restoring of the Host
    * take a place while their mark runs.
    */
-  | 'twoRites';
+  | 'twoRites'
+  /**
+   * **A wonder race this empire loses to a rival keeps its hammers**
+   * (Magisterial batch MG9, The Envious Eye; the triage's reading 34). Read
+   * in one place, `refundBeatenWonders` (`cities.ts`), for each town of the
+   * holder that banked hammers toward the wonder, at any position of its
+   * queue. Once the wonder's row is removed, the hammers go into the town's
+   * basket, toward its new front row, in place of the gold refund, and the
+   * town settles through `settleProductionWindfall`, so hammers that cover
+   * the next item complete it. A town whose queue is then empty takes the
+   * gold refund. A race lost to another town of the same empire is not lost
+   * to a rival, so it takes the gold refund too.
+   */
+  | 'wonderHammersMoveOn';
 
 /**
  * Something about the world that stops being true — or starts.
@@ -5286,6 +5309,11 @@ export type WindfallOccasion =
    * Devotion card, batch S). The improvement travels as
    * `WindfallOccasionFacts.improvement`, and a rider names the one it pays for
    * with `CardWindfallRiderEffect.improvement`.
+   *
+   * A great person's work is paid here too (`payWorkLaidRiders`). Since
+   * Magisterial batch MG9 the moment also carries its hex
+   * (`WindfallOccasionFacts.hex`), so a rider's tile test (`on`) can ask
+   * what now stands there: The Landmark Bounds asks for a great-person work.
    */
   | 'improvementBuilt'
   /**
@@ -6111,6 +6139,21 @@ export interface WindfallGrantSpec {
    * council multiply nothing here.
    */
   markBeside?: HexMarkId;
+  /**
+   * **Every unowned hex beside the occasion's hex joins this empire's nearest
+   * town** (Magisterial batch MG9, The Landmark Bounds; the triage's reading
+   * 29).
+   *
+   * `markBeside`'s sibling for ownership: the six hexes around the moment's
+   * hex, in the map's neighbour order. A hex any town owns is left alone, so
+   * nothing is taken from a rival or moved between this empire's own towns.
+   * The town is the one nearest the moment's hex (`nearestOwnedCity`).
+   * Delivered by `payWindfallGrants` through `claimUnownedBeside`
+   * (`cities.ts`), which re-seats the town and redraws the empire's map. An
+   * occasion with no hex claims nothing. No figure, so the era and the
+   * council multiply nothing here.
+   */
+  claimBeside?: true;
   /**
    * **Citizens, granted outright in the town the moment names** (Expansionist
    * batch E10, Veteran Colonies: a soldier who retires in one of your towns
@@ -10336,7 +10379,19 @@ export type CommissionFigure =
    * work does not matter, so a partner deck's work counts, and a work does
    * not have to be worked. Measured by `workFamiliesHeld` (`commissions.ts`).
    */
-  | 'workFamilies';
+  | 'workFamilies'
+  /**
+   * **The most great-person works one town works, among the towns that hold
+   * enough world wonders** (Magisterial batch MG9, Commission: The Ideal
+   * City; the triage's reading 33). A town counts when it holds at least the
+   * goal's `wondersAtLeast` world wonders (every town when the goal sets
+   * none); a captured wonder counts, and the Magnum Opus is not a wonder. A
+   * work counts when one of the town's citizens works its hex, whoever laid
+   * it. Measured by `worksTownFor` (`commissions.ts`), and
+   * `commissionGoalTown` names the first town in founding order that meets
+   * both floors, so a reward that marks a town marks that one.
+   */
+  | 'oneTownWorksWorked';
 
 /** Every figure, for validation and the register test. */
 export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
@@ -10360,6 +10415,7 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'ordersHeld',
   'councilInOrder',
   'workFamilies',
+  'oneTownWorksWorked',
 ];
 
 /**
@@ -10401,6 +10457,14 @@ export interface GoalTowns {
    * Read by `citiesAdmitted` with `admits`; every other figure ignores it.
    */
   every?: true;
+  /**
+   * **Only a town holding at least this many world wonders counts**
+   * (Magisterial batch MG9, Commission: The Ideal City's "hold two wonders";
+   * the triage's reading 33). A captured wonder counts, and the Magnum Opus
+   * is not a wonder. Read by `oneTownWorksWorked`; every other figure
+   * ignores it.
+   */
+  wondersAtLeast?: number;
 }
 
 /**

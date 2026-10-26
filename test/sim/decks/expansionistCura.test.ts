@@ -350,6 +350,10 @@ const BUILT_READERS: Record<string, { reads: number; why: string }> = {
   'combat.ts › worksAndWondersIn': { reads: 1, why: 'one of a kind: the wonders in a town' },
   'commands.ts › validateQueue': { reads: 1, why: 'built: the build list refuses a row the town has built' },
   'commissions.ts › payCommission': { reads: 1, why: 'built: a reward building the town has built is skipped' },
+  // Magisterial batch MG9, Commission: The Ideal City: how many wonders stand
+  // in one town. No helper counts one town's wonders, and the `wonders` count
+  // with `within: 'city'` reads the same list.
+  'commissions.ts › townWonders': { reads: 1, why: 'one of a kind: the wonders in one town, for a commission' },
   'purchase.ts › clausesBeforeTheBank': {
     reads: 2,
     why: 'built: buying refuses a building the town has built, and a row needs one built',
