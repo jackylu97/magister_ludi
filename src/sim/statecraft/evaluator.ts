@@ -5717,7 +5717,11 @@ export function explainCardPercentYields(state: GameState, city: City): CardPerc
   return list;
 }
 
-/** The card that moves a town's food surplus into production, and its label. */
+/**
+ * The card that moves a voice at step 14, and its label: the food surplus into
+ * production (`surplusMoverFor`), or the production into culture
+ * (`productionMoverFor`, Devotion batch DV4).
+ */
 export interface SurplusMover {
   card: CardId;
   source: string;
@@ -5765,6 +5769,35 @@ export function surplusRowReaches(
     }
   }
   return cityScopeAdmits(state, city, effect.scope);
+}
+
+/**
+ * **Which row moves this town's production into culture** (Devotion batch
+ * DV4, the Rite of the Sabbath; the triage's reading 20), and its label, or
+ * `null`. The second line of step 14 of `docs/yields.md`
+ * (`explainProductionMoved`, `yields/town.ts`) asks it.
+ *
+ * The first row whose scope admits the town wins, and the rows are read in
+ * two parts: the empire's law, then the rites the town keeps. A rite carries
+ * the shape, so the empire's law alone would miss it. The town's buildings,
+ * follower beliefs and consecration are not read, because no row of theirs
+ * carries the shape and this is asked on every fold of every town
+ * (`surplusMoverFor` makes the same cut for the same reason). A town with no
+ * rite pays only for the empire's walk, which is remembered.
+ */
+export function productionMoverFor(state: GameState, city: City): SurplusMover | null {
+  const law = effectsOfKind(state, city.ownerId, 'productionToCulture');
+  const rites =
+    city.timed === undefined || city.timed.length === 0
+      ? []
+      : pickKind(timedLive(state, city.ownerId, city), 'productionToCulture');
+  for (const rows of [law, rites]) {
+    for (const { source, card, effect } of rows) {
+      if (!cityScopeAdmits(state, city, effect.scope)) continue;
+      return { card, source: label(source, scopeNote(effect.scope)) };
+    }
+  }
+  return null;
 }
 
 /** One percentage a card puts behind a category of build. */
@@ -8153,7 +8186,9 @@ export interface WindfallOccasionFacts {
    * town's size when the thing is finished, The Topping Out), the size record
    * (the new size, The Freedom of the City), the census (the empire's
    * citizens, The Tax Rolls) and a town's first joining to its capital (the
-   * town's size, The Opening of the Roads).
+   * town's size, The Opening of the Roads). Since Devotion batch DV4 a season
+   * started carries the citizens of the town it started in (the `rite`
+   * occasion, The Psalter).
    */
   population?: number;
   /**
@@ -8271,10 +8306,12 @@ export interface WindfallOccasionFacts {
   /**
    * The **town the occasion happened in**, where the seam knows one: the town
    * of this empire on whose hex the unit stood, on the `disband` occasion
-   * (Dominion batch D7, filled by `applyDisbandUnit`), and the town a great
+   * (Dominion batch D7, filled by `applyDisbandUnit`), the town a great
    * person acted in (Expansionist batch E5, filled by `payActRiders`,
-   * `greatPeople.ts`). Read by `CardWindfallRiderEffect.inTown`, and by a
-   * grant's `fromTowns` figure, which leaves this town out.
+   * `greatPeople.ts`), and the town a season started in (Devotion batch DV4,
+   * the `rite` occasion, filled by `payRiteRiders`, `religion.ts`). Read by
+   * `CardWindfallRiderEffect.inTown`, and by a grant's `fromTowns` figure,
+   * which leaves this town out.
    */
   townId?: number;
   /**

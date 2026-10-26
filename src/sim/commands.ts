@@ -3998,8 +3998,12 @@ function applyEmpireRite(state: GameState, command: EmpireRiteCommand): CommandR
   const problem = empireRiteError(state, actor.id, command.unitId, command.rite);
   if (problem) return fail(problem);
 
-  empireRiteAt(state, actor, unitById(state, command.unitId)!, command.rite as RiteId);
-  return ok();
+  const mark = actor.triumphs.length;
+  const done = empireRiteAt(state, actor, unitById(state, command.unitId)!, command.rite as RiteId);
+  // Since Devotion batch DV4 the `rite` occasion is paid in every town the
+  // rite reaches, so a rider may finish a wonder or win a triumph here too.
+  // Both go out as `applyPerformRite`'s do.
+  return ok(undefined, undefined, done.wonders, triumphsAwarded(actor, mark));
 }
 
 /** Mends every friendly piece beside the apostle. See `HealAdjacentCommand`. */

@@ -150,6 +150,8 @@ export {
   // Time's count, and the harvest.
   surplusMoverFor,
   surplusRowReaches,
+  // Devotion batch DV4: a rite that moves a town's production into culture.
+  productionMoverFor,
   turnEffectRepeats,
   // Scientific batch S6: The Age of Reason's count.
   techCountsFor,

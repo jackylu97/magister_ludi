@@ -87,11 +87,12 @@ A rite is a **city's verb**: `performRite {cityId, rite}`, checked by `riteError
   `unlocks.abilities` (`ABILITY_TECH`): Rite of the Harvest and Omen Reading
   (Divination), Consecration of the Bounds (Stonecraft), Blessing of Arms
   (Bronzeworking), Rite of Plenty (Currency).
-- **Taught by a Devotion Order (three rows, `RiteDef.byCard`).** Rite of Fasting
-  by The Fast's charter, which writes it to `Player.charteredRites` when the
-  card is drafted. Votive Offering by The Votive Gifts, and Restoring of the
-  Host by The Host Restored, while the card is seated (a `grantsAbility`
-  effect). These rows' `tech` only dates them for the Compendium.
+- **Taught by a Devotion Order (four rows, `RiteDef.byCard`).** Rite of Fasting
+  by The Fast's charter and Rite of the Sabbath by The Sabbath Laws' charter,
+  each written to `Player.charteredRites` when the card is drafted. Votive
+  Offering by The Votive Gifts, and Restoring of the Host by The Host Restored,
+  while the card is seated (a `grantsAbility` effect). These rows' `tech` only
+  dates them for the Compendium.
 - **Naming the teacher.** `riteTeachingCard(rite)` (`religion.ts`) finds the
   Order in the data tables, asking the evaluator whether a row's clauses hand
   over the verb (`effectsGrantAbility`, `statecraft/evaluator.ts`).
@@ -100,7 +101,8 @@ A rite is a **city's verb**: `performRite {cityId, rite}`, checked by `riteError
   rite entry names the same Order: the Order for a card-taught rite, the
   technology for the others.
 - **How long.** The row's `duration` is the base: ten turns for the five tree
-  rites and Rite of Fasting, five for Restoring of the Host, one for Votive
+  rites, Rite of Fasting and Rite of the Sabbath, five for Restoring of the
+  Host, one for Votive
   Offering (so a city may offer it once a turn). `riteDuration` amplifiers
   lengthen it: The Octave (while seated) and Chichen Itza (while held) add 50%
   each, summed before they apply. `riteTurnsFor(state, seat, rite)` is the
@@ -122,10 +124,22 @@ A rite is a **city's verb**: `performRite {cityId, rite}`, checked by `riteError
   once: food (+1🌾 on every hex that yields food) · science (+1🔬 per building
   in the town) · culture (+1🎵 on luxuries, +30% border growth) · defence (+10
   city defence) · gold (+1💰 on every hex with a resource). Rite of Fasting stops
-  the town storing food toward growth and pays one faith per citizen. Votive
-  Offering and Restoring of the Host act at once (`RiteDef.atOnce`): the
-  offering turns the faith it cost into production, and the restoring heals
-  every unit of yours standing in land that follows your religion.
+  the town storing food toward growth and pays one science and one culture per
+  citizen. Rite of the Sabbath moves all of the town's production into culture
+  (`productionToCulture`, the second line of step 14 of `docs/yields.md`), so
+  the town builds nothing while it runs; a purchase or a production windfall
+  still lands in the basket. Votive Offering and Restoring of the Host act at
+  once (`RiteDef.atOnce`): the offering turns the faith it cost into
+  production, and the restoring heals every unit of yours standing in land
+  that follows your religion.
+- **A rite started is a season** (Devotion batch DV4). `performRiteAt` raises
+  the `riteStarted` tally and pays the `rite` occasion (`payRiteRiders`) only
+  for a rite with no `atOnce`, so the offering and the restoring raise
+  neither. `empireRiteAt` raises and pays both once in each town it reaches,
+  in `state.cities` order, and counts the faith as spent once. The occasion
+  carries the town (`townId`) and its citizens (`population`): The Psalter
+  pays in a devout town by its size, and The Rogations and The Founding Vows
+  count the tally.
 - Recasting the Omens and The Preaching are `retired: true`: the rows are kept,
   their abilities are gone from the tree, and no screen lists them.
 

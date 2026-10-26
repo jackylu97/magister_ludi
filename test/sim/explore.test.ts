@@ -1065,10 +1065,19 @@ describe('determinism', () => {
    * board carries. Nobody here drafts, so no seat holds a new card. Checked
    * with the change in place and the version printed as 180, which gives the
    * hashes of Devotion batch DV3 exactly.
+   *
+   * **Devotion batch DV4 (rites are seasons, schema 182) moved the hash and
+   * not the length** at both seeds: 181 became 182, and that is all. The
+   * batch changes when the rite tally and the rite occasion are raised, adds
+   * a second line to step 14 of a town's yields, a rite row and three card
+   * rows. Nobody here founds a town, so no rite is said, no town folds a
+   * yield, and no seat holds a new card. Checked with the change in place and
+   * the version printed as 181, which gives the hashes of Magisterial batch
+   * MG3 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '5acd4f2b:188976',
-    2026: '233d4d4e:188554',
+    11: '972cda96:188976',
+    2026: '327cc29b:188554',
   };
 
   for (const seed of [11, 2026]) {

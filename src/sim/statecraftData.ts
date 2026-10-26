@@ -3564,7 +3564,14 @@ export type TallyOccasion =
    * same counter is not one.
    */
   | 'buildingBoughtWithGold'
-  /** A rite started in one of this empire's towns — The Founding Vows. */
+  /**
+   * A **season** started in one of this empire's towns: The Founding Vows and
+   * The Rogations. Since Devotion batch DV4 (the triage's reading 9) it is
+   * raised at the moments the `rite` occasion is paid: a rite with no `atOnce`
+   * started in a town, and a prophet's rite over the realm once in each town
+   * it reaches. The Votive Offering and the Restoring of the Host do not raise
+   * it.
+   */
   | 'riteStarted'
   /**
    * A foreign town turned to a religion this empire is paid by — The Mission.
@@ -5149,7 +5156,18 @@ export type WindfallOccasion =
   | 'tech'
   /** A tile bought (`purchaseTileAt`). */
   | 'tilePurchase'
-  /** An augur's rite performed (`performRiteAt`, Entry XXVIII). */
+  /**
+   * **A season started** (Devotion batch DV4, the triage's reading 9). A rite
+   * with no `atOnce` started in one of this empire's towns (`performRiteAt`),
+   * or a prophet's rite over the realm, paid once in each town it reaches, in
+   * `state.cities` order (`empireRiteAt`). The Votive Offering and the
+   * Restoring of the Host act at once, so they do not pay it.
+   *
+   * It carries the town (`WindfallOccasionFacts.townId`) and its citizens
+   * (`population`), so a rider's `inTown` scope and a grant's
+   * `fromOccasion: 'population'` can read them (The Psalter). The `riteStarted`
+   * tally is raised at the same moments.
+   */
   | 'rite'
   /**
    * A thing **bought** with gold or faith (`purchaseItemAt`, Entry XXIX).
@@ -8310,6 +8328,27 @@ export interface CardSurplusToProductionEffect {
 }
 
 /**
+ * **A town's production becomes culture** (Devotion batch DV4: the Rite of the
+ * Sabbath, which The Sabbath Laws' charter opens; the triage's reading 20).
+ *
+ * While the row reaches a town, the town's production for the turn becomes
+ * culture, one for one, as one labelled line. The figure is the production as
+ * the fold computes it after the gates and after the food surplus moved, so
+ * the production basket gains none of it. A purchase or a production windfall
+ * still goes into the basket, because neither is the town's production for the
+ * turn. A town whose production a gate stops has nothing to move. Step 14 of
+ * `docs/yields.md`, its second line, `explainProductionMoved`.
+ *
+ * A rite carries it, so the reader asks the town's own effects
+ * (`liveCityEffects`), not only the empire's law.
+ */
+export interface CardProductionToCultureEffect {
+  kind: 'productionToCulture';
+  /** Only in the towns this scope admits. Absent: every town the row reaches. */
+  scope?: CityScope;
+}
+
+/**
  * **The yields of the hexes this empire's units stand on in enemy territory**
  * (Dominion batch D7, War Feeds Itself). At the end of each turn, each unit the
  * filter admits that stands on a hex owned by an empire this one is at war
@@ -9655,6 +9694,9 @@ export type CardEffect =
   // of the hexes a unit stands on in enemy territory.
   | CardSurplusToProductionEffect
   | CardHarvestEffect
+  // Devotion batch DV4: a town's production into culture (the Rite of the
+  // Sabbath), the second line of step 14.
+  | CardProductionToCultureEffect
   // Batch L: a town may spend one citizen on what the card names.
   | CardLevyEffect
   // E4b's one new shape: a moment in a piece's life that is not its birth.

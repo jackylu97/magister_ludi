@@ -85,8 +85,9 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
 - Twenty steps: fourteen per town (the centre, the worked hexes, the cards' city
   lines, the luxuries, the specialists, the arriving routes, the palace, the
   buildings, the cards' building shares, the conversions, the percent list, the
-  two stages, the unrest gate, then the food surplus a card moves into
-  production) and six per empire (the luxuries' empire
+  two stages, the unrest gate, then the moves: the food surplus a card moves
+  into production, and the production a rite moves into culture) and six per
+  empire (the luxuries' empire
   signatures, the caravans abroad, the treasury's ledger, the cards' empire
   payouts, the empire stage, the banks). The order is pinned against the source
   by `test/sim/yieldsDocSync.test.ts`.
@@ -684,13 +685,22 @@ Reference: **`docs/religion-v2.md`** (the machinery) and **`docs/beliefs.md`**
   standing adjacency aura). The **augur is retired** — a rite is a city's verb
   now. Charge prices are read in one place, spent in one, refused in one, printed
   by one.
-- **Rites** are a city's verb, bought with faith, one at a time per town. Eight
-  live rows: five taught by the tree, three by Devotion Orders (`RiteDef.byCard`;
+- **Rites** are a city's verb, bought with faith, one at a time per town. Nine
+  live rows: five taught by the tree, four by Devotion Orders (`RiteDef.byCard`;
   `riteTeachingCard` names the Order). Ten turns for most, five for Restoring of
   the Host, one for Votive Offering, made longer by The Octave and Chichen Itza;
   `riteTurnsFor` is the figure the town is stamped with and the faith screen
-  prints. The faith ladder consecrates **automatically** when the bank covers
-  the next rung.
+  prints. The Rite of the Sabbath (The Sabbath Laws' charter) moves the town's
+  production into culture at step 14 of its yields (`explainProductionMoved`),
+  so the town builds nothing while it runs. The faith ladder consecrates
+  **automatically** when the bank covers the next rung.
+- **A rite started is a season** (Devotion batch DV4). The `riteStarted` tally
+  and the `rite` occasion are for a rite with no `atOnce`: the Votive Offering
+  and the Restoring of the Host raise neither. A prophet's rite over the realm
+  raises both once in each town it reaches, in `state.cities` order. The
+  occasion carries the town (`townId`) and its citizens (`population`), so a
+  rider can ask whether the town is devout and scale by its size (The
+  Psalter).
 - Who is paid: the pantheon pays the empire that consecrated it; **follower**
   beliefs pay city-locally to whoever owns each following city (a rival's faith
   in your town is a gift); **founder-side** pay follows the holy site's stones;

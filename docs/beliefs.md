@@ -115,10 +115,13 @@ world-scale counts live here.
 
 A city’s verb, bought with faith, one at a time per town. The tree teaches it and the
 bank pays for it; the effects then stand on the town for the Duration column’s turns.
-The last three rows are taught by Devotion Orders, not by the tree: Rite of Fasting by
-The Fast's charter, Votive Offering while The Votive Gifts is seated, and Restoring of
-the Host while The Host Restored is seated. The last two act once, when the rite is said,
-and the town keeps them only as a wait before it may say them again.
+The last four rows are taught by Devotion Orders, not by the tree: Rite of Fasting by
+The Fast's charter, Votive Offering while The Votive Gifts is seated, Restoring of the
+Host while The Host Restored is seated, and Rite of the Sabbath by The Sabbath Laws'
+charter. Votive Offering and Restoring of the Host act once, when the rite is said, and
+the town keeps them only as a wait before it may say them again. They are not seasons, so
+they do not count as rites started and pay no card that rides a rite started (Devotion
+batch DV4).
 
 | Rite | Duration | Effect |
 |---|---|---|
@@ -127,9 +130,10 @@ and the town keeps them only as a wait before it may say them again.
 | Consecration of the Bounds | 10 | Luxury hexes sing, and this city's bounds walk outward faster, while the rite runs. |
 | Blessing of Arms | 10 | This city is harder to storm while the rite runs. |
 | Rite of Plenty | 10 | Every hex this city works with a seam in it pays a little coin, while the rite runs. |
-| Rite of Fasting | 10 | This city does not grow and gains faith for every citizen, while the rite runs. |
+| Rite of Fasting | 10 | This city does not grow and gains science and culture for every citizen, while the rite runs. |
 | Votive Offering | 1 | The faith this rite costs is given to whatever this city is building, as production at the faith rate. Not toward a wonder. |
 | Restoring of the Host | 5 | Every unit of yours standing in land that follows your religion is healed to full health. |
+| Rite of the Sabbath | 10 | This city builds nothing and gains its production as culture, while the rite runs. |
 
 ## Consecrations
 

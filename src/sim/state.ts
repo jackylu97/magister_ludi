@@ -2640,8 +2640,34 @@ import {
  * **A v180 save is refused and does not replay.** A Magisterial seat's pools
  * hold more cards. The branch migrates nothing, for the reason given under
  * v119.
+ *
+ * v182 (branch `decks`; Devotion batch DV4, `docs/plans/devotion-themes-
+ * triage.md`): **rites are seasons.** No field joins the state. The rules
+ * that change:
+ *
+ *   · a rite started is a season (the triage's reading 9). The `riteStarted`
+ *     tally and the `rite` occasion are raised for a rite with no `atOnce`
+ *     alone, so the Votive Offering and the Restoring of the Host raise
+ *     neither. A prophet's rite over the realm raises both once in each town
+ *     it reaches, in `state.cities` order. The Founding Vows counts these
+ *     seasons only;
+ *   · the `rite` occasion carries the town it started in and that town's
+ *     citizens (`townId`, `population`);
+ *   · one effect kind is new: `productionToCulture`, the second line of step
+ *     14 of a town's yields (`explainProductionMoved`). While a town keeps a
+ *     rite that carries it, all of the town's production for the turn becomes
+ *     culture, and the basket gains none of it;
+ *   · one rite is new: the Rite of the Sabbath (`riteOfTheSabbath`), which
+ *     carries that kind;
+ *   · three Devotion cards are new and dealt: The Rogations (Tier 0), the
+ *     charter The Sabbath Laws (Tier II), which opens the Rite of the
+ *     Sabbath, and The Psalter (Tier III).
+ *
+ * **A v181 save is refused and does not replay.** A Devotion seat's pools
+ * hold more cards, and The Founding Vows counts different rites. The branch
+ * migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 181;
+export const SCHEMA_VERSION = 182;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

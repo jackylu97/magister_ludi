@@ -1629,9 +1629,9 @@ export interface RitePerformance {
   /**
    * Wonders a rider's hammers finished, in the order they completed.
    *
-   * Empty on every rite that finished nothing, which is all of them until a card
-   * rides the `rite` occasion — so a caller that has never heard of it is
-   * unaffected.
+   * Empty on every rite that finished nothing. The Psalter rides the `rite`
+   * occasion and pays science and culture, so no live card's rider finishes a
+   * wonder today; a caller that has never heard of this field is unaffected.
    */
   wonders: WonderCompletion[];
 }
@@ -1647,8 +1647,11 @@ export interface RitePerformance {
  *      faith would otherwise count the price it is about to cost;
  *   2. **the blessing is stamped**, ten turns from *this* turn as an absolute
  *      expiry (`TimedEffect`), amplifiers folded in once at the stamp;
- *   3. **the riders fire**, on the `rite` occasion, so a card may pay for the
- *      *act* of performing one;
+ *   3. **the season is counted and the riders fire**, on the `riteStarted`
+ *      tally and the `rite` occasion, so a card may pay for the *act* of
+ *      starting one. Only for a rite with no `atOnce` (Devotion batch DV4,
+ *      the triage's reading 9): the Votive Offering and the Restoring of the
+ *      Host act at once, are not seasons, and count for neither;
  *   4. **the town's own shelves pay** — the Chapel's culture, after the riders
  *      because it is neither a grant nor a law: a rider is the empire's and
  *      reaches every rite in the realm, and this is a fact about one town;
@@ -1675,10 +1678,15 @@ export function performRiteAt(
   spendFaith(state, player, cost, true);
 
   const expiresTurn = stampRite(state, player.id, rite, city) ?? state.turn;
-  // The Founding Vows counts rites started while it is seated.
-  recordScalingOccasion(state, player.id, 'riteStarted');
+  // **A rite started is a season** (Devotion batch DV4, the triage's reading
+  // 9). The tally that The Founding Vows and The Rogations count, and the
+  // `rite` moment that The Psalter rides, are for a rite with no `atOnce`. The
+  // Votive Offering and the Restoring of the Host act at once and raise
+  // neither, so a town cannot grow either card by saying them every turn.
+  const season = def.atOnce === undefined;
+  if (season) recordScalingOccasion(state, player.id, 'riteStarted');
   payRiteAtOnce(state, player, city, def, cost);
-  const wonders = payRiteRiders(state, player, city);
+  const wonders = season ? payRiteRiders(state, player, city) : [];
   const chapelCulture = payRiteBuildings(state, player, city);
   refreshCityDerived(state, city);
 
@@ -1921,20 +1929,29 @@ function clearCityRite(state: GameState, city: City): void {
 }
 
 /**
- * The riders a *performed rite* pays out.
+ * The riders a **season started** in one town pays out: the `rite` occasion.
  *
- * There is no card in the table riding on this occasion today; the occasion
- * exists because a rite is unambiguously one of Entry XVIII's moments and a
- * vocabulary that could not name it would be a vocabulary with a hole in it.
+ * Asked by `performRiteAt` for a rite with no `atOnce`, and by `empireRiteAt`
+ * once in each town a prophet's rite reaches (Devotion batch DV4, the
+ * triage's reading 9). The Psalter rides it.
+ *
+ * The moment carries the town (`townId`) and its citizens (`population`), so a
+ * rider can ask whether the town is one its scope admits (`inTown`) and scale
+ * a grant by the town's size (`fromOccasion: 'population'`). The citizens are
+ * read when the season starts, after the rite is stamped and before anything
+ * the riders pay.
  *
  * **Grants only, deliberately.** A `percent` rider scales an occasion's own
- * figure, and a rite has no figure at all any more — it is a season, not a
- * purse. The percentage arm is left unread on this occasion and said so here;
- * the heal arm is unread too, because a rite is no longer said over a piece.
+ * figure, and a rite has no figure at all: it is a season, not a purse. The
+ * percentage arm is left unread on this occasion and said so here. The heal
+ * arm is unread too, because a rite is not said over a piece.
  */
 function payRiteRiders(state: GameState, player: Player, city: City): WonderCompletion[] {
   const wonders: WonderCompletion[] = [];
-  const payout = windfallPayout(state, player.id, 'rite');
+  const payout = windfallPayout(state, player.id, 'rite', 0, 0, {
+    townId: city.id,
+    population: city.population,
+  });
   if (payout.grants.length === 0) return wonders;
   const at = { col: city.col, row: city.row };
   for (const touched of payWindfallGrants(state, player, payout, at)) {
@@ -2064,6 +2081,12 @@ export interface EmpireRitePerformance {
   chapelCulture: number;
   /** True when the prophet was spent by this act's last charge. */
   prophetSpent: boolean;
+  /**
+   * Wonders a rider's hammers finished, in the order they completed, over
+   * every town the rite reached. `RitePerformance.wonders`' field for the
+   * realm (Devotion batch DV4, which pays the `rite` occasion in each town).
+   */
+  wonders: WonderCompletion[];
 }
 
 /**
@@ -2076,9 +2099,15 @@ export interface EmpireRitePerformance {
  * — each town losing whatever it was keeping and taking this instead, and each
  * re-seated through the one helper every mid-turn yield mutation goes through.
  *
- * The **town's own shelves are not paid**: the Chapel's culture is what a town
- * gets for saying a rite itself, and a prophet saying one over the realm is not
- * forty chapels each holding a service. Stated rather than omitted.
+ * **Each town it reaches starts a season** (Devotion batch DV4, the triage's
+ * reading 9). So, in each town and in the same order, the `riteStarted` tally
+ * is raised and the `rite` occasion is paid with that town's facts, as
+ * `performRiteAt` does for one town. One empire rite grows The Rogations by
+ * one a town, counts toward The Founding Vows once a town, and pays The
+ * Psalter in each devout town. The faith is still counted as spent once.
+ *
+ * Every town's chapel pays for the saying of it too (`payRiteBuildings`), as a
+ * town's own rite does (the user, 2026-09-15, `docs/flags.md` (lllll)).
  */
 export function empireRiteAt(
   state: GameState,
@@ -2093,6 +2122,7 @@ export function empireRiteAt(
   spendFaith(state, player, cost, true);
 
   const cities: City[] = [];
+  const wonders: WonderCompletion[] = [];
   let expiresTurn = state.turn;
   let chapelCulture = 0;
   for (const city of state.cities) {
@@ -2101,6 +2131,11 @@ export function empireRiteAt(
     const until = stampRite(state, player.id, rite, city);
     if (until !== null) expiresTurn = until;
     refreshCityDerived(state, city);
+    // **A season in each town** (Devotion batch DV4): counted and paid once
+    // here, with this town's facts. `empireRiteGate` refuses a rite that acts
+    // at once, so every rite said over the realm is a season.
+    recordScalingOccasion(state, player.id, 'riteStarted');
+    for (const done of payRiteRiders(state, player, city)) wonders.push(done);
     // **An empire rite is the rite performed in every town**, so every chapel
     // pays for the saying of it — the same seam and the same settlement a city
     // rite's chapel goes through, once per town. Before 2026-09-15 this loop
@@ -2118,6 +2153,7 @@ export function empireRiteAt(
     turns: expiresTurn - state.turn,
     chapelCulture,
     prophetSpent,
+    wonders,
   };
 }
 

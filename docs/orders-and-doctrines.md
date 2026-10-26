@@ -597,6 +597,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Sacred Precincts | 1 | ● | S | Towns gain +3 defence for every religious building in them. |
 | The Book of Life | 2 | ◆ | P | +1% science and culture for every 150 faith you have spent this game, at most +30%. |
 | The Offering Chests | 3 | ● | S | Military units bought with faith cost 30% less. |
+| The Rogations | 0 | ◆ | P | While seated, this card gains +1 faith and +1 culture each time one of your towns starts a rite. It starts at +2 of each. |
+| The Sabbath Laws | 2 | ◆ | S | Once drafted, unlock the Rite of the Sabbath. A town keeping it builds nothing for ten turns, and gains culture equal to its production each turn. No chair required. |
+| The Psalter | 3 | ◆ | S | Each rite started in a devout town grants science and culture equal to five times the town's population. |
 
 ### Scientific
 
@@ -946,6 +949,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Book of Life** — Faith counts when you spend it on units, buildings, rites, rerolls, gods and great people, and when you pour it into a build.
 - **The Offering Chests** — A unit bought with gold pays the full price. The discount adds to any other discount before it applies.
 - **The Rising Nave** — The Magnum Opus counts as a wonder here. Only what the town is building now counts, not what waits behind it in the queue.
+- **The Rogations** — Only a rite that lasts counts. The Votive Offering and the Restoring of the Host act at once, so they do not. A prophet's rite over the whole realm counts once in each town it reaches.
+- **The Sabbath Laws** — Production the town buys, or is given at once, still goes into what it is building.
+- **The Psalter** — Only a rite that lasts counts. The Votive Offering and the Restoring of the Host act at once, so they do not. A prophet's rite over the whole realm pays in each devout town it reaches.
 - **Common Tools** — † the hammers are for workers and buildings, and for nothing else
 - **Road Crews** — † a worker that wakes on one of your roads travels further that day
 - **Road Maintenance** — † the upkeep of your roads is reduced, up to a limit each turn

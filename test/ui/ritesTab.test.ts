@@ -892,7 +892,10 @@ describe('the drawing', () => {
     press(chip);
     expect(calls).toEqual([`select ${OMEN}`]);
     const locked = byClass(tab, 'is-locked').filter((node) => node.className.includes('faith-rite-chip'));
-    expect(locked.length).toBe(3);
+    // The four rites a card teaches: Devotion batch DV4 added the Rite of the
+    // Sabbath beside the Rite of Fasting, the Votive Offering and the
+    // Restoring of the Host.
+    expect(locked.length).toBe(4);
     for (const node of locked) {
       expect(node.tagName).toBe('SPAN');
       expect(textOf(node)).toContain('needs ');

@@ -57,6 +57,7 @@ import {
 import {
   explainBuildingPreview,
   explainOpusGate,
+  explainProductionMoved,
   explainSurplusMoved,
   explainUnrestGate,
   foldBuildingPreview,
@@ -90,6 +91,7 @@ import {
   cardCityStat,
   cityScopeAdmits,
   describeCard,
+  productionMoverFor,
   ref,
 } from '../sim/statecraft';
 import type { CityScope } from '../sim/statecraftData';
@@ -1628,9 +1630,10 @@ export interface ChipLedgerRow {
   /**
    * Which part of `docs/yields.md` the row comes from: `flat` for steps 1 to 10,
    * `percent` for one percentage of the two stages (step 12), `gate` for the
-   * unrest gate (step 13), `moved` for the food surplus a card moves into
-   * production (step 14), and `unaccounted` for the canary
-   * (`UNACCOUNTED_SOURCE`).
+   * unrest gate (step 13), `moved` for step 14 (the food surplus a card
+   * moves into production, and the production a rite moves into culture,
+   * which is a negative row on production and the same figure on culture),
+   * and `unaccounted` for the canary (`UNACCOUNTED_SOURCE`).
    */
   kind: 'flat' | 'percent' | 'gate' | 'moved' | 'unaccounted';
 }
@@ -1679,8 +1682,11 @@ export const UNACCOUNTED_SOURCE = 'Not accounted for';
  *   stage prints its parts and never its sum (the user, 2026-08-27).
  * - **The unrest gate**, step 13: a town in unrest makes none of some voices,
  *   so the row takes away everything above it.
- * - **The surplus moved**, step 14, last, on production alone: the food surplus
+ * - **The surplus moved**, step 14, on production alone: the food surplus
  *   a card moves into production (The Laws of Lord Shang), one row.
+ * - **The production moved**, step 14, last: a rite that moves the town's
+ *   production into culture (the Rite of the Sabbath) takes it all off the
+ *   production list in one row, and the culture list gains the same row.
  *
  * Every figure comes from the simulation: the lines are `readCity`'s, the
  * percentages are `quote.percents` and `productionModifiers` toward the front
@@ -1766,6 +1772,22 @@ export function chipLedgerRows(
   if (key === 'production') {
     for (const moved of explainSurplusMoved(state, city, folded, front)) {
       rows.push({ label: moved.source, amount: moved.amount, percent: null, kind: 'moved' });
+    }
+  }
+  // 14, second line — a rite moves the town's production into culture (the
+  // Rite of the Sabbath, Devotion batch DV4). The figure moved is the town's
+  // production after every row above, so the production list's running sum
+  // is what the simulation moves; the culture list mirrors that row.
+  if (key === 'production') {
+    const before = { ...folded, production: sumOfRows(rows) };
+    for (const moved of explainProductionMoved(state, city, before)) {
+      rows.push({ label: moved.source, amount: -moved.amount, percent: null, kind: 'moved' });
+    }
+  }
+  if (key === 'culture' && productionMoverFor(state, city) !== null) {
+    for (const row of chipLedgerRows(state, city, quote, 'production').rows) {
+      if (row.kind !== 'moved' || row.amount >= 0) continue;
+      rows.push({ label: row.label, amount: -row.amount, percent: null, kind: 'moved' });
     }
   }
 

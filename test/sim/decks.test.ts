@@ -595,8 +595,11 @@ describe('the schema, as landed', () => {
     // **And Magisterial batch MG3** (the data-only cards of Tiers II to IV):
     // thirteen more. Eleven are new Magisterial rows, and The Golden Age and
     // The Magister's Court left `deferred`.
-    expect(live).toBe(568);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(568);
+    // **And Devotion batch DV4** (rites are seasons): three more. The
+    // Rogations, the charter The Sabbath Laws and The Psalter are new
+    // Devotion rows. The Founding Vows counts fewer rites and was already live.
+    expect(live).toBe(571);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(571);
   });
 
   /**
@@ -949,7 +952,12 @@ describe('the schema, as landed', () => {
     // IV): eleven Magisterial cards are new and dealt, and The Golden Age
     // and The Magister's Court leave `deferred`. So a v180 log's Magisterial
     // hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(181);
+    // 182 since Devotion batch DV4 (rites are seasons): a rite that acts at
+    // once no longer counts as a rite started, a prophet's rite counts once
+    // in each town it reaches, the Rite of the Sabbath is new, and three
+    // Devotion cards are dealt. So a v181 log's Devotion hands hold
+    // different cards.
+    expect(SCHEMA_VERSION).toBe(182);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

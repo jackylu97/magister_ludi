@@ -204,25 +204,26 @@ function linesOf(state: GameState, city: City, card: string) {
 // --- the shelf ---------------------------------------------------------------
 
 describe('the Devotion deck folds', () => {
-  it('carries 82 rows: 52 live, 1 deferred and 29 retired', () => {
+  it('carries 85 rows: 55 live, 1 deferred and 29 retired', () => {
     // Batch DV1: 77 rows before, less the six that moved to common.json. Four
     // rows retired, three live and one deferred. Batch DV2 added seven live
-    // rows, and batch DV3 four more.
-    expect(DEVOTION).toHaveLength(82);
-    expect(LIVE).toHaveLength(52);
+    // rows, batch DV3 four more, and batch DV4 three more.
+    expect(DEVOTION).toHaveLength(85);
+    expect(LIVE).toHaveLength(55);
     expect(DEFERRED).toHaveLength(1);
     expect(RETIRED).toHaveLength(29);
   });
 
-  it('spreads its 53 standing rows across Tiers 0 to IV as 7, 7, 16, 10 and 13', () => {
+  it('spreads its 56 standing rows across Tiers 0 to IV as 8, 7, 17, 11 and 13', () => {
     // Batch DV1 moved The Second Prophet, The Living Hymnal and The Mission
     // from Tier I to Tier II, and The Conversion of Kings and The Pious Masons
     // from Tier IV to Tier III. Batch DV2 added three rows at Tier II, three
     // at Tier III and one at Tier IV. Batch DV3 added one row at each of
-    // Tiers 0 to III.
-    expect(STANDING).toHaveLength(53);
+    // Tiers 0 to III. Batch DV4 added The Rogations (Tier 0), the charter The
+    // Sabbath Laws (Tier II) and The Psalter (Tier III).
+    expect(STANDING).toHaveLength(56);
     const perBand = BANDS.map((band) => STANDING.filter((id) => orderDef(id).band === band).length);
-    expect(perBand).toEqual([7, 7, 16, 10, 13]);
+    expect(perBand).toEqual([8, 7, 17, 11, 13]);
   });
 
   it('names its own deck on every row, with a band and a rarity', () => {
@@ -289,12 +290,13 @@ describe('the live rows', () => {
     }
   });
 
-  it('includes the four commissions and the one charter', () => {
+  it('includes the four commissions and the two charters', () => {
     const commissions = LIVE.filter((id) => orderDef(id).commission !== undefined);
     expect(commissions.sort()).toEqual(
       ['theConversionOfKings', 'theFoundingVows', 'theGreatCommission', 'theMission'].sort(),
     );
-    expect(LIVE.filter((id) => orderDef(id).charter !== undefined)).toEqual(['theFast']);
+    // Batch DV4 added The Sabbath Laws.
+    expect(LIVE.filter((id) => orderDef(id).charter !== undefined)).toEqual(['theFast', 'theSabbathLaws']);
   });
 });
 
@@ -348,8 +350,8 @@ describe('the age gate', () => {
   it('keeps every row of Tiers 0 and I off the clergy, the Temple, the holy site and the following town', () => {
     const early = STANDING.filter((row) => orderDef(row).band <= 1);
     // Batch DV3 added The Gifts of the Faithful (Tier 0) and The Sacred
-    // Precincts (Tier I).
-    expect(early).toHaveLength(14);
+    // Precincts (Tier I), and batch DV4 The Rogations (Tier 0).
+    expect(early).toHaveLength(15);
     for (const id of early) {
       const def = orderDef(id);
       expect(def.text ?? '', `${id}: ${def.text}`).not.toMatch(WORDS);
@@ -571,6 +573,24 @@ describe('the counted rite goal', () => {
     city.timed = [];
     performRiteAt(g.state, player, city, 'riteOfFasting' as RiteId);
     expect(tallyOf(player.statecraft, 'theFoundingVows' as OrderId)).toBe(2);
+  });
+
+  it('The Founding Vows does not count the Votive Offering, which acts at once', () => {
+    // Batch DV4 (the triage's reading 9): a rite started is a season. The
+    // offering is said and done in one turn, so a town could say it every turn.
+    // `devotionRites.test.ts` checks the prophet's rite over the realm.
+    const g = akhenaten();
+    const { seat: player, city } = town(g);
+    player.charteredRites.push('riteOfFasting' as RiteId);
+    player.faithPool = 5000;
+    seat(g.state, ['theFoundingVows' as OrderId, 'theVotiveGifts' as OrderId]);
+    city.queue = [{ kind: 'building', id: 'granary' as BuildingId }];
+    performRiteAt(g.state, player, city, 'votiveOffering' as RiteId);
+    expect(cityRite(g.state, city)).toBe('votiveOffering');
+    expect(tallyOf(player.statecraft, 'theFoundingVows' as OrderId)).toBe(0);
+    city.timed = [];
+    performRiteAt(g.state, player, city, 'riteOfFasting' as RiteId);
+    expect(tallyOf(player.statecraft, 'theFoundingVows' as OrderId)).toBe(1);
   });
 });
 
@@ -893,8 +913,8 @@ describe('the Devotion deck: the sheet of record', () => {
     expect(shared).toHaveLength(29);
   });
 
-  it('types every listed row, 53 of this file and 29 shared, and nothing else of this file', () => {
-    expect(LISTED).toHaveLength(53);
+  it('types every listed row, 56 of this file and 29 shared, and nothing else of this file', () => {
+    expect(LISTED).toHaveLength(56);
     for (const id of DEVOTION) {
       const def = orderDef(id);
       if (def.retired === true) expect(def.type, id).toBeUndefined();

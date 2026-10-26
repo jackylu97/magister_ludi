@@ -44,8 +44,9 @@ Two stated shapes inside those rules, each because the layer is what it is:
   is an array.
 - **`foldCity` is the town's total, stages included.** A town's total is staged
   by definition (step 12), so the fold of a town is the flats plus the two
-  multiplications, then the unrest gate (step 13), then the food surplus moved
-  into production (step 14); a fourth verb for the
+  multiplications, then the unrest gate (step 13), then the moves of step 14
+  (the food surplus moved into production, then the production a rite moves
+  into culture); a fourth verb for the
   multiplication would be a second place a total could be computed. The bare sum
   of the list, with no stage on it, is `foldCityFlats`, which is what
   `explainCity` fills `flats` with.
@@ -135,7 +136,8 @@ Fourteen steps. Steps 1–11 are `explainCity`, which returns **flats** and a
 **percent list** and applies neither to the other; steps 12 to 14 are
 `foldCity`: the two stages, which are the only place in the simulation a yield
 meets a percentage, then the gates (unrest, and a siege on the Magnum Opus),
-then the food surplus a card moves into production.
+then the food surplus a card moves into production, then the production a rite
+moves into culture.
 
 | # | Step | Reads | Add / mult | Stage |
 |---|---|---|---|---|
@@ -152,7 +154,7 @@ then the food surplus a card moves into production.
 | 11 | **The percent list** — `cityYieldPercents` (+ `productionModifiers` via `foldCityStages`) | the meter tiers, the luxuries', the cards', the arrears | gathered, never applied | city and empire |
 | 12 | **The two stages** — `applyStages` (`foldCity`) | step 11's list, folded per voice by `foldStageSums` | multiplicative | city, then empire |
 | 13 | **The gates** — `explainUnrestGate`, then `explainOpusGate` (`foldCity`) | `City.unrest`: a town in unrest makes none of the voices `rules.war.unrest.halts` names (production, science, culture), one labelled line a voice. Then the siege on the Opus (Circumvallation, Dominion batch D14): a town building a Magnum Opus makes no production while it is under siege (`underSiege`) and a rival whose law holds the `opusSiege` rule has a combat unit beside it, one line that names the rival's card | holds the voice at nothing | — |
-| 14 | **The surplus moved** — `explainSurplusMoved` (`foldCity`) | a card that moves the town's food surplus into production while it builds a row the card names (The Laws of Lord Shang, Dominion batch D7), or while its owner has told it to stop growing (The Breadbasket, Expansionist batch E6): the surplus as the growth channel computes it (`channelSurplus`), one labelled line; the food basket gains none of it. A deficit is never moved, and a town whose production a gate of step 13 stops moves nothing | additive, production only | — |
+| 14 | **The surplus moved** — `explainSurplusMoved`, then **the production moved** — `explainProductionMoved` (`foldCity`) | a card that moves the town's food surplus into production while it builds a row the card names (The Laws of Lord Shang, Dominion batch D7), or while its owner has told it to stop growing (The Breadbasket, Expansionist batch E6): the surplus as the growth channel computes it (`channelSurplus`), one labelled line; the food basket gains none of it. A deficit is never moved, and a town whose production a gate of step 13 stops moves nothing. Then the production moved (Devotion batch DV4): while the town keeps a rite that moves its production into culture (the Rite of the Sabbath, `productionMoverFor`), all of its production after the lines above becomes culture, one labelled line, and the basket gains none of it | additive; the surplus moved adds to production, and the production moved takes it all and adds it to culture | — |
 
 ### Inside step 2 — the hex
 
@@ -289,6 +291,16 @@ banking (Entry XVIII.5).
   While a card moves a town's surplus, the Avoid growth tick does not move the
   town's citizens off food (`assignCitizens`, Expansionist batch E6), so the
   card has a surplus to move.
+- **The production moved comes last** (step 14's second line, Devotion batch
+  DV4, the Rite of the Sabbath). It reads the town's production after the
+  gates and after the surplus moved, so a town keeping the rite builds nothing
+  at all: food a card moved into production moves on into culture with the
+  rest. No percentage multiplies the culture it becomes, because the stages
+  are already applied. A town whose production a gate stops has nothing to
+  move. A purchase or a production windfall goes into the basket directly and
+  never passes through this fold, so the town still gains it. The rule is a
+  rite's row and not an Order's, so the reader (`productionMoverFor`) asks the
+  empire's law and the rites the town keeps.
 - **The unrest gate comes after both stages, and is not a percentage.**
   Percentages sum inside a stage, so a −100% line would only cancel the stage's
   other lines and never the voice. The gate sets the staged figure of each voice
@@ -353,6 +365,7 @@ lands. The `where · basis` cell is blank for the kinds that are still one thing
 | `percentYields` | | 11 | multiplicative, at whichever stage the row names |
 | `productionBonus` | | 11 | multiplicative, production only; the city stage, or the empire stage for a row that names it (The Marian Reforms) |
 | `surplusToProduction` | | 14 | additive — the town's food surplus, moved into production after the gate |
+| `productionToCulture` | | 14 | additive — the town's production, moved into culture after the gates and the surplus moved (the Rite of the Sabbath) |
 | `pays` | empire · flat | 18 | additive — the luxuries' signature, and no card row today |
 | `pays` | empire · count | 18, 11 | additive at 18; a helping's percentage (a row with `stage`) is gathered at 11, in every town, since the count is the realm's and reads the same in each |
 | `pays` | empire · rate | 18 | additive, off this turn's own rates |
@@ -400,7 +413,7 @@ production, borders, the purchase of a tile — and the sequence lives under
 |---|---|
 | the hex | `explainTileYield` · `src/sim/yields/hex.ts` |
 | the town's list | `explainCity` · `src/sim/yields/town.ts` |
-| the town's total | `foldCity` → `applyStages`, then `explainUnrestGate` and `explainOpusGate`, then `explainSurplusMoved` · `src/sim/yields/town.ts`, `src/sim/yields/stages.ts` |
+| the town's total | `foldCity` → `applyStages`, then `explainUnrestGate` and `explainOpusGate`, then `explainSurplusMoved` and `explainProductionMoved` · `src/sim/yields/town.ts`, `src/sim/yields/stages.ts` |
 | the empire's list | `explainEmpireLines` · `src/sim/yields/empire.ts` |
 | the banks | `collectYields` · `src/sim/yields/empire.ts` |
 | the two stages | `applyStages`, `foldStageSums` · `src/sim/yields/stages.ts` (the old `modifiers.ts`) |

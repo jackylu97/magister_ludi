@@ -363,6 +363,8 @@ The first eleven come from section 12, from R1 and from section 11. The rest are
 - **Schema:** one bump.
 - **Done-gate:** `npx vitest run test/sim/decks/devotionRites.test.ts test/sim/decks/devotion.test.ts test/sim/religion.test.ts test/sim/ritePreview.test.ts test/ui/ritesTab.test.ts test/ui/riteFeedback.test.ts test/sim/occasionRiders.test.ts test/sim/yieldsDocSync.test.ts test/sim/decks.test.ts test/sim/statecraft.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`.
 
+- **Built (2026-10-25):** as planned. The gate passed: the type check, 9,664 core tests and the build. Schema 182. The Sabbath is a new kind, `productionToCulture`, read at step 14 after the surplus moved, with its row and register line in `docs/yields.md`. Beyond the fence: `docs/beliefs.md` and `docs/religion-v2.md` list the new rite (and R1's Rite of Fasting); the city panel's production and culture chips show the moved line; an empire rite's command result now returns wonders and triumphs, as a town's rite does. Readings added: under The Laws of Lord Shang, food moved into production goes on into culture in a Sabbath town; the mover reads the empire's law and the town's rites only; The Psalter counts the citizens when the season starts; the `rite` occasion reads "starting a rite". Not done: the rite preview has no line for The Psalter; the bots' rite rate still assumes the old tempo (DV9).
+
 ### DV5: the faith's reach
 
 - **Builds:**

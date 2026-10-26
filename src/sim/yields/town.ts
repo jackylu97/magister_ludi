@@ -1,12 +1,14 @@
 /**
  * **The town** — the fourteen steps of `docs/yields.md`, from the centre to the
- * food surplus a card moves into production.
+ * food surplus a card moves into production and the production a rite moves
+ * into culture.
  *
  * `explainCity` is the list (steps 1–11: the labelled lines, their fold, and the
  * percent list that is deliberately *not* applied to them) and `foldCity` is the
  * total (step 12, the only place in the simulation a yield meets a percentage,
  * then step 13, the unrest gate, which holds a town in unrest at nothing in the
- * voices it stops, then step 14, the surplus moved, Dominion batch D7). Between
+ * voices it stops, then step 14, the surplus moved, Dominion batch D7, and the
+ * production moved, Devotion batch DV4). Between
  * them sit the palace, the building shares, the conversions, the percent list
  * and the town's half of Entry XVII's staging.
  *
@@ -64,7 +66,7 @@ import { type CityYields, channelSurplus, cityTile, emptyCityYields } from '../c
 // Dominion batch D7: which card moves a town's food surplus into production.
 // Straight from the evaluator rather than through the `statecraft.ts` index,
 // so the build does not warn of a circular import between chunks.
-import { surplusMoverFor } from '../statecraft/evaluator';
+import { productionMoverFor, surplusMoverFor } from '../statecraft/evaluator';
 // Dominion batch D14, Circumvallation: the besieger that stops a town's Opus,
 // straight from the evaluator for the reason above, and the siege reading
 // itself. `combat.ts` imports `cities.ts`, which imports this module back; the
@@ -1131,10 +1133,12 @@ export function foldCityStages(
  *
  * **And then the unrest gate** (step 13, batch WC1): a town in unrest makes none
  * of the voices `explainUnrestGate` names, whatever the stages made of them.
- * **And last the surplus moved** (step 14, Dominion batch D7): a card may move
- * the town's food surplus into its production (`explainSurplusMoved`). Both are
- * here for the same reason the stages are here and not in a phase: every reader
- * of a town's total reads it through this one function.
+ * **And last the moves** (step 14): a card may move the town's food surplus
+ * into its production (`explainSurplusMoved`, Dominion batch D7), and then a
+ * rite may move the town's production into culture (`explainProductionMoved`,
+ * Devotion batch DV4). All of these are here for the same reason the stages
+ * are here and not in a phase: every reader of a town's total reads it through
+ * this one function.
  */
 export function foldCity(
   state: GameState,
@@ -1162,6 +1166,14 @@ export function foldCity(
   // line. See `explainSurplusMoved`.
   for (const moved of explainSurplusMoved(state, city, total, toward)) {
     total.production += moved.amount;
+  }
+  // **14, second line — the production moved** (Devotion batch DV4, the Rite
+  // of the Sabbath). After the surplus moved, so a town that keeps the rite
+  // builds nothing at all: every hammer the fold made, the moved food among
+  // them, becomes culture. See `explainProductionMoved`.
+  for (const moved of explainProductionMoved(state, city, total)) {
+    total.production -= moved.amount;
+    total.culture += moved.amount;
   }
   return total;
 }
@@ -1205,6 +1217,43 @@ export function explainSurplusMoved(
   if (mover === null) return [];
   const amount = channelSurplus(state, city, yields);
   if (amount <= 0) return [];
+  return [{ source: mover.source, card: mover.card, amount }];
+}
+
+/** One line of step 14: production moved into culture. See `explainProductionMoved`. */
+export interface ProductionMovedLine {
+  /** The rite or card that moves it, as its line is labelled. */
+  source: string;
+  card: CardId;
+  /** The production moved, now culture. Always more than nought. */
+  amount: number;
+}
+
+/**
+ * **Step 14 of `docs/yields.md`, second line — the production moved**
+ * (Devotion batch DV4, the Rite of the Sabbath; the triage's reading 20): one
+ * line, or an empty list.
+ *
+ * While a row moves this town's production into culture
+ * (`productionMoverFor`), all of the town's production for the turn becomes
+ * culture, one for one, and the basket gains none of it. So the town builds
+ * nothing while it keeps the rite. A purchase or a production windfall still
+ * goes into the basket, because neither passes through this fold.
+ *
+ * `yields` is the town's total so far: steps 1 to 13 and the food surplus
+ * moved. So a gate of step 13 that stops the town's production leaves nothing
+ * to move, and food a card moved into production moves on into culture.
+ * Production is never below nought, and a figure of nought moves nothing.
+ */
+export function explainProductionMoved(
+  state: GameState,
+  city: City,
+  yields: CityYields,
+): ProductionMovedLine[] {
+  const amount = yields.production;
+  if (amount <= 0) return [];
+  const mover = productionMoverFor(state, city);
+  if (mover === null) return [];
   return [{ source: mover.source, card: mover.card, amount }];
 }
 

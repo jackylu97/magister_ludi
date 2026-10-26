@@ -3756,6 +3756,13 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       }
       return worth;
     }
+    case 'productionToCulture':
+      // **A town's production turned into culture** (Devotion batch DV4, the
+      // Rite of the Sabbath) is a stand-in until batch DV9 prices it in the
+      // bot's choice of rite. The honest price is the culture gained less the
+      // production lost in the town that keeps the rite, and that needs the
+      // town, which this arm is not handed.
+      return ctx.ai.score.unknownEffect;
     default:
       return unreadEffect(kind, ctx);
   }

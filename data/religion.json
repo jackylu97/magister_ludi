@@ -1366,6 +1366,16 @@
       "duration": 5,
       "atOnce": { "healFollowing": true },
       "effects": []
+    },
+    "riteOfTheSabbath": {
+      "name": "Rite of the Sabbath",
+      "tech": "divination",
+      "byCard": true,
+      "flavor": "The forges are cold, the market is shut, and the whole town has gone to hear the choir.",
+      "text": "This city builds nothing and gains its production as culture, while the rite runs.",
+      "note": "Opened by the Order The Sabbath Laws. Production the town buys, or is given at once, still goes into what it is building. A town in unrest makes no production, so it has none to give.",
+      "duration": 10,
+      "effects": [{ "kind": "productionToCulture" }]
     }
   },
   "consecrations": {

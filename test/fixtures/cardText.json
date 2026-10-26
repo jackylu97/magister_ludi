@@ -6926,6 +6926,36 @@
     "text": "military units cost −30% to buy with faith"
    }
   ],
+  "theRogations": [
+   {
+    "raw": "+2 culture, +2 faith to the empire",
+    "text": "+2 culture, +2 faith to the empire"
+   },
+   {
+    "raw": "+1 faith per rite you have started, counted while this Order stands in a slot",
+    "text": "+1 faith per rite you have started, counted while this Order stands in a slot"
+   },
+   {
+    "raw": "+1 culture per rite you have started, counted while this Order stands in a slot",
+    "text": "+1 culture per rite you have started, counted while this Order stands in a slot"
+   }
+  ],
+  "theSabbathLaws": [
+   {
+    "raw": "once drafted, your cities may keep [[rite:riteOfTheSabbath|Rite of the Sabbath]]: this city builds nothing and gains its production as culture, while the rite runs",
+    "text": "once drafted, your cities may keep Rite of the Sabbath: this city builds nothing and gains its production as culture, while the rite runs"
+   }
+  ],
+  "thePsalter": [
+   {
+    "raw": "starting a rite in a devout city grants science equal to 5 times its population",
+    "text": "starting a rite in a devout city grants science equal to 5 times its population"
+   },
+   {
+    "raw": "starting a rite in a devout city grants culture equal to 5 times its population",
+    "text": "starting a rite in a devout city grants culture equal to 5 times its population"
+   }
+  ],
   "theMonasticTable": [
    {
     "raw": "+2 food, +2 production in every city while it is keeping a rite",
@@ -10176,6 +10206,12 @@
    {
     "raw": "every unit of yours standing in land that follows your religion is healed to full",
     "text": "every unit of yours standing in land that follows your religion is healed to full"
+   }
+  ],
+  "riteOfTheSabbath": [
+   {
+    "raw": "this city builds nothing and gains its production as culture instead",
+    "text": "this city builds nothing and gains its production as culture instead"
    }
   ]
  },

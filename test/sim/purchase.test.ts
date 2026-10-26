@@ -1605,6 +1605,11 @@ describe('the schema witness', () => {
     // IV): eleven Magisterial cards are new and dealt, and The Golden Age
     // and The Magister's Court leave `deferred`. So a v180 log's Magisterial
     // hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(181);
+    // 182 since Devotion batch DV4 (rites are seasons): a rite that acts at
+    // once no longer counts as a rite started, a prophet's rite counts once
+    // in each town it reaches, the Rite of the Sabbath is new, and three
+    // Devotion cards are dealt. So a v181 log's Devotion hands hold
+    // different cards.
+    expect(SCHEMA_VERSION).toBe(182);
   });
 });

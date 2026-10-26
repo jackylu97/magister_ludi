@@ -181,7 +181,8 @@ export interface RiteDef extends CardDefBase {
   retired?: boolean;
   /**
    * **Taught by a card, not by the tree** — the Devotion deck's rites (The
-   * Fast's charter, The Votive Gifts, The Host Restored). The row's `tech` then
+   * Fast's charter, The Sabbath Laws' charter, The Votive Gifts, The Host
+   * Restored). The row's `tech` then
    * only dates it for the Compendium's shelf and is not in any node's
    * `unlocks.abilities`; the verb is known through a charter
    * (`Player.charteredRites`) or a seated card's `grantsAbility`.

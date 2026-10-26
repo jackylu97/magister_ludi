@@ -2158,10 +2158,18 @@ function describeEffect(
           : unbuilt.includes('a hex')
             ? unbuilt.replace('a hex', `a ${hexWords}`)
             : `${unbuilt} on a ${hexWords}`;
+      // One town of the class the scope names, with its adjectives in front
+      // of the noun ("a devout city", Devotion batch DV4, The Psalter) and its
+      // qualifiers after it ("a city building a wonder"). A scope that already
+      // names one town ("your capital") is said as it is.
+      const inTownWords = (scope: CityScope): string => {
+        const each = eachWords(scope);
+        return each.startsWith('your ') ? each : `${indefinite(each)} ${each}`;
+      };
       const placed =
         effect.inTown === undefined
           ? onHex
-          : `${onHex} in ${effect.inTown === true ? 'one of your cities' : `a city ${scopeCondition(effect.inTown)}`}`;
+          : `${onHex} in ${effect.inTown === true ? 'one of your cities' : inTownWords(effect.inTown)}`;
       const occasion =
         only +
         (effect.anyBuilding === true ? placed.replace('anything', 'a building') : placed) +
@@ -3307,6 +3315,15 @@ function describeEffect(
       const towns = effect.scope === undefined ? 'a city' : `a city ${scopeCondition(effect.scope)}`;
       out.push({
         text: `${towns}${building} puts its food surplus into production instead of into growth`,
+      });
+      return;
+    }
+    case 'productionToCulture': {
+      // Devotion batch DV4, the Rite of the Sabbath. A rite hangs it on one
+      // town, so a rite's row with no scope says "this city".
+      const towns = scopeWordsFor(subject, effect.scope);
+      out.push({
+        text: `${towns} builds nothing and gains its production as culture instead`,
       });
       return;
     }
@@ -5581,7 +5598,9 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   pillageTrader: 'plundering a caravan',
   tech: 'completing a technology',
   tilePurchase: 'buying a hex',
-  rite: 'performing a rite',
+  // "Starting", because the moment is a season started (Devotion batch DV4):
+  // a rite that acts at once does not pay it.
+  rite: 'starting a rite',
   purchase: 'buying anything',
   declareWar: 'declaring war',
   periodic: 'a boon coming round',

@@ -179,6 +179,27 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
   });
 
   /**
+   * **Step 14 has a second line** (Devotion batch DV4, the Rite of the
+   * Sabbath): the production a rite moves into culture. The step's anchor is
+   * the surplus moved, so the walk above checks only that one. This checks
+   * that the doc's step 14 names the second line, and that `foldCity` calls it
+   * after the surplus moved and before the function returns, so a town keeping
+   * the rite moves the food a card moved into production as well.
+   */
+  it('moves the production into culture as the second line of step 14', () => {
+    const row = docRows().find((cells) => cells[1] === '14');
+    expect(row, 'the doc has no step 14').toBeDefined();
+    expect(row![2]).toContain('`explainProductionMoved`');
+    expect(row![3]).toContain('`productionMoverFor`');
+    const fold = body(YIELDS, 'foldCity');
+    const surplus = fold.indexOf('explainSurplusMoved(');
+    const production = fold.indexOf('explainProductionMoved(');
+    expect(surplus).toBeGreaterThanOrEqual(0);
+    expect(production).toBeGreaterThan(surplus);
+    expect(fold.indexOf('return total;')).toBeGreaterThan(production);
+  });
+
+  /**
    * **Step 6 has a second half** (Commerce batch T3, The Return Leg): under
    * the `homeRoutesPayOrigin` rule, a copy of what each home route leaving the
    * town pays its destination. The step's anchor is the routes arriving, so
@@ -317,6 +338,9 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
     // Dominion batch D7, The Laws of Lord Shang: a town's food surplus moved
     // into production, after the unrest gate (step 14).
     'surplusToProduction',
+    // Devotion batch DV4, the Rite of the Sabbath: a town's production moved
+    // into culture, after the surplus moved (step 14's second line).
+    'productionToCulture',
   ];
 
   /**
