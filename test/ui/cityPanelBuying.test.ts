@@ -43,12 +43,16 @@ import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import {
   type BuildListRow,
   type BuildListShelf,
+  banksInView,
   buildListModel,
+  cultureCaption,
   ordinalWord,
   queueWithAdded,
   queuedMark,
 } from '../../src/ui/cityPanel';
 import { SHARED_SUBJECT } from '../../src/ui/refusalLine';
+import { RULES } from '../../src/sim/rulesData';
+import { HAMMER, YIELD_GLYPH } from '../../src/ui/figures';
 import { braceBody, uiSource } from './sourceHelpers';
 import { createGame } from '../sim/newGameHelpers';
 
@@ -94,6 +98,26 @@ function developed(): { state: GameState; city: City } {
   ];
   city.hammerBasket = 30;
   createUnit(state, 0, 'warrior', city.col, city.row);
+  bumpRevision(state);
+  return { state, city };
+}
+
+/** The wonder `magnificent()` builds. */
+const FRONT_WONDER = 'theOracle' as const;
+
+/**
+ * The developed town building a wonder at the front of its queue, with
+ * Magnificence seated and the draft pool holding enough culture to buy it
+ * (Magisterial batch MG11).
+ */
+function magnificent(): { state: GameState; city: City } {
+  const { state, city } = developed();
+  city.queue = [{ kind: 'building', id: FRONT_WONDER }, ...city.queue];
+  const player = playerById(state, 0)!;
+  const card = 'magnificence' as OrderId;
+  player.statecraft.orders.push(card);
+  player.statecraft.slots.push({ card, sealedUntil: state.turn });
+  player.culturePool = 5000;
   bumpRevision(state);
   return { state, city };
 }
@@ -205,12 +229,14 @@ describe('nothing the list leaves pressable is refused', () => {
     return counts;
   }
 
-  it('has every pressable build row and price taken by the reducer, in three towns', () => {
+  it('has every pressable build row and price taken by the reducer, in four towns', () => {
     const totals = { enabled: 0, buy: 0, short: 0, none: 0 };
     for (const [label, town] of [
       ['first turn', firstTurn()],
       ['developed', developed()],
       ['puppet', puppet()],
+      // A wonder at the front of the queue, with a culture price on it.
+      ['magnificent', magnificent()],
     ] as const) {
       const counts = check(label, town.state, town.city);
       for (const key of Object.keys(totals) as (keyof typeof totals)[]) totals[key] += counts[key];
@@ -257,6 +283,49 @@ describe('nothing the list leaves pressable is refused', () => {
     expect(folded).toBeGreaterThan(0);
     const list = braceBody(uiSource('cityPanel.ts'), 'function renderBuildables(');
     expect(list).toContain('const why = buildReason(row);');
+  });
+});
+
+// --- a wonder bought with culture ------------------------------------------------
+
+describe('a wonder bought with culture (Magisterial batch MG11)', () => {
+  it('prices only the wonder at the front of the queue in culture, at the gate’s own figure', () => {
+    const { state, city } = magnificent();
+    const shelves = buildListModel(state, city, 0, 'all', false);
+    const cultured = everyRow(shelves).filter((row) =>
+      row.cells.some((cell) => cell.look.bank === 'culture'),
+    );
+    expect(cultured.map((row) => row.name)).toEqual([buildingDef(FRONT_WONDER).name]);
+    const cell = cultured[0]!.cells.find((entry) => entry.look.bank === 'culture')!;
+    const price = explainPurchaseCost(state, 0, city.id, { kind: 'building', id: FRONT_WONDER }, 'culture')!;
+    expect(cell.look).toEqual({ look: 'buy', bank: 'culture', price: price.total });
+  });
+
+  it('names the culture held in the column’s heading, after gold', () => {
+    const { state, city } = magnificent();
+    const shelves = buildListModel(state, city, 0, 'all', false).filter(
+      (entry) => entry.shelf !== 'faith',
+    );
+    expect(banksInView(shelves)).toEqual(['gold', 'culture']);
+  });
+
+  it('draws no culture price without the card', () => {
+    const { state, city } = developed();
+    city.queue = [{ kind: 'building', id: FRONT_WONDER }, ...city.queue];
+    playerById(state, 0)!.culturePool = 5000;
+    bumpRevision(state);
+    const cells = everyRow(buildListModel(state, city, 0, 'all', false)).flatMap((row) => row.cells);
+    expect(cells.some((cell) => cell.look.bank === 'culture')).toBe(false);
+  });
+
+  it('says in the caption that a culture price is what is left, at the rules’ rate', () => {
+    expect(cultureCaption()).toBe(
+      `Culture prices are what a wonder still needs, at ${RULES.production.culturePerHammer}` +
+        `${YIELD_GLYPH.culture} per ${HAMMER}. The hammers it has banked are used, and the ` +
+        'culture comes from what you are saving for your next Order hand.',
+    );
+    const list = braceBody(uiSource('cityPanel.ts'), 'function renderBuildables(');
+    expect(list).toContain("if (ordinary.includes('culture')) {");
   });
 });
 

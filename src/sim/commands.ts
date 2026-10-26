@@ -1132,7 +1132,11 @@ export interface PurchaseItemCommand extends PlayerCommand {
   cityId: number;
   /** A unit or a building. A project is not a thing that can be delivered. */
   item: PurchasableItem;
-  /** Which bank pays. Refused when it is not the one the row is priced in. */
+  /**
+   * Which bank pays. Refused when it is not the one the row is priced in.
+   * Culture is a bank since Magisterial batch MG11, and `purchaseError` opens
+   * it only for the wonder at the front of the queue, under Magnificence.
+   */
   currency: PurchaseCurrency;
 }
 

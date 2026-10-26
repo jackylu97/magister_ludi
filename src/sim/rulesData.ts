@@ -1649,6 +1649,18 @@ export interface ProductionRules {
    */
   faithPerHammer: number;
   /**
+   * Culture one hammer costs when culture buys a world wonder (Magisterial
+   * batch MG11, Magnificence; the triage's reading 36).
+   *
+   * Read by `hammerRate` (`purchase.ts`), and so by the culture price in
+   * `explainPurchaseCost`. Unlike gold and faith, culture pays only for the
+   * hammers the wonder still needs, not its full cost: the card's words are
+   * "one culture for each hammer it still needs". So this number is 1, and
+   * the card's text and its describer words say "one". If it changes, they
+   * must change with it (`magisterialMagnificence.test.ts` pins it).
+   */
+  culturePerHammer: number;
+  /**
    * Gold each hammer banked toward a wonder is worth when somebody else
    * finishes it first (the wonders framework, 2026-08-27).
    *

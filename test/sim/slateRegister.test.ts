@@ -339,6 +339,9 @@ const ANNOUNCING = new Set([
   // list: they no longer write a bank of their own. `settleReroll` stays,
   // because its gold arm still writes the treasury.
   'state.ts#spendFaith',
+  // **And for culture** (Magisterial batch MG11): Magnificence buys a wonder
+  // with culture from the draft pool, and `purchaseItemAt` spends it here.
+  'state.ts#spendCulture',
   // Batch WC2: the one writer of `Player.warLosses`, which the happiness
   // meter's war weariness lines count.
   'weariness.ts#recordWarLoss',

@@ -47,7 +47,7 @@
 import { createModalShell } from './modalShell';
 import { type CardImpactSheet, cardImpactSheet } from '../sim/cardImpact';
 import { cityRites, empireRiteError, riteError } from '../sim/religion';
-import type { PurchasableItem } from '../sim/purchase';
+import type { PurchasableItem, PurchaseCurrency } from '../sim/purchase';
 import type { RiteId } from '../sim/religionData';
 import { type GameState, playerById } from '../sim/state';
 import { element } from './dom';
@@ -149,7 +149,7 @@ export interface ReligionScreenOptions {
   getState: () => GameState;
   getPlayerId: () => number;
   /** Sends the purchase. The screen never mutates state itself. */
-  buy: (cityId: number, item: PurchasableItem, currency: 'faith' | 'gold') => void;
+  buy: (cityId: number, item: PurchasableItem, currency: PurchaseCurrency) => void;
   /**
    * Starts a rite in a town: one `performRite` command, which the page sends
    * through `controls.performRite`. Optional, so a page without it still draws

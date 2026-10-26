@@ -646,11 +646,10 @@ describe('the build list', () => {
     expect(declaration('.city-buildable-cost', 'white-space')).toBe('nowrap');
     expect(declaration('.city-buildable-yield', 'white-space')).toBe('nowrap');
     // And a price is the figure alone — no "or" (the same ruling). Composed in
-    // the price column's own module since batch UX5.
+    // the price column's own module since batch UX5. The mark is the bank's
+    // own glyph since Magisterial batch MG11 added culture as a third bank.
     const cell = source('priceCell.ts');
-    expect(cell).toContain(
-      "return `${price}${bank === 'faith' ? YIELD_GLYPH.faith : YIELD_GLYPH.gold}`;",
-    );
+    expect(cell).toContain('return `${price}${YIELD_GLYPH[bank]}`;');
     expect(cell).not.toContain('`or ${');
   });
 

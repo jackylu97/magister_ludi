@@ -86,7 +86,8 @@ describe('the build list and the price tags', () => {
     // (the user's A1 ruling). A **wonder** gets one too: the gate refuses it in
     // most towns ("a wonder must be built, not bought") and the cell is then a
     // dash, but a card may open a bank for one (The Gilded Scaffold, the Valley
-    // of Kings), and a row that withheld its cell could never show that price.
+    // of Kings, Magnificence), and a row that withheld its cell could never
+    // show that price.
     // A project is a conversion that never completes, so nothing can buy one.
     const g = game();
     const settler = g.state.units.find((u) => u.ownerId === 0 && unitDef(u.type).foundsCity)!;
@@ -122,6 +123,9 @@ describe('the build list and the price tags', () => {
     const source = panelSource();
     expect(source).not.toMatch(/in the treasury/);
     expect(source).toMatch(/RULES\.production\.goldPerHammer/);
+    // And the culture rate, for the one price that is not the full cost
+    // (Magnificence, Magisterial batch MG11).
+    expect(source).toMatch(/RULES\.production\.culturePerHammer/);
   });
 });
 

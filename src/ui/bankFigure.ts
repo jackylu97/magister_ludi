@@ -27,22 +27,33 @@ import { type GameState, playerById } from '../sim/state';
 import { element } from './dom';
 import { netFigure, poolFigure } from './figures';
 
-/** A bank, named by the currency it holds. The purchase gate's own two. */
+/**
+ * A bank, named by the currency it holds. The purchase gate's own three: gold,
+ * faith and, since Magisterial batch MG11, culture (the draft pool, which
+ * Magnificence lets buy a wonder).
+ */
 export type BankId = PurchaseCurrency;
 
-/** The banks in the order every surface lists them: money first, then faith. */
+/**
+ * The banks the band lists, in the order every surface lists them: money
+ * first, then faith. Culture is not in the band: the top bar already shows the
+ * draft pool, and culture buys only one row under one card. The price column
+ * lists it when it prices something (`PRICE_BANKS`, `priceCell.ts`).
+ */
 export const BANKS: readonly BankId[] = ['gold', 'faith'];
 
 /** What a bank is called when it leads its own figure: "Treasury 437 (+21)". */
 export const BANK_LABEL: Readonly<Record<BankId, string>> = {
   gold: 'Treasury',
   faith: 'Faith',
+  culture: 'Culture',
 };
 
 /** The word after a figure in a bank's currency: "437 gold", "51 faith". */
 export const BANK_UNIT: Readonly<Record<BankId, string>> = {
   gold: 'gold',
   faith: 'faith',
+  culture: 'culture',
 };
 
 /** One bank as a screen shows it: what is held and what arrives each turn. */

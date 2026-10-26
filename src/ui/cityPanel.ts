@@ -122,8 +122,9 @@ import {
   isPurchaseOnly,
   purchaseVerb,
 } from '../sim/purchase';
-import { BANKS, BANK_UNIT, bankHeldText, bankLineElement, readBanks } from './bankFigure';
+import { BANK_UNIT, bankHeldText, bankLineElement, readBanks } from './bankFigure';
 import {
+  PRICE_BANKS,
   type PriceHeadBank,
   type PriceLook,
   emptyPriceCellElement,
@@ -928,10 +929,15 @@ export function buildListModel(
     reason: NotYetReason | null;
   }
 
-  /** The cells a row gets: one per bank that sells it, gold first. */
+  /**
+   * The cells a row gets: one per bank that sells it, gold first. Culture is
+   * asked too, and sells only the wonder at the front of the queue under
+   * Magnificence (Magisterial batch MG11), so every other row gets no culture
+   * cell.
+   */
   const priced = (item: PurchasableItem): BuildListCell[] => {
     const cells: BuildListCell[] = [];
-    for (const bank of BANKS) {
+    for (const bank of PRICE_BANKS) {
       const look = purchaseLook(state, seat, city.id, item, bank);
       if (look !== null) cells.push({ look, place: null });
     }
@@ -1171,8 +1177,8 @@ export function mainYieldOf(fold: CityYields): { key: CityYieldKey; amount: numb
 }
 
 /**
- * The banks whose prices are in view on these shelves, in `BANKS` order: what
- * the price column's heading names ("you have 437 gold").
+ * The banks whose prices are in view on these shelves, in `PRICE_BANKS` order:
+ * what the price column's heading names ("you have 437 gold").
  */
 export function banksInView(shelves: readonly BuildListShelf[]): PurchaseCurrency[] {
   const seen = new Set<PurchaseCurrency>();
@@ -1181,7 +1187,21 @@ export function banksInView(shelves: readonly BuildListShelf[]): PurchaseCurrenc
       for (const cell of row.cells) seen.add(cell.look.bank);
     }
   }
-  return BANKS.filter((bank) => seen.has(bank));
+  return PRICE_BANKS.filter((bank) => seen.has(bank));
+}
+
+/**
+ * The caption under the build list while a culture price is in view
+ * (Magnificence, Magisterial batch MG11). A culture price is the one price
+ * that is not the full cost, so the caption gives the rate, read off the rules
+ * as the gold caption's is, and says where the hammers and the culture go.
+ */
+export function cultureCaption(): string {
+  return (
+    `Culture prices are what a wonder still needs, at ${RULES.production.culturePerHammer}` +
+    `${YIELD_GLYPH.culture} per ${HAMMER}. The hammers it has banked are used, and the ` +
+    'culture comes from what you are saving for your next Order hand.'
+  );
 }
 
 /**
@@ -4395,6 +4415,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
           'is being built now passes its banked hammers to the next item.',
       ),
     );
+    // A culture price is the one price that is not the full cost
+    // (Magnificence, Magisterial batch MG11), so the screen says so whenever
+    // one is in view.
+    if (ordinary.includes('culture')) {
+      box.append(element('p', 'hint', cultureCaption()));
+    }
     return box;
   }
 

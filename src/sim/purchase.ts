@@ -2,8 +2,8 @@
  * Buying a thing outright — the M9 gold sink, and the augur's faith price it
  * grew out of (design ledger Entry XXIX; Entry XXVIII is the religion half).
  *
- * One transaction, two banks
- * --------------------------
+ * One transaction, three banks
+ * ----------------------------
  * A purchase is *a city, a thing, and a bank*. Everything else follows from
  * which bank is named:
  *
@@ -21,6 +21,12 @@
  *     gold converts. It is the treasury's branch with one number swapped, not a
  *     third kind of transaction, and it widens which bank may pay rather than
  *     what may be bought.
+ *   · **Culture** buys one thing, under one card: the world wonder at the
+ *     front of a town's queue, under Magnificence (`cultureBuysWonders`,
+ *     Magisterial batch MG11; the triage's reading 36). It takes the culture
+ *     from the draft pool, and it is the one bank that prices what is left
+ *     rather than the full cost: `culturePerHammer` for each hammer the wonder
+ *     still needs. See `cultureWonderRefusal`.
  *
  * The shape is `explainUnitCost`'s, in a bank instead of a basket: an ordered
  * list of labelled lines whose **fold is the price** (hard rule 5), so the
@@ -38,6 +44,11 @@
  * makes the best moment to buy anything the moment before it would have
  * finished, which is the moment buying is worth least, and it turns every
  * purchase into a arithmetic problem about a bar.
+ *
+ * **Culture is the one stated exception** (Magnificence). The card's words
+ * are "one culture for each hammer it still needs", so the price is the
+ * wonder's cost less what the town has banked toward it, and the banked
+ * hammers are used by the purchase rather than passed to the next item.
  *
  * One completion routine
  * ----------------------
@@ -62,9 +73,11 @@ import {
   type City,
   type GameState,
   type Player,
+  type PurchaseCurrency,
   type QueueItem,
   type Unit,
   type UnitPurchaseBucket,
+  bankedTowardItem,
   capitalCityOf,
   cityById,
   firstKey,
@@ -72,6 +85,7 @@ import {
   markFirst,
   playerById,
   reaimProduction,
+  spendCulture,
   spendFaith,
   spendGold,
 } from './state';
@@ -120,15 +134,21 @@ import {
   spendableGold,
   windfallPayout,
 } from './statecraft';
-// Expansionist batch E12: what a town holds, a card's grants included.
-import { townBuildings, townShelf } from './statecraft/evaluator';
+// Expansionist batch E12: what a town holds, a card's grants included. And
+// since Magisterial batch MG11 the reading of a wonder or the Opus at the front
+// of a queue, which The Hired Garrison asks.
+import { isRaisingWonderOrOpus, townBuildings, townShelf } from './statecraft/evaluator';
 import { buildError, gatingTech, hasTech, isUnlocked, settleResearchWindfall } from './tech';
 import { techDef } from './techData';
 import { type UnitTypeId, isCivilian, isUnitTypeId, unitDef } from './unitData';
 import { caravanTypeFor } from './routes';
 
-/** The banks a thing may be priced in. */
-export type PurchaseCurrency = 'faith' | 'gold';
+/**
+ * The banks a thing may be priced in: gold, faith and, since Magisterial batch
+ * MG11, culture. Declared in `state.ts`, because `City.buildingBanks` records
+ * it, and re-exported here by name so every caller imports it from this module.
+ */
+export type { PurchaseCurrency } from './state';
 
 /**
  * Which "one a turn" this purchase spends — **the** rule, asked in exactly two
@@ -324,6 +344,11 @@ function rosterBank(item: PurchaseSubject): PurchaseCurrency | undefined {
  *      (item y) a **building's** tag inherits the age band for the same reason,
  *      because `explainBuildingCost` is the list being converted rather than the
  *      row's printed figure. A cathedral is bought in the money of its own era.
+ *   3. **Culture** (Magnificence, Magisterial batch MG11): the wonder's cost
+ *      lines, then a line that takes off the hammers the town has banked
+ *      toward it, then the conversion at `culturePerHammer`. It is priced only
+ *      where `cultureWonderRefusal` opens the bank, so every other row, and a
+ *      wonder that is not at the front of the queue, has no culture price.
  *
  * **A discount is a line of the list, never a multiplication afterwards.** The
  * vocabulary grew a `purchaseRider` with the wonders (the Great Ziggurat's
@@ -376,6 +401,17 @@ export function explainPurchaseCost(
   // that names one falls through to the conversion below, which is the whole of
   // the difference: the roster's spec carries a figure and a building's does not.
   if (bank !== undefined && bank !== currency) return null;
+  // **Culture buys one row, under one card** (Magnificence, Magisterial batch
+  // MG11; the triage's reading 36): the world wonder at the front of this
+  // town's queue, while the empire holds `cultureBuysWonders`. Anything else
+  // has no culture price at all, so the city panel draws no culture cell for
+  // it.
+  if (currency === 'culture') {
+    const city = cityById(state, cityId)!;
+    if (!cultureBankOpen(state, playerId, city, item)) return null;
+    const lines = explainCulturePrice(state, playerId, city, item.id);
+    return { currency, lines, total: foldUnitCost(lines) };
+  }
   if (bank !== undefined && item.kind === 'unit') {
     const spec = unitDef(item.id).purchase!;
     // **A row that mirrors another is priced off it, here and nowhere else**
@@ -661,6 +697,98 @@ function faithFinishesWonder(state: GameState, city: City, id: BuildingId): bool
 }
 
 /**
+ * **The hammers a wonder still needs in this town**, rounded up: its cost to
+ * this empire less what the town has banked toward it (Magnificence; the
+ * triage's reading 36). A basket can hold a fraction and a price is whole, so
+ * rounding up means the culture never leaves the wonder a fraction short.
+ */
+function hammersStillNeeded(state: GameState, playerId: number, city: City, id: BuildingId): number {
+  const cost = foldUnitCost(explainBuildingCost(id, state, playerId));
+  return Math.ceil(cost - bankedTowardItem(city, { kind: 'building', id }));
+}
+
+/**
+ * **Why culture may not buy this wonder in this town**, or `null` when it may
+ * (Magnificence, the `cultureBuysWonders` rule, Magisterial batch MG11; the
+ * triage's reading 36). Asked only of a world wonder, for an empire that holds
+ * the rule: `cultureBankOpen` and the wonder clause of `purchaseError` check
+ * both of those first.
+ *
+ * The card says "a wonder you are building". A town builds only the row at the
+ * front of its queue, so that is the one row culture may buy. A wonder further
+ * back must be moved to the front first. The second refusal is a safety: a
+ * front row whose basket already covers its cost has nothing left to buy.
+ */
+function cultureWonderRefusal(
+  state: GameState,
+  playerId: number,
+  city: City,
+  id: BuildingId,
+): string | null {
+  const name = buildingDef(id).name;
+  const front = city.queue[0];
+  if (front === undefined || front.kind !== 'building' || front.id !== id) {
+    return `${name} must be at the front of ${city.name}'s queue to be bought with culture`;
+  }
+  if (hammersStillNeeded(state, playerId, city, id) <= 0) {
+    return `${city.name} has already put all the production ${name} needs into it`;
+  }
+  return null;
+}
+
+/**
+ * **Does culture buy this item in this town?** Only a world wonder (never the
+ * Magnum Opus, which is not one), only while the empire holds
+ * `cultureBuysWonders`, and only where `cultureWonderRefusal` is silent. The
+ * one question `explainPurchaseCost` and the bank clause of `purchaseError`
+ * both ask, so the price and the gate open the bank for the same rows.
+ */
+function cultureBankOpen(
+  state: GameState,
+  playerId: number,
+  city: City,
+  item: PurchasableItem,
+): item is Extract<PurchasableItem, { kind: 'building' }> {
+  return (
+    item.kind === 'building' &&
+    isWonder(item.id) &&
+    cardActionRule(state, playerId, 'cultureBuysWonders') &&
+    cultureWonderRefusal(state, playerId, city, item.id) === null
+  );
+}
+
+/**
+ * **The culture price of a wonder, as the ordered list it is the fold of**
+ * (rule 5, for a price): the wonder's cost lines, then the hammers the town has
+ * already banked toward it, taken off, then the conversion at
+ * `culturePerHammer`. Each line carries the difference it makes, so the list
+ * sums to the price. The banked line and the conversion are left out when they
+ * change nothing, as the route's knob line is.
+ *
+ * **The purchase riders ride on it**, as they do in the other two banks, and
+ * after the conversion: a card that makes "all other purchasing" dearer (The
+ * Brokers' Redraw) or purchases cheaper (Crassus, Jakob Fugger) changes this
+ * price too. A rider that names gold or faith does not. A town's own discount
+ * (the Assay House) weighs coin only, so it does not.
+ */
+function explainCulturePrice(
+  state: GameState,
+  playerId: number,
+  city: City,
+  id: BuildingId,
+): UnitCostLine[] {
+  const lines = [...explainBuildingCost(id, state, playerId)];
+  const cost = foldUnitCost(lines);
+  const needed = hammersStillNeeded(state, playerId, city, id);
+  if (needed !== cost) lines.push({ source: 'Hammers already banked', amount: needed - cost });
+  const rate = hammerRate('culture');
+  const converted = Math.floor(needed * rate);
+  if (converted !== needed) lines.push({ source: `×${rate} in culture`, amount: converted - needed });
+  applyRiders(state, playerId, city.id, { kind: 'building', id }, 'culture', lines);
+  return lines;
+}
+
+/**
  * Folds every purchase rider that admits this **item** into **one** line on the
  * price, carrying the difference it makes to the running figure.
  *
@@ -732,9 +860,15 @@ function applyRiders(
   });
 }
 
-/** What this player currently holds of one bank. The one such reading. */
+/**
+ * What this player currently holds of one bank. The one such reading. The
+ * culture bank is the draft pool (`Player.culturePool`), so culture spent on a
+ * wonder is culture the next Order hand no longer has.
+ */
 export function bankOf(player: Player, currency: PurchaseCurrency): number {
-  return currency === 'faith' ? player.faithPool : player.gold;
+  if (currency === 'faith') return player.faithPool;
+  if (currency === 'culture') return player.culturePool;
+  return player.gold;
 }
 
 /**
@@ -1033,7 +1167,7 @@ function clausesBeforeTheBank(
     const named = typeof item === 'object' && item !== null ? (item as { id?: unknown }).id : item;
     return `Nothing called "${String(named)}" is for sale`;
   }
-  if (currency !== 'faith' && currency !== 'gold') {
+  if (currency !== 'faith' && currency !== 'gold' && currency !== 'culture') {
     return `There is no bank called "${String(currency)}"`;
   }
   const name = purchasableName(bought);
@@ -1066,6 +1200,14 @@ function clausesBeforeTheBank(
   // here. The price is gold's ordinary one, the row's full production cost at
   // `goldPerHammer`: a law widens which bank may pay and never what a thing
   // costs.
+  //
+  // **Or this empire's law opens the culture bank for one**: Magnificence
+  // (`cultureBuysWonders`, Magisterial batch MG11; the triage's reading 36).
+  // It is narrow in two ways: culture, and the wonder at the front of this
+  // town's queue. A wonder further back is refused in the card's own terms, so the
+  // player is told to move it to the front. Every gate below is then asked
+  // unchanged, as for the other lifts. Unlike them, the price is what the
+  // wonder still needs (`explainCulturePrice`).
   if (
     bought.kind === 'building' &&
     isWonder(bought.id) &&
@@ -1076,7 +1218,11 @@ function clausesBeforeTheBank(
     ) &&
     !(currency === 'gold' && cardActionRule(state, playerId, 'goldBuysWonders'))
   ) {
-    return `${name} is a wonder — it must be built, not bought`;
+    if (currency !== 'culture' || !cardActionRule(state, playerId, 'cultureBuysWonders')) {
+      return `${name} is a wonder — it must be built, not bought`;
+    }
+    const closed = cultureWonderRefusal(state, playerId, city, bought.id);
+    if (closed !== null) return closed;
   }
   // **A great person is never for sale either**, and for the wonder's reason
   // exactly: the row carries no `purchase` spec, so gold's ordinary gates below
@@ -1124,10 +1270,20 @@ function clausesBeforeTheBank(
     // told which bank the thing is priced in.
     return `A ${name} is bought with ${bank}, not ${currency}`;
   }
-  if (bank === undefined && currency !== 'gold' && !faithBankOpen(state, cityId, bought, currency)) {
+  if (
+    bank === undefined &&
+    currency !== 'gold' &&
+    !(currency === 'culture'
+      ? cultureBankOpen(state, playerId, city, bought)
+      : faithBankOpen(state, cityId, bought, currency))
+  ) {
     // A town holding a Reliquary sells its units for faith too, which is the one
     // way this sentence can be wrong — so it is asked before the sentence is
-    // said, in the same function the price asks it in.
+    // said, in the same function the price asks it in. Culture is asked the
+    // same way: it buys only the wonder Magnificence opens. Every other row is
+    // told so with no article, because some names already carry one (The
+    // Magnum Opus).
+    if (currency === 'culture') return `${name} cannot be bought with culture`;
     return `A ${name} is bought with gold, not ${currency}`;
   }
 
@@ -1282,7 +1438,7 @@ function clausesBeforeTheBank(
       // military units for gold, without limit, in a town whose front row is
       // a world wonder or the Magnum Opus.
       (bucket === 'militaryGold' &&
-        frontIsWonderOrOpus(city) &&
+        isRaisingWonderOrOpus(city) &&
         cardActionRule(state, playerId, 'wonderTownBuysWithoutLimit'));
     if (!arsenal && city.purchasedUnitTurns?.[bucket] === state.turn) {
       return `${city.name} has already bought ${bucketWords(bucket)} this turn`;
@@ -1344,7 +1500,9 @@ function clausesBeforeTheBank(
  *     and not about the routine;
  *   · a queued copy is struck off, because the town now has the thing and a row
  *     asking for it again is a row the queue would either drop or duplicate. The
- *     hammers banked behind it stay in the basket and pay for whatever is next;
+ *     hammers banked behind it stay in the basket and pay for whatever is next,
+ *     except after a culture purchase: culture paid only for what the wonder
+ *     still needed, so its banked hammers are used (Magnificence);
  *   · **a bought unit spends the town's day**, stamped as the absolute turn the
  *     matching clause in `purchaseError` compares against.
  *
@@ -1365,6 +1523,18 @@ export function purchaseItemAt(
     // counts as faith spent (`Player.faithSpent`). It announces the bank for
     // the meters too.
     spendFaith(state, player, price.total);
+  } else if (price.currency === 'culture') {
+    // **Magnificence** (Magisterial batch MG11; the triage's reading 36): the
+    // culture comes out of the draft pool, through the one subtraction that
+    // announces the bank. It is a purchase but not gold or faith spent, so
+    // neither record moves, and no gold tally is written.
+    spendCulture(state, player, price.total);
+    // **The banked hammers are used, not refunded.** The price was the
+    // wonder's cost less this basket, so the basket is spent with the
+    // culture. The gate only opens culture for the front row, so the basket
+    // is this wonder's. Emptied before the row leaves the queue below, so
+    // nothing passes on to the next item.
+    city.hammerBasket = 0;
   } else {
     // **The almoner's ledger** — the coin itself, not one purchase (see
     // `TallyOccasion`'s `goldSpent`). Written where the money leaves, which is
@@ -1492,7 +1662,12 @@ export function purchaseItemAt(
     // from, and a moment later the treasury simply holds less. It is the total
     // whichever bank paid, because "what you paid" is what the card's face says
     // and a faith purchase paid something.
-    gold: price.total,
+    //
+    // **Except culture** (Magnificence): culture paid for the wonder and no
+    // gold left anywhere, and the triage's reading 36 says the purchase is
+    // not gold spent. So the moment still fires, as for any purchase, with no
+    // gold on it.
+    gold: price.currency === 'culture' ? 0 : price.total,
     ...(item.kind === 'building' ? { building: item.id } : {}),
     firsts,
   });
@@ -1553,11 +1728,15 @@ function contributionRate(state: GameState, city: City, currency: PurchaseCurren
   return (base * 100) / Math.max(1, 100 + percent);
 }
 
-/** What one bank buys a hammer for. `goldPerHammer`'s sibling. */
+/**
+ * What one bank buys a hammer for. `goldPerHammer`'s sibling. Culture's rate
+ * (`culturePerHammer`, Magnificence) is read only by the culture price: no
+ * contribution takes culture (`contributeError`).
+ */
 function hammerRate(currency: PurchaseCurrency): number {
-  return currency === 'faith'
-    ? RULES.production.faithPerHammer
-    : RULES.production.goldPerHammer;
+  if (currency === 'faith') return RULES.production.faithPerHammer;
+  if (currency === 'culture') return RULES.production.culturePerHammer;
+  return RULES.production.goldPerHammer;
 }
 
 /**
@@ -1678,6 +1857,10 @@ export function contributeError(
   if (city.puppet === true) {
     return `${city.name} is a puppet — a puppet spends nothing; annex it to invest`;
   }
+  // Culture is a bank of the purchase verb since Magisterial batch MG11, but
+  // only to buy a wonder outright (Magnificence). It is never given toward a
+  // build.
+  if (currency === 'culture') return 'Culture cannot be given toward a build';
   if (currency !== 'faith' && currency !== 'gold') {
     return `There is no bank called "${String(currency)}"`;
   }
@@ -1740,16 +1923,4 @@ export function contributeAt(
   }
   city.hammerBasket += offer.hammers;
   return settleProductionWindfall(state, city);
-}
-
-/**
- * Is the row at the front of this town's queue a world wonder or the Magnum
- * Opus? The Hired Garrison's condition, read off the rows' own markers
- * (`BuildingDef.wonder`, `BuildingDef.endsTheGame`), never their names.
- */
-function frontIsWonderOrOpus(city: City): boolean {
-  const front = city.queue[0];
-  if (front === undefined || front.kind !== 'building' || !isBuildingId(front.id)) return false;
-  const def = buildingDef(front.id);
-  return def.wonder === true || def.endsTheGame === true;
 }

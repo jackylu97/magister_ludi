@@ -434,6 +434,7 @@
     "uniqueCostBreakeven": 4,
     "goldPerHammer": 4,
     "faithPerHammer": 2,
+    "culturePerHammer": 1,
     "wonderRefundGoldPerHammer": 1
   },
   "upkeep": {

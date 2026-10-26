@@ -6810,6 +6810,11 @@ p.city-trade-link {
   color: var(--y-faith);
 }
 
+/* Magnificence's culture price (Magisterial batch MG11), in culture's ink. */
+.price-cell.is-buy.is-culture {
+  color: var(--y-cul);
+}
+
 .price-cell.is-buy:hover:not(:disabled) {
   background: #fffdf4;
 }
@@ -6929,6 +6934,11 @@ p.city-trade-link {
 .bank-figure.is-faith .bank-figure-value,
 .bank-held.is-faith {
   color: var(--y-faith);
+}
+
+.bank-figure.is-culture .bank-figure-value,
+.bank-held.is-culture {
+  color: var(--y-cul);
 }
 
 /* The stripe down the left edge is what separates the two kinds: a city builds

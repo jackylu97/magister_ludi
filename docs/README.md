@@ -183,7 +183,23 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   `explainPurchaseCost` + `purchaseError`. A row naming its own bank sells only
   there; everything else sells for gold at `goldPerHammer` × the full production
   cost. **A city buys one unit per class per turn** (military-gold, civilian-gold,
-  faith), by absolute stamp. Buildings are uncounted. Wonders are never for sale.
+  faith), by absolute stamp. Buildings are uncounted.
+  - **A wonder is not for sale** unless one of four lifts opens a bank for it,
+    each a clause of the one refusal in `purchaseError`: the Valley of Kings
+    in its own town and The Pious Masons for a wonder at least half built
+    (faith), The Gilded Scaffold (gold), and since Magisterial batch MG11
+    Magnificence (culture, `cultureBuysWonders`). Every other gate still runs.
+    The Magnum Opus is not a wonder and is never bought.
+  - **Culture is the third bank** (`PurchaseCurrency`, Magisterial batch MG11).
+    It buys only the world wonder at the front of a town's queue, under
+    Magnificence, and it is the one price that is not the full cost: one
+    culture (`production.culturePerHammer`) for each hammer the wonder still
+    needs. The banked hammers are used, not passed to the next item. The
+    culture comes from the draft pool (`spendCulture`), so it never opens a
+    draft. It is not gold or faith spent: no spending record or gold tally
+    moves, and the purchase moment fires with no gold on it. The purchase
+    riders apply to it as to the other banks. The city panel's price column
+    shows a culture cell on that one row (`PRICE_BANKS`, `priceCell.ts`).
 - **Projects** are queue rows that never leave; the payout is deliberately not a
   windfall. A project-headed town never re-decides (a known edge the bot works
   around).

@@ -3115,6 +3115,18 @@
         }
       ],
       "note": "Passing on a free hand deals nothing, because that hand cost no culture. A hand you reroll keeps the price of the hand it replaced. No hand is dealt while a Doctrine offer is waiting for your answer. The free hand does not raise the price of your next hand, and you keep the better odds the pass bought."
+    },
+    "magnificence": {
+      "name": "Magnificence",
+      "decks": ["magisterial"],
+      "band": 3,
+      "rarity": "rare",
+      "type": "economic",
+      "line": "none",
+      "flavor": "The city paid for the dome with its poets and its festivals, and the masons finished a year early.",
+      "text": "You may buy a wonder you are building with culture, one culture for each hammer it still needs.",
+      "effects": [{ "kind": "rule", "rule": "cultureBuysWonders" }],
+      "note": "Only the wonder at the front of a city's queue can be bought, and never the Magnum Opus. The production the city has already put into it counts toward the price and is used up. The culture comes from what you are saving for your next Order hand. Every other rule of buying still applies, and cards that make buying cheaper or dearer change this price too. Buying with culture does not count as spending gold or faith."
     }
   }
 }

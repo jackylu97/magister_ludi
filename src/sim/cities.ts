@@ -210,6 +210,7 @@ import {
   type City,
   type GameState,
   type Player,
+  type PurchaseCurrency,
   type QueueItem,
   type Unit,
   addBuilding,
@@ -5082,8 +5083,12 @@ export interface RealiseOptions {
    * `City.buildingBanks` beside the date, which is what lets The Endowment pay
    * for a roof somebody bought. It used to be dropped for a building, on the
    * grounds that only a piece carried a mark.
+   *
+   * **Culture since Magisterial batch MG11**: Magnificence buys a world wonder
+   * with culture, so a wonder bought that way is recorded as bought, and a
+   * first-of-a-kind reward is not paid for it. Culture never buys a unit.
    */
-  bought?: 'gold' | 'faith';
+  bought?: PurchaseCurrency;
   /**
    * The piece was raised from a citizen and **not trained** — The General
    * Levy's soldier (batch L, `levies.ts`). It goes on the payroll like a built

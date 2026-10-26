@@ -4526,7 +4526,26 @@ export type ActionRuleId =
    * gold refund. A race lost to another town of the same empire is not lost
    * to a rival, so it takes the gold refund too.
    */
-  | 'wonderHammersMoveOn';
+  | 'wonderHammersMoveOn'
+  /**
+   * **Culture may buy the world wonder at the front of a town's queue**
+   * (Magisterial batch MG11, Magnificence; the triage's reading 36). Never the
+   * Magnum Opus, which is not a wonder (`isWonder`).
+   *
+   * It is the fourth lift of "a wonder is never for sale" in `purchaseError`,
+   * beside the Valley of Kings and The Pious Masons (faith) and The Gilded
+   * Scaffold (gold), and every other clause of the gate still runs. Culture
+   * is a bank of the purchase verb (`PurchaseCurrency`), opened only by this
+   * rule and only for that one row (`cultureBankOpen`, `purchase.ts`).
+   *
+   * The price is not the full cost, as gold's and faith's are: it is one
+   * culture (`production.culturePerHammer`) for each hammer the wonder still
+   * needs, its cost less what the town has banked toward it. The banked
+   * hammers are used, not refunded. The culture comes from the draft pool
+   * (`spendCulture`), and the purchase is not gold or faith spent, so no
+   * record of either moves.
+   */
+  | 'cultureBuysWonders';
 
 /**
  * Something about the world that stops being true — or starts.

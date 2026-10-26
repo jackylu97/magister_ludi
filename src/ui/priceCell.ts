@@ -25,6 +25,11 @@
  * discounted by it"). So a cell never sits beside a progress bar and never
  * reads as "finish the rest", and the figure on a queued row is the figure an
  * unqueued copy would show.
+ *
+ * **One stated exception: culture** (Magisterial batch MG11, Magnificence). A
+ * culture cell appears only on the wonder at the front of a town's queue,
+ * while the card is held, and its figure is what the wonder still needs. The
+ * city screen says so in its caption whenever a culture price is in view.
  */
 
 import {
@@ -41,8 +46,17 @@ import { YIELD_GLYPH } from './figures';
 import { refusalMarkElement } from './refusalLine';
 import { setYieldText } from './yieldMark';
 
-/** The bank a price is paid from. The purchase gate's own two. */
+/** The bank a price is paid from. The purchase gate's own three. */
 export type PriceBank = PurchaseCurrency;
+
+/**
+ * The banks the price column asks for a price, in the order a row's cells
+ * stand: gold, then faith, then culture. A bank that does not sell a row draws
+ * no cell for it (`purchaseLook` answers `null`), so the culture cell appears
+ * only where Magnificence opens that bank. Not `BANKS` (`bankFigure.ts`),
+ * which is the band's list and leaves culture out.
+ */
+export const PRICE_BANKS: readonly PriceBank[] = ['gold', 'faith', 'culture'];
 
 /** One cell of the price column, decided. */
 export type PriceLook =
@@ -112,9 +126,9 @@ export function purchaseLook(
   });
 }
 
-/** "468💰" or "120🕯": the figure in the bank's own mark. Composed here, drawn by `setYieldText`. */
+/** "468💰", "120🕯" or "300🎭": the figure in the bank's own mark. Composed here, drawn by `setYieldText`. */
 export function priceFigureText(bank: PriceBank, price: number): string {
-  return `${price}${bank === 'faith' ? YIELD_GLYPH.faith : YIELD_GLYPH.gold}`;
+  return `${price}${YIELD_GLYPH[bank]}`;
 }
 
 /** "need 31", the line under a short price. */

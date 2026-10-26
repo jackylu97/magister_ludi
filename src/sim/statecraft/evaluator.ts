@@ -145,6 +145,7 @@ import {
   type City,
   type GameState,
   type Player,
+  type PurchaseCurrency,
   type QueueItem,
   type Religion,
   type ReligionId,
@@ -1772,7 +1773,9 @@ export function isRaisingOpus(city: City): boolean {
  * queue? Read off the rows' markers (`BuildingDef.wonder`,
  * `BuildingDef.endsTheGame`), never their names. The reading behind the
  * `wonderProduction` tally (Magisterial batch MG4, Commission: The Wonder of
- * the Age), which `collectYields` asks as it banks a town's production.
+ * the Age), which `collectYields` asks as it banks a town's production, and
+ * behind The Hired Garrison's lifted limit in `purchaseError` (`purchase.ts`,
+ * which kept a private copy of it until Magisterial batch MG11).
  */
 export function isRaisingWonderOrOpus(city: City): boolean {
   const front = city.queue[0];
@@ -7827,7 +7830,7 @@ export function cardUnitStamp(
   playerId: number,
   at?: { col: number; row: number },
   type?: UnitTypeId,
-  bought?: 'gold' | 'faith',
+  bought?: PurchaseCurrency,
   levied?: LevyUse,
 ): UnitStamp {
   let hp = 0;
@@ -7897,7 +7900,7 @@ export function cardBirthTimedEffects(
   playerId: number,
   at?: { col: number; row: number },
   type?: UnitTypeId,
-  bought?: 'gold' | 'faith',
+  bought?: PurchaseCurrency,
   levied?: LevyUse,
 ): TimedEffect[] {
   const hung: TimedEffect[] = [];
@@ -7955,7 +7958,7 @@ export function cardBirthExperience(
   state: GameState,
   city: City,
   type: UnitTypeId,
-  bought?: 'gold' | 'faith',
+  bought?: PurchaseCurrency,
   levied?: LevyUse,
 ): BirthExperience {
   const birth: BirthExperience = { experience: 0, rank: null };
@@ -11246,7 +11249,7 @@ export function cardPurchaseRiders(
    * batch DV3, The Offering Chests). A caller with none drops every such row,
    * the bargain `city` keeps above.
    */
-  currency?: 'gold' | 'faith',
+  currency?: PurchaseCurrency,
 ): CardPurchaseLine[] {
   const list: CardPurchaseLine[] = [];
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'purchaseRider')) {

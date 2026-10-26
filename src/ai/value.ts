@@ -3708,6 +3708,10 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // a stand-in until batch MG17 prices it off the wonder races this seat
       // runs.
       if (effect.rule === 'wonderHammersMoveOn') return ctx.ai.score.unknownEffect;
+      // **Magnificence's `cultureBuysWonders`** (Magisterial batch MG11) is a
+      // stand-in until batch MG17 prices it against the draft the culture
+      // would otherwise buy. This bot does not buy with culture yet.
+      if (effect.rule === 'cultureBuysWonders') return ctx.ai.score.unknownEffect;
       return ctx.ai.score.unknownEffect;
     case 'metaRule':
       // A rule of Statecraft itself — how long a chair is sealed. What a seal

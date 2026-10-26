@@ -9247,6 +9247,12 @@
     "text": "passing an Order draft you paid culture for opens an Order draft at once, at no culture cost"
    }
   ],
+  "magnificence": [
+   {
+    "raw": "you may buy the wonder at the front of a city's queue with culture, one culture for each hammer it still needs",
+    "text": "you may buy the wonder at the front of a city's queue with culture, one culture for each hammer it still needs"
+   }
+  ],
   "frontierGarrisons": [
    {
     "raw": "+2 food in every city with a unit standing in it of 5 or fewer citizens",

@@ -418,7 +418,11 @@ describe('the visibility grid', () => {
     // only for an Order hand that cost culture, an amplifier's share of a hex
     // line keeps the line's per-neighbour count, and three Magisterial cards
     // are dealt. So a v192 log's Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(193);
+    // 194 since Magisterial batch MG11 (Magnificence): culture is a third
+    // bank of the purchase verb, which a card opens to buy the wonder at the
+    // front of a queue, and one Magisterial card is dealt. So a v193 log's
+    // Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(194);
   });
 
   it('survives a JSON round trip as plain data', () => {

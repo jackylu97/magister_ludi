@@ -2958,8 +2958,29 @@ import {
  * **A v192 save is refused and does not replay.** A Magisterial seat's pools
  * hold more cards. The branch migrates nothing, for the reason given under
  * v119.
+ *
+ * v194 (branch `decks`; Magisterial batch MG11, `docs/plans/magisterial-
+ * themes-triage.md`): **Magnificence.** No field joins the state. What
+ * changes:
+ *
+ *   · culture is a third bank of the purchase verb (`PurchaseCurrency`, now
+ *     declared in this module). Under the new action rule
+ *     `cultureBuysWonders`, a town may buy the world wonder at the front of
+ *     its queue with culture from the draft pool, never the Magnum Opus. The
+ *     price is one culture (`production.culturePerHammer`) for each hammer
+ *     the wonder still needs, and the hammers already banked are used, not
+ *     refunded (the triage's reading 36). `purchaseError` and
+ *     `explainPurchaseCost` gate and price it, and `spendCulture` takes it;
+ *   · `City.buildingBanks` may now record `culture` for a building bought
+ *     with culture, so a count of bought buildings that names no bank counts
+ *     it, and a count of buildings bought with gold does not;
+ *   · one Magisterial card is new and dealt: Magnificence (Tier III).
+ *
+ * **A v193 save is refused and does not replay.** A Magisterial seat's pools
+ * hold more cards. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 193;
+export const SCHEMA_VERSION = 194;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -4851,6 +4872,18 @@ export type QueueKind = QueueItem["kind"];
 export type UnitPurchaseBucket = "militaryGold" | "civilianGold" | "faith";
 
 /**
+ * The banks a purchase is paid from: the treasury, the faith pool and, since
+ * Magisterial batch MG11, the culture pool, from which Magnificence buys the
+ * world wonder at the front of a town's queue.
+ *
+ * Declared here beside `City` rather than in `purchase.ts` for the reason
+ * `UnitPurchaseBucket` gives: `City.buildingBanks` records which bank paid for
+ * a building, and `purchase.ts` imports this module. `purchase.ts` re-exports
+ * it by name, so every caller still imports it from there.
+ */
+export type PurchaseCurrency = 'faith' | 'gold' | 'culture';
+
+/**
  * One empire's commercial post in one town (batch D2e) — the per-empire half of
  * a trading post, which `City.tradingPost` could never be because both ends of
  * a route write the same flag.
@@ -4966,7 +4999,7 @@ export interface City {
    *
    * The one reader is `buildingBank` below.
    */
-  buildingBanks?: Partial<Record<BuildingId, 'gold' | 'faith'>>;
+  buildingBanks?: Partial<Record<BuildingId, PurchaseCurrency>>;
   /**
    * True once this city has been taken by force, ever.
    *
@@ -6803,7 +6836,7 @@ export function createUnit(
    * `cardUnitStamp` here. Absent is a birth nobody paid a till for, which is
    * every completion, every grant and every escort out of a ruin.
    */
-  bought?: 'gold' | 'faith',
+  bought?: PurchaseCurrency,
   /**
    * **Which levy raised this piece**, where one did (Expansionist batch E1).
    * `bought`'s neighbour and the same argument for a parameter: only the levy
@@ -7094,6 +7127,24 @@ export function spendFaith(
   bumpEconomy(state);
 }
 
+/**
+ * **The one subtraction that spends culture from the draft pool** (Magisterial
+ * batch MG11, Magnificence: culture buys the world wonder at the front of a
+ * town's queue). `spendFaith`'s sibling. `Player.culturePool` is the draft's
+ * own pool, so what is spent here is culture the next Order hand no longer
+ * has. Spending only lowers the pool, so it can never open a draft.
+ *
+ * No record is raised. The triage's reading 36 says a purchase with culture is
+ * not gold or faith spent, and no card counts culture spent.
+ *
+ * `bumpEconomy` rides with it, as it does with `spendGold`: the banks are a
+ * line of the meters (`slateRegister.test.ts`).
+ */
+export function spendCulture(state: GameState, player: Player, amount: number): void {
+  player.culturePool -= amount;
+  bumpEconomy(state);
+}
+
 export function captureUnit(
   state: GameState,
   unit: Unit,
@@ -7218,7 +7269,7 @@ export function addBuilding(
    * function can see distinguishes a bought building from a built one, so the
    * only place the fact exists is the caller that took the money.
    */
-  bought?: 'gold' | 'faith',
+  bought?: PurchaseCurrency,
 ): boolean {
   if (city.buildings.includes(building)) return false;
   city.buildings.push(building);
@@ -7244,7 +7295,7 @@ export function addBuilding(
 export function buildingBank(
   city: City,
   building: BuildingId,
-): 'gold' | 'faith' | undefined {
+): PurchaseCurrency | undefined {
   if (!city.buildings.includes(building)) return undefined;
   return city.buildingBanks?.[building];
 }

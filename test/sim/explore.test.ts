@@ -1180,10 +1180,18 @@ describe('determinism', () => {
    * card rows. Nobody here drafts or holds a card, so no rider is asked and
    * no hex line is raised. Checked with the change in place and the version
    * printed as 192, which gives the hashes of Magisterial batch MG9 exactly.
+   *
+   * **Magisterial batch MG11 (Magnificence, schema 194) moved the hash and
+   * not the length** at both seeds: 193 became 194, and that is all. The
+   * batch makes culture a third bank of the purchase verb, adds a rule that
+   * lets culture buy the wonder at the front of a queue, and adds one card
+   * row. Nobody here buys anything, drafts or builds a wonder, so no culture
+   * is spent. Checked with the change in place and the version printed as
+   * 193, which gives the hashes of Magisterial batch MG10 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '322b1684:188976',
-    2026: '0165b7dd:188554',
+    11: 'b4528229:188976',
+    2026: '94fce238:188554',
   };
 
   for (const seed of [11, 2026]) {

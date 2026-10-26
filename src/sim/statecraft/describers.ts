@@ -6718,6 +6718,10 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // Magisterial batch MG9, The Envious Eye.
   wonderHammersMoveOn:
     "when a rival completes a wonder one of your cities was building, the production that city put into it moves to the next item in its queue",
+  // Magisterial batch MG11, Magnificence. "Hammer" is the card's own word. The
+  // rate is `production.culturePerHammer`, which a test pins at one.
+  cultureBuysWonders:
+    "you may buy the wonder at the front of a city's queue with culture, one culture for each hammer it still needs",
   capitalBuysWithoutLimit: 'your capital may buy as many units in a turn as it can pay for',
   goldBuysWonders: 'you may buy world wonders with gold',
   // Said as the bank that opens, with the price in the same breath: a player who

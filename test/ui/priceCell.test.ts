@@ -28,6 +28,7 @@ import { TECH_IDS } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
 import { YIELD_GLYPH } from '../../src/ui/figures';
 import {
+  PRICE_BANKS,
   priceCellSpoken,
   priceFigureText,
   priceHeadText,
@@ -191,6 +192,10 @@ describe('the purchase gate, read into a look', () => {
     expect(purchaseLook(state, 0, city.id, { kind: 'unit', id: 'prophet' }, 'gold')).toBeNull();
     // No Reliquary in this town: the faith bank sells it no soldiers.
     expect(purchaseLook(state, 0, city.id, WARRIOR, 'faith')).toBeNull();
+    // Culture sells only a wonder at the front of the queue, under
+    // Magnificence (Magisterial batch MG11): nothing here.
+    expect(purchaseLook(state, 0, city.id, WARRIOR, 'culture')).toBeNull();
+    expect(purchaseLook(state, 0, city.id, { kind: 'building', id: 'granary' }, 'culture')).toBeNull();
   });
 
   it('quotes the full price, however much of the thing is already built', () => {
@@ -215,7 +220,14 @@ describe('the words', () => {
   it('writes a price as the figure in its bank’s mark, and nothing else', () => {
     expect(priceFigureText('gold', 356)).toBe(`356${YIELD_GLYPH.gold}`);
     expect(priceFigureText('faith', 120)).toBe(`120${YIELD_GLYPH.faith}`);
+    expect(priceFigureText('culture', 300)).toBe(`300${YIELD_GLYPH.culture}`);
     expect(priceNeedText(31)).toBe('need 31');
+  });
+
+  it('asks every bank of the purchase verb for a price, gold first and culture last', () => {
+    // Magisterial batch MG11 made culture a bank of the purchase verb. The band
+    // above the list keeps its two (`BANKS`, `bankFigure.test.ts`).
+    expect(PRICE_BANKS).toEqual(['gold', 'faith', 'culture']);
   });
 
   it('heads the column with the rule and every bank in view', () => {
@@ -227,6 +239,9 @@ describe('the words', () => {
     );
     expect(priceHeadText([{ bank: 'faith', held: 51 }])).toBe(
       'Buy outright · full price · you have 51 faith',
+    );
+    expect(priceHeadText([{ bank: 'gold', held: 437 }, { bank: 'culture', held: 640 }])).toBe(
+      'Buy outright · full price · you have 437 gold · 640 culture',
     );
     // A treasury in debt keeps its sign, as the top bar's does.
     expect(priceHeadText([{ bank: 'gold', held: -22 }])).toBe(

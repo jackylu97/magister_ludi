@@ -38,7 +38,12 @@ import {
   pantheonSlots,
   renameReligionError,
 } from '../sim/religion';
-import { type PurchasableItem, explainPurchaseCost, purchaseError } from '../sim/purchase';
+import {
+  type PurchasableItem,
+  type PurchaseCurrency,
+  explainPurchaseCost,
+  purchaseError,
+} from '../sim/purchase';
 import { BELIEF_IDS, type BeliefId, beliefDef } from '../sim/religionData';
 import { RULES } from '../sim/rulesData';
 import { tileOwnerCityId } from '../sim/cities';
@@ -366,7 +371,7 @@ export interface FollowersHandlers {
   /** Says a refusal in the manicule line. */
   refuse?: (message: string) => void;
   /** Buys a piece of the clergy in a town. */
-  buy: (cityId: number, item: PurchasableItem, currency: 'faith' | 'gold') => void;
+  buy: (cityId: number, item: PurchasableItem, currency: PurchaseCurrency) => void;
   /** Calls the clergy in another town. */
   aim: (cityId: number) => void;
   /** Opens the Bonuses tab. */
