@@ -514,8 +514,8 @@ describe("the card table", () => {
     expect(describeCard("warChief").map((clause) => clause.text)).toEqual([
       "+3 authority capacity",
       "+4 combat strength",
-      "killing a unit grants +5 science for each Order you have in a slot",
-      "killing a unit grants +5 culture for each Order you have in a slot",
+      "killing a unit grants +5 science for each Order you have seated",
+      "killing a unit grants +5 culture for each Order you have seated",
     ]);
   });
 
@@ -3661,7 +3661,7 @@ describe("the master-list cut of 2026-08-28", () => {
     // dominant chair, so the signature moves when a card of its flavour is
     // slotted beside it.
     expect(said("merchantLeague")).toEqual([
-      "+2 gold per economic Order you have in a slot",
+      "+2 gold per economic Order you have seated",
       // Batch L1 (§1c): a signed percent never takes "more" — the sign and the
       // word both say increase, and "pays +50% more" read as one increase too
       // many.
@@ -3671,7 +3671,7 @@ describe("the master-list cut of 2026-08-28", () => {
     expect(said("imperium")).toEqual([
       // Batch L1 (§1b): the line is paid town by town (`where: 'city'`), so it
       // says how many towns.
-      "+1 production in every city per military Order you have in a slot",
+      "+1 production in every city per military Order you have seated",
       "all units: +1 movement",
       "capturing a city grants +50 gold",
       "capturing a city heals every one of your units",
@@ -3679,8 +3679,8 @@ describe("the master-list cut of 2026-08-28", () => {
     // Batch C2 (the user, 2026-10-16: *"lets have it count civic orders"*):
     // Divine Mandate counts the civic bench now, where it counted wildcards.
     expect(said("divineMandate")).toEqual([
-      "+1 faith in your capital per civic Order you have in a slot",
-      "+1 culture in your capital per civic Order you have in a slot",
+      "+1 faith in your capital per civic Order you have seated",
+      "+1 culture in your capital per civic Order you have seated",
       "+10% faith in every city of 6 or more citizens",
     ]);
 
@@ -5091,7 +5091,7 @@ describe("the balance pass of 2026-08-31", () => {
     // wildcards now, and the reader is the card's second clause.
     expect(said("firstRites")).toEqual([
       "+1 faith in your capital",
-      "+1 faith per wildcard Order you have in a slot",
+      "+1 faith per wildcard Order you have seated",
     ]);
     expect(said("waysideShrines")).toEqual([
       "+1 faith in your capital per city you hold",
@@ -5107,7 +5107,7 @@ describe("the balance pass of 2026-08-31", () => {
     // is a printed number and cannot itself count a council.
     expect(said("oreTithes")).toEqual([
       "+2 production on every hex carrying a strategic resource",
-      "+2 production in your capital per military Order you have in a slot",
+      "+2 production in your capital per military Order you have seated",
     ]);
     // A farm on a hill since the user's nerf of 2026-09-15 (`docs/flags.md` (iiiii)).
     expect(said("terracedHillsides")).toEqual(["+2 food on every hill hex with a Farm"]);
@@ -5559,10 +5559,10 @@ describe("the ratified cards of the Themes Build", () => {
       "all units cost no gold in maintenance outside your territory",
     ]);
     expect(said("theArchives")).toEqual([
-      "+2 culture per Order you have placed in a slot",
+      "+2 culture per Order you have seated",
     ]);
     expect(said("theAnnalsOfLaw")).toEqual([
-      "+3 culture per Order you hold but have not placed in a slot",
+      "+3 culture per Order you hold but have not seated",
     ]);
     // The Auspicious Seal's line went with the dice (schema 71): the row is
     // retired, its face says nothing the game still does, and `describeCard`
@@ -6541,11 +6541,11 @@ describe("the card-shapes pass of 2026-09-04", () => {
     const said = (id: string): string[] =>
       describeCard(id as never).map((c) => stripRefs(c.text));
     expect(said("theWarCouncil")).toEqual([
-      "+2 combat strength per military Order you have in a slot",
+      "+2 combat strength per military Order you have seated",
     ]);
     expect(said("theGuildCharter")).toEqual([
-      "+3 gold per economic Order you have in a slot",
-      "+2 production in your capital per economic Order you have in a slot",
+      "+3 gold per economic Order you have seated",
+      "+2 production in your capital per economic Order you have seated",
     ]);
     expect(said("theSynod")).toEqual([
       "your buildings that supply faith pay +50%, counted after every other bonus on them",
@@ -6865,7 +6865,7 @@ describe("the synergy-density pass of 2026-09-05", () => {
     // strength inside your territory, and +1 more for each military Order you
     // have in a slot, at most +3 more" — and this is now that sentence.
     expect(said("borderWardens")).toEqual([
-      "+2 combat strength inside your territory, +2 more per military Order you have in a slot (at most +6)",
+      "+2 combat strength inside your territory, +2 more per military Order you have seated (at most +6)",
     ]);
     expect(said("harbourDues")).toEqual([
       "5% of the gold in every coastal city is gained again as culture",
@@ -6878,7 +6878,7 @@ describe("the synergy-density pass of 2026-09-05", () => {
       "+3 science in every city of 5 or more citizens with a University",
     ]);
     expect(said("provincialGovernors")).toEqual([
-      "+1 authority capacity per economic Order you have in a slot (at most +4 authority capacity)",
+      "+1 authority capacity per economic Order you have seated (at most +4 authority capacity)",
     ]);
     expect(said("theBannerCall")).toEqual([
       "while you are at war: +15% production toward units; killing a unit grants +5 culture",

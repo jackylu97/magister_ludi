@@ -182,8 +182,8 @@ describe('Magisterial batch MG6: the rows', () => {
   it('prints each card in plain words', () => {
     const words = (id: OrderId): string[] => describeCard(id).map((clause) => stripRefs(clause.text));
     expect(words(MUSE)).toEqual(['when drafted, you gain a great person to call; seated, this card does nothing']);
-    expect(words(OFFICIALS)).toEqual(['+2 cards in every Statecraft draft', 'you cannot reroll Order hands']);
-    expect(words(HALL)).toEqual(['+1 card in every Statecraft draft per 2 wonders you hold (at most +2)']);
+    expect(words(OFFICIALS)).toEqual(['+2 cards in every Order hand', 'you cannot reroll Order hands']);
+    expect(words(HALL)).toEqual(['+1 card in every Order hand per 2 wonders you hold (at most +2)']);
   });
 });
 

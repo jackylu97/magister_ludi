@@ -5470,9 +5470,11 @@ export interface City {
    * `rules.religion.pressurePerConvert` in here buys one citizen and is spent;
    * the remainder carries, exactly as a food basket's does.
    *
-   * **Two things fill it and they share one converter** (`bankPressure`,
-   * `religion.ts`): the `spreadReligion` phase, and a proclamation's lump paid
-   * the instant a prophet or an augur speaks (`pressLump`).
+   * **Two routines fill it and they share one converter** (`bankPressure`,
+   * `religion.ts`): the `spreadReligion` phase (the tide), and `pressLump`,
+   * which presses a lump at once. A lump comes from a proclamation by a
+   * prophet or an apostle, or from a card's grant at a moment (The Crusade's
+   * kill, The Parishes' founding, Pentecost's conversion).
    */
   pressureBank?: Partial<Record<ReligionId, number>>;
   /**

@@ -196,8 +196,8 @@ describe('the register', () => {
     expect(said('theSkyWatchers')).toEqual(['+1 science, +1 faith in every city with a Shrine']);
     expect(said('theAstronomicalDiaries')).toEqual([
       '+2 production, +2 culture in your capital',
-      '+1 culture in your capital per technology you have completed, counted while this Order stands in a slot',
-      '+1 production in your capital per technology you have completed, counted while this Order stands in a slot',
+      '+1 culture in your capital per technology you have completed, counted while this Order is seated',
+      '+1 production in your capital per technology you have completed, counted while this Order is seated',
     ]);
     expect(said('theScholarsFame')).toEqual([
       'completing a technology grants renown equal to 5% of the science it cost you, favouring a great scholar',

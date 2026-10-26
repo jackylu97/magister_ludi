@@ -351,7 +351,7 @@ describe('Devotion batch DV3: The Gifts of the Faithful', () => {
     // At the faith rate, with no discount of its own.
     const price = explainPurchaseCost(state, 0, city.id, temple, 'faith')!;
     expect(price.lines.some((line) => /Gifts/.test(line.source))).toBe(false);
-    expect(words('theGiftsOfTheFaithful')).toEqual(['faith buildings other than wonders may be bought with faith']);
+    expect(words('theGiftsOfTheFaithful')).toEqual(['religious buildings other than wonders may be bought with faith']);
   });
 });
 
@@ -538,7 +538,7 @@ describe('Devotion batch DV3: the shared The Rising Nave', () => {
     expect(ordersForDecks(['devotion'])).toContain('theRisingNave');
     expect(ordersForDecks(['magisterial'])).toContain('theRisingNave');
     expect(words('theRisingNave')[0]).toBe(
-      '+1 faith in every city while it is building a wonder, while it is building a Cathedral or while it is building The Magnum Opus per 10% of the work already done on the current build there',
+      '+1 faith in every city while it is building a wonder, a Cathedral or The Magnum Opus per 10% of the current build already done there',
     );
   });
 });

@@ -210,7 +210,7 @@ describe('the card-drafted moment', () => {
     expect(windfallPayout(state, 0, 'draftPassed').grants).toHaveLength(0);
   }));
 
-  it('has no rider in the data since batch R1', () => {
+  it('pays nothing on The Art Dealers since batch R1, which took its rider off', () => {
     const { state, player } = board();
     seat(state, player, ART_DEALERS);
     expect(windfallPayout(state, 0, 'cardDrafted').grants).toHaveLength(0);
@@ -328,7 +328,7 @@ describe('The Art Dealers', () => {
 
   it('says what it does in words', () => {
     const words = describeCard(ART_DEALERS).map((clause) => stripRefs(clause.text));
-    expect(words).toEqual(['+3 gold per Order you have placed in a slot']);
+    expect(words).toEqual(['+3 gold per Order you have seated']);
   });
 
   it('pays +3 gold for each Order in a chair, itself included, and nothing for a charter or a card off the council', () => {

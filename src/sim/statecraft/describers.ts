@@ -82,6 +82,7 @@ import {
   type OnDraftGrant,
   type OnDraftWindfall,
   type OrderBeadOccasion,
+  type OrderId,
   type RateSource,
   type ChairType,
   type TallyOccasion,
@@ -403,6 +404,17 @@ function listWords(parts: readonly string[]): string {
 }
 
 /**
+ * `listWords` with "or": "a Pasture, Camp or Plantation". A list of choices
+ * written the way a person writes one, with commas and one "or" before the
+ * last item.
+ */
+function orListWords(parts: readonly string[]): string {
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0]!;
+  return `${parts.slice(0, -1).join(', ')} or ${parts[parts.length - 1]}`;
+}
+
+/**
  * **What a mark and the rest of its chain pay together**, and how many marks
  * the chain holds (Expansionist batch E9, The Marl Pits' cap: two marks of
  * +1 food). Read off the rule book's table (`HexMarkRule.then`), so the cap a
@@ -616,7 +628,7 @@ function slotPositionFold(effects: readonly CardEffect[], at: number, out: CardC
   out.push({
     text:
       `the Order in your ${ordinalWords(head.position)} ` +
-      `${listWords(slots.map((slot) => SLOT_WORDS[slot].toLowerCase()))} slot each ` +
+      `${listWords(slots.map((slot) => SLOT_WORDS[slot].toLowerCase()))} chair each ` +
       `pays ${timesWords(head.factor)}`,
   });
   return run;
@@ -625,7 +637,7 @@ function slotPositionFold(effects: readonly CardEffect[], at: number, out: CardC
 /**
  * **A flat strength line and the scale on it** — Border Wardens' two clauses as
  * one: *"+1 combat strength inside your territory, +1 more per military Order you
- * have in a slot (at most +3)."*
+ * have seated (at most +3)."*
  *
  * The two rows are one rule a player reads in one breath, and split they read
  * worse than either half: the scaled clause repeated the whole condition after
@@ -756,7 +768,7 @@ export function describeCard(id: CardId): CardClause[] {
     for (const grant of orderDef(id).onSlot ?? []) {
       if (grant.grant === 'greatPerson') {
         clauses.push({
-          text: 'the first time this Order is placed in a slot, you are offered a great person',
+          text: 'the first time this Order is seated, you are offered a great person',
         });
       }
     }
@@ -1317,7 +1329,7 @@ function describePays(
     // clause belongs beside the count rather than folded into five nouns, and
     // a card that left it unsaid would be a card that lies about its bench.
     const counted =
-      effect.count === 'tally' ? ', counted while this Order stands in a slot' : '';
+      effect.count === 'tally' ? ', counted while this Order is seated' : '';
     // **Which roads a counted route line is about** (batch C7). The route arm
     // below never runs for a counted row — this branch answers and returns — so
     // the one narrowing that arm would have printed has to be printed here, or
@@ -2014,9 +2026,12 @@ function describeEffect(
         return;
       }
       // The Gifts of the Faithful (Devotion batch DV3): faith buys only one
-      // category of building, so the category leads the sentence.
+      // category of building, so the category leads the sentence. The faith
+      // category is said as "religious", the cards' own word, so the sentence
+      // does not say "faith" twice.
       if (effect.rule === 'faithBuysBuildings' && effect.buildingCategory !== undefined) {
-        out.push({ text: `${effect.buildingCategory} ${FLAG_RULE_WORDS[effect.rule]}${inTowns}` });
+        const kind = effect.buildingCategory === 'faith' ? 'religious' : effect.buildingCategory;
+        out.push({ text: `${kind} ${FLAG_RULE_WORDS[effect.rule]}${inTowns}` });
         return;
       }
       if (effect.class === undefined && effect.rank === undefined) {
@@ -2222,11 +2237,11 @@ function describeEffect(
       // The Order count rides as a **suffix on the figure it multiplies**,
       // unlike the age, and the difference is what the two say: "pays once more
       // for each age you have reached" is a whole sentence about the payout,
-      // while "for each Order you have in a slot" is a *rate*, and a rate read
+      // while "for each Order you have seated" is a *rate*, and a rate read
       // as a separate clause repeats itself once per grant on the card ("a kill
       // grants +5 science", "a kill pays once per Order", "a kill grants +5
       // culture", …). War Chief carries two grants, so it would say it twice.
-      const per = effect.perSlottedOrder === true ? ' for each Order you have in a slot' : '';
+      const per = effect.perSlottedOrder === true ? ' for each Order you have seated' : '';
       // The age is a suffix on the figure too, when the rider grants a yield
       // or renown (Dominion batch D10). Take the City has two such riders, one
       // for science and one for culture. As a separate sentence, the age was
@@ -2515,7 +2530,7 @@ function describeEffect(
         });
       }
       if (grant?.freeDraft === true) {
-        out.push({ text: `${occasion} opens an Order draft at once, at no culture cost` });
+        out.push({ text: `${occasion} deals you a free Order hand at once` });
       }
       if (grant?.pressure !== undefined && grant.pressure.amount !== 0) {
         // **The plain words** (hard rule 7): "pressure" is the ledger's word for
@@ -2638,7 +2653,7 @@ function describeEffect(
     case 'offerRider': {
       // The two halves of the hook, each said the way it reads. A named rule is
       // already a whole sentence; a widening is a figure, and a figure is a
-      // thing a player has to be told — "+1 card in every Statecraft draft".
+      // thing a player has to be told — "+1 card in every Order hand".
       if (effect.rule !== undefined) {
         out.push({ text: OFFER_WORDS[effect.rule] });
         return;
@@ -2863,12 +2878,19 @@ function describeEffect(
         effect.count === undefined
           ? ''
           : ` per ${countWords(effect.per, countNoun(probe, ''))}${effect.category === undefined ? '' : ' there'}`;
+      // The cap, as the most the line can add (The Peace of God: 15 helpings
+      // of +2 is "at most +30"). `max` counts helpings, as it does on a `pays`
+      // row, so the figure printed is the amount times the helpings.
+      const cap =
+        effect.count === undefined || effect.max === undefined
+          ? ''
+          : ` (at most ${signed(effect.amount * effect.max)} ${stat})`;
       out.push({
         // **The subject, not "every city"** (batch L1): the Great Wall's five
         // points of defence stand in the town that holds the stones and a
         // Blessing of Arms in the town keeping the rite, and both said "every
         // city" until the class supplied the word. See `scopeWordsFor`.
-        text: `${scopeWordsFor(subject, effect.scope)}: ${signed(effect.amount)} ${stat}${each}`,
+        text: `${scopeWordsFor(subject, effect.scope)}: ${signed(effect.amount)} ${stat}${each}${cap}`,
       });
       return;
     }
@@ -3271,7 +3293,7 @@ function describeEffect(
       const flavour = effect.slot === undefined ? '' : ` ${SLOT_WORDS[effect.slot].toLowerCase()}`;
       out.push({
         text:
-          `the Order in your ${ordinalWords(effect.position)}${flavour} slot` +
+          `the Order in your ${ordinalWords(effect.position)}${flavour} chair` +
           ` pays ${timesWords(effect.factor)}`,
       });
       return;
@@ -3726,21 +3748,41 @@ export function grantWords(grant: CompletionGrant, when = 'on completion'): stri
  *     science and +20 production in your capital for each wonder you hold".
  *     Food and production say the capital, where they land; culture,
  *     science, gold and faith go to the empire's banks and say no town.
+ *     Runs next to each other that pay the same yields for different counts
+ *     are one clause too, with the counts listed: "… for each wonder you
+ *     hold, each hex carrying a great person's work in your borders and each
+ *     Order you hold".
  */
 function onDraftClauses(grants: readonly OnDraftGrant[]): string[] {
   const out: string[] = [];
   let run: OnDraftWindfall[] = [];
+  // The run waiting to be said: its yields, and the counts that pay them.
+  let held: { list: string; counts: string[] } | null = null;
+  const say = (): void => {
+    if (held === null) return;
+    const counts = held.counts;
+    const each =
+      counts.length === 0
+        ? ''
+        : ` for each ${counts.length === 1 ? counts[0]! : `${counts.slice(0, -1).join(', each ')} and each ${counts[counts.length - 1]!}`}`;
+    out.push(`when drafted, ${held.list}${each}`);
+    held = null;
+  };
   const flush = (): void => {
     if (run.length === 0) return;
     const yields = run.map((grant) => {
       const lands = grant.yield === 'food' || grant.yield === 'production';
       return `${signed(grant.amount)} ${grant.yield}${lands ? ' in your capital' : ''}`;
     });
-    const list = yields.length === 1 ? yields[0]! : `${yields.slice(0, -1).join(', ')} and ${yields[yields.length - 1]!}`;
+    const list = listWords(yields);
     const count = run[0]!.perCount;
-    const each = count === undefined ? '' : ` for each ${grantCountWords(count)}`;
-    out.push(`when drafted, ${list}${each}`);
     run = [];
+    if (count !== undefined && held !== null && held.list === list && held.counts.length > 0) {
+      held.counts.push(grantCountWords(count));
+      return;
+    }
+    say();
+    held = { list, counts: count === undefined ? [] : [grantCountWords(count)] };
   };
   for (const grant of grants) {
     if (grant.grant === 'windfall') {
@@ -3750,6 +3792,7 @@ function onDraftClauses(grants: readonly OnDraftGrant[]): string[] {
       continue;
     }
     flush();
+    say();
     switch (grant.grant) {
       case 'greatPerson': {
         const who = grant.family === undefined ? 'a great person' : `a great ${grant.family}`;
@@ -3769,6 +3812,7 @@ function onDraftClauses(grants: readonly OnDraftGrant[]): string[] {
     }
   }
   flush();
+  say();
   return out;
 }
 
@@ -3821,19 +3865,19 @@ interface PluralWords {
 const EMPTY_WORDS: PluralWords = { one: '', many: '' };
 
 /**
- * "military Order you have in a slot" — one flavour of council, in both numbers.
+ * "military Order you have seated" — one flavour of council, in both numbers.
  *
  * Written once because **two** tables print it: `countNoun` for the ledger's
  * deck-readers and `scaleNoun` for the combat one, which are the same sentence
  * about the same council and would otherwise be two. The words match the ones
- * `perSlottedOrder` already prints ("for each Order you have in a slot"), so the
+ * `perSlottedOrder` already prints ("for each Order you have seated"), so the
  * War Chief's multiplier and The Guild Charter's count read as the same thing
  * counted two ways.
  */
 function slotFlavourWords(flavour: ChairType): PluralWords {
   return {
-    one: `${flavour} Order you have in a slot`,
-    many: `${flavour} Orders you have in a slot`,
+    one: `${flavour} Order you have seated`,
+    many: `${flavour} Orders you have seated`,
   };
 }
 
@@ -3984,7 +4028,7 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
     };
   }
   // The deck-readers' count, said as the flavour the player drafts by — "per
-  // economic Order you have in a slot". `buildingsOfKind`'s bargain a fourth
+  // economic Order you have seated". `buildingsOfKind`'s bargain a fourth
   // time: the argument is printed here so the three rows are one table entry.
   if (effect.count === 'slottedOrdersOfSlot' && effect.slot !== undefined) {
     return slotFlavourWords(effect.slot);
@@ -4115,8 +4159,8 @@ const TOWN_COUNT_WORDS: Partial<Record<CountKind, (at: string) => PluralWords>> 
   defensiveBuildings: (at) => ({ one: `fortification ${at}`, many: `fortifications ${at}` }),
   // Devotion batch DV3, the shared The Rising Nave: the town's own build.
   frontRowTenths: (at) => ({
-    one: `10% of the work already done on the current build ${at}`,
-    many: `tenths of the work already done on the current build ${at}`,
+    one: `10% of the current build already done ${at}`,
+    many: `tenths of the current build already done ${at}`,
   }),
   // The ninth, and the only one that is *not* a count that can only be asked of
   // a town: `wonders` is a realm's question narrowed to one town by `within`
@@ -4261,19 +4305,10 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       into.qualifiers.push(`settled on ${indefinite(scope.kind)} ${scope.kind} resource`);
       return;
     case 'queueHolds':
-      // "while it is building an empire building" — the narrowed reading gets
-      // its own words rather than an adjective on the category, because "an
-      // empire building" is the class's own name in the printed table and not a
-      // kind of queue row.
-      // One named row (Devotion batch DV3, The Rising Nave's Cathedral and
-      // Magnum Opus) is said by its name, as a keyword.
-      into.qualifiers.push(
-        scope.building !== undefined
-          ? `while it is building ${buildingWords(scope.building)}`
-          : scope.empireBuilding === true
-            ? 'while it is building an empire building'
-            : `while it is building ${indefinite(scope.category)} ${scope.category}`,
-      );
+      // "while it is building an empire building". `queueHoldsWords` names the
+      // thing, and one named row (Devotion batch DV3, The Rising Nave's
+      // Cathedral and Magnum Opus) is said by its name, as a keyword.
+      into.qualifiers.push(`while it is building ${queueHoldsWords(scope)}`);
       return;
     case 'queueDepth':
       // "while it has 2 or more things to build" — the works list said the way a
@@ -4431,9 +4466,7 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       // them, article outside the mark, and a list joins with the "or" it means.
       if (scope.improvements.length === 0) return;
       const first = improvementDef(scope.improvements[0]!).name;
-      const names = scope.improvements
-        .map((id) => ref('improvement', id, improvementDef(id).name))
-        .join(' or ');
+      const names = orListWords(scope.improvements.map((id) => ref('improvement', id, improvementDef(id).name)));
       const works =
         scope.atLeast !== undefined && scope.atLeast > 1
           ? `working ${scope.atLeast} or more hexes with ${indefinite(first)} ${names}`
@@ -4655,6 +4688,13 @@ function routePhrase(scope: Extract<CityScope, { test: 'routeEndsHere' }>): stri
  * through as the word itself, so "coastal or beside a mountain" still reads.
  */
 function anyPhrase(scopes: readonly CityScope[]): string {
+  // A choice made only of things a town may be building says "while it is
+  // building" once: "while it is building a wonder, a Cathedral or The Magnum
+  // Opus" (The Rising Nave), not the lead three times.
+  const building = scopes.filter((scope) => scope.test === 'queueHolds');
+  if (scopes.length > 1 && building.length === scopes.length) {
+    return `while it is building ${orListWords(building.map(queueHoldsWords))}`;
+  }
   const parts: string[] = [];
   for (const scope of scopes) {
     const inner: ScopePhrase = { adjectives: [], qualifiers: [] };
@@ -4665,6 +4705,20 @@ function anyPhrase(scopes: readonly CityScope[]): string {
   if (parts.length === 0) return '';
   if (parts.length === 1) return parts[0]!;
   return `${parts.slice(0, -1).join(', ')} or ${parts[parts.length - 1]}`;
+}
+
+/**
+ * What a `queueHolds` scope names, with its article: "a wonder", "an empire
+ * building", or one named row as a keyword ("a Cathedral", "The Magnum Opus").
+ * The "empire building" reading gets its own words rather than an adjective on
+ * the category, because "an empire building" is the class's own name in the
+ * printed table and not a kind of queue row.
+ */
+function queueHoldsWords(scope: CityScope): string {
+  if (scope.test !== 'queueHolds') return '';
+  if (scope.building !== undefined) return buildingWords(scope.building);
+  if (scope.empireBuilding === true) return 'an empire building';
+  return `${indefinite(scope.category)} ${scope.category}`;
 }
 
 /**
@@ -4739,8 +4793,12 @@ function grantDeliveryWords(grant: WindfallGrantSpec, opusOnly = false): string 
   if (grant.toOpus === true) {
     // `opusOnly`: the rider pays only while a town raises the Opus
     // (`CardWindfallRiderEffect.whileRaisingOpus`), so there is no other place.
-    return opusOnly
-      ? ' to your city raising the Magnum Opus'
+    if (opusOnly) return ' to your city raising the Magnum Opus';
+    // With no town raising the Opus, production is kept for it
+    // (`Player.opusBank`, Dominion batch D6) and food goes to the capital.
+    // `payWindfallGrants` and `grantTowns` decide this.
+    return grant.yield === 'production'
+      ? ' to your city raising the Magnum Opus, or kept until you begin one'
       : ' to your city raising the Magnum Opus, or your capital if none is';
   }
   if (grant.toCapital === true) return ' to your capital';
@@ -5168,12 +5226,11 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
       // the "or" the condition means — and the article on the first name only,
       // because "with a Mine or a Quarry" reads as two things and the hex has
       // one. An empty list names nothing and says nothing, which is the honest
-      // reading of a condition nothing can satisfy.
+      // reading of a condition nothing can satisfy. Three or more names take
+      // commas and one "or" ("a Pasture, Camp or Plantation").
       if (on.improvements.length === 0) return;
       const first = improvementDef(on.improvements[0]!).name;
-      const names = on.improvements
-        .map((id) => ref('improvement', id, improvementDef(id).name))
-        .join(' or ');
+      const names = orListWords(on.improvements.map((id) => ref('improvement', id, improvementDef(id).name)));
       into.qualifiers.push(`with ${indefinite(first)} ${names}`);
       return;
     }
@@ -5664,10 +5721,10 @@ const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
   // bargain, at the third scale.
   greatPeopleOfFamily: { one: 'earned this game', many: 'earned this game' },
   // The flavour is printed by `scaleNoun`, exactly as the family is: "per
-  // military Order you have in a slot" and "per economic Order" are one entry.
+  // military Order you have seated" and "per economic Order" are one entry.
   slottedOrdersOfSlot: {
-    one: 'Order you have in a slot',
-    many: 'Orders you have in a slot',
+    one: 'Order you have seated',
+    many: 'Orders you have seated',
   },
   // **"Work"**, the word the Reliquary and the Compendium already use for the
   // thing a great person leaves behind (hard rule 7): "great person
@@ -5798,7 +5855,7 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   // Dominion batch D4, The Provincial Census.
   pacified: 'pacifying a city',
   // Dominion batch D5.
-  draftPassed: 'passing an Order draft',
+  draftPassed: 'passing on an Order hand',
   raze: 'razing a city you captured',
   rangedAttack: 'attacking from range',
   greatPersonGained: 'gaining a great person',
@@ -5953,7 +6010,7 @@ const ON_HEX_OCCASION_WORDS: Partial<Record<WindfallOccasion, Partial<Record<Til
  * missing here names no hand, so the filter is said in the parenthesis.
  */
 const PAID_HAND_OCCASION_WORDS: Partial<Record<WindfallOccasion, string>> = {
-  draftPassed: 'passing an Order draft you paid culture for',
+  draftPassed: 'passing on an Order hand you paid culture for',
   cardDrafted: 'drafting a card from a hand you paid culture for',
 };
 
@@ -6110,8 +6167,8 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   // empire makes" and "per hammer" are one entry.
   empireYield: { one: 'your empire makes a turn', many: 'your empire makes a turn' },
   rerollsWhileSlotted: {
-    one: 'draft you have rerolled while this stood',
-    many: 'drafts you have rerolled while this stood',
+    one: 'Order hand you have rerolled while this card is seated',
+    many: 'Order hands you have rerolled while this card is seated',
   },
   // The shelf is not in these words: `countNoun` prints it, so "per culture
   // building you were first to raise in a city" and "per faith building" are one
@@ -6120,9 +6177,12 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'building you were the first of its kind to raise in a city',
     many: 'buildings you were the first of their kind to raise in a city',
   },
+  // Each foreign town counts once, the first time it turns to your religion.
+  // The ledger is this empire's own and not the world's (`markFirst`), so the
+  // words do not say "the first to convert", which reads as a world first.
   firstConversions: {
-    one: 'foreign city you were the first to convert',
-    many: 'foreign cities you were the first to convert',
+    one: 'foreign city that has turned to your religion at least once',
+    many: 'foreign cities that have turned to your religion at least once',
   },
   // The condition is not in these words: `countNoun` prints it, so that "per hex
   // with a Mine" and "per hex carrying a luxury resource" are one entry —
@@ -6147,8 +6207,8 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   // the current build, said as the card says it. A town's own page reads
   // these words; a card that names its towns reads `TOWN_COUNT_WORDS`.
   frontRowTenths: {
-    one: '10% of the work already done on the current build',
-    many: 'tenths of the work already done on the current build',
+    one: '10% of the current build already done',
+    many: 'tenths of the current build already done',
   },
   // Magisterial batch MG4: The Universal Library and The Polymath's Study.
   // "Seated or not", because the count beside it on the same screen, The
@@ -6222,19 +6282,19 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     many: 'trade routes between your own cities',
   },
   slottedOrders: {
-    one: 'Order you have placed in a slot',
-    many: 'Orders you have placed in a slot',
+    one: 'Order you have seated',
+    many: 'Orders you have seated',
   },
   unslottedOrders: {
-    one: 'Order you hold but have not placed in a slot',
-    many: 'Orders you hold but have not placed in a slot',
+    one: 'Order you hold but have not seated',
+    many: 'Orders you hold but have not seated',
   },
   // The flavour is not in these words: `countNoun` prints it, so that "per
   // military Order" and "per wildcard Order" are one entry — `buildingsOfKind`'s
   // bargain. This is the reading of a row that names no flavour at all.
   slottedOrdersOfSlot: {
-    one: 'Order you have in a slot',
-    many: 'Orders you have in a slot',
+    one: 'Order you have seated',
+    many: 'Orders you have seated',
   },
   clearedCamps: {
     one: 'barbarian camp you have cleared',
@@ -6535,7 +6595,7 @@ const OFFER_WORDS: Record<OfferRuleId, string> = {
 
 /** What a widened draft is *called*, on the card that widens it. */
 const OFFER_DRAFT_WORDS: Record<OfferRiderScope, string> = {
-  order: 'every Statecraft draft',
+  order: 'every Order hand',
   doctrine: 'every Doctrine draft',
   belief: 'every belief offer',
   discovery: 'every offer from a ruin',
@@ -7544,11 +7604,32 @@ export function commissionCounterWords(goal: CommissionGoal): string {
 }
 
 /**
+ * The card whose mark every lasting effect of a reward is scoped to, or
+ * undefined. The Heartland (Expansionist batch E5) and Commission: The Ideal
+ * City (Magisterial batch MG9) mark the town that met the goal and pay only
+ * there, so their words can say "that city" in place of "every city marked
+ * by" the card.
+ */
+function lastingMarkOf(lasting: readonly CardEffect[] | undefined): OrderId | undefined {
+  if (lasting === undefined || lasting.length === 0) return undefined;
+  let card: OrderId | undefined;
+  for (const effect of lasting) {
+    const scope = 'scope' in effect ? effect.scope : undefined;
+    if (scope === undefined || scope.test !== 'markedBy') return undefined;
+    if (card !== undefined && scope.card !== card) return undefined;
+    card = scope.card;
+  }
+  return card;
+}
+
+/**
  * One reward line as phrases: "+60 production in your capital". `towns` is how
  * many towns the goal counts (Dominion batch D6), which decides whether a
- * reward read off them says "it" or "those cities".
+ * reward read off them says "it" or "those cities". `markSaid` is true when a
+ * lasting line of the same reward names the marked town itself, so the bare
+ * "that city is marked" is not said as well.
  */
-export function commissionRewardWords(reward: CommissionReward, towns = 1): string[] {
+export function commissionRewardWords(reward: CommissionReward, towns = 1, markSaid = false): string[] {
   const out: string[] = [];
   const one = towns <= 1;
   if (reward.eachTown === true && reward.yield !== undefined && reward.amount !== undefined) {
@@ -7631,10 +7712,29 @@ export function commissionRewardWords(reward: CommissionReward, towns = 1): stri
   }
   // Expansionist batch E5, The Heartland: the town is marked, and what the
   // mark brings holds for the rest of the game.
-  if (reward.markTown === true) out.push(`${one ? 'that city' : 'the last of those cities'} is marked`);
+  const marked = one ? 'that city' : 'the last of those cities';
+  if (reward.markTown === true && !markSaid) out.push(`${marked} is marked`);
   if (reward.lasting !== undefined && reward.lasting.length > 0) {
     const said = describeEffects(reward.lasting, 'empire').map((clause) => clause.text);
-    out.push(`for the rest of the game, ${said.join(' and ')}`);
+    const card = lastingMarkOf(reward.lasting);
+    if (card === undefined) {
+      out.push(`for the rest of the game, ${said.join(' and ')}`);
+    } else {
+      // Every line pays only in the marked town, so the town is named once:
+      // "for the rest of the game, that city gains +25% culture, +25% science
+      // and +25% production" (Commission: The Ideal City). A line that is not
+      // a yield in the town keeps its own sentence, with the town named in it.
+      const mark = ref('order', card, orderDef(card).name);
+      const tail = ` in every city marked by ${mark}`;
+      const gains: string[] = [];
+      const rest: string[] = [];
+      for (const text of said) {
+        if (text.endsWith(tail)) gains.push(text.slice(0, -tail.length));
+        else rest.push(text.split(`a city marked by ${mark}`).join(marked).split(`every city marked by ${mark}`).join(marked));
+      }
+      if (gains.length > 0) rest.push(`${marked} gains ${listWords(gains)}`);
+      out.push(`for the rest of the game, ${rest.join(', and ')}`);
+    }
   }
   // Commerce batch T4, The World's Fair.
   if (reward.postsInPartnerCapitals === true) {
@@ -7662,7 +7762,9 @@ export function describeCommission(spec: CommissionSpec): CardClause[] {
   // How many towns the goal counts, so a reward read off them names one or many.
   const counted = spec.goals.find((part) => part.kind === 'counted');
   const towns = counted?.count ?? 1;
-  const reward = spec.reward.flatMap((line) => commissionRewardWords(line, towns)).join(', and ');
+  // A lasting line paid only in the marked town names that town itself.
+  const markSaid = spec.reward.some((line) => lastingMarkOf(line.lasting) !== undefined);
+  const reward = spec.reward.flatMap((line) => commissionRewardWords(line, towns, markSaid)).join(', and ');
   return [
     { text: `Commission. Goal: ${goal}, while this card is seated` },
     { text: `Reward: ${reward}` },

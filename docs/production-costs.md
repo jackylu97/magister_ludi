@@ -72,6 +72,17 @@ late army costs what a late building costs. The retune kept in reserve, if the
 playtest asks for one, is a gentler `unitColumnRate` of its own (1.22 puts the
 knight at 146 and the frigate at 262).
 
+**The purchase rates** turn hammers into a bank's price. `src/sim/purchase.ts`
+reads them, and `test/sim/productionCosts.test.ts` checks the figures here
+against the data.
+
+| Rule | Value | What it prices |
+|---|---|---|
+| `goldPerHammer` | 4 | Gold for each hammer, when gold buys an item. |
+| `faithPerHammer` | 2 | Faith for each hammer, when faith buys an item that is priced in hammers. |
+| `culturePerHammer` | 1 | Culture for each hammer a wonder still needs, under Magnificence (Magisterial batch MG11). Culture buys only the wonder at the front of a town's queue, and it pays for what is left, not the full price. |
+| `wonderRefundGoldPerHammer` | 1 | Gold back for each hammer banked toward a wonder that a rival finished first. |
+
 ## 3. How a row is sized
 
 Buildings, by the base each row printed before the standard: **small** ≤ 35 ·

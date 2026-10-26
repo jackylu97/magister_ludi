@@ -192,22 +192,22 @@ describe('the growing-card vocabulary', () => {
   it('says in words that the counting stops at the bench', () => {
     const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
     expect(said('theBalladWeavers')).toEqual([
-      '+2 culture per barbarian you have killed, counted while this Order stands in a slot',
+      '+2 culture per barbarian you have killed, counted while this Order is seated',
     ]);
     expect(said('theBellFounders')).toEqual([
-      '+1 culture per wonder finished anywhere in the world, counted while this Order stands in a slot',
+      '+1 culture per wonder finished anywhere in the world, counted while this Order is seated',
     ]);
     // One counter, two voices — two clauses off one tally, which is what makes
     // "counted once per card" a rule worth testing below.
     expect(said('theReliquaryRolls')).toEqual([
-      '+3 faith per great person you have spent, counted while this Order stands in a slot',
-      '+3 culture per great person you have spent, counted while this Order stands in a slot',
+      '+3 faith per great person you have spent, counted while this Order is seated',
+      '+3 culture per great person you have spent, counted while this Order is seated',
     ]);
     expect(said('theChroniclersOfTheFallen')).toEqual([
-      '+1 gold per unit you have lost in battle, counted while this Order stands in a slot',
+      '+1 gold per unit you have lost in battle, counted while this Order is seated',
     ]);
     expect(said('theAlmonersBook')).toEqual([
-      '+1 science per 400 gold you have spent buying, counted while this Order stands in a slot',
+      '+1 science per 400 gold you have spent buying, counted while this Order is seated',
     ]);
   });
 });

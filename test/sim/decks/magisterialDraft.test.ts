@@ -164,7 +164,7 @@ describe('Magisterial batch MG5: the rows', () => {
       'drafting a card grants production equal to 50% of the culture paid for its hand to your capital',
     ]);
     expect(words(CHAPTER)).toEqual([
-      'passing an Order draft grants science equal to 50% of the culture paid for that hand',
+      'passing on an Order hand grants science equal to 50% of the culture paid for that hand',
     ]);
   });
 });

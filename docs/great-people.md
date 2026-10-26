@@ -71,7 +71,7 @@ has no unclaimed name at all.
 
 **Purchases** are three clauses on cards, one register (`OFFER_PURCHASES`), one
 command (`purchaseGreatPersonOffer`) and one draft path. Two of them buy a *rung*
-of the ladder — The Commonwealth's gold price and The Magisterium's faith price
+of the ladder — Merchant Princes' gold price and Sacred Patronage's faith price
 pour renown to the threshold through the ordinary windfall, so the pool is spent
 and the next recruitment is dearer. The third, The Academy's scholar draft, buys
 the *hand*: it charges faith, deals a scholars-only offer on the spot, and leaves
@@ -218,8 +218,8 @@ blank for the balance pass.
 | `generalAuraRange` | 2 | How far a great general’s standing aura reaches while the piece is alive. |  |
 | `generalAuraStrength` | 3 | Strength every friendly soldier inside that aura fights with. |  |
 | `citadelClaimRadius` | 1 | How far a citadel claims ground around itself, in hexes. |  |
-| `offerPriceGold` | 1000 | What The Commonwealth charges in gold to fill the threshold early. |  |
-| `offerPriceFaith` | 750 | The same out of the faith bank — The Magisterium’s price. |  |
+| `offerPriceGold` | 1000 | What a great-person draft costs in gold under Merchant Princes. It fills the threshold early. |  |
+| `offerPriceFaith` | 750 | The same out of the faith bank, under Sacred Patronage. The price is flat: it does not rise. |  |
 | `scholarDraftFaith` | 1000 | What The Academy charges in faith for a scholars-only hand, leaving the ladder where it stands. |  |
 | `renown.base` | 75 | What the first great person costs in renown — the ladder’s floor. |  |
 | `renown.linear` | 180 | What each person already recruited adds to the next one’s price, straight. |  |

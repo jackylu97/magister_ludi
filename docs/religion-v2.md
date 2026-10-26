@@ -336,6 +336,36 @@ Pressure sources (`explainPressure`, rule-5 list; numbers in
   today, so a retune moves both together.
 - **Purge** (inquisitor): the negative lump; converts to nobody.
 
+## A town turns (the conversion moment, Devotion batch DV6)
+
+A foreign town **turns** to a religion when that religion becomes the one more
+than half its citizens follow. Cards can pay on that moment (`townConverted`,
+feature F of `docs/plans/devotion-themes-triage.md`).
+
+- **Who is paid:** the religion's founder (`religionFounder`, the empire that
+  holds the holy site) at the moment the town turns. "Foreign" means a town
+  the founder does not own at that moment. A founder's own towns never count.
+- **When it is paid:** `noteFirstConversion` (`religion.ts`) puts the town on
+  a queue and does not pay it at once, because it runs inside a pressing, and
+  a lump paid at once would change towns the pressing has not reached yet.
+  The pressing pays its queue when it ends (`drainConversions`): at the end of
+  the tide (`spreadReligion`), and at the end of a lump that is a pressing of
+  its own (`pressLump`).
+- **What it carries:** the town, its citizens when it turned, and whether this
+  was the first time the town turned to that religion. That first is the
+  founder's own record (`markFirst`, kind `conversion`), not the world's.
+- **A chain:** a lump a card pays at the moment presses with the same queue,
+  so a town that lump turns joins the end of the queue and is paid in its turn.
+- **The limit:** a town queues the moment at most once a turn for each
+  religion. `City.convertedOn` holds the turn as an absolute stamp, compared
+  with `state.turn` and never counted down. So every chain ends.
+- **The cards:** Pentecost presses your religion around the town that turned,
+  as hard as a proclamation (cards that change a proclamation do not change
+  it). The Mass Baptisms pays science and culture the first time a town turns.
+  The Lives of the Saints counts the towns that have turned at least once. The
+  Mission's commission counts towns turned while it is seated (the
+  `foreignCityConverted` tally).
+
 ## Buildings & wonders
 
 - Temple: the defensive building (no combat) — doubles own pressure, cuts

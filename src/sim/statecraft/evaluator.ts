@@ -2735,7 +2735,8 @@ function scopeNote(scope?: CityScope): string | null {
     case 'ownerAtWar':
       return 'owner at war';
     case 'ownersFaith':
-      return scope.keeps ? 'follows your religion' : 'does not follow your religion';
+      // "Devout", the card word the describers print for this scope.
+      return scope.keeps ? 'devout' : 'does not follow your religion';
     default: {
       const unhandled: never = test;
       void unhandled;

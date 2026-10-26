@@ -508,7 +508,7 @@ describe('Dominion D5 — words and the bot', () => {
         .join(' | ');
     expect(words('theGatheringHost')).toContain('unit you have gained');
     expect(words('theArmourersSecret')).toContain('one of each military unit it unlocks in your capital');
-    expect(words('theOpenMuster')).toContain('passing an Order draft grants the best melee unit you can build in your capital');
+    expect(words('theOpenMuster')).toContain('passing on an Order hand grants the best melee unit you can build in your capital');
     expect(words('theSack')).toContain('razing a city you captured');
     expect(words('theCleruchy')).toBe('when drafted, a Settler joins you in your capital; seated, this card does nothing');
     expect(words('theLongbowmen')).toContain('attacking from range grants +5 culture');

@@ -320,5 +320,10 @@ describe('the production-costs doc mirrors the data', () => {
       expect(DOC, size).toContain(`| **${size}** | ${base} |`);
     }
     expect(DOC).toContain(`\`columnRate\` **${RULES.production.columnRate}**`);
+    // The purchase rates: the hammer price in each bank, and the wonder refund.
+    const rates = ['goldPerHammer', 'faithPerHammer', 'culturePerHammer', 'wonderRefundGoldPerHammer'] as const;
+    for (const rate of rates) {
+      expect(DOC, rate).toContain(`| \`${rate}\` | ${RULES.production[rate]} |`);
+    }
   });
 });

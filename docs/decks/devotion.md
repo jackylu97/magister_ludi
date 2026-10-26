@@ -29,7 +29,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 14 | 2 | 0 | 16 | 0 |
 | Tier IV | 14 | 0 | 0 | 14 | 0 |
 | **All** | **62** | **4** | **0** | **66** | **2** |
-| Shared | 27 | 2 | 0 | 29 | 1 |
+| Shared | 28 | 1 | 0 | 29 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
 
@@ -172,7 +172,7 @@ These rows live in `data/decks/common.json`. A seat holding Devotion or the deck
 - **Moved in batch DV1:** The Holy Spring (with Expansionist), The Priest-Astronomers and The Monastic University (with Scientific), and The Painted Chapels, The Festival Calendar and The Penitents' Roll (with Magisterial) came here from the Devotion file. The Ambarvalia came here from the Expansionist file, and its row keeps the id `theSpiritsOfPlace`. All seven keep their ids, texts, tiers and rarities (reading 8). Sacred Commissions moved from Tier I to Tier II, because it pays only in a town with a holy site.
 - **Built in batch DV2:** The Shrine Guards (a new row, with Dominion), The Monastery Libraries (it left `deferred` with its new text), The Blessed Forges and The Schoolmen's Charter (new rows, with Scientific). The charter opens a new charter technology, Scholasticism, at a placeholder place beside Medicine until your chart places it. Knowing Scholasticism opens the Cathedral and the Apostle before Theology, and Theology still opens both for everybody (reading 24).
 - **Built in batch DV3:** The Rising Nave (a new row, with Magisterial). It pays while the front row of a town's queue is a Cathedral or a wonder, the Magnum Opus included, and counts the tenths of that row's cost already in the town's basket (reading 18). The Magisterial sheet's shared table lists it too.
-- **Built in Magisterial batch MG8** (`docs/plans/magisterial-themes-triage.md`): Sacred Patronage, which keeps its second clause (reading 10). Spending a great person, by an act or by a work, grants 30 faith at most once a turn. It plays as built (see "Still open"). The Magisterial sheet's shared table lists the same row.
+- **Built in Magisterial batch MG8** (`docs/plans/magisterial-themes-triage.md`): Sacred Patronage, which keeps its second clause (reading 10). Spending a great person, by an act or by a work, grants 30 faith at most once a turn. Batch Z2 changed its text to the flat price the game charges: 750 faith for each great-person draft. The Magisterial sheet's shared table lists the same row.
 - **Each pair's early shared card** (ruling (qqqqqq) 14): Dominion, Rites of Passage, and The Shrine Guards from DV2; Expansionist, Sacred Groves, The Ambarvalia and The Holy Spring; Commerce, The Merchant Shrines; Scientific, Cloister Schools, The Monastery Libraries, The Priest-Astronomers, and The Schoolmen's Charter from DV2; Magisterial, The Painted Chapels.
 - **Five shared Tier I cards wait on The High Temple:** The Sacred Host and Cloister Schools need a Temple, The Oriflamme a religious unit beside the army, and half of The Monastery Libraries a Temple. The Schoolmen's Charter opens a technology that comes after The High Temple. They stay at Tier I, because the partner passes kept them there (reading 1).
 - **Convert It or Tax It** keeps its Dominion text. Since batch DV2 its printed clause says "devout" (reading 2).
@@ -204,7 +204,7 @@ These rows live in `data/decks/common.json`. A seat holding Devotion or the deck
 | **The Festival Calendar** | uncommon | Magisterial | II | implemented | Cities keeping a rite gain +30% food and +30% culture. | Civic |
 | **The Penitents' Roll** | uncommon | Magisterial | II | implemented | +6 science and +6 culture for every Order hand you reroll while this is seated. Rerolls cost 30% less faith while this is seated. | Civic |
 | **Sacred Commissions** | uncommon | Magisterial | II | implemented | Cities with a Holy Site gain +38% production toward wonders. Completing a wonder grants 60 faith. | Economic |
-| **Sacred Patronage** | rare | Magisterial | III | modify: as built | Faith may purchase great-person drafts at the escalating conversion price. Spending a great person grants 30 faith, at most once per turn. | Civic |
+| **Sacred Patronage** | rare | Magisterial | III | implemented | Faith may buy great-person drafts for 750 faith each. Spending a great person grants 30 faith, at most once per turn. | Civic |
 | **The Rising Nave** | rare | Magisterial | III | implemented | While a city is building a Cathedral or a wonder, it gains +1 faith and +1 culture for every 10% of the work already done. | Civic |
 | **The Holy Army** | uncommon | Dominion | III | implemented | Worked Holy Sites and citadels that stand beside each other each gain +3 faith and +3 culture. | Civic |
 | **The Monastic University** | rare | Scientific | III | implemented | A Holy Site and an academy standing beside each other each gain +5 science and +3 faith. | Civic |
@@ -237,10 +237,9 @@ These rows stay in the data so that old saves load. They are dealt to nobody, th
 - **Still open:**
   - **The build plan's question 1:** The Schoolmen's Charter opens the Apostle before Theology. Your ruling of 2026-10-21 was *"don't open units early, replace them with better versions"*. Recommended: build it as written, because an apostle is clergy and fights nothing (reading 24). The alternative opens only the Cathedral early. Batch DV2 built the recommendation. To take the alternative, remove Scholasticism's `unlocksUnit` effect in `data/techs.json` and the Apostle's `unlockedByCard` marker in `data/units.json`, and drop "and train the Apostle" from the text.
   - **Devotion's Doctrines:** sixteen proposed on 2026-10-25 (`docs/plans/devotion-doctrines.md`), waiting for your review.
-  - **Six rows play as built.** The list doc's row for each says what the game does, and for Sacred Patronage this sheet says it:
+  - **Five rows play as built.** The list doc's row for each says what the game does:
     - Mission Houses: a proclamation presses a flat +18 more, which is 30% of the base lump.
     - The Settled Faith: a proclamation presses a flat 15 less, which is 25% of the base lump (reading 38).
     - The Doctors of the Church: the 150% raises what follower beliefs pay a town as town lines, and not their hex lines or percentages.
     - The Pious Masons: faith pays the wonder's full price, and the hammers already banked are refunded the usual way (reading 5).
     - The Silk Road Monks (shared): "follows your religion" means a religion whose holy city you hold.
-    - Sacred Patronage (shared, built in Magisterial batch MG8): a great person bought with faith costs a flat 750 faith each time, and the faith price does not rise. What rises is the renown each later great person needs.

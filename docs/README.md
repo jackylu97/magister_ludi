@@ -1069,6 +1069,11 @@ renewed route by the knob `score.routeLapseMultiple` (1.5). The renewed pay
 counts what cards pay an old route, at the route's age halfway through the new
 term.
 
+**The apostle's holy sites** (Devotion batch DV9). Under The Abbeys
+(`apostlesPlantHolySites`), a bot apostle that cannot leave its relic plants a
+further holy site where `plantHolySiteError` allows it, in a town that has no
+site yet (`apostleCommand`, `bot.ts`).
+
 ## The surfaces
 
 Eight root pages, all named in `vite.config.ts` inputs:

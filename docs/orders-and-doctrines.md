@@ -725,7 +725,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Landmark Bounds | 1 | ◆ | S | Laying a great-person work claims every unowned hex beside it. |
 | The Learned Patron | 2 | ◆ | P | Cities with at least two culture buildings gain science equal to 15% of their base culture, at most +18 science per city. Conversion outputs are excluded. |
 | The Senate Charter | 2 | ◆ | S | Unlocks the capital-only Assembly Hall. A city with one gains +3 happiness and +30% production toward buildings. |
-| The Masters' Domain | 3 | ◆ | S | Worked great-person works give +3 food and +3 production. |
 | The Honoured Dead | 2 | ◆ | P | While seated, this card gains +2 science and +4 production in your capital each time you spend a great person, up to +30 science and +60 production. |
 | The Prefects | 2 | ◆ | E | +5% production for each Economic card you have seated. |
 | The Symposium | 2 | ◆ | S | Each time you gain a great person, you are dealt a free Order hand. |
@@ -741,6 +740,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Custodians | 2 | ● | S | Your units standing on a great-person work gain +4 strength. |
 | The Envious Eye | 2 | ◆ | S | When a rival completes a wonder you were building, the production you put into it moves to the next item in that town's queue. |
 | The Grand Vizier | 2 | ○ | E | The card in your first Economic chair pays its yields twice. |
+| The Masters' Domain | 3 | ◆ | S | Worked great-person works give +3 food and +3 production. |
 | The Living Canon | 3 | ○ | P | Your cities gain +4% food and +4% production per distinct great-person family whose legacy you currently hold, at most +20% each. |
 | The Wonder Commonwealth | 3 | ○ | P | Cities containing a wonder gain +38% production and +38% food. Your cities without a wonder gain +15% culture instead. |
 | The Boule | 3 | ◆ | E | +2% science and culture for each card you have seated. |
@@ -841,7 +841,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Shrine Guards | Dominion · Devotion | 0 | ● | S | Towns with a Shrine may buy melee units with faith. |
 | The Blessed Forges | Devotion · Scientific | 2 | ◆ | P | Improved strategic resources gain +1 faith and +1 production. Cities with a Temple gain +2 faith and +2 production more. |
 | The Schoolmen's Charter | Devotion · Scientific | 1 | ◆ | S | Drafting this opens Scholasticism for research. Knowing it lets you build the Cathedral and train the Apostle before Theology. No chair required. |
-| Sacred Patronage | Devotion · Magisterial | 3 | ○ | S | Faith may purchase great-person drafts at the escalating conversion price. Spending a great person grants 30 faith, at most once per turn. |
+| Sacred Patronage | Devotion · Magisterial | 3 | ○ | S | Faith may buy great-person drafts for 750 faith each. Spending a great person grants 30 faith, at most once per turn. |
 | The Rising Nave | Devotion · Magisterial | 3 | ○ | P | While a city is building a Cathedral or a wonder, it gains +1 faith and +1 culture for every 10% of the work already done. |
 
 ### Generic
@@ -866,14 +866,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 
 - **Riders of the Steppe** — A raid costs a single point of movement, so a rider who is forgiven one is forgiven the raid.
 - **The Old Songs** — Open water your people work counts as unbuilt ground here: the game tells works from wild, and not land from sea.
-- **Outposts** — No work can yet be raised outside your borders, and only a town or a great general can claim ground. † a worker plants an outpost on wild ground near your border, and it claims that ground and the ring around it for your nearest town
 - **The Waterworks** — The saving on the aqueduct is paid as extra production toward it, which comes to the same price.
-- **Migration** — No rule yet moves a citizen from one town to another. † a crowded town sends a citizen to a small town joined to it
-- **The Polders** — The ground under a hex never changes during a game, by a deliberate rule, and the board would have to redraw the hex. † a worker turns shallow sea beside your land into grassland
-- **The Heartland** — A reward cannot yet mark one town for the rest of the game. † one town working a great stretch of rich land becomes your heartland, cheaper to hold and happier for good
-- **The Master of Works** — For now a great engineer's act simply pays half as much again, wherever it is spent.
-- **The Great Migration** — No rule yet moves a citizen from one town to another, let alone between empires. † unhappy foreign towns near your border lose citizens to your happier towns
-- **The Encroaching Fields** — A hex never changes hands between empires except when its town is captured. † large towns take unworked hexes from the borders of smaller foreign towns beside them
+- **Migration** — A town has no happiness of its own, so the game reads your empire's: every ten turns, while your empire has no happiness to spare, your largest town sends one citizen to your smallest town joined to your capital, if that town is smaller.
 - **Travellers' Letters** — An empire you have met stays met, so the letters never stop arriving — a rival you have since destroyed is still a rival you once wrote to.
 - **Private Patronage** — An ordinary building is one the realm may raise in every city. A wonder is its own kind of queue row, so the slower building does not reach it, and neither does it reach a building the realm may hold only once.
 - **Civic Receipts** — Every building a town buys pays, however many it has bought before and whichever shelf it came off. What the card still does not pay for is a unit bought at the same counter, which is the whole of what the word building narrows. The share is taken of what actually left the treasury, so a discount at the till is a smaller rebate.
@@ -918,35 +912,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **Letters of Credit** — Buildings, units, trade caravans, hexes and great-person drafts may all be bought on credit. Gold poured into a wonder or the Magnum Opus, and gold paid to redraw a hand of cards, must still come from gold you hold. While your treasury is below zero you still lose a share of your science and culture.
 - **The Strongbox** — Your treasury is checked at the end of each turn, after your income, interest and upkeep are paid. The card counts only while it is seated, and it keeps what it has counted when it leaves its chair.
 - **The Merchant Guilds** — Merchants in the trades are counted in all of your cities together.
-- **Pastoral Shrines** — Not built, both halves together: the law can dress a herder's ground, and nothing can yet ask whether the realm keeps a single pen anywhere at all, which is the clause the capital's hammers hang on. † worked pastures pay an offering of faith and a little more food; your capital works harder while you keep a penned herd anywhere at all
-- **Hearth Blessings** — Not built: a town remembers how many people live in it and not how many ever did, so nothing can tell a new high from an ordinary birth. † a town growing past the largest it has ever been gives thanks in faith; a shrine there sets bread on the table besides
-- **The Book of Mercy** — Not built: neither observance has been written into the book of rites, so the charter has nothing to open. The row is kept so the two may be written. † a town may mourn, and while it grieves its people ask far less of it and it raises no soldiers; a town may keep a watch, seeing the raiders' camps around it and taking faith for every kill near its walls
-- **Pilgrims' Welcome** — Not built: the law can ask whether a town keeps your faith and cannot yet ask whether it keeps somebody's. † towns with a shrine that keep any faith at all, yours or a rival's, eat better and trade better
-- **The Healing** — Not built: there is no order a town can give that spends faith on the wounded, and no price quoted for one. † a town may spend faith to mend your soldiers standing in it and beside it
-- **The Loaves** — Not built: there is no order a town can give that buys a citizen, and no price quoted for one. † a town may spend faith to seat another citizen at once
-- **The Feast Days** — Not built: nothing counts the years a particular town has spent keeping its rites while this law stood. † a town that has kept its rites long enough holds a feast, takes faith for every citizen at it, and is glad of it for a while
-- **The Quiet Hours** — Not built: a law may make the realm's rites run longer by a share of their length and cannot yet add a flat count of turns to them. † a rite granted while this stands runs five turns longer than it would
-- **The Rites Charter** — Not built, both halves together: the chapel is ready to be opened and the rite charted beside it has not been written into the book of rites. † the chapel may be raised in your towns under its ordinary rules; a town may keep the Rite of Passage, and the soldiers raised there are hardier for the rest of their lives
-- **Missionary Hospitality** — Half built and therefore not built: the world now writes down the first time each foreign town turns to your faith, but the roster has no word that gathers every kind of clergy into one line, so nothing can make them cheaper to call. † clergy cost less faith to call; the first time each foreign town turns to your faith your capital is fed and the realm sings
-- **The Alms Roads** — Not built: a caravan carries no faith, and a law of yours cannot put coin in another empire's purse. † roads from your temple towns feed and enrich the towns they reach; roads from them into another realm pay you in faith and coin, and pay your host a little too
-- **Consecrated Labor** — Not built: the faith bank sells clergy and houses of learning, and nothing opens it to the spade. † workers may be bought with faith in temple towns at the price coin would have paid; and those workers come with an extra charge in them
-- **The Votive Companies** — Not built, both halves together: the faith bank does not sell soldiers, and the price the other half charges is no card on its own. † temple towns keeping a rite may buy soldiers with faith at the price coin would have paid; and every soldier you keep costs a coin more while this stands
-- **The Concord** — Not built: the waiver on a town's first citizens is a rule of the whole realm and cannot yet be narrowed to the towns that keep a faith. † in a town that keeps any faith the first three citizens ask nothing of the realm's contentment
-- **The Parish Rolls** — Not built: the writ is granted to the realm as capacity and is never taken off a particular town's price. † a temple town that keeps any faith is cheaper to hold, though never free
-- **Sainthood** — Not built: nothing can set a relic down but the apostle who carries one. † spending a great person in a temple town's country leaves a relic behind in that town if it has none
-- **The Pilgrim Road** — Not built: a caravan carries no faith, and a law of yours cannot pay another empire. † your roads ending at a town that holds a relic or works a holy site pay faith to the sender and to the host alike
-- **Mission Houses** — Not built, both halves together: a proclamation's weight can be shifted by a flat figure and not by a share of itself, and the roster has no word that gathers the prophet, the apostle and the inquisitor into one line. † your proclamations press harder on the towns that hear them; clergy travel farther in a turn
-- **Consecrated Ground** — Not built: land is bought out of the treasury and nothing opens the faith bank to it. † hexes may be bought with faith at the price coin would have paid
-- **The Council** — Not built: there is no council a prophet can call, and no offer of beliefs to lay before one. † once an age a prophet at your faith's first seat may set one follower belief aside and choose another from three
-- **The Settled Faith** — Not built, both halves together: a proclamation's weight can be shifted by a flat figure and not by a share of itself. † temple towns keeping a rite learn faster and are gladder; and your proclamations press more gently for it
-- **Pilgrim Hospices** — Not built: the law can ask whether a town keeps your faith and cannot yet ask whether it keeps somebody's. † great towns with a cathedral that keep any faith eat well and are glad of it
-- **The Holy Inquisition** — Not built, both halves together: a town's resistance to another faith belongs to its temple and cannot yet be raised for the realm at large. † a rival's faith presses far more weakly on your towns, over whatever defence they already keep; inquisitors cost less faith to call
-- **The Sacred Treasury** — Not built: a bonus on building can name one row or one category, never a marvel and the last work of all at once. † a town with a cathedral, a relic and a worked holy site grows rich, sings, and builds the great works faster
-- **The Bishop's Choice** — Not built: a cathedral's consecration is settled as the roof goes on and there is no offer to put before anyone. † when you finish a cathedral you choose its consecration instead of being given one
-- **The Cloistered Realm** — Not built, both halves together: a proclamation's weight can be shifted by a flat figure and not by a share of itself. † cathedral towns keeping a rite learn and build far faster; and your proclamations press more gently for it
-- **The Long Study** — † a library that has stood a long while pays culture and renown, and pays more again once it is very old
-- **The Old Academy** — † an academy that has stood a long while feeds and works the town it serves, and more again once it is very old
-- **Enduring Institutions** — † a town whose empire building has stood a long while is gladder and builds faster, once per town
 - **The Golden Age** — A wonder completed while the bonus runs starts it again, and does not add a second bonus. The Magnum Opus is not a wonder.
 - **The Magister's Court** — A town you captured that holds a wonder counts too.
 - **The Last Commission** — A great person counts whether they act or lay a work. A city is building the Magnum Opus while it stands at the front of its queue. While none of your cities is building it, the card pays nothing, and nothing is kept for later.
@@ -975,6 +940,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **Commission: The Wonder of the Age** — Only the production a city makes each turn counts, while a wonder or the Magnum Opus is at the front of its queue. Production you buy, or gain all at once, does not.
 - **The Universal Library** — Every Order you hold counts, seated or not, this card included. Charters and finished commissions count. A Doctrine does not.
 - **The Polymath's Study** — Every Order you hold counts, seated or not. A card that two decks share counts for both decks. The cards that belong to no deck count together as one more deck.
+- **The Open Door** — The price of each hand you buy with culture is cut, then rounded down. Cuts from more than one card add together first. The number of drafts you have taken, the tiers at which a government is offered, and the better odds a pass buys do not change.
+- **The Accessions Register** — The production is rounded down. A charter counts. A card from a free hand pays nothing, because that hand cost no culture. A hand you reroll keeps the price of the hand it replaced. This card pays nothing for drafting itself.
+- **The Unwritten Chapter** — The science is rounded down. Passing on a free hand pays nothing, because that hand cost no culture. A hand you reroll keeps the price of the hand it replaced.
 - **The Wandering Muse** — If a great person is already waiting for your choice, or you cannot call great people yet, you gain the renown still needed for your next great person instead. A card picked from a free hand counts.
 - **Officials by Merit** — Hands of Doctrines and great people may still be rerolled. A hand never holds more than five cards.
 - **The Hall of Wonders** — A wonder you captured counts, and the Magnum Opus is not a wonder. The wonders are counted when the hand is dealt. A hand never holds more than five cards.

@@ -21,12 +21,12 @@
     "text": "+4 combat strength"
    },
    {
-    "raw": "killing a unit grants +5 science for each Order you have in a slot",
-    "text": "killing a unit grants +5 science for each Order you have in a slot"
+    "raw": "killing a unit grants +5 science for each Order you have seated",
+    "text": "killing a unit grants +5 science for each Order you have seated"
    },
    {
-    "raw": "killing a unit grants +5 culture for each Order you have in a slot",
-    "text": "killing a unit grants +5 culture for each Order you have in a slot"
+    "raw": "killing a unit grants +5 culture for each Order you have seated",
+    "text": "killing a unit grants +5 culture for each Order you have seated"
    }
   ],
   "priestKing": [
@@ -83,8 +83,8 @@
   ],
   "merchantLeague": [
    {
-    "raw": "+2 gold per economic Order you have in a slot",
-    "text": "+2 gold per economic Order you have in a slot"
+    "raw": "+2 gold per economic Order you have seated",
+    "text": "+2 gold per economic Order you have seated"
    },
    {
     "raw": "trade routes pay +50%",
@@ -97,8 +97,8 @@
   ],
   "imperium": [
    {
-    "raw": "+1 production in every city per military Order you have in a slot",
-    "text": "+1 production in every city per military Order you have in a slot"
+    "raw": "+1 production in every city per military Order you have seated",
+    "text": "+1 production in every city per military Order you have seated"
    },
    {
     "raw": "all units: +1 movement",
@@ -115,12 +115,12 @@
   ],
   "divineMandate": [
    {
-    "raw": "+1 faith in your capital per civic Order you have in a slot",
-    "text": "+1 faith in your capital per civic Order you have in a slot"
+    "raw": "+1 faith in your capital per civic Order you have seated",
+    "text": "+1 faith in your capital per civic Order you have seated"
    },
    {
-    "raw": "+1 culture in your capital per civic Order you have in a slot",
-    "text": "+1 culture in your capital per civic Order you have in a slot"
+    "raw": "+1 culture in your capital per civic Order you have seated",
+    "text": "+1 culture in your capital per civic Order you have seated"
    },
    {
     "raw": "+10% faith in every city of 6 or more citizens",
@@ -728,8 +728,8 @@
   ],
   "theLandsturm": [
    {
-    "raw": "passing an Order draft grants the best melee unit you can build in every city of 5 or more citizens",
-    "text": "passing an Order draft grants the best melee unit you can build in every city of 5 or more citizens"
+    "raw": "passing on an Order hand grants the best melee unit you can build in every city of 5 or more citizens",
+    "text": "passing on an Order hand grants the best melee unit you can build in every city of 5 or more citizens"
    },
    {
     "raw": "+3 combat strength for melee units",
@@ -944,8 +944,8 @@
     "text": "+1 faith in your capital"
    },
    {
-    "raw": "+1 faith per wildcard Order you have in a slot",
-    "text": "+1 faith per wildcard Order you have in a slot"
+    "raw": "+1 faith per wildcard Order you have seated",
+    "text": "+1 faith per wildcard Order you have seated"
    }
   ],
   "borderBallads": [
@@ -960,8 +960,8 @@
   ],
   "borderWardens": [
    {
-    "raw": "+2 combat strength inside your territory, +2 more per military Order you have in a slot (at most +6)",
-    "text": "+2 combat strength inside your territory, +2 more per military Order you have in a slot (at most +6)"
+    "raw": "+2 combat strength inside your territory, +2 more per military Order you have seated (at most +6)",
+    "text": "+2 combat strength inside your territory, +2 more per military Order you have seated (at most +6)"
    }
   ],
   "vanguard": [
@@ -1158,8 +1158,8 @@
     "text": "+2 production on every hex carrying a strategic resource"
    },
    {
-    "raw": "+2 production in your capital per military Order you have in a slot",
-    "text": "+2 production in your capital per military Order you have in a slot"
+    "raw": "+2 production in your capital per military Order you have seated",
+    "text": "+2 production in your capital per military Order you have seated"
    }
   ],
   "terracedHillsides": [
@@ -1186,8 +1186,8 @@
   ],
   "provincialGovernors": [
    {
-    "raw": "+1 authority capacity per economic Order you have in a slot (at most +4 authority capacity)",
-    "text": "+1 authority capacity per economic Order you have in a slot (at most +4 authority capacity)"
+    "raw": "+1 authority capacity per economic Order you have seated (at most +4 authority capacity)",
+    "text": "+1 authority capacity per economic Order you have seated (at most +4 authority capacity)"
    }
   ],
   "emergencyPowers": [
@@ -1669,31 +1669,31 @@
   ],
   "theArchives": [
    {
-    "raw": "+2 culture per Order you have placed in a slot",
-    "text": "+2 culture per Order you have placed in a slot"
+    "raw": "+2 culture per Order you have seated",
+    "text": "+2 culture per Order you have seated"
    }
   ],
   "theAnnalsOfLaw": [
    {
-    "raw": "+3 culture per Order you hold but have not placed in a slot",
-    "text": "+3 culture per Order you hold but have not placed in a slot"
+    "raw": "+3 culture per Order you hold but have not seated",
+    "text": "+3 culture per Order you hold but have not seated"
    }
   ],
   "theAuspiciousSeal": [],
   "theWarCouncil": [
    {
-    "raw": "+2 combat strength per military Order you have in a slot",
-    "text": "+2 combat strength per military Order you have in a slot"
+    "raw": "+2 combat strength per military Order you have seated",
+    "text": "+2 combat strength per military Order you have seated"
    }
   ],
   "theGuildCharter": [
    {
-    "raw": "+3 gold per economic Order you have in a slot",
-    "text": "+3 gold per economic Order you have in a slot"
+    "raw": "+3 gold per economic Order you have seated",
+    "text": "+3 gold per economic Order you have seated"
    },
    {
-    "raw": "+2 production in your capital per economic Order you have in a slot",
-    "text": "+2 production in your capital per economic Order you have in a slot"
+    "raw": "+2 production in your capital per economic Order you have seated",
+    "text": "+2 production in your capital per economic Order you have seated"
    }
   ],
   "theSynod": [
@@ -1744,36 +1744,36 @@
   ],
   "theBalladWeavers": [
    {
-    "raw": "+2 culture per barbarian you have killed, counted while this Order stands in a slot",
-    "text": "+2 culture per barbarian you have killed, counted while this Order stands in a slot"
+    "raw": "+2 culture per barbarian you have killed, counted while this Order is seated",
+    "text": "+2 culture per barbarian you have killed, counted while this Order is seated"
    }
   ],
   "theBellFounders": [
    {
-    "raw": "+1 culture per wonder finished anywhere in the world, counted while this Order stands in a slot",
-    "text": "+1 culture per wonder finished anywhere in the world, counted while this Order stands in a slot"
+    "raw": "+1 culture per wonder finished anywhere in the world, counted while this Order is seated",
+    "text": "+1 culture per wonder finished anywhere in the world, counted while this Order is seated"
    }
   ],
   "theReliquaryRolls": [
    {
-    "raw": "+3 faith per great person you have spent, counted while this Order stands in a slot",
-    "text": "+3 faith per great person you have spent, counted while this Order stands in a slot"
+    "raw": "+3 faith per great person you have spent, counted while this Order is seated",
+    "text": "+3 faith per great person you have spent, counted while this Order is seated"
    },
    {
-    "raw": "+3 culture per great person you have spent, counted while this Order stands in a slot",
-    "text": "+3 culture per great person you have spent, counted while this Order stands in a slot"
+    "raw": "+3 culture per great person you have spent, counted while this Order is seated",
+    "text": "+3 culture per great person you have spent, counted while this Order is seated"
    }
   ],
   "theChroniclersOfTheFallen": [
    {
-    "raw": "+1 gold per unit you have lost in battle, counted while this Order stands in a slot",
-    "text": "+1 gold per unit you have lost in battle, counted while this Order stands in a slot"
+    "raw": "+1 gold per unit you have lost in battle, counted while this Order is seated",
+    "text": "+1 gold per unit you have lost in battle, counted while this Order is seated"
    }
   ],
   "theAlmonersBook": [
    {
-    "raw": "+1 science per 400 gold you have spent buying, counted while this Order stands in a slot",
-    "text": "+1 science per 400 gold you have spent buying, counted while this Order stands in a slot"
+    "raw": "+1 science per 400 gold you have spent buying, counted while this Order is seated",
+    "text": "+1 science per 400 gold you have spent buying, counted while this Order is seated"
    }
   ],
   "theCasusBelli": [
@@ -1814,8 +1814,8 @@
   ],
   "theSenatus": [
    {
-    "raw": "unlocks the [[building:assemblyHall|Assembly Hall]] — +1 science per wildcard Order you have in a slot; +1 culture per wildcard Order you have in a slot; +2 authority capacity; +1 renown per turn, favouring scholars",
-    "text": "unlocks the Assembly Hall — +1 science per wildcard Order you have in a slot; +1 culture per wildcard Order you have in a slot; +2 authority capacity; +1 renown per turn, favouring scholars"
+    "raw": "unlocks the [[building:assemblyHall|Assembly Hall]] — +1 science per wildcard Order you have seated; +1 culture per wildcard Order you have seated; +2 authority capacity; +1 renown per turn, favouring scholars",
+    "text": "unlocks the Assembly Hall — +1 science per wildcard Order you have seated; +1 culture per wildcard Order you have seated; +2 authority capacity; +1 renown per turn, favouring scholars"
    }
   ],
   "toolmakersCharter": [
@@ -2136,8 +2136,8 @@
   ],
   "theMusterRolls": [
    {
-    "raw": "the Order in your first military slot pays twice",
-    "text": "the Order in your first military slot pays twice"
+    "raw": "the Order in your first military chair pays twice",
+    "text": "the Order in your first military chair pays twice"
    }
   ],
   "theHarvestHome": [
@@ -2154,8 +2154,8 @@
   ],
   "theFirstChair": [
    {
-    "raw": "the Order in your first economic slot pays twice",
-    "text": "the Order in your first economic slot pays twice"
+    "raw": "the Order in your first economic chair pays twice",
+    "text": "the Order in your first economic chair pays twice"
    }
   ],
   "theScriveners": [
@@ -2208,8 +2208,8 @@
   ],
   "theVotiveTally": [
    {
-    "raw": "+1 faith per draft you have rerolled while this stood",
-    "text": "+1 faith per draft you have rerolled while this stood"
+    "raw": "+1 faith per Order hand you have rerolled while this card is seated",
+    "text": "+1 faith per Order hand you have rerolled while this card is seated"
    }
   ],
   "theWorkshopsRule": [
@@ -2220,8 +2220,8 @@
   ],
   "theWildChair": [
    {
-    "raw": "the Order in your first wildcard slot pays twice",
-    "text": "the Order in your first wildcard slot pays twice"
+    "raw": "the Order in your first wildcard chair pays twice",
+    "text": "the Order in your first wildcard chair pays twice"
    }
   ],
   "theCantorsRule": [
@@ -2286,8 +2286,8 @@
   ],
   "theCompactOfChairs": [
    {
-    "raw": "the Order in your first military, economic and wildcard slot each pays twice",
-    "text": "the Order in your first military, economic and wildcard slot each pays twice"
+    "raw": "the Order in your first military, economic and wildcard chair each pays twice",
+    "text": "the Order in your first military, economic and wildcard chair each pays twice"
    }
   ],
   "theLaureatesRule": [
@@ -2484,12 +2484,12 @@
     "text": "+3 science, +3 culture to the empire"
    },
    {
-    "raw": "+3 science per enemy unit you have killed, counted while this Order stands in a slot",
-    "text": "+3 science per enemy unit you have killed, counted while this Order stands in a slot"
+    "raw": "+3 science per enemy unit you have killed, counted while this Order is seated",
+    "text": "+3 science per enemy unit you have killed, counted while this Order is seated"
    },
    {
-    "raw": "+3 culture per enemy unit you have killed, counted while this Order stands in a slot",
-    "text": "+3 culture per enemy unit you have killed, counted while this Order stands in a slot"
+    "raw": "+3 culture per enemy unit you have killed, counted while this Order is seated",
+    "text": "+3 culture per enemy unit you have killed, counted while this Order is seated"
    }
   ],
   "dominionConscription": [
@@ -2634,8 +2634,8 @@
     "text": "+3 science to the empire"
    },
    {
-    "raw": "+3 science per rank your units have earned, counted while this Order stands in a slot",
-    "text": "+3 science per rank your units have earned, counted while this Order stands in a slot"
+    "raw": "+3 science per rank your units have earned, counted while this Order is seated",
+    "text": "+3 science per rank your units have earned, counted while this Order is seated"
    }
   ],
   "theOutriders": [
@@ -2666,12 +2666,12 @@
     "text": "+2 science, +2 culture to the empire"
    },
    {
-    "raw": "+1 science per military unit you have gained, counted while this Order stands in a slot",
-    "text": "+1 science per military unit you have gained, counted while this Order stands in a slot"
+    "raw": "+1 science per military unit you have gained, counted while this Order is seated",
+    "text": "+1 science per military unit you have gained, counted while this Order is seated"
    },
    {
-    "raw": "+1 culture per military unit you have gained, counted while this Order stands in a slot",
-    "text": "+1 culture per military unit you have gained, counted while this Order stands in a slot"
+    "raw": "+1 culture per military unit you have gained, counted while this Order is seated",
+    "text": "+1 culture per military unit you have gained, counted while this Order is seated"
    }
   ],
   "theArmourersSecret": [
@@ -2716,8 +2716,8 @@
   ],
   "huntersOfferings": [
    {
-    "raw": "+1 production, +1 faith on every hex with a [[improvement:fishingBoats|Fishing Boat]] or [[improvement:camp|Camp]] or [[improvement:pasture|Pasture]]",
-    "text": "+1 production, +1 faith on every hex with a Fishing Boat or Camp or Pasture"
+    "raw": "+1 production, +1 faith on every hex with a [[improvement:fishingBoats|Fishing Boat]], [[improvement:camp|Camp]] or [[improvement:pasture|Pasture]]",
+    "text": "+1 production, +1 faith on every hex with a Fishing Boat, Camp or Pasture"
    }
   ],
   "quarryLevies": [
@@ -2806,12 +2806,12 @@
   ],
   "dominionTheMusterRolls": [
    {
-    "raw": "+1 science per unit you have trained, counted while this Order stands in a slot",
-    "text": "+1 science per unit you have trained, counted while this Order stands in a slot"
+    "raw": "+1 science per unit you have trained, counted while this Order is seated",
+    "text": "+1 science per unit you have trained, counted while this Order is seated"
    },
    {
-    "raw": "+1 culture per unit you have trained, counted while this Order stands in a slot",
-    "text": "+1 culture per unit you have trained, counted while this Order stands in a slot"
+    "raw": "+1 culture per unit you have trained, counted while this Order is seated",
+    "text": "+1 culture per unit you have trained, counted while this Order is seated"
    }
   ],
   "thePacifiedMarches": [
@@ -2950,12 +2950,12 @@
   ],
   "theCaptiveCraftsmen": [
    {
-    "raw": "+1 science per hex you have pillaged, counted while this Order stands in a slot",
-    "text": "+1 science per hex you have pillaged, counted while this Order stands in a slot"
+    "raw": "+1 science per hex you have pillaged, counted while this Order is seated",
+    "text": "+1 science per hex you have pillaged, counted while this Order is seated"
    },
    {
-    "raw": "+1 production in your capital per hex you have pillaged, counted while this Order stands in a slot",
-    "text": "+1 production in your capital per hex you have pillaged, counted while this Order stands in a slot"
+    "raw": "+1 production in your capital per hex you have pillaged, counted while this Order is seated",
+    "text": "+1 production in your capital per hex you have pillaged, counted while this Order is seated"
    }
   ],
   "theSatraps": [
@@ -2976,8 +2976,8 @@
   ],
   "theOpenMuster": [
    {
-    "raw": "passing an Order draft grants the best melee unit you can build in your capital",
-    "text": "passing an Order draft grants the best melee unit you can build in your capital"
+    "raw": "passing on an Order hand grants the best melee unit you can build in your capital",
+    "text": "passing on an Order hand grants the best melee unit you can build in your capital"
    }
   ],
   "theSack": [
@@ -3782,8 +3782,8 @@
   ],
   "dominionSpolia": [
    {
-    "raw": "capturing a city grants production equal to 50% of the production it had put into the Magnum Opus to your city raising the Magnum Opus, or your capital if none is",
-    "text": "capturing a city grants production equal to 50% of the production it had put into the Magnum Opus to your city raising the Magnum Opus, or your capital if none is"
+    "raw": "capturing a city grants production equal to 50% of the production it had put into the Magnum Opus to your city raising the Magnum Opus, or kept until you begin one",
+    "text": "capturing a city grants production equal to 50% of the production it had put into the Magnum Opus to your city raising the Magnum Opus, or kept until you begin one"
    }
   ],
   "dominionTheLegionsLabour": [
@@ -4172,8 +4172,8 @@
   ],
   "smallholdings": [
    {
-    "raw": "+1 food, +1 gold on every hex with a [[improvement:farm|Farm]] or [[improvement:terraces|Terraces]] or [[improvement:pasture|Pasture]]",
-    "text": "+1 food, +1 gold on every hex with a Farm or Terraces or Pasture"
+    "raw": "+1 food, +1 gold on every hex with a [[improvement:farm|Farm]], [[improvement:terraces|Terraces]] or [[improvement:pasture|Pasture]]",
+    "text": "+1 food, +1 gold on every hex with a Farm, Terraces or Pasture"
    }
   ],
   "expansionistGranaryLevies": [
@@ -4346,8 +4346,8 @@
   ],
   "expansionistTheMasterBuilders": [
    {
-    "raw": "+1 renown per turn in every city working 3 or more hexes with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] or [[improvement:lumbermill|Lumbermill]], favouring engineers",
-    "text": "+1 renown per turn in every city working 3 or more hexes with a Mine or Quarry or Lumbermill, favouring engineers"
+    "raw": "+1 renown per turn in every city working 3 or more hexes with a [[improvement:mine|Mine]], [[improvement:quarry|Quarry]] or [[improvement:lumbermill|Lumbermill]], favouring engineers",
+    "text": "+1 renown per turn in every city working 3 or more hexes with a Mine, Quarry or Lumbermill, favouring engineers"
    }
   ],
   "outposts": [
@@ -4446,12 +4446,12 @@
     "text": "+2 production in your capital"
    },
    {
-    "raw": "+1 gold per citizen your cities have grown past their largest size, counted while this Order stands in a slot",
-    "text": "+1 gold per citizen your cities have grown past their largest size, counted while this Order stands in a slot"
+    "raw": "+1 gold per citizen your cities have grown past their largest size, counted while this Order is seated",
+    "text": "+1 gold per citizen your cities have grown past their largest size, counted while this Order is seated"
    },
    {
-    "raw": "+1 production in your capital per citizen your cities have grown past their largest size, counted while this Order stands in a slot",
-    "text": "+1 production in your capital per citizen your cities have grown past their largest size, counted while this Order stands in a slot"
+    "raw": "+1 production in your capital per citizen your cities have grown past their largest size, counted while this Order is seated",
+    "text": "+1 production in your capital per citizen your cities have grown past their largest size, counted while this Order is seated"
    }
   ],
   "theGardenFrontier": [
@@ -4510,12 +4510,12 @@
     "text": "+2 production in your capital"
    },
    {
-    "raw": "+1 culture per public work you have finished, counted while this Order stands in a slot",
-    "text": "+1 culture per public work you have finished, counted while this Order stands in a slot"
+    "raw": "+1 culture per public work you have finished, counted while this Order is seated",
+    "text": "+1 culture per public work you have finished, counted while this Order is seated"
    },
    {
-    "raw": "+1 production in your capital per public work you have finished, counted while this Order stands in a slot",
-    "text": "+1 production in your capital per public work you have finished, counted while this Order stands in a slot"
+    "raw": "+1 production in your capital per public work you have finished, counted while this Order is seated",
+    "text": "+1 production in your capital per public work you have finished, counted while this Order is seated"
    }
   ],
   "theWatercourses": [
@@ -4600,8 +4600,8 @@
     "text": "+3 production on every hex with a Manufactory"
    },
    {
-    "raw": "+2 production on every hex with a [[improvement:farm|Farm]] or [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] or [[improvement:lumbermill|Lumbermill]] beside a [[improvement:manufactory|Manufactory]]",
-    "text": "+2 production on every hex with a Farm or Mine or Quarry or Lumbermill beside a Manufactory"
+    "raw": "+2 production on every hex with a [[improvement:farm|Farm]], [[improvement:mine|Mine]], [[improvement:quarry|Quarry]] or [[improvement:lumbermill|Lumbermill]] beside a [[improvement:manufactory|Manufactory]]",
+    "text": "+2 production on every hex with a Farm, Mine, Quarry or Lumbermill beside a Manufactory"
    }
   ],
   "theTendedCountry": [
@@ -4789,8 +4789,8 @@
   ],
   "oldWorkings": [
    {
-    "raw": "+3 production on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] or [[improvement:lumbermill|Lumbermill]] that has stood at least 20 turns",
-    "text": "+3 production on every hex with a Mine or Quarry or Lumbermill that has stood at least 20 turns"
+    "raw": "+3 production on every hex with a [[improvement:mine|Mine]], [[improvement:quarry|Quarry]] or [[improvement:lumbermill|Lumbermill]] that has stood at least 20 turns",
+    "text": "+3 production on every hex with a Mine, Quarry or Lumbermill that has stood at least 20 turns"
    }
   ],
   "theManors": [
@@ -4995,8 +4995,8 @@
     "text": "Commission. Goal: have one of your cities work 12 improved or tended tiles that each yield 5 or more in total, while this card is seated"
    },
    {
-    "raw": "Reward: that city is marked, and for the rest of the game, the authority a city marked by [[order:theHeartland|The Heartland]] costs is 0 and +3 happiness in every city marked by [[order:theHeartland|The Heartland]] and +20% food in every city marked by [[order:theHeartland|The Heartland]]",
-    "text": "Reward: that city is marked, and for the rest of the game, the authority a city marked by The Heartland costs is 0 and +3 happiness in every city marked by The Heartland and +20% food in every city marked by The Heartland"
+    "raw": "Reward: for the rest of the game, the authority that city costs is 0, and that city gains +3 happiness and +20% food",
+    "text": "Reward: for the rest of the game, the authority that city costs is 0, and that city gains +3 happiness and +20% food"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -6064,12 +6064,12 @@
   ],
   "theMerchantWorks": [
    {
-    "raw": "25% of the gold in every city while it is building a wonder or while it is building an empire building is gained again as production",
-    "text": "25% of the gold in every city while it is building a wonder or while it is building an empire building is gained again as production"
+    "raw": "25% of the gold in every city while it is building a wonder or an empire building is gained again as production",
+    "text": "25% of the gold in every city while it is building a wonder or an empire building is gained again as production"
    },
    {
-    "raw": "-20% gold in every city while it is building a wonder or while it is building an empire building",
-    "text": "-20% gold in every city while it is building a wonder or while it is building an empire building"
+    "raw": "-20% gold in every city while it is building a wonder or an empire building",
+    "text": "-20% gold in every city while it is building a wonder or an empire building"
    }
   ],
   "theGildedScaffold": [
@@ -6432,12 +6432,12 @@
   ],
   "theStrongbox": [
    {
-    "raw": "+1 science per turn you have ended with at least 300 gold in your treasury (at most +15 science), counted while this Order stands in a slot",
-    "text": "+1 science per turn you have ended with at least 300 gold in your treasury (at most +15 science), counted while this Order stands in a slot"
+    "raw": "+1 science per turn you have ended with at least 300 gold in your treasury (at most +15 science), counted while this Order is seated",
+    "text": "+1 science per turn you have ended with at least 300 gold in your treasury (at most +15 science), counted while this Order is seated"
    },
    {
-    "raw": "+1 culture per turn you have ended with at least 300 gold in your treasury (at most +15 culture), counted while this Order stands in a slot",
-    "text": "+1 culture per turn you have ended with at least 300 gold in your treasury (at most +15 culture), counted while this Order stands in a slot"
+    "raw": "+1 culture per turn you have ended with at least 300 gold in your treasury (at most +15 culture), counted while this Order is seated",
+    "text": "+1 culture per turn you have ended with at least 300 gold in your treasury (at most +15 culture), counted while this Order is seated"
    }
   ],
   "theMerchantGuilds": [
@@ -6468,8 +6468,8 @@
   ],
   "layOfferings": [
    {
-    "raw": "+1 food, +1 faith on every hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]] or [[improvement:plantation|Plantation]]",
-    "text": "+1 food, +1 faith on every hex with a Pasture or Camp or Plantation"
+    "raw": "+1 food, +1 faith on every hex with a [[improvement:pasture|Pasture]], [[improvement:camp|Camp]] or [[improvement:plantation|Plantation]]",
+    "text": "+1 food, +1 faith on every hex with a Pasture, Camp or Plantation"
    }
   ],
   "theOldGodsRemain": [
@@ -6807,8 +6807,8 @@
     "text": "rival religions cannot press every city raising the Magnum Opus"
    },
    {
-    "raw": "every city raising the Magnum Opus: +2 city defence per city that follows you",
-    "text": "every city raising the Magnum Opus: +2 city defence per city that follows you"
+    "raw": "every city raising the Magnum Opus: +2 city defence per city that follows you (at most +30 city defence)",
+    "text": "every city raising the Magnum Opus: +2 city defence per city that follows you (at most +30 city defence)"
    }
   ],
   "theLastCrusade": [
@@ -6851,22 +6851,22 @@
   ],
   "theLivesOfTheSaints": [
    {
-    "raw": "+2% science in every city per foreign city you were the first to convert (at most +30% science)",
-    "text": "+2% science in every city per foreign city you were the first to convert (at most +30% science)"
+    "raw": "+2% science in every city per foreign city that has turned to your religion at least once (at most +30% science)",
+    "text": "+2% science in every city per foreign city that has turned to your religion at least once (at most +30% science)"
    },
    {
-    "raw": "+2% culture in every city per foreign city you were the first to convert (at most +30% culture)",
-    "text": "+2% culture in every city per foreign city you were the first to convert (at most +30% culture)"
+    "raw": "+2% culture in every city per foreign city that has turned to your religion at least once (at most +30% culture)",
+    "text": "+2% culture in every city per foreign city that has turned to your religion at least once (at most +30% culture)"
    }
   ],
   "theMartyrology": [
    {
-    "raw": "+2 faith per unit you have lost in battle, counted while this Order stands in a slot",
-    "text": "+2 faith per unit you have lost in battle, counted while this Order stands in a slot"
+    "raw": "+2 faith per unit you have lost in battle, counted while this Order is seated",
+    "text": "+2 faith per unit you have lost in battle, counted while this Order is seated"
    },
    {
-    "raw": "+2 culture per unit you have lost in battle, counted while this Order stands in a slot",
-    "text": "+2 culture per unit you have lost in battle, counted while this Order stands in a slot"
+    "raw": "+2 culture per unit you have lost in battle, counted while this Order is seated",
+    "text": "+2 culture per unit you have lost in battle, counted while this Order is seated"
    }
   ],
   "theConsecrationFeast": [
@@ -6899,8 +6899,8 @@
   ],
   "theGiftsOfTheFaithful": [
    {
-    "raw": "faith buildings other than wonders may be bought with faith",
-    "text": "faith buildings other than wonders may be bought with faith"
+    "raw": "religious buildings other than wonders may be bought with faith",
+    "text": "religious buildings other than wonders may be bought with faith"
    }
   ],
   "theSacredPrecincts": [
@@ -6931,12 +6931,12 @@
     "text": "+2 culture, +2 faith to the empire"
    },
    {
-    "raw": "+1 faith per rite you have started, counted while this Order stands in a slot",
-    "text": "+1 faith per rite you have started, counted while this Order stands in a slot"
+    "raw": "+1 faith per rite you have started, counted while this Order is seated",
+    "text": "+1 faith per rite you have started, counted while this Order is seated"
    },
    {
-    "raw": "+1 culture per rite you have started, counted while this Order stands in a slot",
-    "text": "+1 culture per rite you have started, counted while this Order stands in a slot"
+    "raw": "+1 culture per rite you have started, counted while this Order is seated",
+    "text": "+1 culture per rite you have started, counted while this Order is seated"
    }
   ],
   "theSabbathLaws": [
@@ -7035,8 +7035,8 @@
   ],
   "theVotiveFields": [
    {
-    "raw": "+1 food, +1 faith on every hex with a [[improvement:farm|Farm]] or [[improvement:terraces|Terraces]] or [[improvement:plantation|Plantation]], in every city while it is keeping a rite",
-    "text": "+1 food, +1 faith on every hex with a Farm or Terraces or Plantation, in every city while it is keeping a rite"
+    "raw": "+1 food, +1 faith on every hex with a [[improvement:farm|Farm]], [[improvement:terraces|Terraces]] or [[improvement:plantation|Plantation]], in every city while it is keeping a rite",
+    "text": "+1 food, +1 faith on every hex with a Farm, Terraces or Plantation, in every city while it is keeping a rite"
    }
   ],
   "theOmenSchools": [
@@ -7357,8 +7357,8 @@
   ],
   "workingEstates": [
    {
-    "raw": "+5 food, +3 gold on every hex with an [[improvement:academy|Academy]] or [[improvement:landmark|Landmark]] or [[improvement:manufactory|Manufactory]] or [[improvement:customsHouse|Customs House]] or [[improvement:citadel|Citadel]]",
-    "text": "+5 food, +3 gold on every hex with an Academy or Landmark or Manufactory or Customs House or Citadel"
+    "raw": "+5 food, +3 gold on every hex with an [[improvement:academy|Academy]], [[improvement:landmark|Landmark]], [[improvement:manufactory|Manufactory]], [[improvement:customsHouse|Customs House]] or [[improvement:citadel|Citadel]]",
+    "text": "+5 food, +3 gold on every hex with an Academy, Landmark, Manufactory, Customs House or Citadel"
    }
   ],
   "theOldAcademy": [
@@ -7864,12 +7864,12 @@
     "text": "+2 production, +2 culture in your capital"
    },
    {
-    "raw": "+1 culture in your capital per technology you have completed, counted while this Order stands in a slot",
-    "text": "+1 culture in your capital per technology you have completed, counted while this Order stands in a slot"
+    "raw": "+1 culture in your capital per technology you have completed, counted while this Order is seated",
+    "text": "+1 culture in your capital per technology you have completed, counted while this Order is seated"
    },
    {
-    "raw": "+1 production in your capital per technology you have completed, counted while this Order stands in a slot",
-    "text": "+1 production in your capital per technology you have completed, counted while this Order stands in a slot"
+    "raw": "+1 production in your capital per technology you have completed, counted while this Order is seated",
+    "text": "+1 production in your capital per technology you have completed, counted while this Order is seated"
    }
   ],
   "theScholarsFame": [
@@ -8399,8 +8399,8 @@
   ],
   "magisterialTheGroundskeepers": [
    {
-    "raw": "+5 food, +5 production on every hex with an [[improvement:academy|Academy]] or [[improvement:landmark|Landmark]] or [[improvement:manufactory|Manufactory]] or [[improvement:customsHouse|Customs House]] or [[improvement:citadel|Citadel]]",
-    "text": "+5 food, +5 production on every hex with an Academy or Landmark or Manufactory or Customs House or Citadel"
+    "raw": "+5 food, +5 production on every hex with an [[improvement:academy|Academy]], [[improvement:landmark|Landmark]], [[improvement:manufactory|Manufactory]], [[improvement:customsHouse|Customs House]] or [[improvement:citadel|Citadel]]",
+    "text": "+5 food, +5 production on every hex with an Academy, Landmark, Manufactory, Customs House or Citadel"
    }
   ],
   "magisterialTheLaureate": [
@@ -8649,8 +8649,8 @@
   ],
   "theSenateCharter": [
    {
-    "raw": "unlocks the [[building:assemblyHall|Assembly Hall]] — +1 science per wildcard Order you have in a slot; +1 culture per wildcard Order you have in a slot; +2 authority capacity; +1 renown per turn, favouring scholars",
-    "text": "unlocks the Assembly Hall — +1 science per wildcard Order you have in a slot; +1 culture per wildcard Order you have in a slot; +2 authority capacity; +1 renown per turn, favouring scholars"
+    "raw": "unlocks the [[building:assemblyHall|Assembly Hall]] — +1 science per wildcard Order you have seated; +1 culture per wildcard Order you have seated; +2 authority capacity; +1 renown per turn, favouring scholars",
+    "text": "unlocks the Assembly Hall — +1 science per wildcard Order you have seated; +1 culture per wildcard Order you have seated; +2 authority capacity; +1 renown per turn, favouring scholars"
    },
    {
     "raw": "+3 happiness in every city with an [[building:assemblyHall|Assembly Hall]]",
@@ -8821,12 +8821,12 @@
   ],
   "theHonouredDead": [
    {
-    "raw": "+2 science in your capital per great person you have spent (at most +30 science), counted while this Order stands in a slot",
-    "text": "+2 science in your capital per great person you have spent (at most +30 science), counted while this Order stands in a slot"
+    "raw": "+2 science in your capital per great person you have spent (at most +30 science), counted while this Order is seated",
+    "text": "+2 science in your capital per great person you have spent (at most +30 science), counted while this Order is seated"
    },
    {
-    "raw": "+4 production in your capital per great person you have spent (at most +60 production), counted while this Order stands in a slot",
-    "text": "+4 production in your capital per great person you have spent (at most +60 production), counted while this Order stands in a slot"
+    "raw": "+4 production in your capital per great person you have spent (at most +60 production), counted while this Order is seated",
+    "text": "+4 production in your capital per great person you have spent (at most +60 production), counted while this Order is seated"
    }
   ],
   "thePageantsOfPeace": [
@@ -8877,14 +8877,14 @@
   ],
   "thePrytaneion": [
    {
-    "raw": "+1 food in every city per Order you have placed in a slot",
-    "text": "+1 food in every city per Order you have placed in a slot"
+    "raw": "+1 food in every city per Order you have seated",
+    "text": "+1 food in every city per Order you have seated"
    }
   ],
   "thePolemarch": [
    {
-    "raw": "+2 combat strength per military Order you have in a slot",
-    "text": "+2 combat strength per military Order you have in a slot"
+    "raw": "+2 combat strength per military Order you have seated",
+    "text": "+2 combat strength per military Order you have seated"
    }
   ],
   "theCourtPainter": [
@@ -8913,8 +8913,8 @@
   ],
   "theNomarchs": [
    {
-    "raw": "+1 authority capacity per 2 Orders you have placed in a slot",
-    "text": "+1 authority capacity per 2 Orders you have placed in a slot"
+    "raw": "+1 authority capacity per 2 Orders you have seated",
+    "text": "+1 authority capacity per 2 Orders you have seated"
    }
   ],
   "theWorkshopAtOlympia": [
@@ -8949,30 +8949,30 @@
   ],
   "theUnveiling": [
    {
-    "raw": "completing a wonder opens an Order draft at once, at no culture cost",
-    "text": "completing a wonder opens an Order draft at once, at no culture cost"
+    "raw": "completing a wonder deals you a free Order hand at once",
+    "text": "completing a wonder deals you a free Order hand at once"
    }
   ],
   "theEncyclopedia": [
    {
-    "raw": "+1 science in your capital per Order you hold but have not placed in a slot (at most +15 science)",
-    "text": "+1 science in your capital per Order you hold but have not placed in a slot (at most +15 science)"
+    "raw": "+1 science in your capital per Order you hold but have not seated (at most +15 science)",
+    "text": "+1 science in your capital per Order you hold but have not seated (at most +15 science)"
    },
    {
-    "raw": "+1 culture in your capital per Order you hold but have not placed in a slot (at most +15 culture)",
-    "text": "+1 culture in your capital per Order you hold but have not placed in a slot (at most +15 culture)"
+    "raw": "+1 culture in your capital per Order you hold but have not seated (at most +15 culture)",
+    "text": "+1 culture in your capital per Order you hold but have not seated (at most +15 culture)"
    }
   ],
   "thePrefects": [
    {
-    "raw": "+5% production in every city per economic Order you have in a slot",
-    "text": "+5% production in every city per economic Order you have in a slot"
+    "raw": "+5% production in every city per economic Order you have seated",
+    "text": "+5% production in every city per economic Order you have seated"
    }
   ],
   "theSymposium": [
    {
-    "raw": "gaining a great person opens an Order draft at once, at no culture cost",
-    "text": "gaining a great person opens an Order draft at once, at no culture cost"
+    "raw": "gaining a great person deals you a free Order hand at once",
+    "text": "gaining a great person deals you a free Order hand at once"
    }
   ],
   "lettersPatent": [
@@ -9009,12 +9009,12 @@
   ],
   "theBoule": [
    {
-    "raw": "+2% science in every city per Order you have placed in a slot",
-    "text": "+2% science in every city per Order you have placed in a slot"
+    "raw": "+2% science in every city per Order you have seated",
+    "text": "+2% science in every city per Order you have seated"
    },
    {
-    "raw": "+2% culture in every city per Order you have placed in a slot",
-    "text": "+2% culture in every city per Order you have placed in a slot"
+    "raw": "+2% culture in every city per Order you have seated",
+    "text": "+2% culture in every city per Order you have seated"
    }
   ],
   "theRollOfMasters": [
@@ -9121,8 +9121,8 @@
   ],
   "theUnwrittenChapter": [
    {
-    "raw": "passing an Order draft grants science equal to 50% of the culture paid for that hand",
-    "text": "passing an Order draft grants science equal to 50% of the culture paid for that hand"
+    "raw": "passing on an Order hand grants science equal to 50% of the culture paid for that hand",
+    "text": "passing on an Order hand grants science equal to 50% of the culture paid for that hand"
    }
   ],
   "theWanderingMuse": [
@@ -9133,8 +9133,8 @@
   ],
   "officialsByMerit": [
    {
-    "raw": "+2 cards in every Statecraft draft",
-    "text": "+2 cards in every Statecraft draft"
+    "raw": "+2 cards in every Order hand",
+    "text": "+2 cards in every Order hand"
    },
    {
     "raw": "you cannot reroll Order hands",
@@ -9143,8 +9143,8 @@
   ],
   "theHallOfWonders": [
    {
-    "raw": "+1 card in every Statecraft draft per 2 wonders you hold (at most +2)",
-    "text": "+1 card in every Statecraft draft per 2 wonders you hold (at most +2)"
+    "raw": "+1 card in every Order hand per 2 wonders you hold (at most +2)",
+    "text": "+1 card in every Order hand per 2 wonders you hold (at most +2)"
    }
   ],
   "theSedFestival": [
@@ -9221,8 +9221,8 @@
     "text": "Commission. Goal: have one of your cities hold 2 wonders and work 3 great-person works, while this card is seated"
    },
    {
-    "raw": "Reward: that city is marked, and for the rest of the game, +25% culture in every city marked by [[order:magisterialTheIdealCity|Commission: The Ideal City]] and +25% science in every city marked by [[order:magisterialTheIdealCity|Commission: The Ideal City]] and +25% production in every city marked by [[order:magisterialTheIdealCity|Commission: The Ideal City]]",
-    "text": "Reward: that city is marked, and for the rest of the game, +25% culture in every city marked by Commission: The Ideal City and +25% science in every city marked by Commission: The Ideal City and +25% production in every city marked by Commission: The Ideal City"
+    "raw": "Reward: for the rest of the game, that city gains +25% culture, +25% science and +25% production",
+    "text": "Reward: for the rest of the game, that city gains +25% culture, +25% science and +25% production"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -9231,8 +9231,8 @@
   ],
   "theGrandVizier": [
    {
-    "raw": "the Order in your first economic slot pays twice",
-    "text": "the Order in your first economic slot pays twice"
+    "raw": "the Order in your first economic chair pays twice",
+    "text": "the Order in your first economic chair pays twice"
    }
   ],
   "theDivineProportion": [
@@ -9243,8 +9243,8 @@
   ],
   "theSecondSitting": [
    {
-    "raw": "passing an Order draft you paid culture for opens an Order draft at once, at no culture cost",
-    "text": "passing an Order draft you paid culture for opens an Order draft at once, at no culture cost"
+    "raw": "passing on an Order hand you paid culture for deals you a free Order hand at once",
+    "text": "passing on an Order hand you paid culture for deals you a free Order hand at once"
    }
   ],
   "magnificence": [
@@ -9273,16 +9273,8 @@
   ],
   "theGrandRetrospective": [
    {
-    "raw": "when drafted, +20 culture, +20 science and +20 production in your capital for each wonder you hold",
-    "text": "when drafted, +20 culture, +20 science and +20 production in your capital for each wonder you hold"
-   },
-   {
-    "raw": "when drafted, +20 culture, +20 science and +20 production in your capital for each hex carrying a great person's work in your borders",
-    "text": "when drafted, +20 culture, +20 science and +20 production in your capital for each hex carrying a great person's work in your borders"
-   },
-   {
-    "raw": "when drafted, +20 culture, +20 science and +20 production in your capital for each Order you hold, seated or not; seated, this card does nothing",
-    "text": "when drafted, +20 culture, +20 science and +20 production in your capital for each Order you hold, seated or not; seated, this card does nothing"
+    "raw": "when drafted, +20 culture, +20 science and +20 production in your capital for each wonder you hold, each hex carrying a great person's work in your borders and each Order you hold, seated or not; seated, this card does nothing",
+    "text": "when drafted, +20 culture, +20 science and +20 production in your capital for each wonder you hold, each hex carrying a great person's work in your borders and each Order you hold, seated or not; seated, this card does nothing"
    }
   ],
   "magisterialTheParadiseGarden": [
@@ -9423,8 +9415,8 @@
     "text": "+3 food in every city joined to your capital by road but your capital with a Market"
    },
    {
-    "raw": "+2 gold on every hex with a [[improvement:plantation|Plantation]] or [[improvement:camp|Camp]] or [[improvement:pasture|Pasture]], in every city joined to your capital by road but your capital with a [[building:market|Market]]",
-    "text": "+2 gold on every hex with a Plantation or Camp or Pasture, in every city joined to your capital by road but your capital with a Market"
+    "raw": "+2 gold on every hex with a [[improvement:plantation|Plantation]], [[improvement:camp|Camp]] or [[improvement:pasture|Pasture]], in every city joined to your capital by road but your capital with a [[building:market|Market]]",
+    "text": "+2 gold on every hex with a Plantation, Camp or Pasture, in every city joined to your capital by road but your capital with a Market"
    }
   ],
   "sacredGroves": [
@@ -9872,8 +9864,8 @@
   ],
   "theNewCode": [
    {
-    "raw": "capturing a city (at most once every 10 turns) opens an Order draft at once, at no culture cost",
-    "text": "capturing a city (at most once every 10 turns) opens an Order draft at once, at no culture cost"
+    "raw": "capturing a city (at most once every 10 turns) deals you a free Order hand at once",
+    "text": "capturing a city (at most once every 10 turns) deals you a free Order hand at once"
    }
   ],
   "lootedArt": [
@@ -9966,8 +9958,8 @@
   ],
   "theArtDealers": [
    {
-    "raw": "+3 gold per Order you have placed in a slot",
-    "text": "+3 gold per Order you have placed in a slot"
+    "raw": "+3 gold per Order you have seated",
+    "text": "+3 gold per Order you have seated"
    }
   ],
   "theHolySpring": [
@@ -10014,12 +10006,12 @@
   ],
   "thePenitentsRoll": [
    {
-    "raw": "+6 science per draft you have rerolled while this stood",
-    "text": "+6 science per draft you have rerolled while this stood"
+    "raw": "+6 science per Order hand you have rerolled while this card is seated",
+    "text": "+6 science per Order hand you have rerolled while this card is seated"
    },
    {
-    "raw": "+6 culture per draft you have rerolled while this stood",
-    "text": "+6 culture per draft you have rerolled while this stood"
+    "raw": "+6 culture per Order hand you have rerolled while this card is seated",
+    "text": "+6 culture per Order hand you have rerolled while this card is seated"
    },
    {
     "raw": "rerolling an Order hand costs 30% less faith",
@@ -10068,12 +10060,12 @@
   ],
   "theRisingNave": [
    {
-    "raw": "+1 faith in every city while it is building a wonder, while it is building a [[building:cathedral|Cathedral]] or while it is building [[building:theMagnumOpus|The Magnum Opus]] per 10% of the work already done on the current build there",
-    "text": "+1 faith in every city while it is building a wonder, while it is building a Cathedral or while it is building The Magnum Opus per 10% of the work already done on the current build there"
+    "raw": "+1 faith in every city while it is building a wonder, a [[building:cathedral|Cathedral]] or [[building:theMagnumOpus|The Magnum Opus]] per 10% of the current build already done there",
+    "text": "+1 faith in every city while it is building a wonder, a Cathedral or The Magnum Opus per 10% of the current build already done there"
    },
    {
-    "raw": "+1 culture in every city while it is building a wonder, while it is building a [[building:cathedral|Cathedral]] or while it is building [[building:theMagnumOpus|The Magnum Opus]] per 10% of the work already done on the current build there",
-    "text": "+1 culture in every city while it is building a wonder, while it is building a Cathedral or while it is building The Magnum Opus per 10% of the work already done on the current build there"
+    "raw": "+1 culture in every city while it is building a wonder, a [[building:cathedral|Cathedral]] or [[building:theMagnumOpus|The Magnum Opus]] per 10% of the current build already done there",
+    "text": "+1 culture in every city while it is building a wonder, a Cathedral or The Magnum Opus per 10% of the current build already done there"
    }
   ]
  },
@@ -10664,8 +10656,8 @@
     "text": "+1 faith in every city with The Oracle"
    },
    {
-    "raw": "+1 card in every Statecraft draft",
-    "text": "+1 card in every Statecraft draft"
+    "raw": "+1 card in every Order hand",
+    "text": "+1 card in every Order hand"
    },
    {
     "raw": "+1 card in every Doctrine draft",
@@ -11187,12 +11179,12 @@
   "cistern": [],
   "assemblyHall": [
    {
-    "raw": "+1 science per wildcard Order you have in a slot",
-    "text": "+1 science per wildcard Order you have in a slot"
+    "raw": "+1 science per wildcard Order you have seated",
+    "text": "+1 science per wildcard Order you have seated"
    },
    {
-    "raw": "+1 culture per wildcard Order you have in a slot",
-    "text": "+1 culture per wildcard Order you have in a slot"
+    "raw": "+1 culture per wildcard Order you have seated",
+    "text": "+1 culture per wildcard Order you have seated"
    },
    {
     "raw": "+2 authority capacity",
@@ -11305,8 +11297,8 @@
   ],
   "examinationCourt": [
    {
-    "raw": "+1 science per military Order you have in a slot",
-    "text": "+1 science per military Order you have in a slot"
+    "raw": "+1 science per military Order you have seated",
+    "text": "+1 science per military Order you have seated"
    },
    {
     "raw": "+1 authority capacity",

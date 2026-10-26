@@ -170,12 +170,12 @@ describe('Magisterial batch MG10: the rows', () => {
   });
 
   it('prints each card in plain words', () => {
-    expect(words(VIZIER)).toEqual(['the Order in your first economic slot pays twice']);
+    expect(words(VIZIER)).toEqual(['the Order in your first economic chair pays twice']);
     expect(words(PROPORTION)).toEqual([
       "what your other Orders pay on hexes carrying a great person's work is +100% more",
     ]);
     expect(words(SITTING)).toEqual([
-      'passing an Order draft you paid culture for opens an Order draft at once, at no culture cost',
+      'passing on an Order hand you paid culture for deals you a free Order hand at once',
     ]);
   });
 

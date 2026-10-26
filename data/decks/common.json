@@ -828,7 +828,7 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "Genius is cheap where the faithful are many.",
-      "text": "Faith may purchase great-person drafts at the escalating conversion price. Spending a great person grants 30 faith, at most once per turn.",
+      "text": "Faith may buy great-person drafts for 750 faith each. Spending a great person grants 30 faith, at most once per turn.",
       "effects": [
         { "kind": "rule", "rule": "buyGreatPersonWithFaith" },
         {

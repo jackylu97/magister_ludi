@@ -8,10 +8,10 @@
  *
  *   · every row of the file folds as a Magisterial row, with a band, a rarity,
  *     a name, a flavour, its text and an id no other file uses;
- *   · the file holds 102 rows: 39 live, 1 deferred and 62 retired (the
- *     triage's reading 43). A retired row stays so that old saves load. Batch
- *     MG2 added fourteen live rows. Batch MG3 added eleven live rows and dealt
- *     two deferred rows;
+ *   · the file holds 133 rows: 71 live and 62 retired (the triage's reading
+ *     43). No row has been deferred since batch MG8 dealt The Last
+ *     Commission. A retired row stays so that old saves load. The test that
+ *     counts the rows says what each batch added;
  *   · a live row uses only shapes the evaluator reads, and every (`where`,
  *     `basis`) pair of a `pays` line is a pair in `docs/yields.md`'s register;
  *   · a live row prints through the describers with no keyword mark left raw;

@@ -177,7 +177,7 @@ describe('Magisterial batch MG8: the rows', () => {
       },
     ]);
     expect(orderDef(PATRONAGE).text).toBe(
-      'Faith may purchase great-person drafts at the escalating conversion price. Spending a great person grants 30 faith, at most once per turn.',
+      'Faith may buy great-person drafts for 750 faith each. Spending a great person grants 30 faith, at most once per turn.',
     );
     expect(orderDef(PATRONAGE).effects).toEqual([
       { kind: 'rule', rule: 'buyGreatPersonWithFaith' },
@@ -313,8 +313,8 @@ describe('Sacred Patronage', () => {
     player.faithPool = 10_000;
     bumpRevision(state);
     expect(greatPersonPurchaseError(state, 0, 'faith')).toBeNull();
-    // The card plays as built: the price is the rule's own, the same each
-    // time. What rises is the renown each later great person needs.
+    // The price is the rule's own, the same each time, as the card's text
+    // says. What rises is the renown each later great person needs.
     const result = applyCommand(state, { type: 'purchaseGreatPersonOffer', playerId: 0, buys: 'faith' });
     expect(result.ok, result.ok ? '' : result.error).toBe(true);
     expect(player.faithPool).toBe(10_000 - greatPersonOfferPrice('faith'));

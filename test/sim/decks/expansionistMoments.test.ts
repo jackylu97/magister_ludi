@@ -352,8 +352,8 @@ describe('the Expansionist batch E2: the words', () => {
     expect(said('theGrainCensus')).toEqual([
       '+2 gold to the empire',
       '+2 production in your capital',
-      '+1 gold per citizen your cities have grown past their largest size, counted while this Order stands in a slot',
-      '+1 production in your capital per citizen your cities have grown past their largest size, counted while this Order stands in a slot',
+      '+1 gold per citizen your cities have grown past their largest size, counted while this Order is seated',
+      '+1 production in your capital per citizen your cities have grown past their largest size, counted while this Order is seated',
     ]);
     expect(said('theBookOfSettlements')).toEqual([
       '+3% production per city you have founded this game (at most +30% production)',

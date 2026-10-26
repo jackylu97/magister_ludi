@@ -266,8 +266,8 @@ describe('the Expansionist batch E11: the rows', () => {
     expect(said('theAediles')).toEqual([
       '+2 culture to the empire',
       '+2 production in your capital',
-      '+1 culture per public work you have finished, counted while this Order stands in a slot',
-      '+1 production in your capital per public work you have finished, counted while this Order stands in a slot',
+      '+1 culture per public work you have finished, counted while this Order is seated',
+      '+1 production in your capital per public work you have finished, counted while this Order is seated',
     ]);
     expect(said('thePublicGood')).toEqual([
       '+1% science per public work you hold (at most +25% science)',

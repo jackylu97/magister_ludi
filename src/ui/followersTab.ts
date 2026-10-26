@@ -31,6 +31,7 @@ import { readEmpire } from '../sim/readings';
 import {
   type PressureLine,
   RELIGION_NAME_LIMIT,
+  apostlesRaiseHolySites,
   explainNextRung,
   explainPressure,
   holySites,
@@ -83,14 +84,20 @@ export const CLERGY: readonly UnitTypeId[] = ['prophet', 'apostle', 'inquisitor'
  * What each piece of the clergy does, in a line, keyed by the roster's own
  * marker rather than by a name: `prophesies`, `proclaims`, `purges`. The acts
  * are the ones `docs/religion-v2.md` lists for each piece.
+ *
+ * `plantsHolySites` is true when a card lets this empire's apostles raise a
+ * further holy site (The Abbeys, `apostlesRaiseHolySites`), so the apostle's
+ * line names that act only for an empire that can use it.
  */
-export function clergyWords(type: UnitTypeId): string {
+export function clergyWords(type: UnitTypeId, plantsHolySites = false): string {
   const def = unitDef(type);
   if (def.prophesies === true) {
     return 'Founds your religion, draws it another belief, proclaims it over the towns around it, or says a rite over the whole realm.';
   }
   if (def.proclaims === true) {
-    return 'Proclaims your faith over the towns around it, lays on hands to mend the pieces beside it, or leaves a relic in a town with a cathedral.';
+    return plantsHolySites
+      ? 'Proclaims your faith over the towns around it, lays on hands to mend the pieces beside it, leaves a relic in a town with a cathedral, or raises a further holy site.'
+      : 'Proclaims your faith over the towns around it, lays on hands to mend the pieces beside it, or leaves a relic in a town with a cathedral.';
   }
   if (def.purges === true) return 'Pushes rival faiths back in the towns around it, and steadies the soldiers beside it.';
   return '';
@@ -337,7 +344,7 @@ export function followersTabModel(
         type,
         name: def.name,
         verb: def.purchase?.verb ?? `Call a ${def.name}`,
-        says: clergyWords(type),
+        says: clergyWords(type, apostlesRaiseHolySites(state, seat)),
         look,
         priceWords: priceLedgerText(price),
       });

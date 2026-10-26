@@ -220,12 +220,12 @@ describe('the moments a growing card may now count', () => {
     const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
     expect(said('theWarChronicle')).toEqual([
       '+3 science, +3 culture to the empire',
-      '+3 science per enemy unit you have killed, counted while this Order stands in a slot',
-      '+3 culture per enemy unit you have killed, counted while this Order stands in a slot',
+      '+3 science per enemy unit you have killed, counted while this Order is seated',
+      '+3 culture per enemy unit you have killed, counted while this Order is seated',
     ]);
     expect(said('dominionTheMusterRolls')).toEqual([
-      '+1 science per unit you have trained, counted while this Order stands in a slot',
-      '+1 culture per unit you have trained, counted while this Order stands in a slot',
+      '+1 science per unit you have trained, counted while this Order is seated',
+      '+1 culture per unit you have trained, counted while this Order is seated',
     ]);
   });
 });

@@ -200,9 +200,7 @@ describe('Magisterial batch MG14: the rows', () => {
       'when drafted, a random Order of your tier from a deck you do not hold joins your collection; seated, this card does nothing',
     ]);
     expect(words(RETROSPECTIVE)).toEqual([
-      'when drafted, +20 culture, +20 science and +20 production in your capital for each wonder you hold',
-      "when drafted, +20 culture, +20 science and +20 production in your capital for each hex carrying a great person's work in your borders",
-      'when drafted, +20 culture, +20 science and +20 production in your capital for each Order you hold, seated or not; seated, this card does nothing',
+      "when drafted, +20 culture, +20 science and +20 production in your capital for each wonder you hold, each hex carrying a great person's work in your borders and each Order you hold, seated or not; seated, this card does nothing",
     ]);
   });
 });

@@ -5649,23 +5649,27 @@ export type WindfallOccasion =
    * (`statecraft/draft.ts`) through `payOccasionRiders`, at the capital, so
    * food and production a rider pays land there.
    *
-   * One seam fires it: the pick of an Order draft. `applyChooseOrder`
-   * (`commands.ts`) calls `payCardDrafted` as its last step, after
-   * `settleOrderChoice` has put the card in the collection, the charter's
-   * grant has been applied and the on-draft units have been raised. So:
+   * Two ways fire it, and both go through `settleCardTaken` (`cities.ts`),
+   * the one caller of `payCardDrafted` (Magisterial batch MG14):
+   *
+   *   · the pick of an Order hand (`applyChooseOrder`, `commands.ts`);
+   *   · the card The Cabinet of Curiosities draws (`raiseOnDraft`,
+   *     `cities.ts`), with no price.
+   *
+   * `settleCardTaken` pays the moment last: after the card is in the
+   * collection, its charter is applied and its on-draft grants are paid. So:
    *
    *   · an ordinary card and a charter both count, because both enter the
-   *     collection through that pick;
-   *   · a pick from a free draft (The New Code) counts, because it is the same
+   *     collection the same way;
+   *   · a pick from a free hand (The New Code) counts, because it is the same
    *     pick;
-   *   · passing a draft does not count (that is `draftPassed`), and neither
+   *   · passing a hand does not count (that is `draftPassed`), and neither
    *     does a Doctrine, a belief, a discovery, a great person or a malice the
    *     world seats.
    *
    * The card just drafted is in the collection and not in a chair, so it does
-   * not pay for itself. A future way to add a card to the collection
-   * (Magisterial's The Cabinet of Curiosities) calls `payCardDrafted` too,
-   * and the docblock above it names every caller.
+   * not pay for itself. The docblock on `payCardDrafted` names every way a
+   * card enters the collection.
    *
    * Since Magisterial batch MG5 it carries one fact: the culture the hand
    * cost (`handPrice`), read off the offer before the pick removes it. A
@@ -5736,9 +5740,10 @@ export type WindfallOccasion =
  *
  * `RateSource`'s opposite number one shape over: that one reads the empire's own
  * books and this reads the *moment* — how strong the piece was, how many people
- * lived in the town, what the coin actually came to. Four questions, and each is
- * a fact the seam that fired the occasion is the only thing still holding
- * (`WindfallOccasionFacts`, whose members these read).
+ * lived in the town, what the coin actually came to. Each member asks for one
+ * fact that only the seam that fired the occasion still holds
+ * (`WindfallOccasionFacts`, whose members these read). The list is not
+ * counted here, because new members join it.
  *
  * **It is still an Entry XVIII.5 printed number.** A grant scaled by the
  * occasion is a *base* figure entering `windfallPayout`'s one composition, not a
@@ -6076,7 +6081,8 @@ export interface WindfallGrantSpec {
    * something the occasion did not pay by itself — so it is a grant beside the
    * coin and the renown rather than a rule of its own, and it is banked through
    * `pressLump`, which is the one routine that presses a lump and converts on
-   * the spot. `bankPressure`'s third caller, and the pin says so.
+   * the spot. `bankPressure` has two callers, the tide and `pressLump`, and a
+   * test pins both by source. This grant reaches it through `pressLump`.
    *
    * `range` is in hexes off the occasion's own tile, so a kill in a rival's
    * heartland preaches to the rival's towns — the whole point of a crusade.

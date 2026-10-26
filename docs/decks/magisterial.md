@@ -29,7 +29,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 17 | 0 | 0 | 17 |
 | Tier IV | 12 | 0 | 0 | 12 |
 | **All** | **71** | **0** | **0** | **71** |
-| Shared | 17 | 2 | 0 | 19 |
+| Shared | 18 | 1 | 0 | 19 |
 
 **By type** (the chair a card fits):
 
@@ -199,14 +199,14 @@ These rows live in `data/decks/common.json`. A seat holding Magisterial or the d
 | **Sacred Commissions** | uncommon | Devotion | II | implemented | Cities with a Holy Site gain +38% production toward wonders. Completing a wonder grants 60 faith. | Economic |
 | **The Sculpted Landscape** | uncommon | Expansionist | III | implemented | Farms beside a great-person improvement gain +2 food and +2 culture. Each farm receives this once regardless of the number of adjacent works. | Civic |
 | **The Cosmopolitan Court** | rare | Commerce | III | implemented | Cities with a culture building gain +1 renown per outgoing foreign route, at most +3 per city. Great-person improvements worked by such cities gain +3 gold. | Civic |
-| **Sacred Patronage** | rare | Devotion | III | modify: as built | Faith may purchase great-person drafts at the escalating conversion price. Spending a great person grants 30 faith, at most once per turn. | Civic |
+| **Sacred Patronage** | rare | Devotion | III | implemented | Faith may buy great-person drafts for 750 faith each. Spending a great person grants 30 faith, at most once per turn. | Civic |
 | **The House of Wisdom** | uncommon | Scientific | III | implemented | Worked Academies gain +3 culture. Cities working an Academy gain +1 renown and +30% production toward wonders. Each city receives the city bonus once. | Civic |
 | **The New Code** | rare | Dominion | III | implemented | Capturing a city opens a draft at once, at no culture cost. This can happen at most once every ten turns. | Wildcard |
 | **The Rising Nave** | rare | Devotion | III | implemented | While a city is building a Cathedral or a wonder, it gains +1 faith and +1 culture for every 10% of the work already done. | Civic |
 
 - **Travelling Players** took its new text in batch MG4 (the triage's reading 46). It counts the decks among the cards in your chairs: a card that two decks share counts for both, and the cards that belong to no deck count together as one more (reading 8). The Commerce sheet lists the same text.
 - **The Brokers' Redraw** plays as built: the rule is live, but no button offers the gold redraw yet.
-- **Sacred Patronage** plays as built (batch MG8). Its rule is the one The Magisterium used: a great person bought with faith costs a flat 750 faith each time, and the faith price does not rise. What rises is the renown each later great person needs. Its second clause pays 30 faith once a turn when you spend a great person by an act or a work. The Devotion sheet lists the same row.
+- **Sacred Patronage** (batch MG8) uses the rule The Magisterium used: a great-person draft bought with faith costs a flat 750 faith each time, and the faith price does not rise. What rises is the renown each later great person needs. Batch Z2 changed its text to say the flat price. Its second clause pays 30 faith once a turn when you spend a great person by an act or a work. The Devotion sheet lists the same row.
 
 ## Retired rows
 
