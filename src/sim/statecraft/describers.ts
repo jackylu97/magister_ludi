@@ -2087,6 +2087,9 @@ function describeEffect(
         narrowings.push(`at most once every ${effect.oncePerTurns} turns`);
       }
       if (effect.defending === true) narrowings.push('only while it defends');
+      // The Last Commission (Magisterial batch MG8): the rider pays only while
+      // a town of yours builds the Magnum Opus.
+      if (effect.whileRaisingOpus === true) narrowings.push('only while you are building the Magnum Opus');
       // Land Speculation (Commerce batch T5): the tile test on the hex the
       // moment names. Said inside the occasion's own phrase where it has a
       // hex ("buying a hex carrying a resource"), and in the parenthesis
@@ -2224,6 +2227,10 @@ function describeEffect(
         ((grant?.yield !== undefined && grant.amount !== undefined) ||
           (grant?.renown !== undefined && grant.renown !== 0));
       const age = ageOnFigure ? ' for each age you have reached' : '';
+      // A rider that pays only while the Opus is being built (The Last
+      // Commission, Magisterial batch MG8) never falls back to the capital,
+      // so its Opus town is named alone.
+      const opusOnly = effect.whileRaisingOpus === true;
       if (grant?.yield !== undefined && grant.amount !== undefined) {
         // A figure quoted in **turns** reads as turns, because that is the whole
         // sentence the card is making: "an extra turn of culture" is a promise
@@ -2247,7 +2254,7 @@ function describeEffect(
           const towns = eachWords(grant.fromTowns).replace(/\bcity\b/, 'cities');
           const share = grant.amount === 1 ? '' : `${grant.amount} times `;
           out.push({
-            text: `${occasion} grants ${grant.yield} equal to ${share}the production per turn of your other ${towns}${age}${grantDeliveryWords(grant)}${per}`,
+            text: `${occasion} grants ${grant.yield} equal to ${share}the production per turn of your other ${towns}${age}${grantDeliveryWords(grant, opusOnly)}${per}`,
           });
         } else if (grant.fromOccasion !== undefined) {
           // **A share of the moment reads as a share of the moment**, for the
@@ -2268,7 +2275,7 @@ function describeEffect(
           const cap = grant.max === undefined ? '' : `, at most ${Math.abs(grant.max)}`;
           // Where the food and hammers land, where the row says (Spolia's Opus
           // town, and Dominion batch D3's three).
-          const where = grantDeliveryWords(grant);
+          const where = grantDeliveryWords(grant, opusOnly);
           out.push({ text: `${occasion} grants ${figure}${age}${where}${cap}${per}` });
         } else if (grant.fromTownPopulation === true) {
           // The Journeymen (Scientific batch S6): each town paid by its own
@@ -2285,7 +2292,7 @@ function describeEffect(
           // Overseers of Works), so the sentence reads "+100 production to
           // your capital for each age you have reached".
           out.push({
-            text: `${occasion} grants ${signed(grant.amount)} ${grant.yield}${each}${grantDeliveryWords(grant)}${age}${per}`,
+            text: `${occasion} grants ${signed(grant.amount)} ${grant.yield}${each}${grantDeliveryWords(grant, opusOnly)}${age}${per}`,
           });
         }
       }
@@ -2867,6 +2874,17 @@ function describeEffect(
             effect.value === 2
               ? 'your Orders count each technology you complete twice'
               : `your Orders count each technology you complete ${effect.value} times`,
+        });
+        return;
+      }
+      // The Immortals (Magisterial batch MG8) is the fourth rule: how many
+      // times each legacy you hold is read.
+      if (effect.rule === 'legaciesCountTwice') {
+        out.push({
+          text:
+            effect.value === 2
+              ? 'the legacy of each great person you have spent counts twice'
+              : `the legacy of each great person you have spent counts ${effect.value} times`,
         });
         return;
       }
@@ -4635,9 +4653,15 @@ function workRowFacts(id: ImprovementId): string[] {
  * scope admits. Empty for the default, the town nearest the occasion, and for
  * a banked voice, which lands in the treasury whatever the row says.
  */
-function grantDeliveryWords(grant: WindfallGrantSpec): string {
+function grantDeliveryWords(grant: WindfallGrantSpec, opusOnly = false): string {
   if (grant.yield !== 'food' && grant.yield !== 'production') return '';
-  if (grant.toOpus === true) return ' to your city raising the Magnum Opus, or your capital if none is';
+  if (grant.toOpus === true) {
+    // `opusOnly`: the rider pays only while a town raises the Opus
+    // (`CardWindfallRiderEffect.whileRaisingOpus`), so there is no other place.
+    return opusOnly
+      ? ' to your city raising the Magnum Opus'
+      : ' to your city raising the Magnum Opus, or your capital if none is';
+  }
   if (grant.toCapital === true) return ' to your capital';
   if (grant.toEveryTown === true) return ' to every city';
   if (grant.toNearest !== undefined) return ` to your nearest ${eachWords(grant.toNearest)}`;
@@ -5702,6 +5726,9 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   postEstablished: 'one of your trading posts being established',
   // Magisterial batch MG7, feature G: The Sed Festival.
   governmentAdopted: 'adopting a government',
+  // Magisterial batch MG8: The Last Commission and Sacred Patronage. An act
+  // and a work both spend the person, so the phrase names neither.
+  greatPersonSpent: 'spending a great person',
 };
 
 /**
@@ -7233,6 +7260,12 @@ const COMMISSION_FIGURE_WORDS: Record<
     goal: () => 'have every Military, Economic and Civic chair hold a card of its own type',
     counter: 'council in order',
     noun: 'your council in order',
+  },
+  // Magisterial batch MG8, Commission: The Patron's Gallery.
+  workFamilies: {
+    goal: (count) => `have great-person works of ${count} different families in your borders`,
+    counter: 'families of great-person works',
+    noun: 'the families of the great-person works in your borders',
   },
 };
 

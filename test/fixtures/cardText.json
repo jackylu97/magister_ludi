@@ -8857,9 +8857,8 @@
   ],
   "theLastCommission": [
    {
-    "raw": "spending a great person sends production to the town building your Magnum Opus, at most once a turn — not built yet",
-    "text": "spending a great person sends production to the town building your Magnum Opus, at most once a turn — not built yet",
-    "deferred": true
+    "raw": "spending a great person (at most once a turn, only while you are building the Magnum Opus) grants +150 production to your city raising the Magnum Opus",
+    "text": "spending a great person (at most once a turn, only while you are building the Magnum Opus) grants +150 production to your city raising the Magnum Opus"
    }
   ],
   "theWonderCommonwealth": [
@@ -9178,6 +9177,26 @@
     "text": "then this card leaves its chair and is never seated again"
    }
   ],
+  "theImmortals": [
+   {
+    "raw": "the legacy of each great person you have spent counts twice",
+    "text": "the legacy of each great person you have spent counts twice"
+   }
+  ],
+  "magisterialThePatronsGallery": [
+   {
+    "raw": "Commission. Goal: have great-person works of 3 different families in your borders, while this card is seated",
+    "text": "Commission. Goal: have great-person works of 3 different families in your borders, while this card is seated"
+   },
+   {
+    "raw": "Reward: a great person to call, and +200 culture",
+    "text": "Reward: a great person to call, and +200 culture"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
   "frontierGarrisons": [
    {
     "raw": "+2 food in every city with a unit standing in it of 5 or fewer citizens",
@@ -9420,9 +9439,12 @@
   ],
   "sacredPatronage": [
    {
-    "raw": "spending a great person pays faith, but never more than once in a turn — not built yet",
-    "text": "spending a great person pays faith, but never more than once in a turn — not built yet",
-    "deferred": true
+    "raw": "a great person waiting to be called may be bought with faith",
+    "text": "a great person waiting to be called may be bought with faith"
+   },
+   {
+    "raw": "spending a great person (at most once a turn) grants +30 faith",
+    "text": "spending a great person (at most once a turn) grants +30 faith"
    }
   ],
   "illuminatedTreatises": [

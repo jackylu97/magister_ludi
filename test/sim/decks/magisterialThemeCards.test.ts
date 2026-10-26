@@ -244,24 +244,25 @@ describe('Magisterial batch MG1: the rows', () => {
     expect(orderDef('theLastCommission' as OrderId).band).toBe(4);
   });
 
-  it('gives the three deferred rows their new text, and keeps The Last Commission out of every pool', () => {
+  it('gives the three deferred rows their new text', () => {
     expect(orderDef('theGoldenAge' as OrderId).text).toBe(
       'Completing a wonder gives your cities +20% production and culture for ten turns. A later wonder restarts the ten turns.',
     );
     expect(orderDef('magisterialTheMagistersCourt' as OrderId).text).toBe(
       'Cities containing a wonder gain +25% production toward the Magnum Opus.',
     );
+    expect(orderDef('theLastCommission' as OrderId).text).toBe(
+      'Spending a great person grants the city building your Magnum Opus 150 production, at most once per turn. No Opus under construction means no payout. Each person can pay once.',
+    );
     // Batch MG3 dealt The Golden Age and The Magister's Court (see below).
-    // The Last Commission waits for batch MG8.
-    for (const id of ['theLastCommission']) {
+    // Batch MG8 dealt The Last Commission
+    // (`test/sim/decks/magisterialPatrons.test.ts`), so none waits now.
+    for (const id of ['theGoldenAge', 'magisterialTheMagistersCourt', 'theLastCommission']) {
       const def = orderDef(id as OrderId);
-      expect(orderIsDealt(id as OrderId), id).toBe(false);
+      expect(orderIsDealt(id as OrderId), id).toBe(true);
       expect(def.retired, id).toBeUndefined();
-      expect(def.effects, id).toEqual([]);
-      // The card prints what it would do, struck as not built yet.
-      const clauses = describeCard(id as OrderId);
-      expect(clauses.some((clause) => clause.deferred === true), id).toBe(true);
-      for (const clause of clauses) expect(stripRefs(clause.text), id).not.toContain('[[');
+      expect(def.deferred, id).toBeUndefined();
+      for (const clause of describeCard(id as OrderId)) expect(stripRefs(clause.text), id).not.toContain('[[');
     }
   });
 

@@ -2876,8 +2876,37 @@ import {
  * hold more cards, and a seat that turned a soldier carries a field the old
  * build never wrote. The branch migrates nothing, for the reason given under
  * v119.
+ *
+ * v191 (branch `decks`; Magisterial batch MG8, `docs/plans/magisterial-
+ * themes-triage.md`): **great people spent.** No field joins the state. The
+ * rules that change:
+ *
+ *   · one windfall moment is new, `greatPersonSpent`. It is paid in
+ *     `spendGreatPerson` (`greatPeople.ts`), the one place a person is spent,
+ *     through `payOccasionRiders`, at the capital, once for each person, by
+ *     an act or a work. It comes after the legacy, the tally and the piece's
+ *     removal, and it carries the work if one was laid (the triage's reading
+ *     21);
+ *   · one rider filter is new, `whileRaisingOpus`: the rider pays only while
+ *     one of the empire's towns has the Magnum Opus at the front of its
+ *     queue (`opusCityOf`), so a `toOpus` grant is never banked for later;
+ *   · one meta rule is new, `legaciesCountTwice`. It is read at
+ *     `liveEffects`' legacy source, off the effects already walked, and each
+ *     legacy that is not revoked is pushed that many times (reading 22);
+ *   · one commission figure is new, `workFamilies`: the families of the
+ *     great-person works on hexes the empire owns (`workFamiliesHeld`,
+ *     `commissions.ts`; reading 32);
+ *   · two Magisterial cards are new and dealt, The Immortals (Tier IV) and
+ *     Commission: The Patron's Gallery (Tier II), and two rows leave
+ *     `deferred`: The Last Commission (Tier IV) and the shared Sacred
+ *     Patronage (Tier III).
+ *
+ * **A v190 save is refused and does not replay.** A Magisterial or Devotion
+ * seat's pools hold more cards, and a great person spent now pays the cards
+ * that ride the moment. The branch migrates nothing, for the reason given
+ * under v119.
  */
-export const SCHEMA_VERSION = 190;
+export const SCHEMA_VERSION = 191;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

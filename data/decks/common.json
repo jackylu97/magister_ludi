@@ -829,9 +829,16 @@
       "type": "civic",
       "flavor": "Genius is cheap where the faithful are many.",
       "text": "Faith may purchase great-person drafts at the escalating conversion price. Spending a great person grants 30 faith, at most once per turn.",
-      "deferred": ["spending a great person pays faith, but never more than once in a turn"],
-      "effects": [],
-      "note": "Half built and therefore not built: a gift may now be held to once a turn, but the moment the world announces is a great one spending themselves on their boon — so a card written on the spending would pay for one of the ways a person may be spent and stay silent for the others."
+      "effects": [
+        { "kind": "rule", "rule": "buyGreatPersonWithFaith" },
+        {
+          "kind": "windfallRider",
+          "occasion": "greatPersonSpent",
+          "oncePerTurn": true,
+          "grant": { "yield": "faith", "amount": 30 }
+        }
+      ],
+      "note": "A great person bought with faith costs the same faith each time. What rises is the renown each later great person needs. A great person counts whether they act or lay a work."
     },
     "illuminatedTreatises": {
       "name": "Illuminated Treatises",

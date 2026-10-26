@@ -218,7 +218,7 @@ describe('the Magisterial deck', () => {
     }
   });
 
-  it('carries 116 rows: 53 live, 1 deferred and 62 retired', () => {
+  it('carries 118 rows: 56 live, none deferred and 62 retired', () => {
     // Batch MG1 retired the 61 rows the old sheet cut on 2026-10-06 and The
     // Performers' Treasury (the triage's reading 43). The rows stay so that
     // old saves load. Batch MG2 added fourteen live rows: six at Tier 0 and
@@ -228,17 +228,19 @@ describe('the Magisterial deck', () => {
     // 0, I and III, and two at Tier IV. Batch MG5 added three live rows: one
     // at Tier I and two at Tier II. Batch MG6 added three live rows: one at
     // each of Tiers I, III and IV. Batch MG7 added three live rows: one at
-    // Tier II and two at Tier III.
-    expect(MAGISTERIAL).toHaveLength(116);
-    expect(MAGISTERIAL.filter(live)).toHaveLength(53);
-    expect(MAGISTERIAL.filter(deferred)).toHaveLength(1);
+    // Tier II and two at Tier III. Batch MG8 added two live rows, one at Tier
+    // II and one at Tier IV, and dealt The Last Commission, the last deferred
+    // row.
+    expect(MAGISTERIAL).toHaveLength(118);
+    expect(MAGISTERIAL.filter(live)).toHaveLength(56);
+    expect(MAGISTERIAL.filter(deferred)).toHaveLength(0);
     expect(MAGISTERIAL.filter(isRetired)).toHaveLength(62);
     for (const id of MAGISTERIAL.filter(isRetired)) {
       expect(orderIsDealt(id), `${id} is retired and still dealt`).toBe(false);
     }
     // The rows the sheet lists, by band: Tiers 0 to IV.
     const kept = MAGISTERIAL.filter((id) => !isRetired(id)).map((id) => orderDef(id).band);
-    expect(BANDS.map((band) => kept.filter((b) => b === band).length)).toEqual([10, 14, 13, 10, 7]);
+    expect(BANDS.map((band) => kept.filter((b) => b === band).length)).toEqual([10, 14, 14, 10, 8]);
   });
 
   it('gives every row an id nothing else in the eight files uses', () => {
@@ -295,9 +297,10 @@ describe('the deferred rows', () => {
   it('carry no effects, say what they wait for in plain words, and are dealt by nobody', () => {
     // Batch MG1 gave The Golden Age, The Magister's Court and The Last
     // Commission their new text and tier (the triage's reading 44). Batch MG3
-    // dealt the first two, so The Last Commission waits alone, for batch MG8.
+    // dealt the first two, and batch MG8 dealt The Last Commission, so no
+    // row waits. The checks below hold for any row that is deferred again.
     const held = MAGISTERIAL.filter(deferred);
-    expect(held.map((id) => orderDef(id).name)).toEqual(['The Last Commission']);
+    expect(held.map((id) => orderDef(id).name)).toEqual([]);
     for (const id of held) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);
@@ -788,11 +791,11 @@ describe('the Magisterial deck: the sheet of record', () => {
     expect(shared).toHaveLength(19);
   });
 
-  it('types every listed row, 54 of this file and 19 shared, and nothing else of this file', () => {
+  it('types every listed row, 56 of this file and 19 shared, and nothing else of this file', () => {
     // 15 since batch MG1, the fourteen rows of batch MG2, the eleven new rows
     // of batch MG3, the five of batch MG4, the three of batch MG5, the three
-    // of batch MG6 and the three of batch MG7.
-    expect(LISTED).toHaveLength(54);
+    // of batch MG6, the three of batch MG7 and the two new rows of batch MG8.
+    expect(LISTED).toHaveLength(56);
     for (const id of MAGISTERIAL) {
       const def = orderDef(id);
       if (isRetired(id)) expect(def.type, id).toBeUndefined();

@@ -4950,7 +4950,22 @@ export type MetaRuleId =
    * building, a technology's own effects and a great person's legacy are
    * read once.
    */
-  | 'techCountsTwice';
+  | 'techCountsTwice'
+  /**
+   * **How many times this empire reads each legacy it holds** (Magisterial
+   * batch MG8, The Immortals; the triage's reading 22). The value is the
+   * count: 2 is twice. Read once, at `liveEffects`' legacy source
+   * (`buildLiveEffects`), off the effects already walked: each legacy that is
+   * not revoked is pushed that many times, as if the person had been spent
+   * that many times. A yes-or-no rule gains nothing from the second reading.
+   * The counts of people and families (`Player.legacies`,
+   * `Player.greatPeopleRecruited`) do not change.
+   *
+   * Only a source walked before the legacies can hold it: the government,
+   * the Doctrines, the Orders in chairs, the malices, the beliefs and the
+   * wonders. The Immortals is an Order.
+   */
+  | 'legaciesCountTwice';
 
 /** What an amplifier reaches into. */
 export type AmplifierTarget =
@@ -5402,7 +5417,9 @@ export type WindfallOccasion =
    * It fires for the **act** and never for the **work**: a citadel is a thing on
    * the ground and a boon is a moment, which is the same split the amplifier's
    * own docblock states, and `TallyOccasion`'s `greatPersonSpent` already counts
-   * both for the cards that mean to.
+   * both for the cards that mean to. Since Magisterial batch MG8 the
+   * `greatPersonSpent` moment of this union is paid for both too, after this
+   * one.
    */
   | 'greatPersonAct'
   /**
@@ -5585,7 +5602,26 @@ export type WindfallOccasion =
    * Triumph is a moment the world announces, and this is the moment a card
    * rider is paid at. The two are asked at the same point of the adoption.
    */
-  | 'governmentAdopted';
+  | 'governmentAdopted'
+  /**
+   * **One of this empire's great people was spent** (Magisterial batch MG8;
+   * the triage's reading 21): The Last Commission and the shared Sacred
+   * Patronage. Paid by `spendGreatPerson` (`greatPeople.ts`), the one place a
+   * person is spent, through `payOccasionRiders`, at the capital. Both verbs
+   * reach it: an act and a work. So it fires once for each person, after the
+   * legacy is pushed, the `greatPersonSpent` tally is written and the piece is
+   * removed.
+   *
+   * It carries the work the person laid, if it laid one
+   * (`WindfallOccasionFacts.improvement`), so a rider's `improvement` filter
+   * can name a work. An act carries no work.
+   *
+   * `greatPersonAct` is the moment of the act alone, and it is paid before
+   * this one. The tally of the same name (`TallyOccasion`) counts the same
+   * moment for the cards that grow; this is the moment a card rider is paid
+   * at, as `sizeRecord` is both.
+   */
+  | 'greatPersonSpent';
 
 /**
  * **What a grant is a share of, where it is a share of the occasion itself.**
@@ -7738,6 +7774,18 @@ export interface CardWindfallRiderEffect {
    * can name. An occasion that names no hex never pays it.
    */
   on?: TileCondition;
+  /**
+   * **The rider fires only while one of this empire's towns raises the
+   * Magnum Opus** (Magisterial batch MG8, The Last Commission; the triage's
+   * reading 21). Raising it means the Opus is the front row of the town's
+   * queue (`opusCityOf`, the reading a grant's `toOpus` lands by). It is asked
+   * of the empire when the moment comes, not of a fact the moment carries.
+   *
+   * Without it, a `toOpus` production grant with no such town is banked
+   * toward the Opus (`Player.opusBank`). This filter is how a rider says that
+   * it pays nothing at all in that case.
+   */
+  whileRaisingOpus?: true;
 }
 
 /**
@@ -10277,7 +10325,18 @@ export type CommissionFigure =
    * chair a malice holds is left out. An empty typed chair fails. Wildcard
    * chairs are not read. Measured by `councilInOrder` (`commissions.ts`).
    */
-  | 'councilInOrder';
+  | 'councilInOrder'
+  /**
+   * **The families of the great-person works in this empire's borders**
+   * (Magisterial batch MG8, Commission: The Patron's Gallery; the triage's
+   * reading 32): one for each family that has a work on a hex the empire
+   * owns. The family is the work's own (`ImprovementDef.greatPerson`):
+   * scholar (Academy), artist (Landmark), engineer (Manufactory), merchant
+   * (Customs House), general (Citadel) and prophet (Holy Site). Who laid the
+   * work does not matter, so a partner deck's work counts, and a work does
+   * not have to be worked. Measured by `workFamiliesHeld` (`commissions.ts`).
+   */
+  | 'workFamilies';
 
 /** Every figure, for validation and the register test. */
 export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
@@ -10300,6 +10359,7 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'tradePartnerEmpires',
   'ordersHeld',
   'councilInOrder',
+  'workFamilies',
 ];
 
 /**

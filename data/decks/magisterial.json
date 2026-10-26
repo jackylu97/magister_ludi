@@ -2082,11 +2082,16 @@
       "line": "none",
       "flavor": "One more, the patron said, and meant it this time.",
       "text": "Spending a great person grants the city building your Magnum Opus 150 production, at most once per turn. No Opus under construction means no payout. Each person can pay once.",
-      "deferred": [
-        "spending a great person sends production to the town building your Magnum Opus, at most once a turn"
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "greatPersonSpent",
+          "whileRaisingOpus": true,
+          "oncePerTurn": true,
+          "grant": { "yield": "production", "amount": 150, "toOpus": true }
+        }
       ],
-      "effects": [],
-      "note": "Waiting on a new moment. The game does not yet mark the moment a great person is spent, and it cannot yet hold back the production when no town is building the Magnum Opus."
+      "note": "A great person counts whether they act or lay a work. A city is building the Magnum Opus while it stands at the front of its queue. While none of your cities is building it, the card pays nothing, and nothing is kept for later."
     },
     "theWonderCommonwealth": {
       "name": "The Wonder Commonwealth",
@@ -2956,6 +2961,34 @@
         ]
       },
       "note": "A chair held by a malice is left out. An empty Military, Economic or Civic chair is not in order. While no Doctrine of your government's tier is left to offer you, or a Doctrine offer is already waiting for your answer, the card stays in its chair and pays when an offer can be made."
+    },
+    "theImmortals": {
+      "name": "The Immortals",
+      "decks": ["magisterial"],
+      "band": 4,
+      "rarity": "rare",
+      "type": "civic",
+      "line": "none",
+      "flavor": "The ranks never thinned: each guard who fell was replaced before dawn.",
+      "text": "The legacies of your great people count twice.",
+      "effects": [{ "kind": "metaRule", "rule": "legaciesCountTwice", "value": 2 }],
+      "note": "A legacy you have lost counts for nothing. A legacy that only allows something gains nothing from counting twice. The cards that count your great people, or their families, still count each person once."
+    },
+    "magisterialThePatronsGallery": {
+      "name": "Commission: The Patron's Gallery",
+      "decks": ["magisterial"],
+      "band": 2,
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "line": "none",
+      "flavor": "A scholar's desk, a general's sword and a poet's lyre, all in one long room.",
+      "text": "Commission. Have great-person works of three different families in your borders. Then gain a free great-person draft and 200 culture. The card leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [{ "kind": "reached", "figure": "workFamilies", "count": 3 }],
+        "reward": [{ "greatPerson": "any" }, { "yield": "culture", "amount": 200 }]
+      },
+      "note": "A work counts wherever it stands in your borders, whoever laid it, and whether or not a city works it. A Holy Site counts as a family of its own. If a great person is already waiting for your choice, or you cannot call great people yet, you gain the renown still needed for your next great person instead."
     }
   }
 }

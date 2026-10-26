@@ -50,7 +50,7 @@ import {
 } from './cities';
 import type { Family } from './greatPeopleData';
 import { grantGreatPersonOffer } from './greatPeople';
-import { isTendedWork } from './improvementData';
+import { type WorkFamily, improvementDef, isTendedWork } from './improvementData';
 import { getTileAt } from './map';
 import { resourcesOfKind } from './resourceData';
 import { bumpEconomy } from './slate';
@@ -305,6 +305,10 @@ export function commissionFigure(
       // Commission: The Golden Bull (Magisterial batch MG7, the triage's
       // reading 18). Yes or no, so the goal asks for 1.
       return councilInOrder(player) ? 1 : 0;
+    case 'workFamilies':
+      // Commission: The Patron's Gallery (Magisterial batch MG8, the
+      // triage's reading 32).
+      return workFamiliesHeld(state, playerId).length;
   }
 }
 
@@ -335,6 +339,32 @@ export function councilInOrder(player: Player): boolean {
     if (countedTypeOf(card, chair) !== chair) return false;
   }
   return true;
+}
+
+/**
+ * **The families of the great-person works in this empire's borders**
+ * (Magisterial batch MG8, Commission: The Patron's Gallery; the triage's
+ * reading 32), each once, in the order the map first shows them.
+ *
+ * A hex counts when this empire owns it (`tileOwnerField`, the sweep reading)
+ * and it carries a great-person work. The family is the work's own
+ * (`ImprovementDef.greatPerson`), so a Holy Site counts as the prophet's
+ * family. Who laid the work does not matter, and the work need not be
+ * worked. A work that stands in for an Academy under The Studium Generale
+ * still counts as its own family. An array, never a set, so the order is the
+ * map's.
+ */
+export function workFamiliesHeld(state: GameState, playerId: number): WorkFamily[] {
+  const owners = tileOwnerField(state);
+  const tiles = state.map.tiles;
+  const families: WorkFamily[] = [];
+  for (let index = 0; index < tiles.length; index++) {
+    const work = tiles[index]!.improvement;
+    if (work === undefined || owners.at(index) !== playerId) continue;
+    const family = improvementDef(work).greatPerson;
+    if (family !== undefined && !families.includes(family)) families.push(family);
+  }
+  return families;
 }
 
 /**

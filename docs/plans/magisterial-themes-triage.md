@@ -422,6 +422,8 @@ The first six come from section 12. The rest are new. Each gives the reading the
 - **Schema:** one bump.
 - **Done-gate:** `npx vitest run test/sim/decks/magisterialPatrons.test.ts test/sim/greatPeople.test.ts test/sim/greatPeopleShapes.test.ts test/sim/greatPeopleDocSync.test.ts test/sim/renown.test.ts test/sim/commissions.test.ts test/sim/decks/devotion.test.ts test/sim/decks/magisterial.test.ts test/sim/decks.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts test/mapgen/moduleCycles.test.ts`.
 
+- **Built (2026-10-26):** all three cards and the shared Sacred Patronage. The gate passed: the type check, 9,832 core tests and the build. Schema 191. The moment is `greatPersonSpent`, paid last in `spendGreatPerson`, with the work as a fact; a rider may carry `whileRaisingOpus`. The Immortals is the meta rule `legaciesCountTwice`, read at the legacy source. The figure is `workFamilies`. Readings added: Sacred Patronage plays as built, because its faith price is a flat 750 and does not escalate (its sheet rows say so); the Opus town is the first in founding order with the Opus at the front of its queue, and a moment that pays nothing keeps the once-a-turn limit; a work counts by its own family. Not done: `CLAUDE.md` says only Merchant Princes grants a great-person purchase clause; Spolia's text says "or your capital", but its production is banked toward the Opus.
+
 ### MG9: works on the land, and the wonder towns
 
 - **Builds:**

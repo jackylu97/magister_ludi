@@ -1151,10 +1151,20 @@ describe('determinism', () => {
    * kills. Checked with the change in
    * place and the version printed as 189, which gives the hashes of
    * Magisterial batch MG7 exactly.
+   *
+   * **Magisterial batch MG8 (great people spent, schema 191) moved the hash
+   * and not the length** at both seeds: 190 became 191, and that is all. The
+   * batch makes spending a great person a moment the cards pay on, adds a
+   * rider filter for a town raising the Magnum Opus, a rule that reads each
+   * legacy twice, a commission figure for the families of the works in the
+   * borders, and four card rows. Nobody here calls or spends a great person
+   * or drafts, so the moment pays no rider and no legacy is read. Checked
+   * with the change in place and the version printed as 190, which gives the
+   * hashes of Devotion batch DV8 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '4253d395:188976',
-    2026: 'd5170e2c:188554',
+    11: '8ab61b66:188976',
+    2026: 'b6086bcb:188554',
   };
 
   for (const seed of [11, 2026]) {

@@ -1156,6 +1156,12 @@ describe('the schema witness', () => {
     // soldier killed on the faith's ground may change sides, a town may keep
     // two rites, and two Devotion cards are dealt. So a v189 log's Devotion
     // hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(190);
+    // 191 since Magisterial batch MG8 (great people spent): spending a great
+    // person is a moment the cards pay on, a rider may pay only while the
+    // Magnum Opus is being built, a card may make each legacy count twice, a
+    // commission may count the families of the works in your borders, and four
+    // Magisterial and shared cards are dealt. So a v190 log's Magisterial and
+    // Devotion hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(191);
   });
 });

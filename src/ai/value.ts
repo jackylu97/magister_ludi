@@ -3687,6 +3687,9 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // off those Orders (batch S13): the technology riders and tallies the
       // seat has seated, paid again.
       if (effect.rule === 'techCountsTwice') return techCountsTwiceWorth(effect.value, ctx);
+      // **The Immortals' `legaciesCountTwice`** (Magisterial batch MG8) is a
+      // stand-in until batch MG17 prices it off the legacies the seat holds.
+      if (effect.rule === 'legaciesCountTwice') return ctx.ai.score.unknownEffect;
       return ctx.ai.score.unknownEffect;
     case 'beadPerOccasion':
       // **A glass bead the empire mints itself**, on a deed it chooses to do
@@ -4109,6 +4112,12 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // stand-in until batch MG17 prices it at the ladder's pace: one
       // adoption over the horizon.
       return 1 / horizon;
+    case 'greatPersonSpent':
+      // **A great person spent** (Magisterial batch MG8; The Last Commission
+      // and Sacred Patronage). An act or a work spends a person, so this is
+      // `greatPersonAct`'s reading of the pace, a stand-in until batch MG17
+      // prices it at the seat's own spend rate.
+      return 1 / Math.max(1, ctx.ai.score.lumpTurns);
     default:
       return unreadOccasion(occasion);
   }

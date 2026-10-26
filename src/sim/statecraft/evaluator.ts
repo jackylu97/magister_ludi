@@ -929,10 +929,25 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
   // side: the record stays in spend order, history is never spliced, and
   // Hypatia's "lost the first turn your happiness goes negative" is a rule with
   // a place rather than a sentence struck through on a card.
+  //
+  // **The Immortals** (Magisterial batch MG8, the triage's reading 22): each
+  // live legacy is read as many times as the law says (`legaciesCountTwice`),
+  // as if the person had been spent that many times. See `legacyReadings`.
+  const reread = legacyReadings(list);
   for (const held of playerById(state, playerId)?.legacies ?? []) {
     if (held.revoked === true) continue;
     if (!isGreatPersonId(held.id)) continue;
-    push(held.id, CLASS_WORD.legacy, greatPersonDef(held.id).legacy);
+    const def = greatPersonDef(held.id);
+    push(held.id, CLASS_WORD.legacy, def.legacy);
+    if (reread === null) continue;
+    // A later reading is labelled with the card that asks for it ("Legacy ·
+    // Hypatia · The Immortals"), so a ledger shows why the line is there
+    // twice. A clause nested in a condition keeps the same label.
+    const label = `${CLASS_WORD.legacy} · ${def.name} · ${anyCardDef(reread.card).name}`;
+    const again = (card: CardId, _word: string, nested: readonly CardEffect[]): void => {
+      pushEffects(state, playerId, list, card, label, nested, again, label);
+    };
+    for (let reading = 1; reading < reread.times; reading++) again(held.id, label, def.legacy);
   }
   // **The thirteenth source** (Expansionist batch E5): what a fulfilled commission
   // hands over for the rest of the game (`CommissionReward.lasting`, The
@@ -1291,6 +1306,31 @@ function pushEffects(
     source ??= `${word} · ${anyCardDef(card).name}`;
     list.push({ source, card, effect });
   }
+}
+
+/**
+ * **How many times each legacy is read, and which card asks** (Magisterial
+ * batch MG8, The Immortals; the triage's reading 22), or `null` when the law
+ * reads each legacy once.
+ *
+ * The answer is the largest `legaciesCountTwice` value among the effects
+ * already walked, and the first card that holds that value. It reads the list
+ * the walk has built so far, as the founder's trickle reads its amplifier: a
+ * question asked of `liveEffects` from inside its own walk would never end.
+ * The legacy source is walked after the government, the Doctrines, the Orders
+ * in chairs, the malices, the beliefs and the wonders, so a rule on any of
+ * those is seen. A clause gated by a condition is in the list only when its
+ * condition holds, as everywhere else.
+ */
+function legacyReadings(list: readonly LiveCardEffect[]): { times: number; card: CardId } | null {
+  let best: { times: number; card: CardId } | null = null;
+  for (const entry of list) {
+    if (entry.effect.kind !== 'metaRule' || entry.effect.rule !== 'legaciesCountTwice') continue;
+    const times = Math.floor(entry.effect.value);
+    if (times <= 1) continue;
+    if (best === null || times > best.times) best = { times, card: entry.card };
+  }
+  return best;
 }
 
 /**
@@ -8228,6 +8268,8 @@ export interface WindfallOccasionFacts {
   /**
    * The improvement a worker just laid down — carried only by the
    * `improvementBuilt` occasion and read by `CardWindfallRiderEffect.improvement`.
+   * Since Magisterial batch MG8 the `greatPersonSpent` occasion carries the
+   * work the person laid, if it laid one (`spendGreatPerson`).
    */
   improvement?: ImprovementId;
   /**
@@ -8667,6 +8709,11 @@ export function windfallPayout(
     if (effect.on !== undefined && !occasionHexPasses(state, playerId, effect.on, facts.hex)) {
       return false;
     }
+    // The Last Commission (Magisterial batch MG8, the triage's reading 21):
+    // the rider pays only while one of this empire's towns raises the Magnum
+    // Opus. Asked of the board now, through the reading a `toOpus` grant lands
+    // by, so the rider never banks its production toward an Opus not begun.
+    if (effect.whileRaisingOpus === true && opusCityOf(state, playerId) === null) return false;
     return true;
   };
   // **The occasion's own figure, folded first.** The percentages sum and apply

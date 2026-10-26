@@ -399,7 +399,9 @@ describe('Devotion batch DV1: tiers, retirements and moves', () => {
     expect(orderDef('sacredCommissions' as OrderId).type).toBe('economic');
     const patronage = orderDef('sacredPatronage' as OrderId);
     expect(patronage.type).toBe('civic');
-    expect(orderIsDealt('sacredPatronage' as OrderId)).toBe(false);
+    // Dealt since Magisterial batch MG8, which built the moment a great
+    // person is spent (`test/sim/decks/magisterialPatrons.test.ts`).
+    expect(orderIsDealt('sacredPatronage' as OrderId)).toBe(true);
     expect(patronage.text).toContain('Spending a great person grants 30 faith, at most once per turn.');
   });
 });

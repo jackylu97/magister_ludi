@@ -1189,6 +1189,13 @@ function stampTimed(
  * owner's fog is refreshed without this function knowing fog exists. The legacy
  * is pushed once — a name is recruited once in a world, so a duplicate is
  * unreachable, and the guard is here because a hand-edited save is not.
+ *
+ * **The moment the cards pay on is last** (Magisterial batch MG8; the triage's
+ * reading 21): the `greatPersonSpent` windfall occasion, paid once for each
+ * person through `payOccasionRiders`, at the capital, with the work as its
+ * fact. It comes after the legacy, the tally and the piece's removal, so a
+ * rider reads an empire that has already spent the person. An act's own
+ * riders (`greatPersonAct`) are paid before this is called.
  */
 function spendGreatPerson(
   state: GameState,
@@ -1212,6 +1219,17 @@ function spendGreatPerson(
   // a citadel exactly as it counts a boon, and neither caller has to remember.
   recordScalingOccasion(state, player.id, 'greatPersonSpent', 1, work === undefined ? undefined : { improvement: work });
   removeUnit(state, unit.id);
+  // The Last Commission's production and Sacred Patronage's faith. Food and
+  // production a rider pays land in the capital unless the grant names a
+  // place (The Last Commission names the town raising the Opus).
+  const capital = capitalCityOf(state, player.id);
+  payOccasionRiders(
+    state,
+    player,
+    'greatPersonSpent',
+    capital ? { col: capital.col, row: capital.row } : undefined,
+    work === undefined ? {} : { improvement: work },
+  );
 }
 
 // --- revocation -------------------------------------------------------------

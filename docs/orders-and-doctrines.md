@@ -736,6 +736,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Accessions Register | 2 | ◆ | S | Each card you draft grants your capital production equal to half the culture its hand cost. |
 | The Unwritten Chapter | 2 | ● | S | Each time you pass on an Order hand, gain science equal to half the culture the hand cost. |
 | The Sed Festival | 2 | ○ | S | Each time you adopt a government, gain a free great-person draft. |
+| Commission: The Patron's Gallery | 2 | ◆ | S | Commission. Have great-person works of three different families in your borders. Then gain a free great-person draft and 200 culture. The card leaves its chair. |
 | The Living Canon | 3 | ○ | P | Your cities gain +4% food and +4% production per distinct great-person family whose legacy you currently hold, at most +20% each. |
 | The Wonder Commonwealth | 3 | ○ | P | Cities containing a wonder gain +38% production and +38% food. Your cities without a wonder gain +15% culture instead. |
 | The Boule | 3 | ◆ | E | +2% science and culture for each card you have seated. |
@@ -751,6 +752,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Universal Library | 4 | ○ | S | The city building the Magnum Opus gains +2% production toward it for each Order you hold, seated or not, at most +40%. |
 | The Polymath's Study | 4 | ○ | E | Your towns gain +8% science and production for each different deck among the cards you hold, at most +40%. |
 | The Hall of Wonders | 4 | ○ | S | Order hands deal one more card for every two wonders you hold, at most two more. |
+| The Last Commission | 4 | ○ | S | Spending a great person grants the city building your Magnum Opus 150 production, at most once per turn. No Opus under construction means no payout. Each person can pay once. |
+| The Immortals | 4 | ○ | S | The legacies of your great people count twice. |
 
 ### Cross-type
 
@@ -823,6 +826,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Shrine Guards | Dominion · Devotion | 0 | ● | S | Towns with a Shrine may buy melee units with faith. |
 | The Blessed Forges | Devotion · Scientific | 2 | ◆ | P | Improved strategic resources gain +1 faith and +1 production. Cities with a Temple gain +2 faith and +2 production more. |
 | The Schoolmen's Charter | Devotion · Scientific | 1 | ◆ | S | Drafting this opens Scholasticism for research. Knowing it lets you build the Cathedral and train the Apostle before Theology. No chair required. |
+| Sacred Patronage | Devotion · Magisterial | 3 | ○ | S | Faith may purchase great-person drafts at the escalating conversion price. Spending a great person grants 30 faith, at most once per turn. |
 | The Rising Nave | Devotion · Magisterial | 3 | ○ | P | While a city is building a Cathedral or a wonder, it gains +1 faith and +1 culture for every 10% of the work already done. |
 
 ### Generic
@@ -930,7 +934,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **Enduring Institutions** — † a town whose empire building has stood a long while is gladder and builds faster, once per town
 - **The Golden Age** — A wonder completed while the bonus runs starts it again, and does not add a second bonus. The Magnum Opus is not a wonder.
 - **The Magister's Court** — A town you captured that holds a wonder counts too.
-- **The Last Commission** — Waiting on a new moment. The game does not yet mark the moment a great person is spent, and it cannot yet hold back the production when no town is building the Magnum Opus. † spending a great person sends production to the town building your Magnum Opus, at most once a turn
+- **The Last Commission** — A great person counts whether they act or lay a work. A city is building the Magnum Opus while it stands at the front of its queue. While none of your cities is building it, the card pays nothing, and nothing is kept for later.
 - **The Prytaneion** — Only the Orders sitting in a chair count, this one included. A charter takes no chair, so it does not count, and neither does a Doctrine.
 - **The Polemarch** — Every unit gains it, on land and at sea, attacking or defending. This card counts itself, and a Military card in a Wildcard chair counts too.
 - **The Court Painter** — A card picked from a free hand counts. Passing on a hand does not, and neither does a Doctrine or a great person. This card pays nothing for drafting itself.
@@ -962,13 +966,15 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Sed Festival** — The card pays only if it still has a chair once the new government seats your council. If a great person is already waiting for your choice, or you cannot call great people yet, you gain the renown still needed for your next great person instead.
 - **The Pandects** — Every Doctrine you hold counts, whatever its deck.
 - **Commission: The Golden Bull** — A chair held by a malice is left out. An empty Military, Economic or Civic chair is not in order. While no Doctrine of your government's tier is left to offer you, or a Doctrine offer is already waiting for your answer, the card stays in its chair and pays when an offer can be made.
+- **Commission: The Patron's Gallery** — A work counts wherever it stands in your borders, whoever laid it, and whether or not a city works it. A Holy Site counts as a family of its own. If a great person is already waiting for your choice, or you cannot call great people yet, you gain the renown still needed for your next great person instead.
+- **The Immortals** — A legacy you have lost counts for nothing. A legacy that only allows something gains nothing from counting twice. The cards that count your great people, or their families, still count each person once.
 - **Letters of Marque** — The coin is for a kill made by one of your ships, wherever it happens. The extra gold and the slower shipyards both belong to the cities that have a Harbour.
 - **The Sacred Host** — A soldier bought with faith costs what it would cost to build, converted at the faith rate.
 - **Pilgrim Markets** — The first card to pay a trade route in faith; nothing carried it before this one asked. The test is a disjunction, so one shrine is enough and two are not more — a road with a holy site at each end is paid once, which is the card's second sentence. The site is the prophet's work on the ground, anywhere inside either town's borders, and nobody has to be working the hex.
 - **The Exchange of Discoveries** — Both lines land on the same hexes; the second is asked of the town that owns the ground, so a seam whose city has raised its stalls is worth two beakers rather than one.
 - **Travelling Players** — Only the cards in your chairs count. A card that two decks share counts for both decks. The cards that belong to no deck count together as one more deck.
 - **The Cosmopolitan Court** — A city is counted for the trade routes that set out from it to another empire, and never for more than three. The extra gold wants a citizen standing on the work, as every tile bonus does.
-- **Sacred Patronage** — Half built and therefore not built: a gift may now be held to once a turn, but the moment the world announces is a great one spending themselves on their boon — so a card written on the spending would pay for one of the ways a person may be spent and stay silent for the others. † spending a great person pays faith, but never more than once in a turn
+- **Sacred Patronage** — A great person bought with faith costs the same faith each time. What rises is the renown each later great person needs. A great person counts whether they act or lay a work.
 - **The Crusader Orders** — Taking a city presses your religion on it once, as a prophet would; whether it converts depends on the faith already there. An empire with no religion presses nothing.
 - **The Flood Festival** — Burned country is laid down one tile at a time by a worker, so the faith is paid tile by tile as each one is burned.
 - **Professional Soldiers** — The strength is given when the unit is bought while this card is held, and the unit keeps it for life.

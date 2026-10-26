@@ -554,6 +554,10 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
     card that counts as its type, a malice's chair left out), and a reward may
     open a Doctrine offer (`doctrineOffer`). While no such offer can open, the
     commission waits in its chair (`commissionRewardWaits`).
+  - Since Magisterial batch MG8 a goal may count the families of the
+    great-person works on hexes the empire owns (the `workFamilies` figure,
+    `workFamiliesHeld`): a Holy Site is the prophet's family, and who laid the
+    work does not matter.
 - **Units a card raises, and the moments it pays on** (Dominion batch D5):
   - A grant can raise the best melee unit (`bestMeleeFor`) or each military
     unit a technology unlocks, in the capital or in each town a scope admits.
@@ -802,7 +806,16 @@ Reference: **`docs/great-people.md`** (generated roster, sync-tested).
   **work** plants an improvement for good and **opens the seam it covers**.
   Either spends the piece and leaves the **legacy**.
 - Legacies are ordinary card effects, `liveEffects`' sixth source. **Revocation
-  is marking, never deleting.**
+  is marking, never deleting.** Since Magisterial batch MG8 the meta rule
+  `legaciesCountTwice` (The Immortals) pushes each live legacy a second time at
+  that source, read off the effects already walked (`legacyReadings`). The
+  counts of people and families do not change.
+- Since Magisterial batch MG8, spending a person is a moment the cards pay on
+  (`greatPersonSpent`). `spendGreatPerson` pays it once for each person, for
+  an act or a work, at the capital, with the work as a fact, after the legacy,
+  the tally and the piece's removal. A rider can pay only while one of the
+  empire's towns raises the Magnum Opus (`whileRaisingOpus`, The Last
+  Commission).
 - Three card clauses buy a great person (`OFFER_PURCHASES`), all issued from the
   Reliquary's rail.
 - **Triumphs**: `Player.triumphs` is append-only and turn-stamped, read by
