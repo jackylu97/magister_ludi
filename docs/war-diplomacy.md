@@ -332,7 +332,8 @@ more than the hammers. The code is `src/sim/ranks.ts`; every figure is in
 - A town never earns experience, and neither does a garrison standing behind
   walls that took the blow in its place.
 - A barbarian beaten under Blood Brothers counts as a kill for the unit that
-  beat it, though it joins rather than dies.
+  beat it, though it joins rather than dies. So does an enemy soldier that
+  changes sides under The Turning of Swords (Devotion batch DV8).
 - Experience stays with the unit through an automatic upgrade (the type changes
   in place) and through a change of owner (`captureUnit` changes only the
   owner).

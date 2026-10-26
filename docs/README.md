@@ -712,7 +712,8 @@ Reference: **`docs/religion-v2.md`** (the machinery) and **`docs/beliefs.md`**
   apostle may raise a further holy site at the same price, for an empire that
   has founded a religion, and the unit sheet shows it the row while the rule
   holds.
-- **Rites** are a city's verb, bought with faith, one at a time per town. Nine
+- **Rites** are a city's verb, bought with faith, one at a time per town, or
+  two different rites at once under The Double Feast (below). Nine
   live rows: five taught by the tree, four by Devotion Orders (`RiteDef.byCard`;
   `riteTeachingCard` names the Order). Ten turns for most, five for Restoring of
   the Host, one for Votive Offering, made longer by The Octave and Chichen Itza;
@@ -755,6 +756,24 @@ Reference: **`docs/religion-v2.md`** (the machinery) and **`docs/beliefs.md`**
   `explainOpusGate`: a rival's town that follows a religion the holder is
   paid by makes no production while it builds a Magnum Opus
   (`cardOpusInterdictBy`). The siege names the line when both hold.
+- **The two largest rule-breakers** (Devotion batch DV8).
+  - The action rule `twoRites` (The Double Feast) gives each town of its
+    holder two places for rites (`ritePlacesFor`, the one reading).
+    `cityRites` lists the rites a town keeps, oldest first; `cityRite` stays
+    the reading for "keeps any rite", so the `keepingRite` scope, the
+    `citiesKeepingRite` count and The Festival Calendar do not pay twice.
+    The rite gate refuses a rite the town already keeps, or a town with no
+    free place. A prophet's rite over the realm takes a free place, or the
+    place of the town's older rite (`ritesDisplacedBy`, which the rite
+    preview reads too). With one place every rite is placed as before.
+  - The behaviour rule `faithfulKillsConvert` (The Turning of Swords) is read
+    in `applyCombat` beside Blood Brothers' `barbarianKillsConvert`. An
+    enemy land soldier the holder's attack kills on land that a following
+    town owns, outside a town, changes sides through `captureUnit` at full
+    health (`cardTurningSides`). It is a capture: no kill or death riders and
+    no kill or loss tallies, but the loser's war record counts it. At most
+    once a turn for each card (`PlayerStatecraft.sidesTurned`, an absolute
+    stamp).
 - Who is paid: the pantheon pays the empire that consecrated it; **follower**
   beliefs pay city-locally to whoever owns each following city (a rival's faith
   in your town is a gift); **founder-side** pay follows the holy site's stones;

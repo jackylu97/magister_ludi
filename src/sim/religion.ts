@@ -1399,7 +1399,9 @@ function refreshBeliefDerived(state: GameState, player: Player): void {
 //     culture too), never a door — the door was a misreading of the ruling and
 //     left the whole subsystem behind one uncommon wildcard card;
 //   · **one rite at a time, per town** — the seal *is* the rite's ten turns
-//     (`cityRite`), so there is no second clock to keep and nothing to tick;
+//     (`cityRite`), so there is no second clock to keep and nothing to tick.
+//     A town of an empire that holds The Double Feast keeps two different
+//     rites at once (`ritePlacesFor`, Devotion batch DV8);
 //   · **the price is the faith ladder's rung for the age you stand in**
 //     (`riteCost`), which is the ruled default: 40 in Æra I, rising a rung an
 //     age.
@@ -1461,7 +1463,12 @@ export function riteCostFor(state: GameState, playerId: number): number {
 }
 
 /**
- * **The rite this town is keeping**, or `null` — the whole of "one at a time".
+ * **The rite this town is keeping**, or `null`. Under The Double Feast a town
+ * may keep two (`cityRites`), and this answers the older one. So it is the
+ * reading for every question that asks whether a town keeps any rite at all:
+ * the `keepingRite` scope and condition, the `citiesKeepingRite` count, The
+ * Festival Calendar and the bots (the triage's reading 31). A question about
+ * one rite or about every rite asks `cityRites`.
  *
  * Derived off `City.timed`, never stored, and the reading is the ordinary
  * comparison every timed effect in this game is read by (`timedEffectIsLive`):
@@ -1489,13 +1496,99 @@ export function cityRite(state: GameState, city: City): RiteId | null {
   return null;
 }
 
-/** How many turns are left of the rite this town is keeping, or `0`. */
-export function cityRiteTurnsLeft(state: GameState, city: City): number {
+/**
+ * **Every rite this town is keeping**, oldest first, each named once
+ * (Devotion batch DV8, The Double Feast; the triage's reading 31).
+ *
+ * `cityRite`'s reading over the whole list: the live entries of `City.timed`
+ * that name a rite that is not withdrawn. A rite hangs one entry for each of
+ * its effects, so a rite is listed at its first entry. The entries are pushed
+ * in the order the rites were stamped (`stampRite`), and every writer that
+ * takes entries off keeps the order of the rest, so the first rite listed is
+ * the one started first. That is what "older" means where a prophet's rite
+ * takes the place of the older one (`ritesDisplacedBy`).
+ *
+ * One rite or none for a town of an empire without The Double Feast. Two at
+ * most under it, and a town keeps two after the card leaves until they run
+ * out.
+ */
+export function cityRites(state: GameState, city: City): RiteId[] {
+  const rites: RiteId[] = [];
+  for (const entry of city.timed ?? []) {
+    if (!timedEffectIsLive(state, entry)) continue;
+    if (!isRiteId(entry.card)) continue;
+    if (riteDef(entry.card).retired === true) continue;
+    if (!rites.includes(entry.card)) rites.push(entry.card);
+  }
+  return rites;
+}
+
+/**
+ * **How many rites a town of this empire may keep at once**: one, or two
+ * while the empire holds The Double Feast (the `twoRites` rule; Devotion
+ * batch DV8, the triage's reading 31).
+ *
+ * The one reading of the rule. The rite gate (`riteGate`) refuses a town
+ * whose places are all taken, a prophet's rite over the realm takes the
+ * place of a town's older rite only when they are (`ritesDisplacedBy`), and
+ * the faith screen draws a town with a free place among the free towns. Two
+ * is the card's own number: the rule names it, as `secondAttack` names a
+ * second attack.
+ */
+export function ritePlacesFor(state: GameState, playerId: number): number {
+  return cardActionRule(state, playerId, 'twoRites') ? 2 : 1;
+}
+
+/**
+ * **The rites a town would stop keeping if this rite were said there over
+ * the realm**, in the order they are taken off (Devotion batch DV8; the
+ * triage's reading 31).
+ *
+ * Two steps, so the same rite is never kept twice and a free place is used
+ * before a rite is lost:
+ *
+ *   1. if the town already keeps this rite, it is taken off, so the new one
+ *      starts its season afresh;
+ *   2. while every place is still taken (`ritePlacesFor`, asked of the town's
+ *      owner), the town's oldest rite is taken off.
+ *
+ * With one place this is every rite the town keeps, which is what a
+ * prophet's rite has always done. With two, a town keeping one other rite
+ * keeps it, and a town keeping two loses the older. `rite` may be `null` for
+ * a question about no rite in particular (the faith screen's realm line
+ * before a rite is chosen); then only the second step is asked.
+ *
+ * A reading: nothing in the town is touched. `empireRiteAt` and the rite
+ * preview (`cityTimedWithRite`) both ask it, so the preview shows what the
+ * realm's rite would leave.
+ */
+export function ritesDisplacedBy(state: GameState, city: City, rite: RiteId | null): RiteId[] {
+  const kept = cityRites(state, city);
+  const displaced: RiteId[] = [];
+  if (rite !== null && kept.includes(rite)) displaced.push(rite);
+  const places = ritePlacesFor(state, city.ownerId);
+  for (const held of kept) {
+    if (kept.length - displaced.length < places) break;
+    if (!displaced.includes(held)) displaced.push(held);
+  }
+  return displaced;
+}
+
+/**
+ * How many turns are left of the rite this town is keeping, or `0`.
+ *
+ * With a `rite`, the turns left of that rite alone, for the surfaces that
+ * print each of a town's rites (Devotion batch DV8, The Double Feast).
+ * Without one, the most left of any rite the town keeps, which is the same
+ * figure for a town keeping one.
+ */
+export function cityRiteTurnsLeft(state: GameState, city: City, rite?: RiteId): number {
   let left = 0;
   for (const entry of city.timed ?? []) {
     if (!timedEffectIsLive(state, entry)) continue;
     if (!isRiteId(entry.card)) continue;
     if (riteDef(entry.card).retired === true) continue;
+    if (rite !== undefined && entry.card !== rite) continue;
     left = Math.max(left, entry.expiresTurn - state.turn);
   }
   return left;
@@ -1508,7 +1601,8 @@ export function cityRiteTurnsLeft(state: GameState, city: City): number {
  * offered row is a command the reducer takes and the sentence on a refusal is
  * the reducer's own. The refusals in the order a player would think of them: is
  * this my town, has it the door, do I know this rite, is the town already
- * keeping one, and can I pay for it.
+ * keeping it or as many rites as it may (one, or two under The Double Feast),
+ * and can I pay for it.
  *
  * The clauses before the bank are in `riteClausesBeforeTheBank` below, and the
  * last one, the bank, is in `riteGate`. This function returns the gate's
@@ -1613,8 +1707,15 @@ function riteClausesBeforeTheBank(
   if (!hasAbility(state, playerId, riteAbility(rite))) {
     return `${def.name} is not known to ${player.name}`;
   }
-  const held = cityRite(state, city);
-  if (held !== null) return `${city.name} is already keeping ${riteDef(held).name}`;
+  // **A town keeps a rite once, and as many as it has places** (Devotion
+  // batch DV8, The Double Feast; the triage's reading 31). One place for a
+  // town whose empire lacks the card, so the first sentence is the old one
+  // word for word: the town keeps one rite, and that is the one it names.
+  const kept = cityRites(state, city);
+  if (kept.includes(rite)) return `${city.name} is already keeping ${def.name}`;
+  if (kept.length >= ritePlacesFor(state, playerId)) {
+    return `${city.name} is already keeping ${kept.map((id) => riteDef(id).name).join(' and ')}`;
+  }
   // **An offering needs something to be given to** (`RiteDef.atOnce`): the
   // faith becomes hammers for the front row, and a wonder is not hurried this way.
   if (def.atOnce?.hammersFromFaith === true) {
@@ -1913,10 +2014,19 @@ function isKeptRiteEntry(state: GameState, entry: TimedEffect): boolean {
 }
 
 /**
- * A town's timed list as it would stand after this rite were said there: any
- * rite the town is keeping taken off, as the prophet's word takes it off
- * (`clearCityRite`), then this rite's entries hung (`riteTimedEntries`). For a
- * town keeping nothing that is exactly what `performRiteAt` leaves.
+ * Is this timed entry part of one of these rites, kept by the town right now?
+ * `isKeptRiteEntry` narrowed to the rites `ritesDisplacedBy` names.
+ */
+function isDisplacedRiteEntry(state: GameState, entry: TimedEffect, rites: readonly RiteId[]): boolean {
+  return isKeptRiteEntry(state, entry) && (rites as readonly string[]).includes(entry.card);
+}
+
+/**
+ * A town's timed list as it would stand after this rite were said there: the
+ * rites a prophet's word would take off taken off (`ritesDisplacedBy`, the
+ * triage's reading 31), then this rite's entries hung (`riteTimedEntries`).
+ * For a town with a free place that is exactly what `performRiteAt` leaves,
+ * and for a town keeping nothing it is the same with nothing taken off.
  *
  * Built new; the town is not touched. `null` when the rite hangs nothing. The
  * rite preview (`explainRitePreview`, `cardImpact.ts`) reads a copy of the town
@@ -1930,23 +2040,29 @@ export function cityTimedWithRite(
 ): TimedEffect[] | null {
   const entries = riteTimedEntries(state, playerId, rite);
   if (entries === null) return null;
-  const kept = (city.timed ?? []).filter((entry) => !isKeptRiteEntry(state, entry));
+  const displaced = ritesDisplacedBy(state, city, rite);
+  const kept = (city.timed ?? []).filter((entry) => !isDisplacedRiteEntry(state, entry, displaced));
   return [...kept, ...entries];
 }
 
 /**
- * Takes whatever rite a town is keeping off it — the one thing that ends a
- * blessing early, and the prophet's empire-wide word is the only caller.
+ * Takes these rites off a town — the one thing that ends a blessing early,
+ * and the prophet's empire-wide word is the only caller. The rites are
+ * `ritesDisplacedBy`'s: every rite the town keeps when it has one place, and
+ * under The Double Feast the same rite or the older one, only when every
+ * place is taken (Devotion batch DV8, the triage's reading 31).
  *
- * A **splice of the live entries that name a rite**, not a broom: an expired
- * entry is already inert and `pruneTimedEffects` owns the dead paper. Withdrawn
- * rows are left where they are for `cityRite`'s reason — they are not a rite the
- * town is keeping, so they are not a rite anything may take away.
+ * A **splice of the live entries that name one of these rites**, not a broom:
+ * an expired entry is already inert and `pruneTimedEffects` owns the dead
+ * paper. Withdrawn rows are left where they are for `cityRite`'s reason —
+ * they are not a rite the town is keeping, so they are not a rite anything may
+ * take away. The entries left keep their order, which is what keeps the
+ * oldest rite first (`cityRites`).
  */
-function clearCityRite(state: GameState, city: City): void {
+function clearCityRite(state: GameState, city: City, rites: readonly RiteId[]): void {
   const timed = city.timed;
-  if (!timed) return;
-  const kept = timed.filter((entry) => !isKeptRiteEntry(state, entry));
+  if (!timed || rites.length === 0) return;
+  const kept = timed.filter((entry) => !isDisplacedRiteEntry(state, entry, rites));
   if (kept.length === timed.length) return;
   if (kept.length === 0) delete city.timed;
   else city.timed = kept;
@@ -2022,7 +2138,9 @@ export function ritePreview(rite: RiteId): string | null {
  *   · **no town is refused for keeping one already.** The prophet's word takes
  *     over from whatever a town was keeping (`clearCityRite`) — an act that
  *     skipped half a realm because half a realm was busy would be an act nobody
- *     could plan;
+ *     could plan. Under The Double Feast it takes a free place first, and the
+ *     place of the town's older rite only when both are taken
+ *     (`ritesDisplacedBy`, Devotion batch DV8);
  *   · **there is no target.** It lands everywhere the empire owns.
  *
  * What *is* asked: the prophet's own four questions (`prophetProblem`), that the
@@ -2124,6 +2242,9 @@ export interface EmpireRitePerformance {
  * because an outcome may only depend on an order the state carries (hard rule 2)
  * — each town losing whatever it was keeping and taking this instead, and each
  * re-seated through the one helper every mid-turn yield mutation goes through.
+ * Under The Double Feast a town loses only the rite `ritesDisplacedBy` names:
+ * the same rite, or its older rite when both of its places are taken, and
+ * nothing when a place is free (Devotion batch DV8, the triage's reading 31).
  *
  * **Each town it reaches starts a season** (Devotion batch DV4, the triage's
  * reading 9). So, in each town and in the same order, the `riteStarted` tally
@@ -2153,7 +2274,10 @@ export function empireRiteAt(
   let chapelCulture = 0;
   for (const city of state.cities) {
     if (city.ownerId !== player.id) continue;
-    clearCityRite(state, city);
+    // **A free place first** (Devotion batch DV8, the triage's reading 31):
+    // every rite the town keeps when it has one place, and under The Double
+    // Feast the same rite, or the older rite when both places are taken.
+    clearCityRite(state, city, ritesDisplacedBy(state, city, rite));
     const until = stampRite(state, player.id, rite, city);
     if (until !== null) expiresTurn = until;
     refreshCityDerived(state, city);

@@ -13,7 +13,10 @@
  *     that can be pressed, with its yield mark and "kept in N". A rite it does
  *     not know is greyed, names what teaches it, and cannot be pressed.
  *   - The towns as rows about 30px tall: towns keeping no rite first, in
- *     founding order, then towns keeping one, soonest free first.
+ *     founding order, then towns keeping one, soonest free first. Under The
+ *     Double Feast a town keeps two rites (Devotion batch DV8): a town
+ *     keeping one still has a free place, so it stays among the free towns
+ *     and says the rite it keeps, and a town keeping two is drawn with both.
  *   - With no rite selected, each free town has a "Start a rite" menu: every
  *     rite with what it would add in that town and its price, a rite the
  *     empire lacks greyed with what teaches it, and at the foot what is left
@@ -70,12 +73,15 @@ import {
   chargeCostWords,
   cityRite,
   cityRiteTurnsLeft,
+  cityRites,
   empireRiteGate,
   explainNextRung,
   isProphet,
   type RiteGateAnswer,
   riteCostFor,
   riteGate,
+  ritePlacesFor,
+  ritesDisplacedBy,
   riteTurnsFor,
 } from '../sim/religion';
 import { LIVE_RITE_IDS, type RiteId, riteDef } from '../sim/religionData';
@@ -350,7 +356,7 @@ export function riteChipVoice(
   const towns = state.cities.filter((city) => city.ownerId === seat);
   const kept = { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 };
   for (const city of towns) {
-    if (cityRite(state, city) !== rite) continue;
+    if (!cityRites(state, city).includes(rite)) continue;
     const pays = ritePaysNow(state, city, rite);
     for (const key of CITY_YIELD_KEYS) kept[key] += pays[key];
   }
@@ -503,12 +509,28 @@ export interface TownMenu {
   foot: string;
 }
 
-/** A town keeping no rite. */
+/** One rite a town keeps, as its row shows it. */
+export interface KeptRite {
+  rite: RiteId;
+  riteName: string;
+  turnsLeft: number;
+  /** The turns the bar is drawn against: what the rite would run if started now, never less than what is left. */
+  turnsTotal: number;
+  /** Started from this sheet on this visit. */
+  startedNow: boolean;
+}
+
+/**
+ * A town with a place for a rite: one keeping none, or under The Double Feast
+ * one keeping a single rite (Devotion batch DV8).
+ */
 export interface FreeTown {
   cityId: number;
   name: string;
   /** "follows your faith", "follows no faith". */
   faith: string;
+  /** The rites it already keeps, oldest first. Empty for a town keeping none. */
+  keeping: KeptRite[];
   /** Its place in the ranking, from 1, in rite mode. */
   rank: number | null;
   /** Rite mode: what the selected rite would add here. */
@@ -522,23 +544,23 @@ export interface FreeTown {
   focus: boolean;
 }
 
-/** A town keeping a rite. */
+/**
+ * A town keeping as many rites as it may: one, or two under The Double Feast
+ * (Devotion batch DV8).
+ */
 export interface KeptTown {
   cityId: number;
   name: string;
   faith: string;
-  rite: RiteId;
-  riteName: string;
-  turnsLeft: number;
-  /** The turns the bar is drawn against: what the rite would run if started now, never less than what is left. */
-  turnsTotal: number;
-  /** The turn it may take another rite. */
+  /** The rites it keeps, oldest first. */
+  rites: KeptRite[];
+  /** The turn it may take another rite: the turn its first place comes free. */
   freeOnTurn: number;
-  /** What the rite pays here now, from the town's own lines. */
+  /** What its rites pay here now, summed, from the town's own lines. */
   pays: VoiceFigure[];
-  /** For a rite that pays no yield: its clauses. */
+  /** For rites that pay no yield: their clauses. */
   words: string | null;
-  /** Started from this sheet on this visit. */
+  /** A rite in it was started from this sheet on this visit. */
   startedNow: boolean;
   focus: boolean;
 }
@@ -574,6 +596,12 @@ export interface RitesTabModel {
   bank: number;
   perTurn: number;
   cost: number;
+  /**
+   * How many rites a town of this seat may keep at once: one, or two under
+   * The Double Feast (`ritePlacesFor`, Devotion batch DV8). A town with a
+   * free place is a free town.
+   */
+  places: number;
   /** The rite whose mode is on, with its name, or `null`. */
   selected: { rite: RiteId; name: string } | null;
   /** "You have ended turn 131": the Start buttons are drawn but may not be pressed. */
@@ -597,13 +625,16 @@ export interface RitesTabModel {
 /**
  * The Rites tab's own count, printed on the tab itself: "6 kept · 8 free". Cheap,
  * so the sheet prints it on every tab without reading the rest of the model.
+ * A town is free while it has a place for a rite, so under The Double Feast a
+ * town keeping one rite counts as free (Devotion batch DV8).
  */
 export function ritesCount(state: GameState, seat: number): string {
+  const places = ritePlacesFor(state, seat);
   let kept = 0;
   let free = 0;
   for (const city of state.cities) {
     if (city.ownerId !== seat) continue;
-    if (cityRite(state, city) === null) free += 1;
+    if (cityRites(state, city).length < places) free += 1;
     else kept += 1;
   }
   return `${kept} kept · ${free} free`;
@@ -764,12 +795,13 @@ function realmLineFor(
   seat: number,
   selected: RiteId | null,
   cost: number,
-  keptRites: readonly RiteId[],
+  replacedRites: readonly RiteId[],
 ): RealmLine {
   // Which kept rites it would replace, each with how many towns keep it, in the
-  // order the towns were founded.
+  // order the towns were founded. Under The Double Feast a town with a free
+  // place loses nothing, so only the rites `ritesDisplacedBy` names are here.
   const counts: { rite: RiteId; towns: number }[] = [];
-  for (const rite of keptRites) {
+  for (const rite of replacedRites) {
     const held = counts.find((entry) => entry.rite === rite);
     if (held === undefined) counts.push({ rite, towns: 1 });
     else held.towns += 1;
@@ -862,12 +894,39 @@ export function ritesTabModel(
   const known = new Set<RiteId>(availableRites(state, seat));
   const visit = visitOn(view, state.turn);
   const towns = state.cities.filter((city) => city.ownerId === seat);
-  const keeping = new Map<number, RiteId>();
+  // Every rite each town keeps, oldest first (`cityRites`). A town is free
+  // while it keeps fewer than `places`: one place, or two under The Double
+  // Feast (Devotion batch DV8).
+  const places = ritePlacesFor(state, seat);
+  const keeping = new Map<number, RiteId[]>();
   for (const city of towns) {
-    const rite = cityRite(state, city);
-    if (rite !== null) keeping.set(city.id, rite);
+    const rites = cityRites(state, city);
+    if (rites.length > 0) keeping.set(city.id, rites);
   }
+  const isFull = (city: City): boolean => (keeping.get(city.id)?.length ?? 0) >= places;
   const selected = view.selected !== null && known.has(view.selected) ? view.selected : null;
+
+  // This visit's starts that the towns still keep: each town with the index
+  // of its latest start, and each town and rite that was started.
+  const startedNow = new Map<number, number>();
+  const startedRites = new Set<string>();
+  visit.started.forEach((start, at) => {
+    if (keeping.get(start.cityId)?.includes(start.rite) !== true) return;
+    startedNow.set(start.cityId, at);
+    startedRites.add(`${start.cityId}:${start.rite}`);
+  });
+  /** One rite a town keeps, as its row says it. */
+  const keptRite = (city: City, rite: RiteId): KeptRite => {
+    const turnsLeft = cityRiteTurnsLeft(state, city, rite);
+    return {
+      rite,
+      riteName: riteDef(rite).name,
+      turnsLeft,
+      turnsTotal: Math.max(turnsLeft, riteTurnsFor(state, seat, rite) ?? turnsLeft, 1),
+      startedNow: startedRites.has(`${city.id}:${rite}`),
+    };
+  };
+  const keptRitesOf = (city: City): KeptRite[] => (keeping.get(city.id) ?? []).map((rite) => keptRite(city, rite));
 
   // The strip: the rites this empire knows, in table order, then the ones it
   // lacks, greyed.
@@ -875,7 +934,7 @@ export function ritesTabModel(
   for (const rite of [...LIVE_RITE_IDS.filter((id) => known.has(id)), ...LIVE_RITE_IDS.filter((id) => !known.has(id))]) {
     const isKnown = known.has(rite);
     let keptIn = 0;
-    for (const held of keeping.values()) if (held === rite) keptIn += 1;
+    for (const held of keeping.values()) if (held.includes(rite)) keptIn += 1;
     chips.push({
       rite,
       name: riteDef(rite).name,
@@ -889,7 +948,7 @@ export function ritesTabModel(
   }
 
   // The free towns, in founding order, then ranked in rite mode.
-  const freeTowns = towns.filter((city) => !keeping.has(city.id));
+  const freeTowns = towns.filter((city) => !isFull(city));
   let ranked = freeTowns;
   /** True when the free towns are ranked (and numbered) by the selected rite. */
   let ranks = false;
@@ -969,6 +1028,7 @@ export function ritesTabModel(
       cityId: city.id,
       name: cityDisplayName(state, city),
       faith: townFaithWords(state, seat, city),
+      keeping: keptRitesOf(city),
       rank: ranks ? index + 1 : null,
       adds,
       look: looks.get(city.id) ?? null,
@@ -979,12 +1039,13 @@ export function ritesTabModel(
   });
 
   // The kept towns: this visit's starts first, newest first, then soonest free.
-  const startedNow = new Map<number, number>();
-  visit.started.forEach((start, at) => {
-    if (keeping.get(start.cityId) === start.rite) startedNow.set(start.cityId, at);
-  });
-  const keptTowns = towns.filter((city) => keeping.has(city.id));
-  const left = new Map<number, number>(keptTowns.map((city) => [city.id, cityRiteTurnsLeft(state, city)]));
+  // A town comes free when its first place does: the fewest turns left of
+  // any rite it keeps.
+  const keptTowns = towns.filter((city) => isFull(city));
+  const keptRites = new Map<number, KeptRite[]>(keptTowns.map((city) => [city.id, keptRitesOf(city)]));
+  const left = new Map<number, number>(
+    keptTowns.map((city) => [city.id, Math.min(...keptRites.get(city.id)!.map((rite) => rite.turnsLeft))]),
+  );
   const keptOrder = [...keptTowns].sort((a, b) => {
     const nowA = startedNow.get(a.id);
     const nowB = startedNow.get(b.id);
@@ -996,9 +1057,13 @@ export function ritesTabModel(
     return left.get(a.id)! - left.get(b.id)!;
   });
   const kept: KeptTown[] = keptOrder.map((city) => {
-    const rite = keeping.get(city.id)!;
-    const turnsLeft = left.get(city.id)!;
-    const pays = ritePaysNow(state, city, rite);
+    const rites = keptRites.get(city.id)!;
+    // What its rites pay now, summed over them: one town, one figure.
+    const pays = { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 };
+    for (const { rite } of rites) {
+      const paid = ritePaysNow(state, city, rite);
+      for (const key of CITY_YIELD_KEYS) pays[key] += paid[key];
+    }
     const figures = CITY_YIELD_KEYS.filter((key) => pays[key] !== 0).map((voice) => ({
       voice,
       amount: pays[voice],
@@ -1007,13 +1072,10 @@ export function ritesTabModel(
       cityId: city.id,
       name: cityDisplayName(state, city),
       faith: townFaithWords(state, seat, city),
-      rite,
-      riteName: riteDef(rite).name,
-      turnsLeft,
-      turnsTotal: Math.max(turnsLeft, riteTurnsFor(state, seat, rite) ?? turnsLeft, 1),
-      freeOnTurn: state.turn + turnsLeft,
+      rites,
+      freeOnTurn: state.turn + left.get(city.id)!,
       pays: figures,
-      words: figures.length === 0 ? riteClauseWords(rite) : null,
+      words: figures.length === 0 ? rites.map(({ rite }) => riteClauseWords(rite)).join(' · ') : null,
       startedNow: startedNow.has(city.id),
       focus: view.focusCityId === city.id,
     };
@@ -1024,8 +1086,9 @@ export function ritesTabModel(
   if (selected !== null) {
     const name = riteDef(selected).name;
     let ranking: string;
-    if (freeTowns.length === 0) ranking = 'Every town is keeping a rite, so none can take it now.';
-    else if (main === null || !ranks) {
+    if (freeTowns.length === 0) {
+      ranking = `Every town is keeping ${places === 1 ? 'a rite' : 'two rites'}, so none can take it now.`;
+    } else if (main === null || !ranks) {
       ranking = 'It adds the same in every town, so the free towns keep founding order.';
     } else {
       ranking = `Free towns ranked by the ${YIELD_NAME[main]} it would add, best first.`;
@@ -1057,6 +1120,7 @@ export function ritesTabModel(
     bank,
     perTurn,
     cost,
+    places,
     selected: selected === null ? null : { rite: selected, name: riteDef(selected).name },
     paused,
     chips,
@@ -1072,7 +1136,7 @@ export function ritesTabModel(
       seat,
       selected,
       cost,
-      keptTowns.map((city) => keeping.get(city.id)!),
+      towns.flatMap((city) => ritesDisplacedBy(state, city, selected)),
     ),
     count: ritesCount(state, seat),
   };
@@ -1238,7 +1302,18 @@ function drawFreeRow(town: FreeTown, model: RitesTabModel, handlers: RitesTabHan
   row.dataset.city = String(town.cityId);
   row.append(element('span', 'faith-town-rank', town.rank === null ? '' : String(town.rank)));
   row.append(townName(town.cityId, town.name, town.faith, handlers));
-  row.append(element('span', 'faith-town-mid', 'keeps no rite'));
+  // A town with a free place may already keep a rite under The Double Feast
+  // (Devotion batch DV8), and says which and for how long.
+  if (town.keeping.length === 0) {
+    row.append(element('span', 'faith-town-mid', 'keeps no rite'));
+  } else {
+    const mid = element('span', 'faith-town-mid');
+    for (const rite of town.keeping) {
+      mid.append(element('span', 'faith-town-rite', `keeping ${rite.riteName}`));
+      mid.append(element('span', 'faith-town-left', turnsLeftWords(rite.turnsLeft)));
+    }
+    row.append(mid);
+  }
   const pays = element('span', 'faith-town-pays');
   if (town.adds !== null) drawFigures(pays, town.adds.figures, town.adds.once, town.adds.words);
   row.append(pays);
@@ -1273,7 +1348,29 @@ function drawFreeRow(town: FreeTown, model: RitesTabModel, handlers: RitesTabHan
   return out;
 }
 
-/** One kept town's row. */
+/** "1 turn left", "4 turns left". */
+function turnsLeftWords(turns: number): string {
+  return `${turns} ${turns === 1 ? 'turn' : 'turns'} left`;
+}
+
+/** One kept rite: its name, a bar of the turns left, and the turns left. */
+function drawKeptRite(into: HTMLElement, kept: KeptRite): void {
+  const rite = element('span', 'faith-town-rite', kept.riteName);
+  if (kept.startedNow) rite.append(element('span', 'faith-town-new', 'started now'));
+  into.append(rite);
+  const bar = element('span', 'faith-town-bar');
+  bar.setAttribute('aria-hidden', 'true');
+  const fill = element('i', 'faith-town-bar-fill');
+  fill.style.width = `${Math.round((Math.min(kept.turnsLeft, kept.turnsTotal) / kept.turnsTotal) * 100)}%`;
+  bar.append(fill);
+  into.append(bar);
+  into.append(element('span', 'faith-town-left', turnsLeftWords(kept.turnsLeft)));
+}
+
+/**
+ * One kept town's row. A town keeping two rites under The Double Feast
+ * (Devotion batch DV8) draws one line for each, stacked in the middle cell.
+ */
 function drawKeptRow(town: KeptTown, handlers: RitesTabHandlers): HTMLElement {
   const row = element(
     'div',
@@ -1282,19 +1379,16 @@ function drawKeptRow(town: KeptTown, handlers: RitesTabHandlers): HTMLElement {
   row.dataset.city = String(town.cityId);
   row.append(element('span', 'faith-town-rank'));
   row.append(townName(town.cityId, town.name, town.faith, handlers));
-  const mid = element('span', 'faith-town-mid');
-  const rite = element('span', 'faith-town-rite', town.riteName);
-  if (town.startedNow) rite.append(element('span', 'faith-town-new', 'started now'));
-  mid.append(rite);
-  const bar = element('span', 'faith-town-bar');
-  bar.setAttribute('aria-hidden', 'true');
-  const fill = element('i', 'faith-town-bar-fill');
-  fill.style.width = `${Math.round((Math.min(town.turnsLeft, town.turnsTotal) / town.turnsTotal) * 100)}%`;
-  bar.append(fill);
-  mid.append(bar);
-  mid.append(
-    element('span', 'faith-town-left', `${town.turnsLeft} ${town.turnsLeft === 1 ? 'turn' : 'turns'} left`),
-  );
+  const mid = element('span', town.rites.length > 1 ? 'faith-town-mid is-stacked' : 'faith-town-mid');
+  if (town.rites.length === 1) {
+    drawKeptRite(mid, town.rites[0]!);
+  } else {
+    for (const kept of town.rites) {
+      const line = element('span', 'faith-town-kept-rite');
+      drawKeptRite(line, kept);
+      mid.append(line);
+    }
+  }
   row.append(mid);
   const pays = element('span', 'faith-town-pays');
   drawFigures(pays, town.pays, [], town.words);
@@ -1364,11 +1458,17 @@ export function drawRitesTab(model: RitesTabModel, handlers: RitesTabHandlers): 
   if (model.free.length > 0 || model.kept.length > 0) {
     list.append(groupHead(`Free · ${model.free.length}`, model.freeNote));
     for (const line of model.refusalHead) list.append(refusalLineElement(line.text, 'head', line.mark));
-    if (model.free.length === 0) list.append(element('p', 'faith-town-empty', 'Every town is keeping a rite.'));
+    if (model.free.length === 0) {
+      list.append(
+        element('p', 'faith-town-empty', `Every town is keeping ${model.places === 1 ? 'a rite' : 'two rites'}.`),
+      );
+    }
     for (const town of model.free) list.append(...drawFreeRow(town, model, handlers));
   }
   if (model.kept.length > 0) {
-    list.append(groupHead(`Keeping a rite · ${model.kept.length}`, model.keptNote));
+    list.append(
+      groupHead(`Keeping ${model.places === 1 ? 'a rite' : 'two rites'} · ${model.kept.length}`, model.keptNote),
+    );
     for (const town of model.kept) list.append(drawKeptRow(town, handlers));
   }
   tab.append(list);

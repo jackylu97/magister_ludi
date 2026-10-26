@@ -609,6 +609,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Caliphate | 3 | ○ | S | Devout towns cost no authority. |
 | The Abbeys | 3 | ○ | S | Your apostles may raise holy sites, as prophets do. |
 | The Interdict | 4 | ○ | S | A rival's town that follows your religion adds no production toward a Magnum Opus. |
+| The Turning of Swords | 3 | ○ | S | An enemy unit you kill on land that follows your religion joins your side instead, at most once a turn. |
+| The Double Feast | 4 | ○ | S | Your towns may keep two rites at once. |
 
 ### Scientific
 
@@ -996,6 +998,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Caliphate** — A town that stops following your religion costs authority again. While this is seated, the reward of Commission: The State Church has nothing left to do.
 - **The Abbeys** — An apostle can raise a holy site only once you have founded a religion, so it never founds one. It pays what a prophet pays for a further holy site.
 - **The Interdict** — Only a town building the Magnum Opus is stopped, and only while it follows your religion. Your own towns are never stopped.
+- **The Turning of Swords** — Only your own attack turns a unit, and only a land soldier of an empire you are at war with. A city's garrison and a barbarian never turn. The unit joins at full health and costs you no upkeep. It counts as a loss in its empire's war, but not as a kill or a death for your cards or theirs.
+- **The Double Feast** — A town cannot keep the same rite twice. A prophet's rite over your whole realm takes a free place, or the place of the older rite. Cards that ask whether a town keeps a rite do not pay twice, but cards that count rites started count both.
 - **Common Tools** — † the hammers are for workers and buildings, and for nothing else
 - **Road Crews** — † a worker that wakes on one of your roads travels further that day
 - **Road Maintenance** — † the upkeep of your roads is reduced, up to a limit each turn

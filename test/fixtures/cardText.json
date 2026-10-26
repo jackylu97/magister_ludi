@@ -7015,6 +7015,18 @@
     "text": "your apostles may raise a further holy site, as your prophets do, once you have founded a religion"
    }
   ],
+  "theTurningOfSwords": [
+   {
+    "raw": "once a turn, an enemy military unit your attack kills on land that follows your religion, outside a city, joins you at full health instead of dying",
+    "text": "once a turn, an enemy military unit your attack kills on land that follows your religion, outside a city, joins you at full health instead of dying"
+   }
+  ],
+  "theDoubleFeast": [
+   {
+    "raw": "each of your cities may keep two different rites at once",
+    "text": "each of your cities may keep two different rites at once"
+   }
+  ],
   "theMonasticTable": [
    {
     "raw": "+2 food, +2 production in every city while it is keeping a rite",

@@ -39,7 +39,7 @@
  * Every figure is the simulation's: `explainReligionLedgerByPlace` (the
  * Ledger's attribution, split town by town for the hover cards),
  * `explainFaithLedger`, `describeCard` and `describeEffects` for the clauses,
- * `cityRite` and `cityRiteTurnsLeft` for the rites' towns, `explainNextRung` for
+ * `cityRites` and `cityRiteTurnsLeft` for the rites' towns, `explainNextRung` for
  * the next god. The tab sends no command.
  *
  * How it is split
@@ -64,8 +64,8 @@ import type { LedgerClass } from '../sim/ledgerClass';
 import { seatName } from '../sim/leaderData';
 import { readEmpire } from '../sim/readings';
 import {
-  cityRite,
   cityRiteTurnsLeft,
+  cityRites,
   explainNextRung,
   holySites,
   nextRungWords,
@@ -414,7 +414,9 @@ export function bonusesTabModel(state: GameState, seat: number): BonusesModel {
     holy.push(plaqueCard(state, seat, religion, sites, take(`founderShare:${religion.id}`)));
   }
   for (const rite of RITE_IDS) {
-    const keeping = ours.filter((city) => cityRite(state, city) === rite);
+    // Every rite a town keeps, so a town keeping two under The Double Feast
+    // (Devotion batch DV8) is a chip on both cards.
+    const keeping = ours.filter((city) => cityRites(state, city).includes(rite));
     const key = `card:${rite}`;
     if (keeping.length === 0 && !byKey.has(key)) continue;
     const entry = take(key);
@@ -428,7 +430,7 @@ export function bonusesTabModel(state: GameState, seat: number): BonusesModel {
       clauses: describeCard(rite),
       notes: [],
       chips: keeping.map((city) => {
-        const left = cityRiteTurnsLeft(state, city);
+        const left = cityRiteTurnsLeft(state, city, rite);
         return { label: cityDisplayName(state, city), turnsLeft: left, turnsTotal: Math.max(left, fresh, 1) };
       }),
       where: null,

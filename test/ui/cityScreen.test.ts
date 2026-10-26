@@ -467,9 +467,12 @@ describe('the city mode', () => {
     // bank is only short of says "need N".
     expect(card).toContain('const gate = riteGate(state, seat, city.id, row.id);');
     expect(card).toContain('shortfall: gate.shortfall,');
-    // The refusals, once per reason, and the turns left on the rite it keeps.
+    // The refusals, once per reason, and the turns left on each rite it keeps:
+    // one line a rite, so a town keeping two under The Double Feast (Devotion
+    // batch DV8) says both.
     expect(card).toContain('const plan = planRefusals(refused);');
-    expect(card).toContain('cityRiteTurnsLeft(state, city)');
+    expect(card).toContain('for (const held of cityRites(state, city)) {');
+    expect(card).toContain('cityRiteTurnsLeft(state, city, held)');
     expect(card).toContain('performRite(city.id, row.id)');
     // The rites not yet learnt fold away, each with what teaches it.
     expect(card).toContain("row.requiredTechName !== null");

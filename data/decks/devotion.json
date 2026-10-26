@@ -1960,6 +1960,44 @@
       ],
       "note": "An apostle can raise a holy site only once you have founded a religion, so it never founds one. It pays what a prophet pays for a further holy site."
     },
+    "theTurningOfSwords": {
+      "name": "The Turning of Swords",
+      "decks": [
+        "devotion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "military",
+      "flavor": "He fell among people who prayed as his mother had, and when he rose they gave him back his spear.",
+      "text": "An enemy unit you kill on land that follows your religion joins your side instead, at most once a turn.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "faithfulKillsConvert"
+        }
+      ],
+      "note": "Only your own attack turns a unit, and only a land soldier of an empire you are at war with. A city's garrison and a barbarian never turn. The unit joins at full health and costs you no upkeep. It counts as a loss in its empire's war, but not as a kill or a death for your cards or theirs."
+    },
+    "theDoubleFeast": {
+      "name": "The Double Feast",
+      "decks": [
+        "devotion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "The harvest feast fell on the saint's day, and the town kept both.",
+      "text": "Your towns may keep two rites at once.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "twoRites"
+        }
+      ],
+      "note": "A town cannot keep the same rite twice. A prophet's rite over your whole realm takes a free place, or the place of the older rite. Cards that ask whether a town keeps a rite do not pay twice, but cards that count rites started count both."
+    },
     "theMonasticTable": {
       "name": "The Monastic Table",
       "decks": [

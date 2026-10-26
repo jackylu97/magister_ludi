@@ -170,11 +170,15 @@ describe('the rows', () => {
     expect(shown.free.map((town) => town.cityId)).toEqual([towns[0]!.id, towns[2]!.id]);
     expect(shown.kept.map((town) => town.cityId)).toEqual([towns[3]!.id, towns[1]!.id]);
     const [older, newer] = shown.kept;
-    expect(older!.turnsLeft).toBeLessThan(newer!.turnsLeft);
+    // Each town keeps one rite, so each row holds one.
+    expect(older!.rites).toHaveLength(1);
+    expect(newer!.rites).toHaveLength(1);
+    const [olderRite] = older!.rites;
+    expect(olderRite!.turnsLeft).toBeLessThan(newer!.rites[0]!.turnsLeft);
     // "free on turn N" is this turn plus what is left.
-    expect(older!.freeOnTurn).toBe(state.turn + older!.turnsLeft);
-    expect(older!.riteName).toBe('Omen Reading');
-    expect(older!.turnsTotal).toBeGreaterThanOrEqual(older!.turnsLeft);
+    expect(older!.freeOnTurn).toBe(state.turn + olderRite!.turnsLeft);
+    expect(olderRite!.riteName).toBe('Omen Reading');
+    expect(olderRite!.turnsTotal).toBeGreaterThanOrEqual(olderRite!.turnsLeft);
     expect(shown.count).toBe('2 kept · 2 free');
   });
 
@@ -342,7 +346,8 @@ describe('starting a rite', () => {
     const shown = model(state, view);
     // Rite mode stays on, so the next town down the list is one more click.
     expect(shown.selected?.rite).toBe(OMEN);
-    expect(shown.kept[0]).toMatchObject({ cityId: first.cityId, startedNow: true, riteName: 'Omen Reading' });
+    expect(shown.kept[0]).toMatchObject({ cityId: first.cityId, startedNow: true });
+    expect(shown.kept[0]!.rites[0]).toMatchObject({ riteName: 'Omen Reading', startedNow: true });
     expect(shown.free.map((town) => town.cityId)).not.toContain(first.cityId);
     expect(shown.bank).toBe(cost / 2);
     expect(shown.free.map((town) => town.rank)).toEqual([1, 2, 3]);
@@ -552,8 +557,9 @@ describe('the sheet’s wiring', () => {
     expect(send).toContain('const refusal = riteError(state, seat, cityId, rite);');
     expect(send).toContain('options.onRefuse?.(refusal);');
     expect(send).toContain('send(cityId, rite);');
-    // Recorded only when the board shows the town keeping the rite.
-    expect(send).toContain('cityRite(after, city) === rite');
+    // Recorded only when the board shows the town keeping the rite, among
+    // the rites it keeps (two under The Double Feast, Devotion batch DV8).
+    expect(send).toContain('cityRites(after, city).includes(rite)');
     expect(send).toContain('noteRiteStarted(');
     // The page sends it the way the city screen does.
     expect(uiSource('main.ts')).toContain('performRite: (cityId, rite) => controls.performRite(cityId, rite),');

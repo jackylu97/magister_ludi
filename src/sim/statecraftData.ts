@@ -4491,7 +4491,19 @@ export type ActionRuleId =
    * (`chargeCostOf`). The unit sheet shows the row to an apostle while the
    * rule holds.
    */
-  | 'apostlesPlantHolySites';
+  | 'apostlesPlantHolySites'
+  /**
+   * **This empire's towns may keep two different rites at once** (Devotion
+   * batch DV8, The Double Feast; the triage's reading 31). Read in one place,
+   * `ritePlacesFor` (`religion.ts`), which answers two places for a town of
+   * an empire that holds the rule and one for every other town. The rite gate
+   * (`riteGate`) refuses a rite the town already keeps, or a town whose places
+   * are all taken. A prophet's rite over the realm takes a free place, or the
+   * place of the town's oldest rite when every place is taken
+   * (`ritesDisplacedBy`). The Votive Offering and the Restoring of the Host
+   * take a place while their mark runs.
+   */
+  | 'twoRites';
 
 /**
  * Something about the world that stops being true — or starts.
@@ -4894,7 +4906,26 @@ export type BehaviorRuleId =
    * The holder's own towns are never stopped. `opusSiege`'s sibling, at the
    * same gate of step 13 of `docs/yields.md`.
    */
-  | 'opusInterdict';
+  | 'opusInterdict'
+  /**
+   * **An enemy soldier this empire kills on ground that follows its religion
+   * joins its side instead** (Devotion batch DV8, The Turning of Swords; the
+   * triage's reading 30). `barbarianKillsConvert` widened from the wild to
+   * the empires and held to the faith's ground. Read in `applyCombat`
+   * (`combat.ts`) beside that rule, through `cardTurningSides`.
+   *
+   * The attack of this empire kills a land military unit of an empire it is
+   * at war with, on a land hex that a town following a religion this empire
+   * is paid by owns (the `followingTerritory` reading). The unit is not a
+   * barbarian and does not stand in a town. It changes sides at full health
+   * through `captureUnit`, so it costs no upkeep. As with the barbarian rule
+   * it is a capture and not a kill: no kill or death riders and no kill or
+   * loss tallies. The loser's war record counts it (`recordWarLoss`).
+   *
+   * At most once a turn for each card that holds the rule, by an absolute
+   * stamp (`PlayerStatecraft.sidesTurned`).
+   */
+  | 'faithfulKillsConvert';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId =

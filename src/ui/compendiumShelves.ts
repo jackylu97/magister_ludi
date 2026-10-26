@@ -143,7 +143,7 @@ export const SHELF_INTROS: Partial<Record<CompendiumSectionId, CompendiumEntry>>
   // prophet can say one over every town at once (`docs/religion-v2.md`, Rites).
   rite: lead('rite', 'About rites', '☩', [
     'A rite is a temporary blessing that a town pays for in faith. Any of your towns can say a rite your empire knows, and a prophet can say one over every town you own at once.',
-    'Most rites last a stated number of turns from the turn they are said; a few do their work at once instead. A town keeps only one rite at a time, and the price in faith rises with each age.',
+    'Most rites last a stated number of turns from the turn they are said; a few do their work at once instead. A town keeps only one rite at a time unless an Order lets it keep more, and the price in faith rises with each age.',
     'Each entry below gives who can say a rite, how long it lasts, what it does, and the technology or Order that teaches it.',
   ]),
   greatPerson: lead('greatPerson', 'About great people', '★', [

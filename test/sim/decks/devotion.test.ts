@@ -206,19 +206,19 @@ function linesOf(state: GameState, city: City, card: string) {
 // --- the shelf ---------------------------------------------------------------
 
 describe('the Devotion deck folds', () => {
-  it('carries 93 rows: 64 live, none deferred and 29 retired', () => {
+  it('carries 95 rows: 66 live, none deferred and 29 retired', () => {
     // Batch DV1: 77 rows before, less the six that moved to common.json. Four
     // rows retired, three live and one deferred. Batch DV2 added seven live
     // rows, batch DV3 four more, batch DV4 three more, batch DV5 three more,
     // and batch DV6 two more. Batch DV7 added three more and dealt The
-    // Interdict, the last deferred row.
-    expect(DEVOTION).toHaveLength(93);
-    expect(LIVE).toHaveLength(64);
+    // Interdict, the last deferred row. Batch DV8 added two more.
+    expect(DEVOTION).toHaveLength(95);
+    expect(LIVE).toHaveLength(66);
     expect(DEFERRED).toHaveLength(0);
     expect(RETIRED).toHaveLength(29);
   });
 
-  it('spreads its 64 standing rows across Tiers 0 to IV as 8, 7, 21, 15 and 13', () => {
+  it('spreads its 66 standing rows across Tiers 0 to IV as 8, 7, 21, 16 and 14', () => {
     // Batch DV1 moved The Second Prophet, The Living Hymnal and The Mission
     // from Tier I to Tier II, and The Conversion of Kings and The Pious Masons
     // from Tier IV to Tier III. Batch DV2 added three rows at Tier II, three
@@ -228,10 +228,11 @@ describe('the Devotion deck folds', () => {
     // Parishes, Commission: The State Church and The Confessors (Tier II).
     // Batch DV6 added Pentecost and The Mass Baptisms (Tier III). Batch DV7
     // added The Anchorites (Tier II), and The Caliphate and The Abbeys (Tier
-    // III).
-    expect(STANDING).toHaveLength(64);
+    // III). Batch DV8 added The Turning of Swords (Tier III) and The Double
+    // Feast (Tier IV).
+    expect(STANDING).toHaveLength(66);
     const perBand = BANDS.map((band) => STANDING.filter((id) => orderDef(id).band === band).length);
-    expect(perBand).toEqual([8, 7, 21, 15, 13]);
+    expect(perBand).toEqual([8, 7, 21, 16, 14]);
   });
 
   it('names its own deck on every row, with a band and a rarity', () => {
@@ -929,8 +930,8 @@ describe('the Devotion deck: the sheet of record', () => {
     expect(shared).toHaveLength(29);
   });
 
-  it('types every listed row, 64 of this file and 29 shared, and nothing else of this file', () => {
-    expect(LISTED).toHaveLength(64);
+  it('types every listed row, 66 of this file and 29 shared, and nothing else of this file', () => {
+    expect(LISTED).toHaveLength(66);
     for (const id of DEVOTION) {
       const def = orderDef(id);
       if (def.retired === true) expect(def.type, id).toBeUndefined();

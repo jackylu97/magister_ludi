@@ -46,7 +46,7 @@
 
 import { createModalShell } from './modalShell';
 import { type CardImpactSheet, cardImpactSheet } from '../sim/cardImpact';
-import { cityRite, empireRiteError, riteError } from '../sim/religion';
+import { cityRites, empireRiteError, riteError } from '../sim/religion';
 import type { PurchasableItem } from '../sim/purchase';
 import type { RiteId } from '../sim/religionData';
 import { type GameState, playerById } from '../sim/state';
@@ -234,7 +234,9 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     send(cityId, rite);
     const after = options.getState();
     const city = after.cities.find((one) => one.id === cityId);
-    if (city !== undefined && cityRite(after, city) === rite) {
+    // Among the rites it keeps, so a second rite under The Double Feast
+    // (Devotion batch DV8) is recorded too.
+    if (city !== undefined && cityRites(after, city).includes(rite)) {
       ritesView = noteRiteStarted(
         viewFor(after, seat),
         after.turn,
@@ -268,7 +270,7 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     const bank = playerById(after, seat)?.faithPool ?? 0;
     if (bank < before) {
       const towns = after.cities
-        .filter((city) => city.ownerId === seat && cityRite(after, city) === rite)
+        .filter((city) => city.ownerId === seat && cityRites(after, city).includes(rite))
         .map((city) => city.id);
       ritesView = noteRealmRite(viewFor(after, seat), after.turn, rite, towns, before, bank);
     }

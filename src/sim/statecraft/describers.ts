@@ -6635,6 +6635,9 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   chargePrice: 'one act of your religious units costs a different number of charges',
   apostlesPlantHolySites:
     'your apostles may raise a further holy site, as your prophets do, once you have founded a religion',
+  // Devotion batch DV8, The Double Feast. "Different" because the same rite is
+  // never kept twice in one town.
+  twoRites: 'each of your cities may keep two different rites at once',
   capitalBuysWithoutLimit: 'your capital may buy as many units in a turn as it can pay for',
   goldBuysWonders: 'you may buy world wonders with gold',
   // Said as the bank that opens, with the price in the same breath: a player who
@@ -6788,6 +6791,12 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // sentence with the faith in place of the siege. Your own cities are never
   // stopped, so "rival" stays.
   opusInterdict: 'a rival city that follows your religion adds no production toward a Magnum Opus',
+  // Devotion batch DV8, The Turning of Swords (`BehaviorRuleId`). Blood
+  // Brothers' sentence for an empire's soldier on the faith's ground. It says
+  // "your attack" and "outside a city", because a soldier that kills yours, or
+  // a city's garrison, does not turn. "On land" leaves ships out.
+  faithfulKillsConvert:
+    'once a turn, an enemy military unit your attack kills on land that follows your religion, outside a city, joins you at full health instead of dying',
 };
 
 /**

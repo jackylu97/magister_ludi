@@ -1140,8 +1140,8 @@ function ghostDiffLines(
  * ranks free towns by it (`docs/plans/faith-screen-f1.md`, the Rites tab).
  *
  * The ghost is the board with one town replaced by a copy wearing the rite
- * (`cityTimedWithRite`: any rite the town keeps taken off, then this one hung
- * exactly as `riteTimedEntries` would hang it). Everything else is
+ * (`cityTimedWithRite`: the rites a prophet's word would take off taken off,
+ * then this one hung exactly as `riteTimedEntries` would hang it). Everything else is
  * `explainCardImpact`'s method (`ghostDiffLines`): the towns, the realm, the
  * meters and the knock-ons, read on both sides and diffed. So a card that pays
  * the capital for every town keeping a rite (The Priest-Astronomers), or one
@@ -1153,9 +1153,11 @@ function ghostDiffLines(
  * `occasion` line: `foldCardOccasions` holds it and the per-turn figure does not.
  *
  * The empty list for a town this seat does not hold and for a rite that hangs
- * nothing. A town already keeping a rite is read as the prophet's word would
- * leave it, the old rite off and this one on, although the town could not say a
- * second rite itself (`riteError`); the screen asks only about free towns.
+ * nothing. A town with a free place keeps what it keeps and gains this one:
+ * under The Double Feast (Devotion batch DV8) that is a town keeping one rite.
+ * A town with no free place is read as the prophet's word would leave it, its
+ * older rite off and this one on (`ritesDisplacedBy`), although the town could
+ * not say the rite itself (`riteError`); the screen asks only about free towns.
  *
  * Pure: nothing in `state` is touched, nothing is rolled, and the same question
  * asked twice gets the same list.

@@ -113,7 +113,8 @@ world-scale counts live here.
 
 ## Rites
 
-A city’s verb, bought with faith, one at a time per town. The tree teaches it and the
+A city’s verb, bought with faith, one at a time per town (two different rites at once
+under The Double Feast, Devotion batch DV8). The tree teaches it and the
 bank pays for it; the effects then stand on the town for the Duration column’s turns.
 The last four rows are taught by Devotion Orders, not by the tree: Rite of Fasting by
 The Fast's charter, Votive Offering while The Votive Gifts is seated, Restoring of the

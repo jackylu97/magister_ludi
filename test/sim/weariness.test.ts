@@ -555,6 +555,13 @@ describe('the register of the places that record a loss', () => {
       'combat.ts#applyCombat',
       'combat.ts#applyCombat',
       'combat.ts#applyCombat',
+      // A defender turned to the attacker's side under The Turning of Swords
+      // (Devotion batch DV8, the triage's reading 30). The unit does not die,
+      // so no kill or loss tally is written, but its empire has lost a soldier
+      // to the enemy, so the war records a unit lost, as it does for a
+      // civilian captured on arrival. It writes no `recordWarCapture`: that
+      // records towns taken, and no town changes hands.
+      'combat.ts#applyCombat',
       // A town taken by force.
       'combat.ts#captureCity',
     ]);

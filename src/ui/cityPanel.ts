@@ -215,7 +215,7 @@ import {
 } from './figures';
 import { prefersReducedMotion } from './motion';
 import type { RiteOption } from './controls';
-import { cityRite, cityRiteTurnsLeft, riteGate } from '../sim/religion';
+import { cityRiteTurnsLeft, cityRites, riteGate } from '../sim/religion';
 import { type RiteId, riteDef } from '../sim/religionData';
 import { apostlesRaiseHolySites, chargeCostWords } from '../sim/religion';
 import { createInfoCard } from './infoCard';
@@ -4467,7 +4467,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    *   - the headline (`cityFaithHeadline`), the band badge's sentence in full,
    *     and one click deeper every faith with a claim on the town
    *     (`renderFollowers`, the old Faith disclosure's whole contents, kept);
-   *   - the rite the town is keeping, and the turns left on it;
+   *   - the rite the town is keeping, and the turns left on it: one line a
+   *     rite, so a town keeping two under The Double Feast (Devotion batch
+   *     DV8) says both;
    *   - one row per rite this empire knows: its name and its price in faith
    *     (`priceCell.ts`). The price is the control, because a rite is one verb,
    *     spending faith, so the name is a label. What it does and for how long
@@ -4506,9 +4508,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       if (every) card.append(every);
     }
 
-    const held = cityRite(state, city);
-    if (held !== null) {
-      const left = cityRiteTurnsLeft(state, city);
+    for (const held of cityRites(state, city)) {
+      const left = cityRiteTurnsLeft(state, city, held);
       card.append(
         element(
           'p',

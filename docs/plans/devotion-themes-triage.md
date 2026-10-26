@@ -417,6 +417,8 @@ The first eleven come from section 12, from R1 and from section 11. The rest are
 - **Done-gate:** `npx vitest run test/sim/decks/devotionRuleBreakers.test.ts test/sim/combat.test.ts test/sim/war.test.ts test/sim/religion.test.ts test/sim/ritePreview.test.ts test/ui/ritesTab.test.ts test/ui/riteFeedback.test.ts test/ui/cityPanel.test.ts test/ui/religionScreen.test.ts test/sim/decks.test.ts test/sim/statecraft.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`.
 - **After DV8 every Devotion card plays as written:** 66 of 66. 28 of the 29 shared cards do; Sacred Patronage waits for the MG plan.
 
+- **Built (2026-10-26):** as planned. The gate passed: the type check, 9,812 core tests and the build. Schema 190. **Every Devotion card now plays as written (66 of 66).** The Turning of Swords is the rule `faithfulKillsConvert`, read in Blood Brothers' clause in `applyCombat`, with one `captureUnit` call still; the stamp is `PlayerStatecraft.sidesTurned`; a turning records a war loss (registered in `weariness.test.ts`), not a capture. The Double Feast is the rule `twoRites`, read by `ritePlacesFor`; `cityRites` lists a town's rites and `cityRite` still answers "keeps any rite"; no stored shape changed. The rites tab, the city panel, the faith screen and the bonuses tab show two rites. Readings 51 to 61 (in the batch's report), among them: the older rite is the one started first; a prophet's rite renews a rite the town keeps; a ranged kill also turns a unit. Not done: no combat forecast says a kill would turn the unit; the bots already start second rites through `riteError` (DV9 checks it).
+
 ### DV9: the bots
 
 - **Builds:**

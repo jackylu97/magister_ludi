@@ -3663,6 +3663,13 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       if (effect.rule === 'chargePrice') return ctx.ai.score.unknownEffect;
       if (effect.rule === 'apostlesPlantHolySites') return ctx.ai.score.unknownEffect;
       if (effect.rule === 'opusInterdict') return ctx.ai.score.unknownEffect;
+      // **The Double Feast and The Turning of Swords** (Devotion batch DV8)
+      // are stand-ins until batch DV9 prices them: a second rite in each
+      // town, and an enemy soldier a turn won on the faith's ground. The
+      // bots' rite plan already asks the rite gate town by town, so it starts
+      // a second rite wherever the gate allows one.
+      if (effect.rule === 'twoRites') return ctx.ai.score.unknownEffect;
+      if (effect.rule === 'faithfulKillsConvert') return ctx.ai.score.unknownEffect;
       // **Officials by Merit's refusal** (Magisterial batch MG6) costs this bot
       // nothing: it rerolls only a free belief hand (`beliefRedeal`), never an
       // Order hand. The stand-in until batch MG17 prices the card.

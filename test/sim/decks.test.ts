@@ -620,8 +620,10 @@ describe('the schema, as landed', () => {
     // **And Magisterial batch MG7** (the council's moments): three more. The
     // Sed Festival, The Pandects and Commission: The Golden Bull are new
     // Magisterial rows.
-    expect(live).toBe(594);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(594);
+    // **And Devotion batch DV8** (the two largest rule-breakers): two more.
+    // The Turning of Swords and The Double Feast are new Devotion rows.
+    expect(live).toBe(596);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(596);
   });
 
   /**
@@ -1011,7 +1013,11 @@ describe('the schema, as landed', () => {
     // held, a commission may ask for a council in order and offer a Doctrine,
     // and three Magisterial cards are dealt. So a v188 log's Magisterial
     // hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(189);
+    // 190 since Devotion batch DV8 (the two largest rule-breakers): an enemy
+    // soldier killed on the faith's ground may change sides, a town may keep
+    // two rites, and two Devotion cards are dealt. So a v189 log's Devotion
+    // hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(190);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

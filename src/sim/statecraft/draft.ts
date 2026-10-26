@@ -637,6 +637,23 @@ export interface PlayerStatecraft {
    */
   riderTurns?: { card: CardId; turn: number }[];
   /**
+   * **The turn each card holding the `faithfulKillsConvert` rule last turned
+   * an enemy soldier to this empire's side** (Devotion batch DV8, The Turning
+   * of Swords; the triage's reading 30).
+   *
+   * `riderTurns`' shape and its reasons: an absolute stamp compared against
+   * `state.turn`, so nothing ticks it and a new turn is the whole of the
+   * reset; a list rather than a map, so no outcome depends on a Map's order;
+   * and keyed by the card, because "at most once a turn" is the card's
+   * promise. A list of its own, because `riderTurns` belongs to the windfall
+   * riders and has one writer and one reader of its own.
+   *
+   * Written in one place (`stampSidesTurned`, called from `applyCombat`) and
+   * read in one (`cardTurningSides`). Optional, so a seat that has never
+   * turned a soldier serialises as it did before the field existed.
+   */
+  sidesTurned?: { card: CardId; turn: number }[];
+  /**
    * **The commissions this empire has fulfilled**, in the order they were
    * fulfilled, with the turn each goal was met on (batch C,
    * `docs/plans/deck-implementation.md`). Written in exactly one place,

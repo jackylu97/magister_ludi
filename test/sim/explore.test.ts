@@ -1139,10 +1139,22 @@ describe('determinism', () => {
    * no moment is paid and no Doctrine offer opens. Checked with the change in
    * place and the version printed as 188, which gives the hashes of Devotion
    * batch DV7 exactly.
+   *
+   * **Devotion batch DV8 (the two largest rule-breakers, schema 190) moved
+   * the hash and not the length** at both seeds: 189 became 190, and that is
+   * all. The batch adds a rule that turns an enemy soldier killed on ground
+   * that follows the killer's religion, with a turn stamp on the seat
+   * (`PlayerStatecraft.sidesTurned`), a rule that gives a town two places
+   * for rites, and two card rows. Nobody here founds a religion, drafts or
+   * says a rite, so no soldier turns, no stamp is written and no town keeps a
+   * rite. No seat here holds either rule, so every kill on this board still
+   * kills. Checked with the change in
+   * place and the version printed as 189, which gives the hashes of
+   * Magisterial batch MG7 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'a630e873:188976',
-    2026: 'ef5a6716:188554',
+    11: '4253d395:188976',
+    2026: 'd5170e2c:188554',
   };
 
   for (const seed of [11, 2026]) {

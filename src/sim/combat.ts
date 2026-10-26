@@ -359,6 +359,9 @@ import { cardAmplifier, cardAmplifierFlat, lawCountsStrikes } from './statecraft
 // Scientific batch S9, The Breaching Batteries: the share of a town's banked
 // Opus production one blow removes, and whether the town is raising the Opus.
 import { cardOpusBreachPercent, isRaisingOpus } from './statecraft/evaluator';
+// Devotion batch DV8, The Turning of Swords: the card that turns a soldier
+// killed on the faith's ground, and its once-a-turn stamp.
+import { cardTurningSides, stampSidesTurned } from './statecraft/evaluator';
 import {
   type City,
   type GameState,
@@ -375,7 +378,7 @@ import {
   unitById,
 } from './state';
 import { atWar, recordWarCapture, warBetween, warSpoils } from './wars';
-import type { TallyFacts } from './statecraftData';
+import type { CardId, TallyFacts } from './statecraftData';
 // **A function-level edge to `religion.ts`**, the documented kind (CLAUDE.md's
 // cycle trap): `pressLump` is the one routine that presses a lump of faith, it
 // is called from inside `payBattleRiders` and never at load time, and the
@@ -2900,11 +2903,29 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         // is what the counter's floor and the advance both ask — and the advance
         // then refuses itself on stacking, since the hex now holds a combatant of
         // the attacker's own.
-        if (fromWild && cardBehaviorRule(state, attacker.ownerId, 'barbarianKillsConvert')) {
+        //
+        // **The Turning of Swords** (Devotion batch DV8; the triage's reading
+        // 30) is the same clause for an empire's soldier on the faith's
+        // ground, once a turn for each card (`turningCardFor`). The disposal
+        // is the same capture, so it pays no kill or death riders and writes
+        // no kill or loss tallies either. The one record it does write is the
+        // war's: an empire lost a soldier, so its war weariness counts it.
+        //
+        // One clause serves both rules, so `combat.ts` still holds one
+        // `captureUnit` call (pinned in `combat.test.ts`).
+        const turning = fromWild ? null : turningCardFor(state, attacker, defender, tile);
+        if (
+          (fromWild && cardBehaviorRule(state, attacker.ownerId, 'barbarianKillsConvert')) ||
+          turning !== null
+        ) {
           captureUnit(state, defender, attacker.ownerId);
           defender.hp = unitMaxHp(defender, unitHealthBonus(state, defender.ownerId));
           outcome.capturedUnitId = defender.id;
           defenderDied = true;
+          if (turning !== null) {
+            stampSidesTurned(state, attacker.ownerId, turning);
+            recordWarLoss(state, fallenOwner, attacker.ownerId, 'unit');
+          }
         } else {
           outcome.killed.push(snapshotFallen(defender));
           removeUnit(state, defender.id);
@@ -3622,6 +3643,35 @@ function worksAndWondersIn(state: GameState, city: City): number {
     if (work !== undefined && isGreatPersonWork(work)) works += 1;
   }
   return works + city.buildings.filter((id) => isWonder(id)).length;
+}
+
+/**
+ * **The card that turns this fallen soldier to the attacker's side**, or
+ * `null` (Devotion batch DV8, The Turning of Swords; the triage's reading 30).
+ *
+ * This function asks the facts about the fallen piece and its hex:
+ *
+ *   · it is a land military unit that fights (`category: 'military'` and
+ *     `isCombatant`), so never a civilian, a trader or a ship;
+ *   · it stands on land, so never an embarked piece;
+ *   · no town stands on its hex, so never a town's garrison;
+ *   · it belongs to an empire, not the wild, that is at war with the
+ *     attacker's.
+ *
+ * `cardTurningSides` (`statecraft/evaluator.ts`) asks the rest: the
+ * attacker's empire holds the rule, its card has not turned a soldier this
+ * turn, and a town that follows a religion the attacker is paid by owns the
+ * hex. Read after the blow has brought the piece to nothing, before it is
+ * removed.
+ */
+function turningCardFor(state: GameState, attacker: Unit, fallen: Unit, tile: Tile): CardId | null {
+  const def = unitDef(fallen.type);
+  if (def.category !== 'military' || !isCombatant(def)) return null;
+  if (isWaterTerrain(tile.terrain)) return null;
+  if (cityAt(state, tile.col, tile.row) !== undefined) return null;
+  if (isBarbarian(state, fallen.ownerId)) return null;
+  if (!atWar(state, attacker.ownerId, fallen.ownerId)) return null;
+  return cardTurningSides(state, attacker.ownerId, tile.col, tile.row);
 }
 
 /**

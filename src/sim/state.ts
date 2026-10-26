@@ -2844,8 +2844,40 @@ import {
  * **A v188 save is refused and does not replay.** A Magisterial seat's pools
  * hold more cards. The branch migrates nothing, for the reason given under
  * v119.
+ *
+ * v190 (branch `decks`; Devotion batch DV8, `docs/plans/devotion-themes-
+ * triage.md`): **the two largest rule-breakers.** One field joins the state:
+ * `PlayerStatecraft.sidesTurned`, the last turn each card turned an enemy
+ * soldier. The rules that change:
+ *
+ *   · one behaviour rule is new: `faithfulKillsConvert`, read in
+ *     `applyCombat` beside `barbarianKillsConvert`. The holder's attack that
+ *     kills a land military unit of an empire it is at war with, on a land
+ *     hex owned by a town that follows a religion the holder is paid by, and
+ *     not in a town, hands the unit over through `captureUnit` at full
+ *     health. It pays no kill or death riders and writes no kill or loss
+ *     tallies, and the loser's war record counts it. At most once a turn for
+ *     each card, by an absolute stamp (the triage's reading 30);
+ *   · one action rule is new: `twoRites`. A town of an empire that holds it
+ *     may keep two different rites (`ritePlacesFor`). The rite gate refuses
+ *     a rite the town already keeps, or a town whose places are all taken. A
+ *     prophet's rite over the realm takes a free place, or the place of the
+ *     town's older rite (`ritesDisplacedBy`). The readers that ask whether a
+ *     town keeps any rite are unchanged, so they do not pay twice (reading
+ *     31);
+ *   · two Devotion cards are new and dealt: The Turning of Swords (Tier III)
+ *     and The Double Feast (Tier IV).
+ *
+ * The rites a town keeps are still the rite entries of `City.timed`, so no
+ * stored shape of a town changes. With one place a town's rites are placed
+ * exactly as before.
+ *
+ * **A v189 save is refused and does not replay.** A Devotion seat's pools
+ * hold more cards, and a seat that turned a soldier carries a field the old
+ * build never wrote. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 189;
+export const SCHEMA_VERSION = 190;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

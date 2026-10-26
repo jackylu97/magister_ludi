@@ -6964,12 +6964,12 @@ function combatConditionHolds(
       // fell through to a `find` that could never match and refused the same
       // hexes by accident; the sentence is the same and now it says so.)
       if (cityId === null) return false;
-      const town = state.cities.find((entry) => entry.id === cityId);
-      if (!town) return false;
-      if (when.foreign === true && town.ownerId === situation.unit.ownerId) return false;
-      const kept = cityReligion(town);
-      if (kept === null) return false;
-      return heldReligions(state, situation.unit.ownerId).some((faith) => faith.id === kept);
+      // The rest is `followingTownAt`'s reading, which The Turning of Swords
+      // asks too (Devotion batch DV8), so the two cannot disagree about which
+      // ground follows.
+      const town = followingTownAt(state, situation.unit.ownerId, situation.tile.col, situation.tile.row);
+      if (town === null) return false;
+      return !(when.foreign === true && town.ownerId === situation.unit.ownerId);
     }
     case 'strongerTarget':
       // Base against base — never the folded ledger, which would be a line
@@ -10846,6 +10846,62 @@ export function cardBehaviorRule(
  */
 export function cardBehaviorRuleFor(state: GameState, unit: Unit, rule: BehaviorRuleId): boolean {
   return cardRuleHolds(state, unit.ownerId, rule, unit.type, unit);
+}
+
+/**
+ * **The town that owns this hex, when it follows a religion this empire is
+ * paid by**, or `null`.
+ *
+ * The `followingTerritory` combat condition's reading: the hex's owning town,
+ * its derived religion (`cityReligion`), against the religions this empire is
+ * paid by (`heldReligions`). A hex no town owns never follows. The town may
+ * belong to any empire, this one included.
+ */
+export function followingTownAt(state: GameState, playerId: number, col: number, row: number): City | null {
+  const cityId = tileOwnerCityId(state, col, row);
+  if (cityId === null) return null;
+  const town = state.cities.find((entry) => entry.id === cityId);
+  if (!town) return null;
+  const kept = cityReligion(town);
+  if (kept === null) return null;
+  return heldReligions(state, playerId).some((faith) => faith.id === kept) ? town : null;
+}
+
+/**
+ * **The card that turns an enemy soldier killed on this hex to this empire's
+ * side**, or `null` (Devotion batch DV8, The Turning of Swords: the
+ * `faithfulKillsConvert` rule; the triage's reading 30).
+ *
+ * The first live row of the rule, in walk order, whose card has not turned a
+ * soldier this turn (`PlayerStatecraft.sidesTurned`), while a town that
+ * follows a religion this empire is paid by owns the hex
+ * (`followingTownAt`). `applyCombat` asks the rest, which are facts about the
+ * fallen piece: it is a land military unit of an empire at war with this
+ * one, not a barbarian, and it does not stand in a town.
+ */
+export function cardTurningSides(state: GameState, playerId: number, col: number, row: number): CardId | null {
+  const sc = statecraftOf(state, playerId);
+  for (const { card, effect } of effectsOfKind(state, playerId, 'rule')) {
+    if (effect.rule !== 'faithfulKillsConvert') continue;
+    if (sc?.sidesTurned?.some((stamp) => stamp.card === card && stamp.turn === state.turn) === true) continue;
+    return followingTownAt(state, playerId, col, row) === null ? null : card;
+  }
+  return null;
+}
+
+/**
+ * Writes the stamp for a card that has just turned a soldier
+ * (`PlayerStatecraft.sidesTurned`). **The** one writer of the list, called
+ * from `applyCombat` at the moment the soldier changes sides. A card already
+ * stamped is rewritten rather than listed twice, as `stampRiderClaims` does.
+ */
+export function stampSidesTurned(state: GameState, playerId: number, card: CardId): void {
+  const sc = statecraftOf(state, playerId);
+  if (!sc) return;
+  const stamps = (sc.sidesTurned ??= []);
+  const held = stamps.find((row) => row.card === card);
+  if (held) held.turn = state.turn;
+  else stamps.push({ card, turn: state.turn });
 }
 
 /**

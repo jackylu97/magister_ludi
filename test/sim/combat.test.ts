@@ -936,7 +936,9 @@ describe('civilians', () => {
      *
      * `combat.ts` is allowed **one** `captureUnit`, and it is not a civilian's:
      * it is Wolf-Mother's Pact turning a barbarian a blow already killed, which
-     * is a disposal rule for a *death* rather than a taking of ground.
+     * is a disposal rule for a *death* rather than a taking of ground. Since
+     * Devotion batch DV8 the same clause serves The Turning of Swords, an
+     * enemy soldier killed on ground that follows the killer's religion.
      * `arrival.ts` owns the other one, and it is the only place a civilian
      * changes hands.
      */
@@ -958,6 +960,7 @@ describe('civilians', () => {
     const call = combat.indexOf('captureUnit(state');
     const clause = combat.slice(combat.lastIndexOf('if (', call), call);
     expect(clause).toMatch(/barbarianKillsConvert/);
+    expect(clause).toMatch(/turning !== null/);
   });
 
   /**
