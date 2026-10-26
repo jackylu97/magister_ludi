@@ -19,12 +19,15 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  assignableTiles,
   claimTile,
   controlledHoldings,
   foundCityAt,
   hasResource,
+  ownedTiles,
   realiseItem,
   tileOwnerPlayerId,
+  withinWorkRadius,
 } from '../../src/sim/cities';
 import {
   explainTileYield,
@@ -67,17 +70,20 @@ import {
 } from '../../src/sim/greatPeopleData';
 import { improvementError } from '../../src/sim/improvements';
 import { resourceDef } from '../../src/sim/resourceData';
-import { getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
+import { getTileAt, mapRange, neighborTiles, tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
 import { isWaterTerrain } from '../../src/sim/terrainData';
 import { RULES } from '../../src/sim/rulesData';
 import { renownThreshold, settleRenownWindfall } from '../../src/sim/renown';
 import {
+  type City,
   type GameState,
   type Unit,
   createUnit,
   unitById,
   bumpRevision,
 } from '../../src/sim/state';
+import { VISIBLE, recomputeVisibility, visibilityAt } from '../../src/sim/visibility';
+import { bareState } from './improvementHelpers';
 import { arriveOnTile } from '../../src/sim/arrival';
 import { authorityOf, happinessOf, tierPercent } from '../../src/sim/meters';
 import { revokeLegacies } from '../../src/sim/greatPeople';
@@ -127,6 +133,23 @@ const SAMPLE = {
   merchant: 'lamassi',
   general: 'sinuhe',
 } as const;
+
+/**
+ * Seat 0's town at (5, 5) owning every hex within three of it, on a bare
+ * board, and a general standing at (8, 5), three hexes east on the edge of
+ * those borders. Its citadel's ring reaches four hexes from the town.
+ */
+function citadelBench(): { state: GameState; city: City; general: Unit } {
+  const state = bareState(20, 12);
+  const centre = getTileAt(state.map, 5, 5)!;
+  const city = foundCityAt(state, 0, centre);
+  for (const tile of mapRange(state.map, tileHex(centre), RULES.cities.claimRadius)) {
+    claimTile(state, city, tile);
+  }
+  const general = createUnit(state, 0, 'greatPerson', 8, 5, SAMPLE.general);
+  bumpRevision(state);
+  return { state, city, general };
+}
 
 // --- the roster -------------------------------------------------------------
 
@@ -684,6 +707,61 @@ describe('the work', () => {
     ]) {
       expect(tileOwnerPlayerId(g.state, near[0]!, near[1]!)).toBe(0);
     }
+  });
+
+  it('a citadel ring past the claim radius is owned, listed and seen, and still not worked (tidy batch Z1)', () => {
+    // Before Z1 a hex owned more than `cities.claimRadius` from its town was
+    // dark to its owner once no unit stood near (`visibility.ts` walked only
+    // the claim radius), and `ownedTiles` did not list it. Which hexes a
+    // citizen may work did not change: that is the work radius.
+    const { state, city, general } = citadelBench();
+    expect(applyCommand(state, { type: 'greatPersonWork', playerId: 0, unitId: general.id }).ok).toBe(true);
+    expect(unitById(state, general.id)).toBeUndefined();
+    const centre = tileHex(getTileAt(state.map, city.col, city.row)!);
+    const far = mapRange(state.map, tileHex(getTileAt(state.map, 8, 5)!), 1).filter(
+      (tile) => wrappedDistance(state.map, centre, tileHex(tile)) > RULES.cities.claimRadius,
+    );
+    expect(far.length).toBeGreaterThan(0);
+    // No unit stands near, and the town's own sight does not reach this far.
+    expect(state.units.filter((unit) => unit.ownerId === 0)).toEqual([]);
+    for (const tile of far) {
+      const where = `(${tile.col}, ${tile.row})`;
+      expect(tileOwnerPlayerId(state, tile.col, tile.row), where).toBe(0);
+      expect(visibilityAt(state, 0, tile.col, tile.row), where).toBe(VISIBLE);
+      expect(ownedTiles(state, city), where).toContain(tile);
+      expect(withinWorkRadius(state, city, tile.col, tile.row), where).toBe(false);
+      expect(assignableTiles(state, city), where).not.toContain(tile);
+    }
+    // And the sight holds after a recompute from scratch.
+    recomputeVisibility(state, 0);
+    for (const tile of far) expect(visibilityAt(state, 0, tile.col, tile.row)).toBe(VISIBLE);
+  });
+
+  it('a citadel takes a rival town’s hex and another town’s of its own, and drops both towns’ pins there (tidy batch Z1)', () => {
+    // Before Z1 the claim wrote the owner array itself, so a town that lost a
+    // hex kept its pin on it, a citizen it could never seat. The claim goes
+    // through `claimTile`, `takeTile` and `seizeTile` now.
+    const { state, city, general } = citadelBench();
+    const ring = mapRange(state.map, tileHex(getTileAt(state.map, 8, 5)!), 1).filter(
+      (tile) => tile.col !== 8 || tile.row !== 5,
+    );
+    // A rival town to the east and a second town of seat 0's to the north
+    // each own one hex of the ring and have a pin on it.
+    const rival = foundCityAt(state, 1, getTileAt(state.map, 12, 5)!);
+    const second = foundCityAt(state, 0, getTileAt(state.map, 8, 1)!);
+    const theirs = ring[ring.length - 1]!;
+    const ours = ring[0]!;
+    state.tileOwner[tileIndex(state.map, theirs.col, theirs.row)] = rival.id;
+    state.tileOwner[tileIndex(state.map, ours.col, ours.row)] = second.id;
+    rival.lockedTiles = [{ col: theirs.col, row: theirs.row }];
+    second.lockedTiles = [{ col: ours.col, row: ours.row }];
+    bumpRevision(state);
+    expect(applyCommand(state, { type: 'greatPersonWork', playerId: 0, unitId: general.id }).ok).toBe(true);
+    for (const tile of ring) {
+      expect(state.tileOwner[tileIndex(state.map, tile.col, tile.row)], `(${tile.col}, ${tile.row})`).toBe(city.id);
+    }
+    expect(rival.lockedTiles).toEqual([]);
+    expect(second.lockedTiles).toEqual([]);
   });
 
   it('a citadel is worth its defence to whoever stands on it', () => {

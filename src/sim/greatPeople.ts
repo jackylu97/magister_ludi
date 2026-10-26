@@ -1,6 +1,6 @@
 /**
  * Great people: the offer a filled renown bucket opens, the piece it puts on the
- * board, and the two verbs that spend it (`docs/great-people.md`).
+ * board, and its two verbs, the act and the work (`docs/great-people.md`).
  *
  * What this module is, and what it deliberately is not
  * ----------------------------------------------------
@@ -18,10 +18,14 @@
  *     `state.rng` at the moment the bucket fills, stored on the player, spent by
  *     a command naming an **index**, blocking End Turn until it is answered.
  *     Entry XV's doctrine for the fifth time.
- *   · **The agent** is the augur's (`religion.ts`): a civilian with charges, two
- *     verbs, consumed by either, removed through `removeUnit` like every other
- *     disappearance. What differs is only that its charge buys an *act* or a
- *     *work* rather than a rite or a god.
+ *   · **The agent** is the augur's (`religion.ts`): a civilian with charges and
+ *     two verbs, removed through `removeUnit` like every other disappearance.
+ *     Its charge buys an *act* or a *work* rather than a rite or a god. The
+ *     work always spends the person. The act spends it too, except under The
+ *     Universal Genius (Magisterial batch MG13, the `actThenWork` rule): then
+ *     the person acts, stays on the board marked `Unit.acted`, and is spent
+ *     when it lays its work. Either way the legacy comes once, when the person
+ *     is spent.
  *   · **The act** is Entry XVIII's windfall, four times over: every family pays
  *     through the `settle…Windfall` its bucket already has, so a scholar's
  *     beakers finish a technology by exactly the code an end-of-turn technology
@@ -52,12 +56,15 @@
 import {
   capitalCityOf,
   cityAt,
+  claimTile,
   nearestOwnedCity,
   payOccasionRiders,
   refreshCityDerived,
   refreshTileDerived,
+  seizeTile,
   settleProductionWindfall,
   spawnTileFor,
+  takeTile,
 } from './cities';
 import {
   foldEmpireRates,
@@ -84,7 +91,6 @@ import {
   getTileAt,
   raiseImprovement,
   tileHex,
-  tileIndex,
   wrappedDistance,
 } from './map';
 import { nextFloat } from './rng';
@@ -96,7 +102,6 @@ import {
   type Player,
   type TimedEffect,
   type Unit,
-  cityById,
   createUnit,
   playerById,
   removeUnit,
@@ -1471,8 +1476,16 @@ export function greatPersonWorkAt(
  *
  * Ground another empire already holds is **taken**, which is the citadel's whole
  * point (`docs/great-people.md`: "the tile and its neighbours are claimed") and
- * the reason the work is a general's. Water is left alone: an ocean hex inside a
- * border is a hex no citizen can work and no city ever claimed by culture.
+ * the reason the work is a general's. A hex of another of this empire's towns
+ * moves to the nearest town too, as it always did. Water is claimed like any
+ * other hex.
+ *
+ * **Through the three writers of a hex's town** (tidy batch Z1): `claimTile`
+ * for a hex nobody owns, `takeTile` for a hex of another of this empire's
+ * towns, and `seizeTile` for a rival's. Until Z1 this sweep wrote the array
+ * itself, so a town that lost a hex kept its pin there, a citizen it could
+ * never seat. The two takers drop that pin. Each writer announces the write
+ * (batch M3, `slate.ts`).
  *
  * Map order, so the report reads the same for whoever is looking at it.
  */
@@ -1489,27 +1502,24 @@ function claimAround(
   // Whose panels this changed. Ground taken off a rival is ground its own town
   // must stop counting *now* — the pillage rule read from the other end (see
   // `refreshTileDerived`) — so the losers are collected as the sweep goes and
-  // re-seated once, rather than once per hex.
-  const dispossessed = new Set<number>();
+  // re-seated once, rather than once per hex. In the order they were first
+  // met, so the re-seats run in map order.
+  const dispossessed: City[] = [];
   for (const tile of state.map.tiles) {
     if (wrappedDistance(state.map, eye, tileHex(tile)) > Math.max(0, Math.floor(radius))) continue;
-    const index = tileIndex(state.map, tile.col, tile.row);
-    const before = state.tileOwner[index];
-    if (before === seat.id) continue;
-    if (before !== null && before !== undefined) dispossessed.add(before);
-    state.tileOwner[index] = seat.id;
+    if (claimTile(state, seat, tile)) {
+      claimed.push({ col: tile.col, row: tile.row });
+      continue;
+    }
+    const loser = takeTile(state, seat, tile) ?? seizeTile(state, seat, tile);
+    if (loser === null) continue;
     claimed.push({ col: tile.col, row: tile.row });
+    if (!dispossessed.includes(loser)) dispossessed.push(loser);
   }
   if (claimed.length === 0) return claimed;
-  // **The citadel takes ground off somebody** — `claimTile`'s line, said for a
-  // sweep that also takes owned hexes rather than only empty ones, and announced
-  // once for the whole claim (batch M3, `slate.ts`).
-  bumpEconomy(state);
   refreshCityDerived(state, seat);
   const seats = new Set<number>([player.id]);
-  for (const cityId of dispossessed) {
-    const loser = cityById(state, cityId);
-    if (!loser) continue;
+  for (const loser of dispossessed) {
     refreshCityDerived(state, loser);
     seats.add(loser.ownerId);
   }

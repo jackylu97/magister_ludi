@@ -1681,14 +1681,16 @@ export function purchaseItemAt(
 
   refreshCityDerived(state, city);
   // **The whole report, not just the piece's id** — the day an ordinary building
-  // had something to say arrived with the Cathedral (Entry LV). A purchase could
-  // never claim a wonder until the Valley of Kings was cut (batch L3c), and now
-  // it can in exactly one town and one bank — `claimWonder` is `realiseItem`'s
-  // own line either way, so `wonder` comes back on this path for the same reason
-  // it comes back on the built one, and the register is written once. No
-  // purchasable row carries `onComplete` today, so `grants` is still always
-  // absent; `consecration` is not, because a cathedral bought with gold is
-  // dedicated by the same line that dedicates a built one.
+  // had something to say arrived with the Cathedral (Entry LV). A purchase
+  // claims a wonder through `realiseItem`'s own line (`claimWonder`), so
+  // `wonder` comes back on this path for the same reason it comes back on the
+  // built one, and the register is written once. A wonder may be bought with
+  // gold (The Gilded Scaffold), with faith (the Valley of Kings, The Pious
+  // Masons) or with culture (Magnificence), and since tidy batch Z1 the
+  // `purchaseItem` command puts the claim and what the wonder hands over
+  // (`grants`) on its result, so the world is told. `consecration` comes back
+  // too, because a cathedral bought with gold is dedicated by the same line
+  // that dedicates a built one.
   // Widening the return rather than adding a second out-parameter is
   // `RealisedItem`'s own discipline, read from the caller's end.
   return born;

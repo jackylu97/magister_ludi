@@ -23,13 +23,13 @@ import {
   loseCitizen,
   nearestOwnedCity,
   refreshCityDerived,
+  seizeTile,
   settlePopulationWindfall,
   withinReachOfBorders,
 } from './cities';
 import { type Tile, neighborTiles, tileHex, tileIndex, wrappedDistance } from './map';
 import { happinessOf } from './meters';
 import { connectedCities } from './roads';
-import { bumpEconomy } from './slate';
 import { type City, type GameState, type Player, cityById, citiesOf, realPlayers } from './state';
 // Straight from the evaluator rather than through the index, as `census.ts`
 // takes its names: the index re-exports across a cycle, and the build splits
@@ -53,6 +53,12 @@ function firesNow(state: GameState, every: number): boolean {
  * The hex changes hands with whatever stands on it: its works, its road and
  * any piece on it stay where they are. Both towns are re-seated, and both
  * empires see the new border at once.
+ *
+ * The hex moves through `seizeTile` (`cities.ts`), the one writer that moves
+ * a hex from a rival's town (tidy batch Z1). Until Z1 this phase wrote the
+ * owner array itself, so the town that lost the hex kept its pin there, a
+ * citizen it could never seat. `seizeTile` drops the pin and announces the
+ * write.
  */
 export function runEncroachment(state: GameState): void {
   for (const player of realPlayers(state)) {
@@ -64,12 +70,12 @@ export function runEncroachment(state: GameState): void {
         if (town.population < effect.minPopulation) continue;
         const taken = hexToTake(state, town);
         if (taken === null) continue;
-        state.tileOwner[tileIndex(state.map, taken.tile.col, taken.tile.row)] = town.id;
-        // The ground moved (batch M3, `slate.ts`), as `claimTile` says.
-        bumpEconomy(state);
-        refreshCityDerived(state, taken.from);
+        // `hexToTake` answers only a rival town's hex, so the seize goes through.
+        const from = seizeTile(state, town, taken.tile);
+        if (from === null) continue;
+        refreshCityDerived(state, from);
         refreshCityDerived(state, town);
-        recomputeVisibilityFor(state, [player.id, taken.from.ownerId]);
+        recomputeVisibilityFor(state, [player.id, from.ownerId]);
       }
     }
   }

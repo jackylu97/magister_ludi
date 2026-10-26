@@ -339,17 +339,20 @@ export function recomputeVisibility(state: GameState, playerId: number): Visibil
     }
   }
 
-  // Owned ground, unconditionally. Read through the claim radius rather than by
-  // scanning `tileOwner` end to end, so the cost follows the empire's cities and
-  // not the size of the map.
-  for (const city of state.cities) {
-    if (city.ownerId !== playerId) continue;
-    const centre = getTileAt(map, city.col, city.row);
-    if (!centre) continue;
-    for (const tile of mapRange(map, tileHex(centre), CITIES.claimRadius)) {
-      const index = tileIndex(map, tile.col, tile.row);
-      touched += 1;
-      if (state.tileOwner[index] === city.id) lit[index] = 1;
+  // **Owned ground, unconditionally: every hex this empire owns** (tidy batch
+  // Z1). Border culture never takes a hex past `cities.claimRadius`, but a
+  // claim can: a citadel's ring, an outpost's reach, The Landmark Bounds, The
+  // Paradise Garden. Until Z1 this pass walked each town's claim radius, so
+  // such a hex stayed dark to its owner. It walks the owner array end to end
+  // now, as the pass below walks the grid, and lights a hex whose town is one
+  // of this empire's. The towns are a set read by membership only.
+  const towns = new Set<number>();
+  for (const city of state.cities) if (city.ownerId === playerId) towns.add(city.id);
+  if (towns.size > 0) {
+    for (let index = 0; index < lit.length; index++) {
+      if (lit[index]) continue;
+      const holder = state.tileOwner[index];
+      if (holder !== null && holder !== undefined && towns.has(holder)) lit[index] = 1;
     }
   }
 
@@ -473,9 +476,12 @@ function updateCitySightings(state: GameState, playerId: number, lit: Uint8Array
  *     lapse the moment the column walked on, and the whole reason this is
  *     stored;
  *   · **their ground under this seat's eye** — swept through the foreign towns'
- *     claim radii rather than along `tileOwner` end to end, exactly as the owned
- *     -ground pass above is, so the cost follows the world's cities and not the
- *     size of the map.
+ *     claim radii rather than along `tileOwner` end to end, so the cost follows
+ *     the world's cities and not the size of the map. A hex a claim gave a
+ *     foreign town beyond that radius does not introduce its owner here. The
+ *     owned-ground pass above walks the whole array since tidy batch Z1, because
+ *     an empire must see all of its own ground; a meeting has the piece clause
+ *     and the town's nearer ground besides.
  *
  * Never removes an id, and never writes one for the wild in either direction
  * (the field's docblock says why). Sorted on the way in, so two seats met on one

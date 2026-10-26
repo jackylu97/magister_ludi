@@ -235,6 +235,7 @@ import {
 import {
   type PillageReport,
   barrenHillError,
+  buildsImprovements,
   chopBaseFor,
   chopCity,
   chopError,
@@ -245,7 +246,6 @@ import {
   improvementLeaderError,
   improvementTechError,
   improvementYieldDelta,
-  isBuilder,
   pillageError,
   prospectError,
   prospectTechError,
@@ -5870,7 +5870,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const unit = selectedUnit();
     if (!unit || !canOrder()) return [];
     const { state } = getGame();
-    if (!isBuilder(unit)) return [];
+    if (!buildsImprovements(unit)) return [];
     const tile = getTileAt(state.map, unit.col, unit.row);
     if (!tile) return [];
     const ctx = yieldContextFor(state, unit.ownerId);
@@ -6523,7 +6523,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     label: string;
   } | null {
     const unit = selectedUnit();
-    if (!unit || !isBuilder(unit)) return null;
+    if (!unit || !buildsImprovements(unit)) return null;
     const { state } = getGame();
     const tile = getTileAt(state.map, unit.col, unit.row);
     if (!tile || chopDef(tile.feature) === null) return null;

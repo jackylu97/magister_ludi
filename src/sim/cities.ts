@@ -89,6 +89,7 @@ import {
   mapRange,
   markHex,
   neighborTiles,
+  offsetToAxial,
   razeImprovement,
   tileHex,
   tileIndex,
@@ -1664,8 +1665,10 @@ export function takeTile(state: GameState, city: City, tile: Tile): City | null 
  * Returns the town that lost the hex, which the caller re-seats, or `null`
  * when the hex was not a rival's, and then nothing is written.
  *
- * The citadel's claim (`claimAround`, `greatPeople.ts`) and The Encroaching
- * Fields (`runEncroachment`, `frontiers.ts`) still write the array directly.
+ * Three callers: The Pull of the Masters (`pullRivalHexesToWorks`), and since
+ * tidy batch Z1 the citadel's claim (`claimAround`, `greatPeople.ts`) and The
+ * Encroaching Fields (`runEncroachment`, `frontiers.ts`), which wrote the
+ * array themselves before and kept the losing town's pin.
  */
 export function seizeTile(state: GameState, city: City, tile: Tile): City | null {
   const index = tileIndex(state.map, tile.col, tile.row);
@@ -1680,14 +1683,63 @@ export function seizeTile(state: GameState, city: City, tile: Tile): City | null
   return from;
 }
 
-/** Every tile a city owns, in tile-index order. */
+/**
+ * Every tile a city owns, in tile-index order.
+ *
+ * The town's claim radius is walked first, because that is where nearly all
+ * of a town's ground lies. Then the hexes a claim gave it further out are
+ * added (`outlyingTiles`). Until tidy batch Z1 those were left out, so a
+ * card that counts a town's ground did not count a hex in a citadel's ring
+ * four hexes from the town. Which hexes a citizen may work is a separate
+ * rule (`workRadiusOf`) and did not change.
+ */
 export function ownedTiles(state: GameState, city: City): Tile[] {
   const result: Tile[] = [];
   for (const tile of mapRange(state.map, tileHex(cityTile(state.map, city)), CITIES.claimRadius)) {
     if (state.tileOwner[tileIndex(state.map, tile.col, tile.row)] === city.id) result.push(tile);
   }
+  const outlying = outlyingTiles(state)[city.id];
+  if (outlying !== undefined) result.push(...outlying);
   result.sort((a, b) => tileIndex(state.map, a.col, a.row) - tileIndex(state.map, b.col, b.row));
   return result;
+}
+
+/**
+ * **The hexes each town owns further than `cities.claimRadius` from it**,
+ * keyed by town id, each list in tile-index order (tidy batch Z1).
+ *
+ * Border culture never takes a hex past that radius. A claim can: a
+ * citadel's ring (`claimAround`), an outpost's reach (`claimGroundForWork`),
+ * The Landmark Bounds and The Paradise Garden (`claimUnownedBeside`), and The
+ * Encroaching Fields, which takes a hex beside borders that may already reach
+ * that far. Usually there are none, so the answer is usually empty.
+ *
+ * One walk of the owner array, remembered on the economy clock (`slate.ts`).
+ * Every write of `state.tileOwner` announces on that clock, which
+ * `test/sim/slateRegister.test.ts` pins, and so does a town founded or razed.
+ * The answer is read by lookup only and never walked. It is a plain record
+ * rather than a `Map` so the slate's shadow check (`setSlateShadow`) can
+ * print it and compare.
+ */
+function outlyingTiles(state: GameState): Readonly<Record<number, readonly Tile[]>> {
+  return slateMemo(state, 'economy', 'outlyingTiles', '', () => {
+    const { map } = state;
+    const centres = new Map<number, Hex>();
+    for (const city of state.cities) centres.set(city.id, offsetToAxial(city.col, city.row));
+    const outlying: Record<number, Tile[]> = {};
+    for (let index = 0; index < state.tileOwner.length; index++) {
+      const holder = state.tileOwner[index];
+      if (holder === null || holder === undefined) continue;
+      const centre = centres.get(holder);
+      const tile = map.tiles[index];
+      if (centre === undefined || tile === undefined) continue;
+      if (wrappedDistance(map, centre, tileHex(tile)) <= CITIES.claimRadius) continue;
+      const list = outlying[holder];
+      if (list === undefined) outlying[holder] = [tile];
+      else list.push(tile);
+    }
+    return outlying;
+  });
 }
 
 // --- founding ---------------------------------------------------------------
@@ -2854,7 +2906,8 @@ function chooseCitizens(
  *  28. **A hex taken from a foreign town** (`runEncroachment`, `frontiers.ts`,
  *      Expansionist batch E4's The Encroaching Fields). It runs in its own
  *      phase, as entry 25 does, and both towns are re-seated at once: one has a
- *      hex more to work and the other a hex less.
+ *      hex more to work and the other a hex less. The hex moves through
+ *      `seizeTile` since tidy batch Z1.
  *  29. **A citizen who moves to another town** (`runMigrations`,
  *      `frontiers.ts`, Expansionist batch E4's Migration and The Great
  *      Migration). It runs in its own phase. The town that loses the citizen
@@ -3027,11 +3080,10 @@ export function markHexesBeside(
  *
  * A wide claim can reach further from the town than its border culture
  * ever would (`cities.claimRadius`), as an outpost's or a citadel's claim
- * can. Such a hex is owned and counted as the town's ground, but it lies
- * beyond the town's work radius, so no citizen works it. The owner's sight
- * of its own ground also reaches only `claimRadius` from each town
- * (`visibility.ts`), so such a hex is seen only when a unit or a town sees
- * it, as for those older claims.
+ * can. Such a hex is owned and counted as the town's ground (`ownedTiles`),
+ * but it lies beyond the town's work radius, so no citizen works it. Since
+ * tidy batch Z1 the owner sees it as it sees all of its own ground
+ * (`visibility.ts`).
  *
  * The town is re-seated (entry 32 of the register above), and the empire's
  * map is redrawn, because ground it now owns is ground it can see. The
@@ -3097,8 +3149,7 @@ export function claimUnownedBeside(
  * no town is founded, razed or captured here, and its hex reading is the
  * live `state.tileOwner`, so it sees each take. A hex a work takes is never
  * further than `cities.claimRadius` from the town it joins (see
- * `pullTargetFor`), so the sweep never makes a hex its owner cannot see or
- * work.
+ * `pullTargetFor`), so the sweep never makes a hex its owner cannot work.
  */
 export function pullRivalHexesToWorks(state: GameState): void {
   const holders = realPlayers(state).filter(
@@ -3142,12 +3193,12 @@ export function pullRivalHexesToWorks(state: GameState): void {
  *
  * The hex joins the asking empire's nearest town (`nearestOwnedCity`, ties
  * to the older town), and only when that town stands within
- * `cities.claimRadius` of it. Batch MG15 found that a hex owned further from
- * its town than that is not lit by its owner's sight (`visibility.ts`) and
- * lies beyond the town's reach. A work on the edge of the borders can stand
- * three hexes from the town, and its neighbour four, so this check is what
- * keeps the sweep from making such a hex: the work tries its next neighbour
- * instead.
+ * `cities.claimRadius` of it. A hex owned further from its town than that
+ * lies beyond the town's reach, so no citizen could work it. (Batch MG15
+ * found that such a hex was also dark to its owner; tidy batch Z1 fixed the
+ * sight.) A work on the edge of the borders can stand three hexes from the
+ * town, and its neighbour four, so this check is what keeps the sweep from
+ * making such a hex: the work tries its next neighbour instead.
  */
 function pullTargetFor(
   state: GameState,

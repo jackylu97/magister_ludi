@@ -52,8 +52,11 @@ import {
   doctrineBagFor,
   drawDoctrineOffer,
   drawDoctrinePositions,
+  hasStatecraftOffer,
+  nextDraftCost,
   statecraftBlocker,
 } from '../../src/sim/statecraft';
+import { rerollKindFor } from '../../src/sim/religion';
 import {
   type CardEffect,
   type DeckId,
@@ -444,6 +447,92 @@ describe('a Doctrine offer outside an adoption (Magisterial batch MG7)', () => {
     expect(taizong.statecraft.government).toBe('chiefdom');
     expect(openDoctrineOffer(g.state, taizong)).toBe(false);
     expect(snapshotState(g.state)).toBe(before);
+  });
+});
+
+// --- two offers at once ----------------------------------------------------------
+
+describe('an Order hand and a Doctrine offer waiting at once (tidy batch Z1)', () => {
+  /**
+   * An adoption whose rider pays enough culture to open an Order hand before
+   * the Doctrine draw, so both offers wait at once (found in Magisterial batch
+   * MG7). A timed rider stands in for a card that pays culture at the
+   * adoption; no dealt card does today.
+   */
+  function bothWaiting(): { g: Game; seat: Player } {
+    const g = duel('taizong', 'pachacuti');
+    const seat = playerById(g.state, 0)!;
+    bankGovernment(seat, 4);
+    seat.culturePool = nextDraftCost(g.state, seat) - 1;
+    seat.timed = [
+      ...(seat.timed ?? []),
+      {
+        card: 'theSedFestival' as never,
+        effect: {
+          kind: 'windfallRider',
+          occasion: 'governmentAdopted',
+          grant: { yield: 'culture', amount: 500 },
+        } as CardEffect,
+        expiresTurn: g.state.turn + 10,
+      },
+    ];
+    bumpRevision(g.state);
+    expect(dispatch(g, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 }).ok).toBe(true);
+    expect(seat.statecraft.pendingOrder?.options.length ?? 0).toBeGreaterThan(0);
+    expect(seat.statecraft.pendingDoctrine?.options.length ?? 0).toBeGreaterThan(0);
+    return { g, seat };
+  }
+
+  it('raises the Order hand first, as the offer card and the reroll do', () => {
+    // The End Turn blocker, the offer card's chain (`showStatecraftOffer`,
+    // `main.ts`) and the reroll all take the Order hand first. Once it is
+    // answered, the same chain raises the Doctrine offer.
+    const { seat } = bothWaiting();
+    expect(statecraftBlocker(seat)).toBe('an Order draft is waiting');
+    expect(hasStatecraftOffer(seat)).toBe(true);
+    expect(rerollKindFor(seat)).toBe('order');
+  });
+
+  it('takes the Doctrine first and leaves the Order hand as it was', () => {
+    const { g, seat } = bothWaiting();
+    const hand = structuredClone(seat.statecraft.pendingOrder);
+    const doctrine = seat.statecraft.pendingDoctrine!.options[0]!;
+    expect(dispatch(g, { type: 'chooseDoctrine', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+    expect(seat.statecraft.doctrines).toContain(doctrine);
+    expect(seat.statecraft.pendingDoctrine).toBeUndefined();
+    expect(seat.statecraft.pendingOrder).toEqual(hand);
+    expect(statecraftBlocker(seat)).toBe('an Order draft is waiting');
+    expect(rerollKindFor(seat)).toBe('order');
+    const card = hand!.options[0]!;
+    expect(dispatch(g, { type: 'chooseOrder', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+    expect(seat.statecraft.orders).toContain(card);
+    expect(seat.statecraft.pendingOrder).toBeUndefined();
+    expect(statecraftBlocker(seat)).toBeNull();
+  });
+
+  it('takes the Order first and leaves the Doctrine offer as it was', () => {
+    const { g, seat } = bothWaiting();
+    const offer = structuredClone(seat.statecraft.pendingDoctrine);
+    expect(dispatch(g, { type: 'chooseOrder', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+    expect(seat.statecraft.pendingOrder).toBeUndefined();
+    expect(seat.statecraft.pendingDoctrine).toEqual(offer);
+    // The Doctrine offer is now the one the screens raise and the reroll redeals.
+    expect(statecraftBlocker(seat)).toBe('a Doctrine offer is waiting');
+    expect(rerollKindFor(seat)).toBe('doctrine');
+    expect(dispatch(g, { type: 'chooseDoctrine', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+    expect(seat.statecraft.doctrines).toContain(offer!.options[0]);
+    expect(statecraftBlocker(seat)).toBeNull();
+  });
+
+  it('passes on either one without touching the other', () => {
+    const first = bothWaiting();
+    const hand = structuredClone(first.seat.statecraft.pendingOrder);
+    expect(dispatch(first.g, { type: 'skipDoctrineOffer', playerId: 0 }).ok).toBe(true);
+    expect(first.seat.statecraft.pendingOrder).toEqual(hand);
+    const second = bothWaiting();
+    const offer = structuredClone(second.seat.statecraft.pendingDoctrine);
+    expect(dispatch(second.g, { type: 'skipOrderOffer', playerId: 0 }).ok).toBe(true);
+    expect(second.seat.statecraft.pendingDoctrine).toEqual(offer);
   });
 });
 

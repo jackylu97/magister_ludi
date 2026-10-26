@@ -376,6 +376,81 @@ describe('being beaten to a wonder', () => {
   });
 });
 
+// --- a bought wonder ----------------------------------------------------------
+
+describe('a bought wonder is news, as a built one is (tidy batch Z1)', () => {
+  /** Puts an Order in a chair for a seat, the way the reading sees it. */
+  function seat(state: GameState, playerId: number, card: string): void {
+    const sc = playerById(state, playerId)!.statecraft;
+    sc.orders.push(card as never);
+    sc.slots.push({ card: card as never, sealedUntil: state.turn });
+    bumpRevision(state);
+  }
+
+  // The three ways a bank opens for a wonder: The Gilded Scaffold opens the
+  // treasury, the Valley of Kings opens faith in its town, and Magnificence
+  // opens the culture pool for the wonder at the front of the queue.
+  const banks: { currency: 'gold' | 'faith' | 'culture'; open: (state: GameState, city: City) => void }[] = [
+    { currency: 'gold', open: (state) => seat(state, 0, 'theGildedScaffold') },
+    {
+      currency: 'faith',
+      open: (state, city) => {
+        city.buildings.push('valleyOfKings');
+        bumpRevision(state);
+      },
+    },
+    { currency: 'culture', open: (state) => seat(state, 0, 'magnificence') },
+  ];
+
+  for (const { currency, open } of banks) {
+    it(`reports a wonder bought with ${currency} on the result, with the rival's refund`, () => {
+      const g = game();
+      const mine = found(g.state, 0);
+      const theirs = found(g.state, 1);
+      racing(g.state, mine, 10);
+      racing(g.state, theirs, 140);
+      open(g.state, mine);
+      const buyer = playerById(g.state, 0)!;
+      buyer.gold = 100000;
+      buyer.faithPool = 100000;
+      buyer.culturePool = 100000;
+      bumpRevision(g.state);
+      const item = { kind: 'building', id: WONDER } as const;
+      expect(purchaseError(g.state, 0, mine.id, item, currency)).toBeNull();
+
+      const result = applyCommand(g.state, {
+        type: 'purchaseItem',
+        playerId: 0,
+        cityId: mine.id,
+        item,
+        currency,
+      });
+
+      expect(result.ok).toBe(true);
+      expect(mine.buildings).toContain(WONDER);
+      // Before Z1 the field was absent on a purchase, so nobody was told.
+      expect(result.ok ? result.wonders : undefined).toEqual([
+        {
+          building: WONDER,
+          name: buildingDef(WONDER).name,
+          cityId: mine.id,
+          playerId: 0,
+          turn: g.state.turn,
+          refunds: [
+            {
+              building: WONDER,
+              cityId: theirs.id,
+              playerId: 1,
+              hammers: 140,
+              gold: Math.floor(140 * REFUND_RATE),
+            },
+          ],
+        },
+      ]);
+    });
+  }
+});
+
 // --- what a wonder does -----------------------------------------------------
 
 describe('a wonder’s effect is a card', () => {

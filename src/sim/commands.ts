@@ -3785,11 +3785,22 @@ function applyPurchaseItem(state: GameState, command: PurchaseItemCommand): Comm
     readPurchasableItem(command.item)!,
     command.currency,
   );
-  const result = ok();
+  // **A bought wonder is news to the whole world** (tidy batch Z1), as a
+  // finished one and a chopped one are (`applyChopFeature`). The claim and the
+  // refunds come from `realiseItem`, the same routine either way, so the
+  // report leaves by the same field: the buyer is told, and every rival whose
+  // basket was just turned into gold is told of the refund. Gold, faith and
+  // culture all reach it. What the wonder hands over (`grants`) goes with it.
+  const result = ok(
+    undefined,
+    undefined,
+    born.wonder ? [born.wonder] : undefined,
+    undefined,
+    born.grants,
+  );
   // A bought cathedral is dedicated the instant it is delivered, by the same
   // line in `realiseItem` that dedicates a built one — so the news leaves by the
-  // same field. Every other `RealisedItem` half is always absent on this path;
-  // see `purchaseItemAt`.
+  // same field.
   if (result.ok && born.consecration) result.consecrations = [born.consecration];
   return result;
 }

@@ -38,6 +38,7 @@ import {
   isImprovementId,
 } from '../../src/sim/improvementData';
 import {
+  buildsImprovements,
   chargesLeft,
   chopBaseFor,
   chopCity,
@@ -53,6 +54,7 @@ import {
   improvementYieldDelta,
   isBuilder,
   pillageError,
+  prospectError,
   removeImprovementError,
 } from '../../src/sim/improvements';
 import { type Tile, createMap, getTileAt } from '../../src/sim/map';
@@ -406,6 +408,75 @@ describe('buildImprovement', () => {
     expect(foldTile(tile)).toEqual({ food: 2, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
     applyCommand(state, build(0, worker.id, 'farm'));
     expect(foldTile(tile)).toEqual({ food: 3, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
+  });
+
+  it('refuses a prophet its holy site and a great person its work, and changes nothing (tidy batch Z1)', () => {
+    // Each has its own command: `plantHolySite` founds the religion and draws
+    // the belief, and `greatPersonWork` spends the person and leaves the
+    // legacy. Before Z1 the build command took both and skipped all of that.
+    const state = bareState();
+    foundCityAt(state, 0, at(state, 5, 5));
+    const prophet = createUnit(state, 0, 'prophet', 5, 4);
+    const person = createUnit(state, 0, 'greatPerson', 5, 4);
+    person.person = 'ahmes' as never;
+    bumpRevision(state);
+    const before = snapshotState(state);
+    expect(applyCommand(state, build(0, prophet.id, 'holySite'))).toEqual({
+      ok: false,
+      error: 'A prophet lays a holy site with its own order, not as a build',
+    });
+    expect(snapshotState(state)).toBe(before);
+    expect(applyCommand(state, build(0, person.id, 'academy'))).toEqual({
+      ok: false,
+      error: 'A great person lays an academy with its own order, not as a build',
+    });
+    expect(snapshotState(state)).toBe(before);
+    expect(at(state, 5, 4).improvement).toBeUndefined();
+    expect(unitById(state, prophet.id)?.chargesLeft).toBe(unitDef('prophet').charges);
+    expect(unitById(state, person.id)).toBeDefined();
+  });
+
+  it('builds, chops, takes out and surveys only with a piece whose charges are for building', () => {
+    // The apostle and the inquisitor carry charges for acts of their own, and
+    // before tidy batch Z1 the build command took them as workers.
+    const state = bareState();
+    foundCityAt(state, 0, at(state, 5, 5));
+    const tile = at(state, 5, 4);
+    const pieces = [
+      createUnit(state, 0, 'prophet', 5, 4),
+      createUnit(state, 0, 'apostle', 5, 4),
+      createUnit(state, 0, 'inquisitor', 5, 4),
+      createUnit(state, 0, 'greatPerson', 5, 4),
+    ];
+    pieces[3]!.person = 'ahmes' as never;
+    bumpRevision(state);
+    for (const piece of pieces) {
+      expect(isBuilder(piece), piece.type).toBe(true);
+      expect(buildsImprovements(piece), piece.type).toBe(false);
+    }
+    expect(improvementError(state, pieces[1]!.id, 'farm')).toBe('An apostle builds nothing');
+    expect(improvementError(state, pieces[2]!.id, 'farm')).toBe('An inquisitor builds nothing');
+    const before = snapshotState(state);
+    for (const piece of pieces) {
+      expect(applyCommand(state, build(0, piece.id, 'farm')).ok, piece.type).toBe(false);
+      expect(snapshotState(state), piece.type).toBe(before);
+    }
+    // The axe, the take-out and the survey are refused on the same rule.
+    tile.feature = 'forest';
+    tile.hills = true;
+    for (const piece of pieces) {
+      expect(chopError(state, piece.id), piece.type).toMatch(/cannot clear features$/);
+      expect(prospectError(state, piece.id), piece.type).toMatch(/cannot survey ground$/);
+    }
+    tile.feature = 'none';
+    tile.improvement = 'farm' as ImprovementId;
+    for (const piece of pieces) {
+      expect(removeImprovementError(state, piece.id), piece.type).toMatch(/cannot remove improvements$/);
+    }
+    // A worker on the same hex is still a builder for all four.
+    const worker = createUnit(state, 0, 'worker', 5, 4);
+    expect(buildsImprovements(worker)).toBe(true);
+    expect(removeImprovementError(state, worker.id)).toBeNull();
   });
 
   it('refuses a unit that is not a builder', () => {

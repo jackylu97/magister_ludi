@@ -163,6 +163,9 @@ import { townHoldsBuilding, townShelf } from './statecraft/evaluator';
 // asked by `chargeCostOf` alone. Straight from the evaluator, for the reason
 // above.
 import { cardChargePrice } from './statecraft/evaluator';
+// Tidy batch Z1: the row that holds the free redraw's rule, which the price
+// line names (`freeRedrawSource`). Straight from the evaluator, as above.
+import { effectsOfKind } from './statecraft/evaluator';
 import { hasAbility, hasTech, settleResearchWindfall } from './tech';
 import { type TechId, eraNumeral, highestAge, techDef } from './techData';
 import type { BuildingId } from './buildingData';
@@ -749,6 +752,21 @@ export function rihlaPaysFor(state: GameState, player: Player, kind: RerollKind)
   return cardActionRule(state, player.id, 'rerollOffers');
 }
 
+/**
+ * **The name of the row that makes the first redraw free**: the first live
+ * row holding the `rerollOffers` rule, as `liveEffects` lists it (tidy batch
+ * Z1). Ibn Battuta's boon The Rihla holds it, and so does the Magisterial card
+ * The Second Reading. The price line names this row (rule 5: a line names
+ * what pays it). Until Z1 the line always said "The Rihla", even when the
+ * rule came from The Second Reading.
+ */
+function freeRedrawSource(state: GameState, playerId: number): string {
+  for (const { source, effect } of effectsOfKind(state, playerId, 'rule')) {
+    if (effect.rule === 'rerollOffers') return source;
+  }
+  return 'The Rihla';
+}
+
 /** The stamp, written on the hand the redraw just dealt. See `rihlaPaysFor`. */
 function stampRedrawn(player: Player, kind: RerollKind): void {
   if (kind === 'order' && player.statecraft.pendingOrder) {
@@ -790,12 +808,13 @@ export function explainRerollCost(
   currency: RerollCurrency = 'faith',
 ): RerollPrice {
   const player = playerById(state, playerId);
-  // **The Rihla, first and alone on the list** (batch L6a): a waived price is a
-  // price of nothing, so the list is the one line that says why rather than the
-  // three that would have said how much. Rule 5 holds — the total is still the
-  // fold of the list.
+  // **The free redraw, first and alone on the list** (batch L6a): a waived
+  // price is a price of nothing, so the list is the one line that says why
+  // rather than the three that would have said how much. Rule 5 holds — the
+  // total is still the fold of the list. The line names the row that holds the
+  // rule (`freeRedrawSource`), The Rihla or The Second Reading.
   if (player && rihlaPaysFor(state, player, kind)) {
-    return { lines: [{ source: 'The Rihla', amount: 0 }], total: 0 };
+    return { lines: [{ source: freeRedrawSource(state, player.id), amount: 0 }], total: 0 };
   }
   const spec = RELIGION.reroll;
   const taken = Math.max(0, Math.floor(player?.statecraft.rerollsTaken ?? 0));
@@ -4141,8 +4160,13 @@ export function convertCitizens(
  * is an absolute turn stamp on the town (`City.convertedOn`), compared with
  * `state.turn` and never counted down. It is what makes a chain of moments
  * end: two empires whose lumps turn the same towns back and forth can turn
- * each town to each religion once a turn, and no more. The tally and the
- * first-of-a-kind record above are not limited, as before.
+ * each town to each religion once a turn, and no more.
+ *
+ * **The `foreignCityConverted` tally reads the same stamp** (tidy batch Z1).
+ * It counts a town at most once a turn for each religion, so The Mission's
+ * goal cannot be met by one town a Pentecost chain turns twice. The
+ * first-of-a-kind record is not limited by the stamp; it can only be written
+ * once a town anyway.
  */
 function noteFirstConversion(
   state: GameState,
@@ -4155,12 +4179,15 @@ function noteFirstConversion(
   if (cityReligion(city) !== religion.id) return;
   const founder = religionFounder(state, religion);
   if (city.ownerId === founder) return;
-  // Every conversion, not only the first: The Mission counts towns turned while
-  // it is seated, and a town won back counts again.
-  recordScalingOccasion(state, founder, 'foreignCityConverted');
   const first = markFirst(state, founder, 'conversion', firstKey(city.id));
   if (city.convertedOn?.[religion.id] === state.turn) return;
   city.convertedOn = { ...city.convertedOn, [religion.id]: state.turn };
+  // Not only the first conversion: The Mission counts towns turned while it is
+  // seated, and a town won back on a later turn counts again. But at most once
+  // a turn for each religion, read off the moment's own stamp just written
+  // (tidy batch Z1): a town that a Pentecost chain turns, turns away and turns
+  // again in one turn counts once.
+  recordScalingOccasion(state, founder, 'foreignCityConverted');
   queue.push({
     payee: founder,
     cityId: city.id,

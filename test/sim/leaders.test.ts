@@ -418,7 +418,10 @@ describe('the Rihla', () => {
     expect(rerollDoorOpen(g.state, 0)).toBe(true);
     const price = explainRerollCost(g.state, 0, 'order');
     expect(price.total).toBe(0);
-    expect(price.lines.map((line) => line.source)).toEqual(['The Rihla']);
+    // The line names the row that holds the rule, as every line of a fold
+    // names what pays it (tidy batch Z1). A leader's boon is labelled
+    // "Leader · …" like its yield lines.
+    expect(price.lines.map((line) => line.source)).toEqual(['Leader · The Rihla']);
   });
 
   it('is spent by the redraw it paid for, and the next asking costs', async () => {

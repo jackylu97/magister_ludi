@@ -489,11 +489,11 @@ describe('the religious agents’ sheet', () => {
     expect(sheet).toContain('prophetRows()');
     expect(sheet).toContain('blocked: rite.blocked');
     expect(sheet).toContain('blocked: row.blocked');
-    // And a prophet is excused the worker's six improvement rows and the axe:
-    // `plantingHandOf` gives it the holy site and nothing else.
-    expect(sheet).toContain(
-      'isBuilder(unit) && !person && !isProphet(unit) && !isInquisitor(unit)',
-    );
+    // And a prophet, an apostle and an inquisitor are excused the worker's
+    // improvement rows and the axe: their charges are not for building, so
+    // the rows are shown only to a piece that builds (tidy batch Z1).
+    expect(sheet).toContain('if (buildsImprovements(unit)) {');
+    expect(sheet).toContain('const canSurvey = buildsImprovements(unit) || isExplorer(unitDef(unit.type));');
   });
 
   it('shows a prophet’s charges the way the augur’s rites are shown', () => {

@@ -172,14 +172,47 @@ const IMPROVEMENTS = RULES.improvements;
 // --- what a unit is ---------------------------------------------------------
 
 /**
- * True when this unit type builds improvements at all.
+ * True when this unit type carries charges at all.
  *
  * Asked of the data (`UnitDef.charges`), never of the string `"worker"` — the
  * same discipline `foundsCity` and `escalation` keep, so a future engineer is
  * one data row rather than a second branch in every rule.
+ *
+ * A worker is not the only piece with charges: a prophet, an apostle, an
+ * inquisitor, a great person and an augur carry them too, and spend them on
+ * acts of their own. The interface asks this to show a piece's charges. A
+ * rule about the worker's verbs asks `buildsImprovements`.
  */
 export function isBuilder(unit: Unit): boolean {
   return unitDef(unit.type).charges !== undefined;
+}
+
+/**
+ * True when this piece's charges are for building improvements: a worker,
+ * and any future row with charges and no act of its own.
+ *
+ * Every other piece with charges spends them on an act its row marks: a
+ * prophet (`prophesies`), an apostle (`proclaims`), an inquisitor (`purges`),
+ * a great person (`greatWork`) and an augur (`consecrates`). Such a piece may
+ * not build, chop, take an improvement out or survey a hill. A prophet plants
+ * its holy site with `plantHolySite`, and a great person lays its work with
+ * `greatPersonWork`. Before tidy batch Z1 the build command took both, so a
+ * holy site could stand with no religion founded, and a work could stand with
+ * no legacy, tally or spent moment.
+ *
+ * Read off the markers and never off a type name, so a new piece with charges
+ * for some other act needs its own marker here.
+ */
+export function buildsImprovements(unit: Unit): boolean {
+  if (!isBuilder(unit)) return false;
+  const def = unitDef(unit.type);
+  return (
+    def.prophesies !== true &&
+    def.proclaims !== true &&
+    def.purges !== true &&
+    def.greatWork !== true &&
+    def.consecrates !== true
+  );
 }
 
 /** Charges this unit has left. 0 for anything that never had any. */
@@ -200,6 +233,8 @@ export function chargesLeft(unit: Unit): number {
 export function aRow(def: { name: string }): string {
   const noun = def.name.toLowerCase();
   if (noun.endsWith('s')) return noun;
+  // A name that brings its own article ("The Canoness") takes no second one.
+  if (noun.startsWith('the ')) return noun;
   // "An outpost" (Expansionist batch E4): the first row whose name opens on a
   // vowel and that a worker can be refused.
   return /^[aeiou]/.test(noun) ? `an ${noun}` : `a ${noun}`;
@@ -764,6 +799,40 @@ export function improvementTechError(
 }
 
 /**
+ * Whose hand this piece plants with — the family whose work it may lay down, or
+ * `null` for a spade.
+ *
+ * **The symmetric clause, read off the markers rather than off any name.**
+ * A worker plants ordinary improvements and no work; a great person plants its
+ * own family's work and nothing else; a **prophet** plants the holy site and
+ * nothing else; and a piece whose charges are some other act (an augur's
+ * rites, an apostle's or an inquisitor's charges) plants nothing at all —
+ * which is what `undefined` here means, as against `null`.
+ *
+ * The augur arm fixed a quiet old hole: an augur has `charges`, so `isBuilder`
+ * admitted it and it could spend a rite's charge on a farm. The apostle and the
+ * inquisitor had the same hole until tidy batch Z1, which reads all of them
+ * through `buildsImprovements`. Nothing in this function compares a type
+ * against a string.
+ *
+ * The family a prophet or a great person plants is still answered here, so a
+ * refusal can say which verb lays it. Neither plants through the build
+ * command (`improvementError`).
+ */
+function plantingHandOf(unit: Unit): WorkFamily | null | undefined {
+  const def = unitDef(unit.type);
+  if (def.prophesies === true) return 'prophet';
+  if (def.greatWork === true) {
+    const person = unit.person;
+    return person !== undefined && isGreatPersonId(person)
+      ? greatPersonDef(person).family
+      : undefined;
+  }
+  if (!buildsImprovements(unit)) return undefined;
+  return null;
+}
+
+/**
  * Why this unit cannot build this improvement where it stands, or `null`.
  *
  * **The** gate: the `buildImprovement` command refuses with this sentence and
@@ -775,38 +844,16 @@ export function improvementTechError(
  * warrior standing on perfect farmland should be told it is a warrior, not told
  * about the farmland.
  *
+ * **Only a piece whose charges are for building may build** (tidy batch Z1,
+ * `buildsImprovements`). A prophet's holy site and a great person's work are
+ * refused here: each has its own command (`plantHolySite`, `greatPersonWork`),
+ * and that command founds the religion or spends the person. Laid through
+ * this one, the stones would stand with neither.
+ *
  * It deliberately does *not* check who is asking or whether their turn has
  * ended. Those are questions about the actor, not about the work, and they
  * belong to the command.
  */
-/**
- * Whose hand this piece plants with — the family whose work it may lay down, or
- * `null` for a spade.
- *
- * **The symmetric clause, read off the four markers rather than off any name.**
- * A worker plants ordinary improvements and no work; a great person plants its
- * own family's work and nothing else; a **prophet** plants the holy site and
- * nothing else; and an **augur**, whose charges are rites, plants nothing at all
- * — which is what `undefined` here means, as against `null`.
- *
- * The augur arm is the one this pass added and it fixes a quiet old hole: an
- * augur has `charges`, so `isBuilder` admitted it and it could spend a rite's
- * charge on a farm. Nothing in this function compares a type against a string,
- * so the second religious agent inherits the rule from its data row.
- */
-function plantingHandOf(unit: Unit): WorkFamily | null | undefined {
-  const def = unitDef(unit.type);
-  if (def.prophesies === true) return 'prophet';
-  if (def.greatWork === true) {
-    const person = unit.person;
-    return person !== undefined && isGreatPersonId(person)
-      ? greatPersonDef(person).family
-      : undefined;
-  }
-  if (def.consecrates === true) return undefined;
-  return null;
-}
-
 export function improvementError(
   state: GameState,
   unitId: number,
@@ -821,19 +868,22 @@ export function improvementError(
   if (!isImprovementId(improvementId)) {
     return `Unknown improvement "${String(improvementId)}"`;
   }
-  // **A worker may not plant a great person's work, and a great person may
-  // plant nothing else.** One symmetric clause, asked of the two data flags that
-  // already mark both sides (`ImprovementDef.greatPerson` and
-  // `UnitDef.greatWork`), so nothing here compares an id against `"academy"` or
-  // a type against `"greatPerson"`. It sits in `improvementError` rather than in
-  // `improvementErrorAt` because it is a fact about the **actor**, not about the
-  // ground — which is exactly what lets `greatPersonWorkError` delegate the
-  // ground's half to that function whole and have this clause not fire on it.
+  // **A worker may not plant a great person's work, and nothing else plants
+  // through this command.** One symmetric clause, asked of the data flags that
+  // mark both sides (`ImprovementDef.greatPerson` and the unit's markers), so
+  // nothing here compares an id against `"academy"` or a type against
+  // `"greatPerson"`. It sits in `improvementError` rather than in
+  // `improvementErrorAt` because it is a fact about the **actor**, not about
+  // the ground. That is what lets `greatPersonWorkError` and
+  // `plantHolySiteError` hand the ground's half to that function whole.
   const planter = plantingHandOf(unit);
   const wanted = improvementDef(improvementId).greatPerson ?? null;
+  const what = improvementDef(improvementId).name.toLowerCase();
+  if (planter === undefined) return `${ARow(def)} builds nothing`;
+  if (planter !== null && planter === wanted) {
+    return `${ARow(def)} lays ${aRow(improvementDef(improvementId))} with its own order, not as a build`;
+  }
   if (planter !== wanted) {
-    const what = improvementDef(improvementId).name.toLowerCase();
-    if (planter === undefined) return `${ARow(def)} builds nothing`;
     if (wanted !== null) return `${ARow(def)} cannot build a ${what}`;
     return `${def.name}s leave a work behind, not a ${what}`;
   }
@@ -1107,9 +1157,10 @@ export function improvementYieldDelta(
  *
  * The clauses, and each is a rule rather than a guard:
  *
- *   · **alive, and a builder.** Asked of the data (`isBuilder`) like every other
- *     verb in this file, so the day a second labouring row exists it inherits
- *     the verb by having charges rather than by being named here.
+ *   · **alive, and a builder.** Asked of the data (`buildsImprovements`) like
+ *     every other verb in this file, so the day a second labouring row exists
+ *     it inherits the verb by having charges and no other act, rather than by
+ *     being named here.
  *   · **movement left.** Taking a farm up is the turn's work, exactly as laying
  *     one down is (see `removeImprovementAt`), so a worker that has spent its
  *     purse has spent its turn.
@@ -1136,7 +1187,7 @@ export function removeImprovementError(state: GameState, unitId: number): string
   if (unit.hp <= 0) return `Unit ${unit.id} is not alive`;
 
   const def = unitDef(unit.type);
-  if (!isBuilder(unit)) return `A ${def.name} cannot remove improvements`;
+  if (!buildsImprovements(unit)) return `A ${def.name} cannot remove improvements`;
   if (unit.movesLeft <= 0) return `This ${def.name.toLowerCase()} has no movement left`;
 
   const tile = getTileAt(state.map, unit.col, unit.row);
@@ -1348,7 +1399,7 @@ export function chopError(state: GameState, unitId: number): string | null {
   if (unit.hp <= 0) return `Unit ${unit.id} is not alive`;
 
   const def = unitDef(unit.type);
-  if (!isBuilder(unit)) return `A ${def.name} cannot clear features`;
+  if (!buildsImprovements(unit)) return `A ${def.name} cannot clear features`;
 
   const tile = getTileAt(state.map, unit.col, unit.row);
   if (!tile) return `Unit ${unit.id} is not on the map`;
@@ -1500,8 +1551,8 @@ export function chopFeatureAt(state: GameState, unit: Unit, tile: Tile): boolean
  *
  *   · **alive, and the right kind of piece.** A worker or an **explorer**: the
  *     one reads ground for a living and the other is the empire's eyes, and
- *     both are asked of the data (`isBuilder`, `isExplorer`) rather than of a
- *     type name, exactly as every other verb in this file asks.
+ *     both are asked of the data (`buildsImprovements`, `isExplorer`) rather
+ *     than of a type name, exactly as every other verb in this file asks.
  *   · **movement left.** The act *is* the turn (see `prospectAt`), so a piece
  *     that has already spent its purse has already spent its turn.
  *   · **a hill.** The layer is under the hills and nowhere else.
@@ -1527,7 +1578,7 @@ export function prospectError(state: GameState, unitId: number): string | null {
   if (unit.hp <= 0) return `Unit ${unit.id} is not alive`;
 
   const def = unitDef(unit.type);
-  if (!isBuilder(unit) && !isExplorer(def)) return `A ${def.name} cannot survey ground`;
+  if (!buildsImprovements(unit) && !isExplorer(def)) return `A ${def.name} cannot survey ground`;
   if (unit.movesLeft <= 0) return `This ${unitDef(unit.type).name.toLowerCase()} has no movement left`;
 
   const tile = getTileAt(state.map, unit.col, unit.row);

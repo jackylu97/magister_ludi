@@ -280,16 +280,17 @@ const ANNOUNCING = new Set([
   'cities.ts#claimTile',
   'cities.ts#foundCityAt',
   // Expansionist batch E4: a town founded on an outpost takes the outpost's
-  // land from the town that held it, and The Encroaching Fields moves a hex
-  // between two empires' towns. Both write the owner array and announce.
+  // land from the town that held it. It writes the owner array and announces.
+  // The Encroaching Fields (`runEncroachment`) stood here too until tidy batch
+  // Z1 moved it onto `seizeTile`, which announces for it.
   'cities.ts#takeOutpostLand',
-  'frontiers.ts#runEncroachment',
   // The take (`docs/flags.md` (aaaaaaa)): a pin moves a hex from one town of
   // the empire to another. It writes the owner array and announces.
   'cities.ts#takeTile',
   // Magisterial batch MG16, The Pull of the Masters: a hex moves from a
   // rival's town to the holder's nearest town. It writes the owner array and
-  // announces.
+  // announces. Since tidy batch Z1 the citadel's claim (`claimAround`) also
+  // writes through `claimTile`, `takeTile` and `seizeTile`, and left this list.
   'cities.ts#seizeTile',
   // Expansionist batch E5: a commission marks the town that met its goal.
   'commissions.ts#markGoalTown',
@@ -310,7 +311,6 @@ const ANNOUNCING = new Set([
   'draft.ts#adoptGovernmentAt',
   'draft.ts#slotOrderAt',
   'evaluator.ts#payWindfallGrants',
-  'greatPeople.ts#claimAround',
   'greatPeople.ts#greatPersonWorkAt',
   'greatPeople.ts#revokeLegacies',
   'greatPeople.ts#spendGreatPerson',

@@ -485,6 +485,10 @@ describe('Magisterial batch MG2: the council cards', () => {
     // A belief hand's first asking is free already, so the rule is not asked.
     expect(rihlaPaysFor(state, player, 'belief')).toBe(false);
     expect(explainRerollCost(state, 0, 'order').total).toBe(0);
+    // The free line names this card, not The Rihla (tidy batch Z1).
+    expect(explainRerollCost(state, 0, 'order').lines.map((line) => line.source)).toEqual([
+      'Order · The Second Reading',
+    ]);
     // The free reroll is spent by the hand it deals, and the next one costs.
     const faith = player.faithPool;
     expect(settleReroll(state, player)?.paid).toBe(0);

@@ -483,6 +483,26 @@ describe('the Expansionist batch E4: The Encroaching Fields', () => {
     for (const cell of theirs.workedTiles) expect(tileOwnerCityId(state, cell.col, cell.row)).toBe(theirs.id);
   });
 
+  it('drops the losing town’s pin on the hex it takes (tidy batch Z1)', () => {
+    // The take goes through `seizeTile` since tidy batch Z1. Before, the phase
+    // wrote the owner array itself and the losing town kept its pin on the
+    // hex, a citizen it could never seat.
+    const { state, mine, theirs } = neighbours();
+    // A fourth pin, on the hex beside our border. Their three citizens work
+    // the first three pins, so this one is not worked and may be taken.
+    theirs.lockedTiles = [...theirs.lockedTiles, { col: 4, row: 5 }];
+    refreshCityDerived(state, theirs);
+    expect(theirs.workedTiles).not.toContainEqual({ col: 4, row: 5 });
+    state.turn = 10;
+    runEncroachment(state);
+    expect(tileOwnerCityId(state, 4, 5)).toBe(mine.id);
+    expect(theirs.lockedTiles).toEqual([
+      { col: 6, row: 4 },
+      { col: 6, row: 5 },
+      { col: 6, row: 6 },
+    ]);
+  });
+
   it('takes nothing from a town at least as large', () => {
     const { state, mine, theirs } = neighbours();
     theirs.population = 12;

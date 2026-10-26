@@ -15,7 +15,9 @@
  *   · The Mass Baptisms (reading 26): science and culture the first time a
  *     town turns, so a town lost and won back pays once;
  *   · two empires that both hold Pentecost and turn the same towns back and
- *     forth: the chain ends, and the same board plays out the same way twice.
+ *     forth: the chain ends, and the same board plays out the same way twice;
+ *   · The Mission's tally (tidy batch Z1): a town counts at most once a turn
+ *     for each religion, read off the moment's stamp.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -41,6 +43,7 @@ import { at, bareState } from '../improvementHelpers';
 const PENTECOST = 'pentecost' as OrderId;
 const BAPTISMS = 'theMassBaptisms' as OrderId;
 const MISSION_HOUSES = 'missionHouses' as OrderId;
+const MISSION = 'theMission' as OrderId;
 
 /** Puts an Order in a chair for this seat, the way the reading sees it. */
 function slot(state: GameState, playerId: number, card: OrderId): void {
@@ -258,6 +261,43 @@ describe('the conversion moment', () => {
     pressLump(state, state.religions[mine]!, at, 0, lump);
     expect(count()).toBe(2);
     expect(abroad.convertedOn).toEqual({ [mine]: state.turn });
+  });
+
+  it('counts a town toward The Mission at most once a turn for each religion (tidy batch Z1)', () => {
+    // This changes reading 39 of the Devotion build (batch DV6,
+    // `docs/plans/devotion-themes-triage.md`). Reading 39 said the stamp
+    // limits the moment but not the tally. Since tidy batch Z1 the
+    // `foreignCityConverted` tally reads the same stamp (`City.convertedOn`),
+    // so a town that turns, turns away and turns again in one turn counts once.
+    // Before Z1 it counted twice, and one town could meet The Mission's goal
+    // of two.
+    const state = bareState(40, 10);
+    const home = town(state, 0, 3, 5);
+    const mine = religionAt(state, home, [home]);
+    const rivalSeat = town(state, 1, 30, 5);
+    const rival = religionAt(state, rivalSeat, [rivalSeat]);
+    const abroad = town(state, 1, 16, 5);
+    slot(state, 0, MISSION);
+    const tally = (): number =>
+      playerById(state, 0)!.statecraft.tallies.find((row) => row.card === MISSION)?.count ?? 0;
+    const lump = RULES.religion.bombLump;
+    const at = { col: abroad.col, row: abroad.row };
+    pressLump(state, state.religions[mine]!, at, 0, lump);
+    expect(cityReligion(abroad)).toBe(mine);
+    expect(tally()).toBe(1);
+    // Turned away and back in the same turn: the town turned again, and the
+    // tally stays where it was.
+    pressLump(state, state.religions[rival]!, at, 0, lump);
+    pressLump(state, state.religions[mine]!, at, 0, lump);
+    expect(cityReligion(abroad)).toBe(mine);
+    expect(tally()).toBe(1);
+    // A town won back on a later turn counts again.
+    state.turn += 1;
+    bumpRevision(state);
+    pressLump(state, state.religions[rival]!, at, 0, lump);
+    pressLump(state, state.religions[mine]!, at, 0, lump);
+    expect(cityReligion(abroad)).toBe(mine);
+    expect(tally()).toBe(2);
   });
 
   it('is paid after the tide’s sweep', () => {

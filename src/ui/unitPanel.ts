@@ -37,7 +37,7 @@
 
 import { fortifyBonus, isCivilian, isCombatant, isFortified, isRanged } from '../sim/combat';
 import type { ImprovementId } from '../sim/improvementData';
-import { chargesLeft, isBuilder } from '../sim/improvements';
+import { buildsImprovements, chargesLeft, isBuilder } from '../sim/improvements';
 import { isApostle, isAugur, isInquisitor, isProphet } from '../sim/religion';
 import type { RiteId } from '../sim/religionData';
 import { stripRefs } from '../sim/statecraft';
@@ -927,30 +927,20 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // ground refuses carries no number at all (`quotesDelta` below): the yield
     // is real arithmetic about a hypothetical tile, and printing it beside "a
     // mine needs hills" would advertise a payout this hex can never hand over.
-    // `isBuilder` is "this piece has charges", and a great person is the first
-    // piece in the game that has them without being a worker. Its charge buys an
-    // act or a work, not spadework, so the six improvement rows and the axe are
-    // not its verbs — an "Act · Work · Chop" sheet would be offering a third
-    // thing the roster has never heard of. The augur is excused the same way by
-    // *not* being a builder at all; this one has to say so.
-    //
-    // The **prophet** is the second such piece and is excused for the same
-    // reason: `plantingHandOf` gives it the holy site and nothing else, so six
-    // greyed farm rows and an axe under its four ministries would be the sheet
-    // offering spadework a prophet will never do.
+    // The rows are shown only to a piece whose charges are for building
+    // (`buildsImprovements`, tidy batch Z1). A great person, a prophet, an
+    // apostle, an inquisitor and an augur all carry charges, but each spends
+    // them on an act of its own, and the reducer refuses them every verb in
+    // this block. So their sheets show no improvement rows and no axe. Before
+    // Z1 this test named the pieces one by one and missed the apostle, whose
+    // sheet offered farms the build command then took.
     /**
      * Who is ever offered the survey row: the same pieces `prospectError` will
-     * accept — a worker, or the empire's eyes — minus the charge-carriers whose
-     * charge buys something else entirely (a great person, a prophet, an
-     * inquisitor), which is exactly the exclusion the improvement rows make one
-     * line down and for its reason.
+     * accept — a worker, or the empire's eyes. A piece whose charges buy some
+     * other act is not offered it, as the improvement rows one line down.
      */
-    const canSurvey =
-      (isBuilder(unit) || isExplorer(unitDef(unit.type))) &&
-      !person &&
-      !isProphet(unit) &&
-      !isInquisitor(unit);
-    if (isBuilder(unit) && !person && !isProphet(unit) && !isInquisitor(unit)) {
+    const canSurvey = buildsImprovements(unit) || isExplorer(unitDef(unit.type));
+    if (buildsImprovements(unit)) {
       for (const option of improvementOptions()) {
         // Pressable, or refused by the tree alone — the two cases where the
         // number is one the player can actually reach. `requiredTechName` is
@@ -1029,7 +1019,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     /**
      * The survey, and it is **outside** the builder block on purpose: a scout
      * reads a hillside as well as a worker does (`prospectError` asks
-     * `isBuilder || isExplorer`, of the data and never of a type name), so a row
+     * `buildsImprovements || isExplorer`, of the data and never of a type name), so a row
      * gated on being a builder would have hidden half the act.
      *
      * *Greyed* rather than hidden when the ground refuses, which is the axe's

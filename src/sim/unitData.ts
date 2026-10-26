@@ -526,7 +526,8 @@ export interface UnitDef {
    * reading of one charge counter — two acts in a box, and *which* acts is this
    * flag — and the rule it carries is the symmetric one every marker carries: a
    * prophet plants the holy site and nothing else, and nothing else plants the
-   * holy site (`improvementError`).
+   * holy site (`improvementError`). Since tidy batch Z1 the prophet plants it
+   * only with its own command (`plantHolySite`), never as a build.
    */
   prophesies?: boolean;
   /**
