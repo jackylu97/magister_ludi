@@ -541,6 +541,9 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
     `.improvement`. An `eachTown` reward with no `fromFigure` pays its `amount`
     flat to each town its `scope` admits. The `garrisonedTowns` figure counts
     the towns the `garrisoned` scope admits.
+  - Since Devotion batch DV5 a `citiesAdmitted` goal may set `every`: it
+    counts the admitted towns only while the scope admits every town the
+    empire holds (Commission: The State Church).
 - **Units a card raises, and the moments it pays on** (Dominion batch D5):
   - A grant can raise the best melee unit (`bestMeleeFor`) or each military
     unit a technology unlocks, in the capital or in each town a scope admits.
@@ -676,7 +679,12 @@ Reference: **`docs/religion-v2.md`** (the machinery) and **`docs/beliefs.md`**
 - **Religion is a tide, not a verb.** A city's religion is derived (the faith
   more than half its citizens follow), never stored. `spreadReligion` measures
   every town against one board, then moves every town; `bankPressure` has exactly
-  two callers, the tide and `pressLump`.
+  two callers, the tide and `pressLump`. `pressLump` has exactly three, pinned
+  by source in `test/sim/religion.test.ts`: a proclamation (`proclaimAt`), a
+  battle rider's lump (`payBattleRiders`, `combat.ts`; The Crusader Orders) and
+  a founding's lump (`foundCityAt`, `cities.ts`; The Parishes). The last two
+  hand a presser down to `payWindfallGrants`, because the evaluator may not
+  import `religion.ts`.
 - Religions are **fluid, never historical** — the name is generated at founding
   from the pantheon's axes. The cap is ⌈2/3 × real players⌉.
 - **The clergy**: the prophet (two charges; founding, a further holy site, or a
@@ -701,6 +709,15 @@ Reference: **`docs/religion-v2.md`** (the machinery) and **`docs/beliefs.md`**
   occasion carries the town (`townId`) and its citizens (`population`), so a
   rider can ask whether the town is devout and scale by its size (The
   Psalter).
+- **The faith's reach** (Devotion batch DV5).
+  - The `found` occasion carries the citizens the new town is founded with,
+    and a grant's `pressure` can be a share of the moment (`fromOccasion`).
+    The Parishes presses one convert's price for each citizen, for each
+    religion the founder is paid by, so the town follows from its first turn.
+  - The behaviour rule `followersShareSight` (The Confessors) makes every town
+    of another empire that follows your religion a sight source for you in
+    `sightSources` (`visibility.ts`), at the base city sight. It is read
+    whenever your visibility is recomputed.
 - Who is paid: the pantheon pays the empire that consecrated it; **follower**
   beliefs pay city-locally to whoever owns each following city (a rival's faith
   in your town is a gift); **founder-side** pay follows the holy site's stones;

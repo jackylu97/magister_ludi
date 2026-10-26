@@ -4823,7 +4823,18 @@ export type BehaviorRuleId =
    * writes `GameState.closedBook`. `buildError` then refuses the Opus to every
    * other empire that does not know that technology until the record's turn.
    */
-  | 'closedBook';
+  | 'closedBook'
+  /**
+   * **Every town that follows this empire's religion is one of its eyes**
+   * (Devotion batch DV5, The Confessors; the triage's reading 22). A town of
+   * any other empire whose religion is one this empire is paid by (the town
+   * scope `follows`, with this empire as the reader) is a sight source for
+   * this empire, at the base city sight (`visibility.citySight`). Its owner's
+   * cards and buildings add nothing to it. Read in `sightSources`
+   * (`visibility.ts`), so it takes effect whenever this empire's visibility
+   * is recomputed. The empire's own towns are sources already.
+   */
+  | 'followersShareSight';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId =
@@ -5567,6 +5578,10 @@ export interface WindfallGrantSpec {
    *
    * Since Dominion batch D6 it scales a `renown` grant the same way: Looted
    * Art's 20 renown for each great-person work and wonder in the town.
+   *
+   * Since Devotion batch DV5 it scales a `pressure` grant too: The Parishes
+   * presses 10 faith for each citizen of the town just founded, which is the
+   * price of one convert (`religion.pressurePerConvert`) for each of them.
    */
   fromOccasion?: OccasionMeasure;
   /**
@@ -5780,6 +5795,12 @@ export interface WindfallGrantSpec {
    * heartland preaches to the rival's towns — the whole point of a crusade.
    * An empire that has founded no religion presses nothing, which is the same
    * silence a grant with no city to receive it keeps.
+   *
+   * Since Devotion batch DV5 the founding moment presses too (The Parishes,
+   * at range 0 on the town just founded), and `fromOccasion` can scale the
+   * amount. Each seam that pays a moment with a lump hands
+   * `payWindfallGrants` its own presser: `payBattleRiders` (`combat.ts`) and
+   * `foundCityAt` (`cities.ts`).
    */
   pressure?: { amount: number; range: number };
   /**
@@ -10119,6 +10140,15 @@ export interface GoalTowns {
    * Read by `citiesAdmitted`; every other figure ignores it.
    */
   admits?: CityScope;
+  /**
+   * **Every town of this empire must be admitted** (Devotion batch DV5,
+   * Commission: The State Church; the triage's reading 23). With it,
+   * `citiesAdmitted` answers its count only while the scope admits every town
+   * the empire holds, and nought while any town is left out. So "hold at
+   * least six towns, all of them devout" is a count of six with this switch.
+   * Read by `citiesAdmitted` with `admits`; every other figure ignores it.
+   */
+  every?: true;
 }
 
 /**

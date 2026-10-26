@@ -1083,10 +1083,18 @@ describe('determinism', () => {
    * nobody founds a town, so no production goes into a wonder. Checked with
    * the change in place and the version printed as 182, which gives the
    * hashes of Devotion batch DV4 exactly.
+   *
+   * **Devotion batch DV5 (the faith's reach, schema 184) moved the hash and
+   * not the length** at both seeds: 183 became 184, and that is all. The
+   * batch adds a lump to the founding moment, a sight rule, a goal field and
+   * three card rows. Nobody here founds a town or drafts, so no lump is
+   * pressed and no seat holds the sight rule. Checked with the change in
+   * place and the version printed as 183, which gives the hashes of
+   * Magisterial batch MG4 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '1ce102c5:188976',
-    2026: '3c199c3c:188554',
+    11: 'dec9ed18:188976',
+    2026: '5eb1f4e9:188554',
   };
 
   for (const seed of [11, 2026]) {

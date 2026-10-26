@@ -204,26 +204,28 @@ function linesOf(state: GameState, city: City, card: string) {
 // --- the shelf ---------------------------------------------------------------
 
 describe('the Devotion deck folds', () => {
-  it('carries 85 rows: 55 live, 1 deferred and 29 retired', () => {
+  it('carries 88 rows: 58 live, 1 deferred and 29 retired', () => {
     // Batch DV1: 77 rows before, less the six that moved to common.json. Four
     // rows retired, three live and one deferred. Batch DV2 added seven live
-    // rows, batch DV3 four more, and batch DV4 three more.
-    expect(DEVOTION).toHaveLength(85);
-    expect(LIVE).toHaveLength(55);
+    // rows, batch DV3 four more, batch DV4 three more, and batch DV5 three
+    // more.
+    expect(DEVOTION).toHaveLength(88);
+    expect(LIVE).toHaveLength(58);
     expect(DEFERRED).toHaveLength(1);
     expect(RETIRED).toHaveLength(29);
   });
 
-  it('spreads its 56 standing rows across Tiers 0 to IV as 8, 7, 17, 11 and 13', () => {
+  it('spreads its 59 standing rows across Tiers 0 to IV as 8, 7, 20, 11 and 13', () => {
     // Batch DV1 moved The Second Prophet, The Living Hymnal and The Mission
     // from Tier I to Tier II, and The Conversion of Kings and The Pious Masons
     // from Tier IV to Tier III. Batch DV2 added three rows at Tier II, three
     // at Tier III and one at Tier IV. Batch DV3 added one row at each of
     // Tiers 0 to III. Batch DV4 added The Rogations (Tier 0), the charter The
-    // Sabbath Laws (Tier II) and The Psalter (Tier III).
-    expect(STANDING).toHaveLength(56);
+    // Sabbath Laws (Tier II) and The Psalter (Tier III). Batch DV5 added The
+    // Parishes, Commission: The State Church and The Confessors (Tier II).
+    expect(STANDING).toHaveLength(59);
     const perBand = BANDS.map((band) => STANDING.filter((id) => orderDef(id).band === band).length);
-    expect(perBand).toEqual([8, 7, 17, 11, 13]);
+    expect(perBand).toEqual([8, 7, 20, 11, 13]);
   });
 
   it('names its own deck on every row, with a band and a rarity', () => {
@@ -290,10 +292,17 @@ describe('the live rows', () => {
     }
   });
 
-  it('includes the four commissions and the two charters', () => {
+  it('includes the five commissions and the two charters', () => {
     const commissions = LIVE.filter((id) => orderDef(id).commission !== undefined);
+    // Batch DV5 added Commission: The State Church.
     expect(commissions.sort()).toEqual(
-      ['theConversionOfKings', 'theFoundingVows', 'theGreatCommission', 'theMission'].sort(),
+      [
+        'commissionTheStateChurch',
+        'theConversionOfKings',
+        'theFoundingVows',
+        'theGreatCommission',
+        'theMission',
+      ].sort(),
     );
     // Batch DV4 added The Sabbath Laws.
     expect(LIVE.filter((id) => orderDef(id).charter !== undefined)).toEqual(['theFast', 'theSabbathLaws']);
@@ -913,8 +922,8 @@ describe('the Devotion deck: the sheet of record', () => {
     expect(shared).toHaveLength(29);
   });
 
-  it('types every listed row, 56 of this file and 29 shared, and nothing else of this file', () => {
-    expect(LISTED).toHaveLength(56);
+  it('types every listed row, 59 of this file and 29 shared, and nothing else of this file', () => {
+    expect(LISTED).toHaveLength(59);
     for (const id of DEVOTION) {
       const def = orderDef(id);
       if (def.retired === true) expect(def.type, id).toBeUndefined();

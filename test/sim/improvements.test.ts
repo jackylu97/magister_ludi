@@ -2757,7 +2757,11 @@ describe('improvements in the log', () => {
     // are new, five Magisterial cards are dealt, and Travelling Players pays
     // for each deck among the seated cards. So a v182 log's Magisterial hands
     // hold different cards.
-    expect(SCHEMA_VERSION).toBe(183);
+    // 184 since Devotion batch DV5 (the faith's reach): a founding can press
+    // a lump of the founder's religion, The Confessors' sight rule and the
+    // commission goal's `every` switch are new, and three Devotion cards
+    // are dealt. So a v183 log's Devotion hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(184);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

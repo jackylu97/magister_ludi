@@ -1746,6 +1746,94 @@
       ],
       "note": "Only a rite that lasts counts. The Votive Offering and the Restoring of the Host act at once, so they do not. A prophet's rite over the whole realm pays in each devout town it reaches."
     },
+    "theParishes": {
+      "name": "The Parishes",
+      "decks": [
+        "devotion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The bishop rides out with the settlers, and the town has a priest before it has a wall.",
+      "text": "Each town you found starts out devout.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "found",
+          "grant": {
+            "pressure": {
+              "amount": 10,
+              "range": 0
+            },
+            "fromOccasion": "population"
+          }
+        }
+      ],
+      "note": "A town you found follows your religion from its first turn, however many citizens it starts with. If no religion pays you, nothing happens."
+    },
+    "commissionTheStateChurch": {
+      "name": "Commission: The State Church",
+      "decks": [
+        "devotion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "flavor": "One emperor, one creed, and a bishop in every town to say so.",
+      "text": "Commission. Hold at least six towns, all of them devout, at the same time. Then, for the rest of the game, devout towns cost one less authority, minimum one. The card leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "reached",
+            "figure": "citiesAdmitted",
+            "count": 6,
+            "admits": {
+              "test": "ownersFaith",
+              "keeps": true
+            },
+            "every": true
+          }
+        ],
+        "reward": [
+          {
+            "lasting": [
+              {
+                "kind": "meterRule",
+                "rule": "cityCost",
+                "delta": -1,
+                "scope": {
+                  "test": "ownersFaith",
+                  "keeps": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "note": "Every town you hold must be devout at once. The goal is checked at the end of each turn."
+    },
+    "theConfessors": {
+      "name": "The Confessors",
+      "decks": [
+        "devotion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "The king's confessor hears everything, and writes some of it home.",
+      "text": "Towns that follow your religion share their sight with you.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "followersShareSight"
+        }
+      ],
+      "note": "A foreign town that follows your religion shows you what a town sees, but not what its owner's buildings and cards add. What you see from those towns is updated when one of your units moves and at the end of each turn."
+    },
     "theMonasticTable": {
       "name": "The Monastic Table",
       "decks": [

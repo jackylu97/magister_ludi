@@ -53,7 +53,9 @@ import { buildingCityStat, foldBuildingCityStat } from './buildingEffects';
 import { type Hex, hexDistance } from './hex';
 import { cardCityStat, cardUnitStat, foldCityStat } from './statecraft';
 // Expansionist batch E12: what a town holds, a card's grants included.
-import { townShelf } from './statecraft/evaluator';
+// Devotion batch DV5: The Confessors' rule and the `follows` town scope it
+// asks. The same function-level edge as the line above.
+import { cardBehaviorRule, cityScopeAdmits, townShelf } from './statecraft/evaluator';
 import { hasLineOfSight } from './los';
 import { type GameMap, type Tile, getTileAt, mapRange, tileHex, tileIndex } from './map';
 import { RULES } from './rulesData';
@@ -231,8 +233,12 @@ export interface SightSource {
   radius: number;
 }
 
+/** The town scope The Confessors asks, read with the viewer as "you". */
+const FOLLOWS_YOUR_RELIGION = { test: 'follows' } as const;
+
 /**
- * Every eye this player has, in state order — units first, then cities.
+ * Every eye this player has, in state order — units first, then cities, then
+ * (under The Confessors) the other empires' towns that follow its religion.
  *
  * Order is part of the answer even though the result is a set of tiles: a test
  * that reads `sources` wants a number it can reproduce, and iterating
@@ -271,6 +277,21 @@ export function sightSources(state: GameState, playerId: number): SightSource[] 
           foldBuildingCityStat(buildingCityStat(townShelf(state, city), 'sight')),
       ),
     });
+  }
+  // **The Confessors** (Devotion batch DV5, the triage's reading 22): every
+  // town of another empire that follows a religion this empire is paid by
+  // (the `follows` scope, with this empire as the reader) sees for it, at
+  // the base city sight. Its owner's cards and buildings are that empire's,
+  // so they add nothing here. After the empire's own eyes, in `state.cities`
+  // order, so the count of sources stays reproducible.
+  if (cardBehaviorRule(state, playerId, 'followersShareSight')) {
+    for (const city of state.cities) {
+      if (city.ownerId === playerId) continue;
+      if (!cityScopeAdmits(state, city, FOLLOWS_YOUR_RELIGION, playerId)) continue;
+      const tile = getTileAt(state.map, city.col, city.row);
+      if (!tile) continue;
+      sources.push({ tile, radius: VIS.citySight });
+    }
   }
   return sources;
 }

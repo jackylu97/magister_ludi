@@ -274,7 +274,15 @@ export function commissionFigure(
       // `citiesAdmitted` count's walk. With no scope it counts nothing, as the
       // count does.
       const scope = goal?.kind === 'reached' ? goal.admits : undefined;
-      return scope === undefined ? 0 : countCitiesAdmitted(state, playerId, scope);
+      if (scope === undefined) return 0;
+      const admitted = countCitiesAdmitted(state, playerId, scope);
+      // **Every town, or nothing** (Devotion batch DV5, Commission: The State
+      // Church; the triage's reading 23): with `every`, the count stands only
+      // while the scope admits every town the empire holds.
+      if (goal?.kind === 'reached' && goal.every === true && admitted < citiesOf(state, playerId).length) {
+        return 0;
+      }
+      return admitted;
     }
     case 'tradePartnerEmpires':
       // The World's Fair (Commerce batch T4, the triage's reading 11): the

@@ -2753,11 +2753,13 @@ describe("the pressure ledger", () => {
     expect(source.match(/\bunconvertCitizen\(/g)?.length).toBe(1);
     expect(body("purgePressure")).toContain("unconvertCitizen(");
 
-    // **And the lump has exactly two callers**, in two files: the prophet's
-    // proclamation here, and The Crusade's kill at the battle seam
+    // **And the lump has exactly three callers**, in three files: the
+    // prophet's proclamation here, The Crusade's kill at the battle seam
     // (`payBattleRiders`, `combat.ts` — the file that holds both the fight and
     // the faith, which is why the presser is handed *down* to the one place a
-    // windfall is paid rather than imported by it). A third way to press a lump
+    // windfall is paid rather than imported by it), and the founding seam
+    // (`foundCityAt`, `cities.ts`), which hands down a presser the same way
+    // for The Parishes (Devotion batch DV5). A fourth way to press a lump
     // joins this pin or it is a second implementation of what a lump does.
     expect(source.match(/\bpressLump\(/g)?.length).toBe(2);
     expect(body("proclaimAt")).toContain("pressLump(");
@@ -2765,6 +2767,16 @@ describe("the pressure ledger", () => {
     expect(fight.match(/\bpressLump\(/g)?.length).toBe(1);
     const riders = fight.slice(fight.indexOf("function payBattleRiders("));
     expect(riders.slice(0, riders.indexOf("\n}\n"))).toContain("pressLump(");
+    const towns = simSource("cities.ts");
+    expect(towns.match(/\bpressLump\(/g)?.length).toBe(1);
+    const founding = towns.slice(towns.indexOf("export function foundCityAt("));
+    expect(founding.slice(0, founding.indexOf("\n}\n"))).toContain("pressLump(");
+    // No other module of the simulation presses a lump.
+    const pressing = Object.keys(SIM_SOURCE)
+      .filter((path) => /\bpressLump\(/.test(SIM_SOURCE[path]!))
+      .map((path) => path.replace("../../src/sim/", ""))
+      .sort();
+    expect(pressing).toEqual(["cities.ts", "combat.ts", "religion.ts"]);
   });
 
   it("lets a wonder press for the empire that holds the stones", () => {

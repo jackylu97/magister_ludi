@@ -6956,6 +6956,32 @@
     "text": "starting a rite in a devout city grants culture equal to 5 times its population"
    }
   ],
+  "theParishes": [
+   {
+    "raw": "founding a city turns every citizen of that city to your religion",
+    "text": "founding a city turns every citizen of that city to your religion"
+   }
+  ],
+  "commissionTheStateChurch": [
+   {
+    "raw": "Commission. Goal: hold at least 6 cities, all of them devout, at the same time, while this card is seated",
+    "text": "Commission. Goal: hold at least 6 cities, all of them devout, at the same time, while this card is seated"
+   },
+   {
+    "raw": "Reward: for the rest of the game, the authority a devout city costs falls by 1",
+    "text": "Reward: for the rest of the game, the authority a devout city costs falls by 1"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theConfessors": [
+   {
+    "raw": "every city of another empire that follows your religion shares its sight with you",
+    "text": "every city of another empire that follows your religion shares its sight with you"
+   }
+  ],
   "theMonasticTable": [
    {
     "raw": "+2 food, +2 production in every city while it is keeping a rite",

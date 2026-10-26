@@ -2694,8 +2694,32 @@ import {
  * **A v182 save is refused and does not replay.** A Magisterial seat's pools
  * hold more cards, and Travelling Players pays a different amount. The branch
  * migrates nothing, for the reason given under v119.
+ *
+ * v184 (branch `decks`; Devotion batch DV5, `docs/plans/devotion-themes-
+ * triage.md`): **the faith's reach.** No field joins the state. The rules
+ * that change:
+ *
+ *   · the `found` occasion carries the citizens the new town is founded
+ *     with (`population`), and a windfall grant's `pressure` may be scaled
+ *     by the moment's measure (`fromOccasion`), as a yield or renown grant
+ *     may;
+ *   · `foundCityAt` hands `payWindfallGrants` a presser, so a lump paid on
+ *     the founding presses each religion the founder is paid by through
+ *     `pressLump`, which now has three callers (the triage's reading 21);
+ *   · one behaviour rule is new: `followersShareSight`. Under it every town
+ *     of another empire that follows a religion this empire is paid by is
+ *     a sight source for it, at the base city sight (reading 22);
+ *   · one goal field is new: `every` on a `citiesAdmitted` goal, which
+ *     counts the admitted towns only while every town the empire holds is
+ *     admitted (reading 23);
+ *   · three Devotion cards are new and dealt, all at Tier II: The Parishes,
+ *     Commission: The State Church and The Confessors.
+ *
+ * **A v183 save is refused and does not replay.** A Devotion seat's pools
+ * hold more cards. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 183;
+export const SCHEMA_VERSION = 184;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

@@ -600,6 +600,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Rogations | 0 | ◆ | P | While seated, this card gains +1 faith and +1 culture each time one of your towns starts a rite. It starts at +2 of each. |
 | The Sabbath Laws | 2 | ◆ | S | Once drafted, unlock the Rite of the Sabbath. A town keeping it builds nothing for ten turns, and gains culture equal to its production each turn. No chair required. |
 | The Psalter | 3 | ◆ | S | Each rite started in a devout town grants science and culture equal to five times the town's population. |
+| The Parishes | 2 | ◆ | S | Each town you found starts out devout. |
+| Commission: The State Church | 2 | ◆ | S | Commission. Hold at least six towns, all of them devout, at the same time. Then, for the rest of the game, devout towns cost one less authority, minimum one. The card leaves its chair. |
+| The Confessors | 2 | ◆ | S | Towns that follow your religion share their sight with you. |
 
 ### Scientific
 
@@ -963,6 +966,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Rogations** — Only a rite that lasts counts. The Votive Offering and the Restoring of the Host act at once, so they do not. A prophet's rite over the whole realm counts once in each town it reaches.
 - **The Sabbath Laws** — Production the town buys, or is given at once, still goes into what it is building.
 - **The Psalter** — Only a rite that lasts counts. The Votive Offering and the Restoring of the Host act at once, so they do not. A prophet's rite over the whole realm pays in each devout town it reaches.
+- **The Parishes** — A town you found follows your religion from its first turn, however many citizens it starts with. If no religion pays you, nothing happens.
+- **Commission: The State Church** — Every town you hold must be devout at once. The goal is checked at the end of each turn.
+- **The Confessors** — A foreign town that follows your religion shows you what a town sees, but not what its owner's buildings and cards add. What you see from those towns is updated when one of your units moves and at the end of each turn.
 - **Common Tools** — † the hammers are for workers and buildings, and for nothing else
 - **Road Crews** — † a worker that wakes on one of your roads travels further that day
 - **Road Maintenance** — † the upkeep of your roads is reduced, up to a limit each turn

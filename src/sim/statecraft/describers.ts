@@ -2482,12 +2482,28 @@ function describeEffect(
         // player plans around — how close the fighting has to be.
         // A range of nought reaches only the city on the hex itself — The
         // Crusader Orders' captured town (batch S) — so it says that.
+        //
+        // **A lump for each citizen** (Devotion batch DV5, The Parishes): at
+        // least the price of one convert for each citizen of the city on the
+        // hex turns all of them, so the words say that. Any other share of the
+        // moment says the figure it presses.
+        const perConvert = Math.max(1, Math.floor(RULES.religion.pressurePerConvert));
+        const turnsEveryone =
+          grant.fromOccasion === 'population' &&
+          grant.pressure.range <= 0 &&
+          grant.pressure.amount >= perConvert;
+        const reach =
+          grant.pressure.range <= 0
+            ? 'the city where it happens'
+            : `every city within ${grant.pressure.range} hexes`;
+        const scaled =
+          grant.fromOccasion === undefined
+            ? ''
+            : `, with ${measuredWords('faith', grant.pressure.amount, grant.fromOccasion, effect.occasion)}`;
         out.push({
-          text:
-            grant.pressure.range <= 0
-              ? `${occasion} spreads your religion to the city where it happens${per}`
-              : `${occasion} spreads your religion to every city within ` +
-                `${grant.pressure.range} hexes${per}`,
+          text: turnsEveryone
+            ? `${occasion} turns every citizen of that city to your religion${per}`
+            : `${occasion} spreads your religion to ${reach}${scaled}${per}`,
         });
       }
       if (effect.percent !== undefined) {
@@ -6696,6 +6712,10 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   closedBook: 'completing the technology that opens the Magnum Opus first shuts it to the other empires for a while',
   opusEarly: 'you may begin the Magnum Opus before any empire knows the technology that opens it',
   prototypes: 'you may build the buildings and train the units of the technology you are researching',
+  // Devotion batch DV5, The Confessors (`BehaviorRuleId`). "Another empire's"
+  // because your own towns already see for you; what the town adds is the
+  // plain city sight, so the words promise nothing its owner's cards add.
+  followersShareSight: 'every city of another empire that follows your religion shares its sight with you',
 };
 
 /**
@@ -7116,6 +7136,15 @@ function citiesAdmittedWords(scope: CityScope): { one: string; many: string } {
   return { one, many: one.replace(/\bcity\b/, 'cities') };
 }
 
+/**
+ * **"All of them devout"**: the condition a goal with `every` puts on every
+ * town held (Devotion batch DV5, Commission: The State Church). The scope's
+ * own words with the noun taken out, as a condition reads elsewhere.
+ */
+function everyAdmittedWords(scope: CityScope): string {
+  return `all of them ${scopeCondition(scope)}`;
+}
+
 /** The Academy as a keyword ref, for the commission figure that counts them. */
 function academyRef(many = false): string {
   const name = improvementDef('academy').name;
@@ -7152,6 +7181,11 @@ export function commissionGoalWords(goal: CommissionGoal): string {
         : ` on ${indefinite(improvementDef(goal.work).name)} ${ref('improvement', goal.work, improvementDef(goal.work).name)}`);
     return `${words.verb} ${goal.count} ${goal.count === 1 ? words.one : words.many}${floor}`;
   }
+  // Every town a scope admits (Devotion batch DV5, The State Church): "hold
+  // at least 6 cities, all of them devout, at the same time".
+  if (goal.figure === 'citiesAdmitted' && goal.admits !== undefined && goal.every === true) {
+    return `hold at least ${goal.count} ${goal.count === 1 ? 'city' : 'cities'}, ${everyAdmittedWords(goal.admits)}, at the same time`;
+  }
   // The towns a scope admits (Commerce batch T4, The Great Fair): "have 4
   // cities one of your own trade routes ends at, at the same time".
   if (goal.figure === 'citiesAdmitted' && goal.admits !== undefined) {
@@ -7177,8 +7211,11 @@ const TOWN_FIGURE_WORDS: Partial<Record<CommissionFigure, string>> = {
 export function commissionCounterWords(goal: CommissionGoal): string {
   // A rank floor counts units that became that rank (Dominion batch D11).
   if (goal.kind === 'counted' && goal.rank !== undefined) return `units become ${rankName(goal.rank)}`;
-  // The towns a scope admits, in the scope's words (Commerce batch T4).
+  // The towns a scope admits, in the scope's words (Commerce batch T4). With
+  // `every` (Devotion batch DV5) the figure is every town held, and nought
+  // while one is left out, so the label says both.
   if (goal.kind === 'reached' && goal.figure === 'citiesAdmitted' && goal.admits !== undefined) {
+    if (goal.every === true) return `cities, ${everyAdmittedWords(goal.admits)}`;
     return citiesAdmittedWords(goal.admits).many;
   }
   return goal.kind === 'counted'

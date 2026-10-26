@@ -377,6 +377,8 @@ The first eleven come from section 12, from R1 and from section 11. The rest are
 - **Done-gate:** `npx vitest run test/sim/decks/devotionFaith.test.ts test/sim/cities.test.ts test/sim/visibility.test.ts test/sim/commissions.test.ts test/sim/aiCommissions.test.ts test/sim/religion.test.ts test/sim/decks.test.ts test/sim/statecraft.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts test/mapgen/moduleCycles.test.ts`.
 - **For the orchestrator:** `CLAUDE.md` and `docs/README.md` say `pressLump` has exactly two callers. After DV5 it has three, and after DV6 four.
 
+- **Built (2026-10-26):** as planned. The gate passed: the type check, 9,693 core tests and the build. Schema 184. `pressLump` has three callers now (`proclaimAt`, `payBattleRiders`, `foundCityAt`), pinned in `religion.test.ts` and named in `docs/README.md`; `CLAUDE.md` still says two and waits for the user's yes. `windfallPayout` lets `fromOccasion` scale a pressure grant. Readings added: The Parishes presses 10 for each starting citizen (one convert each), so a town founded large still turns whole; the lump is pressed inside the founding payout; an empire paid by two religions presses both; The Confessors' sight shows at the next visibility recompute.
+
 ### DV6: feature F, a conversion as a moment
 
 - **Builds:**

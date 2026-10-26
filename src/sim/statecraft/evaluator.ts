@@ -8259,7 +8259,9 @@ export interface WindfallOccasionFacts {
    * citizens, The Tax Rolls) and a town's first joining to its capital (the
    * town's size, The Opening of the Roads). Since Devotion batch DV4 a season
    * started carries the citizens of the town it started in (the `rite`
-   * occasion, The Psalter).
+   * occasion, The Psalter). Since Devotion batch DV5 the `found` occasion
+   * carries the citizens the new town is founded with, founding riders
+   * included (The Parishes' lump).
    */
   population?: number;
   /**
@@ -8884,13 +8886,19 @@ export function windfallPayout(
         payout.lines.push({ card, source, note: `${signed(amount)} renown` });
       }
     }
-    if (grant.pressure !== undefined && grant.pressure.amount !== 0) {
+    // Since Devotion batch DV5 a lump may be a share of the moment too, as
+    // renown may: The Parishes presses for each citizen of the town just
+    // founded. A moment that does not carry the measure presses nothing.
+    const pressureMeasure =
+      grant.fromOccasion === undefined ? 1 : occasionMeasure(grant.fromOccasion, paid, facts);
+    if (grant.pressure !== undefined && grant.pressure.amount !== 0 && pressureMeasure !== undefined) {
       // Multiplied by the era and by the council exactly as a yield grant is,
       // for that grant's reason: one printed figure, composed before anything is
       // banked. The *range* is not multiplied — it is a distance the row names
       // and not a payout.
       const amount =
         grant.pressure.amount *
+        pressureMeasure *
         (effect.perAge === true ? era : 1) *
         (effect.perSlottedOrder === true ? slotted : 1) *
         boostFor(card);
@@ -10148,6 +10156,9 @@ export function payWindfallGrants(
    * where a kill happens). A payout carrying a lump on a caller that offered no
    * presser presses nothing, which is the honest answer for a caller that did not
    * offer one.
+   *
+   * Since Devotion batch DV5 the founding seam hands one in too (`foundCityAt`,
+   * `cities.ts`), for The Parishes' lump on the town just founded.
    */
   press?: (amount: number, range: number, at: { col: number; row: number }) => void,
 ): City[] {

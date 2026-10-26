@@ -3,7 +3,7 @@
 The deck's cards, by tier: name, rarity, status, ability and type. This sheet is the spec of record for the deck. `test/sim/decks/devotion.test.ts` checks it against `data/decks/devotion.json` and, for the shared table, `data/decks/common.json`.
 
 - **Why each card is here:** `docs/plans/devotion-themes.md`, the themes pass of 2026-10-23. It designs the deck as a way to play: an engine of faith and what faith buys, and four themes (the devout realm, the holy places, the spreading faith and the holy war). Section 12 holds your answers of 2026-10-25, and it outranks the sections before it. `docs/plans/devotion-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
-- **The build plan:** `docs/plans/devotion-themes-triage.md` (batches DV1 to DV9). Batch DV1 wrote this sheet, put the types into the data, retired the four cut rows, moved seven rows to the shared file, moved six cards to a new tier, and changed five cards in place: Lay Offerings, The Settled Faith, The Mission, The Conversion of Kings and The Great Commission. The deferred The Interdict took its new text and stays out of every pool. Batch R1 changed The Fast and The Rites Commonwealth before DV1 (`docs/plans/review-revisions-2026-10-25.md`). Batch DV2 built the seven new cards whose shapes already existed (The Deaconries, The Lives of the Saints, The Martyrology, The Consecration Feast, The Pilgrim Towns, The Holy Summons and The Work of God), four shared cards, and the word "devout". Batch DV3 built the engine's shapes: The Gifts of the Faithful, The Sacred Precincts, The Book of Life and The Offering Chests, The Creed's rework, and the shared The Rising Nave. Batch DV4 made a rite started a season (the Votive Offering and the Restoring of the Host do not count, and a prophet's rite over the realm counts once in each town it reaches), and built The Rogations, The Psalter, The Sabbath Laws with its Rite of the Sabbath, and The Founding Vows' narrower count.
+- **The build plan:** `docs/plans/devotion-themes-triage.md` (batches DV1 to DV9). Batch DV1 wrote this sheet, put the types into the data, retired the four cut rows, moved seven rows to the shared file, moved six cards to a new tier, and changed five cards in place: Lay Offerings, The Settled Faith, The Mission, The Conversion of Kings and The Great Commission. The deferred The Interdict took its new text and stays out of every pool. Batch R1 changed The Fast and The Rites Commonwealth before DV1 (`docs/plans/review-revisions-2026-10-25.md`). Batch DV2 built the seven new cards whose shapes already existed (The Deaconries, The Lives of the Saints, The Martyrology, The Consecration Feast, The Pilgrim Towns, The Holy Summons and The Work of God), four shared cards, and the word "devout". Batch DV3 built the engine's shapes: The Gifts of the Faithful, The Sacred Precincts, The Book of Life and The Offering Chests, The Creed's rework, and the shared The Rising Nave. Batch DV4 made a rite started a season (the Votive Offering and the Restoring of the Host do not count, and a prophet's rite over the realm counts once in each town it reaches), and built The Rogations, The Psalter, The Sabbath Laws with its Rite of the Sabbath, and The Founding Vows' narrower count. Batch DV5 built the faith's reach: The Parishes (a town you found is pressed with your religion, enough to turn every citizen), The Confessors (towns that follow your religion are sight sources for you) and Commission: The State Church (a goal that counts only while every town you hold is devout).
 - **Devout towns:** a devout town is one of your towns that follows a religion you are paid by. The game asks this with the town scope `ownersFaith` (`keeps: true`). A foreign town is never devout. "Devout" is the card word of the triage's feature E (reading 2). Since batch DV2 the describers print the scope as "devout", and the Compendium's faith page says what a devout town is. The cards about every town that follows your religion, foreign towns included, keep the words "follows your religion".
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
@@ -25,10 +25,10 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 |---|---|---|---|---|---|
 | Tier 0 | 8 | 0 | 0 | 8 | 0 |
 | Tier I | 7 | 0 | 0 | 7 | 1 |
-| Tier II | 15 | 2 | 4 | 21 | 1 |
+| Tier II | 18 | 2 | 1 | 21 | 1 |
 | Tier III | 9 | 2 | 5 | 16 | 0 |
 | Tier IV | 12 | 1 | 1 | 14 | 0 |
-| **All** | **51** | **5** | **10** | **66** | **2** |
+| **All** | **54** | **5** | **7** | **66** | **2** |
 | Shared | 27 | 2 | 0 | 29 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
@@ -89,8 +89,8 @@ Without the charters, the deck holds 64 cards that take a chair: 8, 6, 20, 16 an
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
 | **The Deaconries** | uncommon | implemented | Devout towns gain +1 happiness for every four citizens. | Civic |
-| **The Parishes** | uncommon | add | Each town you found starts out devout. | Civic |
-| **Commission: The State Church** | uncommon | add | Commission. Hold at least six towns, all of them devout, at the same time. Then, for the rest of the game, devout towns cost one less authority, minimum one. The card leaves its chair. | Wildcard |
+| **The Parishes** | uncommon | implemented | Each town you found starts out devout. | Civic |
+| **Commission: The State Church** | uncommon | implemented | Commission. Hold at least six towns, all of them devout, at the same time. Then, for the rest of the game, devout towns cost one less authority, minimum one. The card leaves its chair. | Wildcard |
 | **The Settled Faith** | rare | modify: as built | Devout towns gain +15% science and culture. Your proclamations press 25% less. | Civic |
 | **The Sabbath Laws** | uncommon | implemented | Once drafted, unlock the Rite of the Sabbath. A town keeping it builds nothing for ten turns, and gains culture equal to its production each turn. No chair required. | Civic |
 | **The Anchorites** | uncommon | add | Your prophets raise a further holy site for one charge instead of two. | Civic |
@@ -103,7 +103,7 @@ Without the charters, the deck holds 64 cards that take a chair: 8, 6, 20, 16 an
 | **The Living Hymnal** | uncommon | implemented | Your capital gains +3 science and +3 culture for every city following your religion, with no cap. | Civic |
 | **The Lives of the Saints** | uncommon | implemented | +2% science and culture for every foreign town your religion has turned this game, at most +30%. | Civic |
 | **The Mission** | uncommon | implemented | Commission. Convert two foreign cities to your religion while this is seated. Reward: a free Apostle in your capital and 300 culture. Then this card leaves its chair. | Wildcard |
-| **The Confessors** | uncommon | add | Towns that follow your religion share their sight with you. | Military |
+| **The Confessors** | uncommon | implemented | Towns that follow your religion share their sight with you. | Military |
 | **The Spiritual Host** | uncommon | implemented | Your military units gain +4 strength in territory following your religion. Temple cities gain +2 happiness while you are at war. | Military |
 | **The Martyrology** | uncommon | implemented | While seated, this card gains +2 faith and +2 culture each time one of your units dies in battle. | Civic |
 | **The Lay Brothers** | rare | implemented | Cities with a Temple may buy ordinary buildings with faith, at the faith rate. | Economic |

@@ -181,6 +181,7 @@ import {
 // same function-level edge the index above already is.
 import {
   cardBirthExperience,
+  heldReligions,
   higherRank,
   opusCityOf,
   surplusMoverFor,
@@ -334,7 +335,11 @@ import { awardFoundingTriumphs, awardOccasion } from './triumphs';
 // is what `test/mapgen/moduleCycles.test.ts` checks by loading every module as
 // an entry. A grant that reimplemented the deal to dodge the import would be a
 // second way to open a consecration, which is the thing worth avoiding.
-import { openFreeRung } from './religion';
+//
+// `pressLump` rides the same edge (Devotion batch DV5, The Parishes): the
+// founding seam hands `payWindfallGrants` a presser, as `payBattleRiders`
+// (`combat.ts`) does, and calls it only inside `foundCityAt`.
+import { openFreeRung, pressLump } from './religion';
 import { type TileYieldContext, cityContext, foldTile, yieldContextFor } from './yields/hex';
 import { type CityReading, explainSurplusMoved, foldCity } from './yields/town';
 
@@ -1802,9 +1807,25 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
   // is already finished. Food or hammers land in the nearest town, which for a
   // founding is this one — `settleGrowthWindfall` on whatever was touched, the
   // register of mid-turn yield mutations' entry 7 paying entry 11's way.
+  //
+  // **The Parishes' lump** (Devotion batch DV5, the triage's reading 21). The
+  // moment carries the citizens the town is founded with, so a lump can be a
+  // share of them, and this seam hands `payWindfallGrants` a presser, as
+  // `payBattleRiders` does: `pressLump` is the one routine that presses a lump
+  // and turns citizens on the spot. It presses each religion the founder is
+  // paid by (`heldReligions`), in founding order, and nothing for an empire
+  // with no religion. `payWindfallGrants` presses after the coin and before
+  // the renown, so the town follows from its first turn. `pressLump` refreshes
+  // a town whose citizens turned (entry 14 of the register).
   if (founder) {
-    const payout = windfallPayout(state, founder.id, 'found');
-    for (const paid of payWindfallGrants(state, founder, payout, { col: city.col, row: city.row })) {
+    const payout = windfallPayout(state, founder.id, 'found', 0, 0, { population: city.population });
+    const press = (amount: number, range: number, where: { col: number; row: number }): void => {
+      for (const religion of heldReligions(state, founder.id)) {
+        pressLump(state, religion, where, range, amount);
+      }
+    };
+    const at = { col: city.col, row: city.row };
+    for (const paid of payWindfallGrants(state, founder, payout, at, undefined, press)) {
       settleGrowthWindfall(state, paid);
     }
     settleCultureWindfall(state, founder);

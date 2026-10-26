@@ -3650,6 +3650,10 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
         const commerce = commerceRuleWorth(effect, ctx);
         if (commerce !== null) return commerce;
       }
+      // **The Confessors' sight** (Devotion batch DV5) is a stand-in until
+      // batch DV9 prices it. Sight is worth what it shows, and this bot keeps
+      // no price for a hex seen.
+      if (effect.rule === 'followersShareSight') return ctx.ai.score.unknownEffect;
       return ctx.ai.score.unknownEffect;
     case 'metaRule':
       // A rule of Statecraft itself — how long a chair is sealed. What a seal
