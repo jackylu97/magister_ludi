@@ -100,6 +100,7 @@ import {
   BUILDING_UNLOCK_TECH,
   type TechId,
   type TechTrait,
+  UNIT_UNLOCK_TECH,
   abilityDef,
   isTechId,
   techDef,
@@ -850,6 +851,8 @@ export function describeCard(id: CardId): CardClause[] {
  *   - each building the technology names in its `unlocks`, in the building's
  *     own words (`describeBuildingRow`, as a card's `unlocksBuilding` clause
  *     prints it), batch S4;
+ *   - each building and unit the technology opens before the tree does (its
+ *     `unlocksBuilding` and `unlocksUnit` effects), batches S5 and DV2;
  *   - each worker row whose `requiresTech` is the technology (the Physic
  *     Garden), batch S4;
  *   - the technology's own card effects (Herbals' happiness, Printing's trade
@@ -890,6 +893,24 @@ function charterTechClauses(tech: TechId): CardClause[] {
       text: `${known}you may build ${theBuilding(effect.building)}${before}${does === '' ? '' : `: ${does}`}`,
     });
   }
+  // **A unit the tree opens later, opened early** (Devotion batch DV2,
+  // Scholasticism's Apostle): said like the early building above, with the
+  // node that opens it for everyone. A piece that is only bought names its
+  // bank, because no build queue takes it.
+  const earlyUnits: UnitTypeId[] = [];
+  for (const effect of def.effects ?? []) {
+    if (effect.kind !== 'unlocksUnit') continue;
+    earlyUnits.push(effect.unit);
+    const row = unitDef(effect.unit);
+    const gate = UNIT_UNLOCK_TECH.get(effect.unit);
+    const before = gate === undefined ? '' : ` before ${ref('tech', gate, techDef(gate).name)}`;
+    const bank = row.purchase?.exclusive === true ? row.purchase.currency : undefined;
+    const how = bank === undefined ? 'train' : 'call';
+    const paid = bank === undefined ? '' : ` with ${bank}`;
+    clauses.push({
+      text: `${known}you may ${how} the ${ref('unit', effect.unit, row.name)}${paid}${before}`,
+    });
+  }
   for (const work of IMPROVEMENT_IDS) {
     const row = improvementDef(work);
     if (row.requiresTech !== tech) continue;
@@ -901,7 +922,9 @@ function charterTechClauses(tech: TechId): CardClause[] {
     });
   }
   const rest = (def.effects ?? []).filter(
-    (effect) => effect.kind !== 'unlocksBuilding' || !early.includes(effect.building),
+    (effect) =>
+      (effect.kind !== 'unlocksBuilding' || !early.includes(effect.building)) &&
+      (effect.kind !== 'unlocksUnit' || !earlyUnits.includes(effect.unit)),
   );
   for (const clause of describeEffects(rest)) {
     if (clause.deferred === true) continue;
@@ -4318,9 +4341,12 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       into.qualifiers.push('whose owner is at war with another empire');
       return;
     case 'ownersFaith':
-      into.qualifiers.push(
-        scope.keeps ? 'that follows your religion' : 'that does not follow your religion',
-      );
+      // "Devout" is the card word for a town of yours that follows a religion
+      // you are paid by (feature E of `docs/plans/devotion-themes-triage.md`,
+      // Devotion batch DV2). The Compendium's faith page says what it means.
+      // The other half has no short word, so it keeps its clause.
+      if (scope.keeps) into.adjectives.push('devout');
+      else into.qualifiers.push('that does not follow your religion');
       return;
     case 'holyCity':
       into.adjectives.push('holy');

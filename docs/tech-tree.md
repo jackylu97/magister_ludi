@@ -338,6 +338,7 @@ Only a seat that drafted the charter may research these. Each sits one column ri
 | Cataloguing | II | 4 | 100 | 150 | Writing | The Librarians' Charter | — | Mouseion ‡ | — |
 | Optics | II | 5 | 190 | 285 | Chronology | The Glassmakers' Charter | — | Specularium | — |
 | Medicine | III | 6 | 360 | 540 | The High Temple | The Physicians' Charter | — | Bimaristan ‡ | — |
+| Scholasticism | III | 6 | 360 | 540 | The High Temple | The Schoolmen's Charter | — | — | — |
 | Papermaking | III | 7 | 650 | 975 | Rhetoric | The Paper-Makers' Charter | — | Scriptorium | — |
 | Printing | III | 7 | 650 | 975 | Rhetoric | The Printers' Charter | — | Aldine Press | — |
 | Mechanics | III | 8 | 1150 | 1725 | Mathematics | The Mechanists' Charter | — | — | — |
@@ -353,6 +354,8 @@ Only a seat that drafted the charter may research these. Each sits one column ri
 - **Casting** — +1 combat strength for units of the War Chariot line
 - **Casting** — +5 combat strength for units of the War Chariot line against units below half strength
 - **Surveying** — unlocks the Aqueduct — +15% food surplus stored toward growth; the city counts as standing beside fresh water
+- **Scholasticism** — unlocks the Cathedral — +2 culture, +2 faith; +3 happiness; units may be bought with faith in this city; +1 renown per turn, favouring artists
+- **Scholasticism** — unlocks the Apostle, called with faith
 - **Printing** — +1 trade route
 - **Mechanics** — the Catapult line (Catapult and Trebuchet) gains the Onager trait and keeps it through every upgrade
 - **Mechanics** — units of the Catapult line: +1 range

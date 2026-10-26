@@ -110,6 +110,7 @@ import {
   cardActionRuleAt,
   cardPurchaseRiders,
   cardRulePercent,
+  cardUnlocksUnit,
   cityBeliefUnlocksBuilding,
   indefinite,
   payWindfallGrants,
@@ -1209,16 +1210,29 @@ function clausesBeforeTheBank(
     // A figure's uniques are asked on exactly the same terms (batch L2a): ten
     // of them are soldiers standing on no node, so a seat that has not taken the
     // card that opens one must not be able to buy its way past the deck.
+    const gate = gatingTech(bought.kind, bought.id);
     if (
       bought.kind === 'unit' &&
       (unitDef(bought.id).unlockedByCard === true || unitDef(bought.id).unlockedByLeader === true)
     ) {
       if (!isUnlocked(state, playerId, 'unit', bought.id)) {
+        // A row the tree opens too (the Apostle, at Theology) names its
+        // technology, as an ordinary row does.
+        if (unitDef(bought.id).unlockedByCard === true && gate !== null && !hasTech(state, playerId, gate)) {
+          return `${name}s need ${techDef(gate).name}`;
+        }
         return `${name} is not open to ${player.name} yet`;
       }
     }
-    const gate = gatingTech(bought.kind, bought.id);
-    if (gate !== null && !hasTech(state, playerId, gate)) {
+    // A card may open a row before its technology does (Devotion batch DV2:
+    // Scholasticism, The Schoolmen's Charter's technology, opens the Apostle
+    // before Theology). The card comes before the tree's gate and does not
+    // replace it, as `unlockedFor` (`tech.ts`) reads it.
+    const early =
+      bought.kind === 'unit' &&
+      unitDef(bought.id).unlockedByCard === true &&
+      cardUnlocksUnit(state, playerId, bought.id);
+    if (gate !== null && !early && !hasTech(state, playerId, gate)) {
       return `${name}s need ${techDef(gate).name}`;
     }
     // **A row may name the building its town must hold** (batch S): the

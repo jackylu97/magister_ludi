@@ -3,7 +3,9 @@
  * `docs/plans/scientific-build-triage.md`, the S0 section and readings 1, 13,
  * 14, 16, 19, 20 and 21).
  *
- * Thirteen technology rows that only a seat holding the charter may research.
+ * Fourteen technology rows that only a seat holding the charter may research:
+ * thirteen for the Scientific charters, and Scholasticism for the shared The
+ * Schoolmen's Charter (Devotion batch DV2).
  * What this file pins:
  *
  *   - the register: the rows marked `TechDef.charter` are exactly the
@@ -73,6 +75,9 @@ const PLACEMENT: readonly [TechId, number, TechId, number, number][] = [
   ['cataloguing', 2, 'letters', 4, 150],
   ['optics', 2, 'theLongCount', 5, 285],
   ['medicine', 3, 'theHighTemple', 6, 540],
+  // Devotion batch DV2: the shared The Schoolmen's Charter's technology, on
+  // the lane under Medicine (the triage's reading 24).
+  ['scholasticism', 3, 'theHighTemple', 6, 540],
   ['papermaking', 3, 'philosophy', 7, 975],
   ['printing', 3, 'philosophy', 7, 975],
   ['mechanics', 3, 'mathematics', 8, 1725],
@@ -90,6 +95,7 @@ const CHARTER_OF: Record<string, OrderId> = {
   cataloguing: 'theLibrariansCharter',
   optics: 'theGlassmakersCharter',
   medicine: 'thePhysiciansCharter',
+  scholasticism: 'theSchoolmensCharter',
   papermaking: 'thePaperMakersCharter',
   printing: 'thePrintersCharter',
   mechanics: 'theMechanistsCharter',
@@ -121,7 +127,7 @@ beforeAll(() => {
 
 describe('the register', () => {
   it('marks exactly the technologies the charter cards name', () => {
-    expect(CHARTER_TECH_IDS).toHaveLength(13);
+    expect(CHARTER_TECH_IDS).toHaveLength(14);
     expect(new Set(CHARTER_TECH_IDS)).toEqual(new Set(charteredTechIds()));
     expect(charteredTechIds()).toHaveLength(CHARTER_TECH_IDS.length);
     expect(CHARTER_TECH_IDS).toEqual(PLACEMENT.map(([id]) => id));
@@ -129,13 +135,15 @@ describe('the register', () => {
 
   it('keeps the sky its fifty rows, and every row in the full list', () => {
     expect(TECH_IDS).toHaveLength(50);
-    expect(ALL_TECH_IDS).toHaveLength(63);
+    expect(ALL_TECH_IDS).toHaveLength(64);
     for (const id of CHARTER_TECH_IDS) expect(TECH_IDS, id).not.toContain(id);
     expect([...TECH_IDS, ...CHARTER_TECH_IDS]).toEqual(ALL_TECH_IDS);
   });
 
-  it('gives every charter technology one Scientific charter card, deferred until its gift is built', () => {
-    const deck = DECK_FILE_ORDERS.scientific;
+  it('gives every charter technology one charter card a Scientific seat draws, deferred until its gift is built', () => {
+    // The Scientific file's charters, and the shared The Schoolmen's Charter
+    // (Devotion batch DV2), which lives in the shared file.
+    const deck = [...DECK_FILE_ORDERS.scientific, ...DECK_FILE_ORDERS.common];
     // Batch S1 built the line traits, batch S4 the buildings and the Physic
     // Garden, and batch S5 the Qanat and Niter Beds, so all thirteen
     // charters' whole gifts exist and they are dealt.
@@ -153,11 +161,13 @@ describe('the register', () => {
       'thePrintersCharter',
       'theGunfoundersCharter',
       'theMilitaryEngineersCharter',
+      'theSchoolmensCharter',
     ]);
     for (const tech of CHARTER_TECH_IDS) {
       const card = CHARTER_OF[tech]!;
       expect(deck, card).toContain(card);
       const def = orderDef(card);
+      expect(def.decks, card).toContain('scientific');
       expect(isCharter(card), card).toBe(true);
       expect(def.charter!.unlocks.tech, card).toBe(tech);
       expect(def.retired, card).toBeUndefined();

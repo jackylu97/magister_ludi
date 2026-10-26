@@ -1031,10 +1031,17 @@ describe('determinism', () => {
    * DV1 and merged after it. Checked on the merged tree with the version
    * printed as 175, which gives the hashes of Commerce batch T6 exactly, and
    * as 176, which gives the hashes of DV1 exactly.
+   *
+   * **Devotion batch DV2 (the new data-only cards, schema 178) moved the hash
+   * and not the length** at both seeds: 177 became 178, and that is all. The
+   * batch adds card rows, a charter technology and two `unlockedByCard`
+   * markers. Nobody here drafts, so no seat holds a new card or researches
+   * Scholasticism. Checked with the change in place and the version printed
+   * as 177, which gives the hashes of Magisterial batch MG1 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '2034a322:188931',
-    2026: '69a4a3f3:188509',
+    11: '62961899:188931',
+    2026: '1922c344:188509',
   };
 
   for (const seed of [11, 2026]) {

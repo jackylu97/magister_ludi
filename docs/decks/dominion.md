@@ -20,7 +20,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | Tier III | 27 | 0 | 0 | 27 | 3 |
 | Tier IV | 21 | 0 | 0 | 21 | 3 |
 | **All** | **129** | **0** | **0** | **129** | **15** |
-| Shared | 28 | 0 | 0 | 28 |  |
+| Shared | 29 | 0 | 0 | 29 |  |
 
 **By type** (the chair a card fits):
 
@@ -32,7 +32,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | Tier III | 10 | 6 | 9 | 2 |
 | Tier IV | 9 | 3 | 5 | 4 |
 | **All** | **43** | **30** | **41** | **15** |
-| Shared | 13 | 8 | 6 | 1 |
+| Shared | 14 | 8 | 6 | 1 |
 
 ## Tier 0
 
@@ -243,11 +243,14 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 
 **Changed by batch R1 (2026-10-25).** The Standing Army moved to Tier I in both decks (*"move to tier 1 (barracks appear later)"*). It is still the early shared card of the Dominion and Commerce pair. Copying the Enemy is retired, so it leaves both decks (*"remove"*, your comment on this table). It paid only for kills, so a Scientific seat alone would rarely use it.
 
+**Built by Devotion batch DV2 (2026-10-25).** The Shrine Guards is a new card shared with Devotion, at Tier 0: towns with a Shrine may buy melee units with faith. It is a second early shared card for the Dominion and Devotion pair, beside Rites of Passage (`docs/plans/devotion-themes-triage.md`, the shared table).
+
 **Built by Commerce batch T6 (2026-10-23).** Mercenary Contracts takes the Commerce themes pass's text: a military unit bought with gold or faith while the card is seated costs no upkeep for twenty turns, and keeps the waiver if the card leaves its chair (`docs/plans/commerce-themes-triage.md`, reading 27). The hired unit that left after fifteen turns is gone.
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
 | **Rites of Passage** | common | Devotion | 0 | implemented | Gaining a military unit grants 12 faith. | Civic |
+| **The Shrine Guards** | common | Devotion | 0 | implemented | Towns with a Shrine may buy melee units with faith. | Military |
 | **The Standing Army** | uncommon | Commerce | I | implemented | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. | Military |
 | **Military Colonies** | uncommon | Expansionist | I | implemented | Cities with a Barracks gain +45% production toward settlers and workers. | Economic |
 | **The Escorted Roads** | uncommon | Commerce | II | implemented | Routes whose origin has a garrison gain +5 gold. Naval units gain +2 strength while adjacent to one of your traders. | Economic |

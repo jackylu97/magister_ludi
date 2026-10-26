@@ -2550,8 +2550,31 @@ import {
  * Magisterial seat's pools and chairs hold different cards, and so do the
  * pools of a Dominion seat. The branch migrates nothing, for the reason given
  * under v119.
+ *
+ * v178 (branch `decks`; Devotion batch DV2, `docs/plans/devotion-themes-
+ * triage.md`): **the new data-only Devotion cards, the word "devout" and the
+ * shared Scientific rows.** No field joins the state. The rules that change:
+ *
+ *   · seven Devotion cards are new and dealt: The Deaconries, The Lives of
+ *     the Saints and The Martyrology (Tier II), The Consecration Feast, The
+ *     Pilgrim Towns and The Holy Summons (Tier III), and The Work of God
+ *     (Tier IV);
+ *   · four shared cards are dealt: The Shrine Guards (new, with Dominion),
+ *     The Blessed Forges and The Schoolmen's Charter (new, with Scientific),
+ *     and The Monastery Libraries, which leaves `deferred` with its new text;
+ *   · a new charter technology, Scholasticism (`scholasticism`), which only
+ *     a seat holding The Schoolmen's Charter may research. Knowing it opens
+ *     the Cathedral and the Apostle before Theology, so both rows carry
+ *     `unlockedByCard`. A unit that only a purchase brings (the Apostle) may
+ *     be bought before its technology when a card has opened it early;
+ *   · the describers print a town that follows a religion its owner is paid
+ *     by as "devout". Only the printed words change.
+ *
+ * **A v177 save is refused and does not replay.** A Devotion, Dominion or
+ * Scientific seat's pools hold more cards, and the technology list is longer.
+ * The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 177;
+export const SCHEMA_VERSION = 178;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

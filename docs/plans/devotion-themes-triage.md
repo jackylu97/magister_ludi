@@ -333,6 +333,8 @@ The first eleven come from section 12, from R1 and from section 11. The rest are
 - **Done-gate:** `npx vitest run test/sim/decks/devotionThemeCards.test.ts test/sim/decks/devotion.test.ts test/sim/decks/dominion.test.ts test/sim/decks/scientific.test.ts test/sim/decks/scientificCharters.test.ts test/sim/decks/shared.test.ts test/sim/decks/common.test.ts test/sim/tech.test.ts test/sim/techDocSync.test.ts test/ui/techChart.test.ts test/ui/compendium.test.ts test/ui/compendiumCharterTechs.test.ts test/sim/decks.test.ts test/sim/statecraft.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`.
 - **After DV2 a playtest can start:** 46 of the 66 Devotion cards and 27 of the 29 shared cards play as written.
 
+- **Built (2026-10-25):** as planned. The gate passed: the type check, 9,590 core tests and the build. Schema 178. Beyond the fence: the Apostle is bought only, so `purchase.ts` lets a card that opens a unit early come before the tree's gate, and the city panel keeps the Apostle under "Not yet" for a seat without the charter. The charter's face names the early Apostle. Not done: the breakdown label `scopeNote` still says "follows your religion"; The Lives of the Saints prints "the first to convert", which can read as a world first.
+
 ### DV3: the engine's shapes
 
 - **Builds:**

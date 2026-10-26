@@ -1748,7 +1748,11 @@ describe('research in the log', () => {
     // rows carry types, 64 rows are retired and four cards change in
     // place. Devotion batch DV1 took 176 for its own sheet of record. So a
     // v175 log's Devotion and Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(177);
+    // 178 since Devotion batch DV2 (the new data-only cards): seven Devotion
+    // cards and four shared cards are dealt, and the charter technology
+    // Scholasticism opens the Cathedral and the Apostle early. So a v177
+    // log's Devotion, Dominion and Scientific hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(178);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -2137,8 +2141,9 @@ describe('the shape of the tree', () => {
     // Fifty nodes, and every one of them inside the lane budget.
     expect(TECH_IDS.length).toBe(50);
     // And thirteen charter rows beside them, off the sky (Scientific batch S0;
-    // `test/sim/charterTechs.test.ts` pins the rest).
-    expect(ALL_TECH_IDS.length).toBe(63);
+    // `test/sim/charterTechs.test.ts` pins the rest). Devotion batch DV2 added
+    // a fourteenth, Scholasticism, for the shared The Schoolmen's Charter.
+    expect(ALL_TECH_IDS.length).toBe(64);
   });
 
   it('draws Æra I as the user drew it — twelve nodes, two gates, four columns', () => {

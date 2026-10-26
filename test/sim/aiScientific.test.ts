@@ -172,8 +172,9 @@ describe('a technology charter is priced as what knowing its technology gives (S
   it('prices every live charter, on top of the row’s own walk', () => {
     const { state, player } = board(3);
     const ctx = valueContext(state, player);
-    // The thirteen of the placeholder table.
-    expect(LIVE_CHARTERS.length).toBe(13);
+    // The thirteen of the placeholder table, and the shared The Schoolmen's
+    // Charter (Devotion batch DV2).
+    expect(LIVE_CHARTERS.length).toBe(14);
     for (const id of LIVE_CHARTERS) {
       const priced = explainCharter(id, ctx)!;
       expect(priced, id).not.toBeNull();

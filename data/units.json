@@ -700,6 +700,7 @@
         "exclusive": true,
         "verb": "Call an apostle"
       },
+      "unlockedByCard": true,
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,

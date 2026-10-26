@@ -1405,6 +1405,17 @@ describe('what opens a thing', () => {
     );
   }
 
+  /**
+   * The technologies that open a unit early through an `unlocksUnit` effect
+   * (Devotion batch DV2: Scholasticism opens the Apostle before Theology).
+   * `earlyOpeners`' twin for the roster.
+   */
+  function earlyUnitOpeners(unit: string): TechId[] {
+    return ALL_TECH_IDS.filter((tech) =>
+      (techDef(tech).effects ?? []).some((effect) => effect.kind === 'unlocksUnit' && effect.unit === unit),
+    );
+  }
+
   /** The shelf a building row is filed on. */
   function buildingEntryId(id: string): string {
     return compendiumId(isWonder(id as never) ? 'wonder' : 'building', id);
@@ -1447,7 +1458,7 @@ describe('what opens a thing', () => {
         continue;
       }
       const gate = gatingTech('unit', id);
-      expect(techsNamed(line), id).toEqual(gate === null ? [] : [gate]);
+      expect(techsNamed(line), id).toEqual([...linkedGate(gate), ...earlyUnitOpeners(id)]);
     }
     for (const id of BUILDING_IDS) {
       const def = buildingDef(id);

@@ -1338,6 +1338,209 @@
         }
       ]
     },
+    "theDeaconries": {
+      "name": "The Deaconries",
+      "decks": [
+        "devotion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The deacons keep the poor box, the sick list and the peace.",
+      "text": "Devout towns gain +1 happiness for every four citizens.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "population",
+          "within": "city",
+          "to": "happiness",
+          "amount": 1,
+          "per": 4,
+          "scope": {
+            "test": "ownersFaith",
+            "keeps": true
+          }
+        }
+      ]
+    },
+    "theLivesOfTheSaints": {
+      "name": "The Lives of the Saints",
+      "decks": [
+        "devotion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Every town that turned has a saint, and every saint has a book.",
+      "text": "+2% science and culture for every foreign town your religion has turned this game, at most +30%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "firstConversions",
+          "to": "science",
+          "percent": 2,
+          "stage": "city",
+          "max": 15
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "firstConversions",
+          "to": "culture",
+          "percent": 2,
+          "stage": "city",
+          "max": 15
+        }
+      ],
+      "note": "A foreign town counts once, the first time it turns to your religion. A town that turns away and back again does not count twice."
+    },
+    "theMartyrology": {
+      "name": "The Martyrology",
+      "decks": [
+        "devotion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Each name is read aloud on its day, and the list grows longer every year.",
+      "text": "While seated, this card gains +2 faith and +2 culture each time one of your units dies in battle.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "faith",
+          "amount": 2,
+          "count": "tally",
+          "tally": "unitLost"
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 2,
+          "count": "tally",
+          "tally": "unitLost"
+        }
+      ]
+    },
+    "theConsecrationFeast": {
+      "name": "The Consecration Feast",
+      "decks": [
+        "devotion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The bishop knocks three times on the new door, and the whole town follows the bishop in.",
+      "text": "Finishing a Cathedral grants science and culture equal to twenty times the town's population.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "buildingCompletion",
+          "building": "cathedral",
+          "grant": {
+            "yield": "science",
+            "amount": 20,
+            "fromOccasion": "population"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "buildingCompletion",
+          "building": "cathedral",
+          "grant": {
+            "yield": "culture",
+            "amount": 20,
+            "fromOccasion": "population"
+          }
+        }
+      ],
+      "note": "A Cathedral bought with faith or gold is finished too, so it pays as one that was built."
+    },
+    "thePilgrimTowns": {
+      "name": "The Pilgrim Towns",
+      "decks": [
+        "devotion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The road to the shrine is lined with inns, and every inn has a singer.",
+      "text": "Towns working a holy site gain +20% culture.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": 20,
+          "scope": {
+            "test": "workingImprovement",
+            "improvements": [
+              "holySite"
+            ]
+          }
+        }
+      ]
+    },
+    "theHolySummons": {
+      "name": "The Holy Summons",
+      "decks": [
+        "devotion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "The bells ring for war, and every parish sends its best.",
+      "text": "Declaring war gives every devout town the best melee unit you can build, at most once every twenty turns. They cost no upkeep.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "declareWar",
+          "oncePerTurns": 20,
+          "grant": {
+            "unit": "bestMelee",
+            "toEveryTown": {
+              "test": "ownersFaith",
+              "keeps": true
+            }
+          }
+        }
+      ]
+    },
+    "theWorkOfGod": {
+      "name": "The Work of God",
+      "decks": [
+        "devotion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "The great work rises a little with every hymn sung in the realm.",
+      "text": "The town raising the Magnum Opus gains +4% production toward it for every town of yours keeping a rite, at most +40%.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "theMagnumOpus",
+          "percent": 4,
+          "count": "citiesKeepingRite",
+          "max": 10
+        }
+      ]
+    },
     "theMonasticTable": {
       "name": "The Monastic Table",
       "decks": [

@@ -355,6 +355,10 @@ export type TechId =
   | 'cataloguing'
   | 'optics'
   | 'medicine'
+  // The Schoolmen's Charter (Devotion batch DV2), shared by Devotion and
+  // Scientific. A placeholder place beside Medicine until the user's chart
+  // places it, as the other charter technologies wait.
+  | 'scholasticism'
   | 'papermaking'
   | 'printing'
   | 'mechanics'

@@ -7,7 +7,7 @@
  * so every surface named it without a keyword mark (the triage's reading 74).
  * This file checks what S12 built:
  *
- *   - each of the thirteen has a page at `tech:<id>`, filed after the tree
+ *   - each of the fourteen has a page at `tech:<id>`, filed after the tree
  *     under one heading;
  *   - the page opens with the charter that opens it, as a mark to the card;
  *   - the page prints the price as the column price and the charter premium,
@@ -83,8 +83,10 @@ function openingOf(entry: CompendiumEntry): string {
 }
 
 describe('a charter technology’s page', () => {
-  it('exists for each of the thirteen, after the tree, under one heading', () => {
-    expect(CHARTER_TECH_IDS).toHaveLength(13);
+  it('exists for each of the fourteen, after the tree, under one heading', () => {
+    // Thirteen Scientific charters, and Scholasticism for the shared The
+    // Schoolmen's Charter (Devotion batch DV2).
+    expect(CHARTER_TECH_IDS).toHaveLength(14);
     for (const tech of CHARTER_TECH_IDS) {
       const def = techDef(tech);
       const entry = entryOf(compendiumId('tech', tech));

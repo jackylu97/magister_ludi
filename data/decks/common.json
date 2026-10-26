@@ -1024,12 +1024,21 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "Copy it twice: once for God, once for the shelf.",
-      "text": "Monasteries give +3 science. Libraries give +2 faith.",
-      "effects": [],
-      "deferred": [
-        "a house of quiet study teaches as well as prays, and a library prays as well as teaches"
-      ],
-      "note": "Held whole. One half of this asks for a house the realm no longer raises, so that half can never pay — and a card is never bent to fit the half that can."
+      "text": "Libraries give +2 faith. Temples give +2 science.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": { "test": "hasBuilding", "building": "library" },
+          "faith": 2
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": { "test": "hasBuilding", "building": "temple" },
+          "science": 2
+        }
+      ]
     },
     "theMerchantNavigators": {
       "name": "The Merchant Navigators",
@@ -2196,6 +2205,69 @@
           "per": 2
         }
       ]
+    },
+    "theShrineGuards": {
+      "name": "The Shrine Guards",
+      "decks": ["dominion", "devotion"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "The shrine keeps a spear behind the altar, and a young guard to hold it.",
+      "text": "Towns with a Shrine may buy melee units with faith.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "faithBuysUnits",
+          "class": { "modelClass": "melee" },
+          "scope": { "test": "hasBuilding", "building": "shrine" }
+        }
+      ]
+    },
+    "theBlessedForges": {
+      "name": "The Blessed Forges",
+      "decks": ["devotion", "scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The smith says a prayer over the ore, and the priest learns how the ore is smelted.",
+      "text": "Improved strategic resources gain +1 faith and +1 production. Cities with a Temple gain +2 faith and +2 production more.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "all",
+            "of": [{ "test": "improved" }, { "test": "resourceKind", "kind": "strategic" }]
+          },
+          "faith": 1,
+          "production": 1
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": { "test": "hasBuilding", "building": "temple" },
+          "faith": 2,
+          "production": 2
+        }
+      ]
+    },
+    "theSchoolmensCharter": {
+      "name": "The Schoolmen's Charter",
+      "decks": ["devotion", "scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Every question is argued both ways before the master gives an answer.",
+      "text": "Drafting this opens Scholasticism for research. Knowing it lets you build the Cathedral and train the Apostle before Theology. No chair required.",
+      "charter": {
+        "unlocks": {
+          "tech": "scholasticism"
+        }
+      },
+      "effects": []
     }
   }
 }

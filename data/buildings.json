@@ -362,6 +362,7 @@
         "perTurn": 1
       },
       "faithPurchases": "all",
+      "unlockedByCard": true,
       "note": "Dedicated to a patron the day it is finished. Units may be bought with faith in the city that holds it, at the rate gold buys them elsewhere."
     },
     "reliquary": {

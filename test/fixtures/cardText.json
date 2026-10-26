@@ -6675,12 +6675,12 @@
   ],
   "theSettledFaith": [
    {
-    "raw": "+15% science in every city that follows your religion",
-    "text": "+15% science in every city that follows your religion"
+    "raw": "+15% science in every devout city",
+    "text": "+15% science in every devout city"
    },
    {
-    "raw": "+15% culture in every city that follows your religion",
-    "text": "+15% culture in every city that follows your religion"
+    "raw": "+15% culture in every devout city",
+    "text": "+15% culture in every devout city"
    },
    {
     "raw": "a proclamation presses 15 faith less",
@@ -6741,8 +6741,8 @@
     "text": "Commission. Goal: have at least 51% of the world's cities follow your religion, while this card is seated"
    },
    {
-    "raw": "Reward: for the rest of the game, +3 culture, +3 faith in every city that follows your religion",
-    "text": "Reward: for the rest of the game, +3 culture, +3 faith in every city that follows your religion"
+    "raw": "Reward: for the rest of the game, +3 culture, +3 faith in every devout city",
+    "text": "Reward: for the rest of the game, +3 culture, +3 faith in every devout city"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -6842,6 +6842,60 @@
    {
     "raw": "a city may spend faith to heal every unit of yours standing in land that follows your religion",
     "text": "a city may spend faith to heal every unit of yours standing in land that follows your religion"
+   }
+  ],
+  "theDeaconries": [
+   {
+    "raw": "+1 happiness in every devout city per 4 citizens there",
+    "text": "+1 happiness in every devout city per 4 citizens there"
+   }
+  ],
+  "theLivesOfTheSaints": [
+   {
+    "raw": "+2% science in every city per foreign city you were the first to convert (at most +30% science)",
+    "text": "+2% science in every city per foreign city you were the first to convert (at most +30% science)"
+   },
+   {
+    "raw": "+2% culture in every city per foreign city you were the first to convert (at most +30% culture)",
+    "text": "+2% culture in every city per foreign city you were the first to convert (at most +30% culture)"
+   }
+  ],
+  "theMartyrology": [
+   {
+    "raw": "+2 faith per unit you have lost in battle, counted while this Order stands in a slot",
+    "text": "+2 faith per unit you have lost in battle, counted while this Order stands in a slot"
+   },
+   {
+    "raw": "+2 culture per unit you have lost in battle, counted while this Order stands in a slot",
+    "text": "+2 culture per unit you have lost in battle, counted while this Order stands in a slot"
+   }
+  ],
+  "theConsecrationFeast": [
+   {
+    "raw": "completing a [[building:cathedral|Cathedral]] grants science equal to 20 times the city's population",
+    "text": "completing a Cathedral grants science equal to 20 times the city's population"
+   },
+   {
+    "raw": "completing a [[building:cathedral|Cathedral]] grants culture equal to 20 times the city's population",
+    "text": "completing a Cathedral grants culture equal to 20 times the city's population"
+   }
+  ],
+  "thePilgrimTowns": [
+   {
+    "raw": "+20% culture in every city working a [[improvement:holySite|Holy Site]]",
+    "text": "+20% culture in every city working a Holy Site"
+   }
+  ],
+  "theHolySummons": [
+   {
+    "raw": "declaring war (at most once every 20 turns) grants the best melee unit you can build in every devout city",
+    "text": "declaring war (at most once every 20 turns) grants the best melee unit you can build in every devout city"
+   }
+  ],
+  "theWorkOfGod": [
+   {
+    "raw": "+4% production toward [[building:theMagnumOpus|The Magnum Opus]] per city of yours keeping a rite (at most +40%)",
+    "text": "+4% production toward The Magnum Opus per city of yours keeping a rite (at most +40%)"
    }
   ],
   "theMonasticTable": [
@@ -9005,9 +9059,12 @@
   ],
   "theMonasteryLibraries": [
    {
-    "raw": "a house of quiet study teaches as well as prays, and a library prays as well as teaches — not built yet",
-    "text": "a house of quiet study teaches as well as prays, and a library prays as well as teaches — not built yet",
-    "deferred": true
+    "raw": "+2 faith in every city with a [[building:library|Library]]",
+    "text": "+2 faith in every city with a Library"
+   },
+   {
+    "raw": "+2 science in every city with a [[building:temple|Temple]]",
+    "text": "+2 science in every city with a Temple"
    }
   ],
   "theMerchantNavigators": [
@@ -9193,8 +9250,8 @@
     "text": "+5 gold, +3 faith in every captured city that does not follow your religion"
    },
    {
-    "raw": "the authority a captured city that follows your religion costs falls by 1",
-    "text": "the authority a captured city that follows your religion costs falls by 1"
+    "raw": "the authority a captured devout city costs falls by 1",
+    "text": "the authority a captured devout city costs falls by 1"
    }
   ],
   "warBonds": [
@@ -9412,6 +9469,36 @@
    {
     "raw": "+1 faith in every city per 2 improved hexes there",
     "text": "+1 faith in every city per 2 improved hexes there"
+   }
+  ],
+  "theShrineGuards": [
+   {
+    "raw": "melee units may be bought with faith in every city with a [[building:shrine|Shrine]]",
+    "text": "melee units may be bought with faith in every city with a Shrine"
+   }
+  ],
+  "theBlessedForges": [
+   {
+    "raw": "+1 production, +1 faith on every improved hex carrying a strategic resource",
+    "text": "+1 production, +1 faith on every improved hex carrying a strategic resource"
+   },
+   {
+    "raw": "+2 production, +2 faith in every city with a [[building:temple|Temple]]",
+    "text": "+2 production, +2 faith in every city with a Temple"
+   }
+  ],
+  "theSchoolmensCharter": [
+   {
+    "raw": "once drafted, opens [[tech:scholasticism|Scholasticism]] for you to research; only an empire holding this charter may research it; this card takes no chair",
+    "text": "once drafted, opens Scholasticism for you to research; only an empire holding this charter may research it; this card takes no chair"
+   },
+   {
+    "raw": "once you know [[tech:scholasticism|Scholasticism]], you may build the [[building:cathedral|Cathedral]] before [[tech:theology|Theology]]: +2 culture, +2 faith; +3 happiness; units may be bought with faith in this city; +1 renown per turn, favouring artists",
+    "text": "once you know Scholasticism, you may build the Cathedral before Theology: +2 culture, +2 faith; +3 happiness; units may be bought with faith in this city; +1 renown per turn, favouring artists"
+   },
+   {
+    "raw": "once you know [[tech:scholasticism|Scholasticism]], you may call the [[unit:apostle|Apostle]] with faith before [[tech:theology|Theology]]",
+    "text": "once you know Scholasticism, you may call the Apostle with faith before Theology"
    }
   ]
  },

@@ -198,7 +198,7 @@ column, which is carried through every regeneration.
 | Settler | settler | 0 | — | — | 2 | 100 | 2 | settler | 28 | 7 | Agriculture | — | founds cities · halts growth · needs 2 citizens |  |
 | Worker | worker | 0 | — | — | 2 | 100 | 2 | light | 10 | 2 | Agriculture | — | 3 charges |  |
 | Prophet | worker | 0 | — | — | 2 | 100 | 2 | free | 0 | — | The High Temple | — | bought with faith only · 2 charges |  |
-| Apostle | worker | 0 | — | — | 4 | 100 | 2 | free | 0 | — | Theology | — | bought with faith only · 2 charges |  |
+| Apostle | worker | 0 | — | — | 4 | 100 | 2 | free | 0 | — | Theology | — | opened by a card · bought with faith only · 2 charges |  |
 | Inquisitor | worker | 0 | — | — | 2 | 100 | 2 | free | 0 | — | The Holy Office | — | bought with faith only · 1 charge |  |
 | Great Person | settler | 0 | — | — | 2 | 100 | 2 | free | 0 | — | — | — | great person · 1 charge |  |
 | The Canoness | worker | 0 | — | — | 4 | 100 | 2 | free | 0 | — | — | — | bought with faith only · 2 charges |  |

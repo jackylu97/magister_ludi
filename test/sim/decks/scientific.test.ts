@@ -702,8 +702,12 @@ describe('the research charters', () => {
   it('names the thirteen charter technologies, one row each, deferred until their gift is built', () => {
     expect(CHARTERS).toHaveLength(13);
     const techs = CHARTERS.map((id) => orderDef(id).charter!.unlocks.tech);
-    expect(new Set(techs)).toEqual(new Set(CHARTER_TECH_IDS));
-    expect(techs).toHaveLength(CHARTER_TECH_IDS.length);
+    // The fourteenth charter technology, Scholasticism, belongs to the shared
+    // The Schoolmen's Charter in the shared file (Devotion batch DV2).
+    const own = CHARTER_TECH_IDS.filter((tech) => tech !== 'scholasticism');
+    expect(CHARTER_TECH_IDS).toHaveLength(14);
+    expect(new Set(techs)).toEqual(new Set(own));
+    expect(techs).toHaveLength(own.length);
     for (const id of CHARTERS) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);

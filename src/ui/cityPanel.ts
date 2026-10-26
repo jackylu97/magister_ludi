@@ -960,10 +960,11 @@ export function buildListModel(
     const item: PurchasableItem = { kind: 'unit', id };
     if (!isPurchaseOnly(item)) return null;
     if (def.purchase?.currency !== bank) return null;
-    if (
-      (def.unlockedByCard === true || def.unlockedByLeader === true) &&
-      !isUnlocked(state, seat, 'unit', id)
-    ) {
+    // A piece a card opens early that a technology also opens (the Apostle,
+    // which Scholasticism opens before Theology) is not "only a card's": it
+    // stays in the list and folds into "Not yet" until either one opens it.
+    const onlyByCard = def.unlockedByCard === true && gatingTech('unit', id) === null;
+    if ((onlyByCard || def.unlockedByLeader === true) && !isUnlocked(state, seat, 'unit', id)) {
       return null;
     }
     const cells = priced(item);

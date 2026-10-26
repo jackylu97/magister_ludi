@@ -583,8 +583,12 @@ describe('the schema, as landed', () => {
     // Examinations are retired. The four cards changed in place were already
     // live, and the three deferred rows that took new text stay deferred.
     // DV1 and MG1 ran in parallel and merged, so the count drops by 54 in all.
-    expect(live).toBe(525);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(525);
+    // **And Devotion batch DV2** (the new data-only cards): eleven more. Seven
+    // new Devotion rows, the new shared The Shrine Guards, The Blessed Forges
+    // and The Schoolmen's Charter, and the shared The Monastery Libraries,
+    // which left `deferred`.
+    expect(live).toBe(536);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(536);
   });
 
   /**
@@ -922,7 +926,11 @@ describe('the schema, as landed', () => {
     // rows carry types, 64 rows are retired and four cards change in
     // place. Devotion batch DV1 took 176 for its own sheet of record. So a
     // v175 log's Devotion and Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(177);
+    // 178 since Devotion batch DV2 (the new data-only cards): seven Devotion
+    // cards and four shared cards are dealt, and the charter technology
+    // Scholasticism opens the Cathedral and the Apostle early. So a v177
+    // log's Devotion, Dominion and Scientific hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(178);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1181,9 +1189,10 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // Magisterial rows, twelve deferred ones, the shared The Imperial
       // Examinations (live) and the shared Triumphal Arches (deferred)
       // (− 13, and + 64 retired).
+      // **Devotion batch DV2** freed the shared The Monastery Libraries (− 1).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(11);
+      ).toHaveLength(10);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(270);
     }
   });

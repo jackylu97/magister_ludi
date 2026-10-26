@@ -533,7 +533,11 @@ describe('determinism', () => {
     // rows carry types, 64 rows are retired and four cards change in
     // place. Devotion batch DV1 took 176 for its own sheet of record. So a
     // v175 log's Devotion and Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(177);
+    // 178 since Devotion batch DV2 (the new data-only cards): seven Devotion
+    // cards and four shared cards are dealt, and the charter technology
+    // Scholasticism opens the Cathedral and the Apostle early. So a v177
+    // log's Devotion, Dominion and Scientific hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(178);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

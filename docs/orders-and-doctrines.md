@@ -586,6 +586,13 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Conversion of Kings | 3 | ○ | S | Commission. Have a rival's capital follow your religion while this is seated. Reward: a free Prophet in your capital and 500 culture. Then this card leaves its chair. |
 | The Pious Masons | 3 | ○ | S | In cities with a Cathedral, a world wonder that is at least half built may be bought with faith. Not the Magnum Opus. |
 | The Host Restored | 4 | ○ | S | While this is seated, your cities know the Restoring of the Host: a city spends the rite's faith to heal every unit of yours standing in territory that follows your religion to full health. A city may say it once every five turns. |
+| The Deaconries | 2 | ◆ | P | Devout towns gain +1 happiness for every four citizens. |
+| The Lives of the Saints | 2 | ◆ | P | +2% science and culture for every foreign town your religion has turned this game, at most +30%. |
+| The Martyrology | 2 | ◆ | P | While seated, this card gains +2 faith and +2 culture each time one of your units dies in battle. |
+| The Consecration Feast | 3 | ◆ | S | Finishing a Cathedral grants science and culture equal to twenty times the town's population. |
+| The Pilgrim Towns | 3 | ◆ | P | Towns working a holy site gain +20% culture. |
+| The Holy Summons | 3 | ◆ | S | Declaring war gives every devout town the best melee unit you can build, at most once every twenty turns. They cost no upkeep. |
+| The Work of God | 4 | ○ | S | The town raising the Magnum Opus gains +4% production toward it for every town of yours keeping a rite, at most +40%. |
 
 ### Scientific
 
@@ -753,6 +760,10 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Festival Calendar | Devotion · Magisterial | 2 | ◆ | P | Cities keeping a rite gain +30% food and +30% culture. |
 | The Penitents' Roll | Devotion · Magisterial | 2 | ◆ | E | +6 science and +6 culture for every Order hand you reroll while this is seated. Rerolls cost 30% less faith while this is seated. |
 | The Ambarvalia | Expansionist · Devotion | 0 | ● | P | Your capital gains +1 faith. Each town gains +1 faith for every two improved tiles in its borders. |
+| The Monastery Libraries | Devotion · Scientific | 1 | ● | P | Libraries give +2 faith. Temples give +2 science. |
+| The Shrine Guards | Dominion · Devotion | 0 | ● | S | Towns with a Shrine may buy melee units with faith. |
+| The Blessed Forges | Devotion · Scientific | 2 | ◆ | P | Improved strategic resources gain +1 faith and +1 production. Cities with a Temple gain +2 faith and +2 production more. |
+| The Schoolmen's Charter | Devotion · Scientific | 1 | ◆ | S | Drafting this opens Scholasticism for research. Knowing it lets you build the Cathedral and train the Apostle before Theology. No chair required. |
 
 ### Generic
 
@@ -875,7 +886,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Silk Road Monks** — The religious pressure a trade route carries is doubled by adding the same amount again.
 - **The Brokers' Redraw** — Gold opens the door and pays a premium for it: the price is the faith ladder's own figure, multiplied, so faith stays the cheaper way to ask for a fresh hand and the card is a convenience rather than a replacement. The ladder itself is untouched — a redraw in either bank climbs the same rungs and raises the same count — and a hand whose first asking is free stays free in both. The surcharge on the second line reaches every unit and every building this empire buys, in either bank.
 - **The Art Dealers** — Only the Orders sitting in a chair count, this one included. A charter takes no chair, so it does not count, and neither does a Doctrine.
-- **The Monastery Libraries** — Held whole. One half of this asks for a house the realm no longer raises, so that half can never pay — and a card is never bent to fit the half that can. † a house of quiet study teaches as well as prays, and a library prays as well as teaches
+- **The Lives of the Saints** — A foreign town counts once, the first time it turns to your religion. A town that turns away and back again does not count twice.
+- **The Consecration Feast** — A Cathedral bought with faith or gold is finished too, so it pays as one that was built.
 - **Common Tools** — † the hammers are for workers and buildings, and for nothing else
 - **Road Crews** — † a worker that wakes on one of your roads travels further that day
 - **Road Maintenance** — † the upkeep of your roads is reduced, up to a limit each turn

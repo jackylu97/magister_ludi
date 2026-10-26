@@ -1403,6 +1403,29 @@
       "charter": true,
       "flavor": "First the ward for the sick, then the school beside it."
     },
+    "scholasticism": {
+      "name": "Scholasticism",
+      "glyph": "📖",
+      "age": 3,
+      "row": 1,
+      "cost": 360,
+      "prereqs": [
+        "theHighTemple"
+      ],
+      "unlocks": {},
+      "charter": true,
+      "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "cathedral"
+        },
+        {
+          "kind": "unlocksUnit",
+          "unit": "apostle"
+        }
+      ],
+      "flavor": "Faith asks a question, and reason is allowed to answer it."
+    },
     "papermaking": {
       "name": "Papermaking",
       "glyph": "📄",

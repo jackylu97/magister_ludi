@@ -258,7 +258,11 @@ describe('the schema says so', () => {
     // rows carry types, 64 rows are retired and four cards change in
     // place. Devotion batch DV1 took 176 for its own sheet of record. So a
     // v175 log's Devotion and Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(177);
+    // 178 since Devotion batch DV2 (the new data-only cards): seven Devotion
+    // cards and four shared cards are dealt, and the charter technology
+    // Scholasticism opens the Cathedral and the Apostle early. So a v177
+    // log's Devotion, Dominion and Scientific hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(178);
   });
 
   it('says in the changelog what a v110 log does now', () => {
