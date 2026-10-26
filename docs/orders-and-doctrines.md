@@ -558,7 +558,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Mission | 2 | ◆ | S | Commission. Convert two foreign cities to your religion while this is seated. Reward: a free Apostle in your capital and 300 culture. Then this card leaves its chair. |
 | The Second Prophet | 2 | ◆ | S | Prophets and apostles you buy start with one extra charge. |
 | The Monastic Builders | 1 | ◆ | S | Science buildings may be bought with faith. |
-| The Creed | 1 | ◆ | P | Your capital gains +3 faith and +3 culture for every belief your religion holds. |
+| The Creed | 1 | ◆ | P | Your capital gains +3 faith and +3 culture for every god and belief you hold. |
 | The Rites Commonwealth | 1 | ○ | S | Cities keeping a rite demand 25% less population happiness. |
 | The Saints' Fields | 2 | ● | S | Worked Holy Sites give +5 food and +8 gold. A city working one gains +2 happiness, once per city. |
 | The Cathedral Works | 2 | ● | P | Gain +45% production toward Cathedrals. Cities with one gain +8 science and +2 happiness. |
@@ -593,6 +593,10 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Pilgrim Towns | 3 | ◆ | P | Towns working a holy site gain +20% culture. |
 | The Holy Summons | 3 | ◆ | S | Declaring war gives every devout town the best melee unit you can build, at most once every twenty turns. They cost no upkeep. |
 | The Work of God | 4 | ○ | S | The town raising the Magnum Opus gains +4% production toward it for every town of yours keeping a rite, at most +40%. |
+| The Gifts of the Faithful | 0 | ● | S | Religious buildings may be bought with faith. |
+| The Sacred Precincts | 1 | ● | S | Towns gain +3 defence for every religious building in them. |
+| The Book of Life | 2 | ◆ | P | +1% science and culture for every 150 faith you have spent this game, at most +30%. |
+| The Offering Chests | 3 | ● | S | Military units bought with faith cost 30% less. |
 
 ### Scientific
 
@@ -778,6 +782,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Shrine Guards | Dominion · Devotion | 0 | ● | S | Towns with a Shrine may buy melee units with faith. |
 | The Blessed Forges | Devotion · Scientific | 2 | ◆ | P | Improved strategic resources gain +1 faith and +1 production. Cities with a Temple gain +2 faith and +2 production more. |
 | The Schoolmen's Charter | Devotion · Scientific | 1 | ◆ | S | Drafting this opens Scholasticism for research. Knowing it lets you build the Cathedral and train the Apostle before Theology. No chair required. |
+| The Rising Nave | Devotion · Magisterial | 3 | ○ | P | While a city is building a Cathedral or a wonder, it gains +1 faith and +1 culture for every 10% of the work already done. |
 
 ### Generic
 
@@ -912,6 +917,12 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Art Dealers** — Only the Orders sitting in a chair count, this one included. A charter takes no chair, so it does not count, and neither does a Doctrine.
 - **The Lives of the Saints** — A foreign town counts once, the first time it turns to your religion. A town that turns away and back again does not count twice.
 - **The Consecration Feast** — A Cathedral bought with faith or gold is finished too, so it pays as one that was built.
+- **The Creed** — Your gods count before you found a religion. Each religion you are paid by adds its follower and enhancer beliefs. A holy city you capture does not add the gods of the empire that founded it.
+- **The Gifts of the Faithful** — Shrines, Temples, Cathedrals and the other religious buildings may be bought with faith in every town. Wonders keep their own rules.
+- **The Sacred Precincts** — A wonder of the faith standing in the town counts as a religious building.
+- **The Book of Life** — Faith counts when you spend it on units, buildings, rites, rerolls, gods and great people, and when you pour it into a build.
+- **The Offering Chests** — A unit bought with gold pays the full price. The discount adds to any other discount before it applies.
+- **The Rising Nave** — The Magnum Opus counts as a wonder here. Only what the town is building now counts, not what waits behind it in the queue.
 - **Common Tools** — † the hammers are for workers and buildings, and for nothing else
 - **Road Crews** — † a worker that wakes on one of your roads travels further that day
 - **Road Maintenance** — † the upkeep of your roads is reduced, up to a limit each turn

@@ -769,7 +769,7 @@ describe('the Magisterial deck: the sheet of record', () => {
     expect(shared).toHaveLength(19);
   });
 
-  it('types every listed row, 29 of this file and 18 shared, and nothing else of this file', () => {
+  it('types every listed row, 29 of this file and 19 shared, and nothing else of this file', () => {
     // 15 since batch MG1, and the fourteen rows of batch MG2.
     expect(LISTED).toHaveLength(29);
     for (const id of MAGISTERIAL) {
@@ -781,9 +781,9 @@ describe('the Magisterial deck: the sheet of record', () => {
       const def = orderDef(id);
       return def.retired !== true && def.decks.includes('magisterial');
     });
-    // 18: the 19 rows of the shared table, less The Rising Nave, which has no
-    // data row yet.
-    expect(sharedRows).toHaveLength(18);
+    // The 19 rows of the shared table. The Rising Nave, the last of them, has
+    // had a data row since Devotion batch DV3.
+    expect(sharedRows).toHaveLength(19);
     for (const id of sharedRows) expect(isCardType(orderDef(id).type ?? ''), id).toBe(true);
   });
 

@@ -72,6 +72,7 @@ import {
   markFirst,
   playerById,
   reaimProduction,
+  spendFaith,
   spendGold,
 } from './state';
 import type { FirstKind } from './statecraftData';
@@ -125,7 +126,6 @@ import { buildError, gatingTech, hasTech, isUnlocked, settleResearchWindfall } f
 import { techDef } from './techData';
 import { type UnitTypeId, isCivilian, isUnitTypeId, unitDef } from './unitData';
 import { caravanTypeFor } from './routes';
-import { bumpEconomy } from './slate';
 
 /** The banks a thing may be priced in. */
 export type PurchaseCurrency = 'faith' | 'gold';
@@ -607,9 +607,11 @@ function faithBankOpen(
     }
     // **The Devotion deck's laws** (`faithBuysBuildings`, scoped to the towns
     // the card names): every ordinary building, never the row that ends the game.
+    // The building is handed over, because a row may open only one category
+    // (The Gifts of the Faithful's religious buildings, Devotion batch DV3).
     if (
       buildingDef(item.id).endsTheGame !== true &&
-      cardActionRuleAt(state, city, 'faithBuysBuildings')
+      cardActionRuleAt(state, city, 'faithBuysBuildings', undefined, item.id)
     ) {
       return true;
     }
@@ -695,6 +697,8 @@ function applyRiders(
   // Looked up before the bank clause below, because a scope is a fact about
   // where the counter stands and not about which purse is open.
   const at = cityById(state, cityId);
+  // The bank is handed over too, because a rider may reach only one (The
+  // Offering Chests' faith, Devotion batch DV3).
   const riders = cardPurchaseRiders(
     state,
     playerId,
@@ -702,6 +706,7 @@ function applyRiders(
     item.kind === 'unit' ? item.id : undefined,
     at,
     item.kind === 'building' ? item.id : undefined,
+    currency,
   );
   // **The treasury's bank only**, which is the row's own ratified words ("the
   // town's *gold* purchases") and the one place this parts company with a card's
@@ -1356,14 +1361,16 @@ export function purchaseItemAt(
 ): RealisedItem {
   const price = explainPurchaseCost(state, player.id, city.id, item, currency)!;
   if (price.currency === 'faith') {
-    player.faithPool -= price.total;
-    // The banks are a line of the meters too — see `collectYields` (batch M3).
-    bumpEconomy(state);
+    // Through the one subtraction (Devotion batch DV3), so a faith purchase
+    // counts as faith spent (`Player.faithSpent`). It announces the bank for
+    // the meters too.
+    spendFaith(state, player, price.total);
   } else {
     // **The almoner's ledger** — the coin itself, not one purchase (see
     // `TallyOccasion`'s `goldSpent`). Written where the money leaves, which is
     // the only place the *figure* is in hand, and only for gold: a card that
-    // counted faith as well would be counting two banks under one word.
+    // counted faith as well would be counting two banks under one word. Faith
+    // has its own record, raised by `spendFaith` above.
     //
     // **Twice, for two holders** (batch GP2): `spendGold` raises the *player's*
     // own record, which a legacy can read from outside any chair, and the tally
@@ -1721,15 +1728,14 @@ export function contributeAt(
 ): ProductionCompletion | null {
   const offer = explainContribution(state, player.id, city.id, currency)!;
   if (currency === 'faith') {
-    player.faithPool -= offer.spend;
-    // The banks are a line of the meters too (batch M3, `slate.ts`).
-    bumpEconomy(state);
+    // Through the one subtraction (Devotion batch DV3), so faith poured into a
+    // build counts as faith spent. It announces the bank for the meters too.
+    spendFaith(state, player, offer.spend);
   } else {
     // Coin out of the treasury for hammers is coin spent buying something, so it
     // goes through the one seam and joins the almoner's ledger (`spendGold`).
-    // The faith arm does not, for `purchaseItemAt`'s reason: the record counts
-    // one bank, and a card that counted both would be counting two under one
-    // word.
+    // Each bank keeps its own record: a card that counted both would be
+    // counting two under one word.
     spendGold(state, player, offer.spend);
   }
   city.hammerBasket += offer.hammers;

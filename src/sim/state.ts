@@ -2593,8 +2593,31 @@ import {
  * **A v178 save is refused and does not replay.** A Magisterial seat's pools
  * hold more cards. The branch migrates nothing, for the reason given under
  * v119.
+ *
+ * v180 (branch `decks`; Devotion batch DV3, `docs/plans/devotion-themes-
+ * triage.md`): **the engine's shapes.** One field joins the state:
+ * `Player.faithSpent`, the faith an empire has spent this game, raised by
+ * the new `spendFaith` wherever faith leaves the bank. The rules that change:
+ *
+ *   · four Devotion cards are new and dealt: The Gifts of the Faithful (Tier
+ *     0), The Sacred Precincts (Tier I), The Book of Life (Tier II) and The
+ *     Offering Chests (Tier III). The shared The Rising Nave (with
+ *     Magisterial, Tier III) is new and dealt too;
+ *   · The Creed counts the gods an empire holds before it founds a religion:
+ *     the `beliefsHeld` count is the empire's own gods, and the follower and
+ *     enhancer beliefs of the religions it is paid by;
+ *   · two counts are new: `faithSpent`, and `frontRowTenths` (how far a
+ *     town's current build has come, in tenths);
+ *   · four fields are new: `buildingCategory` on a rule (faith buys only one
+ *     category of building), `currency` on a purchase rider (the rider
+ *     reaches only one bank), `category` on a counted city stat, and
+ *     `building` on the town scope `queueHolds`.
+ *
+ * **A v179 save is refused and does not replay.** A Devotion or Magisterial
+ * seat's pools hold more cards, and The Creed pays a different figure. The
+ * branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 179;
+export const SCHEMA_VERSION = 180;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -3028,6 +3051,25 @@ export interface Player {
    * habit back would be an empire the card stopped paying.
    */
   goldSpent: number;
+  /**
+   * **Every point of faith this empire has spent** (Devotion batch DV3, The
+   * Book of Life; `CountKind`'s `faithSpent`). The twin of `goldSpent` for the
+   * other bank, and on the player for the same reason: faith that has been
+   * spent leaves nothing on the board to count.
+   *
+   * Raised only by `spendFaith`, which is the one subtraction from
+   * `faithPool`. The triage's reading 13 counts every place faith leaves the
+   * bank, and there are seven: the gods the ladder buys (`openFaithLadder`),
+   * a reroll (`settleReroll`), a town's rite and a prophet's rite
+   * (`performRiteAt`, `empireRiteAt`), a great-person draft bought with faith
+   * (`chargeBank`), and a purchase or a contribution to a build
+   * (`purchaseItemAt`, `contributeAt`). The record takes what actually left
+   * the bank, so a rite or a reroll that the bank could not fully cover
+   * counts only what was paid.
+   *
+   * Present from turn one, at nought, as `goldSpent` is. Nothing lowers it.
+   */
+  faithSpent: number;
   /**
    * True once this player holds no units and no cities. They are out.
    *
@@ -6109,6 +6151,7 @@ export function newGame(config: GameConfig): GameState {
       tilesPurchased: 0,
       campsCleared: 0,
       goldSpent: 0,
+      faithSpent: 0,
       eliminated: false,
       barbarian: false,
       // Fresh every time rather than a shared literal, for `techsResearched`'s
@@ -6296,6 +6339,7 @@ function seatBarbarians(state: GameState): void {
     tilesPurchased: 0,
     campsCleared: 0,
     goldSpent: 0,
+    faithSpent: 0,
     eliminated: false,
     barbarian: true,
     // **No decks and nothing chartered, ever**: the wild drafts nothing
@@ -6656,6 +6700,37 @@ export function spendGold(
   // The ledger takes what actually left. A refund is not a thing and a negative
   // price is not a purchase, so nothing here can lower the record.
   if (amount > 0) player.goldSpent += amount;
+  bumpEconomy(state);
+}
+
+/**
+ * **The one subtraction that spends a player's faith** (Devotion batch DV3):
+ * the faith out of the bank and `Player.faithSpent` raised, together. It is
+ * `spendGold`'s twin, and it is one function for the same reason: seven places
+ * spend faith, and seven copies of the record would be seven chances to forget
+ * it. The list of the seven is on `Player.faithSpent`.
+ *
+ * `clampAtZero` keeps the bank from going below zero, which is what the rites,
+ * the rerolls and the ladder have always done. The record then counts only
+ * what the bank held, because that is what actually left it. The other callers
+ * check the price against the bank before they spend, so they subtract the
+ * price as it is.
+ *
+ * `bumpEconomy` rides with it, as it does with `spendGold`: the banks are a
+ * line of the meters (batch M3).
+ */
+export function spendFaith(
+  state: GameState,
+  player: Player,
+  amount: number,
+  clampAtZero = false,
+): void {
+  const before = player.faithPool;
+  const paid = clampAtZero ? Math.min(amount, Math.max(0, before)) : amount;
+  player.faithPool = clampAtZero ? Math.max(0, before - amount) : before - amount;
+  // A refund and a negative price are not spending, so nothing here can lower
+  // the record.
+  if (paid > 0) player.faithSpent += paid;
   bumpEconomy(state);
 }
 

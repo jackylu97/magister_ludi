@@ -80,6 +80,7 @@ import {
   playerById,
   realPlayers,
   removeUnit,
+  spendFaith,
   unconvertCitizen,
   unitById,
 } from './state';
@@ -598,9 +599,9 @@ export function openFaithLadder(state: GameState): void {
     // rung is climbed the moment the hand is dealt. `rungCost` stays on the
     // offer as the record of what was paid (and as the tell that this is the
     // ladder's hand, which `rerollError` reads), and the pick charges nothing.
-    player.faithPool = Math.max(0, player.faithPool - plan.cost);
-    // The banks are a line of the meters too — see `collectYields` (batch M3).
-    bumpEconomy(state);
+    // Through the one subtraction, so the gods the ladder buys count as faith
+    // spent (`Player.faithSpent`). It announces the bank for the meters too.
+    spendFaith(state, player, plan.cost, true);
     player.pantheon.rungs += 1;
     offer.rungCost = plan.cost;
     offer.rerolls = 0;
@@ -1117,9 +1118,11 @@ export function settleReroll(
   // gold arm is the faith arm with two words swapped — nothing about which hand
   // is dealt, which count is raised or which stamp is written changes with the
   // coin.
+  // The faith arm goes through the one subtraction (`spendFaith`), so a reroll
+  // counts as faith spent. Only what the bank held is counted.
   const spend = (paid: number): void => {
     if (currency === 'gold') player.gold = Math.max(0, player.gold - paid);
-    else player.faithPool = Math.max(0, player.faithPool - paid);
+    else spendFaith(state, player, paid, true);
   };
 
   if (kind === 'belief') {
@@ -1667,9 +1670,9 @@ export function performRiteAt(
 ): RitePerformance {
   const def = riteDef(rite);
   const cost = riteCostFor(state, player.id);
-  player.faithPool = Math.max(0, player.faithPool - cost);
-  // The banks are a line of the meters too (batch M3, `slate.ts`).
-  bumpEconomy(state);
+  // Through the one subtraction, so the rite counts as faith spent. It
+  // announces the bank for the meters too (batch M3, `slate.ts`).
+  spendFaith(state, player, cost, true);
 
   const expiresTurn = stampRite(state, player.id, rite, city) ?? state.turn;
   // The Founding Vows counts rites started while it is seated.
@@ -2085,9 +2088,9 @@ export function empireRiteAt(
 ): EmpireRitePerformance {
   const def = riteDef(rite);
   const cost = riteCostFor(state, player.id);
-  player.faithPool = Math.max(0, player.faithPool - cost);
-  // The banks are a line of the meters too (batch M3, `slate.ts`).
-  bumpEconomy(state);
+  // Through the one subtraction, so the rite counts as faith spent once,
+  // however many towns it reaches. It announces the bank for the meters too.
+  spendFaith(state, player, cost, true);
 
   const cities: City[] = [];
   let expiresTurn = state.turn;

@@ -1999,6 +1999,12 @@ function describeEffect(
         out.push({ text: `${FLAG_RULE_WORDS[effect.rule]}${inTowns}${cap}` });
         return;
       }
+      // The Gifts of the Faithful (Devotion batch DV3): faith buys only one
+      // category of building, so the category leads the sentence.
+      if (effect.rule === 'faithBuysBuildings' && effect.buildingCategory !== undefined) {
+        out.push({ text: `${effect.buildingCategory} ${FLAG_RULE_WORDS[effect.rule]}${inTowns}` });
+        return;
+      }
       if (effect.class === undefined && effect.rank === undefined) {
         out.push({ text: `${FLAG_RULE_WORDS[effect.rule]}${inTowns}` });
         return;
@@ -2754,11 +2760,22 @@ function describeEffect(
       // **What buys one helping**, where the row is counted — Siegecraft's
       // citizens on the walls. The count's own noun, the same table a `pays`
       // count prints through, so one card counting townsfolk for hammers and
-      // another counting them for walls read as the same sentence.
+      // another counting them for walls read as the same sentence. A category
+      // count (Devotion batch DV3, The Sacred Precincts) names the category,
+      // and "there" says the buildings are the town's own, as The Painted
+      // Chapels' line says it.
+      const probe: CardPaysEffect = {
+        kind: 'pays',
+        where: 'city',
+        basis: 'count',
+        count: effect.count,
+        within: 'city',
+        ...(effect.category === undefined ? {} : { category: effect.category }),
+      };
       const each =
         effect.count === undefined
           ? ''
-          : ` per ${countWords(effect.per, countNoun({ kind: 'pays', where: 'city', basis: 'count', count: effect.count, within: 'city' }, ''))}`;
+          : ` per ${countWords(effect.per, countNoun(probe, ''))}${effect.category === undefined ? '' : ' there'}`;
       out.push({
         // **The subject, not "every city"** (batch L1): the Great Wall's five
         // points of defence stand in the town that holds the stones and a
@@ -2955,6 +2972,10 @@ function describeEffect(
       // is a card that lies by omission. The one sentence-builder, trailing as
       // its own clause exactly as a scoped `productionBonus`' does.
       const where = effect.scope === undefined ? '' : `, in ${cityScopeWords(effect.scope)}`;
+      // **Which bank**, where the row names one (Devotion batch DV3, The
+      // Offering Chests): a discount on faith purchases says so, because the
+      // same thing bought with gold pays in full.
+      const bank = effect.currency === undefined ? '' : ` with ${effect.currency}`;
       // **A route takes a verb, not a plural** (batch C7). Every other subject
       // this arm prints is a *plural of things on a shelf* — "mounted units
       // cost −20% to buy" — and "hiring a caravan cost −15% to buy" is that
@@ -2964,14 +2985,14 @@ function describeEffect(
       if (on === 'route') {
         out.push({
           text:
-            `${what} costs ${Math.abs(percent)}% ${percent < 0 ? 'less' : 'more'}${where}`,
+            `${what} costs ${Math.abs(percent)}% ${percent < 0 ? 'less' : 'more'}${bank}${where}`,
         });
         return;
       }
       // "cost −25%", not "−25% cost": the sign belongs to the price, and a
       // discount read as a bonus is the one thing this line must not do.
       out.push({
-        text: `${what} cost ${percent < 0 ? '−' : '+'}${Math.abs(percent)}% to buy${where}`,
+        text: `${what} cost ${percent < 0 ? '−' : '+'}${Math.abs(percent)}% to buy${bank}${where}`,
       });
       return;
     }
@@ -3913,6 +3934,11 @@ const TOWN_COUNT_WORDS: Partial<Record<CountKind, (at: string) => PluralWords>> 
     return { one: `fortified military unit ${where}`, many: `fortified military units ${where}` };
   },
   defensiveBuildings: (at) => ({ one: `fortification ${at}`, many: `fortifications ${at}` }),
+  // Devotion batch DV3, the shared The Rising Nave: the town's own build.
+  frontRowTenths: (at) => ({
+    one: `10% of the work already done on the current build ${at}`,
+    many: `tenths of the work already done on the current build ${at}`,
+  }),
   // The ninth, and the only one that is *not* a count that can only be asked of
   // a town: `wonders` is a realm's question narrowed to one town by `within`
   // (batch L3c). It is here so `countNamesItsTown` answers yes for the narrowed
@@ -4060,10 +4086,14 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       // its own words rather than an adjective on the category, because "an
       // empire building" is the class's own name in the printed table and not a
       // kind of queue row.
+      // One named row (Devotion batch DV3, The Rising Nave's Cathedral and
+      // Magnum Opus) is said by its name, as a keyword.
       into.qualifiers.push(
-        scope.empireBuilding === true
-          ? 'while it is building an empire building'
-          : `while it is building ${indefinite(scope.category)} ${scope.category}`,
+        scope.building !== undefined
+          ? `while it is building ${buildingWords(scope.building)}`
+          : scope.empireBuilding === true
+            ? 'while it is building an empire building'
+            : `while it is building ${indefinite(scope.category)} ${scope.category}`,
       );
       return;
     case 'queueDepth':
@@ -5857,7 +5887,19 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     many: 'luxuries you hold three or more copies of that no other empire holds',
   },
   citiesKeepingRite: { one: 'city of yours keeping a rite', many: 'cities of yours keeping a rite' },
-  beliefsHeld: { one: 'belief your religion holds', many: 'beliefs your religion holds' },
+  // Devotion batch DV3: the empire's own gods count too, before and after it
+  // founds a religion (The Creed).
+  beliefsHeld: { one: 'god or belief you hold', many: 'gods and beliefs you hold' },
+  // Devotion batch DV3, The Book of Life. `goldSpent`'s words for the other
+  // bank. Faith is a quantity, so the noun is the same in both numbers.
+  faithSpent: { one: 'faith you have spent', many: 'faith you have spent' },
+  // Devotion batch DV3, the shared The Rising Nave: one helping is a tenth of
+  // the current build, said as the card says it. A town's own page reads
+  // these words; a card that names its towns reads `TOWN_COUNT_WORDS`.
+  frontRowTenths: {
+    one: '10% of the work already done on the current build',
+    many: 'tenths of the work already done on the current build',
+  },
   // Scientific batch S2, feature A. The family is printed by `countNoun`, so
   // that "per scholar in the trades" and "per merchant in the trades" are one
   // entry, `greatPeopleGained`'s bargain.

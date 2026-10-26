@@ -225,6 +225,9 @@ const WRITES: { field: string; pattern: RegExp }[] = [
   // Expansionist batch E5: the commissions that marked a town, which the
   // `markedBy` town scope reads (The Heartland). `markGoalTown` is its one writer.
   { field: 'markedBy', pattern: /\.markedBy\s*=[^=]|\.markedBy\.(push|splice)\(/ },
+  // Devotion batch DV3: the faith an empire has spent, which The Book of
+  // Life's `faithSpent` count reads. `spendFaith` is its one writer.
+  { field: 'faithSpent', pattern: /\.faithSpent\s*(=[^=]|\+=)/ },
 ];
 
 /** How a function says "the world moved under the empire walks". */
@@ -241,16 +244,10 @@ const ANNOUNCING = new Set([
   'beads.ts#awardBead',
   'trade.ts#settleTraderPlunder',
   'tech.ts#upgradeUnits',
-  'religion.ts#empireRiteAt',
   'religion.ts#payRiteBuildings',
-  'religion.ts#performRiteAt',
   'religion.ts#settleReroll',
-  'religion.ts#openFaithLadder',
-  'purchase.ts#contributeAt',
-  'purchase.ts#purchaseItemAt',
   'improvements.ts#prospectAt',
   'greatPeople.ts#greatPersonActAt',
-  'greatPeople.ts#chargeBank',
   'empire.ts#collectYields',
   'draft.ts#settleDraft',
   // G3: a malice turning an Order out of its chair — the chairs the third
@@ -335,6 +332,13 @@ const ANNOUNCING = new Set([
   // subtraction is announced by the subtraction, which is the whole point of
   // having one.
   'state.ts#spendGold',
+  // **Its twin for faith** (Devotion batch DV3): the faith out of the bank and
+  // `Player.faithSpent` raised, in one place. The seven places that spend faith
+  // go through it, so six of them (`openFaithLadder`, `performRiteAt`,
+  // `empireRiteAt`, `chargeBank`, `purchaseItemAt` and `contributeAt`) left this
+  // list: they no longer write a bank of their own. `settleReroll` stays,
+  // because its gold arm still writes the treasury.
+  'state.ts#spendFaith',
   // Batch WC2: the one writer of `Player.warLosses`, which the happiness
   // meter's war weariness lines count.
   'weariness.ts#recordWarLoss',

@@ -112,6 +112,9 @@ describe("newGame", () => {
       // the treasury for a thing, which nothing on the board can be asked
       // about. Present from turn one for `campsCleared`'s reason.
       goldSpent: 0,
+      // Its twin for faith (Devotion batch DV3, The Book of Life): faith that
+      // has left the bank. Present from turn one, at nought.
+      faithSpent: 0,
       eliminated: false,
       // Every seat carries the flag and every *real* seat carries it false; the
       // wild is appended separately and only when the config asks for it (see
@@ -1053,7 +1056,11 @@ describe("the research queue field", () => {
     // 179 since Magisterial batch MG2 (the data-only cards of Tiers 0 and
     // I): fourteen Magisterial cards are dealt. So a v178 log's Magisterial
     // hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(179);
+    // 180 since Devotion batch DV3 (the engine's shapes): `Player.faithSpent`
+    // joins the state, four Devotion cards and the shared The Rising Nave are
+    // dealt, and The Creed counts gods. So a v179 log's Devotion and
+    // Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(180);
   });
 });
 

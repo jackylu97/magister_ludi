@@ -2268,6 +2268,51 @@
         }
       },
       "effects": []
+    },
+    "theRisingNave": {
+      "name": "The Rising Nave",
+      "decks": ["devotion", "magisterial"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "The town pays for the nave one bay at a time, and sings under each new arch.",
+      "text": "While a city is building a Cathedral or a wonder, it gains +1 faith and +1 culture for every 10% of the work already done.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "faith",
+          "amount": 1,
+          "count": "frontRowTenths",
+          "scope": {
+            "test": "any",
+            "of": [
+              { "test": "queueHolds", "category": "wonder" },
+              { "test": "queueHolds", "category": "building", "building": "cathedral" },
+              { "test": "queueHolds", "category": "building", "building": "theMagnumOpus" }
+            ]
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "frontRowTenths",
+          "scope": {
+            "test": "any",
+            "of": [
+              { "test": "queueHolds", "category": "wonder" },
+              { "test": "queueHolds", "category": "building", "building": "cathedral" },
+              { "test": "queueHolds", "category": "building", "building": "theMagnumOpus" }
+            ]
+          }
+        }
+      ],
+      "note": "The Magnum Opus counts as a wonder here. Only what the town is building now counts, not what waits behind it in the queue."
     }
   }
 }

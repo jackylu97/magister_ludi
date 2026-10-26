@@ -3432,6 +3432,11 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // shut is a card doing nothing today, which is what the evaluator says.
       return conditionIsLive(effect.when, ctx) ? scoreEffects(effect.then, ctx) : 0;
     case 'purchaseRider': {
+      // **A rider on the faith bank alone** (Devotion batch DV3, The Offering
+      // Chests' `currency`) is a stand-in until batch DV9 prices it. The gold
+      // reading below would price a faith discount by the treasury, which is
+      // the wrong bank.
+      if (effect.currency === 'faith') return ctx.ai.score.unknownEffect;
       // A discount on a bank this empire actually spends out of: the share it
       // takes off, over what the purse turns over in a turn. `on: 'building'`
       // and `on: 'all'` reach more of the book than a unit filter does, and the

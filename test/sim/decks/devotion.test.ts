@@ -119,6 +119,8 @@ const KINDS_USED = [
   'cityStat',
   // Batch DV2: The Consecration Feast and The Holy Summons.
   'windfallRider',
+  // Batch DV3: The Offering Chests.
+  'purchaseRider',
 ] as const satisfies readonly CardEffectKind[];
 
 const RARITIES: readonly OrderRarity[] = ['common', 'uncommon', 'rare'];
@@ -202,24 +204,25 @@ function linesOf(state: GameState, city: City, card: string) {
 // --- the shelf ---------------------------------------------------------------
 
 describe('the Devotion deck folds', () => {
-  it('carries 78 rows: 48 live, 1 deferred and 29 retired', () => {
+  it('carries 82 rows: 52 live, 1 deferred and 29 retired', () => {
     // Batch DV1: 77 rows before, less the six that moved to common.json. Four
     // rows retired, three live and one deferred. Batch DV2 added seven live
-    // rows.
-    expect(DEVOTION).toHaveLength(78);
-    expect(LIVE).toHaveLength(48);
+    // rows, and batch DV3 four more.
+    expect(DEVOTION).toHaveLength(82);
+    expect(LIVE).toHaveLength(52);
     expect(DEFERRED).toHaveLength(1);
     expect(RETIRED).toHaveLength(29);
   });
 
-  it('spreads its 49 standing rows across Tiers 0 to IV as 6, 6, 15, 9 and 13', () => {
+  it('spreads its 53 standing rows across Tiers 0 to IV as 7, 7, 16, 10 and 13', () => {
     // Batch DV1 moved The Second Prophet, The Living Hymnal and The Mission
     // from Tier I to Tier II, and The Conversion of Kings and The Pious Masons
     // from Tier IV to Tier III. Batch DV2 added three rows at Tier II, three
-    // at Tier III and one at Tier IV.
-    expect(STANDING).toHaveLength(49);
+    // at Tier III and one at Tier IV. Batch DV3 added one row at each of
+    // Tiers 0 to III.
+    expect(STANDING).toHaveLength(53);
     const perBand = BANDS.map((band) => STANDING.filter((id) => orderDef(id).band === band).length);
-    expect(perBand).toEqual([6, 6, 15, 9, 13]);
+    expect(perBand).toEqual([7, 7, 16, 10, 13]);
   });
 
   it('names its own deck on every row, with a band and a rarity', () => {
@@ -344,7 +347,9 @@ describe('the age gate', () => {
 
   it('keeps every row of Tiers 0 and I off the clergy, the Temple, the holy site and the following town', () => {
     const early = STANDING.filter((row) => orderDef(row).band <= 1);
-    expect(early).toHaveLength(12);
+    // Batch DV3 added The Gifts of the Faithful (Tier 0) and The Sacred
+    // Precincts (Tier I).
+    expect(early).toHaveLength(14);
     for (const id of early) {
       const def = orderDef(id);
       expect(def.text ?? '', `${id}: ${def.text}`).not.toMatch(WORDS);
@@ -888,8 +893,8 @@ describe('the Devotion deck: the sheet of record', () => {
     expect(shared).toHaveLength(29);
   });
 
-  it('types every listed row, 49 of this file and 28 shared, and nothing else of this file', () => {
-    expect(LISTED).toHaveLength(49);
+  it('types every listed row, 53 of this file and 29 shared, and nothing else of this file', () => {
+    expect(LISTED).toHaveLength(53);
     for (const id of DEVOTION) {
       const def = orderDef(id);
       if (def.retired === true) expect(def.type, id).toBeUndefined();
@@ -900,10 +905,9 @@ describe('the Devotion deck: the sheet of record', () => {
       return def.retired !== true && def.decks.includes('devotion');
     });
     // 18 before batch DV1, and the seven rows it moved here. Batch DV2 added
-    // The Shrine Guards, The Blessed Forges and The Schoolmen's Charter. The
-    // Rising Nave, the one row marked add on the shared table, has no data
-    // row yet.
-    expect(sharedRows).toHaveLength(28);
+    // The Shrine Guards, The Blessed Forges and The Schoolmen's Charter, and
+    // batch DV3 The Rising Nave. Every row of the shared table has data now.
+    expect(sharedRows).toHaveLength(29);
     for (const id of sharedRows) expect(isCardType(orderDef(id).type ?? ''), id).toBe(true);
   });
 });

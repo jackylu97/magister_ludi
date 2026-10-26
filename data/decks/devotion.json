@@ -453,7 +453,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Every line of it was an argument once.",
-      "text": "Your capital gains +3 faith and +3 culture for every belief your religion holds.",
+      "text": "Your capital gains +3 faith and +3 culture for every god and belief you hold.",
       "effects": [
         {
           "kind": "pays",
@@ -477,7 +477,8 @@
             "test": "capital"
           }
         }
-      ]
+      ],
+      "note": "Your gods count before you found a religion. Each religion you are paid by adds its follower and enhancer beliefs. A holy city you capture does not add the gods of the empire that founded it."
     },
     "theRitesCommonwealth": {
       "name": "The Rites Commonwealth",
@@ -1540,6 +1541,109 @@
           "max": 10
         }
       ]
+    },
+    "theGiftsOfTheFaithful": {
+      "name": "The Gifts of the Faithful",
+      "decks": [
+        "devotion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "Every family brought one stone, and the shrine stood before the harvest.",
+      "text": "Religious buildings may be bought with faith.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "faithBuysBuildings",
+          "buildingCategory": "faith"
+        }
+      ],
+      "note": "Shrines, Temples, Cathedrals and the other religious buildings may be bought with faith in every town. Wonders keep their own rules."
+    },
+    "theSacredPrecincts": {
+      "name": "The Sacred Precincts",
+      "decks": [
+        "devotion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "The temple wall is the last wall the town gives up.",
+      "text": "Towns gain +3 defence for every religious building in them.",
+      "effects": [
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 3,
+          "count": "buildingsOfCategory",
+          "category": "faith"
+        }
+      ],
+      "note": "A wonder of the faith standing in the town counts as a religious building."
+    },
+    "theBookOfLife": {
+      "name": "The Book of Life",
+      "decks": [
+        "devotion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Every gift is written in the book, and every name in it is read aloud at the altar.",
+      "text": "+1% science and culture for every 150 faith you have spent this game, at most +30%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "faithSpent",
+          "to": "science",
+          "percent": 1,
+          "per": 150,
+          "stage": "city",
+          "max": 30
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "faithSpent",
+          "to": "culture",
+          "percent": 1,
+          "per": 150,
+          "stage": "city",
+          "max": 30
+        }
+      ],
+      "note": "Faith counts when you spend it on units, buildings, rites, rerolls, gods and great people, and when you pour it into a build."
+    },
+    "theOfferingChests": {
+      "name": "The Offering Chests",
+      "decks": [
+        "devotion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "A chest with three locks stands in every church, and the army is paid from it.",
+      "text": "Military units bought with faith cost 30% less.",
+      "effects": [
+        {
+          "kind": "purchaseRider",
+          "on": "unit",
+          "class": {
+            "category": "military"
+          },
+          "currency": "faith",
+          "percent": -30
+        }
+      ],
+      "note": "A unit bought with gold pays the full price. The discount adds to any other discount before it applies."
     },
     "theMonasticTable": {
       "name": "The Monastic Table",

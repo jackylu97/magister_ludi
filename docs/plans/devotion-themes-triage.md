@@ -349,6 +349,8 @@ The first eleven come from section 12, from R1 and from section 11. The rest are
 - **Schema:** one bump (`Player` gains a field).
 - **Done-gate:** `npx vitest run test/sim/decks/devotionEngine.test.ts test/sim/decks/devotion.test.ts test/sim/purchase.test.ts test/sim/religion.test.ts test/sim/faithLadder.test.ts test/sim/greatPeople.test.ts test/sim/combat.test.ts test/sim/slateRegister.test.ts test/sim/decks.test.ts test/sim/statecraft.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts test/mapgen/moduleCycles.test.ts`.
 
+- **Built (2026-10-25):** as planned. The gate passed: the type check, 9,629 core tests and the build. Schema 180. `spendFaith` (`state.ts`) is now the one place faith leaves the bank, pinned by a source test; the slate register lists it. `beliefsHeld` no longer counts a founder's gods twice. Readings added: The Rising Nave also counts the Magnum Opus at the front row (it is not marked a wonder); a project at the front counts 0; an empire rite counts its faith once. The explore pins moved because every seat now carries `faithSpent`. Not done: the new count `frontRowTenths` is outside the slate register (no happiness or authority card reads it); two printed lines are long or repeat a word.
+
 ### DV4: rites are seasons
 
 - **Builds:**

@@ -3,7 +3,7 @@
 The deck's cards, by tier: name, rarity, status, ability and type. This sheet is the spec of record for the deck. `test/sim/decks/devotion.test.ts` checks it against `data/decks/devotion.json` and, for the shared table, `data/decks/common.json`.
 
 - **Why each card is here:** `docs/plans/devotion-themes.md`, the themes pass of 2026-10-23. It designs the deck as a way to play: an engine of faith and what faith buys, and four themes (the devout realm, the holy places, the spreading faith and the holy war). Section 12 holds your answers of 2026-10-25, and it outranks the sections before it. `docs/plans/devotion-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
-- **The build plan:** `docs/plans/devotion-themes-triage.md` (batches DV1 to DV9). Batch DV1 wrote this sheet, put the types into the data, retired the four cut rows, moved seven rows to the shared file, moved six cards to a new tier, and changed five cards in place: Lay Offerings, The Settled Faith, The Mission, The Conversion of Kings and The Great Commission. The deferred The Interdict took its new text and stays out of every pool. Batch R1 changed The Fast and The Rites Commonwealth before DV1 (`docs/plans/review-revisions-2026-10-25.md`). Batch DV2 built the seven new cards whose shapes already existed (The Deaconries, The Lives of the Saints, The Martyrology, The Consecration Feast, The Pilgrim Towns, The Holy Summons and The Work of God), four shared cards, and the word "devout".
+- **The build plan:** `docs/plans/devotion-themes-triage.md` (batches DV1 to DV9). Batch DV1 wrote this sheet, put the types into the data, retired the four cut rows, moved seven rows to the shared file, moved six cards to a new tier, and changed five cards in place: Lay Offerings, The Settled Faith, The Mission, The Conversion of Kings and The Great Commission. The deferred The Interdict took its new text and stays out of every pool. Batch R1 changed The Fast and The Rites Commonwealth before DV1 (`docs/plans/review-revisions-2026-10-25.md`). Batch DV2 built the seven new cards whose shapes already existed (The Deaconries, The Lives of the Saints, The Martyrology, The Consecration Feast, The Pilgrim Towns, The Holy Summons and The Work of God), four shared cards, and the word "devout". Batch DV3 built the engine's shapes: The Gifts of the Faithful, The Sacred Precincts, The Book of Life and The Offering Chests, The Creed's rework, and the shared The Rising Nave.
 - **Devout towns:** a devout town is one of your towns that follows a religion you are paid by. The game asks this with the town scope `ownersFaith` (`keeps: true`). A foreign town is never devout. "Devout" is the card word of the triage's feature E (reading 2). Since batch DV2 the describers print the scope as "devout", and the Compendium's faith page says what a devout town is. The cards about every town that follows your religion, foreign towns included, keep the words "follows your religion".
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
@@ -23,13 +23,13 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 
 | Tier | Implemented | Modify | Add | All | Charters |
 |---|---|---|---|---|---|
-| Tier 0 | 5 | 1 | 2 | 8 | 0 |
-| Tier I | 5 | 1 | 1 | 7 | 1 |
-| Tier II | 13 | 2 | 6 | 21 | 1 |
-| Tier III | 7 | 2 | 7 | 16 | 0 |
+| Tier 0 | 6 | 1 | 1 | 8 | 0 |
+| Tier I | 7 | 0 | 0 | 7 | 1 |
+| Tier II | 14 | 2 | 5 | 21 | 1 |
+| Tier III | 8 | 2 | 6 | 16 | 0 |
 | Tier IV | 12 | 1 | 1 | 14 | 0 |
-| **All** | **42** | **7** | **17** | **66** | **2** |
-| Shared | 26 | 2 | 1 | 29 | 1 |
+| **All** | **47** | **6** | **13** | **66** | **2** |
+| Shared | 27 | 2 | 0 | 29 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
 
@@ -56,7 +56,7 @@ Without the charters, the deck holds 64 cards that take a chair: 8, 6, 20, 16 an
 | **Lay Offerings** | common | implemented | Pastures, camps and plantations gain +1 faith and +1 food. | Civic |
 | **The Calling** | common | implemented | +25% faith until you have founded a religion. | Civic |
 | **The Old Gods Remain** | uncommon | implemented | Gain one more pantheon belief. | Civic |
-| **The Gifts of the Faithful** | common | add | Religious buildings may be bought with faith. | Economic |
+| **The Gifts of the Faithful** | common | implemented | Religious buildings may be bought with faith. | Economic |
 
 ## Tier I
 
@@ -72,8 +72,8 @@ Without the charters, the deck holds 64 cards that take a chair: 8, 6, 20, 16 an
 | **The Rites Commonwealth** | rare | implemented | Cities keeping a rite demand 25% less population happiness. | Civic |
 | **The Octave** | uncommon | implemented | Rites you start while this is seated last 50% longer. | Civic |
 | **The Fast** | uncommon | implemented | Once drafted, unlock the Rite of Fasting. A city keeping it stores no food toward growth for ten turns and gains science and culture equal to its population each turn. No chair required. | Civic |
-| **The Creed** | uncommon | modify: reworked | Your capital gains +3 faith and +3 culture for every god and belief you hold. | Civic |
-| **The Sacred Precincts** | common | add | Towns gain +3 defence for every religious building in them. | Military |
+| **The Creed** | uncommon | implemented | Your capital gains +3 faith and +3 culture for every god and belief you hold. | Civic |
+| **The Sacred Precincts** | common | implemented | Towns gain +3 defence for every religious building in them. | Military |
 | **Consecrated Labor** | common | implemented | Cities with a Shrine may buy workers with faith. | Economic |
 | **The Monastic Builders** | uncommon | implemented | Science buildings may be bought with faith. | Economic |
 
@@ -108,7 +108,7 @@ Without the charters, the deck holds 64 cards that take a chair: 8, 6, 20, 16 an
 | **The Martyrology** | uncommon | implemented | While seated, this card gains +2 faith and +2 culture each time one of your units dies in battle. | Civic |
 | **The Lay Brothers** | rare | implemented | Cities with a Temple may buy ordinary buildings with faith, at the faith rate. | Economic |
 | **The Votive Gifts** | common | implemented | While this is seated, your cities know the Votive Offering: a city spends the rite's faith to add that much production, at the faith rate, to whatever it is building. Not toward wonders. Once per city per turn. | Economic |
-| **The Book of Life** | uncommon | add | +1% science and culture for every 150 faith you have spent this game, at most +30%. | Civic |
+| **The Book of Life** | uncommon | implemented | +1% science and culture for every 150 faith you have spent this game, at most +30%. | Civic |
 
 ## Tier III
 
@@ -133,7 +133,7 @@ Without the charters, the deck holds 64 cards that take a chair: 8, 6, 20, 16 an
 | **The Conversion of Kings** | rare | implemented | Commission. Have a rival's capital follow your religion while this is seated. Reward: a free Prophet in your capital and 500 culture. Then this card leaves its chair. | Wildcard |
 | **The Turning of Swords** | rare | add | An enemy unit you kill on land that follows your religion joins your side instead, at most once a turn. | Military |
 | **The Holy Summons** | uncommon | implemented | Declaring war gives every devout town the best melee unit you can build, at most once every twenty turns. They cost no upkeep. | Military |
-| **The Offering Chests** | common | add | Military units bought with faith cost 30% less. | Military |
+| **The Offering Chests** | common | implemented | Military units bought with faith cost 30% less. | Military |
 | **The Pious Masons** | rare | modify: as built | In cities with a Cathedral, a world wonder that is at least half built may be bought with faith. Not the Magnum Opus. | Economic |
 | **The Offered Stones** | uncommon | implemented | Buildings you bought with faith give +2 culture each, at most +6 per town. You can purchase buildings with faith. | Economic |
 | **The Learned Clergy** | uncommon | implemented | +2 science and +2 culture for every 10 faith your empire makes each turn. | Civic |
@@ -171,7 +171,8 @@ These rows live in `data/decks/common.json`. A seat holding Devotion or the deck
 - **Types:** since batch DV1 every shared row carries the type below: 4 Military, 3 Economic and 22 Civic. The cards shared with Dominion, Expansionist, Scientific and Commerce carry the types those sheets give them. This sheet typed the cards shared with Magisterial, and Magisterial batch MG1 gave them the same types on its sheet.
 - **Moved in batch DV1:** The Holy Spring (with Expansionist), The Priest-Astronomers and The Monastic University (with Scientific), and The Painted Chapels, The Festival Calendar and The Penitents' Roll (with Magisterial) came here from the Devotion file. The Ambarvalia came here from the Expansionist file, and its row keeps the id `theSpiritsOfPlace`. All seven keep their ids, texts, tiers and rarities (reading 8). Sacred Commissions moved from Tier I to Tier II, because it pays only in a town with a holy site.
 - **Built in batch DV2:** The Shrine Guards (a new row, with Dominion), The Monastery Libraries (it left `deferred` with its new text), The Blessed Forges and The Schoolmen's Charter (new rows, with Scientific). The charter opens a new charter technology, Scholasticism, at a placeholder place beside Medicine until your chart places it. Knowing Scholasticism opens the Cathedral and the Apostle before Theology, and Theology still opens both for everybody (reading 24).
-- **Built in later batches:** DV3 builds The Rising Nave. The Magisterial build plan builds Sacred Patronage, which keeps its second clause (reading 10).
+- **Built in batch DV3:** The Rising Nave (a new row, with Magisterial). It pays while the front row of a town's queue is a Cathedral or a wonder, the Magnum Opus included, and counts the tenths of that row's cost already in the town's basket (reading 18). The Magisterial sheet's shared table lists it too.
+- **Built in later batches:** the Magisterial build plan builds Sacred Patronage, which keeps its second clause (reading 10).
 - **Each pair's early shared card** (ruling (qqqqqq) 14): Dominion, Rites of Passage, and The Shrine Guards from DV2; Expansionist, Sacred Groves, The Ambarvalia and The Holy Spring; Commerce, The Merchant Shrines; Scientific, Cloister Schools, The Monastery Libraries, The Priest-Astronomers, and The Schoolmen's Charter from DV2; Magisterial, The Painted Chapels.
 - **Five shared Tier I cards wait on The High Temple:** The Sacred Host and Cloister Schools need a Temple, The Oriflamme a religious unit beside the army, and half of The Monastery Libraries a Temple. The Schoolmen's Charter opens a technology that comes after The High Temple. They stay at Tier I, because the partner passes kept them there (reading 1).
 - **Convert It or Tax It** keeps its Dominion text. Since batch DV2 its printed clause says "devout" (reading 2).
@@ -204,7 +205,7 @@ These rows live in `data/decks/common.json`. A seat holding Devotion or the deck
 | **The Penitents' Roll** | uncommon | Magisterial | II | implemented | +6 science and +6 culture for every Order hand you reroll while this is seated. Rerolls cost 30% less faith while this is seated. | Civic |
 | **Sacred Commissions** | uncommon | Magisterial | II | implemented | Cities with a Holy Site gain +38% production toward wonders. Completing a wonder grants 60 faith. | Economic |
 | **Sacred Patronage** | rare | Magisterial | III | modify: deferred | Faith may purchase great-person drafts at the escalating conversion price. Spending a great person grants 30 faith, at most once per turn. | Civic |
-| **The Rising Nave** | rare | Magisterial | III | add | While a city is building a Cathedral or a wonder, it gains +1 faith and +1 culture for every 10% of the work already done. | Civic |
+| **The Rising Nave** | rare | Magisterial | III | implemented | While a city is building a Cathedral or a wonder, it gains +1 faith and +1 culture for every 10% of the work already done. | Civic |
 | **The Holy Army** | uncommon | Dominion | III | implemented | Worked Holy Sites and citadels that stand beside each other each gain +3 faith and +3 culture. | Civic |
 | **The Monastic University** | rare | Scientific | III | implemented | A Holy Site and an academy standing beside each other each gain +5 science and +3 faith. | Civic |
 
@@ -223,7 +224,7 @@ These rows stay in the data so that old saves load. They are dealt to nobody, th
 
 - **Ruled 2026-10-25** (`docs/plans/devotion-themes.md`, section 12: your answers to sections 10 and 11, and your two comments on the review list). They are written into the rows above, and the build plan (`docs/plans/devotion-themes-triage.md`) builds them:
   - **Your two comments,** built in batch R1: The Fast's rite gains science and culture in place of faith (*"gain science and culture instead of faith"*), and The Rites Commonwealth loses its −1 happiness (*"remove malice"*).
-  - **The religion's cards from Tier II:** The Living Hymnal, The Mission and The Second Prophet moved to Tier II in batch DV1. The Creed stays at Tier I, because from batch DV3 it counts the gods you hold before you found a religion.
+  - **The religion's cards from Tier II:** The Living Hymnal, The Mission and The Second Prophet moved to Tier II in batch DV1. The Creed stays at Tier I, because since batch DV3 it counts the gods you hold before you found a religion.
   - **Devout towns as a card word** (feature E, batch DV2), and **a conversion as a moment** (feature F, batch DV6, for Pentecost and The Mass Baptisms).
   - **The rule-breakers:** The Caliphate, The Abbeys, The Turning of Swords, The Double Feast, The Interdict reworked, and The Pious Masons at Tier III.
   - **The commissions:** two institutions (Commission: The State Church and The Great Commission) and three one-time rewards (The Founding Vows, The Mission at 300 culture and The Conversion of Kings at 500 culture).

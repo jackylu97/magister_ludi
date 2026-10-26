@@ -100,6 +100,7 @@ import {
   createUnit,
   playerById,
   removeUnit,
+  spendFaith,
   spendGold,
   unitById,
 } from './state';
@@ -640,14 +641,14 @@ function chargeBank(
   if (currency === 'gold') {
     // Through the one seam, so a rung bought with coin joins the almoner's
     // ledger (`spendGold`, `state.ts`) — it is a purchase, and the most
-    // deliberate one an empire makes. The faith arm keeps its own subtraction:
-    // the record counts one bank (see `Player.goldSpent`).
+    // deliberate one an empire makes.
     spendGold(state, player, price);
     return;
   }
-  player.faithPool -= price;
-  // The banks are a line of the meters too — see `collectYields` (batch M3).
-  bumpEconomy(state);
+  // The faith arm goes through its own seam (Devotion batch DV3), so a draft
+  // bought with faith counts as faith spent (`Player.faithSpent`). Each bank
+  // keeps its own record.
+  spendFaith(state, player, price);
 }
 
 // --- taking a name ----------------------------------------------------------

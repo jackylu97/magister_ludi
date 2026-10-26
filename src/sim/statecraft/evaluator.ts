@@ -32,6 +32,7 @@ import {
   loseCitizen,
   nearestOwnedCity,
   ownedTiles,
+  queueItemCost,
   realiseItem,
   refreshCityDerived,
   resourceCopies,
@@ -2138,6 +2139,9 @@ export function cityScopeAdmits(
         if (front.kind !== 'building' || !isBuildingId(front.id)) return false;
         if (!isEmpireBuilding(front.id)) return false;
       }
+      // And the narrowing to one row (Devotion batch DV3, The Rising Nave's
+      // Cathedral and Magnum Opus), as the empire condition reads it.
+      if (scope.building !== undefined && front.id !== scope.building) return false;
       return true;
     }
     case 'queueDepth':
@@ -2523,10 +2527,18 @@ function scopeNote(scope?: CityScope): string | null {
       return "beside a great person's work";
     case 'onResourceKind':
       return `settled on ${scope.kind}`;
-    case 'queueHolds':
+    case 'queueHolds': {
+      // One named row (Devotion batch DV3): "building a Cathedral", "building
+      // the Magnum Opus". A name that starts with "The" keeps its own article.
+      if (scope.building !== undefined) {
+        const name = buildingDef(scope.building).name;
+        if (/^The /.test(name)) return `building ${name.replace(/^The /, 'the ')}`;
+        return `building ${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`;
+      }
       return scope.empireBuilding === true
         ? 'building an empire building'
         : `building a ${scope.category}`;
+    }
     case 'queueDepth':
       return `${scope.atLeast} things queued`;
     case 'frontier':
@@ -3640,9 +3652,16 @@ export function countOf(
       // asks it of the empire at the far end (`cardRouteYieldLines`).
       return techGap(state, playerId).length;
     case 'beliefsHeld': {
-      let total = 0;
+      // Devotion batch DV3 (the triage's reading 16): the empire's own gods as
+      // they stand, so The Creed pays before a religion is founded, and the
+      // follower and enhancer beliefs of each religion it is paid by. A
+      // religion's own pantheon is not counted: it is a copy of its founder's
+      // gods on the day it was founded (`foundReligion`), so the founder would
+      // count its gods twice, and a captured holy city would count another
+      // empire's gods.
+      let total = playerById(state, playerId)?.pantheon.beliefs.length ?? 0;
       for (const religion of heldReligions(state, playerId)) {
-        total += religion.pantheon.length + religion.follower.length + religion.enhancer.length;
+        total += religion.follower.length + religion.enhancer.length;
       }
       return total;
     }
@@ -3652,6 +3671,24 @@ export function countOf(
         longest = Math.max(longest, state.turn - religion.foundedTurn);
       }
       return longest;
+    }
+    case 'faithSpent':
+      // Devotion batch DV3, The Book of Life: read off the record, as
+      // `goldSpent` is. See `Player.faithSpent` for the seven places that raise
+      // it.
+      return Math.max(0, playerById(state, playerId)?.faithSpent ?? 0);
+    case 'frontRowTenths': {
+      // Devotion batch DV3, the shared The Rising Nave (the triage's reading
+      // 18): the hammers in the basket against the front row's cost, in whole
+      // tenths, at most ten. The cost is `queueItemCost`, the one price the
+      // basket is charged, so this and the progress bar cannot disagree. A
+      // project never finishes, so it has no progress to count.
+      if (city === undefined) return 0;
+      const front = city.queue[0];
+      if (front === undefined || front.kind === 'project') return 0;
+      const cost = queueItemCost(state, city.ownerId, front);
+      if (cost === null || cost <= 0) return 0;
+      return Math.min(10, Math.floor((Math.max(0, city.hammerBasket) * 10) / cost));
     }
     // Dominion batch D4: three lifetime records. A fallen unit or a taken town
     // leaves nothing on the board to count, so each is a counter on the player.
@@ -3969,6 +4006,9 @@ export const CITY_SCOPED_COUNTS: readonly CountKind[] = [
   'distinctWorkedFeatures',
   'distinctWorkedGreatWorks',
   'distinctBuildingCategories',
+  // Devotion batch DV3: how far a town's current build has come. Only a town
+  // has a queue.
+  'frontRowTenths',
 ];
 
 /**
@@ -7778,6 +7818,9 @@ function cityStatProbe(effect: CardCityStatEffect): CardPaysEffect {
     per: effect.per,
     max: effect.max,
     within: 'city',
+    // The category a counted wall asks about (Devotion batch DV3, The Sacred
+    // Precincts' religious buildings). Absent on every row written before it.
+    ...(effect.category === undefined ? {} : { category: effect.category }),
   };
 }
 
@@ -10261,18 +10304,23 @@ export function cardRallyRange(state: GameState, playerId: number, type: UnitTyp
  * carry a `scope` (`CardRuleEffect.scope`): the three faith-purchase rules,
  * asked by `purchase.ts` with the town and the piece in hand. A row's `class`
  * is asked of `type` when one is given and refuses a caller that gives none,
- * exactly as `cardRuleHolds` does.
+ * exactly as `cardRuleHolds` does. A row's `buildingCategory` is asked of
+ * `building` in the same way (Devotion batch DV3, The Gifts of the Faithful).
  */
 export function cardActionRuleAt(
   state: GameState,
   city: City,
   rule: ActionRuleId,
   type?: UnitTypeId,
+  building?: BuildingId,
 ): boolean {
   for (const { effect } of effectsOfKind(state, city.ownerId, 'rule')) {
     if (effect.rule !== rule) continue;
     if (effect.class !== undefined) {
       if (type === undefined || !unitMatches(type, effect.class)) continue;
+    }
+    if (effect.buildingCategory !== undefined) {
+      if (building === undefined || buildingDef(building).category !== effect.buildingCategory) continue;
     }
     if (effect.scope !== undefined && !cityScopeAdmits(state, city, effect.scope)) continue;
     return true;
@@ -10816,9 +10864,18 @@ export function cardPurchaseRiders(
   city?: City,
   /** Which building is being priced, for a rider that names a shelf. */
   building?: BuildingId,
+  /**
+   * Which bank the price is asked in, for a rider that names one (Devotion
+   * batch DV3, The Offering Chests). A caller with none drops every such row,
+   * the bargain `city` keeps above.
+   */
+  currency?: 'gold' | 'faith',
 ): CardPurchaseLine[] {
   const list: CardPurchaseLine[] = [];
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'purchaseRider')) {
+    // **Which bank.** A rider that names one changes only a price asked in it,
+    // so a soldier bought with gold pays in full under The Offering Chests.
+    if (effect.currency !== undefined && effect.currency !== currency) continue;
     const on = effect.on ?? 'unit';
     // **A route is named or it is not reached** (batch C7). `'all'` is the two
     // roster kinds and deliberately not the road: the three live rows that say

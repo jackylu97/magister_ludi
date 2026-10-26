@@ -1045,10 +1045,22 @@ describe('determinism', () => {
    * of two describer sentences. Nobody here drafts, so no seat holds a new
    * card. Checked with the change in place and the version printed as 178,
    * which gives the hashes of Devotion batch DV2 exactly.
+   *
+   * **Devotion batch DV3 (the engine's shapes, schema 180) moved the hash and
+   * the length** at both seeds, by 45 bytes each. Two things moved them: the
+   * version, 179 to 180, and the new `Player.faithSpent` field, which every
+   * seat carries from turn one at nought. That is `"faithSpent":0,` three
+   * times, for the two seats and the wild. Nobody here founds a town, so no
+   * faith is ever banked or spent, and the field stays at nought on every
+   * seat. Checked with the change in place, the version printed as 179 and
+   * the three fields taken out of the print, which gives the hashes of
+   * Magisterial batch MG2 exactly. With the version printed as 179 and the
+   * fields left in, the hashes differ and the length is 45 bytes longer, which
+   * is the field and nothing else.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '239ef380:188931',
-    2026: '7b4249dd:188509',
+    11: '0b267534:188976',
+    2026: '4e7a262d:188554',
   };
 
   for (const seed of [11, 2026]) {

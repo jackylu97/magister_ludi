@@ -589,8 +589,11 @@ describe('the schema, as landed', () => {
     // which left `deferred`.
     // **And Magisterial batch MG2** (the data-only cards of Tiers 0 and I):
     // fourteen more, all new Magisterial rows.
-    expect(live).toBe(550);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(550);
+    // **And Devotion batch DV3** (the engine's shapes): five more. The Gifts
+    // of the Faithful, The Sacred Precincts, The Book of Life and The Offering
+    // Chests are new Devotion rows, and The Rising Nave is a new shared row.
+    expect(live).toBe(555);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(555);
   });
 
   /**
@@ -935,7 +938,11 @@ describe('the schema, as landed', () => {
     // 179 since Magisterial batch MG2 (the data-only cards of Tiers 0 and
     // I): fourteen Magisterial cards are dealt. So a v178 log's Magisterial
     // hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(179);
+    // 180 since Devotion batch DV3 (the engine's shapes): `Player.faithSpent`
+    // joins the state, four Devotion cards and the shared The Rising Nave are
+    // dealt, and The Creed counts gods. So a v179 log's Devotion and
+    // Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(180);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

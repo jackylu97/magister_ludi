@@ -540,7 +540,11 @@ describe('determinism', () => {
     // 179 since Magisterial batch MG2 (the data-only cards of Tiers 0 and
     // I): fourteen Magisterial cards are dealt. So a v178 log's Magisterial
     // hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(179);
+    // 180 since Devotion batch DV3 (the engine's shapes): `Player.faithSpent`
+    // joins the state, four Devotion cards and the shared The Rising Nave are
+    // dealt, and The Creed counts gods. So a v179 log's Devotion and
+    // Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(180);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

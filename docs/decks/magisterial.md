@@ -29,7 +29,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 3 | 0 | 14 | 17 |
 | Tier IV | 0 | 2 | 10 | 12 |
 | **All** | **26** | **3** | **42** | **71** |
-| Shared | 15 | 3 | 1 | 19 |
+| Shared | 16 | 3 | 0 | 19 |
 
 **By type** (the chair a card fits):
 
@@ -179,7 +179,7 @@ These rows live in `data/decks/common.json`. A seat holding Magisterial or the d
 - **Retired in batch MG1:** The Imperial Examinations and Triumphal Arches, both shared with Dominion. Both sheets cut them.
 - **Changed by other batches:** Commerce batch T1 moved The Brokers' Redraw to the shared file and Travelling Players to Tier II. Batch R1 (2026-10-25) changed The Art Dealers to +3 gold for each card seated in your government.
 - **Moved in Devotion batch DV1** (`docs/plans/devotion-themes-triage.md`): The Painted Chapels, The Festival Calendar and The Penitents' Roll came here from the Devotion file, with their ids, texts, tiers and rarities, and are typed Civic. Sacred Commissions moved from Tier I to Tier II, because it pays only in a town with a holy site.
-- **Who builds what:** this plan builds Travelling Players' new text (batch MG4) and Sacred Patronage (batch MG8). The Devotion build plan (`docs/plans/devotion-themes-triage.md`) builds The Rising Nave (batch DV3). Whichever batch changes a shared row changes it on every sorted sheet that lists it, in the same batch (the triage's reading 47).
+- **Who builds what:** this plan builds Travelling Players' new text (batch MG4) and Sacred Patronage (batch MG8). The Devotion build plan (`docs/plans/devotion-themes-triage.md`) built The Rising Nave in batch DV3. It pays while the front row of a town's queue is a Cathedral or a wonder, the Magnum Opus included (that plan's reading 18). Whichever batch changes a shared row changes it on every sorted sheet that lists it, in the same batch (the triage's reading 47).
 - **Each pair's early shared card:** Scientific, Illuminated Treatises (Tier 0); Dominion, The Sword of State (Tier I); Expansionist, Garden Cities (Tier I); Commerce, The Art Dealers (Tier I); Devotion, The Painted Chapels (Tier I).
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
@@ -202,7 +202,7 @@ These rows live in `data/decks/common.json`. A seat holding Magisterial or the d
 | **Sacred Patronage** | rare | Devotion | III | modify: deferred | Faith may purchase great-person drafts at the escalating conversion price. Spending a great person grants 30 faith, at most once per turn. | Civic |
 | **The House of Wisdom** | uncommon | Scientific | III | implemented | Worked Academies gain +3 culture. Cities working an Academy gain +1 renown and +30% production toward wonders. Each city receives the city bonus once. | Civic |
 | **The New Code** | rare | Dominion | III | implemented | Capturing a city opens a draft at once, at no culture cost. This can happen at most once every ten turns. | Wildcard |
-| **The Rising Nave** | rare | Devotion | III | add | While a city is building a Cathedral or a wonder, it gains +1 faith and +1 culture for every 10% of the work already done. | Civic |
+| **The Rising Nave** | rare | Devotion | III | implemented | While a city is building a Cathedral or a wonder, it gains +1 faith and +1 culture for every 10% of the work already done. | Civic |
 
 - **Travelling Players** takes its new text in batch MG4. Until then the game pays +2 culture on each such route.
 - **The Brokers' Redraw** plays as built: the rule is live, but no button offers the gold redraw yet.

@@ -876,6 +876,13 @@ export type CityScope =
        * quietly widening.
        */
       empireBuilding?: true;
+      /**
+       * And the row at the front is this one building (Devotion batch DV3, the
+       * shared The Rising Nave's Cathedral and Magnum Opus). The empire
+       * condition of the same name carries the same field. Absent admits any
+       * row of the category.
+       */
+      building?: BuildingId;
     }
   /**
    * The town has **at least this many things lined up to build** — The Vizier's
@@ -3337,15 +3344,37 @@ export type CountKind =
    */
   | 'techGap'
   /**
-   * The beliefs of the religions this empire is paid by (`heldReligions`):
-   * pantheon, follower and enhancer together — The Creed.
+   * The gods and beliefs this empire holds (The Creed). Since Devotion batch
+   * DV3 (the triage's reading 16) it counts the empire's own gods
+   * (`Player.pantheon.beliefs`), and the follower and enhancer beliefs of the
+   * religions it is paid by (`heldReligions`). So two gods count before a
+   * religion is founded. A captured holy city adds its religion's follower and
+   * enhancer beliefs, and not the gods of the empire that founded it.
    */
   | 'beliefsHeld'
   /**
    * Turns since the oldest religion this empire is paid by was founded —
    * The Apostolic Succession. Zero for an empire paid by none.
    */
-  | 'turnsSinceFounded';
+  | 'turnsSinceFounded'
+  /**
+   * **The faith this empire has spent this game** (Devotion batch DV3, The
+   * Book of Life; the triage's reading 13). Read off `Player.faithSpent`, a
+   * record that `spendFaith` (`state.ts`) raises wherever faith leaves the
+   * bank: purchases, contributions to a build, rites, rerolls, the gods the
+   * ladder buys and great-person drafts bought with faith. It is
+   * `goldSpent`'s twin for the other bank. Nothing lowers it.
+   */
+  | 'faithSpent'
+  /**
+   * **How far the town's current build has come, in tenths** (Devotion batch
+   * DV3, the shared The Rising Nave; the triage's reading 18). The hammers in
+   * the town's basket against the cost of the front row of its queue, times
+   * ten, rounded down, and at most ten. A town with an empty queue, or a
+   * project at the front, counts nothing. It is asked only of a town, so it is
+   * on `CITY_SCOPED_COUNTS`.
+   */
+  | 'frontRowTenths';
 
 /**
  * **The ledgers of what an empire did first.** Each is one `GameState.firsts`
@@ -4331,7 +4360,9 @@ export type ActionRuleId =
   | 'faithBuysUnits'
   /**
    * Faith may buy **ordinary buildings** (never a wonder), in the towns the
-   * row's `scope` admits — The Lay Brothers, The Offered Stones.
+   * row's `scope` admits — The Lay Brothers, The Offered Stones. A row with a
+   * `buildingCategory` opens only the buildings of that category (The Gifts of
+   * the Faithful's religious buildings, Devotion batch DV3).
    */
   | 'faithBuysBuildings'
   /**
@@ -8015,6 +8046,18 @@ export interface CardRuleEffect {
    * nothing. Meaningless on every other member.
    */
   credit?: number;
+  /**
+   * **Which category of building the rule opens** (Devotion batch DV3, The
+   * Gifts of the Faithful: "religious buildings may be bought with faith").
+   * Read only by `faithBuysBuildings`, through `cardActionRuleAt` with the
+   * building in hand. A row with a category opens only the buildings of that
+   * category (`BuildingDef.category`), and a caller that names no building
+   * gets no answer from it. Absent, the rule opens every ordinary building,
+   * which is what every row written before it meant. Wonders keep their own
+   * rules, because `faithBankOpen` asks about a wonder first. Meaningless on
+   * every other member.
+   */
+  buildingCategory?: BuildingCategory;
 }
 
 /**
@@ -8058,6 +8101,14 @@ export interface CardCityStatEffect {
   per?: number;
   /** The most helpings that ever pay. */
   max?: number;
+  /**
+   * **Which category of building a counted line counts** (Devotion batch DV3,
+   * The Sacred Precincts: "+3 defence for every religious building"). Handed
+   * to the count as `CardPaysEffect.category`, so `buildingsOfCategory` counts
+   * the town's buildings of that category, as The Painted Chapels counts them
+   * (the triage's reading 17). Meaningless without a count that reads it.
+   */
+  category?: BuildingCategory;
 }
 
 /** A rule of Statecraft itself. See `MetaRuleId`. */
@@ -8659,6 +8710,17 @@ export interface CardPurchaseRiderEffect {
    * reaches every building, which is what every row written before it meant.
    */
   empireBuilding?: boolean;
+  /**
+   * **Which bank the price is paid from** (Devotion batch DV3, The Offering
+   * Chests: "military units bought with faith cost 30% less"; the triage's
+   * reading 15). A row with a currency changes only a price asked in that
+   * bank, so a soldier bought with gold pays in full. Read where the riders
+   * are gathered (`cardPurchaseRiders`, asked by `applyRiders` in
+   * `purchase.ts`), and a caller that names no bank drops the row. Absent, the
+   * rider reaches both banks, which is what every row written before it meant.
+   * It still sums with the other riders before the price changes once.
+   */
+  currency?: 'gold' | 'faith';
 }
 
 /**
