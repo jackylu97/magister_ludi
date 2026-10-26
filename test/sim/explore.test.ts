@@ -1172,10 +1172,18 @@ describe('determinism', () => {
    * wonder, so no hex is claimed, no line is asked and no refund is paid.
    * Checked with the change in place and the version printed as 191, which
    * gives the hashes of Magisterial batch MG8 exactly.
+   *
+   * **Magisterial batch MG10 (the light capstones, schema 193) moved the
+   * hash and not the length** at both seeds: 192 became 193, and that is
+   * all. The batch adds a rider filter for a hand that cost culture, keeps a
+   * hex line's multipliers on an amplifier's share of it, and adds three
+   * card rows. Nobody here drafts or holds a card, so no rider is asked and
+   * no hex line is raised. Checked with the change in place and the version
+   * printed as 192, which gives the hashes of Magisterial batch MG9 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '9afba7bb:188976',
-    2026: '20ce2f7e:188554',
+    11: '322b1684:188976',
+    2026: '0165b7dd:188554',
   };
 
   for (const seed of [11, 2026]) {

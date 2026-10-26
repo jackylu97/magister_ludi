@@ -116,7 +116,11 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
     tile tests are new: `river`, `wonderTown` and `surfaced` (the empire that
     struck a seam, `Tile.surfacedBy`).
   - An Order amplifier with a tile test (`CardYieldAmplifierEffect.on`, The Age
-    of Improvement) raises the Orders' hex lines on those hexes only.
+    of Improvement) raises the Orders' hex lines on those hexes only. Since
+    Magisterial batch MG10 an amplifier's share of a hex line keeps the line's
+    own multipliers (`hexMultipliers`), so a line paid for each neighbour that
+    passes a test is raised for each such neighbour (The Divine Proportion on
+    The Siting Masters).
 - **The works a seated card opens** (Expansionist batch E4).
   - A row marked `unlockedByCard` is open to a seat's workers while a seated
     card names it (`unlocksImprovement`, read by `cardUnlocksImprovement`). A
@@ -588,6 +592,9 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
     `bankTowardTech`), or open a free Order draft (`freeDraft`,
     `openFreeDraft`) that moves neither the draft count nor the culture. A
     rider can fire at most once in a number of turns (`oncePerTurns`).
+    Since Magisterial batch MG10 a rider can fire only when the Order hand on
+    the moment cost culture (`paidHand`, read off the `handPrice` fact; The
+    Second Sitting).
 - **Economy rules and Double Time** (Dominion batch D7):
   - **The surplus moved** is step 14 of a town's yields (`explainSurplusMoved`,
     `yields/town.ts`): a card may move the town's food surplus, as the growth

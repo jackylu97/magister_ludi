@@ -2230,8 +2230,12 @@ describe('the marginal draft reading', () => {
     // yields already carry (The Silk Road's loans are read the same way).
     // Twenty-four since Magisterial batch MG3 wrote The Privy Council, whose
     // amplifier adds +1 to every other Order's line that pays production: a
-    // share of what the Orders already pay.
-    expect(engines).toBe(24);
+    // share of what the Orders already pay. Twenty-five since Magisterial batch
+    // MG10 wrote The Divine Proportion, whose amplifier doubles what the other
+    // Orders already pay on great-person works. The Grand Vizier, written in
+    // the same batch, is not one of them: the chair reader is priced by the
+    // walk, as the card in that chair over again.
+    expect(engines).toBe(25);
     // Batch F named The Exchequer the deck's clearest trade payoff and the one
     // the bot most under-priced — `effectAmplifier` fell to `score.unknownEffect`,
     // six points for doubling every caravan in the realm. It is read by the books

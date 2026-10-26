@@ -1816,7 +1816,11 @@ describe('research in the log', () => {
     // town with wonders and worked works, a lost wonder race may move its
     // hammers on, and four Magisterial cards are dealt. So a v191 log's
     // Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(192);
+    // 193 since Magisterial batch MG10 (the light capstones): a rider may pay
+    // only for an Order hand that cost culture, an amplifier's share of a hex
+    // line keeps the line's per-neighbour count, and three Magisterial cards
+    // are dealt. So a v192 log's Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(193);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

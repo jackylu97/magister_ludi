@@ -2090,6 +2090,14 @@ function describeEffect(
       // The Last Commission (Magisterial batch MG8): the rider pays only while
       // a town of yours builds the Magnum Opus.
       if (effect.whileRaisingOpus === true) narrowings.push('only while you are building the Magnum Opus');
+      // The Second Sitting (Magisterial batch MG10): the rider pays only for
+      // a hand you paid culture for. Said inside the occasion's own phrase
+      // where the moment has a hand, and in the parenthesis otherwise.
+      const paidSaid =
+        effect.paidHand === true ? PAID_HAND_OCCASION_WORDS[effect.occasion] : undefined;
+      if (effect.paidHand === true && paidSaid === undefined) {
+        narrowings.push('only for a hand you paid culture for');
+      }
       // Land Speculation (Commerce batch T5): the tile test on the hex the
       // moment names. Said inside the occasion's own phrase where it has a
       // hex ("buying a hex carrying a resource"), and in the parenthesis
@@ -2104,6 +2112,7 @@ function describeEffect(
       // occasion silent rather than wrong.
       const occasionSaid =
         firstSaid ??
+        paidSaid ??
         occasionWords(
           effect.occasion,
           effect.vsBarbarians === true,
@@ -5868,6 +5877,17 @@ const FIRST_OCCASION_WORDS: Partial<Record<WindfallOccasion, Partial<Record<Firs
  */
 const ON_HEX_OCCASION_WORDS: Partial<Record<WindfallOccasion, Partial<Record<TileCondition['test'], string>>>> = {
   improvementBuilt: { greatWork: 'a great person laying a work' },
+};
+
+/**
+ * The two draft moments, said for a hand that cost culture (Magisterial batch
+ * MG10, The Second Sitting: the rider's `paidHand` filter). The narrowing goes
+ * inside the occasion's own phrase, as a family or a first does. A moment
+ * missing here names no hand, so the filter is said in the parenthesis.
+ */
+const PAID_HAND_OCCASION_WORDS: Partial<Record<WindfallOccasion, string>> = {
+  draftPassed: 'passing an Order draft you paid culture for',
+  cardDrafted: 'drafting a card from a hand you paid culture for',
 };
 
 /**

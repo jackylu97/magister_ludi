@@ -7829,6 +7829,15 @@ export interface CardWindfallRiderEffect {
    * it pays nothing at all in that case.
    */
   whileRaisingOpus?: true;
+  /**
+   * **The rider fires only when the Order hand on the moment cost culture**
+   * (Magisterial batch MG10, The Second Sitting; the triage's reading 16).
+   * Read off `WindfallOccasionFacts.handPrice`, the culture the seat paid for
+   * the hand (Magisterial batch MG5), which the `cardDrafted` and
+   * `draftPassed` moments carry. A free hand has no price, so it never pays.
+   * A moment that names no hand never pays it either.
+   */
+  paidHand?: true;
 }
 
 /**

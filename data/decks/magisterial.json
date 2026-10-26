@@ -3072,6 +3072,49 @@
         ]
       },
       "note": "A wonder you captured counts, and the Magnum Opus is not a wonder. A great-person work counts when one of the city's citizens works it, whoever laid it. If more than one city meets the goal, the oldest of them gains the bonus."
+    },
+    "theGrandVizier": {
+      "name": "The Grand Vizier",
+      "decks": ["magisterial"],
+      "band": 2,
+      "rarity": "rare",
+      "type": "wildcard",
+      "line": "none",
+      "flavor": "The vizier kept the sultan's seal, and every order of state passed through the vizier's hands first.",
+      "text": "The card in your first Economic chair pays its yields twice.",
+      "effects": [{ "kind": "slotPosition", "slot": "economic", "position": 1, "factor": 2 }],
+      "note": "While this card is seated, the council screen names each chair by its place, so you can see which Economic chair is first. Only the yields that card pays your cities and your empire count twice. Its bonuses on hexes, its percentages, the yields it pays as a share of another yield, and its rules do not. A loss of gold on that card counts twice too. If the chair is empty, or your government has no Economic chair, this card does nothing."
+    },
+    "theDivineProportion": {
+      "name": "The Divine Proportion",
+      "decks": ["magisterial"],
+      "band": 3,
+      "rarity": "rare",
+      "type": "wildcard",
+      "line": "none",
+      "flavor": "The builders used one ratio for the doors, the domes and the gardens, and everything they made looked right.",
+      "text": "The bonuses your cards give great-person works are doubled.",
+      "effects": [{ "kind": "cardYieldAmplifier", "yield": "all", "percent": 100, "on": { "test": "greatWork" } }],
+      "note": "Every card you have seated that adds a yield to a great-person work adds it twice, a partner deck's cards included. A bonus paid for each hex beside the work is doubled for each such hex. A bonus a city gains for working a work, a share of a work's own yield, a bonus that depends on the city working the hex, and a leader's bonus are not doubled."
+    },
+    "theSecondSitting": {
+      "name": "The Second Sitting",
+      "decks": ["magisterial"],
+      "band": 3,
+      "rarity": "rare",
+      "type": "wildcard",
+      "line": "none",
+      "flavor": "The council turned down every proposal, so the clerk called the members back that same afternoon.",
+      "text": "Each time you pass on an Order hand you paid culture for, you are dealt a free Order hand at once.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "draftPassed",
+          "paidHand": true,
+          "grant": { "freeDraft": true }
+        }
+      ],
+      "note": "Passing on a free hand deals nothing, because that hand cost no culture. A hand you reroll keeps the price of the hand it replaced. No hand is dealt while a Doctrine offer is waiting for your answer. The free hand does not raise the price of your next hand, and you keep the better odds the pass bought."
     }
   }
 }

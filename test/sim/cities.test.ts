@@ -3608,7 +3608,11 @@ describe('determinism with cities', () => {
     // town with wonders and worked works, a lost wonder race may move its
     // hammers on, and four Magisterial cards are dealt. So a v191 log's
     // Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(192);
+    // 193 since Magisterial batch MG10 (the light capstones): a rider may pay
+    // only for an Order hand that cost culture, an amplifier's share of a hex
+    // line keeps the line's per-neighbour count, and three Magisterial cards
+    // are dealt. So a v192 log's Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(193);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

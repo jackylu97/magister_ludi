@@ -446,6 +446,8 @@ The first six come from section 12. The rest are new. Each gives the reading the
 - **Schema:** one bump.
 - **Done-gate:** `npx vitest run test/sim/decks/magisterialCapstones.test.ts test/sim/statecraftDraftPass.test.ts test/sim/statecraft.test.ts test/sim/decks/magisterial.test.ts test/sim/decks.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`.
 
+- **Built (2026-10-26):** all three cards. The gate passed: the type check, 9,910 core tests and the build. Schema 193. The Grand Vizier is the first live `slotPosition` row, so the council screen now labels chairs by place while it is seated. The Divine Proportion was not data only: an amplifier's share of a hex line dropped the line's per-neighbour multipliers, so `hexMultipliers` is now shared by `tileLinesFrom` and `tileAmplifierLines`; as a result The Age of Improvement doubling Mining Districts now pays per two mines beside the hex, as the line does. The Second Sitting uses a new rider filter, `paidHand`. Registers: `ORDERS_USING_A_SHAPE` gains two rows, the bots' fold-read engines are 25, and `statecraftReveal.test.ts` lists The Grand Vizier. Not done: The Grand Vizier doubles a negative line too (The Guild of Masons' −2 gold becomes −4), as built; scoped hex lines are not doubled; the describer says "slot" where the sheets say "chair".
+
 ### MG11: Magnificence
 
 - **Builds:** culture as a bank of the purchase verb, for a world wonder at the front of a town's queue, under a rule, priced at the hammers still needed, paid from the draft pool, refused and priced through `purchaseError` and `explainPurchaseCost` as the other banks are (reading 36). The command accepts the new bank. The city panel's buy control shows the culture price.

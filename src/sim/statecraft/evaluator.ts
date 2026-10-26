@@ -5558,6 +5558,15 @@ export function cardTileLines(state: GameState, playerId: number): CardTileLine[
  *
  * The percentage variant is taken off the line's own printed figure and floored
  * per voice, exactly as it is in the ledger folds.
+ *
+ * **A share keeps the dressed line's multipliers** (Magisterial batch MG10, The
+ * Divine Proportion; the triage's reading 26). A line paid once for each
+ * answering neighbour (The Siting Masters, Mining Districts) or each peak
+ * beside the hex is raised by a share of what it pays on that hex, so the
+ * helping is counted the same way and keeps the same cap (`hexMultipliers`).
+ * A flat helping (`amount`, The Privy Council) is still paid once for each
+ * line on each hex. A row that carries both is pushed as two lines with one
+ * label, which the hex fold merges into one entry.
  */
 function tileAmplifierLines(
   state: GameState,
@@ -5595,15 +5604,24 @@ function tileAmplifierLines(
         culture: 0,
         faith: 0,
       };
+      // The flat helping, once for each line on each hex, and the share, which
+      // is counted as the dressed line is counted (see the docblock). Both are
+      // copies of the one literal, so both carry its card.
+      const flat: CardTileLine = { ...line };
+      const share = hexMultipliers({ ...line }, dressed.effect);
       let touched = false;
       for (const voice of VOICES) {
         if (effect.yield !== 'all' && effect.yield !== voice) continue;
         const paid = dressed.effect[voice] ?? 0;
         if (paid <= 0) continue;
         touched = true;
-        line[voice] += (effect.amount ?? 0) + (paid * (effect.percent ?? 0)) / 100;
+        flat[voice] += effect.amount ?? 0;
+        share[voice] += (paid * (effect.percent ?? 0)) / 100;
       }
-      if (touched && VOICES.some((voice) => line[voice] !== 0)) out.push(line);
+      if (!touched) continue;
+      for (const helping of [flat, share]) {
+        if (VOICES.some((voice) => helping[voice] !== 0)) out.push(helping);
+      }
     }
   }
   return out;
@@ -5709,6 +5727,36 @@ function hexRows<T extends { effect: CardPaysEffect }>(
   );
 }
 
+/**
+ * **The multipliers a hex `pays` row puts on its line**: once for each peak
+ * beside the hex (`perAdjacentMountain`), or once for each neighbour that
+ * passes a test (`perNeighbour`, with its cap and divisor). Carried, never
+ * resolved: the hex fold counts them (`explainTileYield`, `yields/hex.ts`).
+ *
+ * One helper, read by the two places that build a card's hex line: the row's
+ * own line (`tileLinesFrom`) and an amplifier's share of it
+ * (`tileAmplifierLines`, Magisterial batch MG10). So a share of a line paid
+ * per neighbour is paid per neighbour too. Returns the line it was given.
+ */
+function hexMultipliers(line: CardTileLine, effect: CardPaysEffect): CardTileLine {
+  // Carried, never resolved — see `TileLine.perAdjacentMountain`. Written only
+  // when the row says so, so every line the game has ever held serialises and
+  // compares exactly as it did before Pachacuti sat down.
+  if (effect.perAdjacentMountain === true) line.perAdjacentMountain = true;
+  // The ring's own multiplier, carried the same way and written only when the
+  // row says so, so every line the game has ever held still serialises and
+  // compares exactly as it did.
+  if (effect.perNeighbour !== undefined) {
+    line.perNeighbour = effect.perNeighbour;
+    if (effect.max !== undefined) line.perNeighbourMax = effect.max;
+    // The divisor, written only above one — `per: 1` is what every row
+    // written before this field meant, and a line carrying it would compare
+    // differently for saying the same thing.
+    if (effect.per !== undefined && effect.per > 1) line.perNeighbourPer = effect.per;
+  }
+  return line;
+}
+
 /** One list of hex `pays` effects turned into lines. The only such conversion. */
 function tileLinesFrom(
   found: readonly {
@@ -5741,21 +5789,7 @@ function tileLinesFrom(
     if (effect.wholePercent !== undefined && effect.wholePercent !== 0) {
       line.wholePercent = effect.wholePercent;
     }
-    // Carried, never resolved — see `TileLine.perAdjacentMountain`. Written only
-    // when the row says so, so every line the game has ever held serialises and
-    // compares exactly as it did before Pachacuti sat down.
-    if (effect.perAdjacentMountain === true) line.perAdjacentMountain = true;
-    // The ring's own multiplier, carried the same way and written only when the
-    // row says so, so every line the game has ever held still serialises and
-    // compares exactly as it did.
-    if (effect.perNeighbour !== undefined) {
-      line.perNeighbour = effect.perNeighbour;
-      if (effect.max !== undefined) line.perNeighbourMax = effect.max;
-      // The divisor, written only above one — `per: 1` is what every row
-      // written before this field meant, and a line carrying it would compare
-      // differently for saying the same thing.
-      if (effect.per !== undefined && effect.per > 1) line.perNeighbourPer = effect.per;
-    }
+    hexMultipliers(line, effect);
     if (
       VOICES.some((key) => line[key] !== 0) ||
       line.percent !== undefined ||
@@ -8478,7 +8512,8 @@ export interface WindfallOccasionFacts {
    * It is the hand's `OrderOffer.price`, read before the pick or the pass
    * removes the hand: `applyChooseOrder` hands it to `payCardDrafted`, and
    * `settleOrderSkip` reads it itself. Absent for a free hand, which cost
-   * nothing. Read by the `handPrice` measure.
+   * nothing. Read by the `handPrice` measure, and since Magisterial batch
+   * MG10 by a rider's `paidHand` filter (The Second Sitting).
    */
   handPrice?: number;
 }
@@ -8735,6 +8770,12 @@ export function windfallPayout(
     // Opus. Asked of the board now, through the reading a `toOpus` grant lands
     // by, so the rider never banks its production toward an Opus not begun.
     if (effect.whileRaisingOpus === true && opusCityOf(state, playerId) === null) return false;
+    // The Second Sitting (Magisterial batch MG10, the triage's reading 16):
+    // the rider pays only for a hand the seat paid culture for. The price is
+    // the moment's own fact (`handPrice`), read before the pick or the pass
+    // removed the hand. A free hand carries none, so passing it pays nothing,
+    // and a moment that names no hand never pays this rider.
+    if (effect.paidHand === true && !((facts.handPrice ?? 0) > 0)) return false;
     return true;
   };
   // **The occasion's own figure, folded first.** The percentages sum and apply

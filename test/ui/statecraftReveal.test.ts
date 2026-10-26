@@ -248,6 +248,10 @@ describe('the offices are ordered, and the word says which', () => {
       'theFirstChair',
       'theWildChair',
       'theCompactOfChairs',
+      // Magisterial batch MG10: The Grand Vizier pays the card in the first
+      // Economic chair twice, the first live chair-reader. Seated, it opens the
+      // word, so the player can see which Economic chair is first.
+      'theGrandVizier',
     ]);
   });
 

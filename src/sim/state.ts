@@ -2938,8 +2938,28 @@ import {
  * **A v191 save is refused and does not replay.** A Magisterial seat's pools
  * hold more cards. The branch migrates nothing, for the reason given under
  * v119.
+ *
+ * v193 (branch `decks`; Magisterial batch MG10, `docs/plans/magisterial-
+ * themes-triage.md`): **the light capstones.** No field joins the state. The
+ * rules that change:
+ *
+ *   · one rider filter is new, `paidHand`: the rider pays only when the Order
+ *     hand on the moment cost culture, read off the moment's `handPrice`
+ *     fact. A free hand has no price, so passing it pays nothing (the
+ *     triage's reading 16);
+ *   · an amplifier's share of a card's hex line keeps the line's own
+ *     multipliers (`hexMultipliers`): a line paid for each neighbour that
+ *     passes a test, or for each peak beside the hex, is raised by the same
+ *     count and cap. Before, the share was paid once on the hex (reading 26);
+ *   · three Magisterial cards are new and dealt: The Grand Vizier (Tier II),
+ *     the first live row of `slotPosition`, and The Divine Proportion and
+ *     The Second Sitting (Tier III).
+ *
+ * **A v192 save is refused and does not replay.** A Magisterial seat's pools
+ * hold more cards. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 192;
+export const SCHEMA_VERSION = 193;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

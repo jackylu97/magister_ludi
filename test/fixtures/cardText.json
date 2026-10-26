@@ -9229,6 +9229,24 @@
     "text": "then this card leaves its chair and is never seated again"
    }
   ],
+  "theGrandVizier": [
+   {
+    "raw": "the Order in your first economic slot pays twice",
+    "text": "the Order in your first economic slot pays twice"
+   }
+  ],
+  "theDivineProportion": [
+   {
+    "raw": "what your other Orders pay on hexes carrying a great person's work is +100% more",
+    "text": "what your other Orders pay on hexes carrying a great person's work is +100% more"
+   }
+  ],
+  "theSecondSitting": [
+   {
+    "raw": "passing an Order draft you paid culture for opens an Order draft at once, at no culture cost",
+    "text": "passing an Order draft you paid culture for opens an Order draft at once, at no culture cost"
+   }
+  ],
   "frontierGarrisons": [
    {
     "raw": "+2 food in every city with a unit standing in it of 5 or fewer citizens",

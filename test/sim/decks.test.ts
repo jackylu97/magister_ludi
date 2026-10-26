@@ -628,8 +628,11 @@ describe('the schema, as landed', () => {
     // **And Magisterial batch MG9** (works on the land, and the wonder towns):
     // four more. The Landmark Bounds, The Custodians, The Envious Eye and
     // Commission: The Ideal City are new Magisterial rows.
-    expect(live).toBe(604);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(604);
+    // **And Magisterial batch MG10** (the light capstones): three more. The
+    // Grand Vizier, The Divine Proportion and The Second Sitting are new
+    // Magisterial rows.
+    expect(live).toBe(607);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(607);
   });
 
   /**
@@ -1035,7 +1038,11 @@ describe('the schema, as landed', () => {
     // town with wonders and worked works, a lost wonder race may move its
     // hammers on, and four Magisterial cards are dealt. So a v191 log's
     // Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(192);
+    // 193 since Magisterial batch MG10 (the light capstones): a rider may pay
+    // only for an Order hand that cost culture, an amplifier's share of a hex
+    // line keeps the line's per-neighbour count, and three Magisterial cards
+    // are dealt. So a v192 log's Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(193);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

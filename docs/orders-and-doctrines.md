@@ -740,6 +740,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Commission: The Patron's Gallery | 2 | ◆ | S | Commission. Have great-person works of three different families in your borders. Then gain a free great-person draft and 200 culture. The card leaves its chair. |
 | The Custodians | 2 | ● | S | Your units standing on a great-person work gain +4 strength. |
 | The Envious Eye | 2 | ◆ | S | When a rival completes a wonder you were building, the production you put into it moves to the next item in that town's queue. |
+| The Grand Vizier | 2 | ○ | E | The card in your first Economic chair pays its yields twice. |
 | The Living Canon | 3 | ○ | P | Your cities gain +4% food and +4% production per distinct great-person family whose legacy you currently hold, at most +20% each. |
 | The Wonder Commonwealth | 3 | ○ | P | Cities containing a wonder gain +38% production and +38% food. Your cities without a wonder gain +15% culture instead. |
 | The Boule | 3 | ◆ | E | +2% science and culture for each card you have seated. |
@@ -749,6 +750,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Officials by Merit | 3 | ○ | S | Order hands deal two extra cards. You cannot reroll Order hands. |
 | The Pandects | 3 | ◆ | P | +5% science and production for each Doctrine you hold. |
 | Commission: The Golden Bull | 3 | ◆ | S | Commission. Have every Military, Economic and Civic chair hold a card of its own type. Then you are offered a Doctrine of your government's tier. The card leaves its chair. |
+| The Divine Proportion | 3 | ○ | E | The bonuses your cards give great-person works are doubled. |
+| The Second Sitting | 3 | ○ | S | Each time you pass on an Order hand you paid culture for, you are dealt a free Order hand at once. |
 | The Privy Council | 4 | ○ | E | Each of your cards that pays production pays +1 more production wherever it pays it. |
 | The Magister's Court | 4 | ◆ | S | Cities containing a wonder gain +25% production toward the Magnum Opus. |
 | The Bulwark of Marvels | 4 | ◆ | S | The town building your Magnum Opus gains +4 defence for each wonder you hold. |
@@ -976,6 +979,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Custodians** — Your units gain it when they attack and when they defend. Any great-person work counts, whoever owns it.
 - **The Envious Eye** — It counts wherever the wonder stood in the queue. If the production covers the next item, that item is finished at once. A city with nothing else in its queue gets gold back, as it would without this card.
 - **Commission: The Ideal City** — A wonder you captured counts, and the Magnum Opus is not a wonder. A great-person work counts when one of the city's citizens works it, whoever laid it. If more than one city meets the goal, the oldest of them gains the bonus.
+- **The Grand Vizier** — While this card is seated, the council screen names each chair by its place, so you can see which Economic chair is first. Only the yields that card pays your cities and your empire count twice. Its bonuses on hexes, its percentages, the yields it pays as a share of another yield, and its rules do not. A loss of gold on that card counts twice too. If the chair is empty, or your government has no Economic chair, this card does nothing.
+- **The Divine Proportion** — Every card you have seated that adds a yield to a great-person work adds it twice, a partner deck's cards included. A bonus paid for each hex beside the work is doubled for each such hex. A bonus a city gains for working a work, a share of a work's own yield, a bonus that depends on the city working the hex, and a leader's bonus are not doubled.
+- **The Second Sitting** — Passing on a free hand deals nothing, because that hand cost no culture. A hand you reroll keeps the price of the hand it replaced. No hand is dealt while a Doctrine offer is waiting for your answer. The free hand does not raise the price of your next hand, and you keep the better odds the pass bought.
 - **Letters of Marque** — The coin is for a kill made by one of your ships, wherever it happens. The extra gold and the slower shipyards both belong to the cities that have a Harbour.
 - **The Sacred Host** — A soldier bought with faith costs what it would cost to build, converted at the faith rate.
 - **Pilgrim Markets** — The first card to pay a trade route in faith; nothing carried it before this one asked. The test is a disjunction, so one shrine is enough and two are not more — a road with a holy site at each end is paid once, which is the card's second sentence. The site is the prophet's work on the ground, anywhere inside either town's borders, and nobody has to be working the hex.
