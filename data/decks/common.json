@@ -295,7 +295,8 @@
           },
           "family": "scholar"
         }
-      ]
+      ],
+      "retired": true
     },
     "examinationsOfState": {
       "name": "Examinations of State",
@@ -797,6 +798,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "economic",
       "flavor": "The masons were paid in indulgence and stone.",
       "text": "Cities with a Holy Site gain +38% production toward wonders. Completing a wonder grants 60 faith.",
       "effects": [
@@ -820,6 +822,7 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
+      "type": "civic",
       "flavor": "Genius is cheap where the faithful are many.",
       "text": "Faith may purchase great-person drafts at the escalating conversion price. Spending a great person grants 30 faith, at most once per turn.",
       "deferred": ["spending a great person pays faith, but never more than once in a turn"],
@@ -944,7 +947,8 @@
       "deferred": [
         "taking a town raises the name of a general in particular. A town that holds a wonder can be told from one that does not now, but the renown an occasion pays favours nobody in particular — a deed is not a shelf of buildings, and the draw's bias is a fact about what an empire keeps."
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "theCrusaderOrders": {
       "name": "The Crusader Orders",

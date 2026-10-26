@@ -496,7 +496,11 @@ describe("the bead catalogue", () => {
     // go into debt under a credit line, a turn's end is a tally moment, a
     // bought unit may carry an upkeep waiver, and four more cards are dealt.
     // So a v174 log's Commerce hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(175);
+    // 177 since Magisterial batch MG1 (the sheet of record): the deck's
+    // rows carry types, 64 rows are retired and four cards change in
+    // place. So a v175 log's Magisterial hands hold different cards. The
+    // Devotion build plan takes 176.
+    expect(SCHEMA_VERSION).toBe(177);
   });
 
   it("puts the world clock after renown and the wager after it, with no bead phase left", () => {

@@ -8041,12 +8041,12 @@
   ],
   "civicGranaries": [
    {
-    "raw": "+2 food in every city per [[building:monument|Monument]] there",
-    "text": "+2 food in every city per Monument there"
+    "raw": "+1 food in every city per [[building:monument|Monument]] there",
+    "text": "+1 food in every city per Monument there"
    },
    {
-    "raw": "+2 production in every city per [[building:monument|Monument]] there",
-    "text": "+2 production in every city per Monument there"
+    "raw": "+1 production in every city per [[building:monument|Monument]] there",
+    "text": "+1 production in every city per Monument there"
    }
   ],
   "theCivicAccounts": [
@@ -8609,8 +8609,8 @@
   ],
   "theGoldenAge": [
    {
-    "raw": "Finishing a marvel gives the whole realm a decade of plenty, and a second marvel begins the decade again rather than doubling it. A blessing hung on the realm at a moment is hung a second time beside the first, so two would pay twice over instead of lasting longer. — not built yet",
-    "text": "Finishing a marvel gives the whole realm a decade of plenty, and a second marvel begins the decade again rather than doubling it. A blessing hung on the realm at a moment is hung a second time beside the first, so two would pay twice over instead of lasting longer. — not built yet",
+    "raw": "completing a wonder gives your towns more production and culture for a time, and a later wonder starts that time again — not built yet",
+    "text": "completing a wonder gives your towns more production and culture for a time, and a later wonder starts that time again — not built yet",
     "deferred": true
    }
   ],
@@ -8671,19 +8671,15 @@
   ],
   "magisterialTheMagistersCourt": [
    {
-    "raw": "Towns holding a wonder press on faster with the Great Work and with cathedrals. A bonus on building can name one row or one category, never two rows at once. — not built yet",
-    "text": "Towns holding a wonder press on faster with the Great Work and with cathedrals. A bonus on building can name one row or one category, never two rows at once. — not built yet",
+    "raw": "towns that hold a wonder build the Magnum Opus faster — not built yet",
+    "text": "towns that hold a wonder build the Magnum Opus faster — not built yet",
     "deferred": true
    }
   ],
   "theMastersDomain": [
    {
-    "raw": "+12 food, +12 production on every hex carrying a great person's work",
-    "text": "+12 food, +12 production on every hex carrying a great person's work"
-   },
-   {
-    "raw": "+30% gold in every city working a great person's work",
-    "text": "+30% gold in every city working a great person's work"
+    "raw": "+3 food, +3 production on every hex carrying a great person's work",
+    "text": "+3 food, +3 production on every hex carrying a great person's work"
    }
   ],
   "theGreatChancery": [
@@ -8710,12 +8706,12 @@
   ],
   "theHonouredDead": [
    {
-    "raw": "+6 science in your capital per great person you have spent (at most +90 science), counted while this Order stands in a slot",
-    "text": "+6 science in your capital per great person you have spent (at most +90 science), counted while this Order stands in a slot"
+    "raw": "+2 science in your capital per great person you have spent (at most +30 science), counted while this Order stands in a slot",
+    "text": "+2 science in your capital per great person you have spent (at most +30 science), counted while this Order stands in a slot"
    },
    {
-    "raw": "+12 production in your capital per great person you have spent (at most +180 production), counted while this Order stands in a slot",
-    "text": "+12 production in your capital per great person you have spent (at most +180 production), counted while this Order stands in a slot"
+    "raw": "+4 production in your capital per great person you have spent (at most +60 production), counted while this Order stands in a slot",
+    "text": "+4 production in your capital per great person you have spent (at most +60 production), counted while this Order stands in a slot"
    }
   ],
   "thePageantsOfPeace": [
@@ -8726,12 +8722,12 @@
   ],
   "theLivingCanon": [
    {
-    "raw": "+8% food in every city with 3 or more culture buildings per kind of great person whose legacy you hold (at most +40% food)",
-    "text": "+8% food in every city with 3 or more culture buildings per kind of great person whose legacy you hold (at most +40% food)"
+    "raw": "+4% food in every city per kind of great person whose legacy you hold (at most +20% food)",
+    "text": "+4% food in every city per kind of great person whose legacy you hold (at most +20% food)"
    },
    {
-    "raw": "+8% production in every city with 3 or more culture buildings per kind of great person whose legacy you hold (at most +40% production)",
-    "text": "+8% production in every city with 3 or more culture buildings per kind of great person whose legacy you hold (at most +40% production)"
+    "raw": "+4% production in every city per kind of great person whose legacy you hold (at most +20% production)",
+    "text": "+4% production in every city per kind of great person whose legacy you hold (at most +20% production)"
    }
   ],
   "theUniversalCourt": [
@@ -8746,8 +8742,8 @@
   ],
   "theLastCommission": [
    {
-    "raw": "Spending a great person pours production into whichever town is building the Great Work. A windfall's supplies go to the nearest town to where the deed happened, and cannot be sent to the town that is building a named thing. — not built yet",
-    "text": "Spending a great person pours production into whichever town is building the Great Work. A windfall's supplies go to the nearest town to where the deed happened, and cannot be sent to the town that is building a named thing. — not built yet",
+    "raw": "spending a great person sends production to the town building your Magnum Opus, at most once a turn — not built yet",
+    "text": "spending a great person sends production to the town building your Magnum Opus, at most once a turn — not built yet",
     "deferred": true
    }
   ],

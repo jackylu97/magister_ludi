@@ -5,6 +5,7 @@
       "decks": ["magisterial"],
       "band": 0,
       "rarity": "common",
+      "type": "economic",
       "line": "none",
       "flavor": "A guild is a memory of how the last wall was raised.",
       "text": "Gain +25% production toward Monuments. Completing a culture building for the first time in a city grants 20 production there.",
@@ -29,16 +30,17 @@
       "decks": ["magisterial"],
       "band": 0,
       "rarity": "common",
+      "type": "economic",
       "line": "none",
       "flavor": "The stone that marks the square also shades the grain.",
-      "text": "Monuments give +2 food and +2 production.",
+      "text": "Monuments give +1 food and +1 production.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "food",
-          "amount": 2,
+          "amount": 1,
           "count": "buildingsOfKind",
           "building": "monument",
           "within": "city"
@@ -48,7 +50,7 @@
           "where": "city",
           "basis": "count",
           "to": "production",
-          "amount": 2,
+          "amount": 1,
           "count": "buildingsOfKind",
           "building": "monument",
           "within": "city"
@@ -84,7 +86,8 @@
           "building": "monument",
           "within": "city"
         }
-      ]
+      ],
+      "retired": true
     },
     "magisterialPatronage": {
       "name": "Patronage",
@@ -106,7 +109,8 @@
           "building": "monument",
           "within": "city"
         }
-      ]
+      ],
+      "retired": true
     },
     "theCivicGuard": {
       "name": "The Civic Guard",
@@ -120,7 +124,8 @@
         "Towns that keep a Monument are harder to storm.",
         "Soldiers defending beside such a town fight harder. A strength line can be told where the fight is happening — your ground, the hills, a town — but not which buildings stand in the town behind it."
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "festivalCommissions": {
       "name": "Festival Commissions",
@@ -132,13 +137,15 @@
       "text": "Natural growth in a city with a Monument grants 10 culture and 10 food there.",
       "deferred": ["a town that holds a monument is paid in song and bread each time it grows"],
       "effects": [],
-      "note": "Not built, on two counts, and both are small. What an occasion hands over is paid to the realm and cannot be told what stands in the town that grew — that is one narrowing on the rider, beside the several it already carries. And the design pays only for growth past a town's own greatest, which is one number on the town. Neither alone frees this row; together they free it and two others."
+      "note": "Not built, on two counts, and both are small. What an occasion hands over is paid to the realm and cannot be told what stands in the town that grew — that is one narrowing on the rider, beside the several it already carries. And the design pays only for growth past a town's own greatest, which is one number on the town. Neither alone frees this row; together they free it and two others.",
+      "retired": true
     },
     "theTempleOfTheMuses": {
       "name": "The Temple of the Muses",
       "decks": ["magisterial"],
       "band": 0,
       "rarity": "common",
+      "type": "civic",
       "line": "none",
       "flavor": "Nine sisters, and not one of them keeps accounts.",
       "text": "Culture buildings give +2 faith each.",
@@ -177,7 +184,8 @@
           "percent": 15,
           "scope": { "test": "workingImprovement", "improvements": ["quarry"] }
         }
-      ]
+      ],
+      "retired": true
     },
     "thePageantFields": {
       "name": "The Pageant Fields",
@@ -205,7 +213,8 @@
                      "atLeast": 3
                    }
         }
-      ]
+      ],
+      "retired": true
     },
     "hearthCeremonies": {
       "name": "Hearth Ceremonies",
@@ -229,7 +238,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "magisterialTheWonderFeasts": {
       "name": "The Wonder-Feasts",
@@ -252,7 +262,8 @@
           "per": "city",
           "scope": { "test": "queueHolds", "category": "wonder" }
         }
-      ]
+      ],
+      "retired": true
     },
     "theChronicleOfWorks": {
       "name": "The Chronicle of Works",
@@ -283,7 +294,8 @@
           "category": "culture",
           "max": 30
         }
-      ]
+      ],
+      "retired": true
     },
     "theCivicAnnals": {
       "name": "The Civic Annals",
@@ -297,7 +309,8 @@
         "the card keeps count of every time one of your towns that holds a monument grows, and pays a little more each turn for it"
       ],
       "effects": [],
-      "note": "Not built, on two counts, and the second is the harder. The design pays only for growth past a town's own greatest, which is one number on the town — but a counter is a number on a card and carries no subject at all, so it cannot be told to watch only the towns that hold a monument. Narrowing what a counter counts is a shape nothing else asks for yet."
+      "note": "Not built, on two counts, and the second is the harder. The design pays only for growth past a town's own greatest, which is one number on the town — but a counter is a number on a card and carries no subject at all, so it cannot be told to watch only the towns that hold a monument. Narrowing what a counter counts is a shape nothing else asks for yet.",
+      "retired": true
     },
     "theCivicNursery": {
       "name": "The Civic Nursery",
@@ -315,7 +328,8 @@
           "class": { "modelClasses": ["settler", "worker"], "consecrates": false },
           "scope": { "test": "hasBuilding", "building": "monument" }
         }
-      ]
+      ],
+      "retired": true
     },
     "publicBenefactors": {
       "name": "Public Benefactors",
@@ -329,7 +343,8 @@
         "buying a building in a town that holds a monument pays song in proportion to the coin that actually left the treasury, the first time that town acquires one of that kind"
       ],
       "effects": [],
-      "note": "Half built and therefore not built: a purchase now says what it cost and whether it was that town's first, but a windfall is paid to an empire and cannot be told what stands in the town where the money changed hands."
+      "note": "Half built and therefore not built: a purchase now says what it cost and whether it was that town's first, but a windfall is paid to an empire and cannot be told what stands in the town where the money changed hands.",
+      "retired": true
     },
     "theCourtStewards": {
       "name": "The Court Stewards",
@@ -374,7 +389,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theFoundingPageant": {
       "name": "The Founding Pageant",
@@ -398,7 +414,8 @@
           "class": { "modelClass": "settler" },
           "scope": { "test": "capital" }
         }
-      ]
+      ],
+      "retired": true
     },
     "theCapitalOfLetters": {
       "name": "The Capital of Letters",
@@ -442,7 +459,8 @@
           "class": { "category": "military" },
           "scope": { "test": "capital" }
         }
-      ]
+      ],
+      "retired": true
     },
 
     "theChancery": {
@@ -471,7 +489,8 @@
           "gold": 3,
           "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 2 }
         }
-      ]
+      ],
+      "retired": true
     },
     "theCivicStage": {
       "name": "The Civic Stage",
@@ -494,7 +513,8 @@
           "per": "city",
           "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 2 }
         }
-      ]
+      ],
+      "retired": true
     },
     "thePublicCopyists": {
       "name": "The Public Copyists",
@@ -518,7 +538,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theArtisanWages": {
       "name": "The Artisan Wages",
@@ -549,7 +570,8 @@
           "category": "culture",
           "within": "city"
         }
-      ]
+      ],
+      "retired": true
     },
     "provincialPatrons": {
       "name": "Provincial Patrons",
@@ -596,7 +618,8 @@
           },
           "culture": 3
         }
-      ]
+      ],
+      "retired": true
     },
     "theCitizensWatch": {
       "name": "The Citizens' Watch",
@@ -620,7 +643,8 @@
           "amount": 3,
           "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 2 }
         }
-      ]
+      ],
+      "retired": true
     },
     "theHarbourFestival": {
       "name": "The Harbour Festival",
@@ -663,7 +687,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "thePageantSchools": {
       "name": "The Pageant Schools",
@@ -687,7 +712,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theGrandFairs": {
       "name": "The Grand Fairs",
@@ -711,7 +737,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "magisterialTheGroundskeepers": {
       "name": "The Groundskeepers",
@@ -732,13 +759,15 @@
             "improvements": ["academy", "landmark", "manufactory", "customsHouse", "citadel"]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "magisterialTheLaureate": {
       "name": "The Laureate",
       "decks": ["magisterial"],
       "band": 1,
       "rarity": "uncommon",
+      "type": "civic",
       "line": "none",
       "flavor": "A wreath is cheap, and nobody has found anything better.",
       "text": "Cities working a great-person improvement gain +5 culture, +3 science and +1 renown, once per city.",
@@ -767,6 +796,7 @@
       "decks": ["magisterial"],
       "band": 1,
       "rarity": "uncommon",
+      "type": "economic",
       "line": "none",
       "flavor": "They will raise anything, and they will be paid on Fridays.",
       "text": "Gain +38% production toward wonders. Cities producing a wonder lose 2 gold per turn.",
@@ -807,7 +837,8 @@
           "percent": -20,
           "scope": { "test": "notCapital" }
         }
-      ]
+      ],
+      "retired": true
     },
     "thePatronsRoad": {
       "name": "The Patrons' Road",
@@ -845,7 +876,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theMasterWorkshops": {
       "name": "The Master Workshops",
@@ -870,7 +902,8 @@
           "first": "buildingInCity",
           "grant": { "yield": "gold", "amount": 30 }
         }
-      ]
+      ],
+      "retired": true
     },
     "theCommemorativeFeast": {
       "name": "The Commemorative Feast",
@@ -883,7 +916,8 @@
       "deferred": [
         "Spending a great person feeds and supplies the nearest town. The world announces the moment a great person is spent on a deed, and not the moment one is spent laying down a lasting work — so a card written on the spending would pay for half of the ways a person may be spent."
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "theLivingChronicle": {
       "name": "The Living Chronicle",
@@ -897,7 +931,8 @@
         "the card keeps count of the marvels you finish and the great ones you spend, and pays a little more each turn for both"
       ],
       "effects": [],
-      "note": "Not built: a card may count a marvel finished anywhere in the world and a great one spent, but not a marvel finished by you alone; and two counters cannot share one ceiling, so a card whose limit is on the pair of them cannot be written as a pair of lines."
+      "note": "Not built: a card may count a marvel finished anywhere in the world and a great one spent, but not a marvel finished by you alone; and two counters cannot share one ceiling, so a card whose limit is on the pair of them cannot be written as a pair of lines.",
+      "retired": true
     },
     "theCompleteCourt": {
       "name": "The Complete Court",
@@ -910,7 +945,8 @@
       "deferred": [
         "Your capital is paid for the breadth of what it has raised. The kinds of building a town holds can be counted now, but not with one of those kinds left out — and this card is paid for everything except its own."
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "theGreatPatrons": {
       "name": "The Great Patrons",
@@ -936,7 +972,8 @@
           },
           "percent": -20
         }
-      ]
+      ],
+      "retired": true
     },
     "theMusesCall": {
       "name": "The Muses' Call",
@@ -955,7 +992,8 @@
           "production": 5,
           "scope": { "test": "workingGreatWork" }
         }
-      ]
+      ],
+      "retired": true
     },
     "theArtisanCourt": {
       "name": "The Artisan Court",
@@ -984,13 +1022,15 @@
           },
           "percent": -25
         }
-      ]
+      ],
+      "retired": true
     },
     "theWorkingCourt": {
       "name": "The Working Court",
       "decks": ["magisterial"],
       "band": 1,
       "rarity": "rare",
+      "type": "economic",
       "line": "none",
       "flavor": "Applause is pleasant; the scaffolding it pays for is better.",
       "text": "Cities with a Monument gain production equal to 30% of their base culture, excluding conversion outputs.",
@@ -1051,7 +1091,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
 
     "theCourtArchives": {
@@ -1079,7 +1120,8 @@
           "gold": 8,
           "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 2 }
         }
-      ]
+      ],
+      "retired": true
     },
     "thePublicGallery": {
       "name": "The Public Gallery",
@@ -1102,7 +1144,8 @@
           "per": "city",
           "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 3 }
         }
-      ]
+      ],
+      "retired": true
     },
     "theMonumentalProvinces": {
       "name": "The Monumental Provinces",
@@ -1127,7 +1170,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theCivicFaith": {
       "name": "The Civic Faith",
@@ -1149,7 +1193,8 @@
           "within": "city"
         },
         { "kind": "happiness", "amount": 3, "per": "city", "scope": { "test": "hasWonder" } }
-      ]
+      ],
+      "retired": true
     },
     "theProvincialChancery": {
       "name": "The Provincial Chancery",
@@ -1197,7 +1242,8 @@
           },
           "science": 5
         }
-      ]
+      ],
+      "retired": true
     },
     "thePalaceGuard": {
       "name": "The Palace Guard",
@@ -1210,7 +1256,8 @@
       "deferred": [
         "Towns that keep several culture buildings raise soldiers faster and are defended harder. A strength line cannot be told which buildings stand in the town behind it."
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "theMaritimeGalleries": {
       "name": "The Maritime Galleries",
@@ -1247,7 +1294,8 @@
           "class": { "category": "naval" },
           "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 2 }
         }
-      ]
+      ],
+      "retired": true
     },
     "theProvincialStages": {
       "name": "The Provincial Stages",
@@ -1294,7 +1342,8 @@
           },
           "food": 5
         }
-      ]
+      ],
+      "retired": true
     },
     "magisterialTheMastersPresence": {
       "name": "The Master's Presence",
@@ -1317,7 +1366,8 @@
           "percent": 23,
           "scope": { "test": "workingGreatWork" }
         }
-      ]
+      ],
+      "retired": true
     },
     "theGrandTour": {
       "name": "The Grand Tour",
@@ -1336,13 +1386,15 @@
           "scope": { "test": "hasWonder" }
         },
         { "kind": "happiness", "amount": 2, "per": "city", "scope": { "test": "workingGreatWork" } }
-      ]
+      ],
+      "retired": true
     },
     "theLearnedPatron": {
       "name": "The Learned Patron",
       "decks": ["magisterial"],
       "band": 2,
       "rarity": "uncommon",
+      "type": "civic",
       "line": "none",
       "flavor": "He funds the study and reads only the dedication.",
       "text": "Cities with at least two culture buildings gain science equal to 15% of their base culture, at most +18 science per city. Conversion outputs are excluded.",
@@ -1381,7 +1433,8 @@
           "percent": 30,
           "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 2 }
         }
-      ]
+      ],
+      "retired": true
     },
     "theCivicHarvest": {
       "name": "The Civic Harvest",
@@ -1428,13 +1481,15 @@
                            ]
                    }
         }
-      ]
+      ],
+      "retired": true
     },
     "theSenateCharter": {
       "name": "The Senate Charter",
       "decks": ["magisterial"],
       "band": 2,
       "rarity": "uncommon",
+      "type": "civic",
       "line": "none",
       "flavor": "They meet where the government sits, and nowhere else will do.",
       "text": "Unlocks the capital-only Assembly Hall. A city with one gains +3 happiness and +30% production toward buildings.",
@@ -1480,7 +1535,8 @@
             "test": "workingGreatWork"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "thePatronsFleet": {
       "name": "The Patrons' Fleet",
@@ -1505,7 +1561,8 @@
                    }
         },
         { "kind": "unitStat", "stat": "movement", "amount": 1, "class": { "category": "naval" } }
-      ]
+      ],
+      "retired": true
     },
     "theCulturalEmbassies": {
       "name": "The Cultural Embassies",
@@ -1518,7 +1575,8 @@
       "deferred": [
         "Your capital is paid for each foreign realm you have met and are not fighting. Nothing counts the realms you have met, nor the ones you are at peace with — only the ones your caravans trade with."
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "theMonumentalCourt": {
       "name": "The Monumental Court",
@@ -1554,7 +1612,8 @@
             "test": "hasWonder"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theCivicCommonwealth": {
       "name": "The Civic Commonwealth",
@@ -1585,7 +1644,8 @@
             "atLeast": 3
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theGreatExhibition": {
       "name": "The Great Exhibition",
@@ -1599,20 +1659,23 @@
         "Great-person works pay half again as much as they were built to pay.",
         "Towns working several different kinds of such work earn more. The kinds a town works can be counted and paid for one at a time, but a town cannot yet be admitted for working several of them."
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "theGoldenAge": {
       "name": "The Golden Age",
       "decks": ["magisterial"],
       "band": 2,
       "rarity": "rare",
+      "type": "civic",
       "line": "none",
       "flavor": "Afterwards everyone agreed it had been one.",
-      "text": "Completing a wonder grants your cities +20% food, production, gold and culture for ten turns while this card remains active. Duration refreshes; magnitude does not stack.",
+      "text": "Completing a wonder gives your cities +20% production and culture for ten turns. A later wonder restarts the ten turns.",
       "deferred": [
-        "Finishing a marvel gives the whole realm a decade of plenty, and a second marvel begins the decade again rather than doubling it. A blessing hung on the realm at a moment is hung a second time beside the first, so two would pay twice over instead of lasting longer."
+        "completing a wonder gives your towns more production and culture for a time, and a later wonder starts that time again"
       ],
-      "effects": []
+      "effects": [],
+      "note": "Not dealt yet. Every rule this card needs exists, and it joins the deck with the next set of new Magisterial cards."
     },
 
     "theLaureateCities": {
@@ -1648,7 +1711,8 @@
                            ]
                    }
         }
-      ]
+      ],
+      "retired": true
     },
     "theNationalGalleries": {
       "name": "The National Galleries",
@@ -1685,7 +1749,8 @@
           "per": "city",
           "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 3 }
         }
-      ]
+      ],
+      "retired": true
     },
     "theProvincialAcademies": {
       "name": "The Provincial Academies",
@@ -1724,7 +1789,8 @@
                            ]
                    }
         }
-      ]
+      ],
+      "retired": true
     },
     "theCivicPantheon": {
       "name": "The Civic Pantheon",
@@ -1756,7 +1822,8 @@
           "count": "wonders",
           "within": "city"
         }
-      ]
+      ],
+      "retired": true
     },
     "magisterialTheSalon": {
       "name": "The Salon",
@@ -1769,42 +1836,40 @@
       "deferred": [
         "Culture buildings pay renown in towns whose citizens work a great person's lasting work. A trickle counted off a shelf of buildings is counted across the whole realm, and cannot be held to a class of town or to a ceiling in each one."
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "magisterialTheMagistersCourt": {
       "name": "The Magister's Court",
       "decks": ["magisterial"],
-      "band": 3,
+      "band": 4,
       "rarity": "uncommon",
+      "type": "economic",
       "line": "none",
       "flavor": "The last work is begun where the first one still stands.",
-      "text": "Cities containing a wonder gain +25% production toward the Magnum Opus and Cathedrals, once per city.",
+      "text": "Cities containing a wonder gain +25% production toward the Magnum Opus.",
       "deferred": [
-        "Towns holding a wonder press on faster with the Great Work and with cathedrals. A bonus on building can name one row or one category, never two rows at once."
+        "towns that hold a wonder build the Magnum Opus faster"
       ],
-      "effects": []
+      "effects": [],
+      "note": "Not dealt yet. Every rule this card needs exists, and it joins the deck with the next set of new Magisterial cards."
     },
     "theMastersDomain": {
       "name": "The Masters' Domain",
       "decks": ["magisterial"],
       "band": 3,
       "rarity": "uncommon",
+      "type": "economic",
       "line": "none",
       "flavor": "The estate outlived the man and kept his standards.",
-      "text": "Worked great-person improvements give +12 production and +12 food. Their cities gain +30% gold, once per city.",
+      "text": "Worked great-person works give +3 food and +3 production.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "food": 12,
-          "production": 12,
+          "food": 3,
+          "production": 3,
           "on": { "test": "greatWork" }
-        },
-        {
-          "kind": "percentYields",
-          "yield": "gold",
-          "percent": 30,
-          "scope": { "test": "workingGreatWork" }
         }
       ]
     },
@@ -1838,7 +1903,8 @@
             "atLeast": 3
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theImperialPageant": {
       "name": "The Imperial Pageant",
@@ -1852,23 +1918,25 @@
         "Soldiers defending near your marvels and your great people's works fight harder. A strength line can be told whose ground the fight is on, but not what stands two hexes away from it.",
         "Towns that keep several culture buildings raise soldiers faster."
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "theHonouredDead": {
       "name": "The Honoured Dead",
       "decks": ["magisterial"],
-      "band": 3,
+      "band": 2,
       "rarity": "uncommon",
+      "type": "civic",
       "line": "none",
       "flavor": "The tombs are in the capital because the capital insisted.",
-      "text": "Your capital gains +6 science and +12 production per distinct great person you have spent this game, at most +90 science and +180 production.",
+      "text": "While seated, this card gains +2 science and +4 production in your capital each time you spend a great person, up to +30 science and +60 production.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "science",
-          "amount": 6,
+          "amount": 2,
           "count": "tally",
           "tally": "greatPersonSpent",
           "max": 15,
@@ -1879,7 +1947,7 @@
           "where": "city",
           "basis": "count",
           "to": "production",
-          "amount": 12,
+          "amount": 4,
           "count": "tally",
           "tally": "greatPersonSpent",
           "max": 15,
@@ -1922,16 +1990,18 @@
                     }
                   ]
         }
-      ]
+      ],
+      "retired": true
     },
     "theLivingCanon": {
       "name": "The Living Canon",
       "decks": ["magisterial"],
       "band": 3,
       "rarity": "rare",
+      "type": "economic",
       "line": "none",
       "flavor": "The list of masters is revised by people who are not on it.",
-      "text": "Cities with at least three culture buildings gain +8% food and +8% production per distinct great-person family whose legacy you currently hold, at most +40% each.",
+      "text": "Your cities gain +4% food and +4% production per distinct great-person family whose legacy you currently hold, at most +20% each.",
       "effects": [
         {
           "kind": "pays",
@@ -1939,14 +2009,9 @@
           "basis": "count",
           "count": "legacyFamilies",
           "to": "food",
-          "percent": 8,
+          "percent": 4,
           "max": 5,
-          "stage": "city",
-          "scope": {
-            "test": "buildingsOfCategory",
-            "category": "culture",
-            "atLeast": 3
-          }
+          "stage": "city"
         },
         {
           "kind": "pays",
@@ -1954,14 +2019,9 @@
           "basis": "count",
           "count": "legacyFamilies",
           "to": "production",
-          "percent": 8,
+          "percent": 4,
           "max": 5,
-          "stage": "city",
-          "scope": {
-            "test": "buildingsOfCategory",
-            "category": "culture",
-            "atLeast": 3
-          }
+          "stage": "city"
         }
       ]
     },
@@ -1992,26 +2052,30 @@
           "percent": 38,
           "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 3 }
         }
-      ]
+      ],
+      "retired": true
     },
     "theLastCommission": {
       "name": "The Last Commission",
       "decks": ["magisterial"],
-      "band": 3,
+      "band": 4,
       "rarity": "rare",
+      "type": "economic",
       "line": "none",
       "flavor": "One more, the patron said, and meant it this time.",
       "text": "Spending a great person grants the city building your Magnum Opus 150 production, at most once per turn. No Opus under construction means no payout. Each person can pay once.",
       "deferred": [
-        "Spending a great person pours production into whichever town is building the Great Work. A windfall's supplies go to the nearest town to where the deed happened, and cannot be sent to the town that is building a named thing."
+        "spending a great person sends production to the town building your Magnum Opus, at most once a turn"
       ],
-      "effects": []
+      "effects": [],
+      "note": "Waiting on a new moment. The game does not yet mark the moment a great person is spent, and it cannot yet hold back the production when no town is building the Magnum Opus."
     },
     "theWonderCommonwealth": {
       "name": "The Wonder Commonwealth",
       "decks": ["magisterial"],
       "band": 3,
       "rarity": "rare",
+      "type": "economic",
       "line": "none",
       "flavor": "Some towns keep the marvels; the rest keep the memory.",
       "text": "Cities containing a wonder gain +38% production and +38% food. Your cities without a wonder gain +15% culture instead.",

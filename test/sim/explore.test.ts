@@ -1017,10 +1017,18 @@ describe('determinism', () => {
    * nobody buys on credit, and no unit is born with a waiver. Checked with
    * the change in place and the version printed as 174, which gives the
    * hashes of Commerce batch T5 exactly.
+   *
+   * **Magisterial batch MG1 (the sheet of record, schema 177) moved the hash
+   * and not the length** at both seeds: 175 became 177, and that is all. The
+   * batch changes only card rows: types, retirements and four cards in place.
+   * Nobody here drafts, so no seat holds a Magisterial card. Checked with the
+   * change in place and the version printed as 175, which gives the hashes of
+   * Commerce batch T6 exactly. The Devotion build plan takes 176, so whichever
+   * track merges second re-cuts these two hashes.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '48ab232c:188931',
-    2026: 'f0d568a1:188509',
+    11: '2034a322:188931',
+    2026: '69a4a3f3:188509',
   };
 
   for (const seed of [11, 2026]) {

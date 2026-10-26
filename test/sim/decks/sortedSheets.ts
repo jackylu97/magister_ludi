@@ -4,9 +4,10 @@
  * each card fits only a chair of its own type or a Wildcard chair.
  *
  * Dominion was sorted in batch C1, Expansionist in batch E0, Scientific in
- * batch S1b and Commerce in batch T1. A row may carry a type only if one of
- * these sheets lists it: a live or deferred row of a sorted deck's own file,
- * or a shared row in `common.json` that a sorted sheet's shared table lists.
+ * batch S1b, Commerce in batch T1 and Magisterial in batch MG1. A row may
+ * carry a type only if one of these sheets lists it: a live or deferred row
+ * of a sorted deck's own file, or a shared row in `common.json` that a
+ * sorted sheet's shared table lists.
  * Every other row is unsorted. The rule is checked in `dominion.test.ts`; each sorted deck's own
  * test checks that its rows carry the sheet's type.
  *
@@ -23,7 +24,7 @@ import {
 } from '../../../src/sim/statecraftData';
 
 /** The decks whose types are in the data. */
-export const SORTED_DECKS: readonly DeckId[] = ['dominion', 'expansionist', 'scientific', 'commerce'];
+export const SORTED_DECKS: readonly DeckId[] = ['dominion', 'expansionist', 'scientific', 'commerce', 'magisterial'];
 
 const SHEETS = import.meta.glob('../../../docs/decks/*.md', {
   eager: true,

@@ -683,67 +683,17 @@ across the seven files. Ids are internal; the names in these tables are the card
 
 | Order | Band | Rarity | Role | Effect |
 |---|---|---|---|---|
-| Civic Granaries | 0 | ● | P | Monuments give +2 food and +2 production. |
-| The Civic Accounts | 0 | ● | P | Monuments give +2 gold and +2 science. |
-| Patronage | 0 | ● | P | Your capital gains +1 renown per four citizens. Monuments give +1 culture. |
+| Civic Granaries | 0 | ● | P | Monuments give +1 food and +1 production. |
 | The Temple of the Muses | 0 | ● | P | Culture buildings give +2 faith each. |
-| The Sculptors' Quarries | 0 | ● | S | Worked quarries give +1 production and +1 culture. Cities working one gain +15% production toward buildings. |
-| The Pageant Fields | 0 | ● | P | Worked farms and plantations in cities with a Monument gain +1 food. Cities working at least three such tiles gain +2 culture, once per city. |
-| Hearth Ceremonies | 0 | ● | P | Cities with a Monument and Shrine gain +2 faith and +2 gold. |
-| The Wonder-Feasts | 0 | ◆ | P | Cities producing a wonder gain +4 food and +2 happiness. |
-| The Civic Nursery | 0 | ◆ | S | Cities with a Monument produce workers and settlers 20% faster. |
-| The Court Stewards | 0 | ◆ | P | Your capital gains +1 food and +1 gold per three citizens while it has a Monument. |
-| The Founding Pageant | 0 | ○ | S | Founding a city grants a free Monument and 25 culture. Your capital produces settlers 25% faster. |
-| The Capital of Letters | 0 | ○ | P | Your capital gains +20% food and +20% gold while it has a Monument and Granary, but trains military units 15% more slowly. |
 | Master Masons | 0 | ● | S | Gain +25% production toward Monuments. Completing a culture building for the first time in a city grants 20 production there. |
-| The Chronicle of Works | 0 | ◆ | P | While active, gains +1 science and +1 gold per turn for each culture building you complete for the first time in a city, at most +30 of each. |
-| The Chancery | 1 | ● | P | Gain +1 authority capacity per two Monuments, at most +3. Cities with at least two culture buildings gain +3 gold. |
-| The Civic Stage | 1 | ● | P | Cities with at least two culture buildings gain +2 happiness and +5 food. |
-| The Public Copyists | 1 | ● | P | Cities with a Monument and Library gain +5 science and +3 culture. |
-| The Artisan Wages | 1 | ● | P | Culture buildings give +2 gold and +1 production each. |
-| Provincial Patrons | 1 | ● | P | Noncapital cities with at least two culture buildings gain +1 renown and +3 culture. |
-| The Citizens' Watch | 1 | ● | S | Cities with at least two culture buildings train military units 30% faster and gain +3 defence. |
-| The Harbour Festival | 1 | ● | P | Harbours give +3 culture and +3 food. Coastal cities with a Monument gain +1 happiness. |
-| The Pageant Schools | 1 | ● | P | Cities with a Monument and Temple gain +3 science and +3 faith. |
-| The Grand Fairs | 1 | ● | P | Cities with a Market and Monument gain +5 culture and +5 gold. |
-| The Groundskeepers | 1 | ◆ | S | Worked great-person improvements give +5 food and +5 production. |
 | The Laureate | 1 | ◆ | P | Cities working a great-person improvement gain +5 culture, +3 science and +1 renown, once per city. |
 | The Guild of Masons | 1 | ◆ | P | Gain +38% production toward wonders. Cities producing a wonder lose 2 gold per turn. |
-| The Civic Assemblies | 1 | ◆ | P | Gain +1 authority capacity per two culture buildings, at most +4. Culture buildings cost 20% less production in noncapital cities. |
-| The Patrons' Road | 1 | ◆ | P | Connected noncapital cities with a Monument gain +5 gold and +3 production. Domestic routes from such cities give their destination +3 culture; your foreign routes from them give you +3 culture. |
-| The Great Patrons | 1 | ◆ | S | Each wonder you hold gives +2 family-neutral renown. Cities containing a wonder purchase culture buildings for 20% less gold. |
-| The Muses' Call | 1 | ○ | P | Gain +20% renown. Cities working a great-person improvement gain +5 food and +5 production, once per city. |
-| The Artisan Court | 1 | ○ | S | Cities working a great-person improvement gain +2 renown and purchase culture buildings for 25% less gold. |
 | The Working Court | 1 | ○ | P | Cities with a Monument gain production equal to 30% of their base culture, excluding conversion outputs. |
-| The Festival Season | 1 | ○ | P | Cities with a Garden and Amphitheater gain +30% food and +30% gold. Each qualifying city costs +2 gold upkeep. |
-| The Master Workshops | 1 | ◆ | S | Completing a culture building for the first time in a city grants 38 production there and 30 gold. |
-| The Court Archives | 2 | ● | P | Culture buildings give +3 science each. Cities with at least two gain +8 gold. |
-| The Public Gallery | 2 | ● | P | Cities with at least three culture buildings gain +9 food and +3 happiness. |
-| The Monumental Provinces | 2 | ● | P | Connected noncapital cities with a Monument gain +8 production and +5 culture. |
-| The Civic Faith | 2 | ● | P | Culture buildings give +5 faith each. Cities containing a wonder gain +3 happiness. |
-| The Provincial Chancery | 2 | ● | P | Gain +1 authority capacity per noncapital city with at least two culture buildings, at most +8. Such cities gain +5 science. |
-| The Maritime Galleries | 2 | ● | P | Harbours give +8 culture and +5 science. Ships trained in a city with at least two culture buildings gain +3 strength on creation. |
-| The Provincial Stages | 2 | ● | P | Noncapital cities with at least two culture buildings gain +2 renown and +5 food. |
-| The Master's Presence | 2 | ◆ | P | Cities working a great-person improvement gain +30% production toward buildings and +23% gold. |
-| The Grand Tour | 2 | ◆ | P | Cities containing a wonder gain +8 culture and +8 science. Cities working a great-person improvement gain +2 happiness. |
 | The Learned Patron | 2 | ◆ | P | Cities with at least two culture buildings gain science equal to 15% of their base culture, at most +18 science per city. Conversion outputs are excluded. |
-| The Performers' Treasury | 2 | ◆ | P | Cities with at least two culture buildings gain gold equal to 30% of their base culture, excluding conversion outputs. |
-| The Civic Harvest | 2 | ◆ | P | Cities of at least ten population with at least two culture buildings gain +38% food and +3 happiness, and retain an additional 20% of food spent on growth. |
 | The Senate Charter | 2 | ◆ | S | Unlocks the capital-only Assembly Hall. A city with one gains +3 happiness and +30% production toward buildings. |
-| The Sculptors' Schools | 2 | ◆ | S | Worked great-person improvements give +5 science and +5 gold. Their cities gain +1 renown, once per city. |
-| The Patrons' Fleet | 2 | ◆ | S | Cities with a Harbour and at least two culture buildings train ships 53% faster. Your ships gain +1 movement. |
-| The Monumental Court | 2 | ○ | S | Cities containing a wonder gain +3 renown and +38% production toward culture buildings and wonders, once per city. |
-| The Civic Commonwealth | 2 | ○ | S | Cities with at least three culture buildings demand 20% less population happiness and cost one less authority, minimum one. |
-| The Laureate Cities | 3 | ● | P | Cities of at least twelve population with at least two culture buildings gain +38% culture and +15% science. |
-| The National Galleries | 3 | ● | P | Culture buildings give +5 food and +5 gold each. Cities with at least three gain +4 happiness. |
-| The Provincial Academies | 3 | ● | P | Connected noncapital cities with a Library and at least two culture buildings gain +30% production and +15% science. |
-| The Civic Pantheon | 3 | ● | P | Cities containing a wonder gain +25% faith and +20% gold. Wonders give +10 culture each. |
-| The Masters' Domain | 3 | ◆ | P | Worked great-person improvements give +12 production and +12 food. Their cities gain +30% gold, once per city. |
-| The Great Chancery | 3 | ◆ | P | Gain +2 authority capacity per city with at least three culture buildings, at most +12. Such cities gain +30% culture. |
-| The Honoured Dead | 3 | ◆ | P | Your capital gains +6 science and +12 production per distinct great person you have spent this game, at most +90 science and +180 production. |
-| The Pageants of Peace | 3 | ◆ | S | While at peace with every foreign empire, cities with at least two culture buildings gain +30% culture and +2 happiness. |
-| The Living Canon | 3 | ○ | P | Cities with at least three culture buildings gain +8% food and +8% production per distinct great-person family whose legacy you currently hold, at most +40% each. |
-| The Universal Court | 3 | ○ | P | Cities with at least three culture buildings gain food and gold each equal to 38% of their base culture. Conversion outputs are excluded. |
+| The Masters' Domain | 3 | ◆ | S | Worked great-person works give +3 food and +3 production. |
+| The Honoured Dead | 2 | ◆ | P | While seated, this card gains +2 science and +4 production in your capital each time you spend a great person, up to +30 science and +60 production. |
+| The Living Canon | 3 | ○ | P | Your cities gain +4% food and +4% production per distinct great-person family whose legacy you currently hold, at most +20% each. |
 | The Wonder Commonwealth | 3 | ○ | P | Cities containing a wonder gain +38% production and +38% food. Your cities without a wonder gain +15% culture instead. |
 
 ### Cross-type
@@ -755,7 +705,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Escorted Roads | Dominion · Commerce | 2 | ◆ | S | Routes whose origin has a garrison gain +5 gold. Naval units gain +2 strength while adjacent to one of your traders. |
 | Field Academies | Dominion · Scientific | 1 | ◆ | S | Your first combat kill each turn grants 23 science. Cities with a Library produce siege units 38% faster. |
 | The Engineer Corps | Dominion · Scientific | 3 | ◆ | S | Siege units gain +1 movement. Cities with a Workshop gain +30% production toward siege units and +3 science while at war. |
-| The Imperial Examinations | Dominion · Magisterial | 1 | ◆ | P | Garrisoned cities with a Monument gain +3 culture and +1 scholar renown. |
 | Examinations of State | Dominion · Magisterial | 2 | ○ | P | Cities with a Monument and a garrison gain +2 science and +2 culture per three citizens. Ungarrisoned cities receive no bonus. |
 | Market Gardens | Expansionist · Commerce | 0 | ● | S | Farms beside a road gain +1 gold. Domestic routes grant an additional +1 food to their destination. |
 | The Provincial Fair | Expansionist · Commerce | 2 | ◆ | P | Connected noncapital cities with a Market gain +3 food. Their worked plantations, camps and pastures gain +2 gold. |
@@ -911,28 +860,15 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Long Study** — † a library that has stood a long while pays culture and renown, and pays more again once it is very old
 - **The Old Academy** — † an academy that has stood a long while feeds and works the town it serves, and more again once it is very old
 - **Enduring Institutions** — † a town whose empire building has stood a long while is gladder and builds faster, once per town
-- **The Civic Guard** — † Towns that keep a Monument are harder to storm.; Soldiers defending beside such a town fight harder. A strength line can be told where the fight is happening — your ground, the hills, a town — but not which buildings stand in the town behind it.
-- **Festival Commissions** — Not built: a windfall is paid to an empire and cannot be told what stands in the town that grew; and the design pays only for growth past a town's own historical high, which nothing remembers. † a town that holds a monument is paid in song and bread each time it grows
-- **The Civic Annals** — Not built: a counter is a number on a card and carries no subject, so it cannot be told which towns to watch; and the design pays only for growth past a town's own historical high, which nothing remembers. † the card keeps count of every time one of your towns that holds a monument grows, and pays a little more each turn for it
-- **Public Benefactors** — Half built and therefore not built: a purchase now says what it cost and whether it was that town's first, but a windfall is paid to an empire and cannot be told what stands in the town where the money changed hands. † buying a building in a town that holds a monument pays song in proportion to the coin that actually left the treasury, the first time that town acquires one of that kind
-- **The Commemorative Feast** — † Spending a great person feeds and supplies the nearest town. The world announces the moment a great person is spent on a deed, and not the moment one is spent laying down a lasting work — so a card written on the spending would pay for half of the ways a person may be spent.
-- **The Living Chronicle** — Not built: a card may count a marvel finished anywhere in the world and a great one spent, but not a marvel finished by you alone; and two counters cannot share one ceiling, so a card whose limit is on the pair of them cannot be written as a pair of lines. † the card keeps count of the marvels you finish and the great ones you spend, and pays a little more each turn for both
-- **The Complete Court** — † Your capital is paid for the breadth of what it has raised. The kinds of building a town holds can be counted now, but not with one of those kinds left out — and this card is paid for everything except its own.
-- **The Palace Guard** — † Towns that keep several culture buildings raise soldiers faster and are defended harder. A strength line cannot be told which buildings stand in the town behind it.
-- **The Cultural Embassies** — † Your capital is paid for each foreign realm you have met and are not fighting. Nothing counts the realms you have met, nor the ones you are at peace with — only the ones your caravans trade with.
-- **The Great Exhibition** — † Great-person works pay half again as much as they were built to pay.; Towns working several different kinds of such work earn more. The kinds a town works can be counted and paid for one at a time, but a town cannot yet be admitted for working several of them.
-- **The Golden Age** — † Finishing a marvel gives the whole realm a decade of plenty, and a second marvel begins the decade again rather than doubling it. A blessing hung on the realm at a moment is hung a second time beside the first, so two would pay twice over instead of lasting longer.
-- **The Salon** — † Culture buildings pay renown in towns whose citizens work a great person's lasting work. A trickle counted off a shelf of buildings is counted across the whole realm, and cannot be held to a class of town or to a ceiling in each one.
-- **The Magister's Court** — † Towns holding a wonder press on faster with the Great Work and with cathedrals. A bonus on building can name one row or one category, never two rows at once.
-- **The Imperial Pageant** — † Soldiers defending near your marvels and your great people's works fight harder. A strength line can be told whose ground the fight is on, but not what stands two hexes away from it.; Towns that keep several culture buildings raise soldiers faster.
-- **The Last Commission** — † Spending a great person pours production into whichever town is building the Great Work. A windfall's supplies go to the nearest town to where the deed happened, and cannot be sent to the town that is building a named thing.
+- **The Golden Age** — Not dealt yet. Every rule this card needs exists, and it joins the deck with the next set of new Magisterial cards. † completing a wonder gives your towns more production and culture for a time, and a later wonder starts that time again
+- **The Magister's Court** — Not dealt yet. Every rule this card needs exists, and it joins the deck with the next set of new Magisterial cards. † towns that hold a wonder build the Magnum Opus faster
+- **The Last Commission** — Waiting on a new moment. The game does not yet mark the moment a great person is spent, and it cannot yet hold back the production when no town is building the Magnum Opus. † spending a great person sends production to the town building your Magnum Opus, at most once a turn
 - **Letters of Marque** — The coin is for a kill made by one of your ships, wherever it happens. The extra gold and the slower shipyards both belong to the cities that have a Harbour.
 - **The Sacred Host** — A soldier bought with faith costs what it would cost to build, converted at the faith rate.
 - **Pilgrim Markets** — The first card to pay a trade route in faith; nothing carried it before this one asked. The test is a disjunction, so one shrine is enough and two are not more — a road with a holy site at each end is paid once, which is the card's second sentence. The site is the prophet's work on the ground, anywhere inside either town's borders, and nobody has to be working the hex.
 - **The Exchange of Discoveries** — Both lines land on the same hexes; the second is asked of the town that owns the ground, so a seam whose city has raised its stalls is worth two beakers rather than one.
 - **The Cosmopolitan Court** — A city is counted for the trade routes that set out from it to another empire, and never for more than three. The extra gold wants a citizen standing on the work, as every tile bonus does.
 - **Sacred Patronage** — Half built and therefore not built: a gift may now be held to once a turn, but the moment the world announces is a great one spending themselves on their boon — so a card written on the spending would pay for one of the ways a person may be spent and stay silent for the others. † spending a great person pays faith, but never more than once in a turn
-- **Triumphal Arches** — † taking a town raises the name of a general in particular. A town that holds a wonder can be told from one that does not now, but the renown an occasion pays favours nobody in particular — a deed is not a shelf of buildings, and the draw's bias is a fact about what an empire keeps.
 - **The Crusader Orders** — Taking a city presses your religion on it once, as a prophet would; whether it converts depends on the faith already there. An empire with no religion presses nothing.
 - **The Flood Festival** — Burned country is laid down one tile at a time by a worker, so the faith is paid tile by tile as each one is burned.
 - **Professional Soldiers** — The strength is given when the unit is bought while this card is held, and the unit keeps it for life.

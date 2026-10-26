@@ -574,8 +574,12 @@ describe('the schema, as landed', () => {
     // **And batch R1** (the review comments of 2026-10-23 and 2026-10-25):
     // three fewer. The Cattle Raid, The Defiant Kingdom and the shared
     // Copying the Enemy were live and are retired.
-    expect(live).toBe(579);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(579);
+    // **And Magisterial batch MG1** (the sheet of record): 51 fewer. The 50
+    // live Magisterial rows the themes pass cut and the shared The Imperial
+    // Examinations are retired. The four cards changed in place were already
+    // live, and the three deferred rows that took new text stay deferred.
+    expect(live).toBe(528);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(528);
   });
 
   /**
@@ -909,7 +913,11 @@ describe('the schema, as landed', () => {
     // go into debt under a credit line, a turn's end is a tally moment, a
     // bought unit may carry an upkeep waiver, and four more cards are dealt.
     // So a v174 log's Commerce hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(175);
+    // 177 since Magisterial batch MG1 (the sheet of record): the deck's
+    // rows carry types, 64 rows are retired and four cards change in
+    // place. So a v175 log's Magisterial hands hold different cards. The
+    // Devotion build plan takes 176.
+    expect(SCHEMA_VERSION).toBe(177);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1162,10 +1170,14 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // **Commerce batch T6** freed Mercenary Contracts (− 1).
       // **Batch R1** retired three live rows: The Cattle Raid, The Defiant
       // Kingdom and the shared Copying the Enemy (+ 3 retired).
+      // **Magisterial batch MG1** retired the themes pass's 64 cuts: 50 live
+      // Magisterial rows, twelve deferred ones, the shared The Imperial
+      // Examinations (live) and the shared Triumphal Arches (deferred)
+      // (− 13, and + 64 retired).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(25);
-      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(202);
+      ).toHaveLength(12);
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(266);
     }
   });
 

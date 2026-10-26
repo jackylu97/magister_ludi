@@ -2490,8 +2490,35 @@ import {
  * hold three more cards, and a Commerce or Dominion seat may be dealt
  * Mercenary Contracts. The branch migrates nothing, for the reason given
  * under v119.
+ *
+ * v177 (branch `decks`; Magisterial batch MG1, `docs/plans/magisterial-
+ * themes-triage.md`): **the Magisterial sheet of record.** The number skips
+ * 176, which the Devotion build plan's first batch takes. No field joins the
+ * state. The rules that change:
+ *
+ *   · the deck is sorted: every Magisterial row that `docs/decks/magisterial.md`
+ *     lists carries a type, so it fits only a chair of that type or a
+ *     Wildcard chair. Two shared rows gain a type too: Sacred Commissions
+ *     (Economic) and Sacred Patronage (Civic);
+ *   · 64 rows are retired: 50 live and 12 deferred Magisterial rows (the cards
+ *     the old sheet cut on 2026-10-06, and The Performers' Treasury), and the
+ *     shared The Imperial Examinations (live) and Triumphal Arches (deferred);
+ *   · four cards change in place. Civic Granaries pays +1 food and +1
+ *     production for a Monument. The Honoured Dead moves to Tier II and pays
+ *     +2 science and +4 production for each great person spent while it is
+ *     seated, at most fifteen times. The Living Canon pays +4% food and
+ *     production for each family, at most five, in every town. The Masters'
+ *     Domain pays +3 food and +3 production on a great-person work and loses
+ *     its gold percentage;
+ *   · the deferred The Golden Age, The Magister's Court and The Last
+ *     Commission take their new text and tier, and stay out of every pool.
+ *
+ * **A save of v176 or earlier is refused and does not replay.** A
+ * Magisterial seat's pools and chairs hold different cards, and so do the
+ * pools of a Dominion seat. The branch migrates nothing, for the reason given
+ * under v119.
  */
-export const SCHEMA_VERSION = 175;
+export const SCHEMA_VERSION = 177;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

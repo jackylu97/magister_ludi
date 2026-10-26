@@ -318,7 +318,7 @@ New names are placeholders; rename freely.
   - **The Call to the Spear and The Muster of the Fields** become one card shared by Dominion and Expansionist (*"Have these two be a single card that's shared between the two decks."*). The built Expansionist card is kept and is now in the shared table, and The Call to the Spear leaves Tier I.
   - **A unit that starts as a Veteran counts as earning a rank,** so The Drill Masters and The Devshirme feed Honours of the Legion, The Veterans' Roll and The Campaign Annals.
   - **The Engineer Corps** stays as it is.
-  - **The Imperial Examinations and Triumphal Arches** wait for the Magisterial sheet.
+  - **The Imperial Examinations and Triumphal Arches** are retired. The Magisterial sheet cut them too, and Magisterial batch MG1 retired both rows. A save that holds one keeps it.
 - **Your Tier III pass of 2026-10-16** (written into the rows above):
   - **Cut:** Defensive Lines, The Captured Arsenals, The Landing Parties, The Feudal Obligation, The Testudo and Knightly Ransom. The first three had data rows, which are now retired.
   - **Revised:** Total War to +5 strength. A Victor's Peace now pays a Wildcard chair for the rest of the game. New texts for The Plunder Trains, The Arrière-ban, The Mural Crown, Valhalla, The Chevauchée and Pax Romana. The Yam is uncommon.
