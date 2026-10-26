@@ -572,13 +572,12 @@ describe('the member register', () => {
     // and a row that starts to must come back and say so here.
     expect(ceiling, "a grant's ceiling is named by no live row").toBe(false);
     expect(simSource('statecraft/evaluator.ts')).toContain('grant.max !== undefined');
-    // **Two of the five ledgers are named by a row; three are named by none,
-    // and that is stated rather than forgotten.** `conversion` is written
-    // at its seam and *counted* by The Living Hymnal — the count is the whole of
-    // what that card asks — but no rider narrows a moment by it, because the one
-    // card that would (Missionary Hospitality) carries a second half about the
-    // price of clergy that the roster has no word for. The ledger is read; it is
-    // only the rider's narrowing that waits.
+    // **Three of the five ledgers are named by a row; two are named by none,
+    // and that is stated rather than forgotten.** `conversion` is written at
+    // its seam and counted by The Lives of the Saints, and since Devotion
+    // batch DV6 a rider narrows a moment by it too: The Mass Baptisms pays
+    // the first time a foreign town turns to your religion (the
+    // `townConverted` moment, which hands the seam's answer down as a fact).
     //
     // **`purchaseInCity` joined it in batch C3**, and for the ceiling's reason
     // above: the user's ruling reworked Civic Receipts — the one row that named
@@ -594,8 +593,8 @@ describe('the member register', () => {
     // reason as the great-house narrowing above: Learned Commissions' two
     // riders were the only rows that asked for the realm's first building of
     // each kind, and S7 cut them. The seam still marks it (`realiseItem`).
-    expect([...ledgers].sort()).toEqual(['buildingInCity', 'techWorld']);
-    expect(ledgers.has('conversion')).toBe(false);
+    expect([...ledgers].sort()).toEqual(['buildingInCity', 'conversion', 'techWorld']);
+    expect(ledgers.has('conversion')).toBe(true);
     expect(ledgers.has('purchaseInCity')).toBe(false);
     expect(ledgers.has('buildingKind')).toBe(false);
     // The mark is still made, which is what keeps the member restorable.

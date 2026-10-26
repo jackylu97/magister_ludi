@@ -2063,7 +2063,11 @@ function describeEffect(
       if (effect.anyOf !== undefined && effect.anyOf.length > 0) {
         narrowings.push(effect.anyOf.map(buildingTestWords).join(' or '));
       }
-      if (effect.first !== undefined) narrowings.push(FIRST_WORDS[effect.first]);
+      // A first the occasion's own phrase can say (Devotion batch DV6) takes
+      // the place of that phrase below, and needs no aside.
+      const firstSaid =
+        effect.first === undefined ? undefined : FIRST_OCCASION_WORDS[effect.occasion]?.[effect.first];
+      if (effect.first !== undefined && firstSaid === undefined) narrowings.push(FIRST_WORDS[effect.first]);
       if (effect.oncePerTurn === true) narrowings.push('at most once a turn');
       // Dominion batch D5: The New Code's ten turns. Copying the Enemy's "unit
       // you cannot build yet" narrows the noun, so it is said inside the
@@ -2084,13 +2088,15 @@ function describeEffect(
       // the occasion's own phrase rather than glued on, and an occasion with no
       // such phrase is left alone — which keeps a row written onto the wrong
       // occasion silent rather than wrong.
-      const occasionSaid = occasionWords(
-        effect.occasion,
-        effect.vsBarbarians === true,
-        effect.capturedWonder === true,
-        effect.wonder === true,
-        effect.family,
-      );
+      const occasionSaid =
+        firstSaid ??
+        occasionWords(
+          effect.occasion,
+          effect.vsBarbarians === true,
+          effect.capturedWonder === true,
+          effect.wonder === true,
+          effect.family,
+        );
       // Up Through the Ranks names the rank it pays for, inside the occasion's
       // own phrase (Dominion batch D1): "one of your units becoming an Elite".
       // An occasion with no rank in its phrase is left as it was.
@@ -5639,6 +5645,9 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   // "Starting", because the moment is a season started (Devotion batch DV4):
   // a rite that acts at once does not pay it.
   rite: 'starting a rite',
+  // Devotion batch DV6, feature F: Pentecost and The Mass Baptisms. Only a
+  // town of another empire counts, so the phrase says "foreign".
+  townConverted: 'a foreign city turning to your religion',
   purchase: 'buying anything',
   declareWar: 'declaring war',
   periodic: 'a boon coming round',
@@ -5767,6 +5776,17 @@ const FIRST_WORDS: Record<FirstKind, string> = {
   purchaseInCity: 'the first building that city ever buys',
   conversion: 'the first time that city turns to your faith',
   techWorld: 'before any other empire',
+};
+
+/**
+ * An occasion narrowed to a first, said in the occasion's own phrase where
+ * the aside would only repeat it (Devotion batch DV6, The Mass Baptisms): "a
+ * foreign city turning to your religion for the first time", not the same
+ * moment followed by "(the first time that city turns to your faith)". A pair
+ * missing here prints `FIRST_WORDS`' aside, as before.
+ */
+const FIRST_OCCASION_WORDS: Partial<Record<WindfallOccasion, Partial<Record<FirstKind, string>>>> = {
+  townConverted: { conversion: 'a foreign city turning to your religion for the first time' },
 };
 
 /**

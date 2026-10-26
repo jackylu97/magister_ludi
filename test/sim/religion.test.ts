@@ -2753,16 +2753,20 @@ describe("the pressure ledger", () => {
     expect(source.match(/\bunconvertCitizen\(/g)?.length).toBe(1);
     expect(body("purgePressure")).toContain("unconvertCitizen(");
 
-    // **And the lump has exactly three callers**, in three files: the
+    // **And the lump has exactly four callers**, in three files: the
     // prophet's proclamation here, The Crusade's kill at the battle seam
     // (`payBattleRiders`, `combat.ts` — the file that holds both the fight and
     // the faith, which is why the presser is handed *down* to the one place a
-    // windfall is paid rather than imported by it), and the founding seam
+    // windfall is paid rather than imported by it), the founding seam
     // (`foundCityAt`, `cities.ts`), which hands down a presser the same way
-    // for The Parishes (Devotion batch DV5). A fourth way to press a lump
-    // joins this pin or it is a second implementation of what a lump does.
-    expect(source.match(/\bpressLump\(/g)?.length).toBe(2);
+    // for The Parishes (Devotion batch DV5), and the conversion moment's seam
+    // here (`drainConversions`), which hands down a presser for Pentecost's
+    // lump (Devotion batch DV6). A fifth way to press a lump joins this pin
+    // or it is a second implementation of what a lump does. In this file the
+    // count is the declaration and its two callers.
+    expect(source.match(/\bpressLump\(/g)?.length).toBe(3);
     expect(body("proclaimAt")).toContain("pressLump(");
+    expect(body("drainConversions")).toContain("pressLump(");
     const fight = simSource("combat.ts");
     expect(fight.match(/\bpressLump\(/g)?.length).toBe(1);
     const riders = fight.slice(fight.indexOf("function payBattleRiders("));

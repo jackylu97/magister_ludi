@@ -603,6 +603,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Parishes | 2 | ◆ | S | Each town you found starts out devout. |
 | Commission: The State Church | 2 | ◆ | S | Commission. Hold at least six towns, all of them devout, at the same time. Then, for the rest of the game, devout towns cost one less authority, minimum one. The card leaves its chair. |
 | The Confessors | 2 | ◆ | S | Towns that follow your religion share their sight with you. |
+| Pentecost | 3 | ○ | S | When a foreign town turns to your religion, your religion presses every town within four hexes of it. |
+| The Mass Baptisms | 3 | ◆ | S | The first time a foreign town turns to your religion, gain science and culture equal to twenty times its population. |
 
 ### Scientific
 
@@ -972,6 +974,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Parishes** — A town you found follows your religion from its first turn, however many citizens it starts with. If no religion pays you, nothing happens.
 - **Commission: The State Church** — Every town you hold must be devout at once. The goal is checked at the end of each turn.
 - **The Confessors** — A foreign town that follows your religion shows you what a town sees, but not what its owner's buildings and cards add. What you see from those towns is updated when one of your units moves and at the end of each turn.
+- **Pentecost** — Each time, it presses as hard as a prophet's proclamation, but cards that change a proclamation do not change it. A town it turns presses the towns around it in turn. Each town counts at most once a turn for each religion, so a chain always ends. If more than one religion pays you, each one presses.
+- **The Mass Baptisms** — A town that turns away and comes back pays only once. Your own towns never count.
 - **Common Tools** — † the hammers are for workers and buildings, and for nothing else
 - **Road Crews** — † a worker that wakes on one of your roads travels further that day
 - **Road Maintenance** — † the upkeep of your roads is reduced, up to a limit each turn

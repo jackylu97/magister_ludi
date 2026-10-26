@@ -679,10 +679,11 @@ Reference: **`docs/religion-v2.md`** (the machinery) and **`docs/beliefs.md`**
 - **Religion is a tide, not a verb.** A city's religion is derived (the faith
   more than half its citizens follow), never stored. `spreadReligion` measures
   every town against one board, then moves every town; `bankPressure` has exactly
-  two callers, the tide and `pressLump`. `pressLump` has exactly three, pinned
+  two callers, the tide and `pressLump`. `pressLump` has exactly four, pinned
   by source in `test/sim/religion.test.ts`: a proclamation (`proclaimAt`), a
-  battle rider's lump (`payBattleRiders`, `combat.ts`; The Crusader Orders) and
-  a founding's lump (`foundCityAt`, `cities.ts`; The Parishes). The last two
+  battle rider's lump (`payBattleRiders`, `combat.ts`; The Crusader Orders), a
+  founding's lump (`foundCityAt`, `cities.ts`; The Parishes) and a conversion
+  moment's lump (`drainConversions`, `religion.ts`; Pentecost). The last three
   hand a presser down to `payWindfallGrants`, because the evaluator may not
   import `religion.ts`.
 - Religions are **fluid, never historical** — the name is generated at founding
@@ -718,6 +719,19 @@ Reference: **`docs/religion-v2.md`** (the machinery) and **`docs/beliefs.md`**
     of another empire that follows your religion a sight source for you in
     `sightSources` (`visibility.ts`), at the base city sight. It is read
     whenever your visibility is recomputed.
+- **A conversion as a moment** (Devotion batch DV6, feature F).
+  - The windfall moment `townConverted` is paid to the empire a religion pays
+    (`religionFounder`) each time a town it does not hold turns its majority
+    to that religion. It carries the town (`townId`), its citizens
+    (`population`), and `firsts` with `conversion` the first time the town
+    turns to that empire's faith.
+  - The moment is queued where the town turns (`noteFirstConversion`) and
+    paid when the pressing ends (`drainConversions`): after the tide's sweep,
+    or at the end of a lump that is a pressing of its own. The queue is paid
+    in the order the towns turned. A lump paid at a moment (Pentecost) joins
+    the same queue, so a town it turns is paid in its turn.
+  - A town queues the moment at most once a turn for each religion, by an
+    absolute turn stamp (`City.convertedOn`), so a chain always ends.
 - Who is paid: the pantheon pays the empire that consecrated it; **follower**
   beliefs pay city-locally to whoever owns each following city (a rival's faith
   in your town is a gift); **founder-side** pay follows the holy site's stones;

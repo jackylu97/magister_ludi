@@ -1834,6 +1834,66 @@
       ],
       "note": "A foreign town that follows your religion shows you what a town sees, but not what its owner's buildings and cards add. What you see from those towns is updated when one of your units moves and at the end of each turn."
     },
+    "pentecost": {
+      "name": "Pentecost",
+      "decks": [
+        "devotion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "The word comes down on one town, and by evening the towns around it are speaking it too.",
+      "text": "When a foreign town turns to your religion, your religion presses every town within four hexes of it.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "townConverted",
+          "grant": {
+            "pressure": {
+              "amount": 60,
+              "range": 4
+            }
+          }
+        }
+      ],
+      "note": "Each time, it presses as hard as a prophet's proclamation, but cards that change a proclamation do not change it. A town it turns presses the towns around it in turn. Each town counts at most once a turn for each religion, so a chain always ends. If more than one religion pays you, each one presses."
+    },
+    "theMassBaptisms": {
+      "name": "The Mass Baptisms",
+      "decks": [
+        "devotion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The river is the font, and the whole town walks into it at once.",
+      "text": "The first time a foreign town turns to your religion, gain science and culture equal to twenty times its population.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "townConverted",
+          "first": "conversion",
+          "grant": {
+            "yield": "science",
+            "amount": 20,
+            "fromOccasion": "population"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "townConverted",
+          "first": "conversion",
+          "grant": {
+            "yield": "culture",
+            "amount": 20,
+            "fromOccasion": "population"
+          }
+        }
+      ],
+      "note": "A town that turns away and comes back pays only once. Your own towns never count."
+    },
     "theMonasticTable": {
       "name": "The Monastic Table",
       "decks": [

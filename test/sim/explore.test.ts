@@ -1100,10 +1100,19 @@ describe('determinism', () => {
    * no hand is dealt with a price. Checked with the change in place and the
    * version printed as 184, which gives the hashes of Devotion batch DV5
    * exactly.
+   *
+   * **Devotion batch DV6 (a conversion as a moment, schema 186) moved the
+   * hash and not the length** at both seeds: 185 became 186, and that is
+   * all. The batch adds a windfall moment for a foreign town that turns, a
+   * queue that pays it when each pressing ends, a turn stamp on a town that
+   * turned (`City.convertedOn`) and two card rows. Nobody here founds a
+   * religion, so no town turns, no stamp is written and no moment is paid.
+   * Checked with the change in place and the version printed as 185, which
+   * gives the hashes of Magisterial batch MG5 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '06c5beaf:188976',
-    2026: '9443317a:188554',
+    11: '4a8db21a:188976',
+    2026: 'de21d077:188554',
   };
 
   for (const seed of [11, 2026]) {

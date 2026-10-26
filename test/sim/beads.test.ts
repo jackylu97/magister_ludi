@@ -533,7 +533,12 @@ describe("the bead catalogue", () => {
     // keeps the culture it cost, the two draft moments carry that price, the
     // discount rule is new, and three Magisterial cards are dealt. So a v184
     // log's Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(185);
+    // 186 since Devotion batch DV6 (a conversion as a moment): a foreign
+    // town that turns pays a new moment, queued and paid when the pressing
+    // ends, a town keeps the turn it last turned to each religion, and two
+    // Devotion cards are dealt. So a v185 log's Devotion hands hold
+    // different cards.
+    expect(SCHEMA_VERSION).toBe(186);
   });
 
   it("puts the world clock after renown and the wager after it, with no bead phase left", () => {

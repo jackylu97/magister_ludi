@@ -8261,7 +8261,9 @@ export interface WindfallOccasionFacts {
    * started carries the citizens of the town it started in (the `rite`
    * occasion, The Psalter). Since Devotion batch DV5 the `found` occasion
    * carries the citizens the new town is founded with, founding riders
-   * included (The Parishes' lump).
+   * included (The Parishes' lump). Since Devotion batch DV6 the
+   * `townConverted` occasion carries the citizens of the town that turned,
+   * read when it turned (The Mass Baptisms).
    */
   population?: number;
   /**
@@ -8384,7 +8386,10 @@ export interface WindfallOccasionFacts {
    * `greatPeople.ts`), and the town a season started in (Devotion batch DV4,
    * the `rite` occasion, filled by `payRiteRiders`, `religion.ts`). Read by
    * `CardWindfallRiderEffect.inTown`, and by a grant's `fromTowns` figure,
-   * which leaves this town out.
+   * which leaves this town out. Since Devotion batch DV6 the `townConverted`
+   * occasion carries the foreign town that turned (filled by
+   * `drainConversions`, `religion.ts`), which `inTown` never admits because
+   * the town is not this empire's.
    */
   townId?: number;
   /**
@@ -10171,7 +10176,13 @@ export function payWindfallGrants(
    * offer one.
    *
    * Since Devotion batch DV5 the founding seam hands one in too (`foundCityAt`,
-   * `cities.ts`), for The Parishes' lump on the town just founded.
+   * `cities.ts`), for The Parishes' lump on the town just founded. Since
+   * Devotion batch DV6 the conversion moment's seam hands one in as well
+   * (`drainConversions`, `religion.ts`), for Pentecost's lump around the town
+   * that turned. A lump pressed by the battle or the founding presser pays
+   * its own conversion moments before it returns, so this function can be
+   * called again from inside its own lump step. That is safe: the nested call
+   * pays another payout, and changes nothing this call is still reading.
    */
   press?: (amount: number, range: number, at: { col: number; row: number }) => void,
 ): City[] {

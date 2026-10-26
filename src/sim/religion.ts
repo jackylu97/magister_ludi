@@ -71,6 +71,7 @@ import {
   type TimedEffect,
   type Unit,
   addBuilding,
+  cityById,
   cityReligion,
   convertCitizen,
   firstKey,
@@ -93,6 +94,7 @@ import {
   nearestOwnedCity,
   refreshCityDerived,
   refreshTileDerived,
+  settleGrowthWindfall,
   settleProductionWindfall,
   tileOwnerCityId,
   tileOwnerField,
@@ -129,6 +131,7 @@ import {
   slotsFromTechs,
 } from './religionData';
 import {
+  type WindfallOccasionFacts,
   cardActionRule,
   cardAmplifier,
   cardPantheonSlots,
@@ -148,6 +151,7 @@ import {
   settleCultureWindfall,
   timedEffectIsLive,
   windfallPayout,
+  windfallPayoutIsEmpty,
 } from './statecraft';
 // The one reader of a card row's clauses for "which card teaches this verb",
 // asked by `riteTeachingCard`. Straight from the evaluator, as `levies.ts`
@@ -155,7 +159,7 @@ import {
 import { effectsGrantAbility } from './statecraft/evaluator';
 // Expansionist batch E12: what a town holds, a card's grants included.
 import { townHoldsBuilding, townShelf } from './statecraft/evaluator';
-import { hasAbility, hasTech } from './tech';
+import { hasAbility, hasTech, settleResearchWindfall } from './tech';
 import { type TechId, eraNumeral, highestAge, techDef } from './techData';
 import type { BuildingId } from './buildingData';
 import {
@@ -3933,12 +3937,26 @@ export function convertCitizens(
  *     `religionFounder`, the holder of the holy site — so a conqueror who takes
  *     the first seat takes the hymnal with it, exactly as he takes every other
  *     founder-side payment.
+ *
+ * **It also queues the `townConverted` moment** (Devotion batch DV6, feature
+ * F; the triage's readings 3 and 4). The moment is not paid here, because
+ * this runs inside a pressing: a lump paid now would change towns that the
+ * same sweep has not reached yet. So the town goes on the pressing's queue,
+ * and the pressing pays the queue when it ends (`drainConversions`).
+ *
+ * A town queues the moment at most once a turn for each religion. The limit
+ * is an absolute turn stamp on the town (`City.convertedOn`), compared with
+ * `state.turn` and never counted down. It is what makes a chain of moments
+ * end: two empires whose lumps turn the same towns back and forth can turn
+ * each town to each religion once a turn, and no more. The tally and the
+ * first-of-a-kind record above are not limited, as before.
  */
 function noteFirstConversion(
   state: GameState,
   city: City,
   religion: Religion,
   before: ReligionId | null,
+  queue: PendingConversion[],
 ): void {
   if (before === religion.id) return;
   if (cityReligion(city) !== religion.id) return;
@@ -3947,7 +3965,93 @@ function noteFirstConversion(
   // Every conversion, not only the first: The Mission counts towns turned while
   // it is seated, and a town won back counts again.
   recordScalingOccasion(state, founder, 'foreignCityConverted');
-  markFirst(state, founder, 'conversion', firstKey(city.id));
+  const first = markFirst(state, founder, 'conversion', firstKey(city.id));
+  if (city.convertedOn?.[religion.id] === state.turn) return;
+  city.convertedOn = { ...city.convertedOn, [religion.id]: state.turn };
+  queue.push({
+    payee: founder,
+    cityId: city.id,
+    religion: religion.id,
+    population: city.population,
+    first,
+  });
+}
+
+/**
+ * One foreign town that has just turned to a religion, waiting for its
+ * `townConverted` moment (Devotion batch DV6). Every figure is read at the
+ * moment the town turned, because that is the moment the occasion is about.
+ * Exported only because `pressLump` names it; nothing outside this module
+ * makes one.
+ */
+export interface PendingConversion {
+  /** The empire the religion pays (`religionFounder`) when the town turned. */
+  payee: number;
+  cityId: number;
+  religion: ReligionId;
+  /** The town's citizens when it turned. */
+  population: number;
+  /**
+   * True when this was the first time the town turned to the payee's faith:
+   * the answer the `conversion` first-of-a-kind record gave at the seam.
+   */
+  first: boolean;
+}
+
+/**
+ * Pays the `townConverted` moment for every town in the queue, in queue order
+ * (Devotion batch DV6, feature F; the triage's readings 3, 4 and 25).
+ *
+ * Called where each pressing ends: at the end of the tide's sweep
+ * (`spreadReligion`), and at the end of a lump that is a pressing of its own
+ * (`pressLump` with no queue handed in). The queue is in the order the towns
+ * turned, which is the sweep order of the pressing, so a replay pays it in
+ * the same order.
+ *
+ * **A lump paid at the moment joins the same chain.** Pentecost's grant is a
+ * lump, and the presser this function hands `payWindfallGrants` presses it
+ * with this queue, so a town that lump turns is added to the end of the queue
+ * and paid in its turn. The loop reads the queue's length on every step, so
+ * it pays those towns too. It is one of the four callers of `pressLump`, and
+ * the pin in `test/sim/religion.test.ts` names it.
+ *
+ * **The chain always ends.** A town is queued at most once a turn for each
+ * religion (`noteFirstConversion`, by the stamp on the town), nothing a moment
+ * pays founds a town or a religion, so the queue holds at most one entry for
+ * each pair of town and religion, and every entry is paid once.
+ *
+ * Each religion the payee is paid by is pressed, in founding order
+ * (`heldReligions`), as the battle and founding pressers do (reading 25). The
+ * lump is a grant's figure and not a proclamation, so cards that change a
+ * proclamation do not change it. A payout with nothing in it is skipped, and
+ * the wild is never paid. Food and hammers settle in the towns they land in,
+ * and culture and science at once, as every windfall's do.
+ */
+function drainConversions(state: GameState, queue: PendingConversion[]): void {
+  for (let next = 0; next < queue.length; next += 1) {
+    const turned = queue[next]!;
+    const player = playerById(state, turned.payee);
+    const city = cityById(state, turned.cityId);
+    if (!player || player.barbarian || !city) continue;
+    const facts: WindfallOccasionFacts = {
+      townId: turned.cityId,
+      population: turned.population,
+      ...(turned.first ? { firsts: ['conversion' as const] } : {}),
+    };
+    const payout = windfallPayout(state, player.id, 'townConverted', 0, 0, facts);
+    if (windfallPayoutIsEmpty(payout) && payout.pressure.length === 0) continue;
+    const press = (amount: number, range: number, where: { col: number; row: number }): void => {
+      for (const religion of heldReligions(state, player.id)) {
+        pressLump(state, religion, where, range, amount, queue);
+      }
+    };
+    const at = { col: city.col, row: city.row };
+    for (const town of payWindfallGrants(state, player, payout, at, undefined, press)) {
+      if (!settleGrowthWindfall(state, town)) settleProductionWindfall(state, town);
+    }
+    settleCultureWindfall(state, player);
+    settleResearchWindfall(state, player);
+  }
 }
 
 /**
@@ -4187,6 +4291,18 @@ export interface ProclamationReport {
  * before the turn ends. The register's rule, and this is entry 14 on it. It is
  * asked of **foreign** towns too — a bomb is aimed at somebody else's — which is
  * fine because the helper is idempotent and derived and the phase recomputes it.
+ *
+ * **A lump is a pressing, and a pressing pays its conversion moments when it
+ * ends** (Devotion batch DV6, the triage's reading 4). With no `queue` handed
+ * in, this lump is a pressing of its own: it collects the foreign towns it
+ * turns and pays their `townConverted` moments after its last town
+ * (`drainConversions`), before it returns. A proclamation, a battle rider's
+ * lump and a founding's lump all call it that way. A lump that a moment pays
+ * (Pentecost) is handed the queue of the chain it belongs to, so the towns it
+ * turns join that queue and this call pays nothing itself.
+ *
+ * The report's `nowFollows` is read after the moments are paid, so it says
+ * where each town stands when the whole pressing is over.
  */
 export function pressLump(
   state: GameState,
@@ -4194,14 +4310,16 @@ export function pressLump(
   at: { col: number; row: number },
   range: number,
   lump: number,
+  queue?: PendingConversion[],
 ): ProclamationReport {
   const order = state.religions.map((one) => one.id);
   const perConvert = Math.max(1, Math.floor(RULES.religion.pressurePerConvert));
-  const cities: ProclamationConversion[] = [];
+  const turned = queue ?? [];
+  const landed: { city: City; converted: number }[] = [];
   for (const { city, pressed } of lumpTargets(state, religion, at, range, lump)) {
     const before = cityReligion(city);
     const converted = bankPressure(city, religion.id, order, pressed, perConvert);
-    noteFirstConversion(state, city, religion, before);
+    noteFirstConversion(state, city, religion, before, turned);
     // **A convert can change what a town believes** (batch M3, `slate.ts`), and
     // a follower belief reaches `cityLocalEffects` in every town that follows,
     // which `cardBuildingHappiness` folds. Announced where the citizens turn —
@@ -4211,12 +4329,14 @@ export function pressLump(
       bumpEconomy(state);
       refreshCityDerived(state, city);
     }
-    cities.push({
-      cityId: city.id,
-      converted,
-      nowFollows: cityReligion(city) === religion.id,
-    });
+    landed.push({ city, converted });
   }
+  if (queue === undefined) drainConversions(state, turned);
+  const cities: ProclamationConversion[] = landed.map(({ city, converted }) => ({
+    cityId: city.id,
+    converted,
+    nowFollows: cityReligion(city) === religion.id,
+  }));
   return { religionId: religion.id, cities };
 }
 
@@ -4240,12 +4360,20 @@ export function pressLump(
  * proclamation is a lump paid the instant it is made (`pressLump`), so there is
  * nothing standing on the board with an expiry to sweep. The one phase in this
  * module that still sweeps is `pruneTimedEffects`, over rites.
+ *
+ * **The tide is one pressing** (Devotion batch DV6, the triage's reading 4).
+ * The foreign towns it turns are queued in sweep order (town, then religion),
+ * and their `townConverted` moments are paid after the last town has moved
+ * (`drainConversions`), so a lump paid at a moment never changes a town the
+ * sweep has not reached. Every town has been measured and moved by then, so
+ * the rule above, that every town moves against the same board, still holds.
  */
 export function spreadReligion(state: GameState): void {
   if (state.religions.length === 0) return;
   const order = state.religions.map((religion) => religion.id);
   const perConvert = Math.max(1, Math.floor(RULES.religion.pressurePerConvert));
   const sites = holySites(state);
+  const turned: PendingConversion[] = [];
   // **Every town is measured against the same board, and then every town is
   // moved.** Two passes rather than one, and it is the pipeline's own rule read
   // at the scale of a phase (`turn.ts`: "a rule is applied to the empire, not to
@@ -4265,9 +4393,10 @@ export function spreadReligion(state: GameState): void {
       if (bankPressure(city, religion.id, order, totals[religion.id] ?? 0, perConvert) > 0) {
         bumpEconomy(state);
       }
-      noteFirstConversion(state, city, religion, before);
+      noteFirstConversion(state, city, religion, before, turned);
     }
   }
+  drainConversions(state, turned);
 }
 
 /**

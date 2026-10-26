@@ -5235,6 +5235,29 @@ export type WindfallOccasion =
    */
   | 'rite'
   /**
+   * **A foreign town turned to this empire's religion** (Devotion batch DV6,
+   * feature F; the triage's readings 3 and 4). Paid to the empire the
+   * religion pays (`religionFounder`) each time a town that empire does not
+   * hold turns its majority to the religion: by the tide, a proclamation, or
+   * any other lump. A town of the empire's own that turns pays nothing, so a
+   * town turned by a capture's lump or a founding's lump pays nothing either.
+   *
+   * The moment is queued where the town turns (`noteFirstConversion`,
+   * `religion.ts`) and paid when the pressing that turned it ends: after the
+   * tide's sweep, or at the end of a lump (`drainConversions`). The queue is
+   * paid in the order the towns turned. A lump a rider pays here (Pentecost)
+   * can turn more towns, and they join the end of the queue. A town queues
+   * the moment at most once a turn for each religion (`City.convertedOn`), so
+   * a chain always ends.
+   *
+   * It carries the town (`WindfallOccasionFacts.townId`), its citizens when
+   * it turned (`population`), and `firsts` with `conversion` the first time
+   * the town turns to this empire's faith (The Mass Baptisms). The town is
+   * foreign, so a rider's `inTown` never admits it. Food and production a
+   * rider pays land in this empire's town nearest to the town that turned.
+   */
+  | 'townConverted'
+  /**
    * A thing **bought** with gold or faith (`purchaseItemAt`, Entry XXIX).
    *
    * The member the comment above says would one day be earned, and Crassus is
@@ -5824,6 +5847,12 @@ export interface WindfallGrantSpec {
    * amount. Each seam that pays a moment with a lump hands
    * `payWindfallGrants` its own presser: `payBattleRiders` (`combat.ts`) and
    * `foundCityAt` (`cities.ts`).
+   *
+   * Since Devotion batch DV6 the `townConverted` moment presses too
+   * (Pentecost, around the town that turned), through the presser
+   * `drainConversions` (`religion.ts`) hands down. That lump joins the chain
+   * of the pressing that turned the town, so a town it turns is paid its own
+   * moment in turn.
    */
   pressure?: { amount: number; range: number };
   /**

@@ -390,6 +390,8 @@ The first eleven come from section 12, from R1 and from section 11. The rest are
 - **Schema:** one bump.
 - **Done-gate:** `npx vitest run test/sim/decks/devotionConversions.test.ts test/sim/religion.test.ts test/sim/religionLedger.test.ts test/sim/combat.test.ts test/sim/occasionRiders.test.ts test/sim/decks.test.ts test/sim/statecraft.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts test/mapgen/moduleCycles.test.ts`. `test/sim/religion.slow.test.ts` runs at the push gate.
 
+- **Built (2026-10-26):** as planned. The gate passed: the type check, 9,728 core tests and the build. Schema 186. The moment is `townConverted`. `noteFirstConversion` queues it; `drainConversions` pays the queue in order, re-reading its length, and its presser feeds the same queue, so a Pentecost chain resolves in one ordered pass. `pressLump` takes an optional queue and drains itself without one, so the other lumps needed no change. The once-a-turn limit is an absolute stamp, `City.convertedOn`. `pressLump` has four callers (pinned; `CLAUDE.md` still says two). A two-empire Pentecost test ends and runs the same way twice. Readings 39 to 44 (in the batch's report): the stamp limits the moment, not the tally or the first-record; facts are read when the town turns; the barbarian seat is never paid. Not done: The Mission's tally can count one town twice in a chain turn; `docs/religion-v2.md` does not describe the moment.
+
 ### DV7: the holy sites, the Opus and the authority capstone
 
 - **Builds:**

@@ -6982,6 +6982,22 @@
     "text": "every city of another empire that follows your religion shares its sight with you"
    }
   ],
+  "pentecost": [
+   {
+    "raw": "a foreign city turning to your religion spreads your religion to every city within 4 hexes",
+    "text": "a foreign city turning to your religion spreads your religion to every city within 4 hexes"
+   }
+  ],
+  "theMassBaptisms": [
+   {
+    "raw": "a foreign city turning to your religion for the first time grants science equal to 20 times its population",
+    "text": "a foreign city turning to your religion for the first time grants science equal to 20 times its population"
+   },
+   {
+    "raw": "a foreign city turning to your religion for the first time grants culture equal to 20 times its population",
+    "text": "a foreign city turning to your religion for the first time grants culture equal to 20 times its population"
+   }
+  ],
   "theMonasticTable": [
    {
     "raw": "+2 food, +2 production in every city while it is keeping a rite",

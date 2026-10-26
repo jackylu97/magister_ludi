@@ -2741,8 +2741,34 @@ import {
  * **A v184 save is refused and does not replay.** A Magisterial seat's pools
  * hold more cards, and a hand on the table carries a field the old build
  * never wrote. The branch migrates nothing, for the reason given under v119.
+ *
+ * v186 (branch `decks`; Devotion batch DV6, `docs/plans/devotion-themes-
+ * triage.md`): **a conversion as a moment** (feature F). One field joins the
+ * state: `City.convertedOn`, the last turn the town turned to each religion
+ * as a foreign town. The rules that change:
+ *
+ *   · one windfall moment is new, `townConverted`. It is paid to the empire
+ *     a religion pays when a town it does not hold turns its majority to
+ *     that religion, with the town (`townId`), its citizens (`population`),
+ *     and `firsts` with `conversion` the first time the town turns to that
+ *     empire's faith (the triage's reading 3);
+ *   · the moment is queued where the town turns and paid when the pressing
+ *     that turned it ends: after the tide's sweep, or at the end of a lump
+ *     (`drainConversions`). A lump paid at a moment can turn more towns,
+ *     which join the end of the queue. A town queues the moment at most once
+ *     a turn for each religion (`City.convertedOn`), so a chain always ends
+ *     (reading 4);
+ *   · `pressLump` has a fourth caller, the presser `drainConversions` hands
+ *     `payWindfallGrants`, and a proclamation's report says where each town
+ *     stands after the moments are paid;
+ *   · two Devotion cards are new and dealt, both at Tier III: Pentecost and
+ *     The Mass Baptisms (readings 25 and 26).
+ *
+ * **A v185 save is refused and does not replay.** A Devotion seat's pools
+ * hold more cards, and a town that turned carries a field the old build never
+ * wrote. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 185;
+export const SCHEMA_VERSION = 186;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -5063,6 +5089,24 @@ export interface City {
    * the instant a prophet or an augur speaks (`pressLump`).
    */
   pressureBank?: Partial<Record<ReligionId, number>>;
+  /**
+   * **The last turn this town turned to each religion as a foreign town**, or
+   * the key is absent for a religion it never turned to that way (Devotion
+   * batch DV6, the `townConverted` moment; the triage's reading 4).
+   *
+   * "Foreign" means the town was not held by the empire the religion pays
+   * (`religionFounder`). Each entry is an absolute turn compared with
+   * `state.turn`, never a countdown: the moment is queued only when the entry
+   * for that religion is not this turn. So a town pays the moment at most
+   * once a turn for each religion, and a chain of moments, where two empires'
+   * lumps turn the same towns back and forth, always ends.
+   *
+   * Written only by `noteFirstConversion` (`religion.ts`), whether or not any
+   * card rides the moment, so a card seated later reads the same world. Keyed
+   * by `ReligionId`, as `followers` is, and nothing iterates it: the one
+   * reading looks one religion up. A captured town keeps it.
+   */
+  convertedOn?: Partial<Record<ReligionId, number>>;
   /**
    * How many of this town's citizens have left the fields for each trade
    * (ledger Entry XLVIII), zero for every family in a town with no guild — which

@@ -262,7 +262,7 @@ import {
 import { type ProjectId, projectDef } from '../sim/projectData';
 // `citiesOf` is the one town walk every evaluator uses (CLAUDE.md) and batch
 // X2's scope reading is asked over it, so the import is no longer type-only.
-import { type City, type GameState, citiesOf, foundedReligion, playerById } from '../sim/state';
+import { type City, type GameState, citiesOf, countFirsts, foundedReligion, playerById } from '../sim/state';
 // Scientific batch S13: a technology's price is the simulation's own fold
 // (`explainTechCost`, `foldTechCost`), so the bot and the reducer charge the
 // same beakers for a charter technology and its premium.
@@ -3983,6 +3983,14 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       const span = Math.max(1, riteDef(LIVE_RITE_IDS[0]!).duration ?? 1);
       return ctx.cities / span;
     }
+    case 'townConverted':
+      // **A foreign town turning to this seat's religion** (Devotion batch
+      // DV6, feature F) is a stand-in until batch DV9 prices it from the
+      // seat's followers abroad. Until then it is the seat's own record: the
+      // foreign towns its faith has turned for the first time, over the turns
+      // played. The moment fires on every turning, so this reads low rather
+      // than high, and a seat whose faith has turned no town is paid nothing.
+      return countFirsts(ctx.state, ctx.playerId, 'conversion') / turns;
     case 'greatPersonAct':
       // **A great person is called and spent once in a long while**, and there
       // is no honest per-turn figure for it without this bot predicting its own

@@ -609,8 +609,10 @@ describe('the schema, as landed', () => {
     // **And Magisterial batch MG5** (the draft's price): three more. The Open
     // Door, The Accessions Register and The Unwritten Chapter are new
     // Magisterial rows.
-    expect(live).toBe(582);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(582);
+    // **And Devotion batch DV6** (a conversion as a moment): two more.
+    // Pentecost and The Mass Baptisms are new Devotion rows.
+    expect(live).toBe(584);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(584);
   });
 
   /**
@@ -981,7 +983,12 @@ describe('the schema, as landed', () => {
     // keeps the culture it cost, the two draft moments carry that price, the
     // discount rule is new, and three Magisterial cards are dealt. So a v184
     // log's Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(185);
+    // 186 since Devotion batch DV6 (a conversion as a moment): a foreign
+    // town that turns pays a new moment, queued and paid when the pressing
+    // ends, a town keeps the turn it last turned to each religion, and two
+    // Devotion cards are dealt. So a v185 log's Devotion hands hold
+    // different cards.
+    expect(SCHEMA_VERSION).toBe(186);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
