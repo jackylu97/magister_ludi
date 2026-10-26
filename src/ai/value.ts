@@ -147,13 +147,24 @@ import {
   stageEmpireFold,
 } from '../sim/yields/empire';
 import { explainEmpireGold } from '../sim/empireGold';
-import { type Tile, getTileAt, tileHex, tileNeighbors, wrappedDistance } from '../sim/map';
+import {
+  type Tile,
+  getTileAt,
+  mapRange,
+  tileHex,
+  tileIndex,
+  tileNeighbors,
+  wrappedDistance,
+} from '../sim/map';
 import { authorityOf, happinessDemand, happinessOf } from '../sim/meters';
 import { ladderSteps, renownPerTurn, renownThreshold } from '../sim/renown';
 // Dominion batch D16: a commission is priced off the simulation's own reading
 // of how far its goal has come and of the figures a reward reads, so the card
 // face, the HUD chip and the bot cannot disagree about either.
 import { commissionFigure, commissionProgress } from '../sim/commissions';
+// Magisterial batch MG17: the work a garden goal names and the seat's work
+// families, read where the goals read them.
+import { gardenWorkFor, workFamiliesHeld } from '../sim/commissions';
 // Dominion batch D16: The Upstarts' line is read through feature B's own
 // answer to "which empires know more technologies than this one". Scientific
 // batch S13 reads the mirror (The Edge of the Sword) and the gap (The
@@ -162,7 +173,16 @@ import { knowsFewerTechs, knowsMoreTechs, metRivals, techGap } from '../sim/riva
 // The pair resolution and a road's own length, off the leaf every fold reads
 // them from — so an appraisal and a caravan cannot disagree about which roads
 // are running or how far apart their two towns are.
-import { FAMILIES, greatPersonDef, isGreatPersonId } from '../sim/greatPeopleData';
+import {
+  FAMILIES,
+  type Family,
+  LIVE_GREAT_PERSON_IDS,
+  greatPersonDef,
+  isGreatPersonId,
+} from '../sim/greatPeopleData';
+// Magisterial batch MG17: what an act pays, read through the act's own seams,
+// so the act this bot prices and the act the reducer banks are one figure.
+import { actGainOf, agedActFactor } from '../sim/greatPeople';
 import { holdsRank, rankStrength } from '../sim/ranks';
 import {
   cityHoldsPost,
@@ -223,9 +243,22 @@ import {
 // Straight from their own layers rather than through the `statecraft.ts`
 // index: through the index, the build warns of a circular import between
 // chunks.
-import { chairFitFor, draftCost, draftCostFor } from '../sim/statecraft/draft';
+import {
+  HAND_POSITIONS,
+  chairFitFor,
+  chairFitWithout,
+  doctrineBagFor,
+  draftCost,
+  draftCostFor,
+  expectedHandBags,
+  foreignCardBag,
+  maliceAt,
+  offerSize,
+  rarityFirstOdds,
+} from '../sim/statecraft/draft';
 import {
   type GroundFacts,
+  cardActionRule,
   cardRulePercent,
   effectsOfKind,
   groundFactsFor,
@@ -241,6 +274,7 @@ import {
   cardLevyAftermaths,
   cardLevyReturnDelay,
   heldReligions,
+  isRaisingWonderOrOpus,
 } from '../sim/statecraft/evaluator';
 // The citizen levy's own figures, read where the levy verb reads them, so the
 // bot and the city panel price one levy alike (the bot levy batch).
@@ -270,15 +304,30 @@ import {
   type LevyUse,
   type CardLevyEffect,
   type ChairFit,
+  type ChairType,
+  GOVERNMENT_TIERS,
   LEVY_USES,
+  doctrineDef,
+  governmentDef,
+  isCharter,
   isDoctrineId,
   isOrderId,
+  countedTypeOf,
   orderDef,
 } from '../sim/statecraftData';
 import { type ProjectId, projectDef } from '../sim/projectData';
 // `citiesOf` is the one town walk every evaluator uses (CLAUDE.md) and batch
 // X2's scope reading is asked over it, so the import is no longer type-only.
-import { type City, type GameState, citiesOf, countFirsts, foundedReligion, playerById } from '../sim/state';
+import {
+  type City,
+  type GameState,
+  type Player,
+  bankedTowardItem,
+  citiesOf,
+  countFirsts,
+  foundedReligion,
+  playerById,
+} from '../sim/state';
 // Scientific batch S13: a technology's price is the simulation's own fold
 // (`explainTechCost`, `foldTechCost`), so the bot and the reducer charge the
 // same beakers for a charter technology and its premium.
@@ -290,7 +339,7 @@ import {
   isUnlocked,
   researchExpansion,
 } from '../sim/tech';
-import { ALL_TECH_IDS, type TechAge, type TechId, isTechId, techDef } from '../sim/techData';
+import { ALL_TECH_IDS, type TechAge, type TechId, highestAge, isTechId, techDef } from '../sim/techData';
 import { IMPROVEMENT_IDS, type ImprovementId, improvementDef } from '../sim/improvementData';
 import { TILE_YIELD_KEYS, type TileYield, readTileYield } from '../sim/terrainData';
 import {
@@ -3177,14 +3226,14 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // and the levy rate this seat expects. See `leviedArmyShare`.
       //
       // **A line for a piece standing on a great-person work** (Magisterial
-      // batch MG9, The Custodians) is a stand-in until batch MG17 prices it
-      // off the works this seat holds and the fights it takes on them.
-      if (namesCondition(effect.when, 'standingOnWork')) return ctx.ai.score.unknownEffect;
+      // batch MG9, The Custodians; priced in batch MG17) is worth the share of
+      // this seat's fights fought on a work. See `workStandingShare`.
       return (
         scientificLinePoints(effect, ctx) *
         ctx.ai.weights.military *
         (1 + ctx.threat) *
         (namesCondition(effect.when, 'vsMoreTechs') ? vsMoreTechsShare(ctx) : 1) *
+        (namesCondition(effect.when, 'standingOnWork') ? workStandingShare(ctx) : 1) *
         scientificLineShare(effect.when, ctx) *
         (effect.levied === undefined ? 1 : leviedArmyShare(effect.levied, ctx))
       );
@@ -3347,9 +3396,11 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       return mean * (effect.percent / 100) * ctx.ai.weights.renown;
     }
     case 'offerRider':
-      // A counted rider (Magisterial batch MG6, The Hall of Wonders) meets the
-      // same stand-in until batch MG17 prices it.
-      return ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
+      // **More cards in an Order hand** (Officials by Merit, and The Hall of
+      // Wonders' counted cards, Magisterial batch MG6; priced in batch MG17):
+      // the hands the seat buys, times what the extra cards add to each. A
+      // rider on any other hand keeps the stand-in. See `offerRiderWorth`.
+      return offerRiderWorth(effect, ctx);
     case 'rulePercent':
       return scoreRulePercent(effect, ctx);
     case 'upkeepSurcharge':
@@ -3405,10 +3456,11 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       return slot === null ? 0 : slot.value;
     }
     case 'slotRider':
-      // **A chair is a card put to work**, so it is priced exactly as one more
-      // card in a draft is (`offerRider` above): the same stand-in, because the
-      // two are the same promise from opposite ends — that one deals a row this
-      // empire does not hold, and this opens a chair for a row it does. Anything
+      // **A chair is a card put to work**, so it takes the stand-in an unread
+      // card in a draft took before Magisterial batch MG17 priced the Order
+      // hand (`offerRider` above): the two are the same promise from opposite
+      // ends — that one deals a row this empire does not hold, and this opens a
+      // chair for a row it does. Anything
       // sharper would have to be `scoreCard` on the best benched Order, and that
       // lives in `bot.ts`, which reads this file and may not be read back.
       //
@@ -3457,14 +3509,22 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // town admits is worth nothing rather than one town's wall. Five live rows
       // carry a scope.
       if (effect.stat === 'sight') return ctx.ai.score.unknownEffect;
-      if (townsAdmitting(ctx, effect.scope) === 0) return 0;
+      // **The town raising the Opus** (The Bulwark of Marvels, Magisterial
+      // batch MG3; priced in batch MG17): the share of the horizon one of this
+      // seat's towns raises it, read before the scope, which no town admits
+      // while the Opus is not begun. See `opusRaisingShare`.
+      const opus = effect.scope?.test === 'raisingOpus' ? opusRaisingShare(ctx) : 1;
+      if (opus === 0) return 0;
+      if (opus === 1 && townsAdmitting(ctx, effect.scope) === 0) return 0;
       // **A counted wall pays a helping at a time** (Devotion batch DV9): The
       // Sacred Precincts' faith buildings, and every other row with a `count`.
       // The helpings are the mean over the towns the scope admits, through the
       // simulation's own count with the row's `category` and `within`, so the
-      // single-town reading above still holds. See `cityStatHelpings`.
+      // single-town reading above still holds. See `cityStatHelpings`. A count
+      // the row reads across the empire (`within: 'empire'`, The Bulwark's
+      // wonders) is asked with no town narrowing it there.
       const helped = effect.count === undefined ? 1 : cityStatHelpings(effect, ctx);
-      return effect.amount * helped * ctx.ai.weights.military * (1 + ctx.threat);
+      return effect.amount * helped * ctx.ai.weights.military * (1 + ctx.threat) * opus;
     }
     case 'conditionRule':
       // **A gated clause is worth its clauses, while the gate is open.** The
@@ -3700,31 +3760,13 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
         const devotion = devotionRuleWorth(effect, ctx);
         if (devotion !== null) return devotion;
       }
-      // **Officials by Merit's refusal** (Magisterial batch MG6) costs this bot
-      // nothing: it rerolls only a free belief hand (`beliefRedeal`), never an
-      // Order hand. The stand-in until batch MG17 prices the card.
-      if (effect.rule === 'noOrderReroll') return 0;
-      // **The Envious Eye's `wonderHammersMoveOn`** (Magisterial batch MG9) is
-      // a stand-in until batch MG17 prices it off the wonder races this seat
-      // runs.
-      if (effect.rule === 'wonderHammersMoveOn') return ctx.ai.score.unknownEffect;
-      // **Magnificence's `cultureBuysWonders`** (Magisterial batch MG11) is a
-      // stand-in until batch MG17 prices it against the draft the culture
-      // would otherwise buy. This bot does not buy with culture yet.
-      if (effect.rule === 'cultureBuysWonders') return ctx.ai.score.unknownEffect;
-      // **The Mixed Constitution's `cardsFitAnyChair`** (Magisterial batch
-      // MG12) is a stand-in until batch MG17 prices it off the held cards the
-      // wider fit would seat.
-      if (effect.rule === 'cardsFitAnyChair') return ctx.ai.score.unknownEffect;
-      // **The Universal Genius's `actThenWork`** (Magisterial batch MG13) is a
-      // stand-in until batch MG17 prices it off the acts this seat's people
-      // would add before they lay their works. The bot's great-person arm
-      // already lays the work once the act is refused.
-      if (effect.rule === 'actThenWork') return ctx.ai.score.unknownEffect;
-      // **The Pull of the Masters' `worksPullRivalHexes`** (Magisterial batch
-      // MG16) is a stand-in until batch MG17 prices it off the rival hexes
-      // beside this seat's works.
-      if (effect.rule === 'worksPullRivalHexes') return ctx.ai.score.unknownEffect;
+      {
+        // **The rules of Magisterial batches MG6 to MG16**, each priced off
+        // the board, with one knob in `score.magisterial` where the board
+        // cannot say enough (batch MG17).
+        const magisterial = magisterialRuleWorth(effect, ctx);
+        if (magisterial !== null) return magisterial;
+      }
       return ctx.ai.score.unknownEffect;
     case 'metaRule':
       // A rule of Statecraft itself — how long a chair is sealed. What a seal
@@ -3738,9 +3780,10 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // off those Orders (batch S13): the technology riders and tallies the
       // seat has seated, paid again.
       if (effect.rule === 'techCountsTwice') return techCountsTwiceWorth(effect.value, ctx);
-      // **The Immortals' `legaciesCountTwice`** (Magisterial batch MG8) is a
-      // stand-in until batch MG17 prices it off the legacies the seat holds.
-      if (effect.rule === 'legaciesCountTwice') return ctx.ai.score.unknownEffect;
+      // **The Immortals' `legaciesCountTwice`** (Magisterial batch MG8; priced
+      // in batch MG17): the legacies the seat holds and will hold, read again.
+      // See `immortalsWorth`.
+      if (effect.rule === 'legaciesCountTwice') return immortalsWorth(effect.value, ctx);
       return ctx.ai.score.unknownEffect;
     case 'beadPerOccasion':
       // **A glass bead the empire mints itself**, on a deed it chooses to do
@@ -4140,8 +4183,8 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       return retireRate(ctx);
     case 'cardDrafted': {
       // **A card enters the collection about as often as this seat drafts**
-      // (Commerce batch T7; priced in batch T9). The Art Dealers rode this
-      // moment until batch R1, and no row rides it today. The rate is
+      // (Commerce batch T7; priced in batch T9). The Court Painter and The
+      // Accessions Register ride it (Magisterial batches MG2 and MG5). The rate is
       // the seat's pace of drafting: the culture it makes a turn over the
       // price of its next draft. A draft ends in a pick unless the seat
       // passes, and this bot seldom passes, so the whole pace is used. A
@@ -4158,16 +4201,16 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       return postEstablishedRate(ctx);
     case 'governmentAdopted':
       // **A government adopted** (Magisterial batch MG7, feature G; The Sed
-      // Festival). An empire adopts at most four times a game, so this is a
-      // stand-in until batch MG17 prices it at the ladder's pace: one
-      // adoption over the horizon.
-      return 1 / horizon;
+      // Festival; priced in batch MG17) at the ladder's pace: the government
+      // tiers the seat's drafts reach over the horizon, and an offer already
+      // banked. See `adoptionRate`.
+      return adoptionRate(ctx);
     case 'greatPersonSpent':
       // **A great person spent** (Magisterial batch MG8; The Last Commission
-      // and Sacred Patronage). An act or a work spends a person, so this is
-      // `greatPersonAct`'s reading of the pace, a stand-in until batch MG17
-      // prices it at the seat's own spend rate.
-      return 1 / Math.max(1, ctx.ai.score.lumpTurns);
+      // and Sacred Patronage; priced in batch MG17) at the seat's own pace:
+      // the people it gains, and the people standing now. See
+      // `greatPersonSpentRate`.
+      return greatPersonSpentRate(ctx);
     default:
       return unreadOccasion(occasion);
   }
@@ -4270,6 +4313,21 @@ function scoreWindfallRider(
   // them started in a town its `inTown` admits. Read for the `rite` moment
   // only, so no other rider's price moves. See `riteTownShare`.
   if (effect.occasion === 'rite') rate *= riteTownShare(ctx, effect.inTown);
+  // **A work laid by a great person** (Magisterial batch MG9, The Landmark
+  // Bounds; priced in batch MG17): a rider whose tile test is a great-person
+  // work fires at the pace this seat lays works, not at a worker's pace. See
+  // `personRate` and `workLaidShare`.
+  if (effect.occasion === 'improvementBuilt' && effect.on?.test === 'greatWork') {
+    rate = personRate(ctx) * workLaidShare(ctx);
+  }
+  // **Only while a town raises the Opus** (Magisterial batch MG8, The Last
+  // Commission's `whileRaisingOpus`; priced in batch MG17): the share of the
+  // horizon the seat raises it. See `opusRaisingShare`.
+  if (effect.whileRaisingOpus === true) rate *= opusRaisingShare(ctx);
+  // **Only a hand the seat paid for** (Magisterial batch MG10, The Second
+  // Sitting's `paidHand`) narrows nothing here: the pass's rate is already
+  // read off the hands the seat buys with culture (`draftPassed`), and a
+  // free hand is not among them.
   if (rate <= 0) return 0;
   let each = 0;
   if (effect.percent !== undefined) {
@@ -4335,18 +4393,16 @@ function grantCountNow(ctx: ValueContext, spec: GrantCount): number {
  * gifted piece `windfallGrantWorth` reads, because a draft is a moment and the
  * card does nothing seated. Zero for a card with no such field.
  *
- * A great person on the draft (Magisterial batch MG6, The Wandering Muse) is
- * the stand-in until batch MG17 prices it. It is not a unit, so it is not
- * priced as one. The two arms of Magisterial batch MG14 are stand-ins too,
- * one for each grant, until MG17 prices them: the yields of The Grand
- * Retrospective and the random card of The Cabinet of Curiosities.
+ * A great person (Magisterial batch MG6, The Wandering Muse), a windfall and
+ * a foreign card (batch MG14, The Grand Retrospective and The Cabinet of
+ * Curiosities) are priced since batch MG17. See `magisterialDraftGrantWorth`.
  */
 export function onDraftWorth(id: CardId, ctx: ValueContext): number {
   if (!isOrderId(id)) return 0;
   const grants = orderDef(id).onDraft ?? [];
   if (grants.length === 0) return 0;
   let units = 0;
-  let standIns = 0;
+  let others = 0;
   for (const grant of grants) {
     switch (grant.grant) {
       case 'unit':
@@ -4355,7 +4411,7 @@ export function onDraftWorth(id: CardId, ctx: ValueContext): number {
       case 'greatPerson':
       case 'windfall':
       case 'foreignCard':
-        standIns += 1;
+        others += magisterialDraftGrantWorth(grant, ctx);
         break;
       default: {
         const unhandled: never = grant;
@@ -4366,7 +4422,7 @@ export function onDraftWorth(id: CardId, ctx: ValueContext): number {
   return (
     (units * ctx.ai.weights.military * ctx.ai.score.combatScale) /
       Math.max(1, ctx.ai.score.lumpTurns) +
-    standIns * ctx.ai.score.unknownEffect
+    others
   );
 }
 
@@ -4491,13 +4547,14 @@ function windfallGrantWorth(
       (units * ctx.ai.weights.military * ctx.ai.score.combatScale) /
       Math.max(1, ctx.ai.score.lumpTurns);
   }
-  // Dominion batch D5: science toward a technology the empire lacks, and a free
-  // Order draft. Both are real and hard to price, so each is the stand-in; a
-  // draft is one more card, which is how `slotRider` reads a chair.
+  // Dominion batch D5: science toward a technology the empire lacks, which is
+  // real and hard to price, so it is the stand-in.
   if (grant.towardFallenTech !== undefined) worth += ctx.ai.score.unknownEffect;
-  if (grant.freeDraft === true) {
-    worth += ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
-  }
+  // **A free Order hand** (Dominion batch D5's The New Code; The Unveiling,
+  // The Symposium and The Second Sitting of the Magisterial deck; priced in
+  // batch MG17): what a hand is worth to this seat, the culture it would
+  // otherwise pay for one. See `handWorth`.
+  if (grant.freeDraft === true) worth += handWorth(ctx);
   if (grant.timed !== undefined) {
     const turns = Math.max(0, grant.timed.turns);
     worth += scoreEffects(grant.timed.effects, ctx) * (turns / Math.max(1, ctx.ai.score.lumpTurns));
@@ -4528,9 +4585,9 @@ function windfallGrantWorth(
   // See `markBesideWorth`.
   if (grant.markBeside !== undefined) worth += markBesideWorth(grant.markBeside, ctx);
   // **The unowned hexes beside the moment's hex** (Magisterial batch MG9, The
-  // Landmark Bounds): a stand-in until batch MG17 prices the land a claim
-  // takes.
-  if (grant.claimBeside === true) worth += ctx.ai.score.unknownEffect;
+  // Landmark Bounds; priced in batch MG17): the land a claim takes, as a
+  // rate, as `mark` above is. See `claimBesideWorth`.
+  if (grant.claimBeside === true) worth += claimBesideWorth(ctx);
   // **Citizens in the town the moment names** (Expansionist batch E10,
   // Veteran Colonies; priced in batch E13): the food that grows them, as a
   // lump, as a commission's citizens are priced. The moment is a soldier
@@ -4732,10 +4789,9 @@ function ruleRewriteValue(
       // The Royal Readers; priced in batch S13). See `scholarStepWorth`.
       return scholarStepWorth(share, ctx);
     case 'draftCost':
-      // **Not priced yet** (Magisterial batch MG5, The Open Door): a cheaper
-      // hand is worth the drafts it brings sooner, and batch MG17 prices it.
-      // The stand-in until then.
-      return ctx.ai.score.unknownEffect;
+      // **The culture each hand no longer costs** (Magisterial batch MG5, The
+      // Open Door; priced in batch MG17). See `draftDiscountWorth`.
+      return draftDiscountWorth(share, ctx);
     default:
       return unreadRule(rule, ctx);
   }
@@ -6065,12 +6121,17 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
   //
   // **The Devotion count that grows** (Devotion batch DV9): the faith spent.
   // The same reading, with no discount. See `devotionCountAhead`.
+  //
+  // **The Magisterial counts that grow** (Magisterial batch MG17): the Orders
+  // held, the decks among them and the Doctrines held. The same reading, with
+  // no discount. See `magisterialCountAhead`.
   const ahead =
     effect.count === undefined
       ? null
       : (scientificCountAhead(effect.count, ctx) ??
         commerceCountAhead(effect, ctx) ??
-        devotionCountAhead(effect, ctx));
+        devotionCountAhead(effect, ctx) ??
+        magisterialCountAhead(effect.count, ctx, effect.seated));
   if (ahead !== null) {
     return [
       {
@@ -6322,6 +6383,16 @@ function commissionForecast(id: OrderId, ctx: ValueContext): { turns: number; wh
       why = research.why;
       continue;
     }
+    // **The Magisterial goals** (Magisterial batch MG17): a wonder its towns
+    // are raising, and the figures of the council, the collection and the
+    // works, each read off the board. See `magisterialGoalForecast`.
+    const magisterial = magisterialGoalForecast(goal, standing.have, standing.need, ctx);
+    if (magisterial !== null) {
+      if (magisterial.turns < turns) continue;
+      turns = Math.max(1, magisterial.turns);
+      why = magisterial.why;
+      continue;
+    }
     const floor = goalHasFloor(goal) ? ctx.ai.score.commission.floorShare : 1;
     const rate =
       goal.kind === 'counted'
@@ -6385,6 +6456,10 @@ function occasionForecastRate(occasion: TallyOccasion, ctx: ValueContext): numbe
   // seat's towns keep now are its recent pace (`seasonPace`). The cautious
   // default is the floor.
   if (occasion === 'riteStarted') return Math.max(seasonPace(ctx).rate, fallback);
+  // **The production put into wonders** (Magisterial batch MG17, Commission:
+  // The Wonder of the Age): no record, but the towns raising a wonder or the
+  // Opus now are its pace. See `wonderHammerRate`.
+  if (occasion === 'wonderProduction') return Math.max(wonderHammerRate(ctx), fallback);
   return smoothedRate(occasionRecord(occasion, ctx), fallback, ctx);
 }
 
@@ -6466,14 +6541,15 @@ function occasionRecord(occasion: TallyOccasion, ctx: ValueContext): number | nu
       // card, there is no record and the forecast reads the default.
       return treasuryHeldRecord(ctx);
     case 'wonderCompleted':
-      // Magisterial batch MG4, Commission: The Eighth Wonder. A stand-in until
-      // batch MG17 prices it: the claim register names the empire that
-      // finished each wonder, so it is this seat's full record.
+      // Magisterial batch MG4, Commission: The Eighth Wonder (batch MG17). The
+      // claim register names the empire that finished each wonder, so it is
+      // this seat's full record. A wonder its towns are raising now is read
+      // off the board (`magisterialGoalForecast`).
       return ctx.state.wonders.filter((claim) => claim.playerId === ctx.playerId).length;
     case 'wonderProduction':
-      // Magisterial batch MG4, Commission: The Wonder of the Age. A stand-in
-      // until batch MG17 prices it: the board keeps no record of the
-      // production put into wonders, so the forecast reads the default.
+      // Magisterial batch MG4, Commission: The Wonder of the Age (batch MG17).
+      // The board keeps no record of the production put into wonders, so the
+      // rate is read off the towns raising one now (`occasionForecastRate`).
       return null;
     default:
       return unreadTally(kind);
@@ -6650,15 +6726,26 @@ function rewardTerms(
   }
   if (reward.doctrineOffer === true) {
     // **A Doctrine offer** (Magisterial batch MG7, Commission: The Golden
-    // Bull). A stand-in until batch MG17 prices it: the price of one shape
-    // this bot does not read yet.
-    terms.push({ label: 'a Doctrine draft, once', value: ctx.ai.score.unknownEffect });
+    // Bull; priced in batch MG17): the best Doctrine the offer would deal.
+    // See `doctrineOfferWorth`.
+    const offer = doctrineOfferWorth(ctx);
+    terms.push({
+      label:
+        offer.options === 0
+          ? 'a Doctrine offer, once: no Doctrine of its government’s tier is left to offer'
+          : `a Doctrine offer, once: the best of ${offer.options} Doctrines, held for good`,
+      value: offer.worth,
+    });
   }
   if (reward.claimWithin !== undefined && reward.claimWithin > 0) {
     // **The unowned land around the goal's work** (Magisterial batch MG15,
-    // Commission: The Paradise Garden). A stand-in until batch MG17 prices
-    // it: the price of one shape this bot does not read yet.
-    terms.push({ label: 'the land around a work, once', value: ctx.ai.score.unknownEffect });
+    // Commission: The Paradise Garden; priced in batch MG17), held for good.
+    // See `claimWithinWorth`.
+    const land = claimWithinWorth(reward.claimWithin, goals, ctx);
+    terms.push({
+      label: `the ${land.hexes} unowned hexes within ${reward.claimWithin} of a work, held for good`,
+      value: land.worth,
+    });
   }
   return terms;
 }
@@ -7263,7 +7350,10 @@ function scientificBonusShare(
   let share = 1;
   if (effect.aheadOfMet === true) share *= ctx.ai.score.scientific.aheadOfMet;
   if (effect.count !== undefined) {
-    const ahead = scientificCountAhead(effect.count, ctx);
+    // **The Orders held** (The Universal Library, Magisterial batch MG4;
+    // priced in batch MG17) grow at the seat's drafting pace, read the same
+    // way. See `magisterialCountAhead`.
+    const ahead = scientificCountAhead(effect.count, ctx) ?? magisterialCountAhead(effect.count, ctx);
     if (ahead !== null) {
       const per = effect.per === undefined || effect.per <= 0 ? 1 : effect.per;
       let helpings = (countProbe(ctx, effect.count) + ahead.more) / per;
@@ -8111,6 +8201,11 @@ function occasionMeasureForecast(
   // Psalter), and of the town a conversion turns (The Mass Baptisms).
   if (occasion === 'rite' && measure === 'population') return riteTownPopulation(ctx, inTown);
   if (occasion === 'townConverted' && measure === 'population') return convertTownPopulation(ctx);
+  // **Magisterial batch MG17**: the culture a hand cost (The Accessions
+  // Register, The Unwritten Chapter), at the price of the seat's next hand.
+  if ((occasion === 'cardDrafted' || occasion === 'draftPassed') && measure === 'handPrice') {
+    return handPriceForecast(ctx);
+  }
   return null;
 }
 
@@ -10259,4 +10354,1189 @@ function guaranteedTownsWorth(
   const open = { ...effect } as CardEffect & { scope?: CityScope };
   delete open.scope;
   return { towns, worth: (scoreEffects([open as CardEffect], ctx) / ctx.cities) * towns };
+}
+
+// --- the Magisterial prices (batch MG17) -------------------------------------------------
+//
+// Magisterial batches MG4 to MG16 added these kinds with a stand-in price each.
+// Each arm reads what it can off the board: the seat's culture and the price of
+// each hand, the government ladder, its renown pace, its great people and their
+// works, its wonders and the towns raising them. A knob in `score.magisterial`
+// prices only the part the board cannot say.
+
+/**
+ * **The hands this seat buys over the horizon**, and why: the culture it has
+ * banked and makes a turn, spent down the ladder of prices it would pay
+ * (`draftCostFor`, so The Open Door's discount counts). At most one hand a
+ * turn, because the phase deals at most one. Nothing while the seat's decks
+ * have nothing left to deal (`expectedHandBags`). Remembered for the sitting.
+ */
+const DRAFT_PACE_MEMO = new WeakMap<ValueContext, { drafts: number; why: string }>();
+function draftsAhead(ctx: ValueContext): { drafts: number; why: string } {
+  const held = DRAFT_PACE_MEMO.get(ctx);
+  if (held !== undefined) return held;
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const player = playerById(ctx.state, ctx.playerId);
+  let pace = { drafts: 0, why: 'no seat to draft for' };
+  if (player !== undefined) {
+    const income = Math.max(0, ratesOf(ctx).culturePerTurn ?? 0);
+    if (expectedHandBags(ctx.state, player).length === 0) {
+      pace = { drafts: 0, why: 'its decks have nothing left to deal' };
+    } else {
+      let budget = Math.max(0, player.culturePool) + income * horizon;
+      let drafts = 0;
+      while (drafts < horizon) {
+        const price = draftCostFor(ctx.state, player, player.statecraft.drafts + drafts);
+        if (price > budget) break;
+        budget -= Math.max(0, price);
+        drafts += 1;
+      }
+      pace = {
+        drafts,
+        why: `${round(income)} culture a turn and ${round(player.culturePool)} banked buy ${drafts} hands in ${horizon} turns`,
+      };
+    }
+  }
+  DRAFT_PACE_MEMO.set(ctx, pace);
+  return pace;
+}
+
+/** Hands a turn, over the horizon. See `draftsAhead`. */
+function draftsPerTurn(ctx: ValueContext): number {
+  return draftsAhead(ctx).drafts / Math.max(1, ctx.ai.priorities.horizonTurns);
+}
+
+/**
+ * **The governments this seat adopts over the horizon** (feature G, The Sed
+ * Festival; The Pandects' Doctrines): the government tiers (`GOVERNMENT_TIERS`)
+ * its drafts reach over the horizon (`draftsAhead`), and a government offer
+ * already banked. This bot adopts a government as soon as it is offered (it
+ * never banks one), so a tier reached is an adoption.
+ */
+function adoptionsAhead(ctx: ValueContext): { tiers: number[]; banked: boolean } {
+  const sc = statecraftOf(ctx.state, ctx.playerId);
+  if (sc === undefined) return { tiers: [], banked: false };
+  const reach = sc.drafts + draftsAhead(ctx).drafts;
+  const tiers = GOVERNMENT_TIERS.filter((tier) => tier > sc.drafts && tier <= reach);
+  return { tiers, banked: sc.pendingGovernment !== undefined };
+}
+
+/** Adoptions a turn, over the horizon. See `adoptionsAhead`. */
+function adoptionRate(ctx: ValueContext): number {
+  const ahead = adoptionsAhead(ctx);
+  const count = ahead.tiers.length + (ahead.banked ? 1 : 0);
+  return count / Math.max(1, ctx.ai.priorities.horizonTurns);
+}
+
+/**
+ * **How many more of a Magisterial count this seat expects over the horizon**,
+ * and why, or `null` for a count that is not one of them. Three:
+ *
+ *   · the Orders held (The Universal Library, The Grand Retrospective's
+ *     reading): one for each hand the seat buys (`draftsAhead`). This bot
+ *     seldom passes a hand, so every hand is a card;
+ *   · the decks among them (The Polymath's Study, Travelling Players): the
+ *     seat's own decks, and the common cards as one more, that are not yet
+ *     counted, and never more than the hands it buys;
+ *   · the Doctrines held (The Pandects): one for each adoption ahead whose
+ *     tier still has a Doctrine of the seat's decks to offer
+ *     (`doctrineBagFor`).
+ */
+function magisterialCountAhead(
+  count: NonNullable<CardPaysEffect['count']>,
+  ctx: ValueContext,
+  seated?: boolean,
+): { more: number; why: string } | null {
+  const player = playerById(ctx.state, ctx.playerId);
+  switch (count) {
+    case 'ordersHeld': {
+      const pace = draftsAhead(ctx);
+      return { more: pace.drafts, why: pace.why };
+    }
+    case 'decksHeld': {
+      if (player === undefined) return { more: 0, why: 'no seat' };
+      const pace = draftsAhead(ctx);
+      const open = player.decks.length + 1;
+      const counted = countOf(ctx.state, ctx.playerId, '' as CardId, {
+        kind: 'pays',
+        where: 'empire',
+        basis: 'count',
+        to: 'authority',
+        amount: 0,
+        count: 'decksHeld',
+        ...(seated === true ? { seated: true as const } : {}),
+      });
+      const more = Math.min(pace.drafts, Math.max(0, open - counted));
+      return {
+        more,
+        why: `${open} decks it is dealt from, the common cards among them, and ${pace.drafts} hands to find them`,
+      };
+    }
+    case 'doctrinesHeld': {
+      if (player === undefined) return { more: 0, why: 'no seat' };
+      const ahead = adoptionsAhead(ctx);
+      const offered = ahead.tiers.filter((tier) => doctrineBagFor(player, tier).length > 0).length;
+      return {
+        more: offered,
+        why: `${ahead.tiers.length} governments adopted, ${offered} of them with a Doctrine of its decks to offer`,
+      };
+    }
+    default:
+      return null;
+  }
+}
+
+/**
+ * **What one Order hand is worth to this seat**: the culture the next hand
+ * costs it (`draftCostFor`, discounts included), at culture's price, as a
+ * lump. In a seat's full context culture's price is the draft plan's own
+ * worth for each culture point (`shadowPrices`), so this is what the next
+ * hand is worth; before the book exists it is the table's weight. Nothing
+ * while the seat's decks have nothing left to deal. Remembered for the
+ * sitting.
+ */
+const HAND_WORTH_MEMO = new WeakMap<ValueContext, number>();
+function handWorth(ctx: ValueContext): number {
+  const held = HAND_WORTH_MEMO.get(ctx);
+  if (held !== undefined) return held;
+  const player = playerById(ctx.state, ctx.playerId);
+  let worth = 0;
+  if (player !== undefined && expectedHandBags(ctx.state, player).length > 0) {
+    worth = explainLump({ culture: draftCostFor(ctx.state, player) }, ctx).total;
+  }
+  HAND_WORTH_MEMO.set(ctx, worth);
+  return worth;
+}
+
+/**
+ * **What more cards in a hand add to the best of it**, as a share of the hand
+ * (`offerRider`). The best of `n` cards drawn from one spread of values sits
+ * at `n ÷ (n + 1)` of that spread, so a hand of `m` cards is worth
+ * `(m ÷ (m + 1)) ÷ (n ÷ (n + 1))` of a hand of `n`. It is the stated
+ * approximation: a hand's cards are read as alike, because the cards' own
+ * prices are `bot.ts`' to read.
+ */
+function widerHandShare(base: number, wider: number): number {
+  const n = Math.max(1, base);
+  const m = Math.max(n, wider);
+  if (m === n) return 0;
+  return m / (m + 1) / (n / (n + 1)) - 1;
+}
+
+/**
+ * **More cards in an Order hand** (`offerRider` with `offer: 'order'`;
+ * Officials by Merit, and The Hall of Wonders' counted cards, Magisterial
+ * batch MG6): the hands the seat buys a turn (`draftsPerTurn`), times what a
+ * hand is worth (`handWorth`), times what the extra cards add to it
+ * (`widerHandShare`). The hand's size is the simulation's (`explainOfferSize`)
+ * without this rider, and the cap of the table (`rules.offers.max`) holds. A
+ * counted rider adds `extra` for each `per` of its count today, at most `max`
+ * times, as the deal reads it. A rider on any other hand keeps the stand-in.
+ */
+function offerRiderWorth(effect: Extract<CardEffect, { kind: 'offerRider' }>, ctx: ValueContext): number {
+  if (effect.offer !== 'order' || effect.family !== undefined) {
+    return ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
+  }
+  const per = effect.per === undefined || effect.per <= 0 ? 1 : effect.per;
+  const times =
+    effect.count === undefined
+      ? 1
+      : Math.min(
+          effect.max === undefined ? Number.POSITIVE_INFINITY : Math.max(0, effect.max),
+          Math.floor(countProbe(ctx, effect.count) / per),
+        );
+  const extra = (effect.extra ?? 1) * times;
+  if (extra <= 0) return 0;
+  const live = effectsOfKind(ctx.state, ctx.playerId, 'offerRider').some((row) => row.effect === effect);
+  const max = Math.max(1, Math.floor(RULES.offers.max));
+  const raw = Math.max(HAND_POSITIONS, offerSize(ctx.state, ctx.playerId, 'order')) - (live ? extra : 0);
+  const base = Math.min(max, Math.max(1, raw));
+  const wider = Math.min(max, base + extra);
+  return draftsPerTurn(ctx) * handWorth(ctx) * widerHandShare(base, wider);
+}
+
+/**
+ * **The Open Door** (`rulePercent` on `draftCost`, Magisterial batch MG5): the
+ * culture each hand no longer costs. Every point of culture the seat makes goes
+ * toward its next hand, so a cut of a share of the price is that share of the
+ * culture it makes a turn, at culture's price.
+ */
+function draftDiscountWorth(share: number, ctx: ValueContext): number {
+  const income = Math.max(0, ratesOf(ctx).culturePerTurn ?? 0);
+  return -Math.max(-1, share) * income * voiceWeight(ctx, 'culture');
+}
+
+/**
+ * **What the culture a hand cost tells a rider** (`handPrice`, Magisterial
+ * batch MG5: The Accessions Register, The Unwritten Chapter): the price of the
+ * seat's next hand (`draftCostFor`), the hand the moment will most often name.
+ * A free hand has no price, and the two moments' rates count only the hands
+ * the seat pays for.
+ */
+function handPriceForecast(ctx: ValueContext): number {
+  const player = playerById(ctx.state, ctx.playerId);
+  return player === undefined ? 0 : draftCostFor(ctx.state, player);
+}
+
+/**
+ * **Great people this seat gains a turn**: the renown it earns a turn over the
+ * price of its next great person (`renownPerTurn`, `renownThreshold`), the
+ * pace The Royal Readers reads. Remembered for the sitting.
+ */
+const PERSON_RATE_MEMO = new WeakMap<ValueContext, number>();
+function personRate(ctx: ValueContext): number {
+  const held = PERSON_RATE_MEMO.get(ctx);
+  if (held !== undefined) return held;
+  const player = playerById(ctx.state, ctx.playerId);
+  const rate =
+    player === undefined
+      ? 0
+      : Math.max(0, renownPerTurn(ctx.state, ctx.playerId)) / Math.max(1, renownThreshold(ctx.state, player));
+  PERSON_RATE_MEMO.set(ctx, rate);
+  return rate;
+}
+
+/**
+ * **A great person spent** (`greatPersonSpent`, Magisterial batch MG8): this
+ * bot spends every person it calls, by an act or a work, so the pace is the
+ * pace it gains them (`personRate`), and each person standing on the board now
+ * is one more moment over the horizon.
+ */
+function greatPersonSpentRate(ctx: ValueContext): number {
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  let standing = 0;
+  for (const unit of ctx.state.units) {
+    if (unit.ownerId === ctx.playerId && unit.person !== undefined) standing += 1;
+  }
+  return personRate(ctx) + standing / horizon;
+}
+
+/** The cards' own tile test for a great-person work. */
+const GREAT_WORK: TileCondition = { test: 'greatWork' };
+
+/**
+ * **Does this hex carry a great-person work?** Asked of the cards' own tile
+ * test (`tileConditionHolds` with `greatWork`), with this seat's ground facts
+ * handed in as every other caller here hands them (read once a sitting), so
+ * the bot reads works where the cards read them and never restates the
+ * marker.
+ */
+const GROUND_MEMO = new WeakMap<ValueContext, GroundFacts>();
+function holdsWork(ctx: ValueContext, tile: Tile | undefined): boolean {
+  if (tile === undefined) return false;
+  let ground = GROUND_MEMO.get(ctx);
+  if (ground === undefined) {
+    ground = groundFactsFor(ctx.state, ctx.playerId);
+    GROUND_MEMO.set(ctx, ground);
+  }
+  return tileConditionHolds(tile, GREAT_WORK, undefined, undefined, ctx.state.turn, ground);
+}
+
+/** The hexes this seat owns that carry a great-person work, in tile order. */
+function worksInBorders(ctx: ValueContext): Tile[] {
+  const owner = tileOwnerField(ctx.state);
+  const tiles = ctx.state.map.tiles;
+  const works: Tile[] = [];
+  for (let index = 0; index < tiles.length; index++) {
+    if (owner.at(index) !== ctx.playerId) continue;
+    if (holdsWork(ctx, tiles[index])) works.push(tiles[index]!);
+  }
+  return works;
+}
+
+/**
+ * **The share of this seat's great people it spends on a work** rather than
+ * an act: its works standing over the people it has called. A seat that has
+ * called nobody reads one half, because a person either acts or works.
+ */
+function workLaidShare(ctx: ValueContext): number {
+  const player = playerById(ctx.state, ctx.playerId);
+  const called = Math.max(0, player?.greatPeopleRecruited ?? 0);
+  if (called <= 0) return 1 / 2;
+  return Math.min(1, worksInBorders(ctx).length / called);
+}
+
+/**
+ * **What one hex is worth to this seat a turn**: its own yield as this seat
+ * sees it (`foldTile` with the seat's own context, read once a sitting), at
+ * this seat's prices.
+ */
+const SIGHT_MEMO = new WeakMap<ValueContext, ReturnType<typeof yieldContextFor>>();
+function hexYieldWorth(ctx: ValueContext, tile: Tile): number {
+  let sight = SIGHT_MEMO.get(ctx);
+  if (sight === undefined) {
+    sight = yieldContextFor(ctx.state, ctx.playerId);
+    SIGHT_MEMO.set(ctx, sight);
+  }
+  return valueOfYields(bagOfTileYield(foldTile(tile, sight)), ctx);
+}
+
+/**
+ * **What a hex a card claims is worth a turn**: the hex's own yield
+ * (`hexYieldWorth`) at `score.magisterial.claimedHexShare`, the share of a
+ * town's land it works. The land is held for the rest of the game, so it is
+ * priced as a rate, as a lasting mark is (`windfallGrantWorth`).
+ */
+function claimedHexWorth(ctx: ValueContext, tile: Tile): number {
+  return hexYieldWorth(ctx, tile) * Math.max(0, ctx.ai.score.magisterial.claimedHexShare);
+}
+
+/**
+ * **The Landmark Bounds' claim** (`claimBeside`, Magisterial batch MG9): what
+ * one firing claims. A work is laid on a hex this seat owns, so the reading is
+ * the hexes it owns that hold no town: the mean worth of the unowned hexes
+ * beside each of them (`claimedHexWorth`). Remembered for the sitting.
+ */
+const CLAIM_BESIDE_MEMO = new WeakMap<ValueContext, number>();
+function claimBesideWorth(ctx: ValueContext): number {
+  const held = CLAIM_BESIDE_MEMO.get(ctx);
+  if (held !== undefined) return held;
+  const owner = tileOwnerField(ctx.state);
+  const map = ctx.state.map;
+  const centres = new Set<number>();
+  for (const city of ctx.state.cities) centres.add(tileIndex(map, city.col, city.row));
+  const known = new Map<number, number>();
+  let sites = 0;
+  let worth = 0;
+  for (let index = 0; index < map.tiles.length; index++) {
+    if (owner.at(index) !== ctx.playerId || centres.has(index)) continue;
+    sites += 1;
+    for (const next of tileNeighbors(map, map.tiles[index]!)) {
+      const at = tileIndex(map, next.col, next.row);
+      if (owner.at(at) !== null) continue;
+      let hex = known.get(at);
+      if (hex === undefined) {
+        hex = claimedHexWorth(ctx, next);
+        known.set(at, hex);
+      }
+      worth += hex;
+    }
+  }
+  const mean = sites === 0 ? 0 : worth / sites;
+  CLAIM_BESIDE_MEMO.set(ctx, mean);
+  return mean;
+}
+
+/**
+ * **Commission: The Paradise Garden's land** (`claimWithin`, Magisterial batch
+ * MG15): the unowned hexes within the radius of the work the goal names
+ * (`gardenWorkFor`), or of the seat's first work while none meets the goal
+ * yet, or of its capital while it has no work at all. Each at
+ * `claimedHexWorth`. The land is held for the rest of the game, so the sum is
+ * a rate, as a free building in a reward is.
+ */
+function claimWithinWorth(
+  radius: number,
+  goals: readonly CommissionGoal[],
+  ctx: ValueContext,
+): { worth: number; hexes: number } {
+  let need = 0;
+  for (const goal of goals) {
+    if (goal.kind === 'reached' && goal.figure === 'worksBesideWork') need = Math.max(need, goal.count);
+  }
+  const capital = capitalCityOf(ctx.state, ctx.playerId);
+  const centre =
+    gardenWorkFor(ctx.state, ctx.playerId, need) ??
+    gardenWorkFor(ctx.state, ctx.playerId, 0) ??
+    (capital === null || capital === undefined ? undefined : getTileAt(ctx.state.map, capital.col, capital.row));
+  if (centre === undefined || centre === null) return { worth: 0, hexes: 0 };
+  const owner = tileOwnerField(ctx.state);
+  let worth = 0;
+  let hexes = 0;
+  for (const tile of mapRange(ctx.state.map, tileHex(centre), Math.max(0, Math.floor(radius)))) {
+    if (owner.at(tileIndex(ctx.state.map, tile.col, tile.row)) !== null) continue;
+    hexes += 1;
+    worth += claimedHexWorth(ctx, tile);
+  }
+  return { worth, hexes };
+}
+
+/**
+ * **The Pull of the Masters** (`worksPullRivalHexes`, Magisterial batch MG16):
+ * the rival hexes the sweep would take, read as the sweep reads them
+ * (`pullRivalHexesToWorks`, `cities.ts`): beside one of this seat's works,
+ * owned by another empire, no town centre, no great-person work on it, not
+ * worked by its town, and within `cities.claimRadius` of one of this seat's
+ * towns. Each work takes one a turn, so the board's stock is taken within a
+ * few turns and is priced as land held (`claimedHexWorth`).
+ */
+function pullWorth(ctx: ValueContext): number {
+  const map = ctx.state.map;
+  const owner = tileOwnerField(ctx.state);
+  const centres = new Set<number>();
+  const worked = new Set<number>();
+  for (const city of ctx.state.cities) {
+    centres.add(tileIndex(map, city.col, city.row));
+    for (const cell of city.workedTiles) worked.add(tileIndex(map, cell.col, cell.row));
+  }
+  const towns = citiesOf(ctx.state, ctx.playerId).map((city) => tileHex(getTileAt(map, city.col, city.row)!));
+  const reach = Math.max(0, RULES.cities.claimRadius);
+  const taken: number[] = [];
+  let worth = 0;
+  for (const work of worksInBorders(ctx)) {
+    for (const next of tileNeighbors(map, work)) {
+      const at = tileIndex(map, next.col, next.row);
+      const held = owner.at(at);
+      if (held === null || held === ctx.playerId) continue;
+      if (centres.has(at) || worked.has(at) || taken.includes(at)) continue;
+      if (holdsWork(ctx, next)) continue;
+      const hex = tileHex(next);
+      if (!towns.some((town) => wrappedDistance(map, town, hex) <= reach)) continue;
+      taken.push(at);
+      worth += claimedHexWorth(ctx, next);
+    }
+  }
+  return worth;
+}
+
+/**
+ * **The share of this seat's fights fought on a great-person work** (The
+ * Custodians' `standingOnWork`, Magisterial batch MG9): the larger of two
+ * readings, the share of its fighting units standing on a work now, and the
+ * share of its land that is a work (a fight in its borders falls on a work
+ * that often).
+ */
+function workStandingShare(ctx: ValueContext): number {
+  const map = ctx.state.map;
+  let army = 0;
+  let onWorks = 0;
+  for (const unit of ctx.state.units) {
+    if (unit.ownerId !== ctx.playerId || !isCombatant(unitDef(unit.type))) continue;
+    army += 1;
+    if (holdsWork(ctx, getTileAt(map, unit.col, unit.row))) onWorks += 1;
+  }
+  const owner = tileOwnerField(ctx.state);
+  let owned = 0;
+  for (let index = 0; index < map.tiles.length; index++) if (owner.at(index) === ctx.playerId) owned += 1;
+  const land = owned === 0 ? 0 : worksInBorders(ctx).length / owned;
+  return Math.max(army === 0 ? 0 : onWorks / army, land);
+}
+
+/** The row that closes the game, the Magnum Opus. */
+const OPUS_ID: BuildingId | undefined = BUILDING_IDS.find((id) => buildingDef(id).endsTheGame === true);
+
+/**
+ * **How much of the horizon this seat raises the Magnum Opus** (The Last
+ * Commission's `whileRaisingOpus`, The Bulwark of Marvels' `raisingOpus`
+ * scope): all of it while one of its towns raises the Opus now
+ * (`opusCityOf`), `score.magisterial.opusShare` while some town may begin it
+ * (`buildError`), and none while no town may.
+ */
+function opusRaisingShare(ctx: ValueContext): number {
+  if (opusCityOf(ctx.state, ctx.playerId) !== null) return 1;
+  if (OPUS_ID === undefined) return 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    if (buildError(ctx.state, ctx.playerId, 'building', OPUS_ID, city) === null) {
+      return Math.max(0, Math.min(1, ctx.ai.score.magisterial.opusShare));
+    }
+  }
+  return 0;
+}
+
+/** What a town makes a turn, toward nothing (`townProduction`'s reading). */
+function townHammers(ctx: ValueContext, city: City): number {
+  return Math.max(0, foldCity(ctx.state, city, [], null, readCity(ctx.state, city)).production);
+}
+
+/**
+ * **The production this seat puts into wonders and the Opus a turn**
+ * (`wonderProduction`, Commission: The Wonder of the Age; The Envious Eye):
+ * each town whose front row is a world wonder or the Magnum Opus
+ * (`isRaisingWonderOrOpus`) adds what it makes, and every other town adds
+ * `score.magisterial.wonderFrontShare` of it.
+ */
+function wonderHammerRate(ctx: ValueContext): number {
+  const share = Math.max(0, ctx.ai.score.magisterial.wonderFrontShare);
+  let rate = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    const made = townHammers(ctx, city);
+    rate += isRaisingWonderOrOpus(city) ? made : made * share;
+  }
+  return rate;
+}
+
+/**
+ * **The Envious Eye** (`wonderHammersMoveOn`, Magisterial batch MG9): when a
+ * rival finishes a wonder first, the hammers banked toward it move on rather
+ * than come back as gold. Each hammer is then worth what a hammer is worth
+ * less the gold the refund paid (`wonderRefundGoldPerHammer`). The hammers at
+ * risk are the ones banked toward world wonders now, at any place in a queue
+ * (`bankedTowardItem`), and those the seat puts in over the horizon
+ * (`wonderHammerRate`), at `score.magisterial.lostRaceShare`, the share a
+ * rival's race takes. The stock is a lump and the flow a rate.
+ */
+function enviousEyeWorth(ctx: ValueContext): number {
+  const share = Math.max(0, ctx.ai.score.magisterial.lostRaceShare);
+  if (share === 0) return 0;
+  const refund = Math.max(0, RULES.production.wonderRefundGoldPerHammer);
+  const gain = voiceWeight(ctx, 'production') - refund * voiceWeight(ctx, 'gold');
+  if (gain <= 0) return 0;
+  let banked = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    for (const row of city.queue) {
+      if (row.kind !== 'building' || !isWonder(row.id)) continue;
+      banked += Math.max(0, bankedTowardItem(city, row));
+    }
+  }
+  const lump = explainLump({ production: banked * share, gold: -banked * share * refund }, ctx).total;
+  return lump + wonderHammerRate(ctx) * share * gain;
+}
+
+/**
+ * **What a world wonder is worth to this seat a turn**: its flats and what it
+ * gives beyond a yield (`explainBuildingRow`), the cheap row reading the faith
+ * shelf uses (`readFaithShelf`).
+ */
+function wonderRowWorth(id: BuildingId, ctx: ValueContext): number {
+  const def = buildingDef(id);
+  const bag: YieldBag = {};
+  for (const voice of VOICES) bag[voice] = def[voice] ?? 0;
+  return valueOfYields(bag, ctx) + explainBuildingRow(id, ctx).total;
+}
+
+/**
+ * **Magnificence** (`cultureBuysWonders`, Magisterial batch MG11): culture may
+ * buy the world wonder at the front of a town's queue, one culture for each
+ * hammer it still needs (`production.culturePerHammer`). For each town raising
+ * one now, the purchase is worth the wonder landing now rather than when the
+ * town finishes it (`delayDiscount` at the two waits), less the culture it
+ * costs, at culture's price, as a lump. That price is what the culture would
+ * buy as a hand, so a purchase that buys less than the hand counts nothing.
+ * The purchase riders are left out.
+ */
+function magnificenceWorth(ctx: ValueContext): number {
+  const rate = Math.max(0, RULES.production.culturePerHammer);
+  let worth = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    const front = city.queue[0];
+    if (front === undefined || front.kind !== 'building' || !isWonder(front.id)) continue;
+    const needed = Math.max(
+      0,
+      buildingProductionCost(front.id, ctx.state, ctx.playerId) - bankedTowardItem(city, front),
+    );
+    if (needed <= 0) continue;
+    const wait = Math.ceil(needed / Math.max(1, townHammers(ctx, city)));
+    const sooner = delayDiscount(0, ctx) - delayDiscount(wait, ctx);
+    const gain = wonderRowWorth(front.id, ctx) * sooner;
+    const price = explainLump({ culture: Math.ceil(needed * rate) }, ctx).total;
+    worth += Math.max(0, gain - price);
+  }
+  return worth;
+}
+
+/** Card kinds a second reading of a legacy adds nothing to: a rule is yes or no. */
+const YES_OR_NO_KINDS: readonly CardEffect['kind'][] = [
+  'rule',
+  'metaRule',
+  'grantsAbility',
+  'unlocksBuilding',
+  'unlocksUnit',
+  'unlocksImprovement',
+];
+
+/** A legacy's lines that pay again when read again. */
+function legacyAgain(id: string, ctx: ValueContext): number {
+  if (!isGreatPersonId(id)) return 0;
+  const lines = greatPersonDef(id).legacy.filter((effect) => !YES_OR_NO_KINDS.includes(effect.kind));
+  return lines.length === 0 ? 0 : explainEffects(lines, ctx).total;
+}
+
+/** The mean of `legacyAgain` over the names the roster deals. Remembered for the sitting. */
+const ROSTER_LEGACY_MEMO = new WeakMap<ValueContext, number>();
+function meanRosterLegacy(ctx: ValueContext): number {
+  const held = ROSTER_LEGACY_MEMO.get(ctx);
+  if (held !== undefined) return held;
+  let sum = 0;
+  for (const id of LIVE_GREAT_PERSON_IDS) sum += legacyAgain(id, ctx);
+  const mean = LIVE_GREAT_PERSON_IDS.length === 0 ? 0 : sum / LIVE_GREAT_PERSON_IDS.length;
+  ROSTER_LEGACY_MEMO.set(ctx, mean);
+  return mean;
+}
+
+/**
+ * **The Immortals** (`legaciesCountTwice`, Magisterial batch MG8): each live
+ * legacy is read `value` times. So each legacy the seat holds and has not
+ * lost pays its lines `value − 1` more times, less its yes-or-no rules, which
+ * gain nothing (`YES_OR_NO_KINDS`). The people the seat will spend over the
+ * horizon (`personRate`) add theirs too, at the roster's mean legacy, from
+ * the middle of the horizon on average.
+ */
+function immortalsWorth(value: number, ctx: ValueContext): number {
+  const extra = Math.max(0, Math.floor(value) - 1);
+  if (extra === 0) return 0;
+  const player = playerById(ctx.state, ctx.playerId);
+  if (player === undefined) return 0;
+  let held = 0;
+  for (const legacy of player.legacies) {
+    if (legacy.revoked === true) continue;
+    held += legacyAgain(legacy.id, ctx);
+  }
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const later = (personRate(ctx) * horizon * meanRosterLegacy(ctx)) / 2;
+  return extra * (held + later);
+}
+
+/**
+ * **What one great person's act is worth to this seat**, per turn — the
+ * act `greatPersonActAt` would pay (moved here from `bot.ts` in Magisterial
+ * batch MG17, so the card that adds an act and the arm that takes one read
+ * one figure).
+ *
+ * Every figure is `greatPersonActAt`'s own: the same `RULES.greatPeople`
+ * rows, the same era multiplier, the same `agedActFactor`, minus the one term
+ * it cannot ask for (Leonardo's amplifier, a card read hypothetically).
+ *
+ * The two **timed** families are honest about being timed: an artist's calm
+ * and a general's aura are per-turn effects that run out, so they are priced
+ * as their per-turn worth times their share of `score.lumpTurns`, the same
+ * exchange rate a lump goes through, applied from the other end.
+ *
+ * `here` is where the piece stands or would stand, and it matters for one
+ * family: a general's aura is worth what the column standing around it is
+ * worth. `null`, an empire with no town, prices the two town-bound acts at
+ * nothing, which is what `greatPersonActError` would refuse them for.
+ */
+export function explainActFor(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  family: Family | null,
+  here: { col: number; row: number } | null,
+): Appraisal | null {
+  if (family === null) return null;
+  const people = RULES.greatPeople;
+  const era = highestAge(player.techsResearched);
+  const aged = agedActFactor(player);
+  const lumpTurns = Math.max(1, ctx.ai.score.lumpTurns);
+
+  switch (family) {
+    case 'scholar': {
+      const aim = player.researching;
+      if (aim === null) return null;
+      // Turns of the empire's own science, off the act's own seam (`actGainOf`)
+      // rather than a second reading of the books. Not aged, as the reducer's
+      // scholar arm is not: a rate already grows with the tree.
+      const beakers = actGainOf(state, player.id, 'science');
+      return appraise([nest(`${beakers} beakers toward ${techDef(aim).name}`, explainLump({ science: beakers }, ctx))]);
+    }
+    case 'engineer': {
+      if (here === null) return null;
+      const hammers = Math.floor(people.engineerHammers * era * aged);
+      return appraise([nest(`${hammers} hammers into a basket`, explainLump({ production: hammers }, ctx))]);
+    }
+    case 'merchant': {
+      const gold = Math.floor(people.merchantGold * era * aged);
+      return appraise([nest(`${gold} gold into the treasury`, explainLump({ gold }, ctx))]);
+    }
+    case 'artist': {
+      if (here === null) return null;
+      const culture = actGainOf(state, player.id, 'culture');
+      const calm = (people.artistHappiness * ctx.ai.weights.happiness * people.artistTurns) / lumpTurns;
+      return appraise([
+        nest(`${culture} culture into the basket`, explainLump({ culture }, ctx)),
+        {
+          label: `${people.artistHappiness} happiness for ${people.artistTurns} turns`,
+          value: calm,
+        },
+      ]);
+    }
+    case 'general': {
+      const blessed = here === null ? 0 : friendlyPiecesAround(state, player.id, here, people.generalRadius);
+      const aura = (people.generalCombat * ctx.ai.weights.military * blessed * people.generalTurns) / lumpTurns;
+      return appraise([
+        {
+          label:
+            `${people.generalCombat} strength on ${blessed} piece${blessed === 1 ? '' : 's'} ` +
+            `for ${people.generalTurns} turns`,
+          value: aura,
+        },
+      ]);
+    }
+    default: {
+      // No `never` check: a sixth family is a design decision in `src/sim/`,
+      // and a bot that failed to compile over one would be the wrong module
+      // refusing.
+      return null;
+    }
+  }
+}
+
+/** How many of this empire's pieces stand within a radius of a hex. */
+function friendlyPiecesAround(
+  state: GameState,
+  playerId: number,
+  at: { col: number; row: number },
+  radius: number,
+): number {
+  const from = getTileAt(state.map, at.col, at.row);
+  if (!from) return 0;
+  const here = tileHex(from);
+  let count = 0;
+  for (const other of state.units) {
+    if (other.ownerId !== playerId) continue;
+    const on = getTileAt(state.map, other.col, other.row);
+    if (!on) continue;
+    if (wrappedDistance(state.map, here, tileHex(on)) <= radius) count += 1;
+  }
+  return count;
+}
+
+/**
+ * **Does a card of this seat let its great people act and then still lay their
+ * work?** (`actThenWork`, Magisterial batch MG13.) The bot's one reading of the
+ * rule, for the great-person arm (`greatPersonCommand`, `bot.ts`), which acts
+ * first while it holds. The simulation reads it in the act alone
+ * (`greatPersonActAt`).
+ */
+export function actsBeforeWork(state: GameState, playerId: number): boolean {
+  return cardActionRule(state, playerId, 'actThenWork');
+}
+
+/**
+ * **The Universal Genius** (`actThenWork`, Magisterial batch MG13): each great
+ * person this seat calls may act and then still lay its work. Without the rule
+ * a person does the better of the two; with it, the act is added. So the rule
+ * is worth the mean act of the five families at the capital (`explainActFor`),
+ * at the pace the seat gains people (`personRate`). The bot acts first while
+ * the rule holds (`greatPersonCommand`, `bot.ts`).
+ */
+function actThenWorkWorth(ctx: ValueContext): number {
+  const player = playerById(ctx.state, ctx.playerId);
+  if (player === undefined) return 0;
+  const rate = personRate(ctx);
+  if (rate <= 0) return 0;
+  const capital = capitalCityOf(ctx.state, ctx.playerId);
+  const here = capital === null || capital === undefined ? null : { col: capital.col, row: capital.row };
+  let sum = 0;
+  for (const family of FAMILIES) sum += explainActFor(ctx.state, player, ctx, family, here)?.total ?? 0;
+  return rate * (sum / Math.max(1, FAMILIES.length));
+}
+
+/**
+ * **What one held card is worth in a chair**, for the council readings below:
+ * its effects (`explainCardEffects`, with its commission's reward), or `null`
+ * for a card that never takes a chair (a charter, a fulfilled commission) or
+ * that widens the fit itself.
+ */
+function seatableWorth(id: OrderId, ctx: ValueContext): number | null {
+  const sc = statecraftOf(ctx.state, ctx.playerId);
+  if (sc === undefined || isCharter(id)) return null;
+  if (commissionFulfilledTurn(sc, id) !== undefined) return null;
+  const effects = orderDef(id).effects;
+  if (effects.some((effect) => effect.kind === 'rule' && effect.rule === 'cardsFitAnyChair')) return null;
+  return explainCardEffects(id, effects, ctx).total;
+}
+
+/**
+ * **The best council a fit seats**, from the cards this seat holds, in the
+ * chairs given: scarcest chair first, each taking the best card still free
+ * that fits it (`adoptionTable`'s greedy walk, `bot.ts`). A card worth
+ * nothing or less is left on the bench.
+ */
+function bestCouncil(
+  chairs: readonly ChairType[],
+  cards: readonly { id: OrderId; worth: number }[],
+  fit: ChairFit,
+): number {
+  const offices = chairs
+    .map((type, at) => ({ type, at, fits: cards.filter((card) => fit(card.id, type)).length }))
+    .sort((a, b) => a.fits - b.fits || a.at - b.at);
+  const spent: OrderId[] = [];
+  let total = 0;
+  for (const office of offices) {
+    let take: { id: OrderId; worth: number } | null = null;
+    for (const card of cards) {
+      if (spent.includes(card.id) || card.worth <= 0 || !fit(card.id, office.type)) continue;
+      if (take === null || card.worth > take.worth) take = card;
+    }
+    if (take === null) continue;
+    spent.push(take.id);
+    total += take.worth;
+  }
+  return total;
+}
+
+/**
+ * **The Mixed Constitution** (`cardsFitAnyChair`, Magisterial batch MG12):
+ * while it sits, every card this seat holds fits every chair. It takes a
+ * Wildcard chair itself, so the reading leaves one Wildcard chair out (and a
+ * chair a malice holds), seats the held cards in the rest twice, by the fit
+ * the seat has without the card (`chairFitFor`, or `chairFitWithout` its own
+ * chair while it sits) and by the wide one, and the rule is worth the
+ * difference (`bestCouncil`).
+ *
+ * This is also what unseating it costs: when it leaves its chair the council
+ * is re-seated by the plain fit (`settleCouncilFit`), and the cards only the
+ * wide fit seated go back to the collection. The reslot arm (`bot.ts`)
+ * compares a bench card against this figure, so the bot unseats the card only
+ * when the bench card is worth more than what the re-seat would lose.
+ *
+ * Nothing while the council has no Wildcard chair for it. Remembered for the
+ * sitting, and guarded against a reading that comes back to it.
+ */
+const WIDE_FIT_MEMO = new WeakMap<ValueContext, number>();
+const WIDE_FIT_ASKING = new WeakSet<ValueContext>();
+function widerFitWorth(ctx: ValueContext): number {
+  const held = WIDE_FIT_MEMO.get(ctx);
+  if (held !== undefined) return held;
+  if (WIDE_FIT_ASKING.has(ctx)) return 0;
+  WIDE_FIT_ASKING.add(ctx);
+  try {
+    const player = playerById(ctx.state, ctx.playerId);
+    if (player === undefined) return 0;
+    const sc = player.statecraft;
+    const layout = slotTypesOf(sc);
+    const chairs: ChairType[] = [];
+    let own = false;
+    for (let index = 0; index < layout.length; index++) {
+      const type = layout[index]!;
+      if (maliceAt(player, index) !== null) continue;
+      if (!own && type === 'wildcard') {
+        own = true;
+        continue;
+      }
+      chairs.push(type);
+    }
+    let worth = 0;
+    if (own) {
+      const cards: { id: OrderId; worth: number }[] = [];
+      for (const id of sc.orders) {
+        const value = seatableWorth(id, ctx);
+        if (value !== null) cards.push({ id, worth: value });
+      }
+      // The fit without the card: the seat's own while the card is not
+      // seated, and the fit with its chair emptied while it is.
+      const seatedAt = sc.slots.findIndex(
+        (slot) =>
+          slot !== null &&
+          isOrderId(slot.card) &&
+          orderDef(slot.card).effects.some((effect) => effect.kind === 'rule' && effect.rule === 'cardsFitAnyChair'),
+      );
+      const without =
+        seatedAt < 0 ? chairFitFor(ctx.state, ctx.playerId) : chairFitWithout(ctx.state, ctx.playerId, seatedAt);
+      const wide = bestCouncil(chairs, cards, () => true);
+      const plain = bestCouncil(chairs, cards, without);
+      worth = Math.max(0, wide - plain);
+    }
+    WIDE_FIT_MEMO.set(ctx, worth);
+    return worth;
+  } finally {
+    WIDE_FIT_ASKING.delete(ctx);
+  }
+}
+
+/**
+ * **The rules of Magisterial batches MG6 to MG16**, or `null` for a rule that
+ * is not one of them (batch MG17):
+ *
+ *   · Officials by Merit's `noOrderReroll` costs this bot nothing: it rerolls
+ *     only a free belief hand (`beliefRedeal`), never an Order hand;
+ *   · The Envious Eye (`wonderHammersMoveOn`): `enviousEyeWorth`;
+ *   · Magnificence (`cultureBuysWonders`): `magnificenceWorth`;
+ *   · The Mixed Constitution (`cardsFitAnyChair`): `widerFitWorth`;
+ *   · The Universal Genius (`actThenWork`): `actThenWorkWorth`;
+ *   · The Pull of the Masters (`worksPullRivalHexes`): `pullWorth`.
+ */
+function magisterialRuleWorth(
+  effect: Extract<CardEffect, { kind: 'rule' }>,
+  ctx: ValueContext,
+): number | null {
+  switch (effect.rule) {
+    case 'noOrderReroll':
+      return 0;
+    case 'wonderHammersMoveOn':
+      return enviousEyeWorth(ctx);
+    case 'cultureBuysWonders':
+      return magnificenceWorth(ctx);
+    case 'cardsFitAnyChair':
+      return widerFitWorth(ctx);
+    case 'actThenWork':
+      return actThenWorkWorth(ctx);
+    case 'worksPullRivalHexes':
+      return pullWorth(ctx);
+    default:
+      return null;
+  }
+}
+
+/**
+ * **What drafting an Order hands over**, for the three grants of Magisterial
+ * batches MG6 and MG14, as a per-turn figure:
+ *
+ *   · a great person (The Wandering Muse): at the renown the seat's next one
+ *     costs, as a commission's great person is priced
+ *     (`scientificGrantWorth`); the renown to the next rung, which the grant
+ *     pays when no offer can open, is the same figure;
+ *   · a windfall (The Grand Retrospective): the yield for each thing its count
+ *     finds now, as a lump. The card counts itself among the Orders held
+ *     (the triage's reading 38), and it is not held yet when it is drafted;
+ *   · a foreign card (The Cabinet of Curiosities): the mean card of the bag it
+ *     is drawn from (`foreignCardBag`), each at its chance under the draw's
+ *     own odds (`rarityFirstOdds`, with no pity), priced by its effects.
+ */
+function magisterialDraftGrantWorth(
+  grant: Exclude<NonNullable<ReturnType<typeof orderDef>['onDraft']>[number], { grant: 'unit' }>,
+  ctx: ValueContext,
+): number {
+  const player = playerById(ctx.state, ctx.playerId);
+  if (player === undefined) return 0;
+  switch (grant.grant) {
+    case 'greatPerson':
+      return lumpOfPoints(renownThreshold(ctx.state, player) * ctx.ai.weights.renown, ctx).total;
+    case 'windfall': {
+      let found = 0;
+      if (grant.perCount !== undefined) {
+        const per = grant.perCount.per === undefined || grant.perCount.per <= 0 ? 1 : grant.perCount.per;
+        const raw = grantCountNow(ctx, { ...grant.perCount, per: 1 }) + (grant.perCount.count === 'ordersHeld' ? 1 : 0);
+        found = Math.floor(raw / per);
+      } else {
+        found = 1;
+      }
+      if (found <= 0) return 0;
+      const bag: YieldBag = {};
+      bag[grant.yield as Voice] = grant.amount * found;
+      return explainLump(bag, ctx).total;
+    }
+    case 'foreignCard':
+      return foreignCardWorth(player, ctx);
+    default: {
+      const unhandled: never = grant;
+      void unhandled;
+      return ctx.ai.score.unknownEffect;
+    }
+  }
+}
+
+/** The mean card The Cabinet of Curiosities would draw. Remembered for the sitting. */
+const FOREIGN_CARD_MEMO = new WeakMap<ValueContext, number>();
+function foreignCardWorth(player: Player, ctx: ValueContext): number {
+  const held = FOREIGN_CARD_MEMO.get(ctx);
+  if (held !== undefined) return held;
+  let worth = 0;
+  for (const { id, chance } of rarityFirstOdds(foreignCardBag(ctx.state, player), 0)) {
+    worth += chance * explainCardEffects(id, orderDef(id).effects, ctx).total;
+  }
+  FOREIGN_CARD_MEMO.set(ctx, worth);
+  return worth;
+}
+
+/**
+ * **A Doctrine offer, once** (`doctrineOffer`, Commission: The Golden Bull,
+ * Magisterial batch MG7): the best Doctrine of an offer dealt from the
+ * Doctrines of the government's tier in the seat's decks (`doctrineBagFor`),
+ * or nothing, because the bot passes an offer whose best is worth nothing.
+ * The offer deals `offerSize` Doctrines from the bag, so the best is the
+ * expected best of that many drawn evenly: with the bag's prices sorted
+ * from low to high, the `j`-th is the best with the chance that the other
+ * cards come from the `j − 1` below it. A Doctrine is held for the rest of
+ * the game, so its price is a rate. Nothing while the bag is empty, which is
+ * also when the commission's reward waits (`commissionRewardWaits`).
+ * Remembered for the sitting.
+ */
+const DOCTRINE_OFFER_MEMO = new WeakMap<ValueContext, { worth: number; options: number }>();
+function doctrineOfferWorth(ctx: ValueContext): { worth: number; options: number } {
+  const held = DOCTRINE_OFFER_MEMO.get(ctx);
+  if (held !== undefined) return held;
+  const offer = readDoctrineOffer(ctx);
+  DOCTRINE_OFFER_MEMO.set(ctx, offer);
+  return offer;
+}
+
+function readDoctrineOffer(ctx: ValueContext): { worth: number; options: number } {
+  const player = playerById(ctx.state, ctx.playerId);
+  if (player === undefined) return { worth: 0, options: 0 };
+  const bag = doctrineBagFor(player, governmentDef(player.statecraft.government).tier);
+  if (bag.length === 0) return { worth: 0, options: 0 };
+  const prices = bag
+    .map((id) => Math.max(0, explainCardEffects(id, doctrineDef(id).effects ?? [], ctx).total))
+    .sort((a, b) => a - b);
+  const n = prices.length;
+  const k = Math.min(n, Math.max(HAND_POSITIONS, offerSize(ctx.state, ctx.playerId, 'doctrine')));
+  // C(j − 1, k − 1) ÷ C(n, k), built as a product so no factorial is taken.
+  const choose = (top: number, pick: number): number => {
+    if (pick < 0 || pick > top) return 0;
+    let ways = 1;
+    for (let i = 1; i <= pick; i++) ways = (ways * (top - pick + i)) / i;
+    return ways;
+  };
+  const all = choose(n, k);
+  let worth = 0;
+  for (let j = k; j <= n; j++) worth += prices[j - 1]! * (choose(j - 1, k - 1) / all);
+  return { worth, options: k };
+}
+
+/**
+ * **Where a Magisterial goal will be met**, or `null` to keep the ordinary
+ * rate reading (Magisterial batch MG17). Each is never past the horizon:
+ *
+ *   · a wonder completed (Commission: The Eighth Wonder): the front-row
+ *     world wonder this seat's towns would finish first, at each town's own
+ *     production; with none at the front, the rate reading;
+ *   · the Orders held (The Roll of the Senate): the rest at the seat's
+ *     drafting pace (`draftsPerTurn`);
+ *   · a council in order (The Golden Bull): an empty typed chair that a held
+ *     card of its type could fill is filled at once by the slot arm, and a
+ *     chair no held card fits waits for a new card, at the drafting pace;
+ *   · the families of works (The Patron's Gallery): the rest at the pace the
+ *     seat lays works (`personRate` × `workLaidShare`), each new family at the
+ *     share of the families it does not hold yet;
+ *   · one town's wonders and works (The Ideal City): the town with the most
+ *     wonders, its missing wonders at the seat's pace of wonders and its
+ *     missing works at the pace it lays works, the slower of the two;
+ *   · works beside a work (The Paradise Garden): the rest at the pace it lays
+ *     works, at `score.magisterial.workBesideShare`.
+ */
+function magisterialGoalForecast(
+  goal: CommissionGoal,
+  have: number,
+  need: number,
+  ctx: ValueContext,
+): { turns: number; why: string } | null {
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const remaining = Math.max(0, need - have);
+  const at = (count: number, rate: number): number =>
+    count <= 0 ? 1 : rate > 0 ? Math.min(horizon, Math.max(1, Math.ceil(count / rate))) : horizon;
+  const works = personRate(ctx) * workLaidShare(ctx);
+  if (goal.kind === 'counted') {
+    if (goal.occasion !== 'wonderCompleted') return null;
+    let nearest: { turns: number; name: string } | null = null;
+    for (const city of citiesOf(ctx.state, ctx.playerId)) {
+      const front = city.queue[0];
+      if (front === undefined || front.kind !== 'building' || !isWonder(front.id)) continue;
+      const needed = Math.max(
+        0,
+        buildingProductionCost(front.id, ctx.state, ctx.playerId) - bankedTowardItem(city, front),
+      );
+      const turns = Math.min(horizon, Math.max(1, Math.ceil(needed / Math.max(1, townHammers(ctx, city)))));
+      if (nearest === null || turns < nearest.turns) nearest = { turns, name: `${buildingDef(front.id).name} at ${city.name}` };
+    }
+    if (nearest === null) return null;
+    return { turns: nearest.turns, why: `${nearest.name} is the nearest wonder its towns are raising` };
+  }
+  switch (goal.figure) {
+    case 'ordersHeld': {
+      const rate = draftsPerTurn(ctx);
+      return { turns: at(remaining, rate), why: `${remaining} more Orders, at about ${round(rate)} hands a turn` };
+    }
+    case 'councilInOrder': {
+      const player = playerById(ctx.state, ctx.playerId);
+      if (player === undefined) return null;
+      const sc = player.statecraft;
+      const layout = slotTypesOf(sc);
+      const bench = sc.orders.filter(
+        (id) => !sc.slots.some((slot) => slot?.card === id) && seatableWorth(id, ctx) !== null,
+      );
+      let short = 0;
+      const used: OrderId[] = [];
+      for (let index = 0; index < layout.length; index++) {
+        const chair = layout[index]!;
+        if (chair === 'wildcard' || maliceAt(player, index) !== null) continue;
+        const card = sc.slots[index]?.card;
+        // In order when the chair's card counts as the chair's own type
+        // (`countedTypeOf`, the reading the goal asks), and fillable by a
+        // held card that would count so.
+        if (card !== undefined && isOrderId(card) && countedTypeOf(card, chair) === chair) continue;
+        const fill = bench.find((id) => !used.includes(id) && countedTypeOf(id, chair) === chair);
+        if (fill === undefined) short += 1;
+        else used.push(fill);
+      }
+      const rate = draftsPerTurn(ctx);
+      return {
+        turns: at(short, rate),
+        why:
+          short === 0
+            ? 'every typed chair can be filled from the cards it holds'
+            : `${short} typed chairs wait for a new card of their type, at about ${round(rate)} hands a turn`,
+      };
+    }
+    case 'workFamilies': {
+      const families = IMPROVEMENT_IDS.filter((id) => improvementDef(id).greatPerson !== undefined).length;
+      const held = workFamiliesHeld(ctx.state, ctx.playerId).length;
+      const rate = works * (Math.max(0, families - held) / Math.max(1, families));
+      return { turns: at(remaining, rate), why: `${remaining} more families of works, at about ${round(rate)} a turn` };
+    }
+    case 'oneTownWorksWorked': {
+      const floor = goal.wondersAtLeast ?? 0;
+      let best: { wonders: number; works: number } | null = null;
+      for (const city of citiesOf(ctx.state, ctx.playerId)) {
+        let wonders = 0;
+        for (const id of city.buildings) if (isWonder(id)) wonders += 1;
+        let worked = 0;
+        for (const cell of city.workedTiles) {
+          if (holdsWork(ctx, getTileAt(ctx.state.map, cell.col, cell.row))) worked += 1;
+        }
+        if (best === null || wonders > best.wonders || (wonders === best.wonders && worked > best.works)) {
+          best = { wonders, works: worked };
+        }
+      }
+      if (best === null) return null;
+      const wondersShort = Math.max(0, floor - best.wonders);
+      const worksShort = Math.max(0, goal.count - best.works);
+      const wonderRate = occasionForecastRate('wonderCompleted', ctx);
+      const turns = Math.max(at(wondersShort, wonderRate), at(worksShort, works));
+      return {
+        turns,
+        why: `its best town needs ${wondersShort} more wonders and ${worksShort} more worked works`,
+      };
+    }
+    case 'worksBesideWork': {
+      const rate = works * Math.max(0, ctx.ai.score.magisterial.workBesideShare);
+      return { turns: at(remaining, rate), why: `${remaining} more works beside a work, at about ${round(rate)} a turn` };
+    }
+    default:
+      return null;
+  }
+}
+
+/**
+ * **What this seat's live cards pay when it passes the hand on the table**
+ * (Magisterial batch MG17), for the pass candidate (`skipCandidate`,
+ * `bot.ts`). `price` is the culture the hand cost (`OrderOffer.price`), absent
+ * on a free hand.
+ *
+ * Each live rider on the pass (`draftPassed`) is read at this hand's own
+ * price, as `windfallPayout` reads it: a rider that pays only for a hand the
+ * seat paid for (`paidHand`, The Second Sitting) pays nothing for a free one;
+ * a yield scaled by the hand's price (The Unwritten Chapter's science) is the
+ * share of this price, capped and rounded down as the row says, as a lump; any
+ * other grant is its ordinary price (`windfallGrantWorth`).
+ *
+ * A free hand (`freeDraft`) is not priced here. It is dealt at once, and what
+ * it is worth is the expected best of the hand, which is the card appraisal
+ * `bot.ts` keeps, so `freeHand` says only that one comes.
+ */
+export function passRiderTerms(
+  ctx: ValueContext,
+  price: number | undefined,
+): { terms: ValueTerm[]; freeHand: boolean } {
+  const terms: ValueTerm[] = [];
+  let freeHand = false;
+  for (const { source, effect } of effectsOfKind(ctx.state, ctx.playerId, 'windfallRider')) {
+    if (effect.occasion !== 'draftPassed' || effect.grant === undefined) continue;
+    if (effect.paidHand === true && !((price ?? 0) > 0)) continue;
+    const { freeDraft, ...rest } = effect.grant;
+    if (freeDraft === true) freeHand = true;
+    let times = 1;
+    if (effect.perAge === true) times *= Math.max(1, ctx.age);
+    if (effect.perSlottedOrder === true) times *= slottedOrderCount(ctx);
+    let worth: number;
+    if (rest.yield !== undefined && rest.amount !== undefined && rest.fromOccasion === 'handPrice') {
+      let figure = rest.amount * Math.max(0, price ?? 0);
+      if (rest.max !== undefined) figure = Math.min(figure, rest.max);
+      if (rest.whole === true) figure = Math.floor(figure);
+      const bag: YieldBag = {};
+      bag[rest.yield as Voice] = figure * times;
+      const { yield: _yield, amount: _amount, fromOccasion: _measure, max: _max, whole: _whole, ...others } = rest;
+      void _yield;
+      void _amount;
+      void _measure;
+      void _max;
+      void _whole;
+      worth = explainLump(bag, ctx).total + windfallGrantWorth(others, ctx, 'draftPassed') * times;
+    } else {
+      worth = windfallGrantWorth(rest, ctx, 'draftPassed') * times;
+    }
+    if (worth !== 0) terms.push({ label: `+ what ${source} pays when the hand is passed`, value: worth });
+  }
+  return { terms, freeHand };
 }

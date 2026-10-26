@@ -1642,6 +1642,65 @@ export interface AiConfig {
       opusInterdict: number;
     };
     /**
+     * **Prices for the Magisterial shapes of batches MG4 to MG16** (Magisterial
+     * batch MG17). Each arm in `value.ts` reads what it can off the board (the
+     * seat's culture and its drafting pace, the government ladder, its great
+     * people and their works, its wonders and the towns raising them) and uses
+     * a knob here only for the part the board cannot say.
+     *
+     * Most new shapes have no knob, because the board and the older knobs
+     * price them fully:
+     *
+     *   · the counts of Orders held, of decks and of Doctrines held grow at the
+     *     seat's drafting pace (its culture over the price of each hand) and at
+     *     the government ladder's pace;
+     *   · a government adopted, a great person spent and the hand's price are
+     *     read off the ladder, the seat's renown pace and the price of its
+     *     next hand;
+     *   · a free hand, a wider hand, The Open Door and a foreign card are
+     *     priced at the culture a hand costs, at culture's price;
+     *   · The Immortals reads the legacies the seat holds, The Mixed
+     *     Constitution the cards it holds, The Universal Genius the acts its
+     *     people would add, and The Custodians the units standing on works;
+     *   · a Doctrine offer reads the Doctrines the seat could be offered;
+     *   · `score.tallyForecast.wonderCompleted` is the cautious default for a
+     *     wonder this seat completes.
+     */
+    magisterial: {
+      /**
+       * **The towns not raising a wonder now** (`wonderProduction`, The Envious
+       * Eye): the share of a town's turns whose front row is a world wonder or
+       * the Magnum Opus. A town raising one now is read off the board.
+       */
+      wonderFrontShare: number;
+      /**
+       * **The Envious Eye** (`wonderHammersMoveOn`): the share of the
+       * production this seat puts into wonders that a rival's completion takes
+       * from it. The board does not say what a rival is raising.
+       */
+      lostRaceShare: number;
+      /**
+       * **A hex a card claims** (The Landmark Bounds, Commission: The Paradise
+       * Garden, The Pull of the Masters): the share of the claimed hex's own
+       * yield the seat collects. A town works only part of its land, so a new
+       * hex pays only part of the time.
+       */
+      claimedHexShare: number;
+      /**
+       * **The Opus not yet begun** (The Last Commission's `whileRaisingOpus`,
+       * The Bulwark of Marvels): the share of the horizon this seat raises the
+       * Magnum Opus in a town, when it may raise it but no town does yet. A
+       * town raising it now counts in full.
+       */
+      opusShare: number;
+      /**
+       * **Commission: The Paradise Garden's pace**: the share of this seat's
+       * new great-person works that it lays beside one of its works. The bot
+       * does not choose a work's hex for its neighbours.
+       */
+      workBesideShare: number;
+    };
+    /**
      * **The citizen levy** (the bot levy batch, the user's answer of
      * 2026-10-23 to question 2 of `docs/plans/expansionist-themes-triage.md`).
      * A levy is the `levyCitizen` command: a town spends a citizen on what a

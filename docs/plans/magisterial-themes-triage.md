@@ -525,6 +525,8 @@ The first six come from section 12. The rest are new. Each gives the reading the
 - **Schema:** none.
 - **Done-gate:** `npx vitest run test/sim/aiAppraisal.test.ts test/sim/aiCommissions.test.ts test/sim/aiDecision.test.ts test/sim/explore.test.ts`. The digest re-pin is the orchestrator's push-gate work (`npm run test:all`). **The Magisterial build plan is then complete.**
 
+- **Built (2026-10-26):** the gate passed: the type check, 10,095 core tests and the build. No schema change. `score.magisterial` has five knobs and `tallyForecast.wonderCompleted` one, each with a bounds row. Every stand-in an MG batch added is priced: the counts, tallies, figures, moments, rules, on-draft grants, claims, the Doctrine reward, `standingOnWork` and the two rider filters. The pass decision adds what the seat's pass riders pay; the culture purse buys a front-row wonder under Magnificence; under The Universal Genius the bot acts first, then lays the work. Not done: `wildcardChairs` and `slotRider` keep a fixed stand-in; other decks' counted `productionBonus` rows are priced as one helping; the bot's renown reading ignores `per: 'wonder'`. **The Magisterial build plan is complete.** The slow bot test "does not let net income live in the red" fails since MG2 (a bisect found it); it is the push gate's first fix.
+
 ### Order and overlaps
 
 - The track: MG1 → MG2 → … → MG17, one at a time.

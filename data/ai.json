@@ -236,7 +236,8 @@
       "publicWorkCompleted": 6,
       "techCompleted": 15,
       "charterTechCompleted": 1,
-      "treasuryHeld": 10
+      "treasuryHeld": 10,
+      "wonderCompleted": 2
     },
     "commission": {
       "priorTurns": 20,
@@ -307,6 +308,13 @@
       "parishTurns": 10,
       "sitesOverHorizon": 1,
       "opusInterdict": 60
+    },
+    "magisterial": {
+      "wonderFrontShare": 0.15,
+      "lostRaceShare": 0.25,
+      "claimedHexShare": 0.5,
+      "opusShare": 0.5,
+      "workBesideShare": 0.3
     },
     "citizenLevy": {
       "priorShare": 0.25,

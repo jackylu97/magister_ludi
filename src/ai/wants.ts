@@ -104,6 +104,7 @@ import {
   type PricedMeter,
   type ValueContext,
   VOICES,
+  delayDiscount,
   delayTerm,
   explainBuildingRow,
   explainEffects,
@@ -120,10 +121,11 @@ import {
   yieldWeight,
 } from './value';
 
-import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
+import { BUILDING_IDS, type BuildingId, buildingDef, isWonder } from '../sim/buildingData';
 import {
   bestExpansionTile,
   borderGrowth,
+  buildingProductionCost,
   cityTile,
   mirrorRowFor,
   tileCopies,
@@ -227,15 +229,16 @@ import { type WagerWant, wagerWantOf } from './wager';
 export type WantCurrency = 'gold' | 'faith' | 'culture';
 
 /**
- * The two banks a **spend arm** can actually spend (`bankSpend`, `bot.ts`).
+ * The banks a **spend arm** can actually spend (`bankSpend`, `bot.ts`).
  *
- * Culture is a priced currency and not a bank: nothing in the game sells
- * anything for it. It fills a meter, the meter deals a hand, and the only
- * decision it ever reaches is *which card*. So its book is one row long, it
- * carries no `buy`, and the arms that dispatch a purchase take this narrower
- * type rather than testing for it.
+ * Culture fills a meter and the meter deals a hand, so its book's first row is
+ * the draft plan. Since Magisterial batch MG11 culture is also a bank of the
+ * purchase verb, under Magnificence (`cultureBuysWonders`), for the world
+ * wonder at the front of a town's queue. So the culture book may also hold a
+ * row with a `buy` (`cultureWonderWants`, Magisterial batch MG17), and the
+ * spend arm weighs it against the draft the culture would otherwise buy.
  */
-export type BankCurrency = 'gold' | 'faith';
+export type BankCurrency = 'gold' | 'faith' | 'culture';
 
 /**
  * One thing this empire would spend a bank on, priced.
@@ -429,7 +432,10 @@ export function wantBook(
   return {
     gold: purchasingPlan(state, player, ctx, inputs, folds),
     faith: faithPlan(state, player, ctx, inputs, folds),
-    culture: draftPlan(state, player, ctx, inputs),
+    // The draft plan first: it is the culture bank's bar (`bankSpend`), and
+    // the wonders culture may buy under Magnificence after it (Magisterial
+    // batch MG17).
+    culture: [...draftPlan(state, player, ctx, inputs), ...cultureWonderWants(state, player, ctx, folds)],
     // **The staked bar, as a stock** (batch W2). Built off the lean the context
     // already carries rather than re-read here, so the book and the two price
     // levers can never disagree about what the bar still owes.
@@ -2039,6 +2045,62 @@ export function draftPlan(
       outOfReach: player.culturePool < cost,
     },
   ];
+}
+
+/**
+ * **The wonders culture may buy, as wants** (Magisterial batch MG17;
+ * Magnificence, batch MG11).
+ *
+ * Under the rule `cultureBuysWonders` a town may buy the world wonder at the
+ * front of its queue with culture from the draft pool, one culture for each
+ * hammer it still needs. The price and the gate are the simulation's
+ * (`explainPurchaseCost` and `purchaseGate` through `reachOf`), so a seat that
+ * does not hold the rule, or a town whose front row is not a world wonder,
+ * has no row here.
+ *
+ * The wonder is already being raised, so what a purchase buys is time: the
+ * wonder lands now rather than when the town would finish it. The row is
+ * worth what the town would make with the wonder (the purchase plan's own
+ * reading: the town fold, what the row gives beyond a yield, and the bead
+ * race), times the difference between the two delay discounts. Its price is
+ * in culture, and the spend arm buys it only when it beats the draft plan's
+ * row, the hand the same culture would deal (`bankSpend`, `bot.ts`).
+ */
+function cultureWonderWants(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  folds: TownFolds,
+): Want[] {
+  const wants: Want[] = [];
+  const towns = folds.towns;
+  for (let index = 0; index < towns.length; index++) {
+    const city = towns[index]!;
+    const front = city.queue[0];
+    if (front === undefined || front.kind !== 'building' || !isWonder(front.id)) continue;
+    const id = front.id;
+    const item: PurchasableItem = { kind: 'building', id };
+    const reach = reachOf(state, player, city, item, 'culture');
+    if (reach === null) continue;
+    const made = Math.max(1, folds.standing(index).production);
+    const needed = Math.max(0, buildingProductionCost(id, state, player.id) - city.hammerBasket);
+    const wait = Math.ceil(needed / made);
+    const sooner = delayDiscount(0, ctx) - delayDiscount(wait, ctx);
+    const delta = yieldDelta(folds.with(index, id), folds.standing(index));
+    const terms: ValueTerm[] = [
+      nest('what this town would actually make with it', explainYields(delta, ctx)),
+      nest('what its row gives beyond a yield', explainBuildingRow(id, ctx, city)),
+    ];
+    const race = raceTerm(ctx, { kind: 'building', id });
+    if (race !== null) terms.push(race);
+    terms.push({
+      label: `× ${round(sooner)} — it lands now instead of in ${wait} turn${wait === 1 ? '' : 's'}`,
+      value: sooner,
+      op: 'mul',
+    });
+    wants.push(want(`${buildingDef(id).name} at ${city.name}, bought with culture`, 'culture', reach, city, item, terms));
+  }
+  return wants;
 }
 
 /**

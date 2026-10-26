@@ -160,7 +160,6 @@ import {
   explainCardEffects,
   onDraftWorth,
   explainEffects,
-  explainLump,
   explainProjectRow,
   explainSoldier,
   explainUpkeepCost,
@@ -178,6 +177,13 @@ import {
   yieldWeight,
   ageBand,
   explainCitizenLevy,
+  // Magisterial batch MG17: the act a person would pay, moved to the appraisal
+  // so the card that adds an act (The Universal Genius) reads the same figure.
+  explainActFor,
+  // Magisterial batch MG17: what the seat's cards pay for a pass, and whether
+  // a person may act and then still lay its work.
+  passRiderTerms,
+  actsBeforeWork,
 } from './value';
 import { citizenKeepTerm } from './citizen';
 import {
@@ -208,7 +214,6 @@ import { effectsOfKind, unitMatches } from '../sim/statecraft/evaluator';
 import { levyOptions } from '../sim/levies';
 import { discoveryDef } from '../sim/discoveryData';
 import {
-  type Family,
   type GreatPersonId,
   familyVerb,
   greatPersonDef,
@@ -269,8 +274,6 @@ import { cityAt } from '../sim/cities';
 import { explainEmpireGold } from '../sim/empireGold';
 import { autoExploreError, exploreTarget } from '../sim/explore';
 import {
-  actGainOf,
-  agedActFactor,
   familyOf,
   greatPersonActError,
   greatPersonChoiceError,
@@ -2538,9 +2541,14 @@ function slotPairTerms(
  * Constitution, Magisterial batch MG12). `slotOrderError` cannot be asked of
  * an occupied chair — it refuses on the occupant before it ever looks at the
  * fit — so the honest reading is the predicate underneath it, and the slotting
- * that follows is held to the whole gate as always. What the re-seating that
- * follows The Mixed Constitution's unslot costs is not priced here; batch
- * MG17 prices the card.
+ * that follows is held to the whole gate as always.
+ *
+ * What the re-seating that follows The Mixed Constitution's unslot costs is in
+ * the card's own price (Magisterial batch MG17, `widerFitWorth` in
+ * `value.ts`): the council its wide fit seats, less the council the plain fit
+ * would seat in the same chairs. A bench card takes its chair only when it is
+ * worth more than that, so the bot does not lose the cards only the wide fit
+ * seated for a card worth less than they are.
  */
 function reslotDecision(
   state: GameState,
@@ -2994,6 +3002,16 @@ function orderDecision(state: GameState, player: Player, sitting?: BotSitting): 
  *
  * The discount is unchanged: the pity is only collected at the *next* deal, so it
  * waits for the meter exactly as the hand did.
+ *
+ * **What the seat's pass riders pay is added** (Magisterial batch MG17), read
+ * at this hand's own price (`passRiderTerms`, `value.ts`): The Unwritten
+ * Chapter's science, for one. A rider that deals a free hand at once (The
+ * Second Sitting, for a hand the seat paid culture for) changes what a pass
+ * is: the next hand is dealt now, with the pity the pass raised, and is not
+ * waited for. So the pass is then worth that hand's expected best card in
+ * full, with no delay, and the pity is not counted again: picking from the
+ * free hand spends it. No free hand opens while a Doctrine offer waits or
+ * while the decks have nothing left to deal (`freeDraftCanOpen`'s clauses).
  */
 function skipCandidate(state: GameState, player: Player, ctx: ValueContext): BotCandidate {
   const sc = player.statecraft;
@@ -3009,15 +3027,27 @@ function skipCandidate(state: GameState, player: Player, ctx: ValueContext): Bot
   // batch MG5, `draftCostFor`).
   const rate = foldEmpireRates(state, player.id).culturePerTurn ?? 0;
   const delay = draftCostFor(state, player, sc.drafts + 1) / Math.max(1, rate);
-  const terms: ValueTerm[] = [
-    {
-      label:
-        `what one more pass of pity adds to the next hand — ${round1(pitied)} with ` +
-        `${sc.orderSkips + 1} banked against ${round1(asIs)} with ${sc.orderSkips}`,
-      value: pitied - asIs,
-    },
-    delayTerm(delay, ctx, 'the meter has to fill again'),
-  ];
+  const riders = passRiderTerms(ctx, sc.pendingOrder?.price);
+  const freeHand = riders.freeHand && sc.pendingDoctrine === undefined && bags.length > 0;
+  const terms: ValueTerm[] = freeHand
+    ? [
+        {
+          label:
+            `a free hand dealt at once — its best card is worth about ${round1(pitied)}, ` +
+            `with ${sc.orderSkips + 1} pass${sc.orderSkips + 1 === 1 ? '' : 'es'} of pity`,
+          value: pitied,
+        },
+      ]
+    : [
+        {
+          label:
+            `what one more pass of pity adds to the next hand — ${round1(pitied)} with ` +
+            `${sc.orderSkips + 1} banked against ${round1(asIs)} with ${sc.orderSkips}`,
+          value: pitied - asIs,
+        },
+        delayTerm(delay, ctx, 'the meter has to fill again'),
+      ];
+  for (const term of riders.terms) terms.push(term);
   return { label: 'pass the hand', score: foldOf(terms), chosen: false, terms };
 }
 
@@ -4394,6 +4424,11 @@ function spendCommand(state: GameState, player: Player, sitting?: BotSitting): B
   if (gold !== null) return gold;
   const faith = bankSpend(state, player, ctx, 'faith');
   if (faith !== null) return faith;
+  // **A wonder bought with culture** (Magisterial batch MG17; Magnificence).
+  // The culture book holds a buyable row only under the rule, so a seat
+  // without it asks nothing here.
+  const culture = bankSpend(state, player, ctx, 'culture');
+  if (culture !== null) return culture;
   return contributionCommand(state, player, ctx);
 }
 
@@ -4406,7 +4441,9 @@ function spendCommand(state: GameState, player: Player, sitting?: BotSitting): B
  *     today and the reserve survives;
  *   · the **bar** — the highest-ranking *hold* row: the wages this empire owes
  *     (`wageReserveRow`), and one row per want the purse cannot yet reach,
- *     discounted by how many turns of saving it is away (`savingRows`).
+ *     discounted by how many turns of saving it is away (`savingRows`). In the
+ *     culture bank (Magisterial batch MG17) the bar is the draft plan's row:
+ *     the hand the same culture would deal.
  *
  * A purchase happens when the first is at least the second, and the tie goes to
  * buying: a want level with holding is a want whose coins are doing the same
@@ -4426,7 +4463,8 @@ function bankSpend(
   ctx: ValueContext,
   currency: BankCurrency,
 ): BotDecision | null {
-  const wants = currency === 'gold' ? ctx.wants.gold : ctx.wants.faith;
+  const wants =
+    currency === 'gold' ? ctx.wants.gold : currency === 'faith' ? ctx.wants.faith : ctx.wants.culture;
   // The hard cover, hoisted: it prices the whole empire's standing bill, and
   // asking it once per candidate would be one empire sweep per row for sale.
   const reserve = currency === 'gold' ? goldReserveFor(state, player) : 0;
@@ -4439,7 +4477,11 @@ function bankSpend(
   // place rather than printed twice.
   const offers: { want: Want; candidate: BotCandidate }[] = [];
   for (const want of wants) {
-    if (want.holding !== undefined) {
+    // **The draft the culture would buy is the culture bank's bar**
+    // (Magisterial batch MG17): culture spent on a wonder is culture the next
+    // hand no longer has, so the draft plan's row is what holding it is worth.
+    const draftRow = currency === 'culture' && want.buy === undefined;
+    if (want.holding !== undefined || draftRow) {
       if (bar === null || worthPerCoin(want) > worthPerCoin(bar)) bar = want;
       candidates.push(wantCandidate(want, currency, false));
       continue;
@@ -8719,6 +8761,28 @@ function greatPersonCommand(
   const act = actRefusal === null ? explainAct(state, player, unit, ctx) : null;
   if (act === null) tried.push(refused(actWords, actRefusal ?? 'this piece has no boon to spend'));
 
+  // **Act first, then lay the work** (Magisterial batch MG17, The Universal
+  // Genius). While the rule holds, an act does not spend a person who has a
+  // work to lay (`greatPersonActAt`), so the act costs the work nothing. The
+  // person acts whenever the act pays anything; the next time it is asked,
+  // the act is refused for a person who has acted, and it lays its work as
+  // below.
+  if (
+    act !== null &&
+    act.total > 0 &&
+    workOf(unit) !== null &&
+    actsBeforeWork(state, player.id)
+  ) {
+    tried.push({ label: actWords, score: act.total, chosen: true, terms: act.terms });
+    return {
+      command: { type: 'greatPersonAct', playerId: player.id, unitId: unit.id },
+      summary:
+        `${actWords} first — ${round1(act.total)} a turn's worth of one-time boon, ` +
+        `and a seated card keeps the piece on the board to ${workWords} after.`,
+      candidates: tried,
+    };
+  }
+
   const work = workOf(unit);
   const sites =
     work === null ? [] : rankWorkSites(state, player, ctx, work, unit, ai.workers.searchRadius);
@@ -8788,18 +8852,10 @@ function greatPersonCommand(
 }
 
 /**
- * What spending this person **now** is worth, per turn, in the one currency.
- *
- * Every figure is `greatPersonActAt`'s own — the same `RULES.greatPeople` rows,
- * the same era multiplier, the same `agedActFactor` — read rather than
- * reinvented, so the bot's expectation and the reducer's payout are the same
- * arithmetic minus one term it cannot ask for (Leonardo's amplifier, which is a
- * card evaluated hypothetically and `statecraft.ts` does not answer that).
- *
- * The two **timed** families are honest about being timed: an artist's calm and
- * a general's aura are per-turn effects that run out, so they are priced as
- * their per-turn worth times their share of `score.lumpTurns` — the same
- * exchange rate a lump goes through, applied from the other end.
+ * What spending this person **now** is worth, per turn, in the one currency:
+ * `explainActFor` (`value.ts`) asked of the piece's family where it stands.
+ * The reading moved to `value.ts` in Magisterial batch MG17, so the card that
+ * adds an act (The Universal Genius) and this arm read one figure.
  */
 function explainAct(
   state: GameState,
@@ -8808,102 +8864,6 @@ function explainAct(
   ctx: ValueContext,
 ): Appraisal | null {
   return explainActFor(state, player, ctx, familyOf(unit), { col: unit.col, row: unit.row });
-}
-
-/**
- * The same appraisal asked of a **family and a hex** rather than of a piece —
- * `explainAct`'s implementation, and the reading a name in a hand is priced by
- * before any piece exists (`explainGreatPerson`, batch 8).
- *
- * `here` is where the piece stands or would stand, and it is load-bearing for
- * exactly one family: a general's aura is worth what the column standing around
- * it is worth. `null` — an empire with no town — prices the two town-bound boons
- * at nothing, which is what `greatPersonActError` would refuse them for.
- */
-function explainActFor(
-  state: GameState,
-  player: Player,
-  ctx: ValueContext,
-  family: Family | null,
-  here: { col: number; row: number } | null,
-): Appraisal | null {
-  if (family === null) return null;
-  const people = RULES.greatPeople;
-  const era = highestAge(player.techsResearched);
-  const aged = agedActFactor(player);
-  const lumpTurns = Math.max(1, ctx.ai.score.lumpTurns);
-
-  switch (family) {
-    case 'scholar': {
-      const aim = player.researching;
-      if (aim === null) return null;
-      // Turns of the empire's own science, off the act's own seam (`actGainOf`)
-      // rather than a second reading of the books. Deliberately un-aged, exactly
-      // as the reducer's scholar arm is: a rate already grows with the tree.
-      const beakers = actGainOf(state, player.id, 'science');
-      return appraise([nest(`${beakers} beakers toward ${techDef(aim).name}`, explainLump({ science: beakers }, ctx))]);
-    }
-    case 'engineer': {
-      if (here === null) return null;
-      const hammers = Math.floor(people.engineerHammers * era * aged);
-      return appraise([nest(`${hammers} hammers into a basket`, explainLump({ production: hammers }, ctx))]);
-    }
-    case 'merchant': {
-      const gold = Math.floor(people.merchantGold * era * aged);
-      return appraise([nest(`${gold} gold into the treasury`, explainLump({ gold }, ctx))]);
-    }
-    case 'artist': {
-      if (here === null) return null;
-      const culture = actGainOf(state, player.id, 'culture');
-      const calm = (people.artistHappiness * ctx.ai.weights.happiness * people.artistTurns) / lumpTurns;
-      return appraise([
-        nest(`${culture} culture into the basket`, explainLump({ culture }, ctx)),
-        {
-          label: `${people.artistHappiness} happiness for ${people.artistTurns} turns`,
-          value: calm,
-        },
-      ]);
-    }
-    case 'general': {
-      const blessed =
-        here === null ? 0 : friendlyPiecesAround(state, player.id, here, people.generalRadius);
-      const aura =
-        (people.generalCombat * ctx.ai.weights.military * blessed * people.generalTurns) / lumpTurns;
-      return appraise([
-        {
-          label:
-            `${people.generalCombat} strength on ${blessed} piece${blessed === 1 ? '' : 's'} ` +
-            `for ${people.generalTurns} turns`,
-          value: aura,
-        },
-      ]);
-    }
-    default: {
-      // No `never` check: a sixth family is a design decision in `src/sim/`, and
-      // a bot that failed to compile over one would be the wrong module refusing.
-      return null;
-    }
-  }
-}
-
-/** How many of this empire's pieces stand within a radius of a hex. */
-function friendlyPiecesAround(
-  state: GameState,
-  playerId: number,
-  at: { col: number; row: number },
-  radius: number,
-): number {
-  const from = getTileAt(state.map, at.col, at.row);
-  if (!from) return 0;
-  const here = tileHex(from);
-  let count = 0;
-  for (const other of state.units) {
-    if (other.ownerId !== playerId) continue;
-    const on = getTileAt(state.map, other.col, other.row);
-    if (!on) continue;
-    if (wrappedDistance(state.map, here, tileHex(on)) <= radius) count += 1;
-  }
-  return count;
 }
 
 /**
