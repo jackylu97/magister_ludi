@@ -7807,7 +7807,9 @@ export function higherRank(a: RankId | null, b: RankId | null): RankId | null {
  * the simulation's own answer to "how many of this does a town have", and a
  * second implementation of "citizens" beside it is how two cards start
  * disagreeing about one number. `within: 'city'` because the line lands in one
- * town and the count is that town's.
+ * town and the count is that town's. A row that says `within: 'empire'` (The
+ * Bulwark of Marvels, Magisterial batch MG3) counts across the empire instead,
+ * so its wonders are every wonder the empire holds.
  */
 function cityStatProbe(effect: CardCityStatEffect): CardPaysEffect {
   return {
@@ -7817,7 +7819,7 @@ function cityStatProbe(effect: CardCityStatEffect): CardPaysEffect {
     count: effect.count,
     per: effect.per,
     max: effect.max,
-    within: 'city',
+    ...(effect.within === 'empire' ? {} : { within: 'city' as const }),
     // The category a counted wall asks about (Devotion batch DV3, The Sacred
     // Precincts' religious buildings). Absent on every row written before it.
     ...(effect.category === undefined ? {} : { category: effect.category }),

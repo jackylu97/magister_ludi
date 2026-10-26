@@ -1057,10 +1057,18 @@ describe('determinism', () => {
    * Magisterial batch MG2 exactly. With the version printed as 179 and the
    * fields left in, the hashes differ and the length is 45 bytes longer, which
    * is the field and nothing else.
+   *
+   * **Magisterial batch MG3 (the data-only cards of Tiers II to IV, schema
+   * 181) moved the hash and not the length** at both seeds: 180 became 181,
+   * and that is all. The batch adds eleven card rows, deals two deferred rows,
+   * and adds one optional field to a counted city stat, which no row on this
+   * board carries. Nobody here drafts, so no seat holds a new card. Checked
+   * with the change in place and the version printed as 180, which gives the
+   * hashes of Devotion batch DV3 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '0b267534:188976',
-    2026: '4e7a262d:188554',
+    11: '5acd4f2b:188976',
+    2026: '233d4d4e:188554',
   };
 
   for (const seed of [11, 2026]) {

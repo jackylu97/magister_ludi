@@ -30,13 +30,27 @@
  *     Overseers of Works, The Siting Masters (reading 28), The Keepers of
  *     Wonders, The Ceremonial Guard, The Unveiling (reading 14) and The
  *     Encyclopedia.
+ *
+ * Batch MG3 added the eleven cards of Tiers II to IV whose shapes already
+ * existed, and dealt two rows that had waited for it. This file checks each
+ * of them on a small board:
+ *
+ *   · Tier II: The Prefects, The Symposium (reading 14), Letters Patent, The
+ *     Quarter of Masters (reading 27; a new id, reading 45), The Gazetteers,
+ *     The Seven Sights and The Golden Age;
+ *   · Tier III: The Boule, The Roll of Masters and The Garden Courts;
+ *   · Tier IV: The Privy Council, The Magister's Court and The Bulwark of
+ *     Marvels. The Bulwark needed one new field: its count of wonders is the
+ *     empire's, not only the town's (`CardCityStatEffect.within`).
  */
 
 import { describe, expect, it } from 'vitest';
 
+import { type BuildingId, WONDER_IDS } from '../../../src/sim/buildingData';
 import { foundCityAt, ownedTiles, realiseItem, refreshCityDerived } from '../../../src/sim/cities';
 import { applyCommand } from '../../../src/sim/commands';
-import { GREAT_PERSON_IDS, greatPersonDef } from '../../../src/sim/greatPeopleData';
+import { greatPersonActAt, settleGreatPersonChoice } from '../../../src/sim/greatPeople';
+import { GREAT_PERSON_IDS, type GreatPersonId, greatPersonDef } from '../../../src/sim/greatPeopleData';
 import { type Tile, raiseImprovement, tileNeighbors } from '../../../src/sim/map';
 import { explainAuthority, explainHappiness } from '../../../src/sim/meters';
 import { explainRerollCost, rerollDoorOpen, rihlaPaysFor, settleReroll } from '../../../src/sim/religion';
@@ -50,6 +64,7 @@ import {
   playerById,
 } from '../../../src/sim/state';
 import {
+  cardAmplifier,
   cardCityStat,
   cardCombatLines,
   cardProduction,
@@ -71,7 +86,7 @@ import {
   ordersForDecks,
 } from '../../../src/sim/statecraftData';
 import { type TechId, highestAge, techDef } from '../../../src/sim/techData';
-import { cityContext, explainTileYield } from '../../../src/sim/yields/hex';
+import { cityContext, explainTileYield, foldTile } from '../../../src/sim/yields/hex';
 import { at, bareState } from '../improvementHelpers';
 
 /** Puts a card in a chair for this seat, the way the reading sees it. */
@@ -229,14 +244,16 @@ describe('Magisterial batch MG1: the rows', () => {
     expect(orderDef('theLastCommission' as OrderId).band).toBe(4);
   });
 
-  it('gives the three deferred rows their new text and keeps them out of every pool', () => {
+  it('gives the three deferred rows their new text, and keeps The Last Commission out of every pool', () => {
     expect(orderDef('theGoldenAge' as OrderId).text).toBe(
       'Completing a wonder gives your cities +20% production and culture for ten turns. A later wonder restarts the ten turns.',
     );
     expect(orderDef('magisterialTheMagistersCourt' as OrderId).text).toBe(
       'Cities containing a wonder gain +25% production toward the Magnum Opus.',
     );
-    for (const id of ['theGoldenAge', 'magisterialTheMagistersCourt', 'theLastCommission']) {
+    // Batch MG3 dealt The Golden Age and The Magister's Court (see below).
+    // The Last Commission waits for batch MG8.
+    for (const id of ['theLastCommission']) {
       const def = orderDef(id as OrderId);
       expect(orderIsDealt(id as OrderId), id).toBe(false);
       expect(def.retired, id).toBeUndefined();
@@ -688,5 +705,427 @@ describe('Magisterial batch MG2: towns, works and wonders', () => {
     // While that hand waits, a second wonder deals nothing (reading 14).
     realiseItem(state, city, { kind: 'building', id: 'greatLibrary' as never });
     expect(player.statecraft.pendingOrder).toBe(hand);
+  });
+});
+
+// --- batch MG3: the data-only cards of Tiers II to IV ------------------------
+
+/** The thirteen rows batch MG3 dealt, with the tier, rarity and type the sheet gives each. */
+const MG3_ROWS: readonly [string, number, string, string][] = [
+  ['thePrefects', 2, 'uncommon', 'economic'],
+  ['theSymposium', 2, 'uncommon', 'wildcard'],
+  ['lettersPatent', 2, 'uncommon', 'civic'],
+  ['magisterialTheQuarterOfMasters', 2, 'common', 'civic'],
+  ['theGazetteers', 2, 'uncommon', 'economic'],
+  ['theSevenSights', 2, 'uncommon', 'civic'],
+  ['theGoldenAge', 2, 'rare', 'civic'],
+  ['theBoule', 3, 'uncommon', 'civic'],
+  ['theRollOfMasters', 3, 'uncommon', 'civic'],
+  ['theGardenCourts', 3, 'uncommon', 'civic'],
+  ['thePrivyCouncil', 4, 'rare', 'wildcard'],
+  ['magisterialTheMagistersCourt', 4, 'uncommon', 'economic'],
+  ['theBulwarkOfMarvels', 4, 'uncommon', 'military'],
+];
+
+/** Eight wonders with no site rule, for the counts. */
+const WONDERS = [
+  'pyramids',
+  'greatLibrary',
+  'stonehenge',
+  'theOracle',
+  'hangingGardens',
+  'wallsOfUruk',
+  'greatZiggurat',
+  'templeOfArtemis',
+] as const;
+
+/** Raises these buildings in a town and refreshes it. */
+function raise(state: GameState, city: City, ...ids: readonly string[]): void {
+  for (const id of ids) addBuilding(state, city, id as BuildingId);
+  refreshCityDerived(state, city);
+  bumpRevision(state);
+}
+
+/** Lays these works on the given hexes and refreshes every town. */
+function lay(state: GameState, work: string, ...tiles: readonly Tile[]): void {
+  for (const tile of tiles) raiseImprovement(tile, work as never, state.turn);
+  for (const city of state.cities) refreshCityDerived(state, city);
+  bumpRevision(state);
+}
+
+/** Whether two hexes touch. */
+function touching(state: GameState, a: Tile, b: Tile): boolean {
+  return tileNeighbors(state.map, a).some((tile) => tile.col === b.col && tile.row === b.row);
+}
+
+describe('Magisterial batch MG3: the rows', () => {
+  it('deals all thirteen from the tier, rarity and type the sheet names', () => {
+    expect(WONDERS.every((id) => WONDER_IDS.includes(id as BuildingId))).toBe(true);
+    const pool = ordersForDecks(['magisterial']);
+    for (const [id, band, rarity, type] of MG3_ROWS) {
+      const def = orderDef(id as OrderId);
+      expect(orderIsDealt(id as OrderId), id).toBe(true);
+      expect(pool, id).toContain(id);
+      expect(def.decks, id).toEqual(['magisterial']);
+      expect(def.band, id).toBe(band);
+      expect(def.rarity, id).toBe(rarity);
+      expect(def.type, id).toBe(type);
+      expect(def.deferred, id).toBeUndefined();
+    }
+  });
+
+  it('prints every clause plainly, with no keyword mark left raw', () => {
+    for (const [id] of MG3_ROWS) {
+      const clauses = describeCard(id as OrderId);
+      expect(clauses.length, id).toBeGreaterThan(0);
+      for (const clause of clauses) {
+        expect(clause.deferred, id).not.toBe(true);
+        expect(stripRefs(clause.text), id).not.toContain('[[');
+      }
+    }
+    // The Bulwark counts the empire's wonders, and its words say so.
+    expect(describeCard('theBulwarkOfMarvels' as OrderId).map((clause) => stripRefs(clause.text))).toEqual([
+      'every city raising the Magnum Opus: +4 city defence per wonder you hold',
+    ]);
+  });
+
+  it('gives The Quarter of Masters a new id, and leaves the retired Expansionist row of that name alone', () => {
+    // Reading 45: a new card takes no cut row's id. The Expansionist row was
+    // cut there, and it keeps its id, its deck and its retirement.
+    const card = orderDef('magisterialTheQuarterOfMasters' as OrderId);
+    expect(card.name).toBe('The Quarter of Masters');
+    expect(card.decks).toEqual(['magisterial']);
+    expect(DECK_FILE_ORDERS.magisterial).toContain('magisterialTheQuarterOfMasters');
+    const old = orderDef('theQuarterOfMasters' as OrderId);
+    expect(old.name).toBe('The Quarter of Masters');
+    expect(old.decks).toEqual(['expansionist']);
+    expect(old.retired).toBe(true);
+    expect(old.effects).toEqual([]);
+    expect(orderIsDealt('theQuarterOfMasters' as OrderId)).toBe(false);
+    expect(DECK_FILE_ORDERS.expansionist).toContain('theQuarterOfMasters');
+    // A lookup by name among the rows that are not retired, as the sheets and
+    // the worksheet make it, finds the Magisterial card and nothing else.
+    const named = ORDER_IDS.filter(
+      (id) => orderDef(id).name === 'The Quarter of Masters' && orderDef(id).retired !== true,
+    );
+    expect(named).toEqual(['magisterialTheQuarterOfMasters']);
+  });
+});
+
+describe('Magisterial batch MG3: the council cards', () => {
+  it('The Prefects gives every town +5% production for each Economic card seated, itself included', () => {
+    const state = bareState(20, 10);
+    const capital = town(state, 3, 5, 3);
+    const other = town(state, 12, 5, 3);
+    slot(state, 0, 'thePrefects');
+    expect(townPercent(state, capital, 'thePrefects', 'production')).toBe(5);
+    expect(townPercent(state, other, 'thePrefects', 'production')).toBe(5);
+    slot(state, 0, 'theCornerstone');
+    expect(townPercent(state, capital, 'thePrefects', 'production')).toBe(10);
+    // A card of another type adds nothing.
+    slot(state, 0, 'thePolemarch');
+    slot(state, 0, 'theRepertory');
+    expect(townPercent(state, capital, 'thePrefects', 'production')).toBe(10);
+    expect(townPercent(state, other, 'thePrefects', 'production')).toBe(10);
+    expect(townPercent(state, capital, 'thePrefects', 'gold')).toBe(0);
+  });
+
+  it('The Boule gives every town +2% science and culture for each card seated, itself included', () => {
+    const state = bareState(20, 10);
+    const capital = town(state, 3, 5, 3);
+    const other = town(state, 12, 5, 3);
+    slot(state, 0, 'theBoule');
+    expect(townPercent(state, capital, 'theBoule', 'science')).toBe(2);
+    expect(townPercent(state, capital, 'theBoule', 'culture')).toBe(2);
+    slot(state, 0, 'theCornerstone');
+    slot(state, 0, 'thePolemarch');
+    for (const city of [capital, other]) {
+      expect(townPercent(state, city, 'theBoule', 'science')).toBe(6);
+      expect(townPercent(state, city, 'theBoule', 'culture')).toBe(6);
+    }
+    // A card held and not seated does not count.
+    playerById(state, 0)!.statecraft.orders.push('theEncyclopedia' as OrderId);
+    bumpRevision(state);
+    expect(townPercent(state, capital, 'theBoule', 'science')).toBe(6);
+  });
+
+  it('The Privy Council adds +1 production to each line of another card that pays production', () => {
+    const state = bareState(20, 10);
+    const capital = town(state, 3, 5, 3);
+    const other = town(state, 12, 5, 3);
+    raise(state, capital, 'monument');
+    raise(state, other, 'monument');
+    slot(state, 0, 'thePrivyCouncil');
+    // With no other card it raises nothing, and never itself.
+    expect(townPays(state, capital, 'thePrivyCouncil', 'production')).toBe(0);
+    // Civic Granaries pays +1 food and +1 production in each town with a
+    // Monument, so each town's line gains one production and no food.
+    slot(state, 0, 'civicGranaries');
+    expect(townPays(state, capital, 'thePrivyCouncil', 'production')).toBe(1);
+    expect(townPays(state, other, 'thePrivyCouncil', 'production')).toBe(1);
+    expect(townPays(state, capital, 'thePrivyCouncil', 'food')).toBe(0);
+    // A hex line is a line of its own: The Masters' Domain on a work.
+    slot(state, 0, 'theMastersDomain');
+    const [work] = ring(state, capital);
+    lay(state, 'academy', work!);
+    expect(hexPays(state, capital, work!, 'thePrivyCouncil').production).toBe(1);
+    // A percentage is not raised: The Prefects adds no line to raise.
+    slot(state, 0, 'thePrefects');
+    expect(townPays(state, capital, 'thePrivyCouncil', 'production')).toBe(1);
+  });
+});
+
+describe('Magisterial batch MG3: the patrons', () => {
+  it('The Symposium deals a free Order hand when a great person is gained, and only when no hand waits', () => {
+    const state = bareState();
+    town(state, 5, 5, 3);
+    const player = playerById(state, 0)!;
+    slot(state, 0, 'theSymposium');
+    expect(windfallPayout(state, 0, 'greatPersonGained').freeDraft).toBe(true);
+    const drafts = player.statecraft.drafts;
+    player.greatPersonOffer = { options: ['lamassi' as GreatPersonId] };
+    expect(settleGreatPersonChoice(state, player, 0)).not.toBeNull();
+    const hand = player.statecraft.pendingOrder;
+    expect(hand).toBeDefined();
+    expect(hand!.options.length).toBeGreaterThan(0);
+    // The free hand does not move the draft count, so the next price holds.
+    expect(player.statecraft.drafts).toBe(drafts);
+    // While that hand waits, a second person deals nothing (reading 14).
+    player.greatPersonOffer = { options: ['ahmes' as GreatPersonId] };
+    expect(settleGreatPersonChoice(state, player, 0)).not.toBeNull();
+    expect(player.statecraft.pendingOrder).toBe(hand);
+  });
+
+  it('Letters Patent makes a great person’s act pay half as much again', () => {
+    /** The gold a merchant's act pays seat 0, with or without the card. */
+    const merchantGold = (seated: boolean): number => {
+      const state = bareState();
+      const city = town(state, 5, 5, 3);
+      const player = playerById(state, 0)!;
+      if (seated) slot(state, 0, 'lettersPatent');
+      const unit = createUnit(state, 0, 'greatPerson', city.col, city.row, 'lamassi' as GreatPersonId);
+      expect(greatPersonDef('lamassi' as GreatPersonId).family).toBe('merchant');
+      const before = player.gold;
+      greatPersonActAt(state, player, unit);
+      return player.gold - before;
+    };
+    const plain = merchantGold(false);
+    expect(plain).toBeGreaterThan(0);
+    expect(merchantGold(true)).toBe(Math.floor((plain * 150) / 100));
+    // Every family's act reads the same +50%.
+    const state = bareState();
+    town(state, 5, 5, 3);
+    expect(cardAmplifier(state, 0, 'greatPersonAct', 'scholar')).toBe(0);
+    slot(state, 0, 'lettersPatent');
+    for (const family of ['scholar', 'artist', 'engineer', 'merchant', 'general'] as const) {
+      expect(cardAmplifier(state, 0, 'greatPersonAct', family), family).toBe(50);
+    }
+  });
+
+  it('The Roll of Masters pays every town +3% science and culture for each great person gained, at most +30%', () => {
+    const state = bareState(20, 10);
+    const capital = town(state, 3, 5, 3);
+    const other = town(state, 12, 5, 3);
+    const player = playerById(state, 0)!;
+    // People gained before the card was seated count too. The count is the
+    // record of every person gained (`Player.greatPeopleRecruited`), raised
+    // when a person is chosen, so a person spent still counts.
+    player.greatPeopleRecruited = 3;
+    bumpRevision(state);
+    slot(state, 0, 'theRollOfMasters');
+    for (const city of [capital, other]) {
+      expect(townPercent(state, city, 'theRollOfMasters', 'science')).toBe(9);
+      expect(townPercent(state, city, 'theRollOfMasters', 'culture')).toBe(9);
+    }
+    // Twelve people, and the pay stops at ten: +30%.
+    player.greatPeopleRecruited = 12;
+    bumpRevision(state);
+    expect(townPercent(state, capital, 'theRollOfMasters', 'science')).toBe(30);
+    expect(townPercent(state, capital, 'theRollOfMasters', 'culture')).toBe(30);
+  });
+});
+
+describe('Magisterial batch MG3: works on the land', () => {
+  it('The Quarter of Masters pays a work beside another work its own yield again, once, and repeats no card line', () => {
+    const state = bareState(20, 12);
+    const city = town(state, 8, 6, 3);
+    const around = ring(state, city);
+    expect(around.length).toBeGreaterThanOrEqual(6);
+    // Three works in a row (b, a, c), so a has two works beside it and b one,
+    // and one work beside none of them.
+    const a = around[0]!;
+    const [b, c] = around.filter((tile) => tile !== a && touching(state, a, tile));
+    expect(b, 'a hex of the ring beside the first').toBeDefined();
+    expect(c, 'a second hex of the ring beside the first').toBeDefined();
+    const lone = around.find(
+      (tile) => ![a, b!, c!].includes(tile) && ![a, b!, c!].some((work) => touching(state, work, tile)),
+    );
+    expect(lone, 'a hex of the ring beside none of the three').toBeDefined();
+    const bare = around.find((tile) => ![a, b!, c!, lone!].includes(tile))!;
+    lay(state, 'academy', a, b!, c!, lone!);
+    // The work's own yield: the work's hex less a bare hex of the same ground,
+    // read before any card is seated.
+    const ctx = cityContext(state, city);
+    const own: Record<Voice, number> = { food: 0, production: 0, gold: 0, science: 0, culture: 0 };
+    const workFold = foldTile(a, ctx);
+    const bareFold = foldTile(bare, ctx);
+    for (const voice of Object.keys(own) as Voice[]) own[voice] = workFold[voice] - bareFold[voice];
+    expect(Object.values(own).some((amount) => amount > 0), 'the work yields something').toBe(true);
+    slot(state, 0, 'magisterialTheQuarterOfMasters');
+    // Paid once on a, however many works stand beside it, and once on b.
+    expect(hexPays(state, city, a, 'magisterialTheQuarterOfMasters')).toEqual(own);
+    expect(hexPays(state, city, b!, 'magisterialTheQuarterOfMasters')).toEqual(own);
+    // Nothing on a work with no work beside it.
+    expect(hexPays(state, city, lone!, 'magisterialTheQuarterOfMasters')).toEqual({
+      food: 0,
+      production: 0,
+      gold: 0,
+      science: 0,
+      culture: 0,
+    });
+    // A card's line on the work is not paid again (reading 27).
+    slot(state, 0, 'theMastersDomain');
+    expect(hexPays(state, city, a, 'theMastersDomain').food).toBe(3);
+    expect(hexPays(state, city, a, 'magisterialTheQuarterOfMasters')).toEqual(own);
+  });
+
+  it('The Gazetteers pays every town +3% production and gold for each great-person work in your borders, at most +30%', () => {
+    const state = bareState(20, 10);
+    const first = town(state, 3, 5, 3);
+    const second = town(state, 12, 5, 3);
+    slot(state, 0, 'theGazetteers');
+    expect(townPercent(state, first, 'theGazetteers', 'production')).toBe(0);
+    const [a, b] = ring(state, first);
+    const [c, farm] = ring(state, second);
+    lay(state, 'academy', a!);
+    lay(state, 'landmark', b!);
+    lay(state, 'manufactory', c!);
+    // A farm is not a great-person work.
+    lay(state, 'farm', farm!);
+    for (const city of [first, second]) {
+      expect(townPercent(state, city, 'theGazetteers', 'production')).toBe(9);
+      expect(townPercent(state, city, 'theGazetteers', 'gold')).toBe(9);
+    }
+    // A work counts whether or not a town works it. Twelve works, and the pay
+    // stops at ten: +30%.
+    const all = [...ring(state, first), ...ring(state, second)];
+    expect(all.length).toBeGreaterThanOrEqual(11);
+    lay(state, 'academy', ...all);
+    expect(townPercent(state, first, 'theGazetteers', 'production')).toBe(30);
+    expect(townPercent(state, second, 'theGazetteers', 'gold')).toBe(30);
+  });
+
+  it('The Garden Courts gives a town working at least two great-person works +20% culture and science', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    slot(state, 0, 'theGardenCourts');
+    const [a, b, c] = ring(state, city);
+    lay(state, 'academy', a!);
+    lay(state, 'landmark', b!);
+    lay(state, 'farm', c!);
+    const work = (...tiles: Tile[]): void => {
+      city.workedTiles = tiles.map((tile) => ({ col: tile.col, row: tile.row }));
+      bumpRevision(state);
+    };
+    work(a!, c!);
+    expect(townPercent(state, city, 'theGardenCourts', 'culture')).toBe(0);
+    work(a!, b!);
+    expect(townPercent(state, city, 'theGardenCourts', 'culture')).toBe(20);
+    expect(townPercent(state, city, 'theGardenCourts', 'science')).toBe(20);
+    // Owning the works is not enough: the town must work them.
+    work(c!);
+    expect(townPercent(state, city, 'theGardenCourts', 'science')).toBe(0);
+  });
+});
+
+describe('Magisterial batch MG3: the monuments', () => {
+  it('The Seven Sights pays every town +5% culture and science for each wonder held, at most +30%', () => {
+    const state = bareState(20, 10);
+    const first = town(state, 3, 5, 3);
+    const second = town(state, 12, 5, 3);
+    slot(state, 0, 'theSevenSights');
+    expect(townPercent(state, first, 'theSevenSights', 'culture')).toBe(0);
+    raise(state, first, WONDERS[0]);
+    raise(state, second, WONDERS[1], WONDERS[2]);
+    for (const city of [first, second]) {
+      expect(townPercent(state, city, 'theSevenSights', 'culture')).toBe(15);
+      expect(townPercent(state, city, 'theSevenSights', 'science')).toBe(15);
+    }
+    // Seven wonders, and the pay stops at six: +30%.
+    raise(state, second, ...WONDERS.slice(3, 7));
+    expect(townPercent(state, first, 'theSevenSights', 'culture')).toBe(30);
+    expect(townPercent(state, second, 'theSevenSights', 'science')).toBe(30);
+  });
+
+  it('The Golden Age gives every city +20% production and culture for ten turns after a wonder, and a later wonder restarts them', () => {
+    const state = bareState(20, 10);
+    const capital = town(state, 3, 5, 3);
+    const other = town(state, 12, 5, 3);
+    const player = playerById(state, 0)!;
+    slot(state, 0, 'theGoldenAge');
+    const hung = (): { expiresTurn: number }[] =>
+      (player.timed ?? []).filter((entry) => entry.card === 'theGoldenAge');
+    // A building that is not a wonder starts nothing.
+    realiseItem(state, capital, { kind: 'building', id: 'granary' as never });
+    expect(hung()).toHaveLength(0);
+    realiseItem(state, capital, { kind: 'building', id: 'pyramids' as never });
+    bumpRevision(state);
+    expect(hung()).toHaveLength(2);
+    const firstEnd = hung()[0]!.expiresTurn;
+    expect(firstEnd).toBe(state.turn + 10);
+    for (const city of [capital, other]) {
+      expect(townPercent(state, city, 'theGoldenAge', 'production')).toBe(20);
+      expect(townPercent(state, city, 'theGoldenAge', 'culture')).toBe(20);
+    }
+    // Five turns on, a second wonder starts the ten turns again and adds no
+    // second +20%.
+    state.turn += 5;
+    realiseItem(state, other, { kind: 'building', id: 'greatLibrary' as never });
+    bumpRevision(state);
+    expect(hung()).toHaveLength(2);
+    for (const entry of hung()) expect(entry.expiresTurn).toBe(firstEnd + 5);
+    expect(townPercent(state, capital, 'theGoldenAge', 'production')).toBe(20);
+    // Ten turns after the last wonder, the bonus has run out.
+    state.turn += 10;
+    bumpRevision(state);
+    expect(townPercent(state, capital, 'theGoldenAge', 'production')).toBe(0);
+    expect(townPercent(state, other, 'theGoldenAge', 'culture')).toBe(0);
+  });
+
+  it('The Magister’s Court speeds the Magnum Opus by 25% in a town that holds a wonder, and nothing else', () => {
+    const state = bareState(20, 10);
+    const bare = town(state, 3, 5, 3);
+    const holder = town(state, 12, 5, 3);
+    raise(state, holder, 'pyramids');
+    slot(state, 0, 'magisterialTheMagistersCourt');
+    const toward = (city: City, id: string): number =>
+      cardProduction(state, city, 'building', undefined, id as never)
+        .filter((line) => line.card === 'magisterialTheMagistersCourt')
+        .reduce((sum, line) => sum + line.percent, 0);
+    expect(toward(holder, 'theMagnumOpus')).toBe(25);
+    expect(toward(bare, 'theMagnumOpus')).toBe(0);
+    expect(toward(holder, 'granary')).toBe(0);
+  });
+
+  it('The Bulwark of Marvels gives the town raising the Opus +4 defence for each wonder the empire holds', () => {
+    const state = bareState(20, 10);
+    const opusTown = town(state, 3, 5, 3);
+    const other = town(state, 12, 5, 3);
+    slot(state, 0, 'theBulwarkOfMarvels');
+    const defence = (city: City): number =>
+      cardCityStat(state, city, 'defense')
+        .filter((line) => line.card === 'theBulwarkOfMarvels')
+        .reduce((sum, line) => sum + line.amount, 0);
+    raise(state, other, 'pyramids', 'greatLibrary');
+    // No town raises the Opus yet.
+    expect(defence(opusTown)).toBe(0);
+    opusTown.queue = [{ kind: 'building', id: 'theMagnumOpus' as never }];
+    bumpRevision(state);
+    // Both wonders stand in the other town, and both count.
+    expect(defence(opusTown)).toBe(8);
+    raise(state, opusTown, 'stonehenge');
+    expect(defence(opusTown)).toBe(12);
+    // A town that does not raise the Opus gains nothing, though it holds wonders.
+    expect(defence(other)).toBe(0);
   });
 });

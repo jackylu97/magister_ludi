@@ -2616,8 +2616,32 @@ import {
  * **A v179 save is refused and does not replay.** A Devotion or Magisterial
  * seat's pools hold more cards, and The Creed pays a different figure. The
  * branch migrates nothing, for the reason given under v119.
+ *
+ * v181 (branch `decks`; Magisterial batch MG3, `docs/plans/magisterial-
+ * themes-triage.md`): **the data-only Magisterial cards of Tiers II to IV.**
+ * No field joins the state. The rules that change:
+ *
+ *   · six Tier II cards are new and dealt: The Prefects, The Symposium,
+ *     Letters Patent, The Quarter of Masters, The Gazetteers and The Seven
+ *     Sights. The Quarter of Masters has a new id,
+ *     `magisterialTheQuarterOfMasters`, because the retired Expansionist row
+ *     of that name keeps `theQuarterOfMasters` (the triage's reading 45);
+ *   · three Tier III cards are new and dealt: The Boule, The Roll of Masters
+ *     and The Garden Courts;
+ *   · two Tier IV cards are new and dealt: The Privy Council and The Bulwark
+ *     of Marvels;
+ *   · The Golden Age (Tier II) and The Magister's Court (Tier IV) leave
+ *     `deferred` and are dealt;
+ *   · one field is new: `within: 'empire'` on a counted city stat, so a
+ *     town's defence can count every wonder the empire holds, not only the
+ *     wonders in that town (The Bulwark of Marvels). A row without it counts
+ *     in the town, as every row before it did.
+ *
+ * **A v180 save is refused and does not replay.** A Magisterial seat's pools
+ * hold more cards. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 180;
+export const SCHEMA_VERSION = 181;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

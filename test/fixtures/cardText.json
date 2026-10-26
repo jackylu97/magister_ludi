@@ -8625,9 +8625,8 @@
   ],
   "theGoldenAge": [
    {
-    "raw": "completing a wonder gives your towns more production and culture for a time, and a later wonder starts that time again — not built yet",
-    "text": "completing a wonder gives your towns more production and culture for a time, and a later wonder starts that time again — not built yet",
-    "deferred": true
+    "raw": "completing a wonder grants +20% production in every city; +20% culture in every city for the next 10 turns, however often it happens",
+    "text": "completing a wonder grants +20% production in every city; +20% culture in every city for the next 10 turns, however often it happens"
    }
   ],
   "theLaureateCities": [
@@ -8687,9 +8686,8 @@
   ],
   "magisterialTheMagistersCourt": [
    {
-    "raw": "towns that hold a wonder build the Magnum Opus faster — not built yet",
-    "text": "towns that hold a wonder build the Magnum Opus faster — not built yet",
-    "deferred": true
+    "raw": "+25% production toward [[building:theMagnumOpus|The Magnum Opus]], in every city containing a wonder",
+    "text": "+25% production toward The Magnum Opus, in every city containing a wonder"
    }
   ],
   "theMastersDomain": [
@@ -8863,6 +8861,92 @@
    {
     "raw": "+1 culture in your capital per Order you hold but have not placed in a slot (at most +15 culture)",
     "text": "+1 culture in your capital per Order you hold but have not placed in a slot (at most +15 culture)"
+   }
+  ],
+  "thePrefects": [
+   {
+    "raw": "+5% production in every city per economic Order you have in a slot",
+    "text": "+5% production in every city per economic Order you have in a slot"
+   }
+  ],
+  "theSymposium": [
+   {
+    "raw": "gaining a great person opens an Order draft at once, at no culture cost",
+    "text": "gaining a great person opens an Order draft at once, at no culture cost"
+   }
+  ],
+  "lettersPatent": [
+   {
+    "raw": "a great person's act pays +50%",
+    "text": "a great person's act pays +50%"
+   }
+  ],
+  "magisterialTheQuarterOfMasters": [
+   {
+    "raw": "the works on every hex carrying a great person's work beside a great person's work pay +100%",
+    "text": "the works on every hex carrying a great person's work beside a great person's work pay +100%"
+   }
+  ],
+  "theGazetteers": [
+   {
+    "raw": "+3% production in every city per hex carrying a great person's work in your borders (at most +30% production)",
+    "text": "+3% production in every city per hex carrying a great person's work in your borders (at most +30% production)"
+   },
+   {
+    "raw": "+3% gold in every city per hex carrying a great person's work in your borders (at most +30% gold)",
+    "text": "+3% gold in every city per hex carrying a great person's work in your borders (at most +30% gold)"
+   }
+  ],
+  "theSevenSights": [
+   {
+    "raw": "+5% culture in every city per wonder you hold (at most +30% culture)",
+    "text": "+5% culture in every city per wonder you hold (at most +30% culture)"
+   },
+   {
+    "raw": "+5% science in every city per wonder you hold (at most +30% science)",
+    "text": "+5% science in every city per wonder you hold (at most +30% science)"
+   }
+  ],
+  "theBoule": [
+   {
+    "raw": "+2% science in every city per Order you have placed in a slot",
+    "text": "+2% science in every city per Order you have placed in a slot"
+   },
+   {
+    "raw": "+2% culture in every city per Order you have placed in a slot",
+    "text": "+2% culture in every city per Order you have placed in a slot"
+   }
+  ],
+  "theRollOfMasters": [
+   {
+    "raw": "+3% science in every city per great person you have gained this game (at most +30% science)",
+    "text": "+3% science in every city per great person you have gained this game (at most +30% science)"
+   },
+   {
+    "raw": "+3% culture in every city per great person you have gained this game (at most +30% culture)",
+    "text": "+3% culture in every city per great person you have gained this game (at most +30% culture)"
+   }
+  ],
+  "theGardenCourts": [
+   {
+    "raw": "+20% culture in every city working 2 or more hexes carrying a great person's work",
+    "text": "+20% culture in every city working 2 or more hexes carrying a great person's work"
+   },
+   {
+    "raw": "+20% science in every city working 2 or more hexes carrying a great person's work",
+    "text": "+20% science in every city working 2 or more hexes carrying a great person's work"
+   }
+  ],
+  "thePrivyCouncil": [
+   {
+    "raw": "your Orders that give production give +1 more on every line they pay",
+    "text": "your Orders that give production give +1 more on every line they pay"
+   }
+  ],
+  "theBulwarkOfMarvels": [
+   {
+    "raw": "every city raising the Magnum Opus: +4 city defence per wonder you hold",
+    "text": "every city raising the Magnum Opus: +4 city defence per wonder you hold"
    }
   ],
   "frontierGarrisons": [

@@ -1671,11 +1671,24 @@
       "line": "none",
       "flavor": "Afterwards everyone agreed it had been one.",
       "text": "Completing a wonder gives your cities +20% production and culture for ten turns. A later wonder restarts the ten turns.",
-      "deferred": [
-        "completing a wonder gives your towns more production and culture for a time, and a later wonder starts that time again"
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "completion",
+          "wonder": true,
+          "grant": {
+            "timed": {
+              "turns": 10,
+              "effects": [
+                { "kind": "percentYields", "yield": "production", "percent": 20 },
+                { "kind": "percentYields", "yield": "culture", "percent": 20 }
+              ],
+              "renews": true
+            }
+          }
+        }
       ],
-      "effects": [],
-      "note": "Not dealt yet. Every rule this card needs exists, and it joins the deck with the next set of new Magisterial cards."
+      "note": "A wonder completed while the bonus runs starts it again, and does not add a second bonus. The Magnum Opus is not a wonder."
     },
 
     "theLaureateCities": {
@@ -1848,11 +1861,16 @@
       "line": "none",
       "flavor": "The last work is begun where the first one still stands.",
       "text": "Cities containing a wonder gain +25% production toward the Magnum Opus.",
-      "deferred": [
-        "towns that hold a wonder build the Magnum Opus faster"
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "theMagnumOpus",
+          "percent": 25,
+          "scope": { "test": "hasWonder" }
+        }
       ],
-      "effects": [],
-      "note": "Not dealt yet. Every rule this card needs exists, and it joins the deck with the next set of new Magisterial cards."
+      "note": "A town you captured that holds a wonder counts too."
     },
     "theMastersDomain": {
       "name": "The Masters' Domain",
@@ -2380,6 +2398,270 @@
         }
       ],
       "note": "A charter counts, because it never takes a chair."
+    },
+    "thePrefects": {
+      "name": "The Prefects",
+      "decks": ["magisterial"],
+      "band": 2,
+      "rarity": "uncommon",
+      "type": "economic",
+      "line": "none",
+      "flavor": "One kept the grain coming, one kept the fires out, and one kept the provinces paying.",
+      "text": "+5% production for each Economic card you have seated.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "slottedOrdersOfSlot",
+          "slot": "economic",
+          "to": "production",
+          "percent": 5,
+          "stage": "city"
+        }
+      ],
+      "note": "This card counts itself, and an Economic card in a Wildcard chair counts too."
+    },
+    "theSymposium": {
+      "name": "The Symposium",
+      "decks": ["magisterial"],
+      "band": 2,
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "line": "none",
+      "flavor": "The wine went round, and so did the ideas, and somebody always wrote them down.",
+      "text": "Each time you gain a great person, you are dealt a free Order hand.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "greatPersonGained",
+          "grant": { "freeDraft": true }
+        }
+      ],
+      "note": "No hand is dealt while an Order hand or a Doctrine offer is waiting for your answer. The free hand does not raise the price of your next hand."
+    },
+    "lettersPatent": {
+      "name": "Letters Patent",
+      "decks": ["magisterial"],
+      "band": 2,
+      "rarity": "uncommon",
+      "type": "civic",
+      "line": "none",
+      "flavor": "An open letter under the great seal, which anyone may read and nobody may refuse.",
+      "text": "Your great people's acts pay 50% more.",
+      "effects": [{ "kind": "effectAmplifier", "target": "greatPersonAct", "percent": 50 }],
+      "note": "It raises the gold, production, science and culture an act pays. A general's act pays none of these, so it gains nothing."
+    },
+    "magisterialTheQuarterOfMasters": {
+      "name": "The Quarter of Masters",
+      "decks": ["magisterial"],
+      "band": 2,
+      "rarity": "common",
+      "type": "civic",
+      "line": "none",
+      "flavor": "Put two masters on one street and watch.",
+      "text": "A great-person work beside another great-person work yields its own yield again. This never stacks.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "percent": 100,
+          "on": {
+            "test": "all",
+            "of": [{ "test": "greatWork" }, { "test": "beside", "of": { "test": "greatWork" } }]
+          }
+        }
+      ],
+      "note": "The work's own yield is paid again once, however many works stand beside it. What other cards pay on the work is not paid again."
+    },
+    "theGazetteers": {
+      "name": "The Gazetteers",
+      "decks": ["magisterial"],
+      "band": 2,
+      "rarity": "uncommon",
+      "type": "economic",
+      "line": "none",
+      "flavor": "They list every marvel in the province, and the tax collectors read the list.",
+      "text": "+3% production and gold for each great-person work in your borders, at most +30%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "tilesInBorders",
+          "tile": { "test": "greatWork" },
+          "to": "production",
+          "percent": 3,
+          "stage": "city",
+          "max": 10
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "tilesInBorders",
+          "tile": { "test": "greatWork" },
+          "to": "gold",
+          "percent": 3,
+          "stage": "city",
+          "max": 10
+        }
+      ],
+      "note": "A work counts whether or not a town works its hex. A prophet's holy site is a great-person work too."
+    },
+    "theSevenSights": {
+      "name": "The Seven Sights",
+      "decks": ["magisterial"],
+      "band": 2,
+      "rarity": "uncommon",
+      "type": "civic",
+      "line": "none",
+      "flavor": "Travellers came a long way to see seven things, and paid for their supper at every one.",
+      "text": "+5% culture and science for each wonder you hold, at most +30%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "wonders",
+          "to": "culture",
+          "percent": 5,
+          "stage": "city",
+          "max": 6
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "wonders",
+          "to": "science",
+          "percent": 5,
+          "stage": "city",
+          "max": 6
+        }
+      ],
+      "note": "A wonder you captured counts."
+    },
+    "theBoule": {
+      "name": "The Boule",
+      "decks": ["magisterial"],
+      "band": 3,
+      "rarity": "uncommon",
+      "type": "civic",
+      "line": "none",
+      "flavor": "Five hundred citizens, chosen by lot, met on every day the city needed them.",
+      "text": "+2% science and culture for each card you have seated.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "slottedOrders",
+          "to": "science",
+          "percent": 2,
+          "stage": "city"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "slottedOrders",
+          "to": "culture",
+          "percent": 2,
+          "stage": "city"
+        }
+      ],
+      "note": "Only the Orders sitting in a chair count, this one included. A charter takes no chair, so it does not count, and neither does a Doctrine."
+    },
+    "theRollOfMasters": {
+      "name": "The Roll of Masters",
+      "decks": ["magisterial"],
+      "band": 3,
+      "rarity": "uncommon",
+      "type": "civic",
+      "line": "none",
+      "flavor": "Each name on the roll makes the next one easier to find.",
+      "text": "+3% science and culture for each great person you have gained this game, at most +30%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "greatPeopleGained",
+          "to": "science",
+          "percent": 3,
+          "stage": "city",
+          "max": 10
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "greatPeopleGained",
+          "to": "culture",
+          "percent": 3,
+          "stage": "city",
+          "max": 10
+        }
+      ],
+      "note": "A great person counts from the moment you gain it, spent or not. Great people gained before this card was seated count too."
+    },
+    "theGardenCourts": {
+      "name": "The Garden Courts",
+      "decks": ["magisterial"],
+      "band": 3,
+      "rarity": "uncommon",
+      "type": "civic",
+      "line": "none",
+      "flavor": "Between the studios, a garden, and in the garden, an argument.",
+      "text": "Towns working at least two great-person works gain +20% culture and science.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": 20,
+          "scope": { "test": "workingTiles", "on": { "test": "greatWork" }, "atLeast": 2 }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 20,
+          "scope": { "test": "workingTiles", "on": { "test": "greatWork" }, "atLeast": 2 }
+        }
+      ]
+    },
+    "thePrivyCouncil": {
+      "name": "The Privy Council",
+      "decks": ["magisterial"],
+      "band": 4,
+      "rarity": "rare",
+      "type": "wildcard",
+      "line": "none",
+      "flavor": "The council met in private, so nobody saw how much it decided.",
+      "text": "Each of your cards that pays production pays +1 more production wherever it pays it.",
+      "effects": [{ "kind": "cardYieldAmplifier", "yield": "production", "amount": 1 }],
+      "note": "Each town, hex or empire line counts on its own, so a card that pays production in many towns gains in each of them. A percentage is not raised, and this card does not raise itself."
+    },
+    "theBulwarkOfMarvels": {
+      "name": "The Bulwark of Marvels",
+      "decks": ["magisterial"],
+      "band": 4,
+      "rarity": "uncommon",
+      "type": "military",
+      "line": "none",
+      "flavor": "The walls are thickest where the city keeps what it cannot build twice.",
+      "text": "The town building your Magnum Opus gains +4 defence for each wonder you hold.",
+      "effects": [
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 4,
+          "count": "wonders",
+          "within": "empire",
+          "scope": { "test": "raisingOpus" }
+        }
+      ],
+      "note": "Every wonder you hold counts, in any of your towns, and a wonder you captured counts too."
     }
   }
 }

@@ -357,6 +357,8 @@ The first six come from section 12. The rest are new. Each gives the reading the
 - **Done-gate:** as MG2, and `test/sim/wonders.test.ts`.
 - **After MG3 a playtest can start:** 39 of the 71 cards play as written.
 
+- **Built (2026-10-25):** all thirteen cards. The gate passed: the type check, 9,645 core tests and the build. Schema 181. The Bulwark of Marvels was not data only: a counted `cityStat` always counted inside the town, so `CardCityStatEffect` gained `within: 'empire'` for "each wonder you hold". The Quarter of Masters has the new id `magisterialTheQuarterOfMasters`; the retired Expansionist row keeps its id. The Privy Council joins the bots' register of fold-read engines (24). Readings added: The Bulwark counts captured wonders; The Roll of Masters counts people from the moment they are chosen; The Gazetteers counts a work whether or not it is worked, holy sites included; Letters Patent gives a general's act nothing; The Privy Council does not raise percentages or itself; a second wonder restarts The Golden Age's ten turns.
+
 ### MG4: the collection and the wonder commissions
 
 - **Builds:**

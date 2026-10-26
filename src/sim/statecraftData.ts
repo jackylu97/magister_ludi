@@ -8090,7 +8090,8 @@ export interface CardCityStatEffect {
    * forecast rather than in a ledger. What is shared is the **count** itself —
    * the same `countOf` the yields ask, with the same `within: 'city'` reading —
    * so a card counting citizens for hammers and a card counting them for walls
-   * cannot disagree about how many there are.
+   * cannot disagree about how many there are. A row may ask the count across
+   * the whole empire instead (`within`, below).
    *
    * Read in `cardCityStat`, which already holds the town, and folded into the
    * defender's strength as one more labelled line (rule 5 in a fight): the
@@ -8109,6 +8110,18 @@ export interface CardCityStatEffect {
    * (the triage's reading 17). Meaningless without a count that reads it.
    */
   category?: BuildingCategory;
+  /**
+   * **Count across the whole empire, not only the town** (Magisterial batch
+   * MG3, The Bulwark of Marvels: "+4 defence for each wonder you hold").
+   *
+   * A counted line is asked with `within: 'city'` by default, so a count that
+   * can be narrowed to one town (wonders, buildings, citizens) counts only
+   * what stands in the town the line lands in. With `'empire'` the count is
+   * asked without that narrowing, so it counts every wonder the empire holds.
+   * Absent keeps the town reading, which every row written before this one
+   * uses. Meaningless without a count.
+   */
+  within?: 'empire';
 }
 
 /** A rule of Statecraft itself. See `MetaRuleId`. */

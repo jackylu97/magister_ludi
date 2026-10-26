@@ -2161,7 +2161,11 @@ describe("determinism", () => {
     // joins the state, four Devotion cards and the shared The Rising Nave are
     // dealt, and The Creed counts gods. So a v179 log's Devotion and
     // Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(180);
+    // 181 since Magisterial batch MG3 (the data-only cards of Tiers II to
+    // IV): eleven Magisterial cards are new and dealt, and The Golden Age
+    // and The Magister's Court leave `deferred`. So a v180 log's Magisterial
+    // hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(181);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -9034,6 +9038,10 @@ describe("the engine shapes", () => {
     // D2a: The Muses' Call's *"+20% renown"*, un-deferred with the worked-work
     // scope its other half wanted.
     "theMusesCall · cityRenownPercent",
+    // Magisterial batch MG3: The Privy Council adds one production to every
+    // line of your other Orders that pays production, an amplifier by voice
+    // with a flat helping (`CardYieldAmplifierEffect.amount`).
+    "thePrivyCouncil · cardYieldAmplifier",
     // The four crosses, `common.json`'s own: roads out of a garrison, out of a
     // library, out of a monument, and the navigators' sea lanes.
     "commonTheEscortedRoads · routeYield",

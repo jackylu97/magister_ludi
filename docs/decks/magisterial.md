@@ -3,7 +3,7 @@
 The deck's cards, by tier: name, rarity, status, ability and type. This sheet is the spec of record for the deck. `test/sim/decks/magisterial.test.ts` checks it against `data/decks/magisterial.json` and, for the shared table, `data/decks/common.json`.
 
 - **Why each card is here:** `docs/plans/magisterial-themes.md`, the themes pass of 2026-10-23. It designs the deck as a way to play: an engine of culture and the draft, and four themes (the council, the patrons, the landscape and the monuments). Section 12 holds your comments and answers of 2026-10-25, and it outranks the sections before it. `docs/plans/magisterial-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
-- **The build plan:** `docs/plans/magisterial-themes-triage.md` (batches MG1 to MG17). Batch MG1 wrote this sheet, put the types into the data, retired the 64 cut rows, changed four cards in place (Civic Granaries, The Honoured Dead, The Living Canon and The Masters' Domain), and gave the three deferred rows their new text and tier. Batch MG2 built the fourteen cards of Tiers 0 and I whose shapes already existed: The Prytaneion, The Polemarch, The Court Painter, The Cornerstone, The Repertory, The Second Reading, The Nomarchs, The Workshop at Olympia, The Overseers of Works, The Siting Masters, The Keepers of Wonders, The Ceremonial Guard, The Unveiling and The Encyclopedia. Each later batch sets its own rows to `implemented`.
+- **The build plan:** `docs/plans/magisterial-themes-triage.md` (batches MG1 to MG17). Batch MG1 wrote this sheet, put the types into the data, retired the 64 cut rows, changed four cards in place (Civic Granaries, The Honoured Dead, The Living Canon and The Masters' Domain), and gave the three deferred rows their new text and tier. Batch MG2 built the fourteen cards of Tiers 0 and I whose shapes already existed: The Prytaneion, The Polemarch, The Court Painter, The Cornerstone, The Repertory, The Second Reading, The Nomarchs, The Workshop at Olympia, The Overseers of Works, The Siting Masters, The Keepers of Wonders, The Ceremonial Guard, The Unveiling and The Encyclopedia. Batch MG3 built eleven cards of Tiers II to IV: The Prefects, The Symposium, Letters Patent, The Quarter of Masters, The Gazetteers, The Seven Sights, The Boule, The Roll of Masters, The Garden Courts, The Privy Council and The Bulwark of Marvels. It also dealt The Golden Age and The Magister's Court, which had waited for it. Each uses shapes that already existed, except The Bulwark of Marvels, which needed one new field: a town's defence counted from every wonder the empire holds, not only the wonders in that town. The Quarter of Masters is a new data row; the retired Expansionist row of the same name stays as it was. Each later batch sets its own rows to `implemented`.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -25,10 +25,10 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 |---|---|---|---|---|
 | Tier 0 | 9 | 0 | 1 | 10 |
 | Tier I | 11 | 0 | 4 | 15 |
-| Tier II | 3 | 1 | 13 | 17 |
-| Tier III | 3 | 0 | 14 | 17 |
-| Tier IV | 0 | 2 | 10 | 12 |
-| **All** | **26** | **3** | **42** | **71** |
+| Tier II | 10 | 0 | 7 | 17 |
+| Tier III | 6 | 0 | 11 | 17 |
+| Tier IV | 3 | 1 | 8 | 12 |
+| **All** | **39** | **1** | **31** | **71** |
 | Shared | 16 | 3 | 0 | 19 |
 
 **By type** (the chair a card fits):
@@ -100,17 +100,17 @@ The deck holds 71 cards, and every one takes a chair: 10, 15, 17, 17 and 12 acro
 |---|---|---|---|---|
 | **The Grand Vizier** | rare | add | The card in your first Economic chair pays its yields twice. | Wildcard |
 | **The Senate Charter** | uncommon | implemented | Unlocks the capital-only Assembly Hall. A city with one gains +3 happiness and +30% production toward buildings. | Civic |
-| **The Prefects** | uncommon | add | +5% production for each Economic card you have seated. | Economic |
+| **The Prefects** | uncommon | implemented | +5% production for each Economic card you have seated. | Economic |
 | **The Sed Festival** | rare | add | Each time you adopt a government, gain a free great-person draft. | Civic |
-| **The Symposium** | uncommon | add | Each time you gain a great person, you are dealt a free Order hand. | Wildcard |
-| **Letters Patent** | uncommon | add | Your great people's acts pay 50% more. | Civic |
+| **The Symposium** | uncommon | implemented | Each time you gain a great person, you are dealt a free Order hand. | Wildcard |
+| **Letters Patent** | uncommon | implemented | Your great people's acts pay 50% more. | Civic |
 | **The Honoured Dead** | uncommon | implemented | While seated, this card gains +2 science and +4 production in your capital each time you spend a great person, up to +30 science and +60 production. | Civic |
 | **Commission: The Patron's Gallery** | uncommon | add | Commission. Have great-person works of three different families in your borders. Then gain a free great-person draft and 200 culture. The card leaves its chair. | Wildcard |
-| **The Quarter of Masters** | common | add | A great-person work beside another great-person work yields its own yield again. This never stacks. | Civic |
-| **The Gazetteers** | uncommon | add | +3% production and gold for each great-person work in your borders, at most +30%. | Economic |
+| **The Quarter of Masters** | common | implemented | A great-person work beside another great-person work yields its own yield again. This never stacks. | Civic |
+| **The Gazetteers** | uncommon | implemented | +3% production and gold for each great-person work in your borders, at most +30%. | Economic |
 | **The Custodians** | common | add | Your units standing on a great-person work gain +4 strength. | Military |
-| **The Seven Sights** | uncommon | add | +5% culture and science for each wonder you hold, at most +30%. | Civic |
-| **The Golden Age** | rare | modify: deferred | Completing a wonder gives your cities +20% production and culture for ten turns. A later wonder restarts the ten turns. | Civic |
+| **The Seven Sights** | uncommon | implemented | +5% culture and science for each wonder you hold, at most +30%. | Civic |
+| **The Golden Age** | rare | implemented | Completing a wonder gives your cities +20% production and culture for ten turns. A later wonder restarts the ten turns. | Civic |
 | **The Envious Eye** | uncommon | add | When a rival completes a wonder you were building, the production you put into it moves to the next item in that town's queue. | Economic |
 | **The Accessions Register** | uncommon | add | Each card you draft grants your capital production equal to half the culture its hand cost. | Economic |
 | **The Learned Patron** | uncommon | implemented | Cities with at least two culture buildings gain science equal to 15% of their base culture, at most +18 science per city. Conversion outputs are excluded. | Civic |
@@ -130,13 +130,13 @@ The deck holds 71 cards, and every one takes a chair: 10, 15, 17, 17 and 12 acro
 | **The Mixed Constitution** | rare | add | Your cards fit any chair. | Wildcard |
 | **The Pandects** | uncommon | add | +5% science and production for each Doctrine you hold. | Civic |
 | **Commission: The Golden Bull** | uncommon | add | Commission. Have every Military, Economic and Civic chair hold a card of its own type. Then you are offered a Doctrine of your government's tier. The card leaves its chair. | Wildcard |
-| **The Boule** | uncommon | add | +2% science and culture for each card you have seated. | Civic |
+| **The Boule** | uncommon | implemented | +2% science and culture for each card you have seated. | Civic |
 | **The Universal Genius** | rare | add | Your great people arrive with two charges: each may act and then lay a work. Each still leaves one legacy. | Civic |
-| **The Roll of Masters** | uncommon | add | +3% science and culture for each great person you have gained this game, at most +30%. | Civic |
+| **The Roll of Masters** | uncommon | implemented | +3% science and culture for each great person you have gained this game, at most +30%. | Civic |
 | **The Living Canon** | rare | implemented | Your cities gain +4% food and +4% production per distinct great-person family whose legacy you currently hold, at most +20% each. | Economic |
 | **The Divine Proportion** | rare | add | The bonuses your cards give great-person works are doubled. | Wildcard |
 | **The Masters' Domain** | uncommon | implemented | Worked great-person works give +3 food and +3 production. | Economic |
-| **The Garden Courts** | uncommon | add | Towns working at least two great-person works gain +20% culture and science. | Civic |
+| **The Garden Courts** | uncommon | implemented | Towns working at least two great-person works gain +20% culture and science. | Civic |
 | **Commission: The Paradise Garden** | rare | add | Commission. Have a great-person work with three other works or tended hexes beside it. Then every unowned hex within three hexes of it joins your borders. The card leaves its chair. | Wildcard |
 | **Magnificence** | rare | add | You may buy a wonder you are building with culture, one culture for each hammer it still needs. | Economic |
 | **The Wonder Commonwealth** | rare | implemented | Cities containing a wonder gain +38% production and +38% food. Your cities without a wonder gain +15% culture instead. | Economic |
@@ -158,15 +158,15 @@ Tier III has no Military card (section 8 of the themes pass). The Military cards
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Privy Council** | rare | add | Each of your cards that pays production pays +1 more production wherever it pays it. | Wildcard |
+| **The Privy Council** | rare | implemented | Each of your cards that pays production pays +1 more production wherever it pays it. | Wildcard |
 | **The Immortals** | rare | add | The legacies of your great people count twice. | Civic |
 | **The Last Commission** | rare | modify: deferred | Spending a great person grants the city building your Magnum Opus 150 production, at most once per turn. No Opus under construction means no payout. Each person can pay once. | Economic |
 | **The Processional Way** | rare | add | Great-person works in a straight line of three or more give +3 culture and +3 science each. | Civic |
 | **The Pull of the Masters** | rare | add | At the start of each turn, each of your great-person works takes one hex beside it that a rival owns and no rival town works. A town centre and a rival's own works are never taken. | Economic |
 | **Commission: The Ideal City** | rare | add | Commission. Have one of your towns hold two wonders and work three great-person works. Then, for the rest of the game, that town gains +25% culture, science and production. The card leaves its chair. | Wildcard |
-| **The Magister's Court** | uncommon | modify: deferred | Cities containing a wonder gain +25% production toward the Magnum Opus. | Economic |
+| **The Magister's Court** | uncommon | implemented | Cities containing a wonder gain +25% production toward the Magnum Opus. | Economic |
 | **The Hall of Wonders** | rare | add | Order hands deal one more card for every two wonders you hold, at most two more. | Wildcard |
-| **The Bulwark of Marvels** | uncommon | add | The town building your Magnum Opus gains +4 defence for each wonder you hold. | Military |
+| **The Bulwark of Marvels** | uncommon | implemented | The town building your Magnum Opus gains +4 defence for each wonder you hold. | Military |
 | **The Universal Library** | rare | add | The city building the Magnum Opus gains +2% production toward it for each Order you hold, seated or not, at most +40%. | Economic |
 | **The Polymath's Study** | rare | add | Your towns gain +8% science and production for each different deck among the cards you hold, at most +40%. | Civic |
 | **The Grand Retrospective** | rare | add | On draft: your capital gains 20 culture, 20 science and 20 production for each wonder, great-person work and Order you hold. Seated, this card does nothing. | Civic |

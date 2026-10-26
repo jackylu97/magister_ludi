@@ -8,9 +8,10 @@
  *
  *   · every row of the file folds as a Magisterial row, with a band, a rarity,
  *     a name, a flavour, its text and an id no other file uses;
- *   · the file holds 91 rows: 26 live, 3 deferred and 62 retired (the triage's
- *     reading 43). A retired row stays so that old saves load. Batch MG2 added
- *     fourteen live rows;
+ *   · the file holds 102 rows: 39 live, 1 deferred and 62 retired (the
+ *     triage's reading 43). A retired row stays so that old saves load. Batch
+ *     MG2 added fourteen live rows. Batch MG3 added eleven live rows and dealt
+ *     two deferred rows;
  *   · a live row uses only shapes the evaluator reads, and every (`where`,
  *     `basis`) pair of a `pays` line is a pair in `docs/yields.md`'s register;
  *   · a live row prints through the describers with no keyword mark left raw;
@@ -212,21 +213,23 @@ describe('the Magisterial deck', () => {
     }
   });
 
-  it('carries 91 rows: 26 live, 3 deferred and 62 retired', () => {
+  it('carries 102 rows: 39 live, 1 deferred and 62 retired', () => {
     // Batch MG1 retired the 61 rows the old sheet cut on 2026-10-06 and The
     // Performers' Treasury (the triage's reading 43). The rows stay so that
     // old saves load. Batch MG2 added fourteen live rows: six at Tier 0 and
-    // eight at Tier I.
-    expect(MAGISTERIAL).toHaveLength(91);
-    expect(MAGISTERIAL.filter(live)).toHaveLength(26);
-    expect(MAGISTERIAL.filter(deferred)).toHaveLength(3);
+    // eight at Tier I. Batch MG3 added eleven live rows (six at Tier II, three
+    // at Tier III and two at Tier IV) and dealt The Golden Age and The
+    // Magister's Court.
+    expect(MAGISTERIAL).toHaveLength(102);
+    expect(MAGISTERIAL.filter(live)).toHaveLength(39);
+    expect(MAGISTERIAL.filter(deferred)).toHaveLength(1);
     expect(MAGISTERIAL.filter(isRetired)).toHaveLength(62);
     for (const id of MAGISTERIAL.filter(isRetired)) {
       expect(orderIsDealt(id), `${id} is retired and still dealt`).toBe(false);
     }
     // The rows the sheet lists, by band: Tiers 0 to IV.
     const kept = MAGISTERIAL.filter((id) => !isRetired(id)).map((id) => orderDef(id).band);
-    expect(BANDS.map((band) => kept.filter((b) => b === band).length)).toEqual([9, 11, 4, 3, 2]);
+    expect(BANDS.map((band) => kept.filter((b) => b === band).length)).toEqual([9, 11, 10, 6, 4]);
   });
 
   it('gives every row an id nothing else in the eight files uses', () => {
@@ -275,14 +278,11 @@ describe('the live rows', () => {
 
 describe('the deferred rows', () => {
   it('carry no effects, say what they wait for in plain words, and are dealt by nobody', () => {
-    // Batch MG1: The Golden Age, The Magister's Court and The Last Commission,
-    // with their new text and tier (the triage's reading 44).
+    // Batch MG1 gave The Golden Age, The Magister's Court and The Last
+    // Commission their new text and tier (the triage's reading 44). Batch MG3
+    // dealt the first two, so The Last Commission waits alone, for batch MG8.
     const held = MAGISTERIAL.filter(deferred);
-    expect(held.map((id) => orderDef(id).name)).toEqual([
-      'The Golden Age',
-      "The Magister's Court",
-      'The Last Commission',
-    ]);
+    expect(held.map((id) => orderDef(id).name)).toEqual(['The Last Commission']);
     for (const id of held) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);
@@ -609,9 +609,13 @@ const LISTED: readonly OrderId[] = MAGISTERIAL.filter((id) => !isRetired(id));
  * The names a card still to be added may not use: every name in this file,
  * retired rows included (no new card takes over a cut row, the triage's
  * reading 45), and the name of every live or deferred row in any file. A
- * retired row of another deck may share a name with a card to be added: The
- * Quarter of Masters was cut from Expansionist, and its retired row there
- * keeps the name.
+ * retired row of another deck may share a name with a card to be added.
+ *
+ * The Quarter of Masters is the case in point. It was cut from Expansionist,
+ * and its retired row there keeps the name and the id `theQuarterOfMasters`.
+ * Batch MG3 built the Magisterial card as a new row with a new id,
+ * `magisterialTheQuarterOfMasters`, so every lookup of this sheet by name
+ * reads this file's rows and finds the Magisterial card.
  */
 const TAKEN = new Set([
   ...MAGISTERIAL.map((id) => orderDef(id).name),
@@ -769,9 +773,10 @@ describe('the Magisterial deck: the sheet of record', () => {
     expect(shared).toHaveLength(19);
   });
 
-  it('types every listed row, 29 of this file and 19 shared, and nothing else of this file', () => {
-    // 15 since batch MG1, and the fourteen rows of batch MG2.
-    expect(LISTED).toHaveLength(29);
+  it('types every listed row, 40 of this file and 19 shared, and nothing else of this file', () => {
+    // 15 since batch MG1, the fourteen rows of batch MG2 and the eleven new
+    // rows of batch MG3.
+    expect(LISTED).toHaveLength(40);
     for (const id of MAGISTERIAL) {
       const def = orderDef(id);
       if (isRetired(id)) expect(def.type, id).toBeUndefined();

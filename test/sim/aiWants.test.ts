@@ -2228,7 +2228,10 @@ describe('the marginal draft reading', () => {
     // count at a share in the counts, the happiness and the luxury yields; and
     // The Capitulations, whose loans the happiness meter and the luxury
     // yields already carry (The Silk Road's loans are read the same way).
-    expect(engines).toBe(23);
+    // Twenty-four since Magisterial batch MG3 wrote The Privy Council, whose
+    // amplifier adds +1 to every other Order's line that pays production: a
+    // share of what the Orders already pay.
+    expect(engines).toBe(24);
     // Batch F named The Exchequer the deck's clearest trade payoff and the one
     // the bot most under-priced — `effectAmplifier` fell to `score.unknownEffect`,
     // six points for doubling every caravan in the realm. It is read by the books

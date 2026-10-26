@@ -592,8 +592,11 @@ describe('the schema, as landed', () => {
     // **And Devotion batch DV3** (the engine's shapes): five more. The Gifts
     // of the Faithful, The Sacred Precincts, The Book of Life and The Offering
     // Chests are new Devotion rows, and The Rising Nave is a new shared row.
-    expect(live).toBe(555);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(555);
+    // **And Magisterial batch MG3** (the data-only cards of Tiers II to IV):
+    // thirteen more. Eleven are new Magisterial rows, and The Golden Age and
+    // The Magister's Court left `deferred`.
+    expect(live).toBe(568);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(568);
   });
 
   /**
@@ -942,7 +945,11 @@ describe('the schema, as landed', () => {
     // joins the state, four Devotion cards and the shared The Rising Nave are
     // dealt, and The Creed counts gods. So a v179 log's Devotion and
     // Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(180);
+    // 181 since Magisterial batch MG3 (the data-only cards of Tiers II to
+    // IV): eleven Magisterial cards are new and dealt, and The Golden Age
+    // and The Magister's Court leave `deferred`. So a v180 log's Magisterial
+    // hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(181);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1202,9 +1209,11 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // Examinations (live) and the shared Triumphal Arches (deferred)
       // (− 13, and + 64 retired).
       // **Devotion batch DV2** freed the shared The Monastery Libraries (− 1).
+      // **Magisterial batch MG3** freed The Golden Age and The Magister's
+      // Court (− 2).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(10);
+      ).toHaveLength(8);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(270);
     }
   });

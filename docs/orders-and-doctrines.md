@@ -708,8 +708,21 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Senate Charter | 2 | ◆ | S | Unlocks the capital-only Assembly Hall. A city with one gains +3 happiness and +30% production toward buildings. |
 | The Masters' Domain | 3 | ◆ | S | Worked great-person works give +3 food and +3 production. |
 | The Honoured Dead | 2 | ◆ | P | While seated, this card gains +2 science and +4 production in your capital each time you spend a great person, up to +30 science and +60 production. |
+| The Prefects | 2 | ◆ | E | +5% production for each Economic card you have seated. |
+| The Symposium | 2 | ◆ | S | Each time you gain a great person, you are dealt a free Order hand. |
+| Letters Patent | 2 | ◆ | P | Your great people's acts pay 50% more. |
+| The Quarter of Masters | 2 | ● | P | A great-person work beside another great-person work yields its own yield again. This never stacks. |
+| The Gazetteers | 2 | ◆ | P | +3% production and gold for each great-person work in your borders, at most +30%. |
+| The Seven Sights | 2 | ◆ | P | +5% culture and science for each wonder you hold, at most +30%. |
+| The Golden Age | 2 | ○ | S | Completing a wonder gives your cities +20% production and culture for ten turns. A later wonder restarts the ten turns. |
 | The Living Canon | 3 | ○ | P | Your cities gain +4% food and +4% production per distinct great-person family whose legacy you currently hold, at most +20% each. |
 | The Wonder Commonwealth | 3 | ○ | P | Cities containing a wonder gain +38% production and +38% food. Your cities without a wonder gain +15% culture instead. |
+| The Boule | 3 | ◆ | E | +2% science and culture for each card you have seated. |
+| The Roll of Masters | 3 | ◆ | P | +3% science and culture for each great person you have gained this game, at most +30%. |
+| The Garden Courts | 3 | ◆ | P | Towns working at least two great-person works gain +20% culture and science. |
+| The Privy Council | 4 | ○ | E | Each of your cards that pays production pays +1 more production wherever it pays it. |
+| The Magister's Court | 4 | ◆ | S | Cities containing a wonder gain +25% production toward the Magnum Opus. |
+| The Bulwark of Marvels | 4 | ◆ | S | The town building your Magnum Opus gains +4 defence for each wonder you hold. |
 
 ### Cross-type
 
@@ -887,8 +900,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Long Study** — † a library that has stood a long while pays culture and renown, and pays more again once it is very old
 - **The Old Academy** — † an academy that has stood a long while feeds and works the town it serves, and more again once it is very old
 - **Enduring Institutions** — † a town whose empire building has stood a long while is gladder and builds faster, once per town
-- **The Golden Age** — Not dealt yet. Every rule this card needs exists, and it joins the deck with the next set of new Magisterial cards. † completing a wonder gives your towns more production and culture for a time, and a later wonder starts that time again
-- **The Magister's Court** — Not dealt yet. Every rule this card needs exists, and it joins the deck with the next set of new Magisterial cards. † towns that hold a wonder build the Magnum Opus faster
+- **The Golden Age** — A wonder completed while the bonus runs starts it again, and does not add a second bonus. The Magnum Opus is not a wonder.
+- **The Magister's Court** — A town you captured that holds a wonder counts too.
 - **The Last Commission** — Waiting on a new moment. The game does not yet mark the moment a great person is spent, and it cannot yet hold back the production when no town is building the Magnum Opus. † spending a great person sends production to the town building your Magnum Opus, at most once a turn
 - **The Prytaneion** — Only the Orders sitting in a chair count, this one included. A charter takes no chair, so it does not count, and neither does a Doctrine.
 - **The Polemarch** — Every unit gains it, on land and at sea, attacking or defending. This card counts itself, and a Military card in a Wildcard chair counts too.
@@ -900,6 +913,16 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Keepers of Wonders** — A wonder you captured counts.
 - **The Unveiling** — No hand is dealt while an Order hand or a Doctrine offer is waiting for your answer. The free hand does not raise the price of your next hand.
 - **The Encyclopedia** — A charter counts, because it never takes a chair.
+- **The Prefects** — This card counts itself, and an Economic card in a Wildcard chair counts too.
+- **The Symposium** — No hand is dealt while an Order hand or a Doctrine offer is waiting for your answer. The free hand does not raise the price of your next hand.
+- **Letters Patent** — It raises the gold, production, science and culture an act pays. A general's act pays none of these, so it gains nothing.
+- **The Quarter of Masters** — The work's own yield is paid again once, however many works stand beside it. What other cards pay on the work is not paid again.
+- **The Gazetteers** — A work counts whether or not a town works its hex. A prophet's holy site is a great-person work too.
+- **The Seven Sights** — A wonder you captured counts.
+- **The Boule** — Only the Orders sitting in a chair count, this one included. A charter takes no chair, so it does not count, and neither does a Doctrine.
+- **The Roll of Masters** — A great person counts from the moment you gain it, spent or not. Great people gained before this card was seated count too.
+- **The Privy Council** — Each town, hex or empire line counts on its own, so a card that pays production in many towns gains in each of them. A percentage is not raised, and this card does not raise itself.
+- **The Bulwark of Marvels** — Every wonder you hold counts, in any of your towns, and a wonder you captured counts too.
 - **Letters of Marque** — The coin is for a kill made by one of your ships, wherever it happens. The extra gold and the slower shipyards both belong to the cities that have a Harbour.
 - **The Sacred Host** — A soldier bought with faith costs what it would cost to build, converted at the faith rate.
 - **Pilgrim Markets** — The first card to pay a trade route in faith; nothing carried it before this one asked. The test is a disjunction, so one shrine is enough and two are not more — a road with a holy site at each end is paid once, which is the card's second sentence. The site is the prophet's work on the ground, anywhere inside either town's borders, and nobody has to be working the hex.

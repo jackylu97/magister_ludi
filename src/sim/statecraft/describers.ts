@@ -2763,13 +2763,15 @@ function describeEffect(
       // another counting them for walls read as the same sentence. A category
       // count (Devotion batch DV3, The Sacred Precincts) names the category,
       // and "there" says the buildings are the town's own, as The Painted
-      // Chapels' line says it.
+      // Chapels' line says it. A row counted across the empire (Magisterial
+      // batch MG3, The Bulwark of Marvels) prints the empire's noun: "per
+      // wonder you hold".
       const probe: CardPaysEffect = {
         kind: 'pays',
         where: 'city',
         basis: 'count',
         count: effect.count,
-        within: 'city',
+        ...(effect.within === 'empire' ? {} : { within: 'city' as const }),
         ...(effect.category === undefined ? {} : { category: effect.category }),
       };
       const each =

@@ -269,7 +269,11 @@ describe('the schema says so', () => {
     // joins the state, four Devotion cards and the shared The Rising Nave are
     // dealt, and The Creed counts gods. So a v179 log's Devotion and
     // Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(180);
+    // 181 since Magisterial batch MG3 (the data-only cards of Tiers II to
+    // IV): eleven Magisterial cards are new and dealt, and The Golden Age
+    // and The Magister's Court leave `deferred`. So a v180 log's Magisterial
+    // hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(181);
   });
 
   it('says in the changelog what a v110 log does now', () => {
