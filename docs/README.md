@@ -499,6 +499,21 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   The faith reroll's count (`rerollsTaken`) is zeroed by adopting a government.
   Offers are drawn once and spent by a command; a pick names
   an index. Adopting a government re-seats the council: a card keeps its chair if that chair still fits it, the rest move to free chairs that fit, and a card that fits nowhere returns to the collection with its progress. Seals are absolute turns.
+  - **The fit a council grants** (Magisterial batch MG12): `orderFitsSlot` is
+    the plain rule, and every reader of a seat's chairs asks `chairFitFor`
+    (`statecraft/draft.ts`) instead: the slot refusal, the re-seating, the
+    council screen, the bots and the card stamp. While a card holding
+    `cardsFitAnyChair` sits in a chair (The Mixed Constitution), every card of
+    its holder fits every chair, and an adoption re-seats by the fit the old
+    council granted. When the fit narrows, the council is re-seated at once by
+    the plain rule (`settleCouncilFit`): a card that fits its chair keeps it and
+    its seal, the rest move with their seals lifted, and a card that fits no
+    free chair returns to the collection. Every writer that can empty a chair
+    asks it: the unslot command, a malice taking a chair, a commission leaving,
+    an adoption and a council that shrinks. The council screen sends its batch
+    so the card goes in first and comes out last (`councilDiff`,
+    `statecraftStaging.ts`), and that ordering and the flair gallery are the
+    only readers of the plain rule outside the fit's own modules.
 - **No levels**: an Order is what its row prints, held once. A draft is take one
   or **pass** — a skip spends the hand and raises `orderSkips`, and each banked
   skip adds pity to the uncommon and rare weights of the next draw. Rarity

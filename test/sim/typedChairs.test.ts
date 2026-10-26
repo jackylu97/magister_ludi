@@ -352,6 +352,44 @@ describe('re-seating on adoption', () => {
     expect(cards(out.slots)).toEqual([null, soldier]);
   });
 
+  it('seats the cards left in any free chair under a wider fit, in old seat order', () => {
+    // Magisterial batch MG12, The Mixed Constitution: the fit is a parameter.
+    // A fit that admits every chair keeps every card whose chair still exists,
+    // and the cards that move take the first free chairs once the four passes
+    // have placed what the plain rule places.
+    const [wild, other] = cardsOf('wildcard', 2);
+    const [priest] = cardsOf('civic', 1);
+    const [trader] = cardsOf('economic', 1);
+    const any = (): boolean => true;
+    const layout: ChairType[] = ['military', 'economic', 'wildcard'];
+    // Each card stays in a chair the plain rule refuses it.
+    const free = [false, false, false];
+    const stays = reseatOrders([sitting(wild!), sitting(priest!), sitting(trader!)], layout, free, 10, any);
+    expect(cards(stays.slots)).toEqual([wild, priest, trader]);
+    // Moving cards: the Wildcard card still takes the Wildcard chair first,
+    // the economic card its own, and the civic card the military chair left.
+    const moves = reseatOrders(fromBeyond(layout, [priest, wild, trader, other]), layout, free, 10, any);
+    expect(cards(moves.slots)).toEqual([priest, trader, wild]);
+    expect(moves.returned).toEqual([other]);
+    // The plain rule, asked the same way, returns the civic card instead.
+    const plain = reseatOrders(fromBeyond(layout, [priest, wild, trader]), layout, free, 10);
+    expect(cards(plain.slots)).toEqual([null, trader, wild]);
+    expect(plain.returned).toEqual([priest]);
+  });
+
+  it('keeps the seal of a card that stays when the chairs did not change, and lifts a moved card’s', () => {
+    // The re-seating in place that follows The Mixed Constitution leaving
+    // (Magisterial batch MG12, `councilRefit`).
+    const [soldier] = cardsOf('military', 1);
+    const [priest] = cardsOf('civic', 1);
+    const layout: ChairType[] = ['military', 'economic', 'wildcard'];
+    const council = [sitting(soldier!, 15), sitting(priest!, 15), null];
+    const out = reseatOrders(council, layout, [false, false, false], 10, orderFitsSlot, true);
+    expect(cards(out.slots)).toEqual([soldier, null, priest]);
+    expect(out.slots[0]).toEqual(sitting(soldier!, 15));
+    expect(out.slots[2]).toEqual(sitting(priest!, 10));
+  });
+
   it('lifts the seal and keeps the rest of the chair’s record', () => {
     const [soldier] = cardsOf('military', 1);
     const record: SlottedOrder = { card: soldier!, sealedUntil: 15, nextFiresTurn: 20, firePeriod: 10, rerollsSeen: 2 };
@@ -487,12 +525,19 @@ describe('one re-seating', () => {
     // through the reducer, so they get the same seating.
     const adopt = bodyOf('../../src/sim/statecraft/draft.ts', 'adoptGovernmentAt');
     expect(adopt.length, 'adoptGovernmentAt found').toBeGreaterThan(100);
-    expect(adopt).toContain('reseatCouncil(player, previous, state.turn)');
+    // Since Magisterial batch MG12 both hand in the fit the old council
+    // grants, and both re-seat a second time when that fit narrows.
+    expect(adopt).toContain('const fit = chairFitFor(state, player.id);');
+    expect(adopt).toContain('reseatCouncil(player, previous, state.turn, fit)');
+    expect(adopt).toContain('settleCouncilFit(state, player)');
     const ghost = bodyOf('../../src/sim/cardImpact.ts', 'ghostPair');
     expect(ghost.length, 'ghostPair found').toBeGreaterThan(100);
-    expect(ghost).toContain('reseatCouncil(ghost, sc.slots, state.turn)');
+    expect(ghost).toContain('reseatCouncil(ghost, sc.slots, state.turn, chairFitFor(state, player.id))');
+    expect(ghost).toContain('councilRefit(adopted, player.id)');
     // And `reseatCouncil` seats the Orders through `reseatOrders` and nothing else.
-    expect(bodyOf('../../src/sim/statecraft/draft.ts', 'reseatCouncil')).toContain('reseatOrders(previous, layout, held, turn)');
+    expect(bodyOf('../../src/sim/statecraft/draft.ts', 'reseatCouncil')).toContain(
+      'reseatOrders(previous, layout, held, turn, fit)',
+    );
   });
 });
 

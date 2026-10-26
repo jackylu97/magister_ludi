@@ -508,7 +508,8 @@ describe('the seams of the council', () => {
     );
     expect(payers.map(([path]) => path.replace('../../../src/', ''))).toEqual(['sim/statecraft/draft.ts']);
     const adopt = bodyOf('sim/statecraft/draft.ts', 'adoptGovernmentAt');
-    const reseat = adopt.indexOf('reseatCouncil(player, previous, state.turn)');
+    // The fit the old council grants joined the call in Magisterial batch MG12.
+    const reseat = adopt.indexOf('reseatCouncil(player, previous, state.turn, fit)');
     const triumph = adopt.indexOf("awardOccasion(state, player.id, 'governmentAdopted')");
     const riders = adopt.search(/payOccasionRiders\(\s*state,\s*player,\s*'governmentAdopted'/);
     const draw = adopt.indexOf('drawDoctrineOffer(state, player, offer.tier)');

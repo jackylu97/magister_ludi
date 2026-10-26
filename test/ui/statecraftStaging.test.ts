@@ -22,9 +22,9 @@ import { describe, expect, it } from 'vitest';
 
 import type { Command } from '../../src/sim/commands';
 import { dispatch } from '../../src/sim/game';
-import type { GameState } from '../../src/sim/state';
+import { type GameState, bumpRevision } from '../../src/sim/state';
 import type { GovernmentId, OrderId } from '../../src/sim/statecraftData';
-import { ORDER_IDS, orderIsDealt, orderType, slotLayout } from '../../src/sim/statecraftData';
+import { ORDER_IDS, orderDef, orderIsDealt, orderType, slotLayout } from '../../src/sim/statecraftData';
 import { chairMisfitRefusal, sealRemaining } from '../../src/sim/statecraft';
 import {
   type StagedSlots,
@@ -34,8 +34,10 @@ import {
   placeError,
   remove,
   removeError,
+  councilDiff,
   sameChairs,
   stage,
+  stagedFit,
   validate,
 } from '../../src/ui/statecraftStaging';
 import { game } from '../sim/statecraftHelpers';
@@ -326,5 +328,108 @@ describe('an arrangement belongs to the chairs it was laid out against', () => {
     expect(sameChairs(warChief, [...warChief, 'wildcard'])).toBe(false);
     // Nothing recorded is never the same as a council.
     expect(sameChairs(null, warChief)).toBe(false);
+  });
+});
+
+/**
+ * **The Mixed Constitution in staging** (Magisterial batch MG12). While the
+ * card sits in a chair, every card of its holder fits every chair, and when
+ * it leaves, the reducer re-seats the council at once. So the diff seats the
+ * cards the plain rule seats first, and takes out a card only the wider fit
+ * seats first; and `validate` meets the council the reducer re-seated.
+ */
+describe('The Mixed Constitution in staging', () => {
+  const MIXED = 'theMixedConstitution' as OrderId;
+  /** The first dealt civic cards, in table order. */
+  const civic = (count: number): OrderId[] =>
+    ORDER_IDS.filter(
+      (id) => orderIsDealt(id) && orderType(id) === 'civic' && orderDef(id).commission === undefined,
+    ).slice(0, count);
+
+  it('seats the card before a card only it lets sit in a chair, in one Confirm', () => {
+    // The chiefdom: Military, Economic, Wildcard.
+    const g = game();
+    const [priest] = civic(1);
+    grant(g.state, 0, MIXED);
+    grant(g.state, 0, priest!);
+    let staged = stage(live(g.state));
+    // The civic card does not fit the military chair until the card is staged.
+    expect(placeError(g.state, 0, staged, priest!, 0)).not.toBeNull();
+    expect(stagedFit(g.state, 0, staged)(priest!, 'military')).toBe(false);
+    staged = place(staged, 2, MIXED, g.state.turn);
+    expect(placeError(g.state, 0, staged, priest!, 0)).toBeNull();
+    expect(stagedFit(g.state, 0, staged)(priest!, 'military')).toBe(true);
+    staged = place(staged, 0, priest!, g.state.turn);
+    // In office order the civic card would come first and be refused.
+    expect(diff(live(g.state), staged, 0).map((command) => command.slotIndex)).toEqual([0, 2]);
+    expect(councilDiff(g.state, 0, staged)).toEqual([
+      { type: 'slotOrder', playerId: 0, cardId: MIXED, slotIndex: 2 },
+      { type: 'slotOrder', playerId: 0, cardId: priest, slotIndex: 0 },
+    ]);
+    expect(validate(g.state, 0, staged)).toBeNull();
+    for (const command of councilDiff(g.state, 0, staged)) {
+      expect(dispatch(g, command as Command).ok).toBe(true);
+    }
+    expect(occupants(live(g.state))).toEqual([priest, null, MIXED]);
+  });
+
+  it('takes out a card only it lets sit in a chair before the card itself', () => {
+    const g = game();
+    const [priest, scribe] = civic(2);
+    const sc = g.state.players[0]!.statecraft;
+    for (const id of [MIXED, priest!, scribe!]) grant(g.state, 0, id);
+    sc.slots = [
+      { card: priest!, sealedUntil: 0 },
+      { card: scribe!, sealedUntil: 0 },
+      { card: MIXED, sealedUntil: 0 },
+    ];
+    bumpRevision(g.state);
+    // Both taken out: the civic card in the economic chair first, the card last.
+    const staged = remove(remove(stage(live(g.state)), 2), 1);
+    const commands = councilDiff(g.state, 0, staged);
+    expect(commands).toEqual([
+      { type: 'unslotOrder', playerId: 0, slotIndex: 1 },
+      { type: 'unslotOrder', playerId: 0, slotIndex: 2 },
+    ]);
+    expect(validate(g.state, 0, staged)).toBeNull();
+    for (const command of commands) expect(dispatch(g, command as Command).ok).toBe(true);
+    // The civic card left in the military chair is re-seated by the reducer,
+    // into the Wildcard chair the card left.
+    expect(occupants(live(g.state))).toEqual([null, null, priest]);
+  });
+
+  it('takes the card out last even from a chair the plain rule refuses it', () => {
+    // After an adoption under it, the card may sit in a typed chair. Taken out
+    // with a civic card from a later typed chair, it still goes last, or the
+    // reducer would move the civic card before its own unslot.
+    const g = game();
+    const [priest] = civic(1);
+    const [trader] = ORDER_IDS.filter((id) => orderIsDealt(id) && orderType(id) === 'economic').slice(0, 1);
+    const sc = g.state.players[0]!.statecraft;
+    for (const id of [MIXED, priest!, trader!]) grant(g.state, 0, id);
+    sc.slots = [{ card: MIXED, sealedUntil: 0 }, { card: priest!, sealedUntil: 0 }, { card: trader!, sealedUntil: 0 }];
+    bumpRevision(g.state);
+    const staged = remove(remove(stage(live(g.state)), 0), 1);
+    expect(diff(live(g.state), staged, 0).map((command) => command.slotIndex)).toEqual([0, 1]);
+    const commands = councilDiff(g.state, 0, staged);
+    expect(commands.map((command) => command.slotIndex)).toEqual([1, 0]);
+    expect(validate(g.state, 0, staged)).toBeNull();
+    for (const command of commands) expect(dispatch(g, command as Command).ok).toBe(true);
+    expect(occupants(live(g.state))).toEqual([null, null, trader]);
+  });
+
+  it('validates against the council the reducer re-seats when the card leaves', () => {
+    const g = game();
+    const [priest] = civic(1);
+    const wild = ORDER_IDS.find((id) => orderIsDealt(id) && orderType(id) === 'wildcard' && id !== MIXED)!;
+    const sc = g.state.players[0]!.statecraft;
+    for (const id of [MIXED, priest!, wild]) grant(g.state, 0, id);
+    sc.slots = [{ card: priest!, sealedUntil: 0 }, null, { card: MIXED, sealedUntil: 0 }];
+    bumpRevision(g.state);
+    // Take the card out and put another Wildcard card in its chair. The
+    // reducer re-seats the civic card into that chair first, so the second
+    // command meets an occupied chair, and Confirm says so in its own words.
+    const staged = place(remove(stage(live(g.state)), 2), 2, wild, g.state.turn);
+    expect(validate(g.state, 0, staged)).toBe(`Slot 3 already holds ${orderDef(priest!).name}`);
   });
 });

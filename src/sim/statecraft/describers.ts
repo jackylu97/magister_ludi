@@ -6722,6 +6722,8 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // rate is `production.culturePerHammer`, which a test pins at one.
   cultureBuysWonders:
     "you may buy the wonder at the front of a city's queue with culture, one culture for each hammer it still needs",
+  // Magisterial batch MG12, The Mixed Constitution: the card's own sentence.
+  cardsFitAnyChair: 'your cards fit any chair',
   capitalBuysWithoutLimit: 'your capital may buy as many units in a turn as it can pay for',
   goldBuysWonders: 'you may buy world wonders with gold',
   // Said as the bank that opens, with the price in the same breath: a player who

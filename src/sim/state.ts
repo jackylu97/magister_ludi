@@ -2979,8 +2979,33 @@ import {
  * **A v193 save is refused and does not replay.** A Magisterial seat's pools
  * hold more cards. The branch migrates nothing, for the reason given under
  * v119.
+ *
+ * v195 (branch `decks`; Magisterial batch MG12, `docs/plans/magisterial-
+ * themes-triage.md`): **The Mixed Constitution.** No field joins the state.
+ * What changes:
+ *
+ *   · one action rule is new, `cardsFitAnyChair`: while a card holding it
+ *     sits in a chair, every card of its holder fits every chair. The fit is
+ *     read in one place, `chairFitFor` (`statecraft/draft.ts`), which the slot
+ *     refusal, the re-seating, the council screen, the bots and the card stamp
+ *     ask; `orderFitsSlot` stays the plain rule (the triage's reading 24);
+ *   · an adoption re-seats the council by the fit the old council granted,
+ *     and the re-seating has a fifth pass that seats any card left in the
+ *     first free chair that fit admits. Under the plain rule it seats nothing;
+ *   · when the fit narrows (the card is unseated, a malice takes its chair, it
+ *     finds no chair at an adoption, or a council shrinks under it), the
+ *     council is re-seated at once by the plain rule (`settleCouncilFit`): a
+ *     card that fits its chair keeps it and its seal, the rest move to free
+ *     chairs that fit them with their seals lifted, and a card that fits none
+ *     returns to the collection (question 2's recommended answer);
+ *   · one Magisterial card is new and dealt: The Mixed Constitution (Tier
+ *     III).
+ *
+ * **A v194 save is refused and does not replay.** A Magisterial seat's pools
+ * hold more cards. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 194;
+export const SCHEMA_VERSION = 195;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

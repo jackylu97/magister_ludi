@@ -253,6 +253,9 @@ const ANNOUNCING = new Set([
   // G3: a malice turning an Order out of its chair — the chairs the third
   // source reads and the eleventh source itself both moved.
   'draft.ts#seatMalice',
+  // Magisterial batch MG12: a council re-seated where it stands once the card
+  // that let every card fit every chair has left.
+  'draft.ts#settleCouncilFit',
   // L3a: a chair opened or closed by the law itself (The King's Friends). An
   // Order's lines come and go with the chair it sits in, which is the third
   // source of the walk, so the write announces on the line it happens.

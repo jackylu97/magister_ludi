@@ -200,6 +200,7 @@ import {
   settleDoctrineChoice,
   settleDoctrineSkip,
   settleOrderChoice,
+  settleCouncilFit,
   settleOrderSkip,
   slotOrderAt,
   slotOrderError,
@@ -1045,6 +1046,10 @@ export interface SlotOrderCommand extends PlayerCommand {
  * It names the slot rather than the card, which is `cancelOrder`'s argument: the
  * slot is what is being emptied, and a command that named the card could
  * disagree with the state it was meant to clear.
+ *
+ * Taking out the card that lets every card fit every chair (The Mixed
+ * Constitution, Magisterial batch MG12) re-seats the rest of the council at
+ * once by the plain rule (`settleCouncilFit`).
  */
 export interface UnslotOrderCommand extends PlayerCommand {
   type: 'unslotOrder';
@@ -3650,6 +3655,11 @@ function applyUnslotOrder(state: GameState, command: UnslotOrderCommand): Comman
   // `slotOrderAt`'s announcement, made here because `unslotOrderAt` is a fact
   // about a player alone and takes no state (batch M3, `slate.ts`).
   bumpEconomy(state);
+  // **If the card taken out was the one that let every card fit every chair**
+  // (Magisterial batch MG12, The Mixed Constitution; the triage's reading 24),
+  // the council is re-seated at once by the plain rule. Made here for the
+  // reason above: `unslotOrderAt` takes no state, and the fit is read from it.
+  settleCouncilFit(state, actor);
   return ok();
 }
 

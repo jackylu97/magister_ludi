@@ -175,7 +175,6 @@ import {
   isDoctrineId,
   isOrderId,
   orderDef,
-  orderFitsSlot,
 } from '../sim/statecraftData';
 import { chairMixOfLayout, chairMixWords, chairNode, chairWord, emptyChairNode } from './chairs';
 import {
@@ -211,13 +210,14 @@ import {
   type SlotCommand,
   type StagedSlots,
   changedOffices,
-  diff,
+  councilDiff,
   place,
   placeError,
   remove,
   removeError,
   sameChairs,
   stage,
+  stagedFit,
   validate,
 } from './statecraftStaging';
 import type { GameState } from '../sim/state';
@@ -643,7 +643,10 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       discardStaging();
       return [];
     }
-    const commands = diff(player.statecraft.slots, arrangement, seat);
+    // Ordered by the council's chairs, so a card only The Mixed Constitution
+    // seats goes in after it and comes out before it (Magisterial batch MG12).
+    // `validate` walks the same list.
+    const commands = councilDiff(state, seat, arrangement);
     if (commands.length === 0) return [];
     const problem = validate(state, seat, arrangement);
     if (problem !== null) {
@@ -978,10 +981,14 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     // has to guess the meaning of.
     if (held !== null) {
       const card = held;
-      // Which chairs will take it, asked of `orderFitsSlot` rather than spelled
-      // out — a military card fits military *or* wildcard, a wildcard card fits
-      // only wildcard, and an unsorted card fits all four.
-      const fits = CHAIR_TYPES.filter((type) => orderFitsSlot(card, type)).map((type) => chairWord(type));
+      // Which chairs will take it, asked of the seat's own fit rather than
+      // spelled out — a military card fits military *or* wildcard, a wildcard
+      // card fits only wildcard, and an unsorted card fits all four. The fit is
+      // the staged arrangement's (`stagedFit`, Magisterial batch MG12), so
+      // with The Mixed Constitution in a chair every card fits all four, as the
+      // lit chairs above say.
+      const fit = stagedFit(state, seat, arrangement);
+      const fits = CHAIR_TYPES.filter((type) => fit(card, type)).map((type) => chairWord(type));
       const hint = element('p', 'sc-hand');
       hint.append(element('span', 'sc-hand-name', orderDef(card).name));
       hint.append(

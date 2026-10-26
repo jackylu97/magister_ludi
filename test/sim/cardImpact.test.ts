@@ -46,13 +46,21 @@ import { empireResourceYields } from '../../src/sim/resourceEffects';
 import { explainEmpireGold } from '../../src/sim/empireGold';
 import { senderRouteYields } from '../../src/sim/routeYields';
 import { found, game, typeRowsByOldOffice } from './statecraftHelpers';
+import { applyCommand } from '../../src/sim/commands';
 import { foundReligion } from '../../src/sim/religion';
 import { getTileAt } from '../../src/sim/map';
 import { isCoastal } from '../../src/sim/water';
 import { terrainDef } from '../../src/sim/terrainData';
 import type { GameState } from '../../src/sim/state';
 import { snapshotState } from '../../src/sim/game';
-import { type CardEffect, type OrderId, orderDef } from '../../src/sim/statecraftData';
+import {
+  type CardEffect,
+  type OrderId,
+  ORDER_IDS,
+  orderDef,
+  orderIsDealt,
+  orderType,
+} from '../../src/sim/statecraftData';
 import { bumpRevision } from '../../src/sim/state';
 
 /**
@@ -497,6 +505,69 @@ describe('a card already in force', () => {
     // Still the forward reading — the card is not in force, so slotting it is
     // worth the coin it was always worth.
     expect(foldCardImpact(lines).gold).toBe(1);
+  });
+
+  /**
+   * **The Mixed Constitution** (Magisterial batch MG12) pays nothing of its
+   * own: it lets every card fit every chair. Taking it out re-seats the
+   * council at once by the plain rule, so what it is worth is what the cards
+   * that go back to the collection were paying. The ghost is the council the
+   * unslot command leaves, and the stamp is the difference a real unslot makes.
+   */
+  it('reads The Mixed Constitution as the cards its leaving would send back', () => {
+    const { state } = bench();
+    const player = state.players[0]!;
+    const sc = player.statecraft;
+    // The chiefdom: Military, Economic, Wildcard. Two civic cards sit in the
+    // two typed chairs, and only one of them finds a chair without the card:
+    // The Nest Egg, second in seat order, goes back to the collection.
+    expect(sc.slots).toHaveLength(3);
+    const held: OrderId[] = ['theMapSellers' as OrderId, 'theNestEgg' as OrderId, 'theMixedConstitution' as OrderId];
+    sc.orders.push(...held);
+    sc.slots = held.map((card) => ({ card, sealedUntil: 0 }));
+    player.gold = 200;
+    bumpRevision(state);
+    const stamp = foldCardImpact(explainCardImpact(state, 0, { kind: 'order', id: 'theMixedConstitution' }));
+    const before = ledger(state, 0);
+    expect(applyCommand(state, { type: 'unslotOrder', playerId: 0, slotIndex: 2 }).ok).toBe(true);
+    expect(sc.slots.map((slot) => slot?.card ?? null)).toEqual([null, null, 'theMapSellers']);
+    const after = ledger(state, 0);
+    for (const key of CITY_YIELD_KEYS) expect(stamp[key], key).toBeCloseTo(before[key] - after[key], 9);
+    // The Nest Egg's culture, which the stamp is about.
+    expect(stamp.culture).toBeGreaterThan(0);
+  });
+
+  /**
+   * And a government card under it is priced by the fit the old council
+   * grants, as the adoption seats the cards (Magisterial batch MG12): The
+   * Nest Egg keeps the military chair, where the plain rule would have sent
+   * it back to the collection.
+   */
+  it('prices an adoption under The Mixed Constitution as the adoption seats the council', () => {
+    const { state } = bench();
+    const player = state.players[0]!;
+    const sc = player.statecraft;
+    const priests = ORDER_IDS.filter(
+      (id) => orderIsDealt(id) && orderType(id) === 'civic' && orderDef(id).commission === undefined,
+    )
+      .filter((id) => id !== 'theNestEgg')
+      .slice(0, 3);
+    // Tyranny (M, M, M, E, W): The Nest Egg in the first military chair, three
+    // civic cards beside it, and The Mixed Constitution in the Wildcard chair.
+    sc.government = 'tyranny';
+    const held: OrderId[] = ['theNestEgg' as OrderId, ...priests, 'theMixedConstitution' as OrderId];
+    sc.orders.push(...held);
+    sc.slots = held.map((card) => ({ card, sealedUntil: 0 }));
+    player.gold = 200;
+    bumpRevision(state);
+    const stamp = foldCardImpact(explainCardImpact(state, 0, { kind: 'government', id: 'theocracy' }));
+    const before = ledger(state, 0);
+    sc.pendingGovernment = { tier: 10, options: ['theocracy'] };
+    expect(applyCommand(state, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 }).ok).toBe(true);
+    // The Theocracy (M, C, C, C, W): every card kept its chair.
+    expect(sc.slots.map((slot) => slot?.card ?? null)).toEqual(held);
+    const after = ledger(state, 0);
+    for (const key of CITY_YIELD_KEYS) expect(stamp[key], key).toBeCloseTo(after[key] - before[key], 9);
   });
 });
 

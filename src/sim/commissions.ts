@@ -86,7 +86,7 @@ import {
 } from './statecraft';
 // Straight from its own layer rather than through the `statecraft.ts` index:
 // through the index, the build warns of a circular import between chunks.
-import { refitSlots } from './statecraft/draft';
+import { refitSlots, settleCouncilFit } from './statecraft/draft';
 import {
   countCitiesAdmitted,
   countTilesInBorders,
@@ -580,6 +580,13 @@ export function runCommissions(state: GameState): CommissionReport[] {
       sc.commissionsFulfilled = [...(sc.commissionsFulfilled ?? []), { card, turn: state.turn }];
       if (slotOf(sc, card) === index) sc.slots[index] = null;
       bumpEconomy(state);
+      // **A card leaving its chair may narrow the fit** (Magisterial batch
+      // MG12, The Mixed Constitution): if it was the card that let every card
+      // fit every chair, the council is re-seated at once by the plain rule,
+      // before the reward reads it. No commission carries that rule today, so
+      // this does nothing; it is here because every writer that empties a
+      // chair asks it.
+      settleCouncilFit(state, player);
       const lines = payCommission(state, player, card, spec);
       // **The moment a commission is met** (Dominion batch D11, The Ovation;
       // the triage's reading 34), once for each commission and after its

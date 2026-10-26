@@ -31,7 +31,10 @@
  * seat's slots swapped for the staged ones — so a staged office answers exactly
  * what the real one would answer if the arrangement were already true. Nothing
  * in this file knows what a seal is, what a wildcard takes, or that an Order can
- * only be in one office at a time.
+ * only be in one office at a time. Since Magisterial batch MG12 the diff orders
+ * its commands by the simulation's plain fit (`orderFitsSlot`), and `validate`
+ * mirrors the re-seating the reducer makes when The Mixed Constitution leaves
+ * (`councilRefit`); both are the simulation's own answers.
  *
  * The shadow is a spread, not a clone: `{...state, players: [...] }` with one
  * player's `statecraft.slots` replaced. The evaluators read `state.turn` and
@@ -41,9 +44,17 @@
  */
 
 import type { SlotOrderCommand, UnslotOrderCommand } from '../sim/commands';
-import { type SlottedOrder, slotOrderError, unslotOrderError } from '../sim/statecraft';
+import {
+  type SlottedOrder,
+  chairFitFor,
+  chairFitWithout,
+  councilRefit,
+  slotOrderError,
+  slotTypesOf,
+  unslotOrderError,
+} from '../sim/statecraft';
 import type { GameState } from '../sim/state';
-import type { ChairType, OrderId } from '../sim/statecraftData';
+import { type ChairFit, type ChairType, type OrderId, orderFitsSlot } from '../sim/statecraftData';
 import { playerById } from '../sim/state';
 
 /**
@@ -154,6 +165,16 @@ export function shadowState(state: GameState, playerId: number, staged: StagedSl
   };
 }
 
+/**
+ * **Which chairs the seat's cards fit, in this arrangement** (Magisterial
+ * batch MG12): the reducer's own fit (`chairFitFor`) asked of the shadow, so
+ * a Mixed Constitution staged in a chair widens it before Confirm, as
+ * `placeError` does. The council screen's line about the card in hand asks it.
+ */
+export function stagedFit(state: GameState, playerId: number, staged: StagedSlots): ChairFit {
+  return chairFitFor(shadowState(state, playerId, staged), playerId);
+}
+
 /** Why this card cannot be staged into this office, or `null`. The reducer's own. */
 export function placeError(
   state: GameState,
@@ -194,6 +215,17 @@ export function removeError(
  * is not a rule the reducer cares about and is what makes the batch readable in
  * a log.
  *
+ * **With the council's chairs, each half is ordered by the plain fit too**
+ * (`DiffOrder`; Magisterial batch MG12, The Mixed Constitution). A card that
+ * only The Mixed Constitution lets sit in a chair is slotted after every card
+ * the plain rule seats, so The Mixed Constitution itself, staged in the same
+ * arrangement, is in its chair first. A card sitting in such a chair is taken
+ * out before every other card, and The Mixed Constitution itself (the
+ * `keystone` chair) is taken out last, so every other card is out before the
+ * reducer re-seats the council. Without misfits the order is the office order
+ * above. `councilDiff` passes the chairs for the screen and `validate`; a
+ * caller without them gets the office order.
+ *
  * An office whose occupant did not change emits nothing, so the diff of an
  * untouched arrangement is empty — which is what "Confirm has nothing to do"
  * means, and what makes closing the screen free.
@@ -202,20 +234,64 @@ export function diff(
   live: readonly (SlottedOrder | null)[],
   staged: StagedSlots,
   playerId: number,
+  order?: DiffOrder,
 ): SlotCommand[] {
+  const misfitOut: SlotCommand[] = [];
   const unslots: SlotCommand[] = [];
+  const keystone: SlotCommand[] = [];
   const slots: SlotCommand[] = [];
+  const misfitIn: SlotCommand[] = [];
+  // Does this card fit this office by the plain rule? Always yes without the
+  // chairs, which keeps the office order.
+  const plain = (card: OrderId, index: number): boolean =>
+    order === undefined || orderFitsSlot(card, order.layout[index] ?? 'wildcard');
   const length = Math.max(live.length, staged.length);
   for (let index = 0; index < length; index++) {
     const before = live[index]?.card ?? null;
     const after = staged[index]?.card ?? null;
     if (before === after) continue;
-    if (before !== null) unslots.push({ type: 'unslotOrder', playerId, slotIndex: index });
+    if (before !== null) {
+      const out: SlotCommand = { type: 'unslotOrder', playerId, slotIndex: index };
+      if (index === order?.keystone) keystone.push(out);
+      else (plain(before, index) ? unslots : misfitOut).push(out);
+    }
     if (after !== null) {
-      slots.push({ type: 'slotOrder', playerId, cardId: after, slotIndex: index });
+      const put: SlotCommand = { type: 'slotOrder', playerId, cardId: after, slotIndex: index };
+      (plain(after, index) ? slots : misfitIn).push(put);
     }
   }
-  return [...unslots, ...slots];
+  return [...misfitOut, ...unslots, ...keystone, ...slots, ...misfitIn];
+}
+
+/**
+ * What `diff` needs to order a batch for a seat whose cards may sit in chairs
+ * the plain rule refuses (Magisterial batch MG12): the council's chairs, and
+ * the chair whose card widens the fit, if one does.
+ */
+export interface DiffOrder {
+  readonly layout: readonly ChairType[];
+  /** The live chair whose card lets every card fit every chair: taken out last. */
+  readonly keystone?: number;
+}
+
+/**
+ * **The diff for a seat, ordered as the reducer must meet it**: `diff` with
+ * the council's chairs and the keystone chair, which is the chair whose card,
+ * taken out, narrows the fit (`chairFitWithout`). The screen's Confirm sends
+ * it, and `validate` walks it.
+ */
+export function councilDiff(state: GameState, playerId: number, staged: StagedSlots): SlotCommand[] {
+  const player = playerById(state, playerId);
+  if (!player) return [];
+  const sc = player.statecraft;
+  const wide = chairFitFor(state, playerId);
+  const keystone =
+    wide === orderFitsSlot
+      ? -1
+      : sc.slots.findIndex((slot, index) => slot !== null && chairFitWithout(state, playerId, index) !== wide);
+  const order: DiffOrder =
+    keystone >= 0 ? { layout: slotTypesOf(sc), keystone } : { layout: slotTypesOf(sc) };
+  return diff(sc.slots, staged, playerId, order);
 }
 
 /**
@@ -262,11 +338,18 @@ export function validate(state: GameState, playerId: number, staged: StagedSlots
   const player = playerById(state, playerId);
   if (!player) return `No player with id ${String(playerId)}`;
   let shadow: StagedSlots = stage(player.statecraft.slots);
-  for (const command of diff(player.statecraft.slots, staged, playerId)) {
+  for (const command of councilDiff(state, playerId, staged)) {
     if (command.type === 'unslotOrder') {
       const problem = removeError(state, playerId, shadow, command.slotIndex);
       if (problem !== null) return problem;
       shadow = remove(shadow, command.slotIndex);
+      // **The re-seating the reducer makes after it** (Magisterial batch
+      // MG12): when the card taken out was the one that let every card fit
+      // every chair, the reducer re-seats the council at once, and the
+      // commands after this one meet that council. `councilRefit` is the
+      // reducer's own answer, asked of the shadow.
+      const refit = councilRefit(shadowState(state, playerId, shadow), playerId);
+      if (refit !== null) shadow = stage(refit.slots);
     } else {
       const problem = placeError(state, playerId, shadow, command.cardId, command.slotIndex);
       if (problem !== null) return problem;

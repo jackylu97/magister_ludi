@@ -223,7 +223,7 @@ import {
 // Straight from their own layers rather than through the `statecraft.ts`
 // index: through the index, the build warns of a circular import between
 // chunks.
-import { draftCost, draftCostFor } from '../sim/statecraft/draft';
+import { chairFitFor, draftCost, draftCostFor } from '../sim/statecraft/draft';
 import {
   type GroundFacts,
   cardRulePercent,
@@ -269,11 +269,11 @@ import {
   type WindfallOccasion,
   type LevyUse,
   type CardLevyEffect,
+  type ChairFit,
   LEVY_USES,
   isDoctrineId,
   isOrderId,
   orderDef,
-  orderFitsSlot,
 } from '../sim/statecraftData';
 import { type ProjectId, projectDef } from '../sim/projectData';
 // `citiesOf` is the one town walk every evaluator uses (CLAUDE.md) and batch
@@ -3712,6 +3712,10 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // stand-in until batch MG17 prices it against the draft the culture
       // would otherwise buy. This bot does not buy with culture yet.
       if (effect.rule === 'cultureBuysWonders') return ctx.ai.score.unknownEffect;
+      // **The Mixed Constitution's `cardsFitAnyChair`** (Magisterial batch
+      // MG12) is a stand-in until batch MG17 prices it off the held cards the
+      // wider fit would seat.
+      if (effect.rule === 'cardsFitAnyChair') return ctx.ai.score.unknownEffect;
       return ctx.ai.score.unknownEffect;
     case 'metaRule':
       // A rule of Statecraft itself — how long a chair is sealed. What a seal
@@ -5464,7 +5468,7 @@ function deckPair(
     slots[seated] = null;
     return { with: state, without: rewritten(state, playerId, { ...sc, slots }) };
   }
-  const chair = chairFor(sc, id);
+  const chair = chairFor(sc, id, chairFitFor(state, playerId));
   if (chair === null) return null;
   const slots = [...sc.slots];
   slots[chair] = { card: id, sealedUntil: state.turn };
@@ -5486,13 +5490,17 @@ function rewritten(state: GameState, playerId: number, sc: PlayerStatecraft): Ga
  * reading — its effects alone, with no synergy and no margin of its own — and
  * that is not merely thrift: `explainCard` is what asks for this, so ranking the
  * benched cards by `explainCard` would be a recursion with no floor.
+ *
+ * `fit` is the one the seat's council grants (`chairFitFor`, Magisterial batch
+ * MG12), so a card The Mixed Constitution lets sit anywhere is priced into any
+ * chair.
  */
-function chairFor(sc: PlayerStatecraft, id: OrderId): number | null {
+function chairFor(sc: PlayerStatecraft, id: OrderId, fit: ChairFit): number | null {
   const layout = slotTypesOf(sc);
   let worst: { chair: number; score: number } | null = null;
   for (let index = 0; index < sc.slots.length; index++) {
     const type = layout[index];
-    if (type === undefined || !orderFitsSlot(id, type)) continue;
+    if (type === undefined || !fit(id, type)) continue;
     const seated = sc.slots[index];
     if (!seated) return index;
     if (!isOrderId(seated.card)) continue;

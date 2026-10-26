@@ -1125,7 +1125,11 @@ describe("the research queue field", () => {
     // bank of the purchase verb, which a card opens to buy the wonder at the
     // front of a queue, and one Magisterial card is dealt. So a v193 log's
     // Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(194);
+    // 195 since Magisterial batch MG12 (The Mixed Constitution): a card may
+    // let every card of its holder fit every chair, the council is re-seated
+    // at once when that card leaves, and one Magisterial card is dealt. So a
+    // v194 log's Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(195);
   });
 });
 

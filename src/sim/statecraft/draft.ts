@@ -48,6 +48,7 @@ import {
   type OrderId,
   type OrderRarity,
   type OrderSlotGrant,
+  type ChairFit,
   type ChairType,
   type SlotType,
   type CommissionGoal,
@@ -78,6 +79,7 @@ import { awardOccasion } from '../triumphs';
 import { type TechAge, highestAge } from '../techData';
 import { sealTurnsFor } from './evaluator';
 import {
+  cardActionRule,
   cardExtraChairs,
   cardRulePercent,
   cityScopeAdmits,
@@ -1026,6 +1028,11 @@ export function refitSlots(state: GameState, player: Player): OrderId[] {
   // A chair opened or closed is a chair the meters read through — an Order's
   // lines come and go with it (batch M3, `slate.ts`).
   bumpEconomy(state);
+  // **A chair that closed may have held the card that widened the fit**
+  // (Magisterial batch MG12, The Mixed Constitution). Then the council is
+  // re-seated at once by the plain rule, and what fits no chair is returned
+  // with the rest.
+  if (returned.length > 0) returned.push(...settleCouncilFit(state, player));
   return returned;
 }
 
@@ -2291,6 +2298,129 @@ export function drawDoctrinePositions(state: GameState, player: Player): HandPos
   return positions;
 }
 
+// --- the fit a council grants ------------------------------------------------
+
+/** Every card fits every chair: the fit while `cardsFitAnyChair` holds. */
+const fitsAnyChair: ChairFit = () => true;
+
+/**
+ * **Which chairs this seat's cards fit, now** (Magisterial batch MG12, The
+ * Mixed Constitution; the triage's reading 24). The plain rule
+ * (`orderFitsSlot`), unless the seat's law holds `cardsFitAnyChair`: then
+ * every card of the seat fits every chair.
+ *
+ * The rule is read through the law (`cardActionRule`), so it holds exactly
+ * while the card sits in a chair. The answer is a function, so a caller that
+ * asks about many cards and chairs reads the law once. Every reader of a
+ * seat's chairs asks this: the slot refusal (`slotOrderError`), the
+ * re-seating (`adoptGovernmentAt`, `councilRefit`), the council screen, the
+ * bots (`bot.ts`, `value.ts`) and the card stamp (`cardImpact.ts`). The flair
+ * gallery's sample cards have no seat behind them, so it asks the plain rule.
+ */
+export function chairFitFor(state: GameState, playerId: number): ChairFit {
+  return cardActionRule(state, playerId, 'cardsFitAnyChair') ? fitsAnyChair : orderFitsSlot;
+}
+
+/** Does this card fit a chair of this type, for this seat now? `chairFitFor`, asked once. */
+export function orderFitsSlotFor(
+  state: GameState,
+  playerId: number,
+  order: OrderId,
+  chair: ChairType,
+): boolean {
+  return chairFitFor(state, playerId)(order, chair);
+}
+
+/** This board with one seat's chairs replaced. Shallow, read-only, and never kept. */
+function withSlots(
+  state: GameState,
+  playerId: number,
+  slots: (SlottedOrder | null)[],
+): GameState {
+  return {
+    ...state,
+    players: state.players.map((seat) =>
+      seat.id === playerId ? { ...seat, statecraft: { ...seat.statecraft, slots } } : seat,
+    ),
+  };
+}
+
+/**
+ * **The fit this seat would have with one chair emptied**: the fit a card put
+ * in that chair next is held to. It is `chairFitFor` unless the card in that
+ * chair is the one that widens the fit. Emptying a chair never widens the fit,
+ * so the law is read a second time only while the fit is wide. The bots' swap
+ * (`reslotDecision`, `bot.ts`) asks it, and so does the council screen's
+ * staging (`councilDiff`), to take that card out last.
+ */
+export function chairFitWithout(state: GameState, playerId: number, slotIndex: number): ChairFit {
+  const fit = chairFitFor(state, playerId);
+  if (fit === orderFitsSlot) return fit;
+  const sc = statecraftOf(state, playerId);
+  if (!sc) return fit;
+  const slots = sc.slots.map((slot, index) => (index === slotIndex ? null : slot));
+  return chairFitFor(withSlots(state, playerId, slots), playerId);
+}
+
+/**
+ * **The council re-seated where it stands, by the fit it has now**, or `null`
+ * when every seated card already fits its chair (Magisterial batch MG12; the
+ * triage's reading 24 and question 2's recommended answer).
+ *
+ * A card can sit in a chair the plain rule refuses only while The Mixed
+ * Constitution widens the fit. When the fit narrows again, the council is
+ * re-seated at once by the ordinary rule, as an adoption re-seats it
+ * (`reseatOrders`): a card that still fits its chair keeps it, the rest move
+ * to free chairs that fit them, and a card that fits no free chair returns to
+ * the collection with its progress. A card that keeps its chair keeps its
+ * seal, because nothing happened to it. A card that moves loses its seal, as a
+ * card a malice turns out does: the seal was a promise about the chair it
+ * left. A chair a malice holds is never free.
+ *
+ * Pure: it reads the board and answers the new chairs. `settleCouncilFit`
+ * writes them for a live seat. The council screen's staging and the card
+ * stamp ask it of a shadow board.
+ */
+export function councilRefit(
+  state: GameState,
+  playerId: number,
+): { slots: (SlottedOrder | null)[]; reseated: OrderId[]; returned: OrderId[] } | null {
+  const player = playerById(state, playerId);
+  if (!player) return null;
+  const sc = player.statecraft;
+  const fit = chairFitFor(state, playerId);
+  const layout = slotTypesOf(sc);
+  const misfit = sc.slots.some(
+    (slot, index) => slot !== null && isOrderId(slot.card) && !fit(slot.card, layout[index] ?? 'wildcard'),
+  );
+  if (!misfit) return null;
+  const held = layout.map((_, index) => maliceAt(player, index) !== null);
+  return reseatOrders(sc.slots, layout, held, state.turn, fit, true);
+}
+
+/**
+ * **Re-seats a live council whose fit has narrowed** (Magisterial batch MG12):
+ * writes `councilRefit`'s chairs and announces the write. Answers the cards
+ * that went back to the collection, in their old seat order.
+ *
+ * Called by every writer that can take a card out of a chair, after the card
+ * has left: the unslot command (`applyUnslotOrder`, `commands.ts`), a malice
+ * taking a chair (`seatMalice`), a commission leaving its chair
+ * (`runCommissions`, `commissions.ts`), an adoption (`adoptGovernmentAt`, for
+ * a card that found no chair in the new council) and a council that shrinks
+ * (`refitSlots`). It does nothing unless a seated card no longer fits its
+ * chair, which happens only once the card that widened the fit has left.
+ * `test/sim/decks/magisterialConstitution.test.ts` pins the list against
+ * every writer of the chairs.
+ */
+export function settleCouncilFit(state: GameState, player: Player): OrderId[] {
+  const seating = councilRefit(state, player.id);
+  if (seating === null) return [];
+  player.statecraft.slots = seating.slots;
+  bumpEconomy(state);
+  return seating.returned;
+}
+
 // --- the slots --------------------------------------------------------------
 
 /**
@@ -2300,7 +2430,11 @@ export function drawDoctrinePositions(state: GameState, player: Player): HandPos
  * the card, the slot must exist, the card must not already be slotted, the slot
  * must be free, and the **card must fit the chair** (`orderFitsSlot`, batch C2):
  * a Wildcard chair takes any card, a typed chair takes a card of its own type
- * or an unsorted one, and a Wildcard card fits only a Wildcard chair.
+ * or an unsorted one, and a Wildcard card fits only a Wildcard chair. The fit
+ * is the one the seat's council grants now (`chairFitFor`, Magisterial batch
+ * MG12): while The Mixed Constitution sits in a chair, every card fits every
+ * chair. The card itself is seated by the plain rule, because its rule holds
+ * only once it sits.
  *
  * There is deliberately no "swap" that empties an occupied slot: an occupied
  * slot is a sealed slot most of the time, and a verb that silently broke a seal
@@ -2343,7 +2477,7 @@ export function slotOrderError(
   const malice = maliceAt(player, index);
   if (malice !== null) return maliceChairRefusal(index, malice);
   const chair = layout[index]!;
-  if (!orderFitsSlot(cardId, chair)) return chairMisfitRefusal(cardId, index, chair);
+  if (!chairFitFor(state, playerId)(cardId, chair)) return chairMisfitRefusal(cardId, index, chair);
   return null;
 }
 
@@ -2603,6 +2737,10 @@ function seatMalice(state: GameState, player: Player, id: MaliceId, untilAge: nu
   // third source is read out of — the same sentence `slotOrderAt` says to the
   // slate, said for a card nobody chose.
   bumpEconomy(state);
+  // **If the card turned out was the one that widened the fit** (Magisterial
+  // batch MG12, The Mixed Constitution), the council is re-seated at once by
+  // the plain rule. It does nothing otherwise.
+  settleCouncilFit(state, player);
   return { id, chair, displaced, replaced: null };
 }
 
@@ -2768,6 +2906,19 @@ export interface GovernmentAdoption {
  * an adoption has always lifted every seal, so the player can re-lay the new
  * council at once.
  *
+ * **The fit is a parameter** (Magisterial batch MG12, The Mixed Constitution;
+ * the triage's reading 24). It is the plain rule unless the caller hands in
+ * the one the seat's council granted (`chairFitFor`). The four passes place
+ * cards by the plain rule, which every fit admits, and a fifth pass then
+ * seats the cards still left in the first free chair the fit admits, in old
+ * seat order. Under the plain rule the fifth pass seats nothing, because the
+ * four passes have already tried every chair the plain rule allows. So under
+ * the wide fit every card is re-seated while chairs remain.
+ *
+ * `keepSealInPlace` is for a re-seating where the chairs did not change
+ * (`councilRefit`): a card that keeps its own chair keeps its seal, and only
+ * a card that moves has its seal lifted.
+ *
  * Pure: it reads the old chairs and answers the new ones. `reseatCouncil` is
  * where a game's council is written.
  */
@@ -2776,6 +2927,8 @@ export function reseatOrders(
   layout: readonly ChairType[],
   held: readonly boolean[],
   turn: number,
+  fit: ChairFit = orderFitsSlot,
+  keepSealInPlace = false,
 ): { slots: (SlottedOrder | null)[]; reseated: OrderId[]; returned: OrderId[] } {
   const slots: (SlottedOrder | null)[] = layout.map(() => null);
   // The seated cards with the chair each sat in, in old seat order.
@@ -2785,8 +2938,9 @@ export function reseatOrders(
   });
   const seated = new Set<number>();
   const seat = (card: number, chair: number): void => {
-    const old = cards[card]!.slot;
-    slots[chair] = { ...old, sealedUntil: Math.min(old.sealedUntil, turn) };
+    const { slot: old, was } = cards[card]!;
+    slots[chair] =
+      keepSealInPlace && chair === was ? { ...old } : { ...old, sealedUntil: Math.min(old.sealedUntil, turn) };
     seated.add(card);
   };
   // 0. Every card whose chair still exists, is free of a malice and still fits
@@ -2794,7 +2948,7 @@ export function reseatOrders(
   // claim the same chair here.
   cards.forEach(({ slot, was }, card) => {
     if (was >= layout.length || held[was] === true) return;
-    if (orderFitsSlot(slot.card, layout[was]!)) seat(card, was);
+    if (fit(slot.card, layout[was]!)) seat(card, was);
   });
   const firstFree = (admits: (chair: ChairType) => boolean): number => {
     for (let index = 0; index < layout.length; index++) {
@@ -2826,6 +2980,13 @@ export function reseatOrders(
   // 4. The unsorted cards, typed chairs before Wildcard ones.
   pass((type) => type === 'unsorted', (_type, chair) => chair !== 'wildcard');
   pass((type) => type === 'unsorted', (_type, chair) => chair === 'wildcard');
+  // 5. Whatever is left, in the first free chair the fit admits. Only a fit
+  // wider than the plain rule seats anything here (MG12).
+  cards.forEach(({ slot }, card) => {
+    if (seated.has(card)) return;
+    const chair = firstFree((one) => fit(slot.card, one));
+    if (chair >= 0) seat(card, chair);
+  });
 
   const reseated: OrderId[] = [];
   const returned: OrderId[] = [];
@@ -2841,17 +3002,19 @@ export function reseatOrders(
  *
  * The one seating an adoption does. `adoptGovernmentAt` calls it on the live
  * player, and `cardImpact.ts` on a ghost to price a charter, so the stamp on a
- * government card and the adoption it prices seat the same cards.
+ * government card and the adoption it prices seat the same cards. Both hand
+ * in the fit the old council granted (`chairFitFor`, Magisterial batch MG12).
  */
 export function reseatCouncil(
   player: Player,
   previous: readonly (SlottedOrder | null)[],
   turn: number,
+  fit: ChairFit = orderFitsSlot,
 ): { reseated: OrderId[]; returned: OrderId[] } {
   reseatMalices(player);
   const layout = slotTypesOf(player.statecraft);
   const held = layout.map((_, index) => maliceAt(player, index) !== null);
-  const seating = reseatOrders(previous, layout, held, turn);
+  const seating = reseatOrders(previous, layout, held, turn, fit);
   player.statecraft.slots = seating.slots;
   return { reseated: seating.reseated, returned: seating.returned };
 }
@@ -2875,6 +3038,12 @@ export function reseatCouncil(
  * Since Magisterial batch MG7 the adoption is also a moment the cards are paid
  * at (`governmentAdopted`, feature G), after the re-seating and the Triumph and
  * before the Doctrine draw.
+ *
+ * Since Magisterial batch MG12 the re-seating uses the fit the old council
+ * granted (`chairFitFor`): while The Mixed Constitution sits in it, every card
+ * fits every chair. If that card finds no chair in the new council, the fit
+ * narrows and the council is re-seated again by the plain rule
+ * (`settleCouncilFit`), before the moment pays.
  *
  * The banked offer is spent (the key deleted), so a tier's triple is claimed
  * once. Entry XV settles the open question: a government pick cannot be
@@ -2900,6 +3069,11 @@ export function adoptGovernmentAt(
 
   // The old council, kept to re-seat from once the new chairs are laid out.
   const previous = sc.slots;
+  // **And the fit the old council grants** (Magisterial batch MG12, The Mixed
+  // Constitution; the triage's reading 24). Read before the government and
+  // the chairs change, so while that card sits in the old council every card
+  // is re-seated while chairs remain.
+  const fit = chairFitFor(state, player.id);
   sc.government = id;
   // **The charter has changed hands, and the chair count below reads it**
   // (batch R1). A government is the first source of `liveEffects`, and the walk
@@ -2940,7 +3114,7 @@ export function adoptGovernmentAt(
   // (§4 and batch C2): the debt is owed to the next wager rather than to the
   // government that owed it, so every malice this realm carries takes a chair
   // in the new layout, and the cards fill the chairs left. See `reseatCouncil`.
-  const seating = reseatCouncil(player, previous, state.turn);
+  reseatCouncil(player, previous, state.turn, fit);
   // A government is the first source of `liveEffects` and the re-seating above
   // rewrote every chair — two writes the meters fold, announced together (batch
   // M3, `slate.ts`). **And the slate dropped** (`forgetTheLaw`'s register): the
@@ -2949,6 +3123,13 @@ export function adoptGovernmentAt(
   // it still sat — the growing-orders pin caught it, 2026-09-10.
   forgetTheLaw(state);
   bumpEconomy(state);
+  // **If the card that widened the fit found no chair in the new council**,
+  // the fit is the plain one again, and the council is re-seated by it at
+  // once (Magisterial batch MG12; reading 24). It does nothing otherwise.
+  settleCouncilFit(state, player);
+  // What the adoption did, read off the old council and the final one, in
+  // the old seat order: so the second re-seating above is counted too.
+  const seating = councilOutcome(previous, sc.slots);
 
   // The Writ Extends. **Before** the Doctrine draw, so a triumph that fills the
   // renown ladder opens its great-person offer before this empire is handed a
@@ -2985,6 +3166,24 @@ export function adoptGovernmentAt(
     returned: seating.returned,
     doctrines: opened,
   };
+}
+
+/**
+ * Which cards of an old council are still seated in a new one, and which went
+ * back to the collection, each in the old seat order.
+ */
+function councilOutcome(
+  previous: readonly (SlottedOrder | null)[],
+  now: readonly (SlottedOrder | null)[],
+): { reseated: OrderId[]; returned: OrderId[] } {
+  const reseated: OrderId[] = [];
+  const returned: OrderId[] = [];
+  for (const slot of previous) {
+    if (slot === null || !isOrderId(slot.card)) continue;
+    const card = slot.card;
+    (now.some((one) => one?.card === card) ? reseated : returned).push(card);
+  }
+  return { reseated, returned };
 }
 
 /** Why this player cannot take this Doctrine, or `null`. `orderChoiceError`'s twin. */

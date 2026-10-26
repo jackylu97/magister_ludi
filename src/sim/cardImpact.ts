@@ -128,7 +128,6 @@ import {
   governmentDef,
   isOrderId,
   orderDef,
-  orderFitsSlot,
 } from './statecraftData';
 import { type BeliefId, type RiteId, beliefDef, beliefPoolOf, riteDef } from './religionData';
 // The rite preview's two readings of a rite not yet said: the town's timed list
@@ -137,6 +136,8 @@ import { type BeliefId, type RiteId, beliefDef, beliefPoolOf, riteDef } from './
 import { cityTimedWithRite, riteOfferingHammers } from './religion';
 import {
   chairCount,
+  chairFitFor,
+  councilRefit,
   describeEffects,
   occasionWords,
   holdsOrder,
@@ -354,10 +355,14 @@ function ghostPair(
         // In force. The reading is what taking it out of its office would cost,
         // which is the same figure with the same sign — `isSlotted` is the whole
         // of the test, because an Order pays from a slot and nowhere else.
-        return backward({
-          ...player,
-          statecraft: { ...sc, slots: sc.slots.map((slot, index) => (index === at ? null : slot)) },
-        });
+        const out = sc.slots.map((slot, index) => (index === at ? null : slot));
+        const without = swap({ ...player, statecraft: { ...sc, slots: out } });
+        // **Taking out the card that widened the fit re-seats the council**
+        // (Magisterial batch MG12, The Mixed Constitution): the ghost is the
+        // council the unslot command would leave, cards moved or returned.
+        const refit = councilRefit(without, player.id);
+        if (refit === null) return { without, with: state };
+        return backward({ ...player, statecraft: { ...sc, slots: refit.slots } });
       }
       const orders = held ? sc.orders : [...sc.orders, subject.id];
       let slots = sc.slots;
@@ -370,9 +375,11 @@ function ghostPair(
         // question nobody asked.
         const layout = slotTypesOf(sc);
         const entry = { card: subject.id, sealedUntil: state.turn };
+        // The fit this seat's council grants now (Magisterial batch MG12).
+        const fit = chairFitFor(state, player.id);
         let free = -1;
         for (let index = 0; index < slots.length; index++) {
-          if (slots[index] === null && orderFitsSlot(subject.id, layout[index] ?? 'wildcard')) {
+          if (slots[index] === null && fit(subject.id, layout[index] ?? 'wildcard')) {
             free = index;
             break;
           }
@@ -413,8 +420,14 @@ function ghostPair(
           slots: new Array<null>(chairCount(state, player.id, subject.id)).fill(null),
         },
       };
-      reseatCouncil(ghost, sc.slots, state.turn);
-      return forward(ghost);
+      // The fit the old council grants, as the adoption reads it (Magisterial
+      // batch MG12), and the second re-seating the adoption makes when the
+      // card that widened it found no chair.
+      reseatCouncil(ghost, sc.slots, state.turn, chairFitFor(state, player.id));
+      const adopted = swap(ghost);
+      const refit = councilRefit(adopted, player.id);
+      if (refit === null) return { without: state, with: adopted };
+      return forward({ ...ghost, statecraft: { ...ghost.statecraft, slots: refit.slots } });
     }
     case 'belief': {
       // **Which shelf a belief sits on decides which ghost it needs.** Three

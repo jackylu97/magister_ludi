@@ -1188,10 +1188,19 @@ describe('determinism', () => {
    * row. Nobody here buys anything, drafts or builds a wonder, so no culture
    * is spent. Checked with the change in place and the version printed as
    * 193, which gives the hashes of Magisterial batch MG10 exactly.
+   *
+   * **Magisterial batch MG12 (The Mixed Constitution, schema 195) moved the
+   * hash and not the length** at both seeds: 194 became 195, and that is all.
+   * The batch adds a rule that lets every card of its holder fit every chair,
+   * makes every reader of a seat's chairs ask the fit the seat's council
+   * grants, re-seats the council when that card leaves, and adds one card row.
+   * Nobody here drafts or seats a card, so every fit is the plain one and no
+   * council is re-seated. Checked with the change in place and the version
+   * printed as 194, which gives the hashes of Magisterial batch MG11 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'b4528229:188976',
-    2026: '94fce238:188554',
+    11: 'd2996caa:188976',
+    2026: '36477b67:188554',
   };
 
   for (const seed of [11, 2026]) {

@@ -313,6 +313,9 @@ import {
   SLOT_WORDS,
   anyCardDef,
   cardGarrisonSeats,
+  // Magisterial batch MG12: the fit a seat's council grants.
+  chairFitFor,
+  chairFitWithout,
   cityScopeAdmits,
   draftCostFor,
   heldReligions,
@@ -340,7 +343,6 @@ import {
   isDoctrineId,
   isOrderId,
   orderDef,
-  orderFitsSlot,
   slotLayout,
 } from '../sim/statecraftData';
 import { type BeliefId } from '../sim/religionData';
@@ -2426,12 +2428,15 @@ function slottingDecision(
   const sc = player.statecraft;
   const ctx = seatContext(state, player, sitting);
   const layout = slotTypesOf(sc);
+  // The fit this seat's council grants (Magisterial batch MG12): while The
+  // Mixed Constitution sits, every card fits every chair.
+  const fit = chairFitFor(state, player.id);
   // How many held cards each office could take. Asked once for the whole table
   // rather than per pair, and it is the *scarcity* the placement sorts on.
   const fits = new Map<ChairType, number>();
   for (const type of layout) {
     if (fits.has(type)) continue;
-    fits.set(type, sc.orders.filter((id) => orderFitsSlot(id, type)).length);
+    fits.set(type, sc.orders.filter((id) => fit(id, type)).length);
   }
   const rows: BotCandidate[] = [];
   let best: { cardId: OrderId; slot: number; row: number; score: number } | null = null;
@@ -2528,10 +2533,14 @@ function slotPairTerms(
  *
  * The one clause asked here rather than of a gate is whether the bench card
  * *fits* the office, and it is asked with the simulation's own predicate
- * (`orderFitsSlot`, the same one the scarcity count walks). `slotOrderError`
- * cannot be asked of an occupied chair — it refuses on the occupant before it
- * ever looks at the fit — so the honest reading is the predicate underneath it,
- * and the slotting that follows is held to the whole gate as always.
+ * (`chairFitWithout`, the fit the seat would have with that chair emptied, and
+ * so the one the scarcity count walks unless the card leaving is The Mixed
+ * Constitution, Magisterial batch MG12). `slotOrderError` cannot be asked of
+ * an occupied chair — it refuses on the occupant before it ever looks at the
+ * fit — so the honest reading is the predicate underneath it, and the slotting
+ * that follows is held to the whole gate as always. What the re-seating that
+ * follows The Mixed Constitution's unslot costs is not priced here; batch
+ * MG17 prices the card.
  */
 function reslotDecision(
   state: GameState,
@@ -2542,10 +2551,11 @@ function reslotDecision(
   if (sealedThisTurn(state, player)) return null;
   const ctx = seatContext(state, player, sitting);
   const layout = slotTypesOf(sc);
+  const fit = chairFitFor(state, player.id);
   const fits = new Map<ChairType, number>();
   for (const type of layout) {
     if (fits.has(type)) continue;
-    fits.set(type, sc.orders.filter((id) => orderFitsSlot(id, type)).length);
+    fits.set(type, sc.orders.filter((id) => fit(id, type)).length);
   }
   const rows: BotCandidate[] = [];
   let best: { cardId: OrderId; slot: number; row: number; gain: number } | null = null;
@@ -2573,9 +2583,12 @@ function reslotDecision(
       chosen: false,
       terms: sittingTerms,
     });
+    // The fit the bench card is held to once this chair is empty, which is
+    // narrower when the card leaving is the one that widened it (MG12).
+    const fitHere = chairFitWithout(state, player.id, slot);
     for (const ownedId of sc.orders) {
       if (isSlotted(sc, ownedId)) continue;
-      if (!orderFitsSlot(ownedId, type)) continue;
+      if (!fitHere(ownedId, type)) continue;
       const terms = slotPairTerms(player, ctx, ownedId, type, fits.get(type) ?? 1);
       const score = foldOf(terms);
       rows.push({
@@ -2644,8 +2657,9 @@ function sealedThisTurn(state: GameState, player: Player): boolean {
  * face-zero it replaces. Every held card is available: an adoption re-seats the
  * cards that fit the new chairs and lifts every seal (`reseatCouncil`), so the
  * council can be laid out afresh and nothing has to be excluded for being
- * already slotted. The fit is the simulation's own (`orderFitsSlot`), so a
- * Wildcard card is only ever priced into a Wildcard chair.
+ * already slotted. The fit is the simulation's own (`chairFitFor`), so a
+ * Wildcard card is only ever priced into a Wildcard chair, unless The Mixed
+ * Constitution sits in the old council (Magisterial batch MG12).
  */
 function adoptionTable(
   state: GameState,
@@ -2654,6 +2668,10 @@ function adoptionTable(
   sitting?: BotSitting,
 ): { index: number; candidates: BotCandidate[] } {
   const ctx = seatContext(state, player, sitting);
+  // The fit the old council grants, as the adoption reads it (Magisterial
+  // batch MG12): while The Mixed Constitution sits, every card fits every
+  // chair of the new government too.
+  const fit = chairFitFor(state, player.id);
   const candidates: BotCandidate[] = [];
   let index = 0;
   let bestScore = -Infinity;
@@ -2667,7 +2685,7 @@ function adoptionTable(
       .map((type, at) => ({
         type,
         at,
-        fits: player.statecraft.orders.filter((id) => orderFitsSlot(id, type)).length,
+        fits: player.statecraft.orders.filter((id) => fit(id, type)).length,
       }))
       .sort((a, b) => a.fits - b.fits || a.at - b.at);
     const spent = new Set<OrderId>();
@@ -2676,7 +2694,7 @@ function adoptionTable(
       let take: { id: OrderId; worth: number } | null = null;
       for (const ownedId of player.statecraft.orders) {
         if (spent.has(ownedId)) continue;
-        if (!orderFitsSlot(ownedId, office.type)) continue;
+        if (!fit(ownedId, office.type)) continue;
         const worth = scoreCard(player, ownedId, ctx);
         if (take === null || worth > take.worth) take = { id: ownedId, worth };
       }

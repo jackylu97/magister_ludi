@@ -3127,6 +3127,18 @@
       "text": "You may buy a wonder you are building with culture, one culture for each hammer it still needs.",
       "effects": [{ "kind": "rule", "rule": "cultureBuysWonders" }],
       "note": "Only the wonder at the front of a city's queue can be bought, and never the Magnum Opus. The production the city has already put into it counts toward the price and is used up. The culture comes from what you are saving for your next Order hand. Every other rule of buying still applies, and cards that make buying cheaper or dearer change this price too. Buying with culture does not count as spending gold or faith."
+    },
+    "theMixedConstitution": {
+      "name": "The Mixed Constitution",
+      "decks": ["magisterial"],
+      "band": 3,
+      "rarity": "rare",
+      "type": "wildcard",
+      "line": "none",
+      "flavor": "Polybius wrote that Rome lasted because its consuls, its Senate and its people each held a share of power.",
+      "text": "Your cards fit any chair.",
+      "effects": [{ "kind": "rule", "rule": "cardsFitAnyChair" }],
+      "note": "This card itself goes in a Wildcard chair. While it is seated, any card you hold may sit in any chair, and when you adopt a government every seated card keeps a chair while chairs remain. When it leaves its chair, your council is seated again at once: a card that still fits its chair keeps it, the others move to free chairs that fit them, and a card that fits no free chair goes back to your collection. A card that had to move may be moved again at once. A card still counts as its own type wherever it sits."
     }
   }
 }

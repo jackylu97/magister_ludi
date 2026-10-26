@@ -4545,7 +4545,24 @@ export type ActionRuleId =
    * (`spendCulture`), and the purchase is not gold or faith spent, so no
    * record of either moves.
    */
-  | 'cultureBuysWonders';
+  | 'cultureBuysWonders'
+  /**
+   * **Every card of this empire fits every chair** (Magisterial batch MG12,
+   * The Mixed Constitution; the triage's reading 24). Read in one place,
+   * `chairFitFor` (`statecraft/draft.ts`), which every reader of a seat's
+   * chairs asks: the slot refusal, the re-seating, the council screen, the
+   * bots and the card stamp.
+   *
+   * The rule holds only while the card sits in a chair, so the card itself is
+   * seated by the plain rule, in a Wildcard chair. At an adoption the rule is
+   * read from the old council, so every card is re-seated while chairs
+   * remain. When the rule is lost (the card is unseated, a malice takes its
+   * chair, the card fits no chair at an adoption, or a council shrinks under
+   * it), the council is re-seated at once by the plain rule
+   * (`settleCouncilFit`). A card still counts as its own type wherever it
+   * sits (`countedTypeOf`).
+   */
+  | 'cardsFitAnyChair';
 
 /**
  * Something about the world that stops being true — or starts.
@@ -11378,14 +11395,28 @@ export function slotCount(id: GovernmentId): number {
  *     yet, and such a card fits any chair so the other decks play as before);
  *   · a **Wildcard card** therefore fits only a Wildcard chair.
  *
- * The one statement of the rule. The reducer's refusal (`slotOrderError`), the
- * re-seating on adoption (`reseatOrders`), the bots and the screens all ask it.
+ * The one statement of the plain rule. Since Magisterial batch MG12 a seat's
+ * own council can widen it: while The Mixed Constitution sits in a chair,
+ * every card of that seat fits every chair. So every reader of a seat's chairs
+ * asks `chairFitFor` (`statecraft/draft.ts`), which answers this function or
+ * the wider fit. Outside the fit's own module, two readers ask this function
+ * directly: the flair gallery, whose sample cards have no seat behind them,
+ * and the council screen's staging, which orders a batch by the plain rule
+ * (`diff`, `src/ui/statecraftStaging.ts`).
  */
 export function orderFitsSlot(order: OrderId, chair: ChairType): boolean {
   if (chair === 'wildcard') return true;
   const type = orderType(order);
   return type === 'unsorted' || type === chair;
 }
+
+/**
+ * **A fit rule, as a function**: does this card fit a chair of this type?
+ * `orderFitsSlot` is the plain one. `chairFitFor` (`statecraft/draft.ts`)
+ * answers the one a seat's council grants now, read once, so a caller that
+ * asks about many cards and chairs reads the seat's law once.
+ */
+export type ChairFit = (order: OrderId, chair: ChairType) => boolean;
 
 /**
  * **The type a seated Order counts as** for the cards that count the council by
