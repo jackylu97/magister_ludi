@@ -617,8 +617,11 @@ describe('the schema, as landed', () => {
     // **And Devotion batch DV7** (the holy sites, the Opus and the authority
     // capstone): four more. The Anchorites, The Caliphate and The Abbeys are
     // new Devotion rows, and The Interdict left `deferred`.
-    expect(live).toBe(591);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(591);
+    // **And Magisterial batch MG7** (the council's moments): three more. The
+    // Sed Festival, The Pandects and Commission: The Golden Bull are new
+    // Magisterial rows.
+    expect(live).toBe(594);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(594);
   });
 
   /**
@@ -1003,7 +1006,12 @@ describe('the schema, as landed', () => {
     // an apostle may raise a holy site, a rival's town that follows a
     // religion may stop its Opus, and four Devotion cards are dealt. So a
     // v187 log's Devotion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(188);
+    // 189 since Magisterial batch MG7 (the council's moments): adopting a
+    // government is a moment the cards pay on, a card may count the Doctrines
+    // held, a commission may ask for a council in order and offer a Doctrine,
+    // and three Magisterial cards are dealt. So a v188 log's Magisterial
+    // hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(189);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

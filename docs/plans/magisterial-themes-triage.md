@@ -409,6 +409,8 @@ The first six come from section 12. The rest are new. Each gives the reading the
 - **Schema:** one bump.
 - **Done-gate:** `npx vitest run test/sim/decks/magisterialCouncil.test.ts test/sim/doctrineOffer.test.ts test/sim/typedChairs.test.ts test/sim/commissions.test.ts test/sim/aiCommissions.test.ts test/sim/triumphs.test.ts test/sim/decks/magisterial.test.ts test/sim/decks.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`.
 
+- **Built (2026-10-26):** all three cards. The gate passed: the type check, 9,794 core tests and the build. Schema 189. Feature G is the `governmentAdopted` member of `WindfallOccasion`, paid in `adoptGovernmentAt` after the re-seating and the Triumph and before the Doctrine draw. New count `doctrinesHeld`; new figure `councilInOrder`; new reward `doctrineOffer`, opened by one helper (`openDoctrineOffer`, `cities.ts`) that the building's `doctrineDraft` grant now shares; `commissionRewardWaits` keeps The Golden Bull in its chair while no Doctrine can be offered (question 3's recommended answer). Readings added: the moment pays after the Triumph's renown; while The Golden Bull waits its goal shows as met; The Pandects is a payoff, not an engine. Not done: no UI says why The Golden Bull waits; a rider's culture windfall during an adoption can open an Order hand before the Doctrine draw.
+
 ### MG8: great people spent
 
 - **Builds:**

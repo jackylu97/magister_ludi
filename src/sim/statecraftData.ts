@@ -3398,7 +3398,14 @@ export type CountKind =
    * chairs count (Travelling Players); without it every Order held counts
    * (The Polymath's Study). Read through `decksHeldCount`.
    */
-  | 'decksHeld';
+  | 'decksHeld'
+  /**
+   * **The Doctrines this empire holds** (Magisterial batch MG7, The
+   * Pandects; the triage's reading 20). The length of
+   * `PlayerStatecraft.doctrines`: every Doctrine taken, of any deck. A
+   * Doctrine is held for the whole game, so the count never falls.
+   */
+  | 'doctrinesHeld';
 
 /**
  * **The ledgers of what an empire did first.** Each is one `GameState.firsts`
@@ -5531,7 +5538,23 @@ export type WindfallOccasion =
    *   · a writer that puts down a post already established (Commerce batch
    *     T4, The World's Fair) calls the helper itself.
    */
-  | 'postEstablished';
+  | 'postEstablished'
+  /**
+   * **This empire adopted a government** (Magisterial batch MG7, feature G;
+   * the triage's reading 17): The Sed Festival. Paid by `adoptGovernmentAt`
+   * (`statecraft/draft.ts`) through `payOccasionRiders`, at the capital,
+   * after the council is re-seated and the Triumph is awarded, and before the
+   * Doctrine offer is drawn. It carries no facts.
+   *
+   * The riders are read after the re-seating, so only a card in a chair of
+   * the new council pays. An empire adopts at most four times a game (tiers
+   * 4, 10, 18 and 26), and each banked offer is spent once.
+   *
+   * It is not the Triumph of the same name (`Occasion` in `occasions.ts`): the
+   * Triumph is a moment the world announces, and this is the moment a card
+   * rider is paid at. The two are asked at the same point of the adoption.
+   */
+  | 'governmentAdopted';
 
 /**
  * **What a grant is a share of, where it is a share of the occasion itself.**
@@ -10213,7 +10236,17 @@ export type CommissionFigure =
    * so the goal counts itself, boons, charters and fulfilled commissions, and
    * no Doctrine.
    */
-  | 'ordersHeld';
+  | 'ordersHeld'
+  /**
+   * **A council in order** (Magisterial batch MG7, Commission: The Golden
+   * Bull; the triage's reading 18): 1 when every Military, Economic and Civic
+   * chair holds a card that counts as the chair's type, and 0 otherwise. A
+   * card counts as its own type, or as its chair's type when it is unsorted
+   * (`countedTypeOf`, the reading The Prefects and The Polemarch count by). A
+   * chair a malice holds is left out. An empty typed chair fails. Wildcard
+   * chairs are not read. Measured by `councilInOrder` (`commissions.ts`).
+   */
+  | 'councilInOrder';
 
 /** Every figure, for validation and the register test. */
 export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
@@ -10235,6 +10268,7 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'citiesAdmitted',
   'tradePartnerEmpires',
   'ordersHeld',
+  'councilInOrder',
 ];
 
 /**
@@ -10495,6 +10529,19 @@ export interface CommissionReward {
    * (`cityPostPays`: not during a war, not while the town is blockaded).
    */
   postsInPartnerCapitals?: true;
+  /**
+   * **A Doctrine offer of the government's tier** (Magisterial batch MG7,
+   * Commission: The Golden Bull; the triage's readings 18 and 19). Opened by
+   * `openDoctrineOffer` (`cities.ts`), the one helper a building's
+   * `doctrineDraft` grant uses too: Doctrines of the current government's
+   * tier from the seat's decks, never one already held.
+   *
+   * **The commission waits for it** (question 3's recommended answer): while
+   * no Doctrine of that tier is left to offer, or a Doctrine offer already
+   * waits, the goal does not count as met, so the card stays in its chair
+   * rather than paying nothing (`commissionRewardWaits`, `commissions.ts`).
+   */
+  doctrineOffer?: true;
 }
 
 /**

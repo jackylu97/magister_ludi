@@ -1795,7 +1795,12 @@ describe('research in the log', () => {
     // an apostle may raise a holy site, a rival's town that follows a
     // religion may stop its Opus, and four Devotion cards are dealt. So a
     // v187 log's Devotion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(188);
+    // 189 since Magisterial batch MG7 (the council's moments): adopting a
+    // government is a moment the cards pay on, a card may count the Doctrines
+    // held, a commission may ask for a council in order and offer a Doctrine,
+    // and three Magisterial cards are dealt. So a v188 log's Magisterial
+    // hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(189);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

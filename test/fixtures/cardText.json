@@ -9136,6 +9136,36 @@
     "text": "+1 card in every Statecraft draft per 2 wonders you hold (at most +2)"
    }
   ],
+  "theSedFestival": [
+   {
+    "raw": "adopting a government grants a great person to call",
+    "text": "adopting a government grants a great person to call"
+   }
+  ],
+  "thePandects": [
+   {
+    "raw": "+5% science in every city per Doctrine you hold",
+    "text": "+5% science in every city per Doctrine you hold"
+   },
+   {
+    "raw": "+5% production in every city per Doctrine you hold",
+    "text": "+5% production in every city per Doctrine you hold"
+   }
+  ],
+  "magisterialTheGoldenBull": [
+   {
+    "raw": "Commission. Goal: have every Military, Economic and Civic chair hold a card of its own type, while this card is seated",
+    "text": "Commission. Goal: have every Military, Economic and Civic chair hold a card of its own type, while this card is seated"
+   },
+   {
+    "raw": "Reward: a Doctrine draft of your government's tier",
+    "text": "Reward: a Doctrine draft of your government's tier"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
   "frontierGarrisons": [
    {
     "raw": "+2 food in every city with a unit standing in it of 5 or fewer citizens",

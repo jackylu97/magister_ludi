@@ -128,7 +128,9 @@ describe('the commission rows', () => {
           reward.lasting !== undefined ||
           // Commerce batch T4, The World's Fair: posts in the partners'
           // capitals.
-          reward.postsInPartnerCapitals === true;
+          reward.postsInPartnerCapitals === true ||
+          // Magisterial batch MG7, The Golden Bull: a Doctrine offer.
+          reward.doctrineOffer === true;
         expect(says, `${id} has a reward line that pays nothing`).toBe(true);
         if (reward.fromFigure !== undefined) expect(COMMISSION_FIGURES, id).toContain(reward.fromFigure);
       }
@@ -337,6 +339,9 @@ describe('the figures', () => {
     expect(commissionFigure(g.state, 0, 'ordersHeld')).toBe(0);
     hold(g.state, MARKET);
     expect(commissionFigure(g.state, 0, 'ordersHeld')).toBe(1);
+    // Magisterial batch MG7: a council in order is 1 or 0. The chiefdom's
+    // Military and Economic chairs are empty here, so it is 0.
+    expect(commissionFigure(g.state, 0, 'councilInOrder')).toBe(0);
   });
 });
 

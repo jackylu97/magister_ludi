@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Command } from '../../src/sim/commands';
+import { councilInOrder } from '../../src/sim/commissions';
 import { dispatch, snapshotState } from '../../src/sim/game';
 import { bumpRevision, playerById } from '../../src/sim/state';
 import {
@@ -550,6 +551,57 @@ describe('the tier-18 signatures count by type', () => {
     put('wildcard', trader!);
     expect(slottedOrdersOfFlavour(g.state, 0, 'economic')).toBe(2);
     expect(coin()).toBe(4);
+  });
+});
+
+// --- 3b. a council in order ------------------------------------------------------
+
+describe('a council in order (Magisterial batch MG7, Commission: The Golden Bull)', () => {
+  // The figure the commission's goal reads (the Magisterial triage's reading
+  // 18): every Military, Economic and Civic chair holds a card that counts as
+  // the chair's type, by `countedTypeOf`, the reading the signatures above use.
+  it('reads each typed chair by the type its card counts as, and leaves the Wildcard chairs out', () => {
+    const g = game();
+    const player = playerById(g.state, 0)!;
+    const sc = player.statecraft;
+    const [soldier] = cardsOf('military', 1);
+    const [trader] = cardsOf('economic', 1);
+    const [unsorted, other] = cardsOf('unsorted', 2);
+    expect(slotTypesOf(sc)).toEqual(['military', 'economic', 'wildcard']);
+    sc.orders.push(soldier!, trader!, unsorted!, other!);
+    sc.slots = [sitting(soldier!), sitting(trader!), null];
+    bumpRevision(g.state);
+    expect(councilInOrder(player)).toBe(true);
+    // An empty typed chair is not in order.
+    sc.slots = [sitting(soldier!), null, null];
+    bumpRevision(g.state);
+    expect(councilInOrder(player)).toBe(false);
+    // An unsorted card counts as the type of its chair.
+    sc.slots = [sitting(unsorted!), sitting(other!), null];
+    bumpRevision(g.state);
+    expect(councilInOrder(player)).toBe(true);
+    // A typed card in a chair of another type is not in order. The fit rule
+    // refuses it, so the chairs are written by hand.
+    sc.slots = [sitting(trader!), sitting(soldier!), null];
+    bumpRevision(g.state);
+    expect(councilInOrder(player)).toBe(false);
+  });
+
+  it('leaves out a chair a malice holds', () => {
+    const g = game();
+    const player = playerById(g.state, 0)!;
+    const sc = player.statecraft;
+    const [trader] = cardsOf('economic', 1);
+    sc.orders.push(trader!);
+    // The Thin Ranks (a military malice) holds the chiefdom's military chair.
+    player.malices.push({ id: 'thinRanks', untilAge: 3, chair: 0 });
+    sc.slots = [null, sitting(trader!), null];
+    bumpRevision(g.state);
+    expect(maliceAt(player, 0)).toBe('thinRanks');
+    expect(councilInOrder(player)).toBe(true);
+    sc.slots = [null, null, null];
+    bumpRevision(g.state);
+    expect(councilInOrder(player)).toBe(false);
   });
 });
 

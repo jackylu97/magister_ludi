@@ -4096,6 +4096,12 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // in batch T9), forecast from the posts the seat's routes have opened
       // and its own record. See `postEstablishedRate`.
       return postEstablishedRate(ctx);
+    case 'governmentAdopted':
+      // **A government adopted** (Magisterial batch MG7, feature G; The Sed
+      // Festival). An empire adopts at most four times a game, so this is a
+      // stand-in until batch MG17 prices it at the ladder's pace: one
+      // adoption over the horizon.
+      return 1 / horizon;
     default:
       return unreadOccasion(occasion);
   }
@@ -6486,6 +6492,12 @@ function rewardTerms(
     // **Your trading post in each partner's capital** (Commerce batch T4, The
     // World's Fair; priced in batch T9). See `partnerPostTerms`.
     for (const term of partnerPostTerms(goals, ctx)) terms.push(term);
+  }
+  if (reward.doctrineOffer === true) {
+    // **A Doctrine offer** (Magisterial batch MG7, Commission: The Golden
+    // Bull). A stand-in until batch MG17 prices it: the price of one shape
+    // this bot does not read yet.
+    terms.push({ label: 'a Doctrine draft, once', value: ctx.ai.score.unknownEffect });
   }
   return terms;
 }

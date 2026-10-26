@@ -166,6 +166,7 @@ import {
   cardRulePercent,
   cityHasFreshwater,
   cardProjectPays,
+  doctrineBagFor,
   drawDoctrineOffer,
   forgetTheLaw,
   foldCardRulePercent,
@@ -5625,7 +5626,8 @@ function consecrateBuilding(
  *     tier deals nothing) or the seat is already holding an unanswered one —
  *     `periodicOffer`'s precedent exactly, because an offer is a decision the
  *     player owes the game and a second one dealt on top would destroy the
- *     first.
+ *     first. Since Magisterial batch MG7 the arm calls `openDoctrineOffer`,
+ *     which a commission's Doctrine reward calls too.
  */
 function payCompletionGrants(
   state: GameState,
@@ -5765,22 +5767,51 @@ export function payGrants(
       reports.push({ grant: 'faithRung', name: 'a god', done: named });
       continue;
     }
-    // A Doctrine draft.
-    const sc = player.statecraft;
-    if (sc.pendingDoctrine !== undefined) {
-      reports.push({ grant: 'doctrineDraft', name: 'a Doctrine draft', done: false });
-      continue;
-    }
-    const offer = drawDoctrineOffer(state, player, governmentDef(sc.government).tier);
-    if (offer.options.length === 0) {
-      reports.push({ grant: 'doctrineDraft', name: 'a Doctrine draft', done: false });
-      continue;
-    }
-    sc.pendingDoctrine = offer;
-    reports.push({ grant: 'doctrineDraft', name: 'a Doctrine draft', done: true });
+    // A Doctrine draft, through the helper a commission's Doctrine offer uses
+    // too (Magisterial batch MG7).
+    const opened = openDoctrineOffer(state, player);
+    reports.push({ grant: 'doctrineDraft', name: 'a Doctrine draft', done: opened });
   }
 
   return reports;
+}
+
+/**
+ * **Can a Doctrine offer open for this seat now, outside an adoption?** Yes
+ * when no Doctrine offer waits and the seat's decks still hold a Doctrine of
+ * its current government's tier that it does not hold (`doctrineBagFor`).
+ * Spends no randomness, so a caller may ask before it decides.
+ *
+ * Asked by `openDoctrineOffer`, and by the commissions phase for a reward
+ * that opens one (Magisterial batch MG7, Commission: The Golden Bull): the
+ * goal waits while this answers no (the triage's reading 19).
+ */
+export function doctrineOfferCanOpen(player: Player): boolean {
+  const sc = player.statecraft;
+  if (sc.pendingDoctrine !== undefined) return false;
+  return doctrineBagFor(player, governmentDef(sc.government).tier).length > 0;
+}
+
+/**
+ * **Opens a Doctrine offer of the current government's tier**, outside an
+ * adoption, and says whether it opened. The one helper for a Doctrine offer
+ * that a grant or a reward deals (Magisterial batch MG7): a building's
+ * `doctrineDraft` grant (`payGrants`) and a commission's `doctrineOffer`
+ * reward (`commissions.ts`).
+ *
+ * Nothing opens while a Doctrine offer waits, because an offer is a decision
+ * the seat owes the game and a second one dealt on top would destroy the
+ * first. Nothing opens from an empty bag either, and then no randomness is
+ * spent. Otherwise the offer is dealt from `state.rng` by
+ * `drawDoctrineOffer`, as an adoption deals one.
+ */
+export function openDoctrineOffer(state: GameState, player: Player): boolean {
+  if (!doctrineOfferCanOpen(player)) return false;
+  const sc = player.statecraft;
+  const offer = drawDoctrineOffer(state, player, governmentDef(sc.government).tier);
+  if (offer.options.length === 0) return false;
+  sc.pendingDoctrine = offer;
+  return true;
 }
 
 /**

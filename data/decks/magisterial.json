@@ -2881,6 +2881,81 @@
         }
       ],
       "note": "A wonder you captured counts, and the Magnum Opus is not a wonder. The wonders are counted when the hand is dealt. A hand never holds more than five cards."
+    },
+    "theSedFestival": {
+      "name": "The Sed Festival",
+      "decks": ["magisterial"],
+      "band": 2,
+      "rarity": "rare",
+      "type": "civic",
+      "line": "none",
+      "flavor": "After thirty years on the throne, the king ran the ritual course again, and the land was his once more.",
+      "text": "Each time you adopt a government, gain a free great-person draft.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "governmentAdopted",
+          "grant": { "greatPerson": "any" }
+        }
+      ],
+      "note": "The card pays only if it still has a chair once the new government seats your council. If a great person is already waiting for your choice, or you cannot call great people yet, you gain the renown still needed for your next great person instead."
+    },
+    "thePandects": {
+      "name": "The Pandects",
+      "decks": ["magisterial"],
+      "band": 3,
+      "rarity": "uncommon",
+      "type": "civic",
+      "line": "none",
+      "flavor": "Fifty books of old opinions, cut down to the rules a judge could use.",
+      "text": "+5% science and production for each Doctrine you hold.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "doctrinesHeld",
+          "to": "science",
+          "percent": 5,
+          "stage": "city"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "doctrinesHeld",
+          "to": "production",
+          "percent": 5,
+          "stage": "city"
+        }
+      ],
+      "note": "Every Doctrine you hold counts, whatever its deck."
+    },
+    "magisterialTheGoldenBull": {
+      "name": "Commission: The Golden Bull",
+      "decks": ["magisterial"],
+      "band": 3,
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "line": "none",
+      "flavor": "The electors took their fixed seats, and everyone knew who would choose the next emperor.",
+      "text": "Commission. Have every Military, Economic and Civic chair hold a card of its own type. Then you are offered a Doctrine of your government's tier. The card leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "reached",
+            "figure": "councilInOrder",
+            "count": 1
+          }
+        ],
+        "reward": [
+          {
+            "doctrineOffer": true
+          }
+        ]
+      },
+      "note": "A chair held by a malice is left out. An empty Military, Economic or Civic chair is not in order. While no Doctrine of your government's tier is left to offer you, or a Doctrine offer is already waiting for your answer, the card stays in its chair and pays when an offer can be made."
     }
   }
 }

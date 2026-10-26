@@ -5700,6 +5700,8 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   cardDrafted: 'drafting a card',
   // Commerce batch T3, The Fondaci. At home or abroad.
   postEstablished: 'one of your trading posts being established',
+  // Magisterial batch MG7, feature G: The Sed Festival.
+  governmentAdopted: 'adopting a government',
 };
 
 /**
@@ -6013,6 +6015,8 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'different deck among the cards you hold',
     many: 'different decks among the cards you hold',
   },
+  // Magisterial batch MG7, The Pandects.
+  doctrinesHeld: { one: 'Doctrine you hold', many: 'Doctrines you hold' },
   // Scientific batch S2, feature A. The family is printed by `countNoun`, so
   // that "per scholar in the trades" and "per merchant in the trades" are one
   // entry, `greatPeopleGained`'s bargain.
@@ -7214,6 +7218,13 @@ const COMMISSION_FIGURE_WORDS: Record<
     counter: 'Orders held',
     noun: 'the Orders you hold',
   },
+  // Magisterial batch MG7, Commission: The Golden Bull. The figure is 1 or 0,
+  // so the goal is said as the state it asks for, whatever the count.
+  councilInOrder: {
+    goal: () => 'have every Military, Economic and Civic chair hold a card of its own type',
+    counter: 'council in order',
+    noun: 'your council in order',
+  },
 };
 
 /**
@@ -7411,6 +7422,9 @@ export function commissionRewardWords(reward: CommissionReward, towns = 1): stri
   if (reward.postsInPartnerCapitals === true) {
     out.push('your trading post, established at once, in the capital of each empire your trade routes reach');
   }
+  // Magisterial batch MG7, Commission: The Golden Bull. The row's note says
+  // that the card waits while no such Doctrine can be offered.
+  if (reward.doctrineOffer === true) out.push("a Doctrine draft of your government's tier");
   return out;
 }
 

@@ -497,7 +497,12 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   live in the deck files' `doctrines` maps with `decks` and `band` (the sheet
   tier); the pre-rework rows in `data/statecraft.json` stay retired. The reward
   hands D1a banked at draft counts 4, 18 and 29 were removed in the same batch
-  (schema 131).
+  (schema 131). Since Magisterial batch MG7 an adoption is also a moment the
+  cards pay on (`governmentAdopted`, paid by `payOccasionRiders` after the
+  re-seating and the Triumph, before the Doctrine draw), and a Doctrine offer
+  outside an adoption (a wonder's grant, a commission's reward) opens through
+  one helper, `openDoctrineOffer` (`cities.ts`), at the current government's
+  tier.
 - **`statecraft/evaluator.ts` is the ONLY module switching on `CardEffect.kind`.**
   A new card is a JSON row; a new *shape* is a design decision, and a shape
   declared but never read fails a register test. The eight ways to pay a voice
@@ -544,6 +549,11 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   - Since Devotion batch DV5 a `citiesAdmitted` goal may set `every`: it
     counts the admitted towns only while the scope admits every town the
     empire holds (Commission: The State Church).
+  - Since Magisterial batch MG7 a goal may ask for a council in order (the
+    `councilInOrder` figure: every Military, Economic and Civic chair holds a
+    card that counts as its type, a malice's chair left out), and a reward may
+    open a Doctrine offer (`doctrineOffer`). While no such offer can open, the
+    commission waits in its chair (`commissionRewardWaits`).
 - **Units a card raises, and the moments it pays on** (Dominion batch D5):
   - A grant can raise the best melee unit (`bestMeleeFor`) or each military
     unit a technology unlocks, in the capital or in each town a scope admits.

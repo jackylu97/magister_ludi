@@ -31,13 +31,17 @@
  * Wildcard chairs for the rest of the game (`refitSlots`). Since Commerce
  * batch T4 a reward may also write the empire's trading post, established at
  * once, in the capital of each empire its routes reach
- * (`writeEstablishedPost`, `trade.ts`).
+ * (`writeEstablishedPost`, `trade.ts`). Since Magisterial batch MG7 a reward
+ * may open a Doctrine offer (`openDoctrineOffer`, `cities.ts`), and the goal
+ * waits while none can open (`commissionRewardWaits`).
  */
 
 import {
   bestMeleeFor,
   buildingProductionCost,
   countedLuxuryCopies,
+  doctrineOfferCanOpen,
+  openDoctrineOffer,
   payOccasionRiders,
   realiseItem,
   settleGrowthWindfall,
@@ -71,10 +75,12 @@ import {
   commissionFulfilledTurn,
   groundFactsFor,
   heldReligions,
+  maliceAt,
   opusCityOf,
   payWindfallGrants,
   settleCultureWindfall,
   slotOf,
+  slotTypesOf,
   tallyOf,
   tileConditionHolds,
 } from './statecraft';
@@ -96,6 +102,7 @@ import {
   type GoalMeasure,
   type OrderId,
   type TileCondition,
+  countedTypeOf,
   isOrderId,
   orderDef,
 } from './statecraftData';
@@ -294,11 +301,41 @@ export function commissionFigure(
       // itself and every other Order held, seated or not, as The Universal
       // Library does.
       return ordersHeldCount(state, playerId);
+    case 'councilInOrder':
+      // Commission: The Golden Bull (Magisterial batch MG7, the triage's
+      // reading 18). Yes or no, so the goal asks for 1.
+      return councilInOrder(player) ? 1 : 0;
   }
 }
 
 /** An Academy, as The Republic of Letters' tile test names it. */
 const ACADEMY: TileCondition = { test: 'improvement', improvement: 'academy' };
+
+/**
+ * **Is this council in order?** (Magisterial batch MG7, Commission: The Golden
+ * Bull; the triage's reading 18.) Yes when every Military, Economic and Civic
+ * chair holds a card that counts as the chair's type. A card counts as its
+ * own type, or as the chair's type when it is unsorted (`countedTypeOf`, the
+ * reading the cards that count the council by type use). A chair a malice
+ * holds is left out, because no verb can move a malice. An empty typed chair
+ * fails. Wildcard chairs are not read.
+ *
+ * Read from the chairs as they stand, in chair order. A card's type is the
+ * row's own, so a rule that lets a card sit in any chair changes nothing here.
+ */
+export function councilInOrder(player: Player): boolean {
+  const sc = player.statecraft;
+  const chairs = slotTypesOf(sc);
+  for (let index = 0; index < chairs.length; index++) {
+    const chair = chairs[index]!;
+    if (chair === 'wildcard') continue;
+    if (maliceAt(player, index) !== null) continue;
+    const card = sc.slots[index]?.card;
+    if (card === undefined || !isOrderId(card)) return false;
+    if (countedTypeOf(card, chair) !== chair) return false;
+  }
+  return true;
+}
 
 /**
  * **A figure read for one town alone**, or `null` when the figure has no town
@@ -446,6 +483,10 @@ export function runCommissions(state: GameState): CommissionReport[] {
       if (commissionFulfilledTurn(sc, card) !== undefined) continue;
       const progress = commissionProgress(state, player.id, card);
       if (progress.length === 0 || !progress.every((part) => part.met)) continue;
+      // **A reward that cannot land yet keeps the card in its chair**
+      // (Magisterial batch MG7, The Golden Bull): the goal counts as met only
+      // once the reward can be paid.
+      if (commissionRewardWaits(player, spec)) continue;
       // Marked and unseated before the reward is paid, so nothing the reward
       // triggers can find the card still in its chair.
       sc.commissionsFulfilled = [...(sc.commissionsFulfilled ?? []), { card, turn: state.turn }];
@@ -460,6 +501,23 @@ export function runCommissions(state: GameState): CommissionReport[] {
     }
   }
   return reports;
+}
+
+/**
+ * **Must this commission's reward wait?** (Magisterial batch MG7, Commission:
+ * The Golden Bull; the triage's reading 19 and question 3's recommended
+ * answer.) Yes when a reward line opens a Doctrine offer and none can open
+ * now: no Doctrine of the government's tier is left in the seat's decks, or
+ * a Doctrine offer already waits (`doctrineOfferCanOpen`). The goal then
+ * does not count as met, so the card stays in its chair and pays when an
+ * offer can open, rather than paying nothing and leaving.
+ *
+ * Spends no randomness. Every other reward can always be paid, so it never
+ * waits.
+ */
+export function commissionRewardWaits(player: Player, spec: CommissionSpec): boolean {
+  if (!spec.reward.some((reward) => reward.doctrineOffer === true)) return false;
+  return !doctrineOfferCanOpen(player);
 }
 
 /**
@@ -507,8 +565,10 @@ function payCommission(
   const eachTown: CommissionReward[] = [];
   let mark = false;
   let chairs = 0;
+  let doctrine = false;
   for (const reward of spec.reward) {
     if (reward.markTown === true) mark = true;
+    if (reward.doctrineOffer === true) doctrine = true;
     if (reward.eachTown === true) {
       eachTown.push(reward);
       continue;
@@ -602,6 +662,13 @@ function payCommission(
     player.statecraft.chairsWon = (player.statecraft.chairsWon ?? 0) + chairs;
     refitSlots(state, player);
     lines.push(chairs === 1 ? 'one more Wildcard chair' : `${chairs} more Wildcard chairs`);
+  }
+  // **A Doctrine offer of the government's tier** (Magisterial batch MG7,
+  // Commission: The Golden Bull), last, because an offer is the loudest thing
+  // a reward does. Through the helper a building's Doctrine grant uses. The
+  // phase has already checked that one can open (`commissionRewardWaits`).
+  if (doctrine && openDoctrineOffer(state, player)) {
+    lines.push(`a Doctrine draft of your government's tier`);
   }
   return lines;
 }

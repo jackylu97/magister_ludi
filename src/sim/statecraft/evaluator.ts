@@ -3761,6 +3761,10 @@ export function countOf(
       return ordersHeldCount(state, playerId);
     case 'decksHeld':
       return decksHeldCount(state, playerId, effect.seated === true);
+    // Magisterial batch MG7, The Pandects (reading 20): every Doctrine held,
+    // of any deck. A Doctrine is held for the whole game.
+    case 'doctrinesHeld':
+      return playerById(state, playerId)?.statecraft.doctrines.length ?? 0;
     // Dominion batch D4: three lifetime records. A fallen unit or a taken town
     // leaves nothing on the board to count, so each is a counter on the player.
     case 'enemiesKilled':

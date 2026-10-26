@@ -1128,10 +1128,21 @@ describe('determinism', () => {
    * buys a prophet or drafts, so no price is asked, no site is raised and no
    * town builds the Opus. Checked with the change in place and the version
    * printed as 187, which gives the hashes of Magisterial batch MG6 exactly.
+   *
+   * **Magisterial batch MG7 (the council's moments, schema 189) moved the
+   * hash and not the length** at both seeds: 188 became 189, and that is all.
+   * The batch makes an adoption a moment the cards pay on, adds a count of
+   * the Doctrines held, a commission figure for a council in order and a
+   * commission reward that opens a Doctrine offer, moves a building's
+   * Doctrine grant onto the helper that reward uses, and adds three card
+   * rows. Nobody here adopts a government, drafts or completes a wonder, so
+   * no moment is paid and no Doctrine offer opens. Checked with the change in
+   * place and the version printed as 188, which gives the hashes of Devotion
+   * batch DV7 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'feb458dc:188976',
-    2026: 'a2350ad5:188554',
+    11: 'a630e873:188976',
+    2026: 'ef5a6716:188554',
   };
 
   for (const seed of [11, 2026]) {

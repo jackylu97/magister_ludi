@@ -2816,8 +2816,36 @@ import {
  * **A v187 save is refused and does not replay.** A Devotion seat's pools
  * hold more cards. The branch migrates nothing, for the reason given under
  * v119.
+ *
+ * v189 (branch `decks`; Magisterial batch MG7, `docs/plans/magisterial-
+ * themes-triage.md`): **the council's moments.** No field joins the state.
+ * The rules that change:
+ *
+ *   · one windfall moment is new, `governmentAdopted` (feature G). It is
+ *     paid in `adoptGovernmentAt` through `payOccasionRiders`, at the
+ *     capital, after the council is re-seated and the Triumph is awarded,
+ *     and before the Doctrine offer is drawn. So only a card in a chair of
+ *     the new council pays (the triage's reading 17). The Triumph of the same
+ *     name in `occasions.ts` is unchanged;
+ *   · one count is new, `doctrinesHeld`: the Doctrines the empire holds, of
+ *     any deck (reading 20);
+ *   · one commission figure is new, `councilInOrder`: 1 when every Military,
+ *     Economic and Civic chair holds a card that counts as the chair's type
+ *     (`countedTypeOf`), a chair a malice holds left out (reading 18);
+ *   · one commission reward is new, `doctrineOffer`. It opens a Doctrine
+ *     offer of the current government's tier through `openDoctrineOffer`
+ *     (`cities.ts`), the helper a building's `doctrineDraft` grant now calls
+ *     too. While no such offer can open, the commission waits in its chair
+ *     (`commissionRewardWaits`; reading 19 and question 3's recommended
+ *     answer);
+ *   · three Magisterial cards are new and dealt: The Sed Festival (Tier II),
+ *     and The Pandects and Commission: The Golden Bull (Tier III).
+ *
+ * **A v188 save is refused and does not replay.** A Magisterial seat's pools
+ * hold more cards. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 188;
+export const SCHEMA_VERSION = 189;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

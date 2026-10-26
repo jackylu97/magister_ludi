@@ -34,9 +34,10 @@ import {
   playerById,
   realPlayers,
 } from '../state';
-// Dominion batch D5: the draft passed occasion's payment. Called inside a
-// function only, so the import cycle through `cities.ts` stays a
-// function-level one (`test/mapgen/moduleCycles.test.ts`).
+// Dominion batch D5: the draft passed occasion's payment, and since
+// Magisterial batch MG7 the adoption's. Called inside a function only, so the
+// import cycle through `cities.ts` stays a function-level one
+// (`test/mapgen/moduleCycles.test.ts`).
 import { payOccasionRiders } from '../cities';
 import {
   type Band,
@@ -2854,6 +2855,10 @@ export function reseatCouncil(
  * be a draw taken from a moved generator. With no Doctrine left to offer, none
  * opens.
  *
+ * Since Magisterial batch MG7 the adoption is also a moment the cards are paid
+ * at (`governmentAdopted`, feature G), after the re-seating and the Triumph and
+ * before the Doctrine draw.
+ *
  * The banked offer is spent (the key deleted), so a tier's triple is claimed
  * once. Entry XV settles the open question: a government pick cannot be
  * revisited within a tier.
@@ -2933,6 +2938,22 @@ export function adoptGovernmentAt(
   // second card to answer — and so the two draws spend `state.rng` in an order
   // a replay reproduces.
   awardOccasion(state, player.id, 'governmentAdopted');
+
+  // **And the cards pay on it** (Magisterial batch MG7, feature G; the
+  // triage's reading 17): The Sed Festival's great person. After the
+  // re-seating, so only a card in a chair of the new council pays, and after
+  // the Triumph, so the Triumph keeps its place. Before the Doctrine draw, for
+  // the Triumph's reason: a great-person offer opens before the seat is
+  // handed a second hand, and the draws spend `state.rng` in an order a
+  // replay reproduces. At the capital, so food and production a rider pays
+  // land there.
+  const capital = capitalCityOf(state, player.id);
+  payOccasionRiders(
+    state,
+    player,
+    'governmentAdopted',
+    capital ? { col: capital.col, row: capital.row } : undefined,
+  );
 
   const doctrines = drawDoctrineOffer(state, player, offer.tier);
   let opened: DoctrineOffer | null = null;

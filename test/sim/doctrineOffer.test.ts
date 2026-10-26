@@ -18,6 +18,9 @@
  *     and spends no randomness, so no offer opens;
  *   · **the two answers**: take one, or pass for nothing, each refused
  *     byte-identically when there is nothing to answer;
+ *   · **an offer outside an adoption** (Magisterial batch MG7): one helper,
+ *     `openDoctrineOffer`, opens one at the current government's tier, never
+ *     over a waiting offer and never from an empty bag;
  *   · **The Steppe Confederacy end to end**: negative authority no longer
  *     stops its holder's borders (the culture banks, the end-of-turn claim and
  *     a windfall claim), and while authority is negative its mounted units are
@@ -33,8 +36,10 @@ import { nextBotDecision } from '../../src/ai/bot';
 import {
   borderCostFor,
   borderGrowth,
+  doctrineOfferCanOpen,
   expandBorders,
   foundCityAt,
+  openDoctrineOffer,
   settleBorderWindfall,
 } from '../../src/sim/cities';
 import { type Command, applyCommand } from '../../src/sim/commands';
@@ -399,6 +404,46 @@ describe('the adoption opens the offer, and the seat takes one or passes', () =>
     const seat = playerById(g.state, 0)!.statecraft as unknown as Record<string, unknown>;
     expect(seat.rewardHands).toBeUndefined();
     expect(seat.pendingReward).toBeUndefined();
+  });
+});
+
+// --- an offer outside an adoption ----------------------------------------------
+
+describe('a Doctrine offer outside an adoption (Magisterial batch MG7)', () => {
+  // One helper opens it, for a building's Doctrine grant and for a
+  // commission's Doctrine reward (Commission: The Golden Bull), at the
+  // current government's tier.
+  it('opens one of the current government’s tier, and never over a waiting offer', () => {
+    const g = duel('taizong', 'pachacuti');
+    const taizong = playerById(g.state, 0)!;
+    taizong.statecraft.government = 'warChief';
+    bumpRevision(g.state);
+    expect(doctrineOfferCanOpen(taizong)).toBe(true);
+    expect(openDoctrineOffer(g.state, taizong)).toBe(true);
+    const options = [...(taizong.statecraft.pendingDoctrine?.options ?? [])];
+    expect(options).toHaveLength(3);
+    for (const id of options) expect(TIER_ONE, id).toContain(id);
+    // A second is refused while the first waits, and nothing moves.
+    const before = snapshotState(g.state);
+    expect(doctrineOfferCanOpen(taizong)).toBe(false);
+    expect(openDoctrineOffer(g.state, taizong)).toBe(false);
+    expect(snapshotState(g.state)).toBe(before);
+  });
+
+  it('opens nothing from an empty bag, and spends no randomness', () => {
+    const g = duel('taizong', 'pachacuti');
+    // Seat 1's decks hold no Doctrine of the tier.
+    const pachacuti = playerById(g.state, 1)!;
+    pachacuti.statecraft.government = 'warChief';
+    bumpRevision(g.state);
+    const before = snapshotState(g.state);
+    expect(doctrineOfferCanOpen(pachacuti)).toBe(false);
+    expect(openDoctrineOffer(g.state, pachacuti)).toBe(false);
+    // The Chiefdom's tier deals nothing either.
+    const taizong = playerById(g.state, 0)!;
+    expect(taizong.statecraft.government).toBe('chiefdom');
+    expect(openDoctrineOffer(g.state, taizong)).toBe(false);
+    expect(snapshotState(g.state)).toBe(before);
   });
 });
 

@@ -733,6 +733,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Golden Age | 2 | ○ | S | Completing a wonder gives your cities +20% production and culture for ten turns. A later wonder restarts the ten turns. |
 | The Accessions Register | 2 | ◆ | S | Each card you draft grants your capital production equal to half the culture its hand cost. |
 | The Unwritten Chapter | 2 | ● | S | Each time you pass on an Order hand, gain science equal to half the culture the hand cost. |
+| The Sed Festival | 2 | ○ | S | Each time you adopt a government, gain a free great-person draft. |
 | The Living Canon | 3 | ○ | P | Your cities gain +4% food and +4% production per distinct great-person family whose legacy you currently hold, at most +20% each. |
 | The Wonder Commonwealth | 3 | ○ | P | Cities containing a wonder gain +38% production and +38% food. Your cities without a wonder gain +15% culture instead. |
 | The Boule | 3 | ◆ | E | +2% science and culture for each card you have seated. |
@@ -740,6 +741,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Garden Courts | 3 | ◆ | P | Towns working at least two great-person works gain +20% culture and science. |
 | Commission: The Wonder of the Age | 3 | ◆ | S | Commission. Put 1,500 production into wonders or the Magnum Opus while this is seated; production in a wonder a rival finishes first still counts. Then gain 250 culture, and for the rest of the game one more Wildcard chair. The card leaves its chair. |
 | Officials by Merit | 3 | ○ | S | Order hands deal two extra cards. You cannot reroll Order hands. |
+| The Pandects | 3 | ◆ | P | +5% science and production for each Doctrine you hold. |
+| Commission: The Golden Bull | 3 | ◆ | S | Commission. Have every Military, Economic and Civic chair hold a card of its own type. Then you are offered a Doctrine of your government's tier. The card leaves its chair. |
 | The Privy Council | 4 | ○ | E | Each of your cards that pays production pays +1 more production wherever it pays it. |
 | The Magister's Court | 4 | ◆ | S | Cities containing a wonder gain +25% production toward the Magnum Opus. |
 | The Bulwark of Marvels | 4 | ◆ | S | The town building your Magnum Opus gains +4 defence for each wonder you hold. |
@@ -954,6 +957,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Wandering Muse** — If a great person is already waiting for your choice, or you cannot call great people yet, you gain the renown still needed for your next great person instead. A card picked from a free hand counts.
 - **Officials by Merit** — Hands of Doctrines and great people may still be rerolled. A hand never holds more than five cards.
 - **The Hall of Wonders** — A wonder you captured counts, and the Magnum Opus is not a wonder. The wonders are counted when the hand is dealt. A hand never holds more than five cards.
+- **The Sed Festival** — The card pays only if it still has a chair once the new government seats your council. If a great person is already waiting for your choice, or you cannot call great people yet, you gain the renown still needed for your next great person instead.
+- **The Pandects** — Every Doctrine you hold counts, whatever its deck.
+- **Commission: The Golden Bull** — A chair held by a malice is left out. An empty Military, Economic or Civic chair is not in order. While no Doctrine of your government's tier is left to offer you, or a Doctrine offer is already waiting for your answer, the card stays in its chair and pays when an offer can be made.
 - **Letters of Marque** — The coin is for a kill made by one of your ships, wherever it happens. The extra gold and the slower shipyards both belong to the cities that have a Harbour.
 - **The Sacred Host** — A soldier bought with faith costs what it would cost to build, converted at the faith rate.
 - **Pilgrim Markets** — The first card to pay a trade route in faith; nothing carried it before this one asked. The test is a disjunction, so one shrine is enough and two are not more — a road with a holy site at each end is paid once, which is the card's second sentence. The site is the prophet's work on the ground, anywhere inside either town's borders, and nobody has to be working the hex.
