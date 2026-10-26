@@ -4220,16 +4220,6 @@
     "text": "new cities start 1 citizen larger"
    }
   ],
-  "theSpiritsOfPlace": [
-   {
-    "raw": "+1 faith in your capital",
-    "text": "+1 faith in your capital"
-   },
-   {
-    "raw": "+1 faith in every city per 2 improved hexes there",
-    "text": "+1 faith in every city per 2 improved hexes there"
-   }
-  ],
   "theRopeStretchers": [
    {
     "raw": "+1 science in every city per 3 improved hexes there",
@@ -6478,8 +6468,8 @@
   ],
   "layOfferings": [
    {
-    "raw": "+1 food, +1 faith on every hex with a [[improvement:camp|Camp]] or [[improvement:plantation|Plantation]]",
-    "text": "+1 food, +1 faith on every hex with a Camp or Plantation"
+    "raw": "+1 food, +1 faith on every hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]] or [[improvement:plantation|Plantation]]",
+    "text": "+1 food, +1 faith on every hex with a Pasture or Camp or Plantation"
    }
   ],
   "theOldGodsRemain": [
@@ -6508,12 +6498,6 @@
     "text": "until you have founded a religion: +25% faith in every city"
    }
   ],
-  "theHolySpring": [
-   {
-    "raw": "+1 culture, +2 faith in every city on or beside mountain or on or beside lake",
-    "text": "+1 culture, +2 faith in every city on or beside mountain or on or beside lake"
-   }
-  ],
   "theWaysideShrines": [
    {
     "raw": "+2 food in every city with a [[building:shrine|Shrine]]",
@@ -6528,16 +6512,6 @@
    {
     "raw": "+3 happiness in every city while it is keeping a rite",
     "text": "+3 happiness in every city while it is keeping a rite"
-   }
-  ],
-  "thePriestAstronomers": [
-   {
-    "raw": "+2 science in your capital per city of yours keeping a rite (at most +16 science)",
-    "text": "+2 science in your capital per city of yours keeping a rite (at most +16 science)"
-   },
-   {
-    "raw": "+2 faith in your capital per city of yours keeping a rite (at most +16 faith)",
-    "text": "+2 faith in your capital per city of yours keeping a rite (at most +16 faith)"
    }
   ],
   "consecratedLabor": [
@@ -6580,8 +6554,8 @@
     "text": "Commission. Goal: convert 2 foreign cities to your religion, while this card is seated"
    },
    {
-    "raw": "Reward: an [[unit:apostle|Apostle]], trained in your capital free of upkeep, and +150 culture",
-    "text": "Reward: an Apostle, trained in your capital free of upkeep, and +150 culture"
+    "raw": "Reward: an [[unit:apostle|Apostle]], trained in your capital free of upkeep, and +300 culture",
+    "text": "Reward: an Apostle, trained in your capital free of upkeep, and +300 culture"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -6619,12 +6593,6 @@
    {
     "raw": "+3 culture in your capital per belief your religion holds",
     "text": "+3 culture in your capital per belief your religion holds"
-   }
-  ],
-  "thePaintedChapels": [
-   {
-    "raw": "+3 culture in every city per faith building there",
-    "text": "+3 culture in every city per faith building there"
    }
   ],
   "theRitesCommonwealth": [
@@ -6699,30 +6667,6 @@
     "text": "apostles: +1 movement"
    }
   ],
-  "theFestivalCalendar": [
-   {
-    "raw": "+30% food in every city while it is keeping a rite",
-    "text": "+30% food in every city while it is keeping a rite"
-   },
-   {
-    "raw": "+30% culture in every city while it is keeping a rite",
-    "text": "+30% culture in every city while it is keeping a rite"
-   }
-  ],
-  "thePenitentsRoll": [
-   {
-    "raw": "+6 science per draft you have rerolled while this stood",
-    "text": "+6 science per draft you have rerolled while this stood"
-   },
-   {
-    "raw": "+6 culture per draft you have rerolled while this stood",
-    "text": "+6 culture per draft you have rerolled while this stood"
-   },
-   {
-    "raw": "rerolling an Order hand costs 30% less faith",
-    "text": "rerolling an Order hand costs 30% less faith"
-   }
-  ],
   "theLayBrothers": [
    {
     "raw": "buildings other than wonders may be bought with faith in every city with a [[building:temple|Temple]]",
@@ -6731,12 +6675,12 @@
   ],
   "theSettledFaith": [
    {
-    "raw": "+30% science in every city with a [[building:temple|Temple]] while it is keeping a rite",
-    "text": "+30% science in every city with a Temple while it is keeping a rite"
+    "raw": "+15% science in every city that follows your religion",
+    "text": "+15% science in every city that follows your religion"
    },
    {
-    "raw": "+2 happiness in every city with a [[building:temple|Temple]] while it is keeping a rite",
-    "text": "+2 happiness in every city with a Temple while it is keeping a rite"
+    "raw": "+15% culture in every city that follows your religion",
+    "text": "+15% culture in every city that follows your religion"
    },
    {
     "raw": "a proclamation presses 15 faith less",
@@ -6779,16 +6723,6 @@
     "text": "what follower beliefs pay in your own cities is +150% more"
    }
   ],
-  "theMonasticUniversity": [
-   {
-    "raw": "+5 science, +3 faith on every hex with a [[improvement:holySite|Holy Site]] beside an [[improvement:academy|Academy]]",
-    "text": "+5 science, +3 faith on every hex with a Holy Site beside an Academy"
-   },
-   {
-    "raw": "+5 science, +3 faith on every hex with an [[improvement:academy|Academy]] beside a [[improvement:holySite|Holy Site]]",
-    "text": "+5 science, +3 faith on every hex with an Academy beside a Holy Site"
-   }
-  ],
   "theGreatConsecration": [
    {
     "raw": "+5% production toward [[building:theMagnumOpus|The Magnum Opus]] per foreign city that follows you (at most +40%)",
@@ -6807,8 +6741,8 @@
     "text": "Commission. Goal: have at least 51% of the world's cities follow your religion, while this card is seated"
    },
    {
-    "raw": "Reward: +500 faith, and for 30 turns, +3 culture, +3 faith in every city that follows the religion",
-    "text": "Reward: +500 faith, and for 30 turns, +3 culture, +3 faith in every city that follows the religion"
+    "raw": "Reward: for the rest of the game, +3 culture, +3 faith in every city that follows your religion",
+    "text": "Reward: for the rest of the game, +3 culture, +3 faith in every city that follows your religion"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -6863,8 +6797,8 @@
   ],
   "theInterdict": [
    {
-    "raw": "you may spend faith to lay a foreign city that keeps your religion under an interdict, and it works far less for a time — not built yet",
-    "text": "you may spend faith to lay a foreign city that keeps your religion under an interdict, and it works far less for a time — not built yet",
+    "raw": "a rival's town that follows your religion stops adding production to its Magnum Opus — not built yet",
+    "text": "a rival's town that follows your religion stops adding production to its Magnum Opus — not built yet",
     "deferred": true
    }
   ],
@@ -6890,8 +6824,8 @@
     "text": "Commission. Goal: have a rival's capital follow your religion, while this card is seated"
    },
    {
-    "raw": "Reward: a [[unit:prophet|Prophet]], trained in your capital free of upkeep, and +300 culture",
-    "text": "Reward: a Prophet, trained in your capital free of upkeep, and +300 culture"
+    "raw": "Reward: a [[unit:prophet|Prophet]], trained in your capital free of upkeep, and +500 culture",
+    "text": "Reward: a Prophet, trained in your capital free of upkeep, and +500 culture"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -9416,6 +9350,72 @@
    {
     "raw": "+3 gold per Order you have placed in a slot",
     "text": "+3 gold per Order you have placed in a slot"
+   }
+  ],
+  "theHolySpring": [
+   {
+    "raw": "+1 culture, +2 faith in every city on or beside mountain or on or beside lake",
+    "text": "+1 culture, +2 faith in every city on or beside mountain or on or beside lake"
+   }
+  ],
+  "thePriestAstronomers": [
+   {
+    "raw": "+2 science in your capital per city of yours keeping a rite (at most +16 science)",
+    "text": "+2 science in your capital per city of yours keeping a rite (at most +16 science)"
+   },
+   {
+    "raw": "+2 faith in your capital per city of yours keeping a rite (at most +16 faith)",
+    "text": "+2 faith in your capital per city of yours keeping a rite (at most +16 faith)"
+   }
+  ],
+  "theMonasticUniversity": [
+   {
+    "raw": "+5 science, +3 faith on every hex with a [[improvement:holySite|Holy Site]] beside an [[improvement:academy|Academy]]",
+    "text": "+5 science, +3 faith on every hex with a Holy Site beside an Academy"
+   },
+   {
+    "raw": "+5 science, +3 faith on every hex with an [[improvement:academy|Academy]] beside a [[improvement:holySite|Holy Site]]",
+    "text": "+5 science, +3 faith on every hex with an Academy beside a Holy Site"
+   }
+  ],
+  "thePaintedChapels": [
+   {
+    "raw": "+3 culture in every city per faith building there",
+    "text": "+3 culture in every city per faith building there"
+   }
+  ],
+  "theFestivalCalendar": [
+   {
+    "raw": "+30% food in every city while it is keeping a rite",
+    "text": "+30% food in every city while it is keeping a rite"
+   },
+   {
+    "raw": "+30% culture in every city while it is keeping a rite",
+    "text": "+30% culture in every city while it is keeping a rite"
+   }
+  ],
+  "thePenitentsRoll": [
+   {
+    "raw": "+6 science per draft you have rerolled while this stood",
+    "text": "+6 science per draft you have rerolled while this stood"
+   },
+   {
+    "raw": "+6 culture per draft you have rerolled while this stood",
+    "text": "+6 culture per draft you have rerolled while this stood"
+   },
+   {
+    "raw": "rerolling an Order hand costs 30% less faith",
+    "text": "rerolling an Order hand costs 30% less faith"
+   }
+  ],
+  "theSpiritsOfPlace": [
+   {
+    "raw": "+1 faith in your capital",
+    "text": "+1 faith in your capital"
+   },
+   {
+    "raw": "+1 faith in every city per 2 improved hexes there",
+    "text": "+1 faith in every city per 2 improved hexes there"
    }
   ]
  },

@@ -1017,10 +1017,16 @@ describe('determinism', () => {
    * nobody buys on credit, and no unit is born with a waiver. Checked with
    * the change in place and the version printed as 174, which gives the
    * hashes of Commerce batch T5 exactly.
+   *
+   * **Devotion batch DV1 (the Devotion sheet of record, schema 176) moved the
+   * hash and not the length** at both seeds: 175 became 176, and that is all.
+   * Nobody here drafts, so no seat holds a retired, moved, retyped or changed
+   * Devotion card. Checked with the change in place and the version printed
+   * as 175, which gives the hashes of Commerce batch T6 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '48ab232c:188931',
-    2026: 'f0d568a1:188509',
+    11: '8d3e51cb:188931',
+    2026: '8641afe2:188509',
   };
 
   for (const seed of [11, 2026]) {

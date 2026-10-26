@@ -2490,8 +2490,41 @@ import {
  * hold three more cards, and a Commerce or Dominion seat may be dealt
  * Mercenary Contracts. The branch migrates nothing, for the reason given
  * under v119.
+ *
+ * v176 (branch `decks`; Devotion batch DV1, `docs/plans/devotion-themes-
+ * triage.md`): **the Devotion sheet of record.** No field joins the state.
+ * The rules that change:
+ *
+ *   · the deck is sorted: every Devotion row that `docs/decks/devotion.md`
+ *     lists carries a type, so it fits only a chair of that type or a
+ *     Wildcard chair. Two shared rows gain a type too (Sacred Commissions and
+ *     Sacred Patronage);
+ *   · four rows are retired: Pastoral Shrines, The Consolation and The Alms
+ *     Roads (all live), and Consecrated Ground (deferred);
+ *   · seven rows move to the shared file, with their ids, texts and tiers:
+ *     The Holy Spring and The Ambarvalia (shared with Expansionist; The
+ *     Ambarvalia comes from the Expansionist file), The Priest-Astronomers
+ *     and The Monastic University (shared with Scientific), and The Painted
+ *     Chapels, The Festival Calendar and The Penitents' Roll (shared with
+ *     Magisterial);
+ *   · five cards change in place. Lay Offerings pays on pastures too. The
+ *     Settled Faith pays +15% science and culture in devout towns, and loses
+ *     its happiness and its rite. The Mission pays 300 culture and The
+ *     Conversion of Kings 500. The Great Commission leaves an institution
+ *     (+3 faith and +3 culture in devout towns) in place of its faith and its
+ *     thirty turns;
+ *   · six cards change tier: The Second Prophet, The Living Hymnal, The
+ *     Mission and Sacred Commissions move to Tier II, and The Conversion of
+ *     Kings and The Pious Masons to Tier III;
+ *   · the deferred The Interdict takes its new text, and stays out of every
+ *     pool.
+ *
+ * **A v175 save is refused and does not replay.** A Devotion seat's pools
+ * and chairs hold different cards, and an Expansionist, Scientific or
+ * Magisterial seat may now be dealt the moved cards. The branch migrates
+ * nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 175;
+export const SCHEMA_VERSION = 176;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

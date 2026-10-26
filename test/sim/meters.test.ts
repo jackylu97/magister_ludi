@@ -1122,7 +1122,11 @@ describe('a captured city, end to end', () => {
     // go into debt under a credit line, a turn's end is a tally moment, a
     // bought unit may carry an upkeep waiver, and four more cards are dealt.
     // So a v174 log's Commerce hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(175);
+    // 176 since Devotion batch DV1 (the sheet of record): four Devotion rows
+    // are retired, seven rows move to the shared file, five change in place,
+    // and every listed Devotion row carries a type. So a v175 log's Devotion
+    // hands and chairs hold different cards.
+    expect(SCHEMA_VERSION).toBe(176);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

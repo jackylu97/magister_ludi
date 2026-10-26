@@ -6,16 +6,25 @@
  *
  *   · the shelf's shape: every live row folds under its own deck with the band
  *     and rarity the sheet's tier tables give it, the cut rows are retired and
- *     dealt by nobody, and the two deferred rows say why in a player's words;
+ *     dealt by nobody, and the one deferred row says why in a player's words;
  *   · every live row's effects are kinds the vocabulary holds and print through
  *     the describers;
- *   · the first age: a band-0 row names no prophet, Temple or foreign city;
+ *   · the age gate: no row of Tier 0 or Tier I names or reads a prophet, a
+ *     Temple, an apostle, an inquisitor, a Cathedral, a holy site, a foreign
+ *     town or a town that follows a religion;
  *   · the new mechanics the deck brought, each on a small board: the card-taught
  *     rites (The Fast's charter, The Votive Gifts, The Host Restored), the
  *     faith-purchase rules (Consecrated Labor, The Lay Brothers, The Pious
  *     Masons), the holy city scope, rival pressure, the reroll discount, the
  *     contribution rate, the counted rite goal and the condition before a
  *     religion is founded.
+ *
+ * Since Devotion batch DV1 (`docs/plans/devotion-themes-triage.md`), this file
+ * also checks the sheet of record, `docs/decks/devotion.md`, against the data:
+ * every status and type, the two counts tables, every listed row once, and the
+ * shared table against `common.json`. The age gate follows the themes pass's
+ * section 12, item 2: no Devotion card that waits on The High Temple or a
+ * founded religion is dealt before Tier II.
  *
  * Core, not slow: it reads the tables and plays a handful of verbs on one town.
  */
@@ -57,11 +66,15 @@ import {
   type Band,
   type CardEffect,
   type CardEffectKind,
+  type CardType,
+  type DeckId,
   type OrderId,
   type OrderRarity,
   BANDS,
   DECK_FILE_ORDERS,
+  DECK_WORDS,
   ORDER_IDS,
+  isCardType,
   orderDef,
   orderIsDealt,
   ordersForDecks,
@@ -76,6 +89,9 @@ const DEVOTION: readonly OrderId[] = DECK_FILE_ORDERS.devotion;
 
 const RETIRED = DEVOTION.filter((id) => orderDef(id).retired === true);
 // The Holy Army, shared with Dominion, moved to the shared file in batch S.
+// Batch DV1 moved six more: The Holy Spring, The Priest-Astronomers, The
+// Monastic University, The Painted Chapels, The Festival Calendar and The
+// Penitents' Roll.
 const STANDING = DEVOTION.filter((id) => orderDef(id).retired !== true);
 const LIVE = STANDING.filter((id) => orderIsDealt(id));
 const DEFERRED = STANDING.filter((id) => !orderIsDealt(id));
@@ -184,10 +200,22 @@ function linesOf(state: GameState, city: City, card: string) {
 // --- the shelf ---------------------------------------------------------------
 
 describe('the Devotion deck folds', () => {
-  it('carries the sheet’s fifty-two cards, eight · fourteen · eleven · five · fourteen', () => {
-    expect(STANDING).toHaveLength(52);
+  it('carries 71 rows: 41 live, 1 deferred and 29 retired', () => {
+    // Batch DV1: 77 rows before, less the six that moved to common.json. Four
+    // rows retired, three live and one deferred.
+    expect(DEVOTION).toHaveLength(71);
+    expect(LIVE).toHaveLength(41);
+    expect(DEFERRED).toHaveLength(1);
+    expect(RETIRED).toHaveLength(29);
+  });
+
+  it('spreads its 42 standing rows across Tiers 0 to IV as 6, 6, 12, 6 and 12', () => {
+    // Batch DV1 moved The Second Prophet, The Living Hymnal and The Mission
+    // from Tier I to Tier II, and The Conversion of Kings and The Pious Masons
+    // from Tier IV to Tier III.
+    expect(STANDING).toHaveLength(42);
     const perBand = BANDS.map((band) => STANDING.filter((id) => orderDef(id).band === band).length);
-    expect(perBand).toEqual([8, 14, 11, 5, 14]);
+    expect(perBand).toEqual([6, 6, 12, 6, 12]);
   });
 
   it('names its own deck on every row, with a band and a rarity', () => {
@@ -217,7 +245,11 @@ describe('the Devotion deck folds', () => {
   });
 
   it('retires the sheet’s cuts and deals them to nobody', () => {
-    expect(RETIRED).toHaveLength(25);
+    // 25 cut on 2026-10-06 and 2026-10-12, and the four of batch DV1.
+    expect(RETIRED).toHaveLength(29);
+    for (const id of ['pastoralShrines', 'theConsolation', 'theAlmsRoads', 'consecratedGround']) {
+      expect(RETIRED, id).toContain(id);
+    }
     for (const id of RETIRED) expect(orderIsDealt(id), id).toBe(false);
   });
 });
@@ -260,8 +292,9 @@ describe('the live rows', () => {
 });
 
 describe('the deferred rows', () => {
-  it('are The Interdict and Consecrated Ground, each saying why', () => {
-    expect([...DEFERRED].sort()).toEqual(['consecratedGround', 'theInterdict']);
+  it('are The Interdict alone, saying why', () => {
+    // Consecrated Ground retired in batch DV1.
+    expect([...DEFERRED].sort()).toEqual(['theInterdict']);
     for (const id of DEFERRED) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);
@@ -295,14 +328,30 @@ describe('a Devotion draft', () => {
   });
 });
 
-describe('the first age', () => {
-  const FORBIDDEN = /\b(prophet|prophets|temple|temples|apostle|apostles|inquisitor|inquisitors|cathedral|cathedrals|foreign)\b/i;
+describe('the age gate', () => {
+  // The themes pass's section 12, item 2 (the triage's reading 1): no
+  // Devotion card that waits on The High Temple or a founded religion is
+  // dealt before Tier II. Shared rows are left out: their partner passes kept
+  // The Sacred Host, Cloister Schools, The Oriflamme, The Monastery Libraries
+  // and The Schoolmen's Charter at Tier I.
+  const WORDS =
+    /\b(prophets?|temples?|apostles?|inquisitors?|cathedrals?|holy sites?|foreign|follows?|following|followers?)\b/i;
+  const READS = /temple|cathedral|prophet|apostle|inquisitor|holySite|follow|ownersFaith|foreign/i;
 
-  it('leaves the prophet, the Temple and a foreign congregation out of every tier-0 row', () => {
-    for (const id of STANDING.filter((row) => orderDef(row).band === 0)) {
+  it('keeps every row of Tiers 0 and I off the clergy, the Temple, the holy site and the following town', () => {
+    const early = STANDING.filter((row) => orderDef(row).band <= 1);
+    expect(early).toHaveLength(12);
+    for (const id of early) {
       const def = orderDef(id);
-      expect(def.text ?? '', id).not.toMatch(FORBIDDEN);
-      expect(JSON.stringify(def.effects), id).not.toMatch(/temple|cathedral|prophet|apostle|inquisitor|following/i);
+      expect(def.text ?? '', `${id}: ${def.text}`).not.toMatch(WORDS);
+      const reads = JSON.stringify({ effects: def.effects, commission: def.commission, charter: def.charter });
+      expect(reads, id).not.toMatch(READS);
+    }
+  });
+
+  it('deals the three religion cards that moved from Tier I at Tier II', () => {
+    for (const id of ['theLivingHymnal', 'theMission', 'theSecondProphet']) {
+      expect(orderDef(id as OrderId).band, id).toBe(2);
     }
   });
 });
@@ -485,6 +534,7 @@ describe('the religion readings', () => {
   });
 
   it('The Penitents’ Roll takes a share off the faith price of a reroll', () => {
+    // Shared with Magisterial since batch DV1, under its old id.
     const g = akhenaten();
     town(g);
     const plain = explainRerollCost(g.state, 0, 'order', 'faith').total;
@@ -512,5 +562,342 @@ describe('the counted rite goal', () => {
     city.timed = [];
     performRiteAt(g.state, player, city, 'riteOfFasting' as RiteId);
     expect(tallyOf(player.statecraft, 'theFoundingVows' as OrderId)).toBe(2);
+  });
+});
+
+// --- the sheet of record (batch DV1) ------------------------------------------
+
+/**
+ * **The deck sheet**, `docs/decks/devotion.md`, the spec of record since batch
+ * DV1 (`docs/plans/devotion-themes-triage.md`). It is in the sorted format of
+ * the Commerce sheet: five tier tables (Card | Rarity | Status | Ability |
+ * Type) and a shared table (Card | Rarity | Also in | Tier | Status | Ability
+ * | Type). The empty Doctrine tables have three columns, so the reader below
+ * skips them.
+ */
+const sheetFiles = import.meta.glob('../../../docs/decks/devotion.md', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+});
+const SHEET = Object.values(sheetFiles)[0] as string;
+
+/** The sheet's tier headings, which are the bands. */
+const TIERS: Record<string, Band> = { '0': 0, I: 1, II: 2, III: 3, IV: 4 };
+
+/** How a sheet row relates to the data: the first word of its Status cell. */
+type SheetStatus = 'implemented' | 'modify' | 'add';
+const SHEET_STATUSES: readonly SheetStatus[] = ['implemented', 'modify', 'add'];
+
+/** The words a `modify` row may give after the colon: the sheet's own list. */
+const REASONS = ['deferred', 'revised', 'reworked', 'moved', 'shared', 'as built'] as const;
+type Reason = (typeof REASONS)[number];
+
+/** One card the sheet lists, in a tier table or the shared table. */
+interface SheetCard {
+  /** The name the sheet prints, without the bold and the "(was …)" note. */
+  name: string;
+  /** The name in the "(was …)" note, when the sheet gives one. */
+  was?: string;
+  rarity: string;
+  band: Band;
+  status: SheetStatus;
+  /** The words after the colon in the Status cell. */
+  reasons: Reason[];
+  text: string;
+  /** The Type cell, lowercased. */
+  type: CardType;
+}
+
+/** One card of the shared table. Its row lives in `data/decks/common.json`. */
+interface SharedCard extends SheetCard {
+  /** The other deck that may draw it, from the "Also in" cell. */
+  alsoIn: DeckId;
+}
+
+/** The Type cell read as a type. A row without one fails here, by name. */
+function typeOf(card: string, cell: string | undefined): CardType {
+  const type = (cell ?? '').toLowerCase();
+  expect(isCardType(type), `"${card}" has no type the game knows ("${cell ?? ''}")`).toBe(true);
+  return type as CardType;
+}
+
+/** A table row's cells, or `null` for a header, a rule or a line that is not a row. */
+function cellsOf(line: string): string[] | null {
+  if (!line.startsWith('|')) return null;
+  const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
+  if (cells[0] === 'Card' || cells.every((cell) => /^-+$/.test(cell))) return null;
+  return cells;
+}
+
+/** A Card cell read into the printed name and the "(was …)" name, if any. */
+function namesOf(cell: string): { name: string; was?: string } {
+  const plain = cell.replace(/\*\*/g, '').trim();
+  const match = /^(.*?)\s*\(was (.+)\)$/.exec(plain);
+  if (match === null) return { name: plain };
+  return { name: match[1]!.trim(), was: match[2]!.trim() };
+}
+
+/** A Status cell read into its first word and the reasons after the colon. */
+function statusOf(card: string, cell: string): { status: SheetStatus; reasons: Reason[] } {
+  const colon = cell.indexOf(':');
+  const head = (colon < 0 ? cell : cell.slice(0, colon)).trim();
+  expect(SHEET_STATUSES, `"${card}" has an unknown status "${cell}"`).toContain(head);
+  const reasons = colon < 0 ? [] : cell.slice(colon + 1).split(';').map((word) => word.trim());
+  for (const reason of reasons) {
+    expect(REASONS, `"${card}" gives an unknown reason "${reason}"`).toContain(reason);
+  }
+  if (head === 'modify') expect(reasons.length, `"${card}" says modify and gives no reason`).toBeGreaterThan(0);
+  else expect(reasons, `"${card}" gives a reason with "${head}"`).toEqual([]);
+  return { status: head as SheetStatus, reasons: reasons as Reason[] };
+}
+
+/** The five tier tables, from the first tier heading to the first other level-two heading. */
+function sheetCards(): SheetCard[] {
+  const start = SHEET.indexOf('\n## Tier 0');
+  expect(start, 'the sheet has a Tier 0 table').toBeGreaterThanOrEqual(0);
+  const cards: SheetCard[] = [];
+  let band: Band | null = null;
+  for (const line of SHEET.slice(start + 1).split('\n')) {
+    const heading = /^## Tier (0|I|II|III|IV)$/.exec(line);
+    if (heading) {
+      band = TIERS[heading[1]!]!;
+      continue;
+    }
+    if (line.startsWith('## ')) break;
+    const cells = cellsOf(line);
+    if (cells === null || band === null || cells.length < 5) continue;
+    cards.push({
+      ...namesOf(cells[0]!),
+      rarity: cells[1]!,
+      band,
+      ...statusOf(cells[0]!, cells[2]!),
+      text: cells[3]!,
+      type: typeOf(cells[0]!, cells[4]),
+    });
+  }
+  return cards;
+}
+
+/** The shared table ("Shared with another deck"), to the next level-two heading. */
+function sharedCards(): SharedCard[] {
+  const start = SHEET.indexOf('\n## Shared with another deck');
+  expect(start, 'the sheet has a shared table').toBeGreaterThanOrEqual(0);
+  const deckByWord = new Map(
+    (Object.entries(DECK_WORDS) as [DeckId, string][]).map(([deck, word]) => [word, deck] as const),
+  );
+  const cards: SharedCard[] = [];
+  for (const line of SHEET.slice(start + 1).split('\n').slice(1)) {
+    if (line.startsWith('## ')) break;
+    const cells = cellsOf(line);
+    if (cells === null || cells.length < 7) continue;
+    const alsoIn = deckByWord.get(cells[2]!);
+    expect(alsoIn, `"${cells[0]}" is shared with an unknown deck "${cells[2]}"`).toBeDefined();
+    expect(alsoIn, `"${cells[0]}" is shared with Devotion itself`).not.toBe('devotion');
+    expect(Object.keys(TIERS), `"${cells[0]}" has an unknown tier "${cells[3]}"`).toContain(cells[3]);
+    cards.push({
+      ...namesOf(cells[0]!),
+      rarity: cells[1]!,
+      alsoIn: alsoIn!,
+      band: TIERS[cells[3]!]!,
+      ...statusOf(cells[0]!, cells[4]!),
+      text: cells[5]!,
+      type: typeOf(cells[0]!, cells[6]),
+    });
+  }
+  return cards;
+}
+
+/** A counts table, found by its header row: each body row's first cell against its numbers. */
+function countsTable(header: string): Map<string, number[]> {
+  const start = SHEET.indexOf(header);
+  expect(start, `the sheet has the table "${header}"`).toBeGreaterThanOrEqual(0);
+  const rows = new Map<string, number[]>();
+  for (const line of SHEET.slice(start).split('\n').slice(2)) {
+    if (!line.startsWith('|')) break;
+    const cells = line.split('|').slice(1, -1).map((cell) => cell.replace(/\*\*/g, '').trim());
+    rows.set(cells[0]!, cells.slice(1).filter((cell) => /^\d+$/.test(cell)).map(Number));
+  }
+  return rows;
+}
+
+/** The name of the data row a sheet row stands for: the "(was …)" name if given. */
+const dataNameOf = (card: { name: string; was?: string }): string => card.was ?? card.name;
+
+/**
+ * A charter, read off the sheet's own words: every charter's text ends with
+ * "No chair required." A row with data must agree with its `charter` field,
+ * which `checkAgainstRow` asks. An `add` row has only its words.
+ */
+const isCharterText = (text: string): boolean => text.endsWith('No chair required.');
+
+/** The rows the sheet's tier tables must list: every row of this file that is not retired. */
+const LISTED: readonly OrderId[] = STANDING;
+
+/** Every name in the registry: a card still to be added may reuse none of them. */
+const TAKEN = new Set(ORDER_IDS.map((id) => orderDef(id).name));
+
+/**
+ * The checks every sheet row with a data row shares, in either table: the
+ * type, the rarity, the charter, and what the status and its reasons claim.
+ * Each reason the data can answer must be true both ways.
+ */
+function checkAgainstRow(card: SheetCard, id: OrderId): void {
+  const def = orderDef(id);
+  expect(def.type, `${card.name}: the sheet's type`).toBe(card.type);
+  // The sheet has no `rarity` reason: every row keeps its rarity.
+  expect(def.rarity, `${card.name}: the sheet's rarity`).toBe(card.rarity);
+  expect(def.charter !== undefined, `${card.name}: a charter on one side only`).toBe(isCharterText(card.text));
+  const dealt = orderIsDealt(id);
+  const sameText = def.text === card.text;
+  if (card.status === 'implemented') {
+    expect(card.was, `${card.name} is implemented and renamed`).toBeUndefined();
+    expect(dealt, `${card.name} is marked implemented but is not dealt`).toBe(true);
+    expect(def.band, `${card.name}: the sheet's tier`).toBe(card.band);
+    expect(def.text, `${card.name}: the sheet's ability`).toBe(card.text);
+    return;
+  }
+  const has = (reason: Reason): boolean => card.reasons.includes(reason);
+  expect(has('deferred'), `${card.name}: deferred on one side only`).toBe(!dealt);
+  expect(has('moved'), `${card.name}: a different tier on one side only`).toBe(def.band !== card.band);
+  expect(has('revised') || has('reworked'), `${card.name}: different words on one side only`).toBe(
+    !sameText,
+  );
+  if (has('as built')) {
+    // The game does something slightly different, and the words are the same.
+    expect(dealt, `${card.name} plays as built but is not dealt`).toBe(true);
+    expect(sameText, `${card.name} plays as built, so its words are the data's`).toBe(true);
+    return;
+  }
+  // A dealt row that matches the sheet in every way is implemented.
+  const same = card.was === undefined && sameText && def.band === card.band;
+  expect(dealt && same, `${card.name} matches its row and should say implemented`).toBe(false);
+}
+
+describe('the Devotion deck: the sheet of record', () => {
+  it('mirrors the five tier tables, card for card', () => {
+    const sheet = sheetCards();
+    const shared = sharedCards();
+    expect(sheet.length, 'the sheet lists cards under every tier heading').toBeGreaterThan(0);
+    const byName = new Map(LISTED.map((id) => [orderDef(id).name, id] as const));
+    for (const card of sheet) {
+      if (card.status === 'add') {
+        expect(TAKEN.has(card.name), `"${card.name}" is marked add but the data has it`).toBe(false);
+        continue;
+      }
+      const id = byName.get(dataNameOf(card));
+      expect(id, `the deck file has no row for "${dataNameOf(card)}"`).toBeDefined();
+      expect(card.reasons, `${card.name} is in a tier table and marked shared`).not.toContain('shared');
+      checkAgainstRow(card, id!);
+    }
+    // Every row that is not retired is on the sheet once.
+    const listed = sheet.filter((card) => card.status !== 'add').map(dataNameOf);
+    expect(new Set(listed).size, 'a data row is listed twice').toBe(listed.length);
+    for (const name of byName.keys()) {
+      expect(listed.includes(name), `"${name}" is a row the sheet does not list`).toBe(true);
+    }
+    expect(listed.length).toBe(LISTED.length);
+    // And the sheet prints no name twice, the shared table's included.
+    const printed = [...sheet, ...shared].map((card) => card.name);
+    expect(new Set(printed).size, 'the sheet prints a name twice').toBe(printed.length);
+  });
+
+  it('mirrors the shared table onto its rows in common.json', () => {
+    const shared = sharedCards();
+    expect(shared.length, 'the shared table lists cards').toBeGreaterThan(0);
+    const common = new Map(
+      DECK_FILE_ORDERS.common
+        .filter((id) => orderDef(id).retired !== true)
+        .map((id) => [orderDef(id).name, id] as const),
+    );
+    let checked = 0;
+    for (const card of shared) {
+      const name = dataNameOf(card);
+      if (card.status === 'add') {
+        expect(TAKEN.has(card.name), `"${card.name}" is marked add but the data has it`).toBe(false);
+        continue;
+      }
+      const id = common.get(name);
+      expect(id, `common.json has no row for "${name}"`).toBeDefined();
+      // The row is the one the sheet means: shared by Devotion and the deck named.
+      expect(orderDef(id!).decks, name).toContain('devotion');
+      expect(orderDef(id!).decks, name).toContain(card.alsoIn);
+      checkAgainstRow(card, id!);
+      checked += 1;
+    }
+    expect(checked, 'every shared row in the data was checked').toBe(
+      shared.filter((card) => card.status !== 'add').length,
+    );
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  it('lists every shared row that names Devotion', () => {
+    const names = new Set(sharedCards().map(dataNameOf));
+    for (const id of DECK_FILE_ORDERS.common) {
+      const def = orderDef(id);
+      if (def.retired === true || !def.decks.includes('devotion')) continue;
+      expect(names.has(def.name), `"${def.name}" names Devotion and is not on the shared table`).toBe(true);
+    }
+  });
+
+  it('keeps every retired row off the tables, with no type', () => {
+    const listed = new Set(
+      [...sheetCards(), ...sharedCards()].flatMap((card) => [card.name, dataNameOf(card)]),
+    );
+    const retiredShared = DECK_FILE_ORDERS.common.filter(
+      (id) => orderDef(id).retired === true && orderDef(id).decks.includes('devotion'),
+    );
+    for (const id of [...RETIRED, ...retiredShared]) {
+      expect(listed.has(orderDef(id).name), `${id} is retired and still on the sheet`).toBe(false);
+      expect(orderDef(id).type, `${id} is retired and carries a type`).toBeUndefined();
+      expect(orderIsDealt(id), `${id} is retired and still dealt`).toBe(false);
+    }
+  });
+
+  it('counts its rows in the two counts tables, the charters included', () => {
+    const sheet = sheetCards();
+    const shared = sharedCards();
+    const status = countsTable('| Tier | Implemented | Modify | Add | All | Charters |');
+    const types = countsTable('| Tier | Military | Economic | Civic | Wildcard |');
+    const byStatus = (cards: readonly SheetCard[]): number[] => [
+      ...SHEET_STATUSES.map((s) => cards.filter((card) => card.status === s).length),
+      cards.length,
+      cards.filter((card) => isCharterText(card.text)).length,
+    ];
+    const byType = (cards: readonly SheetCard[]): number[] =>
+      (['military', 'economic', 'civic', 'wildcard'] as const).map(
+        (t) => cards.filter((card) => card.type === t).length,
+      );
+    for (const word of Object.keys(TIERS)) {
+      const cards = sheet.filter((card) => card.band === TIERS[word]);
+      expect(status.get(`Tier ${word}`), `Tier ${word}'s status counts`).toEqual(byStatus(cards));
+      expect(types.get(`Tier ${word}`), `Tier ${word}'s type counts`).toEqual(byType(cards));
+    }
+    expect(status.get('All'), 'the status totals').toEqual(byStatus(sheet));
+    expect(types.get('All'), 'the type totals').toEqual(byType(sheet));
+    expect(status.get('Shared'), 'the shared status counts').toEqual(byStatus(shared));
+    expect(types.get('Shared'), 'the shared type counts').toEqual(byType(shared));
+    // Batch DV1's sheet: 66 cards with the two charters (64 take a chair),
+    // and 29 shared cards with one charter.
+    expect(sheet).toHaveLength(66);
+    expect(sheet.filter((card) => isCharterText(card.text))).toHaveLength(2);
+    expect(shared).toHaveLength(29);
+  });
+
+  it('types every listed row, 42 of this file and 25 shared, and nothing else of this file', () => {
+    expect(LISTED).toHaveLength(42);
+    for (const id of DEVOTION) {
+      const def = orderDef(id);
+      if (def.retired === true) expect(def.type, id).toBeUndefined();
+      else expect(isCardType(def.type ?? ''), `${id} is listed and has no type`).toBe(true);
+    }
+    const sharedRows = DECK_FILE_ORDERS.common.filter((id) => {
+      const def = orderDef(id);
+      return def.retired !== true && def.decks.includes('devotion');
+    });
+    // 18 before batch DV1, and the seven rows it moved here. The four rows
+    // marked add on the shared table have no data row yet.
+    expect(sharedRows).toHaveLength(25);
+    for (const id of sharedRows) expect(isCardType(orderDef(id).type ?? ''), id).toBe(true);
   });
 });

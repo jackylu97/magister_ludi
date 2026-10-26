@@ -794,9 +794,10 @@
     "sacredCommissions": {
       "name": "Sacred Commissions",
       "decks": ["devotion", "magisterial"],
-      "band": 1,
+      "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "economic",
       "flavor": "The masons were paid in indulgence and stone.",
       "text": "Cities with a Holy Site gain +38% production toward wonders. Completing a wonder grants 60 faith.",
       "effects": [
@@ -820,6 +821,7 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
+      "type": "civic",
       "flavor": "Genius is cheap where the faithful are many.",
       "text": "Faith may purchase great-person drafts at the escalating conversion price. Spending a great person grants 30 faith, at most once per turn.",
       "deferred": ["spending a great person pays faith, but never more than once in a turn"],
@@ -1932,6 +1934,266 @@
         { "kind": "pays", "where": "empire", "basis": "count", "to": "gold", "amount": 3, "count": "slottedOrders" }
       ],
       "note": "Only the Orders sitting in a chair count, this one included. A charter takes no chair, so it does not count, and neither does a Doctrine."
+    },
+    "theHolySpring": {
+      "name": "The Holy Spring",
+      "decks": [
+        "expansionist",
+        "devotion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "They settled where the water was clearest and the mountain was closest to the sky.",
+      "text": "Cities whose centre stands beside a mountain or a lake gain +2 faith and +1 culture.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "faith": 2,
+          "culture": 1,
+          "scope": {
+            "test": "any",
+            "of": [
+              {
+                "test": "terrainBeside",
+                "terrain": "mountain"
+              },
+              {
+                "test": "terrainBeside",
+                "terrain": "lake"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "thePriestAstronomers": {
+      "name": "The Priest-Astronomers",
+      "decks": [
+        "devotion",
+        "scientific"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "The calendar is a promise that the feast will come again.",
+      "text": "Your capital gains +2 science and +2 faith for every city of yours keeping a rite, at most +16 of each.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "amount": 2,
+          "count": "citiesKeepingRite",
+          "max": 8,
+          "scope": {
+            "test": "capital"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "faith",
+          "amount": 2,
+          "count": "citiesKeepingRite",
+          "max": 8,
+          "scope": {
+            "test": "capital"
+          }
+        }
+      ]
+    },
+    "theMonasticUniversity": {
+      "name": "The Monastic University",
+      "decks": [
+        "devotion",
+        "scientific"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "The library was in the cloister, and the cloister was in the library.",
+      "text": "A Holy Site and an academy standing beside each other each gain +5 science and +3 faith.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "science": 5,
+          "faith": 3,
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "improvement",
+                "improvement": "holySite"
+              },
+              {
+                "test": "beside",
+                "of": {
+                  "test": "improvement",
+                  "improvement": "academy"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "science": 5,
+          "faith": 3,
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "improvement",
+                "improvement": "academy"
+              },
+              {
+                "test": "beside",
+                "of": {
+                  "test": "improvement",
+                  "improvement": "holySite"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "thePaintedChapels": {
+      "name": "The Painted Chapels",
+      "decks": [
+        "devotion",
+        "magisterial"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The walls tell the story to the ones who cannot read it.",
+      "text": "Religious buildings give +3 culture each.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "amount": 3,
+          "count": "buildingsOfCategory",
+          "category": "faith",
+          "within": "city"
+        }
+      ]
+    },
+    "theFestivalCalendar": {
+      "name": "The Festival Calendar",
+      "decks": [
+        "devotion",
+        "magisterial"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Mark the days first. The year arranges itself around them.",
+      "text": "Cities keeping a rite gain +30% food and +30% culture.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "food",
+          "percent": 30,
+          "scope": {
+            "test": "keepingRite"
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": 30,
+          "scope": {
+            "test": "keepingRite"
+          }
+        }
+      ]
+    },
+    "thePenitentsRoll": {
+      "name": "The Penitents' Roll",
+      "decks": [
+        "devotion",
+        "magisterial"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Every name on it asked again, and was answered.",
+      "text": "+6 science and +6 culture for every Order hand you reroll while this is seated. Rerolls cost 30% less faith while this is seated.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 6,
+          "count": "rerollsWhileSlotted"
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 6,
+          "count": "rerollsWhileSlotted"
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "rerollCost",
+          "percent": -30
+        }
+      ]
+    },
+    "theSpiritsOfPlace": {
+      "name": "The Ambarvalia",
+      "decks": [
+        "expansionist",
+        "devotion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "The procession walks three times around the fields before the sowing.",
+      "text": "Your capital gains +1 faith. Each town gains +1 faith for every two improved tiles in its borders.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": {
+            "test": "capital"
+          },
+          "faith": 1
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "tilesInBorders",
+          "within": "city",
+          "tile": {
+            "test": "improved"
+          },
+          "to": "faith",
+          "amount": 1,
+          "per": 2
+        }
+      ]
     }
   }
 }

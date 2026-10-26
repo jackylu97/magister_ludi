@@ -8,6 +8,7 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "Before the temple a stone, and before the stone a promise.",
       "text": "+25% production toward Shrines. Shrines give +2 faith.",
       "effects": [
@@ -61,7 +62,8 @@
             "atLeast": 2
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "layOfferings": {
       "name": "Lay Offerings",
@@ -71,8 +73,9 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "The first of the incense and the first of the hunt go to the shrine.",
-      "text": "Camps and plantations gain +1 faith and +1 food.",
+      "text": "Pastures, camps and plantations gain +1 faith and +1 food.",
       "effects": [
         {
           "kind": "pays",
@@ -82,6 +85,7 @@
           "on": {
             "test": "anyImprovement",
             "improvements": [
+              "pasture",
               "camp",
               "plantation"
             ]
@@ -97,6 +101,7 @@
       "band": 0,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "The new altar was raised on the old one, and nobody asked the old gods to leave.",
       "text": "Gain one more pantheon belief.",
       "effects": [
@@ -114,6 +119,7 @@
       "band": 0,
       "line": "none",
       "rarity": "uncommon",
+      "type": "wildcard",
       "flavor": "Two fires lit in two towns, and a promise to keep them both.",
       "text": "Commission. Start two rites in your cities while this is seated. Reward: 100 faith and 40 food in your capital. Then this card leaves its chair.",
       "effects": [],
@@ -145,6 +151,7 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "Somebody has to say it first, and say it loudly.",
       "text": "+25% faith until you have founded a religion.",
       "effects": [
@@ -163,38 +170,6 @@
         }
       ]
     },
-    "theHolySpring": {
-      "name": "The Holy Spring",
-      "decks": [
-        "devotion"
-      ],
-      "band": 0,
-      "line": "none",
-      "rarity": "common",
-      "flavor": "They settled where the water was clearest and the mountain was closest to the sky.",
-      "text": "Cities whose centre stands beside a mountain or a lake gain +2 faith and +1 culture.",
-      "effects": [
-        {
-          "kind": "pays",
-          "where": "city",
-          "faith": 2,
-          "culture": 1,
-          "scope": {
-            "test": "any",
-            "of": [
-              {
-                "test": "terrainBeside",
-                "terrain": "mountain"
-              },
-              {
-                "test": "terrainBeside",
-                "terrain": "lake"
-              }
-            ]
-          }
-        }
-      ]
-    },
     "theWaysideShrines": {
       "name": "The Wayside Shrines",
       "decks": [
@@ -203,6 +178,7 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
+      "type": "economic",
       "flavor": "A little roof at the crossroads, and bread left under it for whoever needs it.",
       "text": "Cities with a Shrine gain +2 food and +1 happiness.",
       "effects": [
@@ -245,44 +221,8 @@
             "test": "keepingRite"
           }
         }
-      ]
-    },
-    "thePriestAstronomers": {
-      "name": "The Priest-Astronomers",
-      "decks": [
-        "devotion"
       ],
-      "band": 1,
-      "line": "none",
-      "rarity": "common",
-      "flavor": "The calendar is a promise that the feast will come again.",
-      "text": "Your capital gains +2 science and +2 faith for every city of yours keeping a rite, at most +16 of each.",
-      "effects": [
-        {
-          "kind": "pays",
-          "where": "city",
-          "basis": "count",
-          "to": "science",
-          "amount": 2,
-          "count": "citiesKeepingRite",
-          "max": 8,
-          "scope": {
-            "test": "capital"
-          }
-        },
-        {
-          "kind": "pays",
-          "where": "city",
-          "basis": "count",
-          "to": "faith",
-          "amount": 2,
-          "count": "citiesKeepingRite",
-          "max": 8,
-          "scope": {
-            "test": "capital"
-          }
-        }
-      ]
+      "retired": true
     },
     "consecratedLabor": {
       "name": "Consecrated Labor",
@@ -292,6 +232,7 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
+      "type": "economic",
       "flavor": "The spade was blessed on a Tuesday and has not stopped since.",
       "text": "Cities with a Shrine may buy workers with faith.",
       "effects": [
@@ -316,6 +257,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "Say it slower. There is more of the evening than you think.",
       "text": "Rites you start while this is seated last 50% longer.",
       "effects": [
@@ -334,6 +276,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "The table is set and left bare, and the faithful count what they did not eat.",
       "text": "Once drafted, unlock the Rite of Fasting. A city keeping it stores no food toward growth for ten turns and gains science and culture equal to its population each turn. No chair required.",
       "effects": [],
@@ -350,9 +293,10 @@
       "decks": [
         "devotion"
       ],
-      "band": 1,
+      "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "Every verse was somebody's first morning in the faith.",
       "text": "Your capital gains +3 science and +3 culture for every city following your religion, with no cap.",
       "effects": [
@@ -400,18 +344,20 @@
             "building": "temple"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theMission": {
       "name": "The Mission",
       "decks": [
         "devotion"
       ],
-      "band": 1,
+      "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "wildcard",
       "flavor": "Two towns, two letters home, and a road between them.",
-      "text": "Commission. Convert two foreign cities to your religion while this is seated. Reward: a free Apostle in your capital and 150 culture. Then this card leaves its chair.",
+      "text": "Commission. Convert two foreign cities to your religion while this is seated. Reward: a free Apostle in your capital and 300 culture. Then this card leaves its chair.",
       "effects": [],
       "commission": {
         "goals": [
@@ -427,7 +373,7 @@
           },
           {
             "yield": "culture",
-            "amount": 150
+            "amount": 300
           }
         ]
       }
@@ -446,16 +392,18 @@
       "deferred": [
         "hexes may be bought with faith, for half of what coin would pay"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "theSecondProphet": {
       "name": "The Second Prophet",
       "decks": [
         "devotion"
       ],
-      "band": 1,
+      "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "One voice was never going to be enough.",
       "text": "Prophets and apostles you buy start with one extra charge.",
       "effects": [
@@ -485,6 +433,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "economic",
       "flavor": "The brothers who copied the books also laid the floor they copied them on.",
       "text": "Science buildings may be bought with faith.",
       "effects": [
@@ -502,6 +451,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "Every line of it was an argument once.",
       "text": "Your capital gains +3 faith and +3 culture for every belief your religion holds.",
       "effects": [
@@ -529,29 +479,6 @@
         }
       ]
     },
-    "thePaintedChapels": {
-      "name": "The Painted Chapels",
-      "decks": [
-        "devotion"
-      ],
-      "band": 1,
-      "line": "none",
-      "rarity": "uncommon",
-      "flavor": "The walls tell the story to the ones who cannot read it.",
-      "text": "Religious buildings give +3 culture each.",
-      "effects": [
-        {
-          "kind": "pays",
-          "where": "city",
-          "basis": "count",
-          "to": "culture",
-          "amount": 3,
-          "count": "buildingsOfCategory",
-          "category": "faith",
-          "within": "city"
-        }
-      ]
-    },
     "theRitesCommonwealth": {
       "name": "The Rites Commonwealth",
       "decks": [
@@ -560,6 +487,7 @@
       "band": 1,
       "line": "none",
       "rarity": "rare",
+      "type": "civic",
       "flavor": "A realm at prayer together, and one village that is not.",
       "text": "Cities keeping a rite demand 25% less population happiness.",
       "effects": [
@@ -581,6 +509,7 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
+      "type": "economic",
       "flavor": "They buried him at the edge of the barley and the barley never forgot.",
       "text": "Worked Holy Sites give +5 food and +8 gold. A city working one gains +2 happiness, once per city.",
       "effects": [
@@ -615,6 +544,7 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "Three generations of masons and one drawing.",
       "text": "Gain +45% production toward Cathedrals. Cities with one gain +8 science and +2 happiness.",
       "effects": [
@@ -652,6 +582,7 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "Nobody remembers who first prayed here, which is the point.",
       "text": "Holy Sites that have stood for 20 turns gain +3 faith. Those that have stood for 40 turns gain +3 faith and +3 culture more.",
       "effects": [
@@ -702,6 +633,7 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "The god owned the fields, and the priests kept the books.",
       "text": "Hexes beside a Holy Site gain +2 food and +2 faith.",
       "effects": [
@@ -728,6 +660,7 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
+      "type": "economic",
       "flavor": "A candle, a coin and a name, left at the foot of the scaffold.",
       "text": "While this is seated, your cities know the Votive Offering: a city spends the rite's faith to add that much production, at the faith rate, to whatever it is building. Not toward wonders. Once per city per turn.",
       "effects": [
@@ -745,6 +678,7 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "An army that knows what it is for marches shorter days and farther.",
       "text": "Your military units gain +4 strength in territory following your religion. Temple cities gain +2 happiness while you are at war.",
       "effects": [
@@ -786,6 +720,7 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "A bed, a map and a door that opens the right way.",
       "text": "Your proclamations apply 30% more pressure. Apostles gain +1 movement.",
       "effects": [
@@ -804,69 +739,6 @@
         }
       ]
     },
-    "theFestivalCalendar": {
-      "name": "The Festival Calendar",
-      "decks": [
-        "devotion"
-      ],
-      "band": 2,
-      "line": "none",
-      "rarity": "uncommon",
-      "flavor": "Mark the days first. The year arranges itself around them.",
-      "text": "Cities keeping a rite gain +30% food and +30% culture.",
-      "effects": [
-        {
-          "kind": "percentYields",
-          "yield": "food",
-          "percent": 30,
-          "scope": {
-            "test": "keepingRite"
-          }
-        },
-        {
-          "kind": "percentYields",
-          "yield": "culture",
-          "percent": 30,
-          "scope": {
-            "test": "keepingRite"
-          }
-        }
-      ]
-    },
-    "thePenitentsRoll": {
-      "name": "The Penitents' Roll",
-      "decks": [
-        "devotion"
-      ],
-      "band": 2,
-      "line": "none",
-      "rarity": "uncommon",
-      "flavor": "Every name on it asked again, and was answered.",
-      "text": "+6 science and +6 culture for every Order hand you reroll while this is seated. Rerolls cost 30% less faith while this is seated.",
-      "effects": [
-        {
-          "kind": "pays",
-          "where": "empire",
-          "basis": "count",
-          "to": "science",
-          "amount": 6,
-          "count": "rerollsWhileSlotted"
-        },
-        {
-          "kind": "pays",
-          "where": "empire",
-          "basis": "count",
-          "to": "culture",
-          "amount": 6,
-          "count": "rerollsWhileSlotted"
-        },
-        {
-          "kind": "rulePercent",
-          "rule": "rerollCost",
-          "percent": -30
-        }
-      ]
-    },
     "theLayBrothers": {
       "name": "The Lay Brothers",
       "decks": [
@@ -875,6 +747,7 @@
       "band": 2,
       "line": "none",
       "rarity": "rare",
+      "type": "economic",
       "flavor": "They took no vows but the one about the work.",
       "text": "Cities with a Temple may buy ordinary buildings with faith, at the faith rate.",
       "effects": [
@@ -896,41 +769,26 @@
       "band": 2,
       "line": "none",
       "rarity": "rare",
+      "type": "civic",
       "flavor": "A faith that has stopped travelling has time to read.",
-      "text": "Temple cities keeping a rite gain +30% science and +2 happiness. Your proclamations apply 25% less pressure.",
+      "text": "Devout towns gain +15% science and culture. Your proclamations press 25% less.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "science",
-          "percent": 30,
+          "percent": 15,
           "scope": {
-            "test": "all",
-            "of": [
-              {
-                "test": "hasBuilding",
-                "building": "temple"
-              },
-              {
-                "test": "keepingRite"
-              }
-            ]
+            "test": "ownersFaith",
+            "keeps": true
           }
         },
         {
-          "kind": "happiness",
-          "amount": 2,
-          "per": "city",
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": 15,
           "scope": {
-            "test": "all",
-            "of": [
-              {
-                "test": "hasBuilding",
-                "building": "temple"
-              },
-              {
-                "test": "keepingRite"
-              }
-            ]
+            "test": "ownersFaith",
+            "keeps": true
           }
         },
         {
@@ -948,6 +806,7 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "A quiet office, a long memory, and a very short list.",
       "text": "Rival religions press your cities 40% less. +38% faith.",
       "effects": [
@@ -971,6 +830,7 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "The ones who kept the calendar also kept the accounts.",
       "text": "+2 science and +2 culture for every 10 faith your empire makes each turn.",
       "effects": [
@@ -1002,6 +862,7 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
+      "type": "economic",
       "flavor": "Every stone in it was paid for by somebody's prayer.",
       "text": "Buildings you bought with faith give +2 culture each, at most +6 per town. You can purchase buildings with faith.",
       "effects": [
@@ -1030,6 +891,7 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
+      "type": "civic",
       "flavor": "They wrote down what everyone already believed, and then it was true twice.",
       "text": "Follower beliefs pay 150% more in your own cities.",
       "effects": [
@@ -1041,63 +903,6 @@
         }
       ]
     },
-    "theMonasticUniversity": {
-      "name": "The Monastic University",
-      "decks": [
-        "devotion"
-      ],
-      "band": 3,
-      "line": "none",
-      "rarity": "rare",
-      "flavor": "The library was in the cloister, and the cloister was in the library.",
-      "text": "A Holy Site and an academy standing beside each other each gain +5 science and +3 faith.",
-      "effects": [
-        {
-          "kind": "pays",
-          "where": "hex",
-          "science": 5,
-          "faith": 3,
-          "on": {
-            "test": "all",
-            "of": [
-              {
-                "test": "improvement",
-                "improvement": "holySite"
-              },
-              {
-                "test": "beside",
-                "of": {
-                  "test": "improvement",
-                  "improvement": "academy"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "kind": "pays",
-          "where": "hex",
-          "science": 5,
-          "faith": 3,
-          "on": {
-            "test": "all",
-            "of": [
-              {
-                "test": "improvement",
-                "improvement": "academy"
-              },
-              {
-                "test": "beside",
-                "of": {
-                  "test": "improvement",
-                  "improvement": "holySite"
-                }
-              }
-            ]
-          }
-        }
-      ]
-    },
     "theGreatConsecration": {
       "name": "The Great Consecration",
       "decks": [
@@ -1106,6 +911,7 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "economic",
       "flavor": "The whole world, kneeling in the same direction.",
       "text": "Each foreign city following your religion grants +5% production toward the Magnum Opus, at most +40%.",
       "effects": [
@@ -1127,6 +933,7 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "economic",
       "flavor": "What the faithful gave was counted twice: once in the treasury and once in the stone.",
       "text": "In your holy city, faith you pour into the Magnum Opus buys 50% more production.",
       "effects": [
@@ -1154,8 +961,9 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "wildcard",
       "flavor": "Go to every town, and leave a roof where you prayed.",
-      "text": "Commission. Have more than half of the world's cities follow your religion. Reward: 500 faith, and for 30 turns every city that follows your religion gains +3 faith and +3 culture. Then this card leaves its chair.",
+      "text": "Commission. Have more than half of the world's cities follow your religion. Then, for the rest of the game, devout towns gain +3 faith and +3 culture. The card leaves its chair.",
       "effects": [],
       "commission": {
         "goals": [
@@ -1167,24 +975,18 @@
         ],
         "reward": [
           {
-            "yield": "faith",
-            "amount": 500
-          },
-          {
-            "timed": {
-              "turns": 30,
-              "effects": [
-                {
-                  "kind": "pays",
-                  "where": "city",
-                  "faith": 3,
-                  "culture": 3,
-                  "scope": {
-                    "test": "follows"
-                  }
+            "lasting": [
+              {
+                "kind": "pays",
+                "where": "city",
+                "faith": 3,
+                "culture": 3,
+                "scope": {
+                  "test": "ownersFaith",
+                  "keeps": true
                 }
-              ]
-            }
+              }
+            ]
           }
         ]
       }
@@ -1197,6 +999,7 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "civic",
       "flavor": "Every hearth that keeps the faith sends a coal to the great fire.",
       "text": "While one of your cities is building the Magnum Opus, gain 1 faith each turn for every citizen in the world who follows your religion, at home or abroad.",
       "effects": [
@@ -1228,6 +1031,7 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "civic",
       "flavor": "The good works of the saints were banked, and the interest was spent on the living.",
       "text": "Each turn, gain science equal to 2% of the faith you hold and culture equal to 2% of it, no cap.",
       "effects": [
@@ -1259,6 +1063,7 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "civic",
       "flavor": "Each hand laid on the next, back to the first one.",
       "text": "Your holy city gains +3 science and +3 culture for every ten turns since your religion was founded, at most +24 of each.",
       "effects": [
@@ -1298,6 +1103,7 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "civic",
       "flavor": "The canons of every cathedral met in each one's chapter house in turn.",
       "text": "Every city with a Cathedral gains +2 science and +2 culture for each Cathedral you hold, at most +12 of each.",
       "effects": [
@@ -1339,6 +1145,7 @@
       "band": 4,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "Walk to all seven and you have walked the whole of the faith.",
       "text": "A city working a Holy Site gains +1 science and +1 culture for every Holy Site you hold, at most +5 of each.",
       "effects": [
@@ -1390,12 +1197,13 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "civic",
       "flavor": "The bells were silent and the doors were barred until the king came to terms.",
-      "text": "Spend faith to place an interdict on a foreign city that follows your religion: it makes 50% less production for ten turns. The price is the production it loses, at the faith rate. Once per city every thirty turns.",
+      "text": "A rival's town that follows your religion adds no production toward a Magnum Opus.",
       "effects": [],
-      "note": "Not built: a rite is said by one of your own towns, and this one would have to be said over a town that belongs to somebody else and leave a mark on it. That needs a new kind of target for the rite and a way to choose it on the map.",
+      "note": "Not built: the rule that stops a town's work on the Magnum Opus asks only whether an enemy soldier stands beside the town. It cannot yet ask which religion the town follows.",
       "deferred": [
-        "you may spend faith to lay a foreign city that keeps your religion under an interdict, and it works far less for a time"
+        "a rival's town that follows your religion stops adding production to its Magnum Opus"
       ]
     },
     "thePeaceOfGod": {
@@ -1406,6 +1214,7 @@
       "band": 4,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "No sword inside the church, and no priest of another god either.",
       "text": "The city building your Magnum Opus cannot be pressed by rival religions, and gains +2 strength for each city that follows your religion, at most +30.",
       "effects": [
@@ -1433,6 +1242,7 @@
       "band": 4,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "The last war of the faith was fought over the last work of the age.",
       "text": "Your military units gain +8 strength against an empire that is building the Magnum Opus, while fighting in territory that follows your religion.",
       "effects": [
@@ -1462,11 +1272,12 @@
       "decks": [
         "devotion"
       ],
-      "band": 4,
+      "band": 3,
       "line": "none",
       "rarity": "rare",
+      "type": "wildcard",
       "flavor": "When the king knelt, the kingdom followed him into the river.",
-      "text": "Commission. Have a rival's capital follow your religion while this is seated. Reward: a free Prophet in your capital and 300 culture. Then this card leaves its chair.",
+      "text": "Commission. Have a rival's capital follow your religion while this is seated. Reward: a free Prophet in your capital and 500 culture. Then this card leaves its chair.",
       "effects": [],
       "commission": {
         "goals": [
@@ -1482,7 +1293,7 @@
           },
           {
             "yield": "culture",
-            "amount": 300
+            "amount": 500
           }
         ]
       }
@@ -1492,9 +1303,10 @@
       "decks": [
         "devotion"
       ],
-      "band": 4,
+      "band": 3,
       "line": "none",
       "rarity": "rare",
+      "type": "economic",
       "flavor": "The masons were paid in bread and in the promise of a good place to be buried.",
       "text": "In cities with a Cathedral, a world wonder that is at least half built may be bought with faith. Not the Magnum Opus.",
       "effects": [
@@ -1516,6 +1328,7 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "military",
       "flavor": "They came in carried and went out marching.",
       "text": "While this is seated, your cities know the Restoring of the Host: a city spends the rite's faith to heal every unit of yours standing in territory that follows your religion to full health. A city may say it once every five turns.",
       "effects": [
