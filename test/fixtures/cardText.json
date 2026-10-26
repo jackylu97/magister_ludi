@@ -9265,6 +9265,26 @@
     "text": "your great people may act, and then still lay their work"
    }
   ],
+  "theCabinetOfCuriosities": [
+   {
+    "raw": "when drafted, a random Order of your tier from a deck you do not hold joins your collection; seated, this card does nothing",
+    "text": "when drafted, a random Order of your tier from a deck you do not hold joins your collection; seated, this card does nothing"
+   }
+  ],
+  "theGrandRetrospective": [
+   {
+    "raw": "when drafted, +20 culture, +20 science and +20 production in your capital for each wonder you hold",
+    "text": "when drafted, +20 culture, +20 science and +20 production in your capital for each wonder you hold"
+   },
+   {
+    "raw": "when drafted, +20 culture, +20 science and +20 production in your capital for each hex carrying a great person's work in your borders",
+    "text": "when drafted, +20 culture, +20 science and +20 production in your capital for each hex carrying a great person's work in your borders"
+   },
+   {
+    "raw": "when drafted, +20 culture, +20 science and +20 production in your capital for each Order you hold, seated or not; seated, this card does nothing",
+    "text": "when drafted, +20 culture, +20 science and +20 production in your capital for each Order you hold, seated or not; seated, this card does nothing"
+   }
+  ],
   "frontierGarrisons": [
    {
     "raw": "+2 food in every city with a unit standing in it of 5 or fewer citizens",

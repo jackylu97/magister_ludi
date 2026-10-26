@@ -251,28 +251,41 @@ describe('the seams of the card-drafted moment', () => {
     expect(draft.split("'cardDrafted'")).toHaveLength(2);
   });
 
-  it('is paid by one seam, the pick, after the card, its charter and its units', () => {
-    // `payCardDrafted` is called from the reducer's pick and from nowhere else
-    // in the sim. A new way to add a card to the collection joins this list.
-    expect(filesWith('payCardDrafted(')).toEqual(['commands.ts', 'statecraft/draft.ts']);
+  it('is paid by one seam, the card settled, after the card, its charter and its units', () => {
+    // `payCardDrafted` is called from one tail, `settleCardTaken` in
+    // `cities.ts`, and from nowhere else in the sim (Magisterial batch MG14).
+    // Every way a card enters the collection goes through that tail: the
+    // reducer's pick and The Cabinet of Curiosities' card.
+    expect(filesWith('payCardDrafted(')).toEqual(['cities.ts', 'statecraft/draft.ts']);
+    const cities = code(SIM['../../../src/sim/cities.ts']!);
+    expect(cities.split('payCardDrafted(')).toHaveLength(2);
+    const tail = /export function settleCardTaken\([\s\S]*?\n\}/.exec(cities)?.[0] ?? '';
+    expect(tail.length, 'settleCardTaken found').toBeGreaterThan(100);
+    const units = tail.indexOf('raiseOnDraft(');
+    const law = tail.indexOf('forgetTheLaw(state)');
+    const paid = tail.indexOf('payCardDrafted(');
+    expect(units, 'the on-draft grants are paid first').toBeGreaterThan(-1);
+    expect(law, 'the law is dropped for a charter after them').toBeGreaterThan(units);
+    expect(paid, 'and the moment is paid last').toBeGreaterThan(Math.max(units, law));
+    expect(tail).toContain('payCardDrafted(state, player, price)');
+    // The pick reads the hand's price before it removes the hand (Magisterial
+    // batch MG5), settles the card, and hands both to the tail.
     const commands = code(SIM['../../../src/sim/commands.ts']!);
-    expect(commands.split('payCardDrafted(')).toHaveLength(2);
+    expect(commands).not.toContain('payCardDrafted');
+    expect(commands).not.toContain('raiseOnDraft');
     const body = /function applyChooseOrder\([\s\S]*?\n\}/.exec(commands)?.[0] ?? '';
     expect(body.length, 'applyChooseOrder found').toBeGreaterThan(100);
-    const settled = body.indexOf('settleOrderChoice(');
-    const units = body.indexOf('raiseOnDraft(');
-    const law = body.indexOf('forgetTheLaw(state)');
-    const paid = body.indexOf('payCardDrafted(');
-    // Magisterial batch MG5: the hand's price is read before the pick removes
-    // the hand, and handed to the moment.
     const price = body.indexOf('pendingOrder?.price');
+    const settled = body.indexOf('settleOrderChoice(');
+    const taken = body.indexOf('settleCardTaken(state, actor, taken, price)');
     expect(price, 'the price is read before the card is settled').toBeGreaterThan(-1);
     expect(price).toBeLessThan(settled);
-    expect(body).toContain('payCardDrafted(state, actor, price)');
-    expect(settled, 'the card is settled').toBeGreaterThan(-1);
-    expect(units, 'the on-draft units are raised after it').toBeGreaterThan(settled);
-    expect(law, 'the law is dropped for a charter after it').toBeGreaterThan(settled);
-    expect(paid, 'and the moment is paid last').toBeGreaterThan(Math.max(units, law));
+    expect(taken, 'and the tail runs after the card is settled').toBeGreaterThan(settled);
+    // The tail's other caller is the granted card, with no price.
+    const raise = /export function raiseOnDraft\([\s\S]*?\n\}/.exec(cities)?.[0] ?? '';
+    expect(raise).toContain('settleCardTaken(state, player, addToCollection(player, drawn))');
+    expect(cities.split('settleCardTaken(')).toHaveLength(3);
+    expect(filesWith('settleCardTaken(')).toEqual(['cities.ts', 'commands.ts']);
     // In draft.ts the only call is the definition itself.
     const draft = code(SIM['../../../src/sim/statecraft/draft.ts']!);
     expect(draft.split('payCardDrafted(')).toHaveLength(2);

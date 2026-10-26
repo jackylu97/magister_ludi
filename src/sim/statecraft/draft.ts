@@ -55,6 +55,7 @@ import {
   type TallyFacts,
   type TallyOccasion,
   GOVERNMENT_TIERS,
+  ORDER_IDS,
   STARTING_GOVERNMENT,
   STATECRAFT,
   bandTierAt,
@@ -67,6 +68,7 @@ import {
   isOrderId,
   orderDef,
   orderFitsSlot,
+  orderIsDealt,
   orderType,
   ordersForDecks,
   poolDoctrines,
@@ -1160,6 +1162,21 @@ export function eligibleFor(
   player: Player,
   drafts: number = player.statecraft.drafts,
 ): OrderId[] {
+  return deckPoolOf(state, player).filter(dealGateFor(state, player, drafts));
+}
+
+/**
+ * **Whether a row may be dealt to this seat now**, every gate but the deck:
+ * not held, in the band the draft count has reached, and past the row's own
+ * gates. `eligibleFor` asks it of the seat pool, and the foreign-card grant
+ * asks it of the decks the seat does not hold (`foreignCardBag`, Magisterial
+ * batch MG14), so both deal by one rule.
+ *
+ * It returns a test rather than a list, so that the facts it reads once (the
+ * band, the age, the tended-work and levy unlocks) are read once per bag, not
+ * once per row.
+ */
+function dealGateFor(state: GameState, player: Player, drafts: number): (id: OrderId) => boolean {
   const sc = player.statecraft;
   const age = researchAgeOf(player);
   const band = currentBandOf(player, drafts);
@@ -1170,7 +1187,7 @@ export function eligibleFor(
   // levy" (`OrderDef.needsLevy`, Expansionist batch E1).
   const tends = holdsTendedUnlock(state, player.id);
   const levies = holdsLevyGrant(state, player.id);
-  return deckPoolOf(state, player).filter((id) => {
+  return (id) => {
     if (held.has(id)) return false;
     const def = orderDef(id);
     // Dealt from its band through its last band (`OrderDef.lastBand`): Double
@@ -1182,7 +1199,44 @@ export function eligibleFor(
     // already knows the technology its goal asks for.
     if (def.notDealtKnowing !== undefined && player.techsResearched.includes(def.notDealtKnowing)) return false;
     return def.fromAge === undefined || age >= def.fromAge;
+  };
+}
+
+/**
+ * **The bag The Cabinet of Curiosities draws from** (Magisterial batch MG14;
+ * the triage's reading 37): every live row of a deck the seat does not hold,
+ * in file order, that the seat could be dealt now if it held that deck. A
+ * card that two decks share is in the bag only when the seat holds neither
+ * deck. A card that belongs to no deck is left out, because every seat is
+ * dealt those already. The gates are the deal's own (`dealGateFor`): the
+ * seat's current band, not held, and the row's own gates.
+ *
+ * A seat that holds every deck has an empty bag.
+ */
+export function foreignCardBag(state: GameState, player: Player): OrderId[] {
+  const dealt = dealGateFor(state, player, player.statecraft.drafts);
+  return ORDER_IDS.filter((id) => {
+    if (!orderIsDealt(id)) return false;
+    const home = orderDef(id).decks;
+    if (home.length === 0) return false;
+    if (home.some((deck) => player.decks.includes(deck))) return false;
+    return dealt(id);
   });
+}
+
+/**
+ * **One card from `foreignCardBag`**, drawn from `state.rng` rarity first at
+ * the table's own odds, with no pity (the triage's reading 37): the same
+ * draw a hand's card is dealt by (`drawRarityFirst`), asked with no passes.
+ * An empty bag gives `undefined` and uses no randomness, as an empty
+ * position of a hand does.
+ *
+ * Called by `raiseOnDraft` (`cities.ts`) for The Cabinet of Curiosities. The
+ * caller adds the card to the collection (`addToCollection`) and settles it
+ * as a pick (`settleCardTaken`).
+ */
+export function drawForeignCard(state: GameState, player: Player): OrderId | undefined {
+  return drawRarityFirst(state, foreignCardBag(state, player), 0);
 }
 
 // --- the draw ---------------------------------------------------------------
@@ -2118,6 +2172,24 @@ export function settleOrderChoice(player: Player, optionIndex: number): OrderCho
 
   delete sc.pendingOrder;
   sc.orderSkips = 0;
+  return addToCollection(player, id);
+}
+
+/**
+ * **Adds a card to the collection, as a pick does** (Magisterial batch MG14):
+ * the card joins `PlayerStatecraft.orders`, never a chair, and a charter
+ * applies its grant at once (`applyCharter`, the decks rework D1a). It
+ * touches no hand and no pity, which are the pick's own business
+ * (`settleOrderChoice`).
+ *
+ * Two callers: `settleOrderChoice`, the pick of an Order hand, and
+ * `raiseOnDraft` (`cities.ts`), for the card The Cabinet of Curiosities draws
+ * (`drawForeignCard`; the triage's reading 37). Each then settles the card
+ * through `settleCardTaken` (`cities.ts`), which takes the state this does
+ * not.
+ */
+export function addToCollection(player: Player, id: OrderId): OrderChoice {
+  const sc = player.statecraft;
   if (!sc.orders.includes(id)) sc.orders.push(id);
   // **A charter acts on the pick** (the decks rework, D1a) — see `applyCharter`.
   const chartered = applyCharter(player, id);
@@ -2131,9 +2203,10 @@ export function settleOrderChoice(player: Player, optionIndex: number): OrderCho
  * the pick and never a chair).
  *
  * Called by the verb that takes a card into the collection
- * (`settleOrderChoice`) and by nothing else, so a second way to draft a card
- * would call this or not grant at all. (The reward hand's pick was the other
- * caller until batch C3 removed the reward hands.) A row that is no
+ * (`addToCollection`, which the pick and The Cabinet of Curiosities' grant
+ * share since Magisterial batch MG14) and by nothing else, so a second way to
+ * draft a card would call this or not grant at all. (The reward hand's pick
+ * was the other caller until batch C3 removed the reward hands.) A row that is no
  * charter writes nothing and answers `false`. Every list is grown by presence
  * — an id already there is left there — so a grant is idempotent and a save
  * that replays it lands on the same bytes.
@@ -2161,23 +2234,25 @@ export function applyCharter(player: Player, id: OrderId): boolean {
  * MG5) ride it now.
  *
  * It is a function of its own, beside `applyCharter`, so that every way a card
- * enters the collection pays the same riders. Its callers are the moment's
- * seams, and there is one:
+ * enters the collection pays the same riders. It has one caller,
+ * `settleCardTaken` (`cities.ts`), which every way a card enters the
+ * collection goes through (Magisterial batch MG14):
  *
- *   · `applyChooseOrder` (`commands.ts`), the pick of an Order draft, called
- *     last: after `settleOrderChoice` has added the card and applied its
- *     charter, after the law has been dropped for a charter, and after the
- *     on-draft units are raised. So the riders read the law the pick left.
+ *   · the pick of an Order hand (`applyChooseOrder`, `commands.ts`);
+ *   · the card The Cabinet of Curiosities draws (`raiseOnDraft`, `cities.ts`;
+ *     the triage's reading 37), with no price.
+ *
+ * `settleCardTaken` calls it last: after the card has been added and its
+ * charter applied, after the law has been dropped for a charter, and after
+ * the card's on-draft grants are paid. So the riders read the law the card
+ * left.
  *
  * `price` is the culture the seat paid for the hand the card came from
  * (`OrderOffer.price`, Magisterial batch MG5). The pick reads it before
  * `settleOrderChoice` removes the hand, and it travels as the moment's
- * `handPrice` fact. A free hand has no price, so a rider that pays a share of
- * the price pays nothing for it.
- *
- * `settleOrderChoice` takes no state, which is why the pick calls this
- * rather than the verb. A new way to add a card (Magisterial's The Cabinet of
- * Curiosities) calls it too, and joins this list.
+ * `handPrice` fact. A free hand has no price, and neither has a card a grant
+ * hands over, so a rider that pays a share of the price pays nothing for
+ * them.
  */
 export function payCardDrafted(state: GameState, player: Player, price?: number): void {
   const capital = capitalCityOf(state, player.id);

@@ -79,6 +79,8 @@ import {
   type MeterRuleId,
   type OfferRiderScope,
   type OfferRuleId,
+  type OnDraftGrant,
+  type OnDraftWindfall,
   type OrderBeadOccasion,
   type RateSource,
   type ChairType,
@@ -743,20 +745,13 @@ export function describeCard(id: CardId): CardClause[] {
     // unit grant's sentence ends "joins you", so the place is added after it.
     // A card with no effects says so, because it still takes a chair.
     const drafted = orderDef(id).onDraft ?? [];
-    drafted.forEach((grant, index) => {
+    const said = onDraftClauses(drafted);
+    said.forEach((text, index) => {
       const idle =
-        index === drafted.length - 1 && orderDef(id).effects.length === 0
+        index === said.length - 1 && orderDef(id).effects.length === 0
           ? '; seated, this card does nothing'
           : '';
-      // **A great person** (Magisterial batch MG6, The Wandering Muse) stands
-      // in no town, and it is paid by the routine a rider's great person uses
-      // (`grantGreatPersonOffer`), so it is said in that rider's words.
-      if (grant.grant === 'greatPerson') {
-        const who = grant.family === undefined ? 'a great person' : `a great ${grant.family}`;
-        clauses.push({ text: `when drafted, you gain ${who} to call${idle}` });
-        return;
-      }
-      clauses.push({ text: `${grantWords(grant, 'when drafted')} in your capital${idle}` });
+      clauses.push({ text: `${text}${idle}` });
     });
     for (const grant of orderDef(id).onSlot ?? []) {
       if (grant.grant === 'greatPerson') {
@@ -3714,6 +3709,69 @@ export function grantWords(grant: CompletionGrant, when = 'on completion'): stri
   return `${when}, ${what} joins you`;
 }
 
+/**
+ * **What drafting an Order hands over, in words** (`OrderDef.onDraft`), one
+ * clause each, in the row's order and without the closing "seated, this card
+ * does nothing", which the caller adds to the last clause.
+ *
+ *   · a unit, in a building grant's own words, in the capital (Dominion batch
+ *     D5);
+ *   · a great person, in a rider's great-person words (Magisterial batch
+ *     MG6), because it stands in no town;
+ *   · a random card from a deck the seat does not hold (Magisterial batch
+ *     MG14, The Cabinet of Curiosities);
+ *   · yields (Magisterial batch MG14, The Grand Retrospective). Windfall arms
+ *     that stand together in the row and share a count are one clause, so
+ *     three yields for each wonder read as one sentence: "+20 culture, +20
+ *     science and +20 production in your capital for each wonder you hold".
+ *     Food and production say the capital, where they land; culture,
+ *     science, gold and faith go to the empire's banks and say no town.
+ */
+function onDraftClauses(grants: readonly OnDraftGrant[]): string[] {
+  const out: string[] = [];
+  let run: OnDraftWindfall[] = [];
+  const flush = (): void => {
+    if (run.length === 0) return;
+    const yields = run.map((grant) => {
+      const lands = grant.yield === 'food' || grant.yield === 'production';
+      return `${signed(grant.amount)} ${grant.yield}${lands ? ' in your capital' : ''}`;
+    });
+    const list = yields.length === 1 ? yields[0]! : `${yields.slice(0, -1).join(', ')} and ${yields[yields.length - 1]!}`;
+    const count = run[0]!.perCount;
+    const each = count === undefined ? '' : ` for each ${grantCountWords(count)}`;
+    out.push(`when drafted, ${list}${each}`);
+    run = [];
+  };
+  for (const grant of grants) {
+    if (grant.grant === 'windfall') {
+      const last = run[run.length - 1];
+      if (last !== undefined && JSON.stringify(last.perCount) !== JSON.stringify(grant.perCount)) flush();
+      run.push(grant);
+      continue;
+    }
+    flush();
+    switch (grant.grant) {
+      case 'greatPerson': {
+        const who = grant.family === undefined ? 'a great person' : `a great ${grant.family}`;
+        out.push(`when drafted, you gain ${who} to call`);
+        break;
+      }
+      case 'foreignCard':
+        out.push('when drafted, a random Order of your tier from a deck you do not hold joins your collection');
+        break;
+      case 'unit':
+        out.push(`${grantWords(grant, 'when drafted')} in your capital`);
+        break;
+      default: {
+        const unhandled: never = grant;
+        void unhandled;
+      }
+    }
+  }
+  flush();
+  return out;
+}
+
 function conditionValue(when: EmpireCondition): string {
   if (when.test === 'cityCountAtMost' || when.test === 'cityCountAtLeast') {
     return ` ${when.value} cities`;
@@ -4732,6 +4790,8 @@ function grantCountWords(spec: GrantCount): string {
     count: spec.count,
     ...(spec.building !== undefined ? { building: spec.building } : {}),
     ...(spec.family !== undefined ? { family: spec.family } : {}),
+    // Magisterial batch MG14: the hexes a `tilesInBorders` count names.
+    ...(spec.tile !== undefined ? { tile: spec.tile } : {}),
   };
   return countWords(spec.per, countNoun(probe, ''));
 }

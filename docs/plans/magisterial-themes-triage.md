@@ -488,6 +488,8 @@ The first six come from section 12. The rest are new. Each gives the reading the
 - **Schema:** one bump.
 - **Done-gate:** `npx vitest run test/sim/decks/magisterialBoons.test.ts test/sim/offers.test.ts test/sim/decks/commercePairs.test.ts test/sim/decks/dominionUnits.test.ts test/sim/decks/magisterial.test.ts test/sim/decks.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`.
 
+- **Built (2026-10-26):** both cards. The gate passed: the type check, 10,000 core tests and the build. Schema 197. `OrderDef.onDraft` takes `windfall` and `foreignCard` grants. `foreignCardBag` and `drawForeignCard` draw rarity first with `state.rng`, and an empty bag spends no randomness. `addToCollection` is now the one place a card joins the collection, and `settleCardTaken` (`cities.ts`) is the one tail for a pick and a granted card (on-draft grants, the charter memo, then `payCardDrafted`). `GrantCount.tile` counts works for The Grand Retrospective, whose nine grants are read in one payout. Readings added: the Cabinet's bag uses the deal's own row gates; a granted card moves neither pity, draft count nor price; the granted card's draft moment pays first. Not done: no notice names the granted card.
+
 ### MG15: arrangements on the hex grid
 
 - **Builds:**

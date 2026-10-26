@@ -4318,6 +4318,8 @@ function grantCountNow(ctx: ValueContext, spec: GrantCount): number {
     count: spec.count,
     ...(spec.building !== undefined ? { building: spec.building } : {}),
     ...(spec.family !== undefined ? { family: spec.family } : {}),
+    // Magisterial batch MG14: the hexes a `tilesInBorders` count asks about.
+    ...(spec.tile !== undefined ? { tile: spec.tile } : {}),
   });
   const step = spec.per === undefined || spec.per <= 0 ? 1 : spec.per;
   return Math.floor(found / step);
@@ -4331,18 +4333,36 @@ function grantCountNow(ctx: ValueContext, spec: GrantCount): number {
  *
  * A great person on the draft (Magisterial batch MG6, The Wandering Muse) is
  * the stand-in until batch MG17 prices it. It is not a unit, so it is not
- * priced as one.
+ * priced as one. The two arms of Magisterial batch MG14 are stand-ins too,
+ * one for each grant, until MG17 prices them: the yields of The Grand
+ * Retrospective and the random card of The Cabinet of Curiosities.
  */
 export function onDraftWorth(id: CardId, ctx: ValueContext): number {
   if (!isOrderId(id)) return 0;
   const grants = orderDef(id).onDraft ?? [];
   if (grants.length === 0) return 0;
-  const units = grants.filter((grant) => grant.grant === 'unit').length;
-  const people = grants.length - units;
+  let units = 0;
+  let standIns = 0;
+  for (const grant of grants) {
+    switch (grant.grant) {
+      case 'unit':
+        units += 1;
+        break;
+      case 'greatPerson':
+      case 'windfall':
+      case 'foreignCard':
+        standIns += 1;
+        break;
+      default: {
+        const unhandled: never = grant;
+        void unhandled;
+      }
+    }
+  }
   return (
     (units * ctx.ai.weights.military * ctx.ai.score.combatScale) /
       Math.max(1, ctx.ai.score.lumpTurns) +
-    people * ctx.ai.score.unknownEffect
+    standIns * ctx.ai.score.unknownEffect
   );
 }
 

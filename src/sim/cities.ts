@@ -126,6 +126,7 @@ import { leaderDef } from './leaderData';
 import {
   type FirstKind,
   type LevyUse,
+  type OnDraftWindfall,
   type OrderId,
   type WindfallOccasion,
   governmentDef,
@@ -171,12 +172,22 @@ import {
   forgetTheLaw,
   foldCardRulePercent,
   payWindfallGrants,
+  // Magisterial batch MG14: a card entering the collection as a pick does,
+  // the random card from a deck the seat does not hold, and the yields a
+  // card pays on the draft. Called inside functions only, like the rest of
+  // this list.
+  addToCollection,
+  drawForeignCard,
+  onDraftPayout,
+  type OrderChoice,
+  payCardDrafted,
   recordScalingOccasion,
   recordWorldScalingOccasion,
   settleCultureWindfall,
   spendableGold,
   tileConditionHolds,
   type WindfallOccasionFacts,
+  type WindfallPayout,
   windfallPayout,
 } from './statecraft';
 // Dominion batch D1's readers, straight from the evaluator: the experience a
@@ -6078,8 +6089,9 @@ export function raiseFreeUnit(
 /**
  * **What drafting an Order hands over, once** (Dominion batch D5): The Sword
  * of State's best melee unit and The Cleruchy's settler, raised in the
- * capital (`OrderDef.onDraft`). Called by the pick (`applyChooseOrder` in
- * `commands.ts`) beside `settleOrderChoice`, which takes no state. A seat with
+ * capital (`OrderDef.onDraft`). Called by `settleCardTaken` below, the tail
+ * every way a card enters the collection shares (Magisterial batch MG14):
+ * the pick of an Order hand and The Cabinet of Curiosities' card. A seat with
  * no capital, or a capital with nowhere to put the unit, gets no unit.
  *
  * **A great person** (Magisterial batch MG6, The Wandering Muse; the triage's
@@ -6089,18 +6101,93 @@ export function raiseFreeUnit(
  * still needed for the next one. It needs no capital, so a seat with none
  * still gets it. The pick has already removed the Order hand, so nothing
  * here waits on it.
+ *
+ * **Yields** (Magisterial batch MG14, The Grand Retrospective; the triage's
+ * reading 38). The card's windfall arms are composed into one payout before
+ * anything is paid (`onDraftPayout`), so every count is read at the same
+ * moment, with the card already in the collection. The payout is delivered
+ * once, through `payWindfallGrants`, and settled as a moment's riders are
+ * (`deliverWindfall`). It is composed after the row's other arms are paid,
+ * whatever the row's order, so its counts see what those arms handed over.
+ *
+ * **A card from a deck the seat does not hold** (Magisterial batch MG14, The
+ * Cabinet of Curiosities; reading 37). Drawn from `state.rng`
+ * (`drawForeignCard`), added to the collection as a pick adds one
+ * (`addToCollection`), and settled as a pick through `settleCardTaken`, so
+ * its own on-draft grant is paid and the draft moment fires for it. That
+ * call comes back here for the drawn card; it ends, because each card it
+ * draws joins the collection and leaves the bag. An empty bag gives nothing.
  */
 export function raiseOnDraft(state: GameState, player: Player, id: OrderId): void {
   const grants = orderDef(id).onDraft;
   if (grants === undefined || grants.length === 0) return;
   const capital = capitalCityOf(state, player.id);
+  const windfalls: OnDraftWindfall[] = [];
   for (const grant of grants) {
-    if (grant.grant === 'greatPerson') {
-      grantGreatPersonOffer(state, player, grant.family ?? 'any');
-      continue;
+    switch (grant.grant) {
+      case 'greatPerson':
+        grantGreatPersonOffer(state, player, grant.family ?? 'any');
+        break;
+      case 'unit':
+        if (capital) raiseFreeUnit(state, capital, grant.unit);
+        break;
+      case 'windfall':
+        windfalls.push(grant);
+        break;
+      case 'foreignCard': {
+        const drawn = drawForeignCard(state, player);
+        if (drawn !== undefined) settleCardTaken(state, player, addToCollection(player, drawn));
+        break;
+      }
+      default: {
+        const unhandled: never = grant;
+        void unhandled;
+      }
     }
-    if (capital) raiseFreeUnit(state, capital, grant.unit);
   }
+  if (windfalls.length === 0) return;
+  const payout = onDraftPayout(state, player.id, id, windfalls);
+  if (!windfallPayoutIsEmpty(payout)) deliverWindfall(state, player, payout);
+}
+
+/**
+ * **Settles a card that has just entered the collection, as a pick does**
+ * (Magisterial batch MG14). The one tail every way a card enters the
+ * collection shares, in this order:
+ *
+ *   1. what drafting the card hands over (`raiseOnDraft`);
+ *   2. for a charter, the law's memo is dropped and the meters told, because
+ *      its grant changed what the seat may build and research (D1a);
+ *   3. last, the draft moment (`payCardDrafted`), so its riders read the law
+ *      the card left.
+ *
+ * Two callers: the pick of an Order hand (`applyChooseOrder`, `commands.ts`),
+ * which passes the price of the hand, and the card The Cabinet of Curiosities
+ * draws (`raiseOnDraft`), which passes none, because a card a grant hands
+ * over came from no hand (the triage's reading 37). The card must already be
+ * in the collection (`settleOrderChoice` or `addToCollection`).
+ */
+export function settleCardTaken(
+  state: GameState,
+  player: Player,
+  taken: OrderChoice,
+  price?: number,
+): void {
+  // **What drafting hands over** (Dominion batch D5): The Sword of State's
+  // unit and The Cleruchy's settler, raised in the capital at the pick.
+  raiseOnDraft(state, player, taken.id);
+  // **A charter's grant just changed what the seat may build and research**
+  // (D1a): `isUnlocked` reads the cards through the law's memo, so the memo is
+  // dropped and the meters told, exactly as a slotting does. An ordinary card
+  // lands in the collection and changes nothing until it is seated.
+  if (taken.chartered) {
+    forgetTheLaw(state);
+    bumpEconomy(state);
+  }
+  // **The cards that pay on a card drafted** (Commerce batch T7, The Art
+  // Dealers). Last, so the riders read the law this card left, a charter's
+  // grant included.
+  payCardDrafted(state, player, price);
 }
 
 /**
@@ -6122,12 +6209,29 @@ export function payOccasionRiders(
   if (player.barbarian === true) return false;
   const payout = windfallPayout(state, player.id, occasion, 0, 0, facts);
   if (windfallPayoutIsEmpty(payout)) return false;
+  deliverWindfall(state, player, payout, at);
+  return true;
+}
+
+/**
+ * **Delivers a composed payout and settles what it paid**: through
+ * `payWindfallGrants`, the one delivery, then each town a basket filled in
+ * (growth first, else production), then culture and science at once, as
+ * every windfall's are. Shared by a moment's riders (`payOccasionRiders`)
+ * and a card's yields on the draft (`raiseOnDraft`, Magisterial batch MG14),
+ * so the two settle alike.
+ */
+function deliverWindfall(
+  state: GameState,
+  player: Player,
+  payout: WindfallPayout,
+  at?: { col: number; row: number },
+): void {
   for (const town of payWindfallGrants(state, player, payout, at)) {
     if (!settleGrowthWindfall(state, town)) settleProductionWindfall(state, town);
   }
   settleCultureWindfall(state, player);
   settleResearchWindfall(state, player);
-  return true;
 }
 
 /**

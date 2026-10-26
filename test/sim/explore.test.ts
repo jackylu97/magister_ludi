@@ -1206,10 +1206,19 @@ describe('determinism', () => {
    * or drafts, so no person acts and no unit carries the field. Checked with
    * the change in place and the version printed as 195, which gives the
    * hashes of Magisterial batch MG12 exactly.
+   *
+   * **Magisterial batch MG14 (the boons, schema 197) moved the hash and not
+   * the length** at both seeds: 196 became 197, and that is all. The batch
+   * adds two arms to what drafting an Order hands over (yields counted at
+   * the draft, and a random card from a deck the seat does not hold), a tile
+   * test on a grant's count, one tail that settles every card entering the
+   * collection, and two card rows. Nobody here drafts, so no grant is paid
+   * and no card is drawn. Checked with the change in place and the version
+   * printed as 196, which gives the hashes of Magisterial batch MG13 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '902ccf3f:188976',
-    2026: '103f5eea:188554',
+    11: '6fb88528:188976',
+    2026: 'e42031d9:188554',
   };
 
   for (const seed of [11, 2026]) {

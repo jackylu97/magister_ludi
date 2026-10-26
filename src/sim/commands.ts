@@ -73,8 +73,8 @@ import {
   foundingError,
   payOccasionRiders,
   purchaseTileAt,
-  raiseOnDraft,
   refreshCityDerived,
+  settleCardTaken,
   settleProductionWindfall,
   doubledWork,
   takeBlockedBy,
@@ -195,7 +195,6 @@ import {
   governmentChoiceError,
   orderChoiceError,
   orderSkipError,
-  payCardDrafted,
   recordScalingOccasion,
   settleDoctrineChoice,
   settleDoctrineSkip,
@@ -3466,21 +3465,11 @@ function applyChooseOrder(state: GameState, command: ChooseOrderCommand): Comman
   // hand. Absent on a free hand.
   const price = actor.statecraft.pendingOrder?.price;
   const taken = settleOrderChoice(actor, command.optionIndex);
-  // **What drafting hands over** (Dominion batch D5): The Sword of State's
-  // unit and The Cleruchy's settler, raised in the capital at the pick.
-  if (taken) raiseOnDraft(state, actor, taken.id);
-  // **A charter's grant just changed what the seat may build and research**
-  // (D1a): `isUnlocked` reads the cards through the law's memo, so the memo is
-  // dropped and the meters told, exactly as a slotting does. An ordinary card
-  // lands in the collection and changes nothing until it is seated.
-  if (taken?.chartered) {
-    forgetTheLaw(state);
-    bumpEconomy(state);
-  }
-  // **The cards that pay on a card drafted** (Commerce batch T7, The Art
-  // Dealers). Last, so the riders read the law this pick left, a charter's
-  // grant included.
-  if (taken) payCardDrafted(state, actor, price);
+  // **The card is settled as a pick** (Magisterial batch MG14): what drafting
+  // it hands over, the law dropped for a charter, and the draft moment last,
+  // with the hand's price. `settleCardTaken` (`cities.ts`) is the one tail,
+  // which The Cabinet of Curiosities' card goes through too.
+  if (taken) settleCardTaken(state, actor, taken, price);
   return ok();
 }
 

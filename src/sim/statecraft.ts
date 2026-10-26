@@ -206,6 +206,8 @@ export {
   liveEffects,
   liveUnitEffects,
   musterPeriodicUnits,
+  // Magisterial batch MG14: what drafting an Order pays in yields.
+  onDraftPayout,
   opusCityOf,
   payWindfallGrants,
   religionFounder,
@@ -287,6 +289,9 @@ export type {
 } from './statecraft/describers';
 
 export {
+  // Magisterial batch MG14: a card entering the collection, and the random
+  // card from a deck the seat does not hold.
+  addToCollection,
   adoptGovernmentAt,
   applyCharter,
   bandTierOf,
@@ -314,12 +319,14 @@ export {
   drawOrderOptions,
   drawRarityFirst,
   drawDoctrinePositions,
+  drawForeignCard,
   drawWeighted,
   drawWithoutReplacement,
   eligibleFor,
   expectedHandBags,
   explainOfferSize,
   foldOfferSize,
+  foreignCardBag,
   governmentChoiceError,
   HAND_POSITIONS,
   hasStatecraftOffer,

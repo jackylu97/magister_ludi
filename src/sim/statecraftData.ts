@@ -6261,6 +6261,13 @@ export interface GrantCount {
   building?: BuildingId;
   /** The family `greatPeopleGained` counts. */
   family?: Family;
+  /**
+   * The hexes `tilesInBorders` counts (Magisterial batch MG14, The Grand
+   * Retrospective's great-person works; the triage's reading 38). The same
+   * field as `CardPaysEffect.tile`, so a grant and a `pays` line count the
+   * same hexes. Absent counts nothing, as it does on a `pays` line.
+   */
+  tile?: TileCondition;
   /** How many items make one helping. Default 1. */
   per?: number;
 }
@@ -10309,6 +10316,69 @@ export interface OrderSlotGrant {
   grant: 'greatPerson';
 }
 
+/**
+ * **What drafting an Order hands over, once** (`OrderDef.onDraft`). Four arms,
+ * each paid by `raiseOnDraft` (`cities.ts`) when the card enters the
+ * collection:
+ *
+ *   · `unit` and `greatPerson`, two arms of a building's `CompletionGrant`
+ *     (Dominion batch D5, The Sword of State; Magisterial batch MG6, The
+ *     Wandering Muse);
+ *   · `windfall`, a yield paid once (`OnDraftWindfall`, Magisterial batch
+ *     MG14, The Grand Retrospective);
+ *   · `foreignCard`, a random card from a deck the seat does not hold
+ *     (`OnDraftForeignCard`, Magisterial batch MG14, The Cabinet of
+ *     Curiosities).
+ */
+export type OnDraftGrant =
+  | Extract<CompletionGrant, { grant: 'unit' | 'greatPerson' }>
+  | OnDraftWindfall
+  | OnDraftForeignCard;
+
+/**
+ * **A yield paid once when the card is drafted** (Magisterial batch MG14, The
+ * Grand Retrospective; the triage's reading 38).
+ *
+ * The fields are the windfall grant's own (`WindfallGrantSpec`): a voice and
+ * an amount, a count that pays the amount once for each item it finds
+ * (`perCount`), and the capital as the town that takes food and production
+ * (`toCapital`). The other fields of a rider's grant read a moment, such as
+ * a kill's strength or a town's people, and a draft has none of these, so
+ * the type leaves them out.
+ *
+ * All of a card's windfall arms make one payout, composed by
+ * `onDraftPayout` (`statecraft/evaluator.ts`) before anything is paid, and
+ * delivered once by `payWindfallGrants`, the one delivery. So every count is
+ * read at the same moment, after the card has entered the collection: a
+ * count of the Orders held counts the card itself. The era and the council do
+ * not multiply the figure, because the card pays from no chair. Without
+ * `toCapital`, food and production land in the capital too, because a draft
+ * happens nowhere on the map.
+ */
+export interface OnDraftWindfall {
+  grant: 'windfall';
+  yield: CityYieldKey;
+  amount: number;
+  perCount?: GrantCount;
+  toCapital?: true;
+}
+
+/**
+ * **A random card from a deck the seat does not hold** (Magisterial batch
+ * MG14, The Cabinet of Curiosities; the triage's reading 37).
+ *
+ * Drawn by `drawForeignCard` (`statecraft/draft.ts`) from the live rows of
+ * the seat's current band whose decks the seat holds none of, less the cards
+ * it holds, rarity first at the ordinary odds with no pity. A card that
+ * belongs to no deck is left out. The card then enters the collection as a
+ * pick does (`settleCardTaken`, `cities.ts`): a charter applies its grant,
+ * its own on-draft grant is paid, and the draft moment fires for it with no
+ * hand price. An empty bag gives nothing and uses no randomness.
+ */
+export interface OnDraftForeignCard {
+  grant: 'foreignCard';
+}
+
 // --- commissions ------------------------------------------------------------
 
 /**
@@ -10869,8 +10939,12 @@ export interface OrderDef extends CardDefBase {
    * and a commission's great person use: an offer now when the seat may call
    * great people and none waits, and otherwise the renown still needed for
    * the next one. It needs no capital.
+   *
+   * Since Magisterial batch MG14 a row may also carry a `windfall` arm (The
+   * Grand Retrospective) and a `foreignCard` arm (The Cabinet of Curiosities).
+   * See `OnDraftGrant`.
    */
-  onDraft?: Extract<CompletionGrant, { grant: 'unit' | 'greatPerson' }>[];
+  onDraft?: OnDraftGrant[];
   /**
    * Present on a commission: a goal that only counts while the card is seated,
    * and a reward paid once when it is met. See `CommissionSpec`.

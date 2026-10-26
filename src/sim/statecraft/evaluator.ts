@@ -205,6 +205,7 @@ import {
   type OccasionMeasure,
   type MeterRuleId,
   type OfferRuleId,
+  type OnDraftWindfall,
   type OrderBeadOccasion,
   type OrderId,
   type RateSource,
@@ -10165,8 +10166,59 @@ function grantCountHelpings(
     count: spec.count,
     ...(spec.building !== undefined ? { building: spec.building } : {}),
     ...(spec.family !== undefined ? { family: spec.family } : {}),
+    // Magisterial batch MG14: the hexes a `tilesInBorders` count asks about.
+    ...(spec.tile !== undefined ? { tile: spec.tile } : {}),
   };
   return helpings(countOf(state, playerId, card, probe), spec.per, undefined);
+}
+
+/**
+ * **What drafting an Order pays in yields, composed once** (Magisterial batch
+ * MG14, The Grand Retrospective; the triage's reading 38). Each windfall arm
+ * of the card's `onDraft` adds one grant: its amount, once for each item its
+ * count finds now. Every count is read here, before anything is paid, so the
+ * figures are the empire as it stood when the card entered the collection.
+ *
+ * A commission's reward is composed the same way (`payCommission`,
+ * `commissions.ts`): a printed figure paid once, outside `windfallPayout`,
+ * because no seated card rides a moment. So the era, the council and the
+ * capture and pillage boosts do not multiply it. `raiseOnDraft` (`cities.ts`)
+ * delivers the payout through `payWindfallGrants`, the one delivery. Food and
+ * production land in the capital: the delivery's default without a hex.
+ */
+export function onDraftPayout(
+  state: GameState,
+  playerId: number,
+  card: OrderId,
+  grants: readonly OnDraftWindfall[],
+): WindfallPayout {
+  const source = orderDef(card).name;
+  const payout: WindfallPayout = {
+    amount: 0,
+    grants: [],
+    heal: 0,
+    units: [],
+    healAll: false,
+    timed: [],
+    renown: [],
+    pressure: [],
+    lines: [],
+    claims: [],
+  };
+  for (const grant of grants) {
+    const counted = grant.perCount === undefined ? 1 : grantCountHelpings(state, playerId, card, grant.perCount);
+    const amount = grant.amount * counted;
+    if (amount === 0) continue;
+    payout.grants.push({
+      card,
+      source,
+      yield: grant.yield,
+      amount,
+      ...(grant.toCapital === true ? { toCapital: true } : {}),
+    });
+    payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
+  }
+  return payout;
 }
 
 /**

@@ -614,6 +614,17 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
     founding rider can use it too. Since Magisterial batch MG6 an Order can
     also hand over a great person when it is drafted, through
     `grantGreatPersonOffer`: an offer, or the renown for the next one.
+  - Since Magisterial batch MG14 an Order can pay yields when it is drafted
+    (the `windfall` arm, The Grand Retrospective). Its windfall arms are
+    composed once (`onDraftPayout`) and paid through `payWindfallGrants`.
+    A grant's count may name the hexes it counts (`GrantCount.tile`). An
+    Order can also hand over a random card from a deck the seat does not
+    hold (the `foreignCard` arm, The Cabinet of Curiosities;
+    `drawForeignCard`, rarity first from `state.rng`, with no pity).
+  - Every way a card enters the collection ends in `settleCardTaken`
+    (`cities.ts`): what drafting it hands over, the law dropped for a
+    charter, and the `cardDrafted` moment last. The pick of an Order hand
+    and The Cabinet of Curiosities' card are its two callers.
   - Four moments with no figure of their own are paid by `payOccasionRiders`
     (`cities.ts`): an Order draft passed (`settleOrderSkip`), a town taken by
     force and razed (`razeCityAt`), an attack from range (`applyCombat`) and a

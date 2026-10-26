@@ -3151,6 +3151,42 @@
       "text": "Your great people may act, and then still lay their work. Each leaves one legacy.",
       "effects": [{ "kind": "rule", "rule": "actThenWork" }],
       "note": "What counts is whether this card is seated when a great person acts. If it is, the act pays as usual and the person stays where they stand. They may then lay their work, even after this card has left its chair, but they cannot act again. Their legacy, and anything that pays when you spend a great person, comes once, when the work is laid. A great person who lays their work without acting is spent at once, as usual. Acting does not use their movement."
+    },
+    "theCabinetOfCuriosities": {
+      "name": "The Cabinet of Curiosities",
+      "decks": ["magisterial"],
+      "band": 3,
+      "rarity": "rare",
+      "type": "wildcard",
+      "line": "none",
+      "flavor": "Ole Worm showed his visitors a narwhal's tusk and told them plainly that no unicorn had ever worn it.",
+      "text": "On draft: add a random card of your tier from a deck you do not hold to your collection. Seated, this card does nothing.",
+      "onDraft": [{ "grant": "foreignCard" }],
+      "effects": [],
+      "note": "The card comes from the cards of your current tier in the decks you do not hold. A card two decks share can come only if you hold neither deck. A card you already hold, or a card that belongs to no deck, never comes. Common cards come more often than rare ones, as in an ordinary hand, and passing on hands does not change the odds. The card counts as drafted: a charter opens what it opens, a card that gives something when drafted gives it, and cards that pay when you draft a card pay for it. It came from no hand, so a card that pays a share of a hand's price pays nothing for it. If no such card is left, you gain nothing."
+    },
+    "theGrandRetrospective": {
+      "name": "The Grand Retrospective",
+      "decks": ["magisterial"],
+      "band": 4,
+      "rarity": "rare",
+      "type": "civic",
+      "line": "none",
+      "flavor": "The exhibition hung the work of a whole reign in one long gallery, and the visitors walked through it in an afternoon.",
+      "text": "On draft: your capital gains 20 culture, 20 science and 20 production for each wonder, great-person work and Order you hold. Seated, this card does nothing.",
+      "onDraft": [
+        { "grant": "windfall", "yield": "culture", "amount": 20, "perCount": { "count": "wonders" } },
+        { "grant": "windfall", "yield": "science", "amount": 20, "perCount": { "count": "wonders" } },
+        { "grant": "windfall", "yield": "production", "amount": 20, "perCount": { "count": "wonders" }, "toCapital": true },
+        { "grant": "windfall", "yield": "culture", "amount": 20, "perCount": { "count": "tilesInBorders", "tile": { "test": "greatWork" } } },
+        { "grant": "windfall", "yield": "science", "amount": 20, "perCount": { "count": "tilesInBorders", "tile": { "test": "greatWork" } } },
+        { "grant": "windfall", "yield": "production", "amount": 20, "perCount": { "count": "tilesInBorders", "tile": { "test": "greatWork" } }, "toCapital": true },
+        { "grant": "windfall", "yield": "culture", "amount": 20, "perCount": { "count": "ordersHeld" } },
+        { "grant": "windfall", "yield": "science", "amount": 20, "perCount": { "count": "ordersHeld" } },
+        { "grant": "windfall", "yield": "production", "amount": 20, "perCount": { "count": "ordersHeld" }, "toCapital": true }
+      ],
+      "effects": [],
+      "note": "Everything is counted once, at the moment you draft this card. Every Order you hold counts, seated or not, this card included; charters and finished commissions count, and a Doctrine does not. A wonder you captured counts, and the Magnum Opus is not a wonder. A great-person work counts wherever it stands in your borders, whoever laid it, and whether or not a city works it; a prophet's Holy Site counts too. The culture and science go to your empire, and the production goes to your capital."
     }
   }
 }

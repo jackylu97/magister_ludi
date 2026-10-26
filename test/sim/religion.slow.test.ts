@@ -617,7 +617,11 @@ describe('determinism', () => {
     // person may act and stay on the board to lay their work, marked by a
     // new unit field, and one Magisterial card is dealt. So a v195 log's
     // Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(196);
+    // 197 since Magisterial batch MG14 (the boons): a card may hand over a
+    // random card from a deck the seat does not hold, or pay yields when it
+    // is drafted, and two Magisterial cards are dealt. So a v196 log's
+    // Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(197);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

@@ -1210,7 +1210,11 @@ describe('a captured city, end to end', () => {
     // person may act and stay on the board to lay their work, marked by a
     // new unit field, and one Magisterial card is dealt. So a v195 log's
     // Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(196);
+    // 197 since Magisterial batch MG14 (the boons): a card may hand over a
+    // random card from a deck the seat does not hold, or pay yields when it
+    // is drafted, and two Magisterial cards are dealt. So a v196 log's
+    // Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(197);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

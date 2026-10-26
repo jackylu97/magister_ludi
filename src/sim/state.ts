@@ -3031,8 +3031,34 @@ import {
  * hold more cards, and a person that acted under the card carries a field
  * the old build never wrote. The branch migrates nothing, for the reason
  * given under v119.
+ *
+ * v197 (branch `decks`; Magisterial batch MG14, `docs/plans/magisterial-
+ * themes-triage.md`): **the boons.** No field joins the state. The rules
+ * that change:
+ *
+ *   · `OrderDef.onDraft` takes two new arms. `windfall` pays a yield once
+ *     when the card is drafted, for each item a count finds: the card's
+ *     windfall arms are composed into one payout (`onDraftPayout`) and paid
+ *     through `payWindfallGrants` (the triage's reading 38). `foreignCard`
+ *     hands over a random card from a deck the seat does not hold, drawn
+ *     from `state.rng` rarity first with no pity (`drawForeignCard`); an
+ *     empty bag draws nothing and uses no randomness (reading 37);
+ *   · a grant's count may name the hexes a `tilesInBorders` count asks
+ *     about (`GrantCount.tile`);
+ *   · every way a card enters the collection ends in one tail,
+ *     `settleCardTaken` (`cities.ts`): its on-draft grants, the law dropped
+ *     for a charter, and the `cardDrafted` moment last. The pick of an
+ *     Order hand and the granted card both go through it, so a granted
+ *     card pays the draft moment with no hand price. The pick's own order
+ *     is as before;
+ *   · two Magisterial cards are new and dealt: The Cabinet of Curiosities
+ *     (Tier III) and The Grand Retrospective (Tier IV).
+ *
+ * **A v196 save is refused and does not replay.** A Magisterial seat's pools
+ * hold more cards. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 196;
+export const SCHEMA_VERSION = 197;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
