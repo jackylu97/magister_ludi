@@ -2718,8 +2718,31 @@ import {
  * **A v183 save is refused and does not replay.** A Devotion seat's pools
  * hold more cards. The branch migrates nothing, for the reason given under
  * v119.
+ *
+ * v185 (branch `decks`; Magisterial batch MG5, `docs/plans/magisterial-
+ * themes-triage.md`): **the draft's price.** One field joins the state:
+ * `OrderOffer.price`, the culture the seat paid for the Order hand on the
+ * table. The rules that change:
+ *
+ *   · `settleDraft` writes the price on the hand it deals, a reroll keeps the
+ *     price of the hand it replaces, and a free hand carries none (the
+ *     triage's reading 11);
+ *   · the `cardDrafted` and `draftPassed` occasions carry the price as a fact
+ *     (`handPrice`), read before the pick or the pass removes the hand, and a
+ *     grant may be scaled by it (the `handPrice` measure);
+ *   · one rule is new: `draftCost`, a percentage on the price of an Order
+ *     hand, read in one place (`draftCostFor`). `nextDraftCost`, `planDraft`
+ *     and `draftSettledBy` take the state, and every screen and bot that
+ *     prints or plans the next price reads the discounted figure (reading
+ *     12);
+ *   · three Magisterial cards are new and dealt: The Open Door (Tier I), and
+ *     The Accessions Register and The Unwritten Chapter (Tier II).
+ *
+ * **A v184 save is refused and does not replay.** A Magisterial seat's pools
+ * hold more cards, and a hand on the table carries a field the old build
+ * never wrote. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 184;
+export const SCHEMA_VERSION = 185;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

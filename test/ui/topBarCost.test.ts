@@ -296,3 +296,16 @@ describe('the tile readout builds one contribution list per hover', () => {
     expect(body).toContain('tileYieldLineNodes(state, playerId, tile, contributions)');
   });
 });
+
+describe('the culture chip asks the next draft’s price once', () => {
+  it('quotes the price the seat pays, discounts included (Magisterial batch MG5)', () => {
+    // The Magisterial triage's reading 12: The Open Door's discount is read in
+    // one place (`draftCostFor`), and every screen that prints the next price
+    // asks it with the state. The chip asks once a render, as the ledgers
+    // above are asked once.
+    const body = declaration('culture: (state, playerId) =>', 'topBar.ts');
+    expect(body.split('nextDraftCost(').length - 1).toBe(1);
+    expect(body).toContain('nextDraftCost(state, player)');
+    expect(body).not.toContain('draftCost(player');
+  });
+});

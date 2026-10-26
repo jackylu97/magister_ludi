@@ -95,9 +95,10 @@ function pick(state: GameState): void {
 // --- the moment --------------------------------------------------------------
 
 /**
- * **The moment has no rider since batch R1.** The Art Dealers paid 15 gold on
- * it, and now pays for each card seated instead. The Court Painter and The
- * Accessions Register will ride it when the Magisterial build makes them. So
+ * **The Art Dealers has not ridden the moment since batch R1.** It paid 15
+ * gold on it, and now pays for each card seated instead. Magisterial's The
+ * Court Painter (batch MG2) and The Accessions Register (batch MG5) ride it
+ * now, and `test/sim/decks/magisterialDraft.test.ts` pins both. So
  * these tests lend The Art Dealers its old rider for the length of one test,
  * and give the row its own effects back after: the worker keeps its modules
  * between files, so a row left changed would change other files' tests.
@@ -262,6 +263,12 @@ describe('the seams of the card-drafted moment', () => {
     const units = body.indexOf('raiseOnDraft(');
     const law = body.indexOf('forgetTheLaw(state)');
     const paid = body.indexOf('payCardDrafted(');
+    // Magisterial batch MG5: the hand's price is read before the pick removes
+    // the hand, and handed to the moment.
+    const price = body.indexOf('pendingOrder?.price');
+    expect(price, 'the price is read before the card is settled').toBeGreaterThan(-1);
+    expect(price).toBeLessThan(settled);
+    expect(body).toContain('payCardDrafted(state, actor, price)');
     expect(settled, 'the card is settled').toBeGreaterThan(-1);
     expect(units, 'the on-draft units are raised after it').toBeGreaterThan(settled);
     expect(law, 'the law is dropped for a charter after it').toBeGreaterThan(settled);

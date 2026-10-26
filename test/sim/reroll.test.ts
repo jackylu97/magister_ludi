@@ -248,6 +248,26 @@ describe('the redeal', () => {
     expect(sc.drafts).toBe(6);
   });
 
+  it("keeps the culture the hand cost, and a free hand's lack of one (Magisterial batch MG5)", () => {
+    // The Magisterial triage's reading 11: a rerolled hand keeps the price of
+    // the hand it replaced, because the reroll is paid in faith, not culture.
+    const g = drafting(7, 500);
+    const sc = playerById(g.state, 0)!.statecraft;
+    sc.pendingOrder!.price = 61;
+    const first = sc.pendingOrder!.options;
+    expect(dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(true);
+    expect(sc.pendingOrder?.options).not.toBe(first);
+    expect(sc.pendingOrder?.price).toBe(61);
+    // A second redraw keeps it too.
+    expect(dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(true);
+    expect(sc.pendingOrder?.price).toBe(61);
+    // A free hand had no price, and its redraw has none.
+    delete sc.pendingOrder!.price;
+    expect(dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(true);
+    expect(sc.pendingOrder).toBeDefined();
+    expect('price' in sc.pendingOrder!).toBe(false);
+  });
+
   it('refuses a seat that has ended its turn', () => {
     const g = drafting(7, 500);
     g.state.turnEnded[0] = true;

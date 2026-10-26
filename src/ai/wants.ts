@@ -1956,7 +1956,7 @@ function turnsToFirstGod(
  *     worth = E[best of the hand the real draw would deal]
  *             − what a new card displaces, when every slot is full
  *             × the discount on the turns the meter has still to fill
- *     price = the draft's own culture cost (`nextDraftCost`)
+ *     price = the draft's own culture cost, discounts included (`nextDraftCost`)
  *     delay = (cost − pool) ÷ culture a turn
  *
  * Three things are worth saying beside the arithmetic:
@@ -1992,7 +1992,7 @@ export function draftPlan(
   // draft that charges nothing and deals nothing, so culture is worth its floor.
   const bags = expectedHandBags(state, player);
   if (bags.length === 0) return [];
-  const cost = nextDraftCost(player);
+  const cost = nextDraftCost(state, player);
   const size = bags.length;
   const shelf = new Set<OrderId>();
   for (const bag of bags) for (const id of bag) shelf.add(id);

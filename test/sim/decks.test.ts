@@ -606,8 +606,11 @@ describe('the schema, as landed', () => {
     // **And Devotion batch DV5** (the faith's reach): three more. The
     // Parishes, Commission: The State Church and The Confessors are new
     // Devotion rows.
-    expect(live).toBe(579);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(579);
+    // **And Magisterial batch MG5** (the draft's price): three more. The Open
+    // Door, The Accessions Register and The Unwritten Chapter are new
+    // Magisterial rows.
+    expect(live).toBe(582);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(582);
   });
 
   /**
@@ -974,7 +977,11 @@ describe('the schema, as landed', () => {
     // a lump of the founder's religion, The Confessors' sight rule and the
     // commission goal's `every` switch are new, and three Devotion cards
     // are dealt. So a v183 log's Devotion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(184);
+    // 185 since Magisterial batch MG5 (the draft's price): an Order hand
+    // keeps the culture it cost, the two draft moments carry that price, the
+    // discount rule is new, and three Magisterial cards are dealt. So a v184
+    // log's Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(185);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

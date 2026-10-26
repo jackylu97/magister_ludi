@@ -5364,6 +5364,11 @@ const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
         : percent < 0
           ? `great scholars raise the price of your next great person ${-percent}% less`
           : `great scholars raise the price of your next great person ${percent}% more`,
+  // The Open Door (Magisterial batch MG5). A price, said as the saving.
+  draftCost: (percent) =>
+    percent < 0
+      ? `Order hands cost ${-percent}% less culture`
+      : `Order hands cost ${percent}% more culture`,
 };
 
 const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
@@ -5695,6 +5700,9 @@ const OCCASION_MEASURE_WORDS: Partial<
   // The Fondaci (Commerce batch T3): "its" after "a trading post" would name
   // the post, and the figure is the town's.
   postEstablished: { population: 'the population of its city' },
+  // The Unwritten Chapter (Magisterial batch MG5): the draft passed is the
+  // hand, so "its hand" would name nothing.
+  draftPassed: { handPrice: 'the culture paid for that hand' },
 };
 
 /** The founding shares with a common name (The Great Colonies' "a third"). */
@@ -6283,6 +6291,10 @@ const MEASURE_WORDS: Record<OccasionMeasure, string | { each: string }> = {
   unitCost: 'its production cost',
   // Scientific batch S6, The Scholars' Fame: the price this empire paid.
   techCost: 'the science it cost you',
+  // Magisterial batch MG5, The Accessions Register: the card's own hand. Said
+  // as "paid", as the gold of a purchase is, so a delivery that follows ("to
+  // your capital") cannot be read as part of the price.
+  handPrice: 'the culture paid for its hand',
 };
 
 /**

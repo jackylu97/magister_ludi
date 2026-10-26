@@ -208,7 +208,7 @@ import {
 // Straight from their own layers rather than through the `statecraft.ts`
 // index: through the index, the build warns of a circular import between
 // chunks.
-import { draftCost } from '../sim/statecraft/draft';
+import { draftCost, draftCostFor } from '../sim/statecraft/draft';
 import {
   type GroundFacts,
   cardRulePercent,
@@ -4016,10 +4016,10 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
     case 'draftPassed': {
       // Dominion batch D5. A pass is one of the two answers to a draft, so the
       // rate is half the seat's drafting tempo: the culture it makes each turn
-      // over the price of its next draft.
+      // over the price of its next draft, discounts included (Magisterial
+      // batch MG5, `draftCostFor`).
       const culture = Math.max(0, ratesOf(ctx).culturePerTurn ?? 0);
-      const next = draftCost((player?.statecraft.drafts ?? 0) + 1);
-      return culture / Math.max(1, next) / 2;
+      return culture / Math.max(1, afterNextDraftCost(ctx)) / 2;
     }
     case 'greatPersonGained':
       // Dominion batch D5. A great person is gained about as rarely as one is
@@ -4065,10 +4065,10 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // price of its next draft. A draft ends in a pick unless the seat
       // passes, and this bot seldom passes, so the whole pace is used. A
       // charter pick and a free draft also fire the moment, and they are left
-      // out, so the rate reads low rather than high.
+      // out, so the rate reads low rather than high. The price is the seat's
+      // own, discounts included (Magisterial batch MG5, `draftCostFor`).
       const culture = Math.max(0, ratesOf(ctx).culturePerTurn ?? 0);
-      const next = draftCost((player?.statecraft.drafts ?? 0) + 1);
-      return culture / Math.max(1, next);
+      return culture / Math.max(1, afterNextDraftCost(ctx));
     }
     case 'postEstablished':
       // **A trading post established** (Commerce batch T3, The Fondaci; priced
@@ -4078,6 +4078,18 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
     default:
       return unreadOccasion(occasion);
   }
+}
+
+/**
+ * **The culture the draft after the next one costs this seat**, discounts
+ * included (Magisterial batch MG5, The Open Door): `draftCostFor` at the
+ * seat's count plus one. The two draft moments read their pace off it. A seat
+ * the board does not hold reads the ladder's second rung.
+ */
+function afterNextDraftCost(ctx: ValueContext): number {
+  const player = ctx.state.players[ctx.playerId];
+  if (player === undefined) return draftCost(1);
+  return draftCostFor(ctx.state, player, player.statecraft.drafts + 1);
 }
 
 /**
@@ -4576,6 +4588,11 @@ function ruleRewriteValue(
       // **The renown it saves on each great person** (Scientific batch S8,
       // The Royal Readers; priced in batch S13). See `scholarStepWorth`.
       return scholarStepWorth(share, ctx);
+    case 'draftCost':
+      // **Not priced yet** (Magisterial batch MG5, The Open Door): a cheaper
+      // hand is worth the drafts it brings sooner, and batch MG17 prices it.
+      // The stand-in until then.
+      return ctx.ai.score.unknownEffect;
     default:
       return unreadRule(rule, ctx);
   }

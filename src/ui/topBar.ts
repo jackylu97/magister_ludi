@@ -251,7 +251,8 @@ const LADDERS: Partial<
     if (!player) return null;
     return {
       source: `Tier ${player.statecraft.drafts} · next draft`,
-      value: `${Math.max(0, Math.floor(player.culturePool))}/${nextDraftCost(player)}`,
+      // The seat's own price, discounts included (Magisterial batch MG5).
+      value: `${Math.max(0, Math.floor(player.culturePool))}/${nextDraftCost(state, player)}`,
     };
   },
   faith: (state, playerId) => ({

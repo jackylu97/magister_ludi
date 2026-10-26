@@ -529,8 +529,11 @@ describe('the member register', () => {
     // captured town (Looted Art). Dominion batch D7 added `unitCost`, what a
     // disbanded unit costs to build (The Legions' Labour). Scientific batch S6
     // added `techCost`, what a technology cost the seat (The Scholars' Fame).
+    // Magisterial batch MG5 added `handPrice`, the culture an Order hand cost
+    // (The Accessions Register and The Unwritten Chapter).
     expect([...measures].sort()).toEqual([
       'gold',
+      'handPrice',
       'hexesPillaged',
       'opusProgress',
       'payout',

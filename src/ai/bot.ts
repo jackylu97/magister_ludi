@@ -313,7 +313,7 @@ import {
   anyCardDef,
   cardGarrisonSeats,
   cityScopeAdmits,
-  draftCost,
+  draftCostFor,
   heldReligions,
   expectedHandBags,
   slotOrderError,
@@ -2986,8 +2986,10 @@ function skipCandidate(state: GameState, player: Player, ctx: ValueContext): Bot
   const asIs = expectedBestOrder(bags, sc.orderSkips, score);
   // The next draft's own wait: the whole of the next threshold over what the
   // meter fills at, because a pass spends the culture already banked for this one.
+  // The threshold is the seat's own price, discounts included (Magisterial
+  // batch MG5, `draftCostFor`).
   const rate = foldEmpireRates(state, player.id).culturePerTurn ?? 0;
-  const delay = draftCost(sc.drafts + 1) / Math.max(1, rate);
+  const delay = draftCostFor(state, player, sc.drafts + 1) / Math.max(1, rate);
   const terms: ValueTerm[] = [
     {
       label:

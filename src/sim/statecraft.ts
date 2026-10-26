@@ -300,6 +300,8 @@ export {
   doctrineChoiceError,
   doctrineSkipError,
   draftCost,
+  // Magisterial batch MG5: a draft's price, discounts included.
+  draftCostFor,
   draftExhausted,
   draftSettledBy,
   drawDoctrineOffer,

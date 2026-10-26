@@ -1188,7 +1188,13 @@ export function settleReroll(
     if (slot === null) continue;
     slot.rerollsSeen = (slot.rerollsSeen ?? 0) + 1;
   }
+  // **The new hand keeps the old hand's price** (Magisterial batch MG5; the
+  // triage's reading 11). A reroll is paid in faith or gold, not culture, so
+  // the culture the seat paid is still what the hand cost. A free hand had no
+  // price and its redraw has none.
+  const price = sc.pendingOrder?.price;
   sc.pendingOrder = drawOrderOffer(state, player);
+  if (price !== undefined) sc.pendingOrder.price = price;
   if (free) stampRedrawn(player, kind);
   return { kind, paid, currency, taken: sc.rerollsTaken };
 }

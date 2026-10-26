@@ -150,7 +150,6 @@ import {
   type PlayerStatecraft,
   SLOT_WORDS,
   describeCard,
-  draftCost,
   draftExhausted,
   liveEffects,
   maliceAt,
@@ -772,7 +771,9 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   function drawProgress(state: GameState, sc: PlayerStatecraft, seat: number): HTMLElement {
     const line = element('p', 'sc-progress');
     const player = playerById(state, seat)!;
-    const cost = nextDraftCost(player);
+    // The seat's own price, discounts included (Magisterial batch MG5, The
+    // Open Door), so the meter and the line below print what the pool pays.
+    const cost = nextDraftCost(state, player);
     // Rounded at the eye (batch X): the pool is exact, the meter reads whole.
     const banked = Math.max(0, roundYield(player.culturePool));
     line.append(element('span', 'sc-tier', `Tier ${sc.drafts}`));
@@ -793,7 +794,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     // where the rate belongs; this says how far there is to go.
     line.append(element('span', 'sc-sep', '·'));
     line.append(
-      element('span', 'sc-next', `next tier costs ${draftCost(sc.drafts)}`),
+      element('span', 'sc-next', `next tier costs ${cost}`),
     );
     return line;
   }

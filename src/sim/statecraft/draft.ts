@@ -78,6 +78,7 @@ import { type TechAge, highestAge } from '../techData';
 import { sealTurnsFor } from './evaluator';
 import {
   cardExtraChairs,
+  cardRulePercent,
   cityScopeAdmits,
   countOf,
   effectsOfKind,
@@ -109,9 +110,39 @@ export function draftCost(drafts: number): number {
   return Math.floor(METER.costBase + METER.costLinear * n + n ** METER.costExponent);
 }
 
-/** What this player's next draft costs. The fold of the curve and their tier. */
-export function nextDraftCost(player: Player): number {
-  return draftCost(player.statecraft.drafts);
+/**
+ * **What a draft costs this empire, in culture** (Magisterial batch MG5, The
+ * Open Door; the triage's reading 12). `drafts` is the number already taken,
+ * as for `draftCost`, and defaults to the seat's own count, so the default is
+ * the price of the next hand.
+ *
+ * The ladder's figure (`draftCost`) with the empire's discounts on it: every
+ * `draftCost` rule its cards carry. The percentages add together first, and
+ * the price is taken once and rounded down, so two discounts of 15% take 30%
+ * off. A price never goes below nothing.
+ *
+ * This is the one reader of the rule. Every place that charges, prints or
+ * plans the price of a hand asks it here: `planDraft` (and through it
+ * `settleDraft`, `draftExhausted` and `draftSettledBy`), the top bar, the
+ * empire drawer, the statecraft screen and the bots. Only the price changes:
+ * the draft count, the tiers at which governments are offered and the pity
+ * a pass buys do not move.
+ */
+export function draftCostFor(
+  state: GameState,
+  player: Player,
+  drafts: number = player.statecraft.drafts,
+): number {
+  const base = draftCost(drafts);
+  let percent = 0;
+  for (const line of cardRulePercent(state, player.id, 'draftCost')) percent += line.percent;
+  if (percent === 0) return base;
+  return Math.max(0, Math.floor((base * (100 + percent)) / 100));
+}
+
+/** What this player's next draft costs, discounts included. See `draftCostFor`. */
+export function nextDraftCost(state: GameState, player: Player): number {
+  return draftCostFor(state, player);
 }
 
 // --- rarity, and the pity a skip buys -------------------------------------
@@ -321,6 +352,17 @@ export interface OrderOffer {
    * one per game; a seat without the rule never writes it.
    */
   rerolled?: true;
+  /**
+   * **The culture this seat paid for the hand** (Magisterial batch MG5; the
+   * triage's reading 11): the price `settleDraft` took from the pool, after
+   * any discount (`draftCostFor`). Written when a bought hand is dealt, and
+   * kept by a reroll (`settleReroll`), so a redrawn hand keeps the price of
+   * the hand it replaced. Absent on a free hand (`openFreeDraft`), which cost
+   * nothing. A pick hands it to `payCardDrafted` and a pass to its riders
+   * (`settleOrderSkip`), as the moment's `handPrice` fact, so The Accessions
+   * Register and The Unwritten Chapter pay from it.
+   */
+  price?: number;
 }
 
 /**
@@ -1696,7 +1738,7 @@ export function draftExhausted(state: GameState, player: Player): boolean {
   if (player.barbarian) return false;
   const sc = player.statecraft;
   if (sc.pendingOrder !== undefined || sc.pendingDoctrine !== undefined) return false;
-  const plan = planDraft(player);
+  const plan = planDraft(state, player);
   if (plan === null) return false;
   return eligibleFor(state, player, plan.tier).length === 0;
 }
@@ -1776,6 +1818,9 @@ export function drawDoctrineOffer(
  * pool *would* hold, which is what lets a choice card promise a draft before it
  * is taken.
  *
+ * It takes the state because the price is the seat's own, discounts included
+ * (`nextDraftCost`, Magisterial batch MG5).
+ *
  * `null` when the pool does not cover the threshold.
  */
 export interface DraftPlan {
@@ -1789,8 +1834,12 @@ export interface DraftPlan {
   offersGovernment: boolean;
 }
 
-export function planDraft(player: Player, culture = player.culturePool): DraftPlan | null {
-  const cost = nextDraftCost(player);
+export function planDraft(
+  state: GameState,
+  player: Player,
+  culture = player.culturePool,
+): DraftPlan | null {
+  const cost = nextDraftCost(state, player);
   if (culture < cost) return null;
   const tier = player.statecraft.drafts + 1;
   return {
@@ -1834,7 +1883,7 @@ export interface DraftCompletion {
 export function settleDraft(state: GameState, player: Player): DraftCompletion | null {
   const sc = player.statecraft;
   if (sc.pendingOrder !== undefined || sc.pendingDoctrine !== undefined) return null;
-  const plan = planDraft(player);
+  const plan = planDraft(state, player);
   if (!plan) return null;
   // **An exhausted pool charges nothing** (the decks rework, D1a; the design
   // doc's rule 7). Asked before a byte moves: the culture stays banked, the
@@ -1851,6 +1900,10 @@ export function settleDraft(state: GameState, player: Player): DraftCompletion |
   bumpEconomy(state);
   sc.drafts = plan.tier;
   const offer = drawOrderOffer(state, player);
+  // **The hand keeps its price** (Magisterial batch MG5; the triage's reading
+  // 11): the culture just taken from the pool, for the cards that pay from it
+  // when the hand is picked from or passed.
+  offer.price = plan.cost;
   sc.pendingOrder = offer;
 
   let government: GovernmentOffer | null = null;
@@ -1890,8 +1943,8 @@ export function settleCultureWindfall(state: GameState, player: Player): DraftCo
 }
 
 /** What a lump of culture would complete, in words, or `null`. The card's preview. */
-export function draftSettledBy(player: Player, grant: number): string | null {
-  const plan = planDraft(player, player.culturePool + grant);
+export function draftSettledBy(state: GameState, player: Player, grant: number): string | null {
+  const plan = planDraft(state, player, player.culturePool + grant);
   return plan === null ? null : `tier ${plan.tier}`;
 }
 
@@ -2053,8 +2106,9 @@ export function applyCharter(player: Player, id: OrderId): boolean {
  * **Pays the cards that pay when a card enters the collection** (Commerce
  * batch T7): the `cardDrafted` moment, paid at the capital through
  * `payOccasionRiders`. Without a capital, food and production land where that
- * function puts them. The Art Dealers rode the moment until batch R1, and no
- * row rides it today.
+ * function puts them. The Art Dealers rode the moment until batch R1. The
+ * Court Painter (Magisterial batch MG2) and The Accessions Register (batch
+ * MG5) ride it now.
  *
  * It is a function of its own, beside `applyCharter`, so that every way a card
  * enters the collection pays the same riders. Its callers are the moment's
@@ -2065,17 +2119,24 @@ export function applyCharter(player: Player, id: OrderId): boolean {
  *     charter, after the law has been dropped for a charter, and after the
  *     on-draft units are raised. So the riders read the law the pick left.
  *
+ * `price` is the culture the seat paid for the hand the card came from
+ * (`OrderOffer.price`, Magisterial batch MG5). The pick reads it before
+ * `settleOrderChoice` removes the hand, and it travels as the moment's
+ * `handPrice` fact. A free hand has no price, so a rider that pays a share of
+ * the price pays nothing for it.
+ *
  * `settleOrderChoice` takes no state, which is why the pick calls this
  * rather than the verb. A new way to add a card (Magisterial's The Cabinet of
  * Curiosities) calls it too, and joins this list.
  */
-export function payCardDrafted(state: GameState, player: Player): void {
+export function payCardDrafted(state: GameState, player: Player, price?: number): void {
   const capital = capitalCityOf(state, player.id);
   payOccasionRiders(
     state,
     player,
     'cardDrafted',
     capital ? { col: capital.col, row: capital.row } : undefined,
+    price === undefined ? {} : { handPrice: price },
   );
 }
 
@@ -2099,6 +2160,9 @@ export function freeDraftCanOpen(state: GameState, playerId: number): boolean {
  * Code). The draft count and the next draft's cost do not move (the triage's
  * reading 16): only the offer is dealt, from `state.rng`, as `settleDraft`
  * deals one. Returns false and changes nothing when no free draft can open.
+ *
+ * The hand carries no `price`, because it cost no culture (Magisterial batch
+ * MG5; the Magisterial triage's reading 11).
  */
 export function openFreeDraft(state: GameState, player: Player): boolean {
   if (!freeDraftCanOpen(state, player.id)) return false;
@@ -2135,18 +2199,22 @@ export interface OrderSkip {
 export function settleOrderSkip(state: GameState, player: Player): OrderSkip | null {
   const sc = player.statecraft;
   if (!sc.pendingOrder) return null;
+  // **The hand's price, read before the hand goes** (Magisterial batch MG5,
+  // The Unwritten Chapter; the triage's reading 11). Absent on a free hand.
+  const price = sc.pendingOrder.price;
   delete sc.pendingOrder;
   sc.orderSkips += 1;
   awardOrderBeads(state, player.id, 'draftPassed');
   // **And the cards pay on it** (Dominion batch D5): The Open Muster's and The
   // Landsturm's units, at the capital. One call, so the pass keeps one
-  // mechanism.
+  // mechanism. The price travels as the moment's `handPrice` fact.
   const capital = capitalCityOf(state, player.id);
   payOccasionRiders(
     state,
     player,
     'draftPassed',
     capital ? { col: capital.col, row: capital.row } : undefined,
+    price === undefined ? {} : { handPrice: price },
   );
   return { skips: sc.orderSkips };
 }

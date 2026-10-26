@@ -383,6 +383,8 @@ The first six come from section 12. The rest are new. Each gives the reading the
 - **Schema:** one bump.
 - **Done-gate:** `npx vitest run test/sim/decks/magisterialDraft.test.ts test/sim/statecraftDraftPass.test.ts test/sim/offers.test.ts test/sim/reroll.test.ts test/sim/decks/commercePairs.test.ts test/sim/decks/dominionDrafts.test.ts test/ui/topBarCost.test.ts test/ui/empireDrawer.test.ts test/sim/decks/magisterial.test.ts test/sim/decks.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`.
 
+- **Built (2026-10-26):** all three cards. The gate passed: the type check, 9,643 core tests and the build; three test files that load the save module timed out under a load average near 40 and passed when rerun alone in the same gate worktree. Schema 185. `OrderOffer.price` is written by `settleDraft`, kept by a reroll and absent on a free hand; it reaches the riders as `handPrice`. One helper, `draftCostFor`, reads the discount, and every price reader takes the state, `discoveries.ts`' culture preview included. Readings added: the statecraft screen's second line is the next draft's price, so it shows the discounted figure too; the measure prints "the culture paid for its hand". Not done: the offer card does not show the hand's price.
+
 ### MG6: the hand
 
 - **Builds:**

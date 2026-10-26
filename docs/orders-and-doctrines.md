@@ -712,6 +712,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Unveiling | 1 | ◆ | S | Completing a wonder deals you a free Order hand. |
 | The Encyclopedia | 1 | ● | E | +1 science and +1 culture in your capital for each Order you hold unseated, at most +15 of each. |
 | Commission: The Roll of the Senate | 1 | ◆ | S | Commission. Hold ten Orders. Then, for the rest of the game, you have one more Wildcard chair. The card leaves its chair. |
+| The Open Door | 1 | ◆ | S | Order hands cost 15% less culture. |
 | The Learned Patron | 2 | ◆ | P | Cities with at least two culture buildings gain science equal to 15% of their base culture, at most +18 science per city. Conversion outputs are excluded. |
 | The Senate Charter | 2 | ◆ | S | Unlocks the capital-only Assembly Hall. A city with one gains +3 happiness and +30% production toward buildings. |
 | The Masters' Domain | 3 | ◆ | S | Worked great-person works give +3 food and +3 production. |
@@ -723,6 +724,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Gazetteers | 2 | ◆ | P | +3% production and gold for each great-person work in your borders, at most +30%. |
 | The Seven Sights | 2 | ◆ | P | +5% culture and science for each wonder you hold, at most +30%. |
 | The Golden Age | 2 | ○ | S | Completing a wonder gives your cities +20% production and culture for ten turns. A later wonder restarts the ten turns. |
+| The Accessions Register | 2 | ◆ | S | Each card you draft grants your capital production equal to half the culture its hand cost. |
+| The Unwritten Chapter | 2 | ● | S | Each time you pass on an Order hand, gain science equal to half the culture the hand cost. |
 | The Living Canon | 3 | ○ | P | Your cities gain +4% food and +4% production per distinct great-person family whose legacy you currently hold, at most +20% each. |
 | The Wonder Commonwealth | 3 | ○ | P | Cities containing a wonder gain +38% production and +38% food. Your cities without a wonder gain +15% culture instead. |
 | The Boule | 3 | ◆ | E | +2% science and culture for each card you have seated. |

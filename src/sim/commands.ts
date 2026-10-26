@@ -3452,6 +3452,10 @@ function applyChooseOrder(state: GameState, command: ChooseOrderCommand): Comman
   const problem = orderChoiceError(state, actor.id, command.optionIndex);
   if (problem) return fail(problem);
 
+  // **The culture the hand cost** (Magisterial batch MG5, The Accessions
+  // Register; the triage's reading 11), read before the pick removes the
+  // hand. Absent on a free hand.
+  const price = actor.statecraft.pendingOrder?.price;
   const taken = settleOrderChoice(actor, command.optionIndex);
   // **What drafting hands over** (Dominion batch D5): The Sword of State's
   // unit and The Cleruchy's settler, raised in the capital at the pick.
@@ -3467,7 +3471,7 @@ function applyChooseOrder(state: GameState, command: ChooseOrderCommand): Comman
   // **The cards that pay on a card drafted** (Commerce batch T7, The Art
   // Dealers). Last, so the riders read the law this pick left, a charter's
   // grant included.
-  if (taken) payCardDrafted(state, actor);
+  if (taken) payCardDrafted(state, actor, price);
   return ok();
 }
 

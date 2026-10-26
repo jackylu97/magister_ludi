@@ -3,7 +3,7 @@
 The deck's cards, by tier: name, rarity, status, ability and type. This sheet is the spec of record for the deck. `test/sim/decks/magisterial.test.ts` checks it against `data/decks/magisterial.json` and, for the shared table, `data/decks/common.json`.
 
 - **Why each card is here:** `docs/plans/magisterial-themes.md`, the themes pass of 2026-10-23. It designs the deck as a way to play: an engine of culture and the draft, and four themes (the council, the patrons, the landscape and the monuments). Section 12 holds your comments and answers of 2026-10-25, and it outranks the sections before it. `docs/plans/magisterial-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
-- **The build plan:** `docs/plans/magisterial-themes-triage.md` (batches MG1 to MG17). Batch MG1 wrote this sheet, put the types into the data, retired the 64 cut rows, changed four cards in place (Civic Granaries, The Honoured Dead, The Living Canon and The Masters' Domain), and gave the three deferred rows their new text and tier. Batch MG2 built the fourteen cards of Tiers 0 and I whose shapes already existed: The Prytaneion, The Polemarch, The Court Painter, The Cornerstone, The Repertory, The Second Reading, The Nomarchs, The Workshop at Olympia, The Overseers of Works, The Siting Masters, The Keepers of Wonders, The Ceremonial Guard, The Unveiling and The Encyclopedia. Batch MG3 built eleven cards of Tiers II to IV: The Prefects, The Symposium, Letters Patent, The Quarter of Masters, The Gazetteers, The Seven Sights, The Boule, The Roll of Masters, The Garden Courts, The Privy Council and The Bulwark of Marvels. It also dealt The Golden Age and The Magister's Court, which had waited for it. Each uses shapes that already existed, except The Bulwark of Marvels, which needed one new field: a town's defence counted from every wonder the empire holds, not only the wonders in that town. The Quarter of Masters is a new data row; the retired Expansionist row of the same name stays as it was. Batch MG4 built the cards that count your collection and the wonder commissions: Commission: The Eighth Wonder, Commission: The Roll of the Senate, Commission: The Wonder of the Age, The Universal Library and The Polymath's Study, and gave the shared Travelling Players its new text. It added two counts (the Orders you hold, and the different decks among them or among your seated cards), one commission figure (the Orders you hold) and two moments a commission counts (a wonder you complete, and the production you put into a wonder or the Magnum Opus). Each later batch sets its own rows to `implemented`.
+- **The build plan:** `docs/plans/magisterial-themes-triage.md` (batches MG1 to MG17). Batch MG1 wrote this sheet, put the types into the data, retired the 64 cut rows, changed four cards in place (Civic Granaries, The Honoured Dead, The Living Canon and The Masters' Domain), and gave the three deferred rows their new text and tier. Batch MG2 built the fourteen cards of Tiers 0 and I whose shapes already existed: The Prytaneion, The Polemarch, The Court Painter, The Cornerstone, The Repertory, The Second Reading, The Nomarchs, The Workshop at Olympia, The Overseers of Works, The Siting Masters, The Keepers of Wonders, The Ceremonial Guard, The Unveiling and The Encyclopedia. Batch MG3 built eleven cards of Tiers II to IV: The Prefects, The Symposium, Letters Patent, The Quarter of Masters, The Gazetteers, The Seven Sights, The Boule, The Roll of Masters, The Garden Courts, The Privy Council and The Bulwark of Marvels. It also dealt The Golden Age and The Magister's Court, which had waited for it. Each uses shapes that already existed, except The Bulwark of Marvels, which needed one new field: a town's defence counted from every wonder the empire holds, not only the wonders in that town. The Quarter of Masters is a new data row; the retired Expansionist row of the same name stays as it was. Batch MG4 built the cards that count your collection and the wonder commissions: Commission: The Eighth Wonder, Commission: The Roll of the Senate, Commission: The Wonder of the Age, The Universal Library and The Polymath's Study, and gave the shared Travelling Players its new text. It added two counts (the Orders you hold, and the different decks among them or among your seated cards), one commission figure (the Orders you hold) and two moments a commission counts (a wonder you complete, and the production you put into a wonder or the Magnum Opus). Batch MG5 built the cards that read the price of an Order hand: The Open Door, The Accessions Register and The Unwritten Chapter. A hand now keeps the culture you paid for it, and a reroll keeps that price. The moment you draft a card and the moment you pass on a hand both carry the price, so a card can pay a share of it. A free hand has no price. The Open Door's discount is read in one place, which every screen and bot asks for the price of the next hand. Each later batch sets its own rows to `implemented`.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -24,11 +24,11 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier | Implemented | Modify | Add | All |
 |---|---|---|---|---|
 | Tier 0 | 10 | 0 | 0 | 10 |
-| Tier I | 12 | 0 | 3 | 15 |
-| Tier II | 10 | 0 | 7 | 17 |
+| Tier I | 13 | 0 | 2 | 15 |
+| Tier II | 12 | 0 | 5 | 17 |
 | Tier III | 7 | 0 | 10 | 17 |
 | Tier IV | 5 | 1 | 6 | 12 |
-| **All** | **44** | **1** | **26** | **71** |
+| **All** | **47** | **1** | **23** | **71** |
 | Shared | 17 | 2 | 0 | 19 |
 
 **By type** (the chair a card fits):
@@ -83,7 +83,7 @@ The deck holds 71 cards, and every one takes a chair: 10, 15, 17, 17 and 12 acro
 | **The Keepers of Wonders** | common | implemented | +2 happiness for each wonder you hold. | Civic |
 | **The Ceremonial Guard** | common | implemented | Towns holding a wonder gain +5 defence. | Military |
 | **The Unveiling** | uncommon | implemented | Completing a wonder deals you a free Order hand. | Wildcard |
-| **The Open Door** | uncommon | add | Order hands cost 15% less culture. | Wildcard |
+| **The Open Door** | uncommon | implemented | Order hands cost 15% less culture. | Wildcard |
 | **The Working Court** | rare | implemented | Cities with a Monument gain production equal to 30% of their base culture, excluding conversion outputs. | Economic |
 | **The Encyclopedia** | common | implemented | +1 science and +1 culture in your capital for each Order you hold unseated, at most +15 of each. | Civic |
 
@@ -112,9 +112,9 @@ The deck holds 71 cards, and every one takes a chair: 10, 15, 17, 17 and 12 acro
 | **The Seven Sights** | uncommon | implemented | +5% culture and science for each wonder you hold, at most +30%. | Civic |
 | **The Golden Age** | rare | implemented | Completing a wonder gives your cities +20% production and culture for ten turns. A later wonder restarts the ten turns. | Civic |
 | **The Envious Eye** | uncommon | add | When a rival completes a wonder you were building, the production you put into it moves to the next item in that town's queue. | Economic |
-| **The Accessions Register** | uncommon | add | Each card you draft grants your capital production equal to half the culture its hand cost. | Economic |
+| **The Accessions Register** | uncommon | implemented | Each card you draft grants your capital production equal to half the culture its hand cost. | Economic |
 | **The Learned Patron** | uncommon | implemented | Cities with at least two culture buildings gain science equal to 15% of their base culture, at most +18 science per city. Conversion outputs are excluded. | Civic |
-| **The Unwritten Chapter** | common | add | Each time you pass on an Order hand, gain science equal to half the culture the hand cost. | Civic |
+| **The Unwritten Chapter** | common | implemented | Each time you pass on an Order hand, gain science equal to half the culture the hand cost. | Civic |
 
 ## Tier III
 

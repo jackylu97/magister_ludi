@@ -9063,6 +9063,24 @@
     "text": "+8% production in every city per different deck among the cards you hold (at most +40% production)"
    }
   ],
+  "theOpenDoor": [
+   {
+    "raw": "Order hands cost 15% less culture",
+    "text": "Order hands cost 15% less culture"
+   }
+  ],
+  "theAccessionsRegister": [
+   {
+    "raw": "drafting a card grants production equal to 50% of the culture paid for its hand to your capital",
+    "text": "drafting a card grants production equal to 50% of the culture paid for its hand to your capital"
+   }
+  ],
+  "theUnwrittenChapter": [
+   {
+    "raw": "passing an Order draft grants science equal to 50% of the culture paid for that hand",
+    "text": "passing an Order draft grants science equal to 50% of the culture paid for that hand"
+   }
+  ],
   "frontierGarrisons": [
    {
     "raw": "+2 food in every city with a unit standing in it of 5 or fewer citizens",

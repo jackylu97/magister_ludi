@@ -232,7 +232,7 @@ export interface ResearchGlance {
 export interface DraftGlance {
   /** Culture banked toward the next draft, as a whole number. */
   banked: number;
-  /** What the next draft costs (`nextDraftCost`). */
+  /** What the next draft costs, discounts included (`nextDraftCost`). */
   cost: number;
   /** `banked` against `cost`, 0 to 1. */
   fraction: number;
@@ -305,7 +305,7 @@ export function researchGlance(state: GameState, player: Player): ResearchGlance
  * empire's culture rate (the top bar's own figure, `readEmpire`).
  */
 export function draftGlance(state: GameState, player: Player): DraftGlance {
-  const cost = nextDraftCost(player);
+  const cost = nextDraftCost(state, player);
   const pool = Math.max(0, player.culturePool);
   const tier = player.statecraft.drafts;
   const nextGovernment = GOVERNMENT_TIERS.find((at) => at > tier);

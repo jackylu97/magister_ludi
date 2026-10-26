@@ -2771,6 +2771,67 @@
         }
       ],
       "note": "Every Order you hold counts, seated or not. A card that two decks share counts for both decks. The cards that belong to no deck count together as one more deck."
+    },
+    "theOpenDoor": {
+      "name": "The Open Door",
+      "decks": ["magisterial"],
+      "band": 1,
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "line": "none",
+      "flavor": "Leave the council's door open, and the petitions come in on their own.",
+      "text": "Order hands cost 15% less culture.",
+      "effects": [
+        { "kind": "rulePercent", "rule": "draftCost", "percent": -15 }
+      ],
+      "note": "The price of each hand you buy with culture is cut, then rounded down. Cuts from more than one card add together first. The number of drafts you have taken, the tiers at which a government is offered, and the better odds a pass buys do not change."
+    },
+    "theAccessionsRegister": {
+      "name": "The Accessions Register",
+      "decks": ["magisterial"],
+      "band": 2,
+      "rarity": "uncommon",
+      "type": "economic",
+      "line": "none",
+      "flavor": "Every new piece in the collection is written down, with what it cost.",
+      "text": "Each card you draft grants your capital production equal to half the culture its hand cost.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "cardDrafted",
+          "grant": {
+            "yield": "production",
+            "amount": 0.5,
+            "fromOccasion": "handPrice",
+            "whole": true,
+            "toCapital": true
+          }
+        }
+      ],
+      "note": "The production is rounded down. A charter counts. A card from a free hand pays nothing, because that hand cost no culture. A hand you reroll keeps the price of the hand it replaced. This card pays nothing for drafting itself."
+    },
+    "theUnwrittenChapter": {
+      "name": "The Unwritten Chapter",
+      "decks": ["magisterial"],
+      "band": 2,
+      "rarity": "common",
+      "type": "civic",
+      "line": "none",
+      "flavor": "The laws a council turned down are history too.",
+      "text": "Each time you pass on an Order hand, gain science equal to half the culture the hand cost.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "draftPassed",
+          "grant": {
+            "yield": "science",
+            "amount": 0.5,
+            "fromOccasion": "handPrice",
+            "whole": true
+          }
+        }
+      ],
+      "note": "The science is rounded down. Passing on a free hand pays nothing, because that hand cost no culture. A hand you reroll keeps the price of the hand it replaced."
     }
   }
 }

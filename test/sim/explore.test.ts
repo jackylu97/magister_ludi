@@ -1091,10 +1091,19 @@ describe('determinism', () => {
    * pressed and no seat holds the sight rule. Checked with the change in
    * place and the version printed as 183, which gives the hashes of
    * Magisterial batch MG4 exactly.
+   *
+   * **Magisterial batch MG5 (the draft's price, schema 185) moved the hash
+   * and not the length** at both seeds: 184 became 185, and that is all. The
+   * batch stores the culture a bought Order hand cost on the offer, carries
+   * it on the two draft moments, adds a discount rule and three card rows.
+   * Nobody here founds a town, so no culture is gathered, no meter fills and
+   * no hand is dealt with a price. Checked with the change in place and the
+   * version printed as 184, which gives the hashes of Devotion batch DV5
+   * exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'dec9ed18:188976',
-    2026: '5eb1f4e9:188554',
+    11: '06c5beaf:188976',
+    2026: '9443317a:188554',
   };
 
   for (const seed of [11, 2026]) {

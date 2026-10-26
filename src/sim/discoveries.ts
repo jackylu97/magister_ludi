@@ -338,7 +338,7 @@ export function explainDiscoveryOption(
     const player = playerById(state, playerId);
     // The same `planDraft` the settlement will run, so "→ tier 4" on a button is
     // a promise the meter keeps.
-    if (player) payoff.completes = draftSettledBy(player, effect.amount);
+    if (player) payoff.completes = draftSettledBy(state, player, effect.amount);
   }
   return payoff;
 }

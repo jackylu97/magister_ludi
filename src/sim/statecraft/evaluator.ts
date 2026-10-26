@@ -8400,6 +8400,16 @@ export interface WindfallOccasionFacts {
    * triage's reading 39). Read by the `techCost` measure.
    */
   techCost?: number;
+  /**
+   * The culture this empire paid for the Order hand the moment is about, on
+   * the `cardDrafted` and `draftPassed` occasions (Magisterial batch MG5, The
+   * Accessions Register and The Unwritten Chapter; the triage's reading 11).
+   * It is the hand's `OrderOffer.price`, read before the pick or the pass
+   * removes the hand: `applyChooseOrder` hands it to `payCardDrafted`, and
+   * `settleOrderSkip` reads it itself. Absent for a free hand, which cost
+   * nothing. Read by the `handPrice` measure.
+   */
+  handPrice?: number;
 }
 
 
@@ -9216,6 +9226,9 @@ function occasionMeasure(
     // Scientific batch S6: what the technology cost this empire.
     case 'techCost':
       return facts.techCost;
+    // Magisterial batch MG5: the culture the Order hand cost.
+    case 'handPrice':
+      return facts.handPrice;
     default: {
       const unhandled: never = measure;
       void unhandled;

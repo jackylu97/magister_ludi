@@ -38,8 +38,8 @@ import {
   playerById,
   realPlayers,
 } from '../../src/sim/state';
-import { draftCost } from '../../src/sim/statecraft';
-import { GOVERNMENT_TIERS } from '../../src/sim/statecraftData';
+import { draftCost, nextDraftCost } from '../../src/sim/statecraft';
+import { GOVERNMENT_TIERS, type OrderId } from '../../src/sim/statecraftData';
 import { availableTechs, playerScience } from '../../src/sim/tech';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { drawWagers } from '../../src/sim/wagers';
@@ -331,6 +331,27 @@ describe('the draft meter', () => {
     expect(glance.banked).toBe(30);
     expect(glance.fraction).toBeCloseTo(30.6 / cost);
     expect(glance.turns).toBe(turnsToFill(cost - 30.6, readEmpire(state, 0).totals.culture));
+    expect(draftFigures(glance)).toBe(`30/${cost} · ${glance.turns === null ? '—' : `${glance.turns}t`}`);
+  });
+
+  it('quotes the price the seat pays, discounts included (Magisterial batch MG5, The Open Door)', () => {
+    // The Magisterial triage's reading 12: every screen that prints the next
+    // price prints the discounted figure.
+    const state = bench();
+    const player = seatOf(state);
+    town(state, 4, 4);
+    player.statecraft.drafts = 5;
+    player.culturePool = 30;
+    const door = 'theOpenDoor' as OrderId;
+    player.statecraft.orders.push(door);
+    player.statecraft.slots.push({ card: door, sealedUntil: state.turn });
+    bumpRevision(state);
+    const glance = draftGlance(state, player);
+    const cost = Math.floor((draftCost(5) * 85) / 100);
+    expect(cost).toBeLessThan(draftCost(5));
+    expect(glance.cost).toBe(cost);
+    expect(glance.cost).toBe(nextDraftCost(state, player));
+    expect(glance.fraction).toBeCloseTo(30 / cost);
     expect(draftFigures(glance)).toBe(`30/${cost} · ${glance.turns === null ? '—' : `${glance.turns}t`}`);
   });
 

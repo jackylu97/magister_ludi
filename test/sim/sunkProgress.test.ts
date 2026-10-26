@@ -287,7 +287,11 @@ describe('the schema says so', () => {
     // a lump of the founder's religion, The Confessors' sight rule and the
     // commission goal's `every` switch are new, and three Devotion cards
     // are dealt. So a v183 log's Devotion hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(184);
+    // 185 since Magisterial batch MG5 (the draft's price): an Order hand
+    // keeps the culture it cost, the two draft moments carry that price, the
+    // discount rule is new, and three Magisterial cards are dealt. So a v184
+    // log's Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(185);
   });
 
   it('says in the changelog what a v110 log does now', () => {

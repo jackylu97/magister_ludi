@@ -571,7 +571,7 @@ describe('the tier-38 governments', () => {
     const player = playerById(g.state, 0)!;
     player.statecraft.drafts = 37;
     player.culturePool = 1_000_000;
-    const plan = planDraft(player)!;
+    const plan = planDraft(g.state, player)!;
     expect(plan.tier).toBe(38);
     expect(plan.offersGovernment).toBe(false);
     const done = settleDraft(g.state, player)!;

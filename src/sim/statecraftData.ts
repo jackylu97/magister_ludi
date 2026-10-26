@@ -4018,7 +4018,17 @@ export type CardRule =
    * scholar gained counts while the card is seated, the ones gained before it
    * was seated too.
    */
-  | 'scholarLadderStep';
+  | 'scholarLadderStep'
+  /**
+   * **What an Order hand costs this empire in culture** (Magisterial batch
+   * MG5, The Open Door: 15% less; the triage's reading 12). A negative
+   * percentage is cheaper. Read in one place, `draftCostFor`
+   * (`statecraft/draft.ts`), which every price of a hand asks: the pool's
+   * charge, the screens and the bots. The percentages add together before
+   * the price is taken once and rounded down. The draft count, the tiers at
+   * which governments are offered and the pity a pass buys do not change.
+   */
+  | 'draftCost';
 
 /** A constant of the two meters a card may rewrite. */
 export type MeterRuleId =
@@ -5319,7 +5329,9 @@ export type WindfallOccasion =
   /**
    * This empire **passed a whole Order draft** (Dominion batch D5): The Open
    * Muster and The Landsturm. Paid by `settleOrderSkip` (`statecraft/draft.ts`)
-   * through `payOccasionRiders`, at the capital.
+   * through `payOccasionRiders`, at the capital. Since Magisterial batch MG5
+   * it carries the culture the hand cost (`handPrice`), which a free hand
+   * does not carry: The Unwritten Chapter pays a share of it.
    */
   | 'draftPassed'
   /**
@@ -5403,8 +5415,8 @@ export type WindfallOccasion =
   /**
    * **A card entered this empire's collection** (Commerce batch T7). The
    * shared The Art Dealers rode it until batch R1, when it became a pay for
-   * each card seated, so no row rides it today. Magisterial's The Court
-   * Painter and The Accessions Register will. Paid by `payCardDrafted`
+   * each card seated. Magisterial's The Court Painter (batch MG2) and The
+   * Accessions Register (batch MG5) ride it now. Paid by `payCardDrafted`
    * (`statecraft/draft.ts`) through `payOccasionRiders`, at the capital, so
    * food and production a rider pays land there.
    *
@@ -5426,9 +5438,10 @@ export type WindfallOccasion =
    * (Magisterial's The Cabinet of Curiosities) calls `payCardDrafted` too,
    * and the docblock above it names every caller.
    *
-   * It carries no facts yet. Magisterial's The Court Painter would pay a flat
-   * figure. A card that pays from the price of the hand (Magisterial's The
-   * Accessions Register) adds that price as a fact.
+   * Since Magisterial batch MG5 it carries one fact: the culture the hand
+   * cost (`handPrice`), read off the offer before the pick removes it. A
+   * pick from a free hand carries none. The Court Painter pays a flat figure;
+   * The Accessions Register pays a share of the price.
    */
   | 'cardDrafted'
   /**
@@ -5553,7 +5566,17 @@ export type OccasionMeasure =
    * the `tech` occasion, by `settleResearch` (`WindfallOccasionFacts.
    * techCost`).
    */
-  | 'techCost';
+  | 'techCost'
+  /**
+   * **The culture this empire paid for the Order hand** (Magisterial batch
+   * MG5, The Accessions Register and The Unwritten Chapter; the triage's
+   * reading 11): the hand's price after any discount, stored on the offer
+   * when it was dealt (`OrderOffer.price`) and kept by a reroll. Filled on
+   * the `cardDrafted` and `draftPassed` occasions
+   * (`WindfallOccasionFacts.handPrice`). A free hand has no price, so a grant
+   * scaled by it pays nothing for a free hand.
+   */
+  | 'handPrice';
 
 /** What a rider adds on top of the occasion's own payout. */
 export interface WindfallGrantSpec {
