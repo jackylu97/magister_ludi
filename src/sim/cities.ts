@@ -2847,7 +2847,11 @@ function chooseCitizens(
  *      the empire's nearest town, so that town has new hexes to work before
  *      the turn ends. Entry 27's reason, with the ring of six in place of an
  *      outpost's reach. Only unowned hexes are claimed, so no other town loses
- *      ground and only the nearest town is re-seated.
+ *      ground and only the nearest town is re-seated. Since Magisterial batch
+ *      MG15 a commission's reward claims through the same routine, with a
+ *      radius of three around the work that met its goal
+ *      (`CommissionReward.claimWithin`, Commission: The Paradise Garden), for
+ *      the same reason.
  *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
@@ -2968,13 +2972,28 @@ export function markHexesBeside(
  * `payWindfallGrants`, with the moment's hex. Returns the town that gained
  * ground, or `null` when nothing was claimed.
  *
+ * **The one claim routine for land around a work.** Since Magisterial batch
+ * MG15 a commission's reward reaches it too, with a wider `radius`:
+ * Commission: The Paradise Garden claims every unowned hex within three
+ * hexes of the work that met its goal (`CommissionReward.claimWithin`, the
+ * triage's reading 41). The default radius of one is the ring of six.
+ *
  * The town is the one nearest the hex (`nearestOwnedCity`, ties to the
- * older town). The six hexes around the hex are walked in the map's
- * neighbour order, so a replay claims the same hexes, and each goes through
+ * older town). The hexes within `radius` are walked in map order
+ * (`mapRange`), so a replay claims the same hexes, and each goes through
  * `claimTile`, which refuses a hex any town owns. So a rival loses nothing
  * here, and a hex already held by another of this empire's towns stays with
  * it. The centre hex is not claimed: a great-person work is always laid
- * inside its owner's borders.
+ * inside its owner's borders, and the commission's work is in them by its
+ * goal.
+ *
+ * A wide claim can reach further from the town than its border culture
+ * ever would (`cities.claimRadius`), as an outpost's or a citadel's claim
+ * can. Such a hex is owned and counted as the town's ground, but it lies
+ * beyond the town's work radius, so no citizen works it. The owner's sight
+ * of its own ground also reaches only `claimRadius` from each town
+ * (`visibility.ts`), so such a hex is seen only when a unit or a town sees
+ * it, as for those older claims.
  *
  * The town is re-seated (entry 32 of the register above), and the empire's
  * map is redrawn, because ground it now owns is ground it can see. The
@@ -2987,13 +3006,16 @@ export function claimUnownedBeside(
   state: GameState,
   playerId: number,
   at: { col: number; row: number },
+  /** How far from the hex the claim reaches. One is the ring of six. */
+  radius = 1,
 ): City | null {
   const centre = getTileAt(state.map, at.col, at.row);
   if (!centre) return null;
   const seat = nearestOwnedCity(state, playerId, at);
   if (!seat) return null;
   let claimed = 0;
-  for (const tile of neighborTiles(state.map, tileHex(centre))) {
+  for (const tile of mapRange(state.map, tileHex(centre), Math.max(0, Math.floor(radius)))) {
+    if (tile === centre) continue;
     if (claimTile(state, seat, tile)) claimed += 1;
   }
   if (claimed === 0) return null;

@@ -130,7 +130,10 @@ describe('the commission rows', () => {
           // capitals.
           reward.postsInPartnerCapitals === true ||
           // Magisterial batch MG7, The Golden Bull: a Doctrine offer.
-          reward.doctrineOffer === true;
+          reward.doctrineOffer === true ||
+          // Magisterial batch MG15, The Paradise Garden: the unowned land
+          // around the work that met the goal.
+          (reward.claimWithin !== undefined && reward.claimWithin > 0);
         expect(says, `${id} has a reward line that pays nothing`).toBe(true);
         if (reward.fromFigure !== undefined) expect(COMMISSION_FIGURES, id).toContain(reward.fromFigure);
       }

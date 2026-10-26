@@ -500,6 +500,8 @@ The first six come from section 12. The rest are new. Each gives the reading the
 - **Schema:** one bump.
 - **Done-gate:** `npx vitest run test/sim/decks/magisterialArrangements.test.ts test/sim/commissions.test.ts test/sim/decks/magisterialLand.test.ts test/sim/decks/magisterialCapstones.test.ts test/sim/decks/magisterial.test.ts test/sim/decks.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts test/mapgen/moduleCycles.test.ts`.
 
+- **Built (2026-10-26):** both cards. The gate passed: the type check, 10,019 core tests and the build. Schema 198. The tile test is `workLine` with a `length`; `workLinesOf` walks the map once in tile order (memoised on the economy clock) and `groundFactsFor` hands it over lazily; a timing on a turn-91 six-seat board showed no slowdown beyond run-to-run spread. The figure is `worksBesideWork`, the goal's hex comes from `commissionGoalHex`, and the reward `claimWithin: 3` uses the one claim routine, `claimUnownedBeside`, which now takes a radius. Readings added: a line needs adjacent works in your borders with no gap; The Processional Way is one hex row with two yields; the Garden's middle work must be in your borders and a neighbour counts whoever owns it. Found: a hex owned more than three hexes from its town is not lit by its owner's sight and cannot be worked (an older gap that this card makes more common; for the tidy batch).
+
 ### MG16: The Pull of the Masters
 
 - **Builds:** under a rule, a sweep in the borders phase where each work takes one rival hex (reading 40). It writes `state.tileOwner`, refreshes both towns, recomputes both empires' sight, and joins the register of mid-turn yield changes. A map-wide walk asks `tileOwnerField`. It adds no phase.

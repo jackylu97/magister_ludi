@@ -79,8 +79,10 @@ import {
   workForFamily,
 } from '../improvementData';
 import { type ProjectId, type ProjectPayout } from '../projectData';
+import { HEX_DIRECTIONS } from '../hex';
 import {
   type Tile,
+  getTile,
   getTileAt,
   improvementAge,
   mapRange,
@@ -5060,6 +5062,15 @@ export function tileConditionHolds(
       // The Farming Garrisons and The Castra (Dominion batch D7): the board's
       // answer, or no.
       return ground?.fortified?.(tile) === true;
+    case 'workLine':
+      // The Processional Way (Magisterial batch MG15): the hex's own work
+      // first, which is cheap, then the board's answer, or no. The lines are
+      // found once for the board (`workLinesOf`), never per hex.
+      return (
+        tile.improvement !== undefined &&
+        isGreatPersonWork(tile.improvement) &&
+        (ground?.workLine?.(tile) ?? 0) >= on.length
+      );
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -5104,7 +5115,10 @@ function resourceSeen(id: ResourceId, ground: GroundFacts | undefined): boolean 
  *   · `workAgeBonus`, the turns the empire's law adds to a work's age, for
  *     `standingSince` (Expansionist batch E9, Commission: Break the Sod);
  *   · `tendedFields`, the works the empire's law counts as tended, for
- *     `tended` (Expansionist batch E9, The Two Harvests).
+ *     `tended` (Expansionist batch E9, The Two Harvests);
+ *   · `workLine`, the longest straight line of great-person works a hex's
+ *     work stands on inside the empire's borders, for `workLine`
+ *     (Magisterial batch MG15, The Processional Way).
  *
  * The yield context carries one (`TileYieldContext.ground`), so the hex fold,
  * the hover card and the lens all ask the same facts.
@@ -5177,6 +5191,19 @@ export interface GroundFacts {
    * which every named work already is.
    */
   tendedFields?: readonly ImprovementId[];
+  /**
+   * **The longest straight line of great-person works this hex's work
+   * stands on** (Magisterial batch MG15, The Processional Way; the triage's
+   * reading 39), or nought when the hex carries no work in the asking
+   * empire's borders. A lone work answers one. Read only by the tile test
+   * `workLine`.
+   *
+   * The lines are found by `workLinesOf`: one walk of the map for each
+   * empire, remembered on the economy clock, which a work built or torn up
+   * and a border moved both move. So the hex fold asks a lookup, never a
+   * walk, and a board where no card asks pays nothing.
+   */
+  workLine?: (tile: Tile) => number;
 }
 
 /**
@@ -5297,7 +5324,109 @@ export function groundFactsFor(state: GameState, playerId: number): GroundFacts 
   if (older !== 0) facts.workAgeBonus = older;
   const fields = cardFieldsTended(state, playerId);
   if (fields.length > 0) facts.tendedFields = fields;
+  // Magisterial batch MG15, The Processional Way: the works on a line. A
+  // closure, so the map is walked only when a card asks, and then once for
+  // the board (`workLinesOf`).
+  facts.workLine = (tile) => workLineAt(state, playerId, tile);
   return facts;
+}
+
+/**
+ * **The straight lines of great-person works in one empire's borders**
+ * (Magisterial batch MG15, The Processional Way; the triage's reading 39).
+ * `workLinesOf`'s remembered answer: `hexes` holds the tile index of every
+ * great-person work inside the empire's borders, ascending, and `lengths`
+ * holds, at the same place, the longest line that work stands on.
+ */
+interface WorkLines {
+  hexes: number[];
+  lengths: number[];
+}
+
+/**
+ * The three hex axes, each named by one of its two directions in
+ * `HEX_DIRECTIONS`: east, south-east and south-west. The other three
+ * directions run the same axes backwards.
+ */
+const LINE_AXES: readonly number[] = [0, 1, 2];
+
+/**
+ * **The longest straight line of works this hex's work stands on**, for
+ * one empire, or nought. See `GroundFacts.workLine`.
+ */
+export function workLineAt(state: GameState, playerId: number, tile: Tile): number {
+  const lines = workLinesOf(state, playerId);
+  const at = lines.hexes.indexOf(tileIndex(state.map, tile.col, tile.row));
+  return at === -1 ? 0 : lines.lengths[at]!;
+}
+
+/**
+ * **Finds every straight line of great-person works in one empire's
+ * borders** (Magisterial batch MG15, The Processional Way; the triage's
+ * reading 39).
+ *
+ * A work counts when its hex holds a great-person work (`isGreatPersonWork`,
+ * the `greatWork` test's reading, so a Holy Site counts) and the empire owns
+ * the hex (`tileOwnerField`, the sweep reading). A line is a run of such
+ * works on hexes next to each other along one of the three axes, so a gap
+ * or a hex outside the borders ends it.
+ *
+ * Deterministic: the works are walked in tile index order, the axes in a
+ * fixed order, and a run is walked from its first hex (the one whose hex
+ * behind it holds no counted work), so each run is counted once. The walk
+ * follows the map's east-west wrap. A run that went all the way round the
+ * world would have no first hex and is not counted; no empire's borders are
+ * that wide.
+ *
+ * One walk of the map, remembered on the economy clock (`slateMemo`): a
+ * work built or torn up and a border moved all move that clock
+ * (`test/sim/slateRegister.test.ts`). The answer is two plain arrays, so
+ * nothing depends on the order a `Map` or a `Set` iterates.
+ */
+export function workLinesOf(state: GameState, playerId: number): WorkLines {
+  return slateMemo(state, 'economy', 'workLines', String(playerId), () => {
+    const { map } = state;
+    const owners = tileOwnerField(state);
+    const counted = new Uint8Array(map.tiles.length);
+    const hexes: number[] = [];
+    for (let index = 0; index < map.tiles.length; index++) {
+      const work = map.tiles[index]!.improvement;
+      if (work === undefined || !isGreatPersonWork(work) || owners.at(index) !== playerId) continue;
+      counted[index] = 1;
+      hexes.push(index);
+    }
+    const lengths = hexes.map(() => 1);
+    if (hexes.length < 2) return { hexes, lengths };
+    /** The tile index one step along a direction, or -1 past a pole. */
+    const step = (index: number, direction: number): number => {
+      const tile = map.tiles[index]!;
+      const d = HEX_DIRECTIONS[direction]!;
+      const h = tileHex(tile);
+      const next = getTile(map, { q: h.q + d.q, r: h.r + d.r });
+      return next === undefined ? -1 : tileIndex(map, next.col, next.row);
+    };
+    for (const axis of LINE_AXES) {
+      const back = axis + 3;
+      for (const start of hexes) {
+        const behind = step(start, back);
+        if (behind !== -1 && counted[behind] === 1) continue;
+        // Walk the run forward from its first hex. It cannot be longer than
+        // the works there are, which also stops a walk that wrapped round.
+        const run: number[] = [start];
+        let here = step(start, axis);
+        while (here !== -1 && counted[here] === 1 && run.length < hexes.length) {
+          run.push(here);
+          here = step(here, axis);
+        }
+        if (run.length < 2) continue;
+        for (const index of run) {
+          const at = hexes.indexOf(index);
+          if (lengths[at]! < run.length) lengths[at] = run.length;
+        }
+      }
+    }
+    return { hexes, lengths };
+  });
 }
 
 /**

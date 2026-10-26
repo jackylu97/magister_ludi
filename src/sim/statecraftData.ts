@@ -2318,7 +2318,22 @@ export type TileCondition =
    * town's centre hex counts when its garrison is fortified (the triage's
    * reading 25).
    */
-  | { test: 'fortifiedUnit' };
+  | { test: 'fortifiedUnit' }
+  /**
+   * **This hex's great-person work stands on a straight line of at least
+   * `length` works** (Magisterial batch MG15, The Processional Way; the
+   * triage's reading 39).
+   *
+   * A line runs along one of the three hex axes, and its works stand on
+   * hexes next to each other, with no gap. Every work of the line must be in
+   * the asking empire's borders. A work on two lines counts once, so a card
+   * that pays on this test pays a work once.
+   *
+   * A hex's ring does not reach two hexes away, so the answer comes from the
+   * board (`GroundFacts.workLine`, built by `groundFactsFor`), and a caller
+   * with no board answers no.
+   */
+  | { test: 'workLine'; length: number };
 
 // --- the counts -------------------------------------------------------------
 
@@ -10518,7 +10533,21 @@ export type CommissionFigure =
    * `commissionGoalTown` names the first town in founding order that meets
    * both floors, so a reward that marks a town marks that one.
    */
-  | 'oneTownWorksWorked';
+  | 'oneTownWorksWorked'
+  /**
+   * **The most hexes beside one great-person work in this empire's borders
+   * that carry a great-person work or a tended work** (Magisterial batch
+   * MG15, Commission: The Paradise Garden; the triage's reading 41). The six
+   * hexes around the work are asked through the cards' own tile tests
+   * (`greatWork`, and `tended` with the empire's ground facts, so a farm that
+   * The Two Harvests makes tended counts). A hex beside the work counts
+   * whoever owns it. Measured by `worksBesideWork` (`commissions.ts`).
+   *
+   * **The goal's hex** is the first work in map order whose count meets the
+   * goal (`gardenWorkFor`, named by `commissionGoalHex`), so a reward that
+   * claims land around it claims around that work.
+   */
+  | 'worksBesideWork';
 
 /** Every figure, for validation and the register test. */
 export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
@@ -10543,6 +10572,7 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'councilInOrder',
   'workFamilies',
   'oneTownWorksWorked',
+  'worksBesideWork',
 ];
 
 /**
@@ -10824,6 +10854,19 @@ export interface CommissionReward {
    * rather than paying nothing (`commissionRewardWaits`, `commissions.ts`).
    */
   doctrineOffer?: true;
+  /**
+   * **Every unowned hex within this many hexes of the goal's hex joins the
+   * empire's nearest town** (Magisterial batch MG15, Commission: The
+   * Paradise Garden; the triage's reading 41).
+   *
+   * The goal's hex is `commissionGoalHex`'s (`commissions.ts`): the
+   * great-person work that met a `worksBesideWork` goal. The claim goes
+   * through `claimUnownedBeside` (`cities.ts`), the routine The Landmark
+   * Bounds' grant uses, with this radius in place of the ring of six. A hex
+   * any town owns is left alone. The town is the one nearest the goal's hex,
+   * and it is re-seated at once. A goal with no hex claims nothing.
+   */
+  claimWithin?: number;
 }
 
 /**

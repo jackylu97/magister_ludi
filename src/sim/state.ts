@@ -3057,8 +3057,38 @@ import {
  * **A v196 save is refused and does not replay.** A Magisterial seat's pools
  * hold more cards. The branch migrates nothing, for the reason given under
  * v119.
+ *
+ * v198 (branch `decks`; Magisterial batch MG15, `docs/plans/magisterial-
+ * themes-triage.md`): **arrangements on the hex grid.** No field joins the
+ * state. The rules that change:
+ *
+ *   · one tile test is new, `workLine`: the hex's great-person work stands
+ *     on a straight line of at least `length` works, along one of the three
+ *     hex axes, with no gap and every work of the line in the asking
+ *     empire's borders. The lines are found once for the board, in tile
+ *     index order, by `workLinesOf` (`statecraft/evaluator.ts`), remembered
+ *     on the economy clock and handed to the test through `groundFactsFor`
+ *     (`GroundFacts.workLine`). A work on two lines counts once (the
+ *     triage's reading 39);
+ *   · one commission figure is new, `worksBesideWork`: the most hexes
+ *     beside one great-person work in the empire's borders that carry a
+ *     great-person work or a tended work. `commissionGoalHex` names the
+ *     first such work in map order that meets the goal (`gardenWorkFor`,
+ *     `commissions.ts`; reading 41);
+ *   · one commission reward is new, `claimWithin`: every unowned hex within
+ *     that many hexes of the goal's work joins the empire's nearest town.
+ *     It claims through `claimUnownedBeside` (`cities.ts`), the routine The
+ *     Landmark Bounds' grant uses, which now takes a radius. The town is
+ *     re-seated (entry 32 of the register of mid-turn yield changes) and
+ *     the empire's map redrawn;
+ *   · two Magisterial cards are new and dealt: Commission: The Paradise
+ *     Garden (Tier III) and The Processional Way (Tier IV).
+ *
+ * **A v197 save is refused and does not replay.** A Magisterial seat's pools
+ * hold more cards. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 197;
+export const SCHEMA_VERSION = 198;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

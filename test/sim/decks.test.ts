@@ -639,8 +639,11 @@ describe('the schema, as landed', () => {
     // Magisterial row.
     // **And Magisterial batch MG14** (the boons): two more. The Cabinet of
     // Curiosities and The Grand Retrospective are new Magisterial rows.
-    expect(live).toBe(612);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(612);
+    // **And Magisterial batch MG15** (arrangements on the hex grid): two
+    // more. Commission: The Paradise Garden and The Processional Way are new
+    // Magisterial rows.
+    expect(live).toBe(614);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(614);
   });
 
   /**
@@ -1066,7 +1069,12 @@ describe('the schema, as landed', () => {
     // random card from a deck the seat does not hold, or pay yields when it
     // is drafted, and two Magisterial cards are dealt. So a v196 log's
     // Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(197);
+    // 198 since Magisterial batch MG15 (arrangements on the hex grid): a tile
+    // test may ask for a work on a straight line of works, a commission may
+    // count the works and tended hexes beside one work and claim the land
+    // around it, and two Magisterial cards are dealt. So a v197 log's
+    // Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(198);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

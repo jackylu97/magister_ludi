@@ -1215,10 +1215,21 @@ describe('determinism', () => {
    * collection, and two card rows. Nobody here drafts, so no grant is paid
    * and no card is drawn. Checked with the change in place and the version
    * printed as 196, which gives the hashes of Magisterial batch MG13 exactly.
+   *
+   * **Magisterial batch MG15 (arrangements on the hex grid, schema 198)
+   * moved the hash and not the length** at both seeds: 197 became 198, and
+   * that is all. The batch adds a tile test for a work on a straight line of
+   * works, a commission figure for the works and tended hexes beside one
+   * work, a reward that claims the unowned land around that work through
+   * The Landmark Bounds' routine (which now takes a radius), and two card
+   * rows. Nobody here lays a work, drafts or holds a commission, so no line
+   * is found and no hex is claimed. Checked with the change in place and the
+   * version printed as 197, which gives the hashes of Magisterial batch MG14
+   * exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '6fb88528:188976',
-    2026: 'e42031d9:188554',
+    11: 'a3a48bfd:188976',
+    2026: '8b75b314:188554',
   };
 
   for (const seed of [11, 2026]) {

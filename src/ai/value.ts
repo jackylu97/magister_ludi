@@ -6650,6 +6650,12 @@ function rewardTerms(
     // this bot does not read yet.
     terms.push({ label: 'a Doctrine draft, once', value: ctx.ai.score.unknownEffect });
   }
+  if (reward.claimWithin !== undefined && reward.claimWithin > 0) {
+    // **The unowned land around the goal's work** (Magisterial batch MG15,
+    // Commission: The Paradise Garden). A stand-in until batch MG17 prices
+    // it: the price of one shape this bot does not read yet.
+    terms.push({ label: 'the land around a work, once', value: ctx.ai.score.unknownEffect });
+  }
   return terms;
 }
 

@@ -33,12 +33,15 @@
  * once, in the capital of each empire its routes reach
  * (`writeEstablishedPost`, `trade.ts`). Since Magisterial batch MG7 a reward
  * may open a Doctrine offer (`openDoctrineOffer`, `cities.ts`), and the goal
- * waits while none can open (`commissionRewardWaits`).
+ * waits while none can open (`commissionRewardWaits`). Since Magisterial batch
+ * MG15 a reward may claim the unowned land around the work that met the goal
+ * (`claimUnownedBeside`, `cities.ts`; the work is `commissionGoalHex`).
  */
 
 import {
   bestMeleeFor,
   buildingProductionCost,
+  claimUnownedBeside,
   countedLuxuryCopies,
   doctrineOfferCanOpen,
   openDoctrineOffer,
@@ -51,7 +54,7 @@ import {
 import type { Family } from './greatPeopleData';
 import { grantGreatPersonOffer } from './greatPeople';
 import { type WorkFamily, improvementDef, isGreatPersonWork, isTendedWork } from './improvementData';
-import { getTileAt } from './map';
+import { type Tile, getTileAt, neighborTiles, tileHex } from './map';
 import { resourcesOfKind } from './resourceData';
 import { bumpEconomy } from './slate';
 import {
@@ -320,7 +323,64 @@ export function commissionFigure(
       }
       return best;
     }
+    case 'worksBesideWork': {
+      // Commission: The Paradise Garden (Magisterial batch MG15, the
+      // triage's reading 41): the best of this empire's works.
+      let best = 0;
+      for (const work of worksBeside(state, playerId)) best = Math.max(best, work.beside);
+      return best;
+    }
   }
+}
+
+/**
+ * The cards' own tile tests for "a great-person work or a tended hex", asked
+ * of each hex beside a work by the `worksBesideWork` figure.
+ */
+const WORK_OR_TENDED: TileCondition = { test: 'any', of: [{ test: 'greatWork' }, { test: 'tended' }] };
+
+/**
+ * **Each great-person work in this empire's borders, with the hexes beside
+ * it that carry a great-person work or a tended work** (Magisterial batch
+ * MG15, Commission: The Paradise Garden; the triage's reading 41).
+ *
+ * The works are walked in tile index order, so the first work that meets a
+ * goal is a fact about the board. A work counts when this empire owns its
+ * hex (`tileOwnerField`) and it is a great-person work (`isGreatPersonWork`,
+ * so a Holy Site counts). Its six neighbours are asked through the cards'
+ * own tests with this empire's ground facts, so a farm that The Two
+ * Harvests makes tended counts, as it does for the `tendedTiles` figure. A
+ * neighbour counts whoever owns it, as the `beside` tile test reads it.
+ */
+function worksBeside(state: GameState, playerId: number): { tile: Tile; beside: number }[] {
+  const owners = tileOwnerField(state);
+  const tiles = state.map.tiles;
+  const ground = groundFactsFor(state, playerId);
+  const found: { tile: Tile; beside: number }[] = [];
+  for (let index = 0; index < tiles.length; index++) {
+    const tile = tiles[index]!;
+    const work = tile.improvement;
+    if (work === undefined || !isGreatPersonWork(work) || owners.at(index) !== playerId) continue;
+    let beside = 0;
+    for (const next of neighborTiles(state.map, tileHex(tile))) {
+      if (tileConditionHolds(next, WORK_OR_TENDED, undefined, undefined, state.turn, ground)) beside += 1;
+    }
+    found.push({ tile, beside });
+  }
+  return found;
+}
+
+/**
+ * **The work a `worksBesideWork` goal names** (Magisterial batch MG15,
+ * Commission: The Paradise Garden; the triage's reading 41): the first of
+ * this empire's great-person works, in map order, with at least `atLeast`
+ * works or tended hexes beside it. `null` when no work has that many.
+ */
+export function gardenWorkFor(state: GameState, playerId: number, atLeast: number): Tile | null {
+  for (const work of worksBeside(state, playerId)) {
+    if (work.beside >= atLeast) return work.tile;
+  }
+  return null;
 }
 
 /**
@@ -646,6 +706,11 @@ function payCommission(
   // The town that met the goal, read before anything is paid (Dominion batch
   // D6): Take the City's Barracks goes up there.
   const goalTown = commissionGoalTown(state, player.id, card);
+  // The work that met the goal, read before anything is paid (Magisterial
+  // batch MG15): The Paradise Garden claims the land around it.
+  const goalHex = spec.reward.some((reward) => (reward.claimWithin ?? 0) > 0)
+    ? commissionGoalHex(state, player.id, card)
+    : null;
   // The empires the routes reach, read before anything is paid (Commerce batch
   // T4, The World's Fair): the goal's own walk, read again now.
   const partners = spec.reward.some((reward) => reward.postsInPartnerCapitals === true)
@@ -661,9 +726,13 @@ function payCommission(
   let mark = false;
   let chairs = 0;
   let doctrine = false;
+  let claimRadius = 0;
   for (const reward of spec.reward) {
     if (reward.markTown === true) mark = true;
     if (reward.doctrineOffer === true) doctrine = true;
+    if (reward.claimWithin !== undefined && reward.claimWithin > 0) {
+      claimRadius = Math.max(claimRadius, Math.floor(reward.claimWithin));
+    }
     if (reward.eachTown === true) {
       eachTown.push(reward);
       continue;
@@ -744,6 +813,17 @@ function payCommission(
       lines.push(`your trading post in ${capital.name}`);
     }
   }
+  // **The land around the goal's work** (Magisterial batch MG15, Commission:
+  // The Paradise Garden; the triage's reading 41): every unowned hex within
+  // the radius joins the nearest town, through the one routine that claims
+  // land around a work. It re-seats that town and redraws the empire's map.
+  // A goal with no work claims nothing.
+  if (claimRadius > 0 && goalHex !== null) {
+    const seat = claimUnownedBeside(state, player.id, { col: goalHex.col, row: goalHex.row }, claimRadius);
+    if (seat !== null) {
+      lines.push(`the unowned land within ${claimRadius} hexes of your great-person work joins ${seat.name}`);
+    }
+  }
   // **The goal's town is marked** (The Heartland): its lasting effects are
   // scoped to it (`markedBy`), and they live from this turn on.
   if (mark && goalTown && goalTown.ownerId === player.id) {
@@ -798,6 +878,27 @@ export function commissionGoalTown(state: GameState, playerId: number, card: Ord
   const id = sc.tallies.find((row) => row.card === card)?.town;
   if (id === undefined) return null;
   return state.cities.find((city) => city.id === id) ?? null;
+}
+
+/**
+ * **The hex that met a commission's goal**, or `null` (Magisterial batch
+ * MG15, Commission: The Paradise Garden; the triage's reading 41).
+ * `commissionGoalTown`'s sibling for a goal that one work meets: the first
+ * great-person work in map order whose `worksBesideWork` count meets the
+ * goal (`gardenWorkFor`). `null` for any other goal, or when no work meets
+ * it now.
+ *
+ * Read by the reward before anything is paid, in the same phase that
+ * checked the goal, so the work the reward claims around is the work that
+ * met the goal.
+ */
+export function commissionGoalHex(state: GameState, playerId: number, card: OrderId): Tile | null {
+  for (const goal of orderDef(card).commission?.goals ?? []) {
+    if (goal.kind === 'reached' && goal.figure === 'worksBesideWork') {
+      return gardenWorkFor(state, playerId, goal.count);
+    }
+  }
+  return null;
 }
 
 /**

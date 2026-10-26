@@ -187,6 +187,9 @@ export {
   // answer alone, and an empire's farm water.
   farmWaterOf,
   groundFactsFor,
+  // Magisterial batch MG15: the straight lines of great-person works.
+  workLineAt,
+  workLinesOf,
   // Expansionist batch E4: tended work beyond the borders.
   worksBeyondReach,
   filledOrderSlots,

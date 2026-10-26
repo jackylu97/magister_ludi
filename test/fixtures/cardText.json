@@ -9285,6 +9285,26 @@
     "text": "when drafted, +20 culture, +20 science and +20 production in your capital for each Order you hold, seated or not; seated, this card does nothing"
    }
   ],
+  "magisterialTheParadiseGarden": [
+   {
+    "raw": "Commission. Goal: have a great-person work in your borders with 3 other great-person works or tended hexes beside it, while this card is seated",
+    "text": "Commission. Goal: have a great-person work in your borders with 3 other great-person works or tended hexes beside it, while this card is seated"
+   },
+   {
+    "raw": "Reward: every unowned hex within 3 hexes of that work joins your nearest city",
+    "text": "Reward: every unowned hex within 3 hexes of that work joins your nearest city"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theProcessionalWay": [
+   {
+    "raw": "+3 science, +3 culture on every hex carrying a great person's work in a straight line of 3 or more such works in your borders",
+    "text": "+3 science, +3 culture on every hex carrying a great person's work in a straight line of 3 or more such works in your borders"
+   }
+  ],
   "frontierGarrisons": [
    {
     "raw": "+2 food in every city with a unit standing in it of 5 or fewer citizens",

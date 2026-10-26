@@ -115,6 +115,13 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
     Dominion batch D7 where its fortified military units stand), so three
     tile tests are new: `river`, `wonderTown` and `surfaced` (the empire that
     struck a seam, `Tile.surfacedBy`).
+  - Since Magisterial batch MG15 a tile test can ask whether a hex's
+    great-person work stands on a straight line of works (`workLine`, with a
+    `length`): along one hex axis, with no gap, every work in the asking
+    empire's borders. `workLinesOf` finds the lines once for the board, in
+    tile index order, and remembers them on the economy clock; the test reads
+    them through `GroundFacts.workLine`, so the hex fold asks a lookup and
+    never a walk (The Processional Way).
   - An Order amplifier with a tile test (`CardYieldAmplifierEffect.on`, The Age
     of Improvement) raises the Orders' hex lines on those hexes only. Since
     Magisterial batch MG10 an amplifier's share of a hex line keeps the line's
@@ -604,6 +611,13 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
     wonders (the `oneTownWorksWorked` figure). `commissionGoalTown` names the
     first town in founding order that meets both floors (`worksTownFor`), so
     a `markTown` reward marks that town (Commission: The Ideal City).
+  - Since Magisterial batch MG15 a goal may count the hexes beside one
+    great-person work in the borders that carry a work or a tended work (the
+    `worksBesideWork` figure). `commissionGoalHex` names the first such work
+    in map order (`gardenWorkFor`), and a reward may give every unowned hex
+    within a radius of it to the nearest town (`claimWithin`). The claim goes
+    through `claimUnownedBeside` (`cities.ts`), The Landmark Bounds' routine,
+    which now takes a radius (Commission: The Paradise Garden).
 - **Units a card raises, and the moments it pays on** (Dominion batch D5):
   - A grant can raise the best melee unit (`bestMeleeFor`) or each military
     unit a technology unlocks, in the capital or in each town a scope admits.

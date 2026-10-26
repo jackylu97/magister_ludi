@@ -5299,6 +5299,13 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
       // The Farming Garrisons and The Castra (Dominion batch D7).
       into.qualifiers.push('with a fortified military unit of yours');
       return;
+    case 'workLine':
+      // The Processional Way (Magisterial batch MG15). The test names the
+      // work itself, so it says the work and the line together.
+      into.qualifiers.push(
+        `carrying a great person's work in a straight line of ${on.length} or more such works in your borders`,
+      );
+      return;
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -7399,6 +7406,15 @@ const COMMISSION_FIGURE_WORDS: Record<
     counter: 'great-person works worked by one city',
     noun: 'the great-person works your best city works',
   },
+  // Magisterial batch MG15, Commission: The Paradise Garden.
+  worksBesideWork: {
+    goal: (count) =>
+      count === 1
+        ? 'have a great-person work in your borders with another great-person work or a tended hex beside it'
+        : `have a great-person work in your borders with ${count} other great-person works or tended hexes beside it`,
+    counter: 'works or tended hexes beside one work',
+    noun: 'the most great-person works and tended hexes beside one of your works',
+  },
 };
 
 /**
@@ -7623,6 +7639,12 @@ export function commissionRewardWords(reward: CommissionReward, towns = 1): stri
   // Magisterial batch MG7, Commission: The Golden Bull. The row's note says
   // that the card waits while no such Doctrine can be offered.
   if (reward.doctrineOffer === true) out.push("a Doctrine draft of your government's tier");
+  // Magisterial batch MG15, Commission: The Paradise Garden. The goal names
+  // the work, so the reward says "that work".
+  if (reward.claimWithin !== undefined && reward.claimWithin > 0) {
+    const reach = reward.claimWithin === 1 ? 'beside that work' : `within ${reward.claimWithin} hexes of that work`;
+    out.push(`every unowned hex ${reach} joins your nearest city`);
+  }
   return out;
 }
 

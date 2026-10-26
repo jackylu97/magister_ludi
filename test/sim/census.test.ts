@@ -715,6 +715,11 @@ describe("the schema", () => {
     // random card from a deck the seat does not hold, or pay yields when it
     // is drafted, and two Magisterial cards are dealt. So a v196 log's
     // Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(197);
+    // 198 since Magisterial batch MG15 (arrangements on the hex grid): a tile
+    // test may ask for a work on a straight line of works, a commission may
+    // count the works and tended hexes beside one work and claim the land
+    // around it, and two Magisterial cards are dealt. So a v197 log's
+    // Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(198);
   });
 });
