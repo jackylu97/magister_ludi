@@ -2573,8 +2573,28 @@ import {
  * **A v177 save is refused and does not replay.** A Devotion, Dominion or
  * Scientific seat's pools hold more cards, and the technology list is longer.
  * The branch migrates nothing, for the reason given under v119.
+ *
+ * v179 (branch `decks`; Magisterial batch MG2, `docs/plans/magisterial-
+ * themes-triage.md`): **the data-only Magisterial cards of Tiers 0 and I.**
+ * No field joins the state. The rules that change:
+ *
+ *   · six Tier 0 cards are new and dealt: The Prytaneion, The Polemarch, The
+ *     Court Painter, The Cornerstone, The Repertory and The Second Reading;
+ *   · eight Tier I cards are new and dealt: The Nomarchs, The Workshop at
+ *     Olympia, The Overseers of Works, The Siting Masters, The Keepers of
+ *     Wonders, The Ceremonial Guard, The Unveiling and The Encyclopedia;
+ *   · The Court Painter is the first row to ride the moment a card is
+ *     drafted since batch R1 changed The Art Dealers;
+ *   · two describer sentences change their words only. The reroll rule
+ *     says "the first reroll of each hand", which Ibn Battuta's Rihla prints
+ *     too, and a grant that goes to the capital names the capital before
+ *     the age.
+ *
+ * **A v178 save is refused and does not replay.** A Magisterial seat's pools
+ * hold more cards. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 178;
+export const SCHEMA_VERSION = 179;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

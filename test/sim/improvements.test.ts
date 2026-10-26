@@ -2736,7 +2736,10 @@ describe('improvements in the log', () => {
     // cards and four shared cards are dealt, and the charter technology
     // Scholasticism opens the Cathedral and the Apostle early. So a v177
     // log's Devotion, Dominion and Scientific hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(178);
+    // 179 since Magisterial batch MG2 (the data-only cards of Tiers 0 and
+    // I): fourteen Magisterial cards are dealt. So a v178 log's Magisterial
+    // hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(179);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

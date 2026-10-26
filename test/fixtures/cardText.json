@@ -8749,6 +8749,94 @@
     "text": "+15% culture in every city containing no wonder"
    }
   ],
+  "thePrytaneion": [
+   {
+    "raw": "+1 food in every city per Order you have placed in a slot",
+    "text": "+1 food in every city per Order you have placed in a slot"
+   }
+  ],
+  "thePolemarch": [
+   {
+    "raw": "+2 combat strength per military Order you have in a slot",
+    "text": "+2 combat strength per military Order you have in a slot"
+   }
+  ],
+  "theCourtPainter": [
+   {
+    "raw": "drafting a card grants +15 renown",
+    "text": "drafting a card grants +15 renown"
+   }
+  ],
+  "theCornerstone": [
+   {
+    "raw": "+30% production toward wonders, in every city containing no wonder",
+    "text": "+30% production toward wonders, in every city containing no wonder"
+   }
+  ],
+  "theRepertory": [
+   {
+    "raw": "+1 culture in every city per culture building there",
+    "text": "+1 culture in every city per culture building there"
+   }
+  ],
+  "theSecondReading": [
+   {
+    "raw": "the first reroll of each hand of Orders, Doctrines or great people costs nothing",
+    "text": "the first reroll of each hand of Orders, Doctrines or great people costs nothing"
+   }
+  ],
+  "theNomarchs": [
+   {
+    "raw": "+1 authority capacity per 2 Orders you have placed in a slot",
+    "text": "+1 authority capacity per 2 Orders you have placed in a slot"
+   }
+  ],
+  "theWorkshopAtOlympia": [
+   {
+    "raw": "+2 renown per turn per wonder you hold",
+    "text": "+2 renown per turn per wonder you hold"
+   }
+  ],
+  "theOverseersOfWorks": [
+   {
+    "raw": "gaining a great person grants +100 production to your capital for each age you have reached",
+    "text": "gaining a great person grants +100 production to your capital for each age you have reached"
+   }
+  ],
+  "theSitingMasters": [
+   {
+    "raw": "+1 culture on every hex carrying a great person's work, once for every adjacent hill or mountain or forest or water hex (at most 3)",
+    "text": "+1 culture on every hex carrying a great person's work, once for every adjacent hill or mountain or forest or water hex (at most 3)"
+   }
+  ],
+  "theKeepersOfWonders": [
+   {
+    "raw": "+2 happiness per wonder you hold",
+    "text": "+2 happiness per wonder you hold"
+   }
+  ],
+  "theCeremonialGuard": [
+   {
+    "raw": "every city containing a wonder: +5 city defence",
+    "text": "every city containing a wonder: +5 city defence"
+   }
+  ],
+  "theUnveiling": [
+   {
+    "raw": "completing a wonder opens an Order draft at once, at no culture cost",
+    "text": "completing a wonder opens an Order draft at once, at no culture cost"
+   }
+  ],
+  "theEncyclopedia": [
+   {
+    "raw": "+1 science in your capital per Order you hold but have not placed in a slot (at most +15 science)",
+    "text": "+1 science in your capital per Order you hold but have not placed in a slot (at most +15 science)"
+   },
+   {
+    "raw": "+1 culture in your capital per Order you hold but have not placed in a slot (at most +15 culture)",
+    "text": "+1 culture in your capital per Order you hold but have not placed in a slot (at most +15 culture)"
+   }
+  ],
   "frontierGarrisons": [
    {
     "raw": "+2 food in every city with a unit standing in it of 5 or fewer citizens",
@@ -11874,8 +11962,8 @@
     "text": "every government opens one more free chair"
    },
    {
-    "raw": "the first time you ask for a fresh hand of Orders, doctrines or great people, it costs nothing",
-    "text": "the first time you ask for a fresh hand of Orders, doctrines or great people, it costs nothing"
+    "raw": "the first reroll of each hand of Orders, Doctrines or great people costs nothing",
+    "text": "the first reroll of each hand of Orders, Doctrines or great people costs nothing"
    }
   ]
  },
@@ -12085,8 +12173,8 @@
   ],
   "theRihla": [
    {
-    "raw": "the first time you ask for a fresh hand of Orders, doctrines or great people, it costs nothing",
-    "text": "the first time you ask for a fresh hand of Orders, doctrines or great people, it costs nothing"
+    "raw": "the first reroll of each hand of Orders, Doctrines or great people costs nothing",
+    "text": "the first reroll of each hand of Orders, Doctrines or great people costs nothing"
    }
   ]
  },

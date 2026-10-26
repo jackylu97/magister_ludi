@@ -346,6 +346,8 @@ The first six come from section 12. The rest are new. Each gives the reading the
 - **Schema:** one bump.
 - **Done-gate:** `npx vitest run test/sim/decks/magisterialThemeCards.test.ts test/sim/decks/magisterial.test.ts test/sim/decks.test.ts test/sim/statecraft.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`.
 
+- **Built (2026-10-25):** all fourteen cards, each data only, in the main tree. The gate passed: the type check, 9,605 core tests and the build. Schema 179. Two describer sentences changed: the free reroll now reads "the first reroll of each hand of Orders, Doctrines or great people costs nothing" (The Rihla prints it too), and a grant names the town before the age. Readings added: The Encyclopedia counts a charter as unseated; The Overseers' age is the highest age of the technologies known. Not done: the reroll price line is always labelled "The Rihla"; two comments still say no card rides the draft moment.
+
 ### MG3: the data-only cards of Tiers II to IV
 
 - **Builds:** 11 new rows (The Prefects, The Symposium, Letters Patent, The Quarter of Masters, The Gazetteers, The Seven Sights, The Boule, The Roll of Masters, The Garden Courts, The Privy Council, The Bulwark of Marvels), and The Golden Age and The Magister's Court leave `deferred`.

@@ -19,22 +19,58 @@
  *     its effects;
  *   · the types of the fifteen kept rows and of the two shared Devotion rows
  *     (reading 47).
+ *
+ * Batch MG2 added the fourteen cards of Tiers 0 and I whose shapes already
+ * existed, and this file checks each of them on a small board:
+ *
+ *   · Tier 0: The Prytaneion (reading 1), The Polemarch (reading 31), The
+ *     Court Painter (reading 9), The Cornerstone, The Repertory and The Second
+ *     Reading (reading 10);
+ *   · Tier I: The Nomarchs, The Workshop at Olympia (reading 45), The
+ *     Overseers of Works, The Siting Masters (reading 28), The Keepers of
+ *     Wonders, The Ceremonial Guard, The Unveiling (reading 14) and The
+ *     Encyclopedia.
  */
 
 import { describe, expect, it } from 'vitest';
 
-import { foundCityAt, ownedTiles, refreshCityDerived } from '../../../src/sim/cities';
+import { foundCityAt, ownedTiles, realiseItem, refreshCityDerived } from '../../../src/sim/cities';
+import { applyCommand } from '../../../src/sim/commands';
 import { GREAT_PERSON_IDS, greatPersonDef } from '../../../src/sim/greatPeopleData';
-import { type Tile, raiseImprovement } from '../../../src/sim/map';
-import { type City, type GameState, addBuilding, bumpRevision, playerById } from '../../../src/sim/state';
+import { type Tile, raiseImprovement, tileNeighbors } from '../../../src/sim/map';
+import { explainAuthority, explainHappiness } from '../../../src/sim/meters';
+import { explainRerollCost, rerollDoorOpen, rihlaPaysFor, settleReroll } from '../../../src/sim/religion';
 import {
+  type City,
+  type GameState,
+  type Unit,
+  addBuilding,
+  bumpRevision,
+  createUnit,
+  playerById,
+} from '../../../src/sim/state';
+import {
+  cardCityStat,
+  cardCombatLines,
+  cardProduction,
+  cardRenownLines,
   describeCard,
   explainCardCityYields,
   explainCardPercentYields,
+  payWindfallGrants,
   recordScalingOccasion,
   stripRefs,
+  windfallPayout,
 } from '../../../src/sim/statecraft';
-import { type OrderId, DECK_FILE_ORDERS, orderDef, orderIsDealt } from '../../../src/sim/statecraftData';
+import {
+  type OrderId,
+  DECK_FILE_ORDERS,
+  ORDER_IDS,
+  orderDef,
+  orderIsDealt,
+  ordersForDecks,
+} from '../../../src/sim/statecraftData';
+import { type TechId, highestAge, techDef } from '../../../src/sim/techData';
 import { cityContext, explainTileYield } from '../../../src/sim/yields/hex';
 import { at, bareState } from '../improvementHelpers';
 
@@ -260,5 +296,397 @@ describe('Magisterial batch MG1: the rows', () => {
       sacredPatronage: 'civic',
     };
     for (const [id, type] of Object.entries(types)) expect(orderDef(id as OrderId).type, id).toBe(type);
+  });
+});
+
+// --- batch MG2: the data-only cards of Tiers 0 and I -------------------------
+
+/** The fourteen rows of batch MG2, with the tier, rarity and type the sheet gives each. */
+const MG2_ROWS: readonly [string, number, string, string][] = [
+  ['thePrytaneion', 0, 'uncommon', 'economic'],
+  ['thePolemarch', 0, 'common', 'military'],
+  ['theCourtPainter', 0, 'common', 'civic'],
+  ['theCornerstone', 0, 'common', 'economic'],
+  ['theRepertory', 0, 'common', 'civic'],
+  ['theSecondReading', 0, 'uncommon', 'wildcard'],
+  ['theNomarchs', 1, 'uncommon', 'civic'],
+  ['theWorkshopAtOlympia', 1, 'common', 'civic'],
+  ['theOverseersOfWorks', 1, 'uncommon', 'economic'],
+  ['theSitingMasters', 1, 'common', 'civic'],
+  ['theKeepersOfWonders', 1, 'common', 'civic'],
+  ['theCeremonialGuard', 1, 'common', 'military'],
+  ['theUnveiling', 1, 'uncommon', 'wildcard'],
+  ['theEncyclopedia', 1, 'common', 'civic'],
+];
+
+/** What one card's empire lines put on seat 0's authority. */
+function authorityFrom(state: GameState, card: string): number {
+  return explainAuthority(state, 0)
+    .filter((line) => line.card === card)
+    .reduce((sum, line) => sum + line.value, 0);
+}
+
+/** What one card's lines put on seat 0's happiness. */
+function happinessFrom(state: GameState, card: string): number {
+  return explainHappiness(state, 0)
+    .filter((line) => line.card === card)
+    .reduce((sum, line) => sum + line.value, 0);
+}
+
+/** The renown a turn one card pays seat 0. */
+function renownFrom(state: GameState, card: string): number {
+  return cardRenownLines(state, 0)
+    .filter((line) => line.card === card)
+    .reduce((sum, line) => sum + line.amount, 0);
+}
+
+/** The strength one card gives this unit in one posture, on its own hex. */
+function strengthFrom(state: GameState, unit: Unit, side: 'attack' | 'defend', card: string): number {
+  return cardCombatLines(state, {
+    unit,
+    side,
+    tile: at(state, unit.col, unit.row),
+    vsBarbarians: false,
+    vsCity: false,
+    targetHp: 100,
+    targetMaxHp: 100,
+  })
+    .filter((line) => line.card === card)
+    .reduce((sum, line) => sum + line.amount, 0);
+}
+
+/** Seat 0 is dealt an Order hand of these cards. */
+function offer(state: GameState, ...ids: string[]): void {
+  playerById(state, 0)!.statecraft.pendingOrder = { options: ids as OrderId[] };
+  bumpRevision(state);
+}
+
+/** Seat 0 picks the first card of the hand, through the reducer. */
+function pick(state: GameState): void {
+  expect(applyCommand(state, { type: 'chooseOrder', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+}
+
+describe('Magisterial batch MG2: the rows', () => {
+  it('deals all fourteen from the tier, rarity and type the sheet names', () => {
+    const pool = ordersForDecks(['magisterial']);
+    for (const [id, band, rarity, type] of MG2_ROWS) {
+      const def = orderDef(id as OrderId);
+      expect(orderIsDealt(id as OrderId), id).toBe(true);
+      expect(pool, id).toContain(id);
+      expect(def.decks, id).toEqual(['magisterial']);
+      expect(def.band, id).toBe(band);
+      expect(def.rarity, id).toBe(rarity);
+      expect(def.type, id).toBe(type);
+      expect(def.deferred, id).toBeUndefined();
+    }
+  });
+
+  it('prints every clause plainly, with no keyword mark left raw', () => {
+    for (const [id] of MG2_ROWS) {
+      const clauses = describeCard(id as OrderId);
+      expect(clauses.length, id).toBeGreaterThan(0);
+      for (const clause of clauses) {
+        expect(clause.deferred, id).not.toBe(true);
+        expect(stripRefs(clause.text), id).not.toContain('[[');
+      }
+    }
+  });
+});
+
+describe('Magisterial batch MG2: the council cards', () => {
+  it('The Prytaneion pays each town +1 food for each card seated, itself included', () => {
+    const state = bareState(20, 10);
+    const capital = town(state, 3, 5, 3);
+    const other = town(state, 12, 5, 3);
+    slot(state, 0, 'thePrytaneion');
+    expect(townPays(state, capital, 'thePrytaneion', 'food')).toBe(1);
+    expect(townPays(state, other, 'thePrytaneion', 'food')).toBe(1);
+    slot(state, 0, 'theCornerstone');
+    slot(state, 0, 'theRepertory');
+    expect(townPays(state, capital, 'thePrytaneion', 'food')).toBe(3);
+    expect(townPays(state, other, 'thePrytaneion', 'food')).toBe(3);
+    // A card in the collection and not in a chair does not count (reading 1).
+    playerById(state, 0)!.statecraft.orders.push('theEncyclopedia' as OrderId);
+    bumpRevision(state);
+    expect(townPays(state, capital, 'thePrytaneion', 'food')).toBe(3);
+  });
+
+  it('The Nomarchs pays +1 authority for every two cards seated', () => {
+    const state = bareState();
+    town(state, 5, 5, 3);
+    slot(state, 0, 'theNomarchs');
+    expect(authorityFrom(state, 'theNomarchs')).toBe(0);
+    slot(state, 0, 'theCornerstone');
+    expect(authorityFrom(state, 'theNomarchs')).toBe(1);
+    slot(state, 0, 'theRepertory');
+    expect(authorityFrom(state, 'theNomarchs')).toBe(1);
+    slot(state, 0, 'thePrytaneion');
+    expect(authorityFrom(state, 'theNomarchs')).toBe(2);
+  });
+
+  it('The Polemarch gives every unit +2 strength for each Military card seated, attacking or defending', () => {
+    const state = bareState();
+    town(state, 5, 5, 3);
+    const soldier = createUnit(state, 0, 'warrior', 3, 3);
+    // A ship counts too (reading 31).
+    at(state, 8, 3).terrain = 'coast' as never;
+    const ship = createUnit(state, 0, 'trireme', 8, 3);
+    bumpRevision(state);
+    slot(state, 0, 'thePolemarch');
+    // It counts itself.
+    expect(strengthFrom(state, soldier, 'attack', 'thePolemarch')).toBe(2);
+    expect(strengthFrom(state, soldier, 'defend', 'thePolemarch')).toBe(2);
+    expect(strengthFrom(state, ship, 'attack', 'thePolemarch')).toBe(2);
+    // A second Military card adds a helping. A card of another type does not.
+    slot(state, 0, 'theCeremonialGuard');
+    expect(strengthFrom(state, soldier, 'attack', 'thePolemarch')).toBe(4);
+    slot(state, 0, 'theSecondReading');
+    slot(state, 0, 'thePrytaneion');
+    expect(strengthFrom(state, soldier, 'defend', 'thePolemarch')).toBe(4);
+    // A rival's unit gains nothing from this seat's card.
+    const rival = createUnit(state, 1, 'warrior', 9, 7);
+    bumpRevision(state);
+    expect(strengthFrom(state, rival, 'attack', 'thePolemarch')).toBe(0);
+  });
+
+  it('The Second Reading frees the first reroll of each Order, Doctrine and great-person hand, and opens rerolls early', () => {
+    const state = bareState();
+    town(state, 5, 5, 3);
+    const player = playerById(state, 0)!;
+    // A seat that does not know Chronology may not reroll at all.
+    player.techsResearched = player.techsResearched.filter((id) => id !== ('theLongCount' as TechId));
+    expect(techDef('theLongCount' as TechId).name).toBe('Chronology');
+    bumpRevision(state);
+    expect(rerollDoorOpen(state, 0)).toBe(false);
+    slot(state, 0, 'theSecondReading');
+    expect(rerollDoorOpen(state, 0)).toBe(true);
+    offer(state, 'theCornerstone', 'theRepertory', 'thePolemarch');
+    for (const kind of ['order', 'doctrine', 'greatPerson'] as const) {
+      expect(rihlaPaysFor(state, player, kind), kind).toBe(true);
+    }
+    // A belief hand's first asking is free already, so the rule is not asked.
+    expect(rihlaPaysFor(state, player, 'belief')).toBe(false);
+    expect(explainRerollCost(state, 0, 'order').total).toBe(0);
+    // The free reroll is spent by the hand it deals, and the next one costs.
+    const faith = player.faithPool;
+    expect(settleReroll(state, player)?.paid).toBe(0);
+    expect(player.faithPool).toBe(faith);
+    expect(explainRerollCost(state, 0, 'order').total).toBeGreaterThan(0);
+    // The next hand is free again.
+    offer(state, 'theCornerstone');
+    expect(explainRerollCost(state, 0, 'order').total).toBe(0);
+  });
+});
+
+describe('Magisterial batch MG2: the draft and the patrons', () => {
+  it('The Court Painter grants 15 renown for each card drafted, a charter and a free hand included', () => {
+    const state = bareState();
+    town(state, 5, 5, 3);
+    const player = playerById(state, 0)!;
+    const earned = (): number => player.renownEarned;
+    // Drafting the card itself pays nothing, because it is not yet in a chair.
+    offer(state, 'theCourtPainter');
+    let before = earned();
+    pick(state);
+    expect(earned() - before).toBe(0);
+    slot(state, 0, 'theCourtPainter');
+    offer(state, 'marketDay');
+    before = earned();
+    pick(state);
+    expect(earned() - before).toBe(15);
+    // A charter counts (the card's second sentence).
+    offer(state, 'thePlantersCharter');
+    before = earned();
+    pick(state);
+    expect(player.charteredBuildings).toContain('plantationHouse');
+    expect(earned() - before).toBe(15);
+    // A pass pays nothing (reading 9).
+    offer(state, 'theMineralTrade');
+    before = earned();
+    expect(applyCommand(state, { type: 'skipOrderOffer', playerId: 0 }).ok).toBe(true);
+    expect(earned() - before).toBe(0);
+    // The moment pays renown and nothing else.
+    const payout = windfallPayout(state, 0, 'cardDrafted');
+    expect(payout.grants).toHaveLength(0);
+    expect(payout.renown.filter((grant) => grant.amount !== 0).map((grant) => grant.amount)).toEqual([15]);
+  });
+
+  it('The Overseers of Works sends the capital 100 production for each age reached when a great person is gained', () => {
+    const state = bareState(20, 10);
+    const capital = town(state, 3, 5, 3);
+    const other = town(state, 12, 5, 3);
+    const player = playerById(state, 0)!;
+    slot(state, 0, 'theOverseersOfWorks');
+    const era = highestAge(player.techsResearched);
+    expect(era).toBeGreaterThan(1);
+    const production = (): number[] =>
+      windfallPayout(state, 0, 'greatPersonGained')
+        .grants.filter((grant) => grant.card === 'theOverseersOfWorks' && grant.yield === 'production')
+        .map((grant) => grant.amount);
+    expect(production()).toEqual([100 * era]);
+    // In the first age it is 100.
+    const firstAge = player.techsResearched.filter((id) => techDef(id).age === 1);
+    player.techsResearched = firstAge;
+    bumpRevision(state);
+    expect(production()).toEqual([100]);
+    // The hammers land in the capital, and in no other town.
+    const atCapital = capital.hammerBasket;
+    const atOther = other.hammerBasket;
+    payWindfallGrants(state, player, windfallPayout(state, 0, 'greatPersonGained'), {
+      col: other.col,
+      row: other.row,
+    });
+    expect(capital.hammerBasket - atCapital).toBe(100);
+    expect(other.hammerBasket).toBe(atOther);
+  });
+
+  it('The Encyclopedia pays the capital +1 science and +1 culture for each Order held and not seated, at most 15', () => {
+    const state = bareState(20, 10);
+    const capital = town(state, 3, 5, 3);
+    const other = town(state, 12, 5, 3);
+    slot(state, 0, 'theEncyclopedia');
+    // The card itself is seated, so it does not count.
+    expect(townPays(state, capital, 'theEncyclopedia', 'science')).toBe(0);
+    const sc = playerById(state, 0)!.statecraft;
+    const shelf = ORDER_IDS.filter((id) => !sc.orders.includes(id));
+    sc.orders.push(...shelf.slice(0, 3));
+    bumpRevision(state);
+    expect(townPays(state, capital, 'theEncyclopedia', 'science')).toBe(3);
+    expect(townPays(state, capital, 'theEncyclopedia', 'culture')).toBe(3);
+    expect(townPays(state, other, 'theEncyclopedia', 'science')).toBe(0);
+    // A seated card leaves the count.
+    sc.slots.push({ card: shelf[0]!, sealedUntil: state.turn });
+    bumpRevision(state);
+    expect(townPays(state, capital, 'theEncyclopedia', 'science')).toBe(2);
+    // At most fifteen of each.
+    sc.orders.push(...shelf.slice(3, 30));
+    bumpRevision(state);
+    expect(townPays(state, capital, 'theEncyclopedia', 'science')).toBe(15);
+    expect(townPays(state, capital, 'theEncyclopedia', 'culture')).toBe(15);
+  });
+});
+
+describe('Magisterial batch MG2: towns, works and wonders', () => {
+  it('The Repertory pays +1 culture for each culture building in a town', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    slot(state, 0, 'theRepertory');
+    expect(townPays(state, city, 'theRepertory', 'culture')).toBe(0);
+    addBuilding(state, city, 'monument');
+    addBuilding(state, city, 'amphitheater');
+    addBuilding(state, city, 'granary');
+    refreshCityDerived(state, city);
+    bumpRevision(state);
+    expect(townPays(state, city, 'theRepertory', 'culture')).toBe(2);
+  });
+
+  it('The Cornerstone speeds wonders by 30% in a town that holds no wonder, and in no other', () => {
+    const state = bareState(20, 10);
+    const bare = town(state, 3, 5, 3);
+    const holder = town(state, 12, 5, 3);
+    addBuilding(state, holder, 'pyramids');
+    refreshCityDerived(state, holder);
+    slot(state, 0, 'theCornerstone');
+    const toward = (city: City, category: 'wonder' | 'building', id: string): number =>
+      cardProduction(state, city, category, undefined, id as never)
+        .filter((line) => line.card === 'theCornerstone')
+        .reduce((sum, line) => sum + line.percent, 0);
+    expect(toward(bare, 'wonder', 'greatLibrary')).toBe(30);
+    expect(toward(holder, 'wonder', 'greatLibrary')).toBe(0);
+    // Wonders only.
+    expect(toward(bare, 'building', 'granary')).toBe(0);
+  });
+
+  it('The Workshop at Olympia pays +2 renown a turn and The Keepers of Wonders +2 happiness for each wonder held', () => {
+    const state = bareState(20, 10);
+    const first = town(state, 3, 5, 3);
+    const second = town(state, 12, 5, 3);
+    slot(state, 0, 'theWorkshopAtOlympia');
+    slot(state, 0, 'theKeepersOfWonders');
+    expect(renownFrom(state, 'theWorkshopAtOlympia')).toBe(0);
+    expect(happinessFrom(state, 'theKeepersOfWonders')).toBe(0);
+    addBuilding(state, first, 'pyramids');
+    addBuilding(state, second, 'greatLibrary');
+    addBuilding(state, second, 'stonehenge');
+    for (const city of [first, second]) refreshCityDerived(state, city);
+    bumpRevision(state);
+    expect(renownFrom(state, 'theWorkshopAtOlympia')).toBe(6);
+    expect(happinessFrom(state, 'theKeepersOfWonders')).toBe(6);
+  });
+
+  it('The Ceremonial Guard gives a town holding a wonder +5 defence', () => {
+    const state = bareState(20, 10);
+    const bare = town(state, 3, 5, 3);
+    const holder = town(state, 12, 5, 3);
+    slot(state, 0, 'theCeremonialGuard');
+    const defence = (city: City): number =>
+      cardCityStat(state, city, 'defense')
+        .filter((line) => line.card === 'theCeremonialGuard')
+        .reduce((sum, line) => sum + line.amount, 0);
+    expect(defence(holder)).toBe(0);
+    addBuilding(state, holder, 'pyramids');
+    refreshCityDerived(state, holder);
+    bumpRevision(state);
+    expect(defence(holder)).toBe(5);
+    expect(defence(bare)).toBe(0);
+  });
+
+  it('The Siting Masters pays a work +1 culture for each hill, mountain, forest or water hex beside it, at most +3', () => {
+    const state = bareState(20, 12);
+    const city = town(state, 8, 6, 3);
+    slot(state, 0, 'theSitingMasters');
+    // A work two hexes from the centre, so its six neighbours are ours to shape.
+    const work = at(state, 8, 4);
+    raiseImprovement(work, 'academy' as never, state.turn);
+    const beside = tileNeighbors(state.map, work).filter(
+      (tile) => !(tile.col === city.col && tile.row === city.row),
+    );
+    expect(beside.length).toBeGreaterThanOrEqual(5);
+    refreshCityDerived(state, city);
+    bumpRevision(state);
+    const culture = (): number => hexPays(state, city, work, 'theSitingMasters').culture;
+    expect(culture()).toBe(0);
+    // A forested hill is one hex, so it counts once (reading 28).
+    beside[0]!.hills = true;
+    beside[0]!.feature = 'forest' as never;
+    bumpRevision(state);
+    expect(culture()).toBe(1);
+    beside[1]!.terrain = 'mountain' as never;
+    bumpRevision(state);
+    expect(culture()).toBe(2);
+    beside[2]!.terrain = 'coast' as never;
+    bumpRevision(state);
+    expect(culture()).toBe(3);
+    // At most +3.
+    beside[3]!.feature = 'forest' as never;
+    bumpRevision(state);
+    expect(culture()).toBe(3);
+    // A hex that is not a great-person work is paid nothing.
+    const farm = beside[4]!;
+    raiseImprovement(farm, 'farm' as never, state.turn);
+    bumpRevision(state);
+    expect(hexPays(state, city, farm, 'theSitingMasters').culture).toBe(0);
+  });
+
+  it('The Unveiling deals a free Order hand when a wonder is completed, and only when no hand waits', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    const player = playerById(state, 0)!;
+    slot(state, 0, 'theUnveiling');
+    expect(windfallPayout(state, 0, 'completion', 0, 0, { wonder: true }).freeDraft).toBe(true);
+    expect(windfallPayout(state, 0, 'completion').freeDraft).not.toBe(true);
+    // A building that is not a wonder deals nothing.
+    const drafts = player.statecraft.drafts;
+    realiseItem(state, city, { kind: 'building', id: 'granary' as never });
+    expect(player.statecraft.pendingOrder).toBeUndefined();
+    // A wonder deals a hand, and the draft count does not move.
+    realiseItem(state, city, { kind: 'building', id: 'pyramids' as never });
+    const hand = player.statecraft.pendingOrder;
+    expect(hand).toBeDefined();
+    expect(hand!.options.length).toBeGreaterThan(0);
+    expect(player.statecraft.drafts).toBe(drafts);
+    // While that hand waits, a second wonder deals nothing (reading 14).
+    realiseItem(state, city, { kind: 'building', id: 'greatLibrary' as never });
+    expect(player.statecraft.pendingOrder).toBe(hand);
   });
 });

@@ -2099,6 +2099,287 @@
           "scope": { "test": "notHasWonder" }
         }
       ]
+    },
+    "thePrytaneion": {
+      "name": "The Prytaneion",
+      "decks": ["magisterial"],
+      "band": 0,
+      "rarity": "uncommon",
+      "type": "economic",
+      "line": "none",
+      "flavor": "Whoever served the city ate at its table, and the city paid.",
+      "text": "Each town gains +1 food for each card you have seated.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "slottedOrders",
+          "to": "food",
+          "amount": 1
+        }
+      ],
+      "note": "Only the Orders sitting in a chair count, this one included. A charter takes no chair, so it does not count, and neither does a Doctrine."
+    },
+    "thePolemarch": {
+      "name": "The Polemarch",
+      "decks": ["magisterial"],
+      "band": 0,
+      "rarity": "common",
+      "type": "military",
+      "line": "none",
+      "flavor": "One of the nine magistrates led the army, and the other eight gave advice.",
+      "text": "Your units gain +2 strength for each Military card you have seated.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 2,
+          "side": "both",
+          "when": { "test": "always" },
+          "scaled": { "count": "slottedOrdersOfSlot", "slot": "military", "per": 1 }
+        }
+      ],
+      "note": "Every unit gains it, on land and at sea, attacking or defending. This card counts itself, and a Military card in a Wildcard chair counts too."
+    },
+    "theCourtPainter": {
+      "name": "The Court Painter",
+      "decks": ["magisterial"],
+      "band": 0,
+      "rarity": "common",
+      "type": "civic",
+      "line": "none",
+      "flavor": "Every new minister sits for a portrait, so the painter is never short of work.",
+      "text": "Each card you draft grants 15 renown. A charter counts.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "cardDrafted",
+          "grant": { "renown": 15 }
+        }
+      ],
+      "note": "A card picked from a free hand counts. Passing on a hand does not, and neither does a Doctrine or a great person. This card pays nothing for drafting itself."
+    },
+    "theCornerstone": {
+      "name": "The Cornerstone",
+      "decks": ["magisterial"],
+      "band": 0,
+      "rarity": "common",
+      "type": "economic",
+      "line": "none",
+      "flavor": "The first stone is laid with a speech, and the rest are laid in silence.",
+      "text": "Towns that hold no wonder build wonders 30% faster.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 30,
+          "scope": { "test": "notHasWonder" }
+        }
+      ]
+    },
+    "theRepertory": {
+      "name": "The Repertory",
+      "decks": ["magisterial"],
+      "band": 0,
+      "rarity": "common",
+      "type": "civic",
+      "line": "none",
+      "flavor": "The same plays every season, and the same people cry at the same lines.",
+      "text": "Culture buildings give +1 culture each.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "buildingsOfCategory",
+          "category": "culture",
+          "within": "city"
+        }
+      ]
+    },
+    "theSecondReading": {
+      "name": "The Second Reading",
+      "decks": ["magisterial"],
+      "band": 0,
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "line": "none",
+      "flavor": "A law read twice is a law somebody has thought about.",
+      "text": "The first reroll of each hand is free.",
+      "effects": [{ "kind": "rule", "rule": "rerollOffers" }],
+      "note": "This covers hands of Orders, Doctrines and great people, and it lets you reroll before you know Chronology. A belief hand's first reroll is already free."
+    },
+    "theNomarchs": {
+      "name": "The Nomarchs",
+      "decks": ["magisterial"],
+      "band": 1,
+      "rarity": "uncommon",
+      "type": "civic",
+      "line": "none",
+      "flavor": "Each province had its governor, and each governor had a seat at court.",
+      "text": "+1 authority for every two cards you have seated.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "authority",
+          "amount": 1,
+          "count": "slottedOrders",
+          "per": 2
+        }
+      ],
+      "note": "Only the Orders sitting in a chair count, this one included. A charter takes no chair, so it does not count, and neither does a Doctrine."
+    },
+    "theWorkshopAtOlympia": {
+      "name": "The Workshop at Olympia",
+      "decks": ["magisterial"],
+      "band": 1,
+      "rarity": "common",
+      "type": "civic",
+      "line": "none",
+      "flavor": "The sculptor's shed still stands beside the temple, long after the statue went.",
+      "text": "+2 renown a turn for each wonder you hold.",
+      "effects": [{ "kind": "renown", "amount": 2, "per": "wonder" }],
+      "note": "A wonder you captured counts."
+    },
+    "theOverseersOfWorks": {
+      "name": "The Overseers of Works",
+      "decks": ["magisterial"],
+      "band": 1,
+      "rarity": "uncommon",
+      "type": "economic",
+      "line": "none",
+      "flavor": "When a master arrives, the stone yards are already waiting.",
+      "text": "Each time you gain a great person, your capital gains 100 production for each age you have reached.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "greatPersonGained",
+          "perAge": true,
+          "grant": { "yield": "production", "amount": 100, "toCapital": true }
+        }
+      ]
+    },
+    "theSitingMasters": {
+      "name": "The Siting Masters",
+      "decks": ["magisterial"],
+      "band": 1,
+      "rarity": "common",
+      "type": "civic",
+      "line": "none",
+      "flavor": "They walk the ground for a week before a single stake goes in.",
+      "text": "Great-person works gain +1 culture for each hill, mountain, forest or water hex beside them, at most +3.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "culture": 1,
+          "on": { "test": "greatWork" },
+          "perNeighbour": {
+            "test": "any",
+            "of": [
+              { "test": "hills" },
+              { "test": "terrain", "terrain": "mountain" },
+              { "test": "feature", "feature": "forest" },
+              { "test": "water" }
+            ]
+          },
+          "max": 3
+        }
+      ],
+      "note": "A hex counts once, even when it is two of these, such as a forested hill."
+    },
+    "theKeepersOfWonders": {
+      "name": "The Keepers of Wonders",
+      "decks": ["magisterial"],
+      "band": 1,
+      "rarity": "common",
+      "type": "civic",
+      "line": "none",
+      "flavor": "People sleep better near a thing that will outlast them.",
+      "text": "+2 happiness for each wonder you hold.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 2,
+          "count": "wonders"
+        }
+      ],
+      "note": "A wonder you captured counts."
+    },
+    "theCeremonialGuard": {
+      "name": "The Ceremonial Guard",
+      "decks": ["magisterial"],
+      "band": 1,
+      "rarity": "common",
+      "type": "military",
+      "line": "none",
+      "flavor": "The armour is polished for the visitors, and the spears are sharp for everyone else.",
+      "text": "Towns holding a wonder gain +5 defence.",
+      "effects": [
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 5,
+          "scope": { "test": "hasWonder" }
+        }
+      ]
+    },
+    "theUnveiling": {
+      "name": "The Unveiling",
+      "decks": ["magisterial"],
+      "band": 1,
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "line": "none",
+      "flavor": "The cloth comes down, the crowd draws breath, and the council sits again.",
+      "text": "Completing a wonder deals you a free Order hand.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "completion",
+          "wonder": true,
+          "grant": { "freeDraft": true }
+        }
+      ],
+      "note": "No hand is dealt while an Order hand or a Doctrine offer is waiting for your answer. The free hand does not raise the price of your next hand."
+    },
+    "theEncyclopedia": {
+      "name": "The Encyclopedia",
+      "decks": ["magisterial"],
+      "band": 1,
+      "rarity": "common",
+      "type": "civic",
+      "line": "none",
+      "flavor": "Everything known, in order from A to Z, and still not finished.",
+      "text": "+1 science and +1 culture in your capital for each Order you hold unseated, at most +15 of each.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "unslottedOrders",
+          "max": 15
+        },
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "unslottedOrders",
+          "max": 15
+        }
+      ],
+      "note": "A charter counts, because it never takes a chair."
     }
   }
 }

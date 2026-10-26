@@ -3,7 +3,7 @@
 The deck's cards, by tier: name, rarity, status, ability and type. This sheet is the spec of record for the deck. `test/sim/decks/magisterial.test.ts` checks it against `data/decks/magisterial.json` and, for the shared table, `data/decks/common.json`.
 
 - **Why each card is here:** `docs/plans/magisterial-themes.md`, the themes pass of 2026-10-23. It designs the deck as a way to play: an engine of culture and the draft, and four themes (the council, the patrons, the landscape and the monuments). Section 12 holds your comments and answers of 2026-10-25, and it outranks the sections before it. `docs/plans/magisterial-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
-- **The build plan:** `docs/plans/magisterial-themes-triage.md` (batches MG1 to MG17). Batch MG1 wrote this sheet, put the types into the data, retired the 64 cut rows, changed four cards in place (Civic Granaries, The Honoured Dead, The Living Canon and The Masters' Domain), and gave the three deferred rows their new text and tier. Each later batch sets its own rows to `implemented`.
+- **The build plan:** `docs/plans/magisterial-themes-triage.md` (batches MG1 to MG17). Batch MG1 wrote this sheet, put the types into the data, retired the 64 cut rows, changed four cards in place (Civic Granaries, The Honoured Dead, The Living Canon and The Masters' Domain), and gave the three deferred rows their new text and tier. Batch MG2 built the fourteen cards of Tiers 0 and I whose shapes already existed: The Prytaneion, The Polemarch, The Court Painter, The Cornerstone, The Repertory, The Second Reading, The Nomarchs, The Workshop at Olympia, The Overseers of Works, The Siting Masters, The Keepers of Wonders, The Ceremonial Guard, The Unveiling and The Encyclopedia. Each later batch sets its own rows to `implemented`.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -23,12 +23,12 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 
 | Tier | Implemented | Modify | Add | All |
 |---|---|---|---|---|
-| Tier 0 | 3 | 0 | 7 | 10 |
-| Tier I | 3 | 0 | 12 | 15 |
+| Tier 0 | 9 | 0 | 1 | 10 |
+| Tier I | 11 | 0 | 4 | 15 |
 | Tier II | 3 | 1 | 13 | 17 |
 | Tier III | 3 | 0 | 14 | 17 |
 | Tier IV | 0 | 2 | 10 | 12 |
-| **All** | **12** | **3** | **56** | **71** |
+| **All** | **26** | **3** | **42** | **71** |
 | Shared | 15 | 3 | 1 | 19 |
 
 **By type** (the chair a card fits):
@@ -49,15 +49,15 @@ The deck holds 71 cards, and every one takes a chair: 10, 15, 17, 17 and 12 acro
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Prytaneion** | uncommon | add | Each town gains +1 food for each card you have seated. | Economic |
-| **The Polemarch** | common | add | Your units gain +2 strength for each Military card you have seated. | Military |
-| **The Court Painter** | common | add | Each card you draft grants 15 renown. A charter counts. | Civic |
-| **The Cornerstone** | common | add | Towns that hold no wonder build wonders 30% faster. | Economic |
+| **The Prytaneion** | uncommon | implemented | Each town gains +1 food for each card you have seated. | Economic |
+| **The Polemarch** | common | implemented | Your units gain +2 strength for each Military card you have seated. | Military |
+| **The Court Painter** | common | implemented | Each card you draft grants 15 renown. A charter counts. | Civic |
+| **The Cornerstone** | common | implemented | Towns that hold no wonder build wonders 30% faster. | Economic |
 | **Civic Granaries** | common | implemented | Monuments give +1 food and +1 production. | Economic |
 | **Master Masons** | common | implemented | Gain +25% production toward Monuments. Completing a culture building for the first time in a city grants 20 production there. | Economic |
 | **The Temple of the Muses** | common | implemented | Culture buildings give +2 faith each. | Civic |
-| **The Repertory** | common | add | Culture buildings give +1 culture each. | Civic |
-| **The Second Reading** | uncommon | add | The first reroll of each hand is free. | Wildcard |
+| **The Repertory** | common | implemented | Culture buildings give +1 culture each. | Civic |
+| **The Second Reading** | uncommon | implemented | The first reroll of each hand is free. | Wildcard |
 | **Commission: The Eighth Wonder** | uncommon | add | Commission. Complete a wonder while this is seated. Then, for the rest of the game, each wonder you hold gives +3 culture and +5 renown. The card leaves its chair. | Civic |
 
 ## Tier I
@@ -71,21 +71,21 @@ The deck holds 71 cards, and every one takes a chair: 10, 15, 17, 17 and 12 acro
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Nomarchs** | uncommon | add | +1 authority for every two cards you have seated. | Civic |
+| **The Nomarchs** | uncommon | implemented | +1 authority for every two cards you have seated. | Civic |
 | **Commission: The Roll of the Senate** | uncommon | add | Commission. Hold ten Orders. Then, for the rest of the game, you have one more Wildcard chair. The card leaves its chair. | Wildcard |
 | **The Wandering Muse** | uncommon | add | On draft: gain a free great-person draft. Seated, this card does nothing. | Civic |
-| **The Workshop at Olympia** | common | add | +2 renown a turn for each wonder you hold. | Civic |
-| **The Overseers of Works** | uncommon | add | Each time you gain a great person, your capital gains 100 production for each age you have reached. | Economic |
+| **The Workshop at Olympia** | common | implemented | +2 renown a turn for each wonder you hold. | Civic |
+| **The Overseers of Works** | uncommon | implemented | Each time you gain a great person, your capital gains 100 production for each age you have reached. | Economic |
 | **The Laureate** | uncommon | implemented | Cities working a great-person improvement gain +5 culture, +3 science and +1 renown, once per city. | Civic |
 | **The Landmark Bounds** | uncommon | add | Laying a great-person work claims every unowned hex beside it. | Economic |
-| **The Siting Masters** | common | add | Great-person works gain +1 culture for each hill, mountain, forest or water hex beside them, at most +3. | Civic |
+| **The Siting Masters** | common | implemented | Great-person works gain +1 culture for each hill, mountain, forest or water hex beside them, at most +3. | Civic |
 | **The Guild of Masons** | uncommon | implemented | Gain +38% production toward wonders. Cities producing a wonder lose 2 gold per turn. | Economic |
-| **The Keepers of Wonders** | common | add | +2 happiness for each wonder you hold. | Civic |
-| **The Ceremonial Guard** | common | add | Towns holding a wonder gain +5 defence. | Military |
-| **The Unveiling** | uncommon | add | Completing a wonder deals you a free Order hand. | Wildcard |
+| **The Keepers of Wonders** | common | implemented | +2 happiness for each wonder you hold. | Civic |
+| **The Ceremonial Guard** | common | implemented | Towns holding a wonder gain +5 defence. | Military |
+| **The Unveiling** | uncommon | implemented | Completing a wonder deals you a free Order hand. | Wildcard |
 | **The Open Door** | uncommon | add | Order hands cost 15% less culture. | Wildcard |
 | **The Working Court** | rare | implemented | Cities with a Monument gain production equal to 30% of their base culture, excluding conversion outputs. | Economic |
-| **The Encyclopedia** | common | add | +1 science and +1 culture in your capital for each Order you hold unseated, at most +15 of each. | Civic |
+| **The Encyclopedia** | common | implemented | +1 science and +1 culture in your capital for each Order you hold unseated, at most +15 of each. | Civic |
 
 ## Tier II
 

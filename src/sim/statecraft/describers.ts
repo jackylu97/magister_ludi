@@ -2242,8 +2242,11 @@ function describeEffect(
           // Once for each item a count finds (Dominion batch D5): Valhalla's
           // Monuments and The Mural Crown's great generals.
           const each = grant.perCount === undefined ? '' : ` for each ${grantCountWords(grant.perCount)}`;
+          // The town comes before the age (Magisterial batch MG2, The
+          // Overseers of Works), so the sentence reads "+100 production to
+          // your capital for each age you have reached".
           out.push({
-            text: `${occasion} grants ${signed(grant.amount)} ${grant.yield}${each}${age}${grantDeliveryWords(grant)}${per}`,
+            text: `${occasion} grants ${signed(grant.amount)} ${grant.yield}${each}${grantDeliveryWords(grant)}${age}${per}`,
           });
         }
       }
@@ -6449,8 +6452,9 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   buyGreatPersonWithGold: 'a great person waiting to be called may be bought with gold',
   buyGreatPersonWithFaith: 'a great person waiting to be called may be bought with faith',
   buyScholarDraftWithFaith: 'a draft of great scholars may be bought with faith',
-  rerollOffers:
-    'the first time you ask for a fresh hand of Orders, doctrines or great people, it costs nothing',
+  // Said for each hand (Magisterial batch MG2, The Second Reading). The old
+  // words, "the first time you ask for a fresh hand", read as once a game.
+  rerollOffers: 'the first reroll of each hand of Orders, Doctrines or great people costs nothing',
   capitalBuysWithoutLimit: 'your capital may buy as many units in a turn as it can pay for',
   goldBuysWonders: 'you may buy world wonders with gold',
   // Said as the bank that opens, with the price in the same breath: a player who

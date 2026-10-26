@@ -683,9 +683,23 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Civic Granaries | 0 | ● | P | Monuments give +1 food and +1 production. |
 | The Temple of the Muses | 0 | ● | P | Culture buildings give +2 faith each. |
 | Master Masons | 0 | ● | S | Gain +25% production toward Monuments. Completing a culture building for the first time in a city grants 20 production there. |
+| The Prytaneion | 0 | ◆ | E | Each town gains +1 food for each card you have seated. |
+| The Polemarch | 0 | ● | E | Your units gain +2 strength for each Military card you have seated. |
+| The Court Painter | 0 | ● | S | Each card you draft grants 15 renown. A charter counts. |
+| The Cornerstone | 0 | ● | S | Towns that hold no wonder build wonders 30% faster. |
+| The Repertory | 0 | ● | P | Culture buildings give +1 culture each. |
+| The Second Reading | 0 | ◆ | S | The first reroll of each hand is free. |
 | The Laureate | 1 | ◆ | P | Cities working a great-person improvement gain +5 culture, +3 science and +1 renown, once per city. |
 | The Guild of Masons | 1 | ◆ | P | Gain +38% production toward wonders. Cities producing a wonder lose 2 gold per turn. |
 | The Working Court | 1 | ○ | P | Cities with a Monument gain production equal to 30% of their base culture, excluding conversion outputs. |
+| The Nomarchs | 1 | ◆ | E | +1 authority for every two cards you have seated. |
+| The Workshop at Olympia | 1 | ● | S | +2 renown a turn for each wonder you hold. |
+| The Overseers of Works | 1 | ◆ | S | Each time you gain a great person, your capital gains 100 production for each age you have reached. |
+| The Siting Masters | 1 | ● | S | Great-person works gain +1 culture for each hill, mountain, forest or water hex beside them, at most +3. |
+| The Keepers of Wonders | 1 | ● | P | +2 happiness for each wonder you hold. |
+| The Ceremonial Guard | 1 | ● | S | Towns holding a wonder gain +5 defence. |
+| The Unveiling | 1 | ◆ | S | Completing a wonder deals you a free Order hand. |
+| The Encyclopedia | 1 | ● | E | +1 science and +1 culture in your capital for each Order you hold unseated, at most +15 of each. |
 | The Learned Patron | 2 | ◆ | P | Cities with at least two culture buildings gain science equal to 15% of their base culture, at most +18 science per city. Conversion outputs are excluded. |
 | The Senate Charter | 2 | ◆ | S | Unlocks the capital-only Assembly Hall. A city with one gains +3 happiness and +30% production toward buildings. |
 | The Masters' Domain | 3 | ◆ | S | Worked great-person works give +3 food and +3 production. |
@@ -871,6 +885,16 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Golden Age** — Not dealt yet. Every rule this card needs exists, and it joins the deck with the next set of new Magisterial cards. † completing a wonder gives your towns more production and culture for a time, and a later wonder starts that time again
 - **The Magister's Court** — Not dealt yet. Every rule this card needs exists, and it joins the deck with the next set of new Magisterial cards. † towns that hold a wonder build the Magnum Opus faster
 - **The Last Commission** — Waiting on a new moment. The game does not yet mark the moment a great person is spent, and it cannot yet hold back the production when no town is building the Magnum Opus. † spending a great person sends production to the town building your Magnum Opus, at most once a turn
+- **The Prytaneion** — Only the Orders sitting in a chair count, this one included. A charter takes no chair, so it does not count, and neither does a Doctrine.
+- **The Polemarch** — Every unit gains it, on land and at sea, attacking or defending. This card counts itself, and a Military card in a Wildcard chair counts too.
+- **The Court Painter** — A card picked from a free hand counts. Passing on a hand does not, and neither does a Doctrine or a great person. This card pays nothing for drafting itself.
+- **The Second Reading** — This covers hands of Orders, Doctrines and great people, and it lets you reroll before you know Chronology. A belief hand's first reroll is already free.
+- **The Nomarchs** — Only the Orders sitting in a chair count, this one included. A charter takes no chair, so it does not count, and neither does a Doctrine.
+- **The Workshop at Olympia** — A wonder you captured counts.
+- **The Siting Masters** — A hex counts once, even when it is two of these, such as a forested hill.
+- **The Keepers of Wonders** — A wonder you captured counts.
+- **The Unveiling** — No hand is dealt while an Order hand or a Doctrine offer is waiting for your answer. The free hand does not raise the price of your next hand.
+- **The Encyclopedia** — A charter counts, because it never takes a chair.
 - **Letters of Marque** — The coin is for a kill made by one of your ships, wherever it happens. The extra gold and the slower shipyards both belong to the cities that have a Harbour.
 - **The Sacred Host** — A soldier bought with faith costs what it would cost to build, converted at the faith rate.
 - **Pilgrim Markets** — The first card to pay a trade route in faith; nothing carried it before this one asked. The test is a disjunction, so one shrine is enough and two are not more — a road with a holy site at each end is paid once, which is the card's second sentence. The site is the prophet's work on the ground, anywhere inside either town's borders, and nobody has to be working the hex.

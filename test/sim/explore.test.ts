@@ -1038,10 +1038,17 @@ describe('determinism', () => {
    * markers. Nobody here drafts, so no seat holds a new card or researches
    * Scholasticism. Checked with the change in place and the version printed
    * as 177, which gives the hashes of Magisterial batch MG1 exactly.
+   *
+   * **Magisterial batch MG2 (the data-only cards of Tiers 0 and I, schema
+   * 179) moved the hash and not the length** at both seeds: 178 became 179,
+   * and that is all. The batch adds fourteen card rows and changes the words
+   * of two describer sentences. Nobody here drafts, so no seat holds a new
+   * card. Checked with the change in place and the version printed as 178,
+   * which gives the hashes of Devotion batch DV2 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '62961899:188931',
-    2026: '1922c344:188509',
+    11: '239ef380:188931',
+    2026: '7b4249dd:188509',
   };
 
   for (const seed of [11, 2026]) {

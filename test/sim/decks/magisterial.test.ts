@@ -8,8 +8,9 @@
  *
  *   · every row of the file folds as a Magisterial row, with a band, a rarity,
  *     a name, a flavour, its text and an id no other file uses;
- *   · the file holds 77 rows: 12 live, 3 deferred and 62 retired (the triage's
- *     reading 43). A retired row stays so that old saves load;
+ *   · the file holds 91 rows: 26 live, 3 deferred and 62 retired (the triage's
+ *     reading 43). A retired row stays so that old saves load. Batch MG2 added
+ *     fourteen live rows;
  *   · a live row uses only shapes the evaluator reads, and every (`where`,
  *     `basis`) pair of a `pays` line is a pair in `docs/yields.md`'s register;
  *   · a live row prints through the describers with no keyword mark left raw;
@@ -211,12 +212,13 @@ describe('the Magisterial deck', () => {
     }
   });
 
-  it('carries 77 rows: 12 live, 3 deferred and 62 retired', () => {
+  it('carries 91 rows: 26 live, 3 deferred and 62 retired', () => {
     // Batch MG1 retired the 61 rows the old sheet cut on 2026-10-06 and The
     // Performers' Treasury (the triage's reading 43). The rows stay so that
-    // old saves load.
-    expect(MAGISTERIAL).toHaveLength(77);
-    expect(MAGISTERIAL.filter(live)).toHaveLength(12);
+    // old saves load. Batch MG2 added fourteen live rows: six at Tier 0 and
+    // eight at Tier I.
+    expect(MAGISTERIAL).toHaveLength(91);
+    expect(MAGISTERIAL.filter(live)).toHaveLength(26);
     expect(MAGISTERIAL.filter(deferred)).toHaveLength(3);
     expect(MAGISTERIAL.filter(isRetired)).toHaveLength(62);
     for (const id of MAGISTERIAL.filter(isRetired)) {
@@ -224,7 +226,7 @@ describe('the Magisterial deck', () => {
     }
     // The rows the sheet lists, by band: Tiers 0 to IV.
     const kept = MAGISTERIAL.filter((id) => !isRetired(id)).map((id) => orderDef(id).band);
-    expect(BANDS.map((band) => kept.filter((b) => b === band).length)).toEqual([3, 3, 4, 3, 2]);
+    expect(BANDS.map((band) => kept.filter((b) => b === band).length)).toEqual([9, 11, 4, 3, 2]);
   });
 
   it('gives every row an id nothing else in the eight files uses', () => {
@@ -767,8 +769,9 @@ describe('the Magisterial deck: the sheet of record', () => {
     expect(shared).toHaveLength(19);
   });
 
-  it('types every listed row, 15 of this file and 18 shared, and nothing else of this file', () => {
-    expect(LISTED).toHaveLength(15);
+  it('types every listed row, 29 of this file and 18 shared, and nothing else of this file', () => {
+    // 15 since batch MG1, and the fourteen rows of batch MG2.
+    expect(LISTED).toHaveLength(29);
     for (const id of MAGISTERIAL) {
       const def = orderDef(id);
       if (isRetired(id)) expect(def.type, id).toBeUndefined();

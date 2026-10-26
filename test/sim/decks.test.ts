@@ -587,8 +587,10 @@ describe('the schema, as landed', () => {
     // new Devotion rows, the new shared The Shrine Guards, The Blessed Forges
     // and The Schoolmen's Charter, and the shared The Monastery Libraries,
     // which left `deferred`.
-    expect(live).toBe(536);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(536);
+    // **And Magisterial batch MG2** (the data-only cards of Tiers 0 and I):
+    // fourteen more, all new Magisterial rows.
+    expect(live).toBe(550);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(550);
   });
 
   /**
@@ -930,7 +932,10 @@ describe('the schema, as landed', () => {
     // cards and four shared cards are dealt, and the charter technology
     // Scholasticism opens the Cathedral and the Apostle early. So a v177
     // log's Devotion, Dominion and Scientific hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(178);
+    // 179 since Magisterial batch MG2 (the data-only cards of Tiers 0 and
+    // I): fourteen Magisterial cards are dealt. So a v178 log's Magisterial
+    // hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(179);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
