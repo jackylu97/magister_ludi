@@ -511,6 +511,8 @@ The first six come from section 12. The rest are new. Each gives the reading the
 - **Done-gate:** `npx vitest run test/sim/decks/magisterialPull.test.ts test/sim/cities.test.ts test/sim/visibility.test.ts test/sim/decks/magisterial.test.ts test/sim/decks.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`.
 - **After MG16 every card of the plan plays as written:** 71 of 71.
 
+- **Built (2026-10-26):** the card. The gate passed: the type check, 10,040 core tests and the build. Schema 199. **Every Magisterial card now plays as written (71 of 71).** The rule is `worksPullRivalHexes`; the sweep `pullRivalHexesToWorks` runs last in `expandBorders`, with no new phase. A new writer, `seizeTile` (`cities.ts`), moves a hex from a rival's town and drops its pin; it is entry 33 of the mid-turn register and in the slate register. The sweep never takes a hex beyond `cities.claimRadius` of the holder's nearest town, so it never makes owned-but-unseen land. The card's text now reads "Each turn, each of your great-person works takes one hex beside it from a rival town, if no one works that hex. A town centre and a rival's own works are never taken." Readings added: a hex moves once per sweep; frozen borders do not stop the pull. Not done: the citadel's claim and The Encroaching Fields still write ownership directly; two holders can trade an unworked hex every turn; no notice reports pulled hexes.
+
 ### MG17: bot pricing
 
 - **Builds:**

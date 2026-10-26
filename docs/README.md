@@ -254,6 +254,21 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
     automatic assignment, and so the bots, never take a hex.
   - The city screen pins a takeable hex like an own one, and the hover readout
     says "Take from" and the town's name (`takeHint`).
+  - Three writers give a hex to a town: `claimTile` (a hex nobody owns),
+    `takeTile` (a hex of another town of the same empire) and, since
+    Magisterial batch MG16, `seizeTile` (a hex of a rival's town; that town
+    drops its pin there). The citadel's claim and The Encroaching Fields
+    still write `state.tileOwner` themselves.
+  - Since Magisterial batch MG16, `expandBorders` ends with
+    `pullRivalHexesToWorks` (The Pull of the Masters, the action rule
+    `worksPullRivalHexes`). Each holder in `realPlayers` order walks its
+    great-person works in tile order, and each work takes the first hex
+    beside it, in ring order, that a rival's town owns and does not work,
+    that is not a town centre and carries no great-person work, and that lies
+    within `cities.claimRadius` of the holder's nearest town, which takes it.
+    A hex moves at most once a sweep, so the first holder in that order wins
+    a hex two holders reach for. Both towns are re-seated after each take
+    (entry 33 of the mid-turn register) and both empires' sight is redrawn.
 - **A town's largest size, and three moments** (Expansionist batch E2).
   - `City.largestSize` is the most citizens a town has ever had. It is written
     at the founding and raised by `settleSizeRecord` (`cities.ts`), which

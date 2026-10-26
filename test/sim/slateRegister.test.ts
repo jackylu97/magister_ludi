@@ -287,6 +287,10 @@ const ANNOUNCING = new Set([
   // The take (`docs/flags.md` (aaaaaaa)): a pin moves a hex from one town of
   // the empire to another. It writes the owner array and announces.
   'cities.ts#takeTile',
+  // Magisterial batch MG16, The Pull of the Masters: a hex moves from a
+  // rival's town to the holder's nearest town. It writes the owner array and
+  // announces.
+  'cities.ts#seizeTile',
   // Expansionist batch E5: a commission marks the town that met its goal.
   'commissions.ts#markGoalTown',
   // Batch L: famine and a levy both take a citizen through `loseCitizen`.

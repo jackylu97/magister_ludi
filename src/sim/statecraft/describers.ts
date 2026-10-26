@@ -6794,6 +6794,10 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // Magisterial batch MG13, The Universal Genius: the card's first sentence.
   // The legacy coming once is the card's second sentence and its note.
   actThenWork: 'your great people may act, and then still lay their work',
+  // Magisterial batch MG16, The Pull of the Masters: the card's text, with the
+  // "rival's own works" said as the great-person works they are.
+  worksPullRivalHexes:
+    "each turn, each of your great-person works takes one hex beside it from a rival city, if no one works that hex; a city centre and a rival's great-person work are never taken",
   capitalBuysWithoutLimit: 'your capital may buy as many units in a turn as it can pay for',
   goldBuysWonders: 'you may buy world wonders with gold',
   // Said as the bank that opens, with the price in the same breath: a player who

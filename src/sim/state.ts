@@ -3087,8 +3087,35 @@ import {
  * **A v197 save is refused and does not replay.** A Magisterial seat's pools
  * hold more cards. The branch migrates nothing, for the reason given under
  * v119.
+ *
+ * v199 (branch `decks`; Magisterial batch MG16, `docs/plans/magisterial-
+ * themes-triage.md`): **The Pull of the Masters.** No field joins the state.
+ * The rules that change:
+ *
+ *   · one action rule is new, `worksPullRivalHexes`. It is read in one
+ *     place, `pullRivalHexesToWorks` (`cities.ts`), which `expandBorders`
+ *     calls at the end of the borders phase, so the phase list keeps its
+ *     length. Each holder in `realPlayers` order walks its great-person
+ *     works in tile order, and each work takes the first hex beside it, in
+ *     ring order, that a rival's town owns and does not work, that is not a
+ *     town centre and carries no great-person work, and that lies within
+ *     `cities.claimRadius` of the holder's nearest town. A hex moves at most
+ *     once a sweep, so when two holders' works reach for the same hex, the
+ *     first in that order takes it (the triage's reading 40);
+ *   · one writer of a hex's town is new, `seizeTile` (`cities.ts`), beside
+ *     `claimTile` and `takeTile`: it moves a hex from a rival's town and
+ *     drops that town's pin there. After each take both towns are re-seated
+ *     (entry 33 of the register of mid-turn yield changes) and both
+ *     empires' sight is redrawn;
+ *   · one Magisterial card is new and dealt: The Pull of the Masters (Tier
+ *     IV). Its text now says "Each turn" in place of "At the start of each
+ *     turn", because the hexes move at the end of the turn.
+ *
+ * **A v198 save is refused and does not replay.** A Magisterial seat's pools
+ * hold more cards. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 198;
+export const SCHEMA_VERSION = 199;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

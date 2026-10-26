@@ -3223,6 +3223,18 @@
         }
       ],
       "note": "A line runs straight along the hexes, in any direction, with each work beside the next and no gap. Every work of the line must be in your borders, and a prophet's Holy Site counts. A work on more than one line gains the bonus once. Like every bonus on a hex, a work pays it only while one of your cities works it."
+    },
+    "thePullOfTheMasters": {
+      "name": "The Pull of the Masters",
+      "decks": ["magisterial"],
+      "band": 4,
+      "rarity": "rare",
+      "type": "economic",
+      "line": "none",
+      "flavor": "After the First Sacred War, the plain below Delphi was taken from the town of Kirrha and given to Apollo's shrine.",
+      "text": "Each turn, each of your great-person works takes one hex beside it from a rival town, if no one works that hex. A town centre and a rival's own works are never taken.",
+      "effects": [{ "kind": "rule", "rule": "worksPullRivalHexes" }],
+      "note": "This happens at the end of each turn, after borders grow, and peace or war does not matter. Every great-person work in your borders pulls, whoever laid it, and a prophet's Holy Site counts. Each work tries the hexes beside it in turn and takes the first one it may. A hex that a citizen of its town is working stays, and so does a hex with a great-person work on it; anything else on the hex, such as a farm or a road, comes with it. The hex joins your nearest town, but only if it is close enough for that town's own borders to reach; otherwise the work tries its next hex. A hex taken this turn cannot be taken again in the same turn, so when works of two empires reach for the same hex, the empire listed first among the players takes it."
     }
   }
 }

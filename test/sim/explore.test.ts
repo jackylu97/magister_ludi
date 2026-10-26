@@ -1226,10 +1226,19 @@ describe('determinism', () => {
    * is found and no hex is claimed. Checked with the change in place and the
    * version printed as 197, which gives the hashes of Magisterial batch MG14
    * exactly.
+   *
+   * **Magisterial batch MG16 (The Pull of the Masters, schema 199) moved the
+   * hash and not the length** at both seeds: 198 became 199, and that is
+   * all. The batch adds an action rule that lets each great-person work take
+   * one rival hex beside it at the end of the borders phase, a writer that
+   * moves a rival's hex, and one card row. Nobody here drafts, so no seat
+   * holds the rule and the sweep moves nothing. Checked with the change in
+   * place and the version printed as 198, which gives the hashes of
+   * Magisterial batch MG15 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'a3a48bfd:188976',
-    2026: '8b75b314:188554',
+    11: '333543ae:188976',
+    2026: '8f6242d3:188554',
   };
 
   for (const seed of [11, 2026]) {

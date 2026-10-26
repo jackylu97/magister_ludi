@@ -3633,7 +3633,11 @@ describe('determinism with cities', () => {
     // count the works and tended hexes beside one work and claim the land
     // around it, and two Magisterial cards are dealt. So a v197 log's
     // Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(198);
+    // 199 since Magisterial batch MG16 (The Pull of the Masters): a card may
+    // let each great-person work take one rival hex beside it at the end of
+    // the borders phase, and one Magisterial card is dealt. So a v198 log's
+    // Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(199);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);
@@ -4009,6 +4013,11 @@ describe('the mid-turn refresh register', () => {
     // great-person work join the nearest town, which has new hexes to work
     // before the turn ends (entry 32 of the register on `refreshCityDerived`).
     { file: 'cities.ts', fn: 'claimUnownedBeside' },
+    // Magisterial batch MG16, The Pull of the Masters: a rival hex beside a
+    // great-person work moves to the holder's nearest town at the end of the
+    // borders phase, and both towns are re-seated after each take (entry 33
+    // of the register on `refreshCityDerived`).
+    { file: 'cities.ts', fn: 'pullRivalHexesToWorks' },
   ];
 
   it('routes every registered mutation through the one helper', () => {

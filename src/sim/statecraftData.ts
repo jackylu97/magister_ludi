@@ -4589,7 +4589,24 @@ export type ActionRuleId =
    * has left its chair. So the legacy, the `greatPersonSpent` tally and the
    * `greatPersonSpent` moment all come once, when the work is laid.
    */
-  | 'actThenWork';
+  | 'actThenWork'
+  /**
+   * **Each of this empire's great-person works takes one rival hex beside it
+   * each turn** (Magisterial batch MG16, The Pull of the Masters; the
+   * triage's reading 40). Read in one place, `pullRivalHexesToWorks`
+   * (`cities.ts`), which `expandBorders` calls at the end of the borders
+   * phase, so the rule adds no phase.
+   *
+   * The holders are swept in `realPlayers` order, each holder's works in
+   * tile order, and each work's six neighbours in ring order. A work takes
+   * the first hex that a rival's town owns, that the town does not work,
+   * that is not a town centre, that carries no great-person work, that no
+   * work took earlier in the same sweep, and that lies within
+   * `cities.claimRadius` of the holder's nearest town. The hex joins that
+   * town through `seizeTile`, and both towns are re-seated and both
+   * empires' sight redrawn. Peace or war does not matter.
+   */
+  | 'worksPullRivalHexes';
 
 /**
  * Something about the world that stops being true — or starts.

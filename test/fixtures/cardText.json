@@ -9305,6 +9305,12 @@
     "text": "+3 science, +3 culture on every hex carrying a great person's work in a straight line of 3 or more such works in your borders"
    }
   ],
+  "thePullOfTheMasters": [
+   {
+    "raw": "each turn, each of your great-person works takes one hex beside it from a rival city, if no one works that hex; a city centre and a rival's great-person work are never taken",
+    "text": "each turn, each of your great-person works takes one hex beside it from a rival city, if no one works that hex; a city centre and a rival's great-person work are never taken"
+   }
+  ],
   "frontierGarrisons": [
    {
     "raw": "+2 food in every city with a unit standing in it of 5 or fewer citizens",

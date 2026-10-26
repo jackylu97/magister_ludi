@@ -642,8 +642,10 @@ describe('the schema, as landed', () => {
     // **And Magisterial batch MG15** (arrangements on the hex grid): two
     // more. Commission: The Paradise Garden and The Processional Way are new
     // Magisterial rows.
-    expect(live).toBe(614);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(614);
+    // **And Magisterial batch MG16** (The Pull of the Masters): one more. The
+    // Pull of the Masters is a new Magisterial row.
+    expect(live).toBe(615);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(615);
   });
 
   /**
@@ -1074,7 +1076,11 @@ describe('the schema, as landed', () => {
     // count the works and tended hexes beside one work and claim the land
     // around it, and two Magisterial cards are dealt. So a v197 log's
     // Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(198);
+    // 199 since Magisterial batch MG16 (The Pull of the Masters): a card may
+    // let each great-person work take one rival hex beside it at the end of
+    // the borders phase, and one Magisterial card is dealt. So a v198 log's
+    // Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(199);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

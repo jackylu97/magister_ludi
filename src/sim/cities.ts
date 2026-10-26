@@ -223,6 +223,7 @@ import {
   type Player,
   type PurchaseCurrency,
   type QueueItem,
+  type TileOwnerField,
   type Unit,
   addBuilding,
   bankedTowardItem,
@@ -239,6 +240,7 @@ import {
   playerById,
   queueItemKey,
   reaimProduction,
+  realPlayers,
   shrinkFollowers,
   spendGold,
   tileOwnerField,
@@ -308,7 +310,7 @@ import { hasStackingRoom } from './units';
  * the claim honest.
  */
 import { siegeField, underSiege } from './combat';
-import { recomputeVisibility } from './visibility';
+import { recomputeVisibility, recomputeVisibilityFor } from './visibility';
 import { isCoastal } from './water';
 import {
   type MeterEffect,
@@ -1649,6 +1651,35 @@ export function takeTile(state: GameState, city: City, tile: Tile): City | null 
   return from;
 }
 
+/**
+ * **Moves a hex from a rival empire's town to this town** (Magisterial batch
+ * MG16, The Pull of the Masters). The third writer of a hex's town, beside
+ * `claimTile` (a hex nobody owns) and `takeTile` (a hex of another town of
+ * the same empire).
+ *
+ * The town that loses the hex also loses any pin it had there, for
+ * `takeTile`'s reason: a pin on a hex the town no longer owns is a citizen it
+ * can never seat. Whatever stands on the hex (a work, a road, a piece) stays
+ * where it is. Validates nothing else; the caller decides which hex may go.
+ * Returns the town that lost the hex, which the caller re-seats, or `null`
+ * when the hex was not a rival's, and then nothing is written.
+ *
+ * The citadel's claim (`claimAround`, `greatPeople.ts`) and The Encroaching
+ * Fields (`runEncroachment`, `frontiers.ts`) still write the array directly.
+ */
+export function seizeTile(state: GameState, city: City, tile: Tile): City | null {
+  const index = tileIndex(state.map, tile.col, tile.row);
+  const holder = state.tileOwner[index];
+  if (holder === null || holder === undefined || holder === city.id) return null;
+  const from = cityById(state, holder);
+  if (!from || from.ownerId === city.ownerId) return null;
+  state.tileOwner[index] = city.id;
+  from.lockedTiles = from.lockedTiles.filter((cell) => cell.col !== tile.col || cell.row !== tile.row);
+  // The ground moved (batch M3, `slate.ts`), as `claimTile` says for a claim.
+  bumpEconomy(state);
+  return from;
+}
+
 /** Every tile a city owns, in tile-index order. */
 export function ownedTiles(state: GameState, city: City): Tile[] {
   const result: Tile[] = [];
@@ -2852,6 +2883,13 @@ function chooseCitizens(
  *      radius of three around the work that met its goal
  *      (`CommissionReward.claimWithin`, Commission: The Paradise Garden), for
  *      the same reason.
+ *  33. **A rival hex beside a great-person work** (`pullRivalHexesToWorks`,
+ *      Magisterial batch MG16's The Pull of the Masters). It runs at the end
+ *      of the borders phase, as entry 28 runs in its own, and for entry 28's
+ *      reason: after each take both towns are re-seated at once, one with a
+ *      hex more to work and the other with a hex less. The sweep reads the
+ *      losing town's worked hexes for every later take, so the re-seat is
+ *      what keeps that reading current.
  *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
@@ -3022,6 +3060,115 @@ export function claimUnownedBeside(
   refreshCityDerived(state, seat);
   recomputeVisibility(state, playerId);
   return seat;
+}
+
+/**
+ * **Each great-person work of a holder takes one rival hex beside it**
+ * (Magisterial batch MG16, The Pull of the Masters; the triage's reading
+ * 40). The one reader of the `worksPullRivalHexes` rule. `expandBorders`
+ * calls it last, so it runs once a turn in the borders phase and adds no
+ * phase of its own.
+ *
+ * The order is fixed, so a replay moves the same hexes:
+ *
+ *   · the holders in `realPlayers` order, with an eliminated seat skipped;
+ *   · each holder's works in tile order. A work is any hex in the holder's
+ *     borders that carries a great-person work (`isGreatPersonWork`, so a
+ *     prophet's Holy Site counts), whoever laid it;
+ *   · each work's six neighbours in the map's ring order (`neighborTiles`).
+ *
+ * A work takes the first neighbour that `pullTargetFor` accepts, and at most
+ * one hex a turn. The hex joins the holder's nearest town through
+ * `seizeTile`, with whatever stands on it.
+ *
+ * **A hex moves once a sweep.** When two holders' works reach for the same
+ * hex in one turn, the first in the order above takes it, and the hex is
+ * then out of reach for the rest of the sweep. Without this rule, the
+ * empire that lost the hex could take it back at once, because the hex now
+ * belongs to a rival. The set is read for membership only and never walked.
+ *
+ * After each take both towns are re-seated (entry 33 of the register on
+ * `refreshCityDerived`), so "the town does not work it" is read against the
+ * town's current citizens on every later take. Both empires' sight is
+ * redrawn, because a city watches its own ground.
+ *
+ * Ownership is read through `tileOwnerField`, hoisted once for this walk of
+ * the map. Its city-to-owner lookup stays true for the whole sweep, because
+ * no town is founded, razed or captured here, and its hex reading is the
+ * live `state.tileOwner`, so it sees each take. A hex a work takes is never
+ * further than `cities.claimRadius` from the town it joins (see
+ * `pullTargetFor`), so the sweep never makes a hex its owner cannot see or
+ * work.
+ */
+export function pullRivalHexesToWorks(state: GameState): void {
+  const holders = realPlayers(state).filter(
+    (player) => !player.eliminated && cardActionRule(state, player.id, 'worksPullRivalHexes'),
+  );
+  if (holders.length === 0) return;
+  const { map } = state;
+  const owners = tileOwnerField(state);
+  const moved = new Set<number>();
+  for (const player of holders) {
+    for (let index = 0; index < map.tiles.length; index++) {
+      if (owners.at(index) !== player.id) continue;
+      const work = map.tiles[index]!;
+      if (work.improvement === undefined || !isGreatPersonWork(work.improvement)) continue;
+      for (const next of neighborTiles(map, tileHex(work))) {
+        const at = tileIndex(map, next.col, next.row);
+        if (moved.has(at)) continue;
+        const to = pullTargetFor(state, owners, player.id, next);
+        if (to === null) continue;
+        const from = seizeTile(state, to, next);
+        if (from === null) continue;
+        moved.add(at);
+        refreshCityDerived(state, from);
+        refreshCityDerived(state, to);
+        recomputeVisibilityFor(state, [player.id, from.ownerId]);
+        break;
+      }
+    }
+  }
+}
+
+/**
+ * **The town that would take this hex for a work, or `null` when the hex
+ * stays where it is** (The Pull of the Masters; the triage's reading 40).
+ *
+ * The hex must belong to a town of another empire, must not be a town
+ * centre, must carry no great-person work (the card's "a rival's own
+ * works"), and must not be worked by its town now. Anything else on the
+ * hex, such as a farm or a road, goes with it, and a piece standing there
+ * stays where it is.
+ *
+ * The hex joins the asking empire's nearest town (`nearestOwnedCity`, ties
+ * to the older town), and only when that town stands within
+ * `cities.claimRadius` of it. Batch MG15 found that a hex owned further from
+ * its town than that is not lit by its owner's sight (`visibility.ts`) and
+ * lies beyond the town's reach. A work on the edge of the borders can stand
+ * three hexes from the town, and its neighbour four, so this check is what
+ * keeps the sweep from making such a hex: the work tries its next neighbour
+ * instead.
+ */
+function pullTargetFor(
+  state: GameState,
+  owners: TileOwnerField,
+  playerId: number,
+  tile: Tile,
+): City | null {
+  const { map } = state;
+  const index = tileIndex(map, tile.col, tile.row);
+  const rival = owners.at(index);
+  if (rival === null || rival === playerId) return null;
+  if (cityAt(state, tile.col, tile.row) !== undefined) return null;
+  if (tile.improvement !== undefined && isGreatPersonWork(tile.improvement)) return null;
+  const holderId = state.tileOwner[index];
+  const holder = holderId === null || holderId === undefined ? undefined : cityById(state, holderId);
+  if (!holder) return null;
+  if (holder.workedTiles.some((cell) => cell.col === tile.col && cell.row === tile.row)) return null;
+  const to = nearestOwnedCity(state, playerId, tile);
+  if (!to) return null;
+  if (wrappedDistance(map, tileHex(tile), tileHex(cityTile(map, to))) > CITIES.claimRadius) return null;
+  return to;
 }
 
 /**
@@ -6571,6 +6718,11 @@ export function bestExpansionTile(state: GameState, city: City): Tile | null {
  * filling, and this stops a basket filled last turn from being spent this one.
  * Checked once per player, before the sweep, because it is a fact about the
  * empire and `authorityOf` walks every city to answer it.
+ *
+ * Since Magisterial batch MG16 the phase ends with `pullRivalHexesToWorks`
+ * (The Pull of the Masters), which moves rival hexes beside a holder's
+ * great-person works. A frozen empire's works still pull, because the
+ * freeze stops culture buying ground and the pull is not bought.
  */
 export function expandBorders(state: GameState): void {
   const grew = new Set<number>();
@@ -6599,6 +6751,10 @@ export function expandBorders(state: GameState): void {
   for (const player of state.players) {
     if (grew.has(player.id)) recomputeVisibility(state, player.id);
   }
+  // The Pull of the Masters (Magisterial batch MG16): after the culture
+  // claims, so a work reads the borders this turn grew. Here rather than in a
+  // phase of its own, so the phase list keeps its length.
+  pullRivalHexesToWorks(state);
 }
 
 /** What a border windfall claimed, for the announcement. */

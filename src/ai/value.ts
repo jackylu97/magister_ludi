@@ -3721,6 +3721,10 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // would add before they lay their works. The bot's great-person arm
       // already lays the work once the act is refused.
       if (effect.rule === 'actThenWork') return ctx.ai.score.unknownEffect;
+      // **The Pull of the Masters' `worksPullRivalHexes`** (Magisterial batch
+      // MG16) is a stand-in until batch MG17 prices it off the rival hexes
+      // beside this seat's works.
+      if (effect.rule === 'worksPullRivalHexes') return ctx.ai.score.unknownEffect;
       return ctx.ai.score.unknownEffect;
     case 'metaRule':
       // A rule of Statecraft itself — how long a chair is sealed. What a seal

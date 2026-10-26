@@ -2825,7 +2825,11 @@ describe('improvements in the log', () => {
     // count the works and tended hexes beside one work and claim the land
     // around it, and two Magisterial cards are dealt. So a v197 log's
     // Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(198);
+    // 199 since Magisterial batch MG16 (The Pull of the Masters): a card may
+    // let each great-person work take one rival hex beside it at the end of
+    // the borders phase, and one Magisterial card is dealt. So a v198 log's
+    // Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(199);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;
