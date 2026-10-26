@@ -441,6 +441,8 @@ The first eleven come from section 12, from R1 and from section 11. The rest are
 - **Schema:** none.
 - **Done-gate:** `npx vitest run test/sim/aiDevotion.test.ts test/sim/aiAppraisal.test.ts test/sim/aiCommissions.test.ts test/sim/aiBot.test.ts test/sim/aiWants.test.ts test/sim/explore.test.ts`. The digest re-pin is the orchestrator's push-gate work (`npm run test:all`). **The Devotion build plan is then complete.**
 
+- **Built (2026-10-26):** the gate passed: the type check, 9,865 core tests and the build. No schema change. `score.devotion` has seven knobs, each with a bounds row; the arena panel shows them with no page edit. Every stand-in a DV batch added is priced; the rite plan hands the town to the appraisal (`wants.ts`), so the Sabbath is priced town by town. The apostle plants under The Abbeys; the second rite under The Double Feast already worked and is now pinned. No core pin moved; the chapel keeps its old rite cadence. Not done: The Lives of the Saints' count has no forecast; `faithBuysUnits` keeps its stand-in; The Holy Summons' `oncePerTurns` is not priced; city-scoped counts are summed over every town and paid in each (an older gap). **The Devotion build plan is complete.** The slow bot digests are re-cut at the push gate.
+
 ### Order and overlaps
 
 - The track: R1 → DV1 → DV2 → DV3 → DV4 → DV5 → DV6 → DV7 → DV8 → DV9, one at a time.

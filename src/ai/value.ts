@@ -121,6 +121,7 @@ import {
   emptyCityYields,
   ownedTiles,
   resourceCopies,
+  tileOwnerCityId,
   tileOwnerField,
   tileOwnerPlayerId,
   unitProductionCost,
@@ -146,7 +147,7 @@ import {
   stageEmpireFold,
 } from '../sim/yields/empire';
 import { explainEmpireGold } from '../sim/empireGold';
-import { type Tile, getTileAt, tileNeighbors } from '../sim/map';
+import { type Tile, getTileAt, tileHex, tileNeighbors, wrappedDistance } from '../sim/map';
 import { authorityOf, happinessDemand, happinessOf } from '../sim/meters';
 import { ladderSteps, renownPerTurn, renownThreshold } from '../sim/renown';
 // Dominion batch D16: a commission is priced off the simulation's own reading
@@ -187,8 +188,22 @@ import {
 import { dealPartnerSeats, lentCopiesAwayBy, seatsMayBargain } from '../sim/deals';
 import { atWar } from '../sim/wars';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from '../sim/resourceData';
-import { availableRites, cityRite } from '../sim/religion';
-import { LIVE_RITE_IDS, riteDef } from '../sim/religionData';
+// Devotion batch DV9: the rites a town keeps, the price of a rite and of a
+// clergy's act, and the holy sites, read where the rules read them.
+import {
+  type ChargeVerbName,
+  availableRites,
+  chargeCostOf,
+  cityRite,
+  cityRites,
+  holySites,
+  plantingCost,
+  riteCostFor,
+} from '../sim/religion';
+import { LIVE_RITE_IDS, beliefDef, isBeliefId, riteDef } from '../sim/religionData';
+// Devotion batch DV9: a faith purchase's price and gate, asked as the want book
+// asks them, so the bot and the bank agree about what faith may buy.
+import { explainPurchaseCost, purchaseGate } from '../sim/purchase';
 import { HEX_MARK_IDS, type HexMarkId, type HexMarkRule, RULES } from '../sim/rulesData';
 import {
   type PlayerStatecraft,
@@ -225,6 +240,7 @@ import {
   anyCardDef,
   cardLevyAftermaths,
   cardLevyReturnDelay,
+  heldReligions,
 } from '../sim/statecraft/evaluator';
 // The citizen levy's own figures, read where the levy verb reads them, so the
 // bot and the city panel price one levy alike (the bot levy batch).
@@ -271,6 +287,7 @@ import {
   buildError,
   explainTechCost,
   foldTechCost,
+  isUnlocked,
   researchExpansion,
 } from '../sim/tech';
 import { ALL_TECH_IDS, type TechAge, type TechId, isTechId, techDef } from '../sim/techData';
@@ -2025,14 +2042,16 @@ function rowCharterTerms(
   }
 
   // **The chapel keeps the feast** — what a rite performed in this town pays its
-  // empire, once every time one is said. The cadence is the occasion register's
-  // own rite rate (a town keeps one rite for its blessing's length), taken per
+  // empire, once every time one is said. The cadence is the rules' rite tempo
+  // (a town keeps one rite for its blessing's length, `riteTempo`), taken per
   // town so that the row is worth what it pays *here*; the rite's own blessing
   // is the want book's (`explainRite`, `wants.ts`) and is deliberately not
-  // counted twice.
+  // counted twice. The chapel pays for every rite said, a Votive Offering
+  // included, so it keeps this reading rather than the season pace the `rite`
+  // moment reads since Devotion batch DV9.
   const rite = buildingRitePay(held);
   if (rite > 0) {
-    const rate = occasionRate('rite', ctx) * townShare;
+    const rate = riteTempo(ctx) * townShare;
     if (rate > 0) {
       terms.push(
         nest(
@@ -2807,6 +2826,14 @@ export function explainEffects(
   effects: readonly CardEffect[],
   ctx: ValueContext,
   card?: CardId,
+  /**
+   * **The one town these effects land in, when the caller knows it** (Devotion
+   * batch DV9). The rite plan hands the town that would keep the rite, so the
+   * Sabbath's production is that town's own (`sabbathWorth`). Every other
+   * shape reads the context as before, so a caller that names no town gets
+   * the figures it always got.
+   */
+  town?: City,
 ): Appraisal {
   const terms: ValueTerm[] = [];
   for (const effect of effects) {
@@ -2827,7 +2854,10 @@ export function explainEffects(
       // reading nought because two towns of five admit it has to say so, or the
       // feed prints a zero nobody can account for.
       label: (effect.kind === 'pays' ? paysWord(effect) : effect.kind) + scopeNote(effect, ctx),
-      value: scoreEffect(effect, ctx),
+      value:
+        effect.kind === 'productionToCulture' && town !== undefined
+          ? sabbathWorth(ctx, town)
+          : scoreEffect(effect, ctx),
     });
     // **The hammer premium** (batch 6): a card that pays production shortens
     // every engine this empire is still raising, exactly as a mine does, and it
@@ -3423,7 +3453,13 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // carry a scope.
       if (effect.stat === 'sight') return ctx.ai.score.unknownEffect;
       if (townsAdmitting(ctx, effect.scope) === 0) return 0;
-      return effect.amount * ctx.ai.weights.military * (1 + ctx.threat);
+      // **A counted wall pays a helping at a time** (Devotion batch DV9): The
+      // Sacred Precincts' faith buildings, and every other row with a `count`.
+      // The helpings are the mean over the towns the scope admits, through the
+      // simulation's own count with the row's `category` and `within`, so the
+      // single-town reading above still holds. See `cityStatHelpings`.
+      const helped = effect.count === undefined ? 1 : cityStatHelpings(effect, ctx);
+      return effect.amount * helped * ctx.ai.weights.military * (1 + ctx.threat);
     }
     case 'conditionRule':
       // **A gated clause is worth its clauses, while the gate is open.** The
@@ -3435,10 +3471,10 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       return conditionIsLive(effect.when, ctx) ? scoreEffects(effect.then, ctx) : 0;
     case 'purchaseRider': {
       // **A rider on the faith bank alone** (Devotion batch DV3, The Offering
-      // Chests' `currency`) is a stand-in until batch DV9 prices it. The gold
-      // reading below would price a faith discount by the treasury, which is
-      // the wrong bank.
-      if (effect.currency === 'faith') return ctx.ai.score.unknownEffect;
+      // Chests' `currency`; priced in batch DV9) is read off the faith bank.
+      // The gold reading below would price a faith discount by the treasury,
+      // which is the wrong bank. See `faithRiderWorth`.
+      if (effect.currency === 'faith') return faithRiderWorth(effect, ctx);
       // A discount on a bank this empire actually spends out of: the share it
       // takes off, over what the purse turns over in a turn. `on: 'building'`
       // and `on: 'all'` reach more of the book than a unit filter does, and the
@@ -3652,24 +3688,13 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
         const commerce = commerceRuleWorth(effect, ctx);
         if (commerce !== null) return commerce;
       }
-      // **The Confessors' sight** (Devotion batch DV5) is a stand-in until
-      // batch DV9 prices it. Sight is worth what it shows, and this bot keeps
-      // no price for a hex seen.
-      if (effect.rule === 'followersShareSight') return ctx.ai.score.unknownEffect;
-      // **The Anchorites' price, The Abbeys' planting and The Interdict**
-      // (Devotion batch DV7) are stand-ins until batch DV9 prices them: the
-      // charge saved on a further holy site, the apostle's new act, and a
-      // rival's Opus held in a town that follows this seat's religion.
-      if (effect.rule === 'chargePrice') return ctx.ai.score.unknownEffect;
-      if (effect.rule === 'apostlesPlantHolySites') return ctx.ai.score.unknownEffect;
-      if (effect.rule === 'opusInterdict') return ctx.ai.score.unknownEffect;
-      // **The Double Feast and The Turning of Swords** (Devotion batch DV8)
-      // are stand-ins until batch DV9 prices them: a second rite in each
-      // town, and an enemy soldier a turn won on the faith's ground. The
-      // bots' rite plan already asks the rite gate town by town, so it starts
-      // a second rite wherever the gate allows one.
-      if (effect.rule === 'twoRites') return ctx.ai.score.unknownEffect;
-      if (effect.rule === 'faithfulKillsConvert') return ctx.ai.score.unknownEffect;
+      {
+        // **The rules of Devotion batches DV3 to DV8**, each priced off the
+        // board, with one knob in `score.devotion` where the board cannot say
+        // enough (batch DV9).
+        const devotion = devotionRuleWorth(effect, ctx);
+        if (devotion !== null) return devotion;
+      }
       // **Officials by Merit's refusal** (Magisterial batch MG6) costs this bot
       // nothing: it rerolls only a free belief hand (`beliefRedeal`), never an
       // Order hand. The stand-in until batch MG17 prices the card.
@@ -3785,11 +3810,12 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
     }
     case 'productionToCulture':
       // **A town's production turned into culture** (Devotion batch DV4, the
-      // Rite of the Sabbath) is a stand-in until batch DV9 prices it in the
-      // bot's choice of rite. The honest price is the culture gained less the
-      // production lost in the town that keeps the rite, and that needs the
-      // town, which this arm is not handed.
-      return ctx.ai.score.unknownEffect;
+      // Rite of the Sabbath; priced in batch DV9): the culture gained less the
+      // production lost. This arm is not handed a town, so it reads this
+      // seat's middling town in every town it holds. The rite plan hands the
+      // town that would keep the rite (`explainEffects`' `town`). See
+      // `sabbathWorth`.
+      return sabbathWorth(ctx);
     default:
       return unreadEffect(kind, ctx);
   }
@@ -3922,6 +3948,11 @@ function boardTempo(ctx: ValueContext): BoardTempo {
  * **the vein layer is shelved** (`veins.share` is 0 — no board has a seam); and
  * and a rite is a town's verb this bot now says, so it is the tempo the rules
  * allow — a town keeps one for its blessing's length (batch H12).
+ *
+ * Since Devotion batch DV9 the rite's moment is read off the seasons the seat's
+ * towns keep now rather than off the rules' ceiling, because the bots say few
+ * rites and a rider priced at every town's full tempo was a price for a habit
+ * the seat does not have (`seasonRate`).
  */
 function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
   const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
@@ -3993,27 +4024,20 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // The Geomancy layer is shelved (`docs/flags.md`, 2026-09-06): `veins.share`
       // is 0, so no board carries a seam and no hill can be asked.
       return 0;
-    case 'rite': {
-      // **A rite is a thing this bot does now** (batch H12): the faith book
-      // prices one per town per rite it knows, and the spend arm says one
-      // whenever the blessing beats holding the faith. So the rate is the tempo
-      // the rules allow rather than nought — a town keeps one rite at a time for
-      // `duration` turns, so a realm saying them steadily fires this occasion
-      // about once per town per blessing's length. Bounded by the rites the
-      // empire actually knows: a realm taught none says none.
-      const known = availableRites(ctx.state, ctx.playerId).length;
-      if (known === 0) return 0;
-      const span = Math.max(1, riteDef(LIVE_RITE_IDS[0]!).duration ?? 1);
-      return ctx.cities / span;
-    }
+    case 'rite':
+      // **A season started** (Devotion batch DV4's season rule; priced in
+      // batch DV9). The moment is paid only for a rite with no `atOnce`, so
+      // the rate is the seasons this seat's towns keep now over a season's
+      // length, never below the table's `riteStarted` forecast. A realm that
+      // knows no season starts none. See `seasonRate`.
+      return seasonRate(ctx);
     case 'townConverted':
-      // **A foreign town turning to this seat's religion** (Devotion batch
-      // DV6, feature F) is a stand-in until batch DV9 prices it from the
-      // seat's followers abroad. Until then it is the seat's own record: the
-      // foreign towns its faith has turned for the first time, over the turns
-      // played. The moment fires on every turning, so this reads low rather
-      // than high, and a seat whose faith has turned no town is paid nothing.
-      return countFirsts(ctx.state, ctx.playerId, 'conversion') / turns;
+      // **A town turning to this seat's religion** (Devotion batch DV6,
+      // feature F; priced in batch DV9), read from the seat's followers
+      // abroad: the towns its faith has turned over the faith's own life,
+      // smoothed toward the table's forecast. A seat paid by no religion is
+      // paid nothing. See `conversionRate`.
+      return conversionRate(ctx);
     case 'greatPersonAct':
       // **A great person is called and spent once in a long while**, and there
       // is no honest per-turn figure for it without this bot predicting its own
@@ -4215,12 +4239,19 @@ function scoreWindfallRider(
   // fifth of those moments. Read off the roster rather than as a constant, so a
   // sixth family the day a great admiral lands moves the discount with it.
   if (effect.family !== undefined) rate /= Math.max(1, FAMILIES.length);
+  // **A rite in a town of a kind** (Devotion batch DV9, The Psalter's devout
+  // towns): the seasons are the realm's, and the rider pays on the share of
+  // them started in a town its `inTown` admits. Read for the `rite` moment
+  // only, so no other rider's price moves. See `riteTownShare`.
+  if (effect.occasion === 'rite') rate *= riteTownShare(ctx, effect.inTown);
   if (rate <= 0) return 0;
   let each = 0;
   if (effect.percent !== undefined) {
     each += (effect.percent / 100) * ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
   }
-  if (effect.grant !== undefined) each += windfallGrantWorth(effect.grant, ctx, effect.occasion);
+  if (effect.grant !== undefined) {
+    each += windfallGrantWorth(effect.grant, ctx, effect.occasion, effect.inTown);
+  }
   if (each === 0) return 0;
   if (effect.perAge === true) each *= Math.max(1, ctx.age);
   if (effect.perSlottedOrder === true) each *= slottedOrderCount(ctx);
@@ -4321,6 +4352,13 @@ function windfallGrantWorth(
    * stands, the reading every rider had before.
    */
   occasion?: WindfallOccasion,
+  /**
+   * The towns the rider is narrowed to (`CardWindfallRiderEffect.inTown`),
+   * when the caller holds the row. Devotion batch DV9 reads it for one
+   * measure: the citizens of the town a rite is started in
+   * (`occasionMeasureForecast`).
+   */
+  inTown?: true | CityScope,
 ): number {
   let worth = 0;
   if (grant.yield !== undefined && grant.amount !== undefined) {
@@ -4328,7 +4366,7 @@ function windfallGrantWorth(
     const measure =
       grant.fromOccasion === undefined || occasion === undefined
         ? null
-        : occasionMeasureForecast(occasion, grant.fromOccasion, ctx);
+        : occasionMeasureForecast(occasion, grant.fromOccasion, ctx, inTown);
     let figure =
       grant.fromRate === undefined
         ? grant.amount
@@ -4460,7 +4498,12 @@ function windfallGrantWorth(
     // what beliefs are hung on it, which is a walk of another empire's ledger
     // this file does not take. `unknownEffect` is the floor this module uses
     // wherever a clause is real and unpriceable, and the debt is written here.
-    worth += ctx.ai.score.unknownEffect;
+    //
+    // **Two lumps are priced since Devotion batch DV9**: the one a founding
+    // presses on the new town (The Parishes) and the one a conversion presses
+    // around the town that turned (Pentecost). See `pressureGrantWorth`. Every
+    // other lump keeps the stand-in.
+    worth += pressureGrantWorth(grant, occasion, ctx);
   }
   return worth;
 }
@@ -5713,6 +5756,9 @@ export function explainCounted(
   ctx: ValueContext,
   card?: CardId,
 ): Appraisal {
+  // **The front row is a town's own count** (Devotion batch DV9, The Rising
+  // Nave), paid in the town it is counted in. See `explainFrontRow`.
+  if (effect.count === 'frontRowTenths') return explainFrontRow(effect, ctx);
   const ai = ctx.ai;
   const terms: ValueTerm[] = [];
   const realized = realizedCount(effect, ctx, card);
@@ -5907,6 +5953,22 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
         },
       ];
     }
+    if (occasion === 'riteStarted') {
+      // **The seasons the seat's towns keep now** (Devotion batch DV9, The
+      // Rogations): only a rite with no `atOnce` counts, and a season kept
+      // now was started inside its own length, so the kept seasons over that
+      // length are this seat's pace. The table's figure is the floor. See
+      // `seasonPace`.
+      const pace = seasonPace(ctx);
+      const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+      const more = Math.max(pace.rate * horizon, forecast);
+      return [
+        {
+          label: `+ ${round(more)} more seasons started over the horizon (${pace.why}; never fewer than ${forecast})`,
+          value: more,
+        },
+      ];
+    }
     return [
       {
         label: `+ ${forecast} more ${occasion} to come, over the horizon`,
@@ -5946,10 +6008,15 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
   // partners, the citizens of foreign towns holding the seat's post, and the
   // world's routes. The same reading, with no discount. See
   // `commerceCountAhead`.
+  //
+  // **The Devotion count that grows** (Devotion batch DV9): the faith spent.
+  // The same reading, with no discount. See `devotionCountAhead`.
   const ahead =
     effect.count === undefined
       ? null
-      : (scientificCountAhead(effect.count, ctx) ?? commerceCountAhead(effect, ctx));
+      : (scientificCountAhead(effect.count, ctx) ??
+        commerceCountAhead(effect, ctx) ??
+        devotionCountAhead(effect, ctx));
   if (ahead !== null) {
     return [
       {
@@ -6185,7 +6252,12 @@ function commissionForecast(id: OrderId, ctx: ValueContext): { turns: number; wh
   for (const part of commissionProgress(ctx.state, ctx.playerId, id)) {
     if (part.met) continue;
     const goal = part.goal;
-    const remaining = part.need - part.have;
+    // **Every town, or nothing** (Devotion batch DV9, Commission: The State
+    // Church): the goal's figure reads nought until every town is admitted, so
+    // the forecast reads the towns admitted and the towns still to admit
+    // instead. See `everyTownProgress`.
+    const standing = everyTownProgress(goal, ctx) ?? { have: part.have, need: part.need };
+    const remaining = standing.need - standing.have;
     // A goal met by completing a technology is forecast from the research
     // itself (Scientific batch S13): The Great Instrument's Alchemy and The
     // Royal Charter Commission's charter technology. See `researchGoalForecast`.
@@ -6200,7 +6272,7 @@ function commissionForecast(id: OrderId, ctx: ValueContext): { turns: number; wh
     const rate =
       goal.kind === 'counted'
         ? occasionForecastRate(goal.occasion, ctx) * floor
-        : smoothedRate(part.have, 0, ctx);
+        : smoothedRate(standing.have, 0, ctx);
     const needed = rate > 0 ? Math.min(horizon, Math.ceil(remaining / rate)) : horizon;
     if (needed < turns) continue;
     turns = Math.max(1, needed);
@@ -6254,6 +6326,11 @@ function occasionForecastRate(occasion: TallyOccasion, ctx: ValueContext): numbe
   const forecast = ctx.ai.score.tallyForecast[occasion];
   const fallback =
     forecast === undefined ? 0 : (forecast * ctx.ai.score.commission.priorShare) / horizon;
+  // **Seasons are read off the towns** (Devotion batch DV9, The Founding
+  // Vows): the board keeps no record of rites started, but the seasons the
+  // seat's towns keep now are its recent pace (`seasonPace`). The cautious
+  // default is the floor.
+  if (occasion === 'riteStarted') return Math.max(seasonPace(ctx).rate, fallback);
   return smoothedRate(occasionRecord(occasion, ctx), fallback, ctx);
 }
 
@@ -6492,14 +6569,22 @@ function rewardTerms(
     // guarantees; the reading is `explainForecastCount`'s, at that count.
     const guaranteed = guaranteedCount(effect, goals);
     const board = lastingWorth(effect, ctx);
-    const floor =
+    const counted =
       guaranteed === 0
         ? 0
         : explainForecastCount([effect], guaranteed, 'what the goal guarantees', ctx).total;
+    // **And never less than the towns the goal guarantees** (Devotion batch
+    // DV9, Commission: The State Church): a goal that admits so many towns of
+    // the effect's own scope leaves at least that many when it is met. See
+    // `guaranteedTownsWorth`.
+    const towns = guaranteedTownsWorth(effect, goals, ctx);
+    const floor = Math.max(counted, towns.worth);
     terms.push({
       label:
         floor > board
-          ? `for the rest of the game: ${effect.kind}, at the ${guaranteed} the goal guarantees`
+          ? counted >= towns.worth
+            ? `for the rest of the game: ${effect.kind}, at the ${guaranteed} the goal guarantees`
+            : `for the rest of the game: ${effect.kind}, in the ${towns.towns} towns the goal guarantees`
           : `for the rest of the game: ${effect.kind}`,
       value: Math.max(board, floor),
     });
@@ -7958,8 +8043,14 @@ function occasionMeasureForecast(
   occasion: WindfallOccasion,
   measure: OccasionMeasure,
   ctx: ValueContext,
+  /** The towns a rider is narrowed to, read for the rite's town (batch DV9). */
+  inTown?: true | CityScope,
 ): number | null {
   if (occasion === 'postEstablished' && measure === 'population') return postTownPopulation(ctx);
+  // **Devotion batch DV9**: the citizens of the town a rite is started in (The
+  // Psalter), and of the town a conversion turns (The Mass Baptisms).
+  if (occasion === 'rite' && measure === 'population') return riteTownPopulation(ctx, inTown);
+  if (occasion === 'townConverted' && measure === 'population') return convertTownPopulation(ctx);
   return null;
 }
 
@@ -9108,4 +9199,1004 @@ function explainLevyCards(
     }
   }
   return appraise(terms);
+}
+
+// --- the Devotion prices (batch DV9) ---------------------------------------------
+
+/**
+ * The `follows` scope asked from this seat's chair: a town of any empire that
+ * keeps a religion this seat is paid by (`cityScopeAdmits` with the seat as the
+ * viewer). Frozen once so the scope memo can remember it.
+ */
+const FOLLOWS_SEAT: CityScope = { test: 'follows' };
+
+/** Is this seat paid by any religion (`heldReligions`)? */
+function holdsFaith(ctx: ValueContext): boolean {
+  return heldReligions(ctx.state, ctx.playerId).length > 0;
+}
+
+/** Does this town, of any empire, keep a religion this seat is paid by? */
+function followsSeatFaith(ctx: ValueContext, city: City): boolean {
+  return cityScopeAdmits(ctx.state, city, FOLLOWS_SEAT, ctx.playerId);
+}
+
+/**
+ * **The rules of Devotion batches DV3 to DV8**, or `null` for a rule that is
+ * not one of them (batch DV9). Each reads the board where it can and a knob in
+ * `score.devotion` for the rest:
+ *
+ *   · `faithBuysBuildings` (The Gifts of the Faithful, The Lay Brothers, The
+ *     Offered Stones): `faithShelfWorth`;
+ *   · The Confessors (`followersShareSight`): `followerSightWorth`;
+ *   · The Anchorites (`chargePrice`): `chargePriceWorth`;
+ *   · The Abbeys (`apostlesPlantHolySites`): `abbeysWorth`;
+ *   · The Interdict (`opusInterdict`): `opusInterdictWorth`;
+ *   · The Turning of Swords (`faithfulKillsConvert`): `turningWorth`;
+ *   · The Double Feast (`twoRites`): `secondRiteWorth`.
+ */
+function devotionRuleWorth(
+  effect: Extract<CardEffect, { kind: 'rule' }>,
+  ctx: ValueContext,
+): number | null {
+  switch (effect.rule) {
+    case 'faithBuysBuildings':
+      return faithShelfWorth(effect, ctx);
+    case 'followersShareSight':
+      return followerSightWorth(ctx);
+    case 'chargePrice':
+      return chargePriceWorth(effect, ctx);
+    case 'apostlesPlantHolySites':
+      return abbeysWorth(ctx);
+    case 'opusInterdict':
+      return opusInterdictWorth(ctx);
+    case 'faithfulKillsConvert':
+      return turningWorth(ctx);
+    case 'twoRites':
+      return secondRiteWorth(ctx);
+    default:
+      return null;
+  }
+}
+
+/**
+ * **How much more of a Devotion count this seat expects over the horizon**, and
+ * why, or `null` for a count that is not one of them (batch DV9). One today:
+ *
+ *   · the faith spent (The Book of Life): the faith the seat makes a turn, off
+ *     its books, times the horizon, at `score.devotion.faithSpentShare`. A bot
+ *     spends the faith it banks, so the share is only what is still in the
+ *     bank when the horizon ends.
+ */
+function devotionCountAhead(
+  effect: CardPaysEffect,
+  ctx: ValueContext,
+): { more: number; why: string } | null {
+  switch (effect.count) {
+    case 'faithSpent': {
+      const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+      const income = Math.max(0, ratesOf(ctx).faithPerTurn ?? 0);
+      const share = Math.max(0, ctx.ai.score.devotion.faithSpentShare);
+      return {
+        more: income * horizon * share,
+        why: `${round(income)} faith a turn for ${horizon} turns, ${share} of it spent`,
+      };
+    }
+    default:
+      return null;
+  }
+}
+
+// --- the faith bank ---------------------------------------------------------------
+
+/**
+ * **What faith buys when it may buy buildings** (`faithBuysBuildings`: The
+ * Gifts of the Faithful's faith buildings, The Lay Brothers' and The Offered
+ * Stones' every building; priced in Devotion batch DV9).
+ *
+ * The rule opens a second bank for a shelf, so it is worth what a point of
+ * faith buys there over what it buys elsewhere, times the faith this seat
+ * makes a turn:
+ *
+ *   · **there**: the best row the rule opens that some town its scope admits
+ *     could raise now (`buildError`) and does not hold. A row is worth its
+ *     flats and what it gives beyond a yield (`explainBuildingRow`), as a
+ *     charter prices the shelf it opens (`scoreUnlockedBuilding`), over its
+ *     faith price (`faithPerHammer` on its folded cost; riders left out).
+ *     Wonders and the row that ends the game keep their own rules, as
+ *     `faithBankOpen` says. The rows are ranked first and the towns asked in
+ *     that order, so the gate is asked only until a town takes the best row;
+ *   · **elsewhere**: `faithElsewhere`.
+ *
+ * Both are worth a turn for each coin, which is how the spend arm ranks every
+ * want (`worthPerCoin`). Remembered for the sitting.
+ */
+const FAITH_SHELF_MEMO = new WeakMap<ValueContext, Map<CardEffect, number>>();
+function faithShelfWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueContext): number {
+  let held = FAITH_SHELF_MEMO.get(ctx);
+  if (held === undefined) {
+    held = new Map<CardEffect, number>();
+    FAITH_SHELF_MEMO.set(ctx, held);
+  }
+  const found = held.get(effect);
+  if (found !== undefined) return found;
+  const worth = readFaithShelf(effect, ctx);
+  held.set(effect, worth);
+  return worth;
+}
+
+function readFaithShelf(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueContext): number {
+  const income = Math.max(0, ratesOf(ctx).faithPerTurn ?? 0);
+  if (income <= 0) return 0;
+  const towns = citiesOf(ctx.state, ctx.playerId).filter(
+    (city) => effect.scope === undefined || cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId),
+  );
+  if (towns.length === 0) return 0;
+  const rate = RULES.production.faithPerHammer;
+  const rows: { id: BuildingId; perCoin: number }[] = [];
+  for (const id of BUILDING_IDS) {
+    const def = buildingDef(id);
+    if (isWonder(id) || def.endsTheGame === true) continue;
+    if (effect.buildingCategory !== undefined && def.category !== effect.buildingCategory) continue;
+    const price = Math.floor(buildingProductionCost(id, ctx.state, ctx.playerId) * rate);
+    if (price <= 0) continue;
+    const bag: YieldBag = {};
+    for (const voice of VOICES) bag[voice] = def[voice] ?? 0;
+    const each = valueOfYields(bag, ctx) + explainBuildingRow(id, ctx).total;
+    if (each > 0) rows.push({ id, perCoin: each / price });
+  }
+  // Best first; the sort keeps `BUILDING_IDS` order between equal rows.
+  rows.sort((a, b) => b.perCoin - a.perCoin);
+  for (const row of rows) {
+    for (const city of towns) {
+      if (townHoldsBuilding(ctx.state, city, row.id)) continue;
+      if (buildError(ctx.state, ctx.playerId, 'building', row.id, city) !== null) continue;
+      return Math.max(0, row.perCoin - faithElsewhere(ctx)) * income;
+    }
+  }
+  return 0;
+}
+
+/**
+ * **What a point of faith buys this seat without the shelf**, a turn for each
+ * coin: the best faith want that says a rite or calls a unit (`worthPerCoin`),
+ * and never less than the floor of the faith price's band over the lump's
+ * turns, the price `priceOf` (`wants.ts`) gives a book of poor bargains.
+ *
+ * Building purchases are left out on purpose: a card already seated has put
+ * its own shelf in the book, and pricing the card against the shelf it opened
+ * would price it at nothing. `skip` leaves out more rows for the same reason
+ * (The Double Feast's second rites).
+ */
+function faithElsewhere(ctx: ValueContext, skip?: (want: WantBook['faith'][number]) => boolean): number {
+  const lump = Math.max(1, ctx.ai.score.lumpTurns);
+  let best = (yieldWeight(ctx.ai, 'faith', ctx.age) * ctx.ai.priorities.priceBandLow) / lump;
+  for (const want of ctx.wants.faith) {
+    if (want.rite === undefined && want.buy?.item.kind !== 'unit') continue;
+    if (want.price <= 0) continue;
+    if (skip !== undefined && skip(want)) continue;
+    best = Math.max(best, want.worth / want.price);
+  }
+  return best;
+}
+
+/**
+ * **A discount on the faith bank** (`purchaseRider` with `currency: 'faith'`,
+ * The Offering Chests; priced in Devotion batch DV9). The gold arm's reading,
+ * one bank over: the share it takes off, times the faith this seat makes a
+ * turn, at the faith rate price, times `score.devotion.faithUnitShare`, the
+ * share of that faith spent on what the discount reaches. Nothing while no
+ * town of this seat may buy what the rider reaches with faith
+ * (`faithRiderReaches`), because then nothing is bought at the discount.
+ */
+function faithRiderWorth(effect: Extract<CardEffect, { kind: 'purchaseRider' }>, ctx: ValueContext): number {
+  const income = Math.max(0, ratesOf(ctx).faithPerTurn ?? 0);
+  if (income <= 0) return 0;
+  if (!faithRiderReaches(effect, ctx)) return 0;
+  const share = Math.max(0, ctx.ai.score.devotion.faithUnitShare);
+  return (-effect.percent / 100) * income * share * voiceWeight(ctx, 'faith');
+}
+
+/**
+ * Could a town of this seat that the rider's scope admits buy what the rider
+ * reaches, with faith, today or once the bank fills? The purchase gate is the
+ * simulation's (`purchaseGate`): open, or refused for the bank alone, as the
+ * want book reads it (`reachOf`). A unit rider asks every unit row its `class`
+ * admits; a building rider asks the faith book for a building row. Remembered
+ * for the sitting.
+ */
+const FAITH_RIDER_MEMO = new WeakMap<ValueContext, Map<CardEffect, boolean>>();
+function faithRiderReaches(
+  effect: Extract<CardEffect, { kind: 'purchaseRider' }>,
+  ctx: ValueContext,
+): boolean {
+  let held = FAITH_RIDER_MEMO.get(ctx);
+  if (held === undefined) {
+    held = new Map<CardEffect, boolean>();
+    FAITH_RIDER_MEMO.set(ctx, held);
+  }
+  const found = held.get(effect);
+  if (found !== undefined) return found;
+  let reaches = false;
+  const on = effect.on ?? 'unit';
+  if (on === 'building' || on === 'all') {
+    reaches = ctx.wants.faith.some((want) => want.buy?.item.kind === 'building');
+  }
+  if (!reaches && (on === 'unit' || on === 'all')) {
+    // The rows the seat has opened first, so the gate is asked of few rows.
+    const opened = UNIT_TYPE_IDS.filter(
+      (id) => unitMatches(id, effect.class) && isUnlocked(ctx.state, ctx.playerId, 'unit', id),
+    );
+    search: for (const city of citiesOf(ctx.state, ctx.playerId)) {
+      if (effect.scope !== undefined && !cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) continue;
+      for (const id of opened) {
+        const gate = purchaseGate(ctx.state, ctx.playerId, city.id, { kind: 'unit', id }, 'faith');
+        if (gate.refusal === null || gate.shortfall !== null) {
+          reaches = true;
+          break search;
+        }
+      }
+    }
+  }
+  held.set(effect, reaches);
+  return reaches;
+}
+
+// --- the town's own counts ----------------------------------------------------------
+
+/**
+ * **The helpings a counted wall pays in a town** (Devotion batch DV9: The
+ * Sacred Precincts' faith buildings, and every other `cityStat` row with a
+ * `count`). The count is the simulation's own, asked with each town in hand
+ * through the probe the evaluator builds (`cityStatProbe`: the row's count, its
+ * `category`, and `within: 'city'` unless the row says `'empire'`), then the
+ * row's own `per` and `max` (`helpings`). The mean is taken over the towns the
+ * scope admits today, or over every town when none does yet (a scope a chain
+ * has promised), so the arm's single-town reading still holds.
+ */
+function cityStatHelpings(effect: Extract<CardEffect, { kind: 'cityStat' }>, ctx: ValueContext): number {
+  const probe: CardPaysEffect = {
+    kind: 'pays',
+    where: 'city',
+    basis: 'count',
+    to: 'authority',
+    amount: 0,
+    count: effect.count,
+    ...(effect.within === 'empire' ? {} : { within: 'city' as const }),
+    ...(effect.category === undefined ? {} : { category: effect.category }),
+  };
+  const towns = citiesOf(ctx.state, ctx.playerId);
+  let counted = towns.filter(
+    (city) => effect.scope === undefined || cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId),
+  );
+  if (counted.length === 0) counted = towns;
+  if (counted.length === 0) return 0;
+  let total = 0;
+  for (const city of counted) {
+    total += helpings(countOf(ctx.state, ctx.playerId, '' as CardId, probe, city), effect.per, effect.max);
+  }
+  return total / counted.length;
+}
+
+/**
+ * **The front row's count, in tenths**: its own ceiling is ten (`countOf`), and
+ * a row is finished in the turn its basket reaches its cost, so while a row
+ * stands at the front the count reads nought to nine. The mean of a build is
+ * the middle of that. A fact about the count, not a tuning knob.
+ */
+const FRONT_ROW_TENTHS = 10;
+const FRONT_ROW_MEAN_TENTHS = (FRONT_ROW_TENTHS - 1) / 2;
+
+/**
+ * **The Rising Nave's count** (`frontRowTenths`; Devotion batch DV9): the
+ * tenths of a town's front row already in its basket, paid in each town whose
+ * front row the line's scope admits.
+ *
+ * `explainCounted` would sum the count over every town and then pay the sum in
+ * each town the scope admits, which counts one town's progress in every other
+ * town. So this reading walks the towns once:
+ *
+ *   · a town the scope admits today counts its own tenths, through the
+ *     simulation's own count with the town in hand, at the row's `per` and
+ *     `max` (`helpings`);
+ *   · every other town counts the mean tenths of a build, at
+ *     `score.devotion.frontRowShare`, the share of a town's turns its front row
+ *     is a row the scope names.
+ *
+ * Then what one helping pays in one town.
+ */
+function explainFrontRow(effect: CardPaysEffect, ctx: ValueContext): Appraisal {
+  const share = Math.max(0, ctx.ai.score.devotion.frontRowShare);
+  let today = 0;
+  let raising = 0;
+  let others = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    if (effect.scope !== undefined && !cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) {
+      others += 1;
+      continue;
+    }
+    raising += 1;
+    today += helpings(countOf(ctx.state, ctx.playerId, '' as CardId, effect, city), effect.per, effect.max);
+  }
+  const per = effect.per === undefined || effect.per <= 0 ? 1 : effect.per;
+  const mean =
+    effect.max === undefined
+      ? FRONT_ROW_MEAN_TENTHS / per
+      : Math.min(FRONT_ROW_MEAN_TENTHS / per, Math.max(0, effect.max));
+  const promised = others * share * mean;
+  // One town's helping: the row read as though it paid once, so the scope's
+  // town count is not taken a second time.
+  const payout = scorePayout({ ...effect, where: 'empire' }, ctx);
+  return appraise([
+    { label: `${today} helpings today, in the ${raising} towns whose front row the line admits`, value: today },
+    {
+      label: `+ ${round(promised)} more: ${others} other towns, ${share} of their turns, ${round(mean)} helpings in the middle of a build`,
+      value: promised,
+    },
+    { label: `× ${round(payout)}, what one helping pays in one town`, value: payout, op: 'mul' },
+  ]);
+}
+
+// --- rites ----------------------------------------------------------------------------
+
+/**
+ * **The seasons this seat starts a turn, read off its towns** (Devotion batch
+ * DV9). A season is a rite with no `atOnce` (the triage's reading 9), and one
+ * kept now was started inside its own length, so each season the seat's towns
+ * keep now counts one over that length. A town keeping two under The Double
+ * Feast counts both. The row's own `duration` is the length: a card that
+ * lengthens a blessing is left out, so the pace reads a little high where one
+ * is held.
+ */
+function seasonPace(ctx: ValueContext): { rate: number; why: string } {
+  let kept = 0;
+  let rate = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    for (const id of cityRites(ctx.state, city)) {
+      const def = riteDef(id);
+      if (def.atOnce !== undefined) continue;
+      kept += 1;
+      rate += 1 / Math.max(1, def.duration ?? 1);
+    }
+  }
+  return { rate, why: `${kept} season${kept === 1 ? '' : 's'} kept now, each over its own length` };
+}
+
+/**
+ * **The rite tempo the rules allow**, per turn (batch H12): a town keeps one
+ * rite at a time for `duration` turns, so a realm saying them steadily says
+ * about one per town per blessing's length. Bounded by the rites the empire
+ * actually knows: a realm taught none says none. The chapel's line reads it
+ * (`rowCharterTerms`); the `rite` moment reads `seasonRate` since Devotion
+ * batch DV9.
+ */
+function riteTempo(ctx: ValueContext): number {
+  const known = availableRites(ctx.state, ctx.playerId).length;
+  if (known === 0) return 0;
+  const span = Math.max(1, riteDef(LIVE_RITE_IDS[0]!).duration ?? 1);
+  return ctx.cities / span;
+}
+
+/**
+ * **How often the `rite` moment comes round for this seat**, per turn: its
+ * pace of seasons (`seasonPace`), never below `score.tallyForecast.riteStarted`
+ * over the horizon. A seat that knows no season starts none, so it is paid
+ * nothing.
+ */
+function seasonRate(ctx: ValueContext): number {
+  const known = availableRites(ctx.state, ctx.playerId).some((id) => riteDef(id).atOnce === undefined);
+  if (!known) return 0;
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const floor = Math.max(0, ctx.ai.score.tallyForecast.riteStarted ?? 0) / horizon;
+  return Math.max(seasonPace(ctx).rate, floor);
+}
+
+/**
+ * **The share of this seat's seasons started in a town a rider admits** (The
+ * Psalter's devout towns): the towns its `inTown` scope admits over the towns
+ * held. A rider with no scope, or `true`, admits every town.
+ */
+function riteTownShare(ctx: ValueContext, inTown?: true | CityScope): number {
+  if (inTown === undefined || inTown === true) return 1;
+  if (ctx.cities <= 0) return 0;
+  return Math.min(1, townsAdmitting(ctx, inTown) / ctx.cities);
+}
+
+/**
+ * **The citizens of the town a season is started in**: the mean of this seat's
+ * towns a rider's `inTown` admits, or of every town when it names none or none
+ * is admitted.
+ */
+function riteTownPopulation(ctx: ValueContext, inTown?: true | CityScope): number {
+  if (inTown === undefined || inTown === true) return meanPopulation(ctx);
+  let people = 0;
+  let towns = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    if (!cityScopeAdmits(ctx.state, city, inTown, ctx.playerId)) continue;
+    people += city.population;
+    towns += 1;
+  }
+  return towns === 0 ? meanPopulation(ctx) : people / towns;
+}
+
+/**
+ * **The Rite of the Sabbath** (`productionToCulture`; Devotion batch DV9): the
+ * town's production for the turn goes into culture instead of its basket. So
+ * it is worth that production at the culture price, less the same production
+ * at the price of a hammer in that town (`hammerPrice`, which is what the
+ * engines the town is raising would pay for it). A town with nothing waiting
+ * on its hammers prices them at the band's floor, and that is the town the
+ * Sabbath suits.
+ *
+ * The production is the town's own fold toward its front row (`foldCity`),
+ * which is the figure step 14 moves. Without a town it is this seat's middling
+ * town (`medianProduction`) in every town held, the reading a card that carried
+ * the shape would take.
+ */
+function sabbathWorth(ctx: ValueContext, city?: City): number {
+  const culture = voiceWeight(ctx, 'culture');
+  if (city === undefined) {
+    return ctx.medianProduction * (culture - hammerPrice(ctx)) * ctx.cities;
+  }
+  const front = city.queue[0] ?? null;
+  const moved = Math.max(0, foldCity(ctx.state, city, [], front, readCity(ctx.state, city)).production);
+  return moved * (culture - hammerPrice(ctx, city));
+}
+
+/**
+ * **The Double Feast** (`twoRites`; Devotion batch DV9): a town may keep a
+ * second, different rite. A second rite is one more thing the faith bank can
+ * buy, so it is priced as `faithShelfWorth` prices a shelf: what a point of
+ * faith buys in the best second rite over what it buys elsewhere, times the
+ * faith this seat makes a turn.
+ *
+ *   · **the best second rite**: in each of this seat's towns that keeps a rite
+ *     now, each rite it knows other than the oldest one kept, priced as the
+ *     rite plan prices a rite (`explainRite`, `wants.ts`): its blessing, in one
+ *     town, for its length, over the lump's turns, over the rite's price in
+ *     faith (`riteCostFor`);
+ *   · **elsewhere**: `faithElsewhere`, leaving out the rites the faith book
+ *     already offers in a town keeping one, so a seated card is not priced by
+ *     the rites it opened itself.
+ *
+ * A seat whose towns keep no rite gains nothing from a second place yet.
+ */
+function secondRiteWorth(ctx: ValueContext): number {
+  const income = Math.max(0, ratesOf(ctx).faithPerTurn ?? 0);
+  if (income <= 0) return 0;
+  const known = availableRites(ctx.state, ctx.playerId);
+  if (known.length < 2) return 0;
+  const price = riteCostFor(ctx.state, ctx.playerId);
+  if (price <= 0) return 0;
+  const lump = Math.max(1, ctx.ai.score.lumpTurns);
+  // One town's context, as the rite plan's `townScoped` builds it.
+  const here: ValueContext = { ...ctx, cities: 1 };
+  const keeping: number[] = [];
+  let best = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    const kept = cityRites(ctx.state, city);
+    if (kept.length === 0) continue;
+    keeping.push(city.id);
+    for (const id of known) {
+      if (id === kept[0]) continue;
+      const def = riteDef(id);
+      const turns = Math.max(1, def.duration ?? 1);
+      const blessing = explainEffects(def.effects ?? [], here, undefined, city).total;
+      best = Math.max(best, (blessing * turns) / lump / price);
+    }
+  }
+  if (best <= 0) return 0;
+  const elsewhere = faithElsewhere(
+    ctx,
+    (want) => want.rite !== undefined && keeping.includes(want.rite.cityId),
+  );
+  return Math.max(0, best - elsewhere) * income;
+}
+
+// --- the faith's reach ----------------------------------------------------------------
+
+/**
+ * **How often a town turns to this seat's religion, per turn** (feature F's
+ * `townConverted`; Devotion batch DV9), read from the seat's followers abroad:
+ * the towns its faith has turned (its first-conversion record, or the towns of
+ * other empires that follow it now, whichever is more) over the life of its
+ * oldest held religion, smoothed toward `score.tallyForecast.foreignCityConverted`
+ * over the horizon with `score.commission.priorTurns` of weight, as
+ * `smoothedRate` smooths a record. A seat paid by no religion turns nothing.
+ *
+ * The moment fires on every turning and The Mass Baptisms only on the first, so
+ * one rate serves both: a town turned back and won again is rare enough that
+ * the record of first turnings is the honest middle.
+ */
+function conversionRate(ctx: ValueContext): number {
+  if (!holdsFaith(ctx)) return 0;
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const fallback = Math.max(0, ctx.ai.score.tallyForecast.foreignCityConverted ?? 0) / horizon;
+  const firsts = countFirsts(ctx.state, ctx.playerId, 'conversion');
+  let abroad = 0;
+  for (const city of ctx.state.cities) {
+    if (city.ownerId !== ctx.playerId && followsSeatFaith(ctx, city)) abroad += 1;
+  }
+  const record = Math.max(firsts, abroad);
+  const age = Math.max(0, countProbe(ctx, 'turnsSinceFounded'));
+  const prior = Math.max(0, ctx.ai.score.commission.priorTurns);
+  const span = age + prior;
+  if (span <= 0) return fallback;
+  return (record + fallback * prior) / span;
+}
+
+/**
+ * **The towns this seat's faith could turn next**: towns of other empires that
+ * it has explored and that do not follow its religion yet, in `state.cities`
+ * order. Read through this seat's own fog, batch H2's rule for every reading of
+ * the world.
+ */
+function turnableTowns(ctx: ValueContext): City[] {
+  const towns: City[] = [];
+  for (const city of ctx.state.cities) {
+    if (city.ownerId === ctx.playerId) continue;
+    if (!isExploredBy(ctx.state, ctx.playerId, city.col, city.row)) continue;
+    if (followsSeatFaith(ctx, city)) continue;
+    towns.push(city);
+  }
+  return towns;
+}
+
+/**
+ * **The citizens of the town a conversion turns**: the mean of the towns this
+ * seat's faith could turn next (`turnableTowns`), or of its own towns when it
+ * knows of none.
+ */
+function convertTownPopulation(ctx: ValueContext): number {
+  const towns = turnableTowns(ctx);
+  if (towns.length === 0) return meanPopulation(ctx);
+  let people = 0;
+  for (const city of towns) people += city.population;
+  return people / towns.length;
+}
+
+/**
+ * **The share of a town a lump turns**: whole when its converts pass half the
+ * town's citizens (a majority is what a town follows), and otherwise the share
+ * of a majority the converts make up. The temples' share of a lump is left
+ * out.
+ */
+function turnShare(converts: number, population: number): number {
+  if (converts <= 0) return 0;
+  const majority = Math.floor(Math.max(0, population) / 2) + 1;
+  return Math.min(1, converts / majority);
+}
+
+/**
+ * **What a lump of faith is worth to this seat, by the moment it rides**
+ * (Devotion batch DV9):
+ *
+ *   · a founding's (The Parishes): `parishWorth`;
+ *   · a conversion's (Pentecost): `conversionLumpWorth`;
+ *   · any other (The Crusader Orders' capture): the stand-in it had, for the
+ *     reason the arm states.
+ */
+function pressureGrantWorth(
+  grant: NonNullable<Extract<CardEffect, { kind: 'windfallRider' }>['grant']>,
+  occasion: WindfallOccasion | undefined,
+  ctx: ValueContext,
+): number {
+  const lump = grant.pressure;
+  if (lump === undefined) return 0;
+  if (occasion === 'found') return parishWorth(lump, grant.fromOccasion === 'population', ctx);
+  if (occasion === 'townConverted') return conversionLumpWorth(lump, ctx);
+  return ctx.ai.score.unknownEffect;
+}
+
+/**
+ * **The Parishes' lump**: a founding presses the seat's religion on the new
+ * town, so it follows from its first turn. Worth what one more devout town pays
+ * this seat a turn (`devoutTownWorth`), for the turns sooner it follows than a
+ * town the tide must turn (`score.devotion.parishTurns`), as a lump. A town is
+ * founded with one citizen, and the lump turns the share its converts make of a
+ * majority (`turnShare`), one convert for each `pressurePerConvert` pressed.
+ * A seat paid by no religion presses nothing.
+ */
+function parishWorth(
+  lump: { amount: number; range: number },
+  perCitizen: boolean,
+  ctx: ValueContext,
+): number {
+  if (!holdsFaith(ctx) || lump.amount <= 0) return 0;
+  const population = 1;
+  const pressed = perCitizen ? lump.amount * population : lump.amount;
+  const converts = Math.floor(pressed / Math.max(1, Math.floor(RULES.religion.pressurePerConvert)));
+  const share = turnShare(converts, population);
+  if (share <= 0) return 0;
+  const turns = Math.max(0, ctx.ai.score.devotion.parishTurns);
+  return (share * devoutTownWorth(ctx, population) * turns) / Math.max(1, ctx.ai.score.lumpTurns);
+}
+
+/**
+ * **Pentecost's lump**: pressed around the town that turned, on every town
+ * within its range. Worth the towns it would turn, each at what a town abroad
+ * that follows this seat's religion pays it a turn (`foreignFollowerWorth`),
+ * as a lasting gain, the way a lasting mark is priced.
+ *
+ * The towns are read off the board: for each town the faith could turn next
+ * (`turnableTowns`), the other such towns within the lump's range, each at the
+ * share of it the lump's converts would turn (`turnShare`). The mean over the
+ * towns that could turn is one lump's reach. A turning the lump sets off in its
+ * turn is left out, so the chain reads low. A seat paid by no religion presses
+ * nothing.
+ */
+function conversionLumpWorth(lump: { amount: number; range: number }, ctx: ValueContext): number {
+  if (!holdsFaith(ctx) || lump.amount <= 0) return 0;
+  const converts = Math.floor(lump.amount / Math.max(1, Math.floor(RULES.religion.pressurePerConvert)));
+  if (converts <= 0) return 0;
+  const towns = turnableTowns(ctx);
+  if (towns.length === 0) return 0;
+  const hexes = towns.map((city) => {
+    const tile = getTileAt(ctx.state.map, city.col, city.row);
+    return tile === undefined ? null : tileHex(tile);
+  });
+  let turned = 0;
+  for (let centre = 0; centre < towns.length; centre++) {
+    const at = hexes[centre];
+    if (at === null || at === undefined) continue;
+    for (let other = 0; other < towns.length; other++) {
+      if (other === centre) continue;
+      const there = hexes[other];
+      if (there === null || there === undefined) continue;
+      if (wrappedDistance(ctx.state.map, at, there) > lump.range) continue;
+      turned += turnShare(converts, towns[other]!.population);
+    }
+  }
+  if (turned <= 0) return 0;
+  return (turned / towns.length) * foreignFollowerWorth(ctx);
+}
+
+/**
+ * **What one more town abroad following this seat's religion pays it a turn**:
+ * one step of each count its live lines read of the following towns
+ * (`explainCountStep`): the towns, the towns abroad, and their citizens at the
+ * mean town the faith could turn next. The founder's trickle is one of those
+ * lines (`liveEffects` carries it for the holder of the holy city), so a seat
+ * with no card on the counts still reads its trickle here.
+ */
+function foreignFollowerWorth(ctx: ValueContext): number {
+  const people = Math.max(1, Math.round(convertTownPopulation(ctx)));
+  return (
+    explainCountStep('followingCities', 1, ctx).total +
+    explainCountStep('followingForeign', 1, ctx).total +
+    explainCountStep('followingPop', people, ctx).total +
+    explainCountStep('followingForeignPop', people, ctx).total
+  );
+}
+
+/**
+ * **What one more of this seat's own towns pays it a turn for following its
+ * religion** (devout, in the cards' word). Three readings, all off the board:
+ *
+ *   · one step of each count its live lines read of the following towns and
+ *     their citizens (`explainCountStep`);
+ *   · the follower beliefs of each religion the seat is paid by, which apply in
+ *     every town that follows it;
+ *   · the lines of its seated Orders whose scope asks for a devout or following
+ *     town (`scopeAsksFaith`).
+ *
+ * The last two are priced in one town, as the rite plan prices a rite (a
+ * context that holds one town), with the faith part of each scope taken off
+ * (`withoutFaith`): the new town is the one that follows. A count asked of a
+ * town still reads the realm's towns there, the rite plan's stated gap. They
+ * are remembered for the sitting.
+ */
+const DEVOUT_TOWN_MEMO = new WeakMap<ValueContext, number>();
+function devoutTownWorth(ctx: ValueContext, population: number): number {
+  const counted =
+    explainCountStep('followingCities', 1, ctx).total +
+    explainCountStep('followingPop', Math.max(1, Math.round(population)), ctx).total;
+  let held = DEVOUT_TOWN_MEMO.get(ctx);
+  if (held === undefined) {
+    held = readDevoutTown(ctx);
+    DEVOUT_TOWN_MEMO.set(ctx, held);
+  }
+  return counted + held;
+}
+
+function readDevoutTown(ctx: ValueContext): number {
+  const lines: CardEffect[] = [];
+  for (const religion of heldReligions(ctx.state, ctx.playerId)) {
+    for (const id of religion.follower) {
+      if (!isBeliefId(id)) continue;
+      for (const effect of beliefDef(id).effects ?? []) lines.push(withoutFaith(effect));
+    }
+  }
+  for (const effect of slottedOrderEffects(ctx)) {
+    if (scopeAsksFaith((effect as { scope?: CityScope }).scope)) lines.push(withoutFaith(effect));
+  }
+  if (lines.length === 0) return 0;
+  return explainEffects(lines, { ...ctx, cities: 1 }).total;
+}
+
+/** A line with the faith part of its scope taken off (`scopeWithoutFaith`). */
+function withoutFaith(effect: CardEffect): CardEffect {
+  const scope = (effect as { scope?: CityScope }).scope;
+  if (!scopeAsksFaith(scope)) return effect;
+  const open = { ...effect } as CardEffect & { scope?: CityScope };
+  const rest = scopeWithoutFaith(scope);
+  if (rest === undefined) delete open.scope;
+  else open.scope = rest;
+  return open as CardEffect;
+}
+
+/** Does this town scope ask for a town that follows the seat's religion? */
+function scopeAsksFaith(scope: CityScope | undefined): boolean {
+  if (scope === undefined) return false;
+  if (scope.test === 'follows') return true;
+  if (scope.test === 'ownersFaith') return scope.keeps === true;
+  if (scope.test === 'all' || scope.test === 'any') return scope.of.some(scopeAsksFaith);
+  return false;
+}
+
+/**
+ * A scope with its faith clauses taken off, or `undefined` when nothing is
+ * left. An `all` keeps its other clauses; any other scope that asks the faith
+ * is taken off whole.
+ */
+function scopeWithoutFaith(scope: CityScope | undefined): CityScope | undefined {
+  if (scope === undefined || !scopeAsksFaith(scope)) return scope;
+  if (scope.test !== 'all') return undefined;
+  const rest = scope.of.filter((part) => !scopeAsksFaith(part));
+  if (rest.length === 0) return undefined;
+  return rest.length === 1 ? rest[0] : { test: 'all', of: rest };
+}
+
+/**
+ * **The Confessors** (`followersShareSight`): each town of another empire that
+ * follows this seat's religion shares its sight, at `score.devotion.followerSight`
+ * points a turn each. The towns following now are read off the board, and the
+ * towns the faith is expected to turn over the horizon (`conversionRate`) are
+ * added to them. A seat paid by no religion sees nothing more.
+ */
+function followerSightWorth(ctx: ValueContext): number {
+  if (!holdsFaith(ctx)) return 0;
+  let abroad = 0;
+  for (const city of ctx.state.cities) {
+    if (city.ownerId !== ctx.playerId && followsSeatFaith(ctx, city)) abroad += 1;
+  }
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const more = conversionRate(ctx) * horizon;
+  return (abroad + more) * Math.max(0, ctx.ai.score.devotion.followerSight);
+}
+
+/**
+ * **The Interdict** (`opusInterdict`): Circumvallation's reading, one rule over
+ * (`opusSiegeWorth`). For each met rival raising the Magnum Opus now
+ * (`opusCityOf`), `score.devotion.opusInterdict` points when the town raising
+ * it follows this seat's religion, and that share of them when it does not:
+ * the share of that rival's towns that follow it, as the chance the faith
+ * reaches the Opus town. Nothing while nobody raises it, or while the seat is
+ * paid by no religion.
+ */
+function opusInterdictWorth(ctx: ValueContext): number {
+  if (!holdsFaith(ctx)) return 0;
+  let reach = 0;
+  for (const rival of metRivals(ctx.state, ctx.playerId)) {
+    const town = opusCityOf(ctx.state, rival.id);
+    if (town === null) continue;
+    reach += followsSeatFaith(ctx, town) ? 1 : followingShareOf(ctx, [rival.id]);
+  }
+  return reach * Math.max(0, ctx.ai.score.devotion.opusInterdict);
+}
+
+/** The share of these empires' towns that follow this seat's religion. */
+function followingShareOf(ctx: ValueContext, owners: readonly number[]): number {
+  let towns = 0;
+  let following = 0;
+  for (const city of ctx.state.cities) {
+    if (!owners.includes(city.ownerId)) continue;
+    towns += 1;
+    if (followsSeatFaith(ctx, city)) following += 1;
+  }
+  return towns === 0 ? 0 : following / towns;
+}
+
+/**
+ * **The Turning of Swords** (`faithfulKillsConvert`): an enemy empire's land
+ * soldier this seat kills on ground that follows its religion changes sides
+ * instead, once a turn. Blood Brothers' rule, read for empires and scaled to
+ * war:
+ *
+ *   · **the kills**: this seat's record of other empires' units killed over
+ *     the turns played (`Player.unitsKilled`), or, while it is at war, the
+ *     threat at its gates over the horizon when that reads more;
+ *   · **the ground**: the share of its enemies' towns that follow its religion
+ *     (every met rival's while it is at peace), as the share of those kills
+ *     made on such ground;
+ *   · **the prize**: one soldier a turn at most, priced as a gifted piece is
+ *     (`windfallGrantWorth`'s unit, through the lump's turns).
+ *
+ * Nothing while the seat is paid by no religion or has killed nobody.
+ */
+function turningWorth(ctx: ValueContext): number {
+  if (!holdsFaith(ctx)) return 0;
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const player = playerById(ctx.state, ctx.playerId);
+  const record = (player?.unitsKilled ?? 0) / Math.max(1, ctx.state.turn);
+  const enemies = enemiesOf(ctx);
+  const kills = Math.max(record, enemies.length > 0 ? ctx.threat / horizon : 0);
+  if (kills <= 0) return 0;
+  const sides = enemies.length > 0 ? enemies : metRivals(ctx.state, ctx.playerId).map((rival) => rival.id);
+  const share = followingShareOf(ctx, sides);
+  if (share <= 0) return 0;
+  const piece = (ctx.ai.weights.military * ctx.ai.score.combatScale) / Math.max(1, ctx.ai.score.lumpTurns);
+  return Math.min(1, kills * share) * piece;
+}
+
+// --- holy sites and clergy ----------------------------------------------------------------
+
+/**
+ * **How often this seat plants a further holy site, per turn** (The Anchorites
+ * and The Abbeys). Only a seat that has founded its religion plants a further
+ * site (`plantingCost`); the bot raises one site a town (`townWantingSite`,
+ * `bot.ts`), so the towns of this seat whose ground holds no site are the most
+ * it could plant, and `score.devotion.sitesOverHorizon` is the most it is
+ * expected to plant over the horizon.
+ */
+function furtherSiteRate(ctx: ValueContext): number {
+  if (plantingCost(ctx.state, ctx.playerId) !== 'plantHolySite') return 0;
+  const sited: number[] = [];
+  for (const site of holySites(ctx.state)) {
+    const town = tileOwnerCityId(ctx.state, site.col, site.row);
+    if (town !== null && !sited.includes(town)) sited.push(town);
+  }
+  let open = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    if (!sited.includes(city.id)) open += 1;
+  }
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  return Math.min(open, Math.max(0, ctx.ai.score.devotion.sitesOverHorizon)) / horizon;
+}
+
+/**
+ * **What one charge of the cheapest piece carrying this marker costs this seat,
+ * in faith**, or `null` when it may call none: the piece's own faith price in
+ * its capital (`explainPurchaseCost`, with the price rising for each one
+ * already called), over the charges it carries. A piece the seat has not
+ * opened (`isUnlocked`) is left out.
+ */
+function chargeFaith(ctx: ValueContext, marker: 'prophesies' | 'proclaims'): number | null {
+  const capital = capitalCityOf(ctx.state, ctx.playerId);
+  if (capital === null || capital === undefined) return null;
+  let best: number | null = null;
+  for (const id of UNIT_TYPE_IDS) {
+    const def = unitDef(id);
+    if (def[marker] !== true || def.retired === true) continue;
+    if (!isUnlocked(ctx.state, ctx.playerId, 'unit', id)) continue;
+    const price = explainPurchaseCost(ctx.state, ctx.playerId, capital.id, { kind: 'unit', id }, 'faith');
+    if (price === null) continue;
+    const each = price.total / Math.max(1, def.charges ?? 1);
+    if (best === null || each < best) best = each;
+  }
+  return best;
+}
+
+/**
+ * **What an act costs this seat in charges without the cards that set its
+ * price**: `chargeCostOf`, the one reader of the price table, asked of a board
+ * with every seated Order that sets this act's price taken out of its chair.
+ * So a card that sets a price is worth the same seated or in hand. Remembered
+ * for the sitting, because the board without the card reads the law afresh.
+ */
+const BOOK_CHARGE_MEMO = new WeakMap<ValueContext, Map<ChargeVerbName, number>>();
+function bookChargeCost(ctx: ValueContext, verb: ChargeVerbName): number {
+  let held = BOOK_CHARGE_MEMO.get(ctx);
+  if (held === undefined) {
+    held = new Map<ChargeVerbName, number>();
+    BOOK_CHARGE_MEMO.set(ctx, held);
+  }
+  const found = held.get(verb);
+  if (found !== undefined) return found;
+  const cost = readBookChargeCost(ctx, verb);
+  held.set(verb, cost);
+  return cost;
+}
+
+function readBookChargeCost(ctx: ValueContext, verb: ChargeVerbName): number {
+  const sc = statecraftOf(ctx.state, ctx.playerId);
+  const setsPrice = (card: string): boolean =>
+    isOrderId(card) &&
+    orderDef(card).effects.some(
+      (effect) => effect.kind === 'rule' && effect.rule === 'chargePrice' && effect.verb === verb,
+    );
+  if (sc === undefined || !sc.slots.some((slot) => slot !== null && setsPrice(slot.card))) {
+    return chargeCostOf(ctx.state, ctx.playerId, verb);
+  }
+  const slots = sc.slots.map((slot) => (slot !== null && setsPrice(slot.card) ? null : slot));
+  return chargeCostOf(rewritten(ctx.state, ctx.playerId, { ...sc, slots }), ctx.playerId, verb);
+}
+
+/**
+ * **The Anchorites** (`chargePrice`): a card that sets the price of an act in
+ * charges. Worth the charges it saves on each act (`bookChargeCost` less the
+ * card's price), at what a prophet's charge costs in faith (`chargeFaith`), as
+ * a lump, at the seat's pace of that act. The one live row prices a further
+ * holy site, read at `furtherSiteRate`. A row for any other act meets the
+ * stand-in, named: no row prices one, and the bot keeps no pace for the others.
+ */
+function chargePriceWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueContext): number {
+  const verb = effect.verb;
+  const value = effect.value;
+  if (verb === undefined || value === undefined) return 0;
+  if (verb !== 'plantHolySite') return ctx.ai.score.unknownEffect;
+  const saved = Math.max(0, bookChargeCost(ctx, verb) - Math.max(0, value));
+  if (saved === 0) return 0;
+  const rate = furtherSiteRate(ctx);
+  if (rate <= 0) return 0;
+  const charge = chargeFaith(ctx, 'prophesies');
+  if (charge === null) return 0;
+  return rate * explainLump({ faith: saved * charge }, ctx).total;
+}
+
+/**
+ * **The Abbeys** (`apostlesPlantHolySites`): an apostle may raise a further
+ * holy site, at the price a prophet pays in charges. Worth the faith saved on
+ * each site an apostle raises instead of a prophet: the act's charges
+ * (`chargeCostOf`) times the difference between a prophet's charge and an
+ * apostle's (`chargeFaith`), as a lump, at the seat's pace of further sites
+ * (`furtherSiteRate`). Nothing while the seat may call no apostle or has founded
+ * no religion.
+ */
+function abbeysWorth(ctx: ValueContext): number {
+  const rate = furtherSiteRate(ctx);
+  if (rate <= 0) return 0;
+  const prophet = chargeFaith(ctx, 'prophesies');
+  const apostle = chargeFaith(ctx, 'proclaims');
+  if (prophet === null || apostle === null) return 0;
+  const charges = chargeCostOf(ctx.state, ctx.playerId, 'plantHolySite');
+  const saved = Math.max(0, (prophet - apostle) * charges);
+  if (saved === 0) return 0;
+  return rate * explainLump({ faith: saved }, ctx).total;
+}
+
+// --- commissions -------------------------------------------------------------------------
+
+/**
+ * **Where an every-town goal stands** (Devotion batch DV9, Commission: The
+ * State Church), or `null` for any other goal. The goal's figure reads nought
+ * until every town is admitted (`commissionFigure` with `every`), which tells a
+ * forecast nothing, so this reads the towns the scope admits now (the same
+ * figure without `every`) against what the goal needs: at least its count, and
+ * every town the seat holds.
+ */
+function everyTownProgress(goal: CommissionGoal, ctx: ValueContext): { have: number; need: number } | null {
+  if (goal.kind !== 'reached' || goal.every !== true) return null;
+  const { every: _every, ...each } = goal;
+  void _every;
+  const have = commissionFigure(ctx.state, ctx.playerId, goal.figure, each);
+  return { have, need: Math.max(goal.count, ctx.cities) };
+}
+
+/**
+ * **What a lasting effect pays in the towns a goal guarantees** (Devotion
+ * batch DV9, Commission: The State Church), and how many those are. A goal
+ * that admits at least so many towns of the effect's own scope (a `reached`
+ * goal on `citiesAdmitted` whose `admits` is that scope) leaves at least that
+ * many when it is met, and with `every`, every town the seat holds. Each is
+ * priced at one town's share of the effect with its scope taken off. Nought
+ * for an effect no goal guarantees towns for.
+ */
+function guaranteedTownsWorth(
+  effect: CardEffect,
+  goals: readonly CommissionGoal[],
+  ctx: ValueContext,
+): { towns: number; worth: number } {
+  const scope = (effect as { scope?: CityScope }).scope;
+  if (scope === undefined || ctx.cities <= 0) return { towns: 0, worth: 0 };
+  const key = JSON.stringify(scope);
+  let towns = 0;
+  for (const goal of goals) {
+    if (goal.kind !== 'reached' || goal.figure !== 'citiesAdmitted' || goal.admits === undefined) continue;
+    if (JSON.stringify(goal.admits) !== key) continue;
+    towns = Math.max(towns, goal.count, goal.every === true ? ctx.cities : 0);
+  }
+  if (towns === 0) return { towns: 0, worth: 0 };
+  const open = { ...effect } as CardEffect & { scope?: CityScope };
+  delete open.scope;
+  return { towns, worth: (scoreEffects([open as CardEffect], ctx) / ctx.cities) * towns };
 }

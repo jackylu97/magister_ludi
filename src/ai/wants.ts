@@ -1825,7 +1825,10 @@ function ritePlan(state: GameState, player: Player, ctx: ValueContext): Want[] {
       // currency it had told itself it had no use for.
       const short = refusal !== null && riteOutOfReach(state, player, city.id, id);
       if (refusal !== null && !short) continue;
-      const worth = explainRite(id, here);
+      // The town is handed in (Devotion batch DV9), so a rite whose blessing
+      // is a fact about the town that keeps it (the Sabbath's production) is
+      // priced in this town.
+      const worth = explainRite(id, here, city);
       const row: Want = {
         label: `${riteDef(id).name} at ${city.name}`,
         currency: 'faith',
@@ -1862,12 +1865,17 @@ function riteOutOfReach(state: GameState, player: Player, cityId: number, id: Ri
  * The context handed in is the **town-scoped** one (`townScoped`): a rite is one
  * town's blessing and every city-scoped arm of the evaluator has to pay it once.
  * See `ritePlan`.
+ *
+ * `city` is the town that would keep the rite, when the caller knows it
+ * (Devotion batch DV9). The Sabbath moves that town's own production into
+ * culture, so it is priced off that town (`explainEffects`' `town`). The
+ * prophet's rite over the realm names no town and reads the middling one.
  */
-function explainRite(id: RiteId, ctx: ValueContext): Appraisal {
+function explainRite(id: RiteId, ctx: ValueContext, city?: City): Appraisal {
   const def = riteDef(id);
   const effects = def.effects ?? [];
   if (effects.length === 0) return appraise([]);
-  const lasting = explainEffects(effects, ctx);
+  const lasting = explainEffects(effects, ctx, undefined, city);
   const turns = def.duration ?? 1;
   const lumpTurns = Math.max(1, ctx.ai.score.lumpTurns);
   return appraise([

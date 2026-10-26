@@ -294,6 +294,7 @@ import {
   purchaseError,
 } from '../sim/purchase';
 import {
+  apostlesRaiseHolySites,
   beliefPool,
   gainBeliefError,
   holySites,
@@ -9042,6 +9043,16 @@ function townWantingSite(state: GameState, player: Player, unit: Unit): City | n
  * asked as though the piece stood there is not a thing this file may do, so the
  * *reachable* town is chosen by the path and the refusal is asked again on
  * arrival, which is the same bargain every arm here strikes with the reducer).
+ *
+ * **Under The Abbeys an apostle raises a further holy site** (Devotion batch
+ * DV9; the rule `apostlesPlantHolySites`, read through
+ * `apostlesRaiseHolySites`). It plants where `plantHolySiteError` allows it and
+ * on the ground of a town that holds no site (`townWantingSite`), the
+ * prophet's own two clauses, so an empire still ends with at most one site a
+ * town. The relic comes first, because a town that keeps one keeps paying
+ * whatever the tide does. An apostle with nothing else to do steps off the
+ * town centre toward a legal hex, as a prophet does, when the town it stands in
+ * wants a site.
  */
 function apostleCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
   const tried: BotCandidate[] = [];
@@ -9055,6 +9066,28 @@ function apostleCommand(state: GameState, player: Player, unit: Unit): UnitChoic
     };
   }
   tried.push(refused('leave the relic', here));
+  // **The Abbeys' planting** (Devotion batch DV9). Asked only while the rule
+  // holds, so an apostle of an empire without the card reads exactly as before.
+  const abbeys = apostlesRaiseHolySites(state, player.id);
+  if (abbeys) {
+    const plant = plantHolySiteError(state, player.id, unit.id);
+    const town = townWantingSite(state, player, unit);
+    if (plant === null && town !== null) {
+      tried.push(chosenAt('raise a holy site', tried.length));
+      return {
+        command: { type: 'plantHolySite', playerId: player.id, unitId: unit.id },
+        summary: `Raises a holy site on ${town.name}'s ground, which presses the faith as the first does.`,
+        candidates: tried,
+      };
+    }
+    tried.push(
+      refused(
+        'raise a holy site',
+        plant ??
+          'the town holding this hex already has a holy site, and a second beside it would press nothing new',
+      ),
+    );
+  }
   for (const city of state.cities) {
     if (city.ownerId !== player.id) continue;
     if (city.col === unit.col && city.row === unit.row) continue;
@@ -9073,6 +9106,26 @@ function apostleCommand(state: GameState, player: Player, unit: Unit): UnitChoic
       candidates: tried,
       focus: { col: city.col, row: city.row },
     };
+  }
+  // A bought apostle spawns on the town centre, where a holy site may not
+  // stand, so under The Abbeys it steps to a hex beside it where the stones
+  // would be legal, when the town it stands in holds no site and the empire
+  // has a religion to raise one for.
+  if (
+    abbeys &&
+    plantingCost(state, player.id) === 'plantHolySite' &&
+    townWantingSite(state, player, unit) !== null
+  ) {
+    const step = holySiteStep(state, player, unit);
+    if (step !== null) {
+      tried.push(chosenAt(`step to (${step.col},${step.row})`, tried.length));
+      return {
+        command: { type: 'moveUnit', playerId: player.id, unitId: unit.id, target: step },
+        summary: `Steps to (${step.col},${step.row}), where a holy site would be legal.`,
+        candidates: tried,
+        focus: step,
+      };
+    }
   }
   return standDown(
     state,

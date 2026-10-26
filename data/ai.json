@@ -299,6 +299,15 @@
         "worldTradeRoutes": 6
       }
     },
+    "devotion": {
+      "faithSpentShare": 0.75,
+      "frontRowShare": 0.15,
+      "faithUnitShare": 0.25,
+      "followerSight": 1,
+      "parishTurns": 10,
+      "sitesOverHorizon": 1,
+      "opusInterdict": 60
+    },
     "citizenLevy": {
       "priorShare": 0.25,
       "retireShare": 0.5

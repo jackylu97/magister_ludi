@@ -1570,6 +1570,78 @@ export interface AiConfig {
       };
     };
     /**
+     * **Prices for the Devotion shapes of batches DV3 to DV8** (Devotion batch
+     * DV9). Each arm in `value.ts` reads what it can off the board (the seat's
+     * faith income, its rites, its religion, its towns and the towns that
+     * follow it) and uses a knob here only for the part the board cannot say.
+     *
+     * Some new shapes have no knob, because the board and the older knobs
+     * price them fully:
+     *
+     *   · the `rite` moment and the `riteStarted` tally read the seasons the
+     *     seat's towns keep now, with `score.tallyForecast.riteStarted` as the
+     *     floor;
+     *   · the conversion moment (`townConverted`) reads the seat's record of
+     *     towns abroad its faith has turned, smoothed toward
+     *     `score.tallyForecast.foreignCityConverted`;
+     *   · a lump pressed at a conversion (Pentecost) reads the towns within its
+     *     range that do not follow the seat's religion yet;
+     *   · The Double Feast reads the rites the seat's towns keep now and the
+     *     blessing of the next rite they could add;
+     *   · The Turning of Swords reads the seat's record of kills and the share
+     *     of its enemies' towns that follow its religion;
+     *   · the Sabbath reads the production of the town that would keep it.
+     */
+    devotion: {
+      /**
+       * **The Book of Life** (`faithSpent`): the share of the faith this seat
+       * makes over the horizon that it expects to spend. The faith a turn is
+       * read off the seat's books, so this is only the part it banks.
+       */
+      faithSpentShare: number;
+      /**
+       * **The Rising Nave** (`frontRowTenths`): the share of a town's turns
+       * whose front row is a wonder, a Cathedral or the Magnum Opus. A town
+       * raising one now is read off the board; this prices the towns that are
+       * not.
+       */
+      frontRowShare: number;
+      /**
+       * **The Offering Chests** (`purchaseRider` with `currency: 'faith'`): the
+       * share of the faith this seat makes that it spends on the units the
+       * discount reaches. The bot keeps no record of what it buys with faith,
+       * so this is the stand-in.
+       */
+      faithUnitShare: number;
+      /**
+       * **The Confessors** (`followersShareSight`): points a turn for each town
+       * of another empire that follows this seat's religion and so shares its
+       * sight. What a hex seen is worth has no reading in this currency.
+       */
+      followerSight: number;
+      /**
+       * **The Parishes** (a founding presses the founder's religion on the new
+       * town): how many turns sooner a town founded devout follows the seat's
+       * religion than a town the tide must turn. What a devout town is worth a
+       * turn is read off the board.
+       */
+      parishTurns: number;
+      /**
+       * **The Anchorites and The Abbeys** (`chargePrice`,
+       * `apostlesPlantHolySites`): further holy sites a seat plants over the
+       * horizon, at most. The towns that hold no holy site yet are read off the
+       * board, and the seat plants no more sites than that.
+       */
+      sitesOverHorizon: number;
+      /**
+       * **The Interdict** (`opusInterdict`): points for each met rival raising
+       * the Magnum Opus in a town that follows this seat's religion, whose
+       * work the rule stops. Circumvallation's `score.dominion.opusSiege`,
+       * one rule over.
+       */
+      opusInterdict: number;
+    };
+    /**
      * **The citizen levy** (the bot levy batch, the user's answer of
      * 2026-10-23 to question 2 of `docs/plans/expansionist-themes-triage.md`).
      * A levy is the `levyCitizen` command: a town spends a citizen on what a
