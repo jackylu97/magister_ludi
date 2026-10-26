@@ -29,7 +29,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 18 | 1 | 0 | 19 | 0 |
 | Tier IV | 11 | 1 | 0 | 12 | 0 |
 | **All** | **72** | **5** | **0** | **77** | **2** |
-| Shared | 20 | 3 | 0 | 23 | 1 |
+| Shared | 21 | 2 | 0 | 23 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
 
@@ -183,6 +183,7 @@ These rows live in `data/decks/common.json`. A seat holding Commerce or the deck
 - **Moved in batch T1:** The Merchant Shrines, The Waqf and The Silk Road Monks (with Devotion) and The Brokers' Redraw (with Magisterial) came here from the Commerce file, with their ids, texts and tiers. The Escorted Roads, Pilgrim Markets, The Grain Exchange and Travelling Players moved to Tier II, because each needs a trade route to pay. The Exchange of Discoveries moved to Tier I.
 - **Moved in batch T7:** The Standing Army came here from the Dominion file, with its id, text, tier, rarity and type.
 - **Changed in batch R1 (2026-10-25):** The Standing Army moved to Tier I in both decks (the user, on the Dominion list: *"move to tier 1 (barracks appear later)"*). The Art Dealers now pays +3 gold for each card seated in your government (*"revise: +3 gold for each card slotted in your government"*). The Pathfinders' Company is now Commerce's only Military card at Tier 0.
+- **Changed in Magisterial batch MG4** (`docs/plans/magisterial-themes-triage.md`, reading 46): Travelling Players now pays +2 culture on each foreign route from a town with a Monument for each different deck among your seated cards. The Magisterial pass revised the text this sheet proposed, and both sheets list the same text.
 - **Each pair's early shared card:** Expansionist, Market Gardens (Tier 0); Devotion, The Merchant Shrines (Tier 0); Scientific, The Exchange of Discoveries (Tier I); Magisterial, The Art Dealers (Tier I, built in batch T7); Dominion, The Standing Army (Tier I since batch R1, shared in batch T7).
 - **Market Gardens** is the one route card shared before Tier II. Its farms pay beside a road from Tier 0, and its route half waits for the caravans (section 12 of the themes pass, answered).
 
@@ -196,7 +197,7 @@ These rows live in `data/decks/common.json`. A seat holding Commerce or the deck
 | **The Escorted Roads** | uncommon | Dominion | II | implemented | Routes whose origin has a garrison gain +5 gold. Naval units gain +2 strength while adjacent to one of your traders. | Economic |
 | **Pilgrim Markets** | uncommon | Devotion | II | implemented | Routes gain +3 gold and +3 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify. | Civic |
 | **The Grain Exchange** | uncommon | Expansionist | II | implemented | Domestic routes from a city with a Granary give +5 food to their destination. Cities receiving one gain +1 happiness. | Economic |
-| **Travelling Players** | uncommon | Magisterial | II | modify: revised | Foreign routes from a city with a Monument gain +1 culture; additional +2 culture for every unique deck type slotted in your government. | Civic |
+| **Travelling Players** | uncommon | Magisterial | II | implemented | Foreign routes from a town with a Monument gain +2 culture for each different deck among your seated cards. | Civic |
 | **The Provincial Fair** | uncommon | Expansionist | II | implemented | Connected noncapital cities with a Market gain +3 food. Their worked plantations, camps and pastures gain +2 gold. | Economic |
 | **The Tithe** | rare | Devotion | II | implemented | Cities with a Temple gain gold equal to 25% of their base faith, and +25% gold. | Economic |
 | **The Merchant Navigators** | common | Scientific | II | implemented | Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +5 science. | Civic |
@@ -235,5 +236,5 @@ These rows stay in the data so that old saves load. They are dealt to nobody, th
   - **Commerce's Doctrines:** sixteen proposed on 2026-10-23 (`docs/plans/commerce-doctrines.md`), waiting for your review; a triage of their own builds them.
   - **Seven rows play as built:** The Planters' Charter, Numidian Cavalry, The Exchange, The Monopoly, The Great Loan, The Silk Road Monks and The Brokers' Redraw. The list doc's row for each says what the game does. A later pass either rewrites their text to what the game does or builds the text.
   - **The Merchant Works** touches the wonder split. It stays as written. Say if you want "a world wonder" dropped from its text.
-  - **The cards shared with Devotion and Magisterial** keep their built text and this sheet's types until those decks' passes. Travelling Players keeps its built text until the Magisterial pass (the triage's reading 38).
+  - **The cards shared with Devotion and Magisterial** keep their built text and this sheet's types until those decks' passes. Travelling Players took the Magisterial pass's text in Magisterial batch MG4.
   - **Data wording:** The Planters' Charter's text says "its payload is specified below", and the card shows nothing below it.

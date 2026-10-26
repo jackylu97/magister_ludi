@@ -2170,7 +2170,12 @@ describe("determinism", () => {
     // in each town it reaches, the Rite of the Sabbath is new, and three
     // Devotion cards are dealt. So a v181 log's Devotion hands hold
     // different cards.
-    expect(SCHEMA_VERSION).toBe(182);
+    // 183 since Magisterial batch MG4 (the collection and the wonder
+    // commissions): two counts, a commission figure and two tally occasions
+    // are new, five Magisterial cards are dealt, and Travelling Players pays
+    // for each deck among the seated cards. So a v182 log's Magisterial hands
+    // hold different cards.
+    expect(SCHEMA_VERSION).toBe(183);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -9060,8 +9065,8 @@ describe("the engine shapes", () => {
     "pilgrimMarkets · routeYield",
     // Commerce batch T2 took Merchant Scholars off this list: it now counts
     // the Academies in the origin city, so it is a route count and no longer
-    // a route flat.
-    "travellingPlayers · routeYield",
+    // a route flat. Magisterial batch MG4 took Travelling Players off it for
+    // the same reason: it now counts the decks among the seated cards.
     "theGrainExchange · routeYield",
     "theMerchantNavigators · routeYield",
     // Commerce batch T1: The Silk Road Monks, moved here from the Commerce

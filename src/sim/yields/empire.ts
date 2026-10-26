@@ -25,7 +25,16 @@
 import { applyStages, stageFactor } from './stages';
 import { CITY_YIELD_KEYS, type ResourceId } from '../resourceData';
 import { type CardId } from '../statecraftData';
-import { type CardYieldLine, explainCardEmpireYields, heldReligions } from '../statecraft';
+import {
+  type CardYieldLine,
+  explainCardEmpireYields,
+  heldReligions,
+  recordScalingOccasion,
+} from '../statecraft';
+// The front-row reading the `wonderProduction` tally asks (Magisterial batch
+// MG4). Straight from its layer, as `combat.ts` takes `isRaisingOpus`; this
+// file already reads the same module through the index above.
+import { isRaisingWonderOrOpus } from '../statecraft/evaluator';
 import {
   type City,
   type GameState,
@@ -124,6 +133,16 @@ export function collectYields(state: GameState, report?: TurnReport): void {
       });
     }
     city.hammerBasket += yields.production;
+    // **Production put into a wonder or the Magnum Opus** (Magisterial batch
+    // MG4, Commission: The Wonder of the Age; the triage's reading 35). This is
+    // the one place a town's production for the turn goes into its basket, so
+    // it is counted here, while the front row is a world wonder or the Opus.
+    // A lump from a windfall, a purchase or a refund never passes this line.
+    // It is counted as it goes in, so production in a wonder that a rival
+    // finishes first still counts. A seat with no card watching writes nothing.
+    if (yields.production > 0 && isRaisingWonderOrOpus(city)) {
+      recordScalingOccasion(state, city.ownerId, 'wonderProduction', yields.production);
+    }
     // Only the border basket answers to the writ — see `borderGrowth`. The
     // empire's culture pool below is banked at the full rate, because authority
     // owns land and has no opinion about civics.

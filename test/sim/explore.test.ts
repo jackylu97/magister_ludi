@@ -1074,10 +1074,19 @@ describe('determinism', () => {
    * yield, and no seat holds a new card. Checked with the change in place and
    * the version printed as 181, which gives the hashes of Magisterial batch
    * MG3 exactly.
+   *
+   * **Magisterial batch MG4 (the collection and the wonder commissions,
+   * schema 183) moved the hash and not the length** at both seeds: 182 became
+   * 183, and that is all. The batch adds two counts, a commission figure, two
+   * tally occasions, five card rows and a new text for Travelling Players.
+   * Nobody here drafts, so no seat holds a card that watches a wonder, and
+   * nobody founds a town, so no production goes into a wonder. Checked with
+   * the change in place and the version printed as 182, which gives the
+   * hashes of Devotion batch DV4 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '972cda96:188976',
-    2026: '327cc29b:188554',
+    11: '1ce102c5:188976',
+    2026: '3c199c3c:188554',
   };
 
   for (const seed of [11, 2026]) {

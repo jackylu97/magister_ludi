@@ -696,6 +696,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Cornerstone | 0 | ● | S | Towns that hold no wonder build wonders 30% faster. |
 | The Repertory | 0 | ● | P | Culture buildings give +1 culture each. |
 | The Second Reading | 0 | ◆ | S | The first reroll of each hand is free. |
+| Commission: The Eighth Wonder | 0 | ◆ | S | Commission. Complete a wonder while this is seated. Then, for the rest of the game, each wonder you hold gives +3 culture and +5 renown. The card leaves its chair. |
 | The Laureate | 1 | ◆ | P | Cities working a great-person improvement gain +5 culture, +3 science and +1 renown, once per city. |
 | The Guild of Masons | 1 | ◆ | P | Gain +38% production toward wonders. Cities producing a wonder lose 2 gold per turn. |
 | The Working Court | 1 | ○ | P | Cities with a Monument gain production equal to 30% of their base culture, excluding conversion outputs. |
@@ -707,6 +708,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Ceremonial Guard | 1 | ● | S | Towns holding a wonder gain +5 defence. |
 | The Unveiling | 1 | ◆ | S | Completing a wonder deals you a free Order hand. |
 | The Encyclopedia | 1 | ● | E | +1 science and +1 culture in your capital for each Order you hold unseated, at most +15 of each. |
+| Commission: The Roll of the Senate | 1 | ◆ | S | Commission. Hold ten Orders. Then, for the rest of the game, you have one more Wildcard chair. The card leaves its chair. |
 | The Learned Patron | 2 | ◆ | P | Cities with at least two culture buildings gain science equal to 15% of their base culture, at most +18 science per city. Conversion outputs are excluded. |
 | The Senate Charter | 2 | ◆ | S | Unlocks the capital-only Assembly Hall. A city with one gains +3 happiness and +30% production toward buildings. |
 | The Masters' Domain | 3 | ◆ | S | Worked great-person works give +3 food and +3 production. |
@@ -723,9 +725,12 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Boule | 3 | ◆ | E | +2% science and culture for each card you have seated. |
 | The Roll of Masters | 3 | ◆ | P | +3% science and culture for each great person you have gained this game, at most +30%. |
 | The Garden Courts | 3 | ◆ | P | Towns working at least two great-person works gain +20% culture and science. |
+| Commission: The Wonder of the Age | 3 | ◆ | S | Commission. Put 1,500 production into wonders or the Magnum Opus while this is seated; production in a wonder a rival finishes first still counts. Then gain 250 culture, and for the rest of the game one more Wildcard chair. The card leaves its chair. |
 | The Privy Council | 4 | ○ | E | Each of your cards that pays production pays +1 more production wherever it pays it. |
 | The Magister's Court | 4 | ◆ | S | Cities containing a wonder gain +25% production toward the Magnum Opus. |
 | The Bulwark of Marvels | 4 | ◆ | S | The town building your Magnum Opus gains +4 defence for each wonder you hold. |
+| The Universal Library | 4 | ○ | S | The city building the Magnum Opus gains +2% production toward it for each Order you hold, seated or not, at most +40%. |
+| The Polymath's Study | 4 | ○ | E | Your towns gain +8% science and production for each different deck among the cards you hold, at most +40%. |
 
 ### Cross-type
 
@@ -745,7 +750,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Sculpted Landscape | Expansionist · Magisterial | 3 | ◆ | S | Farms beside a great-person improvement gain +2 food and +2 culture. Each farm receives this once regardless of the number of adjacent works. |
 | The Tithe | Commerce · Devotion | 2 | ○ | P | Cities with a Temple gain gold equal to 25% of their base faith, and +25% gold. |
 | Merchant Scholars | Commerce · Scientific | 3 | ◆ | P | Foreign routes gain +2 science for each Academy in the origin city. |
-| Travelling Players | Commerce · Magisterial | 2 | ◆ | S | Foreign routes from a city with a Monument gain +2 culture. |
+| Travelling Players | Commerce · Magisterial | 2 | ◆ | E | Foreign routes from a town with a Monument gain +2 culture for each different deck among your seated cards. |
 | Cloister Schools | Devotion · Scientific | 1 | ◆ | P | Cities with both a Temple and a Library gain +5 food and +5 science. |
 | The Cloister | Devotion · Scientific | 2 | ○ | P | Cities with a Temple gain science equal to 30% of their base faith. Their Libraries and Universities each gain +3 food. |
 | Sacred Commissions | Devotion · Magisterial | 2 | ◆ | S | Cities with a Holy Site gain +38% production toward wonders. Completing a wonder grants 60 faith. |
@@ -926,10 +931,16 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Roll of Masters** — A great person counts from the moment you gain it, spent or not. Great people gained before this card was seated count too.
 - **The Privy Council** — Each town, hex or empire line counts on its own, so a card that pays production in many towns gains in each of them. A percentage is not raised, and this card does not raise itself.
 - **The Bulwark of Marvels** — Every wonder you hold counts, in any of your towns, and a wonder you captured counts too.
+- **Commission: The Eighth Wonder** — Only a wonder finished in one of your own cities while this card is seated meets the goal. A wonder you captured does not, and the Magnum Opus is not a wonder. After that, every wonder you hold pays each turn, those built before the goal and those you captured included.
+- **Commission: The Roll of the Senate** — Every Order you hold counts, seated or not, this card included. Charters and finished commissions count. A Doctrine does not.
+- **Commission: The Wonder of the Age** — Only the production a city makes each turn counts, while a wonder or the Magnum Opus is at the front of its queue. Production you buy, or gain all at once, does not.
+- **The Universal Library** — Every Order you hold counts, seated or not, this card included. Charters and finished commissions count. A Doctrine does not.
+- **The Polymath's Study** — Every Order you hold counts, seated or not. A card that two decks share counts for both decks. The cards that belong to no deck count together as one more deck.
 - **Letters of Marque** — The coin is for a kill made by one of your ships, wherever it happens. The extra gold and the slower shipyards both belong to the cities that have a Harbour.
 - **The Sacred Host** — A soldier bought with faith costs what it would cost to build, converted at the faith rate.
 - **Pilgrim Markets** — The first card to pay a trade route in faith; nothing carried it before this one asked. The test is a disjunction, so one shrine is enough and two are not more — a road with a holy site at each end is paid once, which is the card's second sentence. The site is the prophet's work on the ground, anywhere inside either town's borders, and nobody has to be working the hex.
 - **The Exchange of Discoveries** — Both lines land on the same hexes; the second is asked of the town that owns the ground, so a seam whose city has raised its stalls is worth two beakers rather than one.
+- **Travelling Players** — Only the cards in your chairs count. A card that two decks share counts for both decks. The cards that belong to no deck count together as one more deck.
 - **The Cosmopolitan Court** — A city is counted for the trade routes that set out from it to another empire, and never for more than three. The extra gold wants a citizen standing on the work, as every tile bonus does.
 - **Sacred Patronage** — Half built and therefore not built: a gift may now be held to once a turn, but the moment the world announces is a great one spending themselves on their boon — so a card written on the spending would pay for one of the ways a person may be spent and stay silent for the others. † spending a great person pays faith, but never more than once in a turn
 - **The Crusader Orders** — Taking a city presses your religion on it once, as a prophet would; whether it converts depends on the faith already there. An empire with no religion presses nothing.

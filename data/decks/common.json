@@ -683,16 +683,20 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "The cart is a stage with wheels on it.",
-      "text": "Foreign routes from a city with a Monument gain +2 culture.",
+      "text": "Foreign routes from a town with a Monument gain +2 culture for each different deck among your seated cards.",
       "effects": [
         {
           "kind": "pays",
           "where": "route",
+          "basis": "count",
+          "count": "decksHeld",
+          "seated": true,
           "culture": 2,
           "origin": { "test": "hasBuilding", "building": "monument" },
           "crossing": "international"
         }
-      ]
+      ],
+      "note": "Only the cards in your chairs count. A card that two decks share counts for both decks. The cards that belong to no deck count together as one more deck."
     },
     "theCosmopolitanCourt": {
       "name": "The Cosmopolitan Court",

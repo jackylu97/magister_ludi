@@ -3,7 +3,7 @@
 The deck's cards, by tier: name, rarity, status, ability and type. This sheet is the spec of record for the deck. `test/sim/decks/magisterial.test.ts` checks it against `data/decks/magisterial.json` and, for the shared table, `data/decks/common.json`.
 
 - **Why each card is here:** `docs/plans/magisterial-themes.md`, the themes pass of 2026-10-23. It designs the deck as a way to play: an engine of culture and the draft, and four themes (the council, the patrons, the landscape and the monuments). Section 12 holds your comments and answers of 2026-10-25, and it outranks the sections before it. `docs/plans/magisterial-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
-- **The build plan:** `docs/plans/magisterial-themes-triage.md` (batches MG1 to MG17). Batch MG1 wrote this sheet, put the types into the data, retired the 64 cut rows, changed four cards in place (Civic Granaries, The Honoured Dead, The Living Canon and The Masters' Domain), and gave the three deferred rows their new text and tier. Batch MG2 built the fourteen cards of Tiers 0 and I whose shapes already existed: The Prytaneion, The Polemarch, The Court Painter, The Cornerstone, The Repertory, The Second Reading, The Nomarchs, The Workshop at Olympia, The Overseers of Works, The Siting Masters, The Keepers of Wonders, The Ceremonial Guard, The Unveiling and The Encyclopedia. Batch MG3 built eleven cards of Tiers II to IV: The Prefects, The Symposium, Letters Patent, The Quarter of Masters, The Gazetteers, The Seven Sights, The Boule, The Roll of Masters, The Garden Courts, The Privy Council and The Bulwark of Marvels. It also dealt The Golden Age and The Magister's Court, which had waited for it. Each uses shapes that already existed, except The Bulwark of Marvels, which needed one new field: a town's defence counted from every wonder the empire holds, not only the wonders in that town. The Quarter of Masters is a new data row; the retired Expansionist row of the same name stays as it was. Each later batch sets its own rows to `implemented`.
+- **The build plan:** `docs/plans/magisterial-themes-triage.md` (batches MG1 to MG17). Batch MG1 wrote this sheet, put the types into the data, retired the 64 cut rows, changed four cards in place (Civic Granaries, The Honoured Dead, The Living Canon and The Masters' Domain), and gave the three deferred rows their new text and tier. Batch MG2 built the fourteen cards of Tiers 0 and I whose shapes already existed: The Prytaneion, The Polemarch, The Court Painter, The Cornerstone, The Repertory, The Second Reading, The Nomarchs, The Workshop at Olympia, The Overseers of Works, The Siting Masters, The Keepers of Wonders, The Ceremonial Guard, The Unveiling and The Encyclopedia. Batch MG3 built eleven cards of Tiers II to IV: The Prefects, The Symposium, Letters Patent, The Quarter of Masters, The Gazetteers, The Seven Sights, The Boule, The Roll of Masters, The Garden Courts, The Privy Council and The Bulwark of Marvels. It also dealt The Golden Age and The Magister's Court, which had waited for it. Each uses shapes that already existed, except The Bulwark of Marvels, which needed one new field: a town's defence counted from every wonder the empire holds, not only the wonders in that town. The Quarter of Masters is a new data row; the retired Expansionist row of the same name stays as it was. Batch MG4 built the cards that count your collection and the wonder commissions: Commission: The Eighth Wonder, Commission: The Roll of the Senate, Commission: The Wonder of the Age, The Universal Library and The Polymath's Study, and gave the shared Travelling Players its new text. It added two counts (the Orders you hold, and the different decks among them or among your seated cards), one commission figure (the Orders you hold) and two moments a commission counts (a wonder you complete, and the production you put into a wonder or the Magnum Opus). Each later batch sets its own rows to `implemented`.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -23,13 +23,13 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 
 | Tier | Implemented | Modify | Add | All |
 |---|---|---|---|---|
-| Tier 0 | 9 | 0 | 1 | 10 |
-| Tier I | 11 | 0 | 4 | 15 |
+| Tier 0 | 10 | 0 | 0 | 10 |
+| Tier I | 12 | 0 | 3 | 15 |
 | Tier II | 10 | 0 | 7 | 17 |
-| Tier III | 6 | 0 | 11 | 17 |
-| Tier IV | 3 | 1 | 8 | 12 |
-| **All** | **39** | **1** | **31** | **71** |
-| Shared | 16 | 3 | 0 | 19 |
+| Tier III | 7 | 0 | 10 | 17 |
+| Tier IV | 5 | 1 | 6 | 12 |
+| **All** | **44** | **1** | **26** | **71** |
+| Shared | 17 | 2 | 0 | 19 |
 
 **By type** (the chair a card fits):
 
@@ -58,7 +58,7 @@ The deck holds 71 cards, and every one takes a chair: 10, 15, 17, 17 and 12 acro
 | **The Temple of the Muses** | common | implemented | Culture buildings give +2 faith each. | Civic |
 | **The Repertory** | common | implemented | Culture buildings give +1 culture each. | Civic |
 | **The Second Reading** | uncommon | implemented | The first reroll of each hand is free. | Wildcard |
-| **Commission: The Eighth Wonder** | uncommon | add | Commission. Complete a wonder while this is seated. Then, for the rest of the game, each wonder you hold gives +3 culture and +5 renown. The card leaves its chair. | Civic |
+| **Commission: The Eighth Wonder** | uncommon | implemented | Commission. Complete a wonder while this is seated. Then, for the rest of the game, each wonder you hold gives +3 culture and +5 renown. The card leaves its chair. | Civic |
 
 ## Tier I
 
@@ -72,7 +72,7 @@ The deck holds 71 cards, and every one takes a chair: 10, 15, 17, 17 and 12 acro
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
 | **The Nomarchs** | uncommon | implemented | +1 authority for every two cards you have seated. | Civic |
-| **Commission: The Roll of the Senate** | uncommon | add | Commission. Hold ten Orders. Then, for the rest of the game, you have one more Wildcard chair. The card leaves its chair. | Wildcard |
+| **Commission: The Roll of the Senate** | uncommon | implemented | Commission. Hold ten Orders. Then, for the rest of the game, you have one more Wildcard chair. The card leaves its chair. | Wildcard |
 | **The Wandering Muse** | uncommon | add | On draft: gain a free great-person draft. Seated, this card does nothing. | Civic |
 | **The Workshop at Olympia** | common | implemented | +2 renown a turn for each wonder you hold. | Civic |
 | **The Overseers of Works** | uncommon | implemented | Each time you gain a great person, your capital gains 100 production for each age you have reached. | Economic |
@@ -140,7 +140,7 @@ The deck holds 71 cards, and every one takes a chair: 10, 15, 17, 17 and 12 acro
 | **Commission: The Paradise Garden** | rare | add | Commission. Have a great-person work with three other works or tended hexes beside it. Then every unowned hex within three hexes of it joins your borders. The card leaves its chair. | Wildcard |
 | **Magnificence** | rare | add | You may buy a wonder you are building with culture, one culture for each hammer it still needs. | Economic |
 | **The Wonder Commonwealth** | rare | implemented | Cities containing a wonder gain +38% production and +38% food. Your cities without a wonder gain +15% culture instead. | Economic |
-| **Commission: The Wonder of the Age** | uncommon | add | Commission. Put 1,500 production into wonders or the Magnum Opus while this is seated; production in a wonder a rival finishes first still counts. Then gain 250 culture, and for the rest of the game one more Wildcard chair. The card leaves its chair. | Wildcard |
+| **Commission: The Wonder of the Age** | uncommon | implemented | Commission. Put 1,500 production into wonders or the Magnum Opus while this is seated; production in a wonder a rival finishes first still counts. Then gain 250 culture, and for the rest of the game one more Wildcard chair. The card leaves its chair. | Wildcard |
 | **Officials by Merit** | rare | add | Order hands deal two extra cards. You cannot reroll Order hands. | Wildcard |
 | **The Second Sitting** | rare | add | Each time you pass on an Order hand you paid culture for, you are dealt a free Order hand at once. | Wildcard |
 | **The Cabinet of Curiosities** | rare | add | On draft: add a random card of your tier from a deck you do not hold to your collection. Seated, this card does nothing. | Wildcard |
@@ -167,8 +167,8 @@ Tier III has no Military card (section 8 of the themes pass). The Military cards
 | **The Magister's Court** | uncommon | implemented | Cities containing a wonder gain +25% production toward the Magnum Opus. | Economic |
 | **The Hall of Wonders** | rare | add | Order hands deal one more card for every two wonders you hold, at most two more. | Wildcard |
 | **The Bulwark of Marvels** | uncommon | implemented | The town building your Magnum Opus gains +4 defence for each wonder you hold. | Military |
-| **The Universal Library** | rare | add | The city building the Magnum Opus gains +2% production toward it for each Order you hold, seated or not, at most +40%. | Economic |
-| **The Polymath's Study** | rare | add | Your towns gain +8% science and production for each different deck among the cards you hold, at most +40%. | Civic |
+| **The Universal Library** | rare | implemented | The city building the Magnum Opus gains +2% production toward it for each Order you hold, seated or not, at most +40%. | Economic |
+| **The Polymath's Study** | rare | implemented | Your towns gain +8% science and production for each different deck among the cards you hold, at most +40%. | Civic |
 | **The Grand Retrospective** | rare | add | On draft: your capital gains 20 culture, 20 science and 20 production for each wonder, great-person work and Order you hold. Seated, this card does nothing. | Civic |
 
 ## Shared with another deck
@@ -179,7 +179,7 @@ These rows live in `data/decks/common.json`. A seat holding Magisterial or the d
 - **Retired in batch MG1:** The Imperial Examinations and Triumphal Arches, both shared with Dominion. Both sheets cut them.
 - **Changed by other batches:** Commerce batch T1 moved The Brokers' Redraw to the shared file and Travelling Players to Tier II. Batch R1 (2026-10-25) changed The Art Dealers to +3 gold for each card seated in your government.
 - **Moved in Devotion batch DV1** (`docs/plans/devotion-themes-triage.md`): The Painted Chapels, The Festival Calendar and The Penitents' Roll came here from the Devotion file, with their ids, texts, tiers and rarities, and are typed Civic. Sacred Commissions moved from Tier I to Tier II, because it pays only in a town with a holy site.
-- **Who builds what:** this plan builds Travelling Players' new text (batch MG4) and Sacred Patronage (batch MG8). The Devotion build plan (`docs/plans/devotion-themes-triage.md`) built The Rising Nave in batch DV3. It pays while the front row of a town's queue is a Cathedral or a wonder, the Magnum Opus included (that plan's reading 18). Whichever batch changes a shared row changes it on every sorted sheet that lists it, in the same batch (the triage's reading 47).
+- **Who builds what:** this plan built Travelling Players' new text in batch MG4, and builds Sacred Patronage in batch MG8. The Devotion build plan (`docs/plans/devotion-themes-triage.md`) built The Rising Nave in batch DV3. It pays while the front row of a town's queue is a Cathedral or a wonder, the Magnum Opus included (that plan's reading 18). Whichever batch changes a shared row changes it on every sorted sheet that lists it, in the same batch (the triage's reading 47).
 - **Each pair's early shared card:** Scientific, Illuminated Treatises (Tier 0); Dominion, The Sword of State (Tier I); Expansionist, Garden Cities (Tier I); Commerce, The Art Dealers (Tier I); Devotion, The Painted Chapels (Tier I).
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
@@ -192,7 +192,7 @@ These rows live in `data/decks/common.json`. A seat holding Magisterial or the d
 | **Examinations of State** | rare | Dominion | II | implemented | Cities with a Monument and a garrison gain +2 science and +2 culture per three citizens. Ungarrisoned cities receive no bonus. | Civic |
 | **Garden Provinces** | common | Expansionist | II | implemented | Connected cities with a Monument gain +3 food and +3 culture. | Civic |
 | **Looted Art** | uncommon | Dominion | II | implemented | Capturing a city grants 20 renown for each great-person work and wonder inside its borders. | Civic |
-| **Travelling Players** | uncommon | Commerce | II | modify: revised | Foreign routes from a town with a Monument gain +2 culture for each different deck among your seated cards. | Civic |
+| **Travelling Players** | uncommon | Commerce | II | implemented | Foreign routes from a town with a Monument gain +2 culture for each different deck among your seated cards. | Civic |
 | **The Brokers' Redraw** | rare | Commerce | II | modify: as built | You may reroll a draft with gold instead of faith. All other purchasing is 10% more expensive. | Wildcard |
 | **The Festival Calendar** | uncommon | Devotion | II | implemented | Cities keeping a rite gain +30% food and +30% culture. | Civic |
 | **The Penitents' Roll** | uncommon | Devotion | II | implemented | +6 science and +6 culture for every Order hand you reroll while this is seated. Rerolls cost 30% less faith while this is seated. | Civic |
@@ -204,7 +204,7 @@ These rows live in `data/decks/common.json`. A seat holding Magisterial or the d
 | **The New Code** | rare | Dominion | III | implemented | Capturing a city opens a draft at once, at no culture cost. This can happen at most once every ten turns. | Wildcard |
 | **The Rising Nave** | rare | Devotion | III | implemented | While a city is building a Cathedral or a wonder, it gains +1 faith and +1 culture for every 10% of the work already done. | Civic |
 
-- **Travelling Players** takes its new text in batch MG4. Until then the game pays +2 culture on each such route.
+- **Travelling Players** took its new text in batch MG4 (the triage's reading 46). It counts the decks among the cards in your chairs: a card that two decks share counts for both, and the cards that belong to no deck count together as one more (reading 8). The Commerce sheet lists the same text.
 - **The Brokers' Redraw** plays as built: the rule is live, but no button offers the gold redraw yet.
 
 ## Retired rows

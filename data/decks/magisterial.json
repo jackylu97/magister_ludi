@@ -2662,6 +2662,115 @@
         }
       ],
       "note": "Every wonder you hold counts, in any of your towns, and a wonder you captured counts too."
+    },
+    "magisterialTheEighthWonder": {
+      "name": "Commission: The Eighth Wonder",
+      "decks": ["magisterial"],
+      "band": 0,
+      "rarity": "uncommon",
+      "type": "civic",
+      "line": "none",
+      "flavor": "Every age adds one more marvel to the old list of seven.",
+      "text": "Commission. Complete a wonder while this is seated. Then, for the rest of the game, each wonder you hold gives +3 culture and +5 renown. The card leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [{ "kind": "counted", "occasion": "wonderCompleted", "count": 1 }],
+        "reward": [
+          {
+            "lasting": [
+              { "kind": "pays", "where": "empire", "basis": "count", "count": "wonders", "to": "culture", "amount": 3 },
+              { "kind": "renown", "amount": 5, "per": "wonder" }
+            ]
+          }
+        ]
+      },
+      "note": "Only a wonder finished in one of your own cities while this card is seated meets the goal. A wonder you captured does not, and the Magnum Opus is not a wonder. After that, every wonder you hold pays each turn, those built before the goal and those you captured included."
+    },
+    "magisterialTheRollOfTheSenate": {
+      "name": "Commission: The Roll of the Senate",
+      "decks": ["magisterial"],
+      "band": 1,
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "line": "none",
+      "flavor": "Every name on the roll is a voice in the house.",
+      "text": "Commission. Hold ten Orders. Then, for the rest of the game, you have one more Wildcard chair. The card leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [{ "kind": "reached", "figure": "ordersHeld", "count": 10 }],
+        "reward": [{ "wildcardChairs": 1 }]
+      },
+      "note": "Every Order you hold counts, seated or not, this card included. Charters and finished commissions count. A Doctrine does not."
+    },
+    "magisterialTheWonderOfTheAge": {
+      "name": "Commission: The Wonder of the Age",
+      "decks": ["magisterial"],
+      "band": 3,
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "line": "none",
+      "flavor": "A whole generation worked on it, and thought the price was fair.",
+      "text": "Commission. Put 1,500 production into wonders or the Magnum Opus while this is seated; production in a wonder a rival finishes first still counts. Then gain 250 culture, and for the rest of the game one more Wildcard chair. The card leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [{ "kind": "counted", "occasion": "wonderProduction", "count": 1500 }],
+        "reward": [{ "yield": "culture", "amount": 250 }, { "wildcardChairs": 1 }]
+      },
+      "note": "Only the production a city makes each turn counts, while a wonder or the Magnum Opus is at the front of its queue. Production you buy, or gain all at once, does not."
+    },
+    "theUniversalLibrary": {
+      "name": "The Universal Library",
+      "decks": ["magisterial"],
+      "band": 4,
+      "rarity": "rare",
+      "type": "economic",
+      "line": "none",
+      "flavor": "Every book ever written, and one empty shelf for the last.",
+      "text": "The city building the Magnum Opus gains +2% production toward it for each Order you hold, seated or not, at most +40%.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "theMagnumOpus",
+          "percent": 2,
+          "count": "ordersHeld",
+          "max": 20
+        }
+      ],
+      "note": "Every Order you hold counts, seated or not, this card included. Charters and finished commissions count. A Doctrine does not."
+    },
+    "thePolymathsStudy": {
+      "name": "The Polymath's Study",
+      "decks": ["magisterial"],
+      "band": 4,
+      "rarity": "rare",
+      "type": "civic",
+      "line": "none",
+      "flavor": "One room, and on its shelves the work of every school.",
+      "text": "Your towns gain +8% science and production for each different deck among the cards you hold, at most +40%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "decksHeld",
+          "to": "science",
+          "percent": 8,
+          "stage": "city",
+          "max": 5
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "decksHeld",
+          "to": "production",
+          "percent": 8,
+          "stage": "city",
+          "max": 5
+        }
+      ],
+      "note": "Every Order you hold counts, seated or not. A card that two decks share counts for both decks. The cards that belong to no deck count together as one more deck."
     }
   }
 }

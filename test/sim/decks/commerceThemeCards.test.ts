@@ -428,9 +428,11 @@ describe('Commerce batch T1: tiers, retirements and moves', () => {
       theCosmopolitanCourt: 'civic',
     };
     for (const [id, type] of Object.entries(types)) expect(orderDef(id as OrderId).type, id).toBe(type);
-    // Travelling Players keeps its built text until the Magisterial pass (reading 38).
+    // Travelling Players kept its built text until the Magisterial pass
+    // (reading 38). Magisterial batch MG4 gave it that pass's text (the
+    // Magisterial triage's reading 46).
     expect(orderDef('travellingPlayers' as OrderId).text).toBe(
-      'Foreign routes from a city with a Monument gain +2 culture.',
+      'Foreign routes from a town with a Monument gain +2 culture for each different deck among your seated cards.',
     );
   });
 });

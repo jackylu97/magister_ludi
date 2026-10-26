@@ -84,6 +84,7 @@ import { refitSlots } from './statecraft/draft';
 import {
   countCitiesAdmitted,
   countTilesInBorders,
+  ordersHeldCount,
   tradePartnerSeats,
 } from './statecraft/evaluator';
 import {
@@ -279,6 +280,12 @@ export function commissionFigure(
       // The World's Fair (Commerce batch T4, the triage's reading 11): the
       // `tradePartnerEmpires` count's walk, which the reward reads again.
       return tradePartnerSeats(state, playerId).length;
+    case 'ordersHeld':
+      // Commission: The Roll of the Senate (Magisterial batch MG4, the
+      // triage's reading 7): the `ordersHeld` count's walk, so the goal counts
+      // itself and every other Order held, seated or not, as The Universal
+      // Library does.
+      return ordersHeldCount(state, playerId);
   }
 }
 

@@ -5805,6 +5805,12 @@ function claimWonderFor(state: GameState, city: City, building: BuildingId): Won
   // every realm's books and not only the builder's. Here rather than in
   // `claimWonder`, which is `state.ts`' register and may not read the cards.
   recordWorldScalingOccasion(state, 'wonderAnywhere');
+  // **A wonder this empire completed** (Magisterial batch MG4, Commission: The
+  // Eighth Wonder; the triage's readings 3 and 4). Written for the town's
+  // owner alone, with the town. Every way a wonder is completed passes through
+  // this claim, so a wonder built, bought or granted counts. A captured wonder
+  // passes through no claim, and the Magnum Opus is not a wonder.
+  recordScalingOccasion(state, city.ownerId, 'wonderCompleted', 1, { cityId: city.id });
   return {
     building,
     name: buildingDef(building).name,

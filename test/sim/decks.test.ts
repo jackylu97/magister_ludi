@@ -598,8 +598,13 @@ describe('the schema, as landed', () => {
     // **And Devotion batch DV4** (rites are seasons): three more. The
     // Rogations, the charter The Sabbath Laws and The Psalter are new
     // Devotion rows. The Founding Vows counts fewer rites and was already live.
-    expect(live).toBe(571);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(571);
+    // **And Magisterial batch MG4** (the collection and the wonder
+    // commissions): five more. Commission: The Eighth Wonder, Commission: The
+    // Roll of the Senate, Commission: The Wonder of the Age, The Universal
+    // Library and The Polymath's Study are new Magisterial rows. Travelling
+    // Players has new text and was already live.
+    expect(live).toBe(576);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(576);
   });
 
   /**
@@ -957,7 +962,12 @@ describe('the schema, as landed', () => {
     // in each town it reaches, the Rite of the Sabbath is new, and three
     // Devotion cards are dealt. So a v181 log's Devotion hands hold
     // different cards.
-    expect(SCHEMA_VERSION).toBe(182);
+    // 183 since Magisterial batch MG4 (the collection and the wonder
+    // commissions): two counts, a commission figure and two tally occasions
+    // are new, five Magisterial cards are dealt, and Travelling Players pays
+    // for each deck among the seated cards. So a v182 log's Magisterial hands
+    // hold different cards.
+    expect(SCHEMA_VERSION).toBe(183);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

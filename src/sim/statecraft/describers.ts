@@ -1324,6 +1324,14 @@ function describePays(
     // `routeWhose`'s words for it, for the same reason.
     const roads: string[] = [];
     if (effect.where === 'route') {
+      // **Where the road starts** (Magisterial batch MG4, the shared
+      // Travelling Players): the first counted route line that narrows its
+      // origin. `routeWhose`'s words, with "a city" for "every city", because
+      // the clause is about each road, as its destination clause is.
+      if (effect.origin !== undefined) {
+        const where = cityScopeWords(effect.origin);
+        roads.push(`sent from ${where.startsWith('every ') ? `a ${where.slice(6)}` : where}`);
+      }
       if (effect.mode !== undefined) roads.push(effect.mode === 'sea' ? 'run by sea' : 'run overland');
       if (effect.crossing !== undefined) {
         roads.push(
@@ -3823,6 +3831,15 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
     const words = `${effect.voice} your empire makes a turn`;
     return { one: words, many: words };
   }
+  // **The decks among the seated cards alone** (Magisterial batch MG4, the
+  // shared Travelling Players; the triage's reading 8). The Polymath's Study
+  // counts every card held and reads `COUNT_WORDS`.
+  if (effect.count === 'decksHeld' && effect.seated === true) {
+    return {
+      one: 'different deck among the cards you have seated',
+      many: 'different decks among the cards you have seated',
+    };
+  }
   // The deck-readers' count, said as the flavour the player drafts by — "per
   // economic Order you have in a slot". `buildingsOfKind`'s bargain a fourth
   // time: the argument is printed here so the three rows are one table entry.
@@ -5921,6 +5938,15 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: '10% of the work already done on the current build',
     many: 'tenths of the work already done on the current build',
   },
+  // Magisterial batch MG4: The Universal Library and The Polymath's Study.
+  // "Seated or not", because the count beside it on the same screen, The
+  // Encyclopedia's, counts only the cards out of a chair. A row that counts
+  // only the seated decks (Travelling Players) is worded in `countNoun`.
+  ordersHeld: { one: 'Order you hold, seated or not', many: 'Orders you hold, seated or not' },
+  decksHeld: {
+    one: 'different deck among the cards you hold',
+    many: 'different decks among the cards you hold',
+  },
   // Scientific batch S2, feature A. The family is printed by `countNoun`, so
   // that "per scholar in the trades" and "per merchant in the trades" are one
   // entry, `greatPeopleGained`'s bargain.
@@ -6207,6 +6233,13 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
   // Commerce batch T6, The Strongbox. A row with a treasury floor says the
   // floor in `countNoun`; this is the sentence for a row that names none.
   treasuryHeld: { one: 'turn you have ended', many: 'turns you have ended' },
+  // Magisterial batch MG4. No growing card counts these; the two commissions
+  // do, and the table is total.
+  wonderCompleted: { one: 'wonder you have completed', many: 'wonders you have completed' },
+  wonderProduction: {
+    one: 'production you have put into wonders or the Magnum Opus',
+    many: 'production you have put into wonders or the Magnum Opus',
+  },
 };
 
 /**
@@ -6940,6 +6973,15 @@ const COMMISSION_COUNTED_WORDS: Record<
   },
   // Commerce batch T6. No commission counts this yet; the table is total.
   treasuryHeld: { verb: 'end', one: 'turn', many: 'turns', counter: 'turns ended' },
+  // Magisterial batch MG4: Commission: The Eighth Wonder and Commission: The
+  // Wonder of the Age.
+  wonderCompleted: { verb: 'complete', one: 'wonder', many: 'wonders', counter: 'wonders completed' },
+  wonderProduction: {
+    verb: 'put',
+    one: 'production into wonders or the Magnum Opus',
+    many: 'production into wonders or the Magnum Opus',
+    counter: 'production into wonders',
+  },
 };
 
 /**
@@ -7054,6 +7096,12 @@ const COMMISSION_FIGURE_WORDS: Record<
         : `have trade routes to ${count} other empires at the same time`,
     counter: 'empires your trade routes reach',
     noun: 'the empires your trade routes reach',
+  },
+  // Magisterial batch MG4, Commission: The Roll of the Senate.
+  ordersHeld: {
+    goal: (count) => `hold ${count} Orders, seated or not`,
+    counter: 'Orders held',
+    noun: 'the Orders you hold',
   },
 };
 

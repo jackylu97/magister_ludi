@@ -6263,6 +6263,16 @@ function occasionRecord(occasion: TallyOccasion, ctx: ValueContext): number | nu
       // is, because it counts only while the card is seated. With no such
       // card, there is no record and the forecast reads the default.
       return treasuryHeldRecord(ctx);
+    case 'wonderCompleted':
+      // Magisterial batch MG4, Commission: The Eighth Wonder. A stand-in until
+      // batch MG17 prices it: the claim register names the empire that
+      // finished each wonder, so it is this seat's full record.
+      return ctx.state.wonders.filter((claim) => claim.playerId === ctx.playerId).length;
+    case 'wonderProduction':
+      // Magisterial batch MG4, Commission: The Wonder of the Age. A stand-in
+      // until batch MG17 prices it: the board keeps no record of the
+      // production put into wonders, so the forecast reads the default.
+      return null;
     default:
       return unreadTally(kind);
   }

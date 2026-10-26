@@ -148,7 +148,11 @@ const REGISTERED_PAIRS: ReadonlySet<string> = (() => {
   return pairs;
 })();
 
-/** Every effect on a row, the effects inside a `conditionRule` included. */
+/**
+ * Every effect on a row, the effects inside a `conditionRule` included, and
+ * since batch MG4 the effects a commission's reward keeps for the rest of the
+ * game (`CommissionReward.lasting`).
+ */
 function allEffects(id: OrderId): CardEffect[] {
   const out: CardEffect[] = [];
   const walk = (effects: readonly CardEffect[]): void => {
@@ -158,6 +162,7 @@ function allEffects(id: OrderId): CardEffect[] {
     }
   };
   walk(orderDef(id).effects);
+  for (const reward of orderDef(id).commission?.reward ?? []) walk(reward.lasting ?? []);
   return out;
 }
 
@@ -213,15 +218,16 @@ describe('the Magisterial deck', () => {
     }
   });
 
-  it('carries 102 rows: 39 live, 1 deferred and 62 retired', () => {
+  it('carries 107 rows: 44 live, 1 deferred and 62 retired', () => {
     // Batch MG1 retired the 61 rows the old sheet cut on 2026-10-06 and The
     // Performers' Treasury (the triage's reading 43). The rows stay so that
     // old saves load. Batch MG2 added fourteen live rows: six at Tier 0 and
     // eight at Tier I. Batch MG3 added eleven live rows (six at Tier II, three
     // at Tier III and two at Tier IV) and dealt The Golden Age and The
-    // Magister's Court.
-    expect(MAGISTERIAL).toHaveLength(102);
-    expect(MAGISTERIAL.filter(live)).toHaveLength(39);
+    // Magister's Court. Batch MG4 added five live rows: one at each of Tiers
+    // 0, I and III, and two at Tier IV.
+    expect(MAGISTERIAL).toHaveLength(107);
+    expect(MAGISTERIAL.filter(live)).toHaveLength(44);
     expect(MAGISTERIAL.filter(deferred)).toHaveLength(1);
     expect(MAGISTERIAL.filter(isRetired)).toHaveLength(62);
     for (const id of MAGISTERIAL.filter(isRetired)) {
@@ -229,7 +235,7 @@ describe('the Magisterial deck', () => {
     }
     // The rows the sheet lists, by band: Tiers 0 to IV.
     const kept = MAGISTERIAL.filter((id) => !isRetired(id)).map((id) => orderDef(id).band);
-    expect(BANDS.map((band) => kept.filter((b) => b === band).length)).toEqual([9, 11, 10, 6, 4]);
+    expect(BANDS.map((band) => kept.filter((b) => b === band).length)).toEqual([10, 12, 10, 7, 6]);
   });
 
   it('gives every row an id nothing else in the eight files uses', () => {
@@ -254,7 +260,11 @@ describe('the live rows', () => {
     expect(lived.length).toBeGreaterThan(0);
     for (const id of lived) {
       const effects = allEffects(id);
-      expect(effects.length, `${id} is live and says nothing`).toBeGreaterThan(0);
+      // A commission says its goal and its reward, and may keep no effect at
+      // all (Commission: The Roll of the Senate pays a chair). Batch MG4 built
+      // the deck's first three.
+      const says = effects.length > 0 || orderDef(id).commission !== undefined;
+      expect(says, `${id} is live and says nothing`).toBe(true);
       for (const effect of effects) {
         expect(KNOWN_KINDS.has(effect.kind), `${id}: "${effect.kind}"`).toBe(true);
         if (effect.kind !== 'pays') continue;
@@ -773,10 +783,10 @@ describe('the Magisterial deck: the sheet of record', () => {
     expect(shared).toHaveLength(19);
   });
 
-  it('types every listed row, 40 of this file and 19 shared, and nothing else of this file', () => {
-    // 15 since batch MG1, the fourteen rows of batch MG2 and the eleven new
-    // rows of batch MG3.
-    expect(LISTED).toHaveLength(40);
+  it('types every listed row, 45 of this file and 19 shared, and nothing else of this file', () => {
+    // 15 since batch MG1, the fourteen rows of batch MG2, the eleven new rows
+    // of batch MG3 and the five of batch MG4.
+    expect(LISTED).toHaveLength(45);
     for (const id of MAGISTERIAL) {
       const def = orderDef(id);
       if (isRetired(id)) expect(def.type, id).toBeUndefined();

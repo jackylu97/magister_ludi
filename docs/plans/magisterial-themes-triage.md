@@ -371,6 +371,8 @@ The first six come from section 12. The rest are new. Each gives the reading the
 - **Schema:** one bump.
 - **Done-gate:** `npx vitest run test/sim/decks/magisterialCollection.test.ts test/sim/commissions.test.ts test/sim/aiCommissions.test.ts test/sim/wonders.test.ts test/sim/decks/commerce.test.ts test/sim/decks/magisterial.test.ts test/sim/decks.test.ts test/sim/statecraft.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts test/mapgen/moduleCycles.test.ts`.
 
+- **Built (2026-10-25):** all five cards and Travelling Players' new text. The gate passed: the type check, 9,676 core tests and the build. Schema 183. New counts `ordersHeld` and `decksHeld` (with `seated: true` on `pays`), the figure `ordersHeld`, and the tallies `wonderCompleted` (written in `claimWonderFor`) and `wonderProduction`. The production tally is written in `collectYields` (`yields/empire.ts`), where the turn's production enters the basket, not in `cities.ts`. Readings added: a bought or granted wonder counts for The Eighth Wonder; The Wonder of the Age counts exact fractions; a counted route line prints its origin, so Travelling Players keeps its Monument clause. Not done: `purchase.ts` keeps a private twin of the new `isRaisingWonderOrOpus`.
+
 ### MG5: the draft's price
 
 - **Builds:**

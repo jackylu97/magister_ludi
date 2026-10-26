@@ -2666,8 +2666,36 @@ import {
  * **A v181 save is refused and does not replay.** A Devotion seat's pools
  * hold more cards, and The Founding Vows counts different rites. The branch
  * migrates nothing, for the reason given under v119.
+ *
+ * v183 (branch `decks`; Magisterial batch MG4, `docs/plans/magisterial-
+ * themes-triage.md`): **the collection and the wonder commissions.** No
+ * field joins the state. The rules that change:
+ *
+ *   · two counts are new: `ordersHeld`, every Order in the collection, seated
+ *     or not (the triage's reading 7), and `decksHeld`, the different decks
+ *     among those Orders, where a card two decks share counts for both and
+ *     the cards of no deck count as one more (reading 8). A `pays` row may
+ *     carry `seated` to make `decksHeld` count the seated cards alone;
+ *   · one commission figure is new: `ordersHeld`, read through the same walk
+ *     as the count;
+ *   · two tally occasions are new: `wonderCompleted`, written in
+ *     `claimWonderFor` for the town's owner when it completes a world wonder
+ *     (readings 3 and 4), and `wonderProduction`, written in `collectYields`
+ *     with the production a town puts into a front-row world wonder or the
+ *     Magnum Opus (reading 35);
+ *   · five Magisterial cards are new and dealt: Commission: The Eighth Wonder
+ *     (Tier 0), Commission: The Roll of the Senate (Tier I), Commission: The
+ *     Wonder of the Age (Tier III), The Universal Library and The Polymath's
+ *     Study (Tier IV);
+ *   · the shared Travelling Players pays +2 culture on each foreign route
+ *     from a town with a Monument for each different deck among the seated
+ *     cards, where it paid +2 once (reading 46).
+ *
+ * **A v182 save is refused and does not replay.** A Magisterial seat's pools
+ * hold more cards, and Travelling Players pays a different amount. The branch
+ * migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 182;
+export const SCHEMA_VERSION = 183;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

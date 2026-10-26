@@ -8979,6 +8979,64 @@
     "text": "every city raising the Magnum Opus: +4 city defence per wonder you hold"
    }
   ],
+  "magisterialTheEighthWonder": [
+   {
+    "raw": "Commission. Goal: complete 1 wonder, while this card is seated",
+    "text": "Commission. Goal: complete 1 wonder, while this card is seated"
+   },
+   {
+    "raw": "Reward: for the rest of the game, +3 culture per wonder you hold and +5 renown per turn per wonder you hold",
+    "text": "Reward: for the rest of the game, +3 culture per wonder you hold and +5 renown per turn per wonder you hold"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "magisterialTheRollOfTheSenate": [
+   {
+    "raw": "Commission. Goal: hold 10 Orders, seated or not, while this card is seated",
+    "text": "Commission. Goal: hold 10 Orders, seated or not, while this card is seated"
+   },
+   {
+    "raw": "Reward: one more Wildcard chair for the rest of the game",
+    "text": "Reward: one more Wildcard chair for the rest of the game"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "magisterialTheWonderOfTheAge": [
+   {
+    "raw": "Commission. Goal: put 1500 production into wonders or the Magnum Opus, while this card is seated",
+    "text": "Commission. Goal: put 1500 production into wonders or the Magnum Opus, while this card is seated"
+   },
+   {
+    "raw": "Reward: +250 culture, and one more Wildcard chair for the rest of the game",
+    "text": "Reward: +250 culture, and one more Wildcard chair for the rest of the game"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theUniversalLibrary": [
+   {
+    "raw": "+2% production toward [[building:theMagnumOpus|The Magnum Opus]] per Order you hold, seated or not (at most +40%)",
+    "text": "+2% production toward The Magnum Opus per Order you hold, seated or not (at most +40%)"
+   }
+  ],
+  "thePolymathsStudy": [
+   {
+    "raw": "+8% science in every city per different deck among the cards you hold (at most +40% science)",
+    "text": "+8% science in every city per different deck among the cards you hold (at most +40% science)"
+   },
+   {
+    "raw": "+8% production in every city per different deck among the cards you hold (at most +40% production)",
+    "text": "+8% production in every city per different deck among the cards you hold (at most +40% production)"
+   }
+  ],
   "frontierGarrisons": [
    {
     "raw": "+2 food in every city with a unit standing in it of 5 or fewer citizens",
@@ -9175,8 +9233,8 @@
   ],
   "travellingPlayers": [
    {
-    "raw": "+2 culture on every trade route sent from every city with a [[building:monument|Monument]] and that ends in another empire’s city",
-    "text": "+2 culture on every trade route sent from every city with a Monument and that ends in another empire’s city"
+    "raw": "+2 culture per different deck among the cards you have seated, on trade routes sent from a city with a [[building:monument|Monument]] and that end in another empire’s city",
+    "text": "+2 culture per different deck among the cards you have seated, on trade routes sent from a city with a Monument and that end in another empire’s city"
    }
   ],
   "theCosmopolitanCourt": [

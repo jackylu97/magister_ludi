@@ -122,6 +122,10 @@ describe('the orders and doctrines doc mirrors the data', () => {
     'unslottedOrders',
     'slottedOrdersOfSlot',
     'rerollsWhileSlotted',
+    // Magisterial batch MG4: the Orders held, and the different decks among
+    // them. Both count the collection, as `unslottedOrders` does.
+    'ordersHeld',
+    'decksHeld',
   ]);
 
   function roleOf(id: (typeof ORDER_IDS)[number]): Role {

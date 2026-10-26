@@ -197,12 +197,14 @@ import {
   type CardWindfallRiderEffect,
   type RiderBuildingTest,
   type CountKind,
+  type DeckId,
   type EmpireCondition,
   type FirstKind,
   type OccasionMeasure,
   type MeterRuleId,
   type OfferRuleId,
   type OrderBeadOccasion,
+  type OrderId,
   type RateSource,
   type ChairType,
   type TileCondition,
@@ -1725,6 +1727,20 @@ export function isRaisingOpus(city: City): boolean {
 }
 
 /**
+ * Does this town have a world wonder or the Magnum Opus at the front of its
+ * queue? Read off the rows' markers (`BuildingDef.wonder`,
+ * `BuildingDef.endsTheGame`), never their names. The reading behind the
+ * `wonderProduction` tally (Magisterial batch MG4, Commission: The Wonder of
+ * the Age), which `collectYields` asks as it banks a town's production.
+ */
+export function isRaisingWonderOrOpus(city: City): boolean {
+  const front = city.queue[0];
+  if (front === undefined || front.kind !== 'building' || !isBuildingId(front.id)) return false;
+  const def = buildingDef(front.id);
+  return def.wonder === true || def.endsTheGame === true;
+}
+
+/**
  * **A fortified military unit** (Dominion batch D7): dug in, and of the land
  * military category, which is what the filter `{ category: 'military' }` says
  * and what the Dominion cards call "military units". Ships are left out, as
@@ -2779,6 +2795,54 @@ export function tradePartnerSeats(state: GameState, playerId: number): number[] 
 }
 
 /**
+ * **Every Order this empire holds, seated or not**: the `ordersHeld` count's
+ * walk (Magisterial batch MG4; the triage's reading 7). The collection
+ * (`PlayerStatecraft.orders`) holds every boon, charter and commission the
+ * seat has taken, fulfilled ones included, and nothing else: Doctrines and
+ * malices are kept apart from it.
+ *
+ * Exported for the commission figure of the same name (Commission: The Roll
+ * of the Senate), so the goal and The Universal Library cannot disagree.
+ */
+export function ordersHeldCount(state: GameState, playerId: number): number {
+  return playerById(state, playerId)?.statecraft.orders.length ?? 0;
+}
+
+/**
+ * **The different decks among this empire's Orders**: the `decksHeld`
+ * count's walk (Magisterial batch MG4; the triage's reading 8).
+ *
+ * Each Order adds every deck its row names, so a card two decks share counts
+ * for both. The cards that name no deck are counted together as one more
+ * deck. With `seatedOnly` only the Orders in chairs are read (Travelling
+ * Players); otherwise every Order in the collection is (The Polymath's Study).
+ * The decks are kept in an array, walked and searched, because this is an
+ * outcome and nothing in this game iterates a keyed collection for one.
+ */
+export function decksHeldCount(state: GameState, playerId: number, seatedOnly: boolean): number {
+  const sc = playerById(state, playerId)?.statecraft;
+  if (!sc) return 0;
+  const cards: OrderId[] = [];
+  if (seatedOnly) {
+    for (const slotted of sc.slots) {
+      if (slotted !== null && isOrderId(slotted.card)) cards.push(slotted.card);
+    }
+  } else {
+    cards.push(...sc.orders);
+  }
+  const decks: DeckId[] = [];
+  let deckless = false;
+  for (const id of cards) {
+    const own = orderDef(id).decks;
+    if (own.length === 0) deckless = true;
+    for (const deck of own) {
+      if (!decks.includes(deck)) decks.push(deck);
+    }
+  }
+  return decks.length + (deckless ? 1 : 0);
+}
+
+/**
  * What a `pays` count counts, in one place.
  *
  * `city` is present for the city-scoped counts and ignored by the rest; a
@@ -3690,6 +3754,13 @@ export function countOf(
       if (cost === null || cost <= 0) return 0;
       return Math.min(10, Math.floor((Math.max(0, city.hammerBasket) * 10) / cost));
     }
+    // Magisterial batch MG4: the collection. The Universal Library counts every
+    // Order held (reading 7); The Polymath's Study counts the decks among them,
+    // and Travelling Players only those among the seated cards (reading 8).
+    case 'ordersHeld':
+      return ordersHeldCount(state, playerId);
+    case 'decksHeld':
+      return decksHeldCount(state, playerId, effect.seated === true);
     // Dominion batch D4: three lifetime records. A fallen unit or a taken town
     // leaves nothing on the board to count, so each is a counter on the player.
     case 'enemiesKilled':

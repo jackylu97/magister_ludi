@@ -333,6 +333,10 @@ describe('the figures', () => {
         admits: { test: 'capital' },
       }),
     ).toBe(1);
+    // Magisterial batch MG4: the Orders held, seated or not.
+    expect(commissionFigure(g.state, 0, 'ordersHeld')).toBe(0);
+    hold(g.state, MARKET);
+    expect(commissionFigure(g.state, 0, 'ordersHeld')).toBe(1);
   });
 });
 

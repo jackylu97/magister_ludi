@@ -3374,7 +3374,28 @@ export type CountKind =
    * project at the front, counts nothing. It is asked only of a town, so it is
    * on `CITY_SCOPED_COUNTS`.
    */
-  | 'frontRowTenths';
+  | 'frontRowTenths'
+  /**
+   * **Every Order this empire holds, seated or not** (Magisterial batch MG4,
+   * The Universal Library; the triage's reading 7). It is the length of the
+   * collection (`PlayerStatecraft.orders`), so boons, charters and fulfilled
+   * commissions count, and a card counts itself. Doctrines and malices are
+   * not kept in the collection, so they do not count. Read through
+   * `ordersHeldCount` (`statecraft/evaluator.ts`), which the commission
+   * figure of the same name reads too (Commission: The Roll of the Senate),
+   * so the card and the goal cannot disagree.
+   */
+  | 'ordersHeld'
+  /**
+   * **The different decks among the Orders this empire holds** (Magisterial
+   * batch MG4, The Polymath's Study and the shared Travelling Players; the
+   * triage's reading 8). Each Order adds every deck its row names, so a card
+   * that two decks share counts for both. The cards that name no deck count
+   * together as one more deck. With `CardPaysEffect.seated` only the Orders in
+   * chairs count (Travelling Players); without it every Order held counts
+   * (The Polymath's Study). Read through `decksHeldCount`.
+   */
+  | 'decksHeld';
 
 /**
  * **The ledgers of what an empire did first.** Each is one `GameState.firsts`
@@ -3680,7 +3701,28 @@ export type TallyOccasion =
    * (`CardPaysEffect.minTreasury`), so the floor is a figure on the card's
    * row and not in the code.
    */
-  | 'treasuryHeld';
+  | 'treasuryHeld'
+  /**
+   * This empire **completed a world wonder** in one of its towns (Magisterial
+   * batch MG4, Commission: The Eighth Wonder; the triage's readings 3 and 4).
+   * Written in `claimWonderFor` (`cities.ts`) beside `wonderAnywhere`, for the
+   * town's owner alone, so a wonder built, bought or granted counts the same.
+   * A captured wonder passes through no claim, so it does not count, and the
+   * Magnum Opus is not a wonder. The moment carries the town
+   * (`TallyFacts.cityId`).
+   */
+  | 'wonderCompleted'
+  /**
+   * **Production this empire put into a world wonder or the Magnum Opus**
+   * (Magisterial batch MG4, Commission: The Wonder of the Age; the triage's
+   * reading 35). The amount is the production itself. Written in
+   * `collectYields` (`yields/empire.ts`), the one place a town's production
+   * for the turn goes into its basket, when the front row of the town's queue
+   * is a world wonder or the Opus. A lump of production from a windfall, a
+   * purchase or a refund is not written. It is counted when it goes in, so
+   * production in a wonder that a rival finishes first still counts.
+   */
+  | 'wonderProduction';
 // There is still no bare "a town grew" counter, and there should not be one:
 // it would pay twice for a citizen that a levy took and the fields gave back.
 // `sizeRecord` above is the counter the design doc's clause allows.
@@ -3711,6 +3753,8 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'techCompleted',
   'charterTechCompleted',
   'treasuryHeld',
+  'wonderCompleted',
+  'wonderProduction',
 ];
 
 /** What a `pays` rate reads. A *rate* or a meter standing, never a bank. */
@@ -6288,6 +6332,13 @@ export interface CardPaysEffect extends CardYieldBag {
    * (The Waqf's faith buildings).
    */
   bank?: 'gold' | 'faith';
+  /**
+   * **Count only the Orders in chairs** (Magisterial batch MG4, the shared
+   * Travelling Players; the triage's reading 8). Read by `decksHeld`, which
+   * otherwise counts every Order held, seated or not (The Polymath's Study).
+   * Every other count ignores it.
+   */
+  seated?: true;
 
   // --- where it lands -------------------------------------------------------
 
@@ -10006,7 +10057,15 @@ export type CommissionFigure =
    * and the reward that writes posts in the partners' capitals reads the same
    * walk.
    */
-  | 'tradePartnerEmpires';
+  | 'tradePartnerEmpires'
+  /**
+   * **The Orders this empire holds, seated or not** (Magisterial batch MG4,
+   * Commission: The Roll of the Senate; the triage's reading 7). The walk is
+   * `CountKind` `ordersHeld`'s (`ordersHeldCount`, `statecraft/evaluator.ts`),
+   * so the goal counts itself, boons, charters and fulfilled commissions, and
+   * no Doctrine.
+   */
+  | 'ordersHeld';
 
 /** Every figure, for validation and the register test. */
 export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
@@ -10027,6 +10086,7 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'opusCost',
   'citiesAdmitted',
   'tradePartnerEmpires',
+  'ordersHeld',
 ];
 
 /**
