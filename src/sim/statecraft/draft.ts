@@ -1289,7 +1289,9 @@ const OFFER_BASE_WORDS: Record<OfferKind, string> = {
  *   2. **one line per live `offerRider`** whose `offer` is this kind or `'all'`,
  *      from every source `liveEffects` walks. A wonder standing in a city, a
  *      belief, a Doctrine and an Order are all the same sentence here, and none
- *      of them needed code.
+ *      of them needed code. A counted rider (`count`, `per`, `max`; Magisterial
+ *      batch MG6, The Hall of Wonders) adds its figure once for each helping
+ *      the count buys, on one line labelled with the helpings.
  *   3. **the cap**, `rules.offers.max`, as a negative line — so an offer that was
  *      trimmed says it was trimmed rather than quietly ignoring a card the
  *      player paid for.
@@ -1310,7 +1312,7 @@ export function explainOfferSize(
   ];
   let running = lines[0]!.delta;
 
-  for (const { source, effect } of effectsOfKind(state, playerId, 'offerRider')) {
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'offerRider')) {
     if (effect.offer !== kind && effect.offer !== 'all') continue;
     // **A narrowing is not a widening** (batch C3): a row that names a family
     // says which names a draft is dealt from and deals no extra card, so it is
@@ -1322,6 +1324,29 @@ export function explainOfferSize(
     // becoming a spread nobody can read.
     const extra = (effect.extra ?? 1);
     if (extra === 0) continue;
+    // **One helping for every `per` of something counted** (Magisterial batch
+    // MG6, The Hall of Wonders; the triage's reading 13). Read as
+    // `cardRouteSlots` reads a counted road: `countOf` for the count, then
+    // `helpings` for the row's divisor and ceiling. The line is labelled with
+    // the helpings, and a count that buys none adds no line.
+    if (effect.count !== undefined) {
+      const times = helpings(
+        countOf(state, playerId, card, {
+          kind: 'pays',
+          where: 'empire',
+          basis: 'count',
+          to: 'authority',
+          amount: 0,
+          count: effect.count,
+        }),
+        effect.per,
+        effect.max,
+      );
+      if (times === 0) continue;
+      lines.push({ source: `${source} · ×${times}`, delta: extra * times });
+      running += extra * times;
+      continue;
+    }
     lines.push({ source, delta: extra });
     running += extra;
   }

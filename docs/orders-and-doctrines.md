@@ -715,6 +715,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Encyclopedia | 1 | ● | E | +1 science and +1 culture in your capital for each Order you hold unseated, at most +15 of each. |
 | Commission: The Roll of the Senate | 1 | ◆ | S | Commission. Hold ten Orders. Then, for the rest of the game, you have one more Wildcard chair. The card leaves its chair. |
 | The Open Door | 1 | ◆ | S | Order hands cost 15% less culture. |
+| The Wandering Muse | 1 | ◆ | S | On draft: gain a free great-person draft. Seated, this card does nothing. |
 | The Learned Patron | 2 | ◆ | P | Cities with at least two culture buildings gain science equal to 15% of their base culture, at most +18 science per city. Conversion outputs are excluded. |
 | The Senate Charter | 2 | ◆ | S | Unlocks the capital-only Assembly Hall. A city with one gains +3 happiness and +30% production toward buildings. |
 | The Masters' Domain | 3 | ◆ | S | Worked great-person works give +3 food and +3 production. |
@@ -734,11 +735,13 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Roll of Masters | 3 | ◆ | P | +3% science and culture for each great person you have gained this game, at most +30%. |
 | The Garden Courts | 3 | ◆ | P | Towns working at least two great-person works gain +20% culture and science. |
 | Commission: The Wonder of the Age | 3 | ◆ | S | Commission. Put 1,500 production into wonders or the Magnum Opus while this is seated; production in a wonder a rival finishes first still counts. Then gain 250 culture, and for the rest of the game one more Wildcard chair. The card leaves its chair. |
+| Officials by Merit | 3 | ○ | S | Order hands deal two extra cards. You cannot reroll Order hands. |
 | The Privy Council | 4 | ○ | E | Each of your cards that pays production pays +1 more production wherever it pays it. |
 | The Magister's Court | 4 | ◆ | S | Cities containing a wonder gain +25% production toward the Magnum Opus. |
 | The Bulwark of Marvels | 4 | ◆ | S | The town building your Magnum Opus gains +4 defence for each wonder you hold. |
 | The Universal Library | 4 | ○ | S | The city building the Magnum Opus gains +2% production toward it for each Order you hold, seated or not, at most +40%. |
 | The Polymath's Study | 4 | ○ | E | Your towns gain +8% science and production for each different deck among the cards you hold, at most +40%. |
+| The Hall of Wonders | 4 | ○ | S | Order hands deal one more card for every two wonders you hold, at most two more. |
 
 ### Cross-type
 
@@ -944,6 +947,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **Commission: The Wonder of the Age** — Only the production a city makes each turn counts, while a wonder or the Magnum Opus is at the front of its queue. Production you buy, or gain all at once, does not.
 - **The Universal Library** — Every Order you hold counts, seated or not, this card included. Charters and finished commissions count. A Doctrine does not.
 - **The Polymath's Study** — Every Order you hold counts, seated or not. A card that two decks share counts for both decks. The cards that belong to no deck count together as one more deck.
+- **The Wandering Muse** — If a great person is already waiting for your choice, or you cannot call great people yet, you gain the renown still needed for your next great person instead. A card picked from a free hand counts.
+- **Officials by Merit** — Hands of Doctrines and great people may still be rerolled. A hand never holds more than five cards.
+- **The Hall of Wonders** — A wonder you captured counts, and the Magnum Opus is not a wonder. The wonders are counted when the hand is dealt. A hand never holds more than five cards.
 - **Letters of Marque** — The coin is for a kill made by one of your ships, wherever it happens. The extra gold and the slower shipyards both belong to the cities that have a Harbour.
 - **The Sacred Host** — A soldier bought with faith costs what it would cost to build, converted at the faith rate.
 - **Pilgrim Markets** — The first card to pay a trade route in faith; nothing carried it before this one asked. The test is a disjunction, so one shrine is enough and two are not more — a road with a holy site at each end is paid once, which is the card's second sentence. The site is the prophet's work on the ground, anywhere inside either town's borders, and nobody has to be working the hex.

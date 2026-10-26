@@ -538,7 +538,11 @@ describe("the bead catalogue", () => {
     // ends, a town keeps the turn it last turned to each religion, and two
     // Devotion cards are dealt. So a v185 log's Devotion hands hold
     // different cards.
-    expect(SCHEMA_VERSION).toBe(186);
+    // 187 since Magisterial batch MG6 (the hand): a card may refuse an Order
+    // reroll, an offer rider may be counted, an Order may hand over a great
+    // person when it is drafted, and three Magisterial cards are dealt. So a
+    // v186 log's Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(187);
   });
 
   it("puts the world clock after renown and the wager after it, with no bead phase left", () => {

@@ -589,3 +589,56 @@ describe('a Doctrine hand and a name, at twice the price', () => {
     expect(rerollKindFor(player)).toBeNull();
   });
 });
+
+// --- a card that forbids the Order reroll -----------------------------------
+
+/**
+ * **Officials by Merit** (Magisterial batch MG6, the triage's reading 13): a
+ * card may forbid the reroll of an Order hand. The clause is asked in
+ * `rerollError` for an Order hand only, so the heavy hands meet exactly the
+ * clauses they met before. The card's own tests are in
+ * `test/sim/decks/magisterialHands.test.ts`.
+ */
+describe('a card that forbids the Order reroll', () => {
+  /** Seats Officials by Merit for seat 0, in a chair of its own. */
+  function seatOfficials(state: GameState): void {
+    const sc = playerById(state, 0)!.statecraft;
+    const card = 'officialsByMerit' as (typeof sc.orders)[number];
+    sc.orders.push(card);
+    sc.slots.push({ card, sealedUntil: state.turn });
+    bumpRevision(state);
+  }
+
+  it('refuses the Order hand, and touches nothing', () => {
+    const g = drafting();
+    expect(rerollError(g.state, 0)).toBeNull();
+    seatOfficials(g.state);
+    expect(rerollError(g.state, 0)).toBe('Your laws forbid rerolling an Order hand');
+    const before = snapshotState(g.state);
+    expect(applyCommand(g.state, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(false);
+    expect(snapshotState(g.state)).toEqual(before);
+  });
+
+  it('leaves a Doctrine hand and a great-person hand to their own clauses', () => {
+    for (const make of [doctrineDrafting, nameDrafting]) {
+      const g = make(7, 500);
+      seatOfficials(g.state);
+      expect(rerollError(g.state, 0)).toBeNull();
+      expect(dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(true);
+    }
+  });
+
+  it('leaves a belief hand its free first asking', () => {
+    const g = game();
+    found(g.state, 0);
+    learn(g.state, 0, 'divination');
+    const player = playerById(g.state, 0)!;
+    player.faithPool = 500;
+    seatOfficials(g.state);
+    player.pantheon.pending = drawBeliefOffer(g.state, player);
+    expect(rerollKindFor(player)).toBe('belief');
+    expect(rerollError(g.state, 0)).toBeNull();
+    expect(dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(true);
+    expect(player.faithPool).toBe(500);
+  });
+});

@@ -482,3 +482,43 @@ describe('the register', () => {
     }
   });
 });
+
+// --- a counted rider ----------------------------------------------------------
+
+/**
+ * **A rider counted off the board** (Magisterial batch MG6, The Hall of
+ * Wonders; the triage's reading 13): `count`, `per` and `max` on an
+ * `offerRider`, read as a counted route rider is read. The source is varied by
+ * patching a row, for this file's reason: the fold reads any counted rider
+ * from any source, and not only The Hall of Wonders.
+ */
+describe('a counted rider', () => {
+  it('adds its figure once for each helping its count buys, at most max, on one labelled line', () => {
+    const g = game();
+    const counted: CardOfferRiderEffect = {
+      kind: 'offerRider',
+      offer: 'belief',
+      extra: 2,
+      count: 'wonders',
+      per: 1,
+      max: 1,
+    };
+    withEffects(buildingDef('theOracle'), [counted], () => {
+      raiseOracle(g.state, 0);
+      // One wonder held buys one helping of two cards.
+      const lines = explainOfferSize(g.state, 0, 'belief');
+      expect(lines).toHaveLength(2);
+      expect(lines[1]).toEqual({ source: 'Wonder · The Oracle · ×1', delta: 2 });
+      expect(offerSize(g.state, 0, 'belief')).toBe(5);
+      // Only the draft it names.
+      expect(offerSize(g.state, 0, 'order')).toBe(3);
+    });
+    // Two to a helping: one wonder buys none, and the rider adds no line.
+    withEffects(buildingDef('theOracle'), [{ ...counted, per: 2 }], () => {
+      // The row changed under a remembered reading, so the bench says so.
+      bumpRevision(g.state);
+      expect(explainOfferSize(g.state, 0, 'belief')).toHaveLength(1);
+      expect(offerSize(g.state, 0, 'belief')).toBe(3);
+    });
+  });
+});

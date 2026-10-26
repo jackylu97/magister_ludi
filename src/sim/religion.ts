@@ -952,6 +952,10 @@ export function rerollKindFor(player: Player): RerollKind | null {
  * door: its first asking is free, and every asking after is priced on the
  * hand's own ladder (`explainBeliefRerollCost`), which the bank must cover.
  *
+ * Since Magisterial batch MG6 one more clause comes before the door, for an
+ * Order hand only: a card may forbid the reroll outright (`noOrderReroll`,
+ * Officials by Merit).
+ *
  * A **heavy** hand — a Doctrine draft, a name — meets exactly the Order draft's
  * clauses, at the Order draft's door and on the Order draft's lifetime ladder,
  * with the price the heavy multiple's (ruled 2026-09-07, item q). One set of
@@ -1014,6 +1018,14 @@ export function rerollError(
       );
     }
     return null;
+  }
+  // **A card that forbids it** (Magisterial batch MG6, Officials by Merit; the
+  // triage's reading 13): an Order hand only. A Doctrine hand and a
+  // great-person hand pass this clause. Asked before the door, because the
+  // card is the reason that holds whatever the empire has researched, and the
+  // reroll control prints this sentence on the greyed button.
+  if (kind === 'order' && cardActionRule(state, playerId, 'noOrderReroll')) {
+    return 'Your laws forbid rerolling an Order hand';
   }
   if (!rerollDoorOpen(state, playerId)) {
     return 'Your calendars cannot yet call for a second reading';

@@ -2832,6 +2832,55 @@
         }
       ],
       "note": "The science is rounded down. Passing on a free hand pays nothing, because that hand cost no culture. A hand you reroll keeps the price of the hand it replaced."
+    },
+    "theWanderingMuse": {
+      "name": "The Wandering Muse",
+      "decks": ["magisterial"],
+      "band": 1,
+      "rarity": "uncommon",
+      "type": "civic",
+      "line": "none",
+      "flavor": "The muse stays at a court for one evening, and someone there is never the same again.",
+      "text": "On draft: gain a free great-person draft. Seated, this card does nothing.",
+      "onDraft": [{ "grant": "greatPerson" }],
+      "effects": [],
+      "note": "If a great person is already waiting for your choice, or you cannot call great people yet, you gain the renown still needed for your next great person instead. A card picked from a free hand counts."
+    },
+    "officialsByMerit": {
+      "name": "Officials by Merit",
+      "decks": ["magisterial"],
+      "band": 3,
+      "rarity": "rare",
+      "type": "wildcard",
+      "line": "none",
+      "flavor": "The examiners read every paper, and the list they posted was final.",
+      "text": "Order hands deal two extra cards. You cannot reroll Order hands.",
+      "effects": [
+        { "kind": "offerRider", "offer": "order", "extra": 2 },
+        { "kind": "rule", "rule": "noOrderReroll" }
+      ],
+      "note": "Hands of Doctrines and great people may still be rerolled. A hand never holds more than five cards."
+    },
+    "theHallOfWonders": {
+      "name": "The Hall of Wonders",
+      "decks": ["magisterial"],
+      "band": 4,
+      "rarity": "rare",
+      "type": "wildcard",
+      "line": "none",
+      "flavor": "Every wonder brings visitors, and some of them bring ideas.",
+      "text": "Order hands deal one more card for every two wonders you hold, at most two more.",
+      "effects": [
+        {
+          "kind": "offerRider",
+          "offer": "order",
+          "extra": 1,
+          "count": "wonders",
+          "per": 2,
+          "max": 2
+        }
+      ],
+      "note": "A wonder you captured counts, and the Magnum Opus is not a wonder. The wonders are counted when the hand is dealt. A hand never holds more than five cards."
     }
   }
 }

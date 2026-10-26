@@ -611,8 +611,11 @@ describe('the schema, as landed', () => {
     // Magisterial rows.
     // **And Devotion batch DV6** (a conversion as a moment): two more.
     // Pentecost and The Mass Baptisms are new Devotion rows.
-    expect(live).toBe(584);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(584);
+    // **And Magisterial batch MG6** (the hand): three more. The Wandering
+    // Muse, Officials by Merit and The Hall of Wonders are new Magisterial
+    // rows.
+    expect(live).toBe(587);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(587);
   });
 
   /**
@@ -988,7 +991,11 @@ describe('the schema, as landed', () => {
     // ends, a town keeps the turn it last turned to each religion, and two
     // Devotion cards are dealt. So a v185 log's Devotion hands hold
     // different cards.
-    expect(SCHEMA_VERSION).toBe(186);
+    // 187 since Magisterial batch MG6 (the hand): a card may refuse an Order
+    // reroll, an offer rider may be counted, an Order may hand over a great
+    // person when it is drafted, and three Magisterial cards are dealt. So a
+    // v186 log's Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(187);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

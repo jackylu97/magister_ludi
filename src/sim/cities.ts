@@ -136,11 +136,13 @@ import { CONSECRATION_IDS, type ConsecrationId, consecrationDef } from './religi
 import { nextInt } from './rng';
 import { bumpEconomy, slateMemo } from './slate';
 import { anyBeadDef } from './beadData';
-// The great-person draft a completion grant opens. This module and
-// `greatPeople.ts` already sit on one runtime cycle (`cities` → `beads` →
-// `greatPeople` → `cities`), so the direct edge adds no new one; the call is
-// inside a function body, which is what keeps a cycle harmless.
-import { drawGreatPersonOffer } from './greatPeople';
+// The great-person draft a completion grant opens, and the great person an
+// Order hands over when it is drafted (`grantGreatPersonOffer`, Magisterial
+// batch MG6). This module and `greatPeople.ts` already sit on one runtime
+// cycle (`cities` → `beads` → `greatPeople` → `cities`), so the direct edge
+// adds no new one; both calls are inside function bodies, which is what keeps
+// a cycle harmless.
+import { drawGreatPersonOffer, grantGreatPersonOffer } from './greatPeople';
 import { awardBeadGrant, claimEndeavour, closeTheGreatWork } from './beads';
 import { settleRenownWindfall } from './renown';
 import {
@@ -5948,14 +5950,27 @@ export function raiseFreeUnit(
  * of State's best melee unit and The Cleruchy's settler, raised in the
  * capital (`OrderDef.onDraft`). Called by the pick (`applyChooseOrder` in
  * `commands.ts`) beside `settleOrderChoice`, which takes no state. A seat with
- * no capital, or a capital with nowhere to put the unit, gets nothing.
+ * no capital, or a capital with nowhere to put the unit, gets no unit.
+ *
+ * **A great person** (Magisterial batch MG6, The Wandering Muse; the triage's
+ * reading 15) is paid through `grantGreatPersonOffer`, the one routine a
+ * rider's and a commission's great person use. It deals an offer when the
+ * seat may call great people and none waits, and otherwise pays the renown
+ * still needed for the next one. It needs no capital, so a seat with none
+ * still gets it. The pick has already removed the Order hand, so nothing
+ * here waits on it.
  */
 export function raiseOnDraft(state: GameState, player: Player, id: OrderId): void {
   const grants = orderDef(id).onDraft;
   if (grants === undefined || grants.length === 0) return;
   const capital = capitalCityOf(state, player.id);
-  if (!capital) return;
-  for (const grant of grants) raiseFreeUnit(state, capital, grant.unit);
+  for (const grant of grants) {
+    if (grant.grant === 'greatPerson') {
+      grantGreatPersonOffer(state, player, grant.family ?? 'any');
+      continue;
+    }
+    if (capital) raiseFreeUnit(state, capital, grant.unit);
+  }
 }
 
 /**

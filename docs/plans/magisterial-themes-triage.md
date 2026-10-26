@@ -396,6 +396,8 @@ The first six come from section 12. The rest are new. Each gives the reading the
 - **Schema:** one bump.
 - **Done-gate:** `npx vitest run test/sim/decks/magisterialHands.test.ts test/sim/reroll.test.ts test/sim/offers.test.ts test/sim/greatPeople.test.ts test/sim/decks/dominionDrafts.test.ts test/sim/decks/magisterial.test.ts test/sim/decks.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`.
 
+- **Built (2026-10-26):** all three cards. The gate passed: the type check, 9,752 core tests and the build. Schema 187. `noOrderReroll` is read only in `rerollError`, for an Order hand; the reroll button already greys out on any refusal. `offerRider` takes `count`, `per` and `max`, read in `explainOfferSize`. `onDraft` takes the `greatPerson` grant. `docs/README.md` gained two lines. Readings added: the card's refusal comes before the reroll door; under The Second Reading an Order hand is still refused; The Wandering Muse needs no capital; The Hall of Wonders counts wonders when the hand is dealt.
+
 ### MG7: the council's moments (feature G and the Doctrines)
 
 - **Builds:**

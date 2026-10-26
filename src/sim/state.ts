@@ -2767,8 +2767,32 @@ import {
  * **A v185 save is refused and does not replay.** A Devotion seat's pools
  * hold more cards, and a town that turned carries a field the old build never
  * wrote. The branch migrates nothing, for the reason given under v119.
+ *
+ * v187 (branch `decks`; Magisterial batch MG6, `docs/plans/magisterial-
+ * themes-triage.md`): **the hand.** No field joins the state. The rules that
+ * change:
+ *
+ *   · one action rule is new: `noOrderReroll`. `rerollError` refuses the
+ *     reroll of an Order hand while the empire holds it. A Doctrine hand, a
+ *     great-person hand and a belief hand are not refused (the triage's
+ *     reading 13);
+ *   · an `offerRider` may carry `count`, `per` and `max`, as a `routeRider`
+ *     does. `explainOfferSize` reads them through `countOf` and `helpings`,
+ *     one line labelled with the helpings, and the cap on a hand still holds
+ *     (reading 13);
+ *   · `OrderDef.onDraft` takes the `greatPerson` arm of `CompletionGrant`
+ *     beside the unit arm. `raiseOnDraft` pays it through
+ *     `grantGreatPersonOffer`: an offer when the seat may call great people
+ *     and none waits, and otherwise the renown still needed for the next one
+ *     (reading 15);
+ *   · three Magisterial cards are new and dealt: The Wandering Muse (Tier I),
+ *     Officials by Merit (Tier III) and The Hall of Wonders (Tier IV).
+ *
+ * **A v186 save is refused and does not replay.** A Magisterial seat's pools
+ * hold more cards. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 186;
+export const SCHEMA_VERSION = 187;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

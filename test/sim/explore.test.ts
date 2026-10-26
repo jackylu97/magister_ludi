@@ -1109,10 +1109,19 @@ describe('determinism', () => {
    * religion, so no town turns, no stamp is written and no moment is paid.
    * Checked with the change in place and the version printed as 185, which
    * gives the hashes of Magisterial batch MG5 exactly.
+   *
+   * **Magisterial batch MG6 (the hand, schema 187) moved the hash and not the
+   * length** at both seeds: 186 became 187, and that is all. The batch adds a
+   * rule that refuses an Order reroll, a count on an offer rider, a great
+   * person an Order may hand over when it is drafted, and three card rows.
+   * Nobody here drafts or rerolls, so no hand is widened or refused and no
+   * great person is handed over. Checked with the change in place and the
+   * version printed as 186, which gives the hashes of Devotion batch DV6
+   * exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '4a8db21a:188976',
-    2026: 'de21d077:188554',
+    11: '10cd3499:188976',
+    2026: 'b9303148:188554',
   };
 
   for (const seed of [11, 2026]) {

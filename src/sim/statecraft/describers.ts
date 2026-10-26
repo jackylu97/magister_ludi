@@ -745,6 +745,14 @@ export function describeCard(id: CardId): CardClause[] {
         index === drafted.length - 1 && orderDef(id).effects.length === 0
           ? '; seated, this card does nothing'
           : '';
+      // **A great person** (Magisterial batch MG6, The Wandering Muse) stands
+      // in no town, and it is paid by the routine a rider's great person uses
+      // (`grantGreatPersonOffer`), so it is said in that rider's words.
+      if (grant.grant === 'greatPerson') {
+        const who = grant.family === undefined ? 'a great person' : `a great ${grant.family}`;
+        clauses.push({ text: `when drafted, you gain ${who} to call${idle}` });
+        return;
+      }
       clauses.push({ text: `${grantWords(grant, 'when drafted')} in your capital${idle}` });
     });
     for (const grant of orderDef(id).onSlot ?? []) {
@@ -2625,8 +2633,19 @@ function describeEffect(
         return;
       }
       const extra = (effect.extra ?? 1);
+      // **What buys one helping**, where the rider is counted (Magisterial
+      // batch MG6, The Hall of Wonders). The route rider's words for the same
+      // three fields: the count's own noun, and the ceiling in cards because
+      // that is the figure the card prints.
+      const counted =
+        effect.count === undefined
+          ? ''
+          : ` per ${countWords(
+              effect.per,
+              countNoun({ kind: 'pays', where: 'empire', basis: 'count', count: effect.count }, ''),
+            )}` + (effect.max === undefined ? '' : ` (at most ${signed(extra * effect.max)})`);
       out.push({
-        text: `+${extra} ${extra === 1 ? 'card' : 'cards'} in ${OFFER_DRAFT_WORDS[effect.offer]}`,
+        text: `+${extra} ${extra === 1 ? 'card' : 'cards'} in ${OFFER_DRAFT_WORDS[effect.offer]}${counted}`,
       });
       return;
     }
@@ -6599,6 +6618,9 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // Said for each hand (Magisterial batch MG2, The Second Reading). The old
   // words, "the first time you ask for a fresh hand", read as once a game.
   rerollOffers: 'the first reroll of each hand of Orders, Doctrines or great people costs nothing',
+  // Officials by Merit (Magisterial batch MG6). Said for the Order hand
+  // alone, because the other hands may still be rerolled.
+  noOrderReroll: 'you cannot reroll Order hands',
   capitalBuysWithoutLimit: 'your capital may buy as many units in a turn as it can pay for',
   goldBuysWonders: 'you may buy world wonders with gold',
   // Said as the bank that opens, with the price in the same breath: a player who

@@ -9097,6 +9097,28 @@
     "text": "passing an Order draft grants science equal to 50% of the culture paid for that hand"
    }
   ],
+  "theWanderingMuse": [
+   {
+    "raw": "when drafted, you gain a great person to call; seated, this card does nothing",
+    "text": "when drafted, you gain a great person to call; seated, this card does nothing"
+   }
+  ],
+  "officialsByMerit": [
+   {
+    "raw": "+2 cards in every Statecraft draft",
+    "text": "+2 cards in every Statecraft draft"
+   },
+   {
+    "raw": "you cannot reroll Order hands",
+    "text": "you cannot reroll Order hands"
+   }
+  ],
+  "theHallOfWonders": [
+   {
+    "raw": "+1 card in every Statecraft draft per 2 wonders you hold (at most +2)",
+    "text": "+1 card in every Statecraft draft per 2 wonders you hold (at most +2)"
+   }
+  ],
   "frontierGarrisons": [
    {
     "raw": "+2 food in every city with a unit standing in it of 5 or fewer citizens",

@@ -3312,6 +3312,8 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       return mean * (effect.percent / 100) * ctx.ai.weights.renown;
     }
     case 'offerRider':
+      // A counted rider (Magisterial batch MG6, The Hall of Wonders) meets the
+      // same stand-in until batch MG17 prices it.
       return ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
     case 'rulePercent':
       return scoreRulePercent(effect, ctx);
@@ -3654,6 +3656,10 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // batch DV9 prices it. Sight is worth what it shows, and this bot keeps
       // no price for a hex seen.
       if (effect.rule === 'followersShareSight') return ctx.ai.score.unknownEffect;
+      // **Officials by Merit's refusal** (Magisterial batch MG6) costs this bot
+      // nothing: it rerolls only a free belief hand (`beliefRedeal`), never an
+      // Order hand. The stand-in until batch MG17 prices the card.
+      if (effect.rule === 'noOrderReroll') return 0;
       return ctx.ai.score.unknownEffect;
     case 'metaRule':
       // A rule of Statecraft itself — how long a chair is sealed. What a seal
@@ -4240,14 +4246,21 @@ function grantCountNow(ctx: ValueContext, spec: GrantCount): number {
  * batch D5): The Sword of State's unit and The Cleruchy's settler. Read as the
  * gifted piece `windfallGrantWorth` reads, because a draft is a moment and the
  * card does nothing seated. Zero for a card with no such field.
+ *
+ * A great person on the draft (Magisterial batch MG6, The Wandering Muse) is
+ * the stand-in until batch MG17 prices it. It is not a unit, so it is not
+ * priced as one.
  */
 export function onDraftWorth(id: CardId, ctx: ValueContext): number {
   if (!isOrderId(id)) return 0;
   const grants = orderDef(id).onDraft ?? [];
   if (grants.length === 0) return 0;
+  const units = grants.filter((grant) => grant.grant === 'unit').length;
+  const people = grants.length - units;
   return (
-    (grants.length * ctx.ai.weights.military * ctx.ai.score.combatScale) /
-    Math.max(1, ctx.ai.score.lumpTurns)
+    (units * ctx.ai.weights.military * ctx.ai.score.combatScale) /
+      Math.max(1, ctx.ai.score.lumpTurns) +
+    people * ctx.ai.score.unknownEffect
   );
 }
 

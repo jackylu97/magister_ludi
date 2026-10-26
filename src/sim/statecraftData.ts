@@ -4452,7 +4452,16 @@ export type ActionRuleId =
    * (`cities.ts`): 100 is double. A row queued this way cannot finish until
    * its technology is known (`prototypeHeld`).
    */
-  | 'prototypes';
+  | 'prototypes'
+  /**
+   * **This empire may not reroll an Order hand** (Magisterial batch MG6,
+   * Officials by Merit; the triage's reading 13). Read in one place,
+   * `rerollError` (`religion.ts`), and only when the hand on the table is an
+   * Order hand. A Doctrine hand, a great-person hand and a belief hand may
+   * still be rerolled. The card's other half, two more cards in each Order
+   * hand, is an ordinary `offerRider`, and the cap on a hand still holds.
+   */
+  | 'noOrderReroll';
 
 /**
  * Something about the world that stops being true — or starts.
@@ -7797,6 +7806,24 @@ export interface CardOfferRiderEffect {
    * `extra` do.
    */
   family?: Family;
+  /**
+   * **One helping of `extra` for every `per` of something counted** (Magisterial
+   * batch MG6, The Hall of Wonders: one more card in each Order hand for every
+   * two wonders held, at most two more; the triage's reading 13).
+   *
+   * `CardRouteRiderEffect`'s `count`, `per` and `max`, read the same way:
+   * `explainOfferSize` asks `countOf` for the count and `helpings` for the
+   * divisor and the ceiling, as `cardRouteSlots` does. `max` is in helpings,
+   * so a row with `extra: 1` and `max: 2` deals at most two more cards. The
+   * line is labelled with the helpings. A row whose count buys no helping adds
+   * no line. The cap on a hand (`rules.offers.max`) still holds over the sum.
+   * A row with a `family` is a narrowing and is never counted.
+   */
+  count?: CountKind;
+  /** How many of `count` buy one helping of `extra`. Default 1. */
+  per?: number;
+  /** The most helpings that ever widen a hand. */
+  max?: number;
 }
 
 /**
@@ -10528,8 +10555,15 @@ export interface OrderDef extends CardDefBase {
    * `CompletionGrant`, raised by `raiseOnDraft` (`cities.ts`) through
    * `realiseItem`, free of upkeep. A row whose whole text is this carries no
    * effects and is still dealt (`orderIsDealt`).
+   *
+   * Since Magisterial batch MG6 a row may also carry the `greatPerson` arm
+   * (The Wandering Muse; the triage's reading 15). `raiseOnDraft` pays it
+   * through `grantGreatPersonOffer` (`greatPeople.ts`), the routine a rider's
+   * and a commission's great person use: an offer now when the seat may call
+   * great people and none waits, and otherwise the renown still needed for
+   * the next one. It needs no capital.
    */
-  onDraft?: Extract<CompletionGrant, { grant: 'unit' }>[];
+  onDraft?: Extract<CompletionGrant, { grant: 'unit' | 'greatPerson' }>[];
   /**
    * Present on a commission: a goal that only counts while the card is seated,
    * and a reward paid once when it is met. See `CommissionSpec`.

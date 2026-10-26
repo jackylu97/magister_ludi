@@ -571,7 +571,11 @@ describe('determinism', () => {
     // ends, a town keeps the turn it last turned to each religion, and two
     // Devotion cards are dealt. So a v185 log's Devotion hands hold
     // different cards.
-    expect(SCHEMA_VERSION).toBe(186);
+    // 187 since Magisterial batch MG6 (the hand): a card may refuse an Order
+    // reroll, an offer rider may be counted, an Order may hand over a great
+    // person when it is drafted, and three Magisterial cards are dealt. So a
+    // v186 log's Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(187);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test
