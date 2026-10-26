@@ -3716,6 +3716,11 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // MG12) is a stand-in until batch MG17 prices it off the held cards the
       // wider fit would seat.
       if (effect.rule === 'cardsFitAnyChair') return ctx.ai.score.unknownEffect;
+      // **The Universal Genius's `actThenWork`** (Magisterial batch MG13) is a
+      // stand-in until batch MG17 prices it off the acts this seat's people
+      // would add before they lay their works. The bot's great-person arm
+      // already lays the work once the act is refused.
+      if (effect.rule === 'actThenWork') return ctx.ai.score.unknownEffect;
       return ctx.ai.score.unknownEffect;
     case 'metaRule':
       // A rule of Statecraft itself — how long a chair is sealed. What a seal

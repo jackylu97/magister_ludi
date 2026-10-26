@@ -3139,6 +3139,18 @@
       "text": "Your cards fit any chair.",
       "effects": [{ "kind": "rule", "rule": "cardsFitAnyChair" }],
       "note": "This card itself goes in a Wildcard chair. While it is seated, any card you hold may sit in any chair, and when you adopt a government every seated card keeps a chair while chairs remain. When it leaves its chair, your council is seated again at once: a card that still fits its chair keeps it, the others move to free chairs that fit them, and a card that fits no free chair goes back to your collection. A card that had to move may be moved again at once. A card still counts as its own type wherever it sits."
+    },
+    "theUniversalGenius": {
+      "name": "The Universal Genius",
+      "decks": ["magisterial"],
+      "band": 3,
+      "rarity": "rare",
+      "type": "civic",
+      "line": "none",
+      "flavor": "Leon Battista Alberti wrote that people can do all things if they will.",
+      "text": "Your great people may act, and then still lay their work. Each leaves one legacy.",
+      "effects": [{ "kind": "rule", "rule": "actThenWork" }],
+      "note": "What counts is whether this card is seated when a great person acts. If it is, the act pays as usual and the person stays where they stand. They may then lay their work, even after this card has left its chair, but they cannot act again. Their legacy, and anything that pays when you spend a great person, comes once, when the work is laid. A great person who lays their work without acting is spent at once, as usual. Acting does not use their movement."
     }
   }
 }

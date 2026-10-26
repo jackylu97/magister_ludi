@@ -6724,6 +6724,9 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
     "you may buy the wonder at the front of a city's queue with culture, one culture for each hammer it still needs",
   // Magisterial batch MG12, The Mixed Constitution: the card's own sentence.
   cardsFitAnyChair: 'your cards fit any chair',
+  // Magisterial batch MG13, The Universal Genius: the card's first sentence.
+  // The legacy coming once is the card's second sentence and its note.
+  actThenWork: 'your great people may act, and then still lay their work',
   capitalBuysWithoutLimit: 'your capital may buy as many units in a turn as it can pay for',
   goldBuysWonders: 'you may buy world wonders with gold',
   // Said as the bank that opens, with the price in the same breath: a player who

@@ -6425,7 +6425,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * `consecrate`'s shape and for its reason one grade harder: **either** verb
    * consumes the whole person, so holding its id would leave the sheet
    * describing somebody who is no longer on the board. Asked of the state after
-   * the dispatch rather than predicted before it.
+   * the dispatch rather than predicted before it. Under The Universal Genius
+   * (Magisterial batch MG13) an act leaves the person on the board, still
+   * selected, with its Act row now refused and its Work row still open.
    *
    * The announcement is composed from the preview taken *before* the command,
    * because by the time this returns the piece is gone and the board cannot be
@@ -6450,17 +6452,24 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       return;
     }
     announce(`✦ ${view.name} — ${said}`, { cell: { col: unit.col, row: unit.row } });
-    // The legacy is the half that survives the choice, and it is worth its own
-    // line: the board decision was burst or ground, and the card is yours
-    // whichever was taken (`docs/great-people.md`).
-    announce(`✦ ${view.name}'s legacy stands with your government`);
-    // **The ceremony**, raised only on an accepted command — the refusal above
-    // returns before this line. The person is named by id so the sheet reads the
-    // roster itself, and the deed carries the preview's figure for the reason
-    // this whole function composes its announcement that way: the piece is gone.
-    const spent = personOf(unit);
-    if (spent !== null) onGreatPersonSpent?.({ id: spent, verb, deed: said });
-    if (!unitById(getGame().state, unit.id)) {
+    // **A person that acted may still be on the board** (Magisterial batch
+    // MG13, The Universal Genius): the act paid, and the person stays to lay
+    // their work. Nothing is spent yet, so there is no legacy line and no
+    // ceremony until the work is laid. Asked of the state after the command,
+    // as the selection below always was.
+    if (unitById(getGame().state, unit.id)) {
+      announce(`✦ ${view.name} stays, and can still lay their work`);
+    } else {
+      // The legacy is the half that survives the choice, and it is worth its
+      // own line: the board decision was burst or ground, and the card is
+      // yours whichever was taken (`docs/great-people.md`).
+      announce(`✦ ${view.name}'s legacy stands with your government`);
+      // **The ceremony**, raised only on an accepted command (the refusal
+      // above returns before this line) and only when the person is spent.
+      // The person is named by id so the sheet reads the roster itself, and
+      // the deed carries the preview's figure, because the piece is gone.
+      const spent = personOf(unit);
+      if (spent !== null) onGreatPersonSpent?.({ id: spent, verb, deed: said });
       selectedId = null;
       setMoveMode(false);
     }

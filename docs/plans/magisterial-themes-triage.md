@@ -476,6 +476,8 @@ The first six come from section 12. The rest are new. Each gives the reading the
 - **Schema:** one bump.
 - **Done-gate:** `npx vitest run test/sim/decks/magisterialGenius.test.ts test/sim/greatPeople.test.ts test/sim/greatPeopleShapes.test.ts test/ui/unitPanel.test.ts test/sim/decks/magisterialPatrons.test.ts test/sim/decks/magisterial.test.ts test/sim/decks.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`.
 
+- **Built (2026-10-26):** the card. The gate passed: the type check, 9,977 core tests and the build. Schema 196. The rule is `actThenWork`, read once in `greatPersonActAt` before the act pays; the mark is `Unit.acted` (presence is the state; old saves load). `chargesLeft` was not used: no great-person code reads it, and a person at zero charges would break the piece-removal promise. The work spends the person once, so the legacy, the tally and the spent moment come once. The card's text now says what it does: "Your great people may act, and then still lay their work. Each leaves one legacy." The unit sheet says the person stays after an act. Readings added: a captured person keeps the mark; the act's own riders pay at the act; the bot needs no change. Not done: the mark is not drawn on the piece.
+
 ### MG14: the boons
 
 - **Builds:**

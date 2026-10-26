@@ -830,6 +830,12 @@ export function settleGreatPersonChoice(
  * one requirement — and the requirements are exactly the ones a *wasted* boon
  * would otherwise be: a scholar with nothing under research, and an engineer or
  * an artist with no town in reach, are spending a whole person on nothing.
+ *
+ * A person acts once (Magisterial batch MG13; the triage's reading 23). A
+ * person that acted under The Universal Genius stays on the board, marked
+ * `Unit.acted`, and this refuses it a second act, whether or not the card is
+ * still seated. It may still lay its work (`greatPersonWorkError` does not
+ * read the mark).
  */
 export function greatPersonActError(
   state: GameState,
@@ -843,6 +849,9 @@ export function greatPersonActError(
   const family = familyOf(unit)!;
   const person = greatPersonDef(personOf(unit)!);
 
+  if (unit.acted === true) {
+    return `${person.name} has already acted, and can now only lay their work`;
+  }
   if (family === 'scholar' && player.researching === null) {
     return `${person.name} has nothing to study — choose a technology first`;
   }
@@ -894,7 +903,11 @@ export interface GreatPersonAct {
   blessed: number[];
   /** The turn a timed half runs out, or `null` for a pure windfall. */
   expiresTurn: number | null;
-  /** The legacy that now hangs on the empire. Always the person's own id. */
+  /**
+   * The legacy the person leaves. Always the person's own id. It hangs on the
+   * empire now, or, when the person stays on the board under The Universal
+   * Genius (`Unit.acted`), when it lays its work.
+   */
   legacy: GreatPersonId;
 }
 
@@ -918,6 +931,11 @@ export interface GreatPersonAct {
  * The piece is consumed and **the legacy attaches** — either verb leaves it, and
  * that is the design (`docs/great-people.md`): the board decision is burst or
  * ground, and the card is yours whichever you chose.
+ *
+ * One exception (Magisterial batch MG13, The Universal Genius): while the
+ * empire holds `actThenWork`, the act pays and the piece stays on the board,
+ * marked `Unit.acted`. Then the work spends it, and the legacy attaches once,
+ * at the work.
  */
 /**
  * The act's age: ×(1 + actPerTech × technologies researched) — exported so the
@@ -974,6 +992,12 @@ export function greatPersonActAt(
   const id = personOf(unit)!;
   const def = greatPersonDef(id);
   const era = highestAge(player.techsResearched);
+  // **The Universal Genius** (Magisterial batch MG13; the triage's reading 23):
+  // the rule is read once, here, as the person acts, before anything the act
+  // pays can change the empire. While it holds, the person is not spent at the
+  // end of the act (see below). A family with no work to lay is spent as
+  // before, so no piece is left on the board with nothing it may do.
+  const stays = cardActionRule(state, player.id, 'actThenWork') && workOf(unit) !== null;
   // **Leonardo's notebooks**, read once for the whole act (`greatPersonAct`) and
   // applied to each family's own figure *before* it reaches the seam that banks
   // it — so a doubled engineer pours twice the hammers through the same
@@ -1084,6 +1108,16 @@ export function greatPersonActAt(
   // own figure composed once, upstream of this, which is why nothing here can
   // change what was banked).
   payActRiders(state, player, def.family, done.city);
+  // Under The Universal Genius the act has paid, with its riders, and the
+  // person stays on the board, marked as having acted. The mark is what
+  // `greatPersonActError` refuses a second act with, and it outlives the card's
+  // chair. The legacy, the `greatPersonSpent` tally and the spent moment wait
+  // for the work, which spends the piece (`greatPersonWorkAt`). The act uses no
+  // movement, so the person may walk on this turn.
+  if (stays) {
+    unit.acted = true;
+    return done;
+  }
   spendGreatPerson(state, player, unit, id);
   return done;
 }
@@ -1196,6 +1230,11 @@ function stampTimed(
  * fact. It comes after the legacy, the tally and the piece's removal, so a
  * rider reads an empire that has already spent the person. An act's own
  * riders (`greatPersonAct`) are paid before this is called.
+ *
+ * Under The Universal Genius (Magisterial batch MG13) an act does not call
+ * this: the person stays, marked `Unit.acted`, and the work calls it later.
+ * So a person is still spent once, and the legacy, the tally and the moment
+ * still come once (the triage's readings 21 and 23).
  */
 function spendGreatPerson(
   state: GameState,
@@ -1374,6 +1413,10 @@ export interface GreatPersonWork {
  *
  * The **citadel** claims its hex and the ring around it, which is the one thing
  * an improvement does to the board beyond standing on it. See `claimAround`.
+ *
+ * A person that acted under The Universal Genius (`Unit.acted`, Magisterial
+ * batch MG13) lays its work here like any other, and is spent here. Its
+ * legacy and the spent moment come now, once.
  */
 export function greatPersonWorkAt(
   state: GameState,

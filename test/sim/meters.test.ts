@@ -1206,7 +1206,11 @@ describe('a captured city, end to end', () => {
     // let every card of its holder fit every chair, the council is re-seated
     // at once when that card leaves, and one Magisterial card is dealt. So a
     // v194 log's Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(195);
+    // 196 since Magisterial batch MG13 (The Universal Genius): a great
+    // person may act and stay on the board to lay their work, marked by a
+    // new unit field, and one Magisterial card is dealt. So a v195 log's
+    // Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(196);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

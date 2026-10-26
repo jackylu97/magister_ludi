@@ -873,6 +873,12 @@ Reference: **`docs/great-people.md`** (generated roster, sync-tested).
   `cities.ts`, entry 32 of the register of mid-turn yield changes; The
   Landmark Bounds). A combat line can ask for a piece standing on a
   great-person work, whoever owns it (`standingOnWork`; The Custodians).
+- Since Magisterial batch MG13 the action rule `actThenWork` (The Universal
+  Genius) is read in `greatPersonActAt` as the person acts. While it holds,
+  the act pays and the piece stays on the board, marked `Unit.acted`.
+  `greatPersonActError` refuses a marked piece a second act, and the work
+  spends it, even after the card has left its chair. So the legacy, the
+  `greatPersonSpent` tally and the moment still come once, at the work.
 - Three card clauses buy a great person (`OFFER_PURCHASES`), all issued from the
   Reliquary's rail.
 - **Triumphs**: `Player.triumphs` is append-only and turn-stamped, read by

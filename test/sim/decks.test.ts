@@ -635,8 +635,10 @@ describe('the schema, as landed', () => {
     // Magisterial row.
     // **And Magisterial batch MG12** (The Mixed Constitution): one more, a new
     // Magisterial row.
-    expect(live).toBe(609);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(609);
+    // **And Magisterial batch MG13** (The Universal Genius): one more, a new
+    // Magisterial row.
+    expect(live).toBe(610);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(610);
   });
 
   /**
@@ -1054,7 +1056,11 @@ describe('the schema, as landed', () => {
     // let every card of its holder fit every chair, the council is re-seated
     // at once when that card leaves, and one Magisterial card is dealt. So a
     // v194 log's Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(195);
+    // 196 since Magisterial batch MG13 (The Universal Genius): a great
+    // person may act and stay on the board to lay their work, marked by a
+    // new unit field, and one Magisterial card is dealt. So a v195 log's
+    // Magisterial hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(196);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

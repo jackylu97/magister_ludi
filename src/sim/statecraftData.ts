@@ -4562,7 +4562,19 @@ export type ActionRuleId =
    * (`settleCouncilFit`). A card still counts as its own type wherever it
    * sits (`countedTypeOf`).
    */
-  | 'cardsFitAnyChair';
+  | 'cardsFitAnyChair'
+  /**
+   * **This empire's great people may act and then still lay their work**
+   * (Magisterial batch MG13, The Universal Genius; the triage's reading 23).
+   * Read in one place, `greatPersonActAt` (`greatPeople.ts`), when the person
+   * acts. While it holds, the act pays and does not spend the person: the
+   * piece stays on the board, marked `Unit.acted`. The mark, not the rule,
+   * then decides what the piece may do: `greatPersonActError` refuses a
+   * second act, and the work spends the piece as usual, even after the card
+   * has left its chair. So the legacy, the `greatPersonSpent` tally and the
+   * `greatPersonSpent` moment all come once, when the work is laid.
+   */
+  | 'actThenWork';
 
 /**
  * Something about the world that stops being true — or starts.

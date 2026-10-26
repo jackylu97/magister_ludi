@@ -3004,8 +3004,35 @@ import {
  * **A v194 save is refused and does not replay.** A Magisterial seat's pools
  * hold more cards. The branch migrates nothing, for the reason given under
  * v119.
+ *
+ * v196 (branch `decks`; Magisterial batch MG13, `docs/plans/magisterial-
+ * themes-triage.md`): **The Universal Genius.** One optional field joins the
+ * state: `Unit.acted`, a great person that has acted and is still on the
+ * board. The rules that change:
+ *
+ *   · one action rule is new, `actThenWork`, read in `greatPersonActAt` when
+ *     the person acts. While it holds, the act pays and its riders pay, and
+ *     the person stays on the board, marked `Unit.acted`. The act does not
+ *     use the person's movement (the triage's reading 23);
+ *   · `greatPersonActError` refuses a person marked as having acted, so a
+ *     person acts once. The work does not read the mark: a marked person
+ *     lays its work, even after the card has left its chair, and the work
+ *     spends it through `spendGreatPerson`. So the legacy, the
+ *     `greatPersonSpent` tally and the `greatPersonSpent` moment come once,
+ *     when the work is laid (reading 21). A person that lays its work first
+ *     is spent as before;
+ *   · one Magisterial card is new and dealt: The Universal Genius (Tier
+ *     III).
+ *
+ * The field is absent on every piece that has not acted under the rule, so
+ * a game without the card writes the same units as before.
+ *
+ * **A v195 save is refused and does not replay.** A Magisterial seat's pools
+ * hold more cards, and a person that acted under the card carries a field
+ * the old build never wrote. The branch migrates nothing, for the reason
+ * given under v119.
  */
-export const SCHEMA_VERSION = 195;
+export const SCHEMA_VERSION = 196;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -4550,6 +4577,33 @@ export interface Unit {
    * visual-affecting unit property, and the render pass adds it there.
    */
   person?: GreatPersonId;
+  /**
+   * **This great person has acted and is still on the board** (Magisterial
+   * batch MG13, The Universal Genius; the triage's reading 23), or the key is
+   * absent. Absent on every other piece, and on every great person that has
+   * not acted, so a state with no such card in it serialises as it did before
+   * this field existed.
+   *
+   * Written in one place, `greatPersonActAt` (`greatPeople.ts`), when the
+   * person acts while its owner holds the `actThenWork` rule: the act pays
+   * and the piece stays. It is never cleared, because the piece leaves the
+   * board when it lays its work. Read in one place, `greatPersonActError`,
+   * which refuses a second act. The work does not read it: a person lays its
+   * work whether or not it has acted, and the work spends it.
+   *
+   * A field of its own, not `chargesLeft`. A great person's charge is never
+   * counted down (either verb removes the piece whole), and a charge count
+   * that could reach zero on a piece still standing would break the rule
+   * that a piece with no charges left is gone. A card can also raise the
+   * charges a piece is born with (`cardExtraCharges`), so "one charge left"
+   * would not mean "has not acted".
+   *
+   * A captured person keeps it, as it keeps `person`: capture changes the
+   * owner and nothing else. Not in the piece fingerprint (`signUnits`):
+   * nothing about it is drawn. The unit panel shows it through the Act row's
+   * refusal.
+   */
+  acted?: true;
   /**
    * The trade route this piece is **carrying**, or the key is **absent** on
    * every unit that is not on the road — which is all of them but a handful.

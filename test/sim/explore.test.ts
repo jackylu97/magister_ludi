@@ -1197,10 +1197,19 @@ describe('determinism', () => {
    * Nobody here drafts or seats a card, so every fit is the plain one and no
    * council is re-seated. Checked with the change in place and the version
    * printed as 194, which gives the hashes of Magisterial batch MG11 exactly.
+   *
+   * **Magisterial batch MG13 (The Universal Genius, schema 196) moved the
+   * hash and not the length** at both seeds: 195 became 196, and that is all.
+   * The batch adds a rule that lets a great person act and stay on the board
+   * to lay their work, an optional unit field that marks a person that has
+   * acted (`Unit.acted`), and one card row. Nobody here calls a great person
+   * or drafts, so no person acts and no unit carries the field. Checked with
+   * the change in place and the version printed as 195, which gives the
+   * hashes of Magisterial batch MG12 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'd2996caa:188976',
-    2026: '36477b67:188554',
+    11: '902ccf3f:188976',
+    2026: '103f5eea:188554',
   };
 
   for (const seed of [11, 2026]) {

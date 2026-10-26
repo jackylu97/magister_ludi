@@ -135,6 +135,11 @@ A recruited person arrives as an agent with **one charge** (`units.json`'s
 it is and riding the piece fingerprint). Either verb spends the charge and the
 piece, and either verb leaves the legacy.
 
+One card changes this. While The Universal Genius is seated (the action rule
+`actThenWork`, Magisterial batch MG13), the act pays and the piece stays on the
+board, marked `Unit.acted`. A marked piece cannot act again. It may still lay
+its work, which spends it and leaves the legacy, once.
+
 - The **act** pays now, through the bucket it belongs to (an Entry XVIII.5
   printed figure: composed once, immune to city percentages and staging).
 - The **work** plants an improvement for good (`greatPerson: family` on the
