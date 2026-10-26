@@ -3,7 +3,7 @@
 The deck's cards, by tier: name, rarity, status, ability and type. This sheet is the spec of record for the deck. `test/sim/decks/devotion.test.ts` checks it against `data/decks/devotion.json` and, for the shared table, `data/decks/common.json`.
 
 - **Why each card is here:** `docs/plans/devotion-themes.md`, the themes pass of 2026-10-23. It designs the deck as a way to play: an engine of faith and what faith buys, and four themes (the devout realm, the holy places, the spreading faith and the holy war). Section 12 holds your answers of 2026-10-25, and it outranks the sections before it. `docs/plans/devotion-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
-- **The build plan:** `docs/plans/devotion-themes-triage.md` (batches DV1 to DV9). Batch DV1 wrote this sheet, put the types into the data, retired the four cut rows, moved seven rows to the shared file, moved six cards to a new tier, and changed five cards in place: Lay Offerings, The Settled Faith, The Mission, The Conversion of Kings and The Great Commission. The deferred The Interdict took its new text and stays out of every pool. Batch R1 changed The Fast and The Rites Commonwealth before DV1 (`docs/plans/review-revisions-2026-10-25.md`). Batch DV2 built the seven new cards whose shapes already existed (The Deaconries, The Lives of the Saints, The Martyrology, The Consecration Feast, The Pilgrim Towns, The Holy Summons and The Work of God), four shared cards, and the word "devout". Batch DV3 built the engine's shapes: The Gifts of the Faithful, The Sacred Precincts, The Book of Life and The Offering Chests, The Creed's rework, and the shared The Rising Nave. Batch DV4 made a rite started a season (the Votive Offering and the Restoring of the Host do not count, and a prophet's rite over the realm counts once in each town it reaches), and built The Rogations, The Psalter, The Sabbath Laws with its Rite of the Sabbath, and The Founding Vows' narrower count. Batch DV5 built the faith's reach: The Parishes (a town you found is pressed with your religion, enough to turn every citizen), The Confessors (towns that follow your religion are sight sources for you) and Commission: The State Church (a goal that counts only while every town you hold is devout). Batch DV6 made a foreign town turning to your religion a moment that cards can pay on (feature F). The moment comes when the pressing that turned the town is over. It built Pentecost (your religion presses the towns around the town that turned, and a town that turns presses in its turn) and The Mass Baptisms (science and culture the first time a town turns). A town counts at most once a turn for each religion, so a chain always ends.
+- **The build plan:** `docs/plans/devotion-themes-triage.md` (batches DV1 to DV9). Batch DV1 wrote this sheet, put the types into the data, retired the four cut rows, moved seven rows to the shared file, moved six cards to a new tier, and changed five cards in place: Lay Offerings, The Settled Faith, The Mission, The Conversion of Kings and The Great Commission. The deferred The Interdict took its new text and stays out of every pool. Batch R1 changed The Fast and The Rites Commonwealth before DV1 (`docs/plans/review-revisions-2026-10-25.md`). Batch DV2 built the seven new cards whose shapes already existed (The Deaconries, The Lives of the Saints, The Martyrology, The Consecration Feast, The Pilgrim Towns, The Holy Summons and The Work of God), four shared cards, and the word "devout". Batch DV3 built the engine's shapes: The Gifts of the Faithful, The Sacred Precincts, The Book of Life and The Offering Chests, The Creed's rework, and the shared The Rising Nave. Batch DV4 made a rite started a season (the Votive Offering and the Restoring of the Host do not count, and a prophet's rite over the realm counts once in each town it reaches), and built The Rogations, The Psalter, The Sabbath Laws with its Rite of the Sabbath, and The Founding Vows' narrower count. Batch DV5 built the faith's reach: The Parishes (a town you found is pressed with your religion, enough to turn every citizen), The Confessors (towns that follow your religion are sight sources for you) and Commission: The State Church (a goal that counts only while every town you hold is devout). Batch DV6 made a foreign town turning to your religion a moment that cards can pay on (feature F). The moment comes when the pressing that turned the town is over. It built Pentecost (your religion presses the towns around the town that turned, and a town that turns presses in its turn) and The Mass Baptisms (science and culture the first time a town turns). A town counts at most once a turn for each religion, so a chain always ends. Batch DV7 built the holy sites, the Opus and the authority capstone: The Anchorites (a card's price on an act of the clergy, so a further holy site costs one charge), The Abbeys (an apostle may raise a further holy site, at a prophet's price), The Interdict (it left `deferred`: a rival's town that follows your religion makes no production toward its Magnum Opus) and The Caliphate (devout towns cost no authority).
 - **Devout towns:** a devout town is one of your towns that follows a religion you are paid by. The game asks this with the town scope `ownersFaith` (`keeps: true`). A foreign town is never devout. "Devout" is the card word of the triage's feature E (reading 2). Since batch DV2 the describers print the scope as "devout", and the Compendium's faith page says what a devout town is. The cards about every town that follows your religion, foreign towns included, keep the words "follows your religion".
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
@@ -25,10 +25,10 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 |---|---|---|---|---|---|
 | Tier 0 | 8 | 0 | 0 | 8 | 0 |
 | Tier I | 7 | 0 | 0 | 7 | 1 |
-| Tier II | 18 | 2 | 1 | 21 | 1 |
-| Tier III | 11 | 2 | 3 | 16 | 0 |
-| Tier IV | 12 | 1 | 1 | 14 | 0 |
-| **All** | **56** | **5** | **5** | **66** | **2** |
+| Tier II | 19 | 2 | 0 | 21 | 1 |
+| Tier III | 13 | 2 | 1 | 16 | 0 |
+| Tier IV | 13 | 0 | 1 | 14 | 0 |
+| **All** | **60** | **4** | **2** | **66** | **2** |
 | Shared | 27 | 2 | 0 | 29 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
@@ -93,7 +93,7 @@ Without the charters, the deck holds 64 cards that take a chair: 8, 6, 20, 16 an
 | **Commission: The State Church** | uncommon | implemented | Commission. Hold at least six towns, all of them devout, at the same time. Then, for the rest of the game, devout towns cost one less authority, minimum one. The card leaves its chair. | Wildcard |
 | **The Settled Faith** | rare | modify: as built | Devout towns gain +15% science and culture. Your proclamations press 25% less. | Civic |
 | **The Sabbath Laws** | uncommon | implemented | Once drafted, unlock the Rite of the Sabbath. A town keeping it builds nothing for ten turns, and gains culture equal to its production each turn. No chair required. | Civic |
-| **The Anchorites** | uncommon | add | Your prophets raise a further holy site for one charge instead of two. | Civic |
+| **The Anchorites** | uncommon | implemented | Your prophets raise a further holy site for one charge instead of two. | Civic |
 | **Temple Estates** | common | implemented | Hexes beside a Holy Site gain +2 food and +2 faith. | Civic |
 | **The Saints' Fields** | common | implemented | Worked Holy Sites give +5 food and +8 gold. A city working one gains +2 happiness, once per city. | Economic |
 | **The Old Holy Places** | common | implemented | Holy Sites that have stood for 20 turns gain +3 faith. Those that have stood for 40 turns gain +3 faith and +3 culture more. | Civic |
@@ -121,11 +121,11 @@ Without the charters, the deck holds 64 cards that take a chair: 8, 6, 20, 16 an
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Caliphate** | rare | add | Devout towns cost no authority. | Civic |
+| **The Caliphate** | rare | implemented | Devout towns cost no authority. | Civic |
 | **The Doctors of the Church** | rare | modify: as built | Follower beliefs pay 150% more in your own cities. | Civic |
 | **The Psalter** | uncommon | implemented | Each rite started in a devout town grants science and culture equal to five times the town's population. | Civic |
 | **The Holy Inquisition** | uncommon | implemented | Rival religions press your cities 40% less. +38% faith. | Civic |
-| **The Abbeys** | rare | add | Your apostles may raise holy sites, as prophets do. | Civic |
+| **The Abbeys** | rare | implemented | Your apostles may raise holy sites, as prophets do. | Civic |
 | **The Consecration Feast** | uncommon | implemented | Finishing a Cathedral grants science and culture equal to twenty times the town's population. | Civic |
 | **The Pilgrim Towns** | uncommon | implemented | Towns working a holy site gain +20% culture. | Civic |
 | **Pentecost** | rare | implemented | When a foreign town turns to your religion, your religion presses every town within four hexes of it. | Civic |
@@ -157,7 +157,7 @@ Without the charters, the deck holds 64 cards that take a chair: 8, 6, 20, 16 an
 | **The Great Consecration** | rare | implemented | Each foreign city following your religion grants +5% production toward the Magnum Opus, at most +40%. | Economic |
 | **The Tithe of Nations** | rare | implemented | While one of your cities is building the Magnum Opus, gain 1 faith each turn for every citizen in the world who follows your religion, at home or abroad. | Civic |
 | **The Great Commission** | rare | implemented | Commission. Have more than half of the world's cities follow your religion. Then, for the rest of the game, devout towns gain +3 faith and +3 culture. The card leaves its chair. | Wildcard |
-| **The Interdict** | rare | modify: deferred | A rival's town that follows your religion adds no production toward a Magnum Opus. | Civic |
+| **The Interdict** | rare | implemented | A rival's town that follows your religion adds no production toward a Magnum Opus. | Civic |
 | **The Last Crusade** | uncommon | implemented | Your military units gain +8 strength against an empire that is building the Magnum Opus, while fighting in territory that follows your religion. | Military |
 | **The Host Restored** | rare | implemented | While this is seated, your cities know the Restoring of the Host: a city spends the rite's faith to heal every unit of yours standing in territory that follows your religion to full health. A city may say it once every five turns. | Military |
 | **The Peace of God** | uncommon | implemented | The city building your Magnum Opus cannot be pressed by rival religions, and gains +2 strength for each city that follows your religion, at most +30. | Military |

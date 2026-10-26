@@ -555,6 +555,11 @@ describe("the clock as a register", () => {
     // reroll, an offer rider may be counted, an Order may hand over a great
     // person when it is drafted, and three Magisterial cards are dealt. So a
     // v186 log's Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(187);
+    // 188 since Devotion batch DV7 (the holy sites, the Opus and the
+    // authority capstone): a card may set the price of an act of the clergy,
+    // an apostle may raise a holy site, a rival's town that follows a
+    // religion may stop its Opus, and four Devotion cards are dealt. So a
+    // v187 log's Devotion hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(188);
   });
 });

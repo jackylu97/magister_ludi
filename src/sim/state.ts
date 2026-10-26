@@ -2791,8 +2791,33 @@ import {
  * **A v186 save is refused and does not replay.** A Magisterial seat's pools
  * hold more cards. The branch migrates nothing, for the reason given under
  * v119.
+ *
+ * v188 (branch `decks`; Devotion batch DV7, `docs/plans/devotion-themes-
+ * triage.md`): **the holy sites, the Opus and the authority capstone.** No
+ * field joins the state. The rules that change:
+ *
+ *   · `chargeCostOf` takes the empire, and one action rule is new:
+ *     `chargePrice`, which sets the price of one act of the clergy in
+ *     charges (`CardRuleEffect.verb` and `value`). Every reader of a price
+ *     asks it of the empire: the refusal (`agentProblem`), the spending
+ *     (`spendCharge`), the words (`chargeCostWords`), the unit sheet and the
+ *     city panel (the triage's reading 27);
+ *   · one action rule is new: `apostlesPlantHolySites`. Under it an apostle
+ *     may raise a further holy site, as a prophet does, for an empire that
+ *     has founded a religion, at the planting price (reading 28);
+ *   · one behaviour rule is new: `opusInterdict`, read by `explainOpusGate`
+ *     after the siege. A rival's town that follows a religion the holder is
+ *     paid by makes no production while it builds the Magnum Opus (reading
+ *     29);
+ *   · three Devotion cards are new and dealt: The Anchorites (Tier II), and
+ *     The Caliphate and The Abbeys (Tier III). The Interdict (Tier IV) leaves
+ *     `deferred` and is dealt.
+ *
+ * **A v187 save is refused and does not replay.** A Devotion seat's pools
+ * hold more cards. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 187;
+export const SCHEMA_VERSION = 188;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

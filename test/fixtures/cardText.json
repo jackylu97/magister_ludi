@@ -6797,9 +6797,8 @@
   ],
   "theInterdict": [
    {
-    "raw": "a rival's town that follows your religion stops adding production to its Magnum Opus — not built yet",
-    "text": "a rival's town that follows your religion stops adding production to its Magnum Opus — not built yet",
-    "deferred": true
+    "raw": "a rival city that follows your religion adds no production toward a Magnum Opus",
+    "text": "a rival city that follows your religion adds no production toward a Magnum Opus"
    }
   ],
   "thePeaceOfGod": [
@@ -6996,6 +6995,24 @@
    {
     "raw": "a foreign city turning to your religion for the first time grants culture equal to 20 times its population",
     "text": "a foreign city turning to your religion for the first time grants culture equal to 20 times its population"
+   }
+  ],
+  "theAnchorites": [
+   {
+    "raw": "raising a further holy site costs 1 charge",
+    "text": "raising a further holy site costs 1 charge"
+   }
+  ],
+  "theCaliphate": [
+   {
+    "raw": "the authority a devout city costs is 0",
+    "text": "the authority a devout city costs is 0"
+   }
+  ],
+  "theAbbeys": [
+   {
+    "raw": "your apostles may raise a further holy site, as your prophets do, once you have founded a religion",
+    "text": "your apostles may raise a further holy site, as your prophets do, once you have founded a religion"
    }
   ],
   "theMonasticTable": [

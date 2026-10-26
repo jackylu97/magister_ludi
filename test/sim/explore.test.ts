@@ -1118,10 +1118,20 @@ describe('determinism', () => {
    * great person is handed over. Checked with the change in place and the
    * version printed as 186, which gives the hashes of Devotion batch DV6
    * exactly.
+   *
+   * **Devotion batch DV7 (the holy sites, the Opus and the authority
+   * capstone, schema 188) moved the hash and not the length** at both seeds:
+   * 187 became 188, and that is all. The batch makes the price of an act of
+   * the clergy a question asked of the empire, lets an apostle raise a holy
+   * site under a card, adds a second question to the gate on the Opus, and
+   * adds three card rows and deals a fourth. Nobody here founds a religion,
+   * buys a prophet or drafts, so no price is asked, no site is raised and no
+   * town builds the Opus. Checked with the change in place and the version
+   * printed as 187, which gives the hashes of Magisterial batch MG6 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '10cd3499:188976',
-    2026: 'b9303148:188554',
+    11: 'feb458dc:188976',
+    2026: 'a2350ad5:188554',
   };
 
   for (const seed of [11, 2026]) {

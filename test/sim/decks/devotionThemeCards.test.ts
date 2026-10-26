@@ -340,12 +340,14 @@ describe('Devotion batch DV1: tiers, retirements and moves', () => {
     for (const [id, band] of Object.entries(bands)) expect(orderDef(id as OrderId).band, id).toBe(band);
   });
 
-  it('gives The Interdict its new text, and deals it to nobody', () => {
+  it('gives The Interdict its new text', () => {
     const def = orderDef('theInterdict' as OrderId);
     expect(def.text).toBe("A rival's town that follows your religion adds no production toward a Magnum Opus.");
     expect([def.band, def.rarity]).toEqual([4, 'rare']);
-    expect(def.effects).toEqual([]);
-    expect(orderIsDealt('theInterdict' as OrderId)).toBe(false);
+    // Batch DV7 built it: one rule, read at the Opus gate, and it is dealt.
+    // `devotionHolySites.test.ts` plays it.
+    expect(def.effects).toEqual([{ kind: 'rule', rule: 'opusInterdict' }]);
+    expect(orderIsDealt('theInterdict' as OrderId)).toBe(true);
     // Player prose with no figure and no identifier in it (rule 7).
     for (const sentence of [...(def.deferred ?? []), def.note ?? '']) {
       expect(sentence).not.toMatch(/[0-9]/);

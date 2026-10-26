@@ -46,7 +46,10 @@ record and is sync-tested against the data.
 | `proclaim` | 1 |
 | `empireRite` | 1 |
 
-- Read in ONE place: `chargeCostOf(verb)` (`religion.ts`). Spent in ONE:
+- Read in ONE place: `chargeCostOf(state, playerId, verb)` (`religion.ts`). It
+  takes the empire because a card may set an act's price for its holder (the
+  `chargePrice` rule, Devotion batch DV7: under The Anchorites a further holy
+  site costs one charge). Spent in ONE:
   `spendCharge(state, unit, verb)` — which removes the piece when the act empties
   it and takes its day (`movesLeft = 0`) when it does not. There is no
   `spendProphet` any more: the split between "spends the piece" and "spends a
@@ -59,11 +62,15 @@ record and is sync-tested against the data.
   price with none, the later planting's with one. The founding refusals are
   asked on the founding arm only. Both are live figures.
 - The apostle (2 charges) and the inquisitor (1) are unchanged: their acts are
-  one charge each, by construction rather than by a data row.
+  one charge each, by construction rather than by a data row. Under The Abbeys
+  (Devotion batch DV7, the `apostlesPlantHolySites` rule) an apostle may also
+  raise a further holy site, for an empire that has founded a religion, and it
+  pays the planting price, as a prophet does.
 - So a prophet either founds a faith **or** draws a belief and is spent, or it
   proclaims / says a rite **twice**.
-- Printed by ONE formatter, `chargeCostWords(verb)` → "2 charges" / "1 charge",
-  on the unit sheet's rows and on the city panel's card for a clergy row. The
+- Printed by ONE formatter, `chargeCostWords(state, playerId, verb)` → "2
+  charges" / "1 charge", on the unit sheet's rows and on the city panel's card
+  for a clergy row. The
   Compendium's religion shelf says the rule in words and carries no figures.
 
 ## Rites (schema 74)

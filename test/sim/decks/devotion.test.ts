@@ -6,7 +6,7 @@
  *
  *   · the shelf's shape: every live row folds under its own deck with the band
  *     and rarity the sheet's tier tables give it, the cut rows are retired and
- *     dealt by nobody, and the one deferred row says why in a player's words;
+ *     dealt by nobody, and no row is deferred (since batch DV7);
  *   · every live row's effects are kinds the vocabulary holds and print through
  *     the describers;
  *   · the age gate: no row of Tier 0 or Tier I names or reads a prophet, a
@@ -121,6 +121,8 @@ const KINDS_USED = [
   'windfallRider',
   // Batch DV3: The Offering Chests.
   'purchaseRider',
+  // Batch DV7: The Caliphate.
+  'meterRule',
 ] as const satisfies readonly CardEffectKind[];
 
 const RARITIES: readonly OrderRarity[] = ['common', 'uncommon', 'rare'];
@@ -204,18 +206,19 @@ function linesOf(state: GameState, city: City, card: string) {
 // --- the shelf ---------------------------------------------------------------
 
 describe('the Devotion deck folds', () => {
-  it('carries 90 rows: 60 live, 1 deferred and 29 retired', () => {
+  it('carries 93 rows: 64 live, none deferred and 29 retired', () => {
     // Batch DV1: 77 rows before, less the six that moved to common.json. Four
     // rows retired, three live and one deferred. Batch DV2 added seven live
     // rows, batch DV3 four more, batch DV4 three more, batch DV5 three more,
-    // and batch DV6 two more.
-    expect(DEVOTION).toHaveLength(90);
-    expect(LIVE).toHaveLength(60);
-    expect(DEFERRED).toHaveLength(1);
+    // and batch DV6 two more. Batch DV7 added three more and dealt The
+    // Interdict, the last deferred row.
+    expect(DEVOTION).toHaveLength(93);
+    expect(LIVE).toHaveLength(64);
+    expect(DEFERRED).toHaveLength(0);
     expect(RETIRED).toHaveLength(29);
   });
 
-  it('spreads its 61 standing rows across Tiers 0 to IV as 8, 7, 20, 13 and 13', () => {
+  it('spreads its 64 standing rows across Tiers 0 to IV as 8, 7, 21, 15 and 13', () => {
     // Batch DV1 moved The Second Prophet, The Living Hymnal and The Mission
     // from Tier I to Tier II, and The Conversion of Kings and The Pious Masons
     // from Tier IV to Tier III. Batch DV2 added three rows at Tier II, three
@@ -223,10 +226,12 @@ describe('the Devotion deck folds', () => {
     // Tiers 0 to III. Batch DV4 added The Rogations (Tier 0), the charter The
     // Sabbath Laws (Tier II) and The Psalter (Tier III). Batch DV5 added The
     // Parishes, Commission: The State Church and The Confessors (Tier II).
-    // Batch DV6 added Pentecost and The Mass Baptisms (Tier III).
-    expect(STANDING).toHaveLength(61);
+    // Batch DV6 added Pentecost and The Mass Baptisms (Tier III). Batch DV7
+    // added The Anchorites (Tier II), and The Caliphate and The Abbeys (Tier
+    // III).
+    expect(STANDING).toHaveLength(64);
     const perBand = BANDS.map((band) => STANDING.filter((id) => orderDef(id).band === band).length);
-    expect(perBand).toEqual([8, 7, 20, 13, 13]);
+    expect(perBand).toEqual([8, 7, 21, 15, 13]);
   });
 
   it('names its own deck on every row, with a band and a rarity', () => {
@@ -311,9 +316,10 @@ describe('the live rows', () => {
 });
 
 describe('the deferred rows', () => {
-  it('are The Interdict alone, saying why', () => {
+  it('are none: The Interdict, the last, is dealt since batch DV7', () => {
     // Consecrated Ground retired in batch DV1.
-    expect([...DEFERRED].sort()).toEqual(['theInterdict']);
+    expect([...DEFERRED].sort()).toEqual([]);
+    expect(orderIsDealt('theInterdict' as OrderId)).toBe(true);
     for (const id of DEFERRED) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);
@@ -923,8 +929,8 @@ describe('the Devotion deck: the sheet of record', () => {
     expect(shared).toHaveLength(29);
   });
 
-  it('types every listed row, 61 of this file and 29 shared, and nothing else of this file', () => {
-    expect(LISTED).toHaveLength(61);
+  it('types every listed row, 64 of this file and 29 shared, and nothing else of this file', () => {
+    expect(LISTED).toHaveLength(64);
     for (const id of DEVOTION) {
       const def = orderDef(id);
       if (def.retired === true) expect(def.type, id).toBeUndefined();

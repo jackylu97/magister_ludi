@@ -159,6 +159,10 @@ import {
 import { effectsGrantAbility } from './statecraft/evaluator';
 // Expansionist batch E12: what a town holds, a card's grants included.
 import { townHoldsBuilding, townShelf } from './statecraft/evaluator';
+// Devotion batch DV7: a card's price on an act of the clergy (The Anchorites),
+// asked by `chargeCostOf` alone. Straight from the evaluator, for the reason
+// above.
+import { cardChargePrice } from './statecraft/evaluator';
 import { hasAbility, hasTech, settleResearchWindfall } from './tech';
 import { type TechId, eraNumeral, highestAge, techDef } from './techData';
 import type { BuildingId } from './buildingData';
@@ -2637,7 +2641,7 @@ function agentProblem(
   if (!is(unit)) return `A ${unitDef(unit.type).name} is no ${noun}`;
   const left = unit.chargesLeft ?? 0;
   if (left < 1) return `That ${noun} has nothing left to give`;
-  if (left < chargeCostOf(verb)) return tooFewCharges(noun, left, verb);
+  if (left < chargeCostOf(state, playerId, verb)) return tooFewCharges(noun, left, verb);
   if (unit.movesLeft <= 0) return `Unit ${unit.id} has no movement left`;
   if (player.pantheon.pending !== undefined) {
     return `${player.name} still has a belief waiting to be chosen`;
@@ -2690,7 +2694,7 @@ export type ProphetVerbName =
 export type ChargeVerbName = ProphetVerbName | 'healAdjacent' | 'placeRelic' | 'purge';
 
 /**
- * What one act costs the piece performing it — **the one read of
+ * What one act costs this empire's piece — **the one read of
  * `rules.religion.prophetCosts`**.
  *
  * Everything that has an opinion about a charge asks this: the reducer before it
@@ -2698,10 +2702,19 @@ export type ChargeVerbName = ProphetVerbName | 'healAdjacent' | 'placeRelic' | '
  * price, and the bots planning a piece they have not bought yet. So the sentence
  * a player is refused with and the arithmetic that refused them cannot drift.
  *
+ * **It takes the empire** (Devotion batch DV7, the triage's reading 27),
+ * because a card may set the price of an act: The Anchorites makes a further
+ * holy site cost one charge. A price a card sets (`cardChargePrice`) replaces
+ * the book's, so every reader of a price sees the card through this one
+ * function. A prophet and an apostle of one empire pay the same price for the
+ * same act, which is what The Abbeys asks of an apostle that plants.
+ *
  * The three small deeds are one charge and say so here rather than in the data,
  * for `ChargeVerbName`'s stated reason.
  */
-export function chargeCostOf(verb: ChargeVerbName): number {
+export function chargeCostOf(state: GameState, playerId: number, verb: ChargeVerbName): number {
+  const set = cardChargePrice(state, playerId, verb);
+  if (set !== null) return set;
   const costs = RULES.religion.prophetCosts;
   switch (verb) {
     case 'foundReligion':
@@ -2725,15 +2738,18 @@ export function chargeCostOf(verb: ChargeVerbName): number {
 }
 
 /**
- * What that act costs, in the words every surface prints — "2 charges".
+ * What that act costs this empire, in the words every surface prints — "2
+ * charges".
  *
  * One formatter, so the city panel's card, the unit sheet's row and the hover
  * card beside it all say it the same way. Digits, because this is a price on a
  * row rather than a sentence about the rules (hard rule 7's line): the *prose*
  * that explains the ladder is the Compendium's and carries no numbers at all.
+ * It takes the empire for `chargeCostOf`'s reason, so a price a card sets is
+ * the price the row prints.
  */
-export function chargeCostWords(verb: ChargeVerbName): string {
-  const cost = chargeCostOf(verb);
+export function chargeCostWords(state: GameState, playerId: number, verb: ChargeVerbName): string {
+  const cost = chargeCostOf(state, playerId, verb);
   return `${cost} ${cost === 1 ? 'charge' : 'charges'}`;
 }
 
@@ -2776,7 +2792,8 @@ export function plantingCost(state: GameState, playerId: number): ProphetVerbNam
  * refused upstream, in that verb's own `…Error` (`agentProblem`).
  */
 function spendCharge(state: GameState, unit: Unit, verb: ChargeVerbName): boolean {
-  const left = (unit.chargesLeft ?? 0) - chargeCostOf(verb);
+  // The piece's owner pays the price its own cards set (Devotion batch DV7).
+  const left = (unit.chargesLeft ?? 0) - chargeCostOf(state, unit.ownerId, verb);
   if (left <= 0) {
     removeUnit(state, unit.id);
     return true;
@@ -2842,6 +2859,14 @@ function chargesInWords(count: number): string {
  * a mountain. A hex that already carries one is refused there too, in that
  * function's own sentence — there is no clause for it here, because "two
  * improvements never stand on one hex" is a rule about the ground.
+ *
+ * **An apostle may plant too, under The Abbeys** (Devotion batch DV7, the
+ * triage's reading 28). While the empire holds the rule
+ * (`apostlesRaiseHolySites`), an apostle is asked the apostle's questions in
+ * place of the prophet's, and pays what a prophet pays for the act
+ * (`chargeCostOf`). It raises only a further site: an empire with no religion
+ * is refused, so an apostle never founds one. Every other piece is still asked
+ * the prophet's questions, so its refusal says it is no prophet.
  */
 export function plantHolySiteError(
   state: GameState,
@@ -2849,13 +2874,25 @@ export function plantHolySiteError(
   unitId: number,
 ): string | null {
   const verb = plantingCost(state, playerId);
-  const problem = prophetProblem(state, playerId, unitId, verb);
-  if (problem !== null) return problem;
-  if (verb === 'foundReligion') {
-    const cannot = foundReligionError(state, playerId);
-    if (cannot !== null) return cannot;
+  const piece = unitById(state, unitId);
+  const byApostle =
+    piece !== undefined && isApostle(piece) && apostlesRaiseHolySites(state, playerId);
+  if (byApostle) {
+    // The founding is refused first, so an apostle short of a founding's
+    // charges is not told it cannot found a faith for want of charges.
+    if (verb === 'foundReligion') return 'An apostle can raise a holy site only for a religion you have founded';
+    const problem = apostleProblem(state, playerId, unitId, verb);
+    if (problem !== null) return problem;
+  } else {
+    const problem = prophetProblem(state, playerId, unitId, verb);
+    if (problem !== null) return problem;
+    if (verb === 'foundReligion') {
+      const cannot = foundReligionError(state, playerId);
+      if (cannot !== null) return cannot;
+    }
   }
-  const unit = unitById(state, unitId)!;
+  // Both sets of questions refuse a piece that does not exist.
+  const unit = piece!;
   const tile = getTileAt(state.map, unit.col, unit.row);
   if (!tile) return `Unit ${unit.id} is not on the map`;
   // The one case worth a sentence of its own: a bought prophet spawns on the
@@ -2864,10 +2901,26 @@ export function plantHolySiteError(
   // the fix wants (user, 2026-08-28: "I have my first prophet and I can't
   // create a religion with it"). Named before the ground gate is asked, plain
   // voice, no digits — everything else still gets the reducer's own sentence.
+  // An apostle is bought in a town too, so it is told the same thing in its
+  // own word.
   if (cityAt(state, tile.col, tile.row)) {
-    return 'Move the prophet off the city centre to plant a holy site';
+    return `Move the ${byApostle ? 'apostle' : 'prophet'} off the city centre to plant a holy site`;
   }
   return improvementErrorAt(state, unit.ownerId, tile, HOLY_SITE);
+}
+
+/**
+ * **May this empire's apostles raise a further holy site?** The Abbeys'
+ * question (Devotion batch DV7, the `apostlesPlantHolySites` rule; the
+ * triage's reading 28).
+ *
+ * Exported so that the unit sheet shows the row to an apostle only while the
+ * rule holds, from the same answer `plantHolySiteError` reads. Whether the
+ * empire has a religion to raise the site for is the gate's question, not
+ * this one's: the sheet shows the row greyed with the gate's sentence.
+ */
+export function apostlesRaiseHolySites(state: GameState, playerId: number): boolean {
+  return cardActionRule(state, playerId, 'apostlesPlantHolySites');
 }
 
 /** The improvement a prophet plants, read off the table's own inverse. */
@@ -2892,10 +2945,12 @@ export interface HolySitePlanting {
   col: number;
   row: number;
   /**
-   * True when the prophet was spent — always, in practice: either planting costs
-   * both of a prophet's charges (`rules.religion.prophetCosts`) and a prophet
-   * that had already spoken once was refused the act. It is the act's own report
-   * rather than a constant, so the day the table says otherwise this says so.
+   * True when the piece that planted was spent. A founding costs both of a
+   * prophet's charges (`rules.religion.prophetCosts`), so it always is. A
+   * further site may cost less (The Anchorites, Devotion batch DV7), and then
+   * a prophet, or an apostle under The Abbeys, with a charge left keeps
+   * standing. It is the act's own report rather than a constant for that
+   * reason.
    */
   prophetSpent: boolean;
 }
@@ -2927,10 +2982,12 @@ export interface HolySitePlanting {
  *      offered one belief is not owed two. **Steps 3 and 4 are the founding's
  *      alone**: a later planting draws nothing, spends no generator, and so
  *      raises no offer card and no End Turn blocker.
- *   5. **the prophet's charges**, which for either planting is both of them
- *      (`prophetCosts`, the ruling of 2026-09-10) — so there is no day left to
- *      spend because there is no prophet left to spend it. Through `spendCharge`
- *      like every other act: the price is a figure, not a routine.
+ *   5. **the piece's charges**, the planting's price (`chargeCostOf`). For a
+ *      founding that is both of a prophet's charges (`prophetCosts`, the
+ *      ruling of 2026-09-10). A further site may cost less under The
+ *      Anchorites, and the piece that raised it may be an apostle under The
+ *      Abbeys (Devotion batch DV7). Through `spendCharge` like every other
+ *      act: the price is a figure, not a routine.
  *
  * **The stones are the seat of the faith, and only the first stones are.** The
  * `??=` is what says so, and it is load-bearing now that a second planting

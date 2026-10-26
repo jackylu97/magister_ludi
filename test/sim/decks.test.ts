@@ -614,8 +614,11 @@ describe('the schema, as landed', () => {
     // **And Magisterial batch MG6** (the hand): three more. The Wandering
     // Muse, Officials by Merit and The Hall of Wonders are new Magisterial
     // rows.
-    expect(live).toBe(587);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(587);
+    // **And Devotion batch DV7** (the holy sites, the Opus and the authority
+    // capstone): four more. The Anchorites, The Caliphate and The Abbeys are
+    // new Devotion rows, and The Interdict left `deferred`.
+    expect(live).toBe(591);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(591);
   });
 
   /**
@@ -995,7 +998,12 @@ describe('the schema, as landed', () => {
     // reroll, an offer rider may be counted, an Order may hand over a great
     // person when it is drafted, and three Magisterial cards are dealt. So a
     // v186 log's Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(187);
+    // 188 since Devotion batch DV7 (the holy sites, the Opus and the
+    // authority capstone): a card may set the price of an act of the clergy,
+    // an apostle may raise a holy site, a rival's town that follows a
+    // religion may stop its Opus, and four Devotion cards are dealt. So a
+    // v187 log's Devotion hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(188);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1257,9 +1265,10 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // **Devotion batch DV2** freed the shared The Monastery Libraries (− 1).
       // **Magisterial batch MG3** freed The Golden Age and The Magister's
       // Court (− 2).
+      // **Devotion batch DV7** freed The Interdict (− 1).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(8);
+      ).toHaveLength(7);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(270);
     }
   });

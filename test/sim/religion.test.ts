@@ -3645,16 +3645,19 @@ describe("the prophet’s price ladder", () => {
       empireRite: 1,
     });
     // And the one reader every surface asks — the reducer, the sheet, the bots.
-    expect(chargeCostOf("foundReligion")).toBe(2);
-    expect(chargeCostOf("plantHolySite")).toBe(2);
-    expect(chargeCostOf("gainBelief")).toBe(2);
-    expect(chargeCostOf("proclaim")).toBe(1);
-    expect(chargeCostOf("empireRite")).toBe(1);
+    // It takes the empire since Devotion batch DV7, because a card may set a
+    // price; a seat with no such card reads the table.
+    const { state } = game();
+    expect(chargeCostOf(state, 0, "foundReligion")).toBe(2);
+    expect(chargeCostOf(state, 0, "plantHolySite")).toBe(2);
+    expect(chargeCostOf(state, 0, "gainBelief")).toBe(2);
+    expect(chargeCostOf(state, 0, "proclaim")).toBe(1);
+    expect(chargeCostOf(state, 0, "empireRite")).toBe(1);
     // The small preachers' acts are one charge apiece by construction, and say
     // so in the function rather than in a data row nobody may turn alone.
-    expect(chargeCostOf("healAdjacent")).toBe(1);
-    expect(chargeCostOf("placeRelic")).toBe(1);
-    expect(chargeCostOf("purge")).toBe(1);
+    expect(chargeCostOf(state, 0, "healAdjacent")).toBe(1);
+    expect(chargeCostOf(state, 0, "placeRelic")).toBe(1);
+    expect(chargeCostOf(state, 0, "purge")).toBe(1);
     // **One read of the table**, so a second opinion about a charge cannot
     // exist. `spendProphet` is gone with the split it stated.
     const source = simSource("religion.ts");

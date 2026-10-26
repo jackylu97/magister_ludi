@@ -3656,6 +3656,13 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // batch DV9 prices it. Sight is worth what it shows, and this bot keeps
       // no price for a hex seen.
       if (effect.rule === 'followersShareSight') return ctx.ai.score.unknownEffect;
+      // **The Anchorites' price, The Abbeys' planting and The Interdict**
+      // (Devotion batch DV7) are stand-ins until batch DV9 prices them: the
+      // charge saved on a further holy site, the apostle's new act, and a
+      // rival's Opus held in a town that follows this seat's religion.
+      if (effect.rule === 'chargePrice') return ctx.ai.score.unknownEffect;
+      if (effect.rule === 'apostlesPlantHolySites') return ctx.ai.score.unknownEffect;
+      if (effect.rule === 'opusInterdict') return ctx.ai.score.unknownEffect;
       // **Officials by Merit's refusal** (Magisterial batch MG6) costs this bot
       // nothing: it rerolls only a free belief hand (`beliefRedeal`), never an
       // Order hand. The stand-in until batch MG17 prices the card.

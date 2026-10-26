@@ -167,6 +167,10 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
     const row = docRows().find((cells) => cells[1] === '13');
     expect(row, 'the doc has no step 13').toBeDefined();
     expect(row![2]).toContain('`explainOpusGate`');
+    // Devotion batch DV7: the gate's second question, The Interdict, is in
+    // the step's Reads cell beside the siege.
+    expect(row![3]).toContain('`opusSiege`');
+    expect(row![3]).toContain('`opusInterdict`');
     const fold = body(YIELDS, 'foldCity');
     const stages = fold.indexOf('applyStages(');
     const unrest = fold.indexOf('explainUnrestGate(');
@@ -228,6 +232,8 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
     // step: the one that stops a voice and the one that pays one.
     const register = section('## The register — every kind that pays a yield');
     expect(register).toContain('`opusSiege`');
+    // Devotion batch DV7: The Interdict stops the same voice at the same gate.
+    expect(register).toContain('`opusInterdict`');
     expect(register).toContain('`homeRoutesPayOrigin`');
     expect(register).toMatch(/pays a voice, and it pays at step 6/);
   });

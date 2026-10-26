@@ -404,6 +404,8 @@ The first eleven come from section 12, from R1 and from section 11. The rest are
 - **Schema:** one bump.
 - **Done-gate:** `npx vitest run test/sim/decks/devotionHolySites.test.ts test/sim/religion.test.ts test/ui/religionV2.test.ts test/ui/unitPanel.test.ts test/ui/controls.test.ts test/sim/yieldsDocSync.test.ts test/sim/aiBot.test.ts test/sim/decks.test.ts test/sim/statecraft.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/state.test.ts`.
 
+- **Built (2026-10-26):** as planned. The gate passed: the type check, 9,772 core tests and the build. Schema 188. New rules `chargePrice` (with `verb` and `value`), `apostlesPlantHolySites` and `opusInterdict`. `chargeCostOf` and `chargeCostWords` take the empire; it is still the one read of `prophetCosts`. `explainOpusGate` asks the siege, then the interdict, and returns one line (`docs/yields.md` step 13 and its register). The unit sheet shows the apostle's planting row under The Abbeys. `src/ai/bot.ts` had no `chargeCostOf` callers. Readings 45 to 50 (in the batch's report): a card's charge price sets the price and the lowest wins; The Abbeys needs a religion the empire founded; the siege names the line when both hold; the interdict stops a town's production fold only, not faith or gold poured into the Opus. Not done: `CLAUDE.md`'s charges line is stale; the Compendium's prophet text and the followers tab describe only the base rule; the bots do not plant with apostles yet (DV9).
+
 ### DV8: the two largest rule-breakers
 
 - **Builds:**

@@ -106,7 +106,7 @@ import {
 // `cityScopeAdmits` and nowhere at load time, and the alternative — a second
 // walk of `City.timed` here — would be two answers to one question, which is
 // exactly what the one-evaluator rule exists to prevent.
-import { cityRite } from '../religion';
+import { type ChargeVerbName, cityRite } from '../religion';
 // The same edge, one system over: `settleRenownWindfall` is the one place renown
 // is added, called from inside `payWindfallGrants` and never at load time.
 import { settleRenownWindfall } from '../renown';
@@ -10691,6 +10691,56 @@ export function cardOpusSiegeBy(state: GameState, city: City): OpusSiege | null 
     return { playerId: player.id, card: row.card, source: row.source };
   }
   return null;
+}
+
+/** The scope a town answers when asked whether it follows a reader's religion. */
+const FOLLOWS_READERS_RELIGION: CityScope = { test: 'follows' };
+
+/**
+ * **Which rival stops this town's work on a Magnum Opus by its faith**
+ * (Devotion batch DV7, The Interdict: the `opusInterdict` rule, the triage's
+ * reading 29), or `null`.
+ *
+ * The first empire in `realPlayers` order that:
+ *
+ *   · is not the town's owner;
+ *   · holds the rule in its law;
+ *   · is paid by the religion the town follows (the `follows` scope, with
+ *     that empire as the reader, which is how The Confessors asks it).
+ *
+ * The first of that empire's rows names the line, as `cardOpusSiegeBy` does.
+ * This does not ask what the town builds: `explainOpusGate` asks that first.
+ */
+export function cardOpusInterdictBy(state: GameState, city: City): OpusSiege | null {
+  for (const player of realPlayers(state)) {
+    if (player.id === city.ownerId) continue;
+    const row = effectsOfKind(state, player.id, 'rule').find(({ effect }) => effect.rule === 'opusInterdict');
+    if (row === undefined) continue;
+    if (!cityScopeAdmits(state, city, FOLLOWS_READERS_RELIGION, player.id)) continue;
+    return { playerId: player.id, card: row.card, source: row.source };
+  }
+  return null;
+}
+
+/**
+ * **The price this empire's cards set on one act of the clergy, in charges**
+ * (Devotion batch DV7, The Anchorites: the `chargePrice` rule, the triage's
+ * reading 27), or `null` when no live row prices the act.
+ *
+ * A row prices an act when its `verb` names it and it carries a `value`. With
+ * two rows for one act, the lower price applies, because a price is one
+ * figure and two cards do not lower it twice. The price is floored and never
+ * below nought. Read in one place, `chargeCostOf` (`religion.ts`), which falls
+ * back to `rules.religion.prophetCosts` when this answers `null`.
+ */
+export function cardChargePrice(state: GameState, playerId: number, verb: ChargeVerbName): number | null {
+  let price: number | null = null;
+  for (const { effect } of effectsOfKind(state, playerId, 'rule')) {
+    if (effect.rule !== 'chargePrice' || effect.verb !== verb || effect.value === undefined) continue;
+    const set = Math.max(0, Math.floor(effect.value));
+    price = price === null ? set : Math.min(price, set);
+  }
+  return price;
 }
 
 /** Does a combat unit of this empire stand on one of the six hexes around this one? */

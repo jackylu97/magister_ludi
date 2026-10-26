@@ -77,6 +77,9 @@ import type { LeaderAbilityId, LeaderId } from './leaderData';
 import type { ModifierStage } from './yields/stages';
 import type { ProjectId, ProjectPayout } from './projectData';
 import type { BeliefId, ConsecrationId, RiteId } from './religionData';
+// Type-only, so no load-time edge: a card that prices an act of the clergy
+// names the act in the words `chargeCostOf` reads (Devotion batch DV7).
+import type { ChargeVerbName } from './religion';
 import type { CityYieldKey, ResourceId, ResourceKind } from './resourceData';
 // Type-only: a rank is named on a card the way the rule book names it.
 import type { HexMarkId, RankId } from './rulesData';
@@ -4461,7 +4464,27 @@ export type ActionRuleId =
    * still be rerolled. The card's other half, two more cards in each Order
    * hand, is an ordinary `offerRider`, and the cap on a hand still holds.
    */
-  | 'noOrderReroll';
+  | 'noOrderReroll'
+  /**
+   * **A card sets the price of one act of the clergy, in charges** (Devotion
+   * batch DV7, The Anchorites: a further holy site costs one charge; the
+   * triage's reading 27). The row's `verb` names the act and its `value` is
+   * the price. Read in one place, `chargeCostOf` (`religion.ts`), through
+   * `cardChargePrice`, so every reader of a price sees it: the refusal, the
+   * spending, the unit sheet and the bots. With two rows for one act, the
+   * lower price applies. A row with no verb or no value changes nothing.
+   */
+  | 'chargePrice'
+  /**
+   * **This empire's apostles may raise a further holy site, as its prophets
+   * do** (Devotion batch DV7, The Abbeys; the triage's reading 28). Read in
+   * `plantHolySiteError` (`religion.ts`) through `apostlesRaiseHolySites`.
+   * Only for an empire that has founded a religion, so an apostle never
+   * founds one. The apostle pays the planting price in charges
+   * (`chargeCostOf`). The unit sheet shows the row to an apostle while the
+   * rule holds.
+   */
+  | 'apostlesPlantHolySites';
 
 /**
  * Something about the world that stops being true — or starts.
@@ -4853,7 +4876,18 @@ export type BehaviorRuleId =
    * (`visibility.ts`), so it takes effect whenever this empire's visibility
    * is recomputed. The empire's own towns are sources already.
    */
-  | 'followersShareSight';
+  | 'followersShareSight'
+  /**
+   * **A rival town that follows this empire's religion adds no production
+   * toward a Magnum Opus** (Devotion batch DV7, The Interdict; the triage's
+   * reading 29). Held by the empire whose religion the town follows, and read
+   * in the rival's town: `explainOpusGate` (`yields/town.ts`) holds the
+   * town's production at nothing while the Opus is what it builds and the
+   * town follows a religion the holder is paid by (`cardOpusInterdictBy`).
+   * The holder's own towns are never stopped. `opusSiege`'s sibling, at the
+   * same gate of step 13 of `docs/yields.md`.
+   */
+  | 'opusInterdict';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId =
@@ -8227,6 +8261,20 @@ export interface CardRuleEffect {
    * every other member.
    */
   buildingCategory?: BuildingCategory;
+  /**
+   * **Which act of the clergy the rule prices** (Devotion batch DV7, The
+   * Anchorites: `plantHolySite`, a further holy site). Read only by
+   * `chargePrice`, through `cardChargePrice`, beside `value`. Meaningless on
+   * every other member.
+   */
+  verb?: ChargeVerbName;
+  /**
+   * **The price the rule sets, in charges** (Devotion batch DV7, The
+   * Anchorites). Read only by `chargePrice`, for the act `verb` names. It
+   * replaces the price in `rules.religion.prophetCosts` for this empire. A
+   * row with no value changes nothing. Meaningless on every other member.
+   */
+  value?: number;
 }
 
 /**

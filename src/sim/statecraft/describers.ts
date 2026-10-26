@@ -94,6 +94,9 @@ import {
 // Type-only: the route's medium, from the leaf that owns the word, so the card
 // face and the gate cannot end up spelling it differently.
 import type { RouteMode } from '../routes';
+// Type-only, so no load-time edge: the acts of the clergy a card may price
+// (Devotion batch DV7, `CHARGE_PRICE_WORDS`).
+import type { ChargeVerbName } from '../religion';
 import { beadGrantDef } from '../beadData';
 import {
   ABILITY_TECH,
@@ -6621,6 +6624,13 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // Officials by Merit (Magisterial batch MG6). Said for the Order hand
   // alone, because the other hands may still be rerolled.
   noOrderReroll: 'you cannot reroll Order hands',
+  // Devotion batch DV7: The Anchorites and The Abbeys. The Anchorites' row
+  // names the act and its price, and `figureRuleWords` says both; this is the
+  // sentence for a row that names neither, which changes nothing. The Abbeys
+  // says the founding half too, because an apostle never founds a religion.
+  chargePrice: 'one act of your religious units costs a different number of charges',
+  apostlesPlantHolySites:
+    'your apostles may raise a further holy site, as your prophets do, once you have founded a religion',
   capitalBuysWithoutLimit: 'your capital may buy as many units in a turn as it can pay for',
   goldBuysWonders: 'you may buy world wonders with gold',
   // Said as the bank that opens, with the price in the same breath: a player who
@@ -6770,6 +6780,26 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // because your own towns already see for you; what the town adds is the
   // plain city sight, so the words promise nothing its owner's cards add.
   followersShareSight: 'every city of another empire that follows your religion shares its sight with you',
+  // Devotion batch DV7, The Interdict (`BehaviorRuleId`). Circumvallation's
+  // sentence with the faith in place of the siege. Your own cities are never
+  // stopped, so "rival" stays.
+  opusInterdict: 'a rival city that follows your religion adds no production toward a Magnum Opus',
+};
+
+/**
+ * **The acts of the clergy, as a price names them** (Devotion batch DV7, The
+ * Anchorites). Read by `figureRuleWords` for a `chargePrice` row. Exhaustive
+ * over the acts, so a new act must say how a card's price on it reads.
+ */
+const CHARGE_PRICE_WORDS: Record<ChargeVerbName, string> = {
+  foundReligion: 'founding a religion',
+  plantHolySite: 'raising a further holy site',
+  gainBelief: 'drawing another belief',
+  proclaim: 'a proclamation',
+  empireRite: 'a rite said over the whole realm',
+  healAdjacent: 'laying on hands',
+  placeRelic: 'leaving a relic',
+  purge: 'a purge',
 };
 
 /**
@@ -6819,6 +6849,13 @@ function figureRuleWords(effect: Extract<CardEffect, { kind: 'rule' }>): string 
         `you may buy with gold until your treasury reaches −${effect.credit}; ` +
         `debt disbands none of your units until your treasury falls below −${effect.credit}`
       );
+    }
+    case 'chargePrice': {
+      // The Anchorites (Devotion batch DV7): the act and its price. A price on
+      // a row, so the figure is printed as a price is on the unit sheet.
+      if (effect.verb === undefined || effect.value === undefined) return null;
+      const value = Math.max(0, Math.floor(effect.value));
+      return `${CHARGE_PRICE_WORDS[effect.verb]} costs ${value} ${value === 1 ? 'charge' : 'charges'}`;
     }
     case 'prototypes': {
       if (effect.percent === undefined) return null;

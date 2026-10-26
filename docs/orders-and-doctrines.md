@@ -605,6 +605,10 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Confessors | 2 | ◆ | S | Towns that follow your religion share their sight with you. |
 | Pentecost | 3 | ○ | S | When a foreign town turns to your religion, your religion presses every town within four hexes of it. |
 | The Mass Baptisms | 3 | ◆ | S | The first time a foreign town turns to your religion, gain science and culture equal to twenty times its population. |
+| The Anchorites | 2 | ◆ | S | Your prophets raise a further holy site for one charge instead of two. |
+| The Caliphate | 3 | ○ | S | Devout towns cost no authority. |
+| The Abbeys | 3 | ○ | S | Your apostles may raise holy sites, as prophets do. |
+| The Interdict | 4 | ○ | S | A rival's town that follows your religion adds no production toward a Magnum Opus. |
 
 ### Scientific
 
@@ -982,6 +986,10 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Confessors** — A foreign town that follows your religion shows you what a town sees, but not what its owner's buildings and cards add. What you see from those towns is updated when one of your units moves and at the end of each turn.
 - **Pentecost** — Each time, it presses as hard as a prophet's proclamation, but cards that change a proclamation do not change it. A town it turns presses the towns around it in turn. Each town counts at most once a turn for each religion, so a chain always ends. If more than one religion pays you, each one presses.
 - **The Mass Baptisms** — A town that turns away and comes back pays only once. Your own towns never count.
+- **The Anchorites** — Founding a religion still costs both of a prophet's charges. Under The Abbeys, an apostle pays the same lower price.
+- **The Caliphate** — A town that stops following your religion costs authority again. While this is seated, the reward of Commission: The State Church has nothing left to do.
+- **The Abbeys** — An apostle can raise a holy site only once you have founded a religion, so it never founds one. It pays what a prophet pays for a further holy site.
+- **The Interdict** — Only a town building the Magnum Opus is stopped, and only while it follows your religion. Your own towns are never stopped.
 - **Common Tools** — † the hammers are for workers and buildings, and for nothing else
 - **Road Crews** — † a worker that wakes on one of your roads travels further that day
 - **Road Maintenance** — † the upkeep of your roads is reduced, up to a limit each turn

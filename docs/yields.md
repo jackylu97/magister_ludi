@@ -153,7 +153,7 @@ moves into culture.
 | 10 | **The conversions** — `cardYieldConversions` | the **running flats** of one voice, paid again as another | multiplicative *within the step*, lands as a flat | — |
 | 11 | **The percent list** — `cityYieldPercents` (+ `productionModifiers` via `foldCityStages`) | the meter tiers, the luxuries', the cards', the arrears | gathered, never applied | city and empire |
 | 12 | **The two stages** — `applyStages` (`foldCity`) | step 11's list, folded per voice by `foldStageSums` | multiplicative | city, then empire |
-| 13 | **The gates** — `explainUnrestGate`, then `explainOpusGate` (`foldCity`) | `City.unrest`: a town in unrest makes none of the voices `rules.war.unrest.halts` names (production, science, culture), one labelled line a voice. Then the siege on the Opus (Circumvallation, Dominion batch D14): a town building a Magnum Opus makes no production while it is under siege (`underSiege`) and a rival whose law holds the `opusSiege` rule has a combat unit beside it, one line that names the rival's card | holds the voice at nothing | — |
+| 13 | **The gates** — `explainUnrestGate`, then `explainOpusGate` (`foldCity`) | `City.unrest`: a town in unrest makes none of the voices `rules.war.unrest.halts` names (production, science, culture), one labelled line a voice. Then the gate on the Opus: a town building a Magnum Opus makes no production while it is under siege (`underSiege`) and a rival whose law holds the `opusSiege` rule has a combat unit beside it (Circumvallation, Dominion batch D14), or while it follows a religion a rival is paid by and that rival's law holds the `opusInterdict` rule (`cardOpusInterdictBy`; The Interdict, Devotion batch DV7). One line that names the rival's card; the siege names it when both hold | holds the voice at nothing | — |
 | 14 | **The surplus moved** — `explainSurplusMoved`, then **the production moved** — `explainProductionMoved` (`foldCity`) | a card that moves the town's food surplus into production while it builds a row the card names (The Laws of Lord Shang, Dominion batch D7), or while its owner has told it to stop growing (The Breadbasket, Expansionist batch E6): the surplus as the growth channel computes it (`channelSurplus`), one labelled line; the food basket gains none of it. A deficit is never moved, and a town whose production a gate of step 13 stops moves nothing. Then the production moved (Devotion batch DV4): while the town keeps a rite that moves its production into culture (the Rite of the Sabbath, `productionMoverFor`), all of its production after the lines above becomes culture, one labelled line, and the basket gains none of it | additive; the surplus moved adds to production, and the production moved takes it all and adds it to culture | — |
 
 ### Inside step 2 — the hex
@@ -320,6 +320,14 @@ banking (Entry XVIII.5).
   nothing into a town this gate has stopped. The rule is a `rule` effect, so
   the kind stays in the register's silent list: it pays no voice, it only
   stops one.
+- **The interdict is the same gate's second question** (Devotion batch DV7,
+  The Interdict). If the siege does not stop the town, the gate asks whether
+  a rival's law holds the `opusInterdict` rule and the town follows a
+  religion that rival is paid by (`cardOpusInterdictBy`, the `follows` scope
+  with the rival as the reader). The first such rival in `realPlayers` order
+  names the line. A town is never stopped by its own owner's card. When the
+  siege and the interdict both hold, the siege names the line, and the gate
+  is still one line, because production is held at nothing once.
 - **The Return Leg's copy is not a route line** (Commerce batch T3). Step 6
   reads it after the routes arriving: for each domestic route leaving the
   town, the route's own list as its destination receives it (the base, every
@@ -391,12 +399,13 @@ Itself) pays the yields of the hexes a unit stands on in enemy territory at the
 end of a turn, through `payWindfallGrants`, as a one-time grant does.
 
 Every other `CardEffect` kind moves no voice at all: it is a rule, a stat, a
-meter, a stamp, an unlock or an offer. One rule stops a voice without paying
-one: `opusSiege` (Circumvallation) is read by the second gate of step 13.
+meter, a stamp, an unlock or an offer. Two rules stop a voice without paying
+one, both read by the second gate of step 13: `opusSiege` (Circumvallation)
+and `opusInterdict` (The Interdict, Devotion batch DV7).
 One rule pays a voice, and it pays at step 6: `homeRoutesPayOrigin` (The
 Return Leg, Commerce batch T3) copies a home route's pay to the town it left
 (`cityReturnLegYields`). The `rule` kind stays in neither list, because what
-a rule pays is decided by its id, and these two ids are pinned by the sync
+a rule pays is decided by its id, and these three ids are pinned by the sync
 test.
 
 ---

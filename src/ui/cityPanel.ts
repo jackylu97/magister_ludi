@@ -217,7 +217,7 @@ import { prefersReducedMotion } from './motion';
 import type { RiteOption } from './controls';
 import { cityRite, cityRiteTurnsLeft, riteGate } from '../sim/religion';
 import { type RiteId, riteDef } from '../sim/religionData';
-import { chargeCostWords } from '../sim/religion';
+import { apostlesRaiseHolySites, chargeCostWords } from '../sim/religion';
 import { createInfoCard } from './infoCard';
 import { setDescriptorText } from './keywords';
 import { yieldElement as element } from './yieldMark';
@@ -1203,16 +1203,31 @@ export function banksInView(shelves: readonly BuildListShelf[]): PurchaseCurrenc
  *
  * Asked of the roster's markers and never of a name, the discipline the whole
  * card keeps (see `unitCard`).
+ *
+ * **The prices are the seat's** (Devotion batch DV7), because a card may set
+ * one. So the card gains a line for a further holy site when its price is not
+ * the founding's (The Anchorites), and an apostle's card gains one while the
+ * seat's apostles may raise a site (The Abbeys).
  */
-function agentChargeNotes(def: UnitDef): string[] {
+function agentChargeNotes(state: GameState, seat: number, def: UnitDef): string[] {
+  const siteCost = chargeCostWords(state, seat, 'plantHolySite');
+  const site = `A further holy site · ${siteCost}`;
   if (def.prophesies === true) {
-    return [
-      `Founding a faith, or drawing a belief · ${chargeCostWords('foundReligion')}`,
-      `A proclamation, or a rite said over the realm · ${chargeCostWords('proclaim')}`,
+    const founding = chargeCostWords(state, seat, 'foundReligion');
+    const lines = [
+      `Founding a faith, or drawing a belief · ${founding}`,
+      `A proclamation, or a rite said over the realm · ${chargeCostWords(state, seat, 'proclaim')}`,
     ];
+    if (siteCost !== founding) lines.push(site);
+    return lines;
   }
-  if (def.proclaims === true || def.purges === true) {
-    return [`Each of its acts · ${chargeCostWords('proclaim')}`];
+  if (def.proclaims === true) {
+    const each = chargeCostWords(state, seat, 'proclaim');
+    if (!apostlesRaiseHolySites(state, seat)) return [`Each of its acts · ${each}`];
+    return [`A proclamation, healing or a relic · ${each}`, site];
+  }
+  if (def.purges === true) {
+    return [`Each of its acts · ${chargeCostWords(state, seat, 'proclaim')}`];
   }
   return [];
 }
@@ -2556,7 +2571,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const notes = element('ul', 'info-card-notes');
     if (def.foundsCity) notes.append(note('Founds a city, and is spent doing it'));
     if (def.charges !== undefined) {
-      const clergy = agentChargeNotes(def);
+      const clergy = agentChargeNotes(state, city.ownerId, def);
       if (clergy.length === 0) {
         notes.append(note(`Builds ${def.charges} improvements, then is spent`));
       } else {

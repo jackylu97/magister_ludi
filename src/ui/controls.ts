@@ -271,6 +271,7 @@ import {
   unitById,
 } from '../sim/state';
 import {
+  apostlesRaiseHolySites,
   availableRites,
   chargeCostWords,
   consecrateError,
@@ -748,6 +749,10 @@ export interface ProphetRiteRow {
  * saying the old thing. There is one formatter now (`chargeCostWords`,
  * `religion.ts`) and this is the whole of the interface's half of it — every row
  * asks what its own verb costs, and nothing here knows a number.
+ *
+ * Every row asks it of the seat (Devotion batch DV7), because a card may set an
+ * act's price: under The Anchorites a further holy site costs one charge, and
+ * the row prints that.
  */
 export { chargeCostWords };
 
@@ -6073,40 +6078,57 @@ export function createGameControls(options: GameControlsOptions): GameControls {
           name: 'Purge',
           blocked: ended ?? purgeError(state, localPlayerId, unit.id),
           says: purgeSays(state, unit.id),
-          cost: chargeCostWords('purge'),
+          cost: chargeCostWords(state, localPlayerId, 'purge'),
         },
       ];
     }
+    const mine = foundedReligion(state, localPlayerId);
+    const faith = mine?.name ?? 'your faith';
     // The apostle's sheet is three rows, and it is this list's for the
     // inquisitor's reason exactly: each is a greyable, blocker-carrying row.
     if (isApostle(unit)) {
-      return [
+      const rows: ProphetRow[] = [
         {
           verb: 'proclaim',
           name: 'Proclaim',
           blocked: ended ?? proclaimError(state, localPlayerId, unit.id),
           says: proclaimSays(state, unit.id),
-          cost: chargeCostWords('proclaim'),
+          cost: chargeCostWords(state, localPlayerId, 'proclaim'),
         },
         {
           verb: 'healAdjacent',
           name: 'Lay on hands',
           blocked: ended ?? healAdjacentError(state, localPlayerId, unit.id),
           says: healSays(state, unit.id),
-          cost: chargeCostWords('healAdjacent'),
+          cost: chargeCostWords(state, localPlayerId, 'healAdjacent'),
         },
         {
           verb: 'placeRelic',
           name: 'Leave a relic',
           blocked: ended ?? placeRelicError(state, localPlayerId, unit.id),
-          says: `${chargeCostWords('placeRelic')}: leave a relic in this city, which pays it faith for ever`,
-          cost: chargeCostWords('placeRelic'),
+          says: `${chargeCostWords(state, localPlayerId, 'placeRelic')}: leave a relic in this city, which pays it faith for ever`,
+          cost: chargeCostWords(state, localPlayerId, 'placeRelic'),
         },
       ];
+      // **A fourth row under The Abbeys** (Devotion batch DV7, the triage's
+      // reading 28): while the seat holds the rule, an apostle raises a
+      // further holy site as a prophet does, at the planting price. The row is
+      // shown only while the rule holds, and greyed with the gate's own
+      // sentence, so a seat with no religion reads why an apostle cannot found
+      // one.
+      if (apostlesRaiseHolySites(state, localPlayerId)) {
+        const site = chargeCostWords(state, localPlayerId, 'plantHolySite');
+        rows.push({
+          verb: 'plantHolySite',
+          name: 'Plant holy site',
+          blocked: ended ?? plantHolySiteError(state, localPlayerId, unit.id),
+          says: `${site}: raise a further holy site here; ${faith} spreads from it as from the first`,
+          cost: site,
+        });
+      }
+      return rows;
     }
     if (!isProphet(unit)) return [];
-    const mine = foundedReligion(state, localPlayerId);
-    const faith = mine?.name ?? 'your faith';
     // **A price a row, because a prophet has two charges and its acts are not
     // worth the same** (the ruling of 2026-09-10): the founding pair take both
     // charges, the voice pair take one each, and every figure here is the
@@ -6118,7 +6140,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // sheet's — so the name, the sentence and the price all move together and
     // the interface holds no opinion about a charge.
     const planting = plantingCost(state, localPlayerId);
-    const founding = chargeCostWords(planting);
+    const founding = chargeCostWords(state, localPlayerId, planting);
     const taught = availableRites(state, localPlayerId);
     return [
       {
@@ -6135,8 +6157,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         verb: 'gainBelief',
         name: 'Draw belief',
         blocked: ended ?? gainBeliefError(state, localPlayerId, unit.id),
-        says: `${chargeCostWords('gainBelief')}: draw another belief for ${faith}`,
-        cost: chargeCostWords('gainBelief'),
+        says: `${chargeCostWords(state, localPlayerId, 'gainBelief')}: draw another belief for ${faith}`,
+        cost: chargeCostWords(state, localPlayerId, 'gainBelief'),
       },
       {
         verb: 'proclaim',
@@ -6148,7 +6170,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // the price it costs is said on the hover card beside it, exactly as a
         // rite's is. See `proclaimSays`.
         says: proclaimSays(state, unit.id),
-        cost: chargeCostWords('proclaim'),
+        cost: chargeCostWords(state, localPlayerId, 'proclaim'),
       },
       {
         verb: 'empireRite',
@@ -6158,8 +6180,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // not been taught is refused on its own sub-row rather than greying the
         // whole verb.
         blocked: ended ?? empireRiteError(state, localPlayerId, unit.id, taught[0] ?? ''),
-        says: `${chargeCostWords('empireRite')}: say one rite over every city you own, for one price`,
-        cost: chargeCostWords('empireRite'),
+        says: `${chargeCostWords(state, localPlayerId, 'empireRite')}: say one rite over every city you own, for one price`,
+        cost: chargeCostWords(state, localPlayerId, 'empireRite'),
         rites: taught.map((id) => ({
           rite: id,
           name: riteDef(id).name,
@@ -6179,7 +6201,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    */
   function healSays(state: GameState, unitId: number): string {
     const preview = healAdjacentPreview(state, unitId);
-    const charge = chargeCostWords('healAdjacent');
+    const charge = chargeCostWords(state, localPlayerId, 'healAdjacent');
     if (!preview) return `${charge}: mends every one of your pieces standing beside it`;
     const mended = preview.units.filter((row) => row.healed > 0).length;
     if (mended === 0) return `${charge}: nothing standing beside it is hurt`;
@@ -6193,7 +6215,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (!preview) return 'Strips every rival faith from the towns around it';
     const towns = preview.cities.length;
     if (towns === 0) {
-      return `${chargeCostWords('purge')}: no town stands within ${preview.range} hexes`;
+      return `${chargeCostWords(state, localPlayerId, 'purge')}: no town stands within ${preview.range} hexes`;
     }
     let turned = 0;
     for (const city of preview.cities) turned += city.unfollowed;
@@ -6201,7 +6223,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       turned === 0
         ? 'empties what every rival faith has banked'
         : `turns ${turned} ${turned === 1 ? 'believer' : 'believers'} away from every rival faith`;
-    return `${chargeCostWords('purge')}: on ${towns} ${towns === 1 ? 'town' : 'towns'} within ${preview.range} hexes, ${said}`;
+    return `${chargeCostWords(state, localPlayerId, 'purge')}: on ${towns} ${towns === 1 ? 'town' : 'towns'} within ${preview.range} hexes, ${said}`;
   }
 
   /**

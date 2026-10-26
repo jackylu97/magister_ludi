@@ -780,7 +780,7 @@ function realmLineFor(
       : ` It replaces the rites your towns are keeping: ${counts
           .map((entry) => `${riteDef(entry.rite).name} in ${entry.towns} ${entry.towns === 1 ? 'town' : 'towns'}`)
           .join(', ')}.`;
-  const says = `A prophet says one rite in every town at once, for ${chargeCostWords('empireRite')} and ${cost} faith paid once.${replaces}`;
+  const says = `A prophet says one rite in every town at once, for ${chargeCostWords(state, seat, 'empireRite')} and ${cost} faith paid once.${replaces}`;
   const prophets = state.units.filter((unit) => unit.ownerId === seat && isProphet(unit));
   if (prophets.length === 0) {
     const type = prophetType();

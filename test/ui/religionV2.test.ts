@@ -322,8 +322,9 @@ describe('the religious agents’ sheet', () => {
   it('asks the seat’s own question in front of every one of them', () => {
     // `chopBlocker`'s split: this client's question first, the act's delegated
     // whole. Four prophet rows plus the empire rite's own sub-rows, the
-    // apostle's three and the inquisitor's one — every row, one `ended ??`.
-    expect(rows.match(/ended \?\?/g) ?? []).toHaveLength(9);
+    // apostle's three, the apostle's planting row under The Abbeys (Devotion
+    // batch DV7) and the inquisitor's one — every row, one `ended ??`.
+    expect(rows.match(/ended \?\?/g) ?? []).toHaveLength(10);
   });
 
   it('is offered only to the two agents, and asked of the markers rather than names', () => {
@@ -340,7 +341,10 @@ describe('the religious agents’ sheet', () => {
     // site for one that has it. Still **one** row and one command — what moves
     // is the name, the sentence and the price, and all three follow
     // `plantingCost` rather than a reading of the state this file does itself.
-    expect((rows.match(/verb: 'plantHolySite'/g) ?? []).length).toBe(1);
+    // The second row is the apostle's under The Abbeys (Devotion batch DV7),
+    // the same command, shown only while the rule holds.
+    expect((rows.match(/verb: 'plantHolySite'/g) ?? []).length).toBe(2);
+    expect(rows).toContain('if (apostlesRaiseHolySites(state, localPlayerId)) {');
     expect(rows).toContain('const planting = plantingCost(state, localPlayerId);');
     expect(rows).toContain("planting === 'foundReligion' ? 'Found religion' : 'Plant holy site'");
     expect(rows).toContain('found your religion here');
@@ -348,7 +352,7 @@ describe('the religious agents’ sheet', () => {
     expect(rows).toContain('spreads from it as from the first');
     // And the price is that same question's answer, so the row can never print
     // one act's charges over the other act's name.
-    expect(rows).toContain('const founding = chargeCostWords(planting);');
+    expect(rows).toContain('const founding = chargeCostWords(state, localPlayerId, planting);');
   });
 
   it('drives the two names off a real board', () => {
@@ -383,20 +387,27 @@ describe('the religious agents’ sheet', () => {
     // The ruling of 2026-09-10 (`docs/flags.md` (bbbb)): a prophet's acts are
     // not worth the same, so the row a player is deciding between has to say
     // which of them takes the piece and which leaves it standing. One formatter
-    // (`chargeCostWords`), and the interface knows no numbers of its own.
-    expect(chargeCostWords('foundReligion')).toBe('2 charges');
-    expect(chargeCostWords('gainBelief')).toBe('2 charges');
-    expect(chargeCostWords('proclaim')).toBe('1 charge');
-    expect(chargeCostWords('empireRite')).toBe('1 charge');
-    expect(chargeCostWords('purge')).toBe('1 charge');
-    // Every row on the sheet prices itself through that one formatter — eight
-    // rows, seven of them asking on the spot and the founding's asked once and
-    // shared with its own sentence. Not one figure is written into the interface.
-    expect((rows.match(/cost: chargeCostWords\('[a-zA-Z]+'\)/g) ?? []).length).toBe(7);
+    // (`chargeCostWords`), and the interface knows no numbers of its own. It
+    // asks the seat since Devotion batch DV7, because a card may set a price.
+    const state = world();
+    expect(chargeCostWords(state, 0, 'foundReligion')).toBe('2 charges');
+    expect(chargeCostWords(state, 0, 'gainBelief')).toBe('2 charges');
+    expect(chargeCostWords(state, 0, 'proclaim')).toBe('1 charge');
+    expect(chargeCostWords(state, 0, 'empireRite')).toBe('1 charge');
+    expect(chargeCostWords(state, 0, 'purge')).toBe('1 charge');
+    // Every row on the sheet prices itself through that one formatter, asked of
+    // the seat — nine rows, seven of them asking on the spot, the founding's
+    // asked once and shared with its own sentence, and the apostle's planting
+    // row the same way. Not one figure is written into the interface.
+    expect(
+      (rows.match(/cost: chargeCostWords\(state, localPlayerId, '[a-zA-Z]+'\)/g) ?? []).length,
+    ).toBe(7);
     expect(rows).toContain('cost: founding,');
+    expect(rows).toContain('cost: site,');
+    expect(rows).toContain("const site = chargeCostWords(state, localPlayerId, 'plantHolySite');");
     // The planting row asks the same formatter, of the verb the board says it
     // is about to send (batch F3) rather than of a written-in key.
-    expect(rows).toContain('const founding = chargeCostWords(planting);');
+    expect(rows).toContain('const founding = chargeCostWords(state, localPlayerId, planting);');
     expect(sourceOf('controls.ts')).not.toContain('AGENT_PRICE_WORD');
     expect(sourceOf('controls.ts')).not.toContain('AGENT_CHARGE_WORD');
     // Driven: the charge counts on the roster are what make the prices spendable.
@@ -409,8 +420,12 @@ describe('the religious agents’ sheet', () => {
     // The card told a player a prophet "builds 2 improvements, then is spent",
     // which was the builder's sentence read off a field the two pieces share.
     const card = fn('cityPanel.ts', 'agentChargeNotes');
-    expect(card).toContain("chargeCostWords('foundReligion')");
-    expect(card).toContain("chargeCostWords('proclaim')");
+    expect(card).toContain("chargeCostWords(state, seat, 'foundReligion')");
+    expect(card).toContain("chargeCostWords(state, seat, 'proclaim')");
+    // Devotion batch DV7: a further holy site gets a line when a card prices
+    // it apart from the founding, or lets an apostle raise one.
+    expect(card).toContain("chargeCostWords(state, seat, 'plantHolySite')");
+    expect(card).toContain('apostlesRaiseHolySites(state, seat)');
     // Off the roster's markers, never off a name — the card's own discipline.
     expect(card).toContain('def.prophesies === true');
     expect(card).toContain('def.proclaims === true');
@@ -419,10 +434,12 @@ describe('the religious agents’ sheet', () => {
     // The card pairs the acts by price in prose; this is the pin that says the
     // pairing is still the table's, so the day a cost moves the test fails and
     // not the sentence.
-    expect(chargeCostOf('gainBelief')).toBe(chargeCostOf('foundReligion'));
-    expect(chargeCostOf('empireRite')).toBe(chargeCostOf('proclaim'));
-    expect(chargeCostOf('healAdjacent')).toBe(chargeCostOf('proclaim'));
-    expect(chargeCostOf('purge')).toBe(chargeCostOf('proclaim'));
+    const state = world();
+    const price = (verb: Parameters<typeof chargeCostOf>[2]): number => chargeCostOf(state, 0, verb);
+    expect(price('gainBelief')).toBe(price('foundReligion'));
+    expect(price('empireRite')).toBe(price('proclaim'));
+    expect(price('healAdjacent')).toBe(price('proclaim'));
+    expect(price('purge')).toBe(price('proclaim'));
   });
 
   it('gives the empire rite one sub-row per rite, each with its own refusal', () => {

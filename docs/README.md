@@ -694,8 +694,14 @@ Reference: **`docs/religion-v2.md`** (the machinery) and **`docs/beliefs.md`**
   belief takes both; a proclamation or an empire rite takes one), the apostle
   (two charges; proclaim, heal, place a relic), the inquisitor (purge, plus a
   standing adjacency aura). The **augur is retired** — a rite is a city's verb
-  now. Charge prices are read in one place, spent in one, refused in one, printed
-  by one.
+  now. Charge prices are read in one place (`chargeCostOf(state, playerId,
+  verb)`), spent in one, refused in one, printed by one. The price takes the
+  empire because a card may set it (the `chargePrice` rule, read through
+  `cardChargePrice`; Devotion batch DV7): under The Anchorites a further holy
+  site costs one charge. Under The Abbeys (`apostlesPlantHolySites`) an
+  apostle may raise a further holy site at the same price, for an empire that
+  has founded a religion, and the unit sheet shows it the row while the rule
+  holds.
 - **Rites** are a city's verb, bought with faith, one at a time per town. Nine
   live rows: five taught by the tree, four by Devotion Orders (`RiteDef.byCard`;
   `riteTeachingCard` names the Order). Ten turns for most, five for Restoring of
@@ -734,6 +740,11 @@ Reference: **`docs/religion-v2.md`** (the machinery) and **`docs/beliefs.md`**
     the same queue, so a town it turns is paid in its turn.
   - A town queues the moment at most once a turn for each religion, by an
     absolute turn stamp (`City.convertedOn`), so a chain always ends.
+- **The interdict** (Devotion batch DV7). The behaviour rule `opusInterdict`
+  (The Interdict) is `opusSiege`'s sibling at the same gate,
+  `explainOpusGate`: a rival's town that follows a religion the holder is
+  paid by makes no production while it builds a Magnum Opus
+  (`cardOpusInterdictBy`). The siege names the line when both hold.
 - Who is paid: the pantheon pays the empire that consecrated it; **follower**
   beliefs pay city-locally to whoever owns each following city (a rival's faith
   in your town is a gift); **founder-side** pay follows the holy site's stones;
