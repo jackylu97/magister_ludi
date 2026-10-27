@@ -1092,6 +1092,20 @@ export interface AiConfig {
     strainSpan: number;
     /** Treasury below which the empire is in arrears and starts disbanding. */
     arrearsTreasury: number;
+    /**
+     * Turns of the present deficit the treasury must be able to pay before it
+     * falls under `arrearsTreasury`. An empire whose treasury will not last
+     * that long lets a redundant piece go, as it does in arrears. 0 is the
+     * old rule: disband only once the treasury is already under the bar.
+     *
+     * Why it exists (2026-10-26): the price of gold steers what the bot builds
+     * next, but it cannot cut a bill the empire already pays. A Dominion seat
+     * lost a luxury deal, was dealt a malice and saw its archers upgrade in
+     * four turns, and then ran at −26 to −40 gold a turn for nine turns with a
+     * treasury of 85 to 344 coins, because nothing acted until the treasury was
+     * under 40. See `disbandCommand`.
+     */
+    runwayTurns: number;
     /** Turns of the standing maintenance bill kept back as reserve. */
     reserveTurnsOfUpkeep: number;
     /** Soldiers the empire never goes below, however deep the arrears. */

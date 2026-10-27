@@ -3404,9 +3404,13 @@ function heldInDecks(player: Player, decks: readonly DeckId[]): number {
  * Four guards, and each closes a different way this could be a catastrophe
  * rather than a saving:
  *
- *   · it only ever fires **in arrears and bleeding** — treasury under
- *     `solvency.arrearsTreasury` *and* income under `disbandBelowIncome`, so a
- *     rich empire with a bad turn keeps its army;
+ *   · it only ever fires **in arrears, or headed into arrears, and bleeding**
+ *     — income under `disbandBelowIncome`, and a treasury that is under
+ *     `solvency.arrearsTreasury` now or will be within `solvency.runwayTurns`
+ *     turns at the present rate (`headedIntoArrears`). A rich empire with a bad
+ *     turn keeps its army. A poor one with a deficit it cannot carry starts
+ *     letting pieces go while it still has coin, rather than after it has
+ *     none, and stops as soon as the treasury can carry what is left;
  *   · it never takes the **last garrison** of a town (`military.garrisonPerCity`
  *     is the same figure the whole military branch reads), and never any piece
  *     standing in a town with an enemy nearby;
@@ -3430,8 +3434,10 @@ function heldInDecks(player: Player, decks: readonly DeckId[]): number {
  */
 function disbandCommand(state: GameState, player: Player): BotDecision | null {
   const ai = aiFor(player);
-  if (player.gold >= ai.solvency.arrearsTreasury) return null;
-  if (netGoldPerTurn(state, player.id) >= ai.solvency.disbandBelowIncome) return null;
+  const net = netGoldPerTurn(state, player.id);
+  if (net >= ai.solvency.disbandBelowIncome) return null;
+  const runway = Math.max(0, ai.solvency.runwayTurns);
+  if (!headedIntoArrears(player.gold, net, ai)) return null;
   if (countSoldiers(state, player.id) <= Math.max(0, ai.solvency.minArmy)) return null;
 
   const candidates: BotCandidate[] = [];
@@ -3487,11 +3493,35 @@ function disbandCommand(state: GameState, player: Player): BotDecision | null {
     command: { type: 'disbandUnit', playerId: player.id, unitId: worst.id },
     subject: unitLabel(worst),
     summary:
-      `In arrears at ${player.gold} gold and ${netGoldPerTurn(state, player.id)} a turn: lets go the worst ` +
+      (player.gold < ai.solvency.arrearsTreasury
+        ? `In arrears at ${player.gold} gold and ${net} a turn: lets go the worst `
+        : `${player.gold} gold at ${net} a turn will not last ${runway} turns: lets go the worst `) +
       'strength-per-wage piece it is allowed to. Lowest score wins here.',
     candidates,
     focus: { col: worst.col, row: worst.row },
   };
+}
+
+/**
+ * Will this treasury fall under the arrears bar within `solvency.runwayTurns`
+ * turns at the present net rate? A treasury already under the bar answers yes.
+ *
+ * The rate is read as it stands, with no guess about income to come. That is
+ * the reading `goldPressure` uses, and the bot has no memory between calls to
+ * read a trend from. A positive rate counts as nothing, so with a zero runway
+ * this is exactly the old arrears test.
+ *
+ * Why the disband arm needs it (2026-10-26). The price of gold changes what the
+ * bot builds next, but it cannot cut a bill the empire already pays. In the
+ * long bot game a Dominion seat lost three things in four turns: a luxury deal
+ * ran out (salt, which took a coin off each soldier's wage), it was dealt The
+ * Debased Coin for a missed wager, and its archers upgraded to a dearer piece.
+ * It then ran at −26 to −40 gold a turn for nine turns on a treasury of 85 to
+ * 344 coins, and nothing acted until the treasury was under 40.
+ */
+function headedIntoArrears(gold: number, net: number, ai: AiConfig): boolean {
+  const turns = Math.max(0, ai.solvency.runwayTurns);
+  return gold + Math.min(0, net) * turns < ai.solvency.arrearsTreasury;
 }
 
 /**

@@ -202,6 +202,7 @@
     "healthyIncome": 6,
     "strainSpan": 20,
     "arrearsTreasury": 40,
+    "runwayTurns": 10,
     "reserveTurnsOfUpkeep": 3,
     "minArmy": 2,
     "disbandBelowIncome": 0,

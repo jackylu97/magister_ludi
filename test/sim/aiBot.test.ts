@@ -52,6 +52,7 @@ import { BELIEF_IDS } from '../../src/sim/religionData';
 import { foundReligion, religionBeliefPool } from '../../src/sim/religion';
 import { workForFamily } from '../../src/sim/improvementData';
 import { explainEmpireGold } from '../../src/sim/empireGold';
+import { foldEmpireRates } from '../../src/sim/yields/empire';
 import { explainBuildingRow, meterWeight, yieldWeight } from '../../src/ai/value';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { happinessDemand } from '../../src/sim/meters';
@@ -428,6 +429,65 @@ describe('the scored build list', () => {
     // And it took one of the spares, never the piece holding the town.
     const taken = (cut as { unitId: number }).unitId;
     expect(spare.some((unit) => unit.id === taken)).toBe(true);
+  });
+
+  /**
+   * The grown duel with seat 0 quiet and a field army big enough to put its
+   * books in the red: every piece out of movement, no offer on the table, and
+   * warriors added well away from the town until the net gold rate is under
+   * nought. Returns the spares and the rate. The arrears test above explains
+   * each step of the quieting.
+   */
+  function bleedingSeat(game: Game): { spare: Unit[]; net: number } {
+    const player = seat(game.state, 0);
+    for (const u of game.state.units) {
+      if (u.ownerId !== 0) continue;
+      if (u.chargesLeft !== undefined) u.chargesLeft = 0;
+      u.movesLeft = 0;
+    }
+    delete player.statecraft.pendingOrder;
+    delete player.pendingDiscovery;
+    const city = firstCity(game.state, 0);
+    const spare: Unit[] = [];
+    let net = foldEmpireRates(game.state, 0).goldPerTurn;
+    for (let i = 0; net >= 0 && i < 30; i++) {
+      const unit = createUnit(game.state, 0, 'warrior', city.col + 3 + (i % 6), city.row + 3 + Math.floor(i / 6));
+      unit.movesLeft = 0;
+      spare.push(unit);
+      bumpRevision(game.state);
+      net = foldEmpireRates(game.state, 0).goldPerTurn;
+    }
+    expect(net).toBeLessThan(0);
+    return { spare, net };
+  }
+
+  it('lets a redundant piece go before the treasury runs out, when the deficit will empty it', () => {
+    // `solvency.runwayTurns`: a treasury still over the arrears bar, but one
+    // that the present deficit takes under it inside the runway. The bot cuts a
+    // wage now, while it still has coin, rather than waiting to be in arrears.
+    const game = grownGame();
+    const player = seat(game.state, 0);
+    const { spare, net } = bleedingSeat(game);
+    const runway = AI.solvency.runwayTurns;
+    expect(runway).toBeGreaterThan(0);
+    player.gold = AI.solvency.arrearsTreasury - runway * net - 1;
+    bumpRevision(game.state);
+    expect(player.gold).toBeGreaterThanOrEqual(AI.solvency.arrearsTreasury);
+    const cut = nextBotCommand(game.state, 0);
+    expect(cut?.type).toBe('disbandUnit');
+    const taken = (cut as { unitId: number }).unitId;
+    expect(spare.some((unit) => unit.id === taken)).toBe(true);
+  });
+
+  it('keeps its army while the treasury can pay the deficit for the whole runway', () => {
+    // The other side of the same line: one coin more and the treasury lasts
+    // the runway, so the deficit is the gold price's to fix and no wage is cut.
+    const game = grownGame();
+    const player = seat(game.state, 0);
+    const { net } = bleedingSeat(game);
+    player.gold = AI.solvency.arrearsTreasury - AI.solvency.runwayTurns * net;
+    bumpRevision(game.state);
+    expect(nextBotCommand(game.state, 0)?.type).not.toBe('disbandUnit');
   });
 
   it('keeps a garrison and a minimum army whatever the treasury says', () => {

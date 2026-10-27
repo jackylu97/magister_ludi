@@ -1026,10 +1026,53 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * that now renew instead of lapsing (T8). Measured twice, same bytes both
  * runs. Nothing stalled and no command was refused, which the assertion above
  * this one checks before the hash does.
+ *
+ * ---
+ *
+ * **The Devotion and Magisterial builds, R1, Z1 and Z2, and the bots' runway
+ * rule (schemas 175 to 199, `7d4064dc..cdbe8d67` and the fix for the slow bot
+ * test's red income).** Duel `4ae3b573:274890` → `b5152f5a:270174`, standard
+ * `f663ac08:988016` → `223afd64:910614`. No commit in this range re-cut the
+ * pin. They fall in six groups:
+ *
+ *   · the version, 175 to 199, which changes the state's own bytes;
+ *   · R1, the review comments on built cards. Cards in Dominion, Scientific,
+ *     Devotion and the shared file move tier, change or retire, and a new
+ *     rule, `buildingCost`, lowers a building's price;
+ *   · the Devotion build, DV1 to DV9. DV1 retires four rows and moves seven to
+ *     the shared file. DV2 to DV8 add new cards and the shapes they need: the
+ *     charter technology Scholasticism, a record of faith spent, rites as
+ *     seasons, the `townConverted` moment, and the rules of The Parishes, The
+ *     Confessors, The Anchorites, The Abbeys, The Interdict, The Caliphate, The
+ *     Turning of Swords and The Double Feast. DV9 gives the bots a price for
+ *     every Devotion shape;
+ *   · the Magisterial build, MG1 to MG17. MG1 retires sixty-four rows. MG2 to
+ *     MG16 add the deck's cards and the shapes they need, from the wonder
+ *     commissions and the draft's price to arrangements on the hex grid. MG17
+ *     gives the bots a price for every Magisterial shape;
+ *   · Z1 and Z2. Z1 fixes rules found during the builds (only a unit whose
+ *     charges are for building may build, an empire sees every hex it owns, a
+ *     bought wonder raises its notice). Z2 changes card words and no rule;
+ *   · the runway rule (`solvency.runwayTurns`, ten turns). A seat whose
+ *     treasury will not pay its deficit for ten turns now lets a redundant
+ *     soldier go before it falls into arrears, not after. It is the fix for
+ *     `aiBot.slow.test.ts`'s "does not let net income live in the red", which
+ *     failed from MG2 on.
+ *
+ * One control run took the last group apart from the rest: with
+ * `runwayTurns` at 0, which is the old arrears rule exactly, the duel gives
+ * `822429d9:263319` and the standard board `51d6607e:960833`. So the five
+ * groups before it shrank both prints (the duel by 11,571 characters, the
+ * standard board by 27,183), and the runway rule then grew the duel by 6,855
+ * and shrank the standard board by 50,219. In these games the rule fires 81
+ * times on the duel board and 22 on the standard board, against 117 and 6
+ * under the old rule. Most of the duel's are one seat's: 52 now, 93 under the
+ * old rule. Measured twice, same bytes both runs, each board in a separate
+ * process. Nothing stalled and no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '4ae3b573:274890',
-  standard: 'f663ac08:988016',
+  duel: 'b5152f5a:270174',
+  standard: '223afd64:910614',
 };
 
 /**

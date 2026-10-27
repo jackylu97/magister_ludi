@@ -46,12 +46,26 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { explainEmpireGold } from '../../src/sim/empireGold';
 import { replay, snapshotState } from '../../src/sim/game';
-import { realPlayers } from '../../src/sim/state';
+import { type GameState, realPlayers } from '../../src/sim/state';
 import aiJson from '../../data/ai.json';
 import { type Played, PATIENCE, after, playOut, worstGold } from './aiBotHelpers';
 
 const TURNS = 120;
+
+/**
+ * The standing bill: the charges in `explainEmpireGold`, as a positive figure.
+ * It is the same reading the bot's wage cover is sized from (`upkeepBill`,
+ * `bot.ts`), and `aiBot.test.ts` reads the cover the same way.
+ */
+function upkeepBill(state: GameState, playerId: number): number {
+  let bill = 0;
+  for (const line of explainEmpireGold(state, playerId)) {
+    if (line.gold < 0) bill -= line.gold;
+  }
+  return bill;
+}
 
 /** The one long game, played on first ask and shared by every claim below. */
 let longGame: Played | null = null;
@@ -123,19 +137,40 @@ describe('a hundred and twenty turns of bots', () => {
       // before; the highest reading on any turn was 0.25. A seat with no sink
       // would read near 1. One third leaves room for tuning and still fails a
       // bot that stops spending.
+      //
+      // **The share is read above the wage cover** (2026-10-26). `bankSpend`
+      // never spends the cover, so coin inside it is coin the seat may not
+      // spend, and it says nothing about whether the spend arm works. The bar
+      // above assumed the cover is a small part of what a seat earns, which
+      // holds for a seat that lives on its income. It fails for a seat that
+      // lives on lump sums. When the bots learned to cut a deficit before the
+      // treasury runs out (`solvency.runwayTurns`), Teal stopped running its
+      // treasury down to pay a deficit. Its income was near nothing for the
+      // whole game (399 coins of positive net gold in 120 turns), most of its
+      // coin came from three great merchants' bargains, and it ended at 300 coins
+      // against a cover of 330. A third of 399 is 133, which is below its own
+      // cover, so the old reading passed only while the seat let a deficit eat
+      // the cover, and the solvency claims below exist to stop that.
+      // Crimson ends 550 coins above its cover of 648, against a bar of 4,084.
+      // A seat with no sink still fails: everything it earns piles up above
+      // the cover.
       const share = 1 / 3;
       for (const player of realPlayers(played.game.state)) {
         const earned = played.curve
           .filter((reading) => reading.playerId === player.id)
           .reduce((sum, reading) => sum + Math.max(0, reading.netGold), 0);
+        const cover =
+          aiJson.solvency.reserveTurnsOfUpkeep * upkeepBill(played.game.state, player.id);
         expect({
           seat: player.name,
           gold: Math.round(player.gold),
+          cover: Math.round(cover),
           earned: Math.round(earned),
-          spends: player.gold < share * earned,
+          spends: player.gold - cover < share * earned,
         }).toEqual({
           seat: player.name,
           gold: Math.round(player.gold),
+          cover: Math.round(cover),
           earned: Math.round(earned),
           spends: true,
         });
