@@ -1,11 +1,12 @@
-# Batches R2a, R2b and R2c: the user's Devotion comments of 2026-10-28
+# Batches R2a to R2d: the user's Devotion comments of 2026-10-28
 
 **Status:** the spec, written 2026-10-28 before any agent starts. The user left 11 comments on the Devotion tab of the review page (version 17, "Deck sheets" group), then said: *"ok i made a ton of comments on the devotion deck, please make those changes"*. Each comment is quoted below with the card it sits on. The readings are the orchestrator's; each stands until the user changes it.
 
-Three batches, run one after the other in the main tree:
+Four batches, run one after the other in the main tree:
 - **R2a** changes two rules: the price of a rite, and the one-per-world rule for pantheon gods. Schema 200.
 - **R2b** packages with each building the yields that cards put on it, and adds the count "buildings in this town that supply a yield". Schema 201. Added after the user's answer below.
 - **R2c** changes the cards: three removed, four moved to Tier I, one revised with a new building, three new. Schema 202. It reads R2b's count.
+- **R2d** makes every reader that asks whether a building pays a yield ask whether it supplies it, and prices doublers over the package in the bots. Schema 203.
 
 ## R2a: two rules
 
@@ -115,6 +116,27 @@ Retired rows keep `retired: true` and stay in the data for saves (CLAUDE.md). Mo
 
 - `docs/decks/devotion.md` is the spec of record: move, retire and add the rows there (the retired rows to its "Retired rows" section), and update its count tables. `docs/decks/dominion.md` and `docs/decks/scientific.md` carry the two shared rows. `docs/orders-and-doctrines.md` mirrors the data. Their sync tests must pass.
 - Add a "Built" note to this file's end when each batch passes the gate.
+
+## R2d: "supplies" means one thing across the game
+
+The user, 2026-10-28, on two older readers that still ask only a building's row: *"ok yeah, we should use the 'supplies' keyword across the game."*
+
+**The rule.** Wherever the game asks whether a building pays, yields or provides a yield, it asks R2b's question: does the building **supply** it (`buildingSupplies`: its package pays the yield, or it belongs to that yield's category). No reader keeps its own row-only version.
+
+**Known readers to move** (R2b's report):
+1. The `scienceBuildings` count (Maimonides, Āryabhaṭa). Move its readers to `buildingsSupplying` with the science voice, or make it read `buildingSupplies`; retire the duplicate if nothing else needs it.
+2. The `pays` selector on a building share (`buildingPaysVoice`; "faith buildings provide 50% more yields" and the like). A share now reaches every building that supplies the yield.
+3. Any other reader you find: search for row-only tests of a building's yields (`buildingDef(...)[voice]`, `def.faith`, `def.science` and so on, inside a "does this building pay X" question). A reader that wants the row's own number for a figure, not a yes or no, stays as it is.
+
+**Loops.** A share's selector now asks the package, and the package never reads a share (step 9 takes the shares over the package). Keep `buildingSupplies`' depth guard. A test shows that a share selected by "supplies faith" over a building whose faith comes only from a card ends and pays.
+
+**The bots.** Price a building share (`buildingYieldPercent`, the doublers among them) over the building's package, not its row alone (`src/ai/value.ts`), so Rumi, The Bourse and the like are priced with the card lines they now reach.
+
+**The word.** Every describer and Compendium line that means this test says "supplies" ("buildings that supply faith"), not "yield", "pay" or "provide". If the Compendium has a place for a game term (its Rules shelf, `rule:` marks, or a glossary), add "supplies" there with one plain sentence: a building supplies a yield if it belongs to that yield's buildings, or if its own row or a card puts that yield on it. Mark the word where the describers print it. If no such place exists, do not add a new kind of mark; say so in the report.
+
+**What changes in play.** Name in the report every card, wonder, belief or luxury whose pay moves, and why.
+
+Schema 203. Explore digest control as in R2a.
 
 ## Not in these batches
 
