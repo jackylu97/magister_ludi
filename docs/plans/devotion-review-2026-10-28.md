@@ -1,10 +1,11 @@
-# Batches R2a and R2b: the user's Devotion comments of 2026-10-28
+# Batches R2a, R2b and R2c: the user's Devotion comments of 2026-10-28
 
 **Status:** the spec, written 2026-10-28 before any agent starts. The user left 11 comments on the Devotion tab of the review page (version 17, "Deck sheets" group), then said: *"ok i made a ton of comments on the devotion deck, please make those changes"*. Each comment is quoted below with the card it sits on. The readings are the orchestrator's; each stands until the user changes it.
 
-Two batches, run one after the other in the main tree:
+Three batches, run one after the other in the main tree:
 - **R2a** changes two rules: the price of a rite, and the one-per-world rule for pantheon gods. Schema 200.
-- **R2b** changes the cards: three removed, four moved to Tier I, one revised with a new building, three new. Schema 201.
+- **R2b** packages with each building the yields that cards put on it, and adds the count "buildings in this town that supply a yield". Schema 201. Added after the user's answer below.
+- **R2c** changes the cards: three removed, four moved to Tier I, one revised with a new building, three new. Schema 202. It reads R2b's count.
 
 ## R2a: two rules
 
@@ -14,7 +15,7 @@ On The Rogations: *"for this to be relevant, we need to make rites cheaper early
 
 - **Today:** `riteCost(age)` (`src/sim/religionData.ts`) reads `rite.costByAge` in `data/religion.json`: 40, 56, 72 and 90 faith by the empire's research age. Its docblock says the price does not vary with the rites an empire has started. `riteCostFor(state, playerId)` (`src/sim/religion.ts`) is the reading every surface asks.
 - **The rule:** a rite costs `base + step × (rites this empire has started)`. The base is 20. The research age no longer sets the price.
-- **Reading 1:** the step is **5 faith**: 20, 25, 30 and so on. The 14th rite costs 90, today's price in the fourth age. The two numbers live in `data/religion.json` (`rite.baseCost`, `rite.costPerRiteStarted`, or names in the file's style), and `costByAge` goes.
+- **Reading 1:** the step is **5 faith**: 20, 25, 30 and so on. The 15th rite costs 90, today's price in the fourth age. The two numbers live in `data/religion.json` (`rite.baseCost`, `rite.costPerRiteStarted`, or names in the file's style), and `costByAge` goes.
 - **Reading 2:** "each rite the empire has started" counts every rite any of the empire's towns has started this game, of any kind, from the same moment that pays `riteStarted`. If the game already keeps that count on the player, read it. If it does not, add one counter on the player, raised in the one place a rite starts, and never lowered.
 - **Reading 3:** the price stays one reading. The rite button, the refusal, the charge and the bots ask the same function. Where the game prints a price breakdown for a rite, print the base and the step as two lines; where it prints only a figure, the figure is enough.
 - **Reading 4:** any card that changes a rite's price applies to the new figure, in the same order as today.
@@ -29,7 +30,45 @@ On The Old Gods Remain: *"remove, overlap with stonehenge. One more thing: lets 
 - **Reading 5:** this is for pantheon gods only. Founder, follower and enhancer beliefs keep today's rules.
 - Find every other reader of the old rule (a "taken by" label, a bot that avoids a rival's god, a test, the Compendium, `docs/beliefs.md` or `docs/religion-v2.md`) and bring it in line.
 
-## R2b: the cards
+## R2b: a building's package, and the buildings that supply a yield
+
+The user, asked how much work a count of "buildings that supply X" would be: *"i think yields from effects should be 'packaged' with the building itself in the data model. for example, a card that says 'double the yields on temples' paired with a card that says '+2 science on temples' should supply +4 science. I think orders, doctrines, beliefs, wonders and luxuries should all count. Rites probably shouldn't count, the rule should be, anything that's an effect of a 'card' (what the player sees as a card, something that they've drafted) should count."* Before that, the user took three recommendations: a conditional line counts only while its condition holds; Hero of Alexandria's legacy widens with the new reading; and the count is one count for any yield.
+
+**Today.**
+- `cardLinesOnBuilding` (`src/sim/statecraft/evaluator.ts`) sums the flat town `pays` lines whose scope names one building (`hasBuilding`, alone or inside an `all`). Step 9 of `docs/yields.md` takes each building share (`buildingYieldPercent`, the doublers among them) over the building's row plus those lines. So "towns with a Temple gain +2 science" is already doubled by a doubler on temples.
+- Lines written per building are not on the building: a town line counted by `buildingsOfKind` or `buildingsOfCategory` inside the town (The Temple of the Muses: "Culture buildings give +2 faith each"; Civic Granaries), and the luxuries' `buildingCategoryYields` (jade, tea, coffee, cotton, marble). A doubler misses them.
+- `buildingSupplies` reads only the building's row: its base yields and its own flat lines. `hasBuildingYielding` (Hero of Alexandria's legacy) asks it.
+- `cityEffectsOfKind` walks `liveCityEffects`, so rites reach `cardLinesOnBuilding` today.
+
+**The rule.** A building's **package** is its row (base yields, per-citizen yields and its own lines) plus every line from a card source that is on it:
+1. a flat town line whose scope names it (today's `cardLinesOnBuilding` rule);
+2. a town line counted by its kind inside the town (`buildingsOfKind`, `within: 'city'`): one helping on that building;
+3. a town line counted by its category inside the town (`buildingsOfCategory`, `within: 'city'`): one helping on each building of that category;
+4. a luxury's `buildingCategoryYields` line: on each building it names (its category, or the wonders).
+
+**Card sources.**
+- **In:** the user's list: Orders, Doctrines, beliefs (pantheon, founder, follower and enhancer), wonders and luxuries.
+- **Reading 10:** also in are the government's signature, malices and great-person legacies. The player holds each as a card face, so they fit the user's principle.
+- **Out:** rites (the user's ruling), technologies and the leader. A timed effect follows the source that gave it.
+- A line that is not in the package still pays the town as it does today.
+
+**One reading, three readers.** Write the package once (rename or widen `cardLinesOnBuilding`; a labelled list and its one sum, rule 5's discipline) and use it in three places:
+1. **Step 9:** each building share is taken over the package. Lines that were not on the building before (items 2 to 4) now are, so a doubler doubles them too.
+2. **Supplies:** a building supplies a yield when its package pays that yield (more than zero, under its conditions now), **or** it belongs to that yield's category. So every religious building supplies faith, every science building science, and so on, for the six categories named after a yield. `buildingSupplies` reads this, so `hasBuildingYielding` and Hero of Alexandria's legacy follow.
+3. **A new count:** the buildings in a town that supply a given yield (`within: 'city'`), and the same across the empire (`within: 'empire'`) if it costs nothing more. Its words in the describers' table ("for each building in the town that supplies faith"), and the bots' price of it.
+
+**What does not change.** Where the yields bank. Each card line still banks once, as the card's own labelled line (step 3, or step 4 for a luxury), so the town's breakdown still names the card that paid. The package is the building's view of those lines and of the share taken over them, never a second payment. A line under an `any` scope, a line counted across the empire and a `mirror` line stay facts about the town, as today.
+
+**Conditions.** A line's scope is asked for the town now (`cityScopeAdmits`). A line that names a building but does not hold in that town is not on it.
+
+**Loops.** The package reads the shape of each line and asks scopes. It never reads a count of suppliers, so a card that pays per supplier cannot feed its own count. Keep the existing depth guard of `buildingSupplies`.
+
+**Docs and tests.**
+- `docs/yields.md`: step 9's row and "Inside step 9" say what the share is taken over now; any sync test of that file passes.
+- Tests: the user's example (a doubler on temples and "+2 science" on temples gives +4 science), written each way: by scope and by count; a category line and a luxury line on a building; a rite's line is not in the package; a conditional line counts only while it holds; a religious building with no faith of its own supplies faith; the count in a town; Hero of Alexandria's legacy with a wonder that a card makes supply science.
+- The explore digest control, as in R2a; then re-pin with the reason.
+
+## R2c: the cards
 
 | Card | Where | The comment | The change |
 |---|---|---|---|
@@ -64,10 +103,10 @@ Retired rows keep `retired: true` and stay in the data for saves (CLAUDE.md). Mo
 
 - **Today:** the charter opens the charter technology Scholasticism. Knowing it lets the empire build the Cathedral and buy the Apostle before Theology (`data/techs.json`, Scholasticism's `unlocksBuilding` and `unlocksUnit` effects; Devotion batch DV2).
 - **The change:** Scholasticism no longer opens the Cathedral or the Apostle early. It opens a new religious building, **the Cathedral School**. Name: the cathedral schools of the eleventh and twelfth centuries, where the schoolmen taught before the universities.
-- **The Cathedral School:** a religious building (the faith category), medium size, opened only by knowing Scholasticism (its `unlocks.buildings`). It gives +2 science for each religious building in its town, and +2 more for each while the town keeps a rite.
-- **Reading 8:** "every building that supplies faith" is read as the town's religious buildings (the faith category, wonders of that category included), because that count exists and the deck's cards already say "religious buildings". The Cathedral School is one, so it counts itself. If the game already has a count of a town's buildings whose own row yields faith, use that instead and say so. Do not add a new count for this.
+- **The Cathedral School:** a religious building (the faith category), medium size, opened only by knowing Scholasticism (its `unlocks.buildings`). It gives +2 science for each building in its town that supplies faith (R2b's count), and +2 more for each while the town keeps a rite.
+- **Reading 8 (revised by R2b):** "every building that supplies faith" is R2b's count: the buildings in the town that supply faith. Every religious building does, and so does any building a card makes pay faith. The Cathedral School is a religious building, so it counts itself.
 - **Reading 9:** "doubled while this city has an active rite" is a second line of the same size under the scope of a town keeping a rite (`keepingRite`).
-- **The card's new text:** "Drafting this opens Scholasticism for research. Knowing it lets you build the Cathedral School: +2 science for each religious building in the town, doubled while the town keeps a rite. No chair required."
+- **The card's new text:** "Drafting this opens Scholasticism for research. Knowing it lets you build the Cathedral School: +2 science for each building in the town that supplies faith, doubled while the town keeps a rite. No chair required."
 - The early-unit purchase path that DV2 added to `purchase.ts` stays as general code; no card uses it after this.
 - Update the shared row on the Devotion and Scientific sheets, the Scientific deck's charter notes if they name the Cathedral or the Apostle, and the Compendium if it has hand-written words about Scholasticism.
 
