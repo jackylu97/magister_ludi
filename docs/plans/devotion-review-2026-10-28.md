@@ -128,6 +128,8 @@ The user, 2026-10-28, on two older readers that still ask only a building's row:
 2. The `pays` selector on a building share (`buildingPaysVoice`; "faith buildings provide 50% more yields" and the like). A share now reaches every building that supplies the yield.
 3. Any other reader you find: search for row-only tests of a building's yields (`buildingDef(...)[voice]`, `def.faith`, `def.science` and so on, inside a "does this building pay X" question). A reader that wants the row's own number for a figure, not a yes or no, stays as it is.
 
+**A building's own lines are on it** (found by R2c). R2b put a building's own flat line in its package, but not its own counted lines. The Cathedral School's science is two counted lines (buildings in the town that supply faith), so a doubler on the school would miss them. A building's own lines, flat or counted, are in its own package. Keep `buildingSupplies`' depth guard: the school's count asks every building whether it supplies faith, the school included, and the guard stops that from asking the school's own count again. A test shows the school's package holds its science and the count still ends.
+
 **Loops.** A share's selector now asks the package, and the package never reads a share (step 9 takes the shares over the package). Keep `buildingSupplies`' depth guard. A test shows that a share selected by "supplies faith" over a building whose faith comes only from a card ends and pays.
 
 **The bots.** Price a building share (`buildingYieldPercent`, the doublers among them) over the building's package, not its row alone (`src/ai/value.ts`), so Rumi, The Bourse and the like are priced with the card lines they now reach.
