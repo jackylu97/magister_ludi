@@ -96,6 +96,9 @@ export {
   cardZocIgnored,
   cardBuildingHappiness,
   cardBuildingPercents,
+  // Batch R2b: a building's package, the list and its one sum.
+  explainBuildingPackage,
+  foldBuildingPackage,
   cardCityRenownShares,
   cardCityStat,
   cardCombatLines,
@@ -122,7 +125,6 @@ export {
   cardExtraCharges,
   cardFoundingRider,
   cardHappiness,
-  cardLinesOnBuilding,
   cardLandfallEffects,
   cardMeterFlag,
   cardMeterRule,
@@ -228,6 +230,7 @@ export {
   windfallPayoutIsEmpty,
 } from './statecraft/evaluator';
 export type {
+  BuildingPackageLine,
   CardBuildingHappinessLine,
   CardBuildingPercentLine,
   CardCityRenownShare,

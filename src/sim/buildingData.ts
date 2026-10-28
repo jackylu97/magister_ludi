@@ -1571,6 +1571,21 @@ export function buildingPaysVoice(id: BuildingId, voice: CityYieldKey): boolean 
 }
 
 /**
+ * **Does this row supply this voice before anything is put on it?** Its
+ * category is the voice, or its own row pays it (`buildingPaysVoice`).
+ *
+ * The part of "a building that supplies a voice" (batch R2b) that needs no
+ * town. The whole reading also adds what cards and luxuries put on the
+ * building in a town (`buildingSupplies`, `statecraft/evaluator.ts`); this part
+ * is what that reading falls back to inside its depth guard, and what the bot
+ * reads to see which rows a town could still raise for the
+ * `buildingsSupplying` count.
+ */
+export function buildingRowSupplies(id: BuildingId, voice: CityYieldKey): boolean {
+  return buildingDef(id).category === voice || buildingPaysVoice(id, voice);
+}
+
+/**
  * Runtime guard. Production queues arrive from save files and (eventually)
  * sockets, so a `BuildingId` may be any string at all.
  */

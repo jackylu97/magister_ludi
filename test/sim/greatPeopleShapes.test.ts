@@ -157,7 +157,7 @@ describe('a share on one named building, and on the marvels', () => {
         expect(lines[0]!.culture).toBeCloseTo(oracle.culture / 2, 6);
         // Its faith is worth **more** than half the row, and deliberately: the
         // Oracle's own card line stands on the Oracle by name, and a share is
-        // taken of the row *plus what the law put on it* (`cardLinesOnBuilding`,
+        // taken of the row *plus what the law put on it* (`explainBuildingPackage`,
         // the user's Synod ruling of 2026-09-07). So the marvel selector rides
         // that reading rather than replacing it.
         expect(lines[0]!.faith).toBeGreaterThan(oracle.faith! / 2);

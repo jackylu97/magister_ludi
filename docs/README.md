@@ -95,6 +95,15 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   science and culture (`rules.war.unrest.halts`). It runs after both stages,
   because percentages sum inside a stage and could not zero a voice; the city
   panel prints it as one line under the stages.
+- **A building's package** (batch R2b, `explainBuildingPackage`): its row
+  plus every line a card or a luxury puts on it in the town (a line whose
+  scope names it, a line counted by its kind or category in the town, a
+  luxury's helping on its category). Every live source counts but a rite.
+  - The building shares of step 9 are taken over the package, so a doubler
+    on temples doubles "+2 science on temples".
+  - A building **supplies** a voice when its category is that voice or its
+    package pays it (`buildingSupplies`). The `hasBuildingYielding` scope and
+    the `buildingsSupplying` count read that.
 - **One-time grants are modifier-immune.** Everything pays through a
   `settle…Windfall`; `windfallPayout` composes base + every rider into one
   printed figure before banking.

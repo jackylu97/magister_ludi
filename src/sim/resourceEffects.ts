@@ -128,7 +128,7 @@
  * in this file may grow a top-level call into `cities.ts`.
  */
 
-import { type ProductionCategory, buildingDef } from './buildingData';
+import { type BuildingId, type ProductionCategory, buildingDef } from './buildingData';
 import { signedPlain as signed } from './yieldFormat';
 import type { ModifierStage } from './yields/stages';
 import {
@@ -807,12 +807,45 @@ function matchingBuildings(state: GameState, city: City, effect: BuildingCategor
   let count = 0;
   // What the town holds (`townBuildings`, Expansionist batch E12).
   for (const id of townBuildings(state, city)) {
-    const def = buildingDef(id);
-    if (effect.wonders === true ? def.wonder === true : def.category === effect.category) {
-      count += 1;
-    }
+    if (selectorNames(effect, id)) count += 1;
   }
   return count;
+}
+
+/** Does a `buildingCategoryYields` selector reach this building? See `matchingBuildings`. */
+function selectorNames(effect: BuildingCategoryEffect, id: BuildingId): boolean {
+  const def = buildingDef(id);
+  return effect.wonders === true ? def.wonder === true : def.category === effect.category;
+}
+
+/**
+ * **What the luxuries put on one building** (batch R2b): one helping of each
+ * `buildingCategoryYields` line whose selector names the building, as the
+ * luxury's own labelled line.
+ *
+ * The third part of a building's package (`explainBuildingPackage`,
+ * `statecraft/evaluator.ts`), so a share on the building is taken over it too.
+ * It is the same helping `cityResourceYields` banks once for each matching
+ * building, at the same copies, so the package and the bank cannot disagree.
+ * It banks nothing itself.
+ *
+ * The caller asks only of a building the town holds. Here, so that only this
+ * module reads a luxury's effect kinds.
+ */
+export function resourceLinesOnBuilding(
+  state: GameState,
+  city: City,
+  id: BuildingId,
+): ResourceYieldLine[] {
+  const owner = city.ownerId;
+  const list: ResourceYieldLine[] = [];
+  for (const { id: resource, effect, loan } of liveResourceEffects(state, owner)) {
+    if (effect.kind !== 'buildingCategoryYields') continue;
+    if (!selectorNames(effect, id)) continue;
+    const copies = copiesFor(state, owner, resource, effect, loan, true);
+    list.push(lineOf(resource, effect, selectorNote(effect), copies, 1, loan));
+  }
+  return list.filter((line) => foldOne(line) !== 0);
 }
 
 /** True when a line pays nothing at all — a rounded-away half coin, usually. */

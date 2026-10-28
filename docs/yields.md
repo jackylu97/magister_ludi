@@ -149,7 +149,7 @@ moves into culture.
 | 6 | **The routes arriving** — `cityRouteYields` | each caravan's *origin* buildings; five voices, never faith; a route run **by sea** carries `rules.trade.seaYieldPercent` as a line of its own fold, after the cards' shares and before their amplifiers. Then, under The Return Leg's rule (`homeRoutesPayOrigin`), a copy of what each domestic route leaving the town pays its destination (`cityReturnLegYields`), line for line, filed under the card | additive | — |
 | 7 | **The palace** — `explainPalaceYield` | the seat of government — its coin, and since 2026-09-08 a beaker and a note; empty in every town but one | additive | — |
 | 8 | **The buildings** — `explainCityBuildings` | the town's buildings (`townBuildings`: what it built, in build order, then any a card says it holds), plus each row's per-citizen science | additive | — |
-| 9 | **The cards' building shares** — `explainCardBuildingYields` | the block above, **plus what the law put on each building by name** (`cardLinesOnBuilding`) | multiplicative *within the step*, lands as a flat | — |
+| 9 | **The cards' building shares** — `explainCardBuildingYields` | each building's **package** (`explainBuildingPackage`): its row, plus every line a card or a luxury puts on it in this town (see below) | multiplicative *within the step*, lands as a flat | — |
 | 10 | **The conversions** — `cardYieldConversions` | the **running flats** of one voice, paid again as another | multiplicative *within the step*, lands as a flat | — |
 | 11 | **The percent list** — `cityYieldPercents` (+ `productionModifiers` via `foldCityStages`) | the meter tiers, the luxuries', the cards', the arrears | gathered, never applied | city and empire |
 | 12 | **The two stages** — `applyStages` (`foldCity`) | step 11's list, folded per voice by `foldStageSums` | multiplicative | city, then empire |
@@ -206,10 +206,39 @@ same marker and is **not** a great person's work: it stays with the land.
 ### Inside step 9 — the building shares
 
 Two passes, in `cardBuildingPercents`' own order: the **ordinary** shares, each
-over the building's row plus the law's lines on that building; then the
-**`appliedLast`** shares, each over that base *plus what the ordinary shares
-just added*. So a doubler doubles what the Vestry raised rather than racing it.
-The result is a **flat**, staged at step 12 like the library's own beaker.
+over the building's package; then the **`appliedLast`** shares, each over that
+base *plus what the ordinary shares just added*. So a doubler doubles what the
+Vestry raised rather than racing it. The result is a **flat**, staged at step
+12 like the library's own beaker.
+
+**A building's package** (batch R2b, `explainBuildingPackage` and its sum
+`foldBuildingPackage`) is its row plus the lines on it in this town:
+
+1. the row (`explainBuildingYield`), with the per-citizen science at the
+   town's size;
+2. a flat town line whose scope names the building (`hasBuilding`, alone or
+   inside an `all`);
+3. the building's own flat town line that names no building;
+4. a town line counted by the building's kind (`buildingsOfKind`) or its
+   category (`buildingsOfCategory`) inside the town (`within: 'city'`): one
+   helping on each building it counted;
+5. a luxury's `buildingCategoryYields` line: one helping on each building of
+   the category it names, or on each wonder (`resourceLinesOnBuilding`).
+
+- Each line's scope is asked for the town now. A line that does not hold
+  today is not on the building.
+- Every live source counts but a rite. A rite's line pays the town and is on
+  no building.
+- A building the town does not hold carries its row only.
+- The lines still bank once, at step 3 (a card) or step 4 (a luxury). The
+  package only widens what the share is over.
+- A line under an `any` scope, a line counted across the empire, a count of
+  anything else, a mirror and a share are facts about the town and are on no
+  building.
+- The same package says which buildings **supply** a voice: a building
+  supplies a voice when its category is that voice or its package pays it
+  (`buildingSupplies`). The `hasBuildingYielding` scope and the
+  `buildingsSupplying` count read that.
 
 ---
 

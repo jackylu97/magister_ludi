@@ -98,7 +98,7 @@ luxury is still not a card *class*.
 | `authority` | Authority **capacity**, optionally `per: "city"`. Never a discount on what a city costs. `authoritySupply` until batch H6, which found it to be `CardAuthorityEffect` field for field. |
 | `productionBonus` | A percentage of hammers behind one category, in the owning city or (`scope: "empire"`) every city. |
 | `percentYields` | A percentage of one yield, empire-wide or in each coastal city. |
-| `buildingCategoryYields` | Flat yields (and/or happiness) per building of a category — or per wonder (`wonders: true`). Yields land in the building's own city. |
+| `buildingCategoryYields` | Flat yields (and/or happiness) per building of a category — or per wonder (`wonders: true`). Yields land in the building's own city. Each building's helping is also in that building's package (batch R2b, `resourceLinesOnBuilding`), so a card's share on the building is taken over it too. |
 | `connectionPercent` | A percent of the empire fold's City-connections line (spices). |
 | `routeYields` | Flat yields per trade route, in the route fold (furs). |
 

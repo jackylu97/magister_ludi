@@ -45,7 +45,9 @@ import {
   tileOwnerCityId,
   tileOwnerPlayerId,
 } from '../cities';
-import { foldCity, queueCategory } from '../yields/town';
+// `explainBuildingYield` is the one reading of a building's row, and a
+// building's package starts from it (batch R2b, `explainBuildingPackage`).
+import { explainBuildingYield, foldCity, queueCategory } from '../yields/town';
 import { foldEmpireRates } from '../yields/empire';
 // The hex fold, for the harvest (Dominion batch D7, War Feeds Itself). A
 // function-level cycle: the hex layer reads the card lines through the index.
@@ -58,6 +60,7 @@ import {
   type ProductionCategory,
   buildingDef,
   buildingPaysVoice,
+  buildingRowSupplies,
   isBuildingId,
   isEmpireBuilding,
   isFortification,
@@ -233,6 +236,9 @@ import { type BeadGrantId, anyBeadDef, isBeadCardId } from '../beadData';
 // A function-level edge: that module re-enters this one through the index, and
 // nothing at either top level calls across.
 import { unitHealthBonus } from '../resourceEffects';
+// A luxury's lines on one building, for the building's package (batch R2b).
+// The same function-level edge as the line above.
+import { resourceLinesOnBuilding } from '../resourceEffects';
 import { isMaliceId, maliceDef } from '../maliceData';
 // The figure's own table, a leaf, so the twelfth source of the law costs this
 // module no edge it did not already have. See `buildLiveEffects`.
@@ -1957,36 +1963,29 @@ function hasAdjacentGreatWork(state: GameState, city: City): boolean {
 }
 
 /**
- * **Does this building supply this voice in this town?** `hasBuildingYielding`'s
- * whole reading.
+ * **Does this building supply this voice in this town?** The reading behind
+ * `hasBuildingYielding` and the `buildingsSupplying` count (batch R2b,
+ * `docs/plans/devotion-review-2026-10-28.md`).
  *
- * Two ways a row pays a voice and the scope has to know both, which is what the
- * House of Millions of Years found: a Theatre of Dionysus carries its culture in
- * the `culture` column of its own row, and the Hagia Sophia carries hers in a
- * `pays` clause that lands in the towns with a temple in them. Asking the column
- * alone said that the second one sings nowhere — a wonder built to be sung in,
- * counted silent — and a card whose whole subject is *a work that sings* cannot
- * be written on half the question.
+ * A building supplies a voice when either is true:
  *
- * The clause half is deliberately narrow, and each narrowing is the honest
- * reading rather than a simplification:
+ *   · **it belongs to that voice's category.** Six of the seven
+ *     `BuildingCategory` words are yields, so every faith building supplies
+ *     faith and every science building supplies science, whatever its row pays
+ *     today. `military` names no voice and supplies nothing by itself;
+ *   · **its package pays the voice**: more than nothing, summed over the row
+ *     and every line a card or a luxury puts on it in this town, with each
+ *     line's scope asked now (`explainBuildingPackage`). So a Temple that a
+ *     card makes pay science supplies science while the card's condition
+ *     holds, and stops when it does not.
  *
- *   · **a flat town line** (`where: 'city'`, or `'capital'` in the capital) and
- *     nothing else. A share of the town's own fold pays *because* something else
- *     already paid, an empire line has no town, a hex line is the ground's and a
- *     caravan's is the road's — none of those is a building supplying a voice
- *     *here*;
- *   · **a positive figure**, so a row that takes culture away is not a row that
- *     supplies it;
- *   · **the clause's own scope admits this town**, which is what makes the
- *     answer local: the Hagia Sophia sings in the towns with a temple and is
- *     quiet in the rest, and a scope that ignored her condition would have been
- *     the opposite mistake to the one it fixes.
- *
- * The depth guard is `conditionDepth`'s idiom one question over: a wonder whose
- * own clause were scoped on `hasBuildingYielding` would otherwise ask this
- * function for the answer it is computing. No row does that today; the cut is
- * what makes writing one a quiet no rather than a stack overflow.
+ * **The depth guard.** A line's scope may be `hasBuildingYielding`, which asks
+ * this function again while it is reading a package. The second question is
+ * answered from the category and the row alone (`buildingRowSupplies`) and
+ * never reads a package, so the reading always ends. It also never reads the
+ * `buildingsSupplying` count: the package reads only the shape of each line and
+ * the counts by kind and by category, so a card that pays per supplier cannot
+ * feed the count it pays by.
  */
 let suppliesDepth = 0;
 
@@ -1996,24 +1995,14 @@ function buildingSupplies(
   id: BuildingId,
   voice: CityYieldKey,
 ): boolean {
-  const def = buildingDef(id);
-  if ((def[voice] ?? 0) > 0) return true;
-  if (suppliesDepth > 0) return false;
-  const isCapital = capitalCityOf(state, city.ownerId)?.id === city.id;
+  if (buildingDef(id).category === voice) return true;
+  if (suppliesDepth > 0) return buildingRowSupplies(id, voice);
   suppliesDepth += 1;
   try {
-    for (const effect of def.effects ?? []) {
-      if (effect.kind !== 'pays') continue;
-      if ((effect.basis ?? 'flat') !== 'flat') continue;
-      if (effect.where !== 'city' && !(effect.where === 'capital' && isCapital)) continue;
-      if ((effect[voice] ?? 0) <= 0) continue;
-      if (!cityScopeAdmits(state, city, effect.scope, city.ownerId)) continue;
-      return true;
-    }
+    return foldBuildingPackage(explainBuildingPackage(state, city, id))[voice] > 0;
   } finally {
     suppliesDepth -= 1;
   }
-  return false;
 }
 
 /**
@@ -3111,6 +3100,26 @@ export function countOf(
         if (town.ownerId !== playerId) continue;
         if (townHoldsBuilding(state, town, wanted)) total += 1;
       }
+      return total;
+    }
+    case 'buildingsSupplying': {
+      // **The buildings that supply one voice** (batch R2b): each building whose
+      // category is the voice or whose package pays it (`buildingSupplies`). In
+      // the town with `within: 'city'`, and across the realm without it. A row
+      // that names no voice counts nothing, `empireYield`'s rule. Over what each
+      // town holds (`townBuildings`, Expansionist batch E12).
+      const voice = effect.voice;
+      if (voice === undefined) return 0;
+      const here = (town: City): number => {
+        let found = 0;
+        for (const id of townBuildings(state, town)) {
+          if (buildingSupplies(state, town, id, voice)) found += 1;
+        }
+        return found;
+      };
+      if (effect.within === 'city') return city ? here(city) : 0;
+      let total = 0;
+      for (const town of citiesOf(state, playerId)) total += here(town);
       return total;
     }
     case 'buildingsInCity':
@@ -4694,26 +4703,107 @@ function scopeNamesBuilding(scope: CityScope | undefined, id: BuildingId): boole
 }
 
 /**
- * **What the law adds to one building's own yield** — every town `pays` line
- * in this town whose scope names the building (a follower belief's science on
- * a temple, The Choir's culture, a legacy's faith), summed per voice.
- *
- * The user, 2026-09-07: *"the Synod — your faith buildings provide 50% more
- * yields — it should count my religion bonuses on my temples, and great
- * people improvements to temples."* A `buildingYieldPercent` used to take its
- * share of the building's **row** alone; a temple carrying two beliefs and an
- * Order was still "a temple" to it. The building's yield is its row plus what
- * the law put on it by name, and that is the figure the share is taken of.
- * These lines are banked once as the cards' own (`explainCardCityYields`); this
- * reading is only what the share is *over*, never a second banking. A line
- * that reaches the town by some other door (`hasBuildingYielding`, a
- * category `pays` mirror) is a fact about the town, not about the temple, and
- * is deliberately not here.
+ * Does this scope name **any** building — `hasBuilding`, alone or inside an
+ * `all`? A line whose scope names a building is on that building; a building's
+ * own line that names none is on the building that carries it.
  */
-export function cardLinesOnBuilding(
+function scopeNamesABuilding(scope: CityScope | undefined): boolean {
+  if (scope === undefined) return false;
+  if (scope.test === 'hasBuilding') return true;
+  if (scope.test === 'all') return scope.of.some(scopeNamesABuilding);
+  return false;
+}
+
+/**
+ * One line of a building's **package** (batch R2b): what its row pays, or what
+ * one card or one luxury puts on it in this town. Exactly one of `building`,
+ * `card` and `resource` is set, and it says which.
+ */
+export interface BuildingPackageLine {
+  /** Display label: "Temple", "Order · The Choir", "Jade · faith buildings". */
+  source: string;
+  /** The building whose row this is. Set on the row's own line. */
+  building?: BuildingId;
+  /** The card that wrote the line. */
+  card?: CardId;
+  /** The luxury whose signature put the line on the building. */
+  resource?: ResourceId;
+  food: number;
+  production: number;
+  gold: number;
+  science: number;
+  culture: number;
+  faith: number;
+}
+
+/**
+ * **A building's package** (batch R2b, `docs/plans/devotion-review-2026-10-28.md`):
+ * what one building in this town pays, as a labelled list. The user,
+ * 2026-10-28: *"yields from effects should be 'packaged' with the building
+ * itself … a card that says 'double the yields on temples' paired with a card
+ * that says '+2 science on temples' should supply +4 science."*
+ *
+ * The list, in order:
+ *
+ *   1. **the row** (`explainBuildingYield`): its flat yields, with the
+ *      per-citizen science taken at the town's size;
+ *   2. **the card lines on it** (`cardLinesOnBuilding`): a flat town line whose
+ *      scope names it, a town line counted by its kind or its category inside
+ *      the town, and the building's own flat lines;
+ *   3. **the luxury lines on it** (`resourceLinesOnBuilding`): one helping of
+ *      each `buildingCategoryYields` line that names its category, or the
+ *      wonders.
+ *
+ * A building the town does not hold carries its row and nothing else: no card
+ * line can be on it, and the luxuries pay only for what stands. That is the
+ * reading the build list's preview asks for a building not yet raised.
+ *
+ * **Never a second payment.** Each card line still banks once, as the card's
+ * own line in step 3 of `docs/yields.md`, and each luxury line in step 4. The
+ * package is the building's view of those lines. Three readers ask it: the
+ * building shares of step 9 (`explainCardBuildingYields`, `yields/town.ts`),
+ * which are taken over it; `buildingSupplies`; and through that, the
+ * `hasBuildingYielding` scope and the `buildingsSupplying` count.
+ */
+export function explainBuildingPackage(
   state: GameState,
   city: City,
   id: BuildingId,
+): BuildingPackageLine[] {
+  const list: BuildingPackageLine[] = [];
+  for (const row of explainBuildingYield(id)) {
+    list.push({
+      source: row.source,
+      building: id,
+      food: row.food,
+      production: row.production,
+      gold: row.gold,
+      // Exact, as step 8 of the town fold takes it.
+      science: row.science + city.population * row.sciencePerPop,
+      culture: row.culture,
+      faith: row.faith,
+    });
+  }
+  if (!townHoldsBuilding(state, city, id)) return list;
+  for (const line of cardLinesOnBuilding(state, city, id)) list.push(line);
+  for (const line of resourceLinesOnBuilding(state, city, id)) {
+    list.push({
+      source: line.source,
+      resource: line.resource,
+      food: line.food,
+      production: line.production,
+      gold: line.gold,
+      science: line.science,
+      culture: line.culture,
+      faith: line.faith,
+    });
+  }
+  return list;
+}
+
+/** The one sum of a building's package. See `explainBuildingPackage`. */
+export function foldBuildingPackage(
+  lines: readonly BuildingPackageLine[],
 ): Record<CityYieldKey, number> {
   const total: Record<CityYieldKey, number> = {
     food: 0,
@@ -4723,13 +4813,86 @@ export function cardLinesOnBuilding(
     culture: 0,
     faith: 0,
   };
-  for (const { effect } of cityEffectsOfKind(state, city, 'pays')) {
-    if (effect.where !== 'city' || basisOf(effect) !== 'flat') continue;
-    if (!scopeNamesBuilding(effect.scope, id)) continue;
-    if (!cityScopeAdmits(state, city, effect.scope)) continue;
-    for (const key of VOICES) total[key] += effect[key] ?? 0;
+  for (const line of lines) {
+    for (const key of VOICES) total[key] += line[key];
   }
   return total;
+}
+
+/**
+ * **The card lines on one building in this town**, the second part of its
+ * package (`explainBuildingPackage`). The town holds the building; the caller
+ * has asked.
+ *
+ * Every live source but the rites counts (the user, 2026-10-28: anything that
+ * is the effect of a card the player holds, and later the technologies and
+ * the leader's abilities too). A rite is a city's verb and not a card, so its
+ * lines pay the town and are on no building. A timed effect follows the card
+ * that hung it, which is the entry's `card`: a rite's id is left out, and a
+ * great person's parting gift or an Order's aftermath is kept.
+ *
+ * Which lines are **on** the building, each asked through the scope it carries
+ * (`cityScopeAdmits`, so a condition that fails today puts nothing on it):
+ *
+ *   · a flat town line whose scope names the building (`hasBuilding`, alone or
+ *     inside an `all`): the whole line. A follower belief's science on a
+ *     temple, The Choir's culture. This is the reading the share used before
+ *     batch R2b (the user, 2026-09-07: the Synod "should count my religion
+ *     bonuses on my temples");
+ *   · the building's own flat town line that names no building: the whole
+ *     line. A line that names another building is on that one, so no line is
+ *     on two buildings because of who wrote it;
+ *   · a town line counted by the building's **kind** (`buildingsOfKind`) or
+ *     its **category** (`buildingsOfCategory`) inside the town
+ *     (`within: 'city'`): one share of what the line pays the town, for each
+ *     building it counted. At one helping a building, which every row writes
+ *     today, the share is one helping.
+ *
+ * Not on any building, and still facts about the town: a line under an `any`
+ * scope, a line counted across the empire, a count of anything else, a
+ * mirror, a share, and a line paid to another empire's town (`payee`).
+ */
+function cardLinesOnBuilding(state: GameState, city: City, id: BuildingId): BuildingPackageLine[] {
+  const owner = city.ownerId;
+  const category = buildingDef(id).category;
+  const list: BuildingPackageLine[] = [];
+  for (const { source, card, effect } of cityEffectsOfKind(state, city, 'pays')) {
+    if (isRiteId(card)) continue;
+    if (effect.payee !== undefined) continue;
+    const basis = basisOf(effect);
+    if (basis === 'flat') {
+      if (effect.where !== 'city') continue;
+      const onIt = scopeNamesABuilding(effect.scope)
+        ? scopeNamesBuilding(effect.scope, id)
+        : card === id;
+      if (!onIt) continue;
+      if (!cityScopeAdmits(state, city, effect.scope)) continue;
+      const line = emptyPackageLine(label(source, scopeNote(effect.scope)), card);
+      for (const key of VOICES) line[key] = effect[key] ?? 0;
+      if (VOICES.some((key) => line[key] !== 0)) list.push(line);
+      continue;
+    }
+    if (basis !== 'count' || !paysAVoice(effect) || effect.within !== 'city') continue;
+    const counted =
+      (effect.count === 'buildingsOfKind' && effect.building === id) ||
+      (effect.count === 'buildingsOfCategory' && effect.category === category);
+    if (!counted) continue;
+    // Where the town fold pays a counted line: every town, or the capital.
+    if (effect.where !== 'city' && effect.where !== 'capital') continue;
+    if (effect.where === 'capital' && capitalCityOf(state, owner)?.id !== city.id) continue;
+    if (!cityScopeAdmits(state, city, effect.scope, owner)) continue;
+    const many = countOf(state, owner, card, effect, city);
+    const times = helpings(many, effect.per, effect.max);
+    if (many === 0 || times === 0) continue;
+    const line = emptyPackageLine(label(source, scopeNote(effect.scope)), card);
+    line[effect.to as CityYieldKey] = ((effect.amount ?? 0) * times) / many;
+    if (VOICES.some((key) => line[key] !== 0)) list.push(line);
+  }
+  return list;
+}
+
+function emptyPackageLine(source: string, card: CardId): BuildingPackageLine {
+  return { source, card, food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 };
 }
 
 /** The fold of any list of card-yield lines. The only sum of them. */

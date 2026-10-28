@@ -46,7 +46,8 @@ import {
   type CardYieldLine,
   type CardBuildingPercentLine,
   cardBuildingPercents,
-  cardLinesOnBuilding,
+  explainBuildingPackage,
+  foldBuildingPackage,
   cardMeterFlag,
   explainCardCityYields,
   explainCardPercentYields,
@@ -383,7 +384,9 @@ export function explainCityBuildings(
  * The arithmetic is two stages and never one, which is the user's ruling that a
  * doubler *"applies to total yields, including from other effects"*:
  *
- *   · the **ordinary** shares are each taken of the building's own base;
+ *   · the **ordinary** shares are each taken of the building's package (batch
+ *     R2b): its row and every line a card or a luxury puts on it in this town
+ *     (`explainBuildingPackage`);
  *   · the **`appliedLast`** shares are each taken of that base *plus* what the
  *     ordinary shares just added — so a doubler doubles what the Vestry raised
  *     rather than racing it.
@@ -405,23 +408,17 @@ export function explainCardBuildingYields(
   if (shares.length === 0) return [];
   const byCard = new Map<CardBuildingPercentLine, BuildingPreviewLine>();
   for (const entry of explainCityBuildings(state, city, hypothetical)) {
-    // The building's own figure, per voice — the row's flats plus the per-citizen
-    // beaker, exact exactly as `explainCity` is exact, so the share is taken of the
-    // number the town actually banks — **plus what the law put on this building
-    // by name** (`cardLinesOnBuilding`: a follower belief's science on a temple,
-    // The Choir's culture, a legacy's faith). The user, 2026-09-07: the Synod
-    // "should count my religion bonuses on my temples, and great people
-    // improvements to temples". Those lines are banked once as the cards' own;
-    // here they only widen what the share is over.
-    const onIt = cardLinesOnBuilding(state, city, entry.building);
-    const base: Record<CityYieldKey, number> = {
-      food: entry.food + onIt.food,
-      production: entry.production + onIt.production,
-      gold: entry.gold + onIt.gold,
-      science: entry.science + city.population * entry.sciencePerPop + onIt.science,
-      culture: entry.culture + onIt.culture,
-      faith: entry.faith + onIt.faith,
-    };
+    // **The building's package** (batch R2b, `explainBuildingPackage`): its row,
+    // with the per-citizen beaker taken at the town's size, plus every line a
+    // card or a luxury puts on it here — a line whose scope names it, a line
+    // counted by its kind or its category in the town, its own lines, and a
+    // luxury's helping on its category. The user, 2026-10-28: a doubler on
+    // temples beside "+2 science on temples" supplies +4 science. Those lines
+    // are banked once as the cards' and the luxuries' own (steps 3 and 4); here
+    // they only widen what the share is over.
+    // A building no share reaches is not read at all.
+    if (!shares.some((share) => share.matches(entry.building))) continue;
+    const base = foldBuildingPackage(explainBuildingPackage(state, city, entry.building));
     const raised: Record<CityYieldKey, number> = { ...base };
     for (const pass of [false, true]) {
       for (const share of shares) {

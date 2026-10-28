@@ -913,7 +913,7 @@ describe('what the live rows do on a board', () => {
     const city = found(g.state, 0);
     city.buildings.push('library');
     refreshCityDerived(g.state, city);
-    // The line hangs on the shelf it names (`cardLinesOnBuilding`), so the
+    // The line hangs on the shelf it names (`explainBuildingPackage`), so the
     // ledger says which building the points came from.
     const named = () =>
       explainCity(g.state, city).lines.filter((line) => line.source.startsWith('Order · The Almanac'));

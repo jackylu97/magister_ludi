@@ -4144,6 +4144,19 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
         : `${kinds.slice(0, -1).join(', ')} or ${kinds[kinds.length - 1]}`;
     return { one: `${words} building`, many: `${words} buildings` };
   }
+  // **The buildings that supply one voice** (batch R2b): "per building there
+  // that supplies faith". The voice is printed here, so one entry serves every
+  // voice. The town goes inside the noun, after "building", as
+  // `scienceBuildings` says it; a row counted across the realm says "in your
+  // cities" there instead.
+  if (effect.count === 'buildingsSupplying' && effect.voice !== undefined) {
+    const at =
+      effect.within !== 'city' ? 'in your cities' : place === '' ? 'in this city' : place;
+    return {
+      one: `building ${at} that supplies ${effect.voice}`,
+      many: `buildings ${at} that supply ${effect.voice}`,
+    };
+  }
   // The ledger's count, said as the column it reads — "per science your empire
   // makes a turn". `buildingsOfKind`'s bargain a seventh time.
   if (effect.count === 'empireYield' && effect.voice !== undefined) {
@@ -4341,6 +4354,9 @@ function countNamesItsTown(effect: CardPaysEffect): boolean {
   // The town's caravans abroad, for the same reason: `countNoun` builds the
   // place into "leaving there", so a tail would name the town twice.
   if (effect.count === 'foreignTradeRoutes' && effect.within === 'city') return true;
+  // The buildings that supply a voice (batch R2b), for the same reason:
+  // `countNoun` puts the town inside the noun.
+  if (effect.count === 'buildingsSupplying' && effect.voice !== undefined) return true;
   return effect.count !== undefined && TOWN_COUNT_WORDS[effect.count] !== undefined;
 }
 
@@ -6295,6 +6311,13 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   // The list is not in these words either, for `buildingsOfCategory`'s reason —
   // `countNoun` prints it, so any pair of categories is one entry.
   buildingsOfCategories: { one: 'building', many: 'buildings' },
+  // The voice is not in these words: `countNoun` prints it with the town, so
+  // "per building there that supplies faith" and "… science" are one entry. A
+  // row that names no voice counts nothing, and these words say so plainly.
+  buildingsSupplying: {
+    one: 'building that supplies a yield',
+    many: 'buildings that supply a yield',
+  },
   // The voice is not in these words: `countNoun` prints it, so "per gold your
   // empire makes" and "per hammer" are one entry.
   empireYield: { one: 'your empire makes a turn', many: 'your empire makes a turn' },

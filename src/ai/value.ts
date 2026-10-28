@@ -80,7 +80,14 @@ import type { BeadChain, ExpansionChain, TechChain } from './chain';
  */
 import type { RouteOutlook } from './routes';
 
-import { BUILDING_IDS, type BuildingId, buildingDef, isPublicWork, isWonder } from '../sim/buildingData';
+import {
+  BUILDING_IDS,
+  type BuildingId,
+  buildingDef,
+  buildingRowSupplies,
+  isPublicWork,
+  isWonder,
+} from '../sim/buildingData';
 // **The one place a building's non-yield facts are read** (CLAUDE.md), and batch
 // X8 reads five more of them through it: the demand a court forgives, the coin
 // an assay house takes off a price, the wages a throne rebates, what a keep
@@ -6182,11 +6189,14 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
  * pays is a fact about the town the payment is made in, and an empire-wide
  * count of buildable ground would be an answer to a different question.
  *
- * **One count names its rows by a marker, not by a field** (Expansionist batch
- * E13): `publicWorks` (The Public Good) counts the rows that carry
+ * **Two counts name their rows by a rule, not by a field.** `publicWorks`
+ * (The Public Good, Expansionist batch E13) counts the rows that carry
  * `BuildingDef.publicWork`, so its promise is the public works the towns could
- * raise. It is the only place this fold reads a `CountKind`, because the
- * effect carries no field that names the rows.
+ * raise. `buildingsSupplying` (batch R2b) counts the rows that supply its
+ * `voice`, so its promise is the rows whose category is that voice or whose
+ * own row pays it (`buildingRowSupplies`). These are the only places this fold
+ * reads a `CountKind`, because neither effect carries a field that names the
+ * rows: `voice` alone also belongs to `empireYield`, which counts no building.
  */
 function potentialTownsFor(
   effect: CardPaysEffect,
@@ -6205,7 +6215,13 @@ function potentialTownsFor(
           ? BUILDING_IDS.filter((id) => effect.categories?.includes(buildingDef(id).category))
           : effect.count === 'publicWorks'
             ? BUILDING_IDS.filter(isPublicWork)
-            : [];
+            : // The buildings that supply a voice (batch R2b): the rows whose
+              // category is the voice or whose own row pays it. A card that
+              // makes another row supply the voice is not foreseen here; it
+              // is counted the turn it is held.
+              effect.count === 'buildingsSupplying' && effect.voice !== undefined
+              ? BUILDING_IDS.filter((id) => buildingRowSupplies(id, effect.voice!))
+              : [];
   if (wanted.length === 0) return null;
   let open = 0;
   let hammers = 0;

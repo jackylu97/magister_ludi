@@ -3138,8 +3138,31 @@ import {
  * different price, and a god a rival holds can now be dealt, so a v199 log
  * replays into different banks and different hands. The branch migrates
  * nothing, for the reason given under v119.
+ *
+ * v201 (branch `decks`; batch R2b, `docs/plans/devotion-review-2026-10-28.md`):
+ * **a building's package.** No field joins the state. The rules that change:
+ *
+ *   · a building's package is its row plus every line a card or a luxury puts
+ *     on it in the town (`explainBuildingPackage`): a flat town line whose
+ *     scope names it, the building's own flat line, a town line counted by
+ *     its kind or its category inside the town, and a luxury's
+ *     `buildingCategoryYields` helping. Every live source counts but a rite.
+ *     Step 9's building shares are taken over the package, so a share now
+ *     reaches the counted lines and the luxury helpings, and no longer reaches
+ *     a rite's line;
+ *   · a building supplies a voice when its category is that voice or its
+ *     package pays it (`buildingSupplies`). The `hasBuildingYielding` scope
+ *     reads this, so a faith building with no faith of its own now admits a
+ *     town for faith;
+ *   · a new count, `buildingsSupplying`: the buildings that supply the row's
+ *     `voice`, in the town with `within: 'city'` or across the realm.
+ *
+ * **A v200 save is refused and does not replay.** A town holding a building
+ * share beside a counted line or a luxury helping on the same building banks
+ * a different figure, so a v200 log replays into different banks. The branch
+ * migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 200;
+export const SCHEMA_VERSION = 201;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

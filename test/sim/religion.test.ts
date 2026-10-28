@@ -178,7 +178,8 @@ import {
   explainCardEmpireYields,
   cardBuildingHappiness,
   cardCityRenownShares,
-  cardLinesOnBuilding,
+  explainBuildingPackage,
+  foldBuildingPackage,
   cardHappiness,
   cardCityStat,
   cardPressureRule,
@@ -4493,10 +4494,11 @@ describe("the beliefs balance pass", () => {
 
   it("Cathedrals of the Sky is a line on the temple, so a temple’s share reaches it", () => {
     // The user's mark: *"modify, so that this is affected by temple
-    // multipliers"*. The shape that does it is E4a/H17's `cardLinesOnBuilding` —
-    // a `cityYields` whose scope **names** the building is folded into that
-    // building's own figure, and a `buildingYieldPercent` is then taken over the
-    // widened figure rather than over the row alone.
+    // multipliers"*. The shape that does it is the building's package
+    // (`explainBuildingPackage`, batch R2b; E4a/H17's `cardLinesOnBuilding`
+    // before it) — a `cityYields` whose scope **names** the building is folded
+    // into that building's own figure, and a `buildingYieldPercent` is then
+    // taken over the widened figure rather than over the row alone.
     const g = game();
     const city = town(g.state, 0, 6, 6);
     const religion = faith(g.state, 0);
@@ -4505,7 +4507,12 @@ describe("the beliefs balance pass", () => {
     city.buildings.push("temple");
     bumpRevision(g.state);
 
-    const onIt = cardLinesOnBuilding(g.state, city, "temple");
+    // The card lines on the temple: its package without its own row.
+    const cardLinesOn = (town: typeof city, id: "temple") =>
+      foldBuildingPackage(
+        explainBuildingPackage(g.state, town, id).filter((line) => line.card !== undefined),
+      );
+    const onIt = cardLinesOn(city, "temple");
     expect(onIt.science).toBe(2);
     expect(onIt.culture).toBe(2);
     // The temple's own row pays faith and nothing else, so what the belief put
@@ -4521,7 +4528,7 @@ describe("the beliefs balance pass", () => {
     // And a town that does not follow, or has no temple, is not lit at all.
     const bare = town(g.state, 0, 9, 6);
     bumpRevision(g.state);
-    expect(cardLinesOnBuilding(g.state, bare, "temple").science).toBe(0);
+    expect(cardLinesOn(bare, "temple").science).toBe(0);
   });
 
   it("Feast Days pays the town once and the temple once, in two ledgers", () => {

@@ -3032,6 +3032,24 @@ export type CountKind =
    */
   | 'buildingsOfCategories'
   /**
+   * **The buildings that supply one voice** (batch R2b,
+   * `docs/plans/devotion-review-2026-10-28.md`): "+2 science for each building
+   * in the town that supplies faith". Which voice is `CardPaysEffect.voice`; a
+   * row that names none counts nothing.
+   *
+   * A building supplies a voice when its category is that voice, or when its
+   * package pays it: its row plus every line a card or a luxury puts on it in
+   * the town, asked now (`buildingSupplies`, `explainBuildingPackage`). So
+   * every faith building supplies faith, and so does a Library a card makes pay
+   * faith. Counted in the town with `within: 'city'`, and across the realm
+   * without it.
+   *
+   * One count for any voice, rather than one member a voice, because the user
+   * asked for one rule (2026-10-28). `scienceBuildings` is the older count that
+   * reads the row alone.
+   */
+  | 'buildingsSupplying'
+  /**
    * **What this empire's books say it makes in one voice, this turn** — Horology's
    * "science equal to your empire-wide production", and the Long Count's kin.
    *
@@ -6652,8 +6670,9 @@ export interface CardPaysEffect extends CardYieldBag {
    */
   family?: Family;
   /**
-   * Which voice `empireYield` reads. Absent counts nothing, which is the honest
-   * answer for a ledger question that never said which column.
+   * Which voice `empireYield` reads, and which voice the buildings counted by
+   * `buildingsSupplying` supply (batch R2b). Absent counts nothing, which is
+   * the honest answer for a question that never said which voice.
    */
   voice?: CityYieldKey;
   /**
@@ -7132,8 +7151,9 @@ export interface CardHappinessEffect {
    * *"Temples supply +1 happiness"* (the user's mark of 2026-09-08: *"modify, so
    * that this is affected by temple multipliers"*).
    *
-   * `cardLinesOnBuilding`'s bargain one meter over. A town `pays` naming a
-   * building in its scope is already folded into that building's own figure —
+   * The building package's bargain one meter over (`explainBuildingPackage`,
+   * batch R2b). A town `pays` naming a building in its scope is already folded
+   * into that building's own figure —
    * which is what lets the Synod's share reach a belief's science on a temple —
    * but happiness is not a voice (`CityYieldKey` has no member for it), so the
    * yield path could not carry it and a share of it has nothing to multiply

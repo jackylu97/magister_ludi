@@ -20,9 +20,12 @@ import {
 } from '../../src/sim/cities';
 import {
   cityYieldPercents,
+  explainCardBuildingYields,
   foldCity,
   productionModifiers,
 } from '../../src/sim/yields/town';
+import { explainBuildingPackage, foldBuildingPackage } from '../../src/sim/statecraft';
+import { type CardEffect, ORDER_IDS, orderDef } from '../../src/sim/statecraftData';
 import {
   collectYields,
 } from '../../src/sim/yields/empire';
@@ -1205,7 +1208,74 @@ describe('buildingCategoryYields: paid for what you built, not for how wide you 
     expect(lineFor()).toBeDefined();
     expect(lineFor()!.source).toContain('wonders');
   });
+
+  it('puts one helping on each building it names, so a share on that building reaches it', () => {
+    // Batch R2b: the luxury's line is in the building's package
+    // (`explainBuildingPackage`), one helping a building. It still banks once,
+    // at step 4; a share on the building is taken over it at step 9.
+    const row = plantableWith(
+      'buildingCategoryYields',
+      (effect) => effect.category !== undefined && foldOneBag(effect) > 0,
+    );
+    expect(row).toBeDefined();
+    const { id, effect } = row!;
+    const { state, first } = twoCities();
+    standIn(state, 0, 3);
+    at(state.map, 7, 5).hills = true;
+    plant(state, first, 7, 5, id);
+    const matching = BUILDING_IDS.filter(
+      (building) =>
+        buildingDef(building).category === effect.category && !buildingDef(building).wonder,
+    );
+    first.buildings = [matching[0]!, matching[1]!];
+    bumpRevision(state);
+
+    const onIt = explainBuildingPackage(state, first, matching[0]!).filter(
+      (line) => line.resource === id,
+    );
+    expect(onIt).toHaveLength(1);
+    const helping = foldBuildingPackage(onIt);
+    for (const voice of ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const) {
+      expect(helping[voice]).toBe(effect[voice] ?? 0);
+    }
+    // The bank is unchanged: one line for the town, a helping for each building.
+    const banked = cityResourceYields(state, first).filter((line) => line.resource === id);
+    expect(foldOne(banked)).toBe(2 * foldOneBag(effect));
+
+    // A doubler on the first building takes its share over the helping too.
+    const card = ORDER_IDS[0]!;
+    const def = orderDef(card) as { effects: CardEffect[] };
+    const held = def.effects;
+    try {
+      def.effects = [{ kind: 'buildingYieldPercent', building: matching[0]!, percent: 100 }];
+      const sc = state.players[0]!.statecraft;
+      sc.orders.push(card);
+      sc.slots.push({ card, sealedUntil: state.turn });
+      bumpRevision(state);
+      const share = explainCardBuildingYields(state, first).find((line) => line.card === card)!;
+      const base = foldBuildingPackage(
+        explainBuildingPackage(state, first, matching[0]!).filter((line) => line.resource !== id),
+      );
+      for (const voice of ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const) {
+        expect(share[voice]).toBe(base[voice] + (effect[voice] ?? 0));
+      }
+    } finally {
+      def.effects = held;
+    }
+  });
 });
+
+/** Every voice of a luxury's yield bag, summed. */
+function foldOneBag(bag: Partial<Record<'food' | 'production' | 'gold' | 'science' | 'culture' | 'faith', number>>): number {
+  return (
+    (bag.food ?? 0) +
+    (bag.production ?? 0) +
+    (bag.gold ?? 0) +
+    (bag.science ?? 0) +
+    (bag.culture ?? 0) +
+    (bag.faith ?? 0)
+  );
+}
 
 describe('routeYields: a coin on every caravan', () => {
   it('joins the route’s own list, once per route, off the origin’s owner', () => {

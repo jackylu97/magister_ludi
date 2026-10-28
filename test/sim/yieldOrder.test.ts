@@ -224,7 +224,7 @@ describe('the town folds its flats before it meets a percentage', () => {
     city.buildings.push('temple');
     bumpRevision(state);
     // The Choir pays +3 culture in a town with a Temple — a `cityYields` line
-    // whose scope names the building, which is what `cardLinesOnBuilding`
+    // whose scope names the building, which is what `explainBuildingPackage`
     // widens the share to cover (the user, 2026-09-07: the Synod "should count
     // my religion bonuses on my temples").
     slot(state, 0, 'theChoir');

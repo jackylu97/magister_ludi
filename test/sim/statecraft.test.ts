@@ -91,7 +91,8 @@ import {
   cardCityStat,
   cityScopeAdmits,
   explainCardCityYields,
-  cardLinesOnBuilding,
+  explainBuildingPackage,
+  foldBuildingPackage,
   cardProduction,
   cardYieldConversions,
   cardFoundingRider,
@@ -2251,7 +2252,11 @@ describe("determinism", () => {
     // rite the empire has started, counted on the player, and two empires
     // may hold the same pantheon god. So a v199 log charges different
     // prices for rites and deals different gods.
-    expect(SCHEMA_VERSION).toBe(200);
+    // 201 since batch R2b (a building's package): a building share is
+    // taken over every line a card or a luxury puts on the building, and
+    // a faith building supplies faith. So a v200 log banks different
+    // figures where a share meets a counted line or a luxury helping.
+    expect(SCHEMA_VERSION).toBe(201);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -9826,7 +9831,8 @@ describe("an Order dealt only from its age", () => {
  * yields — it should count my religion bonuses on my temples, and great people
  * improvements to temples."* A `buildingYieldPercent`'s share is taken of the
  * building's row **plus** every `cityYields` line whose scope names that
- * building (`cardLinesOnBuilding`), whoever wrote it — an Order, a belief, a
+ * building (its package since batch R2b, `explainBuildingPackage`), whoever
+ * wrote it — an Order, a belief, a
  * legacy. The lines themselves are banked once as the cards' own; the share
  * is what widens.
  */
@@ -9858,12 +9864,17 @@ describe("a building’s share counts what the law put on it", () => {
     const city = found(g.state, 0);
     city.buildings.push("temple");
     bumpRevision(g.state);
-    const onIt = cardLinesOnBuilding(g.state, city, "temple");
+    // The card lines on a building: its package without its own row.
+    const cardLinesOn = (id: "temple" | "monument") =>
+      foldBuildingPackage(
+        explainBuildingPackage(g.state, city, id).filter((line) => line.card !== undefined),
+      );
+    const onIt = cardLinesOn("temple");
     expect(onIt.culture).toBe(0);
     slot(g.state, 0, "theChoir");
-    expect(cardLinesOnBuilding(g.state, city, "temple").culture).toBe(3);
+    expect(cardLinesOn("temple").culture).toBe(3);
     // A monument's line is the monument's, not the temple's.
-    expect(cardLinesOnBuilding(g.state, city, "monument").culture).toBe(0);
+    expect(cardLinesOn("monument").culture).toBe(0);
   });
 });
 

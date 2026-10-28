@@ -2390,6 +2390,30 @@ describe('the engine shapes, priced', () => {
     expect(overstretched).toBe(0);
   });
 
+  it('prices the buildings that supply a yield off what the town supplies (batch R2b)', () => {
+    // Generic in the count: `countOf` answers, so a town with no faith building
+    // prices the line at nothing and a town with a Temple does not.
+    const each: CardEffect[] = [
+      {
+        kind: 'pays',
+        where: 'city',
+        basis: 'count',
+        count: 'buildingsSupplying',
+        voice: 'faith',
+        within: 'city',
+        to: 'science',
+        amount: 2,
+      },
+    ];
+    const bare = priced(each);
+    const built = priced(each, (state, _player, city) => {
+      city.buildings.push('temple');
+      bumpRevision(state);
+    });
+    expect(bare).toBe(0);
+    expect(built).toBeGreaterThan(0);
+  });
+
   it('prices a caravan paid by the mile off the roads it is actually running', () => {
     const mile: CardEffect[] = [
       { kind: 'pays', where: 'route', basis: 'count', count: 'routeLength', per: 2, gold: 1 },

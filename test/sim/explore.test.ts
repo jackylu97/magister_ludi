@@ -1244,10 +1244,20 @@ describe('determinism', () => {
    * no rite is said, no count is written and no god is dealt. Checked with the
    * change in place and the version printed as 199, which gives the hashes of
    * Magisterial batch MG16 exactly.
+   *
+   * **Batch R2b (a building's package, schema 201) moved the hash and not the
+   * length** at both seeds: 200 became 201, and that is all. The batch takes
+   * each building share over the building's package (its row and every line a
+   * card or a luxury puts on it), lets a building's category say which voice
+   * it supplies, and adds the `buildingsSupplying` count. Nobody here drafts,
+   * holds a card that takes a building share or holds a luxury of the third
+   * age, so no share is taken and no fold moves. Checked with the change in
+   * place and the version printed as 200, which gives the hashes of batch R2a
+   * exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '7bdfcf55:188976',
-    2026: 'fa8c1e6c:188554',
+    11: 'f97a4526:188976',
+    2026: '3e4b690b:188554',
   };
 
   for (const seed of [11, 2026]) {

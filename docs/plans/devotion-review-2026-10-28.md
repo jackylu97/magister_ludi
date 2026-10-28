@@ -154,3 +154,10 @@ Schema 203. Explore digest control as in R2a.
   - **The explore digests** moved only by the schema number: at 199 the old pins held.
   - **To judge in play:** a prophet's rite over N towns raises the next price by five times N.
   - **Left for the push gate:** the six-seat bot digests will move.
+- **R2b (2026-10-28):** as planned. The gate passed: the type check, 10,128 core tests and the build. Schema 201.
+  - **The package:** `explainBuildingPackage(state, city, id)` is the labelled list and `foldBuildingPackage` its one sum. They replace `cardLinesOnBuilding`. The list holds the row (with per-citizen science at the town's size), the card lines on the building, and the luxury lines on it (`resourceLinesOnBuilding`, in `resourceEffects.ts`). Every live source counts except rites, filtered by the rite's card id, so a rite's timed line stays out. A building the town does not hold carries its row only.
+  - **A line has one home** (a reading the agent took): Hagia Sophia's "+1 culture +1 faith in towns with a Temple" sits on the Temple, not also on the wonder, so no two shares are taken over one line.
+  - **The readers:** step 9 takes each share over the package; `buildingSupplies` answers yes for the building's category or a package that pays the voice; the new count `buildingsSupplying` (the town with `within: 'city'`, the realm without). The bots price it through `countOf`.
+  - **What pays more now:** The Bourse reaches Commercial Education's science on gold buildings; Rumi reaches The Painted Chapels, the Treasury of Relics patron and Hildegard's Symphonia on temples; Dürer reaches marble's culture on wonders and the counted category lines on wonders; Aristotle and al-Jazari reach the third-age luxury lines (tea, coffee, jade, cotton).
+  - **The explore digests** moved only by the schema number.
+  - **Left for R2d:** the `scienceBuildings` count, the `pays` selector on a building share, and the bots' price of a share still read the row alone.

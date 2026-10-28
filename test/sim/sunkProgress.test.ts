@@ -359,7 +359,11 @@ describe('the schema says so', () => {
     // rite the empire has started, counted on the player, and two empires
     // may hold the same pantheon god. So a v199 log charges different
     // prices for rites and deals different gods.
-    expect(SCHEMA_VERSION).toBe(200);
+    // 201 since batch R2b (a building's package): a building share is
+    // taken over every line a card or a luxury puts on the building, and
+    // a faith building supplies faith. So a v200 log banks different
+    // figures where a share meets a counted line or a luxury helping.
+    expect(SCHEMA_VERSION).toBe(201);
   });
 
   it('says in the changelog what a v110 log does now', () => {
