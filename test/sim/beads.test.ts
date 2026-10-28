@@ -610,7 +610,11 @@ describe("the bead catalogue", () => {
     // Scholasticism opens the Cathedral School in place of the early
     // Cathedral and Apostle. So a v201 log's Devotion and Dominion hands
     // hold different cards.
-    expect(SCHEMA_VERSION).toBe(202);
+    // 203 since batch BR1 (barbarian camps): a new camp starts with one or
+    // two units, each camp keeps two guards, and the other soldiers march on
+    // the players' towns. So a v202 log's camps raise different units and
+    // its rolls move after the first camp.
+    expect(SCHEMA_VERSION).toBe(203);
   });
 
   it("puts the world clock after renown and the wager after it, with no bead phase left", () => {

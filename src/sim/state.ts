@@ -3183,8 +3183,29 @@ import {
  * seat's Tier 0 and Tier I pools hold different cards, and a seat holding
  * the charter opens a different shelf. The branch migrates nothing, for the
  * reason given under v119.
+ *
+ * v203 (branch `decks`; batch BR1, `docs/plans/barbarians-2026-10-28.md`):
+ * **barbarian camps keep two guards and send raiders at the players.** No
+ * field joins the state. The rules that change:
+ *
+ *   · a new camp starts with one or two units, a roll on `state.rng` made
+ *     right after the camp is placed (`rules.barbarians.campStartUnitsMin`
+ *     and `campStartUnitsMax`). The first stands on the camp and digs in. The
+ *     band does not move on the turn it appears;
+ *   · each camp keeps `maxUnitsPerCamp` guards: the warden and a second guard
+ *     (`barbarianRoles`, a new `guard` role, derived each turn). A guard stays
+ *     within `campUnitRadius` of its camp;
+ *   · every other soldier is a raider, and a raider with nothing to fight in
+ *     reach marches on the nearest town of a real player it can walk to;
+ *   · a camp with all its guards still musters, and the unit is a raider,
+ *     while the world holds fewer than `raidersPerCamp` raiders for each camp.
+ *
+ * **A v202 save is refused and does not replay.** A camp founded in a v202
+ * log raises a band and draws one more number from the generator, so every
+ * roll after the first camp moves. The branch migrates nothing, for the
+ * reason given under v119.
  */
-export const SCHEMA_VERSION = 202;
+export const SCHEMA_VERSION = 203;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

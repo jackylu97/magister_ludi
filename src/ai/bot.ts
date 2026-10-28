@@ -8569,6 +8569,30 @@ function campaignMarch(
 }
 
 /**
+ * The hex beside a held camp this piece should walk to (batch BR1): `'here'`
+ * when it already stands beside the camp, the reachable free hex beside the
+ * camp nearest to it (ties by tile index), or `null` when there is none.
+ */
+function campDoor(state: GameState, unit: Unit, camp: Tile): Tile | 'here' | null {
+  const here = getTileAt(state.map, unit.col, unit.row);
+  if (!here) return null;
+  const from = tileHex(here);
+  if (wrappedDistance(state.map, from, tileHex(camp)) === 1) return 'here';
+  const doors = mapRange(state.map, tileHex(camp), 1)
+    .filter((tile) => !(tile.col === camp.col && tile.row === camp.row) && canStopOn(state, unit, tile))
+    .map((tile) => ({
+      tile,
+      distance: wrappedDistance(state.map, from, tileHex(tile)),
+      index: tileIndex(state.map, tile.col, tile.row),
+    }))
+    .sort((a, b) => a.distance - b.distance || a.index - b.index);
+  for (const door of doors) {
+    if (findPath(state, unit, door.tile) !== null) return door.tile;
+  }
+  return null;
+}
+
+/**
  * The camp this piece marches on, or `null` — **the camps near this empire's
  * towns, nearest-to-a-town first** (design addendum 2).
  *
@@ -8584,6 +8608,15 @@ function campaignMarch(
  * Marching *onto* a camp is how a camp is cleared — the arrival seam burns it
  * out (`arriveOnTile`), there is no verb for it — so this is a plain move order
  * and not an attack.
+ *
+ * **A held camp is marched on to its door** (batch BR1). A camp now starts
+ * with its band and keeps two guards, so its hex nearly always holds the
+ * warden, and nobody can walk onto a hex an enemy stands on. When the camp
+ * itself has no route, the piece walks to the free hex beside the camp nearest
+ * to it. From there the blow arm (`favourableBlow` against the wild) weighs a
+ * strike at the warden next turn by the seat's own exchange bar, and a melee
+ * kill advances onto the camp and clears it. A piece already at the door is
+ * not marched again: the blow arm has had its say this turn.
  *
  * **It never strips a threatened town.** Two guards, and they are two different
  * sentences: the empire's towns must all be held before anybody goes hunting
@@ -8634,8 +8667,23 @@ function campMarch(state: GameState, player: Player, unit: Unit): UnitTarget | n
       { label: `(${entry.distance} hexes from this piece — the tie-break)`, value: 0 },
     ];
     if (findPath(state, unit, tile) === null) {
-      tried.push(refused(label, 'no route to it'));
-      continue;
+      const door = campDoor(state, unit, tile);
+      if (door === 'here') {
+        tried.push(refused(label, 'it stands at the door already, and the strike was weighed above'));
+        continue;
+      }
+      if (door === null) {
+        tried.push(refused(label, 'no route to it'));
+        continue;
+      }
+      tried.push({ label, score: entry.toTown, chosen: true, terms });
+      return {
+        at: { col: door.col, row: door.row },
+        summary:
+          `Marches on the camp at (${entry.camp.col},${entry.camp.row}), ${entry.toTown} hexes from one of its ` +
+          'towns, to its door: the camp is held, so its guard must be struck first.',
+        candidates: tried,
+      };
     }
     tried.push({ label, score: entry.toTown, chosen: true, terms });
     return {

@@ -1262,10 +1262,28 @@ describe('determinism', () => {
    * early Cathedral and Apostle. Nobody here drafts, so no seat holds a card
    * or researches Scholasticism. Checked with the change in place and the
    * version printed as 201, which gives the hashes of batch R2b exactly.
+   *
+   * **Batch BR1 (barbarian camps, schema 203) moved the hash and the length**
+   * at both seeds, and the rule that moved them is the starting band. This
+   * game has the wild in it, and its first camps appear on turn 6. A new camp
+   * now raises one or two units at once, and the band's size is one more roll
+   * on `state.rng`, so every roll after the first camp moves too. Measured
+   * three ways at schema 202:
+   *
+   *   · every new rule switched off (no band, one warden a camp, the old
+   *     muster and the old raid): the hashes of batch R2c exactly;
+   *   · the new roles, muster and raid on, the band off: the hashes of batch
+   *     R2c exactly. Inside twenty turns no camp has a raider yet, and the
+   *     second guard patrols where the old second unit wandered, with the
+   *     same roll;
+   *   · the band on as well: `941c6158:190677` and `877adbd1:190843`.
+   *
+   * Then 202 became 203, which moved the hashes and not the lengths. The
+   * prints are longer because the board holds more barbarian units.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '9722717b:188976',
-    2026: '7d8b0dbe:188554',
+    11: 'ce94eaf9:190677',
+    2026: '9abd6350:190843',
   };
 
   for (const seed of [11, 2026]) {

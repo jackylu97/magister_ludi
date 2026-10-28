@@ -643,7 +643,11 @@ describe('determinism', () => {
     // Scholasticism opens the Cathedral School in place of the early
     // Cathedral and Apostle. So a v201 log's Devotion and Dominion hands
     // hold different cards.
-    expect(SCHEMA_VERSION).toBe(202);
+    // 203 since batch BR1 (barbarian camps): a new camp starts with one or
+    // two units, each camp keeps two guards, and the other soldiers march on
+    // the players' towns. So a v202 log's camps raise different units and
+    // its rolls move after the first camp.
+    expect(SCHEMA_VERSION).toBe(203);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

@@ -8,12 +8,15 @@ import {
   barbarianTurn,
   barbarianMountType,
   barbarianUnitType,
+  campCensus,
   campHasHorses,
   nearestTarget,
   canFoundCampAt,
   foundCamps,
   musterCamps,
   raid,
+  raidGoal,
+  walkableLand,
 } from '../../src/sim/barbarians';
 import { campAt, hasCampAt, settleCampBounty } from '../../src/sim/camps';
 import { assignCitizens, foundCityAt, growthThreshold } from '../../src/sim/cities';
@@ -27,6 +30,7 @@ import {
   previewCombat,
   updateElimination,
 } from '../../src/sim/combat';
+import { driveBots } from '../../src/ai/driver';
 import { applyCommand } from '../../src/sim/commands';
 import { dispatch, replay, snapshotState } from '../../src/sim/game';
 import {
@@ -45,6 +49,7 @@ import {
   type GameState,
   allTurnsEnded,
   barbarianPlayer,
+  citiesOf,
   clearTurnEnded,
   createUnit,
   isBarbarian,
@@ -525,37 +530,91 @@ describe('the horse rule', () => {
 });
 
 describe('mustering', () => {
-  it('waits a turn, then musters on the cadence, up to the band cap', () => {
+  it('waits a turn, then musters guards, then raiders up to the world limit', () => {
+    // Batch BR1. A camp musters guards until it holds `maxUnitsPerCamp`, then
+    // raiders while the world holds fewer than `raidersPerCamp` for each camp.
+    // The camp is pushed by hand, so it has no starting band.
     const state = wildState();
     state.camps.push({ col: 8, row: 8, foundedTurn: 4 });
     const wild = wildId(state);
     const band = (): number => state.units.filter((unit) => unit.ownerId === wild).length;
+    const census = () => campCensus(state, barbarianPlayer(state)!);
+    const key = tileIndex(state.map, 8, 8);
 
     // Not on the turn it was founded.
     state.turn = 4;
     musterCamps(state);
     expect(band()).toBe(0);
 
-    state.turn = 4 + BARB.unitEveryTurns;
-    musterCamps(state);
-    expect(band()).toBe(1);
+    // The guards first.
+    for (let n = 1; n <= BARB.maxUnitsPerCamp; n++) {
+      state.turn += BARB.unitEveryTurns;
+      musterCamps(state);
+      expect(band()).toBe(n);
+      expect(census().guards.get(key)).toBe(n);
+      expect(census().raiders).toBe(0);
+    }
 
-    // The cap is counted over the band still *near* the camp.
-    for (let n = 2; n <= BARB.maxUnitsPerCamp + 2; n++) {
+    // Then raiders, up to the world limit, and no further.
+    const limit = BARB.raidersPerCamp * state.camps.length;
+    for (let n = 0; n < limit + 2; n++) {
       state.turn += BARB.unitEveryTurns;
       musterCamps(state);
     }
-    expect(band()).toBe(BARB.maxUnitsPerCamp);
+    expect(census().guards.get(key)).toBe(BARB.maxUnitsPerCamp);
+    expect(census().raiders).toBe(limit);
+    expect(band()).toBe(BARB.maxUnitsPerCamp + limit);
 
-    // March the garrison away and the camp musters again — which is what makes
-    // a camp left standing a faucet rather than a one-off.
+    // A muster off the cadence raises nothing, guards or no guards.
+    state.turn += 1;
+    musterCamps(state);
+    expect(band()).toBe(BARB.maxUnitsPerCamp + limit);
+
+    // March the guards away and the camp musters again — which is what makes
+    // a camp left standing a faucet rather than a one-off. They are raiders
+    // now, far from the camp, and the world is over its limit, but a camp
+    // short of guards still raises one.
     for (const unit of state.units) {
       unit.col = 1;
       unit.row = 1;
     }
-    state.turn += BARB.unitEveryTurns;
+    expect(census().guards.get(key)).toBeUndefined();
+    state.turn += BARB.unitEveryTurns - 1;
     musterCamps(state);
-    expect(band()).toBe(BARB.maxUnitsPerCamp + 1);
+    expect(band()).toBe(BARB.maxUnitsPerCamp + limit + 1);
+    expect(census().guards.get(key)).toBe(1);
+  });
+
+  it('counts thieves and escorts as raiders, and stolen civilians as neither', () => {
+    const state = wildState();
+    state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
+    const wild = wildId(state);
+    // The camp's two guards.
+    createUnit(state, wild, 'warrior', 8, 8);
+    createUnit(state, wild, 'warrior', 9, 8);
+    // A cargo with its escort, far from the camp, and a thief beside its prey.
+    createUnit(state, wild, 'worker', 2, 2);
+    createUnit(state, wild, 'warrior', 2, 3);
+    createUnit(state, 0, 'worker', 14, 12);
+    createUnit(state, wild, 'warrior', 14, 11);
+    recomputeAllVisibility(state);
+
+    const roles = rolesOf(state);
+    const kinds = [...state.units]
+      .filter((unit) => unit.ownerId === wild)
+      .map((unit) => roles.get(unit.id)!.kind);
+    expect(kinds).toEqual(['warden', 'guard', 'cargo', 'escort', 'thief']);
+
+    const census = campCensus(state, barbarianPlayer(state)!);
+    expect(census.guards.get(tileIndex(state.map, 8, 8))).toBe(2);
+    expect(census.raiders).toBe(2);
+
+    // Two raiders against a limit of `raidersPerCamp` for the one camp: the
+    // guarded camp musters only while the world is under it.
+    state.turn = 1 + BARB.unitEveryTurns;
+    const before = state.units.length;
+    musterCamps(state);
+    expect(state.units.length).toBe(before + (2 < BARB.raidersPerCamp ? 1 : 0));
   });
 });
 
@@ -594,24 +653,41 @@ describe('raiding', () => {
     state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
     state.turn = 1 + BARB.unitEveryTurns;
     barbarianTurn(state);
-    const born = state.units.filter((unit) => unit.ownerId === wildId(state));
+    // This may also be a founding turn, and a new camp brings its own band
+    // (batch BR1), so the claim is asked of the camp pushed above.
+    const born = state.units.filter(
+      (unit) => unit.ownerId === wildId(state) && distance(state, unit, { col: 8, row: 8 }) <= 1,
+    );
     expect(born).toHaveLength(1);
     // Full allowance, unspent: it is born as any other unit is and acts on the
     // turn its owner next moves.
     expect(born[0]!.movesLeft).toBe(unitDef(born[0]!.type).movement);
   });
 
-  it('wanders near its camp with nothing in reach, and stays on the board', () => {
+  it('drifts near its camp when it has no town to march on, and stays on the board', () => {
+    // A raider (the camp's third soldier) on a board with no town at all. It
+    // drifts round the camp, as every raider did before batch BR1.
     const state = wildState();
     state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
-    const raider = createUnit(state, wildId(state), 'warrior', 8, 8);
-    state.turn = 30;
-    for (let i = 0; i < 12; i++) barbarianTurn(state);
+    const wild = wildId(state);
+    createUnit(state, wild, 'warrior', 8, 8);
+    createUnit(state, wild, 'warrior', 9, 8);
+    // Two hexes out, so the soldier one hex out is the guard.
+    const raider = createUnit(state, wild, 'warrior', 10, 8);
+    expect(rolesOf(state).get(raider.id)).toEqual({ kind: 'raider' });
+    expect(raidGoal(state, raider)).toBeNull();
 
-    const alive = state.units.find((unit) => unit.id === raider.id)!;
-    expect(
-      wrappedDistance(state.map, tileHex(at(state, alive.col, alive.row)), tileHex(at(state, 8, 8))),
-    ).toBeLessThanOrEqual(BARB.wanderRadius);
+    state.turn = QUIET_TURN;
+    for (let i = 0; i < 12; i++) {
+      refill(state);
+      raid(state, state.units.filter((unit) => unit.ownerId === wild).map((unit) => unit.id));
+    }
+    // The guard and the raider may trade jobs as they move (the nearer one is
+    // the guard), and both stay near the camp either way.
+    for (const unit of state.units) {
+      expect(distance(state, unit, { col: 8, row: 8 })).toBeLessThanOrEqual(BARB.wanderRadius);
+    }
+    expect(state.units.find((unit) => unit.id === raider.id)).toBeDefined();
   });
 });
 
@@ -1306,26 +1382,31 @@ describe('the warden', () => {
     expect(fortifyBonus(warden)).toBe(RULES.combat.fortifyMax);
   });
 
-  it('sends the second muster out to raid, and the warden keeps the hex', () => {
+  it('keeps the second muster as a guard, sends the third out to raid, and the warden keeps the hex', () => {
     const state = wildState();
     state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
     state.turn = 1 + BARB.unitEveryTurns;
-    musterCamps(state);
-    state.turn += BARB.unitEveryTurns;
-    musterCamps(state);
+    for (let n = 0; n < BARB.maxUnitsPerCamp + 1; n++) {
+      musterCamps(state);
+      state.turn += BARB.unitEveryTurns;
+    }
 
     const band = bandOf(state);
-    expect(band).toHaveLength(2);
+    expect(band).toHaveLength(BARB.maxUnitsPerCamp + 1);
     const warden = band.find((unit) => unit.col === 8 && unit.row === 8)!;
-    const roamer = band.find((unit) => unit.id !== warden.id)!;
-    // Seated on a neighbour — the camp hex was taken — and not dug in: it is
-    // the piece the camp sends out into the world.
-    expect(distance(state, roamer, { col: 8, row: 8 })).toBe(1);
-    expect(isFortified(roamer)).toBe(false);
+    const others = band.filter((unit) => unit.id !== warden.id);
+    // Seated on neighbours — the camp hex was taken — and not dug in.
+    for (const unit of others) {
+      expect(distance(state, unit, { col: 8, row: 8 })).toBe(1);
+      expect(isFortified(unit)).toBe(false);
+    }
 
     const roles = rolesOf(state);
     expect(roles.get(warden.id)).toEqual({ kind: 'warden', camp: { col: 8, row: 8 } });
-    expect(roles.get(roamer.id)).toEqual({ kind: 'raider' });
+    // Batch BR1: two guards a camp, the warden included, and the rest raid.
+    const jobs = others.map((unit) => roles.get(unit.id)!.kind);
+    expect(jobs.filter((kind) => kind === 'guard')).toHaveLength(BARB.maxUnitsPerCamp - 1);
+    expect(jobs.filter((kind) => kind === 'raider')).toHaveLength(1);
   });
 
   it('keeps the next muster home once the warden is killed', () => {
@@ -1467,19 +1548,20 @@ describe('the warden', () => {
     expect(hasCampAt(state, 9, 5)).toBe(false);
   });
 
-  it('is the register’s fourth job, and the register is five kinds', () => {
+  it('is one job of six, and the passes run in the order the union lists them', () => {
     // The roles are a closed union and the sweep's switch is exhaustive over it,
-    // so a fifth *shape* is a design decision rather than a patch. Read off the
+    // so a new *shape* is a design decision rather than a patch. Read off the
     // source, in `test/ui/seatRoster.test.ts`' style, because the order is the
     // rule: the passes run in the order the union lists them, and `escort >
-    // warden > theft > raid` is what "the camp keeps one back" means.
+    // warden > guard > theft > raid` is what "the camp keeps two back" means.
+    // Batch BR1 added the guard.
     const union = SIM_SOURCE.slice(
       SIM_SOURCE.indexOf('export type BarbarianRole ='),
       SIM_SOURCE.indexOf('/** The camp nearest this cell'),
     );
     expect(union).not.toBe('');
     const kinds = [...union.matchAll(/kind: '(\w+)'/g)].map((match) => match[1]);
-    expect(kinds).toEqual(['cargo', 'escort', 'warden', 'thief', 'raider']);
+    expect(kinds).toEqual(['cargo', 'escort', 'warden', 'guard', 'thief', 'raider']);
   });
 });
 
@@ -2104,5 +2186,357 @@ describe('the wild at the gate', () => {
     expect(applyCombat(state, raider.id, { col: 5, row: 8 }).ok).toBe(true);
     expect(city.ownerId).toBe(0);
     void garrison;
+  });
+});
+
+/**
+ * Batch BR1 (`docs/plans/barbarians-2026-10-28.md`): a new camp starts with its
+ * band, each camp keeps two guards, and every other soldier marches on the
+ * players' towns, human or bot.
+ */
+describe('a new camp’s band', () => {
+  /** Founds camps over a long sweep on a board nobody watches. */
+  function foundOver(state: GameState, turns: number): void {
+    state.units = [];
+    recomputeAllVisibility(state);
+    for (let turn = 1; turn <= turns; turn++) {
+      state.turn = turn;
+      foundCamps(state);
+    }
+  }
+
+  /** The wild's units standing on or beside a camp. */
+  function bandAt(state: GameState, camp: { col: number; row: number }): Unit[] {
+    return state.units.filter(
+      (unit) => unit.ownerId === wildId(state) && distance(state, unit, camp) <= 1,
+    );
+  }
+
+  it('arrives with the camp: one or two units, the first dug in on the camp hex', () => {
+    const state = wildState(24, 20);
+    foundOver(state, 60);
+    expect(state.camps.length).toBeGreaterThan(1);
+
+    const sizes = new Set<number>();
+    for (const camp of state.camps) {
+      const band = bandAt(state, camp);
+      sizes.add(band.length);
+      expect(band.length).toBeGreaterThanOrEqual(BARB.campStartUnitsMin);
+      expect(band.length).toBeLessThanOrEqual(BARB.campStartUnitsMax);
+      const onCamp = band.filter((unit) => unit.col === camp.col && unit.row === camp.row);
+      expect(onCamp).toHaveLength(1);
+      expect(isFortified(onCamp[0]!)).toBe(true);
+      for (const unit of band) {
+        expect(unit.type).toBe(barbarianUnitType(state, camp));
+        if (unit !== onCamp[0]) expect(isFortified(unit)).toBe(false);
+      }
+    }
+    // The size is a roll, so a long sweep sees every size the rule allows.
+    const allowed = new Set<number>();
+    for (let n = BARB.campStartUnitsMin; n <= BARB.campStartUnitsMax; n++) allowed.add(n);
+    expect(sizes).toEqual(allowed);
+  });
+
+  it('asks the generator nothing when the band has one size', () => {
+    const rules = RULES.barbarians;
+    const saved = { min: rules.campStartUnitsMin, max: rules.campStartUnitsMax };
+    const run = (min: number, max: number): { camps: string; rng: string; units: number } => {
+      rules.campStartUnitsMin = min;
+      rules.campStartUnitsMax = max;
+      const state = wildState(24, 20);
+      foundOver(state, 30);
+      return {
+        camps: JSON.stringify(state.camps),
+        rng: JSON.stringify(state.rng),
+        units: state.units.length,
+      };
+    };
+    try {
+      const none = run(0, 0);
+      const one = run(1, 1);
+      const rolled = run(saved.min, saved.max);
+      // A fixed band draws nothing, so the camps land where an empty camp would.
+      expect(one.camps).toBe(none.camps);
+      expect(one.rng).toBe(none.rng);
+      expect(none.units).toBe(0);
+      expect(one.units).toBeGreaterThan(0);
+      // A rolled band draws one number a camp, so the generator moves on.
+      if (saved.max > saved.min) expect(rolled.rng).not.toBe(none.rng);
+    } finally {
+      rules.campStartUnitsMin = saved.min;
+      rules.campStartUnitsMax = saved.max;
+    }
+  });
+
+  it('does not move on the turn it appears', () => {
+    const state = wildState(24, 20);
+    state.units = [];
+    recomputeAllVisibility(state);
+    state.turn = BARB.firstCampTurn;
+    // The whole resolution, so every phase after `barbarians` is asked too.
+    runEndOfTurn(state);
+    expect(state.camps.length).toBeGreaterThan(0);
+    const wild = state.units.filter((unit) => unit.ownerId === wildId(state));
+    expect(wild.length).toBeGreaterThan(0);
+    for (const unit of wild) {
+      const home = state.camps.find((camp) => distance(state, unit, camp) <= 1);
+      expect(home).toBeDefined();
+      // Still where it was raised: the one on the camp hex, the rest beside it.
+      expect(bandAt(state, home!)).toContain(unit);
+    }
+    // The snapshot is taken before the camps are founded.
+    const turn = SIM_SOURCE.slice(SIM_SOURCE.indexOf('export function barbarianTurn'));
+    expect(turn.indexOf('const veterans')).toBeLessThan(turn.indexOf('foundCamps(state)'));
+  });
+});
+
+describe('the guards', () => {
+  it('keeps two soldiers a camp, the warden first, and everybody else raids', () => {
+    const state = wildState();
+    state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
+    const wild = wildId(state);
+    const warden = createUnit(state, wild, 'warrior', 8, 8);
+    const near = createUnit(state, wild, 'warrior', 9, 8);
+    const farther = createUnit(state, wild, 'warrior', 10, 8);
+    const roles = rolesOf(state);
+    expect(roles.get(warden.id)).toEqual({ kind: 'warden', camp: { col: 8, row: 8 } });
+    expect(roles.get(near.id)).toEqual({ kind: 'guard', camp: { col: 8, row: 8 } });
+    expect(roles.get(farther.id)).toEqual({ kind: 'raider' });
+  });
+
+  it('gives every camp its warden before any camp a second guard', () => {
+    // One soldier between two camps, nearer the second. Each camp has one
+    // more soldier of its own. The first camp's own soldier is its warden, so
+    // the shared one is the second camp's warden — not the first camp's guard.
+    const state = wildState(24, 14);
+    state.camps.push({ col: 4, row: 6, foundedTurn: 1 }, { col: 11, row: 6, foundedTurn: 1 });
+    const wild = wildId(state);
+    const first = createUnit(state, wild, 'warrior', 4, 6);
+    const shared = createUnit(state, wild, 'warrior', 8, 6);
+    const roles = rolesOf(state);
+    expect(roles.get(first.id)).toEqual({ kind: 'warden', camp: { col: 4, row: 6 } });
+    expect(roles.get(shared.id)).toEqual({ kind: 'warden', camp: { col: 11, row: 6 } });
+  });
+
+  it('patrols round the camp and never leaves its leash', () => {
+    const state = wildState();
+    state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
+    const wild = wildId(state);
+    createUnit(state, wild, 'warrior', 8, 8);
+    const guard = createUnit(state, wild, 'warrior', 9, 8);
+    state.turn = QUIET_TURN;
+    const spots = new Set<string>();
+    for (let step = 0; step < 16; step++) {
+      refill(state);
+      raid(state, state.units.filter((unit) => unit.ownerId === wild).map((unit) => unit.id));
+      expect(distance(state, guard, { col: 8, row: 8 })).toBeLessThanOrEqual(
+        Math.min(BARB.wanderRadius, BARB.campUnitRadius),
+      );
+      spots.add(`${guard.col},${guard.row}`);
+    }
+    // It patrols rather than standing still.
+    expect(spots.size).toBeGreaterThan(1);
+  });
+
+  it('strikes what comes near the camp, and does not chase past the leash', () => {
+    const state = wildState(20, 14);
+    state.camps.push({ col: 6, row: 7, foundedTurn: 1 });
+    const wild = wildId(state);
+    const warden = createUnit(state, wild, 'warrior', 6, 7);
+    const guard = createUnit(state, wild, 'warrior', 7, 7);
+    // Three hexes from the camp: inside the leash.
+    const near = createUnit(state, 0, 'warrior', 9, 7);
+    recomputeAllVisibility(state);
+    state.turn = QUIET_TURN;
+
+    const report = emptyTurnReport();
+    raid(state, [warden.id, guard.id], report);
+    const blows = report.combats.filter((combat) => combat.attackerId === guard.id);
+    expect(blows).toHaveLength(1);
+    expect(blows[0]!.defenderUnitId).toBe(near.id);
+    expect({ col: warden.col, row: warden.row }).toEqual({ col: 6, row: 7 });
+
+    // Now a soldier the guard can see, but outside the leash: five hexes from
+    // the camp. A raider standing where the guard stands would go for it.
+    state.units = state.units.filter((unit) => unit.id === warden.id || unit.id === guard.id);
+    guard.col = 9;
+    guard.row = 7;
+    const far = createUnit(state, 0, 'warrior', 11, 7);
+    recomputeAllVisibility(state);
+    expect(isVisibleTo(state, wild, far.col, far.row)).toBe(true);
+    expect(rolesOf(state).get(guard.id)).toEqual({ kind: 'guard', camp: { col: 6, row: 7 } });
+    expect(nearestTarget(state, barbarianPlayer(state)!, guard)?.tile).toBe(at(state, 11, 7));
+
+    refill(state);
+    const quiet = emptyTurnReport();
+    raid(state, [warden.id, guard.id], quiet);
+    expect(quiet.combats).toEqual([]);
+    expect(distance(state, guard, { col: 6, row: 7 })).toBeLessThanOrEqual(BARB.campUnitRadius);
+  });
+});
+
+describe('the raiders', () => {
+  /**
+   * A long strip of grassland with a camp, its two guards and a raider two
+   * hexes west of it. The map wraps east to west, so every town below stands
+   * nearer the raider the direct way than round the back.
+   */
+  function stripState(): { state: GameState; wild: number; raider: Unit } {
+    const state = wildState(40, 12);
+    state.camps.push({ col: 26, row: 6, foundedTurn: 1 });
+    const wild = wildId(state);
+    createUnit(state, wild, 'warrior', 26, 6);
+    createUnit(state, wild, 'warrior', 27, 6);
+    const raider = createUnit(state, wild, 'warrior', 24, 6);
+    return { state, wild, raider };
+  }
+
+  it('marches on the nearest town far beyond its old reach, and strikes it', () => {
+    const { state, wild, raider } = stripState();
+    const town = foundCityAt(state, 0, at(state, 6, 6))!;
+    recomputeAllVisibility(state);
+    expect(distance(state, raider, town)).toBeGreaterThan(BARB.aggressionRadius);
+    expect(rolesOf(state).get(raider.id)).toEqual({ kind: 'raider' });
+    expect(raidGoal(state, raider)).toBe(at(state, 6, 6));
+
+    state.turn = QUIET_TURN;
+    let struck = false;
+    let last = distance(state, raider, town);
+    for (let step = 0; step < 20 && !struck; step++) {
+      refill(state);
+      recomputeAllVisibility(state);
+      const report = emptyTurnReport();
+      raid(state, state.units.filter((unit) => unit.ownerId === wild).map((unit) => unit.id), report);
+      struck = report.combats.some(
+        (combat) => combat.attackerId === raider.id && combat.defenderCityId === town.id,
+      );
+      // Every turn it is nearer, until it is at the gate.
+      const now = distance(state, raider, town);
+      expect(now).toBeLessThanOrEqual(last);
+      last = now;
+    }
+    expect(struck).toBe(true);
+    // The wild never takes the town.
+    expect(town.ownerId).toBe(0);
+  });
+
+  it('chooses the nearest town, and the earlier seat on a tie', () => {
+    const { state, raider } = stripState();
+    foundCityAt(state, 1, at(state, 12, 6));
+    foundCityAt(state, 0, at(state, 6, 6));
+    // Seat 1's town is nearer.
+    expect(rolesOf(state).get(raider.id)).toEqual({ kind: 'raider' });
+    expect(raidGoal(state, raider)).toBe(at(state, 12, 6));
+
+    // Two towns the same distance away: seat 0 is earlier in `realPlayers`.
+    const tie = wildState(36, 12);
+    tie.camps.push({ col: 18, row: 6, foundedTurn: 1 });
+    const middle = createUnit(tie, wildId(tie), 'warrior', 18, 6);
+    foundCityAt(tie, 1, at(tie, 8, 6));
+    foundCityAt(tie, 0, at(tie, 28, 6));
+    expect(distance(tie, middle, { col: 8, row: 6 })).toBe(distance(tie, middle, { col: 28, row: 6 }));
+    expect(raidGoal(tie, middle)).toBe(at(tie, 28, 6));
+  });
+
+  it('never marches on a seat at peace with the wild', () => {
+    const { state, raider } = stripState();
+    foundCityAt(state, 0, at(state, 16, 6));
+    foundCityAt(state, 1, at(state, 4, 6));
+    expect(raidGoal(state, raider)).toBe(at(state, 16, 6));
+    // Wolf-Mother's Pact, turned on through `Player.timed` as in the role
+    // derivation test above.
+    state.players[0]!.timed = [{
+      card: 'wolfMothersPact' as never,
+      effect: { kind: 'rule', rule: 'barbariansPassive' },
+      expiresTurn: state.turn + 10,
+    }];
+    bumpRevision(state);
+    expect(raidGoal(state, raider)).toBe(at(state, 4, 6));
+  });
+
+  it('never marches on a town it cannot walk to, and drifts by its camp instead', () => {
+    const { state, raider } = stripState();
+    // Two channels of water, one each side of the camp, because the strip
+    // wraps east to west.
+    for (let row = 0; row < state.map.height; row++) {
+      at(state, 15, row).terrain = 'coast';
+      at(state, 35, row).terrain = 'coast';
+    }
+    foundCityAt(state, 0, at(state, 6, 6));
+    const land = walkableLand(state.map);
+    expect(land[tileIndex(state.map, 6, 6)]).not.toBe(land[tileIndex(state.map, 24, 6)]);
+    expect(land[tileIndex(state.map, 15, 6)]).toBe(-1);
+    expect(raidGoal(state, raider)).toBeNull();
+
+    state.turn = QUIET_TURN;
+    refill(state);
+    raid(state, state.units.filter((unit) => unit.ownerId === wildId(state)).map((unit) => unit.id));
+    expect(distance(state, raider, { col: 26, row: 6 })).toBeLessThanOrEqual(BARB.wanderRadius);
+  });
+});
+
+describe('the barbarian test game', () => {
+  it('sends raiders from a camp beyond `aggressionRadius` to strike a bot’s town', () => {
+    // A short seeded game with one bot seat. Once the bot has its capital, a
+    // camp is planted out of its sight, farther than `aggressionRadius` from
+    // the capital, with its two guards and three raiders. The bot plays its
+    // own turns; the wild plays inside each resolution.
+    const game = createGame({
+      seed: 11,
+      sizeName: 'duel',
+      players: [{ name: 'Teal', color: '#1f8a85' }],
+      barbarians: true,
+    });
+    const state = game.state;
+    const quiet = { warn: () => {} };
+    for (let turn = 0; turn < 3 && citiesOf(state, 0).length === 0; turn++) driveBots(game, quiet);
+    const capital = citiesOf(state, 0)[0]!;
+    expect(capital).toBeDefined();
+
+    const wild = barbarianPlayer(state)!;
+    const land = walkableLand(state.map);
+    const home = at(state, capital.col, capital.row);
+    const region = land[tileIndex(state.map, home.col, home.row)];
+    const site = state.map.tiles.find((tile) => {
+      if (land[tileIndex(state.map, tile.col, tile.row)] !== region) return false;
+      const gap = wrappedDistance(state.map, tileHex(tile), tileHex(home));
+      if (gap < BARB.aggressionRadius + 3 || gap > BARB.aggressionRadius + 5) return false;
+      if (visibilityAt(state, 0, tile.col, tile.row) === VISIBLE) return false;
+      if (state.units.some((unit) => unit.col === tile.col && unit.row === tile.row)) return false;
+      return mapRange(state.map, tileHex(tile), 1).filter((near) => isPassable(near)).length >= 6;
+    });
+    expect(site).toBeDefined();
+    state.camps.push({ col: site!.col, row: site!.row, foundedTurn: state.turn });
+    const type = barbarianMeleeType(state)!;
+    const seats = mapRange(state.map, tileHex(site!), 1).filter(
+      (tile) => isPassable(tile) && hasStackingRoom(state, tile.col, tile.row, 'military'),
+    );
+    const planted = seats.slice(0, 5).map((tile) => createUnit(state, wild.id, type, tile.col, tile.row));
+    bumpRevision(state);
+    const roles = rolesOf(state);
+    const raiders = planted.filter((unit) => roles.get(unit.id)?.kind === 'raider').map((unit) => unit.id);
+    expect(raiders).toHaveLength(3);
+
+    let struck = false;
+    for (let turn = 0; turn < 16 && !struck; turn++) {
+      driveBots(game, {
+        warn: () => {},
+        attempt: (command, result) => {
+          if (command.type !== 'endTurn' || !result.ok) return;
+          for (const blow of result.combats ?? []) {
+            if (
+              raiders.includes(blow.attackerId) &&
+              blow.defenderOwnerId === 0 &&
+              blow.defenderCityId !== null
+            ) {
+              struck = true;
+            }
+          }
+        },
+      });
+    }
+    expect(struck).toBe(true);
+    // The wild never takes a town.
+    expect(citiesOf(state, 0).every((city) => city.ownerId === 0)).toBe(true);
   });
 });

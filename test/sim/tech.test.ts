@@ -1858,7 +1858,11 @@ describe('research in the log', () => {
     // Scholasticism opens the Cathedral School in place of the early
     // Cathedral and Apostle. So a v201 log's Devotion and Dominion hands
     // hold different cards.
-    expect(SCHEMA_VERSION).toBe(202);
+    // 203 since batch BR1 (barbarian camps): a new camp starts with one or
+    // two units, each camp keeps two guards, and the other soldiers march on
+    // the players' towns. So a v202 log's camps raise different units and
+    // its rolls move after the first camp.
+    expect(SCHEMA_VERSION).toBe(203);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

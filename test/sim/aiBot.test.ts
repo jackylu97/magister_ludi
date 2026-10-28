@@ -38,7 +38,7 @@ import {
   realPlayers,
   bumpRevision,
 } from '../../src/sim/state';
-import { getTileAt, mapRange, tileHex, tileIndex, tileNeighbors } from '../../src/sim/map';
+import { getTileAt, mapRange, tileHex, tileIndex, tileNeighbors, wrappedDistance } from '../../src/sim/map';
 import { findPath, isPassable } from '../../src/sim/pathfind';
 import { foundCityAt, foundingErrorAt, tileOwnerPlayerId } from '../../src/sim/cities';
 import { buildImprovementAt, improvementErrorAt } from '../../src/sim/improvements';
@@ -605,6 +605,52 @@ describe('the bot defends itself', () => {
     // Either it strikes something adjacent or it marches; a camp two hexes off a
     // town is what the hunt is for, so the piece must not simply stand down.
     expect(['moveUnit', 'attack', 'fortify']).toContain(order!.type);
+  });
+
+  it('marches a free soldier to the door of a held camp', () => {
+    // Batch BR1: a camp starts with its band, so its hex nearly always holds
+    // a warden, and no piece can walk onto a hex an enemy stands on. The hunt
+    // walks the piece to the free hex beside the camp, and the blow arm weighs
+    // the strike from there.
+    const game = grownGame(12);
+    const { map } = game.state;
+    const city = firstCity(game.state, 0);
+    const home = getTileAt(map, city.col, city.row)!;
+    const empty = (tile: Tile): boolean =>
+      isPassable(tile) &&
+      !game.state.units.some((unit) => unit.col === tile.col && unit.row === tile.row) &&
+      !game.state.cities.some((town) => town.col === tile.col && town.row === tile.row);
+    // A free hex beside the town for the spare piece, and a camp two hexes on
+    // from it, three from the town: the first such pair in tile-index order.
+    let pair: { stand: Tile; campTile: Tile } | null = null;
+    for (const stand of tileNeighbors(map, home)) {
+      if (pair || !empty(stand)) continue;
+      for (const campTile of mapRange(map, tileHex(stand), 2)) {
+        if (pair || !empty(campTile)) continue;
+        if (wrappedDistance(map, tileHex(stand), tileHex(campTile)) !== 2) continue;
+        if (wrappedDistance(map, tileHex(home), tileHex(campTile)) !== 3) continue;
+        pair = { stand, campTile };
+      }
+    }
+    expect(pair).not.toBeNull();
+    const { stand, campTile } = pair!;
+    createUnit(game.state, 0, 'warrior', city.col, city.row);
+    const free = createUnit(game.state, 0, 'warrior', stand.col, stand.row);
+    const camp = { col: campTile.col, row: campTile.row, foundedTurn: game.state.turn };
+    game.state.camps.push(camp);
+    const wild = game.state.players.find((other) => other.barbarian)!;
+    const warden = createUnit(game.state, wild.id, 'warrior', camp.col, camp.row);
+    warden.fortifiedTurns = 2;
+    bumpRevision(game.state);
+    expect(findPath(game.state, free, campTile)).toBeNull();
+
+    const order = nextBotCommandFor(game, 0, free.id);
+    expect(order).not.toBeNull();
+    expect(order!.type).toBe('moveUnit');
+    const target = order!.target as { col: number; row: number };
+    const door = getTileAt(game.state.map, target.col, target.row)!;
+    expect(mapRange(game.state.map, tileHex(campTile), 1)).toContain(door);
+    expect(door).not.toBe(campTile);
   });
 });
 

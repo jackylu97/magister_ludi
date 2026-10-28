@@ -1007,6 +1007,29 @@ victory, elimination, meters, blockers and rosters. Camps live in
 `GameState.camps`, not on the map. Roles derive per turn. The wild never captures
 a city and never captures a unit, and it wears the war-red rim like any enemy.
 
+Camps (batch BR1, `src/sim/barbarians.ts`; the numbers are `rules.barbarians`):
+
+- A new camp starts with one or two units (`campStartUnitsMin`,
+  `campStartUnitsMax`), a roll on `state.rng` made right after `foundCamps`
+  places it. The first unit stands on the camp and digs in. The band does not
+  move on the turn it appears: `barbarianTurn` takes its list of units that may
+  act before it founds camps.
+- Each soldier has one of five jobs, derived each turn by `barbarianRoles` and
+  never stored, in this order: escort, warden, guard, thief, raider.
+- A camp keeps `maxUnitsPerCamp` (2) guards: the warden on the camp hex and a
+  guard, the next nearest soldier within `campUnitRadius`. A guard fights what
+  comes near and patrols, and never goes farther from the camp than
+  `campUnitRadius`.
+- Every other soldier is a raider. It strikes what is next to it, burns the
+  works it stands on, and closes on what it can see within `aggressionRadius`.
+  Otherwise it marches on the nearest town of a real player, human or bot, on
+  land it can walk to (`raidGoal`). A seat at peace with the wild
+  (`barbariansPassive`) is never a target.
+- A camp musters every `unitEveryTurns` turns. A camp short of guards musters a
+  guard. A camp with all its guards musters a raider, but only while the world
+  holds fewer than `raidersPerCamp` raiders for each camp (thieves and escorts
+  count). The counts come from the roles (`campCensus`).
+
 ## The endgame
 
 Reference: **`docs/beads.md`** (the model) and **`docs/wager.md`** (how a bead is

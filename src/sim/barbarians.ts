@@ -8,11 +8,12 @@
  * through, so there is no second combat implementation with the barbarians'
  * name on it.
  *
- * Nothing here is a difficulty setting. There are no probabilities: camps and
- * their bands arrive on **cadences** with hard caps beside them
- * (`rules.barbarians`), so a run of bad luck cannot bury an empire and a run of
- * good luck cannot make the wild furniture. The one die is *which* legal hex a
- * camp lands on, and it comes from `state.rng` like every other roll in the game.
+ * Nothing here is a difficulty setting. Camps and their bands arrive on
+ * **cadences** with hard caps beside them (`rules.barbarians`), so a run of bad
+ * luck cannot bury an empire and a run of good luck cannot make the wild
+ * furniture. Two things are rolled, both on `state.rng` like every other roll in
+ * the game: *which* legal hex a camp lands on, and how many units a new camp
+ * starts with (batch BR1).
  *
  * The wild inherits; it does not learn
  * ------------------------------------
@@ -31,40 +32,52 @@
  * for the *technology* gate and never asks `hasResource`. Said out loud here
  * because it is the kind of asymmetry that looks like a bug in six months.
  *
- * Four roles, and none of them stored
- * -----------------------------------
- * A band does one of four things: it **wardens** its camp, it **steals** an
- * unguarded civilian, it **escorts** one home, or it **raids**. Which of the
- * four a given unit is doing is *derived from the board every turn*
- * (`barbarianRoles`) and never written down — see that type's docblock for why
- * stored intent would be a serialisation problem, a staleness problem and a
- * replay problem at once, and how the two facts a memory would have carried
- * (which camp is home, which raider is the captor) fall out of geometry instead.
+ * Five jobs, and none of them stored
+ * ----------------------------------
+ * A soldier of the wild does one of five things: it **wardens** its camp, it
+ * **guards** it, it **steals** an unguarded civilian, it **escorts** one home,
+ * or it **raids** the players' towns. Which job a given unit is doing is
+ * *derived from the board every turn* (`barbarianRoles`) and never written down
+ * — see that type's docblock for why stored intent would be a serialisation
+ * problem, a staleness problem and a replay problem at once, and how the two
+ * facts a memory would have carried (which camp is home, which raider is the
+ * captor) fall out of geometry instead.
  *
- * The priority is **escort > warden > theft > raid**, expressed as the order the
- * four derivation passes run in. A soldier walking a prisoner home ignores a
- * scout that wanders past: a band that dropped its cargo for every fresh target
- * would never get one home, which is the whole behaviour.
+ * The priority is **escort > warden > guard > theft > raid**, expressed as the
+ * order the derivation passes run in. A soldier walking a prisoner home ignores
+ * a scout that wanders past: a band that dropped its cargo for every fresh
+ * target would never get one home, which is the whole behaviour.
  *
- * The warden keeps the camp
- * -------------------------
- * **A camp keeps one unit dug in on the camp hex before it sends anybody out**
- * (the user, 2026-09-06). The warden is the wild soldier standing *on* the camp,
- * or — when nobody is — the nearest unspoken-for soldier inside `campUnitRadius`,
- * which walks home; exactly one per camp, and it fortifies through the same
- * field a player's Fortify writes (`Unit.fortifiedTurns`), so `planCombat` pays
- * it the ordinary entrenchment line and there is no second trench rule with the
- * wild's name on it. It never raids, never wanders and never chases prey: it
- * strikes only what has come within reach of the camp itself.
+ * The camp keeps two guards (batch BR1)
+ * -------------------------------------
+ * The user, 2026-10-28: *"a camp should have 2 units nearby, any extra units
+ * should be sent to attack the players (ai included)"*. A camp keeps
+ * `maxUnitsPerCamp` soldiers near it, and every other soldier is a raider.
  *
- * The muster half needs no clause of its own, which is the nice part:
- * `musterTileFor` already seats a new band **on the camp** when its category has
- * room, and under the stacking cap "there is military room on the camp hex" and
- * "this camp has no warden" are the same sentence. So a camp with no warden
- * musters into the warden's place and digs in on the spot; a camp that has one
- * seats the next muster on a neighbour, and that one raids. A warden killed
- * therefore keeps the camp's next piece home without anybody remembering that it
- * died.
+ *   · **The warden** (the user, 2026-09-06) is the soldier standing *on* the
+ *     camp, or, when nobody is, the nearest unspoken-for soldier inside
+ *     `campUnitRadius`, which walks home. It fortifies through the same field a
+ *     player's Fortify writes (`Unit.fortifiedTurns`), so `planCombat` pays it
+ *     the ordinary entrenchment line. It never leaves the hex and strikes only
+ *     what has come next to the camp.
+ *   · **The guard** is the next nearest unspoken-for soldier inside
+ *     `campUnitRadius`. It patrols round the camp, fights what comes near, and
+ *     never goes farther from the camp than `campUnitRadius`.
+ *   · **A raider** marches on the nearest town of a real player, human or bot,
+ *     and fights what it meets on the way (`raidTowns`).
+ *
+ * A new camp starts with one or two units, raised in the sweep that places it
+ * (`foundCamps`). After that a camp musters on its cadence. A camp short of
+ * guards musters a guard. A camp with all its guards musters a raider, while
+ * the world holds fewer than `raidersPerCamp` raiders for each camp.
+ *
+ * Who stands on the camp needs no clause of its own: `musterTileFor` seats a
+ * new unit **on the camp** when its category has room, and under the stacking
+ * cap "there is military room on the camp hex" and "this camp has no warden"
+ * are the same sentence. So a camp with no warden raises the warden's
+ * replacement onto the hex, and it digs in on the spot. A warden killed
+ * therefore keeps the camp's next unit home without anybody remembering that
+ * it died.
  *
  * Theft is not a mechanism of its own
  * -----------------------------------
@@ -105,9 +118,25 @@ import { cardBehaviorRule } from './statecraft';
 // so the build does not warn of a circular import between chunks (Dominion
 // batch D7, The Hunting Grounds).
 import { campMusterPercent } from './statecraft/evaluator';
-import { type GameMap, type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from './map';
+import {
+  type GameMap,
+  type Tile,
+  getTileAt,
+  mapRange,
+  tileHex,
+  tileIndex,
+  tileNeighbors,
+  wrappedDistance,
+} from './map';
 import { advanceAlongPath } from './movement';
-import { type Cell, canStopOn, findPath, isPassable, takesByWalking } from './pathfind';
+import {
+  type Cell,
+  canStopOn,
+  findPath,
+  findPathAround,
+  isPassable,
+  takesByWalking,
+} from './pathfind';
 import { nextInt } from './rng';
 import { RULES } from './rulesData';
 import { chooseStartPositions } from './startPositions';
@@ -443,9 +472,17 @@ export function canFoundCampAt(state: GameState, tile: Tile, starts: readonly Ti
  * one changes what is legal for the next (`minCampDistanceApart`). That is a
  * second full scan on the rare turn that founds two, and it is the only version
  * that cannot place a pair inside its own spacing rule.
+ *
+ * **A new camp starts with its band** (batch BR1, the user, 2026-10-28:
+ * *"barbarians should be a lot tougher. They should spawn with 1-2 units by
+ * default"*). Each camp raises its band as soon as it is placed, before the
+ * next camp of the sweep is placed (`raiseStartingBand`). The band does not
+ * move on the turn it appears: `barbarianTurn` takes its list of units that
+ * may act before this function runs.
  */
 export function foundCamps(state: GameState): void {
-  if (barbarianPlayer(state) === undefined) return;
+  const wild = barbarianPlayer(state);
+  if (wild === undefined) return;
   if (state.turn < BARB.firstCampTurn) return;
   if ((state.turn - BARB.firstCampTurn) % Math.max(1, BARB.campEveryTurns) !== 0) return;
 
@@ -455,38 +492,44 @@ export function foundCamps(state: GameState): void {
     const candidates = state.map.tiles.filter((tile) => canFoundCampAt(state, tile, starts));
     if (candidates.length === 0) return;
     const tile = candidates[nextInt(state.rng, 0, candidates.length)]!;
-    state.camps.push({ col: tile.col, row: tile.row, foundedTurn: state.turn });
+    const camp: BarbarianCamp = { col: tile.col, row: tile.row, foundedTurn: state.turn };
+    state.camps.push(camp);
     // A camp on the board is a line of the meters where a card counts the ones
     // an empire can see (`count: 'visibleCamps'`) — batch M3, `slate.ts`.
     bumpEconomy(state);
+    raiseStartingBand(state, wild, camp);
+  }
+}
+
+/**
+ * How many units a new camp starts with: a roll on `state.rng` from
+ * `campStartUnitsMin` to `campStartUnitsMax`, both included. When the two
+ * numbers are equal there is nothing to choose, so the generator is not asked
+ * and the rolls after this one stay where they were.
+ */
+function startingBandSize(state: GameState): number {
+  const fewest = Math.max(0, BARB.campStartUnitsMin);
+  const most = Math.max(fewest, BARB.campStartUnitsMax);
+  if (most === fewest) return fewest;
+  return nextInt(state.rng, fewest, most + 1);
+}
+
+/**
+ * Raises a new camp's band. Each unit is the type the camp would muster now
+ * (`barbarianUnitType`), seated by the muster's own rule (`raiseAtCamp`). The
+ * first takes the camp hex and digs in there, and the next stands on a
+ * neighbour. A camp that is boxed in raises what it has room for.
+ */
+function raiseStartingBand(state: GameState, wild: Player, camp: BarbarianCamp): void {
+  const size = startingBandSize(state);
+  for (let raised = 0; raised < size; raised++) {
+    const type = barbarianUnitType(state, camp);
+    if (type === null) return;
+    if (raiseAtCamp(state, wild, camp, type) === null) return;
   }
 }
 
 // --- mustering --------------------------------------------------------------
-
-/**
- * Barbarian *soldiers* close enough to this camp to still count as its garrison.
- *
- * Civilians are excluded, and the exclusion is a rule: a stolen worker sitting
- * on the camp is **loot, not a band**, and counting it would let an empire
- * suppress a camp's musters by leaving it a worker to keep. The wild's cargo is
- * a thing to be taken back, never a thing that fights.
- */
-function bandOf(state: GameState, camp: BarbarianCamp, wild: Player): number {
-  const { map } = state;
-  const centre = getTileAt(map, camp.col, camp.row);
-  if (!centre) return 0;
-  const hex = tileHex(centre);
-  let count = 0;
-  for (const unit of state.units) {
-    if (unit.ownerId !== wild.id) continue;
-    if (!isCombatant(unitDef(unit.type))) continue;
-    const at = getTileAt(map, unit.col, unit.row);
-    if (!at) continue;
-    if (wrappedDistance(map, hex, tileHex(at)) <= BARB.campUnitRadius) count += 1;
-  }
-  return count;
-}
 
 /**
  * Where a mustered band stands: the camp itself when its category has room,
@@ -533,49 +576,126 @@ function digIn(state: GameState, unit: Unit): void {
 }
 
 /**
- * Every camp that is due musters one band, up to its cap.
+ * Every camp that is due musters one unit, if the caps allow it.
  *
  * Camps are walked in `state.camps` order, which is founding order and is part of
  * the state — so two camps due on the same turn always resolve the same way.
  *
- * A camp does **not** muster on the turn it was founded (`age > 0`), which is
- * what stops a camp appearing and a raider stepping out of it in the same
- * resolution. `maxUnitsPerCamp` is counted over the band still standing *near*
- * the camp (`campUnitRadius`), not over everything the camp has ever produced:
- * a band that has marched off to besiege a town is no longer its garrison, so the
- * camp musters again. That is what makes a camp left standing a faucet rather
- * than a one-off, and it is why clearing one is worth a bounty. **The warden is
- * inside that count**, so a camp fields one fewer piece in the world than it did
- * before the warden — which is the price of the camp being defended, and it is
- * paid in the number rather than in a second cap.
+ * A camp does **not** muster on the turn it was founded (`age > 0`): its band
+ * arrived with it (`foundCamps`), and that band does not move until next turn.
+ *
+ * **The caps** (batch BR1). The counts come from `campCensus`, which reads the
+ * jobs `barbarianRoles` gives every unit of the wild right now:
+ *
+ *   · a camp holding fewer than `maxUnitsPerCamp` guards (its warden
+ *     included) musters, and the new unit is a guard;
+ *   · a camp holding all its guards musters too, and the new unit is a raider,
+ *     but only while the world holds fewer than `raidersPerCamp` raiders for
+ *     each camp on the board. Without that limit a camp that cannot reach a
+ *     town would add raiders for ever.
+ *
+ * A guard that marches off, or dies, no longer counts, so the camp musters
+ * again. That is what makes a camp left standing a faucet rather than a
+ * one-off, and it is why clearing one is worth a bounty.
  *
  * **The warden is served first**, and it needs no clause: `musterTileFor` seats a
- * band on the camp hex whenever its category has room, and under the stacking cap
- * "there is military room on the camp" *is* "this camp has no warden". So the
- * first piece a camp raises stands on the camp — and **digs in where it stands**,
- * which is the one line below. Everything after it is seated on a neighbour and
- * goes out into the world.
+ * unit on the camp hex whenever its category has room, and under the stacking
+ * cap "there is military room on the camp" *is* "this camp has no warden". So a
+ * camp with no warden raises one on the hex, and it **digs in where it stands**
+ * (`raiseAtCamp`). Everything after it is seated on a neighbour.
  */
 export function musterCamps(state: GameState): void {
   const wild = barbarianPlayer(state);
   if (!wild) return;
 
-  for (const camp of state.camps) {
+  const due = state.camps.filter((camp) => {
     const age = state.turn - camp.foundedTurn;
-    if (age <= 0 || age % campCadence(state, camp) !== 0) continue;
-    if (bandOf(state, camp, wild) >= BARB.maxUnitsPerCamp) continue;
+    return age > 0 && age % campCadence(state, camp) === 0;
+  });
+  if (due.length === 0) return;
+
+  const census = campCensus(state, wild);
+  const limit = Math.max(0, BARB.raidersPerCamp) * state.camps.length;
+  for (const camp of due) {
+    const key = tileIndex(state.map, camp.col, camp.row);
+    const guards = census.guards.get(key) ?? 0;
+    const guarded = guards >= BARB.maxUnitsPerCamp;
+    if (guarded && census.raiders >= limit) continue;
     const type = barbarianUnitType(state, camp);
     if (type === null) continue;
-    const seat = musterTileFor(state, camp, type);
-    if (!seat) continue;
-    const raised = createUnit(state, wild.id, type, seat.col, seat.row);
-    // A piece mustered onto the camp itself *is* that camp's warden — nothing
-    // else can be standing there — so it fortifies on the turn it is raised
-    // rather than waiting for its first sweep. Through `fortifyError`, the
-    // player's own gate, so a camp that somehow mustered a civilian is refused
-    // by the rule that refuses a player's worker its trench.
-    if (seat.col === camp.col && seat.row === camp.row) digIn(state, raised);
+    if (raiseAtCamp(state, wild, camp, type) === null) continue;
+    // Keep the count true for the camps after this one in the sweep: a camp
+    // short of guards raised a guard, and a guarded camp raised a raider.
+    if (guarded) census.raiders += 1;
+    else census.guards.set(key, guards + 1);
   }
+}
+
+/**
+ * Raises one unit of `type` at a camp, seated by `musterTileFor`, or returns
+ * `null` when the camp is boxed in. The one way a camp puts a unit on the
+ * board: the muster and a new camp's band (`raiseStartingBand`) both call it.
+ *
+ * A unit seated on the camp hex *is* that camp's warden (nothing else can be
+ * standing there), so it digs in on the turn it is raised rather than waiting
+ * for its first sweep. Through `fortifyError`, the player's own gate, so a camp
+ * that somehow raised a civilian is refused by the rule that refuses a
+ * player's worker its trench.
+ */
+function raiseAtCamp(state: GameState, wild: Player, camp: BarbarianCamp, type: UnitTypeId): Unit | null {
+  const seat = musterTileFor(state, camp, type);
+  if (!seat) return null;
+  const raised = createUnit(state, wild.id, type, seat.col, seat.row);
+  if (seat.col === camp.col && seat.row === camp.row) digIn(state, raised);
+  return raised;
+}
+
+/** What the muster counts: each camp's guards, and the raiders in the world. */
+export interface CampCensus {
+  /** Guards (the warden included) of each camp, keyed by the camp's tile index. */
+  guards: Map<number, number>;
+  /** Soldiers of the wild that are not guards: raiders, thieves and escorts. */
+  raiders: number;
+}
+
+/**
+ * Counts each camp's guards and the world's raiders, read off the jobs
+ * `barbarianRoles` gives every unit of the wild right now. The muster asks
+ * the roles rather than counting units near a camp, so "a camp's guards" means
+ * the same thing to the muster as to the sweep that moves them.
+ *
+ * Cargo (a stolen civilian) is neither, and that is a rule: a stolen worker
+ * sitting on the camp is loot, not a guard, and counting it would let an
+ * empire stop a camp's musters by leaving it a worker to keep. Rebels raised
+ * by unrest are soldiers of the wild with no camp, so they count as raiders.
+ */
+export function campCensus(state: GameState, wild: Player): CampCensus {
+  const ids = state.units.filter((unit) => unit.ownerId === wild.id).map((unit) => unit.id);
+  const roles = barbarianRoles(state, wild, ids);
+  const guards = new Map<number, number>();
+  let raiders = 0;
+  // Walked over the id array, never over the map, so the count does not
+  // depend on the order a `Map` happens to hold.
+  for (const id of ids) {
+    const role = roles.get(id);
+    if (!role) continue;
+    switch (role.kind) {
+      case 'warden':
+      case 'guard': {
+        const key = tileIndex(state.map, role.camp.col, role.camp.row);
+        guards.set(key, (guards.get(key) ?? 0) + 1);
+        break;
+      }
+      case 'escort':
+      case 'thief':
+      case 'raider':
+        raiders += 1;
+        break;
+      case 'cargo':
+        break;
+    }
+  }
+  return { guards, raiders };
 }
 
 /**
@@ -602,27 +722,65 @@ interface RaidTarget {
 }
 
 /**
- * The nearest thing this raider can see and reach for, or `null`.
+ * A circle a guard may not leave: the hexes within `radius` of `centre`, its
+ * camp (batch BR1).
+ */
+interface Leash {
+  centre: Tile;
+  radius: number;
+}
+
+/** Is this hex inside the leash? */
+function insideLeash(map: GameMap, leash: Leash, tile: Tile): boolean {
+  return wrappedDistance(map, tileHex(leash.centre), tileHex(tile)) <= leash.radius;
+}
+
+/**
+ * Extra limits a caller puts on `nearestTarget` (batch BR1). Both are optional,
+ * and a call with neither is the reading the warden has always used.
+ */
+export interface TargetLimits {
+  /** Only targets inside this circle: a guard fights near its camp. */
+  leash?: Leash;
+  /**
+   * Only targets on land this unit can walk to (`walkableLand`). A raider does
+   * not close on a ship at sea or a unit across a strait, which it could never
+   * reach, and so it is not held up on the shore while a town waits.
+   */
+  land?: Int32Array;
+}
+
+/**
+ * The nearest thing this barbarian can see and reach for, or `null`.
  *
- * Two filters and both are the point. **Within `aggressionRadius`**, so a camp in
- * the far north does not march on a capital in the far south — barbarians are
- * local weather, not a war. And **visible to the wild**, asked through the same
- * `isVisibleTo` every other seat's fog is asked through: the wild is a player
- * with a real visibility grid (see `seatBarbarians`), so a raider walks toward
- * what it can actually see and a garrison hidden behind a ridge is hidden from it
- * exactly as it would be from an empire. That is the one place this AI is honest
- * rather than convenient, and it is the reason the wild has a grid at all.
+ * Two filters and both are the point. **Within `aggressionRadius`**: this is
+ * what a barbarian fights *on its way*. A raider with nothing in this reach
+ * marches on the nearest town instead (`raidGoal`, batch BR1), and a guard or
+ * a warden never goes looking. And **visible to the wild**, asked through the
+ * same `isVisibleTo` every other seat's fog is asked through: the wild is a
+ * player with a real visibility grid (see `seatBarbarians`), so a raider turns
+ * toward what it can actually see and a garrison hidden behind a ridge is
+ * hidden from it exactly as it would be from an empire.
+ *
+ * `limits` narrows the choice further for a guard (its leash) and a raider
+ * (the land it can walk). See `TargetLimits`.
  *
  * Ordered by `(distance, tile index, discovery order)` — a total order over
  * distinct targets, so two equally-near towns always resolve the same way.
  * Units are considered before cities, so a garrison standing outside its own
  * walls is reached for before the walls are.
  */
-export function nearestTarget(state: GameState, wild: Player, unit: Unit): RaidTarget | null {
+export function nearestTarget(
+  state: GameState,
+  wild: Player,
+  unit: Unit,
+  limits: TargetLimits = {},
+): RaidTarget | null {
   const { map } = state;
   const from = getTileAt(map, unit.col, unit.row);
   if (!from) return null;
   const hex = tileHex(from);
+  const region = limits.land?.[tileIndex(map, from.col, from.row)];
 
   const candidates: RaidTarget[] = [];
   let order = 0;
@@ -642,6 +800,8 @@ export function nearestTarget(state: GameState, wild: Player, unit: Unit): RaidT
     const distance = wrappedDistance(map, hex, tileHex(tile));
     if (distance > BARB.aggressionRadius) return;
     if (!isVisibleTo(state, wild.id, tile.col, tile.row)) return;
+    if (limits.leash && !insideLeash(map, limits.leash, tile)) return;
+    if (limits.land && limits.land[tileIndex(map, tile.col, tile.row)] !== region) return;
     candidates.push({ tile, distance, order: order++ });
   };
 
@@ -667,8 +827,10 @@ export function nearestTarget(state: GameState, wild: Player, unit: Unit): RaidT
  * unit could not stop on, and a tile with an enemy on it is exactly that. So the
  * raider walks to the doorstep and the attack is a separate act, which is also
  * how a player does it.
+ *
+ * A guard passes its `leash`, and only a doorstep inside it will do.
  */
-function approachTile(state: GameState, unit: Unit, goal: Tile): Tile | null {
+function approachTile(state: GameState, unit: Unit, goal: Tile, leash?: Leash): Tile | null {
   const { map } = state;
   const from = getTileAt(map, unit.col, unit.row);
   if (!from) return null;
@@ -679,6 +841,7 @@ function approachTile(state: GameState, unit: Unit, goal: Tile): Tile | null {
   let bestIndex = Infinity;
   for (const tile of mapRange(map, tileHex(goal), 1)) {
     if (tile.col === goal.col && tile.row === goal.row) continue;
+    if (leash && !insideLeash(map, leash, tile)) continue;
     if (!canStopOn(state, unit, tile)) continue;
     const distance = wrappedDistance(map, hex, tileHex(tile));
     const index = tileIndex(map, tile.col, tile.row);
@@ -689,6 +852,127 @@ function approachTile(state: GameState, unit: Unit, goal: Tile): Tile | null {
     }
   }
   return best;
+}
+
+// --- the march on the towns (batch BR1) -------------------------------------
+
+/**
+ * Which stretch of walkable land each hex belongs to, by tile index, or `-1`
+ * for a hex nothing can walk on (water, a mountain).
+ *
+ * A flood over the hexes `isPassable` admits, started in tile-index order so a
+ * stretch's number is a fact about the map. It is the wild's own reading and
+ * not `landRegions` (`water.ts`), which joins land across a mountain range. A
+ * barbarian can cross neither a mountain nor water: the wild holds no
+ * technology, so it never embarks. Two hexes with the same number can be
+ * walked between, if nobody stands in the way.
+ */
+export function walkableLand(map: GameMap): Int32Array {
+  const land = new Int32Array(map.tiles.length).fill(-1);
+  let next = 0;
+  for (const seed of map.tiles) {
+    if (!isPassable(seed)) continue;
+    const seedIndex = tileIndex(map, seed.col, seed.row);
+    if (land[seedIndex] !== -1) continue;
+    const id = next++;
+    land[seedIndex] = id;
+    const frontier: Tile[] = [seed];
+    while (frontier.length > 0) {
+      const from = frontier.pop()!;
+      for (const near of tileNeighbors(map, from)) {
+        if (!isPassable(near)) continue;
+        const index = tileIndex(map, near.col, near.row);
+        if (land[index] !== -1) continue;
+        land[index] = id;
+        frontier.push(near);
+      }
+    }
+  }
+  return land;
+}
+
+/** A town a raider may march on, with the facts its tie-breaks read. */
+interface RaidTown {
+  tile: Tile;
+  index: number;
+  /** The owner's place in `realPlayers` order: the earlier seat wins a tie. */
+  seat: number;
+}
+
+/**
+ * What a raid sweep reads once: the walkable land, and every town a raider may
+ * march on. Nothing in the sweep changes either: the land is fixed, the wild
+ * never takes a town, and no law changes in the middle of a phase.
+ */
+export interface RaidField {
+  land: Int32Array;
+  towns: RaidTown[];
+}
+
+/**
+ * Builds the sweep's `RaidField`. The towns are every town of a real player,
+ * human or bot, in `state.cities` order. A seat whose law makes the wild
+ * passive (Wolf-Mother's Pact, `barbariansPassive`) has no town on the list,
+ * for the reason `nearestTarget` gives.
+ */
+export function raidField(state: GameState): RaidField {
+  const seats = realPlayers(state);
+  const order = new Map<number, number>();
+  seats.forEach((player, place) => {
+    if (cardBehaviorRule(state, player.id, 'barbariansPassive')) return;
+    order.set(player.id, place);
+  });
+  const towns: RaidTown[] = [];
+  for (const city of state.cities) {
+    const seat = order.get(city.ownerId);
+    if (seat === undefined) continue;
+    const tile = getTileAt(state.map, city.col, city.row);
+    if (!tile) continue;
+    towns.push({ tile, index: tileIndex(state.map, tile.col, tile.row), seat });
+  }
+  return { land: walkableLand(state.map), towns };
+}
+
+/**
+ * **The town this raider marches on** (batch BR1, the user, 2026-10-28: *"any
+ * extra units should be sent to attack the players (ai included)"*), or `null`
+ * when no town stands on land it can walk to.
+ *
+ * The nearest by `wrappedDistance`, the distance the wild has always measured
+ * by, among the towns on the raider's own walkable land. A tie goes to the
+ * seat earlier in `realPlayers` order, then to the lower tile index, so the
+ * answer is a total order. The goal is not stored: the raider asks again each
+ * turn, and turns to a nearer town when it meets one.
+ *
+ * The goal is not limited by the wild's sight. A town is a fixed thing that
+ * the whole world knows is there, and a raider that could only march on what
+ * it can see would wait by its camp for ever. The blow itself still goes
+ * through `applyCombat`, which asks the fog like any other attack.
+ */
+export function raidGoal(state: GameState, unit: Unit, field: RaidField = raidField(state)): Tile | null {
+  const { map } = state;
+  const from = getTileAt(map, unit.col, unit.row);
+  if (!from) return null;
+  const region = field.land[tileIndex(map, from.col, from.row)];
+  if (region === undefined || region < 0) return null;
+  const hex = tileHex(from);
+
+  let best: RaidTown | null = null;
+  let bestDistance = Infinity;
+  for (const town of field.towns) {
+    if (field.land[town.index] !== region) continue;
+    const distance = wrappedDistance(map, hex, tileHex(town.tile));
+    const closer =
+      best === null ||
+      distance < bestDistance ||
+      (distance === bestDistance &&
+        (town.seat < best.seat || (town.seat === best.seat && town.index < best.index)));
+    if (closer) {
+      best = town;
+      bestDistance = distance;
+    }
+  }
+  return best?.tile ?? null;
 }
 
 // --- roles ------------------------------------------------------------------
@@ -728,9 +1012,14 @@ export type BarbarianRole =
   | { kind: 'escort'; cargoId: number }
   /** The one soldier holding a camp: it stands on the hex and digs in. */
   | { kind: 'warden'; camp: Cell }
+  /**
+   * A soldier kept near a camp beside its warden (batch BR1): it fights what
+   * comes near and never goes farther from the camp than `campUnitRadius`.
+   */
+  | { kind: 'guard'; camp: Cell }
   /** A soldier going for an unguarded civilian it can see. */
   | { kind: 'thief'; preyId: number }
-  /** Everybody else: v1's raider. */
+  /** Everybody else: it marches on the nearest town of a real player. */
   | { kind: 'raider' };
 
 /** The camp nearest this cell, by `(distance, tile index)`, or `null`. */
@@ -830,7 +1119,7 @@ function isUnguarded(state: GameState, civilian: Unit): boolean {
  * before a single barbarian has moved. That is deliberate and it is the same
  * argument the `veterans` snapshot makes: a unit acting late in the array must
  * not have a different job because a friend of its acted early. It also makes
- * the three exclusivity rules expressible at all, since all three are about who
+ * the exclusivity rules expressible at all, since all of them are about who
  * *else* is available:
  *
  *   · **one escort per cargo** — the nearest soldier within `escortRadius`, and
@@ -838,15 +1127,21 @@ function isUnguarded(state: GameState, civilian: Unit): boolean {
  *   · **one warden per camp** — the nearest *unspoken-for* soldier within
  *     `campUnitRadius`, which is the one standing on the camp whenever anybody
  *     is, since zero is the nearest distance there is;
+ *   · **the rest of a camp's guards** (batch BR1) — the next nearest
+ *     unspoken-for soldiers within `campUnitRadius`, until the camp holds
+ *     `maxUnitsPerCamp` with its warden. Every camp gets its warden before any
+ *     camp gets a second guard;
  *   · **one thief per prey** — the nearest *unspoken-for* soldier within
  *     `theftRadius`, so a camp does not send four raiders after one worker.
  *
- * The priority is **escort > warden > theft > raid**, and it is expressed as the
- * order these four passes run in rather than as a rule anybody has to remember. A
- * soldier walking a prisoner home therefore ignores a scout that wanders past —
- * *the cargo is worth more than the fight*, and a band that dropped its
- * prisoner every time something shinier appeared would never get one home, which
- * is the entire behaviour this entry exists to produce.
+ * Everybody left is a raider, and marches on the players' towns.
+ *
+ * The priority is **escort > warden > guard > theft > raid**, and it is
+ * expressed as the order these passes run in rather than as a rule anybody has
+ * to remember. A soldier walking a prisoner home therefore ignores a scout that
+ * wanders past — *the cargo is worth more than the fight*, and a band that
+ * dropped its prisoner every time something shinier appeared would never get
+ * one home, which is the entire behaviour this entry exists to produce.
  *
  * `ids` is the snapshot the sweep will walk, so a band mustered this turn is
  * neither given a job nor counted as somebody else's escort.
@@ -921,6 +1216,28 @@ export function barbarianRoles(
     roles.set(warden.id, { kind: 'warden', camp: { col: camp.col, row: camp.row } });
   }
 
+  // 3b — the other guards (batch BR1): each camp keeps `maxUnitsPerCamp`
+  // soldiers near it, the warden included. The nearest soldier not yet spoken
+  // for inside `campUnitRadius`, by the warden's own geometry. A separate walk
+  // over the camps after every camp has its warden, so a soldier two camps
+  // could claim holds an empty camp before it stands second guard at another.
+  for (const camp of state.camps) {
+    const centre = getTileAt(state.map, camp.col, camp.row);
+    if (!centre) continue;
+    for (let kept = 1; kept < BARB.maxUnitsPerCamp; kept++) {
+      const guard = nearestUnit(
+        state,
+        band,
+        centre,
+        BARB.campUnitRadius,
+        (unit) => !spokenFor.has(unit.id),
+      );
+      if (!guard) break;
+      spokenFor.add(guard.id);
+      roles.set(guard.id, { kind: 'guard', camp: { col: camp.col, row: camp.row } });
+    }
+  }
+
   // 4 — thieves. Walked over the *prey* rather than over the band, because the
   // rule is "the nearest raider takes it" and that sentence is about a worker.
   // Prey is anybody else's civilian, unguarded, inside `theftRadius`, on a hex
@@ -963,14 +1280,20 @@ export function barbarianRoles(
 }
 
 /**
- * A raider with nothing to fight drifts around its camp.
+ * A unit with nothing to fight drifts around a camp.
+ *
+ * Two callers since batch BR1. A **guard** patrols round its own camp, inside
+ * its leash: the radius is `wanderRadius`, never more than the leash. A
+ * **raider** with no town it can walk to drifts round the nearest camp, as
+ * every raider did before the batch.
  *
  * Deliberately simple, and deliberately *not* still: a band that stood on its
  * camp forever would make every camp a fortress to be stormed rather than a
  * country to be patrolled, and the fog would never move. The destination is drawn
- * from `state.rng` out of the legal hexes within `wanderRadius` of the nearest
- * camp — nearest rather than remembered, because a unit does not carry a home and
- * a camp that has been cleared should not keep commanding one.
+ * from `state.rng` out of the legal hexes within `wanderRadius` of the camp —
+ * for a raider the nearest camp rather than a remembered one, because a unit does
+ * not carry a home and a camp that has been cleared should not keep commanding
+ * one.
  *
  * A raider with no camps at all — the last camp burnt out from under it — wanders
  * around itself instead, which is the honest reading of a band with nowhere to go.
@@ -979,31 +1302,35 @@ export function barbarianRoles(
  * than patrolling a route. It is a *deterministic* jitter and it moves the piece,
  * which is all the behaviour has to do until the wild is worth designing properly.
  */
-function wander(state: GameState, unit: Unit): void {
+function wander(state: GameState, unit: Unit, leash?: Leash): void {
   const { map } = state;
   const from = getTileAt(map, unit.col, unit.row);
   if (!from) return;
 
-  let home = from;
-  let bestDistance = Infinity;
-  for (const camp of state.camps) {
-    const tile = getTileAt(map, camp.col, camp.row);
-    if (!tile) continue;
-    const distance = wrappedDistance(map, tileHex(from), tileHex(tile));
-    if (distance < bestDistance) {
-      home = tile;
-      bestDistance = distance;
+  // A guard patrols round its own camp, inside its leash (batch BR1). Anybody
+  // else drifts round the nearest camp, as before.
+  let home = leash?.centre ?? from;
+  const radius = leash ? Math.min(BARB.wanderRadius, leash.radius) : BARB.wanderRadius;
+  if (!leash) {
+    let bestDistance = Infinity;
+    for (const camp of state.camps) {
+      const tile = getTileAt(map, camp.col, camp.row);
+      if (!tile) continue;
+      const distance = wrappedDistance(map, tileHex(from), tileHex(tile));
+      if (distance < bestDistance) {
+        home = tile;
+        bestDistance = distance;
+      }
     }
   }
 
-  const options = mapRange(map, tileHex(home), BARB.wanderRadius).filter(
+  const options = mapRange(map, tileHex(home), radius).filter(
     (tile) =>
       !(tile.col === from.col && tile.row === from.row) && canStopOn(state, unit, tile),
   );
   if (options.length === 0) return;
   const goal = options[nextInt(state.rng, 0, options.length)]!;
-  const path = findPath(state, unit, goal);
-  if (path) advanceAlongPath(state, unit, path);
+  marchTo(state, unit, goal, leash);
 }
 
 /**
@@ -1040,10 +1367,27 @@ function isAdjacentTo(state: GameState, unit: Unit, tile: Tile): boolean {
   return wrappedDistance(state.map, tileHex(from), tileHex(tile)) === 1;
 }
 
-/** Walks a unit to a hex it can stand on, if a route exists. */
-function marchTo(state: GameState, unit: Unit, goal: Tile): void {
-  const path = findPath(state, unit, goal);
+/**
+ * Walks a unit to a hex it can stand on, if a route exists.
+ *
+ * With a `leash`, the route may not leave the guard's circle: the search is
+ * told to avoid the ring of hexes just outside it, and a route that never
+ * steps on that ring never leaves the circle. The goal must be inside.
+ */
+function marchTo(state: GameState, unit: Unit, goal: Tile, leash?: Leash): void {
+  const path = leash ? findPathAround(state, unit, goal, ringOutside(state.map, leash)) : findPath(state, unit, goal);
   if (path) advanceAlongPath(state, unit, path);
+}
+
+/** The tile indices of the hexes one step outside a leash's circle. */
+function ringOutside(map: GameMap, leash: Leash): number[] {
+  const centre = tileHex(leash.centre);
+  const ring: number[] = [];
+  for (const tile of mapRange(map, centre, leash.radius + 1)) {
+    if (wrappedDistance(map, centre, tileHex(tile)) !== leash.radius + 1) continue;
+    ring.push(tileIndex(map, tile.col, tile.row));
+  }
+  return ring;
 }
 
 /**
@@ -1065,10 +1409,11 @@ function closeAndStrike(
   unit: Unit,
   goal: Tile,
   report?: TurnReport,
+  leash?: Leash,
 ): void {
   if (!isAdjacentTo(state, unit, goal)) {
-    const approach = approachTile(state, unit, goal);
-    if (approach) marchTo(state, unit, approach);
+    const approach = approachTile(state, unit, goal, leash);
+    if (approach) marchTo(state, unit, approach, leash);
   }
   // Re-read: the march may have brought this unit into reach. `applyCombat`
   // validates everything else — range, line of sight, movement, visibility,
@@ -1191,12 +1536,105 @@ function holdCamp(
 }
 
 /**
+ * A guard (batch BR1): it stays within `campUnitRadius` of its camp, fights what
+ * comes near, and patrols when nothing does.
+ *
+ *   · **A target inside the leash** (`nearestTarget`, held to the leash and
+ *     to land it can walk) is closed on and struck, as a raider near its camp
+ *     always did. The doorstep must be inside the leash, and the route may not
+ *     leave it (`marchTo`).
+ *   · **Otherwise it patrols**: `wander` round its own camp, inside the leash.
+ *     A guard that stood still beside the camp for ever would make the camp a
+ *     fortress rather than a country to be patrolled, which is `wander`'s own
+ *     reason.
+ *
+ * It does not burn works: only a raider does that. It does not dig in: only
+ * the warden does that.
+ *
+ * A melee kill moves it onto the hex it emptied, which is inside the leash
+ * because the target was. One rule every piece obeys can take it outside: a
+ * walk that meets a jammed hex plans a way round it (`advanceAlongPath`), and
+ * that way may leave the circle. If it does, next turn's roles no longer count
+ * the soldier as a guard of the camp.
+ */
+function guardCamp(
+  state: GameState,
+  wild: Player,
+  unit: Unit,
+  camp: Cell,
+  land: Int32Array,
+  report?: TurnReport,
+): void {
+  const home = getTileAt(state.map, camp.col, camp.row);
+  if (!home) return;
+  const leash: Leash = { centre: home, radius: BARB.campUnitRadius };
+  const target = nearestTarget(state, wild, unit, { leash, land });
+  if (target) {
+    closeAndStrike(state, unit, target.tile, report, leash);
+    return;
+  }
+  wander(state, unit, leash);
+}
+
+/**
+ * A raider (batch BR1): it fights what it meets on the way, and otherwise
+ * marches on the nearest town of a real player.
+ *
+ * **Strike, then burn, then close, then march** — and the first three beats are
+ * the raid as it was (2026-08-28):
+ *
+ *   · A target already *in reach* is hit, because a blow is worth more than a
+ *     farm and a raider that stopped to burn one while a wounded scout stood
+ *     beside it would be reading the board wrong.
+ *   · Otherwise, the works underfoot. A raider marching through a farm burns
+ *     it rather than walking on, which slows the march and is the point.
+ *   · Otherwise, it closes on the nearest thing it can see inside
+ *     `aggressionRadius`, on land it can walk to.
+ *   · Otherwise it **marches on the nearest town** (`raidGoal`) and strikes it
+ *     when it arrives. The wild never takes the town (`capturesCity`).
+ *
+ * A raider with no town on its land (a camp on an island, or every seat at
+ * peace with the wild) drifts round the nearest camp, as every raider did
+ * before this batch. The world limit on raiders (`raidersPerCamp`) stops such
+ * camps adding raiders for ever.
+ */
+function raidTowns(
+  state: GameState,
+  wild: Player,
+  unit: Unit,
+  field: RaidField,
+  report?: TurnReport,
+): void {
+  const target = nearestTarget(state, wild, unit, { land: field.land });
+  if (target && isAdjacentTo(state, unit, target.tile)) {
+    closeAndStrike(state, unit, target.tile, report);
+    return;
+  }
+  const works = worksUnderfoot(state, unit);
+  if (works) {
+    // The player's verb, unchanged, so the farm and the road under it go
+    // together and the *victim's* panel is refreshed on the spot
+    // (`refreshTileDerived`). The wild keeps the bandage and forfeits the
+    // salvage — `pillageAt` says so and says why.
+    report?.pillages.push(pillageAt(state, unit, works));
+    return;
+  }
+  if (target) {
+    closeAndStrike(state, unit, target.tile, report);
+    return;
+  }
+  const town = raidGoal(state, unit, field);
+  if (town) closeAndStrike(state, unit, town, report);
+  else wander(state, unit);
+}
+
+/**
  * Marches and fights, one unit at a time, in the order the state carries.
  *
- * `veterans` is a snapshot taken before this turn's camps mustered, so a band
- * born this resolution does not also march in it — the same reading a city's new
- * unit gets, which is that it is born with a full allowance and spends it when
- * its owner next acts.
+ * `veterans` is a snapshot taken before this turn's camps were founded and
+ * mustered, so a band born this resolution (a new camp's band or a muster) does
+ * not also march in it — the same reading a city's new unit gets, which is that
+ * it is born with a full allowance and spends it when its owner next acts.
  *
  * Every job is looked up in the table `barbarianRoles` derived from the board
  * before anybody moved; the sweep itself only *executes*. Each unit, in order:
@@ -1205,10 +1643,13 @@ function holdCamp(
  *   · **escort** closes to within a hex of its cargo, and does nothing else;
  *   · **warden** stands on its camp and digs in, striking only what has come
  *     within reach of the camp — never marching on anything;
+ *   · **guard** fights what comes near its camp and otherwise patrols, never
+ *     farther from the camp than `campUnitRadius` (`guardCamp`);
  *   · **thief** closes on its chosen civilian and strikes, which captures it;
  *   · **raider** strikes what is already in reach, else **burns the works it is
- *     standing on**, else does what v1 did — nearest visible thing inside
- *     `aggressionRadius`, close on it, wander near camp otherwise.
+ *     standing on**, else closes on the nearest visible thing inside
+ *     `aggressionRadius`, else marches on the nearest town of a real player
+ *     (`raidTowns`).
  *
  * Every blow goes through `applyCombat`, so a raid rolls the same dice, obeys
  * the same targeting priority, takes the same counter-attack and triggers the
@@ -1237,6 +1678,10 @@ export function raid(
   const wild = barbarianPlayer(state);
   if (!wild) return;
   const roles = barbarianRoles(state, wild, veterans);
+  // Built on first use and kept for the sweep: nothing in it changes while the
+  // wild moves (see `RaidField`).
+  let field: RaidField | null = null;
+  const fieldNow = (): RaidField => (field ??= raidField(state));
 
   for (const id of veterans) {
     const unit = unitById(state, id);
@@ -1253,6 +1698,9 @@ export function raid(
           break;
         case 'warden':
           holdCamp(state, wild, unit, role.camp, report);
+          break;
+        case 'guard':
+          guardCamp(state, wild, unit, role.camp, fieldNow().land, report);
           break;
         case 'thief': {
           const prey = unitById(state, role.preyId);
@@ -1273,42 +1721,14 @@ export function raid(
           closeAndStrike(state, unit, at, report);
           break;
         }
-        case 'raider': {
-          const target = nearestTarget(state, wild, unit);
-          // **Strike, then burn, then march** — the raider's three beats, in
-          // that order, and the order is the rules decision (2026-08-28).
-          //
-          //   · A target already *in reach* is hit, because a blow is worth more
-          //     than a farm and a raider that stopped to burn one while a
-          //     wounded scout stood beside it would be reading the board wrong.
-          //     This is the branch v1 already took: `closeAndStrike` on an
-          //     adjacent target never marched.
-          //   · Otherwise, the works underfoot. "Instead of moving on" is the
-          //     whole of it — the wild is *local weather*, and weather that
-          //     walks over a farm on its way somewhere else is not weather.
-          //   · Otherwise, v1: close on what it can see, or drift near camp.
-          //
-          // Only a **raider** ever burns anything, and the other three roles'
-          // silence here is the same priority `barbarianRoles` publishes: an
-          // escort does nothing but escort, a thief is already spoken for by one
-          // worker, and cargo is cargo. See that function's docblock.
-          if (target && isAdjacentTo(state, unit, target.tile)) {
-            closeAndStrike(state, unit, target.tile, report);
-            break;
-          }
-          const works = worksUnderfoot(state, unit);
-          if (works) {
-            // The player's verb, unchanged, so the farm and the road under it go
-            // together and the *victim's* panel is refreshed on the spot
-            // (`refreshTileDerived`). The wild keeps the bandage and forfeits the
-            // salvage — `pillageAt` says so and says why.
-            report?.pillages.push(pillageAt(state, unit, works));
-            break;
-          }
-          if (target) closeAndStrike(state, unit, target.tile, report);
-          else wander(state, unit);
+        case 'raider':
+          // Only a **raider** ever burns anything, and the other roles'
+          // silence is the same priority `barbarianRoles` publishes: an escort
+          // does nothing but escort, a thief is already spoken for by one
+          // worker, a guard and a warden keep the camp, and cargo is cargo.
+          // See `raidTowns`.
+          raidTowns(state, wild, unit, fieldNow(), report);
           break;
-        }
       }
     }
     const after = unitById(state, id);
@@ -1321,10 +1741,18 @@ export function raid(
 /**
  * `barbarians`: the wild takes its turn.
  *
- * Three steps in a fixed order — found, muster, raid — and the snapshot between
- * the first two and the last is what keeps a band from marching on the turn it
- * was mustered. The roles are derived inside `raid`, off the board as it stands
- * once the camps have mustered, and the sweep then only executes them.
+ * Three steps in a fixed order — found, muster, raid — and the snapshot taken
+ * before the first is what keeps a unit from marching on the turn it appears.
+ * Since batch BR1 a new camp raises its band inside `foundCamps`, so the
+ * snapshot comes before that step and not after it. The roles are derived
+ * inside `raid`, off the board as it stands once the camps have mustered, and
+ * the sweep then only executes them.
+ *
+ * Nothing after this phase moves a barbarian in the same resolution: the wild
+ * gives no standing orders (`raid` deletes every path), so
+ * `spendLeftoverMovement` has no barbarian route to walk, and `resetMovement`
+ * only refills. A unit raised here therefore stands where it was raised until the
+ * next resolution's sweep.
  *
  * **The position in `END_OF_TURN_PHASES` is unchanged by the raiding rework**,
  * and the check is worth stating rather than assuming: the three new behaviours
@@ -1360,10 +1788,12 @@ export function barbarianTurn(state: GameState, report?: TurnReport): void {
   const wild = barbarianPlayer(state);
   if (!wild) return;
 
-  foundCamps(state);
   // The snapshot, by id rather than by reference: `applyCombat` removes dead
   // units from `state.units`, and a list of objects would keep corpses marching.
+  // Taken **before** `foundCamps` (batch BR1), because a new camp now raises
+  // its band in that sweep, and a band must not march on the turn it appears.
   const veterans = state.units.filter((unit) => unit.ownerId === wild.id).map((unit) => unit.id);
+  foundCamps(state);
   musterCamps(state);
   raid(state, veterans, report);
 }

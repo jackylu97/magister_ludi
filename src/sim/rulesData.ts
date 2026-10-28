@@ -827,8 +827,9 @@ export interface UnrestRules {
  * Nothing here is a probability. Camps and their bands arrive on **cadences**
  * (`campEveryTurns`, `unitEveryTurns`) with hard caps beside them, so a run of
  * bad luck cannot bury an empire and a run of good luck cannot make the wild a
- * decoration. The one die the system rolls is *which* legal tile a camp lands on,
- * and it is drawn from `state.rng` like every other roll in the game.
+ * decoration. The system rolls two dice, both on `state.rng`: *which* legal tile
+ * a camp lands on, and how many units the new camp starts with
+ * (`campStartUnitsMin` to `campStartUnitsMax`).
  */
 export interface BarbarianRules {
   /** First turn a camp may appear at all. The opening is meant to be quiet. */
@@ -876,6 +877,18 @@ export interface BarbarianRules {
   /** How far a new camp must stand from every camp already standing. */
   minCampDistanceApart: number;
   /**
+   * The fewest units a new camp starts with (batch BR1). `foundCamps` raises
+   * the band in the same sweep that places the camp, so a camp is never empty
+   * when a player first finds it. The first unit stands on the camp and digs in.
+   */
+  campStartUnitsMin: number;
+  /**
+   * The most units a new camp starts with. The size is a roll on `state.rng`
+   * between the two numbers, both included. When the two numbers are equal
+   * there is nothing to roll, and the generator is not asked.
+   */
+  campStartUnitsMax: number;
+  /**
    * A camp musters a unit every this many turns after it was founded.
    *
    * Five since 2026-09-05 (user, turn 92 of the first full playthrough: "once
@@ -886,17 +899,32 @@ export interface BarbarianRules {
    * untouched — it is the *refill* that was too quick, not the number of camps.
    */
   unitEveryTurns: number;
-  /** How many live units one camp may have in the field at once. */
+  /**
+   * How many guards a camp keeps near it: the warden on the camp hex and the
+   * guards beside it (batch BR1). `barbarianRoles` gives these jobs each turn.
+   * Every other soldier of the wild is a raider. A camp that holds fewer guards
+   * than this musters on its cadence. A camp that holds this many musters a
+   * raider instead, while the world is under `raidersPerCamp`.
+   */
   maxUnitsPerCamp: number;
   /**
-   * How far from its camp a unit still counts against `maxUnitsPerCamp`.
-   *
-   * A band that has marched off to besiege a town is no longer the camp's
-   * garrison, so the camp may muster again — which is what makes a camp left
-   * standing a *faucet* rather than a one-off.
+   * The world limit on raiders: this many for each camp on the board, counted
+   * over every soldier of the wild that is not a guard (thieves and escorts
+   * count). While the world holds that many, a camp with all its guards does
+   * not muster. Without a limit, a camp that cannot reach any town (on an
+   * island, say) would add raiders for ever.
+   */
+  raidersPerCamp: number;
+  /**
+   * How far from its camp a soldier may be and still be one of its guards.
+   * A guard never goes farther from its camp than this.
    */
   campUnitRadius: number;
-  /** How far a barbarian unit will look for something to attack. */
+  /**
+   * How far a barbarian unit looks for something to attack on its way. A
+   * raider with nothing inside this reach marches on the nearest town of a
+   * real player instead.
+   */
   aggressionRadius: number;
   /**
    * How far a raider will look for an **unguarded civilian to steal**.
@@ -918,7 +946,11 @@ export interface BarbarianRules {
    * only thing keeping an escort escorting.
    */
   escortRadius: number;
-  /** How far from its camp a unit with nothing to attack will drift. */
+  /**
+   * How far from its camp a guard with nothing to attack patrols (never past
+   * `campUnitRadius`). A raider with no town it can walk to drifts this far
+   * from the nearest camp.
+   */
   wanderRadius: number;
   /** How far from a horses tile a camp counts as horse country. */
   horsesRadius: number;
