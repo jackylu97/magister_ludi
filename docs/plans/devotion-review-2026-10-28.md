@@ -6,7 +6,7 @@ Four batches, run one after the other in the main tree:
 - **R2a** changes two rules: the price of a rite, and the one-per-world rule for pantheon gods. Schema 200.
 - **R2b** packages with each building the yields that cards put on it, and adds the count "buildings in this town that supply a yield". Schema 201. Added after the user's answer below.
 - **R2c** changes the cards: three removed, four moved to Tier I, one revised with a new building, three new. Schema 202. It reads R2b's count.
-- **R2d** makes every reader that asks whether a building pays a yield ask whether it supplies it, and prices doublers over the package in the bots. Schema 203.
+- **R2d** makes every reader that asks whether a building pays a yield ask whether it supplies it, and prices doublers over the package in the bots. Schema 204 (batch BR1, `docs/plans/barbarians-2026-10-28.md`, takes 203 between R2c and R2d).
 
 ## R2a: two rules
 
@@ -136,7 +136,7 @@ The user, 2026-10-28, on two older readers that still ask only a building's row:
 
 **What changes in play.** Name in the report every card, wonder, belief or luxury whose pay moves, and why.
 
-Schema 203. Explore digest control as in R2a.
+Schema 204. Explore digest control as in R2a.
 
 ## Not in these batches
 
