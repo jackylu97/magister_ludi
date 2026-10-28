@@ -49,7 +49,8 @@ The user, asked how much work a count of "buildings that supply X" would be: *"i
 **Card sources.**
 - **In:** the user's list: Orders, Doctrines, beliefs (pantheon, founder, follower and enhancer), wonders and luxuries.
 - **Reading 10:** also in are the government's signature, malices and great-person legacies. The player holds each as a card face, so they fit the user's principle.
-- **Out:** rites (the user's ruling), technologies and the leader. A timed effect follows the source that gave it.
+- **Also in** (the user, 2026-10-28: *"sorry, technologies and leader abilities should also count as "supplying yields", however i think these cases are more rare"*): technologies and the leader's abilities.
+- **Out:** rites only (the user's ruling). A timed effect follows the source that gave it.
 - A line that is not in the package still pays the town as it does today.
 
 **One reading, three readers.** Write the package once (rename or widen `cardLinesOnBuilding`; a labelled list and its one sum, rule 5's discipline) and use it in three places:
