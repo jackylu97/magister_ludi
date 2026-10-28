@@ -5638,7 +5638,12 @@
     "text": "+2 gold, +4 culture in every city that holds your trading post"
    }
   ],
-  "thePlantersCharter": [],
+  "thePlantersCharter": [
+   {
+    "raw": "once drafted, you may buy the [[building:plantationHouse|Plantation House]] with gold: +1 gold; +1 food, +1 gold on every hex with a [[improvement:plantation|Plantation]]; this card takes no chair",
+    "text": "once drafted, you may buy the Plantation House with gold: +1 gold; +1 food, +1 gold on every hex with a Plantation; this card takes no chair"
+   }
+  ],
   "boughtSwords": [
    {
     "raw": "+38% gold in every city",
@@ -6152,7 +6157,12 @@
     "text": "+2 culture per luxury you hold two or more copies of"
    }
   ],
-  "numidianCavalryCharter": [],
+  "numidianCavalryCharter": [
+   {
+    "raw": "once drafted, you may train the [[unit:numidianCavalry|Numidian Cavalry]] when you know [[tech:theCataphract|The Saddle]] or any technology as far along the tree; this card takes no chair",
+    "text": "once drafted, you may train the Numidian Cavalry when you know The Saddle or any technology as far along the tree; this card takes no chair"
+   }
+  ],
   "housesOfAccount": [
    {
     "raw": "+2 happiness per gold building",
@@ -9827,7 +9837,12 @@
     "text": "newly created units bought with faith gain +3 combat strength"
    }
   ],
-  "theCharteredCompany": [],
+  "theCharteredCompany": [
+   {
+    "raw": "once drafted, you may hire the [[unit:companyGuard|Company Guard]] with gold in a city that has a [[building:barracks|Barracks]], when you know [[tech:banking|The Counting Houses]] or any technology as far along the tree; this card takes no chair",
+    "text": "once drafted, you may hire the Company Guard with gold in a city that has a Barracks, when you know The Counting Houses or any technology as far along the tree; this card takes no chair"
+   }
+  ],
   "mercenaryContracts": [
    {
     "raw": "military units bought with gold cost no upkeep for 20 turns",

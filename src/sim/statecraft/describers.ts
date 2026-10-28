@@ -104,14 +104,18 @@ import { beadGrantDef } from '../beadData';
 import {
   ABILITY_TECH,
   BUILDING_UNLOCK_TECH,
+  TECH_IDS,
   type TechId,
   type TechTrait,
   UNIT_UNLOCK_TECH,
   abilityDef,
+  isCharterTech,
   isTechId,
+  liveUnlocks,
+  techColumn,
   techDef,
 } from '../techData';
-import { type ModelClass, type UnitTypeId, unitDef, unitLine } from '../unitData';
+import { type ModelClass, type UnitTypeId, isUnitTypeId, unitDef, unitLine } from '../unitData';
 // A rank's name as every surface prints it (Dominion batch D1). A leaf.
 import { RANK_IDS, type RankId, rankName } from '../ranks';
 import { SLOT_WORDS } from './draft';
@@ -824,6 +828,13 @@ export function describeCard(id: CardId): CardClause[] {
         text: `once drafted, your cities may keep ${ref('rite', rite, row.name)}${row.text ? `: ${row.text.charAt(0).toLowerCase()}${row.text.slice(1).replace(/\.$/, '')}` : ''}`,
       });
     }
+    // **A charter that opens a building or a unit** (batch Z3): the grant is
+    // the whole card, as the work's is. A retired charter may name a row that
+    // was never drawn up (The Purple Works), and says nothing here.
+    const building = orderDef(id).charter?.unlocks.building;
+    if (building !== undefined && isBuildingId(building)) clauses.push(charterBuildingClause(building));
+    const unit = orderDef(id).charter?.unlocks.unit;
+    if (unit !== undefined && isUnitTypeId(unit)) clauses.push(charterUnitClause(unit));
   }
   // **What a rite does the moment it is said** (`RiteDef.atOnce`) — the
   // Devotion deck's offering and restoring, whose whole face is the instant.
@@ -1235,9 +1246,7 @@ function buildingRowClauses(id: BuildingId): CardClause[] {
     // `BuildingDef.purchase` is sold out of that bank and out of no other, and
     // the sentence has to say which or a player reads "bought" and reaches for
     // the wrong pool. `purchaseError` refuses the other bank in the same words.
-    out.push({
-      text: `it is bought with ${def.purchase?.currency ?? 'gold'} and never built`,
-    });
+    out.push({ text: boughtNotBuiltWords(id) });
   }
   if (def.followingOnly === true) {
     // The town clause, said as the belief that opened it would say it. Not "the
@@ -1269,6 +1278,129 @@ function buildingRowClauses(id: BuildingId): CardClause[] {
     if (clause.deferred === true) out.push(clause);
   }
   return out;
+}
+
+/**
+ * The bank that sells a `purchaseOnly` building row, as the row's own clause.
+ * A function so that a charter's clause (`charterBuildingClause`), which
+ * already says "buy … with gold" in its lead, can leave this sentence out
+ * instead of saying the same thing twice.
+ */
+function boughtNotBuiltWords(id: BuildingId): string {
+  return `it is bought with ${buildingBank(id)} and never built`;
+}
+
+/** The bank that sells a `purchaseOnly` building: the row's own, or gold. */
+function buildingBank(id: BuildingId): string {
+  return buildingDef(id).purchase?.currency ?? 'gold';
+}
+
+/**
+ * **What a charter that opens a building prints** (batch Z3). The Planters'
+ * Charter's face was blank before this, because `describeCard` printed a
+ * charter's grant only for a technology, a work or rites.
+ *
+ * Worded like the building clause of `charterTechClauses`: the building's name
+ * as a keyword mark, then what it does in its own words (`describeBuildingRow`).
+ * A row that is only bought says "buy … with" its bank instead of "build", so
+ * the row's own "bought … never built" sentence is left out of the list.
+ *
+ * No gate is printed, because none applies: `cardUnlocksBuilding` opens a
+ * chartered building from the moment of the pick, before the tree is asked.
+ */
+function charterBuildingClause(building: BuildingId): CardClause {
+  const bought = buildingDef(building).purchaseOnly === true;
+  const lead = bought
+    ? `you may buy ${theBuilding(building)} with ${buildingBank(building)}`
+    : `you may build ${theBuilding(building)}`;
+  const skip = bought ? boughtNotBuiltWords(building) : null;
+  const does = liveWords(describeBuildingRow(building).filter((clause) => clause.text !== skip));
+  return {
+    text: `once drafted, ${lead}${does === '' ? '' : `: ${does}`}; this card takes no chair`,
+  };
+}
+
+/**
+ * **What a charter that opens a unit prints** (batch Z3: Numidian Cavalry and
+ * The Chartered Company).
+ *
+ * Worded like the early-unit clause of `charterTechClauses`: the unit's name as
+ * a keyword mark, the verb and bank of a unit that only a purchase brings, and
+ * the building that purchase needs where the row names one (`purchaseError`
+ * asks for it). The verb is the first word of the row's own purchase verb
+ * ("Hire a Company Guard"), because a mercenary is hired and a prophet is
+ * called; a row with no verb is bought.
+ *
+ * Then the gate. `unlockedFor` (`tech.ts`) opens a charter's unit when the
+ * empire knows an ordinary technology in the unit's column of the tree or
+ * further right (`columnReached`). A column has no name a player knows, so
+ * the clause names one technology of that column and adds "or any technology
+ * as far along the tree" (see `columnGateTech`).
+ *
+ * The unit row's own `effects` are not printed. The game has no describer for
+ * a unit row's effects, and the evaluator reads them only for a figure's
+ * unique (`liveEffects`), so a line printed here would promise a rule that
+ * does not apply.
+ */
+function charterUnitClause(unit: UnitTypeId): CardClause {
+  const row = unitDef(unit);
+  const purchase = row.purchase?.exclusive === true ? row.purchase : undefined;
+  const verb = purchase === undefined ? 'train' : (purchase.verb?.split(' ')[0]?.toLowerCase() ?? 'buy');
+  const bank = purchase === undefined ? '' : ` with ${purchase.currency}`;
+  const where =
+    purchase?.building === undefined ? '' : ` in a city that has ${buildingWords(purchase.building)}`;
+  const gate = columnGateTech(row.column ?? 1, row.modelClass);
+  const when =
+    gate === null
+      ? ''
+      : `${where === '' ? '' : ','} when you know ${ref('tech', gate, techDef(gate).name)} or any technology as far along the tree`;
+  return {
+    text: `once drafted, you may ${verb} the ${ref('unit', unit, row.name)}${bank}${where}${when}; this card takes no chair`,
+  };
+}
+
+/**
+ * **The technology to name for a column of the tree**, or `null` for a row
+ * that is open from the start (`columnReached` answers yes at column 1 or
+ * less).
+ *
+ * The gate is a column: any ordinary technology there or further right opens
+ * the row. So the words name one technology of the nearest column that holds
+ * any (`columnGateCandidates`), and say "or any technology as far along the
+ * tree". The one named is a technology that opens a unit of the same kind
+ * (`modelClass`) where the column has one, because a reader looks for it
+ * there: The Saddle opens the Horseman, and the Horseman and the Numidian
+ * Cavalry are both mounted. Otherwise it is the first of the column in file
+ * order, which is the star chart's order.
+ */
+function columnGateTech(column: number, kind: ModelClass): TechId | null {
+  const candidates = columnGateCandidates(column);
+  const kin = candidates.find((tech) =>
+    liveUnlocks(tech).units.some((other) => unitDef(other).modelClass === kind),
+  );
+  return kin ?? candidates[0] ?? null;
+}
+
+/**
+ * **Every technology `columnGateTech` may name for a column**: the ordinary
+ * technologies of the nearest column at or right of it, or none at column 1
+ * or less. Exported for the test that checks each one opens the unit.
+ *
+ * The set is the one `columnReached` (`tech.ts`) counts, so the technology the
+ * words name always opens the row in the game. `columnReached` skips a charter
+ * technology, and so does this, with the same test (`isCharterTech`).
+ * `TECH_IDS` holds no row a seat can never research: a technology row has no
+ * retired marker, and `researchError` refuses a row as such only for a charter.
+ */
+export function columnGateCandidates(column: number): TechId[] {
+  if (column <= 1) return [];
+  const counted = TECH_IDS.filter((tech) => !isCharterTech(tech));
+  let nearest = Infinity;
+  for (const tech of counted) {
+    const at = techColumn(tech);
+    if (at >= column && at < nearest) nearest = at;
+  }
+  return counted.filter((tech) => techColumn(tech) === nearest);
 }
 
 /**

@@ -39,6 +39,7 @@ import {
   type GameState,
   type Player,
   SCHEMA_VERSION,
+  bumpRevision,
   playerById,
 } from '../../src/sim/state';
 import {
@@ -48,6 +49,7 @@ import {
   chairMisfitRefusal,
   currentBandOf,
   deckPoolOf,
+  describeCard,
   draftExhausted,
   drawOrderOffer,
   drawOrderOptions,
@@ -64,11 +66,13 @@ import {
   slotOrderError,
   slotTypesOf,
   statecraftBlocker,
+  stripRefs,
   thirdPositionOf,
 } from '../../src/sim/statecraft';
 import {
   type DeckId,
   type DoctrineId,
+  type OrderId,
   BANDS,
   DECK_FILES,
   DECK_FILE_DOCTRINES,
@@ -95,9 +99,10 @@ import {
   slotLayout,
 } from '../../src/sim/statecraftData';
 import { hasAbility, isUnlocked, researchError } from '../../src/sim/tech';
-import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
+import { TECH_IDS, type TechId, isCharterTech, techColumn, techDef } from '../../src/sim/techData';
+import { columnGateCandidates } from '../../src/sim/statecraft/describers';
 import { BUILDING_IDS } from '../../src/sim/buildingData';
-import { UNIT_TYPE_IDS } from '../../src/sim/unitData';
+import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../../src/sim/unitData';
 import { stockDecks, stockStandardDecks, stockedShelf } from './statecraftHelpers';
 import { createGame, newGame } from './newGameHelpers';
 
@@ -2023,5 +2028,111 @@ describe('a charter', () => {
     const before = snapshotState(g.state);
     expect(applyCommand(g.state, { type: 'slotOrder', playerId: 0, cardId: CHARTER_ROW, slotIndex: 0 }).ok).toBe(false);
     expect(snapshotState(g.state)).toBe(before);
+  });
+});
+
+// --- a charter's face (tidy batch Z3) -----------------------------------------
+
+/**
+ * **A charter that opens a building or a unit prints what it opens** (tidy
+ * batch Z3, `docs/plans/tidy-2026-10-26.md`). `describeCard` printed a
+ * charter's grant only for a technology, a work or rites, so three dealt
+ * Orders showed a blank face in the Order hand: The Planters' Charter,
+ * Numidian Cavalry and The Chartered Company.
+ *
+ * Unstocked, because the register reads the shelf the game deals.
+ */
+describe('a charter’s face (tidy batch Z3)', () => {
+  const said = (id: string): string[] =>
+    describeCard(id as OrderId).map((clause) => stripRefs(clause.text));
+  const raw = (id: string): string =>
+    describeCard(id as OrderId)
+      .map((clause) => clause.text)
+      .join(' · ');
+
+  it('prints at least one live clause on every dealt Order', () => {
+    const dealt = ORDER_IDS.filter(orderIsDealt);
+    expect(dealt.length).toBeGreaterThan(0);
+    const silent = dealt.filter(
+      (id) => !describeCard(id).some((clause) => clause.deferred !== true && clause.text.trim() !== ''),
+    );
+    expect(silent).toEqual([]);
+  });
+
+  it('prints what The Planters’ Charter, Numidian Cavalry and The Chartered Company open', () => {
+    expect(said('thePlantersCharter')).toEqual([
+      'once drafted, you may buy the Plantation House with gold: +1 gold; ' +
+        '+1 food, +1 gold on every hex with a Plantation; this card takes no chair',
+    ]);
+    expect(said('numidianCavalryCharter')).toEqual([
+      'once drafted, you may train the Numidian Cavalry when you know The Saddle ' +
+        'or any technology as far along the tree; this card takes no chair',
+    ]);
+    expect(said('theCharteredCompany')).toEqual([
+      'once drafted, you may hire the Company Guard with gold in a city that has a Barracks, ' +
+        'when you know The Counting Houses or any technology as far along the tree; ' +
+        'this card takes no chair',
+    ]);
+  });
+
+  it('marks the building, the unit, the gate and the Barracks as keywords', () => {
+    expect(raw('thePlantersCharter')).toContain('[[building:plantationHouse|Plantation House]]');
+    expect(raw('numidianCavalryCharter')).toContain('[[unit:numidianCavalry|Numidian Cavalry]]');
+    expect(raw('numidianCavalryCharter')).toContain('[[tech:theCataphract|The Saddle]]');
+    expect(raw('theCharteredCompany')).toContain('[[unit:companyGuard|Company Guard]]');
+    expect(raw('theCharteredCompany')).toContain('[[building:barracks|Barracks]]');
+    expect(raw('theCharteredCompany')).toContain('[[tech:banking|The Counting Houses]]');
+  });
+
+  it('names a gate the game keeps: the named technology opens the unit, and one column short does not', () => {
+    const cases: [string, UnitTypeId][] = [
+      ['numidianCavalryCharter', 'numidianCavalry'],
+      ['theCharteredCompany', 'companyGuard'],
+    ];
+    for (const [card, unit] of cases) {
+      const named = /\[\[tech:([A-Za-z0-9_]+)\|/.exec(raw(card))?.[1] as TechId | undefined;
+      expect(named, card).toBeDefined();
+      const column = techColumn(named!);
+      const short = TECH_IDS.find((tech) => techColumn(tech) === column - 1)!;
+      const level = TECH_IDS.find((tech) => tech !== named && techColumn(tech) === column)!;
+      // Each case on a fresh board, holding the charter and the one technology.
+      const opensWith = (tech: TechId): boolean => {
+        const g = seated();
+        const ada = playerById(g.state, 0)!;
+        ada.statecraft.orders.push(card as OrderId);
+        ada.techsResearched.push(tech);
+        bumpRevision(g.state);
+        return isUnlocked(g.state, 0, 'unit', unit);
+      };
+      expect(opensWith(short), `${card} ← ${short}`).toBe(false);
+      expect(opensWith(named!), `${card} ← ${named}`).toBe(true);
+      // "or any technology as far along the tree": another of the same column.
+      expect(opensWith(level), `${card} ← ${level}`).toBe(true);
+    }
+  });
+
+  it('chooses the named technology only from those the gate counts: never a charter technology', () => {
+    const cases: [string, UnitTypeId][] = [
+      ['numidianCavalryCharter', 'numidianCavalry'],
+      ['theCharteredCompany', 'companyGuard'],
+    ];
+    for (const [card, unit] of cases) {
+      const named = /\[\[tech:([A-Za-z0-9_]+)\|/.exec(raw(card))?.[1] as TechId | undefined;
+      expect(named, card).toBeDefined();
+      expect(isCharterTech(named!), `${card} names ${named}`).toBe(false);
+      const candidates = columnGateCandidates(unitDef(unit).column ?? 1);
+      expect(candidates, unit).toContain(named);
+      for (const tech of candidates) {
+        expect(isCharterTech(tech), `${unit} ← ${tech}`).toBe(false);
+        // Counted by `columnReached`: the charter and this one technology open
+        // the unit on a fresh board.
+        const g = seated();
+        const ada = playerById(g.state, 0)!;
+        ada.statecraft.orders.push(card as OrderId);
+        ada.techsResearched.push(tech);
+        bumpRevision(g.state);
+        expect(isUnlocked(g.state, 0, 'unit', unit), `${unit} ← ${tech}`).toBe(true);
+      }
+    }
   });
 });
