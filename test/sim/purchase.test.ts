@@ -1687,6 +1687,10 @@ describe('the schema witness', () => {
     // let each great-person work take one rival hex beside it at the end of
     // the borders phase, and one Magisterial card is dealt. So a v198 log's
     // Magisterial hands hold different cards.
-    expect(SCHEMA_VERSION).toBe(199);
+    // 200 since batch R2a (two religion rules): a rite costs more for each
+    // rite the empire has started, counted on the player, and two empires
+    // may hold the same pantheon god. So a v199 log charges different
+    // prices for rites and deals different gods.
+    expect(SCHEMA_VERSION).toBe(200);
   });
 });

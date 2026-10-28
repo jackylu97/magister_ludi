@@ -45,7 +45,9 @@
  *      nothing; every click calls one of the handlers the sheet hands in.
  *
  * Every figure and refusal is the simulation's: the price is `riteCostFor`, the
- * gate is `riteGate` (its sentence, and its shortfall when the bank is all that
+ * price after one more rite is `riteCostAhead`, how many rites the bank pays for
+ * is `ritesAffordable` (the price rises with each rite started), the gate is
+ * `riteGate` (its sentence, and its shortfall when the bank is all that
  * is short), "would add" is `explainRitePreview`, the ranking voice is
  * `riteVoicesByGain`, the turns are `riteTurnsFor` and `cityRiteTurnsLeft`, what
  * a kept rite pays now is the rite's share of the town's Religion slice in the
@@ -78,11 +80,13 @@ import {
   explainNextRung,
   isProphet,
   type RiteGateAnswer,
+  riteCostAhead,
   riteCostFor,
   riteGate,
   ritePlacesFor,
   ritesDisplacedBy,
   riteTurnsFor,
+  ritesAffordable,
 } from '../sim/religion';
 import { LIVE_RITE_IDS, type RiteId, riteDef } from '../sim/religionData';
 import { CITY_YIELD_KEYS, type CityYieldKey } from '../sim/resourceData';
@@ -744,7 +748,9 @@ export function faithLineFor(
     run !== null && run.after === bank && (run.starts.length > 0 || run.realm !== null)
       ? `was ${netFigure(run.before)}; ${runWords(state, run)}.`
       : null;
-  const can = cost > 0 ? Math.floor(bank / cost) : 0;
+  // The price rises with each rite started (batch R2a), so the count walks
+  // the rising prices rather than dividing the bank by one of them.
+  const can = ritesAffordable(state, seat, bank);
   const started = visit.started.length > 0;
   const short = can < 1;
   const now = short
@@ -759,7 +765,7 @@ export function faithLineFor(
   if (perTurn <= 0 && god === null) {
     aheadWords = 'No faith is coming in a turn.';
   } else {
-    const then = cost > 0 ? Math.floor(next / cost) : 0;
+    const then = ritesAffordable(state, seat, next);
     if (then >= 1) {
       aheadWords = `Next turn you will have ${netFigure(next)}${godWords}, enough for ${then}.`;
     } else {
@@ -770,14 +776,19 @@ export function faithLineFor(
   return { bank, history, now, short, ahead: aheadWords };
 }
 
-/** A town's menu foot: what is left after one more rite, and when the next is affordable. */
+/**
+ * A town's menu foot: what is left after one more rite, and when the next is
+ * affordable. The rite after this one costs one step more (batch R2a,
+ * `riteCostAhead`), so "another" is asked against that price.
+ */
 function menuFoot(state: GameState, seat: number, bank: number, perTurn: number, cost: number): string {
   const rung = explainNextRung(state, seat, perTurn);
   if (bank >= cost) {
     const left = bank - cost;
     const after = `After this, ${netFigure(left)} faith is left.`;
-    if (left >= cost) return `${after} Enough for another.`;
-    const when = whenWords(turnsUntil(faithAhead(left, perTurn, rung, FORECAST_TURNS), cost), perTurn);
+    const nextCost = riteCostAhead(state, seat, 1);
+    if (left >= nextCost) return `${after} Enough for another.`;
+    const when = whenWords(turnsUntil(faithAhead(left, perTurn, rung, FORECAST_TURNS), nextCost), perTurn);
     return `${after} The next is affordable ${when}.`;
   }
   const when = whenWords(turnsUntil(faithAhead(bank, perTurn, rung, FORECAST_TURNS), cost), perTurn);
@@ -1442,7 +1453,7 @@ export function drawRitesTab(model: RitesTabModel, handlers: RitesTabHandlers): 
   const head = element('div', 'faith-rites-head');
   head.append(element('p', 'eyebrow sc-eyebrow', 'rites you know'));
   head.append(
-    element('span', 'faith-rites-note', `press one to rank your free towns by it · each costs ${model.cost} faith`),
+    element('span', 'faith-rites-note', `press one to rank your free towns by it · the next costs ${model.cost} faith`),
   );
   tab.append(head);
   tab.append(drawChips(model, handlers));

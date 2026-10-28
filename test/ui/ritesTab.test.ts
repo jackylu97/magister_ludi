@@ -26,7 +26,7 @@ import { isPassable } from '../../src/sim/pathfind';
 import { explainPurchaseCost } from '../../src/sim/purchase';
 import { religionLinesOfCity } from '../../src/sim/ledgerFold';
 import { readCity } from '../../src/sim/readings';
-import { cityRite, explainNextRung, riteCostFor, riteGate, riteShortfall } from '../../src/sim/religion';
+import { cityRite, explainNextRung, riteCostAhead, riteCostFor, riteGate, riteShortfall } from '../../src/sim/religion';
 import { LIVE_RITE_IDS, type RiteId, riteDef } from '../../src/sim/religionData';
 import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
 import {
@@ -361,12 +361,15 @@ describe('starting a rite', () => {
     bumpRevision(state);
     let view = selectRite(freshRitesView(state.turn), OMEN);
     view = start(state, view, model(state, view).free[0]!.cityId, OMEN);
+    // The rite just started raised the price of the next one (batch R2a).
+    const next = riteCostFor(state, 0);
+    expect(next).toBeGreaterThan(cost);
     const shown = model(state, view);
     expect(shown.free.length).toBe(3);
     for (const town of shown.free) {
       // The gate's own reading, never its words: the bank is all that is short.
-      expect(riteShortfall(state, 0, town.cityId, OMEN)).toBe(cost - 13);
-      expect(town.look).toEqual({ look: 'short', bank: 'faith', price: cost, need: cost - 13 });
+      expect(riteShortfall(state, 0, town.cityId, OMEN)).toBe(next - 13);
+      expect(town.look).toEqual({ look: 'short', bank: 'faith', price: next, need: next - 13 });
       expect(town.refusal).toBeNull();
     }
   });
@@ -384,7 +387,8 @@ describe('starting a rite', () => {
     const line = model(state, view).faith;
     expect(line.bank).toBe(13);
     expect(line.history).toBe(`was ${bank}; Omen Reading started in ${name}.`);
-    expect(line.now).toBe(`Short ${cost - 13} for another rite.`);
+    // Another rite costs one step more than the one just started (batch R2a).
+    expect(line.now).toBe(`Short ${riteCostFor(state, 0) - 13} for another rite.`);
     expect(line.short).toBe(true);
     expect(line.ahead).toMatch(/^Next turn you will have /);
   });
@@ -392,12 +396,18 @@ describe('starting a rite', () => {
   it('counts the bank it can pay for, and next turn’s', () => {
     const { state } = world();
     const cost = riteCostFor(state, 0);
-    playerById(state, 0)!.faithPool = cost * 2 + 1;
+    // The second rite costs one step more than the first (batch R2a), so two
+    // rites need both prices, and twice the first is not enough.
+    const two = cost + riteCostAhead(state, 0, 1);
+    playerById(state, 0)!.faithPool = two + 1;
     bumpRevision(state);
     const line = model(state, freshRitesView(state.turn)).faith;
     expect(line.history).toBeNull();
     expect(line.now).toBe('Enough for 2 rites now.');
     expect(line.short).toBe(false);
+    playerById(state, 0)!.faithPool = cost * 2;
+    bumpRevision(state);
+    expect(model(state, freshRitesView(state.turn)).faith.now).toBe('Enough for 1 rite now.');
   });
 
   it('forgets the "was" figure when the bank moved some other way between starts', () => {
@@ -515,10 +525,16 @@ describe('the city screen’s way in', () => {
   it('says at the menu’s foot what is left after this one', () => {
     const { state, towns } = world();
     const cost = riteCostFor(state, 0);
-    playerById(state, 0)!.faithPool = cost * 3;
+    // "Another" is asked at the next rite's price, one step more (batch R2a).
+    const next = riteCostAhead(state, 0, 1);
+    playerById(state, 0)!.faithPool = cost + next;
     bumpRevision(state);
     const foot = model(state, ritesViewForTown(freshRitesView(state.turn), towns[0]!.id)).free[0]!.menu!.foot;
-    expect(foot).toBe(`After this, ${cost * 2} faith is left. Enough for another.`);
+    expect(foot).toBe(`After this, ${next} faith is left. Enough for another.`);
+    playerById(state, 0)!.faithPool = cost + next - 1;
+    bumpRevision(state);
+    const close = model(state, ritesViewForTown(freshRitesView(state.turn), towns[0]!.id)).free[0]!.menu!.foot;
+    expect(close.startsWith(`After this, ${next - 1} faith is left. The next is affordable `)).toBe(true);
     playerById(state, 0)!.faithPool = cost - 5;
     bumpRevision(state);
     const short = model(state, ritesViewForTown(freshRitesView(state.turn), towns[0]!.id)).free[0]!.menu!.foot;
@@ -875,6 +891,8 @@ describe('the drawing', () => {
     bumpRevision(state);
     let view = selectRite(freshRitesView(state.turn), OMEN);
     view = start(state, view, model(state, view).free[0]!.cityId, OMEN);
+    // The next rite costs one step more than the one just started (batch R2a).
+    const next = riteCostFor(state, 0);
     const tab = draw(state, view, recorder().handlers);
     const started = byClass(tab, 'is-started');
     expect(started).toHaveLength(1);
@@ -883,9 +901,9 @@ describe('the drawing', () => {
     expect(short).toHaveLength(3);
     for (const cell of short) {
       expect(cell.tagName).toBe('SPAN');
-      expect(textOf(cell)).toContain(`short ${cost - 13}`);
+      expect(textOf(cell)).toContain(`short ${next - 13}`);
     }
-    expect(textOf(byClass(tab, 'faith-line')[0]!)).toContain(`Short ${cost - 13} for another rite.`);
+    expect(textOf(byClass(tab, 'faith-line')[0]!)).toContain(`Short ${next - 13} for another rite.`);
   });
 
   it('presses a chip to select its rite, and draws a rite it lacks as no control at all', () => {

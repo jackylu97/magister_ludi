@@ -429,23 +429,20 @@ export interface RerollConfig {
 }
 
 /**
- * **What a rite costs a city**, in faith, by the age its empire stands in
- * (ruled 2026-09-06, `docs/history/fewer-things.md` §6's "Still open": *a rite costs the
- * faith ladder's first rung, rising a rung per age*).
+ * **What a rite costs an empire**, in faith (batch R2a,
+ * `docs/plans/devotion-review-2026-10-28.md` rule 1).
  *
- * So the numbers are not a second curve: they are `faithRungCost` read off by
- * age instead of by consecration — 40 · 56 · 72 · 90, the augur's old price
- * ladder exactly. An empire in Æra I pays for a rite what it pays for its first
- * god; one in Æra IV pays what a fourth god would ask. Written out as a list
- * rather than derived from `FaithLadderConfig` in code, because the two are
- * *design* decisions that happen to agree today and a designer must be able to
- * part them without touching a function.
- *
- * By `TechAge`, indexed from Æra I; a shorter list clamps to its last entry, so
- * a fifth age costs what the fourth does until somebody says otherwise.
+ * The price is `costBase + costPerRiteStarted × (rites this empire has
+ * started)`: 20, then 25, 30 and so on. The user asked for rites that are cheap
+ * to start and dearer each time the empire starts one, so the count of rites
+ * started (`Player.ritesStarted`) sets the price. The research age no longer
+ * does. Until this batch the price was a list by age (40 · 56 · 72 · 90).
  */
 export interface RiteCostConfig {
-  costByAge: number[];
+  /** What the empire's first rite costs, in faith. */
+  costBase: number;
+  /** What each rite the empire has started adds to the price of the next, in faith. */
+  costPerRiteStarted: number;
 }
 
 /**
@@ -668,23 +665,21 @@ export function riteAbility(id: RiteId): AbilityId {
 }
 
 /**
- * **What a rite asks of the faith bank**, for an empire standing in this age.
+ * **What a rite asks of the faith bank**, for an empire that has started this
+ * many rites (batch R2a).
  *
- * One reading, so the button, the refusal and the charge are the same figure —
- * `explainUnitCost`'s discipline at the scale of one number. The list is
- * clamped rather than indexed blindly: an age past the table's end pays what the
- * last age pays, which is the honest answer for a fifth era nobody has priced.
+ * The base, plus the step once for each rite started. A count below nought or
+ * with a fraction is read as the whole number below it, at nought or more, so
+ * a hand-edited save cannot make a rite cheaper than the base. The price is
+ * floored once and is never below nought.
  *
- * It does **not** vary by how many rites an empire has performed. A rite is a
- * season a town buys and the season runs out; a ladder on top of that would be
- * two escalations on one act, and the one that matters is already there — every
- * town may keep only one at a time.
+ * `riteCostFor` (`religion.ts`) is the reading every surface asks; it hands
+ * this the empire's own count.
  */
-export function riteCost(age: number): number {
-  const table = RELIGION.rite.costByAge;
-  if (table.length === 0) return 0;
-  const index = Math.min(table.length, Math.max(1, Math.floor(age))) - 1;
-  return Math.max(0, Math.floor(table[index] ?? 0));
+export function riteCost(ritesStarted: number): number {
+  const { costBase, costPerRiteStarted } = RELIGION.rite;
+  const started = Math.max(0, Math.floor(ritesStarted));
+  return Math.max(0, Math.floor(costBase + costPerRiteStarted * started));
 }
 
 /**
@@ -771,7 +766,11 @@ export function religionDataProblems(knownTechs: readonly string[]): string[] {
   // leaves are tuned together or not at all, so a row that paid a different
   // figure from the one this table names would be two answers to one question.
   if (RELIGION.relicFaith < 0) problems.push('a relic pays a negative amount of faith');
-  if (RELIGION.rite.costByAge.length === 0) problems.push('no rite price is written for any age');
+  // A negative base or step would let a rite pay the empire to start it.
+  if (!(RELIGION.rite.costBase >= 0)) problems.push('a rite has no price, or a negative one');
+  if (!(RELIGION.rite.costPerRiteStarted >= 0)) {
+    problems.push('the step a rite adds to the next rite price is missing or negative');
+  }
   for (const id of ALL_BELIEF_IDS) {
     const def = beliefDef(id);
     // **A row with nothing to say is a bug; a row that says why is a decision.**

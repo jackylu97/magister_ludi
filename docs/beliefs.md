@@ -30,6 +30,9 @@ Notes, where the words after the dagger are what the row does *not* do.
 Permanent, empire-wide, unconvertible — consecrated off the faith ladder and never
 redrafted. The pantheon IS the religion’s identity.
 
+A hand of gods is drawn from every live row below that the empire does not
+already hold. Two empires may hold the same god (batch R2a, 2026-10-28).
+
 | Belief | Axis | Effect |
 |---|---|---|
 | Goddess of the Harvest | hearth | +1 food on every hex carrying a bonus resource that pays food. |

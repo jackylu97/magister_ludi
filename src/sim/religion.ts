@@ -271,33 +271,27 @@ export function pantheonPlaces(state: GameState, playerId: number): PantheonPlac
 }
 
 /**
- * The gods still drawable: every row in the table **nobody in the world** holds,
- * in file order.
+ * The gods still drawable: every live pantheon row **this empire** does not
+ * hold, in file order.
  *
  * A **declined** god goes back in the bag and a held one leaves it, which is the
  * ratified rule and the honest one: declining is not a decision about the god,
  * it is a decision about the two beside it. `livePool`'s shape (`statecraft.ts`)
  * without the retirement, because a pantheon has no ages.
  *
- * **A god belongs to one world** (user ruling, 2026-08-29). A belief another
- * empire keeps is gone from every other empire's bag — the rule
- * `state.contested` states for a Triumph, one system over, and the reason this
- * takes the state at all. Two pantheons that both keep Keeper of the Hearth are
- * two empires with the same identity, which is the one thing a pantheon is for;
- * and once the pool is world-unique, a *recast* is a real decision rather than a
- * reshuffle, because what is on the table depends on what rivals have already
- * taken.
+ * **Two empires may hold the same god** (batch R2a; the user, 2026-10-28:
+ * *"lets make all pantheons available to draft (no longer one in the
+ * world)"*). Until then a god another empire held was out of every other
+ * empire's bag (the ruling of 2026-08-29). The bag now reads only this
+ * empire's own gods, so what a rival holds changes nothing here. This is for
+ * pantheon gods only: the follower and enhancer beliefs a prophet draws keep
+ * their own rules (`religionBeliefPool`).
  *
- * Swept over `realPlayers` in **array order** — never a Map, and never
- * `state.players`, because the wild keeps no gods and a seat that is not a
- * nation has no identity to defend.
+ * It still takes the state, so its callers and the bots' readers keep one
+ * signature.
  */
-export function beliefPool(state: GameState, player: Player): BeliefId[] {
+export function beliefPool(_state: GameState, player: Player): BeliefId[] {
   const held = new Set<BeliefId>(player.pantheon.beliefs);
-  for (const other of realPlayers(state)) {
-    if (other.id === player.id) continue;
-    for (const id of other.pantheon.beliefs) held.add(id);
-  }
   // **The pantheon's bag alone.** `isBeliefId` spans all three pools now, so a
   // filter that asked it would have offered a Consecrate the enhancer pool;
   // `BELIEF_IDS` is the pantheon's own list, which is what a god is drawn from.
@@ -1421,9 +1415,9 @@ function refreshBeliefDerived(state: GameState, player: Player): void {
 //     (`cityRite`), so there is no second clock to keep and nothing to tick.
 //     A town of an empire that holds The Double Feast keeps two different
 //     rites at once (`ritePlacesFor`, Devotion batch DV8);
-//   · **the price is the faith ladder's rung for the age you stand in**
-//     (`riteCost`), which is the ruled default: 40 in Æra I, rising a rung an
-//     age.
+//   · **the price rises with each rite the empire starts** (`riteCost`, batch
+//     R2a): a base, plus a step for each rite started (`Player.ritesStarted`,
+//     raised only by `countRiteStarted`).
 
 /**
  * Every rite this empire has been taught, in table order.
@@ -1468,17 +1462,59 @@ export function riteTeachingCard(rite: RiteId): OrderId | null {
 /**
  * **What a rite costs this empire**, in faith, right now.
  *
- * One reading — the button, the refusal and the charge are the same figure, the
- * discipline `explainPurchaseCost` keeps for a price tag. The age is the
- * empire's own highest technology (`highestAge`), which is the same band
- * `explainUnitCost` reads and the same one the reroll's multiplier reads, so a
- * realm that has just opened an era pays the era's price for everything at
- * once.
+ * One reading: the rite button, the refusal, the charge and the bots all ask
+ * this function, so they show and charge the same figure. The price is the
+ * base plus one step for each rite this empire has started
+ * (`Player.ritesStarted`, batch R2a). An unknown seat pays the base.
+ *
+ * No card changes a rite's price today. A card that does would apply here, to
+ * this figure, so every surface still reads one price.
  */
 export function riteCostFor(state: GameState, playerId: number): number {
-  const player = playerById(state, playerId);
-  if (!player) return riteCost(1);
-  return riteCost(highestAge(player.techsResearched));
+  return riteCostAhead(state, playerId, 0);
+}
+
+/**
+ * What this empire's rite would cost after it has started `ahead` more, in
+ * faith. `riteCostFor` is this at nought. A surface that says how many rites a
+ * bank pays for, or what the rite after this one costs, asks this, because the
+ * price rises with each rite started (batch R2a).
+ */
+export function riteCostAhead(state: GameState, playerId: number, ahead: number): number {
+  const started = playerById(state, playerId)?.ritesStarted ?? 0;
+  return riteCost(started + Math.max(0, Math.floor(ahead)));
+}
+
+/**
+ * How many rites this bank pays for, one after another, at the rising price
+ * (batch R2a): the first at `riteCostFor`, the next one step more, and so on.
+ * Nought when a rite costs nothing, because "as many as you like" is not a
+ * count a surface can print.
+ */
+export function ritesAffordable(state: GameState, playerId: number, bank: number): number {
+  if (!Number.isFinite(bank)) return 0;
+  let count = 0;
+  let left = bank;
+  for (;;) {
+    const price = riteCostAhead(state, playerId, count);
+    if (price <= 0 || left < price) return count;
+    left -= price;
+    count += 1;
+  }
+}
+
+/**
+ * **A rite has started in one town** (batch R2a). The one writer of
+ * `Player.ritesStarted`, and the one seam that pays the `riteStarted` tally.
+ *
+ * Both callers start a season: `performRiteAt` for a town's rite with no
+ * `atOnce`, and `empireRiteAt` once for each town a prophet's rite reaches. The
+ * count and the tally are raised together, so the price counts the same rites
+ * the cards count (the review's reading 2). Nothing lowers the count.
+ */
+function countRiteStarted(state: GameState, player: Player): void {
+  player.ritesStarted = (player.ritesStarted ?? 0) + 1;
+  recordScalingOccasion(state, player.id, 'riteStarted');
 }
 
 /**
@@ -1797,7 +1833,9 @@ export interface RitePerformance {
  *      tally and the `rite` occasion, so a card may pay for the *act* of
  *      starting one. Only for a rite with no `atOnce` (Devotion batch DV4,
  *      the triage's reading 9): the Votive Offering and the Restoring of the
- *      Host act at once, are not seasons, and count for neither;
+ *      Host act at once, are not seasons, and count for neither. The same
+ *      helper raises `Player.ritesStarted`, so the next rite costs one step
+ *      more (batch R2a);
  *   4. **the town's own shelves pay** — the Chapel's culture, after the riders
  *      because it is neither a grant nor a law: a rider is the empire's and
  *      reaches every rite in the realm, and this is a fact about one town;
@@ -1829,8 +1867,10 @@ export function performRiteAt(
   // `rite` moment that The Psalter rides, are for a rite with no `atOnce`. The
   // Votive Offering and the Restoring of the Host act at once and raise
   // neither, so a town cannot grow either card by saying them every turn.
+  // The count the price reads is raised at the same moment (batch R2a), so
+  // this rite's own charge, taken above, was the price before it.
   const season = def.atOnce === undefined;
-  if (season) recordScalingOccasion(state, player.id, 'riteStarted');
+  if (season) countRiteStarted(state, player);
   payRiteAtOnce(state, player, city, def, cost);
   const wonders = season ? payRiteRiders(state, player, city) : [];
   const chapelCulture = payRiteBuildings(state, player, city);
@@ -2270,7 +2310,9 @@ export interface EmpireRitePerformance {
  * is raised and the `rite` occasion is paid with that town's facts, as
  * `performRiteAt` does for one town. One empire rite grows The Rogations by
  * one a town, counts toward The Founding Vows once a town, and pays The
- * Psalter in each devout town. The faith is still counted as spent once.
+ * Psalter in each devout town. The faith is still counted as spent once. The
+ * count the rite price reads (`Player.ritesStarted`) rises once a town too
+ * (batch R2a), so the next rite costs one step more for each town reached.
  *
  * Every town's chapel pays for the saying of it too (`payRiteBuildings`), as a
  * town's own rite does (the user, 2026-09-15, `docs/flags.md` (lllll)).
@@ -2302,8 +2344,10 @@ export function empireRiteAt(
     refreshCityDerived(state, city);
     // **A season in each town** (Devotion batch DV4): counted and paid once
     // here, with this town's facts. `empireRiteGate` refuses a rite that acts
-    // at once, so every rite said over the realm is a season.
-    recordScalingOccasion(state, player.id, 'riteStarted');
+    // at once, so every rite said over the realm is a season. The count the
+    // rite price reads rises with it, once a town (batch R2a); the one price
+    // was paid above, before any town was counted.
+    countRiteStarted(state, player);
     for (const done of payRiteRiders(state, player, city)) wonders.push(done);
     // **An empire rite is the rite performed in every town**, so every chapel
     // pays for the saying of it — the same seam and the same settlement a city

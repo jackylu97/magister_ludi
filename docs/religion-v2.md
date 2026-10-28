@@ -80,10 +80,20 @@ A rite is a **city's verb**: `performRite {cityId, rite}`, checked by `riteError
 - **The gate.** The empire must know the rite (`hasAbility`). No building opens
   the verb; a Chapel only adds culture when a rite is said in its town. The town
   must not already be keeping a rite (`cityRite`, derived off `City.timed`: the
-  running rite is the lock). The bank must cover `religion.rite.costByAge` for
-  the empire's age (**40 · 56 · 72 · 90**, the faith ladder's rungs read by
-  age). Votive Offering also needs something other than a wonder at the front
-  of the town's queue.
+  running rite is the lock). The bank must cover the rite price, `riteCostFor`.
+  Votive Offering also needs something other than a wonder at the front of the
+  town's queue.
+- **The price** (batch R2a). A rite costs `rite.costBase` (**20**) plus
+  `rite.costPerRiteStarted` (**5**) for each rite the empire has started: 20,
+  25, 30 and on. The research age does not set it. The count is
+  `Player.ritesStarted` (absent until the first rite, read as nought). Its one
+  writer is `countRiteStarted`, which also pays the `riteStarted` tally: once
+  for a town's rite with no `atOnce`, and once for each town a prophet's rite
+  reaches. The rite is charged the price before the count rises. The Votive
+  Offering and the Restoring of the Host do not raise it. `riteCostFor` is the
+  one reading (the rite button, the refusal, the charge and the bots);
+  `riteCostAhead` and `ritesAffordable` read the rising price for the faith
+  sheet's "enough for N" lines. No card changes the price.
 - **Short of the bank.** The bank is the gate's last clause. `riteGate` returns
   the refusal and, when the bank is the only clause that refused, how much
   faith is missing (`riteShortfall`), from one pass. The Faith sheet's "short N"
@@ -170,6 +180,11 @@ free rung) is not a rung. The offer carries the price it paid
 (`BeliefOffer.rungCost`) as its record. Three rungs, because the pantheon has
 three slots and the third opens at The High Temple — the ladder never learns
 the number.
+
+The hand is drawn from `beliefPool`: every live pantheon god **this empire**
+does not hold. Two empires may hold the same god (batch R2a; the user,
+2026-10-28). Follower and enhancer beliefs keep their own bags, per religion
+(`religionBeliefPool`).
 
 ## The reroll (schema 71; the belief ladder the same evening; the heavy hands at 85)
 

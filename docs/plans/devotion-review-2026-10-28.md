@@ -119,3 +119,15 @@ Retired rows keep `retired: true` and stay in the data for saves (CLAUDE.md). Mo
 
 - The rest of the Devotion deck, and the other decks' sheets.
 - When the rites open (Divination). The comment moves the card instead.
+
+## Built
+
+- **R2a (2026-10-28):** as planned. The gate passed: the type check, 10,112 core tests and the build. Schema 200.
+  - **The rite price:** `rite.costBase` (20) plus `rite.costPerRiteStarted` (5) for each rite started, in `data/religion.json`. `costByAge` is gone. The 1st rite costs 20, the 2nd 25, the 15th 90.
+  - **The count:** the game had no count for each player, so `Player.ritesStarted` is new. Its one writer, `countRiteStarted` (`religion.ts`), also pays the `riteStarted` tally, so the price and the cards count the same rites. A town's rite counts once. A prophet's rite over the realm counts once for each town it reaches. The Votive Offering and the Restoring of the Host do not count, and they pay the current price.
+  - **Each rite** is charged before the count rises. `riteCostFor` is still the one reading. No card changes a rite's price.
+  - **The Rites tab:** "enough for N rites" now uses the rising price (`riteCostAhead`, `ritesAffordable`). Its note says what the next rite costs.
+  - **The gods:** `beliefPool` was the only code that kept a god to one world. It now leaves out only the empire's own gods. Follower and enhancer beliefs are unchanged.
+  - **The explore digests** moved only by the schema number: at 199 the old pins held.
+  - **To judge in play:** a prophet's rite over N towns raises the next price by five times N.
+  - **Left for the push gate:** the six-seat bot digests will move.

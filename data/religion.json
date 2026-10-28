@@ -27,12 +27,8 @@
     "ability": "theLongCount"
   },
   "rite": {
-    "costByAge": [
-      40,
-      56,
-      72,
-      90
-    ]
+    "costBase": 20,
+    "costPerRiteStarted": 5
   },
   "relicFaith": 3,
   "apostle": {

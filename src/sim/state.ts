@@ -3114,8 +3114,32 @@ import {
  * **A v198 save is refused and does not replay.** A Magisterial seat's pools
  * hold more cards. The branch migrates nothing, for the reason given under
  * v119.
+ *
+ * v200 (branch `decks`; batch R2a, `docs/plans/devotion-review-2026-10-28.md`):
+ * **two religion rules.** One optional field joins the state:
+ * `Player.ritesStarted`, the rites this empire has started. The rules that
+ * change:
+ *
+ *   · a rite costs `rite.costBase` (20) plus `rite.costPerRiteStarted` (5)
+ *     for each rite the empire has started, so 20, 25, 30 and on. The
+ *     research age no longer sets the price, and `rite.costByAge` is gone.
+ *     The count is raised where the `riteStarted` tally is paid, by one
+ *     helper (`countRiteStarted`): once for a town's rite with no `atOnce`,
+ *     and once for each town a prophet's rite reaches. `riteCostFor` stays
+ *     the one reading;
+ *   · a pantheon god is no longer one per world. `beliefPool` leaves out
+ *     only the gods this empire holds, so two empires may hold the same
+ *     god. Follower and enhancer beliefs keep their rules.
+ *
+ * The field is absent until an empire's first rite starts, so a game in
+ * which nobody starts a rite writes the same players as before.
+ *
+ * **A v199 save is refused and does not replay.** Every rite is charged a
+ * different price, and a god a rival holds can now be dealt, so a v199 log
+ * replays into different banks and different hands. The branch migrates
+ * nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 199;
+export const SCHEMA_VERSION = 200;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -3568,6 +3592,28 @@ export interface Player {
    * Present from turn one, at nought, as `goldSpent` is. Nothing lowers it.
    */
   faithSpent: number;
+  /**
+   * **How many rites this empire has started**, in all its towns, this game
+   * (batch R2a). The rite price reads it: `riteCostFor` (`religion.ts`) asks
+   * `riteCost` (`religionData.ts`) for the base plus one step for each rite
+   * started.
+   *
+   * It counts the same moment the `riteStarted` tally counts, and its one
+   * writer is the helper that pays that tally, `countRiteStarted`
+   * (`religion.ts`). So a town's rite with no `atOnce` raises it by one, and a
+   * prophet's rite over the realm raises it by one for each town it reaches.
+   * The Votive Offering and the Restoring of the Host act at once, are not
+   * seasons, and do not raise it.
+   *
+   * On the player and not a card's tally, because a tally grows only while a
+   * card sits in a chair, and the price must count every rite. It cannot be
+   * read off the board either: a rite that has run out leaves nothing behind.
+   *
+   * **Absent until the first rite starts**, so a game in which nobody starts
+   * a rite writes the same players as before the field existed. Absent reads
+   * as nought. Nothing lowers it.
+   */
+  ritesStarted?: number;
   /**
    * True once this player holds no units and no cities. They are out.
    *

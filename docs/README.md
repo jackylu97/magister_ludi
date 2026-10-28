@@ -815,7 +815,16 @@ Reference: **`docs/religion-v2.md`** (the machinery) and **`docs/beliefs.md`**
   prints. The Rite of the Sabbath (The Sabbath Laws' charter) moves the town's
   production into culture at step 14 of its yields (`explainProductionMoved`),
   so the town builds nothing while it runs. The faith ladder consecrates
-  **automatically** when the bank covers the next rung.
+  **automatically** when the bank covers the next rung. Its hand is drawn
+  from `beliefPool`, every live pantheon god the empire does not hold, so two
+  empires may hold the same god (batch R2a).
+- **The rite price** (batch R2a). A rite costs `rite.costBase` plus
+  `rite.costPerRiteStarted` for each rite the empire has started
+  (`Player.ritesStarted`, absent until the first). The research age does not
+  set it. `countRiteStarted` is the count's one writer and pays the
+  `riteStarted` tally beside it, so the price counts the seasons the cards
+  count. `riteCostFor` is the one reading; `riteCostAhead` and
+  `ritesAffordable` read the rising price for the faith sheet.
 - **A rite started is a season** (Devotion batch DV4). The `riteStarted` tally
   and the `rite` occasion are for a rite with no `atOnce`: the Votive Offering
   and the Restoring of the Host raise neither. A prophet's rite over the realm

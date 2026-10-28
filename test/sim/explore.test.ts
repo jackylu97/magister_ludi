@@ -1235,10 +1235,19 @@ describe('determinism', () => {
    * holds the rule and the sweep moves nothing. Checked with the change in
    * place and the version printed as 198, which gives the hashes of
    * Magisterial batch MG15 exactly.
+   *
+   * **Batch R2a (two religion rules, schema 200) moved the hash and not the
+   * length** at both seeds: 199 became 200, and that is all. The batch prices
+   * a rite by the rites the empire has started, adds an optional count of
+   * them on the player (`Player.ritesStarted`), and lets two empires hold the
+   * same pantheon god. Nobody here learns Divination or banks any faith, so
+   * no rite is said, no count is written and no god is dealt. Checked with the
+   * change in place and the version printed as 199, which gives the hashes of
+   * Magisterial batch MG16 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '333543ae:188976',
-    2026: '8f6242d3:188554',
+    11: '7bdfcf55:188976',
+    2026: 'fa8c1e6c:188554',
   };
 
   for (const seed of [11, 2026]) {

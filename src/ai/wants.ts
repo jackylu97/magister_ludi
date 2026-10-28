@@ -1210,7 +1210,9 @@ function ladderPlan(
   const delay = Math.max(0, cost - bank) / Math.max(1, inputs.faithRate);
   const terms: ValueTerm[] = [
     nest(
-      `the best of the ${pool.length} god${pool.length === 1 ? '' : 's'} still unconsecrated`,
+      // Since batch R2a the bag holds every live god this empire lacks, a
+      // rival's gods included, so the label says whose gods are left out.
+      `the best of the ${pool.length} god${pool.length === 1 ? '' : 's'} this empire does not hold`,
       best,
     ),
   ];

@@ -81,6 +81,7 @@ import {
   availableRites,
   beliefPool,
   chargeCostOf,
+  drawBeliefOffer,
   explainNextRung,
   faithRungCost,
   gainBeliefError,
@@ -108,7 +109,9 @@ import {
   openPeriodicOffers,
   placeRelicAt,
   placeRelicError,
+  riteCostAhead,
   riteCostFor,
+  ritesAffordable,
   pantheonSlots,
   performRiteAt,
   plantHolySiteError,
@@ -755,8 +758,9 @@ describe("a belief is an effect source, not a second evaluator", () => {
  * The user's complaint was the errand — call an augur, walk it, aim it, spend it
  * — so the errand is gone and the town says the rite itself, out of the empire's
  * faith bank, for ten turns. Four rules and each has a test below: the Chapel is
- * the door, one rite at a time, the price is the ladder's rung for the age, and
- * every refusal leaves the state byte-identical.
+ * the door, one rite at a time, the price, and every refusal leaves the state
+ * byte-identical. Since batch R2a the price is a base plus a step for each rite
+ * the empire has started, and the research age no longer sets it.
  */
 describe("rites", () => {
   /** A town with the door, and a bank deep enough to say anything. */
@@ -810,36 +814,166 @@ describe("rites", () => {
     ).toBeUndefined();
   });
 
-  it("cost the faith ladder’s rung for the age this empire stands in", () => {
-    const { g, city, player } = town();
-    // Æra I: the ladder's first rung, which is what a first god costs.
-    expect(riteCostFor(g.state, 0)).toBe(RELIGION.rite.costByAge[0]);
-    expect(riteCost(1)).toBe(40);
-    expect(riteCost(2)).toBe(56);
-    expect(riteCost(3)).toBe(72);
-    expect(riteCost(4)).toBe(90);
-    // A fifth age nobody has priced pays what the fourth does.
-    expect(riteCost(9)).toBe(90);
+  // --- the price (batch R2a) ------------------------------------------------
+  //
+  // `docs/plans/devotion-review-2026-10-28.md` rule 1: a rite costs 20 faith,
+  // plus 5 for each rite the empire has started. The count is
+  // `Player.ritesStarted`, raised where the `riteStarted` tally is paid.
 
-    player.faithPool = 1000;
+  it("cost the base, plus one step for each rite the empire has started", () => {
+    const { g, city, player } = town();
+    expect(RELIGION.rite.costBase).toBe(20);
+    expect(RELIGION.rite.costPerRiteStarted).toBe(5);
+    expect(riteCost(0)).toBe(20);
+    expect(riteCost(1)).toBe(25);
+    expect(riteCost(2)).toBe(30);
+    // The 14th rite comes after 13 started. The rite after 14 started costs
+    // what a rite cost in the fourth age before this batch.
+    expect(riteCost(13)).toBe(85);
+    expect(riteCost(14)).toBe(90);
+    // A count below nought reads as nought, and a fraction as the whole
+    // number below it.
+    expect(riteCost(-4)).toBe(20);
+    expect(riteCost(2.9)).toBe(30);
+
+    // An empire that has started no rite carries no count and pays the base.
+    expect(player.ritesStarted).toBeUndefined();
+    expect(riteCostFor(g.state, 0)).toBe(20);
     const before = player.faithPool;
     performRiteAt(g.state, player, city, "omenReading");
-    expect(player.faithPool).toBe(before - 40);
+    // The rite is charged the price before it, then the count rises.
+    expect(player.faithPool).toBe(before - 20);
+    expect(player.ritesStarted).toBe(1);
+    expect(riteCostFor(g.state, 0)).toBe(25);
   });
 
-  it("rise a rung when the empire enters an age", () => {
+  it("say what the rites after this one cost, and how many a bank pays for", () => {
+    const { g, player } = town();
+    player.ritesStarted = 2;
+    bumpRevision(g.state);
+    expect(riteCostAhead(g.state, 0, 0)).toBe(riteCostFor(g.state, 0));
+    expect(riteCostAhead(g.state, 0, 0)).toBe(30);
+    expect(riteCostAhead(g.state, 0, 1)).toBe(35);
+    expect(riteCostAhead(g.state, 0, 3)).toBe(45);
+    // 30 + 35 = 65 pays for two; one faith short of that pays for one.
+    expect(ritesAffordable(g.state, 0, 65)).toBe(2);
+    expect(ritesAffordable(g.state, 0, 64)).toBe(1);
+    expect(ritesAffordable(g.state, 0, 29)).toBe(0);
+    expect(ritesAffordable(g.state, 0, 0)).toBe(0);
+    // An unknown seat pays the base.
+    expect(riteCostFor(g.state, 99)).toBe(20);
+  });
+
+  it("print the same base and step in docs/religion-v2.md as the data", () => {
+    // A doc line that mirrors data carries a sync test (CLAUDE.md's rule).
+    const doc = Object.values(
+      import.meta.glob("../../docs/religion-v2.md", {
+        eager: true,
+        query: "?raw",
+        import: "default",
+      }),
+    )[0] as string;
+    expect(doc).toContain(`\`rite.costBase\` (**${RELIGION.rite.costBase}**)`);
+    expect(doc).toContain(`\`rite.costPerRiteStarted\` (**${RELIGION.rite.costPerRiteStarted}**)`);
+    expect(doc).not.toContain("costByAge");
+  });
+
+  it("do not change price with the age the empire stands in", () => {
     const { g } = town();
-    expect(riteCostFor(g.state, 0)).toBe(40);
-    // Theology is an Æra III node, so holding it prices a rite at the third rung.
+    expect(riteCostFor(g.state, 0)).toBe(20);
+    // Theology is an Æra III node. Before batch R2a it priced a rite at 72.
     learn(g.state, 0, "theology");
-    expect(riteCostFor(g.state, 0)).toBe(72);
+    expect(riteCostFor(g.state, 0)).toBe(20);
+  });
+
+  it("count every rite started in every town, and each costs the price of its turn", () => {
+    const { g, city, player } = town();
+    const second = foundCityAt(g.state, 0, getTileAt(g.state.map, city.col + 3, city.row)!);
+    bumpRevision(g.state);
+    const before = player.faithPool;
+    performRiteAt(g.state, player, city, "omenReading");
+    performRiteAt(g.state, player, second, "riteOfTheHarvest");
+    expect(player.faithPool).toBe(before - 20 - 25);
+    expect(player.ritesStarted).toBe(2);
+    // A rite that runs out does not lower the count: the town may start
+    // another, at the higher price.
+    city.timed = [];
+    bumpRevision(g.state);
+    expect(riteError(g.state, 0, city.id, "riteOfTheHarvest")).toBeNull();
+    performRiteAt(g.state, player, city, "riteOfTheHarvest");
+    expect(player.faithPool).toBe(before - 20 - 25 - 30);
+    expect(player.ritesStarted).toBe(3);
+    // Another empire's count is its own.
+    expect(playerById(g.state, 1)!.ritesStarted).toBeUndefined();
+    expect(riteCostFor(g.state, 1)).toBe(20);
+  });
+
+  it("are not counted when the rite acts at once, which pays the price of its turn", () => {
+    // The review's reading 2: the count rises at the moment that pays the
+    // `riteStarted` tally, and the Votive Offering acts at once and pays none.
+    const { g, city, player } = town();
+    const gifts = "theVotiveGifts" as OrderId;
+    player.statecraft.orders = [gifts];
+    player.statecraft.slots = [{ card: gifts, sealedUntil: 0 }];
+    city.queue = [{ kind: "unit", id: "warrior" }];
+    bumpRevision(g.state);
+    performRiteAt(g.state, player, city, "omenReading");
+    expect(player.ritesStarted).toBe(1);
+    city.timed = [];
+    bumpRevision(g.state);
+    expect(riteError(g.state, 0, city.id, "votiveOffering")).toBeNull();
+    const before = player.faithPool;
+    const done = performRiteAt(g.state, player, city, "votiveOffering");
+    expect(done.cost).toBe(25);
+    expect(player.faithPool).toBe(before - 25);
+    expect(player.ritesStarted).toBe(1);
+  });
+
+  it("charge through the command at the price the gate quoted", () => {
+    const { g, city, player } = town();
+    player.ritesStarted = 4;
+    bumpRevision(g.state);
+    expect(riteCostFor(g.state, 0)).toBe(40);
+    player.faithPool = 39;
+    expect(riteError(g.state, 0, city.id, "omenReading")).toBe(
+      "Omen Reading asks 40 faith and Ada has 39",
+    );
+    player.faithPool = 40;
+    const result = applyCommand(g.state, {
+      type: "performRite",
+      playerId: 0,
+      cityId: city.id,
+      rite: "omenReading",
+    } as Command);
+    expect(result.ok).toBe(true);
+    expect(player.faithPool).toBe(0);
+    expect(player.ritesStarted).toBe(5);
+  });
+
+  it("keep one writer of the count, and the tally beside it", () => {
+    // The count and the `riteStarted` tally rise together, in one helper, so
+    // the price counts the same rites the cards count.
+    const code = simSource("religion.ts").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    expect((code.match(/\.ritesStarted\s*(=[^=]|\+=)/g) ?? []).length).toBe(1);
+    expect((code.match(/'riteStarted'/g) ?? []).length).toBe(1);
+    expect(code).toMatch(
+      /function countRiteStarted\([^)]*\): void \{\s*player\.ritesStarted = \(player\.ritesStarted \?\? 0\) \+ 1;\s*recordScalingOccasion\(state, player\.id, 'riteStarted'\);/,
+    );
+    expect((code.match(/countRiteStarted\(state, player\)/g) ?? []).length).toBe(2);
+    // And no other file of the simulation writes the count or pays the tally.
+    for (const [path, text] of Object.entries(SIM_SOURCE)) {
+      if (path.endsWith("/religion.ts")) continue;
+      const body = text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+      expect(body, path).not.toMatch(/\.ritesStarted\s*(=[^=]|\+=)/);
+      expect(body, path).not.toMatch(/recordScalingOccasion\([^)]*'riteStarted'/);
+    }
   });
 
   it("refuse a bank that cannot pay, and say what it holds", () => {
     const { g, city, player } = town();
     player.faithPool = 12;
     expect(riteError(g.state, 0, city.id, "omenReading")).toBe(
-      "Omen Reading asks 40 faith and Ada has 12",
+      "Omen Reading asks 20 faith and Ada has 12",
     );
   });
 
@@ -887,16 +1021,16 @@ describe("rites", () => {
   it("say how much more faith a rite needs when the bank is all that is short", () => {
     const { g, city, player } = town();
     player.faithPool = 12;
-    expect(riteShortfall(g.state, 0, city.id, "omenReading")).toBe(28);
+    expect(riteShortfall(g.state, 0, city.id, "omenReading")).toBe(8);
     // The sentence for the same case is unchanged.
     expect(riteError(g.state, 0, city.id, "omenReading")).toBe(
-      "Omen Reading asks 40 faith and Ada has 12",
+      "Omen Reading asks 20 faith and Ada has 12",
     );
     expect(agreesWithTheGate(g.state, city.id, "omenReading")).toBe("short");
     // A bank holds fractions, and the shortfall is not rounded.
     player.faithPool = 12.5;
-    expect(riteShortfall(g.state, 0, city.id, "omenReading")).toBe(27.5);
-    player.faithPool = 40;
+    expect(riteShortfall(g.state, 0, city.id, "omenReading")).toBe(7.5);
+    player.faithPool = 20;
     expect(agreesWithTheGate(g.state, city.id, "omenReading")).toBe("taken");
     expect(riteShortfall(g.state, 0, city.id, "omenReading")).toBeNull();
   });
@@ -1335,9 +1469,13 @@ describe("a prophet says a rite over every town", () => {
     const done = empireRiteAt(g.state, player, prophet, "omenReading");
     expect(done.cities.map((city) => city.id)).toEqual([first.id, second.id]);
     // One price, not one a town.
-    expect(player.faithPool).toBe(before - 40);
+    expect(player.faithPool).toBe(before - 20);
     expect(cityRite(g.state, first)).toBe("omenReading");
     expect(cityRite(g.state, second)).toBe("omenReading");
+    // Batch R2a: each town it reaches starts a rite, so the count the price
+    // reads rises once a town, after the one price was paid.
+    expect(player.ritesStarted).toBe(2);
+    expect(riteCostFor(g.state, 0)).toBe(30);
   });
 
   /**
@@ -1409,13 +1547,13 @@ describe("a prophet says a rite over every town", () => {
     // its "Say" button with "short N" from this figure.
     const { g, player, prophet } = ready();
     player.faithPool = 3;
-    expect(empireRiteShortfall(g.state, 0, prophet.id, "omenReading")).toBe(37);
+    expect(empireRiteShortfall(g.state, 0, prophet.id, "omenReading")).toBe(17);
     expect(empireRiteGate(g.state, 0, prophet.id, "omenReading")).toEqual({
-      refusal: "Omen Reading asks 40 faith and Ada has 3",
-      shortfall: 37,
+      refusal: "Omen Reading asks 20 faith and Ada has 3",
+      shortfall: 17,
     });
     // Holding the shortfall more is exactly enough.
-    player.faithPool = 40;
+    player.faithPool = 20;
     expect(empireRiteError(g.state, 0, prophet.id, "omenReading")).toBeNull();
     expect(empireRiteShortfall(g.state, 0, prophet.id, "omenReading")).toBeNull();
     // Another clause refusing, with the bank empty as well: nothing is short.
@@ -4649,6 +4787,77 @@ describe("the Knights Templar", () => {
     expect(holy(templar, away)).toBe(0);
     // And the line names the row, so the empire's other soldiers are untouched.
     expect(holy(ordinary, home)).toBe(0);
+  });
+});
+
+// --- the pantheon's bag (batch R2a) ------------------------------------------
+
+/**
+ * **A pantheon god is no longer one per world** (batch R2a,
+ * `docs/plans/devotion-review-2026-10-28.md` rule 2; the user, 2026-10-28:
+ * *"lets make all pantheons available to draft (no longer one in the
+ * world)"*). `beliefPool` leaves out only the gods this empire holds. The
+ * follower and enhancer pools keep their rules (the review's reading 5).
+ */
+describe("the pantheon's bag", () => {
+  it("leaves out only this empire's own gods, so a rival's god stays in it", () => {
+    const g = game();
+    const ada = playerById(g.state, 0)!;
+    const bors = playerById(g.state, 1)!;
+    const [first, second] = beliefPool(g.state, ada);
+    bors.pantheon.beliefs.push(first!);
+    bumpRevision(g.state);
+    expect(beliefPool(g.state, ada)).toContain(first);
+    ada.pantheon.beliefs.push(second!);
+    bumpRevision(g.state);
+    expect(beliefPool(g.state, ada)).not.toContain(second);
+    expect(beliefPool(g.state, bors)).not.toContain(first);
+    expect(beliefPool(g.state, bors)).toContain(second);
+  });
+
+  it("deals a god a rival holds, and the pick puts it in a second pantheon", () => {
+    const g = game();
+    const ada = playerById(g.state, 0)!;
+    const bors = playerById(g.state, 1)!;
+    // The rival holds every live god. Before batch R2a this bag was empty.
+    const live = BELIEF_IDS.filter(
+      (id) => isPantheonBeliefId(id) && beliefDef(id).retired !== true,
+    );
+    bors.pantheon.beliefs.push(...live);
+    bumpRevision(g.state);
+    expect(beliefPool(g.state, ada)).toEqual(live);
+    ada.pantheon.pending = drawBeliefOffer(g.state, ada);
+    const taken = ada.pantheon.pending.options[0]!;
+    expect(bors.pantheon.beliefs).toContain(taken);
+    const result = applyCommand(g.state, {
+      type: "chooseBelief",
+      playerId: 0,
+      optionIndex: 0,
+    } as Command);
+    expect(result.ok).toBe(true);
+    expect(ada.pantheon.beliefs).toEqual([taken]);
+    expect(bors.pantheon.beliefs).toContain(taken);
+  });
+
+  it("keeps a religion's follower bag its own, as before", () => {
+    // The review's reading 5: only the pantheon's rule changes. A religion's
+    // follower bag leaves out the beliefs that religion holds.
+    const g = game();
+    const ada = playerById(g.state, 0)!;
+    ada.pantheon.beliefs.push(BELIEF_IDS[0]!);
+    const religion = foundReligion(g.state, ada);
+    const [first] = religionBeliefPool(religion, "follower");
+    religion.follower.push(first!);
+    bumpRevision(g.state);
+    expect(religionBeliefPool(religion, "follower")).not.toContain(first);
+  });
+
+  it("reads no other empire's gods", () => {
+    const code = simSource("religion.ts").replace(/\/\*[\s\S]*?\*\//g, "");
+    const start = code.indexOf("export function beliefPool(");
+    const body = code.slice(start, code.indexOf("\n}\n", start));
+    expect(body).not.toContain("realPlayers");
+    expect(body).not.toContain("state.players");
   });
 });
 
