@@ -19,7 +19,7 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
-**(fffffff) Each deck is a way to play, not a yield: RULED 2026-10-20, not built yet.**
+**(fffffff) Each deck is a way to play, not a yield: RULED 2026-10-20; every deck BUILT on `decks` by 2026-10-26, not yet on `main`.**
 The user, after reading the six builds passes: *"each deck feels a bit one note, and needs diverse bonuses that aren't so squarely on theme with their central purpose/yield."*
 - **The rulings** are in `docs/decks/deck-design.md`, "Direction, 2026-10-20":
   - the user's picture of each deck, verbatim;
@@ -45,24 +45,14 @@ The user, after reading the six builds passes: *"each deck feels a bit one note,
 - **The Expansionist Doctrines** (2026-10-23, the user's 22 comments on the review page, folded into `docs/plans/expansionist-builds.md` and the sheet): 8 cut, 14 revised (most lose their drawback), 24 remain. Eight readings and two questions (The Builder Kings and the wonder split; The Cathedral Lodges' wonder clause) are at the end of that section.
 - **The Expansionist build plan's answers** (2026-10-23): keep both of Veteran Colonies' loops, and teach the bots to levy in a bot-track batch. The readings are approved, except reading 25: every unit that retires gives a citizen, a unit raised for free included (*"the player shouldn't have to keep track of which ones were free"*).
 - **The review comments on built cards** (2026-10-23 and 2026-10-25, batch R1, `docs/plans/review-revisions-2026-10-25.md`): Dominion's The King's Levy (gains a melee unit when drafted; Tier I), The Standing Army (Tier I), The Drill Grounds (every 3 turns) and The Campaign Annals (+3 science a rank); The Cattle Raid, The Defiant Kingdom and Copying the Enemy retired; Scientific's The Almanac (a cost bug, then +2 production) and The Secret Arts (counts charter technologies); The Art Dealers (+3 gold for each seated card); Devotion's The Fast (science and culture) and The Rites Commonwealth (no drawback).
-- **The Devotion and Magisterial passes' answers** (2026-10-25, section 12 of each themes doc): *"please fold those in and begin implementing devotion and magisterial"*. The build takes every recommendation of section 10 and section 11 as a reading. Magisterial: The Prytaneion pays for each seated card, The Markstones and Gifts at Court are cut, and a Tier 0 commission to complete a wonder is added. Next: the Doctrines of both decks and the two build plans.
+- **The Devotion and Magisterial passes' answers** (2026-10-25, section 12 of each themes doc): *"please fold those in and begin implementing devotion and magisterial"*. The build takes every recommendation of section 10 and section 11 as a reading. Magisterial: The Prytaneion pays for each seated card, The Markstones and Gifts at Court are cut, and a Tier 0 commission to complete a wonder is added. Built by `docs/plans/devotion-themes-triage.md` (DV1 to DV9) and `docs/plans/magisterial-themes-triage.md` (MG1 to MG17). Their Doctrines are proposed in `docs/plans/devotion-doctrines.md` and `docs/plans/magisterial-doctrines.md`.
 - **The Scientific Doctrines** (2026-10-23, three comments, `docs/plans/scientific-doctrines.md`): The Pythagorean Brotherhood's surcharge is 10%, The Workshops of Syracuse gives +5 strength, and The Peripatetic School is rewritten (Academies +2 science and +2 production; +30% renown from science buildings and wonders).
-
-**(eeeeeee) Order tiers open by draft count alone: RULED 2026-10-17, not built yet.**
-The user, while playtesting: *"the tier 1 orders don't require era 2, tier 2
-orders should require era 2. lets remove the research age altogether"*.
-- **Today** an Order tier needs its draft rung and a research age
-  (`bandOpen`): Tier I needs age 2, Tier II age 3, and Tiers III and IV age 4.
-  This was the user's rule of 2026-09-16: *"reaching Government I through
-  culture alone cannot offer an age-2 Market card while the empire is still in
-  age 1"*.
-- **The ruling:** the research-age gate goes. An Order tier opens at its draft
-  rung alone: Tier I at 4 drafts, Tier II at 10, Tier III at 18 and Tier IV at
-  26. This replaces the rule of 2026-09-16.
-- **Reading:** the first sentence says the age mapping was one age off; the
-  last sentence removes the gate altogether, and the build follows it.
-- **The play server:** the change bumps the save schema, so it is deployed only
-  when the user says, to keep the game in progress.
+- **Where it stands (2026-10-28):**
+  - Every card of the six decks is built on `decks` (commit `48381b6a`, schema 199). Each deck has a build plan with "Built" notes: `docs/plans/scientific-build-triage.md`, `dominion-themes-triage.md`, `expansionist-themes-triage.md`, `commerce-themes-triage.md`, `devotion-themes-triage.md` and `magisterial-themes-triage.md`. The six sheets in `docs/decks/` are the specs of record.
+  - The game deals 615 Orders: 533 in the six decks, 69 shared by two decks and 13 that belong to no deck. Dominion's 15 Doctrines are live. The Doctrines of the other five decks are proposed in `docs/plans/<deck>-doctrines.md` (Expansionist's in its sheet, `docs/decks/expansionist.md`) and are not built.
+  - The tidy batches Z1 and Z2 and the bots' runway rule followed (`docs/plans/tidy-2026-10-26.md`). The push gate passed on `48381b6a`: the type check, the build and `npm run test:all` (470 files, 10,262 tests).
+  - The play server runs this build on `deck-themes`, pushed to GitHub on 2026-10-28. `main` is not pushed: it waits for the user's yes.
+  - **Next:** the user's playtest decides what changes. The user keeps playtest notes on the review page, where every Order has a row. Deck size (Dominion 129 cards, Expansionist 113, against a target of 45 to 55) waits for the playtest.
 
 **(ddddddd) Draft pacing after the rung fix: Tier IV BUILT 2026-10-17 (schema 150); choices 1 and 2 still open.**
 The rung fix (item (ccccccc), built 2026-10-17, schema 149, now in the log)

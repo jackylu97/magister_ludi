@@ -4397,3 +4397,21 @@ costs about 260 culture; it costs 606, and the first 18 drafts cost 3,940 in
 all. The measurement, before and after, is
 `docs/plans/draft-pacing-2026-10-17.md`. The choices left are item (ddddddd)
 in `docs/flags.md`.
+
+### (eeeeeee) — moved 2026-10-28
+
+**(eeeeeee) Order tiers open by draft count alone: RULED 2026-10-17, BUILT 2026-10-17** (schema 151, commit `d9d7390b`, on `main`).
+The user, while playtesting: *"the tier 1 orders don't require era 2, tier 2
+orders should require era 2. lets remove the research age altogether"*.
+- **Today** an Order tier needs its draft rung and a research age
+  (`bandOpen`): Tier I needs age 2, Tier II age 3, and Tiers III and IV age 4.
+  This was the user's rule of 2026-09-16: *"reaching Government I through
+  culture alone cannot offer an age-2 Market card while the empire is still in
+  age 1"*.
+- **The ruling:** the research-age gate goes. An Order tier opens at its draft
+  rung alone: Tier I at 4 drafts, Tier II at 10, Tier III at 18 and Tier IV at
+  26. This replaces the rule of 2026-09-16.
+- **Reading:** the first sentence says the age mapping was one age off; the
+  last sentence removes the gate altogether, and the build follows it.
+- **The play server:** the change bumps the save schema, so it is deployed only
+  when the user says, to keep the game in progress.

@@ -257,8 +257,9 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   - Three writers give a hex to a town: `claimTile` (a hex nobody owns),
     `takeTile` (a hex of another town of the same empire) and, since
     Magisterial batch MG16, `seizeTile` (a hex of a rival's town; that town
-    drops its pin there). The citadel's claim and The Encroaching Fields
-    still write `state.tileOwner` themselves.
+    drops its pin there). Since tidy batch Z1 the citadel's claim
+    (`greatPeople.ts`) and The Encroaching Fields (`runEncroachment`,
+    `frontiers.ts`) move hexes through these three writers too.
   - Since Magisterial batch MG16, `expandBorders` ends with
     `pullRivalHexesToWorks` (The Pull of the Masters, the action rule
     `worksPullRivalHexes`). Each holder in `realPlayers` order walks its
@@ -1247,8 +1248,8 @@ Eight root pages, all named in `vite.config.ts` inputs:
 | `city-screen.md` · `pamphlet.md` | two shipped specs of record, each with a tail still open |
 | `art-pass.md` · `splash-art.md` | art direction: a live backlog and the standing refusals |
 | `playtest_notes.md` | the user's running playtest diary |
-| `decks/` | the six decks: `deck-design.md` (the goals, the rules and the dated rulings) and one sheet per deck, saying of each card whether it is live, changing, deferred or new. The card-design skill (`.claude/skills/card-design/`) reads them |
-| `plans/` | work in progress: the tutorial plan (`tutorial.md`, with `tutorial-research.md`), the interface rework (`hud-ux-decisions.md`, `hud-empire-panel-spec.md`, the city and faith screen plans), the deck measurements and research, Dominion's finished builds and ideas, and the plans the code still cites |
+| `decks/` | the six decks: `deck-design.md` (the goals, the rules and the dated rulings) and one sheet per deck, the spec of record for its cards. Every card of all six is built on branch `decks` (2026-10-26), so each sheet row says `implemented`, or `modify` with the reason. `common.md` is the user's proposal of 2026-10-12 for the cards that belong to no deck; the game still deals the older 13. The card-design skill (`.claude/skills/card-design/`) reads them |
+| `plans/` | work in progress: the tutorial plan (`tutorial.md`, with `tutorial-research.md`), the interface rework (`hud-ux-decisions.md`, `hud-empire-panel-spec.md`, the city and faith screen plans), the deck measurements and research, each deck's themes pass (`<deck>-themes.md`), build plan with "Built" notes (`<deck>-themes-triage.md`, Scientific's `scientific-build-triage.md`) and proposed Doctrines (`<deck>-doctrines.md`), the tidy-up after the builds (`tidy-2026-10-26.md`), and the plans the code still cites |
 
 **The drawers** — open only for the *why*:
 

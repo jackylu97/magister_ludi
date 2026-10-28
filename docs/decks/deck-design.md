@@ -185,7 +185,9 @@ Considered and declined in the same conversation (`docs/plans/card-synergy-resea
 | **Scientific** | Reach it first | The tech tree: charter technologies and earlier access | Tempo and raw bonuses | A few science bonuses fund expensive charter technologies, and those unlock the deck's powerful cards |
 | **Magisterial** | Play the draft | The card system itself: combinations of specific cards, boons on draft; culture, great people and wonders | Depth in any single engine, and weak until its combinations come together | Boons give it value while it gathers its combinations; conversion turns culture into whatever it needs |
 
-**Where the decks stand.** Dominion and Commerce are in a good place and are the reference for the others. Expansionist, Devotion, Scientific and Magisterial still need work; each section below says where the current sheet falls short of this design.
+**Where the decks stand (2026-10-28).** After "Direction, 2026-10-20", each deck was designed again by the themes method (`docs/plans/<deck>-themes.md`), the user commented on each pass, and every card of all six decks is now built on branch `decks` by its build plan (`docs/plans/scientific-build-triage.md` and `docs/plans/<deck>-themes-triage.md` for the other five). The six sheets in this folder are the specs of record. Dominion's Doctrines are live; the other decks' Doctrines are proposed, not built. Next is the user's playtest. `docs/flags.md` (fffffff) has the details.
+
+Each deck's "Where the sheet stands" below is the assessment of 2026-10-01, of the sheets before the themes passes. It is kept as the reason for the passes, and it does not describe the current sheets.
 
 ---
 
@@ -213,7 +215,7 @@ Considered and declined in the same conversation (`docs/plans/card-synergy-resea
 10. **Great generals and citadels** — bonuses, access and yields for your empire.
 11. **War reparations** — a peace after a won war pays gold or culture, so a war can end in a reward rather than simply stop.
 
-**Where the sheet stands.** The reference deck. It has more self-development than the gap above suggests, but nearly all of it runs through military buildings and garrisons, which is consistent with "the army is the economy".
+**Where the sheet stood (2026-10-01, before the themes pass).** The reference deck. It has more self-development than the gap above suggests, but nearly all of it runs through military buildings and garrisons, which is consistent with "the army is the economy".
 
 ---
 
@@ -286,7 +288,7 @@ All of these go into the full card list as cards; the user will cut ideas once t
 - **Bonuses that count how many different kinds of terrain or feature you have.** Terrain-*conditional* bonuses are good; counting kinds is not.
 - **Science or culture that does not come from terrain.** It covers the gap directly instead of playing around it.
 
-**Where the sheet stands.**
+**Where the sheet stood (2026-10-01, before the themes pass).**
 - Cultivation is well covered.
 - **Authority and happiness are almost entirely unbuilt.** Of the deck's own cards, only The Grain Dole (happiness for large cities) is live. The authority cards — The Local Census, Provincial Councils, The Pioneers' Portion, The Standing Patronage — are all deferred.
 - **Tended land does not exist yet.** It is a new family of works and needs building.
@@ -337,7 +339,7 @@ All of these go into the full card list as cards; the user will cut ideas once t
 15. **Great merchants and customs houses.**
 16. **Diplomacy and mutual bonuses** — deals and partnerships that pay both sides.
 
-**Where the sheet stands.** The reference deck, and the user's hand-edited sheet is the design of record for its cards.
+**Where the sheet stood (2026-10-01, before the themes pass).** The reference deck, and the user's hand-edited sheet is the design of record for its cards.
 
 ---
 
@@ -369,7 +371,7 @@ All of these go into the full card list as cards; the user will cut ideas once t
 
 **Avoid.** Many flat "+production in cities keeping a rite" bonuses. They cover the gap directly instead of playing around it, and they turn rites into a switch rather than a choice.
 
-**Where the sheet stands.**
+**Where the sheet stood (2026-10-01, before the themes pass).**
 - **"Cities keeping a rite gain…" is overused.** About ten cards use it as a condition for flat yields (Monastic Table, Votive Fields, Omen Schools, Rites of Labor, The Rites Commonwealth, The Festival Calendar, The Consecrated Workshops, and others). Several of these give production, which works against the gap.
 - **The faith-spending workaround is mostly deferred.** Consecrated Labor, The Votive Companies, Consecrated Ground, The Healing and The Loaves are all unbuilt. The deck's defining mechanic is the part that does not exist yet.
 - Conversion rewards (The Living Hymnal, The Congregation Rolls, The Great Consecration) and holy war (The Spiritual Host, The Holy Army) are in place.
@@ -414,7 +416,7 @@ All of these go into the full card list as cards; the user will cut ideas once t
 - Exploration and discovery as a strong theme. It belongs to Commerce; a light version here is fine for cross-deck synergy.
 - Great-person cards beyond scholars and academies. Other families belong to other decks, and to Magisterial's any-family bonuses.
 
-**Where the sheet stands.**
+**Where the sheet stood (2026-10-01, before the themes pass).**
 - **The "access" identity is almost entirely unbuilt.** All five research charters are deferred because the technologies they open do not exist yet, and The Second Seat (an extra copy of an empire building) is deferred.
 - **The live cards lean on great-person works and maturity.** Maturity fits the design well (The Long Study, The Old Academy, Enduring Institutions, The Long Inheritance). The great-person works cards (Working Estates, The Endowed Provinces, Master Artificers, The Quiet Faculties) cover families other than scholars and should narrow to academies or move.
 - **Exploration and discovery cards** (Field Notebooks, Natural Philosophy, Practical Astronomy) belong to Commerce. A light version can stay here for cross-deck synergy.
@@ -463,7 +465,7 @@ All of these go into the full card list as cards; the user will cut ideas once t
 
 **Avoid.** Many "cities with at least two (or three) culture buildings gain flat yields" cards. That is the stacking-bonus pattern this redesign is meant to move away from.
 
-**Where the sheet stands.**
+**Where the sheet stood (2026-10-01, before the themes pass).**
 - The most complete deck, but most of it is building-count conditions (a Monument, two culture buildings, three culture buildings) paying flat yields.
 - **The conversion theme already has seeds:** The Working Court, The Learned Patron, The Performers' Treasury and The Universal Court all turn culture into another yield.
 - **Breadth rewards have seeds too:** The Complete Court and The Living Canon.
