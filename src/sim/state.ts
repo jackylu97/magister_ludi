@@ -3161,8 +3161,30 @@ import {
  * share beside a counted line or a luxury helping on the same building banks
  * a different figure, so a v200 log replays into different banks. The branch
  * migrates nothing, for the reason given under v119.
+ *
+ * v202 (branch `decks`; batch R2c, `docs/plans/devotion-review-2026-10-28.md`):
+ * **the Devotion cards of the user's review.** No field joins the state. The
+ * rules that change:
+ *
+ *   · three Devotion cards are retired: The Old Gods Remain, The Sacred
+ *     Precincts and The Monastic Builders;
+ *   · four cards move from Tier 0 to Tier I: The Founding Vows, The
+ *     Rogations, The Gifts of the Faithful and the shared The Shrine Guards;
+ *   · three Devotion cards are new and dealt: The Tithe Barns and The Royal
+ *     Cult (Tier 0), and The Temple Storehouses (Tier I);
+ *   · Scholasticism, The Schoolmen's Charter's technology, no longer opens
+ *     the Cathedral and the Apostle before Theology. Both rows lose their
+ *     `unlockedByCard` marker. It opens a new religious building, the
+ *     Cathedral School (`cathedralSchool`): +2 science for each building in
+ *     its town that supplies faith (`buildingsSupplying`), and +2 more for
+ *     each while the town keeps a rite.
+ *
+ * **A v201 save is refused and does not replay.** A Devotion or Dominion
+ * seat's Tier 0 and Tier I pools hold different cards, and a seat holding
+ * the charter opens a different shelf. The branch migrates nothing, for the
+ * reason given under v119.
  */
-export const SCHEMA_VERSION = 201;
+export const SCHEMA_VERSION = 202;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

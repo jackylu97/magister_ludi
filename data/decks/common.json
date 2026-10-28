@@ -2220,7 +2220,7 @@
     "theShrineGuards": {
       "name": "The Shrine Guards",
       "decks": ["dominion", "devotion"],
-      "band": 0,
+      "band": 1,
       "line": "none",
       "rarity": "common",
       "type": "military",
@@ -2272,7 +2272,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Every question is argued both ways before the master gives an answer.",
-      "text": "Drafting this opens Scholasticism for research. Knowing it lets you build the Cathedral and train the Apostle before Theology. No chair required.",
+      "text": "Drafting this opens Scholasticism for research. Knowing it lets you build the Cathedral School: +2 science for each building in the town that supplies faith, doubled while the town keeps a rite. No chair required.",
       "charter": {
         "unlocks": {
           "tech": "scholasticism"

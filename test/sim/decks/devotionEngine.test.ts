@@ -442,6 +442,8 @@ describe('Devotion batch DV3: The Creed', () => {
   });
 });
 
+// Retired in batch R2c. The row and its effect stay for saves, so the rule
+// it reads is still checked here.
 describe('Devotion batch DV3: The Sacred Precincts', () => {
   it('gives a town +3 defence for every religious building in it, a faith wonder included', () => {
     const state = bareState();
@@ -544,10 +546,11 @@ describe('Devotion batch DV3: the shared The Rising Nave', () => {
 });
 
 describe('Devotion batch DV3: the new rows', () => {
-  it('deals the four Devotion cards at their tiers, with their types', () => {
+  it('deals three of the four Devotion cards at their tiers, with their types', () => {
+    // Batch R2c moved The Gifts of the Faithful from Tier 0 to Tier I (the
+    // user, 2026-10-28: "move to tier 1").
     const rows: [string, number, string, string][] = [
-      ['theGiftsOfTheFaithful', 0, 'common', 'economic'],
-      ['theSacredPrecincts', 1, 'common', 'military'],
+      ['theGiftsOfTheFaithful', 1, 'common', 'economic'],
       ['theBookOfLife', 2, 'uncommon', 'civic'],
       ['theOfferingChests', 3, 'common', 'military'],
     ];
@@ -560,6 +563,19 @@ describe('Devotion batch DV3: the new rows', () => {
       expect(orderIsDealt(id as OrderId), id).toBe(true);
       expect(ordersForDecks(['devotion']), id).toContain(id);
     }
+  });
+
+  it('retires The Sacred Precincts and keeps its row for saves', () => {
+    // Batch R2c (the user, 2026-10-28: "remove"). The row keeps its effect,
+    // so a save that holds it still plays; the tests above read that effect.
+    const id = 'theSacredPrecincts' as OrderId;
+    const def = orderDef(id);
+    expect(DECK_FILE_ORDERS.devotion).toContain(id);
+    expect(def.retired).toBe(true);
+    expect(def.type).toBeUndefined();
+    expect(orderIsDealt(id)).toBe(false);
+    expect(ordersForDecks(['devotion'])).not.toContain(id);
+    expect(def.effects).toHaveLength(1);
   });
 
   it('gives each new row a plain note with no number and no identifier', () => {

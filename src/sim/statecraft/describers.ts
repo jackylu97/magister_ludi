@@ -1462,6 +1462,10 @@ function describePays(
     // a card that left it unsaid would be a card that lies about its bench.
     const counted =
       effect.count === 'tally' ? ', counted while this Order is seated' : '';
+    // A building's own counted line prints "in this city" and drops its scope
+    // (`countPlace`), so a condition in that scope must be printed here, or
+    // the line reads as a promise it keeps only some turns (batch R2c).
+    const condition = subject === 'here' ? hereCondition(effect.scope) : '';
     // **Which roads a counted route line is about** (batch C7). The route arm
     // below never runs for a counted row — this branch answers and returns — so
     // the one narrowing that arm would have printed has to be printed here, or
@@ -1495,7 +1499,7 @@ function describePays(
     out.push({
       text:
         `${payoutWords(effect, 1, voice)}${place.paidIn} per ${countWords(effect.per, words)}` +
-        `${here}${cap}${counted}${medium}`,
+        `${here}${cap}${condition}${counted}${medium}`,
     });
     return;
   }
@@ -5169,6 +5173,34 @@ function eachWords(scope?: CityScope): string {
   if (!scope) return 'city';
   const said = cityScopeWords(scope);
   return said.startsWith('every ') ? said.slice('every '.length) : said;
+}
+
+/**
+ * The condition on a building's own counted line, as a tail: ", while it is
+ * keeping a rite" (batch R2c, the Cathedral School). Empty when the scope says
+ * nothing but that the town holds the building.
+ *
+ * Its `hasBuilding` tests are taken out first. On a building's own page each
+ * one is the building itself standing in the town, which "in this city"
+ * already says. No building row's counted line names another building in its
+ * scope (`test/sim/decks/devotionReview.test.ts` checks this), so nothing true
+ * is dropped.
+ */
+function hereCondition(scope: CityScope | undefined): string {
+  if (scope === undefined) return '';
+  const rest = withoutBuildingTests(scope);
+  return rest === undefined ? '' : `, ${scopeCondition(rest)}`;
+}
+
+/** A scope without its `hasBuilding` tests, or `undefined` when nothing is left. */
+function withoutBuildingTests(scope: CityScope): CityScope | undefined {
+  if (scope.test === 'hasBuilding') return undefined;
+  if (scope.test !== 'all') return scope;
+  const rest = scope.of
+    .map(withoutBuildingTests)
+    .filter((test): test is CityScope => test !== undefined);
+  if (rest.length === 0) return undefined;
+  return rest.length === 1 ? rest[0] : { test: 'all', of: rest };
 }
 
 function scopeCondition(scope: CityScope): string {

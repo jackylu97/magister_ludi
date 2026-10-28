@@ -423,6 +423,11 @@ export type BuildingId =
   | 'aldinePress'
   | 'bimaristan'
   | 'tophane'
+  // Scholasticism's religious building (batch R2c,
+  // `docs/plans/devotion-review-2026-10-28.md`), opened by The Schoolmen's
+  // Charter's technology in the same way. Its row sits at the end of
+  // `data/buildings.json`, so the rows before it keep their places.
+  | 'cathedralSchool'
   // The Holy Office's tenant (Entry LVIII, the faith rework): the tier-4 faith
   // building, and the one row that opens a bank (`faithPurchases`).
   | 'reliquary'

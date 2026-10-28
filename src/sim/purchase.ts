@@ -1377,18 +1377,19 @@ function clausesBeforeTheBank(
       (unitDef(bought.id).unlockedByCard === true || unitDef(bought.id).unlockedByLeader === true)
     ) {
       if (!isUnlocked(state, playerId, 'unit', bought.id)) {
-        // A row the tree opens too (the Apostle, at Theology) names its
-        // technology, as an ordinary row does.
+        // A row the tree opens too names its technology, as an ordinary row
+        // does.
         if (unitDef(bought.id).unlockedByCard === true && gate !== null && !hasTech(state, playerId, gate)) {
           return `${name}s need ${techDef(gate).name}`;
         }
         return `${name} is not open to ${player.name} yet`;
       }
     }
-    // A card may open a row before its technology does (Devotion batch DV2:
-    // Scholasticism, The Schoolmen's Charter's technology, opens the Apostle
-    // before Theology). The card comes before the tree's gate and does not
-    // replace it, as `unlockedFor` (`tech.ts`) reads it.
+    // A card may open a row before its technology does. The card comes
+    // before the tree's gate and does not replace it, as `unlockedFor`
+    // (`tech.ts`) reads it. Devotion batch DV2 built this for the Apostle,
+    // which Scholasticism opened before Theology. Since batch R2c no row uses
+    // it, and it stays as general code.
     const early =
       bought.kind === 'unit' &&
       unitDef(bought.id).unlockedByCard === true &&

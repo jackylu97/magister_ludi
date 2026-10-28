@@ -157,7 +157,8 @@ These rows live in `data/decks/common.json`. A seat holding Scientific or the de
 
 - **Types:** since batch S1b every shared row carries the type below. The user approved the types of the cards shared with Commerce, Devotion and Magisterial on 2026-10-21 (`docs/plans/scientific-themes.md`, section 15, item 5). The cards shared with Dominion, Expansionist, Commerce, Devotion and Magisterial carry the types those sheets give them.
 - **Moved in Devotion batch DV1** (`docs/plans/devotion-themes-triage.md`): The Priest-Astronomers and The Monastic University came here from the Devotion file, with their ids, texts, tiers and rarities, and are typed Civic.
-- **Built in Devotion batch DV2:** The Monastery Libraries left `deferred` with its new text, and The Blessed Forges and The Schoolmen's Charter are new rows. The charter opens a fourteenth charter technology, Scholasticism, at a placeholder place on the lane under Medicine until your chart places it. Knowing it opens the Cathedral and the Apostle before Theology. The Devotion build plan's question 1 (the Apostle opened early) is still open, and the build took its recommendation.
+- **Built in Devotion batch DV2:** The Monastery Libraries left `deferred` with its new text, and The Blessed Forges and The Schoolmen's Charter are new rows. The charter opens a fourteenth charter technology, Scholasticism, at a placeholder place on the lane under Medicine until your chart places it. In DV2, knowing it opened the Cathedral and the Apostle before Theology.
+- **Changed in Devotion batch R2c** (`docs/plans/devotion-review-2026-10-28.md`): The Schoolmen's Charter took your revision of 2026-10-28. Scholasticism now opens a new religious building, the Cathedral School: +2 science for each building in its town that supplies faith, and +2 more for each while the town keeps a rite. It no longer opens the Cathedral or the Apostle early, so the Devotion build plan's question 1 (the Apostle opened early) is closed.
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
@@ -168,7 +169,7 @@ These rows live in `data/decks/common.json`. A seat holding Scientific or the de
 | **Cloister Schools** | uncommon | Devotion | I | implemented | Cities with both a Temple and a Library gain +5 food and +5 science. | Civic |
 | **The Monastery Libraries** | common | Devotion | I | implemented | Libraries give +2 faith. Temples give +2 science. | Civic |
 | **The Exchange of Discoveries** | uncommon | Commerce | I | implemented | +2 science on mines and quarries on a resource. Additional +2 if the city has a market. | Civic |
-| **The Schoolmen's Charter** | uncommon | Devotion | I | implemented | Drafting this opens Scholasticism for research. Knowing it lets you build the Cathedral and train the Apostle before Theology. No chair required. | Civic |
+| **The Schoolmen's Charter** | uncommon | Devotion | I | implemented | Drafting this opens Scholasticism for research. Knowing it lets you build the Cathedral School: +2 science for each building in the town that supplies faith, doubled while the town keeps a rite. No chair required. | Civic |
 | **The Priest-Astronomers** | common | Devotion | I | implemented | Your capital gains +2 science and +2 faith for every city of yours keeping a rite, at most +16 of each. | Civic |
 | **The Cloister** | rare | Devotion | II | implemented | Cities with a Temple gain science equal to 30% of their base faith. Their Libraries and Universities each gain +3 food. | Civic |
 | **The Merchant Navigators** | common | Commerce | II | implemented | Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +5 science. | Civic |

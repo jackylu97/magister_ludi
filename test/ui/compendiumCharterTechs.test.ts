@@ -217,10 +217,11 @@ describe('the pages that name a charter technology link to it', () => {
         linked += 1;
       }
     }
-    // Seven buildings (the Specularium, the Mouseion, the Bimaristan, the
-    // Scriptorium, the Aldine Press, the Tophane and the Bastion) and three
-    // improvements (the Physic Garden, the Qanat and Niter Beds).
-    expect(linked).toBe(10);
+    // Eight buildings (the Specularium, the Mouseion, the Bimaristan, the
+    // Scriptorium, the Aldine Press, the Tophane, the Bastion, and since batch
+    // R2c Scholasticism's Cathedral School) and three improvements (the
+    // Physic Garden, the Qanat and Niter Beds).
+    expect(linked).toBe(11);
   });
 
   it('on its charter card, in the describer’s words and in the book’s charter note', () => {

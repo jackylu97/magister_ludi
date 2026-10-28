@@ -29,14 +29,16 @@
  *     (reading 32) and The Work of God (reading 37);
  *   · four shared cards: The Shrine Guards (with Dominion), and The Monastery
  *     Libraries, The Blessed Forges and The Schoolmen's Charter (with
- *     Scientific). The charter opens Scholasticism, which opens the Cathedral
- *     and the Apostle before Theology (reading 24);
+ *     Scientific). The charter opens Scholasticism. Since batch R2c that
+ *     opens the Cathedral School, and no longer the Cathedral and the Apostle
+ *     before Theology;
  *   · feature E's word: the describers print the devout scope as "devout",
  *     and the Compendium's faith page says what a devout town is.
  */
 
 import { describe, expect, it } from 'vitest';
 
+import { buildingDef } from '../../../src/sim/buildingData';
 import { foundCityAt, ownedTiles, realiseItem, refreshCityDerived } from '../../../src/sim/cities';
 import { runCommissions } from '../../../src/sim/commissions';
 import { improvementForResource } from '../../../src/sim/improvementData';
@@ -684,7 +686,12 @@ describe('Devotion batch DV2: the shared cards', () => {
     expect(townPays(state, city, 'theBlessedForges', 'production')).toBe(2);
   });
 
-  it('The Schoolmen’s Charter opens Scholasticism, which opens the Cathedral and the Apostle before Theology', () => {
+  it('The Schoolmen’s Charter opens Scholasticism, which opens the Cathedral School and nothing early', () => {
+    // Batch R2c (the user, 2026-10-28: "revise: create a new religious
+    // building instead of unlocking cathedral and apostle"): Scholasticism
+    // opens the Cathedral School through `unlocks.buildings`, and the
+    // Cathedral and the Apostle wait for Theology like every other seat's.
+    // `test/sim/decks/devotionReview.test.ts` checks what the school pays.
     const charter = orderDef('theSchoolmensCharter' as OrderId);
     expect(charter.decks).toEqual(['devotion', 'scientific']);
     expect([charter.band, charter.rarity, charter.type]).toEqual([1, 'uncommon', 'civic']);
@@ -696,12 +703,11 @@ describe('Devotion batch DV2: the shared cards', () => {
     const tech = techDef('scholasticism');
     expect([tech.age, tech.row, tech.charter, tech.prereqs]).toEqual([3, 1, true, ['theHighTemple']]);
     expect(tech.cost).toBe(techDef('medicine').cost);
-    // The Apostle's half is the second effect and the Apostle's marker: the
-    // lines to remove if question 1 is answered the other way.
-    expect(tech.effects).toEqual([
-      { kind: 'unlocksBuilding', building: 'cathedral' },
-      { kind: 'unlocksUnit', unit: 'apostle' },
-    ]);
+    expect(tech.unlocks.buildings).toEqual(['cathedralSchool']);
+    expect(tech.effects ?? []).toEqual([]);
+    // No row is marked as waiting for a card any more.
+    expect(buildingDef('cathedral').unlockedByCard).toBeUndefined();
+    expect(unitDef('apostle').unlockedByCard).toBeUndefined();
 
     const state = bareState();
     const city = town(state, 0, 5, 5, 4);
@@ -711,38 +717,41 @@ describe('Devotion batch DV2: the shared cards', () => {
     bumpRevision(state);
     const apostle = { kind: 'unit', id: 'apostle' };
     expect(researchError(state, 0, 'scholasticism')).toMatch(/charter/);
-    expect(isUnlocked(state, 0, 'building', 'cathedral', city)).toBe(false);
-    expect(isUnlocked(state, 0, 'unit', 'apostle')).toBe(false);
-    expect(purchaseError(state, 0, city.id, apostle, 'faith')).toBe('Apostles need Theology');
-    // Drafted: the technology may be researched. Known: both rows open.
+    expect(isUnlocked(state, 0, 'building', 'cathedralSchool', city)).toBe(false);
+    // Drafted: the technology may be researched. Known: the school opens, and
+    // the Cathedral and the Apostle still wait for Theology.
     player.charteredTechs.push('scholasticism');
     expect(researchError(state, 0, 'scholasticism')).toBeNull();
     player.techsResearched.push('scholasticism');
     bumpRevision(state);
-    expect(isUnlocked(state, 0, 'building', 'cathedral', city)).toBe(true);
-    expect(isUnlocked(state, 0, 'unit', 'apostle')).toBe(true);
-    expect(purchaseError(state, 0, city.id, apostle, 'faith')).toBeNull();
-    // The other seat, with neither, waits for Theology.
+    expect(isUnlocked(state, 0, 'building', 'cathedralSchool', city)).toBe(true);
+    expect(isUnlocked(state, 0, 'building', 'cathedral', city)).toBe(false);
+    expect(isUnlocked(state, 0, 'unit', 'apostle')).toBe(false);
+    expect(purchaseError(state, 0, city.id, apostle, 'faith')).toBe('Apostles need Theology');
+    // The other seat, without the charter, never sees the school.
     const rival = playerById(state, 1)!;
-    rival.techsResearched = rival.techsResearched.filter((id) => id !== 'theology');
-    bumpRevision(state);
-    expect(isUnlocked(state, 1, 'unit', 'apostle')).toBe(false);
-    expect(isUnlocked(state, 1, 'building', 'cathedral')).toBe(false);
-    // Theology still opens both for everybody.
     rival.techsResearched.push('theology');
     bumpRevision(state);
+    expect(isUnlocked(state, 1, 'building', 'cathedralSchool')).toBe(false);
+    // Theology opens the Cathedral and the Apostle for everybody.
+    player.techsResearched.push('theology');
+    bumpRevision(state);
+    expect(isUnlocked(state, 0, 'building', 'cathedral', city)).toBe(true);
+    expect(isUnlocked(state, 0, 'unit', 'apostle')).toBe(true);
     expect(isUnlocked(state, 1, 'unit', 'apostle')).toBe(true);
-    expect(isUnlocked(state, 1, 'building', 'cathedral')).toBe(true);
   });
 
-  it('prints The Schoolmen’s Charter’s gifts with the node that opens them for everyone', () => {
+  it('prints The Schoolmen’s Charter’s gift: the Cathedral School and what it pays', () => {
     const said = words('theSchoolmensCharter');
     expect(said[0]).toBe(
       'once drafted, opens Scholasticism for you to research; only an empire holding this charter may research it; this card takes no chair',
     );
-    expect(said[1]).toMatch(/^once you know Scholasticism, you may build the Cathedral before Theology: /);
-    expect(said[2]).toBe('once you know Scholasticism, you may call the Apostle with faith before Theology');
-    expect(said).toHaveLength(3);
+    expect(said[1]).toBe(
+      'once you know Scholasticism, you may build the Cathedral School: ' +
+        '+2 science per building in this city that supplies faith; ' +
+        '+2 science per building in this city that supplies faith, while it is keeping a rite',
+    );
+    expect(said).toHaveLength(2);
   });
 });
 

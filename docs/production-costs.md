@@ -110,8 +110,8 @@ column 6 with them.
 
 A building a **charter technology** opens (Scientific batch S4: the
 Specularium, the Mouseion, the Aldine Press, the Bimaristan, the Tophane, the
-Scriptorium and the Bastion) is a row the tree names, so it takes that
-technology's column like any other. Only the charter's holder can research the
+Scriptorium and the Bastion; batch R2c: Scholasticism's Cathedral School) is a
+row the tree names, so it takes that technology's column like any other. Only the charter's holder can research the
 technology, so only the holder can build the row.
 
 The **four faith houses** a follower belief opens (batch B3 — the Mosque, the
@@ -243,6 +243,7 @@ reading for a once-per-empire row.
 | `museion` | The Museion | small | 5 | 88 |
 | `rupertsbergScriptorium` | The Scriptorium of Rupertsberg | large | 8 | 397 |
 | `funduq` | The Funduq | large | 8 | 397 |
+| `cathedralSchool` | Cathedral School | medium | 6 | 154 |
 
 ### Wonders
 

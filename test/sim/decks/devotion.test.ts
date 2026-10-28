@@ -110,7 +110,7 @@ const KINDS_USED = [
   'happiness',
   'unitStat',
   'rulePercent',
-  'pantheonSlots',
+  // `pantheonSlots` left with The Old Gods Remain, retired in batch R2c.
   'rule',
   'effectAmplifier',
   'grantsAbility',
@@ -206,19 +206,20 @@ function linesOf(state: GameState, city: City, card: string) {
 // --- the shelf ---------------------------------------------------------------
 
 describe('the Devotion deck folds', () => {
-  it('carries 95 rows: 66 live, none deferred and 29 retired', () => {
+  it('carries 98 rows: 66 live, none deferred and 32 retired', () => {
     // Batch DV1: 77 rows before, less the six that moved to common.json. Four
     // rows retired, three live and one deferred. Batch DV2 added seven live
     // rows, batch DV3 four more, batch DV4 three more, batch DV5 three more,
     // and batch DV6 two more. Batch DV7 added three more and dealt The
-    // Interdict, the last deferred row. Batch DV8 added two more.
-    expect(DEVOTION).toHaveLength(95);
+    // Interdict, the last deferred row. Batch DV8 added two more. Batch R2c
+    // retired three live rows and added three new ones.
+    expect(DEVOTION).toHaveLength(98);
     expect(LIVE).toHaveLength(66);
     expect(DEFERRED).toHaveLength(0);
-    expect(RETIRED).toHaveLength(29);
+    expect(RETIRED).toHaveLength(32);
   });
 
-  it('spreads its 66 standing rows across Tiers 0 to IV as 8, 7, 21, 16 and 14', () => {
+  it('spreads its 66 standing rows across Tiers 0 to IV as 6, 9, 21, 16 and 14', () => {
     // Batch DV1 moved The Second Prophet, The Living Hymnal and The Mission
     // from Tier I to Tier II, and The Conversion of Kings and The Pious Masons
     // from Tier IV to Tier III. Batch DV2 added three rows at Tier II, three
@@ -229,10 +230,14 @@ describe('the Devotion deck folds', () => {
     // Batch DV6 added Pentecost and The Mass Baptisms (Tier III). Batch DV7
     // added The Anchorites (Tier II), and The Caliphate and The Abbeys (Tier
     // III). Batch DV8 added The Turning of Swords (Tier III) and The Double
-    // Feast (Tier IV).
+    // Feast (Tier IV). Batch R2c retired The Old Gods Remain (Tier 0), and
+    // The Sacred Precincts and The Monastic Builders (Tier I); moved The
+    // Founding Vows, The Rogations and The Gifts of the Faithful from Tier 0
+    // to Tier I; and added The Tithe Barns and The Royal Cult (Tier 0) and
+    // The Temple Storehouses (Tier I).
     expect(STANDING).toHaveLength(66);
     const perBand = BANDS.map((band) => STANDING.filter((id) => orderDef(id).band === band).length);
-    expect(perBand).toEqual([8, 7, 21, 16, 14]);
+    expect(perBand).toEqual([6, 9, 21, 16, 14]);
   });
 
   it('names its own deck on every row, with a band and a rarity', () => {
@@ -262,9 +267,18 @@ describe('the Devotion deck folds', () => {
   });
 
   it('retires the sheet’s cuts and deals them to nobody', () => {
-    // 25 cut on 2026-10-06 and 2026-10-12, and the four of batch DV1.
-    expect(RETIRED).toHaveLength(29);
-    for (const id of ['pastoralShrines', 'theConsolation', 'theAlmsRoads', 'consecratedGround']) {
+    // 25 cut on 2026-10-06 and 2026-10-12, the four of batch DV1, and the
+    // three of batch R2c (the user, 2026-10-28: "remove").
+    expect(RETIRED).toHaveLength(32);
+    for (const id of [
+      'pastoralShrines',
+      'theConsolation',
+      'theAlmsRoads',
+      'consecratedGround',
+      'theOldGodsRemain',
+      'theSacredPrecincts',
+      'theMonasticBuilders',
+    ]) {
       expect(RETIRED, id).toContain(id);
     }
     for (const id of RETIRED) expect(orderIsDealt(id), id).toBe(false);
@@ -367,9 +381,17 @@ describe('the age gate', () => {
   it('keeps every row of Tiers 0 and I off the clergy, the Temple, the holy site and the following town', () => {
     const early = STANDING.filter((row) => orderDef(row).band <= 1);
     // Batch DV3 added The Gifts of the Faithful (Tier 0) and The Sacred
-    // Precincts (Tier I), and batch DV4 The Rogations (Tier 0).
+    // Precincts (Tier I), and batch DV4 The Rogations (Tier 0). Batch R2c
+    // retired three rows here and added three.
     expect(early).toHaveLength(15);
+    // **One stated exception** (batch R2c): The Temple Storehouses is a Tier I
+    // card about Temples. The user added it there on 2026-10-28 ("add: +2
+    // happiness and +2 food on every temple"), after the rule above was
+    // written, so it is left out of this check by name.
+    const excepted: readonly string[] = ['theTempleStorehouses'];
+    expect(early.filter((id) => excepted.includes(id))).toEqual(excepted);
     for (const id of early) {
+      if (excepted.includes(id)) continue;
       const def = orderDef(id);
       expect(def.text ?? '', `${id}: ${def.text}`).not.toMatch(WORDS);
       const reads = JSON.stringify({ effects: def.effects, commission: def.commission, charter: def.charter });

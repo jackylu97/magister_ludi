@@ -362,7 +362,6 @@
         "perTurn": 1
       },
       "faithPurchases": "all",
-      "unlockedByCard": true,
       "note": "Dedicated to a patron the day it is finished. Units may be bought with faith in the city that holds it, at the rate gold buys them elsewhere."
     },
     "reliquary": {
@@ -3617,6 +3616,57 @@
         }
       ],
       "note": "A yard, a well and rooms above the stalls, and every town may keep one. Foreign roads that touch it come in loaded."
+    },
+    "cathedralSchool": {
+      "name": "Cathedral School",
+      "category": "faith",
+      "size": "medium",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "faith": 0,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "buildingsSupplying",
+          "voice": "faith",
+          "within": "city",
+          "to": "science",
+          "amount": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "cathedralSchool"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "buildingsSupplying",
+          "voice": "faith",
+          "within": "city",
+          "to": "science",
+          "amount": 2,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "hasBuilding",
+                "building": "cathedralSchool"
+              },
+              {
+                "test": "keepingRite"
+              }
+            ]
+          }
+        }
+      ],
+      "note": "The masters teach beside the altar. Every religious building in the town counts, this school included, and so does any other building that a card gives faith."
     }
   },
   "projects": {

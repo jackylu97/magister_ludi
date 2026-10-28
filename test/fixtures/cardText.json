@@ -7037,6 +7037,28 @@
     "text": "each of your cities may keep two different rites at once"
    }
   ],
+  "theTitheBarns": [
+   {
+    "raw": "+1 production, +1 faith in every city with a [[building:granary|Granary]]",
+    "text": "+1 production, +1 faith in every city with a Granary"
+   }
+  ],
+  "theRoyalCult": [
+   {
+    "raw": "+1 faith in your capital per citizen there",
+    "text": "+1 faith in your capital per citizen there"
+   }
+  ],
+  "theTempleStorehouses": [
+   {
+    "raw": "+2 food in every city with a [[building:temple|Temple]]",
+    "text": "+2 food in every city with a Temple"
+   },
+   {
+    "raw": "+2 happiness in every city with a [[building:temple|Temple]]",
+    "text": "+2 happiness in every city with a Temple"
+   }
+  ],
   "theMonasticTable": [
    {
     "raw": "+2 food, +2 production in every city while it is keeping a rite",
@@ -10065,12 +10087,8 @@
     "text": "once drafted, opens Scholasticism for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know [[tech:scholasticism|Scholasticism]], you may build the [[building:cathedral|Cathedral]] before [[tech:theology|Theology]]: +2 culture, +2 faith; +3 happiness; units may be bought with faith in this city; +1 renown per turn, favouring artists",
-    "text": "once you know Scholasticism, you may build the Cathedral before Theology: +2 culture, +2 faith; +3 happiness; units may be bought with faith in this city; +1 renown per turn, favouring artists"
-   },
-   {
-    "raw": "once you know [[tech:scholasticism|Scholasticism]], you may call the [[unit:apostle|Apostle]] with faith before [[tech:theology|Theology]]",
-    "text": "once you know Scholasticism, you may call the Apostle with faith before Theology"
+    "raw": "once you know [[tech:scholasticism|Scholasticism]], you may build the [[building:cathedralSchool|Cathedral School]]: +2 science per building in this city that supplies faith; +2 science per building in this city that supplies faith, while it is keeping a rite",
+    "text": "once you know Scholasticism, you may build the Cathedral School: +2 science per building in this city that supplies faith; +2 science per building in this city that supplies faith, while it is keeping a rite"
    }
   ],
   "theRisingNave": [
@@ -11442,6 +11460,16 @@
    {
     "raw": "+2 food, +2 production on every trade route that ends in another empire’s city and that ends in a city with [[building:funduq|The Funduq]]",
     "text": "+2 food, +2 production on every trade route that ends in another empire’s city and that ends in a city with The Funduq"
+   }
+  ],
+  "cathedralSchool": [
+   {
+    "raw": "+2 science per building in this city that supplies faith",
+    "text": "+2 science per building in this city that supplies faith"
+   },
+   {
+    "raw": "+2 science per building in this city that supplies faith, while it is keeping a rite",
+    "text": "+2 science per building in this city that supplies faith, while it is keeping a rite"
    }
   ]
  },

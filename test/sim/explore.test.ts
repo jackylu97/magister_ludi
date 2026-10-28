@@ -1254,10 +1254,18 @@ describe('determinism', () => {
    * age, so no share is taken and no fold moves. Checked with the change in
    * place and the version printed as 200, which gives the hashes of batch R2a
    * exactly.
+   *
+   * **Batch R2c (the Devotion review's cards, schema 202) moved the hash and
+   * not the length** at both seeds: 201 became 202, and that is all. The
+   * batch retires three Devotion cards, moves four to Tier I, adds three,
+   * and makes Scholasticism open the new Cathedral School in place of the
+   * early Cathedral and Apostle. Nobody here drafts, so no seat holds a card
+   * or researches Scholasticism. Checked with the change in place and the
+   * version printed as 201, which gives the hashes of batch R2b exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'f97a4526:188976',
-    2026: '3e4b690b:188554',
+    11: '9722717b:188976',
+    2026: '7d8b0dbe:188554',
   };
 
   for (const seed of [11, 2026]) {

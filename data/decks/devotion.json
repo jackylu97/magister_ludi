@@ -101,7 +101,6 @@
       "band": 0,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "The new altar was raised on the old one, and nobody asked the old gods to leave.",
       "text": "Gain one more pantheon belief.",
       "effects": [
@@ -109,14 +108,15 @@
           "kind": "pantheonSlots",
           "amount": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "theFoundingVows": {
       "name": "The Founding Vows",
       "decks": [
         "devotion"
       ],
-      "band": 0,
+      "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "type": "wildcard",
@@ -433,7 +433,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "The brothers who copied the books also laid the floor they copied them on.",
       "text": "Science buildings may be bought with faith.",
       "effects": [
@@ -441,7 +440,8 @@
           "kind": "rule",
           "rule": "faithBuysScienceBuildings"
         }
-      ]
+      ],
+      "retired": true
     },
     "theCreed": {
       "name": "The Creed",
@@ -1549,7 +1549,7 @@
       "decks": [
         "devotion"
       ],
-      "band": 0,
+      "band": 1,
       "line": "none",
       "rarity": "common",
       "type": "economic",
@@ -1572,7 +1572,6 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "military",
       "flavor": "The temple wall is the last wall the town gives up.",
       "text": "Towns gain +3 defence for every religious building in them.",
       "effects": [
@@ -1584,7 +1583,8 @@
           "category": "faith"
         }
       ],
-      "note": "A wonder of the faith standing in the town counts as a religious building."
+      "note": "A wonder of the faith standing in the town counts as a religious building.",
+      "retired": true
     },
     "theBookOfLife": {
       "name": "The Book of Life",
@@ -1652,7 +1652,7 @@
       "decks": [
         "devotion"
       ],
-      "band": 0,
+      "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "type": "civic",
@@ -1997,6 +1997,84 @@
         }
       ],
       "note": "A town cannot keep the same rite twice. A prophet's rite over your whole realm takes a free place, or the place of the older rite. Cards that ask whether a town keeps a rite do not pay twice, but cards that count rites started count both."
+    },
+    "theTitheBarns": {
+      "name": "The Tithe Barns",
+      "decks": [
+        "devotion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "A tenth of every sheaf goes to the great barn beside the church.",
+      "text": "Cities with a Granary gain +1 faith and +1 production.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "faith": 1,
+          "production": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "granary"
+          }
+        }
+      ]
+    },
+    "theRoyalCult": {
+      "name": "The Royal Cult",
+      "decks": [
+        "devotion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The king is the first priest of the city, and the whole city comes to watch him pray.",
+      "text": "Your capital gains +1 faith for each citizen.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "count": "capitalPopulation",
+          "to": "faith",
+          "amount": 1
+        }
+      ]
+    },
+    "theTempleStorehouses": {
+      "name": "The Temple Storehouses",
+      "decks": [
+        "devotion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "The temple keeps the grain, and in a lean year the temple opens its doors.",
+      "text": "Temples give +2 food and +2 happiness.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "temple"
+          }
+        },
+        {
+          "kind": "happiness",
+          "amount": 2,
+          "per": "city",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "temple"
+          }
+        }
+      ]
     },
     "theMonasticTable": {
       "name": "The Monastic Table",

@@ -2256,7 +2256,12 @@ describe("determinism", () => {
     // taken over every line a card or a luxury puts on the building, and
     // a faith building supplies faith. So a v200 log banks different
     // figures where a share meets a counted line or a luxury helping.
-    expect(SCHEMA_VERSION).toBe(201);
+    // 202 since batch R2c (the Devotion review's cards): three Devotion
+    // cards are retired, four move to Tier I, three are new, and
+    // Scholasticism opens the Cathedral School in place of the early
+    // Cathedral and Apostle. So a v201 log's Devotion and Dominion hands
+    // hold different cards.
+    expect(SCHEMA_VERSION).toBe(202);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {

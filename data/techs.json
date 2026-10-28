@@ -1412,18 +1412,12 @@
       "prereqs": [
         "theHighTemple"
       ],
-      "unlocks": {},
+      "unlocks": {
+        "buildings": [
+          "cathedralSchool"
+        ]
+      },
       "charter": true,
-      "effects": [
-        {
-          "kind": "unlocksBuilding",
-          "building": "cathedral"
-        },
-        {
-          "kind": "unlocksUnit",
-          "unit": "apostle"
-        }
-      ],
       "flavor": "Faith asks a question, and reason is allowed to answer it."
     },
     "papermaking": {

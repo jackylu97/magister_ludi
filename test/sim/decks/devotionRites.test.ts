@@ -134,7 +134,9 @@ describe('the three rows', () => {
       expect(orderDef(id).type, id).toBe('civic');
       expect(orderDef(id).rarity, id).toBe('uncommon');
     }
-    expect(orderDef(ROGATIONS).band).toBe(0);
+    // Tier I since batch R2c (the user, 2026-10-28: "Lets move this to tier
+    // 1 for now"). It was Tier 0 when batch DV4 built it.
+    expect(orderDef(ROGATIONS).band).toBe(1);
     expect(orderDef(SABBATH_LAWS).band).toBe(2);
     expect(orderDef(PSALTER).band).toBe(3);
     expect(orderDef(SABBATH_LAWS).charter?.unlocks.rites).toEqual([SABBATH]);
