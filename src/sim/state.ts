@@ -3204,8 +3204,32 @@ import {
  * log raises a band and draws one more number from the generator, so every
  * roll after the first camp moves. The branch migrates nothing, for the
  * reason given under v119.
+ *
+ * v204 (branch `decks`; batch R2d, `docs/plans/devotion-review-2026-10-28.md`):
+ * **"supplies" means one thing across the game.** No field joins the state
+ * (a renown row may now carry `voice`, a data field). The rules that change:
+ *
+ *   · a building's own counted lines join its package beside its own flat
+ *     lines (the Cathedral School's science, the Bazaar's gold, the
+ *     Mausoleum's gold, Angkor Wat's faith). A building share of step 9
+ *     reaches them;
+ *   · the `pays` selector of a building share asks `buildingSupplies`: every
+ *     building of the voice's category, and every building whose package
+ *     pays the voice. Before, the row alone answered. Aristotle and al-Jazarī
+ *     reach more buildings;
+ *   · the `scienceBuildings` count is retired. Maimonides, Āryabhaṭa, The
+ *     Royal Tutors and The Common Tables count `buildingsSupplying` with the
+ *     science voice, so a science building with no science of its own counts,
+ *     and so does a building a card makes pay science;
+ *   · al-Khwārizmī's faith purchase asks `buildingSupplies`, so a science
+ *     building with no science on its row may be bought with faith.
+ *
+ * **A v203 save is refused and does not replay.** A town holding one of these
+ * cards beside a building that changed its answer banks a different figure,
+ * so a v203 log replays into different banks. The branch migrates nothing,
+ * for the reason given under v119.
  */
-export const SCHEMA_VERSION = 203;
+export const SCHEMA_VERSION = 204;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

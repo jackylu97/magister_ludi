@@ -32,11 +32,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { arriveOnTile } from '../../src/sim/arrival';
-import {
-  type BuildingId,
-  buildingDef,
-  buildingPaysVoice,
-} from '../../src/sim/buildingData';
+import { type BuildingId, buildingDef } from '../../src/sim/buildingData';
 import { attackTargetAt, previewCombat } from '../../src/sim/combat';
 import { getTileAt } from '../../src/sim/map';
 import { explainAuthority, explainHappiness, foldMeter } from '../../src/sim/meters';
@@ -63,6 +59,7 @@ import {
 } from '../../src/sim/greatPeopleData';
 import {
   type PlayerStatecraft,
+  buildingSupplies,
   cardHappiness,
   cardUnitStat,
   countOf,
@@ -376,7 +373,7 @@ describe('faith buying a building that supplies science', () => {
           purchaseError(g.state, 0, city.id, { kind: 'building', id: 'library' }, 'faith'),
         ).toBeNull();
         // A house that supplies no science is still gold's.
-        expect(buildingPaysVoice('monument', 'science')).toBe(false);
+        expect(buildingSupplies(g.state, city, 'monument', 'science')).toBe(false);
         expect(
           explainPurchaseCost(g.state, 0, city.id, { kind: 'building', id: 'monument' }, 'faith'),
         ).toBeNull();
@@ -384,10 +381,14 @@ describe('faith buying a building that supplies science', () => {
     );
   });
 
-  it('reads "a science building" the way the shares do — the per-citizen line counts', () => {
-    // One predicate, two readers: the share that raises the science houses and
-    // the law that sells them cannot disagree about which houses those are.
-    expect(buildingPaysVoice('library', 'science')).toBe(true);
+  it('reads "a building that supplies science" the way the shares do — the per-citizen line counts', () => {
+    // One predicate, every reader (batch R2d): the share that raises the
+    // buildings that supply science and the law that sells them cannot
+    // disagree about which buildings those are. The Library's row pays its
+    // science per citizen, and it is a science building as well.
+    const g = game();
+    const city = found(g.state, 0);
+    expect(buildingSupplies(g.state, city, 'library', 'science')).toBe(true);
   });
 });
 
@@ -593,7 +594,7 @@ describe('happiness per science building across the realm', () => {
   it('sums a town-scoped count over every town the empire holds', () => {
     withCards(
       [['waysideShrines', [
-        counts('scienceBuildings', { to: 'happiness', amount: 1 }),
+        counts('buildingsSupplying', { voice: 'science', to: 'happiness', amount: 1 }),
       ]]],
       () => {
         const g = game();
@@ -611,7 +612,9 @@ describe('happiness per science building across the realm', () => {
         const line = cardHappiness(g.state, 0).find((row) => row.card === 'waysideShrines');
         // **Already sayable** — `isCityScopedCount` sums a town count across the
         // realm at `where: 'empire'`, so Maimonides needed no new arm. Pinned so
-        // that stays true.
+        // that stays true. Since batch R2d the row counts the buildings that
+        // supply science (`buildingsSupplying`), which is asked across the
+        // realm when the row names no town.
         expect(line?.amount).toBe(2);
       },
     );

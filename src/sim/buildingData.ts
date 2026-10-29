@@ -1547,47 +1547,29 @@ export function isPublicWork(id: BuildingId): boolean {
 export const ANY_EMPIRE_BUILDING: boolean = BUILDING_IDS.some(isEmpireBuilding);
 
 /**
- * **Does this row supply this voice at all** — "a science building", "a faith
- * building", in the only reading the game has of that phrase.
- *
- * The seven `BuildingCategory` words say what a house is *for*, and that is not
- * the same question: a Shrine categorised `faith` and a Cathedral categorised
- * `culture` both pay faith, and a card that said "your faith buildings" and meant
- * the category would have paid for one and not the other. So the phrase is read
- * off what the row actually pays, and **science counts its per-citizen line** — a
- * Library whose whole beaker is per head is a science building in every sentence
- * a player would write.
- *
- * It lives in this leaf because two unrelated readers now ask it and a second
- * copy would drift: `CardBuildingYieldPercentEffect.pays` (does this share reach
- * this row) and — since the great-person pass — `faithBuysScienceBuildings`,
- * which decides which bank sells it. A card that raises the science houses and a
- * card that sells them cannot disagree about which houses those are.
- *
- * `CityScope`'s `hasBuildingYielding` asks a **town** the same phrase and is
- * deliberately not folded in here: it reads the flat voices alone, so a Library
- * whose whole beaker is per head does not satisfy it, and moving that row under
- * this reading would change what every scoped card already pays.
- */
-export function buildingPaysVoice(id: BuildingId, voice: CityYieldKey): boolean {
-  const def = buildingDef(id);
-  if (voice === 'science') return (def.science ?? 0) > 0 || (def.sciencePerPop ?? 0) > 0;
-  return (def[voice] ?? 0) > 0;
-}
-
-/**
  * **Does this row supply this voice before anything is put on it?** Its
- * category is the voice, or its own row pays it (`buildingPaysVoice`).
+ * category is the voice, or its own row pays the voice: a flat figure above
+ * nothing, and for science the per-citizen line too, so a Library whose whole
+ * beaker is per citizen supplies science.
  *
  * The part of "a building that supplies a voice" (batch R2b) that needs no
- * town. The whole reading also adds what cards and luxuries put on the
- * building in a town (`buildingSupplies`, `statecraft/evaluator.ts`); this part
- * is what that reading falls back to inside its depth guard, and what the bot
- * reads to see which rows a town could still raise for the
- * `buildingsSupplying` count.
+ * town. The whole reading is `buildingSupplies` (`statecraft/evaluator.ts`),
+ * which adds the building's own lines and what cards and luxuries put on it in
+ * a town, and which every "does this building pay X" question asks since batch
+ * R2d. This part is only:
+ *
+ *   · what that reading falls back to inside its depth guard, so a package
+ *     that asks about suppliers cannot ask for itself again;
+ *   · what the bot reads for the rows a town has not raised yet (the
+ *     `buildingsSupplying` count's promise half, `src/ai/value.ts`). A
+ *     building the town does not hold carries its row and nothing else, so
+ *     there the two readings are the same answer.
  */
 export function buildingRowSupplies(id: BuildingId, voice: CityYieldKey): boolean {
-  return buildingDef(id).category === voice || buildingPaysVoice(id, voice);
+  const def = buildingDef(id);
+  if (def.category === voice) return true;
+  if (voice === 'science') return (def.science ?? 0) > 0 || (def.sciencePerPop ?? 0) > 0;
+  return (def[voice] ?? 0) > 0;
 }
 
 /**

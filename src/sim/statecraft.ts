@@ -99,6 +99,8 @@ export {
   // Batch R2b: a building's package, the list and its one sum.
   explainBuildingPackage,
   foldBuildingPackage,
+  // Batch R2d: the one reading of "a building that supplies a yield".
+  buildingSupplies,
   cardCityRenownShares,
   cardCityStat,
   cardCombatLines,

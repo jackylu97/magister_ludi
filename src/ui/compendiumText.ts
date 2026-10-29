@@ -120,6 +120,21 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
       'Details: if a hex has both hills and a feature such as forest, the feature\'s yield is what counts. The city\'s own hex is always worked. Bonuses from cards, luxuries and the happiness and authority meters are percentages, applied in two stages — city-level bonuses first, then empire-level — with all the percentages in one stage added together before they are applied. A city that is building a settler puts its citizens on production rather than food until it is done.',
     ],
   ),
+  // Batch R2d: "supplies" is a game term, and every card clause that means it
+  // links here (`suppliesWord` in `src/sim/statecraft/describers.ts`). The
+  // first paragraph is the definition a keyword's hover card shows.
+  written(
+    'concept',
+    'supplies',
+    'Supplies',
+    'which buildings give which yields',
+    '⊕',
+    [
+      'A building supplies a yield if it is one of that yield\'s buildings, or if the building itself, a card or a luxury puts that yield on it.',
+      'Most buildings belong to the buildings of one yield, named at the top of their page: a Temple is a faith building and a Library is a science building, so a Temple always supplies faith and a Library always supplies science. A building can supply other yields as well. A Library that one of your cards gives faith supplies faith too, for as long as the card gives it. Cards that count the buildings that supply a yield, or raise what those buildings pay, mean exactly these buildings.',
+      'Details: a card here is anything you hold as a card: your Orders, Doctrines and government, your gods and beliefs, your wonders and technologies, your great people\'s legacies, a malice, and your leader\'s own lines. A rite is not a card. What a rite pays goes to its town and not to any one building, so a rite never makes a building supply a yield. A yield that a card gives only under a condition counts only while the condition holds. A building you have not built yet supplies only what its kind and its own yields say. A military building supplies nothing by its kind alone.',
+    ],
+  ),
   written(
     'concept',
     'cities',

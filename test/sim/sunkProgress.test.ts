@@ -372,7 +372,11 @@ describe('the schema says so', () => {
     // two units, each camp keeps two guards, and the other soldiers march on
     // the players' towns. So a v202 log's camps raise different units and
     // its rolls move after the first camp.
-    expect(SCHEMA_VERSION).toBe(203);
+    // 204 since batch R2d ("supplies" means one thing): a building share's
+    // `pays` selector, al-Khwārizmī's purchase and the four rows that counted
+    // `scienceBuildings` ask `buildingSupplies`, and a building's own counted
+    // lines join its package. So a v203 log's towns bank different figures.
+    expect(SCHEMA_VERSION).toBe(204);
   });
 
   it('says in the changelog what a v110 log does now', () => {

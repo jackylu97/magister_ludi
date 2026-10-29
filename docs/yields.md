@@ -222,7 +222,11 @@ Vestry raised rather than racing it. The result is a **flat**, staged at step
 4. a town line counted by the building's kind (`buildingsOfKind`) or its
    category (`buildingsOfCategory`) inside the town (`within: 'city'`): one
    helping on each building it counted;
-5. a luxury's `buildingCategoryYields` line: one helping on each building of
+5. the building's own counted line, whatever it counts (batch R2d): the whole
+   line, as the town banks it. The Cathedral School's science per building
+   that supplies faith, the Bazaar's gold per luxury. A line of item 4 keeps
+   that home, so no line has two;
+6. a luxury's `buildingCategoryYields` line: one helping on each building of
    the category it names, or on each wonder (`resourceLinesOnBuilding`).
 
 - Each line's scope is asked for the town now. A line that does not hold
@@ -232,13 +236,19 @@ Vestry raised rather than racing it. The result is a **flat**, staged at step
 - A building the town does not hold carries its row only.
 - The lines still bank once, at step 3 (a card) or step 4 (a luxury). The
   package only widens what the share is over.
-- A line under an `any` scope, a line counted across the empire, a count of
-  anything else, a mirror and a share are facts about the town and are on no
-  building.
+- A line under an `any` scope, another card's line counted across the empire
+  or counting anything else, a mirror and a share are facts about the town and
+  are on no building.
 - The same package says which buildings **supply** a voice: a building
   supplies a voice when its category is that voice or its package pays it
-  (`buildingSupplies`). The `hasBuildingYielding` scope and the
-  `buildingsSupplying` count read that.
+  (`buildingSupplies`). Since batch R2d every reader of "a building that pays
+  X" asks this: the `hasBuildingYielding` scope, the `buildingsSupplying`
+  count, the `pays` selector of a building share, and al-Khwārizmī's faith
+  purchase. The bots price a share over the package too.
+- **The depth guard.** Reading a package can ask `buildingSupplies` again (a
+  scope, a share's selector, or an own count of suppliers). The second
+  question is answered from the category and the row, so the reading ends.
+  A package never reads a share: step 9 takes the shares over the package.
 
 ---
 

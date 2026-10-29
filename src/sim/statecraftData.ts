@@ -723,11 +723,12 @@ export type CityScope =
    * The town holds a building that **supplies this yield at all** — Hero of
    * Alexandria's "a wonder that supplies science".
    *
-   * `hasBuilding` asked of what a row *does* rather than of which row it is, and
-   * it is `CountKind`'s `scienceBuildings` widened to any voice and lifted to a
-   * scope. Read off `BuildingDef.yields`, so a designer who retunes a library
-   * cannot leave a legacy paying for something that no longer teaches anybody —
-   * the same bargain `resourceKind`'s `yields` strikes one table down.
+   * `hasBuilding` asked of what a building *does* rather than of which row it
+   * is: `CountKind`'s `buildingsSupplying` lifted to a scope. A building
+   * supplies a voice when its category is that voice or its package pays it
+   * in the town (`buildingSupplies`, batch R2b), so a designer who retunes a
+   * library cannot leave a legacy paying for something that no longer teaches
+   * anybody, and a wonder a card makes pay science admits the town.
    *
    * `wonder: true` narrows it to the rows the data calls wonders (`isWonder`),
    * which is the half Hero's ratified text asks for. Absent counts every
@@ -2420,12 +2421,10 @@ export type CountKind =
   // active rite* (`docs/history/fewer-things.md` §3), which is a different count and
   // will be added as one. A member no row names and no board can satisfy is a
   // vocabulary entry that reads as a feature.
-  /**
-   * Buildings in **this city** that supply science at all (city-scoped) — a
-   * library, a shrine, a university. Omen Reading's, read off the building rows
-   * so a retune moves the rite with it.
-   */
-  | 'scienceBuildings'
+  // `scienceBuildings` (the buildings in this city whose row paid science)
+  // was retired here by batch R2d: "supplies" means one thing across the
+  // game, and its four rows (Maimonides, Āryabhaṭa, The Royal Tutors and The
+  // Common Tables) count `buildingsSupplying` with the science voice.
   /**
    * Buildings of **one named kind** the empire holds — one per city that has
    * built it. The effect names which in `CardPaysEffect.building`.
@@ -3045,8 +3044,8 @@ export type CountKind =
    * without it.
    *
    * One count for any voice, rather than one member a voice, because the user
-   * asked for one rule (2026-10-28). `scienceBuildings` is the older count that
-   * reads the row alone.
+   * asked for one rule (2026-10-28). The older `scienceBuildings`, which read
+   * the row alone, was retired into it by batch R2d.
    */
   | 'buildingsSupplying'
   /**
@@ -4239,10 +4238,11 @@ export type ActionRuleId =
    * *and* its libraries out of faith, and neither clause has heard of the other.
    *
    * **Which buildings** is the reading `CardBuildingYieldPercentEffect.pays`
-   * takes of the same word — a science building is a building whose row supplies
-   * science, flat or per citizen (`buildingPaysVoice`, `buildingData.ts`) — so a
-   * card that raises the science houses and a card that sells them cannot
-   * disagree about which houses those are.
+   * takes of the same word: a building that supplies science
+   * (`buildingSupplies`, batch R2d). The building is not in the town yet, so
+   * that is a science building or a row that pays science, flat or per
+   * citizen. So a card that raises the buildings that supply science and a
+   * card that sells them cannot disagree about which buildings those are.
    *
    * **The rate is `faithPerHammer`**, the rate a contribution and a Reliquary's
    * unit already pay, which is the marker's own bargain: the empire's law widens
@@ -9408,6 +9408,15 @@ export interface CardRenownEffect {
    */
   tile?: TileCondition;
   /**
+   * Which voice a `count: 'buildingsSupplying'` trickle counts the suppliers
+   * of: The Royal Tutors' buildings that supply science (batch R2d).
+   *
+   * `CardPaysEffect.voice`'s field one ledger over, for `tile`'s reason: the
+   * renown probe hands the count its arguments. Absent counts nothing, as it
+   * does on a `pays` row. Ignored by every other count.
+   */
+  voice?: CityYieldKey;
+  /**
    * The most helpings that ever pay. `count` only — and **per town** where the
    * row also says `within: 'city'`, which is the whole reason that field exists.
    */
@@ -9744,11 +9753,13 @@ export interface CardYieldAmplifierEffect {
  * *not* the same question as "a faith building" in a card's own sentence — the
  * table's seven categories are what a building is **for**, and a Shrine
  * categorised `faith` and a Cathedral categorised `culture` both pay faith. So
- * `pays` is the second selector and it is the honest reading of the ruled text:
- * **a faith building is a building whose row pays faith** (`CityScope`'s
- * `hasBuildingYielding` asks the same question of a town, and answers it the same
- * way). A row may name one, the other, or both; naming neither reaches every
- * building the town has raised.
+ * `pays` is the second selector: **the buildings that supply the voice**
+ * (`buildingSupplies`, batch R2d). That is every building of the voice's
+ * category, and every building whose package pays it in the town: its row,
+ * its own lines, and the lines cards and luxuries put on it. `CityScope`'s
+ * `hasBuildingYielding` and `CountKind`'s `buildingsSupplying` ask the same
+ * question and answer it the same way. A row may name one selector, the
+ * other, or both; naming neither reaches every building the town has raised.
  *
  * `yield` is which of the *building's* voices is raised — absent means all of
  * them, which is what a doubler means.
@@ -9773,7 +9784,7 @@ export interface CardBuildingYieldPercentEffect {
   percent: number;
   /** Which buildings, by what the row is *for*. Absent means any. */
   category?: BuildingCategory;
-  /** Which buildings, by the voice the row **pays**. Absent means any. */
+  /** Which buildings, by the voice the building **supplies** in the town. Absent means any. */
   pays?: CityYieldKey;
   /**
    * **One named row, and nothing else** — Rūmī's *"double the yields of

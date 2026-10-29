@@ -1020,7 +1020,8 @@
           "basis": "count",
           "to": "happiness",
           "amount": 1,
-          "count": "scienceBuildings"
+          "count": "buildingsSupplying",
+          "voice": "science"
         }
       ]
     },
@@ -1088,7 +1089,9 @@
           "basis": "count",
           "to": "faith",
           "amount": 2,
-          "count": "scienceBuildings"
+          "count": "buildingsSupplying",
+          "voice": "science",
+          "within": "city"
         }
       ]
     },

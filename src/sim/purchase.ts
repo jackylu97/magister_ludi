@@ -109,7 +109,6 @@ import {
 import {
   type BuildingId,
   buildingDef,
-  buildingPaysVoice,
   isBuildingId,
   isWonder,
 } from './buildingData';
@@ -121,6 +120,7 @@ import {
 } from './buildingEffects';
 import { RULES } from './rulesData';
 import {
+  buildingSupplies,
   cardActionRule,
   cardActionRuleAt,
   cardPurchaseRiders,
@@ -615,11 +615,13 @@ function faithBankOpen(
    * "units only" narrowing below is untouched — a law that names the buildings
    * is exactly the card the Reliquary's third clause declined to be.
    *
-   * Which buildings is `buildingPaysVoice`, the one reading of "a science
-   * building" (`buildingData.ts`), so this and a card that raises the science
-   * houses cannot disagree about which houses those are. The rate is the
-   * ordinary `faithPerHammer` — the empire's law widens which bank may pay and
-   * never what a thing costs — and a row naming its own bank has already been
+   * Which buildings is `buildingSupplies`, the one reading of "a building
+   * that supplies science" (batch R2d), so this and a card that raises the
+   * buildings that supply science cannot disagree about which buildings those
+   * are. The building is not in the town yet, so its package is its row: a
+   * science building, or a row that pays science. The rate is the ordinary
+   * `faithPerHammer` — the empire's law widens which bank may pay and never
+   * what a thing costs — and a row naming its own bank has already been
    * matched against the currency by the caller.
    */
   if (item.kind === 'building') {
@@ -651,7 +653,7 @@ function faithBankOpen(
     ) {
       return true;
     }
-    if (!buildingPaysVoice(item.id, 'science')) return false;
+    if (!buildingSupplies(state, city, item.id, 'science')) return false;
     return cardActionRule(state, city.ownerId, 'faithBuysScienceBuildings');
   }
   if (item.kind !== 'unit') return false;

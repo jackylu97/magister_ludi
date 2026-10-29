@@ -436,7 +436,7 @@ const MOVED_READERS: Record<string, string> = {
   'statecraft/evaluator.ts › buildingsOfCategoryIn': 'the `buildingsOfCategory` scope and count',
   'statecraft/evaluator.ts › cityScopeAdmits': '`hasBuilding` and `hasBuildingYielding`',
   'statecraft/evaluator.ts › countOf':
-    '`scienceBuildings`, `buildingsOfKind`, `buildingsInCity`, `buildingsOfCategories`, `defensiveBuildings`, `distinctBuildingCategories`, `publicWorks`, `buildingsSupplying`',
+    '`buildingsOfKind`, `buildingsInCity`, `buildingsOfCategories`, `defensiveBuildings`, `distinctBuildingCategories`, `publicWorks`, `buildingsSupplying`',
   // Batch R2b: a building's package carries card and luxury lines only for a
   // building the town holds.
   'statecraft/evaluator.ts › explainBuildingPackage': 'whether the town holds the building',

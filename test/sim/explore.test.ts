@@ -1280,10 +1280,20 @@ describe('determinism', () => {
    *
    * Then 202 became 203, which moved the hashes and not the lengths. The
    * prints are longer because the board holds more barbarian units.
+   *
+   * **Batch R2d ("supplies" means one thing, schema 204) moved the hash and
+   * not the length** at both seeds: 203 became 204, and that is all. The
+   * batch puts a building's own counted lines in its package, makes the
+   * `pays` selector of a building share and al-Khwārizmī's faith purchase ask
+   * `buildingSupplies`, and moves the four rows that counted
+   * `scienceBuildings` onto `buildingsSupplying`. Nobody here drafts, calls a
+   * great person or holds a card that takes a building share, so no share is
+   * taken and no count is asked. Checked with the change in place and the
+   * version printed as 203, which gives the hashes of batch BR1 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'ce94eaf9:190677',
-    2026: '9abd6350:190843',
+    11: 'df80b5ee:190677',
+    2026: '9970dc23:190843',
   };
 
   for (const seed of [11, 2026]) {

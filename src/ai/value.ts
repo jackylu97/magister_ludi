@@ -239,6 +239,9 @@ import {
   cityScopeAdmits,
   commissionFulfilledTurn,
   countOf,
+  // Batch R2d: a building share is priced over the building's package.
+  explainBuildingPackage,
+  foldBuildingPackage,
   opusCityOf,
   orderAtSlotPosition,
   periodicProbe,
@@ -2606,9 +2609,15 @@ function promisedRowsFor(ctx: ValueContext, scope?: CityScope): PromisedBuilding
  * Written as its own fold rather than as a second pass inside that sweep because
  * the two questions are different: one is *what does this empire hold*, which is
  * a fact, and this is *what has it committed to raising*, which is a promise
- * with a delay on it. The arithmetic is deliberately the same, row for row and
- * voice for voice, so a library standing and a library owed are priced by one
- * reading of one row.
+ * with a delay on it. The arithmetic is deliberately the same, voice for voice,
+ * so a library standing and a library owed are priced by one reading.
+ *
+ * **That reading is the building's package** (batch R2d): the row, its own
+ * lines and every line a card or a luxury would put on it. A building is not in
+ * its package's town until it is raised, so the copy is asked of the town as
+ * it would be holding it (`townHolding`), the hypothetical the scope above is
+ * already asked of. A temple owed to a realm whose belief puts science on
+ * temples is priced with that science, and the selector asks the same town.
  */
 function promisedYieldPercent(
   effect: Extract<CardEffect, { kind: 'buildingYieldPercent' }>,
@@ -2616,13 +2625,12 @@ function promisedYieldPercent(
 ): number {
   let sum = 0;
   for (const row of promisedRowsFor(ctx, effect.scope)) {
-    if (!buildingMatchesYieldPercent(row.id, effect)) continue;
-    const def = buildingDef(row.id);
+    const town = townHolding(row.city, row.id);
+    if (!buildingMatchesYieldPercent(ctx.state, town, row.id, effect)) continue;
+    const paid = foldBuildingPackage(explainBuildingPackage(ctx.state, town, row.id));
     for (const voice of VOICES) {
       if (effect.yield !== undefined && effect.yield !== 'all' && effect.yield !== voice) continue;
-      const base =
-        (def[voice] ?? 0) +
-        (voice === 'science' ? row.city.population * (def.sciencePerPop ?? 0) : 0);
+      const base = paid[voice];
       if (base === 0) continue;
       sum += voiceWeight(ctx, voice) * base * (effect.percent / 100) * row.discount;
     }
@@ -3284,7 +3292,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
         effect.count === undefined
           ? 1
           : Math.floor(
-              countProbe(ctx, effect.count) /
+              countProbe(ctx, effect.count, effect.voice) /
                 (effect.countPer === undefined || effect.countPer <= 0 ? 1 : effect.countPer),
             );
       const capped =
@@ -3326,11 +3334,19 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       return sum;
     }
     case 'buildingYieldPercent': {
-      // A share of what the matching shelves already pay, read off the rows the
-      // empire has actually raised — the simulation's own selector
-      // (`buildingMatchesYieldPercent`) asked rather than a second copy of it.
-      // The scope is asked of each town in the same sweep (batch X2) — exact
-      // here rather than a share, because the walk already has a town in hand.
+      // A share of what the matching shelves already pay, read off the
+      // buildings the empire has actually raised — the simulation's own
+      // selector (`buildingMatchesYieldPercent`) asked rather than a second
+      // copy of it. The scope is asked of each town in the same sweep (batch
+      // X2) — exact here rather than a share, because the walk already has a
+      // town in hand.
+      //
+      // **Over the building's package** (batch R2d), as step 9 takes the
+      // share: the row, the building's own lines and every line a card or a
+      // luxury puts on it in the town (`explainBuildingPackage`). So Rumi is
+      // priced with the card lines on a temple and The Bourse with the lines on
+      // a gold building, and a `pays` selector reaches every building that
+      // supplies the voice.
       let sum = 0;
       for (const city of ctx.state.cities) {
         if (city.ownerId !== ctx.playerId) continue;
@@ -3338,15 +3354,13 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
         // What the town holds, a card's grant included (`townBuildings`,
         // Expansionist batch E13): the shelves the fold raises.
         for (const id of townBuildings(ctx.state, city)) {
-          if (!buildingMatchesYieldPercent(id, effect)) continue;
-          const def = buildingDef(id);
+          if (!buildingMatchesYieldPercent(ctx.state, city, id, effect)) continue;
+          const paid = foldBuildingPackage(explainBuildingPackage(ctx.state, city, id));
           for (const voice of VOICES) {
             if (effect.yield !== undefined && effect.yield !== 'all' && effect.yield !== voice) {
               continue;
             }
-            const base =
-              (def[voice] ?? 0) +
-              (voice === 'science' ? city.population * (def.sciencePerPop ?? 0) : 0);
+            const base = paid[voice];
             if (base === 0) continue;
             sum += voiceWeight(ctx, voice) * base * (effect.percent / 100);
           }
@@ -5281,12 +5295,20 @@ function unreadCondition(_when: never): boolean {
 // --- the deck, as the engines read it ---------------------------------------
 
 /** A count asked with no payout to read. `RENOWN_PROBE`'s twin, one file over. */
-function countProbe(ctx: ValueContext, count: CardPaysEffect['count']): number {
+function countProbe(
+  ctx: ValueContext,
+  count: CardPaysEffect['count'],
+  voice?: CardPaysEffect['voice'],
+): number {
   return countOf(ctx.state, ctx.playerId, '' as CardId, {
     kind: 'pays',
     where: 'empire',
     basis: 'count',
     count,
+    // The voice a `buildingsSupplying` count counts the suppliers of (The
+    // Royal Tutors' science, batch R2d). Absent counts nothing, as it does on
+    // the row.
+    voice,
     to: 'authority',
     amount: 0,
   });
@@ -6216,9 +6238,12 @@ function potentialTownsFor(
           : effect.count === 'publicWorks'
             ? BUILDING_IDS.filter(isPublicWork)
             : // The buildings that supply a voice (batch R2b): the rows whose
-              // category is the voice or whose own row pays it. A card that
-              // makes another row supply the voice is not foreseen here; it
-              // is counted the turn it is held.
+              // category is the voice or whose own row pays it. Only rows a
+              // town does not hold are read below, and such a building's
+              // package is its row, so this is `buildingSupplies`' own answer
+              // for them (batch R2d). A card that makes another row supply
+              // the voice is not foreseen here; it is counted the turn the
+              // building stands.
               effect.count === 'buildingsSupplying' && effect.voice !== undefined
               ? BUILDING_IDS.filter((id) => buildingRowSupplies(id, effect.voice!))
               : [];

@@ -1698,7 +1698,7 @@
   ],
   "theSynod": [
    {
-    "raw": "your buildings that supply faith pay +50%, counted after every other bonus on them",
+    "raw": "your buildings that [[concept:supplies|supply]] faith pay +50%, counted after every other bonus on them",
     "text": "your buildings that supply faith pay +50%, counted after every other bonus on them"
    }
   ],
@@ -2029,7 +2029,7 @@
   ],
   "theConsistory": [
    {
-    "raw": "your buildings that supply faith pay +100%, counted after every other bonus on them",
+    "raw": "your buildings that [[concept:supplies|supply]] faith pay +100%, counted after every other bonus on them",
     "text": "your buildings that supply faith pay +100%, counted after every other bonus on them"
    }
   ],
@@ -2160,7 +2160,7 @@
   ],
   "theScriveners": [
    {
-    "raw": "your buildings that supply science pay +50%",
+    "raw": "your buildings that [[concept:supplies|supply]] science pay +50%",
     "text": "your buildings that supply science pay +50%"
    }
   ],
@@ -2178,7 +2178,7 @@
   ],
   "theCountingHouses": [
    {
-    "raw": "your buildings that supply gold pay +50%",
+    "raw": "your buildings that [[concept:supplies|supply]] gold pay +50%",
     "text": "your buildings that supply gold pay +50%"
    }
   ],
@@ -2214,7 +2214,7 @@
   ],
   "theWorkshopsRule": [
    {
-    "raw": "your buildings that supply production pay +50%",
+    "raw": "your buildings that [[concept:supplies|supply]] production pay +50%",
     "text": "your buildings that supply production pay +50%"
    }
   ],
@@ -2244,7 +2244,7 @@
   ],
   "theExchangeCharter": [
    {
-    "raw": "your buildings that supply gold pay +50%, counted after every other bonus on them",
+    "raw": "your buildings that [[concept:supplies|supply]] gold pay +50%, counted after every other bonus on them",
     "text": "your buildings that supply gold pay +50%, counted after every other bonus on them"
    }
   ],
@@ -2314,7 +2314,7 @@
   ],
   "theCollegesRule": [
    {
-    "raw": "your buildings that supply science pay +100%, counted after every other bonus on them",
+    "raw": "your buildings that [[concept:supplies|supply]] science pay +100%, counted after every other bonus on them",
     "text": "your buildings that supply science pay +100%, counted after every other bonus on them"
    }
   ],
@@ -6591,7 +6591,7 @@
   ],
   "theMonasticBuilders": [
    {
-    "raw": "you may buy buildings that supply science with faith",
+    "raw": "you may buy buildings that [[concept:supplies|supply]] science with faith",
     "text": "you may buy buildings that supply science with faith"
    }
   ],
@@ -7964,7 +7964,7 @@
   ],
   "theRoyalTutors": [
    {
-    "raw": "+1 renown per turn in every city, per building there that supplies science, favouring scholars",
+    "raw": "+1 renown per turn in every city, per building there that [[concept:supplies|supplies]] science, favouring scholars",
     "text": "+1 renown per turn in every city, per building there that supplies science, favouring scholars"
    }
   ],
@@ -7986,7 +7986,7 @@
   ],
   "theCommonTables": [
    {
-    "raw": "+2 food in every city per building there that supplies science",
+    "raw": "+2 food in every city per building there that [[concept:supplies|supplies]] science",
     "text": "+2 food in every city per building there that supplies science"
    }
   ],
@@ -10087,7 +10087,7 @@
     "text": "once drafted, opens Scholasticism for you to research; only an empire holding this charter may research it; this card takes no chair"
    },
    {
-    "raw": "once you know [[tech:scholasticism|Scholasticism]], you may build the [[building:cathedralSchool|Cathedral School]]: +2 science per building in this city that supplies faith; +2 science per building in this city that supplies faith, while it is keeping a rite",
+    "raw": "once you know [[tech:scholasticism|Scholasticism]], you may build the [[building:cathedralSchool|Cathedral School]]: +2 science per building in this city that [[concept:supplies|supplies]] faith; +2 science per building in this city that [[concept:supplies|supplies]] faith, while it is keeping a rite",
     "text": "once you know Scholasticism, you may build the Cathedral School: +2 science per building in this city that supplies faith; +2 science per building in this city that supplies faith, while it is keeping a rite"
    }
   ],
@@ -11464,11 +11464,11 @@
   ],
   "cathedralSchool": [
    {
-    "raw": "+2 science per building in this city that supplies faith",
+    "raw": "+2 science per building in this city that [[concept:supplies|supplies]] faith",
     "text": "+2 science per building in this city that supplies faith"
    },
    {
-    "raw": "+2 science per building in this city that supplies faith, while it is keeping a rite",
+    "raw": "+2 science per building in this city that [[concept:supplies|supplies]] faith, while it is keeping a rite",
     "text": "+2 science per building in this city that supplies faith, while it is keeping a rite"
    }
   ]
@@ -11604,7 +11604,7 @@
   ],
   "aristotle": [
    {
-    "raw": "your buildings that supply science pay +50%",
+    "raw": "your buildings that [[concept:supplies|supply]] science pay +50%",
     "text": "your buildings that supply science pay +50%"
    }
   ],
@@ -11798,13 +11798,13 @@
     "text": "+10% faith in every city with a University"
    },
    {
-    "raw": "you may buy buildings that supply science with faith",
+    "raw": "you may buy buildings that [[concept:supplies|supply]] science with faith",
     "text": "you may buy buildings that supply science with faith"
    }
   ],
   "maimonides": [
    {
-    "raw": "+1 happiness per building in your cities that supplies science",
+    "raw": "+1 happiness per building in your cities that [[concept:supplies|supplies]] science",
     "text": "+1 happiness per building in your cities that supplies science"
    }
   ],
@@ -11822,7 +11822,7 @@
   ],
   "aryabhata": [
    {
-    "raw": "+2 faith in every city per building there that supplies science",
+    "raw": "+2 faith in every city per building there that [[concept:supplies|supplies]] science",
     "text": "+2 faith in every city per building there that supplies science"
    }
   ],
@@ -11860,7 +11860,7 @@
   ],
   "alJazari": [
    {
-    "raw": "your buildings that supply production pay +100%, counted after every other bonus on them",
+    "raw": "your buildings that [[concept:supplies|supply]] production pay +100%, counted after every other bonus on them",
     "text": "your buildings that supply production pay +100%, counted after every other bonus on them"
    }
   ],

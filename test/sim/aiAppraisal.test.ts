@@ -2441,6 +2441,46 @@ describe('the engine shapes, priced', () => {
     expect(built).toBeGreaterThan(0);
   });
 
+  it('prices the building share over the package, the card lines on the building included (batch R2d)', () => {
+    // Rumi's shape: double the temples. A card that puts science on temples
+    // puts that science in the Temple's package, so the share is worth more
+    // beside it, as step 9 pays it.
+    const share: CardEffect[] = [{ kind: 'buildingYieldPercent', building: 'temple', percent: 100 }];
+    const bare = priced(share, (state, _player, city) => {
+      city.buildings.push('temple');
+      bumpRevision(state);
+    });
+    let undo = (): void => undefined;
+    const dressed = priced(share, (state, player, city) => {
+      city.buildings.push('temple');
+      undo = fixture(state, player, 0, 'waysideShrines', [
+        { kind: 'pays', where: 'city', science: 2, scope: { test: 'hasBuilding', building: 'temple' } },
+      ]);
+    });
+    undo();
+    expect(bare).toBeGreaterThan(0);
+    expect(dressed).toBeGreaterThan(bare);
+  });
+
+  it('reaches a building a card makes supply the voice, through the same selector (batch R2d)', () => {
+    // "Buildings that supply faith" reaches a Library once a card gives it
+    // faith, and the bot sees the Library's whole package doubled.
+    const share: CardEffect[] = [{ kind: 'buildingYieldPercent', pays: 'faith', percent: 100 }];
+    const bare = priced(share, (state, _player, city) => {
+      city.buildings.push('library');
+      bumpRevision(state);
+    });
+    let undo = (): void => undefined;
+    const dressed = priced(share, (state, player, city) => {
+      city.buildings.push('library');
+      undo = fixture(state, player, 0, 'waysideShrines', [
+        { kind: 'pays', where: 'city', faith: 1, scope: { test: 'hasBuilding', building: 'library' } },
+      ]);
+    });
+    undo();
+    expect(dressed).toBeGreaterThan(bare);
+  });
+
   /**
    * **The potential half** (batch X1e, ruled 2026-09-09: *"+1 science on
    * libraries is good even if you don't have libraries built yet"*).

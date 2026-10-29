@@ -1427,7 +1427,8 @@
         {
           "kind": "renown",
           "amount": 1,
-          "count": "scienceBuildings",
+          "count": "buildingsSupplying",
+          "voice": "science",
           "within": "city",
           "family": "scholar"
         }
@@ -1495,7 +1496,9 @@
           "kind": "pays",
           "where": "city",
           "basis": "count",
-          "count": "scienceBuildings",
+          "count": "buildingsSupplying",
+          "voice": "science",
+          "within": "city",
           "to": "food",
           "amount": 2
         }

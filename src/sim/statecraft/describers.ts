@@ -235,7 +235,12 @@ export type RefKind =
   // its own, about what it *costs* and everything it hands over, and this one
   // is about the one rule that would not fit on the star chart's card. See
   // `techRuleWords.ts`, the only describer that emits one.
-  | 'rule';
+  | 'rule'
+  // **A game term, defined on the Concepts shelf** (batch R2d), anchored
+  // `concept:<id>`. The Compendium already anchors those pages and the
+  // pamphlet already marks them; `suppliesWord` below is the one describer that
+  // emits one.
+  | 'concept';
 
 /**
  * `[[building:granary|a Granary]]` — one named thing, marked inside a clause.
@@ -263,6 +268,35 @@ export type RefKind =
  */
 export function ref(kind: RefKind, id: string, name: string): string {
   return `[[${kind}:${id}|${name}]]`;
+}
+
+/**
+ * The Concepts page that defines "supplies" (`src/ui/compendiumText.ts`).
+ * `test/ui/keywords.test.ts` checks that every mark points at a page the
+ * Compendium has, so this id and the page's cannot drift apart.
+ */
+const SUPPLIES_CONCEPT = 'supplies';
+
+/**
+ * **"Supplies", marked as the game term it is** (batch R2d,
+ * `docs/plans/devotion-review-2026-10-28.md`). The user, 2026-10-28: *"we
+ * should use the 'supplies' keyword across the game."*
+ *
+ * A building supplies a yield when it belongs to that yield's buildings, or
+ * when its own row or a card puts that yield on it (`buildingSupplies`). Every
+ * clause that means that test prints the verb through here, so the word links
+ * to the Concepts page that says so. A clause about something else does not
+ * mark it: the copies a resource deposit supplies, the happiness or authority
+ * a building supplies to the two meters (the meters' own word for the side
+ * that is not demand), and The Curia's ratified mirror ("faith buildings
+ * supply science equal to their faith"), which puts nothing on the buildings
+ * it reads.
+ *
+ * `one` picks the verb's number: "a building that supplies", "buildings that
+ * supply".
+ */
+function suppliesWord(one: boolean): string {
+  return ref('concept', SUPPLIES_CONCEPT, one ? 'supplies' : 'supply');
 }
 
 /**
@@ -1515,6 +1549,9 @@ function describePays(
   if (basis === 'mirror') {
     out.push({
       text:
+        // The master list's ratified words (The Curia, 2026-08-28). The verb
+        // is left unmarked: a mirror is a fact about the town and puts nothing
+        // on the buildings, so it is not the "supplies" test (batch R2d).
         `${effect.category} buildings supply ${effect.to} equal to their ` +
         `${effect.from}, in ${scopeWordsFor(subject, effect.scope)}`,
     });
@@ -3289,10 +3326,12 @@ function describeEffect(
                 // A count that only a town can answer then says "there", as a
                 // `pays` line counted town by town does (`countPlace`), because
                 // the city it counts in was just named (Scientific batch S7,
-                // The Royal Tutors). Other counts keep their own words.
+                // The Royal Tutors). So does the count of the buildings that
+                // supply a voice, asked town by town (batch R2d moved The
+                // Royal Tutors onto it). Other counts keep their own words.
                 effect.count !== undefined
                 ? `${effect.within === 'city' ? ` in ${scopeWordsFor(subject, effect.scope)},` : ''}` +
-                  ` per ${countWords(effect.countPer, countNoun({ kind: 'pays', where: 'empire', basis: 'count', count: effect.count, tile: effect.tile, within: effect.within }, effect.within === 'city' && CITY_SCOPED_COUNTS.includes(effect.count) ? 'there' : ''))}`
+                  ` per ${countWords(effect.countPer, countNoun({ kind: 'pays', where: 'empire', basis: 'count', count: effect.count, tile: effect.tile, voice: effect.voice, within: effect.within }, effect.within === 'city' && (CITY_SCOPED_COUNTS.includes(effect.count) || effect.count === 'buildingsSupplying') ? 'there' : ''))}`
                 : '';
       // **The per-town ceiling, said out loud.** A cap on an empire count is
       // already inside the figure a player sees; a cap per town is not, and a
@@ -3705,9 +3744,9 @@ function describeLevy(effect: CardLevyEffect, out: CardClause[]): void {
  * The four selectors said the way the row means them: `building` names one row
  * and is therefore the whole phrase (and a **keyword ref**, so the reader can go
  * and read what a Temple is); `wonder` names the class; `category` is what a
- * building is *for*; and `pays` is the voice it actually supplies — see
- * `buildingMatchesYieldPercent`, which answers the same question for the
- * arithmetic.
+ * building is *for*; and `pays` is the voice it **supplies**, the game term
+ * (`suppliesWord`) — see `buildingMatchesYieldPercent`, which answers the same
+ * question for the arithmetic through `buildingSupplies`.
  *
  * The named row **short-circuits**, because the words would otherwise read "your
  * faith Temples", which says the same thing twice and is worse in every register
@@ -3723,7 +3762,7 @@ function buildingClassWords(effect: CardBuildingYieldPercentEffect): string {
   }
   const noun = effect.wonder === true ? 'wonders' : 'buildings';
   const kind = effect.category === undefined ? noun : `${effect.category} ${noun}`;
-  return effect.pays === undefined ? kind : `${kind} that supply ${effect.pays}`;
+  return effect.pays === undefined ? kind : `${kind} that ${suppliesWord(false)} ${effect.pays}`;
 }
 
 /**
@@ -4150,15 +4189,15 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
   }
   // **The buildings that supply one voice** (batch R2b): "per building there
   // that supplies faith". The voice is printed here, so one entry serves every
-  // voice. The town goes inside the noun, after "building", as
-  // `scienceBuildings` says it; a row counted across the realm says "in your
-  // cities" there instead.
+  // voice. The town goes inside the noun, after "building"; a row counted
+  // across the realm says "in your cities" there instead. "Supplies" is the
+  // game term and is marked (`suppliesWord`, batch R2d).
   if (effect.count === 'buildingsSupplying' && effect.voice !== undefined) {
     const at =
       effect.within !== 'city' ? 'in your cities' : place === '' ? 'in this city' : place;
     return {
-      one: `building ${at} that supplies ${effect.voice}`,
-      many: `buildings ${at} that supply ${effect.voice}`,
+      one: `building ${at} that ${suppliesWord(true)} ${effect.voice}`,
+      many: `buildings ${at} that ${suppliesWord(false)} ${effect.voice}`,
     };
   }
   // The ledger's count, said as the column it reads — "per science your empire
@@ -4288,10 +4327,6 @@ const TOWN_COUNT_WORDS: Partial<Record<CountKind, (at: string) => PluralWords>> 
     many: `unimproved hexes worked ${at}`,
   }),
   workedHills: (at) => ({ one: `worked hill hex ${at}`, many: `worked hill hexes ${at}` }),
-  scienceBuildings: (at) => ({
-    one: `building ${at} that supplies science`,
-    many: `buildings ${at} that supply science`,
-  }),
   garrison: (at) => ({
     one: `combat unit standing ${at}`,
     many: `combat units standing ${at}`,
@@ -4544,8 +4579,8 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
     case 'hasBuildingYielding':
       into.qualifiers.push(
         scope.wonder === true
-          ? `holding a wonder that supplies ${scope.yields}`
-          : `with a building that supplies ${scope.yields}`,
+          ? `holding a wonder that ${suppliesWord(true)} ${scope.yields}`
+          : `with a building that ${suppliesWord(true)} ${scope.yields}`,
       );
       return;
     case 'onTerrain':
@@ -6277,10 +6312,6 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   bankedFaith: { one: 'banked faith', many: 'banked faith' },
   bankedGold: { one: 'gold in the treasury', many: 'gold in the treasury' },
   visibleCamps: { one: 'barbarian camp you can see', many: 'barbarian camps you can see' },
-  scienceBuildings: {
-    one: 'building here that supplies science',
-    many: 'buildings here that supply science',
-  },
   // The named building is not in these words: `describeEffect` prints it, so
   // that "+1 happiness per Barracks" and "per Temple" are one table entry.
   buildingsOfKind: { one: 'of them', many: 'of them' },
@@ -6347,8 +6378,8 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   // "per building there that supplies faith" and "… science" are one entry. A
   // row that names no voice counts nothing, and these words say so plainly.
   buildingsSupplying: {
-    one: 'building that supplies a yield',
-    many: 'buildings that supply a yield',
+    one: `building that ${suppliesWord(true)} a yield`,
+    many: `buildings that ${suppliesWord(false)} a yield`,
   },
   // The voice is not in these words: `countNoun` prints it, so "per gold your
   // empire makes" and "per hammer" are one entry.
@@ -7114,9 +7145,9 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // of the rule — the cart is no faster, no tougher and no safer from the
   // weather; it simply cannot be taken.
   tradersUnplunderable: 'your trade units cannot be attacked or plundered',
-  // al-Khwārizmī's second half. "Supply science" is the phrase the game reads
-  // the class by everywhere (`buildingPaysVoice`), so the clause says it too.
-  faithBuysScienceBuildings: 'you may buy buildings that supply science with faith',
+  // al-Khwārizmī's second half. "Supply science" is the game term for the
+  // class (`buildingSupplies`, batch R2d), so the clause says it, marked.
+  faithBuysScienceBuildings: `you may buy buildings that ${suppliesWord(false)} science with faith`,
   // The King's Road and Admiralty. Both say what a *player* does with them —
   // where the movement comes back, and which half of the crossing is free —
   // because "a shore step is free" is the name of a price and not a rule.

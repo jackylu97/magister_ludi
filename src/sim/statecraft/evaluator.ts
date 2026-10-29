@@ -59,7 +59,6 @@ import {
   type BuildingId,
   type ProductionCategory,
   buildingDef,
-  buildingPaysVoice,
   buildingRowSupplies,
   isBuildingId,
   isEmpireBuilding,
@@ -1963,9 +1962,16 @@ function hasAdjacentGreatWork(state: GameState, city: City): boolean {
 }
 
 /**
- * **Does this building supply this voice in this town?** The reading behind
- * `hasBuildingYielding` and the `buildingsSupplying` count (batch R2b,
- * `docs/plans/devotion-review-2026-10-28.md`).
+ * **Does this building supply this voice in this town?** The one reading of
+ * "a building that supplies a yield" (batch R2b,
+ * `docs/plans/devotion-review-2026-10-28.md`). Since batch R2d every reader
+ * that asks whether a building pays a voice asks this, and none keeps a
+ * row-only copy:
+ *
+ *   · the `hasBuildingYielding` scope and the `buildingsSupplying` count;
+ *   · the `pays` selector of a building share (`buildingMatchesYieldPercent`);
+ *   · al-Khwārizmī's faith purchase of the buildings that supply science
+ *     (`faithBankOpen`, `purchase.ts`).
  *
  * A building supplies a voice when either is true:
  *
@@ -1973,23 +1979,26 @@ function hasAdjacentGreatWork(state: GameState, city: City): boolean {
  *     `BuildingCategory` words are yields, so every faith building supplies
  *     faith and every science building supplies science, whatever its row pays
  *     today. `military` names no voice and supplies nothing by itself;
- *   · **its package pays the voice**: more than nothing, summed over the row
- *     and every line a card or a luxury puts on it in this town, with each
- *     line's scope asked now (`explainBuildingPackage`). So a Temple that a
- *     card makes pay science supplies science while the card's condition
- *     holds, and stops when it does not.
+ *   · **its package pays the voice**: more than nothing, summed over the row,
+ *     the building's own lines and every line a card or a luxury puts on it in
+ *     this town, with each line's scope asked now (`explainBuildingPackage`).
+ *     So a Temple that a card makes pay science supplies science while the
+ *     card's condition holds, and stops when it does not. A building the town
+ *     does not hold has only its row in its package, so the purchase asks the
+ *     category and the row.
  *
- * **The depth guard.** A line's scope may be `hasBuildingYielding`, which asks
- * this function again while it is reading a package. The second question is
- * answered from the category and the row alone (`buildingRowSupplies`) and
- * never reads a package, so the reading always ends. It also never reads the
- * `buildingsSupplying` count: the package reads only the shape of each line and
- * the counts by kind and by category, so a card that pays per supplier cannot
- * feed the count it pays by.
+ * **The depth guard.** Reading a package can ask this function again: a
+ * line's scope may be `hasBuildingYielding`, a share's selector may be `pays`,
+ * and a building's own counted line may count `buildingsSupplying` (the
+ * Cathedral School counts the buildings in its town that supply faith, itself
+ * included). The second question is answered from the category and the row
+ * alone (`buildingRowSupplies`) and never reads a package, so the reading
+ * always ends. A package never reads a building share, because step 9 takes
+ * the shares over the package and not the other way round.
  */
 let suppliesDepth = 0;
 
-function buildingSupplies(
+export function buildingSupplies(
   state: GameState,
   city: City,
   id: BuildingId,
@@ -2337,9 +2346,9 @@ export function cityScopeAdmits(
       return city.buildings.some(isEmpireBuilding);
     }
     case 'hasBuildingYielding':
-      // Asked of what a row *does*, off its own six voices, so a retuned library
-      // moves the scope with it. `wonder: true` is Hero of Alexandria's half.
-      // Over what the town holds (`townBuildings`, Expansionist batch E12).
+      // A building in the town that supplies the voice (`buildingSupplies`:
+      // its category, or its package). `wonder: true` is Hero of Alexandria's
+      // half. Over what the town holds (`townBuildings`, Expansionist batch E12).
       return townBuildings(state, city).some(
         (id) =>
           (scope.wonder !== true || isWonder(id)) &&
@@ -2660,7 +2669,10 @@ function scopeNote(scope?: CityScope): string | null {
         ? 'holds an empire building'
         : `holds an empire building, ${scope.standingTurns}+ turns`;
     case 'hasBuildingYielding':
-      return scope.wonder === true ? `${scope.yields} wonder` : `${scope.yields} building`;
+      // "Supplies", the game's one word for this test (batch R2d).
+      return scope.wonder === true
+        ? `holds a wonder that supplies ${scope.yields}`
+        : `holds a building that supplies ${scope.yields}`;
     case 'onTerrain':
       return `${scope.terrain} city`;
     case 'terrainBeside':
@@ -3067,19 +3079,6 @@ export function countOf(
       let total = 0;
       for (const camp of state.camps) {
         if (isVisibleTo(state, playerId, camp.col, camp.row)) total += 1;
-      }
-      return total;
-    }
-    case 'scienceBuildings': {
-      if (!city) return 0;
-      // Omen Reading. "Buildings that supply science" is read off the building
-      // rows — flat science or science per citizen — so a retune of the library
-      // moves the rite with it, and a new science building joins for free.
-      // Over what the town holds (`townBuildings`, Expansionist batch E12).
-      let total = 0;
-      for (const id of townBuildings(state, city)) {
-        const def = buildingDef(id);
-        if ((def.science ?? 0) > 0 || (def.sciencePerPop ?? 0) > 0) total += 1;
       }
       return total;
     }
@@ -4126,7 +4125,6 @@ export const CITY_SCOPED_COUNTS: readonly CountKind[] = [
   'garrison',
   'garrisonWatch',
   'workedHills',
-  'scienceBuildings',
   'buildingsInCity',
   'workedTilesInCity',
   'workedUnimprovedTiles',
@@ -4652,13 +4650,25 @@ export function cardBuildingPercents(state: GameState, city: City): CardBuilding
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'buildingYieldPercent')) {
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
     if (effect.percent === 0) continue;
+    // The answer kept per building for this list's life: a `pays` selector
+    // reads the building's package (batch R2d), and step 9 asks each share
+    // about each building more than once. Only `get` and `set` are used, so
+    // the map's order never reaches an outcome.
+    const answers = new Map<BuildingId, boolean>();
     const line: CardBuildingPercentLine = {
       card,
       source: label(source, scopeNote(effect.scope)),
       percent: effect.percent,
       appliedLast: effect.appliedLast === true,
       yield: effect.yield,
-      matches: (id) => buildingMatchesYieldPercent(id, effect),
+      matches: (id) => {
+        let known = answers.get(id);
+        if (known === undefined) {
+          known = buildingMatchesYieldPercent(state, city, id, effect);
+          answers.set(id, known);
+        }
+        return known;
+      },
     };
     (line.appliedLast ? last : ordinary).push(line);
   }
@@ -4666,23 +4676,29 @@ export function cardBuildingPercents(state: GameState, city: City): CardBuilding
 }
 
 /**
- * Which buildings a `buildingYieldPercent` reaches — the four selectors, folded.
+ * Which buildings a `buildingYieldPercent` reaches in this town: the four
+ * selectors, folded.
  *
- * `category` is what a row is *for* (`BuildingDef.category`); `pays` is the voice
- * its row actually **pays**, which is what a card means by "your faith
- * buildings" — `CityScope`'s `hasBuildingYielding` asks the same question of a
- * town and answers it the same way, through the one reading of the phrase
- * (`buildingPaysVoice`, `buildingData.ts`). `building` names one row and
- * `wonder` names the marvels, the two the great-person pass added: see the shape
- * for why each earns a field rather than being said with a category.
+ * `category` is what a row is *for* (`BuildingDef.category`). `pays` is the
+ * voice the building **supplies** in this town (`buildingSupplies`): its
+ * category is that voice, or its package pays it. So "your buildings that
+ * supply faith" reaches every faith building and any building a card makes pay
+ * faith (batch R2d; before it, the row alone answered). `building` names one
+ * row and `wonder` names the marvels, the two the great-person pass added: see
+ * the shape for why each earns a field rather than being said with a category.
  *
- * **Every selector a row names must hold** — one `&&` chain and no precedence, so
- * "the temples" and "the wonders that pay culture" are the same rule read with
- * different fields filled in. Naming none reaches every building the town has
- * raised, which is the honest reading of a card that named no class rather than a
- * guard.
+ * **Every selector a row names must hold**: one `&&` chain and no precedence,
+ * so "the temples" and "the wonders that supply culture" are the same rule read
+ * with different fields filled in. Naming none reaches every building the town
+ * has raised, which is the honest reading of a card that named no class rather
+ * than a guard.
+ *
+ * The cheap selectors go first, so the package is read only for a building
+ * the other selectors admit.
  */
 export function buildingMatchesYieldPercent(
+  state: GameState,
+  city: City,
   id: BuildingId,
   effect: CardBuildingYieldPercentEffect,
 ): boolean {
@@ -4691,7 +4707,7 @@ export function buildingMatchesYieldPercent(
   // `CountKind`'s `wonders` asked of one row. Absent reaches the marvels too.
   if (effect.wonder === true && !isWonder(id)) return false;
   if (effect.category !== undefined && buildingDef(id).category !== effect.category) return false;
-  return effect.pays === undefined || buildingPaysVoice(id, effect.pays);
+  return effect.pays === undefined || buildingSupplies(state, city, id, effect.pays);
 }
 
 /** Does this scope name **this** building — `hasBuilding` on it, alone or inside an `all`? */
@@ -4749,7 +4765,7 @@ export interface BuildingPackageLine {
  *      per-citizen science taken at the town's size;
  *   2. **the card lines on it** (`cardLinesOnBuilding`): a flat town line whose
  *      scope names it, a town line counted by its kind or its category inside
- *      the town, and the building's own flat lines;
+ *      the town, and the building's own lines, flat or counted (batch R2d);
  *   3. **the luxury lines on it** (`resourceLinesOnBuilding`): one helping of
  *      each `buildingCategoryYields` line that names its category, or the
  *      wonders.
@@ -4760,10 +4776,10 @@ export interface BuildingPackageLine {
  *
  * **Never a second payment.** Each card line still banks once, as the card's
  * own line in step 3 of `docs/yields.md`, and each luxury line in step 4. The
- * package is the building's view of those lines. Three readers ask it: the
- * building shares of step 9 (`explainCardBuildingYields`, `yields/town.ts`),
- * which are taken over it; `buildingSupplies`; and through that, the
- * `hasBuildingYielding` scope and the `buildingsSupplying` count.
+ * package is the building's view of those lines. Its readers: the building
+ * shares of step 9 (`explainCardBuildingYields`, `yields/town.ts`), which are
+ * taken over it; the bots' price of a share (`src/ai/value.ts`); and
+ * `buildingSupplies`, with every reader of that (see its docblock).
  */
 export function explainBuildingPackage(
   state: GameState,
@@ -4846,11 +4862,24 @@ export function foldBuildingPackage(
  *     its **category** (`buildingsOfCategory`) inside the town
  *     (`within: 'city'`): one share of what the line pays the town, for each
  *     building it counted. At one helping a building, which every row writes
- *     today, the share is one helping.
+ *     today, the share is one helping;
+ *   · the building's **own counted line** (batch R2d), whatever it counts:
+ *     the whole of what the line pays this town. The Cathedral School's
+ *     science per building that supplies faith, the Bazaar's gold per luxury,
+ *     the Mausoleum's gold per building. A counted line by kind or by category
+ *     inside the town keeps the home above, so no line has two homes. Its
+ *     scope names no building but the one that carries it
+ *     (`devotionReview.test.ts` walks every row).
  *
  * Not on any building, and still facts about the town: a line under an `any`
- * scope, a line counted across the empire, a count of anything else, a
- * mirror, a share, and a line paid to another empire's town (`payee`).
+ * scope, another card's line counted across the empire or counting anything
+ * else, a mirror, a share, and a line paid to another empire's town (`payee`).
+ *
+ * **A count inside a package.** An own counted line asks `countOf` here, and
+ * the `buildingsSupplying` count asks `buildingSupplies` of every building in
+ * the town, the carrier included. `buildingSupplies`' depth guard answers that
+ * second question from the category and the row, so the Cathedral School's
+ * count never asks for its own count again.
  */
 function cardLinesOnBuilding(state: GameState, city: City, id: BuildingId): BuildingPackageLine[] {
   const owner = city.ownerId;
@@ -4872,11 +4901,22 @@ function cardLinesOnBuilding(state: GameState, city: City, id: BuildingId): Buil
       if (VOICES.some((key) => line[key] !== 0)) list.push(line);
       continue;
     }
-    if (basis !== 'count' || !paysAVoice(effect) || effect.within !== 'city') continue;
-    const counted =
-      (effect.count === 'buildingsOfKind' && effect.building === id) ||
-      (effect.count === 'buildingsOfCategory' && effect.category === category);
-    if (!counted) continue;
+    if (basis !== 'count' || !paysAVoice(effect)) continue;
+    // A line counted by kind or by category inside the town is on the
+    // buildings it counts, one helping each. Every other counted line is on
+    // the building that carries it, whole, and on nothing else.
+    const byShelf =
+      effect.within === 'city' &&
+      (effect.count === 'buildingsOfKind' || effect.count === 'buildingsOfCategory');
+    if (byShelf) {
+      const counted =
+        (effect.count === 'buildingsOfKind' && effect.building === id) ||
+        (effect.count === 'buildingsOfCategory' && effect.category === category);
+      if (!counted) continue;
+    } else {
+      if (card !== id) continue;
+      if (scopeNamesABuilding(effect.scope) && !scopeNamesBuilding(effect.scope, id)) continue;
+    }
     // Where the town fold pays a counted line: every town, or the capital.
     if (effect.where !== 'city' && effect.where !== 'capital') continue;
     if (effect.where === 'capital' && capitalCityOf(state, owner)?.id !== city.id) continue;
@@ -4885,7 +4925,10 @@ function cardLinesOnBuilding(state: GameState, city: City, id: BuildingId): Buil
     const times = helpings(many, effect.per, effect.max);
     if (many === 0 || times === 0) continue;
     const line = emptyPackageLine(label(source, scopeNote(effect.scope)), card);
-    line[effect.to as CityYieldKey] = ((effect.amount ?? 0) * times) / many;
+    // One helping a building counted by its shelf; the whole line on its own
+    // building, as the town fold pays it (`explainCardCityYields`).
+    const whole = (effect.amount ?? 0) * times;
+    line[effect.to as CityYieldKey] = byShelf ? whole / many : whole;
     if (VOICES.some((key) => line[key] !== 0)) list.push(line);
   }
   return list;
@@ -12173,6 +12216,9 @@ function countedRenownHelpings(
     // Houses). A count that takes an argument is handed it here or it counts
     // nothing — see the count.
     tile: effect.tile,
+    // The voice the suppliers are counted for (The Royal Tutors' science,
+    // batch R2d), handed over for `tile`'s reason.
+    voice: effect.voice,
     within: effect.within,
   };
   if (effect.within !== 'city') {
