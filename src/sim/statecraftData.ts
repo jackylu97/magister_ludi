@@ -1476,7 +1476,23 @@ export type EmpireCondition =
    * The Defiant Kingdom). Only empires in `Player.metSeats` are compared, so the
    * card reveals nothing about an empire not yet met (the triage's reading 11).
    */
-  | { test: 'rivalHoldsMoreTowns' };
+  | { test: 'rivalHoldsMoreTowns' }
+  /**
+   * **This empire knows a technology that no other empire knows** (batch R3,
+   * The Kept Secret; `docs/plans/scientific-review-2026-10-28.md`).
+   *
+   * Every other real player counts (`realPlayers`), met or not, because the
+   * user's words are "no other empire has researched". So the condition can
+   * hold while the seat has met nobody, which is where `techLead` and The
+   * Secret Arts differ. An eliminated empire still counts: it did research
+   * what it knew. The barbarian seat knows nothing and never counts.
+   *
+   * Charter technologies do not count, as `columnReached` leaves them out: no
+   * rival can research one, so counting it would make the condition a gift of
+   * the draft. Read through `knowsUniqueTech` (`statecraft/evaluator.ts`),
+   * which the bots ask too.
+   */
+  | { test: 'knowsUniqueTech' };
 
 /**
  * When a strength line applies. The whole of `combatCardLine`'s generality.

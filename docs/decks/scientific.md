@@ -9,6 +9,11 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
   - **The Almanac** made Libraries slower to build, not cheaper (*"implemented incorrectly, it's making libraries more expensive, when it should be less expensive"*). Its row was a production bonus of −25%, which slows a build and leaves the price alone. It is now a cost rule, so a Library's price is 25% lower. It also gives +2 production now, not +1 (*"revise: give +2 production"*).
   - **The Secret Arts** has always counted charter technologies, and its text now says so (*"this should count charter technologies"*). While you have met no empire, it still pays nothing (the triage's reading 18).
   - **Copying the Enemy** (shared with Dominion) is retired, so it leaves both decks. The user's comment on the Dominion list was *"remove"*.
+- **Your review comments of 2026-10-28, built in batch R3** (`docs/plans/scientific-review-2026-10-28.md`):
+  - **The Scribes' Hall, The Long Study and The Sky Watchers** move from Tier 0 to Tier I (*"move to tier 1"*). Their text, rarity and type do not change.
+  - **The Prize Essay** is retired (*"remove, too similar to royal workshops"*). **The Kept Secret** is new in its place: while you know a technology no other empire knows, your capital gains +20% food and +20% culture. It is uncommon, because a capital share is large in Tier 0.
+  - **The Curators of Works** is new: each public work gives its town +1 science and +1 happiness. The Granary is a public work, with the Aqueduct, the Watermill, the Harbour, the Public Bath and the Cistern. The science is on each public work, so a card that doubles a Granary's yields doubles it too.
+  - **The Mountain Observatories** is new and shared with Expansionist: cities with a mountain in their borders gain +3 science. It stacks with The Mountain Schools.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -27,27 +32,27 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 
 | Tier | Implemented | Modify | Add | All | Charters |
 |---|---|---|---|---|---|
-| Tier 0 | 11 | 0 | 0 | 11 | 2 |
-| Tier I | 17 | 0 | 0 | 17 | 3 |
+| Tier 0 | 9 | 0 | 0 | 9 | 2 |
+| Tier I | 20 | 0 | 0 | 20 | 3 |
 | Tier II | 20 | 0 | 0 | 20 | 4 |
 | Tier III | 16 | 0 | 0 | 16 | 2 |
 | Tier IV | 13 | 0 | 0 | 13 | 2 |
-| **All** | **77** | **0** | **0** | **77** | **13** |
-| Shared | 19 | 0 | 0 | 19 | 1 |
+| **All** | **78** | **0** | **0** | **78** | **13** |
+| Shared | 20 | 0 | 0 | 20 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
 
 | Tier | Military | Economic | Civic | Wildcard |
 |---|---|---|---|---|
-| Tier 0 | 2 | 3 | 6 | 0 |
-| Tier I | 2 | 8 | 7 | 0 |
+| Tier 0 | 2 | 3 | 4 | 0 |
+| Tier I | 2 | 8 | 10 | 0 |
 | Tier II | 4 | 6 | 9 | 1 |
 | Tier III | 4 | 4 | 6 | 2 |
 | Tier IV | 4 | 3 | 4 | 2 |
-| **All** | **16** | **24** | **32** | **5** |
-| Shared | 2 | 0 | 17 | 0 |
+| **All** | **16** | **24** | **33** | **5** |
+| Shared | 2 | 0 | 18 | 0 |
 
-Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 and 11 across Tiers 0 to IV. By type they are 10 Military, 22 Economic, 27 Civic and 5 Wildcard.
+Without the charters, the deck holds 65 cards that take a chair: 7, 17, 16, 14 and 11 across Tiers 0 to IV. By type they are 10 Military, 22 Economic, 28 Civic and 5 Wildcard.
 
 ## Tier 0
 
@@ -56,14 +61,12 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 | **The Herbalists' Charter** | common | implemented | Drafting this opens Herbals for research. Knowing it lets workers build the Physic Garden on flat land with fresh water, one in each town: +2 science and +2 happiness. No chair required. | Civic |
 | **The Bronze-Founders' Charter** | uncommon | implemented | Drafting this opens Casting for research. Knowing it gives two lines a trait they keep through every upgrade. Hoplite (Spearman to Pikeman): +1 strength, and in one of your towns +1 more for every four citizens there. Maryannu (War Chariot to Knight): +1 strength, and +5 against a unit below half health. No chair required. | Military |
 | **The Almanac** | common | implemented | Libraries cost 25% less production and give +2 production. | Economic |
-| **The Scribes' Hall** | common | implemented | Cities with a Library gain +1 science per four citizens and +1 culture per three citizens. | Civic |
-| **The Long Study** | uncommon | implemented | A Library at least twenty turns old grants +2 culture and +1 renown. At forty turns, these bonuses become +4 culture and +2 renown. | Civic |
-| **The Prize Essay** | common | implemented | Completing a technology before any other empire grants 15 culture and 15 production in your capital. Charter technologies do not count. | Civic |
 | **The Prospectors' Notes** | uncommon | implemented | Building a mine or a quarry grants its town 25 production. | Economic |
-| **The Sky Watchers** | common | implemented | Shrines give +1 faith and +1 science. | Civic |
 | **The Royal Workshops** | common | implemented | Completing a technology grants 15 production in your capital. | Economic |
 | **The Royal Tutors** | common | implemented | +1 renown a turn for each science building you have, favouring great scholars. | Civic |
 | **The War Manuals** | common | implemented | Units gained in a town with a Library start with +2 strength. | Military |
+| **The Kept Secret** | uncommon | implemented | While you know a technology no other empire knows, your capital gains +20% food and +20% culture. Charter technologies do not count. | Civic |
+| **The Curators of Works** | common | implemented | Public works give +1 science and +1 happiness. | Civic |
 
 ## Tier I
 
@@ -86,6 +89,9 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 | **The Free Cities** | uncommon | implemented | While you hold at most five towns, your towns build buildings and wonders 20% faster. | Economic |
 | **The Edge of the Sword** | uncommon | implemented | Your units gain +3 strength against the units of an empire that knows fewer technologies than you. | Military |
 | **The Field Refits** | uncommon | implemented | Each time research upgrades one of your units, it heals fully. | Military |
+| **The Scribes' Hall** | common | implemented | Cities with a Library gain +1 science per four citizens and +1 culture per three citizens. | Civic |
+| **The Long Study** | uncommon | implemented | A Library at least twenty turns old grants +2 culture and +1 renown. At forty turns, these bonuses become +4 culture and +2 renown. | Civic |
+| **The Sky Watchers** | common | implemented | Shrines give +1 faith and +1 science. | Civic |
 
 ## Tier II
 
@@ -158,11 +164,13 @@ These rows live in `data/decks/common.json`. A seat holding Scientific or the de
 - **Types:** since batch S1b every shared row carries the type below. The user approved the types of the cards shared with Commerce, Devotion and Magisterial on 2026-10-21 (`docs/plans/scientific-themes.md`, section 15, item 5). The cards shared with Dominion, Expansionist, Commerce, Devotion and Magisterial carry the types those sheets give them.
 - **Moved in Devotion batch DV1** (`docs/plans/devotion-themes-triage.md`): The Priest-Astronomers and The Monastic University came here from the Devotion file, with their ids, texts, tiers and rarities, and are typed Civic.
 - **Built in Devotion batch DV2:** The Monastery Libraries left `deferred` with its new text, and The Blessed Forges and The Schoolmen's Charter are new rows. The charter opens a fourteenth charter technology, Scholasticism, at a placeholder place on the lane under Medicine until your chart places it. In DV2, knowing it opened the Cathedral and the Apostle before Theology.
+- **New in batch R3** (`docs/plans/scientific-review-2026-10-28.md`): The Mountain Observatories, shared with Expansionist at your request of 2026-10-28.
 - **Changed in Devotion batch R2c** (`docs/plans/devotion-review-2026-10-28.md`): The Schoolmen's Charter took your revision of 2026-10-28. Scholasticism now opens a new religious building, the Cathedral School: +2 science for each building in its town that supplies faith, and +2 more for each while the town keeps a rite. It no longer opens the Cathedral or the Apostle early, so the Devotion build plan's question 1 (the Apostle opened early) is closed.
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
 | **Illuminated Treatises** | common | Magisterial | 0 | implemented | Cities with both a Library and a Monument gain +1 science and +1 culture. | Civic |
+| **The Mountain Observatories** | common | Expansionist | 0 | implemented | Cities with a mountain in their borders gain +3 science. | Civic |
 | **Field Academies** | uncommon | Dominion | I | implemented | Your first combat kill each turn grants 23 science. Cities with a Library produce siege units 38% faster. | Civic |
 | **The Assay** | common | Expansionist | I | implemented | Hexes with a strategic resource gain +2 science. | Civic |
 | **Hydraulic Schools** | common | Expansionist | I | implemented | Cities with an Aqueduct gain +20% production toward science buildings. Those beside a mountain also gain +1 science per three citizens. | Civic |
@@ -193,4 +201,5 @@ These rows stay in the data so that old saves load. They are dealt to nobody, th
   - in `data/decks/common.json`, the shared The Hydraulic Commonwealth, cut on both its sheets.
 - **Retired in batch S0:** The Metallurgists' Charter and The Naturalists' Charter.
 - **Retired in batch R1 (2026-10-25):** in `data/decks/common.json`, the shared Copying the Enemy (the user, on the Dominion list: *"remove"*). It paid only for kills, so a Scientific seat alone would rarely use it.
+- **Retired in batch R3 (2026-10-28):** The Prize Essay (the user: *"remove, too similar to royal workshops"*). The Kept Secret took its place in Tier 0.
 - Cards cut before they had a data row (The Palace Archive, The Fellowships, the Hermetic and Experimenters' Charters, and the others in the list doc's cut table) have nothing to retire.

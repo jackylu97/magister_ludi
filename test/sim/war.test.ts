@@ -1218,6 +1218,10 @@ describe('the schema witness', () => {
     // `pays` selector, al-Khwārizmī's purchase and the four rows that counted
     // `scienceBuildings` ask `buildingSupplies`, and a building's own counted
     // lines join its package. So a v203 log's towns bank different figures.
-    expect(SCHEMA_VERSION).toBe(204);
+    // 205 since batch R3 (the Scientific review's cards): three cards move to
+    // Tier I, The Prize Essay is retired and three Tier 0 cards are new, so a
+    // Scientific or Expansionist seat's pools hold different cards and a v204
+    // log's draws move.
+    expect(SCHEMA_VERSION).toBe(205);
   });
 });

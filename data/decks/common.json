@@ -1825,6 +1825,24 @@
         { "kind": "pays", "where": "hex", "science": 2, "on": { "test": "resourceKind", "kind": "strategic" } }
       ]
     },
+    "theMountainObservatories": {
+      "name": "The Mountain Observatories",
+      "decks": ["expansionist", "scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "Climb above the weather, and the stars hold still long enough to count.",
+      "text": "Cities with a mountain in their borders gain +3 science.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 3,
+          "scope": { "test": "terrainInBorders", "terrain": "mountain" }
+        }
+      ]
+    },
     "scientificTheSoldierScholars": {
       "name": "The Soldier-Scholars",
       "decks": ["dominion", "scientific"],

@@ -541,8 +541,11 @@ interface RichSitting {
 let richRecord: RichSitting[] | null = null;
 
 /**
- * Four turns of seat 0 on the grown duel, with Pottery's row granted and a
+ * Six turns of seat 0 on the grown duel, with Pottery's row granted and a
  * full purse every turn, recorded once for the spend arm and the focus arm.
+ * Six since batch R3: the Scientific review changed the Tier 0 pools, so the
+ * seats draft other cards, and on the board that follows the arm first leans
+ * a town on the hammers in the fifth turn and puts it back in the sixth.
  *
  * Each turn holds two sittings of seat 0, as the driver opens one
  * (`botSitting`): the one asked here on a full purse, and the one the driver
@@ -564,7 +567,7 @@ function richSittings(): RichSitting[] {
   const game = grownGame(RIPE);
   grant(game.state, seat(game.state, 0), gatingTech('building', 'granary') ?? undefined);
   const record: RichSitting[] = [];
-  for (let turn = 0; turn < 4; turn++) {
+  for (let turn = 0; turn < 6; turn++) {
     for (const player of realPlayers(game.state)) player.gold = 5000;
     const sitting = botSitting(0);
     for (let step = 0; step < 200; step++) {
@@ -1390,7 +1393,7 @@ describe('the hammer price', () => {
 
 describe('the focus arm', () => {
   /**
-   * The arm on the rich board above: in four sittings it leans a town on the
+   * The arm on the rich board above: in six turns it leans a town on the
    * hammers and later puts towns back, so both directions are reached without a
    * long game. The played-duel versions of these claims, on boards nobody
    * arranged, are in `aiWants.slow.test.ts`.

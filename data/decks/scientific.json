@@ -22,7 +22,7 @@
     "scientificTheScribesHall": {
       "name": "The Scribes' Hall",
       "decks": ["scientific"],
-      "band": 0,
+      "band": 1,
       "line": "none",
       "rarity": "common",
       "type": "civic",
@@ -114,7 +114,7 @@
     "theLongStudy": {
       "name": "The Long Study",
       "decks": ["scientific"],
-      "band": 0,
+      "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "type": "civic",
@@ -1202,9 +1202,9 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
-      "type": "civic",
       "flavor": "The academy sets the question, and the whole country tries to answer it first.",
       "text": "Completing a technology before any other empire grants 15 culture and 15 production in your capital. Charter technologies do not count.",
+      "note": "Cut from the deck. It was too close to The Royal Workshops, which also pays your capital when you complete a technology. The Kept Secret took its place.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -1218,12 +1218,13 @@
           "first": "techWorld",
           "grant": { "yield": "production", "amount": 15, "toCapital": true }
         }
-      ]
+      ],
+      "retired": true
     },
     "theSkyWatchers": {
       "name": "The Sky Watchers",
       "decks": ["scientific"],
-      "band": 0,
+      "band": 1,
       "line": "none",
       "rarity": "common",
       "type": "civic",
@@ -1956,6 +1957,56 @@
       "flavor": "The first one is built by hand, before anyone knows how.",
       "text": "You may build the buildings and train the units of the technology you are researching, at double their production cost. Wonders are excepted.",
       "effects": [{ "kind": "rule", "rule": "prototypes", "percent": 100 }]
+    },
+    "theKeptSecret": {
+      "name": "The Kept Secret",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The recipe never left the palace, and the palace grew rich on it.",
+      "text": "While you know a technology no other empire knows, your capital gains +20% food and +20% culture. Charter technologies do not count.",
+      "effects": [
+        {
+          "kind": "conditionRule",
+          "when": { "test": "knowsUniqueTech" },
+          "then": [
+            { "kind": "percentYields", "yield": "food", "percent": 20, "scope": { "test": "capital" } },
+            { "kind": "percentYields", "yield": "culture", "percent": 20, "scope": { "test": "capital" } }
+          ]
+        }
+      ]
+    },
+    "theCuratorsOfWorks": {
+      "name": "The Curators of Works",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "Someone has to know how the granary was built, so that it can be built again.",
+      "text": "Public works give +1 science and +1 happiness.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "publicWorks",
+          "within": "city",
+          "to": "science",
+          "amount": 1
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "publicWorks",
+          "within": "city",
+          "to": "happiness",
+          "amount": 1
+        }
+      ]
     }
   }
 }

@@ -8178,6 +8178,22 @@
     "text": "you may build the buildings and train the units of the technology you are researching, at double their production cost; wonders are excepted"
    }
   ],
+  "theKeptSecret": [
+   {
+    "raw": "while you know a technology no other empire knows (charter technologies do not count): +20% food in your capital; +20% culture in your capital",
+    "text": "while you know a technology no other empire knows (charter technologies do not count): +20% food in your capital; +20% culture in your capital"
+   }
+  ],
+  "theCuratorsOfWorks": [
+   {
+    "raw": "+1 science in every city per public work standing there",
+    "text": "+1 science in every city per public work standing there"
+   },
+   {
+    "raw": "+1 happiness in every city per public work standing there",
+    "text": "+1 happiness in every city per public work standing there"
+   }
+  ],
   "magisterialMasterMasons": [
    {
     "raw": "+25% production toward [[building:monument|Monuments]]",
@@ -9931,6 +9947,12 @@
    {
     "raw": "+2 science on every hex carrying a strategic resource",
     "text": "+2 science on every hex carrying a strategic resource"
+   }
+  ],
+  "theMountainObservatories": [
+   {
+    "raw": "+3 science in every city with a mountain hex inside its borders",
+    "text": "+3 science in every city with a mountain hex inside its borders"
    }
   ],
   "scientificTheSoldierScholars": [

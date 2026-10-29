@@ -174,14 +174,23 @@ const S6: readonly OrderId[] = [
 // --- the register ----------------------------------------------------------------
 
 describe('the register', () => {
-  it('deals the eleven rows, each typed, with text and no deferred sentence', () => {
+  it('deals the eleven rows, each typed, with text and no deferred sentence, but The Prize Essay', () => {
     for (const id of S6) {
       const def = orderDef(id);
-      expect(orderIsDealt(id), id).toBe(true);
       expect(def.deferred, id).toBeUndefined();
       expect(def.text, id).toBeTruthy();
-      expect(def.type, id).toBeDefined();
       expect(def.decks, id).toEqual(['scientific']);
+      // Batch R3 retired The Prize Essay (the user, 2026-10-28: "remove, too
+      // similar to royal workshops"). Its row stays for saves, untyped and
+      // dealt to nobody, and a seat that holds it is still paid (below).
+      if (id === 'thePrizeEssay') {
+        expect(def.retired, id).toBe(true);
+        expect(orderIsDealt(id), id).toBe(false);
+        expect(def.type, id).toBeUndefined();
+        continue;
+      }
+      expect(orderIsDealt(id), id).toBe(true);
+      expect(def.type, id).toBeDefined();
     }
   });
 

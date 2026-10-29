@@ -653,8 +653,11 @@ describe('the schema, as landed', () => {
     // Barns, The Royal Cult and The Temple Storehouses are new Devotion rows,
     // and The Old Gods Remain, The Sacred Precincts and The Monastic Builders
     // were live and are retired.
-    expect(live).toBe(615);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(615);
+    // **And batch R3** (the Scientific review's cards): two more. The Kept
+    // Secret, The Curators of Works and the shared The Mountain Observatories
+    // are new rows, and The Prize Essay was live and is retired.
+    expect(live).toBe(617);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(617);
   });
 
   /**
@@ -1110,7 +1113,11 @@ describe('the schema, as landed', () => {
     // `pays` selector, al-Khwārizmī's purchase and the four rows that counted
     // `scienceBuildings` ask `buildingSupplies`, and a building's own counted
     // lines join its package. So a v203 log's towns bank different figures.
-    expect(SCHEMA_VERSION).toBe(204);
+    // 205 since batch R3 (the Scientific review's cards): three cards move to
+    // Tier I, The Prize Essay is retired and three Tier 0 cards are new, so a
+    // Scientific or Expansionist seat's pools hold different cards and a v204
+    // log's draws move.
+    expect(SCHEMA_VERSION).toBe(205);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1377,10 +1384,12 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // Sacred Patronage (− 2).
       // **Batch R2c** retired three live Devotion rows: The Old Gods Remain,
       // The Sacred Precincts and The Monastic Builders (+ 3 retired).
+      // **Batch R3** retired the live Scientific row The Prize Essay (+ 1
+      // retired).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
       ).toHaveLength(5);
-      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(273);
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(274);
     }
   });
 

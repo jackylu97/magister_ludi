@@ -98,7 +98,8 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
 - **A building's package** (batch R2b, `explainBuildingPackage`): its row,
   its own lines (flat or counted, batch R2d), plus every line a card or a
   luxury puts on it in the town (a line whose scope names it, a line counted
-  by its kind or category in the town, a luxury's helping on its category).
+  by its kind, its category or its public-work marker in the town, a luxury's
+  helping on its category).
   Every live source counts but a rite.
   - The building shares of step 9 are taken over the package, so a doubler
     on temples doubles "+2 science on temples", and a doubler on the

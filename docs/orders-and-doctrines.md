@@ -617,16 +617,14 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Order | Band | Rarity | Role | Effect |
 |---|---|---|---|---|
 | The Almanac | 0 | ● | P | Libraries cost 25% less production and give +2 production. |
-| The Scribes' Hall | 0 | ● | P | Cities with a Library gain +1 science per four citizens and +1 culture per three citizens. |
-| The Long Study | 0 | ◆ | P | A Library at least twenty turns old grants +2 culture and +1 renown. At forty turns, these bonuses become +4 culture and +2 renown. |
 | The Bronze-Founders' Charter | 0 | ◆ | S | Drafting this opens Casting for research. Knowing it gives two lines a trait they keep through every upgrade. Hoplite (Spearman to Pikeman): +1 strength, and in one of your towns +1 more for every four citizens there. Maryannu (War Chariot to Knight): +1 strength, and +5 against a unit below half health. No chair required. |
 | The Herbalists' Charter | 0 | ● | S | Drafting this opens Herbals for research. Knowing it lets workers build the Physic Garden on flat land with fresh water, one in each town: +2 science and +2 happiness. No chair required. |
 | The Prospectors' Notes | 0 | ◆ | S | Building a mine or a quarry grants its town 25 production. |
 | The Royal Workshops | 0 | ● | S | Completing a technology grants 15 production in your capital. |
-| The Prize Essay | 0 | ● | S | Completing a technology before any other empire grants 15 culture and 15 production in your capital. Charter technologies do not count. |
-| The Sky Watchers | 0 | ● | P | Shrines give +1 faith and +1 science. |
 | The Royal Tutors | 0 | ● | S | +1 renown a turn for each science building you have, favouring great scholars. |
 | The War Manuals | 0 | ● | S | Units gained in a town with a Library start with +2 strength. |
+| The Kept Secret | 0 | ◆ | S | While you know a technology no other empire knows, your capital gains +20% food and +20% culture. Charter technologies do not count. |
+| The Curators of Works | 0 | ● | P | Public works give +1 science and +1 happiness. |
 | Learned Foundations | 1 | ● | S | Cities with a Library build empire buildings 25% faster. |
 | The Old Academy | 1 | ◆ | S | An Academy at least twenty turns old gains +3 food and +3 production. At forty turns these bonuses become +6 of each. |
 | The Commonplace Book | 1 | ● | S | Charter technologies cost you 15% less research. |
@@ -644,6 +642,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Forward Plans | 1 | ○ | S | You may build a University in any city whose Library has stood at least 30 turns, before you know Scholarship. |
 | The Dedications | 1 | ◆ | S | Finishing a science building or an empire building grants culture equal to ten times the town's population. |
 | The Field Refits | 1 | ◆ | S | Each time research upgrades one of your units, it heals fully. |
+| The Scribes' Hall | 1 | ● | P | Cities with a Library gain +1 science per four citizens and +1 culture per three citizens. |
+| The Long Study | 1 | ◆ | P | A Library at least twenty turns old grants +2 culture and +1 renown. At forty turns, these bonuses become +4 culture and +2 renown. |
+| The Sky Watchers | 1 | ● | P | Shrines give +1 faith and +1 science. |
 | The Quiet Faculties | 2 | ○ | P | Cities working an Academy gain +25% food and +20% production, but produce military units 25% more slowly. |
 | Enduring Institutions | 2 | ◆ | P | A town with an empire building at least twenty turns old gains +25% production. |
 | The Mechanists' Charter | 2 | ○ | S | Drafting this opens Mechanics for research. Knowing it gives two lines a trait they keep through every upgrade. Onager (Catapult and Trebuchet): +1 range. Repeating Crossbow (Archer to Crossbowman): it may move after it shoots. No chair required. |
@@ -785,6 +786,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Sacred Groves | Expansionist · Devotion | 0 | ◆ | S | Worked, unimproved forests gain +1 food and +1 faith. |
 | Hydraulic Schools | Expansionist · Scientific | 1 | ● | P | Cities with an Aqueduct gain +20% production toward science buildings. Those beside a mountain also gain +1 science per three citizens. |
 | The Assay | Expansionist · Scientific | 1 | ● | S | Hexes with a strategic resource gain +2 science. |
+| The Mountain Observatories | Expansionist · Scientific | 0 | ● | P | Cities with a mountain in their borders gain +3 science. |
 | The Sculpted Landscape | Expansionist · Magisterial | 3 | ◆ | S | Farms beside a great-person improvement gain +2 food and +2 culture. Each farm receives this once regardless of the number of adjacent works. |
 | The Tithe | Commerce · Devotion | 2 | ○ | P | Cities with a Temple gain gold equal to 25% of their base faith, and +25% gold. |
 | Merchant Scholars | Commerce · Scientific | 3 | ◆ | P | Foreign routes gain +2 science for each Academy in the origin city. |

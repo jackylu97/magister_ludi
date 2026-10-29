@@ -3228,8 +3228,29 @@ import {
  * cards beside a building that changed its answer banks a different figure,
  * so a v203 log replays into different banks. The branch migrates nothing,
  * for the reason given under v119.
+ *
+ * v205 (branch `decks`; batch R3, `docs/plans/scientific-review-2026-10-28.md`):
+ * **the Scientific cards of the user's review.** No field joins the state.
+ * The rules that change:
+ *
+ *   · The Scribes' Hall, The Long Study and The Sky Watchers move from Tier 0
+ *     to Tier I;
+ *   · The Prize Essay is retired;
+ *   · three cards are new and dealt at Tier 0: The Kept Secret and The
+ *     Curators of Works (Scientific), and The Mountain Observatories (shared
+ *     by Expansionist and Scientific);
+ *   · a new empire condition, `knowsUniqueTech`: the empire knows a
+ *     technology no other real player knows, charter technologies left out
+ *     (The Kept Secret's gate);
+ *   · a town line counted by the public works in the town (`publicWorks`
+ *     with `within: 'city'`) is in each public work's package, one helping on
+ *     each, so a building share of step 9 reaches it.
+ *
+ * **A v204 save is refused and does not replay.** A Scientific or
+ * Expansionist seat's Tier 0 and Tier I pools hold different cards, so its
+ * draws move. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 204;
+export const SCHEMA_VERSION = 205;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

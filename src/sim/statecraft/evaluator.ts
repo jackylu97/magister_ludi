@@ -1755,12 +1755,38 @@ function empireConditionHolds(
       const own = cityCount(state, playerId);
       return seat.metSeats.some((other) => cityCount(state, other) > own);
     }
+    case 'knowsUniqueTech':
+      // Batch R3, The Kept Secret. The one reading, shared with the bots.
+      return knowsUniqueTech(state, playerId);
     default: {
       const unhandled: never = test;
       void unhandled;
       return false;
     }
   }
+}
+
+/**
+ * **Does this empire know a technology that no other empire knows?** The
+ * reading behind `EmpireCondition`'s `knowsUniqueTech` (batch R3, The Kept
+ * Secret), and the one the bots ask too, so the two cannot disagree.
+ *
+ * Every other real player counts (`realPlayers`), met or not: the user's
+ * words are "no other empire has researched", which is a fact about the
+ * world and not about whom the seat has met. Charter technologies are left
+ * out, as `columnReached` leaves them out, because no rival can research
+ * one. Walks the seat's own array, so no answer depends on a set's order.
+ */
+export function knowsUniqueTech(state: GameState, playerId: number): boolean {
+  const seat = playerById(state, playerId);
+  if (!seat) return false;
+  const others = realPlayers(state).filter((player) => player.id !== playerId);
+  for (const id of seat.techsResearched) {
+    if (!isTechId(id) || isCharterTech(id)) continue;
+    if (others.some((other) => other.techsResearched.includes(id))) continue;
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -4764,8 +4790,9 @@ export interface BuildingPackageLine {
  *   1. **the row** (`explainBuildingYield`): its flat yields, with the
  *      per-citizen science taken at the town's size;
  *   2. **the card lines on it** (`cardLinesOnBuilding`): a flat town line whose
- *      scope names it, a town line counted by its kind or its category inside
- *      the town, and the building's own lines, flat or counted (batch R2d);
+ *      scope names it, a town line counted by its kind, its category or the
+ *      public-work marker inside the town (the marker since batch R3), and the
+ *      building's own lines, flat or counted (batch R2d);
  *   3. **the luxury lines on it** (`resourceLinesOnBuilding`): one helping of
  *      each `buildingCategoryYields` line that names its category, or the
  *      wonders.
@@ -4858,17 +4885,19 @@ export function foldBuildingPackage(
  *   · the building's own flat town line that names no building: the whole
  *     line. A line that names another building is on that one, so no line is
  *     on two buildings because of who wrote it;
- *   · a town line counted by the building's **kind** (`buildingsOfKind`) or
- *     its **category** (`buildingsOfCategory`) inside the town
- *     (`within: 'city'`): one share of what the line pays the town, for each
- *     building it counted. At one helping a building, which every row writes
- *     today, the share is one helping;
+ *   · a town line counted by the building's **kind** (`buildingsOfKind`), its
+ *     **category** (`buildingsOfCategory`) or, since batch R3, its
+ *     **public-work marker** (`publicWorks`, The Curators of Works) inside the
+ *     town (`within: 'city'`): one share of what the line pays the town, for
+ *     each building it counted. At one helping a building, which every row
+ *     writes today, the share is one helping. A marker names its buildings as
+ *     a kind or a category does, so the rule is the same;
  *   · the building's **own counted line** (batch R2d), whatever it counts:
  *     the whole of what the line pays this town. The Cathedral School's
  *     science per building that supplies faith, the Bazaar's gold per luxury,
- *     the Mausoleum's gold per building. A counted line by kind or by category
- *     inside the town keeps the home above, so no line has two homes. Its
- *     scope names no building but the one that carries it
+ *     the Mausoleum's gold per building. A counted line by kind, by category
+ *     or by the marker inside the town keeps the home above, so no line has
+ *     two homes. Its scope names no building but the one that carries it
  *     (`devotionReview.test.ts` walks every row).
  *
  * Not on any building, and still facts about the town: a line under an `any`
@@ -4902,16 +4931,20 @@ function cardLinesOnBuilding(state: GameState, city: City, id: BuildingId): Buil
       continue;
     }
     if (basis !== 'count' || !paysAVoice(effect)) continue;
-    // A line counted by kind or by category inside the town is on the
-    // buildings it counts, one helping each. Every other counted line is on
-    // the building that carries it, whole, and on nothing else.
+    // A line counted by kind, by category or by the public-work marker inside
+    // the town is on the buildings it counts, one helping each. Every other
+    // counted line is on the building that carries it, whole, and on nothing
+    // else.
     const byShelf =
       effect.within === 'city' &&
-      (effect.count === 'buildingsOfKind' || effect.count === 'buildingsOfCategory');
+      (effect.count === 'buildingsOfKind' ||
+        effect.count === 'buildingsOfCategory' ||
+        effect.count === 'publicWorks');
     if (byShelf) {
       const counted =
         (effect.count === 'buildingsOfKind' && effect.building === id) ||
-        (effect.count === 'buildingsOfCategory' && effect.category === category);
+        (effect.count === 'buildingsOfCategory' && effect.category === category) ||
+        (effect.count === 'publicWorks' && isPublicWork(id));
       if (!counted) continue;
     } else {
       if (card !== id) continue;

@@ -48,3 +48,13 @@ Retired rows keep `retired: true` and stay in the data for saves. Moved cards ke
 - Schema 205 (it is 204 after batch R2d), with the changelog entry beside `SCHEMA_VERSION` in `src/sim/state.ts`.
 - The explore digest control as in batch R2a.
 - Tests: the moves and the retirement; each new card on a small board; The Kept Secret on and off as a rival learns the technology, and a charter technology never counting; a doubler on a Granary reaching The Curators of Works' science; every new row printing a line in the hand (the Z3 register test).
+
+## Built
+
+- **R3 (2026-10-29):** as planned. The gate passed: the type check, 10,180 core tests and the build. Schema 205.
+  - **The cards:** The Scribes' Hall, The Long Study and The Sky Watchers are at Tier I; The Prize Essay is retired. New: The Kept Secret ("while you know a technology no other empire knows (charter technologies do not count): +20% food in your capital; +20% culture in your capital"), The Curators of Works ("+1 science" and "+1 happiness in every city per public work standing there") and The Mountain Observatories, shared with Expansionist ("+3 science in every city with a mountain hex inside its borders"). The Scientific tiers hold 9, 20, 20, 16 and 13 cards; the game deals 617 Orders.
+  - **The new condition** `knowsUniqueTech` (one function, read by the card and by the bots' `conditionIsLive`): the seat knows a technology no other real player knows, charter technologies left out. Two readings the agent took: empires the seat has not met count (the user wrote "no other empire has researched"), and an eliminated empire still counts; the barbarians never do.
+  - **The public works:** the `publicWorks` count already had a town form. A line counted by public works inside the town is now on each public work (`cardLinesOnBuilding`), so a doubler on a Granary reaches The Curators of Works' science. Happiness pays the town's meter and is in no package.
+  - **A test leak fixed:** `buildingPackage.test.ts` changed a technology's effects and put back only the row, so the `anyCardDef` cache kept the change and `cardTextSnapshot.test.ts` failed when it shared a worker. The test now puts back the cached copy too.
+  - **A bot test:** `aiWants.test.ts`'s shared fixture plays six turns, not four: the new pools change what the seats draft, and the focus decision moved a turn later.
+  - **The explore digests** moved only by the schema number.

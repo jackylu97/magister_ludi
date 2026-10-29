@@ -1290,10 +1290,19 @@ describe('determinism', () => {
    * great person or holds a card that takes a building share, so no share is
    * taken and no count is asked. Checked with the change in place and the
    * version printed as 203, which gives the hashes of batch BR1 exactly.
+   *
+   * **Batch R3 (the Scientific review's cards, schema 205) moved the hash and
+   * not the length** at both seeds: 204 became 205, and that is all. The batch
+   * moves three Scientific cards to Tier I, retires The Prize Essay, adds
+   * three Tier 0 cards and the `knowsUniqueTech` condition, and puts a line
+   * counted by public works in each public work's package. Nobody here
+   * drafts or holds a card, so no pool is dealt and no condition or package is
+   * asked. Checked with the change in place and the version printed as 204,
+   * which gives the hashes of batch R2d exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'df80b5ee:190677',
-    2026: '9970dc23:190843',
+    11: '8bf360f7:190677',
+    2026: '96b539fa:190843',
   };
 
   for (const seed of [11, 2026]) {

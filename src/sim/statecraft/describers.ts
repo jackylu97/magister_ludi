@@ -7444,6 +7444,10 @@ const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
   atWarWithOpusBuilder: 'while you are at war with an empire raising the Magnum Opus',
   noReligionFounded: 'until you have founded a religion',
   rivalHoldsMoreTowns: 'while an empire you have met holds more towns than you',
+  // Batch R3, The Kept Secret. Every other empire counts, met or not, and the
+  // charter technologies do not, so the words say both.
+  knowsUniqueTech:
+    'while you know a technology no other empire knows (charter technologies do not count)',
 };
 
 // --- commissions ------------------------------------------------------------

@@ -242,6 +242,8 @@ import {
   // Batch R2d: a building share is priced over the building's package.
   explainBuildingPackage,
   foldBuildingPackage,
+  // Batch R3: The Kept Secret's condition, the simulation's own reading.
+  knowsUniqueTech,
   opusCityOf,
   orderAtSlotPosition,
   periodicProbe,
@@ -5282,6 +5284,10 @@ function conditionIsLive(
       if (!seat) return false;
       return seat.metSeats.some((other) => citiesOf(ctx.state, other).length > ctx.cities);
     }
+    case 'knowsUniqueTech':
+      // Batch R3, The Kept Secret: the simulation's own reading, so the bot
+      // prices the capital's shares only while the rule pays them.
+      return knowsUniqueTech(ctx.state, ctx.playerId);
     default:
       return unreadCondition(when);
   }

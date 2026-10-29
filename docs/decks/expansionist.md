@@ -21,7 +21,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 31 | 0 | 0 | 31 | 7 proposed |
 | Tier IV | 18 | 0 | 0 | 18 | 7 proposed |
 | **All** | **112** | **1** | **0** | **113** | **24 proposed** |
-| Shared | 19 | 0 | 0 | 19 |  |
+| Shared | 20 | 0 | 0 | 20 |  |
 
 **By type** (the chair a card fits):
 
@@ -33,7 +33,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 2 | 18 | 9 | 2 |
 | Tier IV | 2 | 9 | 4 | 3 |
 | **All** | **7** | **63** | **36** | **7** |
-| Shared | 2 | 8 | 9 | 0 |
+| Shared | 2 | 8 | 10 | 0 |
 
 The 113 cards are 110 that take a chair and three charters (The Fish Traps, The Wild Orchards and The Burning Season).
 
@@ -229,7 +229,7 @@ The 113 cards are 110 that take a chair and three charters (The Fish Traps, The 
 
 ## Shared with another deck
 
-These rows live in `data/decks/common.json`. A seat holding Expansionist or the deck named beside each one may draw it, so a change here is felt in two decks. The types of the nine cards shared with the four decks not yet sorted are final (the user, 2026-10-16: *"we can confirm any shared cards now yes"*), and the five shared with Dominion carry the types its sheet gave them. Devotion batch DV1 (`docs/plans/devotion-themes-triage.md`) moved The Ambarvalia here from this sheet's Tier 0 table; its row keeps the id `theSpiritsOfPlace`. It also shared The Holy Spring from the Devotion file. Both keep their texts, tiers and rarities, and both are Civic.
+These rows live in `data/decks/common.json`. A seat holding Expansionist or the deck named beside each one may draw it, so a change here is felt in two decks. The types of the nine cards shared with the four decks not yet sorted are final (the user, 2026-10-16: *"we can confirm any shared cards now yes"*), and the five shared with Dominion carry the types its sheet gave them. Devotion batch DV1 (`docs/plans/devotion-themes-triage.md`) moved The Ambarvalia here from this sheet's Tier 0 table; its row keeps the id `theSpiritsOfPlace`. It also shared The Holy Spring from the Devotion file. Both keep their texts, tiers and rarities, and both are Civic. Scientific batch R3 (`docs/plans/scientific-review-2026-10-28.md`) added The Mountain Observatories, a new Civic card shared with Scientific at the user's request of 2026-10-28. It stacks with The Mountain Schools, which reads the same ground.
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
@@ -238,6 +238,7 @@ These rows live in `data/decks/common.json`. A seat holding Expansionist or the 
 | **The Frontier Militia** | common | Dominion | 0 | implemented | Each town you found starts with the best melee unit you can build standing in it. | Military |
 | **The Ambarvalia** | common | Devotion | 0 | implemented | Your capital gains +1 faith. Each town gains +1 faith for every two improved tiles in its borders. | Civic |
 | **The Holy Spring** | common | Devotion | 0 | implemented | Cities whose centre stands beside a mountain or a lake gain +2 faith and +1 culture. | Civic |
+| **The Mountain Observatories** | common | Scientific | 0 | implemented | Cities with a mountain in their borders gain +3 science. | Civic |
 | **Military Colonies** | uncommon | Dominion | I | implemented | Cities with a Barracks gain +45% production toward settlers and workers. | Economic |
 | **The Muster of the Fields** | uncommon | Dominion | I | implemented | Cities of at least five citizens may spend one citizen to muster their best legally available melee unit. This shares the city's five-turn levy limit. The unit counts as trained. | Military |
 | **The Barbarian Frontier** | uncommon | Dominion | I | implemented | Clearing a barbarian camp claims the camp's hex and every unowned hex around it for your nearest town within five hexes. | Economic |

@@ -219,9 +219,10 @@ Vestry raised rather than racing it. The result is a **flat**, staged at step
 2. a flat town line whose scope names the building (`hasBuilding`, alone or
    inside an `all`);
 3. the building's own flat town line that names no building;
-4. a town line counted by the building's kind (`buildingsOfKind`) or its
-   category (`buildingsOfCategory`) inside the town (`within: 'city'`): one
-   helping on each building it counted;
+4. a town line counted by the building's kind (`buildingsOfKind`), its
+   category (`buildingsOfCategory`) or its public-work marker (`publicWorks`,
+   since batch R3) inside the town (`within: 'city'`): one helping on each
+   building it counted;
 5. the building's own counted line, whatever it counts (batch R2d): the whole
    line, as the town banks it. The Cathedral School's science per building
    that supplies faith, the Bazaar's gold per luxury. A line of item 4 keeps

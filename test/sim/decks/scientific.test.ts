@@ -176,8 +176,10 @@ describe('the rows', () => {
   it('is the whole deck, every current row named for this deck alone, banded and rated', () => {
     // S5 moved The Assay to common.json and added six cards. S6 added eleven.
     // S7 added nine. S8 added ten and dealt The Second Seat. S9 added nine.
-    expect(DECK).toHaveLength(103);
-    expect(new Set(DECK).size).toBe(103);
+    // R3 added two (The Kept Secret and The Curators of Works) and retired
+    // The Prize Essay, which stays in the file for saves.
+    expect(DECK).toHaveLength(105);
+    expect(new Set(DECK).size).toBe(105);
     for (const id of CURRENT) {
       const def = orderDef(id);
       expect(def.decks, id).toEqual(['scientific']);
@@ -194,7 +196,7 @@ describe('the rows', () => {
     expect(new Set(names).size, 'two rows share a name').toBe(names.length);
   });
 
-  it('fills the five tiers with eleven, seventeen, twenty, sixteen and thirteen current rows', () => {
+  it('fills the five tiers with nine, twenty, twenty, sixteen and thirteen current rows', () => {
     // S0 added ten charters and two cards. S1b retired twenty-four rows and
     // left twenty-six; the sheet's `add` rows join as later batches build them.
     // S2 added one card (Tier II) and S3 six (two each in Tiers I, II and III).
@@ -205,10 +207,13 @@ describe('the rows', () => {
     // S8 added ten: two in each of Tiers I, II and IV, and four in Tier III.
     // S9 added nine: one in Tier I, two in Tier II, one in Tier III and five
     // in Tier IV. Every row the sheet lists is now in the data.
+    // R3 (the user's review of 2026-10-28) moved The Scribes' Hall, The Long
+    // Study and The Sky Watchers from Tier 0 to Tier I, retired The Prize
+    // Essay, and added The Kept Secret and The Curators of Works to Tier 0.
     const perBand = [0, 1, 2, 3, 4].map(
       (band) => CURRENT.filter((id) => orderDef(id).band === band).length,
     );
-    expect(perBand).toEqual([11, 17, 20, 16, 13]);
+    expect(perBand).toEqual([9, 20, 20, 16, 13]);
   });
 
   it('splits into live rows with effects and deferred rows with a sentence, and nothing between', () => {
@@ -220,8 +225,9 @@ describe('the rows', () => {
     // S7 added nine live rows: 48 became 57. S8 added ten live rows, one of
     // them a commission, and dealt The Second Seat: 57 became 68, and no
     // deferred row is left in the deck. S9 added nine live rows, one of them
-    // a commission: 68 became 77.
-    expect(LIVE).toHaveLength(77);
+    // a commission: 68 became 77. R3 retired The Prize Essay and added two
+    // live rows: 77 became 78.
+    expect(LIVE).toHaveLength(78);
     expect(DEFERRED).toEqual([]);
     for (const id of LIVE) {
       const def = orderDef(id);
@@ -254,7 +260,7 @@ describe('the rows', () => {
 // --- the retired rows ----------------------------------------------------------
 
 describe('the retired rows', () => {
-  it('retires the cut rows of S0 and S1b, and nothing else', () => {
+  it('retires the cut rows of S0, S1b and R3, and nothing else', () => {
     expect(RETIRED).toEqual([
       'theCelestialRites',
       'fieldNotebooks',
@@ -282,6 +288,8 @@ describe('the retired rows', () => {
       'theDistantColleges',
       'theSocietyOfArtificers',
       'theLearnedRealm',
+      // Batch R3: the user, 2026-10-28, "remove, too similar to royal workshops".
+      'thePrizeEssay',
     ]);
     // The one shared row both its sheets cut (batch S1b).
     expect(orderDef('theHydraulicCommonwealth').retired).toBe(true);

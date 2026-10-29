@@ -209,6 +209,8 @@ export {
   heldReligions,
   isRaisingOpus,
   isHolyCityOf,
+  // Batch R3: The Kept Secret's condition, which the bots read too.
+  knowsUniqueTech,
   liveCityEffects,
   liveEffects,
   liveUnitEffects,

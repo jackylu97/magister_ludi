@@ -20,6 +20,7 @@ import {
   orderDef,
 } from '../../src/sim/statecraftData';
 import {
+  anyCardDef,
   cityScopeAdmits,
   countOf,
   describeCard,
@@ -216,11 +217,21 @@ describe('a building’s package', () => {
     const tech = TECH_IDS.find(
       (id) => !player.techsResearched.includes(id) && (techDef(id).effects ?? []).length === 0,
     ) as TechId;
+    // The evaluator keeps one adapted copy of each card's row, shared across
+    // every test in the worker (`anyCardDef`'s cache). So the line goes on the
+    // row and on that copy, and both are put back exactly. Changing the row
+    // alone left the copy holding the line, and the snapshot of every card's
+    // words, run later in the same worker, printed it.
     const def = techDef(tech) as { effects?: CardEffect[] };
+    const card = anyCardDef(tech) as { effects: readonly CardEffect[] };
     const held = def.effects;
+    const cardHeld = card.effects;
     def.effects = [SCIENCE_BY_SCOPE];
+    card.effects = [SCIENCE_BY_SCOPE];
     restores.push(() => {
-      def.effects = held;
+      if (held === undefined) delete def.effects;
+      else def.effects = held;
+      card.effects = cardHeld;
     });
     player.techsResearched.push(tech);
     bumpRevision(state);
