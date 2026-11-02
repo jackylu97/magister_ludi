@@ -860,6 +860,29 @@ describe('the commissions', () => {
     expect(filled.value).toBeCloseTo(delayDiscount(1, full), 10);
   });
 
+  it('prices a held Golden Bull that sits in no chair, without asking its own price again', () => {
+    // A drafted card is held and sits in no chair until the slot arm seats it,
+    // and the slot arm prices it there (`scoreCard`). The forecast reads the
+    // held cards in no chair. When it asked each one's whole price only to see
+    // whether the card can take a chair, it asked The Golden Bull's own price,
+    // whose forecast asked it again, until the stack ran out. Found on turn
+    // 118 of the six-seat standard game (`aiDigest.slow.test.ts`).
+    const { state, player } = board([6]);
+    player.culturePool = 400;
+    player.statecraft.orders.push(POLEMARCH, GOLDEN_BULL);
+    bumpRevision(state);
+    expect(player.statecraft.slots.some((slot) => slot?.card === GOLDEN_BULL)).toBe(false);
+    const ctx = valueContext(state, player);
+    // The Golden Bull is a Wildcard card, so it fills no typed chair, and the
+    // Economic chair still waits for a new card at the drafting pace.
+    const rate = draftsAheadOf(state, player) / HORIZON;
+    const turns = Math.min(HORIZON, Math.max(1, Math.ceil(1 / rate)));
+    const waiting = explainCommission(GOLDEN_BULL, ctx)!.terms[1]!;
+    expect(waiting.label).toContain('1 typed chairs wait for a new card');
+    expect(waiting.value).toBeCloseTo(delayDiscount(turns, ctx), 10);
+    expect(Number.isFinite(scoreCard(player, GOLDEN_BULL, ctx))).toBe(true);
+  });
+
   it('forecasts The Patron’s Gallery at the pace the seat lays works of families it lacks', () => {
     const { state, player, towns } = board([6]);
     hold(state, 0, WORKSHOP);

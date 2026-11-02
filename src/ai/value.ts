@@ -11166,12 +11166,24 @@ function actThenWorkWorth(ctx: ValueContext): number {
  * that widens the fit itself.
  */
 function seatableWorth(id: OrderId, ctx: ValueContext): number | null {
+  if (!isSeatable(id, ctx)) return null;
+  return explainCardEffects(id, orderDef(id).effects, ctx).total;
+}
+
+/**
+ * **Whether a held card can take a chair** in the council readings, without
+ * its price: `seatableWorth`'s `null` cases. The Golden Bull's forecast
+ * (`magisterialGoalForecast`) asks only this. It used to ask
+ * `seatableWorth(...) !== null`, which priced every held card in no chair.
+ * A drafted Golden Bull is held in no chair until the slot arm seats it, so
+ * its price asked its forecast, which asked its price again, until the stack
+ * ran out (turn 118 of the six-seat standard game).
+ */
+function isSeatable(id: OrderId, ctx: ValueContext): boolean {
   const sc = statecraftOf(ctx.state, ctx.playerId);
-  if (sc === undefined || isCharter(id)) return null;
-  if (commissionFulfilledTurn(sc, id) !== undefined) return null;
-  const effects = orderDef(id).effects;
-  if (effects.some((effect) => effect.kind === 'rule' && effect.rule === 'cardsFitAnyChair')) return null;
-  return explainCardEffects(id, effects, ctx).total;
+  if (sc === undefined || isCharter(id)) return false;
+  if (commissionFulfilledTurn(sc, id) !== undefined) return false;
+  return !orderDef(id).effects.some((effect) => effect.kind === 'rule' && effect.rule === 'cardsFitAnyChair');
 }
 
 /**
@@ -11471,7 +11483,7 @@ function magisterialGoalForecast(
       const sc = player.statecraft;
       const layout = slotTypesOf(sc);
       const bench = sc.orders.filter(
-        (id) => !sc.slots.some((slot) => slot?.card === id) && seatableWorth(id, ctx) !== null,
+        (id) => !sc.slots.some((slot) => slot?.card === id) && isSeatable(id, ctx),
       );
       let short = 0;
       const used: OrderId[] = [];

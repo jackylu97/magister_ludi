@@ -1069,10 +1069,45 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * under the old rule. Most of the duel's are one seat's: 52 now, 93 under the
  * old rule. Measured twice, same bytes both runs, each board in a separate
  * process. Nothing stalled and no command was refused.
+ *
+ * ---
+ *
+ * **Batches Z3, R2a to R2d, BR1 and R3, and the fix for the bots' stack
+ * overflow (schemas 199 to 205, `48381b6a..69b3929c` and the fix).** Duel
+ * `b5152f5a:270174` → `6103ce8b:278474`, standard `223afd64:910614` →
+ * `618a7285:924458`. No commit in this range re-cut the pin. They fall in six
+ * groups:
+ *
+ *   · the version, 199 to 205, which changes the state's own bytes;
+ *   · Z3, which changes the words on three charters and no rule;
+ *   · the Devotion review, R2a to R2d. R2a prices a rite at 20 faith and 5
+ *     more for each rite started, and lets two empires hold the same god. R2b
+ *     and R2d put on a building the card lines that name it, so a building
+ *     share reaches them, and add the `buildingsSupplying` count. R2c retires
+ *     three cards, moves four, adds three, and adds the Cathedral School;
+ *   · BR1. A new camp starts with one or two units, keeps two guards and
+ *     sends the rest at the nearest town of a real player. The bots' camp
+ *     hunt now strikes from a free hex beside the camp;
+ *   · R3, the Scientific review: three cards move to Tier I, one retires and
+ *     three are new, with the `knowsUniqueTech` condition;
+ *   · the fix for the stack overflow, below.
+ *
+ * At `69b3929c` the standard board did not finish. On turn 118 the sixth
+ * seat (balanced) drafts Commission: The Golden Bull, and the slot arm prices
+ * it while it sits in no chair. Its forecast (`magisterialGoalForecast`,
+ * batch MG17) asked the whole price of every held card in no chair, its own
+ * included, so the price asked itself again until the stack ran out. The fix
+ * asks only whether a card can take a chair (`isSeatable`), which is all the
+ * forecast reads. Played at each commit from `48381b6a` to R2d, no seat on
+ * the standard board holds The Golden Bull within the 120 turns. R3 is the
+ * first commit at which a seat drafts it. The fix moves nothing on the duel
+ * board: the duel gives `6103ce8b:278474` at `69b3929c` without it too.
+ * Measured twice, same bytes both runs. Nothing stalled and no command was
+ * refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'b5152f5a:270174',
-  standard: '223afd64:910614',
+  duel: '6103ce8b:278474',
+  standard: '618a7285:924458',
 };
 
 /**
