@@ -19,7 +19,7 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
-**(fffffff) Each deck is a way to play, not a yield: RULED 2026-10-20; every deck BUILT on `decks` by 2026-10-26, not yet on `main`.**
+**(fffffff) Each deck is a way to play, not a yield: RULED 2026-10-20; every deck BUILT on `decks` by 2026-10-26, on `main` since 2026-11-01.**
 The user, after reading the six builds passes: *"each deck feels a bit one note, and needs diverse bonuses that aren't so squarely on theme with their central purpose/yield."*
 - **The rulings** are in `docs/decks/deck-design.md`, "Direction, 2026-10-20":
   - the user's picture of each deck, verbatim;
@@ -51,7 +51,12 @@ The user, after reading the six builds passes: *"each deck feels a bit one note,
   - Every card of the six decks is built on `decks` (commit `48381b6a`, schema 199). Each deck has a build plan with "Built" notes: `docs/plans/scientific-build-triage.md`, `dominion-themes-triage.md`, `expansionist-themes-triage.md`, `commerce-themes-triage.md`, `devotion-themes-triage.md` and `magisterial-themes-triage.md`. The six sheets in `docs/decks/` are the specs of record.
   - The game deals 615 Orders: 533 in the six decks, 69 shared by two decks and 13 that belong to no deck. Dominion's 15 Doctrines are live. The Doctrines of the other five decks are proposed in `docs/plans/<deck>-doctrines.md` (Expansionist's in its sheet, `docs/decks/expansionist.md`) and are not built.
   - The tidy batches Z1 and Z2 and the bots' runway rule followed (`docs/plans/tidy-2026-10-26.md`). The push gate passed on `48381b6a`: the type check, the build and `npm run test:all` (470 files, 10,262 tests).
-  - The play server runs this build on `deck-themes`, pushed to GitHub on 2026-10-28. `main` is not pushed: it waits for the user's yes.
+  - The play server runs this build on `deck-themes`, pushed to GitHub on 2026-10-28.
+- **Where it stands (2026-11-01):**
+  - After the build, the user's review comments became batches Z3, R2a to R2d, BR1 and R3 (`docs/plans/tidy-2026-10-26.md`, `devotion-review-2026-10-28.md`, `barbarians-2026-10-28.md`, `scientific-review-2026-10-28.md`). Schema 205. The game deals 617 Orders.
+  - The push gate first failed: the bots ran out of stack on turn 118 of the six-seat standard game, pricing a held Commission: The Golden Bull. Commit `fb7c6234` fixes it and re-records the two six-seat digests. The push gate then passed: the type check, the build and `npm run test:all` (474 files, 10,346 tests).
+  - The user said yes to the deploy: `main` and `deck-themes` are both at this build, and the play server runs it.
+  - **Next:** the user's playtest.
   - **Next:** the user's playtest decides what changes. The user keeps playtest notes on the review page, where every Order has a row. Deck size (Dominion 129 cards, Expansionist 113, against a target of 45 to 55) waits for the playtest.
 
 **(ddddddd) Draft pacing after the rung fix: Tier IV BUILT 2026-10-17 (schema 150); choices 1 and 2 still open.**
