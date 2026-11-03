@@ -62,7 +62,7 @@ A Doctrine is held all game and takes no chair. So a Doctrine with a real drawba
 | Doctrine | Theme | Text | Drawback | Shape |
 |---|---|---|---|---|
 | **The Apoikia** | engine | Settlers and workers cost half as much gold to buy. Your towns build them at half speed. | Building settlers and workers is slow. | Existing. `purchaseRider`, `class: { modelClasses: ['settler', 'worker'] }`, `on: 'unit'`, −50; `productionBonus` unit with the same class, −50, `stage: 'empire'` (The Marian Reforms' form). |
-| **The Laurion Leases** | goods | Hexes with a resource cost half as much gold to buy. Your borders grow half as fast. | Borders grow slowly. | Near existing. `rulePercent` `borderCulture` −50 exists. **New, small:** a hex test on the `tilePurchase` rule (`tile: { test: 'hasResource' }`), asked of the hex `explainTilePurchase` prices. |
+| **The Laurion Leases** | goods | Hexes with a resource cost half as much gold to buy. | None. Revised 2026-11-03 (your comment of 2026-10-25: *"remove malice"*). | Near existing. **New, small:** a hex test on the `tilePurchase` rule (`tile: { test: 'hasResource' }`), asked of the hex `explainTilePurchase` prices. |
 | **The Debased Denarius** | bankers | Your towns gain +50% gold. Units, buildings, caravans and hexes cost 50% more gold. | Everything you buy costs half again. | Existing. `percentYields` gold +50; `purchaseRider`, `class: {}`, `on: 'all'`, +50 (Foreign Procurement's form); `rulePercent` `tilePurchase` +50. |
 | **The Delian League** | far trade | Your coastal towns cost 1 less authority. Your other towns cost 1 more. | Inland towns cost more. | Near existing. `meterRule` `coastalCityCost` `delta: −1`. **New, small:** a negated scope `notCoastal` (as `notFreshwater` is) for `meterRule` `cityCost` `delta: 1`. |
 
@@ -73,6 +73,7 @@ A Doctrine is held all game and takes no chair. So a Doctrine with a real drawba
 - **Model:** a Greek *apoikia* (8th to 6th century BC) was a colony that its mother city paid for, armed and sent out by sea.
 
 **The Laurion Leases** (goods)
+- **Revised 2026-11-03:** your comment of 2026-10-25 removed the drawback ("Your borders grow half as fast"). The notes below describe the first proposal.
 - **Why:** Commerce claims the goods the world wants (the user's picture). This makes the claim a purchase, not a wait for the borders.
 - **In play:** the seat buys the hexes with luxuries, metal and stone, and its borders grow half as fast elsewhere. The land follows the money. A Land Speculation seat gets half as much culture a hex, because that card pays half the price paid.
 - **Size:** an early hex costs about 50 gold, so 25, and each later hex costs more (the purchase ladder). The slower borders cost a seat of five towns about one free hex every few turns.
