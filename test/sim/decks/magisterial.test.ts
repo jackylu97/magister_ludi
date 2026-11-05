@@ -51,10 +51,8 @@ import {
   DECK_FILES,
   DECK_FILE_ORDERS,
   DECK_WORDS,
-  DOCTRINE_IDS,
   ORDER_IDS,
   TIER_LADDER,
-  doctrineDef,
   isCardType,
   orderDef,
   orderIsDealt,
@@ -62,6 +60,7 @@ import {
 import { TECH_IDS, type TechId, techDef } from '../../../src/sim/techData';
 import { found } from '../statecraftHelpers';
 import { createGame } from '../newGameHelpers';
+import { expectSheetDoctrinesMatchData, sheetDoctrines } from './sortedSheets';
 
 // --- the deck -----------------------------------------------------------------
 
@@ -473,8 +472,9 @@ describe('the worksheet', () => {
  * **The deck sheet**, `docs/decks/magisterial.md`, the spec of record since
  * batch MG1. It is in the sorted format of the Commerce sheet: five tier tables
  * (Card | Rarity | Status | Ability | Type) and a shared table (Card | Rarity |
- * Also in | Tier | Status | Ability | Type). The empty Doctrine tables have
- * three columns, so the reader below skips them.
+ * Also in | Tier | Status | Ability | Type). The Doctrine tables have three
+ * columns, so the reader below skips them, and `expectSheetDoctrinesMatchData`
+ * reads them (batch DT4).
  */
 const sheetFiles = import.meta.glob('../../../docs/decks/magisterial.md', {
   eager: true,
@@ -819,18 +819,14 @@ describe('the Magisterial deck: the sheet of record', () => {
     for (const id of sharedRows) expect(isCardType(orderDef(id).type ?? ''), id).toBe(true);
   });
 
-  it('says the deck has no Doctrines yet, and none is in the data', () => {
-    // An empty Doctrine table under each of Tiers I to IV (the triage's
-    // "Doctrines" section).
-    expect(SHEET).toContain('- **Doctrines:** none yet.');
-    for (const word of ['I', 'II', 'III', 'IV']) {
-      const start = SHEET.indexOf(`\n## Tier ${word}\n`);
-      const end = SHEET.indexOf('\n## ', start + 1);
-      const block = SHEET.slice(start, end);
-      expect(block, `Tier ${word} has an empty Doctrine table`).toContain(
-        '**Doctrines:** none yet.\n\n| Doctrine | Build | Text |\n|---|---|---|\n\n**Orders:**',
-      );
-    }
-    expect(DOCTRINE_IDS.filter((id) => doctrineDef(id).decks.includes('magisterial'))).toEqual([]);
+  it('holds the Doctrine rows to the sheet’s four tables', () => {
+    // A sheet row with no data row passes until batch DT20, so the tables can carry
+    // all 16 while the batches fill them. What each row does is checked in
+    // `magisterialDoctrines.test.ts`.
+    expect(sheetDoctrines('magisterial').length).toBe(16);
+    expect(
+      [1, 2, 3, 4].map((band) => sheetDoctrines('magisterial').filter((row) => row.band === band).length),
+    ).toEqual([4, 4, 4, 4]);
+    expectSheetDoctrinesMatchData('magisterial');
   });
 });

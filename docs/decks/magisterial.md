@@ -18,7 +18,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
   - **(was …)** names the data row that a renamed card takes over.
 - **Type:** the last column says which chair the card fits: **Military**, **Economic**, **Civic** or **Wildcard** (`docs/plans/doctrines-governments-chairs.md`, section 4). Since batch MG1 the types are in the data. A Magisterial card fits only a chair of its own type or a Wildcard chair, except while The Mixed Constitution is seated: then every card you hold fits every chair (batch MG12). A card in a Wildcard chair still counts as its own type, so the Assembly Hall of The Senate Charter counts only Wildcard cards (the triage's reading 42). The sync test checks this column for every row in the data, the shared table's included.
 - **Charters:** none. Every card takes a chair. The three boons (The Wandering Muse, The Cabinet of Curiosities and The Grand Retrospective) pay when you draft them and do nothing seated.
-- **Doctrines:** none yet. Each of Tiers I to IV has an empty Doctrine table above its Orders. Sixteen are proposed, four a tier, in `docs/plans/magisterial-doctrines.md` (2026-10-25), for your review. A triage of their own builds them.
+- **Doctrines:** 16 (4 on each of Tiers I to IV), after your comments of 2026-11-05 (`docs/plans/doctrine-review-2026-11-05.md`). A Doctrine is held for the whole game and takes no chair. Each tier's Doctrine table sits above its Orders, and the Build column names the theme that each is written for. Batch DT4 built 7, the ones that need no new shape: The Choregia, The Periclean Works, The Magnaura, The Barmakids, The Bourgs, The Kitabkhana and The Escorial. The other 9 are on the tables and are not dealt yet; `docs/plans/doctrines-build-triage.md` gives the batch that builds each one. The reasons and pairs are in `docs/plans/magisterial-doctrines.md`.
 - **The old sheet** (61 cards, in the old format, last reviewed 2026-10-07) is in git history: `git show 7d4064dc:docs/decks/magisterial.md`.
 
 | Tier | Implemented | Modify | Add | All |
@@ -62,10 +62,14 @@ The deck holds 71 cards, and every one takes a chair: 10, 15, 17, 17 and 12 acro
 
 ## Tier I
 
-**Doctrines:** none yet.
+**Doctrines,** offered with the tier-4 governments:
 
 | Doctrine | Build | Text |
 |---|---|---|
+| **The Arthashastra** | council | You have one more Wildcard chair. The card seated in it counts twice. |
+| **The Hospitium** | engine | The third card in each of your Order hands comes from a deck you do not hold. |
+| **The Choregia** | patrons | Culture buildings give +3 culture and +2 renown each. |
+| **The Periclean Works** | monuments | Each wonder you hold gives +2 production in every town. |
 
 **Orders:**
 
@@ -89,10 +93,14 @@ The deck holds 71 cards, and every one takes a chair: 10, 15, 17, 17 and 12 acro
 
 ## Tier II
 
-**Doctrines:** none yet.
+**Doctrines,** offered with the tier-10 governments:
 
 | Doctrine | Build | Text |
 |---|---|---|
+| **The Magnaura** | council | Each town gains +1 science for each Civic card you have seated. |
+| **The Jinshi** | engine | Rare cards come up twice as often in your Order hands. |
+| **The Barmakids** | patrons | Each great person you have gained gives every town +1 food and +1 production. |
+| **The Peregrini** | landscape | Great-person works give +1 food and +1 production to every hex beside them. Laying a great-person work makes your next great person cost 20% less. |
 
 **Orders:**
 
@@ -118,10 +126,14 @@ The deck holds 71 cards, and every one takes a chair: 10, 15, 17, 17 and 12 acro
 
 ## Tier III
 
-**Doctrines:** none yet.
+**Doctrines,** offered with the tier-18 governments:
 
 | Doctrine | Build | Text |
 |---|---|---|
+| **The Council of Ten** | council | You have two more Wildcard chairs. |
+| **Scutage** | engine | Orders you hold but have not seated pay half their yields. You have one fewer Wildcard chair. |
+| **The Bourgs** | landscape | Towns working a great-person work grow 25% faster. |
+| **The Carroccio** | monuments | Your units gain +1 strength for each wonder you hold, at most +8. |
 
 **Orders:**
 
@@ -149,10 +161,14 @@ Tier III has no Military card (section 8 of the themes pass). The Military cards
 
 ## Tier IV
 
-**Doctrines:** none yet.
+**Doctrines,** offered with the tier-26 governments:
 
 | Doctrine | Build | Text |
 |---|---|---|
+| **The Union of Lublin** | council | You also gain the abilities of the other two governments of your tier. |
+| **The Kitabkhana** | patrons | Spending a great person grants 200 renown for each age you have reached. |
+| **The Gobelins** | landscape | Each great-person work in your borders gives +4% production toward the Magnum Opus, at most +40%. |
+| **The Escorial** | monuments | Completing a wonder gives you a free great-person draft. |
 
 **Orders:**
 
@@ -234,4 +250,4 @@ These rows stay in the data so that old saves load. They are dealt to nobody, th
   - **The Mixed Constitution leaving its chair** (question 2). The plan re-seats the council at once by the ordinary rule (reading 24). Batch MG12 built it that way.
   - **The Golden Bull with no Doctrine to offer** (question 3). The plan has the card wait in its chair until a Doctrine of the government's tier can be offered (reading 19). Batch MG7 built it that way.
   - **The readings** (question 4). The build uses readings 1 to 47 until you mark one.
-  - **Magisterial's Doctrines:** none designed yet (`docs/plans/magisterial-doctrines.md`).
+  - **Magisterial's Doctrines:** your review of 2026-11-05 closed the questions on them. All 16 are being built (`docs/plans/doctrines-build-triage.md`).

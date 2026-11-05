@@ -7871,8 +7871,13 @@ function scholarStepWorth(share: number, ctx: ValueContext): number {
  * priced as a commission's great person is, at the renown the next one costs;
  * and renown scaled by the folded price of the technology just completed (The
  * Scholars' Fame), at the price of what the seat researches now
- * (`researchCostNow`). Both are lumps. The renown grants of other decks keep
- * the reading they had.
+ * (`researchCostNow`). Both are lumps.
+ *
+ * A flat renown grant is a lump too, since batch DT4. The Kitabkhana's whole text
+ * is such a grant, so a price of nothing would mean a bot never takes it. The same
+ * reading now prices The Court Painter's renown and Up Through the Ranks'. A
+ * renown grant scaled by another measure (Looted Art, The Champion's Portion) keeps
+ * the reading it had.
  */
 function scientificGrantWorth(
   grant: NonNullable<Extract<CardEffect, { kind: 'windfallRider' }>['grant']>,
@@ -7886,6 +7891,9 @@ function scientificGrantWorth(
   }
   if (grant.renown !== undefined && grant.fromOccasion === 'techCost') {
     worth += lumpOfPoints(grant.renown * researchCostNow(ctx) * ctx.ai.weights.renown, ctx).total;
+  }
+  if (grant.renown !== undefined && grant.fromOccasion === undefined) {
+    worth += lumpOfPoints(grant.renown * ctx.ai.weights.renown, ctx).total;
   }
   return worth;
 }

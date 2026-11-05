@@ -2599,5 +2599,48 @@
       "effects": [],
       "retired": true
     }
+  },
+  "doctrines": {
+    "theTheoricFund": {
+      "name": "The Theoric Fund",
+      "decks": ["devotion"],
+      "band": 1,
+      "line": "none",
+      "flavor": "The state pays for your seat at the festival. It has found this cheaper than a riot.",
+      "text": "+1 culture for every 3 faith your empire makes.",
+      "effects": [
+        {"kind": "pays", "where": "empire", "basis": "rate", "fromRate": "faithPerTurn", "per": 3, "to": "culture", "amount": 1}
+      ]
+    },
+    "theRitesOfZhou": {
+      "name": "The Rites of Zhou",
+      "decks": ["devotion"],
+      "band": 1,
+      "line": "none",
+      "flavor": "Ritual holds a realm together better than punishment does.",
+      "text": "Each town holding a rite gains +2 food and +2 happiness.",
+      "effects": [
+        {"kind": "pays", "where": "city", "food": 2, "scope": {"test": "keepingRite"}},
+        {"kind": "happiness", "amount": 2, "per": "city", "scope": {"test": "keepingRite"}}
+      ]
+    },
+    "theSaintPetersIndulgence": {
+      "name": "The Saint Peter's Indulgence",
+      "decks": ["devotion"],
+      "band": 4,
+      "line": "none",
+      "flavor": "A coin in the chest, a stone in the dome.",
+      "text": "+1% production toward the Magnum Opus for every 150 faith you have spent this game.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "theMagnumOpus",
+          "percent": 1,
+          "count": "faithSpent",
+          "per": 150
+        }
+      ]
+    }
   }
 }

@@ -3236,5 +3236,103 @@
       "effects": [{ "kind": "rule", "rule": "worksPullRivalHexes" }],
       "note": "This happens at the end of each turn, after borders grow, and peace or war does not matter. Every great-person work in your borders pulls, whoever laid it, and a prophet's Holy Site counts. Each work tries the hexes beside it in turn and takes the first one it may. A hex that a citizen of its town is working stays, and so does a hex with a great-person work on it; anything else on the hex, such as a farm or a road, comes with it. The hex joins your nearest town, but only if it is close enough for that town's own borders to reach; otherwise the work tries its next hex. A hex taken this turn cannot be taken again in the same turn, so when works of two empires reach for the same hex, the empire listed first among the players takes it."
     }
+  },
+  "doctrines": {
+    "theChoregia": {
+      "name": "The Choregia",
+      "decks": ["magisterial"],
+      "band": 1,
+      "line": "none",
+      "flavor": "The rich man pays for the chorus, and the city remembers the name on the monument.",
+      "text": "Culture buildings give +3 culture and +2 renown each.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "buildingsOfCategory",
+          "category": "culture",
+          "within": "city",
+          "to": "culture",
+          "amount": 3
+        },
+        {"kind": "renown", "amount": 2, "per": "buildingOfCategory", "category": "culture"}
+      ]
+    },
+    "thePericleanWorks": {
+      "name": "The Periclean Works",
+      "decks": ["magisterial"],
+      "band": 1,
+      "line": "none",
+      "flavor": "The marble needs a mason, the mason needs a smith, and all of Athens is at work.",
+      "text": "Each wonder you hold gives +2 production in every town.",
+      "effects": [
+        {"kind": "pays", "where": "city", "basis": "count", "count": "wonders", "to": "production", "amount": 2}
+      ]
+    },
+    "theMagnaura": {
+      "name": "The Magnaura",
+      "decks": ["magisterial"],
+      "band": 2,
+      "line": "none",
+      "flavor": "The palace pays the masters, and the masters train the palace.",
+      "text": "Each town gains +1 science for each Civic card you have seated.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "slottedOrdersOfSlot",
+          "slot": "civic",
+          "to": "science",
+          "amount": 1
+        }
+      ]
+    },
+    "theBarmakids": {
+      "name": "The Barmakids",
+      "decks": ["magisterial"],
+      "band": 2,
+      "line": "none",
+      "flavor": "The vizier's house fed poets, physicians and the first paper mill.",
+      "text": "Each great person you have gained gives every town +1 food and +1 production.",
+      "effects": [
+        {"kind": "pays", "where": "city", "basis": "count", "count": "greatPeopleGained", "to": "food", "amount": 1},
+        {"kind": "pays", "where": "city", "basis": "count", "count": "greatPeopleGained", "to": "production", "amount": 1}
+      ]
+    },
+    "theBourgs": {
+      "name": "The Bourgs",
+      "decks": ["magisterial"],
+      "band": 3,
+      "line": "none",
+      "flavor": "Build an abbey, and in a generation there is a street outside its gate.",
+      "text": "Towns working a great-person work grow 25% faster.",
+      "effects": [
+        {"kind": "rulePercent", "rule": "growthSurplus", "percent": 25, "scope": {"test": "workingGreatWork"}}
+      ]
+    },
+    "theKitabkhana": {
+      "name": "The Kitabkhana",
+      "decks": ["magisterial"],
+      "band": 4,
+      "line": "none",
+      "flavor": "The old master goes blind, and his pupils paint with his hand for a hundred years.",
+      "text": "Spending a great person grants 200 renown for each age you have reached.",
+      "effects": [
+        {"kind": "windfallRider", "occasion": "greatPersonSpent", "perAge": true, "grant": {"renown": 200}}
+      ]
+    },
+    "theEscorial": {
+      "name": "The Escorial",
+      "decks": ["magisterial"],
+      "band": 4,
+      "line": "none",
+      "flavor": "A king builds a monastery, and the painters of Italy pack their brushes.",
+      "text": "Completing a wonder gives you a free great-person draft.",
+      "effects": [
+        {"kind": "windfallRider", "occasion": "completion", "wonder": true, "grant": {"greatPerson": "any"}}
+      ]
+    }
   }
 }

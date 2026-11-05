@@ -83,6 +83,7 @@ import { RULES } from '../../../src/sim/rulesData';
 import type { BuildingId } from '../../../src/sim/buildingData';
 import type { RiteId } from '../../../src/sim/religionData';
 import { createGame } from '../newGameHelpers';
+import { expectSheetDoctrinesMatchData, sheetDoctrines } from './sortedSheets';
 
 /** The deck's own ids, in file order — the shelf everything below is asked of. */
 const DEVOTION: readonly OrderId[] = DECK_FILE_ORDERS.devotion;
@@ -640,8 +641,8 @@ describe('the counted rite goal', () => {
  * DV1 (`docs/plans/devotion-themes-triage.md`). It is in the sorted format of
  * the Commerce sheet: five tier tables (Card | Rarity | Status | Ability |
  * Type) and a shared table (Card | Rarity | Also in | Tier | Status | Ability
- * | Type). The empty Doctrine tables have three columns, so the reader below
- * skips them.
+ * | Type). The Doctrine tables have three columns, so the reader below skips
+ * them, and `expectSheetDoctrinesMatchData` reads them (batch DT4).
  */
 const sheetFiles = import.meta.glob('../../../docs/decks/devotion.md', {
   eager: true,
@@ -843,6 +844,17 @@ function checkAgainstRow(card: SheetCard, id: OrderId): void {
 }
 
 describe('the Devotion deck: the sheet of record', () => {
+  it('holds the Doctrine rows to the sheet’s four tables', () => {
+    // A sheet row with no data row passes until batch DT20, so the tables can carry
+    // all 16 while the batches fill them. What each row does is checked in
+    // `devotionDoctrines.test.ts`.
+    expect(sheetDoctrines('devotion').length).toBe(16);
+    expect(
+      [1, 2, 3, 4].map((band) => sheetDoctrines('devotion').filter((row) => row.band === band).length),
+    ).toEqual([4, 4, 4, 4]);
+    expectSheetDoctrinesMatchData('devotion');
+  });
+
   it('mirrors the five tier tables, card for card', () => {
     const sheet = sheetCards();
     const shared = sharedCards();

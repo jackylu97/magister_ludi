@@ -477,7 +477,10 @@ describe('the visibility grid', () => {
     // 208 since batch DT3 (Commerce's and Scientific's Doctrines, data only):
     // fifteen rows join the two decks, so their seats are now offered Doctrines and
     // a v207 log's draws move.
-    expect(SCHEMA_VERSION).toBe(208);
+    // 209 since batch DT4 (Magisterial's and Devotion's Doctrines, data only):
+    // ten rows join the two decks, so their seats are now offered Doctrines and a
+    // v208 log's draws move.
+    expect(SCHEMA_VERSION).toBe(209);
   });
 
   it('survives a JSON round trip as plain data', () => {

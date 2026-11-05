@@ -697,6 +697,17 @@ The same family as `legaciesCountTwice`.
 - **Sheets and docs:** `docs/README.md`, the levy section.
 - **Schema:** 224.
 
+### DT19b: bot prices
+
+Added 2026-11-05 by the orchestrator, from what DT3 and DT4 found. Each of these is old code that prices existing Orders too, so one batch re-prices them together, before the closing sweep. The batch re-reads `value.ts` and fixes the root of each. The review's `aiDigest` digests move at the push gate as usual.
+
+- **`scorePayout` counts towns twice.** `realizedCount` sums the towns' counts, then `scorePayout` multiplies by `townsAdmitting`. With three towns of one Monument each, The Choregia's town line scores 405, and the right figure is 135. DT4 read 42 live lines on the same path (`where:'city'`, `within:'city'`, a flat amount), including The Repertory and The Temple of the Muses. This is the largest of the three.
+- **`occasionRate('completion')` ignores `wonder: true`.** It counts every building and unit, so The Escorial, The Unveiling, Sacred Commissions and The Golden Age are priced as if each completion were a wonder.
+- **The hex arm's `percent` half uses a nominal yield.** It reads 33.6 per improved hex, whatever the work pays, so Crop Rotation stays positive on most boards. A wild hex costs only 11.2.
+- **Tests:** a test for each on a built board, with the right figure stated. Report the five rows that moved most in a seeded six-seat game, as DT3 did.
+- **Fence:** `src/ai/value.ts`, `data/ai.json`, and the bot tests.
+- **Schema:** none. This changes no rule, though the bots' choices change, so `aiDigest` moves.
+
 ### DT20: closing
 
 - **Rows:** none.
@@ -935,3 +946,7 @@ The `flavor` field of each row, in the deck's voice. The other eleven Dominion r
   - **A bug found:** `applyBuyRoute` called `routePrice` with no town, so a rider on a route's price passed the purse check and never reached the treasury. No live row had one until The Turnpike Trusts. `commands.ts` now charges the origin's price, and `purchase.ts` applies unscoped riders when no town is named, so the Trade screen quotes what is charged.
   - **Outside the fence:** `magisterialCouncil.test.ts` assumed Scientific has no Doctrines at imperium's tier. It now uses a seat with no decks, with the same assertion.
   - **Readings:** The Peace of Lodi's share floors per voice: +50% adds nothing on a voice paying 1, and -25% takes 1 to 0, 3 to 2 and 10 to 7. The Volley Fire reaches any `modelClass:'ranged'` piece, so also a leader's Slinger, but not ships or siege. The Workshops of Syracuse leaves ships out. The Turnpike Trusts pays on any seat's road on a worked hex. The Jixian Academy's -25% and The Monte di Pietà's -10% sit at the city stage.
+- **DT4 (2026-11-05, schema 209):** as planned. The gate passed: the type check, 10,369 core tests and the build. Seven Magisterial and three Devotion Doctrines are in the data. Both sheets carry all 16 of their Doctrines; the rows not built yet are on the tables but not dealt.
+  - **The bots:** `scientificGrantWorth` priced a flat renown grant at nothing, so The Kitabkhana scored 0 and bots would always pass it. It now reads as a lump. The Court Painter and Up Through the Ranks gain a price on their renown clause too.
+  - **Found, for DT19b:** `scorePayout` counts towns twice on The Choregia's town line, and `occasionRate('completion')` ignores `wonder: true`.
+  - **Readings:** The Choregia counts a wonder on the culture shelf, as The Repertory does. The Kitabkhana's age is `highestAge`, which a charter technology does not move; under The Universal Genius an act pays nothing and the later work pays once. The Escorial's "free" adds no renown of its own; if an offer is already waiting or the rites are unknown, `grantGreatPersonOffer` gives the renown that fills the ladder to the next rung. The Barmakids counts `greatPeopleRecruited`, so a person keeps counting after being spent.

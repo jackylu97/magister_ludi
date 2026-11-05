@@ -1042,6 +1042,28 @@
     "text": "-10% gold in every city"
    }
   ],
+  "theTheoricFund": [
+   {
+    "raw": "+1 culture per 3 faith gained per turn",
+    "text": "+1 culture per 3 faith gained per turn"
+   }
+  ],
+  "theRitesOfZhou": [
+   {
+    "raw": "+2 food in every city while it is keeping a rite",
+    "text": "+2 food in every city while it is keeping a rite"
+   },
+   {
+    "raw": "+2 happiness in every city while it is keeping a rite",
+    "text": "+2 happiness in every city while it is keeping a rite"
+   }
+  ],
+  "theSaintPetersIndulgence": [
+   {
+    "raw": "+1% production toward [[building:theMagnumOpus|The Magnum Opus]] per 150 faith you have spent",
+    "text": "+1% production toward The Magnum Opus per 150 faith you have spent"
+   }
+  ],
   "thePythagoreanBrotherhood": [
    {
     "raw": "+2 science in every city",
@@ -1116,6 +1138,56 @@
    {
     "raw": "-10% combat strength for melee units",
     "text": "-10% combat strength for melee units"
+   }
+  ],
+  "theChoregia": [
+   {
+    "raw": "+3 culture in every city per culture building there",
+    "text": "+3 culture in every city per culture building there"
+   },
+   {
+    "raw": "+2 renown per turn per culture building you hold",
+    "text": "+2 renown per turn per culture building you hold"
+   }
+  ],
+  "thePericleanWorks": [
+   {
+    "raw": "+2 production in every city per wonder you hold",
+    "text": "+2 production in every city per wonder you hold"
+   }
+  ],
+  "theMagnaura": [
+   {
+    "raw": "+1 science in every city per civic Order you have seated",
+    "text": "+1 science in every city per civic Order you have seated"
+   }
+  ],
+  "theBarmakids": [
+   {
+    "raw": "+1 food in every city per great person you have gained this game",
+    "text": "+1 food in every city per great person you have gained this game"
+   },
+   {
+    "raw": "+1 production in every city per great person you have gained this game",
+    "text": "+1 production in every city per great person you have gained this game"
+   }
+  ],
+  "theBourgs": [
+   {
+    "raw": "+25% food surplus stored toward growth, in every city working a great person's work",
+    "text": "+25% food surplus stored toward growth, in every city working a great person's work"
+   }
+  ],
+  "theKitabkhana": [
+   {
+    "raw": "spending a great person grants +200 renown for each age you have reached",
+    "text": "spending a great person grants +200 renown for each age you have reached"
+   }
+  ],
+  "theEscorial": [
+   {
+    "raw": "completing a wonder grants a great person to call",
+    "text": "completing a wonder grants a great person to call"
    }
   ]
  },

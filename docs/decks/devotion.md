@@ -19,7 +19,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
   - **(was …)** names the data row that a renamed card takes over.
 - **Type:** the last column says which chair the card fits: **Military**, **Economic**, **Civic** or **Wildcard** (`docs/plans/doctrines-governments-chairs.md`, section 4). Since batch DV1 the types are in the data. A Devotion card fits only a chair of its own type or a Wildcard chair. The sync test checks this column for every row in the data, the shared table's included.
 - **Charters:** two, counted in the Charters column below: The Fast (Tier I) and The Sabbath Laws (Tier II). The shared table holds a third, The Schoolmen's Charter (Tier I). A charter never takes a chair. Its type is only for the card's face.
-- **Doctrines:** none yet. Each of Tiers I to IV has an empty Doctrine table above its Orders. Sixteen are proposed, four a tier, in `docs/plans/devotion-doctrines.md` (2026-10-25), for your review. A triage of their own builds them. Until then a Devotion seat's Doctrine offer comes only from its partner deck.
+- **Doctrines:** 16 (4 on each of Tiers I to IV), after your comments of 2026-11-05 (`docs/plans/doctrine-review-2026-11-05.md`). A Doctrine is held for the whole game and takes no chair. Each tier's Doctrine table sits above its Orders, and the Build column names the theme that each is written for. Batch DT4 built 3, the ones that need no new shape: The Theoric Fund, The Rites of Zhou and The Saint Peter's Indulgence. The other 13 are on the tables and are not dealt yet; `docs/plans/doctrines-build-triage.md` gives the batch that builds each one. The reasons and pairs are in `docs/plans/devotion-doctrines.md`.
 - **The sheet of 2026-10-12** (52 cards, in the old format) is in git history: `git show 155106c9:docs/decks/devotion.md`.
 
 | Tier | Implemented | Modify | Add | All | Charters |
@@ -59,10 +59,14 @@ Without the charters, the deck holds 64 cards that take a chair: 6, 8, 20, 16 an
 
 ## Tier I
 
-**Doctrines:** none yet.
+**Doctrines,** offered with the tier-4 governments:
 
 | Doctrine | Build | Text |
 |---|---|---|
+| **The Theoric Fund** | engine | +1 culture for every 3 faith your empire makes. |
+| **The Rites of Zhou** | devout realm | Each town holding a rite gains +2 food and +2 happiness. |
+| **The Serapeum** | spreading faith | Each of your gods gives twice its effects. |
+| **The Paean** | holy war | Your military units gain +1 strength for every god and belief you hold. |
 
 **Orders:**
 
@@ -80,10 +84,14 @@ Without the charters, the deck holds 64 cards that take a chair: 6, 8, 20, 16 an
 
 ## Tier II
 
-**Doctrines:** none yet.
+**Doctrines,** offered with the tier-10 governments:
 
 | Doctrine | Build | Text |
 |---|---|---|
+| **The Capitulary of Herstal** | devout realm | Rites cost half as much. |
+| **The Seven Councils** | spreading faith | Your religion may hold one more follower belief and one more enhancer belief. |
+| **The Patrimony of Peter** | holy places | Your holy city's citizens demand no happiness. |
+| **The Ribats** | holy war | Military units created in a town following your religion gain +3 strength for good. Conquering a town converts it to your religion. |
 
 **Orders:**
 
@@ -113,10 +121,14 @@ Without the charters, the deck holds 64 cards that take a chair: 6, 8, 20, 16 an
 
 ## Tier III
 
-**Doctrines:** none yet.
+**Doctrines,** offered with the tier-18 governments:
 
 | Doctrine | Build | Text |
 |---|---|---|
+| **The Imarets** | devout realm | Your devout towns grow 25% faster. |
+| **Canossa** | spreading faith | You and an empire whose capital follows your religion cannot declare war on each other. |
+| **The Canons of the Holy Sepulchre** | holy places | Towns with a holy site buy with faith at 30% less. |
+| **The Martyr's Crown** | holy war | Each of your units that dies in battle presses your religion on every town within three hexes. |
 
 **Orders:**
 
@@ -141,10 +153,14 @@ Without the charters, the deck holds 64 cards that take a chair: 6, 8, 20, 16 an
 
 ## Tier IV
 
-**Doctrines:** none yet.
+**Doctrines,** offered with the tier-26 governments:
 
 | Doctrine | Build | Text |
 |---|---|---|
+| **The Saint Peter's Indulgence** | engine | +1% production toward the Magnum Opus for every 150 faith you have spent this game. |
+| **The House of Worship** | devout realm | Your devout towns may buy the Mosque, the Wat, the Gurdwara and the Dar-e Mehr, whatever beliefs your religion holds. |
+| **The Apostolic Camera** | spreading faith | Your follower beliefs also pay you in every foreign town that follows your religion. |
+| **The Two Sanctuaries** | holy places | Hexes with a holy site have double yields, applied after every other change to the hex. |
 
 **Orders:**
 
@@ -246,7 +262,7 @@ These rows stay in the data so that old saves load. They are dealt to nobody, th
   - **The deck's size:** 64 cards that take a chair, and 2 charters.
 - **The build plan's readings:** the batches use readings 1 to 38 of the build plan until you mark one. Fourteen are marked "to confirm": 2, 4, 13, 14, 16, 18, 20, 21, 22, 24, 27, 30, 31 and 32.
 - **Still open:**
-  - **Devotion's Doctrines:** sixteen proposed on 2026-10-25 (`docs/plans/devotion-doctrines.md`), waiting for your review.
+  - **Devotion's Doctrines:** your review of 2026-11-05 closed the questions on them. All 16 are being built (`docs/plans/doctrines-build-triage.md`).
   - **Five rows play as built.** The list doc's row for each says what the game does:
     - Mission Houses: a proclamation presses a flat +18 more, which is 30% of the base lump.
     - The Settled Faith: a proclamation presses a flat 15 less, which is 25% of the base lump (reading 38).

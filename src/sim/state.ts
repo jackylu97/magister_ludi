@@ -3302,8 +3302,21 @@ import {
  * **A v207 save is refused and does not replay.** These seats' Doctrine bags are no
  * longer empty, so their draws move. The branch migrates nothing, for the reason
  * given under v119.
+ *
+ * v209 (branch `decks`; batch DT4, `docs/plans/doctrines-build-triage.md`):
+ * **Magisterial's and Devotion's first Doctrines, the ten that need no new shape.**
+ * No field joins the state. The rules that change:
+ *
+ *   · The Choregia, The Periclean Works, The Magnaura, The Barmakids, The Bourgs,
+ *     The Kitabkhana and The Escorial are dealt to a Magisterial seat;
+ *   · The Theoric Fund, The Rites of Zhou and The Saint Peter's Indulgence are
+ *     dealt to a Devotion seat.
+ *
+ * **A v208 save is refused and does not replay.** These seats' Doctrine bags are no
+ * longer empty, so their draws move. The branch migrates nothing, for the reason
+ * given under v119.
  */
-export const SCHEMA_VERSION = 208;
+export const SCHEMA_VERSION = 209;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
