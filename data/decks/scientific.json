@@ -2062,6 +2062,36 @@
         }
       ]
     },
+    "thePeripateticSchool": {
+      "name": "The Peripatetic School",
+      "decks": [
+        "scientific"
+      ],
+      "band": 1,
+      "line": "none",
+      "flavor": "The master walked, the pupils followed, and the argument never sat down.",
+      "text": "Academies gain +2 science and +2 production. Science buildings and wonders give +30% renown.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "science": 2,
+          "production": 2,
+          "on": {
+            "test": "improvement",
+            "improvement": "academy"
+          }
+        },
+        {
+          "kind": "cityRenownPercent",
+          "percent": 30,
+          "of": {
+            "category": "science",
+            "wonder": true
+          }
+        }
+      ]
+    },
     "theJixianAcademy": {
       "name": "The Jixian Academy",
       "decks": ["scientific"],
@@ -2118,6 +2148,34 @@
         }
       ]
     },
+    "theDirectorateOfArms": {
+      "name": "The Directorate of Arms",
+      "decks": [
+        "scientific"
+      ],
+      "band": 3,
+      "line": "none",
+      "flavor": "New arsenals, new recipes, and a small army that stays ahead.",
+      "text": "While no empire you have met knows more technologies than you, your units gain +3 combat strength.",
+      "effects": [
+        {
+          "kind": "conditionRule",
+          "when": {
+            "test": "noMetEmpireAhead"
+          },
+          "then": [
+            {
+              "kind": "combatLine",
+              "amount": 3,
+              "side": "both",
+              "when": {
+                "test": "always"
+              }
+            }
+          ]
+        }
+      ]
+    },
     "theUniversitas": {
       "name": "The Universitas",
       "decks": ["scientific"],
@@ -2156,6 +2214,36 @@
           "class": {"modelClass": "melee"}
         }
       ]
+    },
+    "theKulliye": {
+      "name": "The Külliye",
+      "decks": [
+        "scientific"
+      ],
+      "band": 3,
+      "line": "none",
+      "flavor": "The mosque, the school, the hospital and the kitchen share one wall.",
+      "text": "Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "buildsEverywhere",
+          "empireBuilding": true,
+          "scope": {
+            "test": "hasImprovement",
+            "improvement": "academy"
+          },
+          "skipsBeadRows": true
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "empireBuilding": true,
+          "percent": 50,
+          "skipsBeadRows": true
+        }
+      ],
+      "note": "The extra copies and the production bonus do not reach the Magnum Opus or its works."
     }
   }
 }

@@ -450,7 +450,7 @@ import type { CityScope, FirstKind } from './statecraftData';
 // Value imports from two runtime leaves (the JSON tables and their readers):
 // the charter gate asks the card rows which technologies a charter opens, and
 // the ability fold asks the rite table which ability a chartered rite is.
-import { charteredTechIds, techIsChartered } from './statecraftData';
+import { charteredTechIds, isOrderId, techIsChartered } from './statecraftData';
 import { riteAbility } from './religionData';
 import {
   cardGrantsAbility,
@@ -1152,7 +1152,9 @@ function oneToARealmError(
     const where = lifts
       .map((lift) => stripRefs(cityScopeWords(lift.scope)).replace(/^every /, 'a '))
       .join(' or ');
-    return `${plain}; your Order allows another copy only in ${where}`;
+    // The lift may be a Doctrine's (The Külliye, batch DT6), so the word follows it.
+    const whose = lifts.some((lift) => isOrderId(lift.card)) ? 'Order' : 'Doctrine';
+    return `${plain}; your ${whose} allows another copy only in ${where}`;
   }
   if (here.some((lift) => lift.max === undefined)) return null;
   const allowed = here.reduce((sum, lift) => sum + (lift.max ?? 0), 0);

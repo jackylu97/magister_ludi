@@ -878,6 +878,16 @@
     "text": "-3 happiness in every city without fresh water"
    }
   ],
+  "theHighlandClans": [
+   {
+    "raw": "the authority a city on hills costs falls by 1",
+    "text": "the authority a city on hills costs falls by 1"
+   },
+   {
+    "raw": "+1 food on every hill hex beside a city",
+    "text": "+1 food on every hill hex beside a city"
+   }
+  ],
   "theCommanderies": [
    {
     "raw": "the authority a city costs falls by 1",
@@ -896,6 +906,16 @@
    {
     "raw": "the authority each city you founded but your capital costs rises by 1",
     "text": "the authority each city you founded but your capital costs rises by 1"
+   }
+  ],
+  "theCuratorOfWaters": [
+   {
+    "raw": "+2 happiness in every city per public work standing there",
+    "text": "+2 happiness in every city per public work standing there"
+   },
+   {
+    "raw": "+50% production toward public works",
+    "text": "+50% production toward public works"
    }
   ],
   "cropRotation": [
@@ -922,6 +942,20 @@
    {
     "raw": "+1 authority capacity per city",
     "text": "+1 authority capacity per city"
+   }
+  ],
+  "allRoadsLeadToRome": [
+   {
+    "raw": "+3% production in your capital per city joined to your capital by road (at most +45% production)",
+    "text": "+3% production in your capital per city joined to your capital by road (at most +45% production)"
+   },
+   {
+    "raw": "+3% gold in your capital per city joined to your capital by road (at most +45% gold)",
+    "text": "+3% gold in your capital per city joined to your capital by road (at most +45% gold)"
+   },
+   {
+    "raw": "the authority a city not joined to your capital by road costs rises by 2",
+    "text": "the authority a city not joined to your capital by road costs rises by 2"
    }
   ],
   "theGardenPeoples": [
@@ -988,6 +1022,12 @@
     "text": "workers cost −50% to buy with gold"
    }
   ],
+  "theLaurionLeases": [
+   {
+    "raw": "a hex carrying a resource costs 50% less to buy",
+    "text": "a hex carrying a resource costs 50% less to buy"
+   }
+  ],
   "theDelianLeague": [
    {
     "raw": "the authority a coastal city costs falls by 1",
@@ -1016,6 +1056,16 @@
    {
     "raw": "-25% food surplus stored toward growth, in every city no trade route of your own ends at",
     "text": "-25% food surplus stored toward growth, in every city no trade route of your own ends at"
+   }
+  ],
+  "theMuda": [
+   {
+    "raw": "+3 science, +3 culture on every trade route that ends in another empire’s city",
+    "text": "+3 science, +3 culture on every trade route that ends in another empire’s city"
+   },
+   {
+    "raw": "your trade units on routes to other empires cannot be attacked or plundered",
+    "text": "your trade units on routes to other empires cannot be attacked or plundered"
    }
   ],
   "theTurnpikeTrusts": [
@@ -1062,6 +1112,12 @@
    {
     "raw": "+2 happiness in every city while it is keeping a rite",
     "text": "+2 happiness in every city while it is keeping a rite"
+   }
+  ],
+  "thePaean": [
+   {
+    "raw": "+1 combat strength for military units per god or belief you hold",
+    "text": "+1 combat strength for military units per god or belief you hold"
    }
   ],
   "thePatrimonyOfPeter": [
@@ -1130,6 +1186,16 @@
     "text": "military units cost 50% more to build and to buy"
    }
   ],
+  "thePeripateticSchool": [
+   {
+    "raw": "+2 production, +2 science on every hex with an [[improvement:academy|Academy]]",
+    "text": "+2 production, +2 science on every hex with an Academy"
+   },
+   {
+    "raw": "science buildings and wonders give +30% renown",
+    "text": "science buildings and wonders give +30% renown"
+   }
+  ],
   "theJixianAcademy": [
    {
     "raw": "completing a technology grants culture equal to 20% of the science it cost you",
@@ -1156,6 +1222,12 @@
     "text": "the yields of every hex with an Academy are doubled"
    }
   ],
+  "theDirectorateOfArms": [
+   {
+    "raw": "while no empire you have met knows more technologies than you: +3 combat strength",
+    "text": "while no empire you have met knows more technologies than you: +3 combat strength"
+   }
+  ],
   "theUniversitas": [
    {
     "raw": "your science buildings pay +100% in every city of 12 or more citizens",
@@ -1174,6 +1246,16 @@
    {
     "raw": "-10% combat strength for melee units",
     "text": "-10% combat strength for melee units"
+   }
+  ],
+  "theKulliye": [
+   {
+    "raw": "you may build more than one copy of an empire building, in a city with an [[improvement:academy|Academy]]",
+    "text": "you may build more than one copy of an empire building, in a city with an Academy"
+   },
+   {
+    "raw": "+50% production toward empire buildings",
+    "text": "+50% production toward empire buildings"
    }
   ],
   "theChoregia": [
@@ -1214,10 +1296,22 @@
     "text": "+25% food surplus stored toward growth, in every city working a great person's work"
    }
   ],
+  "theCarroccio": [
+   {
+    "raw": "+1 combat strength per wonder you hold (at most +8)",
+    "text": "+1 combat strength per wonder you hold (at most +8)"
+   }
+  ],
   "theKitabkhana": [
    {
     "raw": "spending a great person grants +200 renown for each age you have reached",
     "text": "spending a great person grants +200 renown for each age you have reached"
+   }
+  ],
+  "theGobelins": [
+   {
+    "raw": "+4% production toward [[building:theMagnumOpus|The Magnum Opus]] per hex carrying a great person's work in your borders (at most +40%)",
+    "text": "+4% production toward The Magnum Opus per hex carrying a great person's work in your borders (at most +40%)"
    }
   ],
   "theEscorial": [

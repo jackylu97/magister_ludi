@@ -970,6 +970,15 @@ export type CityScope =
    */
   | { test: 'connected' }
   /**
+   * **A town that is not joined to its capital by road** (batch DT6, All Roads
+   * Lead to Rome). The capital is not admitted either, so this is not the plain
+   * opposite of `connected`. A charge written on this scope must not reach a
+   * capital that costs nothing (reading 7 of
+   * `docs/plans/doctrines-build-triage.md`). A seat with no capital has nothing to
+   * be joined to, so every town it holds is admitted.
+   */
+  | { test: 'notConnected' }
+  /**
    * The **last town this empire came by** — The Charter of the Marches, whose
    * whole point is that the frontier is wherever you last planted a flag.
    *
@@ -1489,6 +1498,13 @@ export type EmpireCondition =
    */
   | { test: 'rivalHoldsMoreTowns' }
   /**
+   * **No empire this one has met knows more technologies** (batch DT6, The
+   * Directorate of Arms). A tie holds, and it holds while the seat has met nobody,
+   * because the card says "no empire you have met". Reads `metRivals` and
+   * `knowsMoreTechs` (`rivals.ts`), so an eliminated empire does not count.
+   */
+  | { test: 'noMetEmpireAhead' }
+  /**
    * **This empire knows a technology that no other empire knows** (batch R3,
    * The Kept Secret; `docs/plans/scientific-review-2026-10-28.md`).
    *
@@ -1907,7 +1923,18 @@ export type CombatScaleCount =
    * empire knows that no empire it has met knows. The same reading as
    * `CountKind`'s `techLead` (`techLead` in `rivals.ts`), asked of a fight.
    */
-  | 'techLead';
+  | 'techLead'
+  /**
+   * **World wonders this empire holds** (batch DT6, The Carroccio). The same
+   * reading as `CountKind`'s `wonders`, asked of a fight, so a wonder lost with
+   * its town stops paying at once.
+   */
+  | 'wonders'
+  /**
+   * **The gods and beliefs this empire holds** (batch DT6, The Paean). The same
+   * reading as `CountKind`'s `beliefsHeld`, asked of a fight.
+   */
+  | 'beliefsHeld';
 
 /** A strength line that scales with a count, capped where the design caps it. */
 export interface CombatScale {
@@ -2338,6 +2365,15 @@ export type TileCondition =
    * such answer reads no, `beside`'s bargain.
    */
   | { test: 'wonderTown' }
+  /**
+   * **This hex is the centre of a town**, whoever owns the town (batch DT6, The
+   * Highland Clans, reading 45 of `docs/plans/doctrines-build-triage.md`). Meant
+   * to be asked through `beside`: "a hill beside a town" is a hill next to a
+   * town's centre. A tile alone cannot answer it, so the caller hands in the
+   * board's answer (`GroundFacts.townCentre`). A caller with no such answer reads
+   * no.
+   */
+  | { test: 'townCentre' }
   /**
    * **The empire reading this hex surfaced a seam here**: its survey struck the
    * vein (`Tile.surfacedBy`), Expansionist batch E3, The Prospectors. The
@@ -4814,6 +4850,14 @@ export type BehaviorRuleId =
    */
   | 'tradersUnplunderable'
   /**
+   * **The same protection for a caravan whose route ends abroad** (batch DT6, The
+   * Muda; reading 19 of `docs/plans/doctrines-build-triage.md`). It covers melee
+   * and shot, at both seams. `cardTraderShielded` is the one reader of the two
+   * rules. A route that a war has ended is no route, so the rule stops covering
+   * the cart when its owner goes to war with the destination's owner.
+   */
+  | 'foreignTradersUnplunderable'
+  /**
    * **A road that ends abroad brings a luxury home** — The Silk Road's, and the
    * user's tree pass of 2026-09-10 (`docs/flags.md` (uuu), mark 6).
    *
@@ -7099,6 +7143,13 @@ export interface CardProductionBonusEffect {
    */
   skipsBeadRows?: true;
   /**
+   * Narrows the bonus to **public works** (batch DT6, The Curator of Waters): the
+   * rows that carry `BuildingDef.publicWork`, read through `isPublicWork`. Asked
+   * only of a building being built, so it says nothing about a unit, a wonder or a
+   * project. A new row marked in the data joins with no change here.
+   */
+  publicWork?: true;
+  /**
    * Narrows the bonus to **fortifications** (Expansionist batch E5, The Burhs):
    * the buildings the `defensiveBuildings` count reads, which raise a town's
    * defence or its hit points (`isFortification`, `buildingData.ts`). Asked
@@ -7141,6 +7192,11 @@ export interface CardProductionBonusEffect {
    * `countOf` with the count. `CardPaysEffect.admits` says the rest.
    */
   admits?: CityScope;
+  /**
+   * Which hexes a `tilesInBorders` count counts (batch DT6, The Gobelins' works).
+   * Handed to `countOf` with the count. Every other count ignores it.
+   */
+  tile?: TileCondition;
   /** How many of `count` buy one helping of `percent`. Default 1. */
   per?: number;
   /** The most helpings that ever pay — The Great Consecration's eight. */
@@ -7182,6 +7238,15 @@ export interface CardRulePercentEffect {
    * Read only by `buildingCost`. Absent reaches every building.
    */
   building?: BuildingId;
+  /**
+   * **Which hexes the rate applies to** (batch DT6, The Laurion Leases' hexes with
+   * a resource). `scope`'s bargain for a hex: a rate narrowed to hexes is
+   * answerable only by a caller holding one, so `cardRulePercent` keeps it silent
+   * for every caller that passes none. Only `explainTilePurchase` passes one. The
+   * test is asked with the empire's own ground facts, so the sight gate on
+   * `hasResource` applies, and an unseen seam costs the full price (reading 18).
+   */
+  tile?: TileCondition;
 }
 
 /** Flat happiness, once for the empire or once per city a scope admits. */
@@ -8472,6 +8537,15 @@ export interface CardRuleEffect {
    * other member.
    */
   empireBuilding?: true;
+  /**
+   * **Leaves out the rows whose completion grants a bead** (batch DT6, The
+   * Külliye; reading 25 of `docs/plans/doctrines-build-triage.md`). Read only by
+   * `buildsEverywhere`, through `cardLimitLifts`. `empireBuilding` already leaves
+   * out the Magnum Opus; this also leaves out the three works of the Observatory,
+   * because a second copy would grant nothing and would race the win. No Order
+   * sets it, so The Second Seat does not change.
+   */
+  skipsBeadRows?: true;
   /**
    * **Which towns the rule is true in** — The Lay Brothers' Temple towns and
    * Consecrated Labor's Shrine towns. Read by `cardActionRuleAt`, which
@@ -10065,6 +10139,25 @@ export interface CardCityRenownPercentEffect {
    * name.
    */
   where?: 'city' | 'empire';
+  /**
+   * **Which of the town's buildings the share is taken over** (batch DT6, The
+   * Peripatetic School's science buildings and wonders). Absent is every building.
+   * Read only by the town arm (`explainCityRenown`), because the empire arm's
+   * figure is a fold of lines that no longer name their rows. See
+   * `RenownShareRows`.
+   */
+  of?: RenownShareRows;
+}
+
+/**
+ * **The building rows a renown share reaches**: rows of this category, and any
+ * wonder if `wonder` is set. A row that answers to both still counts once
+ * (reading 23 of `docs/plans/doctrines-build-triage.md`). `renownShareReaches`
+ * (`renown.ts`) is the one reading.
+ */
+export interface RenownShareRows {
+  category?: BuildingCategory;
+  wonder?: true;
 }
 
 /**

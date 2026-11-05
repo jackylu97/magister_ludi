@@ -7029,7 +7029,15 @@ export function explainTilePurchase(
   // game's deliberate integers and a tag reading "−7.5" would be a price nobody
   // can pay. Floored at 1 for the reason the luxury's line is: free land is not
   // a discount, it is a different game.
-  const charters = cardRulePercent(state, playerId, 'tilePurchase');
+  // The hex goes in beside the empire, so a rate that names hexes (The Laurion
+  // Leases, batch DT6) is asked of this one.
+  const charters = cardRulePercent(
+    state,
+    playerId,
+    'tilePurchase',
+    undefined,
+    getTileAt(state.map, cell.col, cell.row),
+  );
   const percent = foldCardRulePercent(charters);
   if (percent !== 0) {
     const before = lines.reduce((sum, line) => sum + line.amount, 0);

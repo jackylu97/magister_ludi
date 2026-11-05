@@ -4,12 +4,14 @@
  * to the sheet. This file checks that each row pays what its text says, in a real
  * fold, and that each drawback bites.
  *
- * Later batches add the deck's other thirteen Doctrines to this file.
+ * Batch DT6 adds The Highland Clans, The Curator of Waters and All Roads Lead to
+ * Rome. Later batches add the deck's other nine Doctrines to this file.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { scoreCard, valueContext } from '../../../src/ai/bot';
+import { scoreEffects } from '../../../src/ai/value';
 import { explainCardImpact } from '../../../src/sim/cardImpact';
 import {
   assignCitizens,
@@ -25,6 +27,7 @@ import { applyCommand } from '../../../src/sim/commands';
 import { raiseImprovement, tileIndex, tileNeighbors } from '../../../src/sim/map';
 import { markMountainAdjacency } from '../../../src/sim/mapgen';
 import { authorityOf, explainAuthority, explainFoundingCost, explainHappiness } from '../../../src/sim/meters';
+import { connectedCities, layRoad } from '../../../src/sim/roads';
 import {
   type City,
   type GameState,
@@ -35,7 +38,11 @@ import {
   playerById,
 } from '../../../src/sim/state';
 import { adoptGovernmentAt, doctrineBagFor, statecraftBlocker } from '../../../src/sim/statecraft';
-import { cardCityRuleAt, explainCardPercentYields } from '../../../src/sim/statecraft/evaluator';
+import {
+  cardCityRuleAt,
+  cityScopeAdmits,
+  explainCardPercentYields,
+} from '../../../src/sim/statecraft/evaluator';
 import {
   type CardEffect,
   type DoctrineId,
@@ -51,17 +58,20 @@ import { createGame } from '../newGameHelpers';
 import { lendDoctrineEffects } from '../statecraftHelpers';
 
 /**
- * The rows built so far: the eleven of batch DT2 and batch DT5's The Garden Peoples,
- * each with the band its sheet table gives it.
+ * The rows built so far: the eleven of batch DT2, batch DT5's The Garden Peoples and
+ * the three of batch DT6, each with the band its sheet table gives it.
  */
 const ROWS: readonly (readonly [string, number])[] = [
   ['boundToTheSoil', 1],
   ['theGiftOfTheRiver', 1],
+  ['theHighlandClans', 1],
   ['theCommanderies', 1],
   ['synoecism', 2],
+  ['theCuratorOfWaters', 2],
   ['cropRotation', 3],
   ['theContentedCity', 3],
   ['empireWithoutEnd', 3],
+  ['allRoadsLeadToRome', 3],
   ['theGardenPeoples', 3],
   ['thePhysiocrats', 4],
   ['theCathedralLodges', 4],
@@ -760,5 +770,237 @@ describe('The Garden Peoples (batch DT5)', () => {
     expect(def.needsTendedWork).toBe(true);
     expect(def.needsReligion).toBeUndefined();
     expect(def.text?.startsWith('Needs tended land.')).toBe(true);
+  });
+});
+
+describe('The Highland Clans (batch DT6)', () => {
+  /** The hill line of the row, for the bots. */
+  const hillLine = doctrineDef('theHighlandClans').effects.find((effect) => effect.kind === 'pays')!;
+
+  it('takes 1 off the authority of a town on hills, and off no other town', () => {
+    const state = bareState(24, 10);
+    const capital = town(state, 3, 3);
+    at(state, 12, 3).hills = true;
+    const high = town(state, 12, 3);
+    const low = town(state, 20, 3);
+    const before = { high: townWrit(state, high), low: townWrit(state, low) };
+    expect(before.high).toBeGreaterThan(0);
+    hold(state, 'theHighlandClans');
+    expect(townWrit(state, capital)).toBe(0);
+    expect(townWrit(state, high)).toBe(before.high - 1);
+    expect(townWrit(state, low)).toBe(before.low);
+  });
+
+  it('quotes the cheaper town on the founding preview', () => {
+    const state = bareState(24, 10);
+    town(state, 3, 3);
+    at(state, 12, 3).hills = true;
+    bumpRevision(state);
+    const hill = foundingQuote(state, 12, 3);
+    const flat = foundingQuote(state, 20, 3);
+    hold(state, 'theHighlandClans');
+    expect(foundingQuote(state, 12, 3)).toBe(hill - 1);
+    expect(foundingQuote(state, 20, 3)).toBe(flat);
+  });
+
+  it('pays +1 food on a hill beside the town, and nothing on flat ground beside it', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 4);
+    const [hill, flat] = tileNeighbors(state.map, at(state, 5, 5));
+    hill!.hills = true;
+    bumpRevision(state);
+    const hillBefore = hexPays(state, city, hill!.col, hill!.row);
+    const flatBefore = hexPays(state, city, flat!.col, flat!.row);
+    hold(state, 'theHighlandClans');
+    expect(hexPays(state, city, hill!.col, hill!.row)).toEqual({ ...hillBefore, food: hillBefore.food + 1 });
+    expect(hexPays(state, city, flat!.col, flat!.row)).toEqual(flatBefore);
+  });
+
+  it('pays nothing on a hill two hexes from any town', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 4);
+    const far = at(state, 7, 5);
+    far.hills = true;
+    bumpRevision(state);
+    expect(tileNeighbors(state.map, far).some((next) => next.col === 5 && next.row === 5)).toBe(false);
+    const before = hexPays(state, city, 7, 5);
+    hold(state, 'theHighlandClans');
+    expect(hexPays(state, city, 7, 5)).toEqual(before);
+  });
+
+  it('counts any seat’s town: a hill beside a rival’s town pays the town working it (reading 45)', () => {
+    const state = bareState(24, 10);
+    const city = town(state, 5, 5, 4);
+    at(state, 7, 5).hills = true;
+    bumpRevision(state);
+    hold(state, 'theHighlandClans');
+    const alone = hexPays(state, city, 7, 5);
+    town(state, 8, 5, 3, 1);
+    expect(hexPays(state, city, 7, 5).food).toBe(alone.food + 1);
+  });
+
+  it('gives the bots a price for a worked hill beside the town, and none without one', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 2);
+    const [hill, flat] = tileNeighbors(state.map, at(state, 5, 5));
+    hill!.hills = true;
+    city.workedTiles = [{ col: flat!.col, row: flat!.row }];
+    bumpRevision(state);
+    expect(scoreEffects([hillLine], valueContext(state, seat(state)))).toBe(0);
+    city.workedTiles = [{ col: hill!.col, row: hill!.row }];
+    bumpRevision(state);
+    expect(scoreEffects([hillLine], valueContext(state, seat(state)))).toBeGreaterThan(0);
+  });
+
+  it('has no malice: it adds no happiness line, as the user asked', () => {
+    const state = bareState(24, 10);
+    town(state, 3, 3);
+    const before = explainHappiness(state, 0);
+    hold(state, 'theHighlandClans');
+    expect(explainHappiness(state, 0)).toEqual(before);
+  });
+});
+
+describe('The Curator of Waters (batch DT6)', () => {
+  /** What the queue's percentages from this card come to for one row. */
+  function curatorPercent(state: GameState, city: City, item: { kind: string; id: string }): number {
+    return productionModifiers(state, city, item as never)
+      .filter((entry) => entry.card === 'theCuratorOfWaters')
+      .reduce((sum, entry) => sum + entry.percent, 0);
+  }
+
+  const bonus = doctrineDef('theCuratorOfWaters').effects.find((effect) => effect.kind === 'productionBonus')!;
+
+  it('gives +2 happiness for each public work, town by town, and nothing for another building', () => {
+    const state = bareState(24, 10);
+    const first = town(state, 3, 3, 3);
+    const second = town(state, 15, 3, 3);
+    addBuilding(state, first, 'granary');
+    addBuilding(state, first, 'cistern');
+    addBuilding(state, first, 'monument');
+    bumpRevision(state);
+    hold(state, 'theCuratorOfWaters');
+    expect(linesNaming(explainHappiness(state, 0), 'Curator of Waters')).toBe(4);
+    addBuilding(state, second, 'aqueduct');
+    bumpRevision(state);
+    expect(linesNaming(explainHappiness(state, 0), 'Curator of Waters')).toBe(6);
+    addBuilding(state, second, 'monument');
+    bumpRevision(state);
+    expect(linesNaming(explainHappiness(state, 0), 'Curator of Waters')).toBe(6);
+  });
+
+  it('builds a public work 50% faster, and no other row', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    hold(state, 'theCuratorOfWaters');
+    for (const id of ['granary', 'aqueduct', 'watermill', 'harbour', 'publicBath', 'cistern']) {
+      expect(curatorPercent(state, city, { kind: 'building', id }), id).toBe(50);
+    }
+    expect(curatorPercent(state, city, { kind: 'building', id: 'monument' })).toBe(0);
+    expect(curatorPercent(state, city, { kind: 'building', id: 'pyramids' })).toBe(0);
+    expect(curatorPercent(state, city, { kind: 'unit', id: 'settler' })).toBe(0);
+  });
+
+  it('adds no authority line', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    addBuilding(state, city, 'granary');
+    bumpRevision(state);
+    const authority = explainAuthority(state, 0);
+    hold(state, 'theCuratorOfWaters');
+    expect(explainAuthority(state, 0)).toEqual(authority);
+  });
+
+  it('prices the bonus below one that speeds every building, and at nothing once none is left to raise', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    bumpRevision(state);
+    const every: CardEffect = { kind: 'productionBonus', category: 'building', percent: 50 };
+    const open = scoreEffects([bonus], valueContext(state, seat(state)));
+    expect(open).toBeGreaterThan(0);
+    expect(open).toBeLessThan(scoreEffects([every], valueContext(state, seat(state))));
+    for (const id of ['granary', 'aqueduct', 'watermill', 'harbour', 'publicBath', 'cistern']) {
+      addBuilding(state, city, id as never);
+    }
+    bumpRevision(state);
+    expect(scoreEffects([bonus], valueContext(state, seat(state)))).toBe(0);
+  });
+});
+
+describe('All Roads Lead to Rome (batch DT6)', () => {
+  /** A capital, a town joined to it by road, and a town with no road. */
+  function roads(): { state: GameState; capital: City; joined: City; apart: City } {
+    const state = bareState(24, 10);
+    const capital = town(state, 3, 5, 4);
+    const joined = town(state, 9, 5, 3);
+    const apart = town(state, 15, 5, 3);
+    for (let col = 4; col <= 8; col++) layRoad(at(state, col, 5), 0);
+    bumpRevision(state);
+    expect(connectedCities(state, 0).map((entry) => entry.city.id)).toEqual([joined.id]);
+    return { state, capital, joined, apart };
+  }
+
+  /** The capital's percentages from this card, by voice. */
+  function capitalShares(state: GameState, city: City): Record<string, number> {
+    const shares: Record<string, number> = {};
+    for (const entry of explainCardPercentYields(state, city)) {
+      if (entry.card === 'allRoadsLeadToRome') shares[entry.yield] = entry.percent;
+    }
+    return shares;
+  }
+
+  it('gives the capital +3% production and gold for each town joined to it, and no other town', () => {
+    const { state, capital, joined, apart } = roads();
+    hold(state, 'allRoadsLeadToRome');
+    expect(capitalShares(state, capital)).toEqual({ production: 3, gold: 3 });
+    expect(capitalShares(state, joined)).toEqual({});
+    expect(capitalShares(state, apart)).toEqual({});
+    for (let col = 10; col <= 14; col++) layRoad(at(state, col, 5), 0);
+    bumpRevision(state);
+    expect(capitalShares(state, capital)).toEqual({ production: 6, gold: 6 });
+  });
+
+  it('stops at +45%, however many towns the roads reach', () => {
+    const state = bareState(90, 6);
+    const capital = town(state, 2, 3, 4);
+    for (let col = 7; col <= 82; col += 5) town(state, col, 3, 1);
+    for (let col = 3; col <= 81; col++) layRoad(at(state, col, 3), 0);
+    bumpRevision(state);
+    expect(connectedCities(state, 0)).toHaveLength(16);
+    hold(state, 'allRoadsLeadToRome');
+    expect(capitalShares(state, capital)).toEqual({ production: 45, gold: 45 });
+  });
+
+  it('charges 2 more authority for a town not joined, and nothing for a joined town', () => {
+    const { state, joined, apart } = roads();
+    const before = { joined: townWrit(state, joined), apart: townWrit(state, apart) };
+    hold(state, 'allRoadsLeadToRome');
+    expect(townWrit(state, joined)).toBe(before.joined);
+    expect(townWrit(state, apart)).toBe(before.apart + 2);
+  });
+
+  it('does not charge the capital (reading 7)', () => {
+    const { state, capital } = roads();
+    expect(cityScopeAdmits(state, capital, { test: 'connected' })).toBe(false);
+    expect(cityScopeAdmits(state, capital, { test: 'notConnected' })).toBe(false);
+    expect(townWrit(state, capital)).toBe(0);
+    hold(state, 'allRoadsLeadToRome');
+    expect(townWrit(state, capital)).toBe(0);
+  });
+
+  it('lifts the charge the turn the road reaches the town', () => {
+    const { state, apart } = roads();
+    hold(state, 'allRoadsLeadToRome');
+    const charged = townWrit(state, apart);
+    for (let col = 10; col <= 14; col++) layRoad(at(state, col, 5), 0);
+    bumpRevision(state);
+    expect(townWrit(state, apart)).toBe(charged - 2);
+  });
+
+  it('leaves the charge out of the founding preview, because no one can yet say if a town will be joined', () => {
+    const { state } = roads();
+    const before = foundingQuote(state, 20, 5);
+    hold(state, 'allRoadsLeadToRome');
+    expect(foundingQuote(state, 20, 5)).toBe(before);
   });
 });

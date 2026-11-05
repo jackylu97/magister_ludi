@@ -7,7 +7,8 @@
  * It also checks the bots' reading of a hex line's `wholePercent`, which this
  * batch adds and which The Pandidakterion needs.
  *
- * Later batches add the deck's other seven Doctrines to this file.
+ * Batch DT6 adds The Peripatetic School, The Directorate of Arms and The Külliye.
+ * Later batches add the deck's other four Doctrines to this file.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -26,6 +27,8 @@ import {
 } from '../../../src/sim/cities';
 import { applyCombat, previewCombat } from '../../../src/sim/combat';
 import { raiseImprovement } from '../../../src/sim/map';
+import { explainAuthority } from '../../../src/sim/meters';
+import { explainCityRenown, explainRenown } from '../../../src/sim/renown';
 import { explainPurchaseCost } from '../../../src/sim/purchase';
 import { RULES } from '../../../src/sim/rulesData';
 import {
@@ -42,9 +45,11 @@ import { doctrineBagFor } from '../../../src/sim/statecraft';
 import {
   cardBehaviorRuleFor,
   cardCombatPercent,
+  cardLimitLifts,
   explainBuildingPackage,
   explainCardPercentYields,
   foldBuildingPackage,
+  noMetEmpireAhead,
 } from '../../../src/sim/statecraft/evaluator';
 import {
   type CardEffect,
@@ -54,8 +59,8 @@ import {
   doctrineDef,
   poolDoctrines,
 } from '../../../src/sim/statecraftData';
-import { explainTechCost, foldTechCost, settleResearch } from '../../../src/sim/tech';
-import { TECH_IDS, type TechId, techDef } from '../../../src/sim/techData';
+import { buildError, explainTechCost, foldTechCost, settleResearch } from '../../../src/sim/tech';
+import { BUILDING_UNLOCK_TECH, TECH_IDS, type TechId, techDef } from '../../../src/sim/techData';
 import { unitDef } from '../../../src/sim/unitData';
 import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
 import { explainCity, foldCity, productionModifiers } from '../../../src/sim/yields/town';
@@ -63,16 +68,19 @@ import { at, bareState } from '../improvementHelpers';
 import { createGame } from '../newGameHelpers';
 import { lendDoctrineEffects } from '../statecraftHelpers';
 
-/** The eight rows of batch DT3 in this deck, each with the band its table gives it. */
+/** The eight rows of batch DT3 and the three of batch DT6, each with the band its table gives it. */
 const ROWS: readonly (readonly [string, number])[] = [
   ['thePythagoreanBrotherhood', 1],
   ['theRemovalToXianyang', 1],
   ['theWorkshopsOfSyracuse', 1],
+  ['thePeripateticSchool', 1],
   ['theJixianAcademy', 2],
   ['theAcademyOfGondishapur', 2],
   ['thePandidakterion', 2],
+  ['theDirectorateOfArms', 3],
   ['theUniversitas', 3],
   ['theVolleyFire', 3],
+  ['theKulliye', 3],
 ];
 
 /** Lent rows, put back after each test, so a failed test cannot leak one into the next. */
@@ -662,5 +670,290 @@ describe('the bots read a hex line’s whole share (batch DT3)', () => {
     bumpRevision(state);
     const ctx = valueContext(state, player);
     expect(scoreEffects(rows, ctx)).toBeCloseTo(valueOfYields({ food: 2 }, ctx), 6);
+  });
+});
+
+describe('The Peripatetic School (batch DT6)', () => {
+  /** The renown lines this card adds to seat 0, each with its figure. */
+  function schoolLines(state: GameState) {
+    return explainRenown(state, 0).filter((entry) => entry.source.includes('The Peripatetic School'));
+  }
+
+  it('pays +2 science and +2 production on an Academy, and nothing on a farm', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 4);
+    raiseImprovement(at(state, 5, 4), 'academy', 0);
+    raiseImprovement(at(state, 6, 5), 'farm', 0);
+    bumpRevision(state);
+    const academy = hexPays(state, city, 5, 4);
+    const farm = hexPays(state, city, 6, 5);
+    hold(state, 'thePeripateticSchool');
+    expect(hexPays(state, city, 5, 4)).toEqual({
+      ...academy,
+      science: academy.science + 2,
+      production: academy.production + 2,
+    });
+    expect(hexPays(state, city, 6, 5)).toEqual(farm);
+  });
+
+  it('takes +30% of a Library’s renown, and names no family', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 4);
+    addBuilding(state, city, 'library');
+    bumpRevision(state);
+    hold(state, 'thePeripateticSchool');
+    const lines = schoolLines(state);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.amount).toBeCloseTo((buildingDef('library').renown!.perTurn * 30) / 100, 6);
+    expect(lines[0]!.family).toBeNull();
+    expect(lines[0]!.perTurn).toBe(true);
+  });
+
+  it('takes nothing of a Market’s renown, even in a town that also holds a Library', () => {
+    const state = bareState(24, 10);
+    const market = town(state, 3, 3, 4);
+    addBuilding(state, market, 'market');
+    bumpRevision(state);
+    expect(buildingDef('market').renown!.perTurn).toBeGreaterThan(0);
+    hold(state, 'thePeripateticSchool');
+    expect(schoolLines(state)).toEqual([]);
+    addBuilding(state, market, 'library');
+    bumpRevision(state);
+    expect(schoolLines(state)[0]!.amount).toBeCloseTo((buildingDef('library').renown!.perTurn * 30) / 100, 6);
+  });
+
+  it('takes a share of a wonder, and counts a science wonder once (reading 23)', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 4);
+    addBuilding(state, city, 'pyramids');
+    addBuilding(state, city, 'greatLibrary');
+    bumpRevision(state);
+    expect(buildingDef('greatLibrary').category).toBe('science');
+    hold(state, 'thePeripateticSchool');
+    const trickle = buildingDef('pyramids').renown!.perTurn + buildingDef('greatLibrary').renown!.perTurn;
+    expect(schoolLines(state)[0]!.amount).toBeCloseTo((trickle * 30) / 100, 6);
+  });
+
+  it('reaches a building a card grants the town, because the grant has a renown line', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 4);
+    lend('theUniversitas', [{ kind: 'rule', rule: 'holdsBuilding', building: 'library' }]);
+    hold(state, 'theUniversitas');
+    hold(state, 'thePeripateticSchool');
+    expect(city.buildings).not.toContain('library');
+    const library = buildingDef('library').renown!.perTurn;
+    expect(explainRenown(state, 0).filter((entry) => entry.source.startsWith('Library at'))).toHaveLength(1);
+    expect(schoolLines(state)[0]!.amount).toBeCloseTo((library * 30) / 100, 6);
+  });
+
+  it('adds nothing to the guild bar, which passes no shares', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 4);
+    addBuilding(state, city, 'library');
+    bumpRevision(state);
+    const before = explainCityRenown(city);
+    hold(state, 'thePeripateticSchool');
+    expect(explainCityRenown(city)).toEqual(before);
+  });
+
+  it('leaves a share with no `of` taken over every building', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 4);
+    addBuilding(state, city, 'market');
+    addBuilding(state, city, 'library');
+    const trickle = buildingDef('market').renown!.perTurn + buildingDef('library').renown!.perTurn;
+    const lines = explainCityRenown(city, [{ source: 'A share', percent: 50 }]);
+    expect(lines.find((entry) => entry.source.startsWith('A share'))!.amount).toBeCloseTo(trickle / 2, 6);
+  });
+
+  it('prices the share over the rows it names', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 4);
+    addBuilding(state, city, 'market');
+    bumpRevision(state);
+    const share = doctrineDef('thePeripateticSchool').effects.find((effect) => effect.kind === 'cityRenownPercent')!;
+    expect(scoreEffects([share], valueContext(state, seat(state)))).toBe(0);
+    addBuilding(state, city, 'library');
+    bumpRevision(state);
+    expect(scoreEffects([share], valueContext(state, seat(state)))).toBeGreaterThan(0);
+  });
+});
+
+describe('The Directorate of Arms (batch DT6)', () => {
+  /** Two seats that have met, with equal technologies, and a piece of each beside the other. */
+  function board(): { state: GameState; mine: Unit; theirs: Unit } {
+    const state = bareState();
+    seat(state).metSeats = [1];
+    seat(state, 1).metSeats = [0];
+    const mine = createUnit(state, 0, 'warrior', 4, 4);
+    const theirs = createUnit(state, 1, 'warrior', 5, 4);
+    bumpRevision(state);
+    return { state, mine, theirs };
+  }
+
+  /** A technology seat 0 does not know, which seat 1 can learn to move ahead. */
+  function aheadBy(state: GameState, playerId: number): void {
+    const player = seat(state, playerId);
+    const next = TECH_IDS.find((id) => !player.techsResearched.includes(id))!;
+    player.techsResearched.push(next);
+    bumpRevision(state);
+  }
+
+  const NAME = 'The Directorate of Arms';
+
+  it('holds on a tie, attacking and defending', () => {
+    const { state, mine, theirs } = board();
+    expect(seat(state).techsResearched.length).toBe(seat(state, 1).techsResearched.length);
+    hold(state, 'theDirectorateOfArms');
+    expect(line(state, mine, 5, 4, NAME)).toBe(3);
+    expect(line(state, theirs, 4, 4, NAME, 'defender')).toBe(3);
+  });
+
+  it('holds while the seat leads', () => {
+    const { state, mine } = board();
+    aheadBy(state, 0);
+    hold(state, 'theDirectorateOfArms');
+    expect(line(state, mine, 5, 4, NAME)).toBe(3);
+  });
+
+  it('ends the turn a met rival moves ahead', () => {
+    const { state, mine } = board();
+    hold(state, 'theDirectorateOfArms');
+    expect(line(state, mine, 5, 4, NAME)).toBe(3);
+    aheadBy(state, 1);
+    expect(line(state, mine, 5, 4, NAME)).toBe(0);
+  });
+
+  it('does not count a rival the seat has not met, however far ahead', () => {
+    const { state, mine } = board();
+    seat(state).metSeats = [];
+    aheadBy(state, 1);
+    hold(state, 'theDirectorateOfArms');
+    expect(line(state, mine, 5, 4, NAME)).toBe(3);
+    seat(state).metSeats = [1];
+    bumpRevision(state);
+    expect(line(state, mine, 5, 4, NAME)).toBe(0);
+  });
+
+  it('does not count an eliminated rival', () => {
+    const { state } = board();
+    aheadBy(state, 1);
+    expect(noMetEmpireAhead(state, 0)).toBe(false);
+    seat(state, 1).eliminated = true;
+    bumpRevision(state);
+    expect(noMetEmpireAhead(state, 0)).toBe(true);
+  });
+
+  it('gives the bots the strength only while the condition holds', () => {
+    const { state } = board();
+    const row = doctrineDef('theDirectorateOfArms').effects;
+    expect(scoreEffects(row, valueContext(state, seat(state)))).toBeGreaterThan(0);
+    aheadBy(state, 1);
+    expect(scoreEffects(row, valueContext(state, seat(state)))).toBe(0);
+  });
+});
+
+describe('The Külliye (batch DT6)', () => {
+  /** A town with an Academy holding a forum, and a second with an Academy, and a third with none. */
+  function board(): { state: GameState; first: City; second: City; bare: City } {
+    const state = bareState(30, 10);
+    const first = town(state, 3, 3, 4);
+    const second = town(state, 12, 3, 4);
+    const bare = town(state, 21, 3, 4);
+    raiseImprovement(at(state, 3, 2), 'academy', 0);
+    raiseImprovement(at(state, 12, 2), 'academy', 0);
+    addBuilding(state, first, 'forum');
+    bumpRevision(state);
+    return { state, first, second, bare };
+  }
+
+  const canBuild = (state: GameState, id: string, city: City) =>
+    buildError(state, 0, 'building', id as never, city);
+
+  it('lets a town with an Academy raise its own copy, and no other town', () => {
+    const { state, second, bare } = board();
+    expect(canBuild(state, 'forum', second)).not.toBeNull();
+    hold(state, 'theKulliye');
+    expect(canBuild(state, 'forum', second)).toBeNull();
+    expect(canBuild(state, 'forum', bare)).toMatch(/already stands/);
+    // A Doctrine lifted the limit here, so the refusal does not call it an Order.
+    expect(canBuild(state, 'forum', bare)).toMatch(/your Doctrine allows another copy only in a city with an Academy/);
+  });
+
+  it('still lets a town hold only one copy', () => {
+    const { state, first } = board();
+    hold(state, 'theKulliye');
+    expect(canBuild(state, 'forum', first)).toMatch(/already stands/);
+  });
+
+  it('allows as many towns with an Academy as there are, with no count', () => {
+    const { state, second } = board();
+    const third = town(state, 12, 7, 4);
+    raiseImprovement(at(state, 12, 8), 'academy', 0);
+    hold(state, 'theKulliye');
+    addBuilding(state, second, 'forum');
+    bumpRevision(state);
+    expect(canBuild(state, 'forum', third)).toBeNull();
+  });
+
+  it('lifts no limit on the Magnum Opus or the three works of the Observatory (reading 25)', () => {
+    const { state } = board();
+    hold(state, 'theKulliye');
+    for (const id of BUILDING_IDS.filter(grantsABead)) {
+      expect(cardLimitLifts(state, 0, id), id).toEqual([]);
+    }
+    expect(cardLimitLifts(state, 0, 'forum')).toEqual([
+      { card: 'theKulliye', scope: { test: 'hasImprovement', improvement: 'academy' } },
+    ]);
+  });
+
+  it('refuses a second Observatory work in a town with an Academy', () => {
+    const { state, first, second } = board();
+    addBuilding(state, first, 'library');
+    addBuilding(state, second, 'library');
+    addBuilding(state, first, 'chartTheStars');
+    seat(state).techsResearched.push(BUILDING_UNLOCK_TECH.get('chartTheStars')!);
+    bumpRevision(state);
+    hold(state, 'theKulliye');
+    expect(canBuild(state, 'chartTheStars', second)).toMatch(/already stands/);
+  });
+
+  it('puts +50% behind an empire building, and none behind the Opus, its works or anything else', () => {
+    const { state, first } = board();
+    hold(state, 'theKulliye');
+    expect(buildPercent(state, first, 'bimaristan', 'theKulliye')).toBe(50);
+    expect(buildPercent(state, first, 'granary', 'theKulliye')).toBe(0);
+    for (const id of BUILDING_IDS.filter(grantsABead)) {
+      expect(buildPercent(state, first, id, 'theKulliye'), id).toBe(0);
+    }
+    expect(doctrineDef('theKulliye').note).toMatch(/Magnum Opus or its works/);
+  });
+
+  it('pays each copy of a town building in its own town', () => {
+    const { state, first, second } = board();
+    hold(state, 'theKulliye');
+    addBuilding(state, second, 'forum');
+    bumpRevision(state);
+    expect(first.buildings).toContain('forum');
+    expect(second.buildings).toContain('forum');
+    const renown = explainRenown(state, 0).filter((entry) => entry.source.startsWith('Forum'));
+    expect(renown).toHaveLength(2);
+  });
+
+  it('reads a row’s empire-wide effect once, and its own capacity for each copy (reading 25)', () => {
+    const { state, first, second } = board();
+    addBuilding(state, first, 'imperialThrone');
+    bumpRevision(state);
+    hold(state, 'theKulliye');
+    const naming = (text: string) =>
+      explainAuthority(state, 0).filter((entry) => entry.part === 'gain' && entry.source.includes(text));
+    const effect = naming('Building · Imperial Throne');
+    expect(effect).toHaveLength(1);
+    const capacity = buildingDef('imperialThrone').authorityCapacity!;
+    expect(naming('Imperial Throne').reduce((sum, entry) => sum + entry.value, 0)).toBe(capacity + effect[0]!.value);
+    addBuilding(state, second, 'imperialThrone');
+    bumpRevision(state);
+    expect(naming('Building · Imperial Throne')).toEqual(effect);
+    expect(naming('Imperial Thrones ×2')[0]!.value).toBe(capacity * 2);
   });
 });

@@ -4,22 +4,29 @@
  * the sheet. This file checks that each row pays what its text says, in a real
  * fold, and that each drawback bites.
  *
- * Later batches add the deck's other seven Doctrines to this file.
+ * Batch DT6 adds The Laurion Leases and The Muda. Later batches add the deck's
+ * other five Doctrines to this file.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import { scoreCard, valueContext } from '../../../src/ai/bot';
+import { scoreEffects } from '../../../src/ai/value';
+import { arriveOnTile } from '../../../src/sim/arrival';
 import { cityBlockaded } from '../../../src/sim/blockade';
 import { explainCardImpact } from '../../../src/sim/cardImpact';
 import {
   explainGrowthPercent,
+  explainTilePurchase,
   explainUnitCost,
   foldGrowthPercent,
+  foldTilePrice,
   foldUnitCost,
   foundCityAt,
   refreshCityDerived,
+  tilePurchasePrice,
 } from '../../../src/sim/cities';
+import { attackTargetAt } from '../../../src/sim/combat';
 import { applyCommand } from '../../../src/sim/commands';
 import { raiseImprovement } from '../../../src/sim/map';
 import { explainAuthority, explainFoundingCost, explainHappiness } from '../../../src/sim/meters';
@@ -30,7 +37,7 @@ import {
 } from '../../../src/sim/purchase';
 import { readRoutes } from '../../../src/sim/readings';
 import { layRoad } from '../../../src/sim/roads';
-import { explainRouteYield, foldRouteYield } from '../../../src/sim/routeYields';
+import { explainRouteSenderYield, explainRouteYield, foldRouteYield } from '../../../src/sim/routeYields';
 import { RULES } from '../../../src/sim/rulesData';
 import {
   type City,
@@ -45,32 +52,45 @@ import {
 import { doctrineBagFor } from '../../../src/sim/statecraft';
 import {
   cardRenownLines,
+  cardRulePercent,
   explainCardPercentYields,
 } from '../../../src/sim/statecraft/evaluator';
 import {
+  type CardEffect,
   type DoctrineId,
   DECK_FILE_DOCTRINES,
   doctrineDef,
   poolDoctrines,
 } from '../../../src/sim/statecraftData';
+import { resourceDef } from '../../../src/sim/resourceData';
+import { startRouteAt } from '../../../src/sim/trade';
 import { openWar } from '../../../src/sim/wars';
 import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
 import { explainCity, foldCity } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
 import { createGame } from '../newGameHelpers';
+import { lendDoctrineEffects } from '../statecraftHelpers';
 
-/** The seven rows of batch DT3 in this deck, each with the band its table gives it. */
+/** The seven rows of batch DT3 and the two of batch DT6, each with the band its table gives it. */
 const ROWS: readonly (readonly [string, number])[] = [
   ['theApoikia', 1],
+  ['theLaurionLeases', 1],
   ['theDelianLeague', 1],
   ['theSogdianColonies', 2],
   ['theYearAndADay', 3],
+  ['theMuda', 3],
   ['theTurnpikeTrusts', 3],
   ['thePeaceOfLodi', 4],
   ['theMonteDiPieta', 4],
 ];
 
 const TERM = Math.floor(RULES.trade.routeTurns);
+
+/** Lent rows, put back after each test, so a failed test cannot leak one into the next. */
+const lent: (() => void)[] = [];
+afterEach(() => {
+  while (lent.length > 0) lent.pop()!();
+});
 
 function seat(state: GameState, id = 0): Player {
   return playerById(state, id)!;
@@ -559,5 +579,210 @@ describe('The Monte di Pietà', () => {
     expect(explainCardPercentYields(state, city).filter((line) => line.card === 'theMonteDiPieta')).toEqual([
       expect.objectContaining({ yield: 'gold', percent: -10, stage: 'city' }),
     ]);
+  });
+});
+
+describe('The Laurion Leases (batch DT6)', () => {
+  /** A town of seat 0, with three hexes in its second ring: a seam, a hidden seam and plain ground. */
+  function ground(): {
+    state: GameState;
+    city: City;
+    seam: { col: number; row: number };
+    hidden: { col: number; row: number };
+    plain: { col: number; row: number };
+  } {
+    const state = bareState(24, 10);
+    const city = town(state, 5, 5, 3);
+    const seam = { col: 7, row: 5 };
+    const hidden = { col: 3, row: 5 };
+    const plain = { col: 7, row: 3 };
+    at(state, seam.col, seam.row).resource = 'wheat';
+    at(state, hidden.col, hidden.row).resource = 'iron';
+    // The seat has not learned the technology that shows iron.
+    const gate = resourceDef('iron').requiresTech!;
+    const player = seat(state);
+    player.techsResearched = player.techsResearched.filter((id) => id !== gate);
+    bumpRevision(state);
+    return { state, city, seam, hidden, plain };
+  }
+
+  it('halves the price of a hex with a resource, as a labelled line of the list', () => {
+    const { state, city, seam } = ground();
+    const before = tilePurchasePrice(state, 0, city.id, seam);
+    hold(state, 'theLaurionLeases');
+    const lines = explainTilePurchase(state, 0, city.id, seam);
+    const named = lines.filter((line) => line.source.includes('The Laurion Leases'));
+    expect(named).toHaveLength(1);
+    expect(tilePurchasePrice(state, 0, city.id, seam)).toBe(Math.floor(before / 2));
+    expect(tilePurchasePrice(state, 0, city.id, seam)).toBe(foldTilePrice(lines));
+  });
+
+  it('leaves the price of a hex with no resource alone', () => {
+    const { state, city, plain } = ground();
+    const before = explainTilePurchase(state, 0, city.id, plain);
+    hold(state, 'theLaurionLeases');
+    expect(explainTilePurchase(state, 0, city.id, plain)).toEqual(before);
+  });
+
+  it('charges the full price for a seam the seat cannot see, so the price reveals nothing (reading 18)', () => {
+    const { state, city, hidden } = ground();
+    const before = tilePurchasePrice(state, 0, city.id, hidden);
+    hold(state, 'theLaurionLeases');
+    expect(tilePurchasePrice(state, 0, city.id, hidden)).toBe(before);
+    expect(
+      explainTilePurchase(state, 0, city.id, hidden).filter((line) => line.source.includes('The Laurion Leases')),
+    ).toEqual([]);
+    // The turn it learns the technology, the seam is cheap. The technology also
+    // moves the era line, so the line is read and not the old price.
+    seat(state).techsResearched.push(resourceDef('iron').requiresTech!);
+    bumpRevision(state);
+    const lines = explainTilePurchase(state, 0, city.id, hidden);
+    const discount = lines.filter((line) => line.source.includes('The Laurion Leases'));
+    expect(discount).toHaveLength(1);
+    expect(foldTilePrice(lines)).toBe(Math.floor((foldTilePrice(lines) - discount[0]!.amount) / 2));
+  });
+
+  it('is silent to a caller with no hex in hand', () => {
+    const { state } = ground();
+    hold(state, 'theLaurionLeases');
+    expect(cardRulePercent(state, 0, 'tilePurchase')).toEqual([]);
+  });
+
+  it('sums with a discount on every hex before one multiplication', () => {
+    const { state, city, seam, plain } = ground();
+    const before = { seam: tilePurchasePrice(state, 0, city.id, seam), plain: tilePurchasePrice(state, 0, city.id, plain) };
+    lent.push(
+      lendDoctrineEffects('theApoikia', [{ kind: 'rulePercent', rule: 'tilePurchase', percent: -10 }]),
+    );
+    hold(state, 'theApoikia');
+    hold(state, 'theLaurionLeases');
+    expect(tilePurchasePrice(state, 0, city.id, seam)).toBe(Math.floor(before.seam * 0.4));
+    expect(tilePurchasePrice(state, 0, city.id, plain)).toBe(Math.floor(before.plain * 0.9));
+  });
+
+  it('charges the discounted price when the hex is bought', () => {
+    const { state, city, seam } = ground();
+    hold(state, 'theLaurionLeases');
+    const player = seat(state);
+    player.gold = 1000;
+    const price = tilePurchasePrice(state, 0, city.id, seam);
+    const result = applyCommand(state, { type: 'purchaseTile', playerId: 0, cityId: city.id, col: seam.col, row: seam.row });
+    expect(result.ok).toBe(true);
+    expect(player.gold).toBe(1000 - price);
+  });
+
+  it('prices only the share of the hexes the seat would buy that hold a resource', () => {
+    const { state } = ground();
+    const player = seat(state);
+    player.tilesPurchased = 5;
+    state.turn = 20;
+    bumpRevision(state);
+    const everywhere: CardEffect = { kind: 'rulePercent', rule: 'tilePurchase', percent: -50 };
+    const narrow = doctrineDef('theLaurionLeases').effects;
+    const whole = scoreEffects([everywhere], valueContext(state, player));
+    const part = scoreEffects(narrow, valueContext(state, player));
+    expect(whole).toBeGreaterThan(0);
+    expect(part).toBeGreaterThanOrEqual(0);
+    expect(part).toBeLessThan(whole);
+  });
+});
+
+describe('The Muda (batch DT6)', () => {
+  /**
+   * Seat 0's town, seat 0's second town and seat 1's town, all at peace, and the wild
+   * as the party at war with everyone. A caravan bound for each of the two towns
+   * stands off the town hexes, because an unbeaten city outranks a cart in its gates.
+   */
+  function roads(): { state: GameState; home: City; other: City; abroad: City; domestic: Unit; foreign: Unit } {
+    const state = bareState(30, 9, true);
+    state.wars = [];
+    const home = foundCityAt(state, 0, at(state, 3, 4));
+    const other = foundCityAt(state, 0, at(state, 10, 4));
+    const abroad = foundCityAt(state, 1, at(state, 18, 4));
+    home.buildings.push('market', 'library');
+    for (const city of [home, other, abroad]) city.population = 10;
+    const domestic = createUnit(state, 0, 'trader', 5, 2);
+    startRouteAt(state, domestic, home, other, 'land');
+    const foreign = createUnit(state, 0, 'trader', 5, 6);
+    startRouteAt(state, foreign, home, abroad, 'land');
+    bumpRevision(state);
+    return { state, home, other, abroad, domestic, foreign };
+  }
+
+  /** The seat of the wild, which is at war with everyone. */
+  function wildSeat(state: GameState): number {
+    return state.players.find((player) => player.barbarian === true)!.id;
+  }
+
+  it('pays the sender +3 science and +3 culture on a route abroad, and nothing on a route at home', () => {
+    const { state, domestic, foreign } = roads();
+    const senderPays = (unit: Unit) => foldRouteYield(explainRouteSenderYield(state, unit));
+    const beforeHome = foldRouteYield(explainRouteYield(state, domestic));
+    const beforeAbroad = senderPays(foreign);
+    hold(state, 'theMuda');
+    expect(foldRouteYield(explainRouteYield(state, domestic))).toEqual(beforeHome);
+    const after = senderPays(foreign);
+    expect(after.science).toBe(beforeAbroad.science + 3);
+    expect(after.culture).toBe(beforeAbroad.culture + 3);
+    expect(after.gold).toBe(beforeAbroad.gold);
+    expect(explainRouteSenderYield(state, foreign).filter((line) => line.source.includes('The Muda'))).toHaveLength(1);
+  });
+
+  it('takes a caravan abroad off the target list, and leaves a caravan at home on it', () => {
+    const { state, domestic, foreign } = roads();
+    const wild = wildSeat(state);
+    expect(attackTargetAt(state, foreign.col, foreign.row, wild)?.unit?.id).toBe(foreign.id);
+    hold(state, 'theMuda');
+    expect(attackTargetAt(state, foreign.col, foreign.row, wild)?.unit ?? null).toBeNull();
+    expect(attackTargetAt(state, domestic.col, domestic.row, wild)?.unit?.id).toBe(domestic.id);
+  });
+
+  it('leaves a caravan abroad standing when something comes to rest on its hex', () => {
+    const { state, foreign } = roads();
+    hold(state, 'theMuda');
+    const raider = createUnit(state, wildSeat(state), 'warrior', foreign.col, foreign.row);
+    bumpRevision(state);
+    const report = arriveOnTile(state, raider, at(state, foreign.col, foreign.row));
+    expect(report.plundered).toHaveLength(0);
+    expect(report.captured).toHaveLength(0);
+    expect(state.units.find((unit) => unit.id === foreign.id)?.ownerId).toBe(0);
+  });
+
+  it('lets an arrival plunder a caravan at home', () => {
+    const { state, domestic } = roads();
+    hold(state, 'theMuda');
+    const raider = createUnit(state, wildSeat(state), 'warrior', domestic.col, domestic.row);
+    bumpRevision(state);
+    const report = arriveOnTile(state, raider, at(state, domestic.col, domestic.row));
+    expect(report.plundered).toHaveLength(1);
+    expect(state.units.some((unit) => unit.id === domestic.id)).toBe(false);
+  });
+
+  it('stops covering the cart when a war with the destination’s owner ends its route (reading 19)', () => {
+    const { state, foreign } = roads();
+    hold(state, 'theMuda');
+    expect(attackTargetAt(state, foreign.col, foreign.row, 1)?.unit ?? null).toBeNull();
+    openWar(state, 0, 1);
+    bumpRevision(state);
+    expect(attackTargetAt(state, foreign.col, foreign.row, 1)?.unit?.id).toBe(foreign.id);
+  });
+
+  it('leaves an unladen trader open to capture, because the rule is about the route', () => {
+    const { state, home } = roads();
+    hold(state, 'theMuda');
+    const idle = createUnit(state, 0, 'trader', home.col + 2, home.row);
+    bumpRevision(state);
+    expect(attackTargetAt(state, idle.col, idle.row, wildSeat(state))?.unit?.id).toBe(idle.id);
+  });
+
+  it('protects only the seat that holds it', () => {
+    const { state, abroad, home } = roads();
+    hold(state, 'theMuda', 1);
+    const theirs = createUnit(state, 1, 'trader', abroad.col + 2, abroad.row);
+    startRouteAt(state, theirs, abroad, home, 'land');
+    const mine = state.units.find((unit) => unit.ownerId === 0 && unit.trade?.to === abroad.id)!;
+    bumpRevision(state);
+    expect(attackTargetAt(state, theirs.col, theirs.row, wildSeat(state))?.unit ?? null).toBeNull();
+    expect(attackTargetAt(state, mine.col, mine.row, wildSeat(state))?.unit?.id).toBe(mine.id);
   });
 });

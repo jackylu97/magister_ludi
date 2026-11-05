@@ -2279,7 +2279,9 @@ describe("determinism", () => {
     // v208 log's draws move.
     // 210 since batch DT5 (the gates on the Doctrine offer, and six rows): a
     // gated row leaves a seat's bag, so a v209 log's draws move.
-    expect(SCHEMA_VERSION).toBe(210);
+    // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
+    // so a v210 log's draws move.
+    expect(SCHEMA_VERSION).toBe(211);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -9034,11 +9036,15 @@ describe("the engine shapes", () => {
     // takes a share of the whole recurring renown (`where: 'empire'`). The
     // Doctrines come before the Orders in the walk.
     "theStrategoi · cityRenownPercent",
+    // Batch DT6: The Muda's flat science and culture on a route abroad.
+    "theMuda · routeYield",
     // Batch DT3: The Peace of Lodi's two shares of a caravan, one for peace and one
     // for war, and The Universitas' two shares of a science building, one positive
     // and one negative.
     "thePeaceOfLodi · routeYield",
     "thePeaceOfLodi · routeYield",
+    // Batch DT6: The Peripatetic School's share of the renown of its rows.
+    "thePeripateticSchool · cityRenownPercent",
     "theUniversitas · buildingYieldPercent",
     "theUniversitas · buildingYieldPercent",
     "silkRoads · routeYield",

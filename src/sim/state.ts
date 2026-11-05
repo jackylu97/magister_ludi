@@ -3330,8 +3330,28 @@ import {
  *
  * **A v209 save is refused and does not replay.** These seats' Doctrine bags change,
  * so their draws move. The branch migrates nothing, for the reason given under v119.
+ *
+ * v211 (branch `decks`; batch DT6, `docs/plans/doctrines-build-triage.md`):
+ * **Eleven Doctrines that each need one small new field or test.** No field joins
+ * the state. The rules that change:
+ *
+ *   · The Highland Clans, The Curator of Waters and All Roads Lead to Rome are dealt
+ *     to an Expansionist seat;
+ *   · The Laurion Leases and The Muda are dealt to a Commerce seat;
+ *   · The Peripatetic School, The Directorate of Arms and The Külliye are dealt to a
+ *     Scientific seat;
+ *   · The Carroccio and The Gobelins are dealt to a Magisterial seat;
+ *   · The Paean is dealt to a Devotion seat;
+ *   · the card rules gain a tile test (`townCentre`), a town scope (`notConnected`),
+ *     two combat scale counts (`wonders`, `beliefsHeld`), an empire condition
+ *     (`noMetEmpireAhead`) and a behaviour rule (`foreignTradersUnplunderable`), and
+ *     a production bonus, a rate, a renown share and a limit lift each gain a
+ *     narrowing (`publicWork` and `tile`, `tile`, `of`, `skipsBeadRows`).
+ *
+ * **A v210 save is refused and does not replay.** These seats' Doctrine bags change,
+ * so their draws move. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 210;
+export const SCHEMA_VERSION = 211;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

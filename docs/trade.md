@@ -44,6 +44,10 @@ History and the original proposal: `docs/history/design-history.md`.
   the tint, the forecast and the reducer refuse the blow as one, sword and shot
   alike, and a winner arriving on its hex leaves it standing rather than taking
   it. The rule is read at exactly those two seams.
+- **The Muda narrows the same law to routes abroad** (`foreignTradersUnplunderable`,
+  batch DT6): it covers a laden cart whose route ends in another empire's town.
+  `cardTraderShielded` answers both rules at both seams. If the sender goes to war
+  with the destination's owner, the route ends, and the cover ends with it.
 
 ## Hiring a route (ruled 2026-09-09, schema 100)
 

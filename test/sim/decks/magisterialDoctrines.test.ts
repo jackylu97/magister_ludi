@@ -5,12 +5,14 @@
  * fold. None of these rows has a drawback, so each also has a test that it costs
  * nothing or that it pays nothing where its text does not reach.
  *
- * Later batches add the deck's other nine Doctrines to this file.
+ * Batch DT6 adds The Carroccio and The Gobelins. Later batches add the deck's other
+ * seven Doctrines to this file.
  */
 
 import { describe, expect, it } from 'vitest';
 
 import { scoreCard, valueContext } from '../../../src/ai/bot';
+import { scoreEffects } from '../../../src/ai/value';
 import { WONDER_IDS } from '../../../src/sim/buildingData';
 import { explainCardImpact } from '../../../src/sim/cardImpact';
 import {
@@ -44,6 +46,7 @@ import {
 } from '../../../src/sim/state';
 import { doctrineBagFor } from '../../../src/sim/statecraft';
 import {
+  cardCombatLines,
   cardRenownLines,
   explainBuildingPackage,
   explainCardCityYields,
@@ -51,6 +54,7 @@ import {
   windfallPayout,
 } from '../../../src/sim/statecraft/evaluator';
 import {
+  type CardEffect,
   type DoctrineId,
   type OrderId,
   DECK_FILE_DOCTRINES,
@@ -60,7 +64,7 @@ import {
   poolDoctrines,
 } from '../../../src/sim/statecraftData';
 import { ABILITY_TECH, TECH_IDS, techDef } from '../../../src/sim/techData';
-import { explainCity } from '../../../src/sim/yields/town';
+import { explainCity, productionModifiers } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
 import { createGame } from '../newGameHelpers';
 
@@ -71,7 +75,9 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theMagnaura', 2],
   ['theBarmakids', 2],
   ['theBourgs', 3],
+  ['theCarroccio', 3],
   ['theKitabkhana', 4],
+  ['theGobelins', 4],
   ['theEscorial', 4],
 ];
 
@@ -679,5 +685,163 @@ describe('The Escorial', () => {
     expect(windfallPayout(state, 0, 'completion', 0, 0, { wonder: true }).people).toHaveLength(1);
     expect(windfallPayout(state, 0, 'completion', 0, 0, { wonder: false }).people ?? []).toEqual([]);
     expect(WONDER_IDS).not.toContain('theMagnumOpus');
+  });
+});
+
+describe('The Carroccio (batch DT6)', () => {
+  /** The strength this card gives a piece attacking, read off the fight's own lines. */
+  function strength(state: GameState, unit: Unit, side: 'attack' | 'defend' = 'attack'): number {
+    return cardCombatLines(state, {
+      unit,
+      side,
+      tile: at(state, unit.col, unit.row),
+      vsBarbarians: false,
+      vsCity: false,
+      targetHp: 100,
+      targetMaxHp: 100,
+    })
+      .filter((line) => line.card === 'theCarroccio')
+      .reduce((sum, line) => sum + line.amount, 0);
+  }
+
+  it('gives +1 strength for each wonder held, attacking and defending', () => {
+    const state = bareState();
+    const city = town(state, 5, 5);
+    const piece = createUnit(state, 0, 'warrior', 7, 5);
+    hold(state, 'theCarroccio');
+    expect(strength(state, piece)).toBe(0);
+    addBuilding(state, city, WONDER_IDS[0]!);
+    addBuilding(state, city, WONDER_IDS[1]!);
+    bumpRevision(state);
+    expect(strength(state, piece)).toBe(2);
+    expect(strength(state, piece, 'defend')).toBe(2);
+  });
+
+  it('stops at +8', () => {
+    const state = bareState();
+    const city = town(state, 5, 5);
+    const piece = createUnit(state, 0, 'warrior', 7, 5);
+    hold(state, 'theCarroccio');
+    for (const id of WONDER_IDS.slice(0, 10)) addBuilding(state, city, id);
+    bumpRevision(state);
+    expect(strength(state, piece)).toBe(8);
+  });
+
+  it('stops counting a wonder when its town changes hands', () => {
+    const state = bareState();
+    const city = town(state, 5, 5);
+    const piece = createUnit(state, 0, 'warrior', 7, 5);
+    addBuilding(state, city, WONDER_IDS[0]!);
+    hold(state, 'theCarroccio');
+    expect(strength(state, piece)).toBe(1);
+    city.ownerId = 1;
+    bumpRevision(state);
+    expect(strength(state, piece)).toBe(0);
+  });
+
+  it('adds nothing for a rival’s piece', () => {
+    const state = bareState();
+    const city = town(state, 5, 5);
+    addBuilding(state, city, WONDER_IDS[0]!);
+    const theirs = createUnit(state, 1, 'warrior', 7, 5);
+    hold(state, 'theCarroccio');
+    expect(strength(state, theirs)).toBe(0);
+  });
+
+  it('prices the bots’ line by the wonders held and the cap', () => {
+    const state = bareState();
+    const city = town(state, 5, 5);
+    const line = doctrineDef('theCarroccio').effects;
+    const none = scoreEffects(line, valueContext(state, seat(state)));
+    addBuilding(state, city, WONDER_IDS[0]!);
+    bumpRevision(state);
+    const one = scoreEffects(line, valueContext(state, seat(state)));
+    expect(one).toBeGreaterThan(none);
+    for (const id of WONDER_IDS.slice(1, 12)) addBuilding(state, city, id);
+    bumpRevision(state);
+    const many = scoreEffects(line, valueContext(state, seat(state)));
+    const flat: CardEffect = { kind: 'combatLine', amount: 8, side: 'both', when: { test: 'always' } };
+    expect(many).toBeCloseTo(scoreEffects([flat], valueContext(state, seat(state))), 6);
+  });
+});
+
+describe('The Gobelins (batch DT6)', () => {
+  const NAME = 'theGobelins';
+
+  /** What this card puts behind one row in this town. */
+  function percent(state: GameState, city: City, id: string): number {
+    return productionModifiers(state, city, { kind: 'building', id: id as never })
+      .filter((entry) => entry.card === NAME)
+      .reduce((sum, entry) => sum + entry.percent, 0);
+  }
+
+  it('gives +4% toward the Opus for each great-person work in the borders, in any of the seat’s towns', () => {
+    const state = bareState(30, 10);
+    const first = town(state, 5, 5);
+    const second = town(state, 20, 5);
+    raiseImprovement(at(state, 5, 4), 'academy', 0);
+    raiseImprovement(at(state, 20, 4), 'manufactory', 0);
+    bumpRevision(state);
+    hold(state, NAME);
+    expect(percent(state, first, 'theMagnumOpus')).toBe(8);
+    expect(percent(state, second, 'theMagnumOpus')).toBe(8);
+  });
+
+  it('counts a holy site, and no farm, and no work outside the borders', () => {
+    const state = bareState(30, 10);
+    const city = town(state, 5, 5);
+    raiseImprovement(at(state, 5, 4), 'holySite', 0);
+    raiseImprovement(at(state, 6, 5), 'farm', 0);
+    raiseImprovement(at(state, 25, 5), 'academy', 0);
+    bumpRevision(state);
+    hold(state, NAME);
+    expect(percent(state, city, 'theMagnumOpus')).toBe(4);
+  });
+
+  it('stops at +40%', () => {
+    const state = bareState(30, 10);
+    const city = town(state, 8, 5);
+    const owned = ownedTiles(state, city).filter((tile) => tile.col !== city.col || tile.row !== city.row);
+    expect(owned.length).toBeGreaterThanOrEqual(6);
+    // Claim a wider ring, so the count passes ten.
+    for (const tile of state.map.tiles) {
+      const near = Math.abs(tile.col - city.col) <= 3 && Math.abs(tile.row - city.row) <= 3;
+      if (near) {
+        state.tileOwner[tile.row * state.map.width + tile.col] = city.id;
+        if (tile.col !== city.col || tile.row !== city.row) raiseImprovement(tile, 'academy', 0);
+      }
+    }
+    bumpRevision(state);
+    expect(ownedTiles(state, city).length).toBeGreaterThan(11);
+    hold(state, NAME);
+    expect(percent(state, city, 'theMagnumOpus')).toBe(40);
+  });
+
+  it('reaches nothing but the Magnum Opus', () => {
+    const state = bareState(30, 10);
+    const city = town(state, 5, 5);
+    raiseImprovement(at(state, 5, 4), 'academy', 0);
+    bumpRevision(state);
+    hold(state, NAME);
+    expect(percent(state, city, 'monument')).toBe(0);
+    const unit = productionModifiers(state, city, { kind: 'unit', id: 'settler' as never });
+    expect(unit.filter((entry) => entry.card === NAME)).toEqual([]);
+    const wonder = productionModifiers(state, city, { kind: 'building', id: WONDER_IDS[0]! });
+    expect(wonder.filter((entry) => entry.card === NAME)).toEqual([]);
+  });
+
+  it('prices the bots’ bonus by the works in the borders, up to its cap', () => {
+    const state = bareState(30, 10);
+    const city = town(state, 5, 5);
+    const row = doctrineDef(NAME).effects;
+    expect(scoreEffects(row, valueContext(state, seat(state)))).toBe(0);
+    raiseImprovement(at(state, 5, 4), 'academy', 0);
+    bumpRevision(state);
+    const one = scoreEffects(row, valueContext(state, seat(state)));
+    expect(one).toBeGreaterThan(0);
+    raiseImprovement(at(state, 6, 5), 'academy', 0);
+    bumpRevision(state);
+    expect(scoreEffects(row, valueContext(state, seat(state)))).toBeCloseTo(one * 2, 6);
+    expect(city.ownerId).toBe(0);
   });
 });

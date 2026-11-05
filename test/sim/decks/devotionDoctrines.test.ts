@@ -6,12 +6,14 @@
  * has a test that it pays nothing where its text does not reach. The gate itself is
  * checked in `doctrineOffer.test.ts`.
  *
- * Later batches add the deck's other eight Doctrines to this file.
+ * Batch DT6 adds The Paean. Later batches add the deck's other seven Doctrines to
+ * this file.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { scoreCard, valueContext } from '../../../src/ai/bot';
+import { scoreEffects } from '../../../src/ai/value';
 import { explainCardImpact } from '../../../src/sim/cardImpact';
 import {
   explainGrowthPercent,
@@ -25,12 +27,18 @@ import { raiseImprovement } from '../../../src/sim/map';
 import { explainAuthority, explainFoundingCost, explainHappiness } from '../../../src/sim/meters';
 import { type PurchaseSubject, explainPurchaseCost, purchaseError } from '../../../src/sim/purchase';
 import { cityRite, empireRiteAt, performRiteAt } from '../../../src/sim/religion';
-import { type RiteId } from '../../../src/sim/religionData';
+import {
+  BELIEF_IDS,
+  ENHANCER_BELIEF_IDS,
+  FOLLOWER_BELIEF_IDS,
+  type RiteId,
+} from '../../../src/sim/religionData';
 import {
   type City,
   type GameState,
   type Player,
   type Religion,
+  type Unit,
   addBuilding,
   bumpRevision,
   createUnit,
@@ -38,7 +46,12 @@ import {
   spendFaith,
 } from '../../../src/sim/state';
 import { doctrineBagFor } from '../../../src/sim/statecraft';
-import { cardProduction, cardRulePercent, explainCardCityYields } from '../../../src/sim/statecraft/evaluator';
+import {
+  cardCombatLines,
+  cardProduction,
+  cardRulePercent,
+  explainCardCityYields,
+} from '../../../src/sim/statecraft/evaluator';
 import {
   type CardEffect,
   type DoctrineId,
@@ -58,6 +71,7 @@ import { lendDoctrineEffects } from '../statecraftHelpers';
 const ROWS: readonly (readonly [string, number])[] = [
   ['theTheoricFund', 1],
   ['theRitesOfZhou', 1],
+  ['thePaean', 1],
   ['theSaintPetersIndulgence', 4],
   ['thePatrimonyOfPeter', 2],
   ['theImarets', 3],
@@ -826,4 +840,68 @@ describe('The Two Sanctuaries', () => {
     );
     hold(state, 'theSaintPetersIndulgence');
   }
+});
+
+describe('The Paean (batch DT6)', () => {
+  /** The strength this card gives a piece, read off the fight's own lines. */
+  function strength(state: GameState, unit: Unit, side: 'attack' | 'defend' = 'attack'): number {
+    return cardCombatLines(state, {
+      unit,
+      side,
+      tile: at(state, unit.col, unit.row),
+      vsBarbarians: false,
+      vsCity: false,
+      targetHp: 100,
+      targetMaxHp: 100,
+    })
+      .filter((line) => line.card === 'thePaean')
+      .reduce((sum, line) => sum + line.amount, 0);
+  }
+
+  /** Two gods of the seat's own, as a founded pantheon holds them. */
+  const GODS = BELIEF_IDS.slice(0, 2);
+
+  it('gives a military unit +1 strength for each god held, attacking and defending', () => {
+    const state = bareState();
+    const piece = createUnit(state, 0, 'warrior', 7, 5);
+    hold(state, 'thePaean');
+    const before = seat(state).pantheon.beliefs.length;
+    expect(strength(state, piece)).toBe(before);
+    seat(state).pantheon.beliefs.push(...GODS);
+    bumpRevision(state);
+    expect(strength(state, piece)).toBe(before + 2);
+    expect(strength(state, piece, 'defend')).toBe(before + 2);
+  });
+
+  it('counts the follower and enhancer beliefs of a held religion, and not its copy of the gods', () => {
+    const state = bareState(24, 10);
+    const site = town(state, 5, 5);
+    const piece = createUnit(state, 0, 'warrior', 7, 5);
+    hold(state, 'thePaean');
+    const religion = religionAt(state, site);
+    religion.pantheon = [...GODS];
+    religion.follower = [FOLLOWER_BELIEF_IDS[0]!];
+    religion.enhancer = [ENHANCER_BELIEF_IDS[0]!];
+    bumpRevision(state);
+    expect(strength(state, piece)).toBe(seat(state).pantheon.beliefs.length + 2);
+  });
+
+  it('gives a civilian nothing, and a rival’s piece nothing', () => {
+    const state = bareState();
+    const worker = createUnit(state, 0, 'worker', 7, 5);
+    const theirs = createUnit(state, 1, 'warrior', 8, 5);
+    seat(state).pantheon.beliefs.push(...GODS);
+    hold(state, 'thePaean');
+    expect(strength(state, worker)).toBe(0);
+    expect(strength(state, theirs)).toBe(0);
+  });
+
+  it('prices the bots’ line by the beliefs held', () => {
+    const state = bareState();
+    const line = doctrineDef('thePaean').effects;
+    const none = scoreEffects(line, valueContext(state, seat(state)));
+    seat(state).pantheon.beliefs.push(...GODS);
+    bumpRevision(state);
+    expect(scoreEffects(line, valueContext(state, seat(state)))).toBeGreaterThan(none);
+  });
 });

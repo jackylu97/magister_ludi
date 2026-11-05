@@ -3221,6 +3221,26 @@
         }
       ]
     },
+    "theLaurionLeases": {
+      "name": "The Laurion Leases",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "flavor": "The city sold the right to dig, and never the hill.",
+      "text": "Hexes with a resource cost half as much gold to buy.",
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "tilePurchase",
+          "percent": -50,
+          "tile": {
+            "test": "hasResource"
+          }
+        }
+      ]
+    },
     "theDelianLeague": {
       "name": "The Delian League",
       "decks": [
@@ -3305,6 +3325,29 @@
             "direction": "arriving",
             "atMost": 0
           }
+        }
+      ]
+    },
+    "theMuda": {
+      "name": "The Muda",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "flavor": "The galleys sail in convoy, and the state insures the pepper.",
+      "text": "Your trade routes to other empires pay +3 science and +3 culture, and cannot be plundered.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "crossing": "international",
+          "science": 3,
+          "culture": 3
+        },
+        {
+          "kind": "rule",
+          "rule": "foreignTradersUnplunderable"
         }
       ]
     },

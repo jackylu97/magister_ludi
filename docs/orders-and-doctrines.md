@@ -190,40 +190,51 @@ governments, so Tier IV opened at 29.
 | The Scourge of God | Dominion | IV | tier 26 | Units that have pillaged in the last five turns gain +6 strength. Pillaging gives your capital +100% production for five turns, which does not stack. |
 | Bound to the Soil | Expansionist | I | tier 4 | Workers gain +1 charge. Tended tiles gain +1 food. |
 | The Gift of the River | Expansionist | I | tier 4 | Worked tiles beside a river gain +1 food and +1 production. Towns away from fresh water cost 3 more happiness. |
+| The Highland Clans | Expansionist | I | tier 4 | Towns on hills cost 1 less authority. Hills beside a town gain +1 food. |
 | The Commanderies | Expansionist | I | tier 4 | Each of your towns costs 1 less authority, minimum one. Your borders grow 30% more slowly. |
 | Synoecism | Expansionist | II | tier 10 | Your towns of six or more citizens grow 30% faster. Towns you founded cost 1 more authority, including those you already hold. |
+| The Curator of Waters | Expansionist | II | tier 10 | Public works give +2 happiness and are built 50% faster. |
 | Crop Rotation | Expansionist | III | tier 18 | Worked improvements yield twice their own bonus. Worked unimproved tiles yield nothing. |
 | The Contented City | Expansionist | III | tier 18 | Your citizens ask 20% less happiness. Your gold income is halved. |
 | Empire Without End | Expansionist | III | tier 18 | +1 authority for each town you hold. |
+| All Roads Lead to Rome | Expansionist | III | tier 18 | Your capital gains +3% production and gold for each town joined to it by road, at most +45%. Each town not joined to it costs 2 more authority. |
 | The Garden Peoples | Expansionist | III | tier 18 | Needs tended land. Tended tiles gain +1 food, +1 production and +1 culture. |
 | The Physiocrats | Expansionist | IV | tier 26 | Every improved tile gains +2 food, +2 production and +2 gold. |
 | The Cathedral Lodges | Expansionist | IV | tier 26 | Manufactories yield twice as much. Towns with a Manufactory gain +30% production toward wonders and the Magnum Opus. |
 | The High Towns | Expansionist | IV | tier 26 | Your towns may work mountains. Mountains gain +4 production, and each gives +1 production to the hexes beside it. |
 | The Mandarinate | Expansionist | IV | tier 26 | Each point of spare authority gives +1% science and culture, at most +30%. Each of your towns costs 1 more authority. |
 | The Apoikia | Commerce | I | tier 4 | Settlers and workers cost half as much gold to buy. |
+| The Laurion Leases | Commerce | I | tier 4 | Hexes with a resource cost half as much gold to buy. |
 | The Delian League | Commerce | I | tier 4 | Your coastal towns cost 1 less authority and gain +3 production. |
 | The Sogdian Colonies | Commerce | II | tier 10 | Each of your towns holding your trading post gains +3 culture and +3 renown, favouring merchants. |
 | The Year and a Day | Commerce | III | tier 18 | Your towns that a domestic route reaches grow 25% faster. Your other towns grow 25% more slowly. |
+| The Muda | Commerce | III | tier 18 | Your trade routes to other empires pay +3 science and +3 culture, and cannot be plundered. |
 | The Turnpike Trusts | Commerce | III | tier 18 | Caravans cost half as much gold to buy. Hexes with a road gain +1 gold. |
 | The Peace of Lodi | Commerce | IV | tier 26 | While you are at peace, your trade routes pay 50% more. While you are at war, they pay 25% less. |
 | The Monte di Pietà | Commerce | IV | tier 26 | Every 200 gold in your treasury gives +1 happiness, at most +20. Your towns make 10% less gold. |
 | The Pythagorean Brotherhood | Scientific | I | tier 4 | +2 science in every city, doubled in cities with a Shrine. |
 | The Removal to Xianyang | Scientific | I | tier 4 | Your towns grow 30% faster. Settlers cost twice as much. |
 | The Workshops of Syracuse | Scientific | I | tier 4 | Your military units gain +5 combat strength. They cost 50% more to build and to buy. |
+| The Peripatetic School | Scientific | I | tier 4 | Academies gain +2 science and +2 production. Science buildings and wonders give +30% renown. |
 | The Jixian Academy | Scientific | II | tier 10 | Completing a technology grants culture equal to a fifth of its cost. Your towns make 25% less culture. |
 | The Academy of Gondishapur | Scientific | II | tier 10 | Towns with an empire building gain +15% science. +20% production toward empire buildings. |
 | The Pandidakterion | Scientific | II | tier 10 | Hexes with an Academy have double yields, applied after every other change to the hex. |
+| The Directorate of Arms | Scientific | III | tier 18 | While no empire you have met knows more technologies than you, your units gain +3 combat strength. |
 | The Universitas | Scientific | III | tier 18 | Science buildings in your towns of twelve or more citizens produce twice their yields. In your smaller towns they produce half. |
 | The Volley Fire | Scientific | III | tier 18 | Your archer line (Archer to Crossbowman) may attack twice a turn. Your melee units fight at −10% strength. |
+| The Külliye | Scientific | III | tier 18 | Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings. |
 | The Choregia | Magisterial | I | tier 4 | Culture buildings give +3 culture and +2 renown each. |
 | The Periclean Works | Magisterial | I | tier 4 | Each wonder you hold gives +2 production in every town. |
 | The Magnaura | Magisterial | II | tier 10 | Each town gains +1 science for each Civic card you have seated. |
 | The Barmakids | Magisterial | II | tier 10 | Each great person you have gained gives every town +1 food and +1 production. |
 | The Bourgs | Magisterial | III | tier 18 | Towns working a great-person work grow 25% faster. |
+| The Carroccio | Magisterial | III | tier 18 | Your units gain +1 strength for each wonder you hold, at most +8. |
 | The Kitabkhana | Magisterial | IV | tier 26 | Spending a great person grants 200 renown for each age you have reached. |
+| The Gobelins | Magisterial | IV | tier 26 | Each great-person work in your borders gives +4% production toward the Magnum Opus, at most +40%. |
 | The Escorial | Magisterial | IV | tier 26 | Completing a wonder gives you a free great-person draft. |
 | The Theoric Fund | Devotion | I | tier 4 | +1 culture for every 3 faith your empire makes. |
 | The Rites of Zhou | Devotion | I | tier 4 | Each town holding a rite gains +2 food and +2 happiness. |
+| The Paean | Devotion | I | tier 4 | Your military units gain +1 strength for every god and belief you hold. |
 | The Patrimony of Peter | Devotion | II | tier 10 | Your holy city's citizens demand no happiness. |
 | The Imarets | Devotion | III | tier 18 | Your devout towns grow 25% faster. |
 | The Canons of the Holy Sepulchre | Devotion | III | tier 18 | Towns with a holy site buy with faith at 30% less. |

@@ -164,7 +164,7 @@ import {
   wrappedDistance,
 } from '../sim/map';
 import { authorityOf, happinessDemand, happinessOf } from '../sim/meters';
-import { ladderSteps, renownPerTurn, renownThreshold } from '../sim/renown';
+import { ladderSteps, renownPerTurn, renownShareReaches, renownThreshold } from '../sim/renown';
 // Dominion batch D16: a commission is priced off the simulation's own reading
 // of how far its goal has come and of the figures a reward reads, so the card
 // face, the HUD chip and the bot cannot disagree about either.
@@ -287,6 +287,7 @@ import {
   cardLevyReturnDelay,
   heldReligions,
   isRaisingWonderOrOpus,
+  noMetEmpireAhead,
 } from '../sim/statecraft/evaluator';
 // The citizen levy's own figures, read where the levy verb reads them, so the
 // bot and the city panel price one levy alike (the bot levy batch).
@@ -2813,7 +2814,10 @@ function groundOfHexLine(
           tile,
           effect.on,
           reads ? () => foldTile(tile, context) : undefined,
-          undefined,
+          // The ring, so a line that asks `beside` is read as the hex fold reads
+          // it. Without it every such line priced at nothing (found by batch DT6,
+          // The Highland Clans).
+          () => tileNeighbors(ctx.state.map, tile),
           undefined,
           ground,
         );
@@ -3522,8 +3526,12 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
         if (!cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) continue;
         towns += 1;
         // What the town holds, as the renown fold reads it (`townBuildings`,
-        // Expansionist batch E13).
-        for (const id of townBuildings(ctx.state, city)) total += buildingDef(id).renown?.perTurn ?? 0;
+        // Expansionist batch E13). A share that names its rows (The Peripatetic
+        // School, batch DT6) reads those rows alone.
+        for (const id of townBuildings(ctx.state, city)) {
+          if (effect.of !== undefined && !renownShareReaches(id, effect.of)) continue;
+          total += buildingDef(id).renown?.perTurn ?? 0;
+        }
       }
       const mean = towns === 0 ? 0 : total / towns;
       return mean * (effect.percent / 100) * ctx.ai.weights.renown;
@@ -3836,7 +3844,9 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       //     has attacked yet. What it is worth is the *chance* a caravan is
       //     plundered times what a caravan carries, and this bot keeps no
       //     estimate of the first: a seat at peace pays nothing for it and a
-      //     seat at war pays whatever the raiders would have taken. Named.
+      //     seat at war pays whatever the raiders would have taken. Named. The
+      //     Muda's `foreignTradersUnplunderable` (batch DT6) is the same insurance
+      //     on the carts abroad, and takes the same stand-in.
       //   · `faithBuysScienceBuildings` (al-Khwārizmī, GP2) — a second bank for
       //     one shelf. Its worth is the difference between two *plans* — what
       //     the faith bank would otherwise have bought, against a library
@@ -4826,7 +4836,10 @@ function ruleRewriteValue(
       const rate = occasionRate('tilePurchase', ctx);
       if (rate <= 0) return 0;
       const ring = RULES.cities.tilePurchase.ringBase[0] ?? 0;
-      return explainLump({ gold: -share * ring }, ctx).total * rate;
+      // A price that names hexes (The Laurion Leases, batch DT6) reaches only the
+      // share of the hexes this seat would buy that pass its test.
+      const reach = effect.tile === undefined ? 1 : hexesToBuyShare(effect.tile, ctx);
+      return explainLump({ gold: -share * ring * reach }, ctx).total * rate;
     }
     case 'borderCulture':
     case 'borderCost':
@@ -5394,6 +5407,11 @@ function conditionIsLive(
       if (!seat) return false;
       return seat.metSeats.some((other) => citiesOf(ctx.state, other).length > ctx.cities);
     }
+    case 'noMetEmpireAhead':
+      // Batch DT6, The Directorate of Arms: the simulation's own reading, so the
+      // bot prices the strength only while the seat is not behind an empire it
+      // has met.
+      return noMetEmpireAhead(ctx.state, ctx.playerId);
     case 'knowsUniqueTech':
       // Batch R3, The Kept Secret: the simulation's own reading, so the bot
       // prices the capital's shares only while the rule pays them.
@@ -7505,6 +7523,10 @@ function openedCharterTechs(ctx: ValueContext): TechId[] {
  * each one known or expected (`scientificCountAhead`), up to its cap. A bonus
  * held only while no met empire knows the row's technology is taken at
  * `score.scientific.aheadOfMet`. Every other bonus answers one.
+ *
+ * Batch DT6 adds two readings. A bonus counted per hex in the borders (The
+ * Gobelins) pays for the hexes that pass its test today, up to its cap. A bonus
+ * toward public works (The Curator of Waters) is worth `publicWorkBonusShare`.
  */
 function scientificBonusShare(
   effect: Extract<CardEffect, { kind: 'productionBonus' }>,
@@ -7523,7 +7545,41 @@ function scientificBonusShare(
       if (effect.max !== undefined) helpings = Math.min(helpings, Math.max(0, effect.max));
       share *= helpings;
     }
+    if (effect.count === 'tilesInBorders' && effect.tile !== undefined) {
+      const per = effect.per === undefined || effect.per <= 0 ? 1 : effect.per;
+      let helpings = tilesInBordersWhere(ctx, effect.tile) / per;
+      if (effect.max !== undefined) helpings = Math.min(helpings, Math.max(0, effect.max));
+      share *= helpings;
+    }
   }
+  if (effect.publicWork === true) share *= publicWorkBonusShare(ctx);
+  return share;
+}
+
+/**
+ * **The share of what this seat could still raise that is public works** (batch
+ * DT6, The Curator of Waters): the hammers its towns' open public works cost, over
+ * the hammers all their open buildings cost. Nothing once no town has one left to
+ * raise, so the bonus is not priced as if it sped every building. Remembered for
+ * the sitting, because it asks `buildError` of every row in every town.
+ */
+const PUBLIC_WORK_SHARE_MEMO = new WeakMap<ValueContext, number>();
+function publicWorkBonusShare(ctx: ValueContext): number {
+  const found = PUBLIC_WORK_SHARE_MEMO.get(ctx);
+  if (found !== undefined) return found;
+  let works = 0;
+  let every = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    for (const id of BUILDING_IDS) {
+      if (isWonder(id) || townHoldsBuilding(ctx.state, city, id)) continue;
+      if (buildError(ctx.state, ctx.playerId, 'building', id, city) !== null) continue;
+      const hammers = buildingProductionCost(id, ctx.state, ctx.playerId);
+      every += hammers;
+      if (isPublicWork(id)) works += hammers;
+    }
+  }
+  const share = every === 0 ? 0 : works / every;
+  PUBLIC_WORK_SHARE_MEMO.set(ctx, share);
   return share;
 }
 
@@ -7532,8 +7588,9 @@ function scientificBonusShare(
  * Grenadier traits, The Proving Ground). The scale's count is read as the
  * Scientific counts are read (`scientificCountAhead`). The Hoplite's citizens
  * are those of this seat's mean town, at the share of fights fought in one's
- * own town (`score.scientific.inOwnTown`). The scale's cap holds. A line with
- * any other scale, or none, answers its own amount.
+ * own town (`score.scientific.inOwnTown`). Batch DT6 adds the wonders and the
+ * beliefs a seat holds, which are not Scientific but are read the same way. The
+ * scale's cap holds. A line with any other scale, or none, answers its own amount.
  */
 function scientificLinePoints(
   effect: Extract<CardEffect, { kind: 'combatLine' }>,
@@ -7553,6 +7610,20 @@ function scientificLinePoints(
       helpings = (countProbe(ctx, scale.count) + (ahead?.more ?? 0)) / per;
       break;
     }
+    case 'wonders': {
+      // The Carroccio (batch DT6): the wonders held, and those this seat's own
+      // pace promises over the horizon.
+      const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+      const ahead = occasionForecastRate('wonderCompleted', ctx) * horizon;
+      helpings = (countProbe(ctx, 'wonders') + ahead) / per;
+      break;
+    }
+    case 'beliefsHeld':
+      // The Paean (batch DT6): the gods and beliefs held now. The ledger count
+      // has no forecast either (`devotionCountAhead`), so The Creed and this
+      // line read one figure.
+      helpings = countProbe(ctx, 'beliefsHeld') / per;
+      break;
     default:
       return effect.amount;
   }
@@ -8468,6 +8539,35 @@ function tilePurchaseFiringWorth(
   const mean = hexes === 0 ? 0 : worth / hexes;
   held.set(effect, mean);
   return mean;
+}
+
+/**
+ * **The share of the hexes this seat would buy that pass a tile test** (batch DT6,
+ * The Laurion Leases). The hexes are those of `tilePurchaseFiringWorth`: the ones
+ * in the gold book, or the seat's own ground when the book holds none. The test is
+ * the simulation's (`hexPasses`), so the sight gate on `hasResource` holds.
+ */
+function hexesToBuyShare(on: TileCondition, ctx: ValueContext): number {
+  let hexes = 0;
+  let passing = 0;
+  for (const want of ctx.wants.gold) {
+    const ground = want.ground;
+    if (ground === undefined) continue;
+    const tile = getTileAt(ctx.state.map, ground.col, ground.row);
+    if (tile === undefined) continue;
+    hexes += 1;
+    if (hexPasses(tile, on, ctx)) passing += 1;
+  }
+  if (hexes === 0) {
+    const owner = tileOwnerField(ctx.state);
+    const tiles = ctx.state.map.tiles;
+    for (let index = 0; index < tiles.length; index++) {
+      if (owner.at(index) !== ctx.playerId) continue;
+      hexes += 1;
+      if (hexPasses(tiles[index]!, on, ctx)) passing += 1;
+    }
+  }
+  return hexes === 0 ? 0 : passing / hexes;
 }
 
 /**

@@ -2624,6 +2624,33 @@
         {"kind": "happiness", "amount": 2, "per": "city", "scope": {"test": "keepingRite"}}
       ]
     },
+    "thePaean": {
+      "name": "The Paean",
+      "decks": [
+        "devotion"
+      ],
+      "band": 1,
+      "line": "none",
+      "flavor": "They sang to Apollo as the oars came down.",
+      "text": "Your military units gain +1 strength for every god and belief you hold.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "category": "military"
+          },
+          "scaled": {
+            "count": "beliefsHeld",
+            "per": 1
+          }
+        }
+      ]
+    },
     "thePatrimonyOfPeter": {
       "name": "The Patrimony of Peter",
       "decks": ["devotion"],

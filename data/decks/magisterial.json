@@ -3312,6 +3312,31 @@
         {"kind": "rulePercent", "rule": "growthSurplus", "percent": 25, "scope": {"test": "workingGreatWork"}}
       ]
     },
+    "theCarroccio": {
+      "name": "The Carroccio",
+      "decks": [
+        "magisterial"
+      ],
+      "band": 3,
+      "line": "none",
+      "flavor": "The city's altar rolls into battle on an ox cart, and no one may retreat past it.",
+      "text": "Your units gain +1 strength for each wonder you hold, at most +8.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "scaled": {
+            "count": "wonders",
+            "per": 1,
+            "max": 8
+          }
+        }
+      ]
+    },
     "theKitabkhana": {
       "name": "The Kitabkhana",
       "decks": ["magisterial"],
@@ -3321,6 +3346,29 @@
       "text": "Spending a great person grants 200 renown for each age you have reached.",
       "effects": [
         {"kind": "windfallRider", "occasion": "greatPersonSpent", "perAge": true, "grant": {"renown": 200}}
+      ]
+    },
+    "theGobelins": {
+      "name": "The Gobelins",
+      "decks": [
+        "magisterial"
+      ],
+      "band": 4,
+      "line": "none",
+      "flavor": "Every trade in the kingdom under one roof, working for one palace.",
+      "text": "Each great-person work in your borders gives +4% production toward the Magnum Opus, at most +40%.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "theMagnumOpus",
+          "percent": 4,
+          "count": "tilesInBorders",
+          "tile": {
+            "test": "greatWork"
+          },
+          "max": 10
+        }
       ]
     },
     "theEscorial": {

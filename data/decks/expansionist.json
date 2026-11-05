@@ -3441,6 +3441,42 @@
         }
       ]
     },
+    "theHighlandClans": {
+      "name": "The Highland Clans",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 1,
+      "line": "none",
+      "flavor": "Every glen has its chief, and every chief has a hill.",
+      "text": "Towns on hills cost 1 less authority. Hills beside a town gain +1 food.",
+      "effects": [
+        {
+          "kind": "meterRule",
+          "rule": "hillCityCost",
+          "delta": -1
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "hills"
+              },
+              {
+                "test": "beside",
+                "of": {
+                  "test": "townCentre"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
     "theCommanderies": {
       "name": "The Commanderies",
       "decks": [
@@ -3497,6 +3533,33 @@
               }
             ]
           }
+        }
+      ]
+    },
+    "theCuratorOfWaters": {
+      "name": "The Curator of Waters",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 2,
+      "line": "none",
+      "flavor": "He counted every pipe in the city, and found who had been stealing.",
+      "text": "Public works give +2 happiness and are built 50% faster.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "publicWorks",
+          "within": "city",
+          "to": "happiness",
+          "amount": 2
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "publicWork": true,
+          "percent": 50
         }
       ]
     },
@@ -3565,6 +3628,58 @@
           "kind": "authority",
           "amount": 1,
           "per": "city"
+        }
+      ]
+    },
+    "allRoadsLeadToRome": {
+      "name": "All Roads Lead to Rome",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 3,
+      "line": "none",
+      "flavor": "Every milestone on the road counts the distance home.",
+      "text": "Your capital gains +3% production and gold for each town joined to it by road, at most +45%. Each town not joined to it costs 2 more authority.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "scope": {
+            "test": "capital"
+          },
+          "count": "citiesAdmitted",
+          "admits": {
+            "test": "connected"
+          },
+          "to": "production",
+          "percent": 3,
+          "stage": "city",
+          "max": 15
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "scope": {
+            "test": "capital"
+          },
+          "count": "citiesAdmitted",
+          "admits": {
+            "test": "connected"
+          },
+          "to": "gold",
+          "percent": 3,
+          "stage": "city",
+          "max": 15
+        },
+        {
+          "kind": "meterRule",
+          "rule": "cityCost",
+          "delta": 2,
+          "scope": {
+            "test": "notConnected"
+          }
         }
       ]
     },

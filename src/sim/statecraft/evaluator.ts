@@ -143,6 +143,7 @@ import {
   cityPostPays,
   countRoutesAt,
   foreignPostCities,
+  routeCities,
   routeIsInternational,
   routeIsLive,
 } from '../routes';
@@ -230,6 +231,7 @@ import {
   isGovernmentId,
   isOrderId,
   orderDef,
+  type RenownShareRows,
 } from '../statecraftData';
 import { type TerrainId, isWaterTerrain } from '../terrainData';
 import { type BeadGrantId, anyBeadDef, isBeadCardId } from '../beadData';
@@ -260,8 +262,9 @@ import { explainTechCost, foldTechCost } from '../tech';
 import { aheadOfMet, knowsFewerTechs, techGap, techLead, unitAheadOfMet } from '../rivals';
 // The Sum of Knowledge's count (Scientific batch S6): the same reading.
 import { techsKnownCount } from '../rivals';
-// The Upstarts' mirror of `knowsFewerTechs` (Dominion batch D15).
-import { knowsMoreTechs } from '../rivals';
+// The Upstarts' mirror of `knowsFewerTechs` (Dominion batch D15), and The
+// Directorate of Arms' walk over the empires met (batch DT6).
+import { knowsMoreTechs, metRivals } from '../rivals';
 // Circumvallation (Dominion batch D14): who can lay a siege, as `siegeField`
 // asks it.
 import { techsGrant } from '../techData';
@@ -1757,6 +1760,9 @@ function empireConditionHolds(
       const own = cityCount(state, playerId);
       return seat.metSeats.some((other) => cityCount(state, other) > own);
     }
+    case 'noMetEmpireAhead':
+      // Batch DT6, The Directorate of Arms. The one reading, shared with the bots.
+      return noMetEmpireAhead(state, playerId);
     case 'knowsUniqueTech':
       // Batch R3, The Kept Secret. The one reading, shared with the bots.
       return knowsUniqueTech(state, playerId);
@@ -1766,6 +1772,15 @@ function empireConditionHolds(
       return false;
     }
   }
+}
+
+/**
+ * **Does no empire this one has met know more technologies?** The reading behind
+ * `EmpireCondition`'s `noMetEmpireAhead` (batch DT6, The Directorate of Arms), and
+ * the one the bots ask too. It holds on a tie and while the seat has met nobody.
+ */
+export function noMetEmpireAhead(state: GameState, playerId: number): boolean {
+  return !metRivals(state, playerId).some((rival) => knowsMoreTechs(state, playerId, rival.id));
 }
 
 /**
@@ -2442,6 +2457,13 @@ export function cityScopeAdmits(
       // *to*, so it is never in the list and never admits — see the scope.
       return connectedCities(state, city.ownerId).some((entry) => entry.city.id === city.id);
     }
+    case 'notConnected':
+      // All Roads Lead to Rome (batch DT6). The capital is what the others are
+      // joined *to*, and it is never charged (reading 7), so it does not admit.
+      return (
+        capitalCityOf(state, city.ownerId)?.id !== city.id &&
+        !connectedCities(state, city.ownerId).some((entry) => entry.city.id === city.id)
+      );
     case 'newest': {
       // **Founding order**, which is `state.cities`' own order and the order
       // every other sweep in the simulation walks: the last entry this empire
@@ -2602,6 +2624,8 @@ function scopeNote(scope?: CityScope): string | null {
   switch (test) {
     case 'connected':
       return 'joined to your capital';
+    case 'notConnected':
+      return 'not joined to your capital';
     case 'coastal':
       return 'coastal city';
     case 'freshwater':
@@ -3805,20 +3829,8 @@ export function countOf(
       // Scientific batch S3. Every met empire together here; a trade route
       // asks it of the empire at the far end (`cardRouteYieldLines`).
       return techGap(state, playerId).length;
-    case 'beliefsHeld': {
-      // Devotion batch DV3 (the triage's reading 16): the empire's own gods as
-      // they stand, so The Creed pays before a religion is founded, and the
-      // follower and enhancer beliefs of each religion it is paid by. A
-      // religion's own pantheon is not counted: it is a copy of its founder's
-      // gods on the day it was founded (`foundReligion`), so the founder would
-      // count its gods twice, and a captured holy city would count another
-      // empire's gods.
-      let total = playerById(state, playerId)?.pantheon.beliefs.length ?? 0;
-      for (const religion of heldReligions(state, playerId)) {
-        total += religion.follower.length + religion.enhancer.length;
-      }
-      return total;
-    }
+    case 'beliefsHeld':
+      return beliefsHeldBy(state, playerId);
     case 'turnsSinceFounded': {
       let longest = 0;
       for (const religion of heldReligions(state, playerId)) {
@@ -5199,6 +5211,9 @@ export function tileConditionHolds(
     case 'wonderTown':
       // The Landscape Garden (Expansionist batch E3): the board's answer, or no.
       return ground?.wonderCentre?.(tile) === true;
+    case 'townCentre':
+      // The Highland Clans (batch DT6): the board's answer, or no.
+      return ground?.townCentre?.(tile) === true;
     case 'surfaced':
       // The Prospectors (Expansionist batch E3): this empire's survey struck the
       // seam here. A caller that names no empire reads no.
@@ -5350,6 +5365,8 @@ function resourceSeen(id: ResourceId, ground: GroundFacts | undefined): boolean 
  *     when its law passes no water, which is almost every empire;
  *   · `wonderCentre`, true on the centre hex of a town holding a world wonder,
  *     for `wonderTown` (The Landscape Garden);
+ *   · `townCentre`, true on the centre hex of any town, for `townCentre` (batch
+ *     DT6, The Highland Clans);
  *   · `fortified`, true on a hex where a fortified military unit of the
  *     empire stands, for `fortifiedUnit` (Dominion batch D7: The Farming
  *     Garrisons, The Castra);
@@ -5375,6 +5392,7 @@ export interface GroundFacts {
   player?: number;
   watered?: (tile: Tile) => boolean;
   wonderCentre?: (tile: Tile) => boolean;
+  townCentre?: (tile: Tile) => boolean;
   /**
    * **The hexes a work that copies its neighbours pays for** (Expansionist
    * batch E4, The Keeps): the six hexes beside this one that lie inside the
@@ -5551,6 +5569,9 @@ export function groundFactsFor(state: GameState, playerId: number): GroundFacts 
       const town = cityAt(state, tile.col, tile.row);
       return town !== undefined && town.buildings.some((id) => isWonder(id));
     },
+    // Asked only by The Highland Clans, through `beside`, for hill hexes. Any
+    // seat's town counts, because the card says "a town".
+    townCentre: (tile) => cityAt(state, tile.col, tile.row) !== undefined,
     // Asked only of a hex whose work copies its neighbours (The Keeps), and a
     // town holds one Keep at most, so a ring walk per call is cheap.
     copiedHexes: (tile) =>
@@ -6387,6 +6408,10 @@ export function cardProduction(
     // The Academy of Gondishapur (batch DT3): not the rows that grant a bead.
     // See `CardProductionBonusEffect.skipsBeadRows`.
     if (effect.skipsBeadRows === true && building !== undefined && grantsABead(building)) continue;
+    // The Curator of Waters (batch DT6): public works only.
+    if (effect.publicWork === true) {
+      if (building === undefined || !isPublicWork(building)) continue;
+    }
     // The Burhs (Expansionist batch E5): fortifications only, by the one
     // reading the `defensiveBuildings` count takes.
     if (effect.defensive === true) {
@@ -6442,6 +6467,8 @@ export function cardProduction(
           // The towns a `citiesAdmitted` count counts (Expansionist batch E2).
           // Every other count ignores it.
           admits: effect.admits,
+          // The hexes a `tilesInBorders` count counts (batch DT6, The Gobelins).
+          tile: effect.tile,
         }),
         effect.per,
         effect.max,
@@ -6713,6 +6740,7 @@ export function cardRulePercent(
   playerId: number,
   rule: CardRule,
   city?: City,
+  tile?: Tile,
 ): CardRuleLine[] {
   const list: CardRuleLine[] = [];
   // A **city** may be handed in, and then its own live rites join the empire's
@@ -6730,6 +6758,17 @@ export function cardRulePercent(
     // reason `growthCarryover` now hands its town in.
     if (effect.scope !== undefined) {
       if (!city || !cityScopeAdmits(state, city, effect.scope)) continue;
+    }
+    // **And a rate may be narrowed to a hex** (batch DT6, The Laurion Leases), on
+    // the same bargain: a caller with no hex in hand cannot answer it. The ground
+    // facts are the empire's own, so the sight gate on `hasResource` holds and an
+    // unseen seam costs the full price (reading 18).
+    if (effect.tile !== undefined) {
+      if (!tile) continue;
+      const here = tile;
+      const ring = (): readonly Tile[] => neighborTiles(state.map, tileHex(here));
+      const ground = groundFactsFor(state, playerId);
+      if (!tileConditionHolds(here, effect.tile, undefined, ring, state.turn, ground)) continue;
     }
     const percent = effect.percent;
     if (percent === 0) continue;
@@ -7905,6 +7944,13 @@ function combatScaleCount(
       // The Proving Ground (Scientific batch S3). The ledger count's own
       // reading, asked of a fight.
       return techLead(state, playerId).length;
+    case 'wonders':
+      // The Carroccio (batch DT6). The ledger count's own reading, asked of a
+      // fight.
+      return wondersHeldBy(state, playerId);
+    case 'beliefsHeld':
+      // The Paean (batch DT6). The ledger count's own reading, asked of a fight.
+      return beliefsHeldBy(state, playerId);
     default: {
       const unhandled: never = count;
       void unhandled;
@@ -7975,6 +8021,25 @@ function charterTechsKnown(state: GameState, playerId: number): number {
   let total = 0;
   for (const id of playerById(state, playerId)?.techsResearched ?? []) {
     if (isTechId(id) && isCharterTech(id)) total += 1;
+  }
+  return total;
+}
+
+/**
+ * **The gods and beliefs this empire holds**: the count `beliefsHeld`, in one
+ * function, so The Creed's coin and The Paean's strength cannot disagree (Devotion
+ * batch DV3, the triage's reading 16; batch DT6).
+ *
+ * The empire's own gods as they stand, so the count pays before a religion is
+ * founded, and the follower and enhancer beliefs of each religion it is paid by. A
+ * religion's own pantheon is not counted: it is a copy of its founder's gods on the
+ * day it was founded (`foundReligion`), so the founder would count its gods twice,
+ * and a captured holy city would count another empire's gods.
+ */
+function beliefsHeldBy(state: GameState, playerId: number): number {
+  let total = playerById(state, playerId)?.pantheon.beliefs.length ?? 0;
+  for (const religion of heldReligions(state, playerId)) {
+    total += religion.follower.length + religion.enhancer.length;
   }
   return total;
 }
@@ -11443,6 +11508,8 @@ export function cardLimitLifts(state: GameState, playerId: number, building: Bui
         isEmpireBuilding(building) &&
         buildingDef(building).endsTheGame !== true);
     if (!reaches) continue;
+    // The Külliye (batch DT6, reading 25): not the rows that grant a bead.
+    if (effect.skipsBeadRows === true && grantsABead(building)) continue;
     lifts.push({
       card,
       ...(effect.max !== undefined ? { max: Math.max(0, Math.floor(effect.max)) } : {}),
@@ -11467,6 +11534,25 @@ export function cardBehaviorRule(
   type?: UnitTypeId,
 ): boolean {
   return cardRuleHolds(state, playerId, rule, type);
+}
+
+/**
+ * **Does its owner's law protect this laden caravan?** The one answer to both
+ * rules (batch DT6), asked by `tradeIsShielded` (`combat.ts`, the blow) and
+ * `arriveOnTile` (`arrival.ts`, the arrival), so the two seams cannot disagree.
+ *
+ * `tradersUnplunderable` covers every caravan. `foreignTradersUnplunderable` (The
+ * Muda) covers a caravan whose route ends abroad. It asks `routeCities`, so a route
+ * that has stopped describing the board is no route and has no cover: when the
+ * owner goes to war with the destination's owner, the cart can be struck.
+ *
+ * The caller has already checked that the piece trades and carries a route.
+ */
+export function cardTraderShielded(state: GameState, unit: Unit): boolean {
+  if (cardBehaviorRule(state, unit.ownerId, 'tradersUnplunderable')) return true;
+  if (!cardBehaviorRule(state, unit.ownerId, 'foreignTradersUnplunderable')) return false;
+  const ends = routeCities(state, unit);
+  return ends !== null && routeIsInternational(ends.from, ends.to);
 }
 
 /**
@@ -12438,6 +12524,8 @@ export interface CardCityRenownShare {
   card: CardId;
   source: string;
   percent: number;
+  /** The rows the share is taken over, absent for all of them (batch DT6). */
+  of?: RenownShareRows;
 }
 
 /**
@@ -12457,7 +12545,12 @@ export function cardCityRenownShares(state: GameState, city: City): CardCityReno
     // and counted there, exactly once. See `CardCityRenownPercentEffect.where`.
     if (effect.where === 'empire') continue;
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
-    list.push({ card, source: label(source, scopeNote(effect.scope)), percent: effect.percent });
+    list.push({
+      card,
+      source: label(source, scopeNote(effect.scope)),
+      percent: effect.percent,
+      ...(effect.of !== undefined ? { of: effect.of } : {}),
+    });
   }
   return list;
 }

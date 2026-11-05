@@ -62,7 +62,7 @@ import {
 } from './state';
 import { cardBehaviorRule } from './statecraft';
 // Expansionist batch E12: what a town holds, a card's grants included.
-import { townShelf } from './statecraft/evaluator';
+import { cardTraderShielded, townShelf } from './statecraft/evaluator';
 import { layRoadUnder } from './roads';
 // A leaf with no runtime imports of its own, so this edge cannot make a cycle.
 import { type TraderPlunder, settleTraderPlunder } from './trade';
@@ -306,7 +306,8 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
     if (trades(otherDef) && other.trade !== undefined) {
       /**
        * **Unless its own law protects it** — Pytheas' caravans, which cannot be
-       * taken (`tradersUnplunderable`).
+       * taken (`tradersUnplunderable`), and The Muda's on a route that ends abroad
+       * (`cardTraderShielded`).
        *
        * The rule's second sentence, said here because the plunder itself is said
        * twice: `combat.ts` refuses the *blow*, and this refuses the *arrival* — a
@@ -316,7 +317,7 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
        * handed the merchant over instead of the cargo, which is worse than
        * either.
        */
-      if (cardBehaviorRule(state, other.ownerId, 'tradersUnplunderable')) continue;
+      if (cardTraderShielded(state, other)) continue;
       removeUnit(state, other.id);
       // A destroyed caravan is a unit lost to the arriving piece's empire, for
       // war weariness (batch WC2). The wild's plunder is never recorded.

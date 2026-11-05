@@ -53,7 +53,7 @@
  * hang forever behind a blocker nobody can answer.
  */
 
-import { BUILDING_IDS, buildingDef } from './buildingData';
+import { type BuildingId, BUILDING_IDS, buildingDef, isWonder } from './buildingData';
 import type { Family } from './greatPeopleData';
 import { drawGreatPersonOffer } from './greatPeople';
 import { resourceRenown } from './resourceEffects';
@@ -80,6 +80,7 @@ import {
 } from './statecraft';
 // Expansionist batch E12: what a town holds, a card's grants included.
 import { townShelf } from './statecraft/evaluator';
+import type { RenownShareRows } from './statecraftData';
 import type { BuildingShelf } from './buildingEffects';
 import { triumphDef } from './triumphData';
 import { awardCountTriumphs } from './triumphs';
@@ -231,6 +232,11 @@ export function explainRenown(state: GameState, playerId: number): RenownLine[] 
  * line names **no family**, `resourceRenown`'s construction: the pool grows and
  * the feed record that weights the draw does not.
  *
+ * A share may name its rows (`of`, batch DT6, The Peripatetic School). It is then
+ * the fold of those rows' lines alone, and a town with none of them gains no line.
+ * The lines are the only source, so a building a card grants the town is reached
+ * exactly when it has a line.
+ *
  * `shelf` is the town's buildings (Expansionist batch E12), handed in for the
  * reason `shares` is: the callers with an empire hand `townShelf`, so a
  * building a card says the town holds pays its renown. A caller passing none
@@ -238,10 +244,13 @@ export function explainRenown(state: GameState, playerId: number): RenownLine[] 
  */
 export function explainCityRenown(
   city: City,
-  shares: readonly { source: string; percent: number }[] = [],
+  shares: readonly { source: string; percent: number; of?: RenownShareRows }[] = [],
   shelf: BuildingShelf = city,
 ): RenownLine[] {
   const lines: RenownLine[] = [];
+  // The row behind each building line, in step with `lines`, for a share that
+  // names its rows.
+  const rows: BuildingId[] = [];
   for (const id of BUILDING_IDS) {
     if (!shelf.buildings.includes(id)) continue;
     const renown = buildingDef(id).renown;
@@ -252,14 +261,22 @@ export function explainCityRenown(
       amount: renown.perTurn,
       perTurn: true,
     });
+    rows.push(id);
   }
   if (shares.length === 0) return lines;
   const base = foldRenown(lines);
   if (base === 0) return lines;
+  // Copied before the shares join the list, so no share is taken over another.
+  const buildingLines = [...lines];
   for (const share of shares) {
+    const named = share.of;
+    const over =
+      named === undefined
+        ? base
+        : foldRenown(buildingLines.filter((_, at) => renownShareReaches(rows[at]!, named)));
     // Exact since batch X: a tenth of a two-renown trickle is a fifth of a point
     // banked, where the floor paid nothing until the trickle reached ten.
-    const amount = (base * share.percent) / 100;
+    const amount = (over * share.percent) / 100;
     if (amount === 0) continue;
     lines.push({
       source: `${share.source} · ${city.name}`,
@@ -269,6 +286,16 @@ export function explainCityRenown(
     });
   }
   return lines;
+}
+
+/**
+ * **Does this renown share reach this building row?** True for a row of the named
+ * category and, where the share says so, for any wonder. A science wonder answers
+ * both and is still one row, so it counts once (reading 23 of
+ * `docs/plans/doctrines-build-triage.md`). The fold and the bots both ask this.
+ */
+export function renownShareReaches(id: BuildingId, rows: RenownShareRows): boolean {
+  return buildingDef(id).category === rows.category || (rows.wonder === true && isWonder(id));
 }
 
 /** The fold of a renown list — everything on it. The only sum of one. */

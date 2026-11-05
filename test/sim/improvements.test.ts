@@ -2939,7 +2939,9 @@ describe('improvements in the log', () => {
     // v208 log's draws move.
     // 210 since batch DT5 (the gates on the Doctrine offer, and six rows): a
     // gated row leaves a seat's bag, so a v209 log's draws move.
-    expect(SCHEMA_VERSION).toBe(210);
+    // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
+    // so a v210 log's draws move.
+    expect(SCHEMA_VERSION).toBe(211);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

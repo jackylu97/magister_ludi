@@ -352,7 +352,7 @@ import {
 } from './statecraft';
 // Straight from the evaluator: a rule asked of the whole piece, which may name
 // a rank (Dominion batch D2, The Varangian Guard).
-import { cardBehaviorRuleFor } from './statecraft/evaluator';
+import { cardBehaviorRuleFor, cardTraderShielded } from './statecraft/evaluator';
 // Dominion batch D8: the general's aura amplified (The Strategoi), and whether
 // an empire's law counts its attacks on a target (Weight of Numbers).
 import { cardAmplifier, cardAmplifierFlat, lawCountsStrikes } from './statecraft/evaluator';
@@ -851,7 +851,7 @@ function boardsAtSea(attacker: UnitDef, target: AttackTarget, tile: Tile): boole
 
 /**
  * **Is this piece a laden caravan of an empire whose law protects it?** —
- * Pytheas' clause, and the one reading of it (`tradersUnplunderable`).
+ * Pytheas' clause, and The Muda's narrower one (`cardTraderShielded`).
  *
  * Asked of the piece's own `trade` as well as of its type, exactly as the
  * plunder clause in `planCombat` is: an **unladen** trader is an ordinary
@@ -869,7 +869,7 @@ function boardsAtSea(attacker: UnitDef, target: AttackTarget, tile: Tile): boole
 function tradeIsShielded(state: GameState, unit: Unit): boolean {
   if (unit.trade === undefined) return false;
   if (!trades(unitDef(unit.type))) return false;
-  return cardBehaviorRule(state, unit.ownerId, 'tradersUnplunderable');
+  return cardTraderShielded(state, unit);
 }
 
 /**

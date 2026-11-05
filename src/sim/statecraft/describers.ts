@@ -93,6 +93,7 @@ import {
   STATECRAFT,
   isOrderId,
   orderDef,
+  type RenownShareRows,
 } from '../statecraftData';
 // Type-only: the route's medium, from the leaf that owns the word, so the card
 // face and the gate cannot end up spelling it differently.
@@ -1821,6 +1822,9 @@ function describeEffect(
       const what = effect.defensive === true
         ? // The Burhs (Expansionist batch E5): the fortifications.
           'defensive buildings'
+        : effect.publicWork === true
+        ? // The Curator of Waters (batch DT6): the class the cards read.
+          'public works'
         : effect.empireBuilding === true
         ? // The class, ahead of the category and behind the named row: a rider
           // that says "empire buildings" is narrower than one that says
@@ -1881,6 +1885,9 @@ function describeEffect(
                   // The towns a `citiesAdmitted` count counts (Expansionist
                   // batch E2). Every other count ignores it.
                   admits: effect.admits,
+                  // The hexes a `tilesInBorders` count counts (batch DT6, The
+                  // Gobelins).
+                  tile: effect.tile,
                 },
                 '',
               ),
@@ -1919,7 +1926,14 @@ function describeEffect(
                     /^buildings/,
                     buildingPluralName(effect.building),
                   )
-                : RULE_WORDS[effect.rule](effect.percent)
+                : // The hexes a price names (The Laurion Leases, batch DT6) take
+                  // the place of "a hex".
+                  effect.rule === 'tilePurchase' && effect.tile !== undefined
+                  ? RULE_WORDS[effect.rule](effect.percent).replace(
+                      /^a hex/,
+                      `${indefinite(tileConditionWords(effect.tile))} ${tileConditionWords(effect.tile)}`,
+                    )
+                  : RULE_WORDS[effect.rule](effect.percent)
             : RULE_WORDS[effect.rule](effect.percent).replace(
                 'near your towns',
                 `within ${effect.range} hexes of your towns`,
@@ -3516,7 +3530,12 @@ function describeEffect(
         text:
           effect.where === 'empire'
             ? `${signed(effect.percent)}% renown`
-            : `${signed(effect.percent)}% renown in ${scopeWordsFor(subject, effect.scope)}`,
+            : effect.of !== undefined
+              ? // The Peripatetic School (batch DT6): the share names its rows, so
+                // the sentence does too. A town appears only if the row names one.
+                `${renownRowsWords(effect.of)} give ${signed(effect.percent)}% renown` +
+                (effect.scope === undefined ? '' : ` in ${scopeWordsFor(subject, effect.scope)}`)
+              : `${signed(effect.percent)}% renown in ${scopeWordsFor(subject, effect.scope)}`,
       });
       return;
     case 'beadPerOccasion': {
@@ -4552,6 +4571,9 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       // never defines, and what the rule stands for is a road that reaches home.
       into.qualifiers.push('joined to your capital by road');
       return;
+    case 'notConnected':
+      into.qualifiers.push('not joined to your capital by road');
+      return;
     case 'capital':
       into.adjectives.push('capital');
       return;
@@ -5521,6 +5543,10 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
     case 'wonderTown':
       into.qualifiers.push('with a city that holds a wonder');
       return;
+    case 'townCentre':
+      // Read through `beside`, which takes "with" off: "beside a city".
+      into.qualifiers.push('with a city');
+      return;
     case 'surfaced':
       into.qualifiers.push('over a seam you surfaced');
       return;
@@ -5994,6 +6020,9 @@ const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
     one: 'technology you know that no empire you have met knows',
     many: 'technologies you know that no empire you have met knows',
   },
+  // Batch DT6: The Carroccio and The Paean, each said as `COUNT_WORDS` says it.
+  wonders: { one: 'wonder you hold', many: 'wonders you hold' },
+  beliefsHeld: { one: 'god or belief you hold', many: 'gods and beliefs you hold' },
 };
 
 /** Where a `unitStat` applies, in words. `'anywhere'` is the absent field. */
@@ -7165,6 +7194,9 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // of the rule — the cart is no faster, no tougher and no safer from the
   // weather; it simply cannot be taken.
   tradersUnplunderable: 'your trade units cannot be attacked or plundered',
+  // The Muda (batch DT6): the same words, on the routes the rule covers.
+  foreignTradersUnplunderable:
+    'your trade units on routes to other empires cannot be attacked or plundered',
   // al-Khwārizmī's second half. "Supply science" is the game term for the
   // class (`buildingSupplies`, batch R2d), so the clause says it, marked.
   faithBuysScienceBuildings: `you may buy buildings that ${suppliesWord(false)} science with faith`,
@@ -7424,6 +7456,14 @@ function limitLiftWords(effect: Extract<CardEffect, { kind: 'rule' }>): string {
   return `you may build ${copies}${towns}`;
 }
 
+/** The rows a renown share names, in a player's words: "science buildings and wonders". */
+function renownRowsWords(rows: RenownShareRows): string {
+  const parts: string[] = [];
+  if (rows.category !== undefined) parts.push(`${rows.category} buildings`);
+  if (rows.wonder === true) parts.push('wonders');
+  return parts.join(' and ');
+}
+
 /**
  * The rules that read differently **of one named building** —
  * `CardRuleEffect.building`, and Caravanserai Cities is the only row that
@@ -7464,6 +7504,7 @@ const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
   atWarWithOpusBuilder: 'while you are at war with an empire raising the Magnum Opus',
   noReligionFounded: 'until you have founded a religion',
   rivalHoldsMoreTowns: 'while an empire you have met holds more towns than you',
+  noMetEmpireAhead: 'while no empire you have met knows more technologies than you',
   // Batch R3, The Kept Secret. Every other empire counts, met or not, and the
   // charter technologies do not, so the words say both.
   knowsUniqueTech:
