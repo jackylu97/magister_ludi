@@ -195,6 +195,7 @@ governments, so Tier IV opened at 29.
 | Crop Rotation | Expansionist | III | tier 18 | Worked improvements yield twice their own bonus. Worked unimproved tiles yield nothing. |
 | The Contented City | Expansionist | III | tier 18 | Your citizens ask 20% less happiness. Your gold income is halved. |
 | Empire Without End | Expansionist | III | tier 18 | +1 authority for each town you hold. |
+| The Garden Peoples | Expansionist | III | tier 18 | Needs tended land. Tended tiles gain +1 food, +1 production and +1 culture. |
 | The Physiocrats | Expansionist | IV | tier 26 | Every improved tile gains +2 food, +2 production and +2 gold. |
 | The Cathedral Lodges | Expansionist | IV | tier 26 | Manufactories yield twice as much. Towns with a Manufactory gain +30% production toward wonders and the Magnum Opus. |
 | The High Towns | Expansionist | IV | tier 26 | Your towns may work mountains. Mountains gain +4 production, and each gives +1 production to the hexes beside it. |
@@ -223,7 +224,12 @@ governments, so Tier IV opened at 29.
 | The Escorial | Magisterial | IV | tier 26 | Completing a wonder gives you a free great-person draft. |
 | The Theoric Fund | Devotion | I | tier 4 | +1 culture for every 3 faith your empire makes. |
 | The Rites of Zhou | Devotion | I | tier 4 | Each town holding a rite gains +2 food and +2 happiness. |
+| The Patrimony of Peter | Devotion | II | tier 10 | Your holy city's citizens demand no happiness. |
+| The Imarets | Devotion | III | tier 18 | Your devout towns grow 25% faster. |
+| The Canons of the Holy Sepulchre | Devotion | III | tier 18 | Towns with a holy site buy with faith at 30% less. |
+| The Martyr's Crown | Devotion | III | tier 18 | Each of your units that dies in battle presses your religion on every town within three hexes. |
 | The Saint Peter's Indulgence | Devotion | IV | tier 26 | +1% production toward the Magnum Opus for every 150 faith you have spent this game. |
+| The Two Sanctuaries | Devotion | IV | tier 26 | Hexes with a holy site have double yields, applied after every other change to the hex. |
 
 ## Decks
 

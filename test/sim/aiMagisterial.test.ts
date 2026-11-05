@@ -86,6 +86,7 @@ import {
   doctrineDef,
   governmentDef,
   orderDef,
+  poolDoctrines,
 } from '../../src/sim/statecraftData';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 import { foldTile, yieldContextFor } from '../../src/sim/yields/hex';
@@ -369,7 +370,7 @@ describe('the counts of the collection', () => {
   it('counts the Doctrines to come at the adoptions ahead whose tier still has one to offer', () => {
     const { state, player } = collector();
     player.decks = ['magisterial', 'dominion'] as never;
-    const tier = GOVERNMENT_TIERS.find((rung) => doctrineBagFor(player, rung).length > 0);
+    const tier = GOVERNMENT_TIERS.find((rung) => doctrineBagFor(state, player, rung).length > 0);
     expect(tier).toBeDefined();
     player.statecraft.drafts = tier! - 1;
     player.culturePool = 5000;
@@ -379,7 +380,7 @@ describe('the counts of the collection', () => {
     const counted = explainCounted(science!, ctx);
     const reach = player.statecraft.drafts + draftsAheadOf(state, player);
     const offered = GOVERNMENT_TIERS.filter(
-      (rung) => rung > player.statecraft.drafts && rung <= reach && doctrineBagFor(player, rung).length > 0,
+      (rung) => rung > player.statecraft.drafts && rung <= reach && doctrineBagFor(state, player, rung).length > 0,
     ).length;
     expect(offered).toBeGreaterThan(0);
     expect(counted.terms[1]!.value).toBe(offered);
@@ -922,7 +923,7 @@ describe('the commissions', () => {
     const { state, player } = board([6]);
     player.decks = ['magisterial', 'dominion'] as never;
     const government = GOVERNMENT_IDS.find(
-      (id) => governmentDef(id).retired !== true && doctrineBagFor(player, governmentDef(id).tier).length > 3,
+      (id) => governmentDef(id).retired !== true && doctrineBagFor(state, player, governmentDef(id).tier).length > 3,
     );
     expect(government).toBeDefined();
     player.statecraft.government = government!;
@@ -931,7 +932,7 @@ describe('the commissions', () => {
     const offerTerm = (context: ValueContext): ValueTerm =>
       allTerms(explainCommission(GOLDEN_BULL, context)!.terms).find((term) => term.label.startsWith('a Doctrine offer'))!;
     // The expected best, by every subset of the offer's size.
-    const bag = doctrineBagFor(player, governmentDef(government!).tier);
+    const bag = doctrineBagFor(state, player, governmentDef(government!).tier);
     const prices = bag.map((id) => Math.max(0, explainCardEffects(id, doctrineDef(id).effects ?? [], ctx).total));
     const k = Math.min(prices.length, Math.max(HAND_POSITIONS, offerSize(state, 0, 'doctrine')));
     let sum = 0;
@@ -950,6 +951,30 @@ describe('the commissions', () => {
     player.statecraft.doctrines.push(...bag);
     bumpRevision(state);
     expect(offerTerm(valueContext(state, player)).value).toBe(0);
+  });
+
+  it('prices no Doctrine a gate shuts from the seat’s offer (batch DT5)', () => {
+    const { state, player } = board([6]);
+    player.decks = ['devotion'] as never;
+    // The tier that holds rows behind the religion gate, on a seat with no religion.
+    const government = GOVERNMENT_IDS.find(
+      (id) =>
+        governmentDef(id).retired !== true &&
+        poolDoctrines(governmentDef(id).tier).some(
+          (row) => doctrineDef(row).decks.includes('devotion') && doctrineDef(row).needsReligion === true,
+        ),
+    )!;
+    player.statecraft.government = government;
+    const tier = governmentDef(government).tier;
+    const devotion = poolDoctrines(tier).filter((row) => doctrineDef(row).decks.includes('devotion'));
+    player.statecraft.doctrines.push(...devotion.filter((row) => doctrineDef(row).needsReligion !== true));
+    bumpRevision(state);
+    expect(doctrineBagFor(state, player, tier)).toEqual([]);
+    const ctx = valueContext(state, player);
+    const term = allTerms(explainCommission(GOLDEN_BULL, ctx)!.terms).find((one) =>
+      one.label.startsWith('a Doctrine offer'),
+    )!;
+    expect(term.value).toBe(0);
   });
 
   it('prices The Paradise Garden’s land at the unowned hexes within three of the seat’s first work', () => {

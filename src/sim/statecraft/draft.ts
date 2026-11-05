@@ -88,6 +88,7 @@ import {
   countOf,
   effectsOfKind,
   forgetTheLaw,
+  heldReligions,
   helpings,
   holdsLevyGrant,
   holdsTendedUnlock,
@@ -1860,12 +1861,24 @@ export function draftExhausted(state: GameState, player: Player): boolean {
  * Doctrine tier) that belong to one of the seat's decks, less the ones it
  * already holds — a Doctrine is offered at most once a game (Entry XV.b). In
  * file order.
+ *
+ * **The gates** (batch DT5): a row marked `needsTendedWork` or `needsReligion`
+ * leaves the bag while the seat cannot use it. Every reader asks the bag, so the
+ * offer, the "can one open" check and the bots' price of an offer stay in step.
+ * Each fact is read once per bag, as `dealGateFor` reads its own, and the gate is
+ * on the offer only: a Doctrine already held stays held.
  */
-export function doctrineBagFor(player: Player, tier: number): DoctrineId[] {
+export function doctrineBagFor(state: GameState, player: Player, tier: number): DoctrineId[] {
   const held = new Set<DoctrineId>(player.statecraft.doctrines);
-  return poolDoctrines(tier).filter(
-    (id) => !held.has(id) && doctrineDef(id).decks.some((deck) => player.decks.includes(deck)),
-  );
+  const tends = holdsTendedUnlock(state, player.id);
+  const keepsFaith = heldReligions(state, player.id).length > 0;
+  return poolDoctrines(tier).filter((id) => {
+    if (held.has(id)) return false;
+    const def = doctrineDef(id);
+    if (!def.decks.some((deck) => player.decks.includes(deck))) return false;
+    if (def.needsTendedWork === true && !tends) return false;
+    return def.needsReligion !== true || keepsFaith;
+  });
 }
 
 /**
@@ -1892,7 +1905,7 @@ export function drawDoctrineOffer(
   player: Player,
   tier: number,
 ): DoctrineOffer {
-  const bag = doctrineBagFor(player, tier);
+  const bag = doctrineBagFor(state, player, tier);
   if (bag.length === 0) return { options: [] };
   const size = Math.max(HAND_POSITIONS, offerSize(state, player.id, 'doctrine'));
   const options: DoctrineId[] = [];

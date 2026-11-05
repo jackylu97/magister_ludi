@@ -175,10 +175,10 @@ describe('batch DT4: Magisterial’s rows', () => {
         { name: 'Bors', color: '#00a', isHuman: true, decks: ['dominion', 'expansionist'] },
       ],
     });
-    expect(doctrineBagFor(seat(g.state), 4)).toEqual(
+    expect(doctrineBagFor(g.state, seat(g.state), 4)).toEqual(
       expect.arrayContaining(['theChoregia', 'thePericleanWorks']),
     );
-    expect(doctrineBagFor(seat(g.state, 1), 4)).not.toContain('theChoregia');
+    expect(doctrineBagFor(g.state, seat(g.state, 1), 4)).not.toContain('theChoregia');
   });
 
   it('gives the bots a finite price for every row, and the impact stamp reads each one', () => {

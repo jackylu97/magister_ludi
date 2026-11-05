@@ -924,6 +924,12 @@
     "text": "+1 authority capacity per city"
    }
   ],
+  "theGardenPeoples": [
+   {
+    "raw": "+1 food, +1 production, +1 culture on every tended hex",
+    "text": "+1 food, +1 production, +1 culture on every tended hex"
+   }
+  ],
   "thePhysiocrats": [
    {
     "raw": "+2 food, +2 production, +2 gold on every improved hex",
@@ -1058,10 +1064,40 @@
     "text": "+2 happiness in every city while it is keeping a rite"
    }
   ],
+  "thePatrimonyOfPeter": [
+   {
+    "raw": "-100% happiness demanded per citizen, in your holy city",
+    "text": "-100% happiness demanded per citizen, in your holy city"
+   }
+  ],
+  "theImarets": [
+   {
+    "raw": "+25% food surplus stored toward growth, in every devout city",
+    "text": "+25% food surplus stored toward growth, in every devout city"
+   }
+  ],
+  "theCanonsOfTheHolySepulchre": [
+   {
+    "raw": "all units and buildings cost −30% to buy with faith, in every city with a [[improvement:holySite|Holy Site]]",
+    "text": "all units and buildings cost −30% to buy with faith, in every city with a Holy Site"
+   }
+  ],
+  "theMartyrsCrown": [
+   {
+    "raw": "losing a unit spreads your religion to every city within 3 hexes",
+    "text": "losing a unit spreads your religion to every city within 3 hexes"
+   }
+  ],
   "theSaintPetersIndulgence": [
    {
     "raw": "+1% production toward [[building:theMagnumOpus|The Magnum Opus]] per 150 faith you have spent",
     "text": "+1% production toward The Magnum Opus per 150 faith you have spent"
+   }
+  ],
+  "theTwoSanctuaries": [
+   {
+    "raw": "the yields of every hex with a [[improvement:holySite|Holy Site]] are doubled",
+    "text": "the yields of every hex with a Holy Site are doubled"
    }
   ],
   "thePythagoreanBrotherhood": [

@@ -135,6 +135,7 @@ import {
   type CityScope,
   DECK_IDS,
   DOCTRINE_IDS,
+  type DoctrineDef,
   type DoctrineId,
   ORDER_IDS,
   type OrderId,
@@ -2316,6 +2317,19 @@ function orderEntry(id: OrderId): CompendiumEntry {
   };
 }
 
+/**
+ * What a Doctrine's offer asks of a seat, read off the row's gates (batch DT5),
+ * or nothing when it asks nothing. A gate prints no words on the card, because a
+ * seat that fails it is never shown the card, so this page is where a player
+ * planning ahead finds it.
+ */
+function doctrineNeeds(def: DoctrineDef): string {
+  const needs: string[] = [];
+  if (def.needsTendedWork === true) needs.push('a charter that opens a tended work');
+  if (def.needsReligion === true) needs.push('a religion whose holy city you hold');
+  return needs.join(' · ');
+}
+
 function doctrineEntry(id: DoctrineId): CompendiumEntry {
   const def = doctrineDef(id);
   // **A deck's Doctrine** (batch C3) says its deck and its tier, the way its
@@ -2336,6 +2350,7 @@ function doctrineEntry(id: DoctrineId): CompendiumEntry {
           ...row('Deck', decks),
           ...row('Tier', BAND_NUMERAL[def.band]),
           ...row('Offered when you adopt', `a tier ${def.tier} government`),
+          ...row('Needs', doctrineNeeds(def)),
         ]
       : [...row('Government tier', figure(def.tier)), ...lineRow(def)],
     clauses: [

@@ -572,6 +572,13 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   (`governmentTierForDoctrineBand`). The offer is one Doctrine from each of the
   seat's two decks, then a third from either (`drawDoctrineOffer`; interim until
   the user rules the mix), never one already held; an empty bag opens nothing.
+  A row may carry a gate on the offer (batch DT5): `needsTendedWork` asks for a
+  tended-work charter (`holdsTendedUnlock`), and `needsReligion` asks for a
+  religion held when the offer opens (`heldReligions`, so a captured holy city
+  counts). `doctrineBagFor` reads both, so the offer, `doctrineOfferCanOpen` and
+  the bots agree. The gate binds the offer only, and the Compendium prints a
+  "Needs" row off the field. A redraw is refused when a gate has emptied the bag
+  (`rerollError`), because a seat can lose its holy city while an offer waits.
   The seat takes one (`chooseDoctrine`) or passes (`skipDoctrineOffer`), and a
   waiting offer must be answered before another adoption. A Doctrine is held
   for the whole game, takes no chair, and is `liveEffects`' second source. Rows

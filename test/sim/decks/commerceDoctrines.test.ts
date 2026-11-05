@@ -171,10 +171,10 @@ describe('batch DT3: Commerce’s rows', () => {
         { name: 'Bors', color: '#00a', isHuman: true, leader: 'taizong' },
       ],
     });
-    expect(doctrineBagFor(seat(g.state), 4)).toEqual(
+    expect(doctrineBagFor(g.state, seat(g.state), 4)).toEqual(
       expect.arrayContaining(['theApoikia', 'theDelianLeague']),
     );
-    expect(doctrineBagFor(seat(g.state, 1), 4)).not.toContain('theApoikia');
+    expect(doctrineBagFor(g.state, seat(g.state, 1), 4)).not.toContain('theApoikia');
   });
 
   it('gives the bots a finite price for every row, and the impact stamp reads each one', () => {

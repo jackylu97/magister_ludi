@@ -3315,8 +3315,23 @@ import {
  * **A v208 save is refused and does not replay.** These seats' Doctrine bags are no
  * longer empty, so their draws move. The branch migrates nothing, for the reason
  * given under v119.
+ *
+ * v210 (branch `decks`; batch DT5, `docs/plans/doctrines-build-triage.md`):
+ * **The gates on the Doctrine offer, and the six rows that need only them.** No
+ * field joins the state. The rules that change:
+ *
+ *   · a Doctrine row may carry `needsTendedWork` or `needsReligion`, and
+ *     `doctrineBagFor` leaves it out while the seat fails the gate;
+ *   · The Garden Peoples is dealt to an Expansionist seat with a tended-work
+ *     charter;
+ *   · The Patrimony of Peter, The Imarets, The Canons of the Holy Sepulchre, The
+ *     Martyr's Crown and The Two Sanctuaries are dealt to a Devotion seat that
+ *     holds a religion.
+ *
+ * **A v209 save is refused and does not replay.** These seats' Doctrine bags change,
+ * so their draws move. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 209;
+export const SCHEMA_VERSION = 210;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

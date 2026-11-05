@@ -140,6 +140,7 @@ import {
   cardPressureSources,
   cardRulePercent,
   cardRivalPressurePercent,
+  doctrineBagFor,
   drawDoctrineOffer,
   drawOrderOffer,
   drawWithoutReplacement,
@@ -973,6 +974,9 @@ export function rerollKindFor(player: Player): RerollKind | null {
  * Order hand only: a card may forbid the reroll outright (`noOrderReroll`,
  * Officials by Merit).
  *
+ * Since batch DT5 another comes before it, for a Doctrine hand only: a redraw is
+ * refused when a gate has emptied the bag (`doctrineBagFor`).
+ *
  * A **heavy** hand — a Doctrine draft, a name — meets exactly the Order draft's
  * clauses, at the Order draft's door and on the Order draft's lifetime ladder,
  * with the price the heavy multiple's (ruled 2026-09-07, item q). One set of
@@ -1035,6 +1039,16 @@ export function rerollError(
       );
     }
     return null;
+  }
+  // **A Doctrine hand with nothing left to deal** (batch DT5). A gate can shut
+  // the bag while an offer waits: turns are simultaneous, so a seat can lose its
+  // holy city with a religion's Doctrines on the table. It may still take one or
+  // pass, but a redraw would charge it for an empty hand, so it is refused.
+  if (
+    kind === 'doctrine' &&
+    doctrineBagFor(state, player, governmentDef(player.statecraft.government).tier).length === 0
+  ) {
+    return 'No other Doctrine can be offered to you now';
   }
   // **A card that forbids it** (Magisterial batch MG6, Officials by Merit; the
   // triage's reading 13): an Order hand only. A Doctrine hand and a

@@ -10373,6 +10373,24 @@ export interface DoctrineDef extends CardDefBase {
    */
   retired?: boolean;
   /**
+   * **Offered only to a seat that holds a tended-work charter** (batch DT5):
+   * `OrderDef.needsTendedWork` at the Doctrine's scale. It is a second field for
+   * the reason `retired` is, because each kind of card has its own deal. Read in
+   * `doctrineBagFor`, so the gate is on the offer only: a seat that takes the
+   * Doctrine keeps it. The Compendium prints a "Needs" row off this field.
+   */
+  needsTendedWork?: true;
+  /**
+   * **Offered only to a seat that holds a religion when the offer opens** (batch
+   * DT5; the plan's reading 15). "Holds" is `heldReligions`, the holy city's
+   * reading, so a seat that captured a holy city qualifies and a seat that lost
+   * its own does not. The card's text does not say this, because the seat that
+   * fails the gate never sees the card. A seat that later loses its religion
+   * keeps the Doctrine. Read in `doctrineBagFor`. The Compendium prints a "Needs"
+   * row off this field.
+   */
+  needsReligion?: true;
+  /**
    * **What adopting this hands over, at the moment it is adopted** — The Muses'
    * Call's *"adopting this calls one great person"*.
    *

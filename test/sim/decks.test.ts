@@ -1130,7 +1130,9 @@ describe('the schema, as landed', () => {
     // 209 since batch DT4 (Magisterial's and Devotion's Doctrines, data only):
     // ten rows join the two decks, so their seats are now offered Doctrines and a
     // v208 log's draws move.
-    expect(SCHEMA_VERSION).toBe(209);
+    // 210 since batch DT5 (the gates on the Doctrine offer, and six rows): a
+    // gated row leaves a seat's bag, so a v209 log's draws move.
+    expect(SCHEMA_VERSION).toBe(210);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1837,8 +1839,8 @@ describe('with the shelf stocked', () => {
     const g = seated();
     const ada = playerById(g.state, 0)!;
     const sc = ada.statecraft;
-    sc.doctrines.push(...doctrineBagFor(ada, 4));
-    expect(doctrineBagFor(ada, 4)).toEqual([]);
+    sc.doctrines.push(...doctrineBagFor(g.state, ada, 4));
+    expect(doctrineBagFor(g.state, ada, 4)).toEqual([]);
     sc.pendingGovernment = { tier: 4, options: governmentsAtTier(4) };
     expect(adoptGovernmentAt(g.state, ada, 0)?.doctrines).toBeNull();
     expect(sc.pendingDoctrine).toBeUndefined();
@@ -1848,7 +1850,7 @@ describe('with the shelf stocked', () => {
     const taizong = playerById(d.state, 0)!;
     taizong.statecraft.pendingGovernment = { tier: 4, options: governmentsAtTier(4) };
     // The offer holds three of the seat's bag, each once.
-    const bag = doctrineBagFor(taizong, 4);
+    const bag = doctrineBagFor(d.state, taizong, 4);
     const adopted = adoptGovernmentAt(d.state, taizong, 0)!;
     const offered = adopted.doctrines?.options ?? [];
     expect(offered).toHaveLength(3);

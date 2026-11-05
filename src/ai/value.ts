@@ -10646,7 +10646,7 @@ function magisterialCountAhead(
     case 'doctrinesHeld': {
       if (player === undefined) return { more: 0, why: 'no seat' };
       const ahead = adoptionsAhead(ctx);
-      const offered = ahead.tiers.filter((tier) => doctrineBagFor(player, tier).length > 0).length;
+      const offered = ahead.tiers.filter((tier) => doctrineBagFor(ctx.state, player, tier).length > 0).length;
       return {
         more: offered,
         why: `${ahead.tiers.length} governments adopted, ${offered} of them with a Doctrine of its decks to offer`,
@@ -11528,7 +11528,7 @@ function doctrineOfferWorth(ctx: ValueContext): { worth: number; options: number
 function readDoctrineOffer(ctx: ValueContext): { worth: number; options: number } {
   const player = playerById(ctx.state, ctx.playerId);
   if (player === undefined) return { worth: 0, options: 0 };
-  const bag = doctrineBagFor(player, governmentDef(player.statecraft.government).tier);
+  const bag = doctrineBagFor(ctx.state, player, governmentDef(player.statecraft.government).tier);
   if (bag.length === 0) return { worth: 0, options: 0 };
   const prices = bag
     .map((id) => Math.max(0, explainCardEffects(id, doctrineDef(id).effects ?? [], ctx).total))

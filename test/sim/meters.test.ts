@@ -1260,7 +1260,9 @@ describe('a captured city, end to end', () => {
     // 209 since batch DT4 (Magisterial's and Devotion's Doctrines, data only):
     // ten rows join the two decks, so their seats are now offered Doctrines and a
     // v208 log's draws move.
-    expect(SCHEMA_VERSION).toBe(209);
+    // 210 since batch DT5 (the gates on the Doctrine offer, and six rows): a
+    // gated row leaves a seat's bag, so a v209 log's draws move.
+    expect(SCHEMA_VERSION).toBe(210);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

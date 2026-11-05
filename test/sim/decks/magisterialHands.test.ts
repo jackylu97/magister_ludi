@@ -233,11 +233,16 @@ describe('Officials by Merit (reading 13)', () => {
     const { state } = board();
     const player = playerById(state, 0)!;
     slot(state, OFFICIALS);
-    // A Doctrine hand on the table: the card's clause is not asked.
+    // A Doctrine hand on the table: the card's clause is not asked. The seat needs a
+    // government whose tier has Doctrines left to deal, because a redraw of an empty
+    // bag is refused for its own reason (batch DT5).
+    const government = player.statecraft.government;
+    player.statecraft.government = 'warChief';
     player.statecraft.pendingDoctrine = { options: [DOCTRINE_IDS[0]!] };
     bumpRevision(state);
     expect(rerollError(state, 0)).toBeNull();
     delete player.statecraft.pendingDoctrine;
+    player.statecraft.government = government;
     // A great-person hand on the table: rerolled through the reducer.
     player.greatPersonOffer = drawGreatPersonOffer(state, player);
     bumpRevision(state);

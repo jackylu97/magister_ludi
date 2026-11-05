@@ -634,7 +634,7 @@ export function runCommissions(state: GameState): CommissionReport[] {
       // **A reward that cannot land yet keeps the card in its chair**
       // (Magisterial batch MG7, The Golden Bull): the goal counts as met only
       // once the reward can be paid.
-      if (commissionRewardWaits(player, spec)) continue;
+      if (commissionRewardWaits(state, player, spec)) continue;
       // Marked and unseated before the reward is paid, so nothing the reward
       // triggers can find the card still in its chair.
       sc.commissionsFulfilled = [...(sc.commissionsFulfilled ?? []), { card, turn: state.turn }];
@@ -662,17 +662,18 @@ export function runCommissions(state: GameState): CommissionReport[] {
  * **Must this commission's reward wait?** (Magisterial batch MG7, Commission:
  * The Golden Bull; the triage's reading 19 and question 3's recommended
  * answer.) Yes when a reward line opens a Doctrine offer and none can open
- * now: no Doctrine of the government's tier is left in the seat's decks, or
- * a Doctrine offer already waits (`doctrineOfferCanOpen`). The goal then
+ * now: no Doctrine of the government's tier that the seat could be offered is
+ * left in its decks, or a Doctrine offer already waits (`doctrineOfferCanOpen`).
+ * The goal then
  * does not count as met, so the card stays in its chair and pays when an
  * offer can open, rather than paying nothing and leaving.
  *
  * Spends no randomness. Every other reward can always be paid, so it never
  * waits.
  */
-export function commissionRewardWaits(player: Player, spec: CommissionSpec): boolean {
+export function commissionRewardWaits(state: GameState, player: Player, spec: CommissionSpec): boolean {
   if (!spec.reward.some((reward) => reward.doctrineOffer === true)) return false;
-  return !doctrineOfferCanOpen(player);
+  return !doctrineOfferCanOpen(state, player);
 }
 
 /**

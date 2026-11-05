@@ -417,7 +417,7 @@ describe('Commission: The Golden Bull (readings 18 and 19)', () => {
   it('opens a Doctrine offer of the government’s tier, and leaves its chair', () => {
     const { state, player } = inOrder();
     const tier = governmentDef('imperium').tier;
-    expect(commissionRewardWaits(player, orderDef(BULL).commission!)).toBe(false);
+    expect(commissionRewardWaits(state, player, orderDef(BULL).commission!)).toBe(false);
     const reports = runCommissions(state);
     expect(reports.map((report) => report.card)).toEqual([BULL]);
     expect(reports[0]!.lines).toEqual(["a Doctrine draft of your government's tier"]);
@@ -448,7 +448,7 @@ describe('Commission: The Golden Bull (readings 18 and 19)', () => {
     const [waiting] = poolDoctrines(4).filter((id) => doctrineDef(id).decks.includes('dominion'));
     player.statecraft.pendingDoctrine = { options: [waiting!] };
     bumpRevision(state);
-    expect(commissionRewardWaits(player, orderDef(BULL).commission!)).toBe(true);
+    expect(commissionRewardWaits(state, player, orderDef(BULL).commission!)).toBe(true);
     const before = snapshotState(state);
     expect(runCommissions(state)).toEqual([]);
     // Nothing moved, the random number generator included.
@@ -467,7 +467,7 @@ describe('Commission: The Golden Bull (readings 18 and 19)', () => {
     player.statecraft.doctrines.push(...(left as DoctrineId[]));
     bumpRevision(state);
     expect(commissionFigure(state, 0, 'councilInOrder')).toBe(1);
-    expect(commissionRewardWaits(player, orderDef(BULL).commission!)).toBe(true);
+    expect(commissionRewardWaits(state, player, orderDef(BULL).commission!)).toBe(true);
     expect(runCommissions(state)).toEqual([]);
     expect(player.statecraft.slots.some((slot) => slot?.card === BULL)).toBe(true);
     expect(commissionFulfilledTurn(player.statecraft, BULL)).toBeUndefined();
@@ -477,8 +477,27 @@ describe('Commission: The Golden Bull (readings 18 and 19)', () => {
     player.statecraft.doctrines = [];
     player.decks = [];
     bumpRevision(state);
-    expect(doctrineBagFor(player, tier)).toEqual([]);
+    expect(doctrineBagFor(state, player, tier)).toEqual([]);
     expect(runCommissions(state)).toEqual([]);
+  });
+
+  it('waits in its chair while the only Doctrines left of the tier are ones a gate shuts (batch DT5)', () => {
+    const { state, player } = inOrder();
+    const tier = governmentDef('imperium').tier;
+    player.decks = ['devotion'];
+    const gated = poolDoctrines(tier).filter(
+      (id) => doctrineDef(id).decks.includes('devotion') && doctrineDef(id).needsReligion === true,
+    );
+    expect(gated.length).toBeGreaterThan(0);
+    player.statecraft.doctrines.push(
+      ...poolDoctrines(tier).filter((id) => doctrineDef(id).decks.includes('devotion') && !gated.includes(id)),
+    );
+    bumpRevision(state);
+    expect(commissionFigure(state, 0, 'councilInOrder')).toBe(1);
+    expect(doctrineBagFor(state, player, tier)).toEqual([]);
+    expect(commissionRewardWaits(state, player, orderDef(BULL).commission!)).toBe(true);
+    expect(runCommissions(state)).toEqual([]);
+    expect(player.statecraft.slots.some((slot) => slot?.card === BULL)).toBe(true);
   });
 });
 

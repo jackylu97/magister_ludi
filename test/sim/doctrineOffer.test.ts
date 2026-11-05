@@ -11,7 +11,7 @@
  *     from that, one to one (tier 4 offers Tier I, 10 Tier II, 18 Tier III and
  *     26 Tier IV);
  *   · **the bag**: a seat is offered only the Doctrines of its own decks, and
- *     never one it already holds;
+ *     never one it already holds, and never one whose gate it fails (batch DT5);
  *   · **the deal**: one from each of the seat's decks, then a third from either
  *     (the interim rule, until the user rules the mix); a deck with nothing
  *     left gives its place to the rest of the bag; an empty bag deals nothing
@@ -57,10 +57,14 @@ import {
   drawDoctrineOffer,
   drawDoctrinePositions,
   hasStatecraftOffer,
+  heldReligions,
+  holdsTendedUnlock,
+  liveEffects,
   nextDraftCost,
   statecraftBlocker,
 } from '../../src/sim/statecraft';
-import { rerollKindFor } from '../../src/sim/religion';
+import { rerollError, rerollKindFor } from '../../src/sim/religion';
+import { RELIGION } from '../../src/sim/religionData';
 import {
   type CardEffect,
   type DeckId,
@@ -68,15 +72,22 @@ import {
   DECK_FILE_DOCTRINES,
   DECK_FILES,
   DOCTRINE_IDS,
+  GOVERNMENT_IDS,
   GOVERNMENT_TIERS,
+  type GovernmentId,
+  ORDER_IDS,
   STATECRAFT,
   doctrineDef,
+  governmentDef,
   governmentTierForDoctrineBand,
   governmentsAtTier,
+  orderDef,
   poolDoctrines,
 } from '../../src/sim/statecraftData';
+import { ABILITY_TECH } from '../../src/sim/techData';
 import { productionModifiers } from '../../src/sim/yields/town';
 import { resetVisibility } from '../../src/sim/visibility';
+import { at, bareState } from './improvementHelpers';
 import { lendDoctrineEffects, stockDoctrines } from './statecraftHelpers';
 import { createGame, newGame } from './newGameHelpers';
 
@@ -115,20 +126,28 @@ function poolOfDeck(tier: number, deck: DeckId): DoctrineId[] {
   return poolDoctrines(tier).filter((id) => doctrineDef(id).decks.includes(deck));
 }
 
-/** What a seat's bag holds by the rule: the tier's live rows of its decks, less what it holds. */
-function bagByRule(seat: Player, tier: number): DoctrineId[] {
-  return poolDoctrines(tier).filter(
-    (id) =>
+/**
+ * What a seat's bag holds by the rule: the tier's live rows of its decks, less what
+ * it holds, less what its gates shut (batch DT5). Written out here, row by row, so
+ * the test does not read the bag's own code to check the bag.
+ */
+function bagByRule(state: GameState, seat: Player, tier: number): DoctrineId[] {
+  return poolDoctrines(tier).filter((id) => {
+    const def = doctrineDef(id);
+    return (
       !seat.statecraft.doctrines.includes(id) &&
-      doctrineDef(id).decks.some((deck) => seat.decks.includes(deck)),
-  );
+      def.decks.some((deck) => seat.decks.includes(deck)) &&
+      (def.needsTendedWork !== true || holdsTendedUnlock(state, seat.id)) &&
+      (def.needsReligion !== true || heldReligions(state, seat.id).length > 0)
+    );
+  });
 }
 
 /** Empties a seat's bag at this tier, by having it hold everything the bag offers. */
 function holdWholeBag(game: Game, seat: Player, tier: number): void {
-  seat.statecraft.doctrines.push(...doctrineBagFor(seat, tier));
+  seat.statecraft.doctrines.push(...doctrineBagFor(game.state, seat, tier));
   bumpRevision(game.state);
-  expect(doctrineBagFor(seat, tier)).toEqual([]);
+  expect(doctrineBagFor(game.state, seat, tier)).toEqual([]);
 }
 
 /** A duel between two named figures, so each seat holds that figure's two decks. */
@@ -263,16 +282,16 @@ describe('the Doctrine offer’s bag and deal', () => {
     expect(taizong.decks).toContain('dominion');
     expect(pachacuti.decks).not.toContain('dominion');
     for (const tier of [4, 10, 18, 26]) {
-      expect(doctrineBagFor(taizong, tier), `Taizong, tier ${tier}`).toEqual(bagByRule(taizong, tier));
-      expect(doctrineBagFor(pachacuti, tier), `Pachacuti, tier ${tier}`).toEqual(bagByRule(pachacuti, tier));
+      expect(doctrineBagFor(g.state, taizong, tier), `Taizong, tier ${tier}`).toEqual(bagByRule(g.state, taizong, tier));
+      expect(doctrineBagFor(g.state, pachacuti, tier), `Pachacuti, tier ${tier}`).toEqual(bagByRule(g.state, pachacuti, tier));
       // Dominion's rows reach the seat holding that deck, and only that seat.
       const dominion = poolOfDeck(tier, 'dominion');
-      expect(doctrineBagFor(taizong, tier)).toEqual(expect.arrayContaining(dominion));
-      for (const id of dominion) expect(doctrineBagFor(pachacuti, tier), id).not.toContain(id);
+      expect(doctrineBagFor(g.state, taizong, tier)).toEqual(expect.arrayContaining(dominion));
+      for (const id of dominion) expect(doctrineBagFor(g.state, pachacuti, tier), id).not.toContain(id);
     }
-    const before = doctrineBagFor(taizong, 4);
+    const before = doctrineBagFor(g.state, taizong, 4);
     taizong.statecraft.doctrines.push(STEPPE);
-    expect(doctrineBagFor(taizong, 4)).toEqual(before.filter((id) => id !== STEPPE));
+    expect(doctrineBagFor(g.state, taizong, 4)).toEqual(before.filter((id) => id !== STEPPE));
   });
 
   it('deals nothing from an empty bag and spends no randomness', () => {
@@ -350,7 +369,7 @@ describe('the Doctrine offer’s bag and deal', () => {
     const g = duel('taizong', 'modu');
     const seat = playerById(g.state, 0)!;
     seat.statecraft.doctrines.push(
-      ...doctrineBagFor(seat, 4).filter((id) => !doctrineDef(id).decks.includes('dominion')),
+      ...doctrineBagFor(g.state, seat, 4).filter((id) => !doctrineDef(id).decks.includes('dominion')),
     );
     const offer = drawDoctrineOffer(g.state, seat, 4);
     expect(offer.options).toHaveLength(3);
@@ -358,7 +377,7 @@ describe('the Doctrine offer’s bag and deal', () => {
     // And a bag smaller than the offer deals the bag.
     const small = duel('taizong', 'modu');
     const holder = playerById(small.state, 0)!;
-    const bag = doctrineBagFor(holder, 4);
+    const bag = doctrineBagFor(small.state, holder, 4);
     holder.statecraft.doctrines.push(...bag.slice(0, -1));
     expect([...drawDoctrineOffer(small.state, holder, 4).options]).toEqual([bag[bag.length - 1]]);
   });
@@ -371,7 +390,7 @@ describe('the adoption opens the offer, and the seat takes one or passes', () =>
     const g = duel('taizong', 'pachacuti');
     const taizong = playerById(g.state, 0)!;
     bankGovernment(taizong, 4);
-    const bag = doctrineBagFor(taizong, 4);
+    const bag = doctrineBagFor(g.state, taizong, 4);
     expect(dispatch(g, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 }).ok).toBe(true);
     // Three of the bag, each once.
     const options = [...(taizong.statecraft.pendingDoctrine?.options ?? [])];
@@ -400,7 +419,7 @@ describe('the adoption opens the offer, and the seat takes one or passes', () =>
     const g = duel('taizong', 'pachacuti');
     const taizong = playerById(g.state, 0)!;
     bankGovernment(taizong, 4);
-    const bag = doctrineBagFor(taizong, 4);
+    const bag = doctrineBagFor(g.state, taizong, 4);
     dispatch(g, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 });
     const taken = taizong.statecraft.pendingDoctrine!.options[0] as DoctrineId;
     // A wrong index is refused, and nothing moves. The offer holds three since
@@ -413,7 +432,7 @@ describe('the adoption opens the offer, and the seat takes one or passes', () =>
     expect(taizong.statecraft.doctrines).toEqual([taken]);
     expect(taizong.statecraft.pendingDoctrine).toBeUndefined();
     expect(statecraftBlocker(taizong)).toBeNull();
-    expect(doctrineBagFor(taizong, 4)).toEqual(bag.filter((id) => id !== taken));
+    expect(doctrineBagFor(g.state, taizong, 4)).toEqual(bag.filter((id) => id !== taken));
     // The turn it was taken is stamped, for a rule that says "from now on".
     expect(taizong.statecraft.doctrineTurns).toEqual({ [taken]: g.state.turn });
   });
@@ -432,7 +451,7 @@ describe('the adoption opens the offer, and the seat takes one or passes', () =>
       expect(snapshotState(g.state), command.type).toBe(before);
     }
     bankGovernment(taizong, 4);
-    const bag = doctrineBagFor(taizong, 4);
+    const bag = doctrineBagFor(g.state, taizong, 4);
     dispatch(g, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 });
     // The pass costs nothing and banks nothing: no pity, no culture.
     const skips = taizong.statecraft.orderSkips;
@@ -444,7 +463,7 @@ describe('the adoption opens the offer, and the seat takes one or passes', () =>
     expect(taizong.statecraft.orderSkips).toBe(skips);
     expect(taizong.culturePool).toBe(culture);
     // A Doctrine passed on is not held, so it may be offered again later.
-    expect(doctrineBagFor(taizong, 4)).toEqual(bag);
+    expect(doctrineBagFor(g.state, taizong, 4)).toEqual(bag);
   });
 
   it('refuses the reward commands, which left with the reward hands', () => {
@@ -472,15 +491,15 @@ describe('a Doctrine offer outside an adoption (Magisterial batch MG7)', () => {
     const taizong = playerById(g.state, 0)!;
     taizong.statecraft.government = 'warChief';
     bumpRevision(g.state);
-    const bag = doctrineBagFor(taizong, 4);
-    expect(doctrineOfferCanOpen(taizong)).toBe(true);
+    const bag = doctrineBagFor(g.state, taizong, 4);
+    expect(doctrineOfferCanOpen(g.state, taizong)).toBe(true);
     expect(openDoctrineOffer(g.state, taizong)).toBe(true);
     const options = [...(taizong.statecraft.pendingDoctrine?.options ?? [])];
     expect(options).toHaveLength(3);
     for (const id of options) expect(bag, id).toContain(id);
     // A second is refused while the first waits, and nothing moves.
     const before = snapshotState(g.state);
-    expect(doctrineOfferCanOpen(taizong)).toBe(false);
+    expect(doctrineOfferCanOpen(g.state, taizong)).toBe(false);
     expect(openDoctrineOffer(g.state, taizong)).toBe(false);
     expect(snapshotState(g.state)).toBe(before);
   });
@@ -492,7 +511,7 @@ describe('a Doctrine offer outside an adoption (Magisterial batch MG7)', () => {
     pachacuti.statecraft.government = 'warChief';
     holdWholeBag(g, pachacuti, 4);
     const before = snapshotState(g.state);
-    expect(doctrineOfferCanOpen(pachacuti)).toBe(false);
+    expect(doctrineOfferCanOpen(g.state, pachacuti)).toBe(false);
     expect(openDoctrineOffer(g.state, pachacuti)).toBe(false);
     // The Chiefdom's tier deals nothing either.
     const taizong = playerById(g.state, 0)!;
@@ -756,5 +775,274 @@ describe('the bot answers a Doctrine offer', () => {
         def.effects = saved[at]!;
       });
     }
+  });
+});
+
+// --- the gates on the offer (batch DT5) ---------------------------------------
+
+describe('the gates on the Doctrine offer (batch DT5)', () => {
+  const GARDEN: DoctrineId = 'theGardenPeoples';
+  /** The live rows behind each gate, so a row a later batch adds joins these tests. */
+  const NEEDS_RELIGION = DOCTRINE_IDS.filter(
+    (id) => doctrineDef(id).needsReligion === true && doctrineDef(id).retired !== true,
+  );
+  const NEEDS_TENDED = DOCTRINE_IDS.filter(
+    (id) => doctrineDef(id).needsTendedWork === true && doctrineDef(id).retired !== true,
+  );
+  const GATED = [...NEEDS_RELIGION, ...NEEDS_TENDED];
+
+  /** A government of this tier that the game still offers. */
+  function governmentOfTier(tier: number): GovernmentId {
+    const found = GOVERNMENT_IDS.find((id) => governmentDef(id).tier === tier && governmentDef(id).retired !== true);
+    if (found === undefined) throw new Error(`no government at tier ${tier}`);
+    return found;
+  }
+
+  /**
+   * A board with two seats, each with a town and no religion. Seat 0 holds Devotion
+   * and Expansionist, so it can be dealt both gates' rows. Seat 1 holds Devotion.
+   */
+  function board(): { state: GameState; seat: Player; rival: Player; home: City; away: City } {
+    const state = bareState(30, 10);
+    const seat = playerById(state, 0)!;
+    const rival = playerById(state, 1)!;
+    seat.decks = ['devotion', 'expansionist'];
+    rival.decks = ['devotion', 'commerce'];
+    const home = foundCityAt(state, 0, at(state, 5, 5));
+    const away = foundCityAt(state, 1, at(state, 20, 5));
+    bumpRevision(state);
+    return { state, seat, rival, home, away };
+  }
+
+  /** A religion whose holy site stands on a town's centre, so the town's owner holds it. */
+  function religionIn(state: GameState, city: City): void {
+    at(state, city.col, city.row).improvement = 'holySite' as never;
+    state.religions.push({
+      id: state.religions.length,
+      founderId: city.ownerId,
+      name: `The Testament ${state.religions.length}`,
+      pantheon: [],
+      follower: [],
+      enhancer: [],
+      foundedTurn: state.turn,
+      holySite: { col: city.col, row: city.row },
+    } as never);
+    bumpRevision(state);
+  }
+
+  /** Every bag this seat could be offered, one for each government tier. */
+  const everyBag = (state: GameState, seat: Player): DoctrineId[] =>
+    GOVERNMENT_TIERS.flatMap((tier) => doctrineBagFor(state, seat, tier));
+
+  /** Has the seat hold every row of the tier that no gate shuts, so only gated rows are left. */
+  function holdUngated(state: GameState, seat: Player, tier: number): void {
+    seat.statecraft.doctrines.push(
+      ...poolDoctrines(tier).filter(
+        (id) =>
+          !GATED.includes(id) &&
+          !seat.statecraft.doctrines.includes(id) &&
+          doctrineDef(id).decks.some((deck) => seat.decks.includes(deck)),
+      ),
+    );
+    bumpRevision(state);
+  }
+
+  it('marks the rows of the plan that are built, each with one gate', () => {
+    for (const id of ['thePatrimonyOfPeter', 'theImarets', 'theCanonsOfTheHolySepulchre', 'theMartyrsCrown', 'theTwoSanctuaries']) {
+      expect(NEEDS_RELIGION, id).toContain(id);
+    }
+    expect(NEEDS_TENDED).toContain(GARDEN);
+    for (const id of GATED) {
+      const def = doctrineDef(id);
+      expect(def.needsReligion === true && def.needsTendedWork === true, id).toBe(false);
+    }
+  });
+
+  it('agrees with the rule row by row, gates included, at every tier', () => {
+    const { state, seat, rival, home } = board();
+    const check = (): void => {
+      for (const tier of GOVERNMENT_TIERS) {
+        expect(doctrineBagFor(state, seat, tier), `seat 0, tier ${tier}`).toEqual(bagByRule(state, seat, tier));
+        expect(doctrineBagFor(state, rival, tier), `seat 1, tier ${tier}`).toEqual(bagByRule(state, rival, tier));
+      }
+    };
+    check();
+    religionIn(state, home);
+    check();
+    seat.statecraft.orders.push('theForestGardens' as never);
+    bumpRevision(state);
+    check();
+  });
+
+  it('offers a seat with no religion none of the rows that need one', () => {
+    const { state, seat } = board();
+    const bag = everyBag(state, seat);
+    for (const id of NEEDS_RELIGION) expect(bag, id).not.toContain(id);
+    // The gate takes those rows out and no others.
+    expect(bag).toContain('theTheoricFund');
+    expect(bag).toContain('theRitesOfZhou');
+  });
+
+  it('admits them when the seat holds a religion', () => {
+    const { state, seat, home } = board();
+    religionIn(state, home);
+    const bag = everyBag(state, seat);
+    for (const id of NEEDS_RELIGION) expect(bag, id).toContain(id);
+  });
+
+  it('admits them when the seat captures a holy city, and shuts them for the seat that lost it', () => {
+    const { state, seat, rival, away } = board();
+    religionIn(state, away);
+    expect(everyBag(state, rival)).toEqual(expect.arrayContaining(NEEDS_RELIGION));
+    for (const id of NEEDS_RELIGION) expect(everyBag(state, seat), id).not.toContain(id);
+    // The town changes hands. Nothing else moves: `heldReligions` asks the board.
+    away.ownerId = 0;
+    bumpRevision(state);
+    expect(everyBag(state, seat)).toEqual(expect.arrayContaining(NEEDS_RELIGION));
+    for (const id of NEEDS_RELIGION) expect(everyBag(state, rival), id).not.toContain(id);
+  });
+
+  it('keeps a gated row out of the bag of a seat with a religion but not the deck', () => {
+    const { state, seat, home } = board();
+    seat.decks = ['dominion', 'expansionist'];
+    religionIn(state, home);
+    const bag = everyBag(state, seat);
+    for (const id of NEEDS_RELIGION) expect(bag, id).not.toContain(id);
+  });
+
+  it('admits The Garden Peoples for a tended-work charter, seated or not', () => {
+    const { state, seat } = board();
+    const tier = doctrineDef(GARDEN).tier;
+    expect(doctrineBagFor(state, seat, tier)).not.toContain(GARDEN);
+    // In the collection, in no chair: a charter takes none.
+    seat.statecraft.orders.push('theForestGardens' as never);
+    bumpRevision(state);
+    expect(seat.statecraft.slots.some((slot) => slot?.card === 'theForestGardens')).toBe(false);
+    expect(doctrineBagFor(state, seat, tier)).toContain(GARDEN);
+    // In a chair as well, by a direct write. It reads the same.
+    seat.statecraft.slots.push({ card: 'theForestGardens' as never, sealedUntil: state.turn });
+    bumpRevision(state);
+    expect(doctrineBagFor(state, seat, tier)).toContain(GARDEN);
+  });
+
+  it('does not admit The Garden Peoples for a charter that opens no tended work', () => {
+    const { state, seat } = board();
+    const other = ORDER_IDS.find((id) => {
+      const charter = orderDef(id).charter;
+      return charter !== undefined && charter.unlocks.improvement === undefined;
+    });
+    expect(other).toBeDefined();
+    seat.statecraft.orders.push(other!);
+    bumpRevision(state);
+    expect(doctrineBagFor(state, seat, doctrineDef(GARDEN).tier)).not.toContain(GARDEN);
+  });
+
+  it('does not admit The Garden Peoples for a religion, nor a religion’s rows for a charter', () => {
+    const { state, seat, home } = board();
+    seat.statecraft.orders.push('theForestGardens' as never);
+    bumpRevision(state);
+    for (const id of NEEDS_RELIGION) expect(everyBag(state, seat), id).not.toContain(id);
+    seat.statecraft.orders = [];
+    religionIn(state, home);
+    expect(everyBag(state, seat)).not.toContain(GARDEN);
+  });
+
+  it('never deals a gated row to a seat that fails the gate, over many draws', () => {
+    for (const tier of GOVERNMENT_TIERS) {
+      const { state, seat } = board();
+      for (let draw = 0; draw < 40; draw++) {
+        const offer = drawDoctrineOffer(state, seat, tier);
+        for (const id of offer.options) expect(GATED, `${id} at tier ${tier}`).not.toContain(id);
+      }
+    }
+  });
+
+  it('agrees with the draw: no offer can open while only gated rows are left', () => {
+    const { state, seat, home } = board();
+    const tier = doctrineDef('theImarets').tier;
+    seat.statecraft.government = governmentOfTier(tier);
+    holdUngated(state, seat, tier);
+    expect(doctrineBagFor(state, seat, tier)).toEqual([]);
+    expect(doctrineOfferCanOpen(state, seat)).toBe(false);
+    const before = snapshotState(state);
+    expect(openDoctrineOffer(state, seat)).toBe(false);
+    expect(drawDoctrineOffer(state, seat, tier)).toEqual({ options: [] });
+    // Nothing moved, the random number generator included.
+    expect(snapshotState(state)).toBe(before);
+    // The gate opens, and the question and the draw both change their answer.
+    religionIn(state, home);
+    expect(doctrineOfferCanOpen(state, seat)).toBe(true);
+    expect(openDoctrineOffer(state, seat)).toBe(true);
+    for (const id of seat.statecraft.pendingDoctrine!.options) expect(NEEDS_RELIGION, id).toContain(id);
+  });
+
+  it('opens no offer at an adoption while only gated rows are left', () => {
+    const { state, seat } = board();
+    const tier = doctrineDef('theImarets').tier;
+    holdUngated(state, seat, tier);
+    seat.statecraft.pendingGovernment = { tier, options: governmentsAtTier(tier) };
+    const adopted = adoptGovernmentAt(state, seat, 0);
+    expect(adopted?.doctrines).toBeNull();
+    expect(seat.statecraft.pendingDoctrine).toBeUndefined();
+    expect(statecraftBlocker(seat)).toBeNull();
+  });
+
+  it('lets a seat keep a gated Doctrine after it loses the religion, and never offers it again', () => {
+    const { state, seat, home } = board();
+    religionIn(state, home);
+    const id: DoctrineId = 'theImarets';
+    const tier = doctrineDef(id).tier;
+    seat.statecraft.doctrines.push(id);
+    bumpRevision(state);
+    expect(doctrineBagFor(state, seat, tier)).not.toContain(id);
+    home.ownerId = 1;
+    bumpRevision(state);
+    expect(heldReligions(state, seat.id)).toEqual([]);
+    expect(seat.statecraft.doctrines).toContain(id);
+    expect(liveEffects(state, seat.id).some((entry) => entry.card === id)).toBe(true);
+    // The seat wins the town back: the row is still not offered, because it is held.
+    home.ownerId = seat.id;
+    bumpRevision(state);
+    expect(heldReligions(state, seat.id)).toHaveLength(1);
+    expect(doctrineBagFor(state, seat, tier)).not.toContain(id);
+  });
+
+  it('refuses a redraw that would deal an empty hand, and the seat may still answer the offer', () => {
+    const { state, seat, home } = board();
+    religionIn(state, home);
+    const tier = doctrineDef('theImarets').tier;
+    seat.statecraft.government = governmentOfTier(tier);
+    seat.faithPool = 10_000;
+    seat.techsResearched.push(ABILITY_TECH.get(RELIGION.reroll.ability)!);
+    holdUngated(state, seat, tier);
+    expect(openDoctrineOffer(state, seat)).toBe(true);
+    expect(rerollError(state, 0)).toBeNull();
+    // Turns are simultaneous, so the holy city can fall while the offer waits.
+    home.ownerId = 1;
+    bumpRevision(state);
+    expect(rerollError(state, 0)).toBe('No other Doctrine can be offered to you now');
+    const before = snapshotState(state);
+    const refused = applyCommand(state, { type: 'rerollOffer', playerId: 0 });
+    expect(refused.ok).toBe(false);
+    expect(snapshotState(state)).toBe(before);
+    const taken = seat.statecraft.pendingDoctrine!.options[0] as DoctrineId;
+    expect(applyCommand(state, { type: 'chooseDoctrine', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+    expect(seat.statecraft.doctrines).toContain(taken);
+  });
+
+  it('offers the religion rows through the real command path once the seat holds a faith', () => {
+    const { state, seat, home } = board();
+    religionIn(state, home);
+    const tier = doctrineDef('theImarets').tier;
+    holdUngated(state, seat, tier);
+    seat.statecraft.pendingGovernment = { tier, options: governmentsAtTier(tier) };
+    const result = applyCommand(state, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 });
+    expect(result.ok, JSON.stringify(result)).toBe(true);
+    const offer = seat.statecraft.pendingDoctrine!;
+    expect(offer.options.length).toBeGreaterThan(0);
+    for (const id of offer.options) expect(NEEDS_RELIGION, id).toContain(id);
+    const taken = offer.options[0] as DoctrineId;
+    expect(applyCommand(state, { type: 'chooseDoctrine', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+    expect(seat.statecraft.doctrines).toContain(taken);
   });
 });

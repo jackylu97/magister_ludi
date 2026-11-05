@@ -6073,17 +6073,17 @@ export function payGrants(
 /**
  * **Can a Doctrine offer open for this seat now, outside an adoption?** Yes
  * when no Doctrine offer waits and the seat's decks still hold a Doctrine of
- * its current government's tier that it does not hold (`doctrineBagFor`).
- * Spends no randomness, so a caller may ask before it decides.
+ * its current government's tier that it does not hold and that passes its gates
+ * (`doctrineBagFor`). Spends no randomness, so a caller may ask before it decides.
  *
  * Asked by `openDoctrineOffer`, and by the commissions phase for a reward
  * that opens one (Magisterial batch MG7, Commission: The Golden Bull): the
  * goal waits while this answers no (the triage's reading 19).
  */
-export function doctrineOfferCanOpen(player: Player): boolean {
+export function doctrineOfferCanOpen(state: GameState, player: Player): boolean {
   const sc = player.statecraft;
   if (sc.pendingDoctrine !== undefined) return false;
-  return doctrineBagFor(player, governmentDef(sc.government).tier).length > 0;
+  return doctrineBagFor(state, player, governmentDef(sc.government).tier).length > 0;
 }
 
 /**
@@ -6100,7 +6100,7 @@ export function doctrineOfferCanOpen(player: Player): boolean {
  * `drawDoctrineOffer`, as an adoption deals one.
  */
 export function openDoctrineOffer(state: GameState, player: Player): boolean {
-  if (!doctrineOfferCanOpen(player)) return false;
+  if (!doctrineOfferCanOpen(state, player)) return false;
   const sc = player.statecraft;
   const offer = drawDoctrineOffer(state, player, governmentDef(sc.government).tier);
   if (offer.options.length === 0) return false;

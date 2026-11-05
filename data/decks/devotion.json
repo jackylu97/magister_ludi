@@ -2624,6 +2624,61 @@
         {"kind": "happiness", "amount": 2, "per": "city", "scope": {"test": "keepingRite"}}
       ]
     },
+    "thePatrimonyOfPeter": {
+      "name": "The Patrimony of Peter",
+      "decks": ["devotion"],
+      "band": 2,
+      "line": "none",
+      "needsReligion": true,
+      "flavor": "The bishop's farms fed Rome when the emperor's could not.",
+      "text": "Your holy city's citizens demand no happiness.",
+      "effects": [
+        {"kind": "rulePercent", "rule": "happinessDemand", "percent": -100, "scope": {"test": "holyCity"}}
+      ]
+    },
+    "theImarets": {
+      "name": "The Imarets",
+      "decks": ["devotion"],
+      "band": 3,
+      "line": "none",
+      "needsReligion": true,
+      "flavor": "Students, travellers and the poor of the town eat from one kitchen.",
+      "text": "Your devout towns grow 25% faster.",
+      "effects": [
+        {"kind": "rulePercent", "rule": "growthSurplus", "percent": 25, "scope": {"test": "ownersFaith", "keeps": true}}
+      ]
+    },
+    "theCanonsOfTheHolySepulchre": {
+      "name": "The Canons of the Holy Sepulchre",
+      "decks": ["devotion"],
+      "band": 3,
+      "line": "none",
+      "needsReligion": true,
+      "flavor": "The canons keep the door, and the door is never shut.",
+      "text": "Towns with a holy site buy with faith at 30% less.",
+      "effects": [
+        {
+          "kind": "purchaseRider",
+          "class": {},
+          "on": "all",
+          "currency": "faith",
+          "percent": -30,
+          "scope": {"test": "hasImprovement", "improvement": "holySite"}
+        }
+      ]
+    },
+    "theMartyrsCrown": {
+      "name": "The Martyr's Crown",
+      "decks": ["devotion"],
+      "band": 3,
+      "line": "none",
+      "needsReligion": true,
+      "flavor": "They killed him on the altar steps, and the pilgrims have not stopped coming.",
+      "text": "Each of your units that dies in battle presses your religion on every town within three hexes.",
+      "effects": [
+        {"kind": "windfallRider", "occasion": "death", "grant": {"pressure": {"amount": 30, "range": 3}}}
+      ]
+    },
     "theSaintPetersIndulgence": {
       "name": "The Saint Peter's Indulgence",
       "decks": ["devotion"],
@@ -2640,6 +2695,18 @@
           "count": "faithSpent",
           "per": 150
         }
+      ]
+    },
+    "theTwoSanctuaries": {
+      "name": "The Two Sanctuaries",
+      "decks": ["devotion"],
+      "band": 4,
+      "line": "none",
+      "needsReligion": true,
+      "flavor": "Two holy cities, one title, and every caravan guarded.",
+      "text": "Hexes with a holy site have double yields, applied after every other change to the hex.",
+      "effects": [
+        {"kind": "pays", "where": "hex", "on": {"test": "improvement", "improvement": "holySite"}, "wholePercent": 100}
       ]
     }
   }

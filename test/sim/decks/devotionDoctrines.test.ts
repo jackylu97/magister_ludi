@@ -1,25 +1,36 @@
 /**
- * **Doctrine batch DT4: Devotion's Doctrines that need no new shape**
- * (`docs/plans/doctrines-build-triage.md`). `devotion.test.ts` holds the rows to the
- * sheet. This file checks that each row pays what its text says, in a real fold.
- * None of these rows has a drawback, so each also has a test that it pays nothing
- * where its text does not reach.
+ * **Devotion's Doctrines** (`docs/plans/doctrines-build-triage.md`): batch DT4's
+ * three that need no new shape, and batch DT5's five that need only the offer's gate.
+ * `devotion.test.ts` holds the rows to the sheet. This file checks that each row pays
+ * what its text says, in a real fold. None of these rows has a drawback, so each also
+ * has a test that it pays nothing where its text does not reach. The gate itself is
+ * checked in `doctrineOffer.test.ts`.
  *
- * Later batches add the deck's other thirteen Doctrines to this file.
+ * Later batches add the deck's other eight Doctrines to this file.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import { scoreCard, valueContext } from '../../../src/ai/bot';
 import { explainCardImpact } from '../../../src/sim/cardImpact';
-import { foundCityAt, refreshCityDerived } from '../../../src/sim/cities';
-import { explainAuthority, explainHappiness } from '../../../src/sim/meters';
+import {
+  explainGrowthPercent,
+  foldGrowthPercent,
+  foundCityAt,
+  growthSurplus,
+  refreshCityDerived,
+} from '../../../src/sim/cities';
+import { type Command, applyCommand } from '../../../src/sim/commands';
+import { raiseImprovement } from '../../../src/sim/map';
+import { explainAuthority, explainFoundingCost, explainHappiness } from '../../../src/sim/meters';
+import { type PurchaseSubject, explainPurchaseCost, purchaseError } from '../../../src/sim/purchase';
 import { cityRite, empireRiteAt, performRiteAt } from '../../../src/sim/religion';
 import { type RiteId } from '../../../src/sim/religionData';
 import {
   type City,
   type GameState,
   type Player,
+  type Religion,
   addBuilding,
   bumpRevision,
   createUnit,
@@ -27,24 +38,48 @@ import {
   spendFaith,
 } from '../../../src/sim/state';
 import { doctrineBagFor } from '../../../src/sim/statecraft';
-import { cardProduction, explainCardCityYields } from '../../../src/sim/statecraft/evaluator';
+import { cardProduction, cardRulePercent, explainCardCityYields } from '../../../src/sim/statecraft/evaluator';
 import {
+  type CardEffect,
   type DoctrineId,
+  type OrderId,
   DECK_FILE_DOCTRINES,
   doctrineDef,
   poolDoctrines,
 } from '../../../src/sim/statecraftData';
 import { collectYields, explainEmpireCardYields, foldEmpireRates } from '../../../src/sim/yields/empire';
+import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
 import { explainCity, productionModifiers } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
 import { createGame } from '../newGameHelpers';
+import { lendDoctrineEffects } from '../statecraftHelpers';
 
-/** The three rows of batch DT4 in this deck, each with the band its table gives it. */
+/** The rows built so far in this deck, each with the band its table gives it. */
 const ROWS: readonly (readonly [string, number])[] = [
   ['theTheoricFund', 1],
   ['theRitesOfZhou', 1],
   ['theSaintPetersIndulgence', 4],
+  ['thePatrimonyOfPeter', 2],
+  ['theImarets', 3],
+  ['theCanonsOfTheHolySepulchre', 3],
+  ['theMartyrsCrown', 3],
+  ['theTwoSanctuaries', 4],
 ];
+
+/** The five rows of batch DT5, each behind the gate `needsReligion`. */
+const DT5_ROWS: readonly string[] = [
+  'thePatrimonyOfPeter',
+  'theImarets',
+  'theCanonsOfTheHolySepulchre',
+  'theMartyrsCrown',
+  'theTwoSanctuaries',
+];
+
+/** Lent rows, put back after each test, so a failed test cannot leak one into the next. */
+const lent: (() => void)[] = [];
+afterEach(() => {
+  while (lent.length > 0) lent.pop()!();
+});
 
 const FASTING = 'riteOfFasting' as RiteId;
 
@@ -92,7 +127,7 @@ function happinessFrom(state: GameState, card: string): number {
     .reduce((sum, line) => sum + line.value, 0);
 }
 
-describe('batch DT4: Devotion’s rows', () => {
+describe('Devotion’s rows', () => {
   it('deals each row at its tier, from the Devotion bag and no other', () => {
     for (const [id, band] of ROWS) {
       const def = doctrineDef(id as DoctrineId);
@@ -113,10 +148,10 @@ describe('batch DT4: Devotion’s rows', () => {
         { name: 'Bors', color: '#00a', isHuman: true, decks: ['dominion', 'expansionist'] },
       ],
     });
-    expect(doctrineBagFor(seat(g.state), 4)).toEqual(
+    expect(doctrineBagFor(g.state, seat(g.state), 4)).toEqual(
       expect.arrayContaining(['theTheoricFund', 'theRitesOfZhou']),
     );
-    expect(doctrineBagFor(seat(g.state, 1), 4)).not.toContain('theTheoricFund');
+    expect(doctrineBagFor(g.state, seat(g.state, 1), 4)).not.toContain('theTheoricFund');
   });
 
   it('gives the bots a finite price for every row, and the impact stamp reads each one', () => {
@@ -379,4 +414,416 @@ describe('The Saint Peter’s Indulgence', () => {
     expect(line!.percent).toBe(4);
     expect(productionModifiers(state, city, { kind: 'building', id: 'granary' as never })).not.toContainEqual(line);
   });
+});
+
+// --- batch DT5: the rows that need only the offer's gate -------------------------
+
+/**
+ * A religion whose holy site is this town's centre. The owner of the town holds the
+ * site, so the religion pays that owner. The citizens of `followers` all follow it.
+ */
+function religionAt(state: GameState, site: City, followers: readonly City[] = [site]): Religion {
+  at(state, site.col, site.row).improvement = 'holySite' as never;
+  const religion = {
+    id: state.religions.length,
+    founderId: site.ownerId,
+    name: `The Testament ${state.religions.length}`,
+    pantheon: [],
+    follower: [],
+    enhancer: [],
+    foundedTurn: state.turn,
+    holySite: { col: site.col, row: site.row },
+  } as unknown as Religion;
+  state.religions.push(religion);
+  for (const city of followers) city.followers = { [religion.id]: city.population };
+  bumpRevision(state);
+  return religion;
+}
+
+/** What a town's citizens cost seat 0 in happiness, as a positive figure. */
+function citizensDemand(state: GameState, city: City): number {
+  const line = explainHappiness(state, 0).find(
+    (entry) => entry.part === 'cost' && entry.source.startsWith(`${city.name} · `) && entry.source.includes('citizens'),
+  );
+  if (line === undefined) throw new Error(`no citizens line for ${city.name}`);
+  return 0 - line.value;
+}
+
+describe('batch DT5: the gated rows', () => {
+  it('marks the five Devotion rows of this batch, and none of the three that came before', () => {
+    for (const id of DT5_ROWS) expect(doctrineDef(id as DoctrineId).needsReligion, id).toBe(true);
+    for (const id of ['theTheoricFund', 'theRitesOfZhou', 'theSaintPetersIndulgence']) {
+      expect(doctrineDef(id as DoctrineId).needsReligion, id).toBeUndefined();
+    }
+  });
+
+  it('gives a bot a positive price for each row on a board where the row pays', () => {
+    const state = bareState(24, 10);
+    const holy = town(state, 5, 5, 8);
+    town(state, 9, 5, 6);
+    religionAt(state, holy, state.cities);
+    // A holy site the town works: its centre pays no hex line, so the doubler needs this.
+    raiseImprovement(at(state, 6, 5), 'holySite' as never, 0);
+    refreshCityDerived(state, holy);
+    const player = faithful(state);
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    for (const id of DT5_ROWS) {
+      const score = scoreCard(player, id as never, ctx);
+      expect(score, id).toBeGreaterThan(0);
+    }
+  });
+
+  it('prices a town-scoped row at nothing when no town is in its reach', () => {
+    // No town follows, and no holy site stands.
+    const state = bareState(24, 10);
+    town(state, 5, 5, 8);
+    const player = seat(state);
+    const ctx = valueContext(state, player);
+    expect(scoreCard(player, 'thePatrimonyOfPeter' as never, ctx)).toBe(0);
+    expect(scoreCard(player, 'theImarets' as never, ctx)).toBe(0);
+  });
+});
+
+describe('The Patrimony of Peter', () => {
+  it('takes the holy city’s citizens off the happiness meter, and no other town’s', () => {
+    const state = bareState(24, 10);
+    const holy = town(state, 5, 5, 6);
+    const other = town(state, 15, 5, 4);
+    religionAt(state, holy, [holy, other]);
+    const holyBefore = citizensDemand(state, holy);
+    const otherBefore = citizensDemand(state, other);
+    expect(holyBefore).toBeGreaterThan(0);
+    hold(state, 'thePatrimonyOfPeter');
+    expect(citizensDemand(state, holy)).toBe(0);
+    expect(citizensDemand(state, other)).toBe(otherBefore);
+  });
+
+  it('changes nothing for a seat with no holy city', () => {
+    const state = bareState(24, 10);
+    const city = town(state, 5, 5, 6);
+    const before = citizensDemand(state, city);
+    hold(state, 'thePatrimonyOfPeter');
+    expect(citizensDemand(state, city)).toBe(before);
+  });
+
+  it('follows the holy city when it changes hands', () => {
+    const state = bareState(24, 10);
+    const holy = town(state, 5, 5, 6);
+    const other = town(state, 15, 5, 4);
+    religionAt(state, holy, [holy, other]);
+    hold(state, 'thePatrimonyOfPeter');
+    expect(citizensDemand(state, holy)).toBe(0);
+    holy.ownerId = 1;
+    bumpRevision(state);
+    // Seat 0 keeps its Doctrine and has no holy city left, so its other town still pays.
+    expect(citizensDemand(state, other)).toBeGreaterThan(0);
+  });
+
+  it('leaves the founding preview alone, because a town not yet founded is not a holy city', () => {
+    const state = bareState(24, 10);
+    const holy = town(state, 5, 5, 6);
+    religionAt(state, holy);
+    const quote = (): number =>
+      explainFoundingCost(state, 0, at(state, 15, 5)).find((one) => one.meter === 'happiness')!.value;
+    const before = quote();
+    hold(state, 'thePatrimonyOfPeter');
+    expect(quote()).toBe(before);
+  });
+});
+
+describe('The Imarets', () => {
+  const percentOn = (state: GameState, city: City): number =>
+    explainGrowthPercent(state, city)
+      .filter((line) => line.source.includes('The Imarets'))
+      .reduce((sum, line) => sum + line.percent, 0);
+
+  it('adds +25% to a devout town’s growth, and nothing to a town that does not follow', () => {
+    const state = bareState(24, 10);
+    const devout = town(state, 5, 5, 6);
+    const plain = town(state, 15, 5, 6);
+    religionAt(state, devout, [devout]);
+    hold(state, 'theImarets');
+    expect(percentOn(state, devout)).toBe(25);
+    expect(percentOn(state, plain)).toBe(0);
+  });
+
+  it('reaches the food a devout town banks, added to the town’s other growth percentages', () => {
+    const build = (held: boolean): { surplus: number; percent: number } => {
+      const state = bareState(24, 10);
+      const city = town(state, 5, 5, 3);
+      religionAt(state, city);
+      if (held) hold(state, 'theImarets');
+      return { surplus: growthSurplus(state, city), percent: foldGrowthPercent(explainGrowthPercent(state, city)) };
+    };
+    const without = build(false);
+    const held = build(true);
+    expect(without.surplus).toBeGreaterThan(0);
+    expect(held.percent).toBe(without.percent + 25);
+    // The percentages add inside one channel, so the base comes from the plain town.
+    const base = without.surplus / (1 + without.percent / 100);
+    expect(held.surplus).toBeCloseTo(base * (1 + held.percent / 100), 8);
+  });
+
+  it('pays nothing in a rival’s town that follows, nor in a town following a rival’s faith', () => {
+    const state = bareState(30, 10);
+    const mine = town(state, 5, 5, 6);
+    const theirs = town(state, 15, 5, 6, 1);
+    const theirHoly = town(state, 25, 5, 6, 1);
+    const faith = religionAt(state, mine, [mine, theirs]);
+    expect(faith.founderId).toBe(0);
+    hold(state, 'theImarets');
+    expect(cardRulePercent(state, 1, 'growthSurplus', theirs)).toEqual([]);
+    // A town of mine that follows a faith I am not paid by is not devout.
+    religionAt(state, theirHoly, [theirHoly, mine]);
+    expect(percentOn(state, mine)).toBe(0);
+  });
+});
+
+describe('The Canons of the Holy Sepulchre', () => {
+  const WARRIOR = { kind: 'unit', id: 'warrior' } as const;
+  const TEMPLE = { kind: 'building', id: 'temple' } as const;
+
+  /** A town with a holy site inside its borders, off its centre, and a plain town. */
+  function board(): { state: GameState; holy: City; plain: City } {
+    const state = bareState(30, 10);
+    const holy = town(state, 5, 5, 6);
+    const plain = town(state, 20, 5, 6);
+    // Faith buys units here, so the rider has a unit's price to reach.
+    addBuilding(state, holy, 'cathedral');
+    addBuilding(state, plain, 'cathedral');
+    faithful(state);
+    raiseImprovement(at(state, 6, 5), 'holySite' as never, 0);
+    bumpRevision(state);
+    return { state, holy, plain };
+  }
+
+  const faithPrice = (state: GameState, city: City, item: PurchaseSubject): number =>
+    explainPurchaseCost(state, 0, city.id, item, 'faith')!.total;
+
+  it('takes 30% off a faith price in a town with a holy site, as a labelled line', () => {
+    const { state, holy } = board();
+    const before = faithPrice(state, holy, WARRIOR);
+    hold(state, 'theCanonsOfTheHolySepulchre');
+    const price = explainPurchaseCost(state, 0, holy.id, WARRIOR, 'faith')!;
+    expect(price.total).toBe(Math.floor((before * 70) / 100));
+    expect(price.lines.some((line) => line.source.includes('The Canons of the Holy Sepulchre'))).toBe(true);
+  });
+
+  it('reaches a building as well as a unit', () => {
+    const { state, holy } = board();
+    // The Gifts of the Faithful opens a religious building to faith.
+    const sc = seat(state).statecraft;
+    sc.orders.push('theGiftsOfTheFaithful' as OrderId);
+    sc.slots.push({ card: 'theGiftsOfTheFaithful' as OrderId, sealedUntil: state.turn });
+    bumpRevision(state);
+    const before = faithPrice(state, holy, TEMPLE);
+    hold(state, 'theCanonsOfTheHolySepulchre');
+    expect(faithPrice(state, holy, TEMPLE)).toBe(Math.floor((before * 70) / 100));
+  });
+
+  it('leaves a town with no holy site at the full price', () => {
+    const { state, plain } = board();
+    const before = faithPrice(state, plain, WARRIOR);
+    hold(state, 'theCanonsOfTheHolySepulchre');
+    expect(faithPrice(state, plain, WARRIOR)).toBe(before);
+  });
+
+  it('leaves a gold price alone', () => {
+    const { state, holy } = board();
+    const before = explainPurchaseCost(state, 0, holy.id, WARRIOR, 'gold')!.total;
+    hold(state, 'theCanonsOfTheHolySepulchre');
+    expect(explainPurchaseCost(state, 0, holy.id, WARRIOR, 'gold')!.total).toBe(before);
+  });
+
+  it('charges the purse the discounted price', () => {
+    const { state, holy } = board();
+    const player = seat(state);
+    hold(state, 'theCanonsOfTheHolySepulchre');
+    const price = faithPrice(state, holy, WARRIOR);
+    const pool = player.faithPool;
+    expect(purchaseError(state, 0, holy.id, WARRIOR, 'faith')).toBeNull();
+    const result = applyCommand(state, {
+      type: 'purchaseItem',
+      playerId: 0,
+      cityId: holy.id,
+      item: WARRIOR,
+      currency: 'faith',
+    } as Command);
+    expect(result.ok, JSON.stringify(result)).toBe(true);
+    expect(player.faithPool).toBe(pool - price);
+  });
+});
+
+describe('The Martyr’s Crown', () => {
+  /**
+   * Seat 1 holds a religion in a town at (12, 5). Seat 0 holds three towns: one within
+   * three hexes of the fight at (5, 5), and one well outside. No citizen follows yet.
+   */
+  function board(): { state: GameState; near: City; far: City; holy: City; faith: Religion } {
+    const state = bareState(40, 12);
+    const near = town(state, 3, 5, 6);
+    const far = town(state, 30, 5, 6);
+    const holy = town(state, 12, 5, 6, 1);
+    const faith = religionAt(state, holy, []);
+    return { state, near, far, holy, faith };
+  }
+
+  /** A warrior of seat 0's kills a wounded warrior of seat 1's on (5, 5). */
+  function killSeatOnesWarrior(state: GameState): void {
+    const foe = createUnit(state, 1, 'warrior', 5, 5);
+    foe.hp = 1;
+    const mine = createUnit(state, 0, 'warrior', 5, 6);
+    bumpRevision(state);
+    const result = applyCommand(state, {
+      type: 'attack',
+      playerId: 0,
+      unitId: mine.id,
+      target: { col: 5, row: 5 },
+    } as Command);
+    expect(result.ok, JSON.stringify(result)).toBe(true);
+    expect(state.units.some((unit) => unit.id === foe.id)).toBe(false);
+  }
+
+  /** Everything the lump can move in a town: its followers and its bank. */
+  const faithIn = (city: City): unknown => [city.followers ?? {}, city.pressureBank ?? {}];
+
+  it('presses the religion on a town within three hexes when one of the seat’s units dies', () => {
+    const { state, near, faith } = board();
+    hold(state, 'theMartyrsCrown', 1);
+    killSeatOnesWarrior(state);
+    // A lump of thirty turns three citizens, at ten faith a citizen.
+    expect(near.followers?.[faith.id]).toBe(3);
+  });
+
+  it('reaches any town in range, its own included, and none beyond three hexes', () => {
+    const { state, near, far, faith } = board();
+    const edge = town(state, 8, 5, 6);
+    const past = town(state, 9, 5, 6, 0);
+    hold(state, 'theMartyrsCrown', 1);
+    const farBefore = faithIn(far);
+    const pastBefore = faithIn(past);
+    killSeatOnesWarrior(state);
+    expect(near.followers?.[faith.id]).toBe(3);
+    expect(edge.followers?.[faith.id]).toBe(3);
+    expect(faithIn(far)).toEqual(farBefore);
+    expect(faithIn(past)).toEqual(pastBefore);
+  });
+
+  it('presses nothing for the side that made the kill', () => {
+    const { state, near, far } = board();
+    // Seat 0 holds the Doctrine and a religion, and makes the kill.
+    religionAt(state, town(state, 20, 5, 6), []);
+    hold(state, 'theMartyrsCrown', 0);
+    const before = [faithIn(near), faithIn(far)];
+    killSeatOnesWarrior(state);
+    expect([faithIn(near), faithIn(far)]).toEqual(before);
+  });
+
+  it('pays nothing for a seat with no religion', () => {
+    const state = bareState(40, 12);
+    const near = town(state, 3, 5, 6);
+    // Seat 1 holds the Doctrine and no holy city, which it can do by losing one.
+    hold(state, 'theMartyrsCrown', 1);
+    const before = faithIn(near);
+    killSeatOnesWarrior(state);
+    expect(state.religions).toEqual([]);
+    expect(faithIn(near)).toEqual(before);
+  });
+
+  it('presses when a seat’s attacker dies on the counter-blow too', () => {
+    const { state, near, faith } = board();
+    // Seat 0 holds a faith of its own and attacks at one health, and the blow back
+    // kills it. The lump lands around the hex fought over, where the battle seam reads.
+    const holyOfMine = town(state, 20, 5, 6);
+    const mine = religionAt(state, holyOfMine, []);
+    hold(state, 'theMartyrsCrown', 0);
+    const foe = createUnit(state, 1, 'warrior', 5, 5);
+    const attacker = createUnit(state, 0, 'warrior', 5, 6);
+    attacker.hp = 1;
+    bumpRevision(state);
+    const result = applyCommand(state, {
+      type: 'attack',
+      playerId: 0,
+      unitId: attacker.id,
+      target: { col: foe.col, row: foe.row },
+    } as Command);
+    expect(result.ok, JSON.stringify(result)).toBe(true);
+    expect(state.units.some((unit) => unit.id === attacker.id)).toBe(false);
+    expect(near.followers?.[mine.id]).toBe(3);
+    expect(near.followers?.[faith.id]).toBeUndefined();
+  });
+
+  it('counts a Temple’s share, as every lump does', () => {
+    const { state, near, faith } = board();
+    addBuilding(state, near, 'temple');
+    bumpRevision(state);
+    hold(state, 'theMartyrsCrown', 1);
+    killSeatOnesWarrior(state);
+    expect(near.followers?.[faith.id] ?? 0).toBeLessThan(3);
+  });
+
+  it('is one rider on the death occasion, which presses thirty at a range of three', () => {
+    expect(doctrineDef('theMartyrsCrown' as DoctrineId).effects).toEqual([
+      { kind: 'windfallRider', occasion: 'death', grant: { pressure: { amount: 30, range: 3 } } },
+    ]);
+  });
+});
+
+describe('The Two Sanctuaries', () => {
+  /** What one hex pays the town working it. */
+  const hexPays = (state: GameState, city: City, col: number, row: number) =>
+    foldTileLines(explainTileYield(at(state, col, row), cityContext(state, city)));
+
+  function board(): { state: GameState; city: City } {
+    const state = bareState(24, 10);
+    const city = town(state, 5, 5, 6);
+    raiseImprovement(at(state, 6, 5), 'holySite' as never, 0);
+    raiseImprovement(at(state, 5, 4), 'farm' as never, 0);
+    bumpRevision(state);
+    return { state, city };
+  }
+
+  it('doubles every yield of a hex with a holy site, and leaves other hexes alone', () => {
+    const { state, city } = board();
+    const site = hexPays(state, city, 6, 5);
+    const farm = hexPays(state, city, 5, 4);
+    expect(site.faith).toBeGreaterThan(0);
+    hold(state, 'theTwoSanctuaries');
+    const doubled = hexPays(state, city, 6, 5);
+    expect(doubled.food).toBe(site.food * 2);
+    expect(doubled.production).toBe(site.production * 2);
+    expect(doubled.faith).toBe(site.faith * 2);
+    expect(doubled.culture).toBe(site.culture * 2);
+    expect(hexPays(state, city, 5, 4)).toEqual(farm);
+  });
+
+  it('doubles after every other change to the hex, a card’s line included', () => {
+    const { state, city } = board();
+    const plain = hexPays(state, city, 6, 5);
+    lendPaysOnHolySite(state);
+    const withLine = hexPays(state, city, 6, 5);
+    expect(withLine.gold).toBe(plain.gold + 3);
+    hold(state, 'theTwoSanctuaries');
+    expect(hexPays(state, city, 6, 5).gold).toBe(withLine.gold * 2);
+  });
+
+  it('joins the hex’s list as one labelled line, and the total is the list’s fold', () => {
+    const { state, city } = board();
+    const site = hexPays(state, city, 6, 5);
+    hold(state, 'theTwoSanctuaries');
+    const lines = explainTileYield(at(state, 6, 5), cityContext(state, city));
+    expect(lines.filter((one) => one.source.includes('The Two Sanctuaries'))).toHaveLength(1);
+    expect(foldTileLines(lines).faith).toBe(site.faith * 2);
+  });
+
+  /** Lends seat 0 The Saint Peter's Indulgence a hex line, for one test. */
+  function lendPaysOnHolySite(state: GameState): void {
+    lent.push(
+      lendDoctrineEffects('theSaintPetersIndulgence' as DoctrineId, [
+        { kind: 'pays', where: 'hex', gold: 3, on: { test: 'improvement', improvement: 'holySite' } } as CardEffect,
+      ]),
+    );
+    hold(state, 'theSaintPetersIndulgence');
+  }
 });

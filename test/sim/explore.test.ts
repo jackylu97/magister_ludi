@@ -1321,10 +1321,15 @@ describe('determinism', () => {
    * hash and not the length** at both seeds: 208 became 209, and that is all. Nobody
    * here adopts a government. Checked with the change in place and the version
    * printed as 208, which gives the hashes of batch DT3 exactly.
+   *
+   * **Batch DT5 (the gates on the Doctrine offer, schema 210) moved the hash and not
+   * the length** at both seeds: 209 became 210, and that is all. Nobody here adopts a
+   * government. Checked with the change in place and the version printed as 209,
+   * which gives the hashes of batch DT4 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'a22248db:190677',
-    2026: '57c0e306:190843',
+    11: '5f1b1be9:190677',
+    2026: '9340a0c0:190843',
   };
 
   for (const seed of [11, 2026]) {

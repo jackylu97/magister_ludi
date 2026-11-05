@@ -50,7 +50,10 @@ import { at, bareState } from '../improvementHelpers';
 import { createGame } from '../newGameHelpers';
 import { lendDoctrineEffects } from '../statecraftHelpers';
 
-/** The eleven rows of batch DT2, each with the band its sheet table gives it. */
+/**
+ * The rows built so far: the eleven of batch DT2 and batch DT5's The Garden Peoples,
+ * each with the band its sheet table gives it.
+ */
 const ROWS: readonly (readonly [string, number])[] = [
   ['boundToTheSoil', 1],
   ['theGiftOfTheRiver', 1],
@@ -59,6 +62,7 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['cropRotation', 3],
   ['theContentedCity', 3],
   ['empireWithoutEnd', 3],
+  ['theGardenPeoples', 3],
   ['thePhysiocrats', 4],
   ['theCathedralLodges', 4],
   ['theHighTowns', 4],
@@ -146,7 +150,7 @@ describe('batch DT2: the rows', () => {
     });
     const ada = seat(g.state);
     expect(ada.decks).toContain('expansionist');
-    expect(doctrineBagFor(ada, 4)).toEqual(expect.arrayContaining(['boundToTheSoil', 'theCommanderies']));
+    expect(doctrineBagFor(g.state, ada, 4)).toEqual(expect.arrayContaining(['boundToTheSoil', 'theCommanderies']));
     ada.statecraft.pendingGovernment = { tier: 4, options: governmentsAtTier(4) };
     adoptGovernmentAt(g.state, ada, 0);
     const offer = ada.statecraft.pendingDoctrine;
@@ -708,5 +712,53 @@ describe('The Mandarinate', () => {
     lend('theMandarinate', [...doctrineDef('theMandarinate').effects, { kind: 'authority', amount: 100 }]);
     hold(state, 'theMandarinate');
     expect(foldCity(state, city).culture).toBeCloseTo(before.culture * 1.3, 6);
+  });
+});
+
+describe('The Garden Peoples (batch DT5)', () => {
+  it('pays +1 food, +1 production and +1 culture on a tended tile, and nothing on a farm or wild ground', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 4);
+    at(state, 5, 4).feature = 'forest';
+    raiseImprovement(at(state, 5, 4), 'forestGarden', 0);
+    raiseImprovement(at(state, 6, 5), 'farm', 0);
+    bumpRevision(state);
+    const tended = hexPays(state, city, 5, 4);
+    const farm = hexPays(state, city, 6, 5);
+    const wild = hexPays(state, city, 4, 5);
+    hold(state, 'theGardenPeoples');
+    expect(hexPays(state, city, 5, 4)).toEqual({
+      ...tended,
+      food: tended.food + 1,
+      production: tended.production + 1,
+      culture: tended.culture + 1,
+    });
+    expect(hexPays(state, city, 6, 5)).toEqual(farm);
+    expect(hexPays(state, city, 4, 5)).toEqual(wild);
+  });
+
+  it('reaches every kind of tended work, as a labelled line', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 4);
+    at(state, 5, 4).feature = 'forest';
+    raiseImprovement(at(state, 5, 4), 'forestGarden', 0);
+    hold(state, 'theGardenPeoples');
+    const lines = explainTileYield(at(state, 5, 4), cityContext(state, city));
+    expect(lines.filter((line) => line.source.includes('The Garden Peoples'))).toHaveLength(1);
+  });
+
+  it('adds no drawback: no authority line and no happiness line', () => {
+    const state = bareState();
+    town(state, 5, 5, 4);
+    const before = [explainAuthority(state, 0), explainHappiness(state, 0)];
+    hold(state, 'theGardenPeoples');
+    expect([explainAuthority(state, 0), explainHappiness(state, 0)]).toEqual(before);
+  });
+
+  it('carries the tended-land gate, and only it, and the text says so', () => {
+    const def = doctrineDef('theGardenPeoples');
+    expect(def.needsTendedWork).toBe(true);
+    expect(def.needsReligion).toBeUndefined();
+    expect(def.text?.startsWith('Needs tended land.')).toBe(true);
   });
 });

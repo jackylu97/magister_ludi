@@ -3568,6 +3568,29 @@
         }
       ]
     },
+    "theGardenPeoples": {
+      "name": "The Garden Peoples",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 3,
+      "line": "none",
+      "needsTendedWork": true,
+      "flavor": "What looks like wild forest to a stranger is someone's grandmother's orchard.",
+      "text": "Needs tended land. Tended tiles gain +1 food, +1 production and +1 culture.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "production": 1,
+          "culture": 1,
+          "on": {
+            "test": "tended"
+          }
+        }
+      ]
+    },
     "thePhysiocrats": {
       "name": "The Physiocrats",
       "decks": [

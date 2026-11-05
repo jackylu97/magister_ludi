@@ -184,10 +184,10 @@ describe('batch DT3: Scientific’s rows', () => {
         { name: 'Bors', color: '#00a', isHuman: true, leader: 'pachacuti' },
       ],
     });
-    expect(doctrineBagFor(seat(g.state), 4)).toEqual(
+    expect(doctrineBagFor(g.state, seat(g.state), 4)).toEqual(
       expect.arrayContaining(['thePythagoreanBrotherhood', 'theRemovalToXianyang', 'theWorkshopsOfSyracuse']),
     );
-    expect(doctrineBagFor(seat(g.state, 1), 4)).not.toContain('theRemovalToXianyang');
+    expect(doctrineBagFor(g.state, seat(g.state, 1), 4)).not.toContain('theRemovalToXianyang');
   });
 
   it('gives the bots a finite price for every row, and the impact stamp reads each one', () => {
