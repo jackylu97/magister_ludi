@@ -28,6 +28,7 @@ import {
   valueContext,
 } from '../../src/ai/bot';
 import { type BotDecision, foldTerms } from '../../src/ai/decision';
+import { buildImprovementPlan, rankPlanFor } from '../../src/ai/plan';
 import { type Game, dispatch, replay, snapshotState } from '../../src/sim/game';
 import type { City, GameConfig, GameState, Player, Unit } from '../../src/sim/state';
 import type { Tile } from '../../src/sim/map';
@@ -38,11 +39,10 @@ import {
   realPlayers,
   bumpRevision,
 } from '../../src/sim/state';
-import { getTileAt, mapRange, tileHex, tileIndex, tileNeighbors, wrappedDistance } from '../../src/sim/map';
+import { getTileAt, mapRange, tileHex, tileNeighbors, wrappedDistance } from '../../src/sim/map';
 import { findPath, isPassable } from '../../src/sim/pathfind';
-import { foundCityAt, foundingErrorAt, tileOwnerPlayerId } from '../../src/sim/cities';
+import { foundCityAt, foundingErrorAt } from '../../src/sim/cities';
 import { buildImprovementAt, improvementErrorAt } from '../../src/sim/improvements';
-import { IMPROVEMENT_IDS, improvementDef } from '../../src/sim/improvementData';
 import { firstBlocker } from '../../src/ui/turnBlockers';
 import { UNIT_TYPE_IDS, type UnitTypeId, isCombatant, unitDef } from '../../src/sim/unitData';
 import { UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
@@ -1111,11 +1111,8 @@ describe('the march is re-asked (batch X7)', () => {
   ): { game: Game; unit: Unit } {
     // A grown board rather than turn one: a seat starts with no town at all, and
     // "the site the chain names" is not a question a board with no empire on it
-    // can be asked. `grownGame` is a pure function of the seed, so the three runs
-    // below all begin on the very same board. The spade's cases want a *later*
-    // board than the settler's for a reason of its own: an empire twelve turns
-    // old holds one unimproved hex worth digging, and a plan with one entry in it
-    // cannot show a plan changing its mind.
+    // can be asked. `grownGame` is a pure function of the seed, so the runs below
+    // all begin on the very same board.
     const game = grownGame(turns);
     const perch = perchFor(game.state, 0, unitDef(type).foundsCity === true);
     const unit = createUnit(game.state, 0, type, perch.col, perch.row);
@@ -1167,38 +1164,49 @@ describe('the march is re-asked (batch X7)', () => {
   });
 
   it('re-plans a worker whose hex another spade improved while it was walking', () => {
-    // 32 turns until batch T5 (the tree pass) moved the plantation's voice and
-    // the bench's worker had nothing left to be re-asked about at that turn; at
-    // 36 the plan has a row for it again.
-    const { target: aim, order: planned } = aimOf('worker', 36);
-    const { game, unit } = marching('worker', aim, 36);
+    // A hand-built board, so the plan always holds another row for this spade. A
+    // board grown by bot play changes with every card row added to the game. It
+    // moved this test from turn 32 to 36 in batch T5, and in batch DT2 turn 36
+    // left the spade with no job: the seat's other worker took the plan's only
+    // free row, and a barbarian stood on the last one, so the arm rightly stood
+    // the spade down. A plan needs two rows to show it changing its mind, and a
+    // town on open grassland has a row for each hex around it.
+    const state = bareState(14, 10);
+    foundCityAt(state, 0, at(state, 5, 5));
+    bumpRevision(state);
+    // The sitting's `dispatch` reads the state and the log and nothing else.
+    const game: Game = { config: CONFIG, state, log: [] };
+    const owner = seat(state, 0);
+    const plannedFor = (piece: Unit) => {
+      const ctx = valueContext(state, owner);
+      return rankPlanFor(buildImprovementPlan(state, owner, ctx), state, piece, ctx);
+    };
+    // The spade stands off the plan's ground and walks to the row the plan ranks
+    // first, so while the board stands still it has nothing to be told.
+    const unit = createUnit(state, 0, 'worker', 9, 5);
+    const best = plannedFor(unit)[0]!;
+    const laid = best.entry.improvement!;
+    const aim = { col: best.entry.col, row: best.entry.row };
+    const tile = getTileAt(state.map, aim.col, aim.row)!;
+    unit.path = findPath(state, unit, tile)!;
+    expect(unit.path.length).toBeGreaterThan(0);
+    expect(orderTo(sittingOf(game, 0), unit.id), 'the board has not moved yet').toBeNull();
     // The board moves: a second spade of ours lays **the very row the first was
-    // walking there to lay** — the plan prints the improvement in its own
-    // candidate label, so the test does not have to guess which one it wanted.
-    // `buildImprovementAt` is the simulation's own verb.
-    const wanted = planned.candidates.find((candidate) => candidate.chosen)!.label.split(' at (')[0];
-    const laid = IMPROVEMENT_IDS.find((id) => improvementDef(id).name === wanted);
-    expect(laid, `no improvement is named "${wanted}"`).not.toBeUndefined();
-    const tile = getTileAt(game.state.map, aim.col, aim.row)!;
-    // The plan aims at ground within reach of a town, owned or not
-    // (`groundInReach`, `plan.ts`), and on this bench since batch U9 the arm's
-    // pick is a pasture one hex past the border. The test is about a second
-    // spade laying the row, not about who owns the hex, so the fixture claims
-    // it — the precondition said plainly rather than a seed hunted for.
-    if (tileOwnerPlayerId(game.state, tile.col, tile.row) !== 0) {
-      // `tileOwner` holds the owning *city*, not the seat.
-      const town = game.state.cities.find((city) => city.ownerId === 0)!;
-      game.state.tileOwner[tileIndex(game.state.map, tile.col, tile.row)] = town.id;
-      bumpRevision(game.state);
-    }
-    expect(improvementErrorAt(game.state, 0, tile, laid!)).toBeNull();
-    const other = createUnit(game.state, 0, 'worker', tile.col, tile.row);
-    buildImprovementAt(game.state, other, tile, laid!);
-    bumpRevision(game.state);
+    // walking there to lay**. `buildImprovementAt` is the simulation's own verb.
+    expect(improvementErrorAt(state, 0, tile, laid)).toBeNull();
+    const other = createUnit(state, 0, 'worker', tile.col, tile.row);
+    buildImprovementAt(state, other, tile, laid);
+    bumpRevision(state);
+    // The precondition, checked so that a board with no other job fails here and
+    // does not read as a bot that ignored its spade.
+    expect(plannedFor(unit).length, 'the board left this spade no other job').toBeGreaterThan(0);
     const order = orderTo(sittingOf(game, 0), unit.id);
     expect(order, 'the spade walked on to a hex that is already dug').not.toBeNull();
     const target = (order!.command as { target?: { col: number; row: number } }).target;
     if (target !== undefined) expect(`${target.col},${target.row}`).not.toBe(`${aim.col},${aim.row}`);
+    // And the route it now carries does not end on the dug hex.
+    const end = unit.path?.[unit.path.length - 1];
+    if (end !== undefined) expect(`${end.col},${end.row}`).not.toBe(`${aim.col},${aim.row}`);
   });
 
   it('asks each piece at most `driver.reaskPerTurn` times a sitting', () => {

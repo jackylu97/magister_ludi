@@ -35,6 +35,10 @@
  *     bought-hex tally, the founding claim, the worked-hex scope and the
  *     surveyed-hill test.
  *
+ * The sheet's four Doctrine tables are held to the data rows through
+ * `expectSheetDoctrinesMatchData` (batch DT2). What each row does is checked in
+ * `expansionistDoctrines.test.ts`.
+ *
  * The doc table in `docs/orders-and-doctrines.md` is checked by
  * `statecraftDocSync.test.ts`, not here.
  */
@@ -94,6 +98,7 @@ import {
 } from '../../../src/sim/statecraftData';
 import { TECH_IDS, type TechId, techDef } from '../../../src/sim/techData';
 import { createGame } from '../newGameHelpers';
+import { expectSheetDoctrinesMatchData, sheetDoctrines } from './sortedSheets';
 
 /** The deck's own rows, in file order — what every draw and every screen walks. */
 const ROWS: readonly OrderId[] = DECK_FILE_ORDERS.expansionist;
@@ -350,6 +355,16 @@ describe('the Expansionist deck, as entered', () => {
 });
 
 describe('the Expansionist deck — the sheet', () => {
+  it('holds the Doctrine rows to the sheet’s four tables', () => {
+    // A sheet row with no data row passes until batch DT20, so the tables can
+    // carry all 24 while the batches fill them.
+    expect(sheetDoctrines('expansionist').length).toBe(24);
+    expect(
+      [1, 2, 3, 4].map((band) => sheetDoctrines('expansionist').filter((row) => row.band === band).length),
+    ).toEqual([4, 6, 7, 7]);
+    expectSheetDoctrinesMatchData('expansionist');
+  });
+
   it('mirrors the deck sheet’s five tier tables, card for card', () => {
     const doc = docCards();
     expect(doc.length, 'the sheet lists cards under every tier heading').toBeGreaterThan(0);

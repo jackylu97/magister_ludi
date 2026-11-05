@@ -10,17 +10,17 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 - **Gates:** "Needs tended land" deals a card only to a seat holding a tended-work charter. "Needs a levy" deals a card only to a seat holding a card that grants a levy, in a chair or not.
 - **Why each card is here:** `docs/plans/expansionist-themes.md`, the themes pass of 2026-10-21. It gives the engine (citizens and the levy), the four themes (the raised land, the frontier, public works and the militia), and your rulings in section 11. Each card's theme and role are in `docs/plans/expansionist-list-proposed.md`. The earlier pass, the builds you accepted on 2026-10-16, is `docs/plans/expansionist-builds.md`.
 - **The build:** the plan is `docs/plans/expansionist-themes-triage.md` (batches E7 to E13). Batch E7 wrote this sheet from the themes pass, retired the fifteen cut cards that had a data row, and built the ten cards changed in place: The Rope Stretchers, Six Gardens, The Milestones, The Teeming Realm, The Staked Claims, Plenty, The Wide Country, The Measure of the Land, The Mother City and The Domesday Survey. Six Gardens, The Wide Country and The Domesday Survey now leave an institution: effects that hold for the rest of the game and take no chair. Batch E8 built five new cards in shapes that already existed: The Founding Furrow, The Horrea, The Land Hunger, The Many Hands and The Capitolia. Batch E9 built the land: The Burning Season burns an improved tile and keeps the work, The Marl Pits marks the farms and pastures beside a new mine or quarry, Commission: Break the Sod leaves works counted as ten turns older, The Two Harvests counts farms, mines and lumber mills as tended, and The Mountain Schools asks for two mountains in a town's borders. Batch E10 built the militia and the trades: Veteran Colonies gives a town one citizen when a soldier retires there, Watch and Ward gives units a levy raised +5 strength in your own territory, and The Burghers fill the guild bar half again as fast in towns of twelve citizens or more. Batch E11 built public works and empire buildings: six buildings (the Granary, Aqueduct, Watermill, Harbour, Public Bath and Cistern) are marked as public works, The Aediles grows with each public work you finish, The Public Good pays for each public work you hold, and The Topping Out pays every town when you finish an empire building. Batch E12 built The Cura Aquarum: a town joined to your capital by road counts as having an Aqueduct for everything an Aqueduct does and for every card that asks whether a town has one, but not for what was built (score, upkeep, triumphs, wagers, buying, the build list, or finishing one). The first round of batches, E0 to E6, is `docs/plans/expansionist-build-triage.md`.
-- **Doctrines:** proposed on 2026-10-17 and revised by your comments of 2026-10-23: 24 remain (4, 6, 7 and 7 across Tiers I to IV), revised again by your comments of 2026-11-03 (`docs/plans/doctrine-review-2026-11-05.md`); none is built. Each tier's Doctrine table sits above its Orders, and the Build column names the build or flavour of 2026-10-16 that each is written for. The reasons, drawbacks, pairs and shapes, your comments, and the questions are in `docs/plans/expansionist-builds.md`, "Doctrines, proposed 2026-10-17".
+- **Doctrines:** 24 (4, 6, 7 and 7 across Tiers I to IV), after your comments of 2026-10-23 and 2026-11-03 (`docs/plans/doctrine-review-2026-11-05.md`). A Doctrine is held for the whole game and takes no chair. Each tier's Doctrine table sits above its Orders, and the Build column names the build or flavour of 2026-10-16 that each is written for. Batch DT2 built 11, the ones that need no new shape: Bound to the Soil, The Gift of the River, The Commanderies, Synoecism, Crop Rotation, The Contented City, Empire Without End, The Physiocrats, The Cathedral Lodges, The High Towns and The Mandarinate. The other 13 are on the tables and are not dealt yet; `docs/plans/doctrines-build-triage.md` gives the batch that builds each one. The reasons and pairs are in `docs/plans/expansionist-builds.md`, "Doctrines, proposed 2026-10-17".
 - **The long form** (the D3 "built as" details, the tended works as built, the synergy section, the proposed cuts and the proposed revision of 2026-10-13): `docs/decks/reference/expansionist-2026-10-16.md`.
 
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
 | Tier 0 | 13 | 0 | 0 | 13 | none |
-| Tier I | 26 | 0 | 0 | 26 | 4 proposed |
-| Tier II | 24 | 1 | 0 | 25 | 6 proposed |
-| Tier III | 31 | 0 | 0 | 31 | 7 proposed |
-| Tier IV | 18 | 0 | 0 | 18 | 7 proposed |
-| **All** | **112** | **1** | **0** | **113** | **24 proposed** |
+| Tier I | 26 | 0 | 0 | 26 | 4 (3 built) |
+| Tier II | 24 | 1 | 0 | 25 | 6 (1 built) |
+| Tier III | 31 | 0 | 0 | 31 | 7 (3 built) |
+| Tier IV | 18 | 0 | 0 | 18 | 7 (4 built) |
+| **All** | **112** | **1** | **0** | **113** | **24 (11 built)** |
 | Shared | 20 | 0 | 0 | 20 |  |
 
 **By type** (the chair a card fits):
@@ -57,7 +57,7 @@ The 113 cards are 110 that take a chair and three charters (The Fish Traps, The 
 
 ## Tier I
 
-**Doctrines,** proposed 2026-10-17, revised 2026-10-23, for the tier-4 governments (not built):
+**Doctrines,** offered with the tier-4 governments:
 
 | Doctrine | Build | Text |
 |---|---|---|
@@ -99,7 +99,7 @@ The 113 cards are 110 that take a chair and three charters (The Fish Traps, The 
 
 ## Tier II
 
-**Doctrines,** proposed 2026-10-17, revised 2026-10-23, for the tier-10 governments (not built):
+**Doctrines,** offered with the tier-10 governments:
 
 | Doctrine | Build | Text |
 |---|---|---|
@@ -142,7 +142,7 @@ The 113 cards are 110 that take a chair and three charters (The Fish Traps, The 
 
 ## Tier III
 
-**Doctrines,** proposed 2026-10-17, revised 2026-10-23, for the tier-18 governments (not built):
+**Doctrines,** offered with the tier-18 governments:
 
 | Doctrine | Build | Text |
 |---|---|---|
@@ -192,7 +192,7 @@ The 113 cards are 110 that take a chair and three charters (The Fish Traps, The 
 
 ## Tier IV
 
-**Doctrines,** proposed 2026-10-17, revised 2026-10-23, for the tier-26 governments (not built):
+**Doctrines,** offered with the tier-26 governments:
 
 | Doctrine | Build | Text |
 |---|---|---|
@@ -263,7 +263,6 @@ These rows live in `data/decks/common.json`. A seat holding Expansionist or the 
   - **Taken as standing:** the recommendations of the themes doc's section 10 that section 11 did not change, among them dropping the gap rule (question 2) and the cuts of question 9 (the triage's reading 5). The build uses the triage's readings 1 to 36 until you mark one.
   - **Retired in batch E7:** the fifteen cut cards that had a data row: The Pyramid Builders, The Beating of the Bounds, The Prospectors, The Garden Frontier, The Builders' Levy, The Plough Teams, The Polis, The Landscape Garden, The Common Domain, The Woodwrights, Public Works, The Manors, The Assay Office, The Managed Wild and The Land's Great Work. The Deep Workings had no row and left the sheet. The last section of `docs/plans/expansionist-list-proposed.md`, "Cut by this pass", gives each card's old text and the reason for the cut, so you can restore one.
 - **Still open:**
-  - **The proposed Doctrines:** 24 after your comments of 2026-10-23 (8 cut, 14 revised). Their reasons, drawbacks, pairs and shapes, your comments, eight readings and the open questions are in `docs/plans/expansionist-builds.md`, "Doctrines, proposed 2026-10-17".
   - **Migration** plays as built. The first triage's reading 36 still waits for you.
   - **The one-effect trims and splits of 2026-10-13** that the builds did not need. The themes pass did not apply them. Recommended: apply them; the long form has each one.
     - Sweet Water: split, The Wellsprings takes the happiness.
@@ -275,6 +274,7 @@ These rows live in `data/decks/common.json`. A seat holding Expansionist or the 
   - **The Polders:** the reworked text above, a work on a coast tile so that no terrain changes mid-game, or cut. Recommended: the rework.
   - **Data wording:** Granary Levies' text has no full stop. (Batch E0 fixed The Highlands' small letter.)
 - **Done:**
+  - **The Doctrines:** your review of 2026-11-05 closed the open questions on them, The Builder Kings' among them: it stays in this deck, revised. All 24 are being built (`docs/plans/doctrines-build-triage.md`).
   - **The Hydraulic Commonwealth:** a deferred row in `data/decks/common.json` that named Expansionist and was on no sheet. Scientific batch S1b retired it.
   - **Public Works** and **The Woodwrights:** cut by the themes pass, and their rows retired in batch E7.
 - **Answered in your pass of 2026-10-16** (the builds' open questions, with your words in `docs/plans/expansionist-builds.md`):

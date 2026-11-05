@@ -3382,5 +3382,327 @@
       "effects": [],
       "retired": true
     }
+  },
+  "doctrines": {
+    "boundToTheSoil": {
+      "name": "Bound to the Soil",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 1,
+      "line": "none",
+      "flavor": "The serf goes with the field, and the field goes on.",
+      "text": "Workers gain +1 charge. Tended tiles gain +1 food.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "charges",
+          "amount": 1,
+          "class": {
+            "type": "worker"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "on": {
+            "test": "tended"
+          }
+        }
+      ]
+    },
+    "theGiftOfTheRiver": {
+      "name": "The Gift of the River",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 1,
+      "line": "none",
+      "flavor": "The river gives the valley, and the desert keeps the rest.",
+      "text": "Worked tiles beside a river gain +1 food and +1 production. Towns away from fresh water cost 3 more happiness.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "production": 1,
+          "on": {
+            "test": "river"
+          }
+        },
+        {
+          "kind": "happiness",
+          "amount": -3,
+          "per": "city",
+          "scope": {
+            "test": "notFreshwater"
+          }
+        }
+      ]
+    },
+    "theCommanderies": {
+      "name": "The Commanderies",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 1,
+      "line": "none",
+      "flavor": "Write the county on the map first. The settlers can catch up.",
+      "text": "Each of your towns costs 1 less authority, minimum one. Your borders grow 30% more slowly.",
+      "effects": [
+        {
+          "kind": "meterRule",
+          "rule": "cityCost",
+          "delta": -1
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "borderCulture",
+          "percent": -30
+        }
+      ]
+    },
+    "synoecism": {
+      "name": "Synoecism",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 2,
+      "line": "none",
+      "flavor": "Many villages walked down the hill and woke as one city.",
+      "text": "Your towns of six or more citizens grow 30% faster. Towns you founded cost 1 more authority, including those you already hold.",
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "growthSurplus",
+          "percent": 30,
+          "scope": {
+            "test": "populationAtLeast",
+            "value": 6
+          }
+        },
+        {
+          "kind": "meterRule",
+          "rule": "cityCost",
+          "delta": 1,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "notCaptured"
+              },
+              {
+                "test": "notCapital"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "cropRotation": {
+      "name": "Crop Rotation",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 3,
+      "line": "none",
+      "flavor": "Wheat, then beans, then rest. The field keeps its own calendar.",
+      "text": "Worked improvements yield twice their own bonus. Worked unimproved tiles yield nothing.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "percent": 100,
+          "on": {
+            "test": "improved"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "wholePercent": -100,
+          "on": {
+            "test": "unimproved"
+          }
+        }
+      ]
+    },
+    "theContentedCity": {
+      "name": "The Contented City",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 3,
+      "line": "none",
+      "flavor": "A full granary quiets a crowd. An empty treasury pays for it.",
+      "text": "Your citizens ask 20% less happiness. Your gold income is halved.",
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "happinessDemand",
+          "percent": -20
+        },
+        {
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": -50,
+          "stage": "empire"
+        }
+      ]
+    },
+    "empireWithoutEnd": {
+      "name": "Empire Without End",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 3,
+      "line": "none",
+      "flavor": "To these I set no bounds of place or time.",
+      "text": "+1 authority for each town you hold.",
+      "effects": [
+        {
+          "kind": "authority",
+          "amount": 1,
+          "per": "city"
+        }
+      ]
+    },
+    "thePhysiocrats": {
+      "name": "The Physiocrats",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 4,
+      "line": "none",
+      "flavor": "All wealth comes from the land, said the men who owned it.",
+      "text": "Every improved tile gains +2 food, +2 production and +2 gold.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 2,
+          "production": 2,
+          "gold": 2,
+          "on": {
+            "test": "improved"
+          }
+        }
+      ]
+    },
+    "theCathedralLodges": {
+      "name": "The Cathedral Lodges",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 4,
+      "line": "none",
+      "flavor": "The masons' lodge outlives the mason, and sometimes the bishop.",
+      "text": "Manufactories yield twice as much. Towns with a Manufactory gain +30% production toward wonders and the Magnum Opus.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "wholePercent": 100,
+          "on": {
+            "test": "improvement",
+            "improvement": "manufactory"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 30,
+          "scope": {
+            "test": "hasImprovement",
+            "improvement": "manufactory"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "theMagnumOpus",
+          "percent": 30,
+          "scope": {
+            "test": "hasImprovement",
+            "improvement": "manufactory"
+          }
+        }
+      ]
+    },
+    "theHighTowns": {
+      "name": "The High Towns",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 4,
+      "line": "none",
+      "flavor": "Terraces climb where the map says nothing can grow.",
+      "text": "Your towns may work mountains. Mountains gain +4 production, and each gives +1 production to the hexes beside it.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "workMountains"
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "production": 4,
+          "on": {
+            "test": "terrain",
+            "terrain": "mountain"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "production": 1,
+          "perAdjacentMountain": true,
+          "on": {
+            "test": "adjacentMountain"
+          }
+        }
+      ]
+    },
+    "theMandarinate": {
+      "name": "The Mandarinate",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 4,
+      "line": "none",
+      "flavor": "A quiet province leaves the examiner time to read.",
+      "text": "Each point of spare authority gives +1% science and culture, at most +30%. Each of your towns costs 1 more authority.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "authoritySurplus",
+          "to": "science",
+          "percent": 1,
+          "stage": "empire",
+          "max": 30
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "authoritySurplus",
+          "to": "culture",
+          "percent": 1,
+          "stage": "empire",
+          "max": 30
+        },
+        {
+          "kind": "meterRule",
+          "rule": "cityCost",
+          "delta": 1,
+          "scope": {
+            "test": "notCapital"
+          }
+        }
+      ]
+    }
   }
 }

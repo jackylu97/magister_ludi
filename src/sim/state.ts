@@ -3268,8 +3268,22 @@ import {
  * **A v205 save is refused and does not replay.** A Dominion seat's Doctrine
  * pools hold different cards, so its draws move. The branch migrates nothing, for
  * the reason given under v119.
+ *
+ * v207 (branch `decks`; batch DT2, `docs/plans/doctrines-build-triage.md`):
+ * **Expansionist's first Doctrines, the eleven that need no new shape.** No field
+ * joins the state. The rules that change:
+ *
+ *   · Bound to the Soil, The Gift of the River, The Commanderies, Synoecism, Crop
+ *     Rotation, The Contented City, Empire Without End, The Physiocrats, The
+ *     Cathedral Lodges, The High Towns and The Mandarinate are dealt;
+ *   · an Expansionist seat now sees a Doctrine offer when it adopts a government
+ *     of tier 4, 10, 18 or 26, and the offer blocks End Turn until it is answered.
+ *
+ * **A v206 save is refused and does not replay.** An Expansionist seat's Doctrine
+ * bags are no longer empty, so its draws move. The branch migrates nothing, for
+ * the reason given under v119.
  */
-export const SCHEMA_VERSION = 206;
+export const SCHEMA_VERSION = 207;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

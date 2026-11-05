@@ -1873,7 +1873,10 @@ describe('research in the log', () => {
     // 206 since batch DT1 (Dominion's Doctrines): four rows change, two move
     // tier and two are retired, so a Dominion seat's Doctrine pools hold
     // different cards and a v205 log's draws move.
-    expect(SCHEMA_VERSION).toBe(206);
+    // 207 since batch DT2 (Expansionist's Doctrines, data only): eleven rows join
+    // the deck, so an Expansionist seat is now offered Doctrines and a v206 log's
+    // draws move.
+    expect(SCHEMA_VERSION).toBe(207);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

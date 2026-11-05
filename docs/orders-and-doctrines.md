@@ -188,6 +188,17 @@ governments, so Tier IV opened at 29.
 | The Landsturm | Dominion | IV | tier 26 | After you pass a draft, each city of five or more citizens raises the best melee unit you can build. It costs no upkeep. Melee units gain +3 strength, doubled beside a great general. |
 | The Fortress Empire | Dominion | IV | tier 26 | Units gain +5 strength when fortified. Each city gains +5% science and production for each fortified military unit inside its borders, at most +30%. |
 | The Scourge of God | Dominion | IV | tier 26 | Units that have pillaged in the last five turns gain +6 strength. Pillaging gives your capital +100% production for five turns, which does not stack. |
+| Bound to the Soil | Expansionist | I | tier 4 | Workers gain +1 charge. Tended tiles gain +1 food. |
+| The Gift of the River | Expansionist | I | tier 4 | Worked tiles beside a river gain +1 food and +1 production. Towns away from fresh water cost 3 more happiness. |
+| The Commanderies | Expansionist | I | tier 4 | Each of your towns costs 1 less authority, minimum one. Your borders grow 30% more slowly. |
+| Synoecism | Expansionist | II | tier 10 | Your towns of six or more citizens grow 30% faster. Towns you founded cost 1 more authority, including those you already hold. |
+| Crop Rotation | Expansionist | III | tier 18 | Worked improvements yield twice their own bonus. Worked unimproved tiles yield nothing. |
+| The Contented City | Expansionist | III | tier 18 | Your citizens ask 20% less happiness. Your gold income is halved. |
+| Empire Without End | Expansionist | III | tier 18 | +1 authority for each town you hold. |
+| The Physiocrats | Expansionist | IV | tier 26 | Every improved tile gains +2 food, +2 production and +2 gold. |
+| The Cathedral Lodges | Expansionist | IV | tier 26 | Manufactories yield twice as much. Towns with a Manufactory gain +30% production toward wonders and the Magnum Opus. |
+| The High Towns | Expansionist | IV | tier 26 | Your towns may work mountains. Mountains gain +4 production, and each gives +1 production to the hexes beside it. |
+| The Mandarinate | Expansionist | IV | tier 26 | Each point of spare authority gives +1% science and culture, at most +30%. Each of your towns costs 1 more authority. |
 
 ## Decks
 

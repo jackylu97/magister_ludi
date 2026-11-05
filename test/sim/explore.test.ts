@@ -1305,10 +1305,15 @@ describe('determinism', () => {
    * a town, drafts or holds a Doctrine, so neither new stamp is written. Checked
    * with the change in place and the version printed as 205, which gives the
    * hashes of batch R3 exactly.
+   *
+   * **Batch DT2 (Expansionist's first Doctrines, schema 207) moved the hash and
+   * not the length** at both seeds: 206 became 207, and that is all. Nobody here
+   * adopts a government, so no offer opens. Checked with the change in place and
+   * the version printed as 206, which gives the hashes of batch DT1 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'f3f4eb9c:190677',
-    2026: 'a4c261dd:190843',
+    11: '834ad37d:190677',
+    2026: '4a6fbb4c:190843',
   };
 
   for (const seed of [11, 2026]) {

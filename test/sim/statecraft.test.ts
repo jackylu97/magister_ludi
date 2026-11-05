@@ -2268,7 +2268,10 @@ describe("determinism", () => {
     // 206 since batch DT1 (Dominion's Doctrines): four rows change, two move
     // tier and two are retired, so a Dominion seat's Doctrine pools hold
     // different cards and a v205 log's draws move.
-    expect(SCHEMA_VERSION).toBe(206);
+    // 207 since batch DT2 (Expansionist's Doctrines, data only): eleven rows join
+    // the deck, so an Expansionist seat is now offered Doctrines and a v206 log's
+    // draws move.
+    expect(SCHEMA_VERSION).toBe(207);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -3570,10 +3573,12 @@ describe("the master-list cut of 2026-08-28", () => {
       // D1a: the Doctrine pools are retired shelves; the rows are kept. Since
       // Dominion batch D5 Gov IV's tier deals deck Doctrines: The Landsturm,
       // since Dominion batch D7 The Fortress Empire, and since D8 The Scourge of
-      // God.
-      expect(poolDoctrines(tier)).toEqual(
-        tier === 26 ? ["theLandsturm", "theFortressEmpire", "theScourgeOfGod"] : [],
-      );
+      // God. Every deck gets Doctrines in batches DT2 to DT4, so this names
+      // Dominion's rows and asks the rest of the pool only for its tier.
+      expect(
+        poolDoctrines(tier).filter((id) => doctrineDef(id).decks.includes("dominion")),
+      ).toEqual(tier === 26 ? ["theLandsturm", "theFortressEmpire", "theScourgeOfGod"] : []);
+      if (tier === 38) expect(poolDoctrines(tier)).toEqual([]);
       expect(DOCTRINE_IDS.filter((id) => doctrineDef(id).tier === tier).length).toBeGreaterThanOrEqual(
         RULES.offers.doctrine,
       );
@@ -3610,12 +3615,16 @@ describe("the master-list cut of 2026-08-28", () => {
     // The council widens to the rung's nine. No Doctrine draft opened here
     // from D1a until Dominion batch D5, which gave Tier IV its first deck
     // Doctrine, The Landsturm. Dominion batch D7 added The Fortress Empire and
-    // D8 The Scourge of God, so the offer holds all three.
-    expect([...(player.statecraft.pendingDoctrine?.options ?? [])].sort()).toEqual([
-      "theFortressEmpire",
-      "theLandsturm",
-      "theScourgeOfGod",
-    ]);
+    // D8 The Scourge of God. Since batch DT2 other decks deal at this tier too,
+    // so the offer is read by the rule: a full hand of the rung's own rows, each
+    // from one of the seat's decks.
+    const dealt = player.statecraft.pendingDoctrine?.options ?? [];
+    expect(dealt).toHaveLength(RULES.offers.doctrine);
+    expect(new Set(dealt).size).toBe(dealt.length);
+    for (const id of dealt) {
+      expect(poolDoctrines(26), id).toContain(id);
+      expect(doctrineDef(id).decks.some((deck) => player.decks.includes(deck)), id).toBe(true);
+    }
     expect(player.statecraft.slots).toHaveLength(chairsAtTier(26));
   });
 

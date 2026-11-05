@@ -1121,7 +1121,10 @@ describe('the schema, as landed', () => {
     // 206 since batch DT1 (Dominion's Doctrines): four rows change, two move
     // tier and two are retired, so a Dominion seat's Doctrine pools hold
     // different cards and a v205 log's draws move.
-    expect(SCHEMA_VERSION).toBe(206);
+    // 207 since batch DT2 (Expansionist's Doctrines, data only): eleven rows join
+    // the deck, so an Expansionist seat is now offered Doctrines and a v206 log's
+    // draws move.
+    expect(SCHEMA_VERSION).toBe(207);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

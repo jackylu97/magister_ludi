@@ -1638,14 +1638,17 @@ function describePays(
     // The whole hex's share (Dominion batch D8, The Strategoi's citadels): its
     // own clause, said as "the yields of" because the share reaches all of
     // them, the lines other cards put on the hex included. A doubling reads as
-    // doubled, as the card says it.
+    // doubled, as the card says it, and a share that takes it all away (Crop
+    // Rotation, batch DT2) reads as yielding nothing, as that card says it.
     if (effect.wholePercent !== undefined && effect.wholePercent !== 0) {
       out.push({
         text:
           effect.wholePercent === 100
             ? `the yields of every ${tileConditionWords(on)} are doubled${whose}`
-            : `the yields of every ${tileConditionWords(on)} are ` +
-              `${signed(effect.wholePercent)}%${whose}`,
+            : effect.wholePercent === -100
+              ? `every ${tileConditionWords(on)} yields nothing${whose}`
+              : `the yields of every ${tileConditionWords(on)} are ` +
+                `${signed(effect.wholePercent)}%${whose}`,
       });
     }
     return;
@@ -2985,10 +2988,13 @@ function describeEffect(
       // the scope's with its leading "every" taken off — "the authority a city
       // holding an empire building costs" — which is where English puts an
       // adjective and where `eachWords` already puts one for the writ's own
-      // gains.
+      // gains. "A city but your capital" is not English, so a scope that leaves
+      // out the capital (Synoecism, The Mandarinate) says "each" instead.
+      const costNoun = effect.scope === undefined ? '' : eachWords(effect.scope);
+      const costArticle = costNoun.includes('but your capital') ? 'each' : indefinite(costNoun);
       const words =
         effect.rule === 'cityCost' && effect.scope !== undefined
-          ? `the authority ${indefinite(eachWords(effect.scope))} ${eachWords(effect.scope)} costs`
+          ? `the authority ${costArticle} ${costNoun} costs`
           : METER_RULE_WORDS[effect.rule];
       if (METER_RULE_SWITCHES.includes(effect.rule)) {
         out.push({ text: words });

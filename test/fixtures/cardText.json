@@ -857,6 +857,120 @@
     "raw": "pillaging gives the unit +6 combat strength for the next 5 turns, however often it does so",
     "text": "pillaging gives the unit +6 combat strength for the next 5 turns, however often it does so"
    }
+  ],
+  "boundToTheSoil": [
+   {
+    "raw": "newly created workers gain +1 charge",
+    "text": "newly created workers gain +1 charge"
+   },
+   {
+    "raw": "+1 food on every tended hex",
+    "text": "+1 food on every tended hex"
+   }
+  ],
+  "theGiftOfTheRiver": [
+   {
+    "raw": "+1 food, +1 production on every hex beside a river",
+    "text": "+1 food, +1 production on every hex beside a river"
+   },
+   {
+    "raw": "-3 happiness in every city without fresh water",
+    "text": "-3 happiness in every city without fresh water"
+   }
+  ],
+  "theCommanderies": [
+   {
+    "raw": "the authority a city costs falls by 1",
+    "text": "the authority a city costs falls by 1"
+   },
+   {
+    "raw": "-30% border expansion",
+    "text": "-30% border expansion"
+   }
+  ],
+  "synoecism": [
+   {
+    "raw": "+30% food surplus stored toward growth, in every city of 6 or more citizens",
+    "text": "+30% food surplus stored toward growth, in every city of 6 or more citizens"
+   },
+   {
+    "raw": "the authority each city you founded but your capital costs rises by 1",
+    "text": "the authority each city you founded but your capital costs rises by 1"
+   }
+  ],
+  "cropRotation": [
+   {
+    "raw": "the works on every improved hex pay +100%",
+    "text": "the works on every improved hex pay +100%"
+   },
+   {
+    "raw": "every unimproved hex yields nothing",
+    "text": "every unimproved hex yields nothing"
+   }
+  ],
+  "theContentedCity": [
+   {
+    "raw": "-20% happiness demanded per citizen",
+    "text": "-20% happiness demanded per citizen"
+   },
+   {
+    "raw": "-50% gold in every city",
+    "text": "-50% gold in every city"
+   }
+  ],
+  "empireWithoutEnd": [
+   {
+    "raw": "+1 authority capacity per city",
+    "text": "+1 authority capacity per city"
+   }
+  ],
+  "thePhysiocrats": [
+   {
+    "raw": "+2 food, +2 production, +2 gold on every improved hex",
+    "text": "+2 food, +2 production, +2 gold on every improved hex"
+   }
+  ],
+  "theCathedralLodges": [
+   {
+    "raw": "the yields of every hex with a [[improvement:manufactory|Manufactory]] are doubled",
+    "text": "the yields of every hex with a Manufactory are doubled"
+   },
+   {
+    "raw": "+30% production toward wonders, in every city with a [[improvement:manufactory|Manufactory]]",
+    "text": "+30% production toward wonders, in every city with a Manufactory"
+   },
+   {
+    "raw": "+30% production toward [[building:theMagnumOpus|The Magnum Opus]], in every city with a [[improvement:manufactory|Manufactory]]",
+    "text": "+30% production toward The Magnum Opus, in every city with a Manufactory"
+   }
+  ],
+  "theHighTowns": [
+   {
+    "raw": "your cities may work the mountains in their borders",
+    "text": "your cities may work the mountains in their borders"
+   },
+   {
+    "raw": "+4 production on every mountain hex",
+    "text": "+4 production on every mountain hex"
+   },
+   {
+    "raw": "+1 production on every hex beside a mountain, once for each mountain",
+    "text": "+1 production on every hex beside a mountain, once for each mountain"
+   }
+  ],
+  "theMandarinate": [
+   {
+    "raw": "+1% science per spare authority (at most +30% science)",
+    "text": "+1% science per spare authority (at most +30% science)"
+   },
+   {
+    "raw": "+1% culture per spare authority (at most +30% culture)",
+    "text": "+1% culture per spare authority (at most +30% culture)"
+   },
+   {
+    "raw": "the authority each city but your capital costs rises by 1",
+    "text": "the authority each city but your capital costs rises by 1"
+   }
   ]
  },
  "order": {
