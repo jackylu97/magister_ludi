@@ -432,7 +432,7 @@ describe('Dominion D4: the words', () => {
     ]);
     expect(said('theUniversalMonarchy')).toEqual([
       'the authority a captured city costs is 0',
-      'the authority a city you founded costs doubles',
+      'the authority a city you founded since taking this card costs doubles',
     ]);
   });
 });

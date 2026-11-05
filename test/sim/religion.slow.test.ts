@@ -655,7 +655,10 @@ describe('determinism', () => {
     // Tier I, The Prize Essay is retired and three Tier 0 cards are new, so a
     // Scientific or Expansionist seat's pools hold different cards and a v204
     // log's draws move.
-    expect(SCHEMA_VERSION).toBe(205);
+    // 206 since batch DT1 (Dominion's Doctrines): four rows change, two move
+    // tier and two are retired, so a Dominion seat's Doctrine pools hold
+    // different cards and a v205 log's draws move.
+    expect(SCHEMA_VERSION).toBe(206);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

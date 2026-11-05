@@ -5495,27 +5495,25 @@
       ],
       "band": 1,
       "line": "none",
-      "flavor": "No writ reaches the open steppe, and no border waits for one.",
-      "text": "Negative authority no longer stops your borders growing. While authority is negative, gain +50% production toward mounted units.",
+      "flavor": "The riders go first to whatever has already begun to bleed.",
+      "text": "+50% production toward mounted units. Mounted units gain +3 strength when attacking a wounded unit.",
       "effects": [
         {
-          "kind": "meterRule",
-          "rule": "borderFreezeExempt",
-          "value": 1
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 50,
+          "modelClass": "mounted"
         },
         {
-          "kind": "conditionRule",
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "attack",
           "when": {
-            "test": "authorityNegative"
+            "test": "targetWounded"
           },
-          "then": [
-            {
-              "kind": "productionBonus",
-              "category": "unit",
-              "percent": 50,
-              "modelClass": "mounted"
-            }
-          ]
+          "class": {
+            "modelClass": "mounted"
+          }
         }
       ]
     },
@@ -5524,7 +5522,7 @@
       "decks": [
         "dominion"
       ],
-      "band": 1,
+      "band": 2,
       "line": "none",
       "flavor": "The road brings the legion, and the legion brings the law.",
       "text": "Cities connected to your capital by road and holding a garrison gain +5 science and +5 culture, and are pacified at once.",
@@ -5571,7 +5569,7 @@
       "band": 3,
       "line": "none",
       "flavor": "One crown over every people, and every people under one crown.",
-      "text": "Towns you capture cost no authority. Towns you found cost twice as much.",
+      "text": "Towns you capture cost no authority, including those you already hold. Towns you found from now on cost twice as much authority.",
       "effects": [
         {
           "kind": "meterRule",
@@ -5586,7 +5584,16 @@
           "rule": "cityCost",
           "percent": 100,
           "scope": {
-            "test": "notCaptured"
+            "test": "all",
+            "of": [
+              {
+                "test": "notCaptured"
+              },
+              {
+                "test": "foundedSince",
+                "doctrine": "theUniversalMonarchy"
+              }
+            ]
           }
         }
       ]
@@ -5633,7 +5640,8 @@
             }
           ]
         }
-      ]
+      ],
+      "retired": true
     },
     "theLandsturm": {
       "name": "The Landsturm",
@@ -5776,20 +5784,27 @@
       ],
       "band": 1,
       "line": "none",
-      "flavor": "What the walls held, the army keeps.",
-      "text": "Capturing a town fully heals every unit of yours within three hexes and raises each by one rank. You can no longer found new cities.",
+      "flavor": "The spear carries the empire, so the spear eats first.",
+      "text": "Melee units gain +1 movement and +3 strength.",
       "effects": [
         {
-          "kind": "windfallRider",
-          "occasion": "capture",
-          "grant": {
-            "healWithin": 3,
-            "rankWithin": 3
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "modelClass": "melee"
           }
         },
         {
-          "kind": "rule",
-          "rule": "noFounding"
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "modelClass": "melee"
+          }
         }
       ]
     },
@@ -5826,7 +5841,7 @@
       "band": 2,
       "line": "none",
       "flavor": "Officers raised from the ranks.",
-      "text": "Each Elite unit gives +3 strength to your units beside it, and costs 2 more upkeep.",
+      "text": "Each Elite unit gives +3 strength to your units beside it, and costs 1 less upkeep.",
       "effects": [
         {
           "kind": "combatLine",
@@ -5842,8 +5857,8 @@
           }
         },
         {
-          "kind": "upkeepSurcharge",
-          "amount": 2,
+          "kind": "upkeepRebate",
+          "amount": 1,
           "rank": "elite"
         }
       ]
@@ -5883,7 +5898,7 @@
       "decks": [
         "dominion"
       ],
-      "band": 2,
+      "band": 3,
       "line": "none",
       "flavor": "The city elects its generals, and remembers the ones who win.",
       "text": "+30% renown. Citadel yields and your great generals' strength aura are doubled.",
@@ -5936,7 +5951,8 @@
           "kind": "rule",
           "rule": "noFortify"
         }
-      ]
+      ],
+      "retired": true
     },
     "combinedArms": {
       "name": "Combined Arms",

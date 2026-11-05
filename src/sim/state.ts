@@ -3249,8 +3249,27 @@ import {
  * **A v204 save is refused and does not replay.** A Scientific or
  * Expansionist seat's Tier 0 and Tier I pools hold different cards, so its
  * draws move. The branch migrates nothing, for the reason given under v119.
+ *
+ * v206 (branch `decks`; batch DT1, `docs/plans/doctrines-build-triage.md`):
+ * **Dominion's Doctrines after the user's review of 2026-11-05.** Two fields join
+ * the state: `City.foundedTurn`, written in `createCity`, and
+ * `PlayerStatecraft.doctrineTurns`, written in `settleDoctrineChoice`. The rules
+ * that change:
+ *
+ *   · The Steppe Confederacy, The Soldiers' Share, Centurions and The Universal
+ *     Monarchy do what their new text says;
+ *   · The Consular Roads moves to Tier II and The Strategoi to Tier III;
+ *   · Weight of Numbers and Total Mobilisation are retired;
+ *   · a new combat condition, `targetWounded`, a new town scope, `foundedSince`,
+ *     and `rank` on `upkeepRebate`;
+ *   · the founding preview reads the `cityCost` rows a town not yet founded can
+ *     answer (`cardProspectCityCost`).
+ *
+ * **A v205 save is refused and does not replay.** A Dominion seat's Doctrine
+ * pools hold different cards, so its draws move. The branch migrates nothing, for
+ * the reason given under v119.
  */
-export const SCHEMA_VERSION = 205;
+export const SCHEMA_VERSION = 206;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -5440,6 +5459,13 @@ export interface City {
    * counts a captured town only if it was another empire's original capital.
    */
   originalCapitalOf?: number;
+  /**
+   * **The turn this town was founded** (batch DT1). Written once, in `createCity`,
+   * and kept through every change of owner. An absolute turn, compared and never
+   * ticked. The `foundedSince` scope reads it, for The Universal Monarchy's
+   * "towns you found from now on".
+   */
+  foundedTurn: number;
   /** Production queue, front first. Replaced wholesale by `setCityProduction`. */
   queue: QueueItem[];
   /**
@@ -7525,6 +7551,7 @@ export function createCity(
     // Founded, by definition: this is the only way a city comes into existence,
     // and the only thing that raises the flag is a fight (see `captureCity`).
     captured: false,
+    foundedTurn: state.turn,
     queue: [],
     hammerBasket: 0,
     workedTiles: [],

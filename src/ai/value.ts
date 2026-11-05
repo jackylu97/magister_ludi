@@ -3309,6 +3309,16 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // A rebate on the pieces a levy raised (The General Levy, Expansionist
       // batch E1) reaches the share of the army that levies raise, as the
       // levied combat line does (the bot levy batch). See `leviedArmyShare`.
+      //
+      // Centurions (batch DT1): a rebate narrowed to a rank counts the seat's
+      // pieces holding it, as the `upkeepSurcharge` arm below does.
+      if (effect.rank !== undefined) {
+        const rank = effect.rank;
+        const ranked = ctx.state.units.filter(
+          (unit) => unit.ownerId === ctx.playerId && holdsRank(unit, rank),
+        ).length;
+        return costOfUpkeep((effect.amount ?? 1) * ranked, ctx);
+      }
       return (
         costOfUpkeep((effect.amount ?? 1) * ctx.ai.score.nominalCount, ctx) *
         (effect.levied === undefined ? 1 : leviedArmyShare(effect.levied, ctx))
@@ -5576,8 +5586,14 @@ function deckPair(
         }),
       };
     }
+    // Stamped with this turn, as taking it would be (batch DT1), so a "from now
+    // on" rule does not read the towns already founded.
     return {
-      with: rewritten(state, playerId, { ...sc, doctrines: [...sc.doctrines, id] }),
+      with: rewritten(state, playerId, {
+        ...sc,
+        doctrines: [...sc.doctrines, id],
+        doctrineTurns: { ...sc.doctrineTurns, [id]: state.turn },
+      }),
       without: state,
     };
   }

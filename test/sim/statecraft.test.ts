@@ -423,36 +423,28 @@ describe("the card table", () => {
       expect(DOCTRINE_IDS.filter((id) => doctrineDef(id).tier === tier).length, `tier ${tier}`)
         .toBeGreaterThanOrEqual(RULES.offers.doctrine);
     }
-    // **And Dominion batch D4**: The Consular Roads joins Tier I, and The
-    // Universal Monarchy is the first Tier III Doctrine (tier 18). **Dominion
-    // batch D5** adds Total Mobilisation to Tier III and The Landsturm, the
-    // first Tier IV Doctrine (tier 29). **Dominion batch D7** adds The Marian
-    // Reforms to Tier I, The Laws of Lord Shang, the first Tier II Doctrine
-    // (tier 10), and The Fortress Empire to Tier IV. **Dominion batch D8**
-    // adds The Soldiers' Share and The Servian Reforms to Tier I, Centurions,
-    // The Plunder Economy, The Strategoi and Weight of Numbers to Tier II,
-    // Combined Arms to Tier III and The Scourge of God to Tier IV.
-    // **Dominion batch D9** retires The Servian Reforms, which the user
-    // removed from the sheet, so Tier I deals four.
-    expect(poolDoctrines(GOVERNMENT_TIERS[0]!)).toEqual([
+    // Dominion's four pools, as the user's review of 2026-11-05 leaves them (batch
+    // DT1). Filtered to Dominion, because every deck deals Doctrines after DT2 to
+    // DT4, and the other decks' rows have tests of their own.
+    const dominionPool = (tier: number): string[] =>
+      poolDoctrines(tier).filter((id) => doctrineDef(id).decks.includes("dominion"));
+    expect(dominionPool(GOVERNMENT_TIERS[0]!)).toEqual([
       "theSteppeConfederacy",
-      "theConsularRoads",
       "theMarianReforms",
       "theSoldiersShare",
     ]);
-    expect(poolDoctrines(GOVERNMENT_TIERS[1]!)).toEqual([
+    expect(dominionPool(GOVERNMENT_TIERS[1]!)).toEqual([
+      "theConsularRoads",
       "theLawsOfLordShang",
       "centurions",
       "thePlunderEconomy",
-      "theStrategoi",
-      "weightOfNumbers",
     ]);
-    expect(poolDoctrines(GOVERNMENT_TIERS[2]!)).toEqual([
+    expect(dominionPool(GOVERNMENT_TIERS[2]!)).toEqual([
       "theUniversalMonarchy",
-      "totalMobilisation",
+      "theStrategoi",
       "combinedArms",
     ]);
-    expect(poolDoctrines(GOVERNMENT_TIERS[3]!)).toEqual([
+    expect(dominionPool(GOVERNMENT_TIERS[3]!)).toEqual([
       "theLandsturm",
       "theFortressEmpire",
       "theScourgeOfGod",
@@ -2273,7 +2265,10 @@ describe("determinism", () => {
     // Tier I, The Prize Essay is retired and three Tier 0 cards are new, so a
     // Scientific or Expansionist seat's pools hold different cards and a v204
     // log's draws move.
-    expect(SCHEMA_VERSION).toBe(205);
+    // 206 since batch DT1 (Dominion's Doctrines): four rows change, two move
+    // tier and two are retired, so a Dominion seat's Doctrine pools hold
+    // different cards and a v205 log's draws move.
+    expect(SCHEMA_VERSION).toBe(206);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -7678,11 +7673,9 @@ describe("the Æra III fork of 2026-09-05", () => {
       expect(doctrineDef(id).tier, id).toBe(18);
       expect(doctrineDef(id).effects.length, id).toBeGreaterThan(0);
     }
-    // Eleven rows at the fork, every line with a permanent pick. Twelve since
-    // Dominion batch D4 added The Universal Monarchy to Tier III (tier 18),
-    // thirteen since Dominion batch D5 added Total Mobilisation, and fourteen
-    // since Dominion batch D8 added Combined Arms.
-    expect(pool.length).toBe(14);
+    // Eleven rows at the fork, every line with a permanent pick. The rows the
+    // decks have added since name a deck, and each deck's tests count those.
+    expect(pool.filter((id) => doctrineDef(id).decks.length === 0)).toHaveLength(11);
     // Section 3's seal proposal was vetoed by the user (2026-09-05): a card you
     // want to slot in and out is skill expression, so every shelf still seals
     // for the table's own five turns.

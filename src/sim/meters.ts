@@ -121,6 +121,8 @@ import { type City, type GameState, playerById } from './state';
 import { cardMeterFlag } from './statecraft/evaluator';
 // Expansionist batch E12: what a town holds, a card's grants included.
 import { townBuildings, townShelf } from './statecraft/evaluator';
+// Batch DT1: the founding preview's reading of the `cityCost` rows.
+import { type CityCostRows, cardProspectCityCost } from './statecraft/evaluator';
 import { eraNumeral, highestAge } from './techData';
 import { isCoastal } from './water';
 import { explainWeariness } from './weariness';
@@ -754,27 +756,37 @@ export function explainAuthority(
     // no authority. Otherwise a percentage scales the ladder's price first
     // (The Universal Monarchy's founded towns cost twice as much), floored
     // once, and the deltas apply to the result with the two-sided floor.
-    const set = cardCityCostValue(state, city);
-    if (set !== null) {
-      line.value = set > 0 ? -set : 0;
-    } else {
-      const percent = cardCityCostPercent(state, city);
-      if (percent !== 0) {
-        const scaled = Math.floor((-line.value * (100 + percent)) / 100);
-        line.value = scaled > 0 ? -scaled : 0;
-      }
-      const delta = cardCityCostDelta(state, city);
-      if (delta !== 0) {
-        const cost = -line.value;
-        line.value = -Math.max(Math.min(cost, 1), cost + delta);
-      }
-    }
+    line.value = withCityCostRows(line.value, {
+      value: cardCityCostValue(state, city),
+      percent: cardCityCostPercent(state, city),
+      delta: cardCityCostDelta(state, city),
+    });
     list.push(line);
   }
 
   if (prospect) list.push(prospectAuthorityCost(state, playerId, prospect.site));
 
   return list;
+}
+
+/**
+ * **One town's line after the `cityCost` rows that reach it.** The meter's sweep
+ * and the founding preview both come here (batch DT1), so the two cannot apply
+ * the rows differently. `value` is the line as the ladder priced it: a cost, so
+ * negative or nought. The comment in `explainAuthority` gives the order.
+ */
+function withCityCostRows(value: number, rows: CityCostRows): number {
+  if (rows.value !== null) return rows.value > 0 ? -rows.value : 0;
+  let priced = value;
+  if (rows.percent !== 0) {
+    const scaled = Math.floor((-priced * (100 + rows.percent)) / 100);
+    priced = scaled > 0 ? -scaled : 0;
+  }
+  if (rows.delta !== 0) {
+    const cost = -priced;
+    priced = -Math.max(Math.min(cost, 1), cost + rows.delta);
+  }
+  return priced;
 }
 
 /**
@@ -863,7 +875,7 @@ function prospectAuthorityCost(
   playerId: number,
   site: Tile,
 ): MeterContribution {
-  return cityAuthorityCost(
+  const line = cityAuthorityCost(
     nextCityName(state, playerId),
     false,
     isCoastal(state.map, site),
@@ -873,6 +885,10 @@ function prospectAuthorityCost(
     cityCosts(state, playerId),
     site.hills,
   );
+  // The `cityCost` rows a town not yet founded can answer (batch DT1, The
+  // Universal Monarchy doubling it). See `cardProspectCityCost`.
+  line.value = withCityCostRows(line.value, cardProspectCityCost(state, playerId));
+  return line;
 }
 
 /** A founding preview's line, and which meter it lands on. */

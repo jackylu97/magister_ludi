@@ -523,6 +523,13 @@ export interface PlayerStatecraft {
    */
   doctrines: DoctrineId[];
   /**
+   * **The turn each Doctrine was taken** (batch DT1), for a rule that says "from
+   * now on", read through `doctrineTakenTurn`. Absolute turns, compared and never
+   * ticked. Written once, in `settleDoctrineChoice`. Presence is the state: a
+   * seat that has taken no Doctrine has no field.
+   */
+  doctrineTurns?: Partial<Record<DoctrineId, number>>;
+  /**
    * The Orders whose `onSlot` grant has already been paid, in the order it was
    * paid — the once-per-game flag for The Laureate's great person.
    *
@@ -3286,6 +3293,7 @@ export function doctrineChoiceError(
 export function settleDoctrineChoice(
   player: Player,
   optionIndex: number,
+  turn: number,
 ): { id: DoctrineId; name: string } | null {
   const sc = player.statecraft;
   const offer = sc.pendingDoctrine;
@@ -3294,6 +3302,7 @@ export function settleDoctrineChoice(
   if (id === undefined || !isDoctrineId(id)) return null;
   delete sc.pendingDoctrine;
   sc.doctrines.push(id);
+  (sc.doctrineTurns ??= {})[id] = turn;
   return { id, name: doctrineDef(id).name };
 }
 

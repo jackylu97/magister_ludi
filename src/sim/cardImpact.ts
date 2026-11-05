@@ -396,7 +396,16 @@ function ghostPair(
           statecraft: { ...sc, doctrines: sc.doctrines.filter((id) => id !== subject.id) },
         });
       }
-      return forward({ ...player, statecraft: { ...sc, doctrines: [...sc.doctrines, subject.id] } });
+      // Stamped with this turn, as taking it would be (batch DT1), so a "from now
+      // on" rule does not read the towns already founded.
+      return forward({
+        ...player,
+        statecraft: {
+          ...sc,
+          doctrines: [...sc.doctrines, subject.id],
+          doctrineTurns: { ...sc.doctrineTurns, [subject.id]: state.turn },
+        },
+      });
     }
     case 'government': {
       // **The re-seating is the adoption** (`adoptGovernmentAt`, batch C2): the

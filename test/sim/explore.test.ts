@@ -1299,10 +1299,16 @@ describe('determinism', () => {
    * drafts or holds a card, so no pool is dealt and no condition or package is
    * asked. Checked with the change in place and the version printed as 204,
    * which gives the hashes of batch R2d exactly.
+   *
+   * **Batch DT1 (Dominion's Doctrines, schema 206) moved the hash and not the
+   * length** at both seeds: 205 became 206, and that is all. Nobody here founds
+   * a town, drafts or holds a Doctrine, so neither new stamp is written. Checked
+   * with the change in place and the version printed as 205, which gives the
+   * hashes of batch R3 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '8bf360f7:190677',
-    2026: '96b539fa:190843',
+    11: 'f3f4eb9c:190677',
+    2026: 'a4c261dd:190843',
   };
 
   for (const seed of [11, 2026]) {

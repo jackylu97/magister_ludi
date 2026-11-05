@@ -204,6 +204,7 @@ import {
   type RiderBuildingTest,
   type CountKind,
   type DeckId,
+  type DoctrineId,
   type EmpireCondition,
   type FirstKind,
   type OccasionMeasure,
@@ -2244,6 +2245,10 @@ export function cityScopeAdmits(
     case 'notCaptured':
       // The Universal Monarchy's founded towns (Dominion batch D4).
       return !city.captured;
+    case 'foundedSince':
+      // The Universal Monarchy's "from now on" (batch DT1). Two absolute turns
+      // compared, so nothing ticks.
+      return city.foundedTurn >= doctrineTakenTurn(state, city.ownerId, scope.doctrine);
     case 'puppet':
       // **Presence is the state** (`City.puppet`), so the question is asked of
       // the key and never of `captured`: a conquest the captor annexed is a
@@ -2634,6 +2639,8 @@ function scopeNote(scope?: CityScope): string | null {
       return 'captured city';
     case 'notCaptured':
       return 'founded city';
+    case 'foundedSince':
+      return 'founded since';
     case 'puppet':
       return 'puppet';
     case 'rivalCapital':
@@ -6522,6 +6529,8 @@ function rebateReaches(
   // each rank the piece holds, and a piece with no rank is skipped.
   const helpings = effect.perRank === true ? ranksHeld(unit) : 1;
   if (helpings === 0) return 0;
+  // Centurions (batch DT1): only the pieces holding the rank.
+  if (effect.rank !== undefined && !holdsRank(unit, effect.rank)) return 0;
   if (effect.where === 'ownTerritory') {
     if (tileOwnerPlayerId(state, unit.col, unit.row) !== playerId) return 0;
   }
@@ -7226,6 +7235,76 @@ export function cardCityCostPercent(state: GameState, city: City): number {
   return percent;
 }
 
+/**
+ * **What the `cityCost` rows say about a town not yet founded** (batch DT1), for
+ * the founding preview. It has the three readings `explainAuthority` takes off a
+ * real town: `cardCityCostValue`, `cardCityCostPercent` and `cardCityCostDelta`.
+ *
+ * A town not yet founded can answer only a few scopes (`prospectScopeAdmits`).
+ * A row with any other scope stays out, so a preview may still quote a dearer or
+ * a cheaper price than the town turns out to have. The alternative is to guess
+ * at ground or buildings the town does not have.
+ */
+export function cardProspectCityCost(state: GameState, playerId: number): CityCostRows {
+  const firstTown = capitalCityOf(state, playerId) === undefined;
+  const rows: CityCostRows = { value: null, percent: 0, delta: 0 };
+  for (const { effect } of effectsOfKind(state, playerId, 'meterRule')) {
+    if (effect.rule !== 'cityCost' || !prospectScopeAdmits(effect.scope, firstTown)) continue;
+    if (effect.value !== undefined) {
+      rows.value = rows.value === null ? effect.value : Math.min(rows.value, effect.value);
+    }
+    if (effect.percent !== undefined) rows.percent += effect.percent;
+    if (effect.delta !== undefined) rows.delta += effect.delta;
+  }
+  return rows;
+}
+
+/** What the `cityCost` rows that reach one town add up to. See `cardProspectCityCost`. */
+export interface CityCostRows {
+  /** The price a row sets, the lowest if several do, or `null` if none does. */
+  value: number | null;
+  percent: number;
+  delta: number;
+}
+
+/**
+ * Can a town not yet founded answer this scope, and does it pass? A town being
+ * founded is not captured, and its founding turn is this turn, which no stamp can
+ * be later than. It is the capital only if the seat has no town.
+ */
+function prospectScopeAdmits(scope: CityScope | undefined, firstTown: boolean): boolean {
+  if (scope === undefined) return true;
+  switch (scope.test) {
+    case 'notCaptured':
+    case 'foundedSince':
+      return true;
+    case 'notCapital':
+      return !firstTown;
+    case 'all':
+      return scope.of.every((inner) => prospectScopeAdmits(inner, firstTown));
+    default:
+      return false;
+  }
+}
+
+/**
+ * **The turn this seat took this Doctrine**, for a rule that says "from now on"
+ * (batch DT1). An absolute turn: `settleDoctrineChoice` writes it once, and
+ * nothing ticks it.
+ *
+ * - A seat that holds the Doctrine with no stamp holds it from the start of the
+ *   game (nought). Only a test can get there, by pushing the id by hand.
+ * - A seat that does not hold it answers this turn, the turn it would stamp if
+ *   it took the Doctrine now. So a bot pricing an offer sees that the towns the
+ *   seat already founded would not count. Nought here would price every one of
+ *   them as doubled.
+ */
+export function doctrineTakenTurn(state: GameState, playerId: number, id: DoctrineId): number {
+  const sc = statecraftOf(state, playerId);
+  if (sc === undefined || !sc.doctrines.includes(id)) return state.turn;
+  return sc.doctrineTurns?.[id] ?? 0;
+}
+
 /** Is a meter rule declared at all? The reading for a flag-shaped rule. */
 export function cardMeterFlag(state: GameState, playerId: number, rule: MeterRuleId): boolean {
   for (const { effect } of effectsOfKind(state, playerId, 'meterRule')) {
@@ -7325,6 +7404,8 @@ function combatConditionHolds(
       return situation.vsCity;
     case 'targetBelowHalf':
       return situation.targetMaxHp > 0 && situation.targetHp * 2 < situation.targetMaxHp;
+    case 'targetWounded':
+      return !situation.vsCity && situation.targetMaxHp > 0 && situation.targetHp < situation.targetMaxHp;
     case 'capitalTerritory': {
       // `ownTerritory` narrowed to the capital's own borders, asked by tile id
       // rather than by owner so that a second city standing beside the first

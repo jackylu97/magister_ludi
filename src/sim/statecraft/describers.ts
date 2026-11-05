@@ -3384,12 +3384,16 @@ function describeEffect(
     case 'upkeepRebate': {
       // Only the pieces a levy raised, where the row says so (The General
       // Levy, Expansionist batch E1).
+      // A rank narrows the pieces (Centurions' Elite units, batch DT1), said as
+      // `rankedWords` says it for the surcharge below.
       const who =
-        effect.levied === undefined
-          ? effect.class
-            ? filterWords(effect.class)
-            : 'all units'
-          : `${effect.class ? filterWords(effect.class) : 'units'} ${leviedWords(effect.levied)}`;
+        effect.rank !== undefined
+          ? rankedWords(effect.rank, effect.class ? filterWords(effect.class) : 'units')
+          : effect.levied === undefined
+            ? effect.class
+              ? filterWords(effect.class)
+              : 'all units'
+            : `${effect.class ? filterWords(effect.class) : 'units'} ${leviedWords(effect.levied)}`;
       const where = WHERE_WORDS[effect.where ?? 'anywhere'];
       if (effect.free === true) {
         out.push({ text: `${who} cost no gold in maintenance${where}` });
@@ -4516,6 +4520,14 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       // The Universal Monarchy (Dominion batch D4): a town nobody took by force.
       into.qualifiers.push('you founded');
       return;
+    case 'foundedSince': {
+      // The Universal Monarchy (batch DT1): "a city you founded since taking this
+      // card". Its row pairs this with `notCaptured`, so the two share one verb.
+      const founded = into.qualifiers.indexOf('you founded');
+      if (founded >= 0) into.qualifiers[founded] = 'you founded since taking this card';
+      else into.qualifiers.push('founded since you took this card');
+      return;
+    }
     case 'puppet':
       // The game's own word for the arrangement, and the one a player reads on
       // the city panel. An adjective, because "every puppet city" is the phrase
@@ -5793,6 +5805,8 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   onHills: 'on hills',
   vsCity: 'against cities',
   targetBelowHalf: 'against units below half strength',
+  // The condition reads the defender, so it only makes sense when attacking.
+  targetWounded: 'when attacking a wounded unit',
   capitalTerritory: 'inside your capital’s borders',
   inCity: 'while standing in one of your cities',
   capturedCity: 'in a city you captured',

@@ -3716,7 +3716,7 @@ function applyChooseDoctrine(
   const problem = doctrineChoiceError(state, actor.id, command.optionIndex);
   if (problem) return fail(problem);
 
-  const taken = settleDoctrineChoice(actor, command.optionIndex);
+  const taken = settleDoctrineChoice(actor, command.optionIndex, state.turn);
   // A Doctrine is the second source of `liveEffects` and the meters fold that
   // walk. Announced here for `applyUnslotOrder`'s reason: the settlement is a
   // fact about a player and takes no state (batch M3, `slate.ts`).

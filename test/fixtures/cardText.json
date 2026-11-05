@@ -688,12 +688,12 @@
   ],
   "theSteppeConfederacy": [
    {
-    "raw": "your borders keep growing",
-    "text": "your borders keep growing"
+    "raw": "+50% production toward mounted units",
+    "text": "+50% production toward mounted units"
    },
    {
-    "raw": "while your authority is negative: +50% production toward mounted units",
-    "text": "while your authority is negative: +50% production toward mounted units"
+    "raw": "+3 combat strength for mounted units when attacking a wounded unit",
+    "text": "+3 combat strength for mounted units when attacking a wounded unit"
    }
   ],
   "theConsularRoads": [
@@ -712,8 +712,8 @@
     "text": "the authority a captured city costs is 0"
    },
    {
-    "raw": "the authority a city you founded costs doubles",
-    "text": "the authority a city you founded costs doubles"
+    "raw": "the authority a city you founded since taking this card costs doubles",
+    "text": "the authority a city you founded since taking this card costs doubles"
    }
   ],
   "totalMobilisation": [
@@ -772,12 +772,12 @@
   ],
   "theSoldiersShare": [
    {
-    "raw": "capturing a city fully heals every unit of yours within 3 hexes and raises each by one rank",
-    "text": "capturing a city fully heals every unit of yours within 3 hexes and raises each by one rank"
+    "raw": "melee units: +1 movement",
+    "text": "melee units: +1 movement"
    },
    {
-    "raw": "you can no longer found new cities",
-    "text": "you can no longer found new cities"
+    "raw": "+3 combat strength for melee units",
+    "text": "+3 combat strength for melee units"
    }
   ],
   "theServianReforms": [
@@ -796,8 +796,8 @@
     "text": "+3 combat strength per adjacent friendly Elite unit"
    },
    {
-    "raw": "Elite units cost 2 more gold in maintenance",
-    "text": "Elite units cost 2 more gold in maintenance"
+    "raw": "Elite units cost 1 less gold in maintenance",
+    "text": "Elite units cost 1 less gold in maintenance"
    }
   ],
   "thePlunderEconomy": [

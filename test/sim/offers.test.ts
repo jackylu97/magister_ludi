@@ -51,6 +51,7 @@ import {
   ORDER_IDS,
   doctrineDef,
   orderDef,
+  poolDoctrines,
 } from '../../src/sim/statecraftData';
 import { type GameState, claimWonder, bumpRevision } from '../../src/sim/state';
 import { game, found } from './statecraftHelpers';
@@ -275,26 +276,12 @@ describe('every generator draws offerSize cards', () => {
     // written here: a Doctrine pool is keyed to an adoption tier and the ladder
     // is a pacing dial (4/10/18/29 since batch C2).
     const rung = GOVERNMENT_TIERS[0]!;
-    // **Re-cut for batch C3.** An adoption deals Doctrines from the seat's
-    // decks again. The data holds one Tier I Doctrine so far (The Steppe
-    // Confederacy, Dominion), so this seat, which holds every deck, is dealt
-    // that one card, and a widening cannot add what the bag does not hold.
-    // **And Dominion batch D4** added a second Tier I Doctrine (The Consular
-    // Roads), and **Dominion batch D7** a third (The Marian Reforms). Since
-    // **Dominion batch D8** the bag holds five (The Soldiers' Share and The
-    // Servian Reforms), so the seat is dealt three of them, each once. Since
-    // **Dominion batch D9** it holds four: The Servian Reforms is retired.
+    // An adoption deals Doctrines from the seat's decks. This seat holds every
+    // deck, so its bag is the whole pool, and it is dealt three of it, each once.
     const dealt = drawDoctrineOffer(g.state, player, rung).options;
     expect(dealt).toHaveLength(3);
     expect(new Set(dealt).size).toBe(3);
-    for (const id of dealt) {
-      expect([
-        'theConsularRoads',
-        'theMarianReforms',
-        'theSoldiersShare',
-        'theSteppeConfederacy',
-      ]).toContain(id);
-    }
+    for (const id of dealt) expect(poolDoctrines(rung)).toContain(id);
     // Stock the rung with the retired tier-4 rows, lent to every deck, and the
     // offer is the base three, widened to four by The Oracle's rider: the
     // generator asks `offerSize` (the register pin below reads the source).

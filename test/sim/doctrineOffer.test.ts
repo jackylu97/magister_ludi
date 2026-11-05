@@ -21,16 +21,20 @@
  *   · **an offer outside an adoption** (Magisterial batch MG7): one helper,
  *     `openDoctrineOffer`, opens one at the current government's tier, never
  *     over a waiting offer and never from an empty bag;
- *   · **The Steppe Confederacy end to end**: negative authority no longer
- *     stops its holder's borders (the culture banks, the end-of-turn claim and
- *     a windfall claim), and while authority is negative its mounted units are
- *     built half again as fast;
+ *   · **The Steppe Confederacy end to end**: mounted units are built half again
+ *     as fast, and its combat line is in `dominionDoctrines.test.ts`. The border
+ *     freeze's exemption and the negative-authority gate left the row in batch
+ *     DT1, and stay in the engine, so they are tested here on a lent row;
  *   · **the bot** takes a Doctrine its effect scoring prices above nothing,
  *     and passes otherwise;
  *   · **the reward commands are gone**: the reducer knows none of them.
+ *
+ * Every deck gets Doctrines in batches DT2 to DT4, so nothing here assumes a deck
+ * has none. A test that needs an empty bag makes one, by having the seat hold
+ * what its bag offers. What a seat's bag holds is read from the data by the rule.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { nextBotDecision } from '../../src/ai/bot';
 import {
@@ -73,41 +77,59 @@ import {
 } from '../../src/sim/statecraftData';
 import { productionModifiers } from '../../src/sim/yields/town';
 import { resetVisibility } from '../../src/sim/visibility';
-import { stockDoctrines } from './statecraftHelpers';
+import { lendDoctrineEffects, stockDoctrines } from './statecraftHelpers';
 import { createGame, newGame } from './newGameHelpers';
 
 const STEPPE: DoctrineId = 'theSteppeConfederacy';
-// Dominion batch D4's two Doctrines: a second at Tier I, and the first at Tier III.
 const CONSULAR: DoctrineId = 'theConsularRoads';
 const MONARCHY: DoctrineId = 'theUniversalMonarchy';
-// Dominion batch D5's two: a second at Tier III, and the first at Tier IV.
-const MOBILISATION: DoctrineId = 'totalMobilisation';
 const LANDSTURM: DoctrineId = 'theLandsturm';
-// Dominion batch D7's three: a third at Tier I, the first at Tier II, and a
-// second at Tier IV.
 const MARIAN: DoctrineId = 'theMarianReforms';
 const SHANG: DoctrineId = 'theLawsOfLordShang';
 const FORTRESS: DoctrineId = 'theFortressEmpire';
-// Dominion batch D8's eight: two more at Tier I, four more at Tier II, a third
-// at Tier III and a third at Tier IV.
 const SHARE: DoctrineId = 'theSoldiersShare';
-// Retired in Dominion batch D9: the user removed it from the sheet. Its row
-// stays in the file for saves, and no tier deals it.
-const SERVIAN: DoctrineId = 'theServianReforms';
 const CENTURIONS: DoctrineId = 'centurions';
 const PLUNDER: DoctrineId = 'thePlunderEconomy';
 const STRATEGOI: DoctrineId = 'theStrategoi';
-const WEIGHT: DoctrineId = 'weightOfNumbers';
 const COMBINED: DoctrineId = 'combinedArms';
 const SCOURGE: DoctrineId = 'theScourgeOfGod';
-/** Dominion's live Tier I Doctrines, in the order the data lists them. */
-const TIER_ONE: readonly DoctrineId[] = [STEPPE, CONSULAR, MARIAN, SHARE];
-/** Dominion's Tier II Doctrines, in the order the data lists them. */
-const TIER_TWO: readonly DoctrineId[] = [SHANG, CENTURIONS, PLUNDER, STRATEGOI, WEIGHT];
-/** Dominion's Tier III Doctrines, in the order the data lists them. */
-const TIER_THREE: readonly DoctrineId[] = [MONARCHY, MOBILISATION, COMBINED];
-/** Dominion's Tier IV Doctrines, in the order the data lists them. */
-const TIER_FOUR: readonly DoctrineId[] = [LANDSTURM, FORTRESS, SCOURGE];
+// Retired by the user: The Servian Reforms in Dominion batch D9, the other two in
+// batch DT1. Their rows stay in the file for saves, and no tier deals them.
+const SERVIAN: DoctrineId = 'theServianReforms';
+const MOBILISATION: DoctrineId = 'totalMobilisation';
+const WEIGHT: DoctrineId = 'weightOfNumbers';
+
+/** Dominion's live Doctrines of one sheet tier, in the order the data lists them. */
+function dominionTier(band: number): readonly DoctrineId[] {
+  return DECK_FILE_DOCTRINES.dominion.filter(
+    (id) => doctrineDef(id).band === band && doctrineDef(id).retired !== true,
+  );
+}
+const TIER_ONE = dominionTier(1);
+const TIER_TWO = dominionTier(2);
+const TIER_THREE = dominionTier(3);
+const TIER_FOUR = dominionTier(4);
+
+/** A government tier's live rows that belong to one deck. */
+function poolOfDeck(tier: number, deck: DeckId): DoctrineId[] {
+  return poolDoctrines(tier).filter((id) => doctrineDef(id).decks.includes(deck));
+}
+
+/** What a seat's bag holds by the rule: the tier's live rows of its decks, less what it holds. */
+function bagByRule(seat: Player, tier: number): DoctrineId[] {
+  return poolDoctrines(tier).filter(
+    (id) =>
+      !seat.statecraft.doctrines.includes(id) &&
+      doctrineDef(id).decks.some((deck) => seat.decks.includes(deck)),
+  );
+}
+
+/** Empties a seat's bag at this tier, by having it hold everything the bag offers. */
+function holdWholeBag(game: Game, seat: Player, tier: number): void {
+  seat.statecraft.doctrines.push(...doctrineBagFor(seat, tier));
+  bumpRevision(game.state);
+  expect(doctrineBagFor(seat, tier)).toEqual([]);
+}
 
 /** A duel between two named figures, so each seat holds that figure's two decks. */
 function duel(first: string, second: string, seed = 11): Game {
@@ -149,7 +171,7 @@ describe('the Doctrine data model', () => {
 
   it('folds the deck files’ Doctrines into the one table, each with its decks, its tier and the government tier that offers it', () => {
     const fromDecks = DECK_FILES.flatMap((file) => DECK_FILE_DOCTRINES[file]);
-    const all = [
+    const dominion = [
       STEPPE,
       CONSULAR,
       MONARCHY,
@@ -167,15 +189,16 @@ describe('the Doctrine data model', () => {
       COMBINED,
       SCOURGE,
     ];
-    expect(fromDecks).toEqual(all);
-    expect(DECK_FILE_DOCTRINES.dominion).toEqual(all);
+    expect(DECK_FILE_DOCTRINES.dominion).toEqual(dominion);
+    expect(fromDecks).toEqual(expect.arrayContaining(dominion));
+    const retired: readonly DoctrineId[] = [SERVIAN, MOBILISATION, WEIGHT];
     for (const id of fromDecks) {
       expect(STATECRAFT.doctrines[id], id).toBeDefined();
       expect(DOCTRINE_IDS, id).toContain(id);
       const def = doctrineDef(id);
-      // Every deck Doctrine is live but The Servian Reforms (Dominion batch
-      // D9), which keeps its tier so that a save holding it reads the same.
-      if (id === SERVIAN) expect(def.retired, id).toBe(true);
+      // Every deck Doctrine is live but these three, each of which keeps its tier
+      // and effects so that a save holding it reads the same.
+      if (retired.includes(id)) expect(def.retired, id).toBe(true);
       else expect(def.retired, id).toBeUndefined();
       expect(def.tier, id).toBe(governmentTierForDoctrineBand(def.band));
     }
@@ -192,21 +215,40 @@ describe('the Doctrine data model', () => {
 
   it('carries the two effects the sheet’s text asks for, and nothing else', () => {
     expect(doctrineDef(STEPPE).effects).toEqual([
-      { kind: 'meterRule', rule: 'borderFreezeExempt', value: 1 },
+      { kind: 'productionBonus', category: 'unit', percent: 50, modelClass: 'mounted' },
       {
-        kind: 'conditionRule',
-        when: { test: 'authorityNegative' },
-        then: [{ kind: 'productionBonus', category: 'unit', percent: 50, modelClass: 'mounted' }],
+        kind: 'combatLine',
+        amount: 3,
+        side: 'attack',
+        when: { test: 'targetWounded' },
+        class: { modelClass: 'mounted' },
       },
     ]);
   });
 
+  it('sits Dominion’s live rows at the tiers the user’s review left them (3, 4, 3, 3)', () => {
+    expect(TIER_ONE).toEqual([STEPPE, MARIAN, SHARE]);
+    expect(TIER_TWO).toEqual([CONSULAR, SHANG, CENTURIONS, PLUNDER]);
+    expect(TIER_THREE).toEqual([MONARCHY, STRATEGOI, COMBINED]);
+    expect(TIER_FOUR).toEqual([LANDSTURM, FORTRESS, SCOURGE]);
+  });
+
   it('pools a tier’s live Doctrines alone', () => {
-    expect(poolDoctrines(4)).toEqual([...TIER_ONE]);
-    expect(poolDoctrines(10)).toEqual([...TIER_TWO]);
-    expect(poolDoctrines(18)).toEqual([...TIER_THREE]);
-    expect(poolDoctrines(26)).toEqual([...TIER_FOUR]);
+    expect(poolOfDeck(4, 'dominion')).toEqual([...TIER_ONE]);
+    expect(poolOfDeck(10, 'dominion')).toEqual([...TIER_TWO]);
+    expect(poolOfDeck(18, 'dominion')).toEqual([...TIER_THREE]);
+    expect(poolOfDeck(26, 'dominion')).toEqual([...TIER_FOUR]);
     expect(poolDoctrines(0)).toEqual([]);
+    for (const tier of [4, 10, 18, 26]) {
+      for (const id of poolDoctrines(tier)) {
+        expect(doctrineDef(id).tier, id).toBe(tier);
+        expect(doctrineDef(id).retired, id).toBeUndefined();
+      }
+    }
+    // A retired row is in no pool, whichever tier it keeps.
+    for (const id of [SERVIAN, MOBILISATION, WEIGHT]) {
+      expect(poolDoctrines(doctrineDef(id).tier), id).not.toContain(id);
+    }
   });
 });
 
@@ -218,18 +260,25 @@ describe('the Doctrine offer’s bag and deal', () => {
     const g = duel('taizong', 'pachacuti');
     const taizong = playerById(g.state, 0)!;
     const pachacuti = playerById(g.state, 1)!;
-    expect(doctrineBagFor(taizong, 4)).toEqual([...TIER_ONE]);
-    expect(doctrineBagFor(pachacuti, 4)).toEqual([]);
-    expect(doctrineBagFor(taizong, 18)).toEqual([...TIER_THREE]);
-    expect(doctrineBagFor(taizong, 26)).toEqual([...TIER_FOUR]);
-    expect(doctrineBagFor(taizong, 10)).toEqual([...TIER_TWO]);
+    expect(taizong.decks).toContain('dominion');
+    expect(pachacuti.decks).not.toContain('dominion');
+    for (const tier of [4, 10, 18, 26]) {
+      expect(doctrineBagFor(taizong, tier), `Taizong, tier ${tier}`).toEqual(bagByRule(taizong, tier));
+      expect(doctrineBagFor(pachacuti, tier), `Pachacuti, tier ${tier}`).toEqual(bagByRule(pachacuti, tier));
+      // Dominion's rows reach the seat holding that deck, and only that seat.
+      const dominion = poolOfDeck(tier, 'dominion');
+      expect(doctrineBagFor(taizong, tier)).toEqual(expect.arrayContaining(dominion));
+      for (const id of dominion) expect(doctrineBagFor(pachacuti, tier), id).not.toContain(id);
+    }
+    const before = doctrineBagFor(taizong, 4);
     taizong.statecraft.doctrines.push(STEPPE);
-    expect(doctrineBagFor(taizong, 4)).toEqual([CONSULAR, MARIAN, SHARE]);
+    expect(doctrineBagFor(taizong, 4)).toEqual(before.filter((id) => id !== STEPPE));
   });
 
   it('deals nothing from an empty bag and spends no randomness', () => {
     const g = duel('taizong', 'pachacuti');
     const pachacuti = playerById(g.state, 1)!;
+    holdWholeBag(g, pachacuti, 4);
     const before = snapshotState(g.state);
     expect(drawDoctrineOffer(g.state, pachacuti, 4)).toEqual({ options: [] });
     expect(snapshotState(g.state)).toBe(before);
@@ -273,8 +322,8 @@ describe('the Doctrine offer’s bag and deal', () => {
     const restoreA = stockDoctrines(dominionOnly, ['dominion']);
     const restoreB = stockDoctrines(magisterialOnly, ['magisterial']);
     try {
-      const ofDominion = new Set<DoctrineId>([...TIER_ONE, ...dominionOnly]);
-      const ofMagisterial = new Set<DoctrineId>(magisterialOnly);
+      const ofDominion = new Set<DoctrineId>(poolOfDeck(4, 'dominion'));
+      const ofMagisterial = new Set<DoctrineId>(poolOfDeck(4, 'magisterial'));
       for (let seed = 1; seed <= 12; seed++) {
         const g = duel('taizong', 'modu', seed);
         const taizong = playerById(g.state, 0)!;
@@ -296,25 +345,22 @@ describe('the Doctrine offer’s bag and deal', () => {
   });
 
   it('gives a deck’s place to the rest of the bag when that deck has nothing left', () => {
-    // Only Dominion has Doctrines here: all three places are dealt from it.
-    const lent = TIER_FOUR_RETIRED.slice(0, 3);
-    const restore = stockDoctrines(lent, ['dominion']);
-    try {
-      const g = duel('taizong', 'modu');
-      const offer = drawDoctrineOffer(g.state, playerById(g.state, 0)!, 4);
-      expect(offer.options).toHaveLength(3);
-      for (const id of offer.options) expect(doctrineDef(id).decks, id).toEqual(['dominion']);
-    } finally {
-      restore();
-    }
-    // And a bag smaller than the offer deals the bag. Since Dominion batch D8
-    // every tier holds three Doctrines or more, so the seat holds three of
-    // Tier I's four first (five until D9 retired The Servian Reforms).
+    // The seat holds everything its second deck offers, so only Dominion has rows
+    // left: all three places are dealt from it.
     const g = duel('taizong', 'modu');
     const seat = playerById(g.state, 0)!;
-    seat.statecraft.doctrines.push(STEPPE, CONSULAR, MARIAN);
-    const dealt = drawDoctrineOffer(g.state, seat, 4).options;
-    expect([...dealt]).toEqual([SHARE]);
+    seat.statecraft.doctrines.push(
+      ...doctrineBagFor(seat, 4).filter((id) => !doctrineDef(id).decks.includes('dominion')),
+    );
+    const offer = drawDoctrineOffer(g.state, seat, 4);
+    expect(offer.options).toHaveLength(3);
+    for (const id of offer.options) expect(doctrineDef(id).decks, id).toEqual(['dominion']);
+    // And a bag smaller than the offer deals the bag.
+    const small = duel('taizong', 'modu');
+    const holder = playerById(small.state, 0)!;
+    const bag = doctrineBagFor(holder, 4);
+    holder.statecraft.doctrines.push(...bag.slice(0, -1));
+    expect([...drawDoctrineOffer(small.state, holder, 4).options]).toEqual([bag[bag.length - 1]]);
   });
 });
 
@@ -325,26 +371,26 @@ describe('the adoption opens the offer, and the seat takes one or passes', () =>
     const g = duel('taizong', 'pachacuti');
     const taizong = playerById(g.state, 0)!;
     bankGovernment(taizong, 4);
+    const bag = doctrineBagFor(taizong, 4);
     expect(dispatch(g, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 }).ok).toBe(true);
-    // Three of Tier I's four, each once.
+    // Three of the bag, each once.
     const options = [...(taizong.statecraft.pendingDoctrine?.options ?? [])];
     expect(options).toHaveLength(3);
     expect(new Set(options).size).toBe(3);
-    for (const id of options) expect(TIER_ONE, id).toContain(id);
+    for (const id of options) expect(bag, id).toContain(id);
     expect(statecraftBlocker(taizong)).toBe('a Doctrine offer is waiting');
-    // Its own decks hold no Doctrine of the tier, so the other seat is offered
-    // nothing and blocked by nothing.
+    // The other seat's bag is empty, so it is offered nothing and blocked by
+    // nothing.
     const pachacuti = playerById(g.state, 1)!;
+    holdWholeBag(g, pachacuti, 4);
     bankGovernment(pachacuti, 4);
     expect(dispatch(g, { type: 'adoptGovernment', playerId: 1, choiceIndex: 0 }).ok).toBe(true);
     expect(pachacuti.statecraft.pendingDoctrine).toBeUndefined();
     expect(statecraftBlocker(pachacuti)).toBeNull();
-    // A tier whose every Doctrine the seat already holds opens nothing either.
-    // Since Dominion batch D7 every tier has one (The Laws of Lord Shang at
-    // Tier II), so the seat holds it first.
+    // The same at another tier.
     const later = duel('taizong', 'pachacuti');
     const seat = playerById(later.state, 0)!;
-    seat.statecraft.doctrines.push(...TIER_TWO);
+    holdWholeBag(later, seat, 10);
     bankGovernment(seat, 10);
     expect(adoptGovernmentAt(later.state, seat, 0)?.doctrines).toBeNull();
     expect(seat.statecraft.pendingDoctrine).toBeUndefined();
@@ -354,6 +400,7 @@ describe('the adoption opens the offer, and the seat takes one or passes', () =>
     const g = duel('taizong', 'pachacuti');
     const taizong = playerById(g.state, 0)!;
     bankGovernment(taizong, 4);
+    const bag = doctrineBagFor(taizong, 4);
     dispatch(g, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 });
     const taken = taizong.statecraft.pendingDoctrine!.options[0] as DoctrineId;
     // A wrong index is refused, and nothing moves. The offer holds three since
@@ -366,7 +413,9 @@ describe('the adoption opens the offer, and the seat takes one or passes', () =>
     expect(taizong.statecraft.doctrines).toEqual([taken]);
     expect(taizong.statecraft.pendingDoctrine).toBeUndefined();
     expect(statecraftBlocker(taizong)).toBeNull();
-    expect(doctrineBagFor(taizong, 4)).toEqual(TIER_ONE.filter((id) => id !== taken));
+    expect(doctrineBagFor(taizong, 4)).toEqual(bag.filter((id) => id !== taken));
+    // The turn it was taken is stamped, for a rule that says "from now on".
+    expect(taizong.statecraft.doctrineTurns).toEqual({ [taken]: g.state.turn });
   });
 
   it('passes for nothing, and refuses both answers with nothing waiting or after the turn has ended', () => {
@@ -383,6 +432,7 @@ describe('the adoption opens the offer, and the seat takes one or passes', () =>
       expect(snapshotState(g.state), command.type).toBe(before);
     }
     bankGovernment(taizong, 4);
+    const bag = doctrineBagFor(taizong, 4);
     dispatch(g, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 });
     // The pass costs nothing and banks nothing: no pity, no culture.
     const skips = taizong.statecraft.orderSkips;
@@ -390,10 +440,11 @@ describe('the adoption opens the offer, and the seat takes one or passes', () =>
     expect(dispatch(g, { type: 'skipDoctrineOffer', playerId: 0 }).ok).toBe(true);
     expect(taizong.statecraft.pendingDoctrine).toBeUndefined();
     expect(taizong.statecraft.doctrines).toEqual([]);
+    expect(taizong.statecraft.doctrineTurns).toBeUndefined();
     expect(taizong.statecraft.orderSkips).toBe(skips);
     expect(taizong.culturePool).toBe(culture);
     // A Doctrine passed on is not held, so it may be offered again later.
-    expect(doctrineBagFor(taizong, 4)).toEqual([...TIER_ONE]);
+    expect(doctrineBagFor(taizong, 4)).toEqual(bag);
   });
 
   it('refuses the reward commands, which left with the reward hands', () => {
@@ -421,11 +472,12 @@ describe('a Doctrine offer outside an adoption (Magisterial batch MG7)', () => {
     const taizong = playerById(g.state, 0)!;
     taizong.statecraft.government = 'warChief';
     bumpRevision(g.state);
+    const bag = doctrineBagFor(taizong, 4);
     expect(doctrineOfferCanOpen(taizong)).toBe(true);
     expect(openDoctrineOffer(g.state, taizong)).toBe(true);
     const options = [...(taizong.statecraft.pendingDoctrine?.options ?? [])];
     expect(options).toHaveLength(3);
-    for (const id of options) expect(TIER_ONE, id).toContain(id);
+    for (const id of options) expect(bag, id).toContain(id);
     // A second is refused while the first waits, and nothing moves.
     const before = snapshotState(g.state);
     expect(doctrineOfferCanOpen(taizong)).toBe(false);
@@ -435,10 +487,10 @@ describe('a Doctrine offer outside an adoption (Magisterial batch MG7)', () => {
 
   it('opens nothing from an empty bag, and spends no randomness', () => {
     const g = duel('taizong', 'pachacuti');
-    // Seat 1's decks hold no Doctrine of the tier.
+    // Seat 1's bag is empty.
     const pachacuti = playerById(g.state, 1)!;
     pachacuti.statecraft.government = 'warChief';
-    bumpRevision(g.state);
+    holdWholeBag(g, pachacuti, 4);
     const before = snapshotState(g.state);
     expect(doctrineOfferCanOpen(pachacuti)).toBe(false);
     expect(openDoctrineOffer(g.state, pachacuti)).toBe(false);
@@ -586,6 +638,47 @@ function steppeLine(state: GameState, city: City, unit: 'horseman' | 'warrior') 
 }
 
 describe('The Steppe Confederacy, end to end', () => {
+  it('builds mounted units half again as fast, whatever authority stands at, and nothing else', () => {
+    const { state, city } = flatEmpire();
+    takeSteppe(state);
+    expect(authorityOf(state, 0)).toBeGreaterThanOrEqual(0);
+    expect(steppeLine(state, city, 'horseman')?.percent).toBe(50);
+    overdraw(state);
+    expect(steppeLine(state, city, 'horseman')?.percent).toBe(50);
+    // A foot soldier is not mounted.
+    expect(steppeLine(state, city, 'warrior')).toBeUndefined();
+  });
+
+  it('no longer lifts the border freeze', () => {
+    const { state, city } = flatEmpire();
+    overdraw(state);
+    takeSteppe(state);
+    expect(borderGrowth(state, city).frozen).toBe(true);
+  });
+});
+
+/**
+ * **The two shapes The Steppe Confederacy gave up in batch DT1**, on a lent row:
+ * the border freeze's exemption, and a production bonus gated on negative
+ * authority. The shapes stay in the engine (the triage's reading 9), and the user
+ * may want them back.
+ */
+const BORDER_FREEZE_EXEMPT: readonly CardEffect[] = [
+  { kind: 'meterRule', rule: 'borderFreezeExempt', value: 1 },
+  {
+    kind: 'conditionRule',
+    when: { test: 'authorityNegative' },
+    then: [{ kind: 'productionBonus', category: 'unit', percent: 50, modelClass: 'mounted' }],
+  },
+];
+
+describe('the border freeze’s exemption and the negative-authority gate, on a lent row', () => {
+  let restore: () => void = () => undefined;
+  beforeEach(() => {
+    restore = lendDoctrineEffects(STEPPE, BORDER_FREEZE_EXEMPT);
+  });
+  afterEach(() => restore());
+
   it('lets the borders grow while authority is negative: the culture banks and the border claims', () => {
     const { state, city } = flatEmpire();
     overdraw(state);
@@ -632,8 +725,7 @@ describe('the bot answers a Doctrine offer', () => {
     bankGovernment(taizong, 4);
     dispatch(g, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 });
     const decision = nextBotDecision(g.state, 0)!;
-    // The offer holds both Tier I Doctrines since Dominion batch D4, and the
-    // bot takes whichever it prices higher. The summary names the one it took.
+    // The bot takes whichever it prices highest. The summary names the one it took.
     expect(decision.command.type).toBe('chooseDoctrine');
     const index = (decision.command as { optionIndex: number }).optionIndex;
     const chosen = taizong.statecraft.pendingDoctrine!.options[index]!;
@@ -641,9 +733,9 @@ describe('the bot answers a Doctrine offer', () => {
   });
 
   it('passes when every Doctrine on the offer costs more than it pays', () => {
-    // Both Tier I Doctrines' effects swapped for a pure cost (two points of
+    // Every Tier I Doctrine's effects swapped for a pure cost (two points of
     // authority per town) for this test alone, and put back whatever happens.
-    const defs = TIER_ONE.map((id) => doctrineDef(id) as { effects: CardEffect[] });
+    const defs = poolDoctrines(4).map((id) => doctrineDef(id) as { effects: CardEffect[] });
     const saved = defs.map((def) => def.effects);
     for (const def of defs) {
       def.effects = [

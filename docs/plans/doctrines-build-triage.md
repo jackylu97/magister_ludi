@@ -913,3 +913,12 @@ The `flavor` field of each row, in the deck's voice. The other eleven Dominion r
 | Devotion | The House of Worship | The emperor seats them all in one hall and asks them to begin. |
 | Devotion | The Apostolic Camera | The dues of every parish know the way to Rome. |
 | Devotion | The Two Sanctuaries | Two holy cities, one title, and every caravan guarded. |
+
+## Built
+
+- **DT1 (2026-11-05, schema 206):** as planned. The gate passed: the type check, 10,205 core tests and the build.
+  - **Rows:** The Steppe Confederacy, The Soldiers' Share, Centurions and The Universal Monarchy are rewritten. The Consular Roads moves to Tier II and The Strategoi to Tier III. Weight of Numbers and Total Mobilisation are retired. Dominion holds 13 live rows (3, 4, 3, 3).
+  - **Shapes:** `targetWounded` (`combatConditionHolds`), `rank` on `upkeepRebate` (`rebateReaches`), `City.foundedTurn`, `PlayerStatecraft.doctrineTurns`, the scope `foundedSince` with `doctrineTakenTurn`, `cardProspectCityCost` and `withCityCostRows` (`meters.ts`).
+  - **For later batches:** `sheetDoctrines(deck)` and `expectSheetDoctrinesMatchData(deck)` are in `test/sim/decks/sortedSheets.ts`, and `lendDoctrineEffects(id, effects)` is in `test/sim/statecraftHelpers.ts`. `dominion.test.ts` runs the sheet check over all six decks, so a row built for another deck must be on that deck's table in the same batch. DT5 must teach `bagByRule` (`doctrineOffer.test.ts`) its gates when `doctrineBagFor` gains `state`.
+  - **Where the plan was wrong:** "absent reads as nought" would make a seat without The Universal Monarchy read every founded town as doubled, which misprices the offer and the card's impact stamp. `doctrineTakenTurn` answers this turn for a seat that does not hold the Doctrine, and the two ghost seats (`deckPair` in `value.ts`, `ghostPair` in `cardImpact.ts`) stamp this turn. Two more pins moved: `statecraft.test.ts` (`pool.length` at tier 18) and `decks.test.ts` (`RETIRED_DECK_DOCTRINES`).
+  - **Reading:** a bot prices The Universal Monarchy's doubling only on towns that exist and were founded since. At an offer that part usually costs nothing, because no future founding is priced. A seat with no captured towns scores the card 0.

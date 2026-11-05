@@ -7,7 +7,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
   - `modify`: in the data, but needs work. The word after the colon says why: `revised` (your revision), `replaced` (a new card takes over the row), `reworked` (ruling 6 of 2026-10-15, or a rework in the themes pass of 2026-10-21), `wording` (the text changes, the effect does not), `deferred` (not dealt, because it needs a new shape), or `as built` (the game does something slightly different from the text). The ability shown is the target.
   - `add`: not in the data yet. `add: reworked` is one of your ideas reworked for ruling 6; `add: rule-breaker` is one of the rule-breaking cards added for ruling 4.
   - **(was …)** names the data row a renamed card takes over, or your earlier name for a reworked idea.
-- **Doctrines:** tiers I to IV each list Dominion's Doctrines for one government tier. A Doctrine is held for the whole game and takes no chair. Adopting a government offers Doctrines of that government's tier, drawn from both of the seat's decks (ruled 2026-10-15, `docs/flags.md` (vvvvvv)). Since 2026-10-16 that offer is all a new government brings: it no longer comes with a hand of rare cards. Tier I's Doctrines come with the tier-4 governments, Tier II's with tier 10, Tier III's with tier 18 and Tier IV's with tier 26 (29 until 2026-10-17). The tier-38 governments were meant for a fifth age and are left unimplemented (ruled 2026-10-16, and the pairing confirmed the same day). Sixteen were built: The Steppe Confederacy (batch C3), The Consular Roads and The Universal Monarchy (Dominion batch D4), Total Mobilisation and The Landsturm (Dominion batch D5), The Marian Reforms, The Laws of Lord Shang and The Fortress Empire (Dominion batch D7), and the other eight (Dominion batch D8). Fifteen are live. You removed the sixteenth, The Servian Reforms, from Tier I on 2026-10-21, and its data row is retired (Dominion batch D9). Their tables have three columns, and the sync test skips rows with fewer than four cells, so it reads only the card tables.
+- **Doctrines:** tiers I to IV each list Dominion's Doctrines for one government tier. A Doctrine is held for the whole game and takes no chair. Adopting a government offers Doctrines of that government's tier, drawn from both of the seat's decks (ruled 2026-10-15, `docs/flags.md` (vvvvvv)). Since 2026-10-16 that offer is all a new government brings: it no longer comes with a hand of rare cards. Tier I's Doctrines come with the tier-4 governments, Tier II's with tier 10, Tier III's with tier 18 and Tier IV's with tier 26 (29 until 2026-10-17). The tier-38 governments were meant for a fifth age and are left unimplemented (ruled 2026-10-16, and the pairing confirmed the same day). Sixteen were built: The Steppe Confederacy (batch C3), The Consular Roads and The Universal Monarchy (Dominion batch D4), Total Mobilisation and The Landsturm (Dominion batch D5), The Marian Reforms, The Laws of Lord Shang and The Fortress Empire (Dominion batch D7), and the other eight (Dominion batch D8). Thirteen are live. You removed The Servian Reforms from Tier I on 2026-10-21 (Dominion batch D9), and Weight of Numbers and Total Mobilisation on 2026-11-05 (batch DT1, `docs/plans/doctrine-review-2026-11-05.md`). Their data rows are retired. Their tables have three columns, and the sync test skips rows with fewer than four cells, so it reads only the card tables.
 - **Type:** the last column of each card table says which chair the card fits: **Military**, **Economic**, **Civic** or **Wildcard**. A card fits a chair of its own type or a Wildcard chair, and a Wildcard card fits only a Wildcard chair. The sorting rules and every government's chairs are in `docs/plans/doctrines-governments-chairs.md`, section 4. The sync test checks this column against each card's `type` in the data, the shared table's cards included.
 - **Why each card is here:** `docs/plans/dominion-themes.md`: the themes pass of 2026-10-21, with the four themes (the garrison state, the marches, the provinces and the captains), the engine of soldiers and commissions, and your rulings in section 11. Each card's theme and role are in `docs/plans/dominion-list-proposed.md`, and the build plan is `docs/plans/dominion-themes-triage.md`. The earlier pass, with the four builds and the rulings of 2026-10-15, is `docs/plans/dominion-builds.md`.
 - **The long form** (the old notes, the "built as" details, the synergy section): `docs/decks/reference/dominion-2026-10-15.md`. Ideas not on the sheet: `docs/plans/dominion-ideas.md`.
@@ -15,11 +15,11 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
 | Tier 0 | 21 | 0 | 0 | 21 | none |
-| Tier I | 26 | 0 | 0 | 26 | 4 |
-| Tier II | 34 | 0 | 0 | 34 | 5 |
+| Tier I | 26 | 0 | 0 | 26 | 3 |
+| Tier II | 34 | 0 | 0 | 34 | 4 |
 | Tier III | 27 | 0 | 0 | 27 | 3 |
 | Tier IV | 21 | 0 | 0 | 21 | 3 |
-| **All** | **129** | **0** | **0** | **129** | **15** |
+| **All** | **129** | **0** | **0** | **129** | **13** |
 | Shared | 29 | 0 | 0 | 29 |  |
 
 **By type** (the chair a card fits):
@@ -67,9 +67,8 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | Doctrine | Build | Text |
 |---|---|---|
 | **The Marian Reforms** | drilled legions | Your military units cost no upkeep, but your towns build them at half speed. Buying them is unaffected. |
-| **The Steppe Confederacy** | steppe raiders | Negative authority no longer stops your borders growing. While authority is negative, gain +50% production toward mounted units. |
-| **The Soldiers' Share** | conqueror | Capturing a town fully heals every unit of yours within three hexes and raises each by one rank. You can no longer found new cities. |
-| **The Consular Roads** | conqueror | Cities connected to your capital by road and holding a garrison gain +5 science and +5 culture, and are pacified at once. |
+| **The Steppe Confederacy** | steppe raiders | +50% production toward mounted units. Mounted units gain +3 strength when attacking a wounded unit. |
+| **The Soldiers' Share** | conqueror | Melee units gain +1 movement and +3 strength. |
 
 **Orders:**
 
@@ -108,11 +107,10 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 
 | Doctrine | Build | Text |
 |---|---|---|
-| **Centurions** | drilled legions | Each Elite unit gives +3 strength to your units beside it, and costs 2 more upkeep. |
+| **Centurions** | drilled legions | Each Elite unit gives +3 strength to your units beside it, and costs 1 less upkeep. |
 | **The Plunder Economy** | steppe raiders | Pillaging a hex yields production equal to 50% of your unit's strength in every city. Your units lose 4 strength when attacking cities. |
-| **The Strategoi** | drilled legions | +30% renown. Citadel yields and your great generals' strength aura are doubled. |
-| **Weight of Numbers** | endless host | Your units gain +3 strength for each attack your units have already made on the same target this turn, at most +12. Your units cannot fortify. |
 | **The Laws of Lord Shang** | endless host | While a town builds a military unit, its surplus food goes into the unit instead of into growth. |
+| **The Consular Roads** | conqueror | Cities connected to your capital by road and holding a garrison gain +5 science and +5 culture, and are pacified at once. |
 
 **Orders:**
 
@@ -161,9 +159,9 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 
 | Doctrine | Build | Text |
 |---|---|---|
-| **Total Mobilisation** | endless host | While at war, each town of six or more citizens raises the best melee unit you can build every five turns, for a citizen. It costs no upkeep. While at peace, your towns grow 25% faster. |
 | **Combined Arms** | conqueror | Your units gain +3 strength, doubled beside one of your siege units. Siege units beside one of your melee units cannot be attacked in melee. |
-| **The Universal Monarchy** | conqueror | Towns you capture cost no authority. Towns you found cost twice as much. |
+| **The Universal Monarchy** | conqueror | Towns you capture cost no authority, including those you already hold. Towns you found from now on cost twice as much authority. |
+| **The Strategoi** | drilled legions | +30% renown. Citadel yields and your great generals' strength aura are doubled. |
 
 **Orders:**
 
@@ -285,6 +283,13 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 
 New names are placeholders; rename freely.
 
+- **Your Doctrine comments of 2026-11-05, built in batch DT1** (`docs/plans/doctrine-review-2026-11-05.md`, written into the rows above):
+  - **The Steppe Confederacy** has new text, and the border freeze rule is gone (*"revise: gain +50% production towards mounted units. +3 combat strength to mounted units when attacking wounded units."*). "Wounded" means a unit below its full health, and a town does not count.
+  - **The Soldiers' Share** has new text and keeps its name (*"replace: +1 movement and +3 combat strength for melee units."*).
+  - **Centurions** now costs 1 less upkeep (*"revise: 'and costs 1 less upkeep'"*). A unit's upkeep does not go below nought.
+  - **The Universal Monarchy** (*"revise: captured towns cost no authority. This should apply retroactively to previously captured cities"*, then *"newly founded towns cost double authority, this does not apply retroactively to cities you've already founded"*). A town founded on or after the turn you take the Doctrine doubles. The founding preview now shows the doubled price.
+  - **The Consular Roads** moved to Tier II (*"move to tier 2"*), and **The Strategoi** to Tier III (*"move to tier 3"*).
+  - **Weight of Numbers and Total Mobilisation** are cut (*"remove"*), and their data rows are retired. A save that holds one keeps it.
 - **Your review comments of 2026-10-23, built in batch R1 (2026-10-25)** (`docs/plans/review-revisions-2026-10-25.md`, written into the rows above):
   - **The King's Levy** moved to Tier I, and a drafted copy gives your capital a melee unit at once (*"revise: add "gain a melee unit in your capital". move to tier 1"*). The unit is the one the levy raises every fifteen turns, and it also costs no upkeep.
   - **The Drill Grounds** drills every 3 turns (*"revise: every 3 turns"*).
@@ -295,8 +300,8 @@ New names are placeholders; rename freely.
   - Tier 0 still has six Military cards after the moves: Blood Brothers, Blooded Spears, The Drill Grounds, The Scaling Ladders, The Spear Makers and The Hunting Grounds.
 - **Still open:**
   - **Combined Arms' second clause** (my proposal, since the old one repeated The Siege Train and The Engineer Corps): siege units beside one of your melee units cannot be attacked in melee. The infantry screens the guns. It is the same kind of rule as The Testudo's.
-  - **The endless host's new Doctrines** (my proposal): Weight of Numbers and The Laws of Lord Shang at Tier II. The reasoning is in `docs/plans/doctrines-governments-chairs.md`, section 2. You removed the third, The Servian Reforms at Tier I, on 2026-10-21.
-  - **The Plunder Economy and The Consular Roads** are unchanged since my notes of 2026-10-15: the first pays every city for every pillage, and the second's "pacified at once" does Pax Romana's job from Tier I.
+  - **The endless host's new Doctrines** (my proposal): The Laws of Lord Shang at Tier II. The reasoning is in `docs/plans/doctrines-governments-chairs.md`, section 2. You removed the other two: The Servian Reforms at Tier I on 2026-10-21, and Weight of Numbers on 2026-11-05.
+  - **The Plunder Economy and The Consular Roads** are unchanged since my notes of 2026-10-15, apart from The Consular Roads' move to Tier II: the first pays every city for every pillage, and the second's "pacified at once" does Pax Romana's job.
   - **The Art of War duplicate** (ruling 7): your "gaining a unit grants science equal to its strength" did the same job as The Art of War. It is reworked above as The Captured Arms (science from kills this game). Say if you would rather keep yours and change The Art of War instead.
   - **The Grain Tribute** had no rarity; it is set to common.
   - **The build plan's questions** (`docs/plans/dominion-themes-triage.md`, "Questions for the user"). Until you answer, the sheet shows the plan's readings:

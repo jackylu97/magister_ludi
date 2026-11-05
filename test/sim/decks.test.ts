@@ -46,6 +46,7 @@ import {
   HAND_POSITIONS,
   type HandPosition,
   adoptGovernmentAt,
+  doctrineBagFor,
   chairMisfitRefusal,
   currentBandOf,
   deckPoolOf,
@@ -160,8 +161,8 @@ function seated(seed = 11): Game {
 
 /**
  * Two Dominion seats (Taizong, Dominion and Magisterial; Modu, Dominion and
- * Devotion): the only deck with a Doctrine in the data so far (batch C3), so an
- * adoption here opens a Doctrine offer.
+ * Devotion). Dominion has Doctrines at every tier, so an adoption here opens a
+ * Doctrine offer.
  */
 function dominionSeats(seed = 11): Game {
   return createGame({
@@ -215,7 +216,7 @@ const SHELF_ROWS = ORDER_IDS.filter((id) => !DECK_ROWS.has(id));
  * the Dominion sheet by the user's edit, and Dominion batch D9 retired its row
  * (`docs/plans/dominion-themes-triage.md`, reading 7).
  */
-const RETIRED_DECK_DOCTRINES: readonly DoctrineId[] = ['theServianReforms'];
+const RETIRED_DECK_DOCTRINES: readonly DoctrineId[] = ['theServianReforms', 'weightOfNumbers', 'totalMobilisation'];
 
 describe('the schema, as landed', () => {
   it('gives every Order and Doctrine row a deck list and a band', () => {
@@ -1117,7 +1118,10 @@ describe('the schema, as landed', () => {
     // Tier I, The Prize Essay is retired and three Tier 0 cards are new, so a
     // Scientific or Expansionist seat's pools hold different cards and a v204
     // log's draws move.
-    expect(SCHEMA_VERSION).toBe(205);
+    // 206 since batch DT1 (Dominion's Doctrines): four rows change, two move
+    // tier and two are retired, so a Dominion seat's Doctrine pools hold
+    // different cards and a v205 log's draws move.
+    expect(SCHEMA_VERSION).toBe(206);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1817,14 +1821,15 @@ describe('with the shelf stocked', () => {
     expect(again.positions).toEqual(first.positions);
   });
 
-  it('opens a Doctrine offer on adoption from the seat’s own decks, and none where its decks have no Doctrine of the tier', () => {
+  it('opens a Doctrine offer on adoption from the seat’s own decks, and none when its bag is empty', () => {
     // Batch C3: the reward hands are gone, and an adoption brings the Doctrine
-    // offer instead. Only Dominion has a Doctrine in the data so far (The
-    // Steppe Confederacy, Tier I), so Ada (Expansionist and Commerce) is
-    // offered nothing at tier 4 and a Dominion seat is offered it.
+    // offer instead. A seat that already holds every Doctrine of its decks at
+    // this tier has nothing left to be offered.
     const g = seated();
     const ada = playerById(g.state, 0)!;
     const sc = ada.statecraft;
+    sc.doctrines.push(...doctrineBagFor(ada, 4));
+    expect(doctrineBagFor(ada, 4)).toEqual([]);
     sc.pendingGovernment = { tier: 4, options: governmentsAtTier(4) };
     expect(adoptGovernmentAt(g.state, ada, 0)?.doctrines).toBeNull();
     expect(sc.pendingDoctrine).toBeUndefined();
@@ -1833,15 +1838,13 @@ describe('with the shelf stocked', () => {
     const d = dominionSeats();
     const taizong = playerById(d.state, 0)!;
     taizong.statecraft.pendingGovernment = { tier: 4, options: governmentsAtTier(4) };
+    // The offer holds three of the seat's bag, each once.
+    const bag = doctrineBagFor(taizong, 4);
     const adopted = adoptGovernmentAt(d.state, taizong, 0)!;
-    // Since Dominion batch D9 Dominion has four Tier I Doctrines (D8's The
-    // Soldiers' Share joined the three of D4 and D7, and D9 retired The
-    // Servian Reforms), so the offer holds three of the four, each once.
     const offered = adopted.doctrines?.options ?? [];
     expect(offered).toHaveLength(3);
     expect(new Set(offered).size).toBe(3);
-    const tierOne = ['theConsularRoads', 'theMarianReforms', 'theSoldiersShare', 'theSteppeConfederacy'];
-    for (const id of offered) expect(tierOne, id).toContain(id);
+    for (const id of offered) expect(bag, id).toContain(id);
     expect(taizong.statecraft.pendingDoctrine?.options).toEqual(offered);
     // It blocks the turn until it is answered, as a draft does.
     expect(statecraftBlocker(taizong)).toBe('a Doctrine offer is waiting');

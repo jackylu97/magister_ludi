@@ -561,6 +561,17 @@ export type CityScope =
    */
   | { test: 'notCaptured' }
   /**
+   * **The town was founded on or after the turn this seat took this Doctrine**
+   * (batch DT1, The Universal Monarchy's "towns you found from now on").
+   *
+   * Compares `City.foundedTurn` with `PlayerStatecraft.doctrineTurns`, both
+   * absolute turns, asked of the town's owner through `doctrineTakenTurn`. The
+   * stamp sits on the town and not on the Doctrine, so a town founded earlier
+   * never starts to count. A town that changes hands keeps its turn, which is
+   * why The Universal Monarchy's row pairs this with `notCaptured`.
+   */
+  | { test: 'foundedSince'; doctrine: DoctrineId }
+  /**
    * The town is a **puppet** — taken and never taken in (`City.puppet`) — The
    * Heavenly Khagan's vassals and The Tribute of the Han's.
    *
@@ -1516,6 +1527,13 @@ export type CombatCondition =
   | { test: 'vsCity' }
   /** The target is below half its maximum hit points. */
   | { test: 'targetBelowHalf' }
+  /**
+   * **The target is a unit below its full health** (batch DT1, The Steppe
+   * Confederacy). A town is not a wounded unit, so this is false against walls,
+   * whatever they have lost. It reads the defender, so a row that means "the
+   * unit I attack" says `side: 'attack'`.
+   */
+  | { test: 'targetWounded' }
   /**
    * The contested tile belongs to this player's **capital** — the Walls of
    * Uruk's line, and `ownTerritory` narrowed to one town's borders.
@@ -4170,14 +4188,14 @@ export type MeterRuleId =
    * to hold says this and the town's own line moves. The two halves of the meter
    * go on meaning what they meant.
    *
-   * **The settler's preview does not carry it**, and that is a stated cut: a
-   * town nobody has founded is no `City`, so there is nothing to ask a scope of
-   * — Marcher Lords' border fort is scoped on ground the site has and The
-   * Learned Chancery's on a building it has not raised, and a preview that
-   * guessed one would be promising a figure for the other. So
-   * `prospectAuthorityCost` prices the ladder alone and the town's real line
-   * moves the turn it is founded, which is the honest direction to be wrong in:
-   * the writ a settler is quoted is never cheaper than the writ it costs.
+   * **The settler's preview carries only the rows a town not yet founded can
+   * answer** (batch DT1, `cardProspectCityCost`): a row with no scope, and a row
+   * whose scope is `notCaptured`, `foundedSince` or `notCapital`, alone or inside
+   * an `all`. So a preview under The Universal Monarchy matches the meter. Any
+   * other scope needs a town: Marcher Lords' asks about ground the site may have
+   * and The Learned Chancery's about a building it has not raised. Those rows
+   * stay out of the preview, and the town's real line moves the turn it is
+   * founded.
    *
    * **A row may also set or scale the price** (Dominion batch D4). A `value`
    * sets the price of the towns the scope admits, and the lowest value wins;
@@ -9628,8 +9646,10 @@ export interface CardUpkeepSurchargeEffect {
   /** Where the piece must be standing. Absent means anywhere. */
   where?: 'ownTerritory' | 'foreignTerritory';
   /**
-   * **Only pieces holding this rank or a higher one** (Dominion batch D8,
-   * Centurions' "each Elite unit ... costs 2 more upkeep").
+   * **Only pieces holding this rank or a higher one** (Dominion batch D8, for
+   * Centurions' old "costs 2 more upkeep"). No row uses it since batch DT1, when
+   * Centurions moved to a rebate. The field stays in the engine, and
+   * `dominionDoctrines.test.ts` tests it on a lent row.
    */
   rank?: RankId;
 }
@@ -9674,6 +9694,12 @@ export interface CardUpkeepRebateEffect {
    * Meaningless beside `free`.
    */
   perRank?: true;
+  /**
+   * **Only pieces holding this rank or a higher one** (batch DT1, Centurions'
+   * "each Elite unit ... costs 1 less upkeep"). The surcharge's field of the
+   * same name, read the same way, through `holdsRank`.
+   */
+  rank?: RankId;
 }
 
 /**

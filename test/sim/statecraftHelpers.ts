@@ -17,6 +17,7 @@ import { isPassable } from '../../src/sim/pathfind';
 import { type GameConfig, type GameState, bumpRevision } from '../../src/sim/state';
 import {
   type Band,
+  type CardEffect,
   type CharterSpec,
   type DeckId,
   type DoctrineId,
@@ -352,6 +353,25 @@ export function stockDoctrines(
   }
   return () => {
     for (const step of undo.reverse()) step();
+    forgetBuiltGames();
+  };
+}
+
+/**
+ * **Lends a Doctrine row other effects, until the returned function is called.**
+ *
+ * Batch DT1 rewrote Doctrines whose old shapes no dealt row carries now. The
+ * shapes stay in the engine (the triage's reading 9), so their tests stay too, on
+ * a row that borrows the old effects. Call the restore after each test, or the
+ * next test reads the borrowed row.
+ */
+export function lendDoctrineEffects(id: DoctrineId, effects: readonly CardEffect[]): () => void {
+  forgetBuiltGames();
+  const def = doctrineDef(id);
+  const before = def.effects;
+  def.effects = [...effects];
+  return () => {
+    def.effects = before;
     forgetBuiltGames();
   };
 }
