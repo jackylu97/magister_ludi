@@ -31,7 +31,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { nextBotDecision, valueContext, withDebtCharge } from '../../src/ai/bot';
+import { botSitting, nextBotDecision, valueContext, withDebtCharge } from '../../src/ai/bot';
 import { type ValueTerm, appraise, foldTerms } from '../../src/ai/decision';
 import { counterTerms } from '../../src/ai/diplomacy';
 import {
@@ -57,7 +57,8 @@ import { foundCityAt, ownedTiles, refreshCityDerived, resourceCopies } from '../
 import { applyCommand } from '../../src/sim/commands';
 import { openDeal } from '../../src/sim/deals';
 import { type GameMap, type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
-import { explainRouteYield, foldRouteYield } from '../../src/sim/routeYields';
+import { explainRouteSenderYield, explainRouteYield, foldRouteYield } from '../../src/sim/routeYields';
+import { startRouteAt } from '../../src/sim/trade';
 import { RULES } from '../../src/sim/rulesData';
 import {
   type City,
@@ -227,7 +228,15 @@ function bound(ctx: ValueContext, from: City, to: City, pay: number): ValueConte
 describe('the sheet', () => {
   it('carries the score.commerce group and the treasury forecast', () => {
     expect(Object.keys(COMMERCE).sort()).toEqual(
-      ['boughtUnitShare', 'countForecast', 'postRangeWaiver', 'postWorth', 'postsOverHorizon'].sort(),
+      [
+        'boughtUnitShare',
+        'countForecast',
+        'foreignRouteOption',
+        'postRangeWaiver',
+        'postWorth',
+        'postsOverHorizon',
+        'shutTownBuys',
+      ].sort(),
     );
     expect(Object.keys(COMMERCE.countForecast).sort()).toEqual(
       ['copiesLent', 'dealPartners', 'postCitizens', 'worldTradeRoutes'].sort(),
@@ -756,5 +765,142 @@ describe('the deal appraisal', () => {
     expect(allTerms(again.appraisal.terms).some((term) => term.label.startsWith('a new deal partner'))).toBe(
       false,
     );
+  });
+});
+
+describe('the Doctrines that refuse (batch DT7)', () => {
+  const NO_FOREIGN: CardEffect[] = [{ kind: 'rule', rule: 'noForeignRoutes' }];
+  const GOLD_TOWNS = { test: 'buildingsOfCategory', category: 'gold', atLeast: 1 } as const;
+  const SHUT: CardEffect[] = [{ kind: 'rule', rule: 'buysOnlyInScope', scope: GOLD_TOWNS }];
+
+  /** Gives a seat a Doctrine, as a chosen offer does. */
+  function holdDoctrine(state: GameState, id: string): void {
+    seat(state, 0).statecraft.doctrines.push(id as never);
+    bumpRevision(state);
+  }
+
+  /** Asks seat 0 for decisions until it is done. A refused command is a bug in the bot. */
+  function sit(state: GameState, steps = 80): { type: string; cityId?: number }[] {
+    const sitting = botSitting(0);
+    const sent: { type: string; cityId?: number }[] = [];
+    for (let step = 0; step < steps; step++) {
+      const decision = nextBotDecision(state, 0, sitting);
+      if (decision === null) break;
+      const result = applyCommand(state, decision.command);
+      expect(result.ok, `${decision.kind}: ${result.ok ? '' : result.error}`).toBe(true);
+      sent.push(decision.command as { type: string; cityId?: number });
+    }
+    return sent;
+  }
+
+  it('prices the ban at a share of the best route abroad, and at nothing when that route is at home', () => {
+    const { state, player, towns } = board([6, 6]);
+    const theirs = rivalTown(state, 8);
+    const pair = (to: City) => ({
+      from: towns[0]!,
+      to,
+      mode: 'land' as const,
+      pay: appraise([{ label: 'the pair', value: 10 }]),
+    });
+    const base = valueContext(state, player);
+    const abroad: ValueContext = { ...base, routes: { ...base.routes, open: pair(theirs), next: pair(theirs) } };
+    expect(scoreEffects(NO_FOREIGN, abroad)).toBe(-COMMERCE.foreignRouteOption * 10);
+    const home: ValueContext = { ...base, routes: { ...base.routes, open: pair(towns[1]!), next: pair(towns[1]!) } };
+    expect(scoreEffects(NO_FOREIGN, home)).toBe(0);
+  });
+
+  it('prices the ban at what a route abroad pays its sender', () => {
+    const { state, player, towns } = board([6]);
+    const theirs = rivalTown(state, 8);
+    towns[0]!.buildings.push('market');
+    const cart = createUnit(state, 0, 'trader', towns[0]!.col, towns[0]!.row);
+    startRouteAt(state, cart, towns[0]!, theirs, 'land');
+    bumpRevision(state);
+    const base = valueContext(state, player);
+    const quiet: ValueContext = { ...base, routes: { ...base.routes, open: null, next: null } };
+    const pays = valueOfYields(foldRouteYield(explainRouteSenderYield(state, cart)), quiet);
+    expect(pays).toBeGreaterThan(0);
+    expect(scoreEffects(NO_FOREIGN, quiet)).toBe(0 - pays);
+  });
+
+  it('prices The Flying Money’s rule by the share of towns it shuts', () => {
+    const { state, player, towns } = board([6, 6, 6, 6]);
+    towns[0]!.buildings.push('market');
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    const spend = Math.max(0, foldEmpireRates(state, 0).goldPerTurn ?? 0);
+    expect(spend).toBeGreaterThan(0);
+    expect(scoreEffects(SHUT, ctx)).toBeCloseTo(-0.75 * COMMERCE.shutTownBuys * spend * voiceWeight(ctx, 'gold'), 8);
+    for (const town of towns.slice(1)) town.buildings.push('market');
+    bumpRevision(state);
+    expect(scoreEffects(SHUT, valueContext(state, player))).toBe(0);
+  });
+
+  it('finds a home route under the ban when routes abroad would fill every gate ask', () => {
+    // Three of seat 0's towns and enough of seat 1's that the foreign pairs alone
+    // pass `search.routeGateProbes`, each far richer than a road at home.
+    const state = bench();
+    const towns = [3, 8, 13].map((col) => {
+      const town = foundCityAt(state, 0, at(state.map, col, 2));
+      town.population = 2;
+      return town;
+    });
+    towns[0]!.buildings.push('market');
+    const foreign: City[] = [];
+    for (let index = 0; index < 10; index++) {
+      const town = foundCityAt(state, 1, at(state.map, 2 + 3 * index, 8));
+      town.population = 30;
+      foreign.push(town);
+    }
+    state.turn = 40;
+    seat(state, 0).metSeats.push(1);
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    expect(3 * foreign.length).toBeGreaterThan(aiJson.search.routeGateProbes);
+    holdDoctrine(state, 'theSeaBan');
+    const open = valueContext(state, seat(state, 0)).routes.open;
+    expect(open).not.toBeNull();
+    expect(open!.to.ownerId).toBe(0);
+  });
+
+  it('sends no refused command under The Flying Money, and buys only where it may', () => {
+    const { state, towns } = board([6, 6]);
+    towns[0]!.buildings.push('market');
+    for (const town of towns) {
+      town.queue = [{ kind: 'unit', id: 'warrior' }];
+    }
+    seat(state, 0).gold = 5000;
+    holdDoctrine(state, 'theFlyingMoney');
+    const sent = sit(state);
+    const buys = sent.filter((command) => command.type === 'purchaseItem');
+    expect(buys.length).toBeGreaterThan(0);
+    for (const buy of buys) expect(buy.cityId).toBe(towns[0]!.id);
+  });
+
+  it('leaves an idle caravan standing under The Sea Ban when its only partner is abroad', () => {
+    const { state, towns } = board([6]);
+    rivalTown(state, 12);
+    towns[0]!.buildings.push('market');
+    seat(state, 0).metSeats.push(1);
+    const cart = createUnit(state, 0, 'trader', towns[0]!.col, towns[0]!.row);
+    bumpRevision(state);
+    holdDoctrine(state, 'theSeaBan');
+    sit(state);
+    expect(cart.trade).toBeUndefined();
+  });
+
+  it('sends no refused command under The Sea Ban, with routes on offer abroad', () => {
+    const { state, towns } = board([6, 6]);
+    const theirs = rivalTown(state, 12);
+    towns[0]!.buildings.push('market', 'market');
+    seat(state, 0).metSeats.push(1);
+    seat(state, 0).gold = 5000;
+    bumpRevision(state);
+    holdDoctrine(state, 'theSeaBan');
+    const sent = sit(state);
+    for (const command of sent) {
+      if (command.type !== 'buyRoute' && command.type !== 'startRoute') continue;
+      expect((command as unknown as { toCityId: number }).toCityId).not.toBe(theirs.id);
+    }
   });
 });

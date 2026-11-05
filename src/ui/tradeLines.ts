@@ -38,6 +38,7 @@ import {
   foldRouteYield,
   routeCities,
   routeIsInternational,
+  routeRenewalBan,
   routeSlots,
   usedRouteSlots,
 } from '../sim/trade';
@@ -253,7 +254,8 @@ export function routeReading(state: GameState, unit: Unit): RouteReading | null 
     figures,
     lines,
     turnsLeft,
-    autoResend: route.autoResend,
+    // A flag left on from before a ban renews nothing (batch DT7).
+    autoResend: route.autoResend && routeRenewalBan(state, unit) === null,
     sea,
     foreign,
     line: `Caravan · ${fromName} ⇄ ${toName}${way} · ${figures} · ${turnsLeft} turns left`,

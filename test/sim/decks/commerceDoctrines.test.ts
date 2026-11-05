@@ -4,8 +4,10 @@
  * the sheet. This file checks that each row pays what its text says, in a real
  * fold, and that each drawback bites.
  *
- * Batch DT6 adds The Laurion Leases and The Muda. Later batches add the deck's
- * other five Doctrines to this file.
+ * Batch DT6 adds The Laurion Leases and The Muda. Batch DT7 adds The Forbidden
+ * Silks, The Flying Money and The Sea Ban, whose refusals are checked at the gates
+ * and through the reducer. Later batches add the deck's other two Doctrines to this
+ * file.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -27,12 +29,15 @@ import {
   tilePurchasePrice,
 } from '../../../src/sim/cities';
 import { attackTargetAt } from '../../../src/sim/combat';
-import { applyCommand } from '../../../src/sim/commands';
-import { raiseImprovement } from '../../../src/sim/map';
+import { type Command, applyCommand } from '../../../src/sim/commands';
+import { luxuryLendingBan, proposePeaceError } from '../../../src/sim/diplomacy';
+import { pruneDeals } from '../../../src/sim/deals';
+import { raiseImprovement, tileIndex } from '../../../src/sim/map';
 import { explainAuthority, explainFoundingCost, explainHappiness } from '../../../src/sim/meters';
 import {
   explainPurchaseCost,
   explainRoutePrice,
+  purchaseError,
   routePrice,
 } from '../../../src/sim/purchase';
 import { readRoutes } from '../../../src/sim/readings';
@@ -63,7 +68,14 @@ import {
   poolDoctrines,
 } from '../../../src/sim/statecraftData';
 import { resourceDef } from '../../../src/sim/resourceData';
-import { startRouteAt } from '../../../src/sim/trade';
+import {
+  hasSendablePair,
+  routeModesAvailable,
+  routeRenewalBan,
+  routeStartable,
+  startRouteAt,
+} from '../../../src/sim/trade';
+import { runEndOfTurn } from '../../../src/sim/turn';
 import { openWar } from '../../../src/sim/wars';
 import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
 import { explainCity, foldCity } from '../../../src/sim/yields/town';
@@ -71,15 +83,18 @@ import { at, bareState } from '../improvementHelpers';
 import { createGame } from '../newGameHelpers';
 import { lendDoctrineEffects } from '../statecraftHelpers';
 
-/** The seven rows of batch DT3 and the two of batch DT6, each with the band its table gives it. */
+/** The rows of batches DT3, DT6 and DT7, each with the band its table gives it. */
 const ROWS: readonly (readonly [string, number])[] = [
   ['theApoikia', 1],
   ['theLaurionLeases', 1],
   ['theDelianLeague', 1],
   ['theSogdianColonies', 2],
+  ['theForbiddenSilks', 2],
+  ['theFlyingMoney', 2],
   ['theYearAndADay', 3],
   ['theMuda', 3],
   ['theTurnpikeTrusts', 3],
+  ['theSeaBan', 4],
   ['thePeaceOfLodi', 4],
   ['theMonteDiPieta', 4],
 ];
@@ -784,5 +799,452 @@ describe('The Muda (batch DT6)', () => {
     bumpRevision(state);
     expect(attackTargetAt(state, theirs.col, theirs.row, wildSeat(state))?.unit ?? null).toBeNull();
     expect(attackTargetAt(state, mine.col, mine.row, wildSeat(state))?.unit?.id).toBe(mine.id);
+  });
+});
+
+describe('The Forbidden Silks (batch DT7)', () => {
+  /** Seat 0 holds two silks, seat 1 holds two wines, and the two are at peace. */
+  function table(): { state: GameState; mine: City; theirs: City } {
+    const state = bareState(24, 9);
+    state.wars = [];
+    const mine = town(state, 3, 4);
+    const theirs = town(state, 12, 4, 1, 1);
+    const seam = (city: City, col: number, row: number, id: string): void => {
+      const tile = at(state, col, row);
+      tile.resource = id as never;
+      tile.improvement = 'plantation' as never;
+      state.tileOwner[tileIndex(state.map, col, row)] = city.id;
+    };
+    seam(mine, 2, 3, 'silk');
+    seam(mine, 4, 5, 'silk');
+    seam(theirs, 11, 3, 'wine');
+    seam(theirs, 13, 5, 'wine');
+    bumpRevision(state);
+    return { state, mine, theirs };
+  }
+
+  const lends = (playerId: number, targetId: number, id: string): Command => ({
+    type: 'proposeDeal',
+    playerId,
+    targetId,
+    give: { luxuries: [id as never] },
+    take: {},
+  });
+
+  it('doubles what each luxury pays in happiness', () => {
+    const { state } = table();
+    const silk = (): number =>
+      explainHappiness(state, 0)
+        .filter((line) => line.source.includes('Silk'))
+        .reduce((sum, line) => sum + line.value, 0);
+    const before = silk();
+    expect(before).toBeGreaterThan(0);
+    hold(state, 'theForbiddenSilks');
+    expect(silk()).toBe(before * 2);
+  });
+
+  it('refuses a new loan in one sentence, and leaves the state byte-identical', () => {
+    const { state } = table();
+    hold(state, 'theForbiddenSilks');
+    const sentence = luxuryLendingBan(state, 0)!;
+    expect(sentence).toContain('The Forbidden Silks');
+    const before = JSON.stringify(state);
+    const result = applyCommand(state, lends(0, 1, 'silk'));
+    expect(result.ok).toBe(false);
+    expect(result.ok ? '' : result.error).toBe(sentence);
+    expect(JSON.stringify(state)).toBe(before);
+  });
+
+  it('binds the seat that gives, so another empire cannot ask it for a luxury', () => {
+    const { state } = table();
+    hold(state, 'theForbiddenSilks');
+    const asked: Command = {
+      type: 'proposeDeal',
+      playerId: 1,
+      targetId: 0,
+      give: {},
+      take: { luxuries: ['silk' as never] },
+    };
+    const before = JSON.stringify(state);
+    const result = applyCommand(state, asked);
+    expect(result.ok ? '' : result.error).toBe(luxuryLendingBan(state, 0));
+    expect(JSON.stringify(state)).toBe(before);
+  });
+
+  it('lets the seat receive a luxury, and lets it pay in coin', () => {
+    const { state } = table();
+    hold(state, 'theForbiddenSilks');
+    const paid: Command = {
+      type: 'proposeDeal',
+      playerId: 0,
+      targetId: 1,
+      give: { gold: 0 },
+      take: { luxuries: ['wine' as never] },
+    };
+    expect(applyCommand(state, paid).ok).toBe(true);
+    expect(luxuryLendingBan(state, 1)).toBeNull();
+  });
+
+  it('refuses a luxury in a peace paper too', () => {
+    const { state } = table();
+    openWar(state, 0, 1);
+    hold(state, 'theForbiddenSilks');
+    expect(proposePeaceError(state, 0, 1, { give: { luxuries: ['silk' as never] }, take: {} })).toBe(
+      luxuryLendingBan(state, 0),
+    );
+  });
+
+  it('refuses at the signing a paper that was written before the Doctrine', () => {
+    const { state } = table();
+    const asked = applyCommand(state, {
+      type: 'proposeDeal',
+      playerId: 1,
+      targetId: 0,
+      give: {},
+      take: { luxuries: ['silk' as never] },
+    });
+    expect(asked.ok).toBe(true);
+    const dealId = state.dealProposals[0]!.id;
+    hold(state, 'theForbiddenSilks');
+    const before = JSON.stringify(state);
+    const result = applyCommand(state, { type: 'acceptDeal', playerId: 0, dealId });
+    expect(result.ok ? '' : result.error).toBe(luxuryLendingBan(state, 0));
+    expect(JSON.stringify(state)).toBe(before);
+  });
+
+  it('lets a luxury lent before the Doctrine run out, and then it may not be lent again', () => {
+    const { state } = table();
+    expect(applyCommand(state, lends(0, 1, 'silk')).ok).toBe(true);
+    const dealId = state.dealProposals[0]!.id;
+    expect(applyCommand(state, { type: 'acceptDeal', playerId: 1, dealId }).ok).toBe(true);
+    const deal = state.deals[0]!;
+    hold(state, 'theForbiddenSilks');
+    // The ban asks nothing of a deal already signed.
+    pruneDeals(state);
+    expect(state.deals).toHaveLength(1);
+    state.turn = deal.untilTurn;
+    pruneDeals(state);
+    expect(state.deals).toHaveLength(0);
+    bumpRevision(state);
+    expect(applyCommand(state, lends(0, 1, 'silk')).ok).toBe(false);
+  });
+
+  it('prices the loans the seat loses, and nothing for a seat with none to lend', () => {
+    const { state } = table();
+    const player = seat(state);
+    const rule: CardEffect[] = [{ kind: 'rule', rule: 'noLuxuryLending' }];
+    expect(scoreEffects(rule, valueContext(state, player))).toBeLessThan(0);
+    const empty = bareState(12, 9);
+    expect(scoreEffects(rule, valueContext(empty, seat(empty)))).toBe(0);
+  });
+});
+
+describe('The Flying Money (batch DT7)', () => {
+  const WARRIOR = { kind: 'unit', id: 'warrior' } as const;
+  const LIBRARY = { kind: 'building', id: 'library' } as const;
+
+  /** A town with a Market, a town with none, and a full treasury. */
+  function board(): { state: GameState; rich: City; plain: City } {
+    const state = bareState(30, 10);
+    const rich = town(state, 5, 5, 6);
+    const plain = town(state, 20, 5, 6);
+    addBuilding(state, rich, 'market');
+    seat(state).gold = 5000;
+    bumpRevision(state);
+    return { state, rich, plain };
+  }
+
+  const buy = (cityId: number, item: unknown, currency = 'gold'): Command =>
+    ({ type: 'purchaseItem', playerId: 0, cityId, item, currency }) as Command;
+
+  it('takes 20% off a gold price in a town with a gold building, as a labelled line', () => {
+    const { state, rich } = board();
+    const unit = goldPrice(state, rich, 'warrior').total;
+    const house = explainPurchaseCost(state, 0, rich.id, LIBRARY, 'gold')!.total;
+    hold(state, 'theFlyingMoney');
+    const price = goldPrice(state, rich, 'warrior');
+    expect(price.total).toBe(Math.floor((unit * 80) / 100));
+    expect(price.lines.some((line) => line.source.includes('The Flying Money'))).toBe(true);
+    expect(explainPurchaseCost(state, 0, rich.id, LIBRARY, 'gold')!.total).toBe(Math.floor((house * 80) / 100));
+  });
+
+  it('sells in a town with a gold building', () => {
+    const { state, rich } = board();
+    hold(state, 'theFlyingMoney');
+    expect(purchaseError(state, 0, rich.id, WARRIOR, 'gold')).toBeNull();
+    expect(applyCommand(state, buy(rich.id, WARRIOR)).ok).toBe(true);
+  });
+
+  it('refuses a gold unit and a gold building in any other town, in one sentence, byte-identical', () => {
+    const { state, plain } = board();
+    hold(state, 'theFlyingMoney');
+    for (const item of [WARRIOR, LIBRARY]) {
+      const sentence = purchaseError(state, 0, plain.id, item, 'gold')!;
+      expect(sentence).toContain('The Flying Money');
+      expect(sentence).toContain('a city with a gold building');
+      expect(sentence).not.toContain('[[');
+      const before = JSON.stringify(state);
+      const result = applyCommand(state, buy(plain.id, item));
+      expect(result.ok ? '' : result.error).toBe(sentence);
+      expect(JSON.stringify(state)).toBe(before);
+    }
+  });
+
+  it('opens a shut town the moment it holds a gold building', () => {
+    const { state, plain } = board();
+    hold(state, 'theFlyingMoney');
+    expect(purchaseError(state, 0, plain.id, WARRIOR, 'gold')).not.toBeNull();
+    addBuilding(state, plain, 'market');
+    bumpRevision(state);
+    expect(purchaseError(state, 0, plain.id, WARRIOR, 'gold')).toBeNull();
+  });
+
+  it('leaves a shut town its caravans', () => {
+    const { state, rich, plain } = board();
+    state.wars = [];
+    hold(state, 'theFlyingMoney');
+    const result = applyCommand(state, {
+      type: 'buyRoute',
+      playerId: 0,
+      fromCityId: plain.id,
+      toCityId: rich.id,
+      mode: 'land',
+    });
+    expect(result.ok, result.ok ? '' : result.error).toBe(true);
+  });
+
+  it('leaves a shut town its hexes', () => {
+    const { state, plain } = board();
+    hold(state, 'theFlyingMoney');
+    const hex = at(state, plain.col + 2, plain.row);
+    const result = applyCommand(state, {
+      type: 'purchaseTile',
+      playerId: 0,
+      cityId: plain.id,
+      col: hex.col,
+      row: hex.row,
+    });
+    expect(result.ok, result.ok ? '' : result.error).toBe(true);
+  });
+
+  it('leaves a shut town its faith, at the full faith price', () => {
+    const { state, plain } = board();
+    seat(state).faithPool = 100_000;
+    // A Cathedral opens faith for what the treasury sells.
+    addBuilding(state, plain, 'cathedral');
+    bumpRevision(state);
+    const before = explainPurchaseCost(state, 0, plain.id, WARRIOR, 'faith')!.total;
+    hold(state, 'theFlyingMoney');
+    expect(purchaseError(state, 0, plain.id, WARRIOR, 'faith')).toBeNull();
+    expect(explainPurchaseCost(state, 0, plain.id, WARRIOR, 'faith')!.total).toBe(before);
+    expect(applyCommand(state, buy(plain.id, WARRIOR, 'faith')).ok).toBe(true);
+  });
+
+  it('keeps the sentence of a row that is not for sale anywhere', () => {
+    const { state, plain } = board();
+    hold(state, 'theFlyingMoney');
+    expect(purchaseError(state, 0, plain.id, { kind: 'unit', id: 'trader' }, 'gold')).toContain('caravan');
+  });
+
+  it('prices the rule by the share of towns it shuts, and at nothing when none is shut', () => {
+    const { state, plain } = board();
+    const player = seat(state);
+    const rule = doctrineDef('theFlyingMoney' as DoctrineId).effects.filter((effect) => effect.kind === 'rule');
+    const half = scoreEffects(rule, valueContext(state, player));
+    expect(half).toBeLessThanOrEqual(0);
+    addBuilding(state, plain, 'market');
+    bumpRevision(state);
+    expect(scoreEffects(rule, valueContext(state, player))).toBe(0);
+  });
+});
+
+describe('The Sea Ban (batch DT7)', () => {
+  /** Two towns of seat 0 and a town of seat 1, at peace and met, with slots to spare. */
+  function board(): { state: GameState; home: City; other: City; abroad: City } {
+    const state = bareState(30, 9);
+    state.wars = [];
+    const home = town(state, 3, 4, 10);
+    const other = town(state, 10, 4, 10);
+    const abroad = town(state, 17, 4, 10, 1);
+    home.buildings.push('market', 'market', 'library', 'granary');
+    seat(state).metSeats.push(1);
+    seat(state).gold = 5000;
+    bumpRevision(state);
+    return { state, home, other, abroad };
+  }
+
+  /** A caravan of seat 0 already on a route, written as a bench writes one. */
+  function sent(state: GameState, from: City, to: City): Unit {
+    const cart = createUnit(state, 0, 'trader', from.col, from.row);
+    startRouteAt(state, cart, from, to, 'land');
+    bumpRevision(state);
+    return cart;
+  }
+
+  it('pays a domestic route twice as much in each voice, and does not touch a route abroad', () => {
+    const { state, home, other, abroad } = board();
+    const domestic = sent(state, home, other);
+    const foreign = sent(state, home, abroad);
+    const before = foldRouteYield(explainRouteYield(state, domestic));
+    const beforeAbroad = foldRouteYield(explainRouteSenderYield(state, foreign));
+    expect(before.food + before.production + before.gold).toBeGreaterThan(0);
+    hold(state, 'theSeaBan');
+    const after = foldRouteYield(explainRouteYield(state, domestic));
+    expect(after.food).toBe(before.food * 2);
+    expect(after.production).toBe(before.production * 2);
+    expect(after.gold).toBe(before.gold * 2);
+    expect(foldRouteYield(explainRouteSenderYield(state, foreign))).toEqual(beforeAbroad);
+  });
+
+  it('refuses a new route abroad at both doors, in one sentence, byte-identical', () => {
+    const { state, home, abroad } = board();
+    expect(routeStartable(state, 0, home.id, abroad.id)).toBeNull();
+    hold(state, 'theSeaBan');
+    const sentence = routeStartable(state, 0, home.id, abroad.id)!;
+    expect(sentence).toContain('The Sea Ban');
+    expect(routeModesAvailable(state, 0, home.id, abroad.id)).toEqual([]);
+
+    const cart = createUnit(state, 0, 'trader', home.col, home.row);
+    bumpRevision(state);
+    const before = JSON.stringify(state);
+    const started = applyCommand(state, {
+      type: 'startRoute',
+      playerId: 0,
+      unitId: cart.id,
+      fromCityId: home.id,
+      toCityId: abroad.id,
+    });
+    expect(started.ok ? '' : started.error).toBe(sentence);
+    const hired = applyCommand(state, { type: 'buyRoute', playerId: 0, fromCityId: home.id, toCityId: abroad.id });
+    expect(hired.ok ? '' : hired.error).toBe(sentence);
+    expect(JSON.stringify(state)).toBe(before);
+  });
+
+  it('asks the ban before war and before meeting', () => {
+    const { state, home, abroad } = board();
+    hold(state, 'theSeaBan');
+    const sentence = routeStartable(state, 0, home.id, abroad.id);
+    seat(state).metSeats.length = 0;
+    bumpRevision(state);
+    expect(routeStartable(state, 0, home.id, abroad.id)).toBe(sentence);
+    openWar(state, 0, 1);
+    bumpRevision(state);
+    expect(routeStartable(state, 0, home.id, abroad.id)).toBe(sentence);
+  });
+
+  it('does not prompt End Turn for a partner the seat may never send to', () => {
+    const { state, home, other } = board();
+    // Every home pair runs, so only the partner abroad is left.
+    sent(state, home, other);
+    sent(state, other, home);
+    expect(hasSendablePair(state, 0)).toBe(true);
+    hold(state, 'theSeaBan');
+    expect(hasSendablePair(state, 0)).toBe(false);
+  });
+
+  it('leaves a route between two of the seat’s own towns open, and binds no other seat', () => {
+    const { state, home, other, abroad } = board();
+    hold(state, 'theSeaBan');
+    expect(routeStartable(state, 0, home.id, other.id)).toBeNull();
+    abroad.buildings.push('market');
+    seat(state, 1).metSeats.push(0);
+    bumpRevision(state);
+    expect(routeStartable(state, 1, abroad.id, home.id)).toBeNull();
+  });
+
+  /** One resolution, and the clock moves on, as `endTurn` moves it. */
+  function resolve(state: GameState): void {
+    runEndOfTurn(state);
+    state.turn += 1;
+    bumpRevision(state);
+  }
+
+  /** Ends turns until the caravan's route has ended, and says how many that took. */
+  function turnsUntilRouteEnds(state: GameState, cart: Unit, limit: number): number {
+    for (let turn = 1; turn <= limit; turn++) {
+      resolve(state);
+      if (cart.trade === undefined) return turn;
+    }
+    return Infinity;
+  }
+
+  it('lets a route abroad that was running before the ban run out its term', () => {
+    const { state, home, abroad } = board();
+    const cart = sent(state, home, abroad);
+    hold(state, 'theSeaBan');
+    const until = cart.trade!.expiresTurn;
+    // Inside its term the route still runs and still pays.
+    resolve(state);
+    expect(cart.trade).toBeDefined();
+    expect(cart.trade!.expiresTurn).toBe(until);
+    expect(foldRouteYield(explainRouteSenderYield(state, cart)).gold).toBeGreaterThan(0);
+    cart.trade!.expiresTurn = state.turn + 1;
+    expect(turnsUntilRouteEnds(state, cart, 60)).toBeLessThan(60);
+  });
+
+  it('does not renew a route abroad whose flag was on before the ban', () => {
+    const { state, home, abroad } = board();
+    const cart = sent(state, home, abroad);
+    cart.trade!.autoResend = true;
+    cart.trade!.expiresTurn = state.turn + 1;
+    bumpRevision(state);
+    hold(state, 'theSeaBan');
+    expect(routeRenewalBan(state, cart)).toContain('The Sea Ban');
+    expect(turnsUntilRouteEnds(state, cart, 60)).toBeLessThan(60);
+  });
+
+  it('renews the same route with no ban, so the ban is what ended it', () => {
+    const { state, home, abroad } = board();
+    const cart = sent(state, home, abroad);
+    cart.trade!.autoResend = true;
+    cart.trade!.expiresTurn = state.turn + 1;
+    bumpRevision(state);
+    expect(routeRenewalBan(state, cart)).toBeNull();
+    expect(turnsUntilRouteEnds(state, cart, 60)).toBe(Infinity);
+  });
+
+  it('refuses to turn renewal on for a route abroad, byte-identical, and lets it be turned off', () => {
+    const { state, home, abroad } = board();
+    const cart = sent(state, home, abroad);
+    hold(state, 'theSeaBan');
+    const before = JSON.stringify(state);
+    const on = applyCommand(state, { type: 'setAutoResend', playerId: 0, unitId: cart.id, on: true });
+    expect(on.ok ? '' : on.error).toBe(routeRenewalBan(state, cart));
+    expect(JSON.stringify(state)).toBe(before);
+
+    // A flag left on from before the ban says the same, and may be turned off.
+    cart.trade!.autoResend = true;
+    const again = applyCommand(state, { type: 'setAutoResend', playerId: 0, unitId: cart.id, on: true });
+    expect(again.ok ? '' : again.error).toBe(routeRenewalBan(state, cart));
+    expect(applyCommand(state, { type: 'setAutoResend', playerId: 0, unitId: cart.id, on: false }).ok).toBe(true);
+  });
+
+  it('lets a home route renew as before', () => {
+    const { state, home, other } = board();
+    const cart = sent(state, home, other);
+    hold(state, 'theSeaBan');
+    expect(routeRenewalBan(state, cart)).toBeNull();
+    expect(applyCommand(state, { type: 'setAutoResend', playerId: 0, unitId: cart.id, on: true }).ok).toBe(true);
+  });
+
+  it('lets a route renew once its far end has come into the seat’s own hands', () => {
+    const { state, home, abroad } = board();
+    const cart = sent(state, home, abroad);
+    hold(state, 'theSeaBan');
+    expect(routeRenewalBan(state, cart)).not.toBeNull();
+    abroad.ownerId = 0;
+    bumpRevision(state);
+    expect(routeRenewalBan(state, cart)).toBeNull();
+  });
+
+  it('prices the rule at what the routes abroad pay, and at nothing when none runs and none is open', () => {
+    const { state, home, abroad } = board();
+    const player = seat(state);
+    const rule: CardEffect[] = [{ kind: 'rule', rule: 'noForeignRoutes' }];
+    const quiet = bareState(12, 9);
+    town(quiet, 3, 4);
+    expect(scoreEffects(rule, valueContext(quiet, seat(quiet)))).toBe(0);
+    sent(state, home, abroad);
+    expect(scoreEffects(rule, valueContext(state, player))).toBeLessThan(0);
   });
 });

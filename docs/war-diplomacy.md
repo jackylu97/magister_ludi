@@ -24,6 +24,11 @@ on the backburner: some kind of diplomacy meter that affects trade deals. Probab
 - ▢ **Surprise war**: may you declare and attack in the same turn? yes
 - ▢ Any cost or gate on declaring (authority, happiness hit, a casus-belli
   system)? free in v1. maybe in the future: happiness toll from losing wars (more units lost than your opponent)
+- **Canossa** (batch DT7) bars a declaration between its holder and an empire whose
+  capital follows the holder's religion, in both directions. `cardFaithfulPeace`
+  (`statecraft/evaluator.ts`) answers it fresh at each declaration, and
+  `declareWarError` prints the one sentence. A war already running goes on, and a
+  capital that turns away lifts the bar at once.
 
 ## 3. Borders at peace
 
@@ -409,6 +414,7 @@ more than the hammers. The code is `src/sim/ranks.ts`; every figure is in
 - v1 ships: declare war · peace flow · truce · the border rule · UI below ·
   bot integration below. *(the cut, unless you widen it)*
 - ▢ Anything else you want IN v1: open borders, trade cities/resources/gold/gpt, these can all be used in peace deals or normal trades
+- **The Forbidden Silks** (batch DT7): a seat that holds it may name no luxury it would give, in a deal or in a peace (`luxuryLendingBan`, `diplomacy.ts`). `dealSideError` refuses with the one sentence, and the Deal panel greys the rows with it. A deal already signed runs out.
 - trade deals: ai players should accept trades for 1:1 luxuries for copies that it has duplicates of. Figure out a good baseline for gpt/gold for luxuries. Other types of trades can come later.
 - sidebar: Should resource access from other players happen through trade routes? civ 7 has an interesting take on this but i don't want to build their whole resource slotting system.
 

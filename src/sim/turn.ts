@@ -172,6 +172,7 @@ import {
   routeCities,
   routeLegPath,
   routeMode,
+  routeRenewalBan,
   routeTarget,
   routeTermFor,
   runPostEstablishments,
@@ -1247,7 +1248,9 @@ function marchTraders(state: GameState, report: TurnReport): void {
  *      caravan is standing*, so it can never be in the lapsed state at all —
  *      auto-renew means the route does not expire. This used to be asked at the
  *      homecoming alone, which left a term that ran out on the road hanging,
- *      and a hanging term was then fatal at the first jam.
+ *      and a hanging term was then fatal at the first jam. The one exception is
+ *      a route abroad under The Sea Ban or The Inward Roads (`routeRenewalBan`,
+ *      batch DT7): it does not renew, and its owner's Doctrine chose that;
  *   2. **has it arrived?** If it is standing on the town it was walking to, the
  *      leg is over, and a route the player left unrenewed ends here.
  *   3. **is the route still a route?** `routeTarget` answers `null` when either
@@ -1310,7 +1313,14 @@ function marchOneTrader(
    * quietly going to zero and staying there. The report row is bookkeeping: an
    * uneventful renewal is deliberately not news (`routeEndSentence`).
    */
-  if (route.autoResend && state.turn >= route.expiresTurn) {
+  // **A ban comes first** (batch DT7): a route abroad under The Sea Ban or The
+  // Inward Roads does not renew, whatever its flag says, so it runs out its term
+  // like any route its owner left unrenewed.
+  if (
+    route.autoResend &&
+    state.turn >= route.expiresTurn &&
+    routeRenewalBan(state, unit) === null
+  ) {
     // The term is the empire's own (`routeTermFor`, `trade.ts`), so a renewal
     // gets exactly what a fresh route would — Venture Routes' longer term
     // included. `startedTurn` is untouched, which is what keeps Established
@@ -1323,8 +1333,8 @@ function marchOneTrader(
   if (target && routeArrived(state, unit, target)) {
     // Home, at the end of the road, with the term run out: the one ending this
     // function still owns, and the player's own — they left the route unrenewed
-    // and the caravan has come back. An auto-resending route cannot reach this
-    // line lapsed, because the clause above has just renewed it.
+    // and the caravan has come back. An auto-resending route reaches this line
+    // lapsed only under a ban, because the clause above has renewed every other.
     if (!route.outbound && state.turn >= route.expiresTurn) {
       noteEnd(false);
       endRoute(state, unit);

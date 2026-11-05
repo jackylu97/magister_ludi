@@ -2157,6 +2157,14 @@ function describeEffect(
         out.push({ text: limitLiftWords(effect) });
         return;
       }
+      // **A rule that shuts some towns' treasuries** (batch DT7, The Flying Money).
+      // The towns are the row's scope, said as one town, because the ordinary
+      // trailing "in every city" would read as the reverse of what the rule means.
+      if (effect.rule === 'buysOnlyInScope' && effect.scope !== undefined) {
+        const where = cityScopeWords(effect.scope).replace(/^every /, 'a ');
+        out.push({ text: `units and buildings may be bought with gold only in ${where}` });
+        return;
+      }
       // **A rule with a figure** (Scientific batch S9): the Opus rules and the
       // prototypes, said whole. See `figureRuleWords`.
       const figured = figureRuleWords(effect);
@@ -4682,8 +4690,12 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       // faith, gold), so nothing needs translating; the count is spelled out
       // because a bare "2+" inside a sentence is a figure with no noun on it
       // (batch L1, §1c).
+      // A count of one is said as the plain "with a gold building" (batch DT7), the
+      // words a card says.
       into.qualifiers.push(
-        `with ${scope.atLeast} or more ${scope.category} buildings`,
+        scope.atLeast === 1
+          ? `with ${indefinite(scope.category)} ${scope.category} building`
+          : `with ${scope.atLeast} or more ${scope.category} buildings`,
       );
       return;
     case 'workingImprovement': {
@@ -7139,6 +7151,8 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // surcharge and a player reading the pair needs to know what they are buying.
   buysWithoutResources:
     'units you buy need none of the strategic resources they would need to be built',
+  // The Flying Money (batch DT7). The fallback: the rule arm names the towns.
+  buysOnlyInScope: 'only some of your cities may buy units and buildings with gold',
   // The fallback sentence, which a row should never reach: `buildsEverywhere`
   // names a building and is printed by `FLAG_RULE_BUILDING_WORDS` instead. It is
   // here because the table is exhaustive over the union, and it says the plain
@@ -7159,6 +7173,8 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // Everything else the gate asks is still asked.
   postsWaiveRouteRange:
     'your trade routes to a city holding your trading post have no range limit',
+  // The Sea Ban and The Inward Roads (batch DT7).
+  noForeignRoutes: 'your caravans may not travel to other empires',
   // The Return Leg (Commerce batch T3).
   homeRoutesPayOrigin:
     'your trade routes between your own cities also pay the city they leave everything they pay the city they reach',
@@ -7197,6 +7213,11 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // The Muda (batch DT6): the same words, on the routes the rule covers.
   foreignTradersUnplunderable:
     'your trade units on routes to other empires cannot be attacked or plundered',
+  // The two bans of batch DT7 that bind a seat's dealings. Each says what the seat
+  // may not do, because that is the whole of the rule.
+  noLuxuryLending: 'you cannot lend luxuries in deals',
+  // Canossa (batch DT7): both directions are in the sentence, as on the card.
+  faithfulPeace: 'you and an empire whose capital follows your religion cannot declare war on each other',
   // al-Khwārizmī's second half. "Supply science" is the game term for the
   // class (`buildingSupplies`, batch R2d), so the clause says it, marked.
   faithBuysScienceBuildings: `you may buy buildings that ${suppliesWord(false)} science with faith`,

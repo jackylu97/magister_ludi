@@ -203,13 +203,17 @@ governments, so Tier IV opened at 29.
 | The Cathedral Lodges | Expansionist | IV | tier 26 | Manufactories yield twice as much. Towns with a Manufactory gain +30% production toward wonders and the Magnum Opus. |
 | The High Towns | Expansionist | IV | tier 26 | Your towns may work mountains. Mountains gain +4 production, and each gives +1 production to the hexes beside it. |
 | The Mandarinate | Expansionist | IV | tier 26 | Each point of spare authority gives +1% science and culture, at most +30%. Each of your towns costs 1 more authority. |
+| The Inward Roads | Expansionist | IV | tier 26 | Towns joined to your capital by road gain +20% science and culture. Your caravans may not travel to other empires. |
 | The Apoikia | Commerce | I | tier 4 | Settlers and workers cost half as much gold to buy. |
 | The Laurion Leases | Commerce | I | tier 4 | Hexes with a resource cost half as much gold to buy. |
 | The Delian League | Commerce | I | tier 4 | Your coastal towns cost 1 less authority and gain +3 production. |
 | The Sogdian Colonies | Commerce | II | tier 10 | Each of your towns holding your trading post gains +3 culture and +3 renown, favouring merchants. |
+| The Forbidden Silks | Commerce | II | tier 10 | Your luxuries give twice their happiness. You cannot lend luxuries in deals. |
+| The Flying Money | Commerce | II | tier 10 | Your towns with a gold building buy units and buildings 20% cheaper. Your other towns cannot buy them. |
 | The Year and a Day | Commerce | III | tier 18 | Your towns that a domestic route reaches grow 25% faster. Your other towns grow 25% more slowly. |
 | The Muda | Commerce | III | tier 18 | Your trade routes to other empires pay +3 science and +3 culture, and cannot be plundered. |
 | The Turnpike Trusts | Commerce | III | tier 18 | Caravans cost half as much gold to buy. Hexes with a road gain +1 gold. |
+| The Sea Ban | Commerce | IV | tier 26 | Your domestic routes pay twice as much. You cannot send trade routes to other empires. |
 | The Peace of Lodi | Commerce | IV | tier 26 | While you are at peace, your trade routes pay 50% more. While you are at war, they pay 25% less. |
 | The Monte di Pietà | Commerce | IV | tier 26 | Every 200 gold in your treasury gives +1 happiness, at most +20. Your towns make 10% less gold. |
 | The Pythagorean Brotherhood | Scientific | I | tier 4 | +2 science in every city, doubled in cities with a Shrine. |
@@ -237,6 +241,7 @@ governments, so Tier IV opened at 29.
 | The Paean | Devotion | I | tier 4 | Your military units gain +1 strength for every god and belief you hold. |
 | The Patrimony of Peter | Devotion | II | tier 10 | Your holy city's citizens demand no happiness. |
 | The Imarets | Devotion | III | tier 18 | Your devout towns grow 25% faster. |
+| Canossa | Devotion | III | tier 18 | You and an empire whose capital follows your religion cannot declare war on each other. |
 | The Canons of the Holy Sepulchre | Devotion | III | tier 18 | Towns with a holy site buy with faith at 30% less. |
 | The Martyr's Crown | Devotion | III | tier 18 | Each of your units that dies in battle presses your religion on every town within three hexes. |
 | The Saint Peter's Indulgence | Devotion | IV | tier 26 | +1% production toward the Magnum Opus for every 150 faith you have spent this game. |

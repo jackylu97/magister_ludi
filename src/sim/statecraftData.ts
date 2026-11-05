@@ -4373,6 +4373,17 @@ export type ActionRuleId =
    */
   | 'buysWithoutResources'
   /**
+   * **Only some of this empire's towns may buy units and buildings with gold**:
+   * The Flying Money (batch DT7, reading 17). The row's `scope` names the towns
+   * that may buy.
+   *
+   * One clause in `clausesBeforeTheBank` (`purchase.ts`), through
+   * `cardPurchaseScopeRefuses`. It concerns gold alone. A faith purchase is a
+   * different bank, and a caravan and a hex are not on this shelf, so all three
+   * stay open in every town.
+   */
+  | 'buysOnlyInScope'
+  /**
    * **Gold may buy a world wonder** — The Gilded Scaffold (batch C3, ruled in
    * `docs/flags.md` item (pppppp)).
    *
@@ -4448,6 +4459,16 @@ export type ActionRuleId =
    * ends.
    */
   | 'postsWaiveRouteRange'
+  /**
+   * **This empire may send no caravan to another empire's town**: The Sea Ban and
+   * The Inward Roads (batch DT7, reading 16).
+   *
+   * One clause in `gateRoute` (`trade.ts`), through `foreignRouteBan`, so a hire,
+   * a send and a greyed row on the Trade screen share one sentence. A route
+   * already abroad runs out its term. A renewal is a new act, so the same rule
+   * stops an auto-resending route from renewing (`routeRenewalBan`).
+   */
+  | 'noForeignRoutes'
   /**
    * **A domestic route also pays its origin a copy of everything it pays its
    * destination**: The Return Leg (Commerce batch T3, the triage's reading
@@ -4857,6 +4878,25 @@ export type BehaviorRuleId =
    * the cart when its owner goes to war with the destination's owner.
    */
   | 'foreignTradersUnplunderable'
+  /**
+   * **This empire may not lend a luxury in a deal**: The Forbidden Silks (batch
+   * DT7, reading 16).
+   *
+   * One clause in `dealSideError` (`diplomacy.ts`), asked of the seat giving the
+   * luxury, through `luxuryLendingBan`. It binds a new loan only, so a deal already
+   * signed runs out. It says nothing about a luxury this empire receives.
+   */
+  | 'noLuxuryLending'
+  /**
+   * **This empire and any empire whose capital follows its religion may not
+   * declare war on each other**: Canossa (batch DT7, reading 35).
+   *
+   * One clause in `declareWarError` (`diplomacy.ts`), asked in both directions
+   * through `cardFaithfulPeace`. It is asked at each declaration and stores
+   * nothing, so a capital that turns away lifts it at once. A war already running
+   * goes on.
+   */
+  | 'faithfulPeace'
   /**
    * **A road that ends abroad brings a luxury home** — The Silk Road's, and the
    * user's tree pass of 2026-09-10 (`docs/flags.md` (uuu), mark 6).
@@ -8558,6 +8598,10 @@ export interface CardRuleEffect {
    * Second Seat: "in a city with a University"): the extra copy may be built
    * only in a town the scope admits, asked by `buildError` with the town in
    * hand.
+   *
+   * Since batch DT7 it is also read by `buysOnlyInScope` (The Flying Money): a
+   * town the scope does not admit may not spend gold on a unit or a building,
+   * asked by `cardPurchaseScopeRefuses`.
    */
   scope?: CityScope;
   /**

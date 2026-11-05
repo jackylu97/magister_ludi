@@ -2281,7 +2281,7 @@ describe("determinism", () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(211);
+    expect(SCHEMA_VERSION).toBe(212);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -9038,6 +9038,8 @@ describe("the engine shapes", () => {
     "theStrategoi · cityRenownPercent",
     // Batch DT6: The Muda's flat science and culture on a route abroad.
     "theMuda · routeYield",
+    // Batch DT7: The Sea Ban's share of a domestic route.
+    "theSeaBan · routeYield",
     // Batch DT3: The Peace of Lodi's two shares of a caravan, one for peace and one
     // for war, and The Universitas' two shares of a science building, one positive
     // and one negative.

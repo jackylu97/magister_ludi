@@ -3295,6 +3295,60 @@
         }
       ]
     },
+    "theForbiddenSilks": {
+      "name": "The Forbidden Silks",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "flavor": "The customs men searched the envoy's baggage and kept the purple.",
+      "text": "Your luxuries give twice their happiness. You cannot lend luxuries in deals.",
+      "effects": [
+        {
+          "kind": "effectAmplifier",
+          "target": "luxuryHappiness",
+          "percent": 100
+        },
+        {
+          "kind": "rule",
+          "rule": "noLuxuryLending"
+        }
+      ]
+    },
+    "theFlyingMoney": {
+      "name": "The Flying Money",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "flavor": "Leave your coin at the capital and draw it at the frontier. Paper flies lighter.",
+      "text": "Your towns with a gold building buy units and buildings 20% cheaper. Your other towns cannot buy them.",
+      "effects": [
+        {
+          "kind": "purchaseRider",
+          "class": {},
+          "on": "all",
+          "currency": "gold",
+          "percent": -20,
+          "scope": {
+            "test": "buildingsOfCategory",
+            "category": "gold",
+            "atLeast": 1
+          }
+        },
+        {
+          "kind": "rule",
+          "rule": "buysOnlyInScope",
+          "scope": {
+            "test": "buildingsOfCategory",
+            "category": "gold",
+            "atLeast": 1
+          }
+        }
+      ]
+    },
     "theYearAndADay": {
       "name": "The Year and a Day",
       "decks": [
@@ -3374,6 +3428,33 @@
           "on": {
             "test": "road"
           }
+        }
+      ]
+    },
+    "theSeaBan": {
+      "name": "The Sea Ban",
+      "decks": [
+        "commerce"
+      ],
+      "band": 4,
+      "line": "none",
+      "flavor": "Not a plank may put to sea, and the canal has never been busier.",
+      "text": "Your domestic routes pay twice as much. You cannot send trade routes to other empires.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "crossing": "domestic",
+          "share": [
+            {
+              "yield": "all",
+              "percent": 100
+            }
+          ]
+        },
+        {
+          "kind": "rule",
+          "rule": "noForeignRoutes"
         }
       ]
     },

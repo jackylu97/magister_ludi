@@ -74,7 +74,13 @@ import {
   routeIsInternational,
 } from '../sim/routeYields';
 import { type City, type GameState, type Player, capitalCityOf } from '../sim/state';
-import { type RouteMode, routeModesAvailable, routeSlots, usedRouteSlots } from '../sim/trade';
+import {
+  type RouteMode,
+  foreignRouteBan,
+  routeModesAvailable,
+  routeSlots,
+  usedRouteSlots,
+} from '../sim/trade';
 import { RULES } from '../sim/rulesData';
 import { trades, unitDef } from '../sim/unitData';
 
@@ -310,10 +316,16 @@ function pricedPairs(
   ctx: ValueContext,
 ): { from: City; to: City; pay: Appraisal }[] {
   const pairs: { from: City; to: City; pay: Appraisal }[] = [];
+  // **A ban drops the foreign pairs before the gate is asked** (batch DT7). They are
+  // usually the richest, so left in they would spend every one of
+  // `search.routeGateProbes` asks on refusals, and the seat would never find its
+  // home routes.
+  const banned = foreignRouteBan(state, player.id) !== null;
   for (const from of state.cities) {
     if (from.ownerId !== player.id) continue;
     for (const to of state.cities) {
       if (to.id === from.id) continue;
+      if (banned && to.ownerId !== player.id) continue;
       pairs.push({ from, to, pay: explainRoutePay(state, from, to, ctx) });
     }
   }

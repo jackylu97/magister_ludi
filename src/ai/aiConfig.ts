@@ -1552,6 +1552,20 @@ export interface AiConfig {
        */
       postRangeWaiver: number;
       /**
+       * **The Sea Ban and The Inward Roads** (`noForeignRoutes`): the share of the
+       * pay of the best route the seat could send next that the ban costs, when
+       * that route ends abroad. A home route would take the slot and pay
+       * something, so this stays under one. Routes abroad that the seat runs now
+       * are read off the board.
+       */
+      foreignRouteOption: number;
+      /**
+       * **The Flying Money** (`buysOnlyInScope`): how much of the gold a shut town
+       * would have spent is lost. The share of towns shut is read off the board.
+       * The coin moves to a town that may still buy, so this stays well under one.
+       */
+      shutTownBuys: number;
+      /**
        * **The World's Fair** (`postsInPartnerCapitals`): points a turn for each
        * post the reward writes. This stands in for the post cards the seat may
        * hold later. What the seat's live post lines gain from the new posts is
@@ -1607,6 +1621,12 @@ export interface AiConfig {
      *   · the Sabbath reads the production of the town that would keep it.
      */
     devotion: {
+      /**
+       * **Canossa** (`faithfulPeace`): how many points of strength one met rival
+       * barred from war is worth, at the military weight and the threat. The
+       * rivals barred are read off the board, and a seat with none gains nothing.
+       */
+      faithfulPeace: number;
       /**
        * **The Book of Life** (`faithSpent`): the share of the faith this seat
        * makes over the horizon that it expects to spend. The faith a turn is

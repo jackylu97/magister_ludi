@@ -231,6 +231,7 @@ import {
   type RouteMode,
   endRoute,
   routeModeFor,
+  routeRenewalBan,
   routeStartable,
   startRouteAt,
   startRouteError,
@@ -4420,6 +4421,13 @@ function applySetAutoResend(state: GameState, command: SetAutoResendCommand): Co
   }
   const route = unit.trade;
   if (!route) return fail(`Unit ${unit.id} is not carrying a trade route`);
+  // Asked before the idempotence clause (batch DT7). A flag left on from before the
+  // ban renews nothing, so "already renews" would be false, and the screen shows
+  // that flag as off.
+  if (command.on) {
+    const banned = routeRenewalBan(state, unit);
+    if (banned !== null) return fail(banned);
+  }
   if (route.autoResend === command.on) {
     return fail(`That caravan already ${command.on ? 'renews' : 'ends'} its route`);
   }

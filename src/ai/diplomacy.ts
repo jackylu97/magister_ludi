@@ -115,6 +115,7 @@ import {
   bargainSeatError,
   dealSideError,
   declareWarError,
+  luxuryLendingBan,
   declinePeaceError,
   proposeDealError,
   proposePeaceError,
@@ -1379,7 +1380,10 @@ export function counterTerms(
       counter.take.goldPerTurn = tribute;
       budget -= tribute * rate;
     }
-    for (const id of controlledResources(state, botSeat, 'luxury')) {
+    // A seat that may not lend (batch DT7, The Forbidden Silks) counters in coin
+    // alone. Asking for a luxury here would fail the gate below and lose the counter.
+    const mayLend = luxuryLendingBan(state, botSeat) === null;
+    for (const id of mayLend ? controlledResources(state, botSeat, 'luxury') : []) {
       if (ai.war.luxuryGoldBaseline > budget) break;
       // Never a last copy — `asksOurLastCopy` from the other side of the table.
       if (resourceCopies(state, botSeat, id) < 2) continue;
@@ -2015,6 +2019,9 @@ function nearestTownInReach(
  * equally good swaps is offered is a fact the replay reproduces.
  */
 function swapDecision(state: GameState, player: Player, ctx: ValueContext): BotDecision | null {
+  // A swap lends a luxury, so a seat under The Forbidden Silks has none to offer
+  // (batch DT7). `writeSwap` would refuse each paper one at a time.
+  if (luxuryLendingBan(state, player.id) !== null) return null;
   const spare = controlledResources(state, player.id, 'luxury').filter(
     (id) => resourceCopies(state, player.id, id) >= 2,
   );

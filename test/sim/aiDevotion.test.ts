@@ -268,6 +268,7 @@ describe('the sheet', () => {
       [
         'faithSpentShare',
         'faithUnitShare',
+        'faithfulPeace',
         'followerSight',
         'frontRowShare',
         'opusInterdict',
@@ -722,6 +723,32 @@ describe('The Interdict', () => {
     opus.followers = { 0: opus.population };
     bumpRevision(state);
     expect(scoreEffects(effectsOf(INTERDICT), valueContext(state, player))).toBeCloseTo(DEVOTION.opusInterdict, 10);
+  });
+});
+
+describe('Canossa (batch DT7)', () => {
+  const RULE: CardEffect[] = [{ kind: 'rule', rule: 'faithfulPeace' }];
+
+  it('is the knob at the threat for each met rival whose capital follows this faith', () => {
+    const { state, player, towns } = board([6]);
+    const capital = rivalTown(state, 20, 6);
+    const other = rivalTown(state, 26, 6);
+    // No faith at all.
+    expect(scoreEffects(RULE, valueContext(state, player))).toBe(0);
+    // A faith no rival follows.
+    religionAt(state, towns[0]!, [towns[0]!]);
+    expect(scoreEffects(RULE, valueContext(state, player))).toBe(0);
+    // A rival's second town follows, and the rule asks only of the capital.
+    other.followers = { 0: other.population };
+    bumpRevision(state);
+    expect(scoreEffects(RULE, valueContext(state, player))).toBe(0);
+    capital.followers = { 0: capital.population };
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    expect(scoreEffects(RULE, ctx)).toBeCloseTo(
+      DEVOTION.faithfulPeace * ctx.ai.weights.military * (1 + ctx.threat),
+      10,
+    );
   });
 });
 

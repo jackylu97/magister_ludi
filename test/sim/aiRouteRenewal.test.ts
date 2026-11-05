@@ -347,3 +347,34 @@ describe('a renewed route is priced at its age', () => {
     expect(dueRoad(['establishedRoutes'], multiple, true).on).toBe(true);
   });
 });
+
+// --- a ban (batch DT7) ----------------------------------------------------------
+
+describe('a route abroad under a ban', () => {
+  /** A seat 0 route to seat 1's town, set to renew or not, under The Sea Ban. */
+  function banned(options: { left: number; renews: boolean }): { state: GameState; cart: Unit } {
+    const { state, towns } = board([6]);
+    const theirs = foundCityAt(state, 1, getTileAt(state.map, 15, 5)!)!;
+    theirs.population = 8;
+    const player = playerById(state, 0)!;
+    player.metSeats.push(1);
+    state.wars = [];
+    bumpRevision(state);
+    const cart = caravan(state, towns[0]!, theirs, { age: 1, ...options });
+    player.statecraft.doctrines.push('theSeaBan' as never);
+    bumpRevision(state);
+    return { state, cart };
+  }
+
+  it('is not set to renew inside its term', () => {
+    const { state } = banned({ left: 5, renews: false });
+    expect(renewals(sit(state))).toEqual([]);
+  });
+
+  it('is not weighed on the turn its term runs out, whatever its flag says', () => {
+    for (const renews of [false, true]) {
+      const { state } = banned({ left: 0, renews });
+      expect(renewals(sit(state))).toEqual([]);
+    }
+  });
+});

@@ -172,7 +172,8 @@ import {
 } from './statecraft';
 // Expansionist batch E12: what a town holds, a card's grants included.
 // Commerce batch T3: the card that makes a home route pay its origin a copy.
-import { cardReturnLeg, townBuildings } from './statecraft/evaluator';
+// Batch DT7: the card behind a ban, by name, for the refusal's sentence.
+import { cardHoldingRule, cardReturnLeg, townBuildings } from './statecraft/evaluator';
 import { type UnitTypeId, trades, unitDef } from './unitData';
 import { fullMovement } from './units';
 // The two halves that had to leave (2026-08-28). `cities.ts` folds a caravan's
@@ -193,6 +194,7 @@ import {
   cityPostPays,
   postEstablishedThisTurn,
   postTermTurns,
+  routeIsInternational,
 } from './routes';
 import { bumpEconomy } from './slate';
 
@@ -293,11 +295,15 @@ export function hasSendablePair(state: GameState, playerId: number): boolean {
   for (const other of tradersOf(state, playerId)) {
     if (routeIsLive(state, other)) running.add(`${other.trade!.from}:${other.trade!.to}`);
   }
+  // The gate's ban clause (batch DT7), or End Turn would prompt a seat under The
+  // Sea Ban for a partner it may never send to, every turn.
+  const banned = foreignRouteBan(state, playerId) !== null;
   for (const from of state.cities) {
     if (from.ownerId !== playerId) continue;
     for (const to of state.cities) {
       if (to.id === from.id) continue;
       if (to.ownerId !== playerId) {
+        if (banned) continue;
         const them = playerById(state, to.ownerId);
         if (them === undefined || them.barbarian === true) continue;
         if (atWar(state, playerId, to.ownerId)) continue;
@@ -847,6 +853,39 @@ function rangeWaived(state: GameState, playerId: number, to: City): boolean {
 }
 
 /**
+ * **Why this empire may send no caravan abroad**, or `null` when it may (batch
+ * DT7, the `noForeignRoutes` rule of The Sea Ban and The Inward Roads).
+ *
+ * The one place the sentence is written. `gateRoute` refuses with it, so a hire, a
+ * send, the Trade screen's greyed row and the unit sheet all say the same words.
+ * The Trade screen's heading and the bots' route sweep ask whether it is `null`,
+ * and they never read the words.
+ */
+export function foreignRouteBan(state: GameState, playerId: number): string | null {
+  const card = cardHoldingRule(state, playerId, 'noForeignRoutes');
+  return card === null ? null : `Under ${card}, your caravans may not travel to other empires`;
+}
+
+/**
+ * **Why this caravan's route may not renew**, or `null` when it may (batch DT7,
+ * reading 16: a route already abroad runs out its term).
+ *
+ * An auto-resending route never expires (`marchOneTrader`, the ruling of
+ * 2026-09-17), so without this a route that was abroad when the ban came would run
+ * for ever. A renewal counts as a new act, and a new act abroad is what the ban
+ * refuses. Read in three places: the march, which does not renew; `setAutoResend`,
+ * which refuses to turn renewal on; and the bots' renewal arm.
+ *
+ * A fact about the two towns as they stand, like `routeIsInternational`. If the
+ * partner town comes to this empire, the route is domestic and may renew.
+ */
+export function routeRenewalBan(state: GameState, unit: Unit): string | null {
+  const pair = routeCities(state, unit);
+  if (pair === null || !routeIsInternational(pair.from, pair.to)) return null;
+  return foreignRouteBan(state, unit.ownerId);
+}
+
+/**
  * A caravan that does not exist, standing in the origin's gates.
  *
  * Every distance question a route asks — is there a land road, and how many
@@ -1218,6 +1257,7 @@ export function bestRouteMode(
  *   1. the origin is **a city of yours**, the destination is **another city** —
  *      yours, or a **foreign** one whose empire you are **at peace with** and
  *      have **met** (the international ruling of 2026-09-03);
+ *      and no Doctrine of yours bars routes abroad (`foreignRouteBan`, batch DT7);
  *   2. a **free slot** (`routeSlots` against `usedRouteSlots`);
  *   3. **no live route already runs this way** — same origin, same
  *      destination; the reverse leg is its own route (ruled 2026-09-03), so a
@@ -1294,12 +1334,15 @@ function gateRoute(
   if (from.ownerId !== playerId) return refuse(`${from.name} belongs to another empire`);
   if (to.id === from.id) return refuse(`A route joins two different cities`);
   if (to.ownerId !== playerId) {
-    // **The foreign half, and it is two questions** (the international ruling of
-    // 2026-09-03, `docs/trade.md`). War first, because a seat at war has
-    // necessarily met the seat it is fighting, so asking the other way round
-    // would answer a declaration with "you have not met them". There is no
-    // open-borders clause: a caravan passes freely by the standing war ruling,
-    // and the ruling says so out loud.
+    // **The foreign half, and it is three questions** (the international ruling of
+    // 2026-09-03, `docs/trade.md`). The ban comes first, because it is about this
+    // empire's own law and holds whoever the partner is (batch DT7). War comes
+    // next, because a seat at war has necessarily met the seat it is fighting, so
+    // asking the other way round would answer a declaration with "you have not met
+    // them". There is no open-borders clause: a caravan passes freely by the
+    // standing war ruling, and the ruling says so out loud.
+    const banned = foreignRouteBan(state, playerId);
+    if (banned !== null) return refuse(banned);
     const them = playerById(state, to.ownerId);
     const name = them?.name ?? 'them';
     if (atWar(state, playerId, to.ownerId)) return refuse(`You are at war with ${name}`);

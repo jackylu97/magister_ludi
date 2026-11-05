@@ -63,6 +63,8 @@ import {
   settleCultureWindfall,
   windfallPayout,
 } from './statecraft';
+// Batch DT7: the two bans in the deal and war gates.
+import { cardFaithfulPeace, cardHoldingRule } from './statecraft/evaluator';
 import { settleResearchWindfall } from './tech';
 import { handOverCity, updateElimination } from './combat';
 import {
@@ -189,7 +191,7 @@ export interface PeaceOutcome {
  *
  * **THE** gate: the Diplomacy screen greys its button with this sentence and
  * the reducer refuses with it, so an offered button is a command that is taken.
- * Five clauses, in the order a player meets them:
+ * Six clauses, in the order a player meets them:
  *
  *   · **not yourself** — there is no civil war in this game;
  *   · **not the wild.** A barbarian is not a party to anything: it has no seat
@@ -204,7 +206,9 @@ export interface PeaceOutcome {
  *   · **not through a truce.** The one thing a finished war leaves behind (the
  *     worksheet, section 1: no history, no grudges, ten turns of quiet), and
  *     the sentence prints the figure `truceTurnsLeft` gives the screen, so the
- *     refusal and the countdown beside the seat's name cannot disagree.
+ *     refusal and the countdown beside the seat's name cannot disagree;
+ *   · **not across Canossa** (batch DT7): if either seat holds it and the other
+ *     seat's capital follows the holder's religion, neither may declare.
  *
  * There is deliberately **no cost and no casus belli** — declaring is free in
  * v1 (the worksheet, section 2) — and deliberately no "have you met them"
@@ -233,6 +237,16 @@ export function declareWarError(
     return left === 1
       ? `The peace with the ${seatPeople(state, target.id)} holds for one more turn`
       : `The peace with the ${seatPeople(state, target.id)} holds for ${String(left)} more turns`;
+  }
+  // **Canossa binds both seats** (batch DT7, reading 35), so it is asked both ways
+  // round. It comes after "already at war", so a war already running goes on.
+  const mine = cardFaithfulPeace(state, actor.id, target.id);
+  if (mine !== null) {
+    return `You cannot declare war on the ${seatPeople(state, target.id)}: you hold ${mine} and their capital follows your religion`;
+  }
+  const theirs = cardFaithfulPeace(state, target.id, actor.id);
+  if (theirs !== null) {
+    return `You cannot declare war on the ${seatPeople(state, target.id)}: they hold ${theirs} and your capital follows their religion`;
   }
   return null;
 }
@@ -375,6 +389,8 @@ function reseatEmpire(state: GameState, playerId: number): void {
  *     which is `lentCopiesAwayBy`'s stated ruling and not an oversight. Only
  *     luxuries: iron and horses are what an army is made of, and trading the
  *     strategic table is a design decision nobody has taken;
+ *   · **no law against lending**: a seat under The Forbidden Silks may name no
+ *     luxury (`luxuryLendingBan`, batch DT7);
  *   · **a right of way both may write** — the mutual technology gate below;
  *   · **towns they own, in a peace** — a city may change hands only in a peace
  *     deal (the ruling, 9b), never in an ordinary bargain, and never a seat of
@@ -417,6 +433,8 @@ export function dealSideError(
     if (!isLendableResource(id)) {
       return `${resourceDef(id).name} is not a luxury and cannot be lent`;
     }
+    const banned = luxuryLendingBan(state, giverId);
+    if (banned !== null) return banned;
     if (seen.includes(id)) return `${resourceDef(id).name} is named twice`;
     seen.push(id);
     // **Available copies, not controlled ones** (batch R1, ruling 4 — "only
@@ -454,6 +472,21 @@ export function dealSideError(
     if (capital?.id === city.id) return `${city.name} is a seat of government and cannot be given`;
   }
   return null;
+}
+
+/**
+ * **Why this empire may not lend a luxury in a deal**, or `null` when it may (batch
+ * DT7, the `noLuxuryLending` rule of The Forbidden Silks).
+ *
+ * The one place the sentence is written. `dealSideError` refuses with it, and the
+ * Deal panel greys each luxury row with it. It is asked of the seat that would give
+ * the luxury, whichever seat wrote the paper, and in a peace as in a bargain. A
+ * deal already signed is not asked again, so it runs out (reading 16).
+ */
+export function luxuryLendingBan(state: GameState, giverId: number): string | null {
+  const card = cardHoldingRule(state, giverId, 'noLuxuryLending');
+  if (card === null) return null;
+  return `Under ${card}, the ${seatPeople(state, giverId)} cannot lend luxuries in deals`;
 }
 
 /**

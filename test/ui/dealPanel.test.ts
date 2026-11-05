@@ -29,6 +29,7 @@ import { uiSource } from './sourceHelpers';
 
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { foundCityAt } from '../../src/sim/cities';
+import { luxuryLendingBan } from '../../src/sim/diplomacy';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
 import { resourceDef } from '../../src/sim/resourceData';
@@ -392,5 +393,28 @@ describe('the wiring that spans files', () => {
   it('keeps the draft out of the DOM, so a refresh does not sweep it away', () => {
     const screen = source('diplomacyScreen.ts');
     expect(screen).toContain('const drafts = new Map<number, DealDraft>()');
+  });
+});
+
+describe('a seat under The Forbidden Silks (batch DT7)', () => {
+  it('greys its own luxuries with the reducer’s sentence, and leaves the other side alone', () => {
+    const state = bench();
+    const mine = town(state, 0, 3, 4);
+    const theirs = town(state, 1, 10, 4);
+    giveSilk(state, mine, 2, 3);
+    giveSilk(state, mine, 4, 5);
+    giveSilk(state, theirs, 9, 3);
+    state.players[0]!.statecraft.doctrines.push('theForbiddenSilks' as never);
+    bumpRevision(state);
+
+    const model = dealPanel(state, 0, 1);
+    const row = model.yours.luxuries[0]!;
+    expect(row.error).toBe(luxuryLendingBan(state, 0));
+    expect(row.error).toContain('The Forbidden Silks');
+    expect(row.spare).toBe(0);
+    expect(row.note).toBeNull();
+    expect(model.theirs.luxuries[0]!.error).toBeNull();
+    // The other seat's panel says the same of this seat's column.
+    expect(dealPanel(state, 1, 0).theirs.luxuries[0]!.error).toBe(luxuryLendingBan(state, 0));
   });
 });

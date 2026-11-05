@@ -3350,8 +3350,25 @@ import {
  *
  * **A v210 save is refused and does not replay.** These seats' Doctrine bags change,
  * so their draws move. The branch migrates nothing, for the reason given under v119.
+ *
+ * v212 (branch `decks`; batch DT7, `docs/plans/doctrines-build-triage.md`):
+ * **Five Doctrines that refuse something.** No field joins the state. The rules
+ * that change:
+ *
+ *   · The Inward Roads is dealt to an Expansionist seat;
+ *   · The Forbidden Silks, The Flying Money and The Sea Ban are dealt to a Commerce
+ *     seat;
+ *   · Canossa is dealt to a Devotion seat that holds a religion;
+ *   · the card rules gain `noForeignRoutes` (`gateRoute`), `noLuxuryLending`
+ *     (`dealSideError`), `buysOnlyInScope` (`clausesBeforeTheBank`) and
+ *     `faithfulPeace` (`declareWarError`);
+ *   · a route abroad under `noForeignRoutes` no longer renews, and `setAutoResend`
+ *     refuses to turn its renewal on.
+ *
+ * **A v211 save is refused and does not replay.** These seats' Doctrine bags change,
+ * so their draws move. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 211;
+export const SCHEMA_VERSION = 212;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

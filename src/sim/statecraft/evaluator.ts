@@ -11556,6 +11556,74 @@ export function cardTraderShielded(state: GameState, unit: Unit): boolean {
 }
 
 /**
+ * **The name of the first live card in this seat's law that declares this rule**,
+ * or `null` when no card does (batch DT7).
+ *
+ * The refusals print the card's name, so a player who is refused can see which of
+ * their cards closed the door. The gates build their sentences from it, and a
+ * non-null answer is also the plain "does this seat hold the rule". The rows it
+ * serves name no `class` or `rank`, so it does not ask about either.
+ */
+export function cardHoldingRule(
+  state: GameState,
+  playerId: number,
+  rule: CardFlagRuleId,
+): string | null {
+  for (const { card, effect } of effectsOfKind(state, playerId, 'rule')) {
+    if (effect.rule === rule) return anyCardDef(card).name;
+  }
+  return null;
+}
+
+/**
+ * **The `buysOnlyInScope` row that shuts this town's treasury**, as the card's
+ * name and the scope the town fails, or `null` when the town may buy (batch DT7,
+ * The Flying Money).
+ *
+ * A reader of its own rather than `cardActionRule`, because the answer depends on
+ * the town. `clausesBeforeTheBank` (`purchase.ts`) is the one caller, and it asks
+ * only of a gold purchase. A row with no scope admits every town, because a scope
+ * that was never written closes nothing.
+ */
+export function cardPurchaseScopeRefuses(
+  state: GameState,
+  city: City,
+): { name: string; scope: CityScope } | null {
+  for (const { card, effect } of effectsOfKind(state, city.ownerId, 'rule')) {
+    if (effect.rule !== 'buysOnlyInScope' || effect.scope === undefined) continue;
+    if (!cityScopeAdmits(state, city, effect.scope)) {
+      return { name: anyCardDef(card).name, scope: effect.scope };
+    }
+  }
+  return null;
+}
+
+/**
+ * **The card that bars war between this holder and that other seat**, by name, or
+ * `null` (batch DT7, Canossa; reading 35).
+ *
+ * The holder holds `faithfulPeace`, and the other seat's capital follows a religion
+ * the holder is paid by (`heldReligions`). A seat with no capital, and a capital
+ * with no majority, follow nothing. The answer is read fresh at each declaration,
+ * so a capital that turns away lifts the bar with no state to unwind.
+ *
+ * `declareWarError` asks it both ways round.
+ */
+export function cardFaithfulPeace(
+  state: GameState,
+  holderId: number,
+  otherId: number,
+): string | null {
+  const card = cardHoldingRule(state, holderId, 'faithfulPeace');
+  if (card === null) return null;
+  const capital = capitalCityOf(state, otherId);
+  if (capital === undefined) return null;
+  const kept = cityReligion(capital);
+  if (kept === null) return null;
+  return heldReligions(state, holderId).some((faith) => faith.id === kept) ? card : null;
+}
+
+/**
  * **Is this behaviour rule true of this piece?** (Dominion batch D2.)
  * `cardBehaviorRule` asked with the whole piece, so a row may narrow by its
  * `class` and by the `rank` the piece holds (The Varangian Guard's Elites).

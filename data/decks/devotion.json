@@ -2675,6 +2675,23 @@
         {"kind": "rulePercent", "rule": "growthSurplus", "percent": 25, "scope": {"test": "ownersFaith", "keeps": true}}
       ]
     },
+    "canossa": {
+      "name": "Canossa",
+      "decks": [
+        "devotion"
+      ],
+      "band": 3,
+      "line": "none",
+      "needsReligion": true,
+      "flavor": "He stood three days in the snow, and the ban was lifted.",
+      "text": "You and an empire whose capital follows your religion cannot declare war on each other.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "faithfulPeace"
+        }
+      ]
+    },
     "theCanonsOfTheHolySepulchre": {
       "name": "The Canons of the Holy Sepulchre",
       "decks": ["devotion"],

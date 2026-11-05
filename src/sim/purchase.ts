@@ -127,17 +127,24 @@ import {
   cardRulePercent,
   cardUnlocksUnit,
   cityBeliefUnlocksBuilding,
+  cityScopeWords,
   indefinite,
   payWindfallGrants,
   recordScalingOccasion,
   settleCultureWindfall,
   spendableGold,
+  stripRefs,
   windfallPayout,
 } from './statecraft';
 // Expansionist batch E12: what a town holds, a card's grants included. And
 // since Magisterial batch MG11 the reading of a wonder or the Opus at the front
 // of a queue, which The Hired Garrison asks.
-import { isRaisingWonderOrOpus, townBuildings, townShelf } from './statecraft/evaluator';
+import {
+  cardPurchaseScopeRefuses,
+  isRaisingWonderOrOpus,
+  townBuildings,
+  townShelf,
+} from './statecraft/evaluator';
 import { buildError, gatingTech, hasTech, isUnlocked, settleResearchWindfall } from './tech';
 import { techDef } from './techData';
 import { type UnitTypeId, isCivilian, isUnitTypeId, unitDef } from './unitData';
@@ -998,9 +1005,9 @@ export function purchaseHexBlocker(
  * command the reducer takes, and a greyed one carries the reducer's own words.
  *
  * The refusals in the order a player would think of them: is this my city, is
- * this a thing at all, which bank is it sold out of, may I build it, has this
- * town already taken delivery of a soldier today, is there room for it, and can
- * I afford it.
+ * this a thing at all, which bank is it sold out of, may this town spend that bank
+ * (The Flying Money, batch DT7), may I build it, has this town already taken
+ * delivery of a soldier today, is there room for it, and can I afford it.
  *
  * The middle question is the load-bearing one. **Gold's gates are production's
  * gates**, asked through `buildError` itself rather than re-derived: the
@@ -1289,6 +1296,19 @@ function clausesBeforeTheBank(
     // Magnum Opus).
     if (currency === 'culture') return `${name} cannot be bought with culture`;
     return `A ${name} is bought with gold, not ${currency}`;
+  }
+
+  // **Some towns may not spend gold** (batch DT7, The Flying Money; reading 17).
+  // Asked after every clause about what is for sale, so a wonder or a caravan is
+  // still told why it is not on this shelf. A route returned before this function
+  // reached the shelf, a hex has its own gate, and faith is another bank, so all
+  // three stay open.
+  if (currency === 'gold') {
+    const shut = cardPurchaseScopeRefuses(state, city);
+    if (shut !== null) {
+      const where = stripRefs(cityScopeWords(shut.scope)).replace(/^every /, 'a ');
+      return `Under ${shut.name}, only ${where} may buy units and buildings with gold`;
+    }
   }
 
   if (bank === undefined || bought.kind === 'building') {

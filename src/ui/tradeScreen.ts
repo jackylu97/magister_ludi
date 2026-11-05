@@ -78,10 +78,12 @@ import {
   explainRouteSlots,
   explainRouteYield,
   foldRouteYield,
+  foreignRouteBan,
   idleTraders,
   routeCities,
   routeIsInternational,
   routeIsLive,
+  routeRenewalBan,
   usedRouteSlots,
 } from '../sim/trade';
 import { type RouteReadingRow, type RoutesReading, readCity, readRoutes } from '../sim/readings';
@@ -205,7 +207,10 @@ export function runningRoutes(state: GameState, playerId: number): RunningRoute[
     const fold = foldRouteYield(lines);
     const figures = routeFigures(fold);
     const turnsLeft = Math.max(0, route.expiresTurn - state.turn);
-    const auto = route.autoResend ? ' · ↻ auto' : '';
+    // A flag left on from before a ban renews nothing (batch DT7), so the sheet does
+    // not print the route as renewing, and a press on the button prints the refusal.
+    const renews = route.autoResend && routeRenewalBan(state, unit) === null;
+    const auto = renews ? ' · ↻ auto' : '';
     rows.push({
       unitId: unit.id,
       col: unit.col,
@@ -220,7 +225,7 @@ export function runningRoutes(state: GameState, playerId: number): RunningRoute[
       lines,
       importId: loans.get(unit.id) ?? null,
       turnsLeft,
-      autoResend: route.autoResend,
+      autoResend: renews,
       gold: fold.gold,
       text: `${fromName} ⇄ ${toName} · ${figures} · ${figure(turnsLeft)} turns${auto}`,
     });
@@ -1017,7 +1022,8 @@ export function originGroups(
  * time one of them is reworded, and `startableError`'s docblock has said so on
  * this screen since 2026-08-28.
  *
- * There are four headings and not the mock's five, and both differences are
+ * There are five headings. One is new since the mock: **a Doctrine that bars routes
+ * abroad** (`foreignRouteBan`, batch DT7). Two more differences from the mock are
  * stated rather than hidden:
  *
  *   · **No "blockaded"** — a blockade is not a refusal. A hull in the harbour
@@ -1029,9 +1035,10 @@ export function originGroups(
  *     the search this reading exists to avoid. The heading covers both and each
  *     row prints the gate's own sentence, which says which it was.
  */
-export type RefusalReason = 'war' | 'slots' | 'running' | 'reach';
+export type RefusalReason = 'ban' | 'war' | 'slots' | 'running' | 'reach';
 
 export const REFUSAL_TITLES: Readonly<Record<RefusalReason, string>> = {
+  ban: 'Barred by your Doctrine',
   war: 'At war',
   slots: 'No route slot free',
   running: 'Already running',
@@ -1041,7 +1048,10 @@ export const REFUSAL_TITLES: Readonly<Record<RefusalReason, string>> = {
 export function refusalReason(ctx: TradeContext, row: RouteReadingRow): RefusalReason {
   // The gate's own order: the foreign clauses, then the slot ledger, then the
   // pair, then the ground.
-  if (row.to.ownerId !== ctx.seat && atWar(ctx.state, ctx.seat, row.to.ownerId)) return 'war';
+  if (row.to.ownerId !== ctx.seat) {
+    if (foreignRouteBan(ctx.state, ctx.seat) !== null) return 'ban';
+    if (atWar(ctx.state, ctx.seat, row.to.ownerId)) return 'war';
+  }
   if (!ctx.slotFree) return 'slots';
   if (pairIsRunning(ctx.state, ctx.seat, row.from.id, row.to.id)) return 'running';
   return 'reach';
@@ -1088,7 +1098,7 @@ export interface RefusalGroup {
  * reducer's own sentence and never a copy of it.
  */
 export function refusalGroups(ctx: TradeContext): RefusalGroup[] {
-  const order: RefusalReason[] = ['reach', 'war', 'running', 'slots'];
+  const order: RefusalReason[] = ['ban', 'reach', 'war', 'running', 'slots'];
   const buckets = new Map<RefusalReason, RefusalGroup['rows']>();
   for (const row of ctx.rows) {
     if (row.available) continue;

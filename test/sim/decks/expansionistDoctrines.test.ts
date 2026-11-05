@@ -5,7 +5,8 @@
  * fold, and that each drawback bites.
  *
  * Batch DT6 adds The Highland Clans, The Curator of Waters and All Roads Lead to
- * Rome. Later batches add the deck's other nine Doctrines to this file.
+ * Rome. Batch DT7 adds The Inward Roads. Later batches add the deck's other eight
+ * Doctrines to this file.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -24,6 +25,7 @@ import {
   refreshCityDerived,
 } from '../../../src/sim/cities';
 import { applyCommand } from '../../../src/sim/commands';
+import { routeStartable } from '../../../src/sim/trade';
 import { raiseImprovement, tileIndex, tileNeighbors } from '../../../src/sim/map';
 import { markMountainAdjacency } from '../../../src/sim/mapgen';
 import { authorityOf, explainAuthority, explainFoundingCost, explainHappiness } from '../../../src/sim/meters';
@@ -77,6 +79,7 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theCathedralLodges', 4],
   ['theHighTowns', 4],
   ['theMandarinate', 4],
+  ['theInwardRoads', 4],
 ];
 
 /** Lent rows, put back after each test, so a failed test cannot leak one into the next. */
@@ -1002,5 +1005,71 @@ describe('All Roads Lead to Rome (batch DT6)', () => {
     const before = foundingQuote(state, 20, 5);
     hold(state, 'allRoadsLeadToRome');
     expect(foundingQuote(state, 20, 5)).toBe(before);
+  });
+});
+
+describe('The Inward Roads (batch DT7)', () => {
+  /** A capital, a town joined to it by road, a town not joined, and a rival's town. */
+  function board(): { state: GameState; capital: City; joined: City; apart: City; abroad: City } {
+    const state = bareState(40, 10);
+    state.wars = [];
+    const capital = town(state, 3, 4, 6);
+    const joined = town(state, 8, 4, 6);
+    const apart = town(state, 20, 4, 6);
+    const abroad = town(state, 30, 4, 6, 1);
+    for (let col = capital.col; col <= joined.col; col++) layRoad(at(state, col, 4), 0);
+    capital.buildings.push('market', 'market');
+    seat(state).metSeats.push(1);
+    bumpRevision(state);
+    expect(connectedCities(state, 0).map((entry) => entry.city.id)).toEqual([joined.id]);
+    return { state, capital, joined, apart, abroad };
+  }
+
+  /** The percentage The Inward Roads puts on this town, in one voice. */
+  function rate(state: GameState, city: City, voice: string): number {
+    return explainCardPercentYields(state, city)
+      .filter((line) => line.card === 'theInwardRoads' && line.yield === voice)
+      .reduce((sum, line) => sum + line.percent, 0);
+  }
+
+  it('gives +20% science and culture to a town joined to the capital, and no other town', () => {
+    const { state, capital, joined, apart } = board();
+    hold(state, 'theInwardRoads');
+    expect(rate(state, joined, 'science')).toBe(20);
+    expect(rate(state, joined, 'culture')).toBe(20);
+    expect(rate(state, joined, 'gold')).toBe(0);
+    for (const city of [capital, apart]) {
+      expect(rate(state, city, 'science'), city.name).toBe(0);
+      expect(rate(state, city, 'culture'), city.name).toBe(0);
+    }
+  });
+
+  it('refuses a caravan to another empire, byte-identical, and leaves home routes open', () => {
+    const { state, capital, joined, abroad } = board();
+    expect(routeStartable(state, 0, capital.id, abroad.id)).toBeNull();
+    hold(state, 'theInwardRoads');
+    const sentence = routeStartable(state, 0, capital.id, abroad.id)!;
+    expect(sentence).toContain('The Inward Roads');
+    const before = JSON.stringify(state);
+    const hired = applyCommand(state, {
+      type: 'buyRoute',
+      playerId: 0,
+      fromCityId: capital.id,
+      toCityId: abroad.id,
+    });
+    expect(hired.ok ? '' : hired.error).toBe(sentence);
+    expect(JSON.stringify(state)).toBe(before);
+    expect(routeStartable(state, 0, capital.id, joined.id)).toBeNull();
+  });
+
+  it('gives a bot a positive price where the towns are joined and no route runs abroad', () => {
+    const { state, joined } = board();
+    joined.buildings.push('library', 'monument');
+    refreshCityDerived(state, joined);
+    bumpRevision(state);
+    const player = seat(state);
+    const ctx = valueContext(state, player);
+    const percents = doctrineDef('theInwardRoads' as DoctrineId).effects.filter((effect) => effect.kind !== 'rule');
+    expect(scoreEffects(percents, ctx)).toBeGreaterThan(0);
   });
 });

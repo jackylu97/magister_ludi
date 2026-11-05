@@ -59,7 +59,7 @@ import { type BotCandidate, type BotDecision, type ValueTerm, foldTerms } from '
 import { explainBuildingRow } from '../../src/ai/value';
 import { hasResource, foundCityAt, refreshCityDerived, resourceCopies } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
-import { proposeDealAt } from '../../src/sim/diplomacy';
+import { declareWarError, proposeDealAt } from '../../src/sim/diplomacy';
 import { type GameMap, type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import type { TerrainId } from '../../src/sim/terrainData';
 import {
@@ -265,6 +265,60 @@ describe('declaring a war', () => {
       )
       .join(' | ');
   }
+
+  it('does not declare on a seat Canossa protects, and prints the gate’s own sentence', () => {
+    // The board on which the test below declares.
+    const state = withForce('warmonger');
+    expect(abroad(state, 0)?.command.type).toBe('declareWar');
+    const mine = state.cities.find((city) => city.ownerId === 0)!;
+    const theirs = state.cities.find((city) => city.ownerId === 1)!;
+    at(state.map, mine.col, mine.row).improvement = 'holySite' as never;
+    state.religions.push({
+      id: 0,
+      founderId: 0,
+      name: 'The Testament',
+      pantheon: [],
+      follower: [],
+      enhancer: [],
+      foundedTurn: state.turn,
+      holySite: { col: mine.col, row: mine.row },
+    } as never);
+    mine.followers = { 0: mine.population };
+    theirs.followers = { 0: theirs.population };
+    seat(state, 0).statecraft.doctrines.push('canossa' as never);
+    bumpRevision(state);
+
+    const decision = abroad(state, 0);
+    expect(decision === null || decision.command.type !== 'declareWar').toBe(true);
+    const sentence = declareWarError(state, 0, 1)!;
+    expect(sentence).toContain('Canossa');
+    expect(declareTable(state, 0)).toContain(sentence);
+  });
+
+  it('does not declare on a seat holding Canossa when its own capital follows that seat’s faith', () => {
+    const state = withForce('warmonger');
+    const mine = state.cities.find((city) => city.ownerId === 0)!;
+    const theirs = state.cities.find((city) => city.ownerId === 1)!;
+    at(state.map, theirs.col, theirs.row).improvement = 'holySite' as never;
+    state.religions.push({
+      id: 0,
+      founderId: 1,
+      name: 'The Testament',
+      pantheon: [],
+      follower: [],
+      enhancer: [],
+      foundedTurn: state.turn,
+      holySite: { col: theirs.col, row: theirs.row },
+    } as never);
+    mine.followers = { 0: mine.population };
+    theirs.followers = { 0: theirs.population };
+    seat(state, 1).statecraft.doctrines.push('canossa' as never);
+    bumpRevision(state);
+
+    const decision = abroad(state, 0);
+    expect(decision === null || decision.command.type !== 'declareWar').toBe(true);
+    expect(declareTable(state, 0)).toContain('your capital follows their religion');
+  });
 
   it('declares on the seat it out-arms, and prints the ratio, the bar, the town, the force and the road', () => {
     const state = withForce('warmonger');

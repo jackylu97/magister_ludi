@@ -76,6 +76,7 @@ import {
   answerDealError,
   bargainSeatError,
   declareWarError,
+  luxuryLendingBan,
   declinePeaceError,
   diplomaticSeats,
   hasMetSeat,
@@ -532,6 +533,9 @@ function dealSide(
 ): DealSideModel {
   const giver = playerById(state, giverId);
   const luxuries: DealChoice[] = [];
+  // The Forbidden Silks (batch DT7): the reducer's own sentence, so the row greys
+  // before a player writes a paper the reducer would throw out.
+  const banned = luxuryLendingBan(state, giverId);
   for (const holding of controlledHoldings(state, giverId, 'luxury')) {
     const copies = resourceCopies(state, giverId, holding.id);
     // **What may actually be promised** (batch R1, ruling 4 — "only trade away
@@ -547,7 +551,7 @@ function dealSide(
     // So this subtraction is nought on every row the game currently ships. It
     // stays because the rule is the reducer's, not this list's: the day a
     // luxury gates a unit the panel already agrees with the refusal.
-    const spare = availableCopies(state, giverId, holding.id);
+    const spare = banned !== null ? 0 : availableCopies(state, giverId, holding.id);
     luxuries.push({
       id: holding.id,
       label: resourceDef(holding.id).name,
@@ -565,7 +569,7 @@ function dealSide(
       // batch R1 is a copy this empire's own army has spoken for, and that is
       // what this greys; the row prints both figures beside it (batch R4), so a
       // player reads why before the refusal rather than after it.
-      error: spare < 1 ? 'every copy is already spoken for' : null,
+      error: banned ?? (spare < 1 ? 'every copy is already spoken for' : null),
     });
   }
   const cities: DealChoice[] = [];

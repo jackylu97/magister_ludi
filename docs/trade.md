@@ -48,6 +48,16 @@ History and the original proposal: `docs/history/design-history.md`.
   batch DT6): it covers a laden cart whose route ends in another empire's town.
   `cardTraderShielded` answers both rules at both seams. If the sender goes to war
   with the destination's owner, the route ends, and the cover ends with it.
+- **The Sea Ban and The Inward Roads refuse routes abroad** (`noForeignRoutes`,
+  batch DT7). `foreignRouteBan` (`trade.ts`) holds the one sentence, and `gateRoute`
+  asks it first in the foreign half, before war and meeting. So `startRoute`,
+  `buyRoute` and the Trade screen's row all print it.
+  - A route already abroad runs out its term. A renewal counts as a new act, so
+    `routeRenewalBan` stops `marchOneTrader` from renewing it and makes
+    `setAutoResend` refuse to turn renewal on. It may still be turned off.
+  - A route whose far end comes into the seat's own hands is domestic, and may renew.
+  - `hasSendablePair` asks the ban too, so End Turn does not prompt for a partner
+    the seat may never send to.
 
 ## Hiring a route (ruled 2026-09-09, schema 100)
 
@@ -221,9 +231,9 @@ gold/economy'"*); the tab rule is ink alone, with no gilt hairline under it.
   by origin in founding order, filter chips (own · abroad · land · sea) and sort
   chips (pay · food · gold · science · road). The slot tally on a summary is the
   **empire's** ledger, so the same figure rides every fold; vermilion at nought.
-- **Unavailable**: four headings, classified by re-asking the simulation's own
-  clauses **in `routeStartable`'s order** — never by reading its prose. `war` ·
-  `slots` · `running` · `reach`. Two differences from the mock, both stated:
+- **Unavailable**: five headings, classified by re-asking the simulation's own
+  clauses **in `routeStartable`'s order**, never by reading its prose. `ban` ·
+  `war` · `slots` · `running` · `reach`. Two differences from the mock, both stated:
   there is no *blockaded* heading (a blockade is not a refusal; it is a fact on
   the card), and *Out of reach* covers both "no lane" and "too far", because the
   reading does not survey a pair the gate refused. Each row prints the gate's own

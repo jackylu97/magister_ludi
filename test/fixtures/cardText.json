@@ -1012,6 +1012,20 @@
     "text": "the authority each city but your capital costs rises by 1"
    }
   ],
+  "theInwardRoads": [
+   {
+    "raw": "+20% science in every city joined to your capital by road",
+    "text": "+20% science in every city joined to your capital by road"
+   },
+   {
+    "raw": "+20% culture in every city joined to your capital by road",
+    "text": "+20% culture in every city joined to your capital by road"
+   },
+   {
+    "raw": "your caravans may not travel to other empires",
+    "text": "your caravans may not travel to other empires"
+   }
+  ],
   "theApoikia": [
    {
     "raw": "settlers cost −50% to buy with gold",
@@ -1048,6 +1062,26 @@
     "text": "+3 renown per turn in every city that holds your trading post, favouring merchants"
    }
   ],
+  "theForbiddenSilks": [
+   {
+    "raw": "happiness from unique luxuries +100%",
+    "text": "happiness from unique luxuries +100%"
+   },
+   {
+    "raw": "you cannot lend luxuries in deals",
+    "text": "you cannot lend luxuries in deals"
+   }
+  ],
+  "theFlyingMoney": [
+   {
+    "raw": "all units and buildings cost −20% to buy with gold, in every city with a gold building",
+    "text": "all units and buildings cost −20% to buy with gold, in every city with a gold building"
+   },
+   {
+    "raw": "units and buildings may be bought with gold only in a city with a gold building",
+    "text": "units and buildings may be bought with gold only in a city with a gold building"
+   }
+  ],
   "theYearAndADay": [
    {
     "raw": "+25% food surplus stored toward growth, in every city one of your own trade routes ends at",
@@ -1076,6 +1110,16 @@
    {
     "raw": "+1 gold on every hex with a road",
     "text": "+1 gold on every hex with a road"
+   }
+  ],
+  "theSeaBan": [
+   {
+    "raw": "+100% everything on every trade route between two of your own cities",
+    "text": "+100% everything on every trade route between two of your own cities"
+   },
+   {
+    "raw": "your caravans may not travel to other empires",
+    "text": "your caravans may not travel to other empires"
    }
   ],
   "thePeaceOfLodi": [
@@ -1130,6 +1174,12 @@
    {
     "raw": "+25% food surplus stored toward growth, in every devout city",
     "text": "+25% food surplus stored toward growth, in every devout city"
+   }
+  ],
+  "canossa": [
+   {
+    "raw": "you and an empire whose capital follows your religion cannot declare war on each other",
+    "text": "you and an empire whose capital follows your religion cannot declare war on each other"
    }
   ],
   "theCanonsOfTheHolySepulchre": [
@@ -10015,12 +10065,12 @@
   ],
   "theCosmopolitanCourt": [
    {
-    "raw": "+1 renown per turn in every city with 1 or more culture buildings, per trade route to another empire leaving it, at most 3 per city",
-    "text": "+1 renown per turn in every city with 1 or more culture buildings, per trade route to another empire leaving it, at most 3 per city"
+    "raw": "+1 renown per turn in every city with a culture building, per trade route to another empire leaving it, at most 3 per city",
+    "text": "+1 renown per turn in every city with a culture building, per trade route to another empire leaving it, at most 3 per city"
    },
    {
-    "raw": "+3 gold on every hex carrying a great person's work, in every city with 1 or more culture buildings",
-    "text": "+3 gold on every hex carrying a great person's work, in every city with 1 or more culture buildings"
+    "raw": "+3 gold on every hex carrying a great person's work, in every city with a culture building",
+    "text": "+3 gold on every hex carrying a great person's work, in every city with a culture building"
    }
   ],
   "cloisterSchools": [

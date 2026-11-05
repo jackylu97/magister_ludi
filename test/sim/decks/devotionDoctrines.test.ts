@@ -6,8 +6,8 @@
  * has a test that it pays nothing where its text does not reach. The gate itself is
  * checked in `doctrineOffer.test.ts`.
  *
- * Batch DT6 adds The Paean. Later batches add the deck's other seven Doctrines to
- * this file.
+ * Batch DT6 adds The Paean. Batch DT7 adds Canossa. Later batches add the deck's other
+ * six Doctrines to this file.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -23,6 +23,7 @@ import {
   refreshCityDerived,
 } from '../../../src/sim/cities';
 import { type Command, applyCommand } from '../../../src/sim/commands';
+import { declareWarError } from '../../../src/sim/diplomacy';
 import { raiseImprovement } from '../../../src/sim/map';
 import { explainAuthority, explainFoundingCost, explainHappiness } from '../../../src/sim/meters';
 import { type PurchaseSubject, explainPurchaseCost, purchaseError } from '../../../src/sim/purchase';
@@ -60,6 +61,7 @@ import {
   doctrineDef,
   poolDoctrines,
 } from '../../../src/sim/statecraftData';
+import { atWar, openWar } from '../../../src/sim/wars';
 import { collectYields, explainEmpireCardYields, foldEmpireRates } from '../../../src/sim/yields/empire';
 import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
 import { explainCity, productionModifiers } from '../../../src/sim/yields/town';
@@ -75,6 +77,7 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theSaintPetersIndulgence', 4],
   ['thePatrimonyOfPeter', 2],
   ['theImarets', 3],
+  ['canossa', 3],
   ['theCanonsOfTheHolySepulchre', 3],
   ['theMartyrsCrown', 3],
   ['theTwoSanctuaries', 4],
@@ -903,5 +906,124 @@ describe('The Paean (batch DT6)', () => {
     seat(state).pantheon.beliefs.push(...GODS);
     bumpRevision(state);
     expect(scoreEffects(line, valueContext(state, seat(state)))).toBeGreaterThan(none);
+  });
+});
+
+describe('Canossa (batch DT7)', () => {
+  /**
+   * Seat 0 holds a religion in its capital, and seat 1's capital follows it. The two
+   * are at peace, and seat 1 holds nothing of its own.
+   */
+  function board(): { state: GameState; mine: City; theirs: City; faith: Religion } {
+    const state = bareState(30, 10);
+    state.wars = [];
+    const mine = town(state, 5, 5, 6);
+    const theirs = town(state, 20, 5, 6, 1);
+    const faith = religionAt(state, mine, [mine, theirs]);
+    return { state, mine, theirs, faith };
+  }
+
+  const declare = (playerId: number, targetId: number): Command => ({ type: 'declareWar', playerId, targetId });
+
+  it('is dealt only to a seat that holds a religion', () => {
+    expect(doctrineDef('canossa' as DoctrineId).needsReligion).toBe(true);
+    const { state } = board();
+    const tier = doctrineDef('canossa' as DoctrineId).tier;
+    const withDeck = (playerId: number): Player => {
+      const player = seat(state, playerId);
+      player.decks = ['devotion'];
+      return player;
+    };
+    expect(doctrineBagFor(state, withDeck(0), tier)).toContain('canossa');
+    expect(doctrineBagFor(state, withDeck(1), tier)).not.toContain('canossa');
+  });
+
+  it('bars the holder from declaring on an empire whose capital follows its religion', () => {
+    const { state } = board();
+    expect(declareWarError(state, 0, 1)).toBeNull();
+    hold(state, 'canossa');
+    const sentence = declareWarError(state, 0, 1)!;
+    expect(sentence).toContain('Canossa');
+    expect(sentence).toContain('their capital follows your religion');
+    const before = JSON.stringify(state);
+    const result = applyCommand(state, declare(0, 1));
+    expect(result.ok ? '' : result.error).toBe(sentence);
+    expect(JSON.stringify(state)).toBe(before);
+  });
+
+  it('bars that empire from declaring on the holder too', () => {
+    const { state } = board();
+    expect(declareWarError(state, 1, 0)).toBeNull();
+    hold(state, 'canossa');
+    const sentence = declareWarError(state, 1, 0)!;
+    expect(sentence).toContain('Canossa');
+    expect(sentence).toContain('your capital follows their religion');
+    const before = JSON.stringify(state);
+    const result = applyCommand(state, declare(1, 0));
+    expect(result.ok ? '' : result.error).toBe(sentence);
+    expect(JSON.stringify(state)).toBe(before);
+  });
+
+  it('does not bar war with an empire whose capital follows nothing, or another faith', () => {
+    const { state, theirs, faith } = board();
+    hold(state, 'canossa');
+    theirs.followers = {};
+    bumpRevision(state);
+    expect(declareWarError(state, 0, 1)).toBeNull();
+    theirs.followers = { [faith.id + 1]: theirs.population };
+    bumpRevision(state);
+    expect(declareWarError(state, 0, 1)).toBeNull();
+  });
+
+  it('lifts at once when the capital turns away, and returns when it turns back', () => {
+    const { state, theirs, faith } = board();
+    hold(state, 'canossa');
+    expect(declareWarError(state, 0, 1)).not.toBeNull();
+    theirs.followers = {};
+    bumpRevision(state);
+    expect(declareWarError(state, 0, 1)).toBeNull();
+    expect(declareWarError(state, 1, 0)).toBeNull();
+    theirs.followers = { [faith.id]: theirs.population };
+    bumpRevision(state);
+    expect(declareWarError(state, 0, 1)).not.toBeNull();
+  });
+
+  it('asks only of the capital, so another town following the religion does not bind', () => {
+    const { state, theirs, faith } = board();
+    const second = town(state, 25, 5, 6, 1);
+    theirs.followers = {};
+    second.followers = { [faith.id]: second.population };
+    bumpRevision(state);
+    hold(state, 'canossa');
+    expect(declareWarError(state, 0, 1)).toBeNull();
+  });
+
+  it('lets a war already running go on', () => {
+    const { state } = board();
+    openWar(state, 0, 1);
+    hold(state, 'canossa');
+    expect(atWar(state, 0, 1)).toBe(true);
+    // The only thing the gate has to say about this pair is the war itself.
+    expect(declareWarError(state, 0, 1)).toContain('already at war');
+    expect(declareWarError(state, 0, 1)).not.toContain('Canossa');
+  });
+
+  it('asks nothing of the wild', () => {
+    const state = bareState(30, 10, true);
+    state.wars = [];
+    const mine = town(state, 5, 5, 6);
+    religionAt(state, mine);
+    hold(state, 'canossa');
+    const wild = state.players.find((player) => player.barbarian === true)!;
+    expect(declareWarError(state, 0, wild.id)).not.toContain('Canossa');
+  });
+
+  it('gives a seat with no religion nothing, whatever it holds', () => {
+    const state = bareState(30, 10);
+    state.wars = [];
+    town(state, 5, 5, 6);
+    town(state, 20, 5, 6, 1);
+    hold(state, 'canossa');
+    expect(declareWarError(state, 0, 1)).toBeNull();
   });
 });

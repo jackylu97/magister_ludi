@@ -3841,6 +3841,38 @@
           }
         }
       ]
+    },
+    "theInwardRoads": {
+      "name": "The Inward Roads",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 4,
+      "line": "none",
+      "flavor": "The king's runners carry everything on these roads except a merchant.",
+      "text": "Towns joined to your capital by road gain +20% science and culture. Your caravans may not travel to other empires.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 20,
+          "scope": {
+            "test": "connected"
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": 20,
+          "scope": {
+            "test": "connected"
+          }
+        },
+        {
+          "kind": "rule",
+          "rule": "noForeignRoutes"
+        }
+      ]
     }
   }
 }

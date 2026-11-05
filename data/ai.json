@@ -292,6 +292,8 @@
     "commerce": {
       "postsOverHorizon": 3,
       "postRangeWaiver": 0.25,
+      "foreignRouteOption": 0.5,
+      "shutTownBuys": 0.25,
       "postWorth": 20,
       "boughtUnitShare": 0.5,
       "countForecast": {
@@ -308,7 +310,8 @@
       "followerSight": 1,
       "parishTurns": 10,
       "sitesOverHorizon": 1,
-      "opusInterdict": 60
+      "opusInterdict": 60,
+      "faithfulPeace": 10
     },
     "magisterial": {
       "wonderFrontShare": 0.15,

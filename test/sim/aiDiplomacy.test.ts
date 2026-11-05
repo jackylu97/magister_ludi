@@ -583,3 +583,39 @@ describe('the paper remembers', () => {
     expect(policy).toContain('war.refusalMemoryTurns');
   });
 });
+
+describe('a seat under The Forbidden Silks (batch DT7)', () => {
+  it('writes no swap, because a swap lends a luxury', () => {
+    const game = swapBench({ silk: 1 });
+    expect(swapPaper(game)?.command.type).toBe('proposeDeal');
+    const fresh = swapBench({ silk: 1 });
+    playerById(fresh.state, 0)!.statecraft.doctrines.push('theForbiddenSilks' as never);
+    bumpRevision(fresh.state);
+    const paper = swapPaper(fresh);
+    expect(paper === null || paper.command.type !== 'proposeDeal').toBe(true);
+  });
+
+  it('is not asked for its luxury in a swap from another seat', () => {
+    const game = swapBench({ silk: 1 });
+    playerById(game.state, 1)!.statecraft.doctrines.push('theForbiddenSilks' as never);
+    bumpRevision(game.state);
+    const paper = swapPaper(game);
+    expect(paper === null || paper.command.type !== 'proposeDeal').toBe(true);
+  });
+
+  it('counters in coin alone, where it would otherwise offer a spare seam', () => {
+    const state = bench();
+    const { theirs } = twoTowns(state);
+    giveLuxury(state, theirs, 11, 3, 'silk');
+    giveLuxury(state, theirs, 13, 5, 'silk');
+    playerById(state, 0)!.gold = 400;
+    playerById(state, 1)!.gold = 100;
+    playerById(state, 1)!.statecraft.doctrines.push('theForbiddenSilks' as never);
+    bumpRevision(state);
+
+    const counter = counterTerms(state, 1, 0, { gold: 400 }, {}, ctxFor(state, 1));
+    expect(counter).not.toBeNull();
+    expect(counter!.take.luxuries ?? []).toEqual([]);
+    expect(dealSideError(state, 1, 0, counter!.take, false)).toBeNull();
+  });
+});

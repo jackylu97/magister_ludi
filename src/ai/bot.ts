@@ -368,6 +368,7 @@ import {
   routeCities,
   routeIsInternational,
   routeMode,
+  routeRenewalBan,
   routeStartable,
   routeTermFor,
   startRouteError,
@@ -3788,6 +3789,9 @@ function routeRenewalDecision(
     // at this turn's march whatever its flag says (`routeTarget`, `turn.ts`).
     const pair = routeCities(state, unit);
     if (pair === null) continue;
+    // A route abroad under a ban cannot renew (batch DT7), so there is nothing to
+    // decide, and the command would be refused.
+    if (routeRenewalBan(state, unit) !== null) continue;
     if (state.turn < route.expiresTurn) {
       if (route.autoResend) continue;
       const ctx = seatContext(state, player, sitting);

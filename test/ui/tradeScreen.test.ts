@@ -50,6 +50,7 @@ import {
   routeSlots,
   routeStartable,
   empireGold,
+  startRouteAt,
   usedRouteSlots,
 } from '../../src/sim/trade';
 import { readCity, readRoutes } from '../../src/sim/readings';
@@ -60,7 +61,7 @@ import { RULES } from '../../src/sim/rulesData';
 import { layRoad } from '../../src/sim/roads';
 import { openWar } from '../../src/sim/wars';
 import { applyCommand } from '../../src/sim/commands';
-import { NO_ROUTE_CAPACITY, routeFigures, tradeFigureRuns } from '../../src/ui/tradeLines';
+import { NO_ROUTE_CAPACITY, routeFigures, routeReading, tradeFigureRuns } from '../../src/ui/tradeLines';
 import { YIELD_GLYPH, type YieldKey, figure } from '../../src/ui/figures';
 import {
   type TradeContext,
@@ -1155,5 +1156,47 @@ describe('a shut sheet does no work', () => {
     const blockers = source('turnBlockers.ts');
     expect(blockers).toContain('hasSendablePair(state, playerId)');
     expect(blockers).not.toContain('readRoutes(state');
+  });
+});
+
+// --- a Doctrine that bars routes abroad (batch DT7) ---------------------------
+
+describe('a seat under The Sea Ban', () => {
+  it('puts each foreign row under its own heading, with the reducer’s sentence', () => {
+    const { state, home, theirs } = foreignTradeWorld();
+    state.players[0]!.statecraft.doctrines.push('theSeaBan' as never);
+    bumpRevision(state);
+    const ctx = tradeContext(state, 0);
+    const row = rowFor(ctx, home, theirs);
+    expect(row.available).toBe(false);
+    expect(refusalReason(ctx, row)).toBe('ban');
+    const group = refusalGroups(ctx).find((entry) => entry.reason === 'ban')!;
+    expect(group.title).toBe(REFUSAL_TITLES.ban);
+    expect(group.rows[0]!.sentence).toBe(routeStartable(state, 0, home.id, theirs.id));
+    expect(group.rows[0]!.sentence).toContain('The Sea Ban');
+  });
+
+  it('asks the ban before the war, as the gate does', () => {
+    const { state, home, theirs } = foreignTradeWorld();
+    state.players[0]!.statecraft.doctrines.push('theSeaBan' as never);
+    openWar(state, 0, 1);
+    bumpRevision(state);
+    const ctx = tradeContext(state, 0);
+    expect(refusalReason(ctx, rowFor(ctx, home, theirs))).toBe('ban');
+  });
+
+  it('prints a route abroad as not renewing, whatever its flag says, and a home route as it is', () => {
+    const { state, home, theirs } = foreignTradeWorld();
+    const cart = createUnit(state, 0, 'trader', home.col, home.row);
+    startRouteAt(state, cart, home, theirs, 'land');
+    cart.trade!.autoResend = true;
+    bumpRevision(state);
+    expect(runningRoutes(state, 0)[0]!.autoResend).toBe(true);
+    expect(routeReading(state, cart)!.autoResend).toBe(true);
+    state.players[0]!.statecraft.doctrines.push('theSeaBan' as never);
+    bumpRevision(state);
+    expect(runningRoutes(state, 0)[0]!.autoResend).toBe(false);
+    expect(runningRoutes(state, 0)[0]!.text).not.toContain('auto');
+    expect(routeReading(state, cart)!.autoResend).toBe(false);
   });
 });

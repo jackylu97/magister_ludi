@@ -258,9 +258,9 @@ describe('the four cards the tally opened', () => {
       'the authority a city 3 or more trade routes set out from costs rises by 4',
     ]);
     expect(said('theCosmopolitanCourt')).toEqual([
-      '+1 renown per turn in every city with 1 or more culture buildings, ' +
+      '+1 renown per turn in every city with a culture building, ' +
         'per trade route to another empire leaving it, at most 3 per city',
-      "+3 gold on every hex carrying a great person's work, in every city with 1 or more culture buildings",
+      "+3 gold on every hex carrying a great person's work, in every city with a culture building",
     ]);
     // The three sentences the scope could already say are printed exactly as
     // they were, so no live card's words moved when the tally arrived.

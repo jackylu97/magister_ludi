@@ -203,7 +203,7 @@ import {
 } from '../sim/routes';
 // Commerce batch T9: The Return Leg is priced off the route's own fold, the
 // list the rule copies.
-import { explainRouteYield, foldRouteYield } from '../sim/routeYields';
+import { explainRouteSenderYield, explainRouteYield, foldRouteYield } from '../sim/routeYields';
 // Commerce batch T9: the luxuries a seat holds, lends and borrows, read where
 // the happiness meter and the luxury yields read them.
 import {
@@ -212,7 +212,7 @@ import {
   importedLuxuries,
   luxuryLoans,
 } from '../sim/resourceEffects';
-import { dealPartnerSeats, lentCopiesAwayBy, seatsMayBargain } from '../sim/deals';
+import { dealPartnerSeats, lentCopiesAwayBy, lentCopyCount, seatsMayBargain } from '../sim/deals';
 import { atWar } from '../sim/wars';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from '../sim/resourceData';
 // Devotion batch DV9: the rites a town keeps, the price of a rite and of a
@@ -3909,6 +3909,12 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
         // cannot say enough (batch MG17).
         const magisterial = magisterialRuleWorth(effect, ctx);
         if (magisterial !== null) return magisterial;
+      }
+      {
+        // **The refusals of batch DT7**, which belong to no one deck: The Sea
+        // Ban and The Inward Roads share a rule across two.
+        const doctrine = doctrineRuleWorth(effect, ctx);
+        if (doctrine !== null) return doctrine;
       }
       return ctx.ai.score.unknownEffect;
     case 'metaRule':
@@ -8615,6 +8621,107 @@ export function holdsHexPurchaseRider(ctx: ValueContext): boolean {
  *     carrying it is read by the marginal reading instead (`foldReadEngine`);
  *   · Letters of Credit (`buysOnCredit`): `creditWorth`.
  */
+/**
+ * **The Doctrine rules that refuse this seat something** (batch DT7). Three are
+ * costs and print as negative worth. Canossa is the one that also protects.
+ */
+function doctrineRuleWorth(
+  effect: Extract<CardEffect, { kind: 'rule' }>,
+  ctx: ValueContext,
+): number | null {
+  switch (effect.rule) {
+    // `0 - x` rather than `-x`, so a seat that loses nothing reads 0 and not -0.
+    case 'noForeignRoutes':
+      return 0 - foreignRoutesLost(ctx);
+    case 'noLuxuryLending':
+      return 0 - luxuryLoansLost(ctx);
+    case 'buysOnlyInScope':
+      return 0 - shutTreasuriesCost(effect, ctx);
+    case 'faithfulPeace':
+      return faithfulPeaceWorth(ctx);
+    default:
+      return null;
+  }
+}
+
+/**
+ * **The Sea Ban and The Inward Roads**: what this seat's routes abroad pay it, read
+ * through each route's own sender fold, because those routes run out. If the best
+ * route the seat could send next also ends abroad, `score.commerce.foreignRouteOption`
+ * of its pay is lost too. It is a share, because a home route would take the slot
+ * and pay something.
+ */
+function foreignRoutesLost(ctx: ValueContext): number {
+  let lost = 0;
+  for (const unit of ctx.state.units) {
+    if (unit.ownerId !== ctx.playerId || unit.trade === undefined) continue;
+    const pair = liveRouteCities(ctx.state, unit);
+    if (pair === null || !routeIsInternational(pair.from, pair.to)) continue;
+    lost += valueOfYields(foldRouteYield(explainRouteSenderYield(ctx.state, unit)), ctx);
+  }
+  const best = ctx.routes.open ?? ctx.routes.next;
+  if (best !== null && routeIsInternational(best.from, best.to)) {
+    lost += Math.max(0, ctx.ai.score.commerce.foreignRouteOption) * Math.max(0, best.pay.total);
+  }
+  return lost;
+}
+
+/**
+ * **The Forbidden Silks**: each copy this seat lends now runs out and cannot be lent
+ * again, and each kind it holds twice could have been lent. Both are priced at the
+ * coin a turn a luxury fetches at this bot's own table (`war.luxuryGptBaseline`).
+ */
+function luxuryLoansLost(ctx: ValueContext): number {
+  let copies = lentCopyCount(ctx.state, ctx.playerId);
+  for (const id of controlledResources(ctx.state, ctx.playerId, 'luxury')) {
+    if (resourceCopies(ctx.state, ctx.playerId, id) >= 2) copies += 1;
+  }
+  return copies * Math.max(0, ctx.ai.war.luxuryGptBaseline) * voiceWeight(ctx, 'gold');
+}
+
+/**
+ * **The Flying Money**: the share of this seat's towns the rule shuts, times the
+ * gold it turns over in a turn, at `score.commerce.shutTownBuys`. That knob is well
+ * under one, because the coin moves to a town that may still buy, and only the
+ * delay and the wrong hex are lost. The discount beside the rule is priced by the
+ * `purchaseRider` arm.
+ */
+function shutTreasuriesCost(
+  effect: Extract<CardEffect, { kind: 'rule' }>,
+  ctx: ValueContext,
+): number {
+  const scope = effect.scope;
+  if (scope === undefined) return 0;
+  let towns = 0;
+  let shut = 0;
+  for (const city of ctx.state.cities) {
+    if (city.ownerId !== ctx.playerId) continue;
+    towns += 1;
+    if (!cityScopeAdmits(ctx.state, city, scope, ctx.playerId)) shut += 1;
+  }
+  if (towns === 0) return 0;
+  const spend = Math.max(0, ratesOf(ctx).goldPerTurn ?? 0);
+  const share = Math.max(0, ctx.ai.score.commerce.shutTownBuys);
+  return (shut / towns) * share * spend * voiceWeight(ctx, 'gold');
+}
+
+/**
+ * **Canossa**: for each met rival whose capital follows this seat's religion, a war
+ * neither side may declare, at `score.devotion.faithfulPeace` of a point of strength
+ * at the threat. A seat with no such rival gains nothing yet. The bot's war planner
+ * asks `declareWarError`, so what the seat gives up in conquest needs no term here.
+ */
+function faithfulPeaceWorth(ctx: ValueContext): number {
+  if (!holdsFaith(ctx)) return 0;
+  let bound = 0;
+  for (const rival of metRivals(ctx.state, ctx.playerId)) {
+    const capital = capitalCityOf(ctx.state, rival.id);
+    if (capital !== undefined && followsSeatFaith(ctx, capital)) bound += 1;
+  }
+  const share = Math.max(0, ctx.ai.score.devotion.faithfulPeace);
+  return bound * share * ctx.ai.weights.military * (1 + ctx.threat);
+}
+
 function commerceRuleWorth(
   effect: Extract<CardEffect, { kind: 'rule' }>,
   ctx: ValueContext,
