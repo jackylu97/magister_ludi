@@ -59,7 +59,7 @@ Retired rows keep `retired: true` and stay in the data for saves. A removed prop
 - **Reading:** Synoecism keeps its growth clause. The comment rewrites only its drawback, and moves it.
 - **Reading:** The Highland Clans loses its +2 production. The comment restates the whole Doctrine.
 - **Reading:** "Hills beside a town" are hill hexes next to the town's centre. As always, a hex pays only when worked.
-- **Human Sacrifice, to confirm with the user:** see "Questions" below. The Doctrine no longer says "Needs a levy", because it brings its own levy use.
+- **Human Sacrifice:** the user's answer is below. The Doctrine no longer says "Needs a levy", because it brings its own levy use.
 - The Builder Kings' open question on the Expansionist sheet (cut it or move it to Magisterial) is closed: it stays in Expansionist, revised.
 
 ## Commerce
@@ -80,7 +80,6 @@ Retired rows keep `retired: true` and stay in the data for saves. A removed prop
 - **Reading:** "trading posts in your city" is your own post in your own town, the post The Factors' Houses reads, so a town pays once.
 - **Reading:** "cannot be plundered" means no one can strike a caravan on a foreign route of yours. Its route survives. A war still ends the route by the usual rule.
 - **Reading:** "cost half as much to buy" is the gold price of a caravan, as The Apoikia reads the gold price of a settler.
-- **Tier of The Turnpike Trusts, to confirm with the user:** see "Questions" below.
 
 ## Scientific
 
@@ -107,7 +106,7 @@ Retired rows keep `retired: true` and stay in the data for saves. A removed prop
 | The Peregrini | II | *"great people works give +1 food and +1 production to all adjacent tiles. Laying a great person work reduces the cost of the next great person by 20%."* | Great-person works give +1 food and +1 production to every hex beside them. Laying a great-person work makes your next great person cost 20% less. |
 | The Council of Ten | III | *"Gain two wildcard chairs."* | You have two more Wildcard chairs. |
 
-- **The Arthashastra, to confirm with the user:** see "Questions" below.
+- **The Arthashastra:** the user's answer is below.
 - **Reading:** The Peregrini's discount does not stack. Two works laid before the next person still give 20%. The discount is spent when the next person is called.
 - **Reading:** a hex beside two works gains +2 food and +2 production, as The High Towns reads two mountains.
 - The proposal's question 1 about doubling movement no longer applies.
@@ -128,10 +127,10 @@ Retired rows keep `retired: true` and stay in the data for saves. A removed prop
 - **Reading:** The Rites of Zhou pays in the town, not to the empire, because food is a town's yield.
 - **Reading:** The Capitulary halves the price `riteCostAhead` shows, the rite ladder included, floored once.
 
-## Questions
+## The user's answers, 2026-11-05
 
-Three comments can be read in more than one way. The recommended reading stands until the user answers. Answers are recorded here.
+Three comments could be read in more than one way. The user chose the recommended reading of each.
 
-1. **The Arthashastra's "it".** Recommended: the card seated in the extra Wildcard chair counts twice. Other reading: an extra Wildcard chair, and the government's ability still counts twice, as the Doctrine said before.
-2. **Human Sacrifice's price.** Recommended: the citizen is the whole price. No faith and no prophet, and the rite reaches every town the seat holds. Other reading: the citizen replaces only the prophet, and the seat still pays the rite's faith for each town.
-3. **The Turnpike Trusts' tier.** Recommended: Tier III, where Commerce lost two Doctrines. Other reading: Tier II. The user wrote "age 3": Doctrine Tier II is first offered about turn 72 (late age 2, age 3) and Tier III about turn 133 (late age 3, age 4).
+1. **The Arthashastra's "it"** is the seated card. The card in the extra Wildcard chair counts twice: its yields, percentages and riders all pay double. The Doctrine no longer touches the government's ability.
+2. **Human Sacrifice's price** is only the citizen: no faith and no prophet. The rite reaches every town the seat holds, and it still raises the price of later rites.
+3. **The Turnpike Trusts** sits at Tier III. Commerce holds 3, 4, 3 and 4 Doctrines across the tiers.
