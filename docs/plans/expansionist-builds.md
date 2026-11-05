@@ -816,6 +816,8 @@ So:
 
 ## Doctrines, proposed 2026-10-17
 
+- **Revised 2026-11-05:** your comments changed eight of these (`docs/plans/doctrine-review-2026-11-05.md`). The sheet, `docs/decks/expansionist.md`, has the current text; the entries below do not.
+
 - **Revised 2026-10-23** after your comments on the review page: 8 cut, 14 revised, 10 unchanged, so 24 remain. Each entry carries your comment, and "Your comments, 2026-10-23" at the end of this section has the readings and the questions they raise. The reasons, pairs and shapes under a revised entry were written for its old text.
 
 The user, verbatim: *"could you also propose some doctrines for the expansionist deck? aim for 8 for each tier (tier 1-4) and i'll filter them down/make edits"*.

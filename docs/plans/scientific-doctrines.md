@@ -1,5 +1,7 @@
 # Scientific Doctrines (proposal)
 
+**Revised 2026-11-05:** your comments on the review page changed this list (`docs/plans/doctrine-review-2026-11-05.md`). The tier tables show the current text. Removed Doctrines have left the tables. The notes, checks and counts below a table describe the first proposal. The build plan is `docs/plans/doctrines-build-triage.md`.
+
 **Status:** proposal, 2026-10-23. Nothing is built. No code, data or deck sheet changed. This is stage 6 of the deck pass (the card-design skill, "Doctrines") for Scientific. The Scientific sheet (`docs/decks/scientific.md`) still says "Doctrines: none yet".
 
 The user's request, 2026-10-23, verbatim: *"could you assign a subagent to create doctrines for commerce and scientific, update the doc when done."* The Commerce Doctrines are in `docs/plans/commerce-doctrines.md`.
@@ -56,7 +58,7 @@ A Doctrine is held all game and takes no chair. So a Doctrine with a real drawba
 
 | Doctrine | Theme | Text | Drawback | Shape |
 |---|---|---|---|---|
-| **The Pythagorean Brotherhood** | engine | Completing a technology before any other empire gives your towns +25% production for ten turns. It does not stack. Technologies that an empire you have met already knows cost you 10% more. | Following a rival costs a tenth more research. Revised 2026-10-23 (your comment: *"revise the malice: 10% more"*). | Existing. `windfallRider` on `tech` with `first: 'techWorld'` and a `timed` grant (10 turns, `renews`) of `percentYields` production +25: The Prize Essay's first and The Scourge of God's timed grant. `rulePercent` `gapTechCost` +10 (The Translation Movement's rule, as a surcharge). |
+| **The Pythagorean Brotherhood** | engine | +2 science in every city, doubled in cities with a Shrine. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
 | **The Removal to Xianyang** | great cities | Your towns grow 30% faster. Settlers cost twice as much. | Settlers cost double. | Existing. `rulePercent` `growthSurplus` +30; `rulePercent` `settlerCost` +100. |
 | **The Workshops of Syracuse** | elite army | Your military units gain +5 combat strength. They cost 50% more to build and to buy. | Units cost half again. Revised 2026-10-23 (your comment: *"all military units +5 combat strength, instead of +15% strength."*). | Existing. A flat `unitStat` strength line of +5, `class: { category: 'military' }` (combat is flat points on one ledger); `rulePercent` `unitCost` +50 with the same class (The Servian Reforms' rule, reversed). |
 | **The Peripatetic School** | learned land | Academies gain +2 science and +2 production. Science buildings and wonders give +30% renown. | None. Revised 2026-10-23 (your comment: *"revise: academies gain +2 science and +2 production. +30% renown from science buildings and wonders."*). | Existing for the Academy line (a `pays` on the Academy work). **Reading, to confirm:** "+30% renown from science buildings and wonders" is a percentage on the renown those sources already give, read where `explainRenown` lists them. The new shape "a great person kept after its first work" is no longer needed. |
@@ -93,9 +95,8 @@ A Doctrine is held all game and takes no chair. So a Doctrine with a real drawba
 | Doctrine | Theme | Text | Drawback | Shape |
 |---|---|---|---|---|
 | **The Jixian Academy** | engine | Completing a technology grants culture equal to a fifth of its cost. Your towns make 25% less culture. | Towns' culture falls by a quarter. | Existing. `windfallRider` on `tech`, grant culture `amount: 0.2`, `fromOccasion: 'techCost'` (The Scholars' Fame's measure); `percentYields` culture −25. |
-| **The Academy of Gondishapur** | institutions | Each empire building you hold makes technologies 3% cheaper for you, at most 24%. Your towns build other buildings 15% more slowly. | Ordinary buildings come slower. | **New shape:** a price line on every technology, read from a count (`explainTechCost` has a line only for charter and gap technologies). Existing: `productionBonus` building, `empireBuilding: false`, −15 (Private Patronage's form). |
-| **The Deputatoi** | elite army | Your units heal fully when they rest in your land. They do not heal outside it. | No healing abroad. | Existing. `unitStat` `heal` 100, `where: 'ownTerritory'` (the Bimaristan's form); `rule` `noHealAbroad`. |
-| **The Pandidakterion** | learned land | Your Academies yield as if worked, and need no citizen. | None. | **Near existing:** your Academies join the extra worked hexes The Limitanei adds (Dominion D13: chosen after the citizens' hexes, and eating no food). |
+| **The Academy of Gondishapur** | institutions | Towns with an empire building gain +15% science. +20% production toward empire buildings. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
+| **The Pandidakterion** | learned land | Hexes with an Academy have double yields, applied after every other change to the hex. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
 
 **The Jixian Academy** (engine)
 - **Why:** culture is the draft currency, and charters are drafted. This ties the draft to research, so a fast researcher sees more cards and more charters.
@@ -125,10 +126,10 @@ A Doctrine is held all game and takes no chair. So a Doctrine with a real drawba
 
 | Doctrine | Theme | Text | Drawback | Shape |
 |---|---|---|---|---|
-| **The Directorate of Arms** | engine (the lead); bridge to the elite army | While no empire you have met knows more technologies than you, your military units cost no upkeep. While one does, their upkeep is doubled. | Upkeep doubles when you fall behind. | **New shape, small:** an `EmpireCondition` "no empire you have met knows more technologies" and its opposite (feature B's `knowsMoreTechs`, asked of every met empire). Existing inside it: `upkeepRebate` `free`, class military; `rulePercent` `unitUpkeep` +100. |
+| **The Directorate of Arms** | engine (the lead); bridge to the elite army | While no empire you have met knows more technologies than you, your units gain +3 combat strength. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
 | **The Universitas** | great cities | Science buildings in your towns of twelve or more citizens produce twice their yields. In your smaller towns they produce half. | Small towns' schools are halved. | Existing. `buildingYieldPercent` category science +100, scope `populationAtLeast` 12; −50, scope `populationAtMost` 11. |
 | **The Volley Fire** | elite army | Your archer line (Archer to Crossbowman) may attack twice a turn. Your melee units fight at −10% strength. | Melee units are weaker. | Existing. `rule` `secondAttack`, `class: { modelClass: 'ranged' }` (The Varangian Guard's rule, narrowed by class); `unitStat` `combatPercent` −10, `class: { modelClass: 'melee' }`. |
-| **The Külliye** | institutions | The effects your empire buildings give their own town also reach your towns within three hexes of it. Your towns build empire buildings 25% more slowly. | Houses come slower. | **New shape:** for an empire building's own effects, the `hasBuilding` scope also admits your towns within three hexes of the town that holds it. Existing: `productionBonus` building, `empireBuilding: true`, −25. |
+| **The Külliye** | institutions | Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
 
 **The Directorate of Arms** (engine)
 - **Why:** the lead is the engine's quantity in war. This turns it into the army's pay: a seat ahead keeps a free army, and a seat behind pays twice.

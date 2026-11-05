@@ -1,5 +1,7 @@
 # Magisterial Doctrines (proposal)
 
+**Revised 2026-11-05:** your comments on the review page changed this list (`docs/plans/doctrine-review-2026-11-05.md`). The tier tables show the current text. Removed Doctrines have left the tables. The notes, checks and counts below a table describe the first proposal. The build plan is `docs/plans/doctrines-build-triage.md`.
+
 **Status:** proposal, 2026-10-25. Nothing is built. No code, data or deck sheet changed. This is stage 6 of the deck pass (the card-design skill, "Doctrines") for Magisterial. The build plan (`docs/plans/magisterial-themes-triage.md`, written at the same time) does not include them; they join it after your pass.
 
 The user's request, 2026-10-25, verbatim: *"Please do a pass on the doctrines for the remaining decks"*. Devotion and Magisterial had no Doctrines. Devotion's were written at the same time, in `docs/plans/devotion-doctrines.md`.
@@ -95,10 +97,10 @@ A Doctrine is held all game and takes no chair. Your comments on the Expansionis
 
 | Doctrine | Theme | Text | Drawback | Shape |
 |---|---|---|---|---|
-| **The Arthashastra** | council | Your government's ability counts twice. | None. | **New shape, small:** a rule that reads the held government's effects a second time in `liveEffects`' first source (`buildLiveEffects` pushes `governmentDef(sc.government).effects` once today). The chairs come from the government's chair mix, not its effects, so they do not change. A flag rule (Tyranny's `freePillage`) holds once. Shared with The Union of Lublin (section 9). |
+| **The Arthashastra** | council | You have one more Wildcard chair. The card seated in it counts twice. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
 | **The Hospitium** | engine | The third card in each of your Order hands comes from a deck you do not hold. | Each hand shows one card fewer from your own pool. | **New shape:** a hand position whose bag is the current band's single-type rows of the decks the seat does not hold, drawn rarity first as usual (`drawHandPositions`, `thirdPositionOf`, `drawRarityFirst`). |
-| **The Choregia** | patrons | Culture buildings give +1 renown each. | None. | Existing. `renown`, `amount: 1`, `per: 'buildingOfCategory'`, `category: 'culture'` (the retired Patrons' form). No `family`, so it feeds the pool and not the draw's weights. |
-| **The Periclean Works** | monuments | Each wonder you hold gives +1 production in every town. | None. | Existing. `pays`, `where: 'city'`, `basis: 'count'`, `count: 'wonders'`, `to: 'production'`, `amount: 1` (the count The Keepers of Wonders and The Seven Sights read). |
+| **The Choregia** | patrons | Culture buildings give +3 culture and +2 renown each. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
+| **The Periclean Works** | monuments | Each wonder you hold gives +2 production in every town. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
 
 **The Arthashastra** (council)
 - **Why:** Magisterial owns the government system, and your picture is a realm with the right institutions for its time. This makes every choice of government twice as large.
@@ -134,7 +136,7 @@ A Doctrine is held all game and takes no chair. Your comments on the Expansionis
 | **The Magnaura** | council | Each town gains +1 science for each Civic card you have seated. | None. | Existing. `pays`, `where: 'city'`, `basis: 'count'`, `count: 'slottedOrdersOfSlot'`, `slot: 'civic'`, `to: 'science'`, `amount: 1` (The Prytaneion's form with The Prefects' type count). |
 | **The Jinshi** | engine | Rare cards come up twice as often in your Order hands. | None. | Near existing. **New, small:** a holder rule on the rare rung's weight in `rarityOdds` (`statecraft/draft.ts`), +100%, read before the odds are spread over the rarities a position's bag holds. The pity (`skipPity`) moves points as today. |
 | **The Barmakids** | patrons | Each great person you have gained gives every town +1 food and +1 production. | None. | Existing. Two `pays` rows, `where: 'city'`, `basis: 'count'`, `count: 'greatPeopleGained'`, `amount: 1`, one to food and one to production. |
-| **The Peregrini** | landscape | Your great people may lay their works up to two hexes beyond your borders. The hex joins your nearest town. | None. | Near existing. `worksBeyond` gains `works: 'greatWork'` beside `'tended'` (The Garden Frontier, Expansionist batch E4), `reach: 2`. `worksBeyondReach` and the ground clause of `improvementGroundError` ask it for a great person's work (`greatPersonWorkError` reaches that clause through `improvementErrorAt`). The claim is `claimGroundForWork`'s. |
+| **The Peregrini** | landscape | Great-person works give +1 food and +1 production to every hex beside them. Laying a great-person work makes your next great person cost 20% less. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
 
 **The Magnaura** (council)
 - **Why:** the themes pass found that the council reaches science late (section 9). Each other chair type already has a reader: Military cards give strength (The Polemarch), Economic cards production (The Prefects), Wildcard cards science and culture (the Assembly Hall of The Senate Charter). Civic cards had none. This gives them science.
@@ -164,7 +166,7 @@ A Doctrine is held all game and takes no chair. Your comments on the Expansionis
 
 | Doctrine | Theme | Text | Drawback | Shape |
 |---|---|---|---|---|
-| **The Council of Ten** | council | You have one more Wildcard chair. | None. | Existing. `slotRider`, `extra: 1`, read by `chairCount`; a chair beyond the government's mix is a Wildcard chair. |
+| **The Council of Ten** | council | You have two more Wildcard chairs. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
 | **Scutage** | engine | Orders you hold but have not seated pay half their yields. You have one fewer Wildcard chair. | One fewer Wildcard chair. | **New shape:** the flat yield lines of Orders held and not seated, read at one half (The Grand Vizier's `slotPosition` factor, read over the collection instead of one chair). Near existing: `slotRider` with `extra: -1`. |
 | **The Bourgs** | landscape | Towns working a great-person work grow 25% faster. | None. | Existing. `rulePercent`, `rule: 'growthSurplus'`, `percent: 25`, `scope: { test: 'workingGreatWork' }` (a scoped growth rate; Devotion's proposed The Imarets uses the same form). |
 | **The Carroccio** | monuments | Your units gain +1 strength for each wonder you hold, at most +8. | None. | Near existing. `combatLine`, `amount: 1`, `side: 'both'`, `when: { test: 'always' }`, `scaled: { count: 'wonders', per: 1, max: 8 }`. Missing: `wonders` as a `CombatScaleCount`, read as the `CountKind` of that name. |

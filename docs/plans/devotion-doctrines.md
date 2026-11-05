@@ -1,5 +1,7 @@
 # Devotion Doctrines (proposal)
 
+**Revised 2026-11-05:** your comments on the review page changed this list (`docs/plans/doctrine-review-2026-11-05.md`). The tier tables show the current text. Removed Doctrines have left the tables. The notes, checks and counts below a table describe the first proposal. The build plan is `docs/plans/doctrines-build-triage.md`.
+
 **Status:** proposal, 2026-10-25. Nothing is built. No code, data or deck sheet changed. This is stage 6 of the deck pass (the card-design skill, "Doctrines") for Devotion. The Devotion build plan (`docs/plans/devotion-themes-triage.md`, "Doctrines") gives the sheet four empty Doctrine tables in batch DV1 and leaves the design to this file, then to a triage of its own.
 
 The user's request, 2026-10-25, verbatim: *"Please do a pass on the doctrines for the remaining decks"*. Devotion and Magisterial had no Doctrines. Magisterial's are written at the same time, in their own file.
@@ -87,8 +89,8 @@ A Doctrine is held all game and takes no chair. Your comments on the Expansionis
 
 | Doctrine | Theme | Text | Drawback | Shape |
 |---|---|---|---|---|
-| **The Theoric Fund** | engine | +1 happiness for every 100 faith you have spent this game, at most +15. | None. | Near existing. `pays`, `where: 'empire'`, `basis: 'count'`, `count: 'faithSpent'`, `per: 100`, `to: 'happiness'`, `amount: 1`, `max: 15` (the enhancer Congregation's form). The count is the record of faith spent that The Book of Life needs (build plan, DV3: `Player.faithSpent` and the `CountKind` `faithSpent`). |
-| **The Rites of Zhou** | devout realm | +1 authority for each of your towns keeping a rite. | None. | Existing. `authority`, `amount: 1`, `per: 'city'`, `scope: { test: 'keepingRite' }` (The Provincial Chancery's scoped form). |
+| **The Theoric Fund** | engine | +1 culture for every 3 faith your empire makes. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
+| **The Rites of Zhou** | devout realm | Each town holding a rite gains +2 food and +2 happiness. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
 | **The Serapeum** | spreading faith | Each of your gods gives twice its effects. | None. | **New shape, small:** a meta rule that reads the gods twice in `liveEffects`' fourth source (the sibling of `techCountsTwice`). Reading: an offer is not doubled. |
 | **The Paean** | holy war | Your military units gain +1 strength for every god and belief you hold. | None. | Near existing. `combatLine`, `amount: 1`, `side: 'both'`, `when: { test: 'always' }`, `class: { category: 'military' }`, `scaled: { count: 'beliefsHeld', per: 1 }` (Centurions' scaled form). Missing: `beliefsHeld` as a `CombatScaleCount`, read as the `CountKind` that The Creed's rework widens to count gods (build plan, DV3). |
 
@@ -120,10 +122,10 @@ A Doctrine is held all game and takes no chair. Your comments on the Expansionis
 
 | Doctrine | Theme | Text | Drawback | Shape |
 |---|---|---|---|---|
-| **The Capitulary of Herstal** | devout realm | Rites cost your devout towns no faith, except rites that act at once. | None. | **New shape, small:** the rite price read for a town. `riteCostFor` (`religion.ts`) takes no town today. It takes the town, and a `CardRule` `riteCost` (`rulePercent` −100, scope devout) applies to a rite with no `atOnce` (the build plan's reading 9 of a season). |
+| **The Capitulary of Herstal** | devout realm | Rites cost half as much. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
 | **The Seven Councils** | spreading faith | Your religion may hold one more follower belief and one more enhancer belief. | None. | Near existing. A slot grant for the religion's two pools, the sibling of `pantheonSlots`. `poolSlots` (`religion.ts`) reads `pools` with no empire; it asks the founder's cards too. |
 | **The Patrimony of Peter** | holy places | Your holy city's citizens demand no happiness. | None. | Existing. `rulePercent` `happinessDemand` −100, `scope: { test: 'holyCity' }` (The Rites Commonwealth's scoped form). |
-| **The Ribats** | holy war | Your military units cost no upkeep while they stand in land that follows your religion. | None. | Near existing. `upkeepRebate`, `free: true`, `class: { category: 'military' }`, with a new `where` member `followingTerritory` beside `ownTerritory` and `garrison` (the combat condition of that name exists). |
+| **The Ribats** | holy war | Military units created in a town following your religion gain +3 strength for good. Conquering a town converts it to your religion. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
 
 **The Capitulary of Herstal** (devout realm)
 - **Why:** the devout realm's Tier II. The themes pass's fantasy: *"Every town keeps its feasts and fasts."* The investment in turning the realm pays back as seasons that cost nothing.
@@ -156,7 +158,7 @@ A Doctrine is held all game and takes no chair. Your comments on the Expansionis
 |---|---|---|---|---|
 | **The Imarets** | devout realm | Your devout towns grow 25% faster. | None. | Existing. `rulePercent` `growthSurplus` +25, `scope: { test: 'ownersFaith', keeps: true }` (Commerce's proposed The Year and a Day uses the same rule with a scope). |
 | **Canossa** | spreading faith | You and an empire whose capital follows your religion cannot declare war on each other. | You cannot declare war on them either. | **New shape:** a refusal in `declareWarError` (`diplomacy.ts`), asked in both directions, and the bots' war planner told of it. |
-| **The Canons of the Holy Sepulchre** | holy places | Your holy sites yield as if worked, and need no citizen. | None. | Near existing, and shared with Scientific's proposed The Pandidakterion. A sibling of the rule `garrisonWorks` (The Limitanei, Dominion batch D13): a town's holy-site hexes join its worked hexes after the citizens' hexes, and eat no food. |
+| **The Canons of the Holy Sepulchre** | holy places | Towns with a holy site buy with faith at 30% less. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
 | **The Martyr's Crown** | holy war | Each of your units that dies in battle presses your religion on every town within three hexes. | None. | Existing. `windfallRider` on `death`, `grant: { pressure: { amount: 30, range: 3 } }` (the enhancer The Crusade's grant, on `kill`). `payBattleRiders` already pays the `death` moment and hands the presser down, so `pressLump` gains no caller. |
 
 **The Imarets** (devout realm)
@@ -190,7 +192,7 @@ A Doctrine is held all game and takes no chair. Your comments on the Expansionis
 | **The Saint Peter's Indulgence** | engine | +1% production toward the Magnum Opus for every 150 faith you have spent this game. | None. | Near existing. `productionBonus`, `category: 'building'`, `building: 'theMagnumOpus'`, `percent: 1`, `count: 'faithSpent'`, `per: 150`, no `max` (The Great Consecration's form; no cap, your ruling of 2026-10-12). The count is The Theoric Fund's. |
 | **The House of Worship** | devout realm | Your devout towns may buy the Mosque, the Wat, the Gurdwara and the Dar-e Mehr, whatever beliefs your religion holds. | None. | Near existing. Four `unlocksBuilding` effects. Missing: the faith houses' gate (`followingOnly`, "only in a city that keeps the faith that opened it") also admits a devout town of the empire whose Doctrine opened them. |
 | **The Apostolic Camera** | spreading faith | Your follower beliefs also pay you in every foreign town that follows your religion. | None. | **New shape:** each follower belief's town lines, read in a foreign town that follows the holder's religion, paid to the holder too as one empire line. The owner keeps its own pay. |
-| **The Two Sanctuaries** | holy places | Holy site yields are doubled. | None. | Existing. `pays`, `where: 'hex'`, `on: { test: 'improvement', improvement: 'holySite' }`, `wholePercent: 100` (The Strategoi's doubled citadels). |
+| **The Two Sanctuaries** | holy places | Hexes with a holy site have double yields, applied after every other change to the hex. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
 
 **The Saint Peter's Indulgence** (engine)
 - **Why:** your picture: *"faith should feel like a win condition"*. Every faith the seat has spent since the first god now counts toward the Magnum Opus.

@@ -10,14 +10,14 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 - **Gates:** "Needs tended land" deals a card only to a seat holding a tended-work charter. "Needs a levy" deals a card only to a seat holding a card that grants a levy, in a chair or not.
 - **Why each card is here:** `docs/plans/expansionist-themes.md`, the themes pass of 2026-10-21. It gives the engine (citizens and the levy), the four themes (the raised land, the frontier, public works and the militia), and your rulings in section 11. Each card's theme and role are in `docs/plans/expansionist-list-proposed.md`. The earlier pass, the builds you accepted on 2026-10-16, is `docs/plans/expansionist-builds.md`.
 - **The build:** the plan is `docs/plans/expansionist-themes-triage.md` (batches E7 to E13). Batch E7 wrote this sheet from the themes pass, retired the fifteen cut cards that had a data row, and built the ten cards changed in place: The Rope Stretchers, Six Gardens, The Milestones, The Teeming Realm, The Staked Claims, Plenty, The Wide Country, The Measure of the Land, The Mother City and The Domesday Survey. Six Gardens, The Wide Country and The Domesday Survey now leave an institution: effects that hold for the rest of the game and take no chair. Batch E8 built five new cards in shapes that already existed: The Founding Furrow, The Horrea, The Land Hunger, The Many Hands and The Capitolia. Batch E9 built the land: The Burning Season burns an improved tile and keeps the work, The Marl Pits marks the farms and pastures beside a new mine or quarry, Commission: Break the Sod leaves works counted as ten turns older, The Two Harvests counts farms, mines and lumber mills as tended, and The Mountain Schools asks for two mountains in a town's borders. Batch E10 built the militia and the trades: Veteran Colonies gives a town one citizen when a soldier retires there, Watch and Ward gives units a levy raised +5 strength in your own territory, and The Burghers fill the guild bar half again as fast in towns of twelve citizens or more. Batch E11 built public works and empire buildings: six buildings (the Granary, Aqueduct, Watermill, Harbour, Public Bath and Cistern) are marked as public works, The Aediles grows with each public work you finish, The Public Good pays for each public work you hold, and The Topping Out pays every town when you finish an empire building. Batch E12 built The Cura Aquarum: a town joined to your capital by road counts as having an Aqueduct for everything an Aqueduct does and for every card that asks whether a town has one, but not for what was built (score, upkeep, triumphs, wagers, buying, the build list, or finishing one). The first round of batches, E0 to E6, is `docs/plans/expansionist-build-triage.md`.
-- **Doctrines:** proposed on 2026-10-17 and revised by your comments of 2026-10-23: 24 remain (5, 5, 7 and 7 across Tiers I to IV); none is built. Each tier's Doctrine table sits above its Orders, and the Build column names the build or flavour of 2026-10-16 that each is written for. The reasons, drawbacks, pairs and shapes, your comments, and the questions are in `docs/plans/expansionist-builds.md`, "Doctrines, proposed 2026-10-17".
+- **Doctrines:** proposed on 2026-10-17 and revised by your comments of 2026-10-23: 24 remain (4, 6, 7 and 7 across Tiers I to IV), revised again by your comments of 2026-11-03 (`docs/plans/doctrine-review-2026-11-05.md`); none is built. Each tier's Doctrine table sits above its Orders, and the Build column names the build or flavour of 2026-10-16 that each is written for. The reasons, drawbacks, pairs and shapes, your comments, and the questions are in `docs/plans/expansionist-builds.md`, "Doctrines, proposed 2026-10-17".
 - **The long form** (the D3 "built as" details, the tended works as built, the synergy section, the proposed cuts and the proposed revision of 2026-10-13): `docs/decks/reference/expansionist-2026-10-16.md`.
 
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
 | Tier 0 | 13 | 0 | 0 | 13 | none |
-| Tier I | 26 | 0 | 0 | 26 | 5 proposed |
-| Tier II | 24 | 1 | 0 | 25 | 5 proposed |
+| Tier I | 26 | 0 | 0 | 26 | 4 proposed |
+| Tier II | 24 | 1 | 0 | 25 | 6 proposed |
 | Tier III | 31 | 0 | 0 | 31 | 7 proposed |
 | Tier IV | 18 | 0 | 0 | 18 | 7 proposed |
 | **All** | **112** | **1** | **0** | **113** | **24 proposed** |
@@ -61,10 +61,9 @@ The 113 cards are 110 that take a chair and three charters (The Fish Traps, The 
 
 | Doctrine | Build | Text |
 |---|---|---|
-| **Bound to the Soil** | improvement | Your workers never run out of charges. You may hold at most one worker for every two towns. |
-| **Synoecism** | tall | Your towns of six or more citizens grow 30% faster. Towns you found cost 2 more authority. |
-| **The Gift of the River** | tall: waterworks | Worked tiles beside a river gain +1 food and +1 production. Towns away from fresh water cost 2 more authority and 2 more happiness. |
-| **The Highland Clans** | wide: highlands | Towns on hills cost 1 less authority and gain +2 production. Towns off the hills grow 20% more slowly. |
+| **Bound to the Soil** | improvement | Workers gain +1 charge. Tended tiles gain +1 food. |
+| **The Gift of the River** | tall: waterworks | Worked tiles beside a river gain +1 food and +1 production. Towns away from fresh water cost 3 more happiness. |
+| **The Highland Clans** | wide: highlands | Towns on hills cost 1 less authority. Hills beside a town gain +1 food. |
 | **The Commanderies** | wide: well-ordered realm | Each of your towns costs 1 less authority, minimum one. Your borders grow 30% more slowly. |
 
 **Orders:**
@@ -105,8 +104,9 @@ The 113 cards are 110 that take a chair and three charters (The Fish Traps, The 
 | Doctrine | Build | Text |
 |---|---|---|
 | **The Georgics** | improvement | Your works count as having stood twice as long. Improvements that have stood for twenty turns gain +1 production. |
-| **The Curator of Waters** | tall: waterworks | Aqueducts give +3 happiness and are built 50% faster. |
-| **The Liturgies** | tall: breadbasket | Needs a levy. Your towns may levy every two turns instead of every five. Your towns cannot grow beyond fifteen citizens. |
+| **Synoecism** | tall | Your towns of six or more citizens grow 30% faster. Towns you founded cost 1 more authority, including those you already hold. |
+| **The Curator of Waters** | tall: waterworks | Public works give +2 happiness and are built 50% faster. |
+| **Human Sacrifice** | tall: breadbasket | Your towns may levy every two turns instead of every five. Your capital may levy a citizen to perform a rite across your empire. |
 | **The Censors** | wide: well-ordered realm | When the world takes a census, each of your towns gains a citizen. If you lead the census, each of your towns also gains +1 happiness for the rest of the game. |
 | **The Wildwood Compact** | tended land | Needs tended land. Tended works cost your workers no charge. Workers you gain from now on have one less charge. |
 
@@ -148,8 +148,8 @@ The 113 cards are 110 that take a chair and three charters (The Fish Traps, The 
 |---|---|---|
 | **Crop Rotation** | improvement | Worked improvements yield twice their own bonus. Worked unimproved tiles yield nothing. |
 | **The Contented City** | tall | Your citizens ask 20% less happiness. Your gold income is halved. |
-| **The Builder Kings** | tall: great works | +35% production toward wonders. You can no longer buy buildings or units. |
-| **Empire Without End** | wide | +1 authority for each town you hold. Your towns grow 40% more slowly. |
+| **The Builder Kings** | tall: great works | +25% production toward wonders. Manufactories gain +2 production for each wonder in the town working them. |
+| **Empire Without End** | wide | +1 authority for each town you hold. |
 | **All Roads Lead to Rome** | wide: road network | Your capital gains +3% production and gold for each town joined to it by road, at most +45%. Each town not joined to it costs 2 more authority. |
 | **The Planted Towns** | flex | Towns you found start with four citizens and a Monument. Training a settler also costs its town a citizen. |
 | **The Garden Peoples** | tended land | Needs tended land. Tended tiles gain +1 food, +1 production and +1 culture. |

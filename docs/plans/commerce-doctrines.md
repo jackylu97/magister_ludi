@@ -1,5 +1,7 @@
 # Commerce Doctrines (proposal)
 
+**Revised 2026-11-05:** your comments on the review page changed this list (`docs/plans/doctrine-review-2026-11-05.md`). The tier tables show the current text. Removed Doctrines have left the tables. The notes, checks and counts below a table describe the first proposal. The build plan is `docs/plans/doctrines-build-triage.md`.
+
 **Status:** proposal, 2026-10-23. Nothing is built. No code, data or deck sheet changed. This is stage 6 of the deck pass (the card-design skill, "Doctrines") for Commerce. The build plan (`docs/plans/commerce-themes-triage.md`, "Doctrines") gives the sheet four empty Doctrine tables in batch T1 and leaves the design to this pass.
 
 The user's request, 2026-10-23, verbatim: *"could you assign a subagent to create doctrines for commerce and scientific, update the doc when done."* The Scientific Doctrines are in `docs/plans/scientific-doctrines.md`.
@@ -61,10 +63,9 @@ A Doctrine is held all game and takes no chair. So a Doctrine with a real drawba
 
 | Doctrine | Theme | Text | Drawback | Shape |
 |---|---|---|---|---|
-| **The Apoikia** | engine | Settlers and workers cost half as much gold to buy. Your towns build them at half speed. | Building settlers and workers is slow. | Existing. `purchaseRider`, `class: { modelClasses: ['settler', 'worker'] }`, `on: 'unit'`, −50; `productionBonus` unit with the same class, −50, `stage: 'empire'` (The Marian Reforms' form). |
+| **The Apoikia** | engine | Settlers and workers cost half as much gold to buy. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
 | **The Laurion Leases** | goods | Hexes with a resource cost half as much gold to buy. | None. Revised 2026-11-03 (your comment of 2026-10-25: *"remove malice"*). | Near existing. **New, small:** a hex test on the `tilePurchase` rule (`tile: { test: 'hasResource' }`), asked of the hex `explainTilePurchase` prices. |
-| **The Debased Denarius** | bankers | Your towns gain +50% gold. Units, buildings, caravans and hexes cost 50% more gold. | Everything you buy costs half again. | Existing. `percentYields` gold +50; `purchaseRider`, `class: {}`, `on: 'all'`, +50 (Foreign Procurement's form); `rulePercent` `tilePurchase` +50. |
-| **The Delian League** | far trade | Your coastal towns cost 1 less authority. Your other towns cost 1 more. | Inland towns cost more. | Near existing. `meterRule` `coastalCityCost` `delta: −1`. **New, small:** a negated scope `notCoastal` (as `notFreshwater` is) for `meterRule` `cityCost` `delta: 1`. |
+| **The Delian League** | far trade | Your coastal towns cost 1 less authority and gain +3 production. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
 
 **The Apoikia** (engine)
 - **Why:** the user asked for early Commerce cards that help a seat settle (section 11 of the themes pass). The deck's verb is buying, so this lets gold found the towns.
@@ -96,7 +97,7 @@ A Doctrine is held all game and takes no chair. So a Doctrine with a real drawba
 | Doctrine | Theme | Text | Drawback | Shape |
 |---|---|---|---|---|
 | **The Grand Canal** | home market | Each of your domestic routes carries half of its origin's surplus food to its destination. | The origin loses that food. | **New shape:** food moved along a route, as a labelled line in both towns' folds. Expansionist's proposed The Annona and The Royal Works needed the same family; your comments of 2026-10-23 cut both. |
-| **The Sogdian Colonies** | far trade | Your trading posts are established after ten turns, not twenty. | None. | Near existing. **New, small:** a `CardRule` `postTerm` for `rulePercent` (−50), `routeTerm`'s sibling, read by `postTermTurns()`. |
+| **The Sogdian Colonies** | far trade | Each of your towns holding your trading post gains +3 culture and +3 renown, favouring merchants. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
 | **The Forbidden Silks** | goods | Your luxuries give twice their happiness. You cannot lend luxuries in deals. | No luxury may be lent. | Near existing. `effectAmplifier` `luxuryHappiness` +100 exists. **New, small:** a flag rule that refuses a deal in which you lend a luxury (`proposeDealError`). |
 | **The Flying Money** | bankers | Your towns with a gold building buy units and buildings 20% cheaper. Your other towns cannot buy them. | Towns without a gold building cannot buy. | Near existing. `purchaseRider` on `unit` and on `building`, −20, scope `{ test: 'buildingsOfCategory', category: 'gold', atLeast: 1 }`. **New, small:** `purchaseError` refuses a purchase in a town the rule's scope does not admit. |
 
@@ -129,9 +130,8 @@ A Doctrine is held all game and takes no chair. So a Doctrine with a real drawba
 | Doctrine | Theme | Text | Drawback | Shape |
 |---|---|---|---|---|
 | **The Year and a Day** | home market | Your towns that a domestic route reaches grow 25% faster. Your other towns grow 25% more slowly. | Towns off the network grow slowly. | Existing. `rulePercent` `growthSurplus` +25, scope `{ test: 'routeEndsHere', crossing: 'domestic', direction: 'arriving' }`; −25 with the same scope and `atMost: 0`. |
-| **The Muda** | far trade | +1 trade route for each empire your routes reach. Your domestic routes pay 25% less. | Home routes pay less. | Existing. `routeRider`, `count: 'tradePartnerEmpires'`, `extra: 1`; `pays`, `where: 'route'`, `crossing: 'domestic'`, `share` all −25 (a negative share, to check in the triage). |
-| **The Bardi Company** | bankers | Gold you give another empire in a deal is a loan. When the deal ends, that empire pays it back twice over. A war between you cancels the loan. | A war loses the loan. | **New shape:** a loan on a deal. |
-| **The Tea and Horse Agency** | goods | Your strategic resources also count as luxuries. | None. | **New shape:** the luxury readings also count strategic kinds and copies, for the holder. |
+| **The Muda** | far trade | Your trade routes to other empires pay +3 science and +3 culture, and cannot be plundered. | None. Revised 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
+| **The Turnpike Trusts** | far trade | Caravans cost half as much gold to buy. Hexes with a road gain +1 gold. | None. New 2026-11-05 (your comment). | See `docs/plans/doctrine-review-2026-11-05.md`. |
 
 **The Year and a Day** (home market)
 - **Why:** the user's picture: *"gain passive bonuses from wealth as populations grow and the world becomes more connected."* This makes the network itself the reason a town grows.
