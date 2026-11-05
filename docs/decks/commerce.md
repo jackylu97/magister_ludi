@@ -18,7 +18,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
   - **(was …)** names the data row that a renamed card takes over.
 - **Type:** the last column says which chair the card fits: **Military**, **Economic**, **Civic** or **Wildcard** (`docs/plans/doctrines-governments-chairs.md`, section 4). Since batch T1 the types are in the data. A Commerce card fits only a chair of its own type or a Wildcard chair. The sync test checks this column for every row in the data, the shared table's included.
 - **Charters:** two, counted in the Charters column below: The Planters' Charter (Tier I) and Numidian Cavalry (Tier II). A charter never takes a chair. Its type is only for the card's face.
-- **Doctrines:** none built. Each of Tiers I to IV has an empty Doctrine table above its Orders. Sixteen are proposed, four a tier, in `docs/plans/commerce-doctrines.md` (2026-10-23), for your review.
+- **Doctrines:** 14 (3, 4, 3 and 4 across Tiers I to IV), after your comments of 2026-11-05 (`docs/plans/doctrine-review-2026-11-05.md`). A Doctrine is held for the whole game and takes no chair. Each tier's Doctrine table sits above its Orders, and the Build column names the theme that each is written for. Batch DT3 built 7, the ones that need no new shape: The Apoikia, The Delian League, The Sogdian Colonies, The Year and a Day, The Turnpike Trusts, The Peace of Lodi and The Monte di Pietà. The other 7 are on the tables and are not dealt yet; `docs/plans/doctrines-build-triage.md` gives the batch that builds each one. The reasons and pairs are in `docs/plans/commerce-doctrines.md`.
 - **The sheet of 2026-10-07** (69 cards, in the old format) is in git history: `git show 48f37cf8:docs/decks/commerce.md`.
 
 | Tier | Implemented | Modify | Add | All | Charters |
@@ -62,10 +62,13 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 
 ## Tier I
 
-**Doctrines:** none yet.
+**Doctrines,** offered with the tier-4 governments:
 
 | Doctrine | Build | Text |
 |---|---|---|
+| **The Apoikia** | engine | Settlers and workers cost half as much gold to buy. |
+| **The Laurion Leases** | goods | Hexes with a resource cost half as much gold to buy. |
+| **The Delian League** | far trade | Your coastal towns cost 1 less authority and gain +3 production. |
 
 **Orders:**
 
@@ -86,10 +89,14 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 
 ## Tier II
 
-**Doctrines:** none yet.
+**Doctrines,** offered with the tier-10 governments:
 
 | Doctrine | Build | Text |
 |---|---|---|
+| **The Grand Canal** | home market | Each of your domestic routes carries half of its origin's surplus food to its destination. |
+| **The Sogdian Colonies** | far trade | Each of your towns holding your trading post gains +3 culture and +3 renown, favouring merchants. |
+| **The Forbidden Silks** | goods | Your luxuries give twice their happiness. You cannot lend luxuries in deals. |
+| **The Flying Money** | bankers | Your towns with a gold building buy units and buildings 20% cheaper. Your other towns cannot buy them. |
 
 **Orders:**
 
@@ -122,10 +129,13 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 
 ## Tier III
 
-**Doctrines:** none yet.
+**Doctrines,** offered with the tier-18 governments:
 
 | Doctrine | Build | Text |
 |---|---|---|
+| **The Year and a Day** | home market | Your towns that a domestic route reaches grow 25% faster. Your other towns grow 25% more slowly. |
+| **The Muda** | far trade | Your trade routes to other empires pay +3 science and +3 culture, and cannot be plundered. |
+| **The Turnpike Trusts** | far trade | Caravans cost half as much gold to buy. Hexes with a road gain +1 gold. |
 
 **Orders:**
 
@@ -153,10 +163,14 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 
 ## Tier IV
 
-**Doctrines:** none yet.
+**Doctrines,** offered with the tier-26 governments:
 
 | Doctrine | Build | Text |
 |---|---|---|
+| **The Sea Ban** | home market | Your domestic routes pay twice as much. You cannot send trade routes to other empires. |
+| **The Peace of Lodi** | far trade | While you are at peace, your trade routes pay 50% more. While you are at war, they pay 25% less. |
+| **The Opera del Duomo** | engine | Gold you pour into the Magnum Opus buys twice as many hammers. Your towns build the Magnum Opus 25% more slowly. |
+| **The Monte di Pietà** | bankers | Every 200 gold in your treasury gives +1 happiness, at most +20. Your towns make 10% less gold. |
 
 **Orders:**
 
@@ -233,7 +247,7 @@ These rows stay in the data so that old saves load. They are dealt to nobody, th
   - **Approved as recommended:** the engine and the four themes, feature D (deals as a card quantity), the rule-breakers, the trims, the moves to the shared cards, the cuts, Established Routes at twenty turns with bots that renew a route, and Tier II as the first tier for route cards.
   - **The triage's questions 1 to 7** (*"approved, lets begin implementation. for 1-7, go with the recommendations."*): the build uses readings 1 to 42, shares Dominion's The Standing Army with Commerce, and builds The Art Dealers (both in batch T7).
 - **Still open:**
-  - **Commerce's Doctrines:** sixteen proposed on 2026-10-23 (`docs/plans/commerce-doctrines.md`), waiting for your review; a triage of their own builds them.
+  - **Commerce's Doctrines:** your review of 2026-11-05 closed the questions on them. All 14 are being built (`docs/plans/doctrines-build-triage.md`).
   - **Seven rows play as built:** The Planters' Charter, Numidian Cavalry, The Exchange, The Monopoly, The Great Loan, The Silk Road Monks and The Brokers' Redraw. The list doc's row for each says what the game does. A later pass either rewrites their text to what the game does or builds the text.
   - **The Merchant Works** touches the wonder split. It stays as written. Say if you want "a world wonder" dropped from its text.
   - **The cards shared with Devotion and Magisterial** keep their built text and this sheet's types until those decks' passes. Travelling Players took the Magisterial pass's text in Magisterial batch MG4.

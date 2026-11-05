@@ -1310,10 +1310,16 @@ describe('determinism', () => {
    * not the length** at both seeds: 206 became 207, and that is all. Nobody here
    * adopts a government, so no offer opens. Checked with the change in place and
    * the version printed as 206, which gives the hashes of batch DT1 exactly.
+   *
+   * **Batch DT3 (Commerce's and Scientific's first Doctrines, schema 208) moved
+   * the hash and not the length** at both seeds: 207 became 208, and that is all.
+   * Nobody here adopts a government or hires a caravan. Checked with the change in
+   * place and the version printed as 207, which gives the hashes of batch DT2
+   * exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '834ad37d:190677',
-    2026: '4a6fbb4c:190843',
+    11: '8194fda2:190677',
+    2026: '9a83f44f:190843',
   };
 
   for (const seed of [11, 2026]) {

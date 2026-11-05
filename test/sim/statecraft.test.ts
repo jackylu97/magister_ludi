@@ -2271,7 +2271,10 @@ describe("determinism", () => {
     // 207 since batch DT2 (Expansionist's Doctrines, data only): eleven rows join
     // the deck, so an Expansionist seat is now offered Doctrines and a v206 log's
     // draws move.
-    expect(SCHEMA_VERSION).toBe(207);
+    // 208 since batch DT3 (Commerce's and Scientific's Doctrines, data only):
+    // fifteen rows join the two decks, so their seats are now offered Doctrines and
+    // a v207 log's draws move.
+    expect(SCHEMA_VERSION).toBe(208);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -9026,6 +9029,13 @@ describe("the engine shapes", () => {
     // takes a share of the whole recurring renown (`where: 'empire'`). The
     // Doctrines come before the Orders in the walk.
     "theStrategoi · cityRenownPercent",
+    // Batch DT3: The Peace of Lodi's two shares of a caravan, one for peace and one
+    // for war, and The Universitas' two shares of a science building, one positive
+    // and one negative.
+    "thePeaceOfLodi · routeYield",
+    "thePeaceOfLodi · routeYield",
+    "theUniversitas · buildingYieldPercent",
+    "theUniversitas · buildingYieldPercent",
     "silkRoads · routeYield",
     "ledgerKeepers · routeYield",
     "theSynod · buildingYieldPercent",

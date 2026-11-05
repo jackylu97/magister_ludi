@@ -971,6 +971,152 @@
     "raw": "the authority each city but your capital costs rises by 1",
     "text": "the authority each city but your capital costs rises by 1"
    }
+  ],
+  "theApoikia": [
+   {
+    "raw": "settlers cost −50% to buy with gold",
+    "text": "settlers cost −50% to buy with gold"
+   },
+   {
+    "raw": "workers cost −50% to buy with gold",
+    "text": "workers cost −50% to buy with gold"
+   }
+  ],
+  "theDelianLeague": [
+   {
+    "raw": "the authority a coastal city costs falls by 1",
+    "text": "the authority a coastal city costs falls by 1"
+   },
+   {
+    "raw": "+3 production in every coastal city",
+    "text": "+3 production in every coastal city"
+   }
+  ],
+  "theSogdianColonies": [
+   {
+    "raw": "+3 culture in every city that holds your trading post",
+    "text": "+3 culture in every city that holds your trading post"
+   },
+   {
+    "raw": "+3 renown per turn in every city that holds your trading post, favouring merchants",
+    "text": "+3 renown per turn in every city that holds your trading post, favouring merchants"
+   }
+  ],
+  "theYearAndADay": [
+   {
+    "raw": "+25% food surplus stored toward growth, in every city one of your own trade routes ends at",
+    "text": "+25% food surplus stored toward growth, in every city one of your own trade routes ends at"
+   },
+   {
+    "raw": "-25% food surplus stored toward growth, in every city no trade route of your own ends at",
+    "text": "-25% food surplus stored toward growth, in every city no trade route of your own ends at"
+   }
+  ],
+  "theTurnpikeTrusts": [
+   {
+    "raw": "hiring a caravan costs 50% less",
+    "text": "hiring a caravan costs 50% less"
+   },
+   {
+    "raw": "+1 gold on every hex with a road",
+    "text": "+1 gold on every hex with a road"
+   }
+  ],
+  "thePeaceOfLodi": [
+   {
+    "raw": "while you are at peace: +50% everything on every trade route you send",
+    "text": "while you are at peace: +50% everything on every trade route you send"
+   },
+   {
+    "raw": "while you are at war: -25% everything on every trade route you send",
+    "text": "while you are at war: -25% everything on every trade route you send"
+   }
+  ],
+  "theMonteDiPieta": [
+   {
+    "raw": "+1 happiness per 200 gold in the treasury (at most +20 happiness)",
+    "text": "+1 happiness per 200 gold in the treasury (at most +20 happiness)"
+   },
+   {
+    "raw": "-10% gold in every city",
+    "text": "-10% gold in every city"
+   }
+  ],
+  "thePythagoreanBrotherhood": [
+   {
+    "raw": "+2 science in every city",
+    "text": "+2 science in every city"
+   },
+   {
+    "raw": "+2 science in every city with a [[building:shrine|Shrine]]",
+    "text": "+2 science in every city with a Shrine"
+   }
+  ],
+  "theRemovalToXianyang": [
+   {
+    "raw": "+30% food surplus stored toward growth",
+    "text": "+30% food surplus stored toward growth"
+   },
+   {
+    "raw": "settlers cost 100% more production",
+    "text": "settlers cost 100% more production"
+   }
+  ],
+  "theWorkshopsOfSyracuse": [
+   {
+    "raw": "+5 combat strength for military units",
+    "text": "+5 combat strength for military units"
+   },
+   {
+    "raw": "military units cost 50% more to build and to buy",
+    "text": "military units cost 50% more to build and to buy"
+   }
+  ],
+  "theJixianAcademy": [
+   {
+    "raw": "completing a technology grants culture equal to 20% of the science it cost you",
+    "text": "completing a technology grants culture equal to 20% of the science it cost you"
+   },
+   {
+    "raw": "-25% culture in every city",
+    "text": "-25% culture in every city"
+   }
+  ],
+  "theAcademyOfGondishapur": [
+   {
+    "raw": "+15% science in every city holding an empire building",
+    "text": "+15% science in every city holding an empire building"
+   },
+   {
+    "raw": "+20% production toward empire buildings",
+    "text": "+20% production toward empire buildings"
+   }
+  ],
+  "thePandidakterion": [
+   {
+    "raw": "the yields of every hex with an [[improvement:academy|Academy]] are doubled",
+    "text": "the yields of every hex with an Academy are doubled"
+   }
+  ],
+  "theUniversitas": [
+   {
+    "raw": "your science buildings pay +100% in every city of 12 or more citizens",
+    "text": "your science buildings pay +100% in every city of 12 or more citizens"
+   },
+   {
+    "raw": "your science buildings pay -50% in every city of 11 or fewer citizens",
+    "text": "your science buildings pay -50% in every city of 11 or fewer citizens"
+   }
+  ],
+  "theVolleyFire": [
+   {
+    "raw": "ranged units may attack twice a turn",
+    "text": "ranged units may attack twice a turn"
+   },
+   {
+    "raw": "-10% combat strength for melee units",
+    "text": "-10% combat strength for melee units"
+   }
   ]
  },
  "order": {

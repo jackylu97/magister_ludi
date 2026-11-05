@@ -3189,5 +3189,225 @@
       ],
       "note": "Merchants in the trades are counted in all of your cities together."
     }
+  },
+  "doctrines": {
+    "theApoikia": {
+      "name": "The Apoikia",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "flavor": "The mother city pays for the ship and forgets the rest.",
+      "text": "Settlers and workers cost half as much gold to buy.",
+      "effects": [
+        {
+          "kind": "purchaseRider",
+          "class": {
+            "type": "settler"
+          },
+          "on": "unit",
+          "currency": "gold",
+          "percent": -50
+        },
+        {
+          "kind": "purchaseRider",
+          "class": {
+            "type": "worker"
+          },
+          "on": "unit",
+          "currency": "gold",
+          "percent": -50
+        }
+      ]
+    },
+    "theDelianLeague": {
+      "name": "The Delian League",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "flavor": "Every island pays in ships or in silver, and the fleet collects both.",
+      "text": "Your coastal towns cost 1 less authority and gain +3 production.",
+      "effects": [
+        {
+          "kind": "meterRule",
+          "rule": "coastalCityCost",
+          "delta": -1
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "production": 3,
+          "scope": {
+            "test": "coastal"
+          }
+        }
+      ]
+    },
+    "theSogdianColonies": {
+      "name": "The Sogdian Colonies",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "flavor": "In every town on the road there is a cousin who keeps the books.",
+      "text": "Each of your towns holding your trading post gains +3 culture and +3 renown, favouring merchants.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "culture": 3,
+          "scope": {
+            "test": "holdsPost"
+          }
+        },
+        {
+          "kind": "renown",
+          "amount": 3,
+          "per": "city",
+          "scope": {
+            "test": "holdsPost"
+          },
+          "family": "merchant"
+        }
+      ]
+    },
+    "theYearAndADay": {
+      "name": "The Year and a Day",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "flavor": "Stay a year and a day, and the lord's bailiff no longer knows your name.",
+      "text": "Your towns that a domestic route reaches grow 25% faster. Your other towns grow 25% more slowly.",
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "growthSurplus",
+          "percent": 25,
+          "scope": {
+            "test": "routeEndsHere",
+            "crossing": "domestic",
+            "direction": "arriving"
+          }
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "growthSurplus",
+          "percent": -25,
+          "scope": {
+            "test": "routeEndsHere",
+            "crossing": "domestic",
+            "direction": "arriving",
+            "atMost": 0
+          }
+        }
+      ]
+    },
+    "theTurnpikeTrusts": {
+      "name": "The Turnpike Trusts",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "flavor": "Pay at the pike, and the road will still be there next winter.",
+      "text": "Caravans cost half as much gold to buy. Hexes with a road gain +1 gold.",
+      "effects": [
+        {
+          "kind": "purchaseRider",
+          "class": {},
+          "on": "route",
+          "percent": -50
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "gold": 1,
+          "on": {
+            "test": "road"
+          }
+        }
+      ]
+    },
+    "thePeaceOfLodi": {
+      "name": "The Peace of Lodi",
+      "decks": [
+        "commerce"
+      ],
+      "band": 4,
+      "line": "none",
+      "flavor": "The captains went home, and the bankers opened their books.",
+      "text": "While you are at peace, your trade routes pay 50% more. While you are at war, they pay 25% less.",
+      "effects": [
+        {
+          "kind": "conditionRule",
+          "when": {
+            "test": "atPeace"
+          },
+          "then": [
+            {
+              "kind": "pays",
+              "where": "route",
+              "share": [
+                {
+                  "yield": "all",
+                  "percent": 50
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "conditionRule",
+          "when": {
+            "test": "atWar"
+          },
+          "then": [
+            {
+              "kind": "pays",
+              "where": "route",
+              "share": [
+                {
+                  "yield": "all",
+                  "percent": -25
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "theMonteDiPieta": {
+      "name": "The Monte di Pietà",
+      "decks": [
+        "commerce"
+      ],
+      "band": 4,
+      "line": "none",
+      "flavor": "A city that lends to its poor sleeps better than one that does not.",
+      "text": "Every 200 gold in your treasury gives +1 happiness, at most +20. Your towns make 10% less gold.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "bankedGold",
+          "per": 200,
+          "to": "happiness",
+          "amount": 1,
+          "max": 20
+        },
+        {
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": -10
+        }
+      ]
+    }
   }
 }

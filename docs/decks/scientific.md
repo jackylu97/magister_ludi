@@ -27,7 +27,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
   - **(was …)** names the data row that a renamed card takes over.
 - **Type:** the last column says which chair the card fits: **Military**, **Economic**, **Civic** or **Wildcard** (`docs/plans/doctrines-governments-chairs.md`, section 4). Since batch S1b the types are in the data. A Scientific card fits only a chair of its own type or a Wildcard chair. The sync test checks this column for every row in the data, the shared table's included.
 - **Charters:** thirteen, counted in the Charters column below. A charter never takes a chair. Drafting it opens its charter technology for research, and knowing that technology gives what the text says. Its type is only for the card's face. A charter's text starts "Drafting this opens" and ends "No chair required.", as the data writes it. A charter stayed deferred until its whole gift was built (the triage's reading 21). All thirteen are dealt since batch S5.
-- **Doctrines:** none built. Sixteen are proposed, four a tier, in `docs/plans/scientific-doctrines.md` (2026-10-23), for your review.
+- **Doctrines:** 15 (4, 3, 4 and 4 across Tiers I to IV), after your comments of 2026-11-05 (`docs/plans/doctrine-review-2026-11-05.md`). A Doctrine is held for the whole game and takes no chair. Each tier's Doctrine table sits above its Orders, and the Build column names the theme that each is written for. Batch DT3 built 8, the ones that need no new shape: The Pythagorean Brotherhood, The Removal to Xianyang, The Workshops of Syracuse, The Jixian Academy, The Academy of Gondishapur, The Pandidakterion, The Universitas and The Volley Fire. The other 7 are on the tables and are not dealt yet; `docs/plans/doctrines-build-triage.md` gives the batch that builds each one. The reasons and pairs are in `docs/plans/scientific-doctrines.md`.
 - **The sheet of 2026-10-12** (61 cards, 11 charters) is in git history: `git show 4aa4be29:docs/decks/scientific.md`.
 
 | Tier | Implemented | Modify | Add | All | Charters |
@@ -70,6 +70,17 @@ Without the charters, the deck holds 65 cards that take a chair: 7, 17, 16, 14 a
 
 ## Tier I
 
+**Doctrines,** offered with the tier-4 governments:
+
+| Doctrine | Build | Text |
+|---|---|---|
+| **The Pythagorean Brotherhood** | engine | +2 science in every city, doubled in cities with a Shrine. |
+| **The Removal to Xianyang** | great cities | Your towns grow 30% faster. Settlers cost twice as much. |
+| **The Workshops of Syracuse** | elite army | Your military units gain +5 combat strength. They cost 50% more to build and to buy. |
+| **The Peripatetic School** | learned land | Academies gain +2 science and +2 production. Science buildings and wonders give +30% renown. |
+
+**Orders:**
+
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
 | **The Glassmakers' Charter** | uncommon | implemented | Drafting this opens Optics for research. Knowing it lets you build the Specularium, a city building only you can build: +3 food, and +1 science for every two citizens of its town. No chair required. | Civic |
@@ -94,6 +105,16 @@ Without the charters, the deck holds 65 cards that take a chair: 7, 17, 16, 14 a
 | **The Sky Watchers** | common | implemented | Shrines give +1 faith and +1 science. | Civic |
 
 ## Tier II
+
+**Doctrines,** offered with the tier-10 governments:
+
+| Doctrine | Build | Text |
+|---|---|---|
+| **The Jixian Academy** | engine | Completing a technology grants culture equal to a fifth of its cost. Your towns make 25% less culture. |
+| **The Academy of Gondishapur** | institutions | Towns with an empire building gain +15% science. +20% production toward empire buildings. |
+| **The Pandidakterion** | learned land | Hexes with an Academy have double yields, applied after every other change to the hex. |
+
+**Orders:**
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
@@ -120,6 +141,17 @@ Without the charters, the deck holds 65 cards that take a chair: 7, 17, 16, 14 a
 
 ## Tier III
 
+**Doctrines,** offered with the tier-18 governments:
+
+| Doctrine | Build | Text |
+|---|---|---|
+| **The Directorate of Arms** | engine (the lead); bridge to the elite army | While no empire you have met knows more technologies than you, your units gain +3 combat strength. |
+| **The Universitas** | great cities | Science buildings in your towns of twelve or more citizens produce twice their yields. In your smaller towns they produce half. |
+| **The Volley Fire** | elite army | Your archer line (Archer to Crossbowman) may attack twice a turn. Your melee units fight at −10% strength. |
+| **The Külliye** | institutions | Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings. |
+
+**Orders:**
+
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
 | **The Alchemists' Charter** | uncommon | implemented | Drafting this opens Chemistry for research. Knowing it gives the Grenadier trait to the Warrior line (Warrior to Longswordsman), kept through every upgrade: +1 strength, and +1 more for each charter technology you know. Workers may build Niter Beds beside a farm or pasture, which supply one niter. Chemistry does not open the Magnum Opus. No chair required. | Military |
@@ -140,6 +172,17 @@ Without the charters, the deck holds 65 cards that take a chair: 7, 17, 16, 14 a
 | **Greek Fire** | uncommon | implemented | Gaining a unit that no empire you have met can build grants science and culture equal to its strength. | Civic |
 
 ## Tier IV
+
+**Doctrines,** offered with the tier-26 governments:
+
+| Doctrine | Build | Text |
+|---|---|---|
+| **The Court of Rudolf II** | engine | Alchemy, and the fourth-age technologies that lead to it, cost you 20% less research. Your other fourth-age technologies cost you 25% more. |
+| **The Platonic Academy** | learned land | Your great people of every family found an Academy as their work, in place of their own. |
+| **The Nassau Reforms** | elite army | Each time research upgrades one of your units, it gains +2 strength for good. Your towns build military units 25% more slowly. |
+| **The Two Capitals** | great cities | Your largest town besides your capital also counts as your capital for your cards. Your other towns grow 25% more slowly. |
+
+**Orders:**
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|

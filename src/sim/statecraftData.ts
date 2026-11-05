@@ -7089,6 +7089,16 @@ export interface CardProductionBonusEffect {
    */
   empireBuilding?: boolean;
   /**
+   * **Leaves out the rows whose completion grants a bead**: the Magnum Opus and
+   * the three works of the Observatory (`grantsABead`, batch DT3, reading 24 of
+   * `docs/plans/doctrines-build-triage.md`). These rows are empire buildings, so
+   * `empireBuilding: true` alone reaches them. The Academy of Gondishapur and The
+   * Külliye set this field because, together, they would give a Scientific seat
+   * +70% toward the Opus, which changes the race for the win. The Many Hands and
+   * Learned Commissions do not set it, so they still reach those rows.
+   */
+  skipsBeadRows?: true;
+  /**
    * Narrows the bonus to **fortifications** (Expansionist batch E5, The Burhs):
    * the buildings the `defensiveBuildings` count reads, which raise a town's
    * defence or its hit points (`isFortification`, `buildingData.ts`). Asked

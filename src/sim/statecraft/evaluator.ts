@@ -60,6 +60,7 @@ import {
   type ProductionCategory,
   buildingDef,
   buildingRowSupplies,
+  grantsABead,
   isBuildingId,
   isEmpireBuilding,
   isFortification,
@@ -6383,6 +6384,9 @@ export function cardProduction(
       if (building === undefined) continue;
       if (isEmpireBuilding(building) !== effect.empireBuilding) continue;
     }
+    // The Academy of Gondishapur (batch DT3): not the rows that grant a bead.
+    // See `CardProductionBonusEffect.skipsBeadRows`.
+    if (effect.skipsBeadRows === true && building !== undefined && grantsABead(building)) continue;
     // The Burhs (Expansionist batch E5): fortifications only, by the one
     // reading the `defensiveBuildings` count takes.
     if (effect.defensive === true) {

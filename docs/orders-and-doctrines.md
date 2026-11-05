@@ -199,6 +199,21 @@ governments, so Tier IV opened at 29.
 | The Cathedral Lodges | Expansionist | IV | tier 26 | Manufactories yield twice as much. Towns with a Manufactory gain +30% production toward wonders and the Magnum Opus. |
 | The High Towns | Expansionist | IV | tier 26 | Your towns may work mountains. Mountains gain +4 production, and each gives +1 production to the hexes beside it. |
 | The Mandarinate | Expansionist | IV | tier 26 | Each point of spare authority gives +1% science and culture, at most +30%. Each of your towns costs 1 more authority. |
+| The Apoikia | Commerce | I | tier 4 | Settlers and workers cost half as much gold to buy. |
+| The Delian League | Commerce | I | tier 4 | Your coastal towns cost 1 less authority and gain +3 production. |
+| The Sogdian Colonies | Commerce | II | tier 10 | Each of your towns holding your trading post gains +3 culture and +3 renown, favouring merchants. |
+| The Year and a Day | Commerce | III | tier 18 | Your towns that a domestic route reaches grow 25% faster. Your other towns grow 25% more slowly. |
+| The Turnpike Trusts | Commerce | III | tier 18 | Caravans cost half as much gold to buy. Hexes with a road gain +1 gold. |
+| The Peace of Lodi | Commerce | IV | tier 26 | While you are at peace, your trade routes pay 50% more. While you are at war, they pay 25% less. |
+| The Monte di Pietà | Commerce | IV | tier 26 | Every 200 gold in your treasury gives +1 happiness, at most +20. Your towns make 10% less gold. |
+| The Pythagorean Brotherhood | Scientific | I | tier 4 | +2 science in every city, doubled in cities with a Shrine. |
+| The Removal to Xianyang | Scientific | I | tier 4 | Your towns grow 30% faster. Settlers cost twice as much. |
+| The Workshops of Syracuse | Scientific | I | tier 4 | Your military units gain +5 combat strength. They cost 50% more to build and to buy. |
+| The Jixian Academy | Scientific | II | tier 10 | Completing a technology grants culture equal to a fifth of its cost. Your towns make 25% less culture. |
+| The Academy of Gondishapur | Scientific | II | tier 10 | Towns with an empire building gain +15% science. +20% production toward empire buildings. |
+| The Pandidakterion | Scientific | II | tier 10 | Hexes with an Academy have double yields, applied after every other change to the hex. |
+| The Universitas | Scientific | III | tier 18 | Science buildings in your towns of twelve or more citizens produce twice their yields. In your smaller towns they produce half. |
+| The Volley Fire | Scientific | III | tier 18 | Your archer line (Archer to Crossbowman) may attack twice a turn. Your melee units fight at −10% strength. |
 
 ## Decks
 

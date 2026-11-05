@@ -506,19 +506,17 @@ export function explainPurchaseCost(
  * simplification: which two towns a route joins decides what it *pays*
  * (`routeYields.ts`) and never what it *costs*.
  *
- * **It does take the town the caravan is hired in** (batch C7, The Factors'
- * Houses). That is the *origin*, not a pair: `applyBuyRoute` and the Trade
- * screen both ask the price of the town the road sets out from, and a card may
- * now discount it there (`CardPurchaseRiderEffect` with `on: 'route'`). A caller
- * that names no town gets the empire's plain figure with no rider on it, which
- * is what every caller got before this and what a screen wanting one headline
- * price still wants. So a scoped rider is silent where there is nowhere to
- * spend, exactly as `cardPurchaseRiders` documents.
+ * **It does take the town the caravan is hired in** (batch C7). That is the
+ * *origin*, not a pair: `applyBuyRoute` asks the price of the town the road sets
+ * out from, and a card may discount it there (`CardPurchaseRiderEffect` with
+ * `on: 'route'`). A caller that names no town, such as the Trade screen's one
+ * headline price, still gets the riders that hold everywhere (The Turnpike
+ * Trusts, batch DT3), so the figure on the button is the figure charged. Only a
+ * scoped rider is silent there, as `cardPurchaseRiders` documents.
  *
- * **Known gap**: the Trade screen's headline price (`readRoutes`, which asks
- * with no town) is the undiscounted one, so a seat holding The Factors' Houses
- * is quoted the plain figure and charged the discounted one. Being charged less
- * than quoted is the safe direction, and pricing the sheet per row is a UI pass.
+ * **Known gap**: no live row has a scoped rider on a route. A row that did would
+ * be quoted the plain figure and charged less. Pricing the sheet per row is a UI
+ * job.
  *
  * The knob's line is omitted when it changes nothing, so a world at the ruled
  * 1 prints exactly the caravan's converted cost and no line that says "× 1".
@@ -550,7 +548,7 @@ export function explainRoutePrice(
   // the reason it is here rather than one function up: this is the fold a
   // route's price is, and a rider applied outside it would be a second
   // multiplication the fold could not see.
-  if (cityId !== undefined) applyRiders(state, playerId, cityId, { kind: 'route' }, 'gold', lines);
+  applyRiders(state, playerId, cityId, { kind: 'route' }, 'gold', lines);
   return lines;
 }
 
@@ -563,9 +561,12 @@ export function explainRoutePrice(
  * `routeStartable` already refuses every pair ("This world has no caravans") —
  * so the figure is never the reason a route is refused, and no caller has to
  * carry a null it could do nothing with.
+ *
+ * `cityId` is the town the caravan sets out from, which the reducer names when it
+ * charges. See `explainRoutePrice`.
  */
-export function routePrice(state: GameState, playerId: number): number {
-  const lines = explainRoutePrice(state, playerId);
+export function routePrice(state: GameState, playerId: number, cityId?: number): number {
+  const lines = explainRoutePrice(state, playerId, cityId);
   return lines === null ? 0 : foldUnitCost(lines);
 }
 
@@ -817,7 +818,7 @@ function explainCulturePrice(
 function applyRiders(
   state: GameState,
   playerId: number,
-  cityId: number,
+  cityId: number | undefined,
   item: PurchaseSubject,
   currency: PurchaseCurrency,
   lines: UnitCostLine[],
@@ -825,8 +826,9 @@ function applyRiders(
   // **The town the price is asked in**, handed over for the scoped riders (D2b)
   // — Mercenary Companies is a discount in the barracks town and nowhere else.
   // Looked up before the bank clause below, because a scope is a fact about
-  // where the counter stands and not about which purse is open.
-  const at = cityById(state, cityId);
+  // where the counter stands and not about which purse is open. A route's
+  // headline price names no town, and then only the unscoped riders apply.
+  const at = cityId === undefined ? undefined : cityById(state, cityId);
   // The bank is handed over too, because a rider may reach only one (The
   // Offering Chests' faith, Devotion batch DV3).
   const riders = cardPurchaseRiders(

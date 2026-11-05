@@ -1531,6 +1531,16 @@ export function isEmpireBuilding(id: BuildingId): boolean {
 }
 
 /**
+ * **Does finishing this row grant a bead?** True of the Magnum Opus and the three
+ * works of the Observatory. A card that must leave the race for the win alone
+ * asks this (`CardProductionBonusEffect.skipsBeadRows`), and it asks the row's
+ * grants and never its name, so a new bead row joins with no code change.
+ */
+export function grantsABead(id: BuildingId): boolean {
+  return (buildingDef(id).onComplete ?? []).some((grant) => grant.grant === 'bead');
+}
+
+/**
  * **Is this row a public work?** The one reading of `BuildingDef.publicWork`
  * (Expansionist batch E11). The tally of public works finished and the count
  * of public works held both ask it, so a seventh row marked in the data joins

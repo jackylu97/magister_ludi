@@ -139,6 +139,7 @@ import {
 import { BUILDING_IDS, buildingDef } from '../../../src/sim/buildingData';
 import type { UnitTypeId } from '../../../src/sim/unitData';
 import { TECH_IDS, type TechId, techDef } from '../../../src/sim/techData';
+import { expectSheetDoctrinesMatchData, sheetDoctrines } from './sortedSheets';
 
 /** Every id `data/decks/commerce.json` carries, in file order. */
 const COMMERCE: readonly OrderId[] = DECK_FILE_ORDERS.commerce;
@@ -680,8 +681,9 @@ describe('the age-2 gate', () => {
  * T1 (`docs/plans/commerce-themes-triage.md`). It is in the sorted format of
  * the Scientific and Expansionist sheets: five tier tables (Card | Rarity |
  * Status | Ability | Type) and a shared table (Card | Rarity | Also in | Tier |
- * Status | Ability | Type). The empty Doctrine tables have three columns, so
- * the reader below skips them.
+ * Status | Ability | Type). The Doctrine tables have three columns, so the
+ * reader below skips them, and `expectSheetDoctrinesMatchData` reads them (batch
+ * DT3). What each row does is checked in `commerceDoctrines.test.ts`.
  */
 const sheetFiles = import.meta.glob('../../../docs/decks/commerce.md', {
   eager: true,
@@ -881,6 +883,16 @@ function checkAgainstRow(card: SheetCard, id: OrderId): void {
 }
 
 describe('the Commerce deck: the sheet of record', () => {
+  it('holds the Doctrine rows to the sheet’s four tables', () => {
+    // A sheet row with no data row passes until batch DT20, so the tables can
+    // carry all 14 while the batches fill them.
+    expect(sheetDoctrines('commerce').length).toBe(14);
+    expect(
+      [1, 2, 3, 4].map((band) => sheetDoctrines('commerce').filter((row) => row.band === band).length),
+    ).toEqual([3, 4, 3, 4]);
+    expectSheetDoctrinesMatchData('commerce');
+  });
+
   it('mirrors the five tier tables, card for card', () => {
     const sheet = sheetCards();
     const shared = sharedCards();

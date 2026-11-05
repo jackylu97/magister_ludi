@@ -1,0 +1,666 @@
+/**
+ * **Doctrine batch DT3: Scientific's Doctrines that need no new shape**
+ * (`docs/plans/doctrines-build-triage.md`). `scientific.test.ts` holds the rows to
+ * the sheet. This file checks that each row pays what its text says, in a real
+ * fold, and that each drawback bites.
+ *
+ * It also checks the bots' reading of a hex line's `wholePercent`, which this
+ * batch adds and which The Pandidakterion needs.
+ *
+ * Later batches add the deck's other seven Doctrines to this file.
+ */
+
+import { afterEach, describe, expect, it } from 'vitest';
+
+import { scoreCard, valueContext } from '../../../src/ai/bot';
+import { explainEffects, scoreEffects, valueOfYields } from '../../../src/ai/value';
+import { BUILDING_IDS, buildingDef, grantsABead } from '../../../src/sim/buildingData';
+import { explainCardImpact } from '../../../src/sim/cardImpact';
+import {
+  explainGrowthPercent,
+  explainUnitCost,
+  foldGrowthPercent,
+  foldUnitCost,
+  foundCityAt,
+  refreshCityDerived,
+} from '../../../src/sim/cities';
+import { applyCombat, previewCombat } from '../../../src/sim/combat';
+import { raiseImprovement } from '../../../src/sim/map';
+import { explainPurchaseCost } from '../../../src/sim/purchase';
+import { RULES } from '../../../src/sim/rulesData';
+import {
+  type City,
+  type GameState,
+  type Player,
+  type Unit,
+  addBuilding,
+  bumpRevision,
+  createUnit,
+  playerById,
+} from '../../../src/sim/state';
+import { doctrineBagFor } from '../../../src/sim/statecraft';
+import {
+  cardBehaviorRuleFor,
+  cardCombatPercent,
+  explainBuildingPackage,
+  explainCardPercentYields,
+  foldBuildingPackage,
+} from '../../../src/sim/statecraft/evaluator';
+import {
+  type CardEffect,
+  type DoctrineId,
+  type OrderId,
+  DECK_FILE_DOCTRINES,
+  doctrineDef,
+  poolDoctrines,
+} from '../../../src/sim/statecraftData';
+import { explainTechCost, foldTechCost, settleResearch } from '../../../src/sim/tech';
+import { TECH_IDS, type TechId, techDef } from '../../../src/sim/techData';
+import { unitDef } from '../../../src/sim/unitData';
+import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
+import { explainCity, foldCity, productionModifiers } from '../../../src/sim/yields/town';
+import { at, bareState } from '../improvementHelpers';
+import { createGame } from '../newGameHelpers';
+import { lendDoctrineEffects } from '../statecraftHelpers';
+
+/** The eight rows of batch DT3 in this deck, each with the band its table gives it. */
+const ROWS: readonly (readonly [string, number])[] = [
+  ['thePythagoreanBrotherhood', 1],
+  ['theRemovalToXianyang', 1],
+  ['theWorkshopsOfSyracuse', 1],
+  ['theJixianAcademy', 2],
+  ['theAcademyOfGondishapur', 2],
+  ['thePandidakterion', 2],
+  ['theUniversitas', 3],
+  ['theVolleyFire', 3],
+];
+
+/** Lent rows, put back after each test, so a failed test cannot leak one into the next. */
+const lent: (() => void)[] = [];
+afterEach(() => {
+  while (lent.length > 0) lent.pop()!();
+});
+
+/** Lends a Doctrine other effects for this test alone. */
+function lend(id: string, effects: readonly CardEffect[]): void {
+  lent.push(lendDoctrineEffects(id as DoctrineId, effects));
+}
+
+function seat(state: GameState, id = 0): Player {
+  return playerById(state, id)!;
+}
+
+/** Gives a seat a Doctrine, as a chosen offer does. */
+function hold(state: GameState, id: string, playerId = 0): void {
+  seat(state, playerId).statecraft.doctrines.push(id as DoctrineId);
+  bumpRevision(state);
+}
+
+/** Puts an Order in a chair for this seat. */
+function slot(state: GameState, id: string, playerId = 0): void {
+  const sc = seat(state, playerId).statecraft;
+  const card = id as OrderId;
+  if (!sc.orders.includes(card)) sc.orders.push(card);
+  sc.slots.push({ card, sealedUntil: state.turn });
+  bumpRevision(state);
+}
+
+/** A town of a given size for this seat, with an empty queue. */
+function town(state: GameState, col: number, row: number, population = 1, playerId = 0): City {
+  const city = foundCityAt(state, playerId, at(state, col, row));
+  city.population = population;
+  city.largestSize = population;
+  city.queue = [];
+  refreshCityDerived(state, city);
+  bumpRevision(state);
+  return city;
+}
+
+/** What one hex pays the town working it. */
+function hexPays(state: GameState, city: City, col: number, row: number) {
+  return foldTileLines(explainTileYield(at(state, col, row), cityContext(state, city)));
+}
+
+/** A strength line on one side of a forecast, by its card's name. */
+function line(
+  state: GameState,
+  unit: Unit,
+  col: number,
+  row: number,
+  name: string,
+  side: 'attacker' | 'defender' = 'attacker',
+): number {
+  const view = previewCombat(state, unit.id, { col, row });
+  if (!view.ok) throw new Error(view.error);
+  return (side === 'attacker' ? view.attackerLines : view.defenderLines)
+    .filter((entry) => entry.source.includes(name))
+    .reduce((sum, entry) => sum + entry.amount, 0);
+}
+
+/** Attacks and insists the rules accepted it. */
+function strike(state: GameState, unit: Unit, col: number, row: number): void {
+  const result = applyCombat(state, unit.id, { col, row });
+  if (!result.ok) throw new Error(result.error);
+}
+
+/** Pays for a technology and completes it. Returns what it cost. */
+function complete(state: GameState, tech: TechId): number {
+  const player = seat(state);
+  player.techsResearched = player.techsResearched.filter((id) => id !== tech);
+  player.researching = tech;
+  player.researchQueue = [];
+  player.sciencePool = foldTechCost(explainTechCost(state, player, tech));
+  const done = settleResearch(state, player);
+  expect(done?.techId, tech).toBe(tech);
+  bumpRevision(state);
+  return done!.cost;
+}
+
+/** What the queue's percentages from one card come to for one row. */
+function buildPercent(state: GameState, city: City, id: string, card: string): number {
+  return productionModifiers(state, city, { kind: 'building', id: id as never })
+    .filter((entry) => entry.card === card)
+    .reduce((sum, entry) => sum + entry.percent, 0);
+}
+
+describe('batch DT3: Scientific’s rows', () => {
+  it('deals each row at its tier, from the Scientific bag and no other', () => {
+    for (const [id, band] of ROWS) {
+      const def = doctrineDef(id as DoctrineId);
+      expect(def.band, id).toBe(band);
+      expect(def.decks, id).toEqual(['scientific']);
+      expect(def.retired, id).toBeUndefined();
+      expect(poolDoctrines(def.tier), id).toContain(id);
+    }
+    expect([...DECK_FILE_DOCTRINES.scientific].sort()).toEqual(ROWS.map(([id]) => id).sort());
+  });
+
+  it('offers a Scientific seat its rows when it adopts a tier-4 government', () => {
+    const g = createGame({
+      seed: 3,
+      sizeName: 'duel',
+      players: [
+        { name: 'Hypatia', color: '#a00', isHuman: true, leader: 'hypatiaOfAlexandria' },
+        { name: 'Bors', color: '#00a', isHuman: true, leader: 'pachacuti' },
+      ],
+    });
+    expect(doctrineBagFor(seat(g.state), 4)).toEqual(
+      expect.arrayContaining(['thePythagoreanBrotherhood', 'theRemovalToXianyang', 'theWorkshopsOfSyracuse']),
+    );
+    expect(doctrineBagFor(seat(g.state, 1), 4)).not.toContain('theRemovalToXianyang');
+  });
+
+  it('gives the bots a finite price for every row, and the impact stamp reads each one', () => {
+    const state = bareState(24, 14);
+    const city = town(state, 5, 5, 8);
+    town(state, 15, 5, 6);
+    addBuilding(state, city, 'library');
+    raiseImprovement(at(state, 5, 4), 'academy', 0);
+    refreshCityDerived(state, city);
+    bumpRevision(state);
+    const player = seat(state);
+    for (const [id] of ROWS) {
+      const score = scoreCard(player, id as never, valueContext(state, player));
+      expect(Number.isFinite(score), id).toBe(true);
+      expect(() => explainCardImpact(state, 0, { kind: 'doctrine', id: id as DoctrineId }), id).not.toThrow();
+    }
+  });
+});
+
+describe('The Pythagorean Brotherhood', () => {
+  it('pays +2 science in a town, and +4 in a town with a Shrine', () => {
+    const state = bareState(24, 10);
+    const plain = town(state, 3, 3, 3);
+    const holy = town(state, 15, 3, 3);
+    addBuilding(state, holy, 'shrine');
+    bumpRevision(state);
+    const before = [explainCity(state, plain).flats.science, explainCity(state, holy).flats.science];
+    hold(state, 'thePythagoreanBrotherhood');
+    expect(explainCity(state, plain).flats.science).toBe(before[0]! + 2);
+    expect(explainCity(state, holy).flats.science).toBe(before[1]! + 4);
+  });
+
+  it('puts the Shrine’s line in the Shrine’s package, and not twice in the town', () => {
+    const state = bareState(24, 10);
+    const holy = town(state, 3, 3, 3);
+    addBuilding(state, holy, 'shrine');
+    addBuilding(state, holy, 'library');
+    bumpRevision(state);
+    const before = explainCity(state, holy).flats.science;
+    hold(state, 'thePythagoreanBrotherhood');
+    const onIt = (id: string) =>
+      foldBuildingPackage(
+        explainBuildingPackage(state, holy, id as never).filter(
+          (entry) => entry.card === 'thePythagoreanBrotherhood',
+        ),
+      ).science;
+    expect(onIt('shrine')).toBe(2);
+    expect(onIt('library')).toBe(0);
+    // One line of +2 in every town, one on the Shrine: +4 in all.
+    expect(explainCity(state, holy).flats.science).toBe(before + 4);
+  });
+});
+
+describe('The Removal to Xianyang', () => {
+  it('grows every town 30% faster', () => {
+    const state = bareState(24, 10);
+    const small = town(state, 3, 3, 2);
+    const large = town(state, 15, 3, 9);
+    const before = [small, large].map((city) => foldGrowthPercent(explainGrowthPercent(state, city)));
+    hold(state, 'theRemovalToXianyang');
+    expect(foldGrowthPercent(explainGrowthPercent(state, small))).toBe(before[0]! + 30);
+    expect(foldGrowthPercent(explainGrowthPercent(state, large))).toBe(before[1]! + 30);
+  });
+
+  it('doubles the price of a settler, in hammers and so in gold, and of nothing else', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    const hammers = (id: string) => foldUnitCost(explainUnitCost(state, 0, id as never));
+    const settler = hammers('settler');
+    const worker = hammers('worker');
+    hold(state, 'theRemovalToXianyang');
+    expect(hammers('settler')).toBe(2 * settler);
+    expect(hammers('worker')).toBe(worker);
+    const gold = explainPurchaseCost(state, 0, city.id, { kind: 'unit', id: 'settler' as never }, 'gold')!;
+    expect(gold.total).toBe(Math.floor(hammers('settler') * RULES.production.goldPerHammer));
+  });
+});
+
+describe('The Workshops of Syracuse', () => {
+  it('gives a military unit +5 strength attacking and defending', () => {
+    const state = bareState();
+    const mine = createUnit(state, 0, 'warrior', 4, 4);
+    const theirs = createUnit(state, 1, 'warrior', 5, 4);
+    hold(state, 'theWorkshopsOfSyracuse');
+    expect(line(state, mine, 5, 4, 'The Workshops of Syracuse')).toBe(5);
+    expect(line(state, theirs, 4, 4, 'The Workshops of Syracuse', 'defender')).toBe(5);
+  });
+
+  it('gives a ship and a rival’s unit nothing', () => {
+    const state = bareState();
+    for (let row = 0; row < state.map.height; row++) at(state, 6, row).terrain = 'ocean' as never;
+    bumpRevision(state);
+    const hull = createUnit(state, 0, 'galley', 6, 4);
+    const rival = createUnit(state, 1, 'warrior', 5, 4);
+    createUnit(state, 0, 'warrior', 4, 4);
+    hold(state, 'theWorkshopsOfSyracuse');
+    expect(unitDef(hull.type).category).toBe('naval');
+    expect(line(state, rival, 4, 4, 'The Workshops of Syracuse', 'attacker')).toBe(0);
+    expect(line(state, rival, 4, 4, 'The Workshops of Syracuse', 'defender')).toBe(5);
+    expect(line(state, hull, 5, 4, 'The Workshops of Syracuse')).toBe(0);
+  });
+
+  it('makes a military unit cost 50% more to build and to buy, and leaves a civilian alone', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    const hammers = (id: string) => foldUnitCost(explainUnitCost(state, 0, id as never));
+    const gold = (id: string) =>
+      explainPurchaseCost(state, 0, city.id, { kind: 'unit', id: id as never }, 'gold')!.total;
+    const before = { warrior: hammers('warrior'), worker: hammers('worker'), coin: gold('warrior') };
+    hold(state, 'theWorkshopsOfSyracuse');
+    expect(hammers('warrior')).toBe(Math.floor(before.warrior * 1.5));
+    expect(hammers('worker')).toBe(before.worker);
+    // The gold price is the full production cost, converted, so it follows.
+    expect(gold('warrior')).toBeGreaterThan(before.coin);
+    expect(gold('warrior')).toBe(Math.floor(hammers('warrior') * RULES.production.goldPerHammer));
+  });
+});
+
+describe('The Jixian Academy', () => {
+  const tech = TECH_IDS.find((id) => techDef(id).age === 2)!;
+
+  it('grants culture equal to a fifth of what a technology cost', () => {
+    const state = bareState();
+    town(state, 5, 5, 3);
+    const player = seat(state);
+    // Leave a draft waiting, so the culture stays in the pool to be read.
+    player.statecraft.pendingOrder = { options: ['marketDay' as OrderId] };
+    hold(state, 'theJixianAcademy');
+    const before = player.culturePool;
+    const paid = complete(state, tech);
+    expect(paid).toBeGreaterThan(0);
+    expect(player.culturePool - before).toBeCloseTo(paid / 5, 6);
+  });
+
+  it('pays nothing for a technology without the Doctrine', () => {
+    const state = bareState();
+    town(state, 5, 5, 3);
+    const player = seat(state);
+    player.statecraft.pendingOrder = { options: ['marketDay' as OrderId] };
+    const before = player.culturePool;
+    complete(state, tech);
+    expect(player.culturePool).toBe(before);
+  });
+
+  it('takes 25% off a town’s culture', () => {
+    const state = bareState(24, 10);
+    const city = town(state, 5, 5, 4);
+    addBuilding(state, city, 'monument');
+    addBuilding(state, city, 'market');
+    refreshCityDerived(state, city);
+    bumpRevision(state);
+    const before = foldCity(state, city);
+    expect(before.culture).toBeGreaterThan(0);
+    hold(state, 'theJixianAcademy');
+    refreshCityDerived(state, city);
+    bumpRevision(state);
+    const after = foldCity(state, city);
+    expect(after.culture).toBeLessThan(before.culture);
+    expect(after.gold).toBe(before.gold);
+    expect(explainCardPercentYields(state, city).filter((entry) => entry.card === 'theJixianAcademy')).toEqual([
+      expect.objectContaining({ yield: 'culture', percent: -25, stage: 'city' }),
+    ]);
+  });
+});
+
+describe('The Academy of Gondishapur', () => {
+  const BEAD_ROWS = BUILDING_IDS.filter(grantsABead);
+
+  it('finds the Magnum Opus and the three works by their bead grant', () => {
+    expect([...BEAD_ROWS].sort()).toEqual(
+      ['chartTheStars', 'theAlchemicalCodex', 'theMagnumOpus', 'theTurningHeavens'].sort(),
+    );
+    for (const id of BEAD_ROWS) expect(buildingDef(id).empireBuilding, id).toBe(true);
+  });
+
+  it('gives +15% science in a town holding an empire building, and nothing elsewhere', () => {
+    const state = bareState(24, 10);
+    const seatOf = town(state, 3, 3, 3);
+    const plain = town(state, 15, 3, 3);
+    addBuilding(state, seatOf, 'forum');
+    bumpRevision(state);
+    hold(state, 'theAcademyOfGondishapur');
+    const lines = (city: City) =>
+      explainCardPercentYields(state, city).filter((entry) => entry.card === 'theAcademyOfGondishapur');
+    expect(lines(seatOf)).toEqual([expect.objectContaining({ yield: 'science', percent: 15 })]);
+    expect(lines(plain)).toEqual([]);
+  });
+
+  it('puts +20% behind an empire building, and behind nothing else', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    hold(state, 'theAcademyOfGondishapur');
+    const card = 'theAcademyOfGondishapur';
+    expect(buildPercent(state, city, 'forum', card)).toBe(20);
+    expect(buildPercent(state, city, 'granary', card)).toBe(0);
+    const unit = productionModifiers(state, city, { kind: 'unit', id: 'settler' as never });
+    expect(unit.filter((entry) => entry.card === card)).toEqual([]);
+  });
+
+  it('does not reach the Magnum Opus or its three works (reading 24)', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    hold(state, 'theAcademyOfGondishapur');
+    for (const id of BEAD_ROWS) {
+      expect(buildPercent(state, city, id, 'theAcademyOfGondishapur'), id).toBe(0);
+    }
+    expect(doctrineDef('theAcademyOfGondishapur' as DoctrineId).note).toMatch(/Magnum Opus or its works/);
+  });
+
+  it('leaves The Many Hands reaching those rows, because no Order sets the field', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    slot(state, 'theManyHands');
+    for (const id of BEAD_ROWS) {
+      expect(buildPercent(state, city, id, 'theManyHands'), id).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('The Pandidakterion', () => {
+  /** A town of seat 0 working an Academy on a river hex, with a farm beside it. */
+  function board(): { state: GameState; city: City } {
+    const state = bareState();
+    const city = town(state, 5, 5, 4);
+    const site = at(state, 5, 4);
+    site.riverEdges = 1;
+    raiseImprovement(site, 'academy', 0);
+    raiseImprovement(at(state, 6, 5), 'farm', 0);
+    bumpRevision(state);
+    return { state, city };
+  }
+
+  it('doubles a hex with an Academy, another card’s line on it included, and no other work', () => {
+    const { state, city } = board();
+    hold(state, 'theGiftOfTheRiver');
+    const academy = hexPays(state, city, 5, 4);
+    const farm = hexPays(state, city, 6, 5);
+    expect(academy.science).toBeGreaterThan(0);
+    // The river's line is a card's, and it is on the hex before the share is taken.
+    expect(academy.production).toBeGreaterThan(0);
+    hold(state, 'thePandidakterion');
+    expect(hexPays(state, city, 5, 4)).toEqual({
+      food: 2 * academy.food,
+      production: 2 * academy.production,
+      gold: 2 * academy.gold,
+      science: 2 * academy.science,
+      culture: 2 * academy.culture,
+      faith: 2 * academy.faith,
+    });
+    expect(hexPays(state, city, 6, 5)).toEqual(farm);
+  });
+
+  it('sums with another whole share before one multiplication, so neither pays the other', () => {
+    const { state, city } = board();
+    const academy = hexPays(state, city, 5, 4);
+    // The Nizamiyya takes half again. Summed, the two make +150%, not 2 × 1.5.
+    slot(state, 'theNizamiyya');
+    hold(state, 'thePandidakterion');
+    expect(hexPays(state, city, 5, 4).science).toBeCloseTo(academy.science * 2.5, 6);
+  });
+
+  it('labels the share as one line, so the breakdown still sums to the total', () => {
+    const { state, city } = board();
+    hold(state, 'thePandidakterion');
+    const lines = explainTileYield(at(state, 5, 4), cityContext(state, city));
+    expect(lines.filter((entry) => entry.source.includes('The Pandidakterion'))).toHaveLength(1);
+  });
+});
+
+describe('The Universitas', () => {
+  /** One town of `population` with a Library and a Monument, its science read from the fold. */
+  function schooled(population: number): { state: GameState; city: City; shelf: number } {
+    const state = bareState();
+    const city = town(state, 5, 5, population);
+    addBuilding(state, city, 'library');
+    addBuilding(state, city, 'monument');
+    bumpRevision(state);
+    const shelf = foldBuildingPackage(explainBuildingPackage(state, city, 'library' as never)).science;
+    expect(shelf).toBeGreaterThan(0);
+    return { state, city, shelf };
+  }
+
+  it('doubles what a science building pays in a town of twelve citizens', () => {
+    const { state, city, shelf } = schooled(12);
+    const before = explainCity(state, city);
+    hold(state, 'theUniversitas');
+    const after = explainCity(state, city);
+    expect(after.flats.science - before.flats.science).toBeCloseTo(shelf, 6);
+    expect(after.flats.culture).toBe(before.flats.culture);
+  });
+
+  it('halves it in a town of eleven, through a negative share', () => {
+    const { state, city, shelf } = schooled(11);
+    const before = explainCity(state, city);
+    hold(state, 'theUniversitas');
+    const after = explainCity(state, city);
+    expect(after.flats.science - before.flats.science).toBeCloseTo(-shelf / 2, 6);
+    expect(after.flats.culture).toBe(before.flats.culture);
+  });
+
+  it('asks nothing of a small town with no science building', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    addBuilding(state, city, 'monument');
+    bumpRevision(state);
+    const before = explainCity(state, city).flats;
+    hold(state, 'theUniversitas');
+    expect(explainCity(state, city).flats).toEqual(before);
+  });
+});
+
+describe('The Volley Fire', () => {
+  it('gives a Crossbowman two attacks a turn', () => {
+    const state = bareState();
+    const target = createUnit(state, 1, 'knight', 8, 5);
+    const bow = createUnit(state, 0, 'crossbowman', 6, 5);
+    hold(state, 'theVolleyFire');
+    expect(cardBehaviorRuleFor(state, bow, 'secondAttack')).toBe(true);
+    strike(state, bow, 8, 5);
+    expect(bow.hasAttacked).toBe(false);
+    expect(state.units).toContain(target);
+    target.hp = 100;
+    bumpRevision(state);
+    strike(state, bow, 8, 5);
+    expect(bow.hasAttacked).toBe(true);
+  });
+
+  it('reaches the whole archer line, and no Catapult', () => {
+    const state = bareState();
+    hold(state, 'theVolleyFire');
+    for (const type of ['archer', 'bowman', 'compositeBowman', 'crossbowman']) {
+      expect(unitDef(type as never).modelClass, type).toBe('ranged');
+      const piece = createUnit(state, 0, type as never, 2, 2);
+      expect(cardBehaviorRuleFor(state, piece, 'secondAttack'), type).toBe(true);
+    }
+    const siege = createUnit(state, 0, 'catapult', 3, 2);
+    expect(cardBehaviorRuleFor(state, siege, 'secondAttack')).toBe(false);
+  });
+
+  it('gives a Catapult one attack', () => {
+    const state = bareState();
+    createUnit(state, 1, 'knight', 8, 5);
+    const siege = createUnit(state, 0, 'catapult', 6, 5);
+    hold(state, 'theVolleyFire');
+    strike(state, siege, 8, 5);
+    expect(siege.hasAttacked).toBe(true);
+    expect(applyCombat(state, siege.id, { col: 8, row: 5 }).ok).toBe(false);
+  });
+
+  it('takes 10% off a melee unit’s strength, and nothing off a bow', () => {
+    const state = bareState();
+    const melee = createUnit(state, 0, 'warrior', 4, 4);
+    const bow = createUnit(state, 0, 'crossbowman', 4, 6);
+    expect(cardCombatPercent(state, melee)).toBe(0);
+    hold(state, 'theVolleyFire');
+    expect(cardCombatPercent(state, melee)).toBe(-10);
+    expect(cardCombatPercent(state, bow)).toBe(0);
+  });
+});
+
+describe('the bots read a hex line’s whole share (batch DT3)', () => {
+  /** One town working exactly the hexes named. */
+  function working(cells: readonly (readonly [number, number])[], population = cells.length + 1) {
+    const state = bareState(24, 14);
+    const city = town(state, 8, 6, population);
+    city.workedTiles = cells.map(([col, row]) => ({ col, row }));
+    bumpRevision(state);
+    return { state, city, player: seat(state) };
+  }
+
+  const WILD_ROW: CardEffect = {
+    kind: 'pays',
+    where: 'hex',
+    on: { test: 'unimproved' },
+    wholePercent: -100,
+  };
+
+  it('prices Crop Rotation below the same board with its drawback lent away', () => {
+    const { state, city, player } = working([
+      [8, 5],
+      [9, 6],
+      [7, 6],
+    ]);
+    raiseImprovement(at(state, 8, 5), 'farm', 0);
+    bumpRevision(state);
+    expect(city.workedTiles).toHaveLength(3);
+    const whole = scoreCard(player, 'cropRotation' as never, valueContext(state, player));
+    const rows = doctrineDef('cropRotation' as DoctrineId).effects.filter(
+      (effect) => !(effect.kind === 'pays' && effect.wholePercent !== undefined),
+    );
+    lend('cropRotation', rows);
+    const lentAway = scoreCard(player, 'cropRotation' as never, valueContext(state, player));
+    expect(whole).toBeLessThan(lentAway);
+  });
+
+  it('charges a negative share what the wild hexes pay, and nothing for a board with none', () => {
+    const wild = working([
+      [8, 5],
+      [9, 6],
+    ]);
+    const ctx = valueContext(wild.state, wild.player);
+    const paid = [hexPays(wild.state, wild.city, 8, 5), hexPays(wild.state, wild.city, 9, 6)];
+    const expected = valueOfYields(paid[0]!, ctx) + valueOfYields(paid[1]!, ctx);
+    expect(expected).toBeGreaterThan(0);
+    expect(scoreEffects([WILD_ROW], ctx)).toBeCloseTo(-expected, 6);
+
+    const farmed = working([[8, 5]]);
+    raiseImprovement(at(farmed.state, 8, 5), 'farm', 0);
+    bumpRevision(farmed.state);
+    expect(scoreEffects([WILD_ROW], valueContext(farmed.state, farmed.player))).toBe(0);
+  });
+
+  it('prices a positive share over what the worked Academy pays, and an unworked one at nothing', () => {
+    const rows = doctrineDef('thePandidakterion' as DoctrineId).effects;
+    const { state, city, player } = working([[8, 5]]);
+    raiseImprovement(at(state, 8, 5), 'academy', 0);
+    raiseImprovement(at(state, 9, 6), 'academy', 0);
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    expect(scoreEffects(rows, ctx)).toBeCloseTo(valueOfYields(hexPays(state, city, 8, 5), ctx), 6);
+    expect(scoreEffects(rows, ctx)).toBeGreaterThan(0);
+
+    // Half the share is half the price.
+    lend('thePandidakterion', [{ ...rows[0]!, wholePercent: 50 } as CardEffect]);
+    const half = doctrineDef('thePandidakterion' as DoctrineId).effects;
+    expect(scoreEffects(half, valueContext(state, player))).toBeCloseTo(scoreEffects(rows, ctx) / 2, 6);
+  });
+
+  it('reads the same for a seat that already holds the row, or another doubler', () => {
+    const rows = doctrineDef('thePandidakterion' as DoctrineId).effects;
+    const { state, player } = working([[8, 5]]);
+    raiseImprovement(at(state, 8, 5), 'academy', 0);
+    bumpRevision(state);
+    const fresh = scoreEffects(rows, valueContext(state, player));
+    slot(state, 'theNizamiyya');
+    expect(scoreEffects(rows, valueContext(state, player))).toBeCloseTo(fresh, 6);
+    hold(state, 'thePandidakterion');
+    expect(scoreEffects(rows, valueContext(state, player))).toBeCloseTo(fresh, 6);
+  });
+
+  it('sees a card’s line on the hex, because the share is over what the hex pays', () => {
+    const rows = doctrineDef('thePandidakterion' as DoctrineId).effects;
+    const { state, player } = working([[8, 5]]);
+    raiseImprovement(at(state, 8, 5), 'academy', 0);
+    bumpRevision(state);
+    const plain = scoreEffects(rows, valueContext(state, player));
+    hold(state, 'theGiftOfTheRiver');
+    at(state, 8, 5).riverEdges = 1;
+    bumpRevision(state);
+    expect(scoreEffects(rows, valueContext(state, player))).toBeGreaterThan(plain);
+  });
+
+  it('prices a doubling exactly as a flat line paying the same bag, hammer premium included', () => {
+    const on = { test: 'improvement', improvement: 'manufactory' } as const;
+    const { state, city, player } = working([[8, 5]]);
+    raiseImprovement(at(state, 8, 5), 'manufactory', 0);
+    bumpRevision(state);
+    const paid = hexPays(state, city, 8, 5);
+    expect(paid.production).toBeGreaterThan(0);
+    const ctx = valueContext(state, player);
+    const doubling = explainEffects([{ kind: 'pays', where: 'hex', on, wholePercent: 100 }], ctx);
+    const flat = explainEffects([{ kind: 'pays', where: 'hex', on, ...paid }], ctx);
+    expect(doubling.total).toBeCloseTo(flat.total, 6);
+  });
+
+  it('prices a row with no share as before', () => {
+    const rows: CardEffect[] = [
+      { kind: 'pays', where: 'hex', on: { test: 'improvement', improvement: 'farm' }, food: 2 },
+    ];
+    const { state, player } = working([[8, 5]]);
+    raiseImprovement(at(state, 8, 5), 'farm', 0);
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    expect(scoreEffects(rows, ctx)).toBeCloseTo(valueOfYields({ food: 2 }, ctx), 6);
+  });
+});

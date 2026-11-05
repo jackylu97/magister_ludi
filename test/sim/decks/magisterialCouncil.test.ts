@@ -36,6 +36,7 @@ import {
   type SlottedOrder,
   commissionFulfilledTurn,
   describeCard,
+  doctrineBagFor,
   explainCardPercentYields,
   slotTypesOf,
   stripRefs,
@@ -470,10 +471,13 @@ describe('Commission: The Golden Bull (readings 18 and 19)', () => {
     expect(runCommissions(state)).toEqual([]);
     expect(player.statecraft.slots.some((slot) => slot?.card === BULL)).toBe(true);
     expect(commissionFulfilledTurn(player.statecraft, BULL)).toBeUndefined();
-    // A seat whose decks hold no Doctrine waits the same way.
+    // A seat whose decks hold no Doctrine waits the same way. Since batch DT3 the
+    // decks deal Doctrines at this tier, so the test states what it needs: a seat
+    // with no deck has an empty bag.
     player.statecraft.doctrines = [];
-    player.decks = ['magisterial', 'scientific'];
+    player.decks = [];
     bumpRevision(state);
+    expect(doctrineBagFor(player, tier)).toEqual([]);
     expect(runCommissions(state)).toEqual([]);
   });
 });

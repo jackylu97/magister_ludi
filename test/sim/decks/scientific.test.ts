@@ -114,6 +114,7 @@ import {
 } from '../../../src/sim/techData';
 import { found, game } from '../statecraftHelpers';
 import { createGame } from '../newGameHelpers';
+import { expectSheetDoctrinesMatchData, sheetDoctrines } from './sortedSheets';
 
 /** The ids of `data/decks/scientific.json`, in file order. */
 const DECK: readonly OrderId[] = DECK_FILE_ORDERS.scientific;
@@ -509,6 +510,17 @@ function checkAgainstRow(card: SheetCard, id: OrderId): void {
 const TAKEN = new Set(ORDER_IDS.map((id) => orderDef(id).name));
 
 describe('the Scientific deck: the sheet', () => {
+  it('holds the Doctrine rows to the sheet’s four tables', () => {
+    // A sheet row with no data row passes until batch DT20, so the tables can
+    // carry all 15 while the batches fill them. What each row does is checked in
+    // `scientificDoctrines.test.ts`.
+    expect(sheetDoctrines('scientific').length).toBe(15);
+    expect(
+      [1, 2, 3, 4].map((band) => sheetDoctrines('scientific').filter((row) => row.band === band).length),
+    ).toEqual([4, 3, 4, 4]);
+    expectSheetDoctrinesMatchData('scientific');
+  });
+
   it('mirrors the five tier tables, card for card', () => {
     const sheet = sheetCards();
     const shared = sharedCards();

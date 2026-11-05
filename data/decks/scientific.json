@@ -2008,5 +2008,154 @@
         }
       ]
     }
+  },
+  "doctrines": {
+    "thePythagoreanBrotherhood": {
+      "name": "The Pythagorean Brotherhood",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "flavor": "All is number, and the numbers are kept inside the temple walls.",
+      "text": "+2 science in every city, doubled in cities with a Shrine.",
+      "effects": [
+        {"kind": "pays", "where": "city", "science": 2},
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 2,
+          "scope": {"test": "hasBuilding", "building": "shrine"}
+        }
+      ]
+    },
+    "theRemovalToXianyang": {
+      "name": "The Removal to Xianyang",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "flavor": "Bring the great families to the capital, and the provinces will stay quiet.",
+      "text": "Your towns grow 30% faster. Settlers cost twice as much.",
+      "effects": [
+        {"kind": "rulePercent", "rule": "growthSurplus", "percent": 30},
+        {"kind": "rulePercent", "rule": "settlerCost", "percent": 100}
+      ]
+    },
+    "theWorkshopsOfSyracuse": {
+      "name": "The Workshops of Syracuse",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "flavor": "The tyrant paid the best wage in Greece, and got the first catapult.",
+      "text": "Your military units gain +5 combat strength. They cost 50% more to build and to buy.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "side": "both",
+          "when": {"test": "always"},
+          "class": {"category": "military"}
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "unitCost",
+          "percent": 50,
+          "class": {"category": "military"}
+        }
+      ]
+    },
+    "theJixianAcademy": {
+      "name": "The Jixian Academy",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "flavor": "The scholars copy the old books, and the court reads the new ones first.",
+      "text": "Completing a technology grants culture equal to a fifth of its cost. Your towns make 25% less culture.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "tech",
+          "grant": {"yield": "culture", "amount": 0.2, "fromOccasion": "techCost"}
+        },
+        {"kind": "percentYields", "yield": "culture", "percent": -25}
+      ]
+    },
+    "theAcademyOfGondishapur": {
+      "name": "The Academy of Gondishapur",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "flavor": "Athens closed its schools, and Persia opened its doors.",
+      "text": "Towns with an empire building gain +15% science. +20% production toward empire buildings.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 15,
+          "scope": {"test": "hasEmpireBuilding"}
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "empireBuilding": true,
+          "percent": 20,
+          "skipsBeadRows": true
+        }
+      ],
+      "note": "The production bonus does not reach the Magnum Opus or its works."
+    },
+    "thePandidakterion": {
+      "name": "The Pandidakterion",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "flavor": "The emperor pays for the chairs and expects to hear the truth from them.",
+      "text": "Hexes with an Academy have double yields, applied after every other change to the hex.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {"test": "improvement", "improvement": "academy"},
+          "wholePercent": 100
+        }
+      ]
+    },
+    "theUniversitas": {
+      "name": "The Universitas",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "flavor": "Masters and students make a guild, and the guild needs a great city around it.",
+      "text": "Science buildings in your towns of twelve or more citizens produce twice their yields. In your smaller towns they produce half.",
+      "effects": [
+        {
+          "kind": "buildingYieldPercent",
+          "category": "science",
+          "percent": 100,
+          "scope": {"test": "populationAtLeast", "value": 12}
+        },
+        {
+          "kind": "buildingYieldPercent",
+          "category": "science",
+          "percent": -50,
+          "scope": {"test": "populationAtMost", "value": 11}
+        }
+      ]
+    },
+    "theVolleyFire": {
+      "name": "The Volley Fire",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "flavor": "One rank shoots, one rank draws, one rank steps up. The rain does not stop.",
+      "text": "Your archer line (Archer to Crossbowman) may attack twice a turn. Your melee units fight at −10% strength.",
+      "effects": [
+        {"kind": "rule", "rule": "secondAttack", "class": {"modelClass": "ranged"}},
+        {
+          "kind": "unitStat",
+          "stat": "combatPercent",
+          "amount": -10,
+          "class": {"modelClass": "melee"}
+        }
+      ]
+    }
   }
 }

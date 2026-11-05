@@ -147,7 +147,7 @@ import {
 // Batch X2: the one condition that asks what a hex already *pays* has to be
 // handed the hex's own fold, and the fold is the town's — see
 // `workedHexesAdmitting`.
-import { cityContext, foldTile, yieldContextFor } from '../sim/yields/hex';
+import { cityContext, foldTile, type TileYieldContext, yieldContextFor } from '../sim/yields/hex';
 import {
   explainEmpireCardYields,
   foldEmpireRates,
@@ -2763,6 +2763,31 @@ export function workedHexesAdmitting(ctx: ValueContext, effect: CardPaysEffect):
   const memo = scopeMemo(ctx);
   const held = memo.get(effect);
   if (held !== undefined) return held;
+  const ground = groundOfHexLine(ctx, effect);
+  const count = ground.hexes.length / ground.over;
+  memo.set(effect, count);
+  return count;
+}
+
+/** One worked hex a hex line lands on, and the town working it. */
+interface HexLineCell {
+  city: City;
+  tile: Tile;
+}
+
+/**
+ * **The worked hexes a `where: 'hex'` line lands on**, the walk behind
+ * `workedHexesAdmitting` and `wholeShareOf`. Both ask the same question, so they
+ * cannot disagree about which hexes a row reaches.
+ *
+ * `over` is what the walk's figures are divided by. It is one, except for the
+ * promise that docblock describes: a scope no town admits yet reads the whole
+ * empire's hexes shared over its towns, one middling town's worth.
+ */
+function groundOfHexLine(
+  ctx: ValueContext,
+  effect: CardPaysEffect,
+): { hexes: HexLineCell[]; over: number } {
   const towns = citiesOf(ctx.state, ctx.playerId);
   const reads = tileConditionReadsFold(effect.on);
   // **The garrisons** (Dominion batch D7, The Farming Garrisons and The
@@ -2773,11 +2798,11 @@ export function workedHexesAdmitting(ctx: ValueContext, effect: CardPaysEffect):
   const ground = groundFactsFor(ctx.state, ctx.playerId);
   const garrisoned = asksAboutGarrisons(effect.on);
   let admitted = 0;
-  let onAdmitted = 0;
-  let everywhere = 0;
+  const onAdmitted: HexLineCell[] = [];
+  const everywhere: HexLineCell[] = [];
   for (const city of towns) {
     const context = reads ? cityContext(ctx.state, city) : undefined;
-    let mine = 0;
+    const mine: HexLineCell[] = [];
     const cells = garrisoned ? [...city.workedTiles, { col: city.col, row: city.row }] : city.workedTiles;
     for (const cell of cells) {
       const tile = getTileAt(ctx.state.map, cell.col, cell.row);
@@ -2792,9 +2817,9 @@ export function workedHexesAdmitting(ctx: ValueContext, effect: CardPaysEffect):
           undefined,
           ground,
         );
-      if (holds) mine += 1;
+      if (holds) mine.push({ city, tile });
     }
-    everywhere += mine;
+    everywhere.push(...mine);
     // The ground is this function's reading; *whose* ground it is is the scope's,
     // and it is asked of each town in the same sweep.
     if (
@@ -2802,18 +2827,84 @@ export function workedHexesAdmitting(ctx: ValueContext, effect: CardPaysEffect):
       cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)
     ) {
       admitted += 1;
-      onAdmitted += mine;
+      onAdmitted.push(...mine);
     }
   }
-  let count = onAdmitted;
-  if (admitted === 0) {
-    count =
-      towns.length === 0 || !scopePromisesABuilding(effect.scope)
-        ? 0
-        : everywhere / towns.length;
+  if (admitted > 0) return { hexes: onAdmitted, over: 1 };
+  return towns.length === 0 || !scopePromisesABuilding(effect.scope)
+    ? { hexes: [], over: 1 }
+    : { hexes: everywhere, over: towns.length };
+}
+
+/** The share a row takes of a hex (`wholeShareOf`), remembered for the sitting. */
+const WHOLE_SHARE_MEMO = new WeakMap<ValueContext, Map<CardPaysEffect, YieldBag>>();
+
+/**
+ * **What a hex line's `wholePercent` pays this seat a turn, voice by voice**
+ * (batch DT3). The Strategoi's citadels, The Nizamiyya, The Cathedral Lodges and
+ * The Pandidakterion take a positive share, and Crop Rotation's wild ground a
+ * negative one. A share has no figure of its own on the row, so reading only the
+ * row's bag priced The Cathedral Lodges' doubling at nothing, and Crop Rotation's
+ * drawback at nothing too.
+ *
+ * The share is taken over what each worked hex pays this seat today: `foldTile`
+ * with the town's own context, which is how `explainCity` folds the hex. So a
+ * seat that has improved the hex, or holds cards that pay on it, gets a larger
+ * figure, for a gain and for a loss alike.
+ *
+ * **The base leaves out every whole share**, the row's own included. Step 8 of the
+ * hex fold (`docs/yields.md`) sums the shares on a hex before one multiplication,
+ * so each is a share of what the hex pays without them. Reading the plain fold
+ * would price a seated doubler at twice what it adds, and a second doubler as if
+ * the first had paid into it.
+ *
+ * The town's own hex is not priced. It is not in `workedTiles`, and it keeps its
+ * floor under a card that takes everything away (`explainCentreYield`).
+ */
+function wholeShareOf(ctx: ValueContext, effect: CardPaysEffect): YieldBag {
+  const percent = effect.wholePercent ?? 0;
+  if (percent === 0) return {};
+  let memo = WHOLE_SHARE_MEMO.get(ctx);
+  if (memo === undefined) {
+    memo = new Map();
+    WHOLE_SHARE_MEMO.set(ctx, memo);
   }
-  memo.set(effect, count);
-  return count;
+  const held = memo.get(effect);
+  if (held !== undefined) return held;
+  const ground = groundOfHexLine(ctx, effect);
+  const share: YieldBag = {};
+  let context: TileYieldContext | undefined;
+  let contextOf: City | undefined;
+  for (const { city, tile } of ground.hexes) {
+    // The walk visits a town's hexes together, so one context serves them all.
+    if (contextOf !== city) {
+      context = withoutWholeShares(cityContext(ctx.state, city));
+      contextOf = city;
+    }
+    const paid = foldTile(tile, context);
+    for (const voice of VOICES) share[voice] = (share[voice] ?? 0) + paid[voice];
+  }
+  for (const voice of VOICES) {
+    share[voice] = (((share[voice] ?? 0) / ground.over) * percent) / 100;
+  }
+  memo.set(effect, share);
+  return share;
+}
+
+/** A town's hex context with every line's whole share taken off. See `wholeShareOf`. */
+function withoutWholeShares(context: TileYieldContext | undefined): TileYieldContext | undefined {
+  const lines = context?.lines;
+  if (context === undefined || lines === undefined) return context;
+  if (!lines.some((line) => line.wholePercent !== undefined)) return context;
+  return {
+    ...context,
+    lines: lines.map((line) => {
+      if (line.wholePercent === undefined) return line;
+      const bare = { ...line };
+      delete bare.wholePercent;
+      return bare;
+    }),
+  };
 }
 
 /** Does a hex condition ask whether a fortified unit stands on the hex? */
@@ -2985,7 +3076,12 @@ function productionOf(effect: CardEffect, ctx: ValueContext): number {
       // town there; it is one town in both now, which is what the field says.
       if (effect.where === 'city') return hammers * townsAdmitting(ctx, effect.scope);
       if (effect.where === 'capital') return hammers * capitalAdmits(ctx, effect.scope);
-      if (effect.where === 'hex') return hammers * workedHexesAdmitting(ctx, effect);
+      // A whole share pays hammers too (batch DT3). `hammerTerm` claims nothing
+      // on a negative figure, so Crop Rotation's loss is priced at the table's
+      // weight alone, as every other negative hammer is.
+      if (effect.where === 'hex') {
+        return hammers * workedHexesAdmitting(ctx, effect) + (wholeShareOf(ctx, effect).production ?? 0);
+      }
       if (effect.where === 'empire') return hammers;
       return 0;
     }
@@ -3123,10 +3219,14 @@ function scorePays(effect: CardPaysEffect, ctx: ValueContext): number {
     // rather than a guess, and there is no board-free stand-in for "how many
     // peaks" that would not be a tuned constant. It costs nothing today — a
     // leader's own line is never drafted, so this arm never prices one.
+    //
+    // A whole share (`wholePercent`, batch DT3) is read off the worked hexes
+    // themselves, so it joins after the count rather than inside it.
     return (
       (valueOfYields(bagOf(effect), ctx) +
         ((effect.percent ?? 0) / 100) * nominal * voiceWeight(ctx, 'production')) *
-      workedHexesAdmitting(ctx, effect)
+        workedHexesAdmitting(ctx, effect) +
+      valueOfYields(wholeShareOf(ctx, effect), ctx)
     );
   }
 

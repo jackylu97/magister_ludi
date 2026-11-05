@@ -3282,8 +3282,28 @@ import {
  * **A v206 save is refused and does not replay.** An Expansionist seat's Doctrine
  * bags are no longer empty, so its draws move. The branch migrates nothing, for
  * the reason given under v119.
+ *
+ * v208 (branch `decks`; batch DT3, `docs/plans/doctrines-build-triage.md`):
+ * **Commerce's and Scientific's first Doctrines, the fifteen that need no new
+ * shape.** No field joins the state. The rules that change:
+ *
+ *   · The Apoikia, The Delian League, The Sogdian Colonies, The Year and a Day, The
+ *     Turnpike Trusts, The Peace of Lodi and The Monte di Pietà are dealt to a
+ *     Commerce seat;
+ *   · The Pythagorean Brotherhood, The Removal to Xianyang, The Workshops of
+ *     Syracuse, The Jixian Academy, The Academy of Gondishapur, The Pandidakterion,
+ *     The Universitas and The Volley Fire are dealt to a Scientific seat;
+ *   · a production bonus may leave out the rows that grant a bead (`skipsBeadRows`);
+ *   · `buyRoute` now charges the price the purse check asks, which is the origin
+ *     town's, so a rider on a caravan's price is really paid;
+ *   · the bots price a hex line's `wholePercent` over what the hexes pay, so they
+ *     score The Nizamiyya, Crop Rotation and The Cathedral Lodges differently.
+ *
+ * **A v207 save is refused and does not replay.** These seats' Doctrine bags are no
+ * longer empty, so their draws move. The branch migrates nothing, for the reason
+ * given under v119.
  */
-export const SCHEMA_VERSION = 207;
+export const SCHEMA_VERSION = 208;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

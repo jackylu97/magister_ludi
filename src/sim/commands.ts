@@ -4374,8 +4374,9 @@ function applyBuyRoute(state: GameState, command: BuyRouteCommand): CommandResul
 
   // The price is asked once and charged once — the fold of the very lines the
   // screen printed (`explainRoutePrice`), so the figure on the button is the
-  // figure the treasury loses.
-  const price = routePrice(state, actor.id);
+  // figure the treasury loses. It names the origin, as the purse's check above
+  // does, or a rider on the road would pass the check and never be charged.
+  const price = routePrice(state, actor.id, command.fromCityId);
   // **The almoner's ledger** — the coin itself, exactly as `purchaseItemAt`
   // records it, because this is coin leaving the treasury for a thing and a
   // card that counts spending has no business asking which verb spent it. Both
