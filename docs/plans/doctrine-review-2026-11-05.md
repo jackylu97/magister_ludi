@@ -134,3 +134,11 @@ Three comments could be read in more than one way. The user chose the recommende
 1. **The Arthashastra's "it"** is the seated card. The card in the extra Wildcard chair counts twice: its yields, percentages and riders all pay double. The Doctrine no longer touches the government's ability.
 2. **Human Sacrifice's price** is only the citizen: no faith and no prophet. The rite reaches every town the seat holds, and it still raises the price of later rites.
 3. **The Turnpike Trusts** sits at Tier III. Commerce holds 3, 4, 3 and 4 Doctrines across the tiers.
+
+## The user's answers, 2026-11-06
+
+A check of the build against this document raised three more questions.
+
+1. **The Academy of Gondishapur and The Külliye** do not speed the Magnum Opus or its three works. Both cards gain a clause that says so.
+2. **The Arthashastra's chair** is the last Wildcard chair that no malice holds, so a malice does not stop the doubling.
+3. **The Flying Money** stays a rule about gold. Its text becomes "Your towns with a gold building buy units and buildings 20% cheaper. Your other towns cannot buy them with gold." A town with no gold building can still buy with faith.
