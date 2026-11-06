@@ -236,6 +236,7 @@ governments, so Tier IV opened at 29.
 | The Volley Fire | Scientific | III | tier 18 | Your archer line (Archer to Crossbowman) may attack twice a turn. Your melee units fight at −10% strength. |
 | The Külliye | Scientific | III | tier 18 | Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings. |
 | The Court of Rudolf II | Scientific | IV | tier 26 | Alchemy, and the fourth-age technologies that lead to it, cost you 20% less research. Your other fourth-age technologies cost you 25% more. |
+| The Nassau Reforms | Scientific | IV | tier 26 | Each time research upgrades one of your units, it gains +2 strength for good. Your towns build military units 25% more slowly. |
 | The Arthashastra | Magisterial | I | tier 4 | You have one more Wildcard chair. The card seated in it counts twice. |
 | The Hospitium | Magisterial | I | tier 4 | The third card in each of your Order hands comes from a deck you do not hold. |
 | The Choregia | Magisterial | I | tier 4 | Culture buildings give +3 culture and +2 renown each. |
@@ -257,6 +258,7 @@ governments, so Tier IV opened at 29.
 | The Paean | Devotion | I | tier 4 | Your military units gain +1 strength for every god and belief you hold. |
 | The Capitulary of Herstal | Devotion | II | tier 10 | Rites cost half as much. |
 | The Patrimony of Peter | Devotion | II | tier 10 | Your holy city's citizens demand no happiness. |
+| The Ribats | Devotion | II | tier 10 | Military units created in a town following your religion gain +3 strength for good. Conquering a town converts it to your religion. |
 | The Imarets | Devotion | III | tier 18 | Your devout towns grow 25% faster. |
 | Canossa | Devotion | III | tier 18 | You and an empire whose capital follows your religion cannot declare war on each other. |
 | The Canons of the Holy Sepulchre | Devotion | III | tier 18 | Towns with a holy site buy with faith at 30% less. |

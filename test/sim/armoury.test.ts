@@ -36,6 +36,7 @@ import {
 } from '../../src/sim/state';
 import { buildError } from '../../src/sim/tech';
 import { techDef } from '../../src/sim/techData';
+import { cardUnitStamp } from '../../src/sim/statecraft/evaluator';
 import { type UnitTypeId, unitDef, unitMaxHp } from '../../src/sim/unitData';
 import { productionModifiers } from '../../src/sim/yields/town';
 
@@ -124,6 +125,24 @@ describe('the War Hall', () => {
     const plain = muster(g.state, other, 'warrior');
     expect(plain.stamp).toBeUndefined();
     expect(unitMaxHp(plain)).toBe(roster);
+  });
+
+  it('reaches a piece raised beside the town, because the town’s own hex was full (batch DT14)', () => {
+    // `realiseItem` names the town that raised the piece, so the row reads that town
+    // and not the empty hex the piece stands on. Before this batch the row missed it.
+    const g = game(4203);
+    const home = found(g.state, 0);
+    raise(g.state, home, 'warHall');
+    raise(g.state, home, 'terracottaArmy');
+    const beside = g.state.map.tiles.find(
+      (tile) => Math.abs(tile.col - home.col) === 1 && tile.row === home.row,
+    )!;
+    const done = realiseItem(g.state, home, { kind: 'unit', id: 'warrior', tile: beside });
+    const piece = g.state.units.find((u) => u.id === done.unitId)!;
+    expect({ col: piece.col, row: piece.row }).toEqual({ col: beside.col, row: beside.row });
+    expect(piece.stamp).toEqual({ hp: 10, strength: 2 });
+    // A caller with no town in hand still reads the hex, which has no town.
+    expect(cardUnitStamp(g.state, 0, { col: beside.col, row: beside.row }, 'warrior')).toEqual({});
   });
 
   it('reads the town’s walk without reading a wonder twice', () => {

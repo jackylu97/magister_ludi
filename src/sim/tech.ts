@@ -481,6 +481,7 @@ import { cardBehaviorRule } from './statecraft/evaluator';
 // of the Opus and prototype rules.
 import {
   cardBehaviorRuleFor,
+  cardUpgradeStrength,
   cardClosedBookTurns,
   cardOpusEarlyPercent,
   cardPrototypePercent,
@@ -2555,6 +2556,13 @@ export function upgradeUnits(state: GameState, player: Player): void {
     // narrowed by `class` reads the new type. This is the one exception to
     // "upgrading is not a way to heal" above, and only while the card is held.
     if (cardBehaviorRuleFor(state, unit, 'upgradeHeals')) unit.hp = unitMaxHp(unit, empireHp);
+    // **The Nassau Reforms** (batch DT14; S16 and reading 32): one climb adds the
+    // figure once, however many rungs it crossed. It goes on the stamp, which adds
+    // to whatever the piece was born with and stays when the card is gone.
+    const drilled = cardUpgradeStrength(state, unit);
+    if (drilled !== 0) {
+      unit.stamp = { ...unit.stamp, strength: (unit.stamp?.strength ?? 0) + drilled };
+    }
   }
 }
 

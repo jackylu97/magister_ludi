@@ -5170,6 +5170,15 @@ export type BehaviorRuleId =
    */
   | 'upgradeIgnoresResource'
   /**
+   * **Each upgrade from research adds strength to the piece for good** (batch
+   * DT14, The Nassau Reforms; S16 and reading 32 of
+   * `docs/plans/doctrines-build-triage.md`). The row's `value` is the strength.
+   * Read through `cardUpgradeStrength` in `upgradeUnits` (`tech.ts`), once for each
+   * climb, so a piece that climbs two rungs in one step gains the value once. It
+   * is written to `Unit.stamp`, so the piece keeps it when the card is gone.
+   */
+  | 'upgradeStrength'
+  /**
    * **Each blow this empire's pieces land on a town raising the Magnum Opus
    * removes a share of the production banked toward it** (Scientific batch
    * S9, The Breaching Batteries; the triage's reading 52). The share is the
@@ -6362,7 +6371,23 @@ export interface WindfallGrantSpec {
    * of the pressing that turned the town, so a town it turns is paid its own
    * moment in turn.
    */
-  pressure?: { amount: number; range: number };
+  pressure?: {
+    amount: number;
+    range: number;
+    /**
+     * **This lump makes the religion the majority of the town on the hex** (batch
+     * DT14, The Ribats; S17 and reading 34 of `docs/plans/doctrines-build-triage.md`).
+     * `pressLump` sizes it to turn just enough citizens, and no Temple reduces it,
+     * so `amount` only has to be other than nought and `range` is not read. It
+     * presses only the first of `heldReligions`, so a seat with two holy cities
+     * does not press a town against itself.
+     *
+     * Only the battle seam's presser reads the flag (`payBattleRiders`). The
+     * founding and conversion pressers would press `amount` as an ordinary lump,
+     * so a row sets it only on a `capture` rider.
+     */
+    majority?: true;
+  };
   /**
    * **Food and production from this grant go to the capital** — The Plunder
    * Trains (Dominion batch D3). Absent sends them where every other grant's go:
@@ -7732,9 +7757,10 @@ export interface CardUnitStampEffect {
    * Army's "units built in this city".
    *
    * `CardUnitStatEffect.scope`'s field one shape over, read the same way by the
-   * same predicate against the same town: the birth hex is the only town a
-   * creation has, and `createUnit` is the one place a piece comes into
-   * existence. A wonder says "here" by naming itself
+   * same predicate. The town is the one that raised the piece where the caller
+   * knows it (`createUnit`'s `bornIn`, batch DT14), so a unit raised while the
+   * town's own hex is full is still raised in that town. Otherwise it is the town
+   * on the birth hex. A wonder says "here" by naming itself
    * (`{ test: 'hasBuilding' }`), which is the same sentence its town `pays`
    * clauses already say — so a stamp that reaches one town and a yield that
    * reaches one town are one vocabulary.
@@ -8866,7 +8892,10 @@ export interface CardRuleEffect {
    * **The price the rule sets, in charges** (Devotion batch DV7, The
    * Anchorites). Read only by `chargePrice`, for the act `verb` names. It
    * replaces the price in `rules.religion.prophetCosts` for this empire. A
-   * row with no value changes nothing. Meaningless on every other member.
+   * row with no value changes nothing.
+   *
+   * Batch DT14 adds a second reader: on `upgradeStrength` (The Nassau Reforms) it
+   * is the strength each upgrade adds. Meaningless on every other member.
    */
   value?: number;
 }

@@ -5302,7 +5302,7 @@ export interface RealiseOptions {
    * `free`'s sibling and here for its stated reason: it cannot be derived from
    * anything this routine can see — the piece, the town and the roster are
    * identical either way — so it is a parameter. Handed straight to `createUnit`,
-   * which is still the one writer of `Unit.stamp`; ignored for a building, which
+   * which writes `Unit.stamp` at the birth; ignored for a building, which
    * has none.
    */
   stamp?: UnitStamp;
@@ -5312,7 +5312,7 @@ export interface RealiseOptions {
    *
    * `stamp`'s sibling and here for its stated reason: it cannot be derived from
    * anything this routine can see, so it is a parameter. Handed straight to
-   * `createUnit`, which is still the one writer of `Unit.stamp`. Absent is a
+   * `createUnit`, which writes `Unit.stamp` at the birth. Absent is a
    * completion, a grant or an escort — every birth that no till rang up.
    *
    * **A building reads it too since batch C8**: `addBuilding` writes it into
@@ -5526,7 +5526,7 @@ export function realiseItem(
   }
   // The caller's own stamp travels *into* the constructor rather than being
   // written on afterwards, because the health a piece is born at is read off the
-  // stamp — see `createUnit`, the one writer of `Unit.stamp`. `person` is
+  // stamp — see `createUnit`, which writes `Unit.stamp` at the birth. `person` is
   // undefined here: nothing calls a great person through production.
   const unit = createUnit(
     state,
@@ -5538,6 +5538,9 @@ export function realiseItem(
     options.stamp,
     options.bought,
     options.levied,
+    // The town that raised it, so a stamp scoped to a town reaches a piece that
+    // stands beside it because the town's own hex was full (batch DT14, S16).
+    city,
   );
   // The maintenance mark, and the *only* thing `options` is for. A gift is a
   // gift: a Levy's spearman and Camp Followers' stray cost their empire nothing
@@ -5987,7 +5990,9 @@ export function payGrants(
         reports.push({ grant: 'unit', name: unitDef(type).name, done: false });
         continue;
       }
-      const born = createUnit(state, player.id, type, tile.col, tile.row);
+      // Named as raised in this town, as `realiseItem` names it (batch DT14, S16):
+      // a granted piece is "created in" the town even when it stands beside it.
+      const born = createUnit(state, player.id, type, tile.col, tile.row, undefined, undefined, undefined, undefined, city);
       // A wonder's gift, so nobody paid for it — the Statue of Zeus' swordsman
       // and Hagia Sophia's are the two today. See `Unit.freeUpkeep`, entry 3.
       born.freeUpkeep = true;

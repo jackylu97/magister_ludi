@@ -8731,6 +8731,12 @@ export function cardExtraCharges(
  * `cardExtraCharges` resolves it once — the hex does not move between effects,
  * and a lookup per clause would sweep the realm's towns at every completion.
  *
+ * `bornIn` is the town that raised the piece, where the caller knows it (batch
+ * DT14, S16). A unit raised while the town's own hex is full stands beside the
+ * town, and the birth hex alone would say it has no town. So a caller with the
+ * town in hand names it, and it takes the place of the hex. The same rule holds
+ * in `cardBirthTimedEffects`, and `cardBirthExperience` already works this way.
+ *
  * Every figure is the card's own, and a stamp that comes out to nothing at all
  * is **not written** — see `createUnit`, where presence is the state.
  */
@@ -8741,11 +8747,12 @@ export function cardUnitStamp(
   type?: UnitTypeId,
   bought?: PurchaseCurrency,
   levied?: LevyUse,
+  bornIn?: City,
 ): UnitStamp {
   let hp = 0;
   let strength = 0;
   let movement = 0;
-  const born = at ? cityAt(state, at.col, at.row) : undefined;
+  const born = bornIn ?? (at ? cityAt(state, at.col, at.row) : undefined);
   // **The birth town's own walk, where there is one** (M2, the War Hall):
   // an ordinary building's effects are the town's and not the empire's
   // (`cityBuildingEffects`), so a stamp on a row a town builds is invisible to
@@ -8811,9 +8818,10 @@ export function cardBirthTimedEffects(
   type?: UnitTypeId,
   bought?: PurchaseCurrency,
   levied?: LevyUse,
+  bornIn?: City,
 ): TimedEffect[] {
   const hung: TimedEffect[] = [];
-  const born = at ? cityAt(state, at.col, at.row) : undefined;
+  const born = bornIn ?? (at ? cityAt(state, at.col, at.row) : undefined);
   const live = born
     ? cityEffectsOfKind(state, born, 'unitStamp')
     : effectsOfKind(state, playerId, 'unitStamp');
@@ -9097,7 +9105,7 @@ export interface WindfallPayout {
    * imported. A payout carrying one on a caller that offered no presser presses
    * nothing, which is the same silence a grant with no city to receive it keeps.
    */
-  pressure: { card: CardId; source: string; amount: number; range: number }[];
+  pressure: { card: CardId; source: string; amount: number; range: number; majority?: true }[];
   /*
    * Dominion batch D3's four, optional because a payout composed outside
    * `windfallPayout` (a commission's reward, `commissions.ts`) carries none of
@@ -9963,8 +9971,21 @@ export function windfallPayout(
         (effect.perSlottedOrder === true ? slotted : 1) *
         boostFor(card);
       if (amount !== 0) {
-        payout.pressure.push({ card, source, amount, range: grant.pressure.range });
-        payout.lines.push({ card, source, note: `${signed(amount)} faith pressed` });
+        // A majority lump (batch DT14, The Ribats) is sized by `pressLump` when it
+        // lands, so its line names what it does and not a figure.
+        const majority = grant.pressure.majority === true;
+        payout.pressure.push({
+          card,
+          source,
+          amount,
+          range: grant.pressure.range,
+          ...(majority ? { majority: true as const } : {}),
+        });
+        payout.lines.push({
+          card,
+          source,
+          note: majority ? 'the town converts' : `${signed(amount)} faith pressed`,
+        });
       }
     }
     if (grant.unit === 'randomMilitary') {
@@ -11283,8 +11304,11 @@ export function payWindfallGrants(
    * its own conversion moments before it returns, so this function can be
    * called again from inside its own lump step. That is safe: the nested call
    * pays another payout, and changes nothing this call is still reading.
+   *
+   * `majority` is The Ribats' flag (batch DT14, `WindfallGrantSpec.pressure`). Only
+   * the battle seam's presser reads it.
    */
-  press?: (amount: number, range: number, at: { col: number; row: number }) => void,
+  press?: (amount: number, range: number, at: { col: number; row: number }, majority?: true) => void,
 ): City[] {
   const touched: City[] = [];
   // **The day is spent here**, first and unconditionally, because this is the
@@ -11438,7 +11462,7 @@ export function payWindfallGrants(
   // already been written. It needs the hex — a lump is pressed *somewhere* — so a
   // payout with no place to have happened presses nothing.
   if (payout.pressure.length > 0 && press && at) {
-    for (const lump of payout.pressure) press(lump.amount, lump.range, at);
+    for (const lump of payout.pressure) press(lump.amount, lump.range, at, lump.majority);
   }
   if (payout.renown.length > 0) {
     settleRenownWindfall(
@@ -12037,6 +12061,22 @@ export function cardFaithfulPeace(
  */
 export function cardBehaviorRuleFor(state: GameState, unit: Unit, rule: BehaviorRuleId): boolean {
   return cardRuleHolds(state, unit.ownerId, rule, unit.type, unit);
+}
+
+/**
+ * **The strength one upgrade from research adds to this piece** (batch DT14, The
+ * Nassau Reforms; S16): the sum of the `upgradeStrength` rows that reach it, each
+ * row's `value`. Read in `upgradeUnits` (`tech.ts`), after the upgrade, so a row
+ * narrowed by `class` reads the new type, as The Field Refits does.
+ */
+export function cardUpgradeStrength(state: GameState, unit: Unit): number {
+  let strength = 0;
+  for (const { effect } of effectsOfKind(state, unit.ownerId, 'rule')) {
+    if (effect.rule !== 'upgradeStrength' || effect.value === undefined) continue;
+    if (effect.class !== undefined && !unitMatches(unit.type, effect.class)) continue;
+    strength += effect.value;
+  }
+  return strength;
 }
 
 /**

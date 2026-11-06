@@ -4535,6 +4535,29 @@ function lumpTargets(
   return out;
 }
 
+/**
+ * The one town a majority lump reaches (batch DT14, The Ribats; S17): the town on
+ * the hex, with the figure that turns just enough of its citizens.
+ *
+ * The figure is the price of the citizens this religion still needs, less what the
+ * town has banked toward it, so `bankPressure` turns exactly that many and leaves
+ * this religion's bank empty. It does not go through `templeShare`: the user's
+ * ruling is that the town converts "however much pressure others held". A town that
+ * already follows this religion is pressed nothing. An empty hex is no target.
+ */
+function majorityTarget(
+  state: GameState,
+  religion: Religion,
+  at: { col: number; row: number },
+  perConvert: number,
+): LumpTarget[] {
+  const city = cityAt(state, at.col, at.row);
+  if (!city) return [];
+  const needed = Math.floor(city.population / 2) + 1 - followerCount(city, religion.id);
+  const banked = city.pressureBank?.[religion.id] ?? 0;
+  return [{ city, pressed: Math.max(0, perConvert * needed - banked) }];
+}
+
 /** One town a proclamation landed on. See `ProclamationReport`. */
 export interface ProclamationConversion {
   cityId: number;
@@ -4591,6 +4614,11 @@ export interface ProclamationReport {
  *
  * The report's `nowFollows` is read after the moments are paid, so it says
  * where each town stands when the whole pressing is over.
+ *
+ * **`majority`** (batch DT14, The Ribats) replaces the targets: `range` and `lump`
+ * are not read, and `majorityTarget` gives the one town and its figure. The town
+ * still turns through `bankPressure`, so a town's religion stays derived from who
+ * follows it.
  */
 export function pressLump(
   state: GameState,
@@ -4599,12 +4627,17 @@ export function pressLump(
   range: number,
   lump: number,
   queue?: PendingConversion[],
+  majority?: true,
 ): ProclamationReport {
   const order = state.religions.map((one) => one.id);
   const perConvert = Math.max(1, Math.floor(RULES.religion.pressurePerConvert));
   const turned = queue ?? [];
   const landed: { city: City; converted: number }[] = [];
-  for (const { city, pressed } of lumpTargets(state, religion, at, range, lump)) {
+  const targets =
+    majority === true
+      ? majorityTarget(state, religion, at, perConvert)
+      : lumpTargets(state, religion, at, range, lump);
+  for (const { city, pressed } of targets) {
     const before = cityReligion(city);
     const converted = bankPressure(city, religion.id, order, pressed, perConvert);
     noteFirstConversion(state, city, religion, before, turned);

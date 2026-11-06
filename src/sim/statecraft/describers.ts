@@ -2796,11 +2796,17 @@ function describeEffect(
           grant.fromOccasion === undefined
             ? ''
             : `, with ${measuredWords('faith', grant.pressure.amount, grant.fromOccasion, effect.occasion)}`;
-        out.push({
-          text: turnsEveryone
-            ? `${occasion} turns every citizen of that city to your religion${per}`
-            : `${occasion} spreads your religion to ${reach}${scaled}${per}`,
-        });
+        // A majority lump (batch DT14, The Ribats) rides only a capture, so "it" is
+        // the city the occasion names, and its figure is not one a player reads.
+        if (grant.pressure.majority === true) {
+          out.push({ text: `${occasion} converts it to your religion${per}` });
+        } else {
+          out.push({
+            text: turnsEveryone
+              ? `${occasion} turns every citizen of that city to your religion${per}`
+              : `${occasion} spreads your religion to ${reach}${scaled}${per}`,
+          });
+        }
       }
       if (effect.percent !== undefined) {
         out.push({ text: `${occasion} pays ${signed(effect.percent)}%${per}` });
@@ -7442,6 +7448,9 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   upgradeHeals: 'each time research upgrades one of your units, it heals fully',
   upgradeIgnoresResource:
     'research upgrades your units even when you lack the strategic resource the new unit needs',
+  // Batch DT14, The Nassau Reforms. Its row carries a figure and `figureRuleWords`
+  // says it; this is the sentence for a row with none, which adds nothing.
+  upgradeStrength: 'each time research upgrades one of your units, it gains strength for good',
   // Scientific batch S9. These four carry a figure and are said whole by
   // `figureRuleWords`; these are the sentences for a row with no figure,
   // which changes nothing.
@@ -7536,6 +7545,13 @@ function figureRuleWords(effect: Extract<CardEffect, { kind: 'rule' }>): string 
       if (effect.verb === undefined || effect.value === undefined) return null;
       const value = Math.max(0, Math.floor(effect.value));
       return `${CHARGE_PRICE_WORDS[effect.verb]} costs ${value} ${value === 1 ? 'charge' : 'charges'}`;
+    }
+    case 'upgradeStrength': {
+      // The Nassau Reforms (batch DT14). "For good" because the strength stays on
+      // the piece when the card is gone, which a player cannot see from the figure.
+      if (effect.value === undefined) return null;
+      const who = effect.class === undefined ? 'your units' : `your ${filterWords(effect.class)}`;
+      return `each time research upgrades one of ${who}, it gains ${signed(effect.value)} combat strength for good`;
     }
     case 'rareWeight':
       if (effect.percent === undefined) return null;

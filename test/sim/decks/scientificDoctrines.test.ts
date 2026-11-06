@@ -8,8 +8,8 @@
  * batch adds and which The Pandidakterion needs.
  *
  * Batch DT6 adds The Peripatetic School, The Directorate of Arms and The Külliye.
- * Batch DT8 adds The Court of Rudolf II. Later batches add the deck's other three
- * Doctrines to this file.
+ * Batch DT8 adds The Court of Rudolf II. Batch DT14 adds The Nassau Reforms. Later
+ * batches add the deck's other two Doctrines to this file.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -42,11 +42,12 @@ import {
   createUnit,
   playerById,
 } from '../../../src/sim/state';
-import { doctrineBagFor } from '../../../src/sim/statecraft';
+import { describeCard, doctrineBagFor, stripRefs } from '../../../src/sim/statecraft';
 import {
   cardBehaviorRuleFor,
   cardCombatPercent,
   cardLimitLifts,
+  cardUpgradeStrength,
   explainBuildingPackage,
   explainCardPercentYields,
   foldBuildingPackage,
@@ -67,6 +68,7 @@ import {
   settleResearch,
   techChainOf,
   turnsToTech,
+  upgradeUnits,
 } from '../../../src/sim/tech';
 import {
   BUILDING_UNLOCK_TECH,
@@ -75,14 +77,14 @@ import {
   type TechId,
   techDef,
 } from '../../../src/sim/techData';
-import { unitDef } from '../../../src/sim/unitData';
+import { unitDef, unitStampStrength } from '../../../src/sim/unitData';
 import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
 import { explainCity, foldCity, productionModifiers } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
 import { createGame } from '../newGameHelpers';
 import { lendDoctrineEffects } from '../statecraftHelpers';
 
-/** The eight rows of batch DT3, the three of DT6 and the one of DT8, each with the band its table gives it. */
+/** The eight rows of batch DT3, the three of DT6 and the ones of DT8 and DT14, each with the band its table gives it. */
 const ROWS: readonly (readonly [string, number])[] = [
   ['thePythagoreanBrotherhood', 1],
   ['theRemovalToXianyang', 1],
@@ -96,6 +98,7 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theVolleyFire', 3],
   ['theKulliye', 3],
   ['theCourtOfRudolf', 4],
+  ['theNassauReforms', 4],
 ];
 
 /** Lent rows, put back after each test, so a failed test cannot leak one into the next. */
@@ -1116,5 +1119,141 @@ describe('The Court of Rudolf II (batch DT8)', () => {
     seat(state).techsResearched.push('prospecting');
     bumpRevision(state);
     expect(value(rest)).toBe(0);
+  });
+});
+
+describe('The Nassau Reforms (batch DT14)', () => {
+  const CARD = 'theNassauReforms';
+  const BOW_LINE: readonly string[] = ['bowman', 'compositeBowman', 'crossbowman'];
+
+  /** Teaches both seats every technology that opens a rung above the archer. */
+  function teachTheBowLine(state: GameState): void {
+    for (const player of state.players) {
+      for (const tech of TECH_IDS) {
+        const opens = techDef(tech).unlocks.units ?? [];
+        if (!opens.some((id) => BOW_LINE.includes(id))) continue;
+        if (!player.techsResearched.includes(tech)) player.techsResearched.push(tech);
+      }
+    }
+    bumpRevision(state);
+  }
+
+  /** A capital for seat 0, and an archer of its own with the whole bow line ahead of it. */
+  function board(): { state: GameState; city: City; archer: Unit } {
+    const state = bareState(24, 10);
+    const city = town(state, 5, 5, 3);
+    const archer = createUnit(state, 0, 'archer', 9, 5);
+    teachTheBowLine(state);
+    return { state, city, archer };
+  }
+
+  it('adds +2 for good when research upgrades a unit, and adds it once for a climb of two rungs', () => {
+    const { state, archer } = board();
+    hold(state, CARD);
+    upgradeUnits(state, seat(state));
+    // The climb crossed more than one rung: the type is past the archer's next row.
+    expect(archer.type).not.toBe('archer');
+    expect(archer.type).not.toBe(unitDef('archer').upgradesTo);
+    expect(archer.stamp).toEqual({ strength: 2 });
+  });
+
+  it('adds it again at the next upgrade', () => {
+    const { state, archer } = board();
+    hold(state, CARD);
+    upgradeUnits(state, seat(state));
+    expect(archer.stamp?.strength).toBe(2);
+    archer.type = 'archer';
+    upgradeUnits(state, seat(state));
+    expect(archer.stamp?.strength).toBe(4);
+  });
+
+  it('adds nothing to a unit that does not upgrade, or on a sweep with nothing to climb', () => {
+    const { state, archer } = board();
+    hold(state, CARD);
+    upgradeUnits(state, seat(state));
+    upgradeUnits(state, seat(state));
+    expect(archer.stamp?.strength).toBe(2);
+    const scout = createUnit(state, 0, 'scout', 12, 5);
+    upgradeUnits(state, seat(state));
+    expect(scout.stamp).toBeUndefined();
+  });
+
+  it('keeps what a birth stamped, and joins a health stamp without disturbing it', () => {
+    const { state, archer } = board();
+    archer.stamp = { hp: 10, strength: 3 };
+    hold(state, CARD);
+    upgradeUnits(state, seat(state));
+    expect(archer.stamp).toEqual({ hp: 10, strength: 5 });
+  });
+
+  it('prints as a labelled line on the piece’s side of a fight, and stays when the Doctrine is gone', () => {
+    const { state, archer } = board();
+    hold(state, CARD);
+    upgradeUnits(state, seat(state));
+    seat(state).statecraft.doctrines = [];
+    bumpRevision(state);
+    expect(unitStampStrength(archer)).toBe(2);
+    createUnit(state, 1, 'warrior', archer.col + 1, archer.row);
+    bumpRevision(state);
+    const view = previewCombat(state, archer.id, { col: archer.col + 1, row: archer.row });
+    if (!view.ok) throw new Error(view.error);
+    expect(view.attackerLines.filter((entry) => entry.source === 'Training').map((entry) => entry.amount)).toEqual([2]);
+  });
+
+  it('adds nothing without the Doctrine, and reaches only its holder’s units', () => {
+    const { state, archer } = board();
+    const theirs = createUnit(state, 1, 'archer', 15, 5);
+    bumpRevision(state);
+    hold(state, CARD, 1);
+    upgradeUnits(state, seat(state));
+    expect(archer.type).not.toBe('archer');
+    expect(archer.stamp).toBeUndefined();
+    // A climb is asked seat by seat: this sweep was seat 0's.
+    expect(theirs.type).toBe('archer');
+    upgradeUnits(state, seat(state, 1));
+    expect(theirs.stamp).toEqual({ strength: 2 });
+  });
+
+  it('builds military units 25% more slowly, at the empire’s stage, and nothing else', () => {
+    const { state, city } = board();
+    const percent = (item: { kind: 'unit' | 'building'; id: never }): number =>
+      productionModifiers(state, city, item)
+        .filter((entry) => entry.card === CARD)
+        .reduce((sum, entry) => sum + entry.percent, 0);
+    const soldier = { kind: 'unit', id: 'warrior' as never } as const;
+    const worker = { kind: 'unit', id: 'worker' as never } as const;
+    const ship = { kind: 'unit', id: 'trireme' as never } as const;
+    const granary = { kind: 'building', id: 'granary' as never } as const;
+    expect(percent(soldier)).toBe(0);
+    hold(state, CARD);
+    expect(percent(soldier)).toBe(-25);
+    expect(percent(worker)).toBe(0);
+    expect(percent(ship)).toBe(0);
+    expect(percent(granary)).toBe(0);
+    const line = productionModifiers(state, city, soldier).find((entry) => entry.card === CARD);
+    expect(line?.stage).toBe('empire');
+  });
+
+  it('is one rule and one production line', () => {
+    expect(doctrineDef(CARD as DoctrineId).effects).toEqual([
+      { kind: 'rule', rule: 'upgradeStrength', value: 2 },
+      { kind: 'productionBonus', category: 'unit', class: { category: 'military' }, percent: -25, stage: 'empire' },
+    ]);
+  });
+
+  it('says what it does', () => {
+    expect(describeCard(CARD as DoctrineId).map((clause) => stripRefs(clause.text))).toEqual([
+      'each time research upgrades one of your units, it gains +2 combat strength for good',
+      "-25% production toward military units, after the town's own bonuses",
+    ]);
+  });
+
+  it('reads one row’s `class` of the piece as it now is, for a row that narrows', () => {
+    const { state, archer } = board();
+    lend(CARD, [{ kind: 'rule', rule: 'upgradeStrength', value: 2, class: { modelClass: 'ranged' } } as CardEffect]);
+    hold(state, CARD);
+    expect(cardUpgradeStrength(state, archer)).toBe(2);
+    const worker = createUnit(state, 0, 'worker', 12, 5);
+    expect(cardUpgradeStrength(state, worker)).toBe(0);
   });
 });

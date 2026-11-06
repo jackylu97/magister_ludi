@@ -482,6 +482,10 @@ describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
     expect(scoreEffects(rule('upgradeIgnoresResource'), armed)).toBe(
       SCIENTIFIC.upgradeIgnoresResource * 2 * military,
     );
+    // The Nassau Reforms (batch DT14) reads the same count, times the row's figure.
+    const drilled = [{ kind: 'rule', rule: 'upgradeStrength', value: 2 } as CardEffect];
+    expect(scoreEffects(drilled, armed)).toBe(SCIENTIFIC.upgradeStrength * 2 * 2 * military);
+    expect(scoreEffects(rule('upgradeStrength'), armed)).toBe(0);
     const twice = withAiTuning(tuned('blockades', SCIENTIFIC.blockades * 2), () =>
       scoreEffects(rule('blockades'), valueContext(state, player)),
     );

@@ -269,6 +269,7 @@
       "blockades": 2,
       "upgradeHeals": 0.1,
       "upgradeIgnoresResource": 0.1,
+      "upgradeStrength": 0.1,
       "opusBreach": 30,
       "opusEarly": 0.05,
       "closedBook": 0.05,

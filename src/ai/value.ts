@@ -7785,6 +7785,8 @@ function vsFewerTechsShare(ctx: ValueContext): number {
  *     strength line is;
  *   · `upgradeHeals` and `upgradeIgnoresResource`: points of strength a turn
  *     for each combat unit with an upgrade ahead of it;
+ *   · `upgradeStrength` (batch DT14, The Nassau Reforms): the same count, times
+ *     the strength one upgrade adds;
  *   · `opusBreach`: points for each met rival raising the Magnum Opus;
  *   · `opusEarly` and `closedBook`: a share of the bead race's worth, while no
  *     empire knows the technology that opens the Opus;
@@ -7808,6 +7810,8 @@ function scientificRuleWorth(
       return knobs.upgradeHeals * upgradeableUnits(ctx) * strength;
     case 'upgradeIgnoresResource':
       return knobs.upgradeIgnoresResource * upgradeableUnits(ctx) * strength;
+    case 'upgradeStrength':
+      return knobs.upgradeStrength * (effect.value ?? 0) * upgradeableUnits(ctx) * strength;
     case 'opusBreach':
       return knobs.opusBreach * rivalsRaisingOpus(ctx);
     case 'opusEarly':

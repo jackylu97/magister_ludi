@@ -3428,9 +3428,18 @@ function payBattleRiders(
   // somebody. The faith pressed is this empire's own — the religions it founded
   // (`heldReligions`, the holy city's, so a conquered shrine moves the sentence
   // with it) — and an empire that founded none presses nothing.
-  const press = (amount: number, range: number, where: { col: number; row: number }): void => {
-    for (const religion of heldReligions(state, playerId)) {
-      pressLump(state, religion, where, range, amount);
+  //
+  // A majority lump (batch DT14, The Ribats) presses only the first religion. A
+  // second lump would take the majority back from the first, and the seat holds both.
+  const press = (
+    amount: number,
+    range: number,
+    where: { col: number; row: number },
+    majority?: true,
+  ): void => {
+    const held = heldReligions(state, playerId);
+    for (const religion of majority === true ? held.slice(0, 1) : held) {
+      pressLump(state, religion, where, range, amount, undefined, majority);
     }
   };
   const touched = payWindfallGrants(

@@ -7,8 +7,8 @@
  * checked in `doctrineOffer.test.ts`.
  *
  * Batch DT6 adds The Paean. Batch DT7 adds Canossa. Batch DT8 adds The Capitulary of
- * Herstal. Batch DT9 adds The Serapeum. Later batches add the deck's other four
- * Doctrines to this file.
+ * Herstal. Batch DT9 adds The Serapeum. Batch DT14 adds The Ribats. Later batches add
+ * the deck's other three Doctrines to this file.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -17,12 +17,17 @@ import { scoreCard, valueContext } from '../../../src/ai/bot';
 import { scoreEffects } from '../../../src/ai/value';
 import { explainCardImpact } from '../../../src/sim/cardImpact';
 import {
+  cityAt,
   explainGrowthPercent,
   foldGrowthPercent,
   foundCityAt,
   growthSurplus,
+  payGrants,
+  realiseItem,
   refreshCityDerived,
+  settleProduction,
 } from '../../../src/sim/cities';
+import { previewCombat } from '../../../src/sim/combat';
 import { type Command, applyCommand } from '../../../src/sim/commands';
 import { declareWarError } from '../../../src/sim/diplomacy';
 import { raiseImprovement } from '../../../src/sim/map';
@@ -54,11 +59,12 @@ import {
   type Unit,
   addBuilding,
   bumpRevision,
+  cityReligion,
   createUnit,
   playerById,
   spendFaith,
 } from '../../../src/sim/state';
-import { doctrineBagFor } from '../../../src/sim/statecraft';
+import { describeCard, doctrineBagFor, stripRefs } from '../../../src/sim/statecraft';
 import {
   cardCombatLines,
   cardPeriodicOffers,
@@ -67,7 +73,9 @@ import {
   effectsOfKind,
   explainCardCityYields,
   explainCardPercentYields,
+  heldReligions,
   liveEffects,
+  townHoldsBuilding,
   windfallPayout,
 } from '../../../src/sim/statecraft/evaluator';
 import {
@@ -76,8 +84,11 @@ import {
   type OrderId,
   DECK_FILE_DOCTRINES,
   doctrineDef,
+  orderDef,
   poolDoctrines,
 } from '../../../src/sim/statecraftData';
+import { upgradeUnits } from '../../../src/sim/tech';
+import { unitStampStrength } from '../../../src/sim/unitData';
 import { atWar, openWar } from '../../../src/sim/wars';
 import { collectYields, explainEmpireCardYields, foldEmpireRates } from '../../../src/sim/yields/empire';
 import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
@@ -95,6 +106,7 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theSaintPetersIndulgence', 4],
   ['theCapitularyOfHerstal', 2],
   ['thePatrimonyOfPeter', 2],
+  ['theRibats', 2],
   ['theImarets', 3],
   ['canossa', 3],
   ['theCanonsOfTheHolySepulchre', 3],
@@ -127,6 +139,13 @@ function seat(state: GameState, id = 0): Player {
 function hold(state: GameState, id: string, playerId = 0): void {
   seat(state, playerId).statecraft.doctrines.push(id as DoctrineId);
   bumpRevision(state);
+}
+
+/** Seat 0, made a Devotion seat, for a test that asks what its bag holds. */
+function seatWithDevotion(state: GameState): Player {
+  const player = seat(state);
+  player.decks = ['devotion'];
+  return player;
 }
 
 /** A town of a given size for this seat, with an empty queue. */
@@ -1155,6 +1174,342 @@ describe('The Capitulary of Herstal (batch DT8)', () => {
     for (const price of rows()) expect(price).toBe(20);
     hold(state, CARD);
     for (const price of rows()) expect(price).toBe(10);
+  });
+});
+
+describe('The Ribats (batch DT14)', () => {
+  const CARD = 'theRibats';
+  const WARRIOR = { kind: 'unit', id: 'warrior' } as const;
+
+  /** Seat 0's devout capital, and a town of seat 0's that follows nothing. */
+  function board(): { state: GameState; devout: City; plain: City; faith: Religion } {
+    const state = bareState(40, 12);
+    const devout = town(state, 5, 5, 6);
+    const plain = town(state, 20, 5, 6);
+    const faith = religionAt(state, devout);
+    // Faith buys units in a town with a Cathedral, so a bought soldier has a bank.
+    addBuilding(state, devout, 'cathedral');
+    addBuilding(state, plain, 'cathedral');
+    seat(state).faithPool = 100_000;
+    seat(state).gold = 100_000;
+    bumpRevision(state);
+    expect(cityReligion(devout)).toBe(faith.id);
+    expect(cityReligion(plain)).toBeNull();
+    return { state, devout, plain, faith };
+  }
+
+  /** The units seat 0 gained while `act` ran. */
+  function gained(state: GameState, act: () => void): Unit[] {
+    const before = new Set(state.units.map((unit) => unit.id));
+    act();
+    return state.units.filter((unit) => !before.has(unit.id));
+  }
+
+  describe('its +3 strength', () => {
+    it('reaches a unit trained in a devout town', () => {
+      const { state, devout } = board();
+      hold(state, CARD);
+      devout.queue = [WARRIOR];
+      devout.hammerBasket = 100_000;
+      const [unit] = gained(state, () => expect(settleProduction(state, devout)?.name).toBe('Warrior'));
+      expect(unit!.stamp?.strength).toBe(3);
+    });
+
+    it('reaches a unit bought in a devout town, with either bank', () => {
+      for (const currency of ['gold', 'faith'] as const) {
+        const { state, devout } = board();
+        hold(state, CARD);
+        expect(purchaseError(state, 0, devout.id, WARRIOR, currency)).toBeNull();
+        const [unit] = gained(state, () => {
+          const result = applyCommand(state, {
+            type: 'purchaseItem',
+            playerId: 0,
+            cityId: devout.id,
+            item: WARRIOR,
+            currency,
+          } as Command);
+          expect(result.ok, JSON.stringify(result)).toBe(true);
+        });
+        expect(unit!.stamp?.strength).toBe(3);
+      }
+    });
+
+    it('reaches a unit granted free in a devout town', () => {
+      const { state, devout } = board();
+      hold(state, CARD);
+      const done = realiseItem(state, devout, { kind: 'unit', id: 'warrior', tile: at(state, 5, 5) }, { free: true });
+      const unit = state.units.find((entry) => entry.id === done.unitId)!;
+      expect(unit.freeUpkeep).toBe(true);
+      expect(unit.stamp?.strength).toBe(3);
+    });
+
+    it('reaches a unit a completion grants, the arm that does not pass through `realiseItem`', () => {
+      const { state, devout } = board();
+      hold(state, CARD);
+      const [report] = payGrants(state, devout, [{ grant: 'unit', unit: 'warrior' }]);
+      expect(report?.done).toBe(true);
+      expect(state.units.find((entry) => entry.id === report!.unitId)!.stamp?.strength).toBe(3);
+    });
+
+    it('reaches a unit pushed off the town’s own hex', () => {
+      const { state, devout } = board();
+      hold(state, CARD);
+      // A soldier stands in the gate, so the next one appears beside the town.
+      createUnit(state, 0, 'warrior', devout.col, devout.row);
+      bumpRevision(state);
+      devout.queue = [WARRIOR];
+      devout.hammerBasket = 100_000;
+      const [unit] = gained(state, () => expect(settleProduction(state, devout)?.name).toBe('Warrior'));
+      expect({ col: unit!.col, row: unit!.row }).not.toEqual({ col: devout.col, row: devout.row });
+      expect(cityAt(state, unit!.col, unit!.row)).toBeUndefined();
+      expect(unit!.stamp?.strength).toBe(3);
+    });
+
+    it('reaches a granted unit pushed off the town’s own hex too', () => {
+      const { state, devout } = board();
+      hold(state, CARD);
+      createUnit(state, 0, 'warrior', devout.col, devout.row);
+      bumpRevision(state);
+      const [report] = payGrants(state, devout, [{ grant: 'unit', unit: 'warrior' }]);
+      const unit = state.units.find((entry) => entry.id === report!.unitId)!;
+      expect({ col: unit.col, row: unit.row }).not.toEqual({ col: devout.col, row: devout.row });
+      expect(unit.stamp?.strength).toBe(3);
+    });
+
+    it('does not reach a unit raised in a town that follows nothing', () => {
+      const { state, plain } = board();
+      hold(state, CARD);
+      plain.queue = [WARRIOR];
+      plain.hammerBasket = 100_000;
+      const [unit] = gained(state, () => expect(settleProduction(state, plain)?.name).toBe('Warrior'));
+      expect(unit!.stamp).toBeUndefined();
+    });
+
+    it('does not reach a unit raised in a town that follows another seat’s religion', () => {
+      const { state, plain } = board();
+      const rival = religionAt(state, town(state, 30, 5, 6, 1), []);
+      plain.followers = { [rival.id]: plain.population };
+      bumpRevision(state);
+      hold(state, CARD);
+      const done = realiseItem(state, plain, { kind: 'unit', id: 'warrior', tile: at(state, 20, 5) });
+      expect(state.units.find((entry) => entry.id === done.unitId)!.stamp).toBeUndefined();
+    });
+
+    it('does not reach a civilian or a ship', () => {
+      const { state, devout } = board();
+      hold(state, CARD);
+      const raise = (id: 'worker' | 'trireme'): Unit => {
+        const done = realiseItem(state, devout, { kind: 'unit', id, tile: at(state, 5, 5) });
+        return state.units.find((entry) => entry.id === done.unitId)!;
+      };
+      expect(raise('worker').stamp).toBeUndefined();
+      expect(raise('trireme').stamp).toBeUndefined();
+    });
+
+    it('does not reach a unit no town raised, such as a ruin’s escort', () => {
+      const { state } = board();
+      hold(state, CARD);
+      expect(createUnit(state, 0, 'warrior', 12, 8).stamp).toBeUndefined();
+    });
+
+    it('needs the Doctrine', () => {
+      const { state, devout } = board();
+      const done = realiseItem(state, devout, { kind: 'unit', id: 'warrior', tile: at(state, 5, 5) });
+      expect(state.units.find((entry) => entry.id === done.unitId)!.stamp).toBeUndefined();
+    });
+
+    it('stays when the town stops following and when the Doctrine is gone, and through an upgrade', () => {
+      const { state, devout } = board();
+      hold(state, CARD);
+      const done = realiseItem(state, devout, { kind: 'unit', id: 'archer', tile: at(state, 5, 5) });
+      const unit = state.units.find((entry) => entry.id === done.unitId)!;
+      expect(unit.stamp?.strength).toBe(3);
+      // The bench holds no technology whose gift is a rule, and Siegecraft is one.
+      seat(state).techsResearched.push('siegecraft');
+      devout.followers = {};
+      seat(state).statecraft.doctrines = [];
+      bumpRevision(state);
+      expect(unitStampStrength(unit)).toBe(3);
+      upgradeUnits(state, seat(state));
+      expect(unit.type).not.toBe('archer');
+      expect(unitStampStrength(unit)).toBe(3);
+    });
+  });
+
+  describe('its conversion', () => {
+    /**
+     * Seat 0 holds a religion at (30, 5). Seat 1 holds a town at (5, 5) with a Temple,
+     * walls almost down, and every citizen following seat 1's religion. Seat 0 has a
+     * swordsman beside it.
+     */
+    function front(): { state: GameState; target: City; mine: Religion; theirs: Religion; striker: Unit } {
+      const state = bareState(40, 12);
+      const holy = town(state, 30, 5, 6);
+      const mine = religionAt(state, holy);
+      const theirSeat = town(state, 15, 5, 6, 1);
+      const target = town(state, 5, 5, 6, 1);
+      const theirs = religionAt(state, theirSeat, [theirSeat, target]);
+      addBuilding(state, target, 'temple');
+      target.hp = 1;
+      const striker = createUnit(state, 0, 'swordsman', 5, 6);
+      bumpRevision(state);
+      expect(townHoldsBuilding(state, target, 'temple')).toBe(true);
+      expect(cityReligion(target)).toBe(theirs.id);
+      return { state, target, mine, theirs, striker };
+    }
+
+    function attack(state: GameState, striker: Unit, target: City): void {
+      const result = applyCommand(state, {
+        type: 'attack',
+        playerId: 0,
+        unitId: striker.id,
+        target: { col: target.col, row: target.row },
+      } as Command);
+      expect(result.ok, JSON.stringify(result)).toBe(true);
+      expect(target.ownerId).toBe(0);
+    }
+
+    it('turns the majority on the turn a town is walked into, past a rival’s Temple', () => {
+      const { state, target, mine, striker } = front();
+      hold(state, CARD);
+      const turn = state.turn;
+      expect(previewCombat(state, striker.id, { col: target.col, row: target.row })).toMatchObject({
+        cityPhase: 'capture',
+        capturesCity: true,
+      });
+      attack(state, striker, target);
+      expect(state.turn).toBe(turn);
+      expect(cityReligion(target)).toBe(mine.id);
+      // Just enough citizens turn, and nothing is left in the bank.
+      expect(target.followers?.[mine.id]).toBe(Math.floor(target.population / 2) + 1);
+      expect(target.pressureBank?.[mine.id]).toBeUndefined();
+    });
+
+    it('turns the majority when the blow that kills the garrison takes the town', () => {
+      const { state, target, mine, striker } = front();
+      hold(state, CARD);
+      const garrison = createUnit(state, 1, 'warrior', target.col, target.row);
+      garrison.hp = 1;
+      bumpRevision(state);
+      expect(previewCombat(state, striker.id, { col: target.col, row: target.row })).toMatchObject({
+        cityPhase: 'garrison',
+        capturesCityOnKill: true,
+      });
+      attack(state, striker, target);
+      expect(state.units.some((unit) => unit.id === garrison.id)).toBe(false);
+      expect(cityReligion(target)).toBe(mine.id);
+      expect(target.followers?.[mine.id]).toBe(Math.floor(target.population / 2) + 1);
+    });
+
+    it('takes what the town had banked into the price, and leaves the bank empty', () => {
+      const { state, target, mine, striker } = front();
+      hold(state, CARD);
+      target.pressureBank = { [mine.id]: 7 };
+      attack(state, striker, target);
+      expect(target.followers?.[mine.id]).toBe(Math.floor(target.population / 2) + 1);
+      expect(target.pressureBank?.[mine.id]).toBeUndefined();
+    });
+
+    it('presses nothing on a town that already follows', () => {
+      const { state, target, mine, theirs, striker } = front();
+      hold(state, CARD);
+      target.followers = { [mine.id]: target.population };
+      bumpRevision(state);
+      attack(state, striker, target);
+      expect(target.followers?.[mine.id]).toBe(target.population);
+      expect(target.followers?.[theirs.id]).toBeUndefined();
+      expect(target.pressureBank).toBeUndefined();
+    });
+
+    it('presses only the first of a seat’s religions', () => {
+      const { state, target, mine, striker } = front();
+      const second = religionAt(state, town(state, 36, 5, 6));
+      hold(state, CARD);
+      expect(heldReligions(state, 0).map((one) => one.id)).toEqual([mine.id, second.id]);
+      attack(state, striker, target);
+      expect(cityReligion(target)).toBe(mine.id);
+      expect(target.followers?.[second.id]).toBeUndefined();
+      expect(target.pressureBank?.[second.id]).toBeUndefined();
+    });
+
+    it('presses nothing for a seat with no religion', () => {
+      const state = bareState(40, 12);
+      town(state, 30, 5, 6);
+      const theirSeat = town(state, 15, 5, 6, 1);
+      const target = town(state, 5, 5, 6, 1);
+      const theirs = religionAt(state, theirSeat, [theirSeat, target]);
+      target.hp = 1;
+      const striker = createUnit(state, 0, 'swordsman', 5, 6);
+      hold(state, CARD);
+      expect(heldReligions(state, 0)).toEqual([]);
+      attack(state, striker, target);
+      expect(cityReligion(target)).toBe(theirs.id);
+      expect(target.pressureBank).toBeUndefined();
+    });
+
+    it('leaves the town alone without the Doctrine', () => {
+      const { state, target, theirs, striker } = front();
+      attack(state, striker, target);
+      expect(cityReligion(target)).toBe(theirs.id);
+    });
+
+    it('does not reach a town ceded in a treaty, which is not conquered', () => {
+      const { state, target, theirs } = front();
+      hold(state, CARD);
+      applyCommand(state, {
+        type: 'proposePeace',
+        playerId: 1,
+        targetId: 0,
+        give: { cities: [target.id] },
+        take: {},
+      } as unknown as Command);
+      const signed = applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1 });
+      expect(signed.ok, JSON.stringify(signed)).toBe(true);
+      expect(target.ownerId).toBe(0);
+      expect(cityReligion(target)).toBe(theirs.id);
+    });
+  });
+
+  it('is behind the religion gate, and a rider on a capture alone carries the flag', () => {
+    const def = doctrineDef(CARD as DoctrineId);
+    expect(def.needsReligion).toBe(true);
+    expect(def.effects).toEqual([
+      {
+        kind: 'unitStamp',
+        strength: 3,
+        class: { category: 'military' },
+        scope: { test: 'ownersFaith', keeps: true },
+      },
+      {
+        kind: 'windfallRider',
+        occasion: 'capture',
+        grant: { pressure: { amount: 1, range: 0, majority: true } },
+      },
+    ]);
+    const { state } = board();
+    expect(doctrineBagFor(state, seatWithDevotion(state), 10).includes(CARD as DoctrineId)).toBe(true);
+    const bare = bareState(40, 12);
+    expect(doctrineBagFor(bare, seatWithDevotion(bare), 10).includes(CARD as DoctrineId)).toBe(false);
+  });
+
+  it('says what it does', () => {
+    expect(describeCard(CARD as DoctrineId).map((clause) => stripRefs(clause.text))).toEqual([
+      'newly created military units in every devout city gain +3 combat strength',
+      'capturing a city converts it to your religion',
+    ]);
+  });
+
+  it('lets a bot read it: the stamp as a strength line, and the conversion as The Crusader Orders’ lump', () => {
+    const { state } = board();
+    const ctx = valueContext(state, seat(state));
+    const stamp = doctrineDef(CARD as DoctrineId).effects.slice(0, 1);
+    expect(scoreEffects(stamp, ctx)).toBeCloseTo(3 * ctx.ai.weights.military * (1 + ctx.threat));
+    const rider = doctrineDef(CARD as DoctrineId).effects.slice(1);
+    const crusade = orderDef('theCrusaderOrders' as OrderId).effects.filter(
+      (effect) => effect.kind === 'windfallRider',
+    );
+    expect(crusade).toHaveLength(1);
+    expect(scoreEffects(rider, ctx)).toBe(scoreEffects(crusade, ctx));
   });
 });
 

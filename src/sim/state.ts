@@ -3457,8 +3457,25 @@ import {
  *
  * **A v217 save is refused and does not replay.** These seats' Doctrine bags change,
  * so their draws move. The branch migrates nothing, for the reason given under v119.
+ *
+ * v219 (branch `decks`; batch DT14, `docs/plans/doctrines-build-triage.md`):
+ * **a permanent strength.** No field joins the state. The rules that change:
+ *
+ *   · The Nassau Reforms is dealt to a Scientific seat, and The Ribats to a Devotion
+ *     seat that holds a religion;
+ *   · `createUnit` gains `bornIn`, which `realiseItem` and `payGrants` pass, so a
+ *     stamp scoped to a town reaches a unit raised beside that town. The live rows
+ *     with such a stamp (the Tophane, the Terracotta Army, the War Hall, Naval Yards,
+ *     The War Manuals, The Palace Schools and The Maritime Galleries) reach that unit
+ *     now, and did not before;
+ *   · the behaviour rule `upgradeStrength` adds to `Unit.stamp` in `upgradeUnits`;
+ *   · a `pressure` grant may carry `majority`, which `pressLump` sizes to turn the
+ *     town on the hex, past any Temple.
+ *
+ * **A v218 save is refused and does not replay.** These seats' Doctrine bags change,
+ * so their draws move. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 218;
+export const SCHEMA_VERSION = 219;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -5166,12 +5183,14 @@ export interface Unit {
    * and a game with no such card in it must serialise exactly as it did before
    * this field existed.
    *
-   * **Written in one place**, `createUnit`, from `cardUnitStamp` — so a
+   * **Written at the birth by `createUnit`**, from `cardUnitStamp`, so a
    * completion, a purchase, a wonder's grant, a ruin's escort and a great
    * person's arrival are all stamped by one line, exactly as they are all
-   * charged by one line. Nothing ever rewrites it: the stamp is a fact about a
-   * *moment*, so a card unslotted next year does not un-blood the levy it
-   * raised, and a captured piece keeps its old empire's stamp the way it keeps
+   * charged by one line. Two other places add to it, and only add: `realiseItem`
+   * (`cities.ts`), for a row that mirrors another, and `upgradeUnits` (`tech.ts`),
+   * for The Nassau Reforms (batch DT14). The stamp is a record of what happened
+   * to the piece, so a card unslotted next year takes nothing back from the levy
+   * it raised, and a captured piece keeps its old empire's stamp the way it keeps
    * its charges.
    *
    * The two readings are `unitMaxHp` and `unitStampStrength` (`unitData.ts`),
@@ -7352,7 +7371,7 @@ export function createUnit(
    * for the levy it musters (`CardPeriodicMusterEffect.stamp`).
    *
    * Passed *in* rather than written on afterwards, and that is the whole reason
-   * it is a parameter: `Unit.stamp` has exactly one writer, and the health a
+   * it is a parameter: this routine writes `Unit.stamp` at the birth, and the health a
    * piece is born at is read off the stamp two lines below — a warrior stamped
    * after the literal would be a veteran who starts wounded. Summed with the
    * law's rather than replacing it, so a conscript raised under The Muster Roll
@@ -7381,6 +7400,14 @@ export function createUnit(
    * levy made.
    */
   levied?: LevyUse,
+  /**
+   * **The town that raised this piece**, where the caller knows it (batch DT14,
+   * S16): `realiseItem` and `payGrants`. A unit raised while the town's own hex is
+   * full stands beside the town, and the hex alone would say it has no town, so a
+   * row scoped to the town would miss it. Absent, the town is whichever stands on
+   * the birth hex, if any.
+   */
+  bornIn?: City,
 ): Unit {
   const def = unitDef(type);
   // **The stamp is decided before the piece exists**, because the maximum it is
@@ -7392,14 +7419,15 @@ export function createUnit(
   // the town that raised the piece, and this is the one place a piece comes into
   // existence — so "built in this city" is asked exactly where it can be
   // answered. A creation on open ground has no town and a scoped stamp is silent
-  // there; see `CardUnitStampEffect.scope`.
-  const stamp = cardUnitStamp(state, ownerId, { col, row }, type, bought, levied);
+  // there, unless the caller names the town that raised it (`bornIn`); see
+  // `CardUnitStampEffect.scope`.
+  const stamp = cardUnitStamp(state, ownerId, { col, row }, type, bought, levied, bornIn);
   // **What the law hangs on the piece for a while** (Commerce batch T6,
   // Mercenary Contracts' twenty turns without upkeep). Read here, beside the
   // stamp and narrowed the same way, because this is the one place a piece
   // comes into existence and the bank that paid is known only here. Each entry
   // carries an absolute expiry; see `cardBirthTimedEffects`.
-  const hung = cardBirthTimedEffects(state, ownerId, { col, row }, type, bought, levied);
+  const hung = cardBirthTimedEffects(state, ownerId, { col, row }, type, bought, levied, bornIn);
   // The caller's own mark, folded into the law's before anything is read off it:
   // one field, one writer, and a piece that is a veteran twice over carries the
   // sum. Voice by voice, because a mark on a levy and a mark on the whole army

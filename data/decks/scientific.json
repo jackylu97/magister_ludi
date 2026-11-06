@@ -2257,6 +2257,18 @@
         {"kind": "rulePercent", "rule": "techPrice", "percent": 25, "techAge": 4, "notChain": "alchemy"}
       ],
       "note": "Neither price reaches a charter technology."
+    },
+    "theNassauReforms": {
+      "name": "The Nassau Reforms",
+      "decks": ["scientific"],
+      "band": 4,
+      "line": "none",
+      "flavor": "Drill the regiment, refit the regiment, and keep the men who have learned.",
+      "text": "Each time research upgrades one of your units, it gains +2 strength for good. Your towns build military units 25% more slowly.",
+      "effects": [
+        {"kind": "rule", "rule": "upgradeStrength", "value": 2},
+        {"kind": "productionBonus", "category": "unit", "class": {"category": "military"}, "percent": -25, "stage": "empire"}
+      ]
     }
   }
 }

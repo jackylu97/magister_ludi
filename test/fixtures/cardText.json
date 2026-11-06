@@ -1258,6 +1258,16 @@
     "text": "-100% happiness demanded per citizen, in your holy city"
    }
   ],
+  "theRibats": [
+   {
+    "raw": "newly created military units in every devout city gain +3 combat strength",
+    "text": "newly created military units in every devout city gain +3 combat strength"
+   },
+   {
+    "raw": "capturing a city converts it to your religion",
+    "text": "capturing a city converts it to your religion"
+   }
+  ],
   "theImarets": [
    {
     "raw": "+25% food surplus stored toward growth, in every devout city",
@@ -1404,6 +1414,16 @@
    {
     "raw": "your other fourth-age technologies cost you 25% more research",
     "text": "your other fourth-age technologies cost you 25% more research"
+   }
+  ],
+  "theNassauReforms": [
+   {
+    "raw": "each time research upgrades one of your units, it gains +2 combat strength for good",
+    "text": "each time research upgrades one of your units, it gains +2 combat strength for good"
+   },
+   {
+    "raw": "-25% production toward military units, after the town's own bonuses",
+    "text": "-25% production toward military units, after the town's own bonuses"
    }
   ],
   "theArthashastra": [

@@ -1400,6 +1400,13 @@ export interface AiConfig {
        */
       upgradeIgnoresResource: number;
       /**
+       * **The Nassau Reforms** (`upgradeStrength`): what one point of strength
+       * added at an upgrade is worth, for each combat unit of this seat with an
+       * upgrade ahead of it, as a share of a strength line across the army. A
+       * tenth reads one more climb for each unit of an army of ten.
+       */
+      upgradeStrength: number;
+      /**
        * **The Breaching Batteries** (`opusBreach`): points for each met rival
        * raising the Magnum Opus, whose banked work the blows could take away.
        */

@@ -2684,6 +2684,19 @@
         {"kind": "rulePercent", "rule": "happinessDemand", "percent": -100, "scope": {"test": "holyCity"}}
       ]
     },
+    "theRibats": {
+      "name": "The Ribats",
+      "decks": ["devotion"],
+      "band": 2,
+      "line": "none",
+      "needsReligion": true,
+      "flavor": "Monks in the morning, sentries at night, and the same wall around both.",
+      "text": "Military units created in a town following your religion gain +3 strength for good. Conquering a town converts it to your religion.",
+      "effects": [
+        {"kind": "unitStamp", "strength": 3, "class": {"category": "military"}, "scope": {"test": "ownersFaith", "keeps": true}},
+        {"kind": "windfallRider", "occasion": "capture", "grant": {"pressure": {"amount": 1, "range": 0, "majority": true}}}
+      ]
+    },
     "theImarets": {
       "name": "The Imarets",
       "decks": ["devotion"],
