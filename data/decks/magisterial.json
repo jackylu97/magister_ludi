@@ -3251,6 +3251,21 @@
       ],
       "note": "This is the last Wildcard chair of your council, and the council screen marks it. If you gain another chair, the mark moves to the new last one. The card's yields, percentages, combat lines and riders all count twice. A rule that is simply on or off holds once, and the card opens no second chair. A malice in that chair does not count twice."
     },
+    "theHospitium": {
+      "name": "The Hospitium",
+      "decks": ["magisterial"],
+      "band": 1,
+      "line": "none",
+      "flavor": "Each house keeps half a bronze token, and the stranger brings the other half.",
+      "text": "The third card in each of your Order hands comes from a deck you do not hold.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "thirdCardForeign"
+        }
+      ],
+      "note": "A card taken this way fits the chair of its type, as any card does. If those decks have nothing left to deal, the third card comes from your own."
+    },
     "theChoregia": {
       "name": "The Choregia",
       "decks": ["magisterial"],
@@ -3299,6 +3314,21 @@
           "slot": "civic",
           "to": "science",
           "amount": 1
+        }
+      ]
+    },
+    "theJinshi": {
+      "name": "The Jinshi",
+      "decks": ["magisterial"],
+      "band": 2,
+      "line": "none",
+      "flavor": "Thousands sit the examination, and a handful are presented.",
+      "text": "Rare cards come up twice as often in your Order hands.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "rareWeight",
+          "percent": 100
         }
       ]
     },

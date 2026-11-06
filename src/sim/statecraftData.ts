@@ -4631,6 +4631,26 @@ export type ActionRuleId =
    */
   | 'noOrderReroll'
   /**
+   * **The third card of this empire's Order hands comes from a deck it does not
+   * hold**: The Hospitium (batch DT10, reading 27).
+   *
+   * Read in one place, `drawHandPositions` (`statecraft/draft.ts`), which writes
+   * a `foreign` position in place of the cadence's third, whatever the cadence
+   * says. The position is kept on the offer, so a redraw keeps it. A seat that
+   * holds every deck keeps the ordinary third card, because no deck is foreign
+   * to it.
+   */
+  | 'thirdCardForeign'
+  /**
+   * **Rare cards come up more often in this empire's Order hands**: The Jinshi
+   * (batch DT10). The row's `percent` raises the rare rung's points after the
+   * pity has moved them, and before the odds are spread over the rungs a bag
+   * holds, so 100 doubles the rung. Read in one place, `cardRareWeight`. The draw
+   * of an Order hand takes it (`drawOrderOffer`). The card The Cabinet of
+   * Curiosities grants does not, because that draw is not a hand.
+   */
+  | 'rareWeight'
+  /**
    * **A card sets the price of one act of the clergy, in charges** (Devotion
    * batch DV7, The Anchorites: a further holy site costs one charge; the
    * triage's reading 27). The row's `verb` names the act and its `value` is
@@ -8717,7 +8737,7 @@ export interface CardRuleEffect {
    */
   improvements?: ImprovementId[];
   /**
-   * **The rule's one figure, as a percentage** (Scientific batch S9). Three
+   * **The rule's one figure, as a percentage** (Scientific batch S9). Four
    * rules read it, each in its own sense:
    *
    *   - `opusEarly` (The Foundation Stone): the share of the technology's
@@ -8725,7 +8745,9 @@ export interface CardRuleEffect {
    *   - `prototypes` (The Prototype Works): the extra production a row of the
    *     current research costs, so 100 is double;
    *   - `opusBreach` (The Breaching Batteries): the share of the banked Opus
-   *     production one blow removes.
+   *     production one blow removes;
+   *   - `rareWeight` (The Jinshi): how much the rare rung of an Order hand's odds
+   *     rises, so 100 is double.
    *
    * A row of one of these rules with no figure changes nothing. Meaningless
    * on every other member.

@@ -83,6 +83,7 @@ import { sealTurnsFor } from './evaluator';
 import {
   cardActionRule,
   cardExtraChairs,
+  cardRareWeight,
   cardRulePercent,
   cityScopeAdmits,
   countOf,
@@ -205,8 +206,14 @@ export const RARITIES: readonly OrderRarity[] = ['common', 'uncommon', 'rare'];
  * which is the design doc's rule word for word (*"renormalize if a rarity is
  * absent"*), and a table that had already been normalised over three would be
  * normalised twice.
+ *
+ * `rarePercent` (batch DT10, The Jinshi; `cardRareWeight`) raises the rare rung
+ * after the pity has moved points into it, so the seat's passes and the card both
+ * count, and 100 doubles the rung. It adds points rather than moving them, so the
+ * three rungs may sum to more than the table's hundred. That is safe, because every
+ * reader spreads the rungs over their sum.
  */
-export function rarityOdds(skips: number): Record<OrderRarity, number> {
+export function rarityOdds(skips: number, rarePercent = 0): Record<OrderRarity, number> {
   const passes = Math.max(0, Math.floor(skips));
   const base = STATECRAFT.rarityOdds;
   const up = Math.max(0, STATECRAFT.skipPity.uncommon ?? 0) * passes;
@@ -220,7 +227,7 @@ export function rarityOdds(skips: number): Record<OrderRarity, number> {
   return {
     common,
     uncommon: Math.max(0, (base.uncommon ?? 0) + up * share),
-    rare: Math.max(0, (base.rare ?? 0) + top * share),
+    rare: Math.max(0, (base.rare ?? 0) + top * share) * Math.max(0, 1 + rarePercent / 100),
   };
 }
 
@@ -229,14 +236,14 @@ export function rarityOdds(skips: number): Record<OrderRarity, number> {
  * a pass buys anything (`passFigure`, `main.ts`: the rare rung's points now
  * against its points after one more pass).
  */
-export function rarityDrawWeight(rarity: OrderRarity, skips: number): number {
-  return rarityOdds(skips)[rarity];
+export function rarityDrawWeight(rarity: OrderRarity, skips: number, rarePercent = 0): number {
+  return rarityOdds(skips, rarePercent)[rarity];
 }
 
 /**
  * **The chance each card in a bag has of being the one dealt**, under the
  * rarity-first draw — the distribution `drawRarityFirst` samples from, written
- * out so the bot's expectation (`expectedBestOrder`, `ai/wants.ts`) and the
+ * out so the bot's expectation (`expectedBestOrder`, `ai/value.ts`) and the
  * tests read the same arithmetic the draw performs rather than a second copy.
  *
  * A rung's points are renormalised over the rungs the bag holds, and a rung's
@@ -247,9 +254,10 @@ export function rarityDrawWeight(rarity: OrderRarity, skips: number): number {
 export function rarityFirstOdds(
   bag: readonly OrderId[],
   skips: number,
+  rarePercent = 0,
 ): { id: OrderId; chance: number }[] {
   if (bag.length === 0) return [];
-  const odds = rarityOdds(skips);
+  const odds = rarityOdds(skips, rarePercent);
   const counts: Record<OrderRarity, number> = { common: 0, uncommon: 0, rare: 0 };
   for (const id of bag) counts[orderDef(id).rarity] += 1;
   let total = 0;
@@ -380,7 +388,10 @@ export interface OrderOffer {
  *   · `generic` — a row with no membership, everybody's (the third's first and
  *     third turns);
  *   · `cross` — a two-deck row naming either of the seat's decks (the third's
- *     second turn).
+ *     second turn);
+ *   · `foreign`: a row of decks the seat does not hold (`foreignCardBag`). The
+ *     third position of every hand while the seat holds The Hospitium (batch DT10),
+ *     whatever the cadence says.
  *
  * A position whose category holds nothing falls back to the eligible union
  * (rule 5), and the badge then says what the *card* is rather than what the
@@ -389,7 +400,8 @@ export interface OrderOffer {
 export type HandPosition =
   | { kind: 'deck'; deck: DeckId }
   | { kind: 'generic' }
-  | { kind: 'cross' };
+  | { kind: 'cross' }
+  | { kind: 'foreign' };
 
 /**
  * One growing card's counter: what it is counting for, and how much.
@@ -1262,25 +1274,29 @@ function dealGateFor(state: GameState, player: Player, drafts: number): (id: Ord
 }
 
 /**
- * **The bag The Cabinet of Curiosities draws from** (Magisterial batch MG14;
- * the triage's reading 37): every live row of a deck the seat does not hold,
- * in file order, that the seat could be dealt now if it held that deck. A
- * card that two decks share is in the bag only when the seat holds neither
- * deck. A card that belongs to no deck is left out, because every seat is
- * dealt those already. The gates are the deal's own (`dealGateFor`): the
- * seat's current band, not held, and the row's own gates.
+ * **The bag of the decks the seat does not hold**: what The Cabinet of Curiosities
+ * draws from (Magisterial batch MG14; the triage's reading 37), and what The
+ * Hospitium's third card is dealt from (batch DT10). Every live row of a deck the
+ * seat does not hold, in file order, that the seat could be dealt now if it held
+ * that deck. A card that two decks share is in the bag only when the seat holds
+ * neither deck. A card that belongs to no deck is left out, because every seat is
+ * dealt those already. The gates are the deal's own (`dealGateFor`): the seat's
+ * current band, not held, and the row's own gates.
  *
  * A seat that holds every deck has an empty bag.
+ *
+ * `drafts` defaults to the seat's own count. The bots' reading of the next hand
+ * passes the next draft's number, as `eligibleFor` takes it, because that draft may
+ * reach a new band.
  */
-export function foreignCardBag(state: GameState, player: Player): OrderId[] {
-  const dealt = dealGateFor(state, player, player.statecraft.drafts);
-  return ORDER_IDS.filter((id) => {
-    if (!orderIsDealt(id)) return false;
-    const home = orderDef(id).decks;
-    if (home.length === 0) return false;
-    if (home.some((deck) => player.decks.includes(deck))) return false;
-    return dealt(id);
-  });
+export function foreignCardBag(
+  state: GameState,
+  player: Player,
+  drafts: number = player.statecraft.drafts,
+): OrderId[] {
+  const dealt = dealGateFor(state, player, drafts);
+  const live = ORDER_IDS.filter((id) => orderIsDealt(id));
+  return positionBag(live, { kind: 'foreign' }, player.decks).filter(dealt);
 }
 
 /**
@@ -1633,8 +1649,19 @@ export function thirdPositionOf(draftNumber: number): { turn: 'generic' | 'cross
  * Rolled here rather than in the draw so that the ask is written onto the
  * offer (`OrderOffer.positions`) and a redraw can keep it without rolling
  * again — the whole reason `positions` exists.
+ *
+ * **The Hospitium** (batch DT10, reading 27): while the rule holds, a two-deck seat's
+ * third position is `foreign`, whatever the cadence says. A rainbow seat holds every
+ * deck, so no deck is foreign to it, and its third position and its rolls stay as
+ * they are. `foreignThird` lets the bots ask about a hand with or without the rule
+ * (`expectedHandBags`); only they pass it.
  */
-export function drawHandPositions(state: GameState, player: Player, draftNumber: number): HandPosition[] {
+export function drawHandPositions(
+  state: GameState,
+  player: Player,
+  draftNumber: number,
+  foreignThird: boolean = cardActionRule(state, player.id, 'thirdCardForeign'),
+): HandPosition[] {
   const decks = player.decks;
   const third = thirdPositionOf(draftNumber);
   let first: DeckId | undefined;
@@ -1653,7 +1680,8 @@ export function drawHandPositions(state: GameState, player: Player, draftNumber:
   const positions: HandPosition[] = [];
   if (first !== undefined) positions.push({ kind: 'deck', deck: first });
   if (second !== undefined) positions.push({ kind: 'deck', deck: second });
-  if (third.turn === 'generic') positions.push({ kind: 'generic' });
+  if (foreignThird && !isRainbowSeat(player)) positions.push({ kind: 'foreign' });
+  else if (third.turn === 'generic') positions.push({ kind: 'generic' });
   else if (third.turn === 'cross') positions.push({ kind: 'cross' });
   else if (isRainbowSeat(player)) {
     // "Choose a different third type if possible": the decks not already in
@@ -1672,7 +1700,8 @@ export function drawHandPositions(state: GameState, player: Player, draftNumber:
  * **The rows of a bag that answer one position's ask.** A `deck` position is
  * the single-type rows of that deck (a cross-type row has two homes and is the
  * cross position's, not either deck's); `cross` is every two-deck row that
- * names any of the seat's decks; `generic` is every row with no home.
+ * names any of the seat's decks; `generic` is every row with no home; `foreign`
+ * is every row whose decks the seat holds none of (`foreignCardBag`).
  */
 export function positionBag(
   bag: readonly OrderId[],
@@ -1688,6 +1717,8 @@ export function positionBag(
         return home.length === 2 && home.some((deck) => decks.includes(deck));
       case 'generic':
         return home.length === 0;
+      case 'foreign':
+        return home.length > 0 && !home.some((deck) => decks.includes(deck));
       default: {
         const unhandled: never = position;
         void unhandled;
@@ -1714,9 +1745,10 @@ export function drawRarityFirst(
   state: GameState,
   bag: readonly OrderId[],
   skips: number,
+  rarePercent = 0,
 ): OrderId | undefined {
   if (bag.length === 0) return undefined;
-  const odds = rarityOdds(skips);
+  const odds = rarityOdds(skips, rarePercent);
   const rungs = RARITIES.map((rarity) => ({
     rarity,
     cards: bag.filter((id) => orderDef(id).rarity === rarity),
@@ -1755,6 +1787,12 @@ export function drawRarityFirst(
  * reach a deck the seat does not hold, because `eligible` is already the
  * seat's own.
  *
+ * The one exception is a `foreign` position (batch DT10, The Hospitium). It draws
+ * from `foreign`, the bag the caller hands in (`foreignCardBag`), and if that bag
+ * has nothing left it falls back to the union as any position does (rule 5).
+ * `rarePercent` is the rare rung's rise (`cardRareWeight`), and it applies to every
+ * card of the hand.
+ *
  * **The roll contract**: one roll per card actually dealt and none for a
  * position whose bag is empty. Emptiness is a fact about the shelf and the
  * collection, never about the moment, so two runs of one state spend the same
@@ -1776,6 +1814,8 @@ export function drawOrderOptions(
   size: number,
   skips: number,
   decks: readonly DeckId[],
+  foreign: readonly OrderId[] = [],
+  rarePercent = 0,
 ): OrderId[] {
   const hand: OrderId[] = [];
   const open = (): OrderId[] => eligible.filter((id) => !hand.includes(id));
@@ -1785,14 +1825,15 @@ export function drawOrderOptions(
     // Rule 5: the position's own category, or the whole eligible union when
     // that category holds nothing this seat does not already own. Never an
     // inaccessible deck, never a duplicate — both are outside `eligible`.
-    const bag = positionBag(rest, position, decks);
-    const drawn = drawRarityFirst(state, bag.length > 0 ? bag : rest, skips);
+    const pool = position.kind === 'foreign' ? foreign.filter((id) => !hand.includes(id)) : rest;
+    const bag = positionBag(pool, position, decks);
+    const drawn = drawRarityFirst(state, bag.length > 0 ? bag : rest, skips, rarePercent);
     if (drawn !== undefined) hand.push(drawn);
   }
   // The extra cards a rider adds (rule 6): distinct, eligible, rarity-first,
   // from the union — no guaranteed category.
   for (let extra = hand.length; extra < wanted; extra++) {
-    const drawn = drawRarityFirst(state, open(), skips);
+    const drawn = drawRarityFirst(state, open(), skips, rarePercent);
     if (drawn === undefined) break;
     hand.push(drawn);
   }
@@ -1802,7 +1843,7 @@ export function drawOrderOptions(
 /**
  * **The bags the next hand would be dealt from, one per card, with no roll** —
  * the draw's shape read as a plan, for the bot's expectation of a hand
- * (`expectedBestOrder`, `ai/wants.ts`) and for nothing that deals.
+ * (`expectedBestOrder`, `ai/value.ts`) and for nothing that deals.
  *
  * A two-deck seat's positions are pure arithmetic (`thirdPositionOf`), so its
  * bags are the draw's own, fallback included. A rainbow seat's two decks are
@@ -1813,11 +1854,17 @@ export function drawOrderOptions(
  * hand is on the table (`sc.drafts + 1`), and the standing hand's positions
  * when one is — the same rule the deal keeps. The count chooses the band as
  * well as the positions, since only the current band is dealt.
+ *
+ * A `foreign` position's bag is `foreignCardBag` at the same count (batch DT10). When
+ * `foreignThird` is given, the answer is about the next hand with or without The
+ * Hospitium, whatever the seat holds and whatever hand is on the table. That is how
+ * the bots price the card.
  */
-export function expectedHandBags(state: GameState, player: Player): OrderId[][] {
+export function expectedHandBags(state: GameState, player: Player, foreignThird?: boolean): OrderId[][] {
   const sc = player.statecraft;
-  const standing = sc.pendingOrder?.positions;
-  const eligible = eligibleFor(state, player, standing ? sc.drafts : sc.drafts + 1);
+  const standing = foreignThird === undefined ? sc.pendingOrder?.positions : undefined;
+  const drafts = standing ? sc.drafts : sc.drafts + 1;
+  const eligible = eligibleFor(state, player, drafts);
   if (eligible.length === 0) return [];
   const size = offerSize(state, player.id, 'order');
   const bags: OrderId[][] = [];
@@ -1831,9 +1878,13 @@ export function expectedHandBags(state: GameState, player: Player): OrderId[][] 
     ? [...standing]
     : rainbow
       ? ['anyDeck', 'anyDeck', third.turn === 'generic' ? { kind: 'generic' } : third.turn === 'cross' ? { kind: 'cross' } : 'anyDeck']
-      : drawHandPositions(state, player, sc.drafts + 1);
+      : drawHandPositions(state, player, sc.drafts + 1, foreignThird);
   for (const position of positions.slice(0, size)) {
-    const bag = position === 'anyDeck' ? anyDeck : positionBag(eligible, position, player.decks);
+    let bag = anyDeck;
+    if (position !== 'anyDeck') {
+      const pool = position.kind === 'foreign' ? foreignCardBag(state, player, drafts) : eligible;
+      bag = positionBag(pool, position, player.decks);
+    }
     bags.push(bag.length > 0 ? bag : eligible);
   }
   for (let extra = bags.length; extra < size; extra++) bags.push(eligible);
@@ -1867,6 +1918,10 @@ export function expectedHandBags(state: GameState, player: Player): OrderId[][] 
  * **How many cards is asked of `offerSize`** — which is why this takes the whole
  * player rather than its `PlayerStatecraft`: a rider may sit on a wonder
  * standing in one of its cities, and the empire is what knows that.
+ *
+ * **The two hand rules of batch DT10** are read here too. A `foreign` position
+ * (The Hospitium) is dealt from `foreignCardBag`, and a hand with none never builds
+ * that bag. The rare rung's rise (The Jinshi) is read once, with the pity.
  */
 export function drawOrderOffer(state: GameState, player: Player): OrderOffer {
   const sc = player.statecraft;
@@ -1878,6 +1933,8 @@ export function drawOrderOffer(state: GameState, player: Player): OrderOffer {
     offerSize(state, player.id, 'order'),
     sc.orderSkips,
     player.decks,
+    positions.some((position) => position.kind === 'foreign') ? foreignCardBag(state, player) : [],
+    cardRareWeight(state, player.id),
   );
   return { options, positions };
 }

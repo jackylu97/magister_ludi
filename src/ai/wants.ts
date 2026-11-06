@@ -113,6 +113,7 @@ import {
   explainSoldier,
   explainUpkeepCost,
   explainYields,
+  expectedBestOrder,
   bagOfTileYield,
   hexPurchaseRiderTerm,
   holdsHexPurchaseRider,
@@ -186,9 +187,9 @@ import type { City, GameState, Player, Unit } from '../sim/state';
 import { isExploredBy } from '../sim/visibility';
 import {
   anyCardDef,
+  cardRareWeight,
   expectedHandBags,
   nextDraftCost,
-  rarityFirstOdds,
   spendableGold,
 } from '../sim/statecraft';
 import { type OrderId } from '../sim/statecraftData';
@@ -217,6 +218,11 @@ import type { RouteMode } from '../sim/trade';
 import { type TownFolds, townFolds } from './townFolds';
 import { foundedReligionOf, hasFoundedReligion } from './ground';
 import { type WagerWant, wagerWantOf } from './wager';
+
+// The arithmetic lives in `value.ts` since batch DT10, because The Hospitium's and
+// The Jinshi's prices need it there and `value.ts` does not import this file. The
+// plan and the tests still ask for it here.
+export { expectedBestOrder };
 
 /**
  * The two **banks** the book prices. The two *constraints* — authority and
@@ -2013,7 +2019,7 @@ export function draftPlan(
   const shelf = new Set<OrderId>();
   for (const bag of bags) for (const id of bag) shelf.add(id);
   const score = (id: OrderId): number => inputs.cardWorth(id).total;
-  const hand = expectedBestOrder(bags, sc.orderSkips, score);
+  const hand = expectedBestOrder(bags, sc.orderSkips, score, cardRareWeight(state, player.id));
   const delay = Math.max(0, cost - player.culturePool) / Math.max(1, inputs.cultureRate);
 
   const terms: ValueTerm[] = [
@@ -2127,75 +2133,6 @@ function replacementCost(
     if (worst === null || value < worst.score) worst = { card: slot.card, score: value };
   }
   return worst;
-}
-
-/**
- * **The expected best card of a dealt hand**, over the draw the simulation
- * actually performs — deterministic arithmetic, no roll and no sample.
- *
- * `drawOrderOffer`'s shape, read as a distribution (the decks rework, D1a):
- *
- *   · a hand is dealt **one card per position** — the seat's first deck, its
- *     second, the third by the cadence, then a rider's extras from the union —
- *     and `expectedHandBags` (`statecraft/draft.ts`) hands over exactly those
- *     bags, fallback included, so the plan and the deal read one shape;
- *   · within a bag each card's chance is **rarity-first** (`rarityFirstOdds`:
- *     the rung's points renormalised over the rungs present, then even over
- *     the rung's cards, with `skipPity` moved per banked pass).
- *
- * The expectation of the maximum is taken through the **CDF**, which is what
- * makes it exact rather than a mean of means: for a threshold `t`,
- * `P(best ≤ t) = Π over the draws of P(that draw ≤ t)`, and
- * `E[best] = Σ over the distinct scores of v × (F(v) − F(v⁻))`.
- *
- * **The one stated approximation is independence.** The deal excludes the
- * hand from every later position, and this treats the positions as independent
- * draws from their own bags. That over-counts the chance of seeing the same
- * excellent card twice where two bags overlap (the fallback and the extras)
- * and therefore reads such a hand as very slightly better than it is; the
- * alternative is an inclusion-exclusion over every subset of the shelf. An
- * honest approximation, written down — and exact whenever the bags are
- * disjoint, which the three base positions of a two-deck seat are.
- *
- * `skips` is the pity the *next* hand would be dealt under, which is what makes
- * this the same function the skip candidate asks with `skips + 1`
- * (`orderDecision`, `bot.ts`).
- *
- * Exported for the tests and for `bot.ts`' skip candidate: the arithmetic is a
- * claim about a distribution, and a played board can only demonstrate it
- * statistically.
- */
-export function expectedBestOrder(
-  bags: readonly (readonly OrderId[])[],
-  skips: number,
-  score: (id: OrderId) => number,
-): number {
-  const draws = bags.filter((bag) => bag.length > 0);
-  if (draws.length === 0) return 0;
-  const scores = new Map<OrderId, number>();
-  for (const bag of draws) for (const id of bag) if (!scores.has(id)) scores.set(id, score(id));
-
-  // Each bag's own distribution, the draw's arithmetic and not a copy of it.
-  const odds = draws.map((bag) => rarityFirstOdds(bag, skips));
-  // The distinct scores, ascending — the points the step function of the maximum
-  // can jump at, and nowhere else.
-  const values = [...new Set([...scores.values()])].sort((a, b) => a - b);
-
-  let expectation = 0;
-  let below = 0;
-  for (const value of values) {
-    let cdf = 1;
-    for (const bag of odds) {
-      let under = 0;
-      for (const { id, chance } of bag) {
-        if (scores.get(id)! <= value) under += chance;
-      }
-      cdf *= under;
-    }
-    expectation += value * (cdf - below);
-    below = cdf;
-  }
-  return expectation;
 }
 
 // --- saving ------------------------------------------------------------------

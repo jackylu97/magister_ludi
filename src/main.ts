@@ -201,6 +201,7 @@ import { type CaptureSheet, createCaptureSheet } from './ui/captureSheet';
 import { CARD_LINE_NAME, cardLineMarkUrl, lineOf } from './ui/cardLine';
 import {
   type OfferKind,
+  cardRareWeight,
   describeCard,
   explainOfferSize,
   rarityDrawWeight,
@@ -3023,9 +3024,9 @@ async function boot(initial: Game | null): Promise<void> {
    * asked twice — so a knob retuned to nothing prints an honest nothing rather
    * than a promise the bag will not keep.
    */
-  function passFigure(skips: number): string {
-    const now = rarityDrawWeight('rare', skips);
-    const next = rarityDrawWeight('rare', skips + 1);
+  function passFigure(skips: number, rarePercent: number): string {
+    const now = rarityDrawWeight('rare', skips, rarePercent);
+    const next = rarityDrawWeight('rare', skips + 1, rarePercent);
     return next === now ? 'No rarer cards next draft' : 'See rarer cards next draft';
   }
 
@@ -3277,7 +3278,7 @@ async function boot(initial: Game | null): Promise<void> {
             label: 'Pass',
             // The bag's own numbers, never a sentence with a figure invented in
             // it — see `passFigure`.
-            figure: passFigure(sc.orderSkips),
+            figure: passFigure(sc.orderSkips, cardRareWeight(game.state, seat)),
             note: passNote(sc.orderSkips),
           },
           // **The third answer** (2026-09-06): faith buys another hand. Absent

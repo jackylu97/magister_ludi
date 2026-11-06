@@ -325,6 +325,7 @@ import {
   draftCostFor,
   heldReligions,
   chairReadingsAt,
+  cardRareWeight,
   expectedHandBags,
   maliceAt,
   slotOrderError,
@@ -2991,7 +2992,7 @@ function sameItem(a: QueueItem, b: QueueItem): boolean {
  * **The pass is priced** (batch 6 of `docs/bot-priorities.md`), and until it was
  * this arm carried a written-down non-delivery: *"pricing that trade needs a
  * reading of the bag the appraisal does not have"*. It has one now. The draft
- * plan's estimator (`expectedBestOrder`, `wants.ts`) answers *what is the best
+ * plan's estimator (`expectedBestOrder`, `value.ts`) answers *what is the best
  * card a hand dealt from this pool would hold* over the real draw — the live
  * pool, the M/E/W guarantee, the rarity weights and the pity — and the pass is
  * the **difference one more rung of pity makes** to that, discounted by how long
@@ -3096,8 +3097,9 @@ function skipCandidate(state: GameState, player: Player, ctx: ValueContext): Bot
   // since one is on the table, and the pity read twice over the same shape.
   const bags = expectedHandBags(state, player);
   const score = (id: OrderId): number => scoreCard(player, id, ctx);
-  const pitied = expectedBestOrder(bags, sc.orderSkips + 1, score);
-  const asIs = expectedBestOrder(bags, sc.orderSkips, score);
+  const rare = cardRareWeight(state, player.id);
+  const pitied = expectedBestOrder(bags, sc.orderSkips + 1, score, rare);
+  const asIs = expectedBestOrder(bags, sc.orderSkips, score, rare);
   // The next draft's own wait: the whole of the next threshold over what the
   // meter fills at, because a pass spends the culture already banked for this one.
   // The threshold is the seat's own price, discounts included (Magisterial

@@ -112,6 +112,8 @@ export {
   cardPrototypePercent,
   cardOpusBreachPercent,
   cardClosedBookTurns,
+  // Batch DT10: how much The Jinshi raises the rare rung of an Order hand.
+  cardRareWeight,
   // Commerce batch T6: Letters of Credit's floor, and what an empire may spend.
   cardSpendFloor,
   spendableGold,

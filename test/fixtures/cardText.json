@@ -1350,6 +1350,12 @@
     "text": "the card in your last wildcard chair counts twice"
    }
   ],
+  "theHospitium": [
+   {
+    "raw": "the third card in each of your Order hands comes from a deck you do not hold",
+    "text": "the third card in each of your Order hands comes from a deck you do not hold"
+   }
+  ],
   "theChoregia": [
    {
     "raw": "+3 culture in every city per culture building there",
@@ -1370,6 +1376,12 @@
    {
     "raw": "+1 science in every city per civic Order you have seated",
     "text": "+1 science in every city per civic Order you have seated"
+   }
+  ],
+  "theJinshi": [
+   {
+    "raw": "rare cards come up twice as often in your Order hands",
+    "text": "rare cards come up twice as often in your Order hands"
    }
   ],
   "theBarmakids": [

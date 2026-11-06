@@ -11874,6 +11874,18 @@ function ruleFigures(
 }
 
 /**
+ * **How much the rare rung of this empire's Order hands rises, as a percentage**:
+ * The Jinshi (batch DT10). The sum of the live `rareWeight` rows, nought with
+ * none. `drawOrderOffer` deals by it, and the bots and the pass button read it so
+ * that they read the odds the hand is dealt at.
+ */
+export function cardRareWeight(state: GameState, playerId: number): number {
+  let total = 0;
+  for (const figure of ruleFigures(state, playerId, 'rareWeight', 'percent')) total += figure;
+  return total;
+}
+
+/**
  * **The share of the Opus's technology this empire must bank before it may
  * begin the Opus**, or `null` when its law holds no `opusEarly` row (Scientific
  * batch S9, The Foundation Stone). With two rows the smaller share opens the

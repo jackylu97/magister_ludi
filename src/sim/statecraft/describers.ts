@@ -7203,6 +7203,10 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // Officials by Merit (Magisterial batch MG6). Said for the Order hand
   // alone, because the other hands may still be rerolled.
   noOrderReroll: 'you cannot reroll Order hands',
+  // Batch DT10, The Hospitium: the card's own sentence. The Jinshi's row carries a
+  // figure and `figureRuleWords` says it; this is the sentence for a row with none.
+  thirdCardForeign: 'the third card in each of your Order hands comes from a deck you do not hold',
+  rareWeight: 'rare cards come up more often in your Order hands',
   // Devotion batch DV7: The Anchorites and The Abbeys. The Anchorites' row
   // names the act and its price, and `figureRuleWords` says both; this is the
   // sentence for a row that names neither, which changes nothing. The Abbeys
@@ -7421,8 +7425,9 @@ const CHARGE_PRICE_WORDS: Record<ChargeVerbName, string> = {
 /**
  * **The four rules of Scientific batch S9 that carry a figure**, said whole:
  * The Breaching Batteries' share, The Closed Book's turns, The Foundation
- * Stone's share and The Prototype Works' premium. `null` for any other rule,
- * and for a row with no figure, which `FLAG_RULE_WORDS` then says plainly.
+ * Stone's share and The Prototype Works' premium. The rules that came later with a
+ * figure join them, The Jinshi's among them. `null` for any other rule, and for a
+ * row with no figure, which `FLAG_RULE_WORDS` then says plainly.
  *
  * The Magnum Opus and the technology that opens it are read off the row that
  * ends the game (`BuildingDef.endsTheGame`, `worldUnlockTech`), so no card
@@ -7473,6 +7478,11 @@ function figureRuleWords(effect: Extract<CardEffect, { kind: 'rule' }>): string 
       const value = Math.max(0, Math.floor(effect.value));
       return `${CHARGE_PRICE_WORDS[effect.verb]} costs ${value} ${value === 1 ? 'charge' : 'charges'}`;
     }
+    case 'rareWeight':
+      if (effect.percent === undefined) return null;
+      return effect.percent === 100
+        ? 'rare cards come up twice as often in your Order hands'
+        : `rare cards come up ${effect.percent}% more often in your Order hands`;
     case 'prototypes': {
       if (effect.percent === undefined) return null;
       const price =

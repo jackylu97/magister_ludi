@@ -3396,8 +3396,21 @@ import {
  *
  * **A v213 save is refused and does not replay.** These seats' Doctrine bags change,
  * so their draws move. The branch migrates nothing, for the reason given under v119.
+ *
+ * v215 (branch `decks`; batch DT10, `docs/plans/doctrines-build-triage.md`):
+ * **Two Doctrines that change what an Order hand deals.** No field joins the state.
+ * `OrderOffer.positions` gains the kind `foreign`. The rules that change:
+ *
+ *   · The Hospitium and The Jinshi are dealt to a Magisterial seat;
+ *   · the card rules gain `thirdCardForeign` (`drawHandPositions`, which writes a
+ *     `foreign` third position) and `rareWeight` (`cardRareWeight`, read by
+ *     `drawOrderOffer`);
+ *   · `rarityOdds` and the draws that read it take the rare rung's rise.
+ *
+ * **A v214 save is refused and does not replay.** These seats' Doctrine bags change,
+ * so their draws move. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 214;
+export const SCHEMA_VERSION = 215;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

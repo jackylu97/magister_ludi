@@ -265,6 +265,7 @@ import {
   draftCostFor,
   expectedHandBags,
   foreignCardBag,
+  isRainbowSeat,
   maliceAt,
   offerSize,
   rarityFirstOdds,
@@ -272,6 +273,7 @@ import {
 import {
   type GroundFacts,
   cardActionRule,
+  cardRareWeight,
   cardRulePercent,
   effectsOfKind,
   groundFactsFor,
@@ -10965,6 +10967,158 @@ function widerHandShare(base: number, wider: number): number {
 }
 
 /**
+ * **The expected best card of a dealt hand**, over the draw the simulation
+ * actually performs — deterministic arithmetic, no roll and no sample.
+ *
+ * `drawOrderOffer`'s shape, read as a distribution (the decks rework, D1a):
+ *
+ *   · a hand is dealt **one card per position** — the seat's first deck, its
+ *     second, the third by the cadence, then a rider's extras from the union —
+ *     and `expectedHandBags` (`statecraft/draft.ts`) hands over exactly those
+ *     bags, fallback included, so the plan and the deal read one shape;
+ *   · within a bag each card's chance is **rarity-first** (`rarityFirstOdds`:
+ *     the rung's points renormalised over the rungs present, then even over
+ *     the rung's cards, with `skipPity` moved per banked pass, and the rare rung
+ *     raised by `rarePercent`, what The Jinshi adds at the deal).
+ *
+ * The expectation of the maximum is taken through the **CDF**, which is what
+ * makes it exact rather than a mean of means: for a threshold `t`,
+ * `P(best ≤ t) = Π over the draws of P(that draw ≤ t)`, and
+ * `E[best] = Σ over the distinct scores of v × (F(v) − F(v⁻))`.
+ *
+ * **The one stated approximation is independence.** The deal excludes the
+ * hand from every later position, and this treats the positions as independent
+ * draws from their own bags. That over-counts the chance of seeing the same
+ * excellent card twice where two bags overlap (the fallback and the extras)
+ * and therefore reads such a hand as very slightly better than it is; the
+ * alternative is an inclusion-exclusion over every subset of the shelf. An
+ * honest approximation, written down — and exact whenever the bags are
+ * disjoint, which the three base positions of a two-deck seat are.
+ *
+ * `skips` is the pity the *next* hand would be dealt under, which is what makes
+ * this the same function the skip candidate asks with `skips + 1`
+ * (`orderDecision`, `bot.ts`).
+ *
+ * Exported for the tests and for `bot.ts`' skip candidate: the arithmetic is a
+ * claim about a distribution, and a played board can only demonstrate it
+ * statistically.
+ */
+export function expectedBestOrder(
+  bags: readonly (readonly OrderId[])[],
+  skips: number,
+  score: (id: OrderId) => number,
+  rarePercent = 0,
+): number {
+  const draws = bags.filter((bag) => bag.length > 0);
+  if (draws.length === 0) return 0;
+  const scores = new Map<OrderId, number>();
+  for (const bag of draws) for (const id of bag) if (!scores.has(id)) scores.set(id, score(id));
+
+  // Each bag's own distribution, the draw's arithmetic and not a copy of it.
+  const odds = draws.map((bag) => rarityFirstOdds(bag, skips, rarePercent));
+  // The distinct scores, ascending — the points the step function of the maximum
+  // can jump at, and nowhere else.
+  const values = [...new Set([...scores.values()])].sort((a, b) => a - b);
+
+  let expectation = 0;
+  let below = 0;
+  for (const value of values) {
+    let cdf = 1;
+    for (const bag of odds) {
+      let under = 0;
+      for (const { id, chance } of bag) {
+        if (scores.get(id)! <= value) under += chance;
+      }
+      cdf *= under;
+    }
+    expectation += value * (cdf - below);
+    below = cdf;
+  }
+  return expectation;
+}
+
+/**
+ * **What a rule on the Order hand is worth to this seat** (batch DT10; The Hospitium
+ * and The Jinshi): the hands it buys a turn (`draftsPerTurn`), times what the rule
+ * adds to the best card of one hand. `read` answers the second half, in the prices
+ * `handCardPrice` gives.
+ *
+ * This is `offerRiderWorth`'s chain with one change. That arm reads a hand's cards
+ * as alike and takes a share of what a hand costs. These two rules change which
+ * cards are dealt, so they read the cards themselves. In a full context a hand's
+ * worth is about its best card (culture's price is the plan's own), so the two arms
+ * sit on one scale.
+ *
+ * Remembered for the sitting. A card's price can ask for this price again: The Golden
+ * Bull is priced by the Doctrine offer it grants, and these two Doctrines can be in
+ * that offer. So the memo answers nothing while the first reading runs, and the walk
+ * ends.
+ */
+const HAND_RULE_MEMO = new WeakMap<ValueContext, Map<string, number>>();
+function handRuleWorth(
+  key: string,
+  ctx: ValueContext,
+  read: (player: Player, score: (id: OrderId) => number) => number,
+): number {
+  let memo = HAND_RULE_MEMO.get(ctx);
+  if (memo === undefined) {
+    memo = new Map<string, number>();
+    HAND_RULE_MEMO.set(ctx, memo);
+  }
+  const held = memo.get(key);
+  if (held !== undefined) return held;
+  memo.set(key, 0);
+  const player = playerById(ctx.state, ctx.playerId);
+  const gain = player === undefined ? 0 : read(player, (id) => handCardPrice(id, ctx));
+  // Adding nought turns a -0 into 0, for a seat that buys no hands.
+  const worth = draftsPerTurn(ctx) * gain + 0;
+  memo.set(key, worth);
+  return worth;
+}
+
+/** A card in a hand, as the pick would price it: its effects and what drafting it hands over. */
+function handCardPrice(id: OrderId, ctx: ValueContext): number {
+  return explainCardEffects(id, orderDef(id).effects, ctx).total + onDraftWorth(id, ctx);
+}
+
+/**
+ * **The Hospitium** (`thirdCardForeign`, batch DT10): the best card of the next hand
+ * with the third card foreign, less the best card with the ordinary third card. Both
+ * readings use the same pity and rare weight. A seat whose own third card is better
+ * than a stranger's prints a negative worth, because the Doctrine really does take
+ * that card away. A rainbow seat has nothing foreign, so it reads nothing.
+ */
+function hospitiumWorth(ctx: ValueContext): number {
+  return handRuleWorth('hospitium', ctx, (player, score) => {
+    if (isRainbowSeat(player)) return 0;
+    const skips = player.statecraft.orderSkips;
+    const rare = cardRareWeight(ctx.state, ctx.playerId);
+    const wider = expectedBestOrder(expectedHandBags(ctx.state, player, true), skips, score, rare);
+    const plain = expectedBestOrder(expectedHandBags(ctx.state, player, false), skips, score, rare);
+    return wider - plain;
+  });
+}
+
+/**
+ * **The Jinshi** (`rareWeight`, batch DT10): the best card of the next hand with this
+ * row's rise on the rare rung, less the best card without it. A row the seat already
+ * holds is taken out of the second reading, so the price does not change on the turn
+ * the seat takes it.
+ */
+function jinshiWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueContext): number {
+  const percent = effect.percent ?? 0;
+  return handRuleWorth(`rare:${percent}`, ctx, (player, score) => {
+    const live = effectsOfKind(ctx.state, ctx.playerId, 'rule').some((row) => row.effect === effect);
+    const others = cardRareWeight(ctx.state, ctx.playerId) - (live ? percent : 0);
+    const skips = player.statecraft.orderSkips;
+    const bags = expectedHandBags(ctx.state, player);
+    return (
+      expectedBestOrder(bags, skips, score, others + percent) - expectedBestOrder(bags, skips, score, others)
+    );
+  });
+}
+
+/**
  * **More cards in an Order hand** (`offerRider` with `offer: 'order'`;
  * Officials by Merit, and The Hall of Wonders' counted cards, Magisterial
  * batch MG6): the hands the seat buys a turn (`draftsPerTurn`), times what a
@@ -11799,6 +11953,11 @@ function magisterialRuleWorth(
       return actThenWorkWorth(ctx);
     case 'worksPullRivalHexes':
       return pullWorth(ctx);
+    // Batch DT10: the two Doctrines that change what an Order hand deals.
+    case 'thirdCardForeign':
+      return hospitiumWorth(ctx);
+    case 'rareWeight':
+      return jinshiWorth(effect, ctx);
     default:
       return null;
   }

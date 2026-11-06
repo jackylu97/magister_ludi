@@ -230,9 +230,11 @@ governments, so Tier IV opened at 29.
 | The Külliye | Scientific | III | tier 18 | Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings. |
 | The Court of Rudolf II | Scientific | IV | tier 26 | Alchemy, and the fourth-age technologies that lead to it, cost you 20% less research. Your other fourth-age technologies cost you 25% more. |
 | The Arthashastra | Magisterial | I | tier 4 | You have one more Wildcard chair. The card seated in it counts twice. |
+| The Hospitium | Magisterial | I | tier 4 | The third card in each of your Order hands comes from a deck you do not hold. |
 | The Choregia | Magisterial | I | tier 4 | Culture buildings give +3 culture and +2 renown each. |
 | The Periclean Works | Magisterial | I | tier 4 | Each wonder you hold gives +2 production in every town. |
 | The Magnaura | Magisterial | II | tier 10 | Each town gains +1 science for each Civic card you have seated. |
+| The Jinshi | Magisterial | II | tier 10 | Rare cards come up twice as often in your Order hands. |
 | The Barmakids | Magisterial | II | tier 10 | Each great person you have gained gives every town +1 food and +1 production. |
 | The Council of Ten | Magisterial | III | tier 18 | You have two more Wildcard chairs. |
 | The Bourgs | Magisterial | III | tier 18 | Towns working a great-person work grow 25% faster. |

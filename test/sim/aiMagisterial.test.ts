@@ -42,7 +42,7 @@ import {
   valueOfYields,
   voiceWeight,
 } from '../../src/ai/value';
-import { expectedBestOrder } from '../../src/ai/wants';
+import { draftPlan, expectedBestOrder } from '../../src/ai/wants';
 import aiJson from '../../data/ai.json';
 import boundsJson from '../../data/ai.bounds.json';
 
@@ -66,11 +66,12 @@ import {
   playerById,
   tileOwnerField,
 } from '../../src/sim/state';
-import { countOf, slotTypesOf } from '../../src/sim/statecraft';
+import { cardRareWeight, countOf, slotTypesOf } from '../../src/sim/statecraft';
 import {
   HAND_POSITIONS,
   doctrineBagFor,
   draftCostFor,
+  drawOrderOffer,
   expectedHandBags,
   foreignCardBag,
   nextDraftCost,
@@ -80,9 +81,13 @@ import {
 import {
   type CardEffect,
   type CardPaysEffect,
+  DECK_IDS,
+  type DoctrineId,
   GOVERNMENT_IDS,
   GOVERNMENT_TIERS,
+  type GovernmentId,
   type OrderId,
+  type OrderRarity,
   doctrineDef,
   governmentDef,
   orderDef,
@@ -303,6 +308,8 @@ describe('the sheet', () => {
       'actThenWork',
       'worksPullRivalHexes',
       'legaciesCountTwice',
+      'thirdCardForeign',
+      'rareWeight',
     ]) {
       expect(VALUE_SOURCE, rule).not.toContain(`effect.rule === '${rule}') return ctx.ai.score.unknownEffect`);
     }
@@ -1138,4 +1145,161 @@ describe('a great person under The Universal Genius', () => {
     expect(commandFor(game, unitId)?.type).toBe('greatPersonAct');
   });
 
+});
+
+// --- batch DT10: the Order hand -----------------------------------------------------
+
+describe('the two Doctrines that change what an Order hand deals', () => {
+  const HOSPITIUM = 'theHospitium' as DoctrineId;
+  const JINSHI = 'theJinshi' as DoctrineId;
+
+  /** A two-deck seat with towns and culture coming in, so it buys hands. */
+  function seatBuyingHands(): { state: GameState; player: Player } {
+    const { state, player } = board([8, 6, 6]);
+    player.decks = ['magisterial', 'dominion'] as never;
+    player.statecraft.drafts = 12;
+    player.culturePool = 400;
+    bumpRevision(state);
+    return { state, player };
+  }
+
+  function take(state: GameState, id: DoctrineId): void {
+    seat(state, 0).statecraft.doctrines.push(id);
+    bumpRevision(state);
+  }
+
+  /** The price the two arms give a card: its effects and what drafting it hands over. */
+  function priced(ctx: ValueContext): (id: OrderId) => number {
+    return (id) => explainCardEffects(id, effectsOf(id), ctx).total + onDraftWorth(id, ctx);
+  }
+
+  /** Hands a turn, as `draftsPerTurn` reads them. */
+  function handsPerTurn(state: GameState, player: Player): number {
+    return draftsAheadOf(state, player) / HORIZON;
+  }
+
+  it('prices The Hospitium at the hands it buys times what the foreign third card adds', () => {
+    const { state, player } = seatBuyingHands();
+    const ctx = valueContext(state, player);
+    const score = priced(ctx);
+    const wider = expectedBestOrder(expectedHandBags(state, player, true), 0, score);
+    const plain = expectedBestOrder(expectedHandBags(state, player, false), 0, score);
+    expect(handsPerTurn(state, player)).toBeGreaterThan(0);
+    expect(wider).not.toBe(plain);
+    const row = doctrineDef(HOSPITIUM).effects;
+    expect(scoreEffects(row, ctx)).toBeCloseTo(handsPerTurn(state, player) * (wider - plain), 6);
+  });
+
+  it('prices The Hospitium at nothing for a rainbow seat, and for a seat that buys no hands', () => {
+    const rainbow = seatBuyingHands();
+    rainbow.player.decks = [...DECK_IDS];
+    bumpRevision(rainbow.state);
+    const row = doctrineDef(HOSPITIUM).effects;
+    expect(scoreEffects(row, valueContext(rainbow.state, rainbow.player))).toBe(0);
+
+    // A hand this late costs more than the horizon's culture, so the seat buys none.
+    const idle = seatBuyingHands();
+    idle.player.culturePool = 0;
+    idle.player.statecraft.drafts = 300;
+    bumpRevision(idle.state);
+    expect(draftsAheadOf(idle.state, idle.player)).toBe(0);
+    expect(scoreEffects(row, valueContext(idle.state, idle.player))).toBe(0);
+  });
+
+  it('prices The Hospitium the same before and after it is taken', () => {
+    const { state, player } = seatBuyingHands();
+    const row = doctrineDef(HOSPITIUM).effects;
+    const before = scoreEffects(row, valueContext(state, player));
+    take(state, HOSPITIUM);
+    expect(scoreEffects(row, valueContext(state, player))).toBeCloseTo(before, 6);
+  });
+
+  it('prices The Jinshi at the hands it buys times what a doubled rare rung adds', () => {
+    const { state, player } = seatBuyingHands();
+    const ctx = valueContext(state, player);
+    const score = priced(ctx);
+    const bags = expectedHandBags(state, player);
+    const doubled = expectedBestOrder(bags, 0, score, 100);
+    const plain = expectedBestOrder(bags, 0, score);
+    expect(doubled).not.toBe(plain);
+    const row = doctrineDef(JINSHI).effects;
+    expect(scoreEffects(row, ctx)).toBeCloseTo(handsPerTurn(state, player) * (doubled - plain), 6);
+  });
+
+  it('does not count The Jinshi’s own rise twice for a seat that holds it', () => {
+    const { state, player } = seatBuyingHands();
+    const row = doctrineDef(JINSHI).effects;
+    const before = scoreEffects(row, valueContext(state, player));
+    take(state, JINSHI);
+    expect(cardRareWeight(state, 0)).toBe(100);
+    expect(scoreEffects(row, valueContext(state, player))).toBeCloseTo(before, 6);
+  });
+
+  it('reads the weight in the hand’s expectation: rarer cards raise a hand that prizes them', () => {
+    const { state, player } = seatBuyingHands();
+    const bags = expectedHandBags(state, player);
+    const rungs: Record<OrderRarity, number> = { common: 1, uncommon: 5, rare: 20 };
+    const rarity = (id: OrderId): number => rungs[orderDef(id).rarity];
+    expect(expectedBestOrder(bags, 0, rarity, 100)).toBeGreaterThan(expectedBestOrder(bags, 0, rarity));
+    // No figure reads as nought, so every caller written before the rule still agrees.
+    expect(expectedBestOrder(bags, 0, rarity, 0)).toBe(expectedBestOrder(bags, 0, rarity));
+  });
+
+  it('prices a hand at the odds it is dealt at, in the draft plan and in a pass', () => {
+    const { state, player } = seatBuyingHands();
+    const rungs: Record<OrderRarity, number> = { common: 1, uncommon: 5, rare: 20 };
+    const cardWorth = (id: OrderId) => ({ total: rungs[orderDef(id).rarity], terms: [] });
+    const inputs = { cardWorth, cultureRate: 10 } as never;
+    const planBest = (): number => draftPlan(state, player, valueContext(state, player), inputs)[0]!.terms[0]!.value;
+    const before = planBest();
+    take(state, JINSHI);
+    expect(planBest()).toBeCloseTo(expectedBestOrder(expectedHandBags(state, player), 0, (id) => cardWorth(id).total, 100), 8);
+    expect(planBest()).toBeGreaterThan(before);
+
+    // A pass on a hand on the table: both readings of the pity take the weight.
+    player.statecraft.pendingOrder = drawOrderOffer(state, player);
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    const bags = expectedHandBags(state, player);
+    const score = (id: OrderId): number => scoreCard(player, id, ctx);
+    const row = nextBotDecision(state, 0)!.candidates.find((candidate) => candidate.label === 'pass the hand')!;
+    expect(row.terms[0]!.value).toBeCloseTo(
+      expectedBestOrder(bags, 1, score, 100) - expectedBestOrder(bags, 0, score, 100),
+      6,
+    );
+  });
+
+  it('ends the walk when a card’s price asks for these prices again', () => {
+    // The Golden Bull is priced by the Doctrine offer it grants, and that offer can
+    // hold these two Doctrines, whose prices walk the hand The Golden Bull is in.
+    const { state, player } = seatBuyingHands();
+    player.statecraft.drafts = 22;
+    const bull = orderDef(GOLDEN_BULL);
+    const tierFour = GOVERNMENT_IDS.find((id) => governmentDef(id).tier === 4) as GovernmentId;
+    player.statecraft.government = tierFour;
+    bumpRevision(state);
+    const near = valueContext(state, player);
+    expect(doctrineBagFor(state, player, 4)).toContain(HOSPITIUM);
+    expect(expectedHandBags(state, player, true).flat()).toContain(GOLDEN_BULL);
+    expect(Number.isFinite(scoreEffects(doctrineDef(HOSPITIUM).effects, near))).toBe(true);
+    expect(Number.isFinite(explainCardEffects(GOLDEN_BULL, bull.effects, valueContext(state, player)).total)).toBe(true);
+
+    player.statecraft.government = GOVERNMENT_IDS.find((id) => governmentDef(id).tier === 10) as GovernmentId;
+    bumpRevision(state);
+    expect(doctrineBagFor(state, player, 10)).toContain(JINSHI);
+    expect(Number.isFinite(scoreEffects(doctrineDef(JINSHI).effects, valueContext(state, player)))).toBe(true);
+  });
+
+  it('answers a hand with a foreign card in it through the reducer’s own command', () => {
+    const { state, player } = seatBuyingHands();
+    take(state, HOSPITIUM);
+    player.statecraft.pendingOrder = drawOrderOffer(state, player);
+    bumpRevision(state);
+    expect(foreignCardBag(state, player)).toContain(player.statecraft.pendingOrder.options[2]);
+    const decision = nextBotDecision(state, 0)!;
+    const labels = decision.candidates.map((candidate) => candidate.label);
+    expect(labels).toContain('pass the hand');
+    const third = orderDef(player.statecraft.pendingOrder.options[2]!).name;
+    expect(labels.some((label) => label.includes(third))).toBe(true);
+  });
 });

@@ -6,8 +6,9 @@
  * nothing or that it pays nothing where its text does not reach.
  *
  * Batch DT6 adds The Carroccio and The Gobelins. Batch DT9 adds The Arthashastra, The
- * Council of Ten and The Union of Lublin, with a replay of the refit. Later batches
- * add the deck's other four Doctrines to this file.
+ * Council of Ten and The Union of Lublin, with a replay of the refit. Batch DT10 adds
+ * The Hospitium and The Jinshi, the two rows that change what an Order hand deals.
+ * Later batches add the deck's other two Doctrines to this file.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -36,6 +37,7 @@ import {
 import { type Family, GREAT_PERSON_IDS, type GreatPersonId, greatPersonDef } from '../../../src/sim/greatPeopleData';
 import { type Tile, raiseImprovement } from '../../../src/sim/map';
 import { explainAuthority, explainHappiness } from '../../../src/sim/meters';
+import { RELIGION } from '../../../src/sim/religionData';
 import { explainRenown, foldRenown, renownThreshold } from '../../../src/sim/renown';
 import {
   type City,
@@ -47,18 +49,34 @@ import {
   createUnit,
   playerById,
 } from '../../../src/sim/state';
+import { makeRng } from '../../../src/sim/rng';
 import { setSlateShadow } from '../../../src/sim/slate';
 import {
+  type OrderOffer,
   chairCount,
   doctrineBagFor,
+  drawDoctrineOffer,
+  drawForeignCard,
+  drawHandPositions,
+  drawOrderOffer,
+  drawRarityFirst,
+  describeCard,
+  eligibleFor,
+  expectedHandBags,
+  foreignCardBag,
   maliceAt,
   orderAtSlotPosition,
+  positionBag,
+  rarityFirstOdds,
+  rarityOdds,
   slotTypesOf,
+  stripRefs,
 } from '../../../src/sim/statecraft';
 import {
   cardActionRule,
   cardCombatLines,
   cardExtraChairs,
+  cardRareWeight,
   cardRenownLines,
   cardShoreRaids,
   chairReadingsAt,
@@ -73,10 +91,13 @@ import {
 } from '../../../src/sim/statecraft/evaluator';
 import {
   type CardEffect,
+  type DeckId,
   type DoctrineId,
   type GovernmentId,
   type OrderId,
+  type OrderRarity,
   DECK_FILE_DOCTRINES,
+  DECK_IDS,
   ORDER_IDS,
   doctrineDef,
   governmentDef,
@@ -85,7 +106,7 @@ import {
   poolDoctrines,
   slotCount,
 } from '../../../src/sim/statecraftData';
-import { ABILITY_TECH, TECH_IDS, techDef } from '../../../src/sim/techData';
+import { ABILITY_TECH, TECH_IDS, type TechId, techDef } from '../../../src/sim/techData';
 import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
 import { explainCity, productionModifiers } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
@@ -94,6 +115,8 @@ import { createGame } from '../newGameHelpers';
 /** The rows built so far in this deck, each with the band its table gives it. */
 const ROWS: readonly (readonly [string, number])[] = [
   ['theArthashastra', 1],
+  ['theHospitium', 1],
+  ['theJinshi', 2],
   ['theCouncilOfTen', 3],
   ['theUnionOfLublin', 4],
   ['theChoregia', 1],
@@ -1442,5 +1465,345 @@ describe('The Union of Lublin (batch DT9)', () => {
     const row = doctrineDef('theUnionOfLublin' as DoctrineId).effects;
     expect(scoreEffects(row, ctx)).toBeCloseTo(each, 6);
     expect(each).toBeGreaterThan(0);
+  });
+});
+
+// --- batch DT10: the Order hand ----------------------------------------------------
+
+const HOSPITIUM = 'theHospitium' as DoctrineId;
+const JINSHI = 'theJinshi' as DoctrineId;
+/** The technology that opens the reroll's door. */
+const REROLL_DOOR = ABILITY_TECH.get(RELIGION.reroll.ability)!;
+/** A two-deck seat: Magisterial, and one other, so four decks are foreign to it. */
+const TWO_DECKS: readonly DeckId[] = ['magisterial', 'dominion'];
+
+/** Seat 0 with one town and these decks, at the given draft count. No hand on the table. */
+function handSeat(decks: readonly DeckId[] = TWO_DECKS, drafts = 5): { state: GameState; player: Player } {
+  const state = bareState(20, 10);
+  town(state, 3, 5);
+  const player = seat(state);
+  player.decks = [...decks];
+  player.statecraft.drafts = drafts;
+  bumpRevision(state);
+  return { state, player };
+}
+
+/** Deals a new hand, as a new draft does: with no hand on the table to keep positions from. */
+function deal(state: GameState, player: Player): OrderOffer {
+  delete player.statecraft.pendingOrder;
+  return drawOrderOffer(state, player);
+}
+
+/** Gives seat 0 a technology. */
+function know(state: GameState, tech: TechId): void {
+  seat(state).techsResearched.push(tech);
+  bumpRevision(state);
+}
+
+/** The share of a rung among the cards drawn. */
+function rungShare(cards: readonly OrderId[], rarity: OrderRarity): number {
+  return cards.filter((id) => orderDef(id).rarity === rarity).length / cards.length;
+}
+
+/** What `rarityFirstOdds` gives a rung, summed over the bag's cards. */
+function oddsOfRung(odds: readonly { id: OrderId; chance: number }[], rarity: OrderRarity): number {
+  return odds.filter(({ id }) => orderDef(id).rarity === rarity).reduce((sum, { chance }) => sum + chance, 0);
+}
+
+/** Holds every card of the seat's foreign bag, leaving `keep`. Holding a card can open others. */
+function narrowForeignBagTo(state: GameState, player: Player, keep?: OrderId): void {
+  for (let round = 0; round < 10; round++) {
+    const others = foreignCardBag(state, player).filter((id) => id !== keep);
+    if (others.length === 0) break;
+    player.statecraft.orders.push(...others);
+    bumpRevision(state);
+  }
+  expect(foreignCardBag(state, player)).toEqual(keep === undefined ? [] : [keep]);
+}
+
+describe('The Hospitium', () => {
+  it('says what its text says, and states what happens at the edges', () => {
+    const clauses = describeCard(HOSPITIUM).map((clause) => stripRefs(clause.text));
+    expect(clauses).toEqual(['the third card in each of your Order hands comes from a deck you do not hold']);
+    expect(doctrineDef(HOSPITIUM).note).toContain('fits the chair of its type');
+  });
+
+  it('deals a card of a deck the seat does not hold third, over a thousand seeds’ hands', () => {
+    const { state, player } = handSeat();
+    hold(state, HOSPITIUM);
+    const seen = new Set<OrderId>();
+    for (let seed = 1; seed <= 1000; seed++) {
+      state.rng = makeRng(seed);
+      // Every turn of the cadence, because the rule takes the third position whatever it says.
+      player.statecraft.drafts = 5 + (seed % 4);
+      const offer = deal(state, player);
+      expect(offer.positions).toEqual([
+        { kind: 'deck', deck: 'magisterial' },
+        { kind: 'deck', deck: 'dominion' },
+        { kind: 'foreign' },
+      ]);
+      expect(offer.options).toHaveLength(3);
+      expect(orderDef(offer.options[0]!).decks).toEqual(['magisterial']);
+      expect(orderDef(offer.options[1]!).decks).toEqual(['dominion']);
+      const third = offer.options[2]!;
+      const home = orderDef(third).decks;
+      expect(home.length, third).toBeGreaterThan(0);
+      expect(home.some((deck) => TWO_DECKS.includes(deck)), third).toBe(false);
+      expect(foreignCardBag(state, player), third).toContain(third);
+      seen.add(third);
+    }
+    // More than a fixed card: the bag is spread over the decks the seat does not hold.
+    const homes = new Set([...seen].flatMap((id) => orderDef(id).decks));
+    expect(homes.size).toBeGreaterThan(1);
+  });
+
+  it('leaves the cadence alone for a seat that does not hold it', () => {
+    const { state, player } = handSeat();
+    expect(drawHandPositions(state, player, 1)[2]).toEqual({ kind: 'generic' });
+    expect(drawHandPositions(state, player, 2)[2]).toEqual({ kind: 'cross' });
+    expect(drawHandPositions(state, player, 4)[2]).toEqual({ kind: 'deck', deck: 'magisterial' });
+    hold(state, HOSPITIUM);
+    for (const draft of [1, 2, 3, 4]) {
+      expect(drawHandPositions(state, player, draft)[2]).toEqual({ kind: 'foreign' });
+    }
+  });
+
+  it('deals by the deal’s own gates: a card the seat holds, or of another band, never comes', () => {
+    const { state, player } = handSeat();
+    hold(state, HOSPITIUM);
+    const bag = foreignCardBag(state, player);
+    expect(bag.length).toBeGreaterThan(1);
+    const keep = bag[0]!;
+    narrowForeignBagTo(state, player, keep);
+    for (let seed = 1; seed <= 20; seed++) {
+      state.rng = makeRng(seed);
+      expect(deal(state, player).options[2]).toBe(keep);
+    }
+    // The next draft's reading sees the next band.
+    const band = (drafts: number) => foreignCardBag(state, player, drafts).map((id) => orderDef(id).band);
+    expect(new Set(band(player.statecraft.drafts))).toEqual(new Set([orderDef(keep).band]));
+  });
+
+  it('falls back to the seat’s own cards when the foreign bag is empty, and keeps the position', () => {
+    const { state, player } = handSeat();
+    hold(state, HOSPITIUM);
+    narrowForeignBagTo(state, player);
+    const offer = deal(state, player);
+    expect(offer.positions![2]).toEqual({ kind: 'foreign' });
+    expect(offer.options).toHaveLength(3);
+    expect(eligibleFor(state, player)).toContain(offer.options[2]);
+    expect(new Set(offer.options).size).toBe(3);
+  });
+
+  it('spends one roll for each card, as any hand does', () => {
+    const { state, player } = handSeat();
+    hold(state, HOSPITIUM);
+    state.rng = makeRng(7);
+    deal(state, player);
+    const plain = handSeat();
+    plain.state.rng = makeRng(7);
+    deal(plain.state, plain.player);
+    expect(state.rng.state).toBe(plain.state.rng.state);
+  });
+
+  it('keeps the position through a reroll, and a hand dealt before it keeps its own', () => {
+    const { state, player } = handSeat();
+    know(state, REROLL_DOOR);
+    player.faithPool = 5_000;
+    hold(state, HOSPITIUM);
+    player.statecraft.pendingOrder = deal(state, player);
+    const before = player.statecraft.pendingOrder.positions;
+    expect(applyCommand(state, { type: 'rerollOffer', playerId: 0 }).ok).toBe(true);
+    const after = player.statecraft.pendingOrder!;
+    expect(after.positions).toEqual(before);
+    expect(foreignCardBag(state, player)).toContain(after.options[2]);
+
+    // A hand on the table when the Doctrine is taken: a redraw asks what it asked.
+    const old = handSeat();
+    know(old.state, REROLL_DOOR);
+    old.player.faithPool = 5_000;
+    old.player.statecraft.pendingOrder = deal(old.state, old.player);
+    const asked = old.player.statecraft.pendingOrder.positions;
+    expect(asked![2]!.kind).not.toBe('foreign');
+    hold(old.state, HOSPITIUM);
+    expect(applyCommand(old.state, { type: 'rerollOffer', playerId: 0 }).ok).toBe(true);
+    expect(old.player.statecraft.pendingOrder!.positions).toEqual(asked);
+  });
+
+  it('changes nothing for a rainbow seat: the same hands, and the same rolls', () => {
+    const { state, player } = handSeat(DECK_IDS);
+    const twin = handSeat(DECK_IDS);
+    hold(state, HOSPITIUM);
+    expect(foreignCardBag(state, player)).toEqual([]);
+    for (let n = 0; n < 40; n++) {
+      player.statecraft.drafts = 5 + (n % 4);
+      twin.player.statecraft.drafts = 5 + (n % 4);
+      const hand = deal(state, player);
+      expect(hand.positions!.some((position) => position.kind === 'foreign')).toBe(false);
+      expect(hand).toEqual(deal(twin.state, twin.player));
+      expect(state.rng.state).toBe(twin.state.rng.state);
+    }
+  });
+
+  it('seats a foreign card in the chair of its type, through the reducer', () => {
+    const { state, player } = handSeat();
+    hold(state, HOSPITIUM);
+    const types = slotTypesOf(player.statecraft);
+    const card = foreignCardBag(state, player).find((id) => types.includes(orderDef(id).type as never));
+    expect(card).toBeDefined();
+    narrowForeignBagTo(state, player, card);
+    player.statecraft.pendingOrder = deal(state, player);
+    expect(player.statecraft.pendingOrder.options[2]).toBe(card);
+    expect(applyCommand(state, { type: 'chooseOrder', playerId: 0, optionIndex: 2 }).ok).toBe(true);
+    expect(player.statecraft.orders).toContain(card);
+    const chair = slotTypesOf(player.statecraft).indexOf(orderDef(card!).type as never);
+    expect(chair).toBeGreaterThanOrEqual(0);
+    expect(
+      applyCommand(state, { type: 'slotOrder', playerId: 0, cardId: card!, slotIndex: chair }).ok,
+    ).toBe(true);
+    expect(player.statecraft.slots[chair]?.card).toBe(card);
+  });
+
+  it('replays: one state and one log deal one hand', () => {
+    const { state, player } = handSeat();
+    hold(state, HOSPITIUM);
+    hold(state, JINSHI);
+    state.rng = makeRng(99);
+    const saved = snapshotState(state);
+    const first = deal(state, player);
+    const copy = JSON.parse(saved) as GameState;
+    const second = deal(copy, seat(copy));
+    expect(second).toEqual(first);
+    expect(copy.rng.state).toBe(state.rng.state);
+  });
+
+  it('teaches the bots’ view of the next hand, and of a hand on the table', () => {
+    const { state, player } = handSeat();
+    const draft = player.statecraft.drafts + 1;
+    const ordinary = expectedHandBags(state, player);
+    hold(state, HOSPITIUM);
+    const bags = expectedHandBags(state, player);
+    expect(bags).toHaveLength(3);
+    expect(bags[0]).toEqual(ordinary[0]);
+    expect(bags[1]).toEqual(ordinary[1]);
+    expect(bags[2]).toEqual(foreignCardBag(state, player, draft));
+    expect(bags[2]).toEqual(positionBag(foreignCardBag(state, player, draft), { kind: 'foreign' }, player.decks));
+    // The two answers the price asks for, whatever the seat holds.
+    expect(expectedHandBags(state, player, false)).toEqual(ordinary);
+    expect(expectedHandBags(state, player, true)).toEqual(bags);
+    // An ordinary hand on the table: the bots read what it asked.
+    player.statecraft.pendingOrder = { options: [], positions: [{ kind: 'generic' }] };
+    expect(expectedHandBags(state, player)[0]!.every((id) => orderDef(id).decks.length === 0)).toBe(true);
+    // A foreign bag with nothing left falls back to the union, as the deal does.
+    delete player.statecraft.pendingOrder;
+    narrowForeignBagTo(state, player);
+    expect(expectedHandBags(state, player)[2]).toEqual(eligibleFor(state, player, draft));
+  });
+});
+
+describe('The Jinshi', () => {
+  it('says what its text says', () => {
+    expect(describeCard(JINSHI).map((clause) => stripRefs(clause.text))).toEqual([
+      'rare cards come up twice as often in your Order hands',
+    ]);
+  });
+
+  it('reads about 55 / 27 / 18 on a bag that holds all three rungs', () => {
+    const { state, player } = handSeat(['magisterial', 'dominion'], 12);
+    const bag = eligibleFor(state, player);
+    for (const rarity of ['common', 'uncommon', 'rare'] as const) {
+      expect(bag.some((id) => orderDef(id).rarity === rarity), rarity).toBe(true);
+    }
+    expect(rarityOdds(0, 100)).toEqual({ common: 60, uncommon: 30, rare: 20 });
+    const odds = rarityFirstOdds(bag, 0, 100);
+    expect(oddsOfRung(odds, 'common')).toBeCloseTo(60 / 110, 8);
+    expect(oddsOfRung(odds, 'uncommon')).toBeCloseTo(30 / 110, 8);
+    expect(oddsOfRung(odds, 'rare')).toBeCloseTo(20 / 110, 8);
+    expect(odds.reduce((sum, { chance }) => sum + chance, 0)).toBeCloseTo(1, 8);
+    // The bare table is untouched.
+    expect(rarityOdds(0)).toEqual({ common: 60, uncommon: 30, rare: 10 });
+  });
+
+  it('lets the pity still move points: a pass moves them, and the rise doubles what the rung holds', () => {
+    expect(rarityOdds(1, 100)).toEqual({ common: 45, uncommon: 40, rare: 30 });
+    expect(rarityOdds(2, 100)).toEqual({ common: 30, uncommon: 50, rare: 40 });
+    // Common's floor still bounds the shift.
+    expect(rarityOdds(50, 100).common).toBe(0);
+    expect(rarityOdds(50, 100).rare).toBeCloseTo(rarityOdds(50).rare * 2, 8);
+    expect(rarityOdds(4, 100).rare).toBeGreaterThan(rarityOdds(3, 100).rare);
+  });
+
+  it('agrees with the draw: `rarityFirstOdds` is what `drawRarityFirst` samples', () => {
+    const { state, player } = handSeat(['magisterial', 'dominion'], 12);
+    const bag = eligibleFor(state, player);
+    for (const [skips, rarePercent] of [[0, 100], [2, 100], [0, 0]] as const) {
+      const odds = rarityFirstOdds(bag, skips, rarePercent);
+      const draws: OrderId[] = [];
+      for (let n = 0; n < 8000; n++) draws.push(drawRarityFirst(state, bag, skips, rarePercent)!);
+      for (const rarity of ['common', 'uncommon', 'rare'] as const) {
+        expect(Math.abs(rungShare(draws, rarity) - oddsOfRung(odds, rarity)), `${skips} ${rarity}`).toBeLessThan(0.025);
+      }
+    }
+  });
+
+  it('reads one figure off the seat: a hundred for a holder, nothing for another', () => {
+    const { state } = handSeat();
+    expect(cardRareWeight(state, 0)).toBe(0);
+    hold(state, JINSHI);
+    expect(cardRareWeight(state, 0)).toBe(100);
+    expect(cardRareWeight(state, 1)).toBe(0);
+  });
+
+  it('deals an Order hand at those odds, for its holder only', () => {
+    const { state, player } = handSeat(['magisterial', 'dominion'], 12);
+    const twin = handSeat(['magisterial', 'dominion'], 12);
+    hold(state, JINSHI);
+    const own = positionBag(eligibleFor(state, player), { kind: 'deck', deck: 'magisterial' }, player.decks);
+    const held: OrderId[] = [];
+    const plain: OrderId[] = [];
+    for (let seed = 1; seed <= 4000; seed++) {
+      state.rng = makeRng(seed);
+      twin.state.rng = makeRng(seed);
+      held.push(deal(state, player).options[0]!);
+      plain.push(deal(twin.state, twin.player).options[0]!);
+    }
+    expect(Math.abs(rungShare(held, 'rare') - oddsOfRung(rarityFirstOdds(own, 0, 100), 'rare'))).toBeLessThan(0.03);
+    expect(Math.abs(rungShare(plain, 'rare') - oddsOfRung(rarityFirstOdds(own, 0), 'rare'))).toBeLessThan(0.03);
+    expect(rungShare(held, 'rare')).toBeGreaterThan(rungShare(plain, 'rare') * 1.5);
+  });
+
+  it('reaches The Hospitium’s third card as well, because that card is part of the hand', () => {
+    const { state, player } = handSeat(['magisterial', 'dominion'], 12);
+    hold(state, HOSPITIUM);
+    hold(state, JINSHI);
+    const bag = foreignCardBag(state, player);
+    const thirds: OrderId[] = [];
+    for (let seed = 1; seed <= 4000; seed++) {
+      state.rng = makeRng(seed);
+      thirds.push(deal(state, player).options[2]!);
+    }
+    expect(Math.abs(rungShare(thirds, 'rare') - oddsOfRung(rarityFirstOdds(bag, 0, 100), 'rare'))).toBeLessThan(0.03);
+  });
+
+  it('does not change The Cabinet of Curiosities’ draw', () => {
+    const { state, player } = handSeat(['magisterial', 'dominion'], 12);
+    const twin = handSeat(['magisterial', 'dominion'], 12);
+    hold(state, JINSHI);
+    for (let seed = 1; seed <= 200; seed++) {
+      state.rng = makeRng(seed);
+      twin.state.rng = makeRng(seed);
+      expect(drawForeignCard(state, player)).toBe(drawForeignCard(twin.state, twin.player));
+      expect(state.rng.state).toBe(twin.state.rng.state);
+    }
+  });
+
+  it('does not change a Doctrine offer', () => {
+    const { state, player } = handSeat();
+    const twin = handSeat();
+    // The Jinshi is of tier 10, so holding it leaves the two seats' tier-4 bags alike.
+    hold(state, JINSHI);
+    state.rng = makeRng(5);
+    twin.state.rng = makeRng(5);
+    expect(drawDoctrineOffer(state, player, 4)).toEqual(drawDoctrineOffer(twin.state, twin.player, 4));
   });
 });
