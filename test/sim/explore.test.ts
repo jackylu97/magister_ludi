@@ -1396,10 +1396,15 @@ describe('determinism', () => {
    * the length** at both seeds: 224 became 225, and that is all. Nobody here holds the
    * rows. Checked with the change in place and the version printed as 224, which gives
    * the hashes of batch DT19 exactly.
+   *
+   * **Batch DT20 (The King's Roads under The Contented City, schema 226) moved the hash
+   * and not the length** at both seeds: 225 became 226, and that is all. Nobody here
+   * holds the Doctrine. Checked with the change in place and the version still at 225,
+   * which gave the hashes of batch DT19c exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'ba8db5c5:190677',
-    2026: 'fd4e90c4:190843',
+    11: '348d83f6:190677',
+    2026: '9e63c45b:190843',
   };
 
   for (const seed of [11, 2026]) {

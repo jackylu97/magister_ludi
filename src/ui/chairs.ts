@@ -80,9 +80,17 @@ export function chairMixWords(mix: readonly ChairMixEntry[]): string {
  * A government's chairs as the offer card takes them: plain strings and
  * numbers, because `offerCard.ts` knows nothing about cards. The ink is the
  * chair type's key, which `style.css` resolves (`data-ink`).
+ *
+ * `layout` is the council a seat would really have (`chairLayoutUnder`), because a
+ * Doctrine, a leader or a commission can add or close Wildcard chairs. Without it,
+ * as in the flair gallery where no seat is reading, the card shows the row's own mix.
  */
-export function offerChairsOf(id: GovernmentId): { ink: string; count: number; word: string }[] {
-  return chairMixOf(id).map((entry) => ({ ink: entry.type, count: entry.count, word: chairWord(entry.type) }));
+export function offerChairsOf(
+  id: GovernmentId,
+  layout?: readonly ChairType[],
+): { ink: string; count: number; word: string }[] {
+  const mix = layout === undefined ? chairMixOf(id) : chairMixOfLayout(layout);
+  return mix.map((entry) => ({ ink: entry.type, count: entry.count, word: chairWord(entry.type) }));
 }
 
 // --- the chair, drawn -------------------------------------------------------

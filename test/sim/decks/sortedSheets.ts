@@ -152,8 +152,9 @@ export function sheetDoctrines(deck: DeckId): SheetDoctrine[] {
  * effects, a flavour line, and clauses with no raw keyword ref. A retired row is
  * on no table.
  *
- * **A sheet row with no data row passes**, so a sheet can carry its whole table
- * while the batches fill it. Batch DT20 makes that a failure.
+ * **Each sheet row has a live data row** (batch DT20). While the Doctrines were being
+ * built a sheet could list a row the data did not have yet. All 98 are in the data now,
+ * so a sheet row with no data row is a typo or a card that was never built.
  */
 export function expectSheetDoctrinesMatchData(deck: DeckId): void {
   const sheet = sheetDoctrines(deck);
@@ -164,6 +165,12 @@ export function expectSheetDoctrinesMatchData(deck: DeckId): void {
     // the government tier the one pairing says.
     expect(row.band, `${row.name}'s tier`).toBeGreaterThan(0);
     expect(row.offeredAt, row.name).toBe(governmentTierForDoctrineBand(row.band));
+  }
+  const liveNames = new Set(
+    DECK_FILE_DOCTRINES[deck].map((id) => doctrineDef(id)).filter((def) => def.retired !== true).map((def) => def.name),
+  );
+  for (const row of sheet) {
+    expect(liveNames.has(row.name), `"${row.name}" is on the ${deck} sheet and has no live data row`).toBe(true);
   }
   for (const id of DECK_FILE_DOCTRINES[deck]) {
     const def = doctrineDef(id);

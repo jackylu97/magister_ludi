@@ -333,6 +333,7 @@ import {
   cardRareWeight,
   expectedHandBags,
   cardBehaviorRule,
+  chairLayoutUnder,
   slotOrderError,
   isSlotted,
   sealRemaining,
@@ -356,7 +357,6 @@ import {
   isDoctrineId,
   isOrderId,
   orderDef,
-  slotLayout,
 } from '../sim/statecraftData';
 import { type BeliefId } from '../sim/religionData';
 import { ALL_TECH_IDS, type TechId, highestAge, techDef } from '../sim/techData';
@@ -2770,7 +2770,9 @@ function adoptionTable(
   let bestScore = -Infinity;
   for (let option = 0; option < options.length; option++) {
     const id = options[option]!;
-    const layout = slotLayout(id);
+    // The chairs the adoption would lay out, the ones this seat's Doctrines add or
+    // close included (The Council of Ten, Scutage).
+    const layout = chairLayoutUnder(state, player.id, id);
     // Scarcest office first, so the wildcard is spent on whatever is left —
     // `slottingDecision`'s rule, applied to a layout this empire does not have
     // yet. Ties by the layout's own order, which is data order.

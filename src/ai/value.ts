@@ -257,6 +257,8 @@ import {
   cardCapitalIds,
   // Batch DT18: The Grand Canal.
   cardSurplusCarrier,
+  // Batch DT19c: The Contented City.
+  cardEmpireIncomeShares,
   cityBeliefUnlocksBuilding,
   cityScopeAdmits,
   secondCapitalCity,
@@ -5310,7 +5312,13 @@ function scoreAmplifier(
         if (line.kind === 'income') roads += line.gold;
       }
       const joined = Math.max(0, ctx.cities - 1);
-      return (share * roads + flat * joined) * voiceWeight(ctx, 'gold');
+      // A card that takes a share of the income (The Contented City) takes it of what
+      // this row adds too, because the fold halves the roads after the row's step.
+      let kept = 100;
+      for (const taken of cardEmpireIncomeShares(ctx.state, ctx.playerId)) {
+        if (taken.yield === 'gold') kept += taken.percent;
+      }
+      return ((share * roads + flat * joined) * kept * voiceWeight(ctx, 'gold')) / 100;
     }
     case 'luxuryHappiness':
     case 'luxuryDuplicates': {

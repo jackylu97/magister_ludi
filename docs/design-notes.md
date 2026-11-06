@@ -106,7 +106,16 @@ with no deeds in it (Q1; it was 20, which was priced for the decks).
 - **Chairs by government tier,** typed Military, Economic, Civic and Wildcard
   (each government row's `chairMix`; the table is
   `docs/plans/doctrines-governments-chairs.md`, section 4): the Chiefdom 3,
-  tier 4 five, tier 10 five, tier 18 eight, tier 26 eleven.
+  tier 4 five, tier 10 five, tier 18 eight, tier 26 eleven. A card or a commission
+  can add Wildcard chairs or close them, and a government's offer shows the chairs
+  the seat would really have.
+- **Doctrines** are cards held for the whole game, and they take no chair. 98 are
+  live and all are dealt: Dominion 13, Expansionist 24, Commerce 14, Scientific 15,
+  Magisterial 16 and Devotion 16. Adopting a government offers Doctrines of its
+  tier, one from each of the seat's two decks and a third from either (the interim
+  rule until the user rules the mix), and the seat takes one or passes. The deck
+  sheets are the rows of record, and `docs/plans/doctrine-review-2026-11-05.md` holds
+  the user's comments on them.
 - **No levels** (schema 63): a card is what its row prints, held once. A draft
   is take one or pass — `skipOrderOffer` spends the hand, raises `orderSkips`
   (absolute; zeroed by a pick), and each banked skip adds `skipPity` to the

@@ -94,12 +94,14 @@ import {
   readRoutes,
 } from '../sim/readings';
 import {
+  emptyCityYields,
   explainFoodCarried,
   foodAlongRoute,
   growthSurplus,
   growthThreshold,
   turnsToFill,
 } from '../sim/cities';
+import { explainEmpireIncomeShares } from '../sim/yields/empire';
 import { foldCity } from '../sim/yields/town';
 import { cardSurplusCarrier } from '../sim/statecraft';
 import { connectedCities } from '../sim/roads';
@@ -276,6 +278,10 @@ export interface TradeLedger {
  * the one voice every source here shares: a route's food and hammers land in
  * one town's own basket and are quoted on the route's line, and adding them to
  * an empire-wide figure would be summing two different things.
+ *
+ * A card that takes a share of the income (The Contented City, batch DT20) adds one
+ * line last. It reads the routes and the income lines, and leaves the bills whole, so
+ * the total is what the sheet's lines fold to and what the treasury receives from them.
  */
 export function tradeLedger(
   state: GameState,
@@ -305,6 +311,17 @@ export function tradeLedger(
   let total = 0;
   for (const route of routes) total += route.gold;
   for (const line of empire) total += line.gold;
+  let income = 0;
+  for (const route of routes) income += route.gold;
+  for (const line of empire) if (line.kind === 'income') income += line.gold;
+  for (const share of explainEmpireIncomeShares(state, playerId, { ...emptyCityYields(), gold: income })) {
+    lines.push({
+      source: share.source,
+      gold: share.gold,
+      figures: `${signedFigure(share.gold)}${YIELD_GLYPH.gold}`,
+    });
+    total += share.gold;
+  }
   const slots = explainRouteSlots(state, playerId).reduce((sum, line) => sum + line.slots, 0);
   const used = usedRouteSlots(state, playerId);
   return { lines, total, used, slots, chip: `${figure(used)} / ${figure(slots)}` };

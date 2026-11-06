@@ -549,7 +549,9 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   an index. Adopting a government re-seats the council: a card keeps its chair if that chair still fits it, the rest move to free chairs that fit, and a card that fits nowhere returns to the collection with its progress. Seals are absolute turns.
   - **Chairs a Doctrine opens** (batch DT9): `applyChooseDoctrine` calls
     `refitSlots`, so a `slotRider` Doctrine (The Council of Ten) adds its Wildcard
-    chairs at once and moves no card.
+    chairs at once and moves no card. A government's offer card and the bots'
+    `adoptionTable` read the chairs the adoption would lay out (`chairLayoutUnder`),
+    so they count what the seat's own law adds or closes.
   - **A chair that counts twice** (batch DT9, The Arthashastra): a `slotPosition`
     row with `whole: true`. `position: -1` is the last chair of the flavour that no
     malice holds, so the chair moves when another chair opens or a malice takes it.
@@ -596,31 +598,35 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   draft count alone opens a tier; the research age plays no part since
   2026-10-17 (`docs/flags.md` (eeeeeee), `currentBandOf`). Chairs by tier are the
   doc's Governments table, sync-tested.
-- **Doctrines** (batch C3, `docs/orders-and-doctrines.md` "Doctrines"):
-  adopting a government opens a Doctrine offer of its tier. Tier 4 offers the
-  Tier I Doctrines, 10 Tier II, 18 Tier III and 26 Tier IV
-  (`governmentTierForDoctrineBand`). The offer is one Doctrine from each of the
-  seat's two decks, then a third from either (`drawDoctrineOffer`; interim until
-  the user rules the mix), never one already held; an empty bag opens nothing.
-  A row may carry a gate on the offer (batch DT5): `needsTendedWork` asks for a
-  tended-work charter (`holdsTendedUnlock`), and `needsReligion` asks for a
-  religion held when the offer opens (`heldReligions`, so a captured holy city
-  counts). `doctrineBagFor` reads both, so the offer, `doctrineOfferCanOpen` and
-  the bots agree. The gate binds the offer only, and the Compendium prints a
-  "Needs" row off the field. A redraw is refused when a gate has emptied the bag
-  (`rerollError`), because a seat can lose its holy city while an offer waits.
-  The seat takes one (`chooseDoctrine`) or passes (`skipDoctrineOffer`), and a
-  waiting offer must be answered before another adoption. A Doctrine is held
-  for the whole game, takes no chair, and is `liveEffects`' second source. Rows
-  live in the deck files' `doctrines` maps with `decks` and `band` (the sheet
-  tier); the pre-rework rows in `data/statecraft.json` stay retired. The reward
-  hands D1a banked at draft counts 4, 18 and 29 were removed in the same batch
-  (schema 131). Since Magisterial batch MG7 an adoption is also a moment the
-  cards pay on (`governmentAdopted`, paid by `payOccasionRiders` after the
-  re-seating and the Triumph, before the Doctrine draw), and a Doctrine offer
-  outside an adoption (a wonder's grant, a commission's reward) opens through
-  one helper, `openDoctrineOffer` (`cities.ts`), at the current government's
-  tier.
+- **Doctrines** (`docs/orders-and-doctrines.md` "Doctrines"): cards held for the
+  whole game. A Doctrine takes no chair and is `liveEffects`' second source. 98 are
+  live and all are dealt: Dominion 13, Expansionist 24, Commerce 14, Scientific 15,
+  Magisterial 16 and Devotion 16. The rows live in the deck files' `doctrines` maps
+  with `decks` and `band` (the sheet tier). The pre-rework rows in
+  `data/statecraft.json` stay retired. Each deck's sheet lists its rows, and
+  `expectSheetDoctrinesMatchData` (`test/sim/decks/sortedSheets.ts`) fails on a live
+  row that is off the sheet or a sheet row with no live row.
+  - **The offer:** adopting a government opens a Doctrine offer of its tier. Tier 4
+    offers the Tier I Doctrines, 10 Tier II, 18 Tier III and 26 Tier IV
+    (`governmentTierForDoctrineBand`). The offer is one Doctrine from each of the
+    seat's two decks, then a third from either (`drawDoctrineOffer`; interim until
+    the user rules the mix), never one already held. An empty bag opens nothing. An
+    adoption brings only this offer, with no reward hand of Orders.
+  - **Gates:** a row may carry a gate on the offer. `needsTendedWork` asks for a
+    tended-work charter (`holdsTendedUnlock`), and `needsReligion` asks for a
+    religion held when the offer opens (`heldReligions`, so a captured holy city
+    counts). `doctrineBagFor` reads both, so the offer, `doctrineOfferCanOpen` and
+    the bots agree. The gate binds the offer only, and the Compendium prints a
+    "Needs" row off the field. A redraw is refused when a gate has emptied the bag
+    (`rerollError`), because a seat can lose its holy city while an offer waits.
+  - **The answer:** the seat takes one (`chooseDoctrine`) or passes
+    (`skipDoctrineOffer`), and a waiting offer must be answered before another
+    adoption.
+  - **Moments and other offers:** an adoption is also a moment the cards pay on
+    (`governmentAdopted`, paid by `payOccasionRiders` after the re-seating and the
+    Triumph, before the Doctrine draw). A Doctrine offer outside an adoption (a
+    wonder's grant, a commission's reward) opens through one helper,
+    `openDoctrineOffer` (`cities.ts`), at the current government's tier.
 - **`statecraft/evaluator.ts` is the ONLY module switching on `CardEffect.kind`.**
   A new card is a JSON row; a new *shape* is a design decision, and a shape
   declared but never read fails a register test. The eight ways to pay a voice
@@ -749,8 +755,8 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   - **Double Time** (`turnEffectRepeats`): an Order's periodic boons, musters,
     drills and harvests happen twice; a Doctrine's do not (the user's ruling of
     2026-10-16). It is dealt in bands 2 and 3 (`OrderDef.lastBand`).
-- **The last eight Dominion Doctrines** (Dominion batch D8). All sixteen of the
-  sheet's Doctrines are now in the data.
+- **Shapes that came with Dominion's Doctrines.** `healWithin`, `rankWithin` and
+  `noFounding` still work, but no dealt row uses them now.
   - A grant can heal every unit within some hexes of the moment's hex
     (`healWithin`) and raise each fighting unit one rank (`rankWithin`,
     through `raiseToRank`; an Elite gains nothing, and the rank pays
@@ -1338,8 +1344,8 @@ Eight root pages, all named in `vite.config.ts` inputs:
 | `city-screen.md` · `pamphlet.md` | two shipped specs of record, each with a tail still open |
 | `art-pass.md` · `splash-art.md` | art direction: a live backlog and the standing refusals |
 | `playtest_notes.md` | the user's running playtest diary |
-| `decks/` | the six decks: `deck-design.md` (the goals, the rules and the dated rulings) and one sheet per deck, the spec of record for its cards. Every card of all six is built on branch `decks` (2026-10-26), so each sheet row says `implemented`, or `modify` with the reason. `common.md` is the user's proposal of 2026-10-12 for the cards that belong to no deck; the game still deals the older 13. The card-design skill (`.claude/skills/card-design/`) reads them |
-| `plans/` | work in progress: the tutorial plan (`tutorial.md`, with `tutorial-research.md`), the interface rework (`hud-ux-decisions.md`, `hud-empire-panel-spec.md`, the city and faith screen plans), the deck measurements and research, each deck's themes pass (`<deck>-themes.md`), build plan with "Built" notes (`<deck>-themes-triage.md`, Scientific's `scientific-build-triage.md`) and proposed Doctrines (`<deck>-doctrines.md`), the tidy-up after the builds (`tidy-2026-10-26.md`), and the plans the code still cites |
+| `decks/` | the six decks: `deck-design.md` (the goals, the rules and the dated rulings) and one sheet per deck, the spec of record for its cards. Every card of all six is built on branch `decks` (2026-10-26), so each sheet row says `implemented`, or `modify` with the reason. Every Doctrine on a sheet is built and dealt too. `common.md` is the user's proposal of 2026-10-12 for the cards that belong to no deck; the game still deals the older 13. The card-design skill (`.claude/skills/card-design/`) reads them |
+| `plans/` | work in progress: the tutorial plan (`tutorial.md`, with `tutorial-research.md`), the interface rework (`hud-ux-decisions.md`, `hud-empire-panel-spec.md`, the city and faith screen plans), the deck measurements and research, each deck's themes pass (`<deck>-themes.md`), build plan with "Built" notes (`<deck>-themes-triage.md`, Scientific's `scientific-build-triage.md`) and first proposal for its Doctrines (`<deck>-doctrines.md`), the Doctrine build plan (`doctrines-build-triage.md`), the tidy-up after the builds (`tidy-2026-10-26.md`), and the plans the code still cites |
 
 **The drawers** — open only for the *why*:
 

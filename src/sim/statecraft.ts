@@ -327,6 +327,7 @@ export {
   bandTierOf,
   cardRouteSlots,
   chairCount,
+  chairLayoutUnder,
   // Magisterial batch MG12: the fit a seat's council grants.
   chairFitFor,
   chairFitWithout,

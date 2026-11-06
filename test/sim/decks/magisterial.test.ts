@@ -820,9 +820,7 @@ describe('the Magisterial deck: the sheet of record', () => {
   });
 
   it('holds the Doctrine rows to the sheet’s four tables', () => {
-    // A sheet row with no data row passes until batch DT20, so the tables can carry
-    // all 16 while the batches fill them. What each row does is checked in
-    // `magisterialDoctrines.test.ts`.
+    // What each row does is checked in `magisterialDoctrines.test.ts`.
     expect(sheetDoctrines('magisterial').length).toBe(16);
     expect(
       [1, 2, 3, 4].map((band) => sheetDoctrines('magisterial').filter((row) => row.band === band).length),

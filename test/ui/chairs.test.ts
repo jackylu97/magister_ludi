@@ -20,9 +20,10 @@ import { describe, expect, it } from 'vitest';
 import type { Command } from '../../src/sim/commands';
 import { dispatch } from '../../src/sim/game';
 import { bumpRevision, playerById } from '../../src/sim/state';
-import { type SlottedOrder, slotTypesOf } from '../../src/sim/statecraft';
+import { type SlottedOrder, chairLayoutUnder, slotTypesOf } from '../../src/sim/statecraft';
 import {
   type CardTypeReading,
+  type DoctrineId,
   GOVERNMENT_IDS,
   ORDER_IDS,
   type OrderId,
@@ -80,6 +81,32 @@ describe('a government’s chairs in words', () => {
       if (governmentDef(id).retired === true) continue;
       const total = offerChairsOf(id).reduce((sum, entry) => sum + entry.count, 0);
       expect(total, id).toBe(slotCount(id));
+    }
+  });
+
+  it('counts the Doctrines’ chairs on a government’s offer, as the adoption lays them out', () => {
+    // Under no Doctrine, the row's own mix. War Chief has 2, 1, 1 and 1.
+    const plain = game();
+    expect(chairLayoutUnder(plain.state, 0, 'warChief')).toEqual(slotLayout('warChief'));
+    expect(offerChairsOf('warChief', chairLayoutUnder(plain.state, 0, 'warChief'))).toEqual(
+      offerChairsOf('warChief'),
+    );
+    // The figures on the card, and the council the real command builds.
+    for (const [doctrine, chairs, words] of [
+      ['theCouncilOfTen', 7, '2 Military · 1 Economic · 1 Civic · 3 Wildcard'],
+      ['scutage', 4, '2 Military · 1 Economic · 1 Civic'],
+    ] as const) {
+      const g = game();
+      const sc = playerById(g.state, 0)!.statecraft;
+      sc.doctrines.push(doctrine as DoctrineId);
+      bumpRevision(g.state);
+      const layout = chairLayoutUnder(g.state, 0, 'warChief');
+      expect(layout, doctrine).toHaveLength(chairs);
+      expect(chairMixWords(chairMixOfLayout(layout)), doctrine).toBe(words);
+      expect(offerChairsOf('warChief', layout).reduce((sum, entry) => sum + entry.count, 0), doctrine).toBe(chairs);
+      sc.pendingGovernment = { tier: 4, options: ['warChief'] };
+      expect(dispatch(g, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 }).ok, doctrine).toBe(true);
+      expect(slotTypesOf(playerById(g.state, 0)!.statecraft), doctrine).toEqual(layout);
     }
   });
 
@@ -219,7 +246,8 @@ describe('the government card and the adoption, read off the source', () => {
 
   it('shows a government’s chairs where its emblem was', () => {
     const face = braceBody(MAIN, 'function governmentFace(');
-    expect(face).toContain('chairs: offerChairsOf(id)');
+    expect(face).toContain('chairs: offerChairsOf(id, chairLayoutUnder(game.state, seat, id))');
+    expect(braceBody(MAIN, 'function slotWords(')).toContain('chairLayoutUnder(game.state, seat, id).length');
     expect(face).not.toContain('emblem');
     const offer = uiSource('offerCard.ts');
     expect(offer).toContain('button.append(offerChairsNode(option.chairs));');

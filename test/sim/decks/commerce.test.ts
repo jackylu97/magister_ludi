@@ -884,8 +884,6 @@ function checkAgainstRow(card: SheetCard, id: OrderId): void {
 
 describe('the Commerce deck: the sheet of record', () => {
   it('holds the Doctrine rows to the sheet’s four tables', () => {
-    // A sheet row with no data row passes until batch DT20, so the tables can
-    // carry all 14 while the batches fill them.
     expect(sheetDoctrines('commerce').length).toBe(14);
     expect(
       [1, 2, 3, 4].map((band) => sheetDoctrines('commerce').filter((row) => row.band === band).length),

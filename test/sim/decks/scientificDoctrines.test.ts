@@ -1045,6 +1045,7 @@ describe('The Külliye (batch DT6)', () => {
     );
     expect(doctrineDef('theKulliye').note).toMatch(/Magnum Opus or its works/);
     expect(doctrineDef('theKulliye').note).toContain('such as the Bourse, pays once however many copies stand');
+    expect(doctrineDef('theKulliye').note).toContain("The Imperial Throne's authority is the exception: each copy adds its own.");
   });
 
   it('pays each copy of a town building in its own town', () => {

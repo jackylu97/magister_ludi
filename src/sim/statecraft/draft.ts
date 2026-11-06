@@ -1005,6 +1005,22 @@ export function chairCount(state: GameState, playerId: number, government: Gover
   return Math.max(typedChairsOf(government), chairs);
 }
 
+/**
+ * **The chairs this seat would sit under a government it has not adopted**: that
+ * government's layout, with the Wildcard chairs this seat's law adds on the end and
+ * the ones its law closes off the end (batch DT20). This is what `adoptGovernmentAt`
+ * would build, so an offer card and a bot pricing an offer read the council the
+ * adoption really lays out. `slotTypesOf` answers the same question for the
+ * government a seat already has, off its array.
+ */
+export function chairLayoutUnder(state: GameState, playerId: number, government: GovernmentId): ChairType[] {
+  const want = chairCount(state, playerId, government);
+  const layout = slotLayout(government);
+  while (layout.length < want) layout.push('wildcard');
+  layout.length = want;
+  return layout;
+}
+
 /** How many of a government's chairs are Military, Economic or Civic. */
 function typedChairsOf(government: GovernmentId): number {
   const spread = slotSpread(government);

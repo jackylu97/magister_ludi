@@ -58,6 +58,7 @@ The user, after reading the six builds passes: *"each deck feels a bit one note,
   - The user said yes to the deploy: `main` and `deck-themes` are both at this build, and the play server runs it.
   - **Next:** the user's playtest.
 - **The Doctrine review (2026-11-05):** the user read every Doctrine on the review page, left 41 comments and said to implement. `docs/plans/doctrine-review-2026-11-05.md` is the spec, with the user's three answers on The Arthashastra, Human Sacrifice and The Turnpike Trusts. After it, 98 Doctrines stand: Dominion's 13 are live, and the other five decks' 85 get built by `docs/plans/doctrines-build-triage.md`.
+  - **The build is done on `decks` (2026-11-06, schema 226).** All 98 Doctrines are dealt, and each sheet row has a live data row. `docs/plans/doctrines-build-triage.md` holds the batches DT1 to DT20, the readings check and the follow-ups. Nothing since `2a73a7e5` is pushed. The push gate and the re-recorded `aiDigest` digests come before any push.
   - **Next:** the user's playtest decides what changes. The user keeps playtest notes on the review page, where every Order has a row. Deck size (Dominion 129 cards, Expansionist 113, against a target of 45 to 55) waits for the playtest.
 
 **(ddddddd) Draft pacing after the rung fix: Tier IV BUILT 2026-10-17 (schema 150); choices 1 and 2 still open.**

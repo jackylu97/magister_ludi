@@ -1,8 +1,8 @@
-# Scientific Doctrines (proposal)
+# Scientific Doctrines (the proposal, now built)
 
 **Revised 2026-11-05:** your comments on the review page changed this list (`docs/plans/doctrine-review-2026-11-05.md`). The tier tables show the current text. Removed Doctrines have left the tables. The notes, checks and counts below a table describe the first proposal. The build plan is `docs/plans/doctrines-build-triage.md`.
 
-**Status:** proposal, 2026-10-23. Nothing is built. No code, data or deck sheet changed. This is stage 6 of the deck pass (the card-design skill, "Doctrines") for Scientific. The Scientific sheet (`docs/decks/scientific.md`) still says "Doctrines: none yet".
+**Status:** built. All 15 are dealt. The sheet, `docs/decks/scientific.md`, is the spec of record for their text, and `docs/plans/doctrines-build-triage.md` gives the batch that built each one. This file is the proposal of 2026-10-23, stage 6 of the deck pass (the card-design skill, "Doctrines"), kept for its reasons and pairs.
 
 The user's request, 2026-10-23, verbatim: *"could you assign a subagent to create doctrines for commerce and scientific, update the doc when done."* The Commerce Doctrines are in `docs/plans/commerce-doctrines.md`.
 

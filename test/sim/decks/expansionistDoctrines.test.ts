@@ -47,6 +47,8 @@ import {
 import { RELIGION, type RiteId } from '../../../src/sim/religionData';
 import { RULES } from '../../../src/sim/rulesData';
 import { routeStartable } from '../../../src/sim/trade';
+import { connectionGoldPaid } from '../../../src/sim/wagers';
+import { tradeLedger } from '../../../src/ui/tradeScreen';
 import { raiseImprovement, tileIndex, tileNeighbors } from '../../../src/sim/map';
 import { markMountainAdjacency } from '../../../src/sim/mapgen';
 import {
@@ -588,6 +590,29 @@ describe('The Contented City', () => {
     expect(owed).toBeLessThan(0);
     expect(foldEmpireLines(after).gold).toBeCloseTo(income / 2 + owed, 6);
     expect(foldEmpireLines(after).gold).toBeCloseTo(foldEmpireLines(before).gold - income / 2, 6);
+  });
+
+  it('prints the halving on the trade sheet, and the sheet’s total folds its lines', () => {
+    const { state } = realm();
+    const before = tradeLedger(state, 0);
+    hold(state, 'theContentedCity');
+    const after = tradeLedger(state, 0);
+    // Stated for this board: the roads and the caravan earn 6 gold, so the line is -3.
+    const line = after.lines[after.lines.length - 1]!;
+    expect(line.source).toContain('The Contented City');
+    expect(line.gold).toBeCloseTo(-3, 6);
+    expect(after.lines).toHaveLength(before.lines.length + 1);
+    expect(after.total).toBeCloseTo(before.total - 3, 6);
+    expect(after.total).toBeCloseTo(after.lines.reduce((sum, one) => sum + one.gold, 0), 6);
+  });
+
+  it('counts half of the roads’ gold toward The King’s Roads', () => {
+    const { state } = realm();
+    const roads = explainEmpireLines(state, 0).find((one) => one.source.startsWith('City connections'))!.gold;
+    expect(roads).toBeGreaterThan(0);
+    expect(connectionGoldPaid(state, 0)).toBeCloseTo(roads, 6);
+    hold(state, 'theContentedCity');
+    expect(connectionGoldPaid(state, 0)).toBeCloseTo(roads / 2, 6);
   });
 
   it('halves a card’s empire gold, and no other voice', () => {

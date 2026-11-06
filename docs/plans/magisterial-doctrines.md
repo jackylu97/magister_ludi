@@ -1,8 +1,8 @@
-# Magisterial Doctrines (proposal)
+# Magisterial Doctrines (the proposal, now built)
 
 **Revised 2026-11-05:** your comments on the review page changed this list (`docs/plans/doctrine-review-2026-11-05.md`). The tier tables show the current text. Removed Doctrines have left the tables. The notes, checks and counts below a table describe the first proposal. The build plan is `docs/plans/doctrines-build-triage.md`.
 
-**Status:** proposal, 2026-10-25. Nothing is built. No code, data or deck sheet changed. This is stage 6 of the deck pass (the card-design skill, "Doctrines") for Magisterial. The build plan (`docs/plans/magisterial-themes-triage.md`, written at the same time) does not include them; they join it after your pass.
+**Status:** built. All 16 are dealt. The sheet, `docs/decks/magisterial.md`, is the spec of record for their text, and `docs/plans/doctrines-build-triage.md` gives the batch that built each one. This file is the proposal of 2026-10-25, stage 6 of the deck pass (the card-design skill, "Doctrines"), kept for its reasons and pairs.
 
 The user's request, 2026-10-25, verbatim: *"Please do a pass on the doctrines for the remaining decks"*. Devotion and Magisterial had no Doctrines. Devotion's were written at the same time, in `docs/plans/devotion-doctrines.md`.
 

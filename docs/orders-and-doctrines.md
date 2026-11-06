@@ -43,7 +43,11 @@ structure paragraphs are sync-tested where they state a number):
   uniformly within it. Every position excludes the held and the hand; an empty category falls
   back to the eligible union; fewer eligible cards deal a smaller hand; a rider's extra cards
   come after the base hand from the union. Passing moves `skipPity` points out of common into
-  uncommon and rare for the next hand; taking a card zeroes it. The faith reroll keeps the
+  uncommon and rare for the next hand; taking a card zeroes it. Two Doctrines change the draw.
+  The Hospitium fills the third position from a deck the seat does not hold, or from the
+  eligible union if those decks have nothing left; a rainbow seat keeps its ordinary third
+  card. The Jinshi doubles the rare rung's points after the pass has moved them, before the
+  odds are renormalised, and it reaches The Hospitium's third card. The faith reroll keeps the
   hand's positions. An exhausted pool charges nothing: the meter stays full and no draft is
   counted until there is a card to deal.
 - **No reward hands.** D1a banked a rare-only hand at draft counts 4, 18 and 29. Batch C3

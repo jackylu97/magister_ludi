@@ -67,7 +67,7 @@ import { explainEmpireGold } from './empireGold';
 import { foldLedgerClass, ledgerBagOfCity, ledgerBagOfEmpire } from './ledgerFold';
 import { authorityOf, happinessOf } from './meters';
 import { readEmpire } from './readings';
-import { type MaliceSeating, shedMalices, takeMalice } from './statecraft';
+import { type MaliceSeating, cardEmpireIncomeShares, shedMalices, takeMalice } from './statecraft';
 import { nextInt } from './rng';
 import {
   type GameState,
@@ -209,6 +209,26 @@ export function wagerCount(state: GameState, playerId: number, count: WagerCount
 }
 
 /**
+ * **What the roads pay this seat in a turn**: the connections line, less the share a
+ * card takes of the empire's gold income (batch DT20, The Contented City), so The
+ * King's Roads counts the gold the treasury receives. Never below nought: a connection
+ * is never a cost, and a realm with none has not gone backwards on this reading.
+ *
+ * Shared with the bots' forecast (`flowRates` in `ai/wager.ts`), so the two agree.
+ */
+export function connectionGoldPaid(state: GameState, playerId: number): number {
+  let connections = 0;
+  for (const line of explainEmpireGold(state, playerId)) {
+    if (line.source.split(' · ')[0] === 'City connections') connections += line.gold;
+  }
+  let percent = 0;
+  for (const share of cardEmpireIncomeShares(state, playerId)) {
+    if (share.yield === 'gold') percent += share.percent;
+  }
+  return Math.max(0, (connections * (100 + percent)) / 100);
+}
+
+/**
  * **One turn's figure for every kept reading**, taken in one pass.
  *
  * One pass rather than twelve calls, because six of the twelve are classes of
@@ -230,11 +250,6 @@ function turnReadings(state: GameState, playerId: number): Partial<Record<WagerC
   const seat = capitalCityOf(state, playerId);
   const totals = readEmpire(state, playerId).totals;
 
-  let connections = 0;
-  for (const line of explainEmpireGold(state, playerId)) {
-    if (line.source.split(' · ')[0] === 'City connections') connections += line.gold;
-  }
-
   return {
     capitalTileYields: seat ? foldLedgerClass(ledgerBagOfCity(state, seat), 'tiles') : 0,
     tradeYields: foldLedgerClass(bag, 'trade'),
@@ -242,9 +257,7 @@ function turnReadings(state: GameState, playerId: number): Partial<Record<WagerC
     peopleYields: foldLedgerClass(bag, 'people'),
     wonderYields: foldLedgerClass(bag, 'wonders'),
     deckYields: foldLedgerClass(bag, 'deck'),
-    // Only what the roads *pay*: a connection is never a cost, and a realm with
-    // none has not gone backwards on this reading.
-    connectionGold: Math.max(0, connections),
+    connectionGold: connectionGoldPaid(state, playerId),
     science: totals.science,
     culture: totals.culture,
     gold: totals.gold,

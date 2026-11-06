@@ -845,9 +845,7 @@ function checkAgainstRow(card: SheetCard, id: OrderId): void {
 
 describe('the Devotion deck: the sheet of record', () => {
   it('holds the Doctrine rows to the sheet’s four tables', () => {
-    // A sheet row with no data row passes until batch DT20, so the tables can carry
-    // all 16 while the batches fill them. What each row does is checked in
-    // `devotionDoctrines.test.ts`.
+    // What each row does is checked in `devotionDoctrines.test.ts`.
     expect(sheetDoctrines('devotion').length).toBe(16);
     expect(
       [1, 2, 3, 4].map((band) => sheetDoctrines('devotion').filter((row) => row.band === band).length),

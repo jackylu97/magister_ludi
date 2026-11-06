@@ -304,8 +304,8 @@ describe('every draft deals a tarot face', () => {
     // A government's card shows its chairs where an emblem would be (batch
     // C2b), and the chairs count as a card from a deck too, so the charter
     // triple is still dealt.
-    expect(offerSource('showStatecraftOffer')).toContain('...governmentFace(id)');
-    expect(offerSource('governmentFace')).toContain('chairs: offerChairsOf(id)');
+    expect(offerSource('showStatecraftOffer')).toContain('...governmentFace(seat, id)');
+    expect(offerSource('governmentFace')).toContain('chairs: offerChairsOf(id, chairLayoutUnder(game.state, seat, id))');
     expect(offerSource('governmentFace')).not.toContain('emblem:');
     expect(OFFER_CARD).toContain('option.chairs !== undefined');
     // A deck's Doctrine wears its deck's suit and ink (batch C3,

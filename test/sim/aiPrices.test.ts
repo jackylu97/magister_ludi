@@ -39,6 +39,7 @@ import {
   refreshCityDerived,
 } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
+import { explainEmpireGold } from '../../src/sim/empireGold';
 import { improvementYield } from '../../src/sim/improvementData';
 import { levyHammers } from '../../src/sim/levies';
 import {
@@ -52,6 +53,7 @@ import {
   tileIndex,
 } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
+import { layRoad } from '../../src/sim/roads';
 import {
   type City,
   type GameState,
@@ -700,6 +702,24 @@ function foreignTown(state: GameState, col: number, population: number): City {
   bumpRevision(state);
   return town;
 }
+
+describe('a share of the roads’ gold under The Contented City', () => {
+  it('prices what the row adds at the half the treasury receives', () => {
+    const { state, player } = board([6, 6]);
+    for (let col = 3; col <= 10; col++) layRoad(at(state.map, col, 5), 0);
+    bumpRevision(state);
+    const row = { kind: 'effectAmplifier', target: 'connectionYields', percent: 100 } as CardEffect;
+    const whole = valueContext(state, player);
+    const roads = explainEmpireGold(state, 0).find((line) => line.source.startsWith('City connections'))!.gold;
+    expect(roads).toBeGreaterThan(0);
+    // The row doubles the roads' gold, so it adds their whole figure.
+    expect(ownPrice(row, whole)).toBeCloseTo(roads * voiceWeight(whole, 'gold'), 6);
+    player.statecraft.doctrines.push('theContentedCity' as DoctrineId);
+    bumpRevision(state);
+    const halved = valueContext(state, player);
+    expect(ownPrice(row, halved)).toBeCloseTo((roads / 2) * voiceWeight(halved, 'gold'), 6);
+  });
+});
 
 describe('The Apostolic Camera', () => {
   const CARD = 'theApostolicCamera' as DoctrineId;

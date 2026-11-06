@@ -90,7 +90,6 @@ import {
 } from './value';
 
 import { capitalCityOf } from '../sim/cities';
-import { explainEmpireGold } from '../sim/empireGold';
 import { foldLedgerClass, ledgerBagOfCity, ledgerBagOfEmpire } from '../sim/ledgerFold';
 import { MALICE_IDS, maliceDef } from '../sim/maliceData';
 import { happinessOf } from '../sim/meters';
@@ -105,6 +104,7 @@ import {
 } from '../sim/wagerData';
 import {
   chooseWagerError,
+  connectionGoldPaid,
   openWagerDeal,
   wagerClaimedBy,
   wagerCount,
@@ -243,11 +243,6 @@ function flowRates(state: GameState, playerId: number): Partial<Record<WagerCoun
   const seat = capitalCityOf(state, playerId);
   const rates = foldEmpireRates(state, playerId);
 
-  let connections = 0;
-  for (const line of explainEmpireGold(state, playerId)) {
-    if (line.source.split(' · ')[0] === 'City connections') connections += line.gold;
-  }
-
   const food = rates.foodPerTurn ?? 0;
   const production = rates.productionPerTurn ?? 0;
   const gold = rates.goldPerTurn ?? 0;
@@ -262,7 +257,7 @@ function flowRates(state: GameState, playerId: number): Partial<Record<WagerCoun
     peopleYields: foldLedgerClass(bag, 'people'),
     wonderYields: foldLedgerClass(bag, 'wonders'),
     deckYields: foldLedgerClass(bag, 'deck'),
-    connectionGold: Math.max(0, connections),
+    connectionGold: connectionGoldPaid(state, playerId),
     science,
     culture,
     gold,

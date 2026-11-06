@@ -36,8 +36,8 @@
  *   · **a Doctrine with a data row matches its sheet row** (batch C3): its
  *     name, its tier and its text, and the government tier the sheet says
  *     offers it, through `expectSheetDoctrinesMatchData` (`sortedSheets.ts`),
- *     which all six decks share since batch DT1. Dominion's table is fully
- *     built, so here a sheet row with no data row fails too.
+ *     which all six decks share since batch DT1. A sheet row with no live data
+ *     row fails too, since batch DT20.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -545,9 +545,18 @@ describe('the Dominion deck — its Doctrines', () => {
     for (const deck of SORTED_DECKS) expectSheetDoctrinesMatchData(deck);
   });
 
+  it('lists exactly the live rows on all six sheets, 98 in all', () => {
+    let all = 0;
+    for (const deck of SORTED_DECKS) {
+      const live = DECK_FILE_DOCTRINES[deck].filter((id) => doctrineDef(id).retired !== true);
+      const names = sheetDoctrines(deck).map((row) => row.name).sort();
+      expect(names, deck).toEqual(live.map((id) => doctrineDef(id).name).sort());
+      all += names.length;
+    }
+    expect(all).toBe(98);
+  });
+
   it('builds the whole table: every sheet row has a data row, and the counts match', () => {
-    // Dominion is the one deck with its whole table built (batch DT1), so its
-    // sheet is strict already. The other five wait for batch DT20.
     const live = DECK_FILE_DOCTRINES.dominion.filter((id) => doctrineDef(id).retired !== true);
     expect(SHEET.map((row) => row.name).sort()).toEqual(live.map((id) => doctrineDef(id).name).sort());
     // The last column of the counts table.

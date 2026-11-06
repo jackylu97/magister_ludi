@@ -76,7 +76,7 @@ import { unitDef } from '../../src/sim/unitData';
 import { cityBaseStrength, cityMaxHp, previewCombat } from '../../src/sim/combat';
 import { buildingCityHp, buildingCityStat, foldBuildingCityStat } from '../../src/sim/buildingEffects';
 import { wrappedDistance, tileHex } from '../../src/sim/map';
-import { slotLayout } from '../../src/sim/statecraftData';
+import { type DoctrineId, slotLayout } from '../../src/sim/statecraftData';
 import { chairMisfitRefusal } from '../../src/sim/statecraft';
 import { closeWar, openWar, setPeaceOffer } from '../../src/sim/wars';
 import { newGame } from './newGameHelpers';
@@ -1028,6 +1028,27 @@ describe('slotting is scored rather than first-fit', () => {
     const scored = decision!.candidates.filter((row) => row.rejected === undefined);
     expect(Math.max(...scored.map((row) => row.score))).toBe(chosen.score);
     expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+
+  it('prices the chairs its Doctrines add or close, not only the charter’s own', () => {
+    // War Chief lays out 5 chairs, The Council of Ten adds 2 and Scutage closes 1.
+    for (const [doctrine, chairs] of [
+      [null, 5],
+      ['theCouncilOfTen', 7],
+      ['scutage', 4],
+    ] as const) {
+      const state = holding();
+      const sc = seat(state, 0).statecraft;
+      if (doctrine !== null) sc.doctrines.push(doctrine as DoctrineId);
+      sc.pendingGovernment = { tier: 4, options: ['warChief'] };
+      bumpRevision(state);
+      const decision = nextBotDecision(state, 0);
+      expect(decision?.command.type, String(doctrine)).toBe('adoptGovernment');
+      const row = decision!.candidates[0]!;
+      const seats = row.terms.find((term) => term.label.includes('slot(s) would pay'))!;
+      expect(seats.label, String(doctrine)).toContain(`its ${chairs} slot(s)`);
+      expect(seats.parts, String(doctrine)).toHaveLength(chairs);
+    }
   });
 
   it('compares a charter’s faces instead of taking the first', () => {

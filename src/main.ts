@@ -202,6 +202,7 @@ import { CARD_LINE_NAME, cardLineMarkUrl, lineOf } from './ui/cardLine';
 import {
   type OfferKind,
   cardRareWeight,
+  chairLayoutUnder,
   describeCard,
   explainOfferSize,
   rarityDrawWeight,
@@ -213,7 +214,6 @@ import {
   doctrineDef,
   governmentDef,
   orderDef,
-  slotCount,
 } from './sim/statecraftData';
 import { doctrineFaceOf, orderPayoff, orderSuitBadges, orderSuitFace } from './ui/deckBadges';
 import { createTurnSplash, techSplashReading } from './ui/turnSplash';
@@ -3405,12 +3405,12 @@ async function boot(initial: Game | null): Promise<void> {
           weight: 'heavy',
           options: offer.options.map((id) => ({
             title: governmentDef(id).name,
-            payoff: slotWords(id),
+            payoff: slotWords(seat, id),
             note: describeCard(id).map((clause) => clause.text).join(' · ') || 'No signature',
             flavor: governmentDef(id).flavor,
             // A government joins no archetype thread, so the middle of its
             // card shows its chairs instead. See `governmentFace`.
-            ...governmentFace(id),
+            ...governmentFace(seat, id),
             // The charter's stamp carries the **re-seating**: adoption lays
             // the new chairs out and re-seats the cards that fit them (batch
             // C2, `reseatCouncil`), so the figure is the new law with the
@@ -3783,14 +3783,18 @@ async function boot(initial: Game | null): Promise<void> {
    * tells the three apart. The thread's accent and name stay, and its emblem
    * does not.
    */
-  function governmentFace(id: GovernmentId): Partial<OfferOption> {
+  function governmentFace(seat: number, id: GovernmentId): Partial<OfferOption> {
     const { line, lineName } = cardFace(governmentDef(id));
-    return { line, lineName, chairs: offerChairsOf(id) };
+    return { line, lineName, chairs: offerChairsOf(id, chairLayoutUnder(game.state, seat, id)) };
   }
 
-  /** A government's chairs counted: "5 chairs". The card's middle says which types. */
-  function slotWords(id: GovernmentId): string {
-    const chairs = slotCount(id);
+  /**
+   * The chairs this seat would have under a government, counted: "5 chairs". The
+   * card's middle says which types. Both count the Wildcard chairs the seat's own
+   * law adds or closes, because that is what adopting lays out (batch DT20).
+   */
+  function slotWords(seat: number, id: GovernmentId): string {
+    const chairs = chairLayoutUnder(game.state, seat, id).length;
     return `${chairs} chair${chairs === 1 ? '' : 's'}`;
   }
 

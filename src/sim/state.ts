@@ -3562,8 +3562,17 @@ import {
  * **A v224 save is refused and does not replay.** The fold of a turn changes for a
  * seat holding these rows, so the branch migrates nothing, for the reason given under
  * v119.
+ *
+ * v226 (branch `decks`; batch DT20, `docs/plans/doctrines-build-triage.md`): **The
+ * King's Roads counts the gold the treasury receives.** No field joins the state. Under
+ * The Contented City the wager's count reads the connections line after the halving
+ * (`connectionGoldPaid`), so a seat holding both gains half as fast.
+ *
+ * **A v225 save is refused and does not replay,** because a wager held under that
+ * Doctrine can now end differently. The branch migrates nothing, for the reason given
+ * under v119.
  */
-export const SCHEMA_VERSION = 225;
+export const SCHEMA_VERSION = 226;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

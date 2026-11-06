@@ -489,7 +489,7 @@ The same family as `legaciesCountTwice`.
 - `test/sim/statecraft.test.ts`: `ORDERS_USING_A_SHAPE`, and the pools if a tier changes;
 - `data/ai.json`: knobs in `score.<deck>`.
 
-**The schema rule.** One bump for each batch that changes state or rules. Every batch from DT1 to DT19 does, because a new row changes what a seat is dealt and a log no longer replays: DT1 is 206, and DT19 is 224. DT20 changes no rule and does not bump. The branch migrates nothing, as under v119.
+**The schema rule.** One bump for each batch that changes state or rules. Every batch from DT1 to DT19 does, because a new row changes what a seat is dealt and a log no longer replays: DT1 is 206, and DT19 is 224. DT20 is 226, because The King's Roads now reads the gold after The Contented City's halving, so a wager held under that Doctrine can end differently. The branch migrates nothing, as under v119.
 
 **The standing done-gate for an agent:** its own files typecheck, and `npx vitest run test/sim/doctrineOffer.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/statecraft.test.ts test/sim/decks.test.ts test/sim/decks/<deck>.test.ts test/sim/decks/<deck>Doctrines.test.ts` is green, plus the batch's own tests. The orchestrator runs the batch gate (typecheck, `npm run test`, build). `npm run test:all`, with the `aiDigest` digests moved, is the push gate.
 
@@ -753,7 +753,7 @@ Added 2026-11-06 by the orchestrator, from "The readings check". The user's answ
   - A government offer prints the chairs the seat would have: `slotWords`, `offerChairsOf` and the bots' offices add the Doctrines' riders (see Follow-ups).
 - **Measure:** a turn-100 and a game-length bot sweep, because every seat now answers Doctrine offers. Report it to the user as the usual row. Look at offers passed by bots, and at a stuck End Turn.
 - **Fence:** docs and the six deck tests, plus `src/main.ts`, `src/ai/bot.ts` and their tests for the offer's chairs, and the readers named above.
-- **Schema:** none.
+- **Schema:** 226, for The King's Roads' reader.
 
 ## Readings
 
@@ -838,8 +838,17 @@ An independent read-only agent compared every row and reading with the user's co
 
 - **Crop Rotation is still overpriced by the bots** (found by DT3). Its upside is the `percent` half of the hex arm, which uses a nominal yield: 33.6 per improved hex, whatever the work pays. A wild hex costs only 11.2. So the card stays positive on most boards. A fix would move every row with a hex `percent`, so it belongs to a bot batch that re-prices that arm.
 - **A spade with no other job walks on to a dug hex** (found by DT2). `reaskTheMarch` drops a stand-down by its clause "A stand-down never cancels a march", so a re-asked worker with truly nothing else to do keeps a route that ends on a hex another spade has improved. It is old behaviour and small. A later bot batch can drop such a route.
-- **Bots left on stand-ins.** `workMountains`, `secondAttack`, `buildsEverywhere` and `foreignTradersUnplunderable` price at `score.unknownEffect` today, as their Order versions do. DT20 lists them, and a later bot batch can price them.
-- **Government offers ignore Doctrine chairs** (found by DT11). `slotWords` and `offerChairsOf` in `src/main.ts`, and the offices in `bot.ts`, read the government's own chairs. Under The Council of Ten they understate the chairs, and under Scutage they overstate them by one. DT20 fixes this.
+- **Bots left on stand-ins** (listed by DT20). A probe read every effect of the 98 rows twice, with `score.unknownEffect` at 2 and at 1002, for each of six seats with deck choices at turns 60 and 110 (seed 77, standard map). A row is listed if its price moved. The Order versions of these shapes read the same arms. A later bot batch can price them.
+  - **The whole line is the stand-in:** The High Towns (`workMountains`), The Volley Fire (`secondAttack`), The Külliye (`buildsEverywhere`), The Muda (`foreignTradersUnplunderable`), Combined Arms (`siegeScreened`), The Consular Roads (`pacified`) and The Commanderies (`borderCulture`).
+  - **A chair is the stand-in times `nominalCount`:** The Arthashastra and The Council of Ten (`slotRider`), and Scutage's lost chair, as a cost.
+  - **A percentage of `nominalRate` (the same stand-in times `nominalCount`), and not of the seat's real figure:**
+    - `productionBonus`: The Steppe Confederacy, The Marian Reforms, The Builder Kings, The Curator of Waters, The Academy of Gondishapur, The Külliye and The Nassau Reforms.
+    - `unitCost`: The Workshops of Syracuse.
+    - `percentYields`: The Monte di Pietà, The Contented City, The Jixian Academy, The Academy of Gondishapur and The Inward Roads.
+    - A counted `pays` with a `percent`: The Fortress Empire, All Roads Lead to Rome and The Mandarinate.
+  - **Part of a grant:** a heal or an unrest in The Scourge of God's rider, the pressure in The Ribats' rider, and The House of Worship's fourth building on some boards.
+  - **Through another card's price:** The Hospitium, The Jinshi, The Arthashastra's doubled chair, The Union of Lublin, The Seven Councils and Human Sacrifice's rite. These move only as far as the cards they read carry the stand-in.
+- **Two more readers of a road's gold under The Contented City** (found by DT20). The trade card's "+N gold/t" fact (`connectionGold` in `tradeScreen.ts`) and the bots' `roadTerm` (`routes.ts`) still read a newly joined town's gold whole. Each also ignores the other shares of a road's gold, so a fix belongs with those.
 - **Bot prices still low or read at the realm's scale** (found by DT19b). These re-price many rows, so each needs a decision. `scoreWindfallRider` divides each firing by `lumpTurns` and multiplies by the rate, so a recurring gift reads about 20 times below its true flow; The Escorial, The Unveiling and The Golden Age read about 1 to 2, the `tilePurchase` and Capitulary arms have the same pattern, and a fix re-prices 40 or more rows. `stage` rows with an empire-wide count are not multiplied by towns. A Workshop's bonus and a Granary's or Aqueduct's rule still read the realm. `category: 'wonder'` and unit bonuses read every town's hammers. `unitCompletion` riders ignore `class` and `unbuildableByMet`. Hex lines in a one-town context read the realm's hexes.
 - **Bots lay no tended works** (found by DT12 and DT19b), so The Wildwood Compact and Arcadia read near nothing. A fix needs a redesign.
 - **Dead shapes.** After DT1, `healWithin`, `rankWithin`, `noFounding` and `borderFreezeExempt` have no dealt row (reading 9).
@@ -883,7 +892,7 @@ An independent read-only agent compared every row and reading with the user's co
 | DT17 | 1 | The Two Capitals | 222 |
 | DT18 | 1 | The Grand Canal | 223 |
 | DT19 | 1 | Human Sacrifice | 224 |
-| DT20 | 0 | Closing: strict sheets, docs, a bot sweep | none |
+| DT20 | 0 | Closing: strict sheets, docs, a bot sweep | 226 |
 | No work | 7 | Dominion rows with no change | |
 | **All** | **98** | | |
 
@@ -1095,3 +1104,12 @@ The `flavor` field of each row, in the deck's voice. The other eleven Dominion r
   - **Shapes:** `empireIncome` on `CardPercentYieldsEffect` (`cardEmpireIncomeShares`; `explainEmpireIncomeShares` and `foldEmpireIncome` in `yields/empire.ts`, with a new line origin `'share'`). `noMinimum` on `CardMeterRuleEffect` (`cardCityCostDiscount`). `appliedLast` on a hex `pays` row, with whole shares in two passes in `explainTileYield`. `cardProspectCityCost` takes `site`. `chairIndexAtPosition` and `orderAtSlotPosition` take a `Player`. `ghostSlotsUnderDoctrine` became `ghostCouncilUnderDoctrine`, which also seats the ghost's malices.
   - **Where the plan was wrong:** the two-sided floor would have held a coastal hill town under both Doctrines at 1, so the agent added `noMinimum`, because neither row's text prints a minimum. Reading 37's "two religions" has no case, because a seat can found only one (`foundedReligion`). No dealt row reads `hillCityCost` or `coastalCityCost` now, and both stay in the code. No dealt row uses `cityCost` with `notCapital` now.
   - **Readings:** a tribute received and a charter's rebate stay whole, because ruling oo calls them bills. A negative empire gold line from a card is halved too. A founder that loses its holy city keeps the room while it holds the card. A seat that only captured a holy city can still be dealt The Seven Councils and gains nothing, and bots price it at 0.
+- **DT20 (2026-11-06, schema 226):** built, with one schema bump the plan did not expect. The gate passed: the type check, 11,056 core tests and the build. All 98 Doctrines are in the data, and every sheet now fails on a row with no live data row.
+  - **Builds:** `expectSheetDoctrinesMatchData` is strict. The reference docs state current facts, including `docs/decks/deck-design.md` and `docs/plans/expansionist-builds.md`, which the plan did not name. `docs/orders-and-doctrines.md` has the clause for The Hospitium and The Jinshi. The Külliye's `note` names the Imperial Throne.
+  - **The Contented City's readers:** the trade sheet adds a line for the card's share (`tradeLedger`). The King's Roads and the bots' forecast share `connectionGoldPaid` (`wagers.ts`). The bots' `connectionYields` arm scales by the share.
+  - **Government offers:** `chairLayoutUnder` (`statecraft/draft.ts`) gives the chairs an adoption would lay out. `slotWords`, `offerChairsOf` and the bots' `adoptionTable` read it. A test checks 7 chairs with The Council of Ten and 4 with Scutage under War Chief, and that the real command builds the same layout.
+  - **Where the plan was wrong:** it said DT20 changes no rule. The King's Roads' count is a rule change, so this is schema 226. With the change at version 225 the `explore.test.ts` digests did not move, so the new values come only from the version number. The stand-in list had four names; a probe that read every row with `score.unknownEffect` at 2 and at 1002 found more, and Follow-ups has the measured list.
+  - **Turn 100, eight seeds, standard map, two balanced seats, barbarians on, mean seat:** cities 4.6, citizens 35.4, buildings 22.3, units 23.9, food 113.4, production 94.5, gold 44.2, science 87.3, culture 75.9, faith 16.9, treasury 231.5, techs 22.4, happiness +4.7, 293 ms per turn. The yields are `readEmpire().totals`. The row at 1f66ed9 (2026-09-09) is older than ranks, unrest, war weariness and the barbarian batch BR1, so the two rows do not measure the Doctrines. Seed 101's seat 0 holds one town for all 100 turns.
+  - **Game length, four seeds, standard map, six seats with deck choices, limit 300, cut at 13 minutes a game:** no game finished. They stopped at turns 220, 192, 143 and 148. There were no thrown errors, stuck End Turns, refused commands or warnings. Bots took 82 Doctrine offers and passed on none (133 taken of 133 across all runs). By deck: Commerce 26, Expansionist 17, Dominion 12, Magisterial 10, Scientific 9, Devotion 8. 51 of the 98 were never taken, and 15 were never offered, in a small sample.
+  - **Turn time:** about 13 s a turn from about turn 100 to 150 on, by seed, growing steadily with no single bad turn. A profile of seed 999, turns 112 to 117, read `nextBotDecision` 83%, `explainCity` 34%, `valueContext` to `foldEmpireRates` 25% (17.6% of the total through `disbandCommand` calling `netGoldPerTurn`), `techChain` 16%. Doctrine hand pricing is small: `expectedBestOrder` 6.6%, `draftPlan` 5.6%, `foreignCardWorth` 3.8%. Nothing was changed for this.
+  - **Two-seat games:** seed 42 ran 300 turns with no winner, its best seat at 6 beads of 7. Seed 999 was cut at turn 254 with seats at 10 and 6 beads and no winner; its seat 1 holds 36,939 gold.
