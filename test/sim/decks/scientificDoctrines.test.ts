@@ -8,7 +8,8 @@
  * batch adds and which The Pandidakterion needs.
  *
  * Batch DT6 adds The Peripatetic School, The Directorate of Arms and The Külliye.
- * Later batches add the deck's other four Doctrines to this file.
+ * Batch DT8 adds The Court of Rudolf II. Later batches add the deck's other three
+ * Doctrines to this file.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -59,8 +60,21 @@ import {
   doctrineDef,
   poolDoctrines,
 } from '../../../src/sim/statecraftData';
-import { buildError, explainTechCost, foldTechCost, settleResearch } from '../../../src/sim/tech';
-import { BUILDING_UNLOCK_TECH, TECH_IDS, type TechId, techDef } from '../../../src/sim/techData';
+import {
+  buildError,
+  explainTechCost,
+  foldTechCost,
+  settleResearch,
+  techChainOf,
+  turnsToTech,
+} from '../../../src/sim/tech';
+import {
+  BUILDING_UNLOCK_TECH,
+  CHARTER_TECH_IDS,
+  TECH_IDS,
+  type TechId,
+  techDef,
+} from '../../../src/sim/techData';
 import { unitDef } from '../../../src/sim/unitData';
 import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
 import { explainCity, foldCity, productionModifiers } from '../../../src/sim/yields/town';
@@ -68,7 +82,7 @@ import { at, bareState } from '../improvementHelpers';
 import { createGame } from '../newGameHelpers';
 import { lendDoctrineEffects } from '../statecraftHelpers';
 
-/** The eight rows of batch DT3 and the three of batch DT6, each with the band its table gives it. */
+/** The eight rows of batch DT3, the three of DT6 and the one of DT8, each with the band its table gives it. */
 const ROWS: readonly (readonly [string, number])[] = [
   ['thePythagoreanBrotherhood', 1],
   ['theRemovalToXianyang', 1],
@@ -81,6 +95,7 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theUniversitas', 3],
   ['theVolleyFire', 3],
   ['theKulliye', 3],
+  ['theCourtOfRudolf', 4],
 ];
 
 /** Lent rows, put back after each test, so a failed test cannot leak one into the next. */
@@ -955,5 +970,151 @@ describe('The Külliye (batch DT6)', () => {
     bumpRevision(state);
     expect(naming('Building · Imperial Throne')).toEqual(effect);
     expect(naming('Imperial Thrones ×2')[0]!.value).toBe(capacity * 2);
+  });
+});
+
+describe('The Court of Rudolf II (batch DT8)', () => {
+  const CARD = 'theCourtOfRudolf';
+  const price = (state: GameState, tech: TechId): number =>
+    foldTechCost(explainTechCost(state, seat(state), tech));
+
+  /** Takes technologies back from seat 0: a bare board starts with many already known. */
+  function unlearn(state: GameState, ...techs: TechId[]): void {
+    seat(state).techsResearched = seat(state).techsResearched.filter((tech) => !techs.includes(tech));
+    bumpRevision(state);
+  }
+
+  /** Alchemy and the fourth-age technologies that lead to it, as the chart draws them. */
+  const CHAIN: readonly string[] = [
+    'alchemy',
+    'banking',
+    'education',
+    'feudalism',
+    'machinery',
+    'militantOrders',
+    'movableType',
+    'paperMoney',
+    'physics',
+    'steel',
+    'theAstrolabe',
+    'theHolyOffice',
+    'theQadisCourt',
+    'theSilkRoad',
+  ];
+
+  it('walks the chain: Alchemy and its fourth-age parents, and no third-age row', () => {
+    const chain = techChainOf('alchemy');
+    expect(chain[0]).toBe('alchemy');
+    expect([...chain].sort()).toEqual([...CHAIN].sort());
+    for (const tech of chain) expect(techDef(tech).age, tech).toBe(4);
+    for (const parent of techDef('alchemy').prereqs) expect(chain, parent).toContain(parent);
+    // A third-age parent of a row in the chain stays out, and so does its own line.
+    expect(techDef('horology').age).toBe(3);
+    expect(techDef('machinery').prereqs).toContain('horology');
+    expect(chain).not.toContain('horology');
+    expect(chain).not.toContain('agriculture');
+  });
+
+  it('gives the same answer twice, and keeps a row of an early age to that age', () => {
+    expect(techChainOf('alchemy')).toBe(techChainOf('alchemy'));
+    expect(techChainOf('agriculture')).toEqual(['agriculture']);
+  });
+
+  it('takes 20% off every technology in the chain, as one labelled line', () => {
+    const state = bareState();
+    town(state, 5, 5);
+    const before = CHAIN.map((tech) => price(state, tech as TechId));
+    hold(state, CARD);
+    CHAIN.forEach((tech, index) => {
+      expect(price(state, tech as TechId), tech).toBe(Math.floor((before[index]! * 80) / 100));
+    });
+    const lines = explainTechCost(state, seat(state), 'alchemy');
+    expect(lines).toHaveLength(2);
+    expect(lines[1]!.source).toContain('The Court of Rudolf II');
+    expect(lines[1]!.source).toContain('-20%');
+    expect(price(state, 'alchemy')).toBe(foldTechCost(lines));
+    expect(price(state, 'alchemy')).toBe(6400);
+  });
+
+  it('adds 25% to the rest of the age, and leaves the earlier ages alone', () => {
+    const state = bareState();
+    town(state, 5, 5);
+    const prospecting = price(state, 'prospecting');
+    const horology = price(state, 'horology');
+    const agriculture = price(state, 'agriculture');
+    hold(state, CARD);
+    expect(price(state, 'prospecting')).toBe(Math.floor((prospecting * 125) / 100));
+    expect(price(state, 'horology')).toBe(horology);
+    expect(price(state, 'agriculture')).toBe(agriculture);
+  });
+
+  it('reaches every other ordinary fourth-age row with its drawback, which today is Prospecting alone', () => {
+    const state = bareState();
+    town(state, 5, 5);
+    const before = TECH_IDS.map((tech) => price(state, tech));
+    hold(state, CARD);
+    const dearer = TECH_IDS.filter((tech, index) => price(state, tech) > before[index]!);
+    expect(dearer).toEqual(['prospecting']);
+    const cheaper = TECH_IDS.filter((tech, index) => price(state, tech) < before[index]!);
+    expect([...cheaper].sort()).toEqual([...CHAIN].sort());
+  });
+
+  it('leaves every charter technology untouched, a fourth-age one included', () => {
+    const state = bareState();
+    town(state, 5, 5);
+    expect(CHARTER_TECH_IDS.some((tech) => techDef(tech).age === 4)).toBe(true);
+    const before = CHARTER_TECH_IDS.map((tech) => explainTechCost(state, seat(state), tech));
+    hold(state, CARD);
+    CHARTER_TECH_IDS.forEach((tech, index) => {
+      expect(explainTechCost(state, seat(state), tech), tech).toEqual(before[index]);
+    });
+    expect(doctrineDef(CARD as DoctrineId).note).toMatch(/charter technology/);
+  });
+
+  it('adds to another card’s percentage, and multiplies once', () => {
+    const state = bareState();
+    town(state, 5, 5);
+    const column = price(state, 'banking');
+    // A row seat 0 does not know and a met empire does: The Translation Movement's gap.
+    unlearn(state, 'banking');
+    seat(state).metSeats = [1];
+    seat(state, 1).techsResearched.push('banking');
+    slot(state, 'theTranslationMovement');
+    hold(state, CARD);
+    const lines = explainTechCost(state, seat(state), 'banking');
+    expect(lines).toHaveLength(3);
+    // 60% of the column, and not 80% of 80%.
+    expect(foldTechCost(lines)).toBe(Math.floor((column * 60) / 100));
+  });
+
+  it('is what research charges, and what the schedule reads', () => {
+    const state = bareState();
+    town(state, 5, 5);
+    const plain = price(state, 'banking');
+    const slow = turnsToTech(state, 0, 'banking', 100);
+    hold(state, CARD);
+    const cut = Math.floor((plain * 80) / 100);
+    expect(turnsToTech(state, 0, 'banking', 100)).toBeLessThan(slow!);
+    expect(complete(state, 'banking')).toBe(cut);
+    expect(seat(state).sciencePool).toBe(0);
+  });
+
+  it('prices the chain left against the rest of the age', () => {
+    const state = bareState();
+    town(state, 5, 5);
+    unlearn(state, ...(CHAIN as TechId[]), 'prospecting');
+    const [chain, rest] = doctrineDef(CARD as DoctrineId).effects as [CardEffect, CardEffect];
+    const value = (effect: CardEffect) => scoreEffects([effect], valueContext(state, seat(state)));
+    const full = value(chain);
+    expect(full).toBeGreaterThan(0);
+    expect(value(rest)).toBeLessThan(0);
+    // Research part of the chain, and less of the cut is left to save.
+    seat(state).techsResearched.push('banking', 'education');
+    bumpRevision(state);
+    expect(value(chain)).toBeLessThan(full);
+    // Research the rest of the age, and the drawback costs nothing.
+    seat(state).techsResearched.push('prospecting');
+    bumpRevision(state);
+    expect(value(rest)).toBe(0);
   });
 });

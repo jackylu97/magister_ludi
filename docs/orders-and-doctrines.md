@@ -215,6 +215,7 @@ governments, so Tier IV opened at 29.
 | The Turnpike Trusts | Commerce | III | tier 18 | Caravans cost half as much gold to buy. Hexes with a road gain +1 gold. |
 | The Sea Ban | Commerce | IV | tier 26 | Your domestic routes pay twice as much. You cannot send trade routes to other empires. |
 | The Peace of Lodi | Commerce | IV | tier 26 | While you are at peace, your trade routes pay 50% more. While you are at war, they pay 25% less. |
+| The Opera del Duomo | Commerce | IV | tier 26 | Gold you pour into the Magnum Opus buys twice as many hammers. Your towns build the Magnum Opus 25% more slowly. |
 | The Monte di Pietà | Commerce | IV | tier 26 | Every 200 gold in your treasury gives +1 happiness, at most +20. Your towns make 10% less gold. |
 | The Pythagorean Brotherhood | Scientific | I | tier 4 | +2 science in every city, doubled in cities with a Shrine. |
 | The Removal to Xianyang | Scientific | I | tier 4 | Your towns grow 30% faster. Settlers cost twice as much. |
@@ -227,6 +228,7 @@ governments, so Tier IV opened at 29.
 | The Universitas | Scientific | III | tier 18 | Science buildings in your towns of twelve or more citizens produce twice their yields. In your smaller towns they produce half. |
 | The Volley Fire | Scientific | III | tier 18 | Your archer line (Archer to Crossbowman) may attack twice a turn. Your melee units fight at −10% strength. |
 | The Külliye | Scientific | III | tier 18 | Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings. |
+| The Court of Rudolf II | Scientific | IV | tier 26 | Alchemy, and the fourth-age technologies that lead to it, cost you 20% less research. Your other fourth-age technologies cost you 25% more. |
 | The Choregia | Magisterial | I | tier 4 | Culture buildings give +3 culture and +2 renown each. |
 | The Periclean Works | Magisterial | I | tier 4 | Each wonder you hold gives +2 production in every town. |
 | The Magnaura | Magisterial | II | tier 10 | Each town gains +1 science for each Civic card you have seated. |
@@ -239,6 +241,7 @@ governments, so Tier IV opened at 29.
 | The Theoric Fund | Devotion | I | tier 4 | +1 culture for every 3 faith your empire makes. |
 | The Rites of Zhou | Devotion | I | tier 4 | Each town holding a rite gains +2 food and +2 happiness. |
 | The Paean | Devotion | I | tier 4 | Your military units gain +1 strength for every god and belief you hold. |
+| The Capitulary of Herstal | Devotion | II | tier 10 | Rites cost half as much. |
 | The Patrimony of Peter | Devotion | II | tier 10 | Your holy city's citizens demand no happiness. |
 | The Imarets | Devotion | III | tier 18 | Your devout towns grow 25% faster. |
 | Canossa | Devotion | III | tier 18 | You and an empire whose capital follows your religion cannot declare war on each other. |

@@ -6,8 +6,8 @@
  * has a test that it pays nothing where its text does not reach. The gate itself is
  * checked in `doctrineOffer.test.ts`.
  *
- * Batch DT6 adds The Paean. Batch DT7 adds Canossa. Later batches add the deck's other
- * six Doctrines to this file.
+ * Batch DT6 adds The Paean. Batch DT7 adds Canossa. Batch DT8 adds The Capitulary of
+ * Herstal. Later batches add the deck's other five Doctrines to this file.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -27,7 +27,16 @@ import { declareWarError } from '../../../src/sim/diplomacy';
 import { raiseImprovement } from '../../../src/sim/map';
 import { explainAuthority, explainFoundingCost, explainHappiness } from '../../../src/sim/meters';
 import { type PurchaseSubject, explainPurchaseCost, purchaseError } from '../../../src/sim/purchase';
-import { cityRite, empireRiteAt, performRiteAt } from '../../../src/sim/religion';
+import {
+  availableRites,
+  cityRite,
+  empireRiteAt,
+  performRiteAt,
+  riteCostAhead,
+  riteCostFor,
+  riteOfferingHammers,
+  ritesAffordable,
+} from '../../../src/sim/religion';
 import {
   BELIEF_IDS,
   ENHANCER_BELIEF_IDS,
@@ -75,6 +84,7 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theRitesOfZhou', 1],
   ['thePaean', 1],
   ['theSaintPetersIndulgence', 4],
+  ['theCapitularyOfHerstal', 2],
   ['thePatrimonyOfPeter', 2],
   ['theImarets', 3],
   ['canossa', 3],
@@ -1025,5 +1035,116 @@ describe('Canossa (batch DT7)', () => {
     town(state, 20, 5, 6, 1);
     hold(state, 'canossa');
     expect(declareWarError(state, 0, 1)).toBeNull();
+  });
+});
+
+describe('The Capitulary of Herstal (batch DT8)', () => {
+  const CARD = 'theCapitularyOfHerstal';
+
+  it('halves the price at every rung, floored once', () => {
+    const state = bareState();
+    town(state, 5, 5);
+    const rungs = [0, 1, 2, 3].map((ahead) => riteCostAhead(state, 0, ahead));
+    expect(rungs).toEqual([20, 25, 30, 35]);
+    hold(state, CARD);
+    // An odd rung loses its half: 25 is 12, and 35 is 17.
+    expect([0, 1, 2, 3].map((ahead) => riteCostAhead(state, 0, ahead))).toEqual([10, 12, 15, 17]);
+    expect(riteCostFor(state, 0)).toBe(10);
+  });
+
+  it('counts how many rites a bank pays for along the halved ladder', () => {
+    const state = bareState();
+    town(state, 5, 5);
+    expect(ritesAffordable(state, 0, 22)).toBe(1);
+    hold(state, CARD);
+    expect(ritesAffordable(state, 0, 22)).toBe(2);
+    expect(ritesAffordable(state, 0, 21)).toBe(1);
+    expect(ritesAffordable(state, 0, 9)).toBe(0);
+  });
+
+  it('charges through the reducer what the price says, and the ladder still climbs', () => {
+    const state = bareState(24, 10);
+    const city = town(state, 5, 5);
+    const player = faithful(state);
+    hold(state, CARD);
+    const before = player.faithPool;
+    const result = applyCommand(state, {
+      type: 'performRite',
+      playerId: 0,
+      cityId: city.id,
+      rite: FASTING,
+    } as Command);
+    expect(result.ok, JSON.stringify(result)).toBe(true);
+    expect(player.faithPool).toBe(before - 10);
+    expect(player.ritesStarted).toBe(1);
+    expect(riteCostFor(state, 0)).toBe(12);
+  });
+
+  it('charges a prophet’s rite over the realm once, at the halved price', () => {
+    const state = bareState(24, 10);
+    const city = town(state, 5, 5);
+    town(state, 15, 5);
+    const player = faithful(state);
+    hold(state, CARD);
+    const prophet = createUnit(state, 0, 'prophet', city.col, city.row);
+    bumpRevision(state);
+    const before = player.faithPool;
+    const done = empireRiteAt(state, player, prophet, FASTING);
+    expect(done.cities).toHaveLength(2);
+    expect(player.faithPool).toBe(before - 10);
+    // Two towns reached, two rungs climbed: 30 at half is 15.
+    expect(riteCostFor(state, 0)).toBe(15);
+  });
+
+  it('reaches a rite that acts at once, whose hammers are the faith it cost (reading 38)', () => {
+    const state = bareState();
+    town(state, 5, 5);
+    const offering = 'votiveOffering' as RiteId;
+    const whole = riteOfferingHammers(state, 0, offering);
+    expect(whole).toBeGreaterThan(0);
+    hold(state, CARD);
+    expect(riteOfferingHammers(state, 0, offering)).toBe(Math.floor(whole / 2));
+  });
+
+  it('asks nothing of a seat’s religion', () => {
+    expect(doctrineDef(CARD as DoctrineId).needsReligion).toBeUndefined();
+    const g = createGame({
+      seed: 3,
+      sizeName: 'duel',
+      players: [
+        { name: 'Ada', color: '#a00', isHuman: true, decks: ['devotion', 'dominion'] },
+        { name: 'Bors', color: '#00a', isHuman: true, decks: ['dominion', 'expansionist'] },
+      ],
+    });
+    expect(doctrineBagFor(g.state, seat(g.state), 10)).toContain(CARD);
+    expect(doctrineBagFor(g.state, seat(g.state, 1), 10)).not.toContain(CARD);
+  });
+
+  it('prices the faith a season saves, and nothing for a realm that knows no rite', () => {
+    const effects = doctrineDef(CARD as DoctrineId).effects;
+    const state = bareState(24, 10);
+    town(state, 5, 5);
+    const player = faithful(state);
+    expect(scoreEffects(effects, valueContext(state, player))).toBeGreaterThan(0);
+    // A bare board's seat knows many technologies, and rites with them. Take them back.
+    player.techsResearched = [];
+    player.charteredRites = [];
+    bumpRevision(state);
+    expect(availableRites(state, 0)).toEqual([]);
+    expect(scoreEffects(effects, valueContext(state, player))).toBe(0);
+  });
+
+  it('lets the bots’ own book of rites read the price it is charged', () => {
+    const state = bareState(24, 10);
+    town(state, 5, 5);
+    const player = faithful(state);
+    const rows = (): number[] =>
+      valueContext(state, player)
+        .wants.faith.filter((want) => want.rite !== undefined)
+        .map((want) => want.price);
+    expect(rows().length).toBeGreaterThan(0);
+    for (const price of rows()) expect(price).toBe(20);
+    hold(state, CARD);
+    for (const price of rows()) expect(price).toBe(10);
   });
 });

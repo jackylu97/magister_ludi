@@ -6,8 +6,8 @@
  *
  * Batch DT6 adds The Laurion Leases and The Muda. Batch DT7 adds The Forbidden
  * Silks, The Flying Money and The Sea Ban, whose refusals are checked at the gates
- * and through the reducer. Later batches add the deck's other two Doctrines to this
- * file.
+ * and through the reducer. Batch DT8 adds The Opera del Duomo. A later batch adds the
+ * deck's last Doctrine to this file.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -35,6 +35,8 @@ import { pruneDeals } from '../../../src/sim/deals';
 import { raiseImprovement, tileIndex } from '../../../src/sim/map';
 import { explainAuthority, explainFoundingCost, explainHappiness } from '../../../src/sim/meters';
 import {
+  contributeError,
+  explainContribution,
   explainPurchaseCost,
   explainRoutePrice,
   purchaseError,
@@ -78,12 +80,12 @@ import {
 import { runEndOfTurn } from '../../../src/sim/turn';
 import { openWar } from '../../../src/sim/wars';
 import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
-import { explainCity, foldCity } from '../../../src/sim/yields/town';
+import { explainCity, foldCity, productionModifiers } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
 import { createGame } from '../newGameHelpers';
 import { lendDoctrineEffects } from '../statecraftHelpers';
 
-/** The rows of batches DT3, DT6 and DT7, each with the band its table gives it. */
+/** The rows of batches DT3, DT6, DT7 and DT8, each with the band its table gives it. */
 const ROWS: readonly (readonly [string, number])[] = [
   ['theApoikia', 1],
   ['theLaurionLeases', 1],
@@ -96,6 +98,7 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theTurnpikeTrusts', 3],
   ['theSeaBan', 4],
   ['thePeaceOfLodi', 4],
+  ['theOperaDelDuomo', 4],
   ['theMonteDiPieta', 4],
 ];
 
@@ -1246,5 +1249,125 @@ describe('The Sea Ban (batch DT7)', () => {
     expect(scoreEffects(rule, valueContext(quiet, seat(quiet)))).toBe(0);
     sent(state, home, abroad);
     expect(scoreEffects(rule, valueContext(state, player))).toBeLessThan(0);
+  });
+});
+
+describe('The Opera del Duomo (batch DT8)', () => {
+  const GOLD_RATE = RULES.production.goldPerHammer;
+  const FAITH_RATE = RULES.production.faithPerHammer;
+
+  /** A town of seat 0 with one row at the front of its queue. */
+  function raising(id: string): { state: GameState; city: City } {
+    const state = bareState(24, 9);
+    const city = town(state, 5, 4, 5);
+    city.queue = [{ kind: 'building', id: id as never }];
+    seat(state).gold = 100;
+    seat(state).faithPool = 100;
+    bumpRevision(state);
+    return { state, city };
+  }
+
+  it('buys twice as many hammers for gold poured into the Magnum Opus', () => {
+    const { state, city } = raising('theMagnumOpus');
+    const plain = explainContribution(state, 0, city.id, 'gold')!;
+    expect(plain).toMatchObject({ rate: GOLD_RATE, hammers: 100 / GOLD_RATE, spend: 100 });
+    hold(state, 'theOperaDelDuomo');
+    const offer = explainContribution(state, 0, city.id, 'gold')!;
+    expect(offer).toMatchObject({ rate: GOLD_RATE / 2, hammers: (2 * 100) / GOLD_RATE, spend: 100 });
+  });
+
+  it('does not touch a Cathedral, which takes contributions too (reading 22)', () => {
+    const { state, city } = raising('cathedral');
+    const plain = explainContribution(state, 0, city.id, 'gold')!;
+    hold(state, 'theOperaDelDuomo');
+    expect(explainContribution(state, 0, city.id, 'gold')).toEqual(plain);
+    expect(plain.rate).toBe(GOLD_RATE);
+  });
+
+  it('does not touch faith poured into the Magnum Opus', () => {
+    const { state, city } = raising('theMagnumOpus');
+    hold(state, 'theOperaDelDuomo');
+    expect(explainContribution(state, 0, city.id, 'faith')).toMatchObject({ rate: FAITH_RATE });
+  });
+
+  it('charges through the reducer exactly what the button prints', () => {
+    const { state, city } = raising('theMagnumOpus');
+    hold(state, 'theOperaDelDuomo');
+    seat(state).gold = 90;
+    const offer = explainContribution(state, 0, city.id, 'gold')!;
+    expect(offer.spend).toBe(90);
+    expect(offer.hammers).toBe(Math.floor(90 / (GOLD_RATE / 2)));
+    const result = applyCommand(state, { type: 'contribute', playerId: 0, cityId: city.id, currency: 'gold' });
+    expect(result.ok, JSON.stringify(result)).toBe(true);
+    expect(seat(state).gold).toBe(0);
+    // The hammers arrive whole. The quarter is off the town's own making.
+    expect(city.hammerBasket).toBe(offer.hammers);
+  });
+
+  it('caps the press at what the row still needs, at the new rate', () => {
+    const { state, city } = raising('theMagnumOpus');
+    hold(state, 'theOperaDelDuomo');
+    seat(state).gold = 900;
+    const whole = explainContribution(state, 0, city.id, 'gold')!;
+    city.hammerBasket = whole.remaining - 3;
+    bumpRevision(state);
+    expect(explainContribution(state, 0, city.id, 'gold')).toMatchObject({
+      hammers: 3,
+      spend: 3 * (GOLD_RATE / 2),
+    });
+  });
+
+  it('asks the gate at the new rate, so a refusal leaves the state byte-identical', () => {
+    const { state, city } = raising('theMagnumOpus');
+    const half = GOLD_RATE / 2;
+    seat(state).gold = half;
+    bumpRevision(state);
+    expect(contributeError(state, 0, city.id, 'gold')).toMatch(/too little gold/);
+    hold(state, 'theOperaDelDuomo');
+    expect(contributeError(state, 0, city.id, 'gold')).toBeNull();
+    seat(state).gold = half - 1;
+    bumpRevision(state);
+    expect(contributeError(state, 0, city.id, 'gold')).toMatch(/too little gold/);
+    expect(explainContribution(state, 0, city.id, 'gold')).toBeNull();
+    const before = JSON.stringify(state);
+    const refused = applyCommand(state, { type: 'contribute', playerId: 0, cityId: city.id, currency: 'gold' });
+    expect(refused.ok).toBe(false);
+    expect(JSON.stringify(state)).toBe(before);
+  });
+
+  it('takes a quarter off what a town makes toward the Magnum Opus, and nothing else', () => {
+    const { state, city } = raising('theMagnumOpus');
+    const lineOn = (id: string) =>
+      productionModifiers(state, city, { kind: 'building', id: id as never }).filter(
+        (entry) => entry.card === 'theOperaDelDuomo',
+      );
+    expect(lineOn('theMagnumOpus')).toEqual([]);
+    hold(state, 'theOperaDelDuomo');
+    expect(lineOn('theMagnumOpus')).toEqual([expect.objectContaining({ percent: -25 })]);
+    expect(lineOn('cathedral')).toEqual([]);
+    expect(lineOn('granary')).toEqual([]);
+  });
+
+  it('prices the rate by the gold made, and at nothing while no town may raise the Opus', () => {
+    const rate = doctrineDef('theOperaDelDuomo' as DoctrineId).effects.filter(
+      (effect) => effect.kind === 'rulePercent',
+    );
+    // A seat that lacks the technology that opens the Opus, with nobody else ahead.
+    const shut = raising('granary');
+    seat(shut.state).techsResearched = [];
+    bumpRevision(shut.state);
+    expect(scoreEffects(rate, valueContext(shut.state, seat(shut.state)))).toBe(0);
+
+    const { state } = raising('theMagnumOpus');
+    const poor = scoreEffects(rate, valueContext(state, seat(state)));
+    // Forty more gold a turn in the town, from a row lent for this test.
+    lent.push(
+      lendDoctrineEffects('theApoikia' as DoctrineId, [
+        { kind: 'pays', where: 'city', gold: 40 } as CardEffect,
+      ]),
+    );
+    hold(state, 'theApoikia');
+    const rich = scoreEffects(rate, valueContext(state, seat(state)));
+    expect(rich).toBeGreaterThan(poor);
   });
 });

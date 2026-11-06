@@ -1481,8 +1481,8 @@ export function riteTeachingCard(rite: RiteId): OrderId | null {
  * base plus one step for each rite this empire has started
  * (`Player.ritesStarted`, batch R2a). An unknown seat pays the base.
  *
- * No card changes a rite's price today. A card that does would apply here, to
- * this figure, so every surface still reads one price.
+ * A card that changes the price applies in `riteCostAhead`, so every surface
+ * still reads one price.
  */
 export function riteCostFor(state: GameState, playerId: number): number {
   return riteCostAhead(state, playerId, 0);
@@ -1493,10 +1493,20 @@ export function riteCostFor(state: GameState, playerId: number): number {
  * faith. `riteCostFor` is this at nought. A surface that says how many rites a
  * bank pays for, or what the rite after this one costs, asks this, because the
  * price rises with each rite started (batch R2a).
+ *
+ * The cards apply here (batch DT8, The Capitulary of Herstal). Their percentages
+ * add together and apply once to the whole rung, floored once, so a rung of 25
+ * at half price is 12. This is the one reader of the `riteCost` rule and the one
+ * caller of the data's ladder, so the button, the refusal, the charge, the count
+ * of rites a bank pays for and the bots all read the same price.
  */
 export function riteCostAhead(state: GameState, playerId: number, ahead: number): number {
   const started = playerById(state, playerId)?.ritesStarted ?? 0;
-  return riteCost(started + Math.max(0, Math.floor(ahead)));
+  const rung = riteCost(started + Math.max(0, Math.floor(ahead)));
+  let percent = 0;
+  for (const line of cardRulePercent(state, playerId, 'riteCost')) percent += line.percent;
+  if (percent === 0) return rung;
+  return Math.floor((rung * Math.max(0, 100 + percent)) / 100);
 }
 
 /**

@@ -69,6 +69,28 @@ describe('a technology’s price, as every screen quotes it', () => {
     expect(mathematics.lines[0]!.premium).toBe(false);
   });
 
+  it('prints The Court of Rudolf II’s line on an ordinary node, and research charges the total', () => {
+    const g = researchingGame();
+    const player = playerById(g.state, 0)!;
+    const charter = techPriceList(g.state, player, 'mechanics');
+    const plain = techPriceList(g.state, player, 'banking');
+    expect(plain.lines).toHaveLength(1);
+    player.statecraft.doctrines.push('theCourtOfRudolf');
+    bumpRevision(g.state);
+    const list = techPriceList(g.state, player, 'banking');
+    const cut = Math.floor((plain.total * 80) / 100);
+    expect(list.lines.map((line) => [line.label, line.premium])).toEqual([
+      [plain.lines[0]!.label, false],
+      ['Doctrine · The Court of Rudolf II -20%', false],
+    ]);
+    expect(priceLineFigure(list.lines[1]!, 1)).toBe(`−${plain.total - cut}`);
+    expect(list.total).toBe(cut);
+    expect(techCostFor(g.state, player, 'banking')).toBe(cut);
+    expect(foldTechCost(explainTechCost(g.state, player, 'banking'))).toBe(cut);
+    // The price list of a charter technology does not move.
+    expect(techPriceList(g.state, player, 'mechanics')).toEqual(charter);
+  });
+
   it('prints the first line plain and every later line signed, with a real minus', () => {
     expect(priceLineFigure({ label: 'Column 8', amount: 1150, premium: false }, 0)).toBe('1150');
     expect(priceLineFigure({ label: 'Charter +50%', amount: 575, premium: true }, 1)).toBe('+575');

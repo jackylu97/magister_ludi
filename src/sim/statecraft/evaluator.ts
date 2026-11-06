@@ -257,7 +257,7 @@ import { beadCapEffects } from '../beads';
 // the card lines through the index, and Copying the Enemy's share reads the
 // price of a technology. Nothing at the top level of either file calls the
 // other.
-import { explainTechCost, foldTechCost } from '../tech';
+import { explainTechCost, foldTechCost, techChainOf } from '../tech';
 // Feature B's readings (Scientific batch S3). A leaf, so no cycle.
 import { aheadOfMet, knowsFewerTechs, techGap, techLead, unitAheadOfMet } from '../rivals';
 // The Sum of Knowledge's count (Scientific batch S6): the same reading.
@@ -6812,6 +6812,66 @@ export function cardBuildingCostLines(
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'rulePercent')) {
     if (effect.rule !== 'buildingCost' || effect.percent === 0) continue;
     if (effect.building !== undefined && effect.building !== id) continue;
+    list.push({ card, source, percent: effect.percent });
+  }
+  return list;
+}
+
+/**
+ * **Does a `techPrice` row reach this technology?** (batch DT8, The Court of Rudolf
+ * II.) A charter technology is never reached, because the build plan's S8 leaves
+ * it to the charter rules. Each narrowing the row names must pass, and a row that
+ * names none reaches every ordinary technology.
+ *
+ * The price and the bots' reading of the price both ask this, so they cannot
+ * disagree about which technologies a row touches.
+ */
+export function techPriceRowReaches(
+  effect: Extract<CardEffect, { kind: 'rulePercent' }>,
+  tech: TechId,
+): boolean {
+  if (isCharterTech(tech)) return false;
+  if (effect.techAge !== undefined && techDef(tech).age !== effect.techAge) return false;
+  if (effect.techChain !== undefined && !techChainOf(effect.techChain).includes(tech)) return false;
+  if (effect.notChain !== undefined && techChainOf(effect.notChain).includes(tech)) return false;
+  return true;
+}
+
+/**
+ * **The percentages this empire's law puts on one ordinary technology** (batch DT8,
+ * The Court of Rudolf II): the `techPrice` rows that reach it. `explainTechCost` is
+ * the one caller, and these join its other card lines.
+ */
+export function cardTechPriceLines(
+  state: GameState,
+  playerId: number,
+  tech: TechId,
+): CardRuleLine[] {
+  const list: CardRuleLine[] = [];
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'rulePercent')) {
+    if (effect.rule !== 'techPrice' || effect.percent === 0) continue;
+    if (!techPriceRowReaches(effect, tech)) continue;
+    list.push({ card, source, percent: effect.percent });
+  }
+  return list;
+}
+
+/**
+ * **The percentages this empire's law puts on gold poured into one building, in one
+ * town** (batch DT8, The Opera del Duomo): the `goldContribution` rows whose
+ * `building` names it. `cardRulePercent` has no building to ask about, so this is
+ * the rule's own reader. `contributionRate` (`purchase.ts`) is the one caller.
+ */
+export function cardGoldContributionLines(
+  state: GameState,
+  city: City,
+  building: BuildingId,
+): CardRuleLine[] {
+  const list: CardRuleLine[] = [];
+  for (const { source, card, effect } of effectsOfKind(state, city.ownerId, 'rulePercent')) {
+    if (effect.rule !== 'goldContribution' || effect.percent === 0) continue;
+    if (effect.building !== undefined && effect.building !== building) continue;
+    if (effect.scope !== undefined && !cityScopeAdmits(state, city, effect.scope)) continue;
     list.push({ card, source, percent: effect.percent });
   }
   return list;

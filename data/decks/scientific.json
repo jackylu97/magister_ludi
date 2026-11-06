@@ -2244,6 +2244,19 @@
         }
       ],
       "note": "The extra copies and the production bonus do not reach the Magnum Opus or its works."
+    },
+    "theCourtOfRudolf": {
+      "name": "The Court of Rudolf II",
+      "decks": ["scientific"],
+      "band": 4,
+      "line": "none",
+      "flavor": "The emperor's alchemists work late in the castle, and the empire waits.",
+      "text": "Alchemy, and the fourth-age technologies that lead to it, cost you 20% less research. Your other fourth-age technologies cost you 25% more.",
+      "effects": [
+        {"kind": "rulePercent", "rule": "techPrice", "percent": -20, "techChain": "alchemy"},
+        {"kind": "rulePercent", "rule": "techPrice", "percent": 25, "techAge": 4, "notChain": "alchemy"}
+      ],
+      "note": "Neither price reaches a charter technology."
     }
   }
 }

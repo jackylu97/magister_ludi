@@ -3367,8 +3367,21 @@ import {
  *
  * **A v211 save is refused and does not replay.** These seats' Doctrine bags change,
  * so their draws move. The branch migrates nothing, for the reason given under v119.
+ *
+ * v213 (branch `decks`; batch DT8, `docs/plans/doctrines-build-triage.md`):
+ * **Three Doctrines that change a price.** No field joins the state. The rules that
+ * change:
+ *
+ *   · The Opera del Duomo is dealt to a Commerce seat, The Court of Rudolf II to a
+ *     Scientific seat and The Capitulary of Herstal to a Devotion seat;
+ *   · the card rules gain `goldContribution` (`contributionRate`), `techPrice`
+ *     (`explainTechCost`, through `cardTechPriceLines`) and `riteCost`
+ *     (`riteCostAhead`).
+ *
+ * **A v212 save is refused and does not replay.** These seats' Doctrine bags change,
+ * so their draws move. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 212;
+export const SCHEMA_VERSION = 213;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

@@ -93,7 +93,8 @@ A rite is a **city's verb**: `performRite {cityId, rite}`, checked by `riteError
   Offering and the Restoring of the Host do not raise it. `riteCostFor` is the
   one reading (the rite button, the refusal, the charge and the bots);
   `riteCostAhead` and `ritesAffordable` read the rising price for the faith
-  sheet's "enough for N" lines. No card changes the price.
+  sheet's "enough for N" lines. A `riteCost` card (The Capitulary of Herstal)
+  changes the rung inside `riteCostAhead`, floored once, so all of these read it.
 - **Short of the bank.** The bank is the gate's last clause. `riteGate` returns
   the refusal and, when the bank is the only clause that refused, how much
   faith is missing (`riteShortfall`), from one pass. The Faith sheet's "short N"

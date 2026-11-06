@@ -140,6 +140,7 @@ import {
 // since Magisterial batch MG11 the reading of a wonder or the Opus at the front
 // of a queue, which The Hired Garrison asks.
 import {
+  cardGoldContributionLines,
   cardPurchaseScopeRefuses,
   isRaisingWonderOrOpus,
   townBuildings,
@@ -1739,17 +1740,30 @@ export function acceptsContributions(item: QueueItem): boolean {
 }
 
 /**
- * What one bank buys a hammer for **in this town**: `hammerRate`, with the
- * faith rate eased by `faithContribution` cards whose scope admits the town
- * (The Last Offering's holy city, building the Magnum Opus). +50 buys half as
- * many hammers again for the same faith.
+ * What one bank buys a hammer for **in this town, on this row**: `hammerRate`,
+ * eased by the cards on that bank. For faith, `faithContribution` cards whose
+ * scope admits the town (The Last Offering's holy city, building the Magnum
+ * Opus): +50 buys half as many hammers again for the same faith. For gold,
+ * `goldContribution` cards that name the row (The Opera del Duomo's Magnum Opus,
+ * batch DT8): +100 buys twice as many hammers, and a Cathedral is not touched.
+ *
+ * `explainContribution` and `contributeError` are the two callers, so the button,
+ * the refusal, the charge and the bots all read this rate.
  */
-function contributionRate(state: GameState, city: City, currency: PurchaseCurrency): number {
+function contributionRate(
+  state: GameState,
+  city: City,
+  currency: PurchaseCurrency,
+  item: QueueItem,
+): number {
   const base = hammerRate(currency);
-  if (currency !== 'faith') return base;
   let percent = 0;
-  for (const line of cardRulePercent(state, city.ownerId, 'faithContribution', city)) {
-    percent += line.percent;
+  if (currency === 'faith') {
+    for (const line of cardRulePercent(state, city.ownerId, 'faithContribution', city)) {
+      percent += line.percent;
+    }
+  } else if (currency === 'gold' && item.kind === 'building' && isBuildingId(item.id)) {
+    for (const line of cardGoldContributionLines(state, city, item.id)) percent += line.percent;
   }
   if (percent === 0) return base;
   return (base * 100) / Math.max(1, 100 + percent);
@@ -1787,7 +1801,7 @@ function hammerRate(currency: PurchaseCurrency): number {
  */
 export interface ContributionOffer {
   currency: PurchaseCurrency;
-  /** The bank's price for one hammer — `goldPerHammer` / `faithPerHammer`. */
+  /** The bank's price for one hammer on this row, after the cards (`contributionRate`). */
   rate: number;
   /** The row this would pay for, and its display name. */
   item: QueueItem;
@@ -1820,7 +1834,7 @@ export function explainContribution(
   // not leave a completion one tenth of a hammer short.
   const remaining = Math.ceil(cost - city.hammerBasket);
   if (remaining <= 0) return null;
-  const rate = contributionRate(state, city, currency);
+  const rate = contributionRate(state, city, currency, item);
   if (!(rate > 0)) return null;
   const affordable = Math.floor(Math.max(0, bankOf(player, currency)) / rate);
   const hammers = Math.min(remaining, affordable);
@@ -1900,7 +1914,7 @@ export function contributeError(
   if (cost === null) return `${queueItemName(item)} has no price`;
   const remaining = cost - city.hammerBasket;
   if (remaining <= 0) return `${city.name} has already paid for ${queueItemName(item)}`;
-  const rate = contributionRate(state, city, currency);
+  const rate = contributionRate(state, city, currency, item);
   const held = Math.max(0, bankOf(player, currency));
   if (rate <= 0 || held < rate) {
     return `${player.name} has too little ${currency} to give`;
@@ -1926,9 +1940,8 @@ export function contributeError(
  * It is deliberately **not** a `windfallPayout` occasion. A chop's hammers are a
  * grant, and a grant may be doubled by a card; these hammers are a *conversion*
  * at a printed rate, exactly as a purchase is, and a rider on them would make
- * the number on the button a lie. A card that wants to make contributions go
- * further changes the rate, which is a `CardRule` if the design ever asks for
- * one.
+ * the number on the button a lie. A card that makes contributions go further
+ * changes the rate (`contributionRate`).
  */
 export function contributeAt(
   state: GameState,

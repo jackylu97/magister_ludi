@@ -960,3 +960,54 @@ describe('the drawing', () => {
     }
   });
 });
+
+// --- a card on the price (batch DT8) -----------------------------------------------
+
+describe('under The Capitulary of Herstal', () => {
+  it('quotes the halved price on every figure, and the reducer charges it', () => {
+    const { state, towns } = world();
+    const player = playerById(state, 0)!;
+    const plain = riteCostFor(state, 0);
+    const plainNext = riteCostAhead(state, 0, 1);
+    player.statecraft.doctrines.push('theCapitularyOfHerstal');
+    bumpRevision(state);
+    const cost = riteCostFor(state, 0);
+    const next = riteCostAhead(state, 0, 1);
+    expect(cost).toBe(Math.floor(plain / 2));
+    expect(next).toBe(Math.floor(plainNext / 2));
+
+    player.faithPool = cost + next;
+    bumpRevision(state);
+    // The town's button, the count on the faith line and "another" at the foot.
+    const buying = model(state, selectRite(freshRitesView(state.turn), OMEN));
+    expect(buying.free[0]!.look).toEqual({ look: 'buy', bank: 'faith', price: cost });
+    expect(buying.faith.now).toBe('Enough for 2 rites now.');
+    const foot = model(state, ritesViewForTown(freshRitesView(state.turn), towns[0]!.id)).free[0]!.menu!.foot;
+    expect(foot).toBe(`After this, ${next} faith is left. Enough for another.`);
+
+    // A bank one short of both prices pays for one rite.
+    player.faithPool = cost + next - 1;
+    bumpRevision(state);
+    expect(model(state, freshRitesView(state.turn)).faith.now).toBe('Enough for 1 rite now.');
+
+    player.faithPool = cost + next;
+    bumpRevision(state);
+    start(state, freshRitesView(state.turn), towns[0]!.id, OMEN);
+    expect(player.faithPool).toBe(next);
+    expect(riteCostFor(state, 0)).toBe(next);
+    expect(riteGate(state, 0, towns[1]!.id, OMEN).refusal).toBeNull();
+  });
+
+  it('prices the short look at the halved price too', () => {
+    const { state } = world();
+    const player = playerById(state, 0)!;
+    player.statecraft.doctrines.push('theCapitularyOfHerstal');
+    bumpRevision(state);
+    const cost = riteCostFor(state, 0);
+    player.faithPool = cost - 3;
+    bumpRevision(state);
+    const town = model(state, selectRite(freshRitesView(state.turn), OMEN)).free[0]!;
+    expect(town.look).toEqual({ look: 'short', bank: 'faith', price: cost, need: 3 });
+    expect(riteShortfall(state, 0, town.cityId, OMEN)).toBe(3);
+  });
+});

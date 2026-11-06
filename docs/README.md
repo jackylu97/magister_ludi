@@ -848,7 +848,9 @@ Reference: **`docs/religion-v2.md`** (the machinery) and **`docs/beliefs.md`**
   set it. `countRiteStarted` is the count's one writer and pays the
   `riteStarted` tally beside it, so the price counts the seasons the cards
   count. `riteCostFor` is the one reading; `riteCostAhead` and
-  `ritesAffordable` read the rising price for the faith sheet.
+  `ritesAffordable` read the rising price for the faith sheet. A `riteCost`
+  card (The Capitulary of Herstal) changes the rung inside `riteCostAhead`,
+  floored once.
 - **A rite started is a season** (Devotion batch DV4). The `riteStarted` tally
   and the `rite` occasion are for a rite with no `atOnce`: the Votive Offering
   and the Restoring of the Host raise neither. A prophet's rite over the realm

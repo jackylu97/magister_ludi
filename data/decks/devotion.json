@@ -2651,6 +2651,17 @@
         }
       ]
     },
+    "theCapitularyOfHerstal": {
+      "name": "The Capitulary of Herstal",
+      "decks": ["devotion"],
+      "band": 2,
+      "line": "none",
+      "flavor": "The tithe became a law, and the parish stopped passing the plate.",
+      "text": "Rites cost half as much.",
+      "effects": [
+        {"kind": "rulePercent", "rule": "riteCost", "percent": -50}
+      ]
+    },
     "thePatrimonyOfPeter": {
       "name": "The Patrimony of Peter",
       "decks": ["devotion"],

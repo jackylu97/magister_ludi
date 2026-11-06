@@ -106,6 +106,7 @@ import {
   ABILITY_TECH,
   BUILDING_UNLOCK_TECH,
   TECH_IDS,
+  type TechAge,
   type TechId,
   type TechTrait,
   UNIT_UNLOCK_TECH,
@@ -1933,7 +1934,20 @@ function describeEffect(
                       /^a hex/,
                       `${indefinite(tileConditionWords(effect.tile))} ${tileConditionWords(effect.tile)}`,
                     )
-                  : RULE_WORDS[effect.rule](effect.percent)
+                  : // The Opera del Duomo's Magnum Opus and The Court of Rudolf
+                    // II's technologies (batch DT8) take the place of the general
+                    // noun.
+                    effect.rule === 'goldContribution' && effect.building !== undefined
+                    ? RULE_WORDS[effect.rule](effect.percent).replace(
+                        /a build/,
+                        buildingAsGiven(effect.building),
+                      )
+                    : effect.rule === 'techPrice'
+                      ? RULE_WORDS[effect.rule](effect.percent).replace(
+                          /^technologies/,
+                          techPriceSubject(effect),
+                        )
+                      : RULE_WORDS[effect.rule](effect.percent)
             : RULE_WORDS[effect.rule](effect.percent).replace(
                 'near your towns',
                 `within ${effect.range} hexes of your towns`,
@@ -5209,6 +5223,41 @@ function buildingPluralName(id: BuildingId): string {
 }
 
 /**
+ * A building as a clause about giving to it names it: the plural, except that a
+ * one-of-a-kind row has none ("The Magnum Opus", never "The Magnum Opuses").
+ */
+function buildingAsGiven(id: BuildingId): string {
+  return oneOfAKind(id)
+    ? ref(isWonder(id) ? 'wonder' : 'building', id, buildingDef(id).name)
+    : buildingPluralName(id);
+}
+
+/** The ages, as a clause about a technology's price says them. */
+const TECH_AGE_WORDS: Readonly<Record<TechAge, string>> = {
+  1: 'first-age',
+  2: 'second-age',
+  3: 'third-age',
+  4: 'fourth-age',
+};
+
+/**
+ * **Which technologies a `techPrice` row reaches, in words** (batch DT8, The Court
+ * of Rudolf II). The named chain comes first and the ones outside it are "your
+ * other", because the two rows of the card are read one after the other. A clause
+ * for a charter technology would be false, and the row's `note` says none is
+ * reached.
+ */
+function techPriceSubject(effect: Extract<CardEffect, { kind: 'rulePercent' }>): string {
+  if (effect.techChain !== undefined) {
+    const def = techDef(effect.techChain);
+    const name = ref('tech', effect.techChain, def.name);
+    return `${name}, and the ${TECH_AGE_WORDS[def.age]} technologies that lead to it,`;
+  }
+  const age = effect.techAge === undefined ? '' : `${TECH_AGE_WORDS[effect.techAge]} `;
+  return `${effect.notChain === undefined ? '' : 'your other '}${age}technologies`;
+}
+
+/**
  * A scope in the words a printed rule uses. **The one sentence-builder** — the
  * luxury table delegated its own to this in batch H6, so a card's "every coastal
  * city" and a luxury's are one string from one place.
@@ -5784,6 +5833,29 @@ const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
     percent < 0
       ? `faith you give to a build buys ${-percent}% less production`
       : `faith you give to a build buys ${percent}% more production`,
+  // The Opera del Duomo (batch DT8). A row's building replaces "a build" in the
+  // `rulePercent` arm. A contribution is a rate, so +100 is "twice as much".
+  goldContribution: (percent) =>
+    percent === 100
+      ? 'gold you give to a build buys twice as much production'
+      : percent < 0
+        ? `gold you give to a build buys ${-percent}% less production`
+        : `gold you give to a build buys ${percent}% more production`,
+  // The Court of Rudolf II (batch DT8). `techPriceSubject` replaces "technologies"
+  // in the `rulePercent` arm, for a row that narrows them.
+  techPrice: (percent) =>
+    percent < 0
+      ? `technologies cost you ${-percent}% less research`
+      : `technologies cost you ${percent}% more research`,
+  // The Capitulary of Herstal (batch DT8). A price, said as the saving.
+  riteCost: (percent) =>
+    percent <= -100
+      ? 'rites cost no faith'
+      : percent === -50
+        ? 'rites cost half as much faith'
+        : percent < 0
+          ? `rites cost ${-percent}% less faith`
+          : `rites cost ${percent}% more faith`,
   // The Hunting Grounds (Dominion batch D7). The row's reach replaces "near
   // your towns" in the `rulePercent` arm, so the words say how near.
   campMuster: (percent) =>

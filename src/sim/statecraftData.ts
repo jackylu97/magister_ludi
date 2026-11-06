@@ -4064,6 +4064,30 @@ export type CardRule =
    */
   | 'faithContribution'
   /**
+   * **How far gold poured into a row goes** (batch DT8, The Opera del Duomo): +100
+   * buys twice as many hammers for the same gold. It is `faithContribution`'s
+   * sibling, with the same formula. Only `contributionRate` (`purchase.ts`) reads
+   * it, through `cardGoldContributionLines`, with the town and the row in hand. The
+   * row's `building` names what it reaches, so a card about the Magnum Opus does not
+   * touch a Cathedral.
+   */
+  | 'goldContribution'
+  /**
+   * **What an ordinary technology costs this empire in research** (batch DT8, The
+   * Court of Rudolf II). A negative percentage is cheaper. It joins the card lines
+   * of `explainTechCost`, through `cardTechPriceLines`, and adds to the other card
+   * percentages before the one multiplication. The row's `techChain`, `notChain` and
+   * `techAge` say which technologies it reaches, and it never reaches a charter
+   * technology.
+   */
+  | 'techPrice'
+  /**
+   * **What a rite costs this empire** (batch DT8, The Capitulary of Herstal: −50,
+   * half as much). Only `riteCostAhead` (`religion.ts`) reads it, on the base price
+   * and the rising step together, so every surface that asks the price sees it.
+   */
+  | 'riteCost'
+  /**
    * **How fast barbarian camps near this empire's towns raise their units**
    * (Dominion batch D7, The Hunting Grounds). A positive percentage is faster:
    * +50 musters every two thirds of the usual turns, rounded. Only camps within
@@ -7274,8 +7298,9 @@ export interface CardRulePercentEffect {
    */
   class?: UnitFilter;
   /**
-   * **Which building the rule is about** (batch R1, The Almanac's Libraries).
-   * Read only by `buildingCost`. Absent reaches every building.
+   * **Which building the rule is about** (batch R1, The Almanac's Libraries; batch
+   * DT8, The Opera del Duomo's Magnum Opus). Read by `buildingCost` and
+   * `goldContribution`. Absent reaches every building.
    */
   building?: BuildingId;
   /**
@@ -7287,6 +7312,20 @@ export interface CardRulePercentEffect {
    * `hasResource` applies, and an unseen seam costs the full price (reading 18).
    */
   tile?: TileCondition;
+  /**
+   * **`techPrice` reaches only this technology and the rows of its own age that
+   * lead to it** (batch DT8, The Court of Rudolf II's Alchemy). `techChainOf`
+   * (`tech.ts`) is the walk. Read only by `techPrice`.
+   */
+  techChain?: TechId;
+  /**
+   * **`techPrice` skips this technology and the rows of its own age that lead to
+   * it** (batch DT8, The Court of Rudolf II's drawback). `techChain`'s opposite.
+   * Read only by `techPrice`.
+   */
+  notChain?: TechId;
+  /** **`techPrice` reaches only technologies of this age** (batch DT8). */
+  techAge?: TechAge;
 }
 
 /** Flat happiness, once for the empire or once per city a scope admits. */

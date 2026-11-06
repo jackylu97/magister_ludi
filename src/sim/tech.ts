@@ -490,6 +490,8 @@ import {
 // the Orders count a technology (The Age of Reason), and whether a payout
 // holds anything at all.
 import { techCountsFor, windfallPayoutIsEmpty } from './statecraft/evaluator';
+// Batch DT8, for the same reason: The Court of Rudolf II's lines on a price.
+import { cardTechPriceLines } from './statecraft/evaluator';
 import {
   type City,
   type GameState,
@@ -2125,6 +2127,32 @@ export function planResearch(
 
 // --- the price ---------------------------------------------------------------
 
+/** The walks `techChainOf` has made. The data never changes, and this is never iterated. */
+const TECH_CHAINS = new Map<TechId, readonly TechId[]>();
+
+/**
+ * **A technology and the rows of its own age that lead to it**, the technology
+ * first (batch DT8, The Court of Rudolf II). The walk follows `prereqs` and stops
+ * at a parent of an earlier age. A row can never need a later age
+ * (`techDataProblems` refuses one), so no row of this age lies behind that parent.
+ *
+ * It is made the first time it is asked, not when the module loads, because
+ * `tech.ts` sits on function-level import cycles and must call nothing at load.
+ */
+export function techChainOf(id: TechId): readonly TechId[] {
+  const held = TECH_CHAINS.get(id);
+  if (held !== undefined) return held;
+  const age = techDef(id).age;
+  const chain: TechId[] = [id];
+  for (let index = 0; index < chain.length; index++) {
+    for (const parent of techDef(chain[index]!).prereqs) {
+      if (techDef(parent).age === age && !chain.includes(parent)) chain.push(parent);
+    }
+  }
+  TECH_CHAINS.set(id, chain);
+  return chain;
+}
+
 /** One line of a technology's price. `foldTechCost` is the sum. */
 export interface TechCostLine {
   /** What the line is, as the price list prints it ("Column 7"). */
@@ -2151,7 +2179,9 @@ export interface TechCostLine {
  *      Translation Movement's `gapTechCost` for an ordinary row in the gap,
  *      one an empire this seat has met already knows (`techGap`, `rivals.ts`;
  *      Scientific batch S3). The gap holds no charter technology, so the two
- *      rules never reach the same row (the triage's readings 2 and 15). The
+ *      rules never reach the same row (the triage's readings 2 and 15). An
+ *      ordinary row also takes The Court of Rudolf II's `techPrice` lines
+ *      (`cardTechPriceLines`, batch DT8), which a charter row never does. The
  *      percentages are added together and applied once, to the column price
  *      and the premium together. They never compound, so under both charter
  *      cards a charter technology costs 85% of its column.
@@ -2193,14 +2223,16 @@ export function explainTechCost(state: GameState, player: Player, tech: TechId):
     running = withPremium;
   }
 
-  // The cards that reach this row: the charter rule for a charter row, and the
-  // gap rule for an ordinary row an empire this seat has met already knows.
-  // The gap is asked only when a gap card is seated, because it walks the met
-  // empires' research.
+  // The cards that reach this row: the charter rule for a charter row. For an
+  // ordinary row, the gap rule if an empire this seat has met already knows it,
+  // then the `techPrice` rows that name it. The gap is asked only when a gap card
+  // is seated, because it walks the met empires' research.
   let cards = charter ? cardRulePercent(state, player.id, 'charterTechCost') : [];
   if (!charter) {
     const gapCards = cardRulePercent(state, player.id, 'gapTechCost');
     if (gapCards.length > 0 && techGap(state, player.id).includes(tech)) cards = gapCards;
+    const priced = cardTechPriceLines(state, player.id, tech);
+    if (priced.length > 0) cards = [...cards, ...priced];
   }
 
   // The cards, added together and applied once to that sum.

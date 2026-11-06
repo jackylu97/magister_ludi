@@ -1132,6 +1132,16 @@
     "text": "while you are at war: -25% everything on every trade route you send"
    }
   ],
+  "theOperaDelDuomo": [
+   {
+    "raw": "gold you give to [[building:theMagnumOpus|The Magnum Opus]] buys twice as much production",
+    "text": "gold you give to The Magnum Opus buys twice as much production"
+   },
+   {
+    "raw": "-25% production toward [[building:theMagnumOpus|The Magnum Opus]]",
+    "text": "-25% production toward The Magnum Opus"
+   }
+  ],
   "theMonteDiPieta": [
    {
     "raw": "+1 happiness per 200 gold in the treasury (at most +20 happiness)",
@@ -1162,6 +1172,12 @@
    {
     "raw": "+1 combat strength for military units per god or belief you hold",
     "text": "+1 combat strength for military units per god or belief you hold"
+   }
+  ],
+  "theCapitularyOfHerstal": [
+   {
+    "raw": "rites cost half as much faith",
+    "text": "rites cost half as much faith"
    }
   ],
   "thePatrimonyOfPeter": [
@@ -1306,6 +1322,16 @@
    {
     "raw": "+50% production toward empire buildings",
     "text": "+50% production toward empire buildings"
+   }
+  ],
+  "theCourtOfRudolf": [
+   {
+    "raw": "[[tech:alchemy|Alchemy]], and the fourth-age technologies that lead to it, cost you 20% less research",
+    "text": "Alchemy, and the fourth-age technologies that lead to it, cost you 20% less research"
+   },
+   {
+    "raw": "your other fourth-age technologies cost you 25% more research",
+    "text": "your other fourth-age technologies cost you 25% more research"
    }
   ],
   "theChoregia": [

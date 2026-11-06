@@ -3506,6 +3506,18 @@
         }
       ]
     },
+    "theOperaDelDuomo": {
+      "name": "The Opera del Duomo",
+      "decks": ["commerce"],
+      "band": 4,
+      "line": "none",
+      "flavor": "The wool guild pays for the dome, and the wool guild checks the bill.",
+      "text": "Gold you pour into the Magnum Opus buys twice as many hammers. Your towns build the Magnum Opus 25% more slowly.",
+      "effects": [
+        {"kind": "rulePercent", "rule": "goldContribution", "percent": 100, "building": "theMagnumOpus"},
+        {"kind": "productionBonus", "category": "building", "building": "theMagnumOpus", "percent": -25}
+      ]
+    },
     "theMonteDiPieta": {
       "name": "The Monte di Pietà",
       "decks": [

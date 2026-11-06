@@ -288,6 +288,7 @@ import {
   heldReligions,
   isRaisingWonderOrOpus,
   noMetEmpireAhead,
+  techPriceRowReaches,
 } from '../sim/statecraft/evaluator';
 // The citizen levy's own figures, read where the levy verb reads them, so the
 // bot and the city panel price one levy alike (the bot levy batch).
@@ -4875,6 +4876,18 @@ function ruleRewriteValue(
       // cheaper reroll and a deeper faith contribution are worth the faith they
       // save, and the bot prices neither verb off a rate today.
       return ctx.ai.score.unknownEffect;
+    case 'goldContribution':
+      // **The hammers the same gold buys** (batch DT8, The Opera del Duomo). See
+      // `goldContributionWorth`.
+      return goldContributionWorth(effect, share, ctx);
+    case 'techPrice':
+      // **The beakers the row saves or adds** (batch DT8, The Court of Rudolf
+      // II). See `techPriceWorth`.
+      return techPriceWorth(effect, share, ctx);
+    case 'riteCost':
+      // **The faith each season no longer costs** (batch DT8, The Capitulary of
+      // Herstal). See `riteDiscountWorth`.
+      return riteDiscountWorth(share, ctx);
     case 'pacificationRate':
       // **Faster pacification is worth something only while at war** (The
       // Satraps, Dominion batch D4). Read as a share of the stand-in, scaled by
@@ -7917,6 +7930,28 @@ function gapSavingWorth(share: number, ctx: ValueContext): number {
 }
 
 /**
+ * **The Court of Rudolf II**: the beakers a `techPrice` row saves on the
+ * technologies it reaches that this seat has yet to research, at their folded
+ * price, as a lump. A row that raises the price reads as a cost, so the card's
+ * worth is the chain still to research against the rest of the age. A seat that
+ * has researched everything a row reaches gains and loses nothing from it.
+ */
+function techPriceWorth(
+  effect: Extract<CardEffect, { kind: 'rulePercent' }>,
+  share: number,
+  ctx: ValueContext,
+): number {
+  const known = playerById(ctx.state, ctx.playerId)?.techsResearched ?? [];
+  let beakers = 0;
+  for (const tech of ALL_TECH_IDS) {
+    if (known.includes(tech) || !techPriceRowReaches(effect, tech)) continue;
+    beakers += techCostFor(ctx, tech);
+  }
+  if (beakers <= 0) return 0;
+  return explainLump({ science: -Math.max(-1, share) * beakers }, ctx).total;
+}
+
+/**
  * **The Royal Readers**: the renown each great person costs less, times how
  * often this seat recruits one, at `weights.renown`.
  *
@@ -10124,6 +10159,20 @@ function seasonRate(ctx: ValueContext): number {
 }
 
 /**
+ * **The Capitulary of Herstal**: the faith one rite no longer costs at this seat's
+ * next price (`riteCostFor`), as a lump, times how often it starts one
+ * (`seasonRate`). A realm that knows no rite saves nothing. The bots' rite wants read
+ * `riteCostFor` too, so a seat that holds the card also buys its rites at the price
+ * it is charged.
+ */
+function riteDiscountWorth(share: number, ctx: ValueContext): number {
+  const rate = seasonRate(ctx);
+  if (rate <= 0) return 0;
+  const saved = -Math.max(-1, share) * riteCostFor(ctx.state, ctx.playerId);
+  return explainLump({ faith: saved }, ctx).total * rate;
+}
+
+/**
  * **The share of this seat's seasons started in a town a rider admits** (The
  * Psalter's devout towns): the towns its `inTown` scope admits over the towns
  * held. A rider with no scope, or `true`, admits every town.
@@ -11209,6 +11258,27 @@ function opusRaisingShare(ctx: ValueContext): number {
     }
   }
   return 0;
+}
+
+/**
+ * **The Opera del Duomo**: the extra hammers this seat's gold would buy for the
+ * Magnum Opus over a turn. The gold it makes buys `goldPerHammer` hammers at the
+ * plain rate, and `share` more of them under the card. This reads all the gold as
+ * poured, which is the upper reading, and only for the part of the horizon the seat
+ * raises the Opus (`opusRaisingShare`). A row naming anything else stands at
+ * `score.unknownEffect`, because no live row does and a figure would be invented.
+ */
+function goldContributionWorth(
+  effect: Extract<CardEffect, { kind: 'rulePercent' }>,
+  share: number,
+  ctx: ValueContext,
+): number {
+  if (effect.building === undefined || effect.building !== OPUS_ID) return ctx.ai.score.unknownEffect;
+  const raising = opusRaisingShare(ctx);
+  if (raising <= 0) return 0;
+  const gold = Math.max(0, ratesOf(ctx).goldPerTurn ?? 0);
+  const hammers = (gold / Math.max(1, RULES.production.goldPerHammer)) * Math.max(-1, share);
+  return voiceWeight(ctx, 'production') * hammers * raising;
 }
 
 /** What a town makes a turn, toward nothing (`townProduction`'s reading). */
