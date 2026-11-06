@@ -196,6 +196,7 @@ import {
   orderChoiceError,
   orderSkipError,
   recordScalingOccasion,
+  refitSlots,
   settleDoctrineChoice,
   settleDoctrineSkip,
   settleOrderChoice,
@@ -3730,6 +3731,10 @@ function applyChooseDoctrine(
   // live game and its replay warmed the slate at different moments, and the
   // two boards parted (a great person called in one and not the other).
   forgetTheLaw(state);
+  // **A Doctrine that opens a chair opens it now** (batch DT9, The Council of Ten,
+  // The Arthashastra). After the law is forgotten, because the count reads it. A
+  // resize and not a re-seating, so no card moves. `refitSlots` announces itself.
+  refitSlots(state, actor);
   // The Muses' Call's own line — see `DoctrineDef.onAdopt`, and `payMomentGrants`
   // for why the settlement is the reducer's. A Doctrine is adopted once and
   // never unadopted, so the moment needs no once-flag: `applySlotOrder`'s half

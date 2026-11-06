@@ -2624,6 +2624,16 @@
         {"kind": "happiness", "amount": 2, "per": "city", "scope": {"test": "keepingRite"}}
       ]
     },
+    "theSerapeum": {
+      "name": "The Serapeum",
+      "decks": ["devotion"],
+      "band": 1,
+      "line": "none",
+      "flavor": "The same god, under two names, with two congregations.",
+      "text": "Each of your gods gives twice its effects.",
+      "effects": [{ "kind": "metaRule", "rule": "godsCountTwice", "value": 2 }],
+      "note": "A god's yields, percentages, combat lines and riders count twice. An offer a god gives you does not. A follower or enhancer belief is not a god."
+    },
     "thePaean": {
       "name": "The Paean",
       "decks": [

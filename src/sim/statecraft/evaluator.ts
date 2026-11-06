@@ -208,6 +208,7 @@ import {
   type DeckId,
   type DoctrineId,
   type EmpireCondition,
+  type MetaRuleId,
   type FirstKind,
   type OccasionMeasure,
   type MeterRuleId,
@@ -226,6 +227,7 @@ import {
   countedTypeOf,
   doctrineDef,
   governmentDef,
+  governmentsAtTier,
   isCharter,
   isDoctrineId,
   isGovernmentId,
@@ -308,8 +310,10 @@ import {
   ranksHeld,
 } from '../ranks';
 import {
+  type PlayerStatecraft,
   freeDraftCanOpen,
   openFreeDraft,
+  chairIndexAtPosition,
   orderAtSlotPosition,
   settleCultureWindfall,
   slotTypesOf,
@@ -845,6 +849,17 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
   };
 
   push(sc.government, CLASS_WORD.government, governmentDef(sc.government).effects);
+  // **The Union of Lublin** (batch DT9): the other governments of this tier, each
+  // under its own name, with no chairs of their own. See `tierUnionAsker`.
+  const union = tierUnionAsker(sc);
+  if (union !== null) {
+    for (const id of governmentsAtTier(governmentDef(sc.government).tier)) {
+      if (id === sc.government) continue;
+      const def = governmentDef(id);
+      const label = `${CLASS_WORD.government} \u00b7 ${def.name} \u00b7 ${doctrineDef(union).name}`;
+      readAgain(state, playerId, list, id, label, def.effects, GOVERNMENT_READ_NOT_AT_ALL);
+    }
+  }
   for (const id of sc.doctrines) {
     if (!isDoctrineId(id)) continue;
     push(id, CLASS_WORD.doctrine, doctrineDef(id).effects);
@@ -858,6 +873,20 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
     // level — is gone with the ladder, and so is the only line in the whole
     // evaluator that knew a holding could differ from a card.
     push(slot.card, CLASS_WORD.order, orderDef(slot.card).effects);
+  }
+  // **The chair that counts twice** (batch DT9, The Arthashastra): the card in it
+  // is read again, right after the seated Orders. Only the rows walked so far are
+  // asked, because the reading adds to the list. See `CardSlotPositionEffect.whole`.
+  const walked = list.length;
+  for (let at = 0; at < walked; at++) {
+    const entry = list[at]!;
+    if (entry.effect.kind !== 'slotPosition' || entry.effect.whole !== true) continue;
+    const seated = orderAtSlotPosition(sc, entry.effect.position, entry.effect.slot);
+    if (seated === null) continue;
+    const label = `${CLASS_WORD.order} \u00b7 ${orderDef(seated).name} \u00b7 ${anyCardDef(entry.card).name}`;
+    for (let reading = 1; reading < Math.floor(entry.effect.factor); reading++) {
+      readAgain(state, playerId, list, seated, label, orderDef(seated).effects, CHAIR_READS_ONCE);
+    }
   }
   // **The eleventh source** (batch G3, `docs/wager.md` §4): the malices a missed
   // wager seated in this realm's chairs. Read off `Player.malices` in seating
@@ -880,10 +909,20 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
   // permanently and empire-wide, and it joins the list rather than forking the
   // evaluator. Last, after the law, because that is the order they were built
   // in and an order that reshuffled itself would reorder every ledger.
+  //
+  // **The Serapeum** (batch DT9): each god is read as many times as the rule says,
+  // off the effects already walked, as a legacy is below.
   const pantheon = playerById(state, playerId)?.pantheon;
+  const godReadings = metaReadings(list, 'godsCountTwice');
   for (const id of pantheon?.beliefs ?? []) {
     if (!isBeliefId(id)) continue;
-    push(id, CLASS_WORD.belief, beliefDef(id).effects);
+    const def = beliefDef(id);
+    push(id, CLASS_WORD.belief, def.effects);
+    if (godReadings === null) continue;
+    const label = `${CLASS_WORD.belief} \u00b7 ${def.name} \u00b7 ${anyCardDef(godReadings.card).name}`;
+    for (let reading = 1; reading < godReadings.times; reading++) {
+      readAgain(state, playerId, list, id, label, def.effects, GOD_READS_ONCE);
+    }
   }
   // **The fifth source** (the wonders framework, 2026-08-27): the wonders
   // standing in this empire's cities. Last, after the law and the gods, for the
@@ -947,8 +986,8 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
   //
   // **The Immortals** (Magisterial batch MG8, the triage's reading 22): each
   // live legacy is read as many times as the law says (`legaciesCountTwice`),
-  // as if the person had been spent that many times. See `legacyReadings`.
-  const reread = legacyReadings(list);
+  // as if the person had been spent that many times. See `metaReadings`.
+  const reread = metaReadings(list, 'legaciesCountTwice');
   for (const held of playerById(state, playerId)?.legacies ?? []) {
     if (held.revoked === true) continue;
     if (!isGreatPersonId(held.id)) continue;
@@ -959,10 +998,9 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
     // Hypatia · The Immortals"), so a ledger shows why the line is there
     // twice. A clause nested in a condition keeps the same label.
     const label = `${CLASS_WORD.legacy} · ${def.name} · ${anyCardDef(reread.card).name}`;
-    const again = (card: CardId, _word: string, nested: readonly CardEffect[]): void => {
-      pushEffects(state, playerId, list, card, label, nested, again, label);
-    };
-    for (let reading = 1; reading < reread.times; reading++) again(held.id, label, def.legacy);
+    for (let reading = 1; reading < reread.times; reading++) {
+      readAgain(state, playerId, list, held.id, label, def.legacy);
+    }
   }
   // **The thirteenth source** (Expansionist batch E5): what a fulfilled commission
   // hands over for the rest of the game (`CommissionReward.lasting`, The
@@ -1324,29 +1362,85 @@ function pushEffects(
 }
 
 /**
- * **How many times each legacy is read, and which card asks** (Magisterial
- * batch MG8, The Immortals; the triage's reading 22), or `null` when the law
- * reads each legacy once.
+ * **How many times a source is read, and which card asks** (Magisterial batch
+ * MG8, The Immortals; batch DT9, The Serapeum), or `null` when the law reads it
+ * once.
  *
- * The answer is the largest `legaciesCountTwice` value among the effects
- * already walked, and the first card that holds that value. It reads the list
- * the walk has built so far, as the founder's trickle reads its amplifier: a
- * question asked of `liveEffects` from inside its own walk would never end.
- * The legacy source is walked after the government, the Doctrines, the Orders
- * in chairs, the malices, the beliefs and the wonders, so a rule on any of
- * those is seen. A clause gated by a condition is in the list only when its
- * condition holds, as everywhere else.
+ * The answer is the largest value of this rule among the effects already walked,
+ * and the first card that holds that value. It reads the list the walk has built
+ * so far, as the founder's trickle reads its amplifier: a question asked of
+ * `liveEffects` from inside its own walk would never end. So a rule here is seen
+ * only on a source walked before the one it reads, and each rule's docblock on
+ * `MetaRuleId` says which those are. A clause gated by a condition is in the list
+ * only when its condition holds, as everywhere else.
  */
-function legacyReadings(list: readonly LiveCardEffect[]): { times: number; card: CardId } | null {
+function metaReadings(
+  list: readonly LiveCardEffect[],
+  rule: MetaRuleId,
+): { times: number; card: CardId } | null {
   let best: { times: number; card: CardId } | null = null;
   for (const entry of list) {
-    if (entry.effect.kind !== 'metaRule' || entry.effect.rule !== 'legaciesCountTwice') continue;
+    if (entry.effect.kind !== 'metaRule' || entry.effect.rule !== rule) continue;
     const times = Math.floor(entry.effect.value);
     if (times <= 1) continue;
     if (best === null || times > best.times) best = { times, card: entry.card };
   }
   return best;
 }
+
+/**
+ * The Doctrine that asks for the other governments of this tier, or `null`.
+ *
+ * Asked of `PlayerStatecraft.doctrines` directly, because the governments are
+ * walked before the Doctrines, so `metaReadings` could not see the row yet. So
+ * only a Doctrine's top-level row can hold `governmentsOfTier`.
+ */
+function tierUnionAsker(sc: PlayerStatecraft): DoctrineId | null {
+  for (const id of sc.doctrines) {
+    if (!isDoctrineId(id)) continue;
+    for (const effect of doctrineDef(id).effects) {
+      if (effect.kind === 'metaRule' && effect.rule === 'governmentsOfTier') return id;
+    }
+  }
+  return null;
+}
+
+/**
+ * Pushes a card's effects again under one whole label, as `pushEffects` would.
+ *
+ * The one way a source is read a second time, so a clause in a condition keeps the
+ * label and obeys `leftOut` the same as a clause outside one. `leftOut` names the
+ * kinds this reading skips, at every depth.
+ */
+function readAgain(
+  state: GameState,
+  playerId: number,
+  list: LiveCardEffect[],
+  card: CardId,
+  label: string,
+  effects: readonly CardEffect[],
+  leftOut: readonly CardEffect['kind'][] = [],
+): void {
+  const again = (held: CardId, _word: string, nested: readonly CardEffect[]): void => {
+    const kept = nested.filter((effect) => !leftOut.includes(effect.kind));
+    pushEffects(state, playerId, list, held, label, kept, again, label);
+  };
+  again(card, label, effects);
+}
+
+/**
+ * What the chair that counts twice does not read again (the triage's reading 4).
+ * A chair count must not depend on the card in the chair, and an engine must not
+ * read an engine. The `whole` row's own arithmetic is here too, so a card cannot
+ * ask for itself.
+ */
+const CHAIR_READS_ONCE: readonly CardEffect['kind'][] = ['slotRider', 'slotPosition', 'metaRule'];
+
+/** What The Serapeum does not read again: it doubles a god's effects and not its offers. */
+const GOD_READS_ONCE: readonly CardEffect['kind'][] = ['periodicOffer', 'offerRider'];
+
+/** What The Union of Lublin leaves out of another government: it gives no chairs. */
+const GOVERNMENT_READ_NOT_AT_ALL: readonly CardEffect['kind'][] = ['slotRider'];
 
 /**
  * One empire condition, asked under the cut.
@@ -4508,6 +4602,9 @@ function deckModifierLines(
     : effectsOfKind(state, playerId, 'slotPosition');
   for (const { source, card, effect } of positions) {
     if (!sc) continue;
+    // A `whole` row is the walk's, which has read the card again already. Read
+    // here as well, its flat lines would pay a third time.
+    if (effect.whole === true) continue;
     const seated = orderAtSlotPosition(sc, effect.position, effect.slot);
     // A chair that is empty, does not exist, or holds this very card pays
     // nothing: an engine that read its own line would be an engine feeding
@@ -10568,7 +10665,7 @@ export function runPeriodicBoons(
     }
     // The chairs first, in slot order — the stamped clock.
     const seated = new Set<CardId>();
-    for (const slot of sc.slots) {
+    for (const [chair, slot] of sc.slots.entries()) {
       if (!slot || !isOrderId(slot.card)) continue;
       seated.add(slot.card);
       for (const effect of orderDef(slot.card).effects) {
@@ -10587,7 +10684,11 @@ export function runPeriodicBoons(
         }
         if (state.turn < slot.nextFiresTurn) continue;
         // Double Time (Dominion batch D7): a seated Order's boon pays twice.
-        const times = turnEffectRepeats(state, player.id, slot.card);
+        // A chair that counts twice does the same (batch DT9, The Arthashastra):
+        // this walk reads the row itself, so the live list's second reading of it
+        // is skipped below and would not otherwise pay.
+        const times =
+          turnEffectRepeats(state, player.id, slot.card) * chairReadingsAt(state, player.id, chair);
         for (let round = 0; round < times; round++) {
           payPeriodicBoon(state, player, slot.card, CLASS_WORD.order, effect, bankRenown);
         }
@@ -13112,6 +13213,25 @@ export function cardExtraChairs(state: GameState, playerId: number): number {
     extra += effect.extra ?? 1;
   }
   return Math.max(0, Math.floor(extra));
+}
+
+/**
+ * **How many times the card in this chair is read** (batch DT9, The
+ * Arthashastra): once, plus what each `whole` `slotPosition` row pointing at this
+ * chair adds. It asks the chair and not the card, so the screen can mark an empty
+ * chair and the bot can price a card it has not seated yet. Empty or not, the
+ * answer is the same one the walk acts on.
+ */
+export function chairReadingsAt(state: GameState, playerId: number, chair: number): number {
+  const sc = statecraftOf(state, playerId);
+  if (!sc) return 1;
+  let times = 1;
+  for (const { effect } of effectsOfKind(state, playerId, 'slotPosition')) {
+    if (effect.whole !== true) continue;
+    if (chairIndexAtPosition(sc, effect.position, effect.slot) !== chair) continue;
+    times += Math.max(0, Math.floor(effect.factor) - 1);
+  }
+  return times;
 }
 
 /**

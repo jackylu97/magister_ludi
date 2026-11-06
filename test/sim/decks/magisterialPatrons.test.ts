@@ -557,6 +557,6 @@ describe('the seams of a great person spent', () => {
       'sim/statecraft/evaluator.ts',
       'sim/statecraftData.ts',
     ]);
-    expect(bodyOf('sim/statecraft/evaluator.ts', 'buildLiveEffects')).toContain('legacyReadings(list)');
+    expect(bodyOf('sim/statecraft/evaluator.ts', 'buildLiveEffects')).toContain("metaReadings(list, 'legaciesCountTwice')");
   });
 });

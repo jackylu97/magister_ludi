@@ -255,6 +255,21 @@ describe('the offices are ordered, and the word says which', () => {
     ]);
   });
 
+  it('prints a position word for a Doctrine that reads a chair, and marks the chair (batch DT9)', () => {
+    const { state } = bench();
+    const player = playerById(state, 0)!;
+    player.statecraft.slots = [];
+    expect(deckReadsSlotPosition(player.statecraft)).toBe(false);
+    player.statecraft.doctrines.push('theCouncilOfTen' as never);
+    expect(deckReadsSlotPosition(player.statecraft)).toBe(false);
+    player.statecraft.doctrines.push('theArthashastra' as never);
+    expect(deckReadsSlotPosition(player.statecraft)).toBe(true);
+    // The plate says which chair it is, behind the same gate as the ordinal.
+    const plate = SCREEN.slice(SCREEN.indexOf('if (positions) {'), SCREEN.indexOf('if (malice !== null) {\n        button.classList'));
+    expect(plate).toContain("chairReadingsAt(state, seat, index) === 2");
+    expect(plate).toContain("element('span', 'sc-slot-position', 'counts twice')");
+  });
+
   it('asks the effects rather than answering false', () => {
     const gate = SCREEN.slice(
       SCREEN.indexOf('export function deckReadsSlotPosition'),

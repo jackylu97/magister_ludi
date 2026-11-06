@@ -242,6 +242,7 @@ import {
   // Batch R2d: a building share is priced over the building's package.
   explainBuildingPackage,
   foldBuildingPackage,
+  ghostSlotsUnderDoctrine,
   // Batch R3: The Kept Secret's condition, the simulation's own reading.
   knowsUniqueTech,
   opusCityOf,
@@ -323,6 +324,7 @@ import {
   LEVY_USES,
   doctrineDef,
   governmentDef,
+  governmentsAtTier,
   isCharter,
   isDoctrineId,
   isOrderId,
@@ -3493,6 +3495,11 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // Worth exactly what the card in that chair is worth, over again — asked of
       // the same appraisal, with the two deck-reading shapes filtered out so an
       // engine pointed at an engine cannot recur.
+      //
+      // A `whole` chair (batch DT9, The Arthashastra) is priced by the best card
+      // the seat holds, and not by today's occupant: the chair is new and empty
+      // when the card is offered, and the seat logic puts that best card in it.
+      if (effect.whole === true) return countedChairWorth(effect.factor, ctx);
       const sc = statecraftOf(ctx.state, ctx.playerId);
       const seated = sc === undefined ? null : orderAtSlotPosition(sc, effect.position, effect.slot);
       if (seated === null || effect.factor === 1) return 0;
@@ -3934,6 +3941,9 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // in batch MG17): the legacies the seat holds and will hold, read again.
       // See `immortalsWorth`.
       if (effect.rule === 'legaciesCountTwice') return immortalsWorth(effect.value, ctx);
+      // Batch DT9: The Serapeum and The Union of Lublin read a source again.
+      if (effect.rule === 'godsCountTwice') return godsAgainWorth(effect.value, ctx);
+      if (effect.rule === 'governmentsOfTier') return otherGovernmentsWorth(ctx);
       return ctx.ai.score.unknownEffect;
     case 'beadPerOccasion':
       // **A glass bead the empire mints itself**, on a deed it chooses to do
@@ -5714,12 +5724,15 @@ function deckPair(
   const sc = statecraftOf(state, playerId);
   if (sc === undefined) return null;
   if (isDoctrineId(id)) {
+    // A Doctrine that opens a chair opens it at once (batch DT9), so each scratch
+    // board has the chairs the command would leave.
     if (sc.doctrines.includes(id)) {
       return {
         with: state,
         without: rewritten(state, playerId, {
           ...sc,
           doctrines: sc.doctrines.filter((held) => held !== id),
+          slots: ghostSlotsUnderDoctrine(sc, id, false),
         }),
       };
     }
@@ -5730,6 +5743,7 @@ function deckPair(
         ...sc,
         doctrines: [...sc.doctrines, id],
         doctrineTurns: { ...sc.doctrineTurns, [id]: state.turn },
+        slots: ghostSlotsUnderDoctrine(sc, id, true),
       }),
       without: state,
     };
@@ -11422,6 +11436,77 @@ function immortalsWorth(value: number, ctx: ValueContext): number {
   const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
   const later = (personRate(ctx) * horizon * meanRosterLegacy(ctx)) / 2;
   return extra * (held + later);
+}
+
+/**
+ * **What one seated Order pays when its chair reads it again** (batch DT9, The
+ * Arthashastra). The same kinds the walk leaves out, plus the yes-or-no rules,
+ * which gain nothing, and an amplifier, which the older `slotPosition` arm also
+ * leaves out so an engine pointed at an engine cannot recur.
+ */
+export function orderReadAgain(id: OrderId, ctx: ValueContext): number {
+  const lines = orderDef(id).effects.filter(
+    (effect) =>
+      !YES_OR_NO_KINDS.includes(effect.kind) &&
+      effect.kind !== 'slotRider' &&
+      effect.kind !== 'slotPosition' &&
+      effect.kind !== 'cardYieldAmplifier',
+  );
+  return lines.length === 0 ? 0 : scoreEffects(lines, ctx, id);
+}
+
+/**
+ * The Arthashastra's chair: the best second reading among the Orders the seat
+ * holds, seated or not. Nothing for a seat holding no Order worth reading again.
+ */
+function countedChairWorth(factor: number, ctx: ValueContext): number {
+  const extra = Math.max(0, Math.floor(factor) - 1);
+  const sc = statecraftOf(ctx.state, ctx.playerId);
+  if (extra === 0 || sc === undefined) return 0;
+  let best = 0;
+  for (const id of sc.orders) {
+    if (isOrderId(id)) best = Math.max(best, orderReadAgain(id, ctx));
+  }
+  return extra * best;
+}
+
+/**
+ * **The Serapeum** (`godsCountTwice`, batch DT9): each god the seat holds, read
+ * `value − 1` more times, less its yes-or-no rules and the offers the walk reads
+ * once. A god not yet held is not priced, so a seat with no god reads nothing.
+ */
+function godsAgainWorth(value: number, ctx: ValueContext): number {
+  const extra = Math.max(0, Math.floor(value) - 1);
+  const player = playerById(ctx.state, ctx.playerId);
+  if (extra === 0 || player === undefined) return 0;
+  let again = 0;
+  for (const id of player.pantheon.beliefs) {
+    if (!isBeliefId(id)) continue;
+    const lines = beliefDef(id).effects.filter(
+      (effect) =>
+        !YES_OR_NO_KINDS.includes(effect.kind) && effect.kind !== 'periodicOffer' && effect.kind !== 'offerRider',
+    );
+    if (lines.length > 0) again += explainEffects(lines, ctx).total;
+  }
+  return extra * again;
+}
+
+/**
+ * **The Union of Lublin** (`governmentsOfTier`, batch DT9): the other governments
+ * of the seat's tier, read as cards of their own. Yes-or-no rules count here,
+ * unlike a second reading, because the seat does not already have them. No chairs,
+ * as the walk reads none.
+ */
+function otherGovernmentsWorth(ctx: ValueContext): number {
+  const sc = statecraftOf(ctx.state, ctx.playerId);
+  if (sc === undefined) return 0;
+  let worth = 0;
+  for (const id of governmentsAtTier(governmentDef(sc.government).tier)) {
+    if (id === sc.government) continue;
+    const lines = governmentDef(id).effects.filter((effect) => effect.kind !== 'slotRider');
+    if (lines.length > 0) worth += explainEffects(lines, ctx).total;
+  }
+  return worth;
 }
 
 /**

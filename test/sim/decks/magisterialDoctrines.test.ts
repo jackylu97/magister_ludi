@@ -5,16 +5,17 @@
  * fold. None of these rows has a drawback, so each also has a test that it costs
  * nothing or that it pays nothing where its text does not reach.
  *
- * Batch DT6 adds The Carroccio and The Gobelins. Later batches add the deck's other
- * seven Doctrines to this file.
+ * Batch DT6 adds The Carroccio and The Gobelins. Batch DT9 adds The Arthashastra, The
+ * Council of Ten and The Union of Lublin, with a replay of the refit. Later batches
+ * add the deck's other four Doctrines to this file.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
-import { scoreCard, valueContext } from '../../../src/ai/bot';
+import { nextBotDecision, scoreCard, valueContext } from '../../../src/ai/bot';
 import { scoreEffects } from '../../../src/ai/value';
 import { WONDER_IDS } from '../../../src/sim/buildingData';
-import { explainCardImpact } from '../../../src/sim/cardImpact';
+import { explainCardImpact, foldCardImpact } from '../../../src/sim/cardImpact';
 import {
   explainGrowthPercent,
   foldGrowthPercent,
@@ -24,6 +25,8 @@ import {
   refreshCityDerived,
   settleProduction,
 } from '../../../src/sim/cities';
+import { applyCommand } from '../../../src/sim/commands';
+import { dispatch, snapshotState } from '../../../src/sim/game';
 import {
   drawGreatPersonOffer,
   greatPersonActAt,
@@ -44,32 +47,55 @@ import {
   createUnit,
   playerById,
 } from '../../../src/sim/state';
-import { doctrineBagFor } from '../../../src/sim/statecraft';
+import { setSlateShadow } from '../../../src/sim/slate';
 import {
+  chairCount,
+  doctrineBagFor,
+  maliceAt,
+  orderAtSlotPosition,
+  slotTypesOf,
+} from '../../../src/sim/statecraft';
+import {
+  cardActionRule,
   cardCombatLines,
+  cardExtraChairs,
   cardRenownLines,
+  cardShoreRaids,
+  chairReadingsAt,
+  effectsOfKind,
   explainBuildingPackage,
   explainCardCityYields,
+  explainCardPercentYields,
   foldBuildingPackage,
+  liveEffects,
+  runPeriodicBoons,
   windfallPayout,
 } from '../../../src/sim/statecraft/evaluator';
 import {
   type CardEffect,
   type DoctrineId,
+  type GovernmentId,
   type OrderId,
   DECK_FILE_DOCTRINES,
   ORDER_IDS,
   doctrineDef,
+  governmentDef,
+  governmentsAtTier,
   orderDef,
   poolDoctrines,
+  slotCount,
 } from '../../../src/sim/statecraftData';
 import { ABILITY_TECH, TECH_IDS, techDef } from '../../../src/sim/techData';
+import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
 import { explainCity, productionModifiers } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
 import { createGame } from '../newGameHelpers';
 
-/** The seven rows of batch DT4 in this deck, each with the band its table gives it. */
+/** The rows built so far in this deck, each with the band its table gives it. */
 const ROWS: readonly (readonly [string, number])[] = [
+  ['theArthashastra', 1],
+  ['theCouncilOfTen', 3],
+  ['theUnionOfLublin', 4],
   ['theChoregia', 1],
   ['thePericleanWorks', 1],
   ['theMagnaura', 2],
@@ -843,5 +869,578 @@ describe('The Gobelins (batch DT6)', () => {
     bumpRevision(state);
     expect(scoreEffects(row, valueContext(state, seat(state)))).toBeCloseTo(one * 2, 6);
     expect(city.ownerId).toBe(0);
+  });
+});
+
+// --- batch DT9: chairs, and reading a source again -------------------------------
+
+/** Lent rows, put back after each test, so a failed test cannot leak one into the next. */
+const lent: (() => void)[] = [];
+afterEach(() => {
+  while (lent.length > 0) lent.pop()!();
+});
+
+/** Lends an Order a set of effects for one test, as `lendDoctrineEffects` does a Doctrine. */
+function lendOrder(id: OrderId, effects: readonly CardEffect[]): void {
+  const row = orderDef(id) as { effects: readonly CardEffect[] };
+  const held = row.effects;
+  row.effects = effects;
+  lent.push(() => {
+    row.effects = held;
+  });
+}
+
+/** Two Orders whose rows these tests write for themselves. */
+const CARD = 'waysideShrines' as OrderId;
+const OTHER = 'theChoir' as OrderId;
+
+/** Seat 0 takes a Doctrine through the command, which is what opens its chairs. */
+function take(state: GameState, id: string): void {
+  seat(state).statecraft.pendingDoctrine = { options: [id as DoctrineId] };
+  expect(applyCommand(state, { type: 'chooseDoctrine', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+}
+
+/** Puts an Order in one chair for seat 0, wherever it was. */
+function seatIn(state: GameState, chair: number, card: OrderId): void {
+  const sc = seat(state).statecraft;
+  if (!sc.orders.includes(card)) sc.orders.push(card);
+  sc.slots = sc.slots.map((held) => (held?.card === card ? null : held));
+  sc.slots[chair] = { card, sealedUntil: state.turn };
+  bumpRevision(state);
+}
+
+/** A capital of three citizens for seat 0. */
+function capital(): { state: GameState; player: Player; city: City } {
+  const state = bareState(24, 10);
+  const city = town(state, 5, 5);
+  return { state, player: seat(state), city };
+}
+
+/** The last index of the council. */
+const lastChair = (player: Player): number => player.statecraft.slots.length - 1;
+
+/** What one card's combat lines give a fight at this hex. */
+function strengthFrom(state: GameState, unit: Unit, card: string): number {
+  return cardCombatLines(state, {
+    unit,
+    side: 'attack',
+    tile: at(state, unit.col, unit.row),
+    vsBarbarians: false,
+    vsCity: false,
+    targetHp: 100,
+    targetMaxHp: 100,
+  })
+    .filter((line) => line.card === card)
+    .reduce((sum, line) => sum + line.amount, 0);
+}
+
+describe('The Council of Ten (batch DT9)', () => {
+  it('opens two Wildcard chairs at once and moves no seated card', () => {
+    const { state, player } = capital();
+    const before = player.statecraft.slots.length;
+    seatIn(state, 0, CARD);
+    seatIn(state, 1, OTHER);
+    const seated = player.statecraft.slots.map((held) => held?.card ?? null);
+
+    take(state, 'theCouncilOfTen');
+
+    const sc = player.statecraft;
+    expect(sc.slots).toHaveLength(before + 2);
+    expect(sc.slots.slice(0, before).map((held) => held?.card ?? null)).toEqual(seated);
+    expect(sc.slots.slice(before)).toEqual([null, null]);
+    expect(slotTypesOf(sc).slice(before)).toEqual(['wildcard', 'wildcard']);
+    expect(chairCount(state, 0, sc.government)).toBe(before + 2);
+  });
+
+  it('keeps its chairs under a new government', () => {
+    const { state, player } = capital();
+    take(state, 'theCouncilOfTen');
+    const tierFour = governmentsAtTier(4)[0]!;
+    expect(chairCount(state, 0, tierFour)).toBe(slotCount(tierFour) + 2);
+    expect(player.statecraft.doctrines).toContain('theCouncilOfTen');
+  });
+
+  it('reaches the same board whenever the slate was read, in a game of real commands', () => {
+    /**
+     * One game, played by command, with the law read between commands or never.
+     * The same hand edits in both: culture, and which Doctrine the offer deals. A
+     * refit the slate missed would seat the cards differently in the two games, as
+     * The Muses' Call once did (`applyChooseDoctrine`).
+     */
+    const play = (warm: boolean): { snapshot: string; chairs: number; government: GovernmentId } => {
+      const g = createGame({
+        seed: 3,
+        sizeName: 'duel',
+        players: [
+          { name: 'Ada', color: '#a00', isHuman: true, decks: ['magisterial', 'dominion'] },
+          { name: 'Bors', color: '#00a', isHuman: true, decks: ['dominion', 'expansionist'] },
+        ],
+      });
+      const ada = seat(g.state);
+      const read = (): void => {
+        if (!warm) return;
+        chairCount(g.state, 0, ada.statecraft.government);
+        liveEffects(g.state, 0);
+        for (const city of g.state.cities) explainCardCityYields(g.state, city);
+      };
+      for (let turn = 0; turn < 6; turn++) {
+        ada.culturePool += 10_000;
+        seat(g.state, 1).culturePool += 10_000;
+        bumpRevision(g.state);
+        read();
+        expect(dispatch(g, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
+        expect(dispatch(g, { type: 'endTurn', playerId: 1 }).ok).toBe(true);
+        read();
+        for (const id of [0, 1]) {
+          const sc = seat(g.state, id).statecraft;
+          if (sc.pendingOrder !== undefined) {
+            expect(dispatch(g, { type: 'chooseOrder', playerId: id, optionIndex: 0 }).ok).toBe(true);
+          }
+          if (sc.pendingGovernment !== undefined) {
+            expect(dispatch(g, { type: 'adoptGovernment', playerId: id, choiceIndex: 0 }).ok).toBe(true);
+          }
+          read();
+          if (sc.pendingDoctrine !== undefined) {
+            if (id === 0 && !sc.doctrines.includes('theArthashastra' as DoctrineId)) {
+              sc.pendingDoctrine.options = ['theArthashastra' as DoctrineId];
+              expect(dispatch(g, { type: 'chooseDoctrine', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+              read();
+              // Into the chair it just opened, which only a refit can have made.
+              const card = sc.orders.find((held) => !sc.slots.some((slot) => slot?.card === held));
+              if (card !== undefined) {
+                const chair = sc.slots.length - 1;
+                expect(dispatch(g, { type: 'slotOrder', playerId: 0, cardId: card, slotIndex: chair }).ok).toBe(true);
+              }
+            } else {
+              expect(dispatch(g, { type: 'skipDoctrineOffer', playerId: id }).ok).toBe(true);
+            }
+          }
+          read();
+        }
+      }
+      expect(ada.statecraft.doctrines).toContain('theArthashastra');
+      return { snapshot: snapshotState(g.state), chairs: ada.statecraft.slots.length, government: ada.statecraft.government };
+    };
+    setSlateShadow(true);
+    try {
+      const warm = play(true);
+      const cold = play(false);
+      expect(warm.snapshot).toBe(cold.snapshot);
+      expect(warm.chairs).toBe(slotCount(warm.government) + 1);
+    } finally {
+      setSlateShadow(false);
+    }
+  });
+});
+
+describe('The Arthashastra (batch DT9)', () => {
+  /** The rows the chair has read again, which leaves out the Doctrine's own. */
+  const secondReadings = (state: GameState) =>
+    liveEffects(state, 0).filter(
+      (entry) => entry.source.includes('The Arthashastra') && entry.card !== ('theArthashastra' as never),
+    );
+
+  /** A held Doctrine, with the chair it opens and a card seated in that chair. */
+  function counted(effects: readonly CardEffect[]): { state: GameState; player: Player; city: City } {
+    const made = capital();
+    lendOrder(CARD, effects);
+    take(made.state, 'theArthashastra');
+    seatIn(made.state, lastChair(made.player), CARD);
+    return made;
+  }
+
+  /** The same card, moved one chair up, where it counts once. */
+  function moveOffTheChair(state: GameState, player: Player): void {
+    seatIn(state, lastChair(player) - 1, CARD);
+  }
+
+  it('opens one Wildcard chair, the last one, and marks that chair alone', () => {
+    const { state, player } = capital();
+    const before = player.statecraft.slots.length;
+    take(state, 'theArthashastra');
+    const sc = player.statecraft;
+    expect(sc.slots).toHaveLength(before + 1);
+    expect(slotTypesOf(sc)[before]).toBe('wildcard');
+    expect(sc.slots.map((_held, chair) => chairReadingsAt(state, 0, chair))).toEqual([
+      ...new Array<number>(before).fill(1),
+      2,
+    ]);
+  });
+
+  it('pays a town line twice, as a line of its own, and once off the chair', () => {
+    const { state, player, city } = counted([{ kind: 'pays', where: 'city', gold: 4 } as CardEffect]);
+    expect(linePays(state, city, CARD, 'gold')).toBe(8);
+    const lines = explainCardCityYields(state, city).filter((line) => line.card === CARD);
+    expect(lines.map((line) => line.source)).toEqual([
+      `Order · ${orderDef(CARD).name}`,
+      `Order · ${orderDef(CARD).name} · The Arthashastra`,
+    ]);
+    moveOffTheChair(state, player);
+    expect(linePays(state, city, CARD, 'gold')).toBe(4);
+  });
+
+  it('pays a hex line twice, and once off the chair', () => {
+    const { state, player, city } = counted([
+      { kind: 'pays', where: 'hex', gold: 3, on: { test: 'improvement', improvement: 'farm' } } as CardEffect,
+    ]);
+    const hex = at(state, 6, 5);
+    raiseImprovement(hex, 'farm' as never, state.turn);
+    bumpRevision(state);
+    const gold = (): number => foldTileLines(explainTileYield(hex, cityContext(state, city))).gold;
+    const doubled = gold();
+    moveOffTheChair(state, player);
+    const single = gold();
+    expect(doubled - single).toBe(3);
+    seat(state).statecraft.slots = seat(state).statecraft.slots.map(() => null);
+    bumpRevision(state);
+    expect(single - gold()).toBe(3);
+  });
+
+  it('pays a combat line twice, and once off the chair', () => {
+    const { state, player } = counted([
+      { kind: 'combatLine', amount: 2, when: { test: 'always' }, side: 'both' } as CardEffect,
+    ]);
+    const unit = createUnit(state, 0, 'warrior', 5, 6);
+    bumpRevision(state);
+    expect(strengthFrom(state, unit, CARD)).toBe(4);
+    moveOffTheChair(state, player);
+    expect(strengthFrom(state, unit, CARD)).toBe(2);
+  });
+
+  it('counts a percentage and a rider twice too, as the user’s answer says', () => {
+    const { state, player, city } = counted([
+      { kind: 'percentYields', yield: 'gold', percent: 10 } as CardEffect,
+      { kind: 'windfallRider', occasion: 'kill', grant: { yield: 'gold', amount: 5 } } as CardEffect,
+    ]);
+    const percent = (): number =>
+      explainCardPercentYields(state, city)
+        .filter((line) => line.card === CARD)
+        .reduce((sum, line) => sum + line.percent, 0);
+    const rider = (): number =>
+      windfallPayout(state, 0, 'kill')
+        .grants.filter((grant) => grant.card === CARD)
+        .reduce((sum, grant) => sum + grant.amount, 0);
+    expect(percent()).toBe(20);
+    expect(rider()).toBe(10);
+    moveOffTheChair(state, player);
+    expect(percent()).toBe(10);
+    expect(rider()).toBe(5);
+  });
+
+  it('fires a periodic boon twice, which the chair walk reads itself', () => {
+    const { state, player } = counted([{ kind: 'periodic', everyTurns: 10, pays: 'gold', amount: 25 } as CardEffect]);
+    const fire = (): number => {
+      const slot = player.statecraft.slots.find((held) => held?.card === CARD)!;
+      slot.nextFiresTurn = state.turn;
+      slot.firePeriod = 10;
+      bumpRevision(state);
+      const before = player.gold;
+      runPeriodicBoons(state);
+      return player.gold - before;
+    };
+    expect(fire()).toBe(50);
+    moveOffTheChair(state, player);
+    expect(fire()).toBe(25);
+  });
+
+  it('moves with the last chair when a second Doctrine adds chairs', () => {
+    const { state, player, city } = counted([{ kind: 'pays', where: 'city', gold: 4 } as CardEffect]);
+    const sc = player.statecraft;
+    const held = lastChair(player);
+    expect(orderAtSlotPosition(sc, -1, 'wildcard')).toBe(CARD);
+    expect(linePays(state, city, CARD, 'gold')).toBe(8);
+
+    take(state, 'theCouncilOfTen');
+
+    // The card has not moved, and it has stopped counting twice.
+    expect(sc.slots[held]?.card).toBe(CARD);
+    expect(sc.slots).toHaveLength(held + 3);
+    expect(orderAtSlotPosition(sc, -1, 'wildcard')).toBeNull();
+    expect(chairReadingsAt(state, 0, held)).toBe(1);
+    expect(chairReadingsAt(state, 0, lastChair(player))).toBe(2);
+    expect(linePays(state, city, CARD, 'gold')).toBe(4);
+
+    seatIn(state, lastChair(player), CARD);
+    expect(linePays(state, city, CARD, 'gold')).toBe(8);
+  });
+
+  it('adds no chair for a slotRider card in that chair', () => {
+    const { state, player } = counted([{ kind: 'slotRider', extra: 1 } as CardEffect]);
+    const inTheChair = chairCount(state, 0, player.statecraft.government);
+    const riders = cardExtraChairs(state, 0);
+    moveOffTheChair(state, player);
+    expect(chairCount(state, 0, player.statecraft.government)).toBe(inTheChair);
+    expect(cardExtraChairs(state, 0)).toBe(riders);
+    // Its own chair and The Arthashastra's, and no third for the second reading.
+    expect(riders).toBe(2);
+  });
+
+  it('reads no slotRider, slotPosition or metaRule again, even inside a condition', () => {
+    const { state } = counted([
+      {
+        kind: 'conditionRule',
+        when: { test: 'cityCountAtLeast', value: 1 },
+        then: [
+          { kind: 'slotRider', extra: 1 },
+          { kind: 'metaRule', rule: 'techCountsTwice', value: 2 },
+          { kind: 'slotPosition', slot: 'economic', position: 1, factor: 2 },
+          { kind: 'pays', where: 'empire', gold: 1 },
+        ],
+      } as unknown as CardEffect,
+    ]);
+    const kinds = liveEffects(state, 0)
+      .filter((entry) => entry.card === CARD && entry.source.includes('The Arthashastra'))
+      .map((entry) => entry.effect.kind);
+    expect(kinds).toEqual(['pays']);
+  });
+
+  it('holds a rule once, because a rule is a yes or a no', () => {
+    const { state, player } = counted([{ kind: 'rule', rule: 'shoreRaid' } as CardEffect]);
+    const ship = createUnit(state, 0, 'trireme', 5, 6);
+    bumpRevision(state);
+    expect(cardShoreRaids(state, ship)).toBe(1);
+    expect(effectsOfKind(state, 0, 'rule').filter((entry) => entry.card === CARD)).toHaveLength(2);
+    moveOffTheChair(state, player);
+    expect(cardShoreRaids(state, ship)).toBe(1);
+    lendOrder(OTHER, [{ kind: 'rule', rule: 'freePillage' } as CardEffect]);
+    seatIn(state, lastChair(player), OTHER);
+    expect(cardActionRule(state, 0, 'freePillage' as never)).toBe(true);
+  });
+
+  it('pays nothing again from an empty chair', () => {
+    const { state, player, city } = counted([{ kind: 'pays', where: 'city', gold: 4 } as CardEffect]);
+    player.statecraft.slots[lastChair(player)] = null;
+    bumpRevision(state);
+    expect(linePays(state, city, CARD, 'gold')).toBe(0);
+    expect(secondReadings(state)).toEqual([]);
+  });
+
+  it('reads nothing again while a malice holds the chair, which a Wildcard malice takes', () => {
+    const { state, player, city } = capital();
+    lendOrder(CARD, [{ kind: 'pays', where: 'city', gold: 4 } as CardEffect]);
+    seatIn(state, 0, CARD);
+    // A Wildcard malice sits in the last Wildcard chair, by its own seating rule.
+    const before = lastChair(player);
+    player.statecraft.slots[before] = null;
+    player.malices.push({ id: 'closedSchools' as never, untilAge: 9, chair: before });
+    bumpRevision(state);
+
+    take(state, 'theArthashastra');
+
+    // The refit re-seats malices, so it moves to the new last chair and frees the old.
+    expect(maliceAt(player, lastChair(player))).toBe('closedSchools');
+    expect(maliceAt(player, before)).toBeNull();
+    expect(chairReadingsAt(state, 0, lastChair(player))).toBe(2);
+    expect(secondReadings(state)).toEqual([]);
+    expect(linePays(state, city, CARD, 'gold')).toBe(4);
+
+    // When it leaves, the chair is free and counts twice again.
+    player.malices = [];
+    seatIn(state, lastChair(player), CARD);
+    expect(linePays(state, city, CARD, 'gold')).toBe(8);
+  });
+
+  it('does not claim the card in today’s last chair on the offer, and prices the chair when held', () => {
+    const { state, player } = capital();
+    lendOrder(CARD, [{ kind: 'pays', where: 'empire', gold: 4 } as CardEffect]);
+    seatIn(state, lastChair(player), CARD);
+    // The new chair is empty, so taking it pays nothing yet.
+    const offered = explainCardImpact(state, 0, { kind: 'doctrine', id: 'theArthashastra' as DoctrineId });
+    expect(foldCardImpact(offered).gold).toBe(0);
+    take(state, 'theArthashastra');
+    seatIn(state, lastChair(player), CARD);
+    // Held and doubling: the Doctrine's ghost loses its chair and the card with it.
+    const held = explainCardImpact(state, 0, { kind: 'doctrine', id: 'theArthashastra' as DoctrineId });
+    expect(foldCardImpact(held).gold).toBe(8);
+  });
+
+  it('prices its chair by the best card the seat holds, read again', () => {
+    const { state, player } = capital();
+    const worth = (): number => scoreCard(player, 'theArthashastra' as never, valueContext(state, player));
+    const empty = worth();
+    lendOrder(CARD, [{ kind: 'pays', where: 'empire', gold: 4 } as CardEffect]);
+    lendOrder(OTHER, [{ kind: 'pays', where: 'empire', gold: 2 } as CardEffect]);
+    player.statecraft.orders.push(CARD, OTHER);
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    const best = scoreEffects([{ kind: 'pays', where: 'empire', gold: 4 } as CardEffect], ctx);
+    expect(best).toBeGreaterThan(0);
+    expect(worth() - empty).toBeCloseTo(best, 6);
+  });
+});
+
+describe('where a bot seats the chair that counts twice (batch DT9)', () => {
+  /** A real game with nothing else waiting, and The Arthashastra held. */
+  function holder(): { state: GameState; player: Player } {
+    const g = createGame({
+      seed: 3,
+      sizeName: 'duel',
+      players: [
+        { name: 'Ada', color: '#a00', isHuman: false, decks: ['magisterial', 'dominion'] },
+        { name: 'Bors', color: '#00a', isHuman: false, decks: ['dominion', 'expansionist'] },
+      ],
+      barbarians: false,
+    });
+    const state = g.state;
+    const city = town(state, 8, 8);
+    city.queue = [{ kind: 'unit', id: 'warrior' }];
+    const player = seat(state);
+    player.researching = 'earthenware' as never;
+    player.statecraft.slots = player.statecraft.slots.map(() => null);
+    bumpRevision(state);
+    take(state, 'theArthashastra');
+    return { state, player };
+  }
+
+  /** Steps the bot until it reaches a council command, answering what stands before it. */
+  function nextCouncilMove(state: GameState): { type: string; slotIndex?: number; cardId?: string } | null {
+    let decision = nextBotDecision(state, 0);
+    for (let guard = 0; guard < 8 && decision !== null; guard++) {
+      if (decision.command.type === 'slotOrder' || decision.command.type === 'unslotOrder') break;
+      expect(applyCommand(state, decision.command).ok).toBe(true);
+      decision = nextBotDecision(state, 0);
+    }
+    return decision === null ? null : (decision.command as never);
+  }
+
+  it('seats the card with the most to read again in that chair first', () => {
+    const { state, player } = holder();
+    lendOrder(CARD, [{ kind: 'pays', where: 'empire', gold: 6 } as CardEffect]);
+    lendOrder(OTHER, [{ kind: 'pays', where: 'empire', gold: 1 } as CardEffect]);
+    player.statecraft.orders = [OTHER, CARD];
+    bumpRevision(state);
+    const move = nextCouncilMove(state);
+    expect(move?.type).toBe('slotOrder');
+    expect(move?.cardId).toBe(CARD);
+    expect(move?.slotIndex).toBe(lastChair(player));
+  });
+
+  it('moves a seated card into the empty chair when the bench has nothing, and stays there', () => {
+    const { state, player } = holder();
+    lendOrder(CARD, [{ kind: 'pays', where: 'empire', gold: 6 } as CardEffect]);
+    player.statecraft.orders = [CARD];
+    seatIn(state, 0, CARD);
+    player.statecraft.slots[0]!.sealedUntil = state.turn - 1;
+    bumpRevision(state);
+
+    const out = nextCouncilMove(state);
+    expect(out?.type).toBe('unslotOrder');
+    expect(out?.slotIndex).toBe(0);
+    expect(applyCommand(state, out as never).ok).toBe(true);
+
+    const back = nextCouncilMove(state);
+    expect(back?.type).toBe('slotOrder');
+    expect(back?.cardId).toBe(CARD);
+    expect(back?.slotIndex).toBe(lastChair(player));
+    expect(applyCommand(state, back as never).ok).toBe(true);
+
+    // Seated in the chair, with its seal off, the arm has nothing left to do.
+    player.statecraft.slots[lastChair(player)]!.sealedUntil = state.turn - 1;
+    bumpRevision(state);
+    const after = nextCouncilMove(state);
+    expect(after === null || after.type !== 'unslotOrder').toBe(true);
+  });
+
+  it('moves no card toward a chair a malice holds', () => {
+    const { state, player } = holder();
+    lendOrder(CARD, [{ kind: 'pays', where: 'empire', gold: 6 } as CardEffect]);
+    player.statecraft.orders = [CARD];
+    seatIn(state, 0, CARD);
+    player.statecraft.slots[0]!.sealedUntil = state.turn - 1;
+    player.malices.push({ id: 'closedSchools' as never, untilAge: 9, chair: lastChair(player) });
+    bumpRevision(state);
+    const move = nextCouncilMove(state);
+    expect(move === null || move.type !== 'unslotOrder').toBe(true);
+  });
+
+  it('leaves a card with nothing to read again where it sits', () => {
+    const { state, player } = holder();
+    lendOrder(CARD, [{ kind: 'rule', rule: 'freePillage' } as CardEffect]);
+    player.statecraft.orders = [CARD];
+    seatIn(state, 0, CARD);
+    player.statecraft.slots[0]!.sealedUntil = state.turn - 1;
+    bumpRevision(state);
+    const move = nextCouncilMove(state);
+    expect(move === null || move.type !== 'unslotOrder').toBe(true);
+  });
+});
+
+describe('The Union of Lublin (batch DT9)', () => {
+  /** A seat on The Estates, tier 26, holding the Doctrine. */
+  function union(): { state: GameState; player: Player; city: City; others: GovernmentId[] } {
+    const made = capital();
+    const sc = made.player.statecraft;
+    sc.government = 'theEstates' as GovernmentId;
+    sc.slots = new Array(slotCount(sc.government)).fill(null);
+    bumpRevision(made.state);
+    take(made.state, 'theUnionOfLublin');
+    const others = governmentsAtTier(26).filter((id) => id !== sc.government);
+    return { ...made, others };
+  }
+
+  it('reads the three governments of the tier, each once and under one label', () => {
+    const { state, others } = union();
+    expect(others).toEqual(['theSultanate', 'theCuria']);
+    const live = liveEffects(state, 0);
+    const labelsOf = (id: GovernmentId): string[] => [
+      ...new Set(live.filter((entry) => entry.card === id).map((entry) => entry.source)),
+    ];
+    expect(labelsOf('theEstates' as GovernmentId)).toEqual(['Government · The Estates']);
+    for (const id of others) {
+      const name = governmentDef(id).name;
+      expect(labelsOf(id)).toEqual([`Government · ${name} · The Union of Lublin`]);
+      expect(live.filter((entry) => entry.card === id)).toHaveLength(governmentDef(id).effects.length);
+    }
+  });
+
+  it('pays another government’s line in a real fold, and nothing without the Doctrine', () => {
+    const { state, player, city } = union();
+    // The Sultanate's +25% toward units, which The Estates does not have.
+    const unitLines = () =>
+      productionModifiers(state, city, { kind: 'unit', id: 'warrior' as never }).filter((line) =>
+        line.source.includes('The Union of Lublin'),
+      );
+    expect(unitLines()).toHaveLength(1);
+    expect(unitLines()[0]!.source).toContain('The Sultanate');
+    expect(unitLines()[0]!.percent).toBe(25);
+    player.statecraft.doctrines = [];
+    bumpRevision(state);
+    expect(unitLines()).toEqual([]);
+  });
+
+  it('adds no chairs, and leaves the chairs to the held government', () => {
+    const { state, player } = union();
+    const sc = player.statecraft;
+    expect(sc.slots).toHaveLength(slotCount(sc.government));
+    expect(slotTypesOf(sc)).toHaveLength(slotCount(sc.government));
+    expect(chairCount(state, 0, sc.government)).toBe(slotCount(sc.government));
+    // A government with a chair rider of its own would still add none.
+    const row = governmentDef('theCuria' as GovernmentId) as { effects: readonly CardEffect[] };
+    const held = row.effects;
+    row.effects = [...held, { kind: 'slotRider', extra: 3 } as CardEffect];
+    lent.push(() => {
+      row.effects = held;
+    });
+    bumpRevision(state);
+    expect(cardExtraChairs(state, 0)).toBe(0);
+  });
+
+  it('follows the seat to the next government it holds', () => {
+    const { state, player } = union();
+    player.statecraft.government = 'theCuria' as GovernmentId;
+    bumpRevision(state);
+    const live = liveEffects(state, 0);
+    expect(live.some((entry) => entry.source === 'Government · The Estates · The Union of Lublin')).toBe(true);
+    expect(live.some((entry) => entry.source === 'Government · The Curia')).toBe(true);
+    expect(live.some((entry) => entry.source === 'Government · The Curia · The Union of Lublin')).toBe(false);
+  });
+
+  it('is priced at what the other two governments pay', () => {
+    const { state, player, others } = union();
+    const ctx = valueContext(state, player);
+    const each = others.reduce((sum, id) => sum + scoreEffects(governmentDef(id).effects, ctx), 0);
+    const row = doctrineDef('theUnionOfLublin' as DoctrineId).effects;
+    expect(scoreEffects(row, ctx)).toBeCloseTo(each, 6);
+    expect(each).toBeGreaterThan(0);
   });
 });

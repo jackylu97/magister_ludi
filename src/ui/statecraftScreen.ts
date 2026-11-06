@@ -149,6 +149,7 @@ import {
   type CardClause,
   type PlayerStatecraft,
   SLOT_WORDS,
+  chairReadingsAt,
   describeCard,
   draftExhausted,
   liveEffects,
@@ -269,6 +270,9 @@ function readsSlotPosition(effect: CardEffect): boolean {
  * the ledgers from (`liveEffects` walks `sc.slots`): a position reader sitting on
  * the bench changes nothing about what the offices are worth, and a column of
  * ordinals printed for a card nobody has slotted would be furniture.
+ *
+ * And of the **Doctrines** (batch DT9): a Doctrine is always in force, and The
+ * Arthashastra's chair is a position the player has to be able to find.
  */
 export function deckReadsSlotPosition(sc: PlayerStatecraft): boolean {
   for (const slot of sc.slots) {
@@ -276,6 +280,10 @@ export function deckReadsSlotPosition(sc: PlayerStatecraft): boolean {
     for (const effect of orderDef(slot.card).effects) {
       if (readsSlotPosition(effect)) return true;
     }
+  }
+  for (const id of sc.doctrines) {
+    if (!isDoctrineId(id)) continue;
+    if (doctrineDef(id).effects.some(readsSlotPosition)) return true;
   }
   return false;
 }
@@ -950,6 +958,11 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       // interface is tabular mono, an ordinal included.
       if (positions) {
         plate.append(element('span', 'sc-slot-position', slotPositionWord(layout, index)));
+        // The chair The Arthashastra reads twice (batch DT9). It moves when another
+        // chair opens, so the plate says which one it is now.
+        if (chairReadingsAt(state, seat, index) === 2) {
+          plate.append(element('span', 'sc-slot-position', 'counts twice'));
+        }
       }
       if (malice !== null) {
         button.classList.add('sc-slot-malice');

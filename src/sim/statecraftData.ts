@@ -5228,7 +5228,34 @@ export type MetaRuleId =
    * the Doctrines, the Orders in chairs, the malices, the beliefs and the
    * wonders. The Immortals is an Order.
    */
-  | 'legaciesCountTwice';
+  | 'legaciesCountTwice'
+  /**
+   * **How many times this empire reads each of its gods** (batch DT9, The
+   * Serapeum). The value is the count: 2 is twice. Read once, at
+   * `liveEffects`' pantheon source (`buildLiveEffects`), off the effects
+   * already walked: each god in `Player.pantheon.beliefs` is pushed that many
+   * times. `periodicOffer` and `offerRider` are read once, because the card
+   * doubles a god's effects and not the offers a god gives (the triage's
+   * reading 28). A follower or enhancer belief is not a god and is read once.
+   *
+   * Only a source walked before the pantheon can hold it: the government, the
+   * Doctrines, the Orders in chairs and the malices. The Serapeum is a Doctrine.
+   */
+  | 'godsCountTwice'
+  /**
+   * **This empire also reads the other governments of its tier** (batch DT9,
+   * The Union of Lublin). Read once, at `liveEffects`' first source, in
+   * `buildLiveEffects`: after the held government, each other row of
+   * `governmentsAtTier` is pushed under its own name. The tier is the held
+   * government's, read fresh each walk, so an adoption moves it. `slotRider` is
+   * left out, and chairs come from the held government alone (the triage's
+   * reading 29). The value says nothing and is written as 1.
+   *
+   * The walk reaches the governments before the Doctrines, so this rule is read
+   * off `PlayerStatecraft.doctrines` directly and only a Doctrine's top-level
+   * row can hold it. The Union of Lublin is the one such row.
+   */
+  | 'governmentsOfTier';
 
 /** What an amplifier reaches into. */
 export type AmplifierTarget =
@@ -10059,15 +10086,29 @@ export interface CardBuildingYieldPercentEffect {
  * first chair on the screen. `factor` is what the line is multiplied by — 2 pays
  * twice — and the extra is added as its own labelled line, never by rewriting the
  * card's own (rule 5: the sheet says where the second helping came from).
+ *
+ * **`whole` reads the card again instead** (batch DT9, The Arthashastra). The
+ * plain form reaches only flat lines in the town and empire folds. A `whole` row
+ * is not read by those folds at all: `buildLiveEffects` pushes the seated card's
+ * effects again right after the seated Orders, under a label of their own, so
+ * its hex lines, percentages, combat lines and riders count too. `slotRider`,
+ * `slotPosition` and `metaRule` stay out of that reading, so a chair count cannot
+ * depend on the card in the chair and an engine cannot read an engine. A rule
+ * that is simply on or off holds once. The reasons are the triage's reading 4.
  */
 export interface CardSlotPositionEffect {
   kind: 'slotPosition';
   /** Which type of chair is counted. Absent counts every chair. */
   slot?: ChairType;
-  /** Which chair of that flavour, counting from one, in slot order. */
+  /**
+   * Which chair of that flavour, counting from one, in slot order. -1 is the
+   * last chair of the flavour, so it moves when another card opens a chair.
+   */
   position: number;
   /** What that Order's lines are multiplied by. 2 pays twice. */
   factor: number;
+  /** Read the whole card again, not only its flat lines. See above. */
+  whole?: true;
 }
 
 /**

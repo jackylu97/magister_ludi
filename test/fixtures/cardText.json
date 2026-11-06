@@ -1168,6 +1168,12 @@
     "text": "+2 happiness in every city while it is keeping a rite"
    }
   ],
+  "theSerapeum": [
+   {
+    "raw": "each of your gods gives twice its effects",
+    "text": "each of your gods gives twice its effects"
+   }
+  ],
   "thePaean": [
    {
     "raw": "+1 combat strength for military units per god or belief you hold",
@@ -1334,6 +1340,16 @@
     "text": "your other fourth-age technologies cost you 25% more research"
    }
   ],
+  "theArthashastra": [
+   {
+    "raw": "you have one more wildcard chair",
+    "text": "you have one more wildcard chair"
+   },
+   {
+    "raw": "the card in your last wildcard chair counts twice",
+    "text": "the card in your last wildcard chair counts twice"
+   }
+  ],
   "theChoregia": [
    {
     "raw": "+3 culture in every city per culture building there",
@@ -1366,6 +1382,12 @@
     "text": "+1 production in every city per great person you have gained this game"
    }
   ],
+  "theCouncilOfTen": [
+   {
+    "raw": "you have two more wildcard chairs",
+    "text": "you have two more wildcard chairs"
+   }
+  ],
   "theBourgs": [
    {
     "raw": "+25% food surplus stored toward growth, in every city working a great person's work",
@@ -1376,6 +1398,12 @@
    {
     "raw": "+1 combat strength per wonder you hold (at most +8)",
     "text": "+1 combat strength per wonder you hold (at most +8)"
+   }
+  ],
+  "theUnionOfLublin": [
+   {
+    "raw": "you also gain the abilities of the other two governments of your tier",
+    "text": "you also gain the abilities of the other two governments of your tier"
    }
   ],
   "theKitabkhana": [
@@ -13046,8 +13074,8 @@
   ],
   "ibnBattutaOfTangier": [
    {
-    "raw": "every government opens one more free chair",
-    "text": "every government opens one more free chair"
+    "raw": "you have one more wildcard chair",
+    "text": "you have one more wildcard chair"
    },
    {
     "raw": "the first reroll of each hand of Orders, Doctrines or great people costs nothing",
@@ -13255,8 +13283,8 @@
   ],
   "guestAtEveryCourt": [
    {
-    "raw": "every government opens one more free chair",
-    "text": "every government opens one more free chair"
+    "raw": "you have one more wildcard chair",
+    "text": "you have one more wildcard chair"
    }
   ],
   "theRihla": [

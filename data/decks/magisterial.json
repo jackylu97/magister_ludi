@@ -3238,6 +3238,19 @@
     }
   },
   "doctrines": {
+    "theArthashastra": {
+      "name": "The Arthashastra",
+      "decks": ["magisterial"],
+      "band": 1,
+      "line": "none",
+      "flavor": "A king has no friends, only offices, and the manual lists them all.",
+      "text": "You have one more Wildcard chair. The card seated in it counts twice.",
+      "effects": [
+        { "kind": "slotRider", "extra": 1 },
+        { "kind": "slotPosition", "slot": "wildcard", "position": -1, "factor": 2, "whole": true }
+      ],
+      "note": "This is the last Wildcard chair of your council, and the council screen marks it. If you gain another chair, the mark moves to the new last one. The card's yields, percentages, combat lines and riders all count twice. A rule that is simply on or off holds once, and the card opens no second chair. A malice in that chair does not count twice."
+    },
     "theChoregia": {
       "name": "The Choregia",
       "decks": ["magisterial"],
@@ -3301,6 +3314,15 @@
         {"kind": "pays", "where": "city", "basis": "count", "count": "greatPeopleGained", "to": "production", "amount": 1}
       ]
     },
+    "theCouncilOfTen": {
+      "name": "The Council of Ten",
+      "decks": ["magisterial"],
+      "band": 3,
+      "line": "none",
+      "flavor": "Set up for one emergency, and never once dismissed.",
+      "text": "You have two more Wildcard chairs.",
+      "effects": [{ "kind": "slotRider", "extra": 2 }]
+    },
     "theBourgs": {
       "name": "The Bourgs",
       "decks": ["magisterial"],
@@ -3336,6 +3358,16 @@
           }
         }
       ]
+    },
+    "theUnionOfLublin": {
+      "name": "The Union of Lublin",
+      "decks": ["magisterial"],
+      "band": 4,
+      "line": "none",
+      "flavor": "A king, a senate and a chamber of envoys, and each was sure it ruled.",
+      "text": "You also gain the abilities of the other two governments of your tier.",
+      "effects": [{ "kind": "metaRule", "rule": "governmentsOfTier", "value": 1 }],
+      "note": "Your chairs are still your own government's. If you adopt a government of a new tier, you gain the abilities of the other governments of that tier instead."
     },
     "theKitabkhana": {
       "name": "The Kitabkhana",

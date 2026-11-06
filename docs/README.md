@@ -539,6 +539,20 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   The faith reroll's count (`rerollsTaken`) is zeroed by adopting a government.
   Offers are drawn once and spent by a command; a pick names
   an index. Adopting a government re-seats the council: a card keeps its chair if that chair still fits it, the rest move to free chairs that fit, and a card that fits nowhere returns to the collection with its progress. Seals are absolute turns.
+  - **Chairs a Doctrine opens** (batch DT9): `applyChooseDoctrine` calls
+    `refitSlots`, so a `slotRider` Doctrine (The Council of Ten) adds its Wildcard
+    chairs at once and moves no card.
+  - **A chair that counts twice** (batch DT9, The Arthashastra): a `slotPosition`
+    row with `whole: true`. `position: -1` is the last chair of the flavour, so
+    the chair moves when another chair opens. `buildLiveEffects` pushes the seated
+    card's effects again, right after the seated Orders, under a label of their
+    own. `slotRider`, `slotPosition` and `metaRule` are read once.
+    `runPeriodicBoons` reads a periodic row off the chair itself, so it multiplies
+    by `chairReadingsAt`.
+  - **Reading a source again** (batch DT9): the meta rule `godsCountTwice` (The
+    Serapeum) pushes each pantheon god again, less its offers. `governmentsOfTier`
+    (The Union of Lublin) pushes the other governments of the seat's tier, less
+    any `slotRider`, so chairs stay the held government's.
   - **The fit a council grants** (Magisterial batch MG12): `orderFitsSlot` is
     the plain rule, and every reader of a seat's chairs asks `chairFitFor`
     (`statecraft/draft.ts`) instead: the slot refusal, the re-seating, the
@@ -933,7 +947,7 @@ Reference: **`docs/great-people.md`** (generated roster, sync-tested).
 - Legacies are ordinary card effects, `liveEffects`' sixth source. **Revocation
   is marking, never deleting.** Since Magisterial batch MG8 the meta rule
   `legaciesCountTwice` (The Immortals) pushes each live legacy a second time at
-  that source, read off the effects already walked (`legacyReadings`). The
+  that source, read off the effects already walked (`metaReadings`). The
   counts of people and families do not change.
 - Since Magisterial batch MG8, spending a person is a moment the cards pay on
   (`greatPersonSpent`). `spendGreatPerson` pays it once for each person, for

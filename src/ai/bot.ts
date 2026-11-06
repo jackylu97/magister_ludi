@@ -184,6 +184,8 @@ import {
   // a person may act and then still lay its work.
   passRiderTerms,
   actsBeforeWork,
+  // Batch DT9: what a chair that counts twice reads again.
+  orderReadAgain,
 } from './value';
 import { citizenKeepTerm } from './citizen';
 import {
@@ -322,7 +324,9 @@ import {
   cityScopeAdmits,
   draftCostFor,
   heldReligions,
+  chairReadingsAt,
   expectedHandBags,
+  maliceAt,
   slotOrderError,
   isSlotted,
   sealRemaining,
@@ -2454,7 +2458,7 @@ function slottingDecision(
         rows.push({ label, score: 0, chosen: false, terms: [], rejected: refusal });
         continue;
       }
-      const terms = slotPairTerms(player, ctx, ownedId, type, fits.get(type) ?? 1);
+      const terms = slotPairTerms(player, ctx, ownedId, slot, type, fits.get(type) ?? 1);
       const score = foldOf(terms);
       rows.push({ label, score, chosen: false, terms });
       if (best === null || score > best.score) {
@@ -2488,16 +2492,24 @@ function slottingDecision(
  * only one card fits is worth the whole card. A card twice as good as anything
  * else can still take the wildcard, which is right — scarcity is a tie-break
  * with teeth, not a veto.
+ *
+ * **A chair that counts twice adds the second reading after the division** (batch
+ * DT9, The Arthashastra). The second reading is only paid in this chair, so no
+ * other chair competes for it and scarcity has nothing to say about it. That
+ * sends the card with the most to read again here first, however many cards fit
+ * a Wildcard chair, while a card that is only yes-or-no rules gains nothing and
+ * still goes to its own type's chair.
  */
 function slotPairTerms(
   player: Player,
   ctx: ValueContext,
   cardId: OrderId,
+  slot: number,
   type: ChairType,
   fits: number,
 ): ValueTerm[] {
   const scarcity = Math.max(1, fits);
-  return [
+  const terms: ValueTerm[] = [
     nest('what the card is worth', explainCard(player, cardId, ctx)),
     {
       label: `÷ ${scarcity} — cards of this empire's that would also fit a ${SLOT_WORDS[type]} office`,
@@ -2505,6 +2517,11 @@ function slotPairTerms(
       op: 'div',
     },
   ];
+  const again = chairReadingsAt(ctx.state, player.id, slot) - 1;
+  if (again > 0) {
+    terms.push({ label: 'what this chair reads again', value: again * orderReadAgain(cardId, ctx) });
+  }
+  return terms;
 }
 
 /**
@@ -2584,7 +2601,7 @@ function reslotDecision(
       });
       continue;
     }
-    const sittingTerms = slotPairTerms(player, ctx, seated.card, type, fits.get(type) ?? 1);
+    const sittingTerms = slotPairTerms(player, ctx, seated.card, slot, type, fits.get(type) ?? 1);
     const sittingScore = foldOf(sittingTerms);
     rows.push({
       label: `${cardName(seated.card)} keeps slot ${slot + 1} (${SLOT_WORDS[type]})`,
@@ -2598,7 +2615,7 @@ function reslotDecision(
     for (const ownedId of sc.orders) {
       if (isSlotted(sc, ownedId)) continue;
       if (!fitHere(ownedId, type)) continue;
-      const terms = slotPairTerms(player, ctx, ownedId, type, fits.get(type) ?? 1);
+      const terms = slotPairTerms(player, ctx, ownedId, slot, type, fits.get(type) ?? 1);
       const score = foldOf(terms);
       rows.push({
         label: `${cardName(ownedId)} takes slot ${slot + 1} from ${cardName(seated.card)}`,
@@ -2615,7 +2632,7 @@ function reslotDecision(
       }
     }
   }
-  if (best === null) return null;
+  if (best === null) return moveToCountedChair(state, player, ctx, layout, fits, rows);
   rows[best.row]!.chosen = true;
   const seated = sc.slots[best.slot]!;
   return {
@@ -2625,6 +2642,65 @@ function reslotDecision(
     summary:
       `Empties slot ${best.slot + 1}: ${cardName(best.cardId)} is worth ${round1(best.gain)} a turn more to ` +
       `this empire than ${cardName(seated.card)}, and the chair is out of its seal.`,
+    candidates: rows,
+  };
+}
+
+/**
+ * **A seated card moves into an empty chair that counts twice** (batch DT9, The
+ * Arthashastra). The other arms cannot do this: `slottingDecision` seats only the
+ * bench, and the swap above only trades a bench card for a seated one. So a seat
+ * with no bench would leave the chair it took the card for standing empty.
+ *
+ * It empties the seated card's chair, and `slottingDecision` then seats the card.
+ * A move is made only when the same scorer prefers the card in the new chair, so
+ * `slottingDecision` agrees, and the card does not go straight back. Nothing is
+ * moved into a chair that is held, so two cards cannot trade places for ever.
+ */
+function moveToCountedChair(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  layout: readonly ChairType[],
+  fits: ReadonlyMap<ChairType, number>,
+  rows: BotCandidate[],
+): BotDecision | null {
+  const sc = player.statecraft;
+  const chair = layout.findIndex(
+    (_type, index) =>
+      sc.slots[index] === null &&
+      maliceAt(player, index) === null &&
+      chairReadingsAt(state, player.id, index) > 1,
+  );
+  if (chair < 0) return null;
+  const type = layout[chair]!;
+  let best: { from: number; card: OrderId; gain: number; row: number } | null = null;
+  for (let from = 0; from < sc.slots.length; from++) {
+    const seated = sc.slots[from];
+    if (!seated || unslotOrderError(state, player.id, from) !== null) continue;
+    if (!chairFitWithout(state, player.id, from)(seated.card, type)) continue;
+    const here = foldOf(slotPairTerms(player, ctx, seated.card, from, layout[from]!, fits.get(layout[from]!) ?? 1));
+    const terms = slotPairTerms(player, ctx, seated.card, chair, type, fits.get(type) ?? 1);
+    const gain = foldOf(terms) - here;
+    rows.push({
+      label: `${cardName(seated.card)} moves from slot ${from + 1} to slot ${chair + 1}, which counts twice`,
+      score: foldOf(terms),
+      chosen: false,
+      terms,
+    });
+    if (gain > 0 && (best === null || gain > best.gain)) {
+      best = { from, card: seated.card, gain, row: rows.length - 1 };
+    }
+  }
+  if (best === null) return null;
+  rows[best.row]!.chosen = true;
+  return {
+    kind: 'draft',
+    command: { type: 'unslotOrder', playerId: player.id, slotIndex: best.from },
+    subject: seatName(state, player.id),
+    summary:
+      `Empties slot ${best.from + 1}: ${cardName(best.card)} is worth ${round1(best.gain)} a turn more ` +
+      `in slot ${chair + 1}, the chair that counts twice.`,
     candidates: rows,
   };
 }

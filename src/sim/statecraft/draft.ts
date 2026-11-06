@@ -1019,6 +1019,13 @@ export function chairCount(state: GameState, playerId: number, government: Gover
  * that a chair opened mid-reign is a resize and never a rebuild is the part
  * worth keeping, and the next seam that grants or withdraws a `slotRider` calls
  * this too.
+ *
+ * **The register of mid-game seams:** `newGame` (above), the commission that wins
+ * a chair (`commissions.ts`), and, since batch DT9, `applyChooseDoctrine`
+ * (`commands.ts`), because a Doctrine that opens a chair (The Council of Ten, The
+ * Arthashastra) opens it at once and moves no seated card. A chair count that
+ * waited for the next adoption would also leave the screen and a replay reading
+ * different councils.
  */
 export function refitSlots(state: GameState, player: Player): OrderId[] {
   const sc = player.statecraft;
@@ -1047,31 +1054,75 @@ export function refitSlots(state: GameState, player: Player): OrderId[] {
 }
 
 /**
- * The Order sitting in the `position`-th chair of a flavour, counting from one in
- * slot order — or `null` for a chair that does not exist or stands empty.
- *
- * The one reading of a slot's *position*, and the whole of what
- * `CardSlotPositionEffect` needs from the state. An absent `slot` counts every
- * chair, which is what "the first slot" means with no flavour named.
+ * The index in `PlayerStatecraft.slots` of the `position`-th chair of a flavour,
+ * counting from one in slot order, or -1 for a chair that does not exist.
+ * Position -1 is the last chair of the flavour (batch DT9, The Arthashastra). An
+ * absent `slot` counts every chair, which is what "the first slot" means with no
+ * flavour named.
  *
  * See `slotTypesOf` for why the array's index is the position a player sees.
+ */
+export function chairIndexAtPosition(sc: PlayerStatecraft, position: number, slot?: ChairType): number {
+  if (position !== -1 && position < 1) return -1;
+  const flavours = slotTypesOf(sc);
+  if (position === -1) {
+    for (let index = sc.slots.length - 1; index >= 0; index--) {
+      if (slot === undefined || flavours[index] === slot) return index;
+    }
+    return -1;
+  }
+  let seen = 0;
+  for (let index = 0; index < sc.slots.length; index++) {
+    if (slot !== undefined && flavours[index] !== slot) continue;
+    seen += 1;
+    if (seen === position) return index;
+  }
+  return -1;
+}
+
+/**
+ * The Order sitting in the `position`-th chair of a flavour, or `null` for a
+ * chair that does not exist or stands empty. A chair a malice holds stands empty
+ * here, because a malice is not in `PlayerStatecraft.slots`.
+ *
+ * The one reading of a slot's *position*, and the whole of what
+ * `CardSlotPositionEffect` needs from the state.
  */
 export function orderAtSlotPosition(
   sc: PlayerStatecraft,
   position: number,
   slot?: ChairType,
 ): OrderId | null {
-  if (position < 1) return null;
-  const flavours = slotTypesOf(sc);
-  let seen = 0;
-  for (let index = 0; index < sc.slots.length; index++) {
-    if (slot !== undefined && flavours[index] !== slot) continue;
-    seen += 1;
-    if (seen !== position) continue;
-    const held = sc.slots[index];
-    return held && isOrderId(held.card) ? held.card : null;
+  const index = chairIndexAtPosition(sc, position, slot);
+  if (index < 0) return null;
+  const held = sc.slots[index];
+  return held && isOrderId(held.card) ? held.card : null;
+}
+
+/**
+ * **The chairs a seat's ghost would have with or without one Doctrine**: its
+ * council resized by the Doctrine's own `slotRider` rows. Writes nothing.
+ *
+ * For the two scratch boards that price a Doctrine (`ghostPair` in
+ * `cardImpact.ts`, `deckPair` in `value.ts`). Without it, a ghost holding The
+ * Arthashastra would read its "last Wildcard chair" one chair too early, and
+ * would claim to double a card that the real command leaves where it sits. Added
+ * chairs go on the end and taken ones come off the end, as `refitSlots` does.
+ */
+export function ghostSlotsUnderDoctrine(
+  sc: PlayerStatecraft,
+  id: DoctrineId,
+  taking: boolean,
+): (SlottedOrder | null)[] {
+  let extra = 0;
+  for (const effect of doctrineDef(id).effects) {
+    if (effect.kind === 'slotRider') extra += effect.extra ?? 1;
   }
-  return null;
+  if (extra === 0) return sc.slots;
+  const want = Math.max(0, sc.slots.length + (taking ? extra : -extra));
+  const slots = sc.slots.slice(0, want);
+  while (slots.length < want) slots.push(null);
+  return slots;
 }
 
 /**

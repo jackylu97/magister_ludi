@@ -3380,8 +3380,24 @@ import {
  *
  * **A v212 save is refused and does not replay.** These seats' Doctrine bags change,
  * so their draws move. The branch migrates nothing, for the reason given under v119.
+ *
+ * v214 (branch `decks`; batch DT9, `docs/plans/doctrines-build-triage.md`):
+ * **Four Doctrines on chairs and second readings.** No field joins the state. The
+ * rules that change:
+ *
+ *   · The Arthashastra, The Council of Ten and The Union of Lublin are dealt to a
+ *     Magisterial seat, and The Serapeum to a Devotion seat;
+ *   · taking a Doctrine now refits the council (`applyChooseDoctrine`), so a chair
+ *     it opens is there at once;
+ *   · `slotPosition` gains `whole` and the position -1. `buildLiveEffects` reads the
+ *     card in that chair again, and `runPeriodicBoons` pays its boon again;
+ *   · the meta rules gain `godsCountTwice` and `governmentsOfTier`, both read in
+ *     `buildLiveEffects`.
+ *
+ * **A v213 save is refused and does not replay.** These seats' Doctrine bags change,
+ * so their draws move. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 213;
+export const SCHEMA_VERSION = 214;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

@@ -139,6 +139,7 @@ import {
   chairFitFor,
   councilRefit,
   describeEffects,
+  ghostSlotsUnderDoctrine,
   occasionWords,
   holdsOrder,
   reseatCouncil,
@@ -390,10 +391,17 @@ function ghostPair(
       return forward({ ...player, statecraft: { ...sc, orders, slots } });
     }
     case 'doctrine': {
+      // A Doctrine that opens a chair opens it at once (batch DT9), so each ghost
+      // has the chairs the command would leave. The Arthashastra's stamp must not
+      // claim to double the card in today's last Wildcard chair.
       if (sc.doctrines.includes(subject.id)) {
         return backward({
           ...player,
-          statecraft: { ...sc, doctrines: sc.doctrines.filter((id) => id !== subject.id) },
+          statecraft: {
+            ...sc,
+            doctrines: sc.doctrines.filter((id) => id !== subject.id),
+            slots: ghostSlotsUnderDoctrine(sc, subject.id, false),
+          },
         });
       }
       // Stamped with this turn, as taking it would be (batch DT1), so a "from now
@@ -404,6 +412,7 @@ function ghostPair(
           ...sc,
           doctrines: [...sc.doctrines, subject.id],
           doctrineTurns: { ...sc.doctrineTurns, [subject.id]: state.turn },
+          slots: ghostSlotsUnderDoctrine(sc, subject.id, true),
         },
       });
     }

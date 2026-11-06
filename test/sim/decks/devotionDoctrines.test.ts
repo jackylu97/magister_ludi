@@ -7,7 +7,8 @@
  * checked in `doctrineOffer.test.ts`.
  *
  * Batch DT6 adds The Paean. Batch DT7 adds Canossa. Batch DT8 adds The Capitulary of
- * Herstal. Later batches add the deck's other five Doctrines to this file.
+ * Herstal. Batch DT9 adds The Serapeum. Later batches add the deck's other four
+ * Doctrines to this file.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -39,9 +40,11 @@ import {
 } from '../../../src/sim/religion';
 import {
   BELIEF_IDS,
+  type BeliefId,
   ENHANCER_BELIEF_IDS,
   FOLLOWER_BELIEF_IDS,
   type RiteId,
+  beliefDef,
 } from '../../../src/sim/religionData';
 import {
   type City,
@@ -58,9 +61,14 @@ import {
 import { doctrineBagFor } from '../../../src/sim/statecraft';
 import {
   cardCombatLines,
+  cardPeriodicOffers,
   cardProduction,
   cardRulePercent,
+  effectsOfKind,
   explainCardCityYields,
+  explainCardPercentYields,
+  liveEffects,
+  windfallPayout,
 } from '../../../src/sim/statecraft/evaluator';
 import {
   type CardEffect,
@@ -82,6 +90,7 @@ import { lendDoctrineEffects } from '../statecraftHelpers';
 const ROWS: readonly (readonly [string, number])[] = [
   ['theTheoricFund', 1],
   ['theRitesOfZhou', 1],
+  ['theSerapeum', 1],
   ['thePaean', 1],
   ['theSaintPetersIndulgence', 4],
   ['theCapitularyOfHerstal', 2],
@@ -1146,5 +1155,103 @@ describe('The Capitulary of Herstal (batch DT8)', () => {
     for (const price of rows()) expect(price).toBe(20);
     hold(state, CARD);
     for (const price of rows()) expect(price).toBe(10);
+  });
+});
+
+describe('The Serapeum (batch DT9)', () => {
+  const GOD = 'starReaders' as BeliefId;
+
+  /** Lends a god a set of effects for one test. */
+  function lendGod(id: BeliefId, effects: readonly CardEffect[]): void {
+    const row = beliefDef(id) as { effects: readonly CardEffect[] };
+    const held = row.effects;
+    row.effects = effects;
+    lent.push(() => {
+      row.effects = held;
+    });
+  }
+
+  /** A capital for seat 0, holding one god with these effects. */
+  function board(effects: readonly CardEffect[]): { state: GameState; player: Player; city: City } {
+    const state = bareState(24, 10);
+    const city = foundCityAt(state, 0, at(state, 5, 5));
+    city.population = 3;
+    city.queue = [];
+    refreshCityDerived(state, city);
+    const player = playerById(state, 0)!;
+    lendGod(GOD, effects);
+    player.pantheon.beliefs = [GOD];
+    bumpRevision(state);
+    return { state, player, city };
+  }
+
+  it('pays a god’s flat line twice, under a label of its own', () => {
+    const { state, city } = board([{ kind: 'pays', where: 'city', gold: 3 } as CardEffect]);
+    const lines = () => explainCardCityYields(state, city).filter((line) => line.card === GOD);
+    expect(lines().map((line) => line.gold)).toEqual([3]);
+    hold(state, 'theSerapeum');
+    const name = beliefDef(GOD).name;
+    expect(lines().map((line) => line.gold)).toEqual([3, 3]);
+    expect(lines().map((line) => line.source)).toEqual([`Belief · ${name}`, `Belief · ${name} · The Serapeum`]);
+  });
+
+  it('counts a god’s percentage twice', () => {
+    const { state, city } = board([{ kind: 'percentYields', yield: 'culture', percent: 5 } as CardEffect]);
+    const percent = (): number =>
+      explainCardPercentYields(state, city)
+        .filter((line) => line.card === GOD)
+        .reduce((sum, line) => sum + line.percent, 0);
+    expect(percent()).toBe(5);
+    hold(state, 'theSerapeum');
+    expect(percent()).toBe(10);
+  });
+
+  it('pays a god’s kill rider twice', () => {
+    const { state } = board([
+      { kind: 'windfallRider', occasion: 'kill', grant: { yield: 'faith', amount: 5 } } as CardEffect,
+    ]);
+    const rider = (): number =>
+      windfallPayout(state, 0, 'kill')
+        .grants.filter((grant) => grant.card === GOD)
+        .reduce((sum, grant) => sum + grant.amount, 0);
+    expect(rider()).toBe(5);
+    hold(state, 'theSerapeum');
+    expect(rider()).toBe(10);
+  });
+
+  it('does not double an offer', () => {
+    const { state } = board([
+      { kind: 'periodicOffer', every: 10, site: 'ruins' } as CardEffect,
+      { kind: 'offerRider', offer: 'order', extra: 1 } as CardEffect,
+      { kind: 'pays', where: 'empire', gold: 1 } as CardEffect,
+    ]);
+    hold(state, 'theSerapeum');
+    expect(cardPeriodicOffers(state, 0)).toHaveLength(1);
+    expect(effectsOfKind(state, 0, 'offerRider').filter((row) => row.card === GOD)).toHaveLength(1);
+    expect(effectsOfKind(state, 0, 'pays').filter((row) => row.card === GOD)).toHaveLength(2);
+  });
+
+  it('reads gods only, so a seat with none gains nothing', () => {
+    const { state, player } = board([{ kind: 'pays', where: 'empire', gold: 1 } as CardEffect]);
+    player.pantheon.beliefs = [];
+    hold(state, 'theSerapeum');
+    expect(
+      liveEffects(state, 0).filter(
+        (entry) => entry.source.includes('The Serapeum') && entry.card !== ('theSerapeum' as never),
+      ),
+    ).toEqual([]);
+  });
+
+  it('is priced at what the seat’s gods pay read again, and nothing with no god', () => {
+    const line = { kind: 'pays', where: 'empire', gold: 3 } as CardEffect;
+    const { state, player } = board([line, { kind: 'periodicOffer', every: 10, site: 'ruins' } as CardEffect]);
+    const row = doctrineDef('theSerapeum' as DoctrineId).effects;
+    const ctx = valueContext(state, player);
+    const once = scoreEffects([line], ctx);
+    expect(once).toBeGreaterThan(0);
+    expect(scoreEffects(row, ctx)).toBeCloseTo(once, 6);
+    player.pantheon.beliefs = [];
+    bumpRevision(state);
+    expect(scoreEffects(row, valueContext(state, player))).toBe(0);
   });
 });

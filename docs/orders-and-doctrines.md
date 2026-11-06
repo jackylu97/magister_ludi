@@ -229,17 +229,21 @@ governments, so Tier IV opened at 29.
 | The Volley Fire | Scientific | III | tier 18 | Your archer line (Archer to Crossbowman) may attack twice a turn. Your melee units fight at −10% strength. |
 | The Külliye | Scientific | III | tier 18 | Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings. |
 | The Court of Rudolf II | Scientific | IV | tier 26 | Alchemy, and the fourth-age technologies that lead to it, cost you 20% less research. Your other fourth-age technologies cost you 25% more. |
+| The Arthashastra | Magisterial | I | tier 4 | You have one more Wildcard chair. The card seated in it counts twice. |
 | The Choregia | Magisterial | I | tier 4 | Culture buildings give +3 culture and +2 renown each. |
 | The Periclean Works | Magisterial | I | tier 4 | Each wonder you hold gives +2 production in every town. |
 | The Magnaura | Magisterial | II | tier 10 | Each town gains +1 science for each Civic card you have seated. |
 | The Barmakids | Magisterial | II | tier 10 | Each great person you have gained gives every town +1 food and +1 production. |
+| The Council of Ten | Magisterial | III | tier 18 | You have two more Wildcard chairs. |
 | The Bourgs | Magisterial | III | tier 18 | Towns working a great-person work grow 25% faster. |
 | The Carroccio | Magisterial | III | tier 18 | Your units gain +1 strength for each wonder you hold, at most +8. |
+| The Union of Lublin | Magisterial | IV | tier 26 | You also gain the abilities of the other two governments of your tier. |
 | The Kitabkhana | Magisterial | IV | tier 26 | Spending a great person grants 200 renown for each age you have reached. |
 | The Gobelins | Magisterial | IV | tier 26 | Each great-person work in your borders gives +4% production toward the Magnum Opus, at most +40%. |
 | The Escorial | Magisterial | IV | tier 26 | Completing a wonder gives you a free great-person draft. |
 | The Theoric Fund | Devotion | I | tier 4 | +1 culture for every 3 faith your empire makes. |
 | The Rites of Zhou | Devotion | I | tier 4 | Each town holding a rite gains +2 food and +2 happiness. |
+| The Serapeum | Devotion | I | tier 4 | Each of your gods gives twice its effects. |
 | The Paean | Devotion | I | tier 4 | Your military units gain +1 strength for every god and belief you hold. |
 | The Capitulary of Herstal | Devotion | II | tier 10 | Rites cost half as much. |
 | The Patrimony of Peter | Devotion | II | tier 10 | Your holy city's citizens demand no happiness. |

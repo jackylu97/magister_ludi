@@ -3007,10 +3007,13 @@ function describeEffect(
       // A figure, and a figure is a thing a player has to be told — the route
       // rider's own reading one council over. "Free" is the word the design uses
       // for a chair a government did not have to pay for.
-      const extra = (effect.extra ?? 1);
-      out.push({
-        text: `every government opens ${extra === 1 ? 'one more free chair' : `${extra} more free chairs`}`,
-      });
+      //
+      // Since batch DT9 it says what the chair is. A Doctrine's face prints this
+      // beside "your last wildcard chair", and "free" named nothing the player
+      // can find on the council screen.
+      const extra = effect.extra ?? 1;
+      const count = extra === 1 ? 'one' : extra === 2 ? 'two' : String(extra);
+      out.push({ text: `you have ${count} more wildcard ${extra === 1 ? 'chair' : 'chairs'}` });
       return;
     }
     case 'meterRule': {
@@ -3141,6 +3144,21 @@ function describeEffect(
               ? 'the legacy of each great person you have spent counts twice'
               : `the legacy of each great person you have spent counts ${effect.value} times`,
         });
+        return;
+      }
+      // The Serapeum (batch DT9): how many times each god is read.
+      if (effect.rule === 'godsCountTwice') {
+        out.push({
+          text:
+            effect.value === 2
+              ? 'each of your gods gives twice its effects'
+              : `each of your gods gives its effects ${effect.value} times`,
+        });
+        return;
+      }
+      // The Union of Lublin (batch DT9). The value says nothing.
+      if (effect.rule === 'governmentsOfTier') {
+        out.push({ text: 'you also gain the abilities of the other two governments of your tier' });
         return;
       }
       out.push({
@@ -3512,10 +3530,12 @@ function describeEffect(
     }
     case 'slotPosition': {
       const flavour = effect.slot === undefined ? '' : ` ${SLOT_WORDS[effect.slot].toLowerCase()}`;
+      const place = effect.position === -1 ? 'last' : ordinalWords(effect.position);
       out.push({
         text:
-          `the Order in your ${ordinalWords(effect.position)}${flavour} chair` +
-          ` pays ${timesWords(effect.factor)}`,
+          effect.whole === true
+            ? `the card in your ${place}${flavour} chair counts ${timesWords(effect.factor)}`
+            : `the Order in your ${place}${flavour} chair pays ${timesWords(effect.factor)}`,
       });
       return;
     }
