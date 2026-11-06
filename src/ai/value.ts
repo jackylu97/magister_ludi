@@ -231,9 +231,11 @@ import {
   holySites,
   plantingCost,
   religionBeliefPool,
+  riteCostAhead,
   riteCostFor,
+  ritesDisplacedBy,
 } from '../sim/religion';
-import { LIVE_RITE_IDS, type ReligionBeliefPool, beliefDef, isBeliefId, riteDef } from '../sim/religionData';
+import { LIVE_RITE_IDS, type ReligionBeliefPool, type RiteId, beliefDef, isBeliefId, riteDef } from '../sim/religionData';
 // Devotion batch DV9: a faith purchase's price and gate, asked as the want book
 // asks them, so the bot and the bank agree about what faith may buy.
 import { explainPurchaseCost, purchaseGate } from '../sim/purchase';
@@ -313,7 +315,7 @@ import {
 } from '../sim/statecraft/evaluator';
 // The citizen levy's own figures, read where the levy verb reads them, so the
 // bot and the city panel price one levy alike (the bot levy batch).
-import { levyHammers, opusWorkshop, wonderWorkshop } from '../sim/levies';
+import { levyHammers, levyRiteChoices, levyStandingWait, opusWorkshop, wonderWorkshop } from '../sim/levies';
 // Expansionist batch E13: The Burghers' faster guild bar is priced off the
 // simulation's own reading of a town's bar, its share cap and its trades.
 import { explainGuildInflow, idleCitizens, nextGuildFamily } from '../sim/guilds';
@@ -9670,7 +9672,8 @@ export function explainCountStep(count: CountKind, step: number, ctx: ValueConte
  *
  *   · `rate`: the levies a turn this seat expects while it holds a card that
  *     grants one. The prior is each town that may levy at all, once in each
- *     waiting period, at `score.citizenLevy.priorShare` of those chances. Once
+ *     waiting period (`levyStandingWait`, so Human Sacrifice raises it), at
+ *     `score.citizenLevy.priorShare` of those chances. Once
  *     the seat has levied, its own record (`Player.citizensLevied`) is
  *     smoothed with the prior (`smoothedRate`). Before that the prior stands
  *     alone, because a record of nought may only say the seat held no levy
@@ -9706,7 +9709,7 @@ export function levyOutlook(ctx: ValueContext): LevyOutlook {
     if (city.puppet === true || city.population < rule.minPopulation) continue;
     towns += 1;
   }
-  const every = Math.max(1, Math.floor(rule.everyTurns));
+  const every = levyStandingWait(ctx.state, ctx.playerId);
   const prior = (towns * Math.max(0, ctx.ai.score.citizenLevy.priorShare)) / every;
   const record = playerById(ctx.state, ctx.playerId)?.citizensLevied ?? 0;
   const rate = record > 0 ? smoothedRate(record, prior, ctx) : prior;
@@ -9808,7 +9811,7 @@ function retireRate(ctx: ValueContext): number {
 }
 
 /**
- * **What a levy card is worth to this seat**, by the four halves a `levy` row
+ * **What a levy card is worth to this seat**, by the five halves a `levy` row
  * may carry. Each half is priced at the levy rate this seat expects
  * (`levyOutlook`):
  *
@@ -9817,7 +9820,9 @@ function retireRate(ctx: ValueContext): number {
  *     (`explainCitizenLevy`, never below nought, because the bot does not take
  *     a levy that is worth less than nothing), at each town's share of the
  *     rate. A row that lets a town levy more often at war (The General Levy)
- *     takes that pace while a war is on;
+ *     takes that pace while a war is on. A rite (Human Sacrifice) is no more
+ *     often than its season runs, because a town keeping it gains nothing from
+ *     saying it again;
  *   · `after` (Seasonal Levies, The Gleaners, The Labour Feasts): what it hangs
  *     on a town, as one town's share of what the effects pay the empire, for
  *     the turns they hang, at each town's share of the rate but no more often
@@ -9825,7 +9830,11 @@ function retireRate(ctx: ValueContext): number {
  *   · `returnsAfter` (The Mit'a): the citizen that comes home, priced as the
  *     food that grows one and discounted for the wait, once for each levy;
  *   · `noWaitEvery` (The Slack Season): one more levy in each town whose best
- *     levy is worth taking, once every so many turns.
+ *     levy is worth taking, once every so many turns;
+ *   · `every` (Human Sacrifice): the extra chances a shorter wait gives each town
+ *     whose best levy is worth taking, at the share of chances this seat takes
+ *     (`score.citizenLevy.priorShare`). A seat with no other levy gains nothing
+ *     from it yet.
  */
 function levyCardWorth(effect: CardLevyEffect, ctx: ValueContext): number {
   const outlook = levyOutlook(ctx);
@@ -9844,7 +9853,12 @@ function levyCardWorth(effect: CardLevyEffect, ctx: ValueContext): number {
     }
     let pace = perTown;
     if (effect.everyAtWar !== undefined && atWarWithAnybody(ctx.state, ctx.playerId)) {
-      pace *= Math.max(1, Math.floor(rule.everyTurns)) / Math.max(1, Math.floor(effect.everyAtWar));
+      const standing = levyStandingWait(ctx.state, ctx.playerId);
+      pace *= Math.max(1, standing / Math.max(1, Math.floor(effect.everyAtWar)));
+    }
+    if (effect.use === 'rite') {
+      const plan = bestLevyRite(ctx);
+      if (plan !== null) pace = Math.min(pace, 1 / Math.max(1, riteDef(plan.rite).duration ?? 1));
     }
     worth += pace * sum;
   }
@@ -9862,17 +9876,121 @@ function levyCardWorth(effect: CardLevyEffect, ctx: ValueContext): number {
     worth += outlook.rate * citizen * delayDiscount(wait, ctx);
   }
   if (effect.noWaitEvery !== undefined) {
-    const every = Math.max(1, Math.floor(effect.noWaitEvery));
-    let best = 0;
-    for (const city of citiesOf(ctx.state, ctx.playerId)) {
-      if (city.puppet === true || city.population < rule.minPopulation) continue;
-      let top = 0;
-      for (const use of outlook.uses) top = Math.max(top, explainCitizenLevy(city, use, ctx).total);
-      best += top;
-    }
-    worth += best / every;
+    worth += bestLevyInEachTown(ctx) / Math.max(1, Math.floor(effect.noWaitEvery));
+  }
+  if (effect.every !== undefined) {
+    const chances = Math.max(
+      0,
+      1 / Math.max(1, Math.floor(effect.every)) - 1 / Math.max(1, Math.floor(rule.everyTurns)),
+    );
+    worth += chances * Math.max(0, ctx.ai.score.citizenLevy.priorShare) * bestLevyInEachTown(ctx);
   }
   return worth;
+}
+
+/**
+ * The best levy worth taking in each town that may levy, summed. What one more
+ * chance to levy everywhere would pay. A rite is left out: its pace is its season,
+ * so a shorter wait adds nothing, and most towns may not say one.
+ */
+function bestLevyInEachTown(ctx: ValueContext): number {
+  const outlook = levyOutlook(ctx);
+  const least = RULES.cities.levy.minPopulation;
+  let best = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    if (city.puppet === true || city.population < least) continue;
+    let top = 0;
+    for (const use of outlook.uses) {
+      if (use === 'rite') continue;
+      top = Math.max(top, explainCitizenLevy(city, use, ctx).total);
+    }
+    best += top;
+  }
+  return best;
+}
+
+/**
+ * One rite: what its blessing is worth over the turns it runs. A rite pays
+ * nothing the instant it lands (`RiteDef`), so the whole appraisal is the lasting
+ * half.
+ *
+ * The context handed in is the **town-scoped** one (`townScoped`, `wants.ts`): a
+ * rite is one town's blessing and every city-scoped arm of the evaluator has to
+ * pay it once. See `ritePlan`.
+ *
+ * `city` is the town that would keep the rite, when the caller knows it
+ * (Devotion batch DV9). The Sabbath moves that town's own production into
+ * culture, so it is priced off that town (`explainEffects`' `town`). The
+ * prophet's rite over the realm names no town and reads the middling one.
+ *
+ * It lives here since batch DT19, because the levy's rite reads the same price
+ * and this module may not import `wants.ts` at run time.
+ */
+export function explainRite(id: RiteId, ctx: ValueContext, city?: City): Appraisal {
+  const def = riteDef(id);
+  const effects = def.effects ?? [];
+  if (effects.length === 0) return appraise([]);
+  const lasting = explainEffects(effects, ctx, undefined, city);
+  const turns = def.duration ?? 1;
+  const lumpTurns = Math.max(1, ctx.ai.score.lumpTurns);
+  return appraise([
+    {
+      label: `its blessing, for ${turns} turn${turns === 1 ? '' : 's'}`,
+      value: (lasting.total * turns) / lumpTurns,
+      parts: [
+        ...lasting.terms,
+        { label: `× ${turns} turns of it`, value: turns, op: 'mul' },
+        { label: `÷ ${lumpTurns} — a blessing that runs out, not a rate`, value: lumpTurns, op: 'div' },
+      ],
+    },
+  ]);
+}
+
+/** The rite a levy would say over the realm. See `bestLevyRite`. */
+export interface LevyRitePlan {
+  rite: RiteId;
+  /** One town's blessing (`explainRite`). */
+  worth: Appraisal;
+  /** The towns that would gain it: those with a free place for it. */
+  towns: number;
+}
+
+const LEVY_RITE_MEMO = new WeakMap<ValueContext, LevyRitePlan | null>();
+
+/**
+ * **The rite a levy should say over this seat's towns** (Human Sacrifice, batch
+ * DT19), or `null` when the rite's gate takes none. The price and the command read
+ * it, so the bot says the rite it priced.
+ *
+ * The best is one town's blessing times the towns that would gain it. A town
+ * already keeping a rite counts for nothing, because the sweep would only replace
+ * what it holds. Without this, a seat able to levy every two turns would spend a
+ * citizen to repeat a rite that has eight turns still to run. So the bot takes this
+ * levy once a season, when the towns come free.
+ *
+ * A tie goes to the first rite in table order, so a replay says the same one.
+ * Remembered for the context, because each rite's price walks the empire's books.
+ */
+export function bestLevyRite(ctx: ValueContext): LevyRitePlan | null {
+  const held = LEVY_RITE_MEMO.get(ctx);
+  if (held !== undefined) return held;
+  // One town's context, as the rite plan's `townScoped` builds it.
+  const here: ValueContext = { ...ctx, cities: 1 };
+  const towns = citiesOf(ctx.state, ctx.playerId);
+  let best: LevyRitePlan | null = null;
+  for (const choice of levyRiteChoices(ctx.state, ctx.playerId)) {
+    if (choice.blocked !== null) continue;
+    const worth = explainRite(choice.rite, here);
+    let free = 0;
+    for (const city of towns) {
+      if (ritesDisplacedBy(ctx.state, city, choice.rite).length === 0) free += 1;
+    }
+    if (best === null || worth.total * free > best.worth.total * best.towns) {
+      best = { rite: choice.rite, worth, towns: free };
+    }
+  }
+  LEVY_RITE_MEMO.set(ctx, best);
+  return best;
 }
 
 /**
@@ -9884,7 +10002,9 @@ function levyCardWorth(effect: CardLevyEffect, ctx: ValueContext): number {
  * Three parts, in the one currency:
  *
  *   · **what the citizen buys**. Hammers and beakers are a lump
- *     (`explainLump`). A piece is worth the hammers the seat would otherwise
+ *     (`explainLump`). A rite is the best rite's blessing in each town with a
+ *     free place, less what the rise in the rite price costs the next rite
+ *     (`bestLevyRite`). A piece is worth the hammers the seat would otherwise
  *     spend on it, as a lump, and only while the seat wants one
  *     (`levyPieceWant`): a soldier while the army is short or a town is short
  *     of its garrison; a worker while a town is raising one; a settler while
@@ -9951,6 +10071,18 @@ function explainLevyGain(
     }
     case 'science':
       return appraise([nest(`${hammers} beakers`, explainLump({ science: hammers }, ctx))]);
+    case 'rite': {
+      const plan = bestLevyRite(ctx);
+      if (plan === null) return appraise([{ label: 'this empire knows no rite that can reach every town', value: 0 }]);
+      // Every town it reaches is a step on the rite price, free place or not.
+      const reached = citiesOf(ctx.state, ctx.playerId).length;
+      const rise = riteCostAhead(ctx.state, ctx.playerId, reached) - riteCostFor(ctx.state, ctx.playerId);
+      return appraise([
+        nest(`${riteDef(plan.rite).name}, the best rite this empire can say`, plan.worth),
+        { label: `× ${plan.towns} town${plan.towns === 1 ? '' : 's'} with a free place for it`, value: plan.towns, op: 'mul' },
+        nest(`the next rite costs ${rise} more faith`, explainLump({ faith: rise }, ctx), 'sub'),
+      ]);
+    }
     case 'muster':
     case 'conscript':
     case 'worker':

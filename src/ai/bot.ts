@@ -176,6 +176,7 @@ import {
   yieldDelta,
   yieldWeight,
   ageBand,
+  bestLevyRite,
   explainCitizenLevy,
   // Magisterial batch MG17: the act a person would pay, moved to the appraisal
   // so the card that adds an act (The Universal Genius) reads the same figure.
@@ -3698,9 +3699,18 @@ function levyDecision(state: GameState, player: Player, sitting?: BotSitting): B
   if (best === null) return null;
   best.candidate.chosen = true;
   const scored = candidates.filter((candidate) => candidate.rejected === undefined).length;
+  // A rite is the one use whose command names more: the rite the line was priced
+  // on (Human Sacrifice, batch DT19). The line is open only when the gate takes one.
+  const rite = best.use === 'rite' ? bestLevyRite(ctx)?.rite : undefined;
   return {
     kind: 'levy',
-    command: { type: 'levyCitizen', playerId: player.id, cityId: best.city.id, use: best.use },
+    command: {
+      type: 'levyCitizen',
+      playerId: player.id,
+      cityId: best.city.id,
+      use: best.use,
+      ...(rite === undefined ? {} : { rite }),
+    },
     subject: townSubject(best.city),
     summary:
       `${best.city.name} spends a citizen on a levy (${best.candidate.label}): worth ` +

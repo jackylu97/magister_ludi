@@ -928,6 +928,16 @@
     "text": "+50% production toward public works"
    }
   ],
+  "humanSacrifice": [
+   {
+    "raw": "your towns may levy every 2 turns instead of every 5",
+    "text": "your towns may levy every 2 turns instead of every 5"
+   },
+   {
+    "raw": "your capital may spend one citizen to perform a rite you know in every town you hold, with no faith and no prophet; each town it reaches raises the price of later rites",
+    "text": "your capital may spend one citizen to perform a rite you know in every town you hold, with no faith and no prophet; each town it reaches raises the price of later rites"
+   }
+  ],
   "theCensors": [
    {
     "raw": "the world taking a census gives every city of yours one more citizen",

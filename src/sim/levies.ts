@@ -9,9 +9,10 @@
  *
  * The rules that do not depend on a card live in `rules.cities.levy`: a town
  * needs at least two citizens, and waits five turns between levies. Every use
- * shares that one waiting period; a card may shorten it for its own use while
- * the empire is at war (The General Levy), or lift it on some turns of the
- * world's calendar (The Slack Season). The waiting period is read from an
+ * shares that one waiting period; a card may shorten it for every use (Human
+ * Sacrifice) or for its own use while the empire is at war (The General Levy),
+ * or lift it on some turns of the world's calendar (The Slack Season). The
+ * waiting period is read from an
  * absolute stamp on the town (`City.levy.turn`, the last levy), never counted
  * down.
  *
@@ -22,11 +23,18 @@
  * twenty turns later (The Mit'a: `CityLevyRecord.returns`, given back by the
  * `levyReturns` phase, `returnLeviedCitizens`).
  *
+ * Batch DT19 (Human Sacrifice) added a shorter wait for every levy (the row's
+ * `every`) and the use `rite`: a citizen spent to say a rite the empire knows
+ * over every town it holds, with no faith and no prophet. It is the only use
+ * whose command names something more (`LevyCitizenCommand.rite`).
+ *
  * Three functions, in the shape `guilds.ts` uses for its own verb:
  *
  *   · `levyOptions` — what the panel lists, each with its figure and the card
  *     that grants it, and the reason it is greyed if it is;
- *   · `levyError` — the one refusal, asked by the panel and by the command;
+ *   · `levyError` — the one refusal, asked by the command, which also holds the
+ *     named rite to the rite's gate. `levyLineError` is its half with no rite
+ *     named, which greys a line;
  *   · `levyAt` — the mutation, called only after `levyError` said yes.
  *
  * All three ask `levyGrantFor` which card's row governs a use in a town, since
@@ -39,6 +47,7 @@
  */
 
 import {
+  type WonderCompletion,
   growthThreshold,
   loseCitizen,
   realiseItem,
@@ -50,6 +59,8 @@ import {
   spawnTileFor,
 } from './cities';
 import { buildingDef, isBuildingId, isWonder } from './buildingData';
+import { availableRites, realmRiteError, sayRiteOverRealm } from './religion';
+import { type RiteId, riteDef } from './religionData';
 import { RULES } from './rulesData';
 import { totalSpecialists } from './specialists';
 import { bumpEconomy } from './slate';
@@ -58,6 +69,7 @@ import {
   type LevyGrant,
   anyCardDef,
   cardLevyAftermaths,
+  cardLevyEvery,
   cardLevyGrants,
   cardLevyNoWait,
   cardLevyReturnDelay,
@@ -93,6 +105,16 @@ export interface LevyOption {
   every: number;
   /** Why this line cannot be chosen now, or `null` when it can. */
   blocked: string | null;
+  /** The rites the line offers. Present only on the `rite` line. */
+  rites?: LevyRiteChoice[];
+}
+
+/** One rite a levy could say over the realm. See `levyRiteChoices`. */
+export interface LevyRiteChoice {
+  rite: RiteId;
+  name: string;
+  /** Why this rite cannot be said over the realm, or `null` when it can. */
+  blocked: string | null;
 }
 
 /** What a levy did, for the caller that reports it. */
@@ -107,6 +129,10 @@ export interface LevyReport {
   /** The town the hammers went to, when it was not the levying town. */
   targetCityId?: number;
   unitId?: number;
+  /** The rite said over the realm, for the use that says one. */
+  rite?: RiteId;
+  /** Wonders a rider's hammers finished while that rite was said. */
+  wonders?: WonderCompletion[];
 }
 
 /** Is the empire at war with another empire? The wild does not count. */
@@ -161,12 +187,28 @@ export function levyGrantFor(
   return best;
 }
 
-/** Turns a town waits after a levy of this use. */
+/**
+ * Turns a town of this empire waits between levies, before any row's wartime
+ * pace: the rule's wait, or the law's shorter one (Human Sacrifice, batch DT19).
+ * The menu's cost line and the bots' levy rate read it.
+ */
+export function levyStandingWait(state: GameState, playerId: number): number {
+  const rule = Math.max(1, Math.floor(LEVY.everyTurns));
+  const law = cardLevyEvery(state, playerId);
+  return law === null ? rule : Math.min(rule, law);
+}
+
+/**
+ * Turns a town waits after a levy of this use. A row's wartime pace wins where it
+ * is shorter than the standing wait, so The General Levy still levies every turn
+ * under Human Sacrifice.
+ */
 function waitFor(state: GameState, playerId: number, grant: LevyGrant): number {
+  const standing = levyStandingWait(state, playerId);
   if (grant.everyAtWar !== undefined && atWarWithAnEmpire(state, playerId)) {
-    return Math.max(1, Math.floor(grant.everyAtWar));
+    return Math.min(standing, Math.max(1, Math.floor(grant.everyAtWar)));
   }
-  return Math.max(1, Math.floor(LEVY.everyTurns));
+  return standing;
 }
 
 /**
@@ -265,6 +307,10 @@ function planLevy(state: GameState, city: City, use: LevyUse): LevyPlan {
       return { ...none, hammers: levyHammers(city), target: wonderWorkshop(state, city.ownerId, city) };
     case 'science':
       return { ...none, science: levyHammers(city) };
+    // What the rite pays lands in every town and the command names which rite,
+    // so there is no figure to read off this town.
+    case 'rite':
+      return none;
     case 'muster':
     case 'conscript':
     case 'worker':
@@ -286,6 +332,7 @@ function labelFor(use: LevyUse, plan: LevyPlan): string {
   if (use === 'production') return 'Production here';
   if (use === 'opus') return 'Send to the Magnum Opus';
   if (use === 'science') return 'Science';
+  if (use === 'rite') return 'Perform a rite across your empire';
   if (use === 'wonder') {
     const front = plan.target?.queue[0];
     return front && front.kind === 'building' && isBuildingId(front.id)
@@ -305,10 +352,31 @@ function raisedWord(use: LevyUse): string {
 /**
  * Why this town may not levy for this use, or `null` when it may.
  *
- * The one refusal: the city panel greys a line with it and the command returns
- * it, so the sentence on the hover is the sentence the reducer would give.
+ * The one refusal the command returns. `rite` is the command's own field, and is
+ * read as it came, because a command may come from a save or a socket. The `rite`
+ * use must name a rite that passes the rite's gate (`realmRiteError`), and no
+ * other use may name one.
  */
 export function levyError(
+  state: GameState,
+  playerId: number,
+  city: City,
+  use: LevyUse,
+  rite?: unknown,
+): string | null {
+  const line = levyLineError(state, playerId, city, use);
+  if (line !== null) return line;
+  if (use !== 'rite') return rite === undefined ? null : 'Only a levy for a rite names a rite';
+  if (rite === undefined) return 'A levy for a rite must name the rite';
+  return realmRiteError(state, playerId, rite);
+}
+
+/**
+ * `levyError` before any rite is named: why this menu line cannot be chosen, or
+ * `null` when it can. The city panel greys a line with it, so the sentence on the
+ * line is the sentence the reducer would give.
+ */
+export function levyLineError(
   state: GameState,
   playerId: number,
   city: City,
@@ -357,7 +425,24 @@ function grantError(state: GameState, city: City, grant: LevyGrant): string | nu
   if (raises && plan.tile === null) {
     return `There is no room beside ${city.name} for a new unit`;
   }
+  if (grant.use === 'rite' && levyRiteChoices(state, city.ownerId).every((choice) => choice.blocked !== null)) {
+    return 'You know no rite that can be performed across your empire';
+  }
   return null;
+}
+
+/**
+ * **The rites a levy could say over this empire**, every rite it knows in table
+ * order, each with the rite gate's own refusal. A rite that acts at once stays on
+ * the list with its refusal, as it does on a prophet's list, so a player can read
+ * why it is not offered.
+ */
+export function levyRiteChoices(state: GameState, playerId: number): LevyRiteChoice[] {
+  return availableRites(state, playerId).map((rite) => ({
+    rite,
+    name: riteDef(rite).name,
+    blocked: realmRiteError(state, playerId, rite),
+  }));
 }
 
 /**
@@ -381,7 +466,8 @@ export function levyOptions(state: GameState, playerId: number, city: City): Lev
       unit: plan.unit,
       targetCityId: use === 'opus' || use === 'wonder' ? (plan.target?.id ?? null) : null,
       every: waitFor(state, playerId, grant),
-      blocked: levyError(state, playerId, city, use),
+      blocked: levyLineError(state, playerId, city, use),
+      ...(use === 'rite' ? { rites: levyRiteChoices(state, playerId) } : {}),
     });
   }
   return options;
@@ -401,9 +487,11 @@ export function levyOptions(state: GameState, playerId: number, city: City): Lev
  *   4. the payment lands: hammers through `settleProductionWindfall` (into this
  *      town, into the town building the Magnum Opus, or into the nearest town
  *      building a world wonder), beakers through `settleResearchWindfall`, a
- *      piece through `realiseItem`. The piece counts as trained for The Muster
- *      of the Fields only, at the rank the governing row names (The Devshirme's
- *      Veteran), and marked with the use that raised it (`Unit.levied`);
+ *      piece through `realiseItem`, a rite through `sayRiteOverRealm`. The piece
+ *      counts as trained for The Muster of the Fields only, at the rank the
+ *      governing row names (The Devshirme's Veteran), and marked with the use
+ *      that raised it (`Unit.levied`). The rite takes no faith and no prophet's
+ *      charge: the citizen is its whole price (the user's answer, 2026-11-05);
  *   5. any card that reacts to a levy hangs its effects on the town, and a card
  *      that sends the citizen home later writes the turn it returns (The Mit'a);
  *   6. the town is re-seated (`refreshCityDerived`, register entry 23).
@@ -412,7 +500,7 @@ export function levyOptions(state: GameState, playerId: number, city: City): Lev
  * step 1, so The Devshirme's floor of six is checked against the town as it
  * was when it chose to levy.
  */
-export function levyAt(state: GameState, city: City, use: LevyUse): LevyReport {
+export function levyAt(state: GameState, city: City, use: LevyUse, rite?: RiteId): LevyReport {
   const plan = planLevy(state, city, use);
   const rank = levyGrantFor(state, city.ownerId, city, use)?.rank;
   city.levy = { ...city.levy, turn: state.turn };
@@ -451,6 +539,10 @@ export function levyAt(state: GameState, city: City, use: LevyUse): LevyReport {
       },
     );
     if (realised.unitId !== undefined) report.unitId = realised.unitId;
+  }
+  if (use === 'rite' && rite !== undefined && player !== undefined) {
+    report.rite = rite;
+    report.wonders = sayRiteOverRealm(state, player, rite).wonders;
   }
   hangAftermaths(state, city);
   scheduleReturn(state, city);

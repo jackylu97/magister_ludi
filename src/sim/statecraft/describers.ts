@@ -3787,6 +3787,12 @@ function describeLevy(effect: CardLevyEffect, out: CardClause[]): void {
       ? ''
       : ` as ${indefinite(rankName(effect.rank))} ${rankName(effect.rank)}`;
   const melee = `the best melee unit you can build${rank}`;
+  // Human Sacrifice (batch DT19). The scope's own words are "your capital", which
+  // take no article, and each town reached is a step on the rite price.
+  const riteTown = effect.scope === undefined ? `${indefinite(noun)} ${noun}` : noun;
+  const riteWords =
+    'perform a rite you know in every town you hold, with no faith and no prophet; ' +
+    'each town it reaches raises the price of later rites';
   const use = effect.use;
   if (use !== undefined) {
     let what: string;
@@ -3817,6 +3823,9 @@ function describeLevy(effect: CardLevyEffect, out: CardClause[]): void {
       case 'wonder':
         what = `${food}, paid to your nearest other town building a world wonder`;
         break;
+      case 'rite':
+        what = riteWords;
+        break;
       default: {
         const unhandled: never = use;
         void unhandled;
@@ -3829,7 +3838,21 @@ function describeLevy(effect: CardLevyEffect, out: CardClause[]): void {
         : `once every ${levy.everyTurns} turns, or every ${
             effect.everyAtWar === 1 ? 'turn' : `${effect.everyAtWar} turns`
           } while you are at war`;
-    out.push({ text: `${town} may spend one citizen for ${what} (${wait})` });
+    // A rite's clause prints no wait. The only card that grants it shortens the
+    // wait in its other clause, so "once every five turns" would contradict it.
+    out.push({
+      text:
+        use === 'rite'
+          ? `${riteTown} may spend one citizen to ${what}`
+          : `${town} may spend one citizen for ${what} (${wait})`,
+    });
+  }
+  // Human Sacrifice's first clause (batch DT19).
+  if (effect.every !== undefined) {
+    const every = Math.max(1, Math.floor(effect.every));
+    out.push({
+      text: `your towns may levy every ${every === 1 ? 'turn' : `${every} turns`} instead of every ${levy.everyTurns}`,
+    });
   }
   // The Mit'a and The Slack Season (Expansionist batch E1).
   if (effect.returnsAfter !== undefined) {

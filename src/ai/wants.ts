@@ -108,6 +108,7 @@ import {
   delayTerm,
   explainBuildingRow,
   explainEffects,
+  explainRite,
   explainForecastCount,
   explainLump,
   explainSoldier,
@@ -1868,42 +1869,6 @@ function ritePlan(state: GameState, player: Player, ctx: ValueContext): Want[] {
  */
 function riteOutOfReach(state: GameState, player: Player, cityId: number, id: RiteId): boolean {
   return riteShortfall(state, player.id, cityId, id) !== null;
-}
-
-/**
- * One rite: what its blessing is worth over the turns it runs.
- *
- * There is no grant arm any more, and the deletion is the news: a rite pays
- * nothing the instant it lands (`RiteDef`), so the whole appraisal is the
- * lasting half — which is the half this file could always read exactly.
- *
- * The context handed in is the **town-scoped** one (`townScoped`): a rite is one
- * town's blessing and every city-scoped arm of the evaluator has to pay it once.
- * See `ritePlan`.
- *
- * `city` is the town that would keep the rite, when the caller knows it
- * (Devotion batch DV9). The Sabbath moves that town's own production into
- * culture, so it is priced off that town (`explainEffects`' `town`). The
- * prophet's rite over the realm names no town and reads the middling one.
- */
-function explainRite(id: RiteId, ctx: ValueContext, city?: City): Appraisal {
-  const def = riteDef(id);
-  const effects = def.effects ?? [];
-  if (effects.length === 0) return appraise([]);
-  const lasting = explainEffects(effects, ctx, undefined, city);
-  const turns = def.duration ?? 1;
-  const lumpTurns = Math.max(1, ctx.ai.score.lumpTurns);
-  return appraise([
-    {
-      label: `its blessing, for ${turns} turn${turns === 1 ? '' : 's'}`,
-      value: (lasting.total * turns) / lumpTurns,
-      parts: [
-        ...lasting.terms,
-        { label: `× ${turns} turns of it`, value: turns, op: 'mul' },
-        { label: `÷ ${lumpTurns} — a blessing that runs out, not a rate`, value: lumpTurns, op: 'div' },
-      ],
-    },
-  ]);
 }
 
 /**

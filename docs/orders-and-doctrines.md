@@ -195,6 +195,7 @@ governments, so Tier IV opened at 29.
 | The Georgics | Expansionist | II | tier 10 | Your works count as having stood twice as long. Improvements that have stood for twenty turns gain +1 production. |
 | Synoecism | Expansionist | II | tier 10 | Your towns of six or more citizens grow 30% faster. Towns you founded cost 1 more authority, including those you already hold. |
 | The Curator of Waters | Expansionist | II | tier 10 | Public works give +2 happiness and are built 50% faster. |
+| Human Sacrifice | Expansionist | II | tier 10 | Your towns may levy every two turns instead of every five. Your capital may levy a citizen to perform a rite across your empire. |
 | The Censors | Expansionist | II | tier 10 | When the world takes a census, each of your towns gains a citizen. If you lead the census, each of your towns also gains +1 happiness for the rest of the game. |
 | The Wildwood Compact | Expansionist | II | tier 10 | Needs tended land. Tended works cost your workers no charge. Workers you gain from now on have one less charge. |
 | Crop Rotation | Expansionist | III | tier 18 | Worked improvements yield twice their own bonus. Worked unimproved tiles yield nothing. |

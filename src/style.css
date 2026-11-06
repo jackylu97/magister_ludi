@@ -7433,6 +7433,15 @@ p.city-trade-link {
   line-height: 1.3;
   color: var(--ink-soft);
 }
+/* The rites under a levy's rite line (Human Sacrifice), set in from the line
+   that opens them. */
+.city-levy-rites {
+  grid-column: 1 / -1;
+  margin-left: 12px;
+}
+.city-levy-rites .city-levy-row:last-child {
+  border-bottom: 0;
+}
 .city-levy-cost {
   margin: 5px 0 0;
   font-family: var(--face-num);

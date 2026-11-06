@@ -500,6 +500,12 @@ export interface LevyCitizenCommand extends PlayerCommand {
   type: 'levyCitizen';
   cityId: number;
   use: LevyUse;
+  /**
+   * The rite to say over the realm, for the use `rite` (Human Sacrifice, batch
+   * DT19). Required for that use and refused on any other. A log written before
+   * the field existed has no `rite` use, so it replays as it did.
+   */
+  rite?: RiteId;
 }
 
 /**
@@ -2908,8 +2914,8 @@ function applyDismissSpecialist(
  * Spends one citizen on a levy. See `LevyCitizenCommand`.
  *
  * Validated in full before anything moves: the use must be a word the game
- * knows (a command may come from a save or a socket), and everything else is
- * `levyError`, the panel's own refusal. Only then does `levyAt` mutate.
+ * knows (a command may come from a save or a socket), and everything else,
+ * the named rite included, is `levyError`. Only then does `levyAt` mutate.
  */
 function applyLevyCitizen(state: GameState, command: LevyCitizenCommand): CommandResult {
   const actor = resolveActor(state, command.playerId);
@@ -2922,11 +2928,14 @@ function applyLevyCitizen(state: GameState, command: LevyCitizenCommand): Comman
     return fail(`"${String(use)}" is not something a levy can buy`);
   }
 
-  const blocker = levyError(state, actor.id, city, use as LevyUse);
+  const blocker = levyError(state, actor.id, city, use as LevyUse, command.rite);
   if (blocker !== null) return fail(blocker);
 
-  levyAt(state, city, use as LevyUse);
-  return ok();
+  const mark = actor.triumphs.length;
+  const done = levyAt(state, city, use as LevyUse, command.rite);
+  // A rite's `rite` occasion is paid in every town it reaches, so a rider may
+  // finish a wonder or win a triumph here. Both go out as `applyEmpireRite`'s do.
+  return ok(undefined, undefined, done.wonders, triumphsAwarded(actor, mark));
 }
 
 /**

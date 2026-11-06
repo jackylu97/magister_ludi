@@ -7,8 +7,8 @@
  * Batch DT6 adds The Highland Clans, The Curator of Waters and All Roads Lead to
  * Rome. Batch DT7 adds The Inward Roads. Batch DT12 adds the land: The Georgics, The
  * Wildwood Compact, The Planted Towns and Arcadia. Batch DT13 adds The Hydraulic
- * Empire, The Builder Kings and The Censors. A later batch adds the deck's other
- * Doctrine to this file.
+ * Empire, The Builder Kings and The Censors. Batch DT19 adds the deck's last,
+ * Human Sacrifice.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -30,9 +30,20 @@ import {
   settleProductionWindfall,
 } from '../../../src/sim/cities';
 import { lastCensus, runCensus } from '../../../src/sim/census';
-import { applyCommand } from '../../../src/sim/commands';
+import { type Command, applyCommand } from '../../../src/sim/commands';
 import { commissionFigure } from '../../../src/sim/commissions';
+import { dispatch, snapshotState } from '../../../src/sim/game';
 import { chargesLeft, markInsteadOf, pillageError, workChargeCost } from '../../../src/sim/improvements';
+import { levyError, levyOptions, levyStandingWait } from '../../../src/sim/levies';
+import {
+  cityRite,
+  empireRiteAt,
+  empireRiteError,
+  riteCostAhead,
+  riteCostFor,
+} from '../../../src/sim/religion';
+import { RELIGION, type RiteId } from '../../../src/sim/religionData';
+import { RULES } from '../../../src/sim/rulesData';
 import { routeStartable } from '../../../src/sim/trade';
 import { raiseImprovement, tileIndex, tileNeighbors } from '../../../src/sim/map';
 import { markMountainAdjacency } from '../../../src/sim/mapgen';
@@ -53,7 +64,7 @@ import {
   createUnit,
   playerById,
 } from '../../../src/sim/state';
-import { adoptGovernmentAt, doctrineBagFor, statecraftBlocker } from '../../../src/sim/statecraft';
+import { adoptGovernmentAt, describeCard, doctrineBagFor, statecraftBlocker } from '../../../src/sim/statecraft';
 import {
   cardCityRuleAt,
   cardWorkAgeFactor,
@@ -61,6 +72,7 @@ import {
   countOf,
   explainCardPercentYields,
   groundFactsFor,
+  holdsLevyGrant,
   scopedCardTileLines,
   tileConditionHolds,
   windfallPayout,
@@ -69,6 +81,7 @@ import {
   type CardEffect,
   type CityScope,
   type DoctrineId,
+  type OrderId,
   DECK_FILE_DOCTRINES,
   doctrineDef,
   governmentsAtTier,
@@ -82,8 +95,9 @@ import { lendDoctrineEffects } from '../statecraftHelpers';
 
 /**
  * The rows built so far: the eleven of batch DT2, batch DT5's The Garden Peoples, the
- * three of batch DT6, batch DT7's The Inward Roads, the four of batch DT12 and the
- * three of batch DT13, each with the band its sheet table gives it.
+ * three of batch DT6, batch DT7's The Inward Roads, the four of batch DT12, the
+ * three of batch DT13 and batch DT19's Human Sacrifice, each with the band its sheet
+ * table gives it.
  */
 const ROWS: readonly (readonly [string, number])[] = [
   ['boundToTheSoil', 1],
@@ -93,6 +107,7 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theGeorgics', 2],
   ['synoecism', 2],
   ['theCuratorOfWaters', 2],
+  ['humanSacrifice', 2],
   ['theCensors', 2],
   ['theWildwoodCompact', 2],
   ['cropRotation', 3],
@@ -1880,5 +1895,318 @@ describe('The Censors (batch DT13)', () => {
     expect(countOf(state, 0, 'theCensors', row)).toBe(0);
     const { within: _within, ...realm } = row;
     expect(countOf(state, 0, 'theCensors', realm)).toBe(1);
+  });
+});
+
+describe('Human Sacrifice (batch DT19)', () => {
+  const FASTING = 'riteOfFasting' as RiteId;
+  const VOTIVE = 'votiveOffering' as RiteId;
+
+  /** Three towns of seat 0, a rival's, and a seat that holds the Doctrine and knows The Fast's rite. */
+  function board() {
+    const state = bareState(36, 14);
+    const capital = town(state, 3, 3, 6);
+    const second = town(state, 12, 3, 4);
+    const third = town(state, 21, 3, 4);
+    const rival = town(state, 3, 10, 4, 1);
+    hold(state, 'humanSacrifice');
+    seat(state).charteredRites.push(FASTING);
+    bumpRevision(state);
+    return { state, capital, second, third, rival };
+  }
+
+  function sacrifice(state: GameState, city: City, rite: unknown = FASTING) {
+    return applyCommand(state, {
+      type: 'levyCitizen',
+      playerId: 0,
+      cityId: city.id,
+      use: 'rite',
+      rite: rite as RiteId,
+    });
+  }
+
+  it('lets the capital levy for a rite, and no other town', () => {
+    const { state, capital, second } = board();
+    expect(levyOptions(state, 0, capital).map((option) => option.use)).toEqual(['rite']);
+    expect(levyError(state, 0, capital, 'rite', FASTING)).toBeNull();
+    expect(levyOptions(state, 0, second)).toEqual([]);
+    expect(levyError(state, 0, second, 'rite', FASTING)).toMatch(/None of your cards/);
+    expect(sacrifice(state, second).ok).toBe(false);
+    expect(sacrifice(state, capital).ok).toBe(true);
+  });
+
+  it('asks nothing of a seat without the Doctrine', () => {
+    const { state, capital } = board();
+    seat(state).statecraft.doctrines.length = 0;
+    bumpRevision(state);
+    expect(levyOptions(state, 0, capital)).toEqual([]);
+    expect(sacrifice(state, capital).ok).toBe(false);
+  });
+
+  it('says the rite in every town the seat holds, for the citizen alone', () => {
+    const { state, capital, second, third, rival } = board();
+    second.puppet = true;
+    const player = seat(state);
+    // An empty bank and no prophet: the citizen is the whole price.
+    player.faithPool = 0;
+    const faithSpent = player.faithSpent ?? 0;
+    expect(state.units.some((unit) => unit.ownerId === 0 && unit.type === 'prophet')).toBe(false);
+    const before = { population: capital.population, others: second.population, units: state.units.length };
+
+    expect(sacrifice(state, capital).ok).toBe(true);
+
+    for (const city of [capital, second, third]) expect(cityRite(state, city), city.name).toBe(FASTING);
+    expect(cityRite(state, rival)).toBeNull();
+    expect(capital.population).toBe(before.population - 1);
+    expect(second.population).toBe(before.others);
+    expect(player.citizensLevied).toBe(1);
+    expect(player.faithPool).toBe(0);
+    expect(player.faithSpent ?? 0).toBe(faithSpent);
+    expect(state.units).toHaveLength(before.units);
+    // The town has re-seated, with the citizen gone.
+    expect(capital.workedTiles.length).toBeLessThanOrEqual(capital.population);
+  });
+
+  it('raises the price of later rites by the towns reached, as a prophet’s rite does', () => {
+    const { state, capital } = board();
+    const player = seat(state);
+    const price = riteCostFor(state, 0);
+    const started = player.ritesStarted ?? 0;
+    expect(sacrifice(state, capital).ok).toBe(true);
+    expect(player.ritesStarted).toBe(started + 3);
+    expect(riteCostFor(state, 0)).toBe(riteCostAhead(state, 0, 0));
+    expect(riteCostFor(state, 0)).toBe(price + 3 * RELIGION.rite.costPerRiteStarted);
+    // A rival's price does not move.
+    expect(playerById(state, 1)!.ritesStarted ?? 0).toBe(0);
+  });
+
+  it('leaves a town what a prophet’s rite would leave it', () => {
+    const levied = board();
+    const said = board();
+    const prophet = createUnit(said.state, 0, 'prophet', said.capital.col, said.capital.row);
+    seat(said.state).faithPool = 100_000;
+    expect(sacrifice(levied.state, levied.capital).ok).toBe(true);
+    const done = empireRiteAt(said.state, seat(said.state), prophet, FASTING);
+    expect(done.cities.map((city) => city.id)).toEqual([said.capital, said.second, said.third].map((city) => city.id));
+    expect(levied.second.timed).toEqual(said.second.timed);
+    expect(levied.third.timed).toEqual(said.third.timed);
+    expect(seat(levied.state).ritesStarted).toBe(seat(said.state).ritesStarted);
+  });
+
+  it('pays the rite’s riders in each town: The Rogations grows by one a town', () => {
+    const { state, capital } = board();
+    const player = seat(state);
+    const rogations = 'theRogations' as OrderId;
+    player.statecraft.orders.push(rogations);
+    player.statecraft.slots.push({ card: rogations, sealedUntil: state.turn });
+    bumpRevision(state);
+    expect(sacrifice(state, capital).ok).toBe(true);
+    expect(player.statecraft.tallies.find((row) => row.card === rogations)?.count).toBe(3);
+  });
+
+  it('refuses a rite that acts at once, as it is refused for a prophet', () => {
+    const { state, capital } = board();
+    seat(state).charteredRites.push(VOTIVE);
+    bumpRevision(state);
+    const prophet = createUnit(state, 0, 'prophet', capital.col, capital.row);
+    seat(state).faithPool = 100_000;
+    const refusal = levyError(state, 0, capital, 'rite', VOTIVE);
+    expect(refusal).toMatch(/said by one city/);
+    expect(refusal).toBe(empireRiteError(state, 0, prophet.id, VOTIVE));
+    expect(sacrifice(state, capital, VOTIVE).ok).toBe(false);
+  });
+
+  it('greys the line when the seat knows no rite that can reach every town', () => {
+    const { state, capital } = board();
+    const player = seat(state);
+    // The bench holds every technology, and the tree teaches most rites.
+    player.techsResearched = [];
+    player.charteredRites = [VOTIVE];
+    bumpRevision(state);
+    const line = levyOptions(state, 0, capital)[0]!;
+    expect(line.blocked).toMatch(/no rite/);
+    expect(line.rites?.map((choice) => choice.rite)).toEqual([VOTIVE]);
+    player.charteredRites = [];
+    bumpRevision(state);
+    expect(levyOptions(state, 0, capital)[0]!.blocked).toMatch(/no rite/);
+    expect(levyOptions(state, 0, capital)[0]!.rites).toEqual([]);
+  });
+
+  it('leaves the state byte-identical when a levy for a rite is refused', () => {
+    const { state, capital, second } = board();
+    const refusals: unknown[] = [
+      // No rite named.
+      { type: 'levyCitizen', playerId: 0, cityId: capital.id, use: 'rite' },
+      // A word the game does not know.
+      { type: 'levyCitizen', playerId: 0, cityId: capital.id, use: 'rite', rite: 'riteOfNothing' },
+      // A rite this seat was not taught.
+      { type: 'levyCitizen', playerId: 0, cityId: capital.id, use: 'rite', rite: 'riteOfTheSabbath' },
+      // A rite that acts at once.
+      { type: 'levyCitizen', playerId: 0, cityId: capital.id, use: 'rite', rite: VOTIVE },
+      // Another town.
+      { type: 'levyCitizen', playerId: 0, cityId: second.id, use: 'rite', rite: FASTING },
+      // Another seat's town.
+      { type: 'levyCitizen', playerId: 1, cityId: capital.id, use: 'rite', rite: FASTING },
+    ];
+    for (const command of refusals) {
+      const before = JSON.stringify(state);
+      const result = applyCommand(state, command as Command);
+      expect(result.ok, JSON.stringify(command)).toBe(false);
+      expect(JSON.stringify(state)).toBe(before);
+    }
+    // A capital down to one citizen may not levy either.
+    capital.population = 1;
+    refreshCityDerived(state, capital);
+    const before = JSON.stringify(state);
+    expect(sacrifice(state, capital).ok).toBe(false);
+    expect(JSON.stringify(state)).toBe(before);
+  });
+
+  it('refuses a rite named on any other levy', () => {
+    const { state, capital } = board();
+    const player = seat(state);
+    const levy = 'levyOfTheLand' as OrderId;
+    player.statecraft.orders.push(levy);
+    player.statecraft.slots.push({ card: levy, sealedUntil: state.turn });
+    bumpRevision(state);
+    const before = JSON.stringify(state);
+    const result = applyCommand(state, {
+      type: 'levyCitizen',
+      playerId: 0,
+      cityId: capital.id,
+      use: 'production',
+      rite: FASTING,
+    });
+    expect(result.ok).toBe(false);
+    expect(JSON.stringify(state)).toBe(before);
+    expect(levyError(state, 0, capital, 'production')).toBeNull();
+  });
+
+  describe('the wait', () => {
+    /** Seat 0 with these Orders in chairs, on the DT19 board. */
+    function withOrders(...cards: string[]) {
+      const made = board();
+      const player = seat(made.state);
+      for (const card of cards) {
+        player.statecraft.orders.push(card as OrderId);
+        player.statecraft.slots.push({ card: card as OrderId, sealedUntil: made.state.turn });
+      }
+      bumpRevision(made.state);
+      return made;
+    }
+
+    it('is two turns for every levy in every town, read off the same stamp', () => {
+      const { state, second } = withOrders('levyOfTheLand');
+      const command: Command = { type: 'levyCitizen', playerId: 0, cityId: second.id, use: 'production' };
+      expect(levyStandingWait(state, 0)).toBe(2);
+      expect(applyCommand(state, command).ok).toBe(true);
+      expect(levyError(state, 0, second, 'production')).toMatch(/can levy again in 2 turns/);
+      state.turn += 1;
+      expect(levyError(state, 0, second, 'production')).toMatch(/can levy again in 1 turn/);
+      state.turn += 1;
+      expect(levyError(state, 0, second, 'production')).toBeNull();
+    });
+
+    it('reads the rule’s five turns without the Doctrine', () => {
+      const { state, second } = withOrders('levyOfTheLand');
+      seat(state).statecraft.doctrines.length = 0;
+      bumpRevision(state);
+      expect(levyStandingWait(state, 0)).toBe(RULES.cities.levy.everyTurns);
+      const command: Command = { type: 'levyCitizen', playerId: 0, cityId: second.id, use: 'production' };
+      expect(applyCommand(state, command).ok).toBe(true);
+      state.turn += 2;
+      expect(levyError(state, 0, second, 'production')).toMatch(/can levy again in 3 turns/);
+    });
+
+    it('binds the rite too: a capital that levied for a rite waits two turns', () => {
+      const { state, capital } = withOrders('levyOfTheLand');
+      expect(sacrifice(state, capital).ok).toBe(true);
+      expect(levyError(state, 0, capital, 'rite', FASTING)).toMatch(/can levy again in 2 turns/);
+      expect(levyError(state, 0, capital, 'production')).toMatch(/can levy again in 2 turns/);
+    });
+
+    it('lets a shorter wartime pace win: The General Levy still levies every turn', () => {
+      const { state, second } = withOrders('theGeneralLevy');
+      // The bench's two seats start at war; this half is about peace.
+      const wars = state.wars;
+      state.wars = [];
+      const command: Command = { type: 'levyCitizen', playerId: 0, cityId: second.id, use: 'conscript' };
+      expect(applyCommand(state, command).ok).toBe(true);
+      state.turn += 1;
+      // At peace it waits the Doctrine's two, not the General Levy's one.
+      expect(levyError(state, 0, second, 'conscript')).toMatch(/can levy again in 1 turn/);
+      state.wars = wars;
+      expect(levyError(state, 0, second, 'conscript')).toBeNull();
+    });
+
+    it('keeps the shorter of the two when a row’s wartime pace is the longer', () => {
+      const { state, second } = board();
+      expect(state.wars.length).toBeGreaterThan(0);
+      lend('humanSacrifice', [
+        { kind: 'levy', every: 2 },
+        { kind: 'levy', use: 'production', everyAtWar: 3 },
+      ]);
+      bumpRevision(state);
+      expect(levyOptions(state, 0, second).map((option) => [option.use, option.every])).toEqual([['production', 2]]);
+    });
+  });
+
+  it('opens the cards marked "Needs a levy", with no Order that grants one', () => {
+    const { state } = board();
+    expect(holdsLevyGrant(state, 0)).toBe(true);
+    // The row of `every` alone grants no levy, as a row with no use never has.
+    lend('humanSacrifice', [{ kind: 'levy', every: 2 }]);
+    expect(holdsLevyGrant(state, 0)).toBe(false);
+  });
+
+  it('reaches the second capital under The Two Capitals, as a card’s capital does', () => {
+    const { state, capital, second, third } = board();
+    hold(state, 'theTwoCapitals');
+    capital.population = 6;
+    second.population = 8;
+    third.population = 3;
+    bumpRevision(state);
+    expect(levyError(state, 0, capital, 'rite', FASTING)).toBeNull();
+    expect(levyError(state, 0, second, 'rite', FASTING)).toBeNull();
+    expect(levyError(state, 0, third, 'rite', FASTING)).toMatch(/None of your cards/);
+  });
+
+  it('prints one clause for each half, with no raw reference', () => {
+    const clauses = describeCard('humanSacrifice' as DoctrineId).map((clause) => clause.text);
+    expect(clauses).toEqual([
+      'your towns may levy every 2 turns instead of every 5',
+      'your capital may spend one citizen to perform a rite you know in every town you hold, with no faith and no prophet; each town it reaches raises the price of later rites',
+    ]);
+  });
+
+  it('replays to the same state', () => {
+    const CONFIG = {
+      seed: 31,
+      sizeName: 'duel',
+      players: [
+        { name: 'Ada', color: '#d4502e' },
+        { name: 'Bors', color: '#3a7fe8' },
+      ],
+    };
+    const prepared = () => {
+      const game = createGame(CONFIG);
+      const founder = game.state.units.find((unit) => unit.ownerId === 0)!;
+      const capital = foundCityAt(game.state, 0, at(game.state, founder.col, founder.row));
+      capital.population = 6;
+      refreshCityDerived(game.state, capital);
+      hold(game.state, 'humanSacrifice');
+      seat(game.state).charteredRites.push(FASTING);
+      bumpRevision(game.state);
+      return { game, capital };
+    };
+    const first = prepared();
+    const command: Command = { type: 'levyCitizen', playerId: 0, cityId: first.capital.id, use: 'rite', rite: FASTING };
+    expect(dispatch(first.game, command).ok).toBe(true);
+    const second = prepared();
+    for (const logged of first.game.log) expect(applyCommand(second.game.state, logged).ok).toBe(true);
+    expect(snapshotState(second.game.state)).toBe(snapshotState(first.game.state));
+    expect(first.game.log).toEqual([command]);
+    // The log stays plain JSON.
+    expect(JSON.parse(JSON.stringify(first.game.log))).toEqual([command]);
   });
 });

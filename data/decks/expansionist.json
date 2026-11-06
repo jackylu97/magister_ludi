@@ -3596,6 +3596,29 @@
         }
       ]
     },
+    "humanSacrifice": {
+      "name": "Human Sacrifice",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 2,
+      "line": "none",
+      "flavor": "The gods ask for the best the city has, and the city keeps count.",
+      "text": "Your towns may levy every two turns instead of every five. Your capital may levy a citizen to perform a rite across your empire.",
+      "effects": [
+        {
+          "kind": "levy",
+          "every": 2
+        },
+        {
+          "kind": "levy",
+          "use": "rite",
+          "scope": {
+            "test": "capital"
+          }
+        }
+      ]
+    },
     "theCensors": {
       "name": "The Censors",
       "decks": [

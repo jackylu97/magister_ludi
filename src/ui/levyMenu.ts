@@ -10,6 +10,10 @@
  * reason on a line under it. A town whose owner holds no levy card gets no
  * button at all.
  *
+ * The `rite` line (Human Sacrifice, batch DT19) has no one thing to buy. Pressing
+ * it opens a small list of the rites the empire knows under the line, each with
+ * what it does, or the rite gate's own refusal. Pressing a rite spends the citizen.
+ *
  * Split in two so the menu can later open from a citizen token (the user's
  * preferred version): `levyMenuModel` is pure and says what the menu holds;
  * `renderLevyMenu` draws it and hands the choice back through a callback. This
@@ -17,12 +21,14 @@
  */
 
 import { buildingDef, isBuildingId } from '../sim/buildingData';
-import { type LevyOption, levyOptions } from '../sim/levies';
-import { RULES } from '../sim/rulesData';
-import { type City, type GameState, cityById } from '../sim/state';
+import { type LevyOption, levyOptions, levyStandingWait } from '../sim/levies';
+import { riteCostAhead, riteCostFor } from '../sim/religion';
+import type { RiteId } from '../sim/religionData';
+import { type City, type GameState, cityById, citiesOf } from '../sim/state';
 import type { LevyUse } from '../sim/statecraftData';
 import { unitDef } from '../sim/unitData';
 import { YIELD_GLYPH, figure } from './figures';
+import { riteOfferText } from './riteOffer';
 import { yieldElement as element } from './yieldMark';
 
 /** One line of the menu, already in the player's words. */
@@ -35,6 +41,18 @@ export interface LevyMenuLine {
   /** The card that grants the line, and what it pays: under the label. */
   source: string;
   /** Why the line cannot be chosen now, or `null`. */
+  blocked: string | null;
+  /** The rites the line opens. Present only on the `rite` line. */
+  rites?: LevyMenuRite[];
+}
+
+/** One rite under the `rite` line. */
+export interface LevyMenuRite {
+  rite: RiteId;
+  name: string;
+  /** What it does and how long it lasts (`riteOfferText`), or the refusal. */
+  words: string;
+  /** Why this rite cannot be chosen, or `null`. */
   blocked: string | null;
 }
 
@@ -54,7 +72,7 @@ export interface LevyMenuModel {
 }
 
 /** The plain words under a line: the card's name and what it pays for. */
-function sourceWords(state: GameState, option: LevyOption): string {
+function sourceWords(state: GameState, playerId: number, option: LevyOption): string {
   const card = option.cardName;
   switch (option.use) {
     case 'production':
@@ -85,6 +103,12 @@ function sourceWords(state: GameState, option: LevyOption): string {
         ? `${card}: to your nearest other town building a world wonder`
         : `${card}: to ${target.name}, which is building ${wonder}`;
     }
+    case 'rite': {
+      // The figure is the price's own, so The Capitulary of Herstal's half shows.
+      const towns = citiesOf(state, playerId).length;
+      const rise = riteCostAhead(state, playerId, towns) - riteCostFor(state, playerId);
+      return `${card}: no faith and no prophet; your next rite costs ${rise} more faith`;
+    }
     default: {
       const unhandled: never = option.use;
       void unhandled;
@@ -94,10 +118,14 @@ function sourceWords(state: GameState, option: LevyOption): string {
 }
 
 /** The figure on the right of a line. */
-function figureWords(option: LevyOption): string {
+function figureWords(state: GameState, playerId: number, option: LevyOption): string {
   if (option.hammers !== null) return `+${figure(option.hammers)}${YIELD_GLYPH.production}`;
   if (option.science !== null) return `+${figure(option.science)}${YIELD_GLYPH.science}`;
   if (option.unit !== null) return unitDef(option.unit).name;
+  if (option.use === 'rite') {
+    const towns = citiesOf(state, playerId).length;
+    return `${figure(towns)} ${towns === 1 ? 'town' : 'towns'}`;
+  }
   return '—';
 }
 
@@ -113,21 +141,31 @@ export function levyMenuModel(
 ): LevyMenuModel | null {
   const options = levyOptions(state, playerId, city);
   if (options.length === 0) return null;
-  const every = RULES.cities.levy.everyTurns;
+  // The empire's own wait, so the cost line stays true under Human Sacrifice.
+  const every = levyStandingWait(state, playerId);
   const lines = options.map((option): LevyMenuLine => {
-    let source = sourceWords(state, option);
+    let source = sourceWords(state, playerId, option);
     // A line whose wait differs from the shared one says so (The General Levy
     // at war).
     if (option.every !== every) {
       source += option.every === 1 ? '; again next turn' : `; again in ${option.every} turns`;
     }
-    return {
+    const line: LevyMenuLine = {
       use: option.use,
       label: option.label,
-      figure: figureWords(option),
+      figure: figureWords(state, playerId, option),
       source,
       blocked: option.blocked,
     };
+    if (option.rites !== undefined) {
+      line.rites = option.rites.map((choice) => ({
+        rite: choice.rite,
+        name: choice.name,
+        words: choice.blocked ?? riteOfferText(state, playerId, choice.rite) ?? choice.name,
+        blocked: choice.blocked,
+      }));
+    }
+    return line;
   });
   const open = lines.find((line) => line.blocked === null);
   const disabled = open === undefined;
@@ -166,11 +204,14 @@ export function renderLevyTrigger(
  * The menu the button opens: one line per use, its figure on the right, and
  * under it the granting card or, for a line that cannot be chosen, the
  * reducer's own refusal. Both are printed, so neither needs a tooltip.
- * `onChoose` is handed the use a line was pressed for.
+ * `onChoose` is handed the use a line was pressed for, and the rite when the line
+ * was the `rite` line. That line only opens its list of rites; a rite spends the
+ * citizen. The list is opened here, on the element, because nothing in the game
+ * moved, and a repaint closes it again.
  */
 export function renderLevyMenuBody(
   model: LevyMenuModel,
-  onChoose: (use: LevyUse) => void,
+  onChoose: (use: LevyUse, rite?: RiteId) => void,
 ): HTMLElement {
   const menu = element('div', 'city-levy-menu');
   for (const line of model.lines) {
@@ -178,12 +219,39 @@ export function renderLevyMenuBody(
     const choose = element('button', 'city-levy-choice', line.label);
     choose.type = 'button';
     choose.disabled = line.blocked !== null;
-    choose.addEventListener('click', () => onChoose(line.use));
     row.append(choose);
     row.append(element('span', 'city-levy-figure num', line.figure));
     row.append(element('p', 'city-levy-source', line.blocked ?? line.source));
+    if (line.rites === undefined) {
+      choose.addEventListener('click', () => onChoose(line.use));
+    } else {
+      const list = renderRiteList(line.rites, (rite) => onChoose(line.use, rite));
+      list.hidden = true;
+      choose.setAttribute('aria-expanded', 'false');
+      choose.addEventListener('click', () => {
+        list.hidden = !list.hidden;
+        choose.setAttribute('aria-expanded', list.hidden ? 'false' : 'true');
+      });
+      row.append(list);
+    }
     menu.append(row);
   }
   menu.append(element('p', 'city-levy-cost', model.cost));
   return menu;
+}
+
+/** The rites under the `rite` line: a name to press, and what it does or the refusal. */
+function renderRiteList(rites: readonly LevyMenuRite[], onChoose: (rite: RiteId) => void): HTMLElement {
+  const list = element('div', 'city-levy-rites');
+  for (const entry of rites) {
+    const row = element('div', 'city-levy-row');
+    const choose = element('button', 'city-levy-choice', entry.name);
+    choose.type = 'button';
+    choose.disabled = entry.blocked !== null;
+    choose.addEventListener('click', () => onChoose(entry.rite));
+    row.append(choose);
+    row.append(element('p', 'city-levy-source', entry.words));
+    list.append(row);
+  }
+  return list;
 }

@@ -236,20 +236,28 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   `conscript` (best melee unit, not trained), and since Expansionist batch E1
   `worker` and `settler` (not trained), `science` (beakers equal to that food)
   and `wonder` (that food as hammers, sent to the nearest other town with a
-  world wonder at the front of its queue). A card's `after` hangs timed effects
+  world wonder at the front of its queue). Since batch DT19 there is also `rite`
+  (Human Sacrifice, in the capital): the command names a rite (`rite`), and
+  `sayRiteOverRealm` starts it in every town the seat holds, as a prophet's rite
+  does, for the citizen alone, with no faith and no prophet. A rite that acts at
+  once is refused (`realmRiteError`, shared with the prophet's gate), and each
+  town reached raises the rite price. A card's `after` hangs timed effects
   on the town (Seasonal Levies); `returnsAfter` sends the citizen home later
   (The Mit'a: `CityLevyRecord.returns`, given back by the `levyReturns` phase
   with no growth riders); `noWaitEvery` lifts the wait on some turns of the
   world's calendar (The Slack Season). One levy per town per
   `rules.cities.levy.everyTurns`, shared by every use, from the absolute stamp
-  `City.levy.turn`; a card may shorten it for its own use at war. The citizen
+  `City.levy.turn`; a card may shorten it for every use (`every`, Human Sacrifice:
+  `levyStandingWait`) or for its own use at war, and the shorter applies. The citizen
   leaves through `loseCitizen` (the famine's routine), and `recordLevy` counts
   it (`Player.citizensLevied`, The Labour Rolls). A piece a levy raises carries
   the use as `Unit.levied`, which a stamp or an upkeep rebate can narrow to (The
   Trained Bands, The General Levy). Cards marked "Needs a levy"
   (`OrderDef.needsLevy`) are dealt only to a seat holding a card that grants a
-  levy. Refusals are `levyError`; the city panel's "Levy a citizen" menu is
-  `src/ui/levyMenu.ts`. Bots levy too: see **The bots**.
+  levy, Order or Doctrine. Refusals are `levyError`, and `levyLineError` is its
+  half with no rite named; the city panel's "Levy a citizen" menu is
+  `src/ui/levyMenu.ts`, and the rite line opens a list of rites under it. Bots
+  levy too: see **The bots**.
 - **A town's reach and its mountains** (Expansionist batch E3). How far a
   town's citizens reach is `workRadiusOf`: the rule book's work radius, and one
   ring more under The Common Domain's `widerReach` city rule (towns of ten). It
@@ -1127,9 +1135,11 @@ cards grant a levy spends a citizen when the levy is worth more than the
 citizen (`levyDecision`, `bot.ts`). One reading prices a levy for the decision
 and for the cards (`explainCitizenLevy`, `value.ts`):
 
-- what the citizen buys: hammers or beakers, or the hammers of a piece the seat
+- what the citizen buys: hammers or beakers, the hammers of a piece the seat
   wants now (a soldier while the army or a garrison is short, a worker while a
-  town is raising one, a settler while the next town waits on one);
+  town is raising one, a settler while the next town waits on one), or a rite
+  (`bestLevyRite`: one town's blessing times the towns with a free place for it,
+  less what the rise in the rite price costs the next rite);
 - less the citizen: the food it took to grow it, a small town's premium and,
   taken off, the contentment it stops demanding while the town grows it back;
 - plus what the seated cards add to a levy.

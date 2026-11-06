@@ -1534,9 +1534,10 @@ export function ritesAffordable(state: GameState, playerId: number, bank: number
  * `Player.ritesStarted`, and the one seam that pays the `riteStarted` tally.
  *
  * Both callers start a season: `performRiteAt` for a town's rite with no
- * `atOnce`, and `empireRiteAt` once for each town a prophet's rite reaches. The
- * count and the tally are raised together, so the price counts the same rites
- * the cards count (the review's reading 2). Nothing lowers the count.
+ * `atOnce`, and `sayRiteOverRealm` once for each town a realm's rite reaches,
+ * whether a prophet or a levy said it. The count and the tally are raised
+ * together, so the price counts the same rites the cards count (the review's
+ * reading 2). Nothing lowers the count.
  */
 function countRiteStarted(state: GameState, player: Player): void {
   player.ritesStarted = (player.ritesStarted ?? 0) + 1;
@@ -2269,20 +2270,10 @@ export function empireRiteGate(
 ): RiteGateAnswer {
   const problem = prophetProblem(state, playerId, unitId, 'empireRite');
   if (problem !== null) return { refusal: problem, shortfall: null };
+  const clause = realmRiteError(state, playerId, rite);
+  if (clause !== null) return { refusal: clause, shortfall: null };
   const player = playerById(state, playerId)!;
-  const refuse = (refusal: string): RiteGateAnswer => ({ refusal, shortfall: null });
-  if (!isRiteId(rite)) return refuse(`There is no rite called "${String(rite)}"`);
-  const def = riteDef(rite);
-  if (def.retired === true) return refuse(`${def.name} is no longer performed`);
-  if (!hasAbility(state, playerId, riteAbility(rite))) {
-    return refuse(`${def.name} is not known to ${player.name}`);
-  }
-  // A rite that acts at once is said by one town for its own reason, never over
-  // the whole realm for one price.
-  if (def.atOnce !== undefined) return refuse(`${def.name} is said by one city, not over the realm`);
-  if (!state.cities.some((city) => city.ownerId === playerId)) {
-    return refuse(`${player.name} has no city to bless`);
-  }
+  const def = riteDef(rite as RiteId);
   const cost = riteCostFor(state, playerId);
   if (player.faithPool < cost) {
     return {
@@ -2291,6 +2282,31 @@ export function empireRiteGate(
     };
   }
   return { refusal: null, shortfall: null };
+}
+
+/**
+ * **May this rite be said over the whole realm at all?** The clauses that do not
+ * depend on who pays: the prophet's gate (`empireRiteGate`) asks them after the
+ * prophet and before the bank, and the levy's gate (`levyError`, Human Sacrifice,
+ * batch DT19) asks them with neither. So both refuse the same rites in the same
+ * words.
+ */
+export function realmRiteError(state: GameState, playerId: number, rite: unknown): string | null {
+  const player = playerById(state, playerId);
+  if (player === undefined) return `No player with id ${String(playerId)}`;
+  if (!isRiteId(rite)) return `There is no rite called "${String(rite)}"`;
+  const def = riteDef(rite);
+  if (def.retired === true) return `${def.name} is no longer performed`;
+  if (!hasAbility(state, playerId, riteAbility(rite))) {
+    return `${def.name} is not known to ${player.name}`;
+  }
+  // A rite that acts at once is said by one town for its own reason, never over
+  // the whole realm for one price.
+  if (def.atOnce !== undefined) return `${def.name} is said by one city, not over the realm`;
+  if (!state.cities.some((city) => city.ownerId === playerId)) {
+    return `${player.name} has no city to bless`;
+  }
+  return null;
 }
 
 /** What a prophet's empire-wide rite did, for the announcement. */
@@ -2323,25 +2339,8 @@ export interface EmpireRitePerformance {
  * charges. Validates nothing — `empireRiteError` is the rule.
  *
  * **The price is paid once**, before anything is stamped, for `performRiteAt`'s
- * reason exactly. Then `state.cities` in array order — never a distance sort,
- * because an outcome may only depend on an order the state carries (hard rule 2)
- * — each town losing whatever it was keeping and taking this instead, and each
- * re-seated through the one helper every mid-turn yield mutation goes through.
- * Under The Double Feast a town loses only the rite `ritesDisplacedBy` names:
- * the same rite, or its older rite when both of its places are taken, and
- * nothing when a place is free (Devotion batch DV8, the triage's reading 31).
- *
- * **Each town it reaches starts a season** (Devotion batch DV4, the triage's
- * reading 9). So, in each town and in the same order, the `riteStarted` tally
- * is raised and the `rite` occasion is paid with that town's facts, as
- * `performRiteAt` does for one town. One empire rite grows The Rogations by
- * one a town, counts toward The Founding Vows once a town, and pays The
- * Psalter in each devout town. The faith is still counted as spent once. The
- * count the rite price reads (`Player.ritesStarted`) rises once a town too
- * (batch R2a), so the next rite costs one step more for each town reached.
- *
- * Every town's chapel pays for the saying of it too (`payRiteBuildings`), as a
- * town's own rite does (the user, 2026-09-15, `docs/flags.md` (lllll)).
+ * reason exactly. The faith is counted as spent once. The sweep is
+ * `sayRiteOverRealm`, which a levy also calls (Human Sacrifice, batch DT19).
  */
 export function empireRiteAt(
   state: GameState,
@@ -2354,7 +2353,56 @@ export function empireRiteAt(
   // Through the one subtraction, so the rite counts as faith spent once,
   // however many towns it reaches. It announces the bank for the meters too.
   spendFaith(state, player, cost, true);
+  const { cities, expiresTurn, chapelCulture, wonders } = sayRiteOverRealm(state, player, rite);
+  const prophetSpent = spendCharge(state, unit, 'empireRite');
+  return {
+    rite,
+    name: def.name,
+    cities,
+    cost,
+    expiresTurn,
+    turns: expiresTurn - state.turn,
+    chapelCulture,
+    prophetSpent,
+    wonders,
+  };
+}
 
+/** What a rite said over the realm did, whoever said it. See `sayRiteOverRealm`. */
+export interface RealmRiteSweep {
+  /** Every town it landed on, in `state.cities` order. */
+  cities: City[];
+  expiresTurn: number;
+  chapelCulture: number;
+  wonders: WonderCompletion[];
+}
+
+/**
+ * **The sweep of a rite said over the realm.** It takes no price and validates
+ * nothing. Its callers are `empireRiteAt`, which pays faith and a prophet's
+ * charge, and `levyAt`, which pays a citizen (Human Sacrifice, batch DT19).
+ *
+ * It walks `state.cities` in array order, never a distance sort, because an
+ * outcome may only depend on an order the state carries (hard rule 2). Each town
+ * loses whatever it was keeping and takes this instead, and each is re-seated
+ * through the one helper every mid-turn yield mutation goes through. Under The
+ * Double Feast a town loses only the rite `ritesDisplacedBy` names: the same
+ * rite, or its older rite when both of its places are taken, and nothing when a
+ * place is free (Devotion batch DV8, the triage's reading 31).
+ *
+ * **Each town it reaches starts a season** (Devotion batch DV4, the triage's
+ * reading 9). So, in each town and in the same order, the `riteStarted` tally
+ * is raised and the `rite` occasion is paid with that town's facts, as
+ * `performRiteAt` does for one town. One empire rite grows The Rogations by
+ * one a town, counts toward The Founding Vows once a town, and pays The
+ * Psalter in each devout town. The count the rite price reads
+ * (`Player.ritesStarted`) rises once a town too (batch R2a), so the next rite
+ * costs one step more for each town reached.
+ *
+ * Every town's chapel pays for the saying of it too (`payRiteBuildings`), as a
+ * town's own rite does (the user, 2026-09-15, `docs/flags.md` (lllll)).
+ */
+export function sayRiteOverRealm(state: GameState, player: Player, rite: RiteId): RealmRiteSweep {
   const cities: City[] = [];
   const wonders: WonderCompletion[] = [];
   let expiresTurn = state.turn;
@@ -2369,10 +2417,10 @@ export function empireRiteAt(
     if (until !== null) expiresTurn = until;
     refreshCityDerived(state, city);
     // **A season in each town** (Devotion batch DV4): counted and paid once
-    // here, with this town's facts. `empireRiteGate` refuses a rite that acts
+    // here, with this town's facts. `realmRiteError` refuses a rite that acts
     // at once, so every rite said over the realm is a season. The count the
-    // rite price reads rises with it, once a town (batch R2a); the one price
-    // was paid above, before any town was counted.
+    // rite price reads rises with it, once a town (batch R2a); a caller that
+    // takes a price has paid it before any town was counted.
     countRiteStarted(state, player);
     for (const done of payRiteRiders(state, player, city)) wonders.push(done);
     // **An empire rite is the rite performed in every town**, so every chapel
@@ -2382,18 +2430,7 @@ export function empireRiteAt(
     chapelCulture += payRiteBuildings(state, player, city);
     cities.push(city);
   }
-  const prophetSpent = spendCharge(state, unit, 'empireRite');
-  return {
-    rite,
-    name: def.name,
-    cities,
-    cost,
-    expiresTurn,
-    turns: expiresTurn - state.turn,
-    chapelCulture,
-    prophetSpent,
-    wonders,
-  };
+  return { cities, expiresTurn, chapelCulture, wonders };
 }
 
 // --- timed effects ----------------------------------------------------------

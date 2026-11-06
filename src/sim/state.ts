@@ -3529,8 +3529,21 @@ import {
  *
  * **A v222 save is refused and does not replay.** These seats' Doctrine bags change,
  * so their draws move. The branch migrates nothing, for the reason given under v119.
+ *
+ * v224 (branch `decks`; batch DT19, `docs/plans/doctrines-build-triage.md`): **Human
+ * Sacrifice.** No field joins the state. `LevyCitizenCommand` gains an optional `rite`.
+ * The rules that change:
+ *
+ *   · Human Sacrifice is dealt, so all 24 Expansionist Doctrines are;
+ *   · a `levy` row's `every` shortens the wait between levies for every use;
+ *   · the levy use `rite` starts a known rite in every town the seat holds, for the
+ *     citizen alone (`sayRiteOverRealm`, split out of `empireRiteAt`);
+ *   · a Doctrine that grants a levy opens the cards marked "Needs a levy".
+ *
+ * **A v223 save is refused and does not replay.** These seats' Doctrine bags change,
+ * so their draws move. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 223;
+export const SCHEMA_VERSION = 224;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

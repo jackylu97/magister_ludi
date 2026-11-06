@@ -291,7 +291,6 @@ import {
   purgeError,
   riteCostFor,
   riteError,
-  riteTurnsFor,
 } from '../sim/religion';
 import {
   type HolySitePlanting,
@@ -349,6 +348,7 @@ import { walkedPrefix } from '../render/animation';
 import { cityDisplayName } from './cityDisplay';
 import { steppedTownId } from './cityPanel';
 import { HAMMER, YIELD_GLYPH, figure, percentFigure, signedFigure } from './figures';
+import { riteOfferText } from './riteOffer';
 // The bargain vocabulary: the terms a Deal panel writes and what signing one
 // moved. Type-only — this module sends commands and reads reports, and every
 // rule about a term lives in `diplomacy.ts`.
@@ -442,30 +442,7 @@ export function moveModeNotice(movesLeft: number): string {
   return movesLeft > 0 ? MOVE_MODE_NOTICE : MOVE_MODE_SPENT_NOTICE;
 }
 
-/**
- * What a rite does and how long it would run if this empire started it now:
- * "Every building standing in this city adds a little learning · lasts 15
- * turns". The rite row on the city screen prints it (`riteOptions`) and so does
- * the announcement after a rite (`riteSentence`), so the offer and the report
- * are one string.
- *
- * The turns are `riteTurnsFor`'s (batch UX6), the figure the town is stamped
- * with, so The Octave and Chichen Itza are counted. `ritePreview`, which the two
- * printed before, quotes the row's base duration and said 10 where the town
- * would get 15. The words around the figure are `ritePreview`'s own, so the two
- * read alike; when the simulation offers a preview that takes the empire into
- * account (batch UX8b's `explainRitePreview`), this should read that instead.
- *
- * `null` for a row with neither text nor a duration.
- */
-export function riteOfferText(state: GameState, playerId: number, id: RiteId): string | null {
-  const text = riteDef(id).text;
-  const turns = riteTurnsFor(state, playerId, id);
-  const lasts = turns === null ? null : `lasts ${turns} ${turns === 1 ? 'turn' : 'turns'}`;
-  if (text !== undefined && text !== '' && lasts !== null) return `${text} · ${lasts}`;
-  if (text !== undefined && text !== '') return text;
-  return lasts;
-}
+export { riteOfferText };
 
 /**
  * What a rite that has just been performed is announced as: "✶ Omen Reading at

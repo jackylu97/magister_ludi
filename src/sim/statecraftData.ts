@@ -5761,7 +5761,7 @@ export type WindfallOccasion =
    * **A season started** (Devotion batch DV4, the triage's reading 9). A rite
    * with no `atOnce` started in one of this empire's towns (`performRiteAt`),
    * or a prophet's rite over the realm, paid once in each town it reaches, in
-   * `state.cities` order (`empireRiteAt`). The Votive Offering and the
+   * `state.cities` order (`sayRiteOverRealm`). The Votive Offering and the
    * Restoring of the Host act at once, so they do not pay it.
    *
    * It carries the town (`WindfallOccasionFacts.townId`) and its citizens
@@ -9294,7 +9294,10 @@ export interface CardDrillEffect {
  *   · `wonder`: the same hammers as `production`, sent to the nearest other
  *     town of the empire with a world wonder at the front of its queue (The
  *     Builders' Levy). The Magnum Opus is not a world wonder: The Corvée sends
- *     hammers there.
+ *     hammers there;
+ *   · `rite`: a rite the empire knows, performed in every town it holds, for the
+ *     citizen alone: no faith and no prophet (Human Sacrifice). The command names
+ *     the rite (`LevyCitizenCommand.rite`).
  */
 export type LevyUse =
   | 'production'
@@ -9304,7 +9307,8 @@ export type LevyUse =
   | 'worker'
   | 'settler'
   | 'science'
-  | 'wonder';
+  | 'wonder'
+  | 'rite';
 
 /** Every levy use, in the order the city panel lists them. */
 export const LEVY_USES: readonly LevyUse[] = [
@@ -9316,6 +9320,7 @@ export const LEVY_USES: readonly LevyUse[] = [
   'settler',
   'science',
   'wonder',
+  'rite',
 ];
 
 /**
@@ -9334,11 +9339,14 @@ export const LEVY_USES: readonly LevyUse[] = [
  *   · `returnsAfter` and `noWaitEvery`: the citizen coming home later (The
  *     Mit'a), and the turns on which a town may levy with no wait (The Slack
  *     Season). Expansionist batch E1.
+ *   · `every`: a shorter waiting period for every levy in every town (Human
+ *     Sacrifice, batch DT19).
  *
- * Every levy shares one waiting period per town, `rules.cities.levy.everyTurns`.
- * `everyAtWar` shortens it for this use while the empire is at war with another
- * empire (The General Levy: every turn). `minPopulation` raises the town size a
- * levy under this use needs (The Corvée: ten).
+ * Every levy shares one waiting period per town, `rules.cities.levy.everyTurns`,
+ * or the smallest `every` in the law when that is shorter. `everyAtWar` shortens
+ * it for this use while the empire is at war with another empire (The General
+ * Levy: every turn). `minPopulation` raises the town size a levy under this use
+ * needs (The Corvée: ten).
  *
  * **Two cards may grant the same use** (The Muster of the Fields and The
  * Devshirme both grant `muster`). The town's menu still shows one line for the
@@ -9355,6 +9363,14 @@ export interface CardLevyEffect {
   minPopulation?: number;
   /** Turns between levies for this use while the empire is at war. */
   everyAtWar?: number;
+  /**
+   * **Turns between levies, for every use in every town** (Human Sacrifice,
+   * batch DT19). The law's smallest `every` applies, and only where it is
+   * shorter than the rule's wait. A row's `everyAtWar` still wins where that is
+   * shorter (`waitFor`, `levies.ts`). A row needs no `use` to say this, because
+   * the wait is a fact about the empire and not about one thing a levy buys.
+   */
+  every?: number;
   /**
    * **Which towns this row lets levy** — The Devshirme's captured towns
    * (Dominion batch D1). Asked of the levying town through `cityScopeAdmits`,

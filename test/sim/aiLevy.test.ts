@@ -27,7 +27,7 @@ import { type BotDecision, botSitting, nextBotDecision, valueContext } from '../
 import { withAiTuning } from '../../src/ai/aiConfig';
 import { foldTerms } from '../../src/ai/decision';
 import { driveBots } from '../../src/ai/driver';
-import { explainCitizenLevy, levyOutlook, scoreEffects } from '../../src/ai/value';
+import { bestLevyRite, explainCitizenLevy, explainLump, explainRite, levyOutlook, scoreEffects } from '../../src/ai/value';
 import aiJson from '../../data/ai.json';
 
 import { applyCommand } from '../../src/sim/commands';
@@ -35,6 +35,8 @@ import { foundCityAt, refreshCityDerived } from '../../src/sim/cities';
 import { snapshotState } from '../../src/sim/game';
 import { levyOptions } from '../../src/sim/levies';
 import { createMap, getTileAt } from '../../src/sim/map';
+import { cityRite, riteCostAhead, riteCostFor } from '../../src/sim/religion';
+import type { RiteId } from '../../src/sim/religionData';
 import { RULES } from '../../src/sim/rulesData';
 import {
   type City,
@@ -44,7 +46,7 @@ import {
   createUnit,
   playerById,
 } from '../../src/sim/state';
-import { ORDER_IDS, type OrderId, orderDef } from '../../src/sim/statecraftData';
+import { type CardEffect, type DoctrineId, ORDER_IDS, type OrderId, orderDef } from '../../src/sim/statecraftData';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 import { createGame, newGame } from './newGameHelpers';
 
@@ -250,6 +252,148 @@ describe('the levy cards are priced on the levy rate', () => {
 });
 
 // --- the retire arm --------------------------------------------------------------
+
+describe('the levy for a rite (Human Sacrifice, batch DT19)', () => {
+  // On this bench the Harvest pays well in each town and the Fast costs more growth
+  // than it pays, so the two rites give the bot a levy to take and one to refuse.
+  const HARVEST = 'riteOfTheHarvest' as RiteId;
+  const FASTING = 'riteOfFasting' as RiteId;
+
+  /** Three towns of seat 0 holding the Doctrine, knowing the rites it is given. */
+  function sacrificing(rites: readonly RiteId[] = [HARVEST]) {
+    const made = board([], 3, 6);
+    made.player.statecraft.doctrines.push('humanSacrifice' as DoctrineId);
+    for (const rite of rites) made.player.charteredRites.push(rite);
+    bumpRevision(made.state);
+    return made;
+  }
+
+  it('prices the rite as one town’s blessing, times the towns, less the rise in the price', () => {
+    const { state, player, cities } = sacrificing();
+    const ctx = valueContext(state, player);
+    const plan = bestLevyRite(ctx)!;
+    expect(plan.rite).toBe(HARVEST);
+    expect(plan.towns).toBe(3);
+    const gain = explainCitizenLevy(cities[0]!, 'rite', ctx).terms[0]!;
+    const rise = riteCostAhead(state, 0, 3) - riteCostFor(state, 0);
+    expect(rise).toBe(15);
+    expect(gain.value).toBeCloseTo(plan.worth.total * 3 - explainLump({ faith: rise }, ctx).total, 6);
+  });
+
+  it('takes the levy when it is worth more than the citizen, and names the rite', () => {
+    withAiTuning(CHEAP_CONTENTMENT, () => {
+      const { state, player, cities } = sacrificing();
+      const capital = cities[0]!;
+      const worth = explainCitizenLevy(capital, 'rite', valueContext(state, player)).total;
+      expect(worth).toBeGreaterThan(0);
+      const faith = player.faithPool;
+      const before = capital.population;
+      const taken = sit(state).filter((decision) => decision.kind === 'levy');
+      expect(taken).toHaveLength(1);
+      expect(taken[0]!.command).toEqual({ type: 'levyCitizen', playerId: 0, cityId: capital.id, use: 'rite', rite: HARVEST });
+      const chosen = taken[0]!.candidates.find((candidate) => candidate.chosen)!;
+      expect(chosen.score).toBe(foldTerms(chosen.terms));
+      expect(capital.population).toBe(before - 1);
+      for (const city of cities) expect(cityRite(state, city)).toBe(HARVEST);
+      expect(player.faithPool).toBe(faith);
+    });
+  });
+
+  it('does not take it when the rite is worth less than the citizen', () => {
+    withAiTuning(CHEAP_CONTENTMENT, () => {
+      const { state, player, cities } = sacrificing([FASTING]);
+      expect(explainCitizenLevy(cities[0]!, 'rite', valueContext(state, player)).total).toBeLessThan(0);
+      const before = cities[0]!.population;
+      expect(sit(state).filter((decision) => decision.kind === 'levy')).toEqual([]);
+      expect(cities[0]!.population).toBe(before);
+    });
+  });
+
+  it('does not repeat a rite its towns are keeping, however short the wait', () => {
+    withAiTuning(CHEAP_CONTENTMENT, () => {
+      const { state, player, cities } = sacrificing();
+      const capital = cities[0]!;
+      expect(applyCommand(state, { type: 'levyCitizen', playerId: 0, cityId: capital.id, use: 'rite', rite: HARVEST }).ok).toBe(true);
+      // The wait is over, and every town is still keeping the rite.
+      state.turn += 2;
+      bumpRevision(state);
+      expect(levyOptions(state, 0, capital)[0]!.blocked).toBeNull();
+      const ctx = valueContext(state, player);
+      expect(bestLevyRite(ctx)!.towns).toBe(0);
+      expect(explainCitizenLevy(capital, 'rite', ctx).total).toBeLessThan(0);
+      expect(sit(state).filter((decision) => decision.kind === 'levy')).toEqual([]);
+    });
+  });
+
+  it('prices the rite at nothing for a seat that knows none, and refuses no command', () => {
+    const { state, player, cities } = sacrificing([]);
+    const ctx = valueContext(state, player);
+    expect(bestLevyRite(ctx)).toBeNull();
+    expect(explainCitizenLevy(cities[0]!, 'rite', ctx).terms[0]!.value).toBe(0);
+    expect(sit(state).filter((decision) => decision.kind === 'levy')).toEqual([]);
+  });
+
+  it('picks the best rite by what it pays over the towns, and passes over one that acts at once', () => {
+    const { state, player } = sacrificing([FASTING, HARVEST, 'votiveOffering' as RiteId]);
+    const ctx = valueContext(state, player);
+    const plan = bestLevyRite(ctx)!;
+    const here = { ...ctx, cities: 1 };
+    expect(explainRite(HARVEST, here).total).toBeGreaterThan(explainRite(FASTING, here).total);
+    expect(plan.rite).toBe(HARVEST);
+    expect(plan.worth.total).toBeCloseTo(explainRite(HARVEST, here).total, 6);
+  });
+
+  it('prices the shorter wait only where the seat has a levy worth taking', () => {
+    withAiTuning(CHEAP_CONTENTMENT, () => {
+      const wait = [{ kind: 'levy', every: 2 }] as CardEffect[];
+      const bare = board([], 2, 6);
+      expect(scoreEffects(wait, valueContext(bare.state, bare.player))).toBe(0);
+      const engine = board(['levyOfTheLand', 'theGleaners', 'seasonalLevies', 'theMita'], 2, 6);
+      expect(scoreEffects(wait, valueContext(engine.state, engine.player))).toBeGreaterThan(0);
+    });
+  });
+
+  it('expects more levies under the shorter wait', () => {
+    const plain = board(['levyOfTheLand'], 2, 6);
+    const shorter = board(['levyOfTheLand'], 2, 6);
+    shorter.player.statecraft.doctrines.push('humanSacrifice' as DoctrineId);
+    bumpRevision(shorter.state);
+    const before = levyOutlook(valueContext(plain.state, plain.player)).rate;
+    const after = levyOutlook(valueContext(shorter.state, shorter.player)).rate;
+    expect(after).toBeCloseTo((before * RULES.cities.levy.everyTurns) / 2, 6);
+  });
+
+  it('plays a game with the Doctrine held, and its log replays to the same state', () => {
+    const CONFIG = {
+      seed: 31,
+      sizeName: 'duel',
+      players: [
+        { name: 'Ada', color: '#d4502e' },
+        { name: 'Bors', color: '#3a7fe8' },
+      ],
+    };
+    const prepared = () => {
+      const game = createGame(CONFIG);
+      const player = playerById(game.state, 0)!;
+      player.statecraft.doctrines.push('humanSacrifice' as DoctrineId);
+      player.charteredRites.push(HARVEST);
+      bumpRevision(game.state);
+      return game;
+    };
+    const game = prepared();
+    for (let turn = 0; turn < 24; turn++) driveBots(game);
+    const again = prepared();
+    for (const command of game.log) expect(applyCommand(again.state, command).ok).toBe(true);
+    expect(snapshotState(again.state)).toBe(snapshotState(game.state));
+    // The levy happens in play, and a rite levy names its rite.
+    const levies = game.log.filter((command) => command.type === 'levyCitizen');
+    expect(levies.length).toBeGreaterThan(0);
+    for (const command of levies) {
+      expect(command.use).toBe('rite');
+      expect(command.rite).toBe(HARVEST);
+    }
+  });
+});
 
 describe('the retire arm', () => {
   function garrisoned(cards: readonly string[], soldiers: number) {

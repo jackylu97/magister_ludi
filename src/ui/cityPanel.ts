@@ -3587,13 +3587,14 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // A greyed button says why on a line (batch UX7: never only in a tooltip).
     if (model.disabled) return { trigger, below: refusalLineElement(model.title, 'row') };
     if (!open) return { trigger, below: null };
-    const menu = renderLevyMenuBody(model, (use) => {
+    const menu = renderLevyMenuBody(model, (use, rite) => {
       levyMenuOpenFor = null;
       const command: Command = {
         type: 'levyCitizen',
         playerId: localPlayerId(),
         cityId: city.id,
         use,
+        ...(rite === undefined ? {} : { rite }),
       };
       if (!report(command, dispatch(getGame(), command)).ok) {
         drawnKey = null;

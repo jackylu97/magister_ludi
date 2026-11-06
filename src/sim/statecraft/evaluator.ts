@@ -11023,6 +11023,21 @@ export function cardLevyNoWait(state: GameState, playerId: number): boolean {
   return false;
 }
 
+/**
+ * **The empire's shorter waiting period between levies**, for Human Sacrifice
+ * (batch DT19): the smallest `every` among its live levy rows, or `null` when no
+ * row says one. `waitFor` (`levies.ts`) compares it with the rule's wait.
+ */
+export function cardLevyEvery(state: GameState, playerId: number): number | null {
+  let shortest: number | null = null;
+  for (const { effect } of effectsOfKind(state, playerId, 'levy')) {
+    if (effect.every === undefined) continue;
+    const turns = Math.max(1, Math.floor(effect.every));
+    if (shortest === null || turns < shortest) shortest = turns;
+  }
+  return shortest;
+}
+
 /** The shortest a periodic clock can ever be. See `CardPeriodShortenEffect`. */
 export const PERIODIC_FLOOR = 2;
 
@@ -12784,14 +12799,6 @@ export function holdsTendedUnlock(state: GameState, playerId: number): boolean {
 }
 
 /**
- * Does this seat hold a card that **grants a levy**? The draft gate for the
- * Expansionist cards marked "Needs a levy" (`OrderDef.needsLevy`, read in
- * `eligibleFor`; Expansionist batch E1). A card grants a levy when one of its
- * `levy` effects names a use. The whole collection is asked, seated or not, as
- * `holdsTendedUnlock` asks it: a levy card waiting for a chair is a levy the
- * seat can use.
- */
-/**
  * **Does this seat's collection hold an Order carrying this rule**, seated or
  * not? (Scientific batch S9.) `holdsLevyGrant`'s reading for a `rule` effect.
  * The completion hold (`completionHeldFor`, `tech.ts`) asks it, so a row queued
@@ -12811,14 +12818,28 @@ export function collectionHoldsRule(state: GameState, playerId: number, rule: Ca
   return false;
 }
 
+/**
+ * Does this seat hold a card that **grants a levy**? The draft gate for the
+ * Expansionist cards marked "Needs a levy" (`OrderDef.needsLevy`, read in
+ * `eligibleFor`; Expansionist batch E1). A card grants a levy when one of its
+ * `levy` effects names a use. The whole collection is asked, seated or not, as
+ * `holdsTendedUnlock` asks it: a levy card waiting for a chair is a levy the
+ * seat can use.
+ *
+ * The Doctrines are asked too (batch DT19). Human Sacrifice brings its own levy,
+ * so a seat that holds it is a seat with a levy, even with no Order that grants
+ * one.
+ */
 export function holdsLevyGrant(state: GameState, playerId: number): boolean {
   const seat = playerById(state, playerId);
   if (seat === undefined) return false;
+  const grants = (effects: readonly CardEffect[]): boolean =>
+    effects.some((effect) => effect.kind === 'levy' && effect.use !== undefined);
   for (const id of seat.statecraft.orders) {
-    if (!isOrderId(id)) continue;
-    for (const effect of orderDef(id).effects) {
-      if (effect.kind === 'levy' && effect.use !== undefined) return true;
-    }
+    if (isOrderId(id) && grants(orderDef(id).effects)) return true;
+  }
+  for (const id of seat.statecraft.doctrines) {
+    if (isDoctrineId(id) && grants(doctrineDef(id).effects)) return true;
   }
   return false;
 }
