@@ -86,9 +86,22 @@ import {
   routeRenewalBan,
   usedRouteSlots,
 } from '../sim/trade';
-import { type RouteReadingRow, type RoutesReading, readCity, readRoutes } from '../sim/readings';
-import { growthSurplus, growthThreshold, turnsToFill } from '../sim/cities';
+import {
+  type RouteReadingRow,
+  type RoutesReading,
+  foldOnRevision,
+  readCity,
+  readRoutes,
+} from '../sim/readings';
+import {
+  explainFoodCarried,
+  foodAlongRoute,
+  growthSurplus,
+  growthThreshold,
+  turnsToFill,
+} from '../sim/cities';
 import { foldCity } from '../sim/yields/town';
+import { cardSurplusCarrier } from '../sim/statecraft';
 import { connectedCities } from '../sim/roads';
 import { cityBlockaded } from '../sim/blockade';
 import { atWar } from '../sim/wars';
@@ -417,6 +430,7 @@ export interface TradeFact {
  * | host keeps G gold/t | `rules.trade.international.hostGold` |
  * | ⟨town⟩ size S · F food/t | the destination's own reading — `readCity`/`foldCity`, `growthSurplus` |
  * | next citizen N turns (was M) | `growthThreshold` against the basket, `turnsToFill` with the cart's food and without |
+ * | carries F food/t from ⟨town⟩ | `foodAlongRoute`, The Grand Canal's share of the origin's surplus |
  * | blockaded | `cityBlockaded` at either end — the rule that takes the pay back |
  * | post at ⟨town⟩ +N range · K more towns in reach | `RouteReadingRow.postReach`, `rules.trade.postRangeTurns` |
  *
@@ -476,8 +490,10 @@ export function routeFacts(
   // The fed town, and what the cart does to its next citizen. Domestic only:
   // a foreign route pays the sender's pools directly and banks nothing in the
   // partner's basket, so there is no town of ours growing at the far end.
-  if (domestic && pays !== null && pays.total.food > 0) {
-    const growth = growthReading(ctx, row.to, pays.total.food);
+  const carried = foodCarriedOn(state, row);
+  const cartFood = (pays?.total.food ?? 0) + carried;
+  if (domestic && pays !== null && cartFood > 0) {
+    const growth = growthReading(ctx, row.to, cartFood);
     facts.push({
       key: toName,
       text: `size ${figure(row.to.population)} · ${figure(growth.surplus)} food/t`,
@@ -487,6 +503,14 @@ export function routeFacts(
       facts.push({
         key: 'next citizen',
         text: `${figure(growth.withCart)} turns (was ${was})`,
+      });
+    }
+    // The origin pays for this food, so the card says where it comes from. A figure
+    // that rounds to nothing says nothing, so it stays off the card.
+    if (Math.round(carried) > 0) {
+      facts.push({
+        key: 'carries',
+        text: `${figure(carried)} food/t from ${cityDisplayName(state, row.from)}`,
       });
     }
   }
@@ -598,6 +622,12 @@ export function importedCopyWorth(): number {
   return Math.floor((each * Math.max(0, RULES.trade.importedLuxuryPercent)) / 100);
 }
 
+/** What this pair's route would carry for its seat, or nought (batch DT18, The Grand Canal). */
+function foodCarriedOn(state: GameState, row: RouteReadingRow): number {
+  const percent = cardSurplusCarrier(state, row.from.ownerId)?.percent ?? 0;
+  return foodAlongRoute(state, row.from, row.to, percent, foldOnRevision(state));
+}
+
 /**
  * A town's growth with a cart's food and without it — the "next citizen"
  * fact's whole arithmetic, and the simulation's own two functions.
@@ -616,7 +646,12 @@ export function growthReading(
 ): { surplus: number; without: number | null; withCart: number | null } {
   const { state } = ctx;
   const quote = readCity(state, city);
-  const surplus = growthSurplus(state, city, foldCity(state, city, [], undefined, quote));
+  const surplus = growthSurplus(
+    state,
+    city,
+    foldCity(state, city, [], undefined, quote),
+    explainFoodCarried(state, city, foldOnRevision(state)),
+  );
   const remaining = growthThreshold(city.population) - city.foodBasket;
   return {
     surplus: Math.round(surplus),
@@ -810,8 +845,10 @@ export function recommendedGroups(ctx: TradeContext): PurposeGroup[] {
   for (const entry of offered) {
     if (entry.row.to.ownerId !== ctx.seat) continue;
     const pays = entry.row.pays.find((one) => one.mode === entry.mode);
-    if (pays === undefined || pays.total.food <= 0) continue;
-    const growth = growthReading(ctx, entry.row.to, pays.total.food);
+    if (pays === undefined) continue;
+    const cartFood = pays.total.food + foodCarriedOn(ctx.state, entry.row);
+    if (cartFood <= 0) continue;
+    const growth = growthReading(ctx, entry.row.to, cartFood);
     if (growth.withCart === null) continue;
     // A town that would never grow without the cart is the strongest case there
     // is, and a subtraction against `null` would drop it: it ranks above every

@@ -214,6 +214,7 @@ governments, so Tier IV opened at 29.
 | The Apoikia | Commerce | I | tier 4 | Settlers and workers cost half as much gold to buy. |
 | The Laurion Leases | Commerce | I | tier 4 | Hexes with a resource cost half as much gold to buy. |
 | The Delian League | Commerce | I | tier 4 | Your coastal towns cost 1 less authority and gain +3 production. |
+| The Grand Canal | Commerce | II | tier 10 | Each of your domestic routes carries half of its origin's surplus food to its destination. |
 | The Sogdian Colonies | Commerce | II | tier 10 | Each of your towns holding your trading post gains +3 culture and +3 renown, favouring merchants. |
 | The Forbidden Silks | Commerce | II | tier 10 | Your luxuries give twice their happiness. You cannot lend luxuries in deals. |
 | The Flying Money | Commerce | II | tier 10 | Your towns with a gold building buy units and buildings 20% cheaper. Your other towns cannot buy them. |

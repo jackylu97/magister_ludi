@@ -396,7 +396,7 @@ describe('the schema says so', () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(222);
+    expect(SCHEMA_VERSION).toBe(223);
   });
 
   it('says in the changelog what a v110 log does now', () => {

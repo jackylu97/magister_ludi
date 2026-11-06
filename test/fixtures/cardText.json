@@ -1118,6 +1118,12 @@
     "text": "+3 production in every coastal city"
    }
   ],
+  "theGrandCanal": [
+   {
+    "raw": "each of your domestic routes carries half of its origin's surplus food to its destination",
+    "text": "each of your domestic routes carries half of its origin's surplus food to its destination"
+   }
+  ],
   "theSogdianColonies": [
    {
     "raw": "+3 culture in every city that holds your trading post",

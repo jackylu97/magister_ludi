@@ -31,9 +31,19 @@
  * rule, the wirings that span files.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
-import { foundCityAt, growthThreshold, turnsToFill, growthSurplus } from '../../src/sim/cities';
+import { cityDisplayName } from '../../src/ui/cityDisplay';
+import {
+  channelSurplus,
+  foundCityAt,
+  growthThreshold,
+  refreshCityDerived,
+  turnsToFill,
+  growthSurplus,
+} from '../../src/sim/cities';
+import { collectYields } from '../../src/sim/yields/empire';
+import { lendDoctrineEffects } from '../sim/statecraftHelpers';
 import { foldCity } from '../../src/sim/yields/town';
 import {
   type City,
@@ -339,6 +349,74 @@ describe('Paves a road', () => {
     // And the card says nothing about a connection it is not making.
     const facts = routeFacts(ctx, rowFor(ctx, home, near), 'land');
     expect(facts.map((fact) => fact.key)).not.toContain('connection');
+  });
+});
+
+describe('The Grand Canal on the card (batch DT18)', () => {
+  /** Puts back the row a test lends, so a failed test cannot leak it into the next. */
+  const lent: (() => void)[] = [];
+  afterEach(() => {
+    while (lent.length > 0) lent.pop()!();
+  });
+
+  /** Two towns, each with a surplus large enough that a card's whole figures show it. */
+  function canalWorld(): { state: GameState; home: City; near: City } {
+    const { state, home, near } = tradeWorld();
+    lent.push(lendDoctrineEffects('theApoikia' as never, [{ kind: 'pays', where: 'city', food: 8 }]));
+    state.players[0]!.statecraft.doctrines.push('theApoikia' as never);
+    home.population = 3;
+    near.population = 3;
+    for (const town of [home, near]) refreshCityDerived(state, town);
+    bumpRevision(state);
+    return { state, home, near };
+  }
+
+  function holdCanal(state: GameState): void {
+    state.players[0]!.statecraft.doctrines.push('theGrandCanal' as never);
+    bumpRevision(state);
+  }
+
+  it('says what the route would carry, and puts it in the next citizen', () => {
+    const { state, home, near } = canalWorld();
+    const carried = channelSurplus(state, home) / 2;
+    expect(Math.round(carried)).toBeGreaterThan(0);
+    const without = routeFacts(tradeContext(state, 0), rowFor(tradeContext(state, 0), home, near), 'land');
+    expect(without.map((fact) => fact.key)).not.toContain('carries');
+
+    holdCanal(state);
+    const ctx = tradeContext(state, 0);
+    const row = rowFor(ctx, home, near);
+    const facts = routeFacts(ctx, row, 'land');
+    expect(facts.find((fact) => fact.key === 'carries')!.text).toBe(
+      `${figure(carried)} food/t from ${cityDisplayName(state, home)}`,
+    );
+    const paid = row.pays.find((entry) => entry.mode === 'land')!.total.food;
+    const surplus = channelSurplus(state, near);
+    const remaining = growthThreshold(near.population) - near.foodBasket;
+    expect(facts.find((fact) => fact.key === 'next citizen')!.text).toBe(
+      `${turnsToFill(remaining, surplus + paid + carried)} turns (was ${turnsToFill(remaining, surplus)})`,
+    );
+  });
+
+  it('reads a running route into the town it feeds, the same figure the basket gains', () => {
+    const { state, home, near } = canalWorld();
+    const trader = createUnit(state, 0, 'trader', home.col, home.row);
+    startRouteAt(state, trader, home, near, 'land');
+    bumpRevision(state);
+    holdCanal(state);
+    const ctx = tradeContext(state, 0);
+    const reading = growthReading(ctx, near, 0);
+    const before = near.foodBasket;
+    collectYields(state);
+    expect(reading.surplus).toBe(Math.round(near.foodBasket - before));
+  });
+
+  it('prints nothing for a route abroad', () => {
+    const { state, home, theirs } = foreignTradeWorld();
+    holdCanal(state);
+    const ctx = tradeContext(state, 0);
+    const facts = routeFacts(ctx, rowFor(ctx, home, theirs), 'land');
+    expect(facts.map((fact) => fact.key)).not.toContain('carries');
   });
 });
 

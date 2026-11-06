@@ -276,6 +276,7 @@
 
 import { leaderBannerInk } from '../art/leaderBanners';
 import {
+  explainFoodCarried,
   growthSurplus,
   growthThreshold,
   queueItemName,
@@ -285,7 +286,7 @@ import {
 import { type SiegeField, cityBeatenDown, cityMaxHp, siegeField, underSiege } from '../sim/combat';
 import type { Game } from '../sim/game';
 import { tileIndex } from '../sim/map';
-import { readCity } from '../sim/readings';
+import { foldOnRevision, readCity } from '../sim/readings';
 import { type CityReading, foldCity } from '../sim/yields/town';
 import { type City, type GameState, type Unit, isBarbarian } from '../sim/state';
 import { unitDef, unitHp, unitMaxHp } from '../sim/unitData';
@@ -608,7 +609,13 @@ export function cityGrowthRing(
   quote?: CityReading,
 ): GrowthRing {
   return growthRing(
-    growthSurplus(state, city, foldCity(state, city, [], undefined, quote)),
+    growthSurplus(
+      state,
+      city,
+      foldCity(state, city, [], undefined, quote),
+      // Any other town a route touches comes through the memo too (batch DT18).
+      explainFoodCarried(state, city, foldOnRevision(state)),
+    ),
     city.foodBasket,
     growthThreshold(city.population),
   );

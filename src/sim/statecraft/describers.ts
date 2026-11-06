@@ -7435,6 +7435,9 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   workCheapensPerson: "laying a great person's work makes your next great person cheaper",
   // Batch DT17, The Two Capitals: the card's text.
   secondCapital: 'your largest town besides your capital also counts as your capital for your cards',
+  // Batch DT18, The Grand Canal. Its row carries a figure and `figureRuleWords` says
+  // it; this is the sentence for a row with none, which carries nothing.
+  routesCarrySurplus: 'your domestic routes carry part of their origin\'s surplus food to their destination',
   workMountains: 'your cities may work the mountains in their borders',
   widerReach: 'citizens may work owned hexes one ring beyond the usual reach',
   // Expansionist batch E12, The Cura Aquarum. The row names the building and
@@ -7581,6 +7584,12 @@ function figureRuleWords(effect: Extract<CardEffect, { kind: 'rule' }>): string 
     case 'workCheapensPerson':
       if (effect.percent === undefined) return null;
       return `laying a great person's work makes your next great person cost ${effect.percent}% less`;
+    case 'routesCarrySurplus': {
+      // The Grand Canal (batch DT18). The share is one route's, as the card says.
+      if (effect.percent === undefined) return null;
+      const share = effect.percent === 50 ? 'half' : `${effect.percent}%`;
+      return `each of your domestic routes carries ${share} of its origin's surplus food to its destination`;
+    }
     case 'prototypes': {
       if (effect.percent === undefined) return null;
       const price =

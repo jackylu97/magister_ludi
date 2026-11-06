@@ -1388,8 +1388,8 @@ describe('determinism', () => {
    * batch DT16 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '45ddca52:190677',
-    2026: 'e2e8143f:190843',
+    11: '6d17150b:190677',
+    2026: '372c2776:190843',
   };
 
   for (const seed of [11, 2026]) {

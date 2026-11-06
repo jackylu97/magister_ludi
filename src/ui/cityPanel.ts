@@ -36,9 +36,11 @@
 import {
   borderGrowth,
   buildingProductionCost,
+  channelSurplus,
   citizenFocus,
   citizenFocusError,
   cityFocus,
+  explainFoodCarried,
   explainGrowthPercent,
   growthSurplus,
   growthThreshold,
@@ -158,7 +160,7 @@ import {
 import { cityGuildInflow, dismissSpecialistError, guildIdleLine } from '../sim/guilds';
 import type { SpecialistFamily } from '../sim/greatPeopleData';
 // The town's one reading — see `renderCity`, and `readings.ts` for the model.
-import { readCity } from '../sim/readings';
+import { foldOnRevision, readCity } from '../sim/readings';
 import { cityRouteRows, routeSlotsLine as routeSlotsLineOf } from './tradeLines';
 import { copiesFigureNode, requirementNodes, strategicHoldings } from './resourceCopies';
 import { resourceMarkNode } from './resourceMark';
@@ -1998,7 +2000,8 @@ export function shortOfChips(state: GameState, city: City, quote: CityReading): 
       target: 'defence',
     });
   }
-  if (growthSurplus(state, city, foldCity(state, city, [], undefined, quote)) < 0) {
+  const carried = explainFoodCarried(state, city, foldOnRevision(state));
+  if (growthSurplus(state, city, foldCity(state, city, [], undefined, quote), carried) < 0) {
     chips.push({
       id: 'starving',
       label: 'Starving',
@@ -3225,11 +3228,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // harvest less upkeep, less a settler at the front of the queue, less
     // whatever a happiness deficit takes — and the panel must quote the number
     // the basket will actually receive.
-    const surplus = growthSurplus(
-      getGame().state,
-      city,
-      foldCity(getGame().state, city, [], undefined, quote),
-    );
+    const state = getGame().state;
+    const made = foldCity(state, city, [], undefined, quote);
+    const carried = explainFoodCarried(state, city, foldOnRevision(state));
+    const surplus = growthSurplus(state, city, made, carried);
     const threshold = growthThreshold(city.population);
     const turns = turnsToFill(threshold - city.foodBasket, surplus);
 
@@ -3295,11 +3297,21 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // is the same move the yield chips made and the same promise: the list is
     // one hover deeper, never dropped. A rail two hundred pixels wide cannot
     // carry four modifier lines under every bar and still be a rail.
+    //
+    // The percentages act on the town's own surplus, so that is what decides
+    // whether they print. Food a route carries here does not bring them into play,
+    // and food a route carries away does not take them out of it. Each route's food
+    // then prints beneath them (batch DT18, The Grand Canal), because `surplus` is
+    // the sum of those lines too.
     const modifiers: string[] = [];
-    if (surplus > 0) {
-      for (const line of explainGrowthPercent(getGame().state, city)) {
+    if (channelSurplus(state, city, made) > 0) {
+      for (const line of explainGrowthPercent(state, city)) {
         modifiers.push(`${line.source} ${percentFigure(line.percent)}`);
       }
+    }
+    for (const line of carried) {
+      const shown = roundYield(line.amount);
+      modifiers.push(`${line.source} ${line.amount > 0 ? '+' : ''}${shown} food`);
     }
     noteOn(box, [`${Math.floor(city.foodBasket)} of ${threshold} banked`, ...modifiers].join('\n'));
     return box;

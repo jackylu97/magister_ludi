@@ -23,7 +23,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { CITY_MARK_IDS, cityMark } from '../../src/art/cityMarks';
-import { foundCityAt, growthThreshold } from '../../src/sim/cities';
+import { channelSurplus, foundCityAt, growthThreshold } from '../../src/sim/cities';
+import { startRouteAt } from '../../src/sim/trade';
 import { cityMaxHp, siegeField, underSiege } from '../../src/sim/combat';
 import { createMap, getTileAt, neighborTiles, tileHex, tileIndex } from '../../src/sim/map';
 import { type GameState, createUnit, bumpRevision } from '../../src/sim/state';
@@ -599,6 +600,33 @@ describe('the wound’s fingerprint, and its stall', () => {
  * assignment away.
  */
 describe('cityGrowthRing', () => {
+  it('reads the food The Grand Canal carries: the town it feeds and the town that sends', () => {
+    const state = boardState();
+    const farm = foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
+    const market = foundCityAt(state, 0, getTileAt(state.map, 10, 4)!);
+    const third = foundCityAt(state, 0, getTileAt(state.map, 4, 8)!);
+    farm.buildings.push('market', 'market');
+    bumpRevision(state);
+    for (const to of [market, third]) {
+      startRouteAt(state, createUnit(state, 0, 'trader', farm.col, farm.row), farm, to, 'land');
+    }
+    bumpRevision(state);
+    const threshold = growthThreshold(market.population);
+    const alone = cityGrowthRing(state, market).ahead;
+    expect(cityGrowthRing(state, farm).ahead).toBeGreaterThan(0);
+
+    state.players[0]!.statecraft.doctrines.push('theGrandCanal' as never);
+    bumpRevision(state);
+    // Two routes at half each leave the town nothing, so its ring stops.
+    const sent = cityGrowthRing(state, farm);
+    expect(sent.ahead).toBe(0);
+    expect(sent.label).toBe('Growth stalled');
+    expect(sent.starving).toBe(false);
+    // And the same food shows up on the ring of the town it feeds.
+    const carried = channelSurplus(state, farm) / 2;
+    expect(cityGrowthRing(state, market).ahead).toBeCloseTo(alone + carried / threshold, 10);
+  });
+
   it('reads the growth surplus, so a settler at the front stops the pale arc', () => {
     const state = boardState();
     const city = foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);

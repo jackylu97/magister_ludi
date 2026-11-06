@@ -49,7 +49,14 @@ import { empireResourceYields } from '../resourceEffects';
 import { cityRouteYields, senderRouteYields } from '../routeYields';
 import { explainEmpireGold } from '../empireGold';
 import { disbandCandidate } from '../upkeep';
-import { type CityYields, assignCitizens, borderGrowth, emptyCityYields, growthSurplus } from '../cities';
+import {
+  type CityYields,
+  assignCitizens,
+  borderGrowth,
+  emptyCityYields,
+  explainFoodCarried,
+  growthSurplus,
+} from '../cities';
 import { foldStageSums } from './stages';
 import { type EmpirePercents, empirePercents, explainCity, foldCity } from './town';
 import { bumpEconomy } from '../slate';
@@ -110,10 +117,21 @@ export function collectYields(state: GameState, report?: TurnReport): void {
     priced.push({ city, yields: foldCity(state, city, [], city.queue[0]) });
   }
 
-  for (const { city, yields } of priced) {
+  // **The food the routes carry is read here, before any town banks** (batch DT18,
+  // The Grand Canal). A card can tie happiness to the treasury, and happiness scales
+  // every surplus, so the loop below can move what a town's surplus reads. Read
+  // inside it, the two ends of one route could disagree and food would appear or
+  // vanish. The first loop's prices answer, so no town is folded twice. The map is
+  // only ever looked up, so its order decides nothing.
+  const prices = new Map(priced.map(({ city, yields }) => [city.id, yields]));
+  const carried = priced.map(({ city }) =>
+    explainFoodCarried(state, city, (town) => prices.get(town.id) ?? foldCity(state, town)),
+  );
+
+  for (const [index, { city, yields }] of priced.entries()) {
     // Upkeep, the settler halt and the happiness stifle, all in one function so
     // that what the panel promised is what the basket receives.
-    const surplus = growthSurplus(state, city, yields);
+    const surplus = growthSurplus(state, city, yields, carried[index]);
     city.foodBasket += surplus;
     // **Reported here, whether or not the basket runs dry** — a deficit is a
     // deficit, and a settler-halted queue shields nothing (`growthIsHalted`

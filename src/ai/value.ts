@@ -122,12 +122,16 @@ import {
   buildingProductionCost,
   bestOfClassFor,
   capitalCityOf,
+  carriableSurplus,
   channelSurplus,
   cityResources,
   controlledResources,
   emptyCityYields,
+  foodAlongRoute,
+  otherCarryingRoutes,
   ownedTiles,
   resourceCopies,
+  surplusShareCarried,
   tileOwnerCityId,
   tileOwnerField,
   tileOwnerPlayerId,
@@ -240,6 +244,8 @@ import {
   buildingMatchesYieldPercent,
   // Batch DT17: The Two Capitals.
   cardCapitalIds,
+  // Batch DT18: The Grand Canal.
+  cardSurplusCarrier,
   cityBeliefUnlocksBuilding,
   cityScopeAdmits,
   secondCapitalCity,
@@ -9127,9 +9133,84 @@ function commerceRuleWorth(
       return postLoansWorth(ctx);
     case 'buysOnCredit':
       return creditWorth(effect.credit, ctx);
+    case 'routesCarrySurplus':
+      return surplusCarriedWorth(effect.percent ?? 0, ctx);
     default:
       return null;
   }
+}
+
+/**
+ * **What it is worth to move this much food from `from` to `to`** (batch DT18, The
+ * Grand Canal). The realm makes no more food, because the origin loses what the
+ * destination gains. So one food moved is worth `score.commerce.surplusCarried` of one
+ * food made. That share is what it is worth to the seat to have the food in the larger
+ * town, where the cards that read a town's size pay. Moved the other way, it is the
+ * same loss. Two towns of one size gain nothing.
+ */
+function foodMovedWorth(from: City, to: City, food: number, ctx: ValueContext): number {
+  const sign = Math.sign(to.population - from.population);
+  if (sign === 0 || food <= 0) return 0;
+  return sign * food * Math.max(0, ctx.ai.score.commerce.surplusCarried) * voiceWeight(ctx, 'food');
+}
+
+/**
+ * **The food a town would send in all if it ran a route to `to` as well as its others**,
+ * less what it sends without that route. This is the route's own effect on the town.
+ * A town already sending its whole surplus gains nothing from one more route: its
+ * routes share what they carried before. The pair itself is left out of the others, so
+ * a route up for renewal reads what it carries now.
+ */
+function foodOneRouteAdds(from: City, to: City, percent: number, ctx: ValueContext): number {
+  const state = ctx.state;
+  const yields = foldCity(state, from, [], null, readCity(state, from));
+  // Nothing for a route that could not carry: abroad, blockaded, or with no surplus.
+  if (foodAlongRoute(state, from, to, percent, () => yields) <= 0) return 0;
+  const others = otherCarryingRoutes(state, from, to);
+  const share =
+    (others + 1) * surplusShareCarried(percent, others + 1) - others * surplusShareCarried(percent, others);
+  return share * carriableSurplus(state, from, yields);
+}
+
+/**
+ * **The Grand Canal in the route planner**: what a home route is worth for the food it
+ * would move, for a seat that holds the card, or `null`. `explainRoutePay` adds it, so
+ * the seat sends its small towns' caravans to its large ones and does not drain a large
+ * town to feed a small one.
+ */
+export function foodCarriedTerm(from: City, to: City, ctx: ValueContext): ValueTerm | null {
+  if (routeIsInternational(from, to)) return null;
+  const carrier = cardSurplusCarrier(ctx.state, ctx.playerId);
+  if (carrier === null) return null;
+  const food = foodOneRouteAdds(from, to, carrier.percent, ctx);
+  const value = foodMovedWorth(from, to, food, ctx);
+  if (value === 0) return null;
+  const shown = Math.round(food * 10) / 10;
+  return { label: `the food it would carry from ${from.name} to ${to.name} · ${shown} a turn`, value };
+}
+
+/**
+ * **The Grand Canal at the offer** (`routesCarrySurplus`, batch DT18): the food the
+ * seat's home routes would move, off the board as it stands, and the same for the next
+ * route it could send. The percent comes from the row, because the seat may not hold
+ * the card yet. Worth can be below nothing: a seat whose routes run from large towns to
+ * small ones would drain the towns it wants large.
+ */
+function surplusCarriedWorth(percent: number, ctx: ValueContext): number {
+  const state = ctx.state;
+  let worth = 0;
+  for (const unit of state.units) {
+    if (unit.ownerId !== ctx.playerId || unit.trade === undefined) continue;
+    const pair = liveRouteCities(state, unit);
+    if (pair === null) continue;
+    const yields = (town: City) => foldCity(state, town, [], null, readCity(state, town));
+    worth += foodMovedWorth(pair.from, pair.to, foodAlongRoute(state, pair.from, pair.to, percent, yields), ctx);
+  }
+  const next = ctx.routes.open;
+  if (next !== null && !routeIsInternational(next.from, next.to)) {
+    worth += foodMovedWorth(next.from, next.to, foodOneRouteAdds(next.from, next.to, percent, ctx), ctx);
+  }
+  return worth;
 }
 
 /**

@@ -5325,7 +5325,15 @@ export type BehaviorRuleId =
    * (`statecraft/evaluator.ts`), whose docblock lists what asks it and what keeps
    * to the true capital.
    */
-  | 'secondCapital';
+  | 'secondCapital'
+  /**
+   * **Each of this empire's domestic routes carries part of its origin's surplus
+   * food to its destination** (batch DT18, The Grand Canal). `percent` is the part
+   * for one route, so 50 is half. Read in one place, `cardSurplusCarrier`, and paid
+   * by `explainFoodCarried` (`cities.ts`), a list on the growth channel beside
+   * `foldCity`.
+   */
+  | 'routesCarrySurplus';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId =

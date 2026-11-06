@@ -166,6 +166,8 @@ export {
   campMusterPercent,
   // Dominion batch D7: a town's food surplus moved into production, Double
   // Time's count, and the harvest.
+  // Batch DT18: which card has this empire's home routes carry surplus food.
+  cardSurplusCarrier,
   surplusMoverFor,
   surplusRowReaches,
   // Devotion batch DV4: a rite that moves a town's production into culture.

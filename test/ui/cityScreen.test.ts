@@ -1123,6 +1123,11 @@ describe('the growth modifiers', () => {
       }
     }
     expect(printer).toContain('explainGrowthPercent(');
+    // The food a route carries (batch DT18): one list makes the figure and prints
+    // the lines, so the rate on the row and its hover are one reading.
+    expect(printer).toContain('const carried = explainFoodCarried(state, city, foldOnRevision(state));');
+    expect(printer).toContain('growthSurplus(state, city, made, carried)');
+    expect(printer).toContain('for (const line of carried)');
     // Not one source of the sum, and not the number without its parts.
     expect(printer).not.toContain('growthPercent(');
     expect(printer).not.toContain('meterEffects(');

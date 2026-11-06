@@ -3266,6 +3266,16 @@
         }
       ]
     },
+    "theGrandCanal": {
+      "name": "The Grand Canal",
+      "decks": ["commerce"],
+      "band": 2,
+      "line": "none",
+      "flavor": "The south grows the rice, the north eats it, and the barges do the rest.",
+      "text": "Each of your domestic routes carries half of its origin's surplus food to its destination.",
+      "effects": [{"kind": "rule", "rule": "routesCarrySurplus", "percent": 50}],
+      "note": "The town that sends the food loses it. A town never sends more than its surplus, so when its routes would carry more than that, they share it evenly. A town with no surplus sends nothing, and neither does a town building a settler or one whose surplus a card moves into production. A blockade at either end stops the food, as it stops what the route pays. The food arrives after the destination's own changes to growth, and it arrives whatever the destination is building."
+    },
     "theSogdianColonies": {
       "name": "The Sogdian Colonies",
       "decks": [

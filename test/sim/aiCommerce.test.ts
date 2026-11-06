@@ -42,6 +42,7 @@ import {
   explainCountStep,
   explainCounted,
   explainLump,
+  foodCarriedTerm,
   hasFoldReadEngine,
   hexPurchaseRiderTerm,
   meterWeight,
@@ -50,10 +51,12 @@ import {
   valueOfYields,
   voiceWeight,
 } from '../../src/ai/value';
+import { explainRoutePay } from '../../src/ai/routes';
 import { type Want, purseOf } from '../../src/ai/wants';
 import aiJson from '../../data/ai.json';
 
-import { foundCityAt, ownedTiles, refreshCityDerived, resourceCopies } from '../../src/sim/cities';
+import { cityBlockaded } from '../../src/sim/blockade';
+import { channelSurplus, foundCityAt, ownedTiles, refreshCityDerived, resourceCopies } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
 import { openDeal } from '../../src/sim/deals';
 import { type GameMap, type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
@@ -236,6 +239,7 @@ describe('the sheet', () => {
         'postWorth',
         'postsOverHorizon',
         'shutTownBuys',
+        'surplusCarried',
       ].sort(),
     );
     expect(Object.keys(COMMERCE.countForecast).sort()).toEqual(
@@ -902,5 +906,139 @@ describe('the Doctrines that refuse (batch DT7)', () => {
       if (command.type !== 'buyRoute' && command.type !== 'startRoute') continue;
       expect((command as unknown as { toCityId: number }).toCityId).not.toBe(theirs.id);
     }
+  });
+});
+
+describe('The Grand Canal (batch DT18)', () => {
+  const CANAL: CardEffect[] = [{ kind: 'rule', rule: 'routesCarrySurplus', percent: 50 }];
+
+  /** Gives a seat a Doctrine, as a chosen offer does. */
+  function holdCanal(state: GameState): void {
+    seat(state, 0).statecraft.doctrines.push('theGrandCanal' as never);
+    bumpRevision(state);
+  }
+
+  /** A context with no next route, so only the routes on the board are read. */
+  function quiet(state: GameState, player: Player): ValueContext {
+    const base = valueContext(state, player);
+    return { ...base, routes: { ...base.routes, open: null, next: null } };
+  }
+
+  /** What one food moved to a larger town is worth, off the sheet. */
+  function perFood(ctx: ValueContext): number {
+    return COMMERCE.surplusCarried * voiceWeight(ctx, 'food');
+  }
+
+  it('prices a route from a small town to a larger one at the food it moves', () => {
+    const { state, player, towns } = board([3, 5]);
+    caravan(state, towns[0]!, towns[1]!);
+    const ctx = quiet(state, player);
+    const surplus = channelSurplus(state, towns[0]!);
+    expect(surplus).toBeGreaterThan(0);
+    expect(scoreEffects(CANAL, ctx)).toBeCloseTo((surplus / 2) * perFood(ctx), 8);
+  });
+
+  it('prices a route from a large town to a smaller one below nothing', () => {
+    const { state, player, towns } = board([3, 2]);
+    caravan(state, towns[0]!, towns[1]!);
+    const ctx = quiet(state, player);
+    const surplus = channelSurplus(state, towns[0]!);
+    expect(surplus).toBeGreaterThan(0);
+    expect(scoreEffects(CANAL, ctx)).toBeCloseTo(-(surplus / 2) * perFood(ctx), 8);
+  });
+
+  it('prices two towns of one size at nothing, and a seat with no route at nothing', () => {
+    const level = board([3, 3]);
+    caravan(level.state, level.towns[0]!, level.towns[1]!);
+    expect(scoreEffects(CANAL, quiet(level.state, level.player))).toBe(0);
+    const bare = board([3, 5]);
+    expect(scoreEffects(CANAL, quiet(bare.state, bare.player))).toBe(0);
+  });
+
+  it('prices a foreign route at nothing', () => {
+    const { state, player, towns } = board([3]);
+    state.wars = [];
+    const theirs = rivalTown(state, 8);
+    towns[0]!.buildings.push('market');
+    const cart = createUnit(state, 0, 'trader', towns[0]!.col, towns[0]!.row);
+    startRouteAt(state, cart, towns[0]!, theirs, 'land');
+    bumpRevision(state);
+    expect(scoreEffects(CANAL, quiet(state, player))).toBe(0);
+  });
+
+  it('adds the next route the seat could send, when it stays at home', () => {
+    const { state, player, towns } = board([3, 5]);
+    const base = valueContext(state, player);
+    const next = { from: towns[0]!, to: towns[1]!, mode: 'land' as const, pay: appraise([]) };
+    const ctx: ValueContext = { ...base, routes: { ...base.routes, open: next } };
+    const surplus = channelSurplus(state, towns[0]!);
+    expect(scoreEffects(CANAL, ctx)).toBeCloseTo((surplus / 2) * perFood(ctx), 8);
+  });
+
+  it('reads the same food in the route planner, only for a seat that holds the card', () => {
+    const { state, player, towns } = board([2, 3]);
+    const small = towns[0]!;
+    const large = towns[1]!;
+    const before = valueContext(state, player);
+    expect(foodCarriedTerm(small, large, before)).toBeNull();
+    const plain = explainRoutePay(state, small, large, before).total;
+    const reverse = explainRoutePay(state, large, small, before).total;
+    holdCanal(state);
+    const ctx = valueContext(state, player);
+    const surplus = channelSurplus(state, small);
+    const worth = (surplus / 2) * perFood(ctx);
+    expect(worth).toBeGreaterThan(0);
+    expect(explainRoutePay(state, small, large, ctx).total).toBeCloseTo(plain + worth, 8);
+    const term = foodCarriedTerm(small, large, ctx)!;
+    expect(term.label).toContain(small.name);
+    expect(term.label).toContain(large.name);
+    // The other way drains the town the seat wants large.
+    const drained = channelSurplus(state, large);
+    expect(drained).toBeGreaterThan(0);
+    expect(explainRoutePay(state, large, small, ctx).total).toBeCloseTo(reverse - (drained / 2) * perFood(ctx), 8);
+  });
+
+  it('sees that a third route out of a town moves nothing more', () => {
+    const { state, player, towns } = board([3, 5, 5, 5]);
+    const farm = towns[1]!;
+    farm.population = 2;
+    refreshCityDerived(state, farm);
+    caravan(state, farm, towns[2]!);
+    const ctx = () => valueContext(state, player);
+    holdCanal(state);
+    // The second route takes the other half, which is what the card's words say.
+    expect(foodCarriedTerm(farm, towns[3]!, ctx())!.value).toBeCloseTo(
+      (channelSurplus(state, farm) / 2) * perFood(ctx()),
+      8,
+    );
+    caravan(state, farm, towns[3]!);
+    expect(channelSurplus(state, farm)).toBeGreaterThan(0);
+    expect(foodCarriedTerm(farm, towns[0]!, ctx())).toBeNull();
+    // A route up for renewal is not a route more: it reads what it carries now.
+    expect(foodCarriedTerm(farm, towns[3]!, ctx())!.value).toBeCloseTo(
+      (channelSurplus(state, farm) / 2) * perFood(ctx()),
+      8,
+    );
+  });
+
+  it('prices nothing for a route a blockade stops', () => {
+    const { state, player, towns } = board([3, 5]);
+    caravan(state, towns[0]!, towns[1]!);
+    for (let row = 0; row < state.map.height; row++) at(state.map, 10, row).terrain = 'coast' as never;
+    bumpRevision(state);
+    expect(scoreEffects(CANAL, quiet(state, player))).toBeGreaterThan(0);
+    createUnit(state, 1, 'carrack', 10, 5);
+    bumpRevision(state);
+    expect(cityBlockaded(state, towns[1]!)).toBe(true);
+    expect(scoreEffects(CANAL, quiet(state, player))).toBe(0);
+  });
+
+  it('prices nothing for a town whose surplus a mover already takes', () => {
+    const { state, player, towns } = board([3, 5]);
+    caravan(state, towns[0]!, towns[1]!);
+    towns[0]!.queue = [{ kind: 'unit', id: 'warrior' }];
+    seat(state, 0).statecraft.doctrines.push('theLawsOfLordShang' as never);
+    bumpRevision(state);
+    expect(scoreEffects(CANAL, quiet(state, player))).toBe(0);
   });
 });

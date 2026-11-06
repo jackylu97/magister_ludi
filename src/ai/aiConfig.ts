@@ -1579,6 +1579,14 @@ export interface AiConfig {
        */
       shutTownBuys: number;
       /**
+       * **The Grand Canal** (`routesCarrySurplus`): what one food moved along a home
+       * route is worth, as a share of one food made. The realm makes no more food,
+       * because the origin loses what the destination gains. This share is what it is
+       * worth to have the food in the larger town, and it is a loss when moved to a
+       * smaller one. How much moves is read off the board.
+       */
+      surplusCarried: number;
+      /**
        * **The World's Fair** (`postsInPartnerCapitals`): points a turn for each
        * post the reward writes. This stands in for the post cards the seat may
        * hold later. What the seat's live post lines gain from the new posts is

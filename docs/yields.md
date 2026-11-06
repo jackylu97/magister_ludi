@@ -331,6 +331,17 @@ banking (Entry XVIII.5).
   While a card moves a town's surplus, the Avoid growth tick does not move the
   town's citizens off food (`assignCitizens`, Expansionist batch E6), so the
   card has a surplus to move.
+- **The food a route carries is outside `foldCity`, on the growth channel**
+  (batch DT18, The Grand Canal). No step changes. `foldCity` still gives a town
+  the food its own land makes, and `growthSurplus` adds the fold of
+  `explainFoodCarried` (`cities.ts`) on top: a negative line in the town that
+  sends the food, and a positive line in the town that gets it, so the realm's sum
+  does not change. Each route carries a share of the origin's `channelSurplus`,
+  which never includes a carried line, so two towns sending to each other do not
+  chain. A mover wins: a town whose surplus step 14 moves into production sends
+  nothing. A blockade at either end stops the food, as it stops what the route
+  pays. No percentage multiplies the food a second time, and a deficit at the
+  destination is offset by it.
 - **The production moved comes last** (step 14's second line, Devotion batch
   DV4, the Rite of the Sabbath). It reads the town's production after the
   gates and after the surplus moved, so a town keeping the rite builds nothing

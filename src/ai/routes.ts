@@ -60,7 +60,14 @@
  */
 
 import { type Appraisal, type ValueTerm, appraise, nest } from './decision';
-import { type ValueContext, type YieldBag, explainYields, meterWeight, meterWords } from './value';
+import {
+  type ValueContext,
+  type YieldBag,
+  explainYields,
+  foodCarriedTerm,
+  meterWeight,
+  meterWords,
+} from './value';
 
 import { BUILDING_IDS, buildingDef } from '../sim/buildingData';
 import { cityResources, controlledResources } from '../sim/cities';
@@ -212,6 +219,10 @@ export function explainRoutePay(
   ];
   const lent = importedLuxuryWorth(state, from, to, abroad, ctx);
   if (lent) terms.push(lent);
+  // The Grand Canal (batch DT18): the food a home route moves is not on either fold
+  // above, because it pays neither end anything new. It decides which way to send it.
+  const carried = foodCarriedTerm(from, to, ctx);
+  if (carried) terms.push(carried);
   return appraise(terms);
 }
 

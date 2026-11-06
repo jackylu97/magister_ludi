@@ -292,6 +292,16 @@ export function readCity(state: GameState, city: City): CityReading {
 }
 
 /**
+ * **Any town's fold, taken off its `readCity` list** (batch DT18, The Grand Canal).
+ * What a screen hands to `explainFoodCarried`, because the food a route carries reads
+ * the fold of a town other than the one on screen. Only the list is remembered, so a
+ * fold here costs the stages and not a walk of the town's hexes.
+ */
+export function foldOnRevision(state: GameState): (town: City) => CityYields {
+  return (town) => foldCity(state, town, [], undefined, readCity(state, town));
+}
+
+/**
  * **One empire's whole reading, once per revision** — its towns' lists and
  * totals, its own lines with the empire stage among them, and the fold of the
  * two, which is what the turn resolution banks.

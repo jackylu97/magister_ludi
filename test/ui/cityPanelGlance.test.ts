@@ -11,7 +11,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { foundCityAt, growthSurplus } from '../../src/sim/cities';
+import { channelSurplus, foundCityAt, growthSurplus, refreshCityDerived } from '../../src/sim/cities';
+import { startRouteAt } from '../../src/sim/trade';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { happinessOf } from '../../src/sim/meters';
 import { readCity } from '../../src/sim/readings';
@@ -39,6 +40,7 @@ import { riteOfferText, riteSentence } from '../../src/ui/controls';
 import { turnsLabel } from '../../src/ui/figures';
 import { between, braceBody, uiSource } from './sourceHelpers';
 import { newGame } from '../sim/newGameHelpers';
+import { lendDoctrineEffects } from '../sim/statecraftHelpers';
 
 /** A blank board for two seats. */
 function bench(terrain: 'grassland' | 'desert' = 'grassland'): GameState {
@@ -118,6 +120,39 @@ describe('what a town is short of', () => {
     expect(chips(state, city)).toContainEqual(
       expect.objectContaining({ id: 'starving', label: 'Starving', target: 'focus' }),
     );
+  });
+
+  it('does not say Starving when food a route carries covers the town’s deficit', () => {
+    const state = bench();
+    // The farm is founded first, so it is the capital and the lent row pays only it.
+    const farm = town(state, 0, 11, 5);
+    for (const tile of state.map.tiles) {
+      if (tile.col <= 6) tile.terrain = 'desert' as never;
+    }
+    const hungry = town(state, 0, 3, 5);
+    const restore = lendDoctrineEffects('theApoikia' as never, [
+      { kind: 'pays', where: 'city', food: 40, scope: { test: 'capital' } },
+    ]);
+    try {
+      playerById(state, 0)!.statecraft.doctrines.push('theApoikia' as never);
+      hungry.population = 5;
+      hungry.queue = [{ kind: 'unit', id: 'warrior' }];
+      farm.buildings.push('market');
+      refreshCityDerived(state, hungry);
+      refreshCityDerived(state, farm);
+      startRouteAt(state, createUnit(state, 0, 'trader', farm.col, farm.row), farm, hungry, 'land');
+      bumpRevision(state);
+      const deficit = channelSurplus(state, hungry);
+      const carried = channelSurplus(state, farm) / 2;
+      expect(deficit).toBeLessThan(0);
+      expect(deficit + carried).toBeGreaterThanOrEqual(0);
+      expect(chips(state, hungry).map((chip) => chip.id)).toContain('starving');
+      playerById(state, 0)!.statecraft.doctrines.push('theGrandCanal' as never);
+      bumpRevision(state);
+      expect(chips(state, hungry).map((chip) => chip.id)).not.toContain('starving');
+    } finally {
+      restore();
+    }
   });
 
   it('says In unrest first, with the turns left, and points at the unrest card', () => {

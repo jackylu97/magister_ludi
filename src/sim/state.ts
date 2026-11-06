@@ -3518,8 +3518,19 @@ import {
  *
  * **A v221 save is refused and does not replay.** These seats' Doctrine bags change,
  * so their draws move. The branch migrates nothing, for the reason given under v119.
+ *
+ * v223 (branch `decks`; batch DT18, `docs/plans/doctrines-build-triage.md`): **The Grand
+ * Canal.** No field joins the state. The rules that change:
+ *
+ *   · The Grand Canal is dealt;
+ *   · the behaviour rule `routesCarrySurplus` has each domestic route carry a share of
+ *     its origin's surplus food to its destination. `explainFoodCarried` (`cities.ts`)
+ *     lists the food, and `growthSurplus` adds the fold of that list.
+ *
+ * **A v222 save is refused and does not replay.** These seats' Doctrine bags change,
+ * so their draws move. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 222;
+export const SCHEMA_VERSION = 223;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

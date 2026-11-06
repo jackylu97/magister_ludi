@@ -199,6 +199,7 @@ import {
   heldReligions,
   higherRank,
   opusCityOf,
+  cardSurplusCarrier,
   surplusMoverFor,
   windfallPayoutIsEmpty,
 } from './statecraft/evaluator';
@@ -345,7 +346,8 @@ import { totalSpecialists } from './specialists';
 // caravan both moved out of `trade.ts` so that this file's *founding* verb — The
 // Founders' Road — reaches them without crossing the cycle it once documented.
 import { layRoad } from './roads';
-import { caravanTypeFor } from './routes';
+import { cityBlockaded } from './blockade';
+import { caravanTypeFor, countRoutesAt, liveRouteCities, routeIsInternational } from './routes';
 import { awardFoundingTriumphs, awardOccasion } from './triumphs';
 // **A function-level cycle, and the documented kind** (CLAUDE.md): `religion.ts`
 // imports this file for the capital, the tile-owner field and the windfall
@@ -3413,15 +3415,147 @@ export function foldGrowthPercent(lines: readonly GrowthPercentLine[]): number {
  * its queue (`explainSurplusMoved`, The Laws of Lord Shang), the town banks
  * none of it. The one test decides both, so the line and the basket cannot
  * disagree. A deficit is still banked, so a starving town starves as before.
+ *
+ * **The food carried** (batch DT18, The Grand Canal): the fold of
+ * `explainFoodCarried` is added last, on top of whatever the town keeps. So food
+ * that arrives offsets a deficit and is banked whatever the town's queue holds, and
+ * none of this town's percentages multiply it, because the origin's already did.
+ * A caller that has the list passes it, so the figure it prints and the lines it
+ * prints are one reading. `collectYields` passes lists it took before any bank moved.
  */
 export function growthSurplus(
   state: GameState,
   city: City,
   yields: CityYields = foldCity(state, city),
+  carried: readonly FoodCarriedLine[] = explainFoodCarried(state, city, (other) =>
+    other.id === city.id ? yields : foldCity(state, other),
+  ),
 ): number {
   const surplus = channelSurplus(state, city, yields);
-  if (surplus > 0 && explainSurplusMoved(state, city, yields, city.queue[0]).length > 0) return 0;
+  const moved = surplus > 0 && explainSurplusMoved(state, city, yields, city.queue[0]).length > 0;
+  return (moved ? 0 : surplus) + foldFoodCarried(carried);
+}
+
+/** One route's food in one town's growth, as `explainFoodCarried` lists it. */
+export interface FoodCarriedLine {
+  /** "Doctrine · The Grand Canal · to Lagash", printed verbatim. */
+  source: string;
+  /** Negative in the town that sends it, and positive in the town that gets it. */
+  amount: number;
+}
+
+/**
+ * **The food this town's domestic routes carry, one line a route** (batch DT18, The
+ * Grand Canal). A route out of the town is a negative line, and a route into it is a
+ * positive one, so the two towns print the same food and the realm's sum does not
+ * change. Empty for a seat with no such card.
+ *
+ * Each route carries what `foodAlongRoute` says. That figure never includes a carried
+ * line, so nothing chains: when two towns send to each other, each carries part of
+ * what the other grew by itself.
+ *
+ * `yieldsOf` answers for any town a route touches. It exists so a caller already
+ * holding the towns' folds does not fold them twice: `collectYields` hands in its
+ * prices, and a screen hands in `foldOnRevision` (`readings.ts`).
+ *
+ * It lives outside `foldCity`, on the growth channel (`docs/yields.md`). A town's
+ * food total is what its land makes, and the cards that read it must not count food
+ * another town grew.
+ */
+export function explainFoodCarried(
+  state: GameState,
+  city: City,
+  yieldsOf: (town: City) => CityYields,
+): FoodCarriedLine[] {
+  const carrier = cardSurplusCarrier(state, city.ownerId);
+  if (carrier === null) return [];
+  const lines: FoodCarriedLine[] = [];
+  // `state.units` is an array, so the lines keep one order on every reading.
+  for (const unit of state.units) {
+    const route = unit.trade;
+    if (route === undefined || (route.from !== city.id && route.to !== city.id)) continue;
+    const pair = liveRouteCities(state, unit);
+    if (pair === null || routeIsInternational(pair.from, pair.to)) continue;
+    const amount = foodAlongRoute(state, pair.from, pair.to, carrier.percent, yieldsOf);
+    if (amount <= 0) continue;
+    lines.push(
+      route.from === city.id
+        ? { source: `${carrier.source} · to ${pair.to.name}`, amount: 0 - amount }
+        : { source: `${carrier.source} · from ${pair.from.name}`, amount },
+    );
+  }
+  return lines;
+}
+
+/** The one sum of `explainFoodCarried`: what the routes add to this town's growth. */
+export function foldFoodCarried(lines: readonly FoodCarriedLine[]): number {
+  let food = 0;
+  for (const line of lines) food += line.amount;
+  return food;
+}
+
+/**
+ * **The food a domestic route may take from this town**: the surplus as the growth
+ * channel computes it (`channelSurplus`), so a stifle or a dry site has already had
+ * its share. Nought for a deficit, and nought for a town building a settler, whose
+ * surplus the channel already holds at nought. Nought also while a card moves the
+ * surplus into production (`explainSurplusMoved`): the mover wins, because the same
+ * food cannot go to both places.
+ */
+export function carriableSurplus(state: GameState, city: City, yields: CityYields): number {
+  const surplus = channelSurplus(state, city, yields);
+  if (surplus <= 0) return 0;
+  if (explainSurplusMoved(state, city, yields, city.queue[0]).length > 0) return 0;
   return surplus;
+}
+
+/**
+ * **The share of its origin's surplus one route carries, when `routes` domestic
+ * routes leave that town.** The card's own figure while the routes can all have it,
+ * so at half, each of two routes carries half. A town cannot send more than its whole
+ * surplus, so beyond that the routes share it evenly: each of three carries a third.
+ * An even share needs no order among the routes, so their order decides nothing.
+ */
+export function surplusShareCarried(percent: number, routes: number): number {
+  if (routes <= 0) return 0;
+  return Math.min(percent / 100, 1 / routes);
+}
+
+/**
+ * **The food a route from `from` to `to` carries, at `percent` of its origin's surplus
+ * for one route.** The one figure for a route that runs and a route a screen or a bot
+ * is asking about, because the pair itself is left out of the others and counted once.
+ * The percent is a parameter because a bot prices the card before it holds it.
+ *
+ * Nought for a route that ends abroad. Nought while a blockade holds either end, as
+ * `blockaded` (`routeYields.ts`) takes back what a route pays: a blockaded port moves
+ * no goods, at home or abroad.
+ */
+export function foodAlongRoute(
+  state: GameState,
+  from: City,
+  to: City,
+  percent: number,
+  yieldsOf: (town: City) => CityYields,
+): number {
+  if (percent <= 0 || routeIsInternational(from, to)) return 0;
+  if (cityBlockaded(state, from) || cityBlockaded(state, to)) return 0;
+  const routes = otherCarryingRoutes(state, from, to) + 1;
+  return carriableSurplus(state, from, yieldsOf(from)) * surplusShareCarried(percent, routes);
+}
+
+/**
+ * **How many of a town's other domestic routes carry food beside the route to `to`.**
+ * A route a blockade stops carries nothing, so it takes no share of the surplus.
+ */
+export function otherCarryingRoutes(state: GameState, from: City, to: City): number {
+  return countRoutesAt(
+    state,
+    from,
+    'departing',
+    'domestic',
+    (far) => far.id !== to.id && !cityBlockaded(state, far),
+  );
 }
 
 /**

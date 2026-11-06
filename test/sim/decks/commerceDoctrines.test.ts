@@ -6,8 +6,8 @@
  *
  * Batch DT6 adds The Laurion Leases and The Muda. Batch DT7 adds The Forbidden
  * Silks, The Flying Money and The Sea Ban, whose refusals are checked at the gates
- * and through the reducer. Batch DT8 adds The Opera del Duomo. A later batch adds the
- * deck's last Doctrine to this file.
+ * and through the reducer. Batch DT8 adds The Opera del Duomo. Batch DT18 adds The
+ * Grand Canal, the deck's last Doctrine.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -18,14 +18,20 @@ import { arriveOnTile } from '../../../src/sim/arrival';
 import { cityBlockaded } from '../../../src/sim/blockade';
 import { explainCardImpact } from '../../../src/sim/cardImpact';
 import {
+  channelSurplus,
+  explainFoodCarried,
   explainGrowthPercent,
   explainTilePurchase,
   explainUnitCost,
+  foldFoodCarried,
   foldGrowthPercent,
   foldTilePrice,
   foldUnitCost,
+  foodAlongRoute,
   foundCityAt,
+  growthSurplus,
   refreshCityDerived,
+  surplusShareCarried,
   tilePurchasePrice,
 } from '../../../src/sim/cities';
 import { attackTargetAt } from '../../../src/sim/combat';
@@ -33,7 +39,7 @@ import { type Command, applyCommand } from '../../../src/sim/commands';
 import { luxuryLendingBan, proposePeaceError } from '../../../src/sim/diplomacy';
 import { pruneDeals } from '../../../src/sim/deals';
 import { raiseImprovement, tileIndex } from '../../../src/sim/map';
-import { explainAuthority, explainFoundingCost, explainHappiness } from '../../../src/sim/meters';
+import { explainAuthority, explainFoundingCost, explainHappiness, happinessOf } from '../../../src/sim/meters';
 import {
   contributeError,
   explainContribution,
@@ -42,7 +48,7 @@ import {
   purchaseError,
   routePrice,
 } from '../../../src/sim/purchase';
-import { readRoutes } from '../../../src/sim/readings';
+import { foldOnRevision, readRoutes } from '../../../src/sim/readings';
 import { layRoad } from '../../../src/sim/roads';
 import { explainRouteSenderYield, explainRouteYield, foldRouteYield } from '../../../src/sim/routeYields';
 import { RULES } from '../../../src/sim/rulesData';
@@ -56,7 +62,7 @@ import {
   createUnit,
   playerById,
 } from '../../../src/sim/state';
-import { doctrineBagFor } from '../../../src/sim/statecraft';
+import { describeCard, doctrineBagFor, stripRefs } from '../../../src/sim/statecraft';
 import {
   cardRenownLines,
   cardRulePercent,
@@ -80,16 +86,18 @@ import {
 import { runEndOfTurn } from '../../../src/sim/turn';
 import { openWar } from '../../../src/sim/wars';
 import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
-import { explainCity, foldCity, productionModifiers } from '../../../src/sim/yields/town';
+import { collectYields } from '../../../src/sim/yields/empire';
+import { explainCity, explainSurplusMoved, foldCity, productionModifiers } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
 import { createGame } from '../newGameHelpers';
 import { lendDoctrineEffects } from '../statecraftHelpers';
 
-/** The rows of batches DT3, DT6, DT7 and DT8, each with the band its table gives it. */
+/** The rows of batches DT3, DT6, DT7, DT8 and DT18, each with the band its table gives it. */
 const ROWS: readonly (readonly [string, number])[] = [
   ['theApoikia', 1],
   ['theLaurionLeases', 1],
   ['theDelianLeague', 1],
+  ['theGrandCanal', 2],
   ['theSogdianColonies', 2],
   ['theForbiddenSilks', 2],
   ['theFlyingMoney', 2],
@@ -1369,5 +1377,390 @@ describe('The Opera del Duomo (batch DT8)', () => {
     hold(state, 'theApoikia');
     const rich = scoreEffects(rate, valueContext(state, seat(state)));
     expect(rich).toBeGreaterThan(poor);
+  });
+});
+
+describe('The Grand Canal (batch DT18)', () => {
+  /**
+   * Three towns of seat 0 at peace, each with a market so a route has a slot. The farm
+   * is small and grows food. The other two are larger. Their own surpluses are read
+   * off the fold, so each test states what it needs of them. A lent row keeps the seat
+   * content, so no stifle scales a surplus unless a test asks for one.
+   */
+  function canalBoard(): { state: GameState; farm: City; market: City; other: City } {
+    const state = bareState(30, 12);
+    state.wars = [];
+    lent.push(lendDoctrineEffects('theApoikia' as DoctrineId, [{ kind: 'happiness', amount: 20 }]));
+    hold(state, 'theApoikia');
+    const farm = town(state, 8, 4, 3);
+    const market = town(state, 15, 4, 4);
+    const other = town(state, 1, 4, 4);
+    for (const city of [farm, market, other]) {
+      city.buildings.push('market');
+      refreshCityDerived(state, city);
+    }
+    bumpRevision(state);
+    return { state, farm, market, other };
+  }
+
+  /** The town's own surplus, as the growth channel computes it. */
+  function own(state: GameState, city: City): number {
+    return channelSurplus(state, city);
+  }
+
+  it('moves half the origin’s surplus, and the realm’s sum does not change', () => {
+    const { state, farm, market } = canalBoard();
+    running(state, farm, market);
+    const grown = own(state, farm);
+    const theirs = own(state, market);
+    expect(grown).toBeGreaterThan(0);
+    const before = growthSurplus(state, farm) + growthSurplus(state, market);
+    expect(growthSurplus(state, farm)).toBe(grown);
+    expect(growthSurplus(state, market)).toBe(theirs);
+
+    hold(state, 'theGrandCanal');
+    // The fold of what the land makes does not move, because the food is carried.
+    expect(own(state, farm)).toBe(grown);
+    expect(growthSurplus(state, farm)).toBeCloseTo(grown / 2, 10);
+    expect(growthSurplus(state, market)).toBeCloseTo(theirs + grown / 2, 10);
+    expect(growthSurplus(state, farm) + growthSurplus(state, market)).toBeCloseTo(before, 10);
+  });
+
+  it('lists one labelled line a route in both towns, each the same food', () => {
+    const { state, farm, market } = canalBoard();
+    running(state, farm, market);
+    hold(state, 'theGrandCanal');
+    const fold = (city: City) => foldCity(state, city);
+    const out = explainFoodCarried(state, farm, fold);
+    const into = explainFoodCarried(state, market, fold);
+    expect(out.map((line) => line.source)).toEqual([`Doctrine · The Grand Canal · to ${market.name}`]);
+    expect(into.map((line) => line.source)).toEqual([`Doctrine · The Grand Canal · from ${farm.name}`]);
+    expect(out[0]!.amount).toBeLessThan(0);
+    expect(into[0]!.amount).toBe(0 - out[0]!.amount);
+    // Rule 5: the total is the fold of the list.
+    expect(foldFoodCarried(into)).toBe(into[0]!.amount);
+    expect(growthSurplus(state, market)).toBeCloseTo(own(state, market) + foldFoodCarried(into), 10);
+  });
+
+  it('banks what the panel promised, in the real phase', () => {
+    const { state, farm, market } = canalBoard();
+    running(state, farm, market);
+    hold(state, 'theGrandCanal');
+    const grown = own(state, farm);
+    const theirs = own(state, market);
+    // What a screen reads: the memo's folds, and the list off them.
+    const memo = foldOnRevision(state);
+    const promised = [farm, market].map((city) =>
+      growthSurplus(state, city, memo(city), explainFoodCarried(state, city, memo)),
+    );
+    const baskets = [farm.foodBasket, market.foodBasket];
+    collectYields(state);
+    expect(farm.foodBasket - baskets[0]!).toBeCloseTo(promised[0]!, 10);
+    expect(market.foodBasket - baskets[1]!).toBeCloseTo(promised[1]!, 10);
+    // And the sum across the realm is what the two towns grew by themselves.
+    expect(farm.foodBasket + market.foodBasket - baskets[0]! - baskets[1]!).toBeCloseTo(grown + theirs, 10);
+  });
+
+  it('gives two routes half each, so the town keeps nothing and stops growing', () => {
+    // The card says each route carries half, and the proposal says the farm towns
+    // stop growing. This is where those two meet.
+    const { state, farm, market, other } = canalBoard();
+    running(state, farm, market);
+    running(state, farm, other);
+    const grown = own(state, farm);
+    const first = own(state, market);
+    const second = own(state, other);
+    hold(state, 'theGrandCanal');
+    expect(growthSurplus(state, market)).toBeCloseTo(first + grown / 2, 10);
+    expect(growthSurplus(state, other)).toBeCloseTo(second + grown / 2, 10);
+    expect(growthSurplus(state, farm)).toBeCloseTo(0, 10);
+  });
+
+  it('never sends more than the whole surplus: three routes share it evenly', () => {
+    const { state, farm, market, other } = canalBoard();
+    const fourth = town(state, 8, 9, 4);
+    fourth.buildings.push('market');
+    refreshCityDerived(state, fourth);
+    bumpRevision(state);
+    running(state, farm, market);
+    running(state, farm, other);
+    running(state, farm, fourth);
+    const grown = own(state, farm);
+    const theirs = [market, other, fourth].map((city) => own(state, city));
+    hold(state, 'theGrandCanal');
+    expect(growthSurplus(state, market)).toBeCloseTo(theirs[0]! + grown / 3, 10);
+    expect(growthSurplus(state, other)).toBeCloseTo(theirs[1]! + grown / 3, 10);
+    expect(growthSurplus(state, fourth)).toBeCloseTo(theirs[2]! + grown / 3, 10);
+    // The town does not starve to feed the routes.
+    expect(growthSurplus(state, farm)).toBeCloseTo(0, 10);
+    expect(surplusShareCarried(50, 1)).toBe(0.5);
+    expect(surplusShareCarried(50, 2)).toBe(0.5);
+    expect(surplusShareCarried(50, 4)).toBe(0.25);
+    expect(surplusShareCarried(50, 0)).toBe(0);
+  });
+
+  it('feeds one town from many: each farm sends half of its own', () => {
+    // The proposal's size: four routes into one town.
+    const { state, farm, market, other } = canalBoard();
+    running(state, farm, market);
+    running(state, other, market);
+    const first = own(state, farm);
+    const second = own(state, other);
+    const theirs = own(state, market);
+    expect(second).toBeGreaterThan(0);
+    hold(state, 'theGrandCanal');
+    expect(growthSurplus(state, market)).toBeCloseTo(theirs + first / 2 + second / 2, 10);
+  });
+
+  it('does not chain: each of a pair carries half of what the other grew by itself', () => {
+    const { state, farm, market } = canalBoard();
+    running(state, farm, market);
+    running(state, market, farm);
+    const a = own(state, farm);
+    const b = own(state, market);
+    expect(b).toBeGreaterThan(0);
+    hold(state, 'theGrandCanal');
+    expect(growthSurplus(state, farm)).toBeCloseTo(a - a / 2 + b / 2, 10);
+    expect(growthSurplus(state, market)).toBeCloseTo(b - b / 2 + a / 2, 10);
+  });
+
+  it('carries nothing from a town in deficit, which starves as before', () => {
+    const { state, farm, market } = canalBoard();
+    running(state, market, farm);
+    market.population = 30;
+    refreshCityDerived(state, market);
+    bumpRevision(state);
+    const deficit = own(state, market);
+    expect(deficit).toBeLessThan(0);
+    const fed = own(state, farm);
+    hold(state, 'theGrandCanal');
+    // The town in deficit sends nothing, and starves as before.
+    expect(explainFoodCarried(state, market, (city) => foldCity(state, city))).toEqual([]);
+    expect(growthSurplus(state, market)).toBe(deficit);
+    expect(growthSurplus(state, farm)).toBe(fed);
+  });
+
+  it('offsets a deficit at the destination', () => {
+    const { state, farm, market } = canalBoard();
+    running(state, farm, market);
+    market.population = 30;
+    refreshCityDerived(state, market);
+    bumpRevision(state);
+    const deficit = own(state, market);
+    const grown = own(state, farm);
+    expect(deficit).toBeLessThan(0);
+    hold(state, 'theGrandCanal');
+    expect(growthSurplus(state, market)).toBeCloseTo(deficit + grown / 2, 10);
+  });
+
+  it('carries nothing along a foreign route', () => {
+    const state = bareState(24, 9);
+    state.wars = [];
+    const home = town(state, 3, 4, 3);
+    home.buildings.push('market');
+    const partner = town(state, 10, 4, 3, 1);
+    partner.buildings.push('market');
+    createUnit(state, 1, 'worker', 3, 3);
+    createUnit(state, 0, 'worker', 10, 3);
+    bumpRevision(state);
+    running(state, home, partner);
+    const grown = own(state, home);
+    expect(grown).toBeGreaterThan(0);
+    const theirs = own(state, partner);
+    hold(state, 'theGrandCanal');
+    hold(state, 'theGrandCanal', 1);
+    const fold = (city: City) => foldCity(state, city);
+    expect(explainFoodCarried(state, home, fold)).toEqual([]);
+    expect(explainFoodCarried(state, partner, fold)).toEqual([]);
+    expect(growthSurplus(state, home)).toBe(grown);
+    expect(growthSurplus(state, partner)).toBe(theirs);
+  });
+
+  it('counts a foreign route as no route when it shares out a town’s surplus', () => {
+    const state = bareState(30, 9);
+    state.wars = [];
+    const home = town(state, 8, 4, 3);
+    const mine = town(state, 15, 4, 4);
+    const partner = town(state, 1, 4, 3, 1);
+    home.buildings.push('market', 'market');
+    createUnit(state, 1, 'worker', 8, 3);
+    createUnit(state, 0, 'worker', 1, 3);
+    refreshCityDerived(state, home);
+    bumpRevision(state);
+    running(state, home, partner);
+    running(state, home, mine);
+    const grown = own(state, home);
+    const theirs = own(state, mine);
+    hold(state, 'theGrandCanal');
+    expect(growthSurplus(state, mine)).toBeCloseTo(theirs + grown / 2, 10);
+    expect(growthSurplus(state, home)).toBeCloseTo(grown / 2, 10);
+  });
+
+  it('carries nothing along a route that has lapsed', () => {
+    const { state, farm, market } = canalBoard();
+    const cart = running(state, farm, market);
+    hold(state, 'theGrandCanal');
+    expect(explainFoodCarried(state, farm, (city) => foldCity(state, city)).length).toBe(1);
+    state.turn = cart.trade!.expiresTurn;
+    bumpRevision(state);
+    expect(explainFoodCarried(state, farm, (city) => foldCity(state, city))).toEqual([]);
+    expect(explainFoodCarried(state, market, (city) => foldCity(state, city))).toEqual([]);
+  });
+
+  it('stops at a blockade at either end, and a stopped route takes no share', () => {
+    const { state, farm, market, other } = canalBoard();
+    coastAt(state, 16);
+    const fourth = town(state, 8, 9, 4);
+    fourth.buildings.push('market');
+    refreshCityDerived(state, fourth);
+    bumpRevision(state);
+    running(state, farm, market);
+    running(state, farm, other);
+    running(state, farm, fourth);
+    const grown = own(state, farm);
+    const theirs = own(state, other);
+    hold(state, 'theGrandCanal');
+    expect(growthSurplus(state, other)).toBeCloseTo(theirs + grown / 3, 10);
+    // A heavy hull of another seat stands off the market's harbour.
+    createUnit(state, 1, 'carrack', 16, 4);
+    bumpRevision(state);
+    expect(cityBlockaded(state, market)).toBe(true);
+    const fold = (city: City) => foldCity(state, city);
+    expect(explainFoodCarried(state, market, fold)).toEqual([]);
+    // The two routes left share the farm's food as two routes do: half each.
+    expect(growthSurplus(state, other)).toBeCloseTo(own(state, other) + own(state, farm) / 2, 10);
+  });
+
+  it('lets a mover win: a town under The Laws of Lord Shang carries nothing', () => {
+    const { state, farm, market } = canalBoard();
+    running(state, farm, market);
+    farm.queue = [{ kind: 'unit', id: 'warrior' }];
+    bumpRevision(state);
+    const grown = own(state, farm);
+    const theirs = own(state, market);
+    hold(state, 'theGrandCanal');
+    hold(state, 'theLawsOfLordShang');
+    const fold = foldCity(state, farm, [], farm.queue[0]);
+    expect(explainSurplusMoved(state, farm, fold, farm.queue[0]).map((line) => line.amount)).toEqual([grown]);
+    expect(explainFoodCarried(state, farm, (city) => foldCity(state, city))).toEqual([]);
+    expect(growthSurplus(state, farm)).toBe(0);
+    expect(growthSurplus(state, market)).toBe(theirs);
+    // A town the law does not reach goes on carrying.
+    farm.queue = [];
+    bumpRevision(state);
+    expect(growthSurplus(state, farm)).toBeCloseTo(grown / 2, 10);
+  });
+
+  it('banks the food at a destination whose own surplus a mover takes', () => {
+    const { state, farm, market } = canalBoard();
+    running(state, farm, market);
+    market.queue = [{ kind: 'unit', id: 'warrior' }];
+    bumpRevision(state);
+    const grown = own(state, farm);
+    hold(state, 'theGrandCanal');
+    hold(state, 'theLawsOfLordShang');
+    expect(growthSurplus(state, market)).toBeCloseTo(grown / 2, 10);
+  });
+
+  it('holds a settler’s town back from sending, and feeds a town building one', () => {
+    const { state, farm, market } = canalBoard();
+    running(state, farm, market);
+    hold(state, 'theGrandCanal');
+    const grown = own(state, farm);
+    const theirs = own(state, market);
+    // At the destination the queue does not matter: its own surplus halts, and the
+    // food arrives.
+    market.queue = [{ kind: 'unit', id: 'settler' }];
+    bumpRevision(state);
+    expect(growthSurplus(state, market)).toBeCloseTo(grown / 2, 10);
+    market.queue = [];
+    expect(growthSurplus(state, market)).toBeCloseTo(theirs + grown / 2, 10);
+    // At the origin the surplus is held at nought, so there is nothing to send.
+    farm.queue = [{ kind: 'unit', id: 'settler' }];
+    bumpRevision(state);
+    expect(explainFoodCarried(state, farm, (city) => foldCity(state, city))).toEqual([]);
+    expect(growthSurplus(state, market)).toBe(theirs);
+  });
+
+  it('reads the surplus after the origin’s own percentages, and applies none at the destination', () => {
+    const { state, farm, market } = canalBoard();
+    running(state, farm, market);
+    hold(state, 'theGrandCanal');
+    const grown = own(state, farm);
+    // The Year and a Day grows the town a route reaches faster and every other town
+    // more slowly, so the two ends read different percentages.
+    const percent = foldGrowthPercent(explainGrowthPercent(state, farm));
+    hold(state, 'theYearAndADay');
+    const slowed = (grown * (100 + percent - 25)) / (100 + percent);
+    expect(slowed).toBeGreaterThan(0);
+    expect(own(state, farm)).toBeCloseTo(slowed, 10);
+    const theirs = own(state, market);
+    expect(growthSurplus(state, market)).toBeCloseTo(theirs + slowed / 2, 10);
+  });
+
+  it('reads the food before any town banks, so a treasury crossing a mark cannot make food', () => {
+    // The Monte di Pietà ties happiness to the treasury, and happiness scales every
+    // surplus. A town banking gold can lift the stifle for the towns after it in the
+    // same phase. The farm is founded first, so it banks first.
+    const { state, farm, market } = canalBoard();
+    running(state, farm, market);
+    hold(state, 'theGrandCanal');
+    hold(state, 'theMonteDiPieta');
+    const player = seat(state);
+    player.gold = 0;
+    bumpRevision(state);
+    // Bring happiness to just below nought, with the extra citizens in the far town.
+    market.population += happinessOf(state, 0) + 1;
+    refreshCityDerived(state, market);
+    bumpRevision(state);
+    expect(happinessOf(state, 0)).toBe(-1);
+    const stifled = own(state, farm);
+    expect(stifled).toBeGreaterThan(0);
+    const income = foldCity(state, farm).gold;
+    expect(income).toBeGreaterThan(0);
+    // The farm's own gold takes the treasury over the mark.
+    player.gold = 200 - income / 2;
+    bumpRevision(state);
+    expect(happinessOf(state, 0)).toBe(-1);
+
+    const baskets = [farm.foodBasket, market.foodBasket];
+    collectYields(state);
+    expect(happinessOf(state, 0)).toBe(0);
+    expect(own(state, farm)).toBeGreaterThan(stifled);
+    const sent = baskets[0]! + stifled - farm.foodBasket;
+    expect(sent).toBeCloseTo(stifled / 2, 10);
+    // The far town read the mark as passed for its own surplus, and the same food
+    // the farm lost for what arrived.
+    expect(market.foodBasket - baskets[1]! - own(state, market)).toBeCloseTo(sent, 10);
+  });
+
+  it('reaches only the seat that holds it', () => {
+    const { state, farm, market } = canalBoard();
+    running(state, farm, market);
+    const grown = own(state, farm);
+    hold(state, 'theGrandCanal', 1);
+    expect(growthSurplus(state, farm)).toBe(grown);
+    expect(explainFoodCarried(state, market, (city) => foldCity(state, city))).toEqual([]);
+  });
+
+  it('says what the card says', () => {
+    expect(doctrineDef('theGrandCanal' as DoctrineId).effects).toEqual([
+      { kind: 'rule', rule: 'routesCarrySurplus', percent: 50 },
+    ]);
+    expect(describeCard('theGrandCanal' as never).map((clause) => stripRefs(clause.text))).toEqual([
+      "each of your domestic routes carries half of its origin's surplus food to its destination",
+    ]);
+  });
+
+  it('says what a route would carry, for a pair running and a pair not yet running', () => {
+    const { state, farm, market, other } = canalBoard();
+    const fold = (city: City) => foldCity(state, city);
+    const grown = own(state, farm);
+    expect(foodAlongRoute(state, farm, market, 0, fold)).toBe(0);
+    expect(foodAlongRoute(state, farm, market, 50, fold)).toBeCloseTo(grown / 2, 10);
+    running(state, farm, market);
+    // The same figure for the pair now it runs, and half for a second route.
+    expect(foodAlongRoute(state, farm, market, 50, fold)).toBeCloseTo(grown / 2, 10);
+    expect(foodAlongRoute(state, farm, other, 50, fold)).toBeCloseTo(grown / 2, 10);
   });
 });

@@ -12224,6 +12224,28 @@ export function cardBehaviorRuleFor(state: GameState, unit: Unit, rule: Behavior
 }
 
 /**
+ * **Which card has this empire's domestic routes carry surplus food, and how much
+ * each route carries** (batch DT18, The Grand Canal), or `null`.
+ *
+ * Asked by `explainFoodCarried` (`cities.ts`) for each town on every reading of its
+ * growth, so a seat with no such row pays one walk of its rule rows. The largest row
+ * counts, as `collectionShareIn` reads its rule, so a second row raises nothing.
+ */
+export function cardSurplusCarrier(
+  state: GameState,
+  playerId: number,
+): { card: CardId; source: string; percent: number } | null {
+  let best: { card: CardId; source: string; percent: number } | null = null;
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'rule')) {
+    if (effect.rule !== 'routesCarrySurplus' || effect.percent === undefined) continue;
+    if (best === null || effect.percent > best.percent) {
+      best = { card, source, percent: effect.percent };
+    }
+  }
+  return best;
+}
+
+/**
  * **The strength one upgrade from research adds to this piece** (batch DT14, The
  * Nassau Reforms; S16): the sum of the `upgradeStrength` rows that reach it, each
  * row's `value`. Read in `upgradeUnits` (`tech.ts`), after the upgrade, so a row

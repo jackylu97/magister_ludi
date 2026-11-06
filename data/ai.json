@@ -296,6 +296,7 @@
       "postRangeWaiver": 0.25,
       "foreignRouteOption": 0.5,
       "shutTownBuys": 0.25,
+      "surplusCarried": 0.5,
       "postWorth": 20,
       "boughtUnitShare": 0.5,
       "countForecast": {
