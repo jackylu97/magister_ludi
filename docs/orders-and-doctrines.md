@@ -192,18 +192,22 @@ governments, so Tier IV opened at 29.
 | The Gift of the River | Expansionist | I | tier 4 | Worked tiles beside a river gain +1 food and +1 production. Towns away from fresh water cost 3 more happiness. |
 | The Highland Clans | Expansionist | I | tier 4 | Towns on hills cost 1 less authority. Hills beside a town gain +1 food. |
 | The Commanderies | Expansionist | I | tier 4 | Each of your towns costs 1 less authority, minimum one. Your borders grow 30% more slowly. |
+| The Georgics | Expansionist | II | tier 10 | Your works count as having stood twice as long. Improvements that have stood for twenty turns gain +1 production. |
 | Synoecism | Expansionist | II | tier 10 | Your towns of six or more citizens grow 30% faster. Towns you founded cost 1 more authority, including those you already hold. |
 | The Curator of Waters | Expansionist | II | tier 10 | Public works give +2 happiness and are built 50% faster. |
+| The Wildwood Compact | Expansionist | II | tier 10 | Needs tended land. Tended works cost your workers no charge. Workers you gain from now on have one less charge. |
 | Crop Rotation | Expansionist | III | tier 18 | Worked improvements yield twice their own bonus. Worked unimproved tiles yield nothing. |
 | The Contented City | Expansionist | III | tier 18 | Your citizens ask 20% less happiness. Your gold income is halved. |
 | Empire Without End | Expansionist | III | tier 18 | +1 authority for each town you hold. |
 | All Roads Lead to Rome | Expansionist | III | tier 18 | Your capital gains +3% production and gold for each town joined to it by road, at most +45%. Each town not joined to it costs 2 more authority. |
+| The Planted Towns | Expansionist | III | tier 18 | Towns you found start with four citizens and a Monument. Training a settler also costs its town a citizen. |
 | The Garden Peoples | Expansionist | III | tier 18 | Needs tended land. Tended tiles gain +1 food, +1 production and +1 culture. |
 | The Physiocrats | Expansionist | IV | tier 26 | Every improved tile gains +2 food, +2 production and +2 gold. |
 | The Cathedral Lodges | Expansionist | IV | tier 26 | Manufactories yield twice as much. Towns with a Manufactory gain +30% production toward wonders and the Magnum Opus. |
 | The High Towns | Expansionist | IV | tier 26 | Your towns may work mountains. Mountains gain +4 production, and each gives +1 production to the hexes beside it. |
 | The Mandarinate | Expansionist | IV | tier 26 | Each point of spare authority gives +1% science and culture, at most +30%. Each of your towns costs 1 more authority. |
 | The Inward Roads | Expansionist | IV | tier 26 | Towns joined to your capital by road gain +20% science and culture. Your caravans may not travel to other empires. |
+| Arcadia | Expansionist | IV | tier 26 | Needs tended land. Your tended tiles also count as improved for every card. |
 | The Apoikia | Commerce | I | tier 4 | Settlers and workers cost half as much gold to buy. |
 | The Laurion Leases | Commerce | I | tier 4 | Hexes with a resource cost half as much gold to buy. |
 | The Delian League | Commerce | I | tier 4 | Your coastal towns cost 1 less authority and gain +3 production. |

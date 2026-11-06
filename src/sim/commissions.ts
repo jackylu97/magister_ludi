@@ -74,6 +74,7 @@ import { foldCity } from './yields/town';
 import {
   type PlayerStatecraft,
   type WindfallPayout,
+  cardBehaviorRule,
   cityScopeAdmits,
   commissionFulfilledTurn,
   groundFactsFor,
@@ -182,7 +183,8 @@ export function commissionFigure(
     }
     case 'improvedOnlyTilesWorked': {
       // Commission: Break the Sod (Expansionist batch E5): the cards' `improved`
-      // reading, so a tended work does not count (the triage's reading 2).
+      // reading, so a tended work does not count (the triage's reading 2) unless
+      // the seat holds Arcadia. See `townFigure`.
       let worked = 0;
       for (const city of citiesOf(state, playerId)) worked += townFigure(state, city, figure) ?? 0;
       return worked;
@@ -493,11 +495,15 @@ export function workFamiliesHeld(state: GameState, playerId: number): WorkFamily
  */
 export function townFigure(state: GameState, city: City, figure: CommissionFigure): number | null {
   if (figure !== 'improvedTilesWorked' && figure !== 'improvedOnlyTilesWorked') return null;
+  // Arcadia (batch DT12): tended works count as improved "for every card", and a
+  // commission is a card, so Break the Sod's goal counts them too.
+  const tendedCounts =
+    figure === 'improvedTilesWorked' || cardBehaviorRule(state, city.ownerId, 'tendedCountsImproved');
   let worked = 0;
   for (const at of city.workedTiles) {
     const work = getTileAt(state.map, at.col, at.row)?.improvement;
     if (work === undefined) continue;
-    if (figure === 'improvedOnlyTilesWorked' && isTendedWork(work)) continue;
+    if (!tendedCounts && isTendedWork(work)) continue;
     worked += 1;
   }
   return worked;

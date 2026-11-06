@@ -898,6 +898,16 @@
     "text": "-30% border expansion"
    }
   ],
+  "theGeorgics": [
+   {
+    "raw": "your improvements, tended works and great people's works count as having stood twice as long for your cards",
+    "text": "your improvements, tended works and great people's works count as having stood twice as long for your cards"
+   },
+   {
+    "raw": "+1 production on every improved hex that has stood at least 20 turns",
+    "text": "+1 production on every improved hex that has stood at least 20 turns"
+   }
+  ],
   "synoecism": [
    {
     "raw": "+30% food surplus stored toward growth, in every city of 6 or more citizens",
@@ -916,6 +926,16 @@
    {
     "raw": "+50% production toward public works",
     "text": "+50% production toward public works"
+   }
+  ],
+  "theWildwoodCompact": [
+   {
+    "raw": "tended works cost your workers no charge",
+    "text": "tended works cost your workers no charge"
+   },
+   {
+    "raw": "newly created workers have 1 less charge",
+    "text": "newly created workers have 1 less charge"
    }
   ],
   "cropRotation": [
@@ -956,6 +976,20 @@
    {
     "raw": "the authority a city not joined to your capital by road costs rises by 2",
     "text": "the authority a city not joined to your capital by road costs rises by 2"
+   }
+  ],
+  "thePlantedTowns": [
+   {
+    "raw": "new cities start 3 citizens larger",
+    "text": "new cities start 3 citizens larger"
+   },
+   {
+    "raw": "new cities are founded with a [[building:monument|Monument]]",
+    "text": "new cities are founded with a Monument"
+   },
+   {
+    "raw": "training a settler also costs its city a citizen",
+    "text": "training a settler also costs its city a citizen"
    }
   ],
   "theGardenPeoples": [
@@ -1024,6 +1058,12 @@
    {
     "raw": "your caravans may not travel to other empires",
     "text": "your caravans may not travel to other empires"
+   }
+  ],
+  "arcadia": [
+   {
+    "raw": "your tended land also counts as improved for every card",
+    "text": "your tended land also counts as improved for every card"
    }
   ],
   "theApoikia": [

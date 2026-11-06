@@ -887,8 +887,7 @@ export function improvementError(
     if (wanted !== null) return `${ARow(def)} cannot build a ${what}`;
     return `${def.name}s leave a work behind, not a ${what}`;
   }
-  const cost = improvementDef(improvementId).chargeCost;
-  if (chargesLeft(unit) < cost) {
+  if (chargesLeft(unit) < workChargeCost(state, unit, improvementId)) {
     return `This ${def.name.toLowerCase()} has no charges left`;
   }
   if (unit.movesLeft <= 0) return `This ${unitDef(unit.type).name.toLowerCase()} has no movement left`;
@@ -970,12 +969,27 @@ export function buildImprovementAt(
 }
 
 /**
+ * **What this build costs this worker, in charges.** The one reading of a build's
+ * price, asked by the gate (`improvementError`) and by the spending
+ * (`spendBuilderCharge`), so the two cannot disagree. It is the row's `chargeCost`,
+ * or nought for a row marked `tended` under The Wildwood Compact (batch DT12).
+ *
+ * The law is the worker's owner's, because the worker is the one spending. A burn
+ * that only writes a mark is still the Burned Country row, so it is free too.
+ */
+export function workChargeCost(state: GameState, unit: Unit, improvementId: ImprovementId): number {
+  const def = improvementDef(improvementId);
+  if (def.tended === true && cardActionRule(state, unit.ownerId, 'tendedWorksFree')) return 0;
+  return def.chargeCost;
+}
+
+/**
  * The worker's half of a build: all its movement, and the row's charges. A
  * worker with no charge left is removed. Returns whether it survived.
  */
 function spendBuilderCharge(state: GameState, unit: Unit, improvementId: ImprovementId): boolean {
   unit.movesLeft = 0;
-  const left = chargesLeft(unit) - improvementDef(improvementId).chargeCost;
+  const left = chargesLeft(unit) - workChargeCost(state, unit, improvementId);
   if (left <= 0) {
     removeUnit(state, unit.id);
     return false;

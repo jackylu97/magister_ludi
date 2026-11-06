@@ -2943,6 +2943,11 @@ function chooseCitizens(
  *      hex more to work and the other with a hex less. The sweep reads the
  *      losing town's worked hexes for every later take, so the re-seat is
  *      what keeps that reading current.
+ *  34. **A settler that costs its town a citizen** (`realiseItem`, batch DT12's
+ *      The Planted Towns). A completion can land mid-turn through
+ *      `settleProductionWindfall` (entry 3), and that helper re-seats only after
+ *      the riders have paid. So `realiseItem` re-seats the town itself as the
+ *      citizen leaves, for entry 23's reason.
  *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
@@ -5625,6 +5630,22 @@ export function realiseItem(
     options.untrained !== true
   ) {
     recordScalingOccasion(state, city.ownerId, 'unitTrained');
+  }
+  // **The Planted Towns** (batch DT12; the triage's reading 47): a town that
+  // trains a settler gives up a citizen. Before the riders, so a rider that reads
+  // the town reads it smaller, and it is re-seated when it pays (register entry
+  // 34). `settleProduction` has already taken the finished row off the queue, so
+  // the queue check inside `loseCitizen` can only set aside a further settler the
+  // smaller town may not raise. A town of one citizen keeps it.
+  if (
+    unitDef(item.id).foundsCity &&
+    options.bought === undefined &&
+    options.free !== true &&
+    options.untrained !== true &&
+    cardBehaviorRule(state, city.ownerId, 'trainedSettlerCostsCitizen') &&
+    loseCitizen(state, city) !== null
+  ) {
+    refreshCityDerived(state, city);
   }
   // **A unit gained** (Dominion batch D5, The Gathering Host): every unit this
   // routine brings into being counts, bought, free and conscripted ones

@@ -1356,10 +1356,15 @@ describe('determinism', () => {
    * seeds: 215 became 216, and that is all. Nobody here adopts a government. Checked
    * with the change in place and the version printed as 215, which gives the hashes
    * of batch DT10 exactly.
+   *
+   * **Batch DT12 (the land, schema 217) moved the hash and not the length** at both
+   * seeds: 216 became 217, and that is all. Nobody here adopts a government. Checked
+   * with the change in place and the version printed as 216, which gives the hashes
+   * of batch DT11 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '4c0c4027:190677',
-    2026: '49f354aa:190843',
+    11: '9a47129e:190677',
+    2026: 'b9288b93:190843',
   };
 
   for (const seed of [11, 2026]) {

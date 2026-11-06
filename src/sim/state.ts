@@ -3424,8 +3424,25 @@ import {
  *
  * **A v215 save is refused and does not replay.** These seats' Doctrine bags change,
  * so their draws move. The branch migrates nothing, for the reason given under v119.
+ *
+ * v217 (branch `decks`; batch DT12, `docs/plans/doctrines-build-triage.md`):
+ * **the land.** No field joins the state. The rules that change:
+ *
+ *   · The Georgics, The Wildwood Compact, The Planted Towns and Arcadia are dealt to
+ *     an Expansionist seat, the Compact and Arcadia only with a tended-work charter;
+ *   · `workAge` may carry a `factor`, and `standingSince` compares
+ *     `age * factor + bonus`;
+ *   · the card rules gain `tendedWorksFree` (`workChargeCost`, read by the gate on a
+ *     build and by its spending), `trainedSettlerCostsCitizen` (`realiseItem`) and
+ *     `tendedCountsImproved` (`improved` and `unimproved`, through the ground facts);
+ *   · `workedUnimprovedTiles` hands the tile test its ground facts;
+ *   · the commission figure `improvedOnlyTilesWorked` counts tended works under
+ *     Arcadia.
+ *
+ * **A v216 save is refused and does not replay.** These seats' Doctrine bags change,
+ * so their draws move. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 216;
+export const SCHEMA_VERSION = 217;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

@@ -246,6 +246,7 @@ import {
   improvementLeaderError,
   improvementTechError,
   improvementYieldDelta,
+  workChargeCost,
   pillageError,
   prospectError,
   prospectTechError,
@@ -639,6 +640,12 @@ export interface ImprovementOption {
    * one actually gating the row.
    */
   requiredTechName: string | null;
+  /**
+   * What this build would cost the selected worker, in charges: the sim's own
+   * `workChargeCost`, so the hint and the spending cannot disagree. Nought for a
+   * tended work under The Wildwood Compact (batch DT12).
+   */
+  charges: number;
 }
 
 /**
@@ -5907,6 +5914,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         delta: improvementYieldDelta(tile, id, ctx),
         blocked: improvementError(state, unit.id, id),
         requiredTechName: tech !== null && gate !== undefined ? techDef(gate).name : null,
+        charges: workChargeCost(state, unit, id),
       });
     }
     return options;

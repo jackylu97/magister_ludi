@@ -3395,10 +3395,15 @@ export function countOf(
       // question is asked through `tileConditionHolds` so the count and the 🌿
       // ladder's tile lines cannot disagree about what "unimproved" means.
       if (!city) return 0;
+      // The town's owner's facts, as `worksHolding` reads them, so Arcadia's
+      // tended land stops counting as unimproved here too (batch DT12).
+      const ground = groundFactsFor(state, city.ownerId);
       let total = 0;
       for (const cell of city.workedTiles) {
         const tile = getTileAt(state.map, cell.col, cell.row);
-        if (tile && tileConditionHolds(tile, { test: 'unimproved' })) total += 1;
+        if (tile && tileConditionHolds(tile, { test: 'unimproved' }, undefined, undefined, state.turn, ground)) {
+          total += 1;
+        }
       }
       return total;
     }
@@ -5387,12 +5392,20 @@ export function tileConditionHolds(
     case 'improved':
       // A tended work is not an improvement for the cards: tended land counts
       // as wild (`ImprovementDef.tended`), so it answers `unimproved` instead.
-      return tile.improvement !== undefined && !isTendedWork(tile.improvement);
+      // Arcadia (batch DT12) turns that round for the empire asking.
+      return (
+        tile.improvement !== undefined &&
+        (!isTendedWork(tile.improvement) || ground?.tendedImproved === true)
+      );
     case 'unimproved':
       // `improved`'s mirror, asked of the same field: **presence is the state**,
       // so ground whose works were pillaged away is unimproved again — which is
-      // the reading the 🌿 ladder's cards want. Tended land is wild too.
-      return tile.improvement === undefined || isTendedWork(tile.improvement);
+      // the reading the 🌿 ladder's cards want. Tended land is wild too, except
+      // under Arcadia (batch DT12), where it answers `improved` instead.
+      return (
+        tile.improvement === undefined ||
+        (isTendedWork(tile.improvement) && ground?.tendedImproved !== true)
+      );
     case 'tended': {
       const work = tile.improvement;
       if (work === undefined) return false;
@@ -5505,8 +5518,13 @@ export function tileConditionHolds(
       // Commission: Break the Sod's institution (Expansionist batch E9, the
       // triage's reading 13): the asking empire's works count as older. A
       // caller with no ground facts reads the stamp alone; the callers that
-      // hand none in are listed on `GroundFacts.workAgeBonus`.
-      return age !== undefined && age + (ground?.workAgeBonus ?? 0) >= on.turns;
+      // hand none in are listed on `GroundFacts.workAgeBonus`. The Georgics'
+      // factor (batch DT12) multiplies the real age before that bonus is added
+      // (the triage's reading 42).
+      return (
+        age !== undefined &&
+        age * (ground?.workAgeFactor ?? 1) + (ground?.workAgeBonus ?? 0) >= on.turns
+      );
     }
     case 'beside':
       // **The ring the caller handed in**, or no ring and therefore no. Neither
@@ -5588,6 +5606,10 @@ function resourceSeen(id: ResourceId, ground: GroundFacts | undefined): boolean 
  *     The Studium Generale);
  *   · `workAgeBonus`, the turns the empire's law adds to a work's age, for
  *     `standingSince` (Expansionist batch E9, Commission: Break the Sod);
+ *   · `workAgeFactor`, what the empire's law multiplies a work's age by, for
+ *     `standingSince` (batch DT12, The Georgics);
+ *   · `tendedImproved`, whether the empire's tended works count as improved,
+ *     for `improved` and `unimproved` (batch DT12, Arcadia);
  *   · `tendedFields`, the works the empire's law counts as tended, for
  *     `tended` (Expansionist batch E9, The Two Harvests);
  *   · `workLine`, the longest straight line of great-person works a hex's
@@ -5646,15 +5668,31 @@ export interface GroundFacts {
    *   · `markOnHex` (`cities.ts`), the hex fold's mark lines
    *     (`explainTileYield`, `yields/hex.ts`) and the bot's price of a `mark`
    *     grant (`src/ai/value.ts`): each asks a hex mark's own `while`, and no
-   *     mark's `while` asks a work's age;
-   *   · the counts `workedUnimprovedTiles` and `distinctWorkedGreatWorks` in
-   *     this module: each asks one fixed test, `unimproved` or `greatWork`.
+   *     mark's `while` asks a work's age. A mark's condition is a fact about the
+   *     hex and not a card's question, so Arcadia does not reach it either;
+   *   · the count `distinctWorkedGreatWorks` in this module: it asks one fixed
+   *     test, `greatWork`.
    *
    * The bot's price of a hex line (`src/ai/value.ts`) hands in the ground
    * facts and no clock, so `standingSince` answers no there whatever the
    * bonus. That is the bot's own reading, older than this field.
    */
   workAgeBonus?: number;
+  /**
+   * **What the asking empire's law multiplies a work's real age by** (batch DT12,
+   * The Georgics; the triage's reading 42). Built by `cardWorkAgeFactor`, and
+   * absent when the law multiplies nothing. Read in `standingSince`, which
+   * compares `age * factor + bonus`. A work with no stamp stays not shown to be
+   * old, and the stamp itself does not change.
+   */
+  workAgeFactor?: number;
+  /**
+   * **The asking empire's tended works count as improved** (batch DT12, Arcadia).
+   * Built from the `tendedCountsImproved` rule, and absent without it. `improved`
+   * then says yes to a tended work and `unimproved` says no. `tended` does not
+   * change.
+   */
+  tendedImproved?: true;
   /**
    * **The works the asking empire's law counts as tended** (Expansionist
    * batch E9, The Two Harvests: farms, mines and lumber mills; the triage's
@@ -5800,6 +5838,11 @@ export function groundFactsFor(state: GameState, playerId: number): GroundFacts 
   // tended fields, each absent for an empire whose law says nothing.
   const older = cardWorkAgeBonus(state, playerId);
   if (older !== 0) facts.workAgeBonus = older;
+  // Batch DT12: The Georgics' multiplied age and Arcadia's tended land, each
+  // absent for an empire whose law says nothing.
+  const factor = cardWorkAgeFactor(state, playerId);
+  if (factor !== 1) facts.workAgeFactor = factor;
+  if (cardBehaviorRule(state, playerId, 'tendedCountsImproved')) facts.tendedImproved = true;
   const fields = cardFieldsTended(state, playerId);
   if (fields.length > 0) facts.tendedFields = fields;
   // Magisterial batch MG15, The Processional Way: the works on a line. A
@@ -5914,8 +5957,21 @@ export function workLinesOf(state: GameState, playerId: number): WorkLines {
  */
 export function cardWorkAgeBonus(state: GameState, playerId: number): number {
   let turns = 0;
-  for (const { effect } of effectsOfKind(state, playerId, 'workAge')) turns += Math.floor(effect.turns);
+  for (const { effect } of effectsOfKind(state, playerId, 'workAge')) turns += Math.floor(effect.turns ?? 0);
   return turns;
+}
+
+/**
+ * **What this empire's law multiplies a work's real age by** (batch DT12, The
+ * Georgics), or one. The largest live `factor`, so a row read twice does not
+ * square it. See `GroundFacts.workAgeFactor`.
+ */
+export function cardWorkAgeFactor(state: GameState, playerId: number): number {
+  let factor = 1;
+  for (const { effect } of effectsOfKind(state, playerId, 'workAge')) {
+    if (effect.factor !== undefined && effect.factor > factor) factor = effect.factor;
+  }
+  return factor;
 }
 
 /**

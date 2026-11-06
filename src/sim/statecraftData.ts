@@ -4759,7 +4759,15 @@ export type ActionRuleId =
    * town through `seizeTile`, and both towns are re-seated and both
    * empires' sight redrawn. Peace or war does not matter.
    */
-  | 'worksPullRivalHexes';
+  | 'worksPullRivalHexes'
+  /**
+   * **A tended work costs this empire's workers no charge** (batch DT12, The
+   * Wildwood Compact; the triage's reading 41). "Tended" is the row's own marker
+   * (`ImprovementDef.tended`), so The Two Harvests' fields still cost a charge.
+   * Read in one place, `workChargeCost` (`improvements.ts`), which the gate on a
+   * build and the spending both ask. The build still takes the worker's movement.
+   */
+  | 'tendedWorksFree';
 
 /**
  * Something about the world that stops being true — or starts.
@@ -5221,7 +5229,28 @@ export type BehaviorRuleId =
    * The walk asks the list it has built so far, so only a government, a Doctrine, a
    * seated Order or a malice can hold this rule.
    */
-  | 'collectionPays';
+  | 'collectionPays'
+  /**
+   * **Training a settler also costs its town a citizen** (batch DT12, The Planted
+   * Towns; the triage's reading 47). Read in one place, `realiseItem` (`cities.ts`),
+   * for a unit with `foundsCity` that a town trained. A bought, levied or free
+   * settler costs nothing. The citizen leaves through `loseCitizen`, so a town of
+   * one citizen keeps it, and the town is re-seated at once (register entry 34).
+   */
+  | 'trainedSettlerCostsCitizen'
+  /**
+   * **This empire's tended works also count as improved, for every card it holds**
+   * (batch DT12, Arcadia). Read by `groundFactsFor` into `GroundFacts.tendedImproved`,
+   * which the tile tests `improved` and `unimproved` ask, so a hex line, a count of
+   * hexes and a town scope all change together. The commission figure
+   * `improvedOnlyTilesWorked` asks the rule too. `tended` stays true, so a hex asked
+   * "improved or tended" still counts once.
+   *
+   * The rule changes what cards read and nothing about the works: a tended work
+   * still cannot be pillaged, and The Burning Season still lays its row over one
+   * and writes no mark, because those are facts about the hex (`markInsteadOf`).
+   */
+  | 'tendedCountsImproved';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId =
@@ -9347,10 +9376,18 @@ export interface CardWorksBeyondEffect {
  * does the age stamp on the hex (`Tile.improvedOn`): the stamp is a fact
  * about the hex, and the bonus is the empire's law. A work with no stamp is
  * still not shown to be old.
+ *
+ * **`factor` multiplies a work's real age** (batch DT12, The Georgics; the
+ * triage's reading 42). It is read by `cardWorkAgeFactor` into
+ * `GroundFacts.workAgeFactor`, and the same test compares `age * factor + turns`.
+ * The factor comes first, so it does not double Break the Sod's ten turns. Two
+ * rows with a factor read the larger, so a row read twice cannot square it. A
+ * row may carry `turns`, `factor` or both.
  */
 export interface CardWorkAgeEffect {
   kind: 'workAge';
-  turns: number;
+  turns?: number;
+  factor?: number;
 }
 
 /**
@@ -10800,7 +10837,8 @@ export type CommissionFigure =
    * Tiles worked by this empire's towns that carry an improvement other than a
    * tended work (Expansionist batch E5, Commission: Break the Sod). The cards'
    * `improved` reading, where `improvedTilesWorked` also counts tended works
-   * (the triage's reading 2).
+   * (the triage's reading 2). Under Arcadia (batch DT12) the two read the same,
+   * because Arcadia counts tended works as improved for every card.
    */
   | 'improvedOnlyTilesWorked'
   /**

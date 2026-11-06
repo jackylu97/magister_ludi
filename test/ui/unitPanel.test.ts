@@ -36,6 +36,7 @@ import {
   disbandPrompt,
   marchDestination,
   upkeepNote,
+  workChargeWords,
 } from '../../src/ui/unitPanel';
 import { newGame } from '../sim/newGameHelpers';
 
@@ -279,6 +280,15 @@ describe('the worker offers every improvement the table names', () => {
   const controls = source('controls.ts');
   const options = controls.slice(controls.indexOf('function improvementOptions('));
   const body = options.slice(0, options.indexOf('\n  }\n'));
+
+  it('asks the sim what a build spends, so the hint cannot promise a charge it will not take', () => {
+    // The Wildwood Compact (batch DT12): a tended work spends nothing.
+    expect(body).toContain('charges: workChargeCost(state, unit, id)');
+    expect(source('unitPanel.ts')).toContain('workChargeWords(option.charges)');
+    expect(workChargeWords(0)).toBe('No charge spent');
+    expect(workChargeWords(1)).toBe('Spend a charge');
+    expect(workChargeWords(2)).toBe('Spend 2 charges');
+  });
 
   it('walks the table rather than a list of its own', () => {
     expect(body).toContain('for (const id of IMPROVEMENT_IDS)');

@@ -2069,7 +2069,14 @@ function describeEffect(
       // fleet-wide refit that never happens. Said in the *card's* voice rather
       // than as a footnote, which is how the ratified text reads it.
       if (effect.stat === 'charges') {
-        const charges = amount === 1 || amount === -1 ? 'charge' : 'charges';
+        // The Wildwood Compact (batch DT12) is the first row to take a charge
+        // away, and "gain -1 charge" is not how a person says that.
+        if (amount < 0) {
+          const fewer = amount === -1 ? '1 less charge' : `${-amount} fewer charges`;
+          out.push({ text: `newly created ${who} have ${fewer}${where}` });
+          return;
+        }
+        const charges = amount === 1 ? 'charge' : 'charges';
         out.push({ text: `newly created ${who} gain ${signed(amount)} ${charges}${where}` });
         return;
       }
@@ -3642,10 +3649,18 @@ function describeEffect(
       // Expansionist batch E9, Commission: Break the Sod's institution (the
       // triage's reading 13). The three kinds of work are named, because a
       // card that says "improved" leaves tended works out.
-      const turns = Math.floor(effect.turns);
-      out.push({
-        text: `your improvements, tended works and great people's works count as having stood ${turns} ${turns === 1 ? 'turn' : 'turns'} longer for your cards`,
-      });
+      const works = "your improvements, tended works and great people's works";
+      if (effect.turns !== undefined) {
+        const turns = Math.floor(effect.turns);
+        out.push({
+          text: `${works} count as having stood ${turns} ${turns === 1 ? 'turn' : 'turns'} longer for your cards`,
+        });
+      }
+      // Batch DT12, The Georgics.
+      if (effect.factor !== undefined) {
+        const times = effect.factor === 2 ? 'twice' : `${effect.factor} times`;
+        out.push({ text: `${works} count as having stood ${times} as long for your cards` });
+      }
       return;
     }
     case 'drill': {
@@ -7362,6 +7377,10 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // `rule` arm says them by name; this is the sentence for a row that names
   // none, which changes nothing.
   fieldsTended: 'the named works also count as tended land for your cards, but not as wild land',
+  // Batch DT12: The Wildwood Compact, The Planted Towns and Arcadia.
+  tendedWorksFree: 'tended works cost your workers no charge',
+  trainedSettlerCostsCitizen: 'training a settler also costs its city a citizen',
+  tendedCountsImproved: 'your tended land also counts as improved for every card',
   workMountains: 'your cities may work the mountains in their borders',
   widerReach: 'citizens may work owned hexes one ring beyond the usual reach',
   // Expansionist batch E12, The Cura Aquarum. The row names the building and

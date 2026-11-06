@@ -1488,6 +1488,12 @@ export interface AiConfig {
        */
       workAge: number;
       /**
+       * **The Wildwood Compact** (`tendedWorksFree`): the hammers one charge saved
+       * is worth, about a third of a worker. The rate at which charges are saved is
+       * read off the board.
+       */
+      tendedCharge: number;
+      /**
        * **The Two Harvests** (`fieldsTended`): points a turn for each work of
        * the named rows inside this seat's borders. This is the price of the
        * cards that pay on tended land that the seat may hold later. The

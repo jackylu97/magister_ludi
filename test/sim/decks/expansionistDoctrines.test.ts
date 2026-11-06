@@ -5,8 +5,9 @@
  * fold, and that each drawback bites.
  *
  * Batch DT6 adds The Highland Clans, The Curator of Waters and All Roads Lead to
- * Rome. Batch DT7 adds The Inward Roads. Later batches add the deck's other eight
- * Doctrines to this file.
+ * Rome. Batch DT7 adds The Inward Roads. Batch DT12 adds the land: The Georgics, The
+ * Wildwood Compact, The Planted Towns and Arcadia. Later batches add the deck's other
+ * four Doctrines to this file.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -22,9 +23,14 @@ import {
   foldGrowthPercent,
   foundCityAt,
   isWorkableTile,
+  realiseItem,
   refreshCityDerived,
+  settleProduction,
+  settleProductionWindfall,
 } from '../../../src/sim/cities';
 import { applyCommand } from '../../../src/sim/commands';
+import { commissionFigure } from '../../../src/sim/commissions';
+import { chargesLeft, markInsteadOf, pillageError, workChargeCost } from '../../../src/sim/improvements';
 import { routeStartable } from '../../../src/sim/trade';
 import { raiseImprovement, tileIndex, tileNeighbors } from '../../../src/sim/map';
 import { markMountainAdjacency } from '../../../src/sim/mapgen';
@@ -42,11 +48,16 @@ import {
 import { adoptGovernmentAt, doctrineBagFor, statecraftBlocker } from '../../../src/sim/statecraft';
 import {
   cardCityRuleAt,
+  cardWorkAgeFactor,
   cityScopeAdmits,
+  countOf,
   explainCardPercentYields,
+  groundFactsFor,
+  tileConditionHolds,
 } from '../../../src/sim/statecraft/evaluator';
 import {
   type CardEffect,
+  type CityScope,
   type DoctrineId,
   DECK_FILE_DOCTRINES,
   doctrineDef,
@@ -60,26 +71,31 @@ import { createGame } from '../newGameHelpers';
 import { lendDoctrineEffects } from '../statecraftHelpers';
 
 /**
- * The rows built so far: the eleven of batch DT2, batch DT5's The Garden Peoples and
- * the three of batch DT6, each with the band its sheet table gives it.
+ * The rows built so far: the eleven of batch DT2, batch DT5's The Garden Peoples, the
+ * three of batch DT6, batch DT7's The Inward Roads and the four of batch DT12, each
+ * with the band its sheet table gives it.
  */
 const ROWS: readonly (readonly [string, number])[] = [
   ['boundToTheSoil', 1],
   ['theGiftOfTheRiver', 1],
   ['theHighlandClans', 1],
   ['theCommanderies', 1],
+  ['theGeorgics', 2],
   ['synoecism', 2],
   ['theCuratorOfWaters', 2],
+  ['theWildwoodCompact', 2],
   ['cropRotation', 3],
   ['theContentedCity', 3],
   ['empireWithoutEnd', 3],
   ['allRoadsLeadToRome', 3],
+  ['thePlantedTowns', 3],
   ['theGardenPeoples', 3],
   ['thePhysiocrats', 4],
   ['theCathedralLodges', 4],
   ['theHighTowns', 4],
   ['theMandarinate', 4],
   ['theInwardRoads', 4],
+  ['arcadia', 4],
 ];
 
 /** Lent rows, put back after each test, so a failed test cannot leak one into the next. */
@@ -1071,5 +1087,421 @@ describe('The Inward Roads (batch DT7)', () => {
     const ctx = valueContext(state, player);
     const percents = doctrineDef('theInwardRoads' as DoctrineId).effects.filter((effect) => effect.kind !== 'rule');
     expect(scoreEffects(percents, ctx)).toBeGreaterThan(0);
+  });
+});
+
+// --- batch DT12: the land ---------------------------------------------------------
+
+const TWENTY_TURNS = { test: 'standingSince', turns: 20 } as const;
+
+/** Lays a work with an age, on a hex a town can work. */
+function workAged(state: GameState, col: number, row: number, improvement: string, age: number) {
+  const tile = at(state, col, row);
+  if (improvement === 'forestGarden') tile.feature = 'forest';
+  raiseImprovement(tile, improvement as never, state.turn - age);
+  bumpRevision(state);
+  return tile;
+}
+
+/** Sets a town to work exactly these hexes, so a count of worked hexes is the count written. */
+function workOnly(state: GameState, city: City, ...hexes: (readonly [number, number])[]): void {
+  city.workedTiles = hexes.map(([col, row]) => ({ col, row }));
+  bumpRevision(state);
+}
+
+describe('The Georgics (batch DT12)', () => {
+  it('pays its +1 production from ten real turns, because a work counts as twice as old', () => {
+    const state = bareState();
+    state.turn = 40;
+    const city = town(state, 5, 5, 4);
+    workAged(state, 5, 4, 'farm', 10);
+    workAged(state, 6, 5, 'farm', 9);
+    workAged(state, 4, 5, 'farm', 20);
+    const before = [hexPays(state, city, 5, 4), hexPays(state, city, 6, 5), hexPays(state, city, 4, 5)];
+    hold(state, 'theGeorgics');
+    expect(hexPays(state, city, 5, 4).production).toBe(before[0]!.production + 1);
+    expect(hexPays(state, city, 6, 5).production).toBe(before[1]!.production);
+    expect(hexPays(state, city, 4, 5).production).toBe(before[2]!.production + 1);
+    const lines = explainTileYield(at(state, 5, 4), cityContext(state, city));
+    expect(lines.filter((line) => line.source.includes('The Georgics'))).toHaveLength(1);
+  });
+
+  it('pays nothing on a tended work, which is not an improvement', () => {
+    const state = bareState();
+    state.turn = 40;
+    const city = town(state, 5, 5, 4);
+    workAged(state, 5, 4, 'forestGarden', 30);
+    const before = hexPays(state, city, 5, 4);
+    hold(state, 'theGeorgics');
+    expect(hexPays(state, city, 5, 4)).toEqual(before);
+    // The work still counts as twice as old for a card that asks its age.
+    expect(
+      tileConditionHolds(at(state, 5, 4), TWENTY_TURNS, undefined, undefined, state.turn, groundFactsFor(state, 0)),
+    ).toBe(true);
+  });
+
+  it('doubles real age before a bonus is added, so it does not double Break the Sod', () => {
+    const state = bareState();
+    state.turn = 40;
+    town(state, 5, 5, 4);
+    const three = workAged(state, 5, 4, 'farm', 3);
+    const five = workAged(state, 6, 5, 'farm', 5);
+    hold(state, 'theGeorgics');
+    // Break the Sod's institution is ten turns, lent to a Doctrine the seat holds.
+    lend('boundToTheSoil', [{ kind: 'workAge', turns: 10 }]);
+    hold(state, 'boundToTheSoil');
+    const ground = groundFactsFor(state, 0);
+    expect(ground.workAgeFactor).toBe(2);
+    expect(ground.workAgeBonus).toBe(10);
+    // 3 * 2 + 10 is 16, where (3 + 10) * 2 would be 26. 5 * 2 + 10 is 20.
+    expect(tileConditionHolds(three, TWENTY_TURNS, undefined, undefined, state.turn, ground)).toBe(false);
+    expect(tileConditionHolds(five, TWENTY_TURNS, undefined, undefined, state.turn, ground)).toBe(true);
+  });
+
+  it('reaches a town scope that asks a work’s age, and leaves a building’s age and the hex’s stamp alone', () => {
+    const state = bareState();
+    state.turn = 40;
+    const city = town(state, 5, 5, 4);
+    const farm = workAged(state, 5, 4, 'farm', 0);
+    workOnly(state, city, [5, 4]);
+    addBuilding(state, city, 'granary');
+    // Ten real turns later, for the work and for the building alike.
+    state.turn = 50;
+    bumpRevision(state);
+    const works: CityScope = { test: 'workingImprovement', improvements: ['farm'], standingTurns: 20 };
+    const stones = { test: 'hasBuilding', building: 'granary', standingTurns: 20 } as const;
+    expect(cityScopeAdmits(state, city, works)).toBe(false);
+    expect(cityScopeAdmits(state, city, stones)).toBe(false);
+    hold(state, 'theGeorgics');
+    expect(cityScopeAdmits(state, city, works)).toBe(true);
+    expect(cityScopeAdmits(state, city, stones)).toBe(false);
+    expect(farm.improvedOn).toBe(40);
+  });
+
+  it('reads the larger factor of two rows, and is one for a seat without it', () => {
+    const state = bareState();
+    expect(cardWorkAgeFactor(state, 0)).toBe(1);
+    expect(groundFactsFor(state, 0).workAgeFactor).toBeUndefined();
+    hold(state, 'theGeorgics');
+    lend('boundToTheSoil', [{ kind: 'workAge', factor: 2 }]);
+    hold(state, 'boundToTheSoil');
+    expect(cardWorkAgeFactor(state, 0)).toBe(2);
+    expect(cardWorkAgeFactor(state, 1)).toBe(1);
+  });
+});
+
+describe('The Wildwood Compact (batch DT12)', () => {
+  /** A worker of seat 0 on a hex, with the charges it was born with. */
+  function worker(state: GameState, col: number, row: number) {
+    const unit = createUnit(state, 0, 'worker', col, row);
+    bumpRevision(state);
+    return unit;
+  }
+
+  /** A forest beside a town, and the charter that lets a worker tend it. */
+  function tendable(state: GameState): void {
+    at(state, 5, 4).feature = 'forest';
+    seat(state).statecraft.orders.push('theForestGardens' as never);
+    bumpRevision(state);
+  }
+
+  function build(state: GameState, unitId: number, improvement: string) {
+    return applyCommand(state, { type: 'buildImprovement', playerId: 0, unitId, improvement: improvement as never });
+  }
+
+  it('spends no charge on a tended work and a charge on a farm, and either build takes the worker’s movement', () => {
+    const state = bareState();
+    town(state, 5, 5, 4);
+    tendable(state);
+    hold(state, 'theWildwoodCompact');
+    const gardener = worker(state, 5, 4);
+    const born = chargesLeft(gardener);
+    expect(build(state, gardener.id, 'forestGarden').ok).toBe(true);
+    expect(at(state, 5, 4).improvement).toBe('forestGarden');
+    expect(chargesLeft(gardener)).toBe(born);
+    expect(gardener.movesLeft).toBe(0);
+    const ploughman = worker(state, 6, 5);
+    expect(build(state, ploughman.id, 'farm').ok).toBe(true);
+    expect(chargesLeft(ploughman)).toBe(chargesLeft(gardener) - 1);
+    expect(ploughman.movesLeft).toBe(0);
+  });
+
+  it('keeps a worker on its last charge after a tended work, and spends it on a farm', () => {
+    const state = bareState();
+    town(state, 5, 5, 4);
+    tendable(state);
+    hold(state, 'theWildwoodCompact');
+    const gardener = worker(state, 5, 4);
+    gardener.chargesLeft = 1;
+    expect(build(state, gardener.id, 'forestGarden').ok).toBe(true);
+    expect(state.units.includes(gardener)).toBe(true);
+    expect(chargesLeft(gardener)).toBe(1);
+    const ploughman = worker(state, 6, 5);
+    ploughman.chargesLeft = 1;
+    expect(build(state, ploughman.id, 'farm').ok).toBe(true);
+    expect(state.units.includes(ploughman)).toBe(false);
+  });
+
+  it('charges a seat without it, and charges for The Two Harvests’ fields under it', () => {
+    const state = bareState();
+    town(state, 5, 5, 4);
+    tendable(state);
+    const plain = worker(state, 5, 4);
+    expect(workChargeCost(state, plain, 'forestGarden')).toBe(1);
+    hold(state, 'theWildwoodCompact');
+    expect(workChargeCost(state, plain, 'forestGarden')).toBe(0);
+    expect(workChargeCost(state, plain, 'farm')).toBe(1);
+    // The Two Harvests makes a farm count as tended for the cards. The row is not
+    // marked `tended`, so the farm still costs its charge (reading 41).
+    lend('boundToTheSoil', [{ kind: 'rule', rule: 'fieldsTended', improvements: ['farm'] }]);
+    hold(state, 'boundToTheSoil');
+    expect(workChargeCost(state, plain, 'farm')).toBe(1);
+  });
+
+  it('gives a new worker one charge less, and leaves a worker already standing alone', () => {
+    const state = bareState();
+    town(state, 5, 5, 4);
+    const old = worker(state, 5, 4);
+    const before = chargesLeft(old);
+    hold(state, 'theWildwoodCompact');
+    expect(chargesLeft(old)).toBe(before);
+    expect(chargesLeft(worker(state, 6, 5))).toBe(before - 1);
+  });
+
+  it('cancels with Bound to the Soil, and a worker is never born with no charge', () => {
+    const state = bareState();
+    town(state, 5, 5, 4);
+    const plain = chargesLeft(worker(state, 5, 4));
+    hold(state, 'theWildwoodCompact');
+    hold(state, 'boundToTheSoil');
+    expect(chargesLeft(worker(state, 6, 5))).toBe(plain);
+    lend('theWildwoodCompact', [{ kind: 'unitStat', stat: 'charges', amount: -9, class: { type: 'worker' } }]);
+    bumpRevision(state);
+    expect(chargesLeft(worker(state, 4, 5))).toBe(1);
+  });
+
+  it('is dealt only to a seat holding a tended-work charter, and says so', () => {
+    const state = bareState();
+    const player = seat(state);
+    player.decks = ['expansionist'];
+    expect(doctrineBagFor(state, player, 10)).not.toContain('theWildwoodCompact');
+    expect(doctrineBagFor(state, player, 26)).not.toContain('arcadia');
+    tendable(state);
+    expect(doctrineBagFor(state, player, 10)).toContain('theWildwoodCompact');
+    expect(doctrineBagFor(state, player, 26)).toContain('arcadia');
+    expect(doctrineDef('theWildwoodCompact').needsTendedWork).toBe(true);
+    expect(doctrineDef('arcadia').needsTendedWork).toBe(true);
+  });
+});
+
+describe('The Planted Towns (batch DT12)', () => {
+  /** A town of the given size with this queue, its basket holding enough for the first row. */
+  function raising(state: GameState, population: number, ...rows: string[]): City {
+    const city = town(state, 5, 5, population);
+    city.queue = rows.map((id) => ({ kind: 'unit', id }) as never);
+    city.hammerBasket = 500;
+    bumpRevision(state);
+    return city;
+  }
+
+  it('founds a town of four citizens with a Monument, all four at work', () => {
+    const state = bareState();
+    hold(state, 'thePlantedTowns');
+    const city = foundCityAt(state, 0, at(state, 5, 5));
+    expect(city.population).toBe(4);
+    expect(city.buildings).toContain('monument');
+    expect(city.workedTiles).toHaveLength(4);
+    expect(foundCityAt(state, 1, at(state, 1, 1)).population).toBe(1);
+  });
+
+  it('takes a citizen for a trained settler, and re-seats the town at once', () => {
+    const state = bareState();
+    hold(state, 'thePlantedTowns');
+    const city = raising(state, 5, 'settler');
+    expect(city.workedTiles).toHaveLength(5);
+    const done = settleProduction(state, city);
+    expect(done?.unitId).toBeDefined();
+    expect(city.population).toBe(4);
+    expect(city.workedTiles).toHaveLength(4);
+  });
+
+  it('takes the same citizen when a windfall finishes the settler', () => {
+    const state = bareState();
+    hold(state, 'thePlantedTowns');
+    const city = raising(state, 5, 'settler');
+    expect(settleProductionWindfall(state, city)?.unitId).toBeDefined();
+    expect(city.population).toBe(4);
+    expect(city.workedTiles).toHaveLength(4);
+  });
+
+  it('takes nothing for a bought, a levied or a free settler', () => {
+    const state = bareState();
+    hold(state, 'thePlantedTowns');
+    const city = raising(state, 5);
+    const tile = at(state, 5, 5);
+    const item = { kind: 'unit', id: 'settler', tile } as const;
+    realiseItem(state, city, item, { bought: 'gold' });
+    expect(city.population).toBe(5);
+    realiseItem(state, city, { ...item, tile: at(state, 5, 4) }, { untrained: true });
+    expect(city.population).toBe(5);
+    realiseItem(state, city, { ...item, tile: at(state, 6, 5) }, { free: true });
+    expect(city.population).toBe(5);
+  });
+
+  it('takes nothing for a settler bought through the command, and only the levy’s own citizen for a levied one', () => {
+    const state = bareState();
+    hold(state, 'thePlantedTowns');
+    const city = raising(state, 5);
+    seat(state).gold = 5000;
+    const bought = applyCommand(state, {
+      type: 'purchaseItem',
+      playerId: 0,
+      cityId: city.id,
+      item: { kind: 'unit', id: 'settler' },
+      currency: 'gold',
+    });
+    expect(bought.ok, bought.ok ? '' : bought.error).toBe(true);
+    expect(city.population).toBe(5);
+    lend('boundToTheSoil', [{ kind: 'levy', use: 'settler', minPopulation: 2 }]);
+    hold(state, 'boundToTheSoil');
+    const levied = applyCommand(state, { type: 'levyCitizen', playerId: 0, cityId: city.id, use: 'settler' });
+    expect(levied.ok, levied.ok ? '' : levied.error).toBe(true);
+    expect(city.population).toBe(4);
+  });
+
+  it('takes nothing for another trained unit, and nothing without the Doctrine', () => {
+    const state = bareState();
+    hold(state, 'thePlantedTowns');
+    const city = raising(state, 5, 'worker');
+    expect(settleProduction(state, city)?.unitId).toBeDefined();
+    expect(city.population).toBe(5);
+    const other = bareState();
+    const plain = raising(other, 5, 'settler');
+    expect(settleProduction(other, plain)?.unitId).toBeDefined();
+    expect(plain.population).toBe(5);
+  });
+
+  it('sets aside a further settler the smaller town may not raise, and only that row', () => {
+    const state = bareState();
+    hold(state, 'thePlantedTowns');
+    const city = raising(state, 2, 'settler', 'settler', 'worker');
+    expect(settleProduction(state, city)?.unitId).toBeDefined();
+    expect(city.population).toBe(1);
+    expect(city.queue.map((row) => row.id)).toEqual(['worker']);
+  });
+
+  it('leaves a town its last citizen', () => {
+    const state = bareState();
+    hold(state, 'thePlantedTowns');
+    const city = raising(state, 1);
+    realiseItem(state, city, { kind: 'unit', id: 'settler', tile: at(state, 5, 5) });
+    expect(city.population).toBe(1);
+  });
+});
+
+describe('Arcadia (batch DT12)', () => {
+  it('lets a card line on improved hexes reach a tended hex, for this seat alone', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 4);
+    const garden = workAged(state, 5, 4, 'forestGarden', 0);
+    hold(state, 'thePhysiocrats');
+    const before = hexPays(state, city, 5, 4);
+    hold(state, 'arcadia');
+    expect(hexPays(state, city, 5, 4)).toEqual({
+      ...before,
+      food: before.food + 2,
+      production: before.production + 2,
+      gold: before.gold + 2,
+    });
+    const asked = { test: 'improved' } as const;
+    expect(tileConditionHolds(garden, asked, undefined, undefined, state.turn, groundFactsFor(state, 0))).toBe(true);
+    expect(tileConditionHolds(garden, asked, undefined, undefined, state.turn, groundFactsFor(state, 1))).toBe(false);
+  });
+
+  it('takes a tended hex out of unimproved, and leaves bare ground and a farm as they were', () => {
+    const state = bareState();
+    town(state, 5, 5, 4);
+    const garden = workAged(state, 5, 4, 'forestGarden', 0);
+    const farm = workAged(state, 6, 5, 'farm', 0);
+    const bare = at(state, 4, 5);
+    hold(state, 'arcadia');
+    const ground = groundFactsFor(state, 0);
+    const asks = (tile: typeof bare, test: 'improved' | 'unimproved' | 'tended') =>
+      tileConditionHolds(tile, { test }, undefined, undefined, state.turn, ground);
+    expect([asks(garden, 'improved'), asks(garden, 'unimproved'), asks(garden, 'tended')]).toEqual([true, false, true]);
+    expect([asks(farm, 'improved'), asks(farm, 'unimproved'), asks(farm, 'tended')]).toEqual([true, false, false]);
+    expect([asks(bare, 'improved'), asks(bare, 'unimproved'), asks(bare, 'tended')]).toEqual([false, true, false]);
+  });
+
+  it('changes the counts of hexes, worked and in borders, and counts "improved or tended" once', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 4);
+    workAged(state, 5, 4, 'forestGarden', 0);
+    workOnly(state, city, [5, 4], [4, 5]);
+    const worked = { kind: 'pays', where: 'city', basis: 'count', count: 'workedUnimprovedTiles', food: 1 } as never;
+    const borders = (tile: unknown) =>
+      ({ kind: 'pays', where: 'empire', basis: 'count', count: 'tilesInBorders', tile, to: 'authority', amount: 0 }) as never;
+    const improved = borders({ test: 'improved' });
+    const either = borders({ test: 'any', of: [{ test: 'improved' }, { test: 'tended' }] });
+    expect(countOf(state, 0, '' as never, worked, city)).toBe(2);
+    expect(countOf(state, 0, '' as never, improved)).toBe(0);
+    expect(countOf(state, 0, '' as never, either)).toBe(1);
+    hold(state, 'arcadia');
+    expect(countOf(state, 0, '' as never, worked, city)).toBe(1);
+    expect(countOf(state, 0, '' as never, improved)).toBe(1);
+    expect(countOf(state, 0, '' as never, either)).toBe(1);
+  });
+
+  it('spares a tended hex from Crop Rotation, and doubles what the work itself pays', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 4);
+    const ground = hexPays(state, city, 5, 4);
+    at(state, 5, 4).feature = 'forest';
+    bumpRevision(state);
+    const wood = hexPays(state, city, 5, 4);
+    workAged(state, 5, 4, 'forestGarden', 0);
+    const garden = hexPays(state, city, 5, 4);
+    expect(garden).not.toEqual(ground);
+    hold(state, 'cropRotation');
+    const zero = { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 };
+    expect(hexPays(state, city, 5, 4)).toEqual(zero);
+    hold(state, 'arcadia');
+    expect(hexPays(state, city, 5, 4)).toEqual({
+      ...garden,
+      food: 2 * garden.food - wood.food,
+      production: 2 * garden.production - wood.production,
+    });
+  });
+
+  it('keeps paying The Garden Peoples, because a tended hex is still tended', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 4);
+    workAged(state, 5, 4, 'forestGarden', 0);
+    hold(state, 'theGardenPeoples');
+    const before = hexPays(state, city, 5, 4);
+    hold(state, 'arcadia');
+    expect(hexPays(state, city, 5, 4)).toEqual(before);
+  });
+
+  it('counts a tended hex toward Break the Sod’s goal, because a commission is a card', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 4);
+    workAged(state, 5, 4, 'forestGarden', 0);
+    workAged(state, 6, 5, 'farm', 0);
+    workOnly(state, city, [5, 4], [6, 5]);
+    expect(commissionFigure(state, 0, 'improvedOnlyTilesWorked')).toBe(1);
+    hold(state, 'arcadia');
+    expect(commissionFigure(state, 0, 'improvedOnlyTilesWorked')).toBe(2);
+    expect(commissionFigure(state, 0, 'improvedTilesWorked')).toBe(2);
+  });
+
+  it('changes what cards read and nothing about the work: it still cannot be pillaged, and a burn still replaces it', () => {
+    const state = bareState();
+    town(state, 5, 5, 4);
+    const garden = workAged(state, 5, 4, 'forestGarden', 0);
+    hold(state, 'arcadia');
+    const raider = createUnit(state, 1, 'warrior', 5, 4);
+    expect(pillageError(state, raider.id)).toMatch(/nothing to pillage/);
+    expect(markInsteadOf(garden, 'burnedCountry')).toBeUndefined();
   });
 });

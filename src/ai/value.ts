@@ -157,6 +157,7 @@ import { explainEmpireGold } from '../sim/empireGold';
 import {
   type Tile,
   getTileAt,
+  improvementAge,
   mapRange,
   tileHex,
   tileIndex,
@@ -361,7 +362,7 @@ import {
   researchExpansion,
 } from '../sim/tech';
 import { ALL_TECH_IDS, type TechAge, type TechId, highestAge, isTechId, techDef } from '../sim/techData';
-import { IMPROVEMENT_IDS, type ImprovementId, improvementDef } from '../sim/improvementData';
+import { IMPROVEMENT_IDS, type ImprovementId, improvementDef, isTendedWork } from '../sim/improvementData';
 import { TILE_YIELD_KEYS, type TileYield, readTileYield } from '../sim/terrainData';
 import {
   UNIT_TYPE_IDS,
@@ -3987,7 +3988,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
     case 'workAge':
       // **The age lines it brings forward** (Expansionist batch E9, Break the
       // Sod's institution; priced in batch E13). See `workAgeWorth`.
-      return workAgeWorth(effect.turns, ctx);
+      return workAgeWorth(effect, ctx);
     case 'drill': {
       // **Experience is strength paid in instalments** (Dominion batch D1). A
       // point of experience is priced at what the rank ladder pays for it: the
@@ -8114,11 +8115,12 @@ function tileTestAsks(on: TileCondition, test: TileCondition['test']): boolean {
  * **What this seat's live lines gain when its ground facts change**, in points
  * a turn: the part of an Expansionist rule the board can say.
  *
- * Two rules change what the tile test answers for the seat's own cards:
- * Commission: Break the Sod adds turns to a work's age (`workAgeBonus`), and
- * The Two Harvests counts more works as tended (`tendedFields`). So the price
- * of each is what the seat's live lines pay on the changed ground, less what
- * they pay now. The lines read are:
+ * Four rows change what the tile test answers for the seat's own cards:
+ * Commission: Break the Sod adds turns to a work's age (`workAgeBonus`), The
+ * Georgics multiplies it (`workAgeFactor`), The Two Harvests counts more works
+ * as tended (`tendedFields`), and Arcadia counts tended works as improved
+ * (`tendedImproved`). So the price of each is what the seat's live lines pay on
+ * the changed ground, less what they pay now. The lines read are:
  *
  *   · each live hex line (`where: 'hex'`, flat) whose tile test asks `test`,
  *     over the hexes the seat's citizens work, at what the line pays on one
@@ -8200,28 +8202,108 @@ function liveLinesGain(
 const ANY_WORK: TileCondition = { test: 'any', of: [{ test: 'improved' }, { test: 'tended' }] };
 
 /**
- * **Commission: Break the Sod** (`workAge`): the seat's works count `turns`
- * older for its cards. Two parts:
+ * **Commission: Break the Sod and The Georgics** (`workAge`): the seat's works
+ * count `turns` older for its cards, or `factor` times as old (batch DT12). Two
+ * parts:
  *
  *   · what the seat's live age lines gain now, read off the board
- *     (`liveLinesGain` with the offset added to `workAgeBonus`). A line that
+ *     (`liveLinesGain` with the row added to the ground facts). A line that
  *     asks a work twenty turns old pays on the works that are ten turns old;
- *   · `score.expansionist.workAge` for each work inside the borders and each
- *     turn of the offset. This stands in for the age cards the seat may hold
- *     later, and for the works laid later, which reach each age sooner.
+ *   · `score.expansionist.workAge` for each turn the row adds to each work
+ *     inside the borders. This stands in for the age cards the seat may hold
+ *     later, and for the works laid later, which reach each age sooner. A
+ *     `factor` adds more turns to an older work, so it is read off each work's
+ *     own age.
  *
  * The offset is added to what the seat's law already adds. That is right for
  * the one carrier, the institution of a commission not yet met: once it is
- * met, the commission is worth nothing more (`explainCommission`).
+ * met, the commission is worth nothing more (`explainCommission`). A factor
+ * replaces a smaller one, as `cardWorkAgeFactor` reads two rows.
+ *
+ * The Georgics' own hex line is not in this price. It asks a work's age, and the
+ * hex arm reads no clock (`groundOfHexLine`), so that line prices at nought today.
  */
-function workAgeWorth(turns: number, ctx: ValueContext): number {
-  const offset = Math.max(0, Math.floor(turns));
-  if (offset === 0) return 0;
+function workAgeWorth(effect: Extract<CardEffect, { kind: 'workAge' }>, ctx: ValueContext): number {
+  const offset = Math.max(0, Math.floor(effect.turns ?? 0));
   const ground = groundFactsFor(ctx.state, ctx.playerId);
-  const altered: GroundFacts = { ...ground, workAgeBonus: (ground.workAgeBonus ?? 0) + offset };
+  const factorNow = ground.workAgeFactor ?? 1;
+  const factor = Math.max(factorNow, effect.factor ?? 1);
+  if (offset === 0 && factor === factorNow) return 0;
+  const altered: GroundFacts = {
+    ...ground,
+    workAgeBonus: (ground.workAgeBonus ?? 0) + offset,
+    workAgeFactor: factor,
+  };
   const now = liveLinesGain(ground, altered, 'standingSince', ctx);
+  const knob = ctx.ai.score.expansionist.workAge;
   const works = tilesInBordersWhere(ctx, ANY_WORK);
-  return now + ctx.ai.score.expansionist.workAge * offset * works;
+  return now + knob * offset * works + knob * (factor - factorNow) * ageOfWorks(ctx);
+}
+
+/** The real ages of the works inside this seat's borders, summed. A work with no stamp adds nothing. */
+function ageOfWorks(ctx: ValueContext): number {
+  let turns = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    for (const tile of ownedTiles(ctx.state, city)) {
+      turns += improvementAge(tile, ctx.state.turn) ?? 0;
+    }
+  }
+  return turns;
+}
+
+/**
+ * **The Wildwood Compact** (`tendedWorksFree`): the charges saved, at the rate
+ * this seat lays tended works. The rate is the works marked `tended` standing in
+ * its borders over the turns played, as `occasionRate` reads a founding tempo. The
+ * Two Harvests' fields stay out, because they still cost a charge (the triage's
+ * reading 41). One charge is `score.expansionist.tendedCharge` hammers, as a lump.
+ *
+ * A bot lays no tended works (`workers.improvements`), so on a bot's own board
+ * this is usually nought and the row's drawback decides.
+ */
+function tendedWorksFreeWorth(ctx: ValueContext): number {
+  let works = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    for (const tile of ownedTiles(ctx.state, city)) {
+      if (tile.improvement !== undefined && isTendedWork(tile.improvement)) works += 1;
+    }
+  }
+  if (works === 0) return 0;
+  const rate = works / Math.max(1, ctx.state.turn);
+  return rate * explainLump({ production: ctx.ai.score.expansionist.tendedCharge }, ctx).total;
+}
+
+/**
+ * **The Planted Towns** (`trainedSettlerCostsCitizen`): a citizen for each settler
+ * trained, at the founding rate. It is the same rate and the same price of a citizen
+ * as the row's `foundingRider` (`scoreFoundingRider`), so the card's two clauses are
+ * read in one currency. Written so a seat that founds nothing reads 0 and not -0.
+ */
+function settlerCitizenCost(ctx: ValueContext): number {
+  const rate = occasionRate('found', ctx);
+  if (rate <= 0) return 0;
+  return 0 - rate * explainLump({ food: growthThreshold(ctx) }, ctx).total;
+}
+
+/**
+ * **Arcadia** (`tendedCountsImproved`): what the seat's live lines gain when its
+ * tended hexes answer `improved` and stop answering `unimproved`. Both tests are
+ * read, with the rule taken off and put back, so a held Arcadia is priced by what it
+ * adds. No live line asks both tests, so no hex counts twice.
+ *
+ * `liveLinesGain` reads the flat and `percent` parts of a line and not a whole
+ * share, so Crop Rotation's zeroing of wild land is left out, which makes the price
+ * lower and not higher. A seat with no tended works reads 0, which is every bot that
+ * has not captured any, because a bot lays none.
+ */
+function tendedImprovedWorth(ctx: ValueContext): number {
+  const ground = groundFactsFor(ctx.state, ctx.playerId);
+  const without: GroundFacts = { ...ground };
+  delete without.tendedImproved;
+  const withRule: GroundFacts = { ...ground, tendedImproved: true };
+  return (
+    liveLinesGain(without, withRule, 'improved', ctx) + liveLinesGain(without, withRule, 'unimproved', ctx)
+  );
 }
 
 /**
@@ -8295,9 +8377,10 @@ function heldBuildingWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: V
 }
 
 /**
- * **The rules of Expansionist batches E9 and E12**, or `null` for a rule that
- * is not one of them: The Two Harvests' `fieldsTended` and The Cura Aquarum's
- * `holdsBuilding`.
+ * **The rules of Expansionist batches E9 and E12 and of batch DT12**, or `null`
+ * for a rule that is not one of them: The Two Harvests' `fieldsTended`, The Cura
+ * Aquarum's `holdsBuilding`, The Wildwood Compact's `tendedWorksFree`, The Planted
+ * Towns' `trainedSettlerCostsCitizen` and Arcadia's `tendedCountsImproved`.
  */
 function expansionistRuleWorth(
   effect: Extract<CardEffect, { kind: 'rule' }>,
@@ -8308,6 +8391,12 @@ function expansionistRuleWorth(
       return fieldsTendedWorth(effect.improvements, ctx);
     case 'holdsBuilding':
       return heldBuildingWorth(effect, ctx);
+    case 'tendedWorksFree':
+      return tendedWorksFreeWorth(ctx);
+    case 'trainedSettlerCostsCitizen':
+      return settlerCitizenCost(ctx);
+    case 'tendedCountsImproved':
+      return tendedImprovedWorth(ctx);
     default:
       return null;
   }

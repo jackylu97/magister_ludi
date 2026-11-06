@@ -531,6 +531,16 @@ export function disbandPrompt(unit: Unit): { title: string; body: string } {
   };
 }
 
+/**
+ * The opening of a build row's hint: what the build spends. The figure is the sim's
+ * (`ImprovementOption.charges`). A tended work under The Wildwood Compact spends
+ * nothing, and a Polder spends two, so "a charge" is not always true.
+ */
+export function workChargeWords(charges: number): string {
+  if (charges === 0) return 'No charge spent';
+  return charges === 1 ? 'Spend a charge' : `Spend ${charges} charges`;
+}
+
 export function marchDestination(
   state: GameState,
   playerId: number,
@@ -959,7 +969,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
           label,
           blocked: option.blocked,
           hint:
-            `Spend a charge: ${option.name.toLowerCase()} on this tile` +
+            `${workChargeWords(option.charges)}: ${option.name.toLowerCase()} on this tile` +
             // The hover card is a `title` attribute and therefore text, so the
             // delta it quotes wears the plain glyph. Deliberate, and the reason
             // `formatYieldDelta` survived the drawn marks.

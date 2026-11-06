@@ -414,3 +414,89 @@ describe('a town that holds the Aqueduct through The Cura Aquarum (E13)', () => 
     expect(buildingDef('aqueduct').publicWork).toBe(true);
   });
 });
+
+describe('the land’s Doctrines (batch DT12)', () => {
+  it('prices The Georgics’ factor by the age lines it brings forward, off each work’s real age', () => {
+    const { state, player, cities } = board(1, 40);
+    const hexes = ring(state, cities[0]!);
+    work(state, cities[0]!, hexes.slice(0, 2), 'farm', 12);
+    work(state, cities[0]!, hexes.slice(2, 3), 'farm', 5);
+    const factor: CardEffect[] = [{ kind: 'workAge', factor: 2 }];
+    // No card reads a work's age: the knob, for the 12 + 12 + 5 turns it adds.
+    const knob = EXPANSIONIST.workAge * 29;
+    expect(scoreEffects(factor, valueContext(state, player))).toBe(knob);
+    // Dark Earth pays +2 food on a farm of twenty turns. Doubled, the two farms of
+    // twelve pay and the farm of five does not.
+    slot(state, player, 'darkEarth');
+    const ctx = valueContext(state, player);
+    expect(scoreEffects(factor, ctx)).toBe(2 * valueOfYields({ food: 2 }, ctx) + knob);
+  });
+
+  it('reads nothing for a factor the seat already holds, and nothing for an empty row', () => {
+    const { state, player, cities } = board(1, 40);
+    work(state, cities[0]!, ring(state, cities[0]!).slice(0, 2), 'farm', 12);
+    expect(scoreEffects([{ kind: 'workAge' }], valueContext(state, player))).toBe(0);
+    player.statecraft.doctrines.push('theGeorgics');
+    bumpRevision(state);
+    expect(scoreEffects([{ kind: 'workAge', factor: 2 }], valueContext(state, player))).toBe(0);
+  });
+
+  it('prices The Wildwood Compact’s free works at the seat’s tended-work rate, leaving The Two Harvests’ fields out', () => {
+    const { state, player, cities } = board(1, 40);
+    const free: CardEffect[] = [{ kind: 'rule', rule: 'tendedWorksFree' }];
+    const hexes = ring(state, cities[0]!);
+    work(state, cities[0]!, hexes.slice(0, 2), 'farm', 5);
+    slot(state, player, 'theTwoHarvests');
+    // A farm that counts as tended for the cards still costs its charge.
+    expect(scoreEffects(free, valueContext(state, player))).toBe(0);
+    for (const tile of hexes.slice(2, 4)) tile.feature = 'forest';
+    work(state, cities[0]!, hexes.slice(2, 4), 'forestGarden', 5);
+    const ctx = valueContext(state, player);
+    const charge = explainLump({ production: EXPANSIONIST.tendedCharge }, ctx).total;
+    expect(charge).toBeGreaterThan(0);
+    expect(scoreEffects(free, ctx)).toBe((2 / 40) * charge);
+  });
+
+  it('prices The Planted Towns’ drawback as a citizen a settler, at the founding rate', () => {
+    const { state, player } = board(2, 40);
+    const cost: CardEffect[] = [{ kind: 'rule', rule: 'trainedSettlerCostsCitizen' }];
+    const ctx = valueContext(state, player);
+    const citizen = explainLump({ food: growthFood(6) }, ctx).total;
+    expect(citizen).toBeGreaterThan(0);
+    expect(scoreEffects(cost, ctx)).toBeCloseTo(-(2 / 40) * citizen, 8);
+  });
+
+  it('prices Arcadia by what the seat’s live lines gain on its tended hexes', () => {
+    const { state, player, cities } = board(1, 40);
+    const arcadia: CardEffect[] = [{ kind: 'rule', rule: 'tendedCountsImproved' }];
+    const hexes = ring(state, cities[0]!);
+    for (const tile of hexes.slice(0, 2)) tile.feature = 'forest';
+    work(state, cities[0]!, hexes.slice(0, 2), 'forestGarden', 5);
+    // No card reads `improved` yet: nothing to gain.
+    expect(scoreEffects(arcadia, valueContext(state, player))).toBe(0);
+    player.statecraft.doctrines.push('thePhysiocrats');
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    const hex = valueOfYields({ food: 2, production: 2, gold: 2 }, ctx);
+    expect(hex).toBeGreaterThan(0);
+    expect(scoreEffects(arcadia, ctx)).toBe(2 * hex);
+    // Held, it is priced by what it adds, not at nought.
+    player.statecraft.doctrines.push('arcadia');
+    bumpRevision(state);
+    const held = valueContext(state, player);
+    expect(scoreEffects(arcadia, held)).toBe(2 * valueOfYields({ food: 2, production: 2, gold: 2 }, held));
+  });
+
+  it('counts what a seat loses when a hex line on unimproved land stops paying on tended land', () => {
+    const { state, player, cities } = board(1, 40);
+    const arcadia: CardEffect[] = [{ kind: 'rule', rule: 'tendedCountsImproved' }];
+    const hexes = ring(state, cities[0]!);
+    hexes[0]!.feature = 'forest';
+    work(state, cities[0]!, hexes.slice(0, 1), 'forestGarden', 5);
+    // The Old Songs pays +2 culture on unimproved land, so Arcadia takes it off the
+    // one tended hex this town works.
+    slot(state, player, 'theOldSongs');
+    const ctx = valueContext(state, player);
+    expect(scoreEffects(arcadia, ctx)).toBe(-valueOfYields({ culture: 2 }, ctx));
+  });
+});

@@ -484,7 +484,6 @@ describe('the Expansionist batch E9: Commission: Break the Sod', () => {
       'src/ai/value.ts: rule.while',
       'src/sim/cities.ts: rule.while',
       "src/sim/statecraft/evaluator.ts: { test: 'greatWork' }",
-      "src/sim/statecraft/evaluator.ts: { test: 'unimproved' }",
       'src/sim/yields/hex.ts: rule.while',
     ]);
   });

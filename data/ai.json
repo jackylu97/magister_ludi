@@ -285,6 +285,7 @@
     "expansionist": {
       "markBesideRing": 4,
       "workAge": 0.02,
+      "tendedCharge": 4,
       "fieldsTended": 1,
       "guildPoint": 2,
       "heldLater": 0.5

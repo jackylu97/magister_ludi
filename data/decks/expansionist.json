@@ -3499,6 +3499,39 @@
         }
       ]
     },
+    "theGeorgics": {
+      "name": "The Georgics",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 2,
+      "line": "none",
+      "flavor": "An old field remembers every season it has been given.",
+      "text": "Your works count as having stood twice as long. Improvements that have stood for twenty turns gain +1 production.",
+      "effects": [
+        {
+          "kind": "workAge",
+          "factor": 2
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "production": 1,
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "improved"
+              },
+              {
+                "test": "standingSince",
+                "turns": 20
+              }
+            ]
+          }
+        }
+      ]
+    },
     "synoecism": {
       "name": "Synoecism",
       "decks": [
@@ -3560,6 +3593,31 @@
           "category": "building",
           "publicWork": true,
           "percent": 50
+        }
+      ]
+    },
+    "theWildwoodCompact": {
+      "name": "The Wildwood Compact",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 2,
+      "line": "none",
+      "needsTendedWork": true,
+      "flavor": "Take only what the wood can spare, and it will spare a little more.",
+      "text": "Needs tended land. Tended works cost your workers no charge. Workers you gain from now on have one less charge.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "tendedWorksFree"
+        },
+        {
+          "kind": "unitStat",
+          "stat": "charges",
+          "amount": -1,
+          "class": {
+            "type": "worker"
+          }
         }
       ]
     },
@@ -3680,6 +3738,27 @@
           "scope": {
             "test": "notConnected"
           }
+        }
+      ]
+    },
+    "thePlantedTowns": {
+      "name": "The Planted Towns",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 3,
+      "line": "none",
+      "flavor": "The lord draws the streets on parchment, and the people arrive by autumn.",
+      "text": "Towns you found start with four citizens and a Monument. Training a settler also costs its town a citizen.",
+      "effects": [
+        {
+          "kind": "foundingRider",
+          "population": 3,
+          "building": "monument"
+        },
+        {
+          "kind": "rule",
+          "rule": "trainedSettlerCostsCitizen"
         }
       ]
     },
@@ -3871,6 +3950,23 @@
         {
           "kind": "rule",
           "rule": "noForeignRoutes"
+        }
+      ]
+    },
+    "arcadia": {
+      "name": "Arcadia",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 4,
+      "line": "none",
+      "needsTendedWork": true,
+      "flavor": "The shepherds never called it a garden. They only kept it.",
+      "text": "Needs tended land. Your tended tiles also count as improved for every card.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "tendedCountsImproved"
         }
       ]
     }
