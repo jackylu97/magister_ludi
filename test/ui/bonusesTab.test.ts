@@ -132,6 +132,19 @@ describe('the shelves', () => {
     expect(beliefs.ghosts.find((ghost) => ghost.key === 'ghost:follower')!.text).toBe('a prophet’s charge draws one');
   });
 
+  it('count the room The Seven Councils opens (batch DT15)', () => {
+    const { state } = faithTabsWorld();
+    const ghost = (key: string): string => {
+      const shelf = bonusesTabModel(state, 0).shelves.find((one) => one.id === 'beliefs')!;
+      return shelf.ghosts.find((one) => one.key === key)!.title;
+    };
+    expect(ghost('ghost:enhancer')).toBe('enhancer beliefs · 1 of 2');
+    state.players[0]!.statecraft.doctrines.push('theSevenCouncils' as never);
+    bumpRevision(state);
+    expect(ghost('ghost:enhancer')).toBe('enhancer beliefs · 1 of 3');
+    expect(ghost('ghost:follower')).toBe('follower beliefs · 2 of 4');
+  });
+
   it('say a building-gated belief pays once its building stands, and then where it stands', () => {
     const { state, uruk } = faithTabsWorld();
     const before = card(bonusesTabModel(state, 0), 'card:templeSpires');

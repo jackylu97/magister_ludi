@@ -3365,7 +3365,7 @@ describe("the prophet’s four verbs", () => {
     const religion = faith(g.state, 0, "starReaders");
     expect(RELIGION.pools.followerSlots).toBe(3);
     expect(RELIGION.pools.enhancerSlots).toBe(2);
-    expect(nextBeliefPool(religion)).toBe("follower");
+    expect(nextBeliefPool(g.state, religion)).toBe("follower");
 
     /** One prophet, one belief — spent from the seat, answered on the spot. */
     const drawOne = (): void => {
@@ -3398,7 +3398,7 @@ describe("the prophet’s four verbs", () => {
     drawOne();
     expect(religion.follower.length).toBe(3);
     expect(religion.enhancer.length).toBe(0);
-    expect(nextBeliefPool(religion)).toBe("enhancer");
+    expect(nextBeliefPool(g.state, religion)).toBe("enhancer");
 
     // Then two enhancers, by the same verb.
     drawOne();
@@ -3407,7 +3407,7 @@ describe("the prophet’s four verbs", () => {
     expect(new Set([...religion.follower, ...religion.enhancer]).size).toBe(5);
 
     // And the ladder is finished: the sixth prophet is refused by the cap.
-    expect(nextBeliefPool(religion)).toBeNull();
+    expect(nextBeliefPool(g.state, religion)).toBeNull();
     const seat = g.state.cities.find((city) => city.ownerId === 0)!;
     const spare = prophetAt(g.state, 0, seat.col, seat.row);
     expect(gainBeliefError(g.state, 0, spare.id)).toBe(
@@ -3484,7 +3484,7 @@ describe("the prophet’s four verbs", () => {
     religion.follower = religionBeliefPool(religion, "follower").slice(0, 3);
     bumpRevision(g.state);
     expect(religion.follower.length).toBe(3);
-    expect(nextBeliefPool(religion)).toBe("enhancer");
+    expect(nextBeliefPool(g.state, religion)).toBe("enhancer");
 
     const seat = g.state.cities.find((city) => city.ownerId === 0)!;
     const piece = prophetAt(g.state, 0, seat.col, seat.row);

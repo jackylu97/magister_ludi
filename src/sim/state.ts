@@ -3474,8 +3474,23 @@ import {
  *
  * **A v218 save is refused and does not replay.** These seats' Doctrine bags change,
  * so their draws move. The branch migrates nothing, for the reason given under v119.
+ *
+ * v220 (branch `decks`; batch DT15, `docs/plans/doctrines-build-triage.md`):
+ * **the religion's limits.** No field joins the state. The rules that change:
+ *
+ *   · The Seven Councils, The House of Worship and The Apostolic Camera are dealt to a
+ *     Devotion seat that holds a religion;
+ *   · `pantheonSlots` may name a `pool`, and `nextBeliefPool` reads the law of whoever
+ *     holds the religion's holy city through `poolSlotsFor`;
+ *   · a faith house may stand in a town a scoped `unlocksBuilding` row admits, as well
+ *     as in a town whose beliefs open it;
+ *   · the behaviour rule `followerBeliefsPayAbroad` adds lines at step 18 of
+ *     `docs/yields.md`.
+ *
+ * **A v219 save is refused and does not replay.** These seats' Doctrine bags change,
+ * so their draws move. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 219;
+export const SCHEMA_VERSION = 220;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

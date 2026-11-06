@@ -1635,6 +1635,12 @@ export interface AiConfig {
      */
     devotion: {
       /**
+       * **The Seven Councils** (`pantheonSlots` with a `pool`): the share of the
+       * best belief left in that house that one slot is worth. The rest is the
+       * prophet the seat must still buy, and the rungs it must fill first.
+       */
+      beliefSlotShare: number;
+      /**
        * **Canossa** (`faithfulPeace`): how many points of strength one met rival
        * barred from war is worth, at the military weight and the threat. The
        * rivals barred are read off the board, and a seat with none gains nothing.

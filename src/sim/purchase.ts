@@ -125,6 +125,7 @@ import {
   cardActionRuleAt,
   cardPurchaseRiders,
   cardRulePercent,
+  cardScopeOpensBuilding,
   cardUnlocksUnit,
   cityBeliefUnlocksBuilding,
   cityScopeWords,
@@ -1366,10 +1367,13 @@ function clausesBeforeTheBank(
     //
     // Asked of `BuildingDef.followingOnly` and answered by
     // `cityBeliefUnlocksBuilding`, so nothing here names a building or a faith.
+    // A scoped row may open it too (batch DT15, The House of Worship in a devout
+    // town), whatever beliefs the town's religion holds.
     if (
       bought.kind === 'building' &&
       buildingDef(bought.id).followingOnly === true &&
-      !cityBeliefUnlocksBuilding(state, city, bought.id)
+      !cityBeliefUnlocksBuilding(state, city, bought.id) &&
+      !cardScopeOpensBuilding(state, playerId, bought.id, city)
     ) {
       return `${name} may be raised only in a city that keeps your faith`;
     }

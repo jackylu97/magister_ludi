@@ -2283,7 +2283,7 @@ describe("determinism", () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(219);
+    expect(SCHEMA_VERSION).toBe(220);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -7774,22 +7774,27 @@ describe("a charter carries the description of the building it opens", () => {
     ),
   ];
 
-  it("finds the fourteen rows that open one", () => {
+  it("finds the eighteen rows that open one", () => {
     // Eleven charters, the Gilded Court's doctrine, and — since D1b — the
     // Magisterial deck's Senate Charter, which opens the Assembly Hall. A
     // fourteenth joins this list by being a JSON row, and inherits every claim
     // below. Scientific batch S8's The Forward Plans is that fourteenth: it
-    // opens the University early, in a town whose Library is old.
-    expect(OPENERS.length).toBe(14);
+    // opens the University early, in a town whose Library is old. Batch DT15's
+    // The House of Worship adds four, one for each faith house.
+    expect(OPENERS.length).toBe(18);
   });
 
   it("says every live clause the building’s own describer says", () => {
     for (const { card, building } of OPENERS) {
-      const clause = describeCard(card as never)
+      const clauses = describeCard(card as never)
         .map((entry) => entry.text)
         // "unlocks the Assay House" — or "unlocks The Vizier's Hall", for a row
         // whose own name carries the article (batch S2, `theBuilding`).
-        .find((text) => text.includes("unlocks "));
+        .filter((text) => text.includes("unlocks "));
+      // A card may open several rows, one clause each (The House of Worship). A
+      // retired row prints no mark, and that card opens one row, so it takes the first.
+      const clause =
+        clauses.find((text) => text.includes(`[[building:${building}|`)) ?? clauses[0];
       expect(clause, card).toBeDefined();
       // The building is **named as a keyword**, so a reader can open its page
       // from the card and the Compendium resolves the mark to a real entry. A

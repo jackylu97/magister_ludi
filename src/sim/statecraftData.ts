@@ -76,7 +76,7 @@ import type { ImprovementId } from './improvementData';
 import type { LeaderAbilityId, LeaderId } from './leaderData';
 import type { ModifierStage } from './yields/stages';
 import type { ProjectId, ProjectPayout } from './projectData';
-import type { BeliefId, ConsecrationId, RiteId } from './religionData';
+import type { BeliefId, ConsecrationId, ReligionBeliefPool, RiteId } from './religionData';
 // Type-only, so no load-time edge: a card that prices an act of the clergy
 // names the act in the words `chargeCostOf` reads (Devotion batch DV7).
 import type { ChargeVerbName } from './religion';
@@ -5179,6 +5179,14 @@ export type BehaviorRuleId =
    */
   | 'upgradeStrength'
   /**
+   * **This empire's follower beliefs also pay it in each foreign town that follows
+   * its religion** (batch DT15, The Apostolic Camera; S18 and reading 36 of
+   * `docs/plans/doctrines-build-triage.md`). Read in `explainCardEmpireYields`, which
+   * adds the lines of `explainFollowerLinesAbroad` at step 18 of `docs/yields.md`.
+   * The town's owner keeps its own pay, so this reads the lines and moves nothing.
+   */
+  | 'followerBeliefsPayAbroad'
+  /**
    * **Each blow this empire's pieces land on a town raising the Magnum Opus
    * removes a share of the production banked toward it** (Scientific batch
    * S9, The Breaching Batteries; the triage's reading 52). The share is the
@@ -9485,6 +9493,14 @@ export interface CardUnlocksUnitEffect {
 export interface CardPantheonSlotsEffect {
   kind: 'pantheonSlots';
   amount: number;
+  /**
+   * **Room in the religion's own house instead of the pantheon** (batch DT15, The
+   * Seven Councils). A row with a `pool` opens no god: `cardPantheonSlots` skips it,
+   * and `cardBeliefPoolSlots` adds it to the slots of that pool. `poolSlotsFor`
+   * (`religion.ts`) reads the law of whoever holds the religion's holy city, so a
+   * seat that holds two religions gains the room in each.
+   */
+  pool?: ReligionBeliefPool;
 }
 
 /**

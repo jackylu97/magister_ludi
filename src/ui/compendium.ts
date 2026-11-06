@@ -117,6 +117,7 @@ import {
   type RefKind,
   SLOT_WORDS,
   anyCardDef,
+  cityScopeWords,
   describeBuildingRow,
   describeCard,
   describeFamilyVerb,
@@ -669,6 +670,30 @@ const OPENING_CARD_CLASSES: readonly {
 ];
 
 /**
+ * Is this row a second way into a faith house (batch DT15, The House of Worship)? A
+ * follower belief is the house's own door, and the line and the note below are about
+ * that door. A scoped row on a `followingOnly` building opens it in some towns as
+ * well, so `secondDoorWords` adds it to the line instead.
+ */
+function isSecondDoor(effect: { building: BuildingId; scope?: CityScope }): boolean {
+  return effect.scope !== undefined && buildingDef(effect.building).followingOnly === true;
+}
+
+/** The sentence that names a house's second door, or nothing for a row with none. */
+function secondDoorWords(id: string): string {
+  for (const card of DOCTRINE_IDS) {
+    const def = doctrineDef(card);
+    if (def.retired === true) continue;
+    for (const effect of def.effects) {
+      if (effect.kind !== 'unlocksBuilding' || effect.building !== id || !isSecondDoor(effect)) continue;
+      const towns = cityScopeWords(effect.scope!).replace(/^every /, 'any ');
+      return ` The Doctrine ${ref('doctrine', card, def.name)} also opens it in ${towns}.`;
+    }
+  }
+  return '';
+}
+
+/**
  * The card that opens a row — its ref, the noun it is said with and the id of
  * the page the ref points at — or `null`.
  */
@@ -684,7 +709,10 @@ function cardThatOpens(
       if ((def as { retired?: boolean }).retired === true) continue;
       const opens = def.effects.some(
         (effect) =>
-          (kind === 'building' && effect.kind === 'unlocksBuilding' && effect.building === id) ||
+          (kind === 'building' &&
+            effect.kind === 'unlocksBuilding' &&
+            effect.building === id &&
+            !isSecondDoor(effect)) ||
           (kind === 'unit' && effect.kind === 'unlocksUnit' && effect.unit === id),
       );
       if (!opens) continue;
@@ -758,7 +786,7 @@ function openedByCard(kind: 'unit' | 'building', id: string, gate: TechId | null
   return {
     text:
       gate === null
-        ? `Unlocked by ${by}, not by any technology.`
+        ? `Unlocked by ${by}, not by any technology.${secondDoorWords(id)}`
         : `Unlocked by ${by}, or by researching ${techRef(gate)}.`,
   };
 }

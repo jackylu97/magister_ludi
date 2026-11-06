@@ -257,6 +257,7 @@ governments, so Tier IV opened at 29.
 | The Serapeum | Devotion | I | tier 4 | Each of your gods gives twice its effects. |
 | The Paean | Devotion | I | tier 4 | Your military units gain +1 strength for every god and belief you hold. |
 | The Capitulary of Herstal | Devotion | II | tier 10 | Rites cost half as much. |
+| The Seven Councils | Devotion | II | tier 10 | Your religion may hold one more follower belief and one more enhancer belief. |
 | The Patrimony of Peter | Devotion | II | tier 10 | Your holy city's citizens demand no happiness. |
 | The Ribats | Devotion | II | tier 10 | Military units created in a town following your religion gain +3 strength for good. Conquering a town converts it to your religion. |
 | The Imarets | Devotion | III | tier 18 | Your devout towns grow 25% faster. |
@@ -264,6 +265,8 @@ governments, so Tier IV opened at 29.
 | The Canons of the Holy Sepulchre | Devotion | III | tier 18 | Towns with a holy site buy with faith at 30% less. |
 | The Martyr's Crown | Devotion | III | tier 18 | Each of your units that dies in battle presses your religion on every town within three hexes. |
 | The Saint Peter's Indulgence | Devotion | IV | tier 26 | +1% production toward the Magnum Opus for every 150 faith you have spent this game. |
+| The House of Worship | Devotion | IV | tier 26 | Your devout towns may buy the Mosque, the Wat, the Gurdwara and the Dar-e Mehr, whatever beliefs your religion holds. |
+| The Apostolic Camera | Devotion | IV | tier 26 | Your follower beliefs also pay you in every foreign town that follows your religion. |
 | The Two Sanctuaries | Devotion | IV | tier 26 | Hexes with a holy site have double yields, applied after every other change to the hex. |
 
 ## Decks

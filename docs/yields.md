@@ -264,7 +264,7 @@ stage over their fold, then the banks.
 | 15 | **The luxuries' empire signatures** — `empireResourceYields` | the empire's holdings | additive | — |
 | 16 | **The caravans abroad** — `senderRouteYields` | routes this seat sent to another empire; the sea premium rides this fold too | additive | — |
 | 17 | **The treasury's ledger** — `explainEmpireGold` | connections, maintenance, the levy's surcharge, the charter's rebate, the treaties; every line declares itself **income** or **bill** (`TradeGoldKind`) | additive | — |
-| 18 | **The cards' empire payouts** — `explainEmpireCardYields` | the empire-scale card lines; **last**, because a rate conversion reads the rates 15–17 produced | additive | — |
+| 18 | **The cards' empire payouts** — `explainEmpireCardYields` | the empire-scale card lines; **last**, because a rate conversion reads the rates 15–17 produced. Under The Apostolic Camera's rule (`followerBeliefsPayAbroad`), also what each follower belief's town lines pay in each foreign town that follows a religion this seat holds (`explainFollowerLinesAbroad`), one line for each belief and town, in the four voices an empire banks | additive | — |
 | 19 | **The empire stage** — `stageEmpireFold`, one reconciliation line a voice | the additive fold of 15–18 **minus the bills** | multiplicative | empire |
 | 20 | **The banks** — `foldEmpireLines`, in `collectYields` | the fold of 15–19, plus every town's step-14 total | — | — |
 
@@ -451,11 +451,14 @@ Every other `CardEffect` kind moves no voice at all: it is a rule, a stat, a
 meter, a stamp, an unlock or an offer. Two rules stop a voice without paying
 one, both read by the second gate of step 13: `opusSiege` (Circumvallation)
 and `opusInterdict` (The Interdict, Devotion batch DV7).
-One rule pays a voice, and it pays at step 6: `homeRoutesPayOrigin` (The
-Return Leg, Commerce batch T3) copies a home route's pay to the town it left
-(`cityReturnLegYields`). The `rule` kind stays in neither list, because what
-a rule pays is decided by its id, and these three ids are pinned by the sync
-test. `collectionPays` (Scutage) pays nothing itself: it adds copies of `pays`
+Two rules pay a voice. `homeRoutesPayOrigin` (The Return Leg, Commerce batch
+T3) pays a voice, and it pays at step 6: it copies a home route's pay to the
+town it left (`cityReturnLegYields`). `followerBeliefsPayAbroad` (The Apostolic
+Camera, batch DT15) pays at step 18: it reads the town lines of a seat's follower
+beliefs in the foreign towns that follow, and the town's owner keeps its own pay.
+The `rule` kind stays in neither list, because what a rule pays is decided by
+its id, and these ids are pinned by the sync test. `collectionPays` (Scutage)
+pays nothing itself: it adds copies of `pays`
 rows to the law, and each copy lands through the register above, as "Conventions a
 reader would not guess" says. The sync test pins that id too.
 

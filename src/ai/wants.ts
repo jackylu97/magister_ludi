@@ -1656,9 +1656,10 @@ const FOUNDING_HANDS = 2;
  * whole-piece act (`gainBelief`), `null` when the ladder has nothing left to
  * deal this empire.
  *
- * The pool is the simulation's own answer (`nextBeliefPool` — followers to three,
- * then enhancers to two, enhancers behind Theology), the bag is the one it would
- * actually draw from, and a belief is priced by `explainEffects`. The stated
+ * The pool is the simulation's own answer (`nextBeliefPool`: followers to three,
+ * then enhancers to two, plus any room The Seven Councils opens, with enhancers behind
+ * Theology), the bag is the one it would actually draw from, and a belief is priced
+ * by `explainEffects`. The stated
  * ceiling is `ladderPlan`'s, said once more: the best of the bag rather than the
  * expected best of a hand.
  */
@@ -1669,7 +1670,7 @@ function explainNextRung(
 ): { faith: string; worth: Appraisal } | null {
   const religion = foundedReligionOf(state, player.id);
   if (religion === null) return null;
-  const pool = nextBeliefPool(religion);
+  const pool = nextBeliefPool(state, religion);
   if (pool === null) return null;
   const bag = religionBeliefPool(religion, pool);
   let best: Appraisal | null = null;

@@ -2775,6 +2775,46 @@
         }
       ]
     },
+    "theSevenCouncils": {
+      "name": "The Seven Councils",
+      "decks": ["devotion"],
+      "band": 2,
+      "line": "none",
+      "needsReligion": true,
+      "flavor": "Each council settled one question and left the next one open.",
+      "text": "Your religion may hold one more follower belief and one more enhancer belief.",
+      "effects": [
+        {"kind": "pantheonSlots", "amount": 1, "pool": "follower"},
+        {"kind": "pantheonSlots", "amount": 1, "pool": "enhancer"}
+      ]
+    },
+    "theHouseOfWorship": {
+      "name": "The House of Worship",
+      "decks": ["devotion"],
+      "band": 4,
+      "line": "none",
+      "needsReligion": true,
+      "flavor": "The emperor seats them all in one hall and asks them to begin.",
+      "text": "Your devout towns may buy the Mosque, the Wat, the Gurdwara and the Dar-e Mehr, whatever beliefs your religion holds.",
+      "effects": [
+        {"kind": "unlocksBuilding", "building": "mosque", "scope": {"test": "ownersFaith", "keeps": true}},
+        {"kind": "unlocksBuilding", "building": "wat", "scope": {"test": "ownersFaith", "keeps": true}},
+        {"kind": "unlocksBuilding", "building": "gurdwara", "scope": {"test": "ownersFaith", "keeps": true}},
+        {"kind": "unlocksBuilding", "building": "darEMehr", "scope": {"test": "ownersFaith", "keeps": true}}
+      ]
+    },
+    "theApostolicCamera": {
+      "name": "The Apostolic Camera",
+      "decks": ["devotion"],
+      "band": 4,
+      "line": "none",
+      "needsReligion": true,
+      "flavor": "The dues of every parish know the way to Rome.",
+      "text": "Your follower beliefs also pay you in every foreign town that follows your religion.",
+      "effects": [
+        {"kind": "rule", "rule": "followerBeliefsPayAbroad"}
+      ]
+    },
     "theTwoSanctuaries": {
       "name": "The Two Sanctuaries",
       "decks": ["devotion"],

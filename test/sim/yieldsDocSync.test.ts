@@ -245,6 +245,34 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
   });
 
   /**
+   * **Step 18 has a second half** (batch DT15, The Apostolic Camera): what a seat's
+   * follower beliefs pay in foreign towns. This checks that the doc's step 18 names
+   * the rule and the list, that the empire's card fold reads that list, and that the
+   * register's prose names the rule with its step.
+   */
+  it('reads The Apostolic Camera’s lines inside step 18', () => {
+    const row = docRows().find((cells) => cells[1] === '18');
+    expect(row, 'the doc has no step 18').toBeDefined();
+    expect(row![3]).toContain('`followerBeliefsPayAbroad`');
+    expect(row![3]).toContain('`explainFollowerLinesAbroad`');
+    const register = section('## The register — every kind that pays a yield');
+    expect(register).toContain('`followerBeliefsPayAbroad`');
+    expect(register).toMatch(/pays at step 18/);
+    const evaluator = Object.values(
+      import.meta.glob('../../src/sim/statecraft/evaluator.ts', {
+        eager: true,
+        query: '?raw',
+        import: 'default',
+      }),
+    )[0] as string;
+    const start = evaluator.indexOf('export function explainCardEmpireYields(');
+    const end = evaluator.indexOf('\n}\n', start);
+    const fold = evaluator.slice(start, end);
+    expect(fold).toContain("effect.rule !== 'followerBeliefsPayAbroad'");
+    expect(fold).toContain('explainFollowerLinesAbroad(state, playerId)');
+  });
+
+  /**
    * The steps a kind's register row may name — the same twenty.
    */
   it('gives every register row a step that exists', () => {

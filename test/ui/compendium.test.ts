@@ -1585,6 +1585,17 @@ describe('what opens a thing', () => {
     }
   });
 
+  it('names a faith house’s belief first, and The House of Worship as its second door (batch DT15)', () => {
+    const line = openingOf(entryOf(buildingEntryId('mosque')));
+    expect(line).toMatch(/^Unlocked by the belief \[\[[a-z]+:minarets\|/);
+    expect(line).toContain('not by any technology.');
+    expect(line).toContain('[[doctrine:theHouseOfWorship|');
+    expect(stripRefs(line)).toContain('The Doctrine The House of Worship also opens it in any devout city.');
+    // The note about holding a Doctrine is about a row a Doctrine alone opens.
+    const texts = JSON.stringify(entryOf(buildingEntryId('mosque')));
+    expect(texts).not.toContain('once you hold that Doctrine');
+  });
+
   it('names the figure on every unique, and calls a bench a bench', () => {
     // Every leader's own two rows credit the leader by keyword, in the sentence
     // `test/sim/leaders.test.ts` reads ("Only one leader may ever raise this");

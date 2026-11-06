@@ -226,9 +226,10 @@ import {
   cityRites,
   holySites,
   plantingCost,
+  religionBeliefPool,
   riteCostFor,
 } from '../sim/religion';
-import { LIVE_RITE_IDS, beliefDef, isBeliefId, riteDef } from '../sim/religionData';
+import { LIVE_RITE_IDS, type ReligionBeliefPool, beliefDef, isBeliefId, riteDef } from '../sim/religionData';
 // Devotion batch DV9: a faith purchase's price and gate, asked as the want book
 // asks them, so the bot and the bank agree about what faith may buy.
 import { explainPurchaseCost, purchaseGate } from '../sim/purchase';
@@ -237,6 +238,7 @@ import {
   type PlayerStatecraft,
   type EmpireRates,
   buildingMatchesYieldPercent,
+  cityBeliefUnlocksBuilding,
   cityScopeAdmits,
   commissionFulfilledTurn,
   countOf,
@@ -291,8 +293,10 @@ import {
   anyCardDef,
   cardLevyAftermaths,
   cardLevyReturnDelay,
+  explainFollowerLinesAbroad,
   heldReligions,
   isRaisingWonderOrOpus,
+  religionFounder,
   noMetEmpireAhead,
   offTheChairRows,
   techPriceRowReaches,
@@ -3632,7 +3636,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // said about one named row. The row itself is priced by
       // `explainBuildingRow` + the yields the queue would read, which is the
       // build arm's own reading of a shelf and not a second one.
-      return scoreUnlockedBuilding(effect.building, ctx);
+      return scoreUnlockedBuilding(effect.building, ctx, effect.scope);
     }
     case 'unlocksUnit': {
       // **A line of soldiers the bank may call**, priced as one of them: the
@@ -3722,6 +3726,9 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // cannot be taken here without the cycle `moduleCycles.test.ts` exists to
       // catch, and a slot meets the stand-in **per slot**. Written down rather
       // than bent: closing it means moving the belief appraisal into a leaf.
+      // A row with a pool (batch DT15, The Seven Councils) is room for a belief, and
+      // this file can read a belief's effects, so it needs no stand-in.
+      if (effect.pool !== undefined) return beliefSlotWorth(effect.amount, effect.pool, ctx);
       return effect.amount * ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
     case 'pressure':
     case 'pressureRule':
@@ -5182,8 +5189,11 @@ function unreadTarget(_target: never, ctx: ValueContext): number {
  * deliberately **not** `foldCity`' hypothetical delta — that wants a town in
  * hand and this is asked of a card in a hand — so the flats on the row are added
  * from the row itself, which is what `explainBuildingRow`'s caller does.
+ *
+ * `scope` matters for a faith house (batch DT15, The House of Worship): see
+ * `faithHouseTowns`. Every other scoped row reads as it always did.
  */
-function scoreUnlockedBuilding(id: BuildingId, ctx: ValueContext): number {
+function scoreUnlockedBuilding(id: BuildingId, ctx: ValueContext, scope?: CityScope): number {
   const def = buildingDef(id);
   const bag: YieldBag = {};
   for (const voice of VOICES) bag[voice] = def[voice] ?? 0;
@@ -5197,8 +5207,49 @@ function scoreUnlockedBuilding(id: BuildingId, ctx: ValueContext): number {
   // copy, not one a town (Scientific batch S13: the Mouseion, the Bimaristan
   // and the Tophane a charter opens). No `unlocksBuilding` row names such a
   // building, so no card's price moves.
-  const copies = def.oncePerEmpire === true ? Math.min(1, ctx.cities) : ctx.cities;
+  const copies =
+    def.followingOnly === true && scope !== undefined
+      ? faithHouseTowns(id, scope, ctx)
+      : def.oncePerEmpire === true
+        ? Math.min(1, ctx.cities)
+        : ctx.cities;
   return each * copies * delayDiscount(turns, ctx);
+}
+
+/**
+ * The towns where a scoped row would open a faith house that is shut today: towns the
+ * scope admits, that do not stand on a belief opening it already, and that have not
+ * raised one. So The House of Worship reads the towns it changes, and a seat that holds
+ * Minarets gains nothing from its Mosque line.
+ */
+function faithHouseTowns(id: BuildingId, scope: CityScope, ctx: ValueContext): number {
+  let towns = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    if (!cityScopeAdmits(ctx.state, city, scope, ctx.playerId)) continue;
+    if (cityBeliefUnlocksBuilding(ctx.state, city, id) || townHoldsBuilding(ctx.state, city, id)) continue;
+    towns += 1;
+  }
+  return towns;
+}
+
+/**
+ * **The Seven Councils**: the best belief the seat could still add to that house, read
+ * as `wants.ts` reads the next rung, at `score.devotion.beliefSlotShare`. It is a share
+ * because a slot is not a belief: the seat must still buy a prophet and fill the rungs
+ * before it.
+ *
+ * Only the founder may teach a religion (`gainBeliefError`), and the room follows the
+ * holy city (`poolSlotsFor`). So a seat whose founded religion has lost its holy city,
+ * and a seat that only captured one, gain nothing.
+ */
+function beliefSlotWorth(amount: number, pool: ReligionBeliefPool, ctx: ValueContext): number {
+  const religion = foundedReligion(ctx.state, ctx.playerId);
+  if (religion === undefined || religionFounder(ctx.state, religion) !== ctx.playerId) return 0;
+  let best = 0;
+  for (const id of religionBeliefPool(religion, pool)) {
+    best = Math.max(best, explainEffects(beliefDef(id).effects ?? [], ctx).total);
+  }
+  return amount * best * Math.max(0, ctx.ai.score.devotion.beliefSlotShare);
 }
 
 /**
@@ -10008,9 +10059,25 @@ function devotionRuleWorth(
       return turningWorth(ctx);
     case 'twoRites':
       return secondRiteWorth(ctx);
+    case 'followerBeliefsPayAbroad':
+      return followerLinesAbroadWorth(ctx);
     default:
       return null;
   }
+}
+
+/**
+ * **The Apostolic Camera** (batch DT15): the lines it would add today, from the same
+ * list the empire's fold reads, so the price and the pay cannot disagree. The towns are
+ * those the founder's share counts as `followingForeign`. A seat with no foreign
+ * followers yet reads 0, and it may pass.
+ */
+function followerLinesAbroadWorth(ctx: ValueContext): number {
+  const bag: YieldBag = {};
+  for (const line of explainFollowerLinesAbroad(ctx.state, ctx.playerId)) {
+    for (const voice of VOICES) bag[voice] = (bag[voice] ?? 0) + line[voice];
+  }
+  return valueOfYields(bag, ctx);
 }
 
 /**

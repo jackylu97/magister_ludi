@@ -1298,6 +1298,40 @@
     "text": "+1% production toward The Magnum Opus per 150 faith you have spent"
    }
   ],
+  "theSevenCouncils": [
+   {
+    "raw": "your religion may hold one more follower belief",
+    "text": "your religion may hold one more follower belief"
+   },
+   {
+    "raw": "your religion may hold one more enhancer belief",
+    "text": "your religion may hold one more enhancer belief"
+   }
+  ],
+  "theHouseOfWorship": [
+   {
+    "raw": "unlocks the [[building:mosque|Mosque]] in any devout city — +2 production, +3 faith; +1 authority capacity; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it",
+    "text": "unlocks the Mosque in any devout city — +2 production, +3 faith; +1 authority capacity; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it"
+   },
+   {
+    "raw": "unlocks the [[building:wat|Wat]] in any devout city — +1 faith per 2 citizens in this city; +3 happiness; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it",
+    "text": "unlocks the Wat in any devout city — +1 faith per 2 citizens in this city; +3 happiness; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it"
+   },
+   {
+    "raw": "unlocks the [[building:gurdwara|Gurdwara]] in any devout city — +3 food, +2 science, +3 faith; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it",
+    "text": "unlocks the Gurdwara in any devout city — +3 food, +2 science, +3 faith; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it"
+   },
+   {
+    "raw": "unlocks the [[building:darEMehr|Dar-e Mehr]] in any devout city — +2 faith; +10% faith in every city with a [[building:darEMehr|Dar-e Mehr]]; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it",
+    "text": "unlocks the Dar-e Mehr in any devout city — +2 faith; +10% faith in every city with a Dar-e Mehr; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it"
+   }
+  ],
+  "theApostolicCamera": [
+   {
+    "raw": "your follower beliefs also pay you in every foreign city that follows your religion",
+    "text": "your follower beliefs also pay you in every foreign city that follows your religion"
+   }
+  ],
   "theTwoSanctuaries": [
    {
     "raw": "the yields of every hex with a [[improvement:holySite|Holy Site]] are doubled",

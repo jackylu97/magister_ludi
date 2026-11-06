@@ -13,7 +13,7 @@
  * sheet's own reason (`test/ui/religionScreen.test.ts` reads this file too).
  */
 
-import { explainPressure, foundReligionError, holySites, maxReligions, poolHeld, poolSlots, type PressureLine } from '../sim/religion';
+import { explainPressure, foundReligionError, holySites, maxReligions, poolHeld, poolSlotsFor, type PressureLine } from '../sim/religion';
 import type { PurchasePrice } from '../sim/purchase';
 import {
   type BeliefAxis,
@@ -189,7 +189,7 @@ export interface ReligionReading {
  * What the pane says, derived and never stored.
  *
  * Every figure on it is somebody else's: the cap is `maxReligions`, the houses
- * are `poolSlots`/`poolHeld`, the trickle is `explainCardEmpireYields` filtered to
+ * are `poolSlotsFor`/`poolHeld`, the trickle is `explainCardEmpireYields` filtered to
  * the lines carrying this religion's founder's share, and each town's ledger is
  * `explainPressure` — the same list the tide folds. Nothing here adds up a
  * number the simulation has not already added up, which is hard rule 5 read for
@@ -208,7 +208,7 @@ export function religionReading(state: GameState, seat: number): ReligionReading
 
   if (mine !== null) {
     for (const pool of RELIGION_BELIEF_POOLS) {
-      const slots = poolSlots(pool);
+      const slots = poolSlotsFor(state, mine, pool);
       const held = [...(pool === 'follower' ? mine.follower : mine.enhancer)];
       houses.push({
         pool,

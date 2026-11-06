@@ -240,9 +240,13 @@ describe('the charters as a family', () => {
     // opened by a **follower belief** each, for whoever owns a following town.
     // Walked here rather than excused by name, so a fifth house written with
     // the marker and no belief fails the build exactly as a charter would.
+    // Batch DT15: The House of Worship is a second way into the four houses, in a
+    // devout town. A scoped row on a `followingOnly` building is that second door,
+    // so the belief is still the one card that opens the house.
     const byDoctrine = DOCTRINE_IDS.flatMap((id) =>
       doctrineDef(id)
         .effects.filter((effect) => effect.kind === 'unlocksBuilding')
+        .filter((effect) => effect.scope === undefined || buildingDef(effect.building).followingOnly !== true)
         .map((effect) => effect.building),
     );
     const byBelief = FOLLOWER_BELIEF_IDS.flatMap((id) =>

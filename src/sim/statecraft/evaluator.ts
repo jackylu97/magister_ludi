@@ -99,6 +99,7 @@ import type { ModifierStage } from '../yields/stages';
 import {
   FOLLOWER_BELIEF_IDS,
   RELIGION,
+  type ReligionBeliefPool,
   beliefDef,
   consecrationDef,
   isBeliefId,
@@ -4832,6 +4833,75 @@ export function explainCardEmpireYields(
   // empire line having no town to be scoped to.
   for (const line of deckModifierLines(state, playerId, list)) list.push(line);
 
+  // **The Apostolic Camera** (batch DT15). After the engines, because they read the
+  // Orders' lines and this is a Doctrine's. The line is filed under the row that
+  // holds the rule, so the Ledger shows it under that card. A flag rule holds once,
+  // so the walk stops at the first row.
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'rule')) {
+    if (effect.rule !== 'followerBeliefsPayAbroad') continue;
+    for (const line of explainFollowerLinesAbroad(state, playerId)) {
+      list.push({ ...line, card, source: label(source, line.source) });
+    }
+    break;
+  }
+
+  return list;
+}
+
+/**
+ * The voices an empire line can bank. `collectYields` has no empire basket for food
+ * or production, so a foreign town's food or hammers could never reach the holder.
+ */
+const VOICES_AN_EMPIRE_BANKS: readonly CityYieldKey[] = ['gold', 'science', 'culture', 'faith'];
+
+/**
+ * **What this seat's follower beliefs pay in foreign towns** (batch DT15, S18, reading
+ * 36): one line for each belief and town, for every town it does not own whose
+ * `cityReligion` is one of `heldReligions`. Each line's `card` is the belief, and its
+ * label is the belief and the town.
+ *
+ * It holds the town lines only, flat and counted, read as `explainCardCityYields`
+ * reads them for the town's owner, so the two cannot disagree about what a belief pays
+ * there. A hex line, a percentage, a meter and a combat line are left out, as The
+ * Doctors of the Church leaves them out.
+ *
+ * Food and production are left off the line, so Holy Water pays its faith alone. See
+ * `VOICES_AN_EMPIRE_BANKS`. A line carrying them would print a yield that never banks.
+ *
+ * It asks for no rule. `explainCardEmpireYields` asks that, and the bots read this list
+ * to price the card before the seat holds it.
+ */
+export function explainFollowerLinesAbroad(state: GameState, playerId: number): CardYieldLine[] {
+  const held = heldReligions(state, playerId);
+  if (held.length === 0) return [];
+  const list: CardYieldLine[] = [];
+  for (const town of state.cities) {
+    if (town.ownerId === playerId) continue;
+    const kept = cityReligion(town);
+    if (kept === null || !held.some((religion) => religion.id === kept)) continue;
+    const lines: CardYieldLine[] = [];
+    for (const { card, effect } of followerBeliefEffects(state, town)) {
+      if (effect.kind !== 'pays' || effect.where !== 'city' || effect.payee !== undefined) continue;
+      const paid: Partial<Record<CityYieldKey, number>> = {};
+      if (basisOf(effect) === 'flat') {
+        if (!cityScopeAdmits(state, town, effect.scope)) continue;
+        for (const key of VOICES) paid[key] = effect[key] ?? 0;
+      } else if (effect.basis === 'count' && paysAVoice(effect)) {
+        if (!cityScopeAdmits(state, town, effect.scope, town.ownerId)) continue;
+        const counted = countOf(state, town.ownerId, card, effect, town);
+        paid[effect.to as CityYieldKey] = (effect.amount ?? 0) * helpings(counted, effect.per, effect.max);
+      } else {
+        continue;
+      }
+      // One line for a belief, even if it has two rows.
+      let line = lines.find((entry) => entry.card === card);
+      const fresh = line === undefined;
+      line ??= emptyLine(card, `${anyCardDef(card).name} \u00b7 ${town.name}`);
+      for (const key of VOICES_AN_EMPIRE_BANKS) line[key] += paid[key] ?? 0;
+      if (fresh && paysSomething(line)) lines.push(line);
+    }
+    list.push(...lines);
+  }
   return list;
 }
 
@@ -12623,6 +12693,28 @@ export function cityBeliefUnlocksBuilding(
 }
 
 /**
+ * **Does a scoped row of this empire's law open this building in this town?** (batch
+ * DT15, The House of Worship.) `purchaseError` asks it beside
+ * `cityBeliefUnlocksBuilding` for a `followingOnly` row, so a devout town may buy a
+ * faith house whatever beliefs its religion holds.
+ *
+ * Not `cardUnlocksBuilding`, which is the empire's question: it would also answer yes
+ * because another of the seat's towns follows a belief, and the rule would stop
+ * meaning anything. A row with no scope does not count here, because it names no
+ * town, and the congregation rule is a rule about towns.
+ */
+export function cardScopeOpensBuilding(
+  state: GameState,
+  playerId: number,
+  building: BuildingId,
+  city: City,
+): boolean {
+  return cardUnlockScopes(state, playerId, building).some((scope) =>
+    cityScopeAdmits(state, city, scope, playerId),
+  );
+}
+
+/**
  * Does one of this empire's cards hand over this **verb**? The Muses' Call's
  * one clause.
  *
@@ -12698,7 +12790,26 @@ export function cardUnlocksUnit(state: GameState, playerId: number, unit: UnitTy
 export function cardPantheonSlots(state: GameState, playerId: number): number {
   let total = 0;
   for (const { effect } of effectsOfKind(state, playerId, 'pantheonSlots')) {
+    // A row with a pool opens room in the religion's house, not a god's place.
+    if (effect.pool !== undefined) continue;
     total += effect.amount;
+  }
+  return total;
+}
+
+/**
+ * **How many more beliefs of one pool this empire's law lets a religion hold** (batch
+ * DT15, The Seven Councils). `poolSlotsFor` (`religion.ts`) adds this to the data's
+ * figure, for the empire that holds the religion's holy city.
+ */
+export function cardBeliefPoolSlots(
+  state: GameState,
+  playerId: number,
+  pool: ReligionBeliefPool,
+): number {
+  let total = 0;
+  for (const { effect } of effectsOfKind(state, playerId, 'pantheonSlots')) {
+    if (effect.pool === pool) total += effect.amount;
   }
   return total;
 }

@@ -266,6 +266,7 @@ describe('the sheet', () => {
   it('carries the score.devotion group, and a bounds row for every knob in it', () => {
     expect(Object.keys(DEVOTION).sort()).toEqual(
       [
+        'beliefSlotShare',
         'faithSpentShare',
         'faithUnitShare',
         'faithfulPeace',

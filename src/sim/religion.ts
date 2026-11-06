@@ -134,6 +134,7 @@ import {
   type WindfallOccasionFacts,
   cardActionRule,
   cardAmplifier,
+  cardBeliefPoolSlots,
   cardPantheonSlots,
   cardPeriodicOffers,
   cardPressureRule,
@@ -2697,6 +2698,20 @@ export function poolSlots(pool: ReligionBeliefPool): number {
   return Math.max(0, Math.floor(pool === 'follower' ? pools.followerSlots : pools.enhancerSlots));
 }
 
+/**
+ * How many beliefs of one pool **this religion** may hold: the data's figure, and
+ * the room in the law of whoever holds its holy city (batch DT15, The Seven Councils).
+ * So a seat that holds two religions gains the room in each, and a religion whose holy
+ * city falls keeps what it holds and has the new holder's room from then on.
+ */
+export function poolSlotsFor(
+  state: GameState,
+  religion: Religion,
+  pool: ReligionBeliefPool,
+): number {
+  return Math.max(0, poolSlots(pool) + cardBeliefPoolSlots(state, religionFounder(state, religion), pool));
+}
+
 /** How many this religion currently holds. */
 export function poolHeld(religion: Religion, pool: ReligionBeliefPool): number {
   return (pool === 'follower' ? religion.follower : religion.enhancer).length;
@@ -2722,13 +2737,15 @@ export function poolHeld(religion: Religion, pool: ReligionBeliefPool): number {
  * the start (which would strand the Theology gate). Changing the reading means
  * changing this function and the two sentences `gainBeliefError` prints.
  *
- * Deliberately a **pure function of the religion**: the technology gate belongs
- * to the *draft*, not to the ladder, and keeping it out of here is what lets one
- * function answer for the offer, the refusal sentence and the screen alike.
+ * Deliberately a **function of the religion and its limits alone**: the technology
+ * gate belongs to the *draft*, not to the ladder, and keeping it out of here is what
+ * lets one function answer for the offer, the refusal sentence and the screen alike.
+ * The state is here for `poolSlotsFor` (batch DT15). There is still one ladder: a
+ * seat that gains room in the follower house goes back to it before the next enhancer.
  */
-export function nextBeliefPool(religion: Religion): ReligionBeliefPool | null {
-  if (poolHeld(religion, 'follower') < poolSlots('follower')) return 'follower';
-  if (poolHeld(religion, 'enhancer') < poolSlots('enhancer')) return 'enhancer';
+export function nextBeliefPool(state: GameState, religion: Religion): ReligionBeliefPool | null {
+  if (poolHeld(religion, 'follower') < poolSlotsFor(state, religion, 'follower')) return 'follower';
+  if (poolHeld(religion, 'enhancer') < poolSlotsFor(state, religion, 'enhancer')) return 'enhancer';
   return null;
 }
 
@@ -2749,7 +2766,7 @@ function drawableBeliefPool(
   playerId: number,
   religion: Religion,
 ): ReligionBeliefPool | null {
-  const pool = nextBeliefPool(religion);
+  const pool = nextBeliefPool(state, religion);
   if (pool === null) return null;
   if (pool === 'enhancer' && !hasTech(state, playerId, ENHANCER_TECH)) return null;
   if (religionBeliefPool(religion, pool).length === 0) return null;
@@ -3279,7 +3296,7 @@ export function gainBeliefError(
   if (problem !== null) return problem;
   const religion = foundedReligion(state, playerId);
   if (!religion) return 'You have founded no religion to teach';
-  const pool = nextBeliefPool(religion);
+  const pool = nextBeliefPool(state, religion);
   if (pool === null) return `${religion.name} has all the beliefs it will hold`;
   if (pool === 'enhancer' && !hasTech(state, playerId, ENHANCER_TECH)) {
     return `Deepening a religion needs ${techDef(ENHANCER_TECH).name}`;

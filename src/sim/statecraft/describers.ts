@@ -3318,6 +3318,12 @@ function describeEffect(
     }
     case 'pantheonSlots': {
       const slots = effect.amount;
+      // The Seven Councils (batch DT15): room in the religion, not a god's place.
+      if (effect.pool !== undefined) {
+        const more = slots === 1 ? 'one more' : `${slots} more`;
+        out.push({ text: `your religion may hold ${more} ${effect.pool} ${slots === 1 ? 'belief' : 'beliefs'}` });
+        return;
+      }
       out.push({ text: `${signed(slots)} pantheon ${slots === 1 || slots === -1 ? 'slot' : 'slots'}` });
       return;
     }
@@ -7375,6 +7381,8 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   noLuxuryLending: 'you cannot lend luxuries in deals',
   // Canossa (batch DT7): both directions are in the sentence, as on the card.
   faithfulPeace: 'you and an empire whose capital follows your religion cannot declare war on each other',
+  // The Apostolic Camera (batch DT15).
+  followerBeliefsPayAbroad: 'your follower beliefs also pay you in every foreign city that follows your religion',
   // al-Khwārizmī's second half. "Supply science" is the game term for the
   // class (`buildingSupplies`, batch R2d), so the clause says it, marked.
   faithBuysScienceBuildings: `you may buy buildings that ${suppliesWord(false)} science with faith`,

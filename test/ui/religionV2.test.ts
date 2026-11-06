@@ -214,6 +214,17 @@ describe('the Religion sheet’s right pane, once a religion is founded', () => 
     }
   });
 
+  it('counts the room The Seven Councils opens in each house (batch DT15)', () => {
+    const state = world();
+    found(state, 0);
+    const before = religionReading(state, 0).houses.map((house) => house.slots);
+    state.players[0]!.statecraft.doctrines.push('theSevenCouncils' as never);
+    bumpRevision(state);
+    const houses = religionReading(state, 0).houses;
+    expect(houses.map((house) => house.slots)).toEqual(before.map((slots) => slots + 1));
+    expect(houses.map((house) => house.empty)).toEqual(before.map((slots) => slots + 1));
+  });
+
   it('shows a drafted belief in its own house', () => {
     const state = world();
     const religion = found(state, 0);

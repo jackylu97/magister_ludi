@@ -71,7 +71,7 @@ import {
   nextRungWords,
   pantheonPlaces,
   poolHeld,
-  poolSlots,
+  poolSlotsFor,
   riteTurnsFor,
 } from '../sim/religion';
 import {
@@ -400,7 +400,7 @@ export function bonusesTabModel(state: GameState, seat: number): BonusesModel {
         }
         beliefs.push(card);
       }
-      const slots = poolSlots(pool);
+      const slots = poolSlotsFor(state, mine, pool);
       const filled = poolHeld(mine, pool);
       if (filled < slots) beliefGhosts.push(houseGhost(state, seat, pool, filled, slots));
     }

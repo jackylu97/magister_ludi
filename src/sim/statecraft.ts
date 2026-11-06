@@ -137,6 +137,7 @@ export {
   cardMeterRule,
   cardOfferFamily,
   cardOfferRule,
+  cardBeliefPoolSlots,
   cardPantheonSlots,
   cardPeriodicOffers,
   cardPressureRule,
@@ -184,6 +185,7 @@ export {
   cardUpkeepWaiverLines,
   upkeepWaived,
   cardYieldConversions,
+  cardScopeOpensBuilding,
   cityBeliefUnlocksBuilding,
   cityHasFreshwater,
   cityScopeAdmits,
@@ -191,6 +193,7 @@ export {
   countOf,
   explainCardCityYields,
   explainCardEmpireYields,
+  explainFollowerLinesAbroad,
   explainCardPercentYields,
   // Expansionist batch E3: the board's answers for the tile tests a tile cannot
   // answer alone, and an empire's farm water.

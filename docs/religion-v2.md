@@ -239,7 +239,9 @@ The skip's pity, the culture meter and the tier are untouched by any of them.
   site in range. There is no register, so a second site presses the instant the
   stones are written and a captured one changes sides with its hex.
 - A finished religion: pantheon (2–4, empire-native) + up to 3 followers + up
-  to 2 enhancers. `pools: { followerSlots, enhancerSlots }` is the dial.
+  to 2 enhancers. `pools: { followerSlots, enhancerSlots }` is the dial. The Seven
+  Councils (batch DT15) adds one to each, through `poolSlotsFor`, for the religions
+  whose holy city the holder holds.
 
 ## Who is paid
 
@@ -408,7 +410,9 @@ feature F of `docs/plans/devotion-themes-triage.md`).
   - **Only in a city that follows.** `BuildingDef.followingOnly`, read in
     `purchaseError` and nowhere else, answered by `cityBeliefUnlocksBuilding` —
     do the follower beliefs of the faith *this town keeps* open the row. A town
-    that turns loses the offer; a captured one carries it.
+    that turns loses the offer; a captured one carries it. The House of Worship
+    (batch DT15) opens all four in a devout town through a scoped `unlocksBuilding`
+    row, which `cardScopeOpensBuilding` reads beside it.
   - **Whoever owns a following city may have the row.** A follower belief is
     never in `liveEffects`, so `cardUnlocksBuilding` walks the empire's own
     towns' beliefs after its law. Availability is the empire's question; where it

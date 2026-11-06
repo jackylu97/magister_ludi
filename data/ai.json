@@ -313,7 +313,8 @@
       "parishTurns": 10,
       "sitesOverHorizon": 1,
       "opusInterdict": 60,
-      "faithfulPeace": 10
+      "faithfulPeace": 10,
+      "beliefSlotShare": 0.5
     },
     "magisterial": {
       "wonderFrontShare": 0.15,

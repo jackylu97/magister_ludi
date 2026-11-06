@@ -7,15 +7,15 @@
  * checked in `doctrineOffer.test.ts`.
  *
  * Batch DT6 adds The Paean. Batch DT7 adds Canossa. Batch DT8 adds The Capitulary of
- * Herstal. Batch DT9 adds The Serapeum. Batch DT14 adds The Ribats. Later batches add
- * the deck's other three Doctrines to this file.
+ * Herstal. Batch DT9 adds The Serapeum. Batch DT14 adds The Ribats. Batch DT15 adds
+ * The Seven Councils, The House of Worship and The Apostolic Camera, the last three.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { scoreCard, valueContext } from '../../../src/ai/bot';
-import { scoreEffects } from '../../../src/ai/value';
-import { explainCardImpact } from '../../../src/sim/cardImpact';
+import { scoreEffects, valueOfYields } from '../../../src/ai/value';
+import { explainCardImpact, foldCardImpact } from '../../../src/sim/cardImpact';
 import {
   cityAt,
   explainGrowthPercent,
@@ -37,7 +37,13 @@ import {
   availableRites,
   cityRite,
   empireRiteAt,
+  gainBeliefError,
+  nextBeliefPool,
+  pantheonSlots,
   performRiteAt,
+  poolSlots,
+  poolSlotsFor,
+  religionBeliefPool,
   riteCostAhead,
   riteCostFor,
   riteOfferingHammers,
@@ -73,6 +79,7 @@ import {
   effectsOfKind,
   explainCardCityYields,
   explainCardPercentYields,
+  explainFollowerLinesAbroad,
   heldReligions,
   liveEffects,
   townHoldsBuilding,
@@ -87,10 +94,16 @@ import {
   orderDef,
   poolDoctrines,
 } from '../../../src/sim/statecraftData';
-import { upgradeUnits } from '../../../src/sim/tech';
+import { buildError, upgradeUnits } from '../../../src/sim/tech';
 import { unitStampStrength } from '../../../src/sim/unitData';
 import { atWar, openWar } from '../../../src/sim/wars';
-import { collectYields, explainEmpireCardYields, foldEmpireRates } from '../../../src/sim/yields/empire';
+import {
+  collectYields,
+  explainEmpireCardYields,
+  explainEmpireLines,
+  foldEmpireLines,
+  foldEmpireRates,
+} from '../../../src/sim/yields/empire';
 import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
 import { explainCity, productionModifiers } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
@@ -104,6 +117,9 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theSerapeum', 1],
   ['thePaean', 1],
   ['theSaintPetersIndulgence', 4],
+  ['theHouseOfWorship', 4],
+  ['theApostolicCamera', 4],
+  ['theSevenCouncils', 2],
   ['theCapitularyOfHerstal', 2],
   ['thePatrimonyOfPeter', 2],
   ['theRibats', 2],
@@ -1608,5 +1624,448 @@ describe('The Serapeum (batch DT9)', () => {
     player.pantheon.beliefs = [];
     bumpRevision(state);
     expect(scoreEffects(row, valueContext(state, player))).toBe(0);
+  });
+});
+
+// --- batch DT15: the religion's limits ------------------------------------------------
+
+/** Puts beliefs in a religion's house, as a prophet would. */
+function teach(
+  state: GameState,
+  religion: Religion,
+  follower: readonly string[],
+  enhancer: readonly string[] = [],
+): void {
+  religion.follower = [...follower] as BeliefId[];
+  religion.enhancer = [...enhancer] as BeliefId[];
+  bumpRevision(state);
+}
+
+describe('The Seven Councils (batch DT15)', () => {
+  const CARD = 'theSevenCouncils';
+  const FOLLOWERS = FOLLOWER_BELIEF_IDS;
+  const ENHANCERS = ENHANCER_BELIEF_IDS;
+
+  function board(): { state: GameState; mine: City; faith: Religion } {
+    const state = bareState(30, 10);
+    state.wars = [];
+    const mine = town(state, 5, 5, 6);
+    return { state, mine, faith: religionAt(state, mine) };
+  }
+
+  it('is one slot in each house, behind the religion gate', () => {
+    const def = doctrineDef(CARD as DoctrineId);
+    expect(def.needsReligion).toBe(true);
+    expect(def.effects).toEqual([
+      { kind: 'pantheonSlots', amount: 1, pool: 'follower' },
+      { kind: 'pantheonSlots', amount: 1, pool: 'enhancer' },
+    ]);
+    const { state } = board();
+    expect(doctrineBagFor(state, seatWithDevotion(state), 10)).toContain(CARD);
+    const bare = bareState(30, 10);
+    expect(doctrineBagFor(bare, seatWithDevotion(bare), 10)).not.toContain(CARD);
+  });
+
+  it('gives a founder a fourth follower belief and then a third enhancer, in that order', () => {
+    const { state, faith } = board();
+    teach(state, faith, FOLLOWERS.slice(0, 3), ENHANCERS.slice(0, 2));
+    expect(nextBeliefPool(state, faith)).toBeNull();
+    hold(state, CARD);
+    expect(poolSlotsFor(state, faith, 'follower')).toBe(poolSlots('follower') + 1);
+    expect(poolSlotsFor(state, faith, 'enhancer')).toBe(poolSlots('enhancer') + 1);
+    // One ladder: the follower house comes first, though the enhancers were full too.
+    expect(nextBeliefPool(state, faith)).toBe('follower');
+    teach(state, faith, FOLLOWERS.slice(0, 4), ENHANCERS.slice(0, 2));
+    expect(nextBeliefPool(state, faith)).toBe('enhancer');
+    teach(state, faith, FOLLOWERS.slice(0, 4), ENHANCERS.slice(0, 3));
+    expect(nextBeliefPool(state, faith)).toBeNull();
+  });
+
+  it('lets a prophet draw the fourth follower belief through the reducer', () => {
+    const { state, faith, mine } = board();
+    teach(state, faith, FOLLOWERS.slice(0, 3), ENHANCERS.slice(0, 2));
+    const prophet = createUnit(state, 0, 'prophet', mine.col + 1, mine.row);
+    bumpRevision(state);
+    expect(gainBeliefError(state, 0, prophet.id)).toContain('has all the beliefs it will hold');
+    hold(state, CARD);
+    expect(gainBeliefError(state, 0, prophet.id)).toBeNull();
+    const result = applyCommand(state, { type: 'gainBelief', playerId: 0, unitId: prophet.id });
+    expect(result.ok).toBe(true);
+    expect(seat(state).pantheon.pending?.pool).toBe('follower');
+  });
+
+  it('gives no god’s place, because a row with a pool is room in the religion', () => {
+    const { state } = board();
+    const before = pantheonSlots(state, 0);
+    hold(state, CARD);
+    expect(pantheonSlots(state, 0)).toBe(before);
+  });
+
+  it('gains the slots in each religion a seat holds', () => {
+    const state = bareState(30, 10);
+    state.wars = [];
+    const mine = town(state, 5, 5, 6);
+    const taken = town(state, 20, 5, 6, 1);
+    const own = religionAt(state, mine);
+    const other = religionAt(state, taken);
+    taken.ownerId = 0;
+    bumpRevision(state);
+    expect(heldReligions(state, 0).map((religion) => religion.id)).toEqual([own.id, other.id]);
+    hold(state, CARD);
+    for (const religion of [own, other]) {
+      expect(poolSlotsFor(state, religion, 'follower')).toBe(poolSlots('follower') + 1);
+      expect(poolSlotsFor(state, religion, 'enhancer')).toBe(poolSlots('enhancer') + 1);
+    }
+  });
+
+  it('follows the holy city: the room goes with it, and a belief already held stays', () => {
+    const { state, faith, mine } = board();
+    hold(state, CARD);
+    teach(state, faith, FOLLOWERS.slice(0, 4));
+    mine.ownerId = 1;
+    bumpRevision(state);
+    expect(poolSlotsFor(state, faith, 'follower')).toBe(poolSlots('follower'));
+    expect(faith.follower).toHaveLength(4);
+    // Four held of three is full, so the ladder moves on rather than back.
+    expect(nextBeliefPool(state, faith)).toBe('enhancer');
+  });
+
+  it('says what it does', () => {
+    expect(describeCard(CARD as DoctrineId).map((clause) => stripRefs(clause.text))).toEqual([
+      'your religion may hold one more follower belief',
+      'your religion may hold one more enhancer belief',
+    ]);
+  });
+
+  it('prices each slot at a share of the best belief left in that house', () => {
+    const { state, mine, faith } = board();
+    teach(state, faith, FOLLOWERS.slice(0, 1));
+    addBuilding(state, mine, 'temple');
+    bumpRevision(state);
+    const ctx = valueContext(state, seat(state));
+    const best = (pool: 'follower' | 'enhancer'): number =>
+      Math.max(
+        0,
+        ...religionBeliefPool(faith, pool).map((id) => scoreEffects(beliefDef(id).effects ?? [], ctx)),
+      );
+    expect(best('follower')).toBeGreaterThan(0);
+    const row = doctrineDef(CARD as DoctrineId).effects;
+    expect(scoreEffects(row, ctx)).toBeCloseTo(
+      ctx.ai.score.devotion.beliefSlotShare * (best('follower') + best('enhancer')),
+      6,
+    );
+  });
+
+  it('prices nothing for a seat that cannot teach the religion it holds, or has lost its own', () => {
+    const { state, mine } = board();
+    town(state, 20, 5, 6, 1);
+    const row = doctrineDef(CARD as DoctrineId).effects;
+    // Seat 1 founded nothing and takes seat 0's holy city.
+    mine.ownerId = 1;
+    bumpRevision(state);
+    expect(scoreEffects(row, valueContext(state, seat(state, 1)))).toBe(0);
+    // Seat 0 founded it and no longer holds it.
+    town(state, 12, 5, 4);
+    expect(scoreEffects(row, valueContext(state, seat(state, 0)))).toBe(0);
+  });
+});
+
+describe('The House of Worship (batch DT15)', () => {
+  const CARD = 'theHouseOfWorship';
+  const HOUSES = ['mosque', 'wat', 'gurdwara', 'darEMehr'] as const;
+  const house = (id: (typeof HOUSES)[number]): PurchaseSubject => ({ kind: 'building', id });
+
+  /** A devout town, a town that follows nothing, and a town of a rival's faith. */
+  function board(): { state: GameState; devout: City; pagan: City; heretic: City; faith: Religion; rival: Religion } {
+    const state = bareState(40, 10);
+    state.wars = [];
+    const devout = town(state, 5, 5, 6);
+    const pagan = town(state, 12, 5, 6);
+    const heretic = town(state, 19, 5, 6);
+    const shrine = town(state, 30, 5, 6, 1);
+    const faith = religionAt(state, devout);
+    const rival = religionAt(state, shrine, [shrine, heretic]);
+    seat(state).faithPool = 100_000;
+    seat(state).gold = 100_000;
+    bumpRevision(state);
+    return { state, devout, pagan, heretic, faith, rival };
+  }
+
+  it('is one scoped row for each house, behind the religion gate', () => {
+    const def = doctrineDef(CARD as DoctrineId);
+    expect(def.needsReligion).toBe(true);
+    expect(def.effects).toEqual(
+      HOUSES.map((building) => ({
+        kind: 'unlocksBuilding',
+        building,
+        scope: { test: 'ownersFaith', keeps: true },
+      })),
+    );
+  });
+
+  it('lets a devout town buy each house, with no belief that opens it', () => {
+    const { state, devout, faith } = board();
+    expect(faith.follower).toEqual([]);
+    for (const id of HOUSES) {
+      expect(purchaseError(state, 0, devout.id, house(id), 'faith'), id).toContain('is not open to');
+    }
+    hold(state, CARD);
+    for (const id of HOUSES) {
+      expect(purchaseError(state, 0, devout.id, house(id), 'faith'), id).toBeNull();
+    }
+  });
+
+  it('refuses a town that follows nothing and a town of another faith, in the same words', () => {
+    const { state, pagan, heretic } = board();
+    hold(state, CARD);
+    for (const city of [pagan, heretic]) {
+      expect(purchaseError(state, 0, city.id, house('mosque'), 'faith')).toBe(
+        'Mosque may be raised only in a city that keeps your faith',
+      );
+    }
+  });
+
+  it('leaves a town of a rival’s faith to that faith’s own beliefs', () => {
+    const { state, heretic, pagan, rival } = board();
+    teach(state, rival, ['minarets']);
+    hold(state, CARD);
+    expect(purchaseError(state, 0, heretic.id, house('mosque'), 'faith')).toBeNull();
+    expect(purchaseError(state, 0, heretic.id, house('wat'), 'faith')).toBe(
+      'Wat may be raised only in a city that keeps your faith',
+    );
+    // A belief in one town opens no other: the empire's question is not the town's.
+    expect(purchaseError(state, 0, pagan.id, house('mosque'), 'faith')).toBe(
+      'Mosque may be raised only in a city that keeps your faith',
+    );
+  });
+
+  it('opens nothing while none of the seat’s towns is devout', () => {
+    const { state, devout } = board();
+    hold(state, CARD);
+    devout.followers = {};
+    bumpRevision(state);
+    expect(purchaseError(state, 0, devout.id, house('mosque'), 'faith')).toContain('is not open to');
+  });
+
+  it('is still bought with faith and never built, and pays what the row says', () => {
+    const { state, devout } = board();
+    hold(state, CARD);
+    expect(purchaseError(state, 0, devout.id, house('mosque'), 'gold')).toBe(
+      'A Mosque is bought with faith, not gold',
+    );
+    expect(buildError(state, 0, 'building', 'mosque')).toBe('Mosque is not built — it is bought');
+    const before = seat(state).faithPool;
+    const price = explainPurchaseCost(state, 0, devout.id, house('mosque'), 'faith')!;
+    const result = applyCommand(state, {
+      type: 'purchaseItem',
+      playerId: 0,
+      cityId: devout.id,
+      item: house('mosque'),
+      currency: 'faith',
+    } as Command);
+    expect(result.ok).toBe(true);
+    expect(devout.buildings).toContain('mosque');
+    expect(seat(state).faithPool).toBe(before - price.total);
+  });
+
+  it('says what it does, naming the towns', () => {
+    const clauses = describeCard(CARD as DoctrineId).map((clause) => stripRefs(clause.text));
+    expect(clauses).toHaveLength(HOUSES.length);
+    expect(clauses[0]).toContain('unlocks the Mosque in any devout city');
+    expect(clauses[3]).toContain('unlocks the Dar-e Mehr in any devout city');
+  });
+
+  it('puts a house in the bots’ faith book in a devout town, and only there', () => {
+    const { state, devout, pagan } = board();
+    const labels = (): string[] =>
+      valueContext(state, seat(state)).wants.faith.map((want) => want.label);
+    expect(labels().some((label) => label.startsWith('Mosque at '))).toBe(false);
+    hold(state, CARD);
+    expect(labels()).toEqual(expect.arrayContaining([expect.stringContaining(`Mosque at ${devout.name}`)]));
+    expect(labels().some((label) => label.startsWith(`Mosque at ${pagan.name}`))).toBe(false);
+  });
+
+  it('prices only the towns it changes', () => {
+    const { state, faith } = board();
+    const mosque: CardEffect[] = [
+      { kind: 'unlocksBuilding', building: 'mosque', scope: { test: 'ownersFaith', keeps: true } },
+    ];
+    const second = town(state, 26, 5, 4);
+    second.followers = { [faith.id]: second.population };
+    bumpRevision(state);
+    // Two devout towns, and the two towns that do not keep the faith count for nothing.
+    const ctx = valueContext(state, seat(state));
+    const twice = scoreEffects(mosque, ctx);
+    expect(twice).toBeGreaterThan(0);
+    // A town that holds one has nothing left to gain, so the same reading halves.
+    addBuilding(state, second, 'mosque');
+    expect(scoreEffects(mosque, ctx)).toBeCloseTo(twice / 2, 6);
+    // A religion holding the belief opens it already, so the row adds nothing.
+    teach(state, faith, ['minarets']);
+    expect(scoreEffects(mosque, valueContext(state, seat(state)))).toBe(0);
+  });
+});
+
+describe('The Apostolic Camera (batch DT15)', () => {
+  const CARD = 'theApostolicCamera';
+
+  /**
+   * Seat 0 holds a religion in its town. Seat 1 has two towns that follow it, one with
+   * a Temple, and a third that follows nothing.
+   */
+  function board(): { state: GameState; mine: City; temple: City; plain: City; pagan: City; faith: Religion } {
+    const state = bareState(50, 10);
+    state.wars = [];
+    const mine = town(state, 5, 5, 8);
+    const temple = town(state, 20, 5, 8, 1);
+    const plain = town(state, 27, 5, 9, 1);
+    const pagan = town(state, 34, 5, 9, 1);
+    addBuilding(state, temple, 'temple');
+    addBuilding(state, mine, 'temple');
+    const faith = religionAt(state, mine, [mine, temple, plain]);
+    teach(state, faith, ['cathedralsOfTheSky', 'choirs']);
+    return { state, mine, temple, plain, pagan, faith };
+  }
+
+  const camera = (state: GameState, playerId = 0) =>
+    explainEmpireCardYields(state, playerId).filter((line) => line.card === CARD);
+
+  it('is one rule, behind the religion gate', () => {
+    const def = doctrineDef(CARD as DoctrineId);
+    expect(def.needsReligion).toBe(true);
+    expect(def.effects).toEqual([{ kind: 'rule', rule: 'followerBeliefsPayAbroad' }]);
+    expect(describeCard(CARD as DoctrineId).map((clause) => stripRefs(clause.text))).toEqual([
+      'your follower beliefs also pay you in every foreign city that follows your religion',
+    ]);
+  });
+
+  it('pays one labelled line for each foreign town and belief, and none for a town of your own', () => {
+    const { state, temple, plain } = board();
+    expect(camera(state)).toEqual([]);
+    hold(state, CARD);
+    const lines = camera(state);
+    // Cathedrals of the Sky needs a Temple, so the plain town pays Choirs alone.
+    expect(lines.map((line) => line.source)).toEqual([
+      'Doctrine · The Apostolic Camera · Cathedrals of the Sky · ' + temple.name,
+      'Doctrine · The Apostolic Camera · Choirs · ' + temple.name,
+      'Doctrine · The Apostolic Camera · Choirs · ' + plain.name,
+    ]);
+    expect(lines.map((line) => [line.science, line.culture])).toEqual([
+      [2, 2],
+      [0, 2], // one culture for each four of eight citizens
+      [0, 2], // nine citizens make two whole helpings
+    ]);
+  });
+
+  it('leaves the owner’s fold as it was', () => {
+    const { state, temple, plain } = board();
+    const before = [temple, plain].map((city) => explainCity(state, city));
+    const cards = [temple, plain].map((city) => explainCardCityYields(state, city));
+    const rival = explainEmpireLines(state, 1);
+    hold(state, CARD);
+    expect([temple, plain].map((city) => explainCity(state, city))).toEqual(before);
+    expect([temple, plain].map((city) => explainCardCityYields(state, city))).toEqual(cards);
+    expect(explainEmpireLines(state, 1)).toEqual(rival);
+  });
+
+  it('banks what the lines say, and the total is the list’s fold', () => {
+    const { state } = board();
+    const without = foldEmpireLines(explainEmpireLines(state, 0));
+    hold(state, CARD);
+    const lines = explainEmpireLines(state, 0);
+    const paid = lines.filter((line) => line.card === CARD);
+    expect(paid.reduce((sum, line) => sum + line.culture, 0)).toBe(6);
+    expect(paid.reduce((sum, line) => sum + line.science, 0)).toBe(2);
+    const fold = foldEmpireLines(lines);
+    expect(fold.culture).toBe(without.culture + 6);
+    expect(fold.science).toBe(without.science + 2);
+    // The same board without the card banks exactly that much less.
+    const { state: plain } = board();
+    const report = (game: GameState): number[] => {
+      collectYields(game);
+      return [seat(game).culturePool, seat(game).sciencePool];
+    };
+    const [culture, science] = report(plain);
+    expect(report(state)).toEqual([culture! + 6, science! + 2]);
+  });
+
+  it('pays no hex line, no meter and no percentage', () => {
+    const { state, temple, faith } = board();
+    at(state, temple.col, temple.row + 1).improvement = 'farm' as never;
+    // A hex line, a happiness row, a combat line and a production percentage.
+    teach(state, faith, ['harvestBlessing', 'feastDays', 'warriorMonks', 'guildOfTheFaithful']);
+    hold(state, CARD);
+    expect(camera(state)).toEqual([]);
+  });
+
+  it('pays no food or production, because an empire has no bank for them', () => {
+    const { state, temple, faith } = board();
+    at(state, temple.col, temple.row).freshwater = true;
+    teach(state, faith, ['holyWater']);
+    hold(state, CARD);
+    const lines = camera(state);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.source).toContain(temple.name);
+    expect([lines[0]!.faith, lines[0]!.food]).toEqual([1, 0]);
+    // The owner still gets both.
+    const own = explainCardCityYields(state, temple).find((line) => line.card === 'holyWater')!;
+    expect([own.faith, own.food]).toEqual([1, 1]);
+  });
+
+  it('counts a foreign town only while it follows a religion the seat holds', () => {
+    const { state, plain, pagan, temple } = board();
+    hold(state, CARD);
+    const named = (): string => camera(state).map((line) => line.source).join();
+    expect(named()).not.toContain(pagan.name);
+    // A town that turns stops paying this turn, and it pays nothing else in its place.
+    plain.followers = {};
+    bumpRevision(state);
+    expect(named()).not.toContain(plain.name);
+    expect(named()).toContain(temple.name);
+  });
+
+  it('pays in each religion a seat holds, and stops when it loses the holy city', () => {
+    const { state, mine, plain, temple, faith } = board();
+    const shrine = town(state, 42, 5, 5, 1);
+    const second = religionAt(state, shrine, [shrine, plain]);
+    teach(state, second, ['titheHouses']);
+    shrine.ownerId = 0;
+    bumpRevision(state);
+    hold(state, CARD);
+    expect(camera(state).map((line) => line.source.split(' · ')[2])).toEqual([
+      'Cathedrals of the Sky',
+      'Choirs',
+      'Tithe Houses',
+    ]);
+    expect(faith.follower).toHaveLength(2);
+    mine.ownerId = 1;
+    bumpRevision(state);
+    // The first faith's holy city is gone, and the second faith's town remains.
+    expect(camera(state).map((line) => line.source.split(' · ')[3])).toEqual([plain.name]);
+    expect(temple.ownerId).toBe(1);
+    shrine.ownerId = 1;
+    bumpRevision(state);
+    expect(camera(state)).toEqual([]);
+  });
+
+  it('prices what the lines would pay today, and nothing with no follower abroad', () => {
+    const { state, plain, temple } = board();
+    const row = doctrineDef(CARD as DoctrineId).effects;
+    const ctx = valueContext(state, seat(state));
+    const lines = explainFollowerLinesAbroad(state, 0);
+    expect(lines).toHaveLength(3);
+    expect(scoreEffects(row, ctx)).toBeCloseTo(valueOfYields({ science: 2, culture: 6 }, ctx), 6);
+    expect(scoreEffects(row, ctx)).toBeGreaterThan(0);
+    temple.followers = {};
+    plain.followers = {};
+    bumpRevision(state);
+    expect(scoreEffects(row, valueContext(state, seat(state)))).toBe(0);
+  });
+
+  it('shows in the card’s impact stamp at the offer', () => {
+    const { state } = board();
+    const offered = foldCardImpact(explainCardImpact(state, 0, { kind: 'doctrine', id: CARD as DoctrineId }));
+    expect(offered.culture).toBe(6);
+    expect(offered.science).toBe(2);
   });
 });
