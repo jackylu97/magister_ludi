@@ -706,4 +706,30 @@ describe('the owning city\'s own lines reach the readout', () => {
     expect(lighthouse, 'the Lighthouse line on the coast hex').toBeDefined();
     expect(lighthouse!.gold).toBe(1);
   });
+
+  it('prints a hex line counted by the town working the hex', () => {
+    // Batch DT13: The Hydraulic Empire counts the public works of the town that
+    // owns the hex, so the card must read the hex through that town. The line
+    // says how many, and the printed lines still fold to the card's total.
+    const state = boardState();
+    const near = foundCityAt(state, 0, at(state, 2, 2));
+    const far = foundCityAt(state, 0, at(state, 9, 7));
+    near.buildings.push('granary', 'aqueduct');
+    const hex = at(state, 2, 1);
+    hex.freshwater = true;
+    const farHex = at(state, 9, 6);
+    farHex.freshwater = true;
+    state.players[0]!.statecraft.doctrines.push('theHydraulicEmpire');
+    bumpRevision(state);
+
+    const paid = tileYieldLines(state, 0, hex).find((line) => line.source.includes('The Hydraulic Empire'));
+    expect(paid?.source).toContain('×2');
+    expect(paid?.figures).toBe(`+2${YIELD_GLYPH.food} +2${YIELD_GLYPH.production}`);
+    expect(foldTileLines(tileYieldContributions(state, 0, hex))).toEqual(foldPrinted(tileYieldLines(state, 0, hex)));
+    // The other town holds no public work, so its hex prints no such line.
+    expect(far.buildings).toEqual([]);
+    expect(
+      tileYieldLines(state, 0, farHex).some((line) => line.source.includes('The Hydraulic Empire')),
+    ).toBe(false);
+  });
 });

@@ -4133,6 +4133,21 @@ export function countOf(
       for (const town of citiesOf(state, playerId)) total += walk(town);
       return total;
     }
+    case 'censusesLed': {
+      // Doctrine batch DT13, The Censors: read from the census's own record, so
+      // nothing is stored beside it. A census taken while the seat held the
+      // Doctrine counts: the phases run before the turn advances, so a census in
+      // the resolution of the turn the Doctrine was taken carries that turn, and
+      // the census before it carries an earlier one.
+      if (effect.within === 'city' && !city) return 0;
+      const since =
+        effect.sinceDoctrine === undefined ? 0 : doctrineTakenTurn(state, playerId, effect.sinceDoctrine);
+      let led = 0;
+      for (const record of state.census?.taken ?? []) {
+        if (record.leaderId === playerId && record.turn >= since) led += 1;
+      }
+      return led;
+    }
     default: {
       const unhandled: never = count;
       void unhandled;
@@ -6192,7 +6207,8 @@ export function cardTileLines(state: GameState, playerId: number): CardTileLine[
   // **Unscoped lines only.** A `scope` is a question about the *owning city*,
   // and this pass has no city in hand — the same reason a granary's water line
   // cannot be resolved here (`TileYieldContext.lines`). The scoped ones are
-  // added by `scopedCardTileLines` from `cityContext`, which does.
+  // added by `scopedCardTileLines` from `cityContext`, which does. So are the
+  // counted ones, which `hexRows` leaves out for the same reason.
   const found = hexRows(pickKind(liveEffects(state, playerId), 'pays')).filter(
     ({ effect }) => effect.scope === undefined,
   );
@@ -6303,17 +6319,61 @@ function tileAmplifierLines(
  * town, and only a caller holding that town can resolve it. Petra's desert and
  * the Gardens' irrigated farms are both written `hasBuilding` on the wonder's
  * own row, so the answer follows the stones when a town changes hands.
+ *
+ * The rows counted by the town (`countedHexRows`) land here for the same reason.
+ * `hypothetical` is what a build preview would add to this town. Only the count
+ * reads it, because a public work not yet built can raise The Hydraulic Empire's
+ * line, and a scope's answer stays the town's own as it stands.
  */
-export function scopedCardTileLines(state: GameState, city: City): CardTileLine[] {
-  return tileLinesFrom(
-    hexRows(pickKind(liveEffects(state, city.ownerId), 'pays'))
+export function scopedCardTileLines(
+  state: GameState,
+  city: City,
+  hypothetical: readonly BuildingId[] = [],
+): CardTileLine[] {
+  const rows = pickKind(liveEffects(state, city.ownerId), 'pays');
+  return tileLinesFrom([
+    ...hexRows(rows)
       .filter(
         ({ effect }) =>
           effect.scope !== undefined && cityScopeAdmits(state, city, effect.scope),
       )
       // Labelled with where it landed, exactly as a scoped town `pays` line is.
       .map((entry) => ({ ...entry, source: label(entry.source, scopeNote(entry.effect.scope)) })),
-  );
+    ...countedHexRows(state, city, rows, hypothetical),
+  ]);
+}
+
+/**
+ * **The hex rows counted by the town working the hex** (batch DT13, the pair
+ * hex/count: The Hydraulic Empire's public works, The Builder Kings' wonders).
+ *
+ * Each becomes a flat row for this one town: `countOf`'s helpings multiply the
+ * bag, as `perEndpointLuxury` multiplies a road's. So the rest of the hex chain
+ * reads an ordinary line, and two towns of one empire pay the same hex row
+ * differently. Nought helpings make no line. The label says the count, as a
+ * counted town line's does.
+ */
+function countedHexRows(
+  state: GameState,
+  city: City,
+  rows: readonly { source: string; card: CardId; effect: CardPaysEffect }[],
+  hypothetical: readonly BuildingId[],
+): { source: string; card: CardId; effect: CardPaysEffect & { on: TileCondition } }[] {
+  const counted = hypothetical.length === 0 ? city : { ...city, buildings: [...city.buildings, ...hypothetical] };
+  const out: { source: string; card: CardId; effect: CardPaysEffect & { on: TileCondition } }[] = [];
+  for (const { source, card, effect } of rows) {
+    if (effect.where !== 'hex' || effect.on === undefined || basisOf(effect) !== 'count') continue;
+    if (!cityScopeAdmits(state, city, effect.scope)) continue;
+    const times = helpings(countOf(state, city.ownerId, card, effect, counted), effect.per, effect.max);
+    if (times === 0) continue;
+    const paid: CardPaysEffect & { on: TileCondition } = { ...effect, on: effect.on };
+    for (const voice of VOICES) {
+      const each = effect[voice];
+      if (each !== undefined) paid[voice] = each * times;
+    }
+    out.push({ source: label(label(source, scopeNote(effect.scope)), `×${times}`), card, effect: paid });
+  }
+  return out;
 }
 
 /**
@@ -6384,13 +6444,17 @@ export function consecrationCardTileLines(state: GameState, city: City): CardTil
  * it). A row that names no condition reaches no hex at all and is dropped here
  * rather than defaulting to "every one" — the honest reading of a card that
  * never said which ground, and the same silence a `tally` with no occasion keeps.
+ *
+ * A row counted by its town is left out (batch DT13). Its figure needs the town
+ * in hand, and `countedHexRows` is its one reader, so no producer pays it as if
+ * its one helping were the whole line.
  */
 function hexRows<T extends { effect: CardPaysEffect }>(
   found: readonly T[],
 ): (T & { effect: CardPaysEffect & { on: TileCondition } })[] {
   return found.filter(
     (entry): entry is T & { effect: CardPaysEffect & { on: TileCondition } } =>
-      entry.effect.where === 'hex' && entry.effect.on !== undefined,
+      entry.effect.where === 'hex' && entry.effect.on !== undefined && basisOf(entry.effect) !== 'count',
   );
 }
 
@@ -9776,19 +9840,32 @@ export function windfallPayout(
     // units were free (the user's change to the triage's reading 25,
     // 2026-10-23). The era and the council multiply the figure as they
     // multiply renown; a citizen is whole, so the figure is rounded down.
-    if (grant.citizens !== undefined && grant.citizens > 0 && facts.townId !== undefined) {
-      const town = cityById(state, facts.townId);
-      if (town !== undefined && town.ownerId === playerId) {
-        const amount = Math.floor(
-          grant.citizens *
-            (effect.perAge === true ? era : 1) *
-            (effect.perSlottedOrder === true ? slotted : 1) *
-            boostFor(card),
-        );
-        if (amount > 0) {
-          (payout.citizens ??= []).push({ card, source, amount, townId: town.id });
-          payout.lines.push({ card, source, note: `+${amount} ${amount === 1 ? 'citizen' : 'citizens'}` });
-        }
+    //
+    // Batch DT13, The Censors: `toEveryTown` pays each town the field admits, so
+    // a census, which names no town, can pay it. Puppets are towns the seat
+    // holds, so they gain too. One note for the card, however many towns gain.
+    if (grant.citizens !== undefined && grant.citizens > 0) {
+      const named = facts.townId === undefined ? undefined : cityById(state, facts.townId);
+      const towns =
+        grant.toEveryTown !== undefined
+          ? grantTowns(state, playerId, { toEveryTown: grant.toEveryTown })
+          : named !== undefined && named.ownerId === playerId
+            ? [named]
+            : [];
+      const amount = Math.floor(
+        grant.citizens *
+          (effect.perAge === true ? era : 1) *
+          (effect.perSlottedOrder === true ? slotted : 1) *
+          boostFor(card),
+      );
+      if (amount > 0 && towns.length > 0) {
+        for (const town of towns) (payout.citizens ??= []).push({ card, source, amount, townId: town.id });
+        const people = `+${amount} ${amount === 1 ? 'citizen' : 'citizens'}`;
+        payout.lines.push({
+          card,
+          source,
+          note: grant.toEveryTown === undefined ? people : `${people} in ${towns.length} cities`,
+        });
       }
     }
     // Dominion batch D8: the heal and the rank around the hex (The Soldiers'

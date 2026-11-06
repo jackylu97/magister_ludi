@@ -349,6 +349,7 @@ import {
   countFirsts,
   foundedReligion,
   playerById,
+  realPlayers,
 } from '../sim/state';
 // Scientific batch S13: a technology's price is the simulation's own fold
 // (`explainTechCost`, `foldTechCost`), so the bot and the reducer charge the
@@ -4761,8 +4762,11 @@ function windfallGrantWorth(
   // retires one when the card pays for it, so `occasionRate`'s `disband` is
   // no longer nought. The user's ruling of 2026-10-23 (reading 25) counts a
   // unit raised for free too, so the price does not ask what the unit cost.
+  //
+  // A grant to every town (batch DT13, The Censors) pays once for each town.
   if (grant.citizens !== undefined && grant.citizens > 0) {
-    worth += explainLump({ food: Math.floor(grant.citizens) * growthThreshold(ctx) }, ctx).total;
+    const towns = grant.toEveryTown === undefined ? 1 : everyTownCount(ctx, grant.toEveryTown);
+    worth += explainLump({ food: Math.floor(grant.citizens) * growthThreshold(ctx) }, ctx).total * towns;
   }
   if (grant.pressure !== undefined) {
     // **A lump of faith pressed on somebody else's towns** — The Crusade's.
@@ -6077,6 +6081,8 @@ export function explainCounted(
   // **The front row is a town's own count** (Devotion batch DV9, The Rising
   // Nave), paid in the town it is counted in. See `explainFrontRow`.
   if (effect.count === 'frontRowTenths') return explainFrontRow(effect, ctx);
+  // **A hex line counted by its town** (batch DT13). See `explainHexCounted`.
+  if (effect.where === 'hex') return explainHexCounted(effect, ctx, card);
   const ai = ctx.ai;
   const terms: ValueTerm[] = [];
   const realized = realizedCount(effect, ctx, card);
@@ -6303,6 +6309,18 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
     const more = commissionMetRate(ctx) * Math.max(1, ctx.ai.priorities.horizonTurns);
     return [{ label: `+ ${round(more)} more commissions met, over the horizon`, value: more }];
   }
+  if (effect.count === 'censusesLed') {
+    // **The censuses still to be led** (batch DT13, The Censors). A seat takes the
+    // Doctrine with none led since, so the realized half reads nothing at the
+    // offer. See `censusLeadOutlook`.
+    const outlook = censusLeadOutlook(effect, ctx);
+    return [
+      {
+        label: `+ ${round(outlook.more)} more helpings over the horizon (${outlook.why})`,
+        value: outlook.more,
+      },
+    ];
+  }
   if (effect.count === 'citizensLevied') {
     // **The citizens still to be levied** (The Labour Rolls; the bot levy
     // batch). The tally path's reading for a count that is a record: the levy
@@ -6362,6 +6380,62 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
       ],
     },
   ];
+}
+
+/**
+ * **The censuses this seat expects to lead over the horizon** (batch DT13, The
+ * Censors). The calendar's own rate times this seat's share of the censuses so
+ * far, with one census for each seat assumed before any were taken, so a seat at
+ * the start of a game reads an even share. A line narrowed to the town pays each
+ * town for each census, so the figure is one for each town, as `realizedCount`'s
+ * walk over the towns reads the censuses already led.
+ */
+function censusLeadOutlook(effect: CardPaysEffect, ctx: ValueContext): { more: number; why: string } {
+  const taken = ctx.state.census?.taken ?? [];
+  let led = 0;
+  for (const record of taken) {
+    if (record.leaderId === ctx.playerId) led += 1;
+  }
+  const seats = Math.max(1, realPlayers(ctx.state).length);
+  const share = (led + 1) / (taken.length + seats);
+  const censuses = occasionRate('census', ctx) * Math.max(1, ctx.ai.priorities.horizonTurns);
+  const towns = effect.within === 'city' ? ctx.cities : 1;
+  return {
+    more: censuses * share * towns,
+    why: `${round(censuses)} censuses, ${round(share)} of them led, in ${towns} towns`,
+  };
+}
+
+/**
+ * **What a hex line counted by its town pays this seat a turn** (batch DT13, The
+ * Hydraulic Empire and The Builder Kings).
+ *
+ * Each worked hex the line lands on pays one helping for each thing its own town
+ * counts, so the walk asks `countOf` once per hex with that hex's town in hand.
+ * This is what the fold pays, where a mean count per town would pay a hex in a
+ * town of six public works the same as a hex in a town of none. The walk is
+ * `groundOfHexLine`, so it cannot disagree with `workedHexesAdmitting` about the
+ * ground.
+ *
+ * **No promise half.** `potentialTownsFor` reads no potential for a line narrowed
+ * to one town, for the reason its docblock gives, and a hex row is one.
+ */
+function explainHexCounted(effect: CardPaysEffect, ctx: ValueContext, card?: CardId): Appraisal {
+  const ground = groundOfHexLine(ctx, effect);
+  const asked = card ?? ('' as CardId);
+  let paid = 0;
+  for (const { city } of ground.hexes) {
+    paid += helpings(countOf(ctx.state, ctx.playerId, asked, effect, city), effect.per, effect.max);
+  }
+  const today = paid / ground.over;
+  const payout = valueOfYields(bagOf(effect), ctx);
+  return appraise([
+    {
+      label: `${round(today)} helpings today, on ${round(ground.hexes.length / ground.over)} worked hexes, each town counting its own`,
+      value: today,
+    },
+    { label: `× ${round(payout)}, what one helping pays on one hex`, value: payout, op: 'mul' },
+  ]);
 }
 
 /**
@@ -6473,8 +6547,9 @@ function scorePayout(pays: CardPaysEffect, ctx: ValueContext): number {
   // pair whose helping is not said with `to`): a road's line is a bag in
   // `RouteYieldLine` and the fold multiplies bags, which is what
   // `perEndpointLuxury` has always done. Asked first, because `to` is absent on
-  // such a row and the stand-in below would otherwise swallow it.
-  if (pays.where === 'route' && (pays.basis ?? 'flat') === 'count') {
+  // such a row and the stand-in below would otherwise swallow it. A hex's count
+  // pays the bag for the same reason (batch DT13).
+  if ((pays.where === 'route' || pays.where === 'hex') && (pays.basis ?? 'flat') === 'count') {
     return valueOfYields(bagOf(pays), ctx);
   }
   const to = pays.to;

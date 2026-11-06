@@ -6,8 +6,9 @@
  *
  * Batch DT6 adds The Highland Clans, The Curator of Waters and All Roads Lead to
  * Rome. Batch DT7 adds The Inward Roads. Batch DT12 adds the land: The Georgics, The
- * Wildwood Compact, The Planted Towns and Arcadia. Later batches add the deck's other
- * four Doctrines to this file.
+ * Wildwood Compact, The Planted Towns and Arcadia. Batch DT13 adds The Hydraulic
+ * Empire, The Builder Kings and The Censors. A later batch adds the deck's other
+ * Doctrine to this file.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -28,13 +29,20 @@ import {
   settleProduction,
   settleProductionWindfall,
 } from '../../../src/sim/cities';
+import { lastCensus, runCensus } from '../../../src/sim/census';
 import { applyCommand } from '../../../src/sim/commands';
 import { commissionFigure } from '../../../src/sim/commissions';
 import { chargesLeft, markInsteadOf, pillageError, workChargeCost } from '../../../src/sim/improvements';
 import { routeStartable } from '../../../src/sim/trade';
 import { raiseImprovement, tileIndex, tileNeighbors } from '../../../src/sim/map';
 import { markMountainAdjacency } from '../../../src/sim/mapgen';
-import { authorityOf, explainAuthority, explainFoundingCost, explainHappiness } from '../../../src/sim/meters';
+import {
+  authorityOf,
+  explainAuthority,
+  explainFoundingCost,
+  explainHappiness,
+  happinessOf,
+} from '../../../src/sim/meters';
 import { connectedCities, layRoad } from '../../../src/sim/roads';
 import {
   type City,
@@ -53,7 +61,9 @@ import {
   countOf,
   explainCardPercentYields,
   groundFactsFor,
+  scopedCardTileLines,
   tileConditionHolds,
+  windfallPayout,
 } from '../../../src/sim/statecraft/evaluator';
 import {
   type CardEffect,
@@ -64,7 +74,7 @@ import {
   governmentsAtTier,
   poolDoctrines,
 } from '../../../src/sim/statecraftData';
-import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
+import { cityContext, explainTileYield, foldTileLines, yieldContextFor } from '../../../src/sim/yields/hex';
 import { explainCentreYield, foldCentre, foldCity, productionModifiers } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
 import { createGame } from '../newGameHelpers';
@@ -72,8 +82,8 @@ import { lendDoctrineEffects } from '../statecraftHelpers';
 
 /**
  * The rows built so far: the eleven of batch DT2, batch DT5's The Garden Peoples, the
- * three of batch DT6, batch DT7's The Inward Roads and the four of batch DT12, each
- * with the band its sheet table gives it.
+ * three of batch DT6, batch DT7's The Inward Roads, the four of batch DT12 and the
+ * three of batch DT13, each with the band its sheet table gives it.
  */
 const ROWS: readonly (readonly [string, number])[] = [
   ['boundToTheSoil', 1],
@@ -83,14 +93,17 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theGeorgics', 2],
   ['synoecism', 2],
   ['theCuratorOfWaters', 2],
+  ['theCensors', 2],
   ['theWildwoodCompact', 2],
   ['cropRotation', 3],
   ['theContentedCity', 3],
+  ['theBuilderKings', 3],
   ['empireWithoutEnd', 3],
   ['allRoadsLeadToRome', 3],
   ['thePlantedTowns', 3],
   ['theGardenPeoples', 3],
   ['thePhysiocrats', 4],
+  ['theHydraulicEmpire', 4],
   ['theCathedralLodges', 4],
   ['theHighTowns', 4],
   ['theMandarinate', 4],
@@ -1503,5 +1516,369 @@ describe('Arcadia (batch DT12)', () => {
     const raider = createUnit(state, 1, 'warrior', 5, 4);
     expect(pillageError(state, raider.id)).toMatch(/nothing to pillage/);
     expect(markInsteadOf(garden, 'burnedCountry')).toBeUndefined();
+  });
+});
+
+describe('The Hydraulic Empire (batch DT13)', () => {
+  /** A hex with fresh water beside this town, its only worked hex. */
+  function wet(state: GameState, city: City, col: number, row: number) {
+    at(state, col, row).freshwater = true;
+    workOnly(state, city, [col, row]);
+    return at(state, col, row);
+  }
+
+  it('pays the hexes of two towns by each town’s own public works', () => {
+    const state = bareState(24, 10);
+    const rich = town(state, 3, 3, 3);
+    const poor = town(state, 15, 3, 3);
+    wet(state, rich, 3, 2);
+    wet(state, poor, 15, 2);
+    addBuilding(state, rich, 'granary');
+    addBuilding(state, rich, 'aqueduct');
+    addBuilding(state, poor, 'cistern');
+    bumpRevision(state);
+    const richBefore = hexPays(state, rich, 3, 2);
+    const poorBefore = hexPays(state, poor, 15, 2);
+    const richBanks = foldCity(state, rich);
+    const poorBanks = foldCity(state, poor);
+    hold(state, 'theHydraulicEmpire');
+    expect(hexPays(state, rich, 3, 2)).toEqual({
+      ...richBefore,
+      food: richBefore.food + 2,
+      production: richBefore.production + 2,
+    });
+    expect(hexPays(state, poor, 15, 2)).toEqual({
+      ...poorBefore,
+      food: poorBefore.food + 1,
+      production: poorBefore.production + 1,
+    });
+    // And in the fold each town banks, where each works only that hex.
+    expect(foldCity(state, rich).food).toBe(richBanks.food + 2);
+    expect(foldCity(state, poor).food).toBe(poorBanks.food + 1);
+    // One hex row, read apart by the two towns.
+    expect(scopedCardTileLines(state, rich).map((line) => [line.food, line.production])).toEqual([[2, 2]]);
+    expect(scopedCardTileLines(state, poor).map((line) => [line.food, line.production])).toEqual([[1, 1]]);
+  });
+
+  it('makes no line for a town with no public work, and none on a dry hex', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    wet(state, city, 5, 4);
+    addBuilding(state, city, 'monument');
+    bumpRevision(state);
+    hold(state, 'theHydraulicEmpire');
+    expect(scopedCardTileLines(state, city)).toEqual([]);
+    addBuilding(state, city, 'granary');
+    bumpRevision(state);
+    expect(scopedCardTileLines(state, city).map((line) => line.source)).toEqual([
+      expect.stringContaining('×1'),
+    ]);
+    const dry = at(state, 6, 5);
+    expect(dry.freshwater).toBe(false);
+    expect(
+      explainTileYield(dry, cityContext(state, city)).some((entry) => entry.source.includes('Hydraulic')),
+    ).toBe(false);
+  });
+
+  it('never pays through the empire-wide context, because that has no town to count', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    addBuilding(state, city, 'granary');
+    hold(state, 'theHydraulicEmpire');
+    const hex = at(state, 5, 4);
+    hex.freshwater = true;
+    const names = (ctx: ReturnType<typeof cityContext>): boolean =>
+      explainTileYield(hex, ctx).some((entry) => entry.source.includes('Hydraulic'));
+    expect(names(cityContext(state, city))).toBe(true);
+    expect(names(yieldContextFor(state, 0))).toBe(false);
+  });
+
+  it('reaches six at most, because there are six public works', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    wet(state, city, 5, 4);
+    const before = hexPays(state, city, 5, 4);
+    for (const id of ['granary', 'aqueduct', 'watermill', 'harbour', 'publicBath', 'cistern']) {
+      addBuilding(state, city, id as never);
+    }
+    bumpRevision(state);
+    hold(state, 'theHydraulicEmpire');
+    expect(hexPays(state, city, 5, 4)).toEqual({
+      ...before,
+      food: before.food + 6,
+      production: before.production + 6,
+    });
+  });
+
+  it('counts a farm the law waters, as the hex test does', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    addBuilding(state, city, 'granary');
+    // A river farm, and a dry farm beside it that The Water Courts waters.
+    const river = at(state, 5, 4);
+    river.freshwater = true;
+    raiseImprovement(river, 'farm', 0);
+    const dry = tileNeighbors(state.map, river).find((tile) => tile !== at(state, 5, 5))!;
+    expect(dry.freshwater).toBe(false);
+    raiseImprovement(dry, 'farm', 0);
+    bumpRevision(state);
+    hold(state, 'theHydraulicEmpire');
+    const paid = (tile: typeof dry): boolean =>
+      explainTileYield(tile, cityContext(state, city)).some((entry) => entry.source.includes('Hydraulic'));
+    expect(paid(river)).toBe(true);
+    expect(paid(dry)).toBe(false);
+    seat(state).statecraft.orders.push('theWaterCourts');
+    seat(state).statecraft.slots[0] = { card: 'theWaterCourts', sealedUntil: state.turn };
+    bumpRevision(state);
+    expect(paid(dry)).toBe(true);
+  });
+
+  it('shows a build preview the public work it would raise', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    wet(state, city, 5, 4);
+    hold(state, 'theHydraulicEmpire');
+    const today = foldTileLines(explainTileYield(at(state, 5, 4), cityContext(state, city)));
+    const preview = foldTileLines(explainTileYield(at(state, 5, 4), cityContext(state, city, ['aqueduct'])));
+    expect(preview.food).toBe(today.food + 1);
+    expect(preview.production).toBe(today.production + 1);
+    // And the preview stayed a preview.
+    expect(city.buildings).not.toContain('aqueduct');
+  });
+
+  it('reaches a town’s own hex as every hex line does: what rises above the floor is inherited', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    at(state, 5, 5).freshwater = true;
+    addBuilding(state, city, 'granary');
+    addBuilding(state, city, 'aqueduct');
+    bumpRevision(state);
+    const before = foldCentre(state, city);
+    hold(state, 'theHydraulicEmpire');
+    // Grassland pays 2 food and no production under a floor of 2 and 2, so +2 food
+    // rises above the floor and +2 production only reaches it.
+    expect(foldCentre(state, city)).toEqual({ ...before, food: before.food + 2 });
+  });
+
+  it('follows the stones when a town changes hands', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    wet(state, city, 5, 4);
+    addBuilding(state, city, 'granary');
+    hold(state, 'theHydraulicEmpire');
+    expect(scopedCardTileLines(state, city)).toHaveLength(1);
+    city.ownerId = 1;
+    bumpRevision(state);
+    expect(scopedCardTileLines(state, city)).toEqual([]);
+  });
+});
+
+describe('The Builder Kings (batch DT13)', () => {
+  it('pays a Manufactory +2 production for each wonder in the town working it', () => {
+    const state = bareState(24, 10);
+    const city = town(state, 3, 3, 3);
+    const other = town(state, 15, 3, 3);
+    raiseImprovement(at(state, 3, 2), 'manufactory', 0);
+    raiseImprovement(at(state, 15, 2), 'manufactory', 0);
+    addBuilding(state, city, 'pyramids');
+    addBuilding(state, city, 'stonehenge');
+    addBuilding(state, other, 'monument');
+    bumpRevision(state);
+    const here = hexPays(state, city, 3, 2);
+    const there = hexPays(state, other, 15, 2);
+    hold(state, 'theBuilderKings');
+    expect(hexPays(state, city, 3, 2)).toEqual({ ...here, production: here.production + 4 });
+    // A town with no wonder makes no line, whatever the other town holds.
+    expect(hexPays(state, other, 15, 2)).toEqual(there);
+    // A farm is not a Manufactory.
+    raiseImprovement(at(state, 2, 3), 'farm', 0);
+    bumpRevision(state);
+    expect(
+      explainTileYield(at(state, 2, 3), cityContext(state, city)).some((entry) =>
+        entry.source.includes('Builder Kings'),
+      ),
+    ).toBe(false);
+  });
+
+  it('does not count the Magnum Opus as a wonder', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    raiseImprovement(at(state, 5, 4), 'manufactory', 0);
+    addBuilding(state, city, 'theMagnumOpus');
+    bumpRevision(state);
+    hold(state, 'theBuilderKings');
+    expect(scopedCardTileLines(state, city)).toEqual([]);
+  });
+
+  it('gives +25% production toward a wonder, and not toward the Magnum Opus or an ordinary row', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    hold(state, 'theBuilderKings');
+    const percent = (kind: string, id: string): number =>
+      productionModifiers(state, city, { kind, id } as never)
+        .filter((entry) => entry.card === 'theBuilderKings')
+        .reduce((sum, entry) => sum + entry.percent, 0);
+    expect(percent('building', 'pyramids')).toBe(25);
+    expect(percent('building', 'theMagnumOpus')).toBe(0);
+    expect(percent('building', 'monument')).toBe(0);
+    expect(percent('unit', 'settler')).toBe(0);
+  });
+
+  it('is doubled with the rest of the hex under The Cathedral Lodges', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    raiseImprovement(at(state, 5, 4), 'manufactory', 0);
+    addBuilding(state, city, 'pyramids');
+    bumpRevision(state);
+    const bare = hexPays(state, city, 5, 4);
+    hold(state, 'theBuilderKings');
+    hold(state, 'theCathedralLodges');
+    expect(hexPays(state, city, 5, 4).production).toBe(2 * (bare.production + 2));
+  });
+});
+
+describe('The Censors (batch DT13)', () => {
+  /** One census in this resolution: the phase, then the clock, as the pipeline runs them. */
+  function takeCensus(state: GameState) {
+    state.census.nextTurn = state.turn;
+    runCensus(state);
+    const record = lastCensus(state)!;
+    state.turn += 1;
+    bumpRevision(state);
+    return record;
+  }
+
+  /** What the row's own happiness line pays this seat. */
+  function censorsHappiness(state: GameState, playerId = 0): number {
+    return linesNaming(explainHappiness(state, playerId), 'The Censors');
+  }
+
+  it('gives every town a citizen at a census, puppets too, with no growth riders', () => {
+    const state = bareState(24, 10);
+    const capital = town(state, 3, 3, 3);
+    const puppet = town(state, 15, 3, 1);
+    puppet.puppet = true;
+    const rival = town(state, 3, 8, 3, 1);
+    hold(state, 'theCensors');
+    lend('theCensors', [
+      ...doctrineDef('theCensors').effects,
+      // A rider that would pay on growth, to show that a census citizen is not growth.
+      { kind: 'windfallRider', occasion: 'growth', grant: { yield: 'gold', amount: 50 } },
+    ]);
+    const gold = seat(state).gold;
+    takeCensus(state);
+    expect(capital.population).toBe(4);
+    expect(puppet.population).toBe(2);
+    expect(rival.population).toBe(3);
+    expect(seat(state).gold).toBe(gold);
+    // It counts toward the town's largest size, and the town re-seats at once.
+    expect(capital.largestSize).toBe(4);
+    expect(capital.workedTiles).toHaveLength(4);
+    expect(puppet.workedTiles).toHaveLength(2);
+  });
+
+  it('names each town once in the payout, in founding order, with one note', () => {
+    const state = bareState(24, 10);
+    const first = town(state, 3, 3, 3);
+    const second = town(state, 15, 3, 3);
+    hold(state, 'theCensors');
+    const payout = windfallPayout(state, 0, 'census', 0, 0, { population: 6 });
+    expect(payout.citizens?.map((entry) => [entry.townId, entry.amount])).toEqual([
+      [first.id, 1],
+      [second.id, 1],
+    ]);
+    expect(payout.lines).toEqual([expect.objectContaining({ note: '+1 citizen in 2 cities' })]);
+  });
+
+  it('pays nothing to a seat with no town', () => {
+    const state = bareState();
+    hold(state, 'theCensors');
+    const payout = windfallPayout(state, 0, 'census', 0, 0, { population: 0 });
+    expect(payout.citizens).toBeUndefined();
+  });
+
+  it('adds +1 happiness in each town for each census led, and nothing for a census another seat leads', () => {
+    const state = bareState(24, 10);
+    // Seat 0 is ahead on every figure that can read above nought, and a tie goes
+    // to the first seat, so a census that names a leader names seat 0.
+    town(state, 3, 3, 6);
+    town(state, 15, 3, 6);
+    town(state, 3, 8, 1, 1);
+    hold(state, 'theCensors', 0);
+    hold(state, 'theCensors', 1);
+    let led = 0;
+    for (let index = 0; index < 12 && led < 2; index++) {
+      const record = takeCensus(state);
+      if (record.leaderId === 0) led += 1;
+      expect(record.leaderId === 1, 'the fixture lets seat 1 lead').toBe(false);
+      expect(censorsHappiness(state, 0)).toBe(2 * led);
+      expect(censorsHappiness(state, 1)).toBe(0);
+    }
+    expect(led).toBe(2);
+    // Seat 1's town still gained its citizens.
+    expect(state.cities.find((city) => city.ownerId === 1)!.population).toBe(1 + state.census.taken.length);
+  });
+
+  it('moves the meter with no other write, so the census announces itself', () => {
+    const state = bareState(24, 10);
+    town(state, 3, 3, 6);
+    town(state, 3, 8, 1, 1);
+    // Only the happiness line: nothing else in this census could bump the clock.
+    lend('theCensors', doctrineDef('theCensors').effects.filter((effect) => effect.kind === 'pays'));
+    hold(state, 'theCensors');
+    let led = 0;
+    for (let index = 0; index < 12 && led === 0; index++) {
+      const before = happinessOf(state, 0);
+      state.census.nextTurn = state.turn;
+      runCensus(state);
+      if (lastCensus(state)!.leaderId === 0) {
+        led += 1;
+        expect(happinessOf(state, 0)).toBe(before + 1);
+      }
+      state.turn += 1;
+      bumpRevision(state);
+    }
+    expect(led).toBe(1);
+  });
+
+  it('does not count a census led before the Doctrine was taken', () => {
+    const state = bareState(24, 10);
+    town(state, 3, 3, 6);
+    const before = takeCensus(state);
+    before.leaderId = 0;
+    // Taken on the next turn, as a chosen offer stamps it.
+    hold(state, 'theCensors');
+    seat(state).statecraft.doctrineTurns = { theCensors: state.turn };
+    bumpRevision(state);
+    expect(censorsHappiness(state)).toBe(0);
+    // A census in the resolution of the turn it was taken does count.
+    const after = takeCensus(state);
+    after.leaderId = 0;
+    bumpRevision(state);
+    expect(censorsHappiness(state)).toBe(1);
+  });
+
+  it('counts for every town the seat holds now, a town founded later too', () => {
+    const state = bareState(24, 10);
+    town(state, 3, 3, 6);
+    hold(state, 'theCensors');
+    takeCensus(state).leaderId = 0;
+    bumpRevision(state);
+    expect(censorsHappiness(state)).toBe(1);
+    town(state, 15, 3, 1);
+    expect(censorsHappiness(state)).toBe(2);
+  });
+
+  it('asks the count of a town or of nobody as the row says', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 3);
+    hold(state, 'theCensors');
+    takeCensus(state).leaderId = 0;
+    const row = doctrineDef('theCensors').effects.find((effect) => effect.kind === 'pays')!;
+    if (row.kind !== 'pays') throw new Error('the row is a pays row');
+    expect(countOf(state, 0, 'theCensors', row, city)).toBe(1);
+    expect(countOf(state, 0, 'theCensors', row)).toBe(0);
+    const { within: _within, ...realm } = row;
+    expect(countOf(state, 0, 'theCensors', realm)).toBe(1);
   });
 });

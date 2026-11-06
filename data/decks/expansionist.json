@@ -3596,6 +3596,36 @@
         }
       ]
     },
+    "theCensors": {
+      "name": "The Censors",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 2,
+      "line": "none",
+      "flavor": "Stand up and be counted. The state will remember that you did.",
+      "text": "When the world takes a census, each of your towns gains a citizen. If you lead the census, each of your towns also gains +1 happiness for the rest of the game.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "census",
+          "grant": {
+            "citizens": 1,
+            "toEveryTown": true
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "censusesLed",
+          "within": "city",
+          "sinceDoctrine": "theCensors",
+          "to": "happiness",
+          "amount": 1
+        }
+      ]
+    },
     "theWildwoodCompact": {
       "name": "The Wildwood Compact",
       "decks": [
@@ -3669,6 +3699,35 @@
           "yield": "gold",
           "percent": -50,
           "stage": "empire"
+        }
+      ]
+    },
+    "theBuilderKings": {
+      "name": "The Builder Kings",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 3,
+      "line": "none",
+      "flavor": "The king's name is on the stones. The masons' town is under them.",
+      "text": "+25% production toward wonders. Manufactories gain +2 production for each wonder in the town working them.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 25
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "basis": "count",
+          "count": "wonders",
+          "within": "city",
+          "on": {
+            "test": "improvement",
+            "improvement": "manufactory"
+          },
+          "production": 2
         }
       ]
     },
@@ -3804,6 +3863,30 @@
           "on": {
             "test": "improved"
           }
+        }
+      ]
+    },
+    "theHydraulicEmpire": {
+      "name": "The Hydraulic Empire",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 4,
+      "line": "none",
+      "flavor": "Whoever holds the sluice gate holds the province.",
+      "text": "Worked tiles with fresh water gain +1 food and +1 production for each public work in their town.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "basis": "count",
+          "count": "publicWorks",
+          "within": "city",
+          "on": {
+            "test": "freshwater"
+          },
+          "food": 1,
+          "production": 1
         }
       ]
     },

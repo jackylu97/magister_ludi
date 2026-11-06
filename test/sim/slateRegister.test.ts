@@ -208,6 +208,9 @@ const WRITES: { field: string; pattern: RegExp }[] = [
     field: 'greatPeople',
     pattern: /\.greatPeopleRecruited\s*(=[^=]|\+=)|\.greatPeopleByFamily\s*=[^=]/,
   },
+  // Doctrine batch DT13: the censuses taken, which The Censors' `censusesLed`
+  // count reads. `runCensus` is its one writer.
+  { field: 'censusTaken', pattern: /\.taken\.push\(/ },
   // Expansionist batch E2: the towns an empire has founded, which The Book of
   // Settlements' `citiesFounded` count reads. `foundCityAt` is its one writer.
   { field: 'citiesFounded', pattern: /\.citiesFounded\s*(=[^=]|\+=)/ },
@@ -245,6 +248,8 @@ const ANNOUNCEMENTS = ['bumpEconomy(', 'bumpRevision('];
  */
 const ANNOUNCING = new Set([
   'beads.ts#awardBead',
+  // Doctrine batch DT13: a census taken moves The Censors' happiness.
+  'census.ts#runCensus',
   'trade.ts#settleTraderPlunder',
   'tech.ts#upgradeUnits',
   'religion.ts#payRiteBuildings',

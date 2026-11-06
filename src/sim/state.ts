@@ -3441,8 +3441,24 @@ import {
  *
  * **A v216 save is refused and does not replay.** These seats' Doctrine bags change,
  * so their draws move. The branch migrates nothing, for the reason given under v119.
+ *
+ * v218 (branch `decks`; batch DT13, `docs/plans/doctrines-build-triage.md`):
+ * **town counts on a hex, and the census.** No field joins the state. The rules that
+ * change:
+ *
+ *   · The Hydraulic Empire, The Builder Kings and The Censors are dealt to an
+ *     Expansionist seat;
+ *   · `pays` gains the pair hex/count: `countedHexRows` asks the count of the town
+ *     working the hex, and `hexRows` leaves such a row out for every other producer;
+ *   · the count `censusesLed` reads `state.census.taken`, narrowed by
+ *     `CardPaysEffect.sinceDoctrine`;
+ *   · a grant of `citizens` with `toEveryTown` pays every town the field admits, so
+ *     a census can pay it.
+ *
+ * **A v217 save is refused and does not replay.** These seats' Doctrine bags change,
+ * so their draws move. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 217;
+export const SCHEMA_VERSION = 218;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

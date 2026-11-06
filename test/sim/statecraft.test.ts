@@ -695,6 +695,8 @@ describe("the card table", () => {
     const expected = [
       // The hex — step 2 of `docs/yields.md`.
       "hex/flat",
+      // The hex counted by the town working it, at step 2 too (batch DT13).
+      "hex/count",
       // The town — step 3, and the count's percentage at step 11.
       "city/flat",
       "city/count",
@@ -712,9 +714,9 @@ describe("the card table", () => {
       "route/flat",
       // And the caravan counted by its own length (batch GP3, Marco Polo): the
       // arm was built with GP2 and the roster row that names it is live now, so
-      // the pair joins the list the day a row writes it. It is the one count
-      // that pays the **bag** rather than a `to`, because a route's line is a
-      // bag and the road's fold multiplies bags.
+      // the pair joins the list the day a row writes it. It pays the **bag**
+      // rather than a `to`, as hex/count does, because a route's line is a bag
+      // and the road's fold multiplies bags.
       "route/count",
     ];
     for (const pair of expected) expect(pairs.has(pair), pair).toBe(true);
@@ -2281,7 +2283,7 @@ describe("determinism", () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(217);
+    expect(SCHEMA_VERSION).toBe(218);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {

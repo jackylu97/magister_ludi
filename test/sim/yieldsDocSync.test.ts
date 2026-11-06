@@ -365,6 +365,9 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
    */
   const PAYS_PAIRS = [
     'hex/flat',
+    // Batch DT13, The Hydraulic Empire and The Builder Kings: the count is asked
+    // of the town working the hex, and the helpings multiply the bag.
+    'hex/count',
     'city/flat',
     'city/count',
     'capital/count',

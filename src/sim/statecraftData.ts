@@ -3517,7 +3517,19 @@ export type CountKind =
    * `PlayerStatecraft.doctrines`: every Doctrine taken, of any deck. A
    * Doctrine is held for the whole game, so the count never falls.
    */
-  | 'doctrinesHeld';
+  | 'doctrinesHeld'
+  /**
+   * **The censuses this empire has led** (Doctrine batch DT13, The Censors),
+   * read from `state.census.taken`. A seat tally cannot serve, because
+   * `recordScalingOccasion` tallies seated Orders only and a Doctrine has no
+   * chair.
+   *
+   * `CardPaysEffect.sinceDoctrine` leaves out the censuses led before the seat
+   * took that Doctrine. `within: 'city'` makes the count a town's question, so
+   * the happiness walk (`cardHappiness`) pays each town once for each census.
+   * With no town in hand it then answers nought, as `publicWorks` does.
+   */
+  | 'censusesLed';
 
 /**
  * **The ledgers of what an empire did first.** Each is one `GameState.firsts`
@@ -6507,6 +6519,9 @@ export interface WindfallGrantSpec {
    * still counts toward the town's largest size. The era and the council
    * multiply the figure as they multiply renown, and the result is rounded
    * down.
+   *
+   * With `toEveryTown` (batch DT13, The Censors) each town the field admits gains
+   * them, whatever the moment names, so a moment with no town can pay this.
    */
   citizens?: number;
   /**
@@ -6630,8 +6645,14 @@ export type PayTarget = CityYieldKey | 'happiness' | 'authority';
  * **bag** in `RouteYieldLine` and the road's own fold multiplies bags — which is
  * what `perEndpointLuxury` has always done with a flat row. So a road counted by
  * its length says `per` and its bag, and the helpings multiply the bag exactly as
- * the luxuries at its two ends do. Unambiguous because the pair is fresh: no
- * other (`where`, `basis`) reads the bag on a counted row.
+ * the luxuries at its two ends do.
+ *
+ * **The hex's count pays the bag too** (batch DT13, the (hex, count) pair; The
+ * Hydraulic Empire, The Builder Kings). A hex line is a bag for the same reason.
+ * The count is asked of the town working the hex, so only
+ * `scopedCardTileLines` can resolve it, and a row usually says `within: 'city'`.
+ * The helpings multiply the bag and nothing else on the row. These two pairs are
+ * the only counted rows that read the bag, and every other pair says `to`.
  *
  * **Three fields serve two readings each**, and each pair is disjoint by
  * (`where`, `basis`) rather than by convention:
@@ -6931,6 +6952,14 @@ export interface CardPaysEffect extends CardYieldBag {
    * Every other count ignores it.
    */
   seated?: true;
+  /**
+   * **Count only from the turn this seat took this Doctrine** (batch DT13, The
+   * Censors' "for the rest of the game"). Read by `censusesLed`, through
+   * `doctrineTakenTurn`. It names the Doctrine on the row for the reason the
+   * scope `foundedSince` does: a bot's probe asks `countOf` with no card in
+   * hand. Every other count ignores it.
+   */
+  sinceDoctrine?: DoctrineId;
 
   // --- where it lands -------------------------------------------------------
 

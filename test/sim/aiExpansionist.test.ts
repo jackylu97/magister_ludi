@@ -38,6 +38,7 @@ import {
   explainCommission,
   explainCounted,
   explainLump,
+  meterWeight,
   scoreEffects,
   valueOfYields,
 } from '../../src/ai/value';
@@ -53,6 +54,7 @@ import {
   type City,
   type GameState,
   type Player,
+  addBuilding,
   bumpRevision,
   playerById,
 } from '../../src/sim/state';
@@ -61,7 +63,9 @@ import {
   ORDER_IDS,
   type CardEffect,
   type CardPaysEffect,
+  type DoctrineId,
   type OrderId,
+  doctrineDef,
   orderDef,
 } from '../../src/sim/statecraftData';
 import { buildError, researchExpansion } from '../../src/sim/tech';
@@ -500,3 +504,93 @@ describe('the land’s Doctrines (batch DT12)', () => {
     expect(scoreEffects(arcadia, ctx)).toBe(-valueOfYields({ culture: 2 }, ctx));
   });
 });
+
+describe('town counts on a hex, and the census (batch DT13)', () => {
+  const rowOf = (id: string, index = 0): CardEffect => doctrineDef(id as DoctrineId).effects[index]!;
+  const HYDRAULIC = rowOf('theHydraulicEmpire');
+  const BUILDER_LINE = rowOf('theBuilderKings', 1);
+
+  /** The town works these wet hexes and nothing else. */
+  function workWet(state: GameState, city: City, hexes: Tile[]): void {
+    for (const tile of hexes) tile.freshwater = true;
+    const laid = WORKED.get(city) ?? [];
+    laid.push(...hexes.map((tile) => ({ col: tile.col, row: tile.row })));
+    WORKED.set(city, laid);
+    city.workedTiles = [...laid];
+    bumpRevision(state);
+  }
+
+  it('prices a hex line counted by its town hex by hex, each town counting its own', () => {
+    const { state, player, cities } = board(2, 40);
+    workWet(state, cities[0]!, ring(state, cities[0]!).slice(0, 2));
+    workWet(state, cities[1]!, ring(state, cities[1]!).slice(0, 3));
+    addBuilding(state, cities[0]!, 'granary');
+    addBuilding(state, cities[0]!, 'aqueduct');
+    addBuilding(state, cities[1]!, 'granary');
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    const helping = valueOfYields({ food: 1, production: 1 }, ctx);
+    expect(helping).toBeGreaterThan(0);
+    // Two hexes at two public works, and three hexes at one.
+    expect(scoreEffects([HYDRAULIC], ctx)).toBe((2 * 2 + 3 * 1) * helping);
+  });
+
+  it('reads nothing for a town with no public work, and never the stand-in', () => {
+    const { state, player, cities } = board(1, 40);
+    workWet(state, cities[0]!, ring(state, cities[0]!).slice(0, 2));
+    const ctx = valueContext(state, player);
+    expect(scoreEffects([HYDRAULIC], ctx)).toBe(0);
+  });
+
+  it('prices The Builder Kings’ line off the Manufactories a town with wonders works', () => {
+    const { state, player, cities } = board(2, 40);
+    work(state, cities[0]!, ring(state, cities[0]!).slice(0, 1), 'manufactory', 5);
+    work(state, cities[1]!, ring(state, cities[1]!).slice(0, 1), 'manufactory', 5);
+    addBuilding(state, cities[0]!, 'pyramids');
+    addBuilding(state, cities[0]!, 'stonehenge');
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    // The second town works a Manufactory and holds no wonder.
+    expect(scoreEffects([BUILDER_LINE], ctx)).toBe(2 * valueOfYields({ production: 2 }, ctx));
+  });
+
+  it('prices The Censors’ citizen once for each town, at the calendar’s rate', () => {
+    const { state, player } = board(3, 40);
+    const rider = rowOf('theCensors');
+    const ctx = valueContext(state, player);
+    const citizen = explainLump({ food: growthFood(6) }, ctx).total;
+    const rate = 2 / (RULES.census.min + RULES.census.max);
+    expect(scoreEffects([rider], ctx)).toBeCloseTo(rate * citizen * 3, 8);
+  });
+
+  it('prices The Censors’ happiness at the offer off the censuses still to come', () => {
+    const { state, player } = board(2, 40);
+    const line = rowOf('theCensors', 1);
+    const ctx = valueContext(state, player);
+    // No census led, so nothing has been banked yet. The figure is the calendar's
+    // censuses over the horizon, an even share of two seats, in two towns.
+    const censuses =
+      (2 / (RULES.census.min + RULES.census.max)) * aiJson.priorities.horizonTurns;
+    const happiness = meterWeight(ctx, 'happiness');
+    expect(scoreEffects([line], ctx)).toBeCloseTo(censuses * (1 / 2) * 2 * happiness, 8);
+  });
+
+  it('adds what a seat has led since it took the Doctrine, in each town', () => {
+    const { state, player } = board(2, 40);
+    const line = rowOf('theCensors', 1);
+    player.statecraft.doctrines.push('theCensors');
+    player.statecraft.doctrineTurns = { theCensors: 30 };
+    const record = (turn: number, leaderId: number | null) =>
+      ({ turn, stat: 'cities', rows: [], leaderId, taker: 'hipparchus' }) as never;
+    state.census.taken.push(record(20, 0), record(32, 0), record(35, 1));
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    // One census counts, the one led on turn 32, and it pays in both towns. Two of
+    // the three were led by this seat, so its share is three of five.
+    const censuses =
+      (2 / (RULES.census.min + RULES.census.max)) * aiJson.priorities.horizonTurns;
+    const happiness = meterWeight(ctx, 'happiness');
+    expect(scoreEffects([line], ctx)).toBeCloseTo((2 + censuses * (3 / 5) * 2) * happiness, 8);
+  });
+});
+

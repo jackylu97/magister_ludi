@@ -378,6 +378,9 @@ const BUILT_READERS: Record<string, { reads: number; why: string }> = {
     reads: 3,
     why: 'one of a kind (`wonders` in a town, `empireBuildings`), and built (`purchasedBuildings`, how it was paid for)',
   },
+  // Batch DT13: the count itself still goes through `townBuildings`. This read only
+  // adds a preview's building to a copy of the town for that count to ask.
+  'statecraft/evaluator.ts › countedHexRows': { reads: 1, why: 'built: a preview adds a row to what was built' },
   'statecraft/evaluator.ts › followingCount': { reads: 1, why: 'one of a kind: towns with a wonder' },
   'statecraft/evaluator.ts › groundFactsFor': { reads: 1, why: 'one of a kind: a wonder\'s centre' },
   'statecraft/evaluator.ts › cardHeldBuildings': { reads: 1, why: 'reading: a building the town built is no grant' },

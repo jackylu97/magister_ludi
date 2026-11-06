@@ -928,6 +928,16 @@
     "text": "+50% production toward public works"
    }
   ],
+  "theCensors": [
+   {
+    "raw": "the world taking a census gives every city of yours one more citizen",
+    "text": "the world taking a census gives every city of yours one more citizen"
+   },
+   {
+    "raw": "+1 happiness in every city per census you have led since taking this Doctrine",
+    "text": "+1 happiness in every city per census you have led since taking this Doctrine"
+   }
+  ],
   "theWildwoodCompact": [
    {
     "raw": "tended works cost your workers no charge",
@@ -956,6 +966,16 @@
    {
     "raw": "-50% gold in every city",
     "text": "-50% gold in every city"
+   }
+  ],
+  "theBuilderKings": [
+   {
+    "raw": "+25% production toward wonders",
+    "text": "+25% production toward wonders"
+   },
+   {
+    "raw": "+2 production on every hex with a [[improvement:manufactory|Manufactory]], for each wonder standing in its town",
+    "text": "+2 production on every hex with a Manufactory, for each wonder standing in its town"
    }
   ],
   "empireWithoutEnd": [
@@ -1002,6 +1022,12 @@
    {
     "raw": "+2 food, +2 production, +2 gold on every improved hex",
     "text": "+2 food, +2 production, +2 gold on every improved hex"
+   }
+  ],
+  "theHydraulicEmpire": [
+   {
+    "raw": "+1 food, +1 production on every hex beside fresh water, for each public work standing in its town",
+    "text": "+1 food, +1 production on every hex beside fresh water, for each public work standing in its town"
    }
   ],
   "theCathedralLodges": [

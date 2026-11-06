@@ -192,7 +192,8 @@ export interface TileYieldContext {
    *     why `cityContext` adds it and `yieldContextFor` cannot;
    *   · a card's **scoped** hex `pays` (`scopedCardTileLines`) — Petra's desert
    *     and the Hanging Gardens' irrigated farms, which are the same fact about
-   *     one city said by a card instead of by a building;
+   *     one city said by a card instead of by a building. A row counted by the
+   *     town working the hex lands here too (batch DT13, The Hydraulic Empire);
    *   · a **follower belief's** hex `pays` (`followerCardTileLines`) — Harvest
    *     Blessing's food on the farms of a city that follows, and the only
    *     producer whose card may belong to another empire entirely;
@@ -363,9 +364,10 @@ export function yieldContextFor(
  * used to hand its candidate to `explainCityBuildings` and stop there, so a
  * lighthouse — which pays *nothing* flat and +1🌾 on every coastal hex the town
  * works — appraised at zero and the bot never built one (2026-09-04). It reaches
- * only `buildingTileLines`, the one producer that is a fact about *this* town's
- * shelves; the empire's law, its holdings and its faith are unmoved by a
- * building that does not exist yet, and an empty list is byte-for-byte the
+ * `buildingTileLines` and the counted rows of `scopedCardTileLines` (batch DT13,
+ * The Hydraulic Empire pays per public work in the town), the two producers
+ * that read *this* town's shelves. The empire's holdings and its faith are unmoved
+ * by a building that does not exist yet, and an empty list is byte-for-byte the
  * reading every real caller had before.
  */
 export function cityContext(
@@ -394,7 +396,7 @@ export function cityContext(
   const own = [
     ...buildingTileLines(shelf, ctx.techs, hypothetical),
     ...timedCityTileLines(state, city),
-    ...scopedCardTileLines(state, city),
+    ...scopedCardTileLines(state, city, hypothetical),
     ...followerCardTileLines(state, city),
     ...consecrationCardTileLines(state, city),
   ];

@@ -63,6 +63,7 @@ import { awardOccasion } from './triumphs';
 import { TRIUMPH_IDS, type TriumphId, triumphDef } from './triumphData';
 import { nextInt } from './rng';
 import { RULES } from './rulesData';
+import { bumpEconomy } from './slate';
 import {
   type CensusRecord,
   type CensusRow,
@@ -397,6 +398,9 @@ export function runCensus(state: GameState, report?: CensusReport): void {
 
   const record: CensusRecord = { turn: state.turn, stat, rows, leaderId, taker };
   register.taken.push(record);
+  // The `censusesLed` count reads this list (batch DT13, The Censors), and a town
+  // line on that count reaches the meters, so the write announces itself.
+  bumpEconomy(state);
   register.nextTurn = state.turn + drawCensusInterval(state.rng);
 
   if (leaderId !== null) {

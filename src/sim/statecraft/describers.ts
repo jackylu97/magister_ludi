@@ -1473,7 +1473,9 @@ function describePays(
 ): void {
   const basis = effect.basis ?? 'flat';
 
-  if (basis === 'count') {
+  // A counted hex row prints in the hex arm below: its helpings multiply the bag,
+  // so it has no `to` for `payoutWords` to read (batch DT13).
+  if (basis === 'count' && effect.where !== 'hex') {
     // The cap is on the **count** (`helpings` in the evaluator), so it is
     // printed as the payout it works out to — "(at most +3 happiness)" — which
     // is how every ratified row states it and the only form a player can check
@@ -1606,8 +1608,18 @@ function describePays(
             one: `adjacent ${tileConditionWords(ring)}`,
             many: `adjacent ${tileConditionWords(ring).replace(/\bhex\b/, 'hexes')}`,
           })}` + (effect.max === undefined ? '' : ` (at most ${effect.max})`);
+    // **And once for each thing its own town counts** (batch DT13, the pair
+    // hex/count). The town is the one working the hex, so the words say "its".
+    const perTownCount =
+      basis === 'count'
+        ? `, for each ${countWords(effect.per, countNoun(effect, 'in its town'))}` +
+          (countNamesItsTown(effect) ? '' : ' in its town') +
+          (effect.max === undefined ? '' : ` (at most ${effect.max})`)
+        : '';
     if (words) {
-      out.push({ text: `${words} on every ${tileConditionWords(on)}${whose}${perPeak}${perRing}` });
+      out.push({
+        text: `${words} on every ${tileConditionWords(on)}${whose}${perPeak}${perRing}${perTownCount}`,
+      });
     }
     // The percentage is its own clause, because it is a share of a *different*
     // number: the flat is what the card pays and this is what the works pay
@@ -2624,7 +2636,15 @@ function describeEffect(
       // point back at it. A unit raised for free gives a citizen too, so the
       // words name no exception.
       if (grant?.citizens !== undefined && grant.citizens > 0) {
-        const town = effect.inTown === undefined ? 'the city where it happens' : 'that city';
+        // Batch DT13, The Censors: a grant to every town names them itself.
+        const town =
+          grant.toEveryTown === true
+            ? 'every city of yours'
+            : grant.toEveryTown !== undefined
+              ? cityScopeWords(grant.toEveryTown)
+              : effect.inTown === undefined
+                ? 'the city where it happens'
+                : 'that city';
         const people = grant.citizens === 1 ? 'one more citizen' : `${grant.citizens} more citizens`;
         out.push({ text: `${occasion} gives ${town} ${people}${per}` });
       }
@@ -4211,6 +4231,14 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
     const at = place === '' ? 'in this city' : place;
     return { one: `wonder standing ${at}`, many: `wonders standing ${at}` };
   }
+  // **The censuses led since a Doctrine was taken** (batch DT13, The Censors).
+  // The Doctrine holding the row is the one it names, so the words say "this".
+  if (effect.count === 'censusesLed' && effect.sinceDoctrine !== undefined) {
+    return {
+      one: 'census you have led since taking this Doctrine',
+      many: 'censuses you have led since taking this Doctrine',
+    };
+  }
   // **One town's public works** (Expansionist batch E11): `publicWorks`
   // narrowed to the town it is counted in, worded as `wonders` is above.
   if (effect.count === 'publicWorks' && effect.within === 'city') {
@@ -4480,6 +4508,8 @@ function countNamesItsTown(effect: CardPaysEffect): boolean {
   // `countNoun` rather than in the table below because it takes an argument and
   // the table's formatters are handed only the place.
   if (effect.count === 'tilesInBorders') return true;
+  // A census is the world's, and the seat led it. "There" would say a town led it.
+  if (effect.count === 'censusesLed') return true;
   // The town's caravans abroad, for the same reason: `countNoun` builds the
   // place into "leaving there", so a tail would name the town twice.
   if (effect.count === 'foreignTradeRoutes' && effect.within === 'city') return true;
@@ -6611,6 +6641,9 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   },
   // Magisterial batch MG7, The Pandects.
   doctrinesHeld: { one: 'Doctrine you hold', many: 'Doctrines you hold' },
+  // Doctrine batch DT13, The Censors. `countNoun` adds the narrowing to one
+  // Doctrine's time.
+  censusesLed: { one: 'census you have led', many: 'censuses you have led' },
   // Scientific batch S2, feature A. The family is printed by `countNoun`, so
   // that "per scholar in the trades" and "per merchant in the trades" are one
   // entry, `greatPeopleGained`'s bargain.
