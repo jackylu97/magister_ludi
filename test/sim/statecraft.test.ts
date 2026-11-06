@@ -2283,7 +2283,7 @@ describe("determinism", () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(224);
+    expect(SCHEMA_VERSION).toBe(225);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -8554,7 +8554,8 @@ describe("the engine shapes", () => {
 
   it("keeps the slots array and the layout in one order, index for index", () => {
     const g = game();
-    const sc = playerById(g.state, 0)!.statecraft;
+    const player = playerById(g.state, 0)!;
+    const sc = player.statecraft;
     expect(slotTypesOf(sc)).toHaveLength(sc.slots.length);
     // **Typed chairs again** (batch C2): the chiefdom's three are Military,
     // Economic and Wildcard, index for index, so a position counted within a
@@ -8562,18 +8563,18 @@ describe("the engine shapes", () => {
     // counts every chair.
     expect(slotTypesOf(sc)).toEqual(["military", "economic", "wildcard"]);
     seat(g.state, 0, 2, "waysideShrines");
-    expect(orderAtSlotPosition(sc, 3)).toBe("waysideShrines");
-    expect(orderAtSlotPosition(sc, 1, "wildcard")).toBe("waysideShrines");
-    expect(orderAtSlotPosition(sc, 2, "wildcard")).toBeNull();
-    expect(orderAtSlotPosition(sc, 1, "economic")).toBeNull();
-    expect(orderAtSlotPosition(sc, 1, "military")).toBeNull();
-    expect(orderAtSlotPosition(sc, 1)).toBeNull();
-    expect(orderAtSlotPosition(sc, 9)).toBeNull();
+    expect(orderAtSlotPosition(player, 3)).toBe("waysideShrines");
+    expect(orderAtSlotPosition(player, 1, "wildcard")).toBe("waysideShrines");
+    expect(orderAtSlotPosition(player, 2, "wildcard")).toBeNull();
+    expect(orderAtSlotPosition(player, 1, "economic")).toBeNull();
+    expect(orderAtSlotPosition(player, 1, "military")).toBeNull();
+    expect(orderAtSlotPosition(player, 1)).toBeNull();
+    expect(orderAtSlotPosition(player, 9)).toBeNull();
     // A chair past the government's mix (a leader's, a card's) is a Wildcard
     // chair, appended after the government's own.
     sc.slots.push(null);
     expect(slotTypesOf(sc)).toEqual(["military", "economic", "wildcard", "wildcard"]);
-    expect(orderAtSlotPosition(sc, 1, "wildcard")).toBe("waysideShrines");
+    expect(orderAtSlotPosition(player, 1, "wildcard")).toBe("waysideShrines");
   });
 
   it("pays the Order in the second chair twice over", () => {

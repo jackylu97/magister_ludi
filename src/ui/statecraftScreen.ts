@@ -959,7 +959,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       if (positions) {
         plate.append(element('span', 'sc-slot-position', slotPositionWord(layout, index)));
         // The chair The Arthashastra reads twice (batch DT9). It moves when another
-        // chair opens, so the plate says which one it is now.
+        // chair opens or a malice takes it, so the plate says which one it is now.
         if (chairReadingsAt(state, seat, index) === 2) {
           plate.append(element('span', 'sc-slot-position', 'counts twice'));
         }

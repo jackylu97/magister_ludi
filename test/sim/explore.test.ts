@@ -1391,10 +1391,15 @@ describe('determinism', () => {
    * both seeds: 223 became 224, and that is all. Nobody here levies. Checked with the
    * change in place and the version printed as 223, which gives the hashes of batch
    * DT18 exactly.
+   *
+   * **Batch DT19c (the build made to match the text, schema 225) moved the hash and not
+   * the length** at both seeds: 224 became 225, and that is all. Nobody here holds the
+   * rows. Checked with the change in place and the version printed as 224, which gives
+   * the hashes of batch DT19 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '95260264:190677',
-    2026: 'b04393d5:190843',
+    11: 'ba8db5c5:190677',
+    2026: 'fd4e90c4:190843',
   };
 
   for (const seed of [11, 2026]) {

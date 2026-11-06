@@ -155,6 +155,7 @@ export {
   cardProjectPays,
   cardPurchaseRiders,
   cardCityCostDelta,
+  cardCityCostDiscount,
   cardCityCostPercent,
   cardCityCostValue,
   cardCityRuleAt,
@@ -205,6 +206,7 @@ export {
   explainCardEmpireYields,
   explainFollowerLinesAbroad,
   explainCardPercentYields,
+  cardEmpireIncomeShares,
   // Expansionist batch E3: the board's answers for the tile tests a tile cannot
   // answer alone, and an empire's farm water.
   farmWaterOf,
@@ -369,7 +371,7 @@ export {
   nextDraftCost,
   offerSize,
   chairIndexAtPosition,
-  ghostSlotsUnderDoctrine,
+  ghostCouncilUnderDoctrine,
   orderAtSlotPosition,
   orderChoiceError,
   orderFitsSlotFor,

@@ -2737,17 +2737,21 @@ export function poolSlots(pool: ReligionBeliefPool): number {
 }
 
 /**
- * How many beliefs of one pool **this religion** may hold: the data's figure, and
- * the room in the law of whoever holds its holy city (batch DT15, The Seven Councils).
- * So a seat that holds two religions gains the room in each, and a religion whose holy
- * city falls keeps what it holds and has the new holder's room from then on.
+ * How many beliefs of one pool **this religion** may hold: the data's figure, and the
+ * room in the law of the seat that founded it (batch DT15, The Seven Councils).
+ *
+ * The founder, and not the holder of the holy city, because only a founder can teach
+ * (`gainBeliefError`). Read off the holder, a card held by a seat that captured the
+ * holy city would give its room to the old founder's prophets (batch DT19c). So a
+ * founder that loses its holy city keeps the room while it holds the card, and a seat
+ * that only captured a holy city gains none.
  */
 export function poolSlotsFor(
   state: GameState,
   religion: Religion,
   pool: ReligionBeliefPool,
 ): number {
-  return Math.max(0, poolSlots(pool) + cardBeliefPoolSlots(state, religionFounder(state, religion), pool));
+  return Math.max(0, poolSlots(pool) + cardBeliefPoolSlots(state, religion.founderId, pool));
 }
 
 /** How many this religion currently holds. */

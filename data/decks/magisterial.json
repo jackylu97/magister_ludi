@@ -3249,7 +3249,7 @@
         { "kind": "slotRider", "extra": 1 },
         { "kind": "slotPosition", "slot": "wildcard", "position": -1, "factor": 2, "whole": true }
       ],
-      "note": "This is the last Wildcard chair of your council, and the council screen marks it. If you gain another chair, the mark moves to the new last one. The card's yields, percentages, combat lines and riders all count twice. A rule that is simply on or off holds once, and the card opens no second chair. A malice in that chair does not count twice."
+      "note": "This is the last Wildcard chair of your council that no malice holds, and the council screen marks it. If you gain another chair, or a malice takes this one, the mark moves. The card's yields, percentages, combat lines and riders all count twice. A rule that is simply on or off holds once, and the card opens no second chair."
     },
     "theHospitium": {
       "name": "The Hospitium",

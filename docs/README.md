@@ -551,8 +551,9 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
     `refitSlots`, so a `slotRider` Doctrine (The Council of Ten) adds its Wildcard
     chairs at once and moves no card.
   - **A chair that counts twice** (batch DT9, The Arthashastra): a `slotPosition`
-    row with `whole: true`. `position: -1` is the last chair of the flavour, so
-    the chair moves when another chair opens. `buildLiveEffects` pushes the seated
+    row with `whole: true`. `position: -1` is the last chair of the flavour that no
+    malice holds, so the chair moves when another chair opens or a malice takes it.
+    `buildLiveEffects` pushes the seated
     card's effects again, right after the seated Orders, under a label of their
     own. `slotRider`, `slotPosition` and `metaRule` are read once.
     `runPeriodicBoons` reads a periodic row off the chair itself, so it multiplies

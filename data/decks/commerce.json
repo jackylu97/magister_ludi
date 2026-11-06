@@ -3253,8 +3253,12 @@
       "effects": [
         {
           "kind": "meterRule",
-          "rule": "coastalCityCost",
-          "delta": -1
+          "rule": "cityCost",
+          "delta": -1,
+          "scope": {
+            "test": "coastal"
+          },
+          "noMinimum": true
         },
         {
           "kind": "pays",
@@ -3334,7 +3338,7 @@
       "band": 2,
       "line": "none",
       "flavor": "Leave your coin at the capital and draw it at the frontier. Paper flies lighter.",
-      "text": "Your towns with a gold building buy units and buildings 20% cheaper. Your other towns cannot buy them.",
+      "text": "Your towns with a gold building buy units and buildings 20% cheaper. Your other towns cannot buy them with gold.",
       "effects": [
         {
           "kind": "purchaseRider",

@@ -139,7 +139,7 @@ import {
   chairFitFor,
   councilRefit,
   describeEffects,
-  ghostSlotsUnderDoctrine,
+  ghostCouncilUnderDoctrine,
   occasionWords,
   holdsOrder,
   reseatCouncil,
@@ -396,24 +396,28 @@ function ghostPair(
       // has the chairs the command would leave. The Arthashastra's stamp must not
       // claim to double the card in today's last Wildcard chair.
       if (sc.doctrines.includes(subject.id)) {
+        const { slots, malices } = ghostCouncilUnderDoctrine(player, subject.id, false);
         return backward({
           ...player,
+          malices,
           statecraft: {
             ...sc,
             doctrines: sc.doctrines.filter((id) => id !== subject.id),
-            slots: ghostSlotsUnderDoctrine(sc, subject.id, false),
+            slots,
           },
         });
       }
       // Stamped with this turn, as taking it would be (batch DT1), so a "from now
       // on" rule does not read the towns already founded.
+      const { slots, malices } = ghostCouncilUnderDoctrine(player, subject.id, true);
       return forward({
         ...player,
+        malices,
         statecraft: {
           ...sc,
           doctrines: [...sc.doctrines, subject.id],
           doctrineTurns: { ...sc.doctrineTurns, [subject.id]: state.turn },
-          slots: ghostSlotsUnderDoctrine(sc, subject.id, true),
+          slots,
         },
       });
     }

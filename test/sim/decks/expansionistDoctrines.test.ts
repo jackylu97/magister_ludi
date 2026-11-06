@@ -15,7 +15,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { scoreCard, valueContext } from '../../../src/ai/bot';
 import { scoreEffects } from '../../../src/ai/value';
-import { explainCardImpact } from '../../../src/sim/cardImpact';
+import { explainCardImpact, foldCardImpact } from '../../../src/sim/cardImpact';
+import { classifyCard } from '../../../src/sim/ledgerClass';
+import { classifyEmpireLine } from '../../../src/sim/ledgerFold';
 import {
   assignCitizens,
   assignableTiles,
@@ -64,7 +66,7 @@ import {
   createUnit,
   playerById,
 } from '../../../src/sim/state';
-import { adoptGovernmentAt, describeCard, doctrineBagFor, statecraftBlocker } from '../../../src/sim/statecraft';
+import { adoptGovernmentAt, describeCard, doctrineBagFor, statecraftBlocker, stripRefs } from '../../../src/sim/statecraft';
 import {
   cardCityRuleAt,
   cardWorkAgeFactor,
@@ -87,6 +89,13 @@ import {
   governmentsAtTier,
   poolDoctrines,
 } from '../../../src/sim/statecraftData';
+import {
+  collectYields,
+  explainEmpireLines,
+  foldEmpireIncome,
+  foldEmpireLines,
+  foldEmpireRates,
+} from '../../../src/sim/yields/empire';
 import { cityContext, explainTileYield, foldTileLines, yieldContextFor } from '../../../src/sim/yields/hex';
 import { explainCentreYield, foldCentre, foldCity, productionModifiers } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
@@ -367,24 +376,28 @@ describe('Synoecism', () => {
     expect(foldGrowthPercent(explainGrowthPercent(state, small))).toBe(smallBefore);
   });
 
-  it('charges 1 more for a town already founded and one founded later, and not the capital', () => {
+  it('charges 1 more for the capital, a town already founded and one founded later (batch DT19c)', () => {
     const state = bareState(30, 10);
     const capital = town(state, 3, 3);
     const earlier = town(state, 12, 3);
     const plain = townWrit(state, earlier);
     const plainQuote = foundingQuote(state, 20, 3);
-    hold(state, 'synoecism');
     expect(townWrit(state, capital)).toBe(0);
+    hold(state, 'synoecism');
+    // "Towns you founded": the capital is one, so it costs 1.
+    expect(townWrit(state, capital)).toBe(1);
     expect(townWrit(state, earlier)).toBe(plain + 1);
     expect(foundingQuote(state, 20, 3)).toBe(plainQuote + 1);
     const later = town(state, 20, 3);
     expect(townWrit(state, later)).toBe(plainQuote + 1);
   });
 
-  it('leaves the first town of a seat free on the preview', () => {
+  it('quotes the first town of a seat at 1, as the meter charges it', () => {
     const state = bareState();
     hold(state, 'synoecism');
-    expect(foundingQuote(state, 5, 5)).toBe(0);
+    expect(foundingQuote(state, 5, 5)).toBe(1);
+    const first = town(state, 5, 5);
+    expect(townWrit(state, first)).toBe(1);
   });
 
   it('charges nothing more for a captured town', () => {
@@ -514,6 +527,127 @@ describe('The Contented City', () => {
     expect(after.production).toBe(before.production);
     const lines = explainCardPercentYields(state, city).filter((line) => line.card === 'theContentedCity');
     expect(lines).toEqual([expect.objectContaining({ yield: 'gold', percent: -50, stage: 'empire' })]);
+  });
+
+  /**
+   * Batch DT19c: the empire's own income. A capital joined by road to a second town,
+   * a caravan to a rival's town, and a soldier and a Monument to pay for.
+   */
+  function realm(): { state: GameState; capital: City; second: City; abroad: City } {
+    const state = bareState(30, 10);
+    state.wars = [];
+    const capital = town(state, 4, 4, 6);
+    const second = town(state, 10, 4, 6);
+    for (let col = 4; col <= 10; col++) layRoad(at(state, col, 4), 0);
+    const abroad = town(state, 22, 4, 6, 1);
+    addBuilding(state, capital, 'market');
+    addBuilding(state, capital, 'monument');
+    createUnit(state, 0, 'warrior', 5, 5);
+    const trader = createUnit(state, 0, 'trader', capital.col, capital.row);
+    const route = applyCommand(state, {
+      type: 'startRoute',
+      playerId: 0,
+      unitId: trader.id,
+      fromCityId: capital.id,
+      toCityId: abroad.id,
+    });
+    expect(route.ok, route.ok ? '' : route.error).toBe(true);
+    bumpRevision(state);
+    return { state, capital, second, abroad };
+  }
+
+  it('halves city connections and a caravan abroad, and leaves every bill whole', () => {
+    const { state } = realm();
+    const before = explainEmpireLines(state, 0);
+    const named = (lines: typeof before, head: string) => lines.find((line) => line.source.startsWith(head));
+    const roads = named(before, 'City connections')!.gold;
+    const caravan = before
+      .filter((line) => line.origin === 'route')
+      .reduce((sum, line) => sum + line.gold, 0);
+    const bills = before.filter((line) => line.bill === true);
+    expect(roads).toBeGreaterThan(0);
+    expect(caravan).toBeGreaterThan(0);
+    expect(bills.some((line) => line.source.startsWith('Unit maintenance'))).toBe(true);
+    const income = foldEmpireIncome(before).gold;
+    expect(income).toBeCloseTo(roads + caravan, 6);
+    // Stated for this board: the roads and the caravan earn 6 gold.
+    expect(income).toBeCloseTo(6, 6);
+
+    hold(state, 'theContentedCity');
+    const after = explainEmpireLines(state, 0);
+    // One line, named for the card, worth half of the income above it.
+    const shares = after.filter((line) => line.origin === 'share');
+    expect(shares).toHaveLength(1);
+    expect(shares[0]!.source).toContain('The Contented City');
+    expect(shares[0]!.card).toBe('theContentedCity');
+    expect(shares[0]!.gold).toBeCloseTo(-3, 6);
+    // The list folds to half the income and the whole of the bills.
+    const billed = after.filter((line) => line.bill === true);
+    expect(billed.map((line) => [line.source, line.gold])).toEqual(bills.map((line) => [line.source, line.gold]));
+    const owed = billed.reduce((sum, line) => sum + line.gold, 0);
+    expect(owed).toBeLessThan(0);
+    expect(foldEmpireLines(after).gold).toBeCloseTo(income / 2 + owed, 6);
+    expect(foldEmpireLines(after).gold).toBeCloseTo(foldEmpireLines(before).gold - income / 2, 6);
+  });
+
+  it('halves a card’s empire gold, and no other voice', () => {
+    const { state } = realm();
+    lend('empireWithoutEnd', [{ kind: 'pays', where: 'empire', gold: 6, science: 4 } as CardEffect]);
+    hold(state, 'empireWithoutEnd');
+    const before = foldEmpireIncome(explainEmpireLines(state, 0));
+    hold(state, 'theContentedCity');
+    const share = explainEmpireLines(state, 0).find((line) => line.origin === 'share')!;
+    expect(share.gold).toBeCloseTo(-before.gold / 2, 6);
+    expect(share.science).toBe(0);
+    expect(foldEmpireLines(explainEmpireLines(state, 0)).science).toBeCloseTo(
+      foldEmpireLines(explainEmpireLines(state, 0).filter((line) => line.origin !== 'share')).science,
+      6,
+    );
+  });
+
+  it('banks what the list folds to, and the rates read the same', () => {
+    const { state, capital, second } = realm();
+    hold(state, 'theContentedCity');
+    const empire = foldEmpireLines(explainEmpireLines(state, 0)).gold;
+    const towns = foldCity(state, capital, [], capital.queue[0]).gold + foldCity(state, second, [], second.queue[0]).gold;
+    // A rate reads the standing lines, and no card in this realm pays the empire.
+    expect(foldEmpireRates(state, 0).goldPerTurn).toBeCloseTo(towns + empire, 6);
+    const held = seat(state).gold;
+    collectYields(state);
+    expect(seat(state).gold).toBeCloseTo(held + towns + empire, 6);
+  });
+
+  it('prints the loss on the card’s stamp, and files the line under the deck', () => {
+    const { state, capital, second } = realm();
+    const income = foldEmpireIncome(explainEmpireLines(state, 0)).gold;
+    const towns = foldCity(state, capital).gold + foldCity(state, second).gold;
+    const stamp = foldCardImpact(explainCardImpact(state, 0, { kind: 'doctrine', id: 'theContentedCity' as DoctrineId }));
+    expect(stamp.gold).toBeCloseTo(-(income + towns) / 2, 6);
+    hold(state, 'theContentedCity');
+    const share = explainEmpireLines(state, 0).find((line) => line.origin === 'share')!;
+    expect(classifyEmpireLine(share)).toBe(classifyCard('theContentedCity' as DoctrineId));
+  });
+
+  it('prices the empire’s income as well as the towns', () => {
+    const { state } = realm();
+    const row = doctrineDef('theContentedCity').effects.filter((effect) => effect.kind === 'percentYields');
+    const ctx = valueContext(state, seat(state));
+    const income = foldEmpireIncome(explainEmpireLines(state, 0)).gold;
+    expect(income).toBeGreaterThan(0);
+    const townsOnly = row.map((effect) => {
+      const { empireIncome: _reached, ...town } = effect as CardEffect & { empireIncome?: true };
+      return town as CardEffect;
+    });
+    const gap = scoreEffects(row, ctx) - scoreEffects(townsOnly, ctx);
+    expect(gap).toBeCloseTo(scoreEffects([{ kind: 'pays', where: 'empire', gold: -income / 2 } as CardEffect], ctx), 6);
+    expect(gap).toBeLessThan(0);
+  });
+
+  it('says it reaches the income and not the bills', () => {
+    expect(describeCard('theContentedCity').map((clause) => stripRefs(clause.text))).toEqual([
+      '-20% happiness demanded per citizen',
+      '-50% gold income, before maintenance',
+    ]);
   });
 });
 
@@ -727,7 +861,7 @@ describe('The Mandarinate', () => {
     expect(rates(state, city)).toEqual({ science: 0, culture: 0, stages: [] });
   });
 
-  it('charges 1 more for each town, founded or captured, and the capital stays free', () => {
+  it('charges 1 more for each town, the capital, founded and captured alike (batch DT19c)', () => {
     const state = bareState(30, 10);
     const capital = town(state, 3, 3);
     const founded = town(state, 12, 3);
@@ -737,15 +871,17 @@ describe('The Mandarinate', () => {
     bumpRevision(state);
     const plainFounded = townWrit(state, founded);
     const plainSeized = townWrit(state, seized);
-    hold(state, 'theMandarinate');
     expect(townWrit(state, capital)).toBe(0);
+    hold(state, 'theMandarinate');
+    // "Each of your towns": the capital costs 1.
+    expect(townWrit(state, capital)).toBe(1);
     expect(townWrit(state, founded)).toBe(plainFounded + 1);
     expect(townWrit(state, seized)).toBe(plainSeized + 1);
     // The founding preview agrees, for a further town and for a seat's first.
     expect(foundingQuote(state, 12, 8)).toBe(plainFounded + 1);
     const first = bareState();
     hold(first, 'theMandarinate');
-    expect(foundingQuote(first, 5, 5)).toBe(0);
+    expect(foundingQuote(first, 5, 5)).toBe(1);
   });
 
   it('cancels against The Commanderies, as the proposal intended', () => {
@@ -848,6 +984,46 @@ describe('The Highland Clans (batch DT6)', () => {
     hold(state, 'theHighlandClans');
     expect(foundingQuote(state, 12, 3)).toBe(hill - 1);
     expect(foundingQuote(state, 20, 3)).toBe(flat);
+    // The town founded there costs what the preview quoted.
+    expect(townWrit(state, town(state, 12, 3))).toBe(hill - 1);
+  });
+
+  it('discounts a captured town and a puppet on hills, which the ladder never reached (batch DT19c)', () => {
+    const state = bareState(30, 10);
+    town(state, 3, 3);
+    at(state, 12, 3).hills = true;
+    at(state, 22, 3).hills = true;
+    const seized = town(state, 12, 3, 1, 1);
+    seized.ownerId = 0;
+    seized.captured = true;
+    const puppet = town(state, 22, 3, 1, 1);
+    puppet.ownerId = 0;
+    puppet.captured = true;
+    puppet.puppet = true;
+    bumpRevision(state);
+    expect(townWrit(state, seized)).toBe(RULES.meters.authority.capturedCity);
+    expect(townWrit(state, puppet)).toBe(RULES.meters.authority.capturedCity - RULES.war.puppetAuthorityRelief);
+    hold(state, 'theHighlandClans');
+    expect(townWrit(state, seized)).toBe(RULES.meters.authority.capturedCity - 1);
+    expect(townWrit(state, puppet)).toBe(RULES.meters.authority.capturedCity - RULES.war.puppetAuthorityRelief - 1);
+  });
+
+  it('keeps a capital on hills free', () => {
+    const state = bareState(24, 10);
+    at(state, 5, 5).hills = true;
+    const capital = town(state, 5, 5);
+    hold(state, 'theHighlandClans');
+    expect(townWrit(state, capital)).toBe(0);
+  });
+
+  it('reads the row through `cityCost`, so no live row reads the ladder’s `hillCityCost`', () => {
+    expect(doctrineDef('theHighlandClans').effects[0]).toEqual({
+      kind: 'meterRule',
+      rule: 'cityCost',
+      delta: -1,
+      scope: { test: 'onHills' },
+      noMinimum: true,
+    });
   });
 
   it('pays +1 food on a hill beside the town, and nothing on flat ground beside it', () => {

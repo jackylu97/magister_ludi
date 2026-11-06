@@ -917,7 +917,7 @@ describe('batch DT1: The Universal Monarchy', () => {
     bumpRevision(state);
     const plain = foundingQuote(state, 10, 2);
     lend('theUniversalMonarchy', [
-      // Synoecism's form, read by a town not yet founded: not captured, not capital.
+      // A scope a town not yet founded can answer: not captured, not capital.
       {
         kind: 'meterRule',
         rule: 'cityCost',

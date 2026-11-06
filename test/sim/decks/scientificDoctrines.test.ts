@@ -94,6 +94,7 @@ import {
   type OrderId,
   DECK_FILE_DOCTRINES,
   doctrineDef,
+  orderDef,
   poolDoctrines,
 } from '../../../src/sim/statecraftData';
 import {
@@ -457,7 +458,13 @@ describe('The Academy of Gondishapur', () => {
     for (const id of BEAD_ROWS) {
       expect(buildPercent(state, city, id, 'theAcademyOfGondishapur'), id).toBe(0);
     }
-    expect(doctrineDef('theAcademyOfGondishapur' as DoctrineId).note).toMatch(/Magnum Opus or its works/);
+    // The card says so, in its text and its clause (the user's answer of 2026-11-06).
+    expect(doctrineDef('theAcademyOfGondishapur' as DoctrineId).text).toContain(
+      '+20% production toward empire buildings, except the Magnum Opus and its works.',
+    );
+    expect(describeCard('theAcademyOfGondishapur' as DoctrineId).map((clause) => clause.text)).toContain(
+      '+20% production toward empire buildings, except the Magnum Opus and its works',
+    );
   });
 
   it('leaves The Many Hands reaching those rows, because no Order sets the field', () => {
@@ -503,13 +510,44 @@ describe('The Pandidakterion', () => {
     expect(hexPays(state, city, 6, 5)).toEqual(farm);
   });
 
-  it('sums with another whole share before one multiplication, so neither pays the other', () => {
+  it('doubles after The Nizamiyya’s share, so an Academy pays 3 times and not 2.5 (batch DT19c)', () => {
     const { state, city } = board();
     const academy = hexPays(state, city, 5, 4);
-    // The Nizamiyya takes half again. Summed, the two make +150%, not 2 × 1.5.
+    expect(academy.science).toBeGreaterThan(0);
+    // The Nizamiyya takes half again, and the text says the doubling comes after it.
     slot(state, 'theNizamiyya');
+    expect(hexPays(state, city, 5, 4).science).toBeCloseTo(academy.science * 1.5, 6);
     hold(state, 'thePandidakterion');
-    expect(hexPays(state, city, 5, 4).science).toBeCloseTo(academy.science * 2.5, 6);
+    expect(hexPays(state, city, 5, 4).science).toBeCloseTo(academy.science * 3, 6);
+    // Each share is its own line, and the total is the list's fold.
+    const lines = explainTileYield(at(state, 5, 4), cityContext(state, city));
+    expect(lines.filter((entry) => entry.source.includes('The Nizamiyya'))).toHaveLength(1);
+    const doubling = lines.find((entry) => entry.source.includes('The Pandidakterion'))!;
+    expect(doubling.science).toBeCloseTo(academy.science * 1.5, 6);
+    expect(foldTileLines(lines).science).toBeCloseTo(academy.science * 3, 6);
+  });
+
+  it('sums two shares of the last pass before one multiplication, so neither pays the other', () => {
+    const { state, city } = board();
+    const academy = hexPays(state, city, 5, 4);
+    hold(state, 'thePandidakterion');
+    lend('theJixianAcademy', [
+      {
+        kind: 'pays',
+        where: 'hex',
+        on: { test: 'improvement', improvement: 'academy' },
+        wholePercent: 100,
+        appliedLast: true,
+      } as CardEffect,
+    ]);
+    hold(state, 'theJixianAcademy');
+    expect(hexPays(state, city, 5, 4).science).toBeCloseTo(academy.science * 3, 6);
+  });
+
+  it('says that it comes last', () => {
+    expect(describeCard('thePandidakterion' as DoctrineId).map((clause) => stripRefs(clause.text))).toEqual([
+      'the yields of every hex with an Academy are doubled, after every other change to the hex',
+    ]);
   });
 
   it('labels the share as one line, so the breakdown still sums to the total', () => {
@@ -679,16 +717,33 @@ describe('the bots read a hex line’s whole share (batch DT3)', () => {
     expect(scoreEffects(half, valueContext(state, player))).toBeCloseTo(scoreEffects(rows, ctx) / 2, 6);
   });
 
-  it('reads the same for a seat that already holds the row, or another doubler', () => {
+  it('reads the same for a seat that already holds the row', () => {
     const rows = doctrineDef('thePandidakterion' as DoctrineId).effects;
     const { state, player } = working([[8, 5]]);
     raiseImprovement(at(state, 8, 5), 'academy', 0);
     bumpRevision(state);
     const fresh = scoreEffects(rows, valueContext(state, player));
-    slot(state, 'theNizamiyya');
-    expect(scoreEffects(rows, valueContext(state, player))).toBeCloseTo(fresh, 6);
     hold(state, 'thePandidakterion');
     expect(scoreEffects(rows, valueContext(state, player))).toBeCloseTo(fresh, 6);
+  });
+
+  it('follows the rule: the doubling over The Nizamiyya, and The Nizamiyya under the doubling (batch DT19c)', () => {
+    const doubling = doctrineDef('thePandidakterion' as DoctrineId).effects;
+    const half = orderDef('theNizamiyya').effects;
+    const { state, player } = working([[8, 5]]);
+    raiseImprovement(at(state, 8, 5), 'academy', 0);
+    bumpRevision(state);
+    const doublingAlone = scoreEffects(doubling, valueContext(state, player));
+    const halfAlone = scoreEffects(half, valueContext(state, player));
+    expect(doublingAlone).toBeGreaterThan(0);
+    expect(halfAlone).toBeCloseTo(doublingAlone / 2, 6);
+    // With The Nizamiyya seated the hex pays half as much again, so the doubling adds that.
+    slot(state, 'theNizamiyya');
+    expect(scoreEffects(doubling, valueContext(state, player))).toBeCloseTo(doublingAlone * 1.5, 6);
+    // With the doubling held as well, The Nizamiyya's half is doubled too.
+    hold(state, 'thePandidakterion');
+    expect(scoreEffects(half, valueContext(state, player))).toBeCloseTo(halfAlone * 2, 6);
+    expect(scoreEffects(doubling, valueContext(state, player))).toBeCloseTo(doublingAlone * 1.5, 6);
   });
 
   it('sees a card’s line on the hex, because the share is over what the hex pays', () => {
@@ -981,7 +1036,15 @@ describe('The Külliye (batch DT6)', () => {
     for (const id of BUILDING_IDS.filter(grantsABead)) {
       expect(buildPercent(state, first, id, 'theKulliye'), id).toBe(0);
     }
+    // The card says so, in its text and its clause (the user's answer of 2026-11-06).
+    expect(doctrineDef('theKulliye').text).toContain(
+      '+50% production toward empire buildings, except the Magnum Opus and its works.',
+    );
+    expect(describeCard('theKulliye').map((clause) => stripRefs(clause.text))).toContain(
+      '+50% production toward empire buildings, except the Magnum Opus and its works',
+    );
     expect(doctrineDef('theKulliye').note).toMatch(/Magnum Opus or its works/);
+    expect(doctrineDef('theKulliye').note).toContain('such as the Bourse, pays once however many copies stand');
   });
 
   it('pays each copy of a town building in its own town', () => {
@@ -1673,26 +1736,50 @@ describe('The Two Capitals (batch DT17)', () => {
       expect(growth(state, other)).toBe(0);
     });
 
-    it('leaves a `notCapital` authority row off both towns (The Mandarinate)', () => {
+    // Since batch DT19c no dealt row charges with this scope, because The Mandarinate
+    // and Synoecism print "each of your towns" and "towns you founded". The scope still
+    // has to skip both towns, so a lent row asks it.
+    const NOT_CAPITAL_COST = { kind: 'meterRule', rule: 'cityCost', delta: 1, scope: { test: 'notCapital' } } as CardEffect;
+    const NOT_CAPITAL_INSIDE_ALL = {
+      kind: 'meterRule',
+      rule: 'cityCost',
+      delta: 1,
+      scope: { test: 'all', of: [{ test: 'notCaptured' }, { test: 'notCapital' }] },
+    } as CardEffect;
+
+    it('leaves a `notCapital` authority row off both towns', () => {
       const { state, capital, second, third } = board();
       const plain = [townWrit(state, second), townWrit(state, third)];
+      lend('theMandarinate', [NOT_CAPITAL_COST]);
       hold(state, 'theMandarinate');
       expect(townWrit(state, capital)).toBe(0);
       expect(townWrit(state, second)).toBe(plain[0]);
       expect(townWrit(state, third)).toBe(plain[1]! + 1);
     });
 
-    it('leaves a `notCapital` row inside an `all` off both towns (Synoecism)', () => {
+    it('leaves a `notCapital` row inside an `all` off both towns', () => {
       const { state, second, third } = board();
       const plain = [townWrit(state, second), townWrit(state, third)];
+      lend('synoecism', [NOT_CAPITAL_INSIDE_ALL]);
       hold(state, 'synoecism');
       expect(townWrit(state, second)).toBe(plain[0]);
       expect(townWrit(state, third)).toBe(plain[1]! + 1);
     });
 
-    it('charges the same rows on the second town without the Doctrine', () => {
+    it('charges The Mandarinate on both towns, because its text says each of your towns', () => {
+      const { state, capital, second, third } = board();
+      const plain = [townWrit(state, capital), townWrit(state, second), townWrit(state, third)];
+      expect(plain[0]).toBe(0);
+      hold(state, 'theMandarinate');
+      expect(townWrit(state, capital)).toBe(1);
+      expect(townWrit(state, second)).toBe(plain[1]! + 1);
+      expect(townWrit(state, third)).toBe(plain[2]! + 1);
+    });
+
+    it('charges the same row on the second town without the Doctrine', () => {
       const { state, second } = board(false);
       const plain = townWrit(state, second);
+      lend('theMandarinate', [NOT_CAPITAL_COST]);
       hold(state, 'theMandarinate');
       expect(townWrit(state, second)).toBe(plain + 1);
     });
@@ -1701,14 +1788,15 @@ describe('The Two Capitals (batch DT17)', () => {
       const state = bareState(36, 10);
       town(state, 3, 5, 5);
       hold(state, ID);
+      lend('theMandarinate', [NOT_CAPITAL_COST]);
       hold(state, 'theMandarinate');
       // Beside a lone capital the new town is the second, so the row skips it.
-      expect(cardProspectCityCost(state, 0).delta).toBe(0);
+      expect(cardProspectCityCost(state, 0, at(state, 12, 5)).delta).toBe(0);
       const quoteSecond = foundingQuote(state, 12, 5);
       const second = town(state, 12, 5, 1);
       expect(townWrit(state, second)).toBe(quoteSecond);
       // With two towns the new one starts level with an older town, which keeps a tie.
-      expect(cardProspectCityCost(state, 0).delta).toBe(1);
+      expect(cardProspectCityCost(state, 0, at(state, 21, 5)).delta).toBe(1);
       const quoteThird = foundingQuote(state, 21, 5);
       const third = town(state, 21, 5, 1);
       expect(cardCapitalIds(state, 0)).not.toContain(third.id);
@@ -2197,12 +2285,13 @@ describe('The Two Capitals (batch DT17)', () => {
     it('answers a scope asked inside a condition', () => {
       const { state, second, third } = board();
       const plain = [townWrit(state, second), townWrit(state, third)];
-      // The condition reads authority, authority reads The Mandarinate's `notCapital`
-      // row, and that scope asks the rule. So the law asks itself, one level down.
+      // The condition reads authority, authority reads the lent `notCapital` row, and
+      // that scope asks the rule. So the law asks itself, one level down.
       rows(state, [
         { kind: 'conditionRule', when: { test: 'authorityNegative' }, then: [{ kind: 'pays', where: 'empire', gold: 1 }] } as CardEffect,
         { kind: 'conditionRule', when: { test: 'authorityPositive' }, then: [{ kind: 'pays', where: 'empire', gold: 2 }] } as CardEffect,
       ]);
+      lend('theMandarinate', [{ kind: 'meterRule', rule: 'cityCost', delta: 1, scope: { test: 'notCapital' } } as CardEffect]);
       hold(state, 'theMandarinate');
       expect(liveEffects(state, 0).some((row) => row.card === ID && row.effect.kind === 'rule')).toBe(true);
       expect(townWrit(state, second)).toBe(plain[0]);

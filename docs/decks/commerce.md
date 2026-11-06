@@ -96,7 +96,7 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 | **The Grand Canal** | home market | Each of your domestic routes carries half of its origin's surplus food to its destination. |
 | **The Sogdian Colonies** | far trade | Each of your towns holding your trading post gains +3 culture and +3 renown, favouring merchants. |
 | **The Forbidden Silks** | goods | Your luxuries give twice their happiness. You cannot lend luxuries in deals. |
-| **The Flying Money** | bankers | Your towns with a gold building buy units and buildings 20% cheaper. Your other towns cannot buy them. |
+| **The Flying Money** | bankers | Your towns with a gold building buy units and buildings 20% cheaper. Your other towns cannot buy them with gold. |
 
 **Orders:**
 

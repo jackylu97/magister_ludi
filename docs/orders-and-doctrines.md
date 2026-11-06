@@ -218,7 +218,7 @@ governments, so Tier IV opened at 29.
 | The Grand Canal | Commerce | II | tier 10 | Each of your domestic routes carries half of its origin's surplus food to its destination. |
 | The Sogdian Colonies | Commerce | II | tier 10 | Each of your towns holding your trading post gains +3 culture and +3 renown, favouring merchants. |
 | The Forbidden Silks | Commerce | II | tier 10 | Your luxuries give twice their happiness. You cannot lend luxuries in deals. |
-| The Flying Money | Commerce | II | tier 10 | Your towns with a gold building buy units and buildings 20% cheaper. Your other towns cannot buy them. |
+| The Flying Money | Commerce | II | tier 10 | Your towns with a gold building buy units and buildings 20% cheaper. Your other towns cannot buy them with gold. |
 | The Year and a Day | Commerce | III | tier 18 | Your towns that a domestic route reaches grow 25% faster. Your other towns grow 25% more slowly. |
 | The Muda | Commerce | III | tier 18 | Your trade routes to other empires pay +3 science and +3 culture, and cannot be plundered. |
 | The Turnpike Trusts | Commerce | III | tier 18 | Caravans cost half as much gold to buy. Hexes with a road gain +1 gold. |
@@ -231,12 +231,12 @@ governments, so Tier IV opened at 29.
 | The Workshops of Syracuse | Scientific | I | tier 4 | Your military units gain +5 combat strength. They cost 50% more to build and to buy. |
 | The Peripatetic School | Scientific | I | tier 4 | Academies gain +2 science and +2 production. Science buildings and wonders give +30% renown. |
 | The Jixian Academy | Scientific | II | tier 10 | Completing a technology grants culture equal to a fifth of its cost. Your towns make 25% less culture. |
-| The Academy of Gondishapur | Scientific | II | tier 10 | Towns with an empire building gain +15% science. +20% production toward empire buildings. |
+| The Academy of Gondishapur | Scientific | II | tier 10 | Towns with an empire building gain +15% science. +20% production toward empire buildings, except the Magnum Opus and its works. |
 | The Pandidakterion | Scientific | II | tier 10 | Hexes with an Academy have double yields, applied after every other change to the hex. |
 | The Directorate of Arms | Scientific | III | tier 18 | While no empire you have met knows more technologies than you, your units gain +3 combat strength. |
 | The Universitas | Scientific | III | tier 18 | Science buildings in your towns of twelve or more citizens produce twice their yields. In your smaller towns they produce half. |
 | The Volley Fire | Scientific | III | tier 18 | Your archer line (Archer to Crossbowman) may attack twice a turn. Your melee units fight at −10% strength. |
-| The Külliye | Scientific | III | tier 18 | Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings. |
+| The Külliye | Scientific | III | tier 18 | Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings, except the Magnum Opus and its works. |
 | The Court of Rudolf II | Scientific | IV | tier 26 | Alchemy, and the fourth-age technologies that lead to it, cost you 20% less research. Your other fourth-age technologies cost you 25% more. |
 | The Nassau Reforms | Scientific | IV | tier 26 | Each time research upgrades one of your units, it gains +2 strength for good. Your towns build military units 25% more slowly. |
 | The Platonic Academy | Scientific | IV | tier 26 | Your great people of every family found an Academy as their work, in place of their own. |

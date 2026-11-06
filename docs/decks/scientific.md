@@ -111,7 +111,7 @@ Without the charters, the deck holds 65 cards that take a chair: 7, 17, 16, 14 a
 | Doctrine | Build | Text |
 |---|---|---|
 | **The Jixian Academy** | engine | Completing a technology grants culture equal to a fifth of its cost. Your towns make 25% less culture. |
-| **The Academy of Gondishapur** | institutions | Towns with an empire building gain +15% science. +20% production toward empire buildings. |
+| **The Academy of Gondishapur** | institutions | Towns with an empire building gain +15% science. +20% production toward empire buildings, except the Magnum Opus and its works. |
 | **The Pandidakterion** | learned land | Hexes with an Academy have double yields, applied after every other change to the hex. |
 
 **Orders:**
@@ -148,7 +148,7 @@ Without the charters, the deck holds 65 cards that take a chair: 7, 17, 16, 14 a
 | **The Directorate of Arms** | engine (the lead); bridge to the elite army | While no empire you have met knows more technologies than you, your units gain +3 combat strength. |
 | **The Universitas** | great cities | Science buildings in your towns of twelve or more citizens produce twice their yields. In your smaller towns they produce half. |
 | **The Volley Fire** | elite army | Your archer line (Archer to Crossbowman) may attack twice a turn. Your melee units fight at −10% strength. |
-| **The Külliye** | institutions | Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings. |
+| **The Külliye** | institutions | Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings, except the Magnum Opus and its works. |
 
 **Orders:**
 

@@ -159,6 +159,10 @@ import {
 import { cityContext, foldTile, type TileYieldContext, yieldContextFor } from '../sim/yields/hex';
 import {
   explainEmpireCardYields,
+  explainEmpireIncomeShares,
+  explainEmpireLines,
+  foldEmpireIncome,
+  foldEmpireLines,
   foldEmpireRates,
   stageEmpireFold,
 } from '../sim/yields/empire';
@@ -261,7 +265,7 @@ import {
   // Batch R2d: a building share is priced over the building's package.
   explainBuildingPackage,
   foldBuildingPackage,
-  ghostSlotsUnderDoctrine,
+  ghostCouncilUnderDoctrine,
   // Batch R3: The Kept Secret's condition, the simulation's own reading.
   knowsUniqueTech,
   liveEffects,
@@ -316,7 +320,6 @@ import {
   buildingPassesTest,
   isCityScopedCount,
   isRaisingWonderOrOpus,
-  religionFounder,
   noMetEmpireAhead,
   offTheChairRows,
   techPriceRowReaches,
@@ -2950,6 +2953,24 @@ function groundOfHexLine(
     : { hexes: everywhere, over: towns.length };
 }
 
+/**
+ * **What a row marked `empireIncome` takes of the empire's own income** (batch DT19c,
+ * The Contented City), at the voice's price. The figure is the one the fold takes, so
+ * it reads the seat's roads, caravans abroad and cards' empire payouts as they are
+ * today. Nothing for every other row.
+ */
+function empireIncomeShareWorth(
+  effect: Extract<CardEffect, { kind: 'percentYields' }>,
+  ctx: ValueContext,
+): number {
+  if (effect.empireIncome !== true) return 0;
+  const income = foldEmpireIncome(explainEmpireLines(ctx.state, ctx.playerId));
+  const voices: readonly Voice[] = effect.yield === 'all' ? VOICES : [effect.yield as Voice];
+  let worth = 0;
+  for (const voice of voices) worth += voiceWeight(ctx, voice) * (effect.percent / 100) * income[voice];
+  return worth;
+}
+
 /** The share a row takes of a hex (`wholeShareOf`), remembered for the sitting. */
 const WHOLE_SHARE_MEMO = new WeakMap<ValueContext, Map<CardPaysEffect, YieldBag>>();
 
@@ -2966,11 +2987,13 @@ const WHOLE_SHARE_MEMO = new WeakMap<ValueContext, Map<CardPaysEffect, YieldBag>
  * seat that has improved the hex, or holds cards that pay on it, gets a larger
  * figure, for a gain and for a loss alike.
  *
- * **The base leaves out every whole share**, the row's own included. Step 8 of the
- * hex fold (`docs/yields.md`) sums the shares on a hex before one multiplication,
- * so each is a share of what the hex pays without them. Reading the plain fold
- * would price a seated doubler at twice what it adds, and a second doubler as if
- * the first had paid into it.
+ * **The base leaves out every whole share of the row's own pass**, the row's own
+ * included. Step 8 of the hex fold (`docs/yields.md`) sums the shares of one pass
+ * before one multiplication, so each is a share of what the hex pays without them.
+ * Reading the plain fold would price a seated doubler at twice what it adds. The
+ * other pass stays in the base (batch DT19c): The Pandidakterion is taken after The
+ * Nizamiyya, so with both held it adds half as much again, and The Nizamiyya's half
+ * is doubled too.
  *
  * The town's own hex is not priced. It is not in `workedTiles`, and it keeps its
  * floor under a card that takes everything away (`explainCentreYield`).
@@ -2992,7 +3015,7 @@ function wholeShareOf(ctx: ValueContext, effect: CardPaysEffect): YieldBag {
   for (const { city, tile } of ground.hexes) {
     // The walk visits a town's hexes together, so one context serves them all.
     if (contextOf !== city) {
-      context = withoutWholeShares(cityContext(ctx.state, city));
+      context = withoutWholeShares(cityContext(ctx.state, city), effect.appliedLast === true);
       contextOf = city;
     }
     const paid = foldTile(tile, context);
@@ -3064,8 +3087,14 @@ function hexPercentShareOf(ctx: ValueContext, effect: CardPaysEffect): YieldBag 
   return share;
 }
 
-/** A town's hex context with every line's whole share taken off. See `wholeShareOf`. */
-function withoutWholeShares(context: TileYieldContext | undefined): TileYieldContext | undefined {
+/**
+ * A town's hex context with the whole shares taken off: every line's, or only one
+ * pass's when `appliedLast` names it. See `wholeShareOf`.
+ */
+function withoutWholeShares(
+  context: TileYieldContext | undefined,
+  appliedLast?: boolean,
+): TileYieldContext | undefined {
   const lines = context?.lines;
   if (context === undefined || lines === undefined) return context;
   if (!lines.some((line) => line.wholePercent !== undefined)) return context;
@@ -3073,6 +3102,7 @@ function withoutWholeShares(context: TileYieldContext | undefined): TileYieldCon
     ...context,
     lines: lines.map((line) => {
       if (line.wholePercent === undefined) return line;
+      if (appliedLast !== undefined && (line.appliedLast === true) !== appliedLast) return line;
       const bare = { ...line };
       delete bare.wholePercent;
       return bare;
@@ -3468,12 +3498,13 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
     case 'percentYields': {
       const percent = effect.percent / 100;
       const towns = townsAdmitting(ctx, effect.scope);
+      const income = empireIncomeShareWorth(effect, ctx);
       if (effect.yield === 'all') {
         let sum = 0;
         for (const voice of VOICES) sum += voiceWeight(ctx, voice) * percent * nominal;
-        return sum * towns;
+        return sum * towns + income;
       }
-      return voiceWeight(ctx, effect.yield as Voice) * percent * nominal * towns;
+      return voiceWeight(ctx, effect.yield as Voice) * percent * nominal * towns + income;
     }
     case 'productionBonus':
       // A bonus counted per charter technology known (The Great Catalogue) or
@@ -3670,8 +3701,8 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // the seat holds, and not by today's occupant: the chair is new and empty
       // when the card is offered, and the seat logic puts that best card in it.
       if (effect.whole === true) return countedChairWorth(effect.factor, ctx);
-      const sc = statecraftOf(ctx.state, ctx.playerId);
-      const seated = sc === undefined ? null : orderAtSlotPosition(sc, effect.position, effect.slot);
+      const holder = playerById(ctx.state, ctx.playerId);
+      const seated = holder === undefined ? null : orderAtSlotPosition(holder, effect.position, effect.slot);
       if (seated === null || effect.factor === 1) return 0;
       const inner = orderDef(seated).effects.filter(
         (held) => held.kind !== 'slotPosition' && held.kind !== 'cardYieldAmplifier',
@@ -5457,13 +5488,13 @@ function faithHouseTowns(id: BuildingId, scope: CityScope, ctx: ValueContext): n
  * because a slot is not a belief: the seat must still buy a prophet and fill the rungs
  * before it.
  *
- * Only the founder may teach a religion (`gainBeliefError`), and the room follows the
- * holy city (`poolSlotsFor`). So a seat whose founded religion has lost its holy city,
- * and a seat that only captured one, gain nothing.
+ * Only the founder may teach a religion (`gainBeliefError`), and the room is the
+ * founder's too (`poolSlotsFor`). So a seat that only captured a holy city gains
+ * nothing, and a founder that lost its holy city still gains the room.
  */
 function beliefSlotWorth(amount: number, pool: ReligionBeliefPool, ctx: ValueContext): number {
   const religion = foundedReligion(ctx.state, ctx.playerId);
-  if (religion === undefined || religionFounder(ctx.state, religion) !== ctx.playerId) return 0;
+  if (religion === undefined) return 0;
   let best = 0;
   for (const id of religionBeliefPool(religion, pool)) {
     best = Math.max(best, explainEffects(beliefDef(id).effects ?? [], ctx).total);
@@ -5917,6 +5948,10 @@ function marginRates(state: GameState, playerId: number): Record<Voice, number> 
   }
   const staged = stageEmpireFold(cards, readEmpirePercents(state, playerId));
   for (const voice of VOICES) reading[voice] += staged[voice];
+  // The base reading carries the law's share of its half, and this is the share of
+  // the cards' half (batch DT19c, The Contented City).
+  const shares = foldEmpireLines(explainEmpireIncomeShares(state, playerId, cards));
+  for (const voice of VOICES) reading[voice] += shares[voice];
   return reading;
 }
 
@@ -6004,29 +6039,33 @@ function deckPair(
   id: CardId,
 ): { with: GameState; without: GameState } | null {
   const sc = statecraftOf(state, playerId);
-  if (sc === undefined) return null;
+  const player = playerById(state, playerId);
+  if (sc === undefined || player === undefined) return null;
   if (isDoctrineId(id)) {
     // A Doctrine that opens a chair opens it at once (batch DT9), so each scratch
-    // board has the chairs the command would leave.
+    // board has the chairs the command would leave, and the malices in them.
     if (sc.doctrines.includes(id)) {
+      const { slots, malices } = ghostCouncilUnderDoctrine(player, id, false);
       return {
         with: state,
-        without: rewritten(state, playerId, {
-          ...sc,
-          doctrines: sc.doctrines.filter((held) => held !== id),
-          slots: ghostSlotsUnderDoctrine(sc, id, false),
-        }),
+        without: rewritten(state, playerId, { ...sc, doctrines: sc.doctrines.filter((held) => held !== id), slots }, malices),
       };
     }
     // Stamped with this turn, as taking it would be (batch DT1), so a "from now
     // on" rule does not read the towns already founded.
+    const { slots, malices } = ghostCouncilUnderDoctrine(player, id, true);
     return {
-      with: rewritten(state, playerId, {
-        ...sc,
-        doctrines: [...sc.doctrines, id],
-        doctrineTurns: { ...sc.doctrineTurns, [id]: state.turn },
-        slots: ghostSlotsUnderDoctrine(sc, id, true),
-      }),
+      with: rewritten(
+        state,
+        playerId,
+        {
+          ...sc,
+          doctrines: [...sc.doctrines, id],
+          doctrineTurns: { ...sc.doctrineTurns, [id]: state.turn },
+          slots,
+        },
+        malices,
+      ),
       without: state,
     };
   }
@@ -6045,9 +6084,14 @@ function deckPair(
 }
 
 /** One seat's Statecraft, replaced, on a board that shares everything else. */
-function rewritten(state: GameState, playerId: number, sc: PlayerStatecraft): GameState {
+function rewritten(
+  state: GameState,
+  playerId: number,
+  sc: PlayerStatecraft,
+  malices?: Player['malices'],
+): GameState {
   const players = state.players.map((player) =>
-    player.id === playerId ? { ...player, statecraft: sc } : player,
+    player.id === playerId ? { ...player, statecraft: sc, malices: malices ?? player.malices } : player,
   );
   return { ...state, players };
 }

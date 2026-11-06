@@ -190,7 +190,12 @@ what makes the order structural rather than incidental. Its own order is
 7. the **ground percent** (`basePercent`) — a share of the entries before (4);
 8. the **whole percent** (`wholePercent`, Dominion batch D8, The Strategoi's
    doubled citadels) — a share of the fold of everything above it, (1) to (7).
-   It is the one share that reaches the lines other cards put on the hex.
+   It is the one share that reaches the lines other cards put on the hex. It has
+   two passes (batch DT19c): the ordinary whole shares, then the **`appliedLast`**
+   ones over the fold with the first pass in it. The Pandidakterion and The Two
+   Sanctuaries say "applied after every other change to the hex", so an Academy
+   under The Nizamiyya's +50% and The Pandidakterion's doubling pays 3 times, not
+   2.5.
 
 **Which Ledger class the hex line lands in** (`CityYieldLine.class`) is decided
 in `explainCity` off the hex itself, not off the fold: a card's line inside the
@@ -265,7 +270,7 @@ stage over their fold, then the banks.
 | 16 | **The caravans abroad** — `senderRouteYields` | routes this seat sent to another empire; the sea premium rides this fold too | additive | — |
 | 17 | **The treasury's ledger** — `explainEmpireGold` | connections, maintenance, the levy's surcharge, the charter's rebate, the treaties; every line declares itself **income** or **bill** (`TradeGoldKind`) | additive | — |
 | 18 | **The cards' empire payouts** — `explainEmpireCardYields` | the empire-scale card lines; **last**, because a rate conversion reads the rates 15–17 produced. Under The Apostolic Camera's rule (`followerBeliefsPayAbroad`), also what each follower belief's town lines pay in each foreign town that follows a religion this seat holds (`explainFollowerLinesAbroad`), one line for each belief and town, in the four voices an empire banks | additive | — |
-| 19 | **The empire stage** — `stageEmpireFold`, one reconciliation line a voice | the additive fold of 15–18 **minus the bills** | multiplicative | empire |
+| 19 | **The empire stage** — `stageEmpireFold`, one reconciliation line a voice. Then what a card takes of the income (`explainEmpireIncomeShares`; The Contented City, batch DT19c), one line for each row, named for the card | the additive fold of 15–18 **minus the bills** (`foldEmpireIncome`) | multiplicative | empire |
 | 20 | **The banks** — `foldEmpireLines`, in `collectYields` | the fold of 15–19, plus every town's step-14 total | — | — |
 
 Occasions (`windfallPayout`) pay **outside** all of this: a one-time grant is
@@ -285,7 +290,8 @@ banking (Entry XVIII.5).
   batch D8). It is a share of the hex's whole fold, the card lines and the two
   shares above included, because The Strategoi's "citadel yields are doubled"
   means everything the hex pays. Its riders sum before one multiplication, so
-  two whole shares on one hex never pay each other.
+  two whole shares of one pass never pay each other. An `appliedLast` whole share
+  is taken over the ordinary ones (batch DT19c), because its card's text says so.
 - **The empire's bills stay outside the empire stage.** Maintenance, the levy's
   surcharge, the charter's rebate and the treaties are costs rather than yields:
   a contented empire earns more from its roads without paying its soldiers less.
@@ -295,16 +301,19 @@ banking (Entry XVIII.5).
   and not a card's `stage: 'empire'` percentage**, which is written about a
   *town* and reaches the empire only through the towns it names. The city stage
   is nought at empire scale by construction: there is no town there to carry
-  one.
+  one. A row marked `empireIncome` is the exception (The Contented City, batch
+  DT19c). It also takes its share of the additive fold, minus the bills, as a line
+  of its own at step 19. Taken of the fold before the stage, it adds with the
+  stage's percentages, as the row's town half does.
 - **The conversions read the running flats.** Step 10 takes its share of steps
   1–9 folded — after the building shares, before either stage — and pays it as
   an ordinary flat. It reads the whole harvest, not the surplus: a surplus is
   decided after every percentage, and a card reading it would be reading a
   figure that reads the card back.
-- **`appliedLast` shares are taken over the ordinary shares**, and only within
-  step 9. It is the one place a share in this pipeline is taken of another
-  share's output, and it is stated on the row (`appliedLast`) rather than
-  implied by walk order.
+- **`appliedLast` shares are taken over the ordinary shares**, within step 9 and
+  within the hex's whole percent (step 2). They are the two places a share in this
+  pipeline is taken of another share's output, and each is stated on the row
+  (`appliedLast`) rather than implied by walk order.
 - **The tile lines land in two passes** because a line that pays on what the hex
   *already* pays must see the lines that ask nothing of the fold. One pass left
   the Desert Fathers' faith invisible to The Sacred Ground standing beside it.
@@ -430,7 +439,7 @@ lands. The `where · basis` cell is blank for the kinds that are still one thing
 | `pays` | route · count | 6, 16 | additive, at the same two steps. The helpings multiply the **bag**, as `perEndpointLuxury` does. The count is the road's own length (`routeLength`), the technologies the destination's owner knows that you do not (`techGap`), or a count read at the **origin** town with `within: 'city'`: its improved strategic resources (Strategic Exports), its citizens (The Grain Barges) or the Academies in its borders (`tilesInBorders`, Merchant Scholars) |
 | `buildingYieldPercent` | | 9 | multiplicative within the step; lands as a flat |
 | `pays` | city · share | 10 | multiplicative within the step; lands as a flat |
-| `percentYields` | | 11 | multiplicative, at whichever stage the row names |
+| `percentYields` | | 11, 19 | multiplicative, at whichever stage the row names; a row marked `empireIncome` also takes its share of the empire's income at 19 |
 | `productionBonus` | | 11 | multiplicative, production only; the city stage, or the empire stage for a row that names it (The Marian Reforms) |
 | `surplusToProduction` | | 14 | additive — the town's food surplus, moved into production after the gate |
 | `productionToCulture` | | 14 | additive — the town's production, moved into culture after the gates and the surplus moved (the Rite of the Sabbath) |

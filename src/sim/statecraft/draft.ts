@@ -1091,18 +1091,25 @@ export function refitSlots(state: GameState, player: Player): OrderId[] {
 /**
  * The index in `PlayerStatecraft.slots` of the `position`-th chair of a flavour,
  * counting from one in slot order, or -1 for a chair that does not exist.
- * Position -1 is the last chair of the flavour (batch DT9, The Arthashastra). An
- * absent `slot` counts every chair, which is what "the first slot" means with no
+ * An absent `slot` counts every chair, which is what "the first slot" means with no
  * flavour named.
+ *
+ * Position -1 is the last chair of the flavour **that no malice holds** (batch DT9,
+ * The Arthashastra; the user's answer of 2026-11-06). A malice takes the last chair of
+ * its own type, so without this a Wildcard malice would always stop the doubling. A
+ * counted position still counts a chair a malice holds, because it names a place in
+ * the council and the player arranged the cards around that place.
  *
  * See `slotTypesOf` for why the array's index is the position a player sees.
  */
-export function chairIndexAtPosition(sc: PlayerStatecraft, position: number, slot?: ChairType): number {
+export function chairIndexAtPosition(player: Player, position: number, slot?: ChairType): number {
   if (position !== -1 && position < 1) return -1;
+  const sc = player.statecraft;
   const flavours = slotTypesOf(sc);
   if (position === -1) {
     for (let index = sc.slots.length - 1; index >= 0; index--) {
-      if (slot === undefined || flavours[index] === slot) return index;
+      if (slot !== undefined && flavours[index] !== slot) continue;
+      if (maliceAt(player, index) === null) return index;
     }
     return -1;
   }
@@ -1124,19 +1131,20 @@ export function chairIndexAtPosition(sc: PlayerStatecraft, position: number, slo
  * `CardSlotPositionEffect` needs from the state.
  */
 export function orderAtSlotPosition(
-  sc: PlayerStatecraft,
+  player: Player,
   position: number,
   slot?: ChairType,
 ): OrderId | null {
-  const index = chairIndexAtPosition(sc, position, slot);
+  const index = chairIndexAtPosition(player, position, slot);
   if (index < 0) return null;
-  const held = sc.slots[index];
+  const held = player.statecraft.slots[index];
   return held && isOrderId(held.card) ? held.card : null;
 }
 
 /**
- * **The chairs a seat's ghost would have with or without one Doctrine**: its
- * council resized by the Doctrine's own `slotRider` rows. Writes nothing.
+ * **The council a seat's ghost would have with or without one Doctrine**: its chairs
+ * resized by the Doctrine's own `slotRider` rows, and its malices seated again in them.
+ * Writes nothing.
  *
  * For the two scratch boards that price a Doctrine (`ghostPair` in
  * `cardImpact.ts`, `deckPair` in `value.ts`). Without it, a ghost holding The
@@ -1145,21 +1153,33 @@ export function orderAtSlotPosition(
  * chairs go on the end and taken ones come off the end, as `refitSlots` does, and
  * a ghost stops at the typed chairs, as `chairCount` does. A card that loses its
  * chair this way stays in the ghost's collection, so Scutage reads it off its chair.
+ *
+ * The malices move because `refitSlots` moves them (batch DT19c). The counted chair
+ * skips a chair a malice holds, so a ghost with a malice at its old index would count
+ * a card the real command turns out. A card under a re-seated malice leaves its chair,
+ * as `refitSlots` returns it. The ghost's malices are copies, because the seating
+ * writes their chairs.
  */
-export function ghostSlotsUnderDoctrine(
-  sc: PlayerStatecraft,
+export function ghostCouncilUnderDoctrine(
+  player: Player,
   id: DoctrineId,
   taking: boolean,
-): (SlottedOrder | null)[] {
+): { slots: (SlottedOrder | null)[]; malices: Player['malices'] } {
+  const sc = player.statecraft;
   let extra = 0;
   for (const effect of doctrineDef(id).effects) {
     if (effect.kind === 'slotRider') extra += effect.extra ?? 1;
   }
-  if (extra === 0) return sc.slots;
+  if (extra === 0) return { slots: sc.slots, malices: player.malices };
   const want = Math.max(typedChairsOf(sc.government), sc.slots.length + (taking ? extra : -extra));
   const slots = sc.slots.slice(0, want);
   while (slots.length < want) slots.push(null);
-  return slots;
+  const malices = player.malices.map((held) => ({ ...held }));
+  reseatMalices({ ...player, statecraft: { ...sc, slots }, malices });
+  for (const held of malices) {
+    if (held.chair !== undefined) slots[held.chair] = null;
+  }
+  return { slots, malices };
 }
 
 /**

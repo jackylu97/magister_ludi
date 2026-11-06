@@ -881,10 +881,11 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
   // is read again, right after the seated Orders. Only the rows walked so far are
   // asked, because the reading adds to the list. See `CardSlotPositionEffect.whole`.
   const walked = list.length;
+  const holder = playerById(state, playerId)!;
   for (let at = 0; at < walked; at++) {
     const entry = list[at]!;
     if (entry.effect.kind !== 'slotPosition' || entry.effect.whole !== true) continue;
-    const seated = orderAtSlotPosition(sc, entry.effect.position, entry.effect.slot);
+    const seated = orderAtSlotPosition(holder, entry.effect.position, entry.effect.slot);
     if (seated === null) continue;
     const label = `${CLASS_WORD.order} \u00b7 ${orderDef(seated).name} \u00b7 ${anyCardDef(entry.card).name}`;
     for (let reading = 1; reading < Math.floor(entry.effect.factor); reading++) {
@@ -902,8 +903,7 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
   // printed forty rows below the council it sits in would divorce the punishment
   // from the thing it costs. The order still never reshuffles itself — a malice
   // arrives at a judgement and leaves at one, and nothing moves it in between.
-  const holder = playerById(state, playerId);
-  for (const held of holder?.malices ?? []) {
+  for (const held of holder.malices) {
     if (!isMaliceId(held.id)) continue;
     push(held.id, CLASS_WORD.malice, maliceDef(held.id).effects);
   }
@@ -4813,16 +4813,16 @@ function deckModifierLines(
     });
   }
 
-  const sc = statecraftOf(state, playerId);
+  const holder = playerById(state, playerId);
   const positions = city
     ? cityEffectsOfKind(state, city, 'slotPosition')
     : effectsOfKind(state, playerId, 'slotPosition');
   for (const { source, card, effect } of positions) {
-    if (!sc) continue;
+    if (!holder) continue;
     // A `whole` row is the walk's, which has read the card again already. Read
     // here as well, its flat lines would pay a third time.
     if (effect.whole === true) continue;
-    const seated = orderAtSlotPosition(sc, effect.position, effect.slot);
+    const seated = orderAtSlotPosition(holder, effect.position, effect.slot);
     // A chair that is empty, does not exist, or holds this very card pays
     // nothing: an engine that read its own line would be an engine feeding
     // itself, exactly as an amplifier that read its own would.
@@ -5454,6 +5454,11 @@ export interface TileLine {
    * Read in `explainTileYield` (`yields/hex.ts`) as the hex's last line.
    */
   wholePercent?: number;
+  /**
+   * This line's whole share is taken over the other whole shares (batch DT19c). See
+   * `CardPaysEffect.appliedLast`. Absent on every line that carries no whole share.
+   */
+  appliedLast?: true;
   /**
    * **Paid once for every mountain standing beside the hex** — Pachacuti's
    * farms (`CardPaysEffect.perAdjacentMountain`), carried through rather than
@@ -6673,6 +6678,7 @@ function tileLinesFrom(
     // says so, as the other two shares are.
     if (effect.wholePercent !== undefined && effect.wholePercent !== 0) {
       line.wholePercent = effect.wholePercent;
+      if (effect.appliedLast === true) line.appliedLast = true;
     }
     hexMultipliers(line, effect);
     if (
@@ -6696,6 +6702,31 @@ export interface CardPercentLine {
   yield: CityYieldKey;
   percent: number;
   stage: ModifierStage;
+}
+
+/** One percentage a card takes of the empire's own income. See `cardEmpireIncomeShares`. */
+export interface CardIncomeShare {
+  card: CardId;
+  source: string;
+  yield: CityYieldKey;
+  percent: number;
+}
+
+/**
+ * The percentages this empire's law takes of **its own income**, as against a town's:
+ * the `percentYields` rows marked `empireIncome` (batch DT19c, The Contented City).
+ * `explainEmpireIncomeShares` (`yields/empire.ts`) turns each into a labelled line.
+ * The row's town half is read by `explainCardPercentYields`, as any row's is. It joins
+ * no stage, because the empire's stage is the meters' (`stageEmpireFold`).
+ */
+export function cardEmpireIncomeShares(state: GameState, playerId: number): CardIncomeShare[] {
+  const shares: CardIncomeShare[] = [];
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'percentYields')) {
+    if (effect.empireIncome !== true || effect.percent === 0) continue;
+    const keys = effect.yield === 'all' ? VOICES : [effect.yield];
+    for (const key of keys) shares.push({ card, source, yield: key, percent: effect.percent });
+  }
+  return shares;
 }
 
 /**
@@ -7772,16 +7803,33 @@ export function cardMeterRule(
  * The floor is the **caller's** (`cityAuthorityCost`'s reading in `meters.ts`),
  * for the reason the captured price's floor sits there: this fold is generic and
  * the arithmetic that keeps a discount from becoming a gift is a fact about the
- * meter it lands on.
+ * meter it lands on. A `noMinimum` row is not in this sum, because the caller
+ * floors it differently. See `cardCityCostDiscount`.
  */
 export function cardCityCostDelta(state: GameState, city: City): number {
   let delta = 0;
   for (const { effect } of effectsOfKind(state, city.ownerId, 'meterRule')) {
     if (effect.rule !== 'cityCost' || effect.delta === undefined) continue;
+    if (effect.noMinimum === true) continue;
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
     delta += effect.delta;
   }
   return delta;
+}
+
+/**
+ * **The `cityCost` deltas that print no minimum**, summed for one town (batch DT19c,
+ * The Highland Clans and The Delian League). The caller applies them before the other
+ * deltas, down to a price of nothing. See `CardMeterRuleEffect.noMinimum`.
+ */
+export function cardCityCostDiscount(state: GameState, city: City): number {
+  let discount = 0;
+  for (const { effect } of effectsOfKind(state, city.ownerId, 'meterRule')) {
+    if (effect.rule !== 'cityCost' || effect.noMinimum !== true || effect.delta === undefined) continue;
+    if (!cityScopeAdmits(state, city, effect.scope)) continue;
+    discount += effect.delta;
+  }
+  return discount;
 }
 
 /**
@@ -7823,28 +7871,32 @@ export function cardCityCostPercent(state: GameState, city: City): number {
 
 /**
  * **What the `cityCost` rows say about a town not yet founded** (batch DT1), for
- * the founding preview. It has the three readings `explainAuthority` takes off a
- * real town: `cardCityCostValue`, `cardCityCostPercent` and `cardCityCostDelta`.
+ * the founding preview. It has the four readings `explainAuthority` takes off a
+ * real town: `cardCityCostValue`, `cardCityCostPercent`, `cardCityCostDiscount` and
+ * `cardCityCostDelta`.
  *
  * A town not yet founded can answer only a few scopes (`prospectScopeAdmits`).
  * A row with any other scope stays out, so a preview may still quote a dearer or
  * a cheaper price than the town turns out to have. The alternative is to guess
  * at ground or buildings the town does not have.
  */
-export function cardProspectCityCost(state: GameState, playerId: number): CityCostRows {
+export function cardProspectCityCost(state: GameState, playerId: number, site: Tile): CityCostRows {
   // Under The Two Capitals (batch DT17) a town founded beside a lone capital is the
   // second capital, so `notCapital` skips it. With two towns or more it starts
   // smaller than, or tied with, an older one, and the older town keeps a tie.
   const held = citiesOf(state, playerId).length;
   const wouldBeCapital = held === 0 || (held === 1 && cardBehaviorRule(state, playerId, 'secondCapital'));
-  const rows: CityCostRows = { value: null, percent: 0, delta: 0 };
+  const rows: CityCostRows = { value: null, percent: 0, discount: 0, delta: 0 };
   for (const { effect } of effectsOfKind(state, playerId, 'meterRule')) {
-    if (effect.rule !== 'cityCost' || !prospectScopeAdmits(effect.scope, wouldBeCapital)) continue;
+    if (effect.rule !== 'cityCost' || !prospectScopeAdmits(state, effect.scope, wouldBeCapital, site)) continue;
     if (effect.value !== undefined) {
       rows.value = rows.value === null ? effect.value : Math.min(rows.value, effect.value);
     }
     if (effect.percent !== undefined) rows.percent += effect.percent;
-    if (effect.delta !== undefined) rows.delta += effect.delta;
+    if (effect.delta !== undefined) {
+      if (effect.noMinimum === true) rows.discount += effect.delta;
+      else rows.delta += effect.delta;
+    }
   }
   return rows;
 }
@@ -7854,6 +7906,8 @@ export interface CityCostRows {
   /** The price a row sets, the lowest if several do, or `null` if none does. */
   value: number | null;
   percent: number;
+  /** The deltas that print no minimum. See `cardCityCostDiscount`. */
+  discount: number;
   delta: number;
 }
 
@@ -7861,8 +7915,15 @@ export interface CityCostRows {
  * Can a town not yet founded answer this scope, and does it pass? A town being
  * founded is not captured, and its founding turn is this turn, which no stamp can
  * be later than. It counts as a capital only in the case `cardProspectCityCost` names.
+ * The hex it would stand on answers the two questions about ground, as `onHills` and
+ * `coastal` ask them of a town's own hex.
  */
-function prospectScopeAdmits(scope: CityScope | undefined, wouldBeCapital: boolean): boolean {
+function prospectScopeAdmits(
+  state: GameState,
+  scope: CityScope | undefined,
+  wouldBeCapital: boolean,
+  site: Tile,
+): boolean {
   if (scope === undefined) return true;
   switch (scope.test) {
     case 'notCaptured':
@@ -7870,8 +7931,12 @@ function prospectScopeAdmits(scope: CityScope | undefined, wouldBeCapital: boole
       return true;
     case 'notCapital':
       return !wouldBeCapital;
+    case 'onHills':
+      return site.hills;
+    case 'coastal':
+      return isCoastal(state.map, site);
     case 'all':
-      return scope.of.every((inner) => prospectScopeAdmits(inner, wouldBeCapital));
+      return scope.of.every((inner) => prospectScopeAdmits(state, inner, wouldBeCapital, site));
     default:
       return false;
   }
@@ -12980,7 +13045,7 @@ export function cardPantheonSlots(state: GameState, playerId: number): number {
 /**
  * **How many more beliefs of one pool this empire's law lets a religion hold** (batch
  * DT15, The Seven Councils). `poolSlotsFor` (`religion.ts`) adds this to the data's
- * figure, for the empire that holds the religion's holy city.
+ * figure, for the empire that founded the religion.
  */
 export function cardBeliefPoolSlots(
   state: GameState,
@@ -13810,12 +13875,12 @@ export function cardExtraChairs(state: GameState, playerId: number): number {
  * answer is the same one the walk acts on.
  */
 export function chairReadingsAt(state: GameState, playerId: number, chair: number): number {
-  const sc = statecraftOf(state, playerId);
-  if (!sc) return 1;
+  const player = playerById(state, playerId);
+  if (!player) return 1;
   let times = 1;
   for (const { effect } of effectsOfKind(state, playerId, 'slotPosition')) {
     if (effect.whole !== true) continue;
-    if (chairIndexAtPosition(sc, effect.position, effect.slot) !== chair) continue;
+    if (chairIndexAtPosition(player, effect.position, effect.slot) !== chair) continue;
     times += Math.max(0, Math.floor(effect.factor) - 1);
   }
   return times;

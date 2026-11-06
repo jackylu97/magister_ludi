@@ -2114,7 +2114,7 @@
       "band": 2,
       "line": "none",
       "flavor": "Athens closed its schools, and Persia opened its doors.",
-      "text": "Towns with an empire building gain +15% science. +20% production toward empire buildings.",
+      "text": "Towns with an empire building gain +15% science. +20% production toward empire buildings, except the Magnum Opus and its works.",
       "effects": [
         {
           "kind": "percentYields",
@@ -2129,8 +2129,7 @@
           "percent": 20,
           "skipsBeadRows": true
         }
-      ],
-      "note": "The production bonus does not reach the Magnum Opus or its works."
+      ]
     },
     "thePandidakterion": {
       "name": "The Pandidakterion",
@@ -2144,7 +2143,8 @@
           "kind": "pays",
           "where": "hex",
           "on": {"test": "improvement", "improvement": "academy"},
-          "wholePercent": 100
+          "wholePercent": 100,
+          "appliedLast": true
         }
       ]
     },
@@ -2223,7 +2223,7 @@
       "band": 3,
       "line": "none",
       "flavor": "The mosque, the school, the hospital and the kitchen share one wall.",
-      "text": "Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings.",
+      "text": "Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings, except the Magnum Opus and its works.",
       "effects": [
         {
           "kind": "rule",
@@ -2243,7 +2243,7 @@
           "skipsBeadRows": true
         }
       ],
-      "note": "The extra copies and the production bonus do not reach the Magnum Opus or its works."
+      "note": "The extra copies do not reach the Magnum Opus or its works either. A building whose effect reaches your whole empire, such as the Bourse, pays once however many copies stand."
     },
     "theCourtOfRudolf": {
       "name": "The Court of Rudolf II",

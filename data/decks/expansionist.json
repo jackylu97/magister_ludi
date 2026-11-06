@@ -3453,8 +3453,12 @@
       "effects": [
         {
           "kind": "meterRule",
-          "rule": "hillCityCost",
-          "delta": -1
+          "rule": "cityCost",
+          "delta": -1,
+          "scope": {
+            "test": "onHills"
+          },
+          "noMinimum": true
         },
         {
           "kind": "pays",
@@ -3556,15 +3560,7 @@
           "rule": "cityCost",
           "delta": 1,
           "scope": {
-            "test": "all",
-            "of": [
-              {
-                "test": "notCaptured"
-              },
-              {
-                "test": "notCapital"
-              }
-            ]
+            "test": "notCaptured"
           }
         }
       ]
@@ -3721,7 +3717,8 @@
           "kind": "percentYields",
           "yield": "gold",
           "percent": -50,
-          "stage": "empire"
+          "stage": "empire",
+          "empireIncome": true
         }
       ]
     },
@@ -4020,10 +4017,7 @@
         {
           "kind": "meterRule",
           "rule": "cityCost",
-          "delta": 1,
-          "scope": {
-            "test": "notCapital"
-          }
+          "delta": 1
         }
       ]
     },

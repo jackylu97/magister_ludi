@@ -914,8 +914,8 @@
     "text": "+30% food surplus stored toward growth, in every city of 6 or more citizens"
    },
    {
-    "raw": "the authority each city you founded but your capital costs rises by 1",
-    "text": "the authority each city you founded but your capital costs rises by 1"
+    "raw": "the authority a city you founded costs rises by 1",
+    "text": "the authority a city you founded costs rises by 1"
    }
   ],
   "theCuratorOfWaters": [
@@ -974,8 +974,8 @@
     "text": "-20% happiness demanded per citizen"
    },
    {
-    "raw": "-50% gold in every city",
-    "text": "-50% gold in every city"
+    "raw": "-50% gold income, before maintenance",
+    "text": "-50% gold income, before maintenance"
    }
   ],
   "theBuilderKings": [
@@ -1078,8 +1078,8 @@
     "text": "+1% culture per spare authority (at most +30% culture)"
    },
    {
-    "raw": "the authority each city but your capital costs rises by 1",
-    "text": "the authority each city but your capital costs rises by 1"
+    "raw": "the authority a city costs rises by 1",
+    "text": "the authority a city costs rises by 1"
    }
   ],
   "theInwardRoads": [
@@ -1350,8 +1350,8 @@
   ],
   "theTwoSanctuaries": [
    {
-    "raw": "the yields of every hex with a [[improvement:holySite|Holy Site]] are doubled",
-    "text": "the yields of every hex with a Holy Site are doubled"
+    "raw": "the yields of every hex with a [[improvement:holySite|Holy Site]] are doubled, after every other change to the hex",
+    "text": "the yields of every hex with a Holy Site are doubled, after every other change to the hex"
    }
   ],
   "thePythagoreanBrotherhood": [
@@ -1410,14 +1410,14 @@
     "text": "+15% science in every city holding an empire building"
    },
    {
-    "raw": "+20% production toward empire buildings",
-    "text": "+20% production toward empire buildings"
+    "raw": "+20% production toward empire buildings, except the Magnum Opus and its works",
+    "text": "+20% production toward empire buildings, except the Magnum Opus and its works"
    }
   ],
   "thePandidakterion": [
    {
-    "raw": "the yields of every hex with an [[improvement:academy|Academy]] are doubled",
-    "text": "the yields of every hex with an Academy are doubled"
+    "raw": "the yields of every hex with an [[improvement:academy|Academy]] are doubled, after every other change to the hex",
+    "text": "the yields of every hex with an Academy are doubled, after every other change to the hex"
    }
   ],
   "theDirectorateOfArms": [
@@ -1452,8 +1452,8 @@
     "text": "you may build more than one copy of an empire building, in a city with an Academy"
    },
    {
-    "raw": "+50% production toward empire buildings",
-    "text": "+50% production toward empire buildings"
+    "raw": "+50% production toward empire buildings, except the Magnum Opus and its works",
+    "text": "+50% production toward empire buildings, except the Magnum Opus and its works"
    }
   ],
   "theCourtOfRudolf": [
@@ -1498,8 +1498,8 @@
     "text": "you have one more wildcard chair"
    },
    {
-    "raw": "the card in your last wildcard chair counts twice",
-    "text": "the card in your last wildcard chair counts twice"
+    "raw": "the card in your last wildcard chair that no malice holds counts twice",
+    "text": "the card in your last wildcard chair that no malice holds counts twice"
    }
   ],
   "theHospitium": [

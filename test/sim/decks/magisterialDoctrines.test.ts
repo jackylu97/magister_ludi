@@ -64,6 +64,7 @@ import {
   addToCollection,
   adoptGovernmentAt,
   chairCount,
+  chairIndexAtPosition,
   doctrineBagFor,
   drawDoctrineOffer,
   drawForeignCard,
@@ -75,7 +76,7 @@ import {
   expectedHandBags,
   foreignCardBag,
   maliceAt,
-  ghostSlotsUnderDoctrine,
+  ghostCouncilUnderDoctrine,
   orderAtSlotPosition,
   positionBag,
   rarityFirstOdds,
@@ -127,7 +128,7 @@ import {
 } from '../../../src/sim/statecraftData';
 import { ABILITY_TECH, TECH_IDS, type TechId, techDef } from '../../../src/sim/techData';
 import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
-import { explainCity, productionModifiers } from '../../../src/sim/yields/town';
+import { explainCity, foldCity, productionModifiers } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
 import { createGame } from '../newGameHelpers';
 import { lendDoctrineEffects } from '../statecraftHelpers';
@@ -1195,7 +1196,7 @@ describe('The Arthashastra (batch DT9)', () => {
     const { state, player, city } = counted([{ kind: 'pays', where: 'city', gold: 4 } as CardEffect]);
     const sc = player.statecraft;
     const held = lastChair(player);
-    expect(orderAtSlotPosition(sc, -1, 'wildcard')).toBe(CARD);
+    expect(orderAtSlotPosition(player, -1, 'wildcard')).toBe(CARD);
     expect(linePays(state, city, CARD, 'gold')).toBe(8);
 
     take(state, 'theCouncilOfTen');
@@ -1203,7 +1204,7 @@ describe('The Arthashastra (batch DT9)', () => {
     // The card has not moved, and it has stopped counting twice.
     expect(sc.slots[held]?.card).toBe(CARD);
     expect(sc.slots).toHaveLength(held + 3);
-    expect(orderAtSlotPosition(sc, -1, 'wildcard')).toBeNull();
+    expect(orderAtSlotPosition(player, -1, 'wildcard')).toBeNull();
     expect(chairReadingsAt(state, 0, held)).toBe(1);
     expect(chairReadingsAt(state, 0, lastChair(player))).toBe(2);
     expect(linePays(state, city, CARD, 'gold')).toBe(4);
@@ -1263,7 +1264,7 @@ describe('The Arthashastra (batch DT9)', () => {
     expect(secondReadings(state)).toEqual([]);
   });
 
-  it('reads nothing again while a malice holds the chair, which a Wildcard malice takes', () => {
+  it('counts the last Wildcard chair no malice holds, so a Wildcard malice does not stop it (batch DT19c)', () => {
     const { state, player, city } = capital();
     lendOrder(CARD, [{ kind: 'pays', where: 'city', gold: 4 } as CardEffect]);
     seatIn(state, 0, CARD);
@@ -1278,14 +1279,55 @@ describe('The Arthashastra (batch DT9)', () => {
     // The refit re-seats malices, so it moves to the new last chair and frees the old.
     expect(maliceAt(player, lastChair(player))).toBe('closedSchools');
     expect(maliceAt(player, before)).toBeNull();
-    expect(chairReadingsAt(state, 0, lastChair(player))).toBe(2);
+    // The plate marks the chair the malice left, and not the malice's.
+    expect(chairReadingsAt(state, 0, lastChair(player))).toBe(1);
+    expect(chairReadingsAt(state, 0, before)).toBe(2);
     expect(secondReadings(state)).toEqual([]);
     expect(linePays(state, city, CARD, 'gold')).toBe(4);
 
-    // When it leaves, the chair is free and counts twice again.
-    player.malices = [];
-    seatIn(state, lastChair(player), CARD);
+    // The card in that chair pays 4 and 4 more, with the malice still seated.
+    seatIn(state, before, CARD);
     expect(linePays(state, city, CARD, 'gold')).toBe(8);
+
+    // When the malice leaves, the mark goes back to the last chair.
+    player.malices = [];
+    bumpRevision(state);
+    expect(chairReadingsAt(state, 0, lastChair(player))).toBe(2);
+    expect(linePays(state, city, CARD, 'gold')).toBe(4);
+  });
+
+  it('marks no chair while malices hold every Wildcard chair', () => {
+    const { state, player, city } = counted([{ kind: 'pays', where: 'city', gold: 4 } as CardEffect]);
+    const flavours = slotTypesOf(player.statecraft);
+    seatIn(state, 0, CARD);
+    flavours.forEach((type, chair) => {
+      if (type !== 'wildcard') return;
+      player.malices.push({ id: 'closedSchools' as never, untilAge: 9, chair });
+    });
+    bumpRevision(state);
+    expect(chairIndexAtPosition(player, -1, 'wildcard')).toBe(-1);
+    expect(player.statecraft.slots.map((_held, chair) => chairReadingsAt(state, 0, chair))).toEqual(
+      player.statecraft.slots.map(() => 1),
+    );
+    expect(linePays(state, city, CARD, 'gold')).toBe(4);
+  });
+
+  it('still counts a chair a malice holds when a position is counted from the front', () => {
+    const { state, player } = capital();
+    const wildcard = slotTypesOf(player.statecraft).indexOf('wildcard');
+    player.malices.push({ id: 'closedSchools' as never, untilAge: 9, chair: wildcard });
+    bumpRevision(state);
+    expect(chairIndexAtPosition(player, 1, 'wildcard')).toBe(wildcard);
+    expect(orderAtSlotPosition(player, 1, 'wildcard')).toBeNull();
+  });
+
+  it('says which chair it means, in the clause and the note', () => {
+    const row = doctrineDef('theArthashastra' as DoctrineId);
+    expect(row.note).toContain('that no malice holds');
+    expect(row.note).not.toContain('does not count twice');
+    expect(describeCard('theArthashastra' as DoctrineId).map((clause) => stripRefs(clause.text))).toContain(
+      'the card in your last wildcard chair that no malice holds counts twice',
+    );
   });
 
   it('does not claim the card in today’s last chair on the offer, and prices the chair when held', () => {
@@ -1389,13 +1431,36 @@ describe('where a bot seats the chair that counts twice (batch DT9)', () => {
     expect(after === null || after.type !== 'unslotOrder').toBe(true);
   });
 
-  it('moves no card toward a chair a malice holds', () => {
+  it('moves a card into the last Wildcard chair no malice holds, and never the malice’s', () => {
     const { state, player } = holder();
     lendOrder(CARD, [{ kind: 'pays', where: 'empire', gold: 6 } as CardEffect]);
     player.statecraft.orders = [CARD];
     seatIn(state, 0, CARD);
     player.statecraft.slots[0]!.sealedUntil = state.turn - 1;
     player.malices.push({ id: 'closedSchools' as never, untilAge: 9, chair: lastChair(player) });
+    bumpRevision(state);
+    const counted = lastChair(player) - 1;
+    expect(chairReadingsAt(state, 0, counted)).toBe(2);
+
+    const out = nextCouncilMove(state);
+    expect(out?.type).toBe('unslotOrder');
+    expect(out?.slotIndex).toBe(0);
+    expect(applyCommand(state, out as never).ok).toBe(true);
+
+    const back = nextCouncilMove(state);
+    expect(back?.type).toBe('slotOrder');
+    expect(back?.slotIndex).toBe(counted);
+  });
+
+  it('moves no card while malices hold every Wildcard chair', () => {
+    const { state, player } = holder();
+    lendOrder(CARD, [{ kind: 'pays', where: 'empire', gold: 6 } as CardEffect]);
+    player.statecraft.orders = [CARD];
+    seatIn(state, 0, CARD);
+    player.statecraft.slots[0]!.sealedUntil = state.turn - 1;
+    slotTypesOf(player.statecraft).forEach((type, chair) => {
+      if (type === 'wildcard') player.malices.push({ id: 'closedSchools' as never, untilAge: 9, chair });
+    });
     bumpRevision(state);
     const move = nextCouncilMove(state);
     expect(move === null || move.type !== 'unslotOrder').toBe(true);
@@ -2204,12 +2269,49 @@ describe('Scutage (batch DT11)', () => {
       const { player } = council();
       const sc = player.statecraft;
       const before = sc.slots.length;
-      expect(ghostSlotsUnderDoctrine(sc, SCUTAGE as DoctrineId, true)).toHaveLength(before - 1);
-      expect(ghostSlotsUnderDoctrine(sc, SCUTAGE as DoctrineId, false)).toHaveLength(before + 1);
+      expect(ghostCouncilUnderDoctrine(player, SCUTAGE as DoctrineId, true).slots).toHaveLength(before - 1);
+      expect(ghostCouncilUnderDoctrine(player, SCUTAGE as DoctrineId, false).slots).toHaveLength(before + 1);
       // The ghost's floor is `chairCount`'s.
       sc.government = 'chiefdom' as GovernmentId;
       sc.slots = sc.slots.slice(0, 2);
-      expect(ghostSlotsUnderDoctrine(sc, SCUTAGE as DoctrineId, true)).toHaveLength(2);
+      expect(ghostCouncilUnderDoctrine(player, SCUTAGE as DoctrineId, true).slots).toHaveLength(2);
+    });
+
+    it('seats a ghost’s malices as the command would, and writes nothing (batch DT19c)', () => {
+      const { state, player } = council();
+      take(state, 'theArthashastra');
+      const last = lastChair(player);
+      seatIn(state, last - 1, CARD);
+      player.malices.push({ id: 'closedSchools' as never, untilAge: 9, chair: last });
+      bumpRevision(state);
+      const before = JSON.stringify(player);
+
+      const ghost = ghostCouncilUnderDoctrine(player, SCUTAGE as DoctrineId, true);
+      expect(JSON.stringify(player)).toBe(before);
+
+      take(state, SCUTAGE);
+      expect(ghost.slots).toEqual(player.statecraft.slots);
+      expect(ghost.malices.map((held) => held.chair)).toEqual(player.malices.map((held) => held.chair));
+    });
+
+    it('prices Scutage for a holder of The Arthashastra at the chair the command leaves', () => {
+      const { state, player, city } = council();
+      lendOrder(CARD, [{ kind: 'pays', where: 'city', gold: 4 } as CardEffect]);
+      lendOrder(OTHER, [{ kind: 'pays', where: 'city', gold: 1 } as CardEffect]);
+      take(state, 'theArthashastra');
+      const last = lastChair(player);
+      // The malice holds the last chair, CARD is counted twice, and OTHER sits below it.
+      player.malices.push({ id: 'closedSchools' as never, untilAge: 9, chair: last });
+      seatIn(state, last - 1, CARD);
+      seatIn(state, last - 2, OTHER);
+      expect(chairReadingsAt(state, 0, last - 1)).toBe(2);
+      expect(linePays(state, city, CARD, 'gold')).toBe(8);
+
+      const quoted = foldCardImpact(explainCardImpact(state, 0, { kind: 'doctrine', id: SCUTAGE as DoctrineId })).gold;
+      const paidBefore = foldCity(state, city).gold;
+      take(state, SCUTAGE);
+      const paidAfter = foldCity(state, city).gold;
+      expect(quoted).toBeCloseTo(paidAfter - paidBefore, 6);
     });
 
     it('prints both clauses in plain words', () => {

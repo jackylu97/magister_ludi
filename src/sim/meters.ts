@@ -105,6 +105,7 @@ import {
   cardAuthority,
   cardBuildingHappiness,
   cardCityCostDelta,
+  cardCityCostDiscount,
   cardCityCostPercent,
   cardCityCostValue,
   cardHappiness,
@@ -755,10 +756,13 @@ export function explainAuthority(
     // garrisoned conquests and The Universal Monarchy's captured towns cost
     // no authority. Otherwise a percentage scales the ladder's price first
     // (The Universal Monarchy's founded towns cost twice as much), floored
-    // once, and the deltas apply to the result with the two-sided floor.
+    // once, and the deltas apply to the result with the two-sided floor. A
+    // discount that prints no minimum (batch DT19c, The Highland Clans) comes
+    // first and may reach nothing.
     line.value = withCityCostRows(line.value, {
       value: cardCityCostValue(state, city),
       percent: cardCityCostPercent(state, city),
+      discount: cardCityCostDiscount(state, city),
       delta: cardCityCostDelta(state, city),
     });
     list.push(line);
@@ -782,6 +786,9 @@ function withCityCostRows(value: number, rows: CityCostRows): number {
     const scaled = Math.floor((-priced * (100 + rows.percent)) / 100);
     priced = scaled > 0 ? -scaled : 0;
   }
+  // Before the other deltas, so a row that prints "minimum one" still takes no town
+  // below one by its own discount. `+ 0` keeps a free town at 0 and not -0.
+  if (rows.discount !== 0) priced = -Math.max(0, -priced + rows.discount) + 0;
   if (rows.delta !== 0) {
     const cost = -priced;
     priced = -Math.max(Math.min(cost, 1), cost + rows.delta);
@@ -887,7 +894,7 @@ function prospectAuthorityCost(
   );
   // The `cityCost` rows a town not yet founded can answer (batch DT1, The
   // Universal Monarchy doubling it). See `cardProspectCityCost`.
-  line.value = withCityCostRows(line.value, cardProspectCityCost(state, playerId));
+  line.value = withCityCostRows(line.value, cardProspectCityCost(state, playerId, site));
   return line;
 }
 

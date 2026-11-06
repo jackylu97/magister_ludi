@@ -4281,12 +4281,12 @@ export type MeterRuleId =
    *
    * **The settler's preview carries only the rows a town not yet founded can
    * answer** (batch DT1, `cardProspectCityCost`): a row with no scope, and a row
-   * whose scope is `notCaptured`, `foundedSince` or `notCapital`, alone or inside
-   * an `all`. So a preview under The Universal Monarchy matches the meter. Any
-   * other scope needs a town: Marcher Lords' asks about ground the site may have
-   * and The Learned Chancery's about a building it has not raised. Those rows
-   * stay out of the preview, and the town's real line moves the turn it is
-   * founded.
+   * whose scope is `notCaptured`, `foundedSince`, `notCapital`, `onHills` or
+   * `coastal`, alone or inside an `all`. So a preview under The Universal Monarchy
+   * or The Highland Clans matches the meter. Any other scope needs a town: Marcher
+   * Lords' asks about ground the site may have and The Learned Chancery's about a
+   * building it has not raised. Those rows stay out of the preview, and the town's
+   * real line moves the turn it is founded.
    *
    * **A row may also set or scale the price** (Dominion batch D4). A `value`
    * sets the price of the towns the scope admits, and the lowest value wins;
@@ -4294,7 +4294,8 @@ export type MeterRuleId =
    * nothing. A `percent` scales the ladder's price before the deltas; The
    * Universal Monarchy doubles what a founded town costs. The order in
    * `explainAuthority` is: the ladder's price, then the percentages, then the
-   * deltas with the two-sided floor above. A set price replaces all three.
+   * `noMinimum` discounts down to nothing, then the other deltas with the two-sided
+   * floor above. A set price replaces all of them.
    */
   | 'cityCost';
 
@@ -6827,6 +6828,17 @@ export interface CardPaysEffect extends CardYieldBag {
    */
   wholePercent?: number;
   /**
+   * **This whole share is taken over the other whole shares** (batch DT19c, The
+   * Pandidakterion and The Two Sanctuaries: "applied after every other change to the
+   * hex"). `where: 'hex'` only, beside `wholePercent`.
+   *
+   * Whole shares otherwise sum before one multiplication, so an Academy under The
+   * Nizamiyya's +50% and a doubling would pay 2.5 times. A doubling that comes after
+   * every other change pays 3 times. It is the same order `appliedLast` states on
+   * `buildingYieldPercent`, one step of the sequence earlier.
+   */
+  appliedLast?: true;
+  /**
    * **Paid once for every mountain standing beside the hex** — Pachacuti's
    * *"farms gain +1 food for each adjacent mountain"* (`docs/leaders.md`).
    * `where: 'hex'` only.
@@ -7289,6 +7301,18 @@ export interface CardPercentYieldsEffect {
   percent: number;
   scope?: CityScope;
   stage?: ModifierStage;
+  /**
+   * **The row also takes its share of the empire's own income** (batch DT19c, The
+   * Contented City: "Your gold income is halved"). A card's percentage is written
+   * about a town, so without this field it never reaches what the empire earns beyond
+   * its towns: city connections, caravans abroad and cards' empire payouts.
+   *
+   * `explainEmpireLines` reads it through `cardEmpireIncomeShares` and prints one
+   * labelled line, over every line but the bills. The row's town half is unchanged. A
+   * row with a scope still takes the empire's whole share, so the field belongs only
+   * on a row about every town.
+   */
+  empireIncome?: true;
 }
 
 /**
@@ -8729,6 +8753,15 @@ export interface CardMeterRuleEffect {
    * Monarchy's founded towns. Percentages from several rows add up first.
    */
   percent?: number;
+  /**
+   * **`cityCost` only: this discount may take a town's price to nothing** (batch
+   * DT19c, The Highland Clans and The Delian League). The two-sided floor stands on
+   * every card that prints "minimum one". These two print no minimum, and under both a
+   * coastal town on hills gets the two points their text promises. Such rows apply
+   * before the other deltas, so a row that does print a minimum still never takes a
+   * town below one by its own discount.
+   */
+  noMinimum?: true;
   /**
    * **Which towns the rewrite reaches** — `rule: 'cityCost'` only, and required
    * there in spirit if not in the type: a row naming none reprices every town,

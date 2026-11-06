@@ -27,6 +27,7 @@ import { CITY_YIELD_KEYS, type ResourceId } from '../resourceData';
 import { type CardId } from '../statecraftData';
 import {
   type CardYieldLine,
+  cardEmpireIncomeShares,
   explainCardEmpireYields,
   heldReligions,
   recordScalingOccasion,
@@ -399,10 +400,13 @@ export function foldEmpireRates(state: GameState, playerId: number): {
     for (const key of CITY_YIELD_KEYS) additive[key] += line[key];
   }
   const empire = stageEmpireFold(additive, percents);
-  rates.faithPerTurn += empire.faith;
-  rates.culturePerTurn += empire.culture;
-  rates.goldPerTurn += empire.gold + bills;
-  rates.sciencePerTurn += empire.science;
+  // And what the law takes of that income (batch DT19c, The Contented City), or a
+  // conversion would price against money the treasury did not receive.
+  const shares = foldEmpireLines(explainEmpireIncomeShares(state, playerId, additive));
+  rates.faithPerTurn += empire.faith + shares.faith;
+  rates.culturePerTurn += empire.culture + shares.culture;
+  rates.goldPerTurn += empire.gold + shares.gold + bills;
+  rates.sciencePerTurn += empire.science + shares.science;
   return rates;
 }
 
@@ -439,9 +443,10 @@ export function explainEmpireCardYields(state: GameState, playerId: number): Car
  * parse a label to find out.
  *
  * `'stage'` is the reconciliation line itself: what the empire stage added over
- * the additive lines above it, one per voice.
+ * the additive lines above it, one per voice. `'share'` is what a card takes of the
+ * empire's income (`explainEmpireIncomeShares`).
  */
-export type EmpireLineOrigin = 'resource' | 'route' | 'gold' | 'card' | 'stage';
+export type EmpireLineOrigin = 'resource' | 'route' | 'gold' | 'card' | 'stage' | 'share';
 
 /**
  * One labelled line of what an empire banks **beyond its towns** — the shape
@@ -582,6 +587,10 @@ export function stageEmpireFold(fold: CityYields, empire: EmpirePercents): CityY
  * rather than yields (`TradeGoldKind`, whose docblock has each one's reason), and
  * a contented empire earns more from its roads without paying its soldiers less.
  *
+ * **A card's share of the income comes last** (batch DT19c, The Contented City's
+ * "Your gold income is halved"), as one line named for the card. See
+ * `explainEmpireIncomeShares`.
+ *
  * `empire` may be handed in by a caller that already took the reading —
  * `explainCity`'s parameter one scale out, and the seam a ghost-diff lends its own
  * meters across (`cardImpact.ts`).
@@ -605,11 +614,7 @@ export function explainEmpireLines(
     });
   }
   // The additive fold the stage multiplies — every line but the bills.
-  const additive = emptyCityYields();
-  for (const line of lines) {
-    if (line.bill === true) continue;
-    for (const key of CITY_YIELD_KEYS) additive[key] += line[key];
-  }
+  const additive = foldEmpireIncome(lines);
   const staged = stageEmpireFold(additive, empire);
   const list = [...empire.meters, ...empire.arrears];
   for (const key of CITY_YIELD_KEYS) {
@@ -628,7 +633,58 @@ export function explainEmpireLines(
     line[key] = gain;
     lines.push(line);
   }
+  lines.push(...explainEmpireIncomeShares(state, playerId, additive));
   return lines;
+}
+
+/**
+ * **What the law takes of the empire's income, as labelled lines**: one a row and
+ * voice, for each `percentYields` row marked `empireIncome` (batch DT19c, The Contented
+ * City). `income` is the fold it is a share of: the luxuries, the caravans abroad, the
+ * income half of the treasury and the cards' empire payouts (`foldEmpireIncome`).
+ *
+ * The bills stay whole, as they stay outside the stage. That includes a tribute
+ * received, which is a bill for the reason `explainEmpireGold` gives.
+ *
+ * A line of its own rather than a figure inside the stage line, because that line
+ * prints a multiplier for the meter tiers and a player looking for what halved the
+ * treasury should find the card's name. The share is taken of the fold before the
+ * stage, so it adds with the stage's own percentages (Entry XVII: additive within a
+ * stage), as the row's town half does. Taking it of a part of the fold gives that
+ * part's share, so a reader holding only some of the lines may ask for those.
+ */
+export function explainEmpireIncomeShares(
+  state: GameState,
+  playerId: number,
+  income: CityYields,
+): EmpireYieldLine[] {
+  const lines: EmpireYieldLine[] = [];
+  for (const share of cardEmpireIncomeShares(state, playerId)) {
+    const figure = (income[share.yield] * share.percent) / 100;
+    if (figure === 0) continue;
+    const line: EmpireYieldLine = {
+      ...emptyCityYields(),
+      source: share.source,
+      origin: 'share',
+      card: share.card,
+    };
+    line[share.yield] = figure;
+    lines.push(line);
+  }
+  return lines;
+}
+
+/**
+ * The empire's income: the part of `explainEmpireLines` the stage multiplies and a
+ * card's share reads. Every line but the bills, the stage's own and the shares.
+ */
+export function foldEmpireIncome(lines: readonly EmpireYieldLine[]): CityYields {
+  const income = emptyCityYields();
+  for (const line of lines) {
+    if (line.bill === true || line.origin === 'stage' || line.origin === 'share') continue;
+    for (const key of CITY_YIELD_KEYS) income[key] += line[key];
+  }
+  return income;
 }
 
 /** The fold of `explainEmpireLines`, and the only sum of one. */

@@ -3542,8 +3542,28 @@ import {
  *
  * **A v223 save is refused and does not replay.** These seats' Doctrine bags change,
  * so their draws move. The branch migrates nothing, for the reason given under v119.
+ *
+ * v225 (branch `decks`; batch DT19c, `docs/plans/doctrines-build-triage.md`): **the
+ * build made to match the printed text.** No field joins the state. The rules that
+ * change:
+ *
+ *   · The Contented City halves the empire's own gold income as well as each town's
+ *     (`empireIncome`, `explainEmpireIncomeShares`), and the bills stay whole;
+ *   · The Mandarinate and Synoecism charge the capital;
+ *   · The Highland Clans and The Delian League discount every town on their ground
+ *     through `cityCost`, down to nothing (`noMinimum`), so a captured town, a puppet
+ *     and a coastal town on hills gain;
+ *   · The Pandidakterion and The Two Sanctuaries double a hex after its other whole
+ *     shares (`appliedLast` on a hex row);
+ *   · The Seven Councils' room counts for the religion its holder founded, whoever
+ *     holds the holy city;
+ *   · The Arthashastra's chair is the last Wildcard chair that no malice holds.
+ *
+ * **A v224 save is refused and does not replay.** The fold of a turn changes for a
+ * seat holding these rows, so the branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 224;
+export const SCHEMA_VERSION = 225;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

@@ -1653,16 +1653,18 @@ function describePays(
     // own clause, said as "the yields of" because the share reaches all of
     // them, the lines other cards put on the hex included. A doubling reads as
     // doubled, as the card says it, and a share that takes it all away (Crop
-    // Rotation, batch DT2) reads as yielding nothing, as that card says it.
+    // Rotation, batch DT2) reads as yielding nothing, as that card says it. A share
+    // taken over the others (batch DT19c) says so, as `buildingYieldPercent` does.
     if (effect.wholePercent !== undefined && effect.wholePercent !== 0) {
+      const last = effect.appliedLast === true ? ', after every other change to the hex' : '';
       out.push({
         text:
           effect.wholePercent === 100
-            ? `the yields of every ${tileConditionWords(on)} are doubled${whose}`
+            ? `the yields of every ${tileConditionWords(on)} are doubled${last}${whose}`
             : effect.wholePercent === -100
-              ? `every ${tileConditionWords(on)} yields nothing${whose}`
+              ? `every ${tileConditionWords(on)} yields nothing${last}${whose}`
               : `the yields of every ${tileConditionWords(on)} are ` +
-                `${signed(effect.wholePercent)}%${whose}`,
+                `${signed(effect.wholePercent)}%${last}${whose}`,
       });
     }
     return;
@@ -1820,8 +1822,13 @@ function describeEffect(
       return;
     case 'percentYields': {
       const voice = effect.yield === 'all' ? 'all yields' : effect.yield;
+      // A row that reaches the empire's own income too (batch DT19c, The Contented
+      // City) is about more than towns, and it does not touch the bills.
       out.push({
-        text: `${signed(effect.percent)}% ${voice} in ${scopeWordsFor(subject, effect.scope)}`,
+        text:
+          effect.empireIncome === true
+            ? `${signed(effect.percent)}% ${voice} income, before maintenance`
+            : `${signed(effect.percent)}% ${voice} in ${scopeWordsFor(subject, effect.scope)}`,
       });
       return;
     }
@@ -1917,8 +1924,11 @@ function describeEffect(
         effect.aheadOfMet === true
           ? ', while no empire you have met knows the technology that opens it'
           : '';
+      // The Academy of Gondishapur and The Külliye (batch DT19c): the clause says
+      // what the bonus leaves out, in the words of the row's text.
+      const except = effect.skipsBeadRows === true ? ', except the Magnum Opus and its works' : '';
       out.push({
-        text: `${signed(effect.percent)}% production toward ${what}${counted}${whose}${staged}${ahead}`,
+        text: `${signed(effect.percent)}% production toward ${what}${except}${counted}${whose}${staged}${ahead}`,
       });
       return;
     }
@@ -3065,7 +3075,7 @@ function describeEffect(
       // holding an empire building costs" — which is where English puts an
       // adjective and where `eachWords` already puts one for the writ's own
       // gains. "A city but your capital" is not English, so a scope that leaves
-      // out the capital (Synoecism, The Mandarinate) says "each" instead.
+      // out the capital says "each" instead.
       const costNoun = effect.scope === undefined ? '' : eachWords(effect.scope);
       const costArticle = costNoun.includes('but your capital') ? 'each' : indefinite(costNoun);
       const words =
@@ -3574,10 +3584,12 @@ function describeEffect(
     case 'slotPosition': {
       const flavour = effect.slot === undefined ? '' : ` ${SLOT_WORDS[effect.slot].toLowerCase()}`;
       const place = effect.position === -1 ? 'last' : ordinalWords(effect.position);
+      // The last chair is the last one a malice does not hold (batch DT19c).
+      const free = effect.position === -1 ? ' that no malice holds' : '';
       out.push({
         text:
           effect.whole === true
-            ? `the card in your ${place}${flavour} chair counts ${timesWords(effect.factor)}`
+            ? `the card in your ${place}${flavour} chair${free} counts ${timesWords(effect.factor)}`
             : `the Order in your ${place}${flavour} chair pays ${timesWords(effect.factor)}`,
       });
       return;

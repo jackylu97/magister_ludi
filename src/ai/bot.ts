@@ -333,7 +333,6 @@ import {
   cardRareWeight,
   expectedHandBags,
   cardBehaviorRule,
-  maliceAt,
   slotOrderError,
   isSlotted,
   sealRemaining,
@@ -2677,11 +2676,9 @@ function moveToCountedChair(
   rows: BotCandidate[],
 ): BotDecision | null {
   const sc = player.statecraft;
+  // The chair that counts twice is never one a malice holds (`chairIndexAtPosition`).
   const chair = layout.findIndex(
-    (_type, index) =>
-      sc.slots[index] === null &&
-      maliceAt(player, index) === null &&
-      chairReadingsAt(state, player.id, index) > 1,
+    (_type, index) => sc.slots[index] === null && chairReadingsAt(state, player.id, index) > 1,
   );
   if (chair < 0) return null;
   const type = layout[chair]!;

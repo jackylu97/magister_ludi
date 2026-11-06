@@ -240,8 +240,8 @@ The skip's pity, the culture meter and the tier are untouched by any of them.
   stones are written and a captured one changes sides with its hex.
 - A finished religion: pantheon (2–4, empire-native) + up to 3 followers + up
   to 2 enhancers. `pools: { followerSlots, enhancerSlots }` is the dial. The Seven
-  Councils (batch DT15) adds one to each, through `poolSlotsFor`, for the religions
-  whose holy city the holder holds.
+  Councils (batch DT15) adds one to each, through `poolSlotsFor`, for the religion
+  the holder founded, whoever holds its holy city (batch DT19c).
 
 ## Who is paid
 

@@ -885,6 +885,24 @@ describe('The Two Sanctuaries', () => {
     expect(hexPays(state, city, 6, 5).gold).toBe(withLine.gold * 2);
   });
 
+  it('doubles after another whole share, so +50% and the doubling pay 3 times (batch DT19c)', () => {
+    const { state, city } = board();
+    const site = hexPays(state, city, 6, 5);
+    expect(site.faith).toBeGreaterThan(0);
+    lent.push(
+      lendDoctrineEffects('theSaintPetersIndulgence' as DoctrineId, [
+        { kind: 'pays', where: 'hex', on: { test: 'improvement', improvement: 'holySite' }, wholePercent: 50 },
+      ]),
+    );
+    hold(state, 'theSaintPetersIndulgence');
+    expect(hexPays(state, city, 6, 5).faith).toBeCloseTo(site.faith * 1.5, 6);
+    hold(state, 'theTwoSanctuaries');
+    expect(hexPays(state, city, 6, 5).faith).toBeCloseTo(site.faith * 3, 6);
+    expect(describeCard('theTwoSanctuaries' as DoctrineId).map((clause) => stripRefs(clause.text))).toEqual([
+      'the yields of every hex with a Holy Site are doubled, after every other change to the hex',
+    ]);
+  });
+
   it('joins the hex’s list as one labelled line, and the total is the list’s fold', () => {
     const { state, city } = board();
     const site = hexPays(state, city, 6, 5);
@@ -1713,7 +1731,7 @@ describe('The Seven Councils (batch DT15)', () => {
     expect(pantheonSlots(state, 0)).toBe(before);
   });
 
-  it('gains the slots in each religion a seat holds', () => {
+  it('counts only for the religion its holder founded, of those it holds (batch DT19c)', () => {
     const state = bareState(30, 10);
     state.wars = [];
     const mine = town(state, 5, 5, 6);
@@ -1724,22 +1742,37 @@ describe('The Seven Councils (batch DT15)', () => {
     bumpRevision(state);
     expect(heldReligions(state, 0).map((religion) => religion.id)).toEqual([own.id, other.id]);
     hold(state, CARD);
-    for (const religion of [own, other]) {
-      expect(poolSlotsFor(state, religion, 'follower')).toBe(poolSlots('follower') + 1);
-      expect(poolSlotsFor(state, religion, 'enhancer')).toBe(poolSlots('enhancer') + 1);
-    }
+    expect(poolSlotsFor(state, own, 'follower')).toBe(poolSlots('follower') + 1);
+    expect(poolSlotsFor(state, own, 'enhancer')).toBe(poolSlots('enhancer') + 1);
+    // Only a founder can teach, so the captor's card gives the old founder no room.
+    expect(poolSlotsFor(state, other, 'follower')).toBe(poolSlots('follower'));
+    expect(poolSlotsFor(state, other, 'enhancer')).toBe(poolSlots('enhancer'));
   });
 
-  it('follows the holy city: the room goes with it, and a belief already held stays', () => {
+  it('gives the old founder’s prophets no room from a captor’s card', () => {
     const { state, faith, mine } = board();
-    hold(state, CARD);
-    teach(state, faith, FOLLOWERS.slice(0, 4));
+    teach(state, faith, FOLLOWERS.slice(0, 3), ENHANCERS.slice(0, 2));
+    const prophet = createUnit(state, 0, 'prophet', 12, 5);
     mine.ownerId = 1;
     bumpRevision(state);
+    hold(state, CARD, 1);
+    expect(heldReligions(state, 1).map((religion) => religion.id)).toEqual([faith.id]);
     expect(poolSlotsFor(state, faith, 'follower')).toBe(poolSlots('follower'));
-    expect(faith.follower).toHaveLength(4);
-    // Four held of three is full, so the ladder moves on rather than back.
-    expect(nextBeliefPool(state, faith)).toBe('enhancer');
+    expect(nextBeliefPool(state, faith)).toBeNull();
+    expect(gainBeliefError(state, 0, prophet.id)).toContain('has all the beliefs it will hold');
+  });
+
+  it('stays with a founder that loses its holy city, as its prophets can still teach', () => {
+    const { state, faith, mine } = board();
+    hold(state, CARD);
+    teach(state, faith, FOLLOWERS.slice(0, 3), ENHANCERS.slice(0, 2));
+    town(state, 12, 5, 4);
+    const prophet = createUnit(state, 0, 'prophet', 12, 5);
+    mine.ownerId = 1;
+    bumpRevision(state);
+    expect(poolSlotsFor(state, faith, 'follower')).toBe(poolSlots('follower') + 1);
+    expect(nextBeliefPool(state, faith)).toBe('follower');
+    expect(gainBeliefError(state, 0, prophet.id)).toBeNull();
   });
 
   it('says what it does', () => {
@@ -1768,7 +1801,7 @@ describe('The Seven Councils (batch DT15)', () => {
     );
   });
 
-  it('prices nothing for a seat that cannot teach the religion it holds, or has lost its own', () => {
+  it('prices nothing for a seat that cannot teach the religion it holds, and keeps a founder’s price', () => {
     const { state, mine } = board();
     town(state, 20, 5, 6, 1);
     const row = doctrineDef(CARD as DoctrineId).effects;
@@ -1776,9 +1809,9 @@ describe('The Seven Councils (batch DT15)', () => {
     mine.ownerId = 1;
     bumpRevision(state);
     expect(scoreEffects(row, valueContext(state, seat(state, 1)))).toBe(0);
-    // Seat 0 founded it and no longer holds it.
+    // Seat 0 founded it and no longer holds it, but its prophets can still teach.
     town(state, 12, 5, 4);
-    expect(scoreEffects(row, valueContext(state, seat(state, 0)))).toBe(0);
+    expect(scoreEffects(row, valueContext(state, seat(state, 0)))).toBeGreaterThan(0);
   });
 });
 

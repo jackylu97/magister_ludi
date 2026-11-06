@@ -823,18 +823,23 @@ export function explainTileYield(
   // "citadel yields are doubled" says. Riders sum before one multiplication, as
   // the other two do, and it joins as one more labelled `add`, so the
   // breakdown still sums to the total.
-  let wholePercent = 0;
-  const wholeSources: string[] = [];
-  const wholeCards: CardId[] = [];
-  for (const line of ctx?.lines ?? []) {
-    const whole = line.wholePercent ?? 0;
-    if (whole === 0) continue;
-    if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk, ctx?.turn, ctx?.ground)) continue;
-    wholePercent += whole;
-    if (!wholeSources.includes(line.source)) wholeSources.push(line.source);
-    if (line.card !== undefined && !wholeCards.includes(line.card)) wholeCards.push(line.card);
-  }
-  if (wholePercent !== 0) {
+  //
+  // Two passes (batch DT19c), as a building's shares have. The `appliedLast` lines
+  // come second, each over the fold with the first pass's share in it, because The
+  // Pandidakterion's text says "applied after every other change to the hex".
+  for (const appliedLast of [false, true]) {
+    let wholePercent = 0;
+    const wholeSources: string[] = [];
+    const wholeCards: CardId[] = [];
+    for (const line of ctx?.lines ?? []) {
+      const whole = line.wholePercent ?? 0;
+      if (whole === 0 || (line.appliedLast === true) !== appliedLast) continue;
+      if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk, ctx?.turn, ctx?.ground)) continue;
+      wholePercent += whole;
+      if (!wholeSources.includes(line.source)) wholeSources.push(line.source);
+      if (line.card !== undefined && !wholeCards.includes(line.card)) wholeCards.push(line.card);
+    }
+    if (wholePercent === 0) continue;
     const whole = foldTileLines(list);
     const share: TileYieldContribution = {
       source: wholeSources.join(' + '),

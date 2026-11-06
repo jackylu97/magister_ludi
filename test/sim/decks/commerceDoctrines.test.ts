@@ -282,28 +282,92 @@ describe('The Delian League', () => {
     expect(townCost(state, inland)).toBe(founded);
   });
 
-  it('keeps a coastal capital free, and charges a captured coastal town as before', () => {
-    const state = bareState(24, 10);
+  it('keeps a coastal capital free, and discounts a captured and a puppet coastal town (batch DT19c)', () => {
+    const state = bareState(30, 10);
     coastAt(state, 9);
     const capital = town(state, 8, 2);
     const taken = town(state, 10, 7);
     taken.captured = true;
+    const puppet = town(state, 10, 3);
+    puppet.captured = true;
+    puppet.puppet = true;
     bumpRevision(state);
-    const price = townCost(state, taken);
+    expect(townCost(state, taken)).toBe(4);
+    expect(townCost(state, puppet)).toBe(3);
     hold(state, 'theDelianLeague');
     expect(townCost(state, capital)).toBe(0);
-    expect(townCost(state, taken)).toBe(price);
+    expect(townCost(state, taken)).toBe(3);
+    expect(townCost(state, puppet)).toBe(2);
   });
 
-  it('quotes the cheaper town on the founding preview', () => {
+  describe('with The Highland Clans, on a coastal town on hills (batch DT19c)', () => {
+    /** A capital inland, and a town on hills beside the coast. */
+    function shoreHill(): { state: GameState; hill: City } {
+      const state = bareState(24, 10);
+      coastAt(state, 9);
+      town(state, 2, 2);
+      at(state, 8, 5).hills = true;
+      const hill = town(state, 8, 5);
+      return { state, hill };
+    }
+
+    it('takes 1 under either Doctrine and 2 under both, down to nothing', () => {
+      const { state, hill } = shoreHill();
+      // The ladder prices it as a port.
+      expect(townCost(state, hill)).toBe(2);
+      hold(state, 'theHighlandClans');
+      expect(townCost(state, hill)).toBe(1);
+      hold(state, 'theDelianLeague');
+      expect(townCost(state, hill)).toBe(0);
+    });
+
+    it('takes 1 under The Delian League alone', () => {
+      const { state, hill } = shoreHill();
+      hold(state, 'theDelianLeague');
+      expect(townCost(state, hill)).toBe(1);
+    });
+
+    it('quotes the same price on the founding preview', () => {
+      const state = bareState(24, 10);
+      coastAt(state, 9);
+      town(state, 2, 2);
+      at(state, 8, 5).hills = true;
+      bumpRevision(state);
+      const quote = () =>
+        0 - explainFoundingCost(state, 0, at(state, 8, 5)).find((one) => one.meter === 'authority')!.value;
+      expect(quote()).toBe(2);
+      hold(state, 'theHighlandClans');
+      hold(state, 'theDelianLeague');
+      expect(quote()).toBe(0);
+      expect(townCost(state, town(state, 8, 5))).toBe(0);
+    });
+
+    it('holds a row that prints a minimum to it, and adds a surcharge back', () => {
+      const { state, hill } = shoreHill();
+      hold(state, 'theHighlandClans');
+      // The Commanderies prints "minimum one", so from 1 its discount takes nothing.
+      hold(state, 'theCommanderies');
+      expect(townCost(state, hill)).toBe(1);
+      // Under both The Commanderies finds the town free, and a discount never charges.
+      hold(state, 'theDelianLeague');
+      expect(townCost(state, hill)).toBe(0);
+      // The Mandarinate's +1 cancels The Commanderies' -1, so the town stays free.
+      hold(state, 'theMandarinate');
+      expect(townCost(state, hill)).toBe(0);
+    });
+  });
+
+  it('quotes the cheaper town on the founding preview, and no cheaper inland', () => {
     const state = bareState(24, 10);
     coastAt(state, 9);
     town(state, 2, 2);
-    const quote = () =>
-      explainFoundingCost(state, 0, at(state, 8, 5)).find((one) => one.meter === 'authority')!.value;
-    const before = quote();
+    const quote = (col: number) =>
+      explainFoundingCost(state, 0, at(state, col, 5)).find((one) => one.meter === 'authority')!.value;
+    const before = quote(8);
+    const inland = quote(18);
     hold(state, 'theDelianLeague');
-    expect(quote()).toBe(before + 1);
+    expect(quote(8)).toBe(before + 1);
+    expect(quote(18)).toBe(inland);
   });
 
   it('pays +3 production in a coastal town, and nothing inland', () => {
@@ -1008,6 +1072,16 @@ describe('The Flying Money (batch DT7)', () => {
     addBuilding(state, plain, 'market');
     bumpRevision(state);
     expect(purchaseError(state, 0, plain.id, WARRIOR, 'gold')).toBeNull();
+  });
+
+  it('prints that the rule is about gold, as the user chose on 2026-11-06', () => {
+    expect(doctrineDef('theFlyingMoney').text).toBe(
+      'Your towns with a gold building buy units and buildings 20% cheaper. Your other towns cannot buy them with gold.',
+    );
+    // The clause agrees. 'leaves a shut town its faith' holds a faith purchase open.
+    expect(describeCard('theFlyingMoney').map((clause) => clause.text)).toContain(
+      'units and buildings may be bought with gold only in a city with a gold building',
+    );
   });
 
   it('leaves a shut town its caravans', () => {

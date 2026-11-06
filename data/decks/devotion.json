@@ -2824,7 +2824,7 @@
       "flavor": "Two holy cities, one title, and every caravan guarded.",
       "text": "Hexes with a holy site have double yields, applied after every other change to the hex.",
       "effects": [
-        {"kind": "pays", "where": "hex", "on": {"test": "improvement", "improvement": "holySite"}, "wholePercent": 100}
+        {"kind": "pays", "where": "hex", "on": {"test": "improvement", "improvement": "holySite"}, "wholePercent": 100, "appliedLast": true}
       ]
     }
   }
