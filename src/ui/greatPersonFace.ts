@@ -19,6 +19,7 @@
  * The two screens own their own DOM; this owns what goes in it.
  */
 
+import { familyLayingWork } from '../sim/greatPeople';
 import { type CardClause, describeCard } from '../sim/statecraft';
 import {
   type Family,
@@ -168,9 +169,13 @@ export function legacyIsSilent(clauses: readonly CardClause[]): boolean {
  * (`test/ui/keywords.test.ts`'s composer register), so it may not reach for
  * either printer — and a footnote is a plain sentence anyway. The mark is what
  * `describeFamilyVerb` adds for the surfaces that draw descriptors.
+ *
+ * `workFamily` is the family whose words name the work, which The Platonic Academy
+ * may make another family's (batch DT16). The Reliquary's roll leaves it out: it
+ * describes people spent earlier, and nothing records which work they laid.
  */
-export function deedFootnote(family: Family): string {
-  return `Spent as a ${family} — ${familyVerb(family, 'act')}, or ${familyVerb(family, 'work')}.`;
+export function deedFootnote(family: Family, workFamily: Family = family): string {
+  return `Spent as a ${family} — ${familyVerb(family, 'act')}, or ${familyVerb(workFamily, 'work')}.`;
 }
 
 /** The mono eyebrow: the family, then the age the name belongs to. */
@@ -265,5 +270,10 @@ export function greatPersonFace(
   playerId: number,
   id: GreatPersonId,
 ): GreatPersonFace {
-  return { ...greatPersonCard(id), stamp: greatPersonStamp(state, playerId, id) };
+  const family = greatPersonDef(id).family;
+  return {
+    ...greatPersonCard(id),
+    deed: deedFootnote(family, familyLayingWork(state, playerId, family)),
+    stamp: greatPersonStamp(state, playerId, id),
+  };
 }

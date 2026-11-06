@@ -1460,6 +1460,12 @@
     "text": "-25% production toward military units, after the town's own bonuses"
    }
   ],
+  "thePlatonicAcademy": [
+   {
+    "raw": "your great people of every family found an Academy as their work, in place of their own",
+    "text": "your great people of every family found an Academy as their work, in place of their own"
+   }
+  ],
   "theArthashastra": [
    {
     "raw": "you have one more wildcard chair",
@@ -1502,6 +1508,16 @@
    {
     "raw": "rare cards come up twice as often in your Order hands",
     "text": "rare cards come up twice as often in your Order hands"
+   }
+  ],
+  "thePeregrini": [
+   {
+    "raw": "+1 food, +1 production on every hex beside a great person's work, once for every adjacent hex carrying a great person's work",
+    "text": "+1 food, +1 production on every hex beside a great person's work, once for every adjacent hex carrying a great person's work"
+   },
+   {
+    "raw": "laying a great person's work makes your next great person cost 20% less",
+    "text": "laying a great person's work makes your next great person cost 20% less"
    }
   ],
   "theBarmakids": [

@@ -70,6 +70,7 @@ import {
   claimTile,
   nearestOwnedCity,
   refreshCityDerived,
+  refreshRingDerived,
   refreshTileDerived,
   settleGrowthWindfall,
   settleProductionWindfall,
@@ -950,6 +951,9 @@ export function buildImprovementAt(
     payWorkLaidRiders(state, unit.ownerId, tile, improvementId);
     return spendBuilderCharge(state, unit, improvementId);
   }
+  // What the new row replaces, for the ring below: a farm laid over a work ends
+  // the work.
+  const replaced = tile.improvement;
   raiseImprovement(tile, improvementId, state.turn);
   // **The seam the spade opened** (batch M3, `slate.ts`): an improvement is one
   // of `openedResource`'s clauses, so what the empire holds — and the happiness
@@ -964,6 +968,7 @@ export function buildImprovementAt(
   // already holds the hex.
   claimGroundForWork(state, unit.ownerId, tile, improvementId, unowned);
   refreshWateredNeighbours(state, tile, improvementId);
+  refreshRingDerived(state, tile, replaced);
   payWorkLaidRiders(state, unit.ownerId, tile, improvementId);
   return spendBuilderCharge(state, unit, improvementId);
 }
@@ -1265,6 +1270,8 @@ export function removeImprovementAt(state: GameState, unit: Unit, tile: Tile): v
   refreshTileDerived(state, tile);
   // A Qanat taken up dries the farms beside it (Scientific batch S5).
   if (was !== undefined) refreshWateredNeighbours(state, tile, was);
+  // A work taken up stops paying the hexes beside it (batch DT16).
+  refreshRingDerived(state, tile, was);
   unit.movesLeft = 0;
 }
 
@@ -2020,6 +2027,8 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
   refreshTileDerived(state, tile);
   // A burnt Qanat dries the farms beside it (Scientific batch S5).
   if (report.improvement !== undefined) refreshWateredNeighbours(state, tile, report.improvement);
+  // A burnt work stops paying the hexes beside it (batch DT16).
+  refreshRingDerived(state, tile, report.improvement);
   // Tyranny's `freePillage`, and the one place the raid's single point is
   // spent — so a law that says pillaging costs no movement is one clause read
   // here rather than a second pillage verb. The gate is untouched: a column
@@ -2084,6 +2093,7 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
         // The victim's town is refreshed for every hex burnt, as for the raid's
         // own hex (`refreshCityDerived`'s register, entry 5).
         refreshTileDerived(state, near);
+        refreshRingDerived(state, near, burnt);
         const more = windfallPayout(state, player.id, 'pillage', IMPROVEMENTS.pillageGold, 0, facts);
         const gold = payPillage(state, player, unit, near, more, report, touched);
         (report.spread ??= []).push({ col: near.col, row: near.row, improvement: burnt, gold });

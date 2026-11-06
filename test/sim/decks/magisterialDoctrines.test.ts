@@ -8,7 +8,7 @@
  * Batch DT6 adds The Carroccio and The Gobelins. Batch DT9 adds The Arthashastra, The
  * Council of Ten and The Union of Lublin, with a replay of the refit. Batch DT10 adds
  * The Hospitium and The Jinshi, the two rows that change what an Order hand deals.
- * Batch DT11 adds Scutage. A later batch adds the deck's last Doctrine to this file.
+ * Batch DT11 adds Scutage. Batch DT16 adds The Peregrini, the deck's last Doctrine.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -18,6 +18,7 @@ import { scoreEffects } from '../../../src/ai/value';
 import { WONDER_IDS } from '../../../src/sim/buildingData';
 import { explainCardImpact, foldCardImpact } from '../../../src/sim/cardImpact';
 import {
+  cityAt,
   explainGrowthPercent,
   foldGrowthPercent,
   foundCityAt,
@@ -26,20 +27,25 @@ import {
   refreshCityDerived,
   settleCardTaken,
   settleProduction,
+  tileOwnerCityId,
 } from '../../../src/sim/cities';
 import { applyCommand } from '../../../src/sim/commands';
 import { dispatch, snapshotState } from '../../../src/sim/game';
 import {
   drawGreatPersonOffer,
+  grantGreatPersonOffer,
   greatPersonActAt,
   greatPersonWorkAt,
   settleGreatPersonChoice,
 } from '../../../src/sim/greatPeople';
+import { buildImprovementAt, pillageAt, removeImprovementAt } from '../../../src/sim/improvements';
 import { type Family, GREAT_PERSON_IDS, type GreatPersonId, greatPersonDef } from '../../../src/sim/greatPeopleData';
-import { type Tile, raiseImprovement } from '../../../src/sim/map';
+import { type Tile, raiseImprovement, tileNeighbors } from '../../../src/sim/map';
 import { explainAuthority, explainHappiness } from '../../../src/sim/meters';
 import { RELIGION } from '../../../src/sim/religionData';
+import { plantHolySiteAt } from '../../../src/sim/religion';
 import { explainRenown, foldRenown, renownThreshold } from '../../../src/sim/renown';
+import { RULES } from '../../../src/sim/rulesData';
 import {
   type City,
   type GameState,
@@ -138,6 +144,7 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['thePericleanWorks', 1],
   ['theMagnaura', 2],
   ['theBarmakids', 2],
+  ['thePeregrini', 2],
   ['theBourgs', 3],
   ['theCarroccio', 3],
   ['theKitabkhana', 4],
@@ -2424,6 +2431,321 @@ describe('Scutage (batch DT11)', () => {
       under.player.statecraft.orders = [OTHER, CARD];
       bumpRevision(under.state);
       expect(firstSeating(under.state)).toBe(OTHER);
+    });
+  });
+});
+
+describe('The Peregrini (batch DT16)', () => {
+  const ID = 'thePeregrini';
+  /** The hex between two towns: the first town's (6, 5) and the second town's (7, 5). */
+  const WORK_HEX = { col: 6, row: 5 };
+  const RING_HEX = { col: 7, row: 5 };
+
+  /** Two towns of seat 0, side by side, so a work in one has a hex of the other beside it. */
+  function board(secondOwner = 0): { state: GameState; player: Player; capital: City; other: City } {
+    const state = bareState(24, 10);
+    const capital = town(state, 5, 5);
+    const other = town(state, 8, 5, 1, secondOwner);
+    const player = seat(state);
+    player.renownPool = 0;
+    expect(tileOwnerCityId(state, WORK_HEX.col, WORK_HEX.row)).toBe(capital.id);
+    expect(tileOwnerCityId(state, RING_HEX.col, RING_HEX.row)).toBe(other.id);
+    bumpRevision(state);
+    return { state, player, capital, other };
+  }
+
+  /** What The Peregrini's own line pays this hex, for the town that works it. */
+  function linePaid(state: GameState, city: City, col: number, row: number) {
+    const lines = explainTileYield(at(state, col, row), cityContext(state, city)).filter((line) => line.card === ID);
+    return { food: lines.reduce((sum, line) => sum + line.food, 0), production: lines.reduce((sum, line) => sum + line.production, 0) };
+  }
+
+  /** The other two hexes the ring hex touches on its way round, by the map's own ring. */
+  const besideHex = (state: GameState, col: number, row: number): Tile[] => tileNeighbors(state.map, at(state, col, row));
+
+  describe('the hex clause', () => {
+    it('gives every hex beside a work +1 food and +1 production', () => {
+      const { state, other } = board();
+      hold(state, ID);
+      expect(linePaid(state, other, RING_HEX.col, RING_HEX.row)).toEqual({ food: 0, production: 0 });
+      raiseImprovement(at(state, WORK_HEX.col, WORK_HEX.row), 'academy', state.turn);
+      bumpRevision(state);
+      expect(linePaid(state, other, RING_HEX.col, RING_HEX.row)).toEqual({ food: 1, production: 1 });
+    });
+
+    it('gives a hex beside two works +2 food and +2 production', () => {
+      const { state, other } = board();
+      hold(state, ID);
+      const [first, second] = besideHex(state, RING_HEX.col, RING_HEX.row).filter(
+        (tile) => cityAt(state, tile.col, tile.row) === undefined,
+      );
+      raiseImprovement(first!, 'academy', state.turn);
+      raiseImprovement(second!, 'landmark', state.turn);
+      bumpRevision(state);
+      expect(linePaid(state, other, RING_HEX.col, RING_HEX.row)).toEqual({ food: 2, production: 2 });
+    });
+
+    it('pays no hex that is not beside a work, and not the work’s own hex', () => {
+      const { state, capital, other } = board();
+      hold(state, ID);
+      raiseImprovement(at(state, WORK_HEX.col, WORK_HEX.row), 'academy', state.turn);
+      bumpRevision(state);
+      expect(linePaid(state, capital, WORK_HEX.col, WORK_HEX.row)).toEqual({ food: 0, production: 0 });
+      expect(linePaid(state, other, 9, 5)).toEqual({ food: 0, production: 0 });
+    });
+
+    it('counts a holy site, and not a farm', () => {
+      const { state, other } = board();
+      hold(state, ID);
+      const tile = at(state, WORK_HEX.col, WORK_HEX.row);
+      raiseImprovement(tile, 'farm', state.turn);
+      bumpRevision(state);
+      expect(linePaid(state, other, RING_HEX.col, RING_HEX.row)).toEqual({ food: 0, production: 0 });
+      raiseImprovement(tile, 'holySite', state.turn);
+      bumpRevision(state);
+      expect(linePaid(state, other, RING_HEX.col, RING_HEX.row)).toEqual({ food: 1, production: 1 });
+    });
+
+    it('pays nothing to a seat that does not hold it', () => {
+      const { state, other } = board();
+      raiseImprovement(at(state, WORK_HEX.col, WORK_HEX.row), 'academy', state.turn);
+      bumpRevision(state);
+      expect(linePaid(state, other, RING_HEX.col, RING_HEX.row)).toEqual({ food: 0, production: 0 });
+    });
+
+    it('pays the holder’s hex beside a rival’s work, and not a rival’s hex beside the holder’s', () => {
+      const holderIsRival = board(1);
+      hold(holderIsRival.state, ID, 1);
+      raiseImprovement(at(holderIsRival.state, WORK_HEX.col, WORK_HEX.row), 'academy', holderIsRival.state.turn);
+      bumpRevision(holderIsRival.state);
+      expect(linePaid(holderIsRival.state, holderIsRival.other, RING_HEX.col, RING_HEX.row)).toEqual({ food: 1, production: 1 });
+
+      const holderIsBuilder = board(1);
+      hold(holderIsBuilder.state, ID, 0);
+      raiseImprovement(at(holderIsBuilder.state, WORK_HEX.col, WORK_HEX.row), 'academy', holderIsBuilder.state.turn);
+      bumpRevision(holderIsBuilder.state);
+      expect(linePaid(holderIsBuilder.state, holderIsBuilder.other, RING_HEX.col, RING_HEX.row)).toEqual({ food: 0, production: 0 });
+    });
+  });
+
+  describe('the towns on the ring', () => {
+    /** The second town has no citizen seated, which a re-seat is the only thing to put right. */
+    function stale(other: City): void {
+      other.workedTiles = [];
+    }
+
+    it('moves another town’s citizen to the ring hex when a person lays the work', () => {
+      const { state, player, other } = board();
+      hold(state, ID);
+      refreshCityDerived(state, other);
+      expect(other.workedTiles).not.toContainEqual(RING_HEX);
+      const scholar = person(state, WORK_HEX, 'scholar');
+      greatPersonWorkAt(state, player, scholar, at(state, WORK_HEX.col, WORK_HEX.row));
+      expect(other.workedTiles).toContainEqual(RING_HEX);
+    });
+
+    it('leaves the other town alone without the line', () => {
+      const { state, player, other } = board();
+      stale(other);
+      const scholar = person(state, WORK_HEX, 'scholar');
+      greatPersonWorkAt(state, player, scholar, at(state, WORK_HEX.col, WORK_HEX.row));
+      expect(other.workedTiles).toEqual([]);
+    });
+
+    it('re-seats a rival’s town that holds the line, and not one that does not', () => {
+      const holding = board(1);
+      hold(holding.state, ID, 1);
+      stale(holding.other);
+      const first = person(holding.state, WORK_HEX, 'scholar');
+      greatPersonWorkAt(holding.state, holding.player, first, at(holding.state, WORK_HEX.col, WORK_HEX.row));
+      expect(holding.other.workedTiles.length).toBeGreaterThan(0);
+
+      const plain = board(1);
+      hold(plain.state, ID, 0);
+      stale(plain.other);
+      const second = person(plain.state, WORK_HEX, 'scholar');
+      greatPersonWorkAt(plain.state, plain.player, second, at(plain.state, WORK_HEX.col, WORK_HEX.row));
+      expect(plain.other.workedTiles).toEqual([]);
+    });
+
+    /** A board with the Doctrine, a work on the hex and the other town out of date. */
+    function withWork(): ReturnType<typeof board> & { tile: Tile } {
+      const made = board();
+      hold(made.state, ID);
+      const tile = at(made.state, WORK_HEX.col, WORK_HEX.row);
+      raiseImprovement(tile, 'academy', made.state.turn);
+      stale(made.other);
+      bumpRevision(made.state);
+      return { ...made, tile };
+    }
+
+    it('re-seats it when a worker takes the work up', () => {
+      const { state, other, tile } = withWork();
+      const worker = createUnit(state, 0, 'worker', tile.col, tile.row);
+      removeImprovementAt(state, worker, tile);
+      expect(other.workedTiles.length).toBeGreaterThan(0);
+    });
+
+    it('re-seats it when a raider burns the work', () => {
+      const { state, other, tile } = withWork();
+      const raider = createUnit(state, 1, 'warrior', tile.col, tile.row);
+      pillageAt(state, raider, tile);
+      expect(tile.improvement).toBeUndefined();
+      expect(other.workedTiles.length).toBeGreaterThan(0);
+    });
+
+    it('re-seats it when a worker lays a farm over the work', () => {
+      const { state, other, tile } = withWork();
+      const worker = createUnit(state, 0, 'worker', tile.col, tile.row);
+      buildImprovementAt(state, worker, tile, 'farm');
+      expect(tile.improvement).toBe('farm');
+      expect(other.workedTiles.length).toBeGreaterThan(0);
+    });
+
+    it('re-seats it when a prophet raises a holy site', () => {
+      const { state, player, other } = board();
+      hold(state, ID);
+      stale(other);
+      const prophet = createUnit(state, 0, 'prophet', WORK_HEX.col, WORK_HEX.row);
+      plantHolySiteAt(state, player, prophet, at(state, WORK_HEX.col, WORK_HEX.row));
+      expect(other.workedTiles.length).toBeGreaterThan(0);
+    });
+
+    it('does not re-seat it for a farm laid or taken up', () => {
+      const { state, other } = board();
+      hold(state, ID);
+      stale(other);
+      const tile = at(state, WORK_HEX.col, WORK_HEX.row);
+      const worker = createUnit(state, 0, 'worker', tile.col, tile.row);
+      buildImprovementAt(state, worker, tile, 'farm');
+      expect(other.workedTiles).toEqual([]);
+      const second = createUnit(state, 0, 'worker', tile.col, tile.row);
+      removeImprovementAt(state, second, tile);
+      expect(other.workedTiles).toEqual([]);
+    });
+  });
+
+  describe('the discount', () => {
+    /** Lays a scholar's work on the first free hex of the capital's ring. */
+    function layWork(state: GameState, player: Player, capital: City, hex = 0): void {
+      const site = ring(state, capital).filter((tile) => tile.improvement === undefined)[hex]!;
+      const scholar = person(state, site, 'scholar');
+      greatPersonWorkAt(state, player, scholar, site);
+    }
+
+    it('takes 20% off the next great person once a work is laid', () => {
+      const { state, player, capital } = board();
+      hold(state, ID);
+      const price = renownThreshold(state, player);
+      expect(player.personDiscount).toBeUndefined();
+      layWork(state, player, capital);
+      expect(player.personDiscount).toBe(20);
+      expect(renownThreshold(state, player)).toBe(Math.floor((price * 80) / 100));
+    });
+
+    it('gives nothing to a seat that does not hold it', () => {
+      const { state, player, capital } = board();
+      const price = renownThreshold(state, player);
+      layWork(state, player, capital);
+      expect(player.personDiscount).toBeUndefined();
+      expect(renownThreshold(state, player)).toBe(price);
+    });
+
+    it('does not stack: two works before the next person still give 20%', () => {
+      const { state, player, capital } = board();
+      hold(state, ID);
+      const price = renownThreshold(state, player);
+      layWork(state, player, capital);
+      layWork(state, player, capital);
+      expect(player.personDiscount).toBe(20);
+      expect(renownThreshold(state, player)).toBe(Math.floor((price * 80) / 100));
+    });
+
+    it('is spent by the next person, when the ladder calls one', () => {
+      const { state, player, capital } = board();
+      hold(state, ID);
+      layWork(state, player, capital);
+      player.greatPersonOffer = drawGreatPersonOffer(state, player);
+      settleGreatPersonChoice(state, player, 0);
+      expect(player.personDiscount).toBeUndefined();
+      const rung = RULES.renown.base + RULES.renown.linear + 1;
+      expect(renownThreshold(state, player)).toBe(Math.floor(rung));
+    });
+
+    it('is spent by the next person, when a grant calls one', () => {
+      const { state, player, capital } = board();
+      hold(state, ID);
+      layWork(state, player, capital);
+      expect(player.personDiscount).toBe(20);
+      player.techsResearched = [...player.techsResearched, RITES];
+      bumpRevision(state);
+      grantGreatPersonOffer(state, player, 'any');
+      expect(player.greatPersonOffer).toBeDefined();
+      settleGreatPersonChoice(state, player, 0);
+      expect(player.personDiscount).toBeUndefined();
+    });
+
+    it('floors once, after the percentage', () => {
+      const { state, player } = board();
+      player.personDiscount = 20;
+      const curve = RULES.renown;
+      const price = (steps: number): number => curve.base + curve.linear * steps + steps ** curve.exponent;
+      // A rung where flooring first and flooring last give different prices.
+      const steps = [...Array(40).keys()].find(
+        (at) => Math.floor((price(at) * 80) / 100) !== Math.floor((Math.floor(price(at)) * 80) / 100),
+      );
+      expect(steps).toBeDefined();
+      player.greatPeopleRecruited = steps!;
+      expect(renownThreshold(state, player)).toBe(Math.floor((price(steps!) * 80) / 100));
+      expect(Number.isInteger(renownThreshold(state, player))).toBe(true);
+    });
+
+    it('gives no discount for a prophet’s holy site', () => {
+      const { state, player } = board();
+      hold(state, ID);
+      const prophet = createUnit(state, 0, 'prophet', WORK_HEX.col, WORK_HEX.row);
+      plantHolySiteAt(state, player, prophet, at(state, WORK_HEX.col, WORK_HEX.row));
+      expect(at(state, WORK_HEX.col, WORK_HEX.row).improvement).toBe('holySite');
+      expect(player.personDiscount).toBeUndefined();
+    });
+
+    it('stays when the work that earned it is burnt', () => {
+      const { state, player } = board();
+      hold(state, ID);
+      const tile = at(state, WORK_HEX.col, WORK_HEX.row);
+      greatPersonWorkAt(state, player, person(state, WORK_HEX, 'scholar'), tile);
+      pillageAt(state, createUnit(state, 1, 'warrior', tile.col, tile.row), tile);
+      expect(tile.improvement).toBeUndefined();
+      expect(player.personDiscount).toBe(20);
+    });
+
+    it('opens the offer at once when the lower price is within the pool', () => {
+      const { state, player, capital } = board();
+      hold(state, ID);
+      player.techsResearched = [...player.techsResearched, RITES];
+      const price = renownThreshold(state, player);
+      const cheap = Math.floor((price * 80) / 100);
+      // Short of the full price and more than the cheap one.
+      player.renownPool = cheap + 1;
+      bumpRevision(state);
+      expect(player.greatPersonOffer).toBeUndefined();
+      layWork(state, player, capital);
+      expect(player.greatPersonOffer).toBeDefined();
+      expect(player.renownPool).toBe(1);
+    });
+
+    it('goes through the reducer, and a refused work writes nothing', () => {
+      const { state, player, capital } = board();
+      hold(state, ID);
+      const refused = person(state, capital, 'scholar');
+      const before = snapshotState(state);
+      expect(applyCommand(state, { type: 'greatPersonWork', playerId: 0, unitId: refused.id }).ok).toBe(false);
+      expect(snapshotState(state)).toBe(before);
+      expect(player.personDiscount).toBeUndefined();
+
+      const laid = person(state, WORK_HEX, 'artist');
+      expect(applyCommand(state, { type: 'greatPersonWork', playerId: 0, unitId: laid.id }).ok).toBe(true);
+      expect(player.personDiscount).toBe(20);
     });
   });
 });

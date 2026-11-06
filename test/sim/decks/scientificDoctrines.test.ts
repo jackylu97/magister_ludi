@@ -8,13 +8,13 @@
  * batch adds and which The Pandidakterion needs.
  *
  * Batch DT6 adds The Peripatetic School, The Directorate of Arms and The Külliye.
- * Batch DT8 adds The Court of Rudolf II. Batch DT14 adds The Nassau Reforms. Later
- * batches add the deck's other two Doctrines to this file.
+ * Batch DT8 adds The Court of Rudolf II. Batch DT14 adds The Nassau Reforms. Batch
+ * DT16 adds The Platonic Academy. A later batch adds the deck's last Doctrine.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { scoreCard, valueContext } from '../../../src/ai/bot';
+import { nextBotDecision, scoreCard, valueContext } from '../../../src/ai/bot';
 import { explainEffects, scoreEffects, valueOfYields } from '../../../src/ai/value';
 import { BUILDING_IDS, buildingDef, grantsABead } from '../../../src/sim/buildingData';
 import { explainCardImpact } from '../../../src/sim/cardImpact';
@@ -27,8 +27,21 @@ import {
   refreshCityDerived,
 } from '../../../src/sim/cities';
 import { applyCombat, previewCombat } from '../../../src/sim/combat';
+import { applyCommand } from '../../../src/sim/commands';
+import { snapshotState } from '../../../src/sim/game';
+import {
+  familyLayingWork,
+  familyWork,
+  greatPersonActAt,
+  greatPersonWorkAt,
+  greatPersonWorkError,
+  workOf,
+} from '../../../src/sim/greatPeople';
+import { FAMILIES, type Family, GREAT_PERSON_IDS, greatPersonDef } from '../../../src/sim/greatPeopleData';
+import { workForFamily } from '../../../src/sim/improvementData';
 import { raiseImprovement } from '../../../src/sim/map';
 import { explainAuthority } from '../../../src/sim/meters';
+import { plantHolySiteAt } from '../../../src/sim/religion';
 import { explainCityRenown, explainRenown } from '../../../src/sim/renown';
 import { explainPurchaseCost } from '../../../src/sim/purchase';
 import { RULES } from '../../../src/sim/rulesData';
@@ -84,7 +97,7 @@ import { at, bareState } from '../improvementHelpers';
 import { createGame } from '../newGameHelpers';
 import { lendDoctrineEffects } from '../statecraftHelpers';
 
-/** The eight rows of batch DT3, the three of DT6 and the ones of DT8 and DT14, each with the band its table gives it. */
+/** The eight rows of batch DT3, the three of DT6 and the ones of DT8, DT14 and DT16, each with the band its table gives it. */
 const ROWS: readonly (readonly [string, number])[] = [
   ['thePythagoreanBrotherhood', 1],
   ['theRemovalToXianyang', 1],
@@ -99,6 +112,7 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theKulliye', 3],
   ['theCourtOfRudolf', 4],
   ['theNassauReforms', 4],
+  ['thePlatonicAcademy', 4],
 ];
 
 /** Lent rows, put back after each test, so a failed test cannot leak one into the next. */
@@ -1255,5 +1269,130 @@ describe('The Nassau Reforms (batch DT14)', () => {
     expect(cardUpgradeStrength(state, archer)).toBe(2);
     const worker = createUnit(state, 0, 'worker', 12, 5);
     expect(cardUpgradeStrength(state, worker)).toBe(0);
+  });
+});
+
+describe('The Platonic Academy (batch DT16)', () => {
+  const ID = 'thePlatonicAcademy';
+
+  /** A capital, and a hex of its own to lay a work on. */
+  function board(held = true): { state: GameState; player: Player; city: City; site: { col: number; row: number } } {
+    const state = bareState(24, 10);
+    const city = town(state, 5, 5);
+    if (held) hold(state, ID);
+    return { state, player: seat(state), city, site: { col: 6, row: 5 } };
+  }
+
+  /** The first great person of this family, standing on this hex for seat 0. */
+  function person(state: GameState, where: { col: number; row: number }, family: Family): Unit {
+    const id = GREAT_PERSON_IDS.find((row) => greatPersonDef(row).family === family)!;
+    const unit = createUnit(state, 0, 'greatPerson', where.col, where.row, id);
+    bumpRevision(state);
+    return unit;
+  }
+
+  for (const family of FAMILIES) {
+    it(`lets a ${family} found an Academy, through the command`, () => {
+      const { state, site } = board();
+      const unit = person(state, site, family);
+      expect(workOf(state, unit)).toBe('academy');
+      const result = applyCommand(state, { type: 'greatPersonWork', playerId: 0, unitId: unit.id });
+      expect(result.ok).toBe(true);
+      expect(at(state, site.col, site.row).improvement).toBe('academy');
+      expect(state.units.some((piece) => piece.id === unit.id)).toBe(false);
+    });
+
+    it(`leaves a ${family} its own work without the Doctrine`, () => {
+      const { state, site } = board(false);
+      const unit = person(state, site, family);
+      expect(workOf(state, unit)).toBe(workForFamily(family));
+      expect(familyWork(state, 0, family)).toBe(workForFamily(family));
+      expect(familyLayingWork(state, 0, family)).toBe(family);
+    });
+  }
+
+  it('claims no hexes for a general, where a Citadel does', () => {
+    const { state, player, site } = board();
+    const before = [...state.tileOwner];
+    const general = person(state, site, 'general');
+    const report = greatPersonWorkAt(state, player, general, at(state, site.col, site.row));
+    expect(report.improvement).toBe('academy');
+    expect(report.claimed).toEqual([]);
+    expect(state.tileOwner).toEqual(before);
+
+    const plain = board(false);
+    const citadel = person(plain.state, plain.site, 'general');
+    const claimed = greatPersonWorkAt(plain.state, plain.player, citadel, at(plain.state, plain.site.col, plain.site.row));
+    expect(claimed.improvement).toBe('citadel');
+    expect(claimed.claimed.length).toBeGreaterThan(0);
+  });
+
+  it('holds the Academy to the Academy’s own gate', () => {
+    const { state, site } = board();
+    const tile = at(state, site.col, site.row);
+    raiseImprovement(tile, 'academy', state.turn);
+    bumpRevision(state);
+    const general = person(state, site, 'general');
+    expect(greatPersonWorkError(state, 0, general.id)).toMatch(/already has an academy/);
+    const before = snapshotState(state);
+    expect(applyCommand(state, { type: 'greatPersonWork', playerId: 0, unitId: general.id }).ok).toBe(false);
+    expect(snapshotState(state)).toBe(before);
+  });
+
+  it('leaves the works already laid where they stand', () => {
+    const { state, site } = board(false);
+    const tile = at(state, site.col, site.row);
+    raiseImprovement(tile, 'citadel', state.turn);
+    hold(state, ID);
+    expect(tile.improvement).toBe('citadel');
+  });
+
+  it('does not touch a prophet: the holy site is a different verb', () => {
+    const { state, player, site } = board();
+    const prophet = createUnit(state, 0, 'prophet', site.col, site.row);
+    bumpRevision(state);
+    expect(workOf(state, prophet)).toBeNull();
+    const tile = at(state, site.col, site.row);
+    plantHolySiteAt(state, player, prophet, tile);
+    expect(tile.improvement).toBe('holySite');
+  });
+
+  it('does not change an act', () => {
+    const gold = (held: boolean): number => {
+      const { state, player, city } = board(held);
+      const merchant = person(state, { col: city.col, row: city.row }, 'merchant');
+      const before = player.gold;
+      greatPersonActAt(state, player, merchant);
+      return player.gold - before;
+    };
+    expect(gold(false)).toBeGreaterThan(0);
+    expect(gold(true)).toBe(gold(false));
+  });
+
+  it('pays The Peripatetic School’s line on a general’s Academy', () => {
+    const { state, player, city, site } = board();
+    hold(state, 'thePeripateticSchool');
+    const general = person(state, site, 'general');
+    const before = hexPays(state, city, site.col, site.row);
+    greatPersonWorkAt(state, player, general, at(state, site.col, site.row));
+    const after = hexPays(state, city, site.col, site.row);
+    // The Academy's own +3 science, and the School's +2 science and +2 production.
+    expect(after.science - before.science).toBe(5);
+    expect(after.production - before.production).toBe(2);
+  });
+
+  it('names the Academy in the bot’s reading of a general', () => {
+    const { state, player, site } = board();
+    state.turn = 40;
+    person(state, site, 'general');
+    const decision = nextBotDecision(state, player.id);
+    expect(decision).not.toBeNull();
+    const labels = decision!.candidates.map((candidate) => candidate.label);
+    expect(labels).toContain(`Academy at (${site.col},${site.row})`);
+    expect(labels.some((label) => label.includes('Citadel'))).toBe(false);
+    expect(decision!.command.type).toBe('greatPersonWork');
+    expect(decision!.summary).toContain('Found an Academy');
+    expect(applyCommand(state, decision!.command).ok).toBe(true);
+    expect(at(state, site.col, site.row).improvement).toBe('academy');
   });
 });

@@ -85,6 +85,8 @@ export {
   cardActionRuleAt,
   cardAmplifier,
   cardCollectionShare,
+  // Batch DT16: whether a work laid changes what this empire's hexes around it pay.
+  cardHexLinesReadWorksBeside,
   cardExtraChairs,
   chairReadingsAt,
   offTheChairRows,
@@ -116,6 +118,8 @@ export {
   cardClosedBookTurns,
   // Batch DT10: how much The Jinshi raises the rare rung of an Order hand.
   cardRareWeight,
+  // Batch DT16: how much The Peregrini takes off the next great person.
+  cardWorkDiscount,
   // Commerce batch T6: Letters of Credit's floor, and what an empire may spend.
   cardSpendFloor,
   spendableGold,

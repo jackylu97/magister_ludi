@@ -47,11 +47,11 @@ import aiJson from '../../data/ai.json';
 import boundsJson from '../../data/ai.bounds.json';
 
 import { buildingDef, isWonder } from '../../src/sim/buildingData';
-import { buildingProductionCost, foundCityAt, refreshCityDerived } from '../../src/sim/cities';
+import { buildingProductionCost, foundCityAt, refreshCityDerived, ownedTiles } from '../../src/sim/cities';
 import { gardenWorkFor } from '../../src/sim/commissions';
 import { type Game, dispatch } from '../../src/sim/game';
 import { FAMILIES, LIVE_GREAT_PERSON_IDS, greatPersonDef } from '../../src/sim/greatPeopleData';
-import { type GameMap, type Tile, createMap, getTileAt, mapRange, tileHex, tileIndex } from '../../src/sim/map';
+import { type GameMap, type Tile, createMap, getTileAt, mapRange, tileHex, tileIndex, tileNeighbors } from '../../src/sim/map';
 import { readCity } from '../../src/sim/readings';
 import { renownPerTurn, renownThreshold } from '../../src/sim/renown';
 import { RULES } from '../../src/sim/rulesData';
@@ -311,6 +311,7 @@ describe('the sheet', () => {
       'thirdCardForeign',
       'rareWeight',
       'collectionPays',
+      'workCheapensPerson',
     ]) {
       expect(VALUE_SOURCE, rule).not.toContain(`effect.rule === '${rule}') return ctx.ai.score.unknownEffect`);
     }
@@ -410,6 +411,57 @@ describe('the moments', () => {
     expect(tiers).toBeGreaterThan(0);
     const person = lumpOfPoints(renownThreshold(state, player) * aiJson.weights.renown, ctx).total;
     expect(scoreEffects(effectsOf(SED_FESTIVAL), ctx)).toBeCloseTo((tiers / HORIZON) * person, 10);
+  });
+
+  describe('The Peregrini (batch DT16)', () => {
+    const DISCOUNT: CardEffect[] = [{ kind: 'rule', rule: 'workCheapensPerson', percent: 20 } as CardEffect];
+
+    it('reads nothing for a seat that earns no renown', () => {
+      const { state, player } = board([6]);
+      expect(scoreEffects(DISCOUNT, valueContext(state, player))).toBe(0);
+    });
+
+    it('prices the discount as the renown saved at the pace the seat lays works', () => {
+      const { state, player, towns } = board([6]);
+      towns[0]!.buildings.push('library');
+      bumpRevision(state);
+      const ctx = valueContext(state, player);
+      const saved = (renownThreshold(state, player) * 20) / 100;
+      // A seat that has called nobody reads one work for every two people.
+      const figure = saved * personRateOf(state, player) * (1 / 2) * aiJson.weights.renown;
+      expect(figure).toBeGreaterThan(0);
+      expect(scoreEffects(DISCOUNT, ctx)).toBeCloseTo(figure, 10);
+    });
+
+    it('prices a seat that spends its people on acts lower than one that lays works', () => {
+      const score = (works: number): number => {
+        const { state, player, towns } = board([6]);
+        const city = towns[0]!;
+        city.buildings.push('library');
+        player.greatPeopleRecruited = 2;
+        const hexes = ownedTiles(state, city).filter((tile) => tile.col !== city.col || tile.row !== city.row);
+        for (let index = 0; index < works; index++) hexes[index]!.improvement = WORK;
+        bumpRevision(state);
+        return scoreEffects(DISCOUNT, valueContext(state, player));
+      };
+      expect(score(0)).toBe(0);
+      expect(score(2)).toBeCloseTo(score(1) * 2, 10);
+    });
+
+    it('prices the hex line by the worked hexes beside a work, and at nothing with no work', () => {
+      const { state, player, towns } = board([6]);
+      const line = doctrineDef('thePeregrini' as never).effects.filter((row) => row.kind === 'pays');
+      expect(line.length).toBe(1);
+      expect(scoreEffects(line, valueContext(state, player))).toBe(0);
+      const city = towns[0]!;
+      const worked = getTileAt(state.map, city.workedTiles[0]!.col, city.workedTiles[0]!.row)!;
+      const beside = tileNeighbors(state.map, worked).find(
+        (tile) => (tile.col !== city.col || tile.row !== city.row) && !city.workedTiles.some((cell) => cell.col === tile.col && cell.row === tile.row),
+      )!;
+      beside.improvement = WORK;
+      bumpRevision(state);
+      expect(scoreEffects(line, valueContext(state, player))).toBeGreaterThan(0);
+    });
   });
 
   it('prices no adoption for a seat past the last government tier', () => {

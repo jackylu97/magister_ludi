@@ -283,6 +283,8 @@ import {
   greatPersonChoiceError,
   greatPersonWorkError,
   workOf,
+  familyLayingWork,
+  familyWork,
 } from '../sim/greatPeople';
 import { improvementError, improvementErrorAt, prospectError } from '../sim/improvements';
 import { type ImprovementId, workForFamily } from '../sim/improvementData';
@@ -4184,7 +4186,9 @@ function explainGreatPerson(
   const seat = capitalCityOf(state, player.id);
   const here = seat === undefined ? null : { col: seat.col, row: seat.row };
   const act = explainActFor(state, player, ctx, def.family, here);
-  const work = workForFamily(def.family);
+  // The work this seat's law gives the family, so a name on an offer is priced as
+  // what it would lay (batch DT16, The Platonic Academy).
+  const work = familyWork(state, player.id, def.family);
   // The same ring the piece's own arm walks, from the hex it would arrive on.
   const probe = here === null ? null : personProbe(player.id, here);
   const sites =
@@ -8921,7 +8925,8 @@ function greatPersonCommand(
   // piece the reducer will ever hand this arm — falls back to the plain word.
   const family = familyOf(unit);
   const actWords = family === null ? 'act now' : familyVerb(family, 'act');
-  const workWords = family === null ? 'plant its work' : familyVerb(family, 'work');
+  const workWords =
+    family === null ? 'plant its work' : familyVerb(familyLayingWork(state, player.id, family), 'work');
 
   const actRefusal = greatPersonActError(state, player.id, unit.id);
   const act = actRefusal === null ? explainAct(state, player, unit, ctx) : null;
@@ -8936,7 +8941,7 @@ function greatPersonCommand(
   if (
     act !== null &&
     act.total > 0 &&
-    workOf(unit) !== null &&
+    workOf(state, unit) !== null &&
     actsBeforeWork(state, player.id)
   ) {
     tried.push({ label: actWords, score: act.total, chosen: true, terms: act.terms });
@@ -8949,7 +8954,7 @@ function greatPersonCommand(
     };
   }
 
-  const work = workOf(unit);
+  const work = workOf(state, unit);
   const sites =
     work === null ? [] : rankWorkSites(state, player, ctx, work, unit, ai.workers.searchRadius);
   const best = sites[0] ?? null;

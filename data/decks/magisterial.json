@@ -3332,6 +3332,30 @@
         }
       ]
     },
+    "thePeregrini": {
+      "name": "The Peregrini",
+      "decks": ["magisterial"],
+      "band": 2,
+      "line": "none",
+      "flavor": "The monk walks out past the last farm, and the farms follow him.",
+      "text": "Great-person works give +1 food and +1 production to every hex beside them. Laying a great-person work makes your next great person cost 20% less.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "production": 1,
+          "on": { "test": "beside", "of": { "test": "greatWork" } },
+          "perNeighbour": { "test": "greatWork" }
+        },
+        {
+          "kind": "rule",
+          "rule": "workCheapensPerson",
+          "percent": 20
+        }
+      ],
+      "note": "A hex beside two works gains twice. A rival's work counts too, and only your own hexes gain. Two works laid before the next person still give one discount, and the next person spends it, however that person is called. A Holy Site counts as a work for the hexes beside it, but raising one gives no discount."
+    },
     "theBarmakids": {
       "name": "The Barmakids",
       "decks": ["magisterial"],

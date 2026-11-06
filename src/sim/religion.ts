@@ -93,6 +93,7 @@ import {
   foldUnitCost,
   nearestOwnedCity,
   refreshCityDerived,
+  refreshRingDerived,
   refreshTileDerived,
   settleGrowthWindfall,
   settleProductionWindfall,
@@ -3247,6 +3248,9 @@ export function plantHolySiteAt(
   // `slate.ts`).
   bumpEconomy(state);
   refreshTileDerived(state, tile);
+  // A holy site counts as a work for the hexes beside it, whoever works them (batch
+  // DT16, The Peregrini).
+  refreshRingDerived(state, tile, HOLY_SITE);
   religion.holySite ??= { col: tile.col, row: tile.row };
 
   let offer: BeliefOffer | null = null;

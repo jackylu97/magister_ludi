@@ -60,6 +60,7 @@ import {
   nearestOwnedCity,
   payOccasionRiders,
   refreshCityDerived,
+  refreshRingDerived,
   refreshTileDerived,
   seizeTile,
   settleProductionWindfall,
@@ -115,6 +116,7 @@ import {
   cardActionRule,
   cardAmplifier,
   cardOfferFamily,
+  cardWorkDiscount,
   offerSize,
   payWindfallGrants,
   recordScalingOccasion,
@@ -771,6 +773,9 @@ export function settleGreatPersonChoice(
   delete player.greatPersonOffer;
   state.recruited.push(id);
   player.greatPeopleRecruited += 1;
+  // The next person spends The Peregrini's discount, however this one was called
+  // (batch DT16; `Player.personDiscount`).
+  delete player.personDiscount;
   // The Bead Race's per-age counter — the Dynasty's deed and the Most Called
   // reckoning. Reset in exactly one place, when the world's age turns over
   // (`openBeadAge`), because a reckoning of the age is a question about the age.
@@ -1002,7 +1007,7 @@ export function greatPersonActAt(
   // pays can change the empire. While it holds, the person is not spent at the
   // end of the act (see below). A family with no work to lay is spent as
   // before, so no piece is left on the board with nothing it may do.
-  const stays = cardActionRule(state, player.id, 'actThenWork') && workOf(unit) !== null;
+  const stays = cardActionRule(state, player.id, 'actThenWork') && workOf(state, unit) !== null;
   // **Leonardo's notebooks**, read once for the whole act (`greatPersonAct`) and
   // applied to each family's own figure *before* it reaches the seam that banks
   // it — so a doubled engineer pours twice the hammers through the same
@@ -1354,11 +1359,31 @@ export function reviewLegacies(state: GameState): void {
  *
  * Asked of the family and answered by the *improvement table's own inverse*
  * (`workForFamily`), so "what does a scholar build?" has one answer in one place
- * and a sixth work is a JSON row.
+ * and a sixth work is a JSON row. It takes the state because a card can change the
+ * answer (`familyWork`, The Platonic Academy).
  */
-export function workOf(unit: Unit): ImprovementId | null {
+export function workOf(state: GameState, unit: Unit): ImprovementId | null {
   const family = familyOf(unit);
-  return family === null ? null : workForFamily(family);
+  return family === null ? null : familyWork(state, unit.ownerId, family);
+}
+
+/**
+ * **The family whose work this family lays under this empire's law**: its own, or
+ * the scholars' under The Platonic Academy (batch DT16). A family with no work of
+ * its own has none to replace. The surfaces that name a work ask this too, because
+ * each family's words for its work are on its own data row (`familyVerb`).
+ */
+export function familyLayingWork(state: GameState, playerId: number, family: Family): Family {
+  if (workForFamily(family) === null) return family;
+  return cardActionRule(state, playerId, 'everyWorkIsAcademy') ? 'scholar' : family;
+}
+
+/**
+ * What a person of this family lays for this empire. `workOf`'s answer for a person
+ * not on the board yet, which is what the bots ask of a name on an offer.
+ */
+export function familyWork(state: GameState, playerId: number, family: Family): ImprovementId | null {
+  return workForFamily(familyLayingWork(state, playerId, family));
 }
 
 /**
@@ -1382,7 +1407,7 @@ export function greatPersonWorkError(
   const problem = actorProblem(state, playerId, unitId);
   if (problem !== null) return problem;
   const unit = unitById(state, unitId)!;
-  const work = workOf(unit);
+  const work = workOf(state, unit);
   if (work === null) {
     return `${greatPersonDef(personOf(unit)!).name} has no work to leave behind`;
   }
@@ -1422,6 +1447,12 @@ export interface GreatPersonWork {
  * A person that acted under The Universal Genius (`Unit.acted`, Magisterial
  * batch MG13) lays its work here like any other, and is spent here. Its
  * legacy and the spent moment come now, once.
+ *
+ * **The Peregrini's discount is written here** (batch DT16; `Player.personDiscount`),
+ * and only here, so a prophet's holy site gives none. A lower price may now be within
+ * the pool, and an offer opens the instant the ladder is covered
+ * (`settleRenownWindfall`), so this asks once more. It asks after the person is spent,
+ * so a rider paid on the spent moment has already reached the pool.
  */
 export function greatPersonWorkAt(
   state: GameState,
@@ -1431,7 +1462,7 @@ export function greatPersonWorkAt(
 ): GreatPersonWork {
   const id = personOf(unit)!;
   const def = greatPersonDef(id);
-  const work = workOf(unit)!;
+  const work = workOf(state, unit)!;
 
   // **A lasting work is stamped like any other** (batch D2d): an academy that
   // has stood a long while is Scientific's whole Continuity line, and the hex
@@ -1445,12 +1476,20 @@ export function greatPersonWorkAt(
     ? claimAround(state, player, tile, PEOPLE.citadelClaimRadius)
     : [];
   refreshTileDerived(state, tile);
+  // A work changes what a line such as The Peregrini's pays on the six hexes around
+  // it, and another town may work those hexes (register entry 35).
+  refreshRingDerived(state, tile, work);
   // **A work laid is a work built** (Scientific batch S5, The Founding Gift;
   // new reading 75): the riders on laying a work down are paid here as a
   // worker's build pays them, with the hex as where the grant lands.
   payWorkLaidRiders(state, player.id, tile, work);
 
   spendGreatPerson(state, player, unit, id, work);
+  const discount = cardWorkDiscount(state, player.id);
+  if (discount > 0) {
+    player.personDiscount = discount;
+    settleRenownWindfall(state, player, []);
+  }
   return {
     id,
     name: def.name,

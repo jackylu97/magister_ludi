@@ -336,10 +336,18 @@ export function renownPerTurn(state: GameState, playerId: number): number {
  * counted (see `Player.greatPeopleRecruited`). Escalating by recruits rather
  * than by turns is what keeps a wide empire's faster trickle from becoming a
  * faster *rate*; why the linear term is three times the base is `RenownRules`.
+ *
+ * **The Peregrini's discount comes off after the ladder's arithmetic** (batch DT16,
+ * `Player.personDiscount`), and the whole is floored once, so a fraction is not
+ * thrown away before the percentage is taken. With no discount this is the old
+ * expression exactly, so the ladder of a seat without the Doctrine does not move.
  */
 export function renownThreshold(state: GameState, player: Player): number {
   const taken = ladderSteps(state, player);
-  return Math.floor(RENOWN.base + RENOWN.linear * taken + taken ** RENOWN.exponent);
+  const price = RENOWN.base + RENOWN.linear * taken + taken ** RENOWN.exponent;
+  const discount = player.personDiscount;
+  if (discount === undefined) return Math.floor(price);
+  return Math.floor((price * Math.max(0, 100 - discount)) / 100);
 }
 
 /**

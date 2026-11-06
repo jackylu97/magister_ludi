@@ -212,6 +212,7 @@ import {
   isGreatPerson,
   personOf,
   workOf,
+  familyLayingWork,
 } from '../sim/greatPeople';
 import {
   type Family,
@@ -823,7 +824,8 @@ export function proclaimSays(state: GameState, unitId: number): string {
  * One of a great person's two verbs, as the unit sheet needs it.
  *
  * `RiteOption` minus the id, because *which* act and *which* work belong to the
- * family rather than to the player (`greatPersonActAt`, `workOf`): the sheet
+ * family and the empire's law rather than to the player's choice (`greatPersonActAt`,
+ * `workOf`): the sheet
  * offers exactly two rows and the reducer is told the piece, never the verb's
  * name. What is left is the shape every other verb on that sheet already has —
  * the reducer's own refusal, and what it would do stated as the number.
@@ -6378,7 +6380,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    */
   function greatPersonWorkPreview(unit: Unit): string {
     const { state } = getGame();
-    const work = workOf(unit);
+    const work = workOf(state, unit);
     if (work === null) return 'Nothing — this piece leaves no work';
     const name = improvementDef(work).name;
     const tile = getTileAt(state.map, unit.col, unit.row);
@@ -6419,7 +6421,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         preview: greatPersonActPreview(unit),
       },
       work: {
-        verb: describeFamilyVerb(def.family, 'work'),
+        // The words of the work this piece will lay, which The Platonic Academy
+        // may make another family's (batch DT16).
+        verb: describeFamilyVerb(familyLayingWork(state, unit.ownerId, def.family), 'work'),
         blocked: ended ?? greatPersonWorkError(state, localPlayerId, unit.id),
         preview: greatPersonWorkPreview(unit),
       },
@@ -6477,7 +6481,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // The person is named by id so the sheet reads the roster itself, and
       // the deed carries the preview's figure, because the piece is gone.
       const spent = personOf(unit);
-      if (spent !== null) onGreatPersonSpent?.({ id: spent, verb, deed: said });
+      if (spent !== null) {
+        // The ceremony names the work that was laid, so a general under The Platonic
+        // Academy founds an Academy (batch DT16).
+        const family = greatPersonDef(spent).family;
+        const workFamily = familyLayingWork(getGame().state, unit.ownerId, family);
+        onGreatPersonSpent?.({ id: spent, verb, deed: said, workFamily });
+      }
       selectedId = null;
       setMoveMode(false);
     }

@@ -3489,8 +3489,23 @@ import {
  *
  * **A v219 save is refused and does not replay.** These seats' Doctrine bags change,
  * so their draws move. The branch migrates nothing, for the reason given under v119.
+ *
+ * v221 (branch `decks`; batch DT16, `docs/plans/doctrines-build-triage.md`): **great
+ * people.** One field joins the state: `Player.personDiscount`. The rules that change:
+ *
+ *   · The Platonic Academy and The Peregrini are dealt;
+ *   · the action rule `everyWorkIsAcademy` changes what `workOf` answers, so `workOf`
+ *     takes the state;
+ *   · the behaviour rule `workCheapensPerson` writes the discount in `greatPersonWorkAt`,
+ *     `renownThreshold` applies it, and `settleGreatPersonChoice` deletes it. A work that
+ *     brings the price within the pool opens the offer at once;
+ *   · a work laid or lost re-seats the other towns on its ring while their owner's law
+ *     pays a hex for the works beside it (`refreshRingDerived`, register entry 35).
+ *
+ * **A v220 save is refused and does not replay.** These seats' Doctrine bags change,
+ * so their draws move. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 220;
+export const SCHEMA_VERSION = 221;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -4175,6 +4190,19 @@ export interface Player {
    * Nothing lowers it.
    */
   greatPeopleRecruited: number;
+  /**
+   * **What a laid work takes off this empire's next great person, as a percentage**
+   * (batch DT16, The Peregrini). Presence is the state. It is written in one place,
+   * `greatPersonWorkAt`, while the `workCheapensPerson` rule holds. A later work
+   * overwrites it, so two works before the next person still give one discount. It
+   * is deleted in one place, `settleGreatPersonChoice`, beside the count above, so
+   * the next person spends it however that person was called. `renownThreshold`
+   * reads it.
+   *
+   * It is stored because the discount is an event already over: the work that earned
+   * it may have been razed since, and the card may be gone, and the price still holds.
+   */
+  personDiscount?: number;
   /**
    * **How many great people of each family this empire has gained** (Dominion
    * batch D5): The Mural Crown's count of great generals (`CountKind`'s

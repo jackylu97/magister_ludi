@@ -206,6 +206,9 @@ import {
 // stops an empire founding cities (The Soldiers' Share), and the law's
 // percentages on a unit's cost (The Servian Reforms).
 import { cardBehaviorRule, cardBuildingCostLines, cardUnitCostLines } from './statecraft/evaluator';
+// Batch DT16, from the evaluator for the same reason: whose hexes read the works
+// around them, for `refreshRingDerived`.
+import { cardHexLinesReadWorksBeside } from './statecraft/evaluator';
 // Scientific batch S5, The School of Mines: the law's extra copies for the
 // works standing on this empire's deposits, from the evaluator for the same
 // reason.
@@ -2948,6 +2951,11 @@ function chooseCitizens(
  *      `settleProductionWindfall` (entry 3), and that helper re-seats only after
  *      the riders have paid. So `realiseItem` re-seats the town itself as the
  *      citizen leaves, for entry 23's reason.
+ *  35. **The towns beside a great-person work** (`refreshRingDerived`, batch
+ *      DT16's The Peregrini). A work laid or lost changes what a line such as
+ *      "every hex beside a work" pays on the six hexes around it. Another town
+ *      may work those hexes, so each town owning one is re-seated while its owner
+ *      holds such a line. Entry 30's reason, for a different row.
  *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
@@ -2995,6 +3003,30 @@ export function refreshTileDerived(state: GameState, tile: Tile): void {
   if (cityId === null) return;
   const city = cityById(state, cityId);
   if (city) refreshCityDerived(state, city);
+}
+
+/**
+ * **The towns around a great-person work that was just laid or lost** (batch DT16,
+ * The Peregrini): register entry 35. `work` is the row that came or went, so a
+ * caller that tore up a farm passes the farm and nothing happens.
+ *
+ * The town that owns the work's own hex has been re-seated by `refreshTileDerived`,
+ * so this skips it and looks at the other towns on the ring. A rival's town counts,
+ * because a line pays by the law of whoever owns the paid hex, and that owner's
+ * hex may stand beside this seat's work. The ring's own order, so a replay re-seats
+ * in the same order.
+ */
+export function refreshRingDerived(state: GameState, tile: Tile, work: ImprovementId | undefined): void {
+  if (work === undefined || !isGreatPersonWork(work)) return;
+  const own = tileOwnerCityId(state, tile.col, tile.row);
+  const seated: number[] = own === null ? [] : [own];
+  for (const next of neighborTiles(state.map, tileHex(tile))) {
+    const townId = tileOwnerCityId(state, next.col, next.row);
+    if (townId === null || seated.includes(townId)) continue;
+    seated.push(townId);
+    const town = cityById(state, townId);
+    if (town && cardHexLinesReadWorksBeside(state, town.ownerId)) refreshCityDerived(state, town);
+  }
 }
 
 /**

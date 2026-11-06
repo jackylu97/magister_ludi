@@ -212,6 +212,8 @@ describe('the legacy is the headline', () => {
       'Spent as a scholar — Write a Treatise, or Found an Academy.',
     );
     expect(deedFootnote('general')).toBe('Spent as a general — Rally the Army, or Raise a Citadel.');
+    // The Platonic Academy (batch DT16): the work is the Academy, and the act stays the family's.
+    expect(deedFootnote('general', 'scholar')).toBe('Spent as a general — Rally the Army, or Found an Academy.');
     // Never the mark: this file composes clauses and prints none, so it takes
     // the unmarked reading rather than reaching for a printer.
     for (const family of Object.keys(FAMILY_EMBLEM) as (keyof typeof FAMILY_EMBLEM)[]) {

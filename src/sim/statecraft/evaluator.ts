@@ -12241,6 +12241,53 @@ export function cardRareWeight(state: GameState, playerId: number): number {
 }
 
 /**
+ * **How much cheaper laying a work makes this empire's next great person, as a
+ * percentage**: The Peregrini (batch DT16). The largest live `workCheapensPerson`
+ * row, nought with none. The largest and not the sum, because the card's discount
+ * does not stack and a row read twice must not read as a larger one. Read by
+ * `greatPersonWorkAt`, and by the bots.
+ */
+export function cardWorkDiscount(state: GameState, playerId: number): number {
+  return Math.max(0, ...ruleFigures(state, playerId, 'workCheapensPerson', 'percent'));
+}
+
+/**
+ * **Does a test on a hex's neighbours ask about a great-person work?** True for
+ * `greatWork` itself, or for a composite holding it.
+ */
+function testNamesWork(on: TileCondition): boolean {
+  if (on.test === 'greatWork') return true;
+  if (on.test === 'all' || on.test === 'any') return on.of.some(testNamesWork);
+  return false;
+}
+
+/** **Does this hex test hold or fail by what stands on the ring?** See below. */
+function testReadsWorkBeside(on: TileCondition): boolean {
+  if (on.test === 'beside') return testNamesWork(on.of);
+  if (on.test === 'all' || on.test === 'any') return on.of.some(testReadsWorkBeside);
+  return false;
+}
+
+/**
+ * **Does this empire's law pay a hex for the great-person works beside it?** True
+ * while a live hex `pays` row asks `beside` about a work or counts works with
+ * `perNeighbour` (The Peregrini, batch DT16; also the rows that already asked).
+ *
+ * `refreshRingDerived` (`cities.ts`) asks this. A work laid or lost changes what
+ * these lines pay on the six hexes around it, and another town may work those
+ * hexes, so that town must seat its citizens again. Without such a line nothing on
+ * the ring changes and the town's citizens stay where they are.
+ */
+export function cardHexLinesReadWorksBeside(state: GameState, playerId: number): boolean {
+  for (const { effect } of effectsOfKind(state, playerId, 'pays')) {
+    if (effect.where !== 'hex') continue;
+    if (effect.perNeighbour !== undefined && testNamesWork(effect.perNeighbour)) return true;
+    if (effect.on !== undefined && testReadsWorkBeside(effect.on)) return true;
+  }
+  return false;
+}
+
+/**
  * **The share of the Opus's technology this empire must bank before it may
  * begin the Opus**, or `null` when its law holds no `opusEarly` row (Scientific
  * batch S9, The Foundation Stone). With two rows the smaller share opens the

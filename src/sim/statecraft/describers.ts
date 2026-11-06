@@ -7296,6 +7296,8 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // Magisterial batch MG13, The Universal Genius: the card's first sentence.
   // The legacy coming once is the card's second sentence and its note.
   actThenWork: 'your great people may act, and then still lay their work',
+  // Batch DT16, The Platonic Academy: the card's text.
+  everyWorkIsAcademy: 'your great people of every family found an Academy as their work, in place of their own',
   // Magisterial batch MG16, The Pull of the Masters: the card's text, with the
   // "rival's own works" said as the great-person works they are.
   worksPullRivalHexes:
@@ -7428,6 +7430,8 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   tendedWorksFree: 'tended works cost your workers no charge',
   trainedSettlerCostsCitizen: 'training a settler also costs its city a citizen',
   tendedCountsImproved: 'your tended land also counts as improved for every card',
+  // Batch DT16, The Peregrini. The figure is the row's, in the arm that reads it.
+  workCheapensPerson: "laying a great person's work makes your next great person cheaper",
   workMountains: 'your cities may work the mountains in their borders',
   widerReach: 'citizens may work owned hexes one ring beyond the usual reach',
   // Expansionist batch E12, The Cura Aquarum. The row names the building and
@@ -7571,6 +7575,9 @@ function figureRuleWords(effect: Extract<CardEffect, { kind: 'rule' }>): string 
       return effect.percent === 50
         ? 'Orders you hold but have not seated pay half their yields'
         : `Orders you hold but have not seated pay ${effect.percent}% of their yields`;
+    case 'workCheapensPerson':
+      if (effect.percent === undefined) return null;
+      return `laying a great person's work makes your next great person cost ${effect.percent}% less`;
     case 'prototypes': {
       if (effect.percent === undefined) return null;
       const price =

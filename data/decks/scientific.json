@@ -2269,6 +2269,16 @@
         {"kind": "rule", "rule": "upgradeStrength", "value": 2},
         {"kind": "productionBonus", "category": "unit", "class": {"category": "military"}, "percent": -25, "stage": "empire"}
       ]
+    },
+    "thePlatonicAcademy": {
+      "name": "The Platonic Academy",
+      "decks": ["scientific"],
+      "band": 4,
+      "line": "none",
+      "flavor": "Merchant, painter and soldier sit down together, and all of them are students.",
+      "text": "Your great people of every family found an Academy as their work, in place of their own.",
+      "effects": [{"kind": "rule", "rule": "everyWorkIsAcademy"}],
+      "note": "Their acts do not change. Works already laid stay, a general's Academy claims no land, and a prophet still raises a Holy Site."
     }
   }
 }

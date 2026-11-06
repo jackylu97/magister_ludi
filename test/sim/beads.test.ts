@@ -638,7 +638,7 @@ describe("the bead catalogue", () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(220);
+    expect(SCHEMA_VERSION).toBe(221);
   });
 
   it("puts the world clock after renown and the wager after it, with no bead phase left", () => {

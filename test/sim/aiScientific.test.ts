@@ -28,6 +28,7 @@ import { foldTerms } from '../../src/ai/decision';
 import { reachableTechs } from '../../src/ai/plan';
 import {
   type ValueContext,
+  bagOfTileYield,
   buildTurns,
   delayDiscount,
   explainBuildingRow,
@@ -51,6 +52,9 @@ import aiJson from '../../data/ai.json';
 
 import { buildingDef, isWonder } from '../../src/sim/buildingData';
 import { buildingProductionCost, foundCityAt, ownedTiles } from '../../src/sim/cities';
+import { FAMILIES } from '../../src/sim/greatPeopleData';
+import { type ImprovementId, workForFamily } from '../../src/sim/improvementData';
+import { improvementGroundError, improvementYieldDelta } from '../../src/sim/improvements';
 import { type GameMap, type Tile, createMap, getTileAt, tileNeighbors } from '../../src/sim/map';
 import { renownPerTurn, renownThreshold } from '../../src/sim/renown';
 import { RULES } from '../../src/sim/rulesData';
@@ -66,13 +70,16 @@ import {
   ORDER_IDS,
   type CardEffect,
   type CardPaysEffect,
+  type DoctrineId,
   type OrderId,
   orderDef,
 } from '../../src/sim/statecraftData';
 import { explainTechCost, foldTechCost, researchExpansion } from '../../src/sim/tech';
 import { type TechId, techDef } from '../../src/sim/techData';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
+import { cityContext } from '../../src/sim/yields/hex';
 import { newGame } from './newGameHelpers';
+import { lendDoctrineEffects } from './statecraftHelpers';
 
 const HORIZON = aiJson.priorities.horizonTurns;
 const COMMISSION = aiJson.score.commission;
@@ -446,6 +453,65 @@ describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
     const pace = renownPerTurn(state, 0) / renownThreshold(state, player);
     expect(pace).toBeGreaterThan(0);
     expect(scoreEffects(effects, ctx)).toBe(saved * pace * ctx.ai.weights.renown);
+  });
+
+  describe('The Platonic Academy (batch DT16)', () => {
+    const ACADEMY_RULE: CardEffect[] = [{ kind: 'rule', rule: 'everyWorkIsAcademy' } as CardEffect];
+
+    /** What a person's work pays a seat on one hex, at the seat's prices. */
+    function pays(state: GameState, player: Player, city: City, work: ImprovementId): number {
+      const tile = ownedTiles(state, city).find(
+        (hex) => improvementGroundError(state, player.id, hex, 'academy') === null,
+      )!;
+      const delta = improvementYieldDelta(tile, work, cityContext(state, city));
+      return valueOfYields(bagOfTileYield(delta), valueContext(state, player));
+    }
+
+    /** The figure the arm should read, written out from the pieces the docblock names. */
+    function expected(state: GameState, player: Player, city: City): number {
+      const pace = renownPerTurn(state, player.id) / renownThreshold(state, player);
+      // One person called and no work standing, so the seat lays no share of its people.
+      const share = player.greatPeopleRecruited <= 0 ? 1 / 2 : 0;
+      let gain = 0;
+      for (const family of FAMILIES) {
+        gain += pays(state, player, city, 'academy') - pays(state, player, city, workForFamily(family)!);
+      }
+      return (pace * share * HORIZON * (gain / FAMILIES.length)) / 2;
+    }
+
+    it('reads nothing for a seat that earns no renown', () => {
+      const { state, player } = board(1, 20);
+      expect(scoreEffects(ACADEMY_RULE, valueContext(state, player))).toBe(0);
+    });
+
+    it('prices what an Academy pays over what each family would have laid', () => {
+      const { state, player, cities } = board(1, 20);
+      cities[0]!.buildings.push('library');
+      bumpRevision(state);
+      const figure = expected(state, player, cities[0]!);
+      expect(scoreEffects(ACADEMY_RULE, valueContext(state, player))).toBeCloseTo(figure, 8);
+    });
+
+    it('reads the seat’s own lines: pay on an Academy raises it, and pay on a Landmark lowers it', () => {
+      const score = (rows: readonly CardEffect[]): number => {
+        const { state, player, cities } = board(1, 20);
+        cities[0]!.buildings.push('library');
+        const restore = lendDoctrineEffects('thePeripateticSchool' as DoctrineId, rows);
+        try {
+          player.statecraft.doctrines.push('thePeripateticSchool' as DoctrineId);
+          bumpRevision(state);
+          return scoreEffects(ACADEMY_RULE, valueContext(state, player));
+        } finally {
+          restore();
+        }
+      };
+      const line = (improvement: string): CardEffect[] => [
+        { kind: 'pays', where: 'hex', science: 6, on: { test: 'improvement', improvement } } as CardEffect,
+      ];
+      const plain = score([]);
+      expect(score(line('academy'))).toBeGreaterThan(plain);
+      expect(score(line('landmark'))).toBeLessThan(plain);
+    });
   });
 
   it('prices The Age of Reason by the technology riders seated', () => {

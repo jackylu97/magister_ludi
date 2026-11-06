@@ -95,7 +95,7 @@ describe('the ceremony fires on an accepted command and on nothing else', () => 
   });
 
   it('carries the person by id and the deed by the preview the sim composed', () => {
-    expect(CONTROLS).toContain('onGreatPersonSpent?.({ id: spent, verb, deed: said })');
+    expect(CONTROLS).toContain('onGreatPersonSpent?.({ id: spent, verb, deed: said, workFamily })');
     // `said` is the preview, read **before** the command — which is the same
     // argument the announcement one line above makes: the piece is gone by the
     // time the result comes back, and `greatPeople.ts` composes an act's figure
@@ -130,6 +130,18 @@ describe('the deed line', () => {
     );
     // Never the mark: this line is a mono footnote, not a descriptor.
     expect(deedLine({ id: 'imhotep', verb: 'work', deed: '' })).not.toContain('[[');
+  });
+
+  it('names the work that was laid, which The Platonic Academy may make another family’s', () => {
+    const general = GREAT_PERSON_IDS.find((id) => greatPersonDef(id).family === 'general')!;
+    expect(deedLine({ id: general, verb: 'work', deed: 'Citadel here' })).toBe(
+      'Raise a Citadel — the work stands · Citadel here',
+    );
+    expect(deedLine({ id: general, verb: 'work', deed: 'Academy here', workFamily: 'scholar' })).toBe(
+      'Found an Academy — the work stands · Academy here',
+    );
+    // An act keeps the person's own words.
+    expect(deedLine({ id: general, verb: 'act', deed: 'x', workFamily: 'scholar' })).toContain('Rally the Army');
   });
 });
 

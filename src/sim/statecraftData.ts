@@ -4779,7 +4779,18 @@ export type ActionRuleId =
    * Read in one place, `workChargeCost` (`improvements.ts`), which the gate on a
    * build and the spending both ask. The build still takes the worker's movement.
    */
-  | 'tendedWorksFree';
+  | 'tendedWorksFree'
+  /**
+   * **Every great person of this empire founds an Academy as their work** (batch
+   * DT16, The Platonic Academy; the triage's reading 31). Read in one place,
+   * `familyWork` (`greatPeople.ts`), which `workOf` asks, so the gate, the work
+   * itself, the unit sheet and the bot all follow it. The Academy is the scholars'
+   * row, asked through `workForFamily`, and it goes through `improvementErrorAt`
+   * like any other work. Acts do not change. Works already laid stay, and a
+   * prophet's holy site is a different verb that this rule does not touch. A
+   * general's Academy claims no hexes, because the claim is the Citadel row's.
+   */
+  | 'everyWorkIsAcademy';
 
 /**
  * Something about the world that stops being true — or starts.
@@ -5279,7 +5290,16 @@ export type BehaviorRuleId =
    * still cannot be pillaged, and The Burning Season still lays its row over one
    * and writes no mark, because those are facts about the hex (`markInsteadOf`).
    */
-  | 'tendedCountsImproved';
+  | 'tendedCountsImproved'
+  /**
+   * **Laying a great-person work makes this empire's next great person cheaper**
+   * (batch DT16, The Peregrini; the triage's reading 30). `percent` is how much
+   * cheaper. Read in one place, `greatPersonWorkAt` (`greatPeople.ts`), through
+   * `cardWorkDiscount`, which writes `Player.personDiscount`. A write overwrites, so
+   * two works before the next person still give one discount. A prophet's holy site
+   * goes through `plantHolySiteAt` and gives none.
+   */
+  | 'workCheapensPerson';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId =
@@ -8858,7 +8878,9 @@ export interface CardRuleEffect {
    *   - `rareWeight` (The Jinshi): how much the rare rung of an Order hand's odds
    *     rises, so 100 is double;
    *   - `collectionPays` (Scutage): the part of its yields an Order off its chair
-   *     pays, so 50 is half.
+   *     pays, so 50 is half;
+   *   - `workCheapensPerson` (The Peregrini): how much cheaper the next great
+   *     person is after a work is laid, so 20 is a fifth off.
    *
    * A row of one of these rules with no figure changes nothing. Meaningless
    * on every other member.

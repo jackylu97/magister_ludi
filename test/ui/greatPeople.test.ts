@@ -238,7 +238,7 @@ describe("the unit sheet's two verbs", () => {
     expect(panel).not.toContain("label: 'Act'");
     expect(panel).not.toContain("label: 'Work'");
     expect(controls).toContain("describeFamilyVerb(def.family, 'act')");
-    expect(controls).toContain("describeFamilyVerb(def.family, 'work')");
+    expect(controls).toContain("describeFamilyVerb(familyLayingWork(state, unit.ownerId, def.family), 'work')");
   });
 
   /**

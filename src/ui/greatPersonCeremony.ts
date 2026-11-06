@@ -54,7 +54,7 @@ import { type GreatPersonFace, greatPersonFace, legacyIsSilent } from './greatPe
 import { cardStampNode, landCardStamp, playCardStamp } from './cardStamp';
 import { keywordsAllowedIn, setDescriptorText } from './keywords';
 import type { GameState } from '../sim/state';
-import { type GreatPersonId, familyVerb, greatPersonDef } from '../sim/greatPeopleData';
+import { type Family, type GreatPersonId, familyVerb, greatPersonDef } from '../sim/greatPeopleData';
 import { element } from './dom';
 import { wantsMotion } from './motion';
 
@@ -102,6 +102,11 @@ export interface GreatPersonSpend {
   verb: 'act' | 'work';
   /** What the deed did, in the simulation's own figures. Never composed here. */
   deed: string;
+  /**
+   * The family whose words name the work, when that is not the person's own (batch
+   * DT16, The Platonic Academy). Absent reads as the person's own family.
+   */
+  workFamily?: Family;
 }
 
 /**
@@ -119,7 +124,8 @@ export interface GreatPersonSpend {
  * who this was.
  */
 export function deedLine(spend: GreatPersonSpend): string {
-  const words = familyVerb(greatPersonDef(spend.id).family, spend.verb);
+  const own = greatPersonDef(spend.id).family;
+  const words = familyVerb(spend.verb === 'work' ? (spend.workFamily ?? own) : own, spend.verb);
   return spend.verb === 'act'
     ? `${words} — the act paid ${spend.deed}`
     : `${words} — the work stands · ${spend.deed}`;

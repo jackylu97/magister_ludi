@@ -551,7 +551,7 @@ describe('the work', () => {
     const g = game(53);
     found(g.state, 0);
     const unit = call(g.state, 0, SAMPLE.scholar);
-    expect(workOf(unit)).toBe('academy');
+    expect(workOf(g.state, unit)).toBe('academy');
     // A town's own hex refuses a work exactly as it refuses a farm — the ground
     // rules are `improvementErrorAt`'s and there is no second copy of them — so
     // the piece steps off it first. The step scans the map for standing ground
@@ -691,7 +691,7 @@ describe('the work', () => {
     const g = game(67);
     found(g.state, 0);
     const unit = call(g.state, 0, SAMPLE.general);
-    expect(workOf(unit)).toBe('citadel');
+    expect(workOf(g.state, unit)).toBe('citadel');
     unit.col += 1;
     const tile = getTileAt(g.state.map, unit.col, unit.row)!;
     // A work stands anywhere a piece can, which is everywhere but water and the
@@ -1503,7 +1503,7 @@ describe('the register', () => {
       found(g.state, 0);
       const unit = call(g.state, 0, id);
       expect(familyOf(unit)).toBe(family);
-      expect(workOf(unit), family).not.toBeNull();
+      expect(workOf(g.state, unit), family).not.toBeNull();
     }
   });
 });

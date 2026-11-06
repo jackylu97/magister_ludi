@@ -135,7 +135,7 @@ import {
 } from '../sim/cities';
 // Scientific batch S13: the ground half of a work's gate, asked of a row whose
 // technology the seat does not know yet (`worksForecast`).
-import { improvementGroundError } from '../sim/improvements';
+import { improvementGroundError, improvementYieldDelta } from '../sim/improvements';
 // Batch X5c: a wall's hit points are read as a share of the bar the simulation
 // itself keeps, and priced against the strength that same simulation says the
 // town fights with — `cityMaxHp` and `cityBaseStrength`, never a hand-read row.
@@ -367,7 +367,7 @@ import {
   researchExpansion,
 } from '../sim/tech';
 import { ALL_TECH_IDS, type TechAge, type TechId, highestAge, isTechId, techDef } from '../sim/techData';
-import { IMPROVEMENT_IDS, type ImprovementId, improvementDef, isTendedWork } from '../sim/improvementData';
+import { IMPROVEMENT_IDS, type ImprovementId, improvementDef, isTendedWork, workForFamily } from '../sim/improvementData';
 import { TILE_YIELD_KEYS, type TileYield, readTileYield } from '../sim/terrainData';
 import {
   UNIT_TYPE_IDS,
@@ -7844,7 +7844,8 @@ function vsFewerTechsShare(ctx: ValueContext): number {
  *   · `prototypes`: points for each building or unit the current research
  *     opens;
  *   · `worksCountAs`: points for each great person's work beside the named
- *     work.
+ *     work;
+ *   · `everyWorkIsAcademy`: `everyWorkIsAcademyWorth`.
  */
 function scientificRuleWorth(
   effect: Extract<CardEffect, { kind: 'rule' }>,
@@ -7873,6 +7874,8 @@ function scientificRuleWorth(
       return knobs.prototypes * rowsOfResearch(ctx);
     case 'worksCountAs':
       return knobs.worksCountAs * worksBeside(effect.improvement, ctx);
+    case 'everyWorkIsAcademy':
+      return everyWorkIsAcademyWorth(ctx);
     default:
       return null;
   }
@@ -7953,6 +7956,48 @@ function worksBeside(improvement: ImprovementId | undefined, ctx: ValueContext):
     }
   }
   return works;
+}
+
+/**
+ * **The Platonic Academy** (`everyWorkIsAcademy`, batch DT16): each work this seat
+ * lays from now on is an Academy. So it gains an Academy's pay less what each family
+ * would have laid, averaged over the families, and a scholar's own part is nought.
+ *
+ * Each row is asked of the simulation on one hex the seat could lay it on
+ * (`improvementYieldDelta`, with the town's own lines). So The Peripatetic School's
+ * pay on an Academy counts for the card, and a card's pay on a Landmark counts
+ * against it. One hex is enough, because the hex's own yield is in every row's delta
+ * and cancels in the difference.
+ *
+ * New works arrive at the pace this seat lays them (`personRate`, `workLaidShare`),
+ * and each pays until the end of the horizon, so the mean standing is half of what
+ * arrives. `immortalsWorth` reads later legacies the same way. As in `rankWorkSites`,
+ * the hexes a Citadel claims are not priced, so the card reads a little high for a
+ * seat with many generals.
+ */
+function everyWorkIsAcademyWorth(ctx: ValueContext): number {
+  const academy = workForFamily('scholar');
+  if (academy === null) return 0;
+  const pace = personRate(ctx) * workLaidShare(ctx);
+  if (pace <= 0) return 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    const tile = ownedTiles(ctx.state, city).find(
+      (hex) => improvementGroundError(ctx.state, ctx.playerId, hex, academy) === null,
+    );
+    if (tile === undefined) continue;
+    const context = cityContext(ctx.state, city);
+    const pays = (work: ImprovementId): number =>
+      valueOfYields(bagOfTileYield(improvementYieldDelta(tile, work, context)), ctx);
+    const academyPays = pays(academy);
+    let gain = 0;
+    for (const family of FAMILIES) {
+      const own = workForFamily(family);
+      if (own !== null) gain += academyPays - pays(own);
+    }
+    const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+    return (pace * horizon * (gain / Math.max(1, FAMILIES.length))) / 2;
+  }
+  return 0;
 }
 
 /**
@@ -12072,6 +12117,23 @@ function actThenWorkWorth(ctx: ValueContext): number {
 }
 
 /**
+ * **The Peregrini's discount** (`workCheapensPerson`, batch DT16): the renown the
+ * next great person costs less, times how often this seat calls a person after
+ * laying a work (`personRate`, `workLaidShare`), at `weights.renown`. Nothing for a
+ * seat that earns no renown. The price read is today's, so a seat already holding a
+ * discount reads a little less, which is small beside the pace.
+ */
+function workCheapensPersonWorth(
+  effect: Extract<CardEffect, { kind: 'rule' }>,
+  ctx: ValueContext,
+): number {
+  const player = playerById(ctx.state, ctx.playerId);
+  if (player === undefined) return 0;
+  const saved = (renownThreshold(ctx.state, player) * (effect.percent ?? 0)) / 100;
+  return saved * personRate(ctx) * workLaidShare(ctx) * ctx.ai.weights.renown;
+}
+
+/**
  * **What one held card is worth in a chair**, for the council readings below:
  * its effects (`explainCardEffects`, with its commission's reward), or `null`
  * for a card that never takes a chair (a charter, a fulfilled commission) or
@@ -12207,7 +12269,8 @@ function widerFitWorth(ctx: ValueContext): number {
  *   · The Mixed Constitution (`cardsFitAnyChair`): `widerFitWorth`;
  *   · The Universal Genius (`actThenWork`): `actThenWorkWorth`;
  *   · The Pull of the Masters (`worksPullRivalHexes`): `pullWorth`;
- *   · Scutage (`collectionPays`): `scutageWorth`.
+ *   · Scutage (`collectionPays`): `scutageWorth`;
+ *   · The Peregrini (`workCheapensPerson`): `workCheapensPersonWorth`.
  */
 function magisterialRuleWorth(
   effect: Extract<CardEffect, { kind: 'rule' }>,
@@ -12234,6 +12297,9 @@ function magisterialRuleWorth(
     // Batch DT11: Scutage's bench. Its lost chair is its `slotRider` row.
     case 'collectionPays':
       return scutageWorth(effect, ctx);
+    // Batch DT16: The Peregrini's discount. Its hex line is an ordinary `pays` row.
+    case 'workCheapensPerson':
+      return workCheapensPersonWorth(effect, ctx);
     default:
       return null;
   }
