@@ -83,6 +83,7 @@ import {
   hammerTerm,
   newResourceTerms,
   techCostFor,
+  claimedHexWorth,
 } from './value';
 
 import {
@@ -1265,7 +1266,11 @@ export function rankWorkSites(
  *     luxury is worth strictly more to this bot than it says.
  *   · **the defender line it plants** (`ImprovementDef.defense`, the citadel's
  *     eight), at `workers.workDefenseValue` a point — a number in the data file
- *     rather than an opinion in the code.
+ *     rather than an opinion in the code;
+ *   · **the ring it claims** (`ImprovementDef.claimsNeighbours`, batch DT19b): each
+ *     hex within `greatPeople.citadelClaimRadius` that this seat does not own, at
+ *     `claimedHexWorth`, the reading a card's claimed hex takes. Taking a rival's
+ *     hex costs a relation nothing here, because the rules charge nothing for it.
  *
  * Leonardo's amplifier stays out of scope, as it is for the act
  * (`explainAct` in `bot.ts`): it is a card evaluated hypothetically and
@@ -1310,6 +1315,18 @@ function workGifts(
       label: `${defense} strength for whoever holds the hex × ${round(ctx.ai.workers.workDefenseValue)}`,
       value: defense * ctx.ai.workers.workDefenseValue,
     });
+  }
+
+  if (def.claimsNeighbours === true) {
+    const radius = Math.max(0, Math.floor(RULES.greatPeople.citadelClaimRadius));
+    let hexes = 0;
+    let worth = 0;
+    for (const other of mapRange(state.map, tileHex(tile), radius)) {
+      if (tileOwnerPlayerId(state, other.col, other.row) === player.id) continue;
+      hexes += 1;
+      worth += claimedHexWorth(ctx, other);
+    }
+    if (hexes > 0) terms.push({ label: `the ${hexes} hexes it would claim`, value: worth });
   }
   return terms;
 }

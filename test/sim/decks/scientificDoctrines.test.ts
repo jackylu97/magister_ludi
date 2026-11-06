@@ -1145,6 +1145,9 @@ describe('The Court of Rudolf II (batch DT8)', () => {
     unlearn(state, ...(CHAIN as TechId[]), 'prospecting');
     const [chain, rest] = doctrineDef(CARD as DoctrineId).effects as [CardEffect, CardEffect];
     const value = (effect: CardEffect) => scoreEffects([effect], valueContext(state, seat(state)));
+    // Enough science that the whole chain falls within the horizon (batch DT19b).
+    lend('theApoikia', [{ kind: 'pays', where: 'city', science: 5000 } as CardEffect]);
+    hold(state, 'theApoikia');
     const full = value(chain);
     expect(full).toBeGreaterThan(0);
     expect(value(rest)).toBeLessThan(0);

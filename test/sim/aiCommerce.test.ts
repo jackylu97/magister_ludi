@@ -424,7 +424,12 @@ describe('Land Speculation', () => {
     const owned = ownedTiles(state, towns[0]!).length;
     const price = RULES.cities.tilePurchase.ringBase[0]!;
     const each = explainLump({ culture: Math.floor(0.5 * price) }, ctx).total;
-    const rate = 4 / state.turn;
+    // The four bought, with the table's cautious default for the prior's turns.
+    const prior = aiJson.score.commission.priorTurns;
+    const fallback =
+      (aiJson.score.tallyForecast.hexClaimed * aiJson.score.commission.priorShare) /
+      aiJson.priorities.horizonTurns;
+    const rate = (4 + fallback * prior) / (state.turn + prior);
     expect(scoreEffects(effectsOf(LAND_SPECULATION), ctx)).toBeCloseTo((rate * each) / owned, 10);
   });
 });

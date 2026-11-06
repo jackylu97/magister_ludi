@@ -332,6 +332,7 @@ import {
   chairReadingsAt,
   cardRareWeight,
   expectedHandBags,
+  cardBehaviorRule,
   maliceAt,
   slotOrderError,
   isSlotted,
@@ -5884,9 +5885,9 @@ function push(
  * `src/sim/` keeps and a reader of the same tables has no business breaking.
  *
  * A **settler** is a town, worth less for every town already held
- * (`expansion.cityValueFalloffByAge`), minus the citizen it costs — and a citizen is
- * no longer a flat number either (`explainCitizen`). Those two changes are what
- * make "wide" and "tall" real preferences rather than two settings of a cap.
+ * (`expansion.cityValueFalloffByAge`), minus the citizen it costs under The Planted
+ * Towns (`explainCitizen`). The falloff is what makes "wide" and "tall" real
+ * preferences rather than two settings of a cap.
  *
  * A **worker** is no longer flat: it is worth the entries its own charges would
  * lay on ground this town's citizens will stand on (`explainWorkerCraving` over
@@ -5918,7 +5919,12 @@ function unitRoleValue(
     // out by construction** — a settler already walking owes no hammers, so the
     // expansion chain has no step left and its share is nought. A cap over the top
     // of that only ever fires when the arithmetic has already said no.
-    const citizen = explainCitizen(state, city, ctx);
+    // **A settler costs a citizen only under The Planted Towns** (batch DT12's rule,
+    // read here since batch DT19b). The charge was old: a settler has trained free of
+    // citizens for a long time, so a seat holding no such rule pays nothing for it.
+    const citizen = cardBehaviorRule(state, player.id, 'trainedSettlerCostsCitizen')
+      ? explainCitizen(state, city, ctx)
+      : null;
     // **The chain is the settler's value, not an addition to it** — the one place
     // touch point (b) reads differently for a settler than for a building, and
     // deliberately. A library has a worth of its own in the town that raises it
@@ -5933,7 +5939,7 @@ function unitRoleValue(
       chain === null
         ? [nest('one more town, with nowhere yet legal to put it', explainNextTown(state, player, ctx))]
         : [expansionShareTerm(chain)];
-    terms.push(nest('the citizen it costs this town', citizen, 'sub'));
+    if (citizen !== null) terms.push(nest('the citizen it costs this town', citizen, 'sub'));
     return { value: foldOf(terms), terms };
   }
 
@@ -8913,7 +8919,7 @@ function undefendedCity(state: GameState, player: Player, unit: Unit): UnitTarge
  * knob in `workers`: a
  * luxury's *signature* is a list only `resourceEffects.ts` may read and cannot be
  * asked hypothetically, so a luxury is still worth more than this bot says. The
- * ring a citadel claims is likewise still unpriced.
+ * ring a citadel claims is priced there too, since batch DT19b.
  */
 function greatPersonCommand(
   state: GameState,

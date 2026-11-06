@@ -85,6 +85,8 @@ import {
   type BuildingId,
   buildingDef,
   buildingRowSupplies,
+  isEmpireBuilding,
+  isFortification,
   isPublicWork,
   isWonder,
 } from '../sim/buildingData';
@@ -123,11 +125,14 @@ import {
   bestOfClassFor,
   capitalCityOf,
   carriableSurplus,
+  type CityYields,
   channelSurplus,
   cityResources,
   controlledResources,
   emptyCityYields,
+  explainFoodCarried,
   foodAlongRoute,
+  growthSurplus,
   otherCarryingRoutes,
   ownedTiles,
   resourceCopies,
@@ -307,6 +312,9 @@ import {
   cardLevyReturnDelay,
   explainFollowerLinesAbroad,
   heldReligions,
+  type TileLine,
+  buildingPassesTest,
+  isCityScopedCount,
   isRaisingWonderOrOpus,
   religionFounder,
   noMetEmpireAhead,
@@ -324,6 +332,7 @@ import {
   type CardPaysEffect,
   type CardEffect,
   type CardId,
+  type RiderBuildingTest,
   type CardPeriodicEffect,
   type CityScope,
   type CombatCondition,
@@ -373,6 +382,7 @@ import {
 // same beakers for a charter technology and its premium.
 import {
   availableTechs,
+  techsShutByCharter,
   buildError,
   explainTechCost,
   foldTechCost,
@@ -2002,10 +2012,48 @@ export function explainBuildingRow(
       : Math.floor((city?.population ?? 0) / def.routeSlotsPerPopulation);
   const route = routeSlotTerm((def.routeSlots ?? 0) + grown, ctx);
   if (route !== null) terms.push(route);
-  terms.push(nest('its written effects', explainEffects(def.effects ?? [], ctx)));
+  terms.push(nest('its written effects', explainWrittenEffects(id, ctx, city)));
   const wagered = wager ? rowWagerTerm(id, ctx, city) : null;
   if (wagered !== null) terms.push(wagered);
   return appraise(terms);
+}
+
+/**
+ * **A building's written effects.** A wonder or a capstone is read by the empire's
+ * walk, so its rows say which towns they reach. An ordinary building's rows reach only
+ * the town it stands in (`cityBuildingEffects`), so a counted row is read in that town
+ * (batch DT19b): an Amphitheatre pays for its own town's citizens, not the realm's.
+ * With no town named, it is read for the mean town. Its other rows, such as a Workshop's
+ * bonus, still read the realm. That over-read is older than this batch, and fixing it
+ * would re-price every shelf at once, so it is left for its own change.
+ */
+function explainWrittenEffects(id: BuildingId, ctx: ValueContext, city: City | undefined): Appraisal {
+  const effects = buildingDef(id).effects ?? [];
+  if (oneOfAKind(id)) return explainEffects(effects, ctx);
+  const counted: CardEffect[] = [];
+  const rest: CardEffect[] = [];
+  for (const effect of effects) {
+    (effect.kind === 'pays' && effect.basis === 'count' ? counted : rest).push(effect);
+  }
+  if (counted.length === 0) return explainEffects(rest, ctx);
+  const town = city === undefined ? undefined : townHolding(city, id);
+  const own = explainEffects(counted, oneTownContext(ctx), undefined, town);
+  return rest.length === 0 ? own : appraise([...own.terms, ...explainEffects(rest, ctx).terms]);
+}
+
+/**
+ * This seat's book, priced for one town. One copy for each book, because the memos in
+ * this file are keyed on the context object.
+ */
+const ONE_TOWN_CONTEXT = new WeakMap<ValueContext, ValueContext>();
+function oneTownContext(ctx: ValueContext): ValueContext {
+  if (ctx.cities <= 1) return ctx;
+  let held = ONE_TOWN_CONTEXT.get(ctx);
+  if (held === undefined) {
+    held = { ...ctx, cities: 1 };
+    ONE_TOWN_CONTEXT.set(ctx, held);
+  }
+  return held;
 }
 
 /**
@@ -2705,6 +2753,34 @@ function promisedMirror(effect: CardPaysEffect, ctx: ValueContext): number {
  */
 export function townsAdmitting(ctx: ValueContext, scope?: CityScope): number {
   if (scope === undefined) return ctx.cities;
+  const towns = realmTownsAdmitting(ctx, scope);
+  const share = oneTownShare(ctx);
+  // A context priced for one town (`oneTownContext`) reads the share of the realm
+  // the scope admits. The promise's floor below stays: a row some town would raise
+  // is a whole town's worth to the town raising it.
+  if (share === 1) return towns;
+  return towns > 0 && scopePromisesABuilding(scope) ? Math.max(towns * share, Math.min(1, ctx.cities)) : towns * share;
+}
+
+/**
+ * The share of the realm a context is priced for. One for a seat's whole book, and
+ * one town's share for a context that says the seat has one town (`oneTownContext`,
+ * `townScoped` in `wants.ts`), because a rite or an ordinary building lands in one.
+ */
+const ONE_TOWN_SHARE_MEMO = new WeakMap<ValueContext, number>();
+function oneTownShare(ctx: ValueContext): number {
+  let share = ONE_TOWN_SHARE_MEMO.get(ctx);
+  if (share === undefined) {
+    const real = citiesOf(ctx.state, ctx.playerId).length;
+    share = real <= ctx.cities || real === 0 ? 1 : ctx.cities / real;
+    ONE_TOWN_SHARE_MEMO.set(ctx, share);
+  }
+  return share;
+}
+
+/** `townsAdmitting`'s count over the whole realm, whatever the context is priced for. */
+function realmTownsAdmitting(ctx: ValueContext, scope?: CityScope): number {
+  if (scope === undefined) return citiesOf(ctx.state, ctx.playerId).length;
   const memo = scopeMemo(ctx);
   const held = memo.get(scope);
   if (held !== undefined) return held;
@@ -2737,7 +2813,7 @@ export function townsAdmitting(ctx: ValueContext, scope?: CityScope): number {
   // The wonder idiom, and the one promise a realm can keep — see above. A realm
   // whose chains promise less than a whole town still reads the one town that
   // would raise the row, so the idiom is a floor rather than a fallback.
-  if (towns < 1 && scopePromisesABuilding(scope)) towns = Math.min(1, ctx.cities);
+  if (towns < 1 && scopePromisesABuilding(scope)) towns = Math.min(1, citiesOf(ctx.state, ctx.playerId).length);
   memo.set(scope, towns);
   return towns;
 }
@@ -2849,7 +2925,10 @@ function groundOfHexLine(
           // it. Without it every such line priced at nothing (found by batch DT6,
           // The Highland Clans).
           () => tileNeighbors(ctx.state.map, tile),
-          undefined,
+          // The clock, for the same reason (batch DT19b): a line asking a work's
+          // age read false on every hex, so The Georgics' +1 production priced at
+          // nothing however old the seat's works were.
+          ctx.state.turn,
           ground,
         );
       if (holds) mine.push({ city, tile });
@@ -2922,6 +3001,65 @@ function wholeShareOf(ctx: ValueContext, effect: CardPaysEffect): YieldBag {
   for (const voice of VOICES) {
     share[voice] = (((share[voice] ?? 0) / ground.over) * percent) / 100;
   }
+  memo.set(effect, share);
+  return share;
+}
+
+/** The share a row takes of the works (`hexPercentShareOf`), remembered for the sitting. */
+const HEX_PERCENT_MEMO = new WeakMap<ValueContext, Map<CardPaysEffect, YieldBag>>();
+
+/**
+ * **What a hex line's `percent` and `basePercent` pay this seat a turn, voice by
+ * voice** (batch DT19b). The share is taken of what the works on the hex pay, or of
+ * what its ground pays. The arm read a nominal yield instead, 33.6 points on every
+ * improved hex, so Crop Rotation's gain on a farm paying one food read as much as on
+ * a mine paying three production.
+ *
+ * The figure is the fold itself: each hex folded with one more line carrying the
+ * row's shares, less the hex folded without it. The fold sums these shares before one
+ * multiplication, so the difference is the same whether the seat holds the row or
+ * not. Whole shares come off both readings, for `wholeShareOf`'s reason.
+ */
+function hexPercentShareOf(ctx: ValueContext, effect: CardPaysEffect): YieldBag {
+  const works = effect.percent ?? 0;
+  const base = effect.basePercent ?? 0;
+  if ((works === 0 && base === 0) || effect.on === undefined) return {};
+  let memo = HEX_PERCENT_MEMO.get(ctx);
+  if (memo === undefined) {
+    memo = new Map();
+    HEX_PERCENT_MEMO.set(ctx, memo);
+  }
+  const held = memo.get(effect);
+  if (held !== undefined) return held;
+  const ground = groundOfHexLine(ctx, effect);
+  const line: TileLine = {
+    source: '',
+    on: effect.on,
+    percent: works,
+    basePercent: base,
+    food: 0,
+    production: 0,
+    gold: 0,
+    science: 0,
+    culture: 0,
+    faith: 0,
+  };
+  const share: YieldBag = {};
+  let plain: TileYieldContext | undefined;
+  let raised: TileYieldContext | undefined;
+  let contextOf: City | undefined;
+  for (const { city, tile } of ground.hexes) {
+    // The walk visits a town's hexes together, so one context serves them all.
+    if (contextOf !== city) {
+      plain = withoutWholeShares(cityContext(ctx.state, city));
+      raised = plain === undefined ? undefined : { ...plain, lines: [...(plain.lines ?? []), line] };
+      contextOf = city;
+    }
+    const before = foldTile(tile, plain);
+    const after = foldTile(tile, raised);
+    for (const voice of VOICES) share[voice] = (share[voice] ?? 0) + after[voice] - before[voice];
+  }
+  for (const voice of VOICES) share[voice] = (share[voice] ?? 0) / ground.over;
   memo.set(effect, share);
   return share;
 }
@@ -3038,7 +3176,7 @@ export function explainEffects(
       // pair (batch E5), so a term labelled by the bare `kind` would print
       // "pays" eight times over in the spectator's feed. `paysWord` writes the
       // dimensions back into the word — no figure moves.
-      terms.push(nest(paysWord(effect) + scopeNote(effect, ctx), explainCounted(effect, ctx, card)));
+      terms.push(nest(paysWord(effect) + scopeNote(effect, ctx), explainCounted(effect, ctx, card, town)));
       continue;
     }
     terms.push({
@@ -3057,6 +3195,8 @@ export function explainEffects(
     const hammers = hammerTerm(productionOf(effect, ctx), ctx);
     if (hammers !== null) terms.push(hammers);
   }
+  const ownRows = secondCapitalOwnRows(effects, ctx);
+  if (ownRows !== 0) terms.push({ label: 'the second capital is spared the row beside it', value: ownRows });
   return appraise(terms);
 }
 
@@ -3115,7 +3255,11 @@ function productionOf(effect: CardEffect, ctx: ValueContext): number {
       // on a negative figure, so Crop Rotation's loss is priced at the table's
       // weight alone, as every other negative hammer is.
       if (effect.where === 'hex') {
-        return hammers * workedHexesAdmitting(ctx, effect) + (wholeShareOf(ctx, effect).production ?? 0);
+        return (
+          hammers * workedHexesAdmitting(ctx, effect) +
+          (hexPercentShareOf(ctx, effect).production ?? 0) +
+          (wholeShareOf(ctx, effect).production ?? 0)
+        );
       }
       if (effect.where === 'empire') return hammers;
       return 0;
@@ -3176,7 +3320,6 @@ const ROUTE_VOICES = 5;
  */
 function scorePays(effect: CardPaysEffect, ctx: ValueContext): number {
   const basis = effect.basis ?? 'flat';
-  const nominal = nominalRate(ctx);
 
   if (basis === 'count') {
     // Priced by `explainCounted`, which `explainEffects` calls directly — this
@@ -3243,8 +3386,8 @@ function scorePays(effect: CardPaysEffect, ctx: ValueContext): number {
 
   if (effect.where === 'hex') {
     // A `CardYieldBag` on the row, plus an optional percentage on whatever the
-    // hex's improvement already pays; the bag is the legible half and the
-    // percentage is priced against the nominal yield like every other rate.
+    // hex's improvement already pays. The percentage is read off what each hex's
+    // works pay (`hexPercentShareOf`, batch DT19b).
     // **How many hexes** was `score.nominalTiles` — one flat guess, three — and
     // is now the ground the clause actually lands on (batch X2).
     //
@@ -3258,9 +3401,8 @@ function scorePays(effect: CardPaysEffect, ctx: ValueContext): number {
     // A whole share (`wholePercent`, batch DT3) is read off the worked hexes
     // themselves, so it joins after the count rather than inside it.
     return (
-      (valueOfYields(bagOf(effect), ctx) +
-        ((effect.percent ?? 0) / 100) * nominal * voiceWeight(ctx, 'production')) *
-        workedHexesAdmitting(ctx, effect) +
+      valueOfYields(bagOf(effect), ctx) * workedHexesAdmitting(ctx, effect) +
+      valueOfYields(hexPercentShareOf(ctx, effect), ctx) +
       valueOfYields(wholeShareOf(ctx, effect), ctx)
     );
   }
@@ -3839,14 +3981,19 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // **A timed effect hung on the stamped unit** (Commerce batch T6,
       // Mercenary Contracts' upkeep waiver; priced in batch T9) is read as the
       // units it reaches costing less. See `timedStampWorth`.
+      //
+      // **A stamp narrowed to a town of a kind** reaches the pieces raised in such
+      // towns, read as the share of towns the scope admits (batch DT19b). The Ribats'
+      // +3 read whole for a seat with no devout town.
       const bought = effect.bought === undefined ? 1 : ctx.ai.score.commerce.boughtUnitShare;
       const levied = effect.levied === undefined ? 1 : leviedRecruitShare(effect.levied, ctx);
+      const born = scopeShare(ctx, effect.scope);
       const rank =
         effect.levied !== undefined && effect.rank !== undefined ? rankStrength(effect.rank) : 0;
       const strength =
-        ((effect.strength ?? 0) + rank) * bought * levied * ctx.ai.weights.military * (1 + ctx.threat);
-      const timed = effect.timed === undefined ? 0 : timedStampWorth(effect, bought * levied, ctx);
-      return strength + (effect.hp === undefined ? 0 : ctx.ai.score.unknownEffect * levied) + timed;
+        ((effect.strength ?? 0) + rank) * bought * levied * born * ctx.ai.weights.military * (1 + ctx.threat);
+      const timed = effect.timed === undefined ? 0 : timedStampWorth(effect, bought * levied * born, ctx);
+      return strength + (effect.hp === undefined ? 0 : ctx.ai.score.unknownEffect * levied * born) + timed;
     }
     case 'rule':
       // **A flag-shaped rule declared true.** Four kinds came in here before
@@ -4240,7 +4387,9 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
     case 'tech':
       return (player?.techsResearched.length ?? 0) / turns;
     case 'tilePurchase':
-      return (player?.tilesPurchased ?? 0) / turns;
+      // The seat's record, smoothed with the table's default, so a seat that has
+      // yet to buy a hex still reads a little (batch DT19b, The Laurion Leases).
+      return occasionForecastRate('hexClaimed', ctx);
     case 'discovery':
       return tempo.discoveries / horizon;
     case 'chop':
@@ -4492,7 +4641,7 @@ function scoreWindfallRider(
     const rate = occasionRate('tilePurchase', ctx);
     return rate <= 0 ? 0 : rate * tilePurchaseFiringWorth(effect, ctx);
   }
-  let rate = occasionRate(effect.occasion, ctx);
+  let rate = finishedRowRate(effect, ctx) ?? occasionRate(effect.occasion, ctx);
   // **A family is one of five**, and unlike the three flags above it really does
   // narrow a rate the forecast gives whole: a great person is called and spent
   // whatever family they belong to, so a rider written on the artists fires on a
@@ -4535,6 +4684,59 @@ function scoreWindfallRider(
   // and again in the grant would be the bot paying twice for one purse, so the
   // grant is already the per-turn figure and this is the frequency alone.
   return each * rate;
+}
+
+/**
+ * **How often a completion rider's own rows are finished, per turn**, or `null` for a
+ * rider on no such row (batch DT19b).
+ *
+ * `occasionRate` counts every building and unit this seat has finished, so The Escorial
+ * read every Granary as a wonder. A rider asking for a wonder fires at this seat's pace
+ * of finishing wonders (`occasionForecastRate`). A rider naming a row, a shelf or the
+ * great houses fires at the pace those rows have stood, or, for a seat that has yet to
+ * raise one, at the pace its towns could raise those open now, over the horizon. That is
+ * `occasionRate`'s reading of a stock with no record.
+ *
+ * What a town rebuilds or loses moves the record a little either way, as the board's
+ * other records do. A `first` rider is not narrowed further, because a standing row
+ * was the first of its kind in its town.
+ */
+const FINISHED_ROW_MEMO = new WeakMap<
+  ValueContext,
+  Map<Extract<CardEffect, { kind: 'windfallRider' }>, number>
+>();
+function finishedRowRate(
+  effect: Extract<CardEffect, { kind: 'windfallRider' }>,
+  ctx: ValueContext,
+): number | null {
+  if (effect.occasion !== 'completion' && effect.occasion !== 'buildingCompletion') return null;
+  if (effect.wonder === true) return occasionForecastRate('wonderCompleted', ctx);
+  const test: RiderBuildingTest = {};
+  if (effect.building !== undefined) test.building = effect.building;
+  if (effect.buildingCategory !== undefined) test.buildingCategory = effect.buildingCategory;
+  if (effect.empireBuilding !== undefined) test.empireBuilding = effect.empireBuilding;
+  const tests = effect.anyOf ?? [test];
+  if (effect.anyOf === undefined && Object.keys(test).length === 0) return null;
+  let memo = FINISHED_ROW_MEMO.get(ctx);
+  if (memo === undefined) {
+    memo = new Map();
+    FINISHED_ROW_MEMO.set(ctx, memo);
+  }
+  const held = memo.get(effect);
+  if (held !== undefined) return held;
+  const passes = (id: BuildingId): boolean => tests.some((one) => buildingPassesTest(id, one));
+  let standing = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    for (const id of city.buildings) if (passes(id)) standing += 1;
+  }
+  let open = 0;
+  for (const { id, towns } of openRows(ctx)) if (passes(id)) open += towns;
+  const rate = Math.max(
+    standing / Math.max(1, ctx.state.turn),
+    open / Math.max(1, ctx.ai.priorities.horizonTurns),
+  );
+  memo.set(effect, rate);
+  return rate;
 }
 
 /** Orders this empire has in a chair — `perSlottedOrder`'s own multiplier. */
@@ -6147,12 +6349,16 @@ export function explainCounted(
   effect: CardPaysEffect,
   ctx: ValueContext,
   card?: CardId,
+  /** The one town the line lands in, when the caller knows it. See `explainEffects`. */
+  town?: City,
 ): Appraisal {
   // **The front row is a town's own count** (Devotion batch DV9, The Rising
   // Nave), paid in the town it is counted in. See `explainFrontRow`.
   if (effect.count === 'frontRowTenths') return explainFrontRow(effect, ctx);
   // **A hex line counted by its town** (batch DT13). See `explainHexCounted`.
   if (effect.where === 'hex') return explainHexCounted(effect, ctx, card);
+  // **A line each town counts for itself** (batch DT19b). See `explainCountedByTown`.
+  if (countsTownByTown(effect)) return explainCountedByTown(effect, ctx, card, town);
   const ai = ctx.ai;
   const terms: ValueTerm[] = [];
   const realized = realizedCount(effect, ctx, card);
@@ -6183,6 +6389,96 @@ export function explainCounted(
     value: scorePayout(effect, ctx),
     op: 'mul',
   });
+  return appraise(terms);
+}
+
+/**
+ * Does the fold ask this counted line of one town at a time, and pay each town for
+ * its own count? `isCityScopedCount` is the simulation's own answer. A line paid to
+ * the empire's bank with such a count pays nothing in the fold, so it stays on the
+ * empire reading. A meter is summed over the towns whatever the row's `where`
+ * (`cardHappiness`, `cardAuthority`).
+ */
+function countsTownByTown(effect: CardPaysEffect): boolean {
+  if (!isCityScopedCount(effect)) return false;
+  return (
+    effect.where === 'city' ||
+    effect.where === 'capital' ||
+    effect.to === 'happiness' ||
+    effect.to === 'authority'
+  );
+}
+
+/**
+ * **What a line each town counts for itself pays this seat a turn** (batch DT19b).
+ *
+ * This is the fold's own sum (`explainCardCityYields`): over the towns the scope
+ * admits, each town's count, at the row's `per` and `max` in that town, times what
+ * one helping pays in one town. Summing the towns' counts and then multiplying by
+ * the towns, as this bot did, read three towns of one Monument under The Choregia at
+ * 405 where the fold pays 135. The old sum also ignored the scope, floored the sum
+ * rather than each town, and held a cap meant for one town against the whole realm.
+ *
+ * `town` is the one town the line lands in, when the caller knows it: a rite said
+ * there, or an ordinary building raised there. A context priced for one town with no
+ * town named (`oneTownContext`) reads the mean town.
+ *
+ * A scope the chains promise to admit (`townsAdmitting`) counts each promised town
+ * at the mean town's helpings, because it has no count of its own yet.
+ */
+function explainCountedByTown(
+  effect: CardPaysEffect,
+  ctx: ValueContext,
+  card: CardId | undefined,
+  town: City | undefined,
+): Appraisal {
+  const state = ctx.state;
+  const asked = card ?? ('' as CardId);
+  const read = (city: City): number =>
+    helpings(countOf(state, ctx.playerId, asked, effect, city), effect.per, effect.max);
+  const admits = (city: City): boolean =>
+    effect.scope === undefined || cityScopeAdmits(state, city, effect.scope, ctx.playerId);
+  const terms: ValueTerm[] = [];
+  let today = 0;
+  let room = 1;
+  if (town !== undefined) {
+    today = admits(town) ? read(town) : 0;
+    terms.push({ label: `${today} helpings today, in ${town.name}`, value: today });
+  } else {
+    const all =
+      effect.where === 'capital'
+        ? cardCapitalIds(state, ctx.playerId).flatMap((id) => cityById(state, id) ?? [])
+        : citiesOf(state, ctx.playerId);
+    let admitted = 0;
+    let everywhere = 0;
+    for (const city of all) {
+      const paid = read(city);
+      everywhere += paid;
+      if (!admits(city)) continue;
+      admitted += 1;
+      today += paid;
+    }
+    const promised =
+      effect.where === 'capital' ? 0 : Math.max(0, realmTownsAdmitting(ctx, effect.scope) - admitted);
+    if (promised > 0 && all.length > 0) today += (promised * everywhere) / all.length;
+    const share = oneTownShare(ctx);
+    today *= share;
+    room = (admitted + promised) * share;
+    terms.push({
+      label: `${round(today)} helpings today, each of ${round(room)} towns counting its own`,
+      value: today,
+    });
+  }
+  // The promise half reads a total over the towns, so one helping in one town prices it.
+  const per = effect.per === undefined || effect.per <= 0 ? 1 : effect.per;
+  for (const term of potentialTerms(effect, ctx)) {
+    const more = term.value / per;
+    const left = effect.max === undefined ? more : Math.min(more, Math.max(0, effect.max * room - today));
+    today += left;
+    terms.push({ label: term.label, value: left });
+  }
+  const payout = scorePayout(effect, ctx);
+  terms.push({ label: `× ${round(payout)}, what one helping pays in one town`, value: payout, op: 'mul' });
   return appraise(terms);
 }
 
@@ -6633,12 +6929,17 @@ function scorePayout(pays: CardPaysEffect, ctx: ValueContext): number {
   if (to === 'authority') return amount * meterWeight(ctx, 'authority');
   const bag: YieldBag = {};
   bag[to as Voice] = amount;
-  if (pays.where === 'city') return valueOfYields(bag, ctx) * townsAdmitting(ctx, pays.scope);
+  // A line each town counts for itself has its towns in the count already, so one
+  // helping pays one town (batch DT19b, `explainCountedByTown`).
+  if (pays.where === 'city') {
+    return valueOfYields(bag, ctx) * (countsTownByTown(pays) ? 1 : townsAdmitting(ctx, pays.scope));
+  }
   if (pays.where === 'capital') {
     // A count of the capital's citizens already sums both capitals for a seat under
     // The Two Capitals (`countOf`), so it pays one helping per citizen and no more.
     const towns = capitalAdmits(ctx, pays.scope);
-    return valueOfYields(bag, ctx) * (pays.count === 'capitalPopulation' ? Math.min(1, towns) : towns);
+    const once = pays.count === 'capitalPopulation' || countsTownByTown(pays);
+    return valueOfYields(bag, ctx) * (once ? Math.min(1, towns) : towns);
   }
   return valueOfYields(bag, ctx);
 }
@@ -7715,7 +8016,8 @@ function openedCharterTechs(ctx: ValueContext): TechId[] {
  *
  * Batch DT6 adds two readings. A bonus counted per hex in the borders (The
  * Gobelins) pays for the hexes that pass its test today, up to its cap. A bonus
- * toward public works (The Curator of Waters) is worth `publicWorkBonusShare`.
+ * toward public works (The Curator of Waters) is priced by `buildingBonusReach`, as
+ * is any other bonus that names buildings (batch DT19b).
  */
 function scientificBonusShare(
   effect: Extract<CardEffect, { kind: 'productionBonus' }>,
@@ -7741,35 +8043,78 @@ function scientificBonusShare(
       share *= helpings;
     }
   }
-  if (effect.publicWork === true) share *= publicWorkBonusShare(ctx);
-  return share;
+  return share * buildingBonusReach(effect, ctx);
 }
 
 /**
- * **The share of what this seat could still raise that is public works** (batch
- * DT6, The Curator of Waters): the hammers its towns' open public works cost, over
- * the hammers all their open buildings cost. Nothing once no town has one left to
- * raise, so the bonus is not priced as if it sped every building. Remembered for
- * the sitting, because it asks `buildError` of every row in every town.
+ * **The share of this seat's hammers a bonus on named buildings reaches** (batch
+ * DT19b; batch DT6 read public works this way first). The arm prices a bonus as a
+ * share of every town's hammers, which is fair for a bonus on every building and
+ * reads The Gobelins as if every town were raising the Opus.
+ *
+ * The Opus is raised in one town at a time, and only for the part of the horizon the
+ * seat raises it (`opusRaisingShare`). Any other named row, shelf or class reaches the
+ * hammers its open rows cost, over the hammers all this seat's open buildings cost. A
+ * row with nothing left to raise reaches nothing. Units and wonders are not narrowed
+ * here: their rows do not name a building.
  */
-const PUBLIC_WORK_SHARE_MEMO = new WeakMap<ValueContext, number>();
-function publicWorkBonusShare(ctx: ValueContext): number {
-  const found = PUBLIC_WORK_SHARE_MEMO.get(ctx);
-  if (found !== undefined) return found;
-  let works = 0;
-  let every = 0;
-  for (const city of citiesOf(ctx.state, ctx.playerId)) {
-    for (const id of BUILDING_IDS) {
-      if (isWonder(id) || townHoldsBuilding(ctx.state, city, id)) continue;
-      if (buildError(ctx.state, ctx.playerId, 'building', id, city) !== null) continue;
-      const hammers = buildingProductionCost(id, ctx.state, ctx.playerId);
-      every += hammers;
-      if (isPublicWork(id)) works += hammers;
-    }
+function buildingBonusReach(
+  effect: Extract<CardEffect, { kind: 'productionBonus' }>,
+  ctx: ValueContext,
+): number {
+  if (effect.category !== 'building') return 1;
+  if (OPUS_ID !== undefined && effect.building === OPUS_ID) {
+    return opusRaisingShare(ctx) / Math.max(1, ctx.cities);
   }
-  const share = every === 0 ? 0 : works / every;
-  PUBLIC_WORK_SHARE_MEMO.set(ctx, share);
-  return share;
+  const narrowed =
+    effect.building !== undefined ||
+    effect.buildingCategory !== undefined ||
+    effect.empireBuilding !== undefined ||
+    effect.publicWork === true ||
+    effect.defensive === true;
+  if (!narrowed) return 1;
+  let reached = 0;
+  let every = 0;
+  for (const { id, hammers } of openRows(ctx)) {
+    every += hammers;
+    if (effect.building !== undefined && effect.building !== id) continue;
+    if (effect.buildingCategory !== undefined && buildingDef(id).category !== effect.buildingCategory) continue;
+    if (effect.empireBuilding !== undefined && isEmpireBuilding(id) !== effect.empireBuilding) continue;
+    if (effect.publicWork === true && !isPublicWork(id)) continue;
+    if (effect.defensive === true && !isFortification(id)) continue;
+    reached += hammers;
+  }
+  return every === 0 ? 0 : reached / every;
+}
+
+/** One building row this seat could raise now: in how many towns, and at what cost in all. */
+interface OpenRow {
+  id: BuildingId;
+  towns: number;
+  hammers: number;
+}
+
+/**
+ * The buildings, wonders left out, this seat's towns could raise now, in table order.
+ * Remembered for the sitting, because it asks `buildError` of every row in every town.
+ */
+const OPEN_ROWS_MEMO = new WeakMap<ValueContext, readonly OpenRow[]>();
+function openRows(ctx: ValueContext): readonly OpenRow[] {
+  const found = OPEN_ROWS_MEMO.get(ctx);
+  if (found !== undefined) return found;
+  const rows: OpenRow[] = [];
+  const towns = citiesOf(ctx.state, ctx.playerId);
+  for (const id of BUILDING_IDS) {
+    if (isWonder(id)) continue;
+    let open = 0;
+    for (const city of towns) {
+      if (townHoldsBuilding(ctx.state, city, id)) continue;
+      if (buildError(ctx.state, ctx.playerId, 'building', id, city) === null) open += 1;
+    }
+    if (open > 0) rows.push({ id, towns: open, hammers: open * buildingProductionCost(id, ctx.state, ctx.playerId) });
+  }
+  OPEN_ROWS_MEMO.set(ctx, rows);
+  return rows;
 }
 
 /**
@@ -7933,12 +8278,17 @@ function scopeNames(scope: CityScope | undefined, test: 'capital' | 'notCapital'
  *   - A row that skips the capital loses the second town, which is one of the towns
  *     the scope admits.
  *
- * A scope with further tests is priced as if the second town passed them. The growth
- * line is the card's other row, priced by `ruleRewriteValue`.
+ * A scope with further tests asks them of the second town (batch DT19b). The growth
+ * line is the card's other row, priced by `ruleRewriteValue` and read back for the
+ * second town by `secondCapitalOwnRows`.
  */
 function secondCapitalWorth(ctx: ValueContext): number {
   const second = secondCapitalCity(ctx.state, ctx.playerId);
   if (second === undefined) return 0;
+  const passes = (scope: CityScope | undefined): boolean => {
+    const rest = scope === undefined ? undefined : scopeWithoutCapital(scope);
+    return rest === undefined || cityScopeAdmits(ctx.state, second, rest, ctx.playerId);
+  };
   const capitals = cardCapitalIds(ctx.state, ctx.playerId);
   let citizens = 0;
   for (const id of capitals) citizens += cityById(ctx.state, id)?.population ?? 0;
@@ -7947,6 +8297,7 @@ function secondCapitalWorth(ctx: ValueContext): number {
     if (!isOrderId(card) && !isDoctrineId(card)) continue;
     const pays = effect.kind === 'pays' ? effect : undefined;
     const scope = (effect as { scope?: CityScope }).scope;
+    if (!passes(scope)) continue;
     if (scopeNames(scope, 'notCapital')) {
       const towns = townsAdmitting(ctx, scope);
       if (towns > 0) worth -= scoreEffects([effect], ctx, card) / towns;
@@ -7961,6 +8312,39 @@ function secondCapitalWorth(ctx: ValueContext): number {
     }
   }
   return worth;
+}
+
+/**
+ * A scope with its tests about the capital taken out, or `undefined` if nothing is
+ * left. Only a plain test or an `all` can be narrowed so: an `any` keeps its meaning
+ * only whole, so it is left as it is.
+ */
+function scopeWithoutCapital(scope: CityScope): CityScope | undefined {
+  if (scope.test === 'capital' || scope.test === 'notCapital') return undefined;
+  if (scope.test !== 'all') return scope;
+  const of = scope.of.flatMap((inner) => scopeWithoutCapital(inner) ?? []);
+  return of.length === 0 ? undefined : { test: 'all', of };
+}
+
+/**
+ * **The Two Capitals' own rows on the town it makes a capital** (batch DT19b). Before a
+ * seat holds the rule, a `notCapital` row beside it reads the second town as one it
+ * reaches, so a seat of two towns read a cost for a growth line that slows nothing. This
+ * takes that town's share of the row back out. A seat that holds the rule reads the row
+ * right already.
+ */
+function secondCapitalOwnRows(effects: readonly CardEffect[], ctx: ValueContext): number {
+  if (!effects.some((effect) => effect.kind === 'rule' && effect.rule === 'secondCapital')) return 0;
+  const second = secondCapitalCity(ctx.state, ctx.playerId);
+  if (second === undefined || cardCapitalIds(ctx.state, ctx.playerId).includes(second.id)) return 0;
+  let back = 0;
+  for (const effect of effects) {
+    const scope = (effect as { scope?: CityScope }).scope;
+    if (!scopeNames(scope, 'notCapital') || !cityScopeAdmits(ctx.state, second, scope!, ctx.playerId)) continue;
+    const towns = townsAdmitting(ctx, scope);
+    if (towns > 0) back -= scoreEffect(effect, ctx) / towns;
+  }
+  return back;
 }
 
 /** This seat's combat units whose type upgrades to another. */
@@ -8053,9 +8437,9 @@ function worksBeside(improvement: ImprovementId | undefined, ctx: ValueContext):
  *
  * New works arrive at the pace this seat lays them (`personRate`, `workLaidShare`),
  * and each pays until the end of the horizon, so the mean standing is half of what
- * arrives. `immortalsWorth` reads later legacies the same way. As in `rankWorkSites`,
- * the hexes a Citadel claims are not priced, so the card reads a little high for a
- * seat with many generals.
+ * arrives. `immortalsWorth` reads later legacies the same way. The hexes a Citadel
+ * would have claimed (`workGifts`, `plan.ts`) are not taken off here, so the card reads
+ * a little high for a seat with many generals.
  */
 function everyWorkIsAcademyWorth(ctx: ValueContext): number {
   const academy = workForFamily('scholar');
@@ -8200,10 +8584,54 @@ function charterSavingWorth(
  * nobody.
  */
 function gapSavingWorth(share: number, ctx: ValueContext): number {
+  return beakerSavingWorth(share, techGap(ctx.state, ctx.playerId), ctx);
+}
+
+/**
+ * **What a change of `share` in the price of these technologies saves**, as a lump
+ * (batch DT19b). Only the ones this seat would research within the horizon count
+ * (`techsWithinHorizon`), since every other price here stops at the horizon. Read
+ * whole, The Court of Rudolf II's cut on the fourth age's chain scored in the
+ * thousands for a seat in the second age, with those beakers a hundred turns away.
+ */
+function beakerSavingWorth(share: number, techs: readonly TechId[], ctx: ValueContext): number {
+  const soon = techsWithinHorizon(ctx);
   let beakers = 0;
-  for (const tech of techGap(ctx.state, ctx.playerId)) beakers += techCostFor(ctx, tech);
+  for (const tech of techs) {
+    if (soon.includes(tech)) beakers += techCostFor(ctx, tech);
+  }
   if (beakers <= 0) return 0;
   return explainLump({ science: -Math.max(-1, share) * beakers }, ctx).total;
+}
+
+/**
+ * **The technologies this seat would research within the horizon**: what it makes a
+ * turn over the horizon, plus what it has banked, spent on the cheapest it may still
+ * research first. A column is a price, so cheapest first is close to the tree's own
+ * order. Remembered for the sitting.
+ */
+const SOON_TECHS_MEMO = new WeakMap<ValueContext, readonly TechId[]>();
+function techsWithinHorizon(ctx: ValueContext): readonly TechId[] {
+  const held = SOON_TECHS_MEMO.get(ctx);
+  if (held !== undefined) return held;
+  const player = playerById(ctx.state, ctx.playerId);
+  const soon: TechId[] = [];
+  if (player !== undefined) {
+    const income = Math.max(0, ratesOf(ctx).sciencePerTurn ?? 0);
+    let budget = Math.max(0, player.sciencePool) + income * Math.max(1, ctx.ai.priorities.horizonTurns);
+    const shut = techsShutByCharter(player);
+    const open = ALL_TECH_IDS.filter((tech) => !player.techsResearched.includes(tech) && !shut.includes(tech));
+    // `sort` keeps table order between equal prices.
+    open.sort((a, b) => techCostFor(ctx, a) - techCostFor(ctx, b));
+    for (const tech of open) {
+      const cost = techCostFor(ctx, tech);
+      if (cost > budget) break;
+      budget -= cost;
+      soon.push(tech);
+    }
+  }
+  SOON_TECHS_MEMO.set(ctx, soon);
+  return soon;
 }
 
 /**
@@ -8219,13 +8647,8 @@ function techPriceWorth(
   ctx: ValueContext,
 ): number {
   const known = playerById(ctx.state, ctx.playerId)?.techsResearched ?? [];
-  let beakers = 0;
-  for (const tech of ALL_TECH_IDS) {
-    if (known.includes(tech) || !techPriceRowReaches(effect, tech)) continue;
-    beakers += techCostFor(ctx, tech);
-  }
-  if (beakers <= 0) return 0;
-  return explainLump({ science: -Math.max(-1, share) * beakers }, ctx).total;
+  const reached = ALL_TECH_IDS.filter((tech) => !known.includes(tech) && techPriceRowReaches(effect, tech));
+  return beakerSavingWorth(share, reached, ctx);
 }
 
 /**
@@ -8395,9 +8818,7 @@ function tileTestAsks(on: TileCondition, test: TileCondition['test']): boolean {
  *
  * The live list (`effectsOfKind`) holds the seated Orders, the Doctrines, the
  * institutions of commissions met and the technologies, so a card already
- * working for the seat is counted. This reading is the honest one for a hex
- * line that asks a work's age, which `workedHexesAdmitting` prices with no
- * clock and so at nought.
+ * working for the seat is counted.
  */
 function liveLinesGain(
   ground: GroundFacts,
@@ -8427,10 +8848,11 @@ function liveLinesGain(
         }
       }
       if (more === 0) continue;
-      const each =
-        valueOfYields(bagOf(effect), ctx) +
-        ((effect.percent ?? 0) / 100) * nominalRate(ctx) * voiceWeight(ctx, 'production');
-      gain += more * each;
+      // A share of the works reads each hex at the mean share of the hexes the row
+      // lands on today, because the hexes it would reach have no such reading yet.
+      const landed = workedHexesAdmitting(ctx, effect);
+      const shared = landed <= 0 ? 0 : valueOfYields(hexPercentShareOf(ctx, effect), ctx) / landed;
+      gain += more * (valueOfYields(bagOf(effect), ctx) + shared);
       continue;
     }
     if (basis !== 'count' || effect.count !== 'tilesInBorders' || effect.within !== undefined) continue;
@@ -8477,8 +8899,8 @@ const ANY_WORK: TileCondition = { test: 'any', of: [{ test: 'improved' }, { test
  * met, the commission is worth nothing more (`explainCommission`). A factor
  * replaces a smaller one, as `cardWorkAgeFactor` reads two rows.
  *
- * The Georgics' own hex line is not in this price. It asks a work's age, and the
- * hex arm reads no clock (`groundOfHexLine`), so that line prices at nought today.
+ * The Georgics' own hex line is not in this price. The hex arm prices it, at the
+ * works' ages today (`groundOfHexLine`, with its clock since batch DT19b).
  */
 function workAgeWorth(effect: Extract<CardEffect, { kind: 'workAge' }>, ctx: ValueContext): number {
   const offset = Math.max(0, Math.floor(effect.turns ?? 0));
@@ -10237,12 +10659,15 @@ function explainLevyCitizen(city: City, hammers: number, ctx: ValueContext): App
 
 /**
  * Turns this town takes to grow back the citizen a levy spends: the food it
- * took over the town's food surplus (`channelSurplus`), and the horizon for a
- * town that is not growing.
+ * took over the food the town banks a turn (`growthSurplus`, so food carried along
+ * a route under The Grand Canal counts, batch DT19b), and the horizon for a town
+ * that is not growing.
  */
 function regrowTurns(city: City, hammers: number, ctx: ValueContext): number {
   const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
-  const surplus = channelSurplus(ctx.state, city, foldCity(ctx.state, city, [], null, readCity(ctx.state, city)));
+  const state = ctx.state;
+  const read = (town: City): CityYields => foldCity(state, town, [], null, readCity(state, town));
+  const surplus = growthSurplus(state, city, read(city), explainFoodCarried(state, city, read));
   if (surplus <= 0) return horizon;
   return Math.min(horizon, hammers / surplus);
 }
@@ -10409,7 +10834,13 @@ function followerLinesAbroadWorth(ctx: ValueContext): number {
   for (const line of explainFollowerLinesAbroad(ctx.state, ctx.playerId)) {
     for (const voice of VOICES) bag[voice] = (bag[voice] ?? 0) + line[voice];
   }
-  return valueOfYields(bag, ctx);
+  // The towns this seat's faith is expected to turn over the horizon, at most the towns
+  // it knows of to turn, so a seat with a religion and no followers abroad yet does not
+  // read the card at nothing (batch DT19b). Each pays from the turn it turns, so the
+  // mean over the horizon is half of them. A seat paid by no religion reads nothing.
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const more = Math.min(conversionRate(ctx) * horizon, turnableTowns(ctx).length) / 2;
+  return valueOfYields(bag, ctx) + more * followerLinesInOneTown(ctx);
 }
 
 /**
@@ -10939,6 +11370,7 @@ function turnShare(converts: number, population: number): number {
  * (Devotion batch DV9):
  *
  *   · a founding's (The Parishes): `parishWorth`;
+ *   · a death's (The Martyr's Crown): `fallenLumpWorth`;
  *   · a conversion's (Pentecost): `conversionLumpWorth`;
  *   · any other (The Crusader Orders' capture): the stand-in it had, for the
  *     reason the arm states.
@@ -10952,7 +11384,22 @@ function pressureGrantWorth(
   if (lump === undefined) return 0;
   if (occasion === 'found') return parishWorth(lump, grant.fromOccasion === 'population', ctx);
   if (occasion === 'townConverted') return conversionLumpWorth(lump, ctx);
+  if (occasion === 'death') return fallenLumpWorth(lump, ctx);
   return ctx.ai.score.unknownEffect;
+}
+
+/**
+ * **The Martyr's Crown's lump** (batch DT19b): pressed around the hex fought over.
+ * Worth the share of one town its converts would turn (`turnShare`), at what a town
+ * abroad that follows this seat's religion pays it a turn (`foreignFollowerWorth`), as
+ * a lasting gain, as Pentecost's is. Battles are read as near one such town, which is
+ * the middle of a lump that may reach none or several. A seat with no follower lines
+ * paying abroad, or no town to turn, gains nothing from it yet.
+ */
+function fallenLumpWorth(lump: { amount: number; range: number }, ctx: ValueContext): number {
+  if (!holdsFaith(ctx) || lump.amount <= 0 || turnableTowns(ctx).length === 0) return 0;
+  const converts = Math.floor(lump.amount / Math.max(1, Math.floor(RULES.religion.pressurePerConvert)));
+  return turnShare(converts, convertTownPopulation(ctx)) * foreignFollowerWorth(ctx);
 }
 
 /**
@@ -11028,12 +11475,46 @@ function conversionLumpWorth(lump: { amount: number; range: number }, ctx: Value
  */
 function foreignFollowerWorth(ctx: ValueContext): number {
   const people = Math.max(1, Math.round(convertTownPopulation(ctx)));
+  const camera = effectsOfKind(ctx.state, ctx.playerId, 'rule').some(
+    ({ effect }) => effect.rule === 'followerBeliefsPayAbroad',
+  );
   return (
     explainCountStep('followingCities', 1, ctx).total +
     explainCountStep('followingForeign', 1, ctx).total +
     explainCountStep('followingPop', people, ctx).total +
-    explainCountStep('followingForeignPop', people, ctx).total
+    explainCountStep('followingForeignPop', people, ctx).total +
+    (camera ? followerLinesInOneTown(ctx) : 0)
   );
+}
+
+/**
+ * **What this seat's follower beliefs would pay it from one more town abroad**, under
+ * The Apostolic Camera (batch DT19b). The rows the Camera reads (`explainFollowerLinesAbroad`),
+ * in the voices an empire banks, priced in one town. The seat's own mean town stands in
+ * for the foreign one, with the faith part of each scope taken off (`withoutFaith`),
+ * because the new town is the one that follows.
+ */
+const LINES_ABROAD_MEMO = new WeakMap<ValueContext, number>();
+function followerLinesInOneTown(ctx: ValueContext): number {
+  const held = LINES_ABROAD_MEMO.get(ctx);
+  if (held !== undefined) return held;
+  const rows: CardEffect[] = [];
+  for (const religion of heldReligions(ctx.state, ctx.playerId)) {
+    for (const id of religion.follower) {
+      if (!isBeliefId(id)) continue;
+      for (const effect of beliefDef(id).effects ?? []) {
+        if (effect.kind !== 'pays' || effect.where !== 'city' || effect.payee !== undefined) continue;
+        if (effect.to === 'food' || effect.to === 'production') continue;
+        const { food: _food, production: _production, ...banked } = effect;
+        void _food;
+        void _production;
+        rows.push(withoutFaith(banked));
+      }
+    }
+  }
+  const worth = rows.length === 0 ? 0 : explainEffects(rows, oneTownContext(ctx)).total;
+  LINES_ABROAD_MEMO.set(ctx, worth);
+  return worth;
 }
 
 /**
@@ -11050,8 +11531,8 @@ function foreignFollowerWorth(ctx: ValueContext): number {
  * The last two are priced in one town, as the rite plan prices a rite (a
  * context that holds one town), with the faith part of each scope taken off
  * (`withoutFaith`): the new town is the one that follows. A count asked of a
- * town still reads the realm's towns there, the rite plan's stated gap. They
- * are remembered for the sitting.
+ * town reads the mean town there (`explainCountedByTown`). They are remembered for
+ * the sitting.
  */
 const DEVOUT_TOWN_MEMO = new WeakMap<ValueContext, number>();
 function devoutTownWorth(ctx: ValueContext, population: number): number {
@@ -11420,6 +11901,18 @@ function draftsPerTurn(ctx: ValueContext): number {
 }
 
 /**
+ * **How many of the coming hands' cards are in force, on average over the horizon**
+ * (batch DT19b). A card's price is what it pays a turn, and it goes on paying once
+ * taken. So a rule that betters each hand's best card by one point adds a point a turn
+ * for each hand dealt so far, which rises from nothing to all of `draftsAhead` and is
+ * half of that on average. Reading it as hands a turn left The Hospitium and The Jinshi
+ * at about -15 to +11 beside rows reading in the hundreds, as if a card paid for one turn.
+ */
+function handsInForce(ctx: ValueContext): number {
+  return draftsAhead(ctx).drafts / 2;
+}
+
+/**
  * **The governments this seat adopts over the horizon** (feature G, The Sed
  * Festival; The Pandects' Doctrines): the government tiers (`GOVERNMENT_TIERS`)
  * its drafts reach over the horizon (`draftsAhead`), and a government offer
@@ -11609,15 +12102,9 @@ export function expectedBestOrder(
 
 /**
  * **What a rule on the Order hand is worth to this seat** (batch DT10; The Hospitium
- * and The Jinshi): the hands it buys a turn (`draftsPerTurn`), times what the rule
- * adds to the best card of one hand. `read` answers the second half, in the prices
+ * and The Jinshi): the hands in force over the horizon (`handsInForce`), times what the
+ * rule adds to the best card of one hand. `read` answers the second half, in the prices
  * `handCardPrice` gives.
- *
- * This is `offerRiderWorth`'s chain with one change. That arm reads a hand's cards
- * as alike and takes a share of what a hand costs. These two rules change which
- * cards are dealt, so they read the cards themselves. In a full context a hand's
- * worth is about its best card (culture's price is the plan's own), so the two arms
- * sit on one scale.
  *
  * Remembered for the sitting. A card's price can ask for this price again: The Golden
  * Bull is priced by the Doctrine offer it grants, and these two Doctrines can be in
@@ -11641,7 +12128,7 @@ function handRuleWorth(
   const player = playerById(ctx.state, ctx.playerId);
   const gain = player === undefined ? 0 : read(player, (id) => handCardPrice(id, ctx));
   // Adding nought turns a -0 into 0, for a seat that buys no hands.
-  const worth = draftsPerTurn(ctx) * gain + 0;
+  const worth = handsInForce(ctx) * gain + 0;
   memo.set(key, worth);
   return worth;
 }
@@ -11725,7 +12212,7 @@ export function orderPaysOffItsChair(id: OrderId, ctx: ValueContext): number {
 /**
  * **More cards in an Order hand** (`offerRider` with `offer: 'order'`;
  * Officials by Merit, and The Hall of Wonders' counted cards, Magisterial
- * batch MG6): the hands the seat buys a turn (`draftsPerTurn`), times what a
+ * batch MG6): the hands in force over the horizon (`handsInForce`), times what a
  * hand is worth (`handWorth`), times what the extra cards add to it
  * (`widerHandShare`). The hand's size is the simulation's (`explainOfferSize`)
  * without this rider, and the cap of the table (`rules.offers.max`) holds. A
@@ -11751,7 +12238,7 @@ function offerRiderWorth(effect: Extract<CardEffect, { kind: 'offerRider' }>, ct
   const raw = Math.max(HAND_POSITIONS, offerSize(ctx.state, ctx.playerId, 'order')) - (live ? extra : 0);
   const base = Math.min(max, Math.max(1, raw));
   const wider = Math.min(max, base + extra);
-  return draftsPerTurn(ctx) * handWorth(ctx) * widerHandShare(base, wider);
+  return handsInForce(ctx) * handWorth(ctx) * widerHandShare(base, wider);
 }
 
 /**
@@ -11876,7 +12363,7 @@ function hexYieldWorth(ctx: ValueContext, tile: Tile): number {
  * town's land it works. The land is held for the rest of the game, so it is
  * priced as a rate, as a lasting mark is (`windfallGrantWorth`).
  */
-function claimedHexWorth(ctx: ValueContext, tile: Tile): number {
+export function claimedHexWorth(ctx: ValueContext, tile: Tile): number {
   return hexYieldWorth(ctx, tile) * Math.max(0, ctx.ai.score.magisterial.claimedHexShare);
 }
 

@@ -79,6 +79,7 @@ import {
   effectsOfKind,
   explainCardCityYields,
   explainCardPercentYields,
+  cityScopeAdmits,
   explainFollowerLinesAbroad,
   heldReligions,
   liveEffects,
@@ -87,6 +88,7 @@ import {
 } from '../../../src/sim/statecraft/evaluator';
 import {
   type CardEffect,
+  type CityScope,
   type DoctrineId,
   type OrderId,
   DECK_FILE_DOCTRINES,
@@ -536,6 +538,10 @@ describe('batch DT5: the gated rows', () => {
     // A holy site the town works: its centre pays no hex line, so the doubler needs this.
     raiseImprovement(at(state, 6, 5), 'holySite' as never, 0);
     refreshCityDerived(state, holy);
+    // A foreign town the seat knows of, so The Martyr's Crown has a town to press. With no
+    // town to turn, its lump pays nothing (batch DT19b).
+    town(state, 16, 5, 4, 1);
+    state.visibility[0]!.fill(1);
     const player = faithful(state);
     bumpRevision(state);
     const ctx = valueContext(state, player);
@@ -1519,7 +1525,13 @@ describe('The Ribats (batch DT14)', () => {
     const { state } = board();
     const ctx = valueContext(state, seat(state));
     const stamp = doctrineDef(CARD as DoctrineId).effects.slice(0, 1);
-    expect(scoreEffects(stamp, ctx)).toBeCloseTo(3 * ctx.ai.weights.military * (1 + ctx.threat));
+    // The +3 reaches the pieces raised in devout towns (batch DT19b): here, one town of two.
+    const devout = state.cities.filter(
+      (city) => city.ownerId === 0 && cityScopeAdmits(state, city, (stamp[0] as { scope: CityScope }).scope, 0),
+    ).length;
+    const towns = state.cities.filter((city) => city.ownerId === 0).length;
+    expect([devout, towns]).toEqual([1, 2]);
+    expect(scoreEffects(stamp, ctx)).toBeCloseTo((3 * ctx.ai.weights.military * (1 + ctx.threat) * devout) / towns);
     const rider = doctrineDef(CARD as DoctrineId).effects.slice(1);
     const crusade = orderDef('theCrusaderOrders' as OrderId).effects.filter(
       (effect) => effect.kind === 'windfallRider',
@@ -2048,16 +2060,38 @@ describe('The Apostolic Camera (batch DT15)', () => {
     expect(camera(state)).toEqual([]);
   });
 
-  it('prices what the lines would pay today, and nothing with no follower abroad', () => {
-    const { state, plain, temple } = board();
+  it('prices what the lines pay today, and what the towns it can still turn would pay', () => {
+    const { state, plain, temple, pagan } = board();
     const row = doctrineDef(CARD as DoctrineId).effects;
+    const towns = state.cities;
+    // With the pagan town gone, every foreign town follows, so nothing is left to turn.
+    state.cities = towns.filter((city) => city !== pagan);
+    bumpRevision(state);
     const ctx = valueContext(state, seat(state));
-    const lines = explainFollowerLinesAbroad(state, 0);
-    expect(lines).toHaveLength(3);
-    expect(scoreEffects(row, ctx)).toBeCloseTo(valueOfYields({ science: 2, culture: 6 }, ctx), 6);
-    expect(scoreEffects(row, ctx)).toBeGreaterThan(0);
+    expect(explainFollowerLinesAbroad(state, 0)).toHaveLength(3);
+    const today = valueOfYields({ science: 2, culture: 6 }, ctx);
+    expect(scoreEffects(row, ctx)).toBeCloseTo(today, 6);
+    expect(today).toBeGreaterThan(0);
+    // The pagan town could still turn once the seat knows of it, so the card reads more
+    // than today's lines.
+    state.cities = towns;
+    state.visibility[0]!.fill(1);
+    bumpRevision(state);
+    expect(scoreEffects(row, valueContext(state, seat(state)))).toBeGreaterThan(today);
+    // With no follower abroad the lines pay nothing today, and the towns it could turn
+    // stand in (batch DT19b). A seat with a religion no longer reads the card at nought.
     temple.followers = {};
     plain.followers = {};
+    bumpRevision(state);
+    expect(explainFollowerLinesAbroad(state, 0)).toHaveLength(0);
+    expect(scoreEffects(row, valueContext(state, seat(state)))).toBeGreaterThan(0);
+  });
+
+  it('prices nothing for a seat paid by no religion', () => {
+    const { state } = board();
+    const row = doctrineDef(CARD as DoctrineId).effects;
+    state.religions = [];
+    for (const city of state.cities) city.followers = {};
     bumpRevision(state);
     expect(scoreEffects(row, valueContext(state, seat(state)))).toBe(0);
   });

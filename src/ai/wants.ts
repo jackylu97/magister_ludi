@@ -1818,11 +1818,9 @@ const RELIC: BuildingId | null = BUILDING_IDS.find((id) => buildingDef(id).place
  * read at the realm's shelves times the realm's towns, which is 861 points of
  * blessing on an eight-town board and a rite outranking a prophet by two to one.
  *
- * The gap that is left, stated: a **count** is still the realm's rather than this
- * town's (`realizedCount` sums a city-scoped count over the empire's towns), so a
- * row that counts shelves reads the realm's shelves and not the ones standing
- * here. Closing it means a town-scoped count in `value.ts`, which is a change to
- * that file's contract rather than a reading this one may take.
+ * A count each town keeps for itself reads this town's since batch DT19b
+ * (`explainCountedByTown`, `value.ts`), so a rite that counts shelves reads the ones
+ * standing here.
  */
 function ritePlan(state: GameState, player: Player, ctx: ValueContext): Want[] {
   const wants: Want[] = [];

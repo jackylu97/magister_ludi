@@ -904,6 +904,9 @@ describe('The Gobelins (batch DT6)', () => {
   it('prices the bots’ bonus by the works in the borders, up to its cap', () => {
     const state = bareState(30, 10);
     const city = town(state, 5, 5);
+    // The bonus reaches only a town raising the Opus (batch DT19b).
+    city.queue = [{ kind: 'building', id: 'theMagnumOpus' as never }];
+    bumpRevision(state);
     const row = doctrineDef(NAME).effects;
     expect(scoreEffects(row, valueContext(state, seat(state)))).toBe(0);
     raiseImprovement(at(state, 5, 4), 'academy', 0);

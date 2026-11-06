@@ -4507,7 +4507,7 @@ export const CITY_SCOPED_COUNTS: readonly CountKind[] = [
  * sums across the empire's towns and one that is handed a single town agree
  * about which is which.
  */
-function isCityScopedCount(effect: CardPaysEffect): boolean {
+export function isCityScopedCount(effect: CardPaysEffect): boolean {
   if (effect.within === 'city') return true;
   return effect.count !== undefined && CITY_SCOPED_COUNTS.includes(effect.count);
 }

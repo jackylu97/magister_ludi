@@ -179,6 +179,7 @@ import {
   TALLY_OCCASIONS,
   type CardPaysEffect,
   type CardEffect,
+  type DoctrineId,
   type OrderId,
   type TallyOccasion,
   orderDef,
@@ -2116,7 +2117,8 @@ describe('the expansion chain', () => {
     const step = findTerm(row.terms, /a step of the next town at \(\d+,\d+\)/);
     expect(step).not.toBeNull();
     expect(step!.value).toBeCloseTo(chain.worth / chain.stepsRemaining, 6);
-    expect(labelsOf(row.terms)).toMatch(/the citizen it costs this town/);
+    // A settler trains free of citizens unless the seat holds The Planted Towns.
+    expect(labelsOf(row.terms)).not.toMatch(/the citizen it costs this town/);
     expect(foldTerms(row.terms)).toBe(row.score);
   });
 
@@ -2939,14 +2941,25 @@ describe('the whole deck, priced (batch H2)', () => {
     const rate = player.techsResearched.length / state.turn;
     const lump = (40 * ctx.prices.culture) / ctx.ai.score.lumpTurns;
     expect(scoreEffects(rider, ctx)).toBe(lump * rate);
-    // An occasion this empire has no record of is worth nothing, and says so by
-    // arithmetic: a seat that has bought no hex is paid nothing for buying one.
+    // An occasion the board shows nothing of is worth nothing, and says so by
+    // arithmetic: a seat that has charted no ruin is paid nothing for claiming one.
+    expect(ctx.sighted.camps).toBe(0);
+    expect(
+      scoreEffects([{ kind: 'windfallRider', occasion: 'camp', grant: { yield: 'gold', amount: 5 } }], ctx),
+    ).toBe(0);
+    // A seat that has yet to buy a hex reads the table's cautious default (batch DT19b):
+    // none bought, plus the default's pace for the prior's turns, over the turns played
+    // and the prior's.
+    const prior = aiJson.score.commission.priorTurns;
+    const fallback =
+      (aiJson.score.tallyForecast.hexClaimed * aiJson.score.commission.priorShare) /
+      aiJson.priorities.horizonTurns;
     expect(
       scoreEffects(
         [{ kind: 'windfallRider', occasion: 'tilePurchase', grant: { yield: 'gold', amount: 5 } }],
         ctx,
       ),
-    ).toBe(0);
+    ).toBeCloseTo(((5 * ctx.prices.gold) / ctx.ai.score.lumpTurns) * ((fallback * prior) / (state.turn + prior)), 10);
   });
 
   it('multiplies a rider by the era and by the chairs it fills', () => {
@@ -3538,8 +3551,12 @@ describe('the two missing signs (batch X5)', () => {
     // (charged on the expansion chain, `citizen.ts`' same line asked of a town of
     // nought). The claim is that both are there, once each, and that the fold
     // still folds.
+    //
+    // **Batch DT19b:** a settler costs its town a citizen only under The Planted Towns
+    // (`trainedSettlerCostsCitizen`), so this seat holds that rule.
     const { state, player, cities } = realm(2, 6);
     for (const city of cities) city.buildings.push('granary');
+    player.statecraft.doctrines.push('thePlantedTowns' as DoctrineId);
     bumpRevision(state);
     const decision = decisionOfType(state, player.id, 'setCityProduction');
     expect(decision).not.toBeNull();

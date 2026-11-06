@@ -62,6 +62,7 @@ import {
   type Player,
   bumpRevision,
   capitalCityOf,
+  citiesOf,
   createUnit,
   playerById,
   tileOwnerField,
@@ -352,6 +353,10 @@ describe('the counts of the collection', () => {
 
   it('prices The Universal Library on the Orders held and the hands to come, at its cap', () => {
     const { state, player } = collector();
+    // The Opus is raised in one town, and only a seat raising it reads the bonus
+    // (batch DT19b). `opusRaisingShare` is one while a town raises it.
+    citiesOf(state, player.id)[0]!.queue = [{ kind: 'building', id: 'theMagnumOpus' as never }];
+    bumpRevision(state);
     const ctx = valueContext(state, player);
     const [bonus] = effectsOf(UNIVERSAL_LIBRARY) as Extract<CardEffect, { kind: 'productionBonus' }>[];
     const helpings = Math.min(bonus!.max!, player.statecraft.orders.length + draftsAheadOf(state, player));
@@ -360,7 +365,6 @@ describe('the counts of the collection', () => {
       (bonus!.percent / 100) *
       aiJson.score.unknownEffect *
       aiJson.score.nominalCount *
-      ctx.cities *
       helpings;
     expect(explainEffects([bonus!], ctx).terms[0]!.value).toBeCloseTo(expected, 10);
   });
@@ -540,7 +544,8 @@ describe('the hand', () => {
     const hand = explainLump({ culture: nextDraftCost(state, player) }, ctx).total;
     const base = Math.max(HAND_POSITIONS, offerSize(state, 0, 'order'));
     const wider = Math.min(RULES.offers.max, base + 2);
-    const expected = (draftsAheadOf(state, player) / HORIZON) * hand * widerShare(base, wider);
+    // The hands in force on average over the horizon (`handsInForce`, batch DT19b).
+    const expected = (draftsAheadOf(state, player) / 2) * hand * widerShare(base, wider);
     expect(expected).toBeGreaterThan(0);
     expect(scoreEffects([rider!], ctx)).toBeCloseTo(expected, 10);
   });
@@ -557,7 +562,8 @@ describe('the hand', () => {
       bumpRevision(state);
       const ctx = valueContext(state, player);
       const hand = explainLump({ culture: nextDraftCost(state, player) }, ctx).total;
-      const pace = draftsAheadOf(state, player) / HORIZON;
+      // The hands in force on average over the horizon (`handsInForce`, batch DT19b).
+      const pace = draftsAheadOf(state, player) / 2;
       const base = Math.max(HAND_POSITIONS, offerSize(state, 0, 'order'));
       return {
         worth: scoreEffects(effectsOf(HALL_OF_WONDERS), ctx),
@@ -1226,9 +1232,9 @@ describe('the two Doctrines that change what an Order hand deals', () => {
     return (id) => explainCardEffects(id, effectsOf(id), ctx).total + onDraftWorth(id, ctx);
   }
 
-  /** Hands a turn, as `draftsPerTurn` reads them. */
-  function handsPerTurn(state: GameState, player: Player): number {
-    return draftsAheadOf(state, player) / HORIZON;
+  /** The hands whose cards are in force on average over the horizon (`handsInForce`). */
+  function handsInForce(state: GameState, player: Player): number {
+    return draftsAheadOf(state, player) / 2;
   }
 
   it('prices The Hospitium at the hands it buys times what the foreign third card adds', () => {
@@ -1237,10 +1243,10 @@ describe('the two Doctrines that change what an Order hand deals', () => {
     const score = priced(ctx);
     const wider = expectedBestOrder(expectedHandBags(state, player, true), 0, score);
     const plain = expectedBestOrder(expectedHandBags(state, player, false), 0, score);
-    expect(handsPerTurn(state, player)).toBeGreaterThan(0);
+    expect(handsInForce(state, player)).toBeGreaterThan(0);
     expect(wider).not.toBe(plain);
     const row = doctrineDef(HOSPITIUM).effects;
-    expect(scoreEffects(row, ctx)).toBeCloseTo(handsPerTurn(state, player) * (wider - plain), 6);
+    expect(scoreEffects(row, ctx)).toBeCloseTo(handsInForce(state, player) * (wider - plain), 6);
   });
 
   it('prices The Hospitium at nothing for a rainbow seat, and for a seat that buys no hands', () => {
@@ -1276,7 +1282,7 @@ describe('the two Doctrines that change what an Order hand deals', () => {
     const plain = expectedBestOrder(bags, 0, score);
     expect(doubled).not.toBe(plain);
     const row = doctrineDef(JINSHI).effects;
-    expect(scoreEffects(row, ctx)).toBeCloseTo(handsPerTurn(state, player) * (doubled - plain), 6);
+    expect(scoreEffects(row, ctx)).toBeCloseTo(handsInForce(state, player) * (doubled - plain), 6);
   });
 
   it('does not count The Jinshi’s own rise twice for a seat that holds it', () => {
