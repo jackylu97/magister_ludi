@@ -2392,6 +2392,72 @@ function oldestEmpireBuildingAge(state: GameState, city: City): number | undefin
 }
 
 /**
+ * **The town The Two Capitals would add** (batch DT17): this empire's largest town
+ * besides its capital, by citizens. On a tie the first in `state.cities` order
+ * wins, which is the older town. `undefined` for a seat with fewer than two towns.
+ *
+ * It does not ask whether the seat holds the rule, so a bot can price the card
+ * before it holds it. A puppet and a captured town count, because the card says
+ * "town" and names no exception.
+ */
+export function secondCapitalCity(state: GameState, playerId: number): City | undefined {
+  const capital = capitalCityOf(state, playerId);
+  if (capital === undefined) return undefined;
+  let second: City | undefined;
+  for (const city of state.cities) {
+    if (city.ownerId !== playerId || city.id === capital.id) continue;
+    // Strictly larger, so the earlier town keeps a tie.
+    if (second === undefined || city.population > second.population) second = city;
+  }
+  return second;
+}
+
+/**
+ * **Which towns count as this empire's capital for its Orders and Doctrines** (batch
+ * DT17, The Two Capitals; the triage's reading 33). The true capital, then the second
+ * town while the `secondCapital` rule holds. Empty for a seat with no town.
+ *
+ * It is derived on every ask and stores nothing, so it cannot go stale: when
+ * another town overtakes the second, the next fold pays the new one. It keeps no
+ * memo, because one ask costs two short walks of `state.cities`.
+ *
+ * The rule is asked through the law. A scope asked while a condition is being
+ * evaluated reads the law under `conditionDepth`, and that walk asks no condition,
+ * so the two cannot recurse.
+ *
+ * **Only an Order or a Doctrine reaches the second town, and the row says so.** The
+ * scope evaluator has no idea which card a scope came from, and a scope is asked
+ * from dozens of places. So the words in the data decide. `capital`, `notCapital`
+ * and `where: 'capital'` mean this list, and only an Order or a Doctrine may write
+ * them plainly. Every other row (a wonder, a building's site, a government, a belief,
+ * a leader, a legacy, a luxury) names the scope `trueCapital`, which prints the same
+ * words. A test in `test/sim/decks/scientificDoctrines.test.ts` walks every data
+ * file, and fails if a row outside the Orders and Doctrines writes the plain form.
+ *
+ * **What reads this:**
+ *   - the `capital` and `notCapital` scope tests (`cityScopeAdmits`);
+ *   - both `where: 'capital'` checks (`explainCardCityYields`,
+ *     `explainBuildingPackage`);
+ *   - the `capitalPopulation` count, unless the row names `trueCapital`.
+ *
+ * **What keeps to the true capital (`capitalCityOf`):**
+ *   - the `trueCapital` scope;
+ *   - the `capitalTerritory` combat condition and the `capitalGreatWorks` scale, which
+ *     no Order or Doctrine reads today (the same test pins this);
+ *   - a one-time `toCapital` grant, because one grant has one place to land;
+ *   - a `periodicMuster` and the `queueHolds` condition's `where: 'capital'`;
+ *   - the `notConnected` scope, because the roads still run to the true capital;
+ *   - the palace, `explainAuthority`'s ladder and every reader outside the cards.
+ */
+export function cardCapitalIds(state: GameState, playerId: number): number[] {
+  const capital = capitalCityOf(state, playerId);
+  if (capital === undefined) return [];
+  if (!cardBehaviorRule(state, playerId, 'secondCapital')) return [capital.id];
+  const second = secondCapitalCity(state, playerId);
+  return second === undefined ? [capital.id] : [capital.id, second.id];
+}
+
+/**
  * Does a scoped effect land in this city? Absent scope means every city.
  *
  * `scopeAdmits` in `resourceEffects.ts` widened from two words to a shape — one
@@ -2483,12 +2549,16 @@ export function cityScopeAdmits(
       // admits, even taken back.
       return city.originalCapitalOf !== undefined && city.originalCapitalOf !== city.ownerId;
     case 'capital':
+      return cardCapitalIds(state, city.ownerId).includes(city.id);
+    case 'trueCapital':
+      // The Two Capitals speaks for Orders and Doctrines only (batch DT17). See
+      // `cardCapitalIds`.
       return capitalCityOf(state, city.ownerId)?.id === city.id;
     case 'notCapital':
       // The negation asked of the same answer, rather than of a second lookup:
       // a realm with no capital at all (none founded yet) has no city standing
       // here to ask about either, so the two arms cannot disagree.
-      return capitalCityOf(state, city.ownerId)?.id !== city.id;
+      return !cardCapitalIds(state, city.ownerId).includes(city.id);
     case 'onHills':
       // The centre's own hex, exactly as `onTerrain` is. Hills are an overlay
       // and never a terrain — see the scope.
@@ -2878,6 +2948,7 @@ function scopeNote(scope?: CityScope): string | null {
     case 'rivalCapital':
       return "founded as a rival's capital";
     case 'capital':
+    case 'trueCapital':
       return 'capital';
     case 'notCapital':
       return 'not the capital';
@@ -3264,8 +3335,20 @@ export function countOf(
       }
       return total;
     }
-    case 'capitalPopulation':
-      return capitalCityOf(state, playerId)?.population ?? 0;
+    case 'capitalPopulation': {
+      // A row outside the Orders and Doctrines names the true capital (batch DT17).
+      if (effect.scope?.test === 'trueCapital') return capitalCityOf(state, playerId)?.population ?? 0;
+      // A `where: 'capital'` line is paid in each capital for that town's own
+      // citizens. Any other row asks about the empire, so under The Two Capitals it
+      // counts the citizens of both.
+      const capitals = cardCapitalIds(state, playerId);
+      if (effect.where === 'capital' && city !== undefined && capitals.includes(city.id)) {
+        return city.population;
+      }
+      let total = 0;
+      for (const id of capitals) total += cityById(state, id)?.population ?? 0;
+      return total;
+    }
     case 'puppetPopulation': {
       // `population`'s sweep with the one clause that makes it a tribute: the
       // towns that chose nothing for themselves. `within: 'city'` is
@@ -4544,8 +4627,9 @@ export function explainCardCityYields(state: GameState, city: City): CardYieldLi
     // line as gold, science, culture or faith and drops food and production on
     // the floor, having no basket to put them in. The Guild Charter's hammers
     // are the first row to want one, so the seat of government is where they
-    // land — one town, counted once, exactly as the card's own words say.
-    if (effect.where === 'capital' && capitalCityOf(state, owner)?.id !== city.id) continue;
+    // land — one town, counted once, exactly as the card's own words say. Under The
+    // Two Capitals (batch DT17) an Order's or a Doctrine's row lands in each of two.
+    if (effect.where === 'capital' && !cardCapitalIds(state, owner).includes(city.id)) continue;
     // **Which towns admit it**, exactly as the flat arm above asks. It was
     // unasked here until batch O2 wrote the first counted row with a scope on it
     // (The Grain Fleet's coin per three citizens *in a coastal city*, and The
@@ -5271,7 +5355,7 @@ function cardLinesOnBuilding(state: GameState, city: City, id: BuildingId): Buil
     }
     // Where the town fold pays a counted line: every town, or the capital.
     if (effect.where !== 'city' && effect.where !== 'capital') continue;
-    if (effect.where === 'capital' && capitalCityOf(state, owner)?.id !== city.id) continue;
+    if (effect.where === 'capital' && !cardCapitalIds(state, owner).includes(city.id)) continue;
     if (!cityScopeAdmits(state, city, effect.scope, owner)) continue;
     const many = countOf(state, owner, card, effect, city);
     const times = helpings(many, effect.per, effect.max);
@@ -7748,10 +7832,14 @@ export function cardCityCostPercent(state: GameState, city: City): number {
  * at ground or buildings the town does not have.
  */
 export function cardProspectCityCost(state: GameState, playerId: number): CityCostRows {
-  const firstTown = capitalCityOf(state, playerId) === undefined;
+  // Under The Two Capitals (batch DT17) a town founded beside a lone capital is the
+  // second capital, so `notCapital` skips it. With two towns or more it starts
+  // smaller than, or tied with, an older one, and the older town keeps a tie.
+  const held = citiesOf(state, playerId).length;
+  const wouldBeCapital = held === 0 || (held === 1 && cardBehaviorRule(state, playerId, 'secondCapital'));
   const rows: CityCostRows = { value: null, percent: 0, delta: 0 };
   for (const { effect } of effectsOfKind(state, playerId, 'meterRule')) {
-    if (effect.rule !== 'cityCost' || !prospectScopeAdmits(effect.scope, firstTown)) continue;
+    if (effect.rule !== 'cityCost' || !prospectScopeAdmits(effect.scope, wouldBeCapital)) continue;
     if (effect.value !== undefined) {
       rows.value = rows.value === null ? effect.value : Math.min(rows.value, effect.value);
     }
@@ -7772,18 +7860,18 @@ export interface CityCostRows {
 /**
  * Can a town not yet founded answer this scope, and does it pass? A town being
  * founded is not captured, and its founding turn is this turn, which no stamp can
- * be later than. It is the capital only if the seat has no town.
+ * be later than. It counts as a capital only in the case `cardProspectCityCost` names.
  */
-function prospectScopeAdmits(scope: CityScope | undefined, firstTown: boolean): boolean {
+function prospectScopeAdmits(scope: CityScope | undefined, wouldBeCapital: boolean): boolean {
   if (scope === undefined) return true;
   switch (scope.test) {
     case 'notCaptured':
     case 'foundedSince':
       return true;
     case 'notCapital':
-      return !firstTown;
+      return !wouldBeCapital;
     case 'all':
-      return scope.of.every((inner) => prospectScopeAdmits(inner, firstTown));
+      return scope.of.every((inner) => prospectScopeAdmits(inner, wouldBeCapital));
     default:
       return false;
   }
@@ -7911,7 +7999,8 @@ function combatConditionHolds(
     case 'capitalTerritory': {
       // `ownTerritory` narrowed to the capital's own borders, asked by tile id
       // rather than by owner so that a second city standing beside the first
-      // does not lend its ground to the Walls of Uruk.
+      // does not lend its ground to the Walls of Uruk. The true capital, because no
+      // Order or Doctrine reads this condition (`cardCapitalIds`).
       const capital = capitalCityOf(state, situation.unit.ownerId);
       if (!capital) return false;
       return tileOwnerCityId(state, situation.tile.col, situation.tile.row) === capital.id;
@@ -8523,6 +8612,7 @@ function beliefsHeldBy(state: GameState, playerId: number): number {
  * capital counts nothing.
  */
 function capitalGreatWorks(state: GameState, playerId: number): number {
+  // The true capital, because no Order or Doctrine reads this scale (`cardCapitalIds`).
   const seat = capitalCityOf(state, playerId);
   if (!seat) return 0;
   let total = 0;

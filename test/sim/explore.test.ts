@@ -1381,10 +1381,15 @@ describe('determinism', () => {
    * seeds: 220 became 221, and that is all. Nobody here lays a work. Checked with the
    * change in place and the version printed as 220, which gives the hashes of batch
    * DT15 exactly.
+   *
+   * **Batch DT17 (The Two Capitals, schema 222) moved the hash and not the length** at
+   * both seeds: 221 became 222, and that is all. Nobody here holds the Doctrine. Checked
+   * with the change in place and the version printed as 221, which gives the hashes of
+   * batch DT16 exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '4a8f0f81:190677',
-    2026: '157fb3a8:190843',
+    11: '45ddca52:190677',
+    2026: 'e2e8143f:190843',
   };
 
   for (const seed of [11, 2026]) {

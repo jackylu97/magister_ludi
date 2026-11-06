@@ -3504,8 +3504,22 @@ import {
  *
  * **A v220 save is refused and does not replay.** These seats' Doctrine bags change,
  * so their draws move. The branch migrates nothing, for the reason given under v119.
+ *
+ * v222 (branch `decks`; batch DT17, `docs/plans/doctrines-build-triage.md`): **The Two
+ * Capitals.** No field joins the state. The rules that change:
+ *
+ *   · The Two Capitals is dealt;
+ *   · the behaviour rule `secondCapital` adds the seat's largest other town to
+ *     `cardCapitalIds`, derived on every ask. The `capital` and `notCapital` scopes, the
+ *     `where: 'capital'` checks and the `capitalPopulation` count read it;
+ *   · only an Order or a Doctrine reaches the second town. Every other row names the new
+ *     scope `trueCapital`. It gives the same answer as `capital` for a seat without the
+ *     rule, so those rows do not change for anyone else.
+ *
+ * **A v221 save is refused and does not replay.** These seats' Doctrine bags change,
+ * so their draws move. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 221;
+export const SCHEMA_VERSION = 222;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

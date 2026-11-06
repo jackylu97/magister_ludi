@@ -51,8 +51,9 @@ import {
 import aiJson from '../../data/ai.json';
 
 import { buildingDef, isWonder } from '../../src/sim/buildingData';
-import { buildingProductionCost, foundCityAt, ownedTiles } from '../../src/sim/cities';
-import { FAMILIES } from '../../src/sim/greatPeopleData';
+import { buildingProductionCost, foundCityAt, ownedTiles, refreshCityDerived } from '../../src/sim/cities';
+import { FAMILIES, greatPersonDef } from '../../src/sim/greatPeopleData';
+import { leaderAbilityDef } from '../../src/sim/leaderData';
 import { type ImprovementId, workForFamily } from '../../src/sim/improvementData';
 import { improvementGroundError, improvementYieldDelta } from '../../src/sim/improvements';
 import { type GameMap, type Tile, createMap, getTileAt, tileNeighbors } from '../../src/sim/map';
@@ -72,10 +73,12 @@ import {
   type CardPaysEffect,
   type DoctrineId,
   type OrderId,
+  doctrineDef,
+  governmentDef,
   orderDef,
 } from '../../src/sim/statecraftData';
 import { explainTechCost, foldTechCost, researchExpansion } from '../../src/sim/tech';
-import { type TechId, techDef } from '../../src/sim/techData';
+import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 import { cityContext } from '../../src/sim/yields/hex';
 import { newGame } from './newGameHelpers';
@@ -453,6 +456,182 @@ describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
     const pace = renownPerTurn(state, 0) / renownThreshold(state, player);
     expect(pace).toBeGreaterThan(0);
     expect(scoreEffects(effects, ctx)).toBe(saved * pace * ctx.ai.weights.renown);
+  });
+
+  describe('The Two Capitals (batch DT17)', () => {
+    const SECOND_RULE: CardEffect[] = [{ kind: 'rule', rule: 'secondCapital' } as CardEffect];
+
+    /** Puts these Orders in seat 0's chairs. */
+    function seatOrders(state: GameState, player: Player, ids: readonly string[]): void {
+      for (const id of ids) {
+        player.statecraft.orders.push(id as OrderId);
+        player.statecraft.slots.push({ card: id as OrderId, sealedUntil: state.turn });
+      }
+      bumpRevision(state);
+    }
+
+    /** What one Order's rows are worth to this seat now. */
+    function orderWorth(state: GameState, player: Player, id: string): number {
+      return scoreEffects(orderDef(id as OrderId).effects, valueContext(state, player), id as OrderId);
+    }
+
+    it('reads nothing for a seat with one town', () => {
+      const { state, player } = board(1, 60);
+      seatOrders(state, player, ['theSumOfKnowledge']);
+      expect(scoreEffects(SECOND_RULE, valueContext(state, player))).toBe(0);
+    });
+
+    it('reads nothing for a seat with no capital line', () => {
+      const { state, player } = board(3, 60);
+      expect(scoreEffects(SECOND_RULE, valueContext(state, player))).toBe(0);
+    });
+
+    it('reads each capital row once more, for a `where` row and for a scoped row', () => {
+      const { state, player } = board(3, 60);
+      player.techsResearched = TECH_IDS.slice(0, 2);
+      seatOrders(state, player, ['theSumOfKnowledge', 'hearthStores']);
+      const sum = orderWorth(state, player, 'theSumOfKnowledge');
+      const hearth = orderWorth(state, player, 'hearthStores');
+      expect(sum).toBeGreaterThan(0);
+      expect(hearth).toBeGreaterThan(0);
+      expect(scoreEffects(SECOND_RULE, valueContext(state, player))).toBeCloseTo(sum + hearth, 8);
+    });
+
+    it('prices no capital row outside the Orders and Doctrines', () => {
+      const { state, player } = board(3, 60);
+      // A civic Order with no capital line of its own, so Divine Mandate's count pays.
+      const civic = ORDER_IDS.find((id) => {
+        const def = orderDef(id);
+        return def.type === 'civic' && !def.retired && !JSON.stringify(def.effects).includes('apital');
+      })!;
+      seatOrders(state, player, [civic]);
+      player.statecraft.government = 'divineMandate' as never;
+      player.leader = 'nezahualcoyotl' as never;
+      player.pantheon.beliefs.push('keeperOfTheHearth' as never);
+      player.legacies.push({ id: 'sappho', age: 1 } as never, { id: 'christineDePizan', age: 1 } as never);
+      bumpRevision(state);
+      expect(scoreEffects(SECOND_RULE, valueContext(state, player))).toBe(0);
+      // An Order's line beside them is priced, and they add nothing to it.
+      player.techsResearched = TECH_IDS.slice(0, 2);
+      seatOrders(state, player, ['theSumOfKnowledge']);
+      const sum = orderWorth(state, player, 'theSumOfKnowledge');
+      expect(scoreEffects(SECOND_RULE, valueContext(state, player))).toBeCloseTo(sum, 8);
+    });
+
+    it('prices a row the same with the `trueCapital` scope as without it', () => {
+      const { state, player, cities } = board(3, 60);
+      cities[0]!.population = 9;
+      const civic = ORDER_IDS.find((id) => orderDef(id).type === 'civic' && !orderDef(id).retired)!;
+      seatOrders(state, player, [civic]);
+      const ctx = valueContext(state, player);
+      const rows = [
+        ...governmentDef('divineMandate').effects.slice(0, 2),
+        ...leaderAbilityDef('flowerAndSong').effects,
+        ...greatPersonDef('sappho').legacy!.slice(0, 1),
+      ] as CardPaysEffect[];
+      expect(rows.map((row) => row.scope?.test)).toEqual(['trueCapital', 'trueCapital', 'trueCapital', 'trueCapital']);
+      for (const row of rows) {
+        const plain: CardEffect =
+          row.where === 'capital' ? { ...row, scope: undefined } : { ...row, scope: { test: 'capital' } };
+        const price = scoreEffects([row], ctx);
+        expect(price).toBeGreaterThan(0);
+        expect(price).toBeCloseTo(scoreEffects([plain], ctx), 8);
+      }
+    });
+
+    it('prices a Doctrine’s capital row the same way as an Order’s', () => {
+      const { state, player } = board(3, 60);
+      const row: CardEffect[] = [{ kind: 'pays', where: 'city', gold: 2, scope: { test: 'capital' } } as CardEffect];
+      const restore = lendDoctrineEffects('thePeripateticSchool' as DoctrineId, row);
+      try {
+        player.statecraft.doctrines.push('thePeripateticSchool' as DoctrineId);
+        bumpRevision(state);
+        const ctx = valueContext(state, player);
+        expect(scoreEffects(row, ctx)).toBeGreaterThan(0);
+        expect(scoreEffects(SECOND_RULE, ctx)).toBeCloseTo(scoreEffects(row, ctx), 8);
+      } finally {
+        restore();
+      }
+    });
+
+    it('takes the second town’s share of a row counted by the capital’s citizens', () => {
+      const { state, player, cities } = board(3, 60);
+      cities[0]!.population = 8;
+      cities[1]!.population = 4;
+      cities[2]!.population = 2;
+      seatOrders(state, player, ['marketDay', 'theRoundCity']);
+      const market = orderWorth(state, player, 'marketDay');
+      const round = orderWorth(state, player, 'theRoundCity');
+      expect(market).toBeGreaterThan(0);
+      expect(scoreEffects(SECOND_RULE, valueContext(state, player))).toBeCloseTo((market + round) * (4 / 8), 8);
+    });
+
+    it('takes off what a row that skips the capital would pay the second town', () => {
+      const { state, player, cities } = board(3, 60);
+      const row: CardEffect[] = [{ kind: 'pays', where: 'city', gold: 1, scope: { test: 'notCapital' } } as CardEffect];
+      const restore = lendDoctrineEffects('thePeripateticSchool' as DoctrineId, row);
+      try {
+        player.statecraft.doctrines.push('thePeripateticSchool' as DoctrineId);
+        bumpRevision(state);
+        const ctx = valueContext(state, player);
+        // Two towns are reached, so the second town is half of what the row pays.
+        expect(cities).toHaveLength(3);
+        expect(scoreEffects(SECOND_RULE, ctx)).toBeCloseTo(-scoreEffects(row, ctx) / 2, 8);
+      } finally {
+        restore();
+      }
+    });
+
+    it('prices a capital row at both towns once the seat holds the rule, and the rule the same', () => {
+      const { state, player } = board(3, 60);
+      player.techsResearched = TECH_IDS.slice(0, 2);
+      seatOrders(state, player, ['theSumOfKnowledge']);
+      const once = orderWorth(state, player, 'theSumOfKnowledge');
+      const before = scoreEffects(SECOND_RULE, valueContext(state, player));
+      const restore = lendDoctrineEffects('thePeripateticSchool' as DoctrineId, SECOND_RULE);
+      try {
+        player.statecraft.doctrines.push('thePeripateticSchool' as DoctrineId);
+        bumpRevision(state);
+        expect(orderWorth(state, player, 'theSumOfKnowledge')).toBeCloseTo(once * 2, 8);
+        expect(scoreEffects(SECOND_RULE, valueContext(state, player))).toBeCloseTo(before, 8);
+      } finally {
+        restore();
+      }
+    });
+
+    it('does not count a citizen twice for a seat that holds the rule (Market Day)', () => {
+      const { state, player, cities } = board(3, 60);
+      cities[0]!.population = 8;
+      cities[1]!.population = 4;
+      cities[2]!.population = 2;
+      seatOrders(state, player, ['marketDay']);
+      const before = orderWorth(state, player, 'marketDay');
+      const restore = lendDoctrineEffects('thePeripateticSchool' as DoctrineId, SECOND_RULE);
+      try {
+        player.statecraft.doctrines.push('thePeripateticSchool' as DoctrineId);
+        bumpRevision(state);
+        // Eight citizens and four: half as much again, and not three times as much.
+        expect(orderWorth(state, player, 'marketDay')).toBeCloseTo(before * 1.5, 8);
+      } finally {
+        restore();
+      }
+    });
+
+    it('sets the lines the card adds against the growth it costs', () => {
+      const { state, player, cities } = board(4, 60);
+      for (const city of cities) {
+        city.population = 8;
+        refreshCityDerived(state, city);
+      }
+      bumpRevision(state);
+      const effects = doctrineDef('theTwoCapitals' as DoctrineId).effects;
+      const bare = scoreEffects(effects, valueContext(state, player), 'theTwoCapitals' as DoctrineId);
+      expect(bare).toBeLessThan(0);
+      player.techsResearched = [...player.techsResearched, ...TECH_IDS.slice(0, 40)] as TechId[];
+      seatOrders(state, player, ['theSumOfKnowledge']);
+      const paid = scoreEffects(effects, valueContext(state, player), 'theTwoCapitals' as DoctrineId);
+      expect(paid).toBeGreaterThan(bare);
+    });
   });
 
   describe('The Platonic Academy (batch DT16)', () => {

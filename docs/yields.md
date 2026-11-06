@@ -412,7 +412,7 @@ lands. The `where · basis` cell is blank for the kinds that are still one thing
 | `pays` | hex · count | 2 | additive. The helpings multiply the **bag** into one line, as `perEndpointLuxury` does on a road. The count is asked of the town working the hex (`scopedCardTileLines`), so two towns pay one row differently: The Hydraulic Empire's public works, The Builder Kings' wonders |
 | `pays` | city · flat | 3 | additive |
 | `pays` | city · count | 3, 11 | additive at 3; a helping's percentage (a row with `stage`) is gathered at 11 |
-| `pays` | capital · count | 3 | additive — once, in one town, because an empire line has no basket for a hammer |
+| `pays` | capital · count | 3 | additive — once, in one town, because an empire line has no basket for a hammer. Under The Two Capitals, an Order's or a Doctrine's row pays once in each of the two towns `cardCapitalIds` names. Every other such row carries the scope `trueCapital` and stays in one town |
 | `pays` | city · mirror | 3 | additive — a voice paid again off one category's buildings |
 | `cardYieldAmplifier` | | 2, 3, 18 | additive flat and a percentage, over the *card lines* of the fold it reads |
 | `pays` | route · flat | 6, 16 | additive (arrivals at 6, the caravans abroad at 16); `crossing` narrows a row to one of the two |

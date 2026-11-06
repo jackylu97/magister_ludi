@@ -321,7 +321,10 @@
           "to": "faith",
           "amount": 1,
           "count": "slottedOrdersOfSlot",
-          "slot": "civic"
+          "slot": "civic",
+          "scope": {
+            "test": "trueCapital"
+          }
         },
         {
           "kind": "pays",
@@ -330,7 +333,10 @@
           "to": "culture",
           "amount": 1,
           "count": "slottedOrdersOfSlot",
-          "slot": "civic"
+          "slot": "civic",
+          "scope": {
+            "test": "trueCapital"
+          }
         },
         {
           "kind": "percentYields",

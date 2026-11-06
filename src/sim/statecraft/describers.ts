@@ -4678,6 +4678,7 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       into.qualifiers.push('not joined to your capital by road');
       return;
     case 'capital':
+    case 'trueCapital':
       into.adjectives.push('capital');
       return;
     case 'notCapital':
@@ -5347,7 +5348,7 @@ export function cityScopeWords(scope?: CityScope): string {
   if (!scope) return 'every city';
   // The capital is a **single** town, and the one scope that does not read as
   // "every …". It is also the only one that can say "your".
-  if (scope.test === 'capital') return 'your capital';
+  if (scope.test === 'capital' || scope.test === 'trueCapital') return 'your capital';
   // The second scope that admits exactly one town, and the second that can say
   // "your". See `CityScope`'s `newest`.
   if (scope.test === 'newest') return 'your newest city';
@@ -7432,6 +7433,8 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   tendedCountsImproved: 'your tended land also counts as improved for every card',
   // Batch DT16, The Peregrini. The figure is the row's, in the arm that reads it.
   workCheapensPerson: "laying a great person's work makes your next great person cheaper",
+  // Batch DT17, The Two Capitals: the card's text.
+  secondCapital: 'your largest town besides your capital also counts as your capital for your cards',
   workMountains: 'your cities may work the mountains in their borders',
   widerReach: 'citizens may work owned hexes one ring beyond the usual reach',
   // Expansionist batch E12, The Cura Aquarum. The row names the building and

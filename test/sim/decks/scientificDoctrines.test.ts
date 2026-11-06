@@ -9,7 +9,7 @@
  *
  * Batch DT6 adds The Peripatetic School, The Directorate of Arms and The Külliye.
  * Batch DT8 adds The Court of Rudolf II. Batch DT14 adds The Nassau Reforms. Batch
- * DT16 adds The Platonic Academy. A later batch adds the deck's last Doctrine.
+ * DT16 adds The Platonic Academy. Batch DT17 adds The Two Capitals, the deck's last.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -17,14 +17,18 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { nextBotDecision, scoreCard, valueContext } from '../../../src/ai/bot';
 import { explainEffects, scoreEffects, valueOfYields } from '../../../src/ai/value';
 import { BUILDING_IDS, buildingDef, grantsABead } from '../../../src/sim/buildingData';
-import { explainCardImpact } from '../../../src/sim/cardImpact';
+import { explainCardImpact, foldCardImpact } from '../../../src/sim/cardImpact';
 import {
+  capitalCityOf,
+  channelSurplus,
   explainGrowthPercent,
   explainUnitCost,
   foldGrowthPercent,
   foldUnitCost,
   foundCityAt,
+  loseCitizen,
   refreshCityDerived,
+  settlePopulationWindfall,
 } from '../../../src/sim/cities';
 import { applyCombat, previewCombat } from '../../../src/sim/combat';
 import { applyCommand } from '../../../src/sim/commands';
@@ -38,13 +42,17 @@ import {
   workOf,
 } from '../../../src/sim/greatPeople';
 import { FAMILIES, type Family, GREAT_PERSON_IDS, greatPersonDef } from '../../../src/sim/greatPeopleData';
-import { workForFamily } from '../../../src/sim/improvementData';
+import { improvementForResource, workForFamily } from '../../../src/sim/improvementData';
 import { raiseImprovement } from '../../../src/sim/map';
-import { explainAuthority } from '../../../src/sim/meters';
+import { explainAuthority, explainFoundingCost, explainHappiness, meterEffects } from '../../../src/sim/meters';
 import { plantHolySiteAt } from '../../../src/sim/religion';
 import { explainCityRenown, explainRenown } from '../../../src/sim/renown';
 import { explainPurchaseCost } from '../../../src/sim/purchase';
+import { readCity, readEmpirePercents } from '../../../src/sim/readings';
+import { layRoad } from '../../../src/sim/roads';
+import { cityResourceYields } from '../../../src/sim/resourceEffects';
 import { RULES } from '../../../src/sim/rulesData';
+import { setSlateShadow, slateShadow } from '../../../src/sim/slate';
 import {
   type City,
   type GameState,
@@ -55,19 +63,33 @@ import {
   createUnit,
   playerById,
 } from '../../../src/sim/state';
-import { describeCard, doctrineBagFor, stripRefs } from '../../../src/sim/statecraft';
+import { cityScopeWords, describeCard, doctrineBagFor, stripRefs } from '../../../src/sim/statecraft';
 import {
+  type CombatSituation,
   cardBehaviorRuleFor,
+  cardCapitalIds,
+  cardCityStat,
   cardCombatPercent,
   cardLimitLifts,
+  cardProspectCityCost,
   cardUpgradeStrength,
+  cityScopeAdmits,
+  combatLineAmount,
   explainBuildingPackage,
+  explainCardCityYields,
   explainCardPercentYields,
   foldBuildingPackage,
+  liveEffects,
+  musterPeriodicUnits,
   noMetEmpireAhead,
+  payWindfallGrants,
+  secondCapitalCity,
+  windfallPayout,
 } from '../../../src/sim/statecraft/evaluator';
 import {
+  type CardCombatLineEffect,
   type CardEffect,
+  type CityScope,
   type DoctrineId,
   type OrderId,
   DECK_FILE_DOCTRINES,
@@ -92,12 +114,12 @@ import {
 } from '../../../src/sim/techData';
 import { unitDef, unitStampStrength } from '../../../src/sim/unitData';
 import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
-import { explainCity, foldCity, productionModifiers } from '../../../src/sim/yields/town';
+import { explainCity, explainPalaceYield, foldCity, productionModifiers } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
 import { createGame } from '../newGameHelpers';
 import { lendDoctrineEffects } from '../statecraftHelpers';
 
-/** The eight rows of batch DT3, the three of DT6 and the ones of DT8, DT14 and DT16, each with the band its table gives it. */
+/** The eight rows of batch DT3, the three of DT6 and the ones of DT8, DT14, DT16 and DT17, each with the band its table gives it. */
 const ROWS: readonly (readonly [string, number])[] = [
   ['thePythagoreanBrotherhood', 1],
   ['theRemovalToXianyang', 1],
@@ -113,6 +135,7 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theCourtOfRudolf', 4],
   ['theNassauReforms', 4],
   ['thePlatonicAcademy', 4],
+  ['theTwoCapitals', 4],
 ];
 
 /** Lent rows, put back after each test, so a failed test cannot leak one into the next. */
@@ -1394,5 +1417,840 @@ describe('The Platonic Academy (batch DT16)', () => {
     expect(decision!.summary).toContain('Found an Academy');
     expect(applyCommand(state, decision!.command).ok).toBe(true);
     expect(at(state, site.col, site.row).improvement).toBe('academy');
+  });
+});
+
+describe('The Two Capitals (batch DT17)', () => {
+  const ID = 'theTwoCapitals';
+
+  /** A capital of five, a town of eight and a town of four, in founding order. */
+  function board(held = true): { state: GameState; capital: City; second: City; third: City } {
+    const state = bareState(36, 10);
+    const capital = town(state, 3, 5, 5);
+    const second = town(state, 12, 5, 8);
+    const third = town(state, 21, 5, 4);
+    if (held) hold(state, ID);
+    return { state, capital, second, third };
+  }
+
+  /** This Doctrine's row for this test, announced so the law reads it. */
+  function rows(state: GameState, effects: readonly CardEffect[]): void {
+    lend(ID, [{ kind: 'rule', rule: 'secondCapital' }, ...effects]);
+    bumpRevision(state);
+  }
+
+  /** What one card pays this town in this voice, summed over its lines. */
+  function pays(state: GameState, city: City, card: string, voice: 'food' | 'production' | 'gold' | 'culture'): number {
+    return explainCardCityYields(state, city)
+      .filter((entry) => entry.card === card)
+      .reduce((sum, entry) => sum + entry[voice], 0);
+  }
+
+  /** The growth percentage this card puts on this town. */
+  function growth(state: GameState, city: City): number {
+    return foldGrowthPercent(explainGrowthPercent(state, city).filter((entry) => entry.source.includes('The Two Capitals')));
+  }
+
+  /** What seat 0 is quoted, in authority, to found a town on this hex. */
+  function foundingQuote(state: GameState, col: number, row: number): number {
+    return 0 - explainFoundingCost(state, 0, at(state, col, row)).find((one) => one.meter === 'authority')!.value;
+  }
+
+  /** What one town costs seat 0 in authority, as a positive figure. */
+  function townWrit(state: GameState, city: City): number {
+    const entry = explainAuthority(state, 0).find((one) => one.part === 'cost' && one.source.startsWith(city.name));
+    if (!entry) throw new Error(`no authority line for ${city.name}`);
+    return 0 - entry.value;
+  }
+
+  describe('which towns count', () => {
+    it('is the true capital alone without the rule', () => {
+      const { state, capital } = board(false);
+      expect(cardCapitalIds(state, 0)).toEqual([capital.id]);
+    });
+
+    it('adds the largest other town by citizens', () => {
+      const { state, capital, second } = board();
+      expect(cardCapitalIds(state, 0)).toEqual([capital.id, second.id]);
+      // The true capital does not move, whoever is larger.
+      expect(capitalCityOf(state, 0)?.id).toBe(capital.id);
+    });
+
+    it('gives a tie to the first in `state.cities` order', () => {
+      const { state, capital, second, third } = board();
+      third.population = second.population;
+      bumpRevision(state);
+      expect(cardCapitalIds(state, 0)).toEqual([capital.id, second.id]);
+    });
+
+    it('changes when another town overtakes, and goes back when it falls behind', () => {
+      const { state, capital, second, third } = board();
+      third.population = 9;
+      bumpRevision(state);
+      expect(cardCapitalIds(state, 0)).toEqual([capital.id, third.id]);
+      third.population = 7;
+      bumpRevision(state);
+      expect(cardCapitalIds(state, 0)).toEqual([capital.id, second.id]);
+    });
+
+    it('counts a town smaller than the capital, and asks for a second only if there is one', () => {
+      const { state, capital, second, third } = board();
+      second.population = 2;
+      third.population = 3;
+      bumpRevision(state);
+      expect(cardCapitalIds(state, 0)).toEqual([capital.id, third.id]);
+      const alone = bareState(24, 10);
+      expect(cardCapitalIds(alone, 0)).toEqual([]);
+      const lone = town(alone, 5, 5, 3);
+      hold(alone, ID);
+      expect(cardCapitalIds(alone, 0)).toEqual([lone.id]);
+      expect(secondCapitalCity(alone, 0)).toBeUndefined();
+    });
+
+    it('counts a captured town and leaves a rival alone', () => {
+      const { state, capital, second, third } = board();
+      third.population = 12;
+      third.captured = true;
+      const rival = town(state, 30, 5, 6, 1);
+      const rivalSmall = town(state, 30, 8, 2, 1);
+      bumpRevision(state);
+      expect(cardCapitalIds(state, 0)).toEqual([capital.id, third.id]);
+      expect(second.id).not.toBe(third.id);
+      expect(cardCapitalIds(state, 1)).toEqual([rival.id]);
+      expect(cityScopeAdmits(state, rivalSmall, { test: 'capital' })).toBe(false);
+    });
+
+    it('writes nothing: the board is the same after every reading', () => {
+      const { state, second } = board();
+      const before = snapshotState(state);
+      cardCapitalIds(state, 0);
+      cityScopeAdmits(state, second, { test: 'capital' });
+      explainCardCityYields(state, second);
+      expect(snapshotState(state)).toBe(before);
+    });
+  });
+
+  describe('what pays both towns', () => {
+    it('pays a `where: capital` card in both towns and no other (The Sum of Knowledge)', () => {
+      const { state, capital, second, third } = board();
+      slot(state, 'theSumOfKnowledge');
+      const known = seat(state).techsResearched.length;
+      expect(known).toBeGreaterThan(0);
+      expect(pays(state, capital, 'theSumOfKnowledge', 'production')).toBe(known);
+      expect(pays(state, capital, 'theSumOfKnowledge', 'culture')).toBe(known);
+      expect(pays(state, second, 'theSumOfKnowledge', 'production')).toBe(known);
+      expect(pays(state, second, 'theSumOfKnowledge', 'culture')).toBe(known);
+      expect(pays(state, third, 'theSumOfKnowledge', 'production')).toBe(0);
+    });
+
+    it('pays the capital alone without the Doctrine', () => {
+      const { state, capital, second } = board(false);
+      slot(state, 'theSumOfKnowledge');
+      expect(pays(state, capital, 'theSumOfKnowledge', 'production')).toBeGreaterThan(0);
+      expect(pays(state, second, 'theSumOfKnowledge', 'production')).toBe(0);
+    });
+
+    it('pays a `capital` scope in both towns (Hearth Stores)', () => {
+      const { state, capital, second, third } = board();
+      slot(state, 'hearthStores');
+      expect(pays(state, capital, 'hearthStores', 'food')).toBe(1);
+      expect(pays(state, second, 'hearthStores', 'food')).toBe(1);
+      expect(pays(state, third, 'hearthStores', 'food')).toBe(0);
+    });
+
+    it('moves the line in the real fold when another town overtakes', () => {
+      const { state, second, third } = board();
+      slot(state, 'hearthStores');
+      const secondFood = foldCity(state, second).food;
+      const thirdFood = foldCity(state, third).food;
+      third.population = 9;
+      refreshCityDerived(state, third);
+      bumpRevision(state);
+      expect(pays(state, second, 'hearthStores', 'food')).toBe(0);
+      expect(pays(state, third, 'hearthStores', 'food')).toBe(1);
+      expect(foldCity(state, second).food).toBe(secondFood - 1);
+      expect(foldCity(state, third).food).toBeGreaterThan(thirdFood);
+    });
+
+    it('reads the same line on the building it is counted by (a building package)', () => {
+      const { state, second, third } = board();
+      rows(state, [
+        {
+          kind: 'pays',
+          where: 'capital',
+          basis: 'count',
+          count: 'buildingsOfKind',
+          building: 'library',
+          within: 'city',
+          to: 'culture',
+          amount: 2,
+        } as CardEffect,
+      ]);
+      for (const city of [second, third]) addBuilding(state, city, 'library');
+      bumpRevision(state);
+      const onLibrary = (city: City): number =>
+        foldBuildingPackage(explainBuildingPackage(state, city, 'library')).culture;
+      expect(onLibrary(second) - onLibrary(third)).toBe(2);
+    });
+
+    it('pays a `where: capital` count of citizens for the town’s own citizens (Market Day)', () => {
+      const { state, capital, second, third } = board();
+      slot(state, 'marketDay');
+      expect(pays(state, capital, 'marketDay', 'gold')).toBe(capital.population);
+      expect(pays(state, second, 'marketDay', 'gold')).toBe(second.population);
+      expect(pays(state, third, 'marketDay', 'gold')).toBe(0);
+    });
+
+    it('counts both capitals’ citizens on an empire row, up to its cap (The Round City)', () => {
+      const { state, capital, second, third } = board();
+      slot(state, 'theRoundCity');
+      const percent = (city: City): number =>
+        explainCardPercentYields(state, city)
+          .filter((entry) => entry.card === 'theRoundCity' && entry.yield === 'production')
+          .reduce((sum, entry) => sum + entry.percent, 0);
+      const both = capital.population + second.population;
+      // The same figure in every town, because the row is about the empire.
+      for (const city of [capital, second, third]) expect(percent(city)).toBe(both);
+      second.population = 40;
+      bumpRevision(state);
+      expect(percent(third)).toBe(30);
+    });
+
+    it('counts the capital’s citizens alone on the same row without the Doctrine', () => {
+      const { state, capital, second } = board(false);
+      slot(state, 'theRoundCity');
+      const line = explainCardPercentYields(state, second).find(
+        (entry) => entry.card === 'theRoundCity' && entry.yield === 'production',
+      );
+      expect(line?.percent).toBe(capital.population);
+    });
+
+    it('reads a percentage scoped to the capital in both towns', () => {
+      const { state, capital, second, third } = board();
+      rows(state, [{ kind: 'percentYields', yield: 'culture', percent: 20, scope: { test: 'capital' } } as CardEffect]);
+      const percent = (city: City): number =>
+        explainCardPercentYields(state, city)
+          .filter((entry) => entry.card === ID)
+          .reduce((sum, entry) => sum + entry.percent, 0);
+      expect([percent(capital), percent(second), percent(third)]).toEqual([20, 20, 0]);
+    });
+
+  });
+
+  describe('what skips both towns', () => {
+    it('slows growth 25% in the other towns and neither capital', () => {
+      const { state, capital, second, third } = board();
+      expect(growth(state, capital)).toBe(0);
+      expect(growth(state, second)).toBe(0);
+      expect(growth(state, third)).toBe(-25);
+    });
+
+    it('moves the slowing with the second town, and folds it into what the town banks', () => {
+      const { state, second, third } = board(false);
+      const fed = { ...foldCity(state, third), food: 100 };
+      const plain = foldGrowthPercent(explainGrowthPercent(state, third));
+      const before = channelSurplus(state, third, fed);
+      const secondBefore = channelSurplus(state, second, fed);
+      hold(state, ID);
+      // One sum of percentages and one multiplication, so the card joins the sum.
+      expect(channelSurplus(state, third, fed)).toBeCloseTo((before * (100 + plain - 25)) / (100 + plain), 8);
+      expect(channelSurplus(state, second, fed)).toBe(secondBefore);
+      third.population = 9;
+      bumpRevision(state);
+      expect(growth(state, third)).toBe(0);
+      expect(growth(state, second)).toBe(-25);
+    });
+
+    it('slows nobody for a seat of two towns', () => {
+      const state = bareState(24, 10);
+      const capital = town(state, 3, 5, 3);
+      const other = town(state, 12, 5, 3);
+      hold(state, ID);
+      expect(growth(state, capital)).toBe(0);
+      expect(growth(state, other)).toBe(0);
+    });
+
+    it('leaves a `notCapital` authority row off both towns (The Mandarinate)', () => {
+      const { state, capital, second, third } = board();
+      const plain = [townWrit(state, second), townWrit(state, third)];
+      hold(state, 'theMandarinate');
+      expect(townWrit(state, capital)).toBe(0);
+      expect(townWrit(state, second)).toBe(plain[0]);
+      expect(townWrit(state, third)).toBe(plain[1]! + 1);
+    });
+
+    it('leaves a `notCapital` row inside an `all` off both towns (Synoecism)', () => {
+      const { state, second, third } = board();
+      const plain = [townWrit(state, second), townWrit(state, third)];
+      hold(state, 'synoecism');
+      expect(townWrit(state, second)).toBe(plain[0]);
+      expect(townWrit(state, third)).toBe(plain[1]! + 1);
+    });
+
+    it('charges the same rows on the second town without the Doctrine', () => {
+      const { state, second } = board(false);
+      const plain = townWrit(state, second);
+      hold(state, 'theMandarinate');
+      expect(townWrit(state, second)).toBe(plain + 1);
+    });
+
+    it('quotes a founding as the fold will charge it', () => {
+      const state = bareState(36, 10);
+      town(state, 3, 5, 5);
+      hold(state, ID);
+      hold(state, 'theMandarinate');
+      // Beside a lone capital the new town is the second, so the row skips it.
+      expect(cardProspectCityCost(state, 0).delta).toBe(0);
+      const quoteSecond = foundingQuote(state, 12, 5);
+      const second = town(state, 12, 5, 1);
+      expect(townWrit(state, second)).toBe(quoteSecond);
+      // With two towns the new one starts level with an older town, which keeps a tie.
+      expect(cardProspectCityCost(state, 0).delta).toBe(1);
+      const quoteThird = foundingQuote(state, 21, 5);
+      const third = town(state, 21, 5, 1);
+      expect(cardCapitalIds(state, 0)).not.toContain(third.id);
+      expect(townWrit(state, third)).toBe(quoteThird);
+    });
+  });
+
+  describe('what stays at the true capital', () => {
+    it('keeps the palace in one town', () => {
+      const { state, capital, second, third } = board();
+      expect(explainPalaceYield(state, capital).length).toBeGreaterThan(0);
+      expect(explainPalaceYield(state, second)).toEqual([]);
+      expect(explainPalaceYield(state, third)).toEqual([]);
+    });
+
+    it('keeps the authority ladder: the second town still costs its price', () => {
+      const { state, capital, second } = board(false);
+      const plain = townWrit(state, second);
+      hold(state, ID);
+      expect(townWrit(state, capital)).toBe(0);
+      expect(townWrit(state, second)).toBe(plain);
+    });
+
+    it('lands a one-time `toCapital` grant in the true capital', () => {
+      const { state, capital, second } = board();
+      for (const city of [capital, second]) {
+        city.queue = [{ kind: 'building', id: 'library' }];
+        city.hammerBasket = 0;
+      }
+      rows(state, [
+        { kind: 'windfallRider', occasion: 'tech', grant: { yield: 'production', amount: 15, toCapital: true } } as CardEffect,
+      ]);
+      const payout = windfallPayout(state, 0, 'tech');
+      expect(payout.grants.map((grant) => grant.toCapital)).toEqual([true]);
+      payWindfallGrants(state, seat(state), payout);
+      expect(capital.hammerBasket).toBe(15);
+      expect(second.hammerBasket).toBe(0);
+    });
+
+    it('raises a periodic muster at the true capital', () => {
+      const { state, capital, second } = board();
+      slot(state, 'theKingsLevy');
+      state.turn = 15;
+      bumpRevision(state);
+      const before = state.units.length;
+      musterPeriodicUnits(state);
+      const raised = state.units.slice(before);
+      expect(raised).toHaveLength(1);
+      const dist = (town: City): number => Math.abs(raised[0]!.col - town.col);
+      expect(dist(capital)).toBeLessThan(dist(second));
+    });
+
+    it('asks `queueHolds` of the true capital', () => {
+      const { state, capital, second } = board();
+      rows(state, [
+        {
+          kind: 'conditionRule',
+          when: { test: 'queueHolds', category: 'building', where: 'capital' },
+          then: [{ kind: 'pays', where: 'empire', gold: 1 }],
+        } as CardEffect,
+      ]);
+      const holds = (): boolean => liveEffects(state, 0).some((row) => row.effect.kind === 'pays' && row.card === ID);
+      second.queue = [{ kind: 'building', id: 'library' }];
+      bumpRevision(state);
+      expect(holds()).toBe(false);
+      capital.queue = [{ kind: 'building', id: 'library' }];
+      bumpRevision(state);
+      expect(holds()).toBe(true);
+    });
+
+    it('keeps a building’s site at the true capital (the Assembly Hall)', () => {
+      const { state, capital, second } = board();
+      rows(state, [{ kind: 'unlocksBuilding', building: 'assemblyHall' } as CardEffect]);
+      expect(buildingDef('assemblyHall').requiresSite).toEqual({ test: 'trueCapital' });
+      const refused = buildError(state, 0, 'building', 'assemblyHall', second);
+      expect(refused).toContain('wants the seat of your government');
+      expect(buildError(state, 0, 'building', 'assemblyHall', capital)).toBeNull();
+    });
+
+    it('keeps a luxury’s capital line at the true capital (Coffee)', () => {
+      const { state, capital, second } = board();
+      const tile = at(state, capital.col + 1, capital.row);
+      tile.resource = 'coffee';
+      raiseImprovement(tile, improvementForResource('coffee')!, 0);
+      bumpRevision(state);
+      const coffee = (city: City): number =>
+        cityResourceYields(state, city)
+          .filter((entry) => entry.resource === 'coffee')
+          .reduce((sum, entry) => sum + entry.production, 0);
+      expect(coffee(capital)).toBe(2);
+      expect(coffee(second)).toBe(0);
+    });
+
+    it('reads `trueCapital` inside a composite as it reads it alone', () => {
+      const { state, capital, second } = board();
+      const inner: CityScope = { test: 'all', of: [{ test: 'trueCapital' }, { test: 'populationAtLeast', value: 1 }] };
+      expect(cityScopeAdmits(state, capital, inner)).toBe(true);
+      expect(cityScopeAdmits(state, second, inner)).toBe(false);
+      expect(cityScopeAdmits(state, second, { test: 'capital' })).toBe(true);
+    });
+  });
+
+  describe('only an Order or a Doctrine reaches the second town', () => {
+    /** What one source pays this town in this voice, by the card that holds the row. */
+    function culture(state: GameState, city: City, card: string): number {
+      return pays(state, city, card, 'culture');
+    }
+
+    /** A combat situation on this town's own hex. */
+    function fightAt(state: GameState, unit: Unit, city: City): CombatSituation {
+      return {
+        unit,
+        tile: at(state, city.col, city.row),
+        side: 'defend',
+        vsBarbarians: false,
+        vsCity: false,
+        targetHp: 100,
+        targetMaxHp: 100,
+      };
+    }
+
+    it('pays an Order in both towns (The Sum of Knowledge) and a Doctrine in both (All Roads Lead to Rome)', () => {
+      const { state, capital, second, third } = board();
+      slot(state, 'theSumOfKnowledge');
+      hold(state, 'allRoadsLeadToRome');
+      for (let col = capital.col; col <= third.col; col++) layRoad(at(state, col, capital.row), 0);
+      bumpRevision(state);
+      expect(culture(state, capital, 'theSumOfKnowledge')).toBeGreaterThan(0);
+      expect(culture(state, second, 'theSumOfKnowledge')).toBe(culture(state, capital, 'theSumOfKnowledge'));
+      expect(culture(state, third, 'theSumOfKnowledge')).toBe(0);
+      const percent = (city: City): number =>
+        explainCardPercentYields(state, city)
+          .filter((entry) => entry.card === 'allRoadsLeadToRome' && entry.yield === 'production')
+          .reduce((sum, entry) => sum + entry.percent, 0);
+      expect(percent(capital)).toBeGreaterThan(0);
+      expect(percent(second)).toBe(percent(capital));
+      expect(percent(third)).toBe(0);
+    });
+
+    it('keeps The Walls of Uruk’s defence and strength at the true capital', () => {
+      const { state, capital, second } = board();
+      addBuilding(state, capital, 'wallsOfUruk');
+      bumpRevision(state);
+      const defence = (city: City): number =>
+        cardCityStat(state, city, 'defense')
+          .filter((entry) => entry.card === 'wallsOfUruk')
+          .reduce((sum, entry) => sum + entry.amount, 0);
+      expect(defence(capital)).toBe(10);
+      expect(defence(second)).toBe(0);
+      const unit = createUnit(state, 0, 'warrior', second.col, second.row);
+      const strength = buildingDef('wallsOfUruk').effects!.find((row) => row.kind === 'combatLine') as CardCombatLineEffect;
+      expect(combatLineAmount(state, fightAt(state, unit, capital), strength)).toBe(4);
+      expect(combatLineAmount(state, fightAt(state, unit, second), strength)).toBeNull();
+    });
+
+    it('keeps Divine Mandate’s yields at the true capital', () => {
+      const { state, capital, second } = board();
+      seat(state).statecraft.government = 'divineMandate';
+      slot(state, 'theRoundCity');
+      expect(culture(state, capital, 'divineMandate')).toBe(1);
+      expect(pays(state, capital, 'divineMandate', 'faith' as never)).toBe(1);
+      expect(culture(state, second, 'divineMandate')).toBe(0);
+      expect(pays(state, second, 'divineMandate', 'faith' as never)).toBe(0);
+    });
+
+    it('keeps Keeper of the Hearth’s happiness at the true capital', () => {
+      const { state } = board();
+      seat(state).pantheon.beliefs.push('keeperOfTheHearth');
+      bumpRevision(state);
+      const happy = explainHappiness(state, 0)
+        .filter((entry) => entry.source.includes('Keeper of the Hearth'))
+        .reduce((sum, entry) => sum + entry.value, 0);
+      expect(happy).toBe(1);
+    });
+
+    it('keeps Flower and Song at the true capital, counting its citizens alone', () => {
+      const { state, capital, second } = board();
+      seat(state).leader = 'nezahualcoyotl';
+      bumpRevision(state);
+      const expected = Math.floor(capital.population / 2);
+      expect(culture(state, capital, 'flowerAndSong')).toBe(expected);
+      expect(culture(state, second, 'flowerAndSong')).toBe(0);
+    });
+
+    for (const [id, name] of [
+      ['sappho', 'Sappho'],
+      ['christineDePizan', 'Christine de Pizan'],
+    ] as const) {
+      it(`keeps ${name}’s legacy at the true capital`, () => {
+        const { state, capital, second } = board();
+        seat(state).legacies.push({ id, age: 1 });
+        bumpRevision(state);
+        expect(culture(state, capital, id)).toBe(3);
+        expect(culture(state, second, id)).toBe(0);
+      });
+    }
+
+    it('keeps a legacy’s percentage and its production bonus at the true capital', () => {
+      const { state, capital, second } = board();
+      seat(state).legacies.push({ id: 'kidinnu', age: 1 }, { id: 'taqiAlDin', age: 1 });
+      bumpRevision(state);
+      const percent = (city: City, card: string): number =>
+        explainCardPercentYields(state, city)
+          .filter((entry) => entry.card === card)
+          .reduce((sum, entry) => sum + entry.percent, 0);
+      expect(percent(capital, 'kidinnu')).toBe(15);
+      expect(percent(second, 'kidinnu')).toBe(0);
+      expect(percent(capital, 'taqiAlDin')).toBeGreaterThan(0);
+      expect(percent(second, 'taqiAlDin')).toBe(0);
+    });
+
+    it('counts Qu Yuan’s happiness at the true capital alone, so once', () => {
+      const { state } = board();
+      seat(state).legacies.push({ id: 'quYuan', age: 1 });
+      bumpRevision(state);
+      const lines = explainHappiness(state, 0)
+        .filter((entry) => entry.source.includes('Qu Yuan'))
+        .reduce((sum, entry) => sum + entry.value, 0);
+      expect(lines).toBe(-5);
+    });
+
+    it('counts the great works of the true capital alone on the Camel Archer’s scale', () => {
+      const { state, capital, second } = board();
+      const scale = unitDef('camelArcher').effects!.find((row) => row.kind === 'combatLine') as CardCombatLineEffect;
+      const unit = createUnit(state, 0, 'camelArcher', capital.col, capital.row);
+      raiseImprovement(at(state, capital.col + 1, capital.row), 'academy', 0);
+      raiseImprovement(at(state, second.col + 1, second.row), 'academy', 0);
+      bumpRevision(state);
+      expect(combatLineAmount(state, { ...fightAt(state, unit, capital), side: 'attack' }, scale)).toBe(1);
+    });
+
+    it('prints the same words for `trueCapital` as for `capital`', () => {
+      expect(cityScopeWords({ test: 'trueCapital' })).toBe(cityScopeWords({ test: 'capital' }));
+      expect(cityScopeWords({ test: 'all', of: [{ test: 'trueCapital' }, { test: 'mountainAdjacent' }] })).toBe(
+        cityScopeWords({ test: 'all', of: [{ test: 'capital' }, { test: 'mountainAdjacent' }] }),
+      );
+      for (const clause of describeCard('divineMandate' as never).slice(0, 2)) {
+        expect(stripRefs(clause.text)).toContain('in your capital');
+      }
+    });
+
+    describe('the data walk', () => {
+      const RAW: Record<string, string> = import.meta.glob('../../../data/**/*.json', {
+        eager: true,
+        query: '?raw',
+        import: 'default',
+      });
+
+      /** Every data file, by the name a failure prints. */
+      function dataFiles(): { name: string; rows: unknown }[] {
+        return Object.entries(RAW).map(([path, text]) => ({
+          name: path.replace('../../../data/', ''),
+          rows: JSON.parse(text) as unknown,
+        }));
+      }
+
+      /** Does this scope name this test, directly or inside a composite? */
+      function namesTest(scope: unknown, test: string): boolean {
+        if (typeof scope !== 'object' || scope === null) return false;
+        const row = scope as { test?: string; of?: unknown[] };
+        return row.test === test || (row.of ?? []).some((inner) => namesTest(inner, test));
+      }
+
+      /**
+       * Every place under this value that reads the capital in the wide sense.
+       * `retired` rows are skipped, because nobody can hold one.
+       */
+      function wideReadings(value: unknown, path: string, into: string[]): void {
+        if (Array.isArray(value)) {
+          value.forEach((entry, index) => wideReadings(entry, `${path}/${index}`, into));
+          return;
+        }
+        if (typeof value !== 'object' || value === null) return;
+        const row = value as Record<string, unknown>;
+        if (row['retired'] === true) return;
+        if (row['test'] === 'capital' || row['test'] === 'notCapital') into.push(`${path}: ${String(row['test'])}`);
+        if (row['kind'] === 'pays' && !namesTest(row['scope'], 'trueCapital')) {
+          if (row['where'] === 'capital') into.push(`${path}: where capital`);
+          if (row['count'] === 'capitalPopulation') into.push(`${path}: capitalPopulation`);
+        }
+        for (const [key, inner] of Object.entries(row)) wideReadings(inner, `${path}/${key}`, into);
+      }
+
+      /** The same walk over a data file, with its Orders and Doctrines left out. */
+      function outsideTheCards(file: { name: string; rows: unknown }): string[] {
+        const found: string[] = [];
+        for (const [section, rows] of Object.entries(file.rows as Record<string, unknown>)) {
+          if (section === 'orders' || section === 'doctrines') continue;
+          wideReadings(rows, `${file.name}/${section}`, found);
+        }
+        return found;
+      }
+
+      it('finds no row outside the Orders and Doctrines that could gain the second capital', () => {
+        expect(dataFiles().flatMap(outsideTheCards)).toEqual([]);
+      });
+
+      it('would catch such a row, in each form', () => {
+        const name = 'lent.json';
+        const caught = (row: unknown): number => outsideTheCards({ name, rows: { things: { row } } }).length;
+        expect(caught({ scope: { test: 'capital' } })).toBe(1);
+        expect(caught({ scope: { test: 'notCapital' } })).toBe(1);
+        expect(caught({ scope: { test: 'all', of: [{ test: 'capital' }] } })).toBe(1);
+        expect(caught({ kind: 'pays', where: 'capital' })).toBe(1);
+        expect(caught({ kind: 'pays', where: 'empire', count: 'capitalPopulation' })).toBe(1);
+        expect(caught({ kind: 'pays', where: 'capital', scope: { test: 'trueCapital' } })).toBe(0);
+        expect(caught({ retired: true, scope: { test: 'capital' } })).toBe(0);
+        // An Order or a Doctrine may write the plain form.
+        expect(outsideTheCards({ name, rows: { orders: { row: { scope: { test: 'capital' } } } } })).toEqual([]);
+      });
+
+      it('holds the list of rows that name the true capital', () => {
+        const found: string[] = [];
+        const note = (value: unknown, path: string): void => {
+          if (Array.isArray(value)) {
+            value.forEach((entry, index) => note(entry, `${path}/${index}`));
+            return;
+          }
+          if (typeof value !== 'object' || value === null) return;
+          if ((value as { test?: string }).test === 'trueCapital') found.push(path.split('/').slice(0, 4).join('/'));
+          for (const [key, inner] of Object.entries(value)) note(inner, `${path}/${key}`);
+        };
+        for (const file of dataFiles()) note(file.rows, file.name);
+        expect([...new Set(found)].sort()).toEqual(
+          [
+            'buildings.json/buildings/assemblyHall/requiresSite',
+            'buildings.json/buildings/wallsOfUruk/effects',
+            'greatPeople.json/people/amenhotepSonOfHapu/legacy',
+            'greatPeople.json/people/christineDePizan/legacy',
+            'greatPeople.json/people/kidinnu/legacy',
+            'greatPeople.json/people/quYuan/legacy',
+            'greatPeople.json/people/sappho/legacy',
+            'greatPeople.json/people/taqiAlDin/legacy',
+            'leaders.json/leaders/nezahualcoyotl/abilities',
+            'religion.json/beliefs/keeperOfTheHearth/effects',
+            'resources.json/resources/coffee/effects',
+            'resources.json/resources/coral/effects',
+            'resources.json/resources/cotton/effects',
+            'resources.json/resources/honey/effects',
+            'resources.json/resources/olives/effects',
+            'resources.json/resources/tyrian/effects',
+            'resources.json/resources/whales/effects',
+            'statecraft.json/governments/divineMandate/effects',
+          ].sort(),
+        );
+      });
+
+      it('finds Assur-Idi’s `notCapital` only on a retired row', () => {
+        const people = dataFiles().find((file) => file.name === 'greatPeople.json')!.rows as {
+          people: Record<string, { retired?: boolean; legacy?: unknown }>;
+        };
+        expect(people.people['assurIdi']?.retired).toBe(true);
+        expect(JSON.stringify(people.people['assurIdi']?.legacy)).toContain('notCapital');
+      });
+
+      it('finds no Order or Doctrine reading the two forms that keep to the true capital', () => {
+        // `capitalTerritory` and `capitalGreatWorks` read `capitalCityOf`. A live Order
+        // or Doctrine that named one would stop short of the second town.
+        const found: string[] = [];
+        for (const file of dataFiles()) {
+          const rows = file.rows as Record<string, Record<string, { retired?: boolean }>>;
+          for (const section of ['orders', 'doctrines']) {
+            for (const [id, row] of Object.entries(rows[section] ?? {})) {
+              if (row.retired === true) continue;
+              const text = JSON.stringify(row);
+              if (text.includes('capitalTerritory') || text.includes('capitalGreatWorks')) found.push(id);
+            }
+          }
+        }
+        expect(found).toEqual([]);
+      });
+    });
+  });
+
+  describe('the reading is never stale', () => {
+    /** Shadow on for one body: every hit on the slate or the law also computes fresh. */
+    function shadowed(body: () => void): void {
+      const was = slateShadow();
+      setSlateShadow(true);
+      try {
+        body();
+      } finally {
+        setSlateShadow(was);
+      }
+    }
+
+    /** A happiness row counted by the capital's citizens, read through `meterEffects`. */
+    const COUNTED = {
+      kind: 'pays',
+      where: 'empire',
+      basis: 'count',
+      count: 'capitalPopulation',
+      to: 'happiness',
+      amount: 1,
+    } as CardEffect;
+
+    it('moves the meters when the second town loses a citizen, with no other announcement', () => {
+      shadowed(() => {
+        const { state, capital, second, third } = board();
+        rows(state, [COUNTED]);
+        const read = (): number =>
+          explainHappiness(state, 0)
+            .filter((entry) => entry.source.includes('The Two Capitals'))
+            .reduce((sum, entry) => sum + entry.value, 0);
+        expect(read()).toBe(capital.population + second.population);
+        meterEffects(state, 0);
+        readEmpirePercents(state, 0);
+        expect(loseCitizen(state, second)).not.toBeNull();
+        meterEffects(state, 0);
+        expect(read()).toBe(capital.population + second.population);
+        // The second town falls below the third, and the count follows.
+        second.population = third.population;
+        loseCitizen(state, second);
+        meterEffects(state, 0);
+        expect(cardCapitalIds(state, 0)).toEqual([capital.id, third.id]);
+        expect(read()).toBe(capital.population + third.population);
+      });
+    });
+
+    it('moves the meters when a town grows past the second', () => {
+      shadowed(() => {
+        const { state, capital, second, third } = board();
+        rows(state, [COUNTED]);
+        meterEffects(state, 0);
+        settlePopulationWindfall(state, third, second.population - third.population + 1);
+        meterEffects(state, 0);
+        expect(cardCapitalIds(state, 0)).toEqual([capital.id, third.id]);
+        expect(
+          explainHappiness(state, 0)
+            .filter((entry) => entry.source.includes('The Two Capitals'))
+            .reduce((sum, entry) => sum + entry.value, 0),
+        ).toBe(capital.population + third.population);
+      });
+    });
+
+    it('reads every town fresh across real turns while a town overtakes by growing', () => {
+      shadowed(() => {
+        const { state, capital, second, third } = board();
+        slot(state, 'hearthStores');
+        // Two turns from a new citizen in the third town, with the second held back.
+        third.population = second.population;
+        third.foodBasket = 100_000;
+        refreshCityDerived(state, third);
+        bumpRevision(state);
+        for (const city of [capital, second, third]) readCity(state, city);
+        expect(cardCapitalIds(state, 0)).toEqual([capital.id, second.id]);
+        for (const playerId of [0, 1]) {
+          expect(applyCommand(state, { type: 'endTurn', playerId }).ok).toBe(true);
+        }
+        expect(third.population).toBeGreaterThan(second.population);
+        expect(cardCapitalIds(state, 0)).toEqual([capital.id, third.id]);
+        // A second ask is a hit, and the shadow check computes it fresh as well.
+        for (const city of [capital, second, third]) {
+          readCity(state, city);
+          readCity(state, city);
+        }
+        expect(pays(state, third, 'hearthStores', 'food')).toBe(1);
+        expect(pays(state, second, 'hearthStores', 'food')).toBe(0);
+      });
+    });
+
+    it('gives the same board to a game that read the second town and one that did not', () => {
+      const run = (asks: boolean): string => {
+        const { state, capital, second, third } = board();
+        slot(state, 'hearthStores');
+        third.population = second.population;
+        third.foodBasket = 100_000;
+        refreshCityDerived(state, third);
+        bumpRevision(state);
+        for (let turn = 0; turn < 3; turn++) {
+          if (asks) {
+            for (const city of [capital, second, third]) readCity(state, city);
+            meterEffects(state, 0);
+          }
+          for (const playerId of [0, 1]) {
+            expect(applyCommand(state, { type: 'endTurn', playerId }).ok).toBe(true);
+          }
+        }
+        return snapshotState(state);
+      };
+      expect(run(true)).toBe(run(false));
+    });
+  });
+
+  describe('the recursion cut', () => {
+    it('answers a scope asked inside a condition', () => {
+      const { state, second, third } = board();
+      const plain = [townWrit(state, second), townWrit(state, third)];
+      // The condition reads authority, authority reads The Mandarinate's `notCapital`
+      // row, and that scope asks the rule. So the law asks itself, one level down.
+      rows(state, [
+        { kind: 'conditionRule', when: { test: 'authorityNegative' }, then: [{ kind: 'pays', where: 'empire', gold: 1 }] } as CardEffect,
+        { kind: 'conditionRule', when: { test: 'authorityPositive' }, then: [{ kind: 'pays', where: 'empire', gold: 2 }] } as CardEffect,
+      ]);
+      hold(state, 'theMandarinate');
+      expect(liveEffects(state, 0).some((row) => row.card === ID && row.effect.kind === 'rule')).toBe(true);
+      expect(townWrit(state, second)).toBe(plain[0]);
+      expect(townWrit(state, third)).toBe(plain[1]! + 1);
+    });
+
+    it('reads no second capital while a rule behind a condition is being asked about', () => {
+      const { state, capital, second } = board(false);
+      lend(ID, [
+        {
+          kind: 'conditionRule',
+          when: { test: 'cityCountAtLeast', value: 1 },
+          then: [{ kind: 'rule', rule: 'secondCapital' }],
+        } as CardEffect,
+        // Asked under the cut, where the gate above is closed, so the scope below
+        // reads the true capital and does not recurse.
+        { kind: 'conditionRule', when: { test: 'authorityPositive' }, then: [{ kind: 'pays', where: 'empire', gold: 1 }] } as CardEffect,
+        { kind: 'meterRule', rule: 'cityCost', delta: 1, scope: { test: 'notCapital' } } as CardEffect,
+      ]);
+      hold(state, ID);
+      // Out of the cut, the gate is open and the rule holds.
+      expect(cardCapitalIds(state, 0)).toEqual([capital.id, second.id]);
+    });
+  });
+
+  describe('the card', () => {
+    it('says what it does', () => {
+      expect(describeCard(ID as DoctrineId).map((clause) => stripRefs(clause.text))).toEqual([
+        'your largest town besides your capital also counts as your capital for your cards',
+        '-25% food surplus stored toward growth, in every city but your capital',
+      ]);
+    });
+
+    it('states its limits in the note, with no figures and no identifiers', () => {
+      const note = doctrineDef(ID as DoctrineId).note ?? '';
+      expect(note).toContain('Only your Orders and Doctrines count the second town');
+      expect(note).toContain('true capital');
+      expect(note).toContain('Neither capital grows more slowly');
+      expect(note).not.toMatch(/\d/);
+      expect(note).not.toMatch(/[A-Za-z]+[A-Z][a-z]+/);
+    });
+
+    it('is one rule and one growth line', () => {
+      expect(doctrineDef(ID as DoctrineId).effects.map((effect) => effect.kind)).toEqual(['rule', 'rulePercent']);
+    });
+
+    it('shows the second town’s pay in the card’s impact stamp at the offer', () => {
+      const { state } = board(false);
+      slot(state, 'hearthStores');
+      const offered = foldCardImpact(explainCardImpact(state, 0, { kind: 'doctrine', id: ID as DoctrineId }));
+      expect(offered.food).toBe(1);
+    });
   });
 });

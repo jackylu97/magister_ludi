@@ -881,7 +881,10 @@
               "to": "culture",
               "amount": 1,
               "count": "capitalPopulation",
-              "per": 2
+              "per": 2,
+              "scope": {
+                "test": "trueCapital"
+              }
             }
           ]
         }

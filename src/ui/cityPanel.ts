@@ -665,6 +665,7 @@ const FIXED_SITE_TESTS: ReadonlySet<string> = new Set([
   'onResourceKind',
   'captured',
   'capital',
+  'trueCapital',
   'notCapital',
 ]);
 

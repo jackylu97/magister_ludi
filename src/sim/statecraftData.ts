@@ -602,8 +602,22 @@ export type CityScope =
    * as `captured` is.
    */
   | { test: 'rivalCapital' }
-  /** The town is this empire's capital (`capitalCityOf`). */
+  /**
+   * The town counts as this empire's capital for its Orders and Doctrines
+   * (`cardCapitalIds`): the true capital, and a second town under The Two Capitals.
+   * **Only an Order or a Doctrine may write this.** Every other row writes
+   * `trueCapital`, and a test walks the data for it.
+   */
   | { test: 'capital' }
+  /**
+   * The town is this empire's true capital (`capitalCityOf`), whatever any card says
+   * (batch DT17). Its words are `capital`'s, because a player has one capital and The
+   * Two Capitals is a rule about Orders and Doctrines. A wonder, a building's site, a
+   * government, a belief, a leader, a legacy and a luxury write this. On a
+   * `where: 'capital'` line it shuts the second town, and a `capitalPopulation` count
+   * reads it too.
+   */
+  | { test: 'trueCapital' }
   /** The town is at least this large. */
   | { test: 'populationAtLeast'; value: number }
   /**
@@ -2450,7 +2464,12 @@ export type CountKind =
    * every row written before it did.
    */
   | 'population'
-  /** Citizens in the capital. */
+  /**
+   * Citizens in the capital. Under The Two Capitals (batch DT17) an Order's or a
+   * Doctrine's `where: 'capital'` line counts the citizens of the town it pays, and
+   * its other rows count both. A row that names the scope `trueCapital` counts the
+   * true capital alone.
+   */
   | 'capitalPopulation'
   /**
    * Citizens living in this empire's **puppets** — Tribute's, and the tax a
@@ -5299,7 +5318,14 @@ export type BehaviorRuleId =
    * two works before the next person still give one discount. A prophet's holy site
    * goes through `plantHolySiteAt` and gives none.
    */
-  | 'workCheapensPerson';
+  | 'workCheapensPerson'
+  /**
+   * **A second town counts as this empire's capital for its Orders and Doctrines**
+   * (batch DT17, The Two Capitals; the triage's reading 33). Read in one place, `cardCapitalIds`
+   * (`statecraft/evaluator.ts`), whose docblock lists what asks it and what keeps
+   * to the true capital.
+   */
+  | 'secondCapital';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId =
@@ -6648,7 +6674,9 @@ export interface CardYieldBag {
  * a row that pays a hammer for a thing counted across the whole realm (The Guild
  * Charter's guilds) has to name a town for it to be built in. Read in
  * `explainCardCityYields` beside the ordinary city lines and skipped by the
- * empire fold, so it is paid exactly once.
+ * empire fold, so it is paid exactly once. Under The Two Capitals (batch DT17) an
+ * Order's or a Doctrine's row is paid once in each town that `cardCapitalIds` names.
+ * Every other such row names the scope `trueCapital`, which shuts the second town.
  */
 export type PayWhere = 'city' | 'capital' | 'hex' | 'empire' | 'route';
 

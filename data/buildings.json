@@ -610,7 +610,7 @@
           "stat": "defense",
           "amount": 10,
           "scope": {
-            "test": "capital"
+            "test": "trueCapital"
           }
         },
         {
@@ -2491,7 +2491,7 @@
       "unlockedByCard": true,
       "authorityCapacity": 2,
       "requiresSite": {
-        "test": "capital"
+        "test": "trueCapital"
       },
       "renown": {
         "family": "scholar",

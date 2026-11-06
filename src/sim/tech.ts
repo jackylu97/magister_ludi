@@ -987,6 +987,7 @@ function siteWords(site: CityScope): string {
     case 'mountainAdjacent':
       return 'a mountain within reach';
     case 'capital':
+    case 'trueCapital':
       // The Assembly Hall's. Named as the *place* like every arm here, so the
       // refusal reads "wants the seat of your government; Lagash is not it"
       // rather than naming a flag.

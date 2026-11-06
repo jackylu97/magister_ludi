@@ -2279,6 +2279,19 @@
       "text": "Your great people of every family found an Academy as their work, in place of their own.",
       "effects": [{"kind": "rule", "rule": "everyWorkIsAcademy"}],
       "note": "Their acts do not change. Works already laid stay, a general's Academy claims no land, and a prophet still raises a Holy Site."
+    },
+    "theTwoCapitals": {
+      "name": "The Two Capitals",
+      "decks": ["scientific"],
+      "band": 4,
+      "line": "none",
+      "flavor": "One court in the north and one in the south, and a ministry for each.",
+      "text": "Your largest town besides your capital also counts as your capital for your cards. Your other towns grow 25% more slowly.",
+      "effects": [
+        {"kind": "rule", "rule": "secondCapital"},
+        {"kind": "rulePercent", "rule": "growthSurplus", "percent": -25, "scope": {"test": "notCapital"}}
+      ],
+      "note": "Only your Orders and Doctrines count the second town. Wonders, governments, beliefs, leaders, great people, luxuries and building sites still mean your true capital. The largest town is read again each time, so another town can take its place, and the older town keeps a tie. Neither capital grows more slowly. A one-time gift still lands in your true capital. The palace and authority do not change."
     }
   }
 }

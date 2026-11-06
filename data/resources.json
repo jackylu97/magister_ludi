@@ -996,7 +996,7 @@
           "kind": "perCityYields",
           "production": 2,
           "scope": {
-            "test": "capital"
+            "test": "trueCapital"
           }
         },
         {
@@ -1034,7 +1034,7 @@
           "kind": "perCityYields",
           "food": 2,
           "scope": {
-            "test": "capital"
+            "test": "trueCapital"
           }
         },
         {
@@ -1107,7 +1107,7 @@
           "kind": "perCityYields",
           "food": 2,
           "scope": {
-            "test": "capital"
+            "test": "trueCapital"
           }
         },
         {
@@ -1251,7 +1251,7 @@
           "kind": "perCityYields",
           "food": 2,
           "scope": {
-            "test": "capital"
+            "test": "trueCapital"
           }
         },
         {
@@ -1322,7 +1322,7 @@
           "kind": "perCityYields",
           "science": 2,
           "scope": {
-            "test": "capital"
+            "test": "trueCapital"
           }
         },
         {
@@ -1360,7 +1360,7 @@
           "kind": "perCityYields",
           "production": 2,
           "scope": {
-            "test": "capital"
+            "test": "trueCapital"
           }
         },
         {
@@ -1396,7 +1396,7 @@
           "kind": "perCityYields",
           "culture": 2,
           "scope": {
-            "test": "capital"
+            "test": "trueCapital"
           }
         },
         {

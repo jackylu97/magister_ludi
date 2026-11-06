@@ -238,8 +238,11 @@ import {
   type PlayerStatecraft,
   type EmpireRates,
   buildingMatchesYieldPercent,
+  // Batch DT17: The Two Capitals.
+  cardCapitalIds,
   cityBeliefUnlocksBuilding,
   cityScopeAdmits,
+  secondCapitalCity,
   commissionFulfilledTurn,
   countOf,
   // Batch R2d: a building share is priced over the building's package.
@@ -248,6 +251,7 @@ import {
   ghostSlotsUnderDoctrine,
   // Batch R3: The Kept Secret's condition, the simulation's own reading.
   knowsUniqueTech,
+  liveEffects,
   opusCityOf,
   orderAtSlotPosition,
   periodicProbe,
@@ -350,6 +354,7 @@ import {
   type Player,
   bankedTowardItem,
   citiesOf,
+  cityById,
   countFirsts,
   foundedReligion,
   playerById,
@@ -2730,17 +2735,21 @@ export function townsAdmitting(ctx: ValueContext, scope?: CityScope): number {
 }
 
 /**
- * The capital, admitted or not — a `where: 'capital'` line pays **one town**,
- * and a scope on it can still shut it.
+ * The capitals, admitted or not. A `where: 'capital'` line pays **one town** for
+ * each town that counts as the capital (two under The Two Capitals, batch DT17),
+ * and a scope on it can still shut one.
  *
- * Unmemoised on purpose: it is one lookup and one predicate, and a memo keyed on
+ * Unmemoised on purpose: it is a short walk and one predicate, and a memo keyed on
  * a scope that may be absent would need a key this function does not have.
  */
 function capitalAdmits(ctx: ValueContext, scope?: CityScope): number {
-  const seat = capitalCityOf(ctx.state, ctx.playerId);
-  if (seat === null || seat === undefined) return 0;
-  if (scope === undefined) return 1;
-  return cityScopeAdmits(ctx.state, seat, scope, ctx.playerId) ? 1 : 0;
+  let towns = 0;
+  for (const id of cardCapitalIds(ctx.state, ctx.playerId)) {
+    const seat = cityById(ctx.state, id);
+    if (seat === undefined) continue;
+    if (scope === undefined || cityScopeAdmits(ctx.state, seat, scope, ctx.playerId)) towns += 1;
+  }
+  return towns;
 }
 
 /**
@@ -5575,7 +5584,9 @@ function amplifiedLines(ctx: ValueContext, voice: Voice): number {
     } else if (effect.basis === 'count') {
       if (effect.stage !== undefined || effect.to !== voice) continue;
       if ((effect.amount ?? 0) <= 0) continue;
-      lines += effect.where === 'city' ? townsAdmitting(ctx, effect.scope) : 1;
+      if (effect.where === 'city') lines += townsAdmitting(ctx, effect.scope);
+      else if (effect.where === 'capital') lines += capitalAdmits(ctx, effect.scope);
+      else lines += 1;
     }
   }
   return lines;
@@ -6615,7 +6626,12 @@ function scorePayout(pays: CardPaysEffect, ctx: ValueContext): number {
   const bag: YieldBag = {};
   bag[to as Voice] = amount;
   if (pays.where === 'city') return valueOfYields(bag, ctx) * townsAdmitting(ctx, pays.scope);
-  if (pays.where === 'capital') return valueOfYields(bag, ctx) * capitalAdmits(ctx, pays.scope);
+  if (pays.where === 'capital') {
+    // A count of the capital's citizens already sums both capitals for a seat under
+    // The Two Capitals (`countOf`), so it pays one helping per citizen and no more.
+    const towns = capitalAdmits(ctx, pays.scope);
+    return valueOfYields(bag, ctx) * (pays.count === 'capitalPopulation' ? Math.min(1, towns) : towns);
+  }
   return valueOfYields(bag, ctx);
 }
 
@@ -7845,7 +7861,8 @@ function vsFewerTechsShare(ctx: ValueContext): number {
  *     opens;
  *   · `worksCountAs`: points for each great person's work beside the named
  *     work;
- *   · `everyWorkIsAcademy`: `everyWorkIsAcademyWorth`.
+ *   · `everyWorkIsAcademy`: `everyWorkIsAcademyWorth`;
+ *   · `secondCapital` (batch DT17, The Two Capitals): `secondCapitalWorth`.
  */
 function scientificRuleWorth(
   effect: Extract<CardEffect, { kind: 'rule' }>,
@@ -7876,9 +7893,66 @@ function scientificRuleWorth(
       return knobs.worksCountAs * worksBeside(effect.improvement, ctx);
     case 'everyWorkIsAcademy':
       return everyWorkIsAcademyWorth(ctx);
+    case 'secondCapital':
+      return secondCapitalWorth(ctx);
     default:
       return null;
   }
+}
+
+/** Does this scope name this capital test, directly or inside an `all` or an `any`? */
+function scopeNames(scope: CityScope | undefined, test: 'capital' | 'notCapital'): boolean {
+  if (scope === undefined) return false;
+  if (scope.test === 'all' || scope.test === 'any') {
+    return scope.of.some((inner) => scopeNames(inner, test));
+  }
+  return scope.test === test;
+}
+
+/**
+ * **The Two Capitals** (`secondCapital`, batch DT17): every capital line on this
+ * seat's Orders and Doctrines pays once more, at the town that would be the second.
+ * Only those two classes are asked, because no other row reaches the second town
+ * (`cardCapitalIds`).
+ *
+ * Each row is priced through `scoreEffects` on the seat's own board, so a line is
+ * worth here what it is worth anywhere else.
+ *
+ *   - A row counted by the capital's citizens pays for the second town's citizens,
+ *     so it takes that town's share of the citizens the count reads.
+ *   - Any other capital row pays the same again. For a seat that already holds the
+ *     rule the price has both towns in it, so one town is the price over two.
+ *   - A row that skips the capital loses the second town, which is one of the towns
+ *     the scope admits.
+ *
+ * A scope with further tests is priced as if the second town passed them. The growth
+ * line is the card's other row, priced by `ruleRewriteValue`.
+ */
+function secondCapitalWorth(ctx: ValueContext): number {
+  const second = secondCapitalCity(ctx.state, ctx.playerId);
+  if (second === undefined) return 0;
+  const capitals = cardCapitalIds(ctx.state, ctx.playerId);
+  let citizens = 0;
+  for (const id of capitals) citizens += cityById(ctx.state, id)?.population ?? 0;
+  let worth = 0;
+  for (const { card, effect } of liveEffects(ctx.state, ctx.playerId)) {
+    if (!isOrderId(card) && !isDoctrineId(card)) continue;
+    const pays = effect.kind === 'pays' ? effect : undefined;
+    const scope = (effect as { scope?: CityScope }).scope;
+    if (scopeNames(scope, 'notCapital')) {
+      const towns = townsAdmitting(ctx, scope);
+      if (towns > 0) worth -= scoreEffects([effect], ctx, card) / towns;
+      continue;
+    }
+    if (pays?.count === 'capitalPopulation') {
+      if (citizens > 0) worth += scoreEffects([effect], ctx, card) * (second.population / citizens);
+      continue;
+    }
+    if (pays?.where === 'capital' || scopeNames(scope, 'capital')) {
+      worth += scoreEffects([effect], ctx, card) / capitals.length;
+    }
+  }
+  return worth;
 }
 
 /** This seat's combat units whose type upgrades to another. */

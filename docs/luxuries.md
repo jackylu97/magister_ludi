@@ -90,7 +90,7 @@ luxury is still not a card *class*.
 
 | Shape | What it does |
 |---|---|
-| `perCityYields` | Flat yields in **every** city — or, with `scope`, the towns a `CityScope` admits (`{"test": "coastal"}`, `{"test": "capital"}`), or only the city holding the seam (`"owner"`, the one word `CityScope` cannot say without the row naming itself). |
+| `perCityYields` | Flat yields in **every** city — or, with `scope`, the towns a `CityScope` admits (`{"test": "coastal"}`, `{"test": "trueCapital"}`), or only the city holding the seam (`"owner"`, the one word `CityScope` cannot say without the row naming itself). |
 | `improvementYields` | Flat yields on **every hex of this empire carrying a named improvement**. The one shape that pays into the *tile* chain, so it shows up as a line in the hex's own breakdown. Whales and tyrian, both on fishing boats. |
 | `perPopulationYields` | The same, multiplied by each city's population, floored per city. |
 | `pays` (`where: "empire"`) | A flat sum to the empire, once, landing in no city. The cards' one yield shape, at the one ground a luxury uses it (`empireYields` until batch E5). |
@@ -117,8 +117,9 @@ seam. Every ledger line carries `· on loan`.
 | `unitUpkeepRebate` | Per-unit maintenance relief, in upkeep's shared give-back list (salt). |
 | `renownPerCity` | Renown per city per turn, family-less by construction (lapis). |
 
-`perCityYields` also takes `scope: {"test": "capital"}` since the rework — and,
-since H6, any other `CityScope` the cards can name.
+`perCityYields` also takes `scope: {"test": "trueCapital"}` since the rework — and,
+since H6, any other `CityScope` the cards can name. A luxury names `trueCapital` and
+not `capital`, because The Two Capitals reaches Orders and Doctrines only (batch DT17).
 | `rulePercent` | A signed percentage on a named rule: `happinessDemand`, `borderCost`, `growthCarryover`. |
 | `happinessTierBoost` | Raises the *positive* happiness tiers by percentage points. Amber, and nothing else. |
 

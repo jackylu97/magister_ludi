@@ -1246,6 +1246,7 @@ function scopeWords(site: CityScope): string {
     case 'captured':
       return 'a city you captured';
     case 'capital':
+    case 'trueCapital':
       return 'your capital';
     case 'populationAtLeast':
       return `a city of ${figure(site.value)} or more citizens`;

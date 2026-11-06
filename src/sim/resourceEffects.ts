@@ -450,7 +450,7 @@ function scopeNote(scope: ResourceCityScope | undefined): string {
   if (scope === 'owner') return 'this city';
   if (scope === undefined) return 'every city';
   if (scope.test === 'coastal') return 'coastal city';
-  if (scope.test === 'capital') return 'capital';
+  if (scope.test === 'capital' || scope.test === 'trueCapital') return 'capital';
   return cityScopeWords(scope);
 }
 

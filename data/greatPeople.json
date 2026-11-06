@@ -78,7 +78,7 @@
           "yield": "science",
           "percent": 15,
           "scope": {
-            "test": "capital"
+            "test": "trueCapital"
           }
         }
       ]
@@ -221,7 +221,7 @@
           "category": "wonder",
           "percent": 15,
           "scope": {
-            "test": "capital"
+            "test": "trueCapital"
           }
         }
       ]
@@ -410,7 +410,7 @@
           "where": "city",
           "culture": 3,
           "scope": {
-            "test": "capital"
+            "test": "trueCapital"
           }
         },
         {
@@ -600,7 +600,7 @@
           "amount": -5,
           "per": "city",
           "scope": {
-            "test": "capital"
+            "test": "trueCapital"
           }
         }
       ]
@@ -1526,7 +1526,7 @@
           "where": "city",
           "culture": 3,
           "scope": {
-            "test": "capital"
+            "test": "trueCapital"
           }
         },
         {
@@ -1636,7 +1636,7 @@
           "yield": "science",
           "percent": 15,
           "scope": {
-            "test": "capital"
+            "test": "trueCapital"
           }
         },
         {
@@ -1647,7 +1647,7 @@
             "test": "all",
             "of": [
               {
-                "test": "capital"
+                "test": "trueCapital"
               },
               {
                 "test": "mountainAdjacent"

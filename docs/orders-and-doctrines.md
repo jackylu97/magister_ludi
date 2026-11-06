@@ -238,6 +238,7 @@ governments, so Tier IV opened at 29.
 | The Court of Rudolf II | Scientific | IV | tier 26 | Alchemy, and the fourth-age technologies that lead to it, cost you 20% less research. Your other fourth-age technologies cost you 25% more. |
 | The Nassau Reforms | Scientific | IV | tier 26 | Each time research upgrades one of your units, it gains +2 strength for good. Your towns build military units 25% more slowly. |
 | The Platonic Academy | Scientific | IV | tier 26 | Your great people of every family found an Academy as their work, in place of their own. |
+| The Two Capitals | Scientific | IV | tier 26 | Your largest town besides your capital also counts as your capital for your cards. Your other towns grow 25% more slowly. |
 | The Arthashastra | Magisterial | I | tier 4 | You have one more Wildcard chair. The card seated in it counts twice. |
 | The Hospitium | Magisterial | I | tier 4 | The third card in each of your Order hands comes from a deck you do not hold. |
 | The Choregia | Magisterial | I | tier 4 | Culture buildings give +3 culture and +2 renown each. |

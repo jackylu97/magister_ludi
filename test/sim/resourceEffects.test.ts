@@ -1076,7 +1076,7 @@ describe("perCityYields at 'capital' scope: one town, however wide the empire", 
   it('pays the capital and no other town, wherever the seam is', () => {
     const capitalRow = plantableWith(
       'perCityYields',
-      (effect) => effect.scope !== undefined && effect.scope !== 'owner' && effect.scope.test === 'capital',
+      (effect) => effect.scope !== undefined && effect.scope !== 'owner' && effect.scope.test === 'trueCapital',
     );
     expect(capitalRow).toBeDefined();
     const { id, effect } = capitalRow!;
