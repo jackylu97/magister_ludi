@@ -310,6 +310,7 @@ describe('the sheet', () => {
       'legaciesCountTwice',
       'thirdCardForeign',
       'rareWeight',
+      'collectionPays',
     ]) {
       expect(VALUE_SOURCE, rule).not.toContain(`effect.rule === '${rule}') return ctx.ai.score.unknownEffect`);
     }

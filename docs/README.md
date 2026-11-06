@@ -553,6 +553,13 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
     Serapeum) pushes each pantheon god again, less its offers. `governmentsOfTier`
     (The Union of Lublin) pushes the other governments of the seat's tier, less
     any `slotRider`, so chairs stay the held government's.
+  - **Orders off their chairs** (batch DT11, Scutage): the rule `collectionPays`
+    makes `buildLiveEffects` push a labelled copy of each flat or counted line an
+    unseated Order pays, at the rule's share (`offTheChairRows`). A share, a meter, a
+    cost and a line paid to another empire stay behind, and a charter pays nothing.
+    So the collection is law, and `settleCardTaken` announces a card taken. A negative
+    `slotRider` closes the last chairs: `chairCount` stops at the government's typed
+    chairs, and `refitSlots` returns the card in a chair that closes.
   - **The fit a council grants** (Magisterial batch MG12): `orderFitsSlot` is
     the plain rule, and every reader of a seat's chairs asks `chairFitFor`
     (`statecraft/draft.ts`) instead: the slot refusal, the re-seating, the

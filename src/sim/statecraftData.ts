@@ -5208,7 +5208,20 @@ export type BehaviorRuleId =
    * At most once a turn for each card that holds the rule, by an absolute
    * stamp (`PlayerStatecraft.sidesTurned`).
    */
-  | 'faithfulKillsConvert';
+  | 'faithfulKillsConvert'
+  /**
+   * **Orders this empire holds and has not seated pay part of their yields**
+   * (batch DT11, Scutage; the triage's reading 26). The row's `percent` is the
+   * part, so 50 is half.
+   *
+   * Read in one place, `buildLiveEffects`, which pushes a labelled copy of each
+   * row `offTheChairRows` admits: a flat or counted line that pays one of the six
+   * voices. Every reader of `pays` then works unchanged. Nothing else about a card
+   * follows it off its chair. It takes no card out of a chair and puts none in.
+   * The walk asks the list it has built so far, so only a government, a Doctrine, a
+   * seated Order or a malice can hold this rule.
+   */
+  | 'collectionPays';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId =
@@ -8459,7 +8472,11 @@ export interface CardRouteRiderEffect {
  */
 export interface CardSlotRiderEffect {
   kind: 'slotRider';
-  /** How many extra chairs. Absent means one. */
+  /**
+   * How many extra chairs. Absent means one. A negative figure takes chairs away
+   * (batch DT11, Scutage): the last ones go first, and `chairCount` never goes
+   * below the government's typed chairs.
+   */
   extra?: number;
 }
 
@@ -8737,7 +8754,7 @@ export interface CardRuleEffect {
    */
   improvements?: ImprovementId[];
   /**
-   * **The rule's one figure, as a percentage** (Scientific batch S9). Four
+   * **The rule's one figure, as a percentage** (Scientific batch S9). These
    * rules read it, each in its own sense:
    *
    *   - `opusEarly` (The Foundation Stone): the share of the technology's
@@ -8747,7 +8764,9 @@ export interface CardRuleEffect {
    *   - `opusBreach` (The Breaching Batteries): the share of the banked Opus
    *     production one blow removes;
    *   - `rareWeight` (The Jinshi): how much the rare rung of an Order hand's odds
-   *     rises, so 100 is double.
+   *     rises, so 100 is double;
+   *   - `collectionPays` (Scutage): the part of its yields an Order off its chair
+   *     pays, so 50 is half.
    *
    * A row of one of these rules with no figure changes nothing. Meaningless
    * on every other member.

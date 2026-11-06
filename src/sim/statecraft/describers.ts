@@ -3011,9 +3011,13 @@ function describeEffect(
       // Since batch DT9 it says what the chair is. A Doctrine's face prints this
       // beside "your last wildcard chair", and "free" named nothing the player
       // can find on the council screen.
+      //
+      // Since batch DT11 a figure below nought closes chairs (Scutage).
       const extra = effect.extra ?? 1;
-      const count = extra === 1 ? 'one' : extra === 2 ? 'two' : String(extra);
-      out.push({ text: `you have ${count} more wildcard ${extra === 1 ? 'chair' : 'chairs'}` });
+      const size = Math.abs(extra);
+      const count = size === 1 ? 'one' : size === 2 ? 'two' : String(size);
+      const change = extra < 0 ? 'fewer' : 'more';
+      out.push({ text: `you have ${count} ${change} wildcard ${size === 1 ? 'chair' : 'chairs'}` });
       return;
     }
     case 'meterRule': {
@@ -7207,6 +7211,9 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // figure and `figureRuleWords` says it; this is the sentence for a row with none.
   thirdCardForeign: 'the third card in each of your Order hands comes from a deck you do not hold',
   rareWeight: 'rare cards come up more often in your Order hands',
+  // Batch DT11, Scutage. Its row carries a figure and `figureRuleWords` says it;
+  // this is the sentence for a row with none, which pays nothing.
+  collectionPays: 'Orders you hold but have not seated pay part of their yields',
   // Devotion batch DV7: The Anchorites and The Abbeys. The Anchorites' row
   // names the act and its price, and `figureRuleWords` says both; this is the
   // sentence for a row that names neither, which changes nothing. The Abbeys
@@ -7483,6 +7490,11 @@ function figureRuleWords(effect: Extract<CardEffect, { kind: 'rule' }>): string 
       return effect.percent === 100
         ? 'rare cards come up twice as often in your Order hands'
         : `rare cards come up ${effect.percent}% more often in your Order hands`;
+    case 'collectionPays':
+      if (effect.percent === undefined) return null;
+      return effect.percent === 50
+        ? 'Orders you hold but have not seated pay half their yields'
+        : `Orders you hold but have not seated pay ${effect.percent}% of their yields`;
     case 'prototypes': {
       if (effect.percent === undefined) return null;
       const price =

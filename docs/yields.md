@@ -377,6 +377,14 @@ banking (Entry XVIII.5).
   `Player.routeYieldsThisAge` leaves it out. It is a flat like the routes
   arriving, so step 12 stages it with the town's percentages. A route to
   another empire is not copied.
+- **An Order off its chair pays through its own lines** (batch DT11, Scutage, the
+  rule `collectionPays`). `buildLiveEffects` pushes a labelled copy of each row
+  `offTheChairRows` admits, at the rule's share: a flat or counted row that pays one
+  of the six voices, with no `percent`, `basePercent`, `wholePercent`, `share`,
+  `stage` or `payee`. A figure below nought stays behind, because a cost is not a
+  yield. So the halved lines land at steps 2, 3, 6, 16 and 18, as the row's own lines
+  would, and no reader of `pays` knows the difference. An amplifier reads them,
+  because each is still an Order's line. A town's building package reads them too.
 - **The gate reaches the town and nothing else.** The empire's own lines (steps
   15–20) belong to the empire, so a card paying science to the empire still pays
   it while one of its towns is in unrest. A conversion (step 10) reads the
@@ -446,7 +454,9 @@ One rule pays a voice, and it pays at step 6: `homeRoutesPayOrigin` (The
 Return Leg, Commerce batch T3) copies a home route's pay to the town it left
 (`cityReturnLegYields`). The `rule` kind stays in neither list, because what
 a rule pays is decided by its id, and these three ids are pinned by the sync
-test.
+test. `collectionPays` (Scutage) pays nothing itself: it adds copies of `pays`
+rows to the law, and each copy lands through the register above, as "Conventions a
+reader would not guess" says. The sync test pins that id too.
 
 ---
 

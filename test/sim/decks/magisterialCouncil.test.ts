@@ -57,6 +57,7 @@ import {
   orderType,
   ordersForDecks,
   poolDoctrines,
+  slotLayout,
 } from '../../../src/sim/statecraftData';
 import { ABILITY_TECH, type TechId } from '../../../src/sim/techData';
 import { at, bareState } from '../improvementHelpers';
@@ -385,7 +386,7 @@ describe('Commission: The Golden Bull (readings 18 and 19)', () => {
     const military = cardsOf('military', 3);
     const economic = cardsOf('economic', 2);
     const [civic] = cardsOf('civic', 1);
-    expect(slotTypesOf({ ...player.statecraft, government: 'imperium', slots: [] })).toEqual([
+    expect(slotLayout('imperium')).toEqual([
       'military',
       'military',
       'military',

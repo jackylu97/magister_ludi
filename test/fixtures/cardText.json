@@ -1400,6 +1400,16 @@
     "text": "you have two more wildcard chairs"
    }
   ],
+  "scutage": [
+   {
+    "raw": "Orders you hold but have not seated pay half their yields",
+    "text": "Orders you hold but have not seated pay half their yields"
+   },
+   {
+    "raw": "you have one fewer wildcard chair",
+    "text": "you have one fewer wildcard chair"
+   }
+  ],
   "theBourgs": [
    {
     "raw": "+25% food surplus stored toward growth, in every city working a great person's work",

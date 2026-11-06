@@ -314,6 +314,7 @@ import {
   freeDraftCanOpen,
   openFreeDraft,
   chairIndexAtPosition,
+  isSlotted,
   orderAtSlotPosition,
   settleCultureWindfall,
   slotTypesOf,
@@ -802,7 +803,8 @@ export function forgetTheLaw(state: GameState): void {
  * Every effect currently reaching this empire, in one fixed order: the
  * government's signature, then its Doctrines in the order they were taken, then
  * the slotted Orders in **slot order**, then the malices seated among them
- * (batch G3 — beside the chairs, for the reason the source itself states), then
+ * (batch G3 — beside the chairs, for the reason the source itself states), then,
+ * under Scutage, the yields of the Orders off their chairs (batch DT11), then
  * the pantheon's beliefs, then the
  * wonders this empire's cities hold, then the legacies of the great people it
  * has spent, then what it is carrying that runs out, then the caps its beads
@@ -903,6 +905,20 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
   for (const held of holder?.malices ?? []) {
     if (!isMaliceId(held.id)) continue;
     push(held.id, CLASS_WORD.malice, maliceDef(held.id).effects);
+  }
+  // **The Orders off their chairs** (batch DT11, Scutage): a labelled copy of each
+  // line a card off its chair pays, so every reader of `pays` works unchanged and
+  // the fold still prints each line. The rule is asked of the list built so far,
+  // because `cardBehaviorRule` would ask this walk again. The Doctrines come first,
+  // so the list holds the row. A chair's card is read above and not here, and a
+  // charter never pays.
+  const offTheChair = collectionShareIn(list);
+  if (offTheChair > 0) {
+    for (const id of sc.orders) {
+      if (!isOrderId(id) || isCharter(id) || isSlotted(sc, id)) continue;
+      const label = `${OFF_THE_CHAIR_WORD} \u00b7 ${orderDef(id).name}`;
+      readAgain(state, playerId, list, id, label, offTheChairRows(orderDef(id).effects, offTheChair));
+    }
   }
   // **The fourth source** (ledger Entry XXVIII), and the whole of what religion
   // adds to this walk: a pantheon belief is a card of this vocabulary, held
@@ -1359,6 +1375,102 @@ function pushEffects(
     source ??= `${word} · ${anyCardDef(card).name}`;
     list.push({ source, card, effect });
   }
+}
+
+/** The label's first word on a line an Order pays off its chair. */
+const OFF_THE_CHAIR_WORD = 'Order off its chair';
+
+/**
+ * The part of its yields an Order off its chair pays, as a fraction, or nought
+ * when no `collectionPays` row is in this list. The largest row counts, as
+ * `metaReadings` reads its rule. So a second reading of a row raises nothing.
+ */
+function collectionShareIn(list: readonly LiveCardEffect[]): number {
+  let percent = 0;
+  for (const { effect } of list) {
+    if (effect.kind === 'rule' && effect.rule === 'collectionPays') {
+      percent = Math.max(percent, effect.percent ?? 0);
+    }
+  }
+  return percent / 100;
+}
+
+/**
+ * **The part of its yields an Order off its chair pays this empire**: a fraction,
+ * or nought with no `collectionPays` row in its law. The bots read this, so they
+ * read what the walk pays.
+ */
+export function cardCollectionShare(state: GameState, playerId: number): number {
+  return collectionShareIn(liveEffects(state, playerId));
+}
+
+/**
+ * **What a card's rows pay off its chair, at this share** (batch DT11, Scutage;
+ * the triage's reading 26). A copy of each row that pays, its figures scaled. A
+ * condition stays around the rows inside it that pay, and goes if none does.
+ *
+ * The walk and the bots share this reading, so a bot prices what the walk pays.
+ */
+export function offTheChairRows(effects: readonly CardEffect[], share: number): CardEffect[] {
+  const rows: CardEffect[] = [];
+  for (const effect of effects) {
+    if (effect.kind === 'conditionRule') {
+      const then = offTheChairRows(effect.then, share);
+      if (then.length > 0) rows.push({ ...effect, then });
+    } else if (effect.kind === 'pays') {
+      const copy = offTheChairLine(effect, share);
+      if (copy !== null) rows.push(copy);
+    }
+  }
+  return rows;
+}
+
+/**
+ * One `pays` row off its chair, or `null` for a row that pays nothing there.
+ *
+ * Only a flat or counted line that pays one of the six voices. A share of any kind
+ * is left out, because it pays on what something else already pays, and so is a
+ * meter, because the rule names yields. A row that pays another empire (`payee`)
+ * is left out too, because that is no yield of the holder's.
+ *
+ * **A cost is not a yield**, so a figure below nought stays behind. Otherwise a
+ * card such as Financed Industry, whose gain is a share and whose price is a flat
+ * loss of food, would charge every town from the bench, and the seat would have no
+ * way to be rid of it.
+ */
+function offTheChairLine(effect: CardPaysEffect, share: number): CardPaysEffect | null {
+  const basis = effect.basis ?? 'flat';
+  if (basis !== 'flat' && basis !== 'count') return null;
+  if (
+    effect.percent !== undefined ||
+    effect.basePercent !== undefined ||
+    effect.wholePercent !== undefined ||
+    effect.share !== undefined ||
+    effect.stage !== undefined ||
+    effect.payee !== undefined
+  ) {
+    return null;
+  }
+  if (effect.to !== undefined && !VOICES.includes(effect.to as CityYieldKey)) return null;
+  const copy: CardPaysEffect = { ...effect };
+  let pays = false;
+  for (const voice of VOICES) {
+    const figure = effect[voice];
+    if (figure === undefined) continue;
+    if (figure > 0) {
+      copy[voice] = figure * share;
+      pays = true;
+    } else {
+      delete copy[voice];
+    }
+  }
+  if (effect.to !== undefined) {
+    const amount = effect.amount ?? 0;
+    if (amount <= 0) return null;
+    copy.amount = amount * share;
+    pays = true;
+  }
+  return pays ? copy : null;
 }
 
 /**
@@ -13203,8 +13315,8 @@ export function cardYieldsOnlyAmplifier(
 }
 
 /**
- * **How many extra chairs this empire's law opens**, on top of whatever its
- * government lays out — The King's Friends' one (`CardSlotRiderEffect`).
+ * **How many chairs this empire's law adds to what its government lays out**:
+ * The King's Friends' one, or Scutage's minus one (`CardSlotRiderEffect`).
  *
  * The card reading and nothing else: it answers *how many*, and what a council
  * is then shaped like is `chairCount`'s in `draft.ts`, which is the one consumer
@@ -13213,9 +13325,8 @@ export function cardYieldsOnlyAmplifier(
  * knows what a card effect is — and read from there for the module boundary's:
  * a government's layout is the draft's business, not this file's.
  *
- * Never negative. A row that wrote a negative figure would be a card taking a
- * chair away, which is a punishment nobody has designed and which a council
- * already full would answer by dropping a card somebody slotted.
+ * The sum may be below nought, because a card may take a chair away (batch DT11).
+ * `chairCount` holds the floor, so no card takes a typed chair.
  */
 export function cardExtraChairs(state: GameState, playerId: number): number {
   let extra = 0;
@@ -13224,7 +13335,7 @@ export function cardExtraChairs(state: GameState, playerId: number): number {
     // rider with none grants the ordinary one road.
     extra += effect.extra ?? 1;
   }
-  return Math.max(0, Math.floor(extra));
+  return Math.floor(extra);
 }
 
 /**

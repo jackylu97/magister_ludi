@@ -33,8 +33,8 @@
  *   · **`meterEffects`** (`meters.ts`) — the fold of `explainHappiness` and
  *     `explainAuthority`. Between them they read: the empire's luxuries
  *     (`controlledHoldings`, below), its law (`liveEffects` — the government,
- *     Doctrines, slotted Orders, pantheon beliefs, the wonders and one-of-a-kind
- *     rows its towns hold, legacies, what the realm is carrying that runs out,
+ *     Doctrines, slotted Orders, the Orders off their chairs under Scutage,
+ *     pantheon beliefs, the wonders and one-of-a-kind rows its towns hold, legacies, what the realm is carrying that runs out,
  *     the caps its beads pay, its technologies, and the religions whose holy
  *     city it holds), the city-local half of that law (`cityLocalEffects` — a
  *     town's rites and its followers' beliefs), every owned town's `buildings`,
@@ -228,6 +228,9 @@ const WRITES: { field: string; pattern: RegExp }[] = [
   // Devotion batch DV3: the faith an empire has spent, which The Book of
   // Life's `faithSpent` count reads. `spendFaith` is its one writer.
   { field: 'faithSpent', pattern: /\.faithSpent\s*(=[^=]|\+=)/ },
+  // Batch DT11: the collection, which the law reads under Scutage, because an
+  // Order off its chair pays part of its yields.
+  { field: 'orders', pattern: /\.orders\.(push|splice)\(|\.orders\s*=[^=]/ },
 ];
 
 /** How a function says "the world moved under the empire walks". */
@@ -514,6 +517,10 @@ const EXCUSED = new Map<string, string>([
   [
     'draft.ts#settleDoctrineChoice',
     'takes no state, as above; `applyChooseDoctrine` (`commands.ts`) announces beside it',
+  ],
+  [
+    'draft.ts#addToCollection',
+    'takes no state; `settleCardTaken` (`cities.ts`) is the next line in both of its callers, and it announces first',
   ],
   [
     'draft.ts#reseatCouncil',

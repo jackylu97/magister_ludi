@@ -355,7 +355,8 @@ function ghostPair(
       if (at >= 0) {
         // In force. The reading is what taking it out of its office would cost,
         // which is the same figure with the same sign — `isSlotted` is the whole
-        // of the test, because an Order pays from a slot and nowhere else.
+        // of the test. Under Scutage a card off its chair still pays half, and the
+        // ghost's law reads that, so this figure is what the chair adds.
         const out = sc.slots.map((slot, index) => (index === at ? null : slot));
         const without = swap({ ...player, statecraft: { ...sc, slots: out } });
         // **Taking out the card that widened the fit re-seats the council**

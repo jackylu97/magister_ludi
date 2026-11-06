@@ -75,6 +75,7 @@ import {
   poolOrders,
   slotCount,
   slotLayout,
+  slotSpread,
 } from '../statecraftData';
 import { awardOrderBeads } from '../beads';
 import { awardOccasion } from '../triumphs';
@@ -977,6 +978,9 @@ export function slotTypesOf(sc: PlayerStatecraft): ChairType[] {
   // the card is read, and this is the one reading of what is already written
   // down.
   while (layout.length < sc.slots.length) layout.push('wildcard');
+  // A card may close chairs too (batch DT11, Scutage), and the last ones go first.
+  // Wildcard chairs come last in the layout, so what closes is a Wildcard chair.
+  layout.length = sc.slots.length;
   return layout;
 }
 
@@ -989,12 +993,22 @@ export function slotTypesOf(sc: PlayerStatecraft): ChairType[] {
  * `slotTypesOf` pads to its length, `slotOrderError` bounds on it, the screen
  * draws it. That is what makes a widened council a *fact about the state* rather
  * than a figure four readers have to remember to add.
+ *
+ * It never goes below the government's typed chairs (batch DT11, Scutage), so a
+ * card that closes a chair closes a Wildcard one or nothing.
  */
 export function chairCount(state: GameState, playerId: number, government: GovernmentId): number {
   // The chairs a commission won for the rest of the game (Dominion batch D6)
   // are counted with the law's, after the government's own.
   const won = Math.max(0, Math.floor(statecraftOf(state, playerId)?.chairsWon ?? 0));
-  return slotCount(government) + cardExtraChairs(state, playerId) + won;
+  const chairs = slotCount(government) + cardExtraChairs(state, playerId) + won;
+  return Math.max(typedChairsOf(government), chairs);
+}
+
+/** How many of a government's chairs are Military, Economic or Civic. */
+function typedChairsOf(government: GovernmentId): number {
+  const spread = slotSpread(government);
+  return spread.military + spread.economic + spread.civic;
 }
 
 /**
@@ -1054,6 +1068,15 @@ export function refitSlots(state: GameState, player: Player): OrderId[] {
   // shrank under a malice would leave one pointing at a chair that no longer
   // exists. Cheap and idempotent on a council that only grew.
   reseatMalices(player);
+  // A council that shrank can send a malice back to a chair with a card in it
+  // (batch DT11, Scutage). A chair holds one thing, so the card returns to the
+  // collection, as `seatMalice` turns a card out.
+  for (const held of player.malices) {
+    const sitting = held.chair === undefined ? null : sc.slots[held.chair];
+    if (!sitting || !isOrderId(sitting.card)) continue;
+    returned.push(sitting.card);
+    sc.slots[held.chair!] = null;
+  }
   // A chair opened or closed is a chair the meters read through — an Order's
   // lines come and go with it (batch M3, `slate.ts`).
   bumpEconomy(state);
@@ -1119,7 +1142,9 @@ export function orderAtSlotPosition(
  * `cardImpact.ts`, `deckPair` in `value.ts`). Without it, a ghost holding The
  * Arthashastra would read its "last Wildcard chair" one chair too early, and
  * would claim to double a card that the real command leaves where it sits. Added
- * chairs go on the end and taken ones come off the end, as `refitSlots` does.
+ * chairs go on the end and taken ones come off the end, as `refitSlots` does, and
+ * a ghost stops at the typed chairs, as `chairCount` does. A card that loses its
+ * chair this way stays in the ghost's collection, so Scutage reads it off its chair.
  */
 export function ghostSlotsUnderDoctrine(
   sc: PlayerStatecraft,
@@ -1131,7 +1156,7 @@ export function ghostSlotsUnderDoctrine(
     if (effect.kind === 'slotRider') extra += effect.extra ?? 1;
   }
   if (extra === 0) return sc.slots;
-  const want = Math.max(0, sc.slots.length + (taking ? extra : -extra));
+  const want = Math.max(typedChairsOf(sc.government), sc.slots.length + (taking ? extra : -extra));
   const slots = sc.slots.slice(0, want);
   while (slots.length < want) slots.push(null);
   return slots;

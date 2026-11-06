@@ -8,7 +8,7 @@
  * Batch DT6 adds The Carroccio and The Gobelins. Batch DT9 adds The Arthashastra, The
  * Council of Ten and The Union of Lublin, with a replay of the refit. Batch DT10 adds
  * The Hospitium and The Jinshi, the two rows that change what an Order hand deals.
- * Later batches add the deck's other two Doctrines to this file.
+ * Batch DT11 adds Scutage. A later batch adds the deck's last Doctrine to this file.
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -24,6 +24,7 @@ import {
   ownedTiles,
   realiseItem,
   refreshCityDerived,
+  settleCardTaken,
   settleProduction,
 } from '../../../src/sim/cities';
 import { applyCommand } from '../../../src/sim/commands';
@@ -50,9 +51,12 @@ import {
   playerById,
 } from '../../../src/sim/state';
 import { makeRng } from '../../../src/sim/rng';
+import { explainRouteYieldBetween } from '../../../src/sim/routeYields';
 import { setSlateShadow } from '../../../src/sim/slate';
 import {
   type OrderOffer,
+  addToCollection,
+  adoptGovernmentAt,
   chairCount,
   doctrineBagFor,
   drawDoctrineOffer,
@@ -65,15 +69,19 @@ import {
   expectedHandBags,
   foreignCardBag,
   maliceAt,
+  ghostSlotsUnderDoctrine,
   orderAtSlotPosition,
   positionBag,
   rarityFirstOdds,
   rarityOdds,
+  recordScalingOccasion,
   slotTypesOf,
   stripRefs,
+  tallyOf,
 } from '../../../src/sim/statecraft';
 import {
   cardActionRule,
+  cardCollectionShare,
   cardCombatLines,
   cardExtraChairs,
   cardRareWeight,
@@ -83,9 +91,11 @@ import {
   effectsOfKind,
   explainBuildingPackage,
   explainCardCityYields,
+  explainCardEmpireYields,
   explainCardPercentYields,
   foldBuildingPackage,
   liveEffects,
+  offTheChairRows,
   runPeriodicBoons,
   windfallPayout,
 } from '../../../src/sim/statecraft/evaluator';
@@ -102,15 +112,19 @@ import {
   doctrineDef,
   governmentDef,
   governmentsAtTier,
+  isCharter,
   orderDef,
+  orderIsDealt,
   poolDoctrines,
   slotCount,
+  slotLayout,
 } from '../../../src/sim/statecraftData';
 import { ABILITY_TECH, TECH_IDS, type TechId, techDef } from '../../../src/sim/techData';
 import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
 import { explainCity, productionModifiers } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
 import { createGame } from '../newGameHelpers';
+import { lendDoctrineEffects } from '../statecraftHelpers';
 
 /** The rows built so far in this deck, each with the band its table gives it. */
 const ROWS: readonly (readonly [string, number])[] = [
@@ -118,6 +132,7 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theHospitium', 1],
   ['theJinshi', 2],
   ['theCouncilOfTen', 3],
+  ['scutage', 3],
   ['theUnionOfLublin', 4],
   ['theChoregia', 1],
   ['thePericleanWorks', 1],
@@ -1805,5 +1820,610 @@ describe('The Jinshi', () => {
     state.rng = makeRng(5);
     twin.state.rng = makeRng(5);
     expect(drawDoctrineOffer(state, player, 4)).toEqual(drawDoctrineOffer(twin.state, twin.player, 4));
+  });
+});
+
+describe('Scutage (batch DT11)', () => {
+  const SCUTAGE = 'scutage';
+  /** A tier-18 government: six typed chairs and two Wildcard chairs. */
+  const LEAGUE = 'merchantLeague' as GovernmentId;
+
+  /** A capital of three citizens, on a government with Wildcard chairs to lose. */
+  function council(): { state: GameState; player: Player; city: City } {
+    const made = capital();
+    const sc = made.player.statecraft;
+    sc.government = LEAGUE;
+    sc.slots = new Array<null>(slotCount(LEAGUE)).fill(null);
+    bumpRevision(made.state);
+    return made;
+  }
+
+  /** The Doctrine taken, with a card of these rows held and off its chair. */
+  function benched(effects: readonly CardEffect[], card: OrderId = CARD): ReturnType<typeof council> {
+    const made = council();
+    lendOrder(card, effects);
+    made.player.statecraft.orders.push(card);
+    take(made.state, SCUTAGE);
+    return made;
+  }
+
+  /** What one card's lines pay the empire's books, in one voice. */
+  const empirePays = (state: GameState, card: string, voice: Voice): number =>
+    explainCardEmpireYields(state, 0)
+      .filter((line) => line.card === card)
+      .reduce((sum, line) => sum + line[voice], 0);
+
+  /** The live rows the walk added for an Order off its chair. */
+  const offTheChairEntries = (state: GameState) =>
+    liveEffects(state, 0).filter((entry) => entry.source.startsWith('Order off its chair'));
+
+  describe('what pays off the chair', () => {
+    it('pays half of a flat town line off the chair, and all of it on the chair', () => {
+      const { state, player, city } = benched([{ kind: 'pays', where: 'city', gold: 4, faith: 2 } as CardEffect]);
+      expect(linePays(state, city, CARD, 'gold')).toBe(2);
+      expect(linePays(state, city, CARD, 'faith')).toBe(1);
+      seatIn(state, 0, CARD);
+      expect(linePays(state, city, CARD, 'gold')).toBe(4);
+      expect(linePays(state, city, CARD, 'faith')).toBe(2);
+      expect(player.statecraft.slots[0]?.card).toBe(CARD);
+    });
+
+    it('pays half of a counted town line off the chair, and all of it on the chair', () => {
+      const { state, city } = benched([
+        { kind: 'pays', where: 'city', basis: 'count', count: 'population', within: 'city', to: 'science', amount: 3 } as CardEffect,
+      ]);
+      expect(city.population).toBe(3);
+      expect(linePays(state, city, CARD, 'science')).toBe(4.5);
+      seatIn(state, 0, CARD);
+      expect(linePays(state, city, CARD, 'science')).toBe(9);
+    });
+
+    it('labels the line as a card off its chair, and folds into the town', () => {
+      const { state, player, city } = council();
+      lendOrder(CARD, [{ kind: 'pays', where: 'city', gold: 4 } as CardEffect]);
+      player.statecraft.orders.push(CARD);
+      bumpRevision(state);
+      const before = explainCity(state, city).flats.gold;
+      take(state, SCUTAGE);
+      expect(
+        explainCardCityYields(state, city)
+          .filter((line) => line.card === CARD)
+          .map((line) => line.source),
+      ).toEqual([`Order off its chair \u00b7 ${orderDef(CARD).name}`]);
+      expect(explainCity(state, city).flats.gold).toBe(before + 2);
+    });
+
+    it('pays half of an empire line, flat or counted', () => {
+      const { state } = benched([
+        { kind: 'pays', where: 'empire', culture: 6 } as CardEffect,
+        { kind: 'pays', where: 'empire', basis: 'count', count: 'cities', to: 'gold', amount: 2 } as CardEffect,
+      ]);
+      expect(empirePays(state, CARD, 'culture')).toBe(3);
+      expect(empirePays(state, CARD, 'gold')).toBe(1);
+    });
+
+    it('pays half of a line in the capital', () => {
+      const { state, city } = benched([
+        { kind: 'pays', where: 'capital', basis: 'count', count: 'cities', to: 'production', amount: 3 } as CardEffect,
+      ]);
+      expect(linePays(state, city, CARD, 'production')).toBe(1.5);
+    });
+
+    it('pays half of a hex line, in a real fold', () => {
+      const { state, player, city } = council();
+      lendOrder(CARD, [
+        { kind: 'pays', where: 'hex', gold: 3, on: { test: 'improvement', improvement: 'farm' } } as CardEffect,
+      ]);
+      const hex = at(state, 6, 5);
+      raiseImprovement(hex, 'farm' as never, state.turn);
+      bumpRevision(state);
+      const gold = (): number => foldTileLines(explainTileYield(hex, cityContext(state, city))).gold;
+      const ground = gold();
+      take(state, SCUTAGE);
+      expect(gold()).toBe(ground);
+      player.statecraft.orders.push(CARD);
+      bumpRevision(state);
+      expect(gold()).toBe(ground + 1.5);
+      seatIn(state, 0, CARD);
+      expect(gold()).toBe(ground + 3);
+    });
+
+    it('pays half of a route line', () => {
+      const { state, player, city } = council();
+      const far = town(state, 12, 5);
+      // The card's own line. The government raises the whole road, and that is a
+      // line of its own, so this asks for the card's alone.
+      const gold = (): number =>
+        explainRouteYieldBetween(state, city, far)
+          .filter((line) => line.source.includes(orderDef(CARD).name))
+          .reduce((sum, line) => sum + line.gold, 0);
+      lendOrder(CARD, [{ kind: 'pays', where: 'route', gold: 4 } as CardEffect]);
+      take(state, SCUTAGE);
+      expect(gold()).toBe(0);
+      player.statecraft.orders.push(CARD);
+      bumpRevision(state);
+      expect(gold()).toBe(2);
+      seatIn(state, 0, CARD);
+      expect(gold()).toBe(4);
+    });
+
+    it('counts what a seated card counts, so a counted line reads the seated cards', () => {
+      const { state, player, city } = benched([
+        { kind: 'pays', where: 'city', basis: 'count', count: 'slottedOrders', to: 'food', amount: 1 } as CardEffect,
+      ]);
+      expect(linePays(state, city, CARD, 'food')).toBe(0);
+      const third = ORDER_IDS.find((id) => id !== CARD && id !== OTHER && !isCharter(id))!;
+      seatIn(state, 0, OTHER);
+      seatIn(state, 1, third);
+      expect(player.statecraft.slots.filter((held) => held !== null)).toHaveLength(2);
+      expect(linePays(state, city, CARD, 'food')).toBe(1);
+    });
+
+    it('pays half of what a grower has banked, and banks no more off the chair', () => {
+      const { state, player, city } = benched([
+        { kind: 'pays', where: 'city', basis: 'count', count: 'tally', tally: 'unitTrained', to: 'gold', amount: 1 } as CardEffect,
+      ]);
+      const sc = player.statecraft;
+      sc.tallies.push({ card: CARD, count: 5 });
+      bumpRevision(state);
+      expect(linePays(state, city, CARD, 'gold')).toBe(2.5);
+      recordScalingOccasion(state, 0, 'unitTrained');
+      expect(tallyOf(sc, CARD)).toBe(5);
+      seatIn(state, 0, CARD);
+      recordScalingOccasion(state, 0, 'unitTrained');
+      expect(tallyOf(sc, CARD)).toBe(6);
+      expect(linePays(state, city, CARD, 'gold')).toBe(6);
+    });
+
+    it('asks a condition, and pays only while it holds', () => {
+      const gated = (value: number): CardEffect =>
+        ({
+          kind: 'conditionRule',
+          when: { test: 'cityCountAtLeast', value },
+          then: [
+            { kind: 'pays', where: 'city', gold: 4 },
+            { kind: 'percentYields', yield: 'gold', percent: 10 },
+          ],
+        }) as unknown as CardEffect;
+      const open = benched([gated(1)]);
+      expect(linePays(open.state, open.city, CARD, 'gold')).toBe(2);
+      expect(offTheChairEntries(open.state).map((entry) => entry.effect.kind)).toEqual(['pays']);
+      const shut = benched([gated(5)]);
+      expect(linePays(shut.state, shut.city, CARD, 'gold')).toBe(0);
+      expect(offTheChairEntries(shut.state)).toEqual([]);
+    });
+
+    it('lets an amplifier read the halved line, because it is an Order’s line', () => {
+      const { state, city } = benched([{ kind: 'pays', where: 'city', gold: 4 } as CardEffect]);
+      lendOrder(OTHER, [{ kind: 'cardYieldAmplifier', yield: 'gold', percent: 50, amount: 1 } as CardEffect]);
+      seatIn(state, 0, OTHER);
+      expect(linePays(state, city, CARD, 'gold')).toBe(2);
+      // One line touched: the flat helping of one, and half of the two it pays.
+      expect(linePays(state, city, OTHER, 'gold')).toBe(2);
+    });
+
+    it('reads no line while the Doctrine is not held', () => {
+      const { state, player, city } = council();
+      lendOrder(CARD, [{ kind: 'pays', where: 'city', gold: 4 } as CardEffect]);
+      player.statecraft.orders.push(CARD);
+      bumpRevision(state);
+      expect(cardCollectionShare(state, 0)).toBe(0);
+      expect(linePays(state, city, CARD, 'gold')).toBe(0);
+      expect(offTheChairEntries(state)).toEqual([]);
+    });
+  });
+
+  describe('what pays nothing off the chair', () => {
+    it('leaves out a percentage, a combat line and a rider', () => {
+      const { state, city } = benched([
+        { kind: 'percentYields', yield: 'gold', percent: 10 } as CardEffect,
+        { kind: 'combatLine', amount: 2, when: { test: 'always' }, side: 'both' } as CardEffect,
+        { kind: 'windfallRider', occasion: 'kill', grant: { yield: 'gold', amount: 5 } } as CardEffect,
+        { kind: 'rule', rule: 'freePillage' } as CardEffect,
+      ]);
+      expect(explainCardPercentYields(state, city).filter((line) => line.card === CARD)).toEqual([]);
+      const unit = createUnit(state, 0, 'warrior', 5, 6);
+      bumpRevision(state);
+      expect(strengthFrom(state, unit, CARD)).toBe(0);
+      expect(windfallPayout(state, 0, 'kill').grants.filter((grant) => grant.card === CARD)).toEqual([]);
+      expect(cardActionRule(state, 0, 'freePillage' as never)).toBe(false);
+      expect(offTheChairEntries(state)).toEqual([]);
+    });
+
+    it('leaves out every share, every other basis and every meter', () => {
+      const shapes: readonly Record<string, unknown>[] = [
+        { where: 'city', basis: 'share', from: 'gold', to: 'science', percent: 10 },
+        { where: 'city', basis: 'mirror', from: 'faith', to: 'science', category: 'faith' },
+        { where: 'empire', basis: 'rate', fromRate: 'faith', to: 'culture', amount: 1, per: 3 },
+        { where: 'hex', on: { test: 'improvement', improvement: 'farm' }, percent: 50 },
+        { where: 'hex', on: { test: 'improvement', improvement: 'farm' }, basePercent: 50 },
+        { where: 'hex', on: { test: 'improvement', improvement: 'farm' }, wholePercent: 100 },
+        { where: 'route', share: [{ yield: 'gold', percent: 50 }] },
+        { where: 'city', basis: 'count', count: 'cities', to: 'gold', percent: 5, stage: 'city' },
+        { where: 'empire', basis: 'count', count: 'cities', to: 'happiness', amount: 1 },
+        { where: 'empire', basis: 'count', count: 'cities', to: 'authority', amount: 1 },
+      ];
+      for (const shape of shapes) {
+        expect(offTheChairRows([{ kind: 'pays', ...shape } as unknown as CardEffect], 0.5), JSON.stringify(shape)).toEqual([]);
+      }
+      const { state } = benched([{ kind: 'pays', where: 'empire', basis: 'count', count: 'cities', to: 'happiness', amount: 4 } as CardEffect]);
+      expect(explainHappiness(state, 0).filter((line) => line.source.includes('off its chair'))).toEqual([]);
+    });
+
+    it('leaves out a commission: no card with one pays a line off its chair', () => {
+      const commissions = ORDER_IDS.filter((id) => orderIsDealt(id) && orderDef(id).commission !== undefined);
+      expect(commissions.length).toBeGreaterThan(0);
+      for (const id of commissions) {
+        expect(offTheChairRows(orderDef(id).effects, 0.5), id).toEqual([]);
+      }
+      const { state, player } = council();
+      player.statecraft.orders.push(...commissions);
+      bumpRevision(state);
+      take(state, SCUTAGE);
+      expect(offTheChairEntries(state)).toEqual([]);
+    });
+
+    it('pays nothing for a charter, even a row that would pay', () => {
+      const charter = ORDER_IDS.find((id) => orderIsDealt(id) && isCharter(id))!;
+      const { state, city } = benched([{ kind: 'pays', where: 'city', gold: 4 } as CardEffect], charter);
+      expect(linePays(state, city, charter, 'gold')).toBe(0);
+      expect(offTheChairEntries(state)).toEqual([]);
+    });
+
+    it('leaves a card’s costs behind, because a cost is not a yield', () => {
+      // Financed Industry's gain is a share, so only its loss of food could follow it.
+      expect(offTheChairRows(orderDef('financedIndustry' as OrderId).effects, 0.5)).toEqual([]);
+      expect(offTheChairRows(orderDef('magisterialTheGuildOfMasons' as OrderId).effects, 0.5)).toEqual([]);
+      // The Mineral Trade's one row pays and costs: half the pay, and none of the cost.
+      const [mineral] = offTheChairRows(orderDef('theMineralTrade' as OrderId).effects, 0.5) as {
+        gold?: number;
+        production?: number;
+      }[];
+      expect(mineral?.gold).toBe(1);
+      expect(mineral?.production).toBeUndefined();
+      const { state, city } = benched([{ kind: 'pays', where: 'city', food: -3 } as CardEffect]);
+      expect(linePays(state, city, CARD, 'food')).toBe(0);
+    });
+
+    it('pays no other empire: a row with a payee stays behind', () => {
+      for (const id of ['theCommonRoad', 'theForeignFactor', 'theExchange'] as OrderId[]) {
+        const rows = offTheChairRows(orderDef(id).effects, 0.5) as { payee?: unknown }[];
+        expect(rows.filter((row) => row.payee !== undefined), id).toEqual([]);
+      }
+    });
+
+    it('reads a seated card once, not twice', () => {
+      const { state, city } = benched([{ kind: 'pays', where: 'city', gold: 4 } as CardEffect]);
+      seatIn(state, 0, CARD);
+      expect(offTheChairEntries(state)).toEqual([]);
+      expect(linePays(state, city, CARD, 'gold')).toBe(4);
+    });
+  });
+
+  describe('the chair', () => {
+    it('closes the last Wildcard chair at once, and its card returns to the collection', () => {
+      const { state, player, city } = council();
+      lendOrder(CARD, [{ kind: 'pays', where: 'city', gold: 4 } as CardEffect]);
+      const sc = player.statecraft;
+      const before = sc.slots.length;
+      seatIn(state, 0, OTHER);
+      seatIn(state, before - 1, CARD);
+      expect(slotTypesOf(sc).filter((type) => type === 'wildcard')).toHaveLength(2);
+
+      take(state, SCUTAGE);
+
+      expect(sc.slots).toHaveLength(before - 1);
+      expect(slotTypesOf(sc)).toHaveLength(before - 1);
+      expect(slotTypesOf(sc).filter((type) => type === 'wildcard')).toHaveLength(1);
+      expect(sc.slots.some((held) => held?.card === CARD)).toBe(false);
+      expect(sc.orders).toContain(CARD);
+      // Nothing else moved, and the card now pays from the collection.
+      expect(sc.slots[0]?.card).toBe(OTHER);
+      expect(linePays(state, city, CARD, 'gold')).toBe(2);
+      expect(chairCount(state, 0, LEAGUE)).toBe(before - 1);
+    });
+
+    it('stays one chair down under every later government', () => {
+      const { state, player } = council();
+      take(state, SCUTAGE);
+      const sc = player.statecraft;
+      sc.pendingGovernment = { options: ['theEstates' as GovernmentId] } as never;
+      adoptGovernmentAt(state, player, 0);
+      expect(sc.government).toBe('theEstates');
+      expect(sc.slots).toHaveLength(slotCount('theEstates' as GovernmentId) - 1);
+      const layout = slotTypesOf(sc);
+      expect(layout).toEqual(slotLayout('theEstates' as GovernmentId).slice(0, -1));
+      expect(layout.filter((type) => type === 'wildcard')).toHaveLength(2);
+    });
+
+    it('never closes a typed chair, so a council with no Wildcard chair left keeps its size', () => {
+      const made = capital();
+      const sc = made.player.statecraft;
+      // The chiefdom's three chairs: two typed and one Wildcard.
+      expect(slotCount(sc.government)).toBe(3);
+      lent.push(lendDoctrineEffects(SCUTAGE as DoctrineId, [{ kind: 'slotRider', extra: -5 } as CardEffect]));
+      take(made.state, SCUTAGE);
+      expect(cardExtraChairs(made.state, 0)).toBe(-5);
+      expect(chairCount(made.state, 0, sc.government)).toBe(2);
+      expect(sc.slots).toHaveLength(2);
+      expect(slotTypesOf(sc)).not.toContain('wildcard');
+    });
+
+    it('cancels one of The Council of Ten’s chairs, whichever came first', () => {
+      const { state, player } = council();
+      const before = player.statecraft.slots.length;
+      take(state, 'theCouncilOfTen');
+      take(state, SCUTAGE);
+      expect(player.statecraft.slots).toHaveLength(before + 1);
+      const other = council();
+      take(other.state, SCUTAGE);
+      take(other.state, 'theCouncilOfTen');
+      expect(other.player.statecraft.slots).toHaveLength(before + 1);
+    });
+
+    it('moves The Arthashastra’s chair back one', () => {
+      const { state, player } = council();
+      take(state, 'theArthashastra');
+      const sc = player.statecraft;
+      const opened = lastChair(player);
+      expect(chairReadingsAt(state, 0, opened)).toBe(2);
+      seatIn(state, opened - 1, OTHER);
+      seatIn(state, opened, CARD);
+      take(state, SCUTAGE);
+      expect(sc.slots).toHaveLength(opened);
+      expect(sc.slots[opened - 1]?.card).toBe(OTHER);
+      expect(chairReadingsAt(state, 0, opened - 1)).toBe(2);
+      expect(sc.orders).toContain(CARD);
+    });
+
+    it('sends a malice back one chair, and the card sitting there returns', () => {
+      const { state, player } = council();
+      const sc = player.statecraft;
+      const last = lastChair(player);
+      seatIn(state, last - 1, CARD);
+      player.malices.push({ id: 'closedSchools' as never, untilAge: 9, chair: last });
+      bumpRevision(state);
+      take(state, SCUTAGE);
+      expect(sc.slots).toHaveLength(last);
+      expect(player.malices[0]!.chair).toBe(last - 1);
+      expect(sc.slots[last - 1]).toBeNull();
+      expect(sc.orders).toContain(CARD);
+    });
+
+    it('gives each ghost the chairs the command would leave', () => {
+      const { player } = council();
+      const sc = player.statecraft;
+      const before = sc.slots.length;
+      expect(ghostSlotsUnderDoctrine(sc, SCUTAGE as DoctrineId, true)).toHaveLength(before - 1);
+      expect(ghostSlotsUnderDoctrine(sc, SCUTAGE as DoctrineId, false)).toHaveLength(before + 1);
+      // The ghost's floor is `chairCount`'s.
+      sc.government = 'chiefdom' as GovernmentId;
+      sc.slots = sc.slots.slice(0, 2);
+      expect(ghostSlotsUnderDoctrine(sc, SCUTAGE as DoctrineId, true)).toHaveLength(2);
+    });
+
+    it('prints both clauses in plain words', () => {
+      expect(describeCard(SCUTAGE).map((clause) => stripRefs(clause.text))).toEqual([
+        'Orders you hold but have not seated pay half their yields',
+        'you have one fewer wildcard chair',
+      ]);
+    });
+  });
+
+  describe('the memo and the replay', () => {
+    it('sees a card drafted, with the slate disbelieved', () => {
+      const { state, player, city } = council();
+      lendOrder(CARD, [{ kind: 'pays', where: 'city', gold: 4 } as CardEffect]);
+      take(state, SCUTAGE);
+      setSlateShadow(true);
+      try {
+        expect(linePays(state, city, CARD, 'gold')).toBe(0);
+        // The tail of a pick, on a warm memo and with no command to raise the
+        // revision. Only the announcement can move the law.
+        settleCardTaken(state, player, addToCollection(player, CARD));
+        expect(linePays(state, city, CARD, 'gold')).toBe(2);
+      } finally {
+        setSlateShadow(false);
+      }
+    });
+
+    it('announces first in the tail of a pick, before anything can read the law', () => {
+      const cities = import.meta.glob('../../../src/sim/cities.ts', {
+        eager: true,
+        query: '?raw',
+        import: 'default',
+      })['../../../src/sim/cities.ts'] as string;
+      const tail = /export function settleCardTaken\([\s\S]*?\n\}/.exec(cities)?.[0] ?? '';
+      const announced = tail.indexOf('bumpEconomy(state)');
+      expect(announced).toBeGreaterThan(-1);
+      expect(announced).toBeLessThan(tail.indexOf('raiseOnDraft('));
+    });
+
+    it('reaches the same board whenever the slate was read, in a game of real commands', () => {
+      const play = (warm: boolean): { snapshot: string; held: number; chairs: number; government: GovernmentId } => {
+        const g = createGame({
+          seed: 3,
+          sizeName: 'duel',
+          players: [
+            { name: 'Ada', color: '#a00', isHuman: true, decks: ['magisterial', 'dominion'] },
+            { name: 'Bors', color: '#00a', isHuman: true, decks: ['dominion', 'expansionist'] },
+          ],
+        });
+        const ada = seat(g.state);
+        const read = (): void => {
+          if (!warm) return;
+          chairCount(g.state, 0, ada.statecraft.government);
+          liveEffects(g.state, 0);
+          for (const city of g.state.cities) explainCardCityYields(g.state, city);
+        };
+        for (let turn = 0; turn < 6; turn++) {
+          ada.culturePool += 10_000;
+          seat(g.state, 1).culturePool += 10_000;
+          bumpRevision(g.state);
+          read();
+          expect(dispatch(g, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
+          expect(dispatch(g, { type: 'endTurn', playerId: 1 }).ok).toBe(true);
+          read();
+          for (const id of [0, 1]) {
+            const sc = seat(g.state, id).statecraft;
+            if (sc.pendingOrder !== undefined) {
+              expect(dispatch(g, { type: 'chooseOrder', playerId: id, optionIndex: 0 }).ok).toBe(true);
+            }
+            read();
+            if (sc.pendingGovernment !== undefined) {
+              expect(dispatch(g, { type: 'adoptGovernment', playerId: id, choiceIndex: 0 }).ok).toBe(true);
+            }
+            read();
+            if (sc.pendingDoctrine !== undefined) {
+              if (id === 0 && !sc.doctrines.includes(SCUTAGE as DoctrineId)) {
+                sc.pendingDoctrine.options = [SCUTAGE as DoctrineId];
+                expect(dispatch(g, { type: 'chooseDoctrine', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+              } else {
+                expect(dispatch(g, { type: 'skipDoctrineOffer', playerId: id }).ok).toBe(true);
+              }
+            }
+            read();
+          }
+        }
+        expect(ada.statecraft.doctrines).toContain(SCUTAGE);
+        return {
+          snapshot: snapshotState(g.state),
+          held: ada.statecraft.orders.length,
+          chairs: ada.statecraft.slots.length,
+          government: ada.statecraft.government,
+        };
+      };
+      setSlateShadow(true);
+      try {
+        const warm = play(true);
+        const cold = play(false);
+        expect(warm.snapshot).toBe(cold.snapshot);
+        expect(warm.chairs).toBe(slotCount(warm.government) - 1);
+        expect(warm.held).toBeGreaterThan(0);
+      } finally {
+        setSlateShadow(false);
+      }
+    });
+  });
+
+  describe('the stamp and the bots', () => {
+    it('stamps a card off its chair with what the chair adds, the rest of the line', () => {
+      const { state, player } = benched([{ kind: 'pays', where: 'empire', gold: 4 } as CardEffect]);
+      const stamp = (): number => foldCardImpact(explainCardImpact(state, 0, { kind: 'order', id: CARD })).gold;
+      expect(stamp()).toBe(2);
+      seatIn(state, 0, CARD);
+      expect(stamp()).toBe(2);
+      player.statecraft.doctrines = [];
+      bumpRevision(state);
+      expect(stamp()).toBe(4);
+    });
+
+    it('stamps the Doctrine itself with the bench, on the offer', () => {
+      const { state, player } = council();
+      lendOrder(CARD, [{ kind: 'pays', where: 'empire', gold: 4 } as CardEffect]);
+      lendOrder(OTHER, [{ kind: 'pays', where: 'empire', gold: 6 } as CardEffect]);
+      player.statecraft.orders.push(CARD, OTHER);
+      // The last chair closes under the ghost, so OTHER falls from six to three.
+      seatIn(state, lastChair(player), OTHER);
+      const offered = explainCardImpact(state, 0, { kind: 'doctrine', id: SCUTAGE as DoctrineId });
+      expect(foldCardImpact(offered).gold).toBe(2 - 3);
+    });
+
+    it('prices the bench at half its flat lines, less the chair', () => {
+      const { state, player } = council();
+      const row = doctrineDef(SCUTAGE as DoctrineId).effects;
+      const worth = (): number => scoreEffects(row, valueContext(state, player));
+      const empty = worth();
+      expect(empty).toBeLessThan(0);
+      lendOrder(CARD, [{ kind: 'pays', where: 'empire', gold: 4 } as CardEffect]);
+      player.statecraft.orders.push(CARD);
+      bumpRevision(state);
+      const half = scoreEffects([{ kind: 'pays', where: 'empire', gold: 2 } as CardEffect], valueContext(state, player));
+      expect(half).toBeGreaterThan(0);
+      expect(worth() - empty).toBeCloseTo(half, 6);
+      // A seated card is off no bench, and a percentage pays nothing there.
+      seatIn(state, 0, CARD);
+      expect(worth()).toBeCloseTo(empty, 6);
+      lendOrder(OTHER, [{ kind: 'percentYields', yield: 'gold', percent: 50 } as CardEffect]);
+      player.statecraft.orders.push(OTHER);
+      bumpRevision(state);
+      expect(worth()).toBeCloseTo(empty, 6);
+    });
+
+    it('prices a charter’s bench at nothing', () => {
+      const { state, player } = council();
+      const charter = ORDER_IDS.find((id) => orderIsDealt(id) && isCharter(id))!;
+      const row = doctrineDef(SCUTAGE as DoctrineId).effects;
+      const empty = scoreEffects(row, valueContext(state, player));
+      lendOrder(charter, [{ kind: 'pays', where: 'empire', gold: 4 } as CardEffect]);
+      player.statecraft.orders.push(charter);
+      bumpRevision(state);
+      expect(scoreEffects(row, valueContext(state, player))).toBeCloseTo(empty, 6);
+    });
+
+    /** A real game for a bot seat, its chairs empty and nothing else waiting. */
+    function botSeat(scutage: boolean): { state: GameState; player: Player } {
+      const g = createGame({
+        seed: 3,
+        sizeName: 'duel',
+        players: [
+          { name: 'Ada', color: '#a00', isHuman: false, decks: ['magisterial', 'dominion'] },
+          { name: 'Bors', color: '#00a', isHuman: false, decks: ['dominion', 'expansionist'] },
+        ],
+        barbarians: false,
+      });
+      const state = g.state;
+      const city = town(state, 8, 8);
+      city.queue = [{ kind: 'unit', id: 'warrior' }];
+      const player = seat(state);
+      player.researching = 'earthenware' as never;
+      player.statecraft.slots = player.statecraft.slots.map(() => null);
+      bumpRevision(state);
+      if (scutage) take(state, SCUTAGE);
+      return { state, player };
+    }
+
+    /** Steps the bot until it reaches a chair command, answering what stands before it. */
+    function firstSeating(state: GameState): string | null {
+      let decision = nextBotDecision(state, 0);
+      for (let guard = 0; guard < 8 && decision !== null; guard++) {
+        if (decision.command.type === 'slotOrder') return decision.command.cardId;
+        expect(applyCommand(state, decision.command).ok).toBe(true);
+        decision = nextBotDecision(state, 0);
+      }
+      return null;
+    }
+
+    it('seats a card of flat lines less readily under Scutage, because half of it pays anyway', () => {
+      /**
+       * Without the Doctrine the flat card is worth more, so it takes the chair first.
+       * Under Scutage it pays half with no chair and the other card pays nothing, so
+       * the chair adds more for the other card. The two cards fit the same chairs.
+       */
+      const other = { kind: 'combatLine', amount: 8, when: { test: 'always' }, side: 'both' } as CardEffect;
+      const plain = botSeat(false);
+      const sc = plain.player.statecraft;
+      sc.orders = [OTHER, CARD];
+      lendOrder(OTHER, [other]);
+      lendOrder(CARD, []);
+      bumpRevision(plain.state);
+      const ctx = valueContext(plain.state, plain.player);
+      const blank = scoreCard(plain.player, CARD, ctx);
+      const rival = scoreCard(plain.player, OTHER, ctx);
+      expect(rival).toBeGreaterThan(blank);
+      // Enough gold that the flat card is worth half as much again as its rival.
+      const perGold = scoreEffects([{ kind: 'pays', where: 'empire', gold: 1 } as CardEffect], ctx);
+      const gold = (1.5 * rival - blank) / perGold;
+      lendOrder(CARD, [{ kind: 'pays', where: 'empire', gold } as CardEffect]);
+      bumpRevision(plain.state);
+      const flat = scoreCard(plain.player, CARD, valueContext(plain.state, plain.player));
+      expect(flat).toBeGreaterThan(rival);
+      expect(firstSeating(plain.state)).toBe(CARD);
+
+      const under = botSeat(true);
+      under.player.statecraft.orders = [OTHER, CARD];
+      bumpRevision(under.state);
+      expect(firstSeating(under.state)).toBe(OTHER);
+    });
   });
 });

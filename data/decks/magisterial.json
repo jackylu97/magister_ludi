@@ -3353,6 +3353,23 @@
       "text": "You have two more Wildcard chairs.",
       "effects": [{ "kind": "slotRider", "extra": 2 }]
     },
+    "scutage": {
+      "name": "Scutage",
+      "decks": ["magisterial"],
+      "band": 3,
+      "line": "none",
+      "flavor": "Those who stayed at home still paid the crown.",
+      "text": "Orders you hold but have not seated pay half their yields. You have one fewer Wildcard chair.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "collectionPays",
+          "percent": 50
+        },
+        { "kind": "slotRider", "extra": -1 }
+      ],
+      "note": "Off its chair, a card pays half of its flat and counted food, production, gold, science, culture and faith. Its costs do not follow it, and neither do its percentages, combat lines, riders, rules or commissions. Its happiness, authority and renown pay nothing, and a charter pays nothing. It counts what it would count in a chair, and a card that grows pays half of what it has banked. Your last Wildcard chair closes at once, and a card seated there returns to your collection."
+    },
     "theBourgs": {
       "name": "The Bourgs",
       "decks": ["magisterial"],

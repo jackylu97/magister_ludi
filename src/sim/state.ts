@@ -3409,8 +3409,23 @@ import {
  *
  * **A v214 save is refused and does not replay.** These seats' Doctrine bags change,
  * so their draws move. The branch migrates nothing, for the reason given under v119.
+ *
+ * v216 (branch `decks`; batch DT11, `docs/plans/doctrines-build-triage.md`):
+ * **Scutage.** No field joins the state. The rules that change:
+ *
+ *   · Scutage is dealt to a Magisterial seat;
+ *   · the card rules gain `collectionPays`, read by `buildLiveEffects`, which pushes
+ *     a labelled copy of each flat or counted line an Order off its chair pays;
+ *   · a `slotRider` may close chairs: `cardExtraChairs` no longer stops at nought,
+ *     `chairCount` stops at the government's typed chairs, and `slotTypesOf` trims
+ *     its layout to the council;
+ *   · `refitSlots` returns a card to the collection when a malice moves into its
+ *     chair.
+ *
+ * **A v215 save is refused and does not replay.** These seats' Doctrine bags change,
+ * so their draws move. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 215;
+export const SCHEMA_VERSION = 216;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

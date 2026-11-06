@@ -103,6 +103,7 @@ import {
   doctrineDef,
   orderDef,
   orderFitsSlot,
+  slotLayout,
 } from '../../src/sim/statecraftData';
 import {
   cityFocus,
@@ -2040,7 +2041,9 @@ describe('the marginal draft reading', () => {
     const sc = player.statecraft;
     sc.government = 'councilOfElders' as never;
     bumpRevision(state);
-    sc.slots = slotTypesOf(sc).map(() => null);
+    // The government's own chairs. `slotTypesOf` reads the council as it stands, and
+    // this seat's council is still the chiefdom's until this line.
+    sc.slots = slotLayout(sc.government).map(() => null);
     bumpRevision(state);
     sc.orders = [...deck];
     const layout = slotTypesOf(sc);

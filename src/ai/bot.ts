@@ -186,6 +186,8 @@ import {
   actsBeforeWork,
   // Batch DT9: what a chair that counts twice reads again.
   orderReadAgain,
+  // Batch DT11: what a card already pays with no chair, under Scutage.
+  orderPaysOffItsChair,
 } from './value';
 import { citizenKeepTerm } from './citizen';
 import {
@@ -2500,6 +2502,10 @@ function slottingDecision(
  * sends the card with the most to read again here first, however many cards fit
  * a Wildcard chair, while a card that is only yes-or-no rules gains nothing and
  * still goes to its own type's chair.
+ *
+ * **Under Scutage a chair adds only what the card does not already pay** (batch
+ * DT11), so its pay off the chair comes off the card's worth. A card of flat lines
+ * then has less claim on a chair than one of percentages, riders or rules.
  */
 function slotPairTerms(
   player: Player,
@@ -2510,14 +2516,14 @@ function slotPairTerms(
   fits: number,
 ): ValueTerm[] {
   const scarcity = Math.max(1, fits);
-  const terms: ValueTerm[] = [
-    nest('what the card is worth', explainCard(player, cardId, ctx)),
-    {
-      label: `÷ ${scarcity} — cards of this empire's that would also fit a ${SLOT_WORDS[type]} office`,
-      value: scarcity,
-      op: 'div',
-    },
-  ];
+  const terms: ValueTerm[] = [nest('what the card is worth', explainCard(player, cardId, ctx))];
+  const benched = orderPaysOffItsChair(cardId, ctx);
+  if (benched !== 0) terms.push({ label: 'what it pays with no chair', value: -benched });
+  terms.push({
+    label: `÷ ${scarcity} — cards of this empire's that would also fit a ${SLOT_WORDS[type]} office`,
+    value: scarcity,
+    op: 'div',
+  });
   const again = chairReadingsAt(ctx.state, player.id, slot) - 1;
   if (again > 0) {
     terms.push({ label: 'what this chair reads again', value: again * orderReadAgain(cardId, ctx) });

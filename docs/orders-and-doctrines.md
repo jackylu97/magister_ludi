@@ -237,6 +237,7 @@ governments, so Tier IV opened at 29.
 | The Jinshi | Magisterial | II | tier 10 | Rare cards come up twice as often in your Order hands. |
 | The Barmakids | Magisterial | II | tier 10 | Each great person you have gained gives every town +1 food and +1 production. |
 | The Council of Ten | Magisterial | III | tier 18 | You have two more Wildcard chairs. |
+| Scutage | Magisterial | III | tier 18 | Orders you hold but have not seated pay half their yields. You have one fewer Wildcard chair. |
 | The Bourgs | Magisterial | III | tier 18 | Towns working a great-person work grow 25% faster. |
 | The Carroccio | Magisterial | III | tier 18 | Your units gain +1 strength for each wonder you hold, at most +8. |
 | The Union of Lublin | Magisterial | IV | tier 26 | You also gain the abilities of the other two governments of your tier. |

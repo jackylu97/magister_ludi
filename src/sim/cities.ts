@@ -6375,10 +6375,11 @@ export function raiseOnDraft(state: GameState, player: Player, id: OrderId): voi
  * (Magisterial batch MG14). The one tail every way a card enters the
  * collection shares, in this order:
  *
- *   1. what drafting the card hands over (`raiseOnDraft`);
- *   2. for a charter, the law's memo is dropped and the meters told, because
+ *   1. the collection's write is announced, for the reason in the body;
+ *   2. what drafting the card hands over (`raiseOnDraft`);
+ *   3. for a charter, the law's memo is dropped and the meters told, because
  *      its grant changed what the seat may build and research (D1a);
- *   3. last, the draft moment (`payCardDrafted`), so its riders read the law
+ *   4. last, the draft moment (`payCardDrafted`), so its riders read the law
  *      the card left.
  *
  * Two callers: the pick of an Order hand (`applyChooseOrder`, `commands.ts`),
@@ -6393,13 +6394,18 @@ export function settleCardTaken(
   taken: OrderChoice,
   price?: number,
 ): void {
+  // **The collection is read by the law** (batch DT11, Scutage): a card off its
+  // chair pays under that rule, so a new card can change every fold. Its writer,
+  // `addToCollection`, takes no state, and this is the next line in both callers.
+  // Without this, a memo warmed before the command would answer the grants below,
+  // and a replay with a cold memo would part from the game.
+  bumpEconomy(state);
   // **What drafting hands over** (Dominion batch D5): The Sword of State's
   // unit and The Cleruchy's settler, raised in the capital at the pick.
   raiseOnDraft(state, player, taken.id);
   // **A charter's grant just changed what the seat may build and research**
   // (D1a): `isUnlocked` reads the cards through the law's memo, so the memo is
-  // dropped and the meters told, exactly as a slotting does. An ordinary card
-  // lands in the collection and changes nothing until it is seated.
+  // dropped and the meters told, exactly as a slotting does.
   if (taken.chartered) {
     forgetTheLaw(state);
     bumpEconomy(state);

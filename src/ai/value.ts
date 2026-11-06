@@ -266,6 +266,7 @@ import {
   expectedHandBags,
   foreignCardBag,
   isRainbowSeat,
+  isSlotted,
   maliceAt,
   offerSize,
   rarityFirstOdds,
@@ -273,6 +274,7 @@ import {
 import {
   type GroundFacts,
   cardActionRule,
+  cardCollectionShare,
   cardRareWeight,
   cardRulePercent,
   effectsOfKind,
@@ -291,6 +293,7 @@ import {
   heldReligions,
   isRaisingWonderOrOpus,
   noMetEmpireAhead,
+  offTheChairRows,
   techPriceRowReaches,
 } from '../sim/statecraft/evaluator';
 // The citizen levy's own figures, read where the levy verb reads them, so the
@@ -11119,6 +11122,40 @@ function jinshiWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueCo
 }
 
 /**
+ * **Scutage** (`collectionPays`, batch DT11): what the Orders the seat holds and has
+ * not seated would pay, at the row's share. It reads the rows the walk would push,
+ * so a share or a rider prices nothing here. The chair the Doctrine closes is its
+ * own row, priced by the `slotRider` arm. A seat with an empty bench reads nothing.
+ */
+function scutageWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueContext): number {
+  const sc = statecraftOf(ctx.state, ctx.playerId);
+  const share = (effect.percent ?? 0) / 100;
+  if (sc === undefined || share <= 0) return 0;
+  let worth = 0;
+  for (const id of sc.orders) {
+    if (isOrderId(id) && !isSlotted(sc, id)) worth += orderOffItsChair(id, share, ctx);
+  }
+  return worth;
+}
+
+/** One Order's yields at this share, as the walk pays them off its chair. */
+function orderOffItsChair(id: OrderId, share: number, ctx: ValueContext): number {
+  if (isCharter(id)) return 0;
+  const rows = offTheChairRows(orderDef(id).effects, share);
+  return rows.length === 0 ? 0 : scoreEffects(rows, ctx, id);
+}
+
+/**
+ * **What this Order already pays with no chair**, under the seat's live Scutage, and
+ * nought without it (batch DT11). A chair adds only the rest, so the seat logic takes
+ * this off the card's worth, on both sides of a swap.
+ */
+export function orderPaysOffItsChair(id: OrderId, ctx: ValueContext): number {
+  const share = cardCollectionShare(ctx.state, ctx.playerId);
+  return share <= 0 ? 0 : orderOffItsChair(id, share, ctx);
+}
+
+/**
  * **More cards in an Order hand** (`offerRider` with `offer: 'order'`;
  * Officials by Merit, and The Hall of Wonders' counted cards, Magisterial
  * batch MG6): the hands the seat buys a turn (`draftsPerTurn`), times what a
@@ -11934,7 +11971,8 @@ function widerFitWorth(ctx: ValueContext): number {
  *   · Magnificence (`cultureBuysWonders`): `magnificenceWorth`;
  *   · The Mixed Constitution (`cardsFitAnyChair`): `widerFitWorth`;
  *   · The Universal Genius (`actThenWork`): `actThenWorkWorth`;
- *   · The Pull of the Masters (`worksPullRivalHexes`): `pullWorth`.
+ *   · The Pull of the Masters (`worksPullRivalHexes`): `pullWorth`;
+ *   · Scutage (`collectionPays`): `scutageWorth`.
  */
 function magisterialRuleWorth(
   effect: Extract<CardEffect, { kind: 'rule' }>,
@@ -11958,6 +11996,9 @@ function magisterialRuleWorth(
       return hospitiumWorth(ctx);
     case 'rareWeight':
       return jinshiWorth(effect, ctx);
+    // Batch DT11: Scutage's bench. Its lost chair is its `slotRider` row.
+    case 'collectionPays':
+      return scutageWorth(effect, ctx);
     default:
       return null;
   }

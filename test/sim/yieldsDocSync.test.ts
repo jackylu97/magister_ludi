@@ -236,6 +236,12 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
     expect(register).toContain('`opusInterdict`');
     expect(register).toContain('`homeRoutesPayOrigin`');
     expect(register).toMatch(/pays a voice, and it pays at step 6/);
+    // Batch DT11: Scutage's rule pays through copies of `pays` rows, and the
+    // convention list says where they land.
+    expect(register).toContain('`collectionPays`');
+    const conventions = section('## Conventions a reader would not guess');
+    expect(conventions).toContain('`collectionPays`');
+    expect(conventions).toContain('steps 2, 3, 6, 16 and 18');
   });
 
   /**
