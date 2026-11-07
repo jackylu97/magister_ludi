@@ -59,7 +59,7 @@ import {
   growthSurplus,
 } from '../cities';
 import { foldStageSums } from './stages';
-import { type EmpirePercents, empirePercents, explainCity, foldCity } from './town';
+import { type CityReading, type EmpirePercents, empirePercents, explainCity, foldCity } from './town';
 import { bumpEconomy } from '../slate';
 
 // --- turn phases ------------------------------------------------------------
@@ -82,7 +82,7 @@ import { bumpEconomy } from '../slate';
  * construction rather than by inspection.
  *
  * **Why the phase takes its own readings** (batch E2). Every *reader* now
- * subscribes to `readCity`/`readEmpire`, remembered on `state.revision`
+ * subscribes to `readCity`/`readEmpire`, remembered on the economy clock
  * (`readings.ts`), and this phase deliberately does not. Two reasons, and both
  * are rules rather than reluctance:
  *
@@ -93,9 +93,8 @@ import { bumpEconomy } from '../slate';
  *     banked into yet, and `explainEmpireLines` is asked afterwards, against the
  *     treasury the towns just filled. A reading taken once for both would price
  *     the arrears twice from one side of that line, which is the very thing the
- *     two-loop split exists to prevent. A revision is one number for the whole
- *     board; the *inside* of a phase is where the board is halfway moved, and
- *     nothing there may read a memo of it.
+ *     two-loop split exists to prevent. The *inside* of a phase is where the board
+ *     is halfway moved, and nothing there may read a memo of a town's list.
  */
 export function collectYields(state: GameState, report?: TurnReport): void {
   // **Every city is priced before any city banks**, and that is a rule rather
@@ -307,8 +306,17 @@ function collectArrears(state: GameState, report?: TurnReport): void {
  * rate* (`actGainOf`, `greatPeople.ts`), which is the same sentence The Lyceum
  * says about a technology — so they ask the same books rather than summing the
  * cities a third time, and "a turn of science" means one thing in the game.
+ *
+ * **`taken` hands in what a caller already holds** (batch P1): the seat's meters and
+ * each town's list. It is `explainCity`'s `empire` parameter one scale out, and the
+ * figure is the same because `readEmpireRates` hands in these very calls, remembered.
+ * Callers inside the simulation pass nothing and take fresh readings.
  */
-export function foldEmpireRates(state: GameState, playerId: number): {
+export function foldEmpireRates(
+  state: GameState,
+  playerId: number,
+  taken?: { percents: EmpirePercents; listOf: (city: City) => CityReading },
+): {
   faithPerTurn: number;
   culturePerTurn: number;
   goldPerTurn: number;
@@ -350,13 +358,14 @@ export function foldEmpireRates(state: GameState, playerId: number): {
   // top bar's headline, which reads this list on every accepted command. The
   // figure is unchanged by construction: `empirePercents` is a pure function of
   // `(state, playerId)` and this is the very call the default would have made.
-  const percents = empirePercents(state, playerId);
+  const percents = taken?.percents ?? empirePercents(state, playerId);
   // Which faiths this empire is *paid by* — the holy cities it holds — hoisted
   // once for the loop below, `zocField`'s bargain at the scale of a sweep.
   const held = heldReligions(state, playerId).map((religion) => religion.id);
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    const yields = foldCity(state, city, [], city.queue[0], explainCity(state, city, [], percents));
+    const list = taken?.listOf(city) ?? explainCity(state, city, [], percents);
+    const yields = foldCity(state, city, [], city.queue[0], list);
     rates.faithPerTurn += yields.faith;
     rates.culturePerTurn += yields.culture;
     rates.goldPerTurn += yields.gold;

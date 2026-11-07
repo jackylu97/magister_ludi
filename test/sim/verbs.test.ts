@@ -178,6 +178,9 @@ describe('the three verbs', () => {
       'readCity',
       'readEmpire',
       'readEmpirePercents',
+      // The empire's books for a reader at rest (batch P1): `foldEmpireRates`, taken
+      // off the `readCity` lists, for the bot that asks on every decision.
+      'readEmpireRates',
       // The Trade screen's whole subject, once per revision (batch R1): every
       // pair a caravan could join, gated, priced and paid.
       'readRoutes',

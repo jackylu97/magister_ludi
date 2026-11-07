@@ -34,7 +34,7 @@ Every exported reading of a yield is **one of three**, and nothing else
 |---|---|---|
 | `explainX(…)` | a labelled **list** | rule 5's list; never a bare number |
 | `foldX(…)` | the **one sum** of such a list | taken fresh, every time it is asked |
-| `readX(state, …)` | the **memo** | `explain` + `fold`, keyed on `state.revision`, and it lives in `src/sim/readings.ts` alone |
+| `readX(state, …)` | the **memo** | `explain` + `fold`, keyed on a clock ("The two clocks", below), and it lives in `src/sim/readings.ts` alone |
 
 Two stated shapes inside those rules, each because the layer is what it is:
 
@@ -88,8 +88,10 @@ a reading *of*, and the slate keeps a half per clock:
 | `meterEffects` | economy | walks towns, buildings, luxuries and law — and, through the card evaluator, the garrisons standing in them and the banks behind them |
 | `controlledHoldings` | economy | walks the ground |
 | `readEmpirePercents` | economy | those, plus the treasury |
-| `readCity` | revision | step 6 is the caravans arriving, and a caravan is cut by a hull in the harbour mouth (`cityBlockaded`) — a **unit position** |
-| `readEmpire` | revision | that reading summed |
+| `readCity` | economy | a town's list. It can see a piece, and every step it can see announces |
+| `readEmpire` | economy | that reading summed, with the empire's own lines |
+| `readEmpireRates` | economy | the same lists, folded for a question about a rate. For readers at rest; `foldEmpireRates` itself has no memo |
+| `readRoutes`, `readSites` | revision | what a seat can reach on the board, which any step can change |
 
 The split is a claim about what each walk can *see*, not a taxonomy of yields.
 
@@ -97,11 +99,36 @@ The split is a claim about what each walk can *see*, not a taxonomy of yields.
 `state.units`, but the card evaluator it folds does: The Long Watch pays "+1
 happiness for each unit standing in one of your cities" (`count: 'garrison'`) and
 Pilgrim Roads "+1 happiness for each 50 banked faith" (`count: 'bankedFaith'`,
-with `bankedGold` beside it). So a piece created, killed, taken or **moved**, and
-a bank paid into, are writes the empire walks fold; every such seam announces,
-and the register lists them. What the economy clock still buys is the four orders
-that move nobody — a fortification, a sleep, an auto-explore, a cancellation —
-and the phases that write nothing a walk reads.
+with `bankedGold` beside it). So a piece created, killed or taken, and a bank paid
+into, are writes the empire walks fold. Every such seam announces, and the register
+lists them.
+
+**A step announces only if a reading can tell** (batch P1). These are all the places
+a town's list, an empire's lines or its meters read where a piece stands, and
+`stepIsSeen` (`movement.ts`) answers for each:
+
+| Reader | What it asks | A step is seen when |
+|---|---|---|
+| `fortifiedUnits`, `garrisonWatch` counts, `fortifiedUnit` hex test | is a piece dug in | a fortified piece steps, and its owner's law holds such a row (`lawReadsTrenches`) |
+| `garrison` count, `garrisoned` and `garrisonRank` scopes | who stands on a town's hex | either hex is a town, and the piece is a soldier |
+| `generalPresent` scope | is a great general on a town's hex | either hex is a town, and the piece is a great person |
+| upkeep rebate with `where: 'garrison'` | who stands in a town | either hex is a town, and the owner's law holds such a row |
+| upkeep rebate or surcharge with `where: 'ownTerritory'` or `'foreignTerritory'` | which side of the border | the step crosses the owner's border, and the owner's law holds such a row (`upkeepAsksWhere`) |
+| `cityBlockaded` | a foreign hull in a harbour mouth | the piece blockades |
+| `cardOpusSiegeBy`, `siegeField` under `explainOpusGate` | who stands around a town building the Opus | the piece is a soldier, and an empire holds `opusSiege` |
+
+Three other writes of a plain order announce for themselves. A road announces when a
+laden caravan paved a hex (`advanceAlongPath`). A seat's sight announces when a hex is
+newly charted, or the `visibleCamps` count, the `sightedCities` count or `metSeats`
+moved (`recomputeMarchSight`). A fortification announces when the owner's law reads
+trenches (`applyFortify`). `POSITION_READERS` in `test/sim/slateRegister.test.ts` fails
+on a new read of a position, and `test/sim/stepSeen.test.ts` holds each row above to a
+card that reads it.
+
+So a plain step, a sleep, an auto-explore and a cancellation leave the economy clock
+still, and a seat that gives a hundred plain orders prices its empire once. A walk
+inside a phase still announces every step and every sweep of the fog, because a phase
+reads remembered answers while it runs and not all its writes announce.
 
 - **The economy clock is not a field of `GameState`.** The state is
   `JSON.stringify`d into every save hash, so a second counter on it would be a
@@ -119,10 +146,10 @@ and the phases that write nothing a walk reads.
   `arriveOnTile` on every step, and arriving is how a ruin is claimed, a camp
   burnt out, a civilian taken and a caravan plundered — each reported in
   `CommandResult`. The rule is the report: a movement command whose result says
-  anything beyond `ok` is an economy command. The five `movement` rows are a
-  **floor** rather than a promise — a march announces itself where the piece
-  moves, so a `moveUnit` that walked anywhere has already moved the economy clock
-  by the time the result is classified.
+  anything beyond `ok` is an economy command, except `reroutes`, which is news for
+  the interface and pays nobody. The five `movement` rows are a **floor** rather
+  than a promise, because a step a reading can see has already announced itself by
+  the time the result is classified.
 - **`bumpRevision` moves both clocks** and is what every writer outside
   `applyCommand` calls, benches included. The narrow door (`bumpPiecesOnly`) has
   one caller, holding a command and its result. Wrong in the broad direction is a

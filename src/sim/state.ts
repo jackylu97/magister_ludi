@@ -7613,7 +7613,8 @@ export function createUnit(
   // one of your cities" — `pays` at `where: 'empire'`, `count: 'garrison'` — so
   // where a piece *is* reaches `explainHappiness` through the card evaluator.
   // That is the correction batch M3's shadow run found in M2's table, and it is
-  // why every seam that creates, removes, takes or moves a piece announces.
+  // why every seam that creates, removes or takes a piece announces, and a step
+  // that a reading can see (`stepIsSeen`, `movement.ts`).
   bumpEconomy(state);
   // A new pair of eyes opens here, whoever asked for them: the `spawnUnit`
   // command, a city finishing production, a scenario seating an opening roster.

@@ -26,7 +26,9 @@
  * `test/mapgen/moduleCycles.test.ts` gates. So those three can only ever be
  * asked at rest, from `src/ui` and `src/ai`, where the command's and the phase's
  * own `bumpRevision` has answered for them since batch E2 and still does. The
- * claim is pinned below rather than asserted in prose.
+ * claim is pinned below rather than asserted in prose. Since batch P1 they and
+ * `readEmpireRates` sit on the economy clock, which a plain order does not move, so
+ * `POSITION_READERS` below lists what can see a piece's position under them.
  *
  * That leaves the two tenants the simulation asks *of itself*, mid-write:
  *
@@ -234,6 +236,13 @@ const WRITES: { field: string; pattern: RegExp }[] = [
   // Batch DT11: the collection, which the law reads under Scutage, because an
   // Order off its chair pays part of its yields.
   { field: 'orders', pattern: /\.orders\.(push|splice)\(|\.orders\s*=[^=]/ },
+  // Batch P1: a road, which the maintenance bill, the connected towns, the
+  // `roadHexes` count and the `road` hex test read. A town's list and the empire's
+  // lines are on the economy clock now, so a road is a field this register governs.
+  {
+    field: 'road',
+    pattern: /\.road\s*=[^=]|delete\s+\w+(\.\w+)*\.road\b|\.roadFree\s*=[^=]|delete\s+\w+(\.\w+)*\.roadFree/,
+  },
 ];
 
 /** How a function says "the world moved under the empire walks". */
@@ -536,13 +545,22 @@ const EXCUSED = new Map<string, string>([
     'the broom: it deletes only war losses that are already outside the weariness window on this turn and every later one, and the weariness reading skips those, so no answer changes',
   ],
   // Dominion batch D7.
+  // Batch P1.
+  [
+    'roads.ts#layRoad',
+    'takes a tile and no state; its callers announce: a plain order’s walk after the arrival that paved (`advanceAlongPath`), a phase’s walk on the next step and when the phase ends, and `foundCityAt` in `recomputeVisibility`, after the Founders’ Road',
+  ],
+  [
+    'visibility.ts#sweepSight',
+    'writes the grid for its two callers and answers what changed: `recomputeVisibility` announces every sweep, and `recomputeMarchSight` announces when a card could tell',
+  ],
   [
     'state.ts#breakFortify',
     'takes no state; each of its three callers announces in its own body: `advanceAlongPath` on the step, `captureUnit` on the change of owner, and `applyCombat` on the fight',
   ],
   [
     'visibility.ts#recordMeetings',
-    'called only by `recomputeVisibility`, which announces on the line after it returns',
+    'called only by `sweepSight`; `recomputeVisibility` and `recomputeMarchSight` announce a new meeting after it returns',
   ],
 ]);
 
@@ -599,6 +617,160 @@ function bodyOf(file: string, fn: string): string | null {
   }
   return start >= 0 ? lines.slice(start).join('\n') : null;
 }
+
+/**
+ * **Every read of a piece's position in the card evaluator and the yield layers**,
+ * with what makes it safe (batch P1).
+ *
+ * `readCity`, `readEmpire`, `readEmpireRates` and the bot's `townFolds` grid sit on
+ * the economy clock, and a plain step leaves that clock still. So a new read of where
+ * a piece stands, under those readings, is a stale yield unless `stepIsSeen`
+ * (`movement.ts`) announces the step it can see. Each row names the clause of
+ * `stepIsSeen` that covers it, or says why the function is not under a reading.
+ *
+ * The list was derived by walking the call graph from `explainCity`, `foldCity`,
+ * `foldEmpireRates`, `explainEmpireLines`, `empirePercents`, `meterEffects`,
+ * `controlledHoldings`, `liveEffects` and `turnsToBuild`, with the type checker
+ * naming every read of a `Unit` field. `combat.ts#siegeField` is the one reader
+ * outside these files, under `explainOpusGate`, and clause 5 covers it.
+ */
+const POSITION_READERS = new Map<string, string>([
+  ['blockade.ts#cityBlockaded', 'clause 4: the piece blockades'],
+  ['evaluator.ts#fortifiedHexTest', 'clause 1: a fortified piece that steps leaves its trench'],
+  ['evaluator.ts#countOf', 'clause 1: the `fortifiedUnits` count, for the same reason'],
+  ['evaluator.ts#generalPresent', 'clause 2: a town’s own hex'],
+  ['evaluator.ts#garrisonOf', 'clause 2: a town’s own hex'],
+  ['evaluator.ts#rebateReaches', 'clauses 2 and 3: `where` asks the gate or the border'],
+  ['evaluator.ts#cardUpkeepSurchargeLines', 'clause 3: `where` asks the border'],
+  ['evaluator.ts#combatUnitBeside', 'clause 5: a soldier while an empire holds `opusSiege`'],
+  // Under no town's list, empire's lines or meters: the call graph does not reach
+  // them. Each answers a question about a fight, a piece's own stat, or a grant being
+  // paid, and none of those is folded into a yield.
+  ['evaluator.ts#combatConditionHolds', 'not under a reading: the combat ledger'],
+  ['evaluator.ts#adjacentFriendlies', 'not under a reading: the combat ledger'],
+  ['evaluator.ts#besideGreatGeneral', 'not under a reading: the combat ledger'],
+  ['evaluator.ts#besideMatching', 'not under a reading: the combat ledger'],
+  ['evaluator.ts#nearLearning', 'not under a reading: the combat ledger'],
+  ['evaluator.ts#combatScaleCount', 'not under a reading: the combat ledger'],
+  ['evaluator.ts#cardUnitStat', 'not under a reading: a piece’s own stat, not a yield'],
+  ['evaluator.ts#escortAt', 'not under a reading: a founding rider’s condition'],
+  ['evaluator.ts#harvestEnemyHexes', 'not under a reading: a grant being paid, which announces'],
+  ['evaluator.ts#rallyAround', 'not under a reading: a grant being paid, which announces'],
+  ['evaluator.ts#unitIdsNearGenerals', 'not under a reading: a grant being paid, which announces'],
+]);
+
+describe('the register of what can see a piece', () => {
+  /** The files a town's list and an empire's lines are folded in. */
+  const FOLDING_FILES =
+    /\/(evaluator|describers|draft|hex|town|empire|stages|blockade|routeYields|routes|routeImports|upkeep|empireGold|resourceEffects|meters|buildingEffects|roads|readings)\.ts$/;
+  /** A read of a position off a name a piece goes by. */
+  const READS_POSITION = /\b(unit|other|piece|ship|hull|garrison|soldier|general)\.(col|row)\b/;
+
+  function positionSites(): string[] {
+    const found = new Set<string>();
+    for (const { path, file, text } of simFiles()) {
+      if (!FOLDING_FILES.test(`/${path.split('/').pop()}`)) continue;
+      const lines = text.split('\n');
+      for (const [index, raw] of lines.entries()) {
+        const code = raw.split('//')[0]!;
+        if (code.trim().startsWith('*')) continue;
+        if (!READS_POSITION.test(code)) continue;
+        // `unit.col = ` would be a write, which the register above governs.
+        let fn = '(top level)';
+        for (let back = index; back >= 0; back--) {
+          const match = FUNCTION_START.exec(lines[back]!);
+          if (match) {
+            fn = match[1] ?? match[2] ?? fn;
+            break;
+          }
+        }
+        found.add(`${file}#${fn}`);
+      }
+    }
+    return [...found].sort();
+  }
+
+  it('names every function that reads where a piece stands', () => {
+    const sites = positionSites();
+    expect(sites.length).toBeGreaterThan(5);
+    // A new name here is a question: can a town's list, an empire's lines or the
+    // meters reach this function? If so, `stepIsSeen` must announce the step it can
+    // see, and the row names the clause. If not, the row says why not.
+    expect(sites.filter((site) => !POSITION_READERS.has(site))).toEqual([]);
+  });
+
+  it('keeps no row for a function that stopped reading one', () => {
+    const sites = new Set(positionSites());
+    expect([...POSITION_READERS.keys()].filter((key) => !sites.has(key))).toEqual([]);
+  });
+
+  it('keeps `siegeField` under the Opus gate and nowhere else in the yields', () => {
+    // The one reader outside the files above. If a second yield reader asks it,
+    // clause 5 of `stepIsSeen` no longer covers it, because that clause depends on
+    // a seat holding `opusSiege`.
+    for (const { file, text } of simFiles()) {
+      if (!/^(town|empire|hex|stages|evaluator|describers|draft)\.ts$/.test(file)) continue;
+      const askers = text.split('\n').filter((line) => /\bsiegeField\(/.test(line.split('//')[0]!));
+      const trimmed = askers.filter((line) => !line.trim().startsWith('*'));
+      if (file === 'town.ts') expect(trimmed.length, file).toBe(1);
+      else expect(trimmed.length, file).toBe(0);
+    }
+  });
+
+  it('keeps every count that names a garrison asking the one sweep', () => {
+    // Clause 2 rests on `garrisonOf` asking who stands on a town's own hex.
+    const evaluator = simFiles().find((row) => row.file === 'evaluator.ts')!.text;
+    expect(bodyOf('evaluator.ts', 'garrisonOf')).toContain('unit.col !== city.col');
+    expect(evaluator).toContain('return garrisonOf(state, city).length > 0;');
+  });
+
+  it('announces a step only through its one test', () => {
+    // The register above sees a `bumpEconomy(` in `advanceAlongPath` and is content.
+    // This holds the other half: it is the test that decides, and only for a plain
+    // order. A walk inside a phase announces every step.
+    const walk = bodyOf('movement.ts', 'advanceAlongPath')!;
+    expect(walk).toContain('const seen = !plainOrder || stepIsSeen(state, unit, from, tile);');
+    expect(walk).toContain('if (seen) bumpEconomy(state);');
+    // After both writes, because `arriveOnTile` asks the meters.
+    expect(walk.indexOf('if (seen) bumpEconomy(state);')).toBeGreaterThan(walk.indexOf('breakFortify(unit);'));
+    expect(walk.indexOf('if (seen) bumpEconomy(state);')).toBeLessThan(walk.indexOf('arriveOnTile('));
+    // A road is the arrival's own write, and the order announces it after the arrival.
+    expect(walk).toContain('if (plainOrder && unpaved && tile.road !== undefined) bumpEconomy(state);');
+    expect(walk.indexOf('tile.road !== undefined) bumpEconomy')).toBeGreaterThan(walk.indexOf('arriveOnTile('));
+  });
+
+  it('keeps the quiet door to the two walks a command takes', () => {
+    // A phase reads remembered answers while it runs, and not all its writes
+    // announce, so only `applyMoveUnit` and `swapPlaces` may walk quietly.
+    const callers: string[] = [];
+    for (const { file, text } of simFiles()) {
+      for (const line of text.split('\n')) {
+        const code = line.split('//')[0]!;
+        if (code.trim().startsWith('*') || !/\badvanceAlongPath\(/.test(code)) continue;
+        if (/\bexport function\b/.test(code)) continue;
+        if (/,\s*true\s*\)/.test(code)) callers.push(file);
+      }
+    }
+    expect(callers.sort()).toEqual(['commands.ts', 'movement.ts', 'movement.ts']);
+    const commands = simFiles().find((row) => row.file === 'commands.ts')!.text;
+    expect(commands.match(/recomputeMarchSight\(/g)?.length).toBe(2);
+    expect(bodyOf('visibility.ts', 'recomputeVisibility')).toContain('bumpEconomy(state);');
+  });
+
+  it('holds the four readings on the economy clock, with what they stand on', () => {
+    const readings = simFiles().find((row) => row.file === 'readings.ts')!.text;
+    expect(readings).toContain("slateMemo(state, 'economy', 'towns', String(city.id)");
+    expect(readings).toContain("slateMemo(state, 'economy', 'empires', String(playerId)");
+    expect(readings).toContain("slateMemo(state, 'economy', 'rates', String(playerId)");
+    expect(readings).toContain("slateMemo(state, 'economy', 'percents', String(playerId)");
+  });
+
+  it('keeps `foldEmpireRates` itself free of a memo, for the callers inside a write', () => {
+    // `windfallPayout`, `actGainOf`, `runCensus` and the `empireYield` count ask from
+    // inside a handler or a phase, and the count asks under a recursion cut.
+    expect(bodyOf('empire.ts', 'foldEmpireRates')).not.toContain('slateMemo');
+  });
+});
 
 describe('the register of announced writes', () => {
   it('finds the writes it is a register of', () => {

@@ -420,12 +420,11 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
   // highway is *worn* by traffic, so it is written where an arrival is written
   // and nowhere else. See `layRoadUnder` and `Tile.road`.
   //
-  // A hex that was paved is the report's other silent write, and since batch M3
-  // it needs no announcement of its own: a road joins the maintenance bill and
-  // can connect a town to the capital, both of them lines of `explainEmpireGold`
-  // and so of `readEmpire` — a **revision**-clock reading, which this command's
-  // own bump raises on the way out whether or not the economy moved. No walk on
-  // the economy clock folds `Tile.road`. See `slate.ts`'s M3 section.
+  // A hex that was paved is the report's other silent write. A road joins the
+  // maintenance bill and can connect a town to the capital, both of them lines of
+  // `explainEmpireGold`, and `readEmpire` is on the economy clock. A plain order's
+  // walk announces it (`advanceAlongPath`), and any other arrival is followed by a
+  // bump of its own command or phase.
   layRoadUnder(unit, tile);
   return report;
 }

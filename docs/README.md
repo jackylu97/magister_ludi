@@ -738,9 +738,10 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
     half speed).
   - A hex test asks whether a **fortified military unit** of the empire stands
     on the hex (`fortifiedUnit`), answered through the context's `GroundFacts`;
-    the `fortifiedUnits` count counts those units inside a town's borders. Every
-    write of `Unit.fortifiedTurns` moves the economy clock, in the writer or in
-    its caller (`test/sim/slateRegister.test.ts`).
+    the `fortifiedUnits` count counts those units inside a town's borders. A write
+    of `Unit.fortifiedTurns` moves the economy clock, in the writer or in its caller
+    (`test/sim/slateRegister.test.ts`). An order to fortify and a step out of a
+    trench move it only when the owner's law can read a trench (`lawReadsTrenches`).
   - **Disbanding a unit is a moment** (`disband`, paid in `applyDisbandUnit`):
     it carries the town the unit stood in and the unit's production cost, which
     a unit raised for free does not carry, and a rider can ask for that town

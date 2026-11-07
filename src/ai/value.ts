@@ -116,9 +116,9 @@ import { levyReading } from './campaign';
 // town is owed, whether a war is on, and which pieces are field soldiers.
 import { atWarWithAnybody, fieldSoldiersOf, garrisonAt, garrisonOwed } from './campaign';
 // The town's and the empire's published readings, remembered on
-// `state.revision` — the bot subscribes to the same source of truth the panel,
-// the top bar and the Ledger do (batch E2). See `readings.ts`.
-import { readCity, readEmpirePercents } from '../sim/readings';
+// the economy clock. The bot subscribes to the same source of truth the panel,
+// the top bar and the Ledger do. See `readings.ts`.
+import { readCity, readEmpirePercents, readEmpireRates } from '../sim/readings';
 import {
   availableCopies,
   buildingProductionCost,
@@ -163,7 +163,6 @@ import {
   explainEmpireLines,
   foldEmpireIncome,
   foldEmpireLines,
-  foldEmpireRates,
   stageEmpireFold,
 } from '../sim/yields/empire';
 import { explainEmpireGold } from '../sim/empireGold';
@@ -4290,7 +4289,7 @@ const RATES_MEMO = new WeakMap<ValueContext, EmpireRates>();
 function ratesOf(ctx: ValueContext): EmpireRates {
   let held = RATES_MEMO.get(ctx);
   if (held === undefined) {
-    held = foldEmpireRates(ctx.state, ctx.playerId);
+    held = readEmpireRates(ctx.state, ctx.playerId);
     RATES_MEMO.set(ctx, held);
   }
   return held;
@@ -5933,7 +5932,7 @@ function deckReading(state: GameState, playerId: number): DeckReading {
  * grows these terms of its own, this function collapses to it.
  */
 function marginRates(state: GameState, playerId: number): Record<Voice, number> {
-  const rates = foldEmpireRates(state, playerId);
+  const rates = readEmpireRates(state, playerId);
   const reading: Record<Voice, number> = {
     food: rates.foodPerTurn ?? 0,
     production: rates.productionPerTurn ?? 0,

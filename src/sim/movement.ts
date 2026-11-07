@@ -63,6 +63,8 @@
  */
 
 import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
+import { blockades } from './blockade';
+import { cityAt, tileOwnerPlayerId } from './cities';
 import { breakFortify } from './combat';
 import { type Tile, getTileAt, tileIndex } from './map';
 import {
@@ -84,7 +86,9 @@ import type { GameState, Unit } from './state';
 // time, and the alternative — this file deciding what a landing is worth — would
 // be a second evaluator of a card.
 import { cardLandfallEffects, timedEffectIsLive } from './statecraft';
+import { lawReadsTrenches, opusSiegeInForce, upkeepAsksWhere } from './statecraft/evaluator';
 import { isWaterTerrain } from './terrainData';
+import { isCombatant, unitDef } from './unitData';
 import { bumpEconomy } from './slate';
 
 
@@ -140,6 +144,57 @@ export interface AdvanceResult {
 }
 
 /**
+ * **Can any remembered reading tell that this piece took this step?**
+ *
+ * The economy clock (`slate.ts`) moves when a write changes what its readings
+ * fold, and those readings include a town's whole list. Most steps change nothing
+ * they fold, and a bot gives hundreds of orders a turn. So a step of a plain order
+ * (`advanceAlongPath`'s `plainOrder`) announces only if it can change one of these,
+ * which are all the places a town's list, an empire's lines or its meters read
+ * where a piece stands:
+ *
+ *   1. **A fortified piece leaves its trench, and its owner's law reads trenches.**
+ *      The `fortifiedUnits` and `garrisonWatch` counts and the `fortifiedUnit` hex
+ *      test read `Unit.fortifiedTurns`, and a position only for a piece that has one
+ *      (`lawReadsTrenches`).
+ *   2. **Either hex is a town, and the piece is one a town can count.** The
+ *      `garrison` count and the `garrisoned` and `garrisonRank` scopes count soldiers
+ *      (`isCombatant`) on a town's own hex, the `generalPresent` scope asks for a
+ *      great person, and an upkeep rebate with `where: 'garrison'` can reach any
+ *      piece its owner's law names. Rows of a rival's law can ask this too, on a
+ *      route that ends in the town or a post standing in it, so this does not depend
+ *      on what the owner's own law holds.
+ *   3. **The step crosses the owner's border, and the owner's upkeep asks.** An
+ *      upkeep rebate or surcharge with `where: 'ownTerritory'` or
+ *      `'foreignTerritory'` asks only which side a piece is on (`upkeepAsksWhere`).
+ *   4. **The piece blockades.** `cityBlockaded` cuts a town's route lines.
+ *   5. **A soldier moves while an empire holds `opusSiege`.** `cardOpusSiegeBy` and
+ *      `siegeField` ask who stands around a town building the Opus. A town's what-if
+ *      can ask about the Opus before it reaches the front of a queue, so the test is
+ *      the rule and not the queue.
+ *
+ * What would make this wrong is a new reader of a piece's position under
+ * `explainCity`, `explainEmpireLines` or the meters. `POSITION_READERS` in
+ * `test/sim/slateRegister.test.ts` lists the readers and fails when a new one
+ * appears. A wrong answer here is a stale yield, so a doubtful case announces.
+ * `advanceAlongPath` announces a hex it paved, and `recomputeMarchSight` a seat's
+ * sight: the two other things a plain order can write that these readings fold.
+ */
+function stepIsSeen(state: GameState, unit: Unit, from: Tile, to: Tile): boolean {
+  if (unit.fortifiedTurns !== undefined && lawReadsTrenches(state, unit.ownerId)) return true;
+  const def = unitDef(unit.type);
+  const soldier = isCombatant(def);
+  if (cityAt(state, from.col, from.row) || cityAt(state, to.col, to.row)) {
+    if (soldier || def.greatWork === true || upkeepAsksWhere(state, unit, 'gate')) return true;
+  }
+  const wasHome = tileOwnerPlayerId(state, from.col, from.row) === unit.ownerId;
+  const isHome = tileOwnerPlayerId(state, to.col, to.row) === unit.ownerId;
+  if (wasHome !== isHome && upkeepAsksWhere(state, unit, 'border')) return true;
+  if (blockades(state, unit)) return true;
+  return soldier && opusSiegeInForce(state);
+}
+
+/**
  * Walks `unit` along `path` (offset cells, the unit's own tile excluded),
  * spending movement, and stores whatever is left of the order on the unit.
  *
@@ -154,12 +209,20 @@ export interface AdvanceResult {
  * that is not ordinary about the first of them is that the hex it ends on is
  * occupied by the piece that is about to walk the route back. The second walk
  * passes nothing, because by then the ground it is aiming at is empty.
+ *
+ * `plainOrder` says a command is walking this piece, so a step that no reading can
+ * see stays quiet (`stepIsSeen`, batch P1). A walk inside a phase leaves it off and
+ * announces every step. The phases read remembered answers while they run, and their
+ * own writes do not all announce: `marchOneTrader` renews a route's term and says
+ * nothing, and the next step's announcement is what makes the next reader see it. A
+ * command writes nothing of that kind and answers at the end.
  */
 export function advanceAlongPath(
   state: GameState,
   unit: Unit,
   path: readonly Cell[],
   trading?: Unit,
+  plainOrder = false,
 ): AdvanceResult {
   let steps = 0;
   let cleared = false;
@@ -229,21 +292,22 @@ export function advanceAlongPath(
       break;
     }
 
+    // Asked before the writes, because a step out of a trench is seen and the
+    // trench is gone after `breakFortify`.
+    const seen = !plainOrder || stepIsSeen(state, unit, from, tile);
     unit.col = tile.col;
     unit.row = tile.row;
     unit.movesLeft = after;
-    // **Where a piece stands is a line of the meters** — The Long Watch's
-    // garrison (batch M3, `slate.ts`, and `createUnit`'s note). *After* the two
-    // writes, which is the register's rule everywhere: an announcement before a
-    // write is an answer taken again one line too early, and `arriveOnTile`
-    // below asks the meters.
-    bumpEconomy(state);
     // A trench is a place, not a posture: the step out of it is the moment it
     // stops counting. Written here rather than in the `moveUnit` handler so it
     // also covers a stored order resumed by `spendLeftoverMovement` — one implementation
     // of "the unit moved", exactly as this function is one implementation of the
     // walk itself.
     breakFortify(unit);
+    // After all the writes, because `arriveOnTile` below asks the meters. A step of
+    // a plain order that nothing can see does not announce: that is what lets a seat
+    // march without pricing its empire again. See `stepIsSeen`.
+    if (seen) bumpEconomy(state);
     // And the other half of "the unit entered a tile": whatever was standing on
     // it. Beside `breakFortify` for exactly its reason — one place a position
     // changes, one place that can forget — and per *step* rather than at the end
@@ -259,7 +323,12 @@ export function advanceAlongPath(
     if (isShoreStep(from, tile, mover) && isWaterTerrain(from.terrain)) {
       hangLandfall(state, unit);
     }
+    const unpaved = tile.road === undefined;
     const found = arriveOnTile(state, unit, tile);
+    // A laden caravan wears a road as it arrives (`layRoadUnder`). The maintenance
+    // bill and the connected towns read roads, and a plain order's result does not
+    // report one, so that order announces it here.
+    if (plainOrder && unpaved && tile.road !== undefined) bumpEconomy(state);
     if (!isEmptyArrival(found)) arrivals.push(found);
     walked.push({ col: tile.col, row: tile.row });
     steps += 1;
@@ -371,8 +440,8 @@ function dryWhereDry(
  * order and the ruins and camps it turned up are one piece of news.
  */
 export function swapPlaces(state: GameState, unit: Unit, plan: SwapPlan): ArrivalReport[] {
-  const out = advanceAlongPath(state, unit, plan.path, plan.sitter);
-  const back = advanceAlongPath(state, plan.sitter, plan.back);
+  const out = advanceAlongPath(state, unit, plan.path, plan.sitter, true);
+  const back = advanceAlongPath(state, plan.sitter, plan.back, undefined, true);
   return [...out.arrivals, ...back.arrivals];
 }
 

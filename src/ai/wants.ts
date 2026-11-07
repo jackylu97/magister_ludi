@@ -147,7 +147,7 @@ import {
   foldCity,
 } from '../sim/yields/town';
 // The town's and the empire's published readings, remembered on
-// `state.revision` — the bot subscribes to the same source of truth the panel,
+// the economy clock. The bot subscribes to the same source of truth the panel,
 // the top bar and the Ledger do (batch E2). See `readings.ts`.
 import { readCity, readEmpirePercents } from '../sim/readings';
 import { type ImprovementId, improvementYield, workForFamily } from '../sim/improvementData';

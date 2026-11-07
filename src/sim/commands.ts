@@ -184,6 +184,7 @@ import {
   wakeUnit,
 } from './state';
 import { bumpEconomy } from './slate';
+import { lawReadsTrenches } from './statecraft/evaluator';
 // The Vizier's Hall's law, read where every other non-yield building fact is
 // (`buildingEffects.ts`) so the reducer names no building.
 import { cityQueueFloor, queueFloorRefusal } from './buildingEffects';
@@ -279,7 +280,7 @@ import { type SpecialistFamily, isSpecialistFamily } from './greatPeopleData';
 import { type UnitTypeId, isCivilian, isCombatant, isUnitTypeId, unitDef } from './unitData';
 import { caravanTypeFor } from './routes';
 import { hasStackingRoom, sleepError } from './units';
-import { recomputeVisibility } from './visibility';
+import { recomputeMarchSight, recomputeVisibility } from './visibility';
 
 // --- command types ----------------------------------------------------------
 
@@ -2363,7 +2364,7 @@ function applyMoveUnit(state: GameState, command: MoveUnitCommand): CommandResul
       // two pieces for the sake of one flag.
       wakeUnit(plan.sitter);
       delete plan.sitter.autoExplore;
-      recomputeVisibility(state, actor.id);
+      recomputeMarchSight(state, actor.id);
       return ok(arrivals.length > 0 ? arrivals : undefined);
     }
     /**
@@ -2427,11 +2428,11 @@ function applyMoveUnit(state: GameState, command: MoveUnitCommand): CommandResul
   if (!path) return fail(`No path from (${unit.col}, ${unit.row}) to (${tile.col}, ${tile.row})`);
 
   const from = { col: unit.col, row: unit.row };
-  const walk = advanceAlongPath(state, unit, path);
+  const walk = advanceAlongPath(state, unit, path, undefined, true);
   // The unit moved, so what its owner can see moved with it. One recompute per
   // order rather than one per step: `advanceAlongPath` may walk five tiles, and
   // only where it stopped decides what is lit.
-  recomputeVisibility(state, actor.id);
+  recomputeMarchSight(state, actor.id);
   // What the march crossed, if it crossed anything — see `CommandResult`.
   const result = ok(walk.arrivals);
   // And the cells it walked, when it went round a blocked hex (flags item
@@ -3088,8 +3089,8 @@ function applyFortify(state: GameState, command: FortifyCommand): CommandResult 
   // `advanceFortify` raises this at the end of every turn the unit stays put.
   unit.fortifiedTurns = 0;
   // A fortified unit is a line of the cards' counts and hex tests (Dominion
-  // batch D7, `slate.ts`), so the write announces, on this movement command too.
-  bumpEconomy(state);
+  // batch D7, `slate.ts`), so the write announces if this seat's law reads one.
+  if (lawReadsTrenches(state, unit.ownerId)) bumpEconomy(state);
   return ok();
 }
 
@@ -4999,12 +5000,12 @@ export type CommandClock = 'economy' | 'movement';
  * the conservative answer costs nothing, and being wrong in that direction is a
  * miss where the other direction is a stale reading.
  *
- * What makes the five safe is not their handlers but what the economy clock's
- * tenants read (`readings.ts`): `meterEffects` walks towns, buildings, cards and
- * luxuries and never opens `state.units` at all; `controlledHoldings` walks the
- * ground; `readEmpirePercents` is those plus the treasury. None of them can see
- * where a piece is standing. The town's own list *can* — a caravan's yield is
- * cut by a hull in the harbour mouth — and stays on the revision for it.
+ * What makes the five safe is that each write they make which a tenant of the
+ * economy clock can see announces itself where it happens. Those tenants include a
+ * town's whole list (`readings.ts`), which can see a garrison and a hull in the
+ * harbour mouth. `stepIsSeen` (`movement.ts`) decides this for a step,
+ * `recomputeMarchSight` for what the step reveals, `advanceAlongPath` for a road,
+ * and `applyFortify` for a trench.
  *
  * `moveUnit` is the one row whose honest answer is not a property of its kind:
  * see `economyMoved`.
@@ -5096,6 +5097,11 @@ export const COMMAND_CLOCKS: Record<CommandType, CommandClock> = {
  * carries them in the first place, and reading the whole shape rather than
  * `arrivals` alone means a field added later needs no second thought here.
  *
+ * The one key that does not count is `reroutes`. It tells the interface which cells
+ * a march walked when it went round a blocked hex, and pays nobody. The steps of
+ * that walk answer for themselves through `stepIsSeen`. About one bot march in five
+ * reports one.
+ *
  * The two writes the report cannot carry used to raise a flag this function
  * read (`noteEconomyWrite`, batch M2): the legacy revoked when a soldier walks
  * into a rival's capital, and the road worn under a laden caravan. Since batch
@@ -5106,15 +5112,14 @@ export const COMMAND_CLOCKS: Record<CommandType, CommandClock> = {
  * better: the readings taken *after* the write in the same command see it too.
  *
  * **And the five movement rows are a floor rather than a promise** (batch M3).
- * A march announces itself where the piece moves, because a garrison is a line
- * of the empire's contentment (`slate.ts`, "two rows of that table were wrong"),
- * so a `moveUnit` that walked anywhere has already moved the economy clock by
- * the time this is asked. What the register still buys is the four orders that
- * move nobody — a fortification, a sleep, an auto-explore, a cancellation.
+ * A step that a reading can see announces itself where the piece moves
+ * (`stepIsSeen`, `movement.ts`, batch P1), and so does a fortification that its
+ * owner's law can read. A plain step, a sleep, an auto-explore and a cancellation
+ * move nothing a reading folds, and those are what the narrow door is for.
  */
 function economyMoved(command: Command, result: CommandResult): boolean {
   if (COMMAND_CLOCKS[command.type] !== 'movement') return true;
-  return Object.keys(result).length > 1;
+  return Object.keys(result).some((key) => key !== 'ok' && key !== 'reroutes');
 }
 
 /**

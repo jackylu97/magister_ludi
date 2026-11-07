@@ -551,45 +551,47 @@ describe('the economy clock is the coarser subscription', () => {
     throw new Error('no dry hex beside the piece');
   };
 
-  it('keeps the ground still when a piece steps, and moves the meters with it', () => {
-    // **The correction batch M3's shadow run made to M2's table.** M2 claimed a
-    // step could not reach the empire's happiness, because `meters.ts` never
-    // opens `state.units`. It does not — but the card evaluator it folds does:
-    // The Long Watch pays "+1 happiness for each unit standing in one of your
-    // cities", so where a piece *stands* is a line of `explainHappiness`. The
-    // ground it walks over is a different question, and `controlledHoldings`
-    // still cannot see a piece at all.
+  it('keeps every reading when a piece takes a step nothing can see', () => {
+    // A town's list and the meters can see a piece, for instance a garrison. They
+    // cannot see a scout in the open, and since batch P1 such a step does not
+    // announce, so a seat that marches does not price its empire again.
+    // `test/sim/stepSeen.test.ts` proves each step that *can* be seen does announce.
     const { state } = game();
     found(state, 0);
     const town = state.cities[0]!;
+    const scout = state.units.find((unit) => unit.ownerId === 0 && unit.type === 'scout')!;
+    // Off the town's own hex first, and with the whole map charted, so that the step
+    // below reveals nothing and leaves no gate.
+    const target = stepOut(state, scout.id);
+    expect(applyCommand(state, { type: 'moveUnit', playerId: 0, unitId: scout.id, target }).ok).toBe(true);
+    state.visibility[0]!.fill(EXPLORED);
+    scout.movesLeft = 10;
+    bumpRevision(state);
+    void controlledHoldings(state, 0, 'luxury');
     const holdings = controlledHoldings(state, 0, 'luxury');
     const meters = meterEffects(state, 0);
     const list = readCity(state, town);
     const revision = state.revision;
+    const economy = economyStamp(state);
 
-    const scout = state.units.find((unit) => unit.ownerId === 0 && unit.type === 'scout')!;
+    const next = stepOut(state, scout.id);
+    const inTown = next.col === town.col && next.row === town.row;
+    expect(inTown, 'the fixture stepped into the town').toBe(false);
     const marched = applyCommand(state, {
       type: 'moveUnit',
       playerId: 0,
       unitId: scout.id,
-      target: stepOut(state, scout.id),
+      target: next,
     });
     expect(marched).toEqual({ ok: true });
 
-    // The world moved — the revision says so, and the town's own list is a fresh
-    // object because a piece is exactly the kind of thing a town's list can see.
+    // The world moved, and the revision says so. Nothing a reading folds moved.
     expect(state.revision).toBe(revision + 1);
-    expect(readCity(state, town)).not.toBe(list);
-    // The step announced itself where it happened (`advanceAlongPath`), so the
-    // meters are taken again — and answer the same thing, because this scout is
-    // not standing in a town.
-    expect(meterEffects(state, 0)).not.toBe(meters);
-    expect(meterEffects(state, 0)).toEqual(meters);
-    // The holdings walk is the ground and nothing else, so the answer is the
-    // same — an *equal* list rather than the same object, because a clock throws
-    // its whole half away and the two walks share one (`slate.ts`'s third fact).
-    // What the narrow door still buys is the four order-only commands below.
-    expect(controlledHoldings(state, 0, 'luxury')).toEqual(holdings);
+    expect(economyStamp(state)).toBe(economy);
+    expect(readCity(state, town)).toBe(list);
+    expect(meterEffects(state, 0)).toBe(meters);
+    expect(controlledHoldings(state, 0, 'luxury')).toBe(holdings);
+    expect(readCity(state, town)).toEqual(explainCity(state, town));
   });
 
   it('stands still on the other four orders too', () => {
@@ -636,11 +638,9 @@ describe('the economy clock is the coarser subscription', () => {
   it('moves when a march arrives on a ruin', () => {
     // The one kind whose answer is not a property of its kind. A march ends in
     // `arriveOnTile` on every step, and arriving is how a ruin is claimed and a
-    // camp is burnt out — each of which pays somebody. The decision is made from
-    // the *result*, after the command, so it is exact rather than by category.
-    // Since batch M3 the steps themselves announce as well, so the count below
-    // is a floor: what this pins is that a march which *found* something is an
-    // economy command however few steps it took.
+    // camp is burnt out, each of which pays somebody. The decision is made from
+    // the *result*, after the command. What this pins is that a march which *found*
+    // something is an economy command however few steps it took.
     const { state } = game();
     found(state, 0);
     const scout = state.units.find((unit) => unit.ownerId === 0 && unit.type === 'scout')!;
@@ -858,8 +858,9 @@ describe('nobody rebuilds the town’s list', () => {
         );
         continue;
       }
-      expect(`${path} keys on the revision`).toBe(
-        /revision/.test(text) ? `${path} keys on the revision` : `${path} keys on something else`,
+      // One of the two clocks. `townFolds.ts` moved to the economy clock in batch P1.
+      expect(`${path} keys on a clock`).toBe(
+        /revision|economyStamp/.test(text) ? `${path} keys on a clock` : `${path} keys on something else`,
       );
     }
   });

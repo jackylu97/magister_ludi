@@ -314,9 +314,70 @@ export function sightSources(state: GameState, playerId: number): SightSource[] 
  * the caller decides who is looking.
  */
 export function recomputeVisibility(state: GameState, playerId: number): VisibilityDelta {
+  const swept = sweepSight(state, playerId);
+  if (swept === null) return { became: [], sources: 0, touched: 0 };
+  // **What an empire can see is a line of its meters** (batch M3, `slate.ts`):
+  // a card may pay contentment for each barbarian camp this empire has *sight*
+  // of (`count: 'visibleCamps'`), so the fog is a field an empire walk folds.
+  // Announced at the one place a grid is written, which every seam that moves a
+  // piece or founds a town already calls.
+  bumpEconomy(state);
+  return swept.delta;
+}
+
+/**
+ * The same sweep after a plain order's march (`applyMoveUnit`, batch P1), which
+ * announces only if a card could tell. The readings a march must not disturb include
+ * a town's whole list, and this runs after every march, so one that reveals nothing
+ * must not price the empire again.
+ *
+ * A newly charted hex can move the `revealedTiles` and `discoveredCamps` counts. The
+ * other three figures are `sightFigures`. A new count that reads the grid, the
+ * sightings or `metSeats` joins that function.
+ */
+export function recomputeMarchSight(state: GameState, playerId: number): void {
   const grid = state.visibility[playerId];
-  const empty: VisibilityDelta = { became: [], sources: 0, touched: 0 };
-  if (!grid) return empty;
+  if (!grid) return;
+  const before = sightFigures(state, playerId, grid);
+  const swept = sweepSight(state, playerId);
+  const after = sightFigures(state, playerId, grid);
+  if (
+    swept?.charted === true ||
+    after.campsInSight !== before.campsInSight ||
+    after.foreignTowns !== before.foreignTowns ||
+    after.met !== before.met
+  ) {
+    bumpEconomy(state);
+  }
+}
+
+/** The figures a card can count off a seat's sight, other than the charted hexes. */
+function sightFigures(
+  state: GameState,
+  playerId: number,
+  grid: readonly number[],
+): { campsInSight: number; foreignTowns: number; met: number } {
+  let campsInSight = 0;
+  for (const camp of state.camps) {
+    if (grid[tileIndex(state.map, camp.col, camp.row)] === VISIBLE) campsInSight += 1;
+  }
+  let foreignTowns = 0;
+  for (const sighting of state.citySightings[playerId] ?? []) {
+    if (sighting.ownerId !== playerId) foreignTowns += 1;
+  }
+  return { campsInSight, foreignTowns, met: state.players[playerId]?.metSeats.length ?? 0 };
+}
+
+/**
+ * Writes one seat's sight off where its pieces and towns stand, and answers what
+ * changed. `null` for a seat with no grid. Its two callers announce.
+ */
+function sweepSight(
+  state: GameState,
+  playerId: number,
+): { delta: VisibilityDelta; charted: boolean } | null {
+  const grid = state.visibility[playerId];
+  if (!grid) return null;
 
   const { map } = state;
   // One byte per tile, thrown away at the end of the call. Cheaper than a Set of
@@ -357,12 +418,14 @@ export function recomputeVisibility(state: GameState, playerId: number): Visibil
   }
 
   const became: VisibilityChange[] = [];
+  let charted = false;
   for (let index = 0; index < grid.length; index++) {
     const before = grid[index] ?? HIDDEN;
     // Explored never shrinks: the floor under a tile that has stopped being
     // watched is `explored`, never `hidden`.
     const after = lit[index] ? VISIBLE : before === HIDDEN ? HIDDEN : EXPLORED;
     if (after === before) continue;
+    if (before === HIDDEN) charted = true;
     grid[index] = after;
     const tile = map.tiles[index]!;
     became.push({ col: tile.col, row: tile.row, level: after as VisibilityLevel });
@@ -370,13 +433,7 @@ export function recomputeVisibility(state: GameState, playerId: number): Visibil
 
   updateCitySightings(state, playerId, lit);
   recordMeetings(state, playerId, lit);
-  // **What an empire can see is a line of its meters** (batch M3, `slate.ts`):
-  // a card may pay contentment for each barbarian camp this empire has *sight*
-  // of (`count: 'visibleCamps'`), so the fog is a field an empire walk folds.
-  // Announced at the one place a grid is written, which every seam that moves a
-  // piece or founds a town already calls.
-  bumpEconomy(state);
-  return { became, sources: sources.length, touched };
+  return { delta: { became, sources: sources.length, touched }, charted };
 }
 
 /** Recomputes for every seat. The turn-resolution hammer; see `turn.ts`. */

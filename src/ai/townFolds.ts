@@ -1,7 +1,7 @@
 /**
  * **What every town of this empire makes, what it would make with one more
  * shelf, and how long it would take to raise one** — the one reading three arms
- * of the bot share, folded once per seat per revision.
+ * of the bot share, folded once per seat per tick of the economy clock.
  *
  * It was `wants.ts`' private helper (batch X3, where the purchasing plan and the
  * faith book stopped pricing the same shelf two different ways). Batch X1d moves
@@ -29,15 +29,15 @@
  *     back of the queue (nothing banked counts toward a row that is not at the
  *     front) and memoised the same way.
  *
- * **The reading itself is remembered on `(state, revision, seat)`**, which is the
- * one thing that is new here. `wants.ts` built a fresh one per `wantBook` and
+ * **The reading itself is remembered on `(state, economy clock, seat)`**, which is
+ * the one thing that is new here. `wants.ts` built a fresh one per `wantBook` and
  * that was enough while the book was the only caller; with the chains asking too,
  * a sitting would otherwise fold the same town against the same row once for the
  * book, once for the engines it is executing and once for every goal on the
- * beeline's table. The key is the revision because that is this simulation's
- * statement that the world moved (`GameState.revision`, batch E2): the same seat
- * asking twice at the same revision is asking about a board that has not changed,
- * and a writer that moves the board moves the revision with it.
+ * beeline's table. The key is the economy clock because every answer in this grid
+ * is a town's list or a fold of one, and `readCity` sits on that clock (batch P1). A
+ * plain order leaves the clock still, so the grid survives it. What would make this
+ * wrong is what would make `readCity` wrong: see `stepIsSeen` (`movement.ts`).
  *
  * It is deliberately **not** a tenant of `readings.ts`' slate. The slate is the
  * simulation's published readings, keyed the same way and swept by the same rule;
@@ -52,6 +52,7 @@
 import { type BuildingId } from '../sim/buildingData';
 import { type CityYields, turnsToBuild } from '../sim/cities';
 import { readCity, readEmpirePercents } from '../sim/readings';
+import { economyStamp } from '../sim/slate';
 import type { City, GameState, Player } from '../sim/state';
 import { type CityReading, explainCity, foldCity } from '../sim/yields/town';
 
@@ -74,7 +75,7 @@ export interface TownFolds {
 
 /** The reading, and the board it was taken on. See the module docblock. */
 interface Held {
-  revision: number;
+  economy: number;
   playerId: number;
   folds: TownFolds;
 }
@@ -83,11 +84,12 @@ const FOLD_MEMO = new WeakMap<GameState, Held>();
 
 export function townFolds(state: GameState, player: Player): TownFolds {
   const held = FOLD_MEMO.get(state);
-  if (held !== undefined && held.revision === state.revision && held.playerId === player.id) {
+  const economy = economyStamp(state);
+  if (held !== undefined && held.economy === economy && held.playerId === player.id) {
     return held.folds;
   }
   const folds = buildTownFolds(state, player);
-  FOLD_MEMO.set(state, { revision: state.revision, playerId: player.id, folds });
+  FOLD_MEMO.set(state, { economy, playerId: player.id, folds });
   return folds;
 }
 
@@ -109,8 +111,8 @@ function buildTownFolds(state: GameState, player: Player): TownFolds {
     return fresh;
   };
   // **Every reading below is lazy**, and that is a measured decision rather than
-  // a style. The board's revision moves on every accepted command, so a grid is
-  // rebuilt several times inside one seat's turn; a rebuild that folded all its
+  // a style. The economy clock moves on most commands that are not plain orders, so
+  // a grid is rebuilt several times inside one seat's turn; a rebuild that folded all its
   // towns up front paid for the whole empire to answer one question about one
   // town, and the eight-seed probe read it as sixteen seconds of a hundred-turn
   // game. Built lazily a rebuild costs an array, and only the pairs somebody asks

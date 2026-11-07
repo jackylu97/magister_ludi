@@ -42,7 +42,16 @@
  * `test/mapgen/moduleCycles.test.ts` checks it.
  */
 
-import { type GameMap, type Tile, getTile, getTileAt, mapNeighbors, tileHex } from './map';
+import {
+  type GameMap,
+  type Tile,
+  getTile,
+  getTileAt,
+  mapNeighbors,
+  neighborTiles,
+  tileHex,
+  tileIndex,
+} from './map';
 import type { City, GameState, Unit } from './state';
 import { cardBehaviorRuleFor } from './statecraft/evaluator';
 import { isWaterTerrain } from './terrainData';
@@ -105,25 +114,50 @@ export function blockadedWaterAround(map: GameMap, from: Tile): Tile[] {
  * a blockade, and a hull on any dry hex is impossible anyway. **Adjacent to the
  * centre** — a blockade is the mouth of the harbour, not the coastline.
  *
- * `state.units` in array order, though the answer is a boolean and no outcome
- * can depend on the order: the discipline, not the requirement.
+ * This is asked once or twice for every route line of every town, so it has to
+ * cost next to nothing. A town inland has no harbour and answers at once. A port
+ * walks the pieces, and because rows do not wrap, one comparison rules out every
+ * piece more than a row from the centre. It stays a walk and not a remembered list
+ * of ships, because a bot's what-if can hold a shallow copy of the board for a whole
+ * sitting, and that copy shares `state.units` but no clock with the real board. The
+ * answer is a boolean, so no outcome depends on the order.
  */
 export function cityBlockaded(state: GameState, city: City): boolean {
-  const centre = getTileAt(state.map, city.col, city.row);
-  if (!centre) return false;
-  const ring = new Set<string>();
-  for (const hex of mapNeighbors(state.map, tileHex(centre))) {
-    const tile = getTile(state.map, hex);
-    if (!tile || !isWaterTerrain(tile.terrain)) continue;
-    ring.add(`${tile.col},${tile.row}`);
-  }
-  if (ring.size === 0) return false;
+  const mouth = harbourMouth(state.map, city);
+  if (mouth.length === 0) return false;
   for (const unit of state.units) {
     if (unit.ownerId === city.ownerId) continue;
-    // Where it stands first, because that is a string lookup and the piece's
-    // question may read its owner's cards.
-    if (!ring.has(`${unit.col},${unit.row}`)) continue;
+    const rows = unit.row - city.row;
+    if (rows > 1 || rows < -1) continue;
+    if (!isNaval(unitDef(unit.type))) continue;
+    // Where it stands first, because the piece's question may read its owner's cards.
+    if (!mouth.some((tile) => tile.col === unit.col && tile.row === unit.row)) continue;
     if (blockades(state, unit)) return true;
   }
   return false;
+}
+
+/**
+ * The water hexes beside each town's centre, by the centre's tile index, one table a
+ * map. Terrain is not a mutable tile field (`CLAUDE.md`, "Traps — sim"), and a town
+ * does not move, so an entry cannot go stale. A `WeakMap` on the map, so a shallow
+ * copy of the board shares it, and a new map starts empty.
+ */
+const MOUTHS = new WeakMap<GameMap, Map<number, readonly Tile[]>>();
+
+/** The water hexes beside a town's centre. A town inland has none. */
+function harbourMouth(map: GameMap, city: City): readonly Tile[] {
+  let table = MOUTHS.get(map);
+  if (table === undefined) {
+    table = new Map();
+    MOUTHS.set(map, table);
+  }
+  const at = tileIndex(map, city.col, city.row);
+  let mouth = table.get(at);
+  if (mouth === undefined) {
+    const centre = getTileAt(map, city.col, city.row);
+    mouth = centre ? neighborTiles(map, tileHex(centre)).filter((tile) => isWaterTerrain(tile.terrain)) : [];
+    table.set(at, mouth);
+  }
+  return mouth;
 }

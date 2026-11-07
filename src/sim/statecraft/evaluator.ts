@@ -2053,6 +2053,45 @@ export function isFortifiedSoldier(unit: Unit): boolean {
   return unit.fortifiedTurns !== undefined && unitDef(unit.type).category === 'military';
 }
 
+/** The names a row uses when it reads whether a piece is dug in. See `lawReadsTrenches`. */
+const READS_A_TRENCH = /"(?:fortifiedUnits|fortifiedUnit|garrisonWatch)"/;
+
+/** Whether one row names one of them. Rows are static data, so this is asked once a row. */
+const TRENCH_ROWS = new WeakMap<CardEffect, boolean>();
+
+function rowReadsTrench(effect: CardEffect): boolean {
+  let held = TRENCH_ROWS.get(effect);
+  if (held === undefined) {
+    held = READS_A_TRENCH.test(JSON.stringify(effect));
+    TRENCH_ROWS.set(effect, held);
+  }
+  return held;
+}
+
+/**
+ * **Can this empire's law tell whether one of its pieces is dug in?** Only the
+ * `fortifiedUnits` and `garrisonWatch` counts and the `fortifiedUnit` hex test read
+ * `Unit.fortifiedTurns` under a town's list, and each reads the pieces of the seat
+ * whose law holds the row. So a piece that fortifies, or leaves its trench, changes
+ * no reading unless its own owner holds such a row (`applyFortify`, `stepIsSeen`).
+ * Most seats do not, and a bot fortifies a dozen times a turn.
+ *
+ * Remembered on the economy clock, because a law that changes announces. It looks
+ * for the name anywhere in a row, so a row that nests the test deep inside it still
+ * counts. The town-local rows join the empire's, since a rite or a belief may carry
+ * one. `test/sim/stepSeen.test.ts` holds the data to two things this relies on: no
+ * `conditionRule` gate reads a trench, since a closed gate is not in this list, and
+ * no such row is paid on a route.
+ */
+export function lawReadsTrenches(state: GameState, playerId: number): boolean {
+  return slateMemo(state, 'economy', 'lawReadsTrenches', String(playerId), () => {
+    if (liveEffects(state, playerId).some(({ effect }) => rowReadsTrench(effect))) return true;
+    return citiesOf(state, playerId).some((town) =>
+      cityLocalEffects(state, town).some(({ effect }) => rowReadsTrench(effect)),
+    );
+  });
+}
+
 /**
  * **Does a fortified military unit of this empire stand on a hex?** The answer
  * `TileCondition`'s `fortifiedUnit` asks for, as a closure (Dominion batch D7).
@@ -7112,6 +7151,31 @@ function freeByLaw(state: GameState, playerId: number, unit: Unit): boolean {
 }
 
 /**
+ * **Can this piece's upkeep tell where it stands?** `stepIsSeen` (`movement.ts`) asks
+ * this when a step crosses the owner's border (`'border'`) or passes a town's gate
+ * (`'gate'`), because `rebateReaches` and `cardUpkeepSurchargeLines` read a position
+ * for a row with a `where`.
+ *
+ * The owner's half is remembered on the economy clock, because a law that changes
+ * announces. A waiver hung on the piece itself goes through `rebateReaches` as well,
+ * so a piece that carries one answers yes.
+ */
+export function upkeepAsksWhere(state: GameState, unit: Unit, ask: 'border' | 'gate'): boolean {
+  if (unit.timed?.some((entry) => entry.effect.kind === 'upkeepRebate') === true) return true;
+  const law = slateMemo(state, 'economy', 'upkeepWhere', String(unit.ownerId), () => {
+    const wheres: (string | undefined)[] = [
+      ...effectsOfKind(state, unit.ownerId, 'upkeepRebate').map(({ effect }) => effect.where),
+      ...effectsOfKind(state, unit.ownerId, 'upkeepSurcharge').map(({ effect }) => effect.where),
+    ];
+    return {
+      border: wheres.includes('ownTerritory') || wheres.includes('foreignTerritory'),
+      gate: wheres.includes('garrison'),
+    };
+  });
+  return law[ask];
+}
+
+/**
  * **The card whose waiver this unit carries**, or `null` (Commerce batch T6,
  * Mercenary Contracts). A waiver is a live `upkeepRebate` with `free` hung on
  * the unit itself (`Unit.timed`, written at its birth by
@@ -12061,6 +12125,20 @@ export function cardOpusSiegeBy(state: GameState, city: City): OpusSiege | null 
     return { playerId: player.id, card: row.card, source: row.source };
   }
   return null;
+}
+
+/**
+ * **Does any empire hold the `opusSiege` rule?** `stepIsSeen` (`movement.ts`) asks
+ * this on a soldier's step, because `cardOpusSiegeBy` can read where soldiers stand
+ * only for such an empire. Remembered on the economy clock, because a step asks it
+ * and a law that changes announces.
+ */
+export function opusSiegeInForce(state: GameState): boolean {
+  return slateMemo(state, 'economy', 'opusSiege', '', () =>
+    realPlayers(state).some((player) =>
+      effectsOfKind(state, player.id, 'rule').some(({ effect }) => effect.rule === 'opusSiege'),
+    ),
+  );
 }
 
 /** The scope a town answers when asked whether it follows a reader's religion. */

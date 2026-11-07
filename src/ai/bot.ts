@@ -262,13 +262,10 @@ import {
   foldCity,
   type CityReading,
 } from '../sim/yields/town';
-import {
-  foldEmpireRates,
-} from '../sim/yields/empire';
-// The town's and the empire's published readings, remembered on
-// `state.revision` — the bot subscribes to the same source of truth the panel,
-// the top bar and the Ledger do (batch E2). See `readings.ts`.
-import { readCity, readEmpirePercents } from '../sim/readings';
+// The town's and the empire's published readings, remembered on the economy
+// clock. The bot subscribes to the same source of truth the panel, the top bar
+// and the Ledger do. See `readings.ts`.
+import { readCity, readEmpirePercents, readEmpireRates } from '../sim/readings';
 import { type CombatForecast, fortifyError, previewCombat } from '../sim/combat';
 // A unit's rank, read from its experience (batch WC3). The wounded-veteran
 // clause in `favourableBlow` asks it.
@@ -470,7 +467,7 @@ export function valueContext(state: GameState, player: Player): ValueContext {
   // One reading of the empire's books for the whole context — the pressure, the
   // wage cover and both saving rates come out of it, and asking three times
   // would be three sweeps of every town to answer one question.
-  const rates = foldEmpireRates(state, player.id);
+  const rates = readEmpireRates(state, player.id);
   // Both hammer readings in one sweep of the towns — the middling town every
   // build delay is priced off, and the busiest one the great work would be
   // raised in (`townProduction`, batch 5).
@@ -967,7 +964,7 @@ function garrisonWorth(
  * them.
  */
 function netGoldPerTurn(state: GameState, playerId: number): number {
-  return foldEmpireRates(state, playerId).goldPerTurn ?? 0;
+  return readEmpireRates(state, playerId).goldPerTurn ?? 0;
 }
 
 /**
@@ -1081,7 +1078,7 @@ export interface DebtReading {
  * weighs: two empire folds, which are the dear part.
  */
 function debtReading(state: GameState, player: Player, ctx: ValueContext): DebtReading {
-  const rates = foldEmpireRates(state, player.id);
+  const rates = readEmpireRates(state, player.id);
   const share = Math.max(0, -RULES.upkeep.debtPercent) / 100;
   const lost =
     share *
@@ -1770,7 +1767,7 @@ function focusTable(
   // `foldCity` is still the fold, so the figure is the same one and the empire
   // meter sweep behind it is paid for once rather than three times (batch 9).
   // **`readCity` since batch E2** — the town's own published list, remembered on
-  // `state.revision`, so the bot reads the very object the panel and the top bar
+  // the economy clock, so the bot reads the very object the panel and the top bar
   // are holding rather than a reading of its own.
   const books = readCity(state, city);
   // **The seats to fill: `chooseCitizens`' own `cap`, bounded by the ground it
@@ -3113,7 +3110,7 @@ function skipCandidate(state: GameState, player: Player, ctx: ValueContext): Bot
   // meter fills at, because a pass spends the culture already banked for this one.
   // The threshold is the seat's own price, discounts included (Magisterial
   // batch MG5, `draftCostFor`).
-  const rate = foldEmpireRates(state, player.id).culturePerTurn ?? 0;
+  const rate = readEmpireRates(state, player.id).culturePerTurn ?? 0;
   const delay = draftCostFor(state, player, sc.drafts + 1) / Math.max(1, rate);
   const riders = passRiderTerms(ctx, sc.pendingOrder?.price);
   const freeHand = riders.freeHand && sc.pendingDoctrine === undefined && bags.length > 0;

@@ -54,16 +54,13 @@
  * So a reading now names the clock it is a reading *of*:
  *
  *   · **`'revision'`** — `GameState.revision`, the world at command and phase
- *     granularity, unchanged in every respect. A town's own list lives here,
- *     because a town's list folds the caravans arriving (`docs/yields.md` step 6)
- *     and a caravan's yield is cut by `cityBlockaded` — which is a **unit
- *     position**. One hull moved into a harbour mouth changes what that town
- *     makes, with nothing else on the board different.
+ *     granularity, unchanged in every respect. What a seat can reach on the board
+ *     lives here (`readRoutes`, `readSites`). A town's own list lived here until
+ *     batch P1, below.
  *   · **`'economy'`** — a coarser counter beside it, moved only when a write
- *     could change what the *empire-wide* walks read: holdings, meters and the
- *     percentages they produce. Every end-of-turn phase moves it, and every
- *     command kind except the five that touch only pieces' positions and orders.
- *     The register is in `commands.ts` (`COMMAND_CLOCKS`), one row per
+ *     could change what its readings fold. Every end-of-turn phase moves it, and
+ *     every command kind except the five that touch only pieces' positions and
+ *     orders. The register is in `commands.ts` (`COMMAND_CLOCKS`), one row per
  *     `Command['type']`, and `test/sim/readings.test.ts` fails the day a kind is
  *     in neither list.
  *
@@ -79,10 +76,8 @@
  * the seams announce (`createUnit`, `removeUnit`, `captureUnit`,
  * `advanceAlongPath`, the melee advance, the two teleports; and every writer of
  * `gold`, `faithPool`, `sciencePool` and `culturePool`), so the answer is thrown
- * away where the world moved rather than where a command ends. What the economy
- * clock still buys is the four order-only commands — a fortification, a sleep,
- * an auto-explore switched on, an order cancelled — and the phases that write
- * nothing a walk reads.
+ * away where the world moved rather than where a command ends. Batch P1, below,
+ * narrowed what a step announces.
  *
  * The lesson is worth stating plainly, because it is what the next such batch
  * needs: **the field list is not "what `meters.ts` reads", it is what the whole
@@ -197,6 +192,50 @@
  * already taught and R1 paid for twice: **a cache keyed on a counter raised
  * after the fact is an input**, and the only safe counter is the one the write
  * itself moves.
+ *
+ * ---
+ *
+ * **Batch P1: a town's list moves to the economy clock, and a plain step goes quiet.**
+ *
+ * From M3 until P1 every step moved the economy clock, and so did every call of
+ * `recomputeVisibility` and every fortification. In turns 100 to 120 of a six-seat
+ * game, 3,009 of 3,034 commands moved it, so the clock bought almost nothing. And a
+ * town's list sat on the revision, so a bot that gave a hundred orders priced its
+ * empire a hundred times.
+ *
+ * So inside the five movement commands of `COMMAND_CLOCKS`, each of those writes now
+ * announces only when a reading can tell:
+ *
+ *   · a step, when `stepIsSeen` (`movement.ts`) says so. Its docblock lists every
+ *     place a town's list, an empire's lines or its meters read where a piece stands;
+ *   · a road, when the walk paved a hex (`advanceAlongPath`);
+ *   · a seat's sight, when a hex is newly charted or a count of what the seat can see
+ *     moved (`recomputeMarchSight`);
+ *   · a fortification, when the owner's law reads trenches (`lawReadsTrenches`).
+ *
+ * **The phases and every other seam announce as they did.** A walk inside a phase
+ * still announces each step and `recomputeVisibility` still announces every sweep,
+ * because a phase reads remembered answers while it runs and not all its writes
+ * announce. For example, `marchOneTrader` renews `TradeRoute.expiresTurn` and says
+ * nothing, so `luxuryLoans` can answer for the old term until the next step announces
+ * (the shadow run, turn 102 of a bot game, and before this batch too). Going quiet in
+ * a phase would widen that window.
+ *
+ * `readCity`, `readEmpire`, `readEmpireRates` and the bot's `townFolds` grid then sit
+ * on this clock. In the same game, 1,533 of 3,034 commands move it.
+ *
+ * **What would make this wrong** is a new read of a piece's position, of a seat's
+ * sight or of a road under those readings, with no announcement. Three things guard
+ * it: `POSITION_READERS` in `test/sim/slateRegister.test.ts` fails on a new read,
+ * `test/sim/stepSeen.test.ts` holds each seam to a card row that reads it, and the
+ * shadow run disbelieves every hit on the boards it plays.
+ *
+ * **Only readers at rest may ask those readings.** The register above covers the
+ * fields the meters and the law fold. A town's list folds more than that, such as
+ * `City.queue` and the baskets, and a write to one of those inside a handler or a
+ * phase says nothing until the command or the phase ends. That is why
+ * `foldEmpireRates` has no memo of its own and `readEmpireRates` does, in
+ * `readings.ts`, where nothing inside a handler can reach it.
  */
 
 import type { GameState } from './state';
@@ -338,13 +377,8 @@ function emptyHalf(): Half {
 
 /**
  * This board's half of the slate for one clock — emptied the moment that clock
- * moved, and left alone when the *other* one did. That is the whole of batch M2:
- * a scout's step moves the revision and the town lists go with it, while the
- * empire's **ground** stays where it is, because no step can reach it.
- *
- * The step *can* reach the empire's meters, which is M3's correction to M2's
- * table above — and since the two walks share one half, a march now takes both.
- * Sharpening that would be a third clock, and a third clock is a batch.
+ * moved, and left alone when the *other* one did. A plain step moves only the
+ * revision, so everything on the economy clock survives it.
  */
 function halfOf(state: GameState, clock: SlateClock): Half {
   let slate = SLATES.get(state);

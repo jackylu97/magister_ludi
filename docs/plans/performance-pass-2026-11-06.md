@@ -57,7 +57,7 @@ Every change in this pass keeps these, on commit `a207602a`, schema 226. `pin.zs
 
 - A command costs the same or less on this build. The extra time comes from bots that hold more towns and units and give more orders.
 - In seed 999, seat 0 alone holds 109 units and 14.6 towns and takes 1.6 s of the 4.2 s.
-- `moveUnit`, `fortify` and `sleepUnit` are 57% of all commands in turns 101 to 120 of seed 999 (1,669 of 2,928). On seed 42, `moveUnit` rose from 138 to 834 between the builds. Why the bots move so much more is a question about their play, not their speed, and this pass only reports it.
+- `moveUnit`, `fortify` and `sleepUnit` are 58% of all commands in turns 101 to 120 of seed 999 (1,669 of 2,893). On seed 42, `moveUnit` rose from 138 to 834 between the builds. Why the bots move so much more is a question about their play, not their speed, and this pass only reports it.
 - The cost of a seat's turn is about (orders given) times (the empire's towns), because several readings of the whole empire are taken again after each command.
 
 **Where a command's time goes.** Seed 999, turns 100 to 120, this build, 75.8 s in all:
@@ -74,7 +74,9 @@ Every change in this pass keeps these, on commit `a207602a`, schema 226. `pin.zs
 
 The same functions lead the profile on the deployed build. No single Doctrine reading stands out. A fix to these readings speeds up both kinds of game.
 
-**Why the readings are taken again after every order.** `readCity` and `readEmpire` sit on the revision clock, which moves on every accepted command, because a town's list can see a hull in the harbour mouth (`cityBlockaded`) and a piece in a town. The economy clock stands still for movement orders, unless the move does something else.
+**Why the readings are taken again after every order.** `readCity` and `readEmpire` sat on the revision clock, which moves on every accepted command, because a town's list can see a hull in the harbour mouth (`cityBlockaded`) and a piece in a town.
+
+**Correction, from batch P1.** This plan first said that the economy clock stands still for movement orders. That was wrong. Since batch M3, every step and every fog sweep moved it. In turns 100 to 120 of seed 999, 3,009 of 3,034 commands moved it. So P1 first had to narrow what announces, and could then move the readings to that clock.
 
 ## Batches
 
@@ -90,6 +92,64 @@ Fence: `src/sim/blockade.ts`, `src/sim/routeYields.ts`, `src/sim/slate.ts`, `src
 
 Done means: pins unchanged, `slateRegister` still true, and a before-and-after profile of seed 999.
 
+### P2: a bot stops repeating work inside one seat's turn
+
+Fence: `src/ai/` (mainly `bot.ts`, `chain.ts`, `townFolds.ts`, `wants.ts`, `campaign.ts`), `src/sim/turn.ts` (`marchOneTrader`, one line, task 1), `src/ai/plan.ts` (`siteGround`, task 1), and the tests of these.
+
+The profile after P1 (`~/code/webciv-review/prof/p1-final-999.cpuprofile`, seed 999, turns 100 to 120, 79.3 s in all). Shares overlap, because one function calls another.
+
+| Path | Time | How often it runs |
+|---|---:|---|
+| `priceCopy` to `townFolds.with` to `explainCity` | 10.7 s | From `techChain`, under `techGoalTable` and `liveChains` |
+| `reaimBeeline` to `researchCommand` to `techGoalTable` | 9.1 s | `housekeeping`, on each decision |
+| `wantBook` | 8.1 s | Inside `valueContext`, once a seat's turn |
+| `disbandCommand` to `netGoldPerTurn` | 7.2 s | On each decision |
+| `wakeTheCampaign` to `soldierCommand` | 6.9 s | `housekeeping`, on each decision |
+| `liveChains` | 6.1 s | Inside `valueContext`, once a seat's turn |
+| `reaskTheMarch` to `unitCommand` | 5.4 s | `housekeeping`, on each decision |
+| `routeOutlook` | 4.1 s | Inside `valueContext`, once a seat's turn |
+
+1. **Two stale answers that P1 found, on the committed tree too.** Both make a played game throw under the shadow check, and that limits how far the check can prove later batches.
+   - `marchOneTrader` renews `TradeRoute.expiresTurn` and does not announce, so `luxuryLoans` is stale until the next step (seed 999, turn 102, phase `marchTraders`).
+   - `siteGround` (`src/ai/plan.ts`) holds a shallow copy of the board for a sitting, and that copy keeps the old law after a government change (seed 999, seat 2, turn 68; forced game, seed 11, turn 44).
+
+   Fix each one by itself, and run the pins after each fix. If a fix leaves the pins unchanged, keep it. If a fix moves a pin, remove it and report the first turn it moved, because that is a question for the user. Then run the shadow check on seed 999 for the whole game, and report how far it gets.
+2. **Count before you change anything.** For each path in the table, count the calls in a seat's turn, and how many of them return the same answer as the call before. Put these counts in your report. They decide which fix comes first.
+3. **Stop asking again when nothing has changed.** The three `housekeeping` readings run on each decision. If an answer depends only on what the economy clock covers, keep it until that clock moves. Name everything else it reads, such as a unit's own orders or a sitting's memory. If you cannot name it all, do not remember it.
+4. **Ask the cheap question first.** `disbandCommand` asks for net gold on each decision. If a cheaper test settles the decision in most cases, ask it first. Change the order only if the decision stays the same in every case.
+5. **Look at `priceCopy`.** Find out why `with` still costs 10.7 s after P1. Check how many distinct pairs of town and row are asked, how many grids are built in a seat's turn, and whether `techChain` prices rows that its caller then ignores.
+6. **Measure a per-town clock, and do not build it.** `setCityProduction` is 359 of the 1,533 clock moves in those turns, and it changes one town. Estimate what the bots would save if only that town's reading were dropped. Report the figure. A third clock adds machinery, so it needs a strong reason.
+
+Done means: pins unchanged, `test/sim/slateRegister.test.ts` still true, and a before-and-after profile of seed 999 from the same hour.
+
+### P3: hot small functions
+
+Written after P2, from a new profile. The candidates so far are `improvementErrorAt`, `improvementCardError`, `improvementGroundError`, `explainTileYield`, `cityScopeAdmits`, `sweepOwnCopies`, `townHoldsWork`, `ownedTiles`, `wrapCol`, `wrappedDistance`, `playerById`, `garrisonOf` and `searchPath`.
+
 ## Built
 
-To be filled in after each gate.
+### P1
+
+A plain step no longer makes a seat price its empire again. `readCity`, `readEmpire`, the new `readEmpireRates` and the bot's `townFolds` grid now sit on the economy clock. A step of a plain order moves that clock only when `stepIsSeen` (`src/sim/movement.ts`) finds that a reading can tell. `cityBlockaded` builds no strings, and an inland town answers at once.
+
+| Measure, same hour, before and after | Before | After | Change |
+|---|---:|---:|---:|
+| Seed 999, turns 1 to 120 | 185.5 s | 157.3 s | −15% |
+| Seed 999, turns 111 to 120 | 5.51 s a turn | 4.38 s a turn | −21% |
+| Seed 42, turns 1 to 120 | 113 s | 100 s | −12% |
+| Commands that move the clock, seed 999, turns 100 to 120 | 3,009 of 3,034 | 1,533 of 3,034 | |
+
+Where P1 differs from its task list:
+
+- `foldEmpireRates` has no memo, because callers inside a handler or a phase ask it. The memo is `readEmpireRates`, which only readers at rest may ask.
+- A port still walks the pieces, with one row comparison first. `siteGround`'s shallow copy shares `state.units` but has no clock, so a remembered list of ships would be wrong there.
+- Phases still announce every step and every fog sweep.
+
+Checks at the gate:
+
+- Type check clean, 11,098 core tests passed, build clean.
+- Both pins match at all six turns. `test/sim/aiDigest.slow.test.ts` passes on both boards.
+- `test/sim/stepSeen.test.ts` is new. It gives each seam a card row that reads it. The agent turned off each of 16 seam clauses in turn, and the tests caught all 16.
+- The core tier under the shadow check fails 44 tests. The same 44 fail on the commit before P1, so P1 adds none. Most messages say `law shadow: seat 0's law is stale at turn 1`. No one has yet worked out why these 44 fail.
+
+Left for later: `foldOnRevision` keeps its old name, and `liveReading` still keys on the revision (about 1% of the time).

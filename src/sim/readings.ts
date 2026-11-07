@@ -1,6 +1,6 @@
 /**
- * **The readings — the town's list and the empire's, remembered on the
- * revision.**
+ * **The readings — the town's list and the empire's, remembered on the economy
+ * clock.**
  *
  * ---
  *
@@ -23,9 +23,9 @@
  *     second verb for the multiplication would invite a second answer.
  *     `foldEmpireRates` is the empire's books summed for a card that asks what
  *     a turn is worth.
- *   · **`readX(state, …)`** is the **memo** — `explain` + `fold`, keyed on the
- *     revision, and it lives in **this file and nowhere else**. That is the
- *     whole difference between the second verb and the third: a fold is taken,
+ *   · **`readX(state, …)`** is the **memo** — `explain` + `fold`, keyed on a clock
+ *     (see the table below), and it lives in **this file and nowhere else**. That is
+ *     the whole difference between the second verb and the third: a fold is taken,
  *     a reading is remembered.
  *
  * `test/sim/verbs.test.ts` is the register: an exported reading named for the
@@ -141,15 +141,22 @@
  * | `meterEffects` | economy | walks towns, buildings, luxuries and law — and, through the card evaluator, the **garrisons** standing in the towns and the **banks** behind them (M3's correction: The Long Watch counts pieces and Pilgrim Roads counts banked faith, so the seams that write one announce) |
  * | `controlledHoldings` | economy | walks the ground |
  * | `readEmpirePercents` | economy | those, plus the treasury |
- * | `readCity` | revision | step 6 is the caravans arriving, and a caravan is cut by a hull in the harbour mouth (`cityBlockaded`) |
- * | `readEmpire` | revision | that reading summed |
+ * | `readCity` | economy | a town's list; see below |
+ * | `readEmpire` | economy | that reading summed, with the empire's own lines |
+ * | `readEmpireRates` | economy | the same lists, folded for a question about a rate |
  *
- * The split is not a taxonomy of yields; it is a claim about what each walk can
- * *see* — and M3's shadow run corrected two rows of it. A town's list can see a
- * piece; so, it turns out, can the **meters**, because a card may pay
- * contentment per unit standing in a town and per fifty banked faith. What no
- * step can reach is the **ground**, which is the holdings walk, and that is what
- * the coarser clock still buys.
+ * A town's list can see a piece, for instance a hull in the harbour mouth or a
+ * garrison in a town. It sits on the economy clock since batch P1 because every
+ * step that such a reading can see now announces (`stepIsSeen`, `movement.ts`), and
+ * a step nothing can see does not. So a seat that gives a hundred plain orders
+ * prices its empire once. What each reading can see of a piece is listed on
+ * `stepIsSeen`, and `POSITION_READERS` in `test/sim/slateRegister.test.ts` fails
+ * when something new reads a position there.
+ *
+ * Only readers at rest may ask these three. They fold fields that a write inside a
+ * handler or a phase does not announce, such as `City.queue`. That is why
+ * `collectYields`, `windfallPayout` and the other callers inside the simulation take
+ * `explainCity` and `foldEmpireRates` directly. See `readEmpireRates`.
  */
 
 import type { City, GameState } from './state';
@@ -187,8 +194,10 @@ import {
 import {
   explainEmpireLines,
   foldEmpireLines,
+  foldEmpireRates,
   type EmpireYieldLine,
 } from './yields/empire';
+import type { EmpireRates } from './statecraft/evaluator';
 import { CITY_YIELD_KEYS } from './resourceData';
 import { slateMemo } from './slate';
 
@@ -243,7 +252,7 @@ export interface EmpireReading {
 
 /**
  * **The empire's half of every town's percentages, taken once per seat per
- * revision** — the hoist the top bar's strip, `foldEmpireRates` and the bot each
+ * tick of the economy clock** — the hoist the top bar's strip, `foldEmpireRates` and the bot each
  * used to do by hand, done once for all of them.
  *
  * `empirePercents` is a pure function of `(state, playerId)` that sweeps every
@@ -264,7 +273,7 @@ export function readEmpirePercents(state: GameState, playerId: number): EmpirePe
 }
 
 /**
- * **One town's labelled list, once per revision** — steps 1–11 of
+ * **One town's labelled list, once per tick of the economy clock** — steps 1–11 of
  * `docs/yields.md`, and the single source of truth every surface that prints a
  * town's yields now subscribes to.
  *
@@ -275,18 +284,15 @@ export function readEmpirePercents(state: GameState, playerId: number): EmpirePe
  *
  * Keyed on the city's **id**, so a reading survives a caller holding a stale
  * `City` object only in the sense that it answers about the town rather than
- * about the pointer; every mutation to that town moves the revision and throws
- * the slate away.
+ * about the pointer; every mutation to that town moves the economy clock and
+ * throws the slate away.
  */
 export function readCity(state: GameState, city: City): CityReading {
-  // **On the revision, and deliberately not on the economy clock** (batch M2).
-  // A town's list folds the caravans arriving (step 6 of `docs/yields.md`), and
-  // what a caravan pays is cut when either end is blockaded — `cityBlockaded`,
-  // which is a reading of **where a hull is standing**. One enemy ship moved
-  // into the harbour mouth changes what this town makes with nothing else on the
-  // board different, so this reading moves with every command and the coarser
-  // clock is for the walks that cannot see a piece at all.
-  return slateMemo(state, 'revision', 'towns', String(city.id), () =>
+  // On the economy clock (batch P1). The list can see a piece, for instance a
+  // hull that cuts a caravan's pay, and every such step announces (`stepIsSeen`,
+  // `movement.ts`). Any other accepted command moves this clock when it ends, and
+  // the only commands that may leave it still are the five in `COMMAND_CLOCKS`.
+  return slateMemo(state, 'economy', 'towns', String(city.id), () =>
     explainCity(state, city, [], readEmpirePercents(state, city.ownerId)),
   );
 }
@@ -295,16 +301,17 @@ export function readCity(state: GameState, city: City): CityReading {
  * **Any town's fold, taken off its `readCity` list** (batch DT18, The Grand Canal).
  * What a screen hands to `explainFoodCarried`, because the food a route carries reads
  * the fold of a town other than the one on screen. Only the list is remembered, so a
- * fold here costs the stages and not a walk of the town's hexes.
+ * fold here costs the stages and not a walk of the town's hexes. The name is older
+ * than batch P1: the list is on the economy clock now.
  */
 export function foldOnRevision(state: GameState): (town: City) => CityYields {
   return (town) => foldCity(state, town, [], undefined, readCity(state, town));
 }
 
 /**
- * **One empire's whole reading, once per revision** — its towns' lists and
- * totals, its own lines with the empire stage among them, and the fold of the
- * two, which is what the turn resolution banks.
+ * **One empire's whole reading, once per tick of the economy clock** — its towns'
+ * lists and totals, its own lines with the empire stage among them, and the fold of
+ * the two, which is what the turn resolution banks.
  *
  * The order is the phase's: every town in `state.cities` order (founding order),
  * then the empire's list, then the sum. `explainEmpireLines` is asked **last**
@@ -314,10 +321,38 @@ export function foldOnRevision(state: GameState): (town: City) => CityYields {
  * this empire content, and is it in debt".
  */
 export function readEmpire(state: GameState, playerId: number): EmpireReading {
-  // On the revision, for `readCity`'s reason exactly — this is that reading
-  // summed, over lines that include the caravans abroad.
-  return slateMemo(state, 'revision', 'empires', String(playerId), () =>
+  // On the economy clock, for `readCity`'s reason exactly: this is that reading
+  // summed, over lines that include the caravans abroad and the army's upkeep.
+  return slateMemo(state, 'economy', 'empires', String(playerId), () =>
     empireReading(state, playerId),
+  );
+}
+
+/**
+ * **The empire's per-turn books, for a reader at rest**: `foldEmpireRates`,
+ * remembered on the economy clock and folded off the `readCity` lists, so a bot that
+ * asks on every decision pays for its towns once. The profile that started batch P1
+ * had this fold at 23% of a late-game turn, nearly all of it from the bot.
+ *
+ * **Why the memo is here and not on `foldEmpireRates` itself.** That fold has callers
+ * inside the simulation: `windfallPayout`, `actGainOf`, `runCensus` and the
+ * `empireYield` count. They ask in the middle of a handler or a phase. Its readings
+ * reach fields a write there does not announce, such as `City.queue` and a town's
+ * baskets, so a memo at that level could return a stale answer. The `empireYield`
+ * count also asks it under a recursion cut that gives a different answer on purpose,
+ * and a memo would mix the two.
+ *
+ * What would make this stale is a write by one of the five commands `COMMAND_CLOCKS`
+ * lets leave the clock still, which changes something this folds and says nothing.
+ * The answer is shared by every asker, so none of them may change it, and the type
+ * says so.
+ */
+export function readEmpireRates(state: GameState, playerId: number): Readonly<EmpireRates> {
+  return slateMemo(state, 'economy', 'rates', String(playerId), () =>
+    foldEmpireRates(state, playerId, {
+      percents: readEmpirePercents(state, playerId),
+      listOf: (city) => readCity(state, city),
+    }),
   );
 }
 
