@@ -66,7 +66,6 @@
 import {
   type Hex,
   HEX_DIRECTIONS,
-  hexDistance,
 } from './hex';
 import type { DiscoveryKind } from './discoveryData';
 import type { ImprovementId } from './improvementData';
@@ -391,6 +390,10 @@ export function axialToOffset(h: Hex): { col: number; row: number } {
 /** Wraps an offset column into `[0, width)`. THE canonical east–west wrap. */
 export function wrapCol(map: GameMap, col: number): number {
   const w = map.width;
+  // Nearly every column asked about is already on the board, and the two
+  // remainders are most of what this function costs. Nought takes the long way
+  // so that a -0 still comes back as 0.
+  if (col > 0 && col < w) return col;
   return ((col % w) + w) % w;
 }
 
@@ -404,8 +407,10 @@ export function inRows(map: GameMap, row: number): boolean {
  * Axial `q` depends on the row, so the row must be supplied.
  */
 export function wrapQ(map: GameMap, q: number, r: number): number {
-  const { col } = axialToOffset({ q, r });
-  return offsetToAxial(wrapCol(map, col), r).q;
+  // `axialToOffset` and `offsetToAxial` with the two objects left out, because
+  // every neighbour of every hex comes through here.
+  const shift = (r - (r & 1)) / 2;
+  return wrapCol(map, q + shift) - shift;
 }
 
 /** Canonical (wrapped) form of an axial hex. Rows are left untouched. */
@@ -543,6 +548,42 @@ export function tileNeighbors(map: GameMap, tile: Tile): Tile[] {
 }
 
 /**
+ * Tile indices of every hex's neighbours: `NEIGHBOUR_SLOTS` slots a hex, in
+ * `mapNeighbors` order, with -1 in the slots a hex at the pole does not use.
+ *
+ * The searches and floods ask for a hex's neighbours many thousands of times a
+ * turn, and each ask through `mapNeighbors` builds an object per neighbour. This
+ * table is the same answer with no object in it.
+ *
+ * It remembers for as long as the program runs, keyed on the width and the
+ * height. A neighbour is a function of those two numbers and nothing else, so an
+ * entry cannot go stale, and it reads no tile.
+ */
+export function neighbourTable(map: GameMap): Int32Array {
+  const key = map.width * 65536 + map.height;
+  let table = NEIGHBOUR_TABLES.get(key);
+  if (table === undefined) {
+    table = new Int32Array(map.width * map.height * NEIGHBOUR_SLOTS).fill(-1);
+    for (let row = 0; row < map.height; row++) {
+      for (let col = 0; col < map.width; col++) {
+        let slot = tileIndex(map, col, row) * NEIGHBOUR_SLOTS;
+        for (const hex of mapNeighbors(map, offsetToAxial(col, row))) {
+          const at = axialToOffset(hex);
+          table[slot++] = tileIndex(map, wrapCol(map, at.col), at.row);
+        }
+      }
+    }
+    NEIGHBOUR_TABLES.set(key, table);
+  }
+  return table;
+}
+
+/** How many slots `neighbourTable` keeps for each hex. */
+export const NEIGHBOUR_SLOTS = HEX_DIRECTIONS.length;
+
+const NEIGHBOUR_TABLES = new Map<number, Int32Array>();
+
+/**
  * Hex distance that may travel around the east–west seam, i.e. the shortest of
  * going directly and going around the cylinder in either direction.
  */
@@ -550,9 +591,13 @@ export function wrappedDistance(map: GameMap, a: Hex, b: Hex): number {
   const w = map.width;
   // Shifting a hex by `k` whole map widths in *offset* space changes axial q by
   // k * width (the row, and therefore the odd-r shear term, is unchanged).
+  // `hexDistance` written out, so that this hot loop builds no hex for each shift.
+  const dr = a.r - b.r;
+  const absDr = Math.abs(dr);
   let best = Infinity;
   for (let k = -1; k <= 1; k++) {
-    const d = hexDistance(a, { q: b.q + k * w, r: b.r });
+    const dq = a.q - (b.q + k * w);
+    const d = (Math.abs(dq) + Math.abs(dq + dr) + absDr) / 2;
     if (d < best) best = d;
   }
   return best;
@@ -562,17 +607,24 @@ export function wrappedDistance(map: GameMap, a: Hex, b: Hex): number {
 export function mapRange(map: GameMap, h: Hex, radius: number): Tile[] {
   const result: Tile[] = [];
   if (radius < 0) return result;
-  const seen = new Set<number>();
+  // A small map can wrap onto itself; do not report the same tile twice. Two
+  // offsets land on one tile only when a row of the range is wider than the map,
+  // so no other map pays for the set.
+  const seen = radius * 2 + 1 > map.width ? new Set<number>() : null;
   for (let dq = -radius; dq <= radius; dq++) {
     const lo = Math.max(-radius, -dq - radius);
     const hi = Math.min(radius, -dq + radius);
     for (let dr = lo; dr <= hi; dr++) {
-      const tile = getTile(map, { q: h.q + dq, r: h.r + dr });
+      const r = h.r + dr;
+      if (!inRows(map, r)) continue;
+      // `getTile` written out, so that this loop builds no hex for each offset.
+      const idx = tileIndex(map, wrapCol(map, h.q + dq + (r - (r & 1)) / 2), r);
+      const tile = map.tiles[idx];
       if (!tile) continue;
-      const idx = tileIndex(map, tile.col, tile.row);
-      // A small map can wrap onto itself; do not report the same tile twice.
-      if (seen.has(idx)) continue;
-      seen.add(idx);
+      if (seen !== null) {
+        if (seen.has(idx)) continue;
+        seen.add(idx);
+      }
       result.push(tile);
     }
   }

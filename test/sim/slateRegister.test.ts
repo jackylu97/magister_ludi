@@ -421,6 +421,9 @@ const ANNOUNCING = new Set([
  * state whose callers announce instead (named, so the pair can be checked).
  */
 const EXCUSED = new Map<string, string>([
+  // Batch P3: these two folds name the six voices rather than walk a key list.
+  ['hex.ts#foldTileLines', 'writes the fold’s own local total, a new object on each ask, and never a bank'],
+  ['town.ts#foldCityFlats', 'writes the fold’s own local total, a new object on each ask, and never a bank'],
   // `beads.ts#runBeads` stood here and is gone with the phase (batch Q1): it
   // dealt a card of a deed deck and swept every standing deed, and the deeds are
   // retired. Its excuse is inherited by the two below, which is why they still

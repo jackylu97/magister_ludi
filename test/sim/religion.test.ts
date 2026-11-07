@@ -4303,6 +4303,8 @@ describe("the ratified religion rows", () => {
     expect(beliefDef("lordOfTheHoard").name).toBe("The Stone Hoard");
     const tile = getTileAt(g.state.map, city.col, city.row + 1)!;
     const paid = (): { culture: number; faith: number } | undefined => {
+      // Each ask follows a hand-written change to the hex below.
+      bumpRevision(g.state);
       const line = explainTileYield(tile, yieldContextFor(g.state, 0)).find(
         (entry) => entry.source.includes("The Stone Hoard"),
       );

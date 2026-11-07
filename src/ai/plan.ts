@@ -105,7 +105,10 @@ import {
 } from '../sim/improvementData';
 import {
   chargesLeft,
+  hexStanding,
   improvementErrorAt,
+  improvementGroundError,
+  improvementOpenTo,
   improvementYieldDelta,
   seatSeesSleepingVein,
 } from '../sim/improvements';
@@ -235,7 +238,10 @@ function walkImprovementPlan(
   ctx: ValueContext,
   occupied: ReadonlySet<number>,
 ): ImprovementPlan {
-  const roster = workRoster(ctx.ai);
+  // A row the leader, the cards or the tree refuse is refused on every hex, so it is
+  // asked once here, and each hex asks only about its ground. Nothing writes during
+  // this walk, so the answer holds for all of it.
+  const roster = workRoster(ctx.ai).filter((row) => improvementOpenTo(state, player.id, row));
   const byTile = new Map<number, PlanEntry>();
   // **The ground's context, hoisted for the whole walk** (batch 9). Every hex of
   // one town prices through that town's own reading, and this walk asks a few
@@ -328,9 +334,10 @@ function bestEntryOn(
   ground: TileContextField,
 ): PlanEntry | null {
   let best: PlanEntry | null = null;
+  const standing = hexStanding(state, tile);
   for (const improvement of roster) {
-    const entry = improvementEntry(state, player, ctx, tile, improvement, ground);
-    if (entry === null) continue;
+    if (improvementGroundError(state, player.id, tile, improvement, standing) !== null) continue;
+    const entry = pricedEntry(state, player, ctx, tile, improvement, ground);
     if (best === null || entry.value > best.value) best = entry;
   }
   const survey = surveyEntry(state, player, ctx, tile);
@@ -341,7 +348,7 @@ function bestEntryOn(
   return best !== null && best.value > 0 ? best : null;
 }
 
-/** One improvement on one hex, priced through the owning town's own context. */
+/** One improvement on one hex, if the gate takes it. See `pricedEntry`. */
 function improvementEntry(
   state: GameState,
   player: Player,
@@ -351,6 +358,18 @@ function improvementEntry(
   ground: TileContextField,
 ): PlanEntry | null {
   if (improvementErrorAt(state, player.id, tile, improvement) !== null) return null;
+  return pricedEntry(state, player, ctx, tile, improvement, ground);
+}
+
+/** One improvement the gate has taken on one hex, priced through the owning town's own context. */
+function pricedEntry(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  tile: Tile,
+  improvement: ImprovementId,
+  ground: TileContextField,
+): PlanEntry {
   const delta = improvementYieldDelta(tile, improvement, ground(tile));
   const yields = explainYields(bagOfTileYield(delta), ctx);
   const name = improvementDef(improvement).name;
@@ -697,6 +716,12 @@ interface SiteGround {
   state: GameState;
   playerId: number;
   ground: TileYieldContext | undefined;
+  /**
+   * The rows the leader, the cards and the tree open on this copy. A fact about the
+   * empire rather than a hex, so `reachableGroundOn` does not ask it hex by hex. It
+   * lives as long as this copy does, and the copy is rebuilt when the clock moves.
+   */
+  roster: readonly ImprovementId[];
 }
 
 function siteGround(ctx: ValueContext): SiteGround | null {
@@ -759,6 +784,7 @@ function siteGround(ctx: ValueContext): SiteGround | null {
     // promise is the mine's own hammer alone, because the niter's yield is read
     // through the real seat's eyes below and cancels out of the delta.
     ground: yieldContextFor(ctx.state, player.id),
+    roster: workRoster(ctx.ai).filter((row) => improvementOpenTo(state, player.id, row)),
   };
   memo.siteGround = held;
   memo.siteGroundEconomy = economy;
@@ -803,11 +829,12 @@ export function reachableGroundOn(ctx: ValueContext, tile: Tile): readonly HexPr
   if (hypothetical === null) return [];
   const reachable = reachableTechs(ctx);
   const promises: HexPromise[] = [];
-  for (const improvement of workRoster(ctx.ai)) {
+  const standing = hexStanding(hypothetical.state, tile);
+  for (const improvement of hypothetical.roster) {
     const gate = improvementDef(improvement).requiresTech;
     const landing = gate === undefined ? 0 : reachable.get(gate);
     if (landing === undefined) continue;
-    if (improvementErrorAt(hypothetical.state, hypothetical.playerId, tile, improvement) !== null) {
+    if (improvementGroundError(hypothetical.state, hypothetical.playerId, tile, improvement, standing) !== null) {
       continue;
     }
     promises.push({

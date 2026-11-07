@@ -218,6 +218,7 @@ describe('tileYieldLines', () => {
       delete hex.resource;
       delete hex.improvement;
       Object.assign(hex, shape);
+      bumpRevision(state);
       const label = JSON.stringify(shape);
       const total = foldTile(hex, yieldContextFor(state, 0));
       expect(foldPrinted(tileYieldLines(state, 0, hex)), label).toEqual(total);
@@ -339,6 +340,7 @@ describe('itemisedYieldLines', () => {
     // A resource is a modifier — every kind of `add` is, which is the whole of
     // the rule: the card does not ask what sort of thing earned a line.
     hex.resource = 'cotton';
+    bumpRevision(state);
     expect(itemisedYieldLines(tileYieldLines(state, 0, hex)).map((line) => line.source)).toEqual([
       'Grassland',
       'Cotton',
@@ -347,6 +349,7 @@ describe('itemisedYieldLines', () => {
     // An improvement, on ground with no resource at all, is the same answer.
     delete hex.resource;
     hex.improvement = 'farm';
+    bumpRevision(state);
     expect(itemisedYieldLines(tileYieldLines(state, 0, hex)).map((line) => line.source)).toEqual([
       'Grassland',
       'Farm',

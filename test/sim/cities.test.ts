@@ -1489,6 +1489,7 @@ describe('the city centre', () => {
       for (const hills of [false, true]) {
         centre.resource = resource;
         centre.hills = hills;
+        bumpRevision(state);
         const ground = foldTile(centre, ctx);
         const expected = readTileYield(CITIES.baseCityYields);
         for (const key of TILE_YIELD_KEYS) {
@@ -3780,6 +3781,7 @@ describe('the reveal gate, in a city', () => {
     // means — not a smaller number, the same number.
     const withSeam = foldCity(state, city);
     delete seam.resource;
+    bumpRevision(state);
     expect(foldCity(state, city)).toEqual(withSeam);
   });
 

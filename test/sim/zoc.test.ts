@@ -25,11 +25,15 @@ import type { Command } from '../../src/sim/commands';
 import { type GameMap, type Tile, createMap, getTile, getTileAt, mapNeighbors, tileHex, wrappedDistance } from '../../src/sim/map';
 import { advanceAlongPath } from '../../src/sim/movement';
 import {
+  canStopOn,
+  canTransit,
   findPath,
   inZoneOfControl,
+  moveProfile,
   pathTurns,
   reachableTiles,
   stepCost,
+  transitField,
   zocBinds,
   zocField,
 } from '../../src/sim/pathfind';
@@ -510,5 +514,63 @@ describe('a zone of control replays', () => {
 
     expect(game.log.length).toBeGreaterThan(30);
     expect(replay(game.config, game.log)).toEqual(game.state);
+  });
+});
+
+describe('the hoisted fields read what the walks read', () => {
+  /** A board with pieces of both seats on it, and one seat's pieces across the seam. */
+  function crowded(): GameState {
+    const state = flatState(8, 8);
+    unit(state, at(state.map, 0, 3), 'warrior', 1);
+    unit(state, at(state.map, 7, 3), 'warrior', 1);
+    unit(state, at(state.map, 3, 5), 'warrior', 1);
+    unit(state, at(state.map, 4, 2), 'worker', 1);
+    unit(state, at(state.map, 5, 5), 'warrior', 0);
+    return state;
+  }
+
+  it('binds a step exactly when one source stands a hex from both ends', () => {
+    const state = crowded();
+    const field = zocField(state, 0);
+    expect(field.sources.length).toBeGreaterThan(1);
+    const { map } = state;
+    for (const from of map.tiles) {
+      for (const to of map.tiles) {
+        const expected = field.sources.some(
+          (source) =>
+            wrappedDistance(map, tileHex(from), tileHex(source)) === 1 &&
+            wrappedDistance(map, tileHex(to), tileHex(source)) === 1,
+        );
+        expect(zocBinds(map, field, from, to)).toBe(expected);
+      }
+    }
+  });
+
+  it('marks every source, and a hex beside one, as the walk of its neighbours would', () => {
+    const state = crowded();
+    const field = zocField(state, 0);
+    const { map } = state;
+    for (const tile of map.tiles) {
+      const index = tile.row * map.width + tile.col;
+      expect(field.isSource[index] === 1).toBe(field.sources.includes(tile));
+      const beside = mapNeighbors(map, tileHex(tile)).some((hex) =>
+        field.sources.includes(getTile(map, hex)!),
+      );
+      expect(field.adjacent[index] === 1).toBe(beside);
+    }
+  });
+
+  it('answers a march the same with the field and without it, on every hex', () => {
+    const state = crowded();
+    const mover = unit(state, at(state.map, 2, 2), 'warrior', 0);
+    const worker = unit(state, at(state.map, 2, 3), 'worker', 0);
+    const ground = transitField(state, 0);
+    for (const piece of [mover, worker]) {
+      const profile = moveProfile(state, piece);
+      for (const tile of state.map.tiles) {
+        expect(canStopOn(state, piece, tile, profile, ground)).toBe(canStopOn(state, piece, tile, profile));
+        expect(canTransit(state, piece, tile, profile, ground)).toBe(canTransit(state, piece, tile, profile));
+      }
+    }
   });
 });

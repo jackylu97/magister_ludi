@@ -52,6 +52,7 @@ import {
   tileHex,
   tileIndex,
 } from './map';
+import { slateMemo } from './slate';
 import type { City, GameState, Unit } from './state';
 import { cardBehaviorRuleFor } from './statecraft/evaluator';
 import { isWaterTerrain } from './terrainData';
@@ -116,25 +117,39 @@ export function blockadedWaterAround(map: GameMap, from: Tile): Tile[] {
  *
  * This is asked once or twice for every route line of every town, so it has to
  * cost next to nothing. A town inland has no harbour and answers at once. A port
- * walks the pieces, and because rows do not wrap, one comparison rules out every
- * piece more than a row from the centre. It stays a walk and not a remembered list
- * of ships, because a bot's what-if can hold a shallow copy of the board for a whole
- * sitting, and that copy shares `state.units` but no clock with the real board. The
- * answer is a boolean, so no outcome depends on the order.
+ * walks the ships (`hullsOnBoard`), and because rows do not wrap, one comparison
+ * rules out every ship more than a row from the centre. The answer is a boolean, so
+ * no outcome depends on the order.
  */
 export function cityBlockaded(state: GameState, city: City): boolean {
   const mouth = harbourMouth(state.map, city);
   if (mouth.length === 0) return false;
-  for (const unit of state.units) {
+  for (const unit of hullsOnBoard(state)) {
     if (unit.ownerId === city.ownerId) continue;
     const rows = unit.row - city.row;
     if (rows > 1 || rows < -1) continue;
-    if (!isNaval(unitDef(unit.type))) continue;
     // Where it stands first, because the piece's question may read its owner's cards.
     if (!mouth.some((tile) => tile.col === unit.col && tile.row === unit.row)) continue;
     if (blockades(state, unit)) return true;
   }
   return false;
+}
+
+/**
+ * Every ship on the board, in `state.units` order, because a port asks about ships
+ * and most pieces are not ships.
+ *
+ * Remembered on the economy clock. It holds the pieces themselves, so where a ship
+ * stands and who owns it are read live and a plain step need not announce. Only a
+ * piece appearing, leaving or changing its row can make the list wrong, and
+ * `createUnit`, `removeUnit` and `upgradeUnits` all announce. A bot's what-if that
+ * shares `state.units` has a slate of its own, and `siteGround`, the one copy that
+ * lasts for more than one read, is built again when the real clock moves.
+ */
+function hullsOnBoard(state: GameState): readonly Unit[] {
+  return slateMemo(state, 'economy', 'hulls', '', () =>
+    state.units.filter((unit) => isNaval(unitDef(unit.type))),
+  );
 }
 
 /**

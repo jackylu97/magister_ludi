@@ -33,6 +33,7 @@ import {
   findPath,
   moveProfile,
   stepCost,
+  transitField,
   zocField,
 } from './pathfind';
 import { RULES } from './rulesData';
@@ -185,6 +186,9 @@ export function exploreSearch(state: GameState, unit: Unit): ExploreSearch {
 
   const mover = moveProfile(state, unit);
   const field = zocField(state, unit.ownerId);
+  // Who stands where, hoisted for `findPath`'s reason: the sweep asks several hundred
+  // hexes, and nothing moves during it.
+  const ground = transitField(state, unit.ownerId);
   const limit = RULES.explore.searchLimit;
 
   const visited = new Uint8Array(map.tiles.length);
@@ -205,7 +209,7 @@ export function exploreSearch(state: GameState, unit: Unit): ExploreSearch {
   const canPass = (tile: Tile, at: number): boolean => {
     const held = passable[at]!;
     if (held >= 0) return held === 1;
-    const answer = canTransit(state, unit, tile, mover);
+    const answer = canTransit(state, unit, tile, mover, ground);
     passable[at] = answer ? 1 : 0;
     return answer;
   };
@@ -243,13 +247,13 @@ export function exploreSearch(state: GameState, unit: Unit): ExploreSearch {
        * outer `if` did by never reaching the second clause.
        */
       if (isKnownDiscovery(state, unit.ownerId, tile)) {
-        if (canStopOn(state, unit, tile, mover)) {
+        if (canStopOn(state, unit, tile, mover, ground)) {
           return { target: { col: tile.col, row: tile.row }, examined };
         }
       } else if (
         frontier === null &&
         revealsAnything(state, unit, tile) &&
-        canStopOn(state, unit, tile, mover)
+        canStopOn(state, unit, tile, mover, ground)
       ) {
         frontier = { col: tile.col, row: tile.row };
       }

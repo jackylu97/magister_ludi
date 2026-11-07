@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { hexDistance, hexKey } from '../../src/sim/hex';
 import {
+  NEIGHBOUR_SLOTS,
+  type Tile,
   axialToOffset,
   createMap,
   getTile,
@@ -8,11 +10,13 @@ import {
   inRows,
   mapNeighbors,
   mapRange,
+  neighbourTable,
   offsetToAxial,
   tileHex,
   tileNeighbors,
   wrapCol,
   wrapHex,
+  wrapQ,
   wrappedDistance,
 } from '../../src/sim/map';
 
@@ -196,5 +200,72 @@ describe('mapRange', () => {
     const tiles = mapRange(map, offsetToAxial(10, 0), 1);
     expect(tiles.length).toBeLessThan(7);
     for (const tile of tiles) expect(tile.row).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('neighbourTable', () => {
+  it('holds what mapNeighbors says, in its order, on every board shape', () => {
+    for (const [width, height] of [[1, 3], [2, 3], [3, 1], [3, 5], [8, 6]] as const) {
+      const map = createMap({ width, height });
+      const table = neighbourTable(map);
+      expect(table).toHaveLength(width * height * NEIGHBOUR_SLOTS);
+      for (const tile of map.tiles) {
+        const first = tile.row * width * NEIGHBOUR_SLOTS + tile.col * NEIGHBOUR_SLOTS;
+        const slots = [...table.slice(first, first + NEIGHBOUR_SLOTS)];
+        const expected = mapNeighbors(map, tileHex(tile)).map((hex) => {
+          const on = getTile(map, hex)!;
+          return on.row * width + on.col;
+        });
+        expect(slots.slice(0, expected.length)).toEqual(expected);
+        for (const unused of slots.slice(expected.length)) expect(unused).toBe(-1);
+      }
+    }
+  });
+
+  it('is the same table for two boards of one shape', () => {
+    expect(neighbourTable(createMap({ width: 7, height: 4 }))).toBe(
+      neighbourTable(createMap({ width: 7, height: 4 })),
+    );
+  });
+});
+
+describe('the leaves that build no objects', () => {
+  it('wraps q as the offset conversions do, either side of the seam', () => {
+    const map = createMap({ width: 9, height: 7 });
+    for (let r = 0; r < map.height; r++) {
+      for (let q = -30; q <= 30; q++) {
+        const { col } = axialToOffset({ q, r });
+        expect(wrapQ(map, q, r)).toBe(offsetToAxial(wrapCol(map, col), r).q);
+      }
+    }
+  });
+
+  it('measures the shortest of the three ways round the cylinder', () => {
+    const map = createMap({ width: 9, height: 7 });
+    const a = offsetToAxial(0, 3);
+    for (const tile of map.tiles) {
+      const b = tileHex(tile);
+      const ways = [-1, 0, 1].map((k) => hexDistance(a, { q: b.q + k * map.width, r: b.r }));
+      expect(wrappedDistance(map, a, b)).toBe(Math.min(...ways));
+    }
+  });
+
+  it('lists a range as the walk of getTile would, narrow boards included', () => {
+    for (const width of [2, 3, 4, 5, 7, 12]) {
+      const map = createMap({ width, height: 9 });
+      for (const radius of [0, 1, 2, 3]) {
+        const centre = offsetToAxial(width - 1, 4);
+        const walked: Tile[] = [];
+        for (let dq = -radius; dq <= radius; dq++) {
+          const lo = Math.max(-radius, -dq - radius);
+          const hi = Math.min(radius, -dq + radius);
+          for (let dr = lo; dr <= hi; dr++) {
+            const tile = getTile(map, { q: centre.q + dq, r: centre.r + dr });
+            if (tile && !walked.includes(tile)) walked.push(tile);
+          }
+        }
+        expect(mapRange(map, centre, radius)).toEqual(walked);
+      }
+    }
   });
 });

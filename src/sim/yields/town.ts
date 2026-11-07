@@ -78,7 +78,14 @@ import { cardOpusInterdictBy, cardOpusSiegeBy } from '../statecraft/evaluator';
 // from the evaluator for the reason above.
 import { townBuildings } from '../statecraft/evaluator';
 import { siegeField, underSiege } from '../combat';
-import { type TileYieldContribution, cityContext, explainTileYield, foldTile, foldTileLines } from './hex';
+import {
+  type TileYieldContext,
+  type TileYieldContribution,
+  cityContext,
+  explainTileYield,
+  foldTile,
+  foldTileLines,
+} from './hex';
 import { foldStageSums } from './stages';
 
 const CITIES = RULES.cities;
@@ -204,8 +211,11 @@ export function explainCentreYield(
   state: GameState,
   city: City,
   hypothetical: readonly BuildingId[] = [],
+  // The town's context, when the caller already holds it for these same arguments.
+  // `explainCity` does, and asking again was about a tenth of what it costs.
+  ctx: TileYieldContext | undefined = cityContext(state, city, hypothetical),
 ): TileYieldContribution[] {
-  const ground = explainTileYield(cityTile(state.map, city), cityContext(state, city, hypothetical));
+  const ground = explainTileYield(cityTile(state.map, city), ctx);
   const under = foldTileLines(ground);
   const base = readTileYield(CITIES.baseCityYields);
 
@@ -274,8 +284,9 @@ export function foldCentre(
   state: GameState,
   city: City,
   hypothetical: readonly BuildingId[] = [],
+  ctx?: TileYieldContext,
 ): TileYield {
-  return foldTileLines(explainCentreYield(state, city, hypothetical));
+  return foldTileLines(explainCentreYield(state, city, hypothetical, ctx));
 }
 
 // --- what a building pays ---------------------------------------------------
@@ -1437,7 +1448,15 @@ export interface CityYieldLine extends CityYields {
  */
 export function foldCityFlats(lines: readonly CityYieldLine[]): CityYields {
   const total = emptyCityYields();
-  for (const line of lines) for (const key of CITY_YIELD_KEYS) total[key] += line[key];
+  // The six voices by name, for `foldTileLines`' reason.
+  for (const line of lines) {
+    total.food += line.food;
+    total.production += line.production;
+    total.gold += line.gold;
+    total.science += line.science;
+    total.culture += line.culture;
+    total.faith += line.faith;
+  }
   return total;
 }
 
@@ -1478,8 +1497,24 @@ export function explainCity(
     source: string,
     cls: LedgerClass,
     bag: Partial<CityYields>,
-    handles: { card?: CardId; building?: BuildingId; resource?: ResourceId } = {},
+    handles?: { card?: CardId; building?: BuildingId; resource?: ResourceId },
   ): void => {
+    // Most lines name no handle, and a literal with no spread in it is much quicker
+    // to build. The keys and their order are the same as the form below.
+    if (handles === undefined) {
+      lines.push({
+        step,
+        source,
+        class: cls,
+        food: bag.food ?? 0,
+        production: bag.production ?? 0,
+        gold: bag.gold ?? 0,
+        science: bag.science ?? 0,
+        culture: bag.culture ?? 0,
+        faith: bag.faith ?? 0,
+      });
+      return;
+    }
     lines.push({
       step,
       source,
@@ -1494,13 +1529,20 @@ export function explainCity(
     });
   };
 
+  // The candidate reaches the *ground* as well as the shelves: a building whose
+  // whole worth is a tile line (a lighthouse's coastal food) is invisible to a
+  // what-if that only ghosts `explainCityBuildings`. Empty for every real
+  // reading, which is every caller but the two hypothetical ones. Asked once, for
+  // the centre and for the worked hexes, because nothing writes between the two.
+  const ctx = cityContext(state, city, hypothetical);
+
   // **1 — the centre**, as two lines rather than one, because they are two
   // different sentences and a breakdown that merged them would credit the land
   // with a citizen's beaker. The town's hex pays what it beats the base city
   // yield by (an excess — `explainCentreYield`), and that is the ground's; what
   // a settlement makes *by being one* belongs to no tile, no building and no
   // card, which is exactly what `other` means.
-  const centre = foldCentre(state, city, hypothetical);
+  const centre = foldCentre(state, city, hypothetical, ctx);
   say(1, CENTRE_SOURCE, 'tiles', centre);
   // Exact since batch X: at `sciencePerPop` 0.5 a size-1 town banks half a
   // beaker, where the old floor banked nothing at all.
@@ -1509,11 +1551,6 @@ export function explainCity(
     culture: CITIES.baseCulturePerCity,
   });
 
-  // The candidate reaches the *ground* as well as the shelves: a building whose
-  // whole worth is a tile line (a lighthouse's coastal food) is invisible to a
-  // what-if that only ghosts `explainCityBuildings`. Empty for every real
-  // reading, which is every caller but the two hypothetical ones.
-  const ctx = cityContext(state, city, hypothetical);
   for (const cell of city.workedTiles) {
     const tile = getTileAt(state.map, cell.col, cell.row);
     if (!tile) continue;
@@ -1664,7 +1701,9 @@ export function explainCity(
   // in hand and the share it pays is itself an ordinary flat, staged by Entry
   // XVII like a market's coin. The fold it reads is the list so far, which is
   // what `foldCityFlats` is for.
-  for (const line of cardYieldConversions(state, city, foldCityFlats(lines))) {
+  const beforeConversions = foldCityFlats(lines);
+  const conversions = cardYieldConversions(state, city, beforeConversions);
+  for (const line of conversions) {
     say(10, line.source, classifyCard(line.card), line, { card: line.card });
   }
 
@@ -1673,8 +1712,9 @@ export function explainCity(
   return {
     lines,
     // Rule 5, at the town's scale: the fold of the list and never a total kept
-    // beside it (batch E2). Same additions, same order, one sum.
-    flats: foldCityFlats(lines),
+    // beside it (batch E2). Same additions, same order, one sum. With no conversion
+    // the list has not grown since the fold above, so that is the same fold.
+    flats: conversions.length === 0 ? beforeConversions : foldCityFlats(lines),
     percents: cityYieldPercents(state, city, empire),
     empire,
   };

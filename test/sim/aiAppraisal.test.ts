@@ -4109,6 +4109,7 @@ describe('the growth channel charged (batch X5b)', () => {
     const tile = at(state.map, offer.col, offer.row);
     tile.hills = true;
     tile.resource = 'stone' as never;
+    bumpRevision(state);
     refreshCityDerived(state, city);
     bumpRevision(state);
     return { state, player, city };

@@ -362,6 +362,7 @@ describe('happiness supply', () => {
 
     // Owned, unimproved: worth gold to whoever works it, worth no happiness.
     at(state.map, 3, 4).resource = 'silk';
+    bumpRevision(state);
     expect(happinessOf(state, 0)).toBe(bare);
 
     // Improved, but inside somebody else's borders.
@@ -369,6 +370,7 @@ describe('happiness supply', () => {
     const tile = at(state.map, 11, 4);
     tile.resource = 'wine';
     tile.improvement = 'plantation';
+    bumpRevision(state);
     expect(state.tileOwner[4 * state.map.width + 11]).toBe(theirs.id);
     expect(happinessOf(state, 0)).toBe(bare);
     expect(happinessOf(state, 1)).toBe(

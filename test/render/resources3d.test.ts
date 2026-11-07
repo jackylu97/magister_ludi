@@ -57,7 +57,7 @@ import { LensLayer, yieldDiscWidth, yieldRowLayout } from '../../src/render3d/le
 import { VIEW3D, resourcePropSpec } from '../../src/render3d/lookData';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { foundCityAt } from '../../src/sim/cities';
-import { type GameState } from '../../src/sim/state';
+import { type GameState, bumpRevision } from '../../src/sim/state';
 import { visibleResourceAt } from '../../src/sim/tech';
 import { type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { siteMark } from '../../src/art/siteMarks';
@@ -1240,6 +1240,7 @@ describe('the yield glyphs', () => {
   it('draws a row for each of the three ground voices the luxuries pay', () => {
     const state = flatState();
     at(state, 4, 4).resource = 'silk';
+    bumpRevision(state);
     const culture = marksOver(state, 4, 4).map((mesh) => mesh.geometry);
     expect(culture).toContain(geometry.yieldGlyphs.culture);
     // Base grassland still pays two food alongside it — a mixed row, not a
@@ -1247,11 +1248,13 @@ describe('the yield glyphs', () => {
     expect(culture).toContain(geometry.yieldGlyphs.food);
 
     at(state, 4, 4).resource = 'tea';
+    bumpRevision(state);
     const science = marksOver(state, 4, 4).map((mesh) => mesh.geometry);
     expect(science).toContain(geometry.yieldGlyphs.science);
     expect(science).toContain(geometry.yieldGlyphs.gold);
 
     at(state, 4, 4).resource = 'incense';
+    bumpRevision(state);
     const faith = marksOver(state, 4, 4).map((mesh) => mesh.geometry);
     expect(faith).toContain(geometry.yieldGlyphs.faith);
     expect(faith).toContain(geometry.yieldGlyphs.gold);

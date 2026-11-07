@@ -2253,6 +2253,18 @@ function townHolding(city: City, id: BuildingId): City {
   return { ...city, buildings: [...city.buildings, id] };
 }
 
+/** `townHolding` for one walk, on a copy of the town that the walk reuses. */
+function townHoldingOn(copies: Map<number, City>, city: City, id: BuildingId): City {
+  if (city.buildings.includes(id)) return city;
+  let copy = copies.get(city.id);
+  if (copy === undefined) {
+    copy = { ...city };
+    copies.set(city.id, copy);
+  }
+  copy.buildings = [...city.buildings, id];
+  return copy;
+}
+
 /**
  * **The bar one piece carries** — the roster's own maximum, through the
  * simulation's `unitMaxHp` rather than off `UnitDef.maxHp`, so a piece's health
@@ -2801,9 +2813,13 @@ function realmTownsAdmitting(ctx: ValueContext, scope?: CityScope): number {
   if (scopePromisesABuilding(scope)) {
     const gains: number[] = [];
     const counted = new Map<number, number>();
+    // One copy of each town for this walk, with its shelf rewritten for each row,
+    // because copying a whole town for each of a hundred rows was the dear part.
+    // Nothing below keeps the copy past the one question it is asked.
+    const copies = new Map<number, City>();
     for (const row of promisedBuildings(ctx)) {
       if (cityScopeAdmits(ctx.state, row.city, scope, ctx.playerId)) continue;
-      if (!cityScopeAdmits(ctx.state, townHolding(row.city, row.id), scope, ctx.playerId)) continue;
+      if (!cityScopeAdmits(ctx.state, townHoldingOn(copies, row.city, row.id), scope, ctx.playerId)) continue;
       const at = counted.get(row.city.id);
       if (at === undefined) {
         counted.set(row.city.id, gains.length);

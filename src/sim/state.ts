@@ -8399,8 +8399,13 @@ export function isBarbarian(state: GameState, playerId: number): boolean {
   return playerById(state, playerId)?.barbarian === true;
 }
 
-/** Linear scan by id; player counts are tiny and arrays keep order honest. */
+/**
+ * A seat's id is its index in every game `newGame` builds, so that slot answers
+ * almost every ask. The scan stays for a fixture whose ids do not line up.
+ */
 export function playerById(state: GameState, id: number): Player | undefined {
+  const seated = state.players[id];
+  if (seated !== undefined && seated.id === id) return seated;
   for (const player of state.players) {
     if (player.id === id) return player;
   }

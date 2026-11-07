@@ -546,8 +546,11 @@ export function buildingTileLines(
 ): TileLine[] {
   const list: TileLine[] = [];
   for (const id of BUILDING_IDS) {
+    // Few rows carry a tile line, so that is asked before the walk of the shelf.
+    const lines = buildingDef(id).tileYields;
+    if (lines === undefined) continue;
     if (!city.buildings.includes(id) && !hypothetical.includes(id)) continue;
-    for (const line of buildingDef(id).tileYields ?? []) {
+    for (const line of lines) {
       if (line.requiresTech !== undefined && !techs.includes(line.requiresTech)) continue;
       const add = line.add;
       const resolved: TileLine = {

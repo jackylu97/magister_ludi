@@ -29,13 +29,13 @@
 import {
   type GameMap,
   type Tile,
-  getTile,
+  NEIGHBOUR_SLOTS,
   getTileAt,
-  mapNeighbors,
-  tileHex,
+  neighbourTable,
   tileIndex,
 } from './map';
 import { RULES } from './rulesData';
+import { slateMemo } from './slate';
 import { type City, type GameState, type Unit, capitalCityOf, tileOwnerField } from './state';
 import { isWaterTerrain } from './terrainData';
 import { trades, unitDef } from './unitData';
@@ -189,13 +189,16 @@ export function connectedCities(state: GameState, playerId: number): ConnectedCi
   const seen = new Uint8Array(map.tiles.length);
   const frontier: Tile[] = [start];
   seen[tileIndex(map, start.col, start.row)] = 1;
+  const table = neighbourTable(map);
   while (frontier.length > 0) {
     const tile = frontier.pop()!;
-    for (const hex of mapNeighbors(map, tileHex(tile))) {
-      const next = getTile(map, hex);
-      if (!next) continue;
-      const index = tileIndex(map, next.col, next.row);
+    const first = tileIndex(map, tile.col, tile.row) * NEIGHBOUR_SLOTS;
+    for (let slot = first; slot < first + NEIGHBOUR_SLOTS; slot++) {
+      const index = table[slot]!;
+      if (index < 0) break;
       if (seen[index] === 1) continue;
+      const next = map.tiles[index];
+      if (!next) continue;
       if (!fillAdmits(map, owner, cityCells, playerId, next)) continue;
       seen[index] = 1;
       frontier.push(next);
@@ -211,4 +214,19 @@ export function connectedCities(state: GameState, playerId: number): ConnectedCi
     list.push({ city, gold: Math.floor(city.population / per) });
   }
   return list;
+}
+
+/**
+ * The ids of the towns `connectedCities` lists, for a card's `connected` and
+ * `notConnected` scopes, which ask about one town at a time and many times over.
+ *
+ * Remembered on the economy clock. The fill reads the roads, the owner array, the
+ * towns and who holds them, and each of those is a row of the register of announced
+ * writes (`test/sim/slateRegister.test.ts`). `connectedCities` itself has no memo,
+ * because its other callers ask it once for a whole phase or a whole fold.
+ */
+export function connectedCityIds(state: GameState, playerId: number): readonly number[] {
+  return slateMemo(state, 'economy', 'connectedCityIds', String(playerId), () =>
+    connectedCities(state, playerId).map((entry) => entry.city.id),
+  );
 }

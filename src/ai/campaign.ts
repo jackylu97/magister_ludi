@@ -37,7 +37,7 @@ import { type AiConfig } from './aiConfig';
 import type { ValueContext } from './value';
 
 import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../sim/map';
-import { type Cell, type MoveProfile, canStopOn, findPath, moveProfile } from '../sim/pathfind';
+import { type Cell, type MoveProfile, canStopOn, findPath, moveProfile, transitField } from '../sim/pathfind';
 import { type City, type GameState, type Player, type Unit, realPlayers } from '../sim/state';
 import { type UnitDef, isCombatant, isFieldSoldier, isRanged, unitDef } from '../sim/unitData';
 import { atWar } from '../sim/wars';
@@ -382,10 +382,12 @@ export function standingsNear(
   const from = getTileAt(state.map, unit.col, unit.row);
   const here = from === undefined ? tileHex(centre) : tileHex(from);
   const mover = profile ?? moveProfile(state, unit);
+  // Who stands where, once for the ring. Nothing moves during this walk.
+  const ground = transitField(state, unit.ownerId);
   const ring: { tile: Tile; distance: number }[] = [];
   for (const tile of mapRange(state.map, tileHex(centre), Math.max(0, within))) {
     if (skipCentre && tile.col === at.col && tile.row === at.row) continue;
-    if (!canStopOn(state, unit, tile, mover)) continue;
+    if (!canStopOn(state, unit, tile, mover, ground)) continue;
     ring.push({ tile, distance: wrappedDistance(state.map, here, tileHex(tile)) });
   }
   ring.sort((a, b) => a.distance - b.distance);

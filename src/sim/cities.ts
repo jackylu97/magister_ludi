@@ -209,7 +209,7 @@ import {
 import { cardBehaviorRule, cardBuildingCostLines, cardUnitCostLines } from './statecraft/evaluator';
 // Batch DT16, from the evaluator for the same reason: whose hexes read the works
 // around them, for `refreshRingDerived`.
-import { cardHexLinesReadWorksBeside } from './statecraft/evaluator';
+import { cardHexLinesReadWorksBeside, lawIsCut } from './statecraft/evaluator';
 // Scientific batch S5, The School of Mines: the law's extra copies for the
 // works standing on this empire's deposits, from the evaluator for the same
 // reason.
@@ -1177,6 +1177,42 @@ interface SweptCopies {
   withWork: number[];
 }
 
+/**
+ * **The hexes that can matter to each resource**, as tile indices in map order: a
+ * seam of it, or a work that supplies it. Any other hex is one `sweepOwnCopies` and
+ * `sweepHoldings` would look at and pass over.
+ *
+ * A clock tick asks for the copies of about thirty resources from each of six seats,
+ * and each ask used to walk the whole board to find its handful of hexes. This is
+ * one walk a tick. It remembers on the economy clock, as the copies it feeds do, and
+ * for their reason: `Tile.improvement` and `prospectAt`'s write of `Tile.resource`
+ * both announce on that clock, and nothing else writes either during a game. It is
+ * made of plain records and arrays, so the slate's shadow check can print it.
+ */
+function resourceSites(state: GameState): ResourceSites {
+  return slateMemo(state, 'economy', 'resourceSites', '', () => {
+    const sites: ResourceSites = { byResource: {}, all: [] };
+    const tiles = state.map.tiles;
+    for (let index = 0; index < tiles.length; index++) {
+      const tile = tiles[index]!;
+      const seam = tile.resource;
+      if (seam !== undefined) (sites.byResource[seam] ??= []).push(index);
+      const here = tile.improvement;
+      const supplies = here === undefined ? undefined : improvementDef(here).suppliesResource;
+      if (supplies !== undefined && supplies !== seam) (sites.byResource[supplies] ??= []).push(index);
+      if (seam !== undefined || supplies !== undefined) sites.all.push(index);
+    }
+    return sites;
+  });
+}
+
+interface ResourceSites {
+  /** Each resource's own hexes. */
+  byResource: Record<string, number[]>;
+  /** Every hex in any of those lists, once. */
+  all: number[];
+}
+
 function sweepOwnCopies(
   state: GameState,
   playerId: number,
@@ -1190,7 +1226,7 @@ function sweepOwnCopies(
   let mined = 0;
   let supplied = 0;
   const withWork: number[] = [];
-  for (let index = 0; index < tiles.length; index++) {
+  for (const index of resourceSites(state).byResource[resourceId] ?? []) {
     const tile = tiles[index]!;
     const seam = tile.resource === resourceId;
     const here = tile.improvement;
@@ -1348,7 +1384,7 @@ function sweepHoldings(
   const opened = new Map<ResourceId, number>();
   const owner = tileOwnerField(state);
   const tiles = state.map.tiles;
-  for (let index = 0; index < tiles.length; index++) {
+  for (const index of resourceSites(state).all) {
     if (owner.at(index) !== playerId) continue;
     const tile = tiles[index]!;
     const holding = openedResource(state, tile, playerId);
@@ -1427,25 +1463,37 @@ export function controlledResources(
  * kind this empire has actually promised away** — the gate costs nothing at all
  * in the ordinary game, where the register is empty and this walks one city's
  * ground exactly as it always did.
+ *
+ * Remembered on the economy clock, because a town's list is asked for each line of
+ * each route and each building row. It reads what `controlledHoldings` and the
+ * copies read, one scale down: the owner array, each hex's work and seam, the reveal
+ * technologies and the bargains, and all of those announce on that clock. The key
+ * holds the owner because a what-if may hand in a copy of a town under a new owner,
+ * and it marks an ask under an empire condition (`lawIsCut`), because `hasResource`
+ * reads the law, and the law reads differently there. No caller may change the list;
+ * the return type says so.
  */
 export function cityResources(
   state: GameState,
   city: City,
   kind: ResourceKind,
-): ResourceId[] {
-  const held = new Set<ResourceId>();
-  for (const tile of ownedTiles(state, city)) {
-    // A seam the town opens, or a work in its borders that supplies a
-    // resource with no seam (Scientific batch S5, Niter Beds).
-    const id = openedResource(state, tile, city.ownerId)?.id ?? suppliedResource(state, tile, city.ownerId);
-    if (id === null || resourceDef(id).kind !== kind) continue;
-    held.add(id);
-  }
-  const lentAway = lentCopiesAwayBy(state, city.ownerId);
-  return RESOURCE_IDS.filter(
-    (id) =>
-      held.has(id) && ((lentAway[id] ?? 0) === 0 || hasResource(state, city.ownerId, id)),
-  );
+): readonly ResourceId[] {
+  const key = `${city.id}:${city.ownerId}:${lawIsCut() ? 1 : 0}`;
+  return slateMemo(state, 'economy', `cityResources:${kind}`, key, () => {
+    const held = new Set<ResourceId>();
+    for (const tile of ownedTiles(state, city)) {
+      // A seam the town opens, or a work in its borders that supplies a
+      // resource with no seam (Scientific batch S5, Niter Beds).
+      const id = openedResource(state, tile, city.ownerId)?.id ?? suppliedResource(state, tile, city.ownerId);
+      if (id === null || resourceDef(id).kind !== kind) continue;
+      held.add(id);
+    }
+    const lentAway = lentCopiesAwayBy(state, city.ownerId);
+    return RESOURCE_IDS.filter(
+      (id) =>
+        held.has(id) && ((lentAway[id] ?? 0) === 0 || hasResource(state, city.ownerId, id)),
+    );
+  });
 }
 
 /**

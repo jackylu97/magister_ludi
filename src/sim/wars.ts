@@ -39,7 +39,7 @@
  */
 
 import { RULES } from './rulesData';
-import { type GameState, isBarbarian, playerById } from './state';
+import { type GameState, playerById } from './state';
 // Type-only in one direction, values in the other: `deals.ts` is the leaf that
 // owns the terms vocabulary and imports nothing from here, so naming its shapes
 // costs this file nothing at load. `termsKey` is a value and is imported as
@@ -160,8 +160,10 @@ export function warBetween(state: GameState, x: number, y: number): WarState | u
  */
 export function atWar(state: GameState, x: number, y: number): boolean {
   if (x === y) return false;
-  if (playerById(state, x) === undefined || playerById(state, y) === undefined) return false;
-  if (isBarbarian(state, x) || isBarbarian(state, y)) return true;
+  const first = playerById(state, x);
+  const second = playerById(state, y);
+  if (first === undefined || second === undefined) return false;
+  if (first.barbarian === true || second.barbarian === true) return true;
   return warBetween(state, x, y) !== undefined;
 }
 

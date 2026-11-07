@@ -1052,6 +1052,7 @@ describe('the new counts', () => {
     )!;
     mine.resource = fresh;
     mine.improvement = improvementForResource(fresh)!;
+    bumpRevision(g.state);
     expect(happinessOf(g.state, 0)).toBe(bare + 1);
 
     // …and one in somebody else's, which is not this city's ground and pays
@@ -1068,6 +1069,7 @@ describe('the new counts', () => {
     )!;
     theirs.resource = theirsKind;
     theirs.improvement = improvementForResource(theirsKind)!;
+    bumpRevision(g.state);
     expect(happinessOf(g.state, 0)).toBe(bare + 1);
   });
 

@@ -250,6 +250,34 @@ function rowNeeds(def: { name: string }): string {
   return def.name.toLowerCase().endsWith('s') ? 'need' : 'needs';
 }
 
+/** A hex as a refusal sentence names it. */
+function whereIs(tile: Tile): string {
+  return `(${tile.col}, ${tile.row})`;
+}
+
+/**
+ * The two facts about a hex that `improvementGroundError` asks first, whichever
+ * row is being asked about: whose ground it is, and whether a town stands on it.
+ * Each is a walk of `state.cities`. A caller that asks many rows about one hex, as
+ * the bot's plan does, takes this once and hands it in. It lasts as long as the
+ * caller's sweep, because it is a reading of the board as it stands.
+ */
+export interface HexStanding {
+  owner: number | null;
+  town: City | undefined;
+}
+
+export function hexStanding(state: GameState, tile: Tile): HexStanding {
+  let town: City | undefined;
+  for (const city of state.cities) {
+    if (city.col === tile.col && city.row === tile.row) {
+      town = city;
+      break;
+    }
+  }
+  return { owner: tileOwnerPlayerId(state, tile.col, tile.row), town };
+}
+
 /**
  * Why this **ground** cannot take this improvement, or `null` when it could —
  * every question about the hex, and not one about the empire's tree.
@@ -325,21 +353,17 @@ export function improvementGroundError(
   ownerId: number,
   tile: Tile,
   improvementId: ImprovementId,
+  standing: HexStanding = hexStanding(state, tile),
 ): string | null {
   const def = improvementDef(improvementId);
-  const where = `(${tile.col}, ${tile.row})`;
 
-  const owner = tileOwnerPlayerId(state, tile.col, tile.row);
-  if (owner !== null && owner !== ownerId) return `${where} belongs to player ${owner}`;
+  const owner = standing.owner;
+  if (owner !== null && owner !== ownerId) return `${whereIs(tile)} belongs to player ${owner}`;
 
   // A town is what a city tile has instead of an improvement. Refused here
   // rather than left to look odd on the board: the board already clears a city
   // tile's scatter, so a farm there would be furrows drawn through the streets.
-  for (const city of state.cities) {
-    if (city.col === tile.col && city.row === tile.row) {
-      return `${city.name} stands on ${where}`;
-    }
-  }
+  if (standing.town !== undefined) return `${standing.town.name} stands on ${whereIs(tile)}`;
 
   // **Beyond the borders** (Expansionist batch E4). An outpost goes only there:
   // on unowned ground with no work on it, at most its own reach from the
@@ -353,19 +377,19 @@ export function improvementGroundError(
   }
   if (owner === null) {
     const reach = beyond ?? (def.tended === true ? worksBeyondReach(state, ownerId, 'tended') : 0);
-    if (reach <= 0) return `${where} is not in your territory`;
+    if (reach <= 0) return `${whereIs(tile)} is not in your territory`;
     if (!withinReachOfBorders(state, ownerId, tile, reach)) {
-      return `${where} is more than ${reach} ${reach === 1 ? 'hex' : 'hexes'} beyond your borders`;
+      return `${whereIs(tile)} is more than ${reach} ${reach === 1 ? 'hex' : 'hexes'} beyond your borders`;
     }
     // Wild ground only: a work already standing out there is not this
     // worker's to replace.
     if (tile.improvement !== undefined) {
-      return `${where} already has ${aRow(improvementDef(tile.improvement))}`;
+      return `${whereIs(tile)} already has ${aRow(improvementDef(tile.improvement))}`;
     }
   }
 
   if (tile.improvement === improvementId) {
-    return `${where} already has ${aRow(def)}`;
+    return `${whereIs(tile)} already has ${aRow(def)}`;
   }
   // **A row that marks an improved hex** (Expansionist batch E9, The Burning
   // Season; the triage's readings 9 to 11). A hex that already carries the
@@ -375,7 +399,7 @@ export function improvementGroundError(
   // opens the seam stays.
   const mark = def.marksImproved;
   if (mark !== undefined && tile.marks?.includes(mark) === true) {
-    return `${where} is already ${IMPROVEMENTS.hexMarks[mark].name.toLowerCase()}`;
+    return `${whereIs(tile)} is already ${IMPROVEMENTS.hexMarks[mark].name.toLowerCase()}`;
   }
   const marking = markInsteadOf(tile, improvementId) !== undefined;
   // **One in each town** (The Keeps, Expansionist batch E4; the triage's reading

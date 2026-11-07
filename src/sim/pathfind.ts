@@ -116,7 +116,16 @@
  */
 
 import { cityAt, tileOwnerField } from './cities';
-import { type GameMap, type Tile, getTile, getTileAt, mapNeighbors, tileHex, tileIndex, wrappedDistance } from './map';
+import {
+  type GameMap,
+  type Tile,
+  NEIGHBOUR_SLOTS,
+  getTileAt,
+  neighbourTable,
+  tileHex,
+  tileIndex,
+  wrappedDistance,
+} from './map';
 import { RULES } from './rulesData';
 // The resource half of the road rule. A function-level edge only — nothing at
 // this module's top level calls into it — and the same shape of cycle
@@ -1099,6 +1108,10 @@ export function canStopOn(
   // excused: at war a hostile soldier is still a wall to a caravan exactly as it
   // is to everybody else, and that refusal has already run in `transitPast`.
   if ((standing & PEACEFUL_UNIT) !== 0 && !stacksFreely(category)) return false;
+  // Nobody stands here, so there is nobody for the stacking cap to count.
+  if (ground?.ownerId === unit.ownerId && ground.occupied[tileIndex(state.map, tile.col, tile.row)] === 0) {
+    return true;
+  }
   return hasStackingRoom(state, tile.col, tile.row, category, trading?.id ?? unit.id);
 }
 
@@ -1361,6 +1374,11 @@ export interface TransitField {
    * reader can tell which piece put which bit in. See `pieceBits`.
    */
   readonly blocked: Uint8Array;
+  /**
+   * Per tile index: 1 when any piece stands here, this seat's own included, so
+   * `canStopOn` can skip the stacking walk for the many hexes nobody stands on.
+   */
+  readonly occupied: Uint8Array;
 }
 
 /**
@@ -1378,7 +1396,7 @@ export interface TransitField {
  * of tens of thousands. The wild answers true against everybody, so the raiders
  * keep the wall they always had.
  */
-function pieceBits(state: GameState, piece: Unit, ownerId: number): number {
+function pieceBits(piece: Unit, ownerId: number, atWarWith: SeatAtWar): number {
   if (piece.ownerId === ownerId) return 0;
   /**
    * **A caravan is a marker on the ground, not a piece in the way**
@@ -1411,8 +1429,23 @@ function pieceBits(state: GameState, piece: Unit, ownerId: number): number {
    * nobody's way" too, which is the ruling's own sentence said once.
    */
   if (stacksFreely(unitDef(piece.type).category)) return 0;
-  if (!atWar(state, ownerId, piece.ownerId)) return PEACEFUL_UNIT;
+  if (!atWarWith(piece.ownerId)) return PEACEFUL_UNIT;
   return isCombatant(unitDef(piece.type)) ? HOSTILE_SOLDIER : HOSTILE_CIVILIAN;
+}
+
+/** The answer to "is this seat at war with the one a sweep is reading for?" */
+type SeatAtWar = (seat: number) => boolean;
+
+/**
+ * `atWar` against one seat, asked once for each other seat in a sweep.
+ *
+ * A board sweep meets a few hundred pieces and only a handful of seats, so most of
+ * its asks repeat the one before. The answers live as long as the sweep that made
+ * this reader, and no sweep writes a war, so none of them can go stale.
+ */
+function warReader(state: GameState, ownerId: number): SeatAtWar {
+  const known: boolean[] = [];
+  return (seat) => (known[seat] ??= atWar(state, ownerId, seat));
 }
 
 /**
@@ -1424,9 +1457,10 @@ function pieceBits(state: GameState, piece: Unit, ownerId: number): number {
  */
 function standingBits(state: GameState, tile: Tile, ownerId: number): number {
   let bits = foreignCityOn(state, tile, ownerId) ? FOREIGN_CITY : 0;
+  const atWarWith = warReader(state, ownerId);
   for (const piece of state.units) {
     if (piece.col !== tile.col || piece.row !== tile.row) continue;
-    bits |= pieceBits(state, piece, ownerId);
+    bits |= pieceBits(piece, ownerId, atWarWith);
   }
   return bits;
 }
@@ -1443,19 +1477,22 @@ function standingBits(state: GameState, tile: Tile, ownerId: number): number {
 export function transitField(state: GameState, ownerId: number): TransitField {
   const { map } = state;
   const blocked = new Uint8Array(map.tiles.length);
+  const occupied = new Uint8Array(map.tiles.length);
   const onBoard = (col: number, row: number): boolean =>
     col >= 0 && col < map.width && row >= 0 && row < map.height;
+  const atWarWith = warReader(state, ownerId);
   for (const unit of state.units) {
-    if (unit.ownerId === ownerId) continue;
     if (!onBoard(unit.col, unit.row)) continue;
-    blocked[tileIndex(map, unit.col, unit.row)]! |= pieceBits(state, unit, ownerId);
+    const at = tileIndex(map, unit.col, unit.row);
+    occupied[at] = 1;
+    blocked[at]! |= pieceBits(unit, ownerId, atWarWith);
   }
   for (const city of state.cities) {
     if (city.ownerId === ownerId) continue;
     if (!onBoard(city.col, city.row)) continue;
     blocked[tileIndex(map, city.col, city.row)]! |= FOREIGN_CITY;
   }
-  return { ownerId, blocked };
+  return { ownerId, blocked, occupied };
 }
 
 /**
@@ -1488,6 +1525,8 @@ export interface ZocField {
   readonly sources: readonly Tile[];
   /** Per tile index: 1 when at least one source stands one hex away. */
   readonly adjacent: Uint8Array;
+  /** Per tile index: 1 when this hex is one of `sources`. */
+  readonly isSource: Uint8Array;
 }
 
 /**
@@ -1534,28 +1573,28 @@ export interface ZocField {
 export function zocField(state: GameState, ownerId: number): ZocField {
   const { map } = state;
   const sources: Tile[] = [];
-  const seen = new Set<number>();
+  const isSource = new Uint8Array(map.tiles.length);
   const project = (col: number, row: number): void => {
     const tile = getTileAt(map, col, row);
     if (!tile) return;
     const index = tileIndex(map, tile.col, tile.row);
-    if (seen.has(index)) return;
-    seen.add(index);
+    if (isSource[index] === 1) return;
+    isSource[index] = 1;
     sources.push(tile);
   };
 
-  // Arrays, never the `Set` — the sweep order is what makes two runs agree.
-  // `atWar` per piece rather than per edge, which is `pieceBits`' bargain one
-  // field over and the same walk of `state.wars`.
+  // The sweep order is what makes two runs agree. `atWar` once a seat rather than
+  // once a piece, which is `transitField`'s reader one field over.
+  const atWarWith = warReader(state, ownerId);
   for (const unit of state.units) {
     if (unit.ownerId === ownerId) continue;
-    if (!atWar(state, ownerId, unit.ownerId)) continue;
+    if (!atWarWith(unit.ownerId)) continue;
     if (!isCombatant(unitDef(unit.type))) continue;
     project(unit.col, unit.row);
   }
   for (const city of state.cities) {
     if (city.ownerId === ownerId) continue;
-    if (!atWar(state, ownerId, city.ownerId)) continue;
+    if (!atWarWith(city.ownerId)) continue;
     project(city.col, city.row);
   }
   // The Great Wall, last, so a game where nobody holds it is byte-identical to
@@ -1569,7 +1608,7 @@ export function zocField(state: GameState, ownerId: number): ZocField {
     // country that is slow to *cross*, and an army crossing a neighbour's
     // country at peace is a guest with a right of way rather than an invader
     // picking its way past the stones.
-    if (!atWar(state, ownerId, player.id)) continue;
+    if (!atWarWith(player.id)) continue;
     if (cardBorderZoc(state, player.id)) walled.push(player.id);
   }
   if (walled.length > 0) {
@@ -1582,15 +1621,18 @@ export function zocField(state: GameState, ownerId: number): ZocField {
     }
   }
 
-  if (sources.length === 0) return { sources, adjacent: new Uint8Array(0) };
+  if (sources.length === 0) return { sources, adjacent: new Uint8Array(0), isSource };
   const adjacent = new Uint8Array(map.tiles.length);
+  const table = neighbourTable(map);
   for (const source of sources) {
-    for (const hex of mapNeighbors(map, tileHex(source))) {
-      const tile = getTile(map, hex);
-      if (tile) adjacent[tileIndex(map, tile.col, tile.row)] = 1;
+    const first = tileIndex(map, source.col, source.row) * NEIGHBOUR_SLOTS;
+    for (let slot = first; slot < first + NEIGHBOUR_SLOTS; slot++) {
+      const next = table[slot]!;
+      if (next < 0) break;
+      adjacent[next] = 1;
     }
   }
-  return { sources, adjacent };
+  return { sources, adjacent, isSource };
 }
 
 /**
@@ -1611,14 +1653,23 @@ export function zocField(state: GameState, ownerId: number): ZocField {
  */
 export function zocBinds(map: GameMap, field: ZocField, from: Tile, to: Tile): boolean {
   if (field.sources.length === 0) return false;
-  if (field.adjacent[tileIndex(map, from.col, from.row)] !== 1) return false;
-  if (field.adjacent[tileIndex(map, to.col, to.row)] !== 1) return false;
-  const fromHex = tileHex(from);
-  const toHex = tileHex(to);
-  for (const source of field.sources) {
-    const hex = tileHex(source);
-    if (wrappedDistance(map, fromHex, hex) !== 1) continue;
-    if (wrappedDistance(map, toHex, hex) === 1) return true;
+  const fromAt = tileIndex(map, from.col, from.row);
+  const toAt = tileIndex(map, to.col, to.row);
+  if (field.adjacent[fromAt] !== 1) return false;
+  if (field.adjacent[toAt] !== 1) return false;
+  // The source that binds this step stands beside both ends, so it is one of the
+  // six hexes beside `from`. Those six are the only ones asked, however many
+  // sources the field holds: at war with the wild, it can hold hundreds.
+  const table = neighbourTable(map);
+  const nearFrom = fromAt * NEIGHBOUR_SLOTS;
+  const nearTo = toAt * NEIGHBOUR_SLOTS;
+  for (let slot = nearFrom; slot < nearFrom + NEIGHBOUR_SLOTS; slot++) {
+    const hex = table[slot]!;
+    if (hex < 0) break;
+    if (field.isSource[hex] !== 1) continue;
+    for (let other = nearTo; other < nearTo + NEIGHBOUR_SLOTS; other++) {
+      if (table[other] === hex) return true;
+    }
   }
   return false;
 }
@@ -1968,8 +2019,12 @@ class TileHeap {
 /** Every neighbour tile of `tile`, wrap-aware, in `HEX_DIRECTIONS` order. */
 function neighborsOf(map: GameMap, tile: Tile): Tile[] {
   const result: Tile[] = [];
-  for (const hex of mapNeighbors(map, tileHex(tile))) {
-    const neighbor = getTile(map, hex);
+  const table = neighbourTable(map);
+  const first = tileIndex(map, tile.col, tile.row) * NEIGHBOUR_SLOTS;
+  for (let slot = first; slot < first + NEIGHBOUR_SLOTS; slot++) {
+    const at = table[slot]!;
+    if (at < 0) break;
+    const neighbor = map.tiles[at];
     if (neighbor) result.push(neighbor);
   }
   return result;
@@ -2208,7 +2263,8 @@ export function findPathToFirst(
  * the walk then waited at the water's edge for good.
  */
 export function endsTheMarch(from: Tile, to: Tile, mover: MoveProfile, price: StepPrice): boolean {
-  return isShoreStep(from, to, mover) && price.cost >= mover.full;
+  // The price first: it is one comparison, and this is asked on every edge.
+  return price.cost >= mover.full && isShoreStep(from, to, mover);
 }
 
 /**

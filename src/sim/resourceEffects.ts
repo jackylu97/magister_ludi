@@ -175,7 +175,7 @@ import {
   filterWords,
 } from './statecraft';
 // Expansionist batch E12: what a town holds, a card's grants included.
-import { townBuildings } from './statecraft/evaluator';
+import { lawIsCut, townBuildings } from './statecraft/evaluator';
 import { type City, type GameState, type Unit, citiesOf, playerById } from './state';
 import { type TechAge, highestAge } from './techData';
 
@@ -706,8 +706,25 @@ export function lentLuxuriesKept(state: GameState, playerId: number): ResourceId
  * tie. The mark is the *only* thing every fold below has to know about them:
  * `copiesFor` turns it into the share, and the share is what halves the
  * fourteen figures a luxury can pay.
+ *
+ * Remembered on the economy clock, because every fold below asks it, and each town and
+ * each march asks several of those folds. What it reads all announces there: the
+ * holdings, the loans, the law that widens them, and the technologies that set the age.
+ * `readCity` already rests on that, since these lines fold into a town's list. The key
+ * marks an ask under an empire condition (`lawIsCut`), because the holdings and the loans
+ * read the law, and the law reads differently there. No caller may change the list; the
+ * return type says so.
  */
 function liveResourceEffects(
+  state: GameState,
+  playerId: number,
+): readonly { id: ResourceId; effect: ResourceEffect; loan: LuxuryLoanMark }[] {
+  return slateMemo(state, 'economy', 'liveResourceEffects', `${playerId}:${lawIsCut() ? 1 : 0}`, () =>
+    walkLiveResourceEffects(state, playerId),
+  );
+}
+
+function walkLiveResourceEffects(
   state: GameState,
   playerId: number,
 ): { id: ResourceId; effect: ResourceEffect; loan: LuxuryLoanMark }[] {
@@ -915,16 +932,14 @@ function boardHasAny(state: GameState, wanted: ReadonlySet<ImprovementId>): bool
  */
 export function resourceTileLines(state: GameState, playerId: number): TileLine[] {
   const list: TileLine[] = [];
-  // The cheapest possible reject, and it is the **board's** rather than the
-  // empire's: no hex carries one of the improvements these effects name, so no
-  // such line can land on anything, for anybody. One pass of property compares
-  // with no allocation and no lookup, against `liveEffects`' walk of every owned
-  // tile through `openedResource` — and a context is built once per city per
-  // refresh, so this is the difference between a fifth of a turn resolution and
-  // nothing at all on the boards where the sea is empty.
-  if (!boardHasAny(state, IMPROVEMENTS_PAID_ON)) return list;
+  // Asked only once this empire holds such a line, because the empire's list is
+  // remembered and the board's walk is not. If no hex carries one of the improvements
+  // these effects name, no such line can land on anything, for anybody.
+  let boardCarriesOne: boolean | undefined;
   for (const { id, effect, loan } of liveResourceEffects(state, playerId)) {
     if (effect.kind !== 'improvementYields') continue;
+    boardCarriesOne ??= boardHasAny(state, IMPROVEMENTS_PAID_ON);
+    if (!boardCarriesOne) return list;
     const copies = copiesFor(state, playerId, id, effect, loan, true);
     // Through `lineOf` so a `perCopy` improvement line scales and labels itself
     // exactly as every other bag on the table does — there is one reading of a

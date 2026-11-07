@@ -1204,6 +1204,8 @@ export function chartFalseChains(layout: ChartLayout): string[] {
  * table forbids a prerequisite from a later age than its dependent.
  */
 export function highestAge(techs: readonly TechId[]): TechAge {
+  const held = HIGHEST_AGES.get(techs);
+  if (held !== undefined && held.length === techs.length) return held.age;
   let highest: TechAge = 1;
   for (const id of techs) {
     if (!isTechId(id)) continue;
@@ -1215,8 +1217,17 @@ export function highestAge(techs: readonly TechId[]): TechAge {
     if (charter === true) continue;
     if (age > highest) highest = age;
   }
+  HIGHEST_AGES.set(techs, { length: techs.length, age: highest });
   return highest;
 }
+
+/**
+ * The answer for each list of technologies, because a luxury's every line asks it and
+ * each ask walked the whole list. It lasts as long as the array does, and the length
+ * is checked because a list only ever grows, so a list of the same length is the same
+ * list. Only overwriting an entry in place would make it wrong, and nothing does.
+ */
+const HIGHEST_AGES = new WeakMap<readonly TechId[], { length: number; age: TechAge }>();
 
 /**
  * An age as its numeral — `1` → `"I"`, `4` → `"IV"`.

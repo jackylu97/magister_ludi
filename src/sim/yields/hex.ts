@@ -412,6 +412,62 @@ export function cityContext(
   return next;
 }
 
+/** One entry of the breakdown. No spread, because this is the hottest list we build. */
+function entryOf(source: string, kind: TileYieldKind, bag: TileYield): TileYieldContribution {
+  return {
+    source,
+    kind,
+    food: bag.food,
+    production: bag.production,
+    gold: bag.gold,
+    science: bag.science,
+    culture: bag.culture,
+    faith: bag.faith,
+  };
+}
+
+/**
+ * A context's lines, sorted once by what `explainTileYield` does with each, and in
+ * `ctx.lines` order within each list. A town has a few dozen lines and asks about a
+ * few dozen hexes, and each hex used to walk all the lines five times to find the
+ * ones each pass wanted.
+ */
+interface TileLinePlan {
+  /** The lines that ask nothing of the fold so far. */
+  plain: readonly TileLine[];
+  /** The lines whose condition reads the fold so far (`tileConditionReadsFold`). */
+  asking: readonly TileLine[];
+  /** The lines carrying a share of the works or of the ground. */
+  shares: readonly TileLine[];
+  /** The lines carrying a share of everything the hex pays. */
+  whole: readonly TileLine[];
+}
+
+/**
+ * Keyed on the array, so a plan lives as long as its context's list does. Nothing
+ * writes a line or a list after a context is built, and that is what would make a
+ * plan wrong. Each context builds its own list, so a plan never outlives a reading.
+ */
+const TILE_LINE_PLANS = new WeakMap<readonly TileLine[], TileLinePlan>();
+const NO_LINES: TileLinePlan = { plain: [], asking: [], shares: [], whole: [] };
+const WHOLE_PASSES = [false, true] as const;
+const NO_PASSES = [] as const;
+
+function linePlanOf(lines: readonly TileLine[] | undefined): TileLinePlan {
+  if (lines === undefined) return NO_LINES;
+  let plan = TILE_LINE_PLANS.get(lines);
+  if (plan === undefined) {
+    plan = {
+      plain: lines.filter((line) => !tileConditionReadsFold(line.on)),
+      asking: lines.filter((line) => tileConditionReadsFold(line.on)),
+      shares: lines.filter((line) => (line.percent ?? 0) !== 0 || (line.basePercent ?? 0) !== 0),
+      whole: lines.filter((line) => (line.wholePercent ?? 0) !== 0),
+    };
+    TILE_LINE_PLANS.set(lines, plan);
+  }
+  return plan;
+}
+
 /**
  * The ordered breakdown of one tile's yield. See the docblock above for the
  * order and for what each `kind` means to the fold.
@@ -423,7 +479,7 @@ export function explainTileYield(
   const list: TileYieldContribution[] = [];
 
   const terrain = terrainDef(tile.terrain);
-  list.push({ source: terrain.name, kind: 'base', ...readTileYield(terrain.yield) });
+  list.push(entryOf(terrain.name, 'base', readTileYield(terrain.yield)));
 
   // **The hill first, the canopy over it** (user, 2026-08-27: "if jungle or
   // forest is on a hills tile, the jungle/forest yield should take precedence").
@@ -437,13 +493,13 @@ export function explainTileYield(
   // same number either way, and the *list* is the explanation of why.
   if (tile.hills) {
     const hills = TERRAIN_DATA.hills;
-    list.push({ source: hills.name, kind: 'override', ...readTileYield(hills.yieldOverride) });
+    list.push(entryOf(hills.name, 'override', readTileYield(hills.yieldOverride)));
   }
 
   const feature = featureDef(tile.feature);
   const override = feature.yieldOverride;
   if (override !== null) {
-    list.push({ source: feature.name, kind: 'override', ...readTileYield(override) });
+    list.push(entryOf(feature.name, 'override', readTileYield(override)));
   }
 
   // **Drained ground** (The Polders, Expansionist batch E4): a work that yields
@@ -454,11 +510,7 @@ export function explainTileYield(
   const drained = tile.improvement === undefined ? undefined : improvementDef(tile.improvement);
   if (drained?.yieldsAs !== undefined) {
     const ground = terrainDef(drained.yieldsAs.terrain);
-    list.push({
-      source: `${drained.name}: ${ground.name}`,
-      kind: 'override',
-      ...readTileYield(ground.yield),
-    });
+    list.push(entryOf(`${drained.name}: ${ground.name}`, 'override', readTileYield(ground.yield)));
   }
 
   // The resource, and only for an empire that has a word for it. A seam this
@@ -466,11 +518,7 @@ export function explainTileYield(
   // and a context-less evaluation is the omniscient one, which is why the test
   // is on `ctx` rather than on a player id that might be missing.
   if (tile.resource !== undefined && (!ctx || resourceIsVisibleTo(tile.resource, ctx.techs))) {
-    list.push({
-      source: resourceDef(tile.resource).name,
-      kind: 'add',
-      ...resourceYield(tile.resource),
-    });
+    list.push(entryOf(resourceDef(tile.resource).name, 'add', resourceYield(tile.resource)));
   }
 
   const improvement = tile.improvement;
@@ -496,7 +544,7 @@ export function explainTileYield(
         for (const voice of TILE_YIELD_KEYS) works[voice] += theirs[voice];
       }
     }
-    list.push({ source: def.name, kind: 'add', ...works });
+    list.push(entryOf(def.name, 'add', works));
     // The renewals, each its own entry, and only for an empire that has earned
     // them. Walked in the table's own order so two renewals on one improvement
     // always read in the same order (design ledger, Entry I).
@@ -522,11 +570,7 @@ export function explainTileYield(
       ) {
         continue;
       }
-      list.push({
-        source: techDef(upgrade.tech).name,
-        kind: 'add',
-        ...readTileYield(upgrade.add),
-      });
+      list.push(entryOf(techDef(upgrade.tech).name, 'add', readTileYield(upgrade.add)));
     }
   }
   const worksTo = list.length;
@@ -544,7 +588,7 @@ export function explainTileYield(
       if (!marks.includes(mark)) continue;
       const rule = RULES.improvements.hexMarks[mark];
       if (!tileConditionHolds(tile, rule.while)) continue;
-      list.push({ source: rule.name, kind: 'add', ...readTileYield(rule.yields) });
+      list.push(entryOf(rule.name, 'add', readTileYield(rule.yields)));
     }
   }
 
@@ -613,6 +657,7 @@ export function explainTileYield(
   };
 
   const sourceIndex = new Map<string, number>();
+  const plan = linePlanOf(ctx?.lines);
   const pushLine = (line: TileLine): void => {
     if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk, ctx?.turn, ctx?.ground)) return;
     // A line that is **only** a percentage carries no bag at all (The
@@ -709,13 +754,9 @@ export function explainTileYield(
   // land second. Order inside each pass is `ctx.lines`' own, so the outcome
   // depends on an order the data carries; and an asking line never sees
   // another asking line's bag, so two of them cannot pay each other interest.
-  for (const line of ctx?.lines ?? []) {
-    if (!tileConditionReadsFold(line.on)) pushLine(line);
-  }
+  for (const line of plan.plain) pushLine(line);
   paid = undefined;
-  for (const line of ctx?.lines ?? []) {
-    if (tileConditionReadsFold(line.on)) pushLine(line);
-  }
+  for (const line of plan.asking) pushLine(line);
 
   // **A percentage on the works, and on nothing else** — The Commonwealth's half
   // again on a great person's academy. Last, so the figure it is a share of is
@@ -747,10 +788,9 @@ export function explainTileYield(
   let groundPercent = 0;
   const groundSources: string[] = [];
   const groundCards: CardId[] = [];
-  for (const line of ctx?.lines ?? []) {
+  for (const line of plan.shares) {
     const works = line.percent ?? 0;
     const ground = line.basePercent ?? 0;
-    if (works === 0 && ground === 0) continue;
     if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk, ctx?.turn, ctx?.ground)) continue;
     if (works !== 0) {
       worksPercent += works;
@@ -827,13 +867,13 @@ export function explainTileYield(
   // Two passes (batch DT19c), as a building's shares have. The `appliedLast` lines
   // come second, each over the fold with the first pass's share in it, because The
   // Pandidakterion's text says "applied after every other change to the hex".
-  for (const appliedLast of [false, true]) {
+  for (const appliedLast of plan.whole.length === 0 ? NO_PASSES : WHOLE_PASSES) {
     let wholePercent = 0;
     const wholeSources: string[] = [];
     const wholeCards: CardId[] = [];
-    for (const line of ctx?.lines ?? []) {
+    for (const line of plan.whole) {
       const whole = line.wholePercent ?? 0;
-      if (whole === 0 || (line.appliedLast === true) !== appliedLast) continue;
+      if ((line.appliedLast === true) !== appliedLast) continue;
       if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk, ctx?.turn, ctx?.ground)) continue;
       wholePercent += whole;
       if (!wholeSources.includes(line.source)) wholeSources.push(line.source);
@@ -869,10 +909,23 @@ export function explainTileYield(
  */
 export function foldTileLines(list: readonly TileYieldContribution[]): TileYield {
   const total = emptyTileYield();
+  // The six voices by name rather than through `TILE_YIELD_KEYS`, because this is
+  // asked for every hex of every town, and a keyed read is the dear part of it.
   for (const entry of list) {
-    for (const key of TILE_YIELD_KEYS) {
-      if (entry.kind === 'add') total[key] += entry[key];
-      else total[key] = entry[key];
+    if (entry.kind === 'add') {
+      total.food += entry.food;
+      total.production += entry.production;
+      total.gold += entry.gold;
+      total.science += entry.science;
+      total.culture += entry.culture;
+      total.faith += entry.faith;
+    } else {
+      total.food = entry.food;
+      total.production = entry.production;
+      total.gold = entry.gold;
+      total.science = entry.science;
+      total.culture = entry.culture;
+      total.faith = entry.faith;
     }
   }
   return total;

@@ -182,7 +182,7 @@ import {
   riteShortfall,
 } from '../sim/religion';
 import { RULES } from '../sim/rulesData';
-import { canStopOn, moveProfile, stepCost, zocField } from '../sim/pathfind';
+import { canStopOn, moveProfile, stepCost, transitField, zocField } from '../sim/pathfind';
 import { type TileOwnerField, playerById, tileOwnerField } from '../sim/state';
 import type { City, GameState, Player, Unit } from '../sim/state';
 import { isExploredBy } from '../sim/visibility';
@@ -2491,13 +2491,15 @@ function stepAsideForBlocker(
   if (!centre) return null;
   const mover = moveProfile(state, blocker);
   const field = zocField(state, blocker.ownerId);
+  // Who stands where, once for the ring of six. Nothing moves during this walk.
+  const ground = transitField(state, blocker.ownerId);
   let best: { tile: Tile; cost: number; friendly: boolean } | null = null;
   const naval = isNaval(unitDef(blocker.type));
   for (const tile of neighborTiles(state.map, tileHex(centre))) {
     // **Never onto the water** for a land piece (`docs/flags.md` (xxxxxx) part
     // 2): the step ends its march at sea, and the bot then left it there.
     if (!naval && isWaterTerrain(tile.terrain)) continue;
-    if (!canStopOn(state, blocker, tile, mover)) continue;
+    if (!canStopOn(state, blocker, tile, mover, ground)) continue;
     const price = stepCost(state.map, centre, tile, mover, field);
     if (price === null) continue;
     const friendly = tileOwnerPlayerId(state, tile.col, tile.row) === player.id;

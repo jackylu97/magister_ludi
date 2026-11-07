@@ -130,7 +130,7 @@ import {
 } from '../resourceData';
 import { nextFloat } from '../rng';
 import { economyStamp, slateMemo, slateShadow } from '../slate';
-import { connectedCities } from '../roads';
+import { connectedCityIds } from '../roads';
 // Commerce batch T5, feature D: the deal register is a leaf
 // (`deals.ts`), so its two readings come straight from it with no cycle.
 import { dealPartnerSeats, lentCopyCount } from '../deals';
@@ -537,6 +537,15 @@ function readCardDef(id: CardId): CardDefBase {
  * condition that asks about a meter cannot ask about itself.
  */
 let conditionDepth = 0;
+
+/**
+ * Is an empire condition being asked right now? The law reads differently while one
+ * is, so a memo outside this file that folds the law keeps the two answers apart, as
+ * `liveReading`'s key does.
+ */
+export function lawIsCut(): boolean {
+  return conditionDepth > 0;
+}
 
 /**
  * The recursion cut for `CountKind`'s `empireYield`, and `conditionDepth`'s idiom
@@ -2771,14 +2780,14 @@ export function cityScopeAdmits(
       // The gold ledger's own fill, asked of the same board (`roads.ts`, the
       // leaf both readers can see). The capital is what the others are joined
       // *to*, so it is never in the list and never admits — see the scope.
-      return connectedCities(state, city.ownerId).some((entry) => entry.city.id === city.id);
+      return connectedCityIds(state, city.ownerId).includes(city.id);
     }
     case 'notConnected':
       // All Roads Lead to Rome (batch DT6). The capital is what the others are
       // joined *to*, and it is never charged (reading 7), so it does not admit.
       return (
         capitalCityOf(state, city.ownerId)?.id !== city.id &&
-        !connectedCities(state, city.ownerId).some((entry) => entry.city.id === city.id)
+        !connectedCityIds(state, city.ownerId).includes(city.id)
       );
     case 'newest': {
       // **Founding order**, which is `state.cities`' own order and the order
@@ -4403,15 +4412,26 @@ function generalPresent(state: GameState, city: City): boolean {
   return false;
 }
 
-function garrisonOf(state: GameState, city: City): Unit[] {
-  const list: Unit[] = [];
-  for (const unit of state.units) {
-    if (unit.ownerId !== city.ownerId) continue;
-    if (unit.col !== city.col || unit.row !== city.row) continue;
-    if (!isCombatant(unitDef(unit.type))) continue;
-    list.push(unit);
-  }
-  return list;
+/**
+ * Who stands in this town, for the scopes and counts that ask about a garrison.
+ *
+ * Remembered on the economy clock, because these are asked for each route line and
+ * each hex row and each ask walked every piece on the board. A soldier stepping on
+ * or off a town's hex announces (`stepIsSeen`, clause 2), and so do a piece created,
+ * removed or taken. The key holds the owner because a what-if may hand in a copy of
+ * a town under a new owner. No caller may change the list; the return type says so.
+ */
+function garrisonOf(state: GameState, city: City): readonly Unit[] {
+  return slateMemo(state, 'economy', 'garrison', `${city.id}:${city.ownerId}`, () => {
+    const list: Unit[] = [];
+    for (const unit of state.units) {
+      if (unit.ownerId !== city.ownerId) continue;
+      if (unit.col !== city.col || unit.row !== city.row) continue;
+      if (!isCombatant(unitDef(unit.type))) continue;
+      list.push(unit);
+    }
+    return list;
+  });
 }
 
 /**

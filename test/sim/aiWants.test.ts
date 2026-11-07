@@ -1781,6 +1781,7 @@ describe('batch 8 — the hexes a town would buy', () => {
     const before = wantAt(state, player, seam);
     expect(before).toBeUndefined();
     getTileAt(state.map, seam.col, seam.row)!.resource = SILK;
+    bumpRevision(state);
     const second = wantAt(state, player, seam);
     expect(second).toBeDefined();
     expect(second.worth).toBeGreaterThan(0);

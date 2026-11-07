@@ -1384,6 +1384,7 @@ describe("every hook family, end to end", () => {
     // The luxury hex line, which the balance pass of 2026-08-31 moved off Common
     // Granary (now a fact about the *town*) and onto a row of its own.
     tile.resource = "gems";
+    bumpRevision(g.state);
     const before = explainTileYield(tile, yieldContextFor(g.state, 0));
     slot(g.state, 0, "theOrchardTithe");
     const after = explainTileYield(tile, yieldContextFor(g.state, 0));
@@ -1395,6 +1396,7 @@ describe("every hook family, end to end", () => {
     // A hex with no resource is untouched — the condition is the whole rule.
     const bare = getTileAt(g.state.map, city.col, city.row)!;
     delete bare.resource;
+    bumpRevision(g.state);
     expect(explainTileYield(bare, yieldContextFor(g.state, 0))).toHaveLength(
       before.length - 1,
     );
@@ -4919,6 +4921,9 @@ describe("the balance pass of 2026-08-31", () => {
     for (let step = 1; step < 4; step++) {
       getTileAt(g.state.map, capital.col + step, capital.row)!.road = 0;
     }
+    // A test that writes the board by hand announces it, as the game's writers do:
+    // the scope's fill is remembered on the economy clock.
+    bumpRevision(g.state);
     expect(cityScopeAdmits(g.state, second, scope)).toBe(true);
     expect(cityScopeAdmits(g.state, capital, scope)).toBe(false);
 
@@ -7657,10 +7662,13 @@ describe("the Æra III fork of 2026-09-05", () => {
       (t) => t.col !== city.col || t.row !== city.row,
     )!;
     tile.feature = "none";
-    const hammers = (): number =>
-      explainTileYield(tile, yieldContextFor(g.state, 0))
+    const hammers = (): number => {
+      // Each ask follows a hand-written change to the hex below.
+      bumpRevision(g.state);
+      return explainTileYield(tile, yieldContextFor(g.state, 0))
         .filter((line) => line.source.includes("Deep Delving"))
         .reduce((sum, line) => sum + line.production, 0);
+    };
     tile.improvement = "farm";
     expect(hammers()).toBe(0);
     tile.improvement = "quarry";

@@ -51,12 +51,14 @@ import {
   routeIsLive,
   routeMode,
 } from './routes';
+import { slateMemo } from './slate';
 import type { City, GameState, Unit } from './state';
 import { cardAmplifier, cardRouteShareLines, cardRouteYieldLines } from './statecraft';
 // Expansionist batch E12: what a town holds, a card's grants included.
 // Commerce batch T3: the card that makes a home route pay its origin a copy.
 import { cardReturnLeg, townBuildings } from './statecraft/evaluator';
 import type { CardId } from './statecraftData';
+import { trades, unitDef } from './unitData';
 
 const TRADE = RULES.trade;
 const ABROAD = RULES.trade.international;
@@ -893,9 +895,23 @@ export function cityReturnLegYields(state: GameState, city: City): ReturnLegLine
  */
 export function cityRouteYields(state: GameState, city: City): RouteYieldLine[] {
   const lines: RouteYieldLine[] = [];
-  for (const unit of state.units) {
+  for (const unit of caravansOnBoard(state)) {
     if (unit.trade?.to !== city.id) continue;
     lines.push(...explainRouteYield(state, unit));
   }
   return lines;
+}
+
+/**
+ * Every piece that can carry a route, in `state.units` order, because each town asks
+ * this for each reading and most pieces cannot.
+ *
+ * Remembered on the economy clock. It holds the pieces themselves, so a route and its
+ * ends are read live. Only a piece appearing, leaving or changing its row can make the
+ * list wrong, and `createUnit`, `removeUnit` and `upgradeUnits` all announce.
+ */
+function caravansOnBoard(state: GameState): readonly Unit[] {
+  return slateMemo(state, 'economy', 'caravans', '', () =>
+    state.units.filter((unit) => trades(unitDef(unit.type))),
+  );
 }

@@ -121,6 +121,7 @@ import {
   proposePeaceError,
   razeCityError,
 } from '../sim/diplomacy';
+import type { Hex } from '../sim/hex';
 import { getTileAt, tileHex, wrappedDistance } from '../sim/map';
 // The settler's own reading of a town's ground, for `war.targetValueWeight`.
 import { explainSite } from '../sim/sites';
@@ -1959,17 +1960,22 @@ function nearestTownInReach(
   ai: AiConfig,
 ): { city: City; distance: number } | null {
   let best: { city: City; distance: number } | null = null;
+  // This seat's soldiers, once, in `state.units` order, rather than a walk of every
+  // piece on the board for each of the enemy's towns.
+  const soldiers: Hex[] = [];
+  for (const unit of state.units) {
+    if (unit.ownerId !== player.id) continue;
+    if (!isCombatant(unitDef(unit.type))) continue;
+    const from = getTileAt(state.map, unit.col, unit.row);
+    if (from) soldiers.push(tileHex(from));
+  }
   for (const city of state.cities) {
     if (city.ownerId !== enemy.id) continue;
     const tile = getTileAt(state.map, city.col, city.row);
     if (!tile) continue;
     const here = tileHex(tile);
-    for (const unit of state.units) {
-      if (unit.ownerId !== player.id) continue;
-      if (!isCombatant(unitDef(unit.type))) continue;
-      const from = getTileAt(state.map, unit.col, unit.row);
-      if (!from) continue;
-      const distance = wrappedDistance(state.map, here, tileHex(from));
+    for (const from of soldiers) {
+      const distance = wrappedDistance(state.map, here, from);
       if (distance > ai.war.reachRadius) continue;
       if (best === null || distance < best.distance) best = { city, distance };
     }
