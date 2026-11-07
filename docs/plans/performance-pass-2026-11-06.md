@@ -150,6 +150,60 @@ The profile is `~/code/webciv-review/prof/p2-final-999.cpuprofile` (seed 999, tu
 
 Done means: pins unchanged, `test/sim/slateRegister.test.ts` still true, and a before-and-after profile of seed 999 from the same hour.
 
+## Stage 2: unused code
+
+The list is `~/code/webciv-review/dead-e82a.txt`, made by `dead.cjs` at `e82a7da8`. The tool starts from the eight pages' entry modules and follows every name to the top-level declaration it means. A declaration that no page reaches is unused. It has four sections:
+
+| Section | Declarations | Lines |
+|---|---:|---:|
+| 1. No page reaches it, and no test names it | 170 | 2,497 |
+| 2. No page reaches it, and only tests or scripts name it | 243 | 3,508 |
+| 3. Reached, but exported, and no other file names it | 1,067 | 15,995 |
+| 4. Reached, exported, and only tests name the export | 691 | 10,575 |
+
+**Leave these alone.** Each is a rule in `CLAUDE.md` or a question for the user:
+
+- `src/render/`, the frozen 2D renderers: 84 unused declarations and 1,828 lines, the whole `Renderer` class among them. `CLAUDE.md` says to keep them compiling, so removing them is the user's decision.
+- `src/ui/guide*.ts`, tutorial version 2: 113 declarations and 1,556 lines. The user's decision.
+- `consecrateError` and `consecrateAt`, kept on purpose (`CLAUDE.md`, Religion).
+- `retired: true` rows, and the code that reads them for saves and the Compendium.
+- `src/sim/statecraft.ts`, the index that 144 test files import.
+
+### U1: remove what nothing reaches
+
+Fence: `src/` outside the list above, and the tests of what goes.
+
+1. Check each declaration in sections 1 and 2 before removing it. Search its name in `src/`, `test/`, `scripts/`, `data/`, the root `*.html` pages, `vite.config.ts` and `docs/`. A name inside a string counts as a use: a register test, a describer table, a JSON `kind`.
+2. **Section 1:** remove the declaration. Then remove any import or local that the type check now reports as unused.
+3. **Section 2:** decide each one.
+   - If the only tests that name it test the declaration itself, remove the declaration and those tests.
+   - If a test uses it to check live code or data, keep it, and give the reason in one line of the report. These are the usual cases: the `*Problems` validators, the register and count lists (`OCCASIONS`, `BEAD_COUNTS`, `WAGER_COUNTS`, `TALLY_OCCASIONS` and the like), `setSlateShadow`, `replay`, `saveGame`, `loadGame`, `snapshotState`, `restoreState`, `cloneRng`, fixture helpers (`withExtraResources`, `clearSeatTuning`, `memoryCheckpointStore`), size probes (`dealMemorySize`, `warLedgerSize`) and the tech chart layout that the tree test pins.
+   - If you are not sure, keep it and list it.
+4. If a source-reading register test names a removed function, update the register. Do not weaken what it asserts.
+5. Remove a comment that names a removed function. Do not rewrite other comments.
+
+Done means: type check clean, the narrow tests and the register tests green, the 60-turn pin unchanged, and a report of what went, what stayed and why.
+
+### U2: an export means that another file uses it
+
+Section 3, made again after U1. Remove the `export` keyword from each declaration that only its own file uses. Then a reader can trust that `export` marks the module's real surface, and the type check catches the next unused function by itself (`noUnusedLocals` is on).
+
+1. Do it with a script on the TypeScript compiler API, not by hand. Keep the script in `~/code/webciv-review/`.
+2. Keep `export` on an entry module's declarations, and on anything that a root page, `vite.config.ts` or a string in a test names.
+3. If the type check reports a newly unused local, that declaration was reached only through a dead path. Remove it, and list it in the report.
+
+Done means: type check clean, the register tests green, the core tier green at the gate, and the pins unchanged.
+
+### U3: data fields that nothing reads
+
+An audit first. For each `data/*.json` file, compare the keys in its rows with the TypeScript interface the loader reads them through, and with every reader in `src/`.
+
+- A key that is not in the interface and that no code reads is a leftover.
+- A key in the interface that no code reads is unused.
+- The arena panel walks all of `data/ai.json`, and the Compendium walks the rows, so a key either one prints counts as read.
+
+Remove only clear leftovers: no reader, no doc table, no sync test. List the rest for the user.
+
 ## Built
 
 ### P1
@@ -243,3 +297,16 @@ Checks at the gate:
 - The core tier under the shadow check fails 44 tests: P2's 43 and the `resourceBonuses` timing test, which was on P1's list. Under the shadow check, a memo hit also does the whole walk. So that test's warm and cold loops cost nearly the same, and the result changes with load. Run alone, it passes under the shadow check and passes in the normal tier (0.14 µs warm against 38 µs cold).
 
 Left, each under 1% of the profile: `importedLuxuries` and `luxuryLoans` on the revision clock (0.5 s), `cityLocalEffects` asking `oneOfAKind` first (0.4 s), `liveReading` on the economy clock only (0.5 s), `garrisonAt` in `campaign.ts` (0.6 s), and `say` with handles (0.4 s).
+
+### End of the speed stage
+
+The deployed build against the build after P3, run back to back on a quiet laptop, 18:37 to 18:45 on 2026-11-07. Six seats with two decks each, standard map, 120 turns, one fork. Towns and units count the six seats, not the barbarians.
+
+| Game | Deployed `2a73a7e5`: total, last 10 turns | After P3 `e82a7da8`: total, last 10 turns | Towns and units (deployed, after P3) |
+|---|---|---|---|
+| Seed 999 | 127.8 s, 2.24 s a turn | 108.8 s, 2.80 s a turn | 37 and 169, 53 and 330 |
+| Seed 42 | 141.6 s, 2.31 s a turn | 72.9 s, 1.45 s a turn | 33 and 175, 45 and 238 |
+
+- On seed 42, the Doctrine build is now faster than the deployed build over the whole game and at the end.
+- On seed 999, the whole game is faster. The last ten turns cost 25% more than on the deployed build, with 43% more towns and twice the units. At the start of the pass they cost about 3.5 times as much.
+- The remaining gap comes from bigger empires that give more orders. That is a question about how the bots play, and it is for the user.
