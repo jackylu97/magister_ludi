@@ -212,10 +212,9 @@ function stepIsSeen(state: GameState, unit: Unit, from: Tile, to: Tile): boolean
  *
  * `plainOrder` says a command is walking this piece, so a step that no reading can
  * see stays quiet (`stepIsSeen`, batch P1). A walk inside a phase leaves it off and
- * announces every step. The phases read remembered answers while they run, and their
- * own writes do not all announce: `marchOneTrader` renews a route's term and says
- * nothing, and the next step's announcement is what makes the next reader see it. A
- * command writes nothing of that kind and answers at the end.
+ * announces every step. The phases read remembered answers while they run, and the
+ * register of announced writes does not cover every field those answers fold, so the
+ * next step's announcement is a second guard there. A command answers at the end.
  */
 export function advanceAlongPath(
   state: GameState,

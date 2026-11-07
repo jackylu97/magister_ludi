@@ -504,6 +504,13 @@ export function techChain(
   player: Player,
   ctx: ValueContext,
   goal: TechId,
+  /**
+   * The caller reads the chain's `terms` and nothing else. The beeline's table does,
+   * and so a copy its own town could not finish inside the horizon need not be priced
+   * (batch P2): see the clause in the loop. A chain built this way prints no rate for
+   * such a copy, so `chainCompression` must not read it.
+   */
+  scoreOnly = false,
 ): TechChain {
   const ai = ctx.ai;
   const { road, beakers: remainingBeakers, delay: researchDelay } = researchRoad(state, player, ctx, goal);
@@ -609,7 +616,12 @@ export function techChain(
         const start = Math.max(cursors[copy.index]!, landing);
         const delay = start + copy.raise;
         cursors[copy.index] = delay;
-        const priced = priceCopy(ctx, row.id, copy);
+        // A copy starts paying at `raise` turns or later on every road, so when `raise`
+        // alone reaches the horizon the discount is nought for every goal, today and
+        // for the rest of the sitting. Its price would only be multiplied by that
+        // nought, and the fold of a `with` is the dearest question this module asks.
+        const priced =
+          scoreOnly && delayDiscount(copy.raise, ctx) === 0 ? UNPRICED : priceCopy(ctx, row.id, copy);
         const discount = delayTerm(delay, ctx, why);
         const term: ValueTerm = {
           label: `${row.name} at ${copy.town}`,
@@ -868,6 +880,9 @@ interface NodeCopy {
   /** What one turn of it would pay in this town, and the folds behind it. */
   priced: { rate: number; terms: ValueTerm[] } | null;
 }
+
+/** What a copy prints when no fold was asked for it. See `techChain`'s `scoreOnly`. */
+const UNPRICED: { rate: number; terms: ValueTerm[] } = { rate: 0, terms: [] };
 
 /** The copy's payoff, folded on first ask and remembered. See `NodeCopy`. */
 function priceCopy(ctx: ValueContext, id: BuildingId, copy: NodeCopy): { rate: number; terms: ValueTerm[] } {

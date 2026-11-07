@@ -266,6 +266,7 @@ import {
 // clock. The bot subscribes to the same source of truth the panel, the top bar
 // and the Ledger do. See `readings.ts`.
 import { readCity, readEmpirePercents, readEmpireRates } from '../sim/readings';
+import { slateMemo } from '../sim/slate';
 import { type CombatForecast, fortifyError, previewCombat } from '../sim/combat';
 // A unit's rank, read from its experience (batch WC3). The wounded-veteran
 // clause in `favourableBlow` asks it.
@@ -1058,9 +1059,14 @@ function goldPressure(
  * trade-off.
  */
 function goldReserveFor(state: GameState, player: Player): number {
-  const ai = aiFor(player);
-  const turns = Math.max(0, ai.solvency.reserveTurnsOfUpkeep);
-  return Math.floor(turns * upkeepBill(state, player.id));
+  // Asked on every decision through `bankSpend`. The bill is `explainEmpireGold`, one
+  // of the lines of `readEmpire`, so it sits on that reading's clock and for its reason
+  // (`stepIsSeen`, `movement.ts`). `reserveTurnsOfUpkeep` is the seat's own sheet.
+  return slateMemo(state, 'economy', 'botGoldReserve', String(player.id), () => {
+    const ai = aiFor(player);
+    const turns = Math.max(0, ai.solvency.reserveTurnsOfUpkeep);
+    return Math.floor(turns * upkeepBill(state, player.id));
+  });
 }
 
 /** The books' half of a debt charge: the gold income, and what a turn of debt loses. */
@@ -2197,13 +2203,14 @@ function wakeTheCampaign(
   const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
   for (const unit of state.units) {
     if (unit.ownerId !== player.id) continue;
+    if (unit.movesLeft <= 0 || unit.hasAttacked === true) continue;
+    if (!isFieldSoldier(unitDef(unit.type))) continue;
     // **The two ways a soldier stops asking**, and neither of them is a decision
     // this bot ever took: a trench (`fortifiedTurns`) and a march to a hex it
     // will never be allowed to stand on (`marchIsStalled`). Both make
-    // `unitAwaitsOrders` answer *false* for ever.
+    // `unitAwaitsOrders` answer *false* for ever. Asked last of these tests because
+    // `canStopOn` is the dear one, and the order of pure tests changes no answer.
     if (unit.fortifiedTurns === undefined && !marchIsStalled(state, unit)) continue;
-    if (unit.movesLeft <= 0 || unit.hasAttacked === true) continue;
-    if (!isFieldSoldier(unitDef(unit.type))) continue;
     // **One call a piece a turn.** A march that takes no step does not break the
     // trench (`breakFortify` runs only when a piece changes hex), so a dug-in
     // piece that cannot take its first step (the hex it would have to stop on
@@ -3102,7 +3109,16 @@ function skipCandidate(state: GameState, player: Player, ctx: ValueContext): Bot
   // The seat's own bags (the decks rework, D1a) — the standing hand's positions,
   // since one is on the table, and the pity read twice over the same shape.
   const bags = expectedHandBags(state, player);
-  const score = (id: OrderId): number => scoreCard(player, id, ctx);
+  // The two readings below price the same cards, and a card's score is dear. Nothing
+  // moves between them, so each card is priced once for this call.
+  const scored = new Map<OrderId, number>();
+  const score = (id: OrderId): number => {
+    const held = scored.get(id);
+    if (held !== undefined) return held;
+    const fresh = scoreCard(player, id, ctx);
+    scored.set(id, fresh);
+    return fresh;
+  };
   const rare = cardRareWeight(state, player.id);
   const pitied = expectedBestOrder(bags, sc.orderSkips + 1, score, rare);
   const asIs = expectedBestOrder(bags, sc.orderSkips, score, rare);
@@ -4408,7 +4424,7 @@ function techGoalTable(
       );
       continue;
     }
-    const chain = techChain(state, player, ctx, id);
+    const chain = techChain(state, player, ctx, id, true);
     const terms: ValueTerm[] = [...chain.terms];
     // **What changing its mind would leave behind** (batch S2, schema 111).
     // Beakers now stay with the node they were spent on, so a challenger whose
@@ -8429,6 +8445,7 @@ function nearestSightedHostile(
 
 /** Does the wild have a piece standing here that this seat could strike? */
 function holdsWild(state: GameState, player: Player, tile: Tile): boolean {
+  if (foreignHexes(state, player.id)[tileIndex(state.map, tile.col, tile.row)] === 0) return false;
   for (const other of state.units) {
     if (other.ownerId === player.id) continue;
     if (other.col !== tile.col || other.row !== tile.row) continue;
@@ -8459,6 +8476,7 @@ function holdsWild(state: GameState, player: Player, tile: Tile): boolean {
  * `favourableBlow` nor `warMarch` needs a clause of its own about it.
  */
 function holdsRival(state: GameState, player: Player, tile: Tile): boolean {
+  if (foreignHexes(state, player.id)[tileIndex(state.map, tile.col, tile.row)] === 0) return false;
   for (const other of state.units) {
     if (other.ownerId === player.id) continue;
     if (other.col !== tile.col || other.row !== tile.row) continue;
@@ -8474,6 +8492,28 @@ function holdsRival(state: GameState, player: Player, tile: Tile): boolean {
     if (atWar(state, player.id, owner.id)) return true;
   }
   return false;
+}
+
+/**
+ * Which hexes hold a piece or a town that is not this seat's, by tile index.
+ *
+ * `holdsWild` and `holdsRival` walk every piece on the board for each hex beside each
+ * soldier, on every ask, and most of those hexes hold nothing. A zero here is an answer
+ * for both of them, and anything else goes on to their own loops, so this can only
+ * save a walk and cannot change what they find. It reads where pieces and towns stand,
+ * and an accepted command moves the revision. No caller writes on the array.
+ */
+function foreignHexes(state: GameState, playerId: number): Uint8Array {
+  return slateMemo(state, 'revision', 'botForeignHexes', String(playerId), () => {
+    const marks = new Uint8Array(state.tileOwner.length);
+    for (const unit of state.units) {
+      if (unit.ownerId !== playerId) marks[tileIndex(state.map, unit.col, unit.row)] = 1;
+    }
+    for (const city of state.cities) {
+      if (city.ownerId !== playerId) marks[tileIndex(state.map, city.col, city.row)] = 1;
+    }
+    return marks;
+  });
 }
 
 /**
@@ -8548,7 +8588,11 @@ function campaignPlan(state: GameState, player: Player, unit: Unit): Campaign | 
   const ai = aiFor(player);
   if (!townsAreHeld(state, player)) return null;
   if (!isRedundant(state, player, unit)) return null;
-  const chosen = campaignEnemy(state, player, ai);
+  // The one part of a plan that is the same for every piece of a seat. Remembered for
+  // the revision, for `townsAreHeld`'s reason. No caller writes on the answer.
+  const chosen = slateMemo(state, 'revision', 'botCampaignEnemy', String(player.id), () =>
+    campaignEnemy(state, player, ai),
+  );
   if (chosen === null) return null;
   const muster = musterHex(state, player, chosen.target, unit, ai);
   if (muster === null) return null;
@@ -8824,12 +8868,18 @@ function unrestTownHeldBy(state: GameState, player: Player, unit: Unit): City | 
 
 /** Does every town of this empire have at least its garrison standing in it? */
 function townsAreHeld(state: GameState, player: Player): boolean {
-  const ai = aiFor(player);
-  for (const city of state.cities) {
-    if (city.ownerId !== player.id) continue;
-    if (garrisonAt(state, player.id, city) < garrisonOwed(ai, city)) return false;
-  }
-  return true;
+  // Three arms of `soldierCommand` ask this for every soldier they weigh, and one
+  // sweep over a seat's army sees one board: batch P2 counted 317 asks a seat's turn,
+  // 95% of them on the revision the ask before was on. It reads the towns and where
+  // the soldiers stand, and an accepted command moves the revision.
+  return slateMemo(state, 'revision', 'botTownsHeld', String(player.id), () => {
+    const ai = aiFor(player);
+    for (const city of state.cities) {
+      if (city.ownerId !== player.id) continue;
+      if (garrisonAt(state, player.id, city) < garrisonOwed(ai, city)) return false;
+    }
+    return true;
+  });
 }
 
 /**

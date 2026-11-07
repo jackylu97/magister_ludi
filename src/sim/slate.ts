@@ -215,11 +215,12 @@
  *
  * **The phases and every other seam announce as they did.** A walk inside a phase
  * still announces each step and `recomputeVisibility` still announces every sweep,
- * because a phase reads remembered answers while it runs and not all its writes
- * announce. For example, `marchOneTrader` renews `TradeRoute.expiresTurn` and says
- * nothing, so `luxuryLoans` can answer for the old term until the next step announces
- * (the shadow run, turn 102 of a bot game, and before this batch too). Going quiet in
- * a phase would widen that window.
+ * because a phase reads remembered answers while it runs and the register below does
+ * not cover every field they fold. One such write has since been found and fixed:
+ * until batch P2, `marchOneTrader` renewed `TradeRoute.expiresTurn` and said nothing,
+ * so `luxuryLoans` could answer for the old term until the next step announced (the
+ * shadow run, turn 102 of a bot game). Going quiet in a phase would widen any window
+ * like that one.
  *
  * `readCity`, `readEmpire`, `readEmpireRates` and the bot's `townFolds` grid then sit
  * on this clock. In the same game, 1,533 of 3,034 commands move it.
@@ -236,6 +237,14 @@
  * phase says nothing until the command or the phase ends. That is why
  * `foldEmpireRates` has no memo of its own and `readEmpireRates` does, in
  * `readings.ts`, where nothing inside a handler can reach it.
+ *
+ * ---
+ *
+ * **Batch P2: four small tenants from the bot.** `src/ai/bot.ts` keeps `botTownsHeld`,
+ * `botCampaignEnemy` and `botForeignHexes` on the revision clock, and `botGoldReserve`
+ * on the economy clock. A bot only reads at rest, so the same rules hold, and the shadow
+ * check disbelieves them with everything else. They are here because one sweep of a
+ * seat's soldiers asks each of them once per soldier on a board that is not moving.
  */
 
 import type { GameState } from './state';

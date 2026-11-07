@@ -185,7 +185,7 @@ import {
   bumpRevision,
   wakeUnit,
 } from "./state";
-import { setSlatePhase } from "./slate";
+import { bumpEconomy, setSlatePhase } from "./slate";
 import { type UnrestReport, runUnrest } from "./unrest";
 import { pruneWarLosses } from "./weariness";
 import { isCombatant, unitDef, unitMaxHp } from "./unitData";
@@ -1326,6 +1326,9 @@ function marchOneTrader(
     // included. `startedTurn` is untouched, which is what keeps Established
     // Routes counting the road's real age across every renewal.
     route.expiresTurn = state.turn + routeTermFor(state, unit.ownerId);
+    // A route that has run out is not live, so The Silk Road's loans read this term.
+    // Announced here, because a later reader in this resolution may ask them.
+    bumpEconomy(state);
     noteEnd(true);
   }
 

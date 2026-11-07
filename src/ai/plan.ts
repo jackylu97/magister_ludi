@@ -112,6 +112,7 @@ import {
 import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../sim/map';
 import { type ResourceId, resourceDef, resourceIsVisibleTo, resourceYield } from '../sim/resourceData';
 import { RULES } from '../sim/rulesData';
+import { economyStamp, slateShadow } from '../sim/slate';
 import {
   type City,
   type GameState,
@@ -162,14 +163,79 @@ export interface ImprovementPlan {
  * every owned hex against every improvement on the roster, which is a few
  * hundred `improvementErrorAt` calls — nothing beside one end of turn, and far
  * too much to pay per candidate of a build list.
+ *
+ * **Remembered on this context while the economy clock stands still** (batch P2).
+ * Every worker and every town choosing a build asks for the plan, and in a late game
+ * more than a third of the asks find the clock where the last ask left it.
+ *
+ * Lifetime and reads. An entry is a function of the context's prices and memos, which
+ * do not change for the life of the context, and of these, each of which moves the
+ * clock when it is written:
+ *
+ *   - the ground: a tile's terrain and its `improvement`, `feature`, `marks`, `vein`,
+ *     `surveyed` and `resource`, who owns each hex, and which hexes hold towns;
+ *   - the law and the technologies that open a row, and the farm water the law gives;
+ *   - each town's tile context (`cityContext`), whose reads of a piece are the list in
+ *     `stepIsSeen`'s docblock;
+ *   - the seams this empire holds (`hasResource`).
+ *
+ * The one read of a piece's position is `unclaimed`, through `workerHexes`, and a
+ * plain order leaves the clock still while it moves a worker. So `unclaimed` is written
+ * again on every ask, and it is the only thing that is. A reader must not hold a plan
+ * across a command, because the next ask writes that bit on the same entries. No reader
+ * writes anything else on a plan, and none keeps one past its own call.
+ *
+ * What would make this wrong is a new read of a piece's position under an entry, or
+ * a write to one of the fields above that does not move the clock. The shadow check
+ * (`setSlateShadow`) rebuilds the plan on every hit and throws if the two differ.
  */
 export function buildImprovementPlan(
   state: GameState,
   player: Player,
   ctx: ValueContext,
 ): ImprovementPlan {
-  const roster = workRoster(ctx.ai);
+  const memo = memoOf(ctx);
+  const economy = economyStamp(state);
   const occupied = workerHexes(state, player.id);
+  const held = memo.plan;
+  if (held !== null && held.state === state && held.playerId === player.id && held.economy === economy) {
+    for (const entry of held.plan.entries) {
+      entry.unclaimed = !occupied.has(tileIndex(state.map, entry.col, entry.row));
+    }
+    if (slateShadow()) shadowCheckPlan(state, player, ctx, occupied, held.plan);
+    return held.plan;
+  }
+  const plan = walkImprovementPlan(state, player, ctx, occupied);
+  memo.plan = { state, playerId: player.id, economy, plan };
+  return plan;
+}
+
+/** The remembered plan, disbelieved. See `setSlateShadow`. */
+function shadowCheckPlan(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  occupied: ReadonlySet<number>,
+  held: ImprovementPlan,
+): void {
+  const remembered = JSON.stringify(held.entries);
+  const fresh = JSON.stringify(walkImprovementPlan(state, player, ctx, occupied).entries);
+  if (remembered === fresh) return;
+  throw new Error(
+    `plan shadow: seat ${player.id}'s improvement plan is stale at turn ${state.turn}` +
+      `\n  remembered: ${remembered.slice(0, 400)}` +
+      `\n  fresh:      ${fresh.slice(0, 400)}`,
+  );
+}
+
+/** The walk itself: every hex in reach against every row of the roster. */
+function walkImprovementPlan(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  occupied: ReadonlySet<number>,
+): ImprovementPlan {
+  const roster = workRoster(ctx.ai);
   const byTile = new Map<number, PlanEntry>();
   // **The ground's context, hoisted for the whole walk** (batch 9). Every hex of
   // one town prices through that town's own reading, and this walk asks a few
@@ -600,7 +666,7 @@ export function reachableTechs(ctx: ValueContext): ReadonlyMap<TechId, number> {
 /**
  * **The board as it would read if every reachable node were held and the wild
  * were this seat's** — the one hypothetical the site's ground reading is asked
- * against, built once per sitting.
+ * against, built once per tick of the real board's economy clock.
  *
  * Two patches, and each answers a clause of the simulation's own gate rather
  * than working around it:
@@ -635,7 +701,12 @@ interface SiteGround {
 
 function siteGround(ctx: ValueContext): SiteGround | null {
   const memo = memoOf(ctx);
-  if (memo.siteGround !== null) return memo.siteGround;
+  // The copy shares its pieces and its seats' objects with the real board, but a
+  // slate hangs off the copy, and the copy's own clocks never move. So the copy is
+  // only good while the real economy clock stands still. Built again when it has
+  // moved, a government adopted in this sitting reaches the hypothetical too.
+  const economy = economyStamp(ctx.state);
+  if (memo.siteGround !== null && memo.siteGroundEconomy === economy) return memo.siteGround;
   const player = playerById(ctx.state, ctx.playerId);
   if (player === undefined) return null;
   const reachable = reachableTechs(ctx);
@@ -690,6 +761,7 @@ function siteGround(ctx: ValueContext): SiteGround | null {
     ground: yieldContextFor(ctx.state, player.id),
   };
   memo.siteGround = held;
+  memo.siteGroundEconomy = economy;
   return held;
 }
 
@@ -901,7 +973,11 @@ interface PlanMemo {
    */
   reachable: ReadonlyMap<TechId, number> | null;
   siteGround: SiteGround | null;
+  /** The real board's economy clock when `siteGround` was built. */
+  siteGroundEconomy: number;
   ground: Map<number, readonly HexPromise[]>;
+  /** The last plan built on this context, and what it was built on. */
+  plan: { state: GameState; playerId: number; economy: number; plan: ImprovementPlan } | null;
 }
 
 const MEMOS = new WeakMap<ValueContext, PlanMemo>();
@@ -915,7 +991,9 @@ function memoOf(ctx: ValueContext): PlanMemo {
     spades: null,
     reachable: null,
     siteGround: null,
+    siteGroundEconomy: -1,
     ground: new Map(),
+    plan: null,
   };
   MEMOS.set(ctx, fresh);
   return fresh;

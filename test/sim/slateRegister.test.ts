@@ -243,6 +243,10 @@ const WRITES: { field: string; pattern: RegExp }[] = [
     field: 'road',
     pattern: /\.road\s*=[^=]|delete\s+\w+(\.\w+)*\.road\b|\.roadFree\s*=[^=]|delete\s+\w+(\.\w+)*\.roadFree/,
   },
+  // Batch P2: a route's term, which `routeIsLive` compares against the turn. The
+  // Silk Road's loans and the cards that count live routes read it, so a renewal
+  // is a write this register governs. `marchOneTrader` is its one writer.
+  { field: 'routeTerm', pattern: /\broute\.expiresTurn\s*=[^=]/ },
 ];
 
 /** How a function says "the world moved under the empire walks". */
@@ -257,6 +261,8 @@ const ANNOUNCEMENTS = ['bumpEconomy(', 'bumpRevision('];
  */
 const ANNOUNCING = new Set([
   'beads.ts#awardBead',
+  // Batch P2: a renewed route is live again, and a phase may read its loans next.
+  'turn.ts#marchOneTrader',
   // Doctrine batch DT13: a census taken moves The Censors' happiness.
   'census.ts#runCensus',
   'trade.ts#settleTraderPlunder',

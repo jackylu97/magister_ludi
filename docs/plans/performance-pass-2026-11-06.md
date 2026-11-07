@@ -122,9 +122,33 @@ The profile after P1 (`~/code/webciv-review/prof/p1-final-999.cpuprofile`, seed 
 
 Done means: pins unchanged, `test/sim/slateRegister.test.ts` still true, and a before-and-after profile of seed 999 from the same hour.
 
-### P3: hot small functions
+### P3: hot small functions, the last speed batch
 
-Written after P2, from a new profile. The candidates so far are `improvementErrorAt`, `improvementCardError`, `improvementGroundError`, `explainTileYield`, `cityScopeAdmits`, `sweepOwnCopies`, `townHoldsWork`, `ownedTiles`, `wrapCol`, `wrappedDistance`, `playerById`, `garrisonOf` and `searchPath`.
+The profile after P2 is flat. No function holds more than 3% of the time by itself, so this batch has a limit. **Stop when the next change would save less than 1% of the profile.** Report what is left, and do not chase it.
+
+Fence: the functions below and their tests. Do not change the shape of a reading, and do not add a clock.
+
+The profile is `~/code/webciv-review/prof/p2-final-999.cpuprofile` (seed 999, turns 100 to 120, 102.6 s in all).
+
+| Function | With its callees | Note |
+|---|---:|---|
+| `searchPath` (`src/sim/pathfind.ts`) | 10.8 s | `findPath` 5.9 s and `findPathToFirst` 3.4 s call it. `stepCost` is 2.7 s and `zocField` 2.4 s below it |
+| `improvementErrorAt` (`src/sim/improvements.ts`) | 6.4 s | `improvementGroundError` 2.2 s, `improvementCardError` 2.1 s, `townHoldsWork` 1.1 s |
+| `cityScopeAdmits` (`src/sim/statecraft/evaluator.ts`) | 6.0 s | `connectedCities` 2.6 s, `garrisonOf` 1.1 s |
+| `explainTileYield` (`src/sim/yields/hex.ts`) | 5.5 s | 3.0 s by itself, and `pushLine` 1.8 s |
+| A function with no name in `src/sim/cities.ts` | 2.5 s | Find out which one it is |
+| `sweepOwnCopies` (`src/sim/cities.ts`) | 2.0 s | |
+| `wrapCol`, `wrappedDistance`, `mapRange` (`src/sim/map.ts`) | about 4 s | Small and called very often |
+| `cityBlockaded` (`src/sim/blockade.ts`) | 1.8 s | A port still walks every piece, by design |
+| `playerById` (`src/sim/state.ts`) | 1.6 s | |
+| `ownedTiles` (`src/sim/cities.ts`) | 1.6 s | |
+| `townHolding` (`src/ai/value.ts`) | 1.5 s | |
+
+1. Read each function, and find what makes it cost so much. Prefer a better loop to a memo.
+2. Take the largest saving first, and measure each change alone.
+3. A memo needs a stated lifetime, and a reason it cannot go stale. The rules at the top of this plan still apply.
+
+Done means: pins unchanged, `test/sim/slateRegister.test.ts` still true, and a before-and-after profile of seed 999 from the same hour.
 
 ## Built
 
@@ -153,3 +177,37 @@ Checks at the gate:
 - The core tier under the shadow check fails 44 tests. The same 44 fail on the commit before P1, so P1 adds none. Most messages say `law shadow: seat 0's law is stale at turn 1`. No one has yet worked out why these 44 fail.
 
 Left for later: `foldOnRevision` keeps its old name, and `liveReading` still keys on the revision (about 1% of the time).
+
+### P2
+
+A bot repeats less inside one seat's turn, and the two stale answers that P1 found are fixed.
+
+| Measure, same hour, before and after, on a busy laptop | Before | After | Change |
+|---|---:|---:|---:|
+| Seed 999, turns 1 to 120 | 227 s | 205 s | −10% |
+| Seed 999, turns 111 to 120 | 6.41 s a turn | 5.65 s a turn | −12% |
+| Seed 42, turns 1 to 120 | 143 s | 134 s | −6% |
+| `housekeeping`, seed 999, turns 100 to 120 | 33.0 s | 23.1 s | −30% |
+
+What changed:
+
+- **The two stale answers.** `marchOneTrader` announces a renewed term, and `siteGround` builds its copy again when the real economy clock moves. Neither fix moved a pin.
+- **Remembered:** `townsAreHeld`, the `campaignEnemy` ask and a new `foreignHexes` filter on the revision clock, `goldReserveFor` on the economy clock, and `buildImprovementPlan` on the context and the economy clock. The plan's `unclaimed` bit is written again on every ask, because a plain order moves a worker without moving that clock.
+- **Cheap tests first:** `wakeTheCampaign` asks its pure tests before `marchIsStalled`. `skipCandidate` prices each card once.
+- **`techChain` takes `scoreOnly`,** which only `techGoalTable` passes. It skips the fold for a copy whose own `raise` already reaches the horizon, because that copy's discount is zero. On the spectator feed, such a row now prints only the zero discount. No figure changes.
+
+What the counts showed, which corrects this plan's table:
+
+- `reaimBeeline` runs about twice a seat's turn, not on each decision. Every repeat follows a clock move, so a memo saves nothing.
+- `townFolds.with` costs what it does because the pairs are distinct: 321 pairs of town and row a seat's turn. 85% of misses are a first ask.
+- `disbandCommand` stays the largest repeated cost, at 10.4 s of 102.6 s. Net gold settles 87% of its asks, so no cheaper test can go first. 83% of clock ticks read the rates only for this arm.
+- A per-town clock for `setCityProduction` would save about 2.7%. It does not justify a third clock, so it is not built.
+
+Left out because it could change a decision: the beeline's table could skip every copy with a zero discount, and price it only if a later table finds it live. That would save an estimated 2.5% to 5%. It could price a copy later than today if a technology lands mid-sitting. This never happened in the games measured, but nothing proves it cannot. The saving is small, so this stays out unless the user wants it.
+
+Checks at the gate:
+
+- Type check clean, 11,108 core tests passed, build clean.
+- Both pins match at all six turns. `test/sim/aiDigest.slow.test.ts` passes on both boards.
+- The core tier under the shadow check fails 43 tests, all from P1's list of 44, with no new failures. The 44th, in `resourceBonuses`, compares timings, so it does not count as a fix.
+- The agent ran seed 999 with every hit disbelieved for turns 1 to 76, with no throw. Past that point the check got too slow, so it ran the whole game with sampled checks, also with no throw. With the trader fix removed, a check of `luxuryLoans` throws at turn 102, as before. With the fix, turns 95 to 120 are clean.
