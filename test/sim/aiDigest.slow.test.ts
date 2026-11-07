@@ -1104,10 +1104,17 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * board: the duel gives `6103ce8b:278474` at `69b3929c` without it too.
  * Measured twice, same bytes both runs. Nothing stalled and no command was
  * refused.
+ *
+ * Re-cut for the Doctrine build (`a207602a`, batches DT1 to DT20, schema 226).
+ * Every seat can now be offered the 85 new Doctrines, which changes what each
+ * seat holds and what it does from the first offer on, and the state's own
+ * bytes moved with the schema. Duel `6103ce8b:278474` -> `269f8ad7:313474`,
+ * standard `618a7285:924458` -> `6b717173:928115`. Nothing stalled and no
+ * command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '6103ce8b:278474',
-  standard: '618a7285:924458',
+  duel: '269f8ad7:313474',
+  standard: '6b717173:928115',
 };
 
 /**
