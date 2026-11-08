@@ -54,15 +54,6 @@ export function roundYield(value: number): number {
 }
 
 /**
- * The rounded magnitude as a string — `"7"`, `"0"`. The plain half of the pair;
- * a caller wanting the house's thousands abbreviation composes over this
- * (`figure` in `src/ui/figures.ts` does).
- */
-export function formatYield(value: number): string {
-  return String(Math.abs(roundYield(value)));
-}
-
-/**
  * `"+7"`, `"−2"`, `"0"` — a rounded yield in the house voice, with the true
  * minus sign rather than a hyphen (`docs/design-specimen.html`).
  *

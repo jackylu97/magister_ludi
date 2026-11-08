@@ -19,8 +19,6 @@ import { unitDef } from '../../src/sim/unitData';
 import {
   BANKS,
   bankHeldText,
-  bankLineText,
-  bankText,
   bankValueText,
   readBank,
   readBanks,
@@ -69,9 +67,6 @@ describe('the banks of a seat', () => {
     expect(bankValueText(readBank(state, 0, 'faith'))).toBe(
       poolFigure(player.faithPool, totals.faith),
     );
-    expect(bankLineText(readBanks(state, 0))).toBe(
-      `Treasury ${poolFigure(player.gold, totals.gold)} · Faith ${poolFigure(player.faithPool, totals.faith)}`,
-    );
   });
 
   it('read an empty bank for a seat that does not exist', () => {
@@ -81,19 +76,7 @@ describe('the banks of a seat', () => {
 });
 
 describe('the words', () => {
-  it('label each bank, then the bank, then the rate in brackets', () => {
-    expect(bankText({ bank: 'gold', held: 437, perTurn: 21 })).toBe('Treasury 437 (+21)');
-    expect(bankText({ bank: 'faith', held: 51, perTurn: 2 })).toBe('Faith 51 (+2)');
-    expect(
-      bankLineText([
-        { bank: 'gold', held: 437, perTurn: 21 },
-        { bank: 'faith', held: 51, perTurn: 2 },
-      ]),
-    ).toBe('Treasury 437 (+21) · Faith 51 (+2)');
-  });
-
   it('keep a treasury in debt negative, and shorten what the top bar shortens', () => {
-    expect(bankText({ bank: 'gold', held: -22, perTurn: -3 })).toBe('Treasury −22 (−3)');
     expect(bankHeldText(1234)).toBe(netFigure(1234));
     expect(bankHeldText(-22)).toBe('−22');
   });

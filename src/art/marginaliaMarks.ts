@@ -81,12 +81,6 @@ export function marginaliaMark(id: MarginaliaMarkId): MarginaliaMark {
  */
 export const DRACONES_LINES = ['hic svnt', 'dracones'] as const;
 
-/**
- * The inscription as one line of prose, for anything that says it rather than
- * sets it.
- */
-export const DRACONES_TEXT = DRACONES_LINES.join(' ');
-
 /** One marginale as a standalone SVG document, inked in `color`. */
 export function marginaliaMarkSvg(id: MarginaliaMarkId, color = '#000'): string {
   return markSvg(marginaliaMark(id).paths, MARK_BOX, MARK_STROKE, color);

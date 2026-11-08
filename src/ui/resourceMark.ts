@@ -62,16 +62,3 @@ export function resourceMarkNode(id: ResourceId): HTMLSpanElement {
   return span;
 }
 
-/**
- * The mark and the name together, as a fragment: "🪨 Stone" with the mark drawn.
- *
- * The shape nearly every call site wanted, so it is here once — a caller that
- * built it by hand would have to remember the hair space that keeps the mark
- * from touching the capital.
- */
-export function resourceLabelNodes(id: ResourceId, text?: string): DocumentFragment {
-  const fragment = document.createDocumentFragment();
-  fragment.append(resourceMarkNode(id));
-  fragment.append(document.createTextNode(` ${text ?? resourceDef(id).name}`));
-  return fragment;
-}

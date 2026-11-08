@@ -31,7 +31,6 @@ import {
   PRICE_BANKS,
   priceCellSpoken,
   priceFigureText,
-  priceHeadText,
   priceLabelText,
   priceLook,
   priceNeedText,
@@ -228,26 +227,6 @@ describe('the words', () => {
     // Magisterial batch MG11 made culture a bank of the purchase verb. The band
     // above the list keeps its two (`BANKS`, `bankFigure.test.ts`).
     expect(PRICE_BANKS).toEqual(['gold', 'faith', 'culture']);
-  });
-
-  it('heads the column with the rule and every bank in view', () => {
-    expect(priceHeadText([{ bank: 'gold', held: 437 }])).toBe(
-      'Buy outright · full price · you have 437 gold',
-    );
-    expect(priceHeadText([{ bank: 'gold', held: 437 }, { bank: 'faith', held: 51 }])).toBe(
-      'Buy outright · full price · you have 437 gold · 51 faith',
-    );
-    expect(priceHeadText([{ bank: 'faith', held: 51 }])).toBe(
-      'Buy outright · full price · you have 51 faith',
-    );
-    expect(priceHeadText([{ bank: 'gold', held: 437 }, { bank: 'culture', held: 640 }])).toBe(
-      'Buy outright · full price · you have 437 gold · 640 culture',
-    );
-    // A treasury in debt keeps its sign, as the top bar's does.
-    expect(priceHeadText([{ bank: 'gold', held: -22 }])).toBe(
-      'Buy outright · full price · you have −22 gold',
-    );
-    expect(priceHeadText([])).toBe('Buy outright · full price');
   });
 });
 

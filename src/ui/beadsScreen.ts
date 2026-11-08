@@ -111,7 +111,7 @@ export const BEAD_FAMILY_MARK: Record<BeadFamily, BeadFamilyMark> = {
  * Once a shim: before the tree pass re-banded the ages, deck keys ran one
  * behind the numerals the design doc used, and this helper carried the `+1`
  * with a promise — when the re-banding lands, the shim is deleted and nothing
- * else moves. The re-banding landed (`BEAD_DECK_AGES` is 3 and 4 now),
+ * else moves. The re-banding landed,
  * the promise is kept, and the helper survives only as the one name every bead
  * surface asks, so a future re-banding is still a one-line change.
  */

@@ -10,7 +10,6 @@ import {
   cityBaseStrength,
   cityBeatenDown,
   cityMaxHp,
-  describeCombat,
   explainCityMaxHp,
   explainCityStrength,
   foldCityLines,
@@ -1557,7 +1556,7 @@ describe('cities in combat', () => {
     expect(forecast(state, a.id, 2, 3).cityPhase).toBeUndefined();
   });
 
-  it('says which beat it was in the one line the log prints', () => {
+  it('names the beat on the outcome: the walls, then the capture', () => {
     const state = citiedState();
     const city = state.cities[0]!;
     city.hp = 5;
@@ -1566,22 +1565,19 @@ describe('cities in combat', () => {
     const walls = applyCombat(state, a.id, { col: 4, row: 3 });
     expect(walls.ok).toBe(true);
     if (!walls.ok) return;
-    expect(describeCombat(walls.outcome)).toContain('battering the walls');
+    expect(walls.outcome.cityPhase).toBe('walls');
     expect(city.hp).toBe(1);
 
     const b = createUnit(state, 0, 'warrior', 5, 3);
     const taken = applyCombat(state, b.id, { col: 4, row: 3 });
     expect(taken.ok).toBe(true);
     if (!taken.ok) return;
-    // A taking is an arrival, so it prints no numbers: there were none.
-    expect(describeCombat(taken.outcome)).toBe(`Warrior captures ${city.name}`);
+    expect(taken.outcome.capturedCityId).toBe(city.id);
     expect(taken.outcome.cityPhase).toBe('capture');
   });
 
   it('tells the garrison beat’s taking as the two things it is', () => {
-    // The one blow that is a fight *and* a taking (2026-09-09): the man is named
-    // because he is what was fought, and the town is not, because
-    // `defenderName` is his.
+    // The one blow that is a fight *and* a taking (2026-09-09).
     const state = citiedState();
     const city = state.cities[0]!;
     city.hp = 1;
@@ -1594,7 +1590,7 @@ describe('cities in combat', () => {
     if (!won.ok) return;
     expect(won.outcome.cityPhase).toBe('garrison');
     expect(won.outcome.capturedCityId).toBe(city.id);
-    expect(describeCombat(won.outcome)).toBe('Swordsman kills Spearman and takes the city');
+    expect(won.outcome.defenderUnitId).toBe(garrison.id);
   });
 
   it('heals every city a fixed amount per turn, up to full', () => {

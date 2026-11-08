@@ -38,7 +38,6 @@ import { RESOURCE_IDS, resourceDef } from '../../src/sim/resourceData';
 import { copiesFigure, copiesWords } from '../../src/ui/figures';
 import {
   copyCount,
-  requirementWords,
   strategicHoldings,
   tileCopyCount,
 } from '../../src/ui/resourceCopies';
@@ -187,30 +186,6 @@ describe('the rows worth printing', () => {
 });
 
 describe('the words', () => {
-  it('writes a single requirement as one resource with its two figures', () => {
-    const state = bench();
-    const mine = town(state, 0, 3, 4);
-    giveSeam(state, mine, 2, 3, 'iron', 5);
-    createUnit(state, 0, 'legionary', 3, 3);
-    bumpRevision(state);
-    expect(requirementWords(state, 0, ['iron'])).toBe('Iron, 4 spare of 5');
-  });
-
-  it('writes a pair as a choice, each half with its own figures', () => {
-    const state = bench();
-    const mine = town(state, 0, 3, 4);
-    giveSeam(state, mine, 2, 3, 'horses', 6);
-    giveSeam(state, mine, 4, 3, 'camels', 5);
-    const words = requirementWords(state, 0, ['horses', 'camels']);
-    expect(words).toBe('Horses, 6 spare of 6 or Camels, 5 spare of 5');
-    // The one misreading the brief names: a pair must never read as a bill.
-    expect(words).not.toContain(' and ');
-  });
-
-  it('writes nothing for a row that needs nothing', () => {
-    expect(requirementWords(bench(), 0, [])).toBe('');
-  });
-
   it('sets the figure pair in the house grammar, and speaks it in words', () => {
     // The same grammar `poolFigure` gives renown against its ladder.
     expect(copiesFigure(2, 3)).toBe('2/3');

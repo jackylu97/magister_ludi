@@ -21,7 +21,6 @@ import {
   explainRenown,
   foldRenown,
   planRecruitment,
-  recruitmentSettledBy,
   renownPerTurn,
   renownThreshold,
   settleRenownWindfall,
@@ -233,10 +232,6 @@ describe('the ladder', () => {
     player.renownPool = LADDER.base + 7;
     expect(planRecruitment(g.state, player)).toEqual({ cost: LADDER.base, overflow: 7 });
     expect(planRecruitment(g.state, player, LADDER.base - 1)).toBeNull();
-    expect(recruitmentSettledBy(g.state, player, 0)).toBe('a great person');
-    player.renownPool = 0;
-    expect(recruitmentSettledBy(g.state, player, LADDER.base)).toBe('a great person');
-    expect(recruitmentSettledBy(g.state, player, LADDER.base - 1)).toBeNull();
   });
 });
 

@@ -71,9 +71,6 @@ import type { CityYieldPercent } from './town';
  */
 export type ModifierStage = 'city' | 'empire';
 
-/** The stages in the order they apply, which is the order a surface prints. */
-export const MODIFIER_STAGES: readonly ModifierStage[] = ['city', 'empire'];
-
 /**
  * How each stage reads as a heading. Beside the union it names, so the panel and
  * any future surface cannot call the same multiplication two things.

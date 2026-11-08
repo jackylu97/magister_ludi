@@ -86,13 +86,6 @@ import { type Family, isFamily } from './greatPeopleData';
  */
 export type BeadFamily = 'domination' | 'culture' | 'science' | 'economic';
 
-export const BEAD_FAMILIES: readonly BeadFamily[] = [
-  'domination',
-  'culture',
-  'science',
-  'economic',
-];
-
 export function isBeadFamily(value: unknown): value is BeadFamily {
   return (
     value === 'domination' || value === 'culture' || value === 'science' || value === 'economic'
@@ -121,8 +114,6 @@ export type BeadKind = 'feat' | 'endeavour' | 'quest' | 'reckoning' | 'grant';
  * Æra I and II hold no cards: they have feats only.
  */
 export type BeadAge = 3 | 4;
-
-export const BEAD_DECK_AGES: readonly BeadAge[] = [3, 4];
 
 export function isBeadAge(value: unknown): value is BeadAge {
   return value === 3 || value === 4;

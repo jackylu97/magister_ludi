@@ -35,7 +35,7 @@
  * `Infinity` on a build button is a data error wearing the costume of a number.
  */
 
-import type { MeterEffect, MeterId } from '../sim/meters';
+import type { MeterId } from '../sim/meters';
 import type { ProjectPayout } from '../sim/projectData';
 import { roundYield } from '../sim/yieldFormat';
 
@@ -355,18 +355,6 @@ export function copiesWords(spare: number, held: number): string {
 }
 
 /**
- * The mark for a modifier on *territory* — a boundary stone, and a placeholder
- * like every other glyph in this table.
- *
- * Not a yield glyph, because border growth is not a yield: the same culture is
- * banked twice, and only the half that buys ground answers to the writ (see
- * `borderGrowth` in `cities.ts`). It reads at one line-height and is not a flag
- * — a flag would say "this ground is mine", and the point of the mark is ground
- * that is not yours yet.
- */
-export const BORDER_GLYPH = '⛫';
-
-/**
  * The Æra a thing belongs to, in the numerals the star chart uses.
  *
  * Actual Roman numerals rather than a tally of `I`s. The tally read correctly
@@ -399,13 +387,3 @@ export function eraWord(age: number): string {
   return `Æra ${out}`;
 }
 
-/**
- * "🔬🎭 +10%" — what one empire modifier is doing, in the glyphs of the yields
- * it is doing it to. The growth stifle wears the food glyph, because growth is
- * what food is *for*, and a modifier on the borders wears the boundary stone.
- */
-export function effectFigure(effect: MeterEffect): string {
-  const marks = effect.growth ? [YIELD_GLYPH.food] : effect.yields.map((id) => YIELD_GLYPH[id]);
-  if (effect.borders) marks.push(BORDER_GLYPH);
-  return `${marks.join('')} ${percentFigure(effect.percent)}`;
-}

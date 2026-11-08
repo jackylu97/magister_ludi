@@ -116,7 +116,7 @@ describe('splitYieldText', () => {
   });
 
   it('keeps every other character, glyphs of other kinds included', () => {
-    // The boundary stone is not a yield (see `BORDER_GLYPH`) and a tech's own
+    // The boundary stone is not a yield, and a tech's own
     // glyph is mostly not one either: both must come through as text.
     const line = `⛫ +10% · 📜 · ${YIELD_GLYPH.culture} +5%`;
     expect(words(line)).toBe('⛫ +10% · 📜 ·  +5%');

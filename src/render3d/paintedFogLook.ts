@@ -82,29 +82,6 @@ const ROW_PITCH = 1.5;
 /** World x → doubled-grid texel index. The whole reason the field is doubled. */
 const TEXEL_PER_X = 2 / COLUMN_PITCH;
 
-/** The three registers, as the vision channel spells them. */
-export const PAINTED_VISION = { uncharted: 0, remembered: 127, visible: 255 } as const;
-
-export interface PaintedRegisterReading {
-  /** Whether the cell's geometry is drawn at all. The one discrete edge. */
-  drawn: boolean;
-  /** The sun's weight on it: the lit model's tell, and nothing else's. */
-  sun: number;
-}
-
-/**
- * One cell's register, read off the vision byte the fog texture carries.
- *
- * The whole of the rule, as a function rather than as three places that each
- * re-derive it: 0 is discarded, 127 is drawn in shadow, 255 is lit. The
- * material's discard and the CPU's bookkeeping both answer to this.
- */
-export function paintedFogRegister(vision: number): PaintedRegisterReading {
-  if (vision < 64) return { drawn: false, sun: 0 };
-  if (vision < 192) return { drawn: true, sun: 0 };
-  return { drawn: true, sun: 1 };
-}
-
 /**
  * The lit weight a linearly-filtered sample carries, given the falloff in hexes.
  *

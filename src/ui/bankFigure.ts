@@ -86,16 +86,6 @@ export function bankValueText(figure: BankFigure): string {
   return poolFigure(figure.held, figure.perTurn);
 }
 
-/** "Treasury 437 (+21)". */
-export function bankText(figure: BankFigure): string {
-  return `${BANK_LABEL[figure.bank]} ${bankValueText(figure)}`;
-}
-
-/** "Treasury 437 (+21) · Faith 51 (+2)": every bank given, in the order given. */
-export function bankLineText(figures: readonly BankFigure[]): string {
-  return figures.map(bankText).join(' · ');
-}
-
 /**
  * The line of banks, each label in the quiet ink and each figure in its bank's
  * own ink (gold, faith), set in the tabular mono every number uses.

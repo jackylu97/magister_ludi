@@ -175,23 +175,3 @@ export function requirementNodes(
   return fragment;
 }
 
-/**
- * The same requirement as words, for the spoken label beside the drawn one.
- *
- * "Iron, 2 spare of 3" — "or" between the halves of a pair, exactly as the
- * printed form joins them, so the two describe one rule. Words only: a screen
- * reader reading a resource's mark announces its Unicode name before the word it
- * decorates, which is the one surface an icon makes worse.
- */
-export function requirementWords(
-  state: GameState,
-  playerId: number,
-  ids: readonly ResourceId[],
-): string {
-  const parts = ids.map((id) => {
-    const count = copyCount(state, playerId, id);
-    return `${count.name}, ${copiesWords(count.spare, count.held)}`;
-  });
-  if (parts.length <= 1) return parts[0] ?? '';
-  return `${parts.slice(0, -1).join(', ')} or ${parts[parts.length - 1]!}`;
-}

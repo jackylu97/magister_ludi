@@ -124,14 +124,6 @@ export const STAMP_FLOURISH = '— · ✶ · —';
  */
 export const STAMP_PENDING_MARK = '— on Confirm';
 
-/**
- * What the quiet lifetime register is called (user, revision 3): **"has
- * produced"**, never "banked since slotted", which reads as a debt rather than
- * as a tally. The counter itself is phase 2; the words are settled now so the
- * two halves cannot be introduced under two names.
- */
-export const STAMP_LIFETIME_LABEL = 'has produced';
-
 /** One voice of a stamp: the glyph it is quoted in, and the number it counts to. */
 export interface StampFigure {
   /** The yield glyph, from `figures.ts` — the caller's table, not this one's. */

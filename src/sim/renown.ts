@@ -480,11 +480,6 @@ export function settleRenownWindfall(
   }
 }
 
-/** What a lump of renown would open, in words, or `null`. The card's preview. */
-export function recruitmentSettledBy(state: GameState, player: Player, grant: number): string | null {
-  return planRecruitment(state, player, player.renownPool + grant) === null ? null : 'a great person';
-}
-
 // --- the phase --------------------------------------------------------------
 
 /**

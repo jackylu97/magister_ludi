@@ -95,16 +95,6 @@ const printed = new Map<string, string>();
 const printing = new Map<string, Promise<string | null>>();
 
 /**
- * The data URL for one cell, or `null` if it has not been printed yet.
- *
- * The synchronous half, for a caller that has one — and for a test, which is the
- * only way to read this cache back without a canvas.
- */
-export function roundelMark(badge: BadgeClass, wild: boolean): string | null {
-  return printed.get(cellKey(badge, wild)) ?? null;
-}
-
-/**
  * Prints one cell, or returns the print already made (or in flight).
  *
  * The three-way branch is `UnitBadges.load`'s own, in its order and for its

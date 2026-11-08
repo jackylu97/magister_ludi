@@ -26,7 +26,6 @@
  * (`tradeScreen.ts`, `tradeOrigins`). One implementation, no copy in between.
  */
 
-import { RULES } from '../sim/rulesData';
 import { signedYield } from '../sim/yieldFormat';
 import type { City, GameState, Unit } from '../sim/state';
 import {
@@ -45,11 +44,6 @@ import {
 import { cityDisplayName } from './cityDisplay';
 import { type YieldKey, METER_GLYPH, YIELD_GLYPH, signedFigure } from './figures';
 import { splitYieldText } from './yieldMark';
-
-/** How long a fresh route runs, as the reducer will write it. */
-export function routeTurns(): number {
-  return Math.max(1, Math.floor(RULES.trade.routeTurns));
-}
 
 /**
  * The voices a route pays, in the order every surface prints them.

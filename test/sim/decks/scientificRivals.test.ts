@@ -27,7 +27,6 @@ import {
   aheadOfMet,
   knowsFewerTechs,
   knowsMoreTechs,
-  metEmpireCanBuild,
   metEmpireKnows,
   metRivals,
   techGap,
@@ -228,10 +227,8 @@ describe('rivals.ts, the leaf', () => {
     expect(metEmpireKnows(state, 0, 'agriculture')).toBe(true);
     expect(metEmpireKnows(state, 0, spearGate)).toBe(false);
     expect(aheadOfMet(state, 0, spearGate)).toBe(true);
-    expect(metEmpireCanBuild(state, 0, 'spearman')).toBe(false);
     expect(unitAheadOfMet(state, 0, 'spearman')).toBe(true);
     // A warrior's technology is known to all.
-    expect(metEmpireCanBuild(state, 0, 'warrior')).toBe(true);
     expect(unitAheadOfMet(state, 0, 'warrior')).toBe(false);
     // Meeting the seat that knows it ends the lead on the spear.
     playerById(state, 0)!.metSeats = [1, 2];

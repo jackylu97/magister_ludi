@@ -965,12 +965,6 @@ export function unitTrimColor(state: GameState, unit: Unit): number {
  */
 const DEFAULT_TRIM = playerPieceColor(DERIVED_SECONDARY, 0);
 
-/** Standalone walkers share the resting instance's shell and ghost precedence. */
-export function unitShellColor(state: GameState, unit: Unit, seat: number | null): number {
-  const wash = unitShellWash(state, unit, seat);
-  return mixToward(DEFAULT_TRIM, wash.target, wash.mix);
-}
-
 /** Keep the unrounded wash for matching a standalone shell to instance RGB. */
 export function unitShellWash(state: GameState, unit: Unit, seat: number | null): { target: number; mix: number } {
   if (unitIsRouted(unit)) return { target: ROUTED_WASH_TARGET, mix: PIECES.routedWash };

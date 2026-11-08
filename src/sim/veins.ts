@@ -169,16 +169,3 @@ export function veinCells(map: GameMap): { col: number; row: number; resource: R
   return out;
 }
 
-/**
- * Every hill a survey could ever be spent on, in map order. The denominator the
- * hit rate is measured against — for the inspection page and for the pacing
- * tests that check `share` still means what it says.
- */
-export function veinGroundCells(map: GameMap): { col: number; row: number }[] {
-  const out: { col: number; row: number }[] = [];
-  for (const tile of map.tiles) {
-    if (!veinGroundAt(tile)) continue;
-    out.push({ col: tile.col, row: tile.row });
-  }
-  return out;
-}

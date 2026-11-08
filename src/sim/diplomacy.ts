@@ -1452,13 +1452,3 @@ export function hasMetSeat(state: GameState, playerId: number, otherId: number):
   return false;
 }
 
-/**
- * Every empire at the table this seat has met, in seat order.
- *
- * `diplomaticSeats` narrowed by `hasMetSeat` — the register a *screen* draws,
- * where `diplomaticSeats` stays the register of who exists. Two readings rather
- * than one filter written twice.
- */
-export function metSeats(state: GameState, playerId: number): number[] {
-  return diplomaticSeats(state, playerId).filter((id) => hasMetSeat(state, playerId, id));
-}

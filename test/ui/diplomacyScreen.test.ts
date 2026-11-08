@@ -51,15 +51,9 @@ import {
 } from '../../src/sim/visibility';
 import { RULES } from '../../src/sim/rulesData';
 import {
-  type CounterAnswer,
-  type EnvoyAnswer,
-  counterLines,
-  counterNote,
   declareConfirm,
   diplomacyRows,
-  envoyLines,
   metDiplomacyRows,
-  offerSentence,
   peaceButtonLabel,
   relationSentence,
   rosterNote,
@@ -148,14 +142,12 @@ describe('the sheet’s rows', () => {
     // The one face that matters: their offer standing makes this the button
     // that ends the war, and it says so.
     expect(peaceButtonLabel(theirs)).toBe('Accept peace');
-    expect(offerSentence(theirs)).toBe('They have offered peace.');
 
     // Answering it ends the war inside that command (§12), so the row this
     // sheet draws next is a truce and not a war with two flags on it.
     applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1 });
     const after = diplomacyRows(state, 0)[0]!;
     expect(after.relation).toBe('truce');
-    expect(offerSentence(after)).toBeNull();
   });
 
   it('draws our own standing offer, and the war it has not ended yet', () => {
@@ -166,14 +158,8 @@ describe('the sheet’s rows', () => {
     expect(mine.weOffered).toBe(true);
     expect(mine.theyOffered).toBe(false);
     expect(peaceButtonLabel(mine)).toBe('Withdraw offer');
-    expect(offerSentence(mine)).toContain('the moment they sign it');
     // And the button is still offered, because withdrawing is legal.
     expect(mine.peaceError).toBeNull();
-  });
-
-  it('says nothing about offers on a row that is not a war', () => {
-    const state = bench();
-    expect(offerSentence(diplomacyRows(state, 0)[0]!)).toBeNull();
   });
 });
 
@@ -350,64 +336,6 @@ describe('the sentences', () => {
     // No numbers in player prose (hard rule 7): the truce's length is on the
     // row's own countdown, not in a sentence.
     expect(/\d/.test(request.body)).toBe(false);
-  });
-});
-
-// --- the audience -----------------------------------------------------------
-
-describe('the envoy’s answer', () => {
-  it('says the bot’s own sentence first and its reasons under it', () => {
-    const answer: EnvoyAnswer = {
-      accepted: true,
-      sentence: 'Signs the Bors’ bargain — it brings 120 coin of value against 40 given.',
-      reasons: ['what we take', 'what we give'],
-    };
-    // Nothing is added and nothing is summarised: the sheet says what the bot
-    // said, in the order it said it.
-    expect(envoyLines(answer)).toEqual([answer.sentence, ...answer.reasons]);
-  });
-
-  it('carries a refusal’s reasons exactly as it carries an acceptance’s', () => {
-    const answer: EnvoyAnswer = {
-      accepted: false,
-      sentence: 'Sends the Bors’ bargain back — it is worth -80 to this empire.',
-      reasons: ['it costs more than it brings'],
-    };
-    expect(envoyLines(answer)).toHaveLength(2);
-    expect(envoyLines(answer)[0]).toBe(answer.sentence);
-  });
-});
-
-describe('the counter’s lines', () => {
-  it('prints the terms’ own reasons when a counter came back', () => {
-    const answer: CounterAnswer = {
-      terms: { give: { gold: 132 }, take: { luxuries: ['silk'] } },
-      reasons: ['the counter, from our side', 'the bar this seat signs at is 0'],
-      refusal: null,
-    };
-    expect(counterNote(answer, 'work')).toBeNull();
-    expect(counterLines(answer, 'work')).toEqual(answer.reasons);
-  });
-
-  it('says the two "nothing came back" answers differently', () => {
-    const empty: CounterAnswer = { terms: null, reasons: [], refusal: null };
-    // The two questions are two sentences: one is about the table, and the
-    // other is about what they would part with.
-    expect(counterNote(empty, 'work')).toContain('Nothing you hold');
-    expect(counterNote(empty, 'give')).toContain('nothing they would give');
-    expect(counterLines(empty, 'work')).toHaveLength(1);
-  });
-
-  it('lets the seat’s own refusal outrank both of them', () => {
-    const refused: CounterAnswer = {
-      terms: null,
-      reasons: [],
-      refusal: 'The Bors will not treat while the war goes their way.',
-    };
-    // A sentence out of the simulation beats one written on the screen, and it
-    // is the same sentence whichever question was asked.
-    expect(counterNote(refused, 'work')).toBe(refused.refusal);
-    expect(counterNote(refused, 'give')).toBe(refused.refusal);
   });
 });
 

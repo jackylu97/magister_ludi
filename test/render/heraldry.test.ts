@@ -10,7 +10,6 @@ import {
 } from '../../src/art/heraldryMarks';
 import {
   DRACONES_LINES,
-  DRACONES_TEXT,
   MARGINALIA_MARK_IDS,
   marginaliaMark,
   marginaliaMarkDataUri,
@@ -234,10 +233,7 @@ describe('the chart’s marginalia are marks like any other', () => {
   });
 
   it('sets the inscription in two lines that read as one sentence', () => {
+    // Lower case in the data; the small caps are the printer's decision.
     expect(DRACONES_LINES).toEqual(['hic svnt', 'dracones']);
-    expect(DRACONES_TEXT).toBe('hic svnt dracones');
-    // Lower case in the data; the small caps are the printer's decision. A
-    // caller that wants the words for a tooltip wants them as words.
-    expect(DRACONES_TEXT).toBe(DRACONES_TEXT.toLowerCase());
   });
 });

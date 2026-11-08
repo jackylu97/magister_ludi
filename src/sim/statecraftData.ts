@@ -10582,14 +10582,6 @@ export type OrderBeadOccasion =
   /** A prophet spoke. `proclaimAt`. */
   | 'proclamationMade';
 
-/** Every occasion in the union, for the register test and the seams. */
-export const ORDER_BEAD_OCCASIONS: readonly OrderBeadOccasion[] = [
-  'lastAgeTechnology',
-  'draftPassed',
-  'cityRazed',
-  'proclamationMade',
-];
-
 /**
  * **A glass bead of your own, on a deed you choose to do** — the shape the four
  * Æra V bead Orders were written for and waited on (`docs/audit/dead-code.md`
@@ -12217,11 +12209,6 @@ export function chairsAtTier(tier: number): number {
 /** Is this row a charter — drafted for its grant, never seated? */
 export function isCharter(id: OrderId): boolean {
   return orderDef(id).charter !== undefined;
-}
-
-/** Is this row a commission — a goal and a reward? See `CommissionSpec`. */
-export function isCommission(id: OrderId): boolean {
-  return orderDef(id).commission !== undefined;
 }
 
 /**

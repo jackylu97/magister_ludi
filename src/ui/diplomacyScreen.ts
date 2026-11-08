@@ -298,26 +298,6 @@ export function peaceButtonLabel(row: DiplomacyRow): string {
   return row.theyOffered ? 'Accept peace' : 'Offer peace';
 }
 
-/**
- * The line under a war row that says what the offers on it add up to.
- *
- * The whole of the peace mechanism said in a player's own terms: an offer is a
- * standing flag, and the **second signature ends the war** there and then
- * (§12). It is the one place the screen has to explain a rule rather than
- * report a fact, so it is written once, here, and tested.
- *
- * The first line is deliberately kept even though two flags standing on a live
- * war is now something only an older save can show: a sentence that would be
- * wrong about such a save is worse than one that is rarely drawn.
- */
-export function offerSentence(row: DiplomacyRow): string | null {
-  if (row.relation !== 'war') return null;
-  if (row.weOffered && row.theyOffered) return 'Both sides have signed — the war ends this turn.';
-  if (row.theyOffered) return 'They have offered peace.';
-  if (row.weOffered) return 'Your offer stands. The war ends the moment they sign it.';
-  return null;
-}
-
 // --- the deal panel's model -------------------------------------------------
 
 /**
@@ -687,8 +667,7 @@ export interface EnvoyAnswer {
  * `terms` is written from *your* side, exactly as the draft is (`DealDraft`),
  * so the sheet writes it straight in and the player may edit it before sending
  * it. `refusal` is the seat's own sentence when it will not treat at all, which
- * is a different answer from "there is no paper that would do it" and is said
- * differently (`counterNote`).
+ * is a different answer from "there is no paper that would do it".
  */
 export interface CounterAnswer {
   terms: { give: DealTerms; take: DealTerms } | null;
@@ -698,49 +677,8 @@ export interface CounterAnswer {
   refusal: string | null;
 }
 
-/** Which of the two questions was put to them. See `counterNote`. */
+/** Which of the two questions was put to them. */
 export type CounterQuestion = 'work' | 'give';
-
-/**
- * The sentence under a counter that brought nothing back.
- *
- * Two answers a player must not confuse: an empire that **will not treat**
- * (§12's winning-war clause) has said something about the war, and an empire
- * that brought no terms has said something about the table. The seat's own
- * words win when it has any, because a sentence out of the simulation is always
- * better than one written here.
- */
-export function counterNote(answer: CounterAnswer, question: CounterQuestion): string | null {
-  if (answer.refusal !== null) return answer.refusal;
-  if (answer.terms !== null) return null;
-  return question === 'work'
-    ? 'Nothing you hold would make this work.'
-    : 'There is nothing they would give for this.';
-}
-
-/**
- * The lines the middle column draws under a counter: what changed on the paper,
- * in the seat's own terms.
- *
- * The terms come back as the bot's arithmetic and are printed as they are —
- * this is the one place a player can see *why* the number moved, and a screen
- * that summarised it would be a screen making the bot's argument for it.
- */
-export function counterLines(answer: CounterAnswer, question: CounterQuestion): string[] {
-  const note = counterNote(answer, question);
-  if (note !== null) return [note];
-  return answer.reasons;
-}
-
-/**
- * The envoy's sentence and the reasons under it, in the order they are drawn.
- *
- * One function so the middle column and any later chronicle line cannot drift
- * about what the answer was. Nothing is added: the sheet says what the bot said.
- */
-export function envoyLines(answer: EnvoyAnswer): string[] {
-  return [answer.sentence, ...answer.reasons];
-}
 
 /** Voiced response and actionable explanation, separate from the AI's score ledger. */
 export function audienceCopy(answer: EnvoyAnswer): { quote: string; detail: string } {

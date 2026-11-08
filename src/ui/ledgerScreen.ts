@@ -364,8 +364,6 @@ export function ledgerCaption(voice: LedgerVoice): string {
  */
 export const LEDGER_CURVE_SERIES = ['deck', 'people', 'religion'] as const;
 
-export type LedgerCurveSeries = (typeof LEDGER_CURVE_SERIES)[number];
-
 /** One turn's reading, kept for the session. See `createLedgerHistory`. */
 export interface LedgerSample {
   turn: number;

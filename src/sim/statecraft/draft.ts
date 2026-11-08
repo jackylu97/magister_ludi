@@ -1264,11 +1264,6 @@ export function currentBandOf(player: Player, drafts: number = player.statecraft
   return bandTierAt(drafts);
 }
 
-/** The band tier this seat's draft count has reached. See `bandTierAt`. */
-export function bandTierOf(sc: PlayerStatecraft): Band {
-  return bandTierAt(sc.drafts);
-}
-
 /**
  * **The bag a hand is dealt from**: the seat pool narrowed to the seat's
  * current band (`currentBandOf`), minus everything already held (the
@@ -1396,57 +1391,6 @@ export function drawWithoutReplacement<T>(state: GameState, from: readonly T[], 
     const index = Math.min(remaining.length - 1, Math.floor(nextFloat(state.rng) * remaining.length));
     drawn.push(remaining[index]!);
     remaining.splice(index, 1);
-  }
-  return drawn;
-}
-
-/**
- * `drawWithoutReplacement` with a **weight per candidate** — the rarity draw
- * (the ruling of 2026-09-04).
- *
- * The same walk, the same contract, one roll per card actually taken: the only
- * difference is that the roll lands in a running total of weights rather than
- * in a count of items, so a bag of one rare and three commons deals the rare
- * one time in thirteen rather than one in four. Uniform is this function with
- * every weight at 1, which is why the plain draw above is still the one every
- * *other* deck uses — a weight nobody varies is a weight nobody should have to
- * read.
- *
- * **The weight is asked once per candidate per draw**, not cached: the bag
- * shrinks as cards come out of it, and a total computed before the first pick
- * would be a total that no longer describes what is left. That is O(n) per
- * card over a bag of at most a few dozen, which is nothing, and it is the
- * version that cannot silently drift.
- *
- * A negative weight reads as zero and a bag that weighs nothing at all falls
- * back on its last item rather than dealing `undefined` — the honest answer to
- * a retune that made every candidate weightless, and unreachable while any rung
- * carries a positive weight.
- */
-export function drawWeighted<T>(
-  state: GameState,
-  from: readonly T[],
-  count: number,
-  weightOf: (item: T) => number,
-): T[] {
-  const remaining = [...from];
-  const wanted = Math.min(Math.max(0, Math.floor(count)), remaining.length);
-  const drawn: T[] = [];
-  for (let taken = 0; taken < wanted; taken++) {
-    let total = 0;
-    for (const item of remaining) total += Math.max(0, weightOf(item));
-    const roll = nextFloat(state.rng) * total;
-    let at = remaining.length - 1;
-    let running = 0;
-    for (let i = 0; i < remaining.length; i++) {
-      running += Math.max(0, weightOf(remaining[i]!));
-      if (roll < running) {
-        at = i;
-        break;
-      }
-    }
-    drawn.push(remaining[at]!);
-    remaining.splice(at, 1);
   }
   return drawn;
 }
@@ -1794,9 +1738,8 @@ export function positionBag(
  * renormalised over the rungs the bag holds, then a card uniformly within it —
  * in **one roll**. The roll lands in the rungs' points laid end to end; where
  * it lands says the rung, and how far into the rung it landed, rescaled, says
- * the card. One roll per card is the contract `drawWeighted` kept and the one
- * a replay is owed either way; two rolls would say the same thing and spend
- * twice.
+ * the card. One roll per card is the contract a replay needs; two rolls would
+ * say the same thing and spend twice.
  *
  * An empty bag deals nothing and spends nothing (emptiness is a fact about the
  * shelf, never about the moment, so two runs of one state spend the same
@@ -2919,11 +2862,6 @@ export function maliceAt(player: Player, slotIndex: number): MaliceId | null {
     return held.id;
   }
   return null;
-}
-
-/** Every malice this realm carries, in seating order, ids only. */
-export function malicesHeld(player: Player): MaliceId[] {
-  return player.malices.map((held) => held.id).filter(isMaliceId);
 }
 
 /** The refusal both slot verbs answer with. One sentence, one voice. */

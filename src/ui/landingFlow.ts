@@ -43,11 +43,6 @@ export const STEP_CRUMB: Record<LandingStep, string> = {
   civ: 'new game · step two of two',
 };
 
-/** The step a forward press leads to, or `null` where the walk ends. */
-export function stepAfter(step: LandingStep): LandingStep | null {
-  return step === 'title' ? 'world' : step === 'world' ? 'civ' : null;
-}
-
 /** The step Back leads to, or `null` at the front of the walk. */
 export function stepBefore(step: LandingStep): LandingStep | null {
   return step === 'civ' ? 'world' : step === 'world' ? 'title' : null;

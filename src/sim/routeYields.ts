@@ -607,7 +607,7 @@ function shares(
  * so the sheet says where the extra food came from.
  *
  * The **origin's** owner is asked, because a route belongs to the seat that sent
- * it (`originCityOf`) and the law that pays it is that seat's law — a caravan
+ * it and the law that pays it is that seat's law — a caravan
  * into a rival's town is not enriched by the rival's charter. Percentages sum
  * before one multiplication and each voice is floored once, exactly as Entry
  * XVII sums within a stage.

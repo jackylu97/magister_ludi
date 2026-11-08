@@ -42,7 +42,6 @@ import {
   yieldFactor,
 } from '../../src/sim/meters';
 import {
-  MODIFIER_STAGES,
   NO_STAGES,
   STAGE_LABEL,
   applyStages,
@@ -228,11 +227,7 @@ describe('Entry XVII: the two stages, as arithmetic', () => {
     expect(withStage(sums, 'empire', 0)).toBe(sums);
   });
 
-  it('prints the two stages in the order they apply', () => {
-    // Rule 6: the reader sees flats, the city multiplier, the global multiplier,
-    // in that order. The panel walks `MODIFIER_STAGES`, so the order is asserted
-    // here rather than in the DOM.
-    expect(MODIFIER_STAGES).toEqual(['city', 'empire']);
+  it('names the two stages', () => {
     expect(STAGE_LABEL.city).toBe('City bonuses');
     expect(STAGE_LABEL.empire).toBe('Empire');
   });

@@ -34,7 +34,6 @@ import {
   STEP_CRUMB,
   keyIsThePage,
   landingKeyAction,
-  stepAfter,
   stepBefore,
   summaryStrip,
 } from '../../src/ui/landingFlow';
@@ -49,12 +48,9 @@ const CSS = uiSource('style.css');
 const FLOW = uiSource('landingFlow.ts');
 
 describe('the three screens are one screen', () => {
-  it('walks title → world → civ and back again, and ends at both ends', () => {
+  it('orders the steps title → world → civ, and walks back to the title', () => {
     expect([...LANDING_STEPS]).toEqual(['title', 'world', 'civ']);
     expect(FIRST_STEP).toBe('title');
-    expect(stepAfter('title')).toBe('world');
-    expect(stepAfter('world')).toBe('civ');
-    expect(stepAfter('civ')).toBeNull();
     expect(stepBefore('civ')).toBe('world');
     expect(stepBefore('world')).toBe('title');
     expect(stepBefore('title')).toBeNull();

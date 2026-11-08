@@ -11,12 +11,9 @@
 
 import { describe, expect, it } from 'vitest';
 import { turnsToFill } from '../../src/sim/cities';
-import type { MeterEffect } from '../../src/sim/meters';
 import {
-  BORDER_GLYPH,
   HAMMER,
   YIELD_GLYPH,
-  effectFigure,
   figure,
   meterFigure,
   netFigure,
@@ -63,13 +60,6 @@ describe('the yield voices', () => {
   it('gives every yield its own distinct voice', () => {
     const glyphs = Object.values(YIELD_GLYPH);
     expect(new Set(glyphs).size).toBe(glyphs.length);
-  });
-
-  it('marks territory with a voice of its own, not with a yield glyph', () => {
-    // Border growth is not a yield — the same culture is banked twice and only
-    // the half that buys ground answers to the writ — so its mark must not be
-    // one of the six.
-    expect(Object.values(YIELD_GLYPH)).not.toContain(BORDER_GLYPH);
   });
 });
 
@@ -275,33 +265,6 @@ describe('the top bar prints whole figures', () => {
     // card headlines and the authority card's capacity pair all still keep it.
     expect(code).toContain('signedMeterFigure(');
     expect(code).toContain('meterFigure(');
-  });
-});
-
-describe('an empire modifier as a figure', () => {
-  function effect(partial: Partial<MeterEffect>): MeterEffect {
-    return {
-      meter: 'authority',
-      value: 6,
-      percent: 10,
-      yields: [],
-      growth: false,
-      borders: false,
-      ...partial,
-    };
-  }
-
-  it('names every channel it touches, borders included', () => {
-    // A solvent writ builds *and* claims, and the chip says both on one line.
-    const writ = effectFigure(effect({ yields: ['production'], borders: true }));
-    expect(writ).toContain(YIELD_GLYPH.production);
-    expect(writ).toContain(BORDER_GLYPH);
-    expect(writ).toContain('+10%');
-  });
-
-  it('gives the freeze the boundary stone and nothing else', () => {
-    const frozen = effectFigure(effect({ percent: -100, borders: true }));
-    expect(frozen).toBe(`${BORDER_GLYPH} −100%`);
   });
 });
 

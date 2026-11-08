@@ -164,17 +164,6 @@ export function aheadOfMet(state: GameState, playerId: number, tech: TechId): bo
 }
 
 /**
- * Can an empire this seat has met build this unit type? It can when it knows
- * the technology that opens the type (reading 45). A type that no technology
- * opens can be built by anybody, so the answer is yes.
- */
-export function metEmpireCanBuild(state: GameState, playerId: number, type: UnitTypeId): boolean {
-  const gate = UNIT_UNLOCK_TECH.get(type);
-  if (gate === undefined) return true;
-  return metEmpireKnows(state, playerId, gate);
-}
-
-/**
  * Is this unit type **one no met empire can build**: the seat has met at least
  * one empire, a technology opens the type, and no met empire knows it? Greek
  * Fire's test (reading 45). A type no technology opens never passes.

@@ -3719,61 +3719,6 @@ function tallyFall(state: GameState, killerId: number | null, fallenId: number):
   if (killer) killer.unitsKilled += 1;
 }
 
-/**
- * "Warrior attacks Archer: 34 − 12" — one line, for the notice and the log.
- *
- * A taking says so and gives no numbers, because there were none: a captured
- * civilian and a walked-into town are both arrivals rather than fights, and
- * "Warrior attacks Uruk: 0 · captured!" was a sentence about a blow that never
- * landed. Everything else prints the trade and then names the beat of the siege
- * it was, which is the one thing a bare damage figure cannot say — a player who
- * reads "the walls hold" knows the garrison was never touched.
- *
- * The **garrison beat's** taking (2026-09-09) is the one line that has to say
- * two things at once, and it is the one blow where a fight and a taking are the
- * same act: the numbers are real, the man is dead, and the town went with him.
- * It is told in that order, and the town is not named — `defenderName` is the
- * soldier's, and the outcome carries the town as an id because everything else
- * about it is read off the board.
- */
-export function describeCombat(outcome: CombatOutcome): string {
-  const verb = outcome.kind === 'ranged' ? 'shoots' : 'attacks';
-  if (outcome.capturedUnitId !== null) {
-    return `${outcome.attackerName} captures ${outcome.defenderName}`;
-  }
-  if (outcome.capturedCityId !== null && outcome.defenderUnitId !== null) {
-    return `${outcome.attackerName} kills ${outcome.defenderName} and takes the city`;
-  }
-  if (outcome.capturedCityId !== null) {
-    return `${outcome.attackerName} captures ${outcome.defenderName}`;
-  }
-  const trade =
-    outcome.damageToAttacker > 0
-      ? `${outcome.damageToDefender} − ${outcome.damageToAttacker}`
-      : `${outcome.damageToDefender}`;
-  return `${outcome.attackerName} ${verb} ${outcome.defenderName}: ${trade}${siegeTail(outcome)}`;
-}
-
-/**
- * What a blow on a city hex is worth saying beyond its numbers.
- *
- * The `capture` arm is reached by a ranged shot alone — a melee blow in that beat
- * took the town and `describeCombat` returned before it got here — and it says
- * the same thing the `garrison` arm does, because it is the same fact: the walls
- * are down and this weapon is not the one that finishes it. The `garrison` arm
- * is likewise only reached by a blow that did **not** take the town, for the
- * same reason: since 2026-09-09 a melee kill there returns above.
- */
-function siegeTail(outcome: CombatOutcome): string {
-  // The Breaching Batteries (Scientific batch S9): the hammers the blow took
-  // from a Magnum Opus, said after the beat.
-  const opus =
-    outcome.opusLoss === undefined ? '' : ` · the Magnum Opus loses ${outcome.opusLoss.hammers} production`;
-  if (outcome.cityPhase === 'walls') return ` · battering the walls${opus}`;
-  if (outcome.cityPhase === null) return opus;
-  return ` · the walls are down${opus}`;
-}
-
 // --- elimination and victory ------------------------------------------------
 
 /**

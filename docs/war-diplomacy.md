@@ -452,7 +452,7 @@ more than the hammers. The code is `src/sim/ranks.ts`; every figure is in
   row, truce, running bargain, paper on the table), a remembered town
   (`citySightings`, which carries `ownerId`), an explored hex their towns own
   now (what `TerritoryLayer` already draws), or one of their pieces visible
-  this instant. `metSeats`/`metDiplomacyRows` are the drawn register;
+  this instant. `metDiplomacyRows` is the drawn register;
   `diplomaticSeats` stays the whole world.
 - **A UI gate only**, like `localPlayerId`: no verb refuses on met-ness
   (`declareWarError` has no such clause), so a bot may act on what a human
@@ -622,7 +622,7 @@ weight, a right of way at zero; the warscore prices a peace.
   bot's own reasons under it; *What would make this work?* and *What would you
   give for this?* write the counter into the draft, where it stays editable.
   Both are options handed in by `main.ts` — the sheet never imports the AI.
-  `envoyLines` / `counterNote` / `counterLines` are the pure half, tested
+  `audienceCopy` is the pure half, tested
   without jsdom. A peace paper somebody put to *you* also carries **Send them
   home** (`controls.declinePeaceFrom` → `declinePeace`), greyed with
   `declinePeaceError`'s own sentence: the command is the bot's answer and the

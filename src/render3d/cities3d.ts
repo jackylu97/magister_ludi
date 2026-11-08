@@ -126,12 +126,6 @@ const BOARD = VIEW3D.board;
 const OVERLAY = VIEW3D.overlay;
 const TERRITORY = VIEW3D.territory;
 
-/** An offset cell. Structurally what the simulation calls a path waypoint. */
-export interface CellRef {
-  col: number;
-  row: number;
-}
-
 /** The colour a player's flags and borders are drawn in — the **field**. */
 export function playerColor(state: GameState, playerId: number): number {
   const player = state.players[playerId];

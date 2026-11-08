@@ -40,7 +40,7 @@ import {
   purchaseShortfall,
 } from '../sim/purchase';
 import type { GameState } from '../sim/state';
-import { BANK_UNIT, bankHeldElement, bankHeldText } from './bankFigure';
+import { BANK_UNIT, bankHeldElement } from './bankFigure';
 import { element } from './dom';
 import { YIELD_GLYPH } from './figures';
 import { refusalMarkElement } from './refusalLine';
@@ -158,18 +158,6 @@ export function priceShortText(need: number): string {
 export interface PriceHeadBank {
   bank: PriceBank;
   held: number;
-}
-
-/**
- * "Buy outright · full price · you have 437 gold", with every bank whose prices
- * are in view: "… · you have 437 gold · 51 faith". The words every cell under
- * it would otherwise have to carry, said once.
- */
-export function priceHeadText(banks: readonly PriceHeadBank[]): string {
-  const held = banks.map(({ bank, held }) => `${bankHeldText(held)} ${BANK_UNIT[bank]}`);
-  return held.length === 0
-    ? 'Buy outright · full price'
-    : `Buy outright · full price · you have ${held.join(' · ')}`;
 }
 
 /** The heading as an element, each held figure in its bank's ink (`bankHeldElement`). */

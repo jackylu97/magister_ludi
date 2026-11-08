@@ -44,36 +44,9 @@ export function hex(q: number, r: number): Hex {
   return { q, r };
 }
 
-export function hexEquals(a: Hex, b: Hex): boolean {
-  return a.q === b.q && a.r === b.r;
-}
-
-export function hexAdd(a: Hex, b: Hex): Hex {
-  return { q: a.q + b.q, r: a.r + b.r };
-}
-
-export function hexSubtract(a: Hex, b: Hex): Hex {
-  return { q: a.q - b.q, r: a.r - b.r };
-}
-
-export function hexScale(a: Hex, k: number): Hex {
-  return { q: a.q * k, r: a.r * k };
-}
-
 /** A stable string key, handy for Set/Map lookups. */
 export function hexKey(h: Hex): string {
   return `${h.q},${h.r}`;
-}
-
-/** The neighbour in direction `direction` (0..5, indexes `HEX_DIRECTIONS`). */
-export function neighbor(h: Hex, direction: number): Hex {
-  const d = HEX_DIRECTIONS[((direction % 6) + 6) % 6]!;
-  return { q: h.q + d.q, r: h.r + d.r };
-}
-
-/** All 6 neighbours, in `HEX_DIRECTIONS` order. */
-export function neighbors(h: Hex): Hex[] {
-  return HEX_DIRECTIONS.map((d) => ({ q: h.q + d.q, r: h.r + d.r }));
 }
 
 // --- cube conversions -------------------------------------------------------
@@ -95,60 +68,7 @@ export function hexDistance(a: Hex, b: Hex): number {
   return (Math.abs(dq) + Math.abs(dq + dr) + Math.abs(dr)) / 2;
 }
 
-/** Distance from the origin. */
-export function hexLength(h: Hex): number {
-  return (Math.abs(h.q) + Math.abs(h.q + h.r) + Math.abs(h.r)) / 2;
-}
-
 // --- rings and ranges -------------------------------------------------------
-
-/**
- * The hexes exactly `radius` steps from `center`.
- * `ring(c, 0)` is `[c]`; otherwise the result has `6 * radius` hexes.
- */
-export function ring(center: Hex, radius: number): Hex[] {
-  if (radius < 0) return [];
-  if (radius === 0) return [{ q: center.q, r: center.r }];
-
-  const results: Hex[] = [];
-  // Start at the hex `radius` steps to the west, then walk the 6 sides.
-  let current = hexAdd(center, hexScale(HEX_DIRECTIONS[3]!, radius));
-  for (let side = 0; side < 6; side++) {
-    // Walking side `side` of the ring uses direction (side + 5) % 6.
-    const step = HEX_DIRECTIONS[(side + 5) % 6]!;
-    for (let i = 0; i < radius; i++) {
-      results.push({ q: current.q, r: current.r });
-      current = { q: current.q + step.q, r: current.r + step.r };
-    }
-  }
-  return results;
-}
-
-/**
- * Every hex within `radius` steps of `center` (inclusive), center first.
- * The result has `3r² + 3r + 1` hexes.
- */
-export function range(center: Hex, radius: number): Hex[] {
-  const results: Hex[] = [];
-  if (radius < 0) return results;
-  for (let dq = -radius; dq <= radius; dq++) {
-    const lo = Math.max(-radius, -dq - radius);
-    const hi = Math.min(radius, -dq + radius);
-    for (let dr = lo; dr <= hi; dr++) {
-      results.push({ q: center.q + dq, r: center.r + dr });
-    }
-  }
-  return results;
-}
-
-/** Every hex in the closed annulus `[minRadius, maxRadius]` around `center`. */
-export function ringRange(center: Hex, minRadius: number, maxRadius: number): Hex[] {
-  const results: Hex[] = [];
-  for (let radius = Math.max(0, minRadius); radius <= maxRadius; radius++) {
-    results.push(...ring(center, radius));
-  }
-  return results;
-}
 
 // --- rounding and interpolation ---------------------------------------------
 

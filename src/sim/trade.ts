@@ -1453,23 +1453,6 @@ export function startRouteError(
 }
 
 /**
- * The city this caravan is standing in, when it is standing in one of its
- * owner's.
- *
- * No longer part of any gate — a route's origin is named by the command now, not
- * read off the board (see the module docblock) — and kept because it is still
- * the honest answer to "where is this caravan", which the interface asks when it
- * labels an idle trader.
- */
-export function originCityOf(state: GameState, unit: Unit): City | null {
-  for (const city of state.cities) {
-    if (city.ownerId !== unit.ownerId) continue;
-    if (standsIn(unit, city)) return city;
-  }
-  return null;
-}
-
-/**
  * Writes the route and sets the caravan walking. Validates nothing — the
  * mechanism.
  *

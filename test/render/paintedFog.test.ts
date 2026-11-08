@@ -25,8 +25,8 @@ import { BoxGeometry, BufferGeometry, Material, Mesh, MeshStandardMaterial } fro
 
 import { buildPaintedBoard, type PaintedBoard, type PaintedBoardMaterials, type PaintedVegetationAssets } from '../../src/render3d/paintedBoard.js';
 import {
-  PAINTED_CHART, PAINTED_FOG_GLSL, PAINTED_REVEAL_MS, PAINTED_VISION,
-  createPaintedLightField, paintedChartGeometry, paintedFogRegister, paintedLightCoords,
+  PAINTED_CHART, PAINTED_FOG_GLSL, PAINTED_REVEAL_MS,
+  createPaintedLightField, paintedChartGeometry, paintedLightCoords,
   paintedLightIndex, paintedRevealEase, paintedSunWeight,
 } from '../../src/render3d/paintedFogLook';
 import { VIEW3D } from '../../src/render3d/lookData';
@@ -71,12 +71,6 @@ function fixture(width = 12, height = 4) {
 }
 
 describe('the fog register: light, not geometry', () => {
-  it('spells the three registers in one place', () => {
-    expect(paintedFogRegister(PAINTED_VISION.uncharted)).toEqual({ drawn: false, sun: 0 });
-    expect(paintedFogRegister(PAINTED_VISION.remembered)).toEqual({ drawn: true, sun: 0 });
-    expect(paintedFogRegister(PAINTED_VISION.visible)).toEqual({ drawn: true, sun: 1 });
-  });
-
   it('moves a remembered hex to visible with texel writes and nothing else', () => {
     const { board, drawn, levels } = fixture();
     board.applyFog(levels(1));

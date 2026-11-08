@@ -49,7 +49,7 @@ import { applyStages, foldStages, type StagedLine } from '../../src/sim/yields/s
 import { RULES } from '../../src/sim/rulesData';
 import { createMap, getTileAt } from '../../src/sim/map';
 import { type GameState, bumpRevision } from '../../src/sim/state';
-import { formatYield, roundYield, signedYield, yieldShows } from '../../src/sim/yieldFormat';
+import { roundYield, signedYield, yieldShows } from '../../src/sim/yieldFormat';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { resetVisibility } from '../../src/sim/visibility';
 import { newGame } from './newGameHelpers';
@@ -268,7 +268,6 @@ describe('the surface rounds, and it is the only thing that does', () => {
     expect(signedYield(7.2)).toBe('+7');
     expect(signedYield(-2.6)).toBe('−3');
     expect(signedYield(0.4)).toBe('0');
-    expect(formatYield(-2.6)).toBe('3');
   });
 
   it('says which figures are worth printing at all', () => {

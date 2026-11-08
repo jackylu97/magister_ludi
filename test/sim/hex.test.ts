@@ -10,12 +10,7 @@ import {
   hexKey,
   hexLine,
   hexToPixel,
-  neighbor,
-  neighbors,
   pixelToHex,
-  range,
-  ring,
-  ringRange,
   SQRT3,
 } from '../../src/sim/hex';
 
@@ -34,24 +29,6 @@ describe('hex neighbours', () => {
       r: 0,
     });
     expect(sum).toEqual({ q: 0, r: 0 });
-  });
-
-  it('returns 6 distinct neighbours, each exactly one step away', () => {
-    for (const h of SAMPLE) {
-      const ns = neighbors(h);
-      expect(ns).toHaveLength(6);
-      expect(new Set(ns.map(hexKey)).size).toBe(6);
-      for (const n of ns) {
-        expect(hexDistance(h, n)).toBe(1);
-        expect(neighbors(n).some((back) => back.q === h.q && back.r === h.r)).toBe(true);
-      }
-    }
-  });
-
-  it('wraps the direction index in neighbor()', () => {
-    const h = hex(2, -3);
-    expect(neighbor(h, 0)).toEqual(neighbor(h, 6));
-    expect(neighbor(h, 1)).toEqual(neighbor(h, -5));
   });
 });
 
@@ -105,54 +82,6 @@ describe('cube conversion', () => {
       expect(c.x + c.y + c.z).toBe(0);
       expect(cubeToAxial(c)).toEqual(h);
     }
-  });
-});
-
-describe('ring and range', () => {
-  it('ring(0) is just the centre', () => {
-    expect(ring(hex(2, 5), 0)).toEqual([{ q: 2, r: 5 }]);
-  });
-
-  it('ring(r) has 6r hexes, all exactly r away and all distinct', () => {
-    const center = hex(-2, 4);
-    for (let radius = 1; radius <= 8; radius++) {
-      const hexes = ring(center, radius);
-      expect(hexes).toHaveLength(6 * radius);
-      expect(new Set(hexes.map(hexKey)).size).toBe(6 * radius);
-      for (const h of hexes) expect(hexDistance(center, h)).toBe(radius);
-    }
-  });
-
-  it('ring hexes form a closed loop of adjacent steps', () => {
-    const hexes = ring(hex(0, 0), 4);
-    for (let i = 0; i < hexes.length; i++) {
-      const a = hexes[i]!;
-      const b = hexes[(i + 1) % hexes.length]!;
-      expect(hexDistance(a, b)).toBe(1);
-    }
-  });
-
-  it('range(r) has 3r^2 + 3r + 1 hexes, all within r and all distinct', () => {
-    const center = hex(3, -1);
-    for (let radius = 0; radius <= 8; radius++) {
-      const hexes = range(center, radius);
-      const expected = 3 * radius * radius + 3 * radius + 1;
-      expect(hexes).toHaveLength(expected);
-      expect(new Set(hexes.map(hexKey)).size).toBe(expected);
-      for (const h of hexes) expect(hexDistance(center, h)).toBeLessThanOrEqual(radius);
-    }
-  });
-
-  it('range is the union of rings 0..r', () => {
-    const center = hex(1, 1);
-    const fromRings = new Set(ringRange(center, 0, 5).map(hexKey));
-    const fromRange = new Set(range(center, 5).map(hexKey));
-    expect(fromRings).toEqual(fromRange);
-  });
-
-  it('returns nothing for a negative radius', () => {
-    expect(ring(hex(0, 0), -1)).toEqual([]);
-    expect(range(hex(0, 0), -1)).toEqual([]);
   });
 });
 

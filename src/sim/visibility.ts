@@ -50,7 +50,6 @@
  */
 
 import { buildingCityStat, foldBuildingCityStat } from './buildingEffects';
-import { type Hex, hexDistance } from './hex';
 import { cardCityStat, cardUnitStat, foldCityStat } from './statecraft';
 // Expansionist batch E12: what a town holds, a card's grants included.
 // Devotion batch DV5: The Confessors' rule and the `follows` town scope it
@@ -628,17 +627,3 @@ export function maxSightArea(): number {
   return discArea(maxSightRadius());
 }
 
-/**
- * The hex distance between two cells, allowed to travel round the seam.
- *
- * `wrappedDistance` in `map.ts` is the same arithmetic and is what everything
- * in the simulation uses; this is here so the fog tests can bound a delta
- * against the tile a unit moved from without importing half the map module.
- */
-export function seamDistance(map: GameMap, a: Hex, b: Hex): number {
-  let best = Infinity;
-  for (let k = -1; k <= 1; k++) {
-    best = Math.min(best, hexDistance(a, { q: b.q + k * map.width, r: b.r }));
-  }
-  return best;
-}

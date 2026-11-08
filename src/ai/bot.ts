@@ -5251,7 +5251,7 @@ function cityCommand(
  *     the row gives that a yield cannot say (`explainBuildingRow`: happiness,
  *     authority, walls, renown, a bead, the curtain);
  *   · **value** for a unit is its role: a town, a worker, a caravan, or strength
- *     plus whatever the threat is worth (`valueOfSoldier`);
+ *     plus whatever the threat is worth (`explainSoldier`);
  *   · **upkeep** is `buildingUpkeep`/`unitUpkeep` — the simulation's own
  *     maintenance reading — priced at the gold weight times `goldPressure`.
  *     **This is the collapse fix's soft half**: at full aversion a maintained

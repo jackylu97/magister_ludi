@@ -17,7 +17,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   STAMP_FLOURISH,
-  STAMP_LIFETIME_LABEL,
   STAMP_TIMING,
   type StampReading,
   stampCascadeText,
@@ -358,11 +357,8 @@ describe('the design of record, held at the source', () => {
 
   /** The quiet register's words are the user's, and only theirs. */
   it('never says "banked"', () => {
-    expect(STAMP_LIFETIME_LABEL).toBe('has produced');
-    // And no surface in the interface prints the rejected wording. (The
-    // constant's own docblock names it, once, to say why it is not used.)
+    // No surface in the interface prints the rejected wording.
     for (const [path, text] of Object.entries(SOURCES)) {
-      if (path.endsWith('/cardStamp.ts')) continue;
       expect(text, path).not.toContain('banked since slotted');
     }
   });

@@ -2533,10 +2533,6 @@ export function explainSoldier(id: UnitTypeId, ctx: ValueContext): Appraisal {
   ]);
 }
 
-export function valueOfSoldier(id: UnitTypeId, ctx: ValueContext): number {
-  return explainSoldier(id, ctx).total;
-}
-
 // --- the scope, evaluated (batch X2) ----------------------------------------
 
 /**
