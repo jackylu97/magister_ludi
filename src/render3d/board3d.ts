@@ -1186,19 +1186,9 @@ export class BoardGeometry {
   readonly wonder: BufferGeometry;
   readonly wonderTip: BufferGeometry;
   readonly pole: BufferGeometry;
-  /** Overlay shapes: reachable tint, highlight ring, path chip, HP bar. */
+  /** Overlay shapes: attack and city-site tint, highlight ring, path chip, HP bar. */
   readonly decal: BufferGeometry;
   readonly ring: BufferGeometry;
-  /**
-   * The reachable set's own rim — a thinner hex band, drawn inside the selection
-   * ring so a hovered reachable hex wears both without either z-fighting.
-   *
-   * A second buffer rather than `ring` at a smaller instance scale, because a
-   * scaled ring scales its *band* too: shrinking the selection ring to fit
-   * inside itself would thin the line at exactly the moment the design wants it
-   * kept. See `OverlaySpec.reachableRimColor`.
-   */
-  readonly reachRing: BufferGeometry;
   readonly dot: BufferGeometry;
   readonly bar: BufferGeometry;
   /**
@@ -1451,10 +1441,6 @@ export class BoardGeometry {
       BOARD.hexRadius * OVERLAY.ringOuter,
       BOARD.hexRadius * OVERLAY.ringWidth,
     );
-    this.reachRing = hexRing(
-      BOARD.hexRadius * OVERLAY.reachableRimOuter,
-      BOARD.hexRadius * OVERLAY.reachableRimWidth,
-    );
     this.dot = pathDot(OVERLAY.pathDotRadius, OVERLAY.pathDotHeight);
     this.resourceProps = buildResourceProps();
     this.improvementProps = buildImprovementProps();
@@ -1547,7 +1533,6 @@ export class BoardGeometry {
     this.pole.dispose();
     this.decal.dispose();
     this.ring.dispose();
-    this.reachRing.dispose();
     this.dot.dispose();
     for (const prop of Object.values(this.resourceProps)) prop.dispose();
     for (const prop of Object.values(this.improvementProps)) prop.dispose();

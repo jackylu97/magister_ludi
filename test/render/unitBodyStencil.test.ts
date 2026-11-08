@@ -51,9 +51,6 @@ describe('opaque fallback unit bodies', () => {
   it('keeps unit pigment, ramp and program lifecycle in the ordinary material library', () => {
     const { library } = fixture(), color = 0x5c9d37;
     const unit = library.unit(color), terrain = library.get(color);
-    library.setSaturation(.35); expect(unit.color).toEqual(terrain.color);
-    const initial = unit.color.clone();
-    library.setSaturation(.35); expect(unit.color).toEqual(initial);
     const late = library.unit(0x975038); expect(late.color).toEqual(library.get(0x975038).color);
     const oldRamp = unit.gradientMap!, disposeRamp = vi.fn(); oldRamp.addEventListener('dispose', disposeRamp);
     library.setRampSteps(5);

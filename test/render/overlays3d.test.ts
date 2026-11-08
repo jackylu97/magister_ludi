@@ -315,7 +315,6 @@ describe('board overlays draw over the board', () => {
     const drawn = decals(layer.group);
     expect(drawn).toHaveLength(2);
     expect(shapesOf(layer.group)).not.toContain(geometry.decal);
-    expect(shapesOf(layer.group)).not.toContain(geometry.reachRing);
     expect(drawn.every(({mesh}) => mesh.count === WRAP_COPIES)).toBe(true);
     expect(colorsOf(layer.group)).toContain(VIEW3D.overlay.rangeColor);
     expectDrawnOverTheBoard(layer.group);
@@ -605,7 +604,6 @@ describe('board overlays draw over the board', () => {
     expect(colors).toContain(VIEW3D.overlay.siteRadiusColor);
     // Distinct from every other mark this layer draws, or the preview would read
     // as reachable ground or as a selection.
-    expect(VIEW3D.overlay.siteRadiusColor).not.toBe(VIEW3D.overlay.reachableColor);
     expect(VIEW3D.overlay.siteRadiusColor).not.toBe(VIEW3D.overlay.selectionColor);
     expect(VIEW3D.overlay.siteRadiusColor).not.toBe(VIEW3D.overlay.hoverColor);
     // One chip per cell, times the wrap copies, and inset from the hex so a

@@ -391,10 +391,23 @@ Checks at the gate: type check clean, 11,093 core tests passed, build clean. No 
 
 No key in `data/` is a leftover. A script on the TypeScript compiler API (`~/code/webciv-review/data-keys.cjs`) matched every key in the 28 data files to the interface it is read through, and every key is declared. So U3 removed nothing.
 
-Seven keys are declared but no live code reads them:
+Nine declared keys have no live use:
 
 - Four tunables of the movement wash that the frontier replaced, and three more that only build a geometry nothing draws. Batch U4 removes them.
 - `rules.json` `combat.flankingBonus` (value 0) has been reserved for a flanking rule since Milestone 5. `docs/units.md` prints it under a sync test. It stays until the user rules on flanking.
 - `view.json` `board.maxCacheDimension` belongs to the frozen 2D renderer. It stays.
 
 Fields that only retired rows carry (`orders.*.neutral`, `quests.*.system`, the endeavours' prerequisites), the `retired` change-log blocks of `mapgen.json` and `discoveries.json`, and fields that only a validator reads (`rules.census.renown`, `techs.abilities.*.byCard`, `malices.*.voice`) all stay.
+
+### U4
+
+The reachable-hex wash's leftovers are gone: 83 lines.
+
+- `data/view3d.json` and `lookData.ts`: `overlay.reachableColor`, `reachableOpacity`, `reachableRimColor`, `reachableRimOpacity`, `reachableRimOuter`, `reachableRimWidth` and `look.saturation`.
+- `board3d.ts`: the `reachRing` geometry, which was built and never drawn.
+- `toon.ts`: `MaterialLibrary.setSaturation`, which only a test called, and the state only it used. `toon()` now passes the colour straight in. At the fixed factor of 1, `saturate` returned the same colour (`Math.round(c) & 0xff` on each channel), so nothing drawn changes.
+- Two assertions went with the code: one checked only `reachRing`, one checked only `reachableColor`.
+- `reachableScale` stays: it sizes the decal that the attack mark and the city-site chips draw.
+- `BuildingId` now lists `viziersHall`, a live row it was missing. The type check needed nothing else.
+
+Checks at the gate: type check clean, 11,093 core tests passed, build clean. Both pins match at all six turns. `test/sim/aiDigest.slow.test.ts` passes on both boards.

@@ -38,7 +38,6 @@ import {
   BackSide,
   BufferAttribute,
   type BufferGeometry,
-  Color,
   DataTexture,
   DoubleSide,
   FrontSide,
@@ -55,7 +54,7 @@ import {
   Vector3,
 } from 'three';
 
-import { VIEW3D, saturate } from './lookData';
+import { VIEW3D } from './lookData';
 
 /**
  * An N-band lighting ramp. `steps` of 1 is legal and gives unlit flat colour,
@@ -169,18 +168,13 @@ interface ToonOptions {
  * and the `InstancedMesh` split falls out of the geometry alone.
  *
  * Overlay materials are kept in a separate cache because they are a different
- * *kind* of thing: unlit, double-sided, depth-tested but not depth-writing, and
- * deliberately untouched by the saturation control — an interface tint that
- * drifted with the art direction slider would stop meaning what it means.
+ * *kind* of thing: unlit, double-sided, and depth-tested but not depth-writing.
  */
 export class MaterialLibrary {
   private readonly cache = new Map<string, MeshToonMaterial>();
   private readonly overlayCache = new Map<string, MeshBasicMaterial>();
   private readonly silhouetteCache = new Map<string, MeshBasicMaterial>();
-  /** Base colour per material, pre-saturation, so the slider is not cumulative. */
-  private readonly baseColors = new Map<MeshToonMaterial, number>();
   private gradientMap: DataTexture;
-  private saturation = 1;
   private readonly rampFloor: number;
 
   readonly outlineWidth: IUniform<number> = { value: 0 };
@@ -240,7 +234,7 @@ transformed += aHullNormal * uUnitOutlineWidth;
     if (existing) return existing;
 
     const material = new MeshToonMaterial({
-      color: saturate(color, this.saturation),
+      color,
       gradientMap: this.gradientMap,
       vertexColors,
       // Faceting is baked into the geometry (see `flatten` in `geometry.ts`),
@@ -254,7 +248,6 @@ transformed += aHullNormal * uUnitOutlineWidth;
       } : {}),
     });
     this.cache.set(key, material);
-    this.baseColors.set(material, color);
     return material;
   }
 
@@ -372,15 +365,6 @@ transformed += aHullNormal * uUnitOutlineWidth;
     this.gradientMap = next;
   }
 
-  /** Rewrites every cached colour from its stored base. Never cumulative. */
-  setSaturation(factor: number): void {
-    this.saturation = factor;
-    const scratch = new Color();
-    for (const [material, base] of this.baseColors) {
-      material.color.copy(scratch.setHex(saturate(base, factor)));
-    }
-  }
-
   /**
    * Marks every material for recompilation. Needed when the shadow map is
    * toggled: the flag changes which defines the programs were built with, and
@@ -400,7 +384,6 @@ transformed += aHullNormal * uUnitOutlineWidth;
     this.cache.clear();
     this.overlayCache.clear();
     this.silhouetteCache.clear();
-    this.baseColors.clear();
     this.outline.dispose();
     this.unitOutline.dispose();
     this.gradientMap.dispose();

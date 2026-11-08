@@ -1201,7 +1201,6 @@ interface LookSpec {
   rampSteps: number;
   /** How dark the bottom band of the toon ramp is allowed to get. */
   rampFloor: number;
-  saturation: number;
   shadows: boolean;
   shadowMapSize: number;
   shadowBias: number;
@@ -1309,35 +1308,8 @@ interface LightSpec {
 interface OverlaySpec {
   /** How far above a tile's top face a decal floats, in world units. */
   lift: number;
-  reachableColor: number;
-  reachableOpacity: number;
   /** Reachable decal size as a fraction of the hex radius. */
   reachableScale: number;
-  /**
-   * The rim drawn around every reachable hex, and the half of that overlay a
-   * player actually counts.
-   *
-   * A wash alone says "somewhere around here"; it has no edge, so on a board of
-   * grass and sand its boundary is wherever the eye decides the tint stopped —
-   * which is the complaint this pair answers (user, 2026-08-27: "unit's
-   * available moves should have more noticeable highlight, its too subtle right
-   * now"). The rim gives the set a *border*, and a border is a shape: six of
-   * them along one edge read as one region with a countable frontier.
-   *
-   * Brighter than the wash and nearly opaque, deliberately. The wash may stay
-   * quiet — it is lying over terrain the player still has to read — and it is
-   * the line that has to survive being drawn over a jungle.
-   *
-   * Sized *inside* the selection ring (`ringOuter`) rather than at it, so a hex
-   * that is both reachable and hovered wears two concentric marks instead of one
-   * z-fighting smudge.
-   */
-  reachableRimColor: number;
-  reachableRimOpacity: number;
-  /** Outer radius of the reachable rim, as a fraction of the hex radius. */
-  reachableRimOuter: number;
-  /** Band width of the reachable rim, as a fraction of the hex radius. */
-  reachableRimWidth: number;
   /** Continuous movement frontier; tile centers remain clear. Widths are world units. */
   rangeColor: number;
   rangeOpacity: number;
@@ -2642,13 +2614,7 @@ export const VIEW3D: View3DData = {
   },
   overlay: {
     lift: viewJson.overlay.lift,
-    reachableColor: parseColor(viewJson.overlay.reachableColor, 'overlay.reachableColor'),
-    reachableOpacity: viewJson.overlay.reachableOpacity,
     reachableScale: viewJson.overlay.reachableScale,
-    reachableRimColor: parseColor(viewJson.overlay.reachableRimColor, 'overlay.reachableRimColor'),
-    reachableRimOpacity: viewJson.overlay.reachableRimOpacity,
-    reachableRimOuter: viewJson.overlay.reachableRimOuter,
-    reachableRimWidth: viewJson.overlay.reachableRimWidth,
     rangeColor: parseColor(viewJson.overlay.rangeColor, 'overlay.rangeColor'),
     rangeOpacity: viewJson.overlay.rangeOpacity,
     rangeWidth: viewJson.overlay.rangeWidth,
