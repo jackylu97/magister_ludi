@@ -21,8 +21,8 @@ import {
   explainEffects,
   explainRite,
   scoreEffects,
-  townsAdmitting,
 } from '../../src/ai/value';
+import { townsAdmitting } from '../../src/ai/scopeReach';
 import {
   explainLump,
   meterWeight,

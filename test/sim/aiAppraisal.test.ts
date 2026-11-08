@@ -97,9 +97,8 @@ import {
   hasFoldReadEngine,
   scoreEffects,
   siteRefusal,
-  townsAdmitting,
-  workedHexesAdmitting,
 } from '../../src/ai/value';
+import { townsAdmitting, workedHexesAdmitting } from '../../src/ai/scopeReach';
 import {
   delayDiscount,
   delayTerm,

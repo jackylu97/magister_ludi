@@ -235,7 +235,7 @@ Batches, in this order:
 | **S3** | The schema history v79 to v221 leaves `state.ts` for `docs/history/schema-changelog.md` (about 3,365 lines of comment) | 2, S3 | may run beside S1 |
 | **S2** | The scope's reach leaves `value.ts` for the leaf `src/ai/scopeReach.ts` (about 680 lines) | 2, S2 | S1 |
 | **K1** | The sim merges: items 1 to 4, 8 and 9 (the city-cost rows, `cardUpgradeStrength`, `cardLevyEvery`, `cardBeliefPoolSlots`, the `rulePercent` words, `levyLineError`) | 3 | S2 |
-| **K2** | The bot merges: items 5 to 7 and 10 to 14 (the Doctrine ghost seat, the lists a second reading leaves out, The Apostolic Camera's row test, one switch for the rule prices, the detached docblock, `foldOf`, the walks that ask "does this test name X", the context memos) | 3 | K1 |
+| **K2** | The bot merges: items 5 to 7 and 10 to 14 (the Doctrine ghost seat, the lists a second reading leaves out, The Apostolic Camera's row test, one switch for the rule prices, the detached docblock, `foldOf`, the walks that ask "does this test name X", the context memos), and the seven docblocks in `prices.ts` and `scopeReach.ts` that point the wrong way after S1 and S2 | 3 | K1 |
 | **S6** | Headings in the evaluator's tail, in the smallest form: headings only, no function moves | 2, S6 | K2 |
 
 A merge in K1 or K2 must leave `test/fixtures/cardText.json` and the pins unchanged. If a merge would move either, leave it out and report it.
@@ -424,3 +424,15 @@ The bot's prices moved from `value.ts` to the new leaf `src/ai/prices.ts` (1,101
 - Four moved docblocks still say "below" or "above" about code that stayed in `value.ts` (`prices.ts` lines 295, 456, 705 and 1086). Batch K2 fixes them.
 
 Checks at the gate, with U4's files in place: type check clean, 11,093 core tests passed, build clean. Both pins match at all six turns. `test/sim/aiDigest.slow.test.ts` passes on both boards.
+
+### S2
+
+The scope's reach moved from `value.ts` to the new leaf `src/ai/scopeReach.ts` (694 lines). `value.ts` went from 12,387 lines to 11,749.
+
+- 28 declarations moved: the 26 of "the scope, evaluated (batch X2)" (`townsAdmitting`, `realmTownsAdmitting`, `oneTownShare`, `capitalAdmits`, `workedHexesAdmitting`, `groundOfHexLine`, `wholeShareOf`, `hexPercentShareOf`, `scopeShare` and the rest, with their five memos), plus `townHolding` and `townHoldingOn`.
+- `scopeReach.ts` imports the prices from `prices.ts` and only the `ValueContext` type from `value.ts`. It takes seven sim names from `statecraft/evaluator.ts` directly, not through the index, because the index adds bundler warnings about re-exports between chunks.
+- Both checks proved the move exact. Against `value.ts` before S1, all 446 statements are in the three files (376, 42 and 28), with none changed and none new.
+- Registers updated: the `src/ai` file list in `aiBot.test.ts`, the banned imports in `spectatePage.test.ts`, and the imports of two tests. One comment in `aiConfig.ts` now names `scopeReach.ts`.
+- Three moved docblocks point the wrong way (`scopeReach.ts` lines 70, 127 and 226). Batch K2 fixes them with the four in `prices.ts`.
+
+Checks at the gate: type check clean, 11,093 core tests passed, build clean. Both pins match at all six turns. `test/sim/aiDigest.slow.test.ts` passes on both boards.

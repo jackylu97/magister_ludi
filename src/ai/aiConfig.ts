@@ -1169,7 +1169,7 @@ export interface AiConfig {
     // `nominalTiles` stood here until E1a and is **retired** (the `weights.die`
     // precedent): batch X2 replaced the flat three hexes it named with a sweep
     // of the hexes the empire actually works (`workedHexesAdmitting`,
-    // `value.ts`), and the knob was read by nothing after that while shipping
+    // `scopeReach.ts`), and the knob was read by nothing after that while shipping
     // as a live box on the arena panel.
     /**
      * Per already-held card sharing an option's **deck**. See `scoreCard`. It

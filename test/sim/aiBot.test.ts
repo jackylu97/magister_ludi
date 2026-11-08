@@ -1319,6 +1319,11 @@ describe('the bot module', () => {
     // imports only the `ValueContext` type from `value.ts`, so `value.ts` and
     // the other bot files can all import it. Before it the list held nineteen
     // files, one more than the count above says.
+    //
+    // Twenty-one since batch S2 (2026-11-07): `scopeReach.ts` holds how many of
+    // a seat's towns, capitals and worked hexes a card's scope reaches, and what
+    // share of a hex's yield a hex line changes. It is a leaf over `prices.ts`
+    // that imports only the `ValueContext` type from `value.ts`.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
       'bot.ts',
@@ -1334,6 +1339,7 @@ describe('the bot module', () => {
       'plan.ts',
       'prices.ts',
       'routes.ts',
+      'scopeReach.ts',
       'stepper.ts',
       'townFolds.ts',
       'value.ts',

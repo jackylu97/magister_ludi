@@ -97,7 +97,13 @@ describe('the page never plays the game itself', () => {
     // The tuning surface and the appraisal both belong to the bot. A page that
     // imported either would be a page that could print a number the seat never
     // used to decide anything.
-    for (const banned of ["from '../ai/value'", "from '../ai/prices'", "from '../ai/aiConfig'", "from '../ai/bot'"]) {
+    for (const banned of [
+      "from '../ai/value'",
+      "from '../ai/prices'",
+      "from '../ai/scopeReach'",
+      "from '../ai/aiConfig'",
+      "from '../ai/bot'",
+    ]) {
       expect(text).not.toContain(banned);
     }
     // A **persona** is the exception that proves the rule, and it is not one: a
