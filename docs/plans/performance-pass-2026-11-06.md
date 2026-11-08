@@ -204,6 +204,16 @@ An audit first. For each `data/*.json` file, compare the keys in its rows with t
 
 Remove only clear leftovers: no reader, no doc table, no sync test. List the rest for the user.
 
+### U4: the movement wash's leftovers
+
+U3 found that the movement frontier replaced the reachable-hex wash and rim on 2026-09-15 (`ca2ed768`), and that its tunables and one geometry stayed behind. Remove them:
+
+- `data/view3d.json` and `src/render3d/lookData.ts`: `overlay.reachableOpacity`, `reachableRimColor`, `reachableRimOpacity` and `look.saturation`. The patch is `~/code/webciv-review/u3-dead-knobs.patch`.
+- `overlay.reachableColor`, which only a test reads, and `reachableRimOuter` and `reachableRimWidth`, which only build `board3d.ts`'s `reachRing`. Nothing draws `reachRing`. Remove the three keys, the geometry, and the test assertion on them.
+- `toon.ts` `setSaturation`, if only a test calls it.
+- Check each against `src/flairGallery/` and the pieces gallery first. A slider there counts as a reader.
+- `BuildingId` (`src/sim/buildingData.ts`) does not list `viziersHall`, a live row. Add it if the type check stays clean. If adding it needs more than the union, report it.
+
 **Not unused: tutorial version 2.** `src/ui/guide*.ts` is batch T1 of `docs/plans/tutorial.md`, which the user approved on 2026-10-15. Batches T5 and T6 wire it into the game after the interface rework. It stays.
 
 ## Stage 3: encapsulation
@@ -376,3 +386,15 @@ The schema history v79 to v221 moved from the `SCHEMA_VERSION` docblock in `stat
 - One test read the v111 entry from `state.ts`: `test/sim/sunkProgress.test.ts`. The audit missed it. It now reads the changelog, and takes the v111 entry alone, so it checks a narrower text than before.
 
 Checks at the gate: type check clean, 11,093 core tests passed, build clean. No code changed, so the pins were not run.
+
+### U3
+
+No key in `data/` is a leftover. A script on the TypeScript compiler API (`~/code/webciv-review/data-keys.cjs`) matched every key in the 28 data files to the interface it is read through, and every key is declared. So U3 removed nothing.
+
+Seven keys are declared but no live code reads them:
+
+- Four tunables of the movement wash that the frontier replaced, and three more that only build a geometry nothing draws. Batch U4 removes them.
+- `rules.json` `combat.flankingBonus` (value 0) has been reserved for a flanking rule since Milestone 5. `docs/units.md` prints it under a sync test. It stays until the user rules on flanking.
+- `view.json` `board.maxCacheDimension` belongs to the frozen 2D renderer. It stays.
+
+Fields that only retired rows carry (`orders.*.neutral`, `quests.*.system`, the endeavours' prerequisites), the `retired` change-log blocks of `mapgen.json` and `discoveries.json`, and fields that only a validator reads (`rules.census.renown`, `techs.abilities.*.byCard`, `malices.*.voice`) all stay.
