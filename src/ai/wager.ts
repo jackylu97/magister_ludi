@@ -74,7 +74,7 @@
  * gates a verb, and `ai.wager.leanWeight: 0` plays exactly the bot that shipped
  * before this batch — which is what makes the whole of it an arena A/B.
  *
- * It is a leaf on purpose: `value.ts` owns the two levers and knows nothing
+ * It is a leaf on purpose: `prices.ts` owns the two levers and knows nothing
  * about the deck, `wants.ts` puts the stock in the book, and `bot.ts` sends the
  * command. Nothing imports this back.
  */
@@ -82,12 +82,14 @@
 import { type Appraisal, type ValueTerm, appraise, foldTerms } from './decision';
 import {
   type ValueContext,
+  explainEffects,
+} from './value';
+import {
   type Voice,
   type WagerAppetite,
   type WagerLean,
   delayDiscount,
-  explainEffects,
-} from './value';
+} from './prices';
 
 import { capitalCityOf } from '../sim/cities';
 import { foldLedgerClass, ledgerBagOfCity, ledgerBagOfEmpire } from '../sim/ledgerFold';

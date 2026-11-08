@@ -25,7 +25,8 @@
 
 import { type ValueTerm } from './decision';
 import { round } from './decision';
-import { type ValueContext, meterWeight, meterWords } from './value';
+import type { ValueContext } from './value';
+import { meterWeight, meterWords } from './prices';
 
 import { happinessDemand } from '../sim/meters';
 

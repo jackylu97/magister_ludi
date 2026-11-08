@@ -101,27 +101,29 @@ import {
   raceTerm,
 } from './chain';
 import {
-  type PricedMeter,
   type ValueContext,
-  VOICES,
-  delayDiscount,
-  delayTerm,
   explainBuildingRow,
   explainEffects,
   explainRite,
   explainForecastCount,
-  explainLump,
   explainSoldier,
-  explainUpkeepCost,
-  explainYields,
   expectedBestOrder,
-  bagOfTileYield,
   hexPurchaseRiderTerm,
   holdsHexPurchaseRider,
+} from './value';
+import {
+  type PricedMeter,
+  VOICES,
+  delayDiscount,
+  delayTerm,
+  explainLump,
+  explainUpkeepCost,
+  explainYields,
+  bagOfTileYield,
   newResourceTerms,
   yieldDelta,
   yieldWeight,
-} from './value';
+} from './prices';
 
 import { BUILDING_IDS, type BuildingId, buildingDef, isWonder } from '../sim/buildingData';
 import {
@@ -2550,8 +2552,8 @@ function want(
  *
  * A copy rather than a mutation, for the context's own stated lifetime rule — and
  * taken **once per plan** rather than per row, because the memos in `value.ts`
- * are keyed on the context object and a fresh one per rite would price the whole
- * empire's books five times a town.
+ * and `prices.ts` are keyed on the context object and a fresh one per rite would
+ * price the whole empire's books five times a town.
  */
 function townScoped(ctx: ValueContext): ValueContext {
   return { ...ctx, cities: 1 };

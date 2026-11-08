@@ -90,25 +90,27 @@ import {
   BUILDING_ROW_FOLDED,
   BUILDING_ROW_SILENT,
   type ValueContext,
-  delayDiscount,
-  delayTerm,
   explainBuildingRow,
   explainCounted,
   explainEffects,
-  explainYields,
-  explainLump,
   explainProjectRow,
-  faithPrice,
   hasFoldReadEngine,
-  meterWeight,
   scoreEffects,
-  sciencePrice,
   siteRefusal,
   townsAdmitting,
-  voiceWeight,
   workedHexesAdmitting,
-  yieldWeight,
 } from '../../src/ai/value';
+import {
+  delayDiscount,
+  delayTerm,
+  explainYields,
+  explainLump,
+  faithPrice,
+  meterWeight,
+  sciencePrice,
+  voiceWeight,
+  yieldWeight,
+} from '../../src/ai/prices';
 import { levyReading } from '../../src/ai/campaign';
 import type { Want } from '../../src/ai/wants';
 import aiJson from '../../data/ai.json';

@@ -19,7 +19,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { AI } from '../../src/ai/bot';
-import { VOICES, ageBand, yieldWeight } from '../../src/ai/value';
+import { VOICES, ageBand, yieldWeight } from '../../src/ai/prices';
 import { driveBots } from '../../src/ai/driver';
 import { withAiTuning } from '../../src/ai/aiConfig';
 import { type Standing, foldStanding, standingOf } from '../../scripts/gridObjective';

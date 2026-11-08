@@ -15,7 +15,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { nextBotDecision, scoreCard, valueContext } from '../../../src/ai/bot';
-import { explainEffects, scoreEffects, valueOfYields } from '../../../src/ai/value';
+import { explainEffects, scoreEffects } from '../../../src/ai/value';
+import { valueOfYields } from '../../../src/ai/prices';
 import { BUILDING_IDS, buildingDef, grantsABead } from '../../../src/sim/buildingData';
 import { explainCardImpact, foldCardImpact } from '../../../src/sim/cardImpact';
 import {

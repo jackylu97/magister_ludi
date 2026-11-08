@@ -94,7 +94,8 @@ import {
   foldTerms,
   nest,
 } from './decision';
-import { type ValueContext, explainCountStep, voiceWeight } from './value';
+import { type ValueContext, explainCountStep } from './value';
+import { voiceWeight } from './prices';
 
 import { buildingCityStat, foldBuildingCityStat } from '../sim/buildingEffects';
 import { controlledResources, hasResource, lentCopyPercent, resourceCopies } from '../sim/cities';

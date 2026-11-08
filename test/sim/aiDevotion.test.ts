@@ -29,18 +29,20 @@ import { nextBotCommand, valueContext } from '../../src/ai/bot';
 import { type ValueTerm } from '../../src/ai/decision';
 import {
   type ValueContext,
-  delayDiscount,
   explainCommission,
   explainCountStep,
   explainCounted,
   explainEffects,
+  scoreEffects,
+} from '../../src/ai/value';
+import {
+  delayDiscount,
   explainLump,
   hammerPrice,
   meterWeight,
-  scoreEffects,
   valueOfYields,
   voiceWeight,
-} from '../../src/ai/value';
+} from '../../src/ai/prices';
 import aiJson from '../../data/ai.json';
 import boundsJson from '../../data/ai.bounds.json';
 

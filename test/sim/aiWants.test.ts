@@ -49,17 +49,19 @@ import {
   explainBuildingRow,
   explainCardEffects,
   explainEffects,
+  hasFoldReadEngine,
+} from '../../src/ai/value';
+import {
   explainYields,
   hammerPrice,
   hammerTerm,
-  hasFoldReadEngine,
   meterWeight,
   bagOfTileYield,
   newResourceTerms,
   realmResources,
   voiceWeight,
   yieldWeight,
-} from '../../src/ai/value';
+} from '../../src/ai/prices';
 import { caravanRefusal, explainCaravan } from '../../src/ai/routes';
 import { buildImprovementPlan } from '../../src/ai/plan';
 import { purchaseError, routePrice } from '../../src/sim/purchase';
@@ -1842,8 +1844,8 @@ describe('batch 8 — the hexes a town would buy', () => {
       }
     }
     // `aiConfig.ts` *declares* the two numbers, which is the tuning surface's
-    // job; `value.ts` is the only module that reads them.
-    expect(naming).toEqual(['aiConfig.ts', 'value.ts']);
+    // job; `prices.ts` (`newResourceTerms`) is the only module that reads them.
+    expect(naming).toEqual(['aiConfig.ts', 'prices.ts']);
   });
 });
 

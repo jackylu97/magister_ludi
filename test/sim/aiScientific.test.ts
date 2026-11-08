@@ -28,9 +28,6 @@ import { foldTerms } from '../../src/ai/decision';
 import { reachableTechs } from '../../src/ai/plan';
 import {
   type ValueContext,
-  bagOfTileYield,
-  buildTurns,
-  delayDiscount,
   explainBuildingRow,
   explainCardEffects,
   explainCharter,
@@ -38,16 +35,21 @@ import {
   explainCommission,
   explainCounted,
   explainEffects,
-  explainLump,
   explainTechTraits,
   explainTechWorks,
-  explainYields,
-  lumpOfPoints,
   scoreEffects,
   techCostFor,
+} from '../../src/ai/value';
+import {
+  bagOfTileYield,
+  buildTurns,
+  delayDiscount,
+  explainLump,
+  explainYields,
+  lumpOfPoints,
   valueOfYields,
   voiceWeight,
-} from '../../src/ai/value';
+} from '../../src/ai/prices';
 import aiJson from '../../data/ai.json';
 
 import { buildingDef, isWonder } from '../../src/sim/buildingData';

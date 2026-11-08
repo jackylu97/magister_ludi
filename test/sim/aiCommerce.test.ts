@@ -36,21 +36,23 @@ import { type ValueTerm, appraise, foldTerms } from '../../src/ai/decision';
 import { counterTerms } from '../../src/ai/diplomacy';
 import {
   type ValueContext,
-  costOfUpkeep,
   deckMargin,
   explainCommission,
   explainCountStep,
   explainCounted,
-  explainLump,
   foodCarriedTerm,
   hasFoldReadEngine,
   hexPurchaseRiderTerm,
+  scoreEffects,
+} from '../../src/ai/value';
+import {
+  costOfUpkeep,
+  explainLump,
   meterWeight,
   routeSlotTerm,
-  scoreEffects,
   valueOfYields,
   voiceWeight,
-} from '../../src/ai/value';
+} from '../../src/ai/prices';
 import { explainRoutePay } from '../../src/ai/routes';
 import { type Want, purseOf } from '../../src/ai/wants';
 import aiJson from '../../data/ai.json';

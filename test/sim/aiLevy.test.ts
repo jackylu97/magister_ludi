@@ -27,7 +27,8 @@ import { type BotDecision, botSitting, nextBotDecision, valueContext } from '../
 import { withAiTuning } from '../../src/ai/aiConfig';
 import { foldTerms } from '../../src/ai/decision';
 import { driveBots } from '../../src/ai/driver';
-import { bestLevyRite, explainCitizenLevy, explainLump, explainRite, levyOutlook, scoreEffects } from '../../src/ai/value';
+import { bestLevyRite, explainCitizenLevy, explainRite, levyOutlook, scoreEffects } from '../../src/ai/value';
+import { explainLump } from '../../src/ai/prices';
 import aiJson from '../../data/ai.json';
 
 import { applyCommand } from '../../src/sim/commands';

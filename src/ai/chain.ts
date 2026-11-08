@@ -101,7 +101,7 @@
  *
  * **Two folds still read what a chain owes in hammers, and both survive the
  * ruling**, because neither is a *charge*: they are derivatives of the delay.
- * `hammerPrice` (`value.ts`) asks what one more hammer a turn takes off the
+ * `hammerPrice` (`prices.ts`) asks what one more hammer a turn takes off the
  * copies a town still owes — the wait, differentiated, which is precisely the
  * quantity this batch says the stones are; and `chainCompression` asks what a
  * purse delivering one copy takes off the copies behind it. A charge would double
@@ -206,23 +206,25 @@ import { renewalFoldFor } from './plan';
 import { caravanRefusal, explainCaravan } from './routes';
 import {
   type ValueContext,
-  ageBand,
-  buildTurns,
-  delayDiscount,
-  delayTerm,
   explainBuildingRow,
   explainEffects,
-  explainMeterCall,
   explainProjectRow,
   explainSoldier,
   explainTechEffects,
   explainTechTraits,
   explainTechWorks,
-  explainYields,
   techCostFor,
+} from './value';
+import {
+  ageBand,
+  buildTurns,
+  delayDiscount,
+  delayTerm,
+  explainMeterCall,
+  explainYields,
   wagerAppetiteTerm,
   yieldDelta,
-} from './value';
+} from './prices';
 // **The town folds** (batch X1d) — the standing and hypothetical folds of every
 // town, shared with the build arm and both banks. A leaf, so the chain may stand
 // on it: `wants.ts` stands on this file.

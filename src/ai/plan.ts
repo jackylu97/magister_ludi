@@ -76,15 +76,17 @@ import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './dec
 import { type TileContextField, tileContextField } from './ground';
 import {
   type ValueContext,
+  techCostFor,
+  claimedHexWorth,
+} from './value';
+import {
   type YieldBag,
   delayTerm,
   explainLump,
   explainYields,
   hammerTerm,
   newResourceTerms,
-  techCostFor,
-  claimedHexWorth,
-} from './value';
+} from './prices';
 
 import {
   assignableTiles,

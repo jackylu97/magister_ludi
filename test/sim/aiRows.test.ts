@@ -15,7 +15,7 @@ import { describe, expect, it } from 'vitest';
 import { AI, PERSONA_IDS, aiConfigFor, withAiTuning } from '../../src/ai/aiConfig';
 import { valueContext } from '../../src/ai/bot';
 import { driveBots } from '../../src/ai/driver';
-import { ageBand } from '../../src/ai/value';
+import { ageBand } from '../../src/ai/prices';
 import { type Game } from '../../src/sim/game';
 import type { GameConfig, Player } from '../../src/sim/state';
 import { playerById } from '../../src/sim/state';

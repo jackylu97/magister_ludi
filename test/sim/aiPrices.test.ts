@@ -19,14 +19,16 @@ import {
   explainCitizenLevy,
   explainCounted,
   explainEffects,
-  explainLump,
   explainRite,
-  meterWeight,
   scoreEffects,
   townsAdmitting,
+} from '../../src/ai/value';
+import {
+  explainLump,
+  meterWeight,
   valueOfYields,
   voiceWeight,
-} from '../../src/ai/value';
+} from '../../src/ai/prices';
 import aiJson from '../../data/ai.json';
 
 import { BUILDING_IDS, isWonder } from '../../src/sim/buildingData';

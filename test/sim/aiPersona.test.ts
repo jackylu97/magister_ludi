@@ -44,7 +44,7 @@ import {
 } from '../../src/ai/aiConfig';
 import { foldTerms } from '../../src/ai/decision';
 import { driveBots } from '../../src/ai/driver';
-import { ageBand } from '../../src/ai/value';
+import { ageBand } from '../../src/ai/prices';
 import { buildImprovementPlan } from '../../src/ai/plan';
 import { type Game, dispatch, snapshotState } from '../../src/sim/game';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';

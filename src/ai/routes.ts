@@ -62,12 +62,14 @@
 import { type Appraisal, type ValueTerm, appraise, nest } from './decision';
 import {
   type ValueContext,
+  foodCarriedTerm,
+} from './value';
+import {
   type YieldBag,
   explainYields,
-  foodCarriedTerm,
   meterWeight,
   meterWords,
-} from './value';
+} from './prices';
 
 import { BUILDING_IDS, buildingDef } from '../sim/buildingData';
 import { cityResources, controlledResources } from '../sim/cities';
@@ -143,7 +145,7 @@ export interface RouteOutlook {
    * no longer built at all — the route is bought (`buyRoute`) and the wagon is
    * minted in the origin's gates on the turn the coin leaves — so a slot that
    * opens is a slot an empire with the price in hand can fill this turn. The
-   * field stays because `routeSlotTerm` (`value.ts`) discounts a market's
+   * field stays because `routeSlotTerm` (`prices.ts`) discounts a market's
    * route by it, and "nothing to wait for" is an honest number to discount by;
    * the day a route takes a turn to arrive, this is where that lands.
    */

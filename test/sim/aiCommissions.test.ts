@@ -30,9 +30,9 @@ import {
   explainCommission,
   explainCounted,
   explainEffects,
-  explainLump,
   scoreEffects,
 } from '../../src/ai/value';
+import { explainLump } from '../../src/ai/prices';
 import aiJson from '../../data/ai.json';
 
 import { foundCityAt } from '../../src/sim/cities';

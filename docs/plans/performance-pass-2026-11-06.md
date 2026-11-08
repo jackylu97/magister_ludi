@@ -411,3 +411,16 @@ The reachable-hex wash's leftovers are gone: 83 lines.
 - `BuildingId` now lists `viziersHall`, a live row it was missing. The type check needed nothing else.
 
 Checks at the gate: type check clean, 11,093 core tests passed, build clean. Both pins match at all six turns. `test/sim/aiDigest.slow.test.ts` passes on both boards.
+
+### S1
+
+The bot's prices moved from `value.ts` to the new leaf `src/ai/prices.ts` (1,101 lines). `value.ts` went from 13,425 lines to 12,387.
+
+- 42 declarations moved with their docblocks and memos: `VOICES`, `Voice`, `YieldBag`, the wager's lean, the prices (`delayDiscount`, `voiceWeight`, `hammerPrice`, `sciencePrice`, `faithPrice` and the rest), and `ratesOf`.
+- `prices.ts` imports only the `ValueContext` type from `value.ts`. Each importer imports the prices from `prices.ts` directly; `value.ts` does not re-export them.
+- Two checks proved the move exact: the agent's script, and an independent one that compares each top-level statement's code and docblock. All 446 statements of the old file are in the two new files, with none changed and none new.
+- Registers updated: the `src/ai` file list in `aiBot.test.ts`, the readers of `newLuxuryBonus` in `aiWants.test.ts`, the banned imports in `spectatePage.test.ts`, and a new `['prices.ts', 'readCity']` row in `readings.test.ts` for `townProduction`.
+- Where the audit was wrong: `weightWords` must be exported, because `value.ts` calls it, and the three spans hold 1,065 lines, not 1,112.
+- Four moved docblocks still say "below" or "above" about code that stayed in `value.ts` (`prices.ts` lines 295, 456, 705 and 1086). Batch K2 fixes them.
+
+Checks at the gate, with U4's files in place: type check clean, 11,093 core tests passed, build clean. Both pins match at all six turns. `test/sim/aiDigest.slow.test.ts` passes on both boards.

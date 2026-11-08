@@ -27,21 +27,23 @@ import { nextBotDecision, scoreCard, valueContext } from '../../src/ai/bot';
 import { type ValueTerm } from '../../src/ai/decision';
 import {
   type ValueContext,
-  bagOfTileYield,
-  delayDiscount,
   explainActFor,
   explainBuildingRow,
   explainCardEffects,
   explainCommission,
   explainCounted,
   explainEffects,
-  explainLump,
-  lumpOfPoints,
   onDraftWorth,
   scoreEffects,
+} from '../../src/ai/value';
+import {
+  bagOfTileYield,
+  delayDiscount,
+  explainLump,
+  lumpOfPoints,
   valueOfYields,
   voiceWeight,
-} from '../../src/ai/value';
+} from '../../src/ai/prices';
 import { draftPlan, expectedBestOrder } from '../../src/ai/wants';
 import aiJson from '../../data/ai.json';
 import boundsJson from '../../data/ai.bounds.json';

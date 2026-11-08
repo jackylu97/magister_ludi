@@ -32,16 +32,18 @@ import { valueContext } from '../../src/ai/bot';
 import { withAiTuning } from '../../src/ai/aiConfig';
 import {
   type ValueContext,
-  buildTurns,
-  delayDiscount,
   explainBuildingRow,
   explainCommission,
   explainCounted,
+  scoreEffects,
+} from '../../src/ai/value';
+import {
+  buildTurns,
+  delayDiscount,
   explainLump,
   meterWeight,
-  scoreEffects,
   valueOfYields,
-} from '../../src/ai/value';
+} from '../../src/ai/prices';
 import aiJson from '../../data/ai.json';
 
 import { BUILDING_IDS, buildingDef, isPublicWork } from '../../src/sim/buildingData';

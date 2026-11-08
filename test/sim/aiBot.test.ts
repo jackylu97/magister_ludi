@@ -53,7 +53,8 @@ import { foundReligion, religionBeliefPool } from '../../src/sim/religion';
 import { workForFamily } from '../../src/sim/improvementData';
 import { explainEmpireGold } from '../../src/sim/empireGold';
 import { foldEmpireRates } from '../../src/sim/yields/empire';
-import { explainBuildingRow, meterWeight, yieldWeight } from '../../src/ai/value';
+import { explainBuildingRow } from '../../src/ai/value';
+import { meterWeight, yieldWeight } from '../../src/ai/prices';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { happinessDemand } from '../../src/sim/meters';
 import { worthPerCoin } from '../../src/ai/wants';
@@ -1290,7 +1291,7 @@ describe('the bot module', () => {
     // per unit of the shortfall. It is a module rather than an arm of `bot.ts`
     // for `citizen.ts`' reason exactly: **three** files fold it, and two of them
     // already stand on one another (`bot.ts` sends the command, `wants.ts` puts
-    // the stock in the book, `value.ts` holds the two levers the lean is spent
+    // the stock in the book, `prices.ts` holds the two levers the lean is spent
     // through), so a reading all three ask can live in none of them.
     //
     // Seventeen with L2a's `leader.ts` and **sixteen again since L6a**: a figure
@@ -1311,6 +1312,13 @@ describe('the bot module', () => {
     // findings 2 and 8): `harnessMemory.ts` lists those two memories as one
     // value, so the worker's copy of the game can be handed both and hand them
     // back. A third memory beside the state joins that list.
+    //
+    // Twenty since batch S1 (2026-11-07): `prices.ts` holds the bot's prices,
+    // what one point of each voice, a hammer, a beaker, a point of faith, a
+    // meter point and a turn of delay are worth to one seat. It is a leaf that
+    // imports only the `ValueContext` type from `value.ts`, so `value.ts` and
+    // the other bot files can all import it. Before it the list held nineteen
+    // files, one more than the count above says.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
       'bot.ts',
@@ -1324,6 +1332,7 @@ describe('the bot module', () => {
       'ground.ts',
       'harnessMemory.ts',
       'plan.ts',
+      'prices.ts',
       'routes.ts',
       'stepper.ts',
       'townFolds.ts',

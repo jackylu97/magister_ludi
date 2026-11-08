@@ -782,6 +782,8 @@ describe('nobody rebuilds the town’s list', () => {
       ['topBar.ts', 'readEmpire'],
       ['cardImpact.ts', 'readCity'],
       ['value.ts', 'readCity'],
+      // `townProduction` moved from `value.ts` to `prices.ts` in batch S1.
+      ['prices.ts', 'readCity'],
       ['bot.ts', 'readCity'],
     ] as const) {
       const text = read(file);

@@ -25,7 +25,7 @@
  */
 
 import { AI } from '../src/ai/aiConfig';
-import { VOICES, type Voice, ageBand, yieldWeight } from '../src/ai/value';
+import { VOICES, type Voice, ageBand, yieldWeight } from '../src/ai/prices';
 import {
   foldCity,
 } from '../src/sim/yields/town';

@@ -78,7 +78,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { AI, type PersonaOverride, clearSeatTuning, setAiTuning } from '../src/ai/aiConfig';
-import { VOICES, type Voice } from '../src/ai/value';
+import { VOICES, type Voice } from '../src/ai/prices';
 import { driveBots } from '../src/ai/driver';
 import { type Game, createGame } from '../src/sim/game';
 // **The judge is its own module** — see its docblock. It is imported here and by
