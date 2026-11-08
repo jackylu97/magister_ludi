@@ -400,8 +400,16 @@ describe('the schema says so', () => {
   });
 
   it('says in the changelog what a v110 log does now', () => {
-    const source = simSource('state.ts');
-    const entry = source.slice(source.indexOf(' * v111 ('), source.indexOf('export const SCHEMA_VERSION'));
+    // Batch S3 moved entries v79 to v221 out of `state.ts` and into the changelog
+    // doc, so the entry is read there. The slice is the v111 entry alone.
+    const source = Object.values(
+      import.meta.glob('../../docs/history/schema-changelog.md', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      }) as Record<string, string>,
+    )[0]!;
+    const entry = source.slice(source.indexOf('\nv111 ('), source.indexOf('\nv112 ('));
     expect(entry).toContain('v111 (batch S2');
     // The template every entry keeps: the user's own words, and what a log from
     // the version before does about it.

@@ -11,7 +11,7 @@ markup, or that a live plan reads as its spec, stays there — not here.
 
 | file | what it was | where it landed |
 |---|---|---|
-| `schema-changelog.md` | every bump from Milestone 3 to v78 | was a 1443-line docblock in `src/sim/state.ts`; the current entries stay there |
+| `schema-changelog.md` | every bump from Milestone 3 to v221 | was the docblock on `SCHEMA_VERSION` in `src/sim/state.ts` (batches H4 and S3); the recent entries stay there |
 | `card-shapes.md` | the deck-as-identity pass, 2026-09-04 | built, schema 61 |
 | `cards-pass-2.md` | the row-by-row read of the built pools, 2026-09-05 | built, schema 68 |
 | `age-three.md` | the Æra III fork — tier-18 governments, Pool III, the world age | built, schema 70 |

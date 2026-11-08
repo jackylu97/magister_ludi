@@ -366,3 +366,13 @@ Checks at the gate: type check clean, 11,093 core tests passed, build clean. Bot
 - No local became unused, so nothing else was removed. No namespace import is walked by key, so none needed a keep.
 
 Checks at the gate: type check clean, 11,093 core tests passed, build clean. Both pins match at all six turns. `test/sim/aiDigest.slow.test.ts` passes on both boards.
+
+### S3
+
+The schema history v79 to v221 moved from the `SCHEMA_VERSION` docblock in `state.ts` to the end of `docs/history/schema-changelog.md`, word for word. Entries v222 and later stay, as the docblock asks. `state.ts` went from 8,611 lines to 5,246, and its first type now starts at line 239.
+
+- A script (`~/code/webciv-review/s3-schema/check-move.py`) proved the move exact: every non-comment line of `state.ts` is unchanged, and the lines added to the changelog equal the moved span without its comment prefix.
+- The kept entries now point at the changelog for v119. The changelog's title and intro, and its row in `docs/history/README.md`, name the new range.
+- One test read the v111 entry from `state.ts`: `test/sim/sunkProgress.test.ts`. The audit missed it. It now reads the changelog, and takes the v111 entry alone, so it checks a narrower text than before.
+
+Checks at the gate: type check clean, 11,093 core tests passed, build clean. No code changed, so the pins were not run.
