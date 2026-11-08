@@ -7867,97 +7867,40 @@ export function cardMeterRule(
 }
 
 /**
- * What this empire's law adds to or takes off **one town's** writ price —
- * Marcher Lords' border forts, The Chartered Metropolis' surcharge.
+ * **What this empire's law says about one town's writ price**: the `cityCost` rows
+ * whose scope admits the town, read in one walk. Marcher Lords' border forts, The
+ * Chartered Metropolis' surcharge, The Proconsuls' free conquests, The Universal
+ * Monarchy's doubled foundings and The Highland Clans' discount all land here.
+ * `explainAuthority` (`meters.ts`) asks it once for each town, and
+ * `withCityCostRows` applies the answer to the ladder's price.
  *
- * `cardMeterRule`'s companion and deliberately not an arm of it: that one folds
- * a constant of the *realm* (what a harbour costs, how many citizens are free)
- * and has no town to ask a scope of, and this one is asked once per town by the
- * meter's own sweep. Splitting them is what keeps the empire-wide fold exactly
- * as fast as it was — a scope read per rule per city, on six rules that can
- * never carry one, is a walk nobody needed.
+ * It is not an arm of `cardMeterRule`. That function folds a constant of the
+ * realm (what a harbour costs, how many citizens are free) and has no town to ask
+ * a scope of. Keeping the two apart keeps the empire-wide fold free of a scope
+ * read on rules that can never carry one.
  *
- * **Deltas only, and they sum.** A `value` would be a card *setting* what a town
- * costs, which is a sentence no row in the design writes and one that two cards
- * could not both mean; `capturedCityCost`'s replace-then-shift ladder exists
- * because that rule really does have a constant behind it, and a scoped price
- * does not. Two cards that both reach one town stack, which has always been what
- * two deltas on one figure do here.
+ * What the answer holds (`CityCostRows`):
+ * - `value`: the price a row sets, or `null` when none does. If two rows set a
+ *   price, the lower one applies, because it is the price each of them promises
+ *   at least.
+ * - `percent`: the percentages, summed.
+ * - `discount`: the deltas that print no minimum (`CardMeterRuleEffect.noMinimum`,
+ *   batch DT19c), summed.
+ * - `delta`: the other deltas, summed. Two cards that reach one town stack.
  *
- * The floor is the **caller's** (`cityAuthorityCost`'s reading in `meters.ts`),
- * for the reason the captured price's floor sits there: this fold is generic and
- * the arithmetic that keeps a discount from becoming a gift is a fact about the
- * meter it lands on. A `noMinimum` row is not in this sum, because the caller
- * floors it differently. See `cardCityCostDiscount`.
+ * The floors are the caller's (`withCityCostRows`), because they are facts about
+ * the meter the rows land on and not about the rows. `cardProspectCityCost` reads
+ * the same rows for a town not yet founded through the same walk. Only the scope
+ * test differs.
  */
-export function cardCityCostDelta(state: GameState, city: City): number {
-  let delta = 0;
-  for (const { effect } of effectsOfKind(state, city.ownerId, 'meterRule')) {
-    if (effect.rule !== 'cityCost' || effect.delta === undefined) continue;
-    if (effect.noMinimum === true) continue;
-    if (!cityScopeAdmits(state, city, effect.scope)) continue;
-    delta += effect.delta;
-  }
-  return delta;
-}
-
-/**
- * **The `cityCost` deltas that print no minimum**, summed for one town (batch DT19c,
- * The Highland Clans and The Delian League). The caller applies them before the other
- * deltas, down to a price of nothing. See `CardMeterRuleEffect.noMinimum`.
- */
-export function cardCityCostDiscount(state: GameState, city: City): number {
-  let discount = 0;
-  for (const { effect } of effectsOfKind(state, city.ownerId, 'meterRule')) {
-    if (effect.rule !== 'cityCost' || effect.noMinimum !== true || effect.delta === undefined) continue;
-    if (!cityScopeAdmits(state, city, effect.scope)) continue;
-    discount += effect.delta;
-  }
-  return discount;
-}
-
-/**
- * **The price this empire's law sets for one town**, or `null` when no row
- * sets one (Dominion batch D4): The Proconsuls' garrisoned conquests and The
- * Universal Monarchy's captured towns cost no authority.
- *
- * A `cityCost` row with a `value`, asked of the town's scope. If two rows set a
- * price, the lower one applies: two cards that both make a town cheap cannot
- * both be honoured, and the lower price is the one each of them promises at
- * least. The caller (`explainAuthority` in `meters.ts`) uses the price in place
- * of the ladder, the percentages and the deltas.
- */
-export function cardCityCostValue(state: GameState, city: City): number | null {
-  let value: number | null = null;
-  for (const { effect } of effectsOfKind(state, city.ownerId, 'meterRule')) {
-    if (effect.rule !== 'cityCost' || effect.value === undefined) continue;
-    if (!cityScopeAdmits(state, city, effect.scope)) continue;
-    value = value === null ? effect.value : Math.min(value, effect.value);
-  }
-  return value;
-}
-
-/**
- * **The percentage this empire's law puts on one town's price** (Dominion batch
- * D4): The Universal Monarchy's founded towns cost twice as much (+100). The
- * `cityCost` rows with a `percent` that the town's scope admits, summed. The
- * caller applies it to the ladder's price before the deltas.
- */
-export function cardCityCostPercent(state: GameState, city: City): number {
-  let percent = 0;
-  for (const { effect } of effectsOfKind(state, city.ownerId, 'meterRule')) {
-    if (effect.rule !== 'cityCost' || effect.percent === undefined) continue;
-    if (!cityScopeAdmits(state, city, effect.scope)) continue;
-    percent += effect.percent;
-  }
-  return percent;
+export function cardCityCostRows(state: GameState, city: City): CityCostRows {
+  return walkCityCostRows(state, city.ownerId, (scope) => cityScopeAdmits(state, city, scope));
 }
 
 /**
  * **What the `cityCost` rows say about a town not yet founded** (batch DT1), for
- * the founding preview. It has the four readings `explainAuthority` takes off a
- * real town: `cardCityCostValue`, `cardCityCostPercent`, `cardCityCostDiscount` and
- * `cardCityCostDelta`.
+ * the founding preview. The same walk as `cardCityCostRows`, with a scope test
+ * that a site can answer.
  *
  * A town not yet founded can answer only a few scopes (`prospectScopeAdmits`).
  * A row with any other scope stays out, so a preview may still quote a dearer or
@@ -7970,9 +7913,22 @@ export function cardProspectCityCost(state: GameState, playerId: number, site: T
   // smaller than, or tied with, an older one, and the older town keeps a tie.
   const held = citiesOf(state, playerId).length;
   const wouldBeCapital = held === 0 || (held === 1 && cardBehaviorRule(state, playerId, 'secondCapital'));
+  return walkCityCostRows(state, playerId, (scope) => prospectScopeAdmits(state, scope, wouldBeCapital, site));
+}
+
+/**
+ * The one walk of the `cityCost` rows, for `cardCityCostRows` and
+ * `cardProspectCityCost`. `admits` is the scope test, the only thing the two
+ * callers do differently. The rows are read in the law's order.
+ */
+function walkCityCostRows(
+  state: GameState,
+  playerId: number,
+  admits: (scope: CityScope | undefined) => boolean,
+): CityCostRows {
   const rows: CityCostRows = { value: null, percent: 0, discount: 0, delta: 0 };
   for (const { effect } of effectsOfKind(state, playerId, 'meterRule')) {
-    if (effect.rule !== 'cityCost' || !prospectScopeAdmits(state, effect.scope, wouldBeCapital, site)) continue;
+    if (effect.rule !== 'cityCost' || !admits(effect.scope)) continue;
     if (effect.value !== undefined) {
       rows.value = rows.value === null ? effect.value : Math.min(rows.value, effect.value);
     }
@@ -7985,12 +7941,12 @@ export function cardProspectCityCost(state: GameState, playerId: number, site: T
   return rows;
 }
 
-/** What the `cityCost` rows that reach one town add up to. See `cardProspectCityCost`. */
+/** What the `cityCost` rows that reach one town add up to. See `cardCityCostRows`. */
 export interface CityCostRows {
   /** The price a row sets, the lowest if several do, or `null` if none does. */
   value: number | null;
   percent: number;
-  /** The deltas that print no minimum. See `cardCityCostDiscount`. */
+  /** The deltas that print no minimum. See `CardMeterRuleEffect.noMinimum`. */
   discount: number;
   delta: number;
 }
@@ -11143,15 +11099,25 @@ export function cardLevyAftermaths(
 }
 
 /**
- * **When a levied citizen comes home**, for The Mit'a (Expansionist batch E1).
- * The shortest `returnsAfter` among this empire's live levy rows, in turns, or
- * `null` when no row says it. `levyAt` asks it once, at the levy.
+ * **The shortest whole-turn figure among this empire's live levy rows**, for one
+ * field, or `null` when no row carries it. Each figure is floored to whole turns
+ * and to at least one before the rows are compared.
+ * - `returnsAfter`: when a levied citizen comes home, for The Mit'a (Expansionist
+ *   batch E1). `scheduleReturn` (`levies.ts`) asks it once, at the levy, and the
+ *   bots price the return with it (`src/ai/value.ts`).
+ * - `every`: the empire's shorter wait between levies, for Human Sacrifice (batch
+ *   DT19). `levyStandingWait` (`levies.ts`) compares it with the rule's wait.
  */
-export function cardLevyReturnDelay(state: GameState, playerId: number): number | null {
+export function cardLevyShortestTurns(
+  state: GameState,
+  playerId: number,
+  field: 'returnsAfter' | 'every',
+): number | null {
   let shortest: number | null = null;
   for (const { effect } of effectsOfKind(state, playerId, 'levy')) {
-    if (effect.returnsAfter === undefined) continue;
-    const turns = Math.max(1, Math.floor(effect.returnsAfter));
+    const figure = effect[field];
+    if (figure === undefined) continue;
+    const turns = Math.max(1, Math.floor(figure));
     if (shortest === null || turns < shortest) shortest = turns;
   }
   return shortest;
@@ -11170,21 +11136,6 @@ export function cardLevyNoWait(state: GameState, playerId: number): boolean {
     if (state.turn % every === 0) return true;
   }
   return false;
-}
-
-/**
- * **The empire's shorter waiting period between levies**, for Human Sacrifice
- * (batch DT19): the smallest `every` among its live levy rows, or `null` when no
- * row says one. `waitFor` (`levies.ts`) compares it with the rule's wait.
- */
-export function cardLevyEvery(state: GameState, playerId: number): number | null {
-  let shortest: number | null = null;
-  for (const { effect } of effectsOfKind(state, playerId, 'levy')) {
-    if (effect.every === undefined) continue;
-    const turns = Math.max(1, Math.floor(effect.every));
-    if (shortest === null || turns < shortest) shortest = turns;
-  }
-  return shortest;
 }
 
 /** The shortest a periodic clock can ever be. See `CardPeriodShortenEffect`. */
@@ -12426,16 +12377,13 @@ export function cardSurplusCarrier(
 /**
  * **The strength one upgrade from research adds to this piece** (batch DT14, The
  * Nassau Reforms; S16): the sum of the `upgradeStrength` rows that reach it, each
- * row's `value`. Read in `upgradeUnits` (`tech.ts`), after the upgrade, so a row
- * narrowed by `class` reads the new type, as The Field Refits does.
+ * row's `value`, through `ruleFigures`. Read in `upgradeUnits` (`tech.ts`), after
+ * the upgrade, so a row narrowed by `class` reads the new type, as The Field
+ * Refits does.
  */
 export function cardUpgradeStrength(state: GameState, unit: Unit): number {
   let strength = 0;
-  for (const { effect } of effectsOfKind(state, unit.ownerId, 'rule')) {
-    if (effect.rule !== 'upgradeStrength' || effect.value === undefined) continue;
-    if (effect.class !== undefined && !unitMatches(unit.type, effect.class)) continue;
-    strength += effect.value;
-  }
+  for (const value of ruleFigures(state, unit.ownerId, 'upgradeStrength', 'value', unit.type)) strength += value;
   return strength;
 }
 
@@ -12497,15 +12445,17 @@ export function stampSidesTurned(state: GameState, playerId: number, card: CardI
 
 /**
  * **The figures of the live rows of one rule** (Scientific batch S9): each
- * row's `percent` or `turns`, in walk order, for the rows whose `class` admits
- * the piece when one is handed in. A row with no figure gives none. The four
- * readers below each take one answer from the list.
+ * row's `percent`, `turns`, `credit` or `value`, in walk order, for the rows
+ * whose `class` admits the piece when one is handed in. A row with a `class`
+ * gives nothing when no piece is handed in. A row with no figure gives none.
+ * `cardUpgradeStrength` above and the readers below each take one answer from
+ * the list.
  */
 function ruleFigures(
   state: GameState,
   playerId: number,
   rule: CardFlagRuleId,
-  field: 'percent' | 'turns' | 'credit',
+  field: 'percent' | 'turns' | 'credit' | 'value',
   type?: UnitTypeId,
 ): number[] {
   const figures: number[] = [];
@@ -13130,26 +13080,21 @@ export function cardUnlocksUnit(state: GameState, playerId: number, unit: UnitTy
   return false;
 }
 
-export function cardPantheonSlots(state: GameState, playerId: number): number {
-  let total = 0;
-  for (const { effect } of effectsOfKind(state, playerId, 'pantheonSlots')) {
-    // A row with a pool opens room in the religion's house, not a god's place.
-    if (effect.pool !== undefined) continue;
-    total += effect.amount;
-  }
-  return total;
-}
-
 /**
- * **How many more beliefs of one pool this empire's law lets a religion hold** (batch
- * DT15, The Seven Councils). `poolSlotsFor` (`religion.ts`) adds this to the data's
- * figure, for the empire that founded the religion.
+ * **How many more beliefs this empire's law lets it hold**: the `amount` of the
+ * live `pantheonSlots` rows whose `pool` is the one asked, summed.
+ * - With no `pool`, the rows with no pool: more gods in the pantheon (Stonehenge,
+ *   The Old Gods Remain). `pantheonSlots` (`religion.ts`) adds this to the slots
+ *   the technologies open.
+ * - With a `pool`, the rows that name it: more beliefs of that pool in the
+ *   religion's own house (batch DT15, The Seven Councils). `poolSlotsFor`
+ *   (`religion.ts`) adds this to the data's figure, for the empire that founded
+ *   the religion.
+ *
+ * So a row with a pool opens no god, and a row with no pool opens no follower or
+ * enhancer belief.
  */
-export function cardBeliefPoolSlots(
-  state: GameState,
-  playerId: number,
-  pool: ReligionBeliefPool,
-): number {
+export function cardPantheonSlots(state: GameState, playerId: number, pool?: ReligionBeliefPool): number {
   let total = 0;
   for (const { effect } of effectsOfKind(state, playerId, 'pantheonSlots')) {
     if (effect.pool === pool) total += effect.amount;

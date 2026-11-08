@@ -104,10 +104,7 @@ import {
   cardAmplifierFlat,
   cardAuthority,
   cardBuildingHappiness,
-  cardCityCostDelta,
-  cardCityCostDiscount,
-  cardCityCostPercent,
-  cardCityCostValue,
+  cardCityCostRows,
   cardHappiness,
   cardMeterRule,
   cardRuleIsScoped,
@@ -759,12 +756,7 @@ export function explainAuthority(
     // once, and the deltas apply to the result with the two-sided floor. A
     // discount that prints no minimum (batch DT19c, The Highland Clans) comes
     // first and may reach nothing.
-    line.value = withCityCostRows(line.value, {
-      value: cardCityCostValue(state, city),
-      percent: cardCityCostPercent(state, city),
-      discount: cardCityCostDiscount(state, city),
-      delta: cardCityCostDelta(state, city),
-    });
+    line.value = withCityCostRows(line.value, cardCityCostRows(state, city));
     list.push(line);
   }
 

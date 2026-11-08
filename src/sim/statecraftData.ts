@@ -4266,7 +4266,7 @@ export type MeterRuleId =
    * cost one less"; a row with one reaches the towns it admits. Two cards stack,
    * because two deltas on one constant have always summed here.
    *
-   * **The floor is stated and is two-sided** (`cardCityCostDelta`'s caller): a
+   * **The floor is stated and is two-sided** (`withCityCostRows`, `meters.ts`): a
    * discount never takes a town below one and never charges a town that was
    * already free — `max(min(cost, 1), cost + delta)`. The first half is every
    * card's own printed words ("minimum one"); the second is what keeps a
@@ -8768,7 +8768,7 @@ interface CardMeterRuleEffect {
    * which is a real sentence and the honest reading of an unnamed argument.
    *
    * The ordinary `CityScope`, read by the ordinary evaluator
-   * (`cardCityCostDelta`), so "a town holding an empire building" costs what it
+   * (`cardCityCostRows`), so "a town holding an empire building" costs what it
    * costs by the same reading that pays it. Meaningless on the other six rules
    * and **ignored** there rather than refused: those are constants of the realm
    * — what a harbour town costs, how many citizens are free, whether borders
@@ -9602,10 +9602,11 @@ interface CardPantheonSlotsEffect {
   amount: number;
   /**
    * **Room in the religion's own house instead of the pantheon** (batch DT15, The
-   * Seven Councils). A row with a `pool` opens no god: `cardPantheonSlots` skips it,
-   * and `cardBeliefPoolSlots` adds it to the slots of that pool. `poolSlotsFor`
-   * (`religion.ts`) reads the law of whoever holds the religion's holy city, so a
-   * seat that holds two religions gains the room in each.
+   * Seven Councils). A row with a `pool` opens no god. `cardPantheonSlots` asked
+   * with no pool skips it, and asked with that pool adds it to the pool's slots.
+   * `poolSlotsFor` (`religion.ts`) reads the law of the seat that founded the
+   * religion (batch DT19c), so a seat that founded two religions gains the room in
+   * each.
    */
   pool?: ReligionBeliefPool;
 }

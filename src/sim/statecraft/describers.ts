@@ -1935,45 +1935,7 @@ function describeEffect(
     case 'rulePercent':
       out.push({
         text:
-          // A world rule's reach (The Hunting Grounds, Dominion batch D7) says
-          // how near: "within 10 hexes of your towns".
-          (effect.range === undefined
-            ? // The unit class a cost rule names (The Servian Reforms' military
-              // units, Dominion batch D8) takes the place of "units".
-              effect.rule === 'unitCost' && effect.class !== undefined
-              ? RULE_WORDS[effect.rule](effect.percent).replace(/^units/, filterWords(effect.class))
-              : // The building a cost rule names (The Almanac's Libraries,
-                // batch R1) takes the place of "buildings".
-                effect.rule === 'buildingCost' && effect.building !== undefined
-                ? RULE_WORDS[effect.rule](effect.percent).replace(
-                    /^buildings/,
-                    buildingPluralName(effect.building),
-                  )
-                : // The hexes a price names (The Laurion Leases, batch DT6) take
-                  // the place of "a hex".
-                  effect.rule === 'tilePurchase' && effect.tile !== undefined
-                  ? RULE_WORDS[effect.rule](effect.percent).replace(
-                      /^a hex/,
-                      `${indefinite(tileConditionWords(effect.tile))} ${tileConditionWords(effect.tile)}`,
-                    )
-                  : // The Opera del Duomo's Magnum Opus and The Court of Rudolf
-                    // II's technologies (batch DT8) take the place of the general
-                    // noun.
-                    effect.rule === 'goldContribution' && effect.building !== undefined
-                    ? RULE_WORDS[effect.rule](effect.percent).replace(
-                        /a build/,
-                        buildingAsGiven(effect.building),
-                      )
-                    : effect.rule === 'techPrice'
-                      ? RULE_WORDS[effect.rule](effect.percent).replace(
-                          /^technologies/,
-                          techPriceSubject(effect),
-                        )
-                      : RULE_WORDS[effect.rule](effect.percent)
-            : RULE_WORDS[effect.rule](effect.percent).replace(
-                'near your towns',
-                `within ${effect.range} hexes of your towns`,
-              )) +
+          RULE_WORDS[effect.rule](effect.percent, effect) +
           // A rate that names towns says which, for `cityYields`' reason: an
           // unqualified "of the stored food kept when a city grows" reads as a
           // law of the realm, and Common Table is a law of one congregation.
@@ -5357,6 +5319,9 @@ const TECH_AGE_WORDS: Readonly<Record<TechAge, string>> = {
   4: 'fourth-age',
 };
 
+/** A `rulePercent` row, as `RULE_WORDS` and `techPriceSubject` read it. */
+type RulePercentEffect = Extract<CardEffect, { kind: 'rulePercent' }>;
+
 /**
  * **Which technologies a `techPrice` row reaches, in words** (batch DT8, The Court
  * of Rudolf II). The named chain comes first and the ones outside it are "your
@@ -5364,7 +5329,7 @@ const TECH_AGE_WORDS: Readonly<Record<TechAge, string>> = {
  * for a charter technology would be false, and the row's `note` says none is
  * reached.
  */
-function techPriceSubject(effect: Extract<CardEffect, { kind: 'rulePercent' }>): string {
+function techPriceSubject(effect: RulePercentEffect): string {
   if (effect.techChain !== undefined) {
     const def = techDef(effect.techChain);
     const name = ref('tech', effect.techChain, def.name);
@@ -5867,8 +5832,14 @@ export function tileConditionWords(on: TileCondition): string {
  * `PRESSURE_RULE_WORDS`' bargain one system over, and for its reason exactly:
  * these nine do not take the same sentence, and the one that reads backwards is
  * the one a shared stem would print wrong.
+ *
+ * Each entry builds the whole sentence. It gets the row's percentage, which is
+ * all that most entries need, and the row itself, for the six rules whose row
+ * can name what the rule is about: a unit class, a building, a kind of hex,
+ * some technologies or a reach. The `rulePercent` arm of `describeEffect` adds
+ * only the row's scope.
  */
-const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
+const RULE_WORDS: Record<CardRule, (percent: number, effect: RulePercentEffect) => string> = {
   happinessDemand: (percent) => `${signed(percent)}% happiness demanded per citizen`,
   // The Satraps (Dominion batch D4). Said as the speed, which is what the card
   // promises: "twice as fast" is +100%. The row's scope follows as ", in
@@ -5879,30 +5850,36 @@ const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
   growthCarryover: (percent) => `${signed(percent)}% of the stored food kept when a city grows`,
   // A price, said as the saving. "−25% the price of buying a hex" is a discount
   // written as a negative bonus on a cost; this is the sentence a player acts on.
-  tilePurchase: (percent) =>
-    percent < 0
-      ? `a hex costs ${-percent}% less to buy`
-      : `a hex costs ${percent}% more to buy`,
+  // The hexes a row names (The Laurion Leases, batch DT6) take the place of "a hex".
+  tilePurchase: (percent, { tile }) => {
+    const words = tile === undefined ? undefined : tileConditionWords(tile);
+    const hex = words === undefined ? 'a hex' : `${indefinite(words)} ${words}`;
+    return percent < 0 ? `${hex} costs ${-percent}% less to buy` : `${hex} costs ${percent}% more to buy`;
+  },
   borderCulture: (percent) => `${signed(percent)}% border expansion`,
   settlerCost: (percent) =>
     percent < 0
       ? `settlers cost ${-percent}% less production`
       : `settlers cost ${percent}% more production`,
   // Dominion batch D8, The Servian Reforms. "Units" is the class's word when
-  // the row names none; the `rulePercent` arm puts the class in its place. A
+  // the row names none; a row that names a class says the class instead. A
   // purchase is priced off the cost, so the words say both.
-  unitCost: (percent) =>
-    percent < 0
-      ? `units cost ${-percent}% less to build and to buy`
-      : `units cost ${percent}% more to build and to buy`,
+  unitCost: (percent, { class: only }) => {
+    const units = only === undefined ? 'units' : filterWords(only);
+    return percent < 0
+      ? `${units} cost ${-percent}% less to build and to buy`
+      : `${units} cost ${percent}% more to build and to buy`;
+  },
   // Batch R1, The Almanac. "Buildings" is the word when the row names none;
-  // the `rulePercent` arm puts the named building in its place. Said as
-  // production, as the card says it. The gold price follows, because a
-  // building's gold price is always its production cost converted.
-  buildingCost: (percent) =>
-    percent < 0
-      ? `buildings cost ${-percent}% less production`
-      : `buildings cost ${percent}% more production`,
+  // a row that names a building says its plural instead. Said as production,
+  // as the card says it. The gold price follows, because a building's gold
+  // price is always its production cost converted.
+  buildingCost: (percent, { building }) => {
+    const buildings = building === undefined ? 'buildings' : buildingPluralName(building);
+    return percent < 0
+      ? `${buildings} cost ${-percent}% less production`
+      : `${buildings} cost ${percent}% more production`;
+  },
   growthSurplus: (percent) => `${signed(percent)}% food surplus stored toward growth`,
   // The Burghers (Expansionist batch E10). Said as the speed, as
   // `pacificationRate` is. The row's scope follows as ", in cities of ...".
@@ -5950,20 +5927,22 @@ const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
     percent < 0
       ? `faith you give to a build buys ${-percent}% less production`
       : `faith you give to a build buys ${percent}% more production`,
-  // The Opera del Duomo (batch DT8). A row's building replaces "a build" in the
-  // `rulePercent` arm. A contribution is a rate, so +100 is "twice as much".
-  goldContribution: (percent) =>
-    percent === 100
-      ? 'gold you give to a build buys twice as much production'
+  // The Opera del Duomo (batch DT8). A row's building (the Magnum Opus) takes
+  // the place of "a build". A contribution is a rate, so +100 is "twice as much".
+  goldContribution: (percent, { building }) => {
+    const build = building === undefined ? 'a build' : buildingAsGiven(building);
+    return percent === 100
+      ? `gold you give to ${build} buys twice as much production`
       : percent < 0
-        ? `gold you give to a build buys ${-percent}% less production`
-        : `gold you give to a build buys ${percent}% more production`,
-  // The Court of Rudolf II (batch DT8). `techPriceSubject` replaces "technologies"
-  // in the `rulePercent` arm, for a row that narrows them.
-  techPrice: (percent) =>
+        ? `gold you give to ${build} buys ${-percent}% less production`
+        : `gold you give to ${build} buys ${percent}% more production`;
+  },
+  // The Court of Rudolf II (batch DT8). `techPriceSubject` says which
+  // technologies, and says "technologies" for a row that narrows none.
+  techPrice: (percent, effect) =>
     percent < 0
-      ? `technologies cost you ${-percent}% less research`
-      : `technologies cost you ${percent}% more research`,
+      ? `${techPriceSubject(effect)} cost you ${-percent}% less research`
+      : `${techPriceSubject(effect)} cost you ${percent}% more research`,
   // The Capitulary of Herstal (batch DT8). A price, said as the saving.
   riteCost: (percent) =>
     percent <= -100
@@ -5973,12 +5952,14 @@ const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
         : percent < 0
           ? `rites cost ${-percent}% less faith`
           : `rites cost ${percent}% more faith`,
-  // The Hunting Grounds (Dominion batch D7). The row's reach replaces "near
-  // your towns" in the `rulePercent` arm, so the words say how near.
-  campMuster: (percent) =>
-    percent < 0
-      ? `barbarian camps near your towns raise their units ${-percent}% slower`
-      : `barbarian camps near your towns raise their units ${percent}% faster`,
+  // The Hunting Grounds (Dominion batch D7). A row with a reach says how near:
+  // "within 10 hexes of your towns".
+  campMuster: (percent, { range }) => {
+    const near = range === undefined ? 'near your towns' : `within ${range} hexes of your towns`;
+    return percent < 0
+      ? `barbarian camps ${near} raise their units ${-percent}% slower`
+      : `barbarian camps ${near} raise their units ${percent}% faster`;
+  },
   // The Funeral Oration and The Glorious Dead (Dominion batch D7). Said as what
   // a loss adds, and "nothing" at the whole cut.
   unitLossWeariness: (percent) =>

@@ -135,7 +135,6 @@ import {
   type WindfallOccasionFacts,
   cardActionRule,
   cardAmplifier,
-  cardBeliefPoolSlots,
   cardPantheonSlots,
   cardPeriodicOffers,
   cardPressureRule,
@@ -2751,7 +2750,7 @@ export function poolSlotsFor(
   religion: Religion,
   pool: ReligionBeliefPool,
 ): number {
-  return Math.max(0, poolSlots(pool) + cardBeliefPoolSlots(state, religion.founderId, pool));
+  return Math.max(0, poolSlots(pool) + cardPantheonSlots(state, religion.founderId, pool));
 }
 
 /** How many this religion currently holds. */

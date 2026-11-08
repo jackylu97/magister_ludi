@@ -436,3 +436,20 @@ The scope's reach moved from `value.ts` to the new leaf `src/ai/scopeReach.ts` (
 - Three moved docblocks point the wrong way (`scopeReach.ts` lines 70, 127 and 226). Batch K2 fixes them with the four in `prices.ts`.
 
 Checks at the gate: type check clean, 11,093 core tests passed, build clean. Both pins match at all six turns. `test/sim/aiDigest.slow.test.ts` passes on both boards.
+
+### K1
+
+Six repeats in the sim are merged. 82 lines fewer, and `test/fixtures/cardText.json` is unchanged.
+
+1. **The city-cost rows.** `cardCityCostRows(state, city)` replaces `cardCityCostDelta`, `cardCityCostDiscount`, `cardCityCostValue` and `cardCityCostPercent`, and shares one walk with `cardProspectCityCost`. `explainAuthority` makes one call a town, not four.
+2. **`cardUpgradeStrength`** sums `ruleFigures(…, 'value', unit.type)`.
+3. **The levy readers.** `cardLevyShortestTurns(state, playerId, field)` replaces `cardLevyReturnDelay` and `cardLevyEvery`.
+4. **The god and belief slots.** `cardPantheonSlots(state, playerId, pool?)` replaces `cardBeliefPoolSlots`.
+5. **The `rulePercent` words.** Each `RULE_WORDS` entry takes the effect and builds its whole sentence. There were six patches, not the audit's three.
+   - A probe described 3,306 made-up rows against the code before and after. 42 of them read differently: rows that set `range` on a rule other than `campMuster` and also name the rule's own noun. The old words dropped the noun, though the evaluator reads the noun and ignores `range` on those rules. The new words print it.
+   - No data row and no test row has that shape, so no player sees a change.
+6. **`levyLineError`** asks `citizenFocusError` for its first three refusals, which were the same words in the same order.
+
+The `statecraft.ts` index lost `cardCityCostDelta`, `cardCityCostDiscount`, `cardCityCostPercent`, `cardCityCostValue` and `cardBeliefPoolSlots`, and gained `cardCityCostRows`. A comment in `statecraftData.ts` said that `poolSlotsFor` reads the holder of the holy city. It reads the seat that founded the religion, as DT19c ruled (reading 37), and the comment now says so.
+
+Checks at the gate: type check clean, 11,093 core tests passed, build clean. Both pins match at all six turns. `test/sim/aiDigest.slow.test.ts` passes on both boards.

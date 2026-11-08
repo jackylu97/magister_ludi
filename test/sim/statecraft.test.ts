@@ -102,7 +102,7 @@ import {
   cardUnitStamp as stampOf,
   cardRenownLines,
   cardAuthority,
-  cardCityCostDelta,
+  cardCityCostRows,
   countOf,
   describeBuildingRow,
   describeCard,
@@ -11679,26 +11679,26 @@ describe("D2b — counts and reach", () => {
         .reduce((sum, line) => sum + line.value, 0) + 0;
     const before = priceOf(town);
     expect(before).toBeGreaterThan(1);
-    expect(cardCityCostDelta(g.state, town)).toBe(0);
+    expect(cardCityCostRows(g.state, town).delta).toBe(0);
     slot(g.state, 0, "theLearnedChancery" as never);
-    expect(cardCityCostDelta(g.state, town)).toBe(-1);
+    expect(cardCityCostRows(g.state, town).delta).toBe(-1);
     expect(priceOf(town)).toBe(before - 1);
     // **A town the scope refuses is untouched**, which is the whole point of the
     // rule carrying a scope rather than being a constant of the realm.
-    expect(cardCityCostDelta(g.state, capital)).toBe(0);
+    expect(cardCityCostRows(g.state, capital).delta).toBe(0);
     // **And the floor is two-sided.** The capital costs nothing; a discount on
     // it must not become a charge, which a naïve floor at one would have made it.
     expect(priceOf(capital)).toBe(0);
     capital.buildings.push("bourse" as never);
     bumpRevision(g.state);
-    expect(cardCityCostDelta(g.state, capital)).toBe(-1);
+    expect(cardCityCostRows(g.state, capital).delta).toBe(-1);
     expect(priceOf(capital)).toBe(0);
     // A town already at one stays at one rather than going free: two deltas sum,
     // exactly as two deltas on any other constant here do.
     slot(g.state, 0, "theCivicCommonwealth" as never);
     town.buildings.push("monument" as never, "amphitheater" as never, "garden" as never);
     bumpRevision(g.state);
-    expect(cardCityCostDelta(g.state, town)).toBe(-2);
+    expect(cardCityCostRows(g.state, town).delta).toBe(-2);
     expect(priceOf(town)).toBe(Math.max(1, before - 2));
     expect(stripRefs(describeCard("theLearnedChancery" as never)[0]!.text)).toBe(
       "the authority a city holding an empire building costs falls by 1",

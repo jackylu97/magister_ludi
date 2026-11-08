@@ -56,6 +56,7 @@ import {
   settleProductionWindfall,
   bestMeleeFor,
   bestOfClassFor,
+  citizenFocusError,
   spawnTileFor,
 } from './cities';
 import { buildingDef, isBuildingId, isWonder } from './buildingData';
@@ -64,15 +65,14 @@ import { type RiteId, riteDef } from './religionData';
 import { RULES } from './rulesData';
 import { totalSpecialists } from './specialists';
 import { bumpEconomy } from './slate';
-import { type City, type GameState, citiesOf, hasEndedTurn, playerById } from './state';
+import { type City, type GameState, citiesOf, playerById } from './state';
 import {
   type LevyGrant,
   anyCardDef,
   cardLevyAftermaths,
-  cardLevyEvery,
   cardLevyGrants,
   cardLevyNoWait,
-  cardLevyReturnDelay,
+  cardLevyShortestTurns,
 } from './statecraft/evaluator';
 import { type CardId, type LevyUse, LEVY_USES } from './statecraftData';
 import { type Tile, getTileAt, tileHex, wrappedDistance } from './map';
@@ -194,7 +194,7 @@ export function levyGrantFor(
  */
 export function levyStandingWait(state: GameState, playerId: number): number {
   const rule = Math.max(1, Math.floor(LEVY.everyTurns));
-  const law = cardLevyEvery(state, playerId);
+  const law = cardLevyShortestTurns(state, playerId, 'every');
   return law === null ? rule : Math.min(rule, law);
 }
 
@@ -375,6 +375,11 @@ export function levyError(
  * `levyError` before any rite is named: why this menu line cannot be chosen, or
  * `null` when it can. The city panel greys a line with it, so the sentence on the
  * line is the sentence the reducer would give.
+ *
+ * Who may ask comes first, and it is `citizenFocusError`'s question (`cities.ts`):
+ * the town is someone else's, the seat has ended its turn, or the town is a
+ * puppet. A levy points one of the town's people, so it uses the same three
+ * refusals in the same words.
  */
 function levyLineError(
   state: GameState,
@@ -382,9 +387,8 @@ function levyLineError(
   city: City,
   use: LevyUse,
 ): string | null {
-  if (city.ownerId !== playerId) return `${city.name} does not belong to you`;
-  if (hasEndedTurn(state, playerId)) return `You have ended turn ${state.turn}`;
-  if (city.puppet === true) return `${city.name} is a puppet and chooses for itself`;
+  const asker = citizenFocusError(state, playerId, city);
+  if (asker !== null) return asker;
   const grant = levyGrantFor(state, playerId, city, use);
   if (grant === undefined) return `None of your cards lets ${city.name} levy for that`;
   return grantError(state, city, grant);
@@ -570,7 +574,7 @@ function recordLevy(state: GameState, city: City): void {
  * gives its new owner nothing (`returnLeviedCitizens`).
  */
 function scheduleReturn(state: GameState, city: City): void {
-  const delay = cardLevyReturnDelay(state, city.ownerId);
+  const delay = cardLevyShortestTurns(state, city.ownerId, 'returnsAfter');
   if (delay === null) return;
   const record = city.levy ?? { turn: state.turn };
   record.returns = [...(record.returns ?? []), { turn: state.turn + delay, ownerId: city.ownerId }];

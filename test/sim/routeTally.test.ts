@@ -40,7 +40,7 @@ import {
   playerById,
 } from '../../src/sim/state';
 import {
-  cardCityCostDelta,
+  cardCityCostRows,
   cardRenownLines,
   cityScopeAdmits,
   describeCard,
@@ -183,23 +183,23 @@ describe('the four cards the tally opened', () => {
 
     // A town that sends a cart out is easier to hold; a town that sends none is
     // untouched by the discount and is the one the card's second sentence taxes.
-    expect(cardCityCostDelta(g.state, home)).toBe(-1);
-    expect(cardCityCostDelta(g.state, quiet)).toBe(0);
+    expect(cardCityCostRows(g.state, home).delta).toBe(-1);
+    expect(cardCityCostRows(g.state, quiet).delta).toBe(0);
 
     slot(g.state, 0, 'theCharteredMetropolis');
-    expect(cardCityCostDelta(g.state, home)).toBe(-1);
+    expect(cardCityCostRows(g.state, home).delta).toBe(-1);
     send(g.state, home, second);
     send(g.state, home, quiet);
     bumpRevision(g.state);
     // Two cards reaching one town stack, which is what two deltas on one figure
     // have always done here: four charged and one taken off.
-    expect(cardCityCostDelta(g.state, home)).toBe(3);
+    expect(cardCityCostRows(g.state, home).delta).toBe(3);
     // And the surcharge stops the turn the town drops below three. There is no
     // stored "qualified" flag — only the tally, asked again.
     const doomed = g.state.units.find((u) => u.trade?.from === home.id)!;
     delete doomed.trade;
     bumpRevision(g.state);
-    expect(cardCityCostDelta(g.state, home)).toBe(-1);
+    expect(cardCityCostRows(g.state, home).delta).toBe(-1);
   });
 
   it('The Cosmopolitan Court — renown counted per town, and capped per town', () => {

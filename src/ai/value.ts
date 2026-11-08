@@ -310,7 +310,7 @@ import {
   unitMatches,
   anyCardDef,
   cardLevyAftermaths,
-  cardLevyReturnDelay,
+  cardLevyShortestTurns,
   explainFollowerLinesAbroad,
   heldReligions,
   buildingPassesTest,
@@ -9099,7 +9099,7 @@ function explainLevyCards(
     );
   }
   // The Mit'a: the citizen comes home after so many turns.
-  const back = cardLevyReturnDelay(state, ctx.playerId);
+  const back = cardLevyShortestTurns(state, ctx.playerId, 'returnsAfter');
   if (back !== null) {
     terms.push(
       nest(

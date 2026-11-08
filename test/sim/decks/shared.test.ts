@@ -50,7 +50,7 @@ import {
 } from '../../../src/sim/state';
 import {
   type CombatSituation,
-  cardCityCostDelta,
+  cardCityCostRows,
   cardCityStat,
   cardCombatLines,
   explainCardCityYields,
@@ -306,11 +306,11 @@ describe('Convert It or Tax It: the owner’s religion, asked of a captured town
     taken.followers = {};
     bumpRevision(g.state);
     expect(paid()).toEqual([5, 3]);
-    expect(cardCityCostDelta(g.state, taken)).toBe(0);
+    expect(cardCityCostRows(g.state, taken).delta).toBe(0);
     taken.followers = { [religion]: taken.population };
     bumpRevision(g.state);
     expect(paid()).toEqual([0, 0]);
-    expect(cardCityCostDelta(g.state, taken)).toBe(-1);
+    expect(cardCityCostRows(g.state, taken).delta).toBe(-1);
     // A town the empire founded itself is not captured and is paid nothing.
     expect(explainCardCityYields(g.state, home).filter((l) => l.card === 'convertItOrTaxIt')).toEqual([]);
   });
