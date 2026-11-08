@@ -204,6 +204,39 @@ An audit first. For each `data/*.json` file, compare the keys in its rows with t
 
 Remove only clear leftovers: no reader, no doc table, no sync test. List the rest for the user.
 
+**Not unused: tutorial version 2.** `src/ui/guide*.ts` is batch T1 of `docs/plans/tutorial.md`, which the user approved on 2026-10-15. Batches T5 and T6 wire it into the game after the interface rework. It stays.
+
+## Stage 3: encapsulation
+
+The spec is `docs/audit/s3-encapsulation-2026-11-07.md`, a read-only audit. Its line numbers are those of `7e76fee0`. Its main findings:
+
+- One Doctrine's code follows the layers: the data row, the type member, one reader in the evaluator, the seam that asks, the words, the bot's price and the screens. 46 of the 98 Doctrines are data only.
+- A Doctrine that adds a new fact about the board (a turn stamp, a second capital) touches 8 to 13 files, because every reader of the fact must know it. A move does not change that.
+- What a move can fix is the spread inside a file. The bot's prices, which the whole of `value.ts` and 8 other bot files use, sit under a heading that names only the first 130 of their 1,040 lines. The council code sits in two places of `draft.ts`, 1,300 lines apart.
+- The repeats are small: 14 of them, listed in section 3 of the audit.
+
+Rules for every batch: the rules for this pass, plus the audit's own. Code moves unchanged. A name the old file now imports gains `export`. New `src/ai` files stay flat, because 21 register globs read `src/ai/*.ts`.
+
+Batches, in this order:
+
+| Batch | What | Audit section | After |
+|---|---|---|---|
+| **S1** | The bot's prices leave `value.ts` for the leaf `src/ai/prices.ts` (about 1,110 lines) | 2, S1 | |
+| **S3** | The schema history v79 to v221 leaves `state.ts` for `docs/history/schema-changelog.md` (about 3,365 lines of comment) | 2, S3 | may run beside S1 |
+| **S2** | The scope's reach leaves `value.ts` for the leaf `src/ai/scopeReach.ts` (about 680 lines) | 2, S2 | S1 |
+| **K1** | The sim merges: items 1 to 4, 8 and 9 (the city-cost rows, `cardUpgradeStrength`, `cardLevyEvery`, `cardBeliefPoolSlots`, the `rulePercent` words, `levyLineError`) | 3 | S2 |
+| **K2** | The bot merges: items 5 to 7 and 10 to 14 (the Doctrine ghost seat, the lists a second reading leaves out, The Apostolic Camera's row test, one switch for the rule prices, the detached docblock, `foldOf`, the walks that ask "does this test name X", the context memos) | 3 | K1 |
+| **S6** | Headings in the evaluator's tail, in the smallest form: headings only, no function moves | 2, S6 | K2 |
+
+A merge in K1 or K2 must leave `test/fixtures/cardText.json` and the pins unchanged. If a merge would move either, leave it out and report it.
+
+Waiting for the user's answer:
+
+- **S4:** the council leaves `draft.ts` for a fourth file, `src/sim/statecraft/council.ts`. It changes the `CLAUDE.md` line "the card system in three".
+- **S0 and S5:** a new load-order test over `src/ai/*.ts`, then the bot's council and offer decisions leave `bot.ts` for `src/ai/council.ts`. That adds one function-level cycle between `council.ts` and `bot.ts`.
+
+Not doing, from the audit's section 4: splitting `evaluator.ts` into files, splitting `value.ts` by deck, a bot subfolder, splitting `scoreEffect`, and splitting `describers.ts`.
+
 ## Built
 
 ### P1
