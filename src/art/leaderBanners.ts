@@ -2,7 +2,7 @@ import leaders from '../../data/leaders.json';
 import type { MarkPath } from './resourceMarks';
 
 export type BannerLeaderId = keyof typeof leaders.leaders;
-export interface LeaderBannerDesign {
+interface LeaderBannerDesign {
   motif: string;
   basis: 'Attested emblem' | 'Period motif' | 'Biographical motif' | 'Dynastic color';
   note: string;

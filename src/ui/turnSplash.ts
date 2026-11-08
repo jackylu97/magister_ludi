@@ -36,7 +36,7 @@ import { isCharterTech, techDef } from '../sim/techData';
 export const CHARTER_SPLASH_EYEBROW = 'your charter technology';
 
 /** What the technology splash says, read off one resolution's research report. */
-export interface TechSplashReading {
+interface TechSplashReading {
   /** The technology's name. */
   name: string;
   /**
@@ -73,7 +73,7 @@ const SEAT_MS = 1100;
 /** Matches the `splash-out` animation in style.css. */
 const FADE_MS = 200;
 
-export interface TurnSplash {
+interface TurnSplash {
   /** "Your turn, <name>" — a new turn has begun and it is yours to play. */
   announceTurn(playerName: string): void;
   /** "Now seated: <name>" — the harness has moved you to another seat. */

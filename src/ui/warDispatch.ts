@@ -12,7 +12,7 @@ export interface WarDispatchNotice {
 }
 
 /** Duplicate delivery is coalesced; distinct attackers each keep their dispatch. */
-export function warDispatchKey(notice: WarDispatchNotice): string {
+function warDispatchKey(notice: WarDispatchNotice): string {
   return `${notice.onId}:${notice.byId}:${notice.turn}`;
 }
 

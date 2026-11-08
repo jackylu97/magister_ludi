@@ -109,7 +109,7 @@ export function paintedLightCoords(x: number, z: number): { x: number; y: number
   return { x: x * TEXEL_PER_X, y: z / ROW_PITCH };
 }
 
-export interface PaintedLightField {
+interface PaintedLightField {
   texture: DataTexture;
   size: Vector2;
   /** Per-cell state, so the in-between texels can be re-meaned in place. */
@@ -185,7 +185,7 @@ export function createPaintedLightField(width: number, height: number): PaintedL
   };
 }
 
-export type PaintedFogUniforms = Record<string, IUniform>;
+type PaintedFogUniforms = Record<string, IUniform>;
 
 /** Every knob the three registers read, as uniforms a slider can move live. */
 export function paintedFogUniforms(light: PaintedLightField): PaintedFogUniforms {
@@ -213,7 +213,7 @@ export function paintedFogUniforms(light: PaintedLightField): PaintedFogUniforms
  * `test/render/paintedFog.test.ts` compiles the real painterly source to make
  * sure it is never silently missing.
  */
-export const PAINTERLY_SUN = {
+const PAINTERLY_SUN = {
   find: 'facePaint=mix(facePaint,sunPaint,light);',
   replace: 'facePaint=mix(facePaint,sunPaint,light*paintedSun);',
 };

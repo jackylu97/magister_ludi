@@ -289,7 +289,7 @@ export function censusRanking(state: GameState, stat: CensusStat): CensusRow[] {
  * not a deed, so the earliest censuses of a game (nobody has founded a faith,
  * nobody has taken a draft) name no leader and pay nobody.
  */
-export function censusLeaderOf(rows: readonly CensusRow[]): number | null {
+function censusLeaderOf(rows: readonly CensusRow[]): number | null {
   const head = rows[0];
   if (!head) return null;
   return head.figure > 0 ? head.playerId : null;
@@ -328,7 +328,7 @@ export function drawCensusStat(state: GameState, previous: CensusStat | null): C
  * clerks are not somebody the empire could have called, and a taker drawn from
  * the age would make an early census a list of three names.
  */
-export function drawCensusTaker(state: GameState): string {
+function drawCensusTaker(state: GameState): string {
   const roster = LIVE_GREAT_PERSON_IDS;
   if (roster.length === 0) return 'The clerks';
   return greatPersonDef(roster[nextInt(state.rng, 0, roster.length)]!).name;
@@ -360,7 +360,7 @@ function lastStat(state: GameState): CensusStat | null {
  * (`triumphsSince`, `runEndOfTurn`). A phase that reported its own would be the
  * sink `triumphs.ts` was written to avoid.
  */
-export interface CensusReport {
+interface CensusReport {
   /** The census taken this resolution, or absent — which is nearly every turn. */
   censusTaken?: CensusRecord;
 }

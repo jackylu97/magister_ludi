@@ -3729,7 +3729,7 @@ export interface PlayerSpec {
  * comparison against a stamp, in the `TimedEffect` tradition — an absolute
  * number, compared, never a counter anything has to tick.
  */
-export interface LegacyRecord {
+interface LegacyRecord {
   id: GreatPersonId;
   /** The empire's era (`highestAge`) when this person was spent. */
   age: number;
@@ -4590,7 +4590,7 @@ export interface Player {
 }
 
 /** One seat's stake on the table. See `Player.wager`. */
-export interface PlayerWager {
+interface PlayerWager {
   /** The age the deal belongs to — a stake never carries over. */
   age: number;
   /** Which of the three dealt cards, 0-2. */
@@ -4598,7 +4598,7 @@ export interface PlayerWager {
 }
 
 /** A wager staked and missed, waiting for G3's deck. See `Player.pendingMalices`. */
-export interface PendingMalice {
+interface PendingMalice {
   /** The age whose judgement wrote it. */
   age: number;
   /** The card that was staked and not kept — `WagerId`, kept as a string here. */
@@ -4674,7 +4674,7 @@ export interface EarnedBead {
  * bead is a first-in-the-world, and the pair `(id, age)` is the key because a
  * feat may be once per game (`age: 0`) or once per age of the world's clock.
  */
-export interface BeadClaim {
+interface BeadClaim {
   id: BeadCardId;
   age: number;
   playerId: number;
@@ -4700,7 +4700,7 @@ export interface BeadClaim {
  * which is `TimedEffect`'s lesson taken a second time: an absolute turn is
  * *compared*, never maintained.
  */
-export interface AgeClose {
+interface AgeClose {
   age: number;
   turn: number;
 }
@@ -4757,14 +4757,14 @@ export interface WagerDeal {
 }
 
 /** One seat's three figures at the deal. See `WagerDeal.opening`. */
-export interface WagerOpening {
+interface WagerOpening {
   playerId: number;
   /** One per dealt card, in `WagerDeal.dealt` order. */
   at: number[];
 }
 
 /** One seat clearing one of the three. See `WagerDeal.claimed`. */
-export interface WagerClaim {
+interface WagerClaim {
   playerId: number;
   /** Which of the three, 0-2. */
   index: number;
@@ -4845,7 +4845,7 @@ export interface CensusRecord {
  * last row *is* what the Abacus prints, so there is no second store and no
  * "current census" field to fall out of step with the list.
  */
-export interface CensusRegister {
+interface CensusRegister {
   nextTurn: number;
   taken: CensusRecord[];
 }
@@ -4879,7 +4879,7 @@ export interface CensusRegister {
  * outcome that depends on iteration order must depend on an order the state
  * itself carries.
  */
-export interface BeadTable {
+interface BeadTable {
   claimed: BeadClaim[];
 }
 
@@ -6104,7 +6104,7 @@ export interface City {
 }
 
 /** See `City.levy`. */
-export interface CityLevyRecord {
+interface CityLevyRecord {
   turn: number;
   after?: Partial<Record<CardId, number>>;
   /**
@@ -6128,7 +6128,7 @@ export interface CityLevyRecord {
  * is "every third such turn" however the unguarded turns are spread out; a turn
  * with a garrison in the town adds nothing to it and takes nothing from it.
  */
-export interface CityUnrest {
+interface CityUnrest {
   /**
    * Pacification needed to end the unrest: `rules.war.unrest.targetPerCitizen`
    * times the town's population at the moment it was taken. Stored rather than
@@ -6408,7 +6408,7 @@ export function shrinkFollowers(
  * seam is the report `realiseItem` already returns, so great people join by
  * reading it rather than by growing a hook inside the completion routine.
  */
-export interface WonderClaim {
+interface WonderClaim {
   building: BuildingId;
   /** The city it stands in, at the moment it was finished. */
   cityId: number;
@@ -6426,7 +6426,7 @@ export interface WonderClaim {
  * because a contested row is contested once per era and the pair `(id, age)` is
  * the key. This is history, and history does not change.
  */
-export interface ContestedTriumph {
+interface ContestedTriumph {
   id: TriumphId;
   /** The empire that got there first. */
   playerId: number;
@@ -6443,7 +6443,7 @@ export interface ContestedTriumph {
  * was first, who was first, and when. This is history, and history does not
  * change — nothing edits a row here and nothing ever deletes one.
  */
-export interface FirstRecord {
+interface FirstRecord {
   /** Which ledger. See `FirstKind`. */
   kind: FirstKind;
   /**
@@ -6469,7 +6469,7 @@ export interface FirstRecord {
  * completed the Opus's technology first while holding the card, the turn it
  * did, and the absolute turn the door opens again. See `GameState.closedBook`.
  */
-export interface ClosedBookRecord {
+interface ClosedBookRecord {
   playerId: number;
   /** `state.turn` when the technology was completed. */
   turn: number;
@@ -7908,7 +7908,7 @@ export function createCity(
 }
 
 /** A town with nobody in the trades yet. The one place the zeros are written. */
-export function newCitySpecialists(): Record<SpecialistFamily, number> {
+function newCitySpecialists(): Record<SpecialistFamily, number> {
   const counts = {} as Record<SpecialistFamily, number>;
   for (const family of SPECIALIST_FAMILIES) counts[family] = 0;
   return counts;

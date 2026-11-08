@@ -101,7 +101,7 @@ const RENOWN_PER_SPECIALIST = RULES.cities.guilds.renownPerSpecialist;
  * the hover wants to see both, because between them they are the whole answer to
  * "where did this turn's renown come from".
  */
-export interface RenownLine {
+interface RenownLine {
   /** "Library at Ur", "Wonder · The Oracle", "Triumph · The Third Hearth". */
   source: string;
   /** Which family this fed. The bias in `Player.renownByFamily`. */
@@ -378,7 +378,7 @@ export function ladderSteps(state: GameState, player: Player): number {
 }
 
 /** What a fill would do, without doing it. `planDraft`'s twin one bucket over. */
-export interface RenownPlan {
+interface RenownPlan {
   /** Renown the pool gives up: the threshold exactly. */
   cost: number;
   /** Renown left over, which stays in the pool toward the recruitment after. */

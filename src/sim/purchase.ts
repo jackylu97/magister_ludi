@@ -178,7 +178,7 @@ export type { PurchaseCurrency } from './state';
  * A fourth class is a member of `UnitPurchaseBucket` and one more clause here;
  * there is deliberately nowhere else the question is asked.
  */
-export function unitPurchaseBucket(
+function unitPurchaseBucket(
   type: UnitTypeId,
   currency: PurchaseCurrency,
 ): UnitPurchaseBucket {
@@ -223,7 +223,7 @@ export type PurchasableItem =
  * subject reaches `explainPurchaseCost` and `purchaseError` from the reducer's
  * own handler and from the want book, and never off a client's JSON.
  */
-export interface PurchasableRoute {
+interface PurchasableRoute {
   kind: 'route';
 }
 
@@ -250,7 +250,7 @@ export interface PurchasePrice {
 }
 
 /** The display name of a thing for sale. */
-export function purchasableName(item: PurchaseSubject): string {
+function purchasableName(item: PurchaseSubject): string {
   if (item.kind === 'route') return 'A trade route';
   return item.kind === 'unit' ? unitDef(item.id).name : buildingDef(item.id).name;
 }
@@ -1048,7 +1048,7 @@ export function purchaseError(
 }
 
 /** The purchase gate's two answers about one purchase. */
-export interface PurchaseGateAnswer {
+interface PurchaseGateAnswer {
   /** `purchaseError`'s sentence, or `null` when the gate takes the purchase. */
   refusal: string | null;
   /**

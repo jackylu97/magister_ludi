@@ -1070,7 +1070,7 @@ function goldReserveFor(state: GameState, player: Player): number {
 }
 
 /** The books' half of a debt charge: the gold income, and what a turn of debt loses. */
-export interface DebtReading {
+interface DebtReading {
   /** Gold a turn (`netGoldPerTurn`). */
   net: number;
   /** The share of science and culture a turn of debt takes (`rules.upkeep.debtPercent`). */

@@ -137,7 +137,7 @@ function techHoverTitle(techName: string | null, blocked: string | null): string
   return `Requires ${techName}\n${blocked}`;
 }
 
-export interface UnitPanelOptions {
+interface UnitPanelOptions {
   /** The element the panel lives in. Emptied and rebuilt on every render. */
   container: HTMLElement;
   getGame: () => Game;

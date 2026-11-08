@@ -155,7 +155,7 @@ export interface MapPlate {
   inert?: boolean;
 }
 
-export interface MapPlatesOptions {
+interface MapPlatesOptions {
   /** An element covering the viewport, above the canvas. The banners' sheet. */
   container: HTMLElement;
   renderer: MapView;
@@ -185,7 +185,7 @@ export interface MapPlates {
   dispose(): void;
 }
 
-export interface TilePriceTagsOptions {
+interface TilePriceTagsOptions {
   /** An element covering the viewport, above the canvas. The banners' sheet. */
   container: HTMLElement;
   renderer: MapView;

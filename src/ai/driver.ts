@@ -70,7 +70,7 @@ import { hasPeaceOffer } from '../sim/wars';
  */
 export type BotReporter = (command: Command, result: CommandResult) => void;
 
-export interface DriveOptions {
+interface DriveOptions {
   /**
    * Called after **every** command the driver puts to the reducer, accepted or
    * refused, in order. The bot worker records these so the page can put the
@@ -115,7 +115,7 @@ export interface AudienceOptions extends DriveOptions {
 }
 
 /** What one seat's turn cost, for tests and for a future profiler. */
-export interface SeatDriveReport {
+interface SeatDriveReport {
   playerId: number;
   /** Commands accepted, the seat's own `endTurn` included. */
   accepted: number;

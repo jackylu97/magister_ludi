@@ -1127,7 +1127,7 @@ const MITRE_SETBACK = 1 / Math.sqrt(3);
  * exactly `borderWidth` of primary against `borderWidth` of primary and the
  * second colour never reaches the seam.
  */
-export interface BandSpec {
+interface BandSpec {
   /** The strip's thickness, in world units. */
   width: number;
   /** How far the strip's outer lip sits in from the face's own edge. */

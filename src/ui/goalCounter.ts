@@ -24,7 +24,7 @@ export interface GoalCounter {
 }
 
 /** The largest count drawn as pips. Anything above it is drawn as a bar. */
-export const MAX_PIPS = 6;
+const MAX_PIPS = 6;
 
 /** "1 / 2", in whole numbers. The figure the face, the chip and the popover share. */
 export function counterFigure(counter: GoalCounter): string {

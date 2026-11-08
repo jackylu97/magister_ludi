@@ -254,7 +254,7 @@ export function claimDiscoveryAt(state: GameState, unit: Unit, tile: Tile): Disc
  * owns the table that turns one into `⚙` (`ui/figures.ts`). The simulation says
  * *which voice and how much*; saying it in emoji is presentation.
  */
-export interface DiscoveryPayoff {
+interface DiscoveryPayoff {
   id: DiscoveryId;
   name: string;
   flavor: string;
@@ -289,7 +289,7 @@ function receivingCity(state: GameState, playerId: number, offer: DiscoveryOffer
  * What one option would do for this player, right now. Pure: nothing is rolled
  * and nothing is written.
  */
-export function explainDiscoveryOption(
+function explainDiscoveryOption(
   state: GameState,
   playerId: number,
   offer: DiscoveryOffer,
@@ -355,7 +355,7 @@ export function explainDiscoveryOffer(
 // --- settlement -------------------------------------------------------------
 
 /** What a claimed boon actually did, for the line the interface announces it in. */
-export interface DiscoverySettlement {
+interface DiscoverySettlement {
   id: DiscoveryId;
   name: string;
   yield: CityYieldKey | null;

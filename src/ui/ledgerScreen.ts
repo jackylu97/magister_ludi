@@ -397,7 +397,7 @@ export interface LedgerSample {
  */
 export const LEDGER_HISTORY_CAP = 400;
 
-export interface LedgerHistory {
+interface LedgerHistory {
   push(sample: LedgerSample): void;
   samples(): readonly LedgerSample[];
   /** A new game. The curve belongs to the game that drew it. */
@@ -527,7 +527,7 @@ export const LEDGER_CURVE_FOOTNOTE =
   'The curve is kept only while this page is open. Reload or load a save and it starts again from that turn.';
 
 /** Band 2 before there is anything to draw. */
-export const LEDGER_CURVE_EMPTY = 'End a turn and the curve starts here.';
+const LEDGER_CURVE_EMPTY = 'End a turn and the curve starts here.';
 
 // --- what the deck has produced --------------------------------------------
 
@@ -554,7 +554,7 @@ export const LEDGER_BAND3_FOOTNOTE =
 export const DECK_TALLY_LABEL = 'all cards, so far';
 
 /** One row of band 3: the card, its name, and its lifetime figure as a stamp. */
-export interface DeckTallyRow {
+interface DeckTallyRow {
   card: CardId;
   name: string;
   reading: StampReading;
@@ -593,7 +593,7 @@ export interface LedgerScreen {
   dispose(): void;
 }
 
-export interface LedgerScreenOptions {
+interface LedgerScreenOptions {
   overlay: HTMLElement;
   body: HTMLElement;
   closeButton: HTMLElement;

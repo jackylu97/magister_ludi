@@ -87,7 +87,7 @@ export const LEADER_ROW_WORD: Record<LeaderRowKind, string> = {
 };
 
 /** The sentence under the whole card, for a table sitting under no figure. */
-export const NO_LEADER_NOTE =
+const NO_LEADER_NOTE =
   'Every seat plays the plain rules, and the world is drawn without anybody pulling on it.';
 
 /**
@@ -99,7 +99,7 @@ export const NO_LEADER_NOTE =
  * as tall as the mockup's. The faces below it are then what they should be — a
  * name, a canton and the four lines the figure is.
  */
-export const LEADER_LEDE =
+const LEADER_LEDE =
   'A figure holds its two rules from its first turn and keeps them for the game, and it ' +
   'alone may raise the one soldier and the one building printed under them — each when its ' +
   'own learning arrives. The world is drawn around the seat it is given.';
@@ -176,7 +176,7 @@ export interface LeaderAbilityFace {
 }
 
 /** One figure, as the picker prints it. */
-export interface LeaderFace {
+interface LeaderFace {
   id: LeaderId;
   name: string;
   /** The two inks this figure's seat will wear — field, then device. */
@@ -208,7 +208,7 @@ export interface LeaderFace {
 }
 
 /** One printed line of a face: an ability, or one of the two rows. */
-export interface LeaderFaceLine {
+interface LeaderFaceLine {
   kind: 'ability' | LeaderRowKind;
   /** The eyebrow: the ability's name, or the kind of row. */
   label: string;
@@ -315,7 +315,7 @@ export function leaderIdentity(face: LeaderFace): string {
 }
 
 /** The towns a figure founds first, as the detail card lists them. */
-export const LEADER_CITIES_SHOWN = 4;
+const LEADER_CITIES_SHOWN = 4;
 
 /** The first towns off the figure's own list, in its own order. */
 export function leaderFirstCities(id: LeaderId): string[] {
@@ -433,7 +433,7 @@ export interface LeaderSelect {
   render(): void;
 }
 
-export interface LeaderSelectOptions {
+interface LeaderSelectOptions {
   /** The roster's own card, built once and repainted on every pick. */
   container: HTMLElement;
   /**

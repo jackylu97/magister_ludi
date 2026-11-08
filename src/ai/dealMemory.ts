@@ -70,7 +70,7 @@ interface RefusalRecord {
 }
 
 /** A pending refusal, read off the register **before** the decline is dispatched. */
-export interface PendingRefusal {
+interface PendingRefusal {
   record: RefusalRecord;
 }
 
@@ -83,7 +83,7 @@ export interface PendingRefusal {
  * papers it knows how to write, and the board has to move before a third is
  * worth the ink.
  */
-export interface RefusalReading {
+interface RefusalReading {
   /** The turn this exact paper was sent back, or `null`. */
   refusedTurn: number | null;
   /** The turn a paper of the same substance **carrying coin** was sent back, or `null`. */

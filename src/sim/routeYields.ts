@@ -815,7 +815,7 @@ export function foldRouteYield(lines: readonly RouteYieldLine[]): {
 /**
  * One line of The Return Leg's copy: a route line, with the card that pays it.
  */
-export interface ReturnLegLine extends RouteYieldLine {
+interface ReturnLegLine extends RouteYieldLine {
   card: CardId;
 }
 

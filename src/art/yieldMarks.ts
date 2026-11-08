@@ -113,7 +113,7 @@ export const YIELD_MARK_STROKE = 2.75;
 export const YIELD_MARK_SCALE = 0.88;
 
 /** One yield voice's drawing, plus where it came from. */
-export interface YieldMark {
+interface YieldMark {
   /** What the mark is a picture of. The row `CREDITS.md` prints. */
   note: string;
   /** The upstream icon: set, name and licence. */

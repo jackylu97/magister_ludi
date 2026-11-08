@@ -62,7 +62,7 @@ import {
 } from '../sim/religionData';
 
 /** One god's place on the wheel. */
-export interface WheelHouse {
+interface WheelHouse {
   id: BeliefId;
   axis: BeliefAxis;
   /** Its place in the ring, clockwise from twelve o'clock. */
@@ -77,7 +77,7 @@ export interface WheelHouse {
 }
 
 /** One run of adjacent houses sharing an axis. */
-export interface WheelSector {
+interface WheelSector {
   axis: BeliefAxis;
   /** How many houses it spans. */
   houses: number;
@@ -86,7 +86,7 @@ export interface WheelSector {
   midAngle: number;
 }
 
-export interface WheelLayout {
+interface WheelLayout {
   houses: WheelHouse[];
   sectors: WheelSector[];
 }
@@ -237,7 +237,7 @@ export function housePath(
  * figure in it never touches a glyph, and the glyph rides the middle of the
  * band. Changing the look of the wheel is changing these four.
  */
-export const WHEEL = { centre: 50, outer: 46, inner: 29, hub: 21 } as const;
+const WHEEL = { centre: 50, outer: 46, inner: 29, hub: 21 } as const;
 
 /** An SVG element, with a class. `element`'s twin one namespace over. */
 function svgNode<K extends keyof SVGElementTagNameMap>(
@@ -260,7 +260,7 @@ function svgNode<K extends keyof SVGElementTagNameMap>(
  * DOM. Handed in, the drawing has no opinion about what a belief *is*, which is
  * what lets a gallery lay out four of them with invented held sets.
  */
-export interface PantheonWheelOptions {
+interface PantheonWheelOptions {
   layout: WheelLayout;
   /** Which gods this seat has consecrated. Everything else is drawn outlined. */
   held: ReadonlySet<BeliefId>;

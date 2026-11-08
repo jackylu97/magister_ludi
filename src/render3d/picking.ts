@@ -83,7 +83,7 @@ import {
   worldToCell,
 } from './layout';
 
-export interface PickResult {
+interface PickResult {
   tile: Tile;
   /** Canonical column, wrapped into `[0, map.width)`. Same as `tile.col`. */
   col: number;

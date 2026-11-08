@@ -21,7 +21,7 @@
  */
 
 /** The three screens, in the order a new game walks them. */
-export type LandingStep = 'title' | 'world' | 'civ';
+type LandingStep = 'title' | 'world' | 'civ';
 
 /** In order. The register of what a step may be. */
 export const LANDING_STEPS: readonly LandingStep[] = ['title', 'world', 'civ'];
@@ -76,7 +76,7 @@ export function summaryStrip(reading: {
 }
 
 /** What a key on the title screen asks for. */
-export type LandingKeyAction = 'continue' | 'new' | 'load' | 'book';
+type LandingKeyAction = 'continue' | 'new' | 'load' | 'book';
 
 /**
  * **The title screen's four keys**, and the whole of the mapping.
@@ -135,7 +135,7 @@ export interface LandingFlow {
   dispose(): void;
 }
 
-export interface LandingFlowOptions {
+interface LandingFlowOptions {
   /** `#landing` itself: `data-step` on it is the whole of the screen state. */
   root: HTMLElement;
   /** Raised after every change, including the first. */

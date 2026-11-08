@@ -38,7 +38,7 @@ export const TRAIT_GLOW_COLOR = VIEW3D.units.traitGlow.color;
  * Cabinet's sliders can turn it live through `setTraitGlowTuning` without
  * writing into the loaded look.
  */
-export interface TraitGlowTuning {
+interface TraitGlowTuning {
   /** How long the whole glow lasts, in milliseconds. Zero or less is no glow. */
   durationMs: number;
   /** How far toward gilt the outline goes at the top of the glow, 0 to 1. */

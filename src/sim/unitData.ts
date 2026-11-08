@@ -250,7 +250,7 @@ export type ModelClass =
  * row here at all — and the augur's row is what keeps gold away from it without
  * gold having to know what an augur is.
  */
-export interface UnitPurchaseSpec {
+interface UnitPurchaseSpec {
   currency: 'faith' | 'gold';
   /**
    * The base price, before escalation. `UnitDef.cost`'s twin in a bank.
@@ -330,7 +330,7 @@ export interface UnitPurchaseSpec {
  * a fallback — an order of knights with no knights to measure against is not a
  * cheap order, it is not an order at all.
  */
-export interface UnitMirrorSpec {
+interface UnitMirrorSpec {
   /**
    * The line it shadows, by silhouette. `bestMeleeFor`'s reading of
    * `ModelClass`, which is the roster's own word for a line that closes — the
@@ -361,7 +361,7 @@ export interface UnitMirrorSpec {
  * runtime cycle `test/mapgen/moduleCycles.test.ts` exists to catch. There is
  * nothing a hull's line needs to say that a model class cannot.
  */
-export interface UnitCombatLine {
+interface UnitCombatLine {
   /** Plain words, printed on the forecast card as written. */
   label: string;
   /** Strength points. Signed: the fragile hull takes points away. */
@@ -900,11 +900,11 @@ export interface UnitDef {
   glyph: string;
 }
 
-export interface UnitData {
+interface UnitData {
   units: Record<UnitTypeId, UnitDef>;
 }
 
-export const UNIT_DATA: UnitData = unitsJson as UnitData;
+const UNIT_DATA: UnitData = unitsJson as UnitData;
 
 export const UNIT_TYPE_IDS = Object.keys(UNIT_DATA.units) as UnitTypeId[];
 
@@ -1133,7 +1133,7 @@ export interface UnitStamp {
 }
 
 /** The shape either reading needs: a type, and whatever was stamped on it. */
-export interface StampedUnit {
+interface StampedUnit {
   type: UnitTypeId;
   stamp?: UnitStamp;
 }
@@ -1185,7 +1185,7 @@ export function unitMaxHp(unit: StampedUnit, empireHp = 0): number {
 }
 
 /** A piece whose current health is being read. `StampedUnit` plus the wound. */
-export interface WoundedUnit extends StampedUnit {
+interface WoundedUnit extends StampedUnit {
   hp: number;
 }
 

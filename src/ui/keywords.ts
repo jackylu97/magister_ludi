@@ -82,7 +82,7 @@ import { yieldTextNodes } from './yieldMark';
 export { stripRefs };
 
 /** One piece of a descriptor: a run of words, or a named thing inside it. */
-export type DescriptorPart =
+type DescriptorPart =
   | { kind: 'text'; text: string }
   | { kind: 'keyword'; ref: string; name: string };
 
@@ -191,7 +191,7 @@ function activateKeyword(node: HTMLElement, entryId: string, how: KeywordActivat
 
 // --- drawing ----------------------------------------------------------------
 
-export interface DescriptorOptions {
+interface DescriptorOptions {
   /**
    * Whether a keyword is a *link* as well as bold. Default `true`.
    *

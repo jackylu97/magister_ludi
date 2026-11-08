@@ -180,7 +180,7 @@ export const TILE_YIELD_KEYS: readonly (keyof TileYield)[] = [
   'faith',
 ];
 
-export interface TerrainDef {
+interface TerrainDef {
   name: string;
   water: boolean;
   /**
@@ -232,7 +232,7 @@ export interface TerrainDef {
   glyphColor: string;
 }
 
-export interface FeatureDef {
+interface FeatureDef {
   name: string;
   /** Replaces the terrain's cost when present. See the docblock. */
   moveCostOverride: number | null;
@@ -260,7 +260,7 @@ export interface FeatureDef {
   glyphColor: string;
 }
 
-export interface OverlayDef {
+interface OverlayDef {
   name: string;
   /** Added on top of the terrain/feature cost. See the docblock. */
   moveCostExtra: number;
@@ -280,7 +280,7 @@ export interface UiTheme {
 }
 
 /** Every colour the unit layer draws with. Read only by the tile artist. */
-export interface UnitTheme {
+interface UnitTheme {
   rim: string;
   glyph: string;
   glyphShadow: string;
@@ -295,7 +295,7 @@ export interface UnitTheme {
   hpLow: string;
 }
 
-export interface TerrainData {
+interface TerrainData {
   terrains: Record<TerrainId, TerrainDef>;
   features: Record<FeatureId, FeatureDef>;
   hills: OverlayDef;
@@ -399,7 +399,7 @@ export function moveCost(terrain: TerrainId, feature: FeatureId, hills: boolean)
  * a pure data accessor and must not import the fight, so the two are structurally
  * identical and `planCombat` pushes these straight into its breakdown.
  */
-export interface TerrainDefenseLine {
+interface TerrainDefenseLine {
   /** Display label — the table's own name for the thing. "Hills", "Forest". */
   source: string;
   /** Strength points. Signed, so a mire may one day take them away. */

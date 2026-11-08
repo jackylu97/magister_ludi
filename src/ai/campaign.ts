@@ -197,7 +197,7 @@ export function fieldSoldiersOf(state: GameState, playerId: number): Unit[] {
  * of spearmen at a wall is a stack that trades hit points with a garrison for
  * ever, so a force with nothing that shoots is not a force at all.
  */
-export interface StrikeForce {
+interface StrikeForce {
   /** Every field soldier of this empire, in log order. */
   soldiers: Unit[];
   /** The garrisons the towns are owed, summed — what comes off the top. */

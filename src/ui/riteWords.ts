@@ -68,7 +68,7 @@ export function riteTeacherShortName(id: RiteId): string {
 }
 
 /** A rite's clauses: `describeCard`'s list, keyword marks and all. */
-export function riteClauses(rite: RiteId): CardClause[] {
+function riteClauses(rite: RiteId): CardClause[] {
   return describeCard(rite);
 }
 

@@ -34,7 +34,7 @@
 
 import type { PersonaOverride } from '../ai/aiConfig';
 
-export type KnobKind = 'number' | 'numbers' | 'strings' | 'unreadable';
+type KnobKind = 'number' | 'numbers' | 'strings' | 'unreadable';
 
 /** One leaf of the configuration: where it lives, what shape it is, what it says. */
 export interface Knob {
@@ -46,7 +46,7 @@ export interface Knob {
 }
 
 /** One top-level block of the sheet — `weights`, `military`, `solvency`. */
-export interface KnobBlock {
+interface KnobBlock {
   name: string;
   knobs: Knob[];
 }
@@ -143,7 +143,7 @@ export function blocksOf(knobs: readonly Knob[]): KnobBlock[] {
 }
 
 /** Are two readings of one knob the same number, or the same row of numbers? */
-export function sameValue(
+function sameValue(
   a: number | readonly number[],
   b: number | readonly number[],
 ): boolean {

@@ -651,7 +651,7 @@ function raiseAtCamp(state: GameState, wild: Player, camp: BarbarianCamp, type: 
 }
 
 /** What the muster counts: each camp's guards, and the raiders in the world. */
-export interface CampCensus {
+interface CampCensus {
   /** Guards (the warden included) of each camp, keyed by the camp's tile index. */
   guards: Map<number, number>;
   /** Soldiers of the wild that are not guards: raiders, thieves and escorts. */
@@ -739,7 +739,7 @@ function insideLeash(map: GameMap, leash: Leash, tile: Tile): boolean {
  * Extra limits a caller puts on `nearestTarget` (batch BR1). Both are optional,
  * and a call with neither is the reading the warden has always used.
  */
-export interface TargetLimits {
+interface TargetLimits {
   /** Only targets inside this circle: a guard fights near its camp. */
   leash?: Leash;
   /**
@@ -904,7 +904,7 @@ interface RaidTown {
  * march on. Nothing in the sweep changes either: the land is fixed, the wild
  * never takes a town, and no law changes in the middle of a phase.
  */
-export interface RaidField {
+interface RaidField {
   land: Int32Array;
   towns: RaidTown[];
 }
@@ -915,7 +915,7 @@ export interface RaidField {
  * passive (Wolf-Mother's Pact, `barbariansPassive`) has no town on the list,
  * for the reason `nearestTarget` gives.
  */
-export function raidField(state: GameState): RaidField {
+function raidField(state: GameState): RaidField {
   const seats = realPlayers(state);
   const order = new Map<number, number>();
   seats.forEach((player, place) => {

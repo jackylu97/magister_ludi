@@ -102,7 +102,7 @@ export function routeFigures(fold: {
  * figure is written among. Such a run still goes through the mark printer, so a
  * glyph inside it is drawn rather than typed; it simply takes no colour.
  */
-export interface TradeFigureRun {
+interface TradeFigureRun {
   key: YieldKey | null;
   text: string;
 }
@@ -257,7 +257,7 @@ export function routeReading(state: GameState, unit: Unit): RouteReading | null 
 }
 
 /** One route a city is an end of. See `cityRouteRows`. */
-export interface CityRouteRow {
+interface CityRouteRow {
   /** True when this town is the route's **origin** — where the caravan set out. */
   outbound: boolean;
   /** "← Ur · +3🌾 +2⚙" (pays here) or "→ Nippur" (pays there). */

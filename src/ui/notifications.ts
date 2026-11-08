@@ -136,7 +136,7 @@ export interface NotificationLog {
   readonly cap: number;
 }
 
-export interface NotificationLogOptions {
+interface NotificationLogOptions {
   /** Entries kept per seat. Defaults to `NOTIFICATION_CAP`. */
   cap?: number;
 }
@@ -209,10 +209,10 @@ export function createNotificationLog(options: NotificationLogOptions = {}): Not
  * A union over `DiscoveryKind` rather than a hand-written list, so a fifth layer
  * cannot ship a sighting nobody wrote a sentence for.
  */
-export type SightingKind = DiscoveryKind | 'camp';
+type SightingKind = DiscoveryKind | 'camp';
 
 /** One thing the local seat has just learned is there. */
-export interface Sighting {
+interface Sighting {
   kind: SightingKind;
   col: number;
   row: number;
@@ -232,7 +232,7 @@ const SIGHTING_TEXT: Readonly<Record<SightingKind, string>> = {
   camp: 'A barbarian camp menaces the frontier.',
 };
 
-export interface SightingWatcher {
+interface SightingWatcher {
   /**
    * Everything this seat has learned since the last poll or baseline, in map
    * order then camp order — arrays, never a set's iteration order, because a
@@ -399,10 +399,10 @@ export function createSightingWatcher(): SightingWatcher {
  * standing fact: the towns that came out flying a new banner, as ordinary
  * `converted` news.
  */
-export type ReligionNewsKind = 'founded' | 'converted' | 'enhanced';
+type ReligionNewsKind = 'founded' | 'converted' | 'enhanced';
 
 /** One thing about a faith the local seat has just learned. */
-export interface ReligionNews {
+interface ReligionNews {
   kind: ReligionNewsKind;
   /** The line the interface announces, written here so a test can pin it. */
   text: string;
@@ -410,7 +410,7 @@ export interface ReligionNews {
   cell?: CellRef;
 }
 
-export interface ReligionWatcher {
+interface ReligionWatcher {
   /**
    * Everything about religion this seat has learned since the last poll or
    * baseline, in one fixed order: foundings, enhancements, proclamations, then
@@ -608,7 +608,7 @@ export function charterOpenedText(tech: TechId): string {
  * Arrays in the charter rows' order, never a set's order, so two technologies
  * opened at once are announced in the same order every time.
  */
-export interface CharterWatcher {
+interface CharterWatcher {
   /** The charter technologies this seat drafted since the last poll or baseline. */
   poll(state: GameState, seatId: number): TechId[];
   /** Files everything this seat holds as told, and says nothing. */

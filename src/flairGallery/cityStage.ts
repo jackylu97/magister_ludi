@@ -96,7 +96,7 @@ const SPAN = 1.4;
 const SPIN_RATE = 0.3;
 
 /** One panel's fixture: what the town is, and what to call it underneath. */
-export interface CityPanel {
+interface CityPanel {
   /** "Æra II · capital". */
   caption: string;
   /** The second line: what the state actually says. */

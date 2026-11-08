@@ -253,7 +253,7 @@ import type { GameState } from './state';
  * Which clock a reading is a reading of — see "The two clocks" above. A tenant
  * declares one and gets exactly that lifetime; nothing may be on both.
  */
-export type SlateClock = 'revision' | 'economy';
+type SlateClock = 'revision' | 'economy';
 
 /** One clock's remembered answers, at the stamp they were taken under. */
 interface Half {

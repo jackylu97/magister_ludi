@@ -455,7 +455,7 @@ export function explainEmpireCardYields(state: GameState, playerId: number): Car
  * the additive lines above it, one per voice. `'share'` is what a card takes of the
  * empire's income (`explainEmpireIncomeShares`).
  */
-export type EmpireLineOrigin = 'resource' | 'route' | 'gold' | 'card' | 'stage' | 'share';
+type EmpireLineOrigin = 'resource' | 'route' | 'gold' | 'card' | 'stage' | 'share';
 
 /**
  * One labelled line of what an empire banks **beyond its towns** — the shape

@@ -49,7 +49,7 @@ export const LEDGER_INK: Record<LedgerClass, string> = {
 };
 
 /** What a painted surface reads its colour out of. One rule, per surface. */
-export const LEDGER_INK_PROPERTY = '--ldg-ink';
+const LEDGER_INK_PROPERTY = '--ldg-ink';
 
 /** One class's ink, as the value a rule can be handed. */
 export function ledgerInk(cls: LedgerClass): string {

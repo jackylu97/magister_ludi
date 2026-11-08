@@ -2215,7 +2215,7 @@ export const DEFAULT_PERSONA = 'balanced';
  */
 export const PERSONA_IDS: readonly string[] = Object.keys(PERSONAS);
 
-export function isPersonaId(value: unknown): value is string {
+function isPersonaId(value: unknown): value is string {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(PERSONAS, value);
 }
 
@@ -2387,7 +2387,7 @@ export function setAiTuning(sheet: PersonaOverride | null, options: TuningScope 
 }
 
 /** Which seat a sheet is for. Absent is the page-level dial every seat reads. */
-export interface TuningScope {
+interface TuningScope {
   playerId?: number;
 }
 

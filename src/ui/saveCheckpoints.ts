@@ -72,7 +72,7 @@ export interface CheckpointRecord {
 }
 
 /** Where the one rolling record lives. IndexedDB in a browser, a variable in tests. */
-export interface CheckpointStore {
+interface CheckpointStore {
   read(): Promise<unknown>;
   write(record: CheckpointRecord): Promise<void>;
 }
@@ -263,7 +263,7 @@ function request<T>(req: IDBRequest<T>): Promise<T> {
 }
 
 /** IndexedDB, or `null` where there is none (node, some private windows). */
-export function indexedDbCheckpointStore(): CheckpointStore | null {
+function indexedDbCheckpointStore(): CheckpointStore | null {
   if (typeof indexedDB === 'undefined') return null;
   let db: Promise<IDBDatabase> | null = null;
   const open = (): Promise<IDBDatabase> => {

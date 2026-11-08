@@ -73,7 +73,7 @@ export interface Surface {
   readonly close: () => void;
 }
 
-export interface ScreenRegistry {
+interface ScreenRegistry {
   /**
    * Adds a surface, or replaces the one already registered under its name. A
    * replacement is how a new boot's surfaces take over from the old one's.

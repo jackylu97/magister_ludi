@@ -41,7 +41,7 @@ import type { Command } from '../sim/commands';
  * overwhelming majority of the bot's arithmetic is a sum of contributions and a
  * list of `op: 'add'` would be noise on every line.
  */
-export type TermOp = 'add' | 'sub' | 'mul' | 'div';
+type TermOp = 'add' | 'sub' | 'mul' | 'div';
 
 /**
  * One labelled step of an appraisal's arithmetic.

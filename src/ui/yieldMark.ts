@@ -120,7 +120,7 @@ export function hasYieldGlyph(text: string): boolean {
  * that reads a part today is asking about a *yield*, and a widened `key` would
  * have made each of them silently wrong instead of loudly.
  */
-export type YieldTextPart =
+type YieldTextPart =
   | { kind: 'text'; text: string }
   | { kind: 'mark'; key: YieldKey; lead: boolean }
   | { kind: 'meter'; key: MeterId; lead: boolean };

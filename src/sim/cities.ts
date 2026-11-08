@@ -401,7 +401,7 @@ export function emptyCityYields(): CityYields {
  *     any tile at all, which is why this one arrives at empire scale rather
  *     than out of `openedResource`; see `lentCopiesToPlayer` (`deals.ts`).
  */
-export type ResourceVia = 'improvement' | 'city' | 'lent';
+type ResourceVia = 'improvement' | 'city' | 'lent';
 
 /** A resource in somebody's hands, and the reason it is there. */
 export interface ResourceHolding {
@@ -1637,7 +1637,7 @@ export function nearestOwnedCity(
 }
 
 /** Hex distance from a cell to the nearest city centre, or `Infinity`. */
-export function distanceToNearestCity(state: GameState, hex: Hex): number {
+function distanceToNearestCity(state: GameState, hex: Hex): number {
   let best = Infinity;
   for (const city of state.cities) {
     const distance = wrappedDistance(state.map, hex, tileHex(cityTile(state.map, city)));
@@ -2305,7 +2305,7 @@ export function assignableTiles(state: GameState, city: City): Tile[] {
 }
 
 /** A hex a pin may take from another town of this empire, and that town. */
-export interface TakeableTile {
+interface TakeableTile {
   tile: Tile;
   /** The town that owns the hex now. */
   from: City;
@@ -2559,7 +2559,7 @@ function assignmentPrint(city: City): string {
  * player probably wants and `City.focus` is what they actually said. A town
  * told nothing keeps the settler lean it has had since playtest batch two.
  */
-export function citizenLean(city: City): CitizenLean | null {
+function citizenLean(city: City): CitizenLean | null {
   const chosen = cityFocus(city);
   if (chosen !== 'default') return chosen;
   return growthIsHalted(city) ? 'production' : null;
@@ -3320,7 +3320,7 @@ function pullTargetFor(
  * loops cannot hang the game. Each write goes through `markHex`, the one
  * writer of `Tile.marks`. Returns whether a mark was written.
  */
-export function markOnHex(tile: Tile, mark: HexMarkId): boolean {
+function markOnHex(tile: Tile, mark: HexMarkId): boolean {
   let next: HexMarkId | undefined = mark;
   for (let step = 0; next !== undefined && step < HEX_MARK_IDS.length; step++) {
     const rule: HexMarkRule = RULES.improvements.hexMarks[next];
@@ -3376,7 +3376,7 @@ export interface StarvationReport {
 }
 
 /** One labelled percentage on what a city banks toward growth. */
-export interface GrowthPercentLine {
+interface GrowthPercentLine {
   /** "No fresh water", "Building · Aqueduct", "Happiness" — printed verbatim. */
   source: string;
   percent: number;
@@ -3485,7 +3485,7 @@ export function growthSurplus(
 }
 
 /** One route's food in one town's growth, as `explainFoodCarried` lists it. */
-export interface FoodCarriedLine {
+interface FoodCarriedLine {
   /** "Doctrine · The Grand Canal · to Lagash", printed verbatim. */
   source: string;
   /** Negative in the town that sends it, and positive in the town that gets it. */
@@ -3729,7 +3729,7 @@ export function turnsToFill(remaining: number, perTurn: number): number | null {
  * `yields` may be passed in by a caller that has already computed them, which
  * the turn phase has; the default is the same call it would make.
  */
-export interface BorderGrowth {
+interface BorderGrowth {
   /** Culture the city makes this turn, before the writ touches it. */
   base: number;
   /** Signed whole percent the meters put on the accrual. */
@@ -4234,7 +4234,7 @@ export function explainUnitCost(
  * table over, and this is a function rather than a defaulted parameter because
  * "the roster's price" is a question worth a name.
  */
-export function unitRosterLines(type: UnitTypeId): UnitCostLine[] {
+function unitRosterLines(type: UnitTypeId): UnitCostLine[] {
   const def = unitDef(type);
   const lines = sizedCostLines(
     UNIT_SIZE_WORDS[def.size],
@@ -4419,14 +4419,14 @@ export function growthCarryover(state: GameState, city: City, threshold: number)
  * **not** here: it is not a settlement, it is the absence of one, and a windfall
  * can never cause it. See `growCities`, which owns that half.
  */
-export interface GrowthPlan {
+interface GrowthPlan {
   /** Food the basket must give up: the threshold, less any carryover rebate. */
   cost: number;
   /** What the city's population becomes. */
   population: number;
 }
 
-export function planGrowth(
+function planGrowth(
   state: GameState,
   city: City,
   food: number = city.foodBasket,
@@ -4440,7 +4440,7 @@ export function planGrowth(
 }
 
 /** What a growth settlement did, for the caller that has to say so out loud. */
-export interface GrowthCompletion {
+interface GrowthCompletion {
   city: City;
   /** The population it grew to. */
   population: number;
@@ -4996,7 +4996,7 @@ function builtSpawnTileFor(state: GameState, city: City, type: UnitTypeId): Tile
  * A *hypothetical* plan's tile is therefore only as good as the board at the
  * moment it was asked, which is why nothing but `settleProduction` acts on it.
  */
-export type ProductionPlan =
+type ProductionPlan =
   | { kind: 'unit'; item: QueueItem; index: number; id: UnitTypeId; cost: number; tile: Tile }
   | { kind: 'building'; item: QueueItem; index: number; id: BuildingId; cost: number }
   | { kind: 'project'; item: QueueItem; index: number; id: ProjectId; cost: number }
@@ -5259,7 +5259,7 @@ export interface WonderCompletion {
 }
 
 /** One city beaten to a wonder, and what it got back. See `refundBeatenWonders`. */
-export interface WonderRefund {
+interface WonderRefund {
   building: BuildingId;
   cityId: number;
   playerId: number;
@@ -5476,7 +5476,7 @@ export function settleProduction(state: GameState, city: City): ProductionComple
  * and the spawn tile rides along on a unit because "where would it stand" is
  * settled before the payment, never after it.
  */
-export type CompletedItem =
+type CompletedItem =
   | { kind: 'unit'; id: UnitTypeId; tile: Tile }
   | { kind: 'building'; id: BuildingId };
 
@@ -5501,7 +5501,7 @@ export type CompletedItem =
  * instead of becoming a fifth positional argument (`RealisedItem`'s own
  * discipline, read from the other end).
  */
-export interface RealiseOptions {
+interface RealiseOptions {
   /**
    * The empire is not paying for this. Sets `Unit.freeUpkeep`; ignored for a
    * building, which has no such mark — a granted building's maintenance follows
@@ -7181,7 +7181,7 @@ function touchesTerritory(state: GameState, playerId: number, tile: Tile): boole
 }
 
 /** One line of a tile's asking price, signed: charges positive, discounts not. */
-export interface TilePriceLine {
+interface TilePriceLine {
   source: string;
   amount: number;
 }
@@ -7379,7 +7379,7 @@ export function tilePurchaseError(
 }
 
 /** The tile purchase gate's two answers about one hex (`tilePurchaseGate`). */
-export interface TilePurchaseGateAnswer {
+interface TilePurchaseGateAnswer {
   /** `tilePurchaseError`'s sentence, or `null` when the gate takes the purchase. */
   refusal: string | null;
   /**

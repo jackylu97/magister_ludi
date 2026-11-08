@@ -311,7 +311,7 @@ export function malicePrice(ctx: ValueContext): number {
 // --- the projection ----------------------------------------------------------
 
 /** How long until the age closes — the clock's own figure, or the sheet's assumption. */
-export function turnsToClose(state: GameState, ctx: ValueContext, deal: WagerDeal): number {
+function turnsToClose(state: GameState, ctx: ValueContext, deal: WagerDeal): number {
   const countdown = worldAgeCountdown(state);
   if (countdown !== null) return Math.max(1, countdown.turnsLeft);
   const elapsed = Math.max(0, state.turn - deal.dealtOn);
@@ -319,7 +319,7 @@ export function turnsToClose(state: GameState, ctx: ValueContext, deal: WagerDea
 }
 
 /** One card, as this seat reads it: where it stands, where it would end, and how near. */
-export interface WagerReading {
+interface WagerReading {
   id: WagerId;
   name: string;
   bar: number;
@@ -340,7 +340,7 @@ export interface WagerReading {
  * `rates` is handed in rather than taken here, because the flow bag is one
  * Ledger fold and all three cards on the table share it.
  */
-export function readWager(
+function readWager(
   state: GameState,
   player: Player,
   ctx: ValueContext,
@@ -404,7 +404,7 @@ function rateOf(
 // --- the stake ---------------------------------------------------------------
 
 /** One card on the table, appraised — or refused by the rules before it was. */
-export interface WagerOption extends WagerReading {
+interface WagerOption extends WagerReading {
   index: number;
   /** The fold of `terms`. */
   score: number;
@@ -414,7 +414,7 @@ export interface WagerOption extends WagerReading {
 }
 
 /** The three cards, appraised, and the one this seat would stake. */
-export interface WagerStake {
+interface WagerStake {
   deal: WagerDeal;
   age: number;
   turnsLeft: number;

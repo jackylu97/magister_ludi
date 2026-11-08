@@ -50,7 +50,7 @@ import type { CardId } from './statecraftData';
 import type { TechId } from './techData';
 
 /** One line of what a building pays a meter. `cardHappiness`' shape. */
-export interface BuildingMeterLine {
+interface BuildingMeterLine {
   /** "Uruk · Funeral Games" — the town and the thing, in that order. */
   source: string;
   amount: number;
@@ -73,7 +73,7 @@ export interface BuildingShelf {
 }
 
 /** One line of what a building adds to its own city's defence or sight. */
-export interface BuildingCityStatLine {
+interface BuildingCityStatLine {
   source: string;
   amount: number;
 }

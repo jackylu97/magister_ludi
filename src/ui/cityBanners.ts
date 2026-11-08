@@ -308,7 +308,7 @@ import { hpBarFill, hpBarFillWidth, signUnits, unitColor } from '../render3d/pie
 import { dressRoundel, roundelZoom } from './unitRoundels';
 import type { MapView } from './mapView';
 
-export interface CityBannersOptions {
+interface CityBannersOptions {
   /** An element covering the viewport, above the canvas. */
   container: HTMLElement;
   renderer: MapView;
@@ -518,7 +518,7 @@ export const RING = { box: 26, radius: 11.5, width: 2.5 } as const;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING.radius;
 
 /** What a banner says about a town's next citizen. See "The growth ring". */
-export interface GrowthRing {
+interface GrowthRing {
   /** 0…1 of the circle: the basket against the threshold, banked. */
   filled: number;
   /** 0…1 of the circle beyond `filled`: what this turn adds. Zero when nothing is. */
@@ -622,7 +622,7 @@ export function cityGrowthRing(
 }
 
 /** What a banner says about a town's hurt. See "The wound on the foot". */
-export interface HealthBar {
+interface HealthBar {
   /** 0…1 of the channel: the hit points still standing, against `cityMaxHp`. */
   filled: number;
   /**
@@ -693,7 +693,7 @@ export function cityHealthBar(city: City): HealthBar | null {
 export const GARRISON_ROW = { cap: 8, fanFrom: 4 } as const;
 
 /** One piece in a town, as the row draws it. */
-export interface GarrisonPiece {
+interface GarrisonPiece {
   unitId: number;
   /** The atlas cell its mark is printed from — `badgeClassFor`, the board's own. */
   badge: BadgeClass;
@@ -722,7 +722,7 @@ export interface GarrisonPiece {
 }
 
 /** A town's row: what it draws, whether it fans, and what it could not fit. */
-export interface GarrisonRow {
+interface GarrisonRow {
   /** In the stack's own order (`state.units`), capped at `GARRISON_ROW.cap`. */
   pieces: GarrisonPiece[];
   /** How many more are standing there than the row drew. Zero, or the `+N`. */
@@ -1157,7 +1157,7 @@ export function paintHealthBar(parts: HealthParts, bar: HealthBar | null): void 
  * about the rules that produced it — "cut off" and "blockaded" are both true and
  * neither is what a player would say.
  */
-export const SIEGE_WORDS = 'Under siege';
+const SIEGE_WORDS = 'Under siege';
 
 /**
  * The mark as an element: the portcullis, masked in one colour, hidden until a
@@ -1199,7 +1199,7 @@ export function paintSiegeMark(mark: HTMLElement, besieged: boolean): void {
  * What the unrest mark is called, everywhere it is said: the hover, the
  * accessible name and the gallery's caption. `SIEGE_WORDS`' reason.
  */
-export const UNREST_WORDS = 'In unrest';
+const UNREST_WORDS = 'In unrest';
 
 /**
  * The torch as an element, hidden until the town falls into unrest (batch WC1,

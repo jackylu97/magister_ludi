@@ -52,7 +52,7 @@ export interface RefusalHeadLine {
   mark: string | null;
 }
 
-export interface RefusalPlan<K> {
+interface RefusalPlan<K> {
   /** The shared reasons, in the order their first entry was given. */
   head: RefusalHeadLine[];
   /** Where each entry's reason is said. Every entry given has a place. */
@@ -167,7 +167,7 @@ function namedPredicate<K>(entry: RefusalEntry<K>): string | null {
  *   - `command`: a command the reducer refused just now, at the top of the
  *     panel it was sent from, and announced to a screen reader as it appears.
  */
-export type RefusalWhere = 'head' | 'row' | 'command';
+type RefusalWhere = 'head' | 'row' | 'command';
 
 /**
  * One refusal as a line. `mark` is the head line's number, when it has one

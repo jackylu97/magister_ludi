@@ -79,7 +79,7 @@ import { element } from './dom';
 import { seatName } from '../sim/leaderData';
 
 /** How well the seat knows this town right now. See the module docblock. */
-export type FaithKnowledge = 'watched' | 'remembered';
+type FaithKnowledge = 'watched' | 'remembered';
 
 /** One faith's claim on one town, as this seat is allowed to read it. */
 export interface FaithHoverFaith {
@@ -99,7 +99,7 @@ export interface FaithHoverFaith {
   ledger: readonly PressureLine[];
 }
 
-export interface FaithHoverReading {
+interface FaithHoverReading {
   cityId: number;
   /** With the capital star, exactly as every other surface prints a town. */
   cityName: string;

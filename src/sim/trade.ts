@@ -225,7 +225,7 @@ const TRADE = RULES.trade;
 // --- what a route is --------------------------------------------------------
 
 /** Every unit of this empire currently carrying a route, in `state.units` order. */
-export function tradersOf(state: GameState, playerId: number): Unit[] {
+function tradersOf(state: GameState, playerId: number): Unit[] {
   const list: Unit[] = [];
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;
@@ -514,7 +514,7 @@ export function writeEstablishedPost(state: GameState, city: City, playerId: num
  * production land in this empire's town nearest to the post
  * (`payOccasionRiders`). A barbarian holds no post and is paid nothing.
  */
-export function payPostEstablished(state: GameState, city: City, playerId: number): boolean {
+function payPostEstablished(state: GameState, city: City, playerId: number): boolean {
   const player = playerById(state, playerId);
   if (player === undefined || player.eliminated === true) return false;
   return payOccasionRiders(
@@ -711,7 +711,7 @@ export interface RouteEndReport {
 // --- how many routes an empire may run --------------------------------------
 
 /** One labelled source of route capacity. See `explainRouteSlots`. */
-export interface RouteSlotLine {
+interface RouteSlotLine {
   /** "Market · Uruk", or a card's own label. Printed verbatim. */
   source: string;
   /** Routes this source is worth. */
@@ -1089,7 +1089,7 @@ export function routeLegPath(
 }
 
 /** What one survey found: the mode a send would run in, and the path it walks. */
-export interface RouteSurvey {
+interface RouteSurvey {
   /** The mode settled on — the one asked for, or the default's answer. */
   mode: RouteMode;
   /** The path that mode would walk, or `null` when it has none. */
@@ -1115,7 +1115,7 @@ export interface RouteSurvey {
  * A pair with no path either way reports **land**, so the refusal above reads in
  * the plain voice a landlocked world deserves.
  */
-export function surveyRoute(
+function surveyRoute(
   state: GameState,
   probe: Unit,
   from: City,

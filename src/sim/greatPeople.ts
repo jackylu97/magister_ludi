@@ -189,7 +189,7 @@ export function rosterAgeFor(techAge: number): number {
 }
 
 /** The roster age this empire draws from, read off what it has researched. */
-export function rosterAgeOf(player: Player): number {
+function rosterAgeOf(player: Player): number {
   return rosterAgeFor(highestAge(player.techsResearched));
 }
 
@@ -393,7 +393,7 @@ function narrowingFamily(state: GameState, player: Player, size: number): Family
  * kept here rather than imported for `purchase.ts`'s reason: what is for sale is
  * not an *item*, so it is not that module's question.
  */
-export type OfferCurrency = 'gold' | 'faith';
+type OfferCurrency = 'gold' | 'faith';
 
 /**
  * **What may be bought at the offer.** Two of them buy a rung of the ladder and
@@ -460,7 +460,7 @@ const OFFER_PURCHASES: Record<OfferPurchaseId, OfferPurchaseDef> = {
 };
 
 /** Is this one of the three purchases? The reducer's and the gate's question. */
-export function isOfferPurchaseId(value: unknown): value is OfferPurchaseId {
+function isOfferPurchaseId(value: unknown): value is OfferPurchaseId {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(OFFER_PURCHASES, value);
 }
 
@@ -723,7 +723,7 @@ export function redrawGreatPersonOffer(state: GameState, player: Player): GreatP
 }
 
 /** What a pick did, for the announcement and for the interface's camera. */
-export interface GreatPersonRecruit {
+interface GreatPersonRecruit {
   id: GreatPersonId;
   name: string;
   family: Family;
@@ -901,7 +901,7 @@ export function actCityFor(state: GameState, unit: Unit): City | null {
 }
 
 /** What spending a great person on its family's boon did, for the announcement. */
-export interface GreatPersonAct {
+interface GreatPersonAct {
   id: GreatPersonId;
   name: string;
   family: Family;
@@ -1417,7 +1417,7 @@ export function greatPersonWorkError(
 }
 
 /** What planting a work did, for the announcement. */
-export interface GreatPersonWork {
+interface GreatPersonWork {
   id: GreatPersonId;
   name: string;
   family: Family;

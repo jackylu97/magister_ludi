@@ -20,9 +20,9 @@ import { surfacePatch } from '../terrainStudy/surfacePatch.js';
 type CityAssetName = 'city-house' | 'city-loggia' | 'civic-sanctum' | 'city-spire' | 'city-dome' | 'house' | 'temple' | 'bell-tower';
 type PrimaryCityAsset = Exclude<CityAssetName, 'house' | 'temple' | 'bell-tower'>;
 export type PaintedCityAssets = { material: MeshStandardMaterial } & Record<PrimaryCityAsset, BufferGeometry> & Partial<Record<CityAssetName, BufferGeometry>>;
-export interface PaintedCityAnchor { x: number; y: number; z: number }
-export interface PaintedCityOptions { previewWalls?: boolean }
-export interface PaintedCityPlacement {
+interface PaintedCityAnchor { x: number; y: number; z: number }
+interface PaintedCityOptions { previewWalls?: boolean }
+interface PaintedCityPlacement {
   cityId: number;
   kind: 'house' | 'civic' | 'shrine' | 'temple' | 'wonder' | 'wall' | 'gate';
   asset: string;

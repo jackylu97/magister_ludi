@@ -91,7 +91,7 @@ import { foldStageSums } from './stages';
 const CITIES = RULES.cities;
 
 /** One labelled line the seat of government pays its town. See below. */
-export interface PalaceYieldLine {
+interface PalaceYieldLine {
   /** Display label. `"Palace"`, and only ever that today. */
   source: string;
   gold: number;
@@ -151,14 +151,14 @@ export const CENTRE_SOURCE = 'City centre';
  * sentences: the centre is a *hex*, and this belongs to no tile, no building and
  * no card. It is why the class `other` exists.
  */
-export const TOWN_ITSELF_SOURCE = 'The town itself';
+const TOWN_ITSELF_SOURCE = 'The town itself';
 
 /**
  * The label a worked hex's own line falls back to when nothing on it named the
  * ground — a hex whose whole reading is card lines, which today cannot happen
  * and tomorrow might.
  */
-export const HEX_SOURCE = 'Worked hex';
+const HEX_SOURCE = 'Worked hex';
 
 /** The prefix on the line that says the ground under the town was better. */
 const INHERITED_PREFIX = 'Inherited';
@@ -305,7 +305,7 @@ export function foldCentre(
  * buildings are read as a group and a caller that had to fold a mixture of
  * lists and figures would be the place the two came apart.
  */
-export interface BuildingYieldContribution {
+interface BuildingYieldContribution {
   /** Display label: the building's name. */
   source: string;
   /** The building the line belongs to, so a caller may group by it. */
@@ -1189,7 +1189,7 @@ export function foldCity(
 }
 
 /** One line of step 14: food moved into production. See `explainSurplusMoved`. */
-export interface SurplusMovedLine {
+interface SurplusMovedLine {
   /** The card that moves it, as its line is labelled. */
   source: string;
   card: CardId;
@@ -1231,7 +1231,7 @@ export function explainSurplusMoved(
 }
 
 /** One line of step 14: production moved into culture. See `explainProductionMoved`. */
-export interface ProductionMovedLine {
+interface ProductionMovedLine {
   /** The rite or card that moves it, as its line is labelled. */
   source: string;
   card: CardId;
@@ -1277,7 +1277,7 @@ export const UNREST_SOURCE = 'In unrest';
  * One voice a town makes none of, and why. See `explainUnrestGate` and
  * `explainOpusGate`, the two gates of step 13.
  */
-export interface CityYieldGate {
+interface CityYieldGate {
   /**
    * Why the voice is stopped: `UNREST_SOURCE`, or the name of the card that
    * stops a town's Opus (Circumvallation, Dominion batch D14; The Interdict,

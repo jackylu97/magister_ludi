@@ -399,7 +399,7 @@ export const CHAIR_TYPES: readonly ChairType[] = CARD_TYPES;
  * `chairMix`, the table in `docs/plans/doctrines-governments-chairs.md`
  * section 4. The four counts add up to the row's `chairs`.
  */
-export type ChairMix = Record<ChairType, number>;
+type ChairMix = Record<ChairType, number>;
 
 /**
  * **A card's type as every reader sees it** (`orderType`): one of the four
@@ -424,7 +424,7 @@ export function isCardType(value: unknown): value is CardType {
  * Which pool an Order is drafted from. **Pool power steps per government, not
  * per tier** (Entry XV), so a pool is named after the government that opens it.
  */
-export type OrderPool =
+type OrderPool =
   | 'chiefdom'
   | 'governmentI'
   | 'governmentII'
@@ -6687,7 +6687,7 @@ export interface CardYieldBag {
  * Order's or a Doctrine's row is paid once in each town that `cardCapitalIds` names.
  * Every other such row names the scope `trueCapital`, which shuts the second town.
  */
-export type PayWhere = 'city' | 'capital' | 'hex' | 'empire' | 'route';
+type PayWhere = 'city' | 'capital' | 'hex' | 'empire' | 'route';
 
 /**
  * **What a `pays` line is a figure of.** The second dimension.
@@ -6703,7 +6703,7 @@ export type PayWhere = 'city' | 'capital' | 'hex' | 'empire' | 'route';
 export type PayBasis = 'flat' | 'count' | 'mirror' | 'share' | 'rate';
 
 /** What one helping of a counted or converted row pays. See `CardPaysEffect.to`. */
-export type PayTarget = CityYieldKey | 'happiness' | 'authority';
+type PayTarget = CityYieldKey | 'happiness' | 'authority';
 
 /**
  * **Pay a voice** — the one shape, and the one `kind` that moves one of the six
@@ -7295,7 +7295,7 @@ export interface CardPaysEffect extends CardYieldBag {
  * `stage` defaults to `'city'` — Entry XVII.5: the global stage is spent
  * sparingly and a card that wants it says so.
  */
-export interface CardPercentYieldsEffect {
+interface CardPercentYieldsEffect {
   kind: 'percentYields';
   yield: CityYieldKey | 'all';
   percent: number;
@@ -7322,7 +7322,7 @@ export interface CardPercentYieldsEffect {
  * lets the ratified great-person legacies say "+30%⚙ toward wonders" as a data
  * row. Nothing supplies one yet.
  */
-export interface CardProductionBonusEffect {
+interface CardProductionBonusEffect {
   kind: 'productionBonus';
   category: ProductionCategory;
   percent: number;
@@ -7499,7 +7499,7 @@ export interface CardProductionBonusEffect {
 }
 
 /** A percentage on a named rule. See `CardRule`. */
-export interface CardRulePercentEffect {
+interface CardRulePercentEffect {
   kind: 'rulePercent';
   rule: CardRule;
   percent: number;
@@ -7683,7 +7683,7 @@ export interface CardCombatLineEffect {
 }
 
 /** A stat on a class of unit. Each stat has exactly one evaluator downstream. */
-export interface CardUnitStatEffect {
+interface CardUnitStatEffect {
   kind: 'unitStat';
   stat: 'movement' | 'sight' | 'heal' | 'charges' | 'range' | 'combatPercent';
   amount: number;
@@ -7814,7 +7814,7 @@ export interface CardUnitStatEffect {
  * are the same sculpt — which is the fingerprint's own test ("any new
  * visual-affecting unit property"), answered no.
  */
-export interface CardUnitStampEffect {
+interface CardUnitStampEffect {
   kind: 'unitStamp';
   /** Hit points every unit created while this is live is born with. */
   hp?: number;
@@ -8389,7 +8389,7 @@ export interface RiderBuildingTest {
 }
 
 /** What a newly founded city is founded *with*. */
-export interface CardFoundingRiderEffect {
+interface CardFoundingRiderEffect {
   kind: 'foundingRider';
   population?: number;
   building?: BuildingId;
@@ -8563,7 +8563,7 @@ export interface CardOfferRiderEffect {
  * give this shape the field then. Until then the Great Lighthouse carries the
  * first one empire-wide, with a `note` on its row saying so.
  */
-export interface CardRouteRiderEffect {
+interface CardRouteRiderEffect {
   kind: 'routeRider';
   /** How many extra routes. Absent means one. */
   extra?: number;
@@ -8642,7 +8642,7 @@ export interface CardRouteRiderEffect {
  * council the moment it is taken (`refitSlots`) and a card that stopped being
  * held narrows it again on the next refit.
  */
-export interface CardSlotRiderEffect {
+interface CardSlotRiderEffect {
   kind: 'slotRider';
   /**
    * How many extra chairs. Absent means one. A negative figure takes chairs away
@@ -8670,7 +8670,7 @@ export interface CardSlotRiderEffect {
  * on a whole-ledger total (`routeYields`, `founderTrickle`) reads `percent` and
  * ignores `amount`, which is a fact about that target rather than a rule here.
  */
-export interface CardEffectAmplifierEffect {
+interface CardEffectAmplifierEffect {
   kind: 'effectAmplifier';
   target: AmplifierTarget;
   /** A share of the other table's figure. Absent is no share at all. */
@@ -8736,7 +8736,7 @@ export interface CardEffectAmplifierEffect {
 }
 
 /** A constant of the meters, replaced (`value`) or shifted (`delta`). */
-export interface CardMeterRuleEffect {
+interface CardMeterRuleEffect {
   kind: 'meterRule';
   rule: MeterRuleId;
   /**
@@ -8780,7 +8780,7 @@ export interface CardMeterRuleEffect {
 }
 
 /** A whole clause gated on a fact about the empire. */
-export interface CardConditionRuleEffect {
+interface CardConditionRuleEffect {
   kind: 'conditionRule';
   when: EmpireCondition;
   then: CardEffect[];
@@ -8811,7 +8811,7 @@ export interface CardConditionRuleEffect {
  * `RULE_WORDS` rather than a silent overlap. A prefix would have been a
  * migration of every row for a hazard the type system already refuses.
  */
-export interface CardRuleEffect {
+interface CardRuleEffect {
   kind: 'rule';
   rule: CardFlagRuleId;
   /**
@@ -9064,7 +9064,7 @@ export interface CardCityStatEffect {
 }
 
 /** A rule of Statecraft itself. See `MetaRuleId`. */
-export interface CardMetaRuleEffect {
+interface CardMetaRuleEffect {
   kind: 'metaRule';
   rule: MetaRuleId;
   value: number;
@@ -9092,7 +9092,7 @@ export interface CardMetaRuleEffect {
  * second ruin is (`discoveryClaimError`) — an offer is a decision the player
  * owes the game, and a second one dealt on top of it would destroy the first.
  */
-export interface CardPeriodicOfferEffect {
+interface CardPeriodicOfferEffect {
   kind: 'periodicOffer';
   /** Turns between offers. A turn is offered when `turn % every === 0`. */
   every: number;
@@ -9120,7 +9120,7 @@ export interface CardPeriodicOfferEffect {
  * can build" (`buildingData.ts`), read by the same resolver, so a card and a
  * wonder cannot disagree about which spear an empire is owed.
  */
-export interface CardPeriodicMusterEffect {
+interface CardPeriodicMusterEffect {
   kind: 'periodicMuster';
   /** Turns between musters. A turn musters when `turn % every === 0`. */
   every: number;
@@ -9172,7 +9172,7 @@ export interface CardPeriodicMusterEffect {
  * triage's reading 38). Run by the `encroachment` phase (`frontiers.ts`),
  * `periodicMuster`'s calendar.
  */
-export interface CardEncroachEffect {
+interface CardEncroachEffect {
   kind: 'encroach';
   /** Turns between moves. A turn moves when `turn % every === 0`. */
   every: number;
@@ -9196,7 +9196,7 @@ export interface CardEncroachEffect {
  * Every empire's happiness is read once, before anybody moves. Run by the
  * `migration` phase (`frontiers.ts`) on every turn where `turn % every === 0`.
  */
-export interface CardMigrationEffect {
+interface CardMigrationEffect {
   kind: 'migration';
   /** Turns between moves. A turn moves when `turn % every === 0`. */
   every: number;
@@ -9263,7 +9263,7 @@ export interface CardSurplusToProductionEffect {
  * A rite carries it, so the reader asks the town's own effects
  * (`liveCityEffects`), not only the empire's law.
  */
-export interface CardProductionToCultureEffect {
+interface CardProductionToCultureEffect {
   kind: 'productionToCulture';
   /** Only in the towns this scope admits. Absent: every town the row reaches. */
   scope?: CityScope;
@@ -9278,13 +9278,13 @@ export interface CardProductionToCultureEffect {
  * this empire's town nearest the unit. The hex's owner loses nothing (the
  * triage's reading 23). Run by `harvestEnemyHexes` in the `drill` phase.
  */
-export interface CardHarvestEffect {
+interface CardHarvestEffect {
   kind: 'harvest';
   /** Which units harvest. Absent: every unit. */
   class?: UnitFilter;
 }
 
-export interface CardDrillEffect {
+interface CardDrillEffect {
   kind: 'drill';
   /** Experience each unit reached gains when the drill fires. */
   experience: number;
@@ -9486,7 +9486,7 @@ export interface CardLandfallEffect {
  * deferral is legible; `statecraft.ts` reads it into a *description* and never
  * into a rule.
  */
-export interface CardUnlocksBuildingEffect {
+interface CardUnlocksBuildingEffect {
   kind: 'unlocksBuilding';
   building: BuildingId;
   /**
@@ -9516,7 +9516,7 @@ export interface CardUnlocksBuildingEffect {
  * the text has no "Once drafted" (the triage's reading 31). A charter opens a
  * tended work the other way, by being held (`CharterSpec.unlocks.improvement`).
  */
-export interface CardUnlocksImprovementEffect {
+interface CardUnlocksImprovementEffect {
   kind: 'unlocksImprovement';
   improvement: ImprovementId;
 }
@@ -9530,7 +9530,7 @@ export interface CardUnlocksImprovementEffect {
  * taken (the triage's reading 34). Read by `improvementGroundError` through
  * `worksBeyondReach`, and by `claimGroundForWork` for the claim.
  */
-export interface CardWorksBeyondEffect {
+interface CardWorksBeyondEffect {
   kind: 'worksBeyond';
   works: 'tended';
   reach: number;
@@ -9557,7 +9557,7 @@ export interface CardWorksBeyondEffect {
  * rows with a factor read the larger, so a row read twice cannot square it. A
  * row may carry `turns`, `factor` or both.
  */
-export interface CardWorkAgeEffect {
+interface CardWorkAgeEffect {
   kind: 'workAge';
   turns?: number;
   factor?: number;
@@ -9577,7 +9577,7 @@ export interface CardWorkAgeEffect {
  * It is what an enhancer belief needed and could not say: the founder's law
  * hands over a line of soldiers, and nothing else in the game may raise one.
  */
-export interface CardUnlocksUnitEffect {
+interface CardUnlocksUnitEffect {
   kind: 'unlocksUnit';
   unit: UnitTypeId;
 }
@@ -9597,7 +9597,7 @@ export interface CardUnlocksUnitEffect {
  * design decision about the layout rather than a number added to one. It is
  * deferred on that row.
  */
-export interface CardPantheonSlotsEffect {
+interface CardPantheonSlotsEffect {
   kind: 'pantheonSlots';
   amount: number;
   /**
@@ -9634,7 +9634,7 @@ export interface CardPantheonSlotsEffect {
  * (A wonder is still never for sale, in any bank, at any discount —
  * `purchaseError` refuses one before the price is ever asked for.)
  */
-export interface CardPurchaseRiderEffect {
+interface CardPurchaseRiderEffect {
   kind: 'purchaseRider';
   class: UnitFilter;
   /**
@@ -9742,7 +9742,7 @@ export interface CardPurchaseRiderEffect {
  * Said as `CardRuleEffect` (`"kind": "rule"`) since batch H6, with the other
  * three flag kinds. The union below is the typed door `cardBorderZoc` knocks on.
  */
-export type ZocRuleId =
+type ZocRuleId =
   | 'borders'
   /**
    * `'ignored'`: the pieces this card names **walk past a picket for nothing** —
@@ -9775,7 +9775,7 @@ export type ZocRuleId =
  * wanted a *percentage* of a conversion would be reopening that argument and is
  * deliberately not expressible.
  */
-export interface CardProjectRiderEffect {
+interface CardProjectRiderEffect {
   kind: 'projectRider';
   project: ProjectId;
   pays: ProjectPayout;
@@ -9986,7 +9986,7 @@ export type PressureRuleId =
   | 'rivalPressurePercent';
 
 /** A signed shift on one number of the tide. See `PressureRuleId`. */
-export interface CardPressureRuleEffect {
+interface CardPressureRuleEffect {
   kind: 'pressureRule';
   rule: PressureRuleId;
   delta: number;
@@ -10090,7 +10090,7 @@ export interface CardPressureEffect {
  * own labelled charge through `explainUnitUpkeepSurcharge` (`upkeep.ts`) — the
  * same one fold the rebate's give-back lands in, never a second one.
  */
-export interface CardUpkeepSurchargeEffect {
+interface CardUpkeepSurchargeEffect {
   kind: 'upkeepSurcharge';
   /** Gold added to each matching piece's own figure. */
   amount: number;
@@ -10199,7 +10199,7 @@ export interface CardUpkeepRebateEffect {
  * the seat of government is an ordinary `CityScope`, so the row says where and
  * the one evaluator answers.
  */
-export interface CardYieldAmplifierEffect {
+interface CardYieldAmplifierEffect {
   kind: 'cardYieldAmplifier';
   /** The voice amplified. `'all'` reaches every one of the six. */
   yield: CityYieldKey | 'all';
@@ -10355,7 +10355,7 @@ export interface CardBuildingYieldPercentEffect {
  * depend on the card in the chair and an engine cannot read an engine. A rule
  * that is simply on or off holds once. The reasons are the triage's reading 4.
  */
-export interface CardSlotPositionEffect {
+interface CardSlotPositionEffect {
   kind: 'slotPosition';
   /** Which type of chair is counted. Absent counts every chair. */
   slot?: ChairType;
@@ -10466,7 +10466,7 @@ export interface CardPeriodicEffect {
  * the reducer: the only moment anything fires is the only moment anything has to
  * be re-stamped.
  */
-export interface CardPeriodShortenEffect {
+interface CardPeriodShortenEffect {
   kind: 'periodShorten';
   /** Turns off every periodic Order's clock. Shorteners sum; the floor is two. */
   turns: number;
@@ -10493,7 +10493,7 @@ export interface CardPeriodShortenEffect {
  * grows and the feed record that weights the draw does not, so a percentage
  * cannot quietly bias which great person arrives.
  */
-export interface CardCityRenownPercentEffect {
+interface CardCityRenownPercentEffect {
   kind: 'cityRenownPercent';
   /** The share, in whole percent. Floored once, per town. */
   percent: number;
@@ -10551,7 +10551,7 @@ export interface RenownShareRows {
  * voice a caravan pays, which is the five of them: faith is not among them, for
  * `RouteYieldLine`'s reason (nothing pays a caravan in it).
  */
-export interface CardRouteShare {
+interface CardRouteShare {
   yield: CityYieldKey | 'all';
   percent: number;
 }
@@ -10638,12 +10638,12 @@ export type OrderBeadOccasion =
  * it. A second reader here would be a second answer to "may this empire do
  * that", which is the drift the ability register exists to prevent.
  */
-export interface CardGrantsAbilityEffect {
+interface CardGrantsAbilityEffect {
   kind: 'grantsAbility';
   ability: AbilityId;
 }
 
-export interface CardBeadOccasionEffect {
+interface CardBeadOccasionEffect {
   kind: 'beadPerOccasion';
   occasion: OrderBeadOccasion;
   /** Which bead row is minted. A grant row, and a repeatable one. */
@@ -10754,7 +10754,7 @@ export interface CardDefBase {
   effects: CardEffect[];
 }
 
-export interface GovernmentDef extends CardDefBase {
+interface GovernmentDef extends CardDefBase {
   /** The culture tier at which this government is offered. 0 is the start. */
   tier: number;
   /**
@@ -10982,7 +10982,7 @@ export interface OnDraftWindfall {
  * its own on-draft grant is paid, and the draft moment fires for it with no
  * hand price. An empty bag gives nothing and uses no randomness.
  */
-export interface OnDraftForeignCard {
+interface OnDraftForeignCard {
   grant: 'foreignCard';
 }
 
@@ -11189,7 +11189,7 @@ export type CommissionGoal =
  * **Which towns a reached figure counts** (Commerce batch T4). `HexFloor`'s
  * sibling for towns rather than for hexes.
  */
-export interface GoalTowns {
+interface GoalTowns {
   /**
    * Only a town of this empire that this scope admits counts: Commission: The
    * Great Fair's "towns that a domestic trade route arrives at" is
@@ -11221,7 +11221,7 @@ export interface GoalTowns {
  * **A floor on each hex a reached figure counts** (Expansionist batch E5).
  * `GoalFloor`'s sibling for a figure rather than for a moment.
  */
-export interface HexFloor {
+interface HexFloor {
   /**
    * Only a hex whose six yields, as its town works it, add up to at least this
    * counts: The Heartland's "tiles that each yield 5 or more in total". Read by
@@ -11235,7 +11235,7 @@ export interface HexFloor {
  * with no floor counts every moment; a floor reads a fact the moment carries
  * (`TallyFacts`), so a moment without that fact never counts.
  */
-export interface GoalFloor {
+interface GoalFloor {
   /**
    * Only a town of at least this many citizens counts: Commission: Take the
    * City's "a city with at least five citizens". Read off
@@ -11475,7 +11475,7 @@ export interface CommissionSpec {
   reward: CommissionReward[];
 }
 
-export interface OrderDef extends CardDefBase {
+interface OrderDef extends CardDefBase {
   /**
    * The government pool this row was dealt from **before the decks rework**,
    * and the office it fitted. Both **left in place and read by no draw** (D1a):
@@ -11649,7 +11649,7 @@ export interface OrderDef extends CardDefBase {
 }
 
 /** The escalating meter, and the seal. Every number the ladder is made of. */
-export interface StatecraftMeterConfig {
+interface StatecraftMeterConfig {
   /** The first draft's cost. */
   costBase: number;
   /** Linear term on the draft count. */
@@ -11675,12 +11675,12 @@ export interface StatecraftMeterConfig {
  * One rung of the draft ladder: the regular draft count it opens at, and the
  * chairs a government of that rung supplies. See `StatecraftConfig.tierLadder`.
  */
-export interface TierRung {
+interface TierRung {
   drafts: number;
   chairs: number;
 }
 
-export interface StatecraftConfig {
+interface StatecraftConfig {
   meter: StatecraftMeterConfig;
   /**
    * **How often each rung of `OrderDef.rarity` is dealt**, as probability
@@ -11784,7 +11784,7 @@ export interface StatecraftConfig {
  * deck files, in the order the registry folds them: the shelf first (it is the
  * table's history), then the six decks in `DECK_IDS` order, then the commons.
  */
-export type DeckFile = DeckId | 'common';
+type DeckFile = DeckId | 'common';
 
 /** The deck files in fold order. `common` last. See `DeckFile`. */
 export const DECK_FILES: readonly DeckFile[] = [...DECK_IDS, 'common'];

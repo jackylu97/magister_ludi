@@ -43,7 +43,7 @@ export interface CellRef {
  * same purse and the same step price as the "~N turns" the unit sheet prints,
  * so the marks on the board and the number beside it cannot disagree.
  */
-export interface TurnMarkRef extends CellRef {
+interface TurnMarkRef extends CellRef {
   /** Turns from now, counting `pathTurns`' way: the first rest is 1. */
   turn: number;
 }

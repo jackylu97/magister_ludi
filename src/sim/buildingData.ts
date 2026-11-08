@@ -176,7 +176,7 @@ export type BuildingSize = 'small' | 'medium' | 'large' | 'wonder' | 'free';
  * `buildingCityStat` and `cardCityStat` can be asked the same question and
  * their answers concatenated without a translation in the middle.
  */
-export interface BuildingCityStat {
+interface BuildingCityStat {
   stat: 'defense' | 'sight';
   amount: number;
 }
@@ -195,7 +195,7 @@ export interface BuildingCityStat {
  * and the feed record is what **biases the draw** (`Player.renownByFamily`), so
  * an empire of libraries is offered scholars without any rule saying so.
  */
-export interface BuildingRenown {
+interface BuildingRenown {
   family: Family;
   /** Paid every turn, for as long as the building stands. */
   perTurn: number;
@@ -211,12 +211,12 @@ export interface BuildingRenown {
  * leaf that `purchase.ts` reads, and an import the other way would be a cycle to
  * carry two words.
  */
-export interface BuildingPurchaseSpec {
+interface BuildingPurchaseSpec {
   currency: 'faith' | 'gold';
 }
 
 /** A percentage of a city's hammers, behind one category. See `BuildingDef`. */
-export interface ProductionBonus {
+interface ProductionBonus {
   category: ProductionCategory;
   /** Signed whole percent. `10` is the barracks' ten percent toward units. */
   percent: number;
@@ -596,7 +596,7 @@ export interface BuildingYield {
  * the granary is an Earthenware building whose water line waits for Sailing, so
  * it is Sailing's card that announces it (`techGifts`).
  */
-export interface BuildingTileYield {
+interface BuildingTileYield {
   /** Which hexes this lands on. See `tileConditionHolds`. */
   on: TileCondition;
   /** The technology the city's owner must hold, or absent for "from the start". */
@@ -1476,11 +1476,11 @@ export interface BuildingDef {
   placeholder?: boolean;
 }
 
-export interface BuildingData {
+interface BuildingData {
   buildings: Record<BuildingId, BuildingDef>;
 }
 
-export const BUILDING_DATA: BuildingData = buildingsJson as BuildingData;
+const BUILDING_DATA: BuildingData = buildingsJson as BuildingData;
 
 export const BUILDING_IDS = Object.keys(BUILDING_DATA.buildings) as BuildingId[];
 

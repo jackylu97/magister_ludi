@@ -2612,7 +2612,7 @@ function scopePromisesABuilding(scope?: CityScope): boolean {
  * very nearly a shelf standing, and a copy past `priorities.horizonTurns` is
  * dropped rather than kept at nothing.
  */
-export interface PromisedBuilding {
+interface PromisedBuilding {
   /** The town that would raise it — the same town the scope is asked of. */
   city: City;
   id: BuildingId;
@@ -2636,7 +2636,7 @@ const PROMISE_MEMO = new WeakMap<ValueContext, PromisedBuilding[]>();
  * The list is built by walking arrays in the order the chain book holds them, so
  * two identical boards build identical lists (rule 2).
  */
-export function promisedBuildings(ctx: ValueContext): readonly PromisedBuilding[] {
+function promisedBuildings(ctx: ValueContext): readonly PromisedBuilding[] {
   const memoised = PROMISE_MEMO.get(ctx);
   if (memoised !== undefined) return memoised;
   const towns = new Map<number, City>();
@@ -5893,7 +5893,7 @@ function periodicWorth(effect: CardPeriodicEffect, ctx: ValueContext): number {
  * renown a turn, and where its two meters stand. Nothing is estimated and no
  * stand-in appears anywhere in it — this is the board's own answer.
  */
-export interface DeckReading {
+interface DeckReading {
   food: number;
   production: number;
   gold: number;
@@ -10174,7 +10174,7 @@ export function explainCountStep(count: CountKind, step: number, ctx: ValueConte
  * such a card is priced as if it were held. It is remembered for the context,
  * as the board tempo is.
  */
-export interface LevyOutlook {
+interface LevyOutlook {
   rate: number;
   /** Why the rate reads what it does, for a label. */
   why: string;
@@ -10432,7 +10432,7 @@ export function explainRite(id: RiteId, ctx: ValueContext, city?: City): Apprais
 }
 
 /** The rite a levy would say over the realm. See `bestLevyRite`. */
-export interface LevyRitePlan {
+interface LevyRitePlan {
   rite: RiteId;
   /** One town's blessing (`explainRite`). */
   worth: Appraisal;

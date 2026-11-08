@@ -146,7 +146,7 @@ function payloadOf(event: Event): unknown {
 const STALE_EVENTS = ['vite:preloadError', 'error', 'unhandledrejection'] as const;
 
 /** What `installStaleDeployWatch` hands back, so a caller can take it down again. */
-export interface StaleDeployWatch {
+interface StaleDeployWatch {
   /** Removes every listener. Idempotent. */
   dispose(): void;
 }

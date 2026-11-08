@@ -56,7 +56,7 @@ export interface ExploreEndReport {
 }
 
 /** What the bounded search found, and what it cost — see `exploreSearch`. */
-export interface ExploreSearch {
+interface ExploreSearch {
   /**
    * The nearest known, unclaimed discovery the piece can stand on, or —
    * failing that — the nearest revealing hex; `null` if neither exists
@@ -307,7 +307,7 @@ export function aimExplorer(state: GameState, unit: Unit): boolean {
  * line the only one, keeps `advanceAlongPath` the only mover, and keeps this
  * module underneath `movement.ts` rather than beside it.
  */
-export type ExploreWalk = (unit: Unit, path: readonly Cell[]) => number;
+type ExploreWalk = (unit: Unit, path: readonly Cell[]) => number;
 
 /**
  * Marches every auto-exploring unit as far as this turn's allowance carries it,

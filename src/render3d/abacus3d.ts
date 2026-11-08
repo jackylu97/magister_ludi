@@ -111,7 +111,7 @@ const DEG = Math.PI / 180;
  * after somebody edits `view3d.json`, which is exactly the failure a look file
  * makes easy.
  */
-export interface FrameMetrics {
+interface FrameMetrics {
   footTop: number;
   /** The underside of the clear span: the top of the bottom rail. */
   innerBottom: number;
@@ -144,7 +144,7 @@ export function frameMetrics(): FrameMetrics {
  *
  * Player 0 takes the *top* rod. A scoreboard is read downward.
  */
-export interface RodLayout {
+interface RodLayout {
   pitch: number;
   beadRadius: number;
   halfThickness: number;
@@ -261,7 +261,7 @@ interface RodView {
 }
 
 /** What a player's DOM label needs: two projected points and a fade. */
-export interface LabelPlacement {
+interface LabelPlacement {
   left: { x: number; y: number };
   right: { x: number; y: number };
   /** 0 when the object has turned far enough that the labels no longer belong. */

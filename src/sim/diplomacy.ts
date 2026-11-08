@@ -132,7 +132,7 @@ export interface WarDeclaredReport {
 }
 
 /** A war ending, and the truce it bought. `a < b`, the register's own key. */
-export interface PeaceReport {
+interface PeaceReport {
   a: number;
   b: number;
   /** Absolute turn the truce runs to. Nothing counts down (`wars.ts`). */
@@ -147,7 +147,7 @@ export interface PeaceReport {
  * simply somewhere else, and no diff of two boards can say it was sent home
  * rather than having marched.
  */
-export interface ExpulsionReport {
+interface ExpulsionReport {
   unitId: number;
   ownerId: number;
   /** The empire whose ground it was standing on. */
@@ -544,7 +544,7 @@ export interface DealExecution {
  * Both empires are re-seated at the end, once, however many terms moved — the
  * mid-turn register's rule (`reseatEmpire`).
  */
-export function settleDealAt(
+function settleDealAt(
   state: GameState,
   byId: number,
   toId: number,
@@ -1073,7 +1073,7 @@ export function settlePeace(state: GameState): PeaceOutcome[] {
  * (`arrival.ts`), and its standing order is dropped: a path computed from a hex
  * the unit is no longer on is an order describing a march nobody made.
  */
-export function expelFrom(state: GameState, moverId: number, holderId: number): ExpulsionReport[] {
+function expelFrom(state: GameState, moverId: number, holderId: number): ExpulsionReport[] {
   const reports: ExpulsionReport[] = [];
   for (const unit of [...state.units]) {
     if (unit.ownerId !== moverId) continue;

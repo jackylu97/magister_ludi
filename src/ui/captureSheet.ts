@@ -84,7 +84,7 @@ import { razeCityError } from '../sim/diplomacy';
 import { pacificationTurnsLeft } from '../sim/unrest';
 
 /** The three answers a conquest offers. `puppet` sends nothing — see the docblock. */
-export type CaptureChoice = 'annex' | 'puppet' | 'raze';
+type CaptureChoice = 'annex' | 'puppet' | 'raze';
 
 /** The three, in the order the sheet lays them out: keep, hold, destroy. */
 export const CAPTURE_CHOICES: readonly CaptureChoice[] = ['annex', 'puppet', 'raze'];
@@ -100,7 +100,7 @@ export const CAPTURE_CHOICES: readonly CaptureChoice[] = ['annex', 'puppet', 'ra
  * whose own buildings pay more happiness than its citizens ask for reads
  * positive, and that is a true thing to print.
  */
-export interface CaptureFigures {
+interface CaptureFigures {
   /** Every authority line naming this town, folded, on the realm that annexed it. */
   annexAuthority: number;
   /** Every happiness line naming this town, folded, on the realm that annexed it. */
@@ -193,13 +193,13 @@ export function captureFigures(
 }
 
 /** One labelled number beside a choice. Tabular mono where it is drawn. */
-export interface CaptureFigureLine {
+interface CaptureFigureLine {
   label: string;
   value: string;
 }
 
 /** One of the three answers, as the sheet offers it. */
-export interface CaptureOption {
+interface CaptureOption {
   choice: CaptureChoice;
   /** The button's word. A **verb** — never "OK", `confirmFace`'s rule. */
   label: string;
@@ -212,7 +212,7 @@ export interface CaptureOption {
 }
 
 /** Everything the sheet draws, composed once. */
-export interface CaptureFace {
+interface CaptureFace {
   cityId: number;
   /** "Uruk is taken" — the town's display name, star and all. */
   title: string;
@@ -296,7 +296,7 @@ export function captureFace(state: GameState, playerId: number, city: City): Cap
   };
 }
 
-export interface CaptureSheetOptions {
+interface CaptureSheetOptions {
   overlay: HTMLElement;
   body: HTMLElement;
   closeButton: HTMLElement;

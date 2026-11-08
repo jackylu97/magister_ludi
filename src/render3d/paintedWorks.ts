@@ -47,7 +47,7 @@ export const PAINTED_WORK_IMPROVEMENTS: readonly ImprovementId[] = IMPROVEMENT_I
   (id) => (DRAWN_WORK_IMPROVEMENTS as readonly string[]).includes(improvementBaseRow(id)),
 );
 export type PaintedWorksAssets = { material: MeshStandardMaterial } & Record<typeof PAINTED_WORK_ASSET_NAMES[number], BufferGeometry>;
-export interface PaintedWorksOptions { suppressed?: ReadonlyMap<number, SuppressScope> }
+interface PaintedWorksOptions { suppressed?: ReadonlyMap<number, SuppressScope> }
 export interface PaintedWorksEntry {
   cell: number; resource: ResourceId | null; improvement: CoreImprovement | undefined; level: number;
   site?: string;
@@ -58,7 +58,7 @@ export interface PaintedPropSource {
   createArt(assets: PaintedWorksAssets, register: RegisterMaterial): ReturnType<typeof createSettlementArt>;
   entries(state: GameState, seat: number | null): ReadonlyMap<number, string>;
 }
-export interface PaintedWorksPlacement {
+interface PaintedWorksPlacement {
   cell: number; asset: string; x: number; y: number; z: number; scale: number; yaw: number;
   /** Canonical world coordinates, including asymmetric sculpt bounds. */
   footprint: { x: number; z: number }[];

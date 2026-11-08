@@ -134,7 +134,7 @@ const PASS_MARK = '⊘';
  * (`charterOfferParts` in `charterTech.ts`) has already read the simulation's
  * price list and composed every figure.
  */
-export interface OfferSlip {
+interface OfferSlip {
   /** The technology's glyph. */
   glyph: string;
   /** Its name. "Mechanics". */
@@ -315,7 +315,7 @@ export interface OfferOption {
 }
 
 /** What the card is asking about. */
-export interface Offer {
+interface Offer {
   /** The small caps line above the title. "an ancient ruin". */
   eyebrow: string;
   /** The heading. "The stones remember". */
@@ -413,7 +413,7 @@ export interface Offer {
  * an unanswered offer, and treating it as gone is the bug where a player looks
  * at their capital and finds the draft has evaporated.
  */
-export type OfferPhase = 'none' | 'shown' | 'hidden';
+type OfferPhase = 'none' | 'shown' | 'hidden';
 
 /**
  * What can happen to an offer. `show` deals one; the rest act on one held.
@@ -423,7 +423,7 @@ export type OfferPhase = 'none' | 'shown' | 'hidden';
  * reach the same state that some future reader has to keep in step with this
  * one.
  */
-export type OfferEvent = 'show' | 'viewMap' | 'reopen' | 'take' | 'clear';
+type OfferEvent = 'show' | 'viewMap' | 'reopen' | 'take' | 'clear';
 
 /**
  * The state machine, pure, and it *is* the component's own — `createOfferCard`
@@ -497,12 +497,12 @@ export interface OfferCard {
 }
 
 /** The window the spread is being laid out in. */
-export interface OfferStage {
+interface OfferStage {
   width: number;
   height: number;
 }
 
-export interface OfferSpread {
+interface OfferSpread {
   /** Cards in the flanking row — what these numbers were computed for. */
   count: number;
   /** The sheet's width. */
@@ -660,7 +660,7 @@ export function offerSpread(count: number, stage: OfferStage): OfferSpread {
 }
 
 /** What the caller is told when the sheet is put away or brought back. */
-export interface OfferCardOptions {
+interface OfferCardOptions {
   /**
    * Called whenever the phase moves, with the phase it moved to.
    *
@@ -783,7 +783,7 @@ function faceBody(option: OfferOption): HTMLElement[] {
  * inside the slip, hidden while it wears the flourish, and drops onto the slip
  * on the pick (`take`, which finds it by its class wherever it is).
  */
-export function offerSlipNode(slip: OfferSlip, stamp: HTMLElement | null): HTMLElement {
+function offerSlipNode(slip: OfferSlip, stamp: HTMLElement | null): HTMLElement {
   const box = element('span', 'offer-slip');
   box.setAttribute('aria-label', `${slip.name}, a charter technology`);
   const head = element('span', 'offer-slip-head');

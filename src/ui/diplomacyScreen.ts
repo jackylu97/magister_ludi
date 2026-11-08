@@ -114,7 +114,7 @@ import './diplomacyScreen.css';
 // --- the row model ----------------------------------------------------------
 
 /** Where two empires stand. Exactly one of three, and they are exclusive. */
-export type RelationKind = 'peace' | 'war' | 'truce';
+type RelationKind = 'peace' | 'war' | 'truce';
 
 /**
  * One empire's row, as the sheet reads it.
@@ -124,7 +124,7 @@ export type RelationKind = 'peace' | 'war' | 'truce';
  * the reducer's own sentences, `null` when the verb is legal, which is what
  * makes "greyed with a reason" and "offered" one decision rather than two.
  */
-export interface DiplomacyRow {
+interface DiplomacyRow {
   playerId: number;
   /** Who sits there: the figure, or the ink's name for a seat under nobody. */
   name: string;
@@ -308,7 +308,7 @@ export function peaceButtonLabel(row: DiplomacyRow): string {
  * that makes a deal panel teachable: a player who cannot see that open borders
  * exist until both empires can write will never find out that they do.
  */
-export interface DealChoice {
+interface DealChoice {
   /** The luxury's own id, for a luxury row; absent on the others. */
   id?: ResourceId;
   /** The town's own id, for a city row; absent on the others. */
@@ -334,7 +334,7 @@ export interface DealChoice {
 }
 
 /** What one column of the panel offers — one empire's side of the bargain. */
-export interface DealSideModel {
+interface DealSideModel {
   playerId: number;
   name: string;
   /** Coin in the treasury: the ceiling on a lump, and printed as one. */
@@ -348,7 +348,7 @@ export interface DealSideModel {
 }
 
 /** A standing paper, as both seats' screens draw it. */
-export interface DealProposalRow {
+interface DealProposalRow {
   id: number;
   /** True when this seat wrote it — the Withdraw face rather than Accept. */
   mine: boolean;
@@ -365,7 +365,7 @@ export interface DealProposalRow {
 }
 
 /** A live bargain and what is left of it. */
-export interface ActiveDealRow {
+interface ActiveDealRow {
   id: number;
   /** The other empire's name. */
   name: string;
@@ -378,7 +378,7 @@ export interface ActiveDealRow {
 }
 
 /** Everything the Deal panel draws for one empire's row. */
-export interface DealPanelModel {
+interface DealPanelModel {
   /** True when this row is a war, so the paper is a peace paper. */
   peace: boolean;
   yours: DealSideModel;
@@ -669,7 +669,7 @@ export interface EnvoyAnswer {
  * it. `refusal` is the seat's own sentence when it will not treat at all, which
  * is a different answer from "there is no paper that would do it".
  */
-export interface CounterAnswer {
+interface CounterAnswer {
   terms: { give: DealTerms; take: DealTerms } | null;
   /** The bot's reasons for the counter, one plain line each. */
   reasons: string[];
@@ -678,7 +678,7 @@ export interface CounterAnswer {
 }
 
 /** Which of the two questions was put to them. */
-export type CounterQuestion = 'work' | 'give';
+type CounterQuestion = 'work' | 'give';
 
 /** Voiced response and actionable explanation, separate from the AI's score ledger. */
 export function audienceCopy(answer: EnvoyAnswer): { quote: string; detail: string } {
@@ -711,7 +711,7 @@ export function declareConfirm(name: string): ConfirmRequest {
 
 // --- the sheet --------------------------------------------------------------
 
-export interface DiplomacyScreenOptions {
+interface DiplomacyScreenOptions {
   overlay: HTMLElement;
   body: HTMLElement;
   closeButton: HTMLElement;

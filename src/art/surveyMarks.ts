@@ -47,7 +47,7 @@ export const SURVEY_MARK_IDS = ['sleepingVein'] as const;
 export type SurveyMarkId = (typeof SURVEY_MARK_IDS)[number];
 
 /** One survey mark's drawing, plus the sentence that says what it depicts. */
-export interface SurveyMark {
+interface SurveyMark {
   note: string;
   paths: readonly MarkPath[];
 }
@@ -87,7 +87,7 @@ export function surveyMark(id: SurveyMarkId): SurveyMark {
 }
 
 /** One survey mark as a standalone SVG document, inked in `color`. */
-export function surveyMarkSvg(id: SurveyMarkId, color = '#000'): string {
+function surveyMarkSvg(id: SurveyMarkId, color = '#000'): string {
   return markSvg(surveyMark(id).paths, MARK_BOX, MARK_STROKE, color);
 }
 

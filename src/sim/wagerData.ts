@@ -68,7 +68,7 @@ export type WagerLine = CardLine | 'banner';
 export type WagerId = keyof typeof wagersJson.wagers & string;
 
 /** Flow counts from the deal; standing reads the board now. See the docblock. */
-export type WagerKind = 'flow' | 'standing';
+type WagerKind = 'flow' | 'standing';
 
 /**
  * **The one reading vocabulary.** Every member is answered by exactly one arm of
@@ -203,18 +203,18 @@ export const WAGER_ACCUMULATORS: readonly WagerCount[] = [
 ];
 
 /** One clause of a compound wager: a reading and the figure it must reach. */
-export interface WagerClause {
+interface WagerClause {
   count: WagerCount;
   /** One figure per wagering age — Æra II, III, IV. */
   bars: readonly number[];
 }
 
 /** What a card reads. One number, or how many of several clauses hold at once. */
-export type WagerReads =
+type WagerReads =
   | { shape: 'count'; count: WagerCount }
   | { shape: 'clauses'; clauses: readonly WagerClause[] };
 
-export interface WagerDef {
+interface WagerDef {
   name: string;
   /**
    * Which rod the beads it mints land on.
@@ -296,7 +296,7 @@ export function wagerAgeIndex(age: number): number {
 }
 
 /** Is this a row the deck may deal at all? Deferred rows are kept and never dealt. */
-export function wagerIsLive(id: WagerId): boolean {
+function wagerIsLive(id: WagerId): boolean {
   const def = wagerDef(id);
   return def.deferred === undefined || def.deferred.length === 0;
 }

@@ -46,7 +46,7 @@ export const SETTLE_MARK_IDS = ['goodSite'] as const;
 export type SettleMarkId = (typeof SETTLE_MARK_IDS)[number];
 
 /** One settle mark's drawing, plus the sentence that says what it depicts. */
-export interface SettleMark {
+interface SettleMark {
   note: string;
   paths: readonly MarkPath[];
 }
@@ -83,7 +83,7 @@ export function settleMark(id: SettleMarkId): SettleMark {
 }
 
 /** One settle mark as a standalone SVG document, inked in `color`. */
-export function settleMarkSvg(id: SettleMarkId, color = '#000'): string {
+function settleMarkSvg(id: SettleMarkId, color = '#000'): string {
   return markSvg(settleMark(id).paths, MARK_BOX, MARK_STROKE, color);
 }
 

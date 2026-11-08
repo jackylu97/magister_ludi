@@ -61,7 +61,7 @@ export interface SeatInks {
 export const DERIVED_SECONDARY = '#2f2b32';
 
 /** Anything that can answer "what colours does this seat wear". */
-export interface InkedSeat {
+interface InkedSeat {
   color: string;
   secondary?: string;
 }

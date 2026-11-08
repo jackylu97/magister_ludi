@@ -525,7 +525,7 @@ const BUY_MODE_NOTICE = 'Buy tiles — click a priced hex to purchase it (Esc ca
  * batch of arbitrary commands is a way for a surface to smuggle a turn's worth
  * of orders past the one-gesture-one-command reading every other call site keeps.
  */
-export type StatecraftSlotCommand = SlotOrderCommand | UnslotOrderCommand;
+type StatecraftSlotCommand = SlotOrderCommand | UnslotOrderCommand;
 
 export type NoticeKind = 'mode' | 'reject' | 'guide';
 
@@ -538,7 +538,7 @@ export type NoticeKind = 'mode' | 'reject' | 'guide';
  * is the whole point (the notification pass added toasts and a log to two dozen
  * call sites without editing any of them).
  */
-export interface AnnounceOptions {
+interface AnnounceOptions {
   /** Where it happened. Makes the toast and its log entry click-to-pan. */
   cell?: CellRef;
   /**
@@ -574,7 +574,7 @@ export interface AnnounceOptions {
  * than a unit id because the unit it describes may already be dead — which is
  * exactly the case the number is most needed for.
  */
-export interface DamageEvent {
+interface DamageEvent {
   col: number;
   row: number;
   amount: number;
@@ -716,7 +716,7 @@ export interface ProphetRow {
 }
 
 /** One rite a prophet could say over the realm, with its own refusal. */
-export interface ProphetRiteRow {
+interface ProphetRiteRow {
   rite: RiteId;
   name: string;
   blocked: string | null;
@@ -807,7 +807,7 @@ export function proclaimSays(state: GameState, unitId: number): string {
  * name. What is left is the shape every other verb on that sheet already has —
  * the reducer's own refusal, and what it would do stated as the number.
  */
-export interface GreatPersonVerb {
+interface GreatPersonVerb {
   /**
    * The words this verb is offered under — the family's own, marked
    * (`describeFamilyVerb`).
@@ -982,7 +982,7 @@ export function showsSeatStrip(state: GameState): boolean {
  * renderer and no DOM behind it, and there is a real bug in each of those three
  * clauses that no behavioural test would catch.
  */
-export interface GrantNotice {
+interface GrantNotice {
   /** The sentence, wonder first: "The Great Library · Mathematics is understood". */
   text: string;
   /** The piece that arrived, for the pan a unit grant's toast carries. */
@@ -1076,7 +1076,7 @@ export function wonderGrantNotices(
  * asked without a DOM — this suite has no jsdom, and a rule about *which*
  * surfaces keep the browser's menu is exactly the half worth pinning.
  */
-export interface ContextMenuTarget {
+interface ContextMenuTarget {
   tagName: string;
   /** An `<input>`'s type. Absent is `"text"`, as the platform reads it. */
   type?: string;
@@ -1133,7 +1133,7 @@ export function wantsNativeContextMenu(target: ContextMenuTarget | null): boolea
  * the blow is a real one, which is what makes a comparison recognisable without
  * a second flag.
  */
-export interface CombatReading {
+interface CombatReading {
   /** The forecast, or the refusal, exactly as `previewCombat` answers it. */
   preview: CombatPreview;
   /** True when this is a comparison rather than an order the player could give. */
@@ -1265,7 +1265,7 @@ export function pillageVictimSentence(state: GameState, report: PillageReport): 
  * Pure and exported for `disbandSentence`'s reason: this suite has no DOM, and a
  * sentence that is merely wrong throws nothing.
  */
-export function guildSentence(family: SpecialistFamily, cityName: string): string {
+function guildSentence(family: SpecialistFamily, cityName: string): string {
   return `A guild of ${family}s has formed in ${cityName}.`;
 }
 
@@ -1291,7 +1291,7 @@ export function guildSentence(family: SpecialistFamily, cityName: string): strin
  * Pure and exported for `disbandSentence`'s reason: this suite has no DOM,
  * and a sentence that is merely wrong throws nothing.
  */
-export function campSentence(bounty: CampBounty): string {
+function campSentence(bounty: CampBounty): string {
   const parts = [`${signedYield(bounty.gold)}${YIELD_GLYPH.gold}`];
   if (bounty.cityName !== null) {
     const grew = bounty.grownTo === null ? '' : ` · grows to ${bounty.grownTo}`;

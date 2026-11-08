@@ -25,7 +25,7 @@ interface SurfaceRegistration {
   centerHeights: WeakMap<Tile, number>;
 }
 
-export interface PaintedPickResult {
+interface PaintedPickResult {
   tile: Tile;
   col: number;
   row: number;

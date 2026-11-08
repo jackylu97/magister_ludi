@@ -28,7 +28,7 @@ import type { RankId } from '../sim/rulesData';
 /** The rank marks, in the simulation's rank order. The list is the atlas's cell order. */
 export const RANK_MARK_IDS: readonly RankId[] = ['veteran', 'elite'];
 
-export interface RankMark {
+interface RankMark {
   /** What it depicts, for the reader of this file. Never printed. */
   note: string;
   paths: readonly MarkPath[];

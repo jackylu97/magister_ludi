@@ -103,12 +103,12 @@ function nearestRivalTo(map: GameMap, seated: readonly Tile[], seat: number): nu
 }
 
 /** The three kinds, in the order the sidebar groups them. */
-export const RESOURCE_KINDS: readonly ResourceKind[] = ['bonus', 'strategic', 'luxury'];
+const RESOURCE_KINDS: readonly ResourceKind[] = ['bonus', 'strategic', 'luxury'];
 
 // --- census -----------------------------------------------------------------
 
 /** One resource's tally: how many tiles on the whole map carry it. */
-export interface ResourceCensusRow {
+interface ResourceCensusRow {
   id: ResourceId;
   name: string;
   kind: ResourceKind;
@@ -121,14 +121,14 @@ export interface ResourceCensusRow {
  * in — tiles per 1000 **land** tiles, so a duel map and a giant map are directly
  * comparable and can be read against `bonusPer1000LandTiles` and its sibling.
  */
-export interface ResourceCensusGroup {
+interface ResourceCensusGroup {
   kind: ResourceKind;
   rows: ResourceCensusRow[];
   tiles: number;
   perThousandLand: number;
 }
 
-export interface ResourceCensus {
+interface ResourceCensus {
   landTiles: number;
   /** Every resource tile on the map, across all three kinds. */
   tiles: number;
@@ -180,13 +180,13 @@ export function resourceCensus(state: GameState): ResourceCensus {
 // --- continents -------------------------------------------------------------
 
 /** One luxury kind and how many tiles of it stand somewhere. */
-export interface LuxuryCount {
+interface LuxuryCount {
   id: ResourceId;
   name: string;
   copies: number;
 }
 
-export interface ContinentRow {
+interface ContinentRow {
   id: number;
   /** Land tiles carved into this continent. The number `continentTargetTiles` aims at. */
   landTiles: number;
@@ -200,7 +200,7 @@ export interface ContinentRow {
   luxuries: LuxuryCount[];
 }
 
-export interface ContinentReport {
+interface ContinentReport {
   count: number;
   rows: ContinentRow[];
 }
@@ -253,7 +253,7 @@ function luxuryList(tally: ReadonlyMap<ResourceId, number>): LuxuryCount[] {
 
 // --- starts -----------------------------------------------------------------
 
-export interface StartRow {
+interface StartRow {
   /** Seat index, which is the player id — starts come back in player order. */
   playerId: number;
   /** The seat's name when there is a player in the chair, else `Seat N`. */
@@ -324,21 +324,21 @@ export interface StartRow {
 }
 
 /** One want a figure carries, and whether its seat's hex answers it. */
-export interface WantCheck {
+interface WantCheck {
   /** The want as a person reads it: "mountain within 2". */
   label: string;
   met: boolean;
 }
 
 /** One furnishing kind, and the resources of it in reach. */
-export interface FurnishCount {
+interface FurnishCount {
   /** The improvement kind the leader's text pays on — `plantation`, `camp`. */
   kind: string;
   /** The rows of that kind standing within `startFurnishRadius`. */
   found: LuxuryCount[];
 }
 
-export interface StartReport {
+interface StartReport {
   /** The radius `luxuries` was gathered over, so the page can label the column. */
   luxuryRadius: number;
   /** The radius `strategics` was gathered over. Its sibling. */
@@ -560,7 +560,7 @@ function luxuriesNear(map: GameMap, from: Tile, radius: number): LuxuryCount[] {
  * mid-game map all included. Re-running the pass would answer a different
  * question.
  */
-export interface WoodlandReport {
+interface WoodlandReport {
   landTiles: number;
   forestTiles: number;
   /** Forest hexes as a share of land. Not of *eligible* ground — see `forestShare`. */

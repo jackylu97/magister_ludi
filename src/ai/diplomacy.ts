@@ -247,7 +247,7 @@ function soldiersLost(state: GameState, player: Player): number {
  * alternative, picking the weakest `owed` pieces to leave behind, would be this
  * file inventing a doctrine the march does not follow.
  */
-export function fieldedStrength(force: { soldiers: Unit[]; spare: number }): number {
+function fieldedStrength(force: { soldiers: Unit[]; spare: number }): number {
   let strength = 0;
   for (const unit of force.soldiers) strength += unitDef(unit.type).combatStrength;
   if (force.soldiers.length === 0) return 0;
@@ -1272,7 +1272,7 @@ function sideOf(paper: { a: DealTerms; b: DealTerms }, whose: number, other: num
  * what it asks for. So the sheet writes it straight into the draft the player
  * was already holding, and nothing has to be turned around on the way.
  */
-export interface CounterOffer {
+interface CounterOffer {
   give: DealTerms;
   take: DealTerms;
   /** The countered paper, read from the **bot's** side. Its own reasons. */

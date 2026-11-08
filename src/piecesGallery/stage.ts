@@ -129,7 +129,7 @@ const SITUATION_SCULPTS: Partial<Record<SculptId, string>> = {
 };
 
 /** One cell of the grid: where it is, what stands there, and what to call it. */
-export interface GalleryEntry {
+interface GalleryEntry {
   sculpt: SculptId;
   /**
    * The badge that floats over this cell, or null when there is nothing honest

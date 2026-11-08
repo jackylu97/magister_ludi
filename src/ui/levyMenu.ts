@@ -32,7 +32,7 @@ import { riteOfferText } from './riteOffer';
 import { yieldElement as element } from './yieldMark';
 
 /** One line of the menu, already in the player's words. */
-export interface LevyMenuLine {
+interface LevyMenuLine {
   use: LevyUse;
   /** What the citizen buys: "Production here", "Raise a unit". */
   label: string;
@@ -47,7 +47,7 @@ export interface LevyMenuLine {
 }
 
 /** One rite under the `rite` line. */
-export interface LevyMenuRite {
+interface LevyMenuRite {
   rite: RiteId;
   name: string;
   /** What it does and how long it lasts (`riteOfferText`), or the refusal. */
@@ -57,7 +57,7 @@ export interface LevyMenuRite {
 }
 
 /** What the control shows for one town. `null` means no button at all. */
-export interface LevyMenuModel {
+interface LevyMenuModel {
   lines: LevyMenuLine[];
   /** True while no line can be chosen. */
   disabled: boolean;

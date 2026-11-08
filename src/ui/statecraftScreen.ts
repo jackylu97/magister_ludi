@@ -342,7 +342,7 @@ export interface StatecraftScreen {
   dispose(): void;
 }
 
-export interface StatecraftScreenOptions {
+interface StatecraftScreenOptions {
   /** The full-screen overlay. Hidden with the `hidden` attribute while closed. */
   overlay: HTMLElement;
   /** The element the sheet's body is built into. */

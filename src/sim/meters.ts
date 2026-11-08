@@ -165,7 +165,7 @@ export interface MeterContribution {
 }
 
 /** One card's part of a meter line. */
-export interface MeterCardShare {
+interface MeterCardShare {
   card: CardId;
   value: number;
 }
@@ -585,7 +585,7 @@ export function agesAdvanced(state: GameState, playerId: number): number {
  * that can lie, and this one even gets the coastal discount right — which is the
  * discount the settler lens has already painted the hex blue for.
  */
-export interface AuthorityProspect {
+interface AuthorityProspect {
   /** Where the city would stand. */
   site: Tile;
 }

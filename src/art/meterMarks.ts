@@ -58,7 +58,7 @@ import { YIELD_MARK_BOX, YIELD_MARK_STROKE } from './yieldMarks';
 import type { MeterId } from '../sim/meters';
 
 /** One meter's drawing, plus where it came from. */
-export interface MeterMark {
+interface MeterMark {
   /** What the mark is a picture of. */
   note: string;
   /** The upstream icon: set, name and licence. */

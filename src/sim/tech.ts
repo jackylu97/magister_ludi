@@ -1055,7 +1055,7 @@ const NO_REQUIRED_RESOURCES: readonly ResourceId[] = [];
  * `test/sim/resourceCopies.test.ts` — a third caller that wants one has to
  * decide to want it.
  */
-export interface BuildGateOptions {
+interface BuildGateOptions {
   /**
    * The queue this town is about to be given, when the caller is validating a
    * replacement rather than asking about one more row. See `QueueReplacement`
@@ -1845,7 +1845,7 @@ export function researchExpansion(
  *
  * Pure, so the tech screen can show what a click would do before it is made.
  */
-export function plannedResearch(
+function plannedResearch(
   state: GameState,
   playerId: number,
   techId: TechId,
@@ -2109,13 +2109,13 @@ export function advanceResearch(state: GameState): void {
  * `null` when there is nothing aimed at, when the aim names a technology this
  * build does not have, or when the beakers do not cover it.
  */
-export interface ResearchPlan {
+interface ResearchPlan {
   techId: TechId;
   /** Beakers the pool must give up. What is left is the overflow. */
   cost: number;
 }
 
-export function planResearch(
+function planResearch(
   state: GameState,
   player: Player,
   science: number = player.sciencePool,
@@ -2267,7 +2267,7 @@ export function foldTechCost(lines: readonly TechCostLine[]): number {
 }
 
 /** What a research settlement did, for the caller that has to say so out loud. */
-export interface ResearchCompletion {
+interface ResearchCompletion {
   player: Player;
   techId: TechId;
   /** The display name of what landed — "Bronzeworking". */
@@ -2762,7 +2762,7 @@ export function turnsToTech(
 }
 
 /** One row of a queue schedule: a technology and when it would land. */
-export interface ResearchQueueStep {
+interface ResearchQueueStep {
   techId: TechId;
   /** Turns from now, or `null` when the empire makes no science at all. */
   turns: number | null;
@@ -2917,7 +2917,7 @@ export interface ResearchSnapshot {
   units: { id: number; type: UnitTypeId }[];
 }
 
-export interface UnitUpgradeTally {
+interface UnitUpgradeTally {
   from: UnitTypeId;
   to: UnitTypeId;
   count: number;
@@ -2928,7 +2928,7 @@ export interface UnitUpgradeTally {
  * gained Onager". `UnitUpgradeTally`'s sibling. A piece gains a trait when the
  * technology that carries it lands, or when it upgrades into the trait's line.
  */
-export interface UnitTraitTally {
+interface UnitTraitTally {
   /** The pieces' type now. */
   type: UnitTypeId;
   /** The trait's name, as `TechTrait.name` prints it. */

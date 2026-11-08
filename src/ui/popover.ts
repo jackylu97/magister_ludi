@@ -42,7 +42,7 @@ export interface Popover {
   toggle(): void;
 }
 
-export interface PopoverOptions {
+interface PopoverOptions {
   /** The card itself. Hidden with the `hidden` attribute while closed. */
   panel: HTMLElement;
   /** The button that opens it. Carries `aria-expanded` and takes focus back. */

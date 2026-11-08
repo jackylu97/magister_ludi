@@ -179,7 +179,7 @@ export function deedFootnote(family: Family, workFamily: Family = family): strin
 }
 
 /** The mono eyebrow: the family, then the age the name belongs to. */
-export function faceEyebrow(id: GreatPersonId): string {
+function faceEyebrow(id: GreatPersonId): string {
   const def = greatPersonDef(id);
   return `${def.family} · ${eraWord(def.age)}`;
 }

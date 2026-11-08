@@ -64,7 +64,7 @@ interface Baseline {
 }
 
 /** What one war has cost and taken, since the window opened. */
-export interface WarExchange {
+interface WarExchange {
   /** Pieces of theirs this empire has killed since then. */
   killed: number;
   /** Pieces of its own that have fallen since then. */

@@ -132,7 +132,7 @@ import { setYieldText } from './yieldMark';
 // --- the model ----------------------------------------------------------------------
 
 /** What kind of source a card stands for. */
-export type BonusKind =
+type BonusKind =
   | 'god'
   | 'follower'
   | 'enhancer'
@@ -142,7 +142,7 @@ export type BonusKind =
   | 'otherFaith';
 
 /** One chip on a card: a town it pays in, or a town keeping its rite. */
-export interface BonusChip {
+interface BonusChip {
   label: string;
   /** For a rite: the turns its town has left, and the length of a fresh one. */
   turnsLeft?: number;
@@ -150,7 +150,7 @@ export interface BonusChip {
 }
 
 /** One line of a card's hover card: a town, or the empire's own lines. */
-export interface BonusPart {
+interface BonusPart {
   label: string;
   paid: CityYields;
 }
@@ -187,7 +187,7 @@ export interface BonusCard {
 }
 
 /** An empty place on a shelf, drawn as a dashed outline. */
-export interface BonusGhost {
+interface BonusGhost {
   key: string;
   title: string;
   text: string;
@@ -195,9 +195,9 @@ export interface BonusGhost {
   progress: number | null;
 }
 
-export type BonusShelfId = 'gods' | 'beliefs' | 'holy' | 'otherFaiths';
+type BonusShelfId = 'gods' | 'beliefs' | 'holy' | 'otherFaiths';
 
-export interface BonusShelf {
+interface BonusShelf {
   id: BonusShelfId;
   title: string;
   note: string;
@@ -210,7 +210,7 @@ export interface BonusShelf {
 }
 
 /** One slice of the faith bar. */
-export interface FaithSlice {
+interface FaithSlice {
   /** A religion source's card key, or "class:<class>" for a Ledger class kept whole. */
   key: string;
   label: string;
@@ -729,16 +729,16 @@ export interface BonusesMotion {
 }
 
 /** What the drawing calls out to. */
-export interface BonusesHandlers {
+interface BonusesHandlers {
   /** Raises a hover card beside a card (`infoCard.ts`). Without it, there is none. */
   hover?: (anchor: HTMLElement, build: () => Node) => void;
 }
 
 /** How far apart the faith bar's slices start to grow, in milliseconds. */
-export const SLICE_STAGGER_MS = 90;
+const SLICE_STAGGER_MS = 90;
 
 /** How many town chips a narrow card shows before "+N more"; the hover card lists them all. */
-export const CHIP_LIMIT = 6;
+const CHIP_LIMIT = 6;
 
 /**
  * A stamp: held, counted or landed, as this paint's motion says. On an opening

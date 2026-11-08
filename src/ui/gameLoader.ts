@@ -72,7 +72,7 @@ import {
 import { type CheckpointHit, type SaveCheckpoints, browserCheckpoints, findCheckpoint } from './saveCheckpoints';
 import type { GameWorkerMessage, GameWorkerReply, GameWorkerRequest } from './game.worker';
 
-export interface LoaderOptions {
+interface LoaderOptions {
   /** Terminates the worker and rejects with an `AbortError`. Nothing is adopted. */
   signal?: AbortSignal;
   /** Tests hand in their own worker. Production takes the module URL below. */
@@ -93,7 +93,7 @@ export interface LoaderOptions {
 }
 
 /** Which way a build actually went, for the profile panel and for tests. */
-export interface LoaderMetrics {
+interface LoaderMetrics {
   /**
    * `checkpoint` means the stored checkpoint covered the whole log and no
    * command was walked at all.

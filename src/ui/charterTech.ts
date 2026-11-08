@@ -59,7 +59,7 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
  * like every other mark in this interface, so it is drawn at any size and
  * inked by `currentColor`.
  */
-export const CHARTER_SEAL_PATH =
+const CHARTER_SEAL_PATH =
   'M8 1.2l1.5 1.3 2-.3.7 1.9 1.9.7-.3 2L15 8l-1.3 1.5.3 2-1.9.7-.7 1.9-2-.3L8 14.8l-1.5-1.3-2 .3-.7-1.9-1.9-.7.3-2L1 8l1.3-1.5-.3-2 1.9-.7.7-1.9 2 .3Z';
 
 /**
@@ -110,7 +110,7 @@ export interface StageBox {
 }
 
 /** What the tab says and where it points. */
-export interface ShelfTab {
+interface ShelfTab {
   /** Which part of the chart's foot the tab sits on. */
   side: 'left' | 'right' | 'centre';
   /** One arrow from the eight, pointing at the target node. */
@@ -216,7 +216,7 @@ export function chartLead(state: GameState, playerId: number): readonly TechId[]
 }
 
 /** What the chart's head prints for the lead: the count, and its words on hover. */
-export interface LeadFigure {
+interface LeadFigure {
   count: number;
   /** The technologies by name, for the figure's title. */
   title: string;
@@ -246,7 +246,7 @@ export function wearsLeadCorner(lead: readonly TechId[] | null, tech: TechId): b
 // --- a trait on a node's face ---------------------------------------------------
 
 /** The range mark the unit card already prints after a range figure. */
-export const RANGE_MARK = '⌖';
+const RANGE_MARK = '⌖';
 
 /**
  * The short figure a line trait shows on a node's face, where an unlock shows

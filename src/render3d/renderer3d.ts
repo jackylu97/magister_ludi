@@ -262,7 +262,7 @@ export interface GraphicsResetListener {
   failed(error: unknown): void;
 }
 
-export interface BoardStats {
+interface BoardStats {
   tiles: number;
   /** Instances uploaded, wrap copies included. */
   instances: number;

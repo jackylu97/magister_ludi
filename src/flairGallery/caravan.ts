@@ -105,7 +105,7 @@ function hex(color: number): string {
 }
 
 /** One thing on the shelf: which body, what to call it, and whether it is busy. */
-export interface CaravanFigure {
+interface CaravanFigure {
   sculpt: SculptId;
   label: string;
   note: string;
@@ -131,7 +131,7 @@ export interface CaravanFigure {
  * file has a piece standing in it, and a blank panel would say the sculpt was
  * missing when the row is.
  */
-export function caravanShelf(): CaravanFigure[] {
+function caravanShelf(): CaravanFigure[] {
   const row = caravanTypeId();
   const idle: SculptId = row === null ? 'trader' : sculptFor(row);
   const laden: SculptId = MINI_SCULPTS[idle].laden ?? idle;
@@ -163,7 +163,7 @@ interface Stand {
   figure: CaravanFigure;
 }
 
-export class CaravanStage {
+class CaravanStage {
   private readonly renderer: WebGLRenderer;
   private readonly scene = new Scene();
   private readonly camera: OrthographicCamera;

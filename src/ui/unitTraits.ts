@@ -35,7 +35,7 @@ import { getTileAt } from '../sim/map';
 import { unitHealthBonus } from '../sim/resourceEffects';
 
 /** One trait that reaches a piece, with the label its lines carry. */
-export interface UnitTraitReading {
+interface UnitTraitReading {
   tech: TechId;
   trait: TechTrait;
   /** "Mechanics · Onager": the label `liveEffects` gives the trait's lines. */
@@ -43,7 +43,7 @@ export interface UnitTraitReading {
 }
 
 /** The traits that reach this piece, in the order its owner learnt them. */
-export function unitTraitReadings(state: GameState, unit: Unit): UnitTraitReading[] {
+function unitTraitReadings(state: GameState, unit: Unit): UnitTraitReading[] {
   const owner = playerById(state, unit.ownerId);
   if (owner === undefined) return [];
   return traitsReaching(owner.techsResearched, unit.type).map(({ tech, trait }) => ({

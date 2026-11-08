@@ -32,7 +32,7 @@ import { netFigure, poolFigure } from './figures';
  * faith and, since Magisterial batch MG11, culture (the draft pool, which
  * Magnificence lets buy a wonder).
  */
-export type BankId = PurchaseCurrency;
+type BankId = PurchaseCurrency;
 
 /**
  * The banks the band lists, in the order every surface lists them: money
@@ -43,7 +43,7 @@ export type BankId = PurchaseCurrency;
 export const BANKS: readonly BankId[] = ['gold', 'faith'];
 
 /** What a bank is called when it leads its own figure: "Treasury 437 (+21)". */
-export const BANK_LABEL: Readonly<Record<BankId, string>> = {
+const BANK_LABEL: Readonly<Record<BankId, string>> = {
   gold: 'Treasury',
   faith: 'Faith',
   culture: 'Culture',
@@ -57,7 +57,7 @@ export const BANK_UNIT: Readonly<Record<BankId, string>> = {
 };
 
 /** One bank as a screen shows it: what is held and what arrives each turn. */
-export interface BankFigure {
+interface BankFigure {
   bank: BankId;
   held: number;
   perTurn: number;

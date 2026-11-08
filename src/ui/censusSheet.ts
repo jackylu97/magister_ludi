@@ -112,7 +112,7 @@ export function censusRankMark(place: number): string {
 }
 
 /** One seat's line, as the sheet prints it. Numbers and words, no sim types. */
-export interface CensusSeatLine {
+interface CensusSeatLine {
   playerId: number;
   name: string;
   /** The seat's diorama ink, for the swatch. */
@@ -130,7 +130,7 @@ export interface CensusSeatLine {
 }
 
 /** The Triumph the leader took, as the sheet prints it inside itself. */
-export interface CensusTriumphLine {
+interface CensusTriumphLine {
   name: string;
   /** The row's own cause line. */
   text: string;
@@ -237,7 +237,7 @@ export interface CensusSheet {
   dispose(): void;
 }
 
-export interface CensusSheetOptions {
+interface CensusSheetOptions {
   overlay: HTMLElement;
   body: HTMLElement;
   closeButton: HTMLElement;

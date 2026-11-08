@@ -109,7 +109,7 @@ export function recordWarLoss(
 }
 
 /** One enemy's line of an empire's war weariness. */
-export interface WearinessLine {
+interface WearinessLine {
   /** The enemy this line is about. */
   enemyId: number;
   /** Points this empire lost to that enemy inside the window. */

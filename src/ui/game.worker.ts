@@ -60,7 +60,7 @@ export type GameWorkerReply =
  * hundred and twenty of these; per command it would send four thousand, which
  * is a message pump rather than a progress bar.
  */
-export interface GameWorkerProgress {
+interface GameWorkerProgress {
   kind: 'progress';
   turn: number;
 }

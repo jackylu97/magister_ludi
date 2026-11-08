@@ -193,7 +193,7 @@ export interface BeadAward {
  * be once per game (`age` 0) or once per age of the world's clock, and a
  * reckoning is taken once for each age it closes.
  */
-export function beadClaimed(state: GameState, id: BeadCardId, age: number): boolean {
+function beadClaimed(state: GameState, id: BeadCardId, age: number): boolean {
   return state.beads.claimed.some((claim) => claim.id === id && claim.age === age);
 }
 
@@ -783,7 +783,7 @@ function windfallCities(state: GameState, player: Player, where: string): City[]
  * be a second place the citizen a card promises could fail to arrive. It is the
  * one `switch` on a lump, and it stays one.
  */
-export function payWindfall(state: GameState, player: Player, windfall: BeadWindfall): boolean {
+function payWindfall(state: GameState, player: Player, windfall: BeadWindfall): boolean {
   const amount = Math.max(0, Math.floor(windfall.amount));
   if (amount === 0) return false;
   const cities = windfallCities(state, player, windfall.where);
@@ -983,7 +983,7 @@ export function awardOrderBeads(
  * A **report**, like everything else in this file: by the time anybody reads it
  * the reckonings are on the register and `state.winnerId` is written.
  */
-export interface GreatWorkClose {
+interface GreatWorkClose {
   /** The empire that raised the Opus. */
   playerId: number;
   /** The town it stands in. */
@@ -1082,7 +1082,7 @@ export function closeTheGreatWork(state: GameState, city: City): GreatWorkClose 
  */
 
 /** What the clock phase writes into. `TurnReport`'s two bead fields, no more. */
-export interface BeadReport {
+interface BeadReport {
   beads: BeadAward[];
   beadAgeOpened?: BeadAge;
 }
@@ -1275,7 +1275,7 @@ export function beadsSince(state: GameState, lengths: readonly number[]): BeadAw
 }
 
 /** One bead that pays a cap, and what it pays. See `beadCapEffects`. */
-export interface BeadCapLine {
+interface BeadCapLine {
   id: BeadCardId;
   name: string;
   effects: readonly CardEffect[];

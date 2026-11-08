@@ -123,7 +123,7 @@ export function canFormGuild(city: City, idle = 0): boolean {
  * What one specialist of this family pays its city every turn, as the rules
  * table declares it.
  */
-export function specialistPay(family: SpecialistFamily): ResourceYieldBag {
+function specialistPay(family: SpecialistFamily): ResourceYieldBag {
   return GUILDS.pays[family];
 }
 
@@ -159,7 +159,7 @@ export interface SpecialistYieldLine {
  * test that reads the fold reads the same words a player does. Every family's
  * name takes a plain `s`; the day one does not, this is the one place to say so.
  */
-export function specialistNoun(family: SpecialistFamily, count: number): string {
+function specialistNoun(family: SpecialistFamily, count: number): string {
   return count === 1 ? family : `${family}s`;
 }
 

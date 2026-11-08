@@ -157,7 +157,7 @@ export function rivalPersona(rival: number): string {
 }
 
 /** What the Seats stepper cannot say about the table on its own. */
-export interface RosterOptions {
+interface RosterOptions {
   /**
    * The Opponent picker's answer. Asked of the two-seat game alone
    * (`seatsAskPersona`) — a larger table deals its rivals their own postures.

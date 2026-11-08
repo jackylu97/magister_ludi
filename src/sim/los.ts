@@ -36,7 +36,7 @@ import { isWaterTerrain, moveCost } from './terrainData';
  * rather than a distance, because `hexLine` is pure hex math and knows nothing
  * about cylinders.
  */
-export function nearestCopy(map: GameMap, from: Hex, to: Hex): Hex {
+function nearestCopy(map: GameMap, from: Hex, to: Hex): Hex {
   let best = to;
   let bestDistance = Infinity;
   for (let k = -1; k <= 1; k++) {

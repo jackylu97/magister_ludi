@@ -68,7 +68,7 @@ const VIGNETTE = VIEW3D.vignette;
 const SQRT3 = Math.sqrt(3);
 
 /** A projected point, in viewport CSS pixels. */
-export interface ScreenXY {
+interface ScreenXY {
   x: number;
   y: number;
 }

@@ -55,7 +55,7 @@ import type { DiscoveryKind } from '../sim/discoveryData';
  * A separate name because the two tables answer different questions — see the
  * module docblock — and a shared one would make `siteMark('wheat')` typecheck.
  */
-export interface SiteMark {
+interface SiteMark {
   /** What the mark is a picture of. The row `CREDITS.md` prints. */
   note: string;
   paths: readonly MarkPath[];

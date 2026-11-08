@@ -813,7 +813,7 @@ function siteGround(ctx: ValueContext): SiteGround | null {
  * prices two hundred candidates whose rings overlap almost completely: the walk
  * is the map's workable hexes once, not once per site.
  */
-export interface HexPromise {
+interface HexPromise {
   improvement: ImprovementId;
   delta: TileYield;
   /** The turn the technology that opens it would land. Nought when held. */
@@ -918,7 +918,7 @@ function surveyEntry(
  * on it by `plannedRiderTerms`, and counting it here as well would pay for the
  * same bank twice.
  */
-export interface RenewalTownFold {
+interface RenewalTownFold {
   cityId: number;
   name: string;
   /** Weighted worth per turn, in the one currency. Folds from `terms`. */
@@ -926,7 +926,7 @@ export interface RenewalTownFold {
   terms: ValueTerm[];
 }
 
-export interface RenewalFold {
+interface RenewalFold {
   /** One entry per town of this empire whose fold the node moves. */
   towns: RenewalTownFold[];
   /** The empire's total. The fold of `terms`. */

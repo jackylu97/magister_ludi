@@ -61,7 +61,7 @@ import {
 import type { CardLine, ChairType, DeckId } from '../sim/statecraftData';
 
 /** One mark, plus the sentence that says what it depicts. Structurally `SiteMark`. */
-export interface LineMark {
+interface LineMark {
   /** What the mark is a picture of. */
   note: string;
   paths: readonly MarkPath[];

@@ -88,7 +88,7 @@ export const LEADER_UNIQUE_OPEN = 'Yours to raise, in any city that may build it
 export const LEADER_UNIQUE_OPEN_GROUND = 'Yours to cut, on any of your hexes its ground will take.';
 
 /** One line of the leader's ledger: what pays, what it reads, what it is worth. */
-export interface LeaderLedgerLine {
+interface LeaderLedgerLine {
   /** The evaluator's own label — "Leader · the Qhapaq Ñan". */
   source: string;
   /**
@@ -219,13 +219,13 @@ export function foldLeaderLedger(
 }
 
 /** One of the two rules, with what it is paying the empire as the board stands. */
-export interface LeaderAbilityRow extends LeaderAbilityFace {
+interface LeaderAbilityRow extends LeaderAbilityFace {
   /** The books' own lines carrying this rule's id. Gathered, never priced. */
   lines: LeaderLedgerLine[];
 }
 
 /** One of the two rows nobody else may raise, and where this seat stands with it. */
-export interface LeaderUniqueRow extends LeaderUniqueFace {
+interface LeaderUniqueRow extends LeaderUniqueFace {
   /** The eyebrow — "Unique unit" · "Unique building". */
   word: string;
   /** `isUnlocked`'s own answer for this seat, this turn. */
@@ -235,7 +235,7 @@ export interface LeaderUniqueRow extends LeaderUniqueFace {
 }
 
 /** One of the figure's towns, and whether the realm has founded it. */
-export interface LeaderCityRow {
+interface LeaderCityRow {
   name: string;
   founded: boolean;
 }
@@ -308,7 +308,7 @@ export function leaderCityRows(state: GameState, playerId: number): LeaderCityRo
 }
 
 /** The figure's two inks said in words — the row's own first cells. */
-export function leaderColorWords(state: GameState, playerId: number): [string, string] | null {
+function leaderColorWords(state: GameState, playerId: number): [string, string] | null {
   const leader = playerById(state, playerId)?.leader;
   if (leader === undefined) return null;
   return [...leaderDef(leader).colors.names] as [string, string];
@@ -325,7 +325,7 @@ export interface LeaderSheet {
   dispose(): void;
 }
 
-export interface LeaderSheetOptions {
+interface LeaderSheetOptions {
   overlay: HTMLElement;
   body: HTMLElement;
   closeButton: HTMLElement;

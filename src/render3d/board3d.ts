@@ -474,7 +474,7 @@ const AFLOAT: SculptId = 'boat';
  * is every other row here and the reason this is optional rather than a second
  * table.
  */
-export interface MiniSculpt {
+interface MiniSculpt {
   cls: MiniClass;
   build: MiniFactory;
   laden?: SculptId;
@@ -1582,7 +1582,7 @@ export class BoardGeometry {
   }
 }
 
-export interface Bounds {
+interface Bounds {
   minX: number;
   maxX: number;
   minZ: number;

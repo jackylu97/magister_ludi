@@ -66,7 +66,7 @@ export interface CommissionRail {
   dispose(): void;
 }
 
-export interface CommissionRailOptions {
+interface CommissionRailOptions {
   getGame: () => Game;
   localPlayerId: () => number;
   /** Opens the government sheet at this card. */
@@ -108,7 +108,7 @@ export function moreWords(more: number): string {
 export const FULFILLED_WORDS = 'Fulfilled · reward paid';
 
 /** One chip's worth of reading: plain data, so the fingerprint is a string compare. */
-export interface CommissionChip {
+interface CommissionChip {
   card: OrderId;
   name: string;
   /** The card's type's ink, for `data-ink` (batch C1). */

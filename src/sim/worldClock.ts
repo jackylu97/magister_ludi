@@ -57,7 +57,7 @@ import { RULES } from './rulesData';
 import { type TechAge, LAST_TECH_AGE, TECH_AGES, highestAge } from './techData';
 
 /** The age a world begins in. The chart's own first, never a numeral here. */
-export const FIRST_TECH_AGE: TechAge = TECH_AGES[0]!;
+const FIRST_TECH_AGE: TechAge = TECH_AGES[0]!;
 
 /** Every seat the clock counts: real, and still in the game. */
 function livingSeats(state: GameState): Player[] {
@@ -125,7 +125,7 @@ export function currentWorldAge(state: GameState): TechAge {
 }
 
 /** A countdown, as the age card prints it. `null` when no age is closing. */
-export interface AgeCountdown {
+interface AgeCountdown {
   /** The age that is closing. */
   age: TechAge;
   /** The absolute turn it closes on. */

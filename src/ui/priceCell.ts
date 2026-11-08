@@ -47,7 +47,7 @@ import { refusalMarkElement } from './refusalLine';
 import { setYieldText } from './yieldMark';
 
 /** The bank a price is paid from. The purchase gate's own three. */
-export type PriceBank = PurchaseCurrency;
+type PriceBank = PurchaseCurrency;
 
 /**
  * The banks the price column asks for a price, in the order a row's cells
@@ -65,7 +65,7 @@ export type PriceLook =
   | { look: 'none'; bank: PriceBank; price: number; refusal: string };
 
 /** What a gate said about one price: the figure, the bank, and the refusal if any. */
-export interface PriceGate {
+interface PriceGate {
   bank: PriceBank;
   price: number;
   /** The gate's sentence, or `null` when it would take the purchase. */
@@ -178,7 +178,7 @@ export function priceHeadElement(banks: readonly PriceHeadBank[]): HTMLElement {
 }
 
 /** What drawing one cell needs besides its look. */
-export interface PriceCellOptions {
+interface PriceCellOptions {
   /** The thing's name, for the spoken label: "Buy Settler outright for 112 gold". */
   name: string;
   /**

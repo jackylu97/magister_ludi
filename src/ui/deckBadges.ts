@@ -72,7 +72,7 @@ export type { DeckFace };
 export const GENERIC_WORD = 'Generic';
 
 /** The mark a charter row wears beside its deck. */
-export const CHARTER_WORD = 'Charter';
+const CHARTER_WORD = 'Charter';
 
 /**
  * **What a charter is, said where the choice is made.**
@@ -91,7 +91,7 @@ export const CHARTER_CHIP = 'Charter — takes no chair';
  * One chip under a card's name: the word on it, and the key the stylesheet
  * inks it by. See the module docblock for why a tone is a string.
  */
-export interface OrderBadge {
+interface OrderBadge {
   label: string;
   /** A rarity, or `'charter'`. Absent draws the plain chip. */
   tone?: string;
@@ -222,7 +222,7 @@ export const BAND_NUMERAL: Readonly<Record<Band, string>> = {
 };
 
 /** The words at a face's foot: its deck, both of its decks, or "Generic" for a card of none. */
-export function orderDeckWords(def: { decks: readonly DeckId[] }): string {
+function orderDeckWords(def: { decks: readonly DeckId[] }): string {
   return def.decks.length === 0 ? GENERIC_WORD : def.decks.map(deckWord).join(' · ');
 }
 

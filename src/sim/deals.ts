@@ -196,7 +196,7 @@ export function termsAreEmpty(terms: DealTerms): boolean {
  * and has nothing to expire. A tribute, a lent seam and a right of way are the
  * three that go on being true, and they are what `untilTurn` is for.
  */
-export function termsAreOngoing(terms: DealTerms): boolean {
+function termsAreOngoing(terms: DealTerms): boolean {
   return (
     (terms.goldPerTurn ?? 0) > 0 ||
     (terms.luxuries ?? []).length > 0 ||
@@ -220,7 +220,7 @@ export function dealIsOngoing(give: DealTerms, take: DealTerms): boolean {
  * bargain as struck is in the log, which is where a record of what happened
  * belongs.
  */
-export function ongoingPart(terms: DealTerms): DealTerms {
+function ongoingPart(terms: DealTerms): DealTerms {
   const kept: DealTerms = {};
   if ((terms.goldPerTurn ?? 0) > 0) kept.goldPerTurn = terms.goldPerTurn;
   if ((terms.luxuries ?? []).length > 0) kept.luxuries = [...terms.luxuries!];
@@ -236,7 +236,7 @@ export function ongoingPart(terms: DealTerms): DealTerms {
  * the broom has got to it, so the comparison lives here once and nothing
  * downstream ever compares a turn itself.
  */
-export function dealIsLive(state: GameState, deal: DealState): boolean {
+function dealIsLive(state: GameState, deal: DealState): boolean {
   return state.turn < deal.untilTurn;
 }
 
@@ -407,7 +407,7 @@ export function dealPartnerSeats(state: GameState, playerId: number): number[] {
 }
 
 /** One turn's tribute, as a line in somebody's ledger. */
-export interface TributeLine {
+interface TributeLine {
   /** "Tribute to the Crimson Banner" · "Tribute from the Crimson Banner". */
   source: string;
   /** Signed: a tribute paid is negative, a tribute received positive. */

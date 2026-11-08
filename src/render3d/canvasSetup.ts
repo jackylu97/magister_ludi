@@ -69,7 +69,7 @@ export function watchPixelRatio(ratio: number, onChange: () => void): () => void
 }
 
 /** What this browser's WebGL can do, asked before a renderer is built. */
-export interface GraphicsSupport {
+interface GraphicsSupport {
   /** A WebGL2 context could be created at all. three.js r185 needs one. */
   webgl2: boolean;
   /**

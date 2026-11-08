@@ -205,7 +205,7 @@ function bfsDistances(map: GameMap, member: Uint8Array, sources: readonly number
 }
 
 /** Every tile's continent, plus which of them were carved rather than attached. */
-export interface ContinentMap {
+interface ContinentMap {
   /** Continent id per tile index. Every tile has one — water included. */
   of: Int32Array;
   /** How many continents the map has. */
@@ -753,7 +753,7 @@ export function dealContinentLuxuries(
  * `1` from a leaderless world, and then the draw is the draw it always was, to
  * the same dice.
  */
-export type LuxuryHandBias = (continent: number, id: ResourceId) => number;
+type LuxuryHandBias = (continent: number, id: ResourceId) => number;
 
 /** The world with nobody's thumb on it. */
 const NO_HAND_BIAS: LuxuryHandBias = () => 1;
@@ -766,7 +766,7 @@ const NO_HAND_BIAS: LuxuryHandBias = () => 1;
  * this kind* (can it seat a real seam of it) and *how rare is somewhere that
  * can* (which is what makes the scarce kinds land where they can land).
  */
-export interface LuxuryGround {
+interface LuxuryGround {
   /** Can this continent seat `luxuryMinCopiesPerContinent` tiles of this kind? */
   canHost(continent: number, id: ResourceId): boolean;
   /** How many continents can, map-wide. */

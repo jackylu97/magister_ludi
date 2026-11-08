@@ -87,7 +87,7 @@ import { isWonder } from './buildingData';
  * hands its argument straight to `awardBeadOccasion`. That hand-off now
  * typechecks by construction: a triumph occasion *is* an occasion.
  */
-export type TriumphOccasion = Extract<Occasion, TriumphTriggerKind>;
+type TriumphOccasion = Extract<Occasion, TriumphTriggerKind>;
 
 /** What an award did, for the line the interface announces it in. */
 export interface TriumphAward {

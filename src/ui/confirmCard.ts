@@ -55,7 +55,7 @@ export interface ConfirmRequest {
 }
 
 /** The request with every default filled in — what the card actually draws. */
-export interface ConfirmFace {
+interface ConfirmFace {
   title: string;
   body: string;
   confirmLabel: string;
@@ -81,7 +81,7 @@ export function confirmFace(request: ConfirmRequest): ConfirmFace {
 }
 
 /** The two answers. There is no third — a question left open is simply open. */
-export type ConfirmAnswer = 'confirm' | 'cancel';
+type ConfirmAnswer = 'confirm' | 'cancel';
 
 /**
  * Which answer a key is, or `null` for every key this card has no opinion
@@ -106,7 +106,7 @@ export function confirmAnswer(key: string): ConfirmAnswer | null {
  * in the same tick as a click on Disband cannot let two units go. Answering a
  * gate that is not open does nothing and says so.
  */
-export interface ConfirmGate {
+interface ConfirmGate {
   readonly isOpen: boolean;
   /** Puts a question. A second `open` replaces the first, unanswered. */
   open(onConfirm: () => void): void;

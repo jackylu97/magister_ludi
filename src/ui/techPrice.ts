@@ -33,7 +33,7 @@ export function techCostFor(state: GameState, player: Player, tech: TechId): num
 }
 
 /** One printed line of a price list. */
-export interface PriceLine {
+interface PriceLine {
   /** What the line is, as the simulation labels it: "Column 7", "Charter +50%". */
   label: string;
   /** Beakers this line adds. The first line is the column price itself. */
@@ -46,7 +46,7 @@ export interface PriceLine {
 }
 
 /** A technology's whole price, ready to print. */
-export interface TechPriceList {
+interface TechPriceList {
   lines: PriceLine[];
   /** The fold of `lines`, which is the figure on the node's face. */
   total: number;

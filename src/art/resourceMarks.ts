@@ -106,7 +106,7 @@ export const MARK_STROKE = 6.5;
  * file uses it any more — see the module docblock on why the resource set has no
  * fills left — but `heraldryMarks.ts` and `lineMarks.ts` do, through `solid`.
  */
-export const MARK_STROKE_FILLED = 5.2;
+const MARK_STROKE_FILLED = 5.2;
 
 /**
  * The grid **every resource mark** is drawn on: upstream's 24, not the house 64.
@@ -160,7 +160,7 @@ export interface MarkPath {
 }
 
 /** One resource's drawing, plus the sentence that says what it depicts. */
-export interface ResourceMark {
+interface ResourceMark {
   /** What the mark is a picture of. The row `CREDITS.md` prints. */
   note: string;
   paths: readonly MarkPath[];
@@ -278,7 +278,7 @@ export function drop(cx: number, cy: number, halfW: number, height: number): str
  *
  * `taper` is how much narrower the top edge is, as a fraction of the half-width.
  */
-export function ingot(
+function ingot(
   cx: number,
   cy: number,
   halfW: number,
@@ -299,7 +299,7 @@ export function ingot(
 }
 
 /** A stem bowed sideways by `bend`: one quadratic, foot first. */
-export function stalk(
+function stalk(
   x0: number,
   y0: number,
   x1: number,

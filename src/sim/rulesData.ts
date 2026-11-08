@@ -27,7 +27,7 @@ import type { TechId } from './techData';
 import type { TileYieldSpec } from './terrainData';
 import type { UnitSize, UnitTypeId } from './unitData';
 
-export interface GameRules {
+interface GameRules {
   /** Turn number a new game starts on. */
   startingTurn: number;
   /** First id handed out by the entity allocator; ids below it are reserved. */
@@ -36,7 +36,7 @@ export interface GameRules {
   maxPlayers: number;
 }
 
-export interface MovementRules {
+interface MovementRules {
   /**
    * Floor applied to every computed step cost, so no terrain combination can
    * ever be free (and therefore no zero-cost cycle can exist for the pathfinder).
@@ -118,7 +118,7 @@ export interface MovementRules {
   shoreCrossing: 'all' | number;
 }
 
-export interface ExploreRules {
+interface ExploreRules {
   /**
    * How many tiles an auto-exploring unit's search may examine before giving
    * up (`exploreSearch` in `explore.ts`).
@@ -133,7 +133,7 @@ export interface ExploreRules {
   searchLimit: number;
 }
 
-export interface StackingRules {
+interface StackingRules {
   /**
    * How many units of each `UnitCategory` may occupy one tile. At 1 this is the
    * Civ V rule: one military *and* one civilian share a tile happily, two
@@ -149,7 +149,7 @@ export interface StackingRules {
  *
  * See `src/sim/visibility.ts` for the model these two numbers feed.
  */
-export interface VisibilityRules {
+interface VisibilityRules {
   /** Extra hexes of sight a unit gains for standing on high ground. */
   hillsBonus: number;
   /**
@@ -161,7 +161,7 @@ export interface VisibilityRules {
   citySight: number;
 }
 
-export interface HealingRules {
+interface HealingRules {
   /** Hit points restored to a unit that spent none of its movement. */
   perTurnIfRested: number;
 }
@@ -175,7 +175,7 @@ export interface HealingRules {
  * worth the same at strength 8 as at strength 30, so the roster can grow into
  * later eras without the early game becoming a rounding error.
  */
-export interface CombatRules {
+interface CombatRules {
   /** Damage an evenly-matched attack deals at the midpoint roll. */
   baseDamage: number;
   /** Exponent on the strength difference: `e ^ (k · (strA − strB))`. */
@@ -263,7 +263,7 @@ export type RankId = 'veteran' | 'elite';
  * rank starts, what each is worth in a fight, and how far fights with the
  * barbarians can take a unit.
  */
-export interface RankRules {
+interface RankRules {
   /**
    * Experience for surviving a fight, attacking or defending. A ranged attacker
    * that takes no counter-blow has still survived a fight.
@@ -285,7 +285,7 @@ export interface RankRules {
 }
 
 /** One rank's figures. */
-export interface RankRung {
+interface RankRung {
   /** The experience at which a unit holds this rank. */
   experience: number;
   /**
@@ -308,7 +308,7 @@ export interface RankRung {
  * soldier caught on the water loses, and — since the shore pass of 2026-09-09 —
  * what it costs to fight across the waterline in either direction.
  */
-export interface NavalRules {
+interface NavalRules {
   /**
    * Movement points a **hit-and-run** attack spends, in place of emptying the
    * purse. See `UnitDef.hitAndRun`, which is the marker; nothing else in the
@@ -361,7 +361,7 @@ export interface NavalRules {
  * because those describe *an improvement* rather than the system — the same
  * split `combat` makes with `data/units.json`.
  */
-export interface ImprovementRules {
+interface ImprovementRules {
   /**
    * Gold the pillaging player's treasury gains for tearing one improvement out
    * of somebody else's ground.
@@ -481,7 +481,7 @@ export interface HexMarkRule {
  * be a gift with no way to refuse it, which is precisely what the deferral of
  * 2026-08-28 was waiting on diplomacy to fix.
  */
-export interface InternationalRouteRules {
+interface InternationalRouteRules {
   /** 🔬 the sender's empire banks per turn, flat. */
   science: number;
   /** 🎭 the sender's empire banks per turn, flat. */
@@ -525,7 +525,7 @@ export interface InternationalRouteRules {
  * fixed reach, and what varies is the board: a trading post at each end buys
  * three more turns of march, and roads buy the rest by making the march cheaper.
  */
-export interface TradeRules {
+interface TradeRules {
   /**
    * How many turns a route pays before it lapses, counted from the turn the
    * caravan was sent (`Unit.trade.expiresTurn`, an **absolute** turn — the
@@ -683,7 +683,7 @@ export interface TradeRules {
  * flat costs so that a designer retuning what a captured city costs at all
  * (`meters.authority.capturedCity`) moves both readings at once.
  */
-export interface WarRules {
+interface WarRules {
   /**
    * Turns of truce a peace deal buys, counted from the turn the peace resolved
    * — an **absolute** expiry once it is written down (`Truce.untilTurn`, the
@@ -750,7 +750,7 @@ export interface WarRules {
  * inside the window, minus the points that enemy lost to this empire inside
  * the same window, never below zero.
  */
-export interface WearinessRules {
+interface WearinessRules {
   /**
    * How many turns a loss counts for. A loss on turn `t` counts on turns `t`
    * to `t + windowTurns − 1` and not after. Making peace does not end it early.
@@ -776,7 +776,7 @@ export interface WearinessRules {
  * (`explainPacification`), one line per reason, and each line's figure is one of
  * the rates below.
  */
-export interface UnrestRules {
+interface UnrestRules {
   /**
    * Pacification a town needs per citizen it had on the turn it was taken. The
    * target is this times that population, so a large town takes longer to
@@ -831,7 +831,7 @@ export interface UnrestRules {
  * a camp lands on, and how many units the new camp starts with
  * (`campStartUnitsMin` to `campStartUnitsMax`).
  */
-export interface BarbarianRules {
+interface BarbarianRules {
   /** First turn a camp may appear at all. The opening is meant to be quiet. */
   firstCampTurn: number;
   /**
@@ -1031,7 +1031,7 @@ export function isCitizenFocus(value: unknown): value is CitizenFocus {
  * (`explainTilePrice` in `cities.ts`). A single opaque formula could not be
  * printed honestly.
  */
-export interface TilePurchaseRules {
+interface TilePurchaseRules {
   /**
    * Base price by ring, indexed by hex distance from the city centre; anything
    * beyond the last entry pays the last entry. Ring 0 is the centre, which is
@@ -1066,7 +1066,7 @@ export interface TilePurchaseRules {
  * `den × (n + 1) <= num × population` — which is integer arithmetic end to end
  * and is what keeps hard rule 2 true of a rule expressed as a proportion.
  */
-export interface Fraction {
+interface Fraction {
   num: number;
   den: number;
 }
@@ -1109,7 +1109,7 @@ export interface Fraction {
  * three and a village of six at one, whatever the curve does, and the base is
  * then free to be a *pace* rather than a brake.
  */
-export interface GuildRules {
+interface GuildRules {
   /** What the *first* specialist in a city costs the bar. Sets the first turn. */
   base: number;
   /** The linear term, per specialist already held. `growthLinear`'s twin. */
@@ -1155,7 +1155,7 @@ export interface GuildRules {
  * The levy's two limits (batch L, `levies.ts`). What a levy buys comes from the
  * cards; these say when a town may levy at all.
  */
-export interface LevyRules {
+interface LevyRules {
   /**
    * Turns a town waits between levies. All levies in a town share it, and a
    * card may shorten it for one use (`CardLevyEffect.everyAtWar`).
@@ -1165,7 +1165,7 @@ export interface LevyRules {
   minPopulation: number;
 }
 
-export interface CityRules {
+interface CityRules {
   /** How far from its centre a city may assign citizens, in hexes. */
   workRadius: number;
   /** How far from its centre a city's borders may ever reach, in hexes. */
@@ -1362,7 +1362,7 @@ export interface CityRules {
  * ground yields, plus a resource this empire can actually see, minus a bare
  * stretch of water, minus a penalty for reaching further out.
  */
-export interface ExpansionRules {
+interface ExpansionRules {
   /** Weights `yieldScore` folds a candidate tile's yield with. */
   yieldWeights: CitizenWeights;
   /**
@@ -1394,7 +1394,7 @@ export interface ExpansionRules {
  * flat list, because a designer retunes one side of a meter at a time: "the
  * palace is too generous" and "cities are too cheap" are different edits.
  */
-export interface HappinessRules {
+interface HappinessRules {
   /** Happiness the capital supplies just by being the capital. */
   palace: number;
   /**
@@ -1419,7 +1419,7 @@ export interface HappinessRules {
   demandPerPop: number;
 }
 
-export interface AuthorityRules {
+interface AuthorityRules {
   /**
    * Capacity the capital supplies. **Six** since 2026-09-08 (the user: "have
    * the palace give +6 starting authority. That way the player can settle 3
@@ -1460,7 +1460,7 @@ export interface MeterStep {
   percent: number;
 }
 
-export interface MeterRules {
+interface MeterRules {
   happiness: HappinessRules;
   authority: AuthorityRules;
   /**
@@ -1494,7 +1494,7 @@ export interface MeterRules {
   borderFreeze: MeterStep[];
 }
 
-export interface ResearchRules {
+interface ResearchRules {
   /**
    * Technologies every player begins the game already holding.
    *
@@ -1551,7 +1551,7 @@ export interface ResearchRules {
  * A project is deliberately outside all of it (`queueItemCost`, `cities.ts`): a
  * project's cost is the size of one conversion, not the price of a thing.
  */
-export interface ProductionRules {
+interface ProductionRules {
   /**
    * **What a building of each size is worth at the first column**, in hammers.
    * The user's own four, ruled 2026-09-07:
@@ -1720,7 +1720,7 @@ export interface ProductionRules {
  * an institution costs, how badly a bankrupt empire thinks, and how deep the
  * hole has to be before the creditors take a piece.
  */
-export interface UpkeepRules {
+interface UpkeepRules {
   /**
    * Gold per turn a combat unit costs, **per age of the technology that unlocks
    * it** — so a warrior is 1, a swordsman 2, a knight 3. A rate rather than a
@@ -1784,7 +1784,7 @@ export interface UpkeepRules {
  * cheap and the exponent adds the tail back. The rungs and the measurement that
  * confirmed them are `docs/great-people.md`.
  */
-export interface RenownRules {
+interface RenownRules {
   /** What the first great person costs — the ladder's floor. */
   base: number;
   /** What each one already recruited adds, straight. */
@@ -1803,7 +1803,7 @@ export interface RenownRules {
  * applied to a payout with no card behind it — a hurry that was worth a granary
  * in Æra I should still be worth something in Æra III.
  */
-export interface GreatPeopleRules {
+interface GreatPeopleRules {
   /**
    * The act's age, per technology (user, 2026-08-30): every **flat** act figure
    * — the engineer's hammers, the merchant's gold — pays ×(1 + actPerTech ×
@@ -1899,7 +1899,7 @@ export interface GreatPeopleRules {
  * A fifth kind — the great people this block was widened for — is a key here and
  * a member there, and no third place.
  */
-export interface OfferRules {
+interface OfferRules {
   /** A Statecraft draft's **new** cards. The upgrade face is one, always. */
   order: number;
   /** The Doctrine triple dealt on adoption. */
@@ -1942,7 +1942,7 @@ export interface OfferRules {
  * Every one of these may be shifted by an enhancer belief through one shape
  * (`pressureRule`) read in one place (`explainPressure`).
  */
-export interface ReligionRules {
+interface ReligionRules {
   /** Faith banked in one town that buys one citizen's conversion. */
   pressurePerConvert: number;
   /** How far a holy site reaches, in hexes, and what it presses. */
@@ -2062,7 +2062,7 @@ export interface ReligionRules {
  * chooses its key by what it is about to do (`plantingCost`), so both rows are
  * live figures rather than one figure and one aspiration.
  */
-export interface ProphetChargeCosts {
+interface ProphetChargeCosts {
   foundReligion: number;
   plantHolySite: number;
   gainBelief: number;
@@ -2080,7 +2080,7 @@ export interface ProphetChargeCosts {
  * the moment it is decided, and nothing anywhere decrements anything — the
  * `TimedEffect` discipline, one system over.
  */
-export interface WagerRules {
+interface WagerRules {
   /**
    * How many turns an age is given to close once the world's mean has crossed
    * into the next one. Ten, the user's own figure (`docs/wager.md` §1).
@@ -2116,7 +2116,7 @@ export interface WagerRules {
  * `GameState.census.nextTurn`, and nothing anywhere decrements anything. The
  * `TimedEffect` discipline, three systems over.
  */
-export interface CensusRules {
+interface CensusRules {
   /** The shortest gap between two censuses, in turns. Thirteen (the user, §11). */
   min: number;
   /** The longest gap, in turns. Seventeen (the user, §11). Inclusive. */
@@ -2145,7 +2145,7 @@ export interface CensusRules {
  * table beside this one is the fault the settle audit named, and two of them
  * would put the marker on one hex and the settler on another.
  */
-export interface SiteRules {
+interface SiteRules {
   /**
    * How far a *young* town's appraisal reaches, in hexes.
    *
@@ -2234,7 +2234,7 @@ export interface SiteRules {
  * is still `floor(count × weight)`, so a card's first fifty food is worth one
  * point and nothing rounds up.
  */
-export interface ScoreRules {
+interface ScoreRules {
   /** Each town the empire holds when the score is asked. */
   perTown: number;
   /** Each citizen standing in those towns. */
@@ -2264,12 +2264,12 @@ export interface ScoreRules {
  * in a block above. What lands here decides how much of an answer the player is
  * shown, never what the answer is.
  */
-export interface UiRules {
+interface UiRules {
   /** How many recommended sites the settler lens marks at once. */
   recommendedSites: number;
 }
 
-export interface RulesConfig {
+interface RulesConfig {
   game: GameRules;
   movement: MovementRules;
   explore: ExploreRules;

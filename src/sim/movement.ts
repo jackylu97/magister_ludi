@@ -115,7 +115,7 @@ export function rerouteReport(unit: Unit, from: Cell, result: AdvanceResult): Re
   return { unitId: unit.id, ownerId: unit.ownerId, from: { col: from.col, row: from.row }, walked: result.walked };
 }
 
-export interface AdvanceResult {
+interface AdvanceResult {
   /** How many tiles the unit actually entered. */
   steps: number;
   /** True when the remaining order was abandoned because the route is gone. */

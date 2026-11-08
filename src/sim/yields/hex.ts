@@ -135,7 +135,7 @@ import { buildingTileLines, buildingsIrrigate } from '../buildingEffects';
  * so a card, a building or a belief pays on a resource from the same turn the
  * resource's own yield appears, and not before.
  */
-export type TileYieldKind = 'base' | 'override' | 'add';
+type TileYieldKind = 'base' | 'override' | 'add';
 
 export interface TileYieldContribution extends TileYield {
   /** Display label: the terrain, the feature, the resource, the tech. */

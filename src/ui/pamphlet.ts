@@ -66,7 +66,7 @@ import { BEAD_THRESHOLD, type TutorialStorage } from './tutorial';
 // --- the table ---------------------------------------------------------------
 
 /** One page's hero shot: a file under `public/pamphlet/`, captioned. */
-export interface PamphletPanel {
+interface PamphletPanel {
   /** The image path, absolute from the site root. The file may not exist yet. */
   image: string;
   /** What the shot holds — shown only while the file is missing. */
@@ -79,7 +79,7 @@ export interface PamphletPanel {
  * pins it — a page that needs a third sentence is a page that belongs in the
  * Compendium instead.
  */
-export interface PamphletPage {
+interface PamphletPage {
   /** Stable, for the shot list and the tests. Never printed. */
   id: string;
   title: string;
@@ -464,14 +464,14 @@ export function shouldShowPamphlet(seen: boolean, tutorialEnabled: boolean): boo
 
 // --- the first-run overlay ---------------------------------------------------
 
-export interface PamphletOverlayOptions {
+interface PamphletOverlayOptions {
   /** Where the memory lives — the same shelf the tutorial's uses. */
   storage: TutorialStorage;
   /** Where the overlay mounts — `document.body`. */
   root: HTMLElement;
 }
 
-export interface PamphletOverlay {
+interface PamphletOverlay {
   /** Whether this browser has already read it. */
   seen(): boolean;
   /**

@@ -195,7 +195,7 @@ import type { City } from './state';
  * all: it is what the card puts into happiness or authority itself, in points,
  * and it is a figure on the card's face beside the yields.
  */
-export type CardImpactKind = 'city' | 'empire' | 'meter' | 'knockOn' | 'occasion';
+type CardImpactKind = 'city' | 'empire' | 'meter' | 'knockOn' | 'occasion';
 
 /**
  * One reason a card changes what the realm makes — the shape the stamp is the

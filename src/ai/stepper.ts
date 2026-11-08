@@ -69,14 +69,14 @@ export interface BotStep {
   turnResolved: boolean;
 }
 
-export interface StepperOptions {
+interface StepperOptions {
   /** Where a refusal is said out loud. Defaults to `console.warn`, as the driver's does. */
   warn?: (message: string, detail?: unknown) => void;
   /** The policy asked for each decision. Defaults to `nextBotDecision`; see `DriveOptions.decide`. */
   decide?: typeof nextBotDecision;
 }
 
-export interface BotStepper {
+interface BotStepper {
   /**
    * Applies exactly one decision and returns it, or `null` when there is no seat
    * left to drive — every real seat is a person, eliminated, or has ended its

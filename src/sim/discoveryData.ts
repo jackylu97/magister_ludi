@@ -86,7 +86,7 @@ export const DISCOVERY_KINDS: readonly DiscoveryKind[] = [
  * **one function** and the placement pass grew one candidate rule rather than a
  * parallel list. A fifth layer is a JSON object.
  */
-export interface DiscoveryKindDef {
+interface DiscoveryKindDef {
   /** What it is called, in plain words. */
   name: string;
   /**
@@ -119,21 +119,21 @@ export interface DiscoveryKindDef {
  * toward the build — because those are the only two a city keeps. Gold, science,
  * culture and faith are the empire's and are `pool` effects.
  */
-export interface DiscoveryCityYieldEffect {
+interface DiscoveryCityYieldEffect {
   kind: 'cityYield';
   yield: 'food' | 'production';
   amount: number;
 }
 
 /** A lump into one of the empire's four banks. */
-export interface DiscoveryPoolEffect {
+interface DiscoveryPoolEffect {
   kind: 'pool';
   pool: 'gold' | 'science' | 'culture' | 'faith';
   amount: number;
 }
 
 /** A free unit, standing on the tile the discovery was claimed on. */
-export interface DiscoveryUnitEffect {
+interface DiscoveryUnitEffect {
   kind: 'unit';
   unitType: UnitTypeId;
 }
@@ -143,7 +143,7 @@ export type DiscoveryEffect =
   | DiscoveryPoolEffect
   | DiscoveryUnitEffect;
 
-export interface DiscoveryDef {
+interface DiscoveryDef {
   name: string;
   /** One line of flavour for the choice card. Never a rule. */
   flavor: string;
@@ -159,7 +159,7 @@ export interface DiscoveryDef {
 }
 
 /** How the two kinds of site are scattered over the land. */
-export interface DiscoveryPlacementConfig {
+interface DiscoveryPlacementConfig {
   /**
    * Sites dealt to *one* carved continent (`carveContinents`, the same regions
    * the luxury deal uses — see `discoveryPlacement.ts`), drawn from this range
@@ -222,7 +222,7 @@ export interface DiscoveryPlacementConfig {
   ocean: { sitesPer1000Water: number; minDistanceApart: number };
 }
 
-export interface DiscoveryData {
+interface DiscoveryData {
   placement: DiscoveryPlacementConfig;
   /** What each kind of site *is* — the gate and the ground. See `DiscoveryKindDef`. */
   kinds: Record<DiscoveryKind, DiscoveryKindDef>;

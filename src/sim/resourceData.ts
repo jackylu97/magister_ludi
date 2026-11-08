@@ -231,7 +231,7 @@ export type ResourceRule = Extract<
  * any effect can be told to scale with copies. Writing them once is what stops
  * `fromAge` meaning one thing on a yield shape and another on a happiness one.
  */
-export interface ResourceEffectModifiers {
+interface ResourceEffectModifiers {
   /**
    * The age this tier switches on, gated on the holder's `highestAge`. Absent
    * means "from the first turn".
@@ -461,7 +461,7 @@ export type ResourceEffect =
  * hex would be a design decision about what a luxury is, argued in
  * `docs/luxuries.md`, rather than a row that happens to load.
  */
-export type ResourceEmpirePays = CardPaysEffect & { where: 'empire'; basis?: 'flat' };
+type ResourceEmpirePays = CardPaysEffect & { where: 'empire'; basis?: 'flat' };
 
 /** Every effect shape's tag, for the loader's validation and for tests. */
 export const RESOURCE_EFFECT_KINDS: readonly ResourceEffect['kind'][] = [
@@ -491,7 +491,7 @@ export const RESOURCE_EFFECT_KINDS: readonly ResourceEffect['kind'][] = [
 ];
 
 /** Every rule a `rulePercent` may name. Validation, and the evaluator's switch. */
-export const RESOURCE_RULES: readonly ResourceRule[] = [
+const RESOURCE_RULES: readonly ResourceRule[] = [
   'happinessDemand',
   'borderCost',
   'growthCarryover',
@@ -517,7 +517,7 @@ const BUILDING_CATEGORY_SET: Record<BuildingCategory, true> = {
   faith: true,
 };
 
-export const RESOURCE_BUILDING_CATEGORIES = Object.keys(
+const RESOURCE_BUILDING_CATEGORIES = Object.keys(
   BUILDING_CATEGORY_SET,
 ) as readonly BuildingCategory[];
 
@@ -656,7 +656,7 @@ export interface ResourceDef {
   copiesPerSource?: [number, number];
 }
 
-export interface ResourceData {
+interface ResourceData {
   resources: Record<ResourceId, ResourceDef>;
 }
 

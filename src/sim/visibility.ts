@@ -75,7 +75,7 @@ export const EXPLORED = 1;
 export const VISIBLE = 2;
 
 /** One tile's level: 0 hidden, 1 explored, 2 visible. */
-export type VisibilityLevel = typeof HIDDEN | typeof EXPLORED | typeof VISIBLE;
+type VisibilityLevel = typeof HIDDEN | typeof EXPLORED | typeof VISIBLE;
 
 /**
  * A city as some player last saw it.
@@ -100,7 +100,7 @@ export interface CitySighting {
 }
 
 /** One tile whose level changed, in the delta a recompute reports. */
-export interface VisibilityChange {
+interface VisibilityChange {
   col: number;
   row: number;
   level: VisibilityLevel;
@@ -119,7 +119,7 @@ export interface VisibilityChange {
  * is how many eyes were flooded, `touched` how many tiles those floods asked
  * about — bounded by `sources × maxSightArea` by construction.
  */
-export interface VisibilityDelta {
+interface VisibilityDelta {
   became: VisibilityChange[];
   sources: number;
   touched: number;
@@ -227,7 +227,7 @@ export function sightOf(map: GameMap, unit: Unit, state?: GameState): number {
 }
 
 /** One eye: where it stands and how far it reaches. */
-export interface SightSource {
+interface SightSource {
   tile: Tile;
   radius: number;
 }

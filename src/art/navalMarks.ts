@@ -79,7 +79,7 @@ export const NAVAL_RIGS: readonly NavalRig[] = [1, 2, 3, 4, 5];
 export const NAVAL_CANTONS: readonly NavalCanton[] = ['chevrons', 'rook', 'crosshair'];
 
 /** One drawing, plus the sentence that says what it depicts. `SiteMark`'s shape. */
-export interface NavalMark {
+interface NavalMark {
   /** What the mark is a picture of. The row `CREDITS.md` prints. */
   note: string;
   paths: readonly MarkPath[];

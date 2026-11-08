@@ -247,7 +247,7 @@ import { round } from './decision';
 import { seatName } from '../sim/leaderData';
 
 /** What a step of a chain is: a row a town raises, a piece, or ground worked. */
-export type ChainStepKind = 'building' | 'unit' | 'rider';
+type ChainStepKind = 'building' | 'unit' | 'rider';
 
 /**
  * **One copy of a step, in the town that would raise it** — batch X1d, and the
@@ -275,7 +275,7 @@ export type ChainStepKind = 'building' | 'unit' | 'rider';
  * cards this empire has slotted. A University under a card that boosts
  * universities reads the boost, with no rule written anywhere in the bot.
  */
-export interface StepCopy {
+interface StepCopy {
   /** The town that would raise it. */
   cityId: number;
   /** Its name, for the label the feed prints. */
@@ -299,7 +299,7 @@ export interface StepCopy {
  * counted, so `towns` falls as the chain is executed and a step nobody owes
  * anything for is never made at all.
  */
-export interface ChainStep {
+interface ChainStep {
   kind: ChainStepKind;
   /** `BuildingId`, `UnitTypeId` or an `ImprovementId`, as a plain string. */
   id: string;
@@ -824,7 +824,7 @@ export function chainCompression(
  * its `cost` is the whole levy shortfall's hammers, so the division would answer
  * "three spears" rather than "one spear" for a step nobody is buying a copy of.
  */
-export function stepUnitCost(step: ChainStep): number {
+function stepUnitCost(step: ChainStep): number {
   return step.cost / Math.max(1, step.towns);
 }
 
@@ -1794,7 +1794,7 @@ export function expansionChain(
  * Nothing here walks the board: the chains are already built and hanging on the
  * context, so this is a fold over a list the decision has already paid for.
  */
-export function townChainShare(ctx: ValueContext): Appraisal {
+function townChainShare(ctx: ValueContext): Appraisal {
   const terms: ValueTerm[] = [];
   // **The new town's own queue.** It cannot raise every engine's every row at
   // once: it raises them one after another, so the cursor walks the steps in the
@@ -1910,7 +1910,7 @@ export function explainNextTown(state: GameState, player: Player, ctx: ValueCont
  * *rate* and the *close* are this module's estimates about that public number,
  * and both are crude in the way `beadRate` writes down.
  */
-export interface RaceRival {
+interface RaceRival {
   playerId: number;
   name: string;
   beads: number;
@@ -2224,7 +2224,7 @@ function rivalWords(rival: RaceRival | null): string {
 }
 
 /** The three shapes of row that carry the race forward. See `raceTerm`. */
-export type RaceRow =
+type RaceRow =
   | { kind: 'building'; id: BuildingId }
   | { kind: 'project'; id: ProjectId }
   | { kind: 'tech'; id: TechId };
@@ -2252,7 +2252,7 @@ export function racePays(row: RaceRow): boolean {
 }
 
 /** What one outstanding event of the race is worth — `chainStepShare`'s sibling. */
-export function raceStepShare(chain: BeadChain): number {
+function raceStepShare(chain: BeadChain): number {
   return chain.worth / Math.max(1, chain.stepsRemaining);
 }
 

@@ -108,12 +108,12 @@ const RANK_NAMES: Record<RankId, string> = {
 };
 
 /** The shape every reading here needs: a piece and whatever it has earned. */
-export interface ExperiencedUnit {
+interface ExperiencedUnit {
   experience?: number;
 }
 
 /** The shape a card's grant needs: a piece, whose it is, and what it is. */
-export interface DrilledUnit extends ExperiencedUnit {
+interface DrilledUnit extends ExperiencedUnit {
   ownerId: number;
   type: UnitTypeId;
 }
@@ -206,7 +206,7 @@ export function rankStrengthLines(unit: ExperiencedUnit): { source: string; amou
 }
 
 /** What a unit did in one fight, as far as experience is concerned. */
-export type ExperienceEvent = 'survived' | 'kill';
+type ExperienceEvent = 'survived' | 'kill';
 
 /**
  * **The experience a unit holds after one more fight**: the pure arithmetic of

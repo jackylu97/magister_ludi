@@ -156,14 +156,14 @@ export type GreatPersonTier = 'defining' | 'strong' | 'situational';
 export type LegacyRevocation = 'enemyEntersCapital' | 'happinessNegative' | 'ageAdvanced';
 
 /** The revocations, in table order. The sweep's iteration order. */
-export const LEGACY_REVOCATIONS: readonly LegacyRevocation[] = [
+const LEGACY_REVOCATIONS: readonly LegacyRevocation[] = [
   'enemyEntersCapital',
   'happinessNegative',
   'ageAdvanced',
 ];
 
 /** Is this a revocation the table knows? The guard a JSON row is checked against. */
-export function isLegacyRevocation(value: unknown): value is LegacyRevocation {
+function isLegacyRevocation(value: unknown): value is LegacyRevocation {
   return typeof value === 'string' && (LEGACY_REVOCATIONS as readonly string[]).includes(value);
 }
 
@@ -190,7 +190,7 @@ export function isLegacyRevocation(value: unknown): value is LegacyRevocation {
  * No figure here, ever. What a verb *pays* is `RULES.greatPeople`'s and is
  * printed beside these words by the preview that reads it.
  */
-export interface FamilyVerbs {
+interface FamilyVerbs {
   /** The burst, spent now. "Write a Treatise". */
   act: string;
   /** The ground, planted forever. "Found an Academy". */
@@ -206,7 +206,7 @@ export interface FamilyVerbs {
  * that hang off them, which is data. A sixth family would be a row here and a
  * member there, and the validator below refuses either one alone.
  */
-export interface FamilyDef {
+interface FamilyDef {
   verbs: FamilyVerbs;
 }
 
@@ -218,7 +218,7 @@ export const FAMILY_VERB_KINDS: readonly FamilyVerbKind[] = ['act', 'work'];
 
 export type GreatPersonId = keyof typeof greatPeopleJson.people & string;
 
-export interface GreatPersonDef {
+interface GreatPersonDef {
   name: string;
   family: Family;
   /** The roster age this name belongs to. See the docblock. */
@@ -276,12 +276,12 @@ export interface GreatPersonDef {
   revokedWhen?: LegacyRevocation;
 }
 
-export interface GreatPeopleData {
+interface GreatPeopleData {
   families: Record<Family, FamilyDef>;
   people: Record<GreatPersonId, GreatPersonDef>;
 }
 
-export const GREAT_PEOPLE = greatPeopleJson as unknown as GreatPeopleData;
+const GREAT_PEOPLE = greatPeopleJson as unknown as GreatPeopleData;
 
 /**
  * Every id in **file order**, which is the order every draw, every sweep and
@@ -317,7 +317,7 @@ export function isFamily(value: unknown): value is Family {
 }
 
 /** A family's row. Total over `Family` — the validator below makes it so. */
-export function familyDef(family: Family): FamilyDef {
+function familyDef(family: Family): FamilyDef {
   const def = GREAT_PEOPLE.families[family];
   if (!def) throw new Error(`Unknown family "${String(family)}"`);
   return def;

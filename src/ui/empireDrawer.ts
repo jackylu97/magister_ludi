@@ -154,7 +154,7 @@ export function drawerStep(depth: DrawerDepth, event: DrawerEvent): DrawerDepth 
 }
 
 /** What decides whether resting the pointer on the panel may open a peek. */
-export interface PeekConditions {
+interface PeekConditions {
   /** A mouse button is held, so the map is being dragged. */
   buttonsHeld: boolean;
   /** The pointer is a finger. Touch has no hover; a tap pins instead. */
@@ -200,7 +200,7 @@ export function beliefOwed(player: Player | undefined): boolean {
  * draft or a Doctrine offer), a charter to swear, a belief to choose, and a
  * strategic resource with no spare copy.
  */
-export type OwedDecision = 'card' | 'charter' | 'belief' | 'supply';
+type OwedDecision = 'card' | 'charter' | 'belief' | 'supply';
 
 /** Each cause, in the words the panel's accessible name uses. */
 export const OWED_WORDS: Readonly<Record<OwedDecision, string>> = {
@@ -213,9 +213,9 @@ export const OWED_WORDS: Readonly<Record<OwedDecision, string>> = {
 // --- the readings ------------------------------------------------------------
 
 /** Where the seat's research stands. */
-export type ResearchStage = 'learning' | 'choosing' | 'finished';
+type ResearchStage = 'learning' | 'choosing' | 'finished';
 
-export interface ResearchGlance {
+interface ResearchGlance {
   stage: ResearchStage;
   /** The technology being learnt, or `null` unless `stage` is `learning`. */
   name: string | null;
@@ -229,7 +229,7 @@ export interface ResearchGlance {
   next: string | null;
 }
 
-export interface DraftGlance {
+interface DraftGlance {
   /** Culture banked toward the next draft, as a whole number. */
   banked: number;
   /** What the next draft costs, discounts included (`nextDraftCost`). */
@@ -246,7 +246,7 @@ export interface DraftGlance {
   owed: 'card' | 'charter' | null;
 }
 
-export interface WagerGlance {
+interface WagerGlance {
   /** Bars on the table this age; nought when this age dealt none. */
   dealt: number;
   /** How many of them this seat has met. */
@@ -254,7 +254,7 @@ export interface WagerGlance {
 }
 
 /** Everything the panel and the drawer print for one seat. */
-export interface EmpireGlance {
+interface EmpireGlance {
   playerId: number;
   seatName: string;
   research: ResearchGlance;
@@ -384,14 +384,14 @@ function turnsPhrase(turns: number | null, never: string): string {
 }
 
 /** The research half of the panel's accessible name. */
-export function researchWords(research: ResearchGlance): string {
+function researchWords(research: ResearchGlance): string {
   if (research.stage === 'choosing') return 'nothing being researched';
   if (research.stage === 'finished') return 'every technology researched';
   return `researching ${research.name}, ${turnsPhrase(research.turns, 'no science being made')}`;
 }
 
 /** The draft half of the panel's accessible name. */
-export function draftWords(draft: DraftGlance): string {
+function draftWords(draft: DraftGlance): string {
   if (draft.turns === null) return 'no culture being made';
   if (draft.turns === 0) return 'next draft this turn';
   return `next draft in ${turnsPhrase(draft.turns, '')}`;
@@ -451,7 +451,7 @@ export function supplyFingerprint(rows: readonly CopyCount[], playerId: number):
 
 // --- the surface -------------------------------------------------------------
 
-export interface EmpireDrawerOptions {
+interface EmpireDrawerOptions {
   /** The panel, `#empire-panel`: one button. */
   panel: HTMLButtonElement;
   /** The drawer, `#empire-drawer`. Hidden with `hidden` while closed. */

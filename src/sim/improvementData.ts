@@ -260,7 +260,7 @@ export type ImprovementId =
 export type WorkFamily = Family | 'prophet';
 
 /** Is this a family whose piece plants a work — one of the five, or the prophet? */
-export function isWorkFamily(value: unknown): value is WorkFamily {
+function isWorkFamily(value: unknown): value is WorkFamily {
   return value === 'prophet' || isFamily(value);
 }
 
@@ -272,7 +272,7 @@ export function isWorkFamily(value: unknown): value is WorkFamily {
  * that replaced would have to know what it was replacing, which is the inline
  * adjustment Entry VIII exists to forbid.
  */
-export interface ImprovementUpgrade {
+interface ImprovementUpgrade {
   /** The technology that switches this on for its owner. */
   tech: TechId;
   /** Added to the tile's yield once the owner holds `tech`. */
@@ -313,7 +313,7 @@ export const HILLS_WAIVERS: readonly HillsWaiver[] = ['freshwater', 'ownResource
  * — and deliberately not the tile itself: two improvements never stand on one
  * hex, so "beside" is the only reading available.
  */
-export interface AdjacentImprovement {
+interface AdjacentImprovement {
   /** The improvement a neighbouring hex must carry. */
   improvement: ImprovementId;
   /** Terrains this widens `validTerrain` by, on a hex with such a neighbour. */
@@ -642,7 +642,7 @@ export interface ImprovementDef {
  * What clearing one feature costs and pays. See the module docblock for why this
  * is a table of its own rather than a seventh improvement.
  */
-export interface ChopDef {
+interface ChopDef {
   /** The technology a worker's owner must hold before the axe swings at all. */
   tech: TechId;
   /** Charges one clearing spends. The same currency a build spends. */
@@ -654,7 +654,7 @@ export interface ChopDef {
   yields: TileYieldSpec;
 }
 
-export interface ImprovementData {
+interface ImprovementData {
   improvements: Record<ImprovementId, ImprovementDef>;
   /** Which features a worker may clear, and what each one pays. May be empty. */
   chop: Partial<Record<FeatureId, ChopDef>>;
@@ -676,7 +676,7 @@ export interface ImprovementData {
  * down somewhere a designer can find them. What lives here is the gate, so that
  * nothing in `src/sim/` spells a tech id into a verb.
  */
-export interface ProspectDef {
+interface ProspectDef {
   /** The technology that opens the act. */
   tech: TechId;
 }

@@ -51,7 +51,7 @@ export interface NotificationsPanel {
   refresh(): void;
 }
 
-export interface NotificationsPanelOptions {
+interface NotificationsPanelOptions {
   /** The card. Hidden with `hidden` while closed, like every other popover. */
   panel: HTMLElement;
   /** The bar button that opens it, and carries the badge. */

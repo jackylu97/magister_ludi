@@ -98,13 +98,13 @@ const THRESHOLD_BEADS = `${numberWords(BEAD_THRESHOLD)} beads`;
  * safety, and the step table is asserted against the real command names by the
  * test rather than by the compiler.
  */
-export type StepAdvance =
+type StepAdvance =
   | { kind: 'next' }
   | { kind: 'command'; command: string }
   | { kind: 'select'; unit: string }
   | { kind: 'event'; event: string };
 
-export interface TutorialStep {
+interface TutorialStep {
   /** Stable, and the key the memory records as satisfied. */
   id: string;
   /**
@@ -284,12 +284,12 @@ export const STEPS: readonly TutorialStep[] = [
 export const SKIP_LABEL = 'Skip the tutorial for this game';
 
 /** One card of a note. A note with several is read with Next, like a leaflet. */
-export interface TutorialPage {
+interface TutorialPage {
   title: string;
   body: string;
 }
 
-export interface TutorialTip {
+interface TutorialTip {
   id: string;
   /**
    * Every signal that raises this note. More than one where two moments are
@@ -509,7 +509,7 @@ export function advanceKey(advance: StepAdvance): string | null {
 
 // --- the sequence, as a pure reducer -----------------------------------------
 
-export interface TutorialProgress {
+interface TutorialProgress {
   /** How far along `STEPS` the player is. */
   step: number;
   /**
@@ -760,13 +760,13 @@ export interface Rect {
   height: number;
 }
 
-export interface Size {
+interface Size {
   width: number;
   height: number;
 }
 
 /** How far the card stands off its anchor, and off the window's edge. */
-export const CARD_GAP = 18;
+const CARD_GAP = 18;
 const EDGE = 12;
 
 /**
@@ -836,7 +836,7 @@ export function stepCount(index: number, total: number): string {
 
 // --- the surface -------------------------------------------------------------
 
-export interface TutorialOptions {
+interface TutorialOptions {
   /** Where the memory lives. `window.localStorage` in the game, a map in tests. */
   storage: TutorialStorage;
   /** Where the scrim and the card are mounted — `document.body`. */
@@ -856,7 +856,7 @@ export interface TutorialOptions {
   reducedMotion?: () => boolean;
 }
 
-export interface Tutorial {
+interface Tutorial {
   /** Whether the guide is wanted at all — the landing's checkbox reads this. */
   enabled(): boolean;
   /** The landing's checkbox writes it. Turning it off puts everything away. */

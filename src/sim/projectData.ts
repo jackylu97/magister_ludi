@@ -95,7 +95,7 @@ export interface ProjectPayout {
   culture?: number;
 }
 
-export interface ProjectDef {
+interface ProjectDef {
   name: string;
   /** Hammers one turn of the conversion costs. */
   cost: number;
@@ -164,7 +164,7 @@ function buildProjectTable(): Record<ProjectId, ProjectDef> {
   return table as Record<ProjectId, ProjectDef>;
 }
 
-export const PROJECT_DATA: { projects: Record<ProjectId, ProjectDef> } = {
+const PROJECT_DATA: { projects: Record<ProjectId, ProjectDef> } = {
   projects: buildProjectTable(),
 };
 

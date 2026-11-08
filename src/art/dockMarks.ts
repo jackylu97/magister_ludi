@@ -50,7 +50,7 @@ function stroke(d: string): MarkPath {
 }
 
 /** The scroll: two written lines, a rolled edge at each end. */
-export const STATECRAFT_MARK: { note: string; credit: string; paths: readonly MarkPath[] } = {
+const STATECRAFT_MARK: { note: string; credit: string; paths: readonly MarkPath[] } = {
   note: 'a scroll: two written lines, a rolled edge at each end',
   credit: 'Lucide `scroll-text` (ISC)',
   paths: [
@@ -64,7 +64,7 @@ export const STATECRAFT_MARK: { note: string; credit: string; paths: readonly Ma
 };
 
 /** The banner: a herald's flag on its staff. */
-export const DIPLOMACY_MARK: { note: string; credit: string; paths: readonly MarkPath[] } = {
+const DIPLOMACY_MARK: { note: string; credit: string; paths: readonly MarkPath[] } = {
   note: "a herald's banner on its staff",
   credit: 'Lucide `flag` (ISC)',
   paths: [
@@ -74,7 +74,7 @@ export const DIPLOMACY_MARK: { note: string; credit: string; paths: readonly Mar
 };
 
 /** The scroll as a standalone SVG document, inked in `color`. */
-export function statecraftMarkSvg(color = '#000'): string {
+function statecraftMarkSvg(color = '#000'): string {
   return markSvg(STATECRAFT_MARK.paths, YIELD_MARK_BOX, YIELD_MARK_STROKE, color);
 }
 
@@ -94,7 +94,7 @@ export function statecraftMarkDataUri(color = '#000'): string {
 }
 
 /** The banner as a standalone SVG document, inked in `color`. */
-export function diplomacyMarkSvg(color = '#000'): string {
+function diplomacyMarkSvg(color = '#000'): string {
   return markSvg(DIPLOMACY_MARK.paths, YIELD_MARK_BOX, YIELD_MARK_STROKE, color);
 }
 
@@ -141,7 +141,7 @@ export const TRADE_MARK: { note: string; credit: string; paths: readonly MarkPat
 };
 
 /** The cart as a standalone SVG document, inked in `color`. */
-export function tradeMarkSvg(color = '#000'): string {
+function tradeMarkSvg(color = '#000'): string {
   return markSvg(TRADE_MARK.paths, YIELD_MARK_BOX, YIELD_MARK_STROKE, color);
 }
 
@@ -173,7 +173,7 @@ export function tradeMarkDataUri(color = '#000'): string {
  * Same grid, same weight, same caps and joins as the three beside it, so it
  * masks and prints identically and no fifth mechanism was written for it.
  */
-export const STANDINGS_MARK: { note: string; credit: string; paths: readonly MarkPath[] } = {
+const STANDINGS_MARK: { note: string; credit: string; paths: readonly MarkPath[] } = {
   note: 'a ranking: three rules, longest first, a bead at the head of each',
   credit: 'drawn for Magister Ludi',
   paths: [
@@ -189,7 +189,7 @@ export const STANDINGS_MARK: { note: string; credit: string; paths: readonly Mar
 };
 
 /** The counting frame as a standalone SVG document, inked in `color`. */
-export function standingsMarkSvg(color = '#000'): string {
+function standingsMarkSvg(color = '#000'): string {
   return markSvg(STANDINGS_MARK.paths, YIELD_MARK_BOX, YIELD_MARK_STROKE, color);
 }
 

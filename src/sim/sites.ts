@@ -71,7 +71,7 @@ import {
 } from './yields/hex';
 
 /** One line of a site's appraisal: what it is, and what it is worth. */
-export interface SiteLine {
+interface SiteLine {
   /** Plain enough to print, though the words the player reads are composed
    * from the reading's *facts* rather than from these labels — a label carries
    * a figure and rule 7 keeps figures out of prose. */
@@ -80,7 +80,7 @@ export interface SiteLine {
 }
 
 /** One hex of the ring, as the seat sees it. */
-export interface SiteRingHex {
+interface SiteRingHex {
   col: number;
   row: number;
   /** Steps from the centre. Zero is the centre itself. */
@@ -94,7 +94,7 @@ export interface SiteRingHex {
 }
 
 /** A seam in the ring, and the hex it was first seen on. */
-export interface SiteSeam {
+interface SiteSeam {
   id: ResourceId;
   col: number;
   row: number;

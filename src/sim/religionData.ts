@@ -129,7 +129,7 @@ export const BELIEF_AXES: readonly BeliefAxis[] = [
  * that price is the escalating one on the agent rather than a second ladder here
  * (`docs/deprecated/religion.md`, "the anti-spam structure").
  */
-export interface BeliefDef extends CardDefBase {
+interface BeliefDef extends CardDefBase {
   axis: BeliefAxis;
   /**
    * **Withdrawn from the pool**: never dealt, and still fully readable.
@@ -325,7 +325,7 @@ export function newPlayerPantheon(): PlayerPantheon {
   return { beliefs: [], rungs: 0 };
 }
 
-export interface PantheonConfig {
+interface PantheonConfig {
   /** Belief slots each technology opens. Summed over what the empire holds. */
   slotsFromTech: Partial<Record<TechId, number>>;
   // There is deliberately **no `offerOptions`**. How many gods a Consecrate
@@ -350,7 +350,7 @@ export interface PantheonConfig {
  * Nothing in `religion.ts` counts them by hand — the drafts ask whether a rung
  * is open, never how many there are.
  */
-export interface ReligionPoolsConfig {
+interface ReligionPoolsConfig {
   followerSlots: number;
   enhancerSlots: number;
 }
@@ -371,7 +371,7 @@ export interface ReligionPoolsConfig {
  * faster than a flat increment — which is the culture meter's argument, and the
  * reason a threshold is a curve rather than a step.
  */
-export interface FaithLadderConfig {
+interface FaithLadderConfig {
   costBase: number;
   costLinear: number;
   costExponent: number;
@@ -393,7 +393,7 @@ export interface FaithLadderConfig {
  * it meant in Æra II, and it is a list by age rather than a curve because four
  * ages is a table a designer can read.
  */
-export interface RerollConfig {
+interface RerollConfig {
   base: number;
   /** Multiplied in once per reroll this empire has already taken. */
   exponent: number;
@@ -438,7 +438,7 @@ export interface RerollConfig {
  * started (`Player.ritesStarted`) sets the price. The research age no longer
  * does. Until this batch the price was a list by age (40 · 56 · 72 · 90).
  */
-export interface RiteCostConfig {
+interface RiteCostConfig {
   /** What the empire's first rite costs, in faith. */
   costBase: number;
   /** What each rite the empire has started adds to the price of the next, in faith. */
@@ -457,7 +457,7 @@ export interface RiteCostConfig {
  * the ruled sentence ("half a prophet's strength") stays true through a retune,
  * while the reach is its own figure because six hexes is not half of ten.
  */
-export interface ApostleConfig {
+interface ApostleConfig {
   /** How far its proclamation carries, in hexes. */
   proclaimRange: number;
   /** What share of a prophet's lump it presses, in whole percent. */
@@ -481,12 +481,12 @@ export interface ApostleConfig {
  * one-axis patterns otherwise, so a single-god religion never reads "the
  * Children of Hearth and Hearth".
  */
-export interface ReligionNamesConfig {
+interface ReligionNamesConfig {
   epithets: Partial<Record<BeliefAxis, string[]>>;
   patterns: string[];
 }
 
-export interface ReligionConfig {
+interface ReligionConfig {
   pantheon: PantheonConfig;
   pools: ReligionPoolsConfig;
   /** What each pantheon consecration asks of the faith bank. See `FaithLadderConfig`. */
@@ -541,7 +541,7 @@ export interface ReligionConfig {
  * One patron. `CardDefBase` and nothing else — see `ConsecrationId` for why
  * there is no cost, no tier and no prerequisite.
  */
-export type ConsecrationDef = CardDefBase;
+type ConsecrationDef = CardDefBase;
 
 export const RELIGION = religionJson as unknown as ReligionConfig;
 

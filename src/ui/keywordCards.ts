@@ -110,7 +110,7 @@ export interface KeywordCards {
   dispose(): void;
 }
 
-export interface KeywordCardsOptions {
+interface KeywordCardsOptions {
   /** Where the cards are drawn. The page's body unless a caller says otherwise. */
   root?: HTMLElement;
   /** The definitions. The Compendium's own, loaded on first use, by default. */

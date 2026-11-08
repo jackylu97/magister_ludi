@@ -43,7 +43,7 @@ import type { RiverConfig } from './water';
  * at hex scale wants — a range that must stay one or two tiles wide however
  * large the world is. See `mapgen.ts`'s `frequencyOf`.
  */
-export interface NoiseScale {
+interface NoiseScale {
   frequency?: number;
   cycleTiles?: number;
 }
@@ -230,7 +230,7 @@ export interface StartsConfig {
  * Every number here is a share of a half-extent, so it means the same thing on
  * a duel map and on a giant one.
  */
-export interface PangaeaConfig {
+interface PangaeaConfig {
   /**
    * `false` skips the mask whole and restores the pre-ruling scatter of
    * continents, bit for bit — the `rainShadow.enabled` bargain, and for the same
@@ -470,7 +470,7 @@ export interface MapgenConfig {
  * they were before the woods had a grain. What does move is which hexes carry a
  * forest, and so which hexes a forest resource may stand on.
  */
-export interface WoodlandConfig {
+interface WoodlandConfig {
   /**
    * How much of the forest deal's ordering the copse-scale field takes,
    * against the moisture field's own say. `0` reproduces the world before this

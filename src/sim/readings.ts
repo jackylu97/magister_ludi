@@ -216,7 +216,7 @@ export interface TownReading {
 }
 
 /** One empire's whole reading: its towns, its own lines, and the fold of both. */
-export interface EmpireReading {
+interface EmpireReading {
   playerId: number;
   /** In `state.cities` order — founding order, which is every phase's order. */
   towns: readonly TownReading[];
@@ -367,7 +367,7 @@ export function readEmpireRates(state: GameState, playerId: number): Readonly<Em
  * that lands in somebody else's books. `abroad` says which of the two this is,
  * so a screen never has to ask the question a second way.
  */
-export interface RouteModeReading {
+interface RouteModeReading {
   mode: RouteMode;
   /** True when the fold below is the sender's — the partner is another empire's. */
   abroad: boolean;

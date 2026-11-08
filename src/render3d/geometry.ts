@@ -2008,7 +2008,7 @@ function lathe(profile: readonly (readonly [number, number])[], segments = 7): B
  * expensive would be spending a word the world has already given a meaning.
  */
 export type MiniAccent = 'wood' | 'metal' | 'accent' | 'gilt';
-export type MiniPart = 'body' | MiniAccent;
+type MiniPart = 'body' | MiniAccent;
 
 /**
  * The size class a sculpt is built to, which is the whole of the "do these read
@@ -2862,7 +2862,7 @@ const WARSHIP = {
 } as const;
 
 /** Which of the three hulls this sculpt is cut to. `MiniClass`' one grade down. */
-export type WarshipClass = keyof typeof WARSHIP.classes;
+type WarshipClass = keyof typeof WARSHIP.classes;
 
 /**
  * A warship: one hull shape per class, rigged to the age its row names.

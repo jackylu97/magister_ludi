@@ -48,7 +48,7 @@ export type CityMarkId = 'puppet' | 'siege' | 'unrest';
 /** In table order. Appended to, never reordered — an index is a texture coordinate. */
 export const CITY_MARK_IDS: readonly CityMarkId[] = ['puppet', 'siege', 'unrest'];
 
-export interface CityMark {
+interface CityMark {
   /** What it depicts, for the reader of this file. Never printed. */
   note: string;
   paths: readonly MarkPath[];
@@ -161,7 +161,7 @@ export function cityMark(id: CityMarkId): CityMark {
  * same weight, which is the whole of why the two sets are one hand. The flair
  * gallery draws its stall from this.
  */
-export function cityMarkSvg(id: CityMarkId, color = '#000'): string {
+function cityMarkSvg(id: CityMarkId, color = '#000'): string {
   return markSvg(cityMark(id).paths, MARK_BOX, MARK_STROKE, color);
 }
 

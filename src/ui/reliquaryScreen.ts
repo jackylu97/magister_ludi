@@ -96,7 +96,7 @@ import { createModalShell } from './modalShell';
  * `LegacyRecord` (`state.ts` — history is never deleted), so the same name in
  * two empires can be heeded in one and struck in the other.
  */
-export interface ReliquaryCard {
+interface ReliquaryCard {
   /**
    * The face, **with no figure on it** — `greatPersonCard`'s half.
    *
@@ -219,7 +219,7 @@ export function reliquaryStep(index: number, total: number, direction: number): 
  * The interface supplies the glyph and the verb, exactly as it does on the
  * reroll (`rerollControl`, `main.ts`).
  */
-export interface ReliquaryCall {
+interface ReliquaryCall {
   purchase: OfferPurchaseId;
   /** The button's words. "Call a name". */
   label: string;
@@ -304,7 +304,7 @@ export interface ReliquaryScreen {
   dispose(): void;
 }
 
-export interface ReliquaryScreenOptions {
+interface ReliquaryScreenOptions {
   overlay: HTMLElement;
   body: HTMLElement;
   closeButton: HTMLElement;
@@ -350,7 +350,7 @@ export interface ReliquaryScreenOptions {
  * a clause are live links (`keywordsAllowedIn` answers off the tag, which is the
  * ruling's own instrument).
  */
-export function drawReliquaryCard(card: ReliquaryCard): HTMLElement {
+function drawReliquaryCard(card: ReliquaryCard): HTMLElement {
   const { face } = card;
   const article = document.createElement('article');
   article.className = card.revoked ? 'offer-option rel-card is-revoked' : 'offer-option rel-card';

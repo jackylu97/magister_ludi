@@ -40,13 +40,13 @@ import { samplePaintedWorld } from './paintedSurface';
 const ANIM = VIEW3D.animation;
 
 /** An offset cell. Structurally what the simulation calls a path waypoint. */
-export interface Cell {
+interface Cell {
   col: number;
   row: number;
 }
 
 /** Where to draw a piece mid-walk, in world units. */
-export interface MoveSample {
+interface MoveSample {
   x: number;
   y: number;
   z: number;
@@ -64,7 +64,7 @@ function easeInOutQuad(t: number): number {
 }
 
 /** How a toppling piece is lying at some instant of its fall. */
-export interface DeathSample {
+interface DeathSample {
   /** Radians of roll, 0 at the start and about a right angle at the end. */
   tilt: number;
   /** How far it has sunk into the tile, in world units. */

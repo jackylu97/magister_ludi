@@ -52,7 +52,7 @@ export interface TileTint {
  * one country reads as paint over the world at that coverage. The terrain has to
  * stay legible underneath — the point of the lens is to compare the two.
  */
-export const DEFAULT_TINT_OPACITY = 0.34;
+const DEFAULT_TINT_OPACITY = 0.34;
 
 export class TintLayer {
   readonly group = new Group();

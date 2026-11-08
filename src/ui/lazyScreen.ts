@@ -30,7 +30,7 @@
  */
 
 /** The part of a full-screen sheet's interface the stand-in forwards. */
-export interface Overlay {
+interface Overlay {
   readonly isOpen: boolean;
   // `never[]` so a sheet whose `open` takes arguments (the Compendium's entry
   // id) still satisfies this; the stand-in's own `open` keeps the real type.
@@ -57,7 +57,7 @@ export interface LazyOverlay<T extends Overlay> {
   prefetch(): void;
 }
 
-export interface LazyOverlayOptions<T extends Overlay> {
+interface LazyOverlayOptions<T extends Overlay> {
   /** Imports the screen's module and builds the screen. Called at most once per success. */
   load: () => Promise<T>;
   /** Imports the module only. Defaults to doing nothing. */

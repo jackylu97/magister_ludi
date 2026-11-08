@@ -416,7 +416,7 @@ function giftHeading(gift: TechGift): string | null {
  * Every figure goes through `signedYield`, and a voice that rounds to nothing
  * is not printed (`yieldShows`) — a delta is exact, a note is whole (batch X).
  */
-export function tileYieldNote(add: TileYield): string {
+function tileYieldNote(add: TileYield): string {
   const voices: [number, string][] = [
     [add.food, YIELD_GLYPH.food],
     [add.production, HAMMER],
@@ -441,7 +441,7 @@ export function renewalNote(gift: TechGift & { kind: 'renewal' }): string {
  * because that single word is the whole difference between a chop and a farm
  * and the card would otherwise read as though the forest paid every turn.
  */
-export function abilityNote(gift: TechGift & { kind: 'ability' }): string {
+function abilityNote(gift: TechGift & { kind: 'ability' }): string {
   if (gift.pays) return `${tileYieldNote(gift.pays)} once`;
   // A verb that banks nothing prints its own summary instead — "Ancestor
   // Rites" alone told a player nothing about great people (found in live
@@ -608,7 +608,7 @@ export interface TechTree {
   dispose(): void;
 }
 
-export interface TechTreeOptions {
+interface TechTreeOptions {
   /** The full-screen overlay. Hidden with the `hidden` attribute while closed. */
   overlay: HTMLElement;
   /**

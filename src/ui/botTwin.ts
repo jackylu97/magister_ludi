@@ -37,7 +37,7 @@ import type { BotWorkerReply, BotWorkerRequest } from './bot.worker';
 /** How a drive in the worker ended. Only `applied` means the bots have played. */
 export type TwinOutcome = 'applied' | 'moved' | 'diverged' | 'unavailable' | 'cancelled';
 
-export interface BotTwin {
+interface BotTwin {
   /** False when there is no worker to ask; the caller then plays the bots on its own thread. */
   readonly available: boolean;
   /**
@@ -57,7 +57,7 @@ export interface BotTwin {
   dispose(): void;
 }
 
-export interface BotTwinOptions {
+interface BotTwinOptions {
   /** Tests hand in a fake. Production builds the module worker. */
   workerFactory?: () => Worker;
   warn?: (message: string, detail?: unknown) => void;

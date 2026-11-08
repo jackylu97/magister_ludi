@@ -32,7 +32,7 @@ import {
   printValue,
 } from './knobs';
 
-export interface KnobPanel {
+interface KnobPanel {
   /** Every knob whose control differs from the data file, in the sheet's order. */
   edits(): KnobEdit[];
   /** Every control back to what `data/ai.json` says. */
@@ -55,7 +55,7 @@ export interface KnobPanel {
  * on that knob. That is the game's own precedence, not a second rule invented
  * for this page.
  */
-export const KNOBS: Knob[] = knobsOf(AI);
+const KNOBS: Knob[] = knobsOf(AI);
 
 /**
  * Renders every knob into `root`, and calls `onChange` whenever a box is typed

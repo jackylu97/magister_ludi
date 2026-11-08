@@ -42,7 +42,7 @@ export type TriumphId = keyof typeof triumphsJson.triumphs & string;
  * and be *deferred* rather than silently absent — the same discipline a card's
  * unbuilt half keeps.
  */
-export type TriumphTrigger =
+type TriumphTrigger =
   /** A city was founded, and the empire now holds at least `count`. */
   | { kind: 'cityFounded'; count: number }
   /** This empire's highest age rose. Contested: the world's first into an era. */
@@ -120,7 +120,7 @@ export type TriumphTriggerKind = TriumphTrigger['kind'];
  */
 export type TriumphScope = 'once' | 'perAge' | 'contested' | 'perEvent';
 
-export interface TriumphDef {
+interface TriumphDef {
   name: string;
   /** One line, in the voice of the tech tree's aphorisms. Never a rule. */
   epigram: string;
@@ -180,11 +180,11 @@ export interface TriumphDef {
   deferred?: string;
 }
 
-export interface TriumphData {
+interface TriumphData {
   triumphs: Record<TriumphId, TriumphDef>;
 }
 
-export const TRIUMPH_DATA = triumphsJson as unknown as TriumphData;
+const TRIUMPH_DATA = triumphsJson as unknown as TriumphData;
 
 /** Every id in **file order** — the order the hover lists them and awards sweep. */
 export const TRIUMPH_IDS = Object.keys(TRIUMPH_DATA.triumphs) as TriumphId[];

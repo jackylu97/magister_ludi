@@ -415,7 +415,7 @@ function shareVoice(
  * (`CardYieldTally`, `draft.ts` — the same two fields, so a tally folds through
  * `foldDeckLedger` exactly as a turn's reading does).
  */
-export interface DeckLedgerLine {
+interface DeckLedgerLine {
   card: CardId;
   paid: CityYields;
 }
@@ -655,7 +655,7 @@ export type ReligionLedgerSource =
   | { kind: 'founderShare'; religion: ReligionId };
 
 /** One source's slice of the Religion class: what it paid this turn, six voices. */
-export interface ReligionLedgerLine {
+interface ReligionLedgerLine {
   source: ReligionLedgerSource;
   paid: CityYields;
 }
@@ -727,7 +727,7 @@ export function religionLinesOfCity(state: GameState, city: City): DeckLedgerLin
 }
 
 /** Where one source's slice was paid: a town, or (`cityId` null) the empire's own lines. */
-export interface ReligionLedgerPart {
+interface ReligionLedgerPart {
   cityId: number | null;
   paid: CityYields;
 }
@@ -814,7 +814,7 @@ export function foldReligionLedger(lines: readonly ReligionLedgerLine[]): CityYi
  * cards off the faith screen, so the deck is one `class` slice (`'deck'`, which
  * the screen names as Statecraft), never a slice per card.
  */
-export type FaithLedgerLine =
+type FaithLedgerLine =
   | { kind: 'religion'; source: ReligionLedgerSource; faith: number }
   | { kind: 'class'; class: LedgerClass; faith: number };
 

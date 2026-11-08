@@ -530,7 +530,7 @@ const WAGER_BEAD_OF_FAMILY: Record<BeadFamily, string> = {
 // --- the phase --------------------------------------------------------------
 
 /** What the phase writes into. `TurnReport`'s wager fields and nothing else. */
-export interface WagerReport {
+interface WagerReport {
   beads: BeadAward[];
   /** Deals opened this resolution — the sheet the interface raises. */
   wagerDealt?: number;
@@ -702,7 +702,7 @@ export function judgeWagers(state: GameState, age: number, awards?: BeadAward[])
 }
 
 /** One malice seated at a judgement — who took it, and what it cost them. */
-export interface MaliceSeated extends MaliceSeating {
+interface MaliceSeated extends MaliceSeating {
   playerId: number;
 }
 

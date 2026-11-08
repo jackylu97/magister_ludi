@@ -41,12 +41,12 @@ import { VIEW3D } from './lookData';
 import { samplePaintedWorld } from './paintedSurface';
 
 type Cell = { col: number; row: number };
-export interface MovementEdge { cell: Cell; side: number }
+interface MovementEdge { cell: Cell; side: number }
 
 /** A point on the frontier's centreline, with the ground under it. */
-export interface FrontierStation { x: number; z: number; y: number }
+interface FrontierStation { x: number; z: number; y: number }
 /** One closed ring of the frontier. The last station joins back to the first. */
-export interface FrontierLoop { stations: FrontierStation[] }
+interface FrontierLoop { stations: FrontierStation[] }
 
 const RADIUS = VIEW3D.board.hexRadius;
 /** Stations per hex edge. Enough for the ink to bend over a hill's shoulder. */

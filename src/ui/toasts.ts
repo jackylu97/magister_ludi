@@ -60,7 +60,7 @@ export interface ToastStack {
   clear(): void;
 }
 
-export interface ToastStackOptions {
+interface ToastStackOptions {
   /** The fixed box the cards are stacked in. Emptied on `clear`. */
   container: HTMLElement;
   /**

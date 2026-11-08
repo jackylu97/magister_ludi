@@ -62,14 +62,14 @@ export const EPIGRAPHS: readonly string[] = [
  * an exception. Clamped rather than modulo'd, because clamping is the reading
  * that stays right if the pool ever changes length.
  */
-export function pickEpigraph(roll: number): string {
+function pickEpigraph(roll: number): string {
   const count = EPIGRAPHS.length;
   const index = Number.isFinite(roll) ? Math.floor(roll * count) : 0;
   return EPIGRAPHS[Math.min(count - 1, Math.max(0, index))]!;
 }
 
 /** The elements the title page fills in. Absent ones are simply not dressed. */
-export interface FrontispieceElements {
+interface FrontispieceElements {
   /** The printer's device — masked, so it takes the page's ink. */
   device: HTMLElement | null;
   /** The epigraph line under it. */

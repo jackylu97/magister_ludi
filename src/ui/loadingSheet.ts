@@ -71,10 +71,10 @@
 
 import { type ModalShell, createModalShell } from './modalShell';
 
-export type LoadingStageId = 'opening' | 'replaying' | 'painting' | 'placing';
+type LoadingStageId = 'opening' | 'replaying' | 'painting' | 'placing';
 
 /** Which press this is. The only thing that decides the stage list. */
-export type LoadingJourney = 'new' | 'save';
+type LoadingJourney = 'new' | 'save';
 
 /**
  * The stages a journey walks, in order.
@@ -108,9 +108,9 @@ export function loadingStageLabel(stage: LoadingStageId): string {
 }
 
 /** One stage's standing, for the mark in front of its line. */
-export type LoadingStanding = 'done' | 'now' | 'waiting';
+type LoadingStanding = 'done' | 'now' | 'waiting';
 
-export interface LoadingRow {
+interface LoadingRow {
   stage: LoadingStageId;
   label: string;
   standing: LoadingStanding;
@@ -160,7 +160,7 @@ export function replayDetail(turn: number, expected: number): string {
  * refusal of it, which `tryReplay` has always reported and which used to reach
  * the console and nothing else.
  */
-export interface LoadRefusal {
+interface LoadRefusal {
   error: string;
   detail?: string;
 }
@@ -188,7 +188,7 @@ export const REFUSAL_WAY_OUT = 'Back to the title';
  * asserted rather than grepped for. `draw` below is the one renderer of this and
  * decides nothing of its own.
  */
-export type LoadingFace =
+type LoadingFace =
   | { kind: 'stages'; rows: LoadingRow[] }
   | { kind: 'refusal'; sentence: string; detail: string; wayOut: string };
 
@@ -212,7 +212,7 @@ export function loadingFace(
   return { kind: 'stages', rows: loadingRows(stages, current, fraction, detail) };
 }
 
-export interface LoadingSheetOptions {
+interface LoadingSheetOptions {
   overlay: HTMLElement;
   /** The element the stage rows are built into, rebuilt on every repaint. */
   body: HTMLElement;
@@ -238,7 +238,7 @@ export interface LoadingSheetOptions {
   returnFocus?: () => HTMLElement | null;
 }
 
-export interface LoadingSheet {
+interface LoadingSheet {
   readonly isOpen: boolean;
   /** True while a refusal is on the paper — and so while `finish` will not act. */
   readonly isRefused: boolean;

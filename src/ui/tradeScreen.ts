@@ -131,7 +131,7 @@ import { seatName } from '../sim/leaderData';
 
 // --- the index's four tabs --------------------------------------------------
 
-export type TradeTabId = 'recommended' | 'running' | 'all' | 'unavailable';
+type TradeTabId = 'recommended' | 'running' | 'all' | 'unavailable';
 
 /**
  * The ledger's cut tabs, in the order they are bound into the leaf.
@@ -150,7 +150,7 @@ export const TRADE_TABS: readonly { id: TradeTabId; label: string }[] = [
 // --- the running half -------------------------------------------------------
 
 /** One caravan of this seat that is carrying a route. See `runningRoutes`. */
-export interface RunningRoute {
+interface RunningRoute {
   unitId: number;
   /** Where the piece is standing right now — the row's click pans here. */
   col: number;
@@ -249,7 +249,7 @@ export function runningRoutes(state: GameState, playerId: number): RunningRoute[
 }
 
 /** One line of the summary ledger the routes chip hovers. */
-export interface TradeLedgerLine {
+interface TradeLedgerLine {
   source: string;
   /** Signed gold. The one voice the ledger totals. */
   gold: number;
@@ -258,7 +258,7 @@ export interface TradeLedgerLine {
 }
 
 /** The chip's whole card: the lines, and the gold they fold to. */
-export interface TradeLedger {
+interface TradeLedger {
   lines: TradeLedgerLine[];
   /** The fold, and the only sum of one. */
   total: number;
@@ -430,7 +430,7 @@ function partnerIsVisible(state: GameState, seat: number, to: City): boolean {
  * the *figure* is tabular mono — the specimen's one rule about numbers — and a
  * fact composed as a single string could not be drawn in two faces.
  */
-export interface TradeFact {
+interface TradeFact {
   key: string;
   text: string;
 }
@@ -586,7 +586,7 @@ export function connectionGold(city: City): number {
  * arithmetic is the happiness meter's own list (`explainHappiness` prints the
  * loan as a line of its own).
  */
-export interface RouteImportNote {
+interface RouteImportNote {
   id: ResourceId;
   /** True once the rule is held — the line is a promise rather than a want. */
   known: boolean;
@@ -680,7 +680,7 @@ export function growthReading(
 // --- one card ---------------------------------------------------------------
 
 /** One pair on offer, read in one mode. See `routeCard`. */
-export interface RouteCard {
+interface RouteCard {
   fromCityId: number;
   toCityId: number;
   fromName: string;
@@ -758,7 +758,7 @@ export function routeCard(ctx: TradeContext, row: RouteReadingRow, mode: RouteMo
  * unless it has a **note**, which is the one group that can stand with no cards
  * under it (see `recommendedGroups`' luxuries group).
  */
-export interface PurposeGroup {
+interface PurposeGroup {
   id: 'richest' | 'paves' | 'feeds' | 'learning' | 'luxuries';
   title: string;
   /** The heading's small line — what the group is *for*, in plain words. */
@@ -969,19 +969,19 @@ function push(groups: PurposeGroup[], group: PurposeGroup): void {
 // --- the full list ----------------------------------------------------------
 
 /** The four things a filter chip can say about a pair. All on is every pair. */
-export interface RouteFilters {
+interface RouteFilters {
   own: boolean;
   abroad: boolean;
   land: boolean;
   sea: boolean;
 }
 
-export const ALL_ROUTE_FILTERS: RouteFilters = { own: true, abroad: true, land: true, sea: true };
+const ALL_ROUTE_FILTERS: RouteFilters = { own: true, abroad: true, land: true, sea: true };
 
 /** What the All-routes tab may be sorted by. `road` is the hexes a cart would pave. */
-export type RouteSortKey = 'pay' | 'food' | 'gold' | 'science' | 'road';
+type RouteSortKey = 'pay' | 'food' | 'gold' | 'science' | 'road';
 
-export const ROUTE_SORTS: readonly { key: RouteSortKey; label: string }[] = [
+const ROUTE_SORTS: readonly { key: RouteSortKey; label: string }[] = [
   { key: 'pay', label: 'pay' },
   { key: 'food', label: 'food' },
   { key: 'gold', label: 'gold' },
@@ -1014,7 +1014,7 @@ export function rowPassesFilters(
 }
 
 /** One origin town's fold on the All-routes tab. */
-export interface OriginGroup {
+interface OriginGroup {
   city: City;
   name: string;
   rows: { row: RouteReadingRow; mode: RouteMode }[];
@@ -1089,7 +1089,7 @@ export function originGroups(
  *     the search this reading exists to avoid. The heading covers both and each
  *     row prints the gate's own sentence, which says which it was.
  */
-export type RefusalReason = 'ban' | 'war' | 'slots' | 'running' | 'reach';
+type RefusalReason = 'ban' | 'war' | 'slots' | 'running' | 'reach';
 
 export const REFUSAL_TITLES: Readonly<Record<RefusalReason, string>> = {
   ban: 'Barred by your Doctrine',
@@ -1128,7 +1128,7 @@ export function pairIsRunning(
   return false;
 }
 
-export interface RefusalGroup {
+interface RefusalGroup {
   reason: RefusalReason;
   title: string;
   /**
@@ -1224,7 +1224,7 @@ export function buyCommandFor(
  *
  * The mode is named always, for `buyCommandFor`'s stated reason.
  */
-export type SendCommand =
+type SendCommand =
   | { kind: 'send'; unitId: number; fromCityId: number; toCityId: number; mode: RouteMode }
   | { kind: 'hire'; fromCityId: number; toCityId: number; mode: RouteMode };
 
@@ -1332,7 +1332,7 @@ export interface TradeScreen {
   dispose(): void;
 }
 
-export interface TradeScreenOptions {
+interface TradeScreenOptions {
   overlay: HTMLElement;
   body: HTMLElement;
   closeButton: HTMLElement;

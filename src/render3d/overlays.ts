@@ -89,7 +89,7 @@ export interface TurnMarkRef extends CellRef {
   turn: number;
 }
 
-export interface OverlayState {
+interface OverlayState {
   reachable: readonly CellRef[];
   path: readonly CellRef[];
   /**

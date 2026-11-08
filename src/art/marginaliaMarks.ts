@@ -38,10 +38,10 @@ import { MARK_BOX, MARK_STROKE, type MarkPath, ink, markSvg } from './resourceMa
  * table every consumer has to special-case.
  */
 export const MARGINALIA_MARK_IDS = ['serpent'] as const;
-export type MarginaliaMarkId = (typeof MARGINALIA_MARK_IDS)[number];
+type MarginaliaMarkId = (typeof MARGINALIA_MARK_IDS)[number];
 
 /** One marginale's drawing, plus the sentence that says what it depicts. */
-export interface MarginaliaMark {
+interface MarginaliaMark {
   note: string;
   paths: readonly MarkPath[];
 }
@@ -82,7 +82,7 @@ export function marginaliaMark(id: MarginaliaMarkId): MarginaliaMark {
 export const DRACONES_LINES = ['hic svnt', 'dracones'] as const;
 
 /** One marginale as a standalone SVG document, inked in `color`. */
-export function marginaliaMarkSvg(id: MarginaliaMarkId, color = '#000'): string {
+function marginaliaMarkSvg(id: MarginaliaMarkId, color = '#000'): string {
   return markSvg(marginaliaMark(id).paths, MARK_BOX, MARK_STROKE, color);
 }
 

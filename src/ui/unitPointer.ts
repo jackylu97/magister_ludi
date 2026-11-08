@@ -1,14 +1,14 @@
 import type { GameState, Unit } from '../sim/state';
 import { isVisibleTo } from '../sim/visibility';
 
-export interface UnitPointerHits {
+interface UnitPointerHits {
   badgeId?: number | null;
   /** Lazy so a badge which already resolves a stack avoids a model raycast. */
   modelId?: number | null | (() => number | null);
   tile?: { col: number; row: number } | null;
 }
 
-export interface UnitPointerTarget {
+interface UnitPointerTarget {
   unit: Unit;
   source: 'badge' | 'model' | 'tile';
 }

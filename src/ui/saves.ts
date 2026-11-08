@@ -179,7 +179,7 @@ export interface SavePayload {
   log: Command[];
 }
 
-export type SlotKind = 'auto' | 'quick' | 'named';
+type SlotKind = 'auto' | 'quick' | 'named';
 
 /** One row of the load list: the shelf label, plus which slot it came off. */
 export interface SaveSlot {
@@ -206,7 +206,7 @@ export interface SaveSlot {
  * `SaveSlot` needs, so listing the shelf reads a few hundred characters per
  * slot instead of parsing whole saves. Display only, like every label field.
  */
-export interface SaveMeta {
+interface SaveMeta {
   formatVersion: number;
   schemaVersion: number;
   name: string;
@@ -297,7 +297,7 @@ export function makeSavePayload(game: Game, name: string, savedAt: number): Save
   };
 }
 
-export type WriteResult =
+type WriteResult =
   | { ok: true; bytes: number }
   /**
    * `reason` lets the autosaver tell a save that will never fit (`size`: logs
@@ -329,7 +329,7 @@ function fromBase64(text: string): Uint8Array<ArrayBuffer> {
  * `SAVE_PACK_PREFIX`. Where the platform has no `CompressionStream` the JSON is
  * stored as it is, which every reader still understands.
  */
-export async function packSave(json: string): Promise<string> {
+async function packSave(json: string): Promise<string> {
   if (typeof CompressionStream === 'undefined') return json;
   const stream = new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'));
   const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
@@ -574,7 +574,7 @@ export interface SaveEnvelope {
   turn: number;
 }
 
-export type EnvelopeResult =
+type EnvelopeResult =
   | { ok: true; envelope: SaveEnvelope }
   | { ok: false; error: string };
 
@@ -782,7 +782,7 @@ export function resumeSeat(state: GameState): number {
 
 // --- the autosave -----------------------------------------------------------
 
-export interface Autosaver {
+interface Autosaver {
   /**
    * Takes the rolling save of this turn, unless this turn has already been
    * taken. Returns at once: the writing happens later (see `createAutosaver`).
@@ -797,7 +797,7 @@ export interface Autosaver {
   flush(): Promise<void>;
 }
 
-export interface AutosaverOptions {
+interface AutosaverOptions {
   storage: SaveStorage;
   /** Said once per session, however many times the write fails after that. */
   onWarn: (message: string) => void;

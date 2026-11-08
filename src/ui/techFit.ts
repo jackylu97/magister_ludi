@@ -99,7 +99,7 @@ export interface PackCard {
 }
 
 /** A connector the packer could not clear a card out of, and how far to bow it. */
-export interface BowedEdge {
+interface BowedEdge {
   from: string;
   to: string;
   /** Pixels to push the curve's control points by; signed, away from the card. */
@@ -501,7 +501,7 @@ export function packShelf(cards: readonly PackCard[], gap: number): PackedShelf 
 }
 
 /** The sky and the shelf, stacked into one field. */
-export interface ChartFields {
+interface ChartFields {
   /** Where the shelf's cards start, measured from the sky's top. */
   shelfTop: number;
   /** Where the rule over the shelf is drawn, from the sky's top. */
@@ -523,7 +523,7 @@ export function stackFields(sky: number, shelf: PackedShelf | null, band = SHELF
   return { shelfTop, ruleTop: sky + band / 3, height: shelfTop + shelf.height };
 }
 
-export interface PackedFit {
+interface PackedFit {
   /** What the whole chart is scaled by, between `CHART_SCALE_MIN` and 1. */
   scale: number;
   /** How far it still overruns the stage at that scale — the cue to scroll. */
@@ -567,7 +567,7 @@ export const COL_WIDTH_MIN = 214;
  */
 export const COL_WIDTH_MAX = 300;
 
-export interface ColumnFit {
+interface ColumnFit {
   /** The width one column is drawn at, between the two bounds above. */
   width: number;
   /**

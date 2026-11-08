@@ -428,7 +428,7 @@ export const BADGE_MARK_PAIRS: ReadonlyMap<NavalBadgeId, { rig: NavalRig; canton
  * A twenty-first badge that joined no line would fail there, which is the point:
  * "which line is this" is the first question its drawing has to answer.
  */
-export interface BadgeLine {
+interface BadgeLine {
   /** What the line is called, in the words the interface would use. */
   line: string;
   /** What the family says and what the rank says, in one sentence. */
@@ -597,7 +597,7 @@ export const FILE_BADGE_CELLS: readonly FileBadgeClass[] = BADGE_CELLS.filter(
 // --- layout arithmetic -----------------------------------------------------
 
 /** The pixel shape of the atlas: how the cells are tiled, and how big it is. */
-export interface AtlasLayout {
+interface AtlasLayout {
   cell: number;
   columns: number;
   rows: number;
@@ -624,7 +624,7 @@ export function badgeAtlasSize(): AtlasLayout {
 }
 
 /** A sub-rectangle of the atlas, in texture coordinates. */
-export interface AtlasRect {
+interface AtlasRect {
   u0: number;
   v0: number;
   u1: number;
@@ -1074,7 +1074,7 @@ export function medallionLabel(id: MedallionId): string {
  * something.
  */
 export const MARGINALIA_CELLS = ['serpent', 'dracones'] as const;
-export type MarginaliaKey = (typeof MARGINALIA_CELLS)[number];
+type MarginaliaKey = (typeof MARGINALIA_CELLS)[number];
 
 /**
  * The heraldic charges: one cell per seat's drawn figure
@@ -1184,7 +1184,7 @@ export const SETTLE_MARK_CELLS: readonly SettleMarkId[] = SETTLE_MARK_IDS;
 export const RANK_MARK_CELLS: readonly RankId[] = RANK_MARK_IDS;
 
 /** A cell of the tile atlas: which set it belongs to, and which member. */
-export type TileIconCell =
+type TileIconCell =
   | { set: 'resource'; id: ResourceId }
   | { set: 'yield'; id: YieldKey }
   | { set: 'numeral'; id: number }
@@ -2215,7 +2215,7 @@ export function medallionDial(): MedallionDial {
 }
 
 /** Every radius the turn counter is built out of, in cell pixels. */
-export interface MedallionGeometry {
+interface MedallionGeometry {
   /** The paper disc's outer edge — the same one every disc in this atlas draws to. */
   outer: number;
   /** The ink edge's weight, and the radius its centreline is walked on. */

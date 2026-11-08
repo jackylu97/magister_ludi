@@ -177,7 +177,7 @@ export function sampleCylinder(
  * periodic across the seam for exactly the reason the continents are — a range
  * may run off the east edge and back on at the west, and it does.
  */
-export function sampleRidgedCylinder(
+function sampleRidgedCylinder(
   noise: Noise3D,
   config: RidgedNoiseConfig,
   col: number,
@@ -274,7 +274,7 @@ export function waterDistance(map: GameMap, land: Uint8Array): Int32Array {
  * mask does *not* mark. Seeded and drained in tile-index order, so the answer is
  * a pure function of the mask rather than of the order a queue happened to fill.
  */
-export function hexDistanceFrom(
+function hexDistanceFrom(
   map: GameMap,
   sources: Uint8Array,
   invert = false,
@@ -454,7 +454,7 @@ export function islandShelfLift(
  * The two coherent fields the whole generator reads, plus the classifications
  * taken straight off them. Terrain assignment is a lookup in this and latitude.
  */
-export interface TerrainFields {
+interface TerrainFields {
   /** Continental noise, rank-normalised, with the polar ice bonus applied. */
   base: Float64Array;
   /** 1 where `base` clears sea level. The coastline, decided by continents alone. */
@@ -531,7 +531,7 @@ function rainShadowAt(
  * Exported for the property tests, which assert things about the *fields* that
  * no amount of staring at finished terrain can pin down.
  */
-export function buildTerrainFields(
+function buildTerrainFields(
   map: GameMap,
   config: MapgenConfig,
   layers: Layers,

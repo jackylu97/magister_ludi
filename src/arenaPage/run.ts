@@ -64,7 +64,7 @@ export interface ArenaSpec {
  * because there is no empire-scale fold of those two — a basket and a hammer are
  * city-scoped facts and the sim never adds them up.
  */
-export interface SeatReading {
+interface SeatReading {
   playerId: number;
   name: string;
   persona: string;

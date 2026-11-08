@@ -596,7 +596,7 @@ export function buildHpBar(
 }
 
 /** Where a piece stands, and how it is turned. Shared with the animation code. */
-export interface PiecePlacement {
+interface PiecePlacement {
   position: Vector3;
   quaternion: Quaternion;
 }
@@ -949,7 +949,7 @@ export function unitColor(state: GameState, unit: Unit): number {
  * at the seam after `flush` (see `UnitLayer.build`), where a caravan's route and
  * a declared war both outrank a seat's colours.
  */
-export function unitTrimColor(state: GameState, unit: Unit): number {
+function unitTrimColor(state: GameState, unit: Unit): number {
   const player = state.players[unit.ownerId];
   return playerPieceColor(seatInks(player).secondary, unit.ownerId);
 }

@@ -45,7 +45,7 @@ export function chairWord(type: ChairType): string {
 }
 
 /** How many chairs of one type a council has. */
-export interface ChairMixEntry {
+interface ChairMixEntry {
   readonly type: ChairType;
   readonly count: number;
 }
@@ -101,7 +101,7 @@ export function offerChairsOf(
  * (`--chair-ink`, set by its `sc-slot-<type>` class), and the Wildcard plate is
  * purple, as the board draws it.
  */
-export function chairPlateNode(type: ChairType): HTMLElement {
+function chairPlateNode(type: ChairType): HTMLElement {
   const plate = element('span', 'sc-chair-plate');
   const swatch = element('b', 'sc-chair-swatch');
   swatch.setAttribute('aria-hidden', 'true');
@@ -127,7 +127,7 @@ export function emptyChairNode(type: ChairType, word: string): HTMLElement {
 }
 
 /** A chair's parts, so the caller can add its states, its seal and its click. */
-export interface ChairParts {
+interface ChairParts {
   /** The chair itself, a button in its type's ink. */
   readonly button: HTMLButtonElement;
   /** The line under the card: the plate, and the seal where there is one. */
@@ -157,7 +157,7 @@ export function chairNode(type: ChairType, card: HTMLElement): ChairParts {
 // --- what an adoption did -----------------------------------------------------
 
 /** What an adoption did to a council, card by card, in the old seat order. */
-export interface CouncilChange {
+interface CouncilChange {
   /** Cards in the same chair before and after. */
   readonly stayed: readonly OrderId[];
   /** Cards that kept a chair but not the same one: the chair each left and the one it took. */

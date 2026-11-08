@@ -355,7 +355,7 @@ interface HandleImpl extends InstanceHandle {
   flags: number;
 }
 
-export interface CollectorOptions {
+interface CollectorOptions {
   /** World-x offsets to replicate every instance at. See the module docblock. */
   copyOffsets: readonly number[];
   /** Keep the source matrices after flushing, so hidden instances can return. */

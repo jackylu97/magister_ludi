@@ -140,7 +140,7 @@ export interface GreatPersonCeremony {
   dispose(): void;
 }
 
-export interface GreatPersonCeremonyOptions {
+interface GreatPersonCeremonyOptions {
   /** The overlay the whole thing is built into. Emptied on close. */
   overlay: HTMLElement;
   getState: () => GameState;

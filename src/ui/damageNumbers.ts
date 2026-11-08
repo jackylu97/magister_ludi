@@ -42,14 +42,14 @@ const LIFETIME_MS = 900;
 /** The static variant is briefer: there is no travel to watch. */
 const STATIC_LIFETIME_MS = 700;
 
-export interface DamageNumbersOptions {
+interface DamageNumbersOptions {
   /** An element covering the viewport, above the canvas. The banner sheet. */
   container: HTMLElement;
   renderer: MapView;
 }
 
 /** One figure to float, in board coordinates. */
-export interface DamageNumber extends CellRef {
+interface DamageNumber extends CellRef {
   amount: number;
   /** Whose loss it is, from the local seat's point of view. */
   kind: 'dealt' | 'taken';

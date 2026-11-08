@@ -51,7 +51,7 @@ import {
 } from '../art/resourceMarks';
 
 /** One mark, plus the sentence that says what it depicts. `LineMark`'s shape. */
-export interface DeviceMark {
+interface DeviceMark {
   /** What the mark is a picture of. */
   note: string;
   paths: readonly MarkPath[];
@@ -121,7 +121,7 @@ export const PRINTER_DEVICE: DeviceMark = {
 // --- the SVG export ---------------------------------------------------------
 
 /** One device mark as a standalone SVG document, inked in `color`. */
-export function deviceMarkSvg(mark: DeviceMark, color = '#000'): string {
+function deviceMarkSvg(mark: DeviceMark, color = '#000'): string {
   return markSvg(mark.paths, MARK_BOX, MARK_STROKE, color);
 }
 

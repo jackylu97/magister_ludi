@@ -54,7 +54,7 @@ import { type City, type GameState } from './state';
 import { type TechId, TECH_IDS, techDef } from './techData';
 
 /** One live road and the kind it is fetching. `unitId` is the caravan's. */
-export interface RouteImport {
+interface RouteImport {
   unitId: number;
   id: ResourceId;
 }

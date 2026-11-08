@@ -131,7 +131,7 @@ export interface AbacusScreen {
   dispose(): void;
 }
 
-export interface AbacusScreenOptions {
+interface AbacusScreenOptions {
   /** The full-screen overlay. Hidden with the `hidden` attribute while closed. */
   overlay: HTMLElement;
   /** The element the canvas and the floating labels are built into. */

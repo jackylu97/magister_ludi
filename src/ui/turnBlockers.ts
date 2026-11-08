@@ -167,7 +167,7 @@ function statecraftBlockerKind(player: Player): 'order' | 'doctrine' | null {
 }
 
 /** What `firstBlocker` may be asked to look past. See "Skipped units" above. */
-export interface BlockerExclusions {
+interface BlockerExclusions {
   /** Idle units to treat as though they were not idle, for this call only. */
   skippedUnitIds?: ReadonlySet<number>;
 }

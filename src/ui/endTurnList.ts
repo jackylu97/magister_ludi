@@ -172,7 +172,7 @@ export const LIST_DELAY_MS = 150;
 /** How long after the pointer leaves the button and the list it closes. */
 export const LIST_LEAVE_MS = 300;
 
-export interface EndTurnListOptions {
+interface EndTurnListOptions {
   /** End Turn itself. */
   button: HTMLButtonElement;
   /** The badge inside it. */

@@ -86,7 +86,7 @@ import { figure } from './figures';
 import type { MapPlate } from './tilePriceTags';
 
 /** The class every plate this module makes wears. Its dress lives in `style.css`. */
-export const FAITH_PLATE_CLASS = 'faith-plate';
+const FAITH_PLATE_CLASS = 'faith-plate';
 
 /** The ink a plate about nobody in particular is drawn in. */
 const NEUTRAL_INK = 'var(--ink-faint)';
@@ -143,7 +143,7 @@ function congregation(faith: FaithHoverFaith, population: number): string {
  * *words* are the whole of what a test can pin, and a test that had to build a
  * renderer to read them would be pinning the lifecycle instead.
  */
-export function faithCityPlate(state: GameState, cityId: number, seat: number): MapPlate | null {
+function faithCityPlate(state: GameState, cityId: number, seat: number): MapPlate | null {
   const city = state.cities.find((town) => town.id === cityId);
   if (city === undefined) return null;
   const reading = faithHoverReading(state, city, seat);
@@ -284,7 +284,7 @@ function unreachedTail(mine: Religion | undefined): string {
  * widen the figure on its anchor in the same breath, or the lens promises a ring
  * the tide does not deliver.
  */
-export function faithSitePlates(state: GameState, seat: number): MapPlate[] {
+function faithSitePlates(state: GameState, seat: number): MapPlate[] {
   const rules = RULES.religion;
   const plates: MapPlate[] = [];
   for (const site of holySites(state)) {

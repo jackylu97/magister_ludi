@@ -89,7 +89,7 @@ export const CLERGY: readonly UnitTypeId[] = ['prophet', 'apostle', 'inquisitor'
  * further holy site (The Abbeys, `apostlesRaiseHolySites`), so the apostle's
  * line names that act only for an empire that can use it.
  */
-export function clergyWords(type: UnitTypeId, plantsHolySites = false): string {
+function clergyWords(type: UnitTypeId, plantsHolySites = false): string {
   const def = unitDef(type);
   if (def.prophesies === true) {
     return 'Founds your religion, draws it another belief, proclaims it over the towns around it, or says a rite over the whole realm.';
@@ -106,7 +106,7 @@ export function clergyWords(type: UnitTypeId, plantsHolySites = false): string {
 // --- the model -----------------------------------------------------------------------
 
 /** One town on a "who follows" list. */
-export interface FollowerRow {
+interface FollowerRow {
   cityId: number;
   name: string;
   following: number;
@@ -122,7 +122,7 @@ export interface FollowerRow {
 }
 
 /** One town of yours your faith does not reach, and why. */
-export interface UnreachedRow {
+interface UnreachedRow {
   cityId: number;
   name: string;
   population: number;
@@ -130,7 +130,7 @@ export interface UnreachedRow {
 }
 
 /** One rival faith pressing one of your towns. */
-export interface RivalRow {
+interface RivalRow {
   cityId: number;
   town: string;
   religion: string;
@@ -145,7 +145,7 @@ export interface RivalRow {
 }
 
 /** One card of the clergy. */
-export interface ClergyCard {
+interface ClergyCard {
   type: UnitTypeId;
   name: string;
   /** The roster's own verb: "Call a prophet". */

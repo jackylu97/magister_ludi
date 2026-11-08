@@ -151,7 +151,7 @@ function postedHexes(state: GameState, playerId: number): ReadonlySet<number> {
  * ways. So every push site below declares which half it is, and a ninth line
  * cannot be added without deciding.
  */
-export type TradeGoldKind = 'income' | 'bill';
+type TradeGoldKind = 'income' | 'bill';
 
 /** One labelled line of empire-scale gold. See `explainEmpireGold`. */
 export interface TradeGoldLine {

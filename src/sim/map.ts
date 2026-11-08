@@ -633,7 +633,7 @@ export function mapRange(map: GameMap, h: Hex, radius: number): Tile[] {
 
 // --- construction -----------------------------------------------------------
 
-export interface CreateMapOptions {
+interface CreateMapOptions {
   width: number;
   height: number;
   seed?: number;

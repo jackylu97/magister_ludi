@@ -21,13 +21,13 @@ export interface ArenaTask {
   progressEvery: number;
 }
 
-export interface ArenaProgress {
+interface ArenaProgress {
   kind: 'progress';
   index: number;
   turn: number;
 }
 
-export interface ArenaDone {
+interface ArenaDone {
   kind: 'done';
   index: number;
   reading: GameReading;
@@ -38,7 +38,7 @@ export interface ArenaDone {
  * as warnings on the reading, and a run that produced them still has numbers
  * worth reading.
  */
-export interface ArenaFailed {
+interface ArenaFailed {
   kind: 'failed';
   index: number;
   error: string;

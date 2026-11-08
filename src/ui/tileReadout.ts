@@ -160,7 +160,7 @@ export function tileYieldNodes(
  * all. The atom both halves of the printer are built from, so the pure text and
  * the drawn marks cannot come to disagree about what a line says.
  */
-export interface TileYieldPart {
+interface TileYieldPart {
   key: YieldKey;
   /** `+1` for a line that adds, `2` for one that replaces. Never empty. */
   text: string;
@@ -675,7 +675,7 @@ function listWords(parts: readonly string[]): string {
  * Mine (Mining)" under a resource it refuses to name would be the card leaking
  * the thing the gate exists to hide.
  */
-export interface ResourceRequirement {
+interface ResourceRequirement {
   /** "requires Mine (Mining)" — the whole line, ready to print. */
   text: string;
   /** True when this seat holds the technology. Plain ink; false is the alarm. */

@@ -115,13 +115,13 @@ export interface UpkeepLine {
 }
 
 /** `UpkeepLine` plus the piece it is about, for the disband sweep. */
-export interface UnitUpkeepLine extends UpkeepLine {
+interface UnitUpkeepLine extends UpkeepLine {
   unitId: number;
   type: UnitTypeId;
 }
 
 /** `UpkeepLine` plus the row and the town, for a panel that wants to point. */
-export interface BuildingUpkeepLine extends UpkeepLine {
+interface BuildingUpkeepLine extends UpkeepLine {
   building: BuildingId;
   cityId: number;
 }

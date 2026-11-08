@@ -61,7 +61,7 @@ import { VIEW3D, saturate } from './lookData';
  * An N-band lighting ramp. `steps` of 1 is legal and gives unlit flat colour,
  * which is a genuinely useful thing to flip to when judging a palette.
  */
-export function makeGradientMap(steps: number, floor: number): DataTexture {
+function makeGradientMap(steps: number, floor: number): DataTexture {
   const n = Math.max(1, Math.round(steps));
   const data = new Uint8Array(n);
   for (let i = 0; i < n; i++) {
@@ -146,7 +146,7 @@ export function computeHullNormals(geometry: BufferGeometry): void {
 
 // --- material library ------------------------------------------------------
 
-export interface ToonOptions {
+interface ToonOptions {
   /** Transparency. Omitted means fully opaque. */
   opacity?: number;
   /**

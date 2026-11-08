@@ -92,7 +92,7 @@ function hex(color: number): string {
  * its colour is a field on the `Player` it builds — there is no constant to
  * import. The map is generated and thrown away; a duel is the cheapest one.
  */
-export function wildPieceInk(): number {
+function wildPieceInk(): number {
   const seats = seatTinctures()
     .slice(0, 2)
     .map((seat, index) => ({ name: `Seat ${index + 1}`, color: seat.color, charge: seat.charge }));
@@ -102,7 +102,7 @@ export function wildPieceInk(): number {
 }
 
 /** Seat 0's, the near miss: the crimson tincture, through the same door. */
-export function crimsonPieceInk(): number {
+function crimsonPieceInk(): number {
   const seat = seatTinctures()[0]!;
   return playerPieceColor(seat.color, 0);
 }
@@ -113,7 +113,7 @@ interface Figure {
   ink: number;
 }
 
-export class PieceInkStage {
+class PieceInkStage {
   private readonly renderer: WebGLRenderer;
   private readonly scene = new Scene();
   private readonly camera: OrthographicCamera;

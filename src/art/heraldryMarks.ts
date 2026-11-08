@@ -103,7 +103,7 @@ export const ALL_HERALDRY_IDS: readonly HeraldryId[] = [...HERALDRY_IDS, ...BANN
  * printers. A separate name because the three tables answer different questions,
  * and a shared one would make `heraldryMark('wheat')` typecheck.
  */
-export interface HeraldryMark {
+interface HeraldryMark {
   /** What the mark is a picture of. The row `CREDITS.md` prints. */
   note: string;
   paths: readonly MarkPath[];

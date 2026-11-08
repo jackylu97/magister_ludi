@@ -86,7 +86,7 @@ export interface BeadNews {
 }
 
 /** One sheet, as data — everything on it except the DOM that draws it. */
-export interface BeadAwardFace {
+interface BeadAwardFace {
   /** "a bead", or "a reckoning" for the age's own measure. */
   eyebrow: string;
   name: string;
@@ -194,7 +194,7 @@ export interface BeadModal {
   dispose(): void;
 }
 
-export interface BeadModalOptions {
+interface BeadModalOptions {
   /**
    * The last sheet was proceeded past.
    *

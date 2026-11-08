@@ -47,7 +47,7 @@ import { renownMarkNode } from './meterMark';
 import { element } from './dom';
 
 /** One Triumph, as this sheet needs to read it. `triumphData.ts`'s row, flattened. */
-export interface TriumphNews {
+interface TriumphNews {
   /** "The Third Hearth". */
   name: string;
   /**
@@ -79,7 +79,7 @@ export interface TriumphNews {
  * a counter, and how the figure reads. Drawing them is a dozen `append` calls
  * that fail loudly or not at all.
  */
-export interface TriumphFace {
+interface TriumphFace {
   name: string;
   /** The cause, in the row's own words. Never empty — the table validates it. */
   text: string;
@@ -124,7 +124,7 @@ export interface TriumphModal {
   dispose(): void;
 }
 
-export interface TriumphModalOptions {
+interface TriumphModalOptions {
   /**
    * The last sheet was proceeded past and the screen is clear.
    *

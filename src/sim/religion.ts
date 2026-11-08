@@ -234,7 +234,7 @@ export function hasOpenBeliefSlot(state: GameState, playerId: number): boolean {
 }
 
 /** One place at the fire: the god standing in it, or what is keeping it shut. */
-export interface PantheonPlace {
+interface PantheonPlace {
   /** The god here, or `null` for a place nobody has named. */
   belief: BeliefId | null;
   /** The technology that would open this place, or `null` when it is already open. */
@@ -447,7 +447,7 @@ export function nextFaithRungCost(player: Player): number {
  * the table, so "what opens the next place" and the place drawn on the sheet
  * can never name two different technologies.
  */
-export function nextPantheonTech(state: GameState, playerId: number): TechId | null {
+function nextPantheonTech(state: GameState, playerId: number): TechId | null {
   for (const place of pantheonPlaces(state, playerId)) {
     if (place.awaits !== null) return place.awaits;
   }
@@ -678,7 +678,7 @@ export function openFreeRung(state: GameState, player: Player): boolean {
  * sentence survives a retune of the multiple and the amount carries the figure,
  * which is rule 5's bargain everywhere else in this file.
  */
-export interface RerollPrice {
+interface RerollPrice {
   lines: UnitCostLine[];
   total: number;
 }
@@ -783,7 +783,7 @@ function stampRedrawn(player: Player, kind: RerollKind): void {
  * item, so it is not `purchase.ts`' question — but "which bank" is the same
  * question, and a command carrying a currency field is the precedent.
  */
-export type RerollCurrency = 'faith' | 'gold';
+type RerollCurrency = 'faith' | 'gold';
 
 /**
  * **May this empire pay gold for a redraw?** The Brokers' Redraw's door, read in
@@ -794,7 +794,7 @@ export type RerollCurrency = 'faith' | 'gold';
  * card does *not* change is the ladder — a belief hand's first asking is still
  * free, in either bank, because a price of nothing multiplies to nothing.
  */
-export function goldMayRedraw(state: GameState, playerId: number): boolean {
+function goldMayRedraw(state: GameState, playerId: number): boolean {
   return cardActionRule(state, playerId, 'goldBuysRedraw');
 }
 
@@ -1082,7 +1082,7 @@ function bankOfPlayer(player: Player, currency: RerollCurrency): number {
 }
 
 /** What a reroll did, for the line the interface announces it in. */
-export interface RerollOutcome {
+interface RerollOutcome {
   kind: RerollKind;
   /**
    * What the bank gave up. Nought for a belief hand's first asking, and nought
@@ -1277,7 +1277,7 @@ export function beliefChoiceError(
 }
 
 /** What a pick did, for the announcement. */
-export interface BeliefChoice {
+interface BeliefChoice {
   id: BeliefId;
   name: string;
 }
@@ -1812,7 +1812,7 @@ function riteClausesBeforeTheBank(
 }
 
 /** What performing a rite did, for the announcement and the chronicle. */
-export interface RitePerformance {
+interface RitePerformance {
   rite: RiteId;
   name: string;
   /** The town that is keeping it. */
@@ -2310,7 +2310,7 @@ export function realmRiteError(state: GameState, playerId: number, rite: unknown
 }
 
 /** What a prophet's empire-wide rite did, for the announcement. */
-export interface EmpireRitePerformance {
+interface EmpireRitePerformance {
   rite: RiteId;
   name: string;
   /** Every town it landed on, in `state.cities` order. */
@@ -2369,7 +2369,7 @@ export function empireRiteAt(
 }
 
 /** What a rite said over the realm did, whoever said it. See `sayRiteOverRealm`. */
-export interface RealmRiteSweep {
+interface RealmRiteSweep {
   /** Every town it landed on, in `state.cities` order. */
   cities: City[];
   expiresTurn: number;
@@ -2624,7 +2624,7 @@ export function foundReligionError(state: GameState, playerId: number): string |
  * the generator a different number of times for a one-god religion than for a
  * two-god one, and the whole game after it would shift.
  */
-export function generateReligionName(state: GameState, pantheon: readonly BeliefId[]): string {
+function generateReligionName(state: GameState, pantheon: readonly BeliefId[]): string {
   const axes: BeliefAxis[] = [];
   for (const id of pantheon) {
     const axis = beliefDef(id).axis;
@@ -2823,7 +2823,7 @@ function drawableBeliefPool(
  * `offerSize`'s, at the moment the offer opens (Entry XXXI), so the wonder that
  * widens every draft widens this one with nothing written here.
  */
-export function drawPoolBeliefOffer(
+function drawPoolBeliefOffer(
   state: GameState,
   player: Player,
   religion: Religion,
@@ -2941,7 +2941,7 @@ function agentProblem(
  * planting *is* founding (Entry LVIII) — because they are two questions, and
  * `plantingCost` chooses between them by what the act is about to do.
  */
-export type ProphetVerbName =
+type ProphetVerbName =
   | 'foundReligion'
   | 'plantHolySite'
   | 'gainBelief'
@@ -3404,7 +3404,7 @@ export function proclaimError(state: GameState, playerId: number, unitId: number
 }
 
 /** How far a proclamation reaches and what it presses. See `bombFigures`. */
-export interface BombFigures {
+interface BombFigures {
   range: number;
   lump: number;
 }
@@ -3465,7 +3465,7 @@ export function proclaimAt(state: GameState, player: Player, unit: Unit): Procla
 }
 
 /** One town a proclamation would reach, and what it would do there. */
-export interface ProclaimPreviewCity {
+interface ProclaimPreviewCity {
   cityId: number;
   population: number;
   /** Citizens the lump would turn, after this town's temple has had its say. */
@@ -3475,7 +3475,7 @@ export interface ProclaimPreviewCity {
 }
 
 /** What a proclamation would do, for the prophet's row. See `proclaimPreview`. */
-export interface ProclaimPreview {
+interface ProclaimPreview {
   range: number;
   lump: number;
   cities: ProclaimPreviewCity[];
@@ -3557,14 +3557,14 @@ export function healAdjacentError(
 }
 
 /** One piece an apostle's hands mended. See `HealingReport`. */
-export interface HealedUnit {
+interface HealedUnit {
   unitId: number;
   /** Hit points actually restored — zero for a piece that was already whole. */
   healed: number;
 }
 
 /** What a laying-on of hands did, for the announcement. */
-export interface HealingReport {
+interface HealingReport {
   /** What each piece was mended, in `state.units` order. */
   units: HealedUnit[];
   /** True when the apostle was spent by this act's last charge. */
@@ -3689,7 +3689,7 @@ export function placeRelicError(
 }
 
 /** What leaving a relic did, for the announcement. */
-export interface RelicPlacement {
+interface RelicPlacement {
   city: City;
   building: BuildingId;
   /** What it pays its town every turn, off the row that will pay it. */
@@ -3753,7 +3753,7 @@ export function isInquisitor(unit: Unit): boolean {
  * Derived every time it is asked, never stored — `majorityReligion`'s own rule,
  * for its reason: what a realm believes is a fact about the map this turn.
  */
-export function servedReligion(state: GameState, playerId: number): ReligionId | null {
+function servedReligion(state: GameState, playerId: number): ReligionId | null {
   const founded = foundedReligion(state, playerId);
   if (founded !== undefined) return founded.id;
   return majorityReligion(state, playerId);
@@ -3788,7 +3788,7 @@ export function purgeError(state: GameState, playerId: number, unitId: number): 
 }
 
 /** One town a purge landed on. See `PurgeReport`. */
-export interface PurgeStrip {
+interface PurgeStrip {
   cityId: number;
   /** Citizens who stopped following anything at all here. Zero is ordinary. */
   unfollowed: number;
@@ -3905,7 +3905,7 @@ export function purgeAt(state: GameState, player: Player, unit: Unit): PurgeRepo
  * `null` when there is no inquisitor or no faith to purge for; the panel prints
  * `purgeError`'s blocker instead.
  */
-export interface PurgePreview {
+interface PurgePreview {
   range: number;
   lump: number;
   /** Towns in reach, each with what it would lose. `PurgeStrip`'s shape. */
@@ -3955,7 +3955,7 @@ export function purgePreview(state: GameState, unitId: number): PurgePreview | n
  * makes a captured holy site change sides with the town around it, and what
  * makes pillaging one the single way to hurt a religion (`docs/religion-v2.md`).
  */
-export interface HolySite {
+interface HolySite {
   col: number;
   row: number;
   religion: ReligionId;
@@ -4243,7 +4243,7 @@ export function pressureTotals(
  * left to turn, which is only when the town already follows this faith to a
  * citizen.
  */
-export function convertCitizens(
+function convertCitizens(
   city: City,
   religion: ReligionId,
   order: readonly ReligionId[],
@@ -4334,7 +4334,7 @@ function noteFirstConversion(
  * Exported only because `pressLump` names it; nothing outside this module
  * makes one.
  */
-export interface PendingConversion {
+interface PendingConversion {
   /** The empire the religion pays (`religionFounder`) when the town turned. */
   payee: number;
   cityId: number;
@@ -4621,7 +4621,7 @@ function majorityTarget(
 }
 
 /** One town a proclamation landed on. See `ProclamationReport`. */
-export interface ProclamationConversion {
+interface ProclamationConversion {
   cityId: number;
   /** Citizens that turned this instant. Zero for a town a temple held. */
   converted: number;
@@ -4790,7 +4790,7 @@ export function spreadReligion(state: GameState): void {
  * bead race asks it of the map. Ties are broken by founding order, which is the
  * order `state.religions` carries.
  */
-export function majorityReligion(state: GameState, playerId: number): ReligionId | null {
+function majorityReligion(state: GameState, playerId: number): ReligionId | null {
   if (state.religions.length === 0) return null;
   const counts = new Array<number>(state.religions.length).fill(0);
   for (const city of state.cities) {

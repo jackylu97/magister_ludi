@@ -182,7 +182,7 @@ export interface Cell {
  * the empire's discount on it, and the snapping that keeps a running total exact
  * — cannot be given different denominators.
  */
-export const MOVEMENT_DENOMINATOR = 15;
+const MOVEMENT_DENOMINATOR = 15;
 
 /**
  * What one step **along a road** costs an empire that has learnt nothing about
@@ -247,7 +247,7 @@ export const cheapestStepCost = Math.min(
  * route over exactly the ground that empire paved. One reading, asked once per
  * search, off a profile that was hoisted once per sweep.
  */
-export function cheapestStepCostFor(mover?: MoveProfile): number {
+function cheapestStepCostFor(mover?: MoveProfile): number {
   // **Admiralty's landing is free**, so an empire holding it has an edge of zero
   // and an estimate built on anything above it would overestimate exactly the
   // step the card was taken for. The road's argument one clause over, and the
@@ -290,7 +290,7 @@ export function snapMovement(points: number): number {
  * the forest, and one stepping onto the highway from a forest pays the forest
  * too. Half a road is no road.
  */
-export function isRoadStep(from: Tile, to: Tile): boolean {
+function isRoadStep(from: Tile, to: Tile): boolean {
   return from.road !== undefined && to.road !== undefined;
 }
 
@@ -350,7 +350,7 @@ export function shoreStepCost(mover: MoveProfile, from?: Tile, to?: Tile): numbe
 }
 
 /** A tile a unit can reach this turn, with what getting there costs. */
-export interface ReachableTile {
+interface ReachableTile {
   tile: Tile;
   /** Total movement points spent walking from the unit's tile to this one. */
   cost: number;
@@ -583,7 +583,7 @@ export interface MoveProfile {
  * asked per edge and its answer changes only when a border moves or a war
  * starts.
  */
-export interface ClosedBorders {
+interface ClosedBorders {
   /** True when this hex is foreign ground this mover may not set foot on. */
   bars(tile: Tile): boolean;
 }
@@ -1191,7 +1191,7 @@ export interface SwapPlan {
  * being walked by another, and the two may not be able to cross the same ground
  * (a hull and a spearman are both soldiers of the same seat).
  */
-export function walkFitsThisTurn(
+function walkFitsThisTurn(
   state: GameState,
   unit: Unit,
   path: readonly Cell[],
@@ -1229,7 +1229,7 @@ export function walkFitsThisTurn(
  * of the search — the ground, the tolls, the ties, the order — is `findPath`'s
  * unchanged.
  */
-export function findSwapPath(
+function findSwapPath(
   state: GameState,
   unit: Unit,
   goal: Tile,
@@ -1360,7 +1360,7 @@ const PEACEFUL_UNIT = 8;
  * iterates a `Map` or a `Set`, and the marks are idempotent, so the field is a
  * pure function of the state whatever order the pieces happen to be in.
  */
-export interface TransitField {
+interface TransitField {
   /** The seat this reading is *against*. A field is worthless to anybody else. */
   readonly ownerId: number;
   /**
@@ -1520,7 +1520,7 @@ function foreignCityOn(state: GameState, tile: Tile, ownerId: number): boolean {
  * its own city is the same); `adjacent` is the fast reject, one byte per tile
  * index, so an edge nowhere near an enemy costs a single array read.
  */
-export interface ZocField {
+interface ZocField {
   /** Hexes an enemy combat unit or an enemy city projects control from. */
   readonly sources: readonly Tile[];
   /** Per tile index: 1 when at least one source stands one hex away. */
@@ -1710,7 +1710,7 @@ export function inZoneOfControl(state: GameState, unit: Unit): boolean {
  * `refill` is `fullMovement`, so a card that pays movement pays it here too —
  * there is still exactly one place a movement allowance is decided.
  */
-export interface MovePurse {
+interface MovePurse {
   /** Points left in the turn a walk or a search starts in. */
   left: number;
   /** The allowance every later turn refills to. Never zero — `fullMovement` floors at 1. */
@@ -1718,14 +1718,14 @@ export interface MovePurse {
 }
 
 /** The purse `unit` is spending from as things stand. */
-export function movePurse(state: GameState, unit: Unit): MovePurse {
+function movePurse(state: GameState, unit: Unit): MovePurse {
   return { left: Math.max(0, unit.movesLeft), refill: fullMovement(unit, state) };
 }
 
 // --- the step evaluator -----------------------------------------------------
 
 /** What one step off a tile costs, and why it costs that. */
-export interface StepPrice {
+interface StepPrice {
   /**
    * Movement points this step asks, **everything included**: the destination's
    * ground (`tileMoveCost`), or `roadStepCost` when both hexes are paved, plus
@@ -1817,7 +1817,7 @@ export function stepCost(
  * arithmetic used to live. A fifth reader that grows a running total of its own
  * adds it here or the four stop agreeing.
  */
-export function stepArrival(spent: number, price: StepPrice): number {
+function stepArrival(spent: number, price: StepPrice): number {
   return snapMovement(spent + price.cost);
 }
 
@@ -1877,7 +1877,7 @@ export function pathTurns(
 }
 
 /** A hex a march comes to rest on at the end of a turn, and which turn that is. */
-export interface PathTurnMark {
+interface PathTurnMark {
   col: number;
   row: number;
   /** Turns from now, counting the way `pathTurns` counts: the first is 1. */

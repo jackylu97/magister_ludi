@@ -293,7 +293,7 @@ import { recomputeMarchSight, recomputeVisibility } from './visibility';
  * connection it arrived on. Either way the reducer trusts the field only as far
  * as it validates it.
  */
-export interface PlayerCommand {
+interface PlayerCommand {
   /** Id of the player acting. Must name a player in `state.players`. */
   playerId: number;
 }
@@ -303,7 +303,7 @@ export interface PlayerCommand {
  * last outstanding seat ends, the end-of-turn phases resolve, every seat reopens
  * and the turn counter advances.
  */
-export interface EndTurnCommand extends PlayerCommand {
+interface EndTurnCommand extends PlayerCommand {
   type: 'endTurn';
 }
 
@@ -356,7 +356,7 @@ export interface MoveUnitCommand extends PlayerCommand {
  * has no effect to log, and an accepted no-op would put a command in the log
  * that a replay has to apply and that says nothing about what happened.
  */
-export interface CancelOrderCommand extends PlayerCommand {
+interface CancelOrderCommand extends PlayerCommand {
   type: 'cancelOrder';
   unitId: number;
 }
@@ -372,7 +372,7 @@ export interface CancelOrderCommand extends PlayerCommand {
  * coincide and are allowed not to, which is why ending the turn does not close
  * this command the way it closes `moveUnit`.
  */
-export interface SpawnUnitCommand extends PlayerCommand {
+interface SpawnUnitCommand extends PlayerCommand {
   type: 'spawnUnit';
   /** The player the new unit belongs to, which need not be `playerId`. */
   ownerId: number;
@@ -392,7 +392,7 @@ export interface SpawnUnitCommand extends PlayerCommand {
  * Turn-gated exactly like `moveUnit`: founding a city is an act, and a seat that
  * has declared itself finished has finished acting.
  */
-export interface FoundCityCommand extends PlayerCommand {
+interface FoundCityCommand extends PlayerCommand {
   type: 'foundCity';
   settlerUnitId: number;
 }
@@ -410,7 +410,7 @@ export interface FoundCityCommand extends PlayerCommand {
  * `moveUnit` — a finished seat is finished, and letting it keep re-planning
  * production would be a second, quieter turn.
  */
-export interface SetCityProductionCommand extends PlayerCommand {
+interface SetCityProductionCommand extends PlayerCommand {
   type: 'setCityProduction';
   cityId: number;
   queue: QueueItem[];
@@ -436,7 +436,7 @@ export interface SetCityProductionCommand extends PlayerCommand {
  * Turn-gated like `moveUnit`: re-planning who works what is an act, and a seat
  * that has declared itself finished has finished acting.
  */
-export interface SetLockedTilesCommand extends PlayerCommand {
+interface SetLockedTilesCommand extends PlayerCommand {
   type: 'setLockedTiles';
   cityId: number;
   cells: Cell[];
@@ -460,7 +460,7 @@ export interface SetLockedTilesCommand extends PlayerCommand {
  * chooses for itself what to build chooses for itself where its people stand
  * (`citizenFocusError`, which is also what greys the control).
  */
-export interface SetCitizenFocusCommand extends PlayerCommand {
+interface SetCitizenFocusCommand extends PlayerCommand {
   type: 'setCitizenFocus';
   cityId: number;
   focus?: CitizenFocus;
@@ -484,7 +484,7 @@ export interface SetCitizenFocusCommand extends PlayerCommand {
  * town's people stand is an act, and a seat that has declared itself finished
  * has finished acting.
  */
-export interface DismissSpecialistCommand extends PlayerCommand {
+interface DismissSpecialistCommand extends PlayerCommand {
   type: 'dismissSpecialist';
   cityId: number;
   family: SpecialistFamily;
@@ -497,7 +497,7 @@ export interface DismissSpecialistCommand extends PlayerCommand {
  * period. Refusals come from `levyError`, the same function the city panel
  * greys its menu with.
  */
-export interface LevyCitizenCommand extends PlayerCommand {
+interface LevyCitizenCommand extends PlayerCommand {
   type: 'levyCitizen';
   cityId: number;
   use: LevyUse;
@@ -540,7 +540,7 @@ export interface LevyCitizenCommand extends PlayerCommand {
  * Turn-gated like `setCityProduction`: choosing what to learn is an act, and a
  * seat that has declared itself finished has finished acting.
  */
-export interface ChooseResearchCommand extends PlayerCommand {
+interface ChooseResearchCommand extends PlayerCommand {
   type: 'chooseResearch';
   techId: TechId;
   queue?: ResearchQueueMode;
@@ -568,7 +568,7 @@ export interface ChooseResearchCommand extends PlayerCommand {
  * Refused when the technology is not in the plan at all, and turn-gated exactly
  * like `chooseResearch`.
  */
-export interface DequeueResearchCommand extends PlayerCommand {
+interface DequeueResearchCommand extends PlayerCommand {
   type: 'dequeueResearch';
   techId: TechId;
 }
@@ -601,7 +601,7 @@ export interface DequeueResearchCommand extends PlayerCommand {
  * Turn-gated like `moveUnit`: fighting is an act, and a seat that has declared
  * itself finished has finished acting.
  */
-export interface AttackCommand extends PlayerCommand {
+interface AttackCommand extends PlayerCommand {
   type: 'attack';
   unitId: number;
   target: Cell;
@@ -627,7 +627,7 @@ export interface AttackCommand extends PlayerCommand {
  * moving is how a unit stands up, and a second verb for it would be a second way
  * to say the same thing.
  */
-export interface FortifyCommand extends PlayerCommand {
+interface FortifyCommand extends PlayerCommand {
   type: 'fortify';
   unitId: number;
 }
@@ -651,7 +651,7 @@ export interface FortifyCommand extends PlayerCommand {
  * Turn-gated like `fortify`: a seat that has declared itself finished has
  * finished giving orders, and this is one.
  */
-export interface SleepUnitCommand extends PlayerCommand {
+interface SleepUnitCommand extends PlayerCommand {
   type: 'sleepUnit';
   unitId: number;
 }
@@ -676,7 +676,7 @@ export interface SleepUnitCommand extends PlayerCommand {
  * worker ranging ahead is a worker walking into somebody's spear for nothing
  * it can use.
  */
-export interface SetAutoExploreCommand extends PlayerCommand {
+interface SetAutoExploreCommand extends PlayerCommand {
   type: 'setAutoExplore';
   unitId: number;
   on: boolean;
@@ -703,7 +703,7 @@ export interface SetAutoExploreCommand extends PlayerCommand {
  * Turn-gated like `moveUnit`: building is an act, and a seat that has declared
  * itself finished has finished acting.
  */
-export interface BuildImprovementCommand extends PlayerCommand {
+interface BuildImprovementCommand extends PlayerCommand {
   type: 'buildImprovement';
   unitId: number;
   improvement: ImprovementId;
@@ -729,7 +729,7 @@ export interface BuildImprovementCommand extends PlayerCommand {
  * Turn-gated like `moveUnit`: felling a wood is an act, and a seat that has
  * declared itself finished has finished acting.
  */
-export interface ChopFeatureCommand extends PlayerCommand {
+interface ChopFeatureCommand extends PlayerCommand {
   type: 'chopFeature';
   unitId: number;
 }
@@ -755,7 +755,7 @@ export interface ChopFeatureCommand extends PlayerCommand {
  * Turn-gated like `moveUnit`: reading a hillside is an act, and a seat that has
  * declared itself finished has finished acting.
  */
-export interface ProspectCommand extends PlayerCommand {
+interface ProspectCommand extends PlayerCommand {
   type: 'prospect';
   unitId: number;
 }
@@ -782,7 +782,7 @@ export interface ProspectCommand extends PlayerCommand {
  * Turn-gated like `moveUnit`: taking a farm up is an act, and a seat that has
  * declared itself finished has finished acting.
  */
-export interface RemoveImprovementCommand extends PlayerCommand {
+interface RemoveImprovementCommand extends PlayerCommand {
   type: 'removeImprovement';
   unitId: number;
 }
@@ -800,7 +800,7 @@ export interface RemoveImprovementCommand extends PlayerCommand {
  * Like `attack` and `foundCity` it names no tile: the tile is where the unit is.
  * Turn-gated like every other act.
  */
-export interface PillageCommand extends PlayerCommand {
+interface PillageCommand extends PlayerCommand {
   type: 'pillage';
   unitId: number;
 }
@@ -822,7 +822,7 @@ export interface PillageCommand extends PlayerCommand {
  * Turn-gated like every other act. A seat that has declared itself finished has
  * finished spending.
  */
-export interface PurchaseTileCommand extends PlayerCommand {
+interface PurchaseTileCommand extends PlayerCommand {
   type: 'purchaseTile';
   cityId: number;
   col: number;
@@ -857,7 +857,7 @@ export interface PurchaseTileCommand extends PlayerCommand {
  * outstanding, so the only way to reach the gate is to answer the prompt and
  * then hand the turn over anyway.
  */
-export interface ChooseDiscoveryCommand extends PlayerCommand {
+interface ChooseDiscoveryCommand extends PlayerCommand {
   type: 'chooseDiscovery';
   /** Which of the offered options, by position in `Player.pendingDiscovery`. */
   optionIndex: number;
@@ -886,7 +886,7 @@ export interface ChooseDiscoveryCommand extends PlayerCommand {
  * `chooseDiscovery` is not: the End Turn blocker will not let a seat hand over
  * while a draft is outstanding.
  */
-export interface ChooseOrderCommand extends PlayerCommand {
+interface ChooseOrderCommand extends PlayerCommand {
   type: 'chooseOrder';
   /** Which option, by position in `OrderOffer.options`. */
   optionIndex: number;
@@ -911,7 +911,7 @@ export interface ChooseOrderCommand extends PlayerCommand {
  * reason: the End Turn blocker will not let a seat hand over the deal turn with
  * an empty chair.
  */
-export interface ChooseWagerCommand extends PlayerCommand {
+interface ChooseWagerCommand extends PlayerCommand {
   type: 'chooseWager';
   /** Which of the three, by position in `WagerDeal.dealt`. */
   index: number;
@@ -937,7 +937,7 @@ export interface ChooseWagerCommand extends PlayerCommand {
  * Turn-gated like every other act, and not a trap for `chooseWager`'s reason:
  * the End Turn blocker will not let a seat hand over without reading it.
  */
-export interface DismissCensusCommand extends PlayerCommand {
+interface DismissCensusCommand extends PlayerCommand {
   type: 'dismissCensus';
 }
 
@@ -965,7 +965,7 @@ export interface DismissCensusCommand extends PlayerCommand {
  * Turn-gated like every other act, and not a trap for `chooseOrder`'s reason:
  * the End Turn blocker will not let a seat hand over with a draft outstanding.
  */
-export interface SkipOrderOfferCommand extends PlayerCommand {
+interface SkipOrderOfferCommand extends PlayerCommand {
   type: 'skipOrderOffer';
 }
 
@@ -1001,7 +1001,7 @@ export interface SkipOrderOfferCommand extends PlayerCommand {
  * Turn-gated like every other act, and not a trap for `chooseOrder`'s reason:
  * the End Turn blocker will not let a seat hand over with a draft outstanding.
  */
-export interface RerollOfferCommand extends PlayerCommand {
+interface RerollOfferCommand extends PlayerCommand {
   type: 'rerollOffer';
   /**
    * **Which bank pays** — absent means faith, which is what every redraw before
@@ -1082,7 +1082,7 @@ export interface UnslotOrderCommand extends PlayerCommand {
  * Entry XV settles the open question at "a government pick cannot be revisited
  * within a tier".
  */
-export interface AdoptGovernmentCommand extends PlayerCommand {
+interface AdoptGovernmentCommand extends PlayerCommand {
   type: 'adoptGovernment';
   /** Which of the tier's three, by position. */
   choiceIndex: number;
@@ -1100,7 +1100,7 @@ export interface AdoptGovernmentCommand extends PlayerCommand {
  *
  * `chooseOrder`'s shape otherwise, refusal for refusal.
  */
-export interface ChooseDoctrineCommand extends PlayerCommand {
+interface ChooseDoctrineCommand extends PlayerCommand {
   type: 'chooseDoctrine';
   optionIndex: number;
 }
@@ -1111,7 +1111,7 @@ export interface ChooseDoctrineCommand extends PlayerCommand {
  * no bead — and the Doctrines on it stay unheld. `skipOrderOffer`'s shape
  * without its bargain.
  */
-export interface SkipDoctrineOfferCommand extends PlayerCommand {
+interface SkipDoctrineOfferCommand extends PlayerCommand {
   type: 'skipDoctrineOffer';
 }
 
@@ -1140,7 +1140,7 @@ export interface SkipDoctrineOfferCommand extends PlayerCommand {
  * Turn-gated like every other act. A seat that has declared itself finished has
  * finished spending.
  */
-export interface PurchaseItemCommand extends PlayerCommand {
+interface PurchaseItemCommand extends PlayerCommand {
   type: 'purchaseItem';
   cityId: number;
   /** A unit or a building. A project is not a thing that can be delivered. */
@@ -1178,7 +1178,7 @@ export interface PurchaseItemCommand extends PlayerCommand {
  * Turn-gated like every other act. A seat that has declared itself finished has
  * finished spending.
  */
-export interface ContributeCommand extends PlayerCommand {
+interface ContributeCommand extends PlayerCommand {
   type: 'contribute';
   cityId: number;
   /** Which bank pays. Both are legal; the rate differs. */
@@ -1202,7 +1202,7 @@ export interface ContributeCommand extends PlayerCommand {
  *
  * Turn-gated like every other act.
  */
-export interface ConsecrateCommand extends PlayerCommand {
+interface ConsecrateCommand extends PlayerCommand {
   type: 'consecrate';
   unitId: number;
 }
@@ -1216,7 +1216,7 @@ export interface ConsecrateCommand extends PlayerCommand {
  * empire forever. A belief is **permanent** — there is no unconsecrating, no
  * slot to move it out of, and no later pass that takes it away.
  */
-export interface ChooseBeliefCommand extends PlayerCommand {
+interface ChooseBeliefCommand extends PlayerCommand {
   type: 'chooseBelief';
   optionIndex: number;
 }
@@ -1237,7 +1237,7 @@ export interface ChooseBeliefCommand extends PlayerCommand {
  *
  * Turn-gated like every other act.
  */
-export interface PerformRiteCommand extends PlayerCommand {
+interface PerformRiteCommand extends PlayerCommand {
   type: 'performRite';
   cityId: number;
   rite: RiteId;
@@ -1253,7 +1253,7 @@ export interface PerformRiteCommand extends PlayerCommand {
  *
  * Turn-gated like every other act.
  */
-export interface EmpireRiteCommand extends PlayerCommand {
+interface EmpireRiteCommand extends PlayerCommand {
   type: 'empireRite';
   unitId: number;
   rite: RiteId;
@@ -1268,7 +1268,7 @@ export interface EmpireRiteCommand extends PlayerCommand {
  *
  * Turn-gated like every other act.
  */
-export interface HealAdjacentCommand extends PlayerCommand {
+interface HealAdjacentCommand extends PlayerCommand {
   type: 'healAdjacent';
   unitId: number;
 }
@@ -1287,7 +1287,7 @@ export interface HealAdjacentCommand extends PlayerCommand {
  *
  * Turn-gated like every other act.
  */
-export interface PlaceRelicCommand extends PlayerCommand {
+interface PlaceRelicCommand extends PlayerCommand {
   type: 'placeRelic';
   unitId: number;
 }
@@ -1315,7 +1315,7 @@ export interface PlaceRelicCommand extends PlayerCommand {
  *
  * Turn-gated like every other act.
  */
-export interface PlantHolySiteCommand extends PlayerCommand {
+interface PlantHolySiteCommand extends PlayerCommand {
   type: 'plantHolySite';
   unitId: number;
 }
@@ -1333,7 +1333,7 @@ export interface PlantHolySiteCommand extends PlayerCommand {
  *
  * Turn-gated like every other act.
  */
-export interface GainBeliefCommand extends PlayerCommand {
+interface GainBeliefCommand extends PlayerCommand {
   type: 'gainBelief';
   unitId: number;
 }
@@ -1350,7 +1350,7 @@ export interface GainBeliefCommand extends PlayerCommand {
  *
  * Turn-gated like every other act.
  */
-export interface PurgeCommand extends PlayerCommand {
+interface PurgeCommand extends PlayerCommand {
   type: 'purge';
   unitId: number;
 }
@@ -1366,7 +1366,7 @@ export interface PurgeCommand extends PlayerCommand {
  *
  * Turn-gated like every other act.
  */
-export interface ProclaimCommand extends PlayerCommand {
+interface ProclaimCommand extends PlayerCommand {
   type: 'proclaim';
   unitId: number;
 }
@@ -1379,7 +1379,7 @@ export interface ProclaimCommand extends PlayerCommand {
  * nothing, and changes no rule — which is why it is not turn-gated the way an
  * act is, and why `orderedUnitId` returns nothing for it.
  */
-export interface RenameReligionCommand extends PlayerCommand {
+interface RenameReligionCommand extends PlayerCommand {
   type: 'renameReligion';
   name: string;
 }
@@ -1399,7 +1399,7 @@ export interface RenameReligionCommand extends PlayerCommand {
  *
  * Turn-gated like every other act.
  */
-export interface ChooseGreatPersonCommand extends PlayerCommand {
+interface ChooseGreatPersonCommand extends PlayerCommand {
   type: 'chooseGreatPerson';
   optionIndex: number;
 }
@@ -1426,7 +1426,7 @@ export interface ChooseGreatPersonCommand extends PlayerCommand {
  *
  * Turn-gated like every other act.
  */
-export interface PurchaseGreatPersonOfferCommand extends PlayerCommand {
+interface PurchaseGreatPersonOfferCommand extends PlayerCommand {
   type: 'purchaseGreatPersonOffer';
   buys: 'gold' | 'faith' | 'scholarDraft';
 }
@@ -1445,7 +1445,7 @@ export interface PurchaseGreatPersonOfferCommand extends PlayerCommand {
  *
  * Turn-gated like every other act.
  */
-export interface GreatPersonActCommand extends PlayerCommand {
+interface GreatPersonActCommand extends PlayerCommand {
   type: 'greatPersonAct';
   unitId: number;
 }
@@ -1460,7 +1460,7 @@ export interface GreatPersonActCommand extends PlayerCommand {
  *
  * Turn-gated like every other act.
  */
-export interface GreatPersonWorkCommand extends PlayerCommand {
+interface GreatPersonWorkCommand extends PlayerCommand {
   type: 'greatPersonWork';
   unitId: number;
 }
@@ -1489,7 +1489,7 @@ export interface GreatPersonWorkCommand extends PlayerCommand {
  * refusal leaves the state byte-identical like every other handler. Turn-gated
  * like every other order.
  */
-export interface StartRouteCommand extends PlayerCommand {
+interface StartRouteCommand extends PlayerCommand {
   type: 'startRoute';
   unitId: number;
   /** The origin. Must be a city of `playerId`'s; the caravan appears in it. */
@@ -1540,7 +1540,7 @@ export interface StartRouteCommand extends PlayerCommand {
  * is written, so a refusal leaves the state byte-identical. Turn-gated like
  * every other order.
  */
-export interface BuyRouteCommand extends PlayerCommand {
+interface BuyRouteCommand extends PlayerCommand {
   type: 'buyRoute';
   /** The origin. Must be a city of `playerId`'s; the caravan is minted in it. */
   fromCityId: number;
@@ -1554,7 +1554,7 @@ export interface BuyRouteCommand extends PlayerCommand {
   mode?: RouteMode;
 }
 
-export interface SetAutoResendCommand extends PlayerCommand {
+interface SetAutoResendCommand extends PlayerCommand {
   type: 'setAutoResend';
   unitId: number;
   on: boolean;
@@ -1574,7 +1574,7 @@ export interface SetAutoResendCommand extends PlayerCommand {
  * reaches for it: a caravan tied to a partner that has stopped being worth it is
  * a market's worth of capacity standing idle.
  */
-export interface CancelRouteCommand extends PlayerCommand {
+interface CancelRouteCommand extends PlayerCommand {
   type: 'cancelRoute';
   unitId: number;
 }
@@ -1602,7 +1602,7 @@ export interface CancelRouteCommand extends PlayerCommand {
  *
  * Turn-gated like every other order.
  */
-export interface DisbandUnitCommand extends PlayerCommand {
+interface DisbandUnitCommand extends PlayerCommand {
   type: 'disbandUnit';
   unitId: number;
 }
@@ -1624,7 +1624,7 @@ export interface DisbandUnitCommand extends PlayerCommand {
  * Turn-gated like every other order: a seat that has ended its turn is not
  * acting, and a declaration is an act.
  */
-export interface DeclareWarCommand extends PlayerCommand {
+interface DeclareWarCommand extends PlayerCommand {
   type: 'declareWar';
   /** The empire to declare on. Never yourself, never the wild. */
   targetId: number;
@@ -1650,7 +1650,7 @@ export interface DeclareWarCommand extends PlayerCommand {
  * Writing a paper voids the signatures on the last one, so a counter-offer is
  * this same command (see `setPeaceOffer` in `wars.ts`).
  */
-export interface ProposePeaceCommand extends PlayerCommand {
+interface ProposePeaceCommand extends PlayerCommand {
   type: 'proposePeace';
   targetId: number;
   /** What this empire hands over. Absent means "sign what is on the table". */
@@ -1660,7 +1660,7 @@ export interface ProposePeaceCommand extends PlayerCommand {
 }
 
 /** Takes a standing peace offer back off the table. `proposePeace`'s mirror. */
-export interface WithdrawPeaceCommand extends PlayerCommand {
+interface WithdrawPeaceCommand extends PlayerCommand {
   type: 'withdrawPeace';
   targetId: number;
 }
@@ -1675,7 +1675,7 @@ export interface WithdrawPeaceCommand extends PlayerCommand {
  * the war goes on, this seat's own flag (if it has one up) stays where it is,
  * and either empire may sue again next turn.
  */
-export interface DeclinePeaceCommand extends PlayerCommand {
+interface DeclinePeaceCommand extends PlayerCommand {
   type: 'declinePeace';
   targetId: number;
 }
@@ -1695,7 +1695,7 @@ export interface DeclinePeaceCommand extends PlayerCommand {
  *
  * Turn-gated like every other order.
  */
-export interface ProposeDealCommand extends PlayerCommand {
+interface ProposeDealCommand extends PlayerCommand {
   type: 'proposeDeal';
   targetId: number;
   give: DealTerms;
@@ -1712,19 +1712,19 @@ export interface ProposeDealCommand extends PlayerCommand {
  * coin may have been spent and the mine may have been pillaged since the paper
  * was written. The deal's twenty turns start the turn it is signed.
  */
-export interface AcceptDealCommand extends PlayerCommand {
+interface AcceptDealCommand extends PlayerCommand {
   type: 'acceptDeal';
   dealId: number;
 }
 
 /** Refuses a bargain put to this empire. Always legal for the seat that was asked. */
-export interface DeclineDealCommand extends PlayerCommand {
+interface DeclineDealCommand extends PlayerCommand {
   type: 'declineDeal';
   dealId: number;
 }
 
 /** Takes back a bargain this empire put to another. `proposeDeal`'s mirror. */
-export interface WithdrawDealCommand extends PlayerCommand {
+interface WithdrawDealCommand extends PlayerCommand {
   type: 'withdrawDeal';
   dealId: number;
 }
@@ -1737,7 +1737,7 @@ export interface WithdrawDealCommand extends PlayerCommand {
  * turns it back. A captured town starts as a puppet (`captureCity`), and this
  * is the one decision a captor is offered about it.
  */
-export interface AnnexCityCommand extends PlayerCommand {
+interface AnnexCityCommand extends PlayerCommand {
   type: 'annexCity';
   cityId: number;
 }
@@ -1751,7 +1751,7 @@ export interface AnnexCityCommand extends PlayerCommand {
  * regenerates a tile mid-game — and the hexes go back to nobody's. See
  * `razeCityAt` for the whole of what it takes with it.
  */
-export interface RazeCityCommand extends PlayerCommand {
+interface RazeCityCommand extends PlayerCommand {
   type: 'razeCity';
   cityId: number;
 }
@@ -1825,7 +1825,7 @@ export type Command =
   | WithdrawDealCommand;
 
 /** Convenience alias for the discriminant. */
-export type CommandType = Command['type'];
+type CommandType = Command['type'];
 
 /**
  * What a command did, from the reducer's side.
@@ -4979,7 +4979,7 @@ function orderedUnitId(command: Command): number | undefined {
  *     The revision moves; the economy clock stands still, and the empire's
  *     happiness walk taken before it is still the answer after it.
  */
-export type CommandClock = 'economy' | 'movement';
+type CommandClock = 'economy' | 'movement';
 
 /**
  * **The register of record: every command kind, on one clock or the other.**

@@ -1800,7 +1800,7 @@ export function liveUnitEffects(state: GameState, unit: Unit): LiveCardEffect[] 
  * `founderShare` rides along when the entry has one, so a reader of the
  * narrowed list can still tell the founder's share from a belief's clause.
  */
-export type LiveOfKind<K extends CardEffect['kind']> = {
+type LiveOfKind<K extends CardEffect['kind']> = {
   source: string;
   card: CardId;
   effect: Extract<CardEffect, { kind: K }>;
@@ -2108,7 +2108,7 @@ export function lawReadsTrenches(state: GameState, playerId: number): boolean {
  * for the life of the closure. A set read only for membership, so its order
  * decides nothing.
  */
-export function fortifiedHexTest(state: GameState, playerId: number): (tile: Tile) => boolean {
+function fortifiedHexTest(state: GameState, playerId: number): (tile: Tile) => boolean {
   let hexes: Set<number> | undefined;
   return (tile) => {
     if (hexes === undefined) {
@@ -2127,7 +2127,7 @@ export function fortifiedHexTest(state: GameState, playerId: number): (tile: Til
  * D7), and, for a unit, a unit the filter admits. Front of the queue only, as
  * `isRaisingOpus` reads it, because that is the row the town's hammers pay for.
  */
-export function isProducing(city: City, category: ProductionCategory, filter?: UnitFilter): boolean {
+function isProducing(city: City, category: ProductionCategory, filter?: UnitFilter): boolean {
   const front = city.queue[0];
   if (front === undefined || queueCategory(front) !== category) return false;
   if (filter === undefined) return true;
@@ -5957,7 +5957,7 @@ export interface GroundFacts {
  * batch S5, The Studium Generale.) The answer `worksStandInFor` builds. It is
  * asked only of a hex whose work is not already the row or a variant of it.
  */
-export type WorkStandIn = (tile: Tile, wanted: ImprovementId) => boolean;
+type WorkStandIn = (tile: Tile, wanted: ImprovementId) => boolean;
 
 /**
  * **Is this hex's work the row a card names?** The one reading behind the tile
@@ -5973,7 +5973,7 @@ export type WorkStandIn = (tile: Tile, wanted: ImprovementId) => boolean;
  *
  * Bare ground is never a row.
  */
-export function workIsRow(tile: Tile, wanted: ImprovementId, standsIn?: WorkStandIn): boolean {
+function workIsRow(tile: Tile, wanted: ImprovementId, standsIn?: WorkStandIn): boolean {
   const here = tile.improvement;
   if (here === undefined) return false;
   if (improvementCountsAs(here, wanted)) return true;
@@ -5985,7 +5985,7 @@ export function workIsRow(tile: Tile, wanted: ImprovementId, standsIn?: WorkStan
  * S5, The Studium Generale): the `improvement` of each `worksCountAs` rule
  * among its live effects, in walk order, each once.
  */
-export function cardWorksCountAs(state: GameState, playerId: number): ImprovementId[] {
+function cardWorksCountAs(state: GameState, playerId: number): ImprovementId[] {
   const rows: ImprovementId[] = [];
   for (const { effect } of effectsOfKind(state, playerId, 'rule')) {
     if (effect.rule !== 'worksCountAs' || effect.improvement === undefined) continue;
@@ -6011,7 +6011,7 @@ export function cardWorksCountAs(state: GameState, playerId: number): Improvemen
  * and the law, so the hex fold, the counts and the town scopes all read it the
  * same way.
  */
-export function worksStandInFor(state: GameState, playerId: number): WorkStandIn | undefined {
+function worksStandInFor(state: GameState, playerId: number): WorkStandIn | undefined {
   const rows = cardWorksCountAs(state, playerId);
   if (rows.length === 0) return undefined;
   return (tile, wanted) => {
@@ -6188,7 +6188,7 @@ export function workLinesOf(state: GameState, playerId: number): WorkLines {
  * E9, Commission: Break the Sod's institution): the sum of its live
  * `workAge` effects, or nought. See `GroundFacts.workAgeBonus`.
  */
-export function cardWorkAgeBonus(state: GameState, playerId: number): number {
+function cardWorkAgeBonus(state: GameState, playerId: number): number {
   let turns = 0;
   for (const { effect } of effectsOfKind(state, playerId, 'workAge')) turns += Math.floor(effect.turns ?? 0);
   return turns;
@@ -6212,7 +6212,7 @@ export function cardWorkAgeFactor(state: GameState, playerId: number): number {
  * The Two Harvests): the `improvements` of each `fieldsTended` rule among its
  * live effects, in walk order, each once. See `GroundFacts.tendedFields`.
  */
-export function cardFieldsTended(state: GameState, playerId: number): ImprovementId[] {
+function cardFieldsTended(state: GameState, playerId: number): ImprovementId[] {
   const rows: ImprovementId[] = [];
   for (const { effect } of effectsOfKind(state, playerId, 'rule')) {
     if (effect.rule !== 'fieldsTended') continue;
@@ -6764,7 +6764,7 @@ export interface CardPercentLine {
 }
 
 /** One percentage a card takes of the empire's own income. See `cardEmpireIncomeShares`. */
-export interface CardIncomeShare {
+interface CardIncomeShare {
   card: CardId;
   source: string;
   yield: CityYieldKey;
@@ -9155,7 +9155,7 @@ export function cardBirthTimedEffects(
 }
 
 /** What a unit is gained with, in experience. See `cardBirthExperience`. */
-export interface BirthExperience {
+interface BirthExperience {
   /** Flat experience, summed over every row that reaches the unit. */
   experience: number;
   /** The highest rank any row names, or `null` when none does. */
@@ -9208,7 +9208,7 @@ export function cardBirthExperience(
  * use raised? `true` reaches any levy; a use reaches only its own. A piece no
  * levy raised (`have` absent) is never reached. Expansionist batch E1.
  */
-export function leviedMatches(want: true | LevyUse, have: LevyUse | undefined): boolean {
+function leviedMatches(want: true | LevyUse, have: LevyUse | undefined): boolean {
   if (have === undefined) return false;
   return want === true || want === have;
 }
@@ -10644,7 +10644,7 @@ function riderRodeThisTurn(state: GameState, playerId: number, card: CardId): bo
  * rewritten rather than duplicated, so a row carrying two once-a-turn riders
  * keeps one entry.
  */
-export function stampRiderClaims(
+function stampRiderClaims(
   state: GameState,
   playerId: number,
   claims: readonly CardId[],
@@ -11970,7 +11970,7 @@ export function cardGarrisonSeats(state: GameState, city: City): number {
 // --- what a town holds --------------------------------------------------------
 
 /** One building a card says a town holds, and the card that says so. */
-export interface HeldBuilding {
+interface HeldBuilding {
   building: BuildingId;
   card: CardId;
   /** The card's live label, "Order · The Cura Aquarum". */
@@ -12448,7 +12448,7 @@ export function cardUpgradeStrength(state: GameState, unit: Unit): number {
  * paid by (`heldReligions`). A hex no town owns never follows. The town may
  * belong to any empire, this one included.
  */
-export function followingTownAt(state: GameState, playerId: number, col: number, row: number): City | null {
+function followingTownAt(state: GameState, playerId: number, col: number, row: number): City | null {
   const cityId = tileOwnerCityId(state, col, row);
   if (cityId === null) return null;
   const town = state.cities.find((entry) => entry.id === cityId);

@@ -85,7 +85,7 @@ export const KEYWORD_GRACE_MS = 200;
 // --- the state ----------------------------------------------------------------
 
 /** Where a preview came from. Only a pointer can hold a card locked. */
-export type PreviewSource = 'pointer' | 'focus';
+type PreviewSource = 'pointer' | 'focus';
 
 /** A keyword the pointer or focus is on, as the DOM half reports it. */
 export interface KeywordAt<A> {
@@ -120,7 +120,7 @@ export interface PreviewCard<A> extends KeywordCard<A> {
 }
 
 /** Where the pointer or focus is: on which locked card, and on which keyword. */
-export interface Spot<A> {
+interface Spot<A> {
   /** The id of the locked card it is on, or null. */
   readonly card: number | null;
   /** The keyword it is on, or null. */
@@ -191,7 +191,7 @@ function chainIndexOfAnchor<A>(state: KeywordCardState<A>, anchor: A | null): nu
 }
 
 /** Is the pointer or focus on the preview's own keyword? */
-export function previewHeld<A>(state: KeywordCardState<A>): boolean {
+function previewHeld<A>(state: KeywordCardState<A>): boolean {
   const preview = state.preview;
   if (preview === null) return false;
   return state.pointer.anchor === preview.anchor || state.focus.anchor === preview.anchor;
@@ -206,7 +206,7 @@ export function previewHeld<A>(state: KeywordCardState<A>): boolean {
  * itself and everything under it, since a card cannot outlive the card its
  * keyword sits on.
  */
-export function heldUpTo<A>(state: KeywordCardState<A>): number {
+function heldUpTo<A>(state: KeywordCardState<A>): number {
   let level = -1;
   for (const spot of [state.pointer, state.focus]) {
     level = Math.max(level, chainIndex(state, spot.card), chainIndexOfAnchor(state, spot.anchor));
@@ -452,9 +452,9 @@ export function keywordCardStep<A>(
 // --- placement ------------------------------------------------------------------
 
 /** Which side of its keyword a card sits on. */
-export type KeywordCardSide = 'below' | 'above' | 'right' | 'left';
+type KeywordCardSide = 'below' | 'above' | 'right' | 'left';
 
-export interface KeywordCardSpot {
+interface KeywordCardSpot {
   left: number;
   top: number;
   side: KeywordCardSide;

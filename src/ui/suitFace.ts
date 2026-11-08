@@ -56,7 +56,7 @@ export type SuitId = 'swords' | 'wands' | 'coins' | 'cups' | 'spheres' | 'crowns
 export const SUIT_IDS: readonly SuitId[] = ['swords', 'wands', 'coins', 'cups', 'spheres', 'crowns'];
 
 /** One drawing, and the sentence that says what it depicts. Structurally `LineMark`. */
-export interface SuitMark {
+interface SuitMark {
   note: string;
   paths: readonly MarkPath[];
 }
@@ -203,7 +203,7 @@ export interface SuitFace {
 }
 
 /** The face's three sizes. A row is drawn by `suitRowNode`, not by `dressSuitFace`. */
-export type SuitSize = 'hand' | 'seat';
+type SuitSize = 'hand' | 'seat';
 
 // --- drawing ----------------------------------------------------------------
 
@@ -313,7 +313,7 @@ const COMPASS_POINTS =
  * common card has no rings and shows its suit larger and once, as the user
  * asked on round two (*"it can just be one big coin"*).
  */
-export function suitPlateNode(face: SuitFace, size: SuitSize): HTMLElement {
+function suitPlateNode(face: SuitFace, size: SuitSize): HTMLElement {
   const plate = element('span', 'suit-plate');
   plate.setAttribute('role', 'img');
   plate.setAttribute('aria-label', suitsWord(face.suits));
@@ -340,7 +340,7 @@ const STAR = 'M0 -6.5L1.8 -1.8L6.5 0L1.8 1.8L0 6.5L-1.8 1.8L-6.5 0L-1.8 -1.8Z';
  * rule (uncommon), or a black double rule with a star in each corner (rare).
  * Drawn over the card's own border and never in the way of a click.
  */
-export function suitFrameNodes(rank: RankId): Element[] {
+function suitFrameNodes(rank: RankId): Element[] {
   const frame = (className: string): HTMLElement => {
     const node = element('span', `suit-frame ${className}`);
     node.setAttribute('aria-hidden', 'true');
@@ -371,7 +371,7 @@ const CARTOUCHE_RULE = 'M15 5H57Q57.5 11.5 65.5 12V15Q57.5 15.5 57 22H15Q14.5 15
  * cartouche for a rare one. The seat drops the cartouche's inner rule and sets
  * its numeral in mono, as the board's seated cards do.
  */
-export function suitRankNode(face: SuitFace, size: SuitSize): HTMLElement {
+function suitRankNode(face: SuitFace, size: SuitSize): HTMLElement {
   const band = element('span', `suit-rank suit-rank-${face.rank}`);
   band.setAttribute('aria-hidden', 'true');
   if (face.rank === 'common') {
@@ -407,7 +407,7 @@ export function suitRankNode(face: SuitFace, size: SuitSize): HTMLElement {
  * seated card keeps one rule and no words: at 120px wide the name is the
  * card, and the suit has already said the deck.
  */
-export function suitFootNode(face: SuitFace, size: SuitSize): HTMLElement {
+function suitFootNode(face: SuitFace, size: SuitSize): HTMLElement {
   const foot = element('span', 'suit-foot');
   if (size === 'seat') foot.setAttribute('aria-hidden', 'true');
   foot.append(element('i'));

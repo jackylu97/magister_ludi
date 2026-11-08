@@ -280,7 +280,7 @@ export type CompendiumSectionId =
  * testable with no DOM — this suite has no jsdom, which is `figures.ts`' reason
  * and `offerSpread`'s.
  */
-export type CompendiumMark =
+type CompendiumMark =
   | { kind: 'badge'; badge: string }
   | { kind: 'resource'; resource: ResourceId }
   // An Order's A3 marks (batch C1, `suitFace.ts`): its type's ink as a stripe,
@@ -1940,7 +1940,7 @@ function techEntry(id: TechId): CompendiumEntry {
 export const CHARTER_TECH_GROUP = 'Charter technologies';
 
 /** A charter technology's price with no empire's cards in it. See `charterTechPrice`. */
-export interface CharterTechPrice {
+interface CharterTechPrice {
   /** The row's own `cost`: what an ordinary technology in its column costs. */
   column: number;
   /** What the charter premium adds to the column price. */
@@ -3253,7 +3253,7 @@ export function filterSections(
  * jsdom, and "did the search leave a heading with nothing under it" has to be a
  * question somebody can ask without a browser.
  */
-export interface CompendiumGroup {
+interface CompendiumGroup {
   name: string;
   count: number;
 }
@@ -3281,7 +3281,7 @@ export function sectionOfId(id: string): CompendiumSectionId | null {
 /**
  * The whole of the view's state, derived. See `compendiumView`.
  */
-export interface CompendiumViewState {
+interface CompendiumViewState {
   /** The book with the search applied. Every shelf keeps its row. */
   sections: CompendiumSection[];
   /** The shelf the body is showing. */
@@ -3315,7 +3315,7 @@ export function compendiumView(
 }
 
 /** What `show(entryId)` does to the view. See `compendiumShow`. */
-export interface CompendiumShow {
+interface CompendiumShow {
   openSection: CompendiumSectionId;
   marked: string;
   /**
@@ -3461,7 +3461,7 @@ function entryNode(entry: CompendiumEntry): HTMLElement {
 }
 
 /** What a mounted Compendium can be told. Both mounts drive it through this. */
-export interface CompendiumView {
+interface CompendiumView {
   /** Shows the section an entry belongs to, and marks that entry. */
   show(entryId: string | null): void;
   /** Which entry is marked, or `null`. */
@@ -3471,7 +3471,7 @@ export interface CompendiumView {
 /** How long the search waits after the last keystroke before it redraws. */
 const SEARCH_SETTLE_MS = 120;
 
-export interface CompendiumViewOptions {
+interface CompendiumViewOptions {
   /** Called whenever the marked entry changes — the page writes the hash. */
   onSelect?: (entryId: string) => void;
 }
@@ -3656,7 +3656,7 @@ export interface Compendium {
   dispose(): void;
 }
 
-export interface CompendiumOptions {
+interface CompendiumOptions {
   overlay: HTMLElement;
   body: HTMLElement;
   closeButton: HTMLElement;

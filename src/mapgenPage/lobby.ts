@@ -32,7 +32,7 @@ import type { PlayerSpec } from '../sim/state';
 export type LobbySeat = LeaderId | '';
 
 /** One option in a seat's select. */
-export interface LobbyChoice {
+interface LobbyChoice {
   id: LobbySeat;
   name: string;
 }
@@ -66,7 +66,7 @@ export function emptyLobby(seats: number): LobbySeat[] {
 }
 
 /** Chairs, held inside the roster limits. */
-export function clampSeats(seats: number): number {
+function clampSeats(seats: number): number {
   return Math.max(MIN_SEATS, Math.min(MAX_SEATS, Math.round(seats)));
 }
 
@@ -94,7 +94,7 @@ export function withSeatSet(
 }
 
 /** Is this a figure the sheet carries? A select can only offer real ones. */
-export function isSeatedLeader(seat: LobbySeat): seat is LeaderId {
+function isSeatedLeader(seat: LobbySeat): seat is LeaderId {
   return seat !== '' && LEADER_IDS.includes(seat);
 }
 

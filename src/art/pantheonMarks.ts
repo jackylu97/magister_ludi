@@ -47,7 +47,7 @@ import { type BeliefAxis, type BeliefId, beliefDef } from '../sim/religionData';
  * is a closed union declared in TypeScript, so there is no "an axis nobody drew"
  * case to fall back from and the compiler says so.
  */
-export interface PantheonMark {
+interface PantheonMark {
   /** What the mark is a picture of. The row `CREDITS.md` would print. */
   note: string;
   paths: readonly MarkPath[];

@@ -262,7 +262,7 @@ function whereIs(tile: Tile): string {
  * the bot's plan does, takes this once and hands it in. It lasts as long as the
  * caller's sweep, because it is a reading of the board as it stands.
  */
-export interface HexStanding {
+interface HexStanding {
   owner: number | null;
   town: City | undefined;
 }
@@ -1128,7 +1128,7 @@ export function refreshWateredNeighbours(
  * (`refreshCityDerived`, `cities.ts`). Returns the town that gained ground, or
  * `null` when nothing was claimed.
  */
-export function claimGroundForWork(
+function claimGroundForWork(
   state: GameState,
   playerId: number,
   tile: Tile,

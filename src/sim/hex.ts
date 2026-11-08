@@ -14,7 +14,7 @@ export interface Hex {
   r: number;
 }
 
-export interface Cube {
+interface Cube {
   x: number;
   y: number;
   z: number;
@@ -73,7 +73,7 @@ export function hexDistance(a: Hex, b: Hex): number {
 // --- rounding and interpolation ---------------------------------------------
 
 /** Rounds fractional cube coordinates to the nearest hex centre. */
-export function cubeRound(c: Cube): Cube {
+function cubeRound(c: Cube): Cube {
   let rx = Math.round(c.x);
   let ry = Math.round(c.y);
   let rz = Math.round(c.z);
@@ -94,11 +94,11 @@ export function cubeRound(c: Cube): Cube {
 }
 
 /** Rounds fractional axial coordinates to the nearest hex. */
-export function hexRound(h: Hex): Hex {
+function hexRound(h: Hex): Hex {
   return cubeToAxial(cubeRound(axialToCube(h)));
 }
 
-export function cubeLerp(a: Cube, b: Cube, t: number): Cube {
+function cubeLerp(a: Cube, b: Cube, t: number): Cube {
   return {
     x: a.x + (b.x - a.x) * t,
     y: a.y + (b.y - a.y) * t,
@@ -141,7 +141,7 @@ export function hexToPixel(h: Hex, size: number): Point {
 }
 
 /** Fractional axial coordinates for a pixel position (before rounding). */
-export function pixelToHexFractional(x: number, y: number, size: number): Hex {
+function pixelToHexFractional(x: number, y: number, size: number): Hex {
   const q = ((SQRT3 / 3) * x - (1 / 3) * y) / size;
   const r = ((2 / 3) * y) / size;
   return { q, r };

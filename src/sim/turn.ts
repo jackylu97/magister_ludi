@@ -574,7 +574,7 @@ export function emptyTurnReport(): TurnReport {
   };
 }
 
-export interface TurnPhase {
+interface TurnPhase {
   /** Stable identifier, used by tests and (later) by the turn-log UI. */
   name: string;
   run: (state: GameState, report: TurnReport) => void;

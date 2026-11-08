@@ -116,7 +116,7 @@ import {
 // --- the conversation ---------------------------------------------------------
 
 /** One rite started from this sheet. */
-export interface RiteStart {
+interface RiteStart {
   cityId: number;
   rite: RiteId;
 }
@@ -127,7 +127,7 @@ export interface RiteStart {
  * made after the bank moved some other way (a purchase on another tab) begins
  * a new run, so "was 137" is never a figure the line cannot explain.
  */
-export interface RitesRun {
+interface RitesRun {
   before: number;
   after: number;
   starts: RiteStart[];
@@ -140,7 +140,7 @@ export interface RitesRun {
  * one turn: `freshRitesView` starts it, and a visit from an earlier turn is
  * over the moment it is read on a later one (`visitOn`).
  */
-export interface RitesVisit {
+interface RitesVisit {
   turn: number;
   /**
    * Every rite started from this sheet on this visit, oldest first, including
@@ -447,13 +447,13 @@ export function createRiteReadingCache(): {
 // --- the model ----------------------------------------------------------------
 
 /** One voice and how much of it. */
-export interface VoiceFigure {
+interface VoiceFigure {
   voice: CityYieldKey;
   amount: number;
 }
 
 /** What starting a rite in one town would add. */
-export interface RiteAdds {
+interface RiteAdds {
   /** A turn, the ranking voice first (rite mode), or every voice it adds (a menu). */
   figures: VoiceFigure[];
   /** What it gives once, the offering's production into the build. */
@@ -466,7 +466,7 @@ export interface RiteAdds {
 }
 
 /** One chip of the strip. */
-export interface RiteChip {
+interface RiteChip {
   rite: RiteId;
   name: string;
   /** True when this empire knows the rite and the chip can be pressed. */
@@ -482,7 +482,7 @@ export interface RiteChip {
 }
 
 /** The line under the strip: what to do, or, in rite mode, the banner. */
-export type RitesSay =
+type RitesSay =
   | { kind: 'idle'; text: string }
   | {
       kind: 'mode';
@@ -496,7 +496,7 @@ export type RitesSay =
     };
 
 /** One item of a free town's "Start a rite" menu. */
-export interface MenuItem {
+interface MenuItem {
   rite: RiteId;
   name: string;
   /** `riteSays` for a rite the empire knows; for one it lacks, what teaches it. */
@@ -507,14 +507,14 @@ export interface MenuItem {
   look: PriceLook | null;
 }
 
-export interface TownMenu {
+interface TownMenu {
   items: MenuItem[];
   /** "After this, 65 faith is left. The next is affordable next turn." */
   foot: string;
 }
 
 /** One rite a town keeps, as its row shows it. */
-export interface KeptRite {
+interface KeptRite {
   rite: RiteId;
   riteName: string;
   turnsLeft: number;
@@ -528,7 +528,7 @@ export interface KeptRite {
  * A town with a place for a rite: one keeping none, or under The Double Feast
  * one keeping a single rite (Devotion batch DV8).
  */
-export interface FreeTown {
+interface FreeTown {
   cityId: number;
   name: string;
   /** "follows your faith", "follows no faith". */
@@ -552,7 +552,7 @@ export interface FreeTown {
  * A town keeping as many rites as it may: one, or two under The Double Feast
  * (Devotion batch DV8).
  */
-export interface KeptTown {
+interface KeptTown {
   cityId: number;
   name: string;
   faith: string;
@@ -570,7 +570,7 @@ export interface KeptTown {
 }
 
 /** The faith line at the foot. */
-export interface FaithLine {
+interface FaithLine {
   bank: number;
   /** "was 137; Rite of the Harvest started in Vaelport." when this visit started something. */
   history: string | null;
@@ -583,7 +583,7 @@ export interface FaithLine {
 }
 
 /** The prophet's rite over the whole realm. */
-export interface RealmLine {
+interface RealmLine {
   says: string;
   /** Rite mode, with a prophet who may say it: the button. */
   offer: { unitId: number; rite: RiteId; name: string; look: PriceLook } | null;
@@ -594,7 +594,7 @@ export interface RealmLine {
 }
 
 /** Everything the Rites tab shows. Pure, and the whole of what a test can pin. */
-export interface RitesTabModel {
+interface RitesTabModel {
   seat: number;
   turn: number;
   bank: number;
@@ -645,7 +645,7 @@ export function ritesCount(state: GameState, seat: number): string {
 }
 
 /** "follows your faith", "follows the Children of Sky and Wild", "follows no faith". */
-export function townFaithWords(state: GameState, seat: number, city: City): string {
+function townFaithWords(state: GameState, seat: number, city: City): string {
   const held = cityReligion(city);
   if (held === null) return 'follows no faith';
   if (foundedReligion(state, seat)?.id === held) return 'follows your faith';
@@ -735,7 +735,7 @@ function runWords(state: GameState, run: RitesRun): string {
 }
 
 /** The faith line at the foot. See `FaithLine`. */
-export function faithLineFor(
+function faithLineFor(
   state: GameState,
   seat: number,
   visit: RitesVisit,
@@ -1168,7 +1168,7 @@ export interface RitesTabHandlers {
 }
 
 /** "+7🌾", composed in `YIELD_GLYPH` for `setYieldText` to draw. */
-export function voiceFigureText(figure: VoiceFigure): string {
+function voiceFigureText(figure: VoiceFigure): string {
   return `${signedFigure(figure.amount)}${YIELD_GLYPH[figure.voice]}`;
 }
 

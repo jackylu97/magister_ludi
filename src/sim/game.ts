@@ -88,7 +88,7 @@ export interface ReplayFailure {
   error: string;
 }
 
-export type ReplayResult =
+type ReplayResult =
   | { ok: true; state: GameState }
   | { ok: false; failure: ReplayFailure };
 
@@ -142,7 +142,7 @@ export function tryReplay(
  * a refusal reports the same absolute index either way. Whether `state` really
  * matches the prefix is the caller's to prove; this function cannot check it.
  */
-export function tryReplayFrom(
+function tryReplayFrom(
   state: GameState,
   log: readonly Command[],
   from: number,

@@ -36,21 +36,21 @@ import type { MiniAccent, MiniClass } from './geometry';
 
 // --- shapes ----------------------------------------------------------------
 
-export interface PineSpec {
+interface PineSpec {
   trunkR: number;
   trunkH: number;
   coneR: number;
   coneH: number;
 }
 
-export interface JungleSpec {
+interface JungleSpec {
   trunkR: number;
   trunkH: number;
   ballR: number;
 }
 
 /** Top-face height above the waterline, per elevation class. */
-export interface HeightSpec {
+interface HeightSpec {
   ocean: number;
   coast: number;
   land: number;
@@ -58,7 +58,7 @@ export interface HeightSpec {
   mountain: number;
 }
 
-export interface BoardSpec {
+interface BoardSpec {
   /** Hex circumradius in world units. Everything else is expressed in these. */
   hexRadius: number;
   /** Fraction of the radius each prism shrinks by, leaving the grout line. */
@@ -83,7 +83,7 @@ export interface BoardSpec {
  * A tuft of grass or a bed of reeds: a ring of thin cones out of one root.
  * `blades` is the count in the *shape*; how many tufts a tile gets is `max`.
  */
-export interface TuftSpec {
+interface TuftSpec {
   coneR: number;
   coneH: number;
   blades: number;
@@ -91,7 +91,7 @@ export interface TuftSpec {
 }
 
 /** How much of a scatter a kind of clutter is: chance the tile has any, and a cap. */
-export interface ScatterSpec {
+interface ScatterSpec {
   chance: number;
   max: number;
 }
@@ -104,7 +104,7 @@ export interface ScatterSpec {
  * painted model. It costs one float3 per instance and no extra draw call at all
  * (see `Tint` in `instances.ts` for why it cannot be done by varying the ink).
  */
-export interface VariationSpec {
+interface VariationSpec {
   /** ± fraction of value jitter on decorations. */
   value: number;
   /** ± fraction of opposed red/blue tilt — a hue drift, not a value change. */
@@ -121,13 +121,13 @@ export interface VariationSpec {
  * top face the shading reaches, in world units, and `aoStrength` how dark it
  * gets at the bottom of that band.
  */
-export interface GroundSpec {
+interface GroundSpec {
   aoBand: number;
   aoStrength: number;
 }
 
 /** Snow on the mountains: the top `fraction` of both cones of the peak. */
-export interface SnowCapSpec {
+interface SnowCapSpec {
   fraction: number;
   color: number;
 }
@@ -140,7 +140,7 @@ export interface SnowCapSpec {
  * in a field of sand, and the only round flat mark on the whole table — and the
  * palms are what say *oasis* once you are close enough to see a silhouette.
  */
-export interface OasisSpec {
+interface OasisSpec {
   palm: {
     trunkR: number;
     trunkH: number;
@@ -174,7 +174,7 @@ export interface OasisSpec {
  * and it survives the fog wash for free, because it is one of the board's own
  * instances and is dimmed with the hex like everything else on it.
  */
-export interface FloodplainSpec {
+interface FloodplainSpec {
   color: number;
   opacity: number;
   /** Radius as a fraction of the hex radius; below 1 it sits inside the grout. */
@@ -183,7 +183,7 @@ export interface FloodplainSpec {
 }
 
 /** The pale band on the top face of a land tile that touches the sea. */
-export interface ShoreSpec {
+interface ShoreSpec {
   color: number;
   opacity: number;
   /** Outer radius and band width as fractions of the hex radius. */
@@ -192,7 +192,7 @@ export interface ShoreSpec {
   lift: number;
 }
 
-export interface ClutterSpec {
+interface ClutterSpec {
   tuft: TuftSpec & ScatterSpec & { color: number; shade: number };
   flower: {
     stemR: number;
@@ -223,7 +223,7 @@ export interface ClutterSpec {
  * river edge or the lake next door — which is the difference between a tile with
  * reeds on it and a river bank.
  */
-export interface ReedSpec extends TuftSpec, ScatterSpec {
+interface ReedSpec extends TuftSpec, ScatterSpec {
   color: number;
   shade: number;
   edgeOffset: number;
@@ -233,7 +233,7 @@ export interface ReedSpec extends TuftSpec, ScatterSpec {
   bankPebbleScale: number;
 }
 
-export interface DecorSpec {
+interface DecorSpec {
   pine: PineSpec;
   /** A second conifer silhouette, so a forest is not one tree stamped twice. */
   pineAlt: PineSpec;
@@ -270,7 +270,7 @@ export interface DecorSpec {
  * `engine` currently have no model at all — they belong to the bench sculpts in
  * `geometry.ts`, and they stay because those sculpts are built to them.
  */
-export interface PiecesSpec {
+interface PiecesSpec {
   /** How far stacked pieces on one tile fan out from the centre. */
   stackSpread: number;
   /** Wider plinths in the approved painted chess kit need their own fan. */
@@ -328,7 +328,7 @@ export interface PiecesSpec {
   byUnitType: Readonly<Record<string, string>>;
 }
 
-export interface HouseSpec {
+interface HouseSpec {
   width: number;
   depth: number;
   bodyH: number;
@@ -336,7 +336,7 @@ export interface HouseSpec {
 }
 
 /** The little town on a city tile: a cluster of houses under a banner. */
-export interface CitySpec {
+interface CitySpec {
   /** Most houses ever drawn, however large the city grows. */
   houseCap: number;
   house: HouseSpec;
@@ -571,7 +571,7 @@ export interface CitySpec {
  * simply disappears. Dropping to the substrate — where the grout shadow actually
  * lives — would be invisible at every zoom.
  */
-export interface RiverSpec {
+interface RiverSpec {
   /** Palette name of the water. */
   color: number;
   /** Ribbon width across the gap, in hex radii. Most of it is buried. */
@@ -608,7 +608,7 @@ export interface RiverSpec {
  * carries each half across the grout and under its neighbour's, and the depth
  * buffer does the rest.
  */
-export interface RoadSpec {
+interface RoadSpec {
   /** How far above a tile's top face the strip floats, in world units. */
   lift: number;
   /** Palette name of the track, and the shade taken off it. */
@@ -623,7 +623,7 @@ export interface RoadSpec {
 }
 
 /** Borders, and the hex rings marking which tiles a city's citizens work. */
-export interface TerritorySpec {
+interface TerritorySpec {
   /** Territory tint size as a fraction of the hex radius. */
   tintScale: number;
   /**
@@ -702,7 +702,7 @@ export interface TerritorySpec {
  * that. `yieldStackStep` sets the overlap, `yieldShadow*` sets the shading that
  * keeps overlapping discs of one colour countable.
  */
-export interface LensSpec {
+interface LensSpec {
   /** Side of one yield glyph's quad, in world units. */
   glyphSize: number;
   /**
@@ -907,7 +907,7 @@ export interface LensSpec {
  * `pieces.ts` — so this is a one-word edit in `data/view3d.json` and nothing
  * else. `pieces.html` shows both side by side.
  */
-export interface UnitStyleSpec {
+interface UnitStyleSpec {
   style: 'pieces' | 'sprites';
   /** World-space hull widths; unit hover leaves the board's ink untouched. */
   outlineWidth: number;
@@ -969,7 +969,7 @@ export interface UnitStyleSpec {
  * shell is washed toward `color` and back, so the glow restores the piece's
  * resting look exactly.
  */
-export interface TraitGlowSpec {
+interface TraitGlowSpec {
   /** The glow's ink: the interface's gilt (`--gilt`), the ink of "yours". */
   color: number;
   /** How long the whole glow lasts, in milliseconds. Zero or less is no glow. */
@@ -994,7 +994,7 @@ export interface TraitGlowSpec {
  * they are the two numbers anybody re-tuning a new drop of art will reach for
  * first, and neither of them is a fact about the code.
  */
-export interface SpriteSpec {
+interface SpriteSpec {
   /**
    * Card height as a multiple of a hex's width (twice the circumradius).
    *
@@ -1023,7 +1023,7 @@ export interface SpriteSpec {
 }
 
 /** The foot the card stands in. All lengths in hex radii. See `standeeBase`. */
-export interface StandeeBaseSpec {
+interface StandeeBaseSpec {
   radius: number;
   thickness: number;
   /** How much the ellipse is squashed across the card's plane. 1 is a circle. */
@@ -1045,7 +1045,7 @@ export interface StandeeBaseSpec {
  * resolution the image actually arrives at, so re-exporting the art larger keeps
  * the same border rather than halving it.
  */
-export interface StandeeSpec {
+interface StandeeSpec {
   referencePx: number;
   /** Parchment margin dilated out of the figure's silhouette, in pixels. */
   borderPx: number;
@@ -1076,7 +1076,7 @@ export interface StandeeSpec {
  * under `look`: the ghost-line colour, weight and opacity join it here when the
  * time comes, and the unexplored-tile fill is `color` by definition.
  */
-export interface TableSpec {
+interface TableSpec {
   /** The lit table tone, and the colour the scene clears to. */
   color: number;
   /** What it falls off to at the far edge of the room. */
@@ -1130,7 +1130,7 @@ export interface TableSpec {
  * The mechanism that gets both through a multiplier-only tint attribute is
  * `InstanceCollector.setWash`.
  */
-export interface FogSpec {
+interface FogSpec {
   /**
    * How far a remembered tile's ink is mixed toward `exploredWash`: 0 leaves it
    * alone, 1 replaces it entirely. **The fog's one prominent tuning knob.**
@@ -1193,7 +1193,7 @@ export interface FogSpec {
   draconesLift: number;
 }
 
-export interface LookSpec {
+interface LookSpec {
   lightAzimuth: number;
   lightElevation: number;
   /** Inverted-hull thickness in world units. 0 disables the outline pass. */
@@ -1211,7 +1211,7 @@ export interface LookSpec {
   shadowExtent: number;
 }
 
-export interface CameraSpec {
+interface CameraSpec {
   elevation: number;
   /** The steeper overview used while a city screen is open. */
   cityElevation: number;
@@ -1283,7 +1283,7 @@ export interface CameraSpec {
  * wash has reached full strength. They are the only numbers here that are not a
  * matter of taste — everything else on this spec is.
  */
-export interface VignetteSpec {
+interface VignetteSpec {
   /** Fully clear out to this multiple of the work radius. */
   innerRadius: number;
   /** Fully washed beyond this multiple. Must exceed `innerRadius` to be soft. */
@@ -1296,7 +1296,7 @@ export interface VignetteSpec {
   fadeMs: number;
 }
 
-export interface LightSpec {
+interface LightSpec {
   keyColor: number;
   keyIntensity: number;
   skyColor: number;
@@ -1306,7 +1306,7 @@ export interface LightSpec {
   ambientIntensity: number;
 }
 
-export interface OverlaySpec {
+interface OverlaySpec {
   /** How far above a tile's top face a decal floats, in world units. */
   lift: number;
   reachableColor: number;
@@ -1448,7 +1448,7 @@ export interface OverlaySpec {
   routeStride: number;
 }
 
-export interface HpBarSpec {
+interface HpBarSpec {
   /** Bar width in world units. */
   width: number;
   height: number;
@@ -1505,7 +1505,7 @@ export interface HpBarSpec {
  * selection ring cannot paint over the tag it is drawn around; the two are
  * different questions and `RENDER_ORDER` in `instances.ts` answers the second.
  */
-export interface BadgeSpec {
+interface BadgeSpec {
   /** Roundel diameter in world units. */
   diameter: number;
   /** Clearance between the top of the unit's visual and the disc's underside. */
@@ -1641,7 +1641,7 @@ export interface BadgeSpec {
   rankNudge: number;
 }
 
-export interface AnimationSpec {
+interface AnimationSpec {
   msPerHex: number;
   maxMs: number;
   /** Peak of the per-hex hop, in world units. 0 disables it. */
@@ -1663,7 +1663,7 @@ export interface AnimationSpec {
  * their voice's colour, numerals), so they want their own cell size, their own
  * grid and their own inks. See `TileIcons` in `badges3d.ts`.
  */
-export interface IconSpec {
+interface IconSpec {
   atlasCell: number;
   atlasColumns: number;
   /** The mark's size within its cell, as a fraction. */
@@ -1840,7 +1840,7 @@ export interface MarkerPaperStyle {
  * is hashed per tile, like every other decoration. See `RESOURCE_PROPS` in
  * `board3d.ts` for the registry that joins these numbers to their shapes.
  */
-export interface ResourcePropSpec {
+interface ResourcePropSpec {
   color: number;
   shade: number;
   count: number;
@@ -1856,11 +1856,11 @@ export interface ResourcePropSpec {
  * a *data* edit all the way to the board, and an exhaustive record made it a
  * compile error instead. Read it through `resourcePropSpec`, never directly.
  */
-export type ResourcePropTable = Partial<Record<ResourceId, ResourcePropSpec>> & {
+type ResourcePropTable = Partial<Record<ResourceId, ResourcePropSpec>> & {
   default: ResourcePropSpec;
 };
 
-export interface ResourceLookSpec {
+interface ResourceLookSpec {
   /** How far from the tile centre a prop may scatter, in hex radii. */
   spread: number;
   props: ResourcePropTable;
@@ -1877,7 +1877,7 @@ export interface ResourceLookSpec {
  * (`jitter` 0), while a camp wants to be nudged off the middle so it does not
  * stand on the deer it was built for.
  */
-export interface ImprovementPropSpec {
+interface ImprovementPropSpec {
   color: number;
   shade: number;
   /** Prop size in hex radii. */
@@ -1896,7 +1896,7 @@ export interface ImprovementPropSpec {
   gilt?: number;
 }
 
-export interface ImprovementLookSpec {
+interface ImprovementLookSpec {
   /** Lift above the tile's top face, in world units. */
   lift: number;
   props: Record<ImprovementId, ImprovementPropSpec>;
@@ -1919,7 +1919,7 @@ export interface ImprovementLookSpec {
  */
 export type SiteKind = DiscoveryKind | 'camp';
 
-export interface SiteLookSpec {
+interface SiteLookSpec {
   /** Lift above the tile's top face, in world units. */
   lift: number;
   props: Record<SiteKind, ImprovementPropSpec>;
@@ -1950,7 +1950,7 @@ export interface SiteLookSpec {
  * `counterCoverage` share to spare at any window shape (`createCounterShadows`).
  * Zero re-fits on every frame the view moves.
  */
-export interface PaintedShadowSpec {
+interface PaintedShadowSpec {
   staticMapSize: number;
   counterMapSize: number;
   counterCoverage: number;
@@ -1965,7 +1965,7 @@ export interface PaintedShadowSpec {
  * the ratio is lowered until width × height × ratio² fits. See
  * `drawingBufferRatio` in `canvasSetup.ts`.
  */
-export interface PaintedCanvasSpec {
+interface PaintedCanvasSpec {
   maxPixelRatio: number;
   pixelBudget: number;
 }
@@ -1976,7 +1976,7 @@ export interface PaintedCanvasSpec {
  * swap has hysteresis: a camera parked exactly on the threshold would otherwise
  * rebuild the visibility of every batch on alternate frames.
  */
-export interface PaintedLodSpec {
+interface PaintedLodSpec {
   nearPixels: number;
   farPixels: number;
   /**
@@ -1998,7 +1998,7 @@ export interface PaintedLodSpec {
  * map zoom a contact radius of a tenth of a world unit is subpixel, so it is
  * smoothly taken to nothing rather than switched off with a visible step.
  */
-export interface PaintedContactSpec {
+interface PaintedContactSpec {
   resolution: number;
   radius: number;
   thickness: number;
@@ -2047,7 +2047,7 @@ export interface PaintedContactSpec {
  * reason — a wash that followed every hidden coast would chart the coastline
  * for free); `chartSoak` is the grain the dissolve eats the paper away on.
  */
-export interface PaintedFogSpec {
+interface PaintedFogSpec {
   paper: string;
   ink: string;
   sunFalloff: number;
@@ -2065,7 +2065,7 @@ export interface PaintedFogSpec {
   chartSoak: number;
 }
 
-export interface PaintedSpec {
+interface PaintedSpec {
   canvas: PaintedCanvasSpec;
   shadows: PaintedShadowSpec;
   lod: PaintedLodSpec;
@@ -2087,7 +2087,7 @@ export interface PaintedSpec {
  * lens block: same lift, same pin radius, same fixed facing. See `sites3d.ts` —
  * one board, one way of planting a mark on a hex.
  */
-export interface SurveyNoteSpec {
+interface SurveyNoteSpec {
   /** The stake's ink. Faded, for the reason above. */
   stemColor: number;
   /** The mark's size in world units, against `lens.resourceIconSize`. */
@@ -2110,7 +2110,7 @@ export interface SurveyNoteSpec {
  * pitch falls out, so two seats get fat beads on a wide pitch and six get
  * smaller ones on a tight one without a second table of numbers.
  */
-export interface AbacusSpec {
+interface AbacusSpec {
   frame: AbacusFrameSpec;
   rod: AbacusRodSpec;
   bead: AbacusBeadSpec;
@@ -2123,7 +2123,7 @@ export interface AbacusSpec {
 }
 
 /** The frame, in world units — the units the board is in, one hex = 1. */
-export interface AbacusFrameSpec {
+interface AbacusFrameSpec {
   width: number;
   /** The two end posts. Their inner faces are where the rods begin. */
   stileWidth: number;
@@ -2143,7 +2143,7 @@ export interface AbacusFrameSpec {
   postShade: number;
 }
 
-export interface AbacusRodSpec {
+interface AbacusRodSpec {
   radius: number;
   /** How far each rod is buried in its stile, so no daylight shows at the joint. */
   tenon: number;
@@ -2152,7 +2152,7 @@ export interface AbacusRodSpec {
   color: number;
 }
 
-export interface AbacusBeadSpec {
+interface AbacusBeadSpec {
   /** Beads per rod: the tally's denominator and the rod's capacity. */
   perRod: number;
   /** Lathe segments. Odd, like every turned thing here. */
@@ -2175,7 +2175,7 @@ export interface AbacusBeadSpec {
   waitingWarmthMix: number;
 }
 
-export interface AbacusSlideSpec {
+interface AbacusSlideSpec {
   /** How long a bead takes to run down the rod, in seconds. */
   seconds: number;
   /** The fraction of that spent arriving, as against settling. */
@@ -2184,14 +2184,14 @@ export interface AbacusSlideSpec {
   overshoot: number;
 }
 
-export interface AbacusMotionSpec {
+interface AbacusMotionSpec {
   /** Radians per second of turntable. */
   spinRate: number;
   swayRadians: number;
   swaySeconds: number;
 }
 
-export interface AbacusCameraSpec {
+interface AbacusCameraSpec {
   /** Much lower than the board's: this is looked *at*, not looked into. */
   elevation: number;
   azimuth: number;
@@ -2201,7 +2201,7 @@ export interface AbacusCameraSpec {
   labelGutter: number;
 }
 
-export interface AbacusLabelSpec {
+interface AbacusLabelSpec {
   /** How far past the stile a label's anchor point sits, in world units. */
   reach: number;
   /** Facing cosine at which the labels start to fade as the object turns. */
@@ -2237,7 +2237,7 @@ export const FAMILY_IDS: readonly FamilyId[] = [
   'commerce',
 ];
 
-export interface View3DData {
+interface View3DData {
   palette: Record<string, number>;
   terrainColor: Record<TerrainId, number>;
   featureColor: Record<FeatureId, number>;
@@ -2999,7 +2999,7 @@ export function contrastRatio(a: number, b: number): number {
 }
 
 /** Pulls a colour toward its own grey. `amount` 0 = unchanged, 1 = grey. */
-export function desaturate(color: number, amount: number): number {
+function desaturate(color: number, amount: number): number {
   const r = (color >> 16) & 0xff;
   const g = (color >> 8) & 0xff;
   const b = color & 0xff;

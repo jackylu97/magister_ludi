@@ -15,7 +15,7 @@ import { type OrderId, orderDef } from '../sim/statecraftData';
 import { type GoalCounter, goalCounterNode } from './goalCounter';
 
 /** Where a commission stands for this seat. */
-export type CommissionStanding = 'offered' | 'seated' | 'held' | 'fulfilled';
+type CommissionStanding = 'offered' | 'seated' | 'held' | 'fulfilled';
 
 /** The plain counters for this card, one per part of its goal. Empty for a non-commission. */
 export function commissionCounters(state: GameState, playerId: number, card: OrderId): GoalCounter[] {

@@ -81,7 +81,7 @@ function tally(value: number): string {
 }
 
 /** The masthead — everything the sheet says before the table starts. */
-export interface VictoryHead {
+interface VictoryHead {
   /** True once somebody has won. The whole of the difference between the two. */
   won: boolean;
   /** "the great work is finished", or "where the world stands". */
@@ -101,7 +101,7 @@ export interface VictoryHead {
 }
 
 /** One seat's column of the table. */
-export interface VictoryColumn {
+interface VictoryColumn {
   playerId: number;
   /** The figure at that table. */
   name: string;
@@ -120,7 +120,7 @@ export interface VictoryColumn {
 }
 
 /** The whole sheet, as data. */
-export interface VictoryPage {
+interface VictoryPage {
   head: VictoryHead;
   /** The row labels, taken off the reading once — every column carries them. */
   labels: string[];
@@ -192,7 +192,7 @@ export function victoryHead(state: GameState, playerId: number): VictoryHead {
 }
 
 /** One seat's column, read whole. */
-export function victoryColumn(
+function victoryColumn(
   state: GameState,
   playerId: number,
   localPlayerId: number,
@@ -244,7 +244,7 @@ export interface VictoryScreen {
   dispose(): void;
 }
 
-export interface VictoryScreenOptions {
+interface VictoryScreenOptions {
   overlay: HTMLElement;
   body: HTMLElement;
   closeButton: HTMLElement;

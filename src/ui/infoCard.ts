@@ -141,7 +141,7 @@ export function placeCardBelow(
 }
 
 /** Which side of its anchor a card falls on. See the two `place*` functions. */
-export type CardPlacement = 'beside' | 'below';
+type CardPlacement = 'beside' | 'below';
 
 // --- the sticky card --------------------------------------------------------
 
@@ -185,7 +185,7 @@ export interface StickyState {
   open: boolean;
 }
 
-export type StickyEvent =
+type StickyEvent =
   /** The pointer (or focus) arrived on the anchor. */
   | 'enterAnchor'
   /** It left the anchor — for the card, or for the page. */
@@ -274,7 +274,7 @@ export interface InfoCard {
   hide(): void;
 }
 
-export interface InfoCardOptions {
+interface InfoCardOptions {
   /**
    * The class the card wears. `info-card` is the ground; a caller adds its own
    * modifier (`is-night` over the star chart) so the two surfaces can differ in

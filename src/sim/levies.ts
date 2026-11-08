@@ -110,7 +110,7 @@ export interface LevyOption {
 }
 
 /** One rite a levy could say over the realm. See `levyRiteChoices`. */
-export interface LevyRiteChoice {
+interface LevyRiteChoice {
   rite: RiteId;
   name: string;
   /** Why this rite cannot be said over the realm, or `null` when it can. */
@@ -118,7 +118,7 @@ export interface LevyRiteChoice {
 }
 
 /** What a levy did, for the caller that reports it. */
-export interface LevyReport {
+interface LevyReport {
   use: LevyUse;
   cityId: number;
   /** The town's population after the levy. */
@@ -215,7 +215,7 @@ function waitFor(state: GameState, playerId: number, grant: LevyGrant): number {
  * Turns until this town may levy again for this use, or 0 when it may now.
  * Read off the absolute stamp of its last levy.
  */
-export function levyTurnsLeft(
+function levyTurnsLeft(
   state: GameState,
   city: City,
   every: number,
@@ -376,7 +376,7 @@ export function levyError(
  * `null` when it can. The city panel greys a line with it, so the sentence on the
  * line is the sentence the reducer would give.
  */
-export function levyLineError(
+function levyLineError(
   state: GameState,
   playerId: number,
   city: City,

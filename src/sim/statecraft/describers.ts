@@ -169,7 +169,7 @@ export interface CardClause {
  * there"), because a trailing "in every city" would attach to the count and
  * promise each town the empire's whole population.
  */
-export type ClauseSubject = 'empire' | 'follower' | 'here';
+type ClauseSubject = 'empire' | 'follower' | 'here';
 
 /**
  * The subject a card's own class reads it against. See `ClauseSubject`.

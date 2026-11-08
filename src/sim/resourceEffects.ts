@@ -187,7 +187,7 @@ import { type TechAge, highestAge } from './techData';
  * Zeroes are carried rather than omitted so a consumer folds one shape instead
  * of six optional ones.
  */
-export interface ResourceYieldLine {
+interface ResourceYieldLine {
   /** The resource whose signature this is. */
   resource: ResourceId;
   /** Display label — the resource's name, plus what makes this line this line. */
@@ -201,14 +201,14 @@ export interface ResourceYieldLine {
 }
 
 /** One line of extra happiness, on top of the flat per-unique figure. */
-export interface ResourceHappinessLine {
+interface ResourceHappinessLine {
   resource: ResourceId;
   source: string;
   amount: number;
 }
 
 /** One line of authority capacity a luxury supplies. */
-export interface ResourceAuthorityLine {
+interface ResourceAuthorityLine {
   resource: ResourceId;
   source: string;
   amount: number;
@@ -230,7 +230,7 @@ export interface ResourceRenownLine {
 }
 
 /** One line of hammers behind a category, as a signed whole percent. */
-export interface ResourceProductionLine {
+interface ResourceProductionLine {
   resource: ResourceId;
   source: string;
   percent: number;
@@ -247,7 +247,7 @@ export interface ResourceProductionLine {
  * that the day a genuinely empire-total signature is minted, it says so on its
  * own line instead of being sorted by a branch somewhere downstream.
  */
-export interface ResourcePercentLine {
+interface ResourcePercentLine {
   resource: ResourceId;
   source: string;
   yield: CityYieldKey;
@@ -256,7 +256,7 @@ export interface ResourcePercentLine {
 }
 
 /** One line of percentage on a named *rule*, as a signed whole percent. */
-export interface ResourceRuleLine {
+interface ResourceRuleLine {
   resource: ResourceId;
   source: string;
   percent: number;
@@ -572,7 +572,7 @@ export function importedLuxuries(state: GameState, playerId: number): ResourceId
 }
 
 /** One kind lent to this empire, and what lends it: a road or a post. */
-export interface LuxuryLoan {
+interface LuxuryLoan {
   id: ResourceId;
   via: 'route' | 'post';
 }
@@ -986,7 +986,7 @@ function tableHasLive(state: GameState, playerId: number, kind: ResourceEffect['
 }
 
 /** One line of what a luxury pays **each of an empire's trade routes**. */
-export interface ResourceRouteLine {
+interface ResourceRouteLine {
   resource: ResourceId;
   source: string;
   food: number;
@@ -1051,7 +1051,7 @@ export function resourceRouteYields(state: GameState, playerId: number): Resourc
 }
 
 /** One line of what a luxury takes off this empire's army payroll. */
-export interface ResourceUpkeepLine {
+interface ResourceUpkeepLine {
   resource: ResourceId;
   source: string;
   /** Gold taken off the bill this turn. Always positive. */
@@ -1411,7 +1411,7 @@ export function foldRulePercent(list: readonly ResourceRuleLine[]): number {
 // --- the army ---------------------------------------------------------------
 
 /** One strength line a resource contributes. `CardCombatLine` without the card. */
-export interface ResourceCombatLine {
+interface ResourceCombatLine {
   resource: ResourceId;
   source: string;
   amount: number;
@@ -1455,7 +1455,7 @@ export function resourceCombatLines(
 }
 
 /** One line of extra maximum health a resource gives this empire's fighters. */
-export interface ResourceHealthLine {
+interface ResourceHealthLine {
   resource: ResourceId;
   source: string;
   amount: number;
@@ -1524,7 +1524,7 @@ export function unitHealthBonus(state: GameState, playerId: number): number {
  * every surface parsing a sentence for the same fact. A tier that has arrived
  * carries `undefined`, exactly as the data row does.
  */
-export interface ResourceSignatureLine {
+interface ResourceSignatureLine {
   text: string;
   fromAge?: TechAge;
 }

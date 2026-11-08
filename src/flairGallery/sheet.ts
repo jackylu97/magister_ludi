@@ -21,7 +21,7 @@ import { element } from '../ui/dom';
 export { element };
 
 /** One numbered section of the sheet, with its title and its in-game note. */
-export interface Section {
+interface Section {
   /** The `<section>` itself, appended to the sheet. */
   root: HTMLElement;
   /** The anchor the index links to. */
@@ -167,7 +167,7 @@ export function markSwatch(uri: string, size: number, tone: 'ink' | 'gilt'): HTM
  * the only size at which what you are looking at is the drawing itself rather
  * than the rasteriser's opinion of it.
  */
-export const MARK_SIZES = [12, 24, 64] as const;
+const MARK_SIZES = [12, 24, 64] as const;
 
 /**
  * One cell of a mark table: the drawing at the three sizes in ink, once more in

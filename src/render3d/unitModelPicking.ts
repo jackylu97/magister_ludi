@@ -16,7 +16,7 @@ export interface UnitModelCandidate {
   instanceId?: number;
 }
 
-export interface UnitModelPickOptions {
+interface UnitModelPickOptions {
   /** The camera's active layers; ordinary layer zero is the default. */
   layers?: Layers;
   /** Shader clipping beyond material planes, such as a painted board's fog. */

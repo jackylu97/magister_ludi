@@ -96,7 +96,7 @@ export { riteGrantWords, riteTeacherName } from './riteWords';
 // --- the three tabs -------------------------------------------------------------
 
 /** The Faith sheet's three tabs. */
-export type FaithTab = 'rites' | 'bonuses' | 'religion';
+type FaithTab = 'rites' | 'bonuses' | 'religion';
 
 /** The tabs in the order they are drawn, with their labels. */
 export const FAITH_TABS: readonly { tab: FaithTab; label: string }[] = [
@@ -141,7 +141,7 @@ export interface ReligionScreen {
   dispose(): void;
 }
 
-export interface ReligionScreenOptions {
+interface ReligionScreenOptions {
   overlay: HTMLElement;
   body: HTMLElement;
   closeButton: HTMLElement;

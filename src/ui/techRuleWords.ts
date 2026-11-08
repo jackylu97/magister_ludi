@@ -63,8 +63,8 @@ import { describeCard, ref, stripRefs } from '../sim/statecraft';
  * answer the same way for the book, which has no card to overflow: one bar, one
  * answer, both surfaces.
  */
-export const RULE_CLAUSE_BAR = 2;
-export const RULE_CHARACTER_BAR = 96;
+const RULE_CLAUSE_BAR = 2;
+const RULE_CHARACTER_BAR = 96;
 
 /**
  * A prose note broken at its sentence boundaries, each sentence kept whole.

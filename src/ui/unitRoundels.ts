@@ -63,7 +63,7 @@ import {
  * Smaller than the board's own atlas cell (128px) because this one is never
  * mipmapped or seen across a diorama — it is a chip in a row of chips.
  */
-export const ROUNDEL_CELL = 96;
+const ROUNDEL_CELL = 96;
 
 /**
  * How much larger than the element the drawing is laid, so the *paper* fills it.

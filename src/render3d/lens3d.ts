@@ -947,7 +947,7 @@ export class LensLayer {
 }
 
 /** Where one row's marks sit along x, as offsets from the tile's centre. */
-export interface YieldRowLayout {
+interface YieldRowLayout {
   /** One centre per disc of the stack, left to right. A single entry when the
    * row has collapsed to a glyph and a count. */
   glyphs: number[];

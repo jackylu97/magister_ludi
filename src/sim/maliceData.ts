@@ -55,7 +55,7 @@ import { SLOT_TYPES } from './statecraftData';
 /** Every malice the deck holds, in file order. */
 export type MaliceId = keyof typeof malicesJson.malices & string;
 
-export interface MaliceDef {
+interface MaliceDef {
   name: string;
   /** Which flavour of chair it takes. See the module docblock. */
   chair: SlotType;

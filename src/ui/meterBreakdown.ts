@@ -36,7 +36,7 @@
 import type { MeterContribution, MeterId, MeterPart } from '../sim/meters';
 
 /** One side of a meter: what it is called, what it comes to, and its lines. */
-export interface MeterGroup {
+interface MeterGroup {
   label: string;
   /** The signed sum of this group's lines, and nothing but. */
   total: number;
@@ -88,7 +88,7 @@ export function meterGroups(
  * One town, as this fold needs to recognise its lines. The two fields
  * `explainHappiness` writes into a source string, and nothing else.
  */
-export interface HappinessTown {
+interface HappinessTown {
   name: string;
   population: number;
 }

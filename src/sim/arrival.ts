@@ -78,7 +78,7 @@ import { atWar } from './wars';
 import { recordWarLoss } from './weariness';
 
 /** A civilian that changed hands because somebody took the ground it stood on. */
-export interface CapturedCivilian {
+interface CapturedCivilian {
   id: number;
   type: Unit['type'];
   /** Who it belonged to a moment ago. */
@@ -112,7 +112,7 @@ export interface ArrivalReport {
 }
 
 /** Nothing happened. Shared so a caller can compare rather than allocate. */
-export function emptyArrival(): ArrivalReport {
+function emptyArrival(): ArrivalReport {
   return { discovery: null, camp: null, captured: [], plundered: [] };
 }
 

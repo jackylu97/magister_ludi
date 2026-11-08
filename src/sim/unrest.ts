@@ -130,7 +130,7 @@ export function unrestGarrison(state: GameState, city: City): Unit | null {
  * `combat.ts`): the piece's own `greatWork` marker and the person's family,
  * never a type name, and the first in `state.units` order.
  */
-export function unrestGeneral(state: GameState, city: City): Unit | null {
+function unrestGeneral(state: GameState, city: City): Unit | null {
   const here = getTileAt(state.map, city.col, city.row);
   if (!here) return null;
   const centre = tileHex(here);
@@ -149,7 +149,7 @@ export function unrestGeneral(state: GameState, city: City): Unit | null {
 }
 
 /** One reason a town's pacification fills, and how much it adds each turn. */
-export interface PacificationLine {
+interface PacificationLine {
   /** What the city panel prints: "Every turn", "Garrison · Spearman", "Courthouse". */
   source: string;
   /** Pacification this reason adds each turn. */

@@ -90,7 +90,7 @@ import { seatName } from '../sim/leaderData';
  * wears, the arrows trade wears — rather than drawn new, which is the art
  * pass's standing rule for anything that is not a piece.
  */
-export interface BeadFamilyMark {
+interface BeadFamilyMark {
   /** "Domination". Sentence-cased for a heading; lowercased where a clause wants it. */
   word: string;
   glyph: string;
@@ -131,13 +131,13 @@ const KIND_WORD: Record<BeadKind, string> = {
 // --- one card's face --------------------------------------------------------
 
 /** Who has taken a card, as this screen needs to read it. */
-export interface BeadClaimView {
+interface BeadClaimView {
   playerName: string;
   turn: number;
 }
 
 /** One card, as words. Everything on it except the DOM that draws it. */
-export interface BeadCardFace {
+interface BeadCardFace {
   id: BeadCardId;
   kind: BeadKind;
   name: string;
@@ -442,7 +442,7 @@ export interface BeadsScreen {
   dispose(): void;
 }
 
-export interface BeadsScreenOptions {
+interface BeadsScreenOptions {
   overlay: HTMLElement;
   body: HTMLElement;
   closeButton: HTMLElement;

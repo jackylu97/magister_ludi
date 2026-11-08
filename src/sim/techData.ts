@@ -533,7 +533,7 @@ export const ABILITY_BEARERS: readonly AbilityBearer[] = [
 ];
 
 /** What an ability is *called*, for the surfaces that print it. Flavour only. */
-export interface AbilityDef {
+interface AbilityDef {
   name: string;
   /** The mark the star chart centres it on, like a tech's own `glyph`. */
   glyph: string;
@@ -558,7 +558,7 @@ export interface AbilityDef {
 }
 
 /** What a technology hands over. Every list is optional; at least one is not. */
-export interface TechUnlocks {
+interface TechUnlocks {
   units?: UnitTypeId[];
   buildings?: BuildingId[];
   /**
@@ -591,7 +591,7 @@ export interface TechTrait {
   effects: CardEffect[];
 }
 
-export interface TechDef {
+interface TechDef {
   name: string;
   /**
    * The single character the star chart's dial and node cards centre a tech
@@ -718,7 +718,7 @@ export interface TechDef {
   ruleName?: string;
 }
 
-export interface TechData {
+interface TechData {
   techs: Record<TechId, TechDef>;
   /**
    * What each verb is called. A sibling block rather than a row inside `techs`
@@ -729,7 +729,7 @@ export interface TechData {
   abilities: Record<AbilityId, AbilityDef>;
 }
 
-export const TECH_DATA: TechData = techsJson as TechData;
+const TECH_DATA: TechData = techsJson as TechData;
 
 /**
  * Every technology row, the charter rows included, in file order.
@@ -777,7 +777,7 @@ export function isCharterTech(id: TechId): boolean {
 }
 
 /** One line trait that reaches a unit type, with the technology that gives it. */
-export interface TraitReach {
+interface TraitReach {
   tech: TechId;
   trait: TechTrait;
 }

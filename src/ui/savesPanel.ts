@@ -67,7 +67,7 @@ export function openSaveStorage(): SaveStorage {
   }
 }
 
-export interface SavesPanel {
+interface SavesPanel {
   readonly isOpen: boolean;
   /** Opens the list, rebuilt from the shelf as it is right now. */
   open(): void;
@@ -76,7 +76,7 @@ export interface SavesPanel {
   refresh(): void;
 }
 
-export interface SavesPanelOptions {
+interface SavesPanelOptions {
   /** The full-screen surface. Hidden with `hidden` while closed. */
   overlay: HTMLElement;
   /** Where the rows go. Emptied and rebuilt on every refresh. */
@@ -126,7 +126,7 @@ export interface SavesPanelOptions {
  * platform's own formatter, so it is the player's locale and not a convention
  * invented here.
  */
-export function savedAtLabel(savedAt: number, now: number = Date.now()): string {
+function savedAtLabel(savedAt: number, now: number = Date.now()): string {
   if (!Number.isFinite(savedAt) || savedAt <= 0) return '—';
   const when = new Date(savedAt);
   const sameDay = new Date(now).toDateString() === when.toDateString();
@@ -169,7 +169,7 @@ export function relativeWhen(savedAt: number, now: number = Date.now()): string 
  * A seat under no figure falls back to the save's own name, which is what the
  * player called it (or "Autosave") — never an invented one.
  */
-export interface RecentWorld {
+interface RecentWorld {
   slot: SaveSlot;
   /** The figure seat 0 sits under, or the save's own name where there is none. */
   figure: string;

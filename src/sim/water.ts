@@ -282,7 +282,7 @@ export function deriveFloodplains(map: GameMap): number {
 // --- lakes ------------------------------------------------------------------
 
 /** One connected body of water, as tile indices in ascending order. */
-export interface WaterBody {
+interface WaterBody {
   tiles: number[];
   /** True when any member sits on row 0 or the last row — the ice margin. */
   touchesPole: boolean;
@@ -626,7 +626,7 @@ export function vertexAltitude(map: GameMap, v: RiverVertex): number | null {
   return sum / tiles.length;
 }
 
-export interface CornerStep {
+interface CornerStep {
   to: RiverVertex;
   /** The edge crossed, as a tile and one of its six directions. */
   edge: { tile: Tile; direction: number };
@@ -662,7 +662,7 @@ export function cornerSteps(map: GameMap, v: RiverVertex): CornerStep[] {
 }
 
 /** Does any of the three edges meeting at this corner already carry a river? */
-export function vertexTouchesRiver(map: GameMap, v: RiverVertex): boolean {
+function vertexTouchesRiver(map: GameMap, v: RiverVertex): boolean {
   return cornerSteps(map, v).some((step) => hasRiverEdge(step.edge.tile, step.edge.direction));
 }
 

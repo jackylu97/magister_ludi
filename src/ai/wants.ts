@@ -233,7 +233,7 @@ export { expectedBestOrder };
  * a book; a meter is a capacity nothing accrues, so what prices it is the one
  * thing in the bot that is short of it. See `meterPrices`.
  */
-export type WantCurrency = 'gold' | 'faith' | 'culture';
+type WantCurrency = 'gold' | 'faith' | 'culture';
 
 /**
  * The banks a **spend arm** can actually spend (`bankSpend`, `bot.ts`).
@@ -395,7 +395,7 @@ export interface WantInputs {
 }
 
 /** What the levy wants, what it holds, and the sentence that says why. */
-export interface LevyReading {
+interface LevyReading {
   wanted: number;
   held: number;
   note: string;
@@ -470,7 +470,7 @@ export function wantBook(
  * `÷ turns of build effort`: delivery is instant, which is the whole of what a
  * purse is for, and `delay` says so by being zero.
  */
-export function purchasingPlan(
+function purchasingPlan(
   state: GameState,
   player: Player,
   ctx: ValueContext,
@@ -1027,7 +1027,7 @@ function wageReserveRow(ctx: ValueContext, reserve: number): Want | null {
  * and a settler are priced by readings that already know how many this empire
  * holds, so for those two the count is a charge rather than a door.
  */
-export function faithPlan(
+function faithPlan(
   state: GameState,
   player: Player,
   ctx: ValueContext,
@@ -2158,7 +2158,7 @@ export function savingRows(wants: readonly Want[], ctx: ValueContext, held: numb
 // --- the shadow prices -------------------------------------------------------
 
 /** A price, and the sentence that says why it reads what it does. */
-export interface ShadowPrices {
+interface ShadowPrices {
   gold: number;
   faith: number;
   /** The draft plan's own reading, banded like the other two (batch 6). */
@@ -2167,7 +2167,7 @@ export interface ShadowPrices {
 }
 
 /** The two constraints' prices, and their sentences. See `meterPrices`. */
-export interface MeterPrices {
+interface MeterPrices {
   authority: number;
   happiness: number;
   notes: { authority: string; happiness: string };
@@ -2330,7 +2330,7 @@ function priceOf(
  * them, and no fold multiplies by the pressure twice because nothing downstream
  * multiplies by it at all any more.
  */
-export function priorPrice(ctx: ValueContext, currency: WantCurrency): number {
+function priorPrice(ctx: ValueContext, currency: WantCurrency): number {
   const table = yieldWeight(ctx.ai, currency, ctx.age);
   return currency === 'gold' ? table * ctx.goldPressure : table;
 }

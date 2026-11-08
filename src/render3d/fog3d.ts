@@ -217,7 +217,7 @@ function chartY(): number {
  * rules this layer owns and nothing else asks — so it is planted on whatever
  * page is actually there, at that page's own height.
  */
-export interface ChartPaper {
+interface ChartPaper {
   /** The height the other layer's page sits at, in world units. */
   datum: number;
 }

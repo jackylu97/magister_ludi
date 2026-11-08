@@ -107,7 +107,7 @@ export interface GuildReport {
  * so the hover card prints the reason beside the figure and the phase banks the
  * fold of exactly what it printed.
  */
-export interface GuildInflowLine {
+interface GuildInflowLine {
   source: string;
   amount: number;
 }
@@ -230,7 +230,7 @@ export function cityGuildInflow(state: GameState, city: City): number {
  * whichever family happened to sort first. The share is the *reason*, the inflow
  * is the *rate*, and only the reason may name a family.
  */
-export function guildShares(
+function guildShares(
   city: City,
   shelf: BuildingShelf = city,
 ): Record<SpecialistFamily, number> {

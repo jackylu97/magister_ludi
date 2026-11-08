@@ -450,7 +450,7 @@ export function isFortified(unit: Unit): boolean {
  * `fortifyMax` is reached, and never more, so the stored counter cannot drift
  * upward for a hundred turns behind a bonus that stopped growing on turn two.
  */
-export function maxFortifyTurns(): number {
+function maxFortifyTurns(): number {
   const perTurn = COMBAT.fortifyBonusPerTurn;
   if (perTurn <= 0) return 0;
   return Math.ceil(COMBAT.fortifyMax / perTurn);
@@ -529,7 +529,7 @@ export { blocksLineOfSight, hasLineOfSight };
  * for tiles that are not neighbours at all, which is the honest answer — a
  * ranged shot crosses no edge in particular.
  */
-export function crossesRiver(map: GameMap, from: Tile, to: Tile): boolean {
+function crossesRiver(map: GameMap, from: Tile, to: Tile): boolean {
   for (let direction = 0; direction < DIRECTION_COUNT; direction++) {
     const neighbor = neighborInDirection(map, from, direction);
     if (!neighbor) continue;
@@ -543,7 +543,7 @@ export function crossesRiver(map: GameMap, from: Tile, to: Tile): boolean {
 // --- targeting --------------------------------------------------------------
 
 /** What an attack on a tile would actually hit. Exactly one of the two is set. */
-export interface AttackTarget {
+interface AttackTarget {
   unit: Unit | null;
   city: City | null;
 }
@@ -747,7 +747,7 @@ function boardTargetAt(
  * (module docblock) ask it in one voice rather than writing the pair out four
  * times.
  */
-export function isEmbarked(def: UnitDef, tile: Tile): boolean {
+function isEmbarked(def: UnitDef, tile: Tile): boolean {
   return !isNaval(def) && isWaterTerrain(tile.terrain);
 }
 
@@ -824,7 +824,7 @@ function waterlineError(
  * attacker is excused if it is naval — a fight between two hulls is the
  * triangle's business (`rowCombatLines`) and not this.
  */
-export function landVsShipPercent(def: UnitDef, target: AttackTarget): number {
+function landVsShipPercent(def: UnitDef, target: AttackTarget): number {
   if (isNaval(def)) return 0;
   if (target.unit === null || !isNaval(unitDef(target.unit.type))) return 0;
   const { modelClass } = def;
@@ -985,7 +985,7 @@ function canHoldTakenGround(
 
 // --- what a town is worth ---------------------------------------------------
 
-export type CombatKind = 'melee' | 'ranged';
+type CombatKind = 'melee' | 'ranged';
 
 /**
  * One line of what a city defends with, or of how many hit points it has.
@@ -994,7 +994,7 @@ export type CombatKind = 'melee' | 'ranged';
  * "Garrison strength · Swordsman 14", "Palisade +5", "Palisade +25". Hard rule 5
  * for a town, and the two folds below are the only sums of one.
  */
-export interface CityStrengthLine {
+interface CityStrengthLine {
   source: string;
   amount: number;
 }
@@ -1226,7 +1226,7 @@ function clampCityHp(city: City, shelf: BuildingShelf): void {
  * strengths, so +2 is worth the same multiplier in every era (see the module
  * docblock, and `BarbarianRules.combatBonus`).
  */
-export interface CombatBonusLine {
+interface CombatBonusLine {
   /** Display label — "vs barbarians". */
   source: string;
   side: 'attacker' | 'defender';
@@ -1254,7 +1254,7 @@ export interface CombatBonusLine {
  * carries a `side`; a strength line is a *presentation* of one side's whole
  * arithmetic, multipliers folded in, and every line in the list is that side's.
  */
-export interface CombatStrengthLine {
+interface CombatStrengthLine {
   /** Display label — "Warrior", "terrain +25%", "fortified +20%", "vs barbarians". */
   source: string;
   /** Strength points this line contributes. Signed: a river takes points away. */
@@ -1276,7 +1276,7 @@ export interface CombatStrengthLine {
  * line prints is worth a fixed number of points *here*, where damage is a band
  * the die has not been thrown for yet. Half of it is the honest thing to print.
  */
-export interface CombatPercentLine {
+interface CombatPercentLine {
   /** Display label — "Boarding at sea". */
   source: string;
   /** Whole percent of the figure that remains. 50 is half. */
@@ -1433,7 +1433,7 @@ export function inquisitorAuraLines(state: GameState, unit: Unit): CombatStrengt
  * has no silhouette, so a `vsModelClass` line never pays against walls (see
  * `UnitCombatLine`).
  */
-export function rowCombatLines(
+function rowCombatLines(
   def: UnitDef,
   side: 'attacker' | 'defender',
   kind: CombatKind,
@@ -1694,7 +1694,7 @@ function curve(strongerBy: number): number {
  * hopeless attack free. A base of zero — no counter-attack, a captured civilian —
  * stays zero, because that is the absence of a blow rather than a small one.
  */
-export function damageAtRoll(base: number, roll: number): number {
+function damageAtRoll(base: number, roll: number): number {
   if (base <= 0) return 0;
   return Math.max(1, Math.round(base * roll));
 }
@@ -1721,7 +1721,7 @@ function clampDamage(value: number, hp: number, floor: number): number {
  * all still asked, and still refuse — see `combatForecast` and `standToStrike`
  * in `controls.ts`, which choose the hex and print a refusal as a refusal.
  */
-export interface CombatStance {
+interface CombatStance {
   /** The hex the attacker is imagined to be standing on. */
   from: Cell;
 }
@@ -2693,7 +2693,7 @@ export interface CombatOutcome {
   opusLoss?: { cityId: number; hammers: number };
 }
 
-export type CombatResult = { ok: true; outcome: CombatOutcome } | { ok: false; error: string };
+type CombatResult = { ok: true; outcome: CombatOutcome } | { ok: false; error: string };
 
 /**
  * Resolves one attack, all the way: rolls, damage, deaths, capture, advance.
@@ -3968,7 +3968,7 @@ export function underSiege(state: GameState, city: City, field: SiegeField): boo
  * field, and it is what keeps a beaten-down town from mending (`healCities`).
  * The wild counts — a camp's raiders at the walls are at the walls.
  */
-export function enemyAtTheGate(state: GameState, city: City, field: SiegeField): boolean {
+function enemyAtTheGate(state: GameState, city: City, field: SiegeField): boolean {
   const centre = getTileAt(state.map, city.col, city.row);
   if (!centre) return false;
   for (const neighbour of neighborTiles(state.map, tileHex(centre))) {

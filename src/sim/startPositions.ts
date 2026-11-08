@@ -204,7 +204,7 @@ function startsFor(map: GameMap): StartsConfig {
   return mapgenFor(map).starts;
 }
 
-export interface StartPlacement {
+interface StartPlacement {
   /** Index into `GameState.players`, in player order. */
   ownerIndex: number;
   unitType: UnitTypeId;
@@ -256,7 +256,7 @@ export interface StartSeat {
  * Precomputed and handed down for `groundYields`' reason: the sweep asks about
  * every land tile, and a component walk per hex would be a map pass per hex.
  */
-export interface LandmassFacts {
+interface LandmassFacts {
   /** Tile index → land tiles on that tile's landmass; 0 on water. */
   size: Int32Array;
   /** The largest landmass on the map, in tiles. The share's denominator. */
@@ -316,7 +316,7 @@ export function isHomeLandmass(
  * from the legal hexes, stopped at the radius — which is a single pass of the
  * grid however wide the radius is.
  */
-export interface StrategicGround {
+interface StrategicGround {
   /** Per group, by index: 1 where a hex suiting any member is in reach. */
   reach: Uint8Array[];
   /** The groups asked about, in sheet order. Empty disables the refusal. */
@@ -363,7 +363,7 @@ export function strategicGround(map: GameMap): StrategicGround {
 }
 
 /** A scored site: the ledger, its fold, and whether it is allowed at all. */
-export interface StartSiteScore {
+interface StartSiteScore {
   entries: StartScoreContribution[];
   total: number;
   /** Why this site is refused outright, or `null` when it is acceptable. */
@@ -485,7 +485,7 @@ function withContact(
  * spend getting it (`StartsConfig.biasCap`, read off the best *unbiased* site —
  * see `chooseStartPositionsFor`, which is the only thing that can know it).
  */
-export interface BiasReading {
+interface BiasReading {
   bias: StartBias;
   cap: number;
 }
@@ -820,7 +820,7 @@ export interface StartShortfall {
 }
 
 /** Where the seats went, and which of them the board let down. */
-export interface StartPlan {
+interface StartPlan {
   /** One tile per seat, in roster order. The reading every caller indexes. */
   starts: Tile[];
   /** A row per seat seated inside the floor, in roster order. Empty is the promise kept. */

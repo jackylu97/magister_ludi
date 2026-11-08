@@ -88,7 +88,7 @@ export interface ModalShell {
   dispose(): void;
 }
 
-export interface ModalShellOptions {
+interface ModalShellOptions {
   /** The full-screen overlay. Hidden with the `hidden` attribute while closed. */
   overlay: HTMLElement;
   /**

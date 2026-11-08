@@ -248,7 +248,7 @@ export const START_WANT_KEYS: readonly (keyof StartWants)[] = [
 ];
 
 /** What a want's one number counts: how far away, or how many of them. */
-export type StartWantMeasure = 'radius' | 'count';
+type StartWantMeasure = 'radius' | 'count';
 
 /**
  * Which of the two each want is — declared beside the vocabulary rather than
@@ -317,7 +317,7 @@ export function furnishMatches(entry: FurnishEntry, id: ResourceId): boolean {
  * A clause the vocabulary cannot yet say goes in `deferred`, never bent into a
  * near-fit — the rule that repeats across beliefs, legacies and wonders.
  */
-export interface LeaderAbility {
+interface LeaderAbility {
   id: LeaderAbilityId;
   /** The name the table gives it, in italics there. */
   name: string;
@@ -404,7 +404,7 @@ export type LeaderAbilityId =
  * `PlayerSpec.secondary` are what every surface then reads. See the Heraldry
  * trap in `CLAUDE.md`: config, never state.
  */
-export interface LeaderColors {
+interface LeaderColors {
   /** The field. A `#rrggbb` string; validated at load. */
   primary: string;
   /** The device and the trim. A `#rrggbb` string; validated at load. */
@@ -416,7 +416,7 @@ export interface LeaderColors {
 /** A `#rrggbb` string and nothing else. The one shape a colour row may take. */
 const HEX_COLOR = /^#[0-9a-f]{6}$/;
 
-export interface LeaderDef {
+interface LeaderDef {
   /** The figure's name, as every surface prints it. */
   name: string;
   /**

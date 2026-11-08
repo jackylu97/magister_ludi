@@ -70,7 +70,7 @@ import { playerById } from '../sim/state';
  * may still pick up. The real seal is stamped by the reducer on Confirm, which
  * is the only place in the game that decides how long a seal lasts.
  */
-export interface StagedSlot {
+interface StagedSlot {
   readonly card: OrderId;
   readonly sealedUntil: number;
   readonly staged: boolean;
@@ -143,7 +143,7 @@ export function remove(staged: StagedSlots, index: number): StagedSlots {
  * a question about a state that is not true yet. Nothing ever mutates it and
  * nothing keeps it.
  */
-export function shadowState(state: GameState, playerId: number, staged: StagedSlots): GameState {
+function shadowState(state: GameState, playerId: number, staged: StagedSlots): GameState {
   const slots: (SlottedOrder | null)[] = staged.map((slot) =>
     slot === null ? null : { card: slot.card, sealedUntil: slot.sealedUntil },
   );
@@ -268,7 +268,7 @@ export function diff(
  * the plain rule refuses (Magisterial batch MG12): the council's chairs, and
  * the chair whose card widens the fit, if one does.
  */
-export interface DiffOrder {
+interface DiffOrder {
   readonly layout: readonly ChairType[];
   /** The live chair whose card lets every card fit every chair: taken out last. */
   readonly keystone?: number;

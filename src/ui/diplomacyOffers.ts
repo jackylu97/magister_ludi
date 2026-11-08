@@ -4,7 +4,7 @@ import { seatName } from '../sim/leaderData';
 import { element } from './dom';
 import './diplomacyOffers.css';
 
-export interface PendingCourtOffer { key: string; by: number; kind: 'trade' | 'peace'; }
+interface PendingCourtOffer { key: string; by: number; kind: 'trade' | 'peace'; }
 export function pendingCourtOffers(state: GameState, seat: number): PendingCourtOffer[] {
   const offers: PendingCourtOffer[] = state.dealProposals
     .filter(p => p.to === seat && p.by !== seat)

@@ -236,7 +236,7 @@ import { seatName } from '../sim/leaderData';
  * this turn. A row that appeared only once somebody had converted would be a
  * player watching their capital flip with no warning at all.
  */
-export interface CityFaithRow {
+interface CityFaithRow {
   religion: ReligionId;
   /** The faith's own name, as its founder last set it. */
   name: string;
@@ -333,7 +333,7 @@ export function cityFaithRows(state: GameState, city: City, seat: number): CityF
  * Pure and exported for `insertionIndex`'s reason: the *words* are the whole of
  * what can be quietly wrong here, and this suite has no jsdom.
  */
-export interface CityFaithHeadline {
+interface CityFaithHeadline {
   /** The whole line, which is what a test quotes and a `title` can carry. */
   text: string;
   /** The faith the line names, or `null` when it names none. */
@@ -440,7 +440,7 @@ export function insertionIndex(queue: readonly QueueItem[]): number {
  * A plain copy of a queue: the panel edits a copy and sends it, never the
  * state's own array.
  */
-export function queueDraft(queue: readonly QueueItem[]): QueueItem[] {
+function queueDraft(queue: readonly QueueItem[]): QueueItem[] {
   return queue.map((item): QueueItem => {
     if (item.kind === 'unit') return { kind: 'unit', id: item.id };
     if (item.kind === 'project') return { kind: 'project', id: item.id };
@@ -530,7 +530,7 @@ export function offeredInBuildList(id: UnitTypeId): boolean {
  * own sorter gives, asked of every row the list was already printing. A fourth
  * category added to the table joins this list and nothing else.
  */
-export type AddShelf = ProductionCategory | null;
+type AddShelf = ProductionCategory | null;
 
 /**
  * The shelves, in the order the one long list used to print them — and the order
@@ -561,7 +561,7 @@ export const ADD_SHELVES: readonly { shelf: AddShelf; label: string; word: strin
 export const FAITH_SHELF = { label: 'Faith', word: 'faith' } as const;
 
 /** A shelf the build list prints: one of the four production shelves, or the Faith shelf. */
-export type ListShelf = AddShelf | 'faith';
+type ListShelf = AddShelf | 'faith';
 
 /**
  * A tab of the add-list: one shelf, or **all of them at once**.
@@ -616,7 +616,7 @@ export function addTabFor(seat: number): AddTab {
  * other tab shows itself and nothing else. Takes the tab rather than reading
  * `addTabFor`, so `buildListModel` stays a pure function of what it is handed.
  */
-export function shelfShows(tab: AddTab, shelf: ListShelf): boolean {
+function shelfShows(tab: AddTab, shelf: ListShelf): boolean {
   return tab === 'all' || tab === shelf;
 }
 
@@ -709,7 +709,7 @@ export function buildingNeverHere(state: GameState, city: City, id: BuildingId):
 }
 
 /** How a unit's build row reads in this town. See `unitRowGate`. */
-export interface UnitRowGate {
+interface UnitRowGate {
   /** Why the queue would refuse it here, in `buildError`'s words, or `null`. */
   blocked: string | null;
   /** True when the only refusal is the strategic resource. */
@@ -728,7 +728,7 @@ export interface UnitRowGate {
  * an army already stands on. It is drawn with its marks and counts only when it
  * is the whole refusal: asked again with the resource waived, the gate says yes.
  */
-export function unitRowGate(state: GameState, city: City, id: UnitTypeId): UnitRowGate {
+function unitRowGate(state: GameState, city: City, id: UnitTypeId): UnitRowGate {
   const missing = requiredResource('unit', id);
   const needsResource = missing.length > 0 && !canSpareAnyOf(state, city.ownerId, missing);
   const blocked = buildError(state, city.ownerId, 'unit', id, city);
@@ -744,7 +744,7 @@ export function unitRowGate(state: GameState, city: City, id: UnitTypeId): UnitR
  * One cell of a row's price column: a bank that sells the row, how buying it
  * reads today (`priceCell.ts`), and, for a dash, where its reason is said.
  */
-export interface BuildListCell {
+interface BuildListCell {
   look: PriceLook;
   /**
    * Where a dash's reason is said (`refusalLine.ts`): once at the head of the
@@ -755,7 +755,7 @@ export interface BuildListCell {
 }
 
 /** A unit the town could queue. */
-export interface UnitListRow {
+interface UnitListRow {
   kind: 'unit';
   id: UnitTypeId;
   name: string;
@@ -774,7 +774,7 @@ export interface UnitListRow {
 }
 
 /** A building or wonder this town has not built. */
-export interface BuildingListRow {
+interface BuildingListRow {
   kind: 'building';
   id: BuildingId;
   name: string;
@@ -793,7 +793,7 @@ export interface BuildingListRow {
 }
 
 /** A project. It is a conversion rather than a thing, so it has no price cells. */
-export interface ProjectListRow {
+interface ProjectListRow {
   kind: 'project';
   id: ProjectId;
   name: string;
@@ -802,7 +802,7 @@ export interface ProjectListRow {
 }
 
 /** Something a town buys and never builds: "Call a prophet", "Hire a Company Guard". */
-export interface OfferListRow {
+interface OfferListRow {
   kind: 'offer';
   id: UnitTypeId;
   /** The roster's name, which the purchase gate's sentences use. */
@@ -820,12 +820,12 @@ export type BuildListRow = UnitListRow | BuildingListRow | ProjectListRow | Offe
  * gate's own (`buildError`, `purchaseError`), except a town too small for a
  * unit, which the queue does not refuse and the row says in its own words.
  */
-export type NotYetReason =
+type NotYetReason =
   | { kind: 'resource'; resources: readonly ResourceId[] }
   | { kind: 'text'; text: string };
 
 /** One row folded under "Not yet", and why. */
-export interface NotYetRow {
+interface NotYetRow {
   row: BuildListRow;
   reason: NotYetReason;
 }
@@ -1276,7 +1276,7 @@ const openDisclosures = new Set<string>();
  */
 const closedDisclosures = new Set<string>();
 
-export interface CityPanelOptions {
+interface CityPanelOptions {
   /** The element the panel lives in. Emptied and rebuilt on every render. */
   container: HTMLElement;
   getGame: () => Game;
@@ -1393,7 +1393,7 @@ export function previewFigures(entry: CityYields): string {
  * numeric fields under the same names; a shared formatter would need a type
  * neither of them has, and the two are three lines each.
  */
-export function specialistFigures(entry: SpecialistYieldLine): string {
+function specialistFigures(entry: SpecialistYieldLine): string {
   const parts: string[] = [];
   for (const key of CITY_YIELD_KEYS) {
     const value = roundYield(entry[key]);
@@ -1404,13 +1404,13 @@ export function specialistFigures(entry: SpecialistYieldLine): string {
 }
 
 /** One family's reading on the Specialists row: "3 scholars +6🔬". */
-export interface SpecialistRowEntry {
+interface SpecialistRowEntry {
   family: SpecialistFamily;
   text: string;
 }
 
 /** The Specialists row, as parts. See `specialistRow`. */
-export interface SpecialistRowParts {
+interface SpecialistRowParts {
   label: string;
   total: string;
   families: SpecialistRowEntry[];
@@ -1562,7 +1562,7 @@ export function maxHpLedger(city: City): string {
  * Pure and module-level for `defenseRows`' reason: a suite with no jsdom can
  * read what the card says.
  */
-export interface UnrestCardParts {
+interface UnrestCardParts {
   /** Pacification banked, and what it must reach. */
   progress: number;
   target: number;
@@ -1614,7 +1614,7 @@ export function unrestCardParts(state: GameState, city: City): UnrestCardParts |
  * than a total computed beside it — rule 5's shape, one grade down from a yield.
  * Nothing parses the string back into a number.
  */
-export interface DefenseRow {
+interface DefenseRow {
   label: string;
   figures: string;
   amount: number;
@@ -1658,7 +1658,7 @@ export function defenseTotal(rows: readonly DefenseRow[]): number {
 // --- the town at a glance (batch UX6) ----------------------------------------
 
 /** One row of a yield chip's list. See `chipLedgerRows`. */
-export interface ChipLedgerRow {
+interface ChipLedgerRow {
   /** The simulation's own label, or "Worked land (8 hexes)" for the hexes the town works. */
   label: string;
   /** What the row adds to the chip, exactly. The chip is the fold of the rows. */
@@ -1935,10 +1935,10 @@ function sumOfRows(rows: readonly ChipLedgerRow[]): number {
 }
 
 /** Where on the city screen a short-of chip's fix is. The chip is a link there. */
-export type ShortOfTarget = 'buildList' | 'focus' | 'growth' | 'defence' | 'unrest' | 'supply';
+type ShortOfTarget = 'buildList' | 'focus' | 'growth' | 'defence' | 'unrest' | 'supply';
 
 /** One thing a town is short of, as a chip in the band (batch UX6). */
-export interface ShortOfChip {
+interface ShortOfChip {
   id: 'unrest' | 'siege' | 'starving' | 'idle' | 'unhappy' | 'resource';
   /** The chip's words: "Starving", "No Iron spare". */
   label: string;
@@ -2052,7 +2052,7 @@ export function shortOfChips(state: GameState, city: City, quote: CityReading): 
 }
 
 /** Where a town's people are: on land, in a trade, or idle. See `citizenLineText`. */
-export interface CitizenParts {
+interface CitizenParts {
   population: number;
   /** Citizens working a hex. */
   land: number;

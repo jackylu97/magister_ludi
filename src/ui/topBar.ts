@@ -353,14 +353,14 @@ export interface CivYieldStrip {
 }
 
 /** The three elements one meter's click-through breakdown card is made of. */
-export interface MeterCardElements {
+interface MeterCardElements {
   panel: HTMLElement;
   closeButton: HTMLElement;
   /** The element the signed ledger is written into. Rewritten on every open. */
   body: HTMLElement;
 }
 
-export interface CivYieldStripOptions {
+interface CivYieldStripOptions {
   /**
    * `#civ-yields`: the six yields and the meters chip. Filled once, then only
    * rewritten.
@@ -418,7 +418,7 @@ export interface CivYieldStripOptions {
  * today, and a networked game will sit in it every turn. The seats waited for
  * are `realPlayers`, so the barbarians are never on the list.
  */
-export interface TurnLine {
+interface TurnLine {
   /** "Turn 91". */
   turn: string;
   /** "Æra II": the age the world is in, which every empire shares. */
@@ -464,7 +464,7 @@ export function turnLineOf(state: GameState, localPlayerId: number): TurnLine {
  * record against `data/beads.json`'s threshold. The tabs print them short; the
  * title and the `…Spoken` names say the same numbers in full.
  */
-export interface TabFigures {
+interface TabFigures {
   /** "1/3": routes running, against the routes the empire's markets allow. */
   routes: string;
   routesSpoken: string;

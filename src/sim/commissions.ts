@@ -552,7 +552,7 @@ function followsHeldReligion(state: GameState, playerId: number): (city: City) =
 // --- progress ---------------------------------------------------------------
 
 /** How far one part of a goal has come. `have` is capped by nothing. */
-export interface CommissionGoalProgress {
+interface CommissionGoalProgress {
   goal: CommissionGoal;
   have: number;
   need: number;
@@ -961,7 +961,7 @@ function payEachTown(state: GameState, player: Player, card: OrderId, reward: Co
  * The mark is read by the `markedBy` town scope, which can reach the meters,
  * so the write is announced (the slate register).
  */
-export function markGoalTown(state: GameState, city: City, card: OrderId): void {
+function markGoalTown(state: GameState, city: City, card: OrderId): void {
   const marks = city.markedBy ?? [];
   if (marks.some((mark) => mark.card === card && mark.owner === city.ownerId)) return;
   city.markedBy = [...marks, { card, owner: city.ownerId }];

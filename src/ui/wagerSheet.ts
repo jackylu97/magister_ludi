@@ -94,7 +94,7 @@ export const WAGER_LINE_NAME: Record<WagerLine, string> = {
 };
 
 /** One card as the sheet prints it. Numbers and words, no simulation types. */
-export interface WagerFace {
+interface WagerFace {
   id: WagerId;
   name: string;
   /** "The Marble Court · culture" — the eyebrow. */
@@ -231,7 +231,7 @@ export interface WagerSheet {
   dispose(): void;
 }
 
-export interface WagerSheetOptions {
+interface WagerSheetOptions {
   overlay: HTMLElement;
   body: HTMLElement;
   closeButton: HTMLElement;

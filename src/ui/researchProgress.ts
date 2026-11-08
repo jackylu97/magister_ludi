@@ -35,7 +35,7 @@ import { YIELD_GLYPH, turnsLabel } from './figures';
 /** The science voice, in the glyph every other surface counts beakers in. */
 export const BEAKER = YIELD_GLYPH.science;
 
-export interface ResearchProgress {
+interface ResearchProgress {
   /** Pool over cost, clamped to 0…1 — overflow from a banked pool reads full. */
   fraction: number;
   /** Turns to finish at this rate, `0` when it is already paid, `null` at no rate. */

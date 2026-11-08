@@ -279,7 +279,7 @@ export type BeadDeed =
  * every one-time payment on one seam. `renown` is the fifth bucket's, through
  * `settleRenownWindfall`.
  */
-export type BeadWindfallYield =
+type BeadWindfallYield =
   | 'food'
   | 'production'
   | 'gold'
@@ -290,7 +290,7 @@ export type BeadWindfallYield =
   | 'population';
 
 /** Which town a windfall lands in. `every` is once per city of the empire. */
-export type BeadWindfallWhere = 'capital' | 'nearest' | 'every';
+type BeadWindfallWhere = 'capital' | 'nearest' | 'every';
 
 export interface BeadWindfall {
   yield: BeadWindfallYield;
@@ -370,7 +370,7 @@ interface BeadDefBase {
 }
 
 /** A first in the world, always in play. */
-export interface BeadFeatDef extends BeadDefBase {
+interface BeadFeatDef extends BeadDefBase {
   /** `game` is once ever; `age` is once in each age of the world's clock. */
   once: 'game' | 'age';
   trigger: BeadDeed;
@@ -392,7 +392,7 @@ export type BeadPrerequisite =
   | { test: 'wondersHeld'; value: number };
 
 /** A race project. See `ProjectDef`, which carries the queue's half of it. */
-export interface BeadEndeavourDef extends BeadDefBase {
+interface BeadEndeavourDef extends BeadDefBase {
   age: BeadAge;
   /** Hammers, once. A finishing project — it leaves the queue. */
   cost: number;
@@ -403,7 +403,7 @@ export interface BeadEndeavourDef extends BeadDefBase {
 }
 
 /** A deed dealt from an age's deck. */
-export interface BeadQuestDef extends BeadDefBase {
+interface BeadQuestDef extends BeadDefBase {
   age: BeadAge;
   /** Which system it plays into, for the card's eyebrow. Prose, never a rule. */
   system: string;
@@ -412,7 +412,7 @@ export interface BeadQuestDef extends BeadDefBase {
 }
 
 /** The age's snapshot. One count, every seat at once, ties pay nobody. */
-export interface BeadReckoningDef extends BeadDefBase {
+interface BeadReckoningDef extends BeadDefBase {
   count: BeadCount;
 }
 
@@ -454,10 +454,10 @@ export interface BeadGrantDef extends BeadDefBase {
   repeatable?: boolean;
 }
 
-export type BeadFeatId = keyof typeof beadsJson.feats & string;
+type BeadFeatId = keyof typeof beadsJson.feats & string;
 export type BeadEndeavourId = keyof typeof beadsJson.endeavours & string;
-export type BeadQuestId = keyof typeof beadsJson.quests & string;
-export type BeadReckoningId = keyof typeof beadsJson.reckonings & string;
+type BeadQuestId = keyof typeof beadsJson.quests & string;
+type BeadReckoningId = keyof typeof beadsJson.reckonings & string;
 export type BeadGrantId = keyof typeof beadsJson.grants & string;
 
 /** Every id in the catalogue, across all five classes. */
@@ -468,7 +468,7 @@ export type BeadCardId =
   | BeadReckoningId
   | BeadGrantId;
 
-export interface BeadRules {
+interface BeadRules {
   /**
    * Beads that **open the Magnum Opus**. Entry VI's pacing knob, re-aimed by the
    * ruling of 2026-09-04 (schema 64) and re-cut by batch Q1 (schema 108).
@@ -494,7 +494,7 @@ export interface BeadRules {
   threshold: number;
 }
 
-export interface BeadData {
+interface BeadData {
   rules: BeadRules;
   feats: Record<BeadFeatId, BeadFeatDef>;
   endeavours: Record<BeadEndeavourId, BeadEndeavourDef>;
@@ -514,16 +514,16 @@ export const BEAD_QUEST_IDS = Object.keys(BEAD_DATA.quests) as BeadQuestId[];
 export const BEAD_RECKONING_IDS = Object.keys(BEAD_DATA.reckonings) as BeadReckoningId[];
 export const BEAD_GRANT_IDS = Object.keys(BEAD_DATA.grants) as BeadGrantId[];
 
-export function isBeadFeatId(value: unknown): value is BeadFeatId {
+function isBeadFeatId(value: unknown): value is BeadFeatId {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(BEAD_DATA.feats, value);
 }
 export function isBeadEndeavourId(value: unknown): value is BeadEndeavourId {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(BEAD_DATA.endeavours, value);
 }
-export function isBeadQuestId(value: unknown): value is BeadQuestId {
+function isBeadQuestId(value: unknown): value is BeadQuestId {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(BEAD_DATA.quests, value);
 }
-export function isBeadReckoningId(value: unknown): value is BeadReckoningId {
+function isBeadReckoningId(value: unknown): value is BeadReckoningId {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(BEAD_DATA.reckonings, value);
 }
 export function isBeadGrantId(value: unknown): value is BeadGrantId {
