@@ -1163,7 +1163,8 @@ export function orderAtSlotPosition(
  * Writes nothing.
  *
  * For the two scratch boards that price a Doctrine (`ghostPair` in
- * `cardImpact.ts`, `deckPair` in `value.ts`). Without it, a ghost holding The
+ * `cardImpact.ts`, `deckPair` in `value.ts`), through `ghostSeatUnderDoctrine`
+ * below. Without it, a ghost holding The
  * Arthashastra would read its "last Wildcard chair" one chair too early, and
  * would claim to double a card that the real command leaves where it sits. Added
  * chairs go on the end and taken ones come off the end, as `refitSlots` does, and
@@ -1196,6 +1197,56 @@ export function ghostCouncilUnderDoctrine(
     if (held.chair !== undefined) slots[held.chair] = null;
   }
   return { slots, malices };
+}
+
+/**
+ * **A seat's ghost with or without one Doctrine**, and which side of the pair the
+ * ghost is. The two scratch boards that price a Doctrine ask it (`ghostPair` in
+ * `cardImpact.ts`, `deckPair` in `value.ts`), so the card stamp and the bots
+ * build the same ghost.
+ *
+ *   - A Doctrine the seat holds: the ghost gives it up, so the ghost is the board
+ *     `without` it and the real board is the board with it.
+ *   - A Doctrine the seat does not hold: the ghost takes it, so the ghost is the
+ *     board `with` it. The ghost stamps it with this turn, as taking it would
+ *     (batch DT1), so a "from now on" rule does not read the towns already founded.
+ *
+ * Either way the chairs and the malices are the ones the command would leave
+ * (`ghostCouncilUnderDoctrine`), because a Doctrine that opens a chair opens it at
+ * once (batch DT9). Writes nothing: the ghost seat and its statecraft are new
+ * objects, and the arrays they share with the real seat are not written.
+ */
+export function ghostSeatUnderDoctrine(
+  player: Player,
+  id: DoctrineId,
+  turn: number,
+): { seat: Player; side: 'with' | 'without' } {
+  const sc = player.statecraft;
+  if (sc.doctrines.includes(id)) {
+    const { slots, malices } = ghostCouncilUnderDoctrine(player, id, false);
+    return {
+      seat: {
+        ...player,
+        malices,
+        statecraft: { ...sc, doctrines: sc.doctrines.filter((held) => held !== id), slots },
+      },
+      side: 'without',
+    };
+  }
+  const { slots, malices } = ghostCouncilUnderDoctrine(player, id, true);
+  return {
+    seat: {
+      ...player,
+      malices,
+      statecraft: {
+        ...sc,
+        doctrines: [...sc.doctrines, id],
+        doctrineTurns: { ...sc.doctrineTurns, [id]: turn },
+        slots,
+      },
+    },
+    side: 'with',
+  };
 }
 
 /**

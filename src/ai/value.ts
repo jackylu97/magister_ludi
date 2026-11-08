@@ -263,7 +263,6 @@ import {
   // Batch R2d: a building share is priced over the building's package.
   explainBuildingPackage,
   foldBuildingPackage,
-  ghostCouncilUnderDoctrine,
   // Batch R3: The Kept Secret's condition, the simulation's own reading.
   knowsUniqueTech,
   liveEffects,
@@ -286,6 +285,7 @@ import {
   draftCostFor,
   expectedHandBags,
   foreignCardBag,
+  ghostSeatUnderDoctrine,
   isRainbowSeat,
   isSlotted,
   maliceAt,
@@ -312,6 +312,15 @@ import {
   cardLevyAftermaths,
   cardLevyShortestTurns,
   explainFollowerLinesAbroad,
+  // Batch K2: the kinds a second reading leaves out, The Apostolic Camera's row
+  // test and the voices an empire banks, so a price reads what the walk reads.
+  CHAIR_READS_ONCE,
+  GOD_READS_ONCE,
+  GOVERNMENT_READ_NOT_AT_ALL,
+  VOICES_AN_EMPIRE_BANKS,
+  isLineAbroadRow,
+  // Batch K2: the one walk for "does this scope name X".
+  scopeAsks,
   heldReligions,
   buildingPassesTest,
   isCityScopedCount,
@@ -424,6 +433,7 @@ import {
   lumpOfPoints,
   meterWeight,
   meterWords,
+  onContext,
   ratesOf,
   routeSlotTerm,
   valueOfYields,
@@ -1048,12 +1058,7 @@ function explainWrittenEffects(id: BuildingId, ctx: ValueContext, city: City | u
 const ONE_TOWN_CONTEXT = new WeakMap<ValueContext, ValueContext>();
 function oneTownContext(ctx: ValueContext): ValueContext {
   if (ctx.cities <= 1) return ctx;
-  let held = ONE_TOWN_CONTEXT.get(ctx);
-  if (held === undefined) {
-    held = { ...ctx, cities: 1 };
-    ONE_TOWN_CONTEXT.set(ctx, held);
-  }
-  return held;
+  return onContext(ONE_TOWN_CONTEXT, ctx, () => ({ ...ctx, cities: 1 }));
 }
 
 /**
@@ -2384,113 +2389,10 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       return strength + (effect.hp === undefined ? 0 : ctx.ai.score.unknownEffect * levied * born) + timed;
     }
     case 'rule':
-      // **A flag-shaped rule declared true.** Four kinds came in here before
-      // batch H6 and they are one shape now; the arm keeps the four readings
-      // apart, because what a rule is *worth* is a fact about the rule and not
-      // about the shape it is written in.
-      //
-      //   · `borders` — every hex this empire owns tolls a foreign march. A
-      //     defensive line whose subject is the whole border, priced as the
-      //     towns it screens (the wall reading one grade out), and deliberately
-      //     not per hex: a toll is not a strength point, and counting the border
-      //     would make one card outweigh an army.
-      //   · `freshwater` — what it is worth is what the rows it un-gates are
-      //     worth, and that is `buildError`'s question asked of a board where the
-      //     rule is already live, which is the hypothetical inside `src/sim/`
-      //     this bot may not ask for. Named.
-      //   · the verbs — three of the four open the great-person draft, priced as
-      //     a button this bot does not press; the fourth (a free chop) is a
-      //     saving on a worker's turn, which is the plan's currency and not a
-      //     card's. Named, and a debt on H3 rather than here.
-      //   · the world's rules — the wild converting its killers, a realm's roads
-      //     laid free. Neither is a rate and neither has a fold. Named.
-      //   · `ignored` (Riders of the Steppe, O2) — a picket walked past for
-      //     nothing. Its worth is the difference between two marches, which is
-      //     the plan's arithmetic and not a card's: this bot does not price a
-      //     toll it has not yet decided to pay, exactly as `freePillage` below
-      //     is not priced. Named, and left at the stand-in.
-      //   · `freePillage` (Tyranny, 2026-09-08) — a movement point given back on
-      //     a raid this bot decides to make. Its worth is the difference between
-      //     two marches, which is the plan's arithmetic and not a card's, and it
-      //     is worth nothing at all to a seat that never raids. Named, and left
-      //     at the stand-in rather than guessed at from a card's face.
-      //   · `tradersUnplunderable` (Pytheas, GP2) — insurance on a cart nobody
-      //     has attacked yet. What it is worth is the *chance* a caravan is
-      //     plundered times what a caravan carries, and this bot keeps no
-      //     estimate of the first: a seat at peace pays nothing for it and a
-      //     seat at war pays whatever the raiders would have taken. Named. The
-      //     Muda's `foreignTradersUnplunderable` (batch DT6) is the same insurance
-      //     on the carts abroad, and takes the same stand-in.
-      //   · `faithBuysScienceBuildings` (al-Khwārizmī, GP2) — a second bank for
-      //     one shelf. Its worth is the difference between two *plans* — what
-      //     the faith bank would otherwise have bought, against a library
-      //     arriving several turns sooner — which is `wants.ts`' arithmetic and
-      //     not a card's. Named, and a debt on the purchase arm rather than here.
-      // A border's toll is a *screen*, not a strength: it is priced per town it
-      // covers, so it asks `unitEdge` — batch U9's split, for the reason on that
-      // knob. Before it, this read `military` and the strength ladder would have
-      // halved what a screened town is worth without anybody deciding to.
-      if (effect.rule === 'borders') {
-        return ctx.ai.weights.unitEdge * (1 + ctx.threat) * ctx.cities;
-      }
-      // **Two rules that cost the holder** (Dominion batch D8). The Soldiers'
-      // Share forbids founding, which costs the next town this seat would
-      // found: the expansion chain's payoff, and nothing when there is nowhere
-      // left to found. The Servian Reforms' units never gain experience, which
-      // is real and not forecast, so it is the stand-in, as a cost.
-      if (effect.rule === 'noFounding') return -(ctx.expansion?.payoff ?? 0);
-      if (effect.rule === 'noExperience') return -ctx.ai.score.unknownEffect;
-      // **The rules of Dominion batches D11 to D14**, each priced off the board
-      // with one stand-in knob in `score.dominion` (Dominion batch D16).
-      if (effect.rule === 'ignored' && effect.rank !== undefined) {
-        // The Chosen Men's institution: the zone-of-control rule for Elite
-        // units only keeps a share of the rule's stand-in.
-        return ctx.ai.score.unknownEffect * ctx.ai.score.dominion.zocRank;
-      }
-      if (effect.rule === 'rallyToGeneral') return rallyWorth(effect.class, ctx);
-      if (effect.rule === 'garrisonWorks') return garrisonWorksWorth(effect.max, effect.scope, ctx);
-      if (effect.rule === 'shoreRaid') return shoreRaidWorth(ctx);
-      if (effect.rule === 'opusSiege') return opusSiegeWorth(ctx);
-      {
-        // **The rules of Expansionist batches E9 and E12**, each priced off
-        // the board with one stand-in knob in `score.expansionist` (batch E13).
-        const expansionist = expansionistRuleWorth(effect, ctx);
-        if (expansionist !== null) return expansionist;
-      }
-      {
-        // **The rules of Scientific batches S1 to S9**, each priced off the
-        // board with one stand-in knob in `score.scientific` (batch S13).
-        const scientific = scientificRuleWorth(effect, ctx);
-        if (scientific !== null) return scientific;
-      }
-      {
-        // **The rules of Commerce batches T3 to T6**, each priced off the
-        // board, with one knob in `score.commerce` where the board cannot say
-        // enough (batch T9).
-        const commerce = commerceRuleWorth(effect, ctx);
-        if (commerce !== null) return commerce;
-      }
-      {
-        // **The rules of Devotion batches DV3 to DV8**, each priced off the
-        // board, with one knob in `score.devotion` where the board cannot say
-        // enough (batch DV9).
-        const devotion = devotionRuleWorth(effect, ctx);
-        if (devotion !== null) return devotion;
-      }
-      {
-        // **The rules of Magisterial batches MG6 to MG16**, each priced off
-        // the board, with one knob in `score.magisterial` where the board
-        // cannot say enough (batch MG17).
-        const magisterial = magisterialRuleWorth(effect, ctx);
-        if (magisterial !== null) return magisterial;
-      }
-      {
-        // **The refusals of batch DT7**, which belong to no one deck: The Sea
-        // Ban and The Inward Roads share a rule across two.
-        const doctrine = doctrineRuleWorth(effect, ctx);
-        if (doctrine !== null) return doctrine;
-      }
-      return ctx.ai.score.unknownEffect;
+      // **A flag rule declared true.** What a rule is worth is a fact about the
+      // rule, not about the shape it is written in, so each rule has its own case
+      // in `ruleWorth`.
+      return ruleWorth(effect, ctx);
     case 'metaRule':
       // A rule of Statecraft itself — how long a chair is sealed. What a seal
       // costs is the difference between two draft plans, which is `wants.ts`'
@@ -2629,6 +2531,257 @@ function unreadEffect(_kind: never, ctx: ValueContext): number {
   return ctx.ai.score.unknownEffect;
 }
 
+/**
+ * **What a flag rule is worth to this seat**: the `rule` arm of `scoreEffect`, as
+ * one switch with a case for every `CardFlagRuleId` (batch K2). A rule added to the
+ * data fails the type check here until it has a case, as a new shape fails
+ * `scoreEffect`. Each case calls the rule's own price, and each rule that has none
+ * yet is a named case that takes the stand-in (`score.unknownEffect`).
+ *
+ * The cases are grouped by the batch that priced them, as the deck functions they
+ * replace were. No rule has two prices, so the order of the cases does not matter.
+ */
+function ruleWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueContext): number {
+  const stand = ctx.ai.score.unknownEffect;
+  // A point of strength at this seat's threat, which the Scientific rules price in.
+  const strength = ctx.ai.weights.military * (1 + ctx.threat);
+  const scientific = ctx.ai.score.scientific;
+  const rule = effect.rule;
+  switch (rule) {
+    // --- zone of control ----------------------------------------------------
+    // A border's toll is a screen, not a strength: every hex this empire owns tolls
+    // a foreign march, so it is priced per town it covers, and not per hex. A toll is
+    // not a strength point, and counting the border would make one card outweigh an
+    // army. So it asks `unitEdge`, for the reason on that knob (batch U9). Before
+    // U9, this read `military`, and the strength ladder would have halved what a
+    // screened town is worth without anybody deciding to.
+    case 'borders':
+      return ctx.ai.weights.unitEdge * (1 + ctx.threat) * ctx.cities;
+    // A picket walked past for nothing (Riders of the Steppe, O2). Its worth is the
+    // difference between two marches, which is the plan's arithmetic and not a
+    // card's, so it takes the stand-in. The Chosen Men's institution keeps the rule
+    // for Elite units only, so it keeps a share of the stand-in
+    // (`score.dominion.zocRank`).
+    case 'ignored':
+      return effect.rank !== undefined ? stand * ctx.ai.score.dominion.zocRank : stand;
+
+    // --- Dominion: two rules that cost the holder (batch D8) ----------------
+    // The Soldiers' Share forbids founding, which costs the next town this seat
+    // would found: the expansion chain's payoff, and nothing when there is nowhere
+    // left to found. The Servian Reforms' units never gain experience, which is
+    // real and not forecast, so it is the stand-in, as a cost.
+    case 'noFounding':
+      return -(ctx.expansion?.payoff ?? 0);
+    case 'noExperience':
+      return -stand;
+
+    // --- Dominion batches D11 to D14 (knobs in `score.dominion`, batch D16) --
+    case 'rallyToGeneral':
+      return rallyWorth(effect.class, ctx);
+    case 'garrisonWorks':
+      return garrisonWorksWorth(effect.max, effect.scope, ctx);
+    case 'shoreRaid':
+      return shoreRaidWorth(ctx);
+    case 'opusSiege':
+      return opusSiegeWorth(ctx);
+
+    // --- Expansionist batches E9 and E12, and batch DT12 (knobs in
+    // `score.expansionist`, batch E13) ---------------------------------------
+    case 'fieldsTended': // The Two Harvests
+      return fieldsTendedWorth(effect.improvements, ctx);
+    case 'holdsBuilding': // The Cura Aquarum
+      return heldBuildingWorth(effect, ctx);
+    case 'tendedWorksFree': // The Wildwood Compact
+      return tendedWorksFreeWorth(ctx);
+    case 'trainedSettlerCostsCitizen': // The Planted Towns
+      return settlerCitizenCost(ctx);
+    case 'tendedCountsImproved': // Arcadia
+      return tendedImprovedWorth(ctx);
+
+    // --- Scientific batches S1 to S9 (knobs in `score.scientific`, batch S13) --
+    // Points of strength, priced as a strength line is.
+    case 'moveAfterAttack':
+      return scientific.moveAfterAttack * strength;
+    case 'blockades':
+      return scientific.blockades * strength;
+    // Points of strength a turn for each combat unit with an upgrade ahead of it.
+    case 'upgradeHeals':
+      return scientific.upgradeHeals * upgradeableUnits(ctx) * strength;
+    case 'upgradeIgnoresResource':
+      return scientific.upgradeIgnoresResource * upgradeableUnits(ctx) * strength;
+    // The same count, times the strength one upgrade adds (batch DT14, The Nassau
+    // Reforms).
+    case 'upgradeStrength':
+      return scientific.upgradeStrength * (effect.value ?? 0) * upgradeableUnits(ctx) * strength;
+    // Points for each met rival raising the Magnum Opus.
+    case 'opusBreach':
+      return scientific.opusBreach * rivalsRaisingOpus(ctx);
+    // A share of the bead race's worth, while no empire knows the technology that
+    // opens the Opus.
+    case 'opusEarly':
+      return scientific.opusEarly * raceWorthWhileShut(ctx);
+    case 'closedBook':
+      return scientific.closedBook * raceWorthWhileShut(ctx);
+    // Points for each building or unit the current research opens.
+    case 'prototypes':
+      return scientific.prototypes * rowsOfResearch(ctx);
+    // Points for each great person's work beside the named work.
+    case 'worksCountAs':
+      return scientific.worksCountAs * worksBeside(effect.improvement, ctx);
+    case 'everyWorkIsAcademy':
+      return everyWorkIsAcademyWorth(ctx);
+    case 'secondCapital': // batch DT17, The Two Capitals
+      return secondCapitalWorth(ctx);
+
+    // --- Commerce batches T3 to T6 (knobs in `score.commerce`, batch T9) -----
+    case 'homeRoutesPayOrigin': // The Return Leg
+      return returnLegWorth(ctx);
+    case 'postsWaiveRouteRange': // The Admiralty of Trade
+      return postRangeWorth(ctx);
+    // The Capitulations. An Order carrying it is read by the marginal reading
+    // instead (`foldReadEngine`).
+    case 'postsLendLuxuries':
+      return postLoansWorth(ctx);
+    case 'buysOnCredit': // Letters of Credit
+      return creditWorth(effect.credit, ctx);
+    case 'routesCarrySurplus': // batch DT18, The Grand Canal
+      return surplusCarriedWorth(effect.percent ?? 0, ctx);
+
+    // --- Devotion batches DV3 to DV8 (knobs in `score.devotion`, batch DV9) --
+    // The Gifts of the Faithful, The Lay Brothers, The Offered Stones.
+    case 'faithBuysBuildings':
+      return faithShelfWorth(effect, ctx);
+    case 'followersShareSight': // The Confessors
+      return followerSightWorth(ctx);
+    case 'chargePrice': // The Anchorites
+      return chargePriceWorth(effect, ctx);
+    case 'apostlesPlantHolySites': // The Abbeys
+      return abbeysWorth(ctx);
+    case 'opusInterdict': // The Interdict
+      return opusInterdictWorth(ctx);
+    case 'faithfulKillsConvert': // The Turning of Swords
+      return turningWorth(ctx);
+    case 'twoRites': // The Double Feast
+      return secondRiteWorth(ctx);
+    case 'followerBeliefsPayAbroad': // batch DT15, The Apostolic Camera
+      return followerLinesAbroadWorth(ctx);
+
+    // --- Magisterial batches MG6 to MG16 (knobs in `score.magisterial`, batch
+    // MG17) ------------------------------------------------------------------
+    // Officials by Merit costs this bot nothing: it rerolls only a free belief
+    // hand (`beliefRedeal`), never an Order hand.
+    case 'noOrderReroll':
+      return 0;
+    case 'wonderHammersMoveOn': // The Envious Eye
+      return enviousEyeWorth(ctx);
+    case 'cultureBuysWonders': // Magnificence
+      return magnificenceWorth(ctx);
+    case 'cardsFitAnyChair': // The Mixed Constitution
+      return widerFitWorth(ctx);
+    case 'actThenWork': // The Universal Genius
+      return actThenWorkWorth(ctx);
+    case 'worksPullRivalHexes': // The Pull of the Masters
+      return pullWorth(ctx);
+    // Batch DT10: the two Doctrines that change what an Order hand deals.
+    case 'thirdCardForeign':
+      return hospitiumWorth(ctx);
+    case 'rareWeight':
+      return jinshiWorth(effect, ctx);
+    // Batch DT11: Scutage's bench. Its lost chair is its `slotRider` row.
+    case 'collectionPays':
+      return scutageWorth(effect, ctx);
+    // Batch DT16: The Peregrini's discount. Its hex line is an ordinary `pays` row.
+    case 'workCheapensPerson':
+      return workCheapensPersonWorth(effect, ctx);
+
+    // --- the Doctrine rules that refuse this seat something (batch DT7) ------
+    // They belong to no one deck: The Sea Ban and The Inward Roads share a rule
+    // across two. Three are costs and print as negative worth. `0 - x` rather than
+    // `-x`, so a seat that loses nothing reads 0 and not -0. Canossa is the one
+    // that also protects.
+    case 'noForeignRoutes':
+      return 0 - foreignRoutesLost(ctx);
+    case 'noLuxuryLending':
+      return 0 - luxuryLoansLost(ctx);
+    case 'buysOnlyInScope':
+      return 0 - shutTreasuriesCost(effect, ctx);
+    case 'faithfulPeace':
+      return faithfulPeaceWorth(ctx);
+
+    // --- the rules that take the stand-in -----------------------------------
+    // The verbs. Three open the great-person draft, priced as a button this bot
+    // does not press. A free chop is a saving on a worker's turn, which is the
+    // plan's currency and not a card's. Named, and a debt on H3 rather than here.
+    case 'freeChop':
+    case 'buyGreatPersonWithGold':
+    case 'buyGreatPersonWithFaith':
+    case 'buyScholarDraftWithFaith':
+    // A second bank for one shelf (al-Khwārizmī, GP2). Its worth is the difference
+    // between two plans: what the faith bank would otherwise have bought, against a
+    // library that arrives several turns sooner. That is `wants.ts`' arithmetic and
+    // not a card's. Named, and a debt on the purchase arm rather than here.
+    case 'faithBuysScienceBuildings':
+    // The other verbs, which this arm does not price yet.
+    case 'pacifyOnCapture':
+    case 'doubleOverflow':
+    case 'unitJumpsQueue':
+    case 'rerollOffers':
+    case 'capitalBuysWithoutLimit':
+    case 'buysWithoutResources':
+    case 'goldBuysWonders':
+    case 'goldBuysRedraw':
+    case 'goldBuysFrozenTiles':
+    case 'buildsEverywhere':
+    case 'wonderTownBuysWithoutLimit':
+    case 'boughtUnitsCountAsTrained':
+    case 'campClaimsGround':
+    case 'faithBuysUnits':
+    case 'faithBuysWonders':
+    // The world's rules: the wild converting its killers, and a realm's roads laid
+    // free. Neither is a rate and neither has a fold. Named.
+    case 'barbarianKillsConvert':
+    case 'freeCityRoads':
+    // A movement point given back on a raid this bot decides to make (Tyranny,
+    // 2026-09-08). Its worth is the difference between two marches, which is the
+    // plan's arithmetic and not a card's, and it is worth nothing to a seat that
+    // never raids. Named, and not guessed at from a card's face.
+    case 'freePillage':
+    // Insurance on a cart nobody has attacked yet (Pytheas, GP2). What it is worth
+    // is the chance a caravan is plundered times what a caravan carries, and this
+    // bot keeps no estimate of the first. The Muda's `foreignTradersUnplunderable`
+    // (batch DT6) is the same insurance on the carts abroad.
+    case 'tradersUnplunderable':
+    case 'foreignTradersUnplunderable':
+    // The other behaviours, which this arm does not price yet.
+    case 'barbariansPassive':
+    case 'noCampClearing':
+    case 'noHealAbroad':
+    case 'moveAfterKill':
+    case 'noFortify':
+    case 'cityRestoresMovement':
+    case 'freeLanding':
+    case 'routesImportLuxuries':
+    case 'attackKeepsFortification':
+    case 'secondAttack':
+    case 'breachInOneBlow':
+    case 'woodsWalk':
+    case 'riverFarmsWater':
+    case 'farmChainsWater':
+    case 'siegeScreened':
+    // Fresh water: what it is worth is what the rows it opens are worth. That is
+    // `buildError`'s question asked of a board where the rule is already live, a
+    // hypothetical inside `src/sim/` this bot may not ask for. Named.
+    case 'freshwater':
+    // The other town rules, which this arm does not price yet.
+    case 'pacified':
+    case 'workMountains':
+    case 'widerReach':
+      return stand;
+    default:
+      return unreadRule(rule, ctx);
+  }
+}
+
 // --- the readings the newly-armed shapes take (batch H2) ---------------------
 
 /** A voice's key in the books. `food`/`production` are read, never banked. */
@@ -2675,31 +2828,29 @@ interface BoardTempo {
 
 const TEMPO_MEMO = new WeakMap<ValueContext, BoardTempo>();
 function boardTempo(ctx: ValueContext): BoardTempo {
-  let held = TEMPO_MEMO.get(ctx);
-  if (held !== undefined) return held;
-  let growths = 0;
-  let buildings = 0;
-  let demand = 0;
-  for (const city of ctx.state.cities) {
-    if (city.ownerId !== ctx.playerId) continue;
-    growths += Math.max(0, city.population - 1);
-    buildings += city.buildings.length;
-    demand += happinessDemand(city.population);
-  }
-  const owner = tileOwnerField(ctx.state);
-  const tiles = ctx.state.map.tiles;
-  let discoveries = 0;
-  let canopy = 0;
-  for (let index = 0; index < tiles.length; index++) {
-    const tile = tiles[index]!;
-    if (tile.feature !== undefined && owner.at(index) === ctx.playerId) canopy += 1;
-    if (tile.discovery === undefined) continue;
-    if (!isExploredBy(ctx.state, ctx.playerId, tile.col, tile.row)) continue;
-    discoveries += 1;
-  }
-  held = { discoveries, canopy, growths, buildings, demand };
-  TEMPO_MEMO.set(ctx, held);
-  return held;
+  return onContext(TEMPO_MEMO, ctx, () => {
+    let growths = 0;
+    let buildings = 0;
+    let demand = 0;
+    for (const city of ctx.state.cities) {
+      if (city.ownerId !== ctx.playerId) continue;
+      growths += Math.max(0, city.population - 1);
+      buildings += city.buildings.length;
+      demand += happinessDemand(city.population);
+    }
+    const owner = tileOwnerField(ctx.state);
+    const tiles = ctx.state.map.tiles;
+    let discoveries = 0;
+    let canopy = 0;
+    for (let index = 0; index < tiles.length; index++) {
+      const tile = tiles[index]!;
+      if (tile.feature !== undefined && owner.at(index) === ctx.playerId) canopy += 1;
+      if (tile.discovery === undefined) continue;
+      if (!isExploredBy(ctx.state, ctx.playerId, tile.col, tile.row)) continue;
+      discoveries += 1;
+    }
+    return { discoveries, canopy, growths, buildings, demand };
+  });
 }
 
 /**
@@ -3085,11 +3236,7 @@ function finishedRowRate(
   if (effect.empireBuilding !== undefined) test.empireBuilding = effect.empireBuilding;
   const tests = effect.anyOf ?? [test];
   if (effect.anyOf === undefined && Object.keys(test).length === 0) return null;
-  let memo = FINISHED_ROW_MEMO.get(ctx);
-  if (memo === undefined) {
-    memo = new Map();
-    FINISHED_ROW_MEMO.set(ctx, memo);
-  }
+  const memo = onContext(FINISHED_ROW_MEMO, ctx, () => new Map());
   const held = memo.get(effect);
   if (held !== undefined) return held;
   const passes = (id: BuildingId): boolean => tests.some((one) => buildingPassesTest(id, one));
@@ -3576,7 +3723,10 @@ function ruleRewriteValue(
   }
 }
 
-/** `rule` is `never` here: a member added to `CardRule` stops this compiling. */
+/**
+ * `rule` is `never` here: a member added to `CardRule` (`ruleRewriteValue`) or to
+ * `CardFlagRuleId` (`ruleWorth`) stops this compiling.
+ */
 function unreadRule(_rule: never, ctx: ValueContext): number {
   return ctx.ai.score.unknownEffect;
 }
@@ -4385,32 +4535,11 @@ function deckPair(
   const player = playerById(state, playerId);
   if (sc === undefined || player === undefined) return null;
   if (isDoctrineId(id)) {
-    // A Doctrine that opens a chair opens it at once (batch DT9), so each scratch
-    // board has the chairs the command would leave, and the malices in them.
-    if (sc.doctrines.includes(id)) {
-      const { slots, malices } = ghostCouncilUnderDoctrine(player, id, false);
-      return {
-        with: state,
-        without: rewritten(state, playerId, { ...sc, doctrines: sc.doctrines.filter((held) => held !== id), slots }, malices),
-      };
-    }
-    // Stamped with this turn, as taking it would be (batch DT1), so a "from now
-    // on" rule does not read the towns already founded.
-    const { slots, malices } = ghostCouncilUnderDoctrine(player, id, true);
-    return {
-      with: rewritten(
-        state,
-        playerId,
-        {
-          ...sc,
-          doctrines: [...sc.doctrines, id],
-          doctrineTurns: { ...sc.doctrineTurns, [id]: state.turn },
-          slots,
-        },
-        malices,
-      ),
-      without: state,
-    };
+    // The ghost the card stamp prices a Doctrine on too (`ghostSeatUnderDoctrine`),
+    // with the chairs the command would leave and the malices in them.
+    const ghost = ghostSeatUnderDoctrine(player, id, state.turn);
+    const board = rewritten(state, playerId, ghost.seat.statecraft, ghost.seat.malices);
+    return ghost.side === 'with' ? { with: board, without: state } : { with: state, without: board };
   }
   if (!isOrderId(id)) return null;
   const seated = sc.slots.findIndex((slot) => slot !== null && slot.card === id);
@@ -4673,12 +4802,7 @@ export function explainCardEffects(
 const MARGIN_MEMO = new WeakMap<ValueContext, Map<CardId, Appraisal | null>>();
 
 function marginMemo(ctx: ValueContext): Map<CardId, Appraisal | null> {
-  let held = MARGIN_MEMO.get(ctx);
-  if (held === undefined) {
-    held = new Map<CardId, Appraisal | null>();
-    MARGIN_MEMO.set(ctx, held);
-  }
-  return held;
+  return onContext(MARGIN_MEMO, ctx, () => new Map<CardId, Appraisal | null>());
 }
 
 // --- counted effects, at the delay discount ---------------------------------
@@ -5987,22 +6111,21 @@ function garrisonWorksWorth(
  */
 const WORKED_HEX_MEMO = new WeakMap<ValueContext, number>();
 function meanWorkedHex(ctx: ValueContext): number {
-  const held = WORKED_HEX_MEMO.get(ctx);
-  if (held !== undefined) return held;
-  let worth = 0;
-  let hexes = 0;
-  for (const city of citiesOf(ctx.state, ctx.playerId)) {
-    const context = cityContext(ctx.state, city);
-    for (const cell of city.workedTiles) {
-      const tile = getTileAt(ctx.state.map, cell.col, cell.row);
-      if (tile === undefined) continue;
-      worth += valueOfYields(bagOfTileYield(foldTile(tile, context)), ctx);
-      hexes += 1;
+  return onContext(WORKED_HEX_MEMO, ctx, () => {
+    let worth = 0;
+    let hexes = 0;
+    for (const city of citiesOf(ctx.state, ctx.playerId)) {
+      const context = cityContext(ctx.state, city);
+      for (const cell of city.workedTiles) {
+        const tile = getTileAt(ctx.state.map, cell.col, cell.row);
+        if (tile === undefined) continue;
+        worth += valueOfYields(bagOfTileYield(foldTile(tile, context)), ctx);
+        hexes += 1;
+      }
     }
-  }
-  const mean = hexes === 0 ? 0 : worth / hexes;
-  WORKED_HEX_MEMO.set(ctx, mean);
-  return mean;
+    const mean = hexes === 0 ? 0 : worth / hexes;
+    return mean;
+  });
 }
 
 /**
@@ -6081,11 +6204,7 @@ function opusSiegeWorth(ctx: ValueContext): number {
  */
 const TECH_COST_MEMO = new WeakMap<ValueContext, Map<TechId, number>>();
 export function techCostFor(ctx: ValueContext, tech: TechId): number {
-  let held = TECH_COST_MEMO.get(ctx);
-  if (held === undefined) {
-    held = new Map<TechId, number>();
-    TECH_COST_MEMO.set(ctx, held);
-  }
+  const held = onContext(TECH_COST_MEMO, ctx, () => new Map<TechId, number>());
   const found = held.get(tech);
   if (found !== undefined) return found;
   const player = playerById(ctx.state, ctx.playerId);
@@ -6249,11 +6368,7 @@ function worksOpenedBy(tech: TechId): ImprovementId[] {
  */
 const WORKS_MEMO = new WeakMap<ValueContext, Map<ImprovementId, number>>();
 function worksForecast(id: ImprovementId, ctx: ValueContext): number {
-  let held = WORKS_MEMO.get(ctx);
-  if (held === undefined) {
-    held = new Map<ImprovementId, number>();
-    WORKS_MEMO.set(ctx, held);
-  }
+  const held = onContext(WORKS_MEMO, ctx, () => new Map<ImprovementId, number>());
   const found = held.get(id);
   if (found !== undefined) return found;
   const perTown = improvementDef(id).onePerTown === true ? 1 : ctx.ai.score.scientific.worksPerTown;
@@ -6487,21 +6602,20 @@ interface OpenRow {
  */
 const OPEN_ROWS_MEMO = new WeakMap<ValueContext, readonly OpenRow[]>();
 function openRows(ctx: ValueContext): readonly OpenRow[] {
-  const found = OPEN_ROWS_MEMO.get(ctx);
-  if (found !== undefined) return found;
-  const rows: OpenRow[] = [];
-  const towns = citiesOf(ctx.state, ctx.playerId);
-  for (const id of BUILDING_IDS) {
-    if (isWonder(id)) continue;
-    let open = 0;
-    for (const city of towns) {
-      if (townHoldsBuilding(ctx.state, city, id)) continue;
-      if (buildError(ctx.state, ctx.playerId, 'building', id, city) === null) open += 1;
+  return onContext(OPEN_ROWS_MEMO, ctx, () => {
+    const rows: OpenRow[] = [];
+    const towns = citiesOf(ctx.state, ctx.playerId);
+    for (const id of BUILDING_IDS) {
+      if (isWonder(id)) continue;
+      let open = 0;
+      for (const city of towns) {
+        if (townHoldsBuilding(ctx.state, city, id)) continue;
+        if (buildError(ctx.state, ctx.playerId, 'building', id, city) === null) open += 1;
+      }
+      if (open > 0) rows.push({ id, towns: open, hammers: open * buildingProductionCost(id, ctx.state, ctx.playerId) });
     }
-    if (open > 0) rows.push({ id, towns: open, hammers: open * buildingProductionCost(id, ctx.state, ctx.playerId) });
-  }
-  OPEN_ROWS_MEMO.set(ctx, rows);
-  return rows;
+    return rows;
+  });
 }
 
 /**
@@ -6583,70 +6697,9 @@ function vsFewerTechsShare(ctx: ValueContext): number {
   return (behind / rivals.length) * ctx.ai.score.scientific.vsFewerTechs;
 }
 
-/**
- * **The rules of Scientific batches S1 to S9**, or `null` for a rule that is
- * not one of them. Each reads the board where it can and its knob in
- * `score.scientific` for the rest:
- *
- *   · `moveAfterAttack` and `blockades`: points of strength, priced as a
- *     strength line is;
- *   · `upgradeHeals` and `upgradeIgnoresResource`: points of strength a turn
- *     for each combat unit with an upgrade ahead of it;
- *   · `upgradeStrength` (batch DT14, The Nassau Reforms): the same count, times
- *     the strength one upgrade adds;
- *   · `opusBreach`: points for each met rival raising the Magnum Opus;
- *   · `opusEarly` and `closedBook`: a share of the bead race's worth, while no
- *     empire knows the technology that opens the Opus;
- *   · `prototypes`: points for each building or unit the current research
- *     opens;
- *   · `worksCountAs`: points for each great person's work beside the named
- *     work;
- *   · `everyWorkIsAcademy`: `everyWorkIsAcademyWorth`;
- *   · `secondCapital` (batch DT17, The Two Capitals): `secondCapitalWorth`.
- */
-function scientificRuleWorth(
-  effect: Extract<CardEffect, { kind: 'rule' }>,
-  ctx: ValueContext,
-): number | null {
-  const knobs = ctx.ai.score.scientific;
-  const strength = ctx.ai.weights.military * (1 + ctx.threat);
-  switch (effect.rule) {
-    case 'moveAfterAttack':
-      return knobs.moveAfterAttack * strength;
-    case 'blockades':
-      return knobs.blockades * strength;
-    case 'upgradeHeals':
-      return knobs.upgradeHeals * upgradeableUnits(ctx) * strength;
-    case 'upgradeIgnoresResource':
-      return knobs.upgradeIgnoresResource * upgradeableUnits(ctx) * strength;
-    case 'upgradeStrength':
-      return knobs.upgradeStrength * (effect.value ?? 0) * upgradeableUnits(ctx) * strength;
-    case 'opusBreach':
-      return knobs.opusBreach * rivalsRaisingOpus(ctx);
-    case 'opusEarly':
-      return knobs.opusEarly * raceWorthWhileShut(ctx);
-    case 'closedBook':
-      return knobs.closedBook * raceWorthWhileShut(ctx);
-    case 'prototypes':
-      return knobs.prototypes * rowsOfResearch(ctx);
-    case 'worksCountAs':
-      return knobs.worksCountAs * worksBeside(effect.improvement, ctx);
-    case 'everyWorkIsAcademy':
-      return everyWorkIsAcademyWorth(ctx);
-    case 'secondCapital':
-      return secondCapitalWorth(ctx);
-    default:
-      return null;
-  }
-}
-
 /** Does this scope name this capital test, directly or inside an `all` or an `any`? */
 function scopeNames(scope: CityScope | undefined, test: 'capital' | 'notCapital'): boolean {
-  if (scope === undefined) return false;
-  if (scope.test === 'all' || scope.test === 'any') {
-    return scope.of.some((inner) => scopeNames(inner, test));
-  }
-  return scope.test === test;
+  return scopeAsks(scope, (part) => part.test === test);
 }
 
 /**
@@ -6999,26 +7052,25 @@ function beakerSavingWorth(share: number, techs: readonly TechId[], ctx: ValueCo
  */
 const SOON_TECHS_MEMO = new WeakMap<ValueContext, readonly TechId[]>();
 function techsWithinHorizon(ctx: ValueContext): readonly TechId[] {
-  const held = SOON_TECHS_MEMO.get(ctx);
-  if (held !== undefined) return held;
-  const player = playerById(ctx.state, ctx.playerId);
-  const soon: TechId[] = [];
-  if (player !== undefined) {
-    const income = Math.max(0, ratesOf(ctx).sciencePerTurn ?? 0);
-    let budget = Math.max(0, player.sciencePool) + income * Math.max(1, ctx.ai.priorities.horizonTurns);
-    const shut = techsShutByCharter(player);
-    const open = ALL_TECH_IDS.filter((tech) => !player.techsResearched.includes(tech) && !shut.includes(tech));
-    // `sort` keeps table order between equal prices.
-    open.sort((a, b) => techCostFor(ctx, a) - techCostFor(ctx, b));
-    for (const tech of open) {
-      const cost = techCostFor(ctx, tech);
-      if (cost > budget) break;
-      budget -= cost;
-      soon.push(tech);
+  return onContext(SOON_TECHS_MEMO, ctx, () => {
+    const player = playerById(ctx.state, ctx.playerId);
+    const soon: TechId[] = [];
+    if (player !== undefined) {
+      const income = Math.max(0, ratesOf(ctx).sciencePerTurn ?? 0);
+      let budget = Math.max(0, player.sciencePool) + income * Math.max(1, ctx.ai.priorities.horizonTurns);
+      const shut = techsShutByCharter(player);
+      const open = ALL_TECH_IDS.filter((tech) => !player.techsResearched.includes(tech) && !shut.includes(tech));
+      // `sort` keeps table order between equal prices.
+      open.sort((a, b) => techCostFor(ctx, a) - techCostFor(ctx, b));
+      for (const tech of open) {
+        const cost = techCostFor(ctx, tech);
+        if (cost > budget) break;
+        budget -= cost;
+        soon.push(tech);
+      }
     }
-  }
-  SOON_TECHS_MEMO.set(ctx, soon);
-  return soon;
+    return soon;
+  });
 }
 
 /**
@@ -7443,32 +7495,6 @@ function heldBuildingWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: V
 }
 
 /**
- * **The rules of Expansionist batches E9 and E12 and of batch DT12**, or `null`
- * for a rule that is not one of them: The Two Harvests' `fieldsTended`, The Cura
- * Aquarum's `holdsBuilding`, The Wildwood Compact's `tendedWorksFree`, The Planted
- * Towns' `trainedSettlerCostsCitizen` and Arcadia's `tendedCountsImproved`.
- */
-function expansionistRuleWorth(
-  effect: Extract<CardEffect, { kind: 'rule' }>,
-  ctx: ValueContext,
-): number | null {
-  switch (effect.rule) {
-    case 'fieldsTended':
-      return fieldsTendedWorth(effect.improvements, ctx);
-    case 'holdsBuilding':
-      return heldBuildingWorth(effect, ctx);
-    case 'tendedWorksFree':
-      return tendedWorksFreeWorth(ctx);
-    case 'trainedSettlerCostsCitizen':
-      return settlerCitizenCost(ctx);
-    case 'tendedCountsImproved':
-      return tendedImprovedWorth(ctx);
-    default:
-      return null;
-  }
-}
-
-/**
  * **The mark a hex would take next**, or `null`: `markOnHex`'s walk of the
  * mark's chain (`HexMarkRule.then`, `cities.ts`), read and never written. The
  * first mark in the chain the hex does not carry yet, if its own condition
@@ -7506,11 +7532,7 @@ function nextMarkOn(tile: Tile, mark: HexMarkId, ground: GroundFacts, turn: numb
  */
 const MARK_BESIDE_MEMO = new WeakMap<ValueContext, Map<HexMarkId, number>>();
 function markBesideWorth(mark: HexMarkId, ctx: ValueContext): number {
-  let held = MARK_BESIDE_MEMO.get(ctx);
-  if (held === undefined) {
-    held = new Map<HexMarkId, number>();
-    MARK_BESIDE_MEMO.set(ctx, held);
-  }
+  const held = onContext(MARK_BESIDE_MEMO, ctx, () => new Map<HexMarkId, number>());
   const found = held.get(mark);
   if (found !== undefined) return found;
   const worth = readMarkBeside(mark, ctx);
@@ -7724,11 +7746,7 @@ function tilePurchaseFiringWorth(
   effect: Extract<CardEffect, { kind: 'windfallRider' }>,
   ctx: ValueContext,
 ): number {
-  let held = HEX_RIDER_MEMO.get(ctx);
-  if (held === undefined) {
-    held = new Map<CardEffect, number>();
-    HEX_RIDER_MEMO.set(ctx, held);
-  }
+  const held = onContext(HEX_RIDER_MEMO, ctx, () => new Map<CardEffect, number>());
   const found = held.get(effect);
   if (found !== undefined) return found;
   let worth = 0;
@@ -7821,39 +7839,6 @@ export function holdsHexPurchaseRider(ctx: ValueContext): boolean {
 }
 
 /**
- * **The rules of Commerce batches T3 to T6**, or `null` for a rule that is not
- * one of them (batch T9):
- *
- *   · The Return Leg (`homeRoutesPayOrigin`): `returnLegWorth`;
- *   · The Admiralty of Trade (`postsWaiveRouteRange`): `postRangeWorth`;
- *   · The Capitulations (`postsLendLuxuries`): `postLoansWorth`. An Order
- *     carrying it is read by the marginal reading instead (`foldReadEngine`);
- *   · Letters of Credit (`buysOnCredit`): `creditWorth`.
- */
-/**
- * **The Doctrine rules that refuse this seat something** (batch DT7). Three are
- * costs and print as negative worth. Canossa is the one that also protects.
- */
-function doctrineRuleWorth(
-  effect: Extract<CardEffect, { kind: 'rule' }>,
-  ctx: ValueContext,
-): number | null {
-  switch (effect.rule) {
-    // `0 - x` rather than `-x`, so a seat that loses nothing reads 0 and not -0.
-    case 'noForeignRoutes':
-      return 0 - foreignRoutesLost(ctx);
-    case 'noLuxuryLending':
-      return 0 - luxuryLoansLost(ctx);
-    case 'buysOnlyInScope':
-      return 0 - shutTreasuriesCost(effect, ctx);
-    case 'faithfulPeace':
-      return faithfulPeaceWorth(ctx);
-    default:
-      return null;
-  }
-}
-
-/**
  * **The Sea Ban and The Inward Roads**: what this seat's routes abroad pay it, read
  * through each route's own sender fold, because those routes run out. If the best
  * route the seat could send next also ends abroad, `score.commerce.foreignRouteOption`
@@ -7929,26 +7914,6 @@ function faithfulPeaceWorth(ctx: ValueContext): number {
   }
   const share = Math.max(0, ctx.ai.score.devotion.faithfulPeace);
   return bound * share * ctx.ai.weights.military * (1 + ctx.threat);
-}
-
-function commerceRuleWorth(
-  effect: Extract<CardEffect, { kind: 'rule' }>,
-  ctx: ValueContext,
-): number | null {
-  switch (effect.rule) {
-    case 'homeRoutesPayOrigin':
-      return returnLegWorth(ctx);
-    case 'postsWaiveRouteRange':
-      return postRangeWorth(ctx);
-    case 'postsLendLuxuries':
-      return postLoansWorth(ctx);
-    case 'buysOnCredit':
-      return creditWorth(effect.credit, ctx);
-    case 'routesCarrySurplus':
-      return surplusCarriedWorth(effect.percent ?? 0, ctx);
-    default:
-      return null;
-  }
 }
 
 /**
@@ -8510,33 +8475,32 @@ interface LevyOutlook {
 const LEVY_OUTLOOK_MEMO = new WeakMap<ValueContext, LevyOutlook>();
 
 export function levyOutlook(ctx: ValueContext): LevyOutlook {
-  const held = LEVY_OUTLOOK_MEMO.get(ctx);
-  if (held !== undefined) return held;
-  const rule = RULES.cities.levy;
-  let towns = 0;
-  for (const city of citiesOf(ctx.state, ctx.playerId)) {
-    if (city.puppet === true || city.population < rule.minPopulation) continue;
-    towns += 1;
-  }
-  const every = levyStandingWait(ctx.state, ctx.playerId);
-  const prior = (towns * Math.max(0, ctx.ai.score.citizenLevy.priorShare)) / every;
-  const record = playerById(ctx.state, ctx.playerId)?.citizensLevied ?? 0;
-  const rate = record > 0 ? smoothedRate(record, prior, ctx) : prior;
-  const granted = new Set<LevyUse>();
-  for (const { effect } of effectsOfKind(ctx.state, ctx.playerId, 'levy')) {
-    if (effect.use !== undefined) granted.add(effect.use);
-  }
-  const uses = LEVY_USES.filter((use) => granted.has(use));
-  const soldiers = uses.filter(raisesSoldier).length;
-  const outlook: LevyOutlook = {
-    rate,
-    why: `${record} levied so far, ${towns} town${towns === 1 ? '' : 's'} that may levy`,
-    uses,
-    soldierRate: uses.length === 0 ? 0 : (rate * soldiers) / uses.length,
-    towns,
-  };
-  LEVY_OUTLOOK_MEMO.set(ctx, outlook);
-  return outlook;
+  return onContext(LEVY_OUTLOOK_MEMO, ctx, () => {
+    const rule = RULES.cities.levy;
+    let towns = 0;
+    for (const city of citiesOf(ctx.state, ctx.playerId)) {
+      if (city.puppet === true || city.population < rule.minPopulation) continue;
+      towns += 1;
+    }
+    const every = levyStandingWait(ctx.state, ctx.playerId);
+    const prior = (towns * Math.max(0, ctx.ai.score.citizenLevy.priorShare)) / every;
+    const record = playerById(ctx.state, ctx.playerId)?.citizensLevied ?? 0;
+    const rate = record > 0 ? smoothedRate(record, prior, ctx) : prior;
+    const granted = new Set<LevyUse>();
+    for (const { effect } of effectsOfKind(ctx.state, ctx.playerId, 'levy')) {
+      if (effect.use !== undefined) granted.add(effect.use);
+    }
+    const uses = LEVY_USES.filter((use) => granted.has(use));
+    const soldiers = uses.filter(raisesSoldier).length;
+    const outlook: LevyOutlook = {
+      rate,
+      why: `${record} levied so far, ${towns} town${towns === 1 ? '' : 's'} that may levy`,
+      uses,
+      soldierRate: uses.length === 0 ? 0 : (rate * soldiers) / uses.length,
+      towns,
+    };
+    return outlook;
+  });
 }
 
 /** Does this use raise a soldier? The muster and the conscript do. */
@@ -8781,25 +8745,24 @@ const LEVY_RITE_MEMO = new WeakMap<ValueContext, LevyRitePlan | null>();
  * Remembered for the context, because each rite's price walks the empire's books.
  */
 export function bestLevyRite(ctx: ValueContext): LevyRitePlan | null {
-  const held = LEVY_RITE_MEMO.get(ctx);
-  if (held !== undefined) return held;
-  // One town's context, as the rite plan's `townScoped` builds it.
-  const here: ValueContext = { ...ctx, cities: 1 };
-  const towns = citiesOf(ctx.state, ctx.playerId);
-  let best: LevyRitePlan | null = null;
-  for (const choice of levyRiteChoices(ctx.state, ctx.playerId)) {
-    if (choice.blocked !== null) continue;
-    const worth = explainRite(choice.rite, here);
-    let free = 0;
-    for (const city of towns) {
-      if (ritesDisplacedBy(ctx.state, city, choice.rite).length === 0) free += 1;
+  return onContext(LEVY_RITE_MEMO, ctx, () => {
+    // One town's context, as the rite plan's `townScoped` builds it.
+    const here: ValueContext = { ...ctx, cities: 1 };
+    const towns = citiesOf(ctx.state, ctx.playerId);
+    let best: LevyRitePlan | null = null;
+    for (const choice of levyRiteChoices(ctx.state, ctx.playerId)) {
+      if (choice.blocked !== null) continue;
+      const worth = explainRite(choice.rite, here);
+      let free = 0;
+      for (const city of towns) {
+        if (ritesDisplacedBy(ctx.state, city, choice.rite).length === 0) free += 1;
+      }
+      if (best === null || worth.total * free > best.worth.total * best.towns) {
+        best = { rite: choice.rite, worth, towns: free };
+      }
     }
-    if (best === null || worth.total * free > best.worth.total * best.towns) {
-      best = { rite: choice.rite, worth, towns: free };
-    }
-  }
-  LEVY_RITE_MEMO.set(ctx, best);
-  return best;
+    return best;
+  });
 }
 
 /**
@@ -8991,11 +8954,7 @@ const LEVY_PIECE_MEMO = new WeakMap<ValueContext, Map<LevyUse, UnitTypeId | null
  * context, because it walks the roster through `buildError`.
  */
 function levyPieceFor(use: LevyUse, ctx: ValueContext): UnitTypeId | null {
-  let memo = LEVY_PIECE_MEMO.get(ctx);
-  if (memo === undefined) {
-    memo = new Map();
-    LEVY_PIECE_MEMO.set(ctx, memo);
-  }
+  const memo = onContext(LEVY_PIECE_MEMO, ctx, () => new Map());
   const known = memo.get(use);
   if (known !== undefined) return known;
   const piece =
@@ -9171,46 +9130,6 @@ function followsSeatFaith(ctx: ValueContext, city: City): boolean {
 }
 
 /**
- * **The rules of Devotion batches DV3 to DV8**, or `null` for a rule that is
- * not one of them (batch DV9). Each reads the board where it can and a knob in
- * `score.devotion` for the rest:
- *
- *   · `faithBuysBuildings` (The Gifts of the Faithful, The Lay Brothers, The
- *     Offered Stones): `faithShelfWorth`;
- *   · The Confessors (`followersShareSight`): `followerSightWorth`;
- *   · The Anchorites (`chargePrice`): `chargePriceWorth`;
- *   · The Abbeys (`apostlesPlantHolySites`): `abbeysWorth`;
- *   · The Interdict (`opusInterdict`): `opusInterdictWorth`;
- *   · The Turning of Swords (`faithfulKillsConvert`): `turningWorth`;
- *   · The Double Feast (`twoRites`): `secondRiteWorth`.
- */
-function devotionRuleWorth(
-  effect: Extract<CardEffect, { kind: 'rule' }>,
-  ctx: ValueContext,
-): number | null {
-  switch (effect.rule) {
-    case 'faithBuysBuildings':
-      return faithShelfWorth(effect, ctx);
-    case 'followersShareSight':
-      return followerSightWorth(ctx);
-    case 'chargePrice':
-      return chargePriceWorth(effect, ctx);
-    case 'apostlesPlantHolySites':
-      return abbeysWorth(ctx);
-    case 'opusInterdict':
-      return opusInterdictWorth(ctx);
-    case 'faithfulKillsConvert':
-      return turningWorth(ctx);
-    case 'twoRites':
-      return secondRiteWorth(ctx);
-    case 'followerBeliefsPayAbroad':
-      return followerLinesAbroadWorth(ctx);
-    default:
-      return null;
-  }
-}
-
-/**
  * **The Apostolic Camera** (batch DT15): the lines it would add today, from the same
  * list the empire's fold reads, so the price and the pay cannot disagree. The towns are
  * those the founder's share counts as `followingForeign`. A seat with no foreign
@@ -9284,11 +9203,7 @@ function devotionCountAhead(
  */
 const FAITH_SHELF_MEMO = new WeakMap<ValueContext, Map<CardEffect, number>>();
 function faithShelfWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueContext): number {
-  let held = FAITH_SHELF_MEMO.get(ctx);
-  if (held === undefined) {
-    held = new Map<CardEffect, number>();
-    FAITH_SHELF_MEMO.set(ctx, held);
-  }
+  const held = onContext(FAITH_SHELF_MEMO, ctx, () => new Map<CardEffect, number>());
   const found = held.get(effect);
   if (found !== undefined) return found;
   const worth = readFaithShelf(effect, ctx);
@@ -9381,11 +9296,7 @@ function faithRiderReaches(
   effect: Extract<CardEffect, { kind: 'purchaseRider' }>,
   ctx: ValueContext,
 ): boolean {
-  let held = FAITH_RIDER_MEMO.get(ctx);
-  if (held === undefined) {
-    held = new Map<CardEffect, boolean>();
-    FAITH_RIDER_MEMO.set(ctx, held);
-  }
+  const held = onContext(FAITH_RIDER_MEMO, ctx, () => new Map<CardEffect, boolean>());
   const found = held.get(effect);
   if (found !== undefined) return found;
   let reaches = false;
@@ -9883,25 +9794,26 @@ function foreignFollowerWorth(ctx: ValueContext): number {
  */
 const LINES_ABROAD_MEMO = new WeakMap<ValueContext, number>();
 function followerLinesInOneTown(ctx: ValueContext): number {
-  const held = LINES_ABROAD_MEMO.get(ctx);
-  if (held !== undefined) return held;
-  const rows: CardEffect[] = [];
-  for (const religion of heldReligions(ctx.state, ctx.playerId)) {
-    for (const id of religion.follower) {
-      if (!isBeliefId(id)) continue;
-      for (const effect of beliefDef(id).effects ?? []) {
-        if (effect.kind !== 'pays' || effect.where !== 'city' || effect.payee !== undefined) continue;
-        if (effect.to === 'food' || effect.to === 'production') continue;
-        const { food: _food, production: _production, ...banked } = effect;
-        void _food;
-        void _production;
-        rows.push(withoutFaith(banked));
+  return onContext(LINES_ABROAD_MEMO, ctx, () => {
+    // The voices an empire line cannot bank (food and production): a row paid in one
+    // is left out, and a row's bag loses them.
+    const unbanked = VOICES.filter((voice) => !VOICES_AN_EMPIRE_BANKS.includes(voice));
+    const rows: CardEffect[] = [];
+    for (const religion of heldReligions(ctx.state, ctx.playerId)) {
+      for (const id of religion.follower) {
+        if (!isBeliefId(id)) continue;
+        for (const effect of beliefDef(id).effects ?? []) {
+          if (!isLineAbroadRow(effect)) continue;
+          if (effect.to !== undefined && (unbanked as readonly string[]).includes(effect.to)) continue;
+          const banked = { ...effect };
+          for (const voice of unbanked) delete banked[voice];
+          rows.push(withoutFaith(banked));
+        }
       }
     }
-  }
-  const worth = rows.length === 0 ? 0 : explainEffects(rows, oneTownContext(ctx)).total;
-  LINES_ABROAD_MEMO.set(ctx, worth);
-  return worth;
+    const worth = rows.length === 0 ? 0 : explainEffects(rows, oneTownContext(ctx)).total;
+    return worth;
+  });
 }
 
 /**
@@ -9926,11 +9838,7 @@ function devoutTownWorth(ctx: ValueContext, population: number): number {
   const counted =
     explainCountStep('followingCities', 1, ctx).total +
     explainCountStep('followingPop', Math.max(1, Math.round(population)), ctx).total;
-  let held = DEVOUT_TOWN_MEMO.get(ctx);
-  if (held === undefined) {
-    held = readDevoutTown(ctx);
-    DEVOUT_TOWN_MEMO.set(ctx, held);
-  }
+  const held = onContext(DEVOUT_TOWN_MEMO, ctx, () => readDevoutTown(ctx));
   return counted + held;
 }
 
@@ -9962,11 +9870,7 @@ function withoutFaith(effect: CardEffect): CardEffect {
 
 /** Does this town scope ask for a town that follows the seat's religion? */
 function scopeAsksFaith(scope: CityScope | undefined): boolean {
-  if (scope === undefined) return false;
-  if (scope.test === 'follows') return true;
-  if (scope.test === 'ownersFaith') return scope.keeps === true;
-  if (scope.test === 'all' || scope.test === 'any') return scope.of.some(scopeAsksFaith);
-  return false;
+  return scopeAsks(scope, (part) => part.test === 'follows' || (part.test === 'ownersFaith' && part.keeps === true));
 }
 
 /**
@@ -10121,11 +10025,7 @@ function chargeFaith(ctx: ValueContext, marker: 'prophesies' | 'proclaims'): num
  */
 const BOOK_CHARGE_MEMO = new WeakMap<ValueContext, Map<ChargeVerbName, number>>();
 function bookChargeCost(ctx: ValueContext, verb: ChargeVerbName): number {
-  let held = BOOK_CHARGE_MEMO.get(ctx);
-  if (held === undefined) {
-    held = new Map<ChargeVerbName, number>();
-    BOOK_CHARGE_MEMO.set(ctx, held);
-  }
+  const held = onContext(BOOK_CHARGE_MEMO, ctx, () => new Map<ChargeVerbName, number>());
   const found = held.get(verb);
   if (found !== undefined) return found;
   const cost = readBookChargeCost(ctx, verb);
@@ -10254,32 +10154,31 @@ function guaranteedTownsWorth(
  */
 const DRAFT_PACE_MEMO = new WeakMap<ValueContext, { drafts: number; why: string }>();
 function draftsAhead(ctx: ValueContext): { drafts: number; why: string } {
-  const held = DRAFT_PACE_MEMO.get(ctx);
-  if (held !== undefined) return held;
-  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
-  const player = playerById(ctx.state, ctx.playerId);
-  let pace = { drafts: 0, why: 'no seat to draft for' };
-  if (player !== undefined) {
-    const income = Math.max(0, ratesOf(ctx).culturePerTurn ?? 0);
-    if (expectedHandBags(ctx.state, player).length === 0) {
-      pace = { drafts: 0, why: 'its decks have nothing left to deal' };
-    } else {
-      let budget = Math.max(0, player.culturePool) + income * horizon;
-      let drafts = 0;
-      while (drafts < horizon) {
-        const price = draftCostFor(ctx.state, player, player.statecraft.drafts + drafts);
-        if (price > budget) break;
-        budget -= Math.max(0, price);
-        drafts += 1;
+  return onContext(DRAFT_PACE_MEMO, ctx, () => {
+    const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+    const player = playerById(ctx.state, ctx.playerId);
+    let pace = { drafts: 0, why: 'no seat to draft for' };
+    if (player !== undefined) {
+      const income = Math.max(0, ratesOf(ctx).culturePerTurn ?? 0);
+      if (expectedHandBags(ctx.state, player).length === 0) {
+        pace = { drafts: 0, why: 'its decks have nothing left to deal' };
+      } else {
+        let budget = Math.max(0, player.culturePool) + income * horizon;
+        let drafts = 0;
+        while (drafts < horizon) {
+          const price = draftCostFor(ctx.state, player, player.statecraft.drafts + drafts);
+          if (price > budget) break;
+          budget -= Math.max(0, price);
+          drafts += 1;
+        }
+        pace = {
+          drafts,
+          why: `${round(income)} culture a turn and ${round(player.culturePool)} banked buy ${drafts} hands in ${horizon} turns`,
+        };
       }
-      pace = {
-        drafts,
-        why: `${round(income)} culture a turn and ${round(player.culturePool)} banked buy ${drafts} hands in ${horizon} turns`,
-      };
     }
-  }
-  DRAFT_PACE_MEMO.set(ctx, pace);
-  return pace;
+    return pace;
+  });
 }
 
 /** Hands a turn, over the horizon. See `draftsAhead`. */
@@ -10390,15 +10289,14 @@ function magisterialCountAhead(
  */
 const HAND_WORTH_MEMO = new WeakMap<ValueContext, number>();
 function handWorth(ctx: ValueContext): number {
-  const held = HAND_WORTH_MEMO.get(ctx);
-  if (held !== undefined) return held;
-  const player = playerById(ctx.state, ctx.playerId);
-  let worth = 0;
-  if (player !== undefined && expectedHandBags(ctx.state, player).length > 0) {
-    worth = explainLump({ culture: draftCostFor(ctx.state, player) }, ctx).total;
-  }
-  HAND_WORTH_MEMO.set(ctx, worth);
-  return worth;
+  return onContext(HAND_WORTH_MEMO, ctx, () => {
+    const player = playerById(ctx.state, ctx.playerId);
+    let worth = 0;
+    if (player !== undefined && expectedHandBags(ctx.state, player).length > 0) {
+      worth = explainLump({ culture: draftCostFor(ctx.state, player) }, ctx).total;
+    }
+    return worth;
+  });
 }
 
 /**
@@ -10658,15 +10556,14 @@ function handPriceForecast(ctx: ValueContext): number {
  */
 const PERSON_RATE_MEMO = new WeakMap<ValueContext, number>();
 function personRate(ctx: ValueContext): number {
-  const held = PERSON_RATE_MEMO.get(ctx);
-  if (held !== undefined) return held;
-  const player = playerById(ctx.state, ctx.playerId);
-  const rate =
-    player === undefined
-      ? 0
-      : Math.max(0, renownPerTurn(ctx.state, ctx.playerId)) / Math.max(1, renownThreshold(ctx.state, player));
-  PERSON_RATE_MEMO.set(ctx, rate);
-  return rate;
+  return onContext(PERSON_RATE_MEMO, ctx, () => {
+    const player = playerById(ctx.state, ctx.playerId);
+    const rate =
+      player === undefined
+        ? 0
+        : Math.max(0, renownPerTurn(ctx.state, ctx.playerId)) / Math.max(1, renownThreshold(ctx.state, player));
+    return rate;
+  });
 }
 
 /**
@@ -10697,11 +10594,7 @@ const GREAT_WORK: TileCondition = { test: 'greatWork' };
 const GROUND_MEMO = new WeakMap<ValueContext, GroundFacts>();
 function holdsWork(ctx: ValueContext, tile: Tile | undefined): boolean {
   if (tile === undefined) return false;
-  let ground = GROUND_MEMO.get(ctx);
-  if (ground === undefined) {
-    ground = groundFactsFor(ctx.state, ctx.playerId);
-    GROUND_MEMO.set(ctx, ground);
-  }
+  const ground = onContext(GROUND_MEMO, ctx, () => groundFactsFor(ctx.state, ctx.playerId));
   return tileConditionHolds(tile, GREAT_WORK, undefined, undefined, ctx.state.turn, ground);
 }
 
@@ -10736,11 +10629,7 @@ function workLaidShare(ctx: ValueContext): number {
  */
 const SIGHT_MEMO = new WeakMap<ValueContext, ReturnType<typeof yieldContextFor>>();
 function hexYieldWorth(ctx: ValueContext, tile: Tile): number {
-  let sight = SIGHT_MEMO.get(ctx);
-  if (sight === undefined) {
-    sight = yieldContextFor(ctx.state, ctx.playerId);
-    SIGHT_MEMO.set(ctx, sight);
-  }
+  const sight = onContext(SIGHT_MEMO, ctx, () => yieldContextFor(ctx.state, ctx.playerId));
   return valueOfYields(bagOfTileYield(foldTile(tile, sight)), ctx);
 }
 
@@ -10762,32 +10651,31 @@ export function claimedHexWorth(ctx: ValueContext, tile: Tile): number {
  */
 const CLAIM_BESIDE_MEMO = new WeakMap<ValueContext, number>();
 function claimBesideWorth(ctx: ValueContext): number {
-  const held = CLAIM_BESIDE_MEMO.get(ctx);
-  if (held !== undefined) return held;
-  const owner = tileOwnerField(ctx.state);
-  const map = ctx.state.map;
-  const centres = new Set<number>();
-  for (const city of ctx.state.cities) centres.add(tileIndex(map, city.col, city.row));
-  const known = new Map<number, number>();
-  let sites = 0;
-  let worth = 0;
-  for (let index = 0; index < map.tiles.length; index++) {
-    if (owner.at(index) !== ctx.playerId || centres.has(index)) continue;
-    sites += 1;
-    for (const next of tileNeighbors(map, map.tiles[index]!)) {
-      const at = tileIndex(map, next.col, next.row);
-      if (owner.at(at) !== null) continue;
-      let hex = known.get(at);
-      if (hex === undefined) {
-        hex = claimedHexWorth(ctx, next);
-        known.set(at, hex);
+  return onContext(CLAIM_BESIDE_MEMO, ctx, () => {
+    const owner = tileOwnerField(ctx.state);
+    const map = ctx.state.map;
+    const centres = new Set<number>();
+    for (const city of ctx.state.cities) centres.add(tileIndex(map, city.col, city.row));
+    const known = new Map<number, number>();
+    let sites = 0;
+    let worth = 0;
+    for (let index = 0; index < map.tiles.length; index++) {
+      if (owner.at(index) !== ctx.playerId || centres.has(index)) continue;
+      sites += 1;
+      for (const next of tileNeighbors(map, map.tiles[index]!)) {
+        const at = tileIndex(map, next.col, next.row);
+        if (owner.at(at) !== null) continue;
+        let hex = known.get(at);
+        if (hex === undefined) {
+          hex = claimedHexWorth(ctx, next);
+          known.set(at, hex);
+        }
+        worth += hex;
       }
-      worth += hex;
     }
-  }
-  const mean = sites === 0 ? 0 : worth / sites;
-  CLAIM_BESIDE_MEMO.set(ctx, mean);
-  return mean;
+    const mean = sites === 0 ? 0 : worth / sites;
+    return mean;
+  });
 }
 
 /**
@@ -11038,13 +10926,12 @@ function legacyAgain(id: string, ctx: ValueContext): number {
 /** The mean of `legacyAgain` over the names the roster deals. Remembered for the sitting. */
 const ROSTER_LEGACY_MEMO = new WeakMap<ValueContext, number>();
 function meanRosterLegacy(ctx: ValueContext): number {
-  const held = ROSTER_LEGACY_MEMO.get(ctx);
-  if (held !== undefined) return held;
-  let sum = 0;
-  for (const id of LIVE_GREAT_PERSON_IDS) sum += legacyAgain(id, ctx);
-  const mean = LIVE_GREAT_PERSON_IDS.length === 0 ? 0 : sum / LIVE_GREAT_PERSON_IDS.length;
-  ROSTER_LEGACY_MEMO.set(ctx, mean);
-  return mean;
+  return onContext(ROSTER_LEGACY_MEMO, ctx, () => {
+    let sum = 0;
+    for (const id of LIVE_GREAT_PERSON_IDS) sum += legacyAgain(id, ctx);
+    const mean = LIVE_GREAT_PERSON_IDS.length === 0 ? 0 : sum / LIVE_GREAT_PERSON_IDS.length;
+    return mean;
+  });
 }
 
 /**
@@ -11072,16 +10959,16 @@ function immortalsWorth(value: number, ctx: ValueContext): number {
 
 /**
  * **What one seated Order pays when its chair reads it again** (batch DT9, The
- * Arthashastra). The same kinds the walk leaves out, plus the yes-or-no rules,
- * which gain nothing, and an amplifier, which the older `slotPosition` arm also
- * leaves out so an engine pointed at an engine cannot recur.
+ * Arthashastra). The same kinds the walk leaves out (`CHAIR_READS_ONCE`, the
+ * evaluator's own list), plus the yes-or-no rules, which gain nothing, and an
+ * amplifier, which the older `slotPosition` arm also leaves out so an engine
+ * pointed at an engine cannot recur.
  */
 export function orderReadAgain(id: OrderId, ctx: ValueContext): number {
   const lines = orderDef(id).effects.filter(
     (effect) =>
       !YES_OR_NO_KINDS.includes(effect.kind) &&
-      effect.kind !== 'slotRider' &&
-      effect.kind !== 'slotPosition' &&
+      !CHAIR_READS_ONCE.includes(effect.kind) &&
       effect.kind !== 'cardYieldAmplifier',
   );
   return lines.length === 0 ? 0 : scoreEffects(lines, ctx, id);
@@ -11105,7 +10992,8 @@ function countedChairWorth(factor: number, ctx: ValueContext): number {
 /**
  * **The Serapeum** (`godsCountTwice`, batch DT9): each god the seat holds, read
  * `value − 1` more times, less its yes-or-no rules and the offers the walk reads
- * once. A god not yet held is not priced, so a seat with no god reads nothing.
+ * once (`GOD_READS_ONCE`, the evaluator's own list). A god not yet held is not
+ * priced, so a seat with no god reads nothing.
  */
 function godsAgainWorth(value: number, ctx: ValueContext): number {
   const extra = Math.max(0, Math.floor(value) - 1);
@@ -11116,7 +11004,7 @@ function godsAgainWorth(value: number, ctx: ValueContext): number {
     if (!isBeliefId(id)) continue;
     const lines = beliefDef(id).effects.filter(
       (effect) =>
-        !YES_OR_NO_KINDS.includes(effect.kind) && effect.kind !== 'periodicOffer' && effect.kind !== 'offerRider',
+        !YES_OR_NO_KINDS.includes(effect.kind) && !GOD_READS_ONCE.includes(effect.kind),
     );
     if (lines.length > 0) again += explainEffects(lines, ctx).total;
   }
@@ -11127,7 +11015,7 @@ function godsAgainWorth(value: number, ctx: ValueContext): number {
  * **The Union of Lublin** (`governmentsOfTier`, batch DT9): the other governments
  * of the seat's tier, read as cards of their own. Yes-or-no rules count here,
  * unlike a second reading, because the seat does not already have them. No chairs,
- * as the walk reads none.
+ * as the walk reads none (`GOVERNMENT_READ_NOT_AT_ALL`, the evaluator's own list).
  */
 function otherGovernmentsWorth(ctx: ValueContext): number {
   const sc = statecraftOf(ctx.state, ctx.playerId);
@@ -11135,7 +11023,7 @@ function otherGovernmentsWorth(ctx: ValueContext): number {
   let worth = 0;
   for (const id of governmentsAtTier(governmentDef(sc.government).tier)) {
     if (id === sc.government) continue;
-    const lines = governmentDef(id).effects.filter((effect) => effect.kind !== 'slotRider');
+    const lines = governmentDef(id).effects.filter((effect) => !GOVERNMENT_READ_NOT_AT_ALL.includes(effect.kind));
     if (lines.length > 0) worth += explainEffects(lines, ctx).total;
   }
   return worth;
@@ -11420,53 +11308,6 @@ function widerFitWorth(ctx: ValueContext): number {
 }
 
 /**
- * **The rules of Magisterial batches MG6 to MG16**, or `null` for a rule that
- * is not one of them (batch MG17):
- *
- *   · Officials by Merit's `noOrderReroll` costs this bot nothing: it rerolls
- *     only a free belief hand (`beliefRedeal`), never an Order hand;
- *   · The Envious Eye (`wonderHammersMoveOn`): `enviousEyeWorth`;
- *   · Magnificence (`cultureBuysWonders`): `magnificenceWorth`;
- *   · The Mixed Constitution (`cardsFitAnyChair`): `widerFitWorth`;
- *   · The Universal Genius (`actThenWork`): `actThenWorkWorth`;
- *   · The Pull of the Masters (`worksPullRivalHexes`): `pullWorth`;
- *   · Scutage (`collectionPays`): `scutageWorth`;
- *   · The Peregrini (`workCheapensPerson`): `workCheapensPersonWorth`.
- */
-function magisterialRuleWorth(
-  effect: Extract<CardEffect, { kind: 'rule' }>,
-  ctx: ValueContext,
-): number | null {
-  switch (effect.rule) {
-    case 'noOrderReroll':
-      return 0;
-    case 'wonderHammersMoveOn':
-      return enviousEyeWorth(ctx);
-    case 'cultureBuysWonders':
-      return magnificenceWorth(ctx);
-    case 'cardsFitAnyChair':
-      return widerFitWorth(ctx);
-    case 'actThenWork':
-      return actThenWorkWorth(ctx);
-    case 'worksPullRivalHexes':
-      return pullWorth(ctx);
-    // Batch DT10: the two Doctrines that change what an Order hand deals.
-    case 'thirdCardForeign':
-      return hospitiumWorth(ctx);
-    case 'rareWeight':
-      return jinshiWorth(effect, ctx);
-    // Batch DT11: Scutage's bench. Its lost chair is its `slotRider` row.
-    case 'collectionPays':
-      return scutageWorth(effect, ctx);
-    // Batch DT16: The Peregrini's discount. Its hex line is an ordinary `pays` row.
-    case 'workCheapensPerson':
-      return workCheapensPersonWorth(effect, ctx);
-    default:
-      return null;
-  }
-}
-
-/**
  * **What drafting an Order hands over**, for the three grants of Magisterial
  * batches MG6 and MG14, as a per-turn figure:
  *
@@ -11517,14 +11358,13 @@ function magisterialDraftGrantWorth(
 /** The mean card The Cabinet of Curiosities would draw. Remembered for the sitting. */
 const FOREIGN_CARD_MEMO = new WeakMap<ValueContext, number>();
 function foreignCardWorth(player: Player, ctx: ValueContext): number {
-  const held = FOREIGN_CARD_MEMO.get(ctx);
-  if (held !== undefined) return held;
-  let worth = 0;
-  for (const { id, chance } of rarityFirstOdds(foreignCardBag(ctx.state, player), 0)) {
-    worth += chance * explainCardEffects(id, orderDef(id).effects, ctx).total;
-  }
-  FOREIGN_CARD_MEMO.set(ctx, worth);
-  return worth;
+  return onContext(FOREIGN_CARD_MEMO, ctx, () => {
+    let worth = 0;
+    for (const { id, chance } of rarityFirstOdds(foreignCardBag(ctx.state, player), 0)) {
+      worth += chance * explainCardEffects(id, orderDef(id).effects, ctx).total;
+    }
+    return worth;
+  });
 }
 
 /**
@@ -11542,11 +11382,7 @@ function foreignCardWorth(player: Player, ctx: ValueContext): number {
  */
 const DOCTRINE_OFFER_MEMO = new WeakMap<ValueContext, { worth: number; options: number }>();
 function doctrineOfferWorth(ctx: ValueContext): { worth: number; options: number } {
-  const held = DOCTRINE_OFFER_MEMO.get(ctx);
-  if (held !== undefined) return held;
-  const offer = readDoctrineOffer(ctx);
-  DOCTRINE_OFFER_MEMO.set(ctx, offer);
-  return offer;
+  return onContext(DOCTRINE_OFFER_MEMO, ctx, () => readDoctrineOffer(ctx));
 }
 
 function readDoctrineOffer(ctx: ValueContext): { worth: number; options: number } {

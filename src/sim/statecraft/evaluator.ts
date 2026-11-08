@@ -1556,13 +1556,13 @@ function readAgain(
  * read an engine. The `whole` row's own arithmetic is here too, so a card cannot
  * ask for itself.
  */
-const CHAIR_READS_ONCE: readonly CardEffect['kind'][] = ['slotRider', 'slotPosition', 'metaRule'];
+export const CHAIR_READS_ONCE: readonly CardEffect['kind'][] = ['slotRider', 'slotPosition', 'metaRule'];
 
 /** What The Serapeum does not read again: it doubles a god's effects and not its offers. */
-const GOD_READS_ONCE: readonly CardEffect['kind'][] = ['periodicOffer', 'offerRider'];
+export const GOD_READS_ONCE: readonly CardEffect['kind'][] = ['periodicOffer', 'offerRider'];
 
 /** What The Union of Lublin leaves out of another government: it gives no chairs. */
-const GOVERNMENT_READ_NOT_AT_ALL: readonly CardEffect['kind'][] = ['slotRider'];
+export const GOVERNMENT_READ_NOT_AT_ALL: readonly CardEffect['kind'][] = ['slotRider'];
 
 /**
  * One empire condition, asked under the cut.
@@ -4995,7 +4995,16 @@ export function explainCardEmpireYields(
  * The voices an empire line can bank. `collectYields` has no empire basket for food
  * or production, so a foreign town's food or hammers could never reach the holder.
  */
-const VOICES_AN_EMPIRE_BANKS: readonly CityYieldKey[] = ['gold', 'science', 'culture', 'faith'];
+export const VOICES_AN_EMPIRE_BANKS: readonly CityYieldKey[] = ['gold', 'science', 'culture', 'faith'];
+
+/**
+ * Is this follower belief row one that The Apostolic Camera pays abroad? It must be a
+ * town `pays` row with no payee, so the town's owner is the one it pays. The bots ask
+ * the same test to price the card (`followerLinesInOneTown`, `value.ts`).
+ */
+export function isLineAbroadRow(effect: CardEffect): effect is Extract<CardEffect, { kind: 'pays' }> {
+  return effect.kind === 'pays' && effect.where === 'city' && effect.payee === undefined;
+}
 
 /**
  * **What this seat's follower beliefs pay in foreign towns** (batch DT15, S18, reading
@@ -5024,7 +5033,7 @@ export function explainFollowerLinesAbroad(state: GameState, playerId: number): 
     if (kept === null || !held.some((religion) => religion.id === kept)) continue;
     const lines: CardYieldLine[] = [];
     for (const { card, effect } of followerBeliefEffects(state, town)) {
-      if (effect.kind !== 'pays' || effect.where !== 'city' || effect.payee !== undefined) continue;
+      if (!isLineAbroadRow(effect)) continue;
       const paid: Partial<Record<CityYieldKey, number>> = {};
       if (basisOf(effect) === 'flat') {
         if (!cityScopeAdmits(state, town, effect.scope)) continue;
@@ -5196,6 +5205,35 @@ export function buildingMatchesYieldPercent(
   if (effect.wonder === true && !isWonder(id)) return false;
   if (effect.category !== undefined && buildingDef(id).category !== effect.category) return false;
   return effect.pays === undefined || buildingSupplies(state, city, id, effect.pays);
+}
+
+/**
+ * **Does any test in this town scope pass `leaf`?** The scope itself, or a part of an
+ * `all` or an `any`, at any depth. It is the one walk for the questions "does this
+ * scope name X" (batch K2), which the bots ask too. `leaf` is asked only of the tests
+ * that are not an `all` or an `any`.
+ *
+ * The two walks below go into `all` only, so they do not use it.
+ */
+export function scopeAsks(scope: CityScope | undefined, leaf: (test: CityScope) => boolean): boolean {
+  if (scope === undefined) return false;
+  if (scope.test === 'all' || scope.test === 'any') return scope.of.some((part) => scopeAsks(part, leaf));
+  return leaf(scope);
+}
+
+/**
+ * **Does any test in this hex test pass `leaf`?** `scopeAsks` for a `TileCondition`:
+ * the test itself, or a part of an `all` or an `any`, at any depth. A `beside` is a
+ * leaf, because it asks about the ring and not about this hex, so `leaf` decides
+ * whether to look inside it.
+ */
+export function tileConditionAsks(
+  on: TileCondition | undefined,
+  leaf: (test: TileCondition) => boolean,
+): boolean {
+  if (on === undefined) return false;
+  if (on.test === 'all' || on.test === 'any') return on.of.some((part) => tileConditionAsks(part, leaf));
+  return leaf(on);
 }
 
 /** Does this scope name **this** building — `hasBuilding` on it, alone or inside an `all`? */
@@ -6406,12 +6444,7 @@ function farmWaterField(
  * question — so it lands in the first pass whatever it holds.
  */
 export function tileConditionReadsFold(on: TileCondition | undefined): boolean {
-  if (on === undefined) return false;
-  if (on.test === 'yields') return true;
-  if (on.test === 'all' || on.test === 'any') {
-    return on.of.some((inner) => tileConditionReadsFold(inner));
-  }
-  return false;
+  return tileConditionAsks(on, (part) => part.test === 'yields');
 }
 
 /**
@@ -12496,16 +12529,12 @@ export function cardWorkDiscount(state: GameState, playerId: number): number {
  * `greatWork` itself, or for a composite holding it.
  */
 function testNamesWork(on: TileCondition): boolean {
-  if (on.test === 'greatWork') return true;
-  if (on.test === 'all' || on.test === 'any') return on.of.some(testNamesWork);
-  return false;
+  return tileConditionAsks(on, (part) => part.test === 'greatWork');
 }
 
 /** **Does this hex test hold or fail by what stands on the ring?** See below. */
 function testReadsWorkBeside(on: TileCondition): boolean {
-  if (on.test === 'beside') return testNamesWork(on.of);
-  if (on.test === 'all' || on.test === 'any') return on.of.some(testReadsWorkBeside);
-  return false;
+  return tileConditionAsks(on, (part) => part.test === 'beside' && testNamesWork(part.of));
 }
 
 /**

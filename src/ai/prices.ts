@@ -11,7 +11,8 @@
  * and a type import is erased at build, so `value.ts` can import this file with
  * no cycle. Its top-level statements are literals and `new WeakMap()` only, so
  * it loads in any order. The three memos are keyed on the `ValueContext`, so
- * each one lives for one seat's sitting.
+ * each one lives for one seat's sitting. `onContext`, the one get, compute and
+ * set of such a memo, is here too, so the other bot files can share it.
  */
 
 import type { AiConfig } from './aiConfig';
@@ -34,6 +35,37 @@ export type Voice = (typeof VOICES)[number];
 
 /** A bag of per-turn yields — a delta, a payout, a card's flats. */
 export type YieldBag = Partial<Record<Voice, number>>;
+
+// --- the memos on the context ---------------------------------------------
+
+/**
+ * **The one get, compute and set of a memo kept on the `ValueContext`** (batch K2).
+ *
+ * The lifetime is the sitting. A context is one seat's book for one decision, and
+ * every reading kept on it was read off the board as it stood when the context was
+ * built (`MARGIN_MEMO`, `value.ts`). A kept value would be wrong only if a caller
+ * kept the context past a change to the board, and an arm that needs a later board
+ * builds a new context. The `WeakMap` lets the value go with the context.
+ *
+ * The first ask runs `compute` and keeps what it returns; a later ask of the same
+ * context returns that value. So a memo must never hold `undefined`. A memo that
+ * keeps a guard value before it computes, to stop a recursion, does not use this
+ * (`faithPrice`, and `handRuleWorth` and `widerFitWorth` in `value.ts`).
+ *
+ * It lives in this file because `scopeReach.ts` and `value.ts` both import it, and
+ * it needs only the `ValueContext` type that this file already imports.
+ */
+export function onContext<T>(
+  memo: WeakMap<ValueContext, T>,
+  ctx: ValueContext,
+  compute: () => NoInfer<T>,
+): T {
+  const held = memo.get(ctx);
+  if (held !== undefined) return held;
+  const value = compute();
+  memo.set(ctx, value);
+  return value;
+}
 
 // --- the wager's lean --------------------------------------------------------
 
@@ -292,7 +324,7 @@ export function ageBand(row: readonly number[], age: TechAge): number {
  * for the two the book prices (`ValueContext.prices`).
  *
  * This is the single door touch point (a) of the priority spec walks through:
- * every fold below that used to read `yieldWeight` for a gold or a faith term
+ * every fold in `value.ts` that used to read `yieldWeight` for a gold or a faith term
  * reads this instead, so a coin costs and pays the same number everywhere in
  * the bot, and that number is the empire's own rather than the table's.
  *
@@ -453,7 +485,7 @@ export function hammerPrice(ctx: ValueContext, city?: City): number {
  * makes rather than merely spending it: a **building** whose hypothetical yield
  * delta pays hammers (`buildCandidates`, `bot.ts`), an **improvement** on a hex
  * (`improvementEntry`, `plan.ts` — the mine and the workshop's ground), a
- * **card** that pays production (`explainEffects`, below), and the **citizen
+ * **card** that pays production (`explainEffects`, `value.ts`), and the **citizen
  * focus** arm (`focusCommand`, `bot.ts`). A new production-raising candidate
  * joins that list here, deliberately.
  *
@@ -572,34 +604,33 @@ export function hammerTerm(
  */
 const SCIENCE_PRICE_MEMO = new WeakMap<ValueContext, number>();
 export function sciencePrice(ctx: ValueContext): number {
-  const held = SCIENCE_PRICE_MEMO.get(ctx);
-  if (held !== undefined) return held;
-  const rate = Math.max(1, ctx.scienceRate);
-  let premium = 0;
-  for (const chain of ctx.chains) {
-    const owed = chain.remainingBeakers;
-    if (owed <= 0) continue;
-    const drop = owed / rate - owed / (rate + 1);
-    if (drop <= 0) continue;
-    for (const step of chain.steps) {
-      // Floored at nought: `delayDiscount` has no ceiling, so a negative delay
-      // would answer more than one and pay a step for arriving before it was
-      // wanted. The floor cannot bind while the rate is at least one (the drop
-      // is half the research delay at worst), and it is written down rather than
-      // argued away.
-      const sooner =
-        delayDiscount(Math.max(0, step.delay - drop), ctx) - delayDiscount(step.delay, ctx);
-      if (sooner <= 0) continue;
-      premium += step.rate * sooner;
+  return onContext(SCIENCE_PRICE_MEMO, ctx, () => {
+    const rate = Math.max(1, ctx.scienceRate);
+    let premium = 0;
+    for (const chain of ctx.chains) {
+      const owed = chain.remainingBeakers;
+      if (owed <= 0) continue;
+      const drop = owed / rate - owed / (rate + 1);
+      if (drop <= 0) continue;
+      for (const step of chain.steps) {
+        // Floored at nought: `delayDiscount` has no ceiling, so a negative delay
+        // would answer more than one and pay a step for arriving before it was
+        // wanted. The floor cannot bind while the rate is at least one (the drop
+        // is half the research delay at worst), and it is written down rather than
+        // argued away.
+        const sooner =
+          delayDiscount(Math.max(0, step.delay - drop), ctx) - delayDiscount(step.delay, ctx);
+        if (sooner <= 0) continue;
+        premium += step.rate * sooner;
+      }
     }
-  }
-  const table = yieldWeight(ctx.ai, 'science', ctx.age);
-  const price = Math.min(
-    table * ctx.ai.priorities.priceBandHigh,
-    table + Math.max(0, premium),
-  );
-  SCIENCE_PRICE_MEMO.set(ctx, price);
-  return price;
+    const table = yieldWeight(ctx.ai, 'science', ctx.age);
+    const price = Math.min(
+      table * ctx.ai.priorities.priceBandHigh,
+      table + Math.max(0, premium),
+    );
+    return price;
+  });
 }
 
 /**
@@ -703,7 +734,7 @@ export function faithPrice(ctx: ValueContext): number {
  * **A row that opens a trade route, priced as the route it opens** — the harder
  * half of batch 8's first ruling, and `hammerTerm`'s sibling: a term built here
  * off a reading built in `routes.ts` (see the type-only import at the head of
- * this file for why the two halves live apart).
+ * `value.ts` for why the two halves live apart).
  *
  * Folded by `explainBuildingRow`, so every surface that appraises a building —
  * the queue, the purchasing plan, a chain's step — carries it in the same words.
@@ -1083,7 +1114,7 @@ export function costOfUpkeep(gold: number, ctx: ValueContext): number {
 /**
  * **The empire's own per-turn books**, remembered for the life of the context.
  *
- * `foldEmpireRates` prices every town, and half a dozen of the arms above want
+ * `foldEmpireRates` prices every town, and half a dozen of the arms in `value.ts` want
  * one voice of it — so it is asked once per sitting, which is the context's
  * standing bargain said once more (batch 6). Deliberately the **base** reading,
  * before any conversion pays anything, because that is what the evaluator hands
@@ -1092,10 +1123,5 @@ export function costOfUpkeep(gold: number, ctx: ValueContext): number {
  */
 const RATES_MEMO = new WeakMap<ValueContext, EmpireRates>();
 export function ratesOf(ctx: ValueContext): EmpireRates {
-  let held = RATES_MEMO.get(ctx);
-  if (held === undefined) {
-    held = readEmpireRates(ctx.state, ctx.playerId);
-    RATES_MEMO.set(ctx, held);
-  }
-  return held;
+  return onContext(RATES_MEMO, ctx, () => readEmpireRates(ctx.state, ctx.playerId));
 }

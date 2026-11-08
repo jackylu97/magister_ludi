@@ -4069,7 +4069,7 @@ describe('a unitStat is read by which stat it is (batch X8)', () => {
  * is about.
  *
  * The bench is arranged for one reason: the focus arm's cheap half has to clear
- * its own gate before the growth clock is asked at all (`foldOf(terms) <= 0`
+ * its own gate before the growth clock is asked at all (`foldTerms(terms) <= 0`
  * returns early), and on the shipped weight table a bushel outweighs a hammer,
  * so a town with nothing waiting on its hammers never reaches the term. The
  * sheet installed here is the arena's own dial (`withAiTuning`) turned to a

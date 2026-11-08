@@ -15,7 +15,7 @@
  */
 
 import { round } from './decision';
-import { type Voice, type YieldBag, VOICES, delayDiscount, voiceWeight } from './prices';
+import { type Voice, type YieldBag, VOICES, delayDiscount, onContext, voiceWeight } from './prices';
 import type { ValueContext } from './value';
 
 import { type BuildingId, buildingDef } from '../sim/buildingData';
@@ -31,6 +31,8 @@ import {
   explainBuildingPackage,
   foldBuildingPackage,
   groundFactsFor,
+  scopeAsks,
+  tileConditionAsks,
   tileConditionHolds,
   tileConditionReadsFold,
   townHoldsBuilding,
@@ -67,7 +69,7 @@ function townHoldingOn(copies: Map<number, City>, city: City, id: BuildingId): C
 /**
  * **What one sitting has already worked out about a scope.**
  *
- * `MARGIN_MEMO`'s bargain exactly (see it): keyed weakly on the `ValueContext`,
+ * `MARGIN_MEMO`'s bargain exactly (see it in `value.ts`): keyed weakly on the `ValueContext`,
  * which is one seat's book for one decision, and inside that on **the scope
  * object itself** — a `CityScope` in a data row is parsed once at load and every
  * appraisal of that row hands the same object back, so identity is the row's own
@@ -86,12 +88,7 @@ function townHoldingOn(copies: Map<number, City>, city: City, id: BuildingId): C
 const SCOPE_MEMO = new WeakMap<ValueContext, Map<object, number>>();
 
 function scopeMemo(ctx: ValueContext): Map<object, number> {
-  let held = SCOPE_MEMO.get(ctx);
-  if (held === undefined) {
-    held = new Map<object, number>();
-    SCOPE_MEMO.set(ctx, held);
-  }
-  return held;
+  return onContext(SCOPE_MEMO, ctx, () => new Map<object, number>());
 }
 
 /**
@@ -112,10 +109,7 @@ function scopeMemo(ctx: ValueContext): Map<object, number> {
  * for. Recursive, because a composite may hold one.
  */
 function scopePromisesABuilding(scope?: CityScope): boolean {
-  if (scope === undefined) return false;
-  if (scope.test === 'hasBuilding' || scope.test === 'hasBuildingYielding') return true;
-  if (scope.test === 'all' || scope.test === 'any') return scope.of.some(scopePromisesABuilding);
-  return false;
+  return scopeAsks(scope, (part) => part.test === 'hasBuilding' || part.test === 'hasBuildingYielding');
 }
 
 /**
@@ -124,7 +118,7 @@ function scopePromisesABuilding(scope?: CityScope): boolean {
  * Batch X1e, the user's ruling of 2026-09-09 (`docs/flags.md` item (ggg)):
  * *"does the bot ever price the potential of a card? +1 science on libraries is
  * good even if you don't have libraries built yet"*. Every building-scoped arm
- * in this file walked `city.buildings`, so a card that boosts libraries was
+ * in `value.ts` walked `city.buildings`, so a card that boosts libraries was
  * worth nothing at all to an empire two turns from raising three of them, and
  * the bot passed the card that its own research plan was making good.
  *
@@ -166,35 +160,34 @@ const PROMISE_MEMO = new WeakMap<ValueContext, PromisedBuilding[]>();
  * two identical boards build identical lists (rule 2).
  */
 function promisedBuildings(ctx: ValueContext): readonly PromisedBuilding[] {
-  const memoised = PROMISE_MEMO.get(ctx);
-  if (memoised !== undefined) return memoised;
-  const towns = new Map<number, City>();
-  for (const city of citiesOf(ctx.state, ctx.playerId)) towns.set(city.id, city);
-  const rows: PromisedBuilding[] = [];
-  const seen = new Map<string, PromisedBuilding>();
-  for (const chain of ctx.chains) {
-    for (const step of chain.steps) {
-      if (step.kind !== 'building') continue;
-      const id = step.id as BuildingId;
-      for (const copy of step.copies) {
-        const city = towns.get(copy.cityId);
-        if (city === undefined || townHoldsBuilding(ctx.state, city, id)) continue;
-        const discount = delayDiscount(copy.delay, ctx);
-        if (discount <= 0) continue;
-        const key = `${copy.cityId}:${id}`;
-        const held = seen.get(key);
-        if (held === undefined) {
-          const row: PromisedBuilding = { city, id, discount };
-          seen.set(key, row);
-          rows.push(row);
-        } else if (discount > held.discount) {
-          held.discount = discount;
+  return onContext(PROMISE_MEMO, ctx, () => {
+    const towns = new Map<number, City>();
+    for (const city of citiesOf(ctx.state, ctx.playerId)) towns.set(city.id, city);
+    const rows: PromisedBuilding[] = [];
+    const seen = new Map<string, PromisedBuilding>();
+    for (const chain of ctx.chains) {
+      for (const step of chain.steps) {
+        if (step.kind !== 'building') continue;
+        const id = step.id as BuildingId;
+        for (const copy of step.copies) {
+          const city = towns.get(copy.cityId);
+          if (city === undefined || townHoldsBuilding(ctx.state, city, id)) continue;
+          const discount = delayDiscount(copy.delay, ctx);
+          if (discount <= 0) continue;
+          const key = `${copy.cityId}:${id}`;
+          const held = seen.get(key);
+          if (held === undefined) {
+            const row: PromisedBuilding = { city, id, discount };
+            seen.set(key, row);
+            rows.push(row);
+          } else if (discount > held.discount) {
+            held.discount = discount;
+          }
         }
       }
     }
-  }
-  PROMISE_MEMO.set(ctx, rows);
-  return rows;
+    return rows;
+  });
 }
 
 /**
@@ -223,7 +216,8 @@ function promisedRowsFor(ctx: ValueContext, scope?: CityScope): PromisedBuilding
 
 /**
  * **What the shelves a chain still owes would add to a `buildingYieldPercent`
- * clause** — the sweep above said about the copies, each at its own discount.
+ * clause** — the sweep in `scoreEffect`'s `buildingYieldPercent` arm (`value.ts`)
+ * said about the copies, each at its own discount.
  *
  * Written as its own fold rather than as a second pass inside that sweep because
  * the two questions are different: one is *what does this empire hold*, which is
@@ -310,13 +304,10 @@ export function townsAdmitting(ctx: ValueContext, scope?: CityScope): number {
  */
 const ONE_TOWN_SHARE_MEMO = new WeakMap<ValueContext, number>();
 export function oneTownShare(ctx: ValueContext): number {
-  let share = ONE_TOWN_SHARE_MEMO.get(ctx);
-  if (share === undefined) {
+  return onContext(ONE_TOWN_SHARE_MEMO, ctx, () => {
     const real = citiesOf(ctx.state, ctx.playerId).length;
-    share = real <= ctx.cities || real === 0 ? 1 : ctx.cities / real;
-    ONE_TOWN_SHARE_MEMO.set(ctx, share);
-  }
-  return share;
+    return real <= ctx.cities || real === 0 ? 1 : ctx.cities / real;
+  });
 }
 
 /** `townsAdmitting`'s count over the whole realm, whatever the context is priced for. */
@@ -543,11 +534,7 @@ const WHOLE_SHARE_MEMO = new WeakMap<ValueContext, Map<CardPaysEffect, YieldBag>
 export function wholeShareOf(ctx: ValueContext, effect: CardPaysEffect): YieldBag {
   const percent = effect.wholePercent ?? 0;
   if (percent === 0) return {};
-  let memo = WHOLE_SHARE_MEMO.get(ctx);
-  if (memo === undefined) {
-    memo = new Map();
-    WHOLE_SHARE_MEMO.set(ctx, memo);
-  }
+  const memo = onContext(WHOLE_SHARE_MEMO, ctx, () => new Map());
   const held = memo.get(effect);
   if (held !== undefined) return held;
   const ground = groundOfHexLine(ctx, effect);
@@ -589,11 +576,7 @@ export function hexPercentShareOf(ctx: ValueContext, effect: CardPaysEffect): Yi
   const works = effect.percent ?? 0;
   const base = effect.basePercent ?? 0;
   if ((works === 0 && base === 0) || effect.on === undefined) return {};
-  let memo = HEX_PERCENT_MEMO.get(ctx);
-  if (memo === undefined) {
-    memo = new Map();
-    HEX_PERCENT_MEMO.set(ctx, memo);
-  }
+  const memo = onContext(HEX_PERCENT_MEMO, ctx, () => new Map());
   const held = memo.get(effect);
   if (held !== undefined) return held;
   const ground = groundOfHexLine(ctx, effect);
@@ -654,10 +637,7 @@ function withoutWholeShares(
 
 /** Does a hex condition ask whether a fortified unit stands on the hex? */
 function asksAboutGarrisons(on: TileCondition | undefined): boolean {
-  if (on === undefined) return false;
-  if (on.test === 'fortifiedUnit') return true;
-  if (on.test === 'all' || on.test === 'any') return on.of.some(asksAboutGarrisons);
-  return false;
+  return tileConditionAsks(on, (part) => part.test === 'fortifiedUnit');
 }
 
 /**

@@ -94,6 +94,10 @@ export {
   cardExtraChairs,
   chairReadingsAt,
   offTheChairRows,
+  // Batch K2: what a second reading leaves out, for the bots' prices.
+  CHAIR_READS_ONCE,
+  GOD_READS_ONCE,
+  GOVERNMENT_READ_NOT_AT_ALL,
   cardAmplifierFlat,
   cardYieldsOnlyAmplifier,
   cardAuthority,
@@ -201,6 +205,9 @@ export {
   explainCardCityYields,
   explainCardEmpireYields,
   explainFollowerLinesAbroad,
+  // Batch K2: The Apostolic Camera's row test and the voices an empire banks.
+  isLineAbroadRow,
+  VOICES_AN_EMPIRE_BANKS,
   explainCardPercentYields,
   cardEmpireIncomeShares,
   // Expansionist batch E3: the board's answers for the tile tests a tile cannot
@@ -242,6 +249,9 @@ export {
   slottedOrdersOfFlavour,
   tileConditionHolds,
   tileConditionReadsFold,
+  // Batch K2: the one walk for "does this scope or hex test name X".
+  scopeAsks,
+  tileConditionAsks,
   timedCityTileLines,
   timedEffectIsLive,
   timedTurnsLeft,
@@ -366,6 +376,7 @@ export {
   offerSize,
   chairIndexAtPosition,
   ghostCouncilUnderDoctrine,
+  ghostSeatUnderDoctrine,
   orderAtSlotPosition,
   orderChoiceError,
   orderFitsSlotFor,

@@ -453,3 +453,19 @@ Six repeats in the sim are merged. 82 lines fewer, and `test/fixtures/cardText.j
 The `statecraft.ts` index lost `cardCityCostDelta`, `cardCityCostDiscount`, `cardCityCostPercent`, `cardCityCostValue` and `cardBeliefPoolSlots`, and gained `cardCityCostRows`. A comment in `statecraftData.ts` said that `poolSlotsFor` reads the holder of the holy city. It reads the seat that founded the religion, as DT19c ruled (reading 37), and the comment now says so.
 
 Checks at the gate: type check clean, 11,093 core tests passed, build clean. Both pins match at all six turns. `test/sim/aiDigest.slow.test.ts` passes on both boards.
+
+### K2
+
+Eight repeats in the bot are merged. 93 lines fewer.
+
+1. **One switch for the rule prices.** `ruleWorth(effect, ctx)` in `value.ts` holds one exhaustive `switch` over all 96 `CardFlagRuleId` values. It replaces the six deck functions that returned `number | null` and the Dominion `if` chain. The 44 rules that take the stand-in are named cases, so a new rule fails the type check until it has a price. A script compared every case's return with the old one: 96 labels, none repeated, no difference. The three `aiAppraisal.test.ts` tests that read `scoreEffect`'s case labels read the same 52 labels as before.
+2. **The Doctrine ghost seat.** `ghostSeatUnderDoctrine(player, id, turn)` in `draft.ts` builds the ghost that `deckPair` (`value.ts`) and `ghostPair` (`cardImpact.ts`) each built by hand. The Order cases stay apart on purpose.
+3. **The lists the bot copied.** The evaluator exports `CHAIR_READS_ONCE`, `GOD_READS_ONCE`, `GOVERNMENT_READ_NOT_AT_ALL`, `VOICES_AN_EMPIRE_BANKS` and a new row test, `isLineAbroadRow`. The bot reads them instead of its own copies. The sets were the same before the change.
+4. **The walks that ask "does this test name X".** Two evaluator helpers, `scopeAsks` and `tileConditionAsks`, serve seven walks. The walks that also go into `beside`, or into `all` only, stay as they were.
+5. **The context memos.** `onContext(memo, ctx, compute)` in `prices.ts` states the lifetime (one sitting) once. 35 of the 38 memos use it. The three that keep a guard value before they compute (`faithPrice`, `handRuleWorth`, `widerFitWorth`) stay hand-written.
+6. **`foldOf`** is gone; its 34 calls name `foldTerms`.
+7. **Docblocks.** The Commerce rules' docblock now heads their cases in the switch. Seven docblocks that moved in S1 and S2 now name `value.ts` where the code they mean is.
+
+The `statecraft.ts` index gained eight names and lost none. The build has two fewer warnings.
+
+Checks at the gate: type check clean, 11,093 core tests passed, build clean. Both pins match at all six turns. `test/sim/aiDigest.slow.test.ts` passes on both boards.

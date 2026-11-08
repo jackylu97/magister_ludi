@@ -1877,9 +1877,9 @@ function focusTable(
   // The growth charge and the starvation guard both price the town through
   // `foldCity`, which walks the empire for the two meters; the cheap half above
   // decides whether they are worth asking at all, and a lean the ground has
-  // already lost cannot be saved by a charge against it. `foldOf` of a prefix is
+  // already lost cannot be saved by a charge against it. `foldTerms` of a prefix is
   // the same fold — the terms below only ever subtract.
-  if (foldOf(terms) <= 0) {
+  if (foldTerms(terms) <= 0) {
     return {
       best: 'default',
       candidates: [
@@ -1890,7 +1890,7 @@ function focusTable(
         // baseline at nought.
         {
           label: 'work the hammers',
-          score: foldOf(terms),
+          score: foldTerms(terms),
           chosen: false,
           terms,
         },
@@ -1915,7 +1915,7 @@ function focusTable(
   if (growth !== null) terms.push(growth);
   const lean: BotCandidate = {
     label: 'work the hammers',
-    score: foldOf(terms),
+    score: foldTerms(terms),
     chosen: false,
     terms,
   };
@@ -1943,7 +1943,7 @@ function focusTable(
       value: 0,
       op: 'mul',
     });
-    lean.score = foldOf(lean.terms);
+    lean.score = foldTerms(lean.terms);
   }
   // The guard `assignCitizens` would apply: a focused sheet that starves the
   // town is put back, so a focus that would starve it buys nothing at all.
@@ -1959,7 +1959,7 @@ function focusTable(
       value: 0,
       op: 'mul',
     });
-    lean.score = foldOf(lean.terms);
+    lean.score = foldTerms(lean.terms);
   }
   const plain: BotCandidate = {
     label: 'the balanced ordering',
@@ -2471,7 +2471,7 @@ function slottingDecision(
         continue;
       }
       const terms = slotPairTerms(player, ctx, ownedId, slot, type, fits.get(type) ?? 1);
-      const score = foldOf(terms);
+      const score = foldTerms(terms);
       rows.push({ label, score, chosen: false, terms });
       if (best === null || score > best.score) {
         best = { cardId: ownedId, slot, row: rows.length - 1, score };
@@ -2618,7 +2618,7 @@ function reslotDecision(
       continue;
     }
     const sittingTerms = slotPairTerms(player, ctx, seated.card, slot, type, fits.get(type) ?? 1);
-    const sittingScore = foldOf(sittingTerms);
+    const sittingScore = foldTerms(sittingTerms);
     rows.push({
       label: `${cardName(seated.card)} keeps slot ${slot + 1} (${SLOT_WORDS[type]})`,
       score: sittingScore,
@@ -2632,7 +2632,7 @@ function reslotDecision(
       if (isSlotted(sc, ownedId)) continue;
       if (!fitHere(ownedId, type)) continue;
       const terms = slotPairTerms(player, ctx, ownedId, slot, type, fits.get(type) ?? 1);
-      const score = foldOf(terms);
+      const score = foldTerms(terms);
       rows.push({
         label: `${cardName(ownedId)} takes slot ${slot + 1} from ${cardName(seated.card)}`,
         score,
@@ -2693,12 +2693,12 @@ function moveToCountedChair(
     const seated = sc.slots[from];
     if (!seated || unslotOrderError(state, player.id, from) !== null) continue;
     if (!chairFitWithout(state, player.id, from)(seated.card, type)) continue;
-    const here = foldOf(slotPairTerms(player, ctx, seated.card, from, layout[from]!, fits.get(layout[from]!) ?? 1));
+    const here = foldTerms(slotPairTerms(player, ctx, seated.card, from, layout[from]!, fits.get(layout[from]!) ?? 1));
     const terms = slotPairTerms(player, ctx, seated.card, chair, type, fits.get(type) ?? 1);
-    const gain = foldOf(terms) - here;
+    const gain = foldTerms(terms) - here;
     rows.push({
       label: `${cardName(seated.card)} moves from slot ${from + 1} to slot ${chair + 1}, which counts twice`,
-      score: foldOf(terms),
+      score: foldTerms(terms),
       chosen: false,
       terms,
     });
@@ -2814,9 +2814,9 @@ function adoptionTable(
     }
     const terms: ValueTerm[] = [
       nest('the charter’s own signature', explainCard(player, id, ctx)),
-      { label: `what its ${layout.length} slot(s) would pay`, value: foldOf(slotTerms), parts: slotTerms },
+      { label: `what its ${layout.length} slot(s) would pay`, value: foldTerms(slotTerms), parts: slotTerms },
     ];
-    const score = foldOf(terms);
+    const score = foldTerms(terms);
     candidates.push({ label: cardName(id), score, chosen: false, terms });
     if (score > bestScore) {
       bestScore = score;
@@ -3151,7 +3151,7 @@ function skipCandidate(state: GameState, player: Player, ctx: ValueContext): Bot
         delayTerm(delay, ctx, 'the meter has to fill again'),
       ];
   for (const term of riders.terms) terms.push(term);
-  return { label: 'pass the hand', score: foldOf(terms), chosen: false, terms };
+  return { label: 'pass the hand', score: foldTerms(terms), chosen: false, terms };
 }
 
 /**
@@ -4472,7 +4472,7 @@ function techGoalTable(
       // that sentence is a division when the number is below zero. The term is
       // printed either way, so a reader of the feed sees which of the two it was
       // and why.
-      const negative = foldOf(terms) < 0;
+      const negative = foldTerms(terms) < 0;
       terms.push(
         negative
           ? {
@@ -4489,7 +4489,7 @@ function techGoalTable(
     }
     const candidate: BotCandidate = {
       label: techDef(id).name,
-      score: foldOf(terms),
+      score: foldTerms(terms),
       chosen: false,
       terms,
     };
@@ -5039,7 +5039,7 @@ function contributionCommand(
         nest(`what pouring ${offer.hammers} hammers into ${offer.name} buys`, hurry),
         { label: `÷ ${Math.max(1, offer.spend)} ${currency}`, value: Math.max(1, offer.spend), op: 'div' },
       ];
-      const candidate: BotCandidate = { label, score: foldOf(terms), chosen: false, terms };
+      const candidate: BotCandidate = { label, score: foldTerms(terms), chosen: false, terms };
       candidates.push(candidate);
       if (bar !== null && candidate.score < worthPerCoin(bar)) {
         candidate.rejected = `holding beats it: ${bar.label}`;
@@ -5766,7 +5766,7 @@ function buildCandidates(
     // list, which is the null half of the acceptance.
     const race = raceTerm(ctx, { kind: 'building', id });
     if (race !== null) terms.push(race);
-    const value = foldOf(terms);
+    const value = foldTerms(terms);
     push(candidates, state, city, standing, { kind: 'building', id }, value, buildingUpkeep(id), ctx, terms);
   }
 
@@ -5785,7 +5785,7 @@ function buildCandidates(
     // the bead race exactly as a bead-paying building is, through the same door.
     const race = raceTerm(ctx, { kind: 'project', id });
     if (race !== null) terms.push(race);
-    push(candidates, state, city, standing, { kind: 'project', id }, foldOf(terms), 0, ctx, terms);
+    push(candidates, state, city, standing, { kind: 'project', id }, foldTerms(terms), 0, ctx, terms);
   }
   return candidates;
 }
@@ -5954,7 +5954,7 @@ function unitRoleValue(
         ? [nest('one more town, with nowhere yet legal to put it', explainNextTown(state, player, ctx))]
         : [expansionShareTerm(chain)];
     if (citizen !== null) terms.push(nest('the citizen it costs this town', citizen, 'sub'));
-    return { value: foldOf(terms), terms };
+    return { value: foldTerms(terms), terms };
   }
 
   if (isPlainBuilder(def)) {
@@ -6039,7 +6039,7 @@ function unitRoleValue(
         op: 'sub',
       });
     }
-    return { value: foldOf(terms), terms };
+    return { value: foldTerms(terms), terms };
   }
 
   if (isCombatant(def)) {
@@ -6120,7 +6120,7 @@ function unitRoleValue(
     // step — the same term the settler itself folds, in the same words.
     const escort = escortChainTerm(ctx);
     if (escort !== null) terms.push(escort);
-    return { value: foldOf(terms), terms };
+    return { value: foldTerms(terms), terms };
   }
 
   // A great person is never built (`greatWork` is refused by `buildError`), and
@@ -6918,7 +6918,7 @@ function marchToSite(
   // candidate over (2026-09-05): a sum regrouped is a different number, and this
   // bot's rule is that a score IS the fold of its terms.
   const hereTerms: ValueTerm[] = [townTerm(townWorth), ...(here?.terms ?? [])];
-  const hereScore = foldOf(hereTerms);
+  const hereScore = foldTerms(hereTerms);
   const bar = legalHere ? hereScore * ctx.ai.priorities.switchMargin : -Infinity;
   const stride = Math.max(1, unitDef(unit.type).movement);
   const from = tileHex(getTileAt(state.map, unit.col, unit.row) ?? state.map.tiles[0]!);
@@ -6944,7 +6944,7 @@ function marchToSite(
     // (`decision.ts`' first rule). `(townWorth + appraisal.total) × walk` is the
     // same sum regrouped, which is a different floating-point number — the drift
     // the slow tier's fold audit caught on 2026-09-05.
-    const score = foldOf(scored);
+    const score = foldTerms(scored);
     if (score <= bar) continue;
     if (escorted === null) {
       const danger = nearestHostile(state, player, tile.col, tile.row, ai.war.escortRadius);
@@ -7172,7 +7172,7 @@ function civilianFlight(state: GameState, player: Player, unit: Unit): UnitChoic
       { label: `${entry.distance} hexes to the nearest town of ours`, value: entry.distance },
       { label: `(${why})`, value: 0 },
     ];
-    tried.push({ label, score: foldOf(terms), chosen: true, terms });
+    tried.push({ label, score: foldTerms(terms), chosen: true, terms });
     return {
       command: {
         type: 'moveUnit',
@@ -7486,7 +7486,7 @@ export function explainSiteValue(
   const terms: ValueTerm[] = [
     {
       label: `the hexes a town here would work inside the horizon (${worked.length} of ${ranked.length + 1})`,
-      value: foldOf(worked),
+      value: foldTerms(worked),
       parts: worked,
     },
   ];
@@ -7995,7 +7995,7 @@ function favourableBlow(
     }
     const exchange: BotCandidate = {
       label,
-      score: foldOf(terms),
+      score: foldTerms(terms),
       chosen: false,
       terms,
     };
@@ -8036,7 +8036,7 @@ function favourableBlow(
         value: ai.military.rangedDeferral,
         op: 'sub',
       });
-      exchange.score = foldOf(terms);
+      exchange.score = foldTerms(terms);
       tried.push(exchange);
       continue;
     }
@@ -8048,7 +8048,7 @@ function favourableBlow(
     const caution = decisive ? null : woundedVeteranHolds(player, unit, preview);
     if (caution !== null) {
       terms.push({ label: caution, value: ai.military.rangedDeferral, op: 'sub' });
-      exchange.score = foldOf(terms);
+      exchange.score = foldTerms(terms);
       tried.push(exchange);
       continue;
     }
@@ -8201,7 +8201,7 @@ function restAndHeal(state: GameState, player: Player, unit: Unit): UnitChoice |
     summary:
       `Too hurt to be swinging: ${unit.hp} of ${maxHp} hit points, on ground this empire holds, ` +
       'and no blow in front of it would finish anything. Digs in and mends.',
-    candidates: [{ label: 'dig in and mend', score: foldOf(terms), chosen: true, terms }],
+    candidates: [{ label: 'dig in and mend', score: foldTerms(terms), chosen: true, terms }],
   };
 }
 
@@ -8277,7 +8277,7 @@ function fallBackAndHeal(state: GameState, player: Player, unit: Unit): UnitTarg
       },
       { label: `${entry.distance} hexes back to ${entry.city.name}`, value: entry.distance, op: 'sub' },
     ];
-    tried.push({ label, score: foldOf(terms), chosen: true, terms });
+    tried.push({ label, score: foldTerms(terms), chosen: true, terms });
     return {
       at: goal,
       summary:
@@ -8372,7 +8372,7 @@ function screenMarch(state: GameState, player: Player, unit: Unit): UnitTarget |
         value: away * ai.military.screenExposure,
       },
     ];
-    const score = foldOf(terms);
+    const score = foldTerms(terms);
     tried.push({ label, score, chosen: false, terms });
     // Strictly greater, so the hex it is already standing on wins every tie —
     // a bowman that shuffled between two equal hexes for ever would be a seat
@@ -8674,7 +8674,7 @@ function campaignMarch(
         { label: `${distance} hexes to the walls of ${plan.target.name}`, value: distance },
         { label: `(${muster} — pushing)`, value: 0 },
       ];
-      tried.push({ label, score: foldOf(terms), chosen: true, terms });
+      tried.push({ label, score: foldTerms(terms), chosen: true, terms });
       return {
         at: { col: goal.col, row: goal.row },
         summary:
@@ -8706,7 +8706,7 @@ function campaignMarch(
       { label: `${distance} hexes to the muster at (${plan.muster.col},${plan.muster.row})`, value: distance },
       { label: `(${muster} — gathering)`, value: 0 },
     ];
-    tried.push({ label, score: foldOf(terms), chosen: true, terms });
+    tried.push({ label, score: foldTerms(terms), chosen: true, terms });
     return {
       at: { col: goal.col, row: goal.row },
       summary:
@@ -9550,11 +9550,6 @@ function itemName(item: QueueItem): string {
 /** A piece, named the way a spectator would point at it. */
 function unitLabel(unit: Unit): string {
   return `${unitDef(unit.type).name} ${unit.id}`;
-}
-
-/** `foldTerms`, under the name the arithmetic reads best as. */
-function foldOf(terms: readonly ValueTerm[]): number {
-  return foldTerms(terms);
 }
 
 // --- small readings ---------------------------------------------------------

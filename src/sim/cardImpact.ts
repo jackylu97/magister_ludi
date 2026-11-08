@@ -139,7 +139,6 @@ import {
   chairFitFor,
   councilRefit,
   describeEffects,
-  ghostCouncilUnderDoctrine,
   occasionWords,
   holdsOrder,
   reseatCouncil,
@@ -147,6 +146,9 @@ import {
   slotTypesOf,
   stripRefs,
 } from './statecraft';
+// Straight from its layer rather than through the `statecraft.ts` index: through
+// the index, the build warns of a circular import between chunks.
+import { ghostSeatUnderDoctrine } from './statecraft/draft';
 import { CITY_YIELD_KEYS, type CityYieldKey } from './resourceData';
 import { type GreatPersonId, greatPersonDef } from './greatPeopleData';
 import { type MeterId, authorityOf, happinessOf } from './meters';
@@ -392,34 +394,11 @@ function ghostPair(
       return forward({ ...player, statecraft: { ...sc, orders, slots } });
     }
     case 'doctrine': {
-      // A Doctrine that opens a chair opens it at once (batch DT9), so each ghost
-      // has the chairs the command would leave. The Arthashastra's stamp must not
-      // claim to double the card in today's last Wildcard chair.
-      if (sc.doctrines.includes(subject.id)) {
-        const { slots, malices } = ghostCouncilUnderDoctrine(player, subject.id, false);
-        return backward({
-          ...player,
-          malices,
-          statecraft: {
-            ...sc,
-            doctrines: sc.doctrines.filter((id) => id !== subject.id),
-            slots,
-          },
-        });
-      }
-      // Stamped with this turn, as taking it would be (batch DT1), so a "from now
-      // on" rule does not read the towns already founded.
-      const { slots, malices } = ghostCouncilUnderDoctrine(player, subject.id, true);
-      return forward({
-        ...player,
-        malices,
-        statecraft: {
-          ...sc,
-          doctrines: [...sc.doctrines, subject.id],
-          doctrineTurns: { ...sc.doctrineTurns, [subject.id]: state.turn },
-          slots,
-        },
-      });
+      // The ghost the bots price a Doctrine on too (`ghostSeatUnderDoctrine`). Its
+      // chairs are the ones the command would leave, so The Arthashastra's stamp
+      // does not claim to double the card in today's last Wildcard chair.
+      const ghost = ghostSeatUnderDoctrine(player, subject.id, state.turn);
+      return ghost.side === 'with' ? forward(ghost.seat) : backward(ghost.seat);
     }
     case 'government': {
       // **The re-seating is the adoption** (`adoptGovernmentAt`, batch C2): the
