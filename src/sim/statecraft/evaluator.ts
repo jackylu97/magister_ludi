@@ -12089,6 +12089,8 @@ export function cardShoreRaids(state: GameState, unit: Unit): number {
   return times;
 }
 
+// --- the Opus siege and interdict -------------------------------------------
+
 /** The besieger that stops a town's Magnum Opus, and the card its line names. */
 export interface OpusSiege {
   /** The empire whose law holds the `opusSiege` rule. */
@@ -12206,6 +12208,8 @@ function combatUnitBeside(state: GameState, playerId: number, centre: Tile): boo
   return false;
 }
 
+// --- the one-to-a-realm building limit --------------------------------------
+
 /**
  * **May this empire raise this building in more than one town?** Caravanserai
  * Cities' one question (batch C7, `ActionRuleId`'s `buildsEverywhere`).
@@ -12270,6 +12274,8 @@ export function cardLimitLifts(state: GameState, playerId: number, building: Bui
   }
   return lifts;
 }
+
+// --- behaviour rules and refusals -------------------------------------------
 
 /**
  * Does this empire hold a card declaring this behaviour rule?
@@ -12420,6 +12426,8 @@ export function cardUpgradeStrength(state: GameState, unit: Unit): number {
   return strength;
 }
 
+// --- soldiers who turn sides by faith ---------------------------------------
+
 /**
  * **The town that owns this hex, when it follows a religion this empire is
  * paid by**, or `null`.
@@ -12476,6 +12484,8 @@ export function stampSidesTurned(state: GameState, playerId: number, card: CardI
   else stamps.push({ card, turn: state.turn });
 }
 
+// --- rule figures -----------------------------------------------------------
+
 /**
  * **The figures of the live rows of one rule** (Scientific batch S9): each
  * row's `percent`, `turns`, `credit` or `value`, in walk order, for the rows
@@ -12512,6 +12522,8 @@ export function cardRareWeight(state: GameState, playerId: number): number {
   for (const figure of ruleFigures(state, playerId, 'rareWeight', 'percent')) total += figure;
   return total;
 }
+
+// --- great-person works -----------------------------------------------------
 
 /**
  * **How much cheaper laying a work makes this empire's next great person, as a
@@ -12556,6 +12568,8 @@ export function cardHexLinesReadWorksBeside(state: GameState, playerId: number):
   return false;
 }
 
+// --- the Opus and research rules --------------------------------------------
+
 /**
  * **The share of the Opus's technology this empire must bank before it may
  * begin the Opus**, or `null` when its law holds no `opusEarly` row (Scientific
@@ -12599,6 +12613,8 @@ export function cardClosedBookTurns(state: GameState, playerId: number): number 
   const turns = ruleFigures(state, playerId, 'closedBook', 'turns');
   return turns.length === 0 ? null : Math.max(0, Math.floor(Math.max(...turns)));
 }
+
+// --- the gold a purchase may spend ------------------------------------------
 
 /**
  * **The lowest treasury a purchase with gold may leave this empire** (Commerce
@@ -12676,6 +12692,8 @@ export function cardBeadOccasions(
   return minted;
 }
 
+// --- draft offers -----------------------------------------------------------
+
 /** Does this empire hold a card declaring this offer rule? */
 export function cardOfferRule(state: GameState, playerId: number, rule: OfferRuleId): boolean {
   for (const { effect } of effectsOfKind(state, playerId, 'offerRider')) {
@@ -12706,6 +12724,8 @@ export function cardOfferFamily(state: GameState, playerId: number): Family | un
   }
   return undefined;
 }
+
+// --- purchase riders --------------------------------------------------------
 
 /**
  * One line of what a card takes off a purchase price. See `CardPurchaseRiderEffect`.
@@ -12795,6 +12815,8 @@ export function cardPurchaseRiders(
   }
   return list;
 }
+
+// --- buildings and works a card opens ---------------------------------------
 
 /**
  * How many extra belief slots this empire's cards open — Stonehenge's one, and
@@ -12924,6 +12946,8 @@ export function worksBeyondReach(state: GameState, playerId: number, works: 'ten
   return reach;
 }
 
+// --- what the whole collection holds ----------------------------------------
+
 /**
  * Does this seat hold a charter that opens a **tended work**? The draft gate
  * for the Expansionist cards marked "Needs tended land"
@@ -12986,6 +13010,8 @@ export function holdsLevyGrant(state: GameState, playerId: number): boolean {
   return false;
 }
 
+// --- buildings a town's faith or scope opens --------------------------------
+
 /**
  * Does the faith **this town keeps** open this building row?
  *
@@ -13035,6 +13061,8 @@ export function cardScopeOpensBuilding(
     cityScopeAdmits(state, city, scope, playerId),
   );
 }
+
+// --- verbs and units a card opens -------------------------------------------
 
 /**
  * Does one of this empire's cards hand over this **verb**? The Muses' Call's
@@ -13108,6 +13136,8 @@ export function cardUnlocksUnit(state: GameState, playerId: number, unit: UnitTy
   }
   return false;
 }
+
+// --- belief slots and religious pressure ------------------------------------
 
 /**
  * **How many more beliefs this empire's law lets it hold**: the `amount` of the
@@ -13256,6 +13286,8 @@ export function cardPressureSources(state: GameState, playerId: number): CardPre
   return out;
 }
 
+// --- zone of control --------------------------------------------------------
+
 export function cardBorderZoc(state: GameState, playerId: number): boolean {
   return cardRuleHolds(state, playerId, 'borders');
 }
@@ -13304,6 +13336,8 @@ export function cardProjectPays(
   }
   return bag;
 }
+
+// --- renown -----------------------------------------------------------------
 
 /** One card's standing renown, as `explainRenown` prints it. See `cardRenownLines`. */
 export interface CardRenownLine {
@@ -13534,6 +13568,8 @@ export function cardEmpireRenownShares(
   }
   return list;
 }
+
+// --- routes -----------------------------------------------------------------
 
 /**
  * Every route `pays` line this empire's cards put **on a caravan** that left this
@@ -13852,6 +13888,8 @@ function routeScopeNote(effect: {
   return notes.length === 0 ? null : notes.join(' + ');
 }
 
+// --- amplifiers -------------------------------------------------------------
+
 /**
  * What an amplifier does to somebody else's number, as a whole signed percent.
  *
@@ -13915,6 +13953,8 @@ export function cardYieldsOnlyAmplifier(
   return percent;
 }
 
+// --- chairs -----------------------------------------------------------------
+
 /**
  * **How many chairs this empire's law adds to what its government lays out**:
  * The King's Friends' one, or Scutage's minus one (`CardSlotRiderEffect`).
@@ -13957,6 +13997,8 @@ export function chairReadingsAt(state: GameState, playerId: number, chair: numbe
   }
   return times;
 }
+
+// --- amplifiers that add a flat step ----------------------------------------
 
 /**
  * The **flat step** an amplifier puts on somebody else's number, summed.
@@ -14037,6 +14079,8 @@ export function cardDepositWorkCopies(
   }
   return extra;
 }
+
+// --- founding a city --------------------------------------------------------
 
 /** What a newly founded city of this empire is founded with. */
 export interface FoundingRider {
@@ -14153,6 +14197,8 @@ function escortAt(
   }
   return null;
 }
+
+// --- rules of Statecraft itself ---------------------------------------------
 
 /**
  * **How many times this card's turn effect happens** (Dominion batch D7,

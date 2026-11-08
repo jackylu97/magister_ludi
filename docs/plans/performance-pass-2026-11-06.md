@@ -469,3 +469,12 @@ Eight repeats in the bot are merged. 93 lines fewer.
 The `statecraft.ts` index gained eight names and lost none. The build has two fewer warnings.
 
 Checks at the gate: type check clean, 11,093 core tests passed, build clean. Both pins match at all six turns. `test/sim/aiDigest.slow.test.ts` passes on both boards.
+
+### S6
+
+The evaluator's tail has 23 new section headings, so each run of readers sits under the seam that asks it: the Opus siege and interdict, the one-to-a-realm limit, behaviour rules and refusals, soldiers who turn sides by faith, rule figures, great-person works, the Opus and research rules, the gold a purchase may spend, draft offers, purchase riders, buildings and works a card opens, what the whole collection holds, buildings a town's faith or scope opens, verbs and units a card opens, belief slots and religious pressure, zone of control, renown, routes, amplifiers, chairs, flat-step amplifiers, founding a city, and the rules of Statecraft itself. "What a town holds" now covers only a town's buildings.
+
+- No function moved, and no code line or docblock changed: the diff adds 23 heading lines and 23 blank lines and removes nothing.
+- Left for a later move: seven single readers that sit under another seam's heading (`cardShoreRaids`, `cardChargePrice`, `cardSurplusCarrier`, `cardUpgradeStrength`, `cardRareWeight`, `cardBeadOccasions`, `cardProjectPays`), the chairs pair that splits the amplifiers in two, and five docblocks that sit away from their functions (`cardPantheonSlots`, `cardBorderZoc`, `cardRenownLines`, `cardUnlocksUnit`, `cardRouteYieldLines`).
+
+Checks at the gate: type check clean, 11,093 core tests passed, build clean. Comments only, so the pins were not run.
