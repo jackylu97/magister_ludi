@@ -154,8 +154,9 @@ const fitsAnyChair: ChairFit = () => true;
  * asks about many cards and chairs reads the law once. Every reader of a
  * seat's chairs asks this: the slot refusal (`slotOrderError`), the
  * re-seating (`adoptGovernmentAt`, `councilRefit`), the council screen, the
- * bots (`bot.ts`, `value.ts`) and the card stamp (`cardImpact.ts`). The flair
- * gallery's sample cards have no seat behind them, so it asks the plain rule.
+ * bots (`src/ai/council.ts`, `value.ts`) and the card stamp (`cardImpact.ts`).
+ * The flair gallery's sample cards have no seat behind them, so it asks the
+ * plain rule.
  */
 export function chairFitFor(state: GameState, playerId: number): ChairFit {
   return cardActionRule(state, playerId, 'cardsFitAnyChair') ? fitsAnyChair : orderFitsSlot;
@@ -190,8 +191,8 @@ function withSlots(
  * in that chair next is held to. It is `chairFitFor` unless the card in that
  * chair is the one that widens the fit. Emptying a chair never widens the fit,
  * so the law is read a second time only while the fit is wide. The bots' swap
- * (`reslotDecision`, `bot.ts`) asks it, and so does the council screen's
- * staging (`councilDiff`), to take that card out last.
+ * (`reslotDecision`, `src/ai/council.ts`) asks it, and so does the council
+ * screen's staging (`councilDiff`), to take that card out last.
  */
 export function chairFitWithout(state: GameState, playerId: number, slotIndex: number): ChairFit {
   const fit = chairFitFor(state, playerId);

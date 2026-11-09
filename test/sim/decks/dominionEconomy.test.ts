@@ -25,7 +25,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { scoreCard, valueContext } from '../../../src/ai/bot';
+import { valueContext } from '../../../src/ai/bot';
+import { scoreCard } from '../../../src/ai/council';
 import { musterCamps } from '../../../src/sim/barbarians';
 import { WONDER_IDS } from '../../../src/sim/buildingData';
 import {

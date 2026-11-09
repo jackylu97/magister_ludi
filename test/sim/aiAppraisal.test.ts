@@ -62,13 +62,13 @@ import { describe, expect, it } from 'vitest';
 
 import {
   bestTechGoal,
-  explainCard,
   explainCitizen,
   explainSiteValue,
   isPatientRow,
   nextBotDecision,
   valueContext,
 } from '../../src/ai/bot';
+import { explainCard } from '../../src/ai/council';
 import { withAiTuning } from '../../src/ai/aiConfig';
 import { incumbentGoal, liveChains, techChain } from '../../src/ai/chain';
 import { citizenKeepTerm } from '../../src/ai/citizen';

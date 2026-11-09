@@ -23,7 +23,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { nextBotDecision, scoreCard, valueContext } from '../../src/ai/bot';
+import { nextBotDecision, valueContext } from '../../src/ai/bot';
+import { scoreCard } from '../../src/ai/council';
 import { type ValueTerm } from '../../src/ai/decision';
 import {
   type ValueContext,

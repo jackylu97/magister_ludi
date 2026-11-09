@@ -474,7 +474,8 @@ describe('the price of a hand, read in one place', () => {
       ['ui/empireDrawer.ts', 'nextDraftCost(state, player)'],
       ['ui/statecraftScreen.ts', 'nextDraftCost(state, player)'],
       ['ai/wants.ts', 'nextDraftCost(state, player)'],
-      ['ai/bot.ts', 'draftCostFor(state, player, sc.drafts + 1)'],
+      // The pass candidate (`skipCandidate`) moved to `council.ts` in batch S5.
+      ['ai/council.ts', 'draftCostFor(state, player, sc.drafts + 1)'],
       ['ai/value.ts', 'draftCostFor(ctx.state, player, player.statecraft.drafts + 1)'],
     ] as const) {
       expect(code(SOURCES[`../../../src/${file}`]!), file).toContain(call);

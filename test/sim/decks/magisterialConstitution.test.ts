@@ -555,9 +555,12 @@ describe('the register of chair writers', () => {
     expect(screen).toContain('stagedFit(state, seat, arrangement)');
     expect(screen).toContain('councilDiff(state, seat, arrangement)');
     expect(screen).not.toMatch(/\bdiff\(/);
-    const bot = code(SOURCES['../../../src/ai/bot.ts']!);
-    expect(bot.match(/chairFitFor\(state, player\.id\)/g)).toHaveLength(3);
-    expect(bot).toContain('chairFitWithout(state, player.id, slot)');
+    // The bots' slotting, swap and adoption arms moved from `bot.ts` to
+    // `council.ts` in batch S5, and these four reads moved with them.
+    const council = code(SOURCES['../../../src/ai/council.ts']!);
+    expect(council.match(/chairFitFor\(state, player\.id\)/g)).toHaveLength(3);
+    expect(code(SOURCES['../../../src/ai/bot.ts']!)).not.toMatch(/chairFitFor\(state, player\.id\)/);
+    expect(council).toContain('chairFitWithout(state, player.id, slot)');
     expect(code(SOURCES['../../../src/ai/value.ts']!)).toContain('chairFor(sc, id, chairFitFor(state, playerId))');
     const impact = code(SOURCES['../../../src/sim/cardImpact.ts']!);
     expect(impact).toContain('const fit = chairFitFor(state, player.id);');

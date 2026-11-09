@@ -12,7 +12,8 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { scoreCard, valueContext } from '../../../src/ai/bot';
+import { valueContext } from '../../../src/ai/bot';
+import { scoreCard } from '../../../src/ai/council';
 import { scoreEffects } from '../../../src/ai/value';
 import { arriveOnTile } from '../../../src/sim/arrival';
 import { cityBlockaded } from '../../../src/sim/blockade';

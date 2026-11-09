@@ -498,3 +498,18 @@ The council left `src/sim/statecraft/draft.ts` for a new file, `src/sim/statecra
 - `CLAUDE.md` (Layout, and the cards trap) and `docs/README.md` now name four files. The user approved the `CLAUDE.md` change with the batch.
 
 Checks at the gate: type check clean, 11,094 core tests passed, build clean with the same 158 cycle warnings, both pins unchanged at all six turns, digest test passed.
+
+### S0 and S5
+
+**S0.** A new core test, `test/sim/aiModuleCycles.test.ts`, does for `src/ai` what `moduleCycles.test.ts` does for the sim. It globs `src/ai/*.ts`, and for each module it resets the module registry, loads that module first, and then plays the first turn of two bot seats on a duel board with barbarians (`driveBots`, seed 4242). All 21 modules passed before S5, so no load-order fault was found. The file takes about 3 s on one fork, so it joined the core tier as it is.
+
+**S5.** The bot's council and offer decisions left `src/ai/bot.ts` for a new file, `src/ai/council.ts`, and the naming helpers left it for `src/ai/decision.ts`.
+
+- To `council.ts` (19): `slottingDecision`, `slotPairTerms`, `reslotDecision`, `moveToCountedChair`, `sealedThisTurn`, `adoptionTable`, `orderDecision`, `skipCandidate`, `doctrineDecision`, `beliefDecision`, `beliefRedeal`, `redealBag`, `discoveryDecision`, `pickCard`, `scoreCard`, `explainCard`, `cardName`, `decksOf`, `heldInDecks`.
+- To `decision.ts` (7): `rankTerms`, `chosenAt`, `refused`, `unweighed`, `townSubject`, `itemName`, `unitLabel`. (`foldOf` was already gone, in K2.) `decision.ts` still imports nothing from `src/ai`.
+- A statement compare against `68a7f084` finds every statement of the old `bot.ts` and `decision.ts` in the three files, with no code or docblock changed.
+- `bot.ts` went from 9,618 to 8,631 lines. `council.ts` has 1,014 and `decision.ts` 300.
+- The one new function-level cycle: `council.ts` calls `seatContext` in `bot.ts`, and `valueContext` in `bot.ts` calls `explainCard`. Both calls are inside functions, and S0's test loads each file first.
+- Registers that point at the new file and assert the same facts: `aiBot.test.ts` (the file list), `magisterialConstitution.test.ts` (the bot's chair-fit reads, now also checking that `bot.ts` has none), `aiWants.test.ts` (the one file that asks `'rerollOffer'`), `magisterialDraft.test.ts` (the pass candidate's price), and `spectatePage.test.ts` (one more banned import). 13 test files import `scoreCard` or `explainCard` from the new file.
+
+Checks at the gate: type check clean, 11,117 core tests passed (23 of them S0's), build clean with the same 158 cycle warnings, both pins unchanged at all six turns, digest test passed.

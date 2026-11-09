@@ -25,7 +25,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { explainCard, scoreCard, valueContext } from '../../../src/ai/bot';
+import { valueContext } from '../../../src/ai/bot';
+import { explainCard, scoreCard } from '../../../src/ai/council';
 import { foundCityAt, raiseFreeUnit } from '../../../src/sim/cities';
 import { applyCombat, previewCombat } from '../../../src/sim/combat';
 import { applyCommand } from '../../../src/sim/commands';

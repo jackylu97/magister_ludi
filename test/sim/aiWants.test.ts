@@ -32,13 +32,13 @@ import {
   type BotDecision,
   botSitting,
   chooseProduction,
-  explainCard,
   explainSiteValue,
   nextBotCommand,
   nextBotDecision,
   queueAhead,
   valueContext,
 } from '../../src/ai/bot';
+import { explainCard } from '../../src/ai/council';
 import { driveBots } from '../../src/ai/driver';
 import { withAiTuning } from '../../src/ai/aiConfig';
 import { createBotStepper } from '../../src/ai/stepper';
@@ -2279,7 +2279,8 @@ describe('the marginal draft reading', () => {
       eager: true,
     }) as Record<string, string>;
     const asking = Object.keys(sources).filter((path) => sources[path]!.includes("'rerollOffer'"));
-    expect(asking.map((path) => path.split('/').pop())).toEqual(['bot.ts']);
+    // `beliefRedeal` moved from `bot.ts` to `council.ts` in batch S5.
+    expect(asking.map((path) => path.split('/').pop())).toEqual(['council.ts']);
     // The one arm that asks is gated on the asking being free — the sentence, in
     // the source, beside the command.
     expect(sources[asking[0]!]!).toContain('nextBeliefRerollCost(state, player.id) > 0');

@@ -13,8 +13,8 @@
  *   · **A score is the fold of its terms, and the fold is the computation.**
  *     `foldTerms` walks the list left to right applying each term's `op` to an
  *     accumulator that starts at zero — `add`, `sub`, `mul`, `div` — and every
- *     appraisal in `value.ts` and `bot.ts` *computes its total that way*, rather
- *     than computing a number and describing it afterwards. A description that
+ *     appraisal in `value.ts`, `bot.ts` and `council.ts` *computes its total
+ *     that way*, rather than computing a number and describing it afterwards. A description that
  *     is written beside the arithmetic drifts from it; a description that **is**
  *     the arithmetic cannot. `test/sim/aiBot.slow.test.ts` asserts
  *     `foldTerms(candidate.terms) === candidate.score` exactly (`===`, not
@@ -28,13 +28,21 @@
  *     only where the group is a run of adds starting from zero, which is exactly
  *     what a nested appraisal is.
  *
- * Why the module is a leaf: `value.ts` (the appraisal) and `bot.ts` (the policy)
- * both speak this vocabulary, and the spectate page reads it without importing
- * either. It imports one type from the simulation and nothing else — the same
- * bargain `aiConfig.ts` makes for the tuning surface.
+ * Why the module is a leaf: `value.ts` (the appraisal), and `bot.ts` and
+ * `council.ts` (the policy), all speak this vocabulary, and the spectate page
+ * reads it without importing any of them. It imports nothing from `src/ai`.
+ * From the simulation it imports types, and the three data tables
+ * (`buildingDef`, `unitDef`, `projectDef`) that the naming helpers at the end of
+ * this file read a name from. Those helpers moved here from `bot.ts` in batch
+ * S5, so that the only function `council.ts` takes from `bot.ts` is
+ * `seatContext`.
  */
 
 import type { Command } from '../sim/commands';
+import { buildingDef } from '../sim/buildingData';
+import { projectDef } from '../sim/projectData';
+import type { City, QueueItem, Unit } from '../sim/state';
+import { unitDef } from '../sim/unitData';
 
 /**
  * How a term joins the running total. Absent means `add`, because the
@@ -234,4 +242,59 @@ export function round(value: number): string {
  */
 export function signed(value: number): string {
   return value >= 0 ? `+${round(value)}` : round(value);
+}
+
+// --- naming a decision ------------------------------------------------------
+
+/**
+ * The four little constructors every arm builds its candidate table out of.
+ *
+ * A first-legal arm has no score to report, so it reports the only number it
+ * actually used: **where the option sat in the preference order**, negated so
+ * that "earlier is better" reads the same way as every scored table on the page.
+ * The term folds to exactly that, which is what keeps the spectate pin
+ * (`foldTerms(terms) === score`) true across arms that weigh nothing.
+ */
+function rankTerms(rank: number): ValueTerm[] {
+  return [{ label: `position ${rank + 1} in the order this bot tries them`, value: rank, op: 'sub' }];
+}
+
+export function chosenAt(label: string, rank: number): BotCandidate {
+  return { label, score: -rank, chosen: true, terms: rankTerms(rank) };
+}
+
+/** A candidate the rules removed. It was never scored, and says so. */
+export function refused(label: string, why: string): BotCandidate {
+  return { label, score: 0, chosen: false, terms: [], rejected: why };
+}
+
+/** A list of options none of which this bot appraises. The first is taken. */
+export function unweighed(labels: readonly string[]): BotCandidate[] {
+  return labels.map((label, index) =>
+    index === 0 ? chosenAt(label, 0) : { label, score: -index, chosen: false, terms: rankTerms(index) },
+  );
+}
+
+/**
+ * A town as a decision's subject — **"Uruk (puppet)" for one nobody controls**.
+ *
+ * The ruling asks a puppet's production to be *visible*, and the feed is where
+ * it is visible: a reader watching a seat build a market has to be able to tell
+ * whether that was the seat's choice or the arrangement the ruling describes.
+ * It is a label and nothing else — the decision is an ordinary `build`.
+ */
+export function townSubject(city: City): string {
+  return city.puppet === true ? `${city.name} (puppet)` : city.name;
+}
+
+/** A queue row's printed name. */
+export function itemName(item: QueueItem): string {
+  if (item.kind === 'building') return buildingDef(item.id).name;
+  if (item.kind === 'unit') return unitDef(item.id).name;
+  return projectDef(item.id).name;
+}
+
+/** A piece, named the way a spectator would point at it. */
+export function unitLabel(unit: Unit): string {
+  return `${unitDef(unit.type).name} ${unit.id}`;
 }

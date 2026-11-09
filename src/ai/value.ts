@@ -2171,7 +2171,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // ends — that one deals a row this empire does not hold, and this opens a
       // chair for a row it does. Anything
       // sharper would have to be `scoreCard` on the best benched Order, and that
-      // lives in `bot.ts`, which reads this file and may not be read back.
+      // lives in `council.ts`, which reads this file and may not be read back.
       //
       // Never discounted for an empty chair. A council with a free seat still
       // fills it at the next draft, and a card held for the rest of the game is
@@ -4496,10 +4496,10 @@ function readingTerms(before: DeckReading, after: DeckReading, ctx: ValueContext
  *   · a card **not** held is placed, and `without` is the board as it stands;
  *   · a card **already slotted** has its chair emptied instead, and `with` is the
  *     board as it stands. That is not a nicety: the arm that improves an
- *     arrangement (`reslotDecision`, `bot.ts`) appraises the sitting card against
- *     the challenger in one table, and a sitting card that answered "nothing,
- *     because it is already played" would be swapped out of its chair for
- *     anything at all.
+ *     arrangement (`reslotDecision`, `council.ts`) appraises the sitting card
+ *     against the challenger in one table, and a sitting card that answered
+ *     "nothing, because it is already played" would be swapped out of its chair
+ *     for anything at all.
  *
  * Both scratch boards are **shallow** clones, and every layer of them is shared
  * but the one that changes: the players array, the one player, its
@@ -4512,7 +4512,7 @@ function readingTerms(before: DeckReading, after: DeckReading, ctx: ValueContext
  * with it, and no reading of it can reach the real board's slate.
  *
  * **Which chair the card would take** is the placement the bot itself would make
- * (`slottingDecision`, `bot.ts`): the first empty chair whose flavour admits it,
+ * (`slottingDecision`, `council.ts`): the first empty chair whose flavour admits it,
  * and — when every chair that admits it is full — the chair of the worst card it
  * would have to bench, which is `replacementCost`'s reading in `wants.ts` said
  * about a *fitting* chair rather than about the whole government. A card no chair
@@ -4740,7 +4740,7 @@ function readDeckMargin(ctx: ValueContext, id: CardId): Appraisal | null {
 
 /**
  * **A card's effects, priced by the deck it would join where the fold can see
- * them** — the one door batch F2 adds, and `explainCard`'s (`bot.ts`) only change.
+ * them** — the one door batch F2 adds, and `explainCard`'s (`council.ts`) only change.
  *
  * A row carrying one of the four shapes `foldReadEngine` names is worth
  * `V(deck ∪ card) − V(deck)` and nothing else: the isolated walk is not consulted
@@ -10342,9 +10342,9 @@ function widerHandShare(base: number, wider: number): number {
  *
  * `skips` is the pity the *next* hand would be dealt under, which is what makes
  * this the same function the skip candidate asks with `skips + 1`
- * (`orderDecision`, `bot.ts`).
+ * (`orderDecision`, `council.ts`).
  *
- * Exported for the tests and for `bot.ts`' skip candidate: the arithmetic is a
+ * Exported for the tests and for `council.ts`' skip candidate: the arithmetic is a
  * claim about a distribution, and a played board can only demonstrate it
  * statistically.
  */
@@ -11209,7 +11209,7 @@ function isSeatable(id: OrderId, ctx: ValueContext): boolean {
 /**
  * **The best council a fit seats**, from the cards this seat holds, in the
  * chairs given: scarcest chair first, each taking the best card still free
- * that fits it (`adoptionTable`'s greedy walk, `bot.ts`). A card worth
+ * that fits it (`adoptionTable`'s greedy walk, `council.ts`). A card worth
  * nothing or less is left on the bench.
  */
 function bestCouncil(
@@ -11246,7 +11246,7 @@ function bestCouncil(
  *
  * This is also what unseating it costs: when it leaves its chair the council
  * is re-seated by the plain fit (`settleCouncilFit`), and the cards only the
- * wide fit seated go back to the collection. The reslot arm (`bot.ts`)
+ * wide fit seated go back to the collection. The reslot arm (`council.ts`)
  * compares a bench card against this figure, so the bot unseats the card only
  * when the bench card is worth more than what the re-seat would lose.
  *
@@ -11531,7 +11531,7 @@ function magisterialGoalForecast(
 /**
  * **What this seat's live cards pay when it passes the hand on the table**
  * (Magisterial batch MG17), for the pass candidate (`skipCandidate`,
- * `bot.ts`). `price` is the culture the hand cost (`OrderOffer.price`), absent
+ * `council.ts`). `price` is the culture the hand cost (`OrderOffer.price`), absent
  * on a free hand.
  *
  * Each live rider on the pass (`draftPassed`) is read at this hand's own

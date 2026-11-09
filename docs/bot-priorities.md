@@ -9,7 +9,8 @@ stored.
 
 Code: `src/ai/wants.ts` (the want book and the prices) · `src/ai/value.ts` (the
 appraisal) · `src/ai/aiConfig.ts` (the sheet and the personas) · `src/ai/bot.ts`
-(the arms). Every knob is a leaf of `data/ai.json` and therefore appears on
+(the arms) · `src/ai/council.ts` (the arms that answer an offer, seat a card or
+weigh a charter). Every knob is a leaf of `data/ai.json` and therefore appears on
 `arena.html` with no page edit. The batch-by-batch measurement narrative — every
 arena A/B, seed sweep and before/after profile — is
 `docs/history/bot-priorities-log.md`.

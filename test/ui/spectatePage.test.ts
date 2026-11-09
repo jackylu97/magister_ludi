@@ -103,6 +103,7 @@ describe('the page never plays the game itself', () => {
       "from '../ai/scopeReach'",
       "from '../ai/aiConfig'",
       "from '../ai/bot'",
+      "from '../ai/council'",
     ]) {
       expect(text).not.toContain(banned);
     }

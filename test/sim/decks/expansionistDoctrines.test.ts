@@ -13,7 +13,8 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { scoreCard, valueContext } from '../../../src/ai/bot';
+import { valueContext } from '../../../src/ai/bot';
+import { scoreCard } from '../../../src/ai/council';
 import { scoreEffects } from '../../../src/ai/value';
 import { explainCardImpact, foldCardImpact } from '../../../src/sim/cardImpact';
 import { classifyCard } from '../../../src/sim/ledgerClass';

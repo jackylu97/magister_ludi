@@ -24,9 +24,9 @@ import {
   explainCitizen,
   nextBotCommand,
   nextBotDecision,
-  scoreCard,
   valueContext,
 } from '../../src/ai/bot';
+import { scoreCard } from '../../src/ai/council';
 import { type BotDecision, foldTerms } from '../../src/ai/decision';
 import { buildImprovementPlan, rankPlanFor } from '../../src/ai/plan';
 import { type Game, dispatch, replay, snapshotState } from '../../src/sim/game';
@@ -1324,12 +1324,19 @@ describe('the bot module', () => {
     // a seat's towns, capitals and worked hexes a card's scope reaches, and what
     // share of a hex's yield a hex line changes. It is a leaf over `prices.ts`
     // that imports only the `ValueContext` type from `value.ts`.
+    //
+    // Twenty-two since batch S5 (2026-11-09): `council.ts` holds how a seat
+    // answers an Order, Doctrine, belief or discovery offer, which held card it
+    // seats in which chair, and how it weighs a charter's faces. It is not a
+    // leaf: it and `bot.ts` call each other inside functions, and
+    // `aiModuleCycles.test.ts` loads each first to prove that is safe.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
       'bot.ts',
       'campaign.ts',
       'chain.ts',
       'citizen.ts',
+      'council.ts',
       'dealMemory.ts',
       'decision.ts',
       'diplomacy.ts',

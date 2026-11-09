@@ -29,7 +29,8 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { scoreCard, valueContext } from '../../../src/ai/bot';
+import { valueContext } from '../../../src/ai/bot';
+import { scoreCard } from '../../../src/ai/council';
 import { buildError } from '../../../src/sim/tech';
 import { explainUnitCost, foldUnitCost, foundCityAt, foundingError } from '../../../src/sim/cities';
 import {
