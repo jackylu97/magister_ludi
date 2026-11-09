@@ -1247,7 +1247,7 @@ interface PendingMalice {
  * A malice seated in a chair (batch G3, `docs/wager.md` §4).
  *
  * Written by the judgement (`seatPendingMalices`, `wagers.ts`) and re-written by
- * an adoption (`reseatMalices`, `statecraft/draft.ts`), and by nothing else.
+ * an adoption (`reseatMalices`, `statecraft/council.ts`), and by nothing else.
  */
 export interface HeldMalice {
   /** The row in `data/malices.json`. */

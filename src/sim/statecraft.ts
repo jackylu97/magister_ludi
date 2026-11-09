@@ -55,15 +55,18 @@
  * **This file is the index** (batch E3b — `docs/flags.md` item pp,
  * `docs/audit/evaluations.md` §4b step 9: *files by layer, not by topic*). The
  * nine thousand lines above split into three, along the seams the system
- * already had:
+ * already had. Batch S4 later moved the council out of `draft.ts` into a fourth
+ * file:
  *
  *   · `statecraft/evaluator.ts` — `liveEffects` and the **one** switch on
  *     `CardEffect.kind`, with every reader that filters its walk. CLAUDE.md's
  *     "the ONLY module switching on `CardEffect.kind`" is now that file.
  *   · `statecraft/describers.ts` — every `describe…`, the word tables and the
  *     keyword refs. Hard rule 7's tables stay together.
- *   · `statecraft/draft.ts` — the ladder, the pools, the offers, the rerolls,
- *     the slots and the governments.
+ *   · `statecraft/draft.ts` — the ladder, the pools, the offers, the rerolls
+ *     and the governments.
+ *   · `statecraft/council.ts` — the chairs: how many and of which type, which
+ *     card fits which chair, the slots, the malices' chairs and the re-seating.
  *
  * Every name is re-exported here **by name**, and that is deliberate rather
  * than tidy: `export * from` is copied eagerly by the dev server's module
@@ -331,14 +334,7 @@ export {
   adoptGovernmentAt,
   applyCharter,
   cardRouteSlots,
-  chairCount,
-  chairLayoutUnder,
-  // Magisterial batch MG12: the fit a seat's council grants.
-  chairFitFor,
-  chairFitWithout,
-  chairMisfitRefusal,
   commissionFulfilledTurn,
-  councilRefit,
   currentBandOf,
   deckPoolOf,
   doctrineBagFor,
@@ -368,18 +364,10 @@ export {
   holdsOrder,
   isRainbowSeat,
   isSlotted,
-  maliceAt,
-  maliceChairFor,
-  maliceChairRefusal,
   newPlayerStatecraft,
   nextDraftCost,
   offerSize,
-  chairIndexAtPosition,
-  ghostCouncilUnderDoctrine,
-  ghostSeatUnderDoctrine,
-  orderAtSlotPosition,
   orderChoiceError,
-  orderFitsSlotFor,
   orderSkipError,
   payCardDrafted,
   planDraft,
@@ -391,33 +379,19 @@ export {
   recordScalingOccasion,
   recordTreasuryHeld,
   recordWorldScalingOccasion,
-  refitSlots,
   researchAgeOf,
-  reseatCouncil,
-  reseatMalices,
-  reseatOrders,
   runStatecraft,
-  sealRemaining,
-  settleCouncilFit,
   settleCultureWindfall,
   settleDoctrineChoice,
   settleDoctrineSkip,
   settleDraft,
   settleOrderChoice,
   settleOrderSkip,
-  shedMalices,
-  SLOT_WORDS,
   slotOf,
-  slotOrderAt,
-  slotOrderError,
-  slotTypesOf,
   statecraftBlocker,
   statecraftOf,
-  takeMalice,
   tallyOf,
   thirdPositionOf,
-  unslotOrderAt,
-  unslotOrderError,
 } from './statecraft/draft';
 export type {
   DoctrineOffer,
@@ -425,7 +399,6 @@ export type {
   DraftPlan,
   GovernmentAdoption,
   GovernmentOffer,
-  MaliceSeating,
   HandPosition,
   OfferKind,
   OfferSizeLine,
@@ -434,6 +407,38 @@ export type {
   OrderSkip,
   OrderTally,
   PlayerStatecraft,
-  SlotOutcome,
   SlottedOrder,
 } from './statecraft/draft';
+
+export {
+  chairCount,
+  // Magisterial batch MG12: the fit a seat's council grants.
+  chairFitFor,
+  chairFitWithout,
+  chairIndexAtPosition,
+  chairLayoutUnder,
+  chairMisfitRefusal,
+  councilRefit,
+  ghostCouncilUnderDoctrine,
+  ghostSeatUnderDoctrine,
+  maliceAt,
+  maliceChairFor,
+  maliceChairRefusal,
+  orderAtSlotPosition,
+  orderFitsSlotFor,
+  refitSlots,
+  reseatCouncil,
+  reseatMalices,
+  reseatOrders,
+  sealRemaining,
+  settleCouncilFit,
+  shedMalices,
+  SLOT_WORDS,
+  slotOrderAt,
+  slotOrderError,
+  slotTypesOf,
+  takeMalice,
+  unslotOrderAt,
+  unslotOrderError,
+} from './statecraft/council';
+export type { MaliceSeating, SlotOutcome } from './statecraft/council';

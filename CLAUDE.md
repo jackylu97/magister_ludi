@@ -119,11 +119,12 @@ mean those things.
   `hex.ts` · `town.ts` · `empire.ts` (the banks with it) · `stages.ts` (Entry
   XVII's two multiplications, the old `modifiers.ts`). A one-way chain, and
   nothing in it imports `readings.ts`.
-- `src/sim/statecraft/` — the card system in three: `evaluator.ts` (the one
+- `src/sim/statecraft/` — the card system in four: `evaluator.ts` (the one
   switch on `CardEffect.kind`) · `describers.ts` (the words and their tables) ·
-  `draft.ts` (ladder, pools, offers, slots, governments); `statecraft.ts` is the
-  index that re-exports all three **by name** (never `export *` — a star
-  re-export comes out empty in a cycle).
+  `draft.ts` (ladder, pools, offers, governments) · `council.ts` (the chairs,
+  which card fits which chair, the slots, the malices' chairs, re-seating);
+  `statecraft.ts` is the index that re-exports all four **by name** (never
+  `export *` — a star re-export comes out empty in a cycle).
 - `src/render3d/` — default renderer (Three.js ortho toon diorama, procedural
   primitives only). Tunables in `data/view3d.json`.
 - `src/render/` — FROZEN 2D renderers. Keep compiling; no new features ever.
@@ -329,7 +330,7 @@ mean those things.
   nowhere returns to the collection with its progress (the user, 2026-10-16:
   keep as many slots the same as possible); seals are absolute turns.
 - **Cards**: `statecraft/evaluator.ts` is the ONLY module switching on
-  `CardEffect.kind` (`statecraft.ts` is the index over it, the words and the draft);
+  `CardEffect.kind` (`statecraft.ts` is the index over it, the words, the draft and the council);
   a new card is a JSON row, a new *shape* is a design decision, and a shape
   declared but never read fails the register test. The four flag-rule kinds
   are one `rule` kind (`CardFlagRuleId` = action | behavior | city | zoc,

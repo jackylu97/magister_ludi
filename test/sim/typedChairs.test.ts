@@ -506,11 +506,14 @@ describe('re-seating on adoption', () => {
 // --- one re-seating ----------------------------------------------------------------
 
 describe('one re-seating', () => {
-  const SOURCES = import.meta.glob(['../../src/sim/statecraft/draft.ts', '../../src/sim/cardImpact.ts'], {
-    query: '?raw',
-    import: 'default',
-    eager: true,
-  }) as Record<string, string>;
+  const SOURCES = import.meta.glob(
+    ['../../src/sim/statecraft/draft.ts', '../../src/sim/statecraft/council.ts', '../../src/sim/cardImpact.ts'],
+    {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    },
+  ) as Record<string, string>;
 
   /** The body of a top-level function: its signature to its closing brace. */
   function bodyOf(file: string, name: string): string {
@@ -535,7 +538,7 @@ describe('one re-seating', () => {
     expect(ghost).toContain('reseatCouncil(ghost, sc.slots, state.turn, chairFitFor(state, player.id))');
     expect(ghost).toContain('councilRefit(adopted, player.id)');
     // And `reseatCouncil` seats the Orders through `reseatOrders` and nothing else.
-    expect(bodyOf('../../src/sim/statecraft/draft.ts', 'reseatCouncil')).toContain(
+    expect(bodyOf('../../src/sim/statecraft/council.ts', 'reseatCouncil')).toContain(
       'reseatOrders(previous, layout, held, turn, fit)',
     );
   });

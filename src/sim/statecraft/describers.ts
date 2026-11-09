@@ -120,7 +120,7 @@ import {
 import { type ModelClass, type UnitTypeId, isUnitTypeId, unitDef, unitLine } from '../unitData';
 // A rank's name as every surface prints it (Dominion batch D1). A leaf.
 import { RANK_IDS, type RankId, rankName } from '../ranks';
-import { SLOT_WORDS } from './draft';
+import { SLOT_WORDS } from './council';
 import { anyCardDef } from './evaluator';
 import { CITY_SCOPED_COUNTS, PERIODIC_FLOOR, PERIODIC_PROBE, VOICES, oneOfAKind } from './evaluator';
 

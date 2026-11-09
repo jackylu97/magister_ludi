@@ -4749,7 +4749,7 @@ export type ActionRuleId =
   /**
    * **Every card of this empire fits every chair** (Magisterial batch MG12,
    * The Mixed Constitution; the triage's reading 24). Read in one place,
-   * `chairFitFor` (`statecraft/draft.ts`), which every reader of a seat's
+   * `chairFitFor` (`statecraft/council.ts`), which every reader of a seat's
    * chairs asks: the slot refusal, the re-seating, the council screen, the
    * bots and the card stamp.
    *
@@ -8636,7 +8636,7 @@ interface CardRouteRiderEffect {
  * appended at the end takes anything, which is what a free chair means. A row
  * that wants a *typed* chair is a design decision and earns its own field then.
  *
- * Read in exactly one place — `chairCount` (`statecraft/draft.ts`), which every
+ * Read in exactly one place — `chairCount` (`statecraft/council.ts`), which every
  * rebuild of `PlayerStatecraft.slots` goes through — and the array's **length**
  * is the standing fact it produces, so a card taken mid-government widens the
  * council the moment it is taken (`refitSlots`) and a card that stopped being
@@ -12121,7 +12121,7 @@ export function slotCount(id: GovernmentId): number {
  * The one statement of the plain rule. Since Magisterial batch MG12 a seat's
  * own council can widen it: while The Mixed Constitution sits in a chair,
  * every card of that seat fits every chair. So every reader of a seat's chairs
- * asks `chairFitFor` (`statecraft/draft.ts`), which answers this function or
+ * asks `chairFitFor` (`statecraft/council.ts`), which answers this function or
  * the wider fit. Outside the fit's own module, two readers ask this function
  * directly: the flair gallery, whose sample cards have no seat behind them,
  * and the council screen's staging, which orders a batch by the plain rule
@@ -12135,7 +12135,7 @@ export function orderFitsSlot(order: OrderId, chair: ChairType): boolean {
 
 /**
  * **A fit rule, as a function**: does this card fit a chair of this type?
- * `orderFitsSlot` is the plain one. `chairFitFor` (`statecraft/draft.ts`)
+ * `orderFitsSlot` is the plain one. `chairFitFor` (`statecraft/council.ts`)
  * answers the one a seat's council grants now, read once, so a caller that
  * asks about many cards and chairs reads the seat's law once.
  */

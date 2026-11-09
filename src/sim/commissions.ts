@@ -90,7 +90,7 @@ import {
 } from './statecraft';
 // Straight from its own layer rather than through the `statecraft.ts` index:
 // through the index, the build warns of a circular import between chunks.
-import { refitSlots, settleCouncilFit } from './statecraft/draft';
+import { refitSlots, settleCouncilFit } from './statecraft/council';
 import {
   countCitiesAdmitted,
   countTilesInBorders,

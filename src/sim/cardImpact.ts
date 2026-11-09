@@ -148,7 +148,7 @@ import {
 } from './statecraft';
 // Straight from its layer rather than through the `statecraft.ts` index: through
 // the index, the build warns of a circular import between chunks.
-import { ghostSeatUnderDoctrine } from './statecraft/draft';
+import { ghostSeatUnderDoctrine } from './statecraft/council';
 import { CITY_YIELD_KEYS, type CityYieldKey } from './resourceData';
 import { type GreatPersonId, greatPersonDef } from './greatPeopleData';
 import { type MeterId, authorityOf, happinessOf } from './meters';

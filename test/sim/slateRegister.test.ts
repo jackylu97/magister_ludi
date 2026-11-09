@@ -275,14 +275,14 @@ const ANNOUNCING = new Set([
   'draft.ts#settleDraft',
   // G3: a malice turning an Order out of its chair — the chairs the third
   // source reads and the eleventh source itself both moved.
-  'draft.ts#seatMalice',
+  'council.ts#seatMalice',
   // Magisterial batch MG12: a council re-seated where it stands once the card
   // that let every card fit every chair has left.
-  'draft.ts#settleCouncilFit',
+  'council.ts#settleCouncilFit',
   // L3a: a chair opened or closed by the law itself (The King's Friends). An
   // Order's lines come and go with the chair it sits in, which is the third
   // source of the walk, so the write announces on the line it happens.
-  'draft.ts#refitSlots',
+  'council.ts#refitSlots',
   // Batch C: a met commission leaves its chair, which is the third source of
   // the walk, so the phase announces on the line it empties the chair.
   'commissions.ts#runCommissions',
@@ -332,7 +332,7 @@ const ANNOUNCING = new Set([
   'diplomacy.ts#annexCityAt',
   'diplomacy.ts#razeCityAt',
   'draft.ts#adoptGovernmentAt',
-  'draft.ts#slotOrderAt',
+  'council.ts#slotOrderAt',
   'evaluator.ts#payWindfallGrants',
   'greatPeople.ts#greatPersonWorkAt',
   'greatPeople.ts#revokeLegacies',
@@ -534,7 +534,7 @@ const EXCUSED = new Map<string, string>([
     'free of the state, as above; `loseCitizen` announces on the famine or the levy that called it',
   ],
   [
-    'draft.ts#unslotOrderAt',
+    'council.ts#unslotOrderAt',
     'a fact about a player and takes no state; `applyUnslotOrder` (`commands.ts`) announces beside it',
   ],
   [
@@ -546,7 +546,7 @@ const EXCUSED = new Map<string, string>([
     'takes no state; `settleCardTaken` (`cities.ts`) is the next line in both of its callers, and it announces first',
   ],
   [
-    'draft.ts#reseatCouncil',
+    'council.ts#reseatCouncil',
     'takes no state and writes the council it is handed (batch C2): `adoptGovernmentAt` announces after it on the live seat, and `cardImpact.ts` hands it a ghost seat that no tenant reads',
   ],
   [

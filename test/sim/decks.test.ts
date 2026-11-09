@@ -738,14 +738,17 @@ describe('the schema, as landed', () => {
     // The register: nothing under `src/sim/statecraft/` reads `.pool` or `.slot`
     // to deal a card. Seating reads a card's `type` since batch C2
     // (`orderFitsSlot`), and the Compendium prints a retired row's old office.
-    const sources = import.meta.glob('../../src/sim/statecraft/draft.ts', {
+    // The council (`council.ts`) left `draft.ts` in batch S4, so both files are read.
+    const sources = import.meta.glob(['../../src/sim/statecraft/draft.ts', '../../src/sim/statecraft/council.ts'], {
       eager: true,
       query: '?raw',
       import: 'default',
-    });
-    const draft = Object.values(sources)[0] as string;
-    expect(draft).not.toMatch(/orderDef\([^)]*\)\.pool\b/);
-    expect(draft).not.toMatch(/poolOfGovernment\(/);
+    }) as Record<string, string>;
+    expect(Object.keys(sources)).toHaveLength(2);
+    for (const [path, source] of Object.entries(sources)) {
+      expect(source, path).not.toMatch(/orderDef\([^)]*\)\.pool\b/);
+      expect(source, path).not.toMatch(/poolOfGovernment\(/);
+    }
   });
 
   it('is a five-rung ladder, and every government carries its rung’s count', () => {

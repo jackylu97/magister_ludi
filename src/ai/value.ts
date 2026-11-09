@@ -278,20 +278,17 @@ import {
 // chunks.
 import {
   HAND_POSITIONS,
-  chairFitFor,
-  chairFitWithout,
   doctrineBagFor,
   draftCost,
   draftCostFor,
   expectedHandBags,
   foreignCardBag,
-  ghostSeatUnderDoctrine,
   isRainbowSeat,
   isSlotted,
-  maliceAt,
   offerSize,
   rarityFirstOdds,
 } from '../sim/statecraft/draft';
+import { chairFitFor, chairFitWithout, ghostSeatUnderDoctrine, maliceAt } from '../sim/statecraft/council';
 import {
   type GroundFacts,
   cardActionRule,

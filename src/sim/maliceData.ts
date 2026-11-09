@@ -43,7 +43,7 @@
  *     for the Compendium's page and the chair's own tooltip.
  *
  * The *seating* — which chair, for how long, how they stack — is not here. It is
- * `statecraft/draft.ts`, beside the chairs it rearranges; this file is the deck.
+ * `statecraft/council.ts`, beside the chairs it rearranges; this file is the deck.
  */
 
 import malicesJson from '../../data/malices.json';

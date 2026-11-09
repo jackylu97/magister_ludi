@@ -240,10 +240,17 @@ Batches, in this order:
 
 A merge in K1 or K2 must leave `test/fixtures/cardText.json` and the pins unchanged. If a merge would move either, leave it out and report it.
 
-Waiting for the user's answer:
+The user said yes to these on 2026-11-09 (*"yes to all decisions, please take a look at failing tests after the changes. we can do a bot pass after some more playtesting"*):
 
-- **S4:** the council leaves `draft.ts` for a fourth file, `src/sim/statecraft/council.ts`. It changes the `CLAUDE.md` line "the card system in three".
-- **S0 and S5:** a new load-order test over `src/ai/*.ts`, then the bot's council and offer decisions leave `bot.ts` for `src/ai/council.ts`. That adds one function-level cycle between `council.ts` and `bot.ts`.
+- **S4:** the council leaves `draft.ts` for a fourth file, `src/sim/statecraft/council.ts`. It changes the `CLAUDE.md` line "the card system in three". That change is approved with the batch.
+- **S0 and S5:** a new load-order test over `src/ai/*.ts`, then the bot's council and offer decisions leave `bot.ts` for `src/ai/council.ts`. That adds one function-level cycle between `council.ts` and `bot.ts`. Measure the test's cost before it joins the core tier.
+
+After S5, in this order:
+
+1. The push gate (`npm run test:all`) on the result, then push `main` and `deck-themes` and move the play server, so the user can playtest.
+2. The stale-answer failures in the shadow run (43 or 44 tests, "law shadow … stale at turn 1"). Find the cause before any fix.
+
+The bot pass (why bots on this build give many more orders) waits for more playtesting.
 
 Not doing, from the audit's section 4: splitting `evaluator.ts` into files, splitting `value.ts` by deck, a bot subfolder, splitting `scoreEffect`, and splitting `describers.ts`.
 
@@ -478,3 +485,16 @@ The evaluator's tail has 23 new section headings, so each run of readers sits un
 - Left for a later move: seven single readers that sit under another seam's heading (`cardShoreRaids`, `cardChargePrice`, `cardSurplusCarrier`, `cardUpgradeStrength`, `cardRareWeight`, `cardBeadOccasions`, `cardProjectPays`), the chairs pair that splits the amplifiers in two, and five docblocks that sit away from their functions (`cardPantheonSlots`, `cardBorderZoc`, `cardRenownLines`, `cardUnlocksUnit`, `cardRouteYieldLines`).
 
 Checks at the gate: type check clean, 11,093 core tests passed, build clean. Comments only, so the pins were not run.
+
+### S4
+
+The council left `src/sim/statecraft/draft.ts` for a new file, `src/sim/statecraft/council.ts`. The council is how many chairs a seat has and of which type, which card fits which chair, the slots, where a malice sits, and how the council is seated again after an adoption or a Doctrine.
+
+- 35 declarations moved: the audit's 34, plus `ghostSeatUnderDoctrine` (K2), which only wraps `ghostCouncilUnderDoctrine`. A statement-by-statement compare against `54c0dc52` finds all 123 statements of the old `draft.ts` in the two files, with no code or docblock changed and no new `export`.
+- `draft.ts` went from 3,531 to 2,550 lines, and `council.ts` has 1,031. `draft.ts` keeps the ladder, the pools, the offers, the rerolls and the governments.
+- The index `statecraft.ts` has a fourth block, re-exported by name. The files that imported moved names straight from `draft.ts` (`evaluator.ts`, `describers.ts`, `commissions.ts`, `cardImpact.ts`, `src/ai/value.ts`) now import them from `council.ts`.
+- The function-level cycle runs both ways with `draft.ts` and `evaluator.ts`. No top-level statement of either file, or of `council.ts`, reads a value from the cycle at load time, and `moduleCycles.test.ts` has a case where `council.ts` loads first.
+- The registers point at the new file and assert the same facts: `slateRegister.test.ts` (six keys), `magisterialConstitution.test.ts`, `typedChairs.test.ts`, and `decks.test.ts`, which now reads both files.
+- `CLAUDE.md` (Layout, and the cards trap) and `docs/README.md` now name four files. The user approved the `CLAUDE.md` change with the batch.
+
+Checks at the gate: type check clean, 11,094 core tests passed, build clean with the same 158 cycle warnings, both pins unchanged at all six turns, digest test passed.

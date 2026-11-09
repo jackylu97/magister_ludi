@@ -314,13 +314,13 @@ import {
   type PlayerStatecraft,
   freeDraftCanOpen,
   openFreeDraft,
-  chairIndexAtPosition,
   isSlotted,
-  orderAtSlotPosition,
   settleCultureWindfall,
-  slotTypesOf,
   tallyOf,
 } from './draft';
+// The council's chairs (`council.ts`). That file imports this one back, and
+// these names are used only inside functions.
+import { chairIndexAtPosition, orderAtSlotPosition, slotTypesOf } from './council';
 import { indefinite, tileConditionWords } from './describers';
 import { statecraftOf } from './draft';
 import { bumpEconomy } from '../slate';
@@ -13960,11 +13960,11 @@ export function cardYieldsOnlyAmplifier(
  * The King's Friends' one, or Scutage's minus one (`CardSlotRiderEffect`).
  *
  * The card reading and nothing else: it answers *how many*, and what a council
- * is then shaped like is `chairCount`'s in `draft.ts`, which is the one consumer
+ * is then shaped like is `chairCount`'s in `council.ts`, which is the one consumer
  * and the one thing that ever writes `PlayerStatecraft.slots`. Here for
  * `cardAmplifier`'s reason — a walk of the live list belongs in the module that
  * knows what a card effect is — and read from there for the module boundary's:
- * a government's layout is the draft's business, not this file's.
+ * a government's layout is the council's business, not this file's.
  *
  * The sum may be below nought, because a card may take a chair away (batch DT11).
  * `chairCount` holds the floor, so no card takes a typed chair.

@@ -539,7 +539,8 @@ Reference: **`docs/tech-tree.md`** (Part 2 generated; `TECH_DOC_WRITE=1`) · cod
 ## Statecraft — governments, doctrines, orders, wagers, malices
 
 Reference: **`docs/orders-and-doctrines.md`** (the master list, sync-tested) ·
-code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
+code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
+`council.ts`, the chairs and the slots).
 
 - Culture fills **one** pool (`Player.culturePool` IS the draft basket); border
   culture (`City.culture`) is a separate channel. The draft meter is
@@ -573,7 +574,7 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
     chairs, and `refitSlots` returns the card in a chair that closes.
   - **The fit a council grants** (Magisterial batch MG12): `orderFitsSlot` is
     the plain rule, and every reader of a seat's chairs asks `chairFitFor`
-    (`statecraft/draft.ts`) instead: the slot refusal, the re-seating, the
+    (`statecraft/council.ts`) instead: the slot refusal, the re-seating, the
     council screen, the bots and the card stamp. While a card holding
     `cardsFitAnyChair` sits in a chair (The Mixed Constitution), every card of
     its holder fits every chair, and an adoption re-seats by the fit the old

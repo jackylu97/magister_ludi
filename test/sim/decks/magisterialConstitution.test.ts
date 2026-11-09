@@ -507,15 +507,15 @@ describe('the register of chair writers', () => {
   const SETTLES = [
     'commissions.ts#runCommissions',
     'draft.ts#adoptGovernmentAt',
-    'draft.ts#refitSlots',
-    'draft.ts#seatMalice',
+    'council.ts#refitSlots',
+    'council.ts#seatMalice',
   ];
   const EXCUSED: Record<string, string> = {
-    'draft.ts#settleCouncilFit': 'it is the re-seating',
-    'draft.ts#slotOrderAt': 'a card going into a chair never narrows the fit',
-    'draft.ts#unslotOrderAt':
+    'council.ts#settleCouncilFit': 'it is the re-seating',
+    'council.ts#slotOrderAt': 'a card going into a chair never narrows the fit',
+    'council.ts#unslotOrderAt':
       'it takes no state, so the unslot command (`applyUnslotOrder`) settles beside it, checked below',
-    'draft.ts#reseatCouncil':
+    'council.ts#reseatCouncil':
       'it writes the council it is handed: `adoptGovernmentAt` settles after it, ' +
       'and the card stamp refits its ghost (`councilRefit`)',
   };
@@ -525,7 +525,7 @@ describe('the register of chair writers', () => {
     expect(writers).toEqual([...SETTLES, ...Object.keys(EXCUSED)].sort());
     for (const writer of SETTLES) {
       const [file, name] = writer.split('#') as [string, string];
-      const path = file === 'commissions.ts' ? 'sim/commissions.ts' : 'sim/statecraft/draft.ts';
+      const path = file === 'commissions.ts' ? 'sim/commissions.ts' : `sim/statecraft/${file}`;
       expect(bodyOf(path, name), writer).toContain('settleCouncilFit(state, player)');
     }
     expect(bodyOf('sim/commands.ts', 'applyUnslotOrder')).toContain('settleCouncilFit(state, actor)');
@@ -542,12 +542,12 @@ describe('the register of chair writers', () => {
       .sort();
     expect(readers).toEqual([
       'flairGallery/cardFaces.ts',
-      'sim/statecraft/draft.ts',
+      'sim/statecraft/council.ts',
       'sim/statecraftData.ts',
       'ui/statecraftStaging.ts',
     ]);
-    expect(bodyOf('sim/statecraft/draft.ts', 'slotOrderError')).toContain('chairFitFor(state, playerId)');
-    expect(bodyOf('sim/statecraft/draft.ts', 'slotOrderError')).not.toMatch(/\borderFitsSlot\b/);
+    expect(bodyOf('sim/statecraft/council.ts', 'slotOrderError')).toContain('chairFitFor(state, playerId)');
+    expect(bodyOf('sim/statecraft/council.ts', 'slotOrderError')).not.toMatch(/\borderFitsSlot\b/);
   });
 
   it('moves every caller the triage names to the seat’s fit', () => {
