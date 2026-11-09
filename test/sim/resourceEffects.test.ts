@@ -1203,8 +1203,10 @@ describe('buildingCategoryYields: paid for what you built, not for how wide you 
     const wonder = BUILDING_IDS.find((building) => buildingDef(building).wonder === true)!;
     const plain = BUILDING_IDS.find((building) => buildingDef(building).wonder !== true)!;
     city.buildings = [plain];
+    bumpRevision(state);
     expect(lineFor()).toBeUndefined();
     city.buildings = [plain, wonder];
+    bumpRevision(state);
     expect(lineFor()).toBeDefined();
     expect(lineFor()!.source).toContain('wonders');
   });

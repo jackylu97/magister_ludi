@@ -1,7 +1,7 @@
 import { foundCityAt } from '../sim/cities';
 import { improvementErrorAt } from '../sim/improvements';
 import { createMap, getTileAt, type Tile } from '../sim/map';
-import { createUnit, newGame } from '../sim/state';
+import { bumpRevision, createUnit, newGame } from '../sim/state';
 import { resetVisibility, VISIBLE } from '../sim/visibility';
 
 export const WORKS_VIEWS = {
@@ -65,6 +65,8 @@ export function createWorksFixture() {
   town.population = 4;
   state.tileOwner.fill(town.id);
   state.players[0]!.techsResearched.push('calendar', 'siegecraft', 'sailing', 'agriculture', 'bronzePanoply', 'husbandry', 'mining', 'fletching');
+  // The fixture edits the board by hand, so it announces before the next ask, as a command would.
+  bumpRevision(state);
   for (const [col, row, id] of [
     [4, 4, 'camp'], [7, 2, 'mine'],
     [4, 6, 'plantation'], [5, 8, 'plantation'], [4, 10, 'plantation'],
@@ -80,6 +82,7 @@ export function createWorksFixture() {
   }
   for (let col = 5; col <= 10; col++) tile(col, 9).road = 0;
   tile(8, 10).road = 0;
+  bumpRevision(state);
   createUnit(state, 0, 'worker', 8, 9);
   createUnit(state, 0, 'warrior', 7, 10);
   state.visibility[0]!.fill(VISIBLE);

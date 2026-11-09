@@ -366,6 +366,8 @@ describe('The Grand Canal on the card (batch DT18)', () => {
     state.players[0]!.statecraft.doctrines.push('theApoikia' as never);
     home.population = 3;
     near.population = 3;
+    // Announced before the refresh, because seating the citizens reads the law.
+    bumpRevision(state);
     for (const town of [home, near]) refreshCityDerived(state, town);
     bumpRevision(state);
     return { state, home, near };

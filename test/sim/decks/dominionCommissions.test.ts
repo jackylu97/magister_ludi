@@ -428,6 +428,7 @@ describe('Dominion D11 — a rank’s production settles at once (readings 40 an
     const capital = foundCityAt(state, 0, at(state, 2, 2))!;
     foundCityAt(state, 0, at(state, 14, 8));
     seat(state, 0).statecraft.commissionsFulfilled = [{ card: RANKS, turn: state.turn }];
+    bumpRevision(state);
     capital.queue = [{ kind: 'building', id: 'monument' }];
     const short = 1;
     capital.hammerBasket = buildingCost(state, 'monument') - short;

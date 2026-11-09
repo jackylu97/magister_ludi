@@ -40,10 +40,32 @@
  *   · the beads   — `.beads.push(` `.beads =`
  *   · the banks   — `.gold =` `.faithPool =` `.culturePool =`
  *
- * Scoped to `test/sim` and `test/ui`, which are the benches that ask the
- * simulation a question. `test/mapgen` and `test/render` write terrain and
- * decoration and read no memo, so they are outside it by design rather than by
- * exception. A file passes by importing `bumpRevision` itself **or** by taking
+ * The shadow run of 2026-11-09 added these rows. Each is a kind of hand edit
+ * that left a stale law or meter in a test:
+ *
+ *   · a removal: `.slots`, `.doctrines`, `.buildings` and `techsResearched`
+ *     with `.pop(` or `.splice(`, and `.slots` with `.shift(` or `.unshift(`
+ *   · the faiths: `.religions.push(` `.religions =` `.follower.push(`
+ *     `.enhancer.push(` `.followers =`
+ *   · the town: `.population =` `+=` `-=`, `.puppet =`, `delete ….puppet`,
+ *     `.consecration =`, and `addBuilding(` (the helper that puts stones in a
+ *     town)
+ *   · the ground: `.improvement =`
+ *   · the chairs: `.commissionsFulfilled =` `.commissionsFulfilled.push(`
+ *
+ * `state.turn =` is a source of the law too (a timed effect's label counts the
+ * turns left), but it is not a row. Tests write it on cloned saves and after a
+ * copy has been taken, where no memo is read, so the row would flag files that
+ * are correct.
+ *
+ * Scoped to `test/sim` (with `test/sim/decks`) and `test/ui`, which are the
+ * benches that ask the simulation a question. `test/mapgen` is outside it: it
+ * writes terrain and reads no memo. `test/render` is outside it too, but not
+ * because it reads no memo. Two of its files ask the simulation after a hand
+ * edit (`lens3d.test.ts` through `pressureTotals`, `paintedCities.test.ts`
+ * through `createUnit`) and call `bumpRevision` themselves. Thirteen more edit
+ * the state by hand and do not announce, so bringing the folder in is a
+ * decision of its own. A file passes by importing `bumpRevision` itself **or** by taking
  * its board from a helper that calls it (`statecraftHelpers`, `warHelpers`,
  * `improvementHelpers`, `faithHelpers`) — a bench that inherits the
  * announcement has made it.
@@ -78,6 +100,24 @@ const MUTATIONS = [
   String.raw`\.gold\s*=(?![=>])`,
   String.raw`\.faithPool\s*=(?![=>])`,
   String.raw`\.culturePool\s*=(?![=>])`,
+  // The shadow run of 2026-11-09: the kinds of hand edit that left a stale answer.
+  String.raw`\.slots\.(pop|splice|shift|unshift)\(`,
+  String.raw`\.doctrines\.(pop|splice)\(`,
+  String.raw`\.buildings\.(pop|splice)\(`,
+  String.raw`techsResearched\.(pop|splice)\(`,
+  String.raw`\.religions\.(push|splice)\(`,
+  String.raw`\.religions\s*=(?![=>])`,
+  String.raw`\.follower\.(push|splice)\(`,
+  String.raw`\.enhancer\.(push|splice)\(`,
+  String.raw`\.followers\s*=(?![=>])`,
+  String.raw`\.population\s*(=(?![=>])|\+=|-=)`,
+  String.raw`\.puppet\s*=(?![=>])`,
+  String.raw`delete\s+[\w.!\[\]]+\.puppet\b`,
+  String.raw`\.consecration\s*=(?![=>])`,
+  String.raw`\baddBuilding\(`,
+  String.raw`\.improvement\s*=(?![=>])`,
+  String.raw`\.commissionsFulfilled\s*=(?![=>])`,
+  String.raw`\.commissionsFulfilled\.push\(`,
 ];
 
 const HAND_MUTATION = new RegExp(MUTATIONS.join('|'));
@@ -102,6 +142,12 @@ const ANNOUNCING_HELPERS = [
 
 const BENCH_SOURCE = {
   ...(import.meta.glob('../sim/*.ts', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>),
+  // The deck benches are `test/sim` too, and the glob above does not descend.
+  ...(import.meta.glob('../sim/decks/*.ts', {
     query: '?raw',
     import: 'default',
     eager: true,
@@ -167,6 +213,19 @@ describe('a bench that moves the board says so', () => {
       "player.beads.push({ id: 'theFounder' });",
       "player.gold = 5000;",
       "religion.enhancer = ['apostles'];",
+      "sc.slots.pop();",
+      "city.buildings.splice(city.buildings.indexOf('imperialThrone'), 1);",
+      "state.religions.push({ id, founderId, name: 'Faith', follower: [], enhancer: [] });",
+      "religion.follower.push('theQuietHours');",
+      "city.followers = { [religion]: count };",
+      "city.population = 8;",
+      "town.population += 3;",
+      "city.puppet = true;",
+      "delete state.cities[0]!.puppet;",
+      "here.consecration = 'eternalFlame';",
+      "addBuilding(state, holder, 'pyramids');",
+      "at(state, 3, 4).improvement = 'holySite';",
+      "sc.commissionsFulfilled = [{ card: RANKS, turn: state.turn }];",
     ];
     for (const line of caught) expect(HAND_MUTATION.test(line), line).toBe(true);
     const passed = [
@@ -175,6 +234,11 @@ describe('a bench that moves the board says so', () => {
       "expect(sc.slots === null).toBe(false);",
       "const paid = lines.map((line) => line.gold => 0);",
       "if (player.gold >= cost) buy();",
+      "expect(city.population).toBe(12);",
+      "const grown = towns.filter((town) => town.population >= 4);",
+      "if (city.puppet === true) annex();",
+      "expect(field.improvement).toBe('farm');",
+      "const sorted = city.buildings.slice().sort();",
     ];
     for (const line of passed) expect(HAND_MUTATION.test(line), line).toBe(false);
   });

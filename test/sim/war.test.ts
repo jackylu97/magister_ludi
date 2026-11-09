@@ -41,6 +41,7 @@ import {
   type City,
   type GameState,
   SCHEMA_VERSION,
+  bumpRevision,
   capitalCityOf,
   createUnit,
 } from '../../src/sim/state';
@@ -275,6 +276,7 @@ describe('pillage is illegal at peace', () => {
     const tile = at(state.map, 7, 4);
     state.tileOwner[tileIndex(state.map, tile.col, tile.row)] = city.id;
     tile.improvement = 'farm';
+    bumpRevision(state);
     const raider = createUnit(state, 0, 'warrior', tile.col, tile.row);
     return { state, raider: raider.id, tile };
   }
@@ -291,6 +293,7 @@ describe('pillage is illegal at peace', () => {
     const state = flatState();
     const tile = at(state.map, 3, 3);
     tile.improvement = 'farm';
+    bumpRevision(state);
     const raider = createUnit(state, 0, 'warrior', 3, 3);
     expect(tileOwnerPlayerId(state, 3, 3)).toBeNull();
     expect(pillageError(state, raider.id)).toBeNull();
@@ -302,6 +305,7 @@ describe('pillage is illegal at peace', () => {
     const tile = at(state.map, 7, 4);
     state.tileOwner[tileIndex(state.map, tile.col, tile.row)] = city.id;
     tile.improvement = 'farm';
+    bumpRevision(state);
     const raider = createUnit(state, wildId(state), 'warrior', tile.col, tile.row);
     expect(state.wars).toHaveLength(0);
     expect(pillageError(state, raider.id)).toBeNull();
@@ -743,6 +747,7 @@ describe('razing', () => {
     taken.ownerId = 0;
     taken.captured = true;
     taken.puppet = true;
+    bumpRevision(state);
     expect(capital.ownerId).toBe(0);
     return { state, city: taken };
   }
@@ -767,6 +772,7 @@ describe('razing', () => {
     const { state, city } = held();
     const field = at(state.map, 8, 4);
     field.improvement = 'farm';
+    bumpRevision(state);
     applyCommand(state, { type: 'razeCity', playerId: 0, cityId: city.id });
     expect(field.improvement).toBe('farm');
     expect(field.discovery).toBeUndefined();

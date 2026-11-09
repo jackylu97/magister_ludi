@@ -659,6 +659,7 @@ describe('a belief', () => {
     const other = coastalTown(state);
     const religion = foundReligion(state, state.players[0]!);
     city.followers = { [religion.id]: city.population };
+    bumpRevision(state);
     return { state, city, other, religion };
   }
 
@@ -699,6 +700,7 @@ describe('a belief', () => {
       explainCardImpact(state, 0, { kind: 'belief', id: 'theQuietHours' }),
     );
     religion.follower.push('theQuietHours');
+    bumpRevision(state);
     const after = ledger(state, 0);
     for (const key of CITY_YIELD_KEYS) {
       expect(stamp[key], key).toBe(after[key] - before[key]);
@@ -712,6 +714,7 @@ describe('a belief', () => {
       explainCardImpact(state, 0, { kind: 'belief', id: 'theQuietHours' }),
     );
     religion.follower.push('theQuietHours');
+    bumpRevision(state);
     const kept = foldCardImpact(explainCardImpact(state, 0, { kind: 'belief', id: 'theQuietHours' }));
     expect(kept).toEqual(offered);
   });

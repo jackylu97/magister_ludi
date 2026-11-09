@@ -630,6 +630,7 @@ describe('Magisterial batch MG2: towns, works and wonders', () => {
     addBuilding(state, first, 'pyramids');
     addBuilding(state, second, 'greatLibrary');
     addBuilding(state, second, 'stonehenge');
+    bumpRevision(state);
     for (const city of [first, second]) refreshCityDerived(state, city);
     bumpRevision(state);
     expect(renownFrom(state, 'theWorkshopAtOlympia')).toBe(6);
@@ -647,6 +648,7 @@ describe('Magisterial batch MG2: towns, works and wonders', () => {
         .reduce((sum, line) => sum + line.amount, 0);
     expect(defence(holder)).toBe(0);
     addBuilding(state, holder, 'pyramids');
+    bumpRevision(state);
     refreshCityDerived(state, holder);
     bumpRevision(state);
     expect(defence(holder)).toBe(5);
@@ -747,6 +749,8 @@ const WONDERS = [
 /** Raises these buildings in a town and refreshes it. */
 function raise(state: GameState, city: City, ...ids: readonly string[]): void {
   for (const id of ids) addBuilding(state, city, id as BuildingId);
+  // Announced before the refresh, because seating the citizens reads the law.
+  bumpRevision(state);
   refreshCityDerived(state, city);
   bumpRevision(state);
 }

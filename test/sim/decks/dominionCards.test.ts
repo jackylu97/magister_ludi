@@ -296,6 +296,7 @@ describe('the Dominion batch — riders and musters', () => {
     expect(first).toHaveLength(1);
     expect(first[0]!.expiresTurn).toBe(state.turn + 10);
     state.turn += 4;
+    bumpRevision(state);
     payWindfallGrants(state, player, windfallPayout(state, 0, 'camp'));
     const second = (player.timed ?? []).filter((entry) => entry.card === 'theCattleRaid');
     expect(second).toHaveLength(1);
@@ -321,6 +322,7 @@ describe('the Dominion batch — riders and musters', () => {
     expect(first).toHaveLength(1);
     expect(first[0]!.expiresTurn).toBe(state.turn + 10);
     state.turn += 4;
+    bumpRevision(state);
     payWindfallGrants(state, player, windfallPayout(state, 0, 'declareWar'));
     bumpRevision(state);
     const second = (player.timed ?? []).filter((entry) => entry.card === 'theArriereBan');

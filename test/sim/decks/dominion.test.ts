@@ -43,7 +43,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { type Game } from '../../../src/sim/game';
-import { type GameState, type Player, playerById } from '../../../src/sim/state';
+import { type GameState, type Player, bumpRevision, playerById } from '../../../src/sim/state';
 import {
   type HandPosition,
   currentBandOf,
@@ -479,6 +479,7 @@ describe('the Dominion deck — the draw', () => {
     for (const tech of ['bronzeWorking', 'ironWorking', 'alchemy']) {
       if (!ada.techsResearched.includes(tech as never)) ada.techsResearched.push(tech as never);
     }
+    bumpRevision(g.state);
     const eligible = new Set(eligibleFor(g.state, ada));
     for (const id of ROWS) {
       if (isLive(id)) continue;

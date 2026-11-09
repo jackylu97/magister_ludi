@@ -321,6 +321,7 @@ describe('what each building does', () => {
     expect(townLines(state, city, 'Specularium', 'food')).toBe(3);
     expect(townLines(state, city, 'Specularium', 'science')).toBe(3);
     city.population = 8;
+    bumpRevision(state);
     refreshCityDerived(state, city);
     expect(townLines(state, city, 'Specularium', 'science')).toBe(4);
   });

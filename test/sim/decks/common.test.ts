@@ -27,7 +27,7 @@ import { describe, expect, it } from 'vitest';
 
 import { type Game } from '../../../src/sim/game';
 import { applyCommand } from '../../../src/sim/commands';
-import { type GameState, type Player, playerById } from '../../../src/sim/state';
+import { type GameState, type Player, bumpRevision, playerById } from '../../../src/sim/state';
 import {
   eligibleFor,
   positionBag,
@@ -236,6 +236,7 @@ function seated(seed = 11): Game {
 /** Fills the meter and deals a draft to this seat; answers what it dealt. */
 function dealTo(state: GameState, player: Player) {
   player.culturePool = 10_000;
+  bumpRevision(state);
   return settleDraft(state, player);
 }
 

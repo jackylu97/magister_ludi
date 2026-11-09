@@ -453,6 +453,7 @@ describe('the five unique buildings', () => {
     // And it is a fact about a moment: razing the Throne leaves the bargain on
     // the piece, exactly as a card's stamp survives the card leaving its chair.
     city.buildings.splice(city.buildings.indexOf('imperialThrone'), 1);
+    bumpRevision(g.state);
     expect(throned.upkeepRebate).toBe(rebate);
     expect(explainUnitUpkeepRebate(g.state, 0)[0]!.gold).toBe(rebate);
   });

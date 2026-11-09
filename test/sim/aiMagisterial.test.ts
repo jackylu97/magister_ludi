@@ -561,6 +561,8 @@ describe('the hand', () => {
     const priced = (wonders: number, extra: number): { worth: number; expected: number } => {
       towns[0]!.buildings = towns[0]!.buildings.filter((id) => !isWonder(id));
       towns[0]!.buildings.push(...ids.slice(0, wonders));
+      // Announced before the refresh, because seating the citizens reads the law.
+      bumpRevision(state);
       refreshCityDerived(state, towns[0]!);
       bumpRevision(state);
       const ctx = valueContext(state, player);

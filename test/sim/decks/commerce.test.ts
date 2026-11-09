@@ -2286,6 +2286,7 @@ describe('C4 — the great-house marker, read from both sides', () => {
       // date and pays nothing again — where Crassus' bill, which does not renew,
       // would have pushed a second entry and doubled the figure.
       g.state.turn += 2;
+      bumpRevision(g.state);
       buy();
       expect((musa.timed ?? []).length).toBe(1);
       expect(musa.timed![0]!.expiresTurn).toBe(g.state.turn + 5);
@@ -2410,6 +2411,7 @@ describe('C4 — the great-house marker, read from both sides', () => {
       const g = bench(['caravanseraiCities']);
       const city = town(g);
       city.buildings.push(YARD);
+      bumpRevision(g.state);
       refreshCityDerived(g.state, city);
       bumpRevision(g.state);
 

@@ -5471,6 +5471,7 @@ describe("the ratified cards of the Themes Build", () => {
     expect(culture("The Archives")).toBe(6);
     // And a card taken back out of its chair stops being counted.
     sc.slots.pop();
+    bumpRevision(g.state);
     expect(culture("The Archives")).toBe(4);
   });
 
@@ -8756,10 +8757,12 @@ describe("the engine shapes", () => {
     ];
     bumpRevision(g.state);
     g.state.turn = 7;
+    bumpRevision(g.state);
     const banked = player.sciencePool;
     runPeriodicBoons(g.state);
     expect(player.sciencePool).toBe(banked);
     g.state.turn = 8;
+    bumpRevision(g.state);
     runPeriodicBoons(g.state);
     expect(player.sciencePool).toBe(banked + 7);
   });

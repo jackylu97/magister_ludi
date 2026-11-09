@@ -13,7 +13,7 @@ import { MaterialLibrary } from '../../src/render3d/toon';
 import { foundCityAt } from '../../src/sim/cities';
 import { snapshotState } from '../../src/sim/game';
 import { createMap, getTileAt, tileIndex, type GameMap } from '../../src/sim/map';
-import { createUnit, type GameState } from '../../src/sim/state';
+import { bumpRevision, createUnit, type GameState } from '../../src/sim/state';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 // @ts-expect-error No declarations for the shared study geometry.
 import { prepareTerrainMap } from '../../src/terrainStudy/surface.js';
@@ -219,7 +219,7 @@ describe('painted cities in the live game', () => {
   it.each(['hill', 'coastal'] as const)('fits upright buildings to the exact %s terrain and leaves the garrison court clear', kind => {
     const f = fixture(kind); f.city.population = 7;
     f.state.players[0]!.techsResearched.push('mathematics');
-    f.city.buildings.push('palisade', 'shrine', 'temple', 'pyramids'); f.build();
+    f.city.buildings.push('palisade', 'shrine', 'temple', 'pyramids'); bumpRevision(f.state); f.build();
     const centre = cellCenter(f.city.col, f.city.row);
     for (const placement of f.layer.placements) {
       const points = [...placement.footprint, ...placement.footprint.map((a, i, polygon) => {

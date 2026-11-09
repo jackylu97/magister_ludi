@@ -61,7 +61,7 @@ import {
   unitHealthBonus,
 } from '../../src/sim/resourceEffects';
 import { RULES } from '../../src/sim/rulesData';
-import { bumpEconomy } from '../../src/sim/slate';
+import { bumpEconomy, setSlateShadow, slateShadow } from '../../src/sim/slate';
 import {
   type GameState,
   type Unit,
@@ -673,22 +673,31 @@ describe('asking the empire for a maximum', () => {
       for (let i = 0; i < 40; i++) createUnit(state, 0, 'swordsman', 5 + (i % 6), 8);
 
       const rounds = 20000;
-      // Warm, so the first call's walk is not the figure being printed.
-      unitHealthBonus(state, 0);
-      const warmStart = performance.now();
+      // The shadow run recomputes every hit, so a warm ask costs a walk there; switched off for the timing.
+      const was = slateShadow();
+      setSlateShadow(false);
       let sink = 0;
-      for (let i = 0; i < rounds; i++) {
-        sink += unitMaxHp(state.units[i % state.units.length]!, unitHealthBonus(state, 0));
-      }
-      const warm = ((performance.now() - warmStart) * 1000) / rounds;
+      let warm: number;
+      let uncached: number;
+      try {
+        // Warm, so the first call's walk is not the figure being printed.
+        unitHealthBonus(state, 0);
+        const warmStart = performance.now();
+        for (let i = 0; i < rounds; i++) {
+          sink += unitMaxHp(state.units[i % state.units.length]!, unitHealthBonus(state, 0));
+        }
+        warm = ((performance.now() - warmStart) * 1000) / rounds;
 
-      const coldStart = performance.now();
-      const cold = 200;
-      for (let i = 0; i < cold; i++) {
-        bumpEconomy(state);
-        sink += unitMaxHp(state.units[i % state.units.length]!, unitHealthBonus(state, 0));
+        const coldStart = performance.now();
+        const cold = 200;
+        for (let i = 0; i < cold; i++) {
+          bumpEconomy(state);
+          sink += unitMaxHp(state.units[i % state.units.length]!, unitHealthBonus(state, 0));
+        }
+        uncached = ((performance.now() - coldStart) * 1000) / cold;
+      } finally {
+        setSlateShadow(was);
       }
-      const uncached = ((performance.now() - coldStart) * 1000) / cold;
 
       // eslint-disable-next-line no-console
       console.log(

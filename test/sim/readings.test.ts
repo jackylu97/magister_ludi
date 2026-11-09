@@ -347,13 +347,20 @@ describe('the routes on offer are remembered on the revision', () => {
     // one revision. A ratio rather than a millisecond figure, so the pin is
     // about the memo and not about this machine.
     const { state } = trading();
-    const first = performance.now();
-    void readRoutes(state, 0);
-    const walked = performance.now() - first;
-    const second = performance.now();
-    for (let ask = 0; ask < 50; ask += 1) void readRoutes(state, 0);
-    const hits = performance.now() - second;
-    expect(hits).toBeLessThan(walked);
+    // The shadow run recomputes every hit, so a hit costs a walk there; switched off for the timing.
+    const was = slateShadow();
+    setSlateShadow(false);
+    try {
+      const first = performance.now();
+      void readRoutes(state, 0);
+      const walked = performance.now() - first;
+      const second = performance.now();
+      for (let ask = 0; ask < 50; ask += 1) void readRoutes(state, 0);
+      const hits = performance.now() - second;
+      expect(hits).toBeLessThan(walked);
+    } finally {
+      setSlateShadow(was);
+    }
   });
 });
 
@@ -1005,6 +1012,9 @@ describe('the routes reading asks the gate once a pair', () => {
   it('calls the gate once per pair and never again on the same revision', () => {
     const { state } = board();
     const gate = vi.spyOn(tradeModule, 'explainRouteGates');
+    // The shadow run recomputes every hit, which calls the gate again; switched off for the count.
+    const was = slateShadow();
+    setSlateShadow(false);
     try {
       const reading = readRoutes(state, 0);
       // One call a row, and the rows are the pairs this seat has charted.
@@ -1022,6 +1032,7 @@ describe('the routes reading asks the gate once a pair', () => {
       expect(fresh).not.toBe(reading);
       expect(gate).toHaveBeenCalledTimes(fresh.rows.length);
     } finally {
+      setSlateShadow(was);
       gate.mockRestore();
     }
   });

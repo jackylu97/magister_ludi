@@ -81,6 +81,8 @@ function bench(options: {
       };
     }
   }
+  // Announced before the refresh, because seating the citizens reads the law.
+  bumpRevision(state);
   refreshCityDerived(state, home);
   refreshCityDerived(state, puppet);
   bumpRevision(state);

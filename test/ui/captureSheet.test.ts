@@ -24,7 +24,7 @@ import { explainAuthority, explainHappiness } from '../../src/sim/meters';
 import { foundCityAt } from '../../src/sim/cities';
 import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
-import { type City, type GameState, createUnit } from '../../src/sim/state';
+import { type City, type GameState, bumpRevision, createUnit } from '../../src/sim/state';
 import { openWar } from '../../src/sim/wars';
 import { resetVisibility } from '../../src/sim/visibility';
 import { uiSource } from './sourceHelpers';
@@ -71,6 +71,7 @@ function capture(): { state: GameState; city: City } {
   const city = foundCityAt(state, 1, at(state.map, 6, 4));
   city.population = 4;
   city.hp = 1;
+  bumpRevision(state);
   openWar(state, 0, 1);
   const raider = createUnit(state, 0, 'warrior', 5, 4);
   expect(applyCombat(state, raider.id, { col: 6, row: 4 }).ok).toBe(true);
@@ -114,6 +115,7 @@ describe('the figures beside each answer', () => {
   it('prices annexation above the puppet by the relief, on both meters', () => {
     const { state, city } = capture();
     city.population = 8;
+    bumpRevision(state);
     const figures = captureFigures(state, 0, city);
     expect(figures.annexAuthority).toBeLessThan(figures.puppetAuthority);
     expect(figures.annexHappiness).toBeLessThan(figures.puppetHappiness);
@@ -160,6 +162,7 @@ describe('the figures beside each answer', () => {
     const { state, city } = capture();
     const small = captureFigures(state, 0, city);
     city.population = 9;
+    bumpRevision(state);
     const large = captureFigures(state, 0, city);
     expect(large.annexHappiness).toBeLessThan(small.annexHappiness);
     expect(large.puppetHappiness).toBeLessThan(small.puppetHappiness);

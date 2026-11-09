@@ -243,6 +243,7 @@ describe('Officials by Merit (reading 13)', () => {
     expect(rerollError(state, 0)).toBeNull();
     delete player.statecraft.pendingDoctrine;
     player.statecraft.government = government;
+    bumpRevision(state);
     // A great-person hand on the table: rerolled through the reducer.
     player.greatPersonOffer = drawGreatPersonOffer(state, player);
     bumpRevision(state);

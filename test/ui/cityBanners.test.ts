@@ -666,9 +666,11 @@ describe('a puppet says so beside its name', () => {
     const city = foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
     expect(visibleCityBanners(state, 0, null)[0]!.puppet).toBe(false);
     city.puppet = true;
+    bumpRevision(state);
     expect(visibleCityBanners(state, 0, null)[0]!.puppet).toBe(true);
     // Annexation is the one verb, and it deletes the key — presence is the state.
     delete city.puppet;
+    bumpRevision(state);
     expect(visibleCityBanners(state, 0, null)[0]!.puppet).toBe(false);
   });
 

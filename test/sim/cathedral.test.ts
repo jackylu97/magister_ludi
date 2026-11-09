@@ -113,6 +113,8 @@ function convert(state: GameState, city: City, count: number): number {
   // strict — a town split down the middle flies no banner at all.
   city.population = count;
   city.followers = { [religion]: count };
+  // A new religion is a source of the founder's law, so the hand edit announces.
+  bumpRevision(state);
   return religion;
 }
 

@@ -513,3 +513,16 @@ Checks at the gate: type check clean, 11,094 core tests passed, build clean with
 - Registers that point at the new file and assert the same facts: `aiBot.test.ts` (the file list), `magisterialConstitution.test.ts` (the bot's chair-fit reads, now also checking that `bot.ts` has none), `aiWants.test.ts` (the one file that asks `'rerollOffer'`), `magisterialDraft.test.ts` (the pass candidate's price), and `spectatePage.test.ts` (one more banned import). 13 test files import `scoreCard` or `explainCard` from the new file.
 
 Checks at the gate: type check clean, 11,117 core tests passed (23 of them S0's), build clean with the same 158 cycle warnings, both pins unchanged at all six turns, digest test passed.
+
+### The stale answers in the shadow run
+
+The shadow run recomputes every remembered answer and fails if the two differ. It had failed 44 core tests since before this pass. None of them was a fault in the simulation, so no game decision changed.
+
+- **41 were tests that edit the board by hand and announce it late or never.** A test that pushes a building, a faith, a Doctrine or a turn by hand must call `bumpRevision`, as the contract on `liveReading` says. Some never did. Others called `refreshCityDerived` first and bumped after it, so the refresh seated the citizens on the old law. Each now bumps after its edit, and before any refresh. One of the 41 was in `src/flairGallery/worksFixture.ts`, which only the gallery page and its test use.
+- **3 were measurements that the shadow run doubles:** two in `readings.test.ts` and one in `resourceBonuses.test.ts`. Each turns the shadow off around the measurement only, and restores it in a `finally`. The assertions are unchanged.
+- **The lint (`benches.test.ts`) missed them** because it checks whole files, and every one of those files called `bumpRevision` somewhere. It now also reads `test/sim/decks/`, and it has 17 more kinds of hand edit, each with lines it must catch and lines it must not. The wider lint found four more files that edit the board and ask the simulation without announcing (`war.test.ts`, `captureSheet.test.ts`, `decks/common.test.ts`, `decks/dominion.test.ts`). They now announce.
+- **Left open:**
+  - `test/render` is still outside the lint. Bringing it in would flag 13 files that edit the state by hand and do not announce.
+  - A fault that cannot happen today: in `realiseItem` (`cities.ts`), `consecrateBuilding` writes `City.consecration` after the function's `bumpEconomy`, and `slateRegister.test.ts` has no row for that field. No consecration row in `data/religion.json` pays happiness or authority, so no answer can go stale now. It becomes a real fault the day one does.
+
+Checks: type check clean, 11,117 core tests passed, build clean, both pins unchanged, digest test passed, and the core shadow run passed all 11,117 tests.

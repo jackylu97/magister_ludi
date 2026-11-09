@@ -11,7 +11,7 @@ import { VIEW3D } from '../../src/render3d/lookData';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { foundCityAt } from '../../src/sim/cities';
-import { type GameState } from '../../src/sim/state';
+import { type GameState, bumpRevision } from '../../src/sim/state';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import { computeFreshwater } from '../../src/sim/water';
 import type { LensView } from '../../src/ui/mapView';
@@ -292,6 +292,7 @@ describe('the faith lens', () => {
     const state = faithState();
     const id = found(state, 0);
     state.cities[0]!.followers = { [id]: state.cities[0]!.population };
+    bumpRevision(state);
     const layer = build(state, grid(state, VISIBLE));
     let washes = 0;
     for (const child of layer.group.children) {
@@ -312,6 +313,7 @@ describe('the faith lens', () => {
     const state = faithState();
     const id = found(state, 0);
     state.cities[0]!.followers = { [id]: state.cities[0]!.population };
+    bumpRevision(state);
     const layer = build(state, grid(state, HIDDEN));
     let washes = 0;
     for (const child of layer.group.children) {
@@ -331,6 +333,7 @@ describe('the faith lens', () => {
     const id = found(state, 0);
     state.cities[0]!.followers = { [id]: state.cities[0]!.population };
     at(state, 3, 4).improvement = 'holySite';
+    bumpRevision(state);
 
     const ringAtSite = (levels: number[]): number[] => {
       const layer = build(state, levels);
@@ -414,6 +417,7 @@ describe('the faith lens', () => {
       const state = faithState();
       const id = found(state, 0);
       state.cities[0]!.followers = { [id]: state.cities[0]!.population };
+      bumpRevision(state);
       const layer = build(state, grid(state, EXPLORED));
       expect(ringOn(layer, 4, 4)).toEqual([playerColor(state, 0)]);
       layer.dispose();
