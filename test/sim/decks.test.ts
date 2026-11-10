@@ -657,8 +657,11 @@ describe('the schema, as landed', () => {
     // **And batch R3** (the Scientific review's cards): two more. The Kept
     // Secret, The Curators of Works and the shared The Mountain Observatories
     // are new rows, and The Prize Essay was live and is retired.
-    expect(live).toBe(617);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(617);
+    // **And batch DS1** (`docs/plans/deck-simplification-2026-11-10.md`): 146
+    // fewer. 129 rows of the six decks' own files and 17 shared rows were live
+    // and are retired.
+    expect(live).toBe(471);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(471);
   });
 
   /**
@@ -1137,7 +1140,7 @@ describe('the schema, as landed', () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(227);
+    expect(SCHEMA_VERSION).toBe(228);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1406,10 +1409,13 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // The Sacred Precincts and The Monastic Builders (+ 3 retired).
       // **Batch R3** retired the live Scientific row The Prize Essay (+ 1
       // retired).
+      // **Batch DS1** (`docs/plans/deck-simplification-2026-11-10.md`) retired
+      // 146 live rows: 129 of the six decks' files and 17 shared rows (+ 146
+      // retired).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
       ).toHaveLength(5);
-      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(274);
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(420);
     }
   });
 

@@ -66,7 +66,9 @@ const TRAVELLING_PLAYERS = 'travellingPlayers' as OrderId;
 
 /** The five rows batch MG4 dealt, with the tier, rarity and type the sheet gives each. */
 const MG4_ROWS: readonly [OrderId, number, string, string][] = [
-  [EIGHTH_WONDER, 0, 'uncommon', 'civic'],
+  // Tier 0 when batch MG4 built it. Batch DS1 moved it to Tier I
+  // (`docs/plans/deck-simplification-2026-11-10.md`).
+  [EIGHTH_WONDER, 1, 'uncommon', 'civic'],
   [ROLL_OF_THE_SENATE, 1, 'uncommon', 'wildcard'],
   [WONDER_OF_THE_AGE, 3, 'uncommon', 'wildcard'],
   [UNIVERSAL_LIBRARY, 4, 'rare', 'economic'],
@@ -180,12 +182,16 @@ describe('Magisterial batch MG4: the rows', () => {
       expect(def.type, id).toBe(type);
       expect(def.deferred, id).toBeUndefined();
     }
-    // Travelling Players keeps its id, its tier and its type (reading 46).
+    // Travelling Players keeps its id and its tier (reading 46). Batch DS1
+    // (`docs/plans/deck-simplification-2026-11-10.md`) retired it: the row and
+    // its effect stay for saves, so the tests below still read what it pays,
+    // and it has no type and is not dealt.
     const players = orderDef(TRAVELLING_PLAYERS);
     expect(players.decks).toEqual(['commerce', 'magisterial']);
     expect(players.band).toBe(2);
-    expect(players.type).toBe('civic');
-    expect(orderIsDealt(TRAVELLING_PLAYERS)).toBe(true);
+    expect(players.retired).toBe(true);
+    expect(players.type).toBeUndefined();
+    expect(orderIsDealt(TRAVELLING_PLAYERS)).toBe(false);
   });
 
   it('prints every clause plainly, with no keyword mark left raw', () => {

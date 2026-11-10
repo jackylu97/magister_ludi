@@ -233,12 +233,17 @@ const S9: readonly { id: OrderId; band: number; rarity: OrderRarity; type: CardT
 
 describe('the rows', () => {
   it('deals the ten rows with their band, rarity, type and decks, and prints each in words', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Field Refits. It keeps its band, rarity, words and effect for saves, so
+    // the tests below still read it. It has no type and is not dealt.
     for (const row of S9) {
       const def = orderDef(row.id);
-      expect(orderIsDealt(row.id), row.id).toBe(true);
+      const retired = row.id === 'theFieldRefits';
+      expect(def.retired === true, row.id).toBe(retired);
+      expect(orderIsDealt(row.id), row.id).toBe(!retired);
       expect(def.band, row.id).toBe(row.band);
       expect(def.rarity, row.id).toBe(row.rarity);
-      expect(def.type, row.id).toBe(row.type);
+      expect(def.type, row.id).toBe(retired ? undefined : row.type);
       expect(def.decks, row.id).toEqual(row.decks);
       expect(def.deferred, row.id).toBeUndefined();
       expect(def.text, row.id).toBeTruthy();

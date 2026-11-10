@@ -529,16 +529,20 @@ describe('Devotion batch DV3: the shared The Rising Nave', () => {
     expect(townPays(state, city, 'theRisingNave', 'faith')).toBe(0);
   });
 
-  it('is a shared Tier III card of Devotion and Magisterial, worded as the card', () => {
+  it('is a shared Tier III card of Devotion and Magisterial, worded as the card, and retired', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Rising Nave. The row and its effect stay for saves, so the tests above
+    // still read what it pays. It has no type and neither deck is dealt it.
     const def = orderDef('theRisingNave' as OrderId);
     expect(DECK_FILE_ORDERS.common).toContain('theRisingNave');
     expect(def.decks).toEqual(['devotion', 'magisterial']);
     expect(def.band).toBe(3);
     expect(def.rarity).toBe('rare');
-    expect(def.type).toBe('civic');
-    expect(orderIsDealt('theRisingNave' as OrderId)).toBe(true);
-    expect(ordersForDecks(['devotion'])).toContain('theRisingNave');
-    expect(ordersForDecks(['magisterial'])).toContain('theRisingNave');
+    expect(def.retired).toBe(true);
+    expect(def.type).toBeUndefined();
+    expect(orderIsDealt('theRisingNave' as OrderId)).toBe(false);
+    expect(ordersForDecks(['devotion'])).not.toContain('theRisingNave');
+    expect(ordersForDecks(['magisterial'])).not.toContain('theRisingNave');
     expect(words('theRisingNave')[0]).toBe(
       '+1 faith in every city while it is building a wonder, a Cathedral or The Magnum Opus per 10% of the current build already done there',
     );

@@ -176,7 +176,11 @@ describe('the register', () => {
     expect(improvementDef('niterBeds').suppliesResource).toBe('niter');
   });
 
-  it('deals the eight cards, The Assay from the shared shelf', () => {
+  it('deals the eight cards, The Assay from the shared shelf, but the three batch DS1 retired', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Studium Generale, The School of Mines and The Long Inheritance. Their
+    // rows and effects stay for saves, so the tests below still read them.
+    const retiredInDs1 = ['theStudiumGenerale', 'theStrategicReserves', 'theLongInheritance'];
     for (const id of [
       'theProspectorsNotes',
       'theFoundingGift',
@@ -188,7 +192,9 @@ describe('the register', () => {
       'theLongInheritance',
       'scientificTheAssay',
     ] as OrderId[]) {
-      expect(orderIsDealt(id), id).toBe(true);
+      const retired = retiredInDs1.includes(id);
+      expect(orderDef(id).retired === true, id).toBe(retired);
+      expect(orderIsDealt(id), id).toBe(!retired);
       expect(orderDef(id).deferred, id).toBeUndefined();
     }
     expect(orderDef('theStrategicReserves').name).toBe('The School of Mines');

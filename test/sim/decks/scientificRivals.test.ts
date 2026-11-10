@@ -532,20 +532,28 @@ describe('the rows', () => {
     ['theProvingGround', 3, 'military'],
   ];
 
-  it('are dealt, typed and banded as the sheet says', () => {
+  it('are dealt, typed and banded as the sheet says, but the three batch DS1 retired', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Great Designs, Greek Fire and the shared Books from the Ships: each reads
+    // what rivals know. Their rows and effects stay for saves, so the tests
+    // above still read them. They have no type and are not dealt.
+    const retiredInDs1 = ['theGreatDesigns', 'greekFire'];
     for (const [id, band, type] of ROWS) {
       const def = orderDef(id);
-      expect(orderIsDealt(id), id).toBe(true);
+      const retired = retiredInDs1.includes(id);
+      expect(def.retired === true, id).toBe(retired);
+      expect(orderIsDealt(id), id).toBe(!retired);
       expect(def.decks, id).toEqual(['scientific']);
       expect(def.band, id).toBe(band);
-      expect(def.type, id).toBe(type);
+      expect(def.type, id).toBe(retired ? undefined : type);
       expect(def.deferred, id).toBeUndefined();
     }
     const books = orderDef('booksFromTheShips');
-    expect(orderIsDealt('booksFromTheShips')).toBe(true);
+    expect(books.retired).toBe(true);
+    expect(orderIsDealt('booksFromTheShips')).toBe(false);
     expect(books.decks).toEqual(['commerce', 'scientific']);
     expect(books.band).toBe(2);
-    expect(books.type).toBe('civic');
+    expect(books.type).toBeUndefined();
   });
 
   it('are said in a first-time player’s words', () => {

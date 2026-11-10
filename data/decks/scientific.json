@@ -3,7 +3,7 @@
     "scientificTheAlmanac": {
       "name": "The Almanac",
       "decks": ["scientific"],
-      "band": 0,
+      "band": 1,
       "line": "none",
       "rarity": "common",
       "type": "economic",
@@ -117,9 +117,9 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "A roof, a lamp, and a long patience.",
       "text": "A Library at least twenty turns old grants +2 culture and +1 renown. At forty turns, these bonuses become +4 culture and +2 renown.",
+      "note": "Cut from the deck. It read how long a building had stood, which a player must track. The Scribes' Hall is the Library card.",
       "effects": [
         {
           "kind": "pays",
@@ -145,7 +145,8 @@
           "per": "city",
           "scope": { "test": "hasBuilding", "building": "library", "standingTurns": 40 }
         }
-      ]
+      ],
+      "retired": true
     },
     "theResearchAnnals": {
       "name": "The Research Annals",
@@ -311,9 +312,9 @@
       "band": 3,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
       "flavor": "Teach the assayer on the hill, and the hill pays the fees.",
       "text": "An Academy standing on a strategic resource supplies one more copy of it.",
+      "note": "Cut from the deck. It was too narrow to matter in most games.",
       "effects": [
         {
           "kind": "effectAmplifier",
@@ -321,7 +322,8 @@
           "improvement": "academy",
           "amount": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "thePracticalArts": {
       "name": "The Practical Arts",
@@ -654,9 +656,9 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "Old works build the new ones.",
       "text": "Cities working an Academy at least twenty turns old gain +30% production toward empire buildings, wonders and the Magnum Opus.",
+      "note": "Cut from the deck. It read how long a building had stood, which a player must track.",
       "effects": [
         {
           "kind": "productionBonus",
@@ -671,7 +673,8 @@
           "percent": 30,
           "scope": { "test": "workingImprovement", "improvements": ["academy"], "standingTurns": 20 }
         }
-      ]
+      ],
+      "retired": true
     },
     "masterArtificers": {
       "name": "Master Artificers",
@@ -791,7 +794,7 @@
     "theBronzeFoundersCharter": {
       "name": "The Bronze-Founders' Charter",
       "decks": ["scientific"],
-      "band": 0,
+      "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "type": "military",
@@ -830,10 +833,11 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "civic",
       "flavor": "Copy out what you read, and you read it twice.",
       "text": "Charter technologies cost you 15% less research.",
-      "effects": [{ "kind": "rulePercent", "rule": "charterTechCost", "percent": -15 }]
+      "note": "Cut from the deck. Charter technologies are to cost the ordinary price, so a card that lowers that price has no job.",
+      "effects": [{ "kind": "rulePercent", "rule": "charterTechCost", "percent": -15 }],
+      "retired": true
     },
     "thePaperMakersCharter": {
       "name": "The Paper-Makers' Charter",
@@ -913,10 +917,11 @@
       "band": 4,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "Register the invention, and the next one costs less to argue for.",
       "text": "Charter technologies cost you no more research than ordinary technologies at the same point in the tree.",
-      "effects": [{ "kind": "rulePercent", "rule": "charterPremium", "percent": -100 }]
+      "note": "Cut from the deck. Charter technologies are to cost the ordinary price, so a card that lowers that price has no job.",
+      "effects": [{ "kind": "rulePercent", "rule": "charterPremium", "percent": -100 }],
+      "retired": true
     },
     "theScholarsGuild": {
       "name": "The Scholars' Guild",
@@ -924,9 +929,9 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "The guild feeds its students and mends their tools, and asks for lessons in return.",
       "text": "Scholars in the trades also pay +1 food and +1 production.",
+      "note": "Cut from the deck. It was too narrow to matter in most games.",
       "effects": [
         {
           "kind": "pays",
@@ -948,7 +953,8 @@
           "family": "scholar",
           "within": "city"
         }
-      ]
+      ],
+      "retired": true
     },
     "theSecretArts": {
       "name": "The Secret Arts",
@@ -999,10 +1005,11 @@
       "band": 2,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "Raise it before anyone else knows how.",
       "text": "Your towns build a wonder 30% faster while no empire you have met knows the technology that opens it.",
-      "effects": [{ "kind": "productionBonus", "category": "wonder", "percent": 30, "aheadOfMet": true }]
+      "note": "Cut from the deck. It read what rival empires know, which a player cannot easily see. The City Architects is the wonder card.",
+      "effects": [{ "kind": "productionBonus", "category": "wonder", "percent": 30, "aheadOfMet": true }],
+      "retired": true
     },
     "greekFire": {
       "name": "Greek Fire",
@@ -1010,9 +1017,9 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "The recipe was a secret of the state, and it stayed one.",
       "text": "Gaining a unit that no empire you have met can build grants science and culture equal to its strength.",
+      "note": "Cut from the deck. It read what rival empires know, which a player cannot easily see.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -1026,7 +1033,8 @@
           "unbuildableByMet": true,
           "grant": { "yield": "culture", "amount": 1, "fromOccasion": "strength" }
         }
-      ]
+      ],
+      "retired": true
     },
     "theProvingGround": {
       "name": "The Proving Ground",
@@ -1120,16 +1128,17 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
-      "type": "wildcard",
       "flavor": "Any hall where masters teach is a school of the whole world.",
       "text": "Great-person works beside an Academy count as Academies for your cards.",
+      "note": "Cut from the deck. A rule that makes one thing count as another suits a Doctrine better than an Order.",
       "effects": [
         {
           "kind": "rule",
           "rule": "worksCountAs",
           "improvement": "academy"
         }
-      ]
+      ],
+      "retired": true
     },
     "theNizamiyya": {
       "name": "The Nizamiyya",
@@ -1668,10 +1677,11 @@
       "band": 2,
       "line": "none",
       "rarity": "rare",
-      "type": "civic",
       "flavor": "The crown pays the scholars, and the scholars find more scholars.",
       "text": "Great scholars raise the price of your next great person by half as much.",
-      "effects": [{ "kind": "rulePercent", "rule": "scholarLadderStep", "percent": -50 }]
+      "note": "Cut from the deck. It changed a price a player rarely looks at.",
+      "effects": [{ "kind": "rulePercent", "rule": "scholarLadderStep", "percent": -50 }],
+      "retired": true
     },
     "theInvitations": {
       "name": "The Invitations",
@@ -1837,10 +1847,11 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "The new arms reach the camp, and the surgeons come with them.",
       "text": "Each time research upgrades one of your units, it heals fully.",
-      "effects": [{ "kind": "rule", "rule": "upgradeHeals" }]
+      "note": "Cut from the deck. It was too narrow to matter in most games.",
+      "effects": [{ "kind": "rule", "rule": "upgradeHeals" }],
+      "retired": true
     },
     "theStrategikon": {
       "name": "The Strategikon",
@@ -1964,9 +1975,9 @@
       "band": 0,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "The recipe never left the palace, and the palace grew rich on it.",
       "text": "While you know a technology no other empire knows, your capital gains +20% food and +20% culture. Charter technologies do not count.",
+      "note": "Cut from the deck. It read what rival empires know, which a player cannot easily see.",
       "effects": [
         {
           "kind": "conditionRule",
@@ -1976,7 +1987,8 @@
             { "kind": "percentYields", "yield": "culture", "percent": 20, "scope": { "test": "capital" } }
           ]
         }
-      ]
+      ],
+      "retired": true
     },
     "theCuratorsOfWorks": {
       "name": "The Curators of Works",

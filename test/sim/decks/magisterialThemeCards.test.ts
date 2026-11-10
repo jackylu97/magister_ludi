@@ -256,11 +256,14 @@ describe('Magisterial batch MG1: the rows', () => {
     );
     // Batch MG3 dealt The Golden Age and The Magister's Court (see below).
     // Batch MG8 dealt The Last Commission
-    // (`test/sim/decks/magisterialPatrons.test.ts`), so none waits now.
+    // (`test/sim/decks/magisterialPatrons.test.ts`), so none waits now. Batch
+    // DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Magister's Court, which keeps its text and its effect for saves.
     for (const id of ['theGoldenAge', 'magisterialTheMagistersCourt', 'theLastCommission']) {
       const def = orderDef(id as OrderId);
-      expect(orderIsDealt(id as OrderId), id).toBe(true);
-      expect(def.retired, id).toBeUndefined();
+      const retired = id === 'magisterialTheMagistersCourt';
+      expect(orderIsDealt(id as OrderId), id).toBe(!retired);
+      expect(def.retired, id).toBe(retired ? true : undefined);
       expect(def.deferred, id).toBeUndefined();
       for (const clause of describeCard(id as OrderId)) expect(stripRefs(clause.text), id).not.toContain('[[');
     }
@@ -268,7 +271,9 @@ describe('Magisterial batch MG1: the rows', () => {
 
   it('retires 62 Magisterial rows and the two shared rows both sheets cut, and deals none of them', () => {
     const retired = DECK_FILE_ORDERS.magisterial.filter((id) => orderDef(id).retired === true);
-    expect(retired).toHaveLength(62);
+    // 62 since batch MG1. Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`)
+    // retired seven more.
+    expect(retired).toHaveLength(69);
     // The one card this pass cut that still had a live row.
     expect(retired).toContain('thePerformersTreasury');
     for (const id of [...retired, 'theImperialExaminations', 'triumphalArches'] as OrderId[]) {
@@ -305,15 +310,19 @@ describe('Magisterial batch MG1: the rows', () => {
       theSenateCharter: 'civic',
       theMastersDomain: 'economic',
       theHonouredDead: 'civic',
-      theLivingCanon: 'economic',
       theWonderCommonwealth: 'economic',
       theGoldenAge: 'civic',
-      magisterialTheMagistersCourt: 'economic',
       theLastCommission: 'economic',
       sacredCommissions: 'economic',
       sacredPatronage: 'civic',
     };
     for (const [id, type] of Object.entries(types)) expect(orderDef(id as OrderId).type, id).toBe(type);
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Living Canon and The Magister's Court, so they have no type now.
+    for (const id of ['theLivingCanon', 'magisterialTheMagistersCourt']) {
+      expect(orderDef(id as OrderId).retired, id).toBe(true);
+      expect(orderDef(id as OrderId).type, id).toBeUndefined();
+    }
   });
 });
 
@@ -385,16 +394,23 @@ function pick(state: GameState): void {
 }
 
 describe('Magisterial batch MG2: the rows', () => {
-  it('deals all fourteen from the tier, rarity and type the sheet names', () => {
+  it('deals all fourteen from the tier, rarity and type the sheet names, but the two batch DS1 retired', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Repertory and The Siting Masters. Each keeps its tier, rarity and effect
+    // for saves, so the tests below still read them. It has no type and is
+    // not dealt.
+    const retiredInDs1 = ['theRepertory', 'theSitingMasters'];
     const pool = ordersForDecks(['magisterial']);
     for (const [id, band, rarity, type] of MG2_ROWS) {
       const def = orderDef(id as OrderId);
-      expect(orderIsDealt(id as OrderId), id).toBe(true);
-      expect(pool, id).toContain(id);
+      const retired = retiredInDs1.includes(id);
+      expect(def.retired === true, id).toBe(retired);
+      expect(orderIsDealt(id as OrderId), id).toBe(!retired);
+      expect(pool.includes(id as OrderId), id).toBe(!retired);
       expect(def.decks, id).toEqual(['magisterial']);
       expect(def.band, id).toBe(band);
       expect(def.rarity, id).toBe(rarity);
-      expect(def.type, id).toBe(type);
+      expect(def.type, id).toBe(retired ? undefined : type);
       expect(def.deferred, id).toBeUndefined();
     }
   });
@@ -768,17 +784,24 @@ function touching(state: GameState, a: Tile, b: Tile): boolean {
 }
 
 describe('Magisterial batch MG3: the rows', () => {
-  it('deals all thirteen from the tier, rarity and type the sheet names', () => {
+  it('deals all thirteen from the tier, rarity and type the sheet names, but the three batch DS1 retired', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Gazetteers, The Magister's Court and The Bulwark of Marvels. Each keeps
+    // its tier, rarity and effect for saves, so the tests below still read
+    // them. It has no type and is not dealt.
+    const retiredInDs1 = ['theGazetteers', 'magisterialTheMagistersCourt', 'theBulwarkOfMarvels'];
     expect(WONDERS.every((id) => WONDER_IDS.includes(id as BuildingId))).toBe(true);
     const pool = ordersForDecks(['magisterial']);
     for (const [id, band, rarity, type] of MG3_ROWS) {
       const def = orderDef(id as OrderId);
-      expect(orderIsDealt(id as OrderId), id).toBe(true);
-      expect(pool, id).toContain(id);
+      const retired = retiredInDs1.includes(id);
+      expect(def.retired === true, id).toBe(retired);
+      expect(orderIsDealt(id as OrderId), id).toBe(!retired);
+      expect(pool.includes(id as OrderId), id).toBe(!retired);
       expect(def.decks, id).toEqual(['magisterial']);
       expect(def.band, id).toBe(band);
       expect(def.rarity, id).toBe(rarity);
-      expect(def.type, id).toBe(type);
+      expect(def.type, id).toBe(retired ? undefined : type);
       expect(def.deferred, id).toBeUndefined();
     }
   });

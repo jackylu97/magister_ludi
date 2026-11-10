@@ -44,7 +44,13 @@ import {
   unitMatches,
 } from '../../../src/sim/statecraft';
 import { cardUnitStat, combatLineAmount } from '../../../src/sim/statecraft/evaluator';
-import { type CardEffect, type OrderId, orderDef, orderIsDealt } from '../../../src/sim/statecraftData';
+import {
+  type CardEffect,
+  type OrderId,
+  TIER_LADDER,
+  orderDef,
+  orderIsDealt,
+} from '../../../src/sim/statecraftData';
 import {
   describeTraitGain,
   researchSince,
@@ -442,7 +448,7 @@ describe('the charters', () => {
     }
   });
 
-  it('deals the Bronze-Founders’ Charter to a Scientific seat’s opening hand', () => {
+  it('deals the Bronze-Founders’ Charter to a Scientific seat at Tier I', () => {
     const g = createGame({
       seed: 13,
       sizeName: 'duel',
@@ -451,8 +457,13 @@ describe('the charters', () => {
         { name: 'Rival', color: '#3a7fe8', leader: 'pachacuti' },
       ],
     });
-    expect(eligibleFor(g.state, playerById(g.state, 0)!)).toContain('theBronzeFoundersCharter');
-    expect(eligibleFor(g.state, playerById(g.state, 1)!)).not.toContain('theBronzeFoundersCharter');
+    // It was in the opening hand until batch DS1 moved it from Tier 0 to
+    // Tier I (`docs/plans/deck-simplification-2026-11-10.md`).
+    const tierOne = TIER_LADDER[1]!.drafts;
+    expect(orderDef('theBronzeFoundersCharter').band).toBe(1);
+    expect(eligibleFor(g.state, playerById(g.state, 0)!)).not.toContain('theBronzeFoundersCharter');
+    expect(eligibleFor(g.state, playerById(g.state, 0)!, tierOne)).toContain('theBronzeFoundersCharter');
+    expect(eligibleFor(g.state, playerById(g.state, 1)!, tierOne)).not.toContain('theBronzeFoundersCharter');
   });
 
   it('prints the research it opens, then each trait in the technology’s own words', () => {

@@ -363,15 +363,20 @@ describe('the Expansionist batch E7: retirements and types', () => {
     }
   });
 
-  it('types the five reworked counts civic, and The Two Harvests wildcard', () => {
-    for (const id of ['theRopeStretchers', 'theMilestones', 'theTeemingRealm', 'theMeasureOfTheLand', 'theMotherCity']) {
+  it('types the reworked counts civic, and keeps The Two Harvests, retired in batch DS1', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Milestones, The Teeming Realm and The Two Harvests. A retired row has no
+    // type and is not dealt, and keeps its effects for saves.
+    for (const id of ['theRopeStretchers', 'theMeasureOfTheLand', 'theMotherCity']) {
       expect(orderDef(id as OrderId).type, id).toBe('civic');
     }
-    const harvests = 'theTwoHarvests' as OrderId;
-    expect(orderDef(harvests).type).toBe('wildcard');
-    // Dealt since batch E9 built it (`expansionistThemeLand.test.ts`).
-    expect(orderIsDealt(harvests)).toBe(true);
-    expect(orderDef(harvests).needsTendedWork).toBe(true);
+    for (const id of ['theMilestones', 'theTeemingRealm', 'theTwoHarvests']) {
+      expect(orderDef(id as OrderId).retired, id).toBe(true);
+      expect(orderDef(id as OrderId).type, id).toBeUndefined();
+      expect(orderIsDealt(id as OrderId), id).toBe(false);
+    }
+    // Built in batch E9 (`expansionistThemeLand.test.ts`).
+    expect(orderDef('theTwoHarvests' as OrderId).needsTendedWork).toBe(true);
   });
 });
 
@@ -405,10 +410,16 @@ describe('the Expansionist batch E8: five new cards in shapes that already exist
       ['theManyHands', 2],
       ['theCapitolia', 3],
     ];
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Many Hands. It keeps its tier and its effect for saves, so the test
+    // below still reads it. It is not dealt.
+    const retired = ['theManyHands'];
     const pool = ordersForDecks(['expansionist']);
     for (const [id, band] of tiers) {
-      expect(orderIsDealt(id as OrderId), id).toBe(true);
-      expect(pool, id).toContain(id);
+      const isRetired = retired.includes(id);
+      expect(orderDef(id as OrderId).retired === true, id).toBe(isRetired);
+      expect(orderIsDealt(id as OrderId), id).toBe(!isRetired);
+      expect(pool.includes(id as OrderId), id).toBe(!isRetired);
       expect(orderDef(id as OrderId).band, id).toBe(band);
     }
   });

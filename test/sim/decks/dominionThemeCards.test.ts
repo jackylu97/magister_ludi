@@ -368,14 +368,18 @@ describe('Dominion D9 — the retirements', () => {
     expect(granted(state, 'death', 8)).toEqual([{ yield: 'faith', amount: 8 }]);
   });
 
-  it('deals The Champion’s Portion to a Dominion seat at Tier 0', () => {
-    expect(orderIsDealt(CHAMPION)).toBe(true);
+  it('keeps The Champion’s Portion at Tier 0, retired in batch DS1 and dealt to nobody', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired it.
+    // The row and its effect stay for saves, so the tests of what it pays
+    // still read them. It has no type and is not dealt.
+    expect(orderDef(CHAMPION).retired).toBe(true);
+    expect(orderIsDealt(CHAMPION)).toBe(false);
     expect(orderDef(CHAMPION).band).toBe(0);
-    expect(orderDef(CHAMPION).type).toBe('civic');
+    expect(orderDef(CHAMPION).type).toBeUndefined();
     const state = flat();
     const player = seat(state, 0);
     player.decks = ['dominion', 'magisterial'];
-    expect(deckPoolOf(state, player)).toContain(CHAMPION);
+    expect(deckPoolOf(state, player)).not.toContain(CHAMPION);
   });
 });
 
@@ -753,16 +757,22 @@ describe('Dominion D10: the deal', () => {
       [MARCH, 3, 'economic'],
       [TRIBUTARY, 3, 'economic'],
     ];
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired five
+    // of these. Each keeps its tier and its effects for saves, so the tests
+    // above still read them. It has no type and is not dealt.
+    const retiredInDs1 = new Set<OrderId>([ACROPOLIS, SPARTAN, RANKS, ROLL, MARCH]);
     const state = flat();
     const player = seat(state, 0);
     player.decks = ['dominion', 'magisterial'];
     const pool = deckPoolOf(state, player);
     for (const [id, band, type] of cards) {
-      expect(orderIsDealt(id), id).toBe(true);
+      const retired = retiredInDs1.has(id);
+      expect(orderDef(id).retired === true, id).toBe(retired);
+      expect(orderIsDealt(id), id).toBe(!retired);
       expect(orderDef(id).band, id).toBe(band);
-      expect(orderDef(id).type, id).toBe(type);
+      expect(orderDef(id).type, id).toBe(retired ? undefined : type);
       expect(orderDef(id).decks, id).toEqual(['dominion']);
-      expect(pool, id).toContain(id);
+      expect(pool.includes(id), id).toBe(!retired);
     }
   });
 });

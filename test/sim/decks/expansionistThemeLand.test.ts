@@ -312,11 +312,15 @@ describe('the Expansionist batch E9: The Marl Pits', () => {
     return { state, hill, inFarm: inFarm!, pasture: pasture!, camp: camp!, outFarm: outFarm!, later: later! };
   }
 
-  it('is a new Tier I row, dealt, with a rider on each of the two works', () => {
+  it('is a Tier I row with a rider on each of the two works, retired in batch DS1', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Marl Pits. The row and its riders stay for saves, so the tests below
+    // still read them. It has no type and is not dealt.
     const def = orderDef('theMarlPits' as OrderId);
     expect(def.band).toBe(1);
-    expect(def.type).toBe('economic');
-    expect(orderIsDealt('theMarlPits' as OrderId)).toBe(true);
+    expect(def.retired).toBe(true);
+    expect(def.type).toBeUndefined();
+    expect(orderIsDealt('theMarlPits' as OrderId)).toBe(false);
     expect(def.effects).toEqual([
       { kind: 'windfallRider', occasion: 'improvementBuilt', improvement: 'mine', grant: { markBeside: 'marl' } },
       { kind: 'windfallRider', occasion: 'improvementBuilt', improvement: 'quarry', grant: { markBeside: 'marl' } },
@@ -505,9 +509,13 @@ describe('the Expansionist batch E9: The Two Harvests', () => {
     return { state, city, works };
   }
 
-  it('is built and dealt, with no deferred half left', () => {
+  it('is built, with no deferred half left, and retired in batch DS1', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Two Harvests. The row and its rule stay for saves, so the tests below
+    // still read the rule. It is not dealt.
     const def = orderDef('theTwoHarvests' as OrderId);
-    expect(orderIsDealt('theTwoHarvests' as OrderId)).toBe(true);
+    expect(def.retired).toBe(true);
+    expect(orderIsDealt('theTwoHarvests' as OrderId)).toBe(false);
     expect(def.deferred).toBeUndefined();
     expect(def.note).toBeUndefined();
     expect(def.effects).toEqual([

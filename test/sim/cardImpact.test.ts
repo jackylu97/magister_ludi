@@ -520,9 +520,12 @@ describe('a card already in force', () => {
     const sc = player.statecraft;
     // The chiefdom: Military, Economic, Wildcard. Two civic cards sit in the
     // two typed chairs, and only one of them finds a chair without the card:
-    // The Nest Egg, second in seat order, goes back to the collection.
+    // The Nest Egg, second in seat order, goes back to the collection. The
+    // first civic card was The Map Sellers until batch DS1 retired it. A
+    // retired row has no type and fits any chair, so Land Speculation, a live
+    // Civic card of the same tier with no standing yield, takes its place.
     expect(sc.slots).toHaveLength(3);
-    const held: OrderId[] = ['theMapSellers' as OrderId, 'theNestEgg' as OrderId, 'theMixedConstitution' as OrderId];
+    const held: OrderId[] = ['landSpeculation' as OrderId, 'theNestEgg' as OrderId, 'theMixedConstitution' as OrderId];
     sc.orders.push(...held);
     sc.slots = held.map((card) => ({ card, sealedUntil: 0 }));
     player.gold = 200;
@@ -530,7 +533,7 @@ describe('a card already in force', () => {
     const stamp = foldCardImpact(explainCardImpact(state, 0, { kind: 'order', id: 'theMixedConstitution' }));
     const before = ledger(state, 0);
     expect(applyCommand(state, { type: 'unslotOrder', playerId: 0, slotIndex: 2 }).ok).toBe(true);
-    expect(sc.slots.map((slot) => slot?.card ?? null)).toEqual([null, null, 'theMapSellers']);
+    expect(sc.slots.map((slot) => slot?.card ?? null)).toEqual([null, null, 'landSpeculation']);
     const after = ledger(state, 0);
     for (const key of CITY_YIELD_KEYS) expect(stamp[key], key).toBeCloseTo(before[key] - after[key], 9);
     // The Nest Egg's culture, which the stamp is about.

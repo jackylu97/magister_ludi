@@ -127,15 +127,19 @@ function farm(state: GameState, tile: Tile): void {
 }
 
 describe('Dominion D14 — The Longships', () => {
-  it('takes over the row marineDrill as an uncommon Military Order of Tier II with one rule', () => {
+  it('takes over the row marineDrill as an uncommon Order of Tier II with one rule, retired in batch DS1', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Longships. The row and its rule stay for saves, so the tests below still
+    // read the rule. It has no type and is not dealt.
     const def = orderDef(LONGSHIPS);
     expect(def.name).toBe('The Longships');
     expect(def.band).toBe(2);
     expect(def.rarity).toBe('uncommon');
-    expect(def.type).toBe('military');
+    expect(def.retired).toBe(true);
+    expect(def.type).toBeUndefined();
     expect(def.effects).toEqual([{ kind: 'rule', rule: 'shoreRaid' }]);
     expect(def.note).toBeUndefined();
-    expect(orderIsDealt(LONGSHIPS)).toBe(true);
+    expect(orderIsDealt(LONGSHIPS)).toBe(false);
     expect(words(LONGSHIPS)).toBe(
       'at the end of your turn, each of your ships pillages one enemy improvement on the shore beside it',
     );
@@ -277,13 +281,17 @@ function relay(): { state: GameState; capital: City; joined: City; apart: City }
 }
 
 describe('Dominion D14 — The Relay Stations', () => {
-  it('is a live uncommon Military Order of Tier II with one movement line', () => {
+  it('is an uncommon Order of Tier II with one movement line, retired in batch DS1', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Relay Stations. The row and its line stay for saves, so the tests below
+    // still read the line. It has no type and is not dealt.
     const def = orderDef(RELAY);
     expect(def.band).toBe(2);
     expect(def.rarity).toBe('uncommon');
-    expect(def.type).toBe('military');
+    expect(def.retired).toBe(true);
+    expect(def.type).toBeUndefined();
     expect(def.deferred).toBeUndefined();
-    expect(orderIsDealt(RELAY)).toBe(true);
+    expect(orderIsDealt(RELAY)).toBe(false);
     expect(def.effects).toEqual([
       {
         kind: 'unitStat',

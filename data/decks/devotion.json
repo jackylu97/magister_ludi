@@ -5,7 +5,7 @@
       "decks": [
         "devotion"
       ],
-      "band": 0,
+      "band": 1,
       "line": "none",
       "rarity": "common",
       "type": "civic",
@@ -175,7 +175,7 @@
       "decks": [
         "devotion"
       ],
-      "band": 0,
+      "band": 1,
       "line": "none",
       "rarity": "common",
       "type": "economic",
@@ -542,7 +542,7 @@
       "decks": [
         "devotion"
       ],
-      "band": 2,
+      "band": 3,
       "line": "none",
       "rarity": "common",
       "type": "civic",
@@ -658,7 +658,7 @@
       "decks": [
         "devotion"
       ],
-      "band": 2,
+      "band": 1,
       "line": "none",
       "rarity": "common",
       "type": "economic",
@@ -912,7 +912,6 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "The whole world, kneeling in the same direction.",
       "text": "Each foreign city following your religion grants +5% production toward the Magnum Opus, at most +40%.",
       "effects": [
@@ -924,7 +923,8 @@
           "count": "followingForeign",
           "max": 8
         }
-      ]
+      ],
+      "retired": true
     },
     "theLastOffering": {
       "name": "The Last Offering",
@@ -1217,7 +1217,6 @@
       "band": 4,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "No sword inside the church, and no priest of another god either.",
       "text": "The city building your Magnum Opus cannot be pressed by rival religions, and gains +2 strength for each city that follows your religion, at most +30.",
       "effects": [
@@ -1235,7 +1234,8 @@
           "max": 15,
           "scope": { "test": "raisingOpus" }
         }
-      ]
+      ],
+      "retired": true
     },
     "theLastCrusade": {
       "name": "The Last Crusade",
@@ -1245,7 +1245,6 @@
       "band": 4,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "The last war of the faith was fought over the last work of the age.",
       "text": "Your military units gain +8 strength against an empire that is building the Magnum Opus, while fighting in territory that follows your religion.",
       "effects": [
@@ -1268,7 +1267,8 @@
             "category": "military"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theConversionOfKings": {
       "name": "The Conversion of Kings",
@@ -1377,7 +1377,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "Every town that turned has a saint, and every saint has a book.",
       "text": "+2% science and culture for every foreign town your religion has turned this game, at most +30%.",
       "effects": [
@@ -1402,14 +1401,15 @@
           "max": 15
         }
       ],
-      "note": "A foreign town counts once, the first time it turns to your religion. A town that turns away and back again does not count twice."
+      "note": "A foreign town counts once, the first time it turns to your religion. A town that turns away and back again does not count twice.",
+      "retired": true
     },
     "theMartyrology": {
       "name": "The Martyrology",
       "decks": [
         "devotion"
       ],
-      "band": 2,
+      "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "type": "civic",
@@ -1504,7 +1504,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "The bells ring for war, and every parish sends its best.",
       "text": "Declaring war gives every devout town the best melee unit you can build, at most once every twenty turns. They cost no upkeep.",
       "effects": [
@@ -1520,7 +1519,8 @@
             }
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theWorkOfGod": {
       "name": "The Work of God",
@@ -1530,7 +1530,6 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "The great work rises a little with every hymn sung in the realm.",
       "text": "The town raising the Magnum Opus gains +4% production toward it for every town of yours keeping a rite, at most +40%.",
       "effects": [
@@ -1542,7 +1541,8 @@
           "count": "citiesKeepingRite",
           "max": 10
         }
-      ]
+      ],
+      "retired": true
     },
     "theGiftsOfTheFaithful": {
       "name": "The Gifts of the Faithful",

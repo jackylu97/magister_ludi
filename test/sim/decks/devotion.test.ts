@@ -117,7 +117,7 @@ const KINDS_USED = [
   'grantsAbility',
   'pressureRule',
   'cardYieldAmplifier',
-  'cityStat',
+  // `cityStat` left with The Peace of God, retired in batch DS1.
   // Batch DV2: The Consecration Feast and The Holy Summons.
   'windfallRider',
   // Batch DV3: The Offering Chests.
@@ -207,20 +207,21 @@ function linesOf(state: GameState, city: City, card: string) {
 // --- the shelf ---------------------------------------------------------------
 
 describe('the Devotion deck folds', () => {
-  it('carries 98 rows: 66 live, none deferred and 32 retired', () => {
+  it('carries 98 rows: 60 live, none deferred and 38 retired', () => {
     // Batch DV1: 77 rows before, less the six that moved to common.json. Four
     // rows retired, three live and one deferred. Batch DV2 added seven live
     // rows, batch DV3 four more, batch DV4 three more, batch DV5 three more,
     // and batch DV6 two more. Batch DV7 added three more and dealt The
     // Interdict, the last deferred row. Batch DV8 added two more. Batch R2c
-    // retired three live rows and added three new ones.
+    // retired three live rows and added three new ones. Batch DS1
+    // (`docs/plans/deck-simplification-2026-11-10.md`) retired six live rows.
     expect(DEVOTION).toHaveLength(98);
-    expect(LIVE).toHaveLength(66);
+    expect(LIVE).toHaveLength(60);
     expect(DEFERRED).toHaveLength(0);
-    expect(RETIRED).toHaveLength(32);
+    expect(RETIRED).toHaveLength(38);
   });
 
-  it('spreads its 66 standing rows across Tiers 0 to IV as 6, 9, 21, 16 and 14', () => {
+  it('spreads its 60 standing rows across Tiers 0 to IV as 4, 13, 17, 16 and 10', () => {
     // Batch DV1 moved The Second Prophet, The Living Hymnal and The Mission
     // from Tier I to Tier II, and The Conversion of Kings and The Pious Masons
     // from Tier IV to Tier III. Batch DV2 added three rows at Tier II, three
@@ -235,10 +236,14 @@ describe('the Devotion deck folds', () => {
     // The Sacred Precincts and The Monastic Builders (Tier I); moved The
     // Founding Vows, The Rogations and The Gifts of the Faithful from Tier 0
     // to Tier I; and added The Tithe Barns and The Royal Cult (Tier 0) and
-    // The Temple Storehouses (Tier I).
-    expect(STANDING).toHaveLength(66);
+    // The Temple Storehouses (Tier I). Batch DS1 retired The Lives of the
+    // Saints (Tier II), The Holy Summons (Tier III) and four Tier IV rows; moved
+    // First Rites and The Wayside Shrines from Tier 0 to Tier I, The
+    // Martyrology and The Votive Gifts from Tier II to Tier I, and The
+    // Cathedral Works from Tier II to Tier III.
+    expect(STANDING).toHaveLength(60);
     const perBand = BANDS.map((band) => STANDING.filter((id) => orderDef(id).band === band).length);
-    expect(perBand).toEqual([6, 9, 21, 16, 14]);
+    expect(perBand).toEqual([4, 13, 17, 16, 10]);
   });
 
   it('names its own deck on every row, with a band and a rarity', () => {
@@ -268,9 +273,10 @@ describe('the Devotion deck folds', () => {
   });
 
   it('retires the sheet’s cuts and deals them to nobody', () => {
-    // 25 cut on 2026-10-06 and 2026-10-12, the four of batch DV1, and the
-    // three of batch R2c (the user, 2026-10-28: "remove").
-    expect(RETIRED).toHaveLength(32);
+    // 25 cut on 2026-10-06 and 2026-10-12, the four of batch DV1, the
+    // three of batch R2c (the user, 2026-10-28: "remove"), and the six of
+    // batch DS1.
+    expect(RETIRED).toHaveLength(38);
     for (const id of [
       'pastoralShrines',
       'theConsolation',
@@ -279,6 +285,12 @@ describe('the Devotion deck folds', () => {
       'theOldGodsRemain',
       'theSacredPrecincts',
       'theMonasticBuilders',
+      'theLivesOfTheSaints',
+      'theHolySummons',
+      'theGreatConsecration',
+      'theLastCrusade',
+      'thePeaceOfGod',
+      'theWorkOfGod',
     ]) {
       expect(RETIRED, id).toContain(id);
     }
@@ -383,8 +395,9 @@ describe('the age gate', () => {
     const early = STANDING.filter((row) => orderDef(row).band <= 1);
     // Batch DV3 added The Gifts of the Faithful (Tier 0) and The Sacred
     // Precincts (Tier I), and batch DV4 The Rogations (Tier 0). Batch R2c
-    // retired three rows here and added three.
-    expect(early).toHaveLength(15);
+    // retired three rows here and added three. Batch DS1 moved The
+    // Martyrology and The Votive Gifts down from Tier II.
+    expect(early).toHaveLength(17);
     // **One stated exception** (batch R2c): The Temple Storehouses is a Tier I
     // card about Temples. The user added it there on 2026-10-28 ("add: +2
     // happiness and +2 food on every temple"), after the rule above was
@@ -956,14 +969,15 @@ describe('the Devotion deck: the sheet of record', () => {
     expect(status.get('Shared'), 'the shared status counts').toEqual(byStatus(shared));
     expect(types.get('Shared'), 'the shared type counts').toEqual(byType(shared));
     // Batch DV1's sheet: 66 cards with the two charters (64 take a chair),
-    // and 29 shared cards with one charter.
-    expect(sheet).toHaveLength(66);
+    // and 29 shared cards with one charter. Batch DS1 retired six of the
+    // sheet's cards and seven shared cards.
+    expect(sheet).toHaveLength(60);
     expect(sheet.filter((card) => isCharterText(card.text))).toHaveLength(2);
-    expect(shared).toHaveLength(29);
+    expect(shared).toHaveLength(22);
   });
 
-  it('types every listed row, 66 of this file and 29 shared, and nothing else of this file', () => {
-    expect(LISTED).toHaveLength(66);
+  it('types every listed row, 60 of this file and 22 shared, and nothing else of this file', () => {
+    expect(LISTED).toHaveLength(60);
     for (const id of DEVOTION) {
       const def = orderDef(id);
       if (def.retired === true) expect(def.type, id).toBeUndefined();
@@ -976,7 +990,8 @@ describe('the Devotion deck: the sheet of record', () => {
     // 18 before batch DV1, and the seven rows it moved here. Batch DV2 added
     // The Shrine Guards, The Blessed Forges and The Schoolmen's Charter, and
     // batch DV3 The Rising Nave. Every row of the shared table has data now.
-    expect(sharedRows).toHaveLength(29);
+    // Batch DS1 retired seven, The Rising Nave among them.
+    expect(sharedRows).toHaveLength(22);
     for (const id of sharedRows) expect(isCardType(orderDef(id).type ?? ''), id).toBe(true);
   });
 });

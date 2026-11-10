@@ -28,7 +28,7 @@
     "civicGranaries": {
       "name": "Civic Granaries",
       "decks": ["magisterial"],
-      "band": 0,
+      "band": 1,
       "rarity": "common",
       "type": "economic",
       "line": "none",
@@ -1857,7 +1857,6 @@
       "decks": ["magisterial"],
       "band": 4,
       "rarity": "uncommon",
-      "type": "economic",
       "line": "none",
       "flavor": "The last work is begun where the first one still stands.",
       "text": "Cities containing a wonder gain +25% production toward the Magnum Opus.",
@@ -1870,7 +1869,8 @@
           "scope": { "test": "hasWonder" }
         }
       ],
-      "note": "A town you captured that holds a wonder counts too."
+      "note": "A town you captured that holds a wonder counts too.",
+      "retired": true
     },
     "theMastersDomain": {
       "name": "The Masters' Domain",
@@ -2016,7 +2016,6 @@
       "decks": ["magisterial"],
       "band": 3,
       "rarity": "rare",
-      "type": "economic",
       "line": "none",
       "flavor": "The list of masters is revised by people who are not on it.",
       "text": "Your cities gain +4% food and +4% production per distinct great-person family whose legacy you currently hold, at most +20% each.",
@@ -2041,7 +2040,8 @@
           "max": 5,
           "stage": "city"
         }
-      ]
+      ],
+      "retired": true
     },
     "theUniversalCourt": {
       "name": "The Universal Court",
@@ -2205,7 +2205,6 @@
       "decks": ["magisterial"],
       "band": 0,
       "rarity": "common",
-      "type": "civic",
       "line": "none",
       "flavor": "The same plays every season, and the same people cry at the same lines.",
       "text": "Culture buildings give +1 culture each.",
@@ -2220,7 +2219,8 @@
           "category": "culture",
           "within": "city"
         }
-      ]
+      ],
+      "retired": true
     },
     "theSecondReading": {
       "name": "The Second Reading",
@@ -2291,7 +2291,6 @@
       "decks": ["magisterial"],
       "band": 1,
       "rarity": "common",
-      "type": "civic",
       "line": "none",
       "flavor": "They walk the ground for a week before a single stake goes in.",
       "text": "Great-person works gain +1 culture for each hill, mountain, forest or water hex beside them, at most +3.",
@@ -2313,7 +2312,8 @@
           "max": 3
         }
       ],
-      "note": "A hex counts once, even when it is two of these, such as a forested hill."
+      "note": "A hex counts once, even when it is two of these, such as a forested hill.",
+      "retired": true
     },
     "theKeepersOfWonders": {
       "name": "The Keepers of Wonders",
@@ -2484,7 +2484,6 @@
       "decks": ["magisterial"],
       "band": 2,
       "rarity": "uncommon",
-      "type": "economic",
       "line": "none",
       "flavor": "They list every marvel in the province, and the tax collectors read the list.",
       "text": "+3% production and gold for each great-person work in your borders, at most +30%.",
@@ -2512,7 +2511,8 @@
           "max": 10
         }
       ],
-      "note": "A work counts whether or not a town works its hex. A prophet's holy site is a great-person work too."
+      "note": "A work counts whether or not a town works its hex. A prophet's holy site is a great-person work too.",
+      "retired": true
     },
     "theSevenSights": {
       "name": "The Seven Sights",
@@ -2652,7 +2652,6 @@
       "decks": ["magisterial"],
       "band": 4,
       "rarity": "uncommon",
-      "type": "military",
       "line": "none",
       "flavor": "The walls are thickest where the city keeps what it cannot build twice.",
       "text": "The town building your Magnum Opus gains +4 defence for each wonder you hold.",
@@ -2666,12 +2665,13 @@
           "scope": { "test": "raisingOpus" }
         }
       ],
-      "note": "Every wonder you hold counts, in any of your towns, and a wonder you captured counts too."
+      "note": "Every wonder you hold counts, in any of your towns, and a wonder you captured counts too.",
+      "retired": true
     },
     "magisterialTheEighthWonder": {
       "name": "Commission: The Eighth Wonder",
       "decks": ["magisterial"],
-      "band": 0,
+      "band": 1,
       "rarity": "uncommon",
       "type": "civic",
       "line": "none",
@@ -3014,12 +3014,12 @@
       "decks": ["magisterial"],
       "band": 2,
       "rarity": "common",
-      "type": "military",
       "line": "none",
       "flavor": "They guard the old works, and they know every stone of them.",
       "text": "Your units standing on a great-person work gain +4 strength.",
       "effects": [{ "kind": "combatLine", "amount": 4, "side": "both", "when": { "test": "standingOnWork" } }],
-      "note": "Your units gain it when they attack and when they defend. Any great-person work counts, whoever owns it."
+      "note": "Your units gain it when they attack and when they defend. Any great-person work counts, whoever owns it.",
+      "retired": true
     },
     "theEnviousEye": {
       "name": "The Envious Eye",

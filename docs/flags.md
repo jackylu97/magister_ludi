@@ -19,24 +19,34 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
-**(ggggggg) Fewer trade route rules: capacity RULED 2026-11-10, batch TR1 in flight; the wider cut is OPEN.**
-The user: *"We need to drastically cut down on our rules for trade routes. Each market/lighthouse should only give 1 trade route. The caravanserai can give 3 trade route capacity."*
-- **Ruled, batch TR1:**
-  - A Market gives 1 trade route. It no longer gives one more for every eight citizens.
-  - A Lighthouse gives 1 trade route.
-  - The Caravanserai gives 3 trade routes. It no longer gives one more for every eight citizens.
-  - No building's route capacity grows with its town. The field `routeSlotsPerPopulation` leaves the data, the code and the reference doc.
-- **Readings taken without a ruling (recommended; the user may change them):**
-  - The Harbour's route moves to the Lighthouse, so the Harbour gives none. A town then has one land source (the Market) and one sea source (the Lighthouse).
-  - The Colossus, the Tambo and the Longjiang Dockyard keep their 1.
-  - The Funduq keeps its 1 and loses its growth by citizens.
-- **Open, for the user:** which other trade rules to cut. Proposed, strongest first:
-  - the 20-turn term (a route runs until it is cancelled or plundered, which removes renewals, idle carts, auto-resend and the End Turn prompt);
-  - the pay formula that counts the origin's buildings (a flat line for a domestic route and a flat line for a foreign route);
-  - the host's gold line on a foreign route;
-  - the 50% sea premium (the game picks land or sea);
-  - road maintenance on roads a seat's traders laid.
-  Nothing in this list is built until the user says which.
+**(hhhhhhh) Simpler Orders and twelve reworked governments: RULED 2026-11-10; batches DS1 to DS9 and G1 in flight.**
+The user: *"the cards require too much reading at the moment, and some of the tier 0 cards feel a bit too fancy for me currently."* After the review page, 24 comments and the governments table: *"Please ensure that an opus agent is runnign to implement work that's been finalized (the deck simplification and governments rework)"*.
+- **The spec of record** is `docs/plans/deck-simplification-2026-11-10.md`: the rules of the pass, the four keywords (Commission, Charter, Scaler, Boon), the governments table, and one table per deck of every cut, move, reword, simplify, change and new row.
+- **Readings taken without a ruling (the user may change them):**
+  - the Chiefdom's three chairs become Wildcard chairs;
+  - the War Chief's kill reward is a flat 10 science and 10 culture;
+  - The Curia keeps its name;
+  - "change to +5" on The General Staff is +5 production, with the +2 renown kept;
+  - a charter technology costs the ordinary price.
+- **Not in this item:** the Doctrines do not change. The belief pass is a separate proposal (https://claude.ai/artifact/E57VMp4NWRhJrEYDi9C57V) and is not ruled.
+
+**(ggggggg) Fewer trade route rules: RULED 2026-11-10. Batch TR1 is built (commit 7541245f); batch TR2 is queued.**
+The user: *"We need to drastically cut down on our rules for trade routes. Each market/lighthouse should only give 1 trade route. The caravanserai can give 3 trade route capacity."* Then, on the open points: *"lighthouse gains 1 trade route, none from the harbor. other four buildings give 1 and remove the growth by citizens in all buildings entirely. let's remove the 20 turn term; routes can only be cancelled after they've completed one trip to the destination city. the pay formula is intended to increase throughout the game, it's good for now. sea premium is good, because the sea player has worse tiles from being next to coast. Let's have the hire price start lower (75 gold) but increase the more active trade routes you have (15 gold per)."*
+- **Built, batch TR1:**
+  - A Market gives 1 trade route, a Lighthouse gives 1 and the Caravanserai gives 3.
+  - The Harbour gives none. The Colossus, the Tambo, the Longjiang Dockyard and the Funduq give 1 each.
+  - No building's route capacity grows with its town. The field `routeSlotsPerPopulation` is gone.
+- **Ruled, batch TR2:**
+  - **A route has no term.** It runs until its owner cancels it, or until something else ends it as today (a war between the two ends, a plunder, a lost town). `rules.trade.routeTurns` goes, and so do renewal, auto-resend and every prompt or bot rule that exists only because a route lapses.
+  - **A route may be cancelled only after its caravan has reached the destination town once.** Before that, the cancel is refused with a plain sentence.
+  - **The hire price is 75 gold, plus 15 gold for each trade route the seat has running.** These are two knobs in `rules.trade`. The price no longer follows the Trader row's production cost or the age. A card that changes the hire price (The Turnpike Trusts) applies after.
+- **Stays as it is (the user's words above):** the pay formula, and the sea premium of 50%.
+- **Not ruled, so not changed:** the host's gold line on a foreign route, and road maintenance on roads a seat's traders laid.
+- **Readings taken without a ruling, for batch TR2 (the user may change them):**
+  - A cancelled route leaves its cart standing idle, as a lapsed route did, and a Send still uses an idle cart before it hires a new one.
+  - An idle cart does not count as a running route for the price.
+  - The Sea Ban and The Inward Roads let a route that is already abroad run on when they are adopted. With no term this would last for ever, so adopting either one now ends the seat's routes abroad at once and leaves the carts idle.
+- **Known after TR1:** the slow test `aiBot.slow.test.ts` ("opens both banks rather than hoarding them") fails for one seat, which now holds more gold than the test allows. The two bot digests moved, as expected. Both wait for TR2, which changes what a bot spends on routes.
 
 **(fffffff) Each deck is a way to play, not a yield: RULED 2026-10-20; every deck BUILT on `decks` by 2026-10-26, on `main` since 2026-11-01.**
 The user, after reading the six builds passes: *"each deck feels a bit one note, and needs diverse bonuses that aren't so squarely on theme with their central purpose/yield."*

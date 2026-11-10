@@ -487,34 +487,56 @@ describe('the Dominion deck — the draw', () => {
     }
   });
 
-  it('deals a card in a later tier too only where the sheet says so: Double Time in Tiers II and III', () => {
+  it('deals a card in a later tier too only where the sheet says so, and since batch DS1 no card is', () => {
     // The sheet's line under a tier table, "**X** is also dealt in Tier N",
     // names the row's last band (`OrderDef.lastBand`, Dominion batch D7; the
-    // user, 2026-10-16). Every row with a last band has such a line, and every
-    // line names a row with that last band.
+    // user, 2026-10-16). Every live row with a last band has such a line, and
+    // every line names a row with that last band.
     const also = [...DOC.matchAll(/^\*\*(.+?)\*\* is also dealt in Tier (0|I|II|III|IV)\b/gm)].map(
       (match) => ({ name: match[1]!, band: TIERS[match[2]!]! }),
     );
-    expect(also).toEqual([{ name: 'Double Time', band: 3 }]);
-    expect(DOC).toContain('**Also dealt here:** Double Time, from Tier II');
-    for (const id of ROWS) {
+    // Double Time was the one such card. Batch DS1 retired it, so the sheet
+    // has no such line.
+    expect(also).toEqual([]);
+    expect(DOC).not.toContain('**Also dealt here:**');
+    for (const id of SHEET_ROWS) {
       const def = orderDef(id);
       const line = also.find((entry) => entry.name === def.name);
       expect(def.lastBand, `${def.name}: the sheet's last tier`).toBe(line?.band);
     }
-    // And the deal reads it: dealt in bands 2 and 3, and in no other band.
-    // The draft count alone picks the band (docs/flags.md (eeeeeee)), so the
-    // seat needs no technology for this.
+    // The retired row keeps its last band for saves, and the deal reads the
+    // retirement first: Double Time is dealt in no band. The draft count alone
+    // picks the band (docs/flags.md (eeeeeee)), so the seat needs no
+    // technology for this.
+    const doubleTime = 'doubleTime' as OrderId;
+    expect(orderDef(doubleTime).retired).toBe(true);
+    expect([orderDef(doubleTime).band, orderDef(doubleTime).lastBand]).toEqual([2, 3]);
     const g = seated(11);
     const ada = playerById(g.state, 0)!;
     const bands = new Set<number>();
     for (let drafts = 0; drafts <= 40; drafts++) {
       const band = currentBandOf(ada, drafts);
       bands.add(band);
-      const dealtHere = eligibleFor(g.state, ada, drafts).includes('doubleTime' as OrderId);
-      expect(dealtHere, `band ${band}`).toBe(band === 2 || band === 3);
+      const dealtHere = eligibleFor(g.state, ada, drafts).includes(doubleTime);
+      expect(dealtHere, `band ${band}`).toBe(false);
     }
     expect([...bands].sort()).toEqual([0, 1, 2, 3, 4]);
+    // The deal still reads a last band. A live Tier II row borrows Double
+    // Time's last band for this check alone, as `aiAppraisal.test.ts` borrows
+    // a row's effects, and gets its own row back after. It is then dealt in
+    // bands 2 and 3, and in no other band.
+    const borrowed = orderDef('warFeedsItself' as OrderId) as { band: number; lastBand?: number };
+    expect([borrowed.band, borrowed.lastBand]).toEqual([2, undefined]);
+    borrowed.lastBand = 3;
+    try {
+      for (let drafts = 0; drafts <= 40; drafts++) {
+        const band = currentBandOf(ada, drafts);
+        const dealtHere = eligibleFor(g.state, ada, drafts).includes('warFeedsItself' as OrderId);
+        expect(dealtHere, `band ${band}`).toBe(band === 2 || band === 3);
+      }
+    } finally {
+      delete borrowed.lastBand;
+    }
   });
 
   it('deals the same hand from the same generator state', () => {

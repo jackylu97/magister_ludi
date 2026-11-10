@@ -61,6 +61,7 @@ const PAINTER = 'theCourtPainter' as OrderId;
 const REGISTER = 'theAccessionsRegister' as OrderId;
 const PLANTERS = 'thePlantersCharter' as OrderId;
 const KINGS_LEVY = 'theKingsLevy' as OrderId;
+const SWORD = 'theSwordOfState' as OrderId;
 
 /** The two rows batch MG14 dealt, with the tier, rarity and type the sheet gives each. */
 const MG14_ROWS: readonly [OrderId, number, string, string][] = [
@@ -331,12 +332,20 @@ describe('The Cabinet of Curiosities (reading 37)', () => {
   });
 
   it('pays the granted card its own on-draft grant', () => {
-    const { state, player, capital } = board(['magisterial', 'commerce'], 1);
-    narrowBagTo(state, player, KINGS_LEVY);
+    // The granted card was The King's Levy until batch DS1 retired it
+    // (`docs/plans/deck-simplification-2026-11-10.md`). The Sword of State
+    // makes the same grant, and it is foreign only to a seat that holds
+    // neither Dominion nor Magisterial, so this seat holds Commerce and
+    // Expansionist. The hand is laid in front of the seat, so it need not
+    // hold the Cabinet's own deck.
+    expect(orderDef(KINGS_LEVY).retired).toBe(true);
+    expect(orderDef(SWORD).onDraft).toEqual(orderDef(KINGS_LEVY).onDraft);
+    const { state, player, capital } = board(['commerce', 'expansionist'], 1);
+    narrowBagTo(state, player, SWORD);
     const units = state.units.filter((unit) => unit.ownerId === 0).length;
     offer(state, 40, CABINET);
     pick(state);
-    expect(player.statecraft.orders).toContain(KINGS_LEVY);
+    expect(player.statecraft.orders).toContain(SWORD);
     const raised = state.units.filter((unit) => unit.ownerId === 0);
     expect(raised).toHaveLength(units + 1);
     const levy = raised[raised.length - 1]!;

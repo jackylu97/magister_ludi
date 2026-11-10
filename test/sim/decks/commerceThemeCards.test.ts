@@ -325,8 +325,12 @@ describe('Commerce batch T1: the commissions', () => {
 
 describe('Commerce batch T1: tiers, retirements and moves', () => {
   it('moves six Commerce cards to their new tiers, and Established Routes asks for twenty turns', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) moved
+    // Provisioning Contracts on to Tier I, and retired Established Routes. The
+    // retired row keeps its tier and its effect for saves.
+    expect(orderDef('establishedRoutes' as OrderId).retired).toBe(true);
     const bands: Record<string, number> = {
-      provisioningContracts: 2,
+      provisioningContracts: 1,
       theCartersGuild: 2,
       theFactorsHouses: 2,
       theCommonRoad: 2,
@@ -399,16 +403,22 @@ describe('Commerce batch T1: tiers, retirements and moves', () => {
       theSilkRoadMonks: ['devotion', 'civic', 2],
       theBrokersRedraw: ['magisterial', 'wildcard', 2],
     };
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Waqf. Its row stays in the shared file under its id, with no type, and
+    // neither deck is dealt it.
+    const retired = ['theWaqf'];
     for (const [id, [partner, type, band]] of Object.entries(moved)) {
       const def = orderDef(id as OrderId);
+      const isRetired = retired.includes(id);
       expect(DECK_FILE_ORDERS.common, id).toContain(id);
       expect(DECK_FILE_ORDERS.commerce, id).not.toContain(id);
       expect(def.decks, id).toEqual(['commerce', partner]);
-      expect(def.type, id).toBe(type);
+      expect(def.type, id).toBe(isRetired ? undefined : type);
       expect(def.band, id).toBe(band);
-      expect(orderIsDealt(id as OrderId), id).toBe(true);
-      expect(ordersForDecks(['commerce']), id).toContain(id);
-      expect(ordersForDecks([partner as never]), id).toContain(id);
+      expect(def.retired === true, id).toBe(isRetired);
+      expect(orderIsDealt(id as OrderId), id).toBe(!isRetired);
+      expect(ordersForDecks(['commerce']).includes(id as OrderId), id).toBe(!isRetired);
+      expect(ordersForDecks([partner as never]).includes(id as OrderId), id).toBe(!isRetired);
     }
   });
 
@@ -421,11 +431,16 @@ describe('Commerce batch T1: tiers, retirements and moves', () => {
       theExchangeOfDiscoveries: 1,
     };
     for (const [id, band] of Object.entries(bands)) expect(orderDef(id as OrderId).band, id).toBe(band);
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Grain Exchange, Travelling Players and The Cosmopolitan Court. They keep
+    // their tiers and lose their types, as every retired row does.
+    for (const id of ['theGrainExchange', 'travellingPlayers', 'theCosmopolitanCourt']) {
+      expect(orderDef(id as OrderId).retired, id).toBe(true);
+      expect(orderDef(id as OrderId).type, id).toBeUndefined();
+    }
     const types: Record<string, string> = {
       pilgrimMarkets: 'civic',
       commonTheTithe: 'economic',
-      travellingPlayers: 'civic',
-      theCosmopolitanCourt: 'civic',
     };
     for (const [id, type] of Object.entries(types)) expect(orderDef(id as OrderId).type, id).toBe(type);
     // Travelling Players kept its built text until the Magisterial pass

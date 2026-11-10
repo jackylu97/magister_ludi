@@ -224,8 +224,21 @@ import {
  * so a logged route can be refused, or a refused one accepted, and the trade a seat
  * runs changes from the first Market. The branch migrates nothing, for the reason given
  * under v119 in `docs/history/schema-changelog.md`.
+ *
+ * v228 (branch `decks`; batch DS1, `docs/plans/deck-simplification-2026-11-10.md`,
+ * `docs/flags.md` (hhhhhhh), the user's ruling of 2026-11-10): **fewer Orders.** No field
+ * joins the state. The rules that change, all in `data/decks/*.json`:
+ *
+ *   · 146 Order rows are retired: 129 of the six decks' own rows and 17 shared rows in
+ *     `common.json`. Each keeps its text and effects, so a seat that holds one keeps it;
+ *   · 14 Order rows move to another tier. Their text and effects do not change;
+ *   · Double Time is retired, so no card is dealt in two tiers.
+ *
+ * **A v227 save is refused and does not replay.** A seat's pool of Orders changes at every
+ * tier, so the hands a logged game drew are dealt differently. The branch migrates
+ * nothing, for the reason given under v119 in `docs/history/schema-changelog.md`.
  */
-export const SCHEMA_VERSION = 227;
+export const SCHEMA_VERSION = 228;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

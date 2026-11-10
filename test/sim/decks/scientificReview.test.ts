@@ -137,13 +137,18 @@ describe('the moves and the retirement', () => {
       ['theLongStudy', 'uncommon', 'civic'],
       ['theSkyWatchers', 'common', 'civic'],
     ];
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Long Study. It keeps its tier and rarity for saves, has no type and is
+    // not dealt.
     for (const [id, rarity, type] of moved) {
       const def = orderDef(id as OrderId);
+      const retired = id === 'theLongStudy';
       expect(def.band, id).toBe(1);
       expect(def.rarity, id).toBe(rarity);
-      expect(def.type, id).toBe(type);
-      expect(orderIsDealt(id as OrderId), id).toBe(true);
-      expect(ordersForDecks(['scientific']), id).toContain(id);
+      expect(def.retired === true, id).toBe(retired);
+      expect(def.type, id).toBe(retired ? undefined : type);
+      expect(orderIsDealt(id as OrderId), id).toBe(!retired);
+      expect(ordersForDecks(['scientific']).includes(id as OrderId), id).toBe(!retired);
     }
   });
 
@@ -166,13 +171,20 @@ describe('the three new cards', () => {
       ['theCuratorsOfWorks', ['scientific'], 'common', 'civic'],
       ['theMountainObservatories', ['expansionist', 'scientific'], 'common', 'civic'],
     ];
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Kept Secret. It keeps its tier, rarity and effects for saves, so the
+    // tests below still read them. It has no type and is not dealt.
     for (const [id, decks, rarity, type] of rows) {
       const def = orderDef(id as OrderId);
+      const retired = id === 'theKeptSecret';
       expect(def.decks, id).toEqual(decks);
-      expect([def.band, def.rarity, def.type], id).toEqual([0, rarity, type]);
-      expect(orderIsDealt(id as OrderId), id).toBe(true);
+      expect([def.band, def.rarity, def.type], id).toEqual([0, rarity, retired ? undefined : type]);
+      expect(def.retired === true, id).toBe(retired);
+      expect(orderIsDealt(id as OrderId), id).toBe(!retired);
       expect(def.flavor, id).toBeTruthy();
-      for (const deck of decks) expect(ordersForDecks([deck as never]), `${id} in ${deck}`).toContain(id);
+      for (const deck of decks) {
+        expect(ordersForDecks([deck as never]).includes(id as OrderId), `${id} in ${deck}`).toBe(!retired);
+      }
     }
     expect(DECK_FILE_ORDERS.scientific).toContain('theKeptSecret');
     expect(DECK_FILE_ORDERS.scientific).toContain('theCuratorsOfWorks');

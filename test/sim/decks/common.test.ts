@@ -126,14 +126,32 @@ describe('the shared shelf is two kinds of row and no third', () => {
     // batch S1b a third, The Hydraulic Commonwealth, and batch R1 a fourth,
     // Copying the Enemy. Magisterial batch MG1 retired two more that both
     // the Dominion and Magisterial sheets cut: The Imperial Examinations and
-    // Triumphal Arches.
+    // Triumphal Arches. Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`)
+    // retired seventeen more.
     expect([...RETIRED].sort()).toEqual([
+      'booksFromTheShips',
+      'cloisterSchools',
+      'commonMarcherLords',
+      'convertItOrTaxIt',
       'copyingTheEnemy',
       'frontierGarrisons',
       'harvestOfferings',
+      'hydraulicSchools',
+      'militaryColonies',
+      'theCosmopolitanCourt',
+      'theEngineerCorps',
+      'theFloodFestival',
+      'theGrainExchange',
+      'theHolyArmy',
       'theHydraulicCommonwealth',
       'theImperialExaminations',
+      'thePenitentsRoll',
+      'theRisingNave',
+      'theRoadGarrisons',
+      'theWaqf',
+      'travellingPlayers',
       'triumphalArches',
+      'warBonds',
     ]);
     for (const id of RETIRED) {
       expect(orderIsDealt(id), `${id} is retired and dealt`).toBe(false);

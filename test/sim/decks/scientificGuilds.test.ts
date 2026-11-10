@@ -146,13 +146,17 @@ describe("The Scholars' Guild", () => {
     expect(more.reduce((sum, line) => sum + line.production, 0)).toBe(3);
   });
 
-  it('is a dealt Tier II economic card that pays a town by a count', () => {
+  it('is a Tier II card that pays a town by a count, retired in batch DS1', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Scholars' Guild. The row and its effects stay for saves, so the tests
+    // above still read them. It has no type and is not dealt.
     const def = orderDef(GUILD);
-    expect(orderIsDealt(GUILD)).toBe(true);
+    expect(def.retired).toBe(true);
+    expect(orderIsDealt(GUILD)).toBe(false);
     expect(def.decks).toEqual(['scientific']);
     expect(def.band).toBe(2);
     expect(def.rarity).toBe('uncommon');
-    expect(def.type).toBe('economic');
+    expect(def.type).toBeUndefined();
     expect(def.deferred).toBeUndefined();
     expect(def.text).toBe('Scholars in the trades also pay +1 food and +1 production.');
     for (const effect of def.effects) {

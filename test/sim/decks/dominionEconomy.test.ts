@@ -64,6 +64,7 @@ import {
   type DoctrineId,
   type OrderId,
   orderDef,
+  orderIsDealt,
 } from '../../../src/sim/statecraftData';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../../../src/sim/unitData';
 import { explainUnitUpkeepRebate, unitUpkeepTotal } from '../../../src/sim/upkeep';
@@ -641,10 +642,15 @@ describe('Double Time: Orders’ turn effects happen twice', () => {
     expect(home.foodBasket).toBe(bag.food * 2);
   });
 
-  it('is a rare Wildcard dealt in Tiers II and III', () => {
+  it('is a rare card of Tiers II and III, retired in batch DS1', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired
+    // Double Time. The row keeps its tiers and its effect for saves, so the
+    // tests above still read it. It has no type and is not dealt.
     const def = orderDef('doubleTime' as OrderId);
     expect(def.rarity).toBe('rare');
-    expect(def.type).toBe('wildcard');
+    expect(def.retired).toBe(true);
+    expect(def.type).toBeUndefined();
+    expect(orderIsDealt('doubleTime' as OrderId)).toBe(false);
     expect(def.band).toBe(2);
     expect(def.lastBand).toBe(3);
   });

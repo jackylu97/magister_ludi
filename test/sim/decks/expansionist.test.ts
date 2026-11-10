@@ -324,8 +324,9 @@ describe('the Expansionist deck, as entered', () => {
   it('retires the sheet\'s cuts, deals none of them, and types none of them', () => {
     // 31 proposed cuts, since batch E0 The Forest Gardens and Daughter Towns,
     // and since batch E7 the fifteen rows the themes pass cut (fourteen live
-    // rows and the deferred Public Works).
-    expect(RETIRED.length).toBe(48);
+    // rows and the deferred Public Works). Batch DS1
+    // (`docs/plans/deck-simplification-2026-11-10.md`) retired 39 live rows.
+    expect(RETIRED.length).toBe(87);
     for (const id of RETIRED) {
       expect(orderIsDealt(id), id).toBe(false);
       expect(ordersForDecks(['expansionist']), id).not.toContain(id);

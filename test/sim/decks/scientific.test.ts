@@ -197,7 +197,7 @@ describe('the rows', () => {
     expect(new Set(names).size, 'two rows share a name').toBe(names.length);
   });
 
-  it('fills the five tiers with nine, twenty, twenty, sixteen and thirteen current rows', () => {
+  it('fills the five tiers with six, nineteen, seventeen, twelve and twelve current rows', () => {
     // S0 added ten charters and two cards. S1b retired twenty-four rows and
     // left twenty-six; the sheet's `add` rows join as later batches build them.
     // S2 added one card (Tier II) and S3 six (two each in Tiers I, II and III).
@@ -211,10 +211,14 @@ describe('the rows', () => {
     // R3 (the user's review of 2026-10-28) moved The Scribes' Hall, The Long
     // Study and The Sky Watchers from Tier 0 to Tier I, retired The Prize
     // Essay, and added The Kept Secret and The Curators of Works to Tier 0.
+    // DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired twelve: one
+    // in Tier 0, three in Tier I, three in Tier II, four in Tier III and one in
+    // Tier IV. It moved The Almanac and The Bronze-Founders' Charter from Tier
+    // 0 to Tier I.
     const perBand = [0, 1, 2, 3, 4].map(
       (band) => CURRENT.filter((id) => orderDef(id).band === band).length,
     );
-    expect(perBand).toEqual([9, 20, 20, 16, 13]);
+    expect(perBand).toEqual([6, 19, 17, 12, 12]);
   });
 
   it('splits into live rows with effects and deferred rows with a sentence, and nothing between', () => {
@@ -227,8 +231,8 @@ describe('the rows', () => {
     // them a commission, and dealt The Second Seat: 57 became 68, and no
     // deferred row is left in the deck. S9 added nine live rows, one of them
     // a commission: 68 became 77. R3 retired The Prize Essay and added two
-    // live rows: 77 became 78.
-    expect(LIVE).toHaveLength(78);
+    // live rows: 77 became 78. DS1 retired twelve: 78 became 66.
+    expect(LIVE).toHaveLength(66);
     expect(DEFERRED).toEqual([]);
     for (const id of LIVE) {
       const def = orderDef(id);
@@ -261,17 +265,21 @@ describe('the rows', () => {
 // --- the retired rows ----------------------------------------------------------
 
 describe('the retired rows', () => {
-  it('retires the cut rows of S0, S1b and R3, and nothing else', () => {
+  it('retires the cut rows of S0, S1b, R3 and DS1, and nothing else', () => {
+    // In file order. The rows marked DS1 are batch DS1's cuts
+    // (`docs/plans/deck-simplification-2026-11-10.md`).
     expect(RETIRED).toEqual([
       'theCelestialRites',
       'fieldNotebooks',
       'naturalPhilosophy',
       'apprenticeEngineers',
+      'theLongStudy', // DS1
       'theResearchAnnals',
       'practicalAstronomy',
       'patientResearch',
       'theOpenCollegium',
       'workingEstates',
+      'theStrategicReserves', // DS1: The School of Mines
       'thePracticalArts',
       'researchThroughConstruction',
       'theEndowedProvinces',
@@ -285,12 +293,22 @@ describe('the retired rows', () => {
       'husbandryStudies',
       'thePatentRolls',
       'commissionsOfService',
+      'theLongInheritance', // DS1
       'masterArtificers',
       'theDistantColleges',
       'theSocietyOfArtificers',
       'theLearnedRealm',
+      'theCommonplaceBook', // DS1
+      'thePatentOffice', // DS1
+      'theScholarsGuild', // DS1
+      'theGreatDesigns', // DS1
+      'greekFire', // DS1
+      'theStudiumGenerale', // DS1
       // Batch R3: the user, 2026-10-28, "remove, too similar to royal workshops".
       'thePrizeEssay',
+      'theRoyalReaders', // DS1
+      'theFieldRefits', // DS1
+      'theKeptSecret', // DS1
     ]);
     // The one shared row both its sheets cut (batch S1b).
     expect(orderDef('theHydraulicCommonwealth').retired).toBe(true);

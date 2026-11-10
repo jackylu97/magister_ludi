@@ -382,16 +382,24 @@ describe('Devotion batch DV1: tiers, retirements and moves', () => {
       theFestivalCalendar: [['devotion', 'magisterial'], 2],
       thePenitentsRoll: [['devotion', 'magisterial'], 2],
     };
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Penitents' Roll. Its row stays in the shared file under its id, with no
+    // type, and neither deck is dealt it.
+    const retired = ['thePenitentsRoll'];
     for (const [id, [decks, band]] of Object.entries(moved)) {
       const def = orderDef(id as OrderId);
+      const isRetired = retired.includes(id);
       expect(DECK_FILE_ORDERS.common, id).toContain(id);
       expect(DECK_FILE_ORDERS.devotion, id).not.toContain(id);
       expect(DECK_FILE_ORDERS.expansionist, id).not.toContain(id);
       expect(def.decks, id).toEqual(decks);
-      expect(def.type, id).toBe('civic');
+      expect(def.type, id).toBe(isRetired ? undefined : 'civic');
       expect(def.band, id).toBe(band);
-      expect(orderIsDealt(id as OrderId), id).toBe(true);
-      for (const deck of decks) expect(ordersForDecks([deck as never]), `${id} for ${deck}`).toContain(id);
+      expect(def.retired === true, id).toBe(isRetired);
+      expect(orderIsDealt(id as OrderId), id).toBe(!isRetired);
+      for (const deck of decks) {
+        expect(ordersForDecks([deck as never]).includes(id as OrderId), `${id} for ${deck}`).toBe(!isRetired);
+      }
     }
     // The Ambarvalia keeps the id of The Spirits of Place.
     expect(orderDef('theSpiritsOfPlace' as OrderId).name).toBe('The Ambarvalia');

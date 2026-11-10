@@ -429,7 +429,13 @@ describe('the two cards', () => {
     ]);
     expect(orderDef('theCommonplaceBook').band).toBe(1);
     expect(orderDef('thePatentOffice').band).toBe(4);
-    expect(orderIsDealt('theCommonplaceBook')).toBe(true);
-    expect(orderIsDealt('thePatentOffice')).toBe(true);
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired both
+    // cards, because batch DS9 makes a charter technology cost the ordinary
+    // price. Their rows and effects stay for saves, so the prices above still
+    // read them.
+    expect(orderDef('theCommonplaceBook').retired).toBe(true);
+    expect(orderDef('thePatentOffice').retired).toBe(true);
+    expect(orderIsDealt('theCommonplaceBook')).toBe(false);
+    expect(orderIsDealt('thePatentOffice')).toBe(false);
   });
 });

@@ -170,7 +170,9 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   after `expandBorders`: `encroachment` (The Encroaching Fields, `encroach`)
   takes an unworked hex from a smaller foreign town beside a large town, and
   `migration` (Migration and The Great Migration, `migration`) moves citizens
-  on the empires' happiness. Each fires when `turn % every === 0`.
+  on the empires' happiness. Each fires when `turn % every === 0`. Batch DS1
+  retired The Encroaching Fields and Migration, so The Great Migration is the
+  one dealt card that uses these phases.
 - **What a hex is worth as a place to put a town** is one reading in the same
   three verbs: `explainSite` / `foldSite` (`src/sim/sites.ts`) over the ring's
   hexes through the seat's own eyes, the water, the seams, the coast, the hills
@@ -599,6 +601,11 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
   draft count alone opens a tier; the research age plays no part since
   2026-10-17 (`docs/flags.md` (eeeeeee), `currentBandOf`). Chairs by tier are the
   doc's Governments table, sync-tested.
+- **Batch DS1** (2026-11-10, `docs/plans/deck-simplification-2026-11-10.md`)
+  retired 146 Order rows and moved 14 to another tier. A retired row keeps its
+  effects, so a save that holds one still plays it, and every shape it uses
+  still runs. So some cards this briefing names as the user of a shape are
+  retired; each deck sheet's "Retired rows" lists them.
 - **Doctrines** (`docs/orders-and-doctrines.md` "Doctrines"): cards held for the
   whole game. A Doctrine takes no chair and is `liveEffects`' second source. 98 are
   live and all are dealt: Dominion 13, Expansionist 24, Commerce 14, Scientific 15,
@@ -756,7 +763,9 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     `wearinessBetween`).
   - **Double Time** (`turnEffectRepeats`): an Order's periodic boons, musters,
     drills and harvests happen twice; a Doctrine's do not (the user's ruling of
-    2026-10-16). It is dealt in bands 2 and 3 (`OrderDef.lastBand`).
+    2026-10-16). It was dealt in bands 2 and 3 (`OrderDef.lastBand`) until
+    batch DS1 retired it. No dealt card has a last band now, and the deal
+    still reads the field.
 - **Shapes that came with Dominion's Doctrines.** `healWithin`, `rankWithin` and
   `noFounding` still work, but no dealt row uses them now.
   - A grant can heal every unit within some hexes of the moment's hex

@@ -253,13 +253,19 @@ describe('the Expansionist batch E11: The Topping Out, bought', () => {
 });
 
 describe('the Expansionist batch E11: the rows', () => {
-  it('deals both new cards, as Civic Orders', () => {
-    for (const id of ['theAediles', 'thePublicGood'] as OrderId[]) {
-      expect(orderIsDealt(id), id).toBe(true);
-      expect(orderDef(id).type, id).toBe('civic');
-    }
-    expect(orderDef('theAediles' as OrderId).band).toBe(1);
-    expect(orderDef('thePublicGood' as OrderId).band).toBe(4);
+  it('deals The Aediles as a Civic Order, and keeps The Public Good, retired in batch DS1', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Public Good. The row and its effect stay for saves, so the tests above
+    // still read it. It has no type and is not dealt.
+    const aediles = 'theAediles' as OrderId;
+    const good = 'thePublicGood' as OrderId;
+    expect(orderIsDealt(aediles)).toBe(true);
+    expect(orderDef(aediles).type).toBe('civic');
+    expect(orderDef(good).retired).toBe(true);
+    expect(orderIsDealt(good)).toBe(false);
+    expect(orderDef(good).type).toBeUndefined();
+    expect(orderDef(aediles).band).toBe(1);
+    expect(orderDef(good).band).toBe(4);
   });
 
   it('says what each does in plain words', () => {

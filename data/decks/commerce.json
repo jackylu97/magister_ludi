@@ -199,7 +199,6 @@
       "band": 0,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "Every seam weighed, and weighed again.",
       "text": "Worked resource tiles that supply gold gain +1 gold.",
       "effects": [
@@ -220,7 +219,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theMineralTrade": {
       "name": "The Mineral Trade",
@@ -382,7 +382,7 @@
       "decks": [
         "commerce"
       ],
-      "band": 2,
+      "band": 1,
       "line": "none",
       "rarity": "common",
       "type": "economic",
@@ -670,7 +670,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "The second season is worth more than the first.",
       "text": "A trade route you have kept up for at least twenty turns pays 50% more. A route that lapses, is cancelled or is plundered begins its term again.",
       "effects": [
@@ -685,7 +684,8 @@
             }
           ]
         }
-      ]
+      ],
+      "retired": true
     },
     "theMarketWrit": {
       "name": "The Market Writ",
@@ -961,7 +961,6 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
-      "type": "civic",
       "flavor": "Our man in their market, and their man in ours.",
       "text": "Each foreign town holding your trading post gives you +1 science and +1 culture for every four of its citizens. Its owner gains +2 gold.",
       "effects": [
@@ -990,7 +989,8 @@
           "gold": 2
         }
       ],
-      "note": "A trading post is established after a full route term of unbroken trading with a town, and it is yours from then on. A post pays nobody while its holder and the host are at war, or while the host city is blockaded. Each town's citizens are counted on their own, so what is left over in one town does not add to another's. Both halves count the same posts."
+      "note": "A trading post is established after a full route term of unbroken trading with a town, and it is yours from then on. A post pays nobody while its holder and the host are at war, or while the host city is blockaded. Each town's citizens are counted on their own, so what is left over in one town does not add to another's. Both halves count the same posts.",
+      "retired": true
     },
     "theConsulate": {
       "name": "The Consulate",
@@ -1159,7 +1159,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "The assayer's mark turns a rock into a quantity.",
       "text": "Each improved luxury resource deposit with a mine provides one additional copy of that luxury.",
       "effects": [
@@ -1169,7 +1168,8 @@
           "amount": 1
         }
       ],
-      "note": "No hex is changed. What grows is the number of copies your realm holds, taken of what your own deposits supply — so a copy another empire lent you is untouched, and a copy you lent away comes off the raised figure rather than being raised with it. A mine is an improvement, so there is no second test for improved. The deposit has to be open to you, like every other seam you count."
+      "note": "No hex is changed. What grows is the number of copies your realm holds, taken of what your own deposits supply — so a copy another empire lent you is untouched, and a copy you lent away comes off the raised figure rather than being raised with it. A mine is an improvement, so there is no second test for improved. The deposit has to be open to you, like every other seam you count.",
+      "retired": true
     },
     "theCapitalArsenal": {
       "name": "The Capital Arsenal",
@@ -2090,7 +2090,6 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
-      "type": "civic",
       "flavor": "A good chart is worth the coast it saves you from.",
       "text": "Your capital gains +1 gold and +1 culture for every 40 hexes you have revealed, at most +8 of each.",
       "effects": [
@@ -2114,7 +2113,8 @@
           "per": 40,
           "max": 8
         }
-      ]
+      ],
+      "retired": true
     },
     "theCartersGuild": {
       "name": "The Carters' Guild",
@@ -2535,7 +2535,6 @@
       "band": 4,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "The masons cost more than the guards. Hire both.",
       "text": "A city with a world wonder or the Magnum Opus at the front of its queue may buy any number of military units with gold each turn.",
       "effects": [
@@ -2543,7 +2542,8 @@
           "kind": "rule",
           "rule": "wonderTownBuysWithoutLimit"
         }
-      ]
+      ],
+      "retired": true
     },
     "theNeutralFlag": {
       "name": "The Neutral Flag",
@@ -2834,7 +2834,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "The towns of the league answer to the league before their lords.",
       "text": "+3% production and culture for each of your towns holding your trading post, at most +30%.",
       "effects": [
@@ -2865,7 +2864,8 @@
           "max": 10
         }
       ],
-      "note": "A trade route leaves your trading post at both of its ends, so a town counts when one of your routes sets out from it as well as when one arrives. A town counts once your post there is established, and not while the town is blockaded."
+      "note": "A trade route leaves your trading post at both of its ends, so a town counts when one of your routes sets out from it as well as when one arrives. A town counts once your post there is established, and not while the town is blockaded.",
+      "retired": true
     },
     "billsOfExchange": {
       "name": "Bills of Exchange",
@@ -2984,7 +2984,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "Half of every word is borrowed, and every port understands it.",
       "text": "+1% science and culture for every three trade routes running anywhere in the world, at most +30%.",
       "effects": [
@@ -3011,7 +3010,8 @@
           "max": 30
         }
       ],
-      "note": "Every trade route that is running counts, whoever sent it and wherever it goes, your own included. A route that is renewed is still one route."
+      "note": "Every trade route that is running counts, whoever sent it and wherever it goes, your own included. A route that is renewed is still one route.",
+      "retired": true
     },
     "commissionTheGreatFair": {
       "name": "Commission: The Great Fair",
@@ -3058,7 +3058,6 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "One partner sails and one stays home, and both own the cargo.",
       "text": "Luxuries you lend in a deal count as half a copy for you.",
       "effects": [
@@ -3068,7 +3067,8 @@
           "percent": 50
         }
       ],
-      "note": "The deal still takes the copy, so you can never lend the same copy twice. For your cards and goals, two copies lent count as one copy you hold. A luxury you now hold only through copies you lent still pays you half of its happiness and half of its yields while the deals run."
+      "note": "The deal still takes the copy, so you can never lend the same copy twice. For your cards and goals, two copies lent count as one copy you hold. A luxury you now hold only through copies you lent still pays you half of its happiness and half of its yields while the deals run.",
+      "retired": true
     },
     "theCapitulations": {
       "name": "The Capitulations",

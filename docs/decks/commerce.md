@@ -4,6 +4,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 
 - **Why each card is here:** `docs/plans/commerce-themes.md`, the themes pass of 2026-10-21. It designs the deck as a way to play: an engine of gold and what gold buys, and four themes (the home market, the far trade, the goods and the bankers). Section 12 is the revision of 2026-10-21, which moved the route cards to Tier II. Section 13 holds your answers of 2026-10-23, and it outranks the sections before it. `docs/plans/commerce-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
 - **The build plan:** `docs/plans/commerce-themes-triage.md` (batches T1 to T9). Batch T1 wrote this sheet, put the types into the data, retired the eleven cut rows, moved four rows to the shared file, and changed fifteen cards in place. Batch T2 built the eight new cards that need no new shape (Market Day, The Emporia, The Grain Banks, The Market Halls, Names in Stone, The Hanse, Bills of Exchange and The Grain Barges), and moved Merchant Scholars to Tier III with its new text. Batch T7 built the shared The Art Dealers and the moment a card is drafted, and moved Dominion's The Standing Army to the shared file. Batch T3 built the route and post cards: The Foreign Factor, The Fondaci, The Return Leg, The Champagne Fairs, The Admiralty of Trade and The Lingua Franca. Batch T4 built the two trade commissions: Commission: The Great Fair, and The World's Fair with its new goal and reward. Batch T5 built the goods and deals cards: Export Guilds and The Treaty Ports (two new counts, the luxuries you lend and the empires you hold a deal with), The Commenda, The Capitulations, The Casa da Índia, and Land Speculation's new text. Batch T6 built the purse and the hoard: Letters of Credit (purchases with gold may take the treasury down to a floor, and the creditors wait for the same floor), The Strongbox (a count of the turns you end holding gold), The Merchant Guilds (route slots counted from merchants in the trades) and the shared Mercenary Contracts (a waiver of upkeep hung on a unit you buy). After batch T6 every card on this sheet plays as written, except the rows marked `as built`.
+- **Batch DS1** (2026-11-10, `docs/plans/deck-simplification-2026-11-10.md`, `docs/flags.md` item (hhhhhhh)) retired 9 rows of this deck and 6 shared rows. It moved Provisioning Contracts from Tier II to Tier I. A moved row keeps its text until a later batch changes it. "Retired rows" below gives the reason for each cut. The spec also moves the shared Market Gardens from Tier 0 to Tier II. That move waits for a ruling, because Commerce and Expansionist would then share no card at Tier I or earlier (ruling (qqqqqq) 14).
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -23,27 +24,27 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 
 | Tier | Implemented | Modify | Add | All | Charters |
 |---|---|---|---|---|---|
-| Tier 0 | 10 | 0 | 0 | 10 | 0 |
-| Tier I | 11 | 1 | 0 | 12 | 1 |
-| Tier II | 22 | 2 | 0 | 24 | 1 |
-| Tier III | 18 | 1 | 0 | 19 | 0 |
-| Tier IV | 11 | 1 | 0 | 12 | 0 |
-| **All** | **72** | **5** | **0** | **77** | **2** |
-| Shared | 21 | 2 | 0 | 23 | 1 |
+| Tier 0 | 8 | 0 | 0 | 8 | 0 |
+| Tier I | 12 | 1 | 0 | 13 | 1 |
+| Tier II | 18 | 2 | 0 | 20 | 1 |
+| Tier III | 15 | 1 | 0 | 16 | 0 |
+| Tier IV | 10 | 1 | 0 | 11 | 0 |
+| **All** | **63** | **5** | **0** | **68** | **2** |
+| Shared | 15 | 2 | 0 | 17 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
 
 | Tier | Military | Economic | Civic | Wildcard |
 |---|---|---|---|---|
-| Tier 0 | 1 | 5 | 4 | 0 |
-| Tier I | 0 | 7 | 5 | 0 |
-| Tier II | 2 | 9 | 11 | 2 |
-| Tier III | 0 | 11 | 6 | 2 |
-| Tier IV | 1 | 6 | 3 | 2 |
-| **All** | **4** | **38** | **29** | **6** |
-| Shared | 5 | 7 | 10 | 1 |
+| Tier 0 | 1 | 4 | 3 | 0 |
+| Tier I | 0 | 8 | 5 | 0 |
+| Tier II | 2 | 7 | 9 | 2 |
+| Tier III | 0 | 9 | 5 | 2 |
+| Tier IV | 0 | 6 | 3 | 2 |
+| **All** | **3** | **34** | **25** | **6** |
+| Shared | 4 | 6 | 6 | 1 |
 
-Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 and 12 across Tiers 0 to IV. By type they are 3 Military, 37 Economic, 29 Civic and 6 Wildcard.
+Without the charters, the deck holds 66 cards that take a chair: 8, 12, 19, 16 and 11 across Tiers 0 to IV. By type they are 2 Military, 33 Economic, 25 Civic and 6 Wildcard.
 
 ## Tier 0
 
@@ -53,11 +54,9 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 | **The Emporia** | common | implemented | Improved luxury hexes gain +1 food and +1 production. | Economic |
 | **The Mineral Trade** | common | implemented | Worked mines and quarries gain +2 gold but lose 1 production. | Economic |
 | **Salt Tithes** | common | implemented | Gain +3 gold per distinct accessible improved luxury you produce. Worked luxury tiles gain +1 food. | Economic |
-| **The Assayer's Rule** | uncommon | implemented | Worked resource tiles that supply gold gain +1 gold. | Economic |
 | **Land Speculation** | uncommon | implemented | Buying a hex with a resource on it grants culture equal to half the gold paid. | Civic |
 | **Travellers' Letters** | common | implemented | Your capital gains +2 science and +2 culture, plus +1 of each per foreign empire met, no cap. | Civic |
 | **The Pathfinders' Company** | uncommon | implemented | Scouts gain +1 sight and +1 movement. | Military |
-| **The Map Sellers** | common | implemented | Your capital gains +1 gold and +1 culture for every 40 hexes you have revealed, at most +8 of each. | Civic |
 | **The Nest Egg** | common | implemented | Your capital gains +1 culture for every 50 gold in your treasury, at most +4. | Civic |
 
 ## Tier I
@@ -86,6 +85,7 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 | **Commercial Education** | common | implemented | Gold buildings provide +3 science. | Civic |
 | **The Market Writ** | uncommon | implemented | +1 authority for every two Markets in your empire. | Civic |
 | **The Strongbox** | uncommon | implemented | While seated, this card gains +1 science and +1 culture each turn you end with at least 300 gold in your treasury, up to +15 of each. | Civic |
+| **Provisioning Contracts** | common | implemented | Domestic routes grant their destination +3 food and +3 production. | Economic |
 
 ## Tier II
 
@@ -105,18 +105,14 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 | **Numidian Cavalry** | uncommon | modify: as built | Once drafted, unlock Numidian Cavalry, a Horseman replacement. No chair required. Gains +1 combat strength per distinct luxury you control; luxuries obtained only through the Silk Road contribute +0.5 instead. Normal technology requirements apply. | Military |
 | **Names in Stone** | uncommon | implemented | +1% science and culture for every 200 gold you have spent buying this game, at most +30%. | Civic |
 | **Foreign Procurement** | uncommon | implemented | Ignore strategic resource requirements when purchasing units. All units cost 20% more. | Military |
-| **Provisioning Contracts** | common | implemented | Domestic routes grant their destination +3 food and +3 production. | Economic |
 | **The Carters' Guild** | common | implemented | Towns that receive a domestic trade route build buildings 25% faster. | Economic |
 | **The Factors' Houses** | common | implemented | Your cities holding your trading post gain +2 gold and +4 culture. | Civic |
 | **Commission: The Great Fair** | uncommon | implemented | Commission. Have domestic trade routes arrive in four of your towns at the same time. Then, for the rest of the game, you may run two more trade routes. The card leaves its chair. | Wildcard |
 | **The Home Market** | common | implemented | Cities receiving at least two of your domestic routes gain +30% food, +30% production and +2 happiness, once per city. | Economic |
 | **The League of Cities** | rare | implemented | Cities with one of your paying outgoing routes gain +23% production and cost one less authority, minimum one. Cities without one lose 10% gold. | Economic |
-| **The Hanse** | uncommon | implemented | +3% production and culture for each of your towns holding your trading post, at most +30%. | Civic |
 | **The Common Road** | common | implemented | Your foreign routes grant you +3 gold, +3 science and +3 culture. Each also grants its host city +3 gold. | Civic |
 | **The Exchange** | uncommon | modify: as built | Each different foreign empire your routes currently serve grants +5% science and culture empire-wide. Foreign routes to your cities grant +2 science and +2 culture to both you and the sender. | Civic |
-| **The Foreign Factor** | common | implemented | Each foreign town holding your trading post gives you +1 science and +1 culture for every four of its citizens. Its owner gains +2 gold. | Civic |
 | **The Fondaci** | uncommon | implemented | Each time one of your trading posts is established, gain science and culture, each equal to twenty times the population of its town. | Civic |
-| **Royal Assays** | uncommon | implemented | Each improved luxury resource deposit with a mine provides one additional copy of that luxury. | Economic |
 | **Mining Districts** | uncommon | implemented | Worked mines gain +2 gold and +2 science for every two adjacent mines. | Civic |
 | **The Spice Exchange** | rare | implemented | Every city gains +5% science and +5% culture for each luxury you hold two or more copies of, at most +30%. | Civic |
 | **Corner the Market** | uncommon | implemented | Commission. Hold four copies of one luxury, counting copies you receive in deals. Then, for the rest of the game, gain +2 happiness for each luxury you hold two or more copies of. The card leaves its chair. | Wildcard |
@@ -148,12 +144,9 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 | **The Chartered Metropolis** | rare | implemented | Cities with at least three of your paying outgoing routes gain +38% food, production and culture, but each costs +4 authority while qualified. | Economic |
 | **The Return Leg** | rare | implemented | Your trade routes between your own towns also pay their origin everything they pay their destination. | Economic |
 | **The Champagne Fairs** | uncommon | implemented | Every ten turns, each town that receives a domestic trade route grants culture equal to ten times its population. | Civic |
-| **Established Routes** | uncommon | implemented | A trade route you have kept up for at least twenty turns pays 50% more. A route that lapses, is cancelled or is plundered begins its term again. | Economic |
 | **The Scholars' Roads** | rare | implemented | Lose 4 route capacity. Your routes gain +2 science and +2 culture, and gain +50% science and culture. | Civic |
 | **The Admiralty of Trade** | uncommon | implemented | Your trade routes to a town holding your trading post have no range limit. | Economic |
-| **The Lingua Franca** | uncommon | implemented | +1% science and culture for every three trade routes running anywhere in the world, at most +30%. | Civic |
 | **The Monopoly** | rare | modify: as built | For each luxury you hold three or more copies of and no other empire holds, gain +8 gold, +5 culture and +1 happiness in every city. | Economic |
-| **The Commenda** | rare | implemented | Luxuries you lend in a deal count as half a copy for you. | Economic |
 | **The Capitulations** | uncommon | implemented | Each foreign town holding your trading post lends you one of its luxuries that you lack, at half value. | Economic |
 | **The Money Lenders** | rare | implemented | Earn interest equal to 4% of your treasury each turn, with no cap. | Economic |
 | **A Court of Merchants** | rare | implemented | Gain +50% renown, but great-person offers contain only Great Merchants. | Civic |
@@ -179,7 +172,6 @@ Without the charters, the deck holds 75 cards that take a chair: 10, 11, 23, 19 
 | **Bought and Paid For** | rare | implemented | Each town gains +4% production and culture for each building you bought there with gold, at most +24%. | Civic |
 | **The Merchant Works** | rare | implemented | Cities building a world wonder, an empire building or the Opus gain production equal to 25% of their gold, and lose 20% of their gold. | Economic |
 | **The Great Loan** | rare | modify: as built | When you seat this card, gain gold equal to twenty turns of your gold income. For the next forty turns your cities lose 25% gold. The card then leaves its chair. | Wildcard |
-| **The Hired Garrison** | uncommon | implemented | A city with a world wonder or the Magnum Opus at the front of its queue may buy any number of military units with gold each turn. | Military |
 | **The Grain Barges** | uncommon | implemented | Your domestic trade routes pay their destination +1 food and +1 production for every four citizens of their origin. | Economic |
 | **The Trade Winds** | rare | implemented | Gain +3 trade route capacity. Your trade routes reach 50% farther. | Economic |
 | **The World's Exchange** | rare | implemented | +10% production toward the Opus for each foreign empire your trade routes reach, at most +40%. | Economic |
@@ -210,27 +202,38 @@ These rows live in `data/decks/common.json`. A seat holding Commerce or the deck
 | **The Art Dealers** | common | Magisterial | I | implemented | +3 gold for each card seated in your government. | Economic |
 | **The Escorted Roads** | uncommon | Dominion | II | implemented | Routes whose origin has a garrison gain +5 gold. Naval units gain +2 strength while adjacent to one of your traders. | Economic |
 | **Pilgrim Markets** | uncommon | Devotion | II | implemented | Routes gain +3 gold and +3 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify. | Civic |
-| **The Grain Exchange** | uncommon | Expansionist | II | implemented | Domestic routes from a city with a Granary give +5 food to their destination. Cities receiving one gain +1 happiness. | Economic |
-| **Travelling Players** | uncommon | Magisterial | II | implemented | Foreign routes from a town with a Monument gain +2 culture for each different deck among your seated cards. | Civic |
 | **The Provincial Fair** | uncommon | Expansionist | II | implemented | Connected noncapital cities with a Market gain +3 food. Their worked plantations, camps and pastures gain +2 gold. | Economic |
 | **The Tithe** | rare | Devotion | II | implemented | Cities with a Temple gain gold equal to 25% of their base faith, and +25% gold. | Economic |
 | **The Merchant Navigators** | common | Scientific | II | implemented | Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +5 science. | Civic |
-| **Books from the Ships** | uncommon | Scientific | II | implemented | Each foreign trade route you send gains +1 science for each technology the destination's owner knows that you do not, at most +4. | Civic |
-| **The Waqf** | common | Devotion | II | implemented | Faith buildings you bought with gold provide +3 faith and +2 culture. | Civic |
 | **The Silk Road Monks** | uncommon | Devotion | II | modify: as built | Your trade routes carry 100% more religious pressure. Trade routes you send to a city that follows your religion gain +3 gold and +3 culture. | Civic |
 | **The Brokers' Redraw** | rare | Magisterial | II | modify: as built | You may reroll a draft with gold instead of faith. All other purchasing is 10% more expensive. | Wildcard |
 | **Merchant Scholars** | uncommon | Scientific | III | implemented | Foreign routes gain +2 science for each Academy in the origin city. | Civic |
 | **Letters of Marque** | rare | Dominion | III | implemented | Naval combat kills grant 60 gold. Cities with a Harbour gain +38% gold, but produce naval combat units 20% more slowly. | Economic |
 | **Mercenary Contracts** | uncommon | Dominion | III | implemented | Military units you buy cost no upkeep for twenty turns. | Military |
-| **War Bonds** | uncommon | Dominion | III | implemented | Military units gain +1 strength for every 150 gold in your treasury, at most +5. | Military |
 | **Professional Soldiers** | uncommon | Dominion | III | implemented | Units you purchase gain +3 combat strength. | Military |
 | **The Chartered Company** | uncommon | Dominion | III | implemented | Once drafted, unlock the Company Guard, a unique gunpowder-age melee unit that can only be bought with gold, in cities with a Barracks. No chair required. | Military |
-| **The Cosmopolitan Court** | rare | Magisterial | III | implemented | Cities with a culture building gain +1 renown per outgoing foreign route, at most +3 per city. Great-person improvements worked by such cities gain +3 gold. | Civic |
 
 ## Retired rows
 
 These rows stay in the data so that old saves load. They are dealt to nobody, they carry no type, and no table above lists them. A save that holds one keeps it, with its effects (the triage's reading 39). The last section of `docs/plans/commerce-list-proposed.md`, "Cut by this pass", gives each card's old text and the reason for its cut.
 
+- **Retired in batch DS1** (2026-11-10, `docs/plans/deck-simplification-2026-11-10.md`). The reason after each card is the Note column of that file's table. Each data row keeps its text and effects:
+  - The Assayer's Rule (Tier 0): the player cannot tell at a glance which tiles count.
+  - The Map Sellers (Tier 0): a counter with a divisor and a cap.
+  - Royal Assays (Tier II): too narrow to matter in most games.
+  - The Foreign Factor (Tier II): The Factors' Houses does this job in one line.
+  - The Hanse (Tier II): one of the capped "for every X this game" cards. Each deck keeps one or two. The Factors' Houses pays for trading posts.
+  - Established Routes (Tier III): its condition almost never happened in play.
+  - The Commenda (Tier III): too narrow to matter in most games.
+  - The Lingua Franca (Tier III): one of the capped "for every X this game" cards. Each deck keeps one or two.
+  - The Hired Garrison (Tier IV): Tier IV keeps one Magnum Opus card of this kind per deck.
+  - in `data/decks/common.json`, the shared cards:
+    - Books from the Ships (with Scientific, Tier II): it reads what rivals know, which the player cannot see easily.
+    - The Grain Exchange (with Expansionist, Tier II): Provisioning Contracts does this job.
+    - The Waqf (with Devotion, Tier II): the player must remember which buildings they bought.
+    - Travelling Players (with Magisterial, Tier II): a seat holds two or three decks, so the count barely moves.
+    - The Cosmopolitan Court (with Magisterial, Tier III): two effects with three conditions.
+    - War Bonds (with Dominion, Tier III): a treasury threshold to check before each purchase.
 - **Retired in batch T1:**
   - eight live rows: Coastal Estates, Bought Swords, Frontier Investment, Ore Caravans, Venture Routes, The Caravanserai Network, Patrons Abroad, and The Merchant Dynasties (merged into The Customs Houses);
   - three deferred rows: The Consulate, The Post Riders and The Embargo.

@@ -145,15 +145,20 @@ function words(id: OrderId): string[] {
 // --- the rows ------------------------------------------------------------------
 
 describe('Magisterial batch MG9: the rows', () => {
-  it('deals all four from the tier, rarity and type the sheet names', () => {
+  it('deals all four from the tier, rarity and type the sheet names, but The Custodians, retired', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Custodians. It keeps its tier, rarity and effect for saves, so the tests
+    // below still read it. It has no type and is not dealt.
     for (const [id, band, rarity, type] of MG9_ROWS) {
       const def = orderDef(id);
-      expect(orderIsDealt(id), id).toBe(true);
+      const retired = id === CUSTODIANS;
+      expect(def.retired === true, id).toBe(retired);
+      expect(orderIsDealt(id), id).toBe(!retired);
       expect(def.decks, id).toEqual(['magisterial']);
-      expect(ordersForDecks(['magisterial']), id).toContain(id);
+      expect(ordersForDecks(['magisterial']).includes(id), id).toBe(!retired);
       expect(def.band, id).toBe(band);
       expect(def.rarity, id).toBe(rarity);
-      expect(def.type, id).toBe(type);
+      expect(def.type, id).toBe(retired ? undefined : type);
       expect(def.deferred, id).toBeUndefined();
     }
   });

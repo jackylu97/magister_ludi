@@ -538,10 +538,14 @@ describe('the Expansionist batch E12: the register of readers', () => {
 });
 
 describe('the Expansionist batch E12: the row', () => {
-  it('deals the card as a rare Tier III Economic Order', () => {
+  it('keeps the card as a rare Tier III Order, retired in batch DS1', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Cura Aquarum. The row and its rule stay for saves, so the tests above
+    // still read the rule. It has no type and is not dealt.
     const id = CURA as OrderId;
-    expect(orderIsDealt(id)).toBe(true);
-    expect(orderDef(id).type).toBe('economic');
+    expect(orderDef(id).retired).toBe(true);
+    expect(orderIsDealt(id)).toBe(false);
+    expect(orderDef(id).type).toBeUndefined();
     expect(orderDef(id).band).toBe(3);
     expect(orderDef(id).rarity).toBe('rare');
   });

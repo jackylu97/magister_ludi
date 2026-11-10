@@ -364,12 +364,20 @@ describe('the levy cards and the retired soldier read nought without a levy card
 describe('the five Expansionist commissions are priced by D16’s commission price (E13)', () => {
   const FIVE = ['sixGardens', 'commissionBreakTheSod', 'theWideCountry', 'theHeartland', 'theDomesdaySurvey'];
 
-  it('names exactly five live Expansionist commissions', () => {
+  it('names three live Expansionist commissions, and the two that batch DS1 retired', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired Six
+    // Gardens and The Heartland. A save can still hold them, so the price
+    // below still covers all five.
+    const RETIRED_IN_DS1 = ['sixGardens', 'theHeartland'];
     const live = ORDER_IDS.filter((id) => {
       const def = orderDef(id);
       return def.commission !== undefined && def.retired !== true && def.decks.includes('expansionist');
     });
-    expect([...live].sort()).toEqual([...FIVE].sort());
+    expect([...live].sort()).toEqual(FIVE.filter((id) => !RETIRED_IN_DS1.includes(id)).sort());
+    for (const id of RETIRED_IN_DS1) {
+      expect(orderDef(id as OrderId).retired, id).toBe(true);
+      expect(orderDef(id as OrderId).commission, id).toBeDefined();
+    }
   });
 
   it('prices each institution as its effect', () => {

@@ -110,9 +110,10 @@ describe('the Expansionist batch E1: the levy gate', () => {
     const gated = DECK_FILE_ORDERS.expansionist.filter(
       (id) => orderDef(id).needsLevy === true && orderIsDealt(id),
     );
-    expect(gated).toEqual(
-      expect.arrayContaining(['theLabourFeasts', 'theGleaners', 'theLabourRolls', 'seasonalLevies', 'theMita', 'theSlackSeason', 'theTrainedBands']),
-    );
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Labour Feasts, The Labour Rolls, The Slack Season and The Trained Bands,
+    // so three gated cards are left to deal.
+    expect(gated).toEqual(expect.arrayContaining(['theGleaners', 'seasonalLevies', 'theMita']));
     const everyBand = (): OrderId[] =>
       TIER_LADDER.flatMap((rung) => eligibleFor(g.state, seat, rung.drafts));
     expect(holdsLevyGrant(g.state, 0)).toBe(false);

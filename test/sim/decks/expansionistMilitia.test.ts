@@ -259,14 +259,18 @@ describe('the Expansionist batch E10: The Burghers (the guildInflow rule)', () =
 });
 
 describe('the Expansionist batch E10: the rows', () => {
-  it('deals all three, with the levy gate on Watch and Ward', () => {
-    for (const id of ['veteranColonies', 'theBurghers', 'watchAndWard']) {
-      expect(orderIsDealt(id as OrderId), id).toBe(true);
+  it('deals Veteran Colonies, and keeps the two that batch DS1 retired, with the levy gate on Watch and Ward', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Burghers and Watch and Ward. The rows and their effects stay for saves,
+    // so the tests above still read them. They have no type and are not dealt.
+    expect(orderIsDealt('veteranColonies' as OrderId)).toBe(true);
+    expect(orderDef('veteranColonies' as OrderId).type).toBe('economic');
+    for (const id of ['theBurghers', 'watchAndWard']) {
+      expect(orderDef(id as OrderId).retired, id).toBe(true);
+      expect(orderIsDealt(id as OrderId), id).toBe(false);
+      expect(orderDef(id as OrderId).type, id).toBeUndefined();
     }
     expect(orderDef('watchAndWard' as OrderId).needsLevy).toBe(true);
-    expect(orderDef('watchAndWard' as OrderId).type).toBe('military');
-    expect(orderDef('theBurghers' as OrderId).type).toBe('civic');
-    expect(orderDef('veteranColonies' as OrderId).type).toBe('economic');
   });
 
   it('says what each does in plain words', () => {

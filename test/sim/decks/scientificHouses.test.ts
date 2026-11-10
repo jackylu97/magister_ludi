@@ -232,15 +232,19 @@ const S8: readonly { id: OrderId; band: number; rarity: OrderRarity; type: CardT
 
 describe('the rows', () => {
   it('deals the eleven rows with the sheet’s tier, rarity, type and text', () => {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
+    // Royal Readers. It keeps its tier, rarity, text and effect for saves, so
+    // the tests below still read it. It has no type and is not dealt.
     for (const { id, band, rarity, type, text } of S8) {
       const def = orderDef(id);
-      expect(orderIsDealt(id), id).toBe(true);
+      const retired = id === 'theRoyalReaders';
+      expect(orderIsDealt(id), id).toBe(!retired);
       expect(def.deferred, id).toBeUndefined();
-      expect(def.retired, id).toBeUndefined();
+      expect(def.retired, id).toBe(retired ? true : undefined);
       expect(def.decks, id).toEqual(['scientific']);
       expect(def.band, id).toBe(band);
       expect(def.rarity, id).toBe(rarity);
-      expect(def.type, id).toBe(type);
+      expect(def.type, id).toBe(retired ? undefined : type);
       expect(def.text, id).toBe(text);
       expect(def.effects.length > 0 || def.commission !== undefined, id).toBe(true);
     }

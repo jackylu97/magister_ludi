@@ -194,8 +194,10 @@ describe('the Commerce deck is one deck', () => {
     // 104 rows become 105. Batch T5 adds The Commenda, The Capitulations and
     // The Casa da Índia, so 105 rows become 108. Batch T6 adds Letters of
     // Credit, The Strongbox and The Merchant Guilds, so 108 rows become 111.
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retires nine
+    // live rows, which stay in the file for saves.
     expect(COMMERCE.length).toBe(111);
-    expect(retired().length).toBe(34);
+    expect(retired().length).toBe(43);
     for (const id of COMMERCE) {
       expect(orderDef(id).decks, id).toEqual(['commerce']);
     }
@@ -253,10 +255,13 @@ describe('the Commerce deck is one deck', () => {
     // and one at Tier IV (The Casa da Índia): 10 / 10 / 23 / 19 / 12.
     // Batch T6 adds two rows at Tier I (Letters of Credit, The Strongbox) and
     // one at Tier II (The Merchant Guilds): 10 / 12 / 24 / 19 / 12.
-    expect([count(0), count(1), count(2), count(3), count(4)]).toEqual([15, 21, 37, 23, 15]);
+    // Batch DS1 moves Provisioning Contracts from Tier II to Tier I and
+    // retires two rows at Tier 0, three at Tier II, three at Tier III and one
+    // at Tier IV: 8 / 13 / 20 / 16 / 11.
+    expect([count(0), count(1), count(2), count(3), count(4)]).toEqual([15, 22, 36, 23, 15]);
     const kept = COMMERCE.filter((id) => orderDef(id).retired !== true).map((id) => orderDef(id).band);
     expect([0, 1, 2, 3, 4].map((band) => kept.filter((b) => b === band).length)).toEqual([
-      10, 12, 24, 19, 12,
+      8, 13, 20, 16, 11,
     ]);
     expect(orderDef('civicReceipts' as OrderId).band).toBe(1);
   });
@@ -378,7 +383,8 @@ describe('a live Commerce row is a card', () => {
     // Ports left the deferred list.
     // **Batch T6**: seventy-seven. Three new rows (Letters of Credit, The
     // Strongbox, The Merchant Guilds).
-    expect(live().length).toBe(77);
+    // **Batch DS1**: sixty-eight. Nine live rows are retired.
+    expect(live().length).toBe(68);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -637,7 +643,7 @@ describe('the age-2 gate', () => {
   const ROUTE_WORDS = /\b(routes?|traders?|caravans?|trading posts?|posts?)\b/i;
   const ROUTE_DATA = /routeEndsHere|holdsPost|postCities|tradeRoutes|foreignTradeRoutes|tradePartnerEmpires/;
 
-  it('keeps routes, traders and posts off Tiers 0 and I, with Market Gardens the one exception', () => {
+  it('keeps routes, traders and posts off Tiers 0 and I, with Market Gardens and Provisioning Contracts the exceptions', () => {
     // The themes pass's section 12, which you approved on 2026-10-23: no card
     // that needs a trade route to pay is dealt before Tier II. A card that
     // reads trading posts needs a route too, because only a route leaves a
@@ -646,11 +652,18 @@ describe('the age-2 gate', () => {
     //
     // Batch T2 moved Merchant Scholars to Tier III, so it is no longer an
     // exception (the triage's reading 43).
+    //
+    // Batch DS1 moved Provisioning Contracts from Tier II to Tier I, by the
+    // spec of 2026-11-10 (`docs/plans/deck-simplification-2026-11-10.md`,
+    // whose note says "Tier I had no route card"). It is the second stated
+    // exception.
     expect(orderDef('merchantScholars' as OrderId).band).toBe(3);
+    expect(orderDef('provisioningContracts' as OrderId).band).toBe(1);
+    const excepted: readonly string[] = ['marketGardens', 'provisioningContracts'];
     const early = gated().filter((id) => orderDef(id).band < 2);
     expect(early.length).toBeGreaterThan(0);
     for (const id of early) {
-      if (id === 'marketGardens') continue;
+      if (excepted.includes(id)) continue;
       const def = orderDef(id);
       expect(def.text, `${id}: ${def.text}`).not.toMatch(ROUTE_WORDS);
       for (const effect of def.effects) {
@@ -998,14 +1011,16 @@ describe('the Commerce deck: the sheet of record', () => {
     // Batch T1's sheet: 77 cards with the two charters, and 22 shared cards.
     // Batch T2 changes statuses only, so the totals stay. Batch T7 adds The
     // Standing Army to the shared table (23), and builds The Art Dealers.
-    expect(sheet).toHaveLength(77);
-    expect(shared).toHaveLength(23);
+    // Batch DS1 retires nine of the sheet's cards and six shared cards.
+    expect(sheet).toHaveLength(68);
+    expect(shared).toHaveLength(17);
   });
 
-  it('types every listed row, 77 of this file and 23 shared, and nothing else of this file', () => {
+  it('types every listed row, 68 of this file and 17 shared, and nothing else of this file', () => {
     // 59 after batch T1, the eight new rows of batch T2, the three of batch
     // T3, the one of batch T4, the three of batch T5 and the three of batch T6.
-    expect(LISTED).toHaveLength(77);
+    // Batch DS1 retires nine.
+    expect(LISTED).toHaveLength(68);
     for (const id of COMMERCE) {
       const def = orderDef(id);
       if (def.retired === true) expect(def.type, id).toBeUndefined();
@@ -1016,8 +1031,8 @@ describe('the Commerce deck: the sheet of record', () => {
       return def.retired !== true && def.decks.includes('commerce');
     });
     // 21 after batch T1. Batch T7 adds two: The Art Dealers (a new row) and
-    // The Standing Army (moved from the Dominion file).
-    expect(sharedRows).toHaveLength(23);
+    // The Standing Army (moved from the Dominion file). Batch DS1 retires six.
+    expect(sharedRows).toHaveLength(17);
     for (const id of sharedRows) expect(isCardType(orderDef(id).type ?? ''), id).toBe(true);
   });
 });

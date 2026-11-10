@@ -1740,7 +1740,11 @@ describe('The Hospitium', () => {
     const { state, player } = handSeat();
     hold(state, HOSPITIUM);
     const types = slotTypesOf(player.statecraft);
-    const card = foreignCardBag(state, player).find((id) => types.includes(orderDef(id).type as never));
+    // A charter takes no chair, so it is passed over. Since batch DS1 moved
+    // The Fish Traps to Tier I, it is the first card of this bag.
+    const card = foreignCardBag(state, player).find(
+      (id) => orderDef(id).charter === undefined && types.includes(orderDef(id).type as never),
+    );
     expect(card).toBeDefined();
     narrowForeignBagTo(state, player, card);
     player.statecraft.pendingOrder = deal(state, player);

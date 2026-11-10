@@ -216,19 +216,15 @@ describe('the levy cards are priced on the levy rate', () => {
     expect(levyOutlook(ctx).soldierRate).toBeGreaterThan(0);
     const needs = ORDER_IDS.filter((id) => orderDef(id).needsLevy === true && orderDef(id).retired !== true);
     // The register: the cards the deal gate holds back until a levy is held.
-    expect([...needs].sort()).toEqual(
-      [
-        'seasonalLevies',
-        'theGleaners',
-        'theLabourFeasts',
-        'theLabourRolls',
-        'theMita',
-        'theSlackSeason',
-        'theTrainedBands',
-        'watchAndWard',
-      ].sort(),
-    );
-    for (const id of [...needs, 'veteranColonies']) {
+    expect([...needs].sort()).toEqual(['seasonalLevies', 'theGleaners', 'theMita'].sort());
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired five
+    // of them. A save can still hold one, so the bot still prices them.
+    const retired = ['theLabourFeasts', 'theLabourRolls', 'theSlackSeason', 'theTrainedBands', 'watchAndWard'];
+    for (const id of retired) {
+      expect(orderDef(id as OrderId).needsLevy, id).toBe(true);
+      expect(orderDef(id as OrderId).retired, id).toBe(true);
+    }
+    for (const id of [...needs, ...retired, 'veteranColonies']) {
       expect(scoreEffects(orderDef(id as OrderId).effects, ctx, id as OrderId), id).toBeGreaterThan(0);
     }
   });

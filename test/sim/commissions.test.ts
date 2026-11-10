@@ -95,9 +95,13 @@ function clearCamp(state: GameState): void {
 describe('the commission rows', () => {
   const rows = ORDER_IDS.filter((id) => orderDef(id).commission !== undefined);
 
-  it('are the three example commissions, each dealt', () => {
+  it('are the three example commissions, each dealt unless it is retired', () => {
     expect(rows).toEqual(expect.arrayContaining([FRONTIER, STRONGROOM, MARKET]));
-    for (const id of rows) expect(orderIsDealt(id), id).toBe(true);
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired some
+    // commissions. Their rows stay for saves, and the checks below still read
+    // them.
+    for (const id of rows) expect(orderIsDealt(id), id).toBe(orderDef(id).retired !== true);
+    for (const id of [FRONTIER, STRONGROOM, MARKET]) expect(orderIsDealt(id), id).toBe(true);
   });
 
   it('carry a goal and a reward in the vocabulary, with at most one counted part', () => {

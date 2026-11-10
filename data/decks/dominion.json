@@ -198,7 +198,7 @@
       "decks": [
         "dominion"
       ],
-      "band": 0,
+      "band": 1,
       "line": "none",
       "rarity": "rare",
       "type": "military",
@@ -219,7 +219,6 @@
       "band": 1,
       "line": "none",
       "rarity": "rare",
-      "type": "military",
       "flavor": "The king remembers the villages, and the villages remember the king.",
       "text": "When drafted, your capital gains a melee unit. Every fifteen turns it raises another for free. They cost no upkeep.",
       "onDraft": [
@@ -235,14 +234,15 @@
           "unit": "bestMelee",
           "where": "capital"
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionClearTheFrontier": {
       "name": "Commission: Clear the Frontier",
       "decks": [
         "dominion"
       ],
-      "band": 0,
+      "band": 1,
       "line": "none",
       "rarity": "common",
       "type": "wildcard",
@@ -299,7 +299,6 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
-      "type": "wildcard",
       "flavor": "The names go on the standard, one by one.",
       "text": "Commission. Kill six units while this card is seated. Then gain 2 population in your capital, and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair.",
       "effects": [],
@@ -319,7 +318,8 @@
             "unit": "bestMelee"
           }
         ]
-      }
+      },
+      "retired": true
     },
     "dominionSwordAndPlough": {
       "name": "Sword and Plough",
@@ -352,7 +352,6 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
-      "type": "civic",
       "flavor": "Every tent has a prayer said over it.",
       "text": "Killing or losing a unit grants faith equal to its strength.",
       "effects": [
@@ -374,7 +373,8 @@
             "fromOccasion": "strength"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theGrainTribute": {
       "name": "The Grain Tribute",
@@ -404,7 +404,6 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
-      "type": "military",
       "flavor": "A wall is only as tall as the longest ladder.",
       "text": "Melee units gain +4 strength against towns.",
       "effects": [
@@ -419,7 +418,8 @@
             "modelClass": "melee"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theFuneralGames": {
       "name": "The Funeral Games",
@@ -514,7 +514,6 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
-      "type": "military",
       "flavor": "Every third morning, the whole garrison drills in the square.",
       "text": "Units standing in your towns gain 1 experience every 3 turns.",
       "effects": [
@@ -524,7 +523,8 @@
           "where": "garrison",
           "every": 3
         }
-      ]
+      ],
+      "retired": true
     },
     "theArmedColony": {
       "name": "The Armed Colony",
@@ -534,7 +534,6 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
       "flavor": "The soldiers marked out the walls before the farmers marked out the fields.",
       "text": "A town founded beside one of your military units starts with three extra hexes, and that unit becomes a Veteran.",
       "effects": [
@@ -546,7 +545,8 @@
           },
           "rank": "veteran"
         }
-      ]
+      ],
+      "retired": true
     },
     "theCampaignAnnals": {
       "name": "The Campaign Annals",
@@ -556,7 +556,6 @@
       "band": 0,
       "line": "none",
       "rarity": "rare",
-      "type": "civic",
       "flavor": "Every promotion is written down, with the battle that earned it.",
       "text": "While seated, this card gains +3 science each time one of your units earns a rank. It starts at +3 science.",
       "effects": [
@@ -574,7 +573,8 @@
           "count": "tally",
           "tally": "rankEarned"
         }
-      ]
+      ],
+      "retired": true
     },
     "theOutriders": {
       "name": "The Outriders",
@@ -616,7 +616,6 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
-      "type": "civic",
       "flavor": "A captain in every town, and every captain answers to the throne.",
       "text": "+1 authority for each garrisoned unit.",
       "effects": [
@@ -628,7 +627,8 @@
           "amount": 1,
           "count": "garrison"
         }
-      ]
+      ],
+      "retired": true
     },
     "theCapturedArms": {
       "name": "The Captured Arms",
@@ -657,7 +657,7 @@
       "decks": [
         "dominion"
       ],
-      "band": 0,
+      "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "type": "civic",
@@ -925,7 +925,6 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "military",
       "flavor": "A soldier who feeds himself costs the crown less.",
       "text": "Military units cost 1 less upkeep for each rank they hold.",
       "effects": [
@@ -937,7 +936,8 @@
           },
           "perRank": true
         }
-      ]
+      ],
+      "retired": true
     },
     "veteransRest": {
       "name": "Veterans' Rest",
@@ -1194,7 +1194,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "Every sword teaches the smith something.",
       "text": "Gaining a unit grants science equal to three quarters of its strength.",
       "effects": [
@@ -1207,7 +1206,8 @@
             "fromOccasion": "strength"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "soldierSettlers": {
       "name": "Soldier-Settlers",
@@ -1441,7 +1441,6 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
       "flavor": "In spring they drill, in summer they reap.",
       "text": "Garrisoned towns gain +1 production and +1 gold on each worked hex with a resource.",
       "effects": [
@@ -1457,7 +1456,8 @@
             "test": "garrisoned"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "martialLaw": {
       "name": "Martial Law",
@@ -1497,7 +1497,6 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
       "flavor": "Inside the walls, a farmer plants without looking over his shoulder.",
       "text": "Towns with a defensive building, such as a Palisade or walls, gain +15% food.",
       "effects": [
@@ -1511,7 +1510,8 @@
           "count": "defensiveBuildings",
           "max": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "theSwiftRiders": {
       "name": "The Swift Riders",
@@ -1577,7 +1577,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "The governor rules the province, and the garrison makes sure of it.",
       "text": "Garrisoned towns in unrest pacify twice as fast.",
       "effects": [
@@ -1589,7 +1588,8 @@
             "test": "garrisoned"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theAcropolis": {
       "name": "The Acropolis",
@@ -1599,7 +1599,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "The high city holds the temples, the treasury and the will of the state.",
       "text": "Citadels give +2 culture and +1 authority each.",
       "effects": [
@@ -1624,7 +1623,8 @@
             "improvement": "citadel"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theOpenMuster": {
       "name": "The Open Muster",
@@ -1656,7 +1656,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "What the town held, the army carries away.",
       "text": "Razing a town you captured grants production, gold and culture equal to fifteen times its population.",
       "effects": [
@@ -1687,7 +1686,8 @@
             "fromOccasion": "population"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theCleruchy": {
       "name": "The Cleruchy",
@@ -1777,7 +1777,6 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
       "flavor": "The smiths keep books as carefully as they keep fires.",
       "text": "When one of your units falls, your nearest town with an Armoury gains production equal to its strength.",
       "effects": [
@@ -1794,7 +1793,8 @@
             }
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "veteransBoroughs": {
       "name": "Veterans' Boroughs",
@@ -1945,7 +1945,6 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
-      "type": "civic",
       "flavor": "They will speak of the day the gates opened.",
       "text": "Capturing a city grants culture equal to fifteen times its population.",
       "effects": [
@@ -1958,7 +1957,8 @@
             "fromOccasion": "population"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionCampFollowers": {
       "name": "Camp Followers",
@@ -2052,7 +2052,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "The farms nearest the sea were always the first to burn.",
       "text": "A ship of yours that ends its turn beside an enemy improvement on the shore pillages it.",
       "effects": [
@@ -2060,7 +2059,8 @@
           "kind": "rule",
           "rule": "shoreRaid"
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionRidersOfTheSteppe": {
       "name": "Riders of the Steppe",
@@ -2543,7 +2543,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "Fresh horses wait at every post.",
       "text": "Military units that start their turn in one of your towns connected to your capital gain +2 movement.",
       "effects": [
@@ -2556,7 +2555,8 @@
           },
           "where": "connectedTown"
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionWarReparations": {
       "name": "War Reparations",
@@ -2566,7 +2566,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "The loser pays, and the winner counts it twice.",
       "text": "Making peace after taking cities in that war grants gold equal to twenty times their total population, and half as much culture.",
       "effects": [
@@ -2588,7 +2587,8 @@
             "fromOccasion": "takenPopulation"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionTakeTheCity": {
       "name": "Commission: Take the City",
@@ -2715,7 +2715,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "Every large town owes the army its share of men.",
       "text": "Every ten turns, each town of at least eight citizens raises the best melee unit you can build.",
       "effects": [
@@ -2729,7 +2728,8 @@
             "value": 8
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theVeteransRoll": {
       "name": "The Veterans' Roll",
@@ -2800,7 +2800,6 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
       "flavor": "The old soldiers know what a good blade is worth, and the smiths listen.",
       "text": "Towns whose garrison is a Veteran or Elite gain +25% production.",
       "effects": [
@@ -2813,7 +2812,8 @@
             "rank": "veteran"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theSagas": {
       "name": "The Sagas",
@@ -2823,7 +2823,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "Every burnt farmstead became a verse.",
       "text": "+1% culture and gold for every three hexes you have pillaged this game, at most +30%.",
       "effects": [
@@ -2849,7 +2848,8 @@
           "per": 3,
           "max": 30
         }
-      ]
+      ],
+      "retired": true
     },
     "theHallOfTheSlain": {
       "name": "The Hall of the Slain",
@@ -2859,7 +2859,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "Every name on the wall is a reason to keep fighting.",
       "text": "+1% production and culture for every two units you have lost this game, at most +30%.",
       "effects": [
@@ -2885,7 +2884,8 @@
           "per": 2,
           "max": 30
         }
-      ]
+      ],
+      "retired": true
     },
     "theProvincialCensus": {
       "name": "The Provincial Census",
@@ -2895,7 +2895,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "Count the people, and you know what the province can give.",
       "text": "Pacifying a town grants science equal to twenty times its population.",
       "effects": [
@@ -2908,7 +2907,8 @@
             "fromOccasion": "population"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "spearWonLand": {
       "name": "Spear-won Land",
@@ -3174,7 +3174,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "In peace they build. In war they do not.",
       "text": "While at war, cities with a Barracks produce military units 60% faster; while at peace, those cities gain +30% production toward buildings.",
       "effects": [
@@ -3215,7 +3214,8 @@
             }
           ]
         }
-      ]
+      ],
+      "retired": true
     },
     "blockadeAdmirals": {
       "name": "Blockade Admirals",
@@ -3537,7 +3537,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "When the king calls the whole realm to arms, every forge answers.",
       "text": "Declaring war gives every city +50% production for ten turns. Declaring war again restarts the ten turns.",
       "effects": [
@@ -3558,7 +3557,8 @@
             }
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theVictoryMint": {
       "name": "The Victory Mint",
@@ -3591,7 +3591,6 @@
       "band": 3,
       "line": "none",
       "rarity": "common",
-      "type": "civic",
       "flavor": "In wartime the arsenal and the academy keep the same hours.",
       "text": "While at war, each city with a Barracks gains +1 production and +1 science for every three citizens.",
       "effects": [
@@ -3631,7 +3630,8 @@
             }
           ]
         }
-      ]
+      ],
+      "retired": true
     },
     "theDrillMasters": {
       "name": "The Drill Masters",
@@ -3682,7 +3682,6 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
-      "type": "military",
       "flavor": "Recruited in the conquered provinces, trained for years in the capital.",
       "text": "Captured towns of at least six citizens may spend a citizen to raise the best melee unit you can build, as a Veteran.",
       "effects": [
@@ -3695,7 +3694,8 @@
           },
           "rank": "veteran"
         }
-      ]
+      ],
+      "retired": true
     },
     "theRegimentalSchools": {
       "name": "The Regimental Schools",
@@ -3805,7 +3805,6 @@
       "band": 3,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
       "flavor": "The carts went out empty and came home full.",
       "text": "Pillaging grants 30 production and 15 food to your capital.",
       "effects": [
@@ -3827,7 +3826,8 @@
             "toCapital": true
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theYam": {
       "name": "The Yam",
@@ -3837,7 +3837,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "A fresh horse waits at every post station.",
       "text": "Mounted units heal fully when they pillage.",
       "effects": [
@@ -3851,7 +3850,8 @@
             "healFull": true
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theChevauchee": {
       "name": "The Chevauchée",
@@ -3861,7 +3861,6 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
-      "type": "military",
       "flavor": "Burn the countryside, and the towns go hungry behind their walls.",
       "text": "Pillaging a hex damages enemy cities within three hexes with 50% of the pillaging unit's strength.",
       "effects": [
@@ -3875,7 +3874,8 @@
             }
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theBakufu": {
       "name": "The Bakufu",
@@ -4014,7 +4014,6 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
-      "type": "civic",
       "flavor": "The raiders sail home when the silver is counted out.",
       "text": "Making peace with an empire you pillaged in that war grants 40 gold and 40 culture for each hex you pillaged.",
       "effects": [
@@ -4036,7 +4035,8 @@
             "fromOccasion": "hexesPillaged"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionImperium": {
       "name": "Imperium",
@@ -4046,7 +4046,6 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "The provinces pay for the great work.",
       "text": "Each captured city you hold gives +10% production toward the Magnum Opus, at most +40%.",
       "effects": [
@@ -4058,7 +4057,8 @@
           "count": "capturedCities",
           "max": 4
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionHoldTheCapitals": {
       "name": "Commission: Hold the Capitals",
@@ -4107,7 +4107,6 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "Their columns hold up our roof now.",
       "text": "Capturing a city that was raising a Magnum Opus adds half the production it had put into that Opus to your own. If you have not begun one, the production is kept until you do.",
       "effects": [
@@ -4121,7 +4120,8 @@
             "toOpus": true
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionTheLegionsLabour": {
       "name": "The Legions' Labour",
@@ -4131,7 +4131,6 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "Between wars, the legions build walls and roads.",
       "text": "Disbanding a military unit in a town building a wonder or the Magnum Opus adds half its production cost toward it. Units raised for free add nothing, but units raised by a levy count.",
       "effects": [
@@ -4159,7 +4158,8 @@
             "fromOccasion": "unitCost"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionThePraetorianGuard": {
       "name": "The Praetorian Guard",
@@ -4169,7 +4169,6 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "military",
       "flavor": "The great work has its own guard, and the guard has its own walls.",
       "text": "The city raising your Magnum Opus gains +5 defence for each unit garrisoned there. Your military units within two hexes of it gain +6 strength.",
       "effects": [
@@ -4197,7 +4196,8 @@
             }
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionTheGrandArmy": {
       "name": "The Grand Army",
@@ -4303,7 +4303,6 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "civic",
       "flavor": "Every household keeps a musket over the door.",
       "text": "Each unit garrisoned in a city gives it +3 science and +3 culture, at most three units per city.",
       "effects": [
@@ -4325,7 +4324,8 @@
           "count": "garrison",
           "max": 3
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionTheNationInArms": {
       "name": "The Nation in Arms",
@@ -4335,7 +4335,6 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "military",
       "flavor": "Every armoury opens its doors on the same morning.",
       "text": "Every ten turns, each city with an Armoury raises the best melee unit you can build. They cost no upkeep.",
       "effects": [
@@ -4349,7 +4348,8 @@
             "building": "armoury"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionCircumvallation": {
       "name": "Circumvallation",
@@ -4377,7 +4377,6 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "military",
       "flavor": "Old enemies march together against the one who would end the age.",
       "text": "While at war with an empire raising a Magnum Opus, your military units gain +6 strength against it, and cities with a Barracks produce military units 30% faster.",
       "effects": [
@@ -4412,7 +4411,8 @@
             }
           ]
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionTheProconsuls": {
       "name": "The Proconsuls",
@@ -4505,7 +4505,6 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "wildcard",
       "flavor": "The marvel was theirs to build and ours to keep.",
       "text": "Commission. Capture a city that holds a world wonder or was another empire's original capital. Then, for the rest of the game, captured cities that hold a world wonder, and captured original capitals, gain +30% science and +30% culture. The card leaves its chair.",
       "effects": [],
@@ -4571,7 +4570,8 @@
             ]
           }
         ]
-      }
+      },
+      "retired": true
     },
     "theVarangianGuard": {
       "name": "The Varangian Guard",
@@ -4642,7 +4642,6 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "military",
       "flavor": "An unguarded town that watches its fields burn does not stay loyal for long.",
       "text": "Pillaging a hex beside a rival town with no garrison throws that town into unrest.",
       "effects": [
@@ -4653,7 +4652,8 @@
             "unrestBeside": true
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "vaeVictis": {
       "name": "Vae Victis",
@@ -4735,7 +4735,6 @@
       "band": 0,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "Let the raiders come close. The young men need the practice.",
       "text": "Barbarian camps within ten hexes of your cities spawn 50% faster. Your units gain +4 strength in your own territory.",
       "effects": [
@@ -4753,7 +4752,8 @@
             "test": "ownTerritory"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theFuneralOration": {
       "name": "The Funeral Oration",
@@ -4763,7 +4763,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "They died for the city, and the city speaks their names.",
       "text": "Units you lose count half toward war weariness.",
       "effects": [
@@ -4772,7 +4771,8 @@
           "rule": "unitLossWeariness",
           "percent": -50
         }
-      ]
+      ],
+      "retired": true
     },
     "theCastra": {
       "name": "The Castra",
@@ -4782,7 +4782,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "Each night the legion digs a town, and each morning it marches on.",
       "text": "Your own hexes with a fortified military unit gain +1 science and +1 production. Citadels gain +3 production and +3 science.",
       "effects": [
@@ -4805,7 +4804,8 @@
             "improvement": "citadel"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "doubleTime": {
       "name": "Double Time",
@@ -4816,7 +4816,6 @@
       "lastBand": 3,
       "line": "none",
       "rarity": "rare",
-      "type": "wildcard",
       "flavor": "March at the double, and the campaign comes round twice.",
       "text": "Your Orders' effects that happen at the end of a turn or every few turns trigger twice.",
       "effects": [
@@ -4825,7 +4824,8 @@
           "rule": "turnEffectRepeats",
           "value": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "warFeedsItself": {
       "name": "War Feeds Itself",
@@ -4879,7 +4879,6 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
-      "type": "civic",
       "flavor": "At the feast, the best cut of meat goes to the bravest warrior at the table.",
       "text": "Killing a unit grants renown equal to its strength, favouring great generals.",
       "effects": [
@@ -4892,7 +4891,8 @@
             "renownFamily": "general"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theCastleDemesne": {
       "name": "The Castle Demesne",
@@ -4926,7 +4926,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "Sparta built no walls. Its citizens were its walls.",
       "text": "Towns build military units 30% faster, but buildings 15% more slowly.",
       "effects": [
@@ -4943,7 +4942,8 @@
           "category": "building",
           "percent": -15
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionTheRanksOfMerit": {
       "name": "Commission: The Ranks of Merit",
@@ -4953,7 +4953,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "wildcard",
       "flavor": "A rank is earned in the field and paid for at home.",
       "text": "Commission. Have three of your units earn a rank while this card is seated. Then, for the rest of the game, each rank a unit earns grants science and production equal to its strength in your capital. The card leaves its chair.",
       "effects": [],
@@ -4990,7 +4989,8 @@
             ]
           }
         ]
-      }
+      },
+      "retired": true
     },
     "dominionTheFirstProvince": {
       "name": "Commission: The First Province",
@@ -5116,7 +5116,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "Each general's triumph is cut into the stone below the last.",
       "text": "+5% production and gold for each great general you have gained this game, at most +30%.",
       "effects": [
@@ -5142,7 +5141,8 @@
           "family": "general",
           "max": 6
         }
-      ]
+      ],
+      "retired": true
     },
     "theMarchRevenues": {
       "name": "The March Revenues",
@@ -5152,7 +5152,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "The border lords pay their tax in horses and iron.",
       "text": "+3% production for each pasture, camp and strategic resource inside your borders, at most +30%.",
       "effects": [
@@ -5182,7 +5181,8 @@
           },
           "max": 10
         }
-      ]
+      ],
+      "retired": true
     },
     "theTributaryKings": {
       "name": "The Tributary Kings",
@@ -5222,7 +5222,6 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
-      "type": "wildcard",
       "flavor": "Every gate held, and every wall watched.",
       "text": "Commission. Have military units standing in three of your towns at the same time. Then each town with a garrison gains 30 production. The card leaves its chair.",
       "effects": [],
@@ -5244,7 +5243,8 @@
             "amount": 30
           }
         ]
-      }
+      },
+      "retired": true
     },
     "theOvation": {
       "name": "The Ovation",
@@ -5254,7 +5254,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "The city turns out to cheer, and then goes back to work.",
       "text": "Completing a commission gives every town +30% production for ten turns. Completing another restarts the ten turns.",
       "effects": [
@@ -5275,7 +5274,8 @@
             }
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theResGestae": {
       "name": "The Res Gestae",
@@ -5285,7 +5285,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "The deeds are cut in bronze at the door of the tomb.",
       "text": "+4% production and culture for each commission you have completed this game, at most +28%.",
       "effects": [
@@ -5309,7 +5308,8 @@
           "count": "commissionsMet",
           "max": 7
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionTheBorderFortress": {
       "name": "Commission: The Border Fortress",
@@ -5392,7 +5392,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "wildcard",
       "flavor": "The riders burn one farm and the next, and the border learns to fear the dust.",
       "text": "Commission. Pillage four hexes while this card is seated. Then, for the rest of the game, your mounted units gain +50% yields from pillaging. The card leaves its chair.",
       "effects": [],
@@ -5418,7 +5417,8 @@
             ]
           }
         ]
-      }
+      },
+      "retired": true
     },
     "rallyToTheStandard": {
       "name": "Rally to the Standard",
@@ -5428,7 +5428,6 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
-      "type": "military",
       "flavor": "New recruits march to the general's banner, not to the barracks gate.",
       "text": "A military unit you gain appears beside your nearest great general instead of in its town, if that general stands within ten hexes of the town.",
       "effects": [
@@ -5440,7 +5439,8 @@
             "category": "military"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theLimitanei": {
       "name": "The Limitanei",

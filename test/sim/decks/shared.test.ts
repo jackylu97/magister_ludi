@@ -159,26 +159,26 @@ describe('the shared cards of the four approved decks', () => {
 
   it('keeps every shared row in the shared file under its old id', () => {
     const live = [
-      'theHolyArmy',
       'commonRitesOfPassage',
       'theSacredHost',
       'theCrusaderOrders',
       'theBarbarianFrontier',
       'theOriflamme',
-      'theFloodFestival',
-      'theRoadGarrisons',
-      'convertItOrTaxIt',
-      'warBonds',
       'professionalSoldiers',
       'theCharteredCompany',
       'lettersOfMarque',
       'commonTheTithe',
       'theMusterOfTheFields',
     ];
-    for (const id of live) {
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired five
+    // of these rows. They stay in the shared file under their ids, for saves.
+    const retired = ['theHolyArmy', 'theFloodFestival', 'theRoadGarrisons', 'convertItOrTaxIt', 'warBonds'];
+    for (const id of [...live, ...retired]) {
       expect(COMMON, id).toContain(id);
       expect(orderDef(id as OrderId).decks, id).toHaveLength(2);
-      expect(orderIsDealt(id as OrderId), `${id} is not dealt`).toBe(true);
+      const isRetired = retired.includes(id);
+      expect(orderDef(id as OrderId).retired === true, `${id}: retired`).toBe(isRetired);
+      expect(orderIsDealt(id as OrderId), `${id}: dealt`).toBe(!isRetired);
     }
     // The Holy Army moved out of the Devotion file, keeping its id.
     expect(DECK_FILE_ORDERS.devotion).not.toContain('theHolyArmy');

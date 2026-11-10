@@ -38,7 +38,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "The drill yard empties into the furrow.",
       "text": "Cities with a Barracks gain +45% production toward settlers and workers.",
       "effects": [
@@ -53,7 +52,8 @@
           },
           "scope": { "test": "hasBuilding", "building": "barracks" }
         }
-      ]
+      ],
+      "retired": true
     },
     "commonTheEscortedRoads": {
       "name": "The Escorted Roads",
@@ -220,7 +220,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "The wall falls to arithmetic before it falls to stone.",
       "text": "Siege units gain +1 movement. Cities with a Workshop gain +30% production toward siege units and +3 science while at war.",
       "effects": [
@@ -249,7 +248,8 @@
             }
           ]
         }
-      ]
+      ],
+      "retired": true
     },
     "theImperialExaminations": {
       "name": "The Imperial Examinations",
@@ -456,7 +456,6 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "civic",
       "flavor": "Water taught us the level, and the level taught us everything.",
       "text": "Cities with an Aqueduct gain +20% production toward science buildings. Those beside a mountain also gain +1 science per three citizens.",
       "effects": [
@@ -484,7 +483,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theHydraulicCommonwealth": {
       "name": "The Hydraulic Commonwealth",
@@ -681,7 +681,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "The cart is a stage with wheels on it.",
       "text": "Foreign routes from a town with a Monument gain +2 culture for each different deck among your seated cards.",
       "effects": [
@@ -696,7 +695,8 @@
           "crossing": "international"
         }
       ],
-      "note": "Only the cards in your chairs count. A card that two decks share counts for both decks. The cards that belong to no deck count together as one more deck."
+      "note": "Only the cards in your chairs count. A card that two decks share counts for both decks. The cards that belong to no deck count together as one more deck.",
+      "retired": true
     },
     "theCosmopolitanCourt": {
       "name": "The Cosmopolitan Court",
@@ -704,7 +704,6 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
-      "type": "civic",
       "flavor": "Six languages at one table, and the wine does the translating.",
       "text": "Cities with a culture building gain +1 renown per outgoing foreign route, at most +3 per city. Great-person improvements worked by such cities gain +3 gold.",
       "effects": [
@@ -724,7 +723,8 @@
           "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 1 }
         }
       ],
-      "note": "A city is counted for the trade routes that set out from it to another empire, and never for more than three. The extra gold wants a citizen standing on the work, as every tile bonus does."
+      "note": "A city is counted for the trade routes that set out from it to another empire, and never for more than three. The extra gold wants a citizen standing on the work, as every tile bonus does.",
+      "retired": true
     },
     "cloisterSchools": {
       "name": "Cloister Schools",
@@ -732,7 +732,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "Bread in the morning, letters in the afternoon.",
       "text": "Cities with both a Temple and a Library gain +5 food and +5 science.",
       "effects": [
@@ -749,7 +748,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theCloister": {
       "name": "The Cloister",
@@ -914,7 +914,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "The border is a place, and somebody has to live there.",
       "text": "Cities founded within four hexes of a foreign border gain +3 defence and +2 production, and cost one less authority, minimum one.",
       "effects": [
@@ -945,7 +944,8 @@
             "radius": 4
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "triumphalArches": {
       "name": "Triumphal Arches",
@@ -1004,7 +1004,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "A full granary is a promise other towns can eat.",
       "text": "Domestic routes from a city with a Granary give +5 food to their destination. Cities receiving one gain +1 happiness.",
       "effects": [
@@ -1025,7 +1024,8 @@
           }
         }
       ],
-      "note": "Both halves name the same roads, so the grain and the contentment can never disagree about which towns they mean: a domestic route out of a town with a granary. The contentment is paid once per town however many such carts arrive, and it goes the turn the last of them lapses."
+      "note": "Both halves name the same roads, so the grain and the contentment can never disagree about which towns they mean: a domestic route out of a town with a granary. The contentment is paid once per town however many such carts arrive, and it goes the turn the last of them lapses.",
+      "retired": true
     },
     "theMonasteryLibraries": {
       "name": "The Monastery Libraries",
@@ -1355,7 +1355,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "The relic goes at the head of the column and the column keeps up.",
       "text": "Worked Holy Sites and citadels that stand beside each other each gain +3 faith and +3 culture.",
       "effects": [
@@ -1403,7 +1402,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theBarbarianFrontier": {
       "name": "The Barbarian Frontier",
@@ -1462,7 +1462,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "The fields are burned, and the smoke is an offering.",
       "text": "Each tile your workers turn into burned country grants 8 faith.",
       "effects": [
@@ -1476,7 +1475,8 @@
           }
         }
       ],
-      "note": "Burned country is laid down one tile at a time by a worker, so the faith is paid tile by tile as each one is burned."
+      "note": "Burned country is laid down one tile at a time by a worker, so the faith is paid tile by tile as each one is burned.",
+      "retired": true
     },
     "theRoadGarrisons": {
       "name": "The Road Garrisons",
@@ -1487,7 +1487,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "A soldier at every gate, and a road home from each.",
       "text": "Garrisoned cities with a road to your capital gain +5 food and +5 defence.",
       "effects": [
@@ -1523,7 +1522,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "convertItOrTaxIt": {
       "name": "Convert It or Tax It",
@@ -1534,7 +1534,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "Pray as we pray, or pay as we ask.",
       "text": "Captured cities that do not follow your religion gain +5 gold and +3 faith. Captured cities that follow it cost one less authority, minimum one.",
       "effects": [
@@ -1573,7 +1572,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "warBonds": {
       "name": "War Bonds",
@@ -1584,7 +1584,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "The treasury is the army that has not yet been hired.",
       "text": "Military units gain +1 strength for every 150 gold in your treasury, at most +5.",
       "effects": [
@@ -1604,7 +1603,8 @@
             "max": 5
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "professionalSoldiers": {
       "name": "Professional Soldiers",
@@ -1797,7 +1797,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "Alexandria copied every book found on the ships in its harbour.",
       "text": "Each foreign trade route you send gains +1 science for each technology the destination's owner knows that you do not, at most +4.",
       "effects": [
@@ -1810,7 +1809,8 @@
           "science": 1,
           "max": 4
         }
-      ]
+      ],
+      "retired": true
     },
     "scientificTheAssay": {
       "name": "The Assay",
@@ -1883,7 +1883,6 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
-      "type": "civic",
       "flavor": "Given once, and given for ever.",
       "text": "Faith buildings you bought with gold provide +3 faith and +2 culture.",
       "effects": [
@@ -1909,7 +1908,8 @@
           "to": "culture",
           "amount": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "theSilkRoadMonks": {
       "name": "The Silk Road Monks",
@@ -2172,7 +2172,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "Every name on it asked again, and was answered.",
       "text": "+6 science and +6 culture for every Order hand you reroll while this is seated. Rerolls cost 30% less faith while this is seated.",
       "effects": [
@@ -2197,7 +2196,8 @@
           "rule": "rerollCost",
           "percent": -30
         }
-      ]
+      ],
+      "retired": true
     },
     "theSpiritsOfPlace": {
       "name": "The Ambarvalia",
@@ -2304,7 +2304,6 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
-      "type": "civic",
       "flavor": "The town pays for the nave one bay at a time, and sings under each new arch.",
       "text": "While a city is building a Cathedral or a wonder, it gains +1 faith and +1 culture for every 10% of the work already done.",
       "effects": [
@@ -2341,7 +2340,8 @@
           }
         }
       ],
-      "note": "The Magnum Opus counts as a wonder here. Only what the town is building now counts, not what waits behind it in the queue."
+      "note": "The Magnum Opus counts as a wonder here. Only what the town is building now counts, not what waits behind it in the queue.",
+      "retired": true
     }
   }
 }

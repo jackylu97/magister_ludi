@@ -469,16 +469,22 @@ describe('Dominion D11 — the deal', () => {
       [CHOSEN, 3, 'wildcard'],
       [MARVEL, 4, 'wildcard'],
     ];
+    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired four
+    // of these. Each keeps its tier and its effects for saves, so the tests
+    // above still read them. It has no type and is not dealt.
+    const retiredInDs1 = new Set<OrderId>([WALLS, OVATION, RES_GESTAE, MARVEL]);
     const state = flat();
     const player = seat(state, 0);
     player.decks = ['dominion', 'magisterial'];
     const pool = deckPoolOf(state, player);
     for (const [id, band, type] of cards) {
-      expect(orderIsDealt(id), id).toBe(true);
+      const retired = retiredInDs1.has(id);
+      expect(orderDef(id).retired === true, id).toBe(retired);
+      expect(orderIsDealt(id), id).toBe(!retired);
       expect(orderDef(id).band, id).toBe(band);
-      expect(orderDef(id).type, id).toBe(type);
+      expect(orderDef(id).type, id).toBe(retired ? undefined : type);
       expect(orderDef(id).decks, id).toEqual(['dominion']);
-      expect(pool, id).toContain(id);
+      expect(pool.includes(id), id).toBe(!retired);
     }
   });
 });

@@ -42,7 +42,6 @@
       "band": 0,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "They counted everything and ate none of it.",
       "text": "Each city gains +1 science for every two hills or mountains in its borders, at most +3.",
       "effects": [
@@ -64,7 +63,8 @@
           "per": 2,
           "max": 3
         }
-      ]
+      ],
+      "retired": true
     },
     "thePatientHarvest": {
       "name": "The Patient Harvest",
@@ -88,7 +88,7 @@
     "theFishTraps": {
       "name": "The Fish Traps",
       "decks": ["expansionist"],
-      "band": 0,
+      "band": 1,
       "line": "none",
       "rarity": "common",
       "type": "economic",
@@ -208,12 +208,12 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
       "flavor": "When the harvest is in, the village sends its young men to the roads.",
       "text": "Towns of at least three citizens may spend a citizen to raise a worker. This shares the town's levy wait.",
       "effects": [
         { "kind": "levy", "use": "worker", "minPopulation": 3 }
-      ]
+      ],
+      "retired": true
     },
     "theWoodlandBands": {
       "name": "The Woodland Bands",
@@ -370,11 +370,11 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "Fire in the dry season, and green shoots after the rain.",
       "text": "Once drafted, workers may burn a grassland or plains tile for one charge: +1 food. Bare ground becomes burned country; an improvement on the tile stays. No chair required.",
       "charter": { "unlocks": { "improvement": "burnedCountry" } },
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "darkEarth": {
       "name": "Dark Earth",
@@ -446,7 +446,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "Land that belongs to everyone keeps everyone fed.",
       "text": "Each town gains +1 happiness for every two wild tiles it works, at most +3.",
       "effects": [
@@ -460,7 +459,8 @@
           "per": 2,
           "max": 3
         }
-      ]
+      ],
+      "retired": true
     },
     "theHardCountry": {
       "name": "The Hard Country",
@@ -494,7 +494,6 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "civic",
       "flavor": "The best masons learn their trade in the quarry.",
       "text": "Towns working at least three mines, quarries or lumber mills give +1 renown a turn, favouring great engineers.",
       "effects": [
@@ -509,7 +508,8 @@
             "atLeast": 3
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "outposts": {
       "name": "Outposts",
@@ -554,7 +554,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "wildcard",
       "flavor": "One garden is a hobby; six are a way of life.",
       "text": "Needs tended land. Commission. Have six tended tiles. Then, for the rest of the game, tended tiles gain +1 culture. The card leaves its chair.",
       "needsTendedWork": true,
@@ -570,7 +569,8 @@
           }
         ]
       },
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "theForestKeepers": {
       "name": "The Forest Keepers",
@@ -578,7 +578,6 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "civic",
       "flavor": "A wood cut with care is a wood cut for a hundred years.",
       "text": "Lumber mills that have stood for twenty turns gain +2 culture.",
       "effects": [
@@ -594,7 +593,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "thePloughTeams": {
       "name": "The Plough Teams",
@@ -644,7 +644,6 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "civic",
       "flavor": "Where the water runs in the square, the town gathers.",
       "text": "Towns beside a river or lake gain +1 happiness for every four citizens, at most +3.",
       "effects": [
@@ -660,7 +659,8 @@
           "max": 3,
           "scope": { "test": "freshwater" }
         }
-      ]
+      ],
+      "retired": true
     },
     "theWildMarches": {
       "name": "The Wild Marches",
@@ -690,7 +690,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "A province you never hear from is a province well governed.",
       "text": "Each town gains +1 production for every three points of spare authority, at most +3.",
       "effects": [
@@ -704,7 +703,8 @@
           "per": 3,
           "max": 3
         }
-      ]
+      ],
+      "retired": true
     },
     "theRoadTowns": {
       "name": "The Road Towns",
@@ -743,7 +743,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "The work ends with a song, and the song goes on all night.",
       "text": "Needs a levy. After a town spends a citizen on a levy, it gains +1 culture for every wild tile it works, for ten turns. At most once every ten turns.",
       "needsLevy": true,
@@ -765,7 +764,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theGleaners": {
       "name": "The Gleaners",
@@ -929,7 +929,6 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "Dig the chalk from the hill, and spread it on the field below.",
       "text": "When your workers finish a mine or quarry, each farm or pasture beside it gains +1 food for the rest of the game, at most +2 on one tile.",
       "effects": [
@@ -945,7 +944,8 @@
           "improvement": "quarry",
           "grant": { "markBeside": "marl" }
         }
-      ]
+      ],
+      "retired": true
     },
     "theAediles": {
       "name": "The Aediles",
@@ -1170,13 +1170,13 @@
       "band": 2,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "People go where there is room.",
       "text": "Every ten turns, each of your towns that is at its happiness limit sends one citizen to your smallest connected town that has room to grow.",
       "effects": [
         { "kind": "migration", "every": 10, "source": "own" }
       ],
-      "note": "A town has no happiness of its own, so the game reads your empire's: every ten turns, while your empire has no happiness to spare, your largest town sends one citizen to your smallest town joined to your capital, if that town is smaller."
+      "note": "A town has no happiness of its own, so the game reads your empire's: every ten turns, while your empire has no happiness to spare, your largest town sends one citizen to your smallest town joined to your capital, if that town is smaller.",
+      "retired": true
     },
     "veteranColonies": {
       "name": "Veteran Colonies",
@@ -1295,7 +1295,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "A field your grandfather dug still feeds your grandsons.",
       "text": "+1% food and production for every three works that have stood thirty turns, at most +30%.",
       "effects": [
@@ -1323,7 +1322,8 @@
           "per": 3,
           "max": 30
         }
-      ]
+      ],
+      "retired": true
     },
     "theHedgerows": {
       "name": "The Hedgerows",
@@ -1405,7 +1405,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "Count the stones, and you know how far the empire reaches.",
       "text": "+1% gold and culture for every three road hexes you have paved, at most +30%.",
       "effects": [
@@ -1431,7 +1430,8 @@
           "per": 3,
           "max": 30
         }
-      ]
+      ],
+      "retired": true
     },
     "theTeemingRealm": {
       "name": "The Teeming Realm",
@@ -1439,7 +1439,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "So many people that the roads are never empty.",
       "text": "+1% science and culture for every ten citizens in your empire, at most +30%.",
       "effects": [
@@ -1465,7 +1464,8 @@
           "per": 10,
           "max": 30
         }
-      ]
+      ],
+      "retired": true
     },
     "theLabourRolls": {
       "name": "The Labour Rolls",
@@ -1473,7 +1473,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "The clerk writes down every name, and every name is a year of work.",
       "text": "Needs a levy. +1% production and food for every two citizens you have levied this game, at most +30%.",
       "needsLevy": true,
@@ -1500,7 +1499,8 @@
           "per": 2,
           "max": 30
         }
-      ]
+      ],
+      "retired": true
     },
     "theTerracesOfMoray": {
       "name": "The Terraces of Moray",
@@ -1570,7 +1570,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "Every town sends a cart of stone to the capital.",
       "text": "Your towns build empire buildings 3% faster for each town you hold, at most +36%.",
       "effects": [
@@ -1582,7 +1581,8 @@
           "count": "cities",
           "max": 12
         }
-      ]
+      ],
+      "retired": true
     },
     "theBurghers": {
       "name": "The Burghers",
@@ -1590,7 +1590,6 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "Town air makes a man free, and a free man takes up a trade.",
       "text": "Towns of at least twelve citizens fill their guild bar half again as fast.",
       "effects": [
@@ -1600,7 +1599,8 @@
           "percent": 50,
           "scope": { "test": "populationAtLeast", "value": 12 }
         }
-      ]
+      ],
+      "retired": true
     },
     "watchAndWard": {
       "name": "Watch and Ward",
@@ -1608,7 +1608,6 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
-      "type": "military",
       "flavor": "Every town keeps a watch by night and a ward by day.",
       "text": "Needs a levy. Units a levy raised gain +5 strength in your own territory.",
       "needsLevy": true,
@@ -1620,7 +1619,8 @@
           "when": { "test": "ownTerritory" },
           "levied": true
         }
-      ]
+      ],
+      "retired": true
     },
     "theWoodwrights": {
       "name": "The Woodwrights",
@@ -1730,7 +1730,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "Thin air and long views make for clear thinking.",
       "text": "Towns with at least two mountains in their borders gain +15% science. Worked mines and quarries beside a mountain gain +2 science.",
       "effects": [
@@ -1752,7 +1751,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "thePolders": {
       "name": "The Polders",
@@ -1875,7 +1875,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "The king's deer, the king's oaks, and the king's poets to praise them.",
       "text": "Towns working at least three lumber mills gain +25% culture.",
       "effects": [
@@ -1889,7 +1888,8 @@
             "atLeast": 3
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theMegalopolis": {
       "name": "The Megalopolis",
@@ -1996,7 +1996,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "Some groves are never cut, and everyone knows which ones.",
       "text": "Towns working at least five wild tiles gain +25% culture.",
       "effects": [
@@ -2010,7 +2009,8 @@
             "atLeast": 5
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theAssayOffice": {
       "name": "The Assay Office",
@@ -2035,7 +2035,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "A post on every road, and a soldier at every post.",
       "text": "Land units gain +3 strength while they stand in a town connected to your capital by road.",
       "effects": [
@@ -2050,7 +2049,8 @@
           },
           "class": { "category": "military" }
         }
-      ]
+      ],
+      "retired": true
     },
     "theManagedWild": {
       "name": "The Managed Wild",
@@ -2097,13 +2097,13 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "After the harvest there are hands to spare.",
       "text": "Needs a levy. Every twentieth turn, after the harvest, your towns may levy whatever their wait.",
       "needsLevy": true,
       "effects": [
         { "kind": "levy", "noWaitEvery": 20 }
-      ]
+      ],
+      "retired": true
     },
     "theTrainedBands": {
       "name": "The Trained Bands",
@@ -2111,7 +2111,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "Drilled on the common every Sunday, and ready when the bell rings.",
       "text": "Needs a levy. Units raised by a levy start as Veterans.",
       "needsLevy": true,
@@ -2122,7 +2121,8 @@
           "class": { "category": "military" },
           "levied": true
         }
-      ]
+      ],
+      "retired": true
     },
     "theFreedomOfTheCity": {
       "name": "The Freedom of the City",
@@ -2162,7 +2162,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "When the last stone is set, every town in the realm comes to the feast.",
       "text": "Finishing an empire building grants each of your towns production equal to five times its population.",
       "effects": [
@@ -2177,7 +2176,8 @@
             "fromTownPopulation": true
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theTaxRolls": {
       "name": "The Tax Rolls",
@@ -2185,7 +2185,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "Every household is counted, and every household pays.",
       "text": "When the world takes a census, gain gold equal to five times your citizens.",
       "effects": [
@@ -2198,7 +2197,8 @@
             "fromOccasion": "population"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theOpeningOfTheRoads": {
       "name": "The Opening of the Roads",
@@ -2206,7 +2206,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "The first cart from the capital brings the market with it.",
       "text": "When one of your towns is first joined to your capital by road, it gains production equal to twenty times its population.",
       "effects": [
@@ -2219,7 +2218,8 @@
             "fromOccasion": "population"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theGreatColonies": {
       "name": "The Great Colonies",
@@ -2240,7 +2240,6 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "Drain it, dig it, raise it, and it feeds you forever.",
       "text": "When a great engineer rushes the works in one of your towns, every improved or tended tile in its borders gains +1 food and +1 production for the rest of the game.",
       "effects": [
@@ -2250,7 +2249,8 @@
           "family": "engineer",
           "grant": { "mark": "raised" }
         }
-      ]
+      ],
+      "retired": true
     },
     "theAgeOfImprovement": {
       "name": "The Age of Improvement",
@@ -2276,12 +2276,12 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "The court decides who gets the water, and the water goes everywhere.",
       "text": "A farm joined to fresh water by a chain of your farms counts as having fresh water.",
       "effects": [
         { "kind": "rule", "rule": "farmChainsWater" }
-      ]
+      ],
+      "retired": true
     },
     "theComingOfTheWater": {
       "name": "The Coming of the Water",
@@ -2289,7 +2289,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "The aqueduct reaches the town, and the fields drink first.",
       "text": "When a town finishes an Aqueduct, every farm in its borders gains +1 food for the rest of the game.",
       "effects": [
@@ -2299,7 +2298,8 @@
           "building": "aqueduct",
           "grant": { "mark": "aqueductWater" }
         }
-      ]
+      ],
+      "retired": true
     },
     "theMountainTerraces": {
       "name": "The Mountain Terraces",
@@ -2391,7 +2391,6 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "The water board in the capital sends the water down every road it built.",
       "text": "Towns joined to your capital by road count as having an Aqueduct.",
       "effects": [
@@ -2401,7 +2400,8 @@
           "building": "aqueduct",
           "scope": { "test": "connected" }
         }
-      ]
+      ],
+      "retired": true
     },
     "theLandsGreatWork": {
       "name": "The Land's Great Work",
@@ -2461,7 +2461,6 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "wildcard",
       "flavor": "Every empire has one valley it would never give up.",
       "text": "Goal: one of your towns works twelve improved or tended tiles that each yield 5 or more in total. Reward: for the rest of the game that town costs no authority and gains +3 happiness and +20% food. The card then leaves its chair.",
       "effects": [],
@@ -2499,7 +2498,8 @@
             ]
           }
         ]
-      }
+      },
+      "retired": true
     },
     "theCorvee": {
       "name": "The Corvée",
@@ -2520,7 +2520,6 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "One man to sign the plans, and a thousand to raise them.",
       "text": "When a great engineer rushes the works in the city building the Magnum Opus, each of your towns with a manufactory also sends that city one turn of its own production.",
       "effects": [
@@ -2538,7 +2537,8 @@
             }
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "thePhilosophersPeaks": {
       "name": "The Philosophers' Peaks",
@@ -2569,7 +2569,6 @@
       "band": 4,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "The field remembers every hand that worked it.",
       "text": "Worked improvements and tended works that have stood for at least 60 turns gain +1 production. Tended ones also gain +1 culture.",
       "effects": [
@@ -2591,7 +2590,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theMeasureOfTheLand": {
       "name": "The Measure of the Land",
@@ -2686,12 +2686,12 @@
       "band": 4,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "A furrow a year, and in a lifetime the boundary has moved.",
       "text": "Once every ten turns, each of your towns of at least twelve citizens takes one hex from the borders of a foreign town next to it, if nobody works that hex and your town is larger than the town that owns it.",
       "effects": [
         { "kind": "encroach", "every": 10, "minPopulation": 12 }
-      ]
+      ],
+      "retired": true
     },
     "theDomesdaySurvey": {
       "name": "The Domesday Survey",
@@ -2728,13 +2728,13 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "wildcard",
       "flavor": "The field below and the orchard above.",
       "text": "Needs tended land. Your worked farms, mines and lumber mills also count as tended for your cards, but not as wild.",
       "needsTendedWork": true,
       "effects": [
         { "kind": "rule", "rule": "fieldsTended", "improvements": ["farm", "mine", "lumbermill"] }
-      ]
+      ],
+      "retired": true
     },
     "theTheodosianWalls": {
       "name": "The Theodosian Walls",
@@ -2761,7 +2761,6 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "Every town with running water sends its best masons to the great work.",
       "text": "The town raising the Magnum Opus gains +5% production toward it for each of your towns with an Aqueduct, at most +40%.",
       "effects": [
@@ -2774,7 +2773,8 @@
           "admits": { "test": "hasBuilding", "building": "aqueduct" },
           "max": 8
         }
-      ]
+      ],
+      "retired": true
     },
     "theImperialHighways": {
       "name": "The Imperial Highways",
@@ -2816,7 +2816,6 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "civic",
       "flavor": "What the town builds for everyone, everyone learns from.",
       "text": "+1% science and culture for each public work you hold, at most +25%.",
       "effects": [
@@ -2840,7 +2839,8 @@
           "count": "publicWorks",
           "max": 25
         }
-      ]
+      ],
+      "retired": true
     },
     "theGrovesAndTheStones": {
       "name": "The Groves and the Stones",
