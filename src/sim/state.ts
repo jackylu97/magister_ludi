@@ -209,8 +209,23 @@ import {
  * **A v225 save is refused and does not replay,** because a wager held under that
  * Doctrine can now end differently. The branch migrates nothing, for the reason given
  * under v119 in `docs/history/schema-changelog.md`.
+ *
+ * v227 (branch `decks`; batch TR1, `docs/flags.md` (ggggggg), the user's ruling of
+ * 2026-11-10): **fewer trade route rules.** No field joins the state. The rules that
+ * change, all in `data/buildings.json`:
+ *
+ *   · the Market gives 1 trade route at any town size, and the Caravanserai gives 3;
+ *   · the Lighthouse gives 1 trade route, and the Harbour gives none;
+ *   · the Funduq keeps its 1 and no longer grows with its town;
+ *   · `BuildingDef.routeSlotsPerPopulation` is gone, so no building's route capacity
+ *     grows with its town.
+ *
+ * **A v226 save is refused and does not replay.** An empire's route capacity changes,
+ * so a logged route can be refused, or a refused one accepted, and the trade a seat
+ * runs changes from the first Market. The branch migrates nothing, for the reason given
+ * under v119 in `docs/history/schema-changelog.md`.
  */
-export const SCHEMA_VERSION = 226;
+export const SCHEMA_VERSION = 227;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

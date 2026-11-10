@@ -176,9 +176,14 @@ export function hasFreeRouteSlot(state: GameState, playerId: number): boolean {
  * that says what to *do* about either. Every surface that greys for the slot
  * clause prints exactly this — the trader's sheet and every Start button on the
  * Trade screen — so the two cannot say different things about one fact.
+ *
+ * Batch TR1 changed one word: "harbours" became "lighthouses", because the
+ * Harbour no longer gives a trade route and the Lighthouse does (the user's
+ * ruling of 2026-11-10, `docs/flags.md` (ggggggg): "Each market/lighthouse
+ * should only give 1 trade route").
  */
 export const NO_ROUTE_CAPACITY =
-  'Not enough trade route capacity. Build markets and harbours to gain more.';
+  'Not enough trade route capacity. Build markets and lighthouses to gain more.';
 
 /** A caravan's live route, as the unit sheet reads it. See `routeReading`. */
 export interface RouteReading {

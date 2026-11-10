@@ -1012,8 +1012,9 @@ Reference: **`docs/trade.md`** and **`docs/luxuries.md`**.
 - What a route pays is read off the **origin's** buildings and paid to the
   **destination**, derived fresh each turn. International routes pay the sender
   flats and the host a gold line; a card's route row may name the **crossing**
-  (domestic or international). Route slots fold over building `routeSlots`, and
-  the Market and Caravanserai grow one more per eight citizens.
+  (domestic or international). Route slots fold over building `routeSlots`.
+  The figures are flat: the Market and the Lighthouse give 1 each and the
+  Caravanserai gives 3, and no building's slots grow with its town.
 - **Roads**: `Tile.road = builderId`, written only by `layRoad`. Maintenance is
   charged only on roads this empire's traders laid. City connections are a road
   path from centre to capital.

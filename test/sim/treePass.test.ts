@@ -19,9 +19,11 @@
  *     luxury home at `rules.trade.importedLuxuryPercent` of what a seam pays;
  *   · The Saddle's beakers and songs for a burnt field, which is a rider on an
  *     occasion that already paid coin and a bandage;
- *   · `BuildingDef.routeSlotsPerPopulation` — the Market's and the
- *     Caravanserai's slot that grows with the town;
  *   · `CardCityStatEffect.count` — Siegecraft's walls counted in townsfolk.
+ *
+ * The pass also added `BuildingDef.routeSlotsPerPopulation`, a route slot that
+ * grew with the town. Batch TR1 (`docs/flags.md` (ggggggg), 2026-11-10) removed
+ * it, and the tests of it here now test the flat figures that replaced it.
  *
  * Plus the member register, naming exactly what this pass declared, so a field
  * that stops being written fails here rather than going quietly dead.
@@ -291,46 +293,54 @@ describe('the pass’s two new houses', () => {
 /**
  * The user's second pass over the same chart, the same afternoon
  * (`docs/flags.md` (uuu), "eight more marks"). Two of them declared a member.
+ * One of the two, the route slot that grew with the town, was removed by batch
+ * TR1, so the tests below now check the flat figures that replaced it.
  */
-describe('a route slot that grows with the town', () => {
-  it('pays a further route per so-many citizens, as its own line', () => {
+describe('route capacity is a flat figure per building (batch TR1)', () => {
+  it('gives the Market and the Lighthouse one route, and the Caravanserai three', () => {
+    // The user's ruling of 2026-11-10, `docs/flags.md` (ggggggg).
+    expect(buildingDef('market').routeSlots).toBe(1);
+    expect(buildingDef('lighthouse').routeSlots).toBe(1);
+    expect(buildingDef('caravanserai').routeSlots).toBe(3);
+    // The readings taken without a ruling: the Harbour's route moved to the
+    // Lighthouse, and the Colossus and the three leaders' rows keep their one.
+    expect(buildingDef('harbour').routeSlots).toBeUndefined();
+    for (const id of ['colossus', 'tambo', 'longjiangDockyard', 'funduq'] as const) {
+      expect(buildingDef(id).routeSlots, id).toBe(1);
+    }
+  });
+
+  it('leaves no building row with a slot that grows with its town', () => {
+    // The field left the type, so a row that still carried it would be a key
+    // that nothing reads. Read the raw keys to catch one.
+    for (const id of BUILDING_IDS) {
+      expect(Object.keys(buildingDef(id)), id).not.toContain('routeSlotsPerPopulation');
+    }
+  });
+
+  it('gives a Market in a large town the same one route as in a small town', () => {
     const g = game(5103);
     const town = found(g.state, 0);
     town.buildings.push('market');
     town.population = 1;
     bumpRevision(g.state);
-    const per = buildingDef('market').routeSlotsPerPopulation!;
-    expect(per).toBeGreaterThan(0);
-    const flat = routeSlots(g.state, 0);
-
-    // A town two citizens short of the next helping runs the routes it has
-    // grown: the division is floored, exactly as `sciencePerPop` floors.
-    town.population = per - 1;
+    const small = routeSlots(g.state, 0);
+    town.population = 40;
     bumpRevision(g.state);
-    expect(routeSlots(g.state, 0)).toBe(flat);
-    town.population = per * 2;
-    bumpRevision(g.state);
-    expect(routeSlots(g.state, 0)).toBe(flat + 2);
-
-    // **Its own labelled line** (rule 5 for a slot): the total is the fold of
-    // the list, and a player watching a route appear is owed the reason.
-    const grown = explainRouteSlots(g.state, 0).filter((line) => /people/.test(line.source));
-    expect(grown).toHaveLength(1);
-    expect(grown[0]!.slots).toBe(2);
+    expect(routeSlots(g.state, 0)).toBe(small);
+    // One line for the Market, and it is worth one route at any size.
+    const market = explainRouteSlots(g.state, 0).filter((line) => line.source.startsWith('Market'));
+    expect(market).toEqual([{ source: `Market \u00b7 ${town.name}`, slots: 1 }]);
   });
 
-  it('is the holding town\u2019s size, never the realm\u2019s', () => {
+  it('prints the Caravanserai as one line worth three routes', () => {
     const g = game(5104);
-    const one = found(g.state, 0);
-    one.buildings.push('market');
-    one.population = 4;
-    const two = found(g.state, 1);
-    two.ownerId = 0;
-    two.population = 40;
+    const town = found(g.state, 0);
+    town.buildings.push('caravanserai');
+    town.population = 40;
     bumpRevision(g.state);
-    // Forty citizens next door buy nothing: the market's slot counts the people
-    // who walk past it. See `BuildingDef.routeSlotsPerPopulation`.
-    expect(explainRouteSlots(g.state, 0).some((line) => /people/.test(line.source))).toBe(false);
+    const lines = explainRouteSlots(g.state, 0).filter((line) => line.source.startsWith('Caravanserai'));
+    expect(lines).toEqual([{ source: `Caravanserai \u00b7 ${town.name}`, slots: 3 }]);
   });
 });
 
@@ -396,10 +406,10 @@ describe('the second pass\u2019s rows', () => {
     );
   });
 
-  it('takes the Shipyard off the trade-route fold, and leaves the Harbour on it', () => {
-    // Mark 8, and only mark 8: the slips are not a reason to run more caravans,
-    // and the wharf still is.
+  it('takes the Shipyard off the trade-route fold', () => {
+    // Mark 8: the slips are not a reason to run more caravans. Mark 8 left the
+    // Harbour's route in place, but batch TR1 later moved it to the Lighthouse.
+    // The test of that is in the route capacity block above.
     expect(buildingDef('shipyard').routeSlots).toBeUndefined();
-    expect(buildingDef('harbour').routeSlots).toBe(1);
   });
 });

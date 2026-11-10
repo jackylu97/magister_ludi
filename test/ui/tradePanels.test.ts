@@ -257,8 +257,9 @@ describe('an idle caravan’s sheet', () => {
     expect(controls).toContain(
       'return hasFreeRouteSlot(state, localPlayerId) ? null : NO_ROUTE_CAPACITY;',
     );
+    // Batch TR1: the Lighthouse gives the sea route the Harbour used to give.
     expect(NO_ROUTE_CAPACITY).toBe(
-      'Not enough trade route capacity. Build markets and harbours to gain more.',
+      'Not enough trade route capacity. Build markets and lighthouses to gain more.',
     );
   });
 

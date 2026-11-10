@@ -19,6 +19,25 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(ggggggg) Fewer trade route rules: capacity RULED 2026-11-10, batch TR1 in flight; the wider cut is OPEN.**
+The user: *"We need to drastically cut down on our rules for trade routes. Each market/lighthouse should only give 1 trade route. The caravanserai can give 3 trade route capacity."*
+- **Ruled, batch TR1:**
+  - A Market gives 1 trade route. It no longer gives one more for every eight citizens.
+  - A Lighthouse gives 1 trade route.
+  - The Caravanserai gives 3 trade routes. It no longer gives one more for every eight citizens.
+  - No building's route capacity grows with its town. The field `routeSlotsPerPopulation` leaves the data, the code and the reference doc.
+- **Readings taken without a ruling (recommended; the user may change them):**
+  - The Harbour's route moves to the Lighthouse, so the Harbour gives none. A town then has one land source (the Market) and one sea source (the Lighthouse).
+  - The Colossus, the Tambo and the Longjiang Dockyard keep their 1.
+  - The Funduq keeps its 1 and loses its growth by citizens.
+- **Open, for the user:** which other trade rules to cut. Proposed, strongest first:
+  - the 20-turn term (a route runs until it is cancelled or plundered, which removes renewals, idle carts, auto-resend and the End Turn prompt);
+  - the pay formula that counts the origin's buildings (a flat line for a domestic route and a flat line for a foreign route);
+  - the host's gold line on a foreign route;
+  - the 50% sea premium (the game picks land or sea);
+  - road maintenance on roads a seat's traders laid.
+  Nothing in this list is built until the user says which.
+
 **(fffffff) Each deck is a way to play, not a yield: RULED 2026-10-20; every deck BUILT on `decks` by 2026-10-26, on `main` since 2026-11-01.**
 The user, after reading the six builds passes: *"each deck feels a bit one note, and needs diverse bonuses that aren't so squarely on theme with their central purpose/yield."*
 - **The rulings** are in `docs/decks/deck-design.md`, "Direction, 2026-10-20":

@@ -326,7 +326,14 @@ gold/economy'"*); the tab rule is ink alone, with no gilt hairline under it.
   (`routeMode`) and named by the caller for a preview; an absent mode is
   **land**, the mode that pays no premium.
 - Route slots: fold over building `routeSlots` (+ card riders);
-  `explainRouteSlots` is the list.
+  `explainRouteSlots` is the list, one line per building standing on the board.
+  Each figure is flat and does not grow with the town (batch TR1, ruled
+  2026-11-10, `docs/flags.md` (ggggggg)):
+  - the Market gives 1 (the land source) and the Lighthouse gives 1 (the sea
+    source, coastal towns only);
+  - the Caravanserai gives 3;
+  - the Colossus, the Tambo, the Longjiang Dockyard and the Funduq give 1 each;
+  - the Harbour and the Shipyard give none.
 
 ## International routes (ruled 2026-09-03)
 
@@ -374,15 +381,6 @@ gold/economy'"*); the tab rule is ink alone, with no gilt hairline under it.
   as the **copy count** (`copiesFor`) and not applied fold by fold; the flat
   contentment every unique luxury pays is halved beside it in `explainHappiness`.
   Every line says `· on loan`.
-
-- **A slot may grow with the town** (`BuildingDef.routeSlotsPerPopulation`, the
-  user's tree pass of 2026-09-10, marks 14 and 17): the Market's and the
-  Caravanserai's eight citizens buy one further route apiece, counted in the
-  **holding town** and floored there, as its own labelled line of
-  `explainRouteSlots`. A building field rather than a card effect, for
-  `sciencePerPop`'s reason exactly — the fold already walks each town's shelves
-  with the town in hand. The **Shipyard** carries no slot at all since the same
-  pass (mark 8); the Harbour keeps its one.
 
 ## City connections
 

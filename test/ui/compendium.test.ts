@@ -1003,7 +1003,7 @@ describe('never hand-written prose about a number', () => {
     const concept = everyEntry()
       .filter((entry) => entry.written === true)
       .map((entry) => entry.clauses.map((clause) => clause.text).join(' '))
-      .find((prose) => prose.includes('each market provides one route slot'))!;
+      .find((prose) => prose.includes('each market and each lighthouse provides one route slot'))!;
     expect(concept).toContain('Not enough trade route capacity');
   });
 

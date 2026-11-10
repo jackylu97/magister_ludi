@@ -1220,6 +1220,11 @@ describe('The Sea Ban (batch DT7)', () => {
 
   it('does not prompt End Turn for a partner the seat may never send to', () => {
     const { state, home, other } = board();
+    // Since batch TR1 a Market gives one route at any town size, so the board's
+    // two Markets give two routes and the two home pairs below fill them. A
+    // third Market leaves one slot free, so a partner is still worth a prompt.
+    home.buildings.push('market');
+    bumpRevision(state);
     // Every home pair runs, so only the partner abroad is left.
     sent(state, home, other);
     sent(state, other, home);

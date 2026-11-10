@@ -693,39 +693,23 @@ export interface BuildingDef {
   /** Flat gold added to the city's total every turn. */
   gold: number;
   /**
-   * Trade routes this building lets its empire run at once, or absent for none
-   * — the market's one, and the Colossus'.
+   * Trade routes this building lets its empire run at once, or absent for none.
+   * The Market and the Lighthouse give 1 each and the Caravanserai gives 3
+   * (batch TR1, `docs/flags.md` (ggggggg)).
    *
    * Counted per *building standing on the board* by `explainRouteSlots`
    * (`trade.ts`), so four markets are four routes and a captured market changes
-   * whose caravans it pays for with no bookkeeping. Absent means none, which is
-   * every row but two.
+   * whose caravans it pays for with no bookkeeping. Absent means none.
+   *
+   * The figure is flat. It does not grow with the size of the town that holds
+   * the building: the user ruled on 2026-11-10 that no building's route
+   * capacity grows with its town, so the per-citizen field that did this is gone.
    *
    * A card may widen the same fold with a `routeRider` effect (the Great
-   * Lighthouse carries the first one) — the field and the rider are two sources
-   * of one number, exactly as `authorityCapacity` and a card's `authority` are.
+   * Lighthouse carries the first one). The field and the rider are two sources
+   * of one number, as `authorityCapacity` and a card's `authority` are.
    */
   routeSlots?: number;
-  /**
-   * Citizens of **this town** that buy one *further* route, or absent for a row
-   * whose slot does not grow — the Market's and the Caravanserai's eight (the
-   * user's tree pass of 2026-09-10, `docs/flags.md` (uuu) marks 14 and 17).
-   *
-   * `routeSlots`' per-citizen twin, and `sciencePerPop` is the field it is built
-   * after: a flat beside a rate, read in the same place, by the same walk, and
-   * floored once. It is a **building** field rather than a card effect for that
-   * reason exactly — route slots are already counted per building standing on
-   * the board (`explainRouteSlots`, the one reader), and a card effect would
-   * have needed a per-town walk of its own for a question the fold already asks
-   * with a town in hand.
-   *
-   * The count is the **holding town's** population, never the realm's: a market
-   * in a village is one route and a market in a metropolis is three, which is
-   * the whole of what the mark is about (tall trades further, `docs/playstyles.md`
-   * §7). Floored, so a town two citizens short of the next helping runs the
-   * routes it has grown.
-   */
-  routeSlotsPerPopulation?: number;
   /** Flat science added to the city's total every turn, before `sciencePerPop`. */
   science: number;
   /** Flat culture added to the city's total every turn. */

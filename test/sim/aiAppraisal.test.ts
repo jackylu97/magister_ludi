@@ -376,7 +376,14 @@ describe('the route scorer', () => {
     return { state, home, second, abroad };
   }
 
-  /** Food, culture and science shelves — what a caravan's food line counts. */
+  /**
+   * Food, culture and science shelves — what a caravan's food line counts.
+   *
+   * Plus the Lighthouse, for the second route slot the hire needs. The Harbour
+   * gave that slot until batch TR1 moved it to the Lighthouse. The Lighthouse is
+   * a gold shelf, and one gold shelf alone adds no production to a caravan's
+   * pay (it takes two), so the food line under test is the same as before.
+   */
   const SHELVES: readonly BuildingId[] = [
     'granary',
     'aqueduct',
@@ -392,6 +399,7 @@ describe('the route scorer', () => {
     'examinationHall',
     'hallOfDeeds',
     'steleOfLaws',
+    'lighthouse',
   ];
 
   it('sends the caravan abroad when the crossing is what pays', () => {
@@ -418,7 +426,7 @@ describe('the route scorer', () => {
    * three towns and the same neighbour, with only the origin's shelves
    * different, and the answer different with them.
    *
-   * (The harbour among `SHELVES` is what opens the second slot the hire needs;
+   * (The lighthouse among `SHELVES` is what opens the second slot the hire needs;
    * a bare origin has one slot, the idle wagon is already waiting for it, and
    * `explainCaravan` refuses to want a second route at all — which is why the
    * mirror's other half never reaches this verb.)

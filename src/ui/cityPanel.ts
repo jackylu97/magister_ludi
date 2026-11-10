@@ -4785,7 +4785,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * The routes this town is an end of, and what the empire has left to spend.
    *
    * Under the buildings because that is what a route is made of: `routeSlots`
-   * is a fold over the markets and harbours in the list above it, and what a
+   * is a fold over the markets and lighthouses in the list above it, and what a
    * caravan brings home is counted off its partner's buildings. A player
    * reading downward meets "Market · Uruk" and then the caravan it paid for.
    *
