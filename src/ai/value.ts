@@ -2282,14 +2282,6 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       }
       return valueOfYields(bag, ctx) * running;
     }
-    case 'periodicOffer': {
-      // A draft dealt on a cadence: one offer's worth, over how often it comes
-      // round — `periodic`'s own arithmetic. What an *offer* is worth is the
-      // draft plan's question and the draft plan lives in `wants.ts`, so the
-      // hand meets the stand-in and the cadence is exact.
-      const every = Math.max(1, Math.floor(effect.every));
-      return (ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount) / every;
-    }
     case 'periodicMuster': {
       // A piece mustered on a cadence: a free soldier's worth over the period,
       // and the soldier is `explainBuildingRow`'s own reading of a gifted piece
@@ -2418,7 +2410,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
     case 'migration':
       // A hex or a citizen every few turns (The Encroaching Fields, Migration,
       // The Great Migration), on a board this bot cannot read ahead of time.
-      // The stand-in over the cadence, as `periodicOffer` takes it.
+      // The stand-in over the cadence.
       return ctx.ai.score.unknownEffect / Math.max(1, Math.floor(effect.every));
     case 'workAge':
       // **The age lines it brings forward** (The Georgics, batch DT12; priced
@@ -3731,9 +3723,6 @@ function growthThreshold(ctx: ValueContext): number {
  *     the road pays nothing);
  *   · `luxuryHappiness` / `luxuryDuplicates` — the shelf this realm holds, at
  *     the rules' own `perUniqueLuxury`, at the live happiness price;
- *   · `founderTrickle` — the faith a founded religion pays its founder, which is
- *     in the books as faith; the share is taken of the whole faith rate, which
- *     over-reads an empire whose faith is mostly its temples';
  *   · `triumphRenown` — a share of the renown this empire earns a turn;
  *   · `greatPersonAct` and `riteDuration` — named and unread. An act's worth is
  *     `bot.ts`' question (it prices the act it is choosing between) and a rite's
@@ -3745,7 +3734,6 @@ function scoreAmplifier(
 ): number {
   const share = (effect.percent ?? 0) / 100;
   const flat = effect.amount ?? 0;
-  const rates = ratesOf(ctx);
   switch (effect.target) {
     case 'routeYields': {
       const running = Math.max(0, ctx.routes.used);
@@ -3786,8 +3774,6 @@ function scoreAmplifier(
       const each = RULES.meters.happiness.perUniqueLuxury;
       return (flat + share * each) * goods * meterWeight(ctx, 'happiness');
     }
-    case 'founderTrickle':
-      return share * Math.max(0, rates.faithPerTurn ?? 0) * voiceWeight(ctx, 'faith');
     case 'triumphRenown':
       return share * renownPerTurn(ctx.state, ctx.playerId) * ctx.ai.weights.renown;
     case 'greatPersonAct':
@@ -4348,9 +4334,9 @@ function deckReading(state: GameState, playerId: number): DeckReading {
  * missing from `V` is `explainEmpireCardYields`.
  *
  * That one omission was the whole of the margin's hole: the founder trickle, The
- * Great Litany's culture, every empire-scoped `pays` count payout — Apostles is
- * the built case, an amplifier on a trickle that pays `where: 'empire'`, and its
- * margin read exactly zero.
+ * Great Litany's culture, every empire-scoped `pays` count payout. (Apostles was
+ * the built case until batch B1, an amplifier on a trickle that pays
+ * `where: 'empire'`, and its margin read exactly zero.)
  *
  * It is a reading built **here** rather than a term added to `foldEmpireRates`,
  * deliberately: that function has one meaning in the simulation (*the base rate a
@@ -4615,7 +4601,6 @@ function foldReadEngine(effect: CardEffect): boolean {
 function foldReadsAmplifier(target: string): boolean {
   return (
     target === 'routeYields' ||
-    target === 'founderTrickle' ||
     target === 'luxuryHappiness' ||
     target === 'luxuryDuplicates' ||
     target === 'connectionYields' ||

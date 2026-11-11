@@ -133,7 +133,7 @@ import {
   orderDef,
 } from './statecraftData';
 import { isBeadEndeavourId } from './beadData';
-import { CONSECRATION_IDS, type ConsecrationId, consecrationDef } from './religionData';
+import { LIVE_CONSECRATION_IDS, type ConsecrationId, consecrationDef } from './religionData';
 import { nextInt } from './rng';
 import { bumpEconomy, slateMemo } from './slate';
 import { anyBeadDef } from './beadData';
@@ -6044,7 +6044,8 @@ export function mirrorRowFor(
  * Dedicates a finished building to a patron, if its row says one is dedicated —
  * **the one place `City.consecration` is written** (design ledger Entry LV).
  *
- * One draw off `state.rng`, uniform over `CONSECRATION_IDS` in file order. It is
+ * One draw off `state.rng`, uniform over `LIVE_CONSECRATION_IDS` in file order
+ * (a withdrawn patron is never rolled, batch B1). It is
  * logged-deterministic *by construction* rather than by a rule anybody has to
  * keep: the roll sits inside `realiseItem`, which every way of acquiring a
  * building goes through, so a replay of `{config, log}` reaches this line at the
@@ -6066,8 +6067,8 @@ function consecrateBuilding(
 ): ConsecrationReport | undefined {
   if (buildingDef(building).consecrated !== true) return undefined;
   if (city.consecration !== undefined) return undefined;
-  if (CONSECRATION_IDS.length === 0) return undefined;
-  const id = CONSECRATION_IDS[nextInt(state.rng, 0, CONSECRATION_IDS.length)]!;
+  if (LIVE_CONSECRATION_IDS.length === 0) return undefined;
+  const id = LIVE_CONSECRATION_IDS[nextInt(state.rng, 0, LIVE_CONSECRATION_IDS.length)]!;
   city.consecration = id;
   return {
     cityId: city.id,
@@ -6097,10 +6098,9 @@ function consecrateBuilding(
  *     the grant until a choice was made would be state nobody sweeps.
  *   · a **Doctrine draft** through `drawDoctrineOffer` at the seat's own
  *     government tier, **skipped** when there is no live pool (the chiefdom's
- *     tier deals nothing) or the seat is already holding an unanswered one —
- *     `periodicOffer`'s precedent exactly, because an offer is a decision the
- *     player owes the game and a second one dealt on top would destroy the
- *     first. Since Magisterial batch MG7 the arm calls `openDoctrineOffer`,
+ *     tier deals nothing) or the seat is already holding an unanswered one,
+ *     because an offer is a decision the player owes the game and a second one
+ *     dealt on top would destroy the first. Since Magisterial batch MG7 the arm calls `openDoctrineOffer`,
  *     which a commission's Doctrine reward calls too.
  */
 function payCompletionGrants(

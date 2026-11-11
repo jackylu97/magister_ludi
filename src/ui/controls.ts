@@ -452,8 +452,7 @@ export { riteOfferText };
 
 /**
  * What a rite that has just been performed is announced as: "✶ Omen Reading at
- * Uruk · Every building standing in this city adds a little learning · lasts 10
- * turns".
+ * Uruk · +1 science for each building in this town. · lasts 10 turns".
  *
  * The user found the hole (playtest, 2026-08-27: "there should be some
  * indication after performing a rite"). A rite was the quietest expensive thing

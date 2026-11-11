@@ -1942,15 +1942,8 @@ describe('The Two Capitals (batch DT17)', () => {
     // Divine Mandate's capital rows left with batch G1: the new Divine Mandate
     // pays a share in every town with a wonder, and names no capital.
 
-    it('keeps Keeper of the Hearth’s happiness at the true capital', () => {
-      const { state } = board();
-      seat(state).pantheon.beliefs.push('keeperOfTheHearth');
-      bumpRevision(state);
-      const happy = explainHappiness(state, 0)
-        .filter((entry) => entry.source.includes('Keeper of the Hearth'))
-        .reduce((sum, entry) => sum + entry.value, 0);
-      expect(happy).toBe(1);
-    });
+    // Keeper of the Hearth's capital happiness left with batch B1: the god's
+    // happiness stands on each Granary now, and names no capital.
 
     it('keeps Flower and Song at the true capital, counting its citizens alone', () => {
       const { state, capital, second } = board();
@@ -2115,7 +2108,6 @@ describe('The Two Capitals (batch DT17)', () => {
             'greatPeople.json/people/sappho/legacy',
             'greatPeople.json/people/taqiAlDin/legacy',
             'leaders.json/leaders/nezahualcoyotl/abilities',
-            'religion.json/beliefs/keeperOfTheHearth/effects',
             'resources.json/resources/coffee/effects',
             'resources.json/resources/coral/effects',
             'resources.json/resources/cotton/effects',

@@ -2314,7 +2314,7 @@ describe("determinism", () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(240);
+    expect(SCHEMA_VERSION).toBe(241);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -3878,10 +3878,10 @@ describe("the master-list cut of 2026-08-28", () => {
       "+3 on every hex carrying a great person's work — science on an Academy, culture on a Landmark, production on a Manufactory, gold on a Customs House and production on a Citadel",
     ]);
 
-    // The beliefs the same pass touched, read by the same evaluator.
+    // The beliefs the same pass touched, read by the same evaluator. Lady of
+    // the Hunt lost its camp-clearing faith in batch B1.
     expect(said("ladyOfTheHunt")).toEqual([
       "+1 food, +1 gold on every hex with a Camp",
-      "clearing a barbarian camp grants +10 faith",
     ]);
     expect(said("lordOfTheSea")).toEqual([
       "+1 production, +1 gold on every hex with a Fishing Boat",

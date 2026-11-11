@@ -54,7 +54,7 @@ import { workForFamily } from '../../src/sim/improvementData';
 import { type GameMap, type Tile, createMap, getTileAt, mapRange, tileHex } from '../../src/sim/map';
 import { readCity } from '../../src/sim/readings';
 import { availableRites, foundReligion, riteCostFor } from '../../src/sim/religion';
-import { BELIEF_IDS, type RiteId, riteDef } from '../../src/sim/religionData';
+import { BELIEF_IDS, type RiteId, beliefDef, riteDef } from '../../src/sim/religionData';
 import {
   type City,
   type GameConfig,
@@ -540,6 +540,21 @@ describe('the Sabbath', () => {
 
 describe('The Parishes', () => {
   it('is worth a devout town for the turns sooner it follows, at the pace of founding', () => {
+    // The Quiet Hours paid one culture and one faith in a following town until
+    // batch B1, when it came to pay for each building that supplies faith. A
+    // town just founded holds none, so the row is lent its old flat effect for
+    // this test and given back after it: the claim is about The Parishes.
+    const quiet = beliefDef('theQuietHours') as { effects: CardEffect[] };
+    const held = quiet.effects;
+    quiet.effects = [{ kind: 'pays', where: 'city', culture: 1, faith: 1, scope: { test: 'follows' } } as CardEffect];
+    try {
+      parishesWorth();
+    } finally {
+      quiet.effects = held;
+    }
+  });
+
+  function parishesWorth(): void {
     const { state, player, towns } = board([6, 6]);
     // A seat paid by no religion presses nothing.
     expect(scoreEffects(effectsOf(PARISHES), valueContext(state, player))).toBe(0);
@@ -563,7 +578,7 @@ describe('The Parishes', () => {
       2 * scoreEffects(effectsOf(PARISHES), ctx),
       10,
     );
-  });
+  }
 });
 
 describe('The Confessors', () => {

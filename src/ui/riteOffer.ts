@@ -9,8 +9,7 @@ import type { GameState } from '../sim/state';
 
 /**
  * What a rite does and how long it would run if this empire started it now:
- * "Every building standing in this city adds a little learning · lasts 15
- * turns". The rite row on the city screen prints it (`riteOptions`) and so does
+ * "+1 science for each building in this town. · lasts 15 turns". The rite row on the city screen prints it (`riteOptions`) and so does
  * the announcement after a rite (`riteSentence`), so the offer and the report
  * are one string.
  *

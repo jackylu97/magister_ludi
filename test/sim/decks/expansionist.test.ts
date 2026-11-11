@@ -532,7 +532,6 @@ describe('the live rows', () => {
       'cityStat',
       'metaRule',
       'rule',
-      'periodicOffer',
       'periodicMuster',
       'landfall',
       'unlocksBuilding',

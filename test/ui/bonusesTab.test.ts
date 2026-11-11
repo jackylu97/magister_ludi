@@ -328,19 +328,22 @@ describe('the drawing', () => {
   it('counts a changed figure from nought, and lands an unchanged one', () => {
     const { state } = faithTabsWorld();
     const model = bonusesTabModel(state, 0);
-    const counted = 'card:sacredFire';
+    // Keeper of the Hearth pays faith (its Granary's +2), so its figure is the
+    // faith the card counts up to. Sacred Fire rests: since batch B1 it pays
+    // +2 production in each of the seat's three towns.
+    const counted = 'card:keeperOfTheHearth';
     const { motion, runAll } = recorder(true, (key) => key === counted);
     const tab = draw(model, motion);
     const stampOf = (key: string): FakeNode =>
       byClass(faces(tab).find((face) => face.dataset.src === key)!, 'card-stamp')[0]!;
     const counting = stampOf(counted);
-    const resting = stampOf('card:keeperOfTheHearth');
+    const resting = stampOf('card:sacredFire');
     // Before the card comes round: the counted figure waits at nought, the
     // unchanged one is already there.
     expect(counting.dataset.phase).toBe('anticipate');
     expect(textOf(counting)).toContain('+0');
     expect(resting.dataset.phase).toBe('held');
-    expect(textOf(resting)).toContain('+1');
+    expect(textOf(resting)).toContain('+6');
     runAll();
     // The stand-in window asks for no motion, so the count lands at once.
     expect(counting.dataset.phase).toBe('landed');
@@ -389,8 +392,10 @@ describe('the drawing', () => {
     const { state } = faithTabsWorld();
     const tab = draw(bonusesTabModel(state, 0), recorder(false).motion);
     const bar = byClass(tab, 'faith-bar')[0]!;
-    const face = faces(tab).find((one) => one.dataset.src === 'card:sacredFire')!;
-    const slice = byClass(tab, 'faith-slice').find((one) => one.dataset.src === 'card:sacredFire')!;
+    // Keeper of the Hearth, whose Granary faith is a slice of the bar. Sacred
+    // Fire pays production since batch B1, so it has no faith slice.
+    const face = faces(tab).find((one) => one.dataset.src === 'card:keeperOfTheHearth')!;
+    const slice = byClass(tab, 'faith-slice').find((one) => one.dataset.src === 'card:keeperOfTheHearth')!;
     fire(face, 'pointerenter');
     expect(bar.className).toContain('is-dim');
     expect(slice.className).toContain('is-lit');

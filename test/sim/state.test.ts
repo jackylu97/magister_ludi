@@ -518,8 +518,8 @@ describe("end-of-turn pipeline", () => {
       // resolution filled — and before `expandBorders`, whose channel it never
       // touches. See `runStatecraft`.
       "statecraft",
-      // The cadenced drafts — Keeper of the Calendar's almanac — beside the
-      // phase they are the same shape as, one currency over.
+      // The faith ladder's hand of gods, beside the phase it is the same shape
+      // as, one currency over.
       "religion",
       // The cadenced *pieces* — The Standing Levy's spear (master-list cut,
       // 2026-08-28). Its own beat rather than a clause inside `statecraft`,
@@ -1187,7 +1187,7 @@ describe("the research queue field", () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(240);
+    expect(SCHEMA_VERSION).toBe(241);
   });
 });
 

@@ -9,9 +9,12 @@
  * adds *sources*, not shapes. Where the ratified table asked for something the
  * vocabulary could not say, the vocabulary grew a generic member (a
  * `hasBuilding` city scope, a `terrain` tile condition, an `all` composite of
- * either, `perAge` on a windfall rider, a `periodicOffer`), and every one of
- * those is available to an Order and a Doctrine on the same terms. Nothing in
+ * either, `perAge` on a windfall rider), and every one of those is available
+ * to an Order and a Doctrine on the same terms. Nothing in
  * `data/religion.json` is a one-off.
+ *
+ * The one runtime import beyond the data is `isFaithHouse` (`buildingData.ts`,
+ * a leaf), which the Faith house keyword reads (`beliefKeyword`, batch B1).
  *
  * Why beliefs are cards and rites are cards too
  * ---------------------------------------------
@@ -36,6 +39,7 @@
 
 import religionJson from '../../data/religion.json';
 
+import { isFaithHouse } from './buildingData';
 import type { CardDefBase, CardEffect } from './statecraftData';
 import type { AbilityId, TechId } from './techData';
 
@@ -515,9 +519,9 @@ interface ReligionConfig {
    * ordinary evaluator (`liveEffects`' seventh source).
    *
    * It is **data rather than a rule** for the reason a belief is data: the
-   * trickle is a number somebody tunes, and a doubling of it is a card
-   * (`effectAmplifier founderTrickle`, Apostles') rather than a second arm in a
-   * function.
+   * trickle is a number somebody tunes. (Apostles doubled it with an amplifier
+   * until batch B1, when the belief became a cheaper apostle and the amplifier
+   * target lost its last row.)
    */
   founderTrickle: CardEffect[];
   beliefs: Record<BeliefId, BeliefDef>;
@@ -538,10 +542,22 @@ interface ReligionConfig {
 }
 
 /**
- * One patron. `CardDefBase` and nothing else — see `ConsecrationId` for why
- * there is no cost, no tier and no prerequisite.
+ * One patron. `CardDefBase` and a withdrawal marker — see `ConsecrationId` for
+ * why there is no cost, no tier and no prerequisite.
  */
-type ConsecrationDef = CardDefBase;
+interface ConsecrationDef extends CardDefBase {
+  /**
+   * **Withdrawn from the roll**: a finished cathedral is never dedicated to it,
+   * and it is still fully readable (batch B1, The Green Cathedral).
+   *
+   * `BeliefDef.retired`'s field one table over, for its reason: a town whose
+   * cathedral was dedicated to the patron before the cut still names it on
+   * `City.consecration`, `anyCardDef` must still find it, and its effects go on
+   * paying that town. So the row stays, `LIVE_CONSECRATION_IDS` leaves it out,
+   * and the roll draws from that list.
+   */
+  retired?: boolean;
+}
 
 export const RELIGION = religionJson as unknown as ReligionConfig;
 
@@ -582,6 +598,16 @@ export const LIVE_RITE_IDS: readonly RiteId[] = RITE_IDS.filter(
  * the data itself carries.
  */
 export const CONSECRATION_IDS = Object.keys(RELIGION.consecrations) as ConsecrationId[];
+/**
+ * The patrons a finished cathedral may still be dedicated to, in file order:
+ * `CONSECRATION_IDS` without the withdrawn rows (`ConsecrationDef.retired`).
+ * The roll (`rollConsecration`, `cities.ts`) draws from this list.
+ * `CONSECRATION_IDS` stays the whole table, because a town may name a withdrawn
+ * patron and `anyCardDef` must find it.
+ */
+export const LIVE_CONSECRATION_IDS: readonly ConsecrationId[] = CONSECRATION_IDS.filter(
+  (id) => consecrationDef(id).retired !== true,
+);
 
 /**
  * The rows of one drawable pool, in file order. `poolOrders`' twin.
@@ -649,6 +675,36 @@ export function riteDef(id: RiteId): RiteDef {
   const def = RELIGION.rites[id];
   if (!def) throw new Error(`Unknown rite "${String(id)}"`);
   return def;
+}
+
+// --- the belief keyword -------------------------------------------------------
+
+/**
+ * **The keyword a belief can carry** (batch B1,
+ * `docs/plans/belief-update-2026-11-10.md`, "Keyword: Faith house"). The card
+ * face prints it first, and its tooltip states the rule that the belief's own
+ * sentence no longer repeats. `OrderKeyword`'s sibling for beliefs: the two
+ * lists together are every card keyword (`CardKeyword`, `statecraftData.ts`).
+ */
+export type BeliefKeyword = 'faithHouse';
+
+/** The belief keywords in the order the Compendium lists them. */
+export const BELIEF_KEYWORDS: readonly BeliefKeyword[] = ['faithHouse'];
+
+/**
+ * **Which keyword this belief carries**, or `null` for a plain belief.
+ *
+ * Read from the row's own data, never from its name or its `text`, as
+ * `orderKeyword` is: a belief is a Faith house belief when one of its effects
+ * unlocks a building that is a faith house (`isFaithHouse`: bought with faith,
+ * never built, and only in a town that follows). Minarets, Temple Spires, The
+ * Open Kitchen and The Eternal Flame carry it today.
+ */
+export function beliefKeyword(id: BeliefId): BeliefKeyword | null {
+  const opens = beliefDef(id).effects.some(
+    (effect) => effect.kind === 'unlocksBuilding' && isFaithHouse(effect.building),
+  );
+  return opens ? 'faithHouse' : null;
 }
 
 /**

@@ -249,7 +249,9 @@ The skip's pity, the culture meter and the tier are untouched by any of them.
 - **Founder side** → the owner of the holy city, derived
   (`religionFounder`; falls back to `founderId` only when no stones stand on
   owned ground). Pays the enhancers' empire lines + the **founder trickle**
-  (+1🕯 per foreign following city, +1💰 per two). Capture moves it.
+  (+1🕯 per foreign following city, +1💰 per two). Capture moves it. No card
+  amplifies the trickle since batch B1 (Apostles doubled it until then; it now
+  makes an apostle 30% cheaper in faith).
 - **The founder's share is its own source.** Its live entries and lines carry
   `founderShare: ReligionId` (`LiveCardEffect`, `CardYieldLine`,
   `EmpireYieldLine`); the Ledger files the line under religion by that field
@@ -261,8 +263,15 @@ The skip's pity, the culture meter and the tier are untouched by any of them.
 - **Follower beliefs** → city-local, to whoever OWNS each following city
   (a rival's faith in your town is a gift). A follower row that pays an
   empire fails `religionDataProblems`.
+  - A purchase rider on a follower belief (The Alms Box, batch B1: towns that
+    follow buy with faith for 20% less) is read by `cardPurchaseRiders` from
+    the town's own cards (`cityLocalEffects`) when the price is asked in that
+    town, and only for the town's owner.
 - **Enhancers** → the tide itself: `{ kind: 'pressureRule', rule, delta }`
-  over `rules.religion`, read only in `explainPressure`.
+  over `rules.religion`, read only in `explainPressure`. Some also pay the
+  founder: Ecclesia (+1🕯 on each holy site for each town in the world that
+  follows, a hex line counted by the town working the hex) and Congregation
+  (+2🕯 for each such town), both since batch B1.
 
 ## What the religion pays, by source (batch UX8b)
 
@@ -391,6 +400,8 @@ feature F of `docs/plans/devotion-themes-triage.md`).
 - The High Temple (tech): prophet + Temple + third pantheon slot. (The great-person offer gate, `ancestorRites`, moved to Epic
   Poetry on 2026-09-05 — renown answered too early, and the poets read better.)
 - Cathedral: 340⚙, contributions, five consecrations (`docs/design-notes.md`).
+  The Green Cathedral, a sixth, is withdrawn from the roll (batch B1,
+  `LIVE_CONSECRATION_IDS`); a town that already holds it keeps it.
 - Reliquary (The Holy Office): opens faith purchases for units
   (`faithPurchases`).
 - Hagia Sophia grants a real prophet; pressure rows on wonders are one JSON
@@ -400,6 +411,16 @@ feature F of `docs/plans/devotion-themes-triage.md`).
   Eternal Flame). One follower belief apiece opens each row
   (`unlocksBuilding` + `BuildingDef.unlockedByCard`); no node names any of them,
   so each carries the Temple's column (5, medium — 117⚙) and prices off it.
+  - **What they pay** (batch B1): the Mosque +3🕯 +2⚙ +1 authority; the Wat +3
+    happiness and +1🕯 for every 2 citizens; the Gurdwara +3🌾 +3🕯 and +1
+    science for every 3 citizens (the Wat's counted shape); the Dar-e Mehr
+    +25% faith in its town and no flat faith.
+  - **The Faith house keyword** (batch B1). The four beliefs print *Faith house*
+    as their first clause, read off their data (`beliefKeyword`: an effect that
+    unlocks a building `isFaithHouse` answers yes for). The keyword has a
+    tooltip and a Concepts page (`concept:faithHouse`), and the belief's
+    sentence then says only "unlocks the Mosque: …", without the two sentences
+    about the bank and the town.
   - **Bought with faith and never built.** `BuildingDef.purchaseOnly` keeps them
     out of every queue and `BuildingDef.purchase.currency` names the bank —
     `rosterBank`'s rule for a unit read of a building: *a row that names its own
@@ -425,8 +446,11 @@ feature F of `docs/plans/devotion-themes-triage.md`).
 
 ## Deferred
 
-Theocratic Mandate (diplomacy) · Sanctuary (never written into the table).
-See `docs/flags.md`.
+Sanctuary (never written into the table). See `docs/flags.md`. Theocratic
+Mandate, which waited on diplomacy, is withdrawn (batch B1); the row is kept.
+Feast Days' batch B1 text ("Rites in a town that follows last 5 turns
+longer") is held: a rite's length can be changed only by a percentage over the
+empire (`riteTurnsFor`), and no shape adds a flat number of turns in one town.
 
 **Holy Order is built** (batch B2, 2026-09-08). It opens the **Knights Templar**
 — a roster row no technology names (`UnitDef.unlockedByCard`, handed over by the

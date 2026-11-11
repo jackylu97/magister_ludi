@@ -5,6 +5,7 @@ import {
   CONSECRATION_IDS,
   ENHANCER_BELIEF_IDS,
   FOLLOWER_BELIEF_IDS,
+  LIVE_CONSECRATION_IDS,
   LIVE_RITE_IDS,
   beliefDef,
   consecrationDef,
@@ -89,7 +90,8 @@ describe('the beliefs doc mirrors the data', () => {
       (id) => beliefDef(id).name,
     ),
     rites: LIVE_RITE_IDS.map((id) => riteDef(id).name),
-    consecrations: CONSECRATION_IDS.map((id) => consecrationDef(id).name),
+    // A withdrawn patron (batch B1, The Green Cathedral) leaves the table too.
+    consecrations: LIVE_CONSECRATION_IDS.map((id) => consecrationDef(id).name),
   };
 
   it('lists every live row in its own table, and nothing else', () => {
@@ -121,6 +123,9 @@ describe('the beliefs doc mirrors the data', () => {
       ...[...BELIEF_IDS, ...FOLLOWER_BELIEF_IDS, ...ENHANCER_BELIEF_IDS]
         .filter((id) => beliefDef(id).retired === true)
         .map((id) => beliefDef(id).name),
+      ...CONSECRATION_IDS.filter((id) => consecrationDef(id).retired === true).map(
+        (id) => consecrationDef(id).name,
+      ),
     ];
     const printed = new Set(Object.values(HEADINGS).flatMap((heading) => docNames(heading)));
     for (const name of withdrawn) {

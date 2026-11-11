@@ -41,11 +41,17 @@ function world(): { state: GameState; capital: City } {
 
 describe('a meter line names the card that paid it', () => {
   it("names a card's own happiness line, and no card on a line nobody paid", () => {
-    const { state } = world();
+    // Keeper of the Hearth's happiness stands on a Granary since batch B1, so
+    // the card that pays the town's own line here is Feast Days' town half.
+    const { state, capital } = world();
+    const religion = foundReligion(state, playerById(state, 0)!);
+    religion.follower = ['feastDays'];
+    capital.followers = { [religion.id]: capital.population };
+    bumpRevision(state);
     const lines = explainHappiness(state, 0);
-    const hearth = lines.find((line) => line.card === 'keeperOfTheHearth');
-    expect(hearth?.value).toBe(1);
-    expect(meterCardShares(hearth!)).toEqual([{ card: 'keeperOfTheHearth', value: 1 }]);
+    const feast = lines.find((line) => line.card === 'feastDays');
+    expect(feast?.value).toBe(1);
+    expect(meterCardShares(feast!)).toEqual([{ card: 'feastDays', value: 1 }]);
     const palace = lines.find((line) => line.source === 'Palace')!;
     expect(palace.card).toBeUndefined();
     expect(palace.cards).toBeUndefined();

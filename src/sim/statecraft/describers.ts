@@ -26,6 +26,7 @@ import {
   buildingDef,
   buildingPlural,
   isBuildingId,
+  isFaithHouse,
   isWonder,
 } from '../buildingData';
 import {
@@ -45,7 +46,7 @@ import {
   workForFamily,
 } from '../improvementData';
 import { projectDef } from '../projectData';
-import { beliefPoolOf, isBeliefId, isConsecrationId, isRiteId, riteDef } from '../religionData';
+import { beliefKeyword, beliefPoolOf, isBeliefId, isConsecrationId, isRiteId, riteDef } from '../religionData';
 import { type CityYieldKey, resourceDef } from '../resourceData';
 import { type HexMarkId, type HexMarkRule, RULES } from '../rulesData';
 import { TILE_YIELD_KEYS, type TileYield, emptyTileYield, readTileYield, terrainDef } from '../terrainData';
@@ -83,7 +84,7 @@ import {
   type OnDraftWindfall,
   type OrderBeadOccasion,
   type OrderId,
-  type OrderKeyword,
+  type CardKeyword,
   type RateSource,
   type ScalerPart,
   type ChairType,
@@ -142,8 +143,9 @@ export interface CardClause {
    * Set on the one clause that is a card's keyword (batch DS8): its text is the
    * keyword's mark, `[[concept:scaler|Scaler]]`. `describeCard` puts it first.
    * A surface may style it apart; it still prints through the one renderer.
+   * Since batch B1 a belief can carry one too (Faith house).
    */
-  keyword?: OrderKeyword;
+  keyword?: CardKeyword;
 }
 
 /**
@@ -760,8 +762,9 @@ export function describeCard(id: CardId): CardClause[] {
   const def: CardDefBase = anyCardDef(id);
   // **The keyword** (batch DS8), read off the row's data. It is printed as the
   // card's first clause, and its tooltip carries the standing rule, so the
-  // sentences below no longer repeat it.
-  const keyword = isOrderId(id) ? orderKeyword(id) : null;
+  // sentences below no longer repeat it. A belief can carry one too (batch B1,
+  // Faith house).
+  const keyword: CardKeyword | null = isOrderId(id) ? orderKeyword(id) : isBeliefId(id) ? beliefKeyword(id) : null;
   // **A Scaler's counted lines and their starting values are one sentence**:
   // "Gains +1 science and +1 culture each time you gain a military unit". The
   // starting value is not said; the figure on the card face shows it. Every
@@ -772,7 +775,8 @@ export function describeCard(id: CardId): CardClause[] {
   // **The class becomes a word here, and only here** (batch L1): every clause
   // below is worded against the subject the card's own class reads it against.
   // See `ClauseSubject`.
-  const clauses: CardClause[] = describeEffects(effects, subjectOfCard(id));
+  const clauses: CardClause[] =
+    keyword === 'faithHouse' ? faithHouseClauses(effects, subjectOfCard(id)) : describeEffects(effects, subjectOfCard(id));
   if (scaler !== null && scaler.parts.length > 0) clauses.unshift({ text: scalerWords(scaler.parts) });
   // **A technology's line traits** (Scientific batch S1) are not in `effects`,
   // and they are the whole of what Casting or Mechanics gives, so they are
@@ -930,16 +934,56 @@ export function describeCard(id: CardId): CardClause[] {
  * Each is a mark on the Compendium's Concepts page of the same id, whose first
  * paragraph is the rule the keyword's tooltip shows.
  */
-export const ORDER_KEYWORD_WORDS: Readonly<Record<OrderKeyword, string>> = {
+export const CARD_KEYWORD_WORDS: Readonly<Record<CardKeyword, string>> = {
   commission: 'Commission',
   charter: 'Charter',
   scaler: 'Scaler',
   boon: 'Boon',
+  // Batch B1: the belief keyword.
+  faithHouse: 'Faith house',
 };
 
 /** A keyword as the mark a card prints: `[[concept:scaler|Scaler]]`. */
-export function keywordMark(keyword: OrderKeyword): string {
-  return ref('concept', keyword, ORDER_KEYWORD_WORDS[keyword]);
+export function keywordMark(keyword: CardKeyword): string {
+  return ref('concept', keyword, CARD_KEYWORD_WORDS[keyword]);
+}
+
+/**
+ * Is this counted line asked of a town (`within: 'city'`, or a count only a town
+ * can answer)? `isCityScopedCount`'s question, read here on the row.
+ */
+function townCount(effect: CardPaysEffect): boolean {
+  return effect.within === 'city' || (effect.count !== undefined && CITY_SCOPED_COUNTS.includes(effect.count));
+}
+
+/**
+ * **A Faith house belief's clauses** (batch B1): each effect in its own words,
+ * except that a row opening a faith house says only what it opens and what the
+ * house gives — "unlocks the Mosque: +2 production, +3 faith; +1 authority
+ * capacity". The keyword printed before it says the rest: that the house is
+ * bought with faith, never built, and stands only in a town that follows. So
+ * the house's own two sentences about that are left out here, and nowhere else.
+ */
+function faithHouseClauses(effects: readonly CardEffect[], subject: ClauseSubject): CardClause[] {
+  const out: CardClause[] = [];
+  let run: CardEffect[] = [];
+  const flush = (): void => {
+    if (run.length > 0) out.push(...describeEffects(run, subject));
+    run = [];
+  };
+  for (const effect of effects) {
+    if (effect.kind !== 'unlocksBuilding' || !isFaithHouse(effect.building) || effect.scope !== undefined) {
+      run.push(effect);
+      continue;
+    }
+    flush();
+    const house = effect.building;
+    const skip = new Set([boughtNotBuiltWords(house), FOLLOWING_ONLY_WORDS]);
+    const does = liveWords(describeBuildingRow(house).filter((clause) => !skip.has(clause.text)));
+    out.push({ text: `unlocks ${theBuilding(house)}${does === '' ? '' : `: ${does}`}` });
+  }
+  flush();
+  return out;
 }
 
 /**
@@ -1424,7 +1468,7 @@ function buildingRowClauses(id: BuildingId): CardClause[] {
     // The town clause, said as the belief that opened it would say it. Not "the
     // religion whose follower belief unlocks this row" — a player is told where
     // it may stand, which is the whole of the rule they can act on.
-    out.push({ text: 'it may be raised only in a city that keeps the faith that opened it' });
+    out.push({ text: FOLLOWING_ONLY_WORDS });
   }
   // The renown a building pays is a fact about what it *is* (`BuildingRenown`),
   // and it is said in the card arm's words — "per turn" load-bearing, the family
@@ -1461,6 +1505,14 @@ function buildingRowClauses(id: BuildingId): CardClause[] {
 function boughtNotBuiltWords(id: BuildingId): string {
   return `it is bought with ${buildingBank(id)} and never built`;
 }
+
+/**
+ * The town clause of a row that stands only where the faith is kept
+ * (`BuildingDef.followingOnly`), said as the belief that opened it would say it.
+ * A constant so that a Faith house belief (`faithHouseClauses`), whose keyword
+ * already says this, can leave it out.
+ */
+const FOLLOWING_ONLY_WORDS = 'it may be raised only in a city that keeps the faith that opened it';
 
 /** The bank that sells a `purchaseOnly` building: the row's own, or gold. */
 function buildingBank(id: BuildingId): string {
@@ -1746,10 +1798,12 @@ function describePays(
           })}` + (effect.max === undefined ? '' : ` (at most ${effect.max})`);
     // **And once for each thing its own town counts** (batch DT13, the pair
     // hex/count). The town is the one working the hex, so the words say "its".
+    // A count of the whole world (batch B1, Ecclesia's towns that follow) is not
+    // the town's, so it carries no "in its town".
     const perTownCount =
       basis === 'count'
         ? `, for each ${countWords(effect.per, countNoun(effect, 'in its town'))}` +
-          (countNamesItsTown(effect) ? '' : ' in its town') +
+          (countNamesItsTown(effect) || !townCount(effect) ? '' : ' in its town') +
           (effect.max === undefined ? '' : ` (at most ${effect.max})`)
         : '';
     if (words) {
@@ -3306,13 +3360,6 @@ function describeEffect(
         text: `a newly placed Order is locked for ${effect.value} turns instead of ${METER.sealTurns}`,
       });
       return;
-    case 'periodicOffer':
-      out.push({
-        text: `every ${effect.every} turns, you are offered a find ${
-          effect.site === 'ruins' ? 'from a ruin' : 'from a village'
-        }`,
-      });
-      return;
     case 'periodicMuster': {
       // The piece names itself where the row names one, and asks the roster
       // where it does not — `grantWords`' sentence, said on a cadence.
@@ -4091,27 +4138,30 @@ export function periodicProbe(effect: CardPeriodicEffect): CardPaysEffect {
 const PRESSURE_RULE_WORDS: Record<PressureRuleId, (delta: number) => string> = {
   siteRange: (delta) => `holy sites reach ${signed(delta)} hexes further`,
   siteStrength: (delta) => `holy sites spread ${signed(delta)} faith`,
-  cityRange: (delta) => `cities that follow reach ${signed(delta)} hexes further`,
+  // Batch B1: Itinerant Preachers' words, which say what reaches further.
+  cityRange: (delta) => `cities that follow press your religion ${signed(delta)} hexes further`,
   cityStrength: (delta) => `cities that follow spread ${signed(delta)} faith`,
-  roadStrength: (delta) => `roads carry ${signed(delta)} faith`,
-  routeStrength: (delta) => `caravans carry ${signed(delta)} faith`,
+  // Batch B1: The Long Road's words, which say that the pressure is stronger.
+  roadStrength: (delta) => `your religion presses ${signed(delta)} harder along roads`,
+  routeStrength: (delta) => `your religion presses ${signed(delta)} harder along trade routes`,
   capitalStrength: (delta) => `your capital holds ${signed(delta)} faith of its own`,
   // The seat's reach. It says *carries* rather than "reaches further", because
   // the capital had no reach at all before a card gave it one — "further" would
   // be an increment on a distance the player has never been told about.
   capitalRange: (delta) => `your capital carries its faith ${signed(delta)} hexes`,
   templeOwnPercent: (delta) => `a Temple holds its own faith ${signed(delta)}% harder`,
+  // Batch B1: Inquisition's words give the strength that gets through, which
+  // is the rule's own share with the change applied (75% less 25 is 50%).
   templeForeignPercent: (delta) =>
-    delta < 0
-      ? `a Temple turns away ${-delta}% more of a foreign faith`
-      : `a Temple turns away ${delta}% less of a foreign faith`,
+    `rival religions press your cities with a Temple at ${Math.max(0, RULES.religion.templeForeignPercent + delta)}% strength`,
   bombRange: (delta) => `a proclamation reaches ${signed(delta)} hexes further`,
   bombLump: (delta) =>
     delta < 0
       ? `a proclamation presses ${-delta} faith less`
       : `a proclamation presses ${signed(delta)} faith harder`,
+  // Batch B1: Sacred Cartography's words.
   routeBothWays: (delta) =>
-    delta > 0 ? 'a caravan carries your faith both ways along its route' : 'a caravan carries your faith one way',
+    delta > 0 ? 'your trade routes press your religion at both ends' : 'your trade routes press your religion at one end',
   rivalPressurePercent: (delta) =>
     delta <= -100
       ? 'rival religions cannot press your cities'
@@ -7183,8 +7233,6 @@ const AMPLIFIER_WORDS: Record<AmplifierTarget, (percent: number) => string> = {
   // **No "more" after a signed percent** (batch L1, §1c) — the sign already says
   // the direction, and "pays +100% more" read as a quadrupling.
   routeYields: (percent) => `trade routes pay ${signed(percent)}%`,
-  founderTrickle: (percent) =>
-    `what your followers pay you is ${signed(percent)}% higher`,
   greatPersonAct: (percent) => `a great person's act pays ${signed(percent)}%`,
   connectionYields: (percent) => `city connections pay ${signed(percent)}%`,
   // The figure leads, for `cityRenownPercent`'s reason: "pays +100% renown"
@@ -7246,7 +7294,6 @@ const AMPLIFIER_FLAT_WORDS: Record<AmplifierTarget, (amount: number) => string> 
   lentLuxuryCopies: (amount) => `each luxury you lend in a deal counts ${signed(amount)} copies for you`,
   riteDuration: (amount) => `rites last ${signed(amount)} turns longer`,
   routeYields: (amount) => `each trade route pays ${signed(amount)} more`,
-  founderTrickle: (amount) => `each follower pays you ${signed(amount)} more`,
   greatPersonAct: (amount) => `a great person's act pays ${signed(amount)} more`,
   connectionYields: (amount) => `each connected city pays ${signed(amount)} gold`,
   triumphRenown: (amount) => `every Triumph pays ${signed(amount)} more renown`,

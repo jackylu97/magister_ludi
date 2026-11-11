@@ -1296,12 +1296,12 @@
     "text": "unlocks the Wat in any devout city — +1 faith per 2 citizens in this city; +3 happiness; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it"
    },
    {
-    "raw": "unlocks the [[building:gurdwara|Gurdwara]] in any devout city — +3 food, +2 science, +3 faith; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it",
-    "text": "unlocks the Gurdwara in any devout city — +3 food, +2 science, +3 faith; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it"
+    "raw": "unlocks the [[building:gurdwara|Gurdwara]] in any devout city — +3 food, +3 faith; +1 science per 3 citizens in this city; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it",
+    "text": "unlocks the Gurdwara in any devout city — +3 food, +3 faith; +1 science per 3 citizens in this city; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it"
    },
    {
-    "raw": "unlocks the [[building:darEMehr|Dar-e Mehr]] in any devout city — +2 faith; +10% faith in every city with a [[building:darEMehr|Dar-e Mehr]]; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it",
-    "text": "unlocks the Dar-e Mehr in any devout city — +2 faith; +10% faith in every city with a Dar-e Mehr; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it"
+    "raw": "unlocks the [[building:darEMehr|Dar-e Mehr]] in any devout city — +25% faith in every city with a [[building:darEMehr|Dar-e Mehr]]; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it",
+    "text": "unlocks the Dar-e Mehr in any devout city — +25% faith in every city with a Dar-e Mehr; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it"
    }
   ],
   "theApostolicCamera": [
@@ -7007,8 +7007,8 @@
     "text": "Charter"
    },
    {
-    "raw": "your cities may keep [[rite:riteOfFasting|Rite of Fasting]]: this city does not grow and gains science and culture for every citizen, while the rite runs",
-    "text": "your cities may keep Rite of Fasting: this city does not grow and gains science and culture for every citizen, while the rite runs"
+    "raw": "your cities may keep [[rite:riteOfFasting|Rite of Fasting]]: this town does not grow, and gains +1 science and +1 culture for each citizen",
+    "text": "your cities may keep Rite of Fasting: this town does not grow, and gains +1 science and +1 culture for each citizen"
    }
   ],
   "theLivingHymnal": [
@@ -7382,8 +7382,8 @@
     "text": "Charter"
    },
    {
-    "raw": "your cities may keep [[rite:riteOfTheSabbath|Rite of the Sabbath]]: this city builds nothing and gains its production as culture, while the rite runs",
-    "text": "your cities may keep Rite of the Sabbath: this city builds nothing and gains its production as culture, while the rite runs"
+    "raw": "your cities may keep [[rite:riteOfTheSabbath|Rite of the Sabbath]]: this town builds nothing, and gains its production as culture",
+    "text": "your cities may keep Rite of the Sabbath: this town builds nothing, and gains its production as culture"
    }
   ],
   "thePsalter": [
@@ -10486,74 +10486,54 @@
   ],
   "keeperOfTheHearth": [
    {
-    "raw": "+1 faith in every city with a [[building:granary|Granary]]",
-    "text": "+1 faith in every city with a Granary"
+    "raw": "+2 faith in every city with a [[building:granary|Granary]]",
+    "text": "+2 faith in every city with a Granary"
    },
    {
-    "raw": "+1 happiness in your capital",
-    "text": "+1 happiness in your capital"
+    "raw": "[[building:granary|Granaries]] supply +1 happiness",
+    "text": "Granaries supply +1 happiness"
    }
   ],
   "starReaders": [
    {
-    "raw": "+4 science in every city beside a mountain",
-    "text": "+4 science in every city beside a mountain"
+    "raw": "+4 science in every city with a mountain hex inside its borders",
+    "text": "+4 science in every city with a mountain hex inside its borders"
    }
   ],
   "keeperOfTheCalendar": [
    {
-    "raw": "every 10 turns, you are offered a find from a ruin",
-    "text": "every 10 turns, you are offered a find from a ruin"
-   },
-   {
-    "raw": "claiming a ruin pays once for each age you have reached",
-    "text": "claiming a ruin pays once for each age you have reached"
+    "raw": "+1 science on every hex with a [[improvement:plantation|Plantation]]",
+    "text": "+1 science on every hex with a Plantation"
    }
   ],
   "theStandingStones": [
    {
-    "raw": "+1 culture, +1 faith in every city with a [[building:monument|Monument]]",
-    "text": "+1 culture, +1 faith in every city with a Monument"
+    "raw": "+2 culture, +1 faith in every city with a [[building:monument|Monument]]",
+    "text": "+2 culture, +1 faith in every city with a Monument"
    }
   ],
   "ancestorWorship": [
    {
-    "raw": "+1 culture in every city of 4 or more citizens",
-    "text": "+1 culture in every city of 4 or more citizens"
-   },
-   {
-    "raw": "+5% culture in every city of 10 or more citizens",
-    "text": "+5% culture in every city of 10 or more citizens"
+    "raw": "+1 culture in every city per 4 citizens there",
+    "text": "+1 culture in every city per 4 citizens there"
    }
   ],
   "ladyOfTheHunt": [
    {
     "raw": "+1 food, +1 gold on every hex with a [[improvement:camp|Camp]]",
     "text": "+1 food, +1 gold on every hex with a Camp"
-   },
-   {
-    "raw": "clearing a barbarian camp grants +10 faith",
-    "text": "clearing a barbarian camp grants +10 faith"
    }
   ],
   "spiritsOfTheWood": [
    {
-    "raw": "clearing a forest or jungle grants +15 faith",
-    "text": "clearing a forest or jungle grants +15 faith"
-   },
-   {
-    "raw": "+1 culture on every forest hex",
-    "text": "+1 culture on every forest hex"
+    "raw": "+1 culture, +1 faith on every unimproved forest or jungle hex",
+    "text": "+1 culture, +1 faith on every unimproved forest or jungle hex"
    }
   ],
   "riverMother": [
    {
     "raw": "+2 food in every city on fresh water",
     "text": "+2 food in every city on fresh water"
-   },
-   {
-    "raw": "+1 happiness in every city on fresh water with a [[building:shrine|Shrine]]",
-    "text": "+1 happiness in every city on fresh water with a Shrine"
    }
   ],
   "lordOfTheSea": [
@@ -10564,40 +10544,44 @@
   ],
   "godOfTheForge": [
    {
-    "raw": "+1 production in every city with a [[building:barracks|Barracks]]",
-    "text": "+1 production in every city with a Barracks"
-   },
-   {
-    "raw": "+2 combat strength",
-    "text": "+2 combat strength"
+    "raw": "+2 production in every city per military building there",
+    "text": "+2 production in every city per military building there"
    }
   ],
   "ritesOfBlood": [
    {
-    "raw": "killing a unit grants +25 faith for each age you have reached",
-    "text": "killing a unit grants +25 faith for each age you have reached"
+    "raw": "killing a unit grants faith equal to its strength",
+    "text": "killing a unit grants faith equal to its strength"
    }
   ],
   "oracleOfTheCrossroads": [
    {
-    "raw": "claiming a ruin grants +3 faith",
-    "text": "claiming a ruin grants +3 faith"
+    "raw": "scout units: +1 movement",
+    "text": "scout units: +1 movement"
    },
    {
     "raw": "scout units: +1 sight",
     "text": "scout units: +1 sight"
+   },
+   {
+    "raw": "settlers: +1 movement",
+    "text": "settlers: +1 movement"
+   },
+   {
+    "raw": "settlers: +1 sight",
+    "text": "settlers: +1 sight"
    }
   ],
   "sacredFire": [
    {
-    "raw": "+1 faith in every city",
-    "text": "+1 faith in every city"
+    "raw": "+2 production in every city",
+    "text": "+2 production in every city"
    }
   ],
   "desertFathers": [
    {
-    "raw": "+1 faith on every desert hex",
-    "text": "+1 faith on every desert hex"
+    "raw": "+1 food, +1 faith on every desert hex",
+    "text": "+1 food, +1 faith on every desert hex"
    }
   ],
   "winterMother": [
@@ -10614,12 +10598,12 @@
   ],
   "courtAugurs": [
    {
-    "raw": "+10% science in every city while it is keeping a rite",
-    "text": "+10% science in every city while it is keeping a rite"
+    "raw": "+15% science in every city while it is keeping a rite",
+    "text": "+15% science in every city while it is keeping a rite"
    },
    {
-    "raw": "+10% culture in every city while it is keeping a rite",
-    "text": "+10% culture in every city while it is keeping a rite"
+    "raw": "+15% culture in every city while it is keeping a rite",
+    "text": "+15% culture in every city while it is keeping a rite"
    }
   ],
   "theLivingRock": [
@@ -10646,6 +10630,22 @@
     "text": "+1 production, +1 faith on every hex with a Pasture"
    }
   ],
+  "patronOfMerchants": [
+   {
+    "raw": "+1 faith per unique luxury",
+    "text": "+1 faith per unique luxury"
+   },
+   {
+    "raw": "+2 gold per unique luxury",
+    "text": "+2 gold per unique luxury"
+   }
+  ],
+  "theMuses": [
+   {
+    "raw": "+1 faith per 3 culture gained per turn",
+    "text": "+1 faith per 3 culture gained per turn"
+   }
+  ],
   "cathedralsOfTheSky": [
    {
     "raw": "+2 science, +2 culture in every city that follows the religion with a [[building:temple|Temple]]",
@@ -10654,8 +10654,8 @@
   ],
   "pilgrimage": [
    {
-    "raw": "+1 faith in every city that follows your religion per unique luxury there",
-    "text": "+1 faith in every city that follows your religion per unique luxury there"
+    "raw": "+1 faith in every city that follows your religion per 3 followers in this city",
+    "text": "+1 faith in every city that follows your religion per 3 followers in this city"
    }
   ],
   "feastDays": [
@@ -10670,8 +10670,8 @@
   ],
   "holyWater": [
    {
-    "raw": "+1 food, +1 faith in every city that follows the religion on fresh water",
-    "text": "+1 food, +1 faith in every city that follows the religion on fresh water"
+    "raw": "+10% food in every city that follows the religion on fresh water",
+    "text": "+10% food in every city that follows the religion on fresh water"
    }
   ],
   "lampsOfTheShrine": [
@@ -10694,8 +10694,12 @@
   ],
   "theQuietHours": [
    {
-    "raw": "+1 culture, +1 faith in every city that follows the religion",
-    "text": "+1 culture, +1 faith in every city that follows the religion"
+    "raw": "+2 culture in every city that follows your religion per building there that [[concept:supplies|supplies]] faith",
+    "text": "+2 culture in every city that follows your religion per building there that supplies faith"
+   },
+   {
+    "raw": "+1 happiness in every city that follows your religion per building there that [[concept:supplies|supplies]] faith",
+    "text": "+1 happiness in every city that follows your religion per building there that supplies faith"
    }
   ],
   "warriorMonks": [
@@ -10712,8 +10716,8 @@
   ],
   "guildOfTheFaithful": [
    {
-    "raw": "+10% production toward buildings, in every city that follows the religion",
-    "text": "+10% production toward buildings, in every city that follows the religion"
+    "raw": "+15% production toward buildings, in every city that follows the religion",
+    "text": "+15% production toward buildings, in every city that follows the religion"
    }
   ],
   "commonTable": [
@@ -10724,26 +10728,48 @@
   ],
   "minarets": [
    {
-    "raw": "unlocks the [[building:mosque|Mosque]] — +2 production, +3 faith; +1 authority capacity; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it",
-    "text": "unlocks the Mosque — +2 production, +3 faith; +1 authority capacity; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it"
+    "raw": "[[concept:faithHouse|Faith house]]",
+    "text": "Faith house"
+   },
+   {
+    "raw": "unlocks the [[building:mosque|Mosque]]: +2 production, +3 faith; +1 authority capacity",
+    "text": "unlocks the Mosque: +2 production, +3 faith; +1 authority capacity"
    }
   ],
   "templeSpires": [
    {
-    "raw": "unlocks the [[building:wat|Wat]] — +1 faith per 2 citizens in this city; +3 happiness; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it",
-    "text": "unlocks the Wat — +1 faith per 2 citizens in this city; +3 happiness; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it"
+    "raw": "[[concept:faithHouse|Faith house]]",
+    "text": "Faith house"
+   },
+   {
+    "raw": "unlocks the [[building:wat|Wat]]: +1 faith per 2 citizens in this city; +3 happiness",
+    "text": "unlocks the Wat: +1 faith per 2 citizens in this city; +3 happiness"
    }
   ],
   "theOpenKitchen": [
    {
-    "raw": "unlocks the [[building:gurdwara|Gurdwara]] — +3 food, +2 science, +3 faith; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it",
-    "text": "unlocks the Gurdwara — +3 food, +2 science, +3 faith; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it"
+    "raw": "[[concept:faithHouse|Faith house]]",
+    "text": "Faith house"
+   },
+   {
+    "raw": "unlocks the [[building:gurdwara|Gurdwara]]: +3 food, +3 faith; +1 science per 3 citizens in this city",
+    "text": "unlocks the Gurdwara: +3 food, +3 faith; +1 science per 3 citizens in this city"
    }
   ],
   "theEternalFlame": [
    {
-    "raw": "unlocks the [[building:darEMehr|Dar-e Mehr]] — +2 faith; +10% faith in every city with a [[building:darEMehr|Dar-e Mehr]]; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it",
-    "text": "unlocks the Dar-e Mehr — +2 faith; +10% faith in every city with a Dar-e Mehr; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it"
+    "raw": "[[concept:faithHouse|Faith house]]",
+    "text": "Faith house"
+   },
+   {
+    "raw": "unlocks the [[building:darEMehr|Dar-e Mehr]]: +25% faith in every city with a [[building:darEMehr|Dar-e Mehr]]",
+    "text": "unlocks the Dar-e Mehr: +25% faith in every city with a Dar-e Mehr"
+   }
+  ],
+  "theAlmsBox": [
+   {
+    "raw": "all units and buildings cost −20% to buy with faith, in every city that follows the religion",
+    "text": "all units and buildings cost −20% to buy with faith, in every city that follows the religion"
    }
   ],
   "reliquaries": [
@@ -10754,24 +10780,24 @@
   ],
   "inquisition": [
    {
-    "raw": "a Temple turns away 25% more of a foreign faith",
-    "text": "a Temple turns away 25% more of a foreign faith"
+    "raw": "rival religions press your cities with a Temple at 50% strength",
+    "text": "rival religions press your cities with a Temple at 50% strength"
    }
   ],
   "theLongRoad": [
    {
-    "raw": "roads carry +2 faith",
-    "text": "roads carry +2 faith"
+    "raw": "your religion presses +2 harder along roads",
+    "text": "your religion presses +2 harder along roads"
    },
    {
-    "raw": "caravans carry +2 faith",
-    "text": "caravans carry +2 faith"
+    "raw": "your religion presses +2 harder along trade routes",
+    "text": "your religion presses +2 harder along trade routes"
    }
   ],
   "itinerantPreachers": [
    {
-    "raw": "cities that follow reach +5 hexes further",
-    "text": "cities that follow reach +5 hexes further"
+    "raw": "cities that follow press your religion +5 hexes further",
+    "text": "cities that follow press your religion +5 hexes further"
    }
   ],
   "thePulseOfBells": [
@@ -10786,24 +10812,20 @@
   ],
   "ecclesia": [
    {
-    "raw": "holy sites spread +3 faith",
-    "text": "holy sites spread +3 faith"
-   },
-   {
-    "raw": "+3 faith on every hex with a [[improvement:holySite|Holy Site]]",
-    "text": "+3 faith on every hex with a Holy Site"
+    "raw": "+1 faith on every hex with a [[improvement:holySite|Holy Site]], for each city that follows you",
+    "text": "+1 faith on every hex with a Holy Site, for each city that follows you"
    }
   ],
   "apostles": [
    {
-    "raw": "what your followers pay you is +100% higher",
-    "text": "what your followers pay you is +100% higher"
+    "raw": "apostles cost −30% to buy with faith",
+    "text": "apostles cost −30% to buy with faith"
    }
   ],
   "sacredCartography": [
    {
-    "raw": "a caravan carries your faith both ways along its route",
-    "text": "a caravan carries your faith both ways along its route"
+    "raw": "your trade routes press your religion at both ends",
+    "text": "your trade routes press your religion at both ends"
    }
   ],
   "holyOrder": [
@@ -10825,8 +10847,8 @@
   ],
   "congregation": [
    {
-    "raw": "+1 happiness per 3 cities that follow you (at most +5 happiness)",
-    "text": "+1 happiness per 3 cities that follow you (at most +5 happiness)"
+    "raw": "+2 faith per city that follows you",
+    "text": "+2 faith per city that follows you"
    }
   ],
   "pilgrimsCoin": [
@@ -10851,10 +10873,6 @@
    {
     "raw": "+6 combat strength inside foreign cities that follow your religion",
     "text": "+6 combat strength inside foreign cities that follow your religion"
-   },
-   {
-    "raw": "killing a unit spreads your religion to every city within 3 hexes",
-    "text": "killing a unit spreads your religion to every city within 3 hexes"
    }
   ],
   "thePromisedLand": [
@@ -11673,11 +11691,16 @@
     "text": "+3 happiness"
    }
   ],
-  "gurdwara": [],
+  "gurdwara": [
+   {
+    "raw": "+1 science per 3 citizens in this city",
+    "text": "+1 science per 3 citizens in this city"
+   }
+  ],
   "darEMehr": [
    {
-    "raw": "+10% faith in every city with a [[building:darEMehr|Dar-e Mehr]]",
-    "text": "+10% faith in every city with a Dar-e Mehr"
+    "raw": "+25% faith in every city with a [[building:darEMehr|Dar-e Mehr]]",
+    "text": "+25% faith in every city with a Dar-e Mehr"
    }
   ],
   "terraces": [],

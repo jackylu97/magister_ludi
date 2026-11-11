@@ -104,7 +104,10 @@ describe('the Religion class, split by source', () => {
     const lines = explainReligionLedger(state, 0);
     const paidBy = (card: string) =>
       lines.find((line) => line.source.kind === 'card' && line.source.card === card)?.paid;
-    expect(paidBy('sacredFire')?.faith).toBeGreaterThan(0);
+    // Sacred Fire pays production since batch B1, and Keeper of the Hearth the
+    // faith on the seat's Granary.
+    expect(paidBy('sacredFire')?.production).toBeGreaterThan(0);
+    expect(paidBy('keeperOfTheHearth')?.faith).toBeGreaterThan(0);
     expect(paidBy('theQuietHours')?.culture).toBeGreaterThan(0);
     expect(paidBy('omenReading')?.science).toBeGreaterThan(0);
     expect(paidBy('pilgrimsCoin')?.gold).toBeGreaterThan(0);

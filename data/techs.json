@@ -1371,31 +1371,31 @@
       "name": "Rite of the Harvest",
       "glyph": "🌾",
       "bearer": "city",
-      "summary": "A city may keep this rite a while: every hex it works that feeds it feeds it more."
+      "summary": "A town may keep this rite: hexes that give food give +1 more."
     },
     "omenReading": {
       "name": "Omen Reading",
       "glyph": "🔮",
       "bearer": "city",
-      "summary": "A city may keep this rite a while: every building standing in it adds a little learning."
+      "summary": "A town may keep this rite: +1 science for each building in the town."
     },
     "consecrationOfTheBounds": {
       "name": "Consecration of the Bounds",
       "glyph": "🗿",
       "bearer": "city",
-      "summary": "A city may keep this rite a while: its luxury hexes sing and its bounds walk outward faster."
+      "summary": "A town may keep this rite: luxury hexes gain +1 culture, and the town’s borders grow 30% faster."
     },
     "blessingOfArms": {
       "name": "Blessing of Arms",
       "glyph": "⚔",
       "bearer": "city",
-      "summary": "A city may keep this rite a while: it is harder to storm."
+      "summary": "A town may keep this rite: +10 defence."
     },
     "riteOfPlenty": {
       "name": "Rite of Plenty",
       "glyph": "🍷",
       "bearer": "city",
-      "summary": "A city may keep this rite a while: every hex it works with a seam in it pays a little coin."
+      "summary": "A town may keep this rite: hexes with a resource give +1 gold."
     },
     "ancestorRites": {
       "name": "Ancestor Rites",

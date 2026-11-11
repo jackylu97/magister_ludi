@@ -108,12 +108,13 @@ describe('riteSentence', () => {
     // announcement are one sentence produced once.
     const { state, city } = world();
     const line = riteSentence(state, city, 'consecrationOfTheBounds');
-    expect(line).toContain('bounds walk outward faster');
+    // The row's own text since batch B1, which states the number.
+    expect(line).toContain("this town's borders grow 30% faster");
   });
 
   it('says what the military rite does, in a first-time player’s words', () => {
     const { state, city } = world();
-    expect(riteSentence(state, city, 'blessingOfArms')).toContain('harder to storm');
+    expect(riteSentence(state, city, 'blessingOfArms')).toContain('+10 defence');
   });
 });
 

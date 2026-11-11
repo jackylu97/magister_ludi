@@ -101,7 +101,6 @@ const KNOWN_KINDS = new Set<CardEffectKind>([
   'cityStat',
   'metaRule',
   'rule',
-  'periodicOffer',
   'periodicMuster',
   'landfall',
   'unlocksBuilding',

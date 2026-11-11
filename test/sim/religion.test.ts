@@ -61,6 +61,7 @@ import {
   previewCombat,
 } from "../../src/sim/combat";
 import { fullMovement } from "../../src/sim/units";
+import { sightOf } from "../../src/sim/visibility";
 import { dispatch, snapshotState } from "../../src/sim/game";
 import {
   getTileAt,
@@ -71,8 +72,6 @@ import {
   wrappedDistance,
 } from "../../src/sim/map";
 import { isPassable } from "../../src/sim/pathfind";
-import { DISCOVERY_IDS, discoveryDef } from "../../src/sim/discoveryData";
-import { settleDiscovery } from "../../src/sim/discoveries";
 import {
   improvementError,
   improvementErrorAt,
@@ -106,7 +105,7 @@ import {
   empireRiteShortfall,
   healAdjacentAt,
   healAdjacentError,
-  openPeriodicOffers,
+  openFaithLadder,
   placeRelicAt,
   placeRelicError,
   riteCostAhead,
@@ -188,6 +187,7 @@ import {
   foldCityStat,
   describeCard,
   cardFoundingRider,
+  countOf,
   consecrationCardTileLines,
   followerCardTileLines,
   stripRefs,
@@ -195,7 +195,9 @@ import {
   liveCityEffects,
   liveEffects,
   payWindfallGrants,
+  cardPurchaseRiders,
   religionFounder,
+  scopedCardTileLines,
   windfallPayout,
 } from "../../src/sim/statecraft";
 import { RULES } from "../../src/sim/rulesData";
@@ -477,11 +479,19 @@ describe("a belief is an effect source, not a second evaluator", () => {
   });
 
   it("pays a flat city yield through foldCity (Sacred Fire)", () => {
+    // Batch B1: +2 production in every town, in place of +1 faith.
+    // The town's own line is the card's +2; the fold then takes the town's
+    // percentages of it, so the fold rises by at least that much.
     const g = game();
     const city = found(g.state, 0);
-    const before = foldCity(g.state, city).faith;
+    const before = foldCity(g.state, city);
     keep(g.state, 0, "sacredFire");
-    expect(foldCity(g.state, city).faith).toBe(before + 1);
+    const after = foldCity(g.state, city);
+    const line = explainCardCityYields(g.state, city).filter((entry) => entry.card === "sacredFire");
+    expect(line.reduce((sum, entry) => sum + entry.production, 0)).toBe(2);
+    expect(line.reduce((sum, entry) => sum + entry.faith, 0)).toBe(0);
+    expect(after.production).toBeGreaterThanOrEqual(before.production + 2);
+    expect(after.faith).toBe(before.faith);
   });
 
   it("scopes a city yield to a building (The Standing Stones)", () => {
@@ -567,9 +577,9 @@ describe("a belief is an effect source, not a second evaluator", () => {
   });
 
   it("keeps two different sources on one tile as two entries (Winter Mother + Spirits of the Wood)", () => {
-    // Spirits of the Wood pays culture on any forest, so a tundra forest under
-    // both beliefs earns two *different* voices from two *different* cards —
-    // those must stay separate lines, only same-source lines merge.
+    // Spirits of the Wood pays culture and faith on an unimproved forest, so a
+    // bare tundra forest under both beliefs earns lines from two *different*
+    // cards — those must stay separate lines, only same-source lines merge.
     const g = game();
     keep(g.state, 0, "winterMother");
     keep(g.state, 0, "spiritsOfTheWood");
@@ -595,7 +605,33 @@ describe("a belief is an effect source, not a second evaluator", () => {
     const spirits = cardLines.find(
       (entry) => entry.source === "Belief · Spirits of the Wood",
     )!;
-    expect(spirits).toMatchObject({ culture: 1 });
+    expect(spirits).toMatchObject({ culture: 1, faith: 1 });
+  });
+
+  it("pays an unimproved forest or jungle and nothing once it is worked (Spirits of the Wood)", () => {
+    // Batch B1: the god no longer pays for clearing a wood, so it pays only a
+    // wood that is kept. An improvement on the hex ends the line.
+    const g = game();
+    keep(g.state, 0, "spiritsOfTheWood");
+    const ctx = yieldContextFor(g.state, 0)!;
+    const base = getTileAt(g.state.map, 4, 4)!;
+    const spirits = (tile: typeof base) =>
+      explainTileYield(tile, ctx).find(
+        (entry) => entry.source === "Belief · Spirits of the Wood",
+      );
+    const forest = { ...base, terrain: "grassland" as const, feature: "forest" as const, improvement: undefined };
+    const jungle = { ...forest, feature: "jungle" as const };
+    const camp = { ...forest, improvement: "camp" as const };
+    const bare = { ...forest, feature: "none" as const };
+    expect(spirits(forest)).toMatchObject({ culture: 1, faith: 1 });
+    expect(spirits(jungle)).toMatchObject({ culture: 1, faith: 1 });
+    expect(spirits(camp)).toBeUndefined();
+    expect(spirits(bare)).toBeUndefined();
+    // No grant on the chop any more.
+    const player = playerById(g.state, 0)!;
+    const before = player.faithPool;
+    payWindfallGrants(g.state, player, windfallPayout(g.state, 0, "chop"));
+    expect(player.faithPool).toBe(before);
   });
 
   it("narrows a tile line by resource kind and the voice it pays (Goddess of the Harvest)", () => {
@@ -624,19 +660,31 @@ describe("a belief is an effect source, not a second evaluator", () => {
     );
   });
 
-  it("adds a strength line to every fight (God of the Forge)", () => {
+  it("pays +2 production for each military building in the town, and no strength (God of the Forge)", () => {
+    // Batch B1: the god grows with the town's military buildings, in place of a
+    // flat +2 strength. Counted by the buildings' own category.
     const g = game();
     dryField(g.state);
+    const city = found(g.state, 0);
+    const forge = (): number =>
+      explainCardCityYields(g.state, city)
+        .filter((line) => line.card === "godOfTheForge")
+        .reduce((sum, line) => sum + line.production, 0);
+    keep(g.state, 0, "godOfTheForge");
+    expect(forge()).toBe(0);
+    city.buildings.push("barracks");
+    bumpRevision(g.state);
+    expect(forge()).toBe(2);
+    city.buildings.push("palisade", "monument");
+    bumpRevision(g.state);
+    expect(buildingDef("palisade").category).toBe("military");
+    expect(buildingDef("monument").category).not.toBe("military");
+    expect(forge()).toBe(4);
+    // The strength line is gone.
     const mine = createUnit(g.state, 0, "warrior", 4, 4);
     const theirs = createUnit(g.state, 1, "warrior", 5, 4);
-    const before = forecast(g.state, mine.id, theirs.col, theirs.row);
-    keep(g.state, 0, "godOfTheForge");
-    const after = forecast(g.state, mine.id, theirs.col, theirs.row);
-    // Two points since U9's ladder.
-    expect(after.attackerStrength).toBe(before.attackerStrength + 2);
-    expect(
-      after.bonuses.some((line) => line.source.includes("God of the Forge")),
-    ).toBe(true);
+    const fight = forecast(g.state, mine.id, theirs.col, theirs.row);
+    expect(fight.bonuses.some((line) => line.source.includes("God of the Forge"))).toBe(false);
   });
 
   it("feeds a city-stage percent off a count (Court Augurs)", () => {
@@ -653,101 +701,177 @@ describe("a belief is an effect source, not a second evaluator", () => {
     expect(foldCity(g.state, city).science).toBe(bare);
   });
 
-  it("rides a windfall in the money of the era (Rites of Blood)", () => {
+  it("grants faith equal to the strength of the unit killed, in every age (Rites of Blood)", () => {
+    // Batch B1: the grant is read off the fallen piece, so it grows with the
+    // age of the units fought and needs no age clause of its own.
     const g = game();
     keep(g.state, 0, "ritesOfBlood");
     const player = playerById(g.state, 0)!;
-    const before = player.faithPool;
-    // Æra I: the printed twenty-five (batch B2 — the user's mark of 2026-09-08).
-    payWindfallGrants(g.state, player, windfallPayout(g.state, 0, "kill"));
-    expect(player.faithPool - before).toBe(25);
-    // Æra II: the same rider, doubled. One node of the second age is all the era
-    // multiplier is being asked about — re-read against the four-age tree of
-    // 2026-08-30, which put Mathematics and Rhetoric into Æra III.
+    const kill = (strength: number): number => {
+      const before = player.faithPool;
+      payWindfallGrants(g.state, player, windfallPayout(g.state, 0, "kill", 0, 0, { strength }));
+      return player.faithPool - before;
+    };
+    expect(kill(8)).toBe(8);
+    expect(kill(20)).toBe(20);
+    // A later age does not multiply it.
     learn(g.state, 0, "currency");
-    const mid = player.faithPool;
-    payWindfallGrants(g.state, player, windfallPayout(g.state, 0, "kill"));
-    expect(player.faithPool - mid).toBe(25 * 2);
+    expect(kill(20)).toBe(20);
   });
 
-  it("opens a cadenced draft on the turn the calendar names (Keeper of the Calendar)", () => {
+  it("pays +1 science on every plantation, and deals no hand of its own (Keeper of the Calendar)", () => {
+    // Batch B1: the cadenced discovery hand is gone with the `periodicOffer`
+    // shape, so the religion phase deals nothing for this god.
     const g = game();
-    found(g.state, 0);
     keep(g.state, 0, "keeperOfTheCalendar");
-    const player = playerById(g.state, 0)!;
-
-    // Ten turns since batch B2 (the user's mark of 2026-09-08), and the figure
-    // is the row's — read off the data rather than written here, so a retune of
-    // the almanac retunes the test with it.
-    const every = beliefDef("keeperOfTheCalendar").effects.find(
-      (effect) => effect.kind === "periodicOffer",
-    )!.every;
-    expect(every).toBe(10);
-
-    g.state.turn = every - 1;
-    openPeriodicOffers(g.state);
-    expect(player.pendingDiscovery).toBeUndefined();
-
-    g.state.turn = every;
-    openPeriodicOffers(g.state);
-    expect(player.pendingDiscovery).toBeDefined();
-    expect(player.pendingDiscovery!.options.length).toBeGreaterThan(0);
-
-    // One at a time: a second sweep on the same turn deals nothing on top of it.
-    const held = JSON.stringify(player.pendingDiscovery);
-    openPeriodicOffers(g.state);
-    expect(JSON.stringify(player.pendingDiscovery)).toBe(held);
-  });
-
-  it("stands the calendar’s free unit in the capital, off the offer’s own hex", () => {
-    // The user's clarification of 2026-09-08: *"upon choosing a free unit, spawn
-    // it in the capital"*. It already did, and this is the pin: the almanac
-    // stamps the offer with the seat of government's own hex
-    // (`openPeriodicOffers`), and `payDiscovery`'s unit arm stands the piece at
-    // `grantTileFor` from **that** hex — so the two halves of "where did this
-    // happen" are one field and there is no second rule about where a find lands.
-    const g = game();
-    const seat = found(g.state, 0);
-    keep(g.state, 0, "keeperOfTheCalendar");
+    const ctx = yieldContextFor(g.state, 0)!;
+    const base = getTileAt(g.state.map, 4, 4)!;
+    const plantation = { ...base, improvement: "plantation" as const };
+    const farm = { ...base, improvement: "farm" as const };
+    const calendar = (tile: typeof base) =>
+      explainTileYield(tile, ctx).find(
+        (entry) => entry.source === "Belief · Keeper of the Calendar",
+      );
+    expect(calendar(plantation)).toMatchObject({ science: 1 });
+    expect(calendar(farm)).toBeUndefined();
     const player = playerById(g.state, 0)!;
     g.state.turn = 10;
-    openPeriodicOffers(g.state);
-    const offer = player.pendingDiscovery!;
-    expect(offer.col).toBe(seat.col);
-    expect(offer.row).toBe(seat.row);
-
-    // A find that hands over a piece: forced, because the draw is seeded and the
-    // question is where the piece stands rather than which one was dealt.
-    const escort = DISCOVERY_IDS.find(
-      (id) => discoveryDef(id).effect.kind === "unit",
-    )!;
-    offer.options = [escort];
-    const before = g.state.units.length;
-    settleDiscovery(g.state, player, 0);
-    expect(g.state.units.length).toBe(before + 1);
-    const piece = g.state.units[g.state.units.length - 1]!;
-    // On the capital's hex, or on the first free hex beside it when the seat is
-    // occupied — which is `grantTileFor`'s answer and not a second one.
-    const stood = getTileAt(g.state.map, piece.col, piece.row)!;
-    const home = getTileAt(g.state.map, seat.col, seat.row)!;
-    expect(
-      wrappedDistance(g.state.map, tileHex(stood), tileHex(home)),
-    ).toBeLessThanOrEqual(1);
+    openFaithLadder(g.state);
+    expect(player.pendingDiscovery).toBeUndefined();
   });
 
-  it("leaves the wild out of the cadence", () => {
-    const g = createGame({
-      seed: 3,
-      sizeName: "duel",
-      barbarians: true,
-      players: [{ name: "Ada", color: "#d4502e", isHuman: true }],
+  it("pays +1 faith and +2 gold for each different luxury held (Patron of Merchants)", () => {
+    const g = game();
+    found(g.state, 0);
+    const fold = (voice: "faith" | "gold"): number =>
+      explainCardEmpireYields(g.state, 0)
+        .filter((line) => line.card === "patronOfMerchants")
+        .reduce((sum: number, line: CardYieldLine) => sum + line[voice], 0);
+    keep(g.state, 0, "patronOfMerchants");
+    const kinds = countOf(g.state, 0, "patronOfMerchants", {
+      kind: "pays",
+      where: "empire",
+      basis: "count",
+      count: "uniqueLuxuries",
     });
-    const wild = g.state.players.find((p) => p.barbarian)!;
-    wild.pantheon.beliefs.push("keeperOfTheCalendar");
+    expect(fold("faith")).toBe(kinds);
+    expect(fold("gold")).toBe(2 * kinds);
+    expect(beliefDef("patronOfMerchants").axis).toBe("road");
+  });
+
+  it("pays +1 faith for every 3 culture the empire makes a turn (The Muses)", () => {
+    const g = game();
+    found(g.state, 0);
+    keep(g.state, 0, "theMuses");
+    const muses = (culture: number): number =>
+      explainCardEmpireYields(g.state, 0, { culturePerTurn: culture })
+        .filter((line) => line.card === "theMuses")
+        .reduce((sum: number, line: CardYieldLine) => sum + line.faith, 0);
+    expect(muses(2)).toBe(0);
+    expect(muses(3)).toBe(1);
+    expect(muses(11)).toBe(3);
+    expect(beliefDef("theMuses").axis).toBe("none");
+  });
+
+  it("pays +2 faith and +1 happiness on a Granary (Keeper of the Hearth)", () => {
+    // Batch B1: both halves stand on the Granary, so the happiness is the
+    // building's line and no longer the capital's.
+    const g = game();
+    const city = found(g.state, 0);
+    keep(g.state, 0, "keeperOfTheHearth");
+    const faithOf = (): number =>
+      explainCardCityYields(g.state, city)
+        .filter((line) => line.card === "keeperOfTheHearth")
+        .reduce((sum, line) => sum + line.faith, 0);
+    const cheer = (): number =>
+      cardBuildingHappiness(g.state, 0)
+        .filter((line) => line.card === "keeperOfTheHearth")
+        .reduce((sum, line) => sum + line.amount, 0);
+    expect(faithOf()).toBe(0);
+    expect(cheer()).toBe(0);
+    expect(cardHappiness(g.state, 0).some((line) => line.card === "keeperOfTheHearth")).toBe(false);
+    city.buildings.push("granary");
     bumpRevision(g.state);
-    g.state.turn = 20;
-    openPeriodicOffers(g.state);
-    expect(wild.pendingDiscovery).toBeUndefined();
+    expect(faithOf()).toBe(2);
+    expect(cheer()).toBe(1);
+  });
+
+  it("pays a town with a mountain in its borders, not one beside a peak (Star Readers)", () => {
+    const def = beliefDef("starReaders");
+    expect(def.effects).toEqual([
+      { kind: "pays", where: "city", science: 4, scope: { test: "terrainInBorders", terrain: "mountain" } },
+    ]);
+  });
+
+  it("pays +1 culture for every 4 citizens in each town, with no cap (Ancestor Worship)", () => {
+    const g = game();
+    const city = found(g.state, 0);
+    keep(g.state, 0, "ancestorWorship");
+    const culture = (population: number): number => {
+      city.population = population;
+      bumpRevision(g.state);
+      return explainCardCityYields(g.state, city)
+        .filter((line) => line.card === "ancestorWorship")
+        .reduce((sum, line) => sum + line.culture, 0);
+    };
+    expect(culture(3)).toBe(0);
+    expect(culture(4)).toBe(1);
+    expect(culture(13)).toBe(3);
+    expect(culture(20)).toBe(5);
+  });
+
+  it("gives scouts and settlers +1 movement and +1 sight, and nobody else (Oracle of the Crossroads)", () => {
+    const rows = beliefDef("oracleOfTheCrossroads").effects;
+    expect(rows).toHaveLength(4);
+    for (const row of rows) {
+      if (row.kind !== "unitStat") throw new Error("a unit stat row");
+      expect(row.amount).toBe(1);
+      const scout = unitMatches("scout", row.class);
+      const settler = unitMatches("settler", row.class);
+      expect(scout !== settler).toBe(true);
+      expect(unitMatches("warrior", row.class)).toBe(false);
+      // A great person shares the settler's silhouette, and gains nothing.
+      expect(unitMatches("greatPerson", row.class)).toBe(false);
+    }
+    expect(rows.map((row) => (row.kind === "unitStat" ? row.stat : "")).sort()).toEqual([
+      "movement",
+      "movement",
+      "sight",
+      "sight",
+    ]);
+    // And on the pieces themselves: a scout and a settler move and see one
+    // further, a warrior and a great person do not.
+    const g = game();
+    const pieces = (["scout", "settler", "warrior", "greatPerson"] as const).map((type, at) =>
+      createUnit(g.state, 0, type, 2 + at, 2),
+    );
+    const before = pieces.map((piece) => [fullMovement(piece, g.state), sightOf(g.state.map, piece, g.state)]);
+    keep(g.state, 0, "oracleOfTheCrossroads");
+    const after = pieces.map((piece) => [fullMovement(piece, g.state), sightOf(g.state.map, piece, g.state)]);
+    const gained = after.map(([move, sight], at) => [move! - before[at]![0]!, sight! - before[at]![1]!]);
+    expect(gained[0]![0]).toBeGreaterThan(0);
+    expect(gained[1]).toEqual(gained[0]);
+    expect(gained[0]![1]).toBe(1);
+    expect(gained[2]).toEqual([0, 0]);
+    expect(gained[3]).toEqual([0, 0]);
+  });
+
+  it("drops the clauses the simplified gods lost (Lady of the Hunt, River Mother)", () => {
+    expect(beliefDef("ladyOfTheHunt").effects).toEqual([
+      { kind: "pays", where: "hex", food: 1, gold: 1, on: { test: "improvement", improvement: "camp" } },
+    ]);
+    expect(beliefDef("riverMother").effects).toEqual([
+      { kind: "pays", where: "city", food: 2, scope: { test: "freshwater" } },
+    ]);
+    expect(beliefDef("desertFathers").effects).toEqual([
+      { kind: "pays", where: "hex", food: 1, faith: 1, on: { test: "terrain", terrain: "desert" } },
+    ]);
+    for (const effect of beliefDef("courtAugurs").effects) {
+      expect(effect.kind === "percentYields" && effect.percent).toBe(15);
+    }
+    expect(beliefDef("theStandingStones").effects).toEqual([
+      { kind: "pays", where: "city", culture: 2, faith: 1, scope: { test: "hasBuilding", building: "monument" } },
+    ]);
   });
 });
 
@@ -1115,9 +1239,9 @@ describe("rites", () => {
     // nothing is stored.
     //
     // **A percentage since batch B2** (the user's mark of 2026-09-08): the two
-    // flats became ten percent of each voice, which joins `cityYieldPercents`
+    // flats became a percentage of each voice, which joins `cityYieldPercents`
     // with Entry XVII's city stage like every other share rather than being a
-    // multiplication of its own.
+    // multiplication of its own. Fifteen percent of each since batch B1.
     const { g, city, player } = town();
     keep(g.state, 0, "courtAugurs");
     const lit = (): number =>
@@ -1131,7 +1255,7 @@ describe("rites", () => {
     expect(lit()).toBe(0);
     performRiteAt(g.state, player, city, "omenReading");
     bumpRevision(g.state);
-    expect(lit()).toBe(20);
+    expect(lit()).toBe(30);
     expect(voices().sort()).toEqual(["culture", "science"]);
     // Both stand at the **city** stage, which is Entry XVII.5's default and what
     // a belief on one town means: the global stage is spent sparingly.
@@ -2935,17 +3059,17 @@ describe("the pressure ledger", () => {
   });
 
   it("reads an enhancer belief’s shift through the one rule reader", () => {
+    // Ecclesia moved the holy sites' strength until batch B1. The Long Road is
+    // the enhancer that bends the tide's strength now, and it says it as data.
     const g = game();
-    const seat = town(g.state, 0, 6, 6);
+    town(g.state, 0, 6, 6);
     const religion = faith(g.state, 0);
-    siteAt(g.state, seat, 6, 6);
-    const target = town(g.state, 1, 8, 6);
-    const before = pressureTotals(g.state, target)[religion.id]!;
-    religion.enhancer = ["ecclesia"];
+    expect(cardPressureRule(g.state, 0, "roadStrength")).toBe(0);
+    religion.enhancer = ["theLongRoad"];
     bumpRevision(g.state);
-    // Ecclesia says holy sites press three harder, and it says it as data.
-    expect(cardPressureRule(g.state, 0, "siteStrength")).toBe(3);
-    expect(pressureTotals(g.state, target)[religion.id]).toBe(before + 3);
+    expect(cardPressureRule(g.state, 0, "roadStrength")).toBe(2);
+    expect(cardPressureRule(g.state, 0, "routeStrength")).toBe(2);
+    expect(cardPressureRule(g.state, 0, "siteStrength")).toBe(0);
   });
 });
 
@@ -2964,17 +3088,20 @@ describe("what a religion pays whom", () => {
     const quiet = town(g.state, 1, 5, 8);
     mine.followers = { [religion.id]: mine.population };
     theirs.followers = { [religion.id]: theirs.population };
+    // Since batch B1 the belief pays for each building that supplies faith, so
+    // each town is given a Shrine.
+    for (const city of [mine, theirs, quiet]) city.buildings.push("shrine");
+    bumpRevision(g.state);
 
     // The founder's own following town is paid in **its own** ledger.
     const paid = (city: City): CardYieldLine | undefined =>
       explainCardCityYields(g.state, city).find((line) =>
         line.source.includes("The Quiet Hours"),
       );
-    expect(paid(mine)?.faith).toBe(1);
-    expect(paid(mine)?.culture).toBe(1);
+    expect(paid(mine)?.culture).toBe(2);
+    expect(paid(mine)?.faith).toBe(0);
     // And so is the rival's, out of a faith he did not choose.
-    expect(paid(theirs)?.faith).toBe(1);
-    expect(paid(theirs)?.culture).toBe(1);
+    expect(paid(theirs)?.culture).toBe(2);
     // The label says whose faith is paying, which is the only way a foreign
     // town's owner can tell where the gift came from.
     expect(paid(theirs)?.source).toContain(religion.name);
@@ -3038,7 +3165,7 @@ describe("what a religion pays whom", () => {
       cardProduction(g.state, theirs, "building").find((line) =>
         line.source.includes("Guild of the Faithful"),
       )?.percent,
-    ).toBe(10);
+    ).toBe(15);
     expect(cardProduction(g.state, quiet, "building")).toEqual([]);
 
     // **Common Table** — the growth channel's own rate, narrowed to a town.
@@ -3139,7 +3266,9 @@ describe("what a religion pays whom", () => {
     expect(heldReligions(g.state, 0).map((one) => one.id)).toEqual([
       religion.id,
     ]);
-    expect(trickleFor(0)).toBe(2);
+    // One faith for the one foreign town that follows. Apostles no longer
+    // doubles it (batch B1): the belief makes apostles cheaper instead.
+    expect(trickleFor(0)).toBe(1);
     expect(trickleFor(1)).toBe(0);
     // Apostles is an enhancer, so it reaches the seat that holds the stones.
     expect(
@@ -3199,7 +3328,7 @@ describe("what a religion pays whom", () => {
     expect(religionFounder(g.state, religion)).toBe(0);
   });
 
-  it("pays the founder’s trickle per foreign following city, and doubles it for Apostles", () => {
+  it("pays the founder’s trickle per foreign following city, and Apostles leaves it alone", () => {
     const g = game();
     town(g.state, 0, 6, 6);
     const religion = faith(g.state, 0);
@@ -3220,11 +3349,36 @@ describe("what a religion pays whom", () => {
         .reduce((sum, line) => sum + line.faith, 0);
     expect(faithOf()).toBe(1);
 
-    // Apostles doubles the trickle **before anything is banked**, and reaches
-    // the trickle alone.
+    // Apostles doubled the trickle until batch B1. It is a cheaper apostle now,
+    // so the trickle is the data's own figure whoever holds it.
     religion.enhancer = ["apostles"];
     bumpRevision(g.state);
-    expect(faithOf()).toBe(2);
+    expect(faithOf()).toBe(1);
+  });
+
+  it("makes an apostle 30% cheaper in faith, and nothing else (Apostles)", () => {
+    const g = game();
+    const seat = town(g.state, 0, 6, 6);
+    const religion = faith(g.state, 0);
+    siteAt(g.state, seat, 6, 6);
+    religion.holySite = { col: 6, row: 6 };
+    seat.followers = { [religion.id]: seat.population };
+    bumpRevision(g.state);
+    const riders = (unit: "apostle" | "prophet") =>
+      cardPurchaseRiders(g.state, 0, "unit", unit, seat, undefined, "faith").filter(
+        (line) => line.card === "apostles",
+      );
+    expect(riders("apostle")).toEqual([]);
+    religion.enhancer = ["apostles"];
+    bumpRevision(g.state);
+    expect(riders("apostle").map((line) => line.percent)).toEqual([-30]);
+    expect(riders("prophet")).toEqual([]);
+    // A rider on the faith bank alone: an apostle priced in gold is untouched.
+    expect(
+      cardPurchaseRiders(g.state, 0, "unit", "apostle", seat, undefined, "gold").some(
+        (line) => line.card === "apostles",
+      ),
+    ).toBe(false);
   });
 
   it("counts the tide five ways, through the beliefs that ask for each count", () => {
@@ -3251,15 +3405,18 @@ describe("what a religion pays whom", () => {
     // count from being declared and never read. All four rows live in the
     // **enhancer** pool since the 2026-08-28 ruling: a world-scale count is a
     // question about a founder, and a follower belief is a fact about a town.
-    // **Congregation** — one happiness per three following towns, up to five
-    // (batch B2). Five towns follow, so one helping.
+    // **Congregation** — two faith for every following town in the world
+    // (batch B1; it paid happiness up to five until then). Five follow.
     religion.enhancer = ["congregation"];
     bumpRevision(g.state);
     expect(
-      cardHappiness(g.state, 0).find((line) =>
+      explainCardEmpireYields(g.state, 0).find((line) =>
         line.source.includes("Congregation"),
-      )?.amount,
-    ).toBe(1);
+      )?.faith,
+    ).toBe(10);
+    expect(
+      cardHappiness(g.state, 0).some((line) => line.source.includes("Congregation")),
+    ).toBe(false);
 
     // **World Church** — a *percentage* of culture per following empire since
     // batch B2, which is a `countScaled` paying `to: 'percent'` at the empire
@@ -4181,39 +4338,45 @@ describe("the ratified religion rows", () => {
     expect(lapsed.attackerStrength).toBe(before);
   });
 
-  it("The Crusade presses a lump of faith wherever its soldiers kill", () => {
+  it("presses a lump of faith where a kill rider says so, and The Crusade no longer does", () => {
     // **The spread half** (batch E4b, the user's own words: *killing units
     // spreads your faith*). It is a `windfallRider` on the kill, whose grant is a
     // lump — `bankPressure`'s third caller, and a lump rather than a tide because
     // the tide is what a holy site radiates every turn from where it stands and
     // this happened once, in a place, because somebody did it.
-    const g = game();
-    dryField(g.state);
-    town(g.state, 0, 6, 6);
-    const religion = faith(g.state, 0);
-    religion.enhancer = ["theCrusade"];
-    bumpRevision(g.state);
-    // A foreign town near the field, keeping nobody's faith.
-    const theirs = town(g.state, 1, 9, 6);
-    theirs.followers = {};
-    theirs.pressureBank = {};
+    //
+    // The Crusade carried it until batch B1, which kept the belief's strength
+    // half only. Joan of Arc's ability still carries a kill lump, so the seam is
+    // asked through her.
+    const strike = (leader: boolean) => {
+      const g = game();
+      dryField(g.state);
+      town(g.state, 0, 6, 6);
+      const religion = faith(g.state, 0);
+      religion.enhancer = ["theCrusade"];
+      if (leader) playerById(g.state, 0)!.leader = "joan" as never;
+      bumpRevision(g.state);
+      // A foreign town near the field, keeping nobody's faith.
+      const theirs = town(g.state, 1, 9, 6);
+      theirs.followers = {};
+      theirs.pressureBank = {};
 
-    // A kill on the doorstep. The blow is struck through the one evaluator, so
-    // what is on trial is the seam and not a hand-called routine.
-    const target = getTileAt(g.state.map, theirs.col, theirs.row + 1)!;
-    const victim = createUnit(g.state, 1, "warrior", target.col, target.row);
-    victim.hp = 1;
-    const mine = createUnit(g.state, 0, "warrior", theirs.col, theirs.row + 2);
-    mine.movesLeft = fullMovement(mine, g.state);
-    applyCombat(g.state, mine.id, { col: target.col, row: target.row });
-    expect(g.state.units.some((u) => u.id === victim.id)).toBe(false);
-
-    // The lump landed on the town within reach: either it banked pressure or it
-    // turned a citizen outright, which is what `pressLump` does in one pass.
-    const banked =
-      (theirs.pressureBank?.[religion.id] ?? 0) +
-      (theirs.followers[religion.id] ?? 0);
-    expect(banked).toBeGreaterThan(0);
+      // A kill on the doorstep. The blow is struck through the one evaluator, so
+      // what is on trial is the seam and not a hand-called routine.
+      const target = getTileAt(g.state.map, theirs.col, theirs.row + 1)!;
+      const victim = createUnit(g.state, 1, "warrior", target.col, target.row);
+      victim.hp = 1;
+      const mine = createUnit(g.state, 0, "warrior", theirs.col, theirs.row + 2);
+      mine.movesLeft = fullMovement(mine, g.state);
+      applyCombat(g.state, mine.id, { col: target.col, row: target.row });
+      expect(g.state.units.some((u) => u.id === victim.id)).toBe(false);
+      // Either it banked pressure or it turned a citizen outright, which is what
+      // `pressLump` does in one pass.
+      return (theirs.pressureBank?.[religion.id] ?? 0) + (theirs.followers[religion.id] ?? 0);
+    };
+    expect(strike(false)).toBe(0);
+    expect(strike(true)).toBeGreaterThan(0);
+    expect(beliefDef("theCrusade").effects.map((effect) => effect.kind)).toEqual(["combatLine"]);
   });
 
   it("presses nothing for an empire that has founded no religion", () => {
@@ -4379,12 +4542,11 @@ describe("the ratified religion rows", () => {
     const said = (id: string): string[] =>
       describeCard(id as never).map((c) => stripRefs(c.text));
     // Re-cut in batch E4b (the user's own words: *killing units spreads your
-    // faith · +2 combat in foreign cities following your religion*): the
-    // strength half bought the spread with the difference. Raised to three in
-    // batch B3, the user's second marking of the worksheet.
+    // faith · +2 combat in foreign cities following your religion*), raised in
+    // batch B3, and simplified in batch B1: the spread half went, and the
+    // strength half stays.
     expect(said("theCrusade")).toEqual([
       "+6 combat strength inside foreign cities that follow your religion",
-      "killing a unit spreads your religion to every city within 3 hexes",
     ]);
     // Withdrawn on 2026-09-07 (the user: *remove, not needed* — a new town is
     // converted in a turn or two anyway), and the faith clause cut with it, so
@@ -4400,6 +4562,8 @@ describe("the ratified religion rows", () => {
     expect(said("lordOfTheHoard")).toEqual([
       "+1 culture, +1 faith on every hex with a Mine or Quarry carrying a resource",
     ]);
+    // Withdrawn from the cathedral's roll in batch B1, and still readable, so a
+    // town that already holds it prints what it pays.
     expect(said("theGreenCathedral")).toEqual([
       "+1 culture, +1 faith on every unimproved hex",
     ]);
@@ -4417,7 +4581,7 @@ describe("the ratified religion rows", () => {
  * ledger a clause lands in, and what it is a share of.
  */
 describe("the beliefs balance pass", () => {
-  it("Star Readers reads its beakers off the row, and pays only beside a peak", () => {
+  it("Star Readers reads its beakers off the row, and pays only with a peak in the borders", () => {
     const g = game();
     const flat = town(g.state, 0, 6, 6);
     keep(g.state, 0, "starReaders");
@@ -4430,9 +4594,9 @@ describe("the beliefs balance pass", () => {
       explainCardCityYields(g.state, city)
         .filter((line) => line.card === "starReaders")
         .reduce((sum, line) => sum + line.science, 0);
-    // The scope is the town's doorstep and nothing else — `CityScope`'s
-    // `mountainAdjacent` reads the ring of six's own terrain, so the fixture
-    // raises a peak next door rather than setting a flag.
+    // Since batch B1 the scope is the town's borders (`terrainInBorders`), not
+    // the ring beside the town. A new town owns the ring of six, so the fixture
+    // raises a peak next door, inside its borders, rather than setting a flag.
     expect(paid(flat)).toBe(0);
     const seat = getTileAt(g.state.map, flat.col, flat.row)!;
     neighborTiles(g.state.map, tileHex(seat))[0]!.terrain = "mountain";
@@ -4612,15 +4776,24 @@ describe("the beliefs balance pass", () => {
     bumpRevision(g.state);
     expect(cardPressureRule(g.state, 0, "cityRange") - plain).toBe(5);
 
-    // Ecclesia's second half is a hex line on the stones, and the figure is the
-    // row's own.
+    // Ecclesia (batch B1): a hex line on the stones, +1 faith for each town in
+    // the world that follows, counted when the town working the hex is in hand.
     religion.enhancer = ["ecclesia"];
     bumpRevision(g.state);
+    expect(cardPressureRule(g.state, 0, "siteStrength")).toBe(0);
+    const ecclesia = (): number | undefined =>
+      scopedCardTileLines(g.state, seat).find((line) => line.source.includes("Ecclesia"))?.faith;
+    expect(ecclesia()).toBeUndefined();
+    seat.followers = { [religion.id]: seat.population };
+    const theirs = town(g.state, 1, 10, 6);
+    theirs.followers = { [religion.id]: theirs.population };
+    bumpRevision(g.state);
+    expect(ecclesia()).toBe(2);
+    // The empire-wide context has no town to count with, so it pays nothing.
     const stones = getTileAt(g.state.map, 6, 6)!;
-    const paid = explainTileYield(stones, yieldContextFor(g.state, 0)).find(
-      (line) => line.source.includes("Ecclesia"),
-    );
-    expect(paid?.faith).toBe(3);
+    expect(
+      explainTileYield(stones, yieldContextFor(g.state, 0)).some((line) => line.source.includes("Ecclesia")),
+    ).toBe(false);
   });
 });
 
@@ -4956,7 +5129,7 @@ describe("the faith ladder as a reading", () => {
     learn(g.state, 0, "divination");
     const player = playerById(g.state, 0)!;
     player.faithPool = 500;
-    openPeriodicOffers(g.state);
+    openFaithLadder(g.state);
     expect(player.pantheon.pending).toBeDefined();
     expect(nextRungWords(explainNextRung(g.state, 0, 5))).toBe(
       "A god is waiting to be named",
@@ -5022,7 +5195,7 @@ describe("the standing stones hand over a god, not an agent", () => {
     learn(g.state, 0, "divination");
     const player = playerById(g.state, 0)!;
     player.faithPool = 500;
-    openPeriodicOffers(g.state);
+    openFaithLadder(g.state);
     const dealt = player.pantheon.pending!;
     expect(dealt).toBeDefined();
 
@@ -5220,8 +5393,14 @@ describe("the second beliefs pass", () => {
     expect(afterWat.faith - beforeWat.faith).toBe(3);
     expect(cheer() - beforeCheer).toBe(3);
 
-    // **The Dar-e Mehr's tenth**, a percentage of the town at the city stage —
-    // the Observatory's shape, on faith.
+    // **The Dar-e Mehr's quarter**, a percentage of the town at the city stage
+    // — the Observatory's shape, on faith. Since batch B1 it is +25% and no
+    // flat faith.
+    const faithPercents = (): number =>
+      cityYieldPercents(g.state, city)
+        .filter((line) => line.yield === "faith" && line.stage === "city")
+        .reduce((sum, line) => sum + line.percent, 0);
+    expect(faithPercents()).toBe(0);
     city.buildings.push("darEMehr");
     bumpRevision(g.state);
     expect(
@@ -5229,23 +5408,39 @@ describe("the second beliefs pass", () => {
         (line) =>
           line.yield === "faith" &&
           line.stage === "city" &&
-          line.percent === 10,
+          line.percent === 25,
       ),
     ).toBe(true);
+    expect(buildingDef("darEMehr").faith ?? 0).toBe(0);
     const afterFlame = foldCity(g.state, city);
-    // Two flat candles, and *then* a tenth of the whole town — the tenth is a
-    // stage and not a line, which is what makes this an assertion about Entry
-    // XVII's multiplication rather than about the row's own bag. The fold is
-    // unrounded by design (the banker floors), so it is compared as one.
-    expect(afterFlame.faith).toBeCloseTo((afterWat.faith + 2) * 1.1, 6);
+    // No flat candle, and a quarter of the whole town. The quarter is a stage
+    // and not a line, which is what makes this an assertion about Entry XVII's
+    // multiplication rather than about the row's own bag. The fold is unrounded
+    // by design (the banker floors), so it is compared as one.
+    expect(afterFlame.faith).toBeCloseTo(afterWat.faith * 1.25, 6);
   });
 
-  it("the Gurdwara is three voices and nothing else", () => {
-    // The one row of the four with no card clause at all: its whole face is the
-    // bag, which is the honest shape for it rather than an omission.
+  it("the Gurdwara pays +3 food, +3 faith, and +1 science for every 3 citizens", () => {
+    // Batch B1: the flat +2 science became a line that grows with the town, in
+    // the Wat's own shape (a counted line scoped to the house).
     const def = buildingDef("gurdwara");
-    expect([def.food, def.faith, def.science]).toEqual([3, 3, 2]);
-    expect(def.effects).toBeUndefined();
+    expect([def.food, def.faith, def.science]).toEqual([3, 3, 0]);
+    const g = game();
+    const religion = houseOf(g.state, "theOpenKitchen");
+    const city = follows(town(g.state, 0, 6, 6), religion);
+    const science = (population: number): number => {
+      city.population = population;
+      bumpRevision(g.state);
+      return explainCardCityYields(g.state, city)
+        .filter((line) => line.card === "gurdwara")
+        .reduce((sum, line) => sum + line.science, 0);
+    };
+    expect(science(6)).toBe(0);
+    city.buildings.push("gurdwara");
+    bumpRevision(g.state);
+    expect(science(2)).toBe(0);
+    expect(science(3)).toBe(1);
+    expect(science(10)).toBe(3);
     for (const id of ["mosque", "wat", "gurdwara", "darEMehr"] as const) {
       const row = buildingDef(id);
       expect(row.purchase?.currency, id).toBe("faith");
@@ -5402,21 +5597,25 @@ describe("the second beliefs pass", () => {
       "+1 science per faith building in a city that follows you",
     ]);
     // The four faith houses print themselves inside the belief that opens them
-    // (`describeBuildingRow`), so a re-cut row re-prints its own belief.
+    // (`describeBuildingRow`), so a re-cut row re-prints its own belief. Since
+    // batch B1 the belief's first clause is its Faith house keyword, which says
+    // where the house may stand and how it is bought, so the second clause says
+    // only what it opens and what the house gives.
     for (const [belief, house] of [
       ["minarets", "Mosque"],
       ["templeSpires", "Wat"],
       ["theOpenKitchen", "Gurdwara"],
       ["theEternalFlame", "Dar-e Mehr"],
     ] as const) {
-      const clause = said(belief)[0] ?? "";
-      expect(clause, belief).toContain(`unlocks the ${house}`);
-      expect(clause, belief).toContain(
-        "it is bought with faith and never built",
-      );
-      expect(clause, belief).toContain(
-        "it may be raised only in a city that keeps the faith that opened it",
-      );
+      const [keyword, clause = ""] = said(belief);
+      expect(keyword, belief).toBe("Faith house");
+      expect(clause, belief).toContain(`unlocks the ${house}: `);
+      expect(clause, belief).not.toContain("it is bought with faith and never built");
+      expect(clause, belief).not.toContain("it may be raised only in a city");
     }
+    expect(said("minarets")[1]).toBe("unlocks the Mosque: +2 production, +3 faith; +1 authority capacity");
+    expect(said("templeSpires")[1]).toBe("unlocks the Wat: +1 faith per 2 citizens in this city; +3 happiness");
+    expect(said("theOpenKitchen")[1]).toBe("unlocks the Gurdwara: +3 food, +3 faith; +1 science per 3 citizens in this city");
+    expect(said("theEternalFlame")[1]).toBe("unlocks the Dar-e Mehr: +25% faith in every city with a Dar-e Mehr");
   });
 });

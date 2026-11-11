@@ -12,6 +12,7 @@ import {
   orderDef,
 } from '../../src/sim/statecraftData';
 import {
+  anyCardDef,
   buildingSupplies,
   cardHappiness,
   cardRenownLines,
@@ -76,6 +77,33 @@ function seat(state: GameState, id: OrderId, effects?: CardEffect[]): void {
   if (!sc.orders.includes(id)) sc.orders.push(id);
   sc.slots.push({ card: id, sealedUntil: state.turn });
   bumpRevision(state);
+}
+
+/**
+ * Lends a building row effects of the test's choosing, until the test ends.
+ *
+ * Two copies of the row are lent and put back, because a building has two. The
+ * table's row (`buildingDef`) is what a town reads. `anyCardDef` keeps its own
+ * card-shaped copy of a building, made once for each id and shared by every
+ * later reader, such as a line's label and the describers. A lend that changed
+ * only the table's row left that copy holding the lent effects for every later
+ * file in the same worker: `cardTextSnapshot.test.ts` then printed a clause on
+ * the Library, which has none. So the copy is made first, from the honest row,
+ * and is lent and put back with it.
+ */
+function lendBuildingEffects(id: BuildingId, effects: CardEffect[]): void {
+  const card = anyCardDef(id as never) as { effects: readonly CardEffect[] };
+  const row = buildingDef(id) as { effects?: CardEffect[] };
+  const heldCard = card.effects;
+  const hadRow = Object.prototype.hasOwnProperty.call(row, 'effects');
+  const heldRow = row.effects;
+  card.effects = effects;
+  row.effects = effects;
+  restores.push(() => {
+    card.effects = heldCard;
+    if (hadRow) row.effects = heldRow;
+    else delete row.effects;
+  });
 }
 
 /** Gives seat 0 a great person's legacy without spending a piece. */
@@ -155,9 +183,7 @@ describe('a building’s own counted lines are in its package', () => {
     // the reading ends one step down: the Library's line counts the faith
     // buildings by their rows, which makes the Library supply faith, so the
     // outer count includes the Library too.
-    const def = buildingDef('library') as { effects?: CardEffect[] };
-    const held = def.effects;
-    def.effects = [
+    lendBuildingEffects('library', [
       {
         kind: 'pays',
         where: 'city',
@@ -169,10 +195,7 @@ describe('a building’s own counted lines are in its package', () => {
         amount: 1,
         scope: { test: 'hasBuilding', building: 'library' },
       },
-    ];
-    restores.push(() => {
-      def.effects = held;
-    });
+    ]);
     const { state, city } = town('library', 'temple');
     const byRows = townBuildings(state, city).filter((id) => buildingRowSupplies(id, 'faith')).length;
     expect(byRows).toBeGreaterThanOrEqual(1);

@@ -2601,19 +2601,19 @@ describe('batch X3 — the faith book prices the piece', () => {
     // town would actually make with it, staged by the real arithmetic.
     const made = row!.terms[0]!;
     expect(made.label).toBe('what this town would actually make with it');
-    // Its five yields, by voice — the row pays +3 food, +2 science and +3 faith,
-    // and every one of them is named in the parts rather than folded away.
+    // Its yields, by voice — the row pays +3 food and +3 faith, and +1 science
+    // for every 3 citizens since batch B1 — and each is named in the parts
+    // rather than folded away.
     const voices = (made.parts ?? []).map((term) => term.label);
     expect(voices.some((label) => /^food \+3 /.test(label))).toBe(true);
-    expect(voices.some((label) => /^science \+2 /.test(label))).toBe(true);
     expect(voices.some((label) => /^faith \+3 /.test(label))).toBe(true);
     expect(made.value).toBeGreaterThan(0);
-    // **And what it was worth before.** The row carries no happiness, no writ, no
-    // renown and no effects at all, so everything the old loop could read about it
-    // — `explainBuildingRow` less the upkeep — folds to nothing, and a want worth
-    // nothing is a want no bank ever spends on.
+    // **And what it was worth before.** The old loop read only `explainBuildingRow`
+    // less the upkeep, which sees the row's one effect (the science for every 3
+    // citizens, since batch B1) and none of its flat food and faith. So the want
+    // that counts what the town would make is worth more than that reading.
     const beyond = explainBuildingRow('gurdwara' as never, ctx).total;
-    expect(beyond).toBe(0);
+    expect(beyond).toBeGreaterThanOrEqual(0);
     expect(row!.worth).toBeGreaterThan(beyond);
   });
 

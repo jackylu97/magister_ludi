@@ -96,14 +96,14 @@ describe('the row figure: the fold, or the house dash', () => {
     expect(before).toEqual([]);
     expect(previewFigures(foldBuildingPreview(before)) || '—').toBe('—');
 
-    // God of the Forge: "Barracks supply +1 production" — a `cityYields`
-    // effect scoped `hasBuilding: barracks`, invisible to the building's own
-    // row and visible only to this preview.
+    // God of the Forge: "Each military building gives +2 production" (batch
+    // B1) — a town line counted per military building, invisible to the
+    // building's own row and visible only to this preview.
     state.players[0]!.pantheon.beliefs.push('godOfTheForge');
     bumpRevision(state);
     const after = explainBuildingPreview(state, city, 'barracks');
     const rowFigure = previewFigures(foldBuildingPreview(after)) || '—';
-    expect(rowFigure).toBe('+1⚙');
+    expect(rowFigure).toBe('+2⚙');
   });
 
   it('folds to the row’s own figure when no card is in play', () => {
@@ -137,7 +137,7 @@ describe('the hover card: every preview line, the sim’s own label', () => {
     expect(hover).toHaveLength(2);
     // The sim's own label, printed exactly as it labelled it — never reworded
     // or re-derived by the panel.
-    expect(hover[0]).toBe(`${lines[0]!.source} +1⚙`);
+    expect(hover[0]).toBe(`${lines[0]!.source} +2⚙`);
     expect(hover[0]).toContain(beliefDef('godOfTheForge').name);
     expect(hover[1]).toBe('Multipliers and rounding');
   });

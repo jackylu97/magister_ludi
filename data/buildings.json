@@ -2928,7 +2928,7 @@
       "food": 3,
       "production": 0,
       "gold": 0,
-      "science": 2,
+      "science": 0,
       "culture": 0,
       "faith": 3,
       "sciencePerPop": 0,
@@ -2938,6 +2938,22 @@
         "currency": "faith"
       },
       "followingOnly": true,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "population",
+          "per": 3,
+          "within": "city",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "gurdwara"
+          }
+        }
+      ],
       "note": "Bought with faith, and only in a city that keeps the faith that opened it. Its kitchen feeds whoever comes, and its rooms are where the reading is done."
     },
     "darEMehr": {
@@ -2950,7 +2966,7 @@
       "gold": 0,
       "science": 0,
       "culture": 0,
-      "faith": 2,
+      "faith": 0,
       "sciencePerPop": 0,
       "unlockedByCard": true,
       "purchaseOnly": true,
@@ -2962,7 +2978,7 @@
         {
           "kind": "percentYields",
           "yield": "faith",
-          "percent": 10,
+          "percent": 25,
           "scope": {
             "test": "hasBuilding",
             "building": "darEMehr"

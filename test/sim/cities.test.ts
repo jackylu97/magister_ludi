@@ -1674,9 +1674,10 @@ describe('city yields', () => {
     // town, and the preview says so by being empty.
     expect(explainBuildingPreview(state, city, 'barracks')).toEqual([]);
 
-    // God of the Forge: "+1⚙ in every city with a Barracks" — a `cityYields`
-    // effect scoped `hasBuilding: barracks`, which is invisible to every
-    // evaluator that reads the building's own row.
+    // God of the Forge: "+2⚙ for each military building" (batch B1) — a town
+    // line counted per military building, which is invisible to every
+    // evaluator that reads the building's own row. The preview counts the
+    // barracks it is asked about.
     state.players[0]!.pantheon.beliefs.push('godOfTheForge');
     bumpRevision(state);
     const lines = explainBuildingPreview(state, city, 'barracks');
@@ -1690,10 +1691,10 @@ describe('city yields', () => {
     expect(lines.map((line) => line.source).slice(1)).toEqual(['Multipliers and rounding']);
     expect(lines[0]!.card).toBe('godOfTheForge');
     expect(lines[0]!.source).toMatch(new RegExp(beliefDef('godOfTheForge').name));
-    expect(lines[0]!.production).toBe(1);
+    expect(lines[0]!.production).toBe(2);
     const writ = 1 + tierPercent(authorityOf(state, 0)) / 100;
     expect(writ).toBeGreaterThan(1);
-    expect(foldBuildingPreview(lines).production).toBeCloseTo(1 * writ, 10);
+    expect(foldBuildingPreview(lines).production).toBeCloseTo(2 * writ, 10);
 
     // And the belief pays nothing until the barracks stands: the preview is a
     // *difference*, so the town's current yields are untouched by asking.
@@ -3679,7 +3680,7 @@ describe('determinism with cities', () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(240);
+    expect(SCHEMA_VERSION).toBe(241);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

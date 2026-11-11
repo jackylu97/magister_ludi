@@ -77,7 +77,8 @@
  */
 
 import { keywordMark, stripRefs } from '../sim/statecraft';
-import { ORDER_KEYWORDS } from '../sim/statecraftData';
+import { BELIEF_KEYWORDS } from '../sim/religionData';
+import { type CardKeyword, ORDER_KEYWORDS } from '../sim/statecraftData';
 import { yieldTextNodes } from './yieldMark';
 
 export { stripRefs };
@@ -123,16 +124,17 @@ export function splitDescriptor(text: string): DescriptorPart[] {
 }
 
 /**
- * **The Compendium entries of the four card keywords** (batch DS8): Commission,
- * Charter, Scaler and Boon. Read off the describers' own marks (`keywordMark`),
- * so the interface never spells the address itself.
+ * **The Compendium entries of the card keywords**: Commission, Charter, Scaler
+ * and Boon on an Order (batch DS8), and Faith house on a belief (batch B1). Read
+ * off the describers' own marks (`keywordMark`), so the interface never spells
+ * the address itself.
  *
  * The hover cards ask it for one rule: keyboard focus on a control that holds a
  * card shows the card's keyword's tooltip (`keywordCards.ts`). A keyword inside
  * a control has no tab stop of its own, so this is how a keyboard reaches it.
  */
 export const CARD_KEYWORD_ENTRIES: ReadonlySet<string> = new Set(
-  ORDER_KEYWORDS.flatMap((keyword) =>
+  ([...ORDER_KEYWORDS, ...BELIEF_KEYWORDS] as readonly CardKeyword[]).flatMap((keyword) =>
     splitDescriptor(keywordMark(keyword)).flatMap((part) => (part.kind === 'keyword' ? [part.ref] : [])),
   ),
 );

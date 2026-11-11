@@ -513,8 +513,34 @@ import {
  *
  * **A v239 save is refused and does not replay.** The branch migrates nothing, for
  * the reason given under v119 in `docs/history/schema-changelog.md`.
+ *
+ * v241 (branch `decks`; batch B1, `docs/flags.md` (jjjjjjj), the spec
+ * `docs/plans/belief-update-2026-11-10.md`): **the belief update.** No field
+ * joins or leaves the state. What changes:
+ *
+ *   · fourteen gods, four follower beliefs and four enhancer beliefs change
+ *     what they pay, and three new rows join the pools: the gods Patron of
+ *     Merchants and The Muses, and the follower belief The Alms Box. A belief
+ *     hand is drawn from a larger pool, so a logged game's draws move;
+ *   · Theocratic Mandate leaves the enhancer pool, and The Green Cathedral
+ *     leaves the cathedral's roll, which now draws one of five patrons. Both
+ *     rows stay in the table, so an id in a game still resolves;
+ *   · the Gurdwara pays +1 science for every 3 citizens in place of +2 science,
+ *     and the Dar-e Mehr pays +25% faith in its town and no flat faith;
+ *   · the religion phase deals only the faith ladder's hand. The
+ *     `periodicOffer` shape (Keeper of the Calendar's discovery hand) and the
+ *     `founderTrickle` amplifier target (Apostles' doubling) lost their last
+ *     rows and are removed;
+ *   · a purchase rider on a town's own cards (a follower belief) now applies to
+ *     a price asked in that town (The Alms Box).
+ *
+ * The texts of the rites and the words on the belief cards change too, and no
+ * outcome turns on them.
+ *
+ * **A v240 save is refused and does not replay.** The branch migrates nothing, for
+ * the reason given under v119 in `docs/history/schema-changelog.md`.
  */
-export const SCHEMA_VERSION = 240;
+export const SCHEMA_VERSION = 241;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

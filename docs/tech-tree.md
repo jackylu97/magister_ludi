@@ -361,11 +361,11 @@ Only a seat that drafted the charter may research these. Each sits one column ri
 | verb | node | who gains it | what it does |
 |---|---|---|---|
 | Embark | Sailing | civilian | Cross coastal water and lakes. |
-| Rite of the Harvest | Divination | city | A city may keep this rite a while: every hex it works that feeds it feeds it more. |
-| Omen Reading | Divination | city | A city may keep this rite a while: every building standing in it adds a little learning. |
-| Consecration of the Bounds | Stonecraft | city | A city may keep this rite a while: its luxury hexes sing and its bounds walk outward faster. |
-| Blessing of Arms | Bronzeworking | city | A city may keep this rite a while: it is harder to storm. |
-| Rite of Plenty | Currency | city | A city may keep this rite a while: every hex it works with a seam in it pays a little coin. |
+| Rite of the Harvest | Divination | city | A town may keep this rite: hexes that give food give +1 more. |
+| Omen Reading | Divination | city | A town may keep this rite: +1 science for each building in the town. |
+| Consecration of the Bounds | Stonecraft | city | A town may keep this rite: luxury hexes gain +1 culture, and the town’s borders grow 30% faster. |
+| Blessing of Arms | Bronzeworking | city | A town may keep this rite: +10 defence. |
+| Rite of Plenty | Currency | city | A town may keep this rite: hexes with a resource give +1 gold. |
 | Ancestor Rites | Epic Poetry | empire | Renown now earns great-person offers. |
 | Sea Legs | Wayfinding | military | Soldiers may cross coastal water and lakes. |
 | Siege | Siegecraft | military | Surrounded enemy cities cannot heal and lose health each turn. |

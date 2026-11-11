@@ -157,7 +157,6 @@ export {
   cardOfferFamily,
   cardOfferRule,
   cardPantheonSlots,
-  cardPeriodicOffers,
   cardPressureRule,
   cardRivalPressurePercent,
   cardPressureSources,
@@ -327,7 +326,7 @@ export {
   indefinite,
   // Batch DS8: the four card keywords, in words and as marks.
   keywordMark,
-  ORDER_KEYWORD_WORDS,
+  CARD_KEYWORD_WORDS,
   occasionWords,
   periodicProbe,
   ref,

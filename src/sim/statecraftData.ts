@@ -76,7 +76,7 @@ import type { ImprovementId } from './improvementData';
 import type { LeaderAbilityId, LeaderId } from './leaderData';
 import type { ModifierStage } from './yields/stages';
 import type { ProjectId, ProjectPayout } from './projectData';
-import type { BeliefId, ConsecrationId, ReligionBeliefPool, RiteId } from './religionData';
+import type { BeliefId, BeliefKeyword, ConsecrationId, ReligionBeliefPool, RiteId } from './religionData';
 // Type-only, so no load-time edge: a card that prices an act of the clergy
 // names the act in the words `chargeCostOf` reads (Devotion batch DV7).
 import type { ChargeVerbName } from './religion';
@@ -5239,9 +5239,9 @@ export type MetaRuleId =
    * Serapeum). The value is the count: 2 is twice. Read once, at
    * `liveEffects`' pantheon source (`buildLiveEffects`), off the effects
    * already walked: each god in `Player.pantheon.beliefs` is pushed that many
-   * times. `periodicOffer` and `offerRider` are read once, because the card
-   * doubles a god's effects and not the offers a god gives (the triage's
-   * reading 28). A follower or enhancer belief is not a god and is read once.
+   * times. `offerRider` is read once, because the card doubles a god's effects
+   * and not the offers a god gives (the triage's reading 28). A follower or
+   * enhancer belief is not a god and is read once.
    *
    * Only a source walked before the pantheon can hold it: the government, the
    * Doctrines, the Orders in chairs and the malices. The Serapeum is a Doctrine.
@@ -5388,18 +5388,9 @@ export type AmplifierTarget =
    * caravan. The route's owner is the origin's, which is the seat that sent it.
    */
   | 'routeYields'
-  /**
-   * What **founding a religion** pays its founder for the followers it has —
-   * Apostles' doubling.
-   *
-   * Read where the trickle is folded (`liveEffects`' seventh source), on the
-   * figures `religion.json`'s `founderTrickle` prints, before anything is
-   * banked. It reaches the trickle and nothing else: a follower belief's own
-   * lines are a different list and are not amplified by it, which is what keeps
-   * "the trickle is doubled" a sentence about one row rather than about the
-   * whole religion.
-   */
-  | 'founderTrickle'
+  // `'founderTrickle'` was a target here: a share on what founding a religion
+  // pays its founder. Apostles was its only row, and batch B1 made that belief
+  // a cheaper apostle, so the target and its reader went.
   /**
    * What a **great person's act** pays — Leonardo, whose notebooks make another
    * man's one afternoon worth two.
@@ -7889,12 +7880,14 @@ export interface CardWindfallRiderEffect {
    * **Everything on this rider is multiplied by the empire's era** — ×1 in Æra
    * I, ×2 in Æra II, ×3 in Æra III (`highestAge`).
    *
-   * The ratified text says "multiplied by the current age" in two places and
-   * means the same thing in both: Keeper of the Calendar multiplies the
-   * *occasion's own* figure (a discovery's twenty hammers become sixty), and
-   * Rites of Blood multiplies its own **grant** (fifteen faith a kill becomes
-   * forty-five). One flag serves both because it is one idea — a payout quoted
-   * in the money of the era it is paid in.
+   * One flag serves two readings because it is one idea, a payout quoted in the
+   * money of the era it is paid in: a rider with no grant multiplies the
+   * *occasion's own* figure (a discovery's twenty hammers become sixty), and a
+   * rider with a grant multiplies its own **grant**. (Keeper of the Calendar and
+   * Rites of Blood were the first two rows, one of each reading. Batch B1 gave
+   * both gods new effects. The Orders that carry the flag today all carry a
+   * grant; the reading of a rider with no grant is kept, since the field still
+   * has rows.)
    *
    * It is a *multiplier*, not a percentage, and it is applied **after** the
    * summed `percent` riders (`windfallPayout`), which keeps Entry XVII's "sum
@@ -8924,46 +8917,20 @@ interface CardMetaRuleEffect {
   value: number;
 }
 
-/**
- * A draft that opens **on a cadence** rather than on an occasion.
- *
- * Keeper of the Calendar's "every 20 turns, claim a discovery" (Entry XXVIII),
- * and the one effect in the vocabulary whose subject is the calendar itself.
- * Every other shape is asked a question about the board and answers it; this one
- * is read by a turn phase and *opens an offer*, which is why it is a shape and
- * not a `windfallRider` — there is no occasion to ride on.
- *
- * The cadence is `state.turn % every === 0`, an **absolute** comparison rather
- * than a counter on the player, for `SlottedOrder.sealedUntil`'s reason exactly:
- * a countdown is state that has to be ticked, and a phase that ticks it is a
- * phase that can be skipped or run twice. It also means an empire that takes the
- * belief on turn 19 is offered on turn 20 — the calendar belongs to the world,
- * not to the convert.
- *
- * `site` says which pool the three cards are drawn from, so this reuses the
- * discovery draft whole (`drawDiscoveryOffer`) rather than inventing a second
- * one. An empire already holding an unanswered offer is skipped, exactly as a
- * second ruin is (`discoveryClaimError`) — an offer is a decision the player
- * owes the game, and a second one dealt on top of it would destroy the first.
- */
-interface CardPeriodicOfferEffect {
-  kind: 'periodicOffer';
-  /** Turns between offers. A turn is offered when `turn % every === 0`. */
-  every: number;
-  /** Which discovery pool the offer is drawn from. */
-  site: 'ruins' | 'village';
-}
+// There was a `periodicOffer` shape here: a discovery hand dealt every so many
+// turns, read by the religion phase. Keeper of the Calendar was its only row,
+// and batch B1 gave that god a plantation bonus instead, so the shape, its
+// reader, its words and its bot price went with it.
 
 /**
  * A **unit mustered on a cadence** rather than on an occasion — The Standing
  * Levy's spear, raised in the capital every so many turns.
  *
- * `CardPeriodicOfferEffect`'s sibling and deliberately the same shape one
- * currency over: the subject is the calendar itself, so it is read by a turn
- * phase (`musterPeriodicUnits`) rather than asked a question about the board.
- * The cadence is the same **absolute** comparison, `state.turn % every === 0`,
- * for that shape's reason exactly — a countdown is state a phase has to tick,
- * and a phase that ticks it is a phase that can be skipped or run twice.
+ * The subject is the calendar itself, so it is read by a turn phase
+ * (`musterPeriodicUnits`) rather than asked a question about the board. The
+ * cadence is an **absolute** comparison, `state.turn % every === 0`, rather
+ * than a counter on the player: a countdown is state a phase has to tick, and
+ * a phase that ticks it is a phase that can be skipped or run twice.
  *
  * It is not a `windfallRider` because there is no occasion to ride on, and it is
  * not a `foundingRider` because nothing is being founded. The piece arrives
@@ -10584,7 +10551,6 @@ export type CardEffect =
   // Batch H6: `actionRule`, `behaviorRule`, `cityRule` and `zocRule` were four
   // names for one evaluation and are retired into this one. See `CardRuleEffect`.
   | CardRuleEffect
-  | CardPeriodicOfferEffect
   | CardPeriodicMusterEffect
   // Dominion batch D1: units gain experience at the end of a turn.
   | CardDrillEffect
@@ -12134,6 +12100,14 @@ export type OrderKeyword = 'commission' | 'charter' | 'scaler' | 'boon';
 
 /** The keywords in the order the Compendium lists them. */
 export const ORDER_KEYWORDS: readonly OrderKeyword[] = ['commission', 'charter', 'scaler', 'boon'];
+
+/**
+ * **Every keyword a card face can print**: the four an Order can carry, and the
+ * one a belief can carry (Faith house, batch B1; `BeliefKeyword`,
+ * `religionData.ts`). The describers print one as a card's first clause, and
+ * the interface gives each the same tooltip and Compendium page.
+ */
+export type CardKeyword = OrderKeyword | BeliefKeyword;
 
 /** A Scaler's line: a `pays` row that counts what the card has watched happen. */
 function isTallyLine(effect: CardEffect): effect is CardPaysEffect {

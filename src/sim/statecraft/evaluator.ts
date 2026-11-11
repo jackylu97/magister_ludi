@@ -1127,22 +1127,13 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
       if (!isBeliefId(id)) continue;
       push(id, CLASS_WORD.belief, beliefDef(id).effects);
     }
-    // The amplifier is read off the list **already built** rather than through
-    // `cardAmplifier`, and that is not an optimisation: `cardAmplifier` asks
-    // `liveEffects`, and asking it from inside itself is a stack overflow. By
-    // this line every other source has been pushed, including the enhancer that
-    // carries Apostles, so the reading is complete without re-entering.
-    let amplifier = 0;
-    for (const entry of list) {
-      if (entry.effect.kind !== 'effectAmplifier') continue;
-      if (entry.effect.target !== 'founderTrickle') continue;
-      amplifier += (entry.effect.percent ?? 0);
-    }
+    // The trickle's rows are pushed as the data prints them. Apostles doubled
+    // them with an amplifier until batch B1; no card amplifies them now.
     for (const effect of RELIGION.founderTrickle) {
       list.push({
         source: word,
         card: mine.enhancer[0] ?? mine.follower[0] ?? sc.government,
-        effect: amplifyTrickle(effect, amplifier),
+        effect,
         // The share's own source. See `LiveCardEffect.founderShare` for why
         // `card` above is not it.
         founderShare: mine.id,
@@ -1274,25 +1265,6 @@ export function isHolyCityOf(state: GameState, city: City, playerId: number): bo
 function founderShareWords(effect: CardPaysEffect, counted: number, times: number): string {
   if (effect.count !== 'followingForeign') return `founder's share ×${times}`;
   return `founder's share from ${counted} foreign ${counted === 1 ? 'city' : 'cities'}`;
-}
-
-/**
- * The founder's trickle with Apostles folded in — **before anything is banked**,
- * which is `windfallPayout`'s discipline applied to a standing payment.
- *
- * It reaches the one figure a trickle row has (`pays` count's payout) and
- * nothing else, so a card that doubles what your followers pay you cannot
- * silently double a rule or a range. Zero amplification returns the row
- * untouched, so a game where nobody holds Apostles folds byte-identically to one
- * from before the card existed.
- */
-function amplifyTrickle(effect: CardEffect, percent: number): CardEffect {
-  if (percent === 0 || effect.kind !== 'pays' || effect.basis !== 'count') return effect;
-  // A percentage payout carries `stage` and no `amount` — a figure this cannot
-  // reach, and the one payout form the trickle was never written about.
-  if (effect.stage !== undefined || effect.amount === undefined) return effect;
-  // Exact since batch X: half again on a one-point trickle is a point and a half.
-  return { ...effect, amount: (effect.amount * (100 + percent)) / 100 };
 }
 
 /**
@@ -1558,8 +1530,11 @@ function readAgain(
  */
 export const CHAIR_READS_ONCE: readonly CardEffect['kind'][] = ['slotRider', 'slotPosition', 'metaRule'];
 
-/** What The Serapeum does not read again: it doubles a god's effects and not its offers. */
-export const GOD_READS_ONCE: readonly CardEffect['kind'][] = ['periodicOffer', 'offerRider'];
+/**
+ * What The Serapeum does not read again: it doubles a god's effects and not its
+ * offers. (`periodicOffer` was here too, until batch B1 removed the shape.)
+ */
+export const GOD_READS_ONCE: readonly CardEffect['kind'][] = ['offerRider'];
 
 /** What The Union of Lublin leaves out of another government: it gives no chairs. */
 export const GOVERNMENT_READ_NOT_AT_ALL: readonly CardEffect['kind'][] = ['slotRider'];
@@ -10959,28 +10934,6 @@ export function slottedOrdersOfFlavour(
 }
 
 /**
- * The cadenced drafts this empire's cards open — Keeper of the Calendar's, and
- * nothing else today.
- *
- * A reader like every other, so the *phase* that opens the offer
- * (`openPeriodicOffers` in `religion.ts`) never touches a `CardEffect`. Which is
- * the point: the one-evaluator rule is not "religion has its own evaluator", it
- * is that this file is still the only file that knows what a `periodicOffer`
- * looks like.
- */
-export function cardPeriodicOffers(
-  state: GameState,
-  playerId: number,
-): { source: string; every: number; site: 'ruins' | 'village' }[] {
-  const list: { source: string; every: number; site: 'ruins' | 'village' }[] = [];
-  for (const { source, effect } of effectsOfKind(state, playerId, 'periodicOffer')) {
-    if (effect.every <= 0) continue;
-    list.push({ source, every: Math.floor(effect.every), site: effect.site });
-  }
-  return list;
-}
-
-/**
  * **What this empire's law hangs on a piece that has just come ashore** —
  * Admiralty's three turns, and nothing else today (`CardLandfallEffect`).
  *
@@ -11010,9 +10963,8 @@ export function cardLandfallEffects(
  * Musters the pieces this empire's cards raise **on a cadence** — The Standing
  * Levy's spear, and nothing else today.
  *
- * `openPeriodicOffers`' twin one currency over, and it is written the same way
- * on purpose: a phase reads a list this file produced, the cadence is the same
- * absolute `turn % every === 0` comparison, and the delivery goes through
+ * A phase reads a list this file produced, the cadence is an absolute
+ * `turn % every === 0` comparison, and the delivery goes through
  * `realiseItem` — the one routine that means "the city now has the thing" — so
  * a levied spearman is spawned by production's own convention and goes on no
  * payroll (`free`, exactly as a windfall's gift does).
@@ -11417,7 +11369,7 @@ function periodOf(everyTurns: number, shorten: number): number {
  *     with the chair;
  *   · **anything else** — a technology's gift, a building's, a Doctrine's — is on
  *     the world's clock, `state.turn % period === 0`, which is `periodicMuster`'s
- *     and `periodicOffer`'s reading exactly. There is no chair to hang a stamp on
+ *     reading exactly. There is no chair to hang a stamp on
  *     and none is invented: a node held forever has nothing to date its cadence
  *     from but the calendar.
  *
@@ -12965,6 +12917,13 @@ export interface CardPurchaseLine {
  * a unit, meaningless for a building. The filter is asked only of a unit, so a
  * building rider needs no vocabulary it does not have (see
  * `CardPurchaseRiderEffect`).
+ *
+ * **The town's own cards are read too, when the town is in hand** (batch B1,
+ * The Alms Box). A follower belief is never in the empire's law: it reaches a
+ * town through `cityLocalEffects`, so a rider written on one is found only by a
+ * reader that asks the town. The town half is read only for the town's owner,
+ * which is the seat that buys there. No building, rite or consecration carries
+ * a rider today, so before The Alms Box the town half was empty.
  */
 export function cardPurchaseRiders(
   state: GameState,
@@ -12989,7 +12948,11 @@ export function cardPurchaseRiders(
   currency?: PurchaseCurrency,
 ): CardPurchaseLine[] {
   const list: CardPurchaseLine[] = [];
-  for (const { source, card, effect } of effectsOfKind(state, playerId, 'purchaseRider')) {
+  const riders: readonly LiveOfKind<'purchaseRider'>[] =
+    city === undefined || city.ownerId !== playerId
+      ? effectsOfKind(state, playerId, 'purchaseRider')
+      : [...effectsOfKind(state, playerId, 'purchaseRider'), ...pickKind(cityLocalEffects(state, city), 'purchaseRider')];
+  for (const { source, card, effect } of riders) {
     // **Which bank.** A rider that names one changes only a price asked in it,
     // so a soldier bought with gold pays in full under The Offering Chests.
     if (effect.currency !== undefined && effect.currency !== currency) continue;

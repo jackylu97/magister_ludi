@@ -91,7 +91,6 @@ import {
   capitalCityOf,
   cityAt,
   foldUnitCost,
-  nearestOwnedCity,
   refreshCityDerived,
   refreshRingDerived,
   refreshTileDerived,
@@ -101,7 +100,6 @@ import {
   tileOwnerField,
 } from './cities';
 import { isBuildingId, isWonder } from './buildingData';
-import { drawDiscoveryOffer } from './discoveries';
 import {
   type Tile,
   getTileAt,
@@ -136,7 +134,6 @@ import {
   cardActionRule,
   cardAmplifier,
   cardPantheonSlots,
-  cardPeriodicOffers,
   cardPressureRule,
   cardPressureSources,
   cardRulePercent,
@@ -583,15 +580,16 @@ export function planFaithRung(state: GameState, player: Player): { rung: number;
  * the instant it was crossed would take the choice away rather than offer one.
  * A pick is a command, so the charge is as log-determined as the draw.
  *
- * Called from `openPeriodicOffers` — the religion phase — rather than being a
- * phase of its own, because it is the same beat: an offer dealt from
- * `state.rng` at the end of a resolution, on a board that has already grown,
- * built and banked this turn, blocking End Turn until it is answered. The wild
- * is skipped by `realPlayers` for `runStatecraft`'s reason.
+ * It is the religion phase itself (`turn.ts`): an offer dealt from `state.rng`
+ * at the end of a resolution, on a board that has already grown, built and
+ * banked this turn, blocking End Turn until it is answered. The wild is skipped
+ * by `realPlayers` for `runStatecraft`'s reason. (The phase also dealt Keeper of
+ * the Calendar's cadenced discovery hand, through `openPeriodicOffers`, until
+ * batch B1 removed the `periodicOffer` shape.)
  *
- * At most one rung an empire a turn, `openPeriodicOffers`' rule for its reason:
- * `planFaithRung` refuses while an offer is outstanding, and it has just made
- * one. A bank deep enough for two rungs climbs the second next turn.
+ * At most one rung an empire a turn: `planFaithRung` refuses while an offer is
+ * outstanding, and it has just made one. A bank deep enough for two rungs
+ * climbs the second next turn.
  */
 export function openFaithLadder(state: GameState): void {
   for (const player of realPlayers(state)) {
@@ -2509,65 +2507,6 @@ function sweep(state: GameState, holder: { timed?: TimedEffect[] }): void {
   // The clock the entry expired on has already been announced by `applyEndTurn`;
   // this is the shape of the list catching up with it.
   bumpEconomy(state);
-}
-
-// --- the cadenced draft -----------------------------------------------------
-
-/**
- * Opens the drafts a cadence owes — Keeper of the Calendar's almanac, and
- * nothing else today.
- *
- * A phase rather than a rider, because its occasion is the *calendar*: nothing
- * happened to trigger it. The cadence is read off the card
- * (`cardPeriodicOffers`, which is where the `CardEffect` is interpreted — never
- * here) and compared against `state.turn`, absolutely, so an empire that takes
- * the belief on turn 19 is offered on turn 20 and no counter exists to be
- * skipped or double-ticked.
- *
- * Three exclusions, each with a precedent:
- *
- *   · **the wild** is skipped through `realPlayers`, exactly as
- *     `advanceResearch` and `runStatecraft` skip it: it has no screen to be
- *     asked on, so an offer on that seat would hang forever behind a blocker
- *     nobody can answer.
- *   · **an empire already holding an unanswered offer** is skipped, which is
- *     `discoveryClaimError`'s "one at a time" — a second hand dealt on top of
- *     the first would silently destroy it. The calendar simply misses them, and
- *     comes round again.
- *   · **at most one offer per empire per turn**, for the same reason.
- *
- * The generator is spent only when an offer is actually opened, which is
- * conditional on the state alone and therefore replays identically —
- * `claimDiscoveryAt` takes the same liberty for the same reason.
- */
-export function openPeriodicOffers(state: GameState): void {
-  // **The faith ladder**, run from here rather than from a phase of its own:
-  // it is the same beat as the calendar's hand — an offer dealt from
-  // `state.rng` at the end of a resolution, on a board that has already grown,
-  // built and banked. First in the function because it is the older debt (the
-  // bank crossed its threshold during *this* turn's `collectYields`), and the
-  // two cannot tread on each other: they fill different fields and each refuses
-  // while its own is occupied.
-  openFaithLadder(state);
-  for (const player of realPlayers(state)) {
-    if (player.pendingDiscovery !== undefined) continue;
-    for (const cadence of cardPeriodicOffers(state, player.id)) {
-      if (state.turn % cadence.every !== 0) continue;
-      // Where the find is *said* to have happened: the empire's seat of
-      // government, or its nearest town to it. The site matters because two of
-      // the three discovery shapes need one — a free unit stands somewhere, and
-      // "the nearest owned city" is nearest to something.
-      const seat = capitalCityOf(state, player.id) ?? nearestOwnedCity(state, player.id, { col: 0, row: 0 });
-      if (!seat) continue;
-      player.pendingDiscovery = {
-        kind: cadence.site,
-        col: seat.col,
-        row: seat.row,
-        options: drawDiscoveryOffer(state, cadence.site, offerSize(state, player.id, 'discovery')),
-      };
-      break;
-    }
-  }
 }
 
 // --- what religion owes the player ------------------------------------------

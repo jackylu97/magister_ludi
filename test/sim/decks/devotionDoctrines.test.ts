@@ -75,7 +75,6 @@ import {
 import { describeCard, doctrineBagFor, stripRefs } from '../../../src/sim/statecraft';
 import {
   cardCombatLines,
-  cardPeriodicOffers,
   cardProduction,
   cardRulePercent,
   effectsOfKind,
@@ -1628,12 +1627,10 @@ describe('The Serapeum (batch DT9)', () => {
 
   it('does not double an offer', () => {
     const { state } = board([
-      { kind: 'periodicOffer', every: 10, site: 'ruins' } as CardEffect,
       { kind: 'offerRider', offer: 'order', extra: 1 } as CardEffect,
       { kind: 'pays', where: 'empire', gold: 1 } as CardEffect,
     ]);
     hold(state, 'theSerapeum');
-    expect(cardPeriodicOffers(state, 0)).toHaveLength(1);
     expect(effectsOfKind(state, 0, 'offerRider').filter((row) => row.card === GOD)).toHaveLength(1);
     expect(effectsOfKind(state, 0, 'pays').filter((row) => row.card === GOD)).toHaveLength(2);
   });
@@ -1651,7 +1648,7 @@ describe('The Serapeum (batch DT9)', () => {
 
   it('is priced at what the seat’s gods pay read again, and nothing with no god', () => {
     const line = { kind: 'pays', where: 'empire', gold: 3 } as CardEffect;
-    const { state, player } = board([line, { kind: 'periodicOffer', every: 10, site: 'ruins' } as CardEffect]);
+    const { state, player } = board([line, { kind: 'offerRider', offer: 'order', extra: 1 } as CardEffect]);
     const row = doctrineDef('theSerapeum' as DoctrineId).effects;
     const ctx = valueContext(state, player);
     const once = scoreEffects([line], ctx);
@@ -2050,17 +2047,36 @@ describe('The Apostolic Camera (batch DT15)', () => {
   });
 
   it('pays no food or production, because an empire has no bank for them', () => {
-    const { state, temple, faith } = board();
-    at(state, temple.col, temple.row).freshwater = true;
-    teach(state, faith, ['holyWater']);
-    hold(state, CARD);
-    const lines = camera(state);
-    expect(lines).toHaveLength(1);
-    expect(lines[0]!.source).toContain(temple.name);
-    expect([lines[0]!.faith, lines[0]!.food]).toEqual([1, 0]);
-    // The owner still gets both.
-    const own = explainCardCityYields(state, temple).find((line) => line.card === 'holyWater')!;
-    expect([own.faith, own.food]).toEqual([1, 1]);
+    // Holy Water paid +1 food and +1 faith in a town on fresh water until batch
+    // B1, when it became a percentage of food. No live follower belief pays
+    // food and faith as one town line now, so the row is lent its old effect
+    // for this test and given back after it.
+    const row = beliefDef('holyWater') as { effects: CardEffect[] };
+    const held = row.effects;
+    row.effects = [
+      {
+        kind: 'pays',
+        where: 'city',
+        food: 1,
+        faith: 1,
+        scope: { test: 'all', of: [{ test: 'follows' }, { test: 'freshwater' }] },
+      } as CardEffect,
+    ];
+    try {
+      const { state, temple, faith } = board();
+      at(state, temple.col, temple.row).freshwater = true;
+      teach(state, faith, ['holyWater']);
+      hold(state, CARD);
+      const lines = camera(state);
+      expect(lines).toHaveLength(1);
+      expect(lines[0]!.source).toContain(temple.name);
+      expect([lines[0]!.faith, lines[0]!.food]).toEqual([1, 0]);
+      // The owner still gets both.
+      const own = explainCardCityYields(state, temple).find((line) => line.card === 'holyWater')!;
+      expect([own.faith, own.food]).toEqual([1, 1]);
+    } finally {
+      row.effects = held;
+    }
   });
 
   it('counts a foreign town only while it follows a religion the seat holds', () => {

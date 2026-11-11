@@ -260,9 +260,8 @@ interface ProductionBonus {
  *     would be a second research interface.
  *   · **`doctrineDraft`** — through `drawDoctrineOffer` at the seat's current
  *     government tier, **skipped** when the seat has no live pool or is already
- *     holding an unanswered Doctrine. That is `periodicOffer`'s precedent word
- *     for word: an offer is a decision the player owes the game, and a second
- *     one dealt on top of it would destroy the first.
+ *     holding an unanswered Doctrine: an offer is a decision the player owes
+ *     the game, and a second one dealt on top of it would destroy the first.
  *   · **`building`** — through `realiseItem` itself, which is the seam that
  *     means "this town now has the thing" (the Theatre of Dionysus' free
  *     Amphitheater). So a granted building claims a wonder, rolls a
@@ -1532,6 +1531,20 @@ export function grantsABead(id: BuildingId): boolean {
  */
 export function isPublicWork(id: BuildingId): boolean {
   return buildingDef(id).publicWork === true;
+}
+
+/**
+ * **Is this row a faith house?** (batch B1, `docs/plans/belief-update-2026-11-10.md`,
+ * "Keyword: Faith house".) A faith house is bought with faith, is never built,
+ * and may stand only in a town that follows the religion. The answer reads the
+ * three markers on the row (`purchaseOnly`, `purchase.currency` and
+ * `followingOnly`), never its name, so a fifth such row is a faith house with
+ * no code change. The belief keyword of the same name is read off this
+ * (`beliefKeyword`, `religionData.ts`).
+ */
+export function isFaithHouse(id: BuildingId): boolean {
+  const def = buildingDef(id);
+  return def.purchaseOnly === true && def.purchase?.currency === 'faith' && def.followingOnly === true;
 }
 
 /**

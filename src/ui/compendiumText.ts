@@ -239,6 +239,20 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
       'The card says what it gives: "On draft: …". It pays at once, and then it stays in your collection. You can never seat a Boon, so it never takes the place of another card.',
     ],
   ),
+  // Batch B1: the belief keyword. A follower belief that opens a faith house
+  // prints it as its first clause (`describeCard`, read off `beliefKeyword`),
+  // and the keyword links here. The first paragraph is the tooltip's rule.
+  written(
+    'concept',
+    'faithHouse',
+    'Faith house',
+    'a belief keyword: a building bought with faith',
+    '∩',
+    [
+      'A faith house is a building you buy with faith. You can never build it with production, and it can stand only in a town that follows the religion that opened it.',
+      'A follower belief that carries this keyword opens one faith house, and the belief says what the house gives. Whoever owns a town that follows the religion may buy the house there, a rival included. If the town turns to another faith, no new house can be bought there, and a house already standing stays.',
+    ],
+  ),
   written(
     'concept',
     'religion',
@@ -252,6 +266,7 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
       'A religion is a faith of your own, with a name. Your prophet plants a holy site, and the religion is founded there, out of the gods your pantheon already keeps; the name is made from what those gods are about, and you can change it on the Faith screen. Only so many religions exist in a world — roughly two thirds as many as there are players — so founding one is a race, and a civilisation that waits may find there is none left to found.',
       'A religion spreads to people, not to places. Every turn, holy sites, nearby cities that already follow, roads, trade routes and proclamations press on each city in reach; when enough has accumulated, one citizen of that city changes faith. A city follows the religion more than half its citizens do, and until one religion passes half the city follows nothing. A temple is the defence: it doubles the pull of the faith a city already keeps and halves everybody else\'s. Growth adds a citizen who follows nothing, which is why a big city is slow to convert.',
       'A religion holds beliefs of its own, drawn with a prophet\'s charges, and the two pools are paid to two different people. A follower belief applies in every city that follows the faith and pays whoever owns that city — yours or a rival\'s, which is why a rival\'s faith taking hold in your towns is a gift rather than a wound. An enhancer belief bends the spread itself, and it pays whoever holds the faith\'s holy city: the city whose land the first holy site stands on. So does the trickle that foreign following cities pay in faith and gold. Lose that city to a conqueror and the trickle and the enhancers go with it; your pantheon, which is native to your empire, does not.',
+      'Some follower beliefs carry the keyword [[concept:faithHouse|Faith house]], printed first on the belief: each opens a building you buy with faith in a town that follows. Point at the keyword to read its rule.',
       'A devout town is one of your own towns that follows a religion whose holy city you hold. Cards that say "devout" mean these towns. A rival\'s town is never devout, even when it follows your religion.',
       'A prophet carries charges, and its acts do not all cost the same. Founding your religion where it stands, raising the holy site that anchors it, takes every charge the prophet has, and so does drawing another belief for a religion you have already founded — those are the acts that settle what your faith is, and a prophet that does one of them is gone. Once your faith stands, a prophet may instead raise a further holy site on land of your own: the faith spreads from the new stones as it does from the old, though the seat of the faith stays where it was founded and no belief comes with it. Speaking costs less: a proclamation, which is a wide, strong pulse of conversion on the hex it stands on that converts and then fades to nothing, leaving no site behind; or a rite said over every city you own at once, for a single price in faith. So a prophet either founds or deepens your religion and leaves the board, or it speaks twice and then leaves it. A card can change what an act costs. The sheet on the piece prints what each act costs, and greys the ones it can no longer afford.',
       'Details: each god costs more faith than the last, and so do each prophet and each apostle, each kind counted separately; an inquisitor always costs the same. Each rite your towns start makes the next rite cost more, and a rite your prophet says over every city counts once for each city. The two rites that act at once, the Votive Offering and the Restoring of the Host, do not raise the price. An apostle and an inquisitor spend one charge on each of their acts, so an apostle speaks or heals or leaves its relic twice and an inquisitor purges once. A card can also let an apostle raise a further holy site, at a prophet\'s price. The holy site is the only thing about a religion an enemy can take away, by capturing the hex or pillaging it. The pantheon is never redrafted — it is what the religion was founded out of. A captured city keeps its followers, exactly as it keeps its buildings. Your religion, its beliefs, what its holy city is paid, and every city in the world that follows are all on the Faith screen; a city\'s own congregations are on its city screen, and hovering one shows what is pressing on it and from where.',

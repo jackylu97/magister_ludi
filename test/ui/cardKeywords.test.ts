@@ -28,6 +28,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { describeCard, recordScalingOccasion, stripRefs } from '../../src/sim/statecraft';
 import { ORDER_IDS, ORDER_KEYWORDS, type OrderId, orderDef, orderKeyword } from '../../src/sim/statecraftData';
+import { FOLLOWER_BELIEF_IDS, type BeliefId, beliefKeyword } from '../../src/sim/religionData';
 import { bumpRevision, playerById } from '../../src/sim/state';
 import { compendiumId, compendiumSections } from '../../src/ui/compendium';
 import { KEYWORD_SHOW_MS } from '../../src/ui/keywordCardStack';
@@ -68,7 +69,14 @@ function entryOf(id: string) {
 
 describe('the keyword pages', () => {
   it('has one page for each keyword, at a stable anchor, on the Concepts shelf', () => {
-    expect([...CARD_KEYWORD_ENTRIES]).toEqual(['concept:commission', 'concept:charter', 'concept:scaler', 'concept:boon']);
+    // The four Order keywords, and Faith house on a belief (batch B1).
+    expect([...CARD_KEYWORD_ENTRIES]).toEqual([
+      'concept:commission',
+      'concept:charter',
+      'concept:scaler',
+      'concept:boon',
+      'concept:faithHouse',
+    ]);
     for (const keyword of ORDER_KEYWORDS) {
       const page = entryOf(`concept:${keyword}`);
       expect(page.section, keyword).toBe('concept');
@@ -319,5 +327,114 @@ describe('the keyword’s tooltip', () => {
     await settle();
     expect(cards().map(nameOf)).toEqual(['Boon']);
     expect(cards()[0]!.querySelector('.kwc-hint')!.textContent).toBe('Press Enter to keep it open');
+  });
+});
+
+// --- 5. the belief keyword (batch B1) -----------------------------------------------------
+
+/**
+ * **Faith house**, the one keyword a belief carries (batch B1,
+ * `docs/plans/belief-update-2026-11-10.md`): the user wanted it printed on the
+ * belief and readable at any time, as the Order keywords are. The same four
+ * claims, asked of a belief: a page, the keyword first on every surface that
+ * prints the belief, and a tooltip on hover and on focus every time.
+ */
+describe('the Faith house keyword', () => {
+  const HOUSE = FOLLOWER_BELIEF_IDS.find((id) => beliefKeyword(id) === 'faithHouse')!;
+  const PLAIN_BELIEF = FOLLOWER_BELIEF_IDS.find((id) => beliefKeyword(id) === null)!;
+
+  it('has a page on the Concepts shelf whose first paragraph states the rule', () => {
+    const page = entryOf('concept:faithHouse');
+    expect(page.section).toBe('concept');
+    expect(page.written).toBe(true);
+    expect(page.name).toBe('Faith house');
+    const definition = READ('concept:faithHouse')!;
+    expect(definition.prose).toBe(true);
+    expect(definition.lines).toEqual([page.clauses[0]]);
+    const rule = stripRefs(definition.lines[0]!.text);
+    expect(rule).toContain('buy with faith');
+    expect(rule).toContain('never build it');
+    expect(rule).toContain('only in a town that follows');
+  });
+
+  it('is the first clause of a faith house belief, on its own page and on its card', () => {
+    const first = describeCard(HOUSE)[0]!;
+    expect(first.keyword).toBe('faithHouse');
+    expect(first.text).toBe('[[concept:faithHouse|Faith house]]');
+    const page = entryOf(compendiumId('belief', HOUSE));
+    expect(page.clauses[0]?.text.startsWith('[[concept:faithHouse|')).toBe(true);
+    expect(describeCard(PLAIN_BELIEF).some((clause) => clause.keyword !== undefined)).toBe(false);
+  });
+
+  it('deals the belief hand with the clauses joined, keyword first, through the one renderer', () => {
+    const hand = braceBody(uiSource('main.ts'), 'function showReligionOffer()');
+    expect(hand).toContain("note: describeCard(id).map((clause) => clause.text).join(' · ')");
+  });
+
+  /** A belief's face as the hand draws it: a button with the belief's clauses. */
+  function beliefButton(id: BeliefId, dom: FakeDom): { button: FakeNode; keyword: FakeNode | null } {
+    const button = dom.document.createElement('button');
+    dom.document.body.append(button);
+    const host = button as unknown as HTMLElement;
+    const note = describeCard(id)
+      .map((clause) => clause.text)
+      .join(' · ');
+    setDescriptorText(host, note, { linked: keywordsAllowedIn(host) });
+    button.rect = { left: 100, top: 300, width: 200, height: 300 };
+    const keyword =
+      button.querySelectorAll('.kw').find((word) => CARD_KEYWORD_ENTRIES.has(word.getAttribute('data-keyword') ?? '')) ??
+      null;
+    if (keyword !== null) keyword.rect = { left: 110, top: 310, width: 60, height: 16 };
+    return { button, keyword };
+  }
+
+  describe('its tooltip', () => {
+    let dom: FakeDom;
+    let restore: () => void = () => {};
+    let layer: KeywordCards | null = null;
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      ({ dom, restore } = installFakeDom());
+      layer = mountKeywordCards({ definitions: () => Promise.resolve(READ) });
+    });
+
+    afterEach(() => {
+      layer?.dispose();
+      layer = null;
+      restore();
+      vi.useRealTimers();
+    });
+
+    async function settle(): Promise<void> {
+      for (let index = 0; index < 5; index += 1) await Promise.resolve();
+    }
+    const cards = (): FakeNode[] => dom.document.body.querySelectorAll('.kwc');
+    const nameOf = (card: FakeNode): string => card.querySelector('.kwc-name')!.textContent;
+
+    it('opens on hover over the keyword, inside the button the belief is', async () => {
+      const face = beliefButton(HOUSE, dom);
+      expect(face.keyword).not.toBeNull();
+      expect(face.keyword!.getAttribute('data-ref')).toBeNull();
+      dom.fire(face.keyword!, 'pointerover', { pointerType: 'mouse' });
+      await settle();
+      vi.advanceTimersByTime(KEYWORD_SHOW_MS);
+      expect(cards().map(nameOf)).toEqual(['Faith house']);
+    });
+
+    it('opens on keyboard focus of the belief, every time, and not for a plain belief', async () => {
+      const face = beliefButton(HOUSE, dom);
+      const other = beliefButton(PLAIN_BELIEF, dom);
+      expect(other.keyword).toBeNull();
+      for (let time = 0; time < 3; time += 1) {
+        face.button.focus();
+        await settle();
+        expect(cards().map(nameOf), `time ${time}`).toEqual(['Faith house']);
+        other.button.focus();
+        await settle();
+        vi.advanceTimersByTime(KEYWORD_SHOW_MS * 4);
+        expect(cards(), `time ${time}`).toEqual([]);
+      }
+    });
   });
 });

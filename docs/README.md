@@ -716,7 +716,7 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     card"). Doctrines and governments carry none.
   - **On the card:** `describeCard` prints the keyword as the first clause,
     the mark `[[concept:<keyword>|Name]]` (`keywordMark`,
-    `ORDER_KEYWORD_WORDS`), with `CardClause.keyword` set. The clauses after it
+    `CARD_KEYWORD_WORDS`), with `CardClause.keyword` set. The clauses after it
     drop the standing rule: a commission reads "Goal: … Reward: …", a charter
     says what it opens, a Boon reads "On draft: …", and a Scaler reads "Gains …
     each time …" (`scalerWords`, `SCALER_MOMENT_WORDS`). A lasting reward says
@@ -1138,7 +1138,26 @@ Reference: **`docs/religion-v2.md`** (the machinery) and **`docs/beliefs.md`**
   in your town is a gift); **founder-side** pay follows the holy site's stones;
   **enhancers** bend the tide itself.
 - Four follower beliefs open a **faith house** — bought with faith, never built,
-  only in a city that follows.
+  only in a city that follows. They carry the belief keyword **Faith house**
+  (batch B1): `beliefKeyword` (`religionData.ts`) reads it off the belief's
+  data (an effect unlocking a row `isFaithHouse` answers yes for, read off
+  `purchaseOnly`, `purchase.currency` and `followingOnly`), `describeCard`
+  prints it first, `CARD_KEYWORD_ENTRIES` gives it the Order keywords' tooltip
+  on hover and focus, and `concept:faithHouse` is its Concepts page. The
+  belief's own sentence then says only what it opens and what the house gives.
+- **The belief update** (batch B1, schema 241,
+  `docs/plans/belief-update-2026-11-10.md`). Fourteen gods, four follower and
+  four enhancer beliefs pay something new, and the Gurdwara and the Dar-e Mehr
+  changed; Patron of Merchants, The Muses and The Alms Box joined. Theocratic Mandate and the consecration The Green Cathedral are
+  withdrawn (`retired`, rows kept; the cathedral rolls from
+  `LIVE_CONSECRATION_IDS`). Feast Days is held: no shape adds a flat number of
+  rite turns in one town. The `periodicOffer` shape and the `founderTrickle`
+  amplifier target lost their last rows and are removed, so the religion phase
+  is the faith ladder alone (`openFaithLadder`). A purchase rider on a town's
+  own cards (The Alms Box) is read when the price is asked in that town
+  (`cardPurchaseRiders`). The game prints a belief through `describeCard`,
+  never through its `text`; the rites' texts are printed on the city screen's
+  rite rows.
 - A **reroll** is one verb over four hands and two ladders: an Order hand costs
   faith on a rising ladder, a Doctrine or great-person hand costs twice that on
   the same ladder, and a belief hand is free the first time. `rerollError` is

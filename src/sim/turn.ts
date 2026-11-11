@@ -128,7 +128,7 @@ import { type PillageReport, raidFromTheSea } from "./improvements";
 import type { DisbandReport } from "./upkeep";
 import { hasLineOfSight } from "./los";
 import {
-  openPeriodicOffers,
+  openFaithLadder,
   pruneTimedEffects,
   spreadReligion,
 } from "./religion";
@@ -748,13 +748,14 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
   },
   {
     name: "religion",
-    // The cadenced drafts — Keeper of the Calendar's almanac, and nothing else
-    // today. Directly after `statecraft` because it is the same shape one
-    // currency over: an offer dealt from `state.rng` at the end of a resolution,
-    // blocking End Turn until it is answered, on a board that has already grown,
-    // built and learnt this turn. It skips the wild for `runStatecraft`'s
-    // reason. See `openPeriodicOffers`.
-    run: openPeriodicOffers,
+    // The faith ladder: a hand of gods for each empire whose bank has reached
+    // the next rung. Directly after `statecraft` because it is the same shape
+    // one currency over: an offer dealt from `state.rng` at the end of a
+    // resolution, blocking End Turn until it is answered, on a board that has
+    // already grown, built and learnt this turn. It skips the wild for
+    // `runStatecraft`'s reason. (Keeper of the Calendar's cadenced discovery
+    // hand was dealt here too, until batch B1.) See `openFaithLadder`.
+    run: openFaithLadder,
   },
   {
     name: "muster",
