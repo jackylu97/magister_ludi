@@ -289,8 +289,8 @@ function routeLinesBetween(
     // The host's coin is a fact about the market, not about the crossing, so
     // the sea premium is deliberately **not** taken of it: the ruling raises
     // what a sea route *pays the seat that sent it*, and that fold is
-    // `explainRouteSenderYieldBetween`'s.
-    hostGrants(state, from, to, lines, label, age, mode);
+    // `explainRouteSenderYieldBetween`'s. A card paid the host a grant here
+    // until batch DS4 (The Common Road's coin); no row does now.
     return blockaded(state, from, to, lines);
   }
 
@@ -357,48 +357,11 @@ function routeLinesBetween(
   // grammar the user's marks revealed: put yields on a thing, then multiply the
   // thing. A line added after the share would be a line "double your trade route
   // yields" could not see.
-  cardLines(state, from, to, lines, label, age, 'self', mode);
+  cardLines(state, from, to, lines, label, age, mode);
   shares(state, from, to, lines, label, age, mode);
   bySea(mode, lines, label);
   amplify(state, from, lines, label);
-  // **After the sender's dials, deliberately.** A host grant is not the sender's
-  // goods and is not raised by the sender's premium or amplifier — the design's
-  // *"ordinary sea premiums apply to route yields, but not a second time to an
-  // explicit host grant"*. On a domestic trade route the host is one of this empire's
-  // own towns, so the line lands where every other line on this fold lands; the
-  // shape is the same either way and only the books differ.
-  hostGrants(state, from, to, lines, label, age, mode);
   return blockaded(state, from, to, lines);
-}
-
-/**
- * **What the sender's cards pay the town the caravan walks to** — The Common
- * Road's coin to its host (batch D2e, the bilateral grant).
- *
- * The rows are read off the **origin's** empire exactly as `cardLines` reads
- * them, because the law is the sender's law; what changes is whose books the
- * line lands in, and that is decided by the fold it joins rather than by
- * anything here. This is the destination's fold — `cityRouteYields` puts it on
- * the town the caravan ends at, whoever owns it, and `explainCity` step 6 prints
- * it on that town's own sheet. So a foreign host sees the grant in its own
- * explanation, named for the card that paid it, and its total is still the fold
- * of its own list. That is rule 5 across a border, and it is the whole reason
- * this seam is here rather than a transfer written somewhere else.
- *
- * Nothing in this batch is counted or shared, but the helpings arithmetic comes
- * free with `cardLines`, so a later host grant per luxury or per hex needs no
- * second implementation.
- */
-function hostGrants(
-  state: GameState,
-  from: City,
-  to: City,
-  lines: RouteYieldLine[],
-  label: (note: string) => string,
-  age?: number,
-  mode?: RouteMode,
-): void {
-  cardLines(state, from, to, lines, label, age, 'host', mode);
 }
 
 /**
@@ -472,7 +435,6 @@ function cardLines(
   lines: RouteYieldLine[],
   label: (note: string) => string,
   age?: number,
-  payee: 'self' | 'host' = 'self',
   /**
    * Which way the road runs — handed down so a row that names a medium
    * (`CardPaysEffect.mode`, The Harbour Chain's coin by the mile) is asked about
@@ -487,7 +449,7 @@ function cardLines(
   // (see it for why it is the distance and not the walked path), and a game
   // whose cards say nothing about the miles measures none.
   let hexes = -1;
-  for (const paid of cardRouteYieldLines(state, from, to, age, payee, mode)) {
+  for (const paid of cardRouteYieldLines(state, from, to, age, mode)) {
     let helpings = 1;
     let note = paid.source;
     if (paid.perHexes !== undefined) {
@@ -733,7 +695,7 @@ export function explainRouteSenderYieldBetween(
   // The sender's own cards on its own caravan — see `cardLines`. It rides the
   // foreign fold exactly as the amplifier does, because the line belongs to the
   // seat that sent the goods and this is that seat's book.
-  cardLines(state, from, to, lines, label, age, 'self', mode);
+  cardLines(state, from, to, lines, label, age, mode);
   shares(state, from, to, lines, label, age, mode);
   // **The crossing pays here too**, and here is where it matters most: an
   // international route's whole worth to the seat that sent it is this fold,

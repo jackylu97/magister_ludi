@@ -576,9 +576,12 @@ interface TradeRules {
   /**
    * What a luxury **lent by a foreign post** is worth, as a whole percent of
    * what a seam this empire dug pays — The Capitulations' (Commerce batch T5).
-   * The figure is the user's own for The Silk Road's road loans (2026-09-10:
+   * The figure was the user's own for The Silk Road's road loans (2026-09-10:
    * *"effects 50% reduced"*, `docs/flags.md` (uuu) mark 6); those loans left
-   * the game in batch TT1 and the posts kept the share.
+   * the game in batch TT1 and the posts kept the share. Batch DS4
+   * (`docs/plans/deck-simplification-2026-11-10.md`) dropped The Capitulations'
+   * "half value" clause, so the figure is 100 and a loan pays as one copy does.
+   * The Capitulations is the only card that lends, so this one figure is its own.
    *
    * **One number for every figure a luxury pays**, because it is read as the
    * copy count (`copiesFor`, `resourceEffects.ts`) rather than applied fold by

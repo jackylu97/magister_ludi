@@ -2174,11 +2174,25 @@ describe('Scutage (batch DT11)', () => {
     });
 
     it('leaves a card’s costs behind, because a cost is not a yield', () => {
-      // Financed Industry's gain is a share, so only its loss of food could follow it.
+      // Financed Industry's gain is a share, so nothing of it follows. Its loss
+      // of food went in batch DS4.
       expect(offTheChairRows(orderDef('financedIndustry' as OrderId).effects, 0.5)).toEqual([]);
       expect(offTheChairRows(orderDef('magisterialTheGuildOfMasons' as OrderId).effects, 0.5)).toEqual([]);
-      // The Mineral Trade's one row pays and costs: half the pay, and none of the cost.
-      const [mineral] = offTheChairRows(orderDef('theMineralTrade' as OrderId).effects, 0.5) as {
+      // A row that pays and costs: half the pay, and none of the cost. The
+      // Mineral Trade's old row (+2 gold, -1 production on mines and quarries),
+      // which batch DS4 made a plain +1 gold, written out here.
+      const [mineral] = offTheChairRows(
+        [
+          {
+            kind: 'pays',
+            where: 'hex',
+            on: { test: 'anyImprovement', improvements: ['mine', 'quarry'] },
+            gold: 2,
+            production: -1,
+          } as CardEffect,
+        ],
+        0.5,
+      ) as {
         gold?: number;
         production?: number;
       }[];

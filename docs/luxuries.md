@@ -107,12 +107,13 @@ Commerce Order, `postsLendLuxuries`) is lent one luxury kind by every foreign
 town where its trading post pays — that town's own improved holdings, unique
 kinds only, never a kind already controlled, one per town, lapsing when the
 post stops paying (`importedLuxuries`, `luxuryLoans`). A borrowed copy counts
-`rules.trade.importedLuxuryPercent` of a time rather than once, so **every**
-shape in the table above pays that share of itself with no fold in this file
-knowing the rule exists — the share is the copy count (`copiesFor`), which is
-also why `perCopy` and the Grand Bazaar's duplicates are both skipped for one:
-the empire owns no tile of it, and a loan is not a second seam. Every ledger
-line carries `· on loan`.
+`rules.trade.importedLuxuryPercent` of a time, so **every** shape in the table
+above pays that share of itself with no fold in this file knowing the rule
+exists — the share is the copy count (`copiesFor`), which is also why
+`perCopy` and the Grand Bazaar's duplicates are both skipped for one: the
+empire owns no tile of it, and a loan is not a second seam. Every ledger line
+carries `· on loan`. The share is 100 since batch DS4, which dropped The
+Capitulations' "half value" clause, so a loan pays as one copy does.
 
 The Silk Road lent a luxury the same way through every route that ended abroad,
 from the user's tree pass of 2026-09-10 until batch TT1 (`docs/flags.md`

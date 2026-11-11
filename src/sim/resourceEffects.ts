@@ -281,18 +281,19 @@ function ageOf(state: GameState, playerId: number): TechAge {
  *
  * **And the whole of the borrowed copy** (The Capitulations, Commerce batch
  * T5): a luxury a foreign post lends this empire counts
- * `rules.trade.importedLuxuryPercent` of a time — half — and because every
- * reading in this file arrives at its figure by multiplying this number, *every*
- * effect of a borrowed luxury is halved by one multiplication rather than by
+ * `rules.trade.importedLuxuryPercent` of a time, and because every reading in
+ * this file arrives at its figure by multiplying this number, *every* effect of
+ * a borrowed luxury takes the share in one multiplication rather than in
  * fourteen. That is why the share is here and not in a fold: a rule written as
  * "and also halve the renown, and the writ, and the hammers" is a rule that
- * stops being true the day a fifteenth fold is added.
+ * stops being true the day a fifteenth fold is added. The share was half until
+ * batch DS4, which dropped the card's "half value" clause. It is 100 now, so a
+ * loan counts as one copy.
  *
- * A borrowed copy is **exactly half of one**, with `perCopy` and the Grand
+ * A borrowed copy is **exactly the share of one**, with `perCopy` and the Grand
  * Bazaar's duplicates both skipped: the empire owns no tile of it (so the copy
- * count is nought and a `perCopy` row would pay nothing at all, which is a
- * different sentence from "half"), and a loan is not a second copy of a seam
- * somebody dug.
+ * count is nought and a `perCopy` row would pay nothing at all), and a loan is
+ * not a second copy of a seam somebody dug.
  */
 function copiesFor(
   state: GameState,
@@ -507,8 +508,9 @@ function lineOf(
 }
 
 /**
- * **What a borrowed copy of a luxury is worth**, as a multiplier — the user's
- * own figure for `docs/playstyles.md` §7's rule ("effects halved", 2026-09-10).
+ * **What a borrowed copy of a luxury is worth**, as a multiplier. It was the
+ * user's figure for `docs/playstyles.md` §7's rule ("effects halved",
+ * 2026-09-10) until batch DS4 made a loan worth one full copy.
  *
  * Read once, at load, off `rules.trade.importedLuxuryPercent`, because it is a
  * balance figure and balance figures live in the data (CLAUDE.md's layout rule).

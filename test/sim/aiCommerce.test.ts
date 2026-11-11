@@ -371,7 +371,7 @@ describe('The Art Dealers', () => {
 });
 
 describe('Land Speculation', () => {
-  it('pays the hex planner half a resource hex’s price in culture, and nothing on bare ground', () => {
+  it('pays the hex planner half a hex’s price in culture, on bare ground too (batch DS4)', () => {
     const { state, player, towns } = board([6]);
     hold(state, 0, LAND_SPECULATION);
     const silk = giveLuxury(state, towns[0]!, 5, 4, 'silk');
@@ -380,10 +380,15 @@ describe('Land Speculation', () => {
     state.tileOwner[tileIndex(state.map, silk.col, silk.row)] = null;
     bumpRevision(state);
     const ctx = valueContext(state, player);
+    const want = explainLump({ culture: Math.floor(0.5 * 75) }, ctx).total;
     const term = hexPurchaseRiderTerm(ctx, silk, 75)!;
     expect(term).not.toBeNull();
-    expect(term.value).toBe(explainLump({ culture: Math.floor(0.5 * 75) }, ctx).total);
-    expect(hexPurchaseRiderTerm(ctx, at(state.map, 6, 6), 75)).toBeNull();
+    expect(term.value).toBe(want);
+    // Since batch DS4 the card has no test of what is on the hex, so a bare
+    // hex pays the same.
+    const bare = hexPurchaseRiderTerm(ctx, at(state.map, 6, 6), 75);
+    expect(bare).not.toBeNull();
+    expect(bare!.value).toBe(want);
   });
 
   it('adds what the card pays to the hex planner’s want for that hex', () => {
@@ -406,16 +411,17 @@ describe('Land Speculation', () => {
     expect(rider!.value).toBeGreaterThan(0);
     expect(want!.terms[want!.terms.length - 1]).toBe(rider);
     expect(want!.worth).toBeCloseTo(foldTerms(want!.terms), 10);
-    // A bare hex beside it carries no such term.
+    // A bare hex beside it carries the same term since batch DS4, because the
+    // card no longer asks what is on the hex.
     const bare = ctx.wants.gold.find((row) => row.ground?.col === 5 && row.ground?.row === 4);
     if (bare !== undefined) {
       expect(allTerms(bare.terms).some((term) => term.label.startsWith('what this seat’s cards pay'))).toBe(
-        false,
+        true,
       );
     }
   });
 
-  it('is priced at the seat’s pace of buying hexes, on the share its tile test admits', () => {
+  it('is priced at the seat’s pace of buying hexes, on every hex since it has no tile test', () => {
     const { state, player, towns } = board([6]);
     giveLuxury(state, towns[0]!, 4, 4, 'silk');
     player.tilesPurchased = 4;
@@ -432,7 +438,10 @@ describe('Land Speculation', () => {
       (aiJson.score.tallyForecast.hexClaimed * aiJson.score.commission.priorShare) /
       aiJson.priorities.horizonTurns;
     const rate = (4 + fallback * prior) / (state.turn + prior);
-    expect(scoreEffects(effectsOf(LAND_SPECULATION), ctx)).toBeCloseTo((rate * each) / owned, 10);
+    // Batch DS4 removed the tile test, so every owned hex is admitted and the
+    // share is the whole.
+    expect(owned).toBeGreaterThan(0);
+    expect(scoreEffects(effectsOf(LAND_SPECULATION), ctx)).toBeCloseTo(rate * each, 10);
   });
 });
 

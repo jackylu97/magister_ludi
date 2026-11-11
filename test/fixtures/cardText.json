@@ -6068,10 +6068,6 @@
    {
     "raw": "+3 gold per unique luxury",
     "text": "+3 gold per unique luxury"
-   },
-   {
-    "raw": "+1 food on every hex carrying a luxury resource",
-    "text": "+1 food on every hex carrying a luxury resource"
    }
   ],
   "theGuildHalls": [
@@ -6086,16 +6082,12 @@
   ],
   "travellersLetters": [
    {
-    "raw": "+2 science, +2 culture in your capital",
-    "text": "+2 science, +2 culture in your capital"
+    "raw": "+2 science in your capital per other empire you have met",
+    "text": "+2 science in your capital per other empire you have met"
    },
    {
-    "raw": "+1 science in your capital per other empire you have met",
-    "text": "+1 science in your capital per other empire you have met"
-   },
-   {
-    "raw": "+1 culture in your capital per other empire you have met",
-    "text": "+1 culture in your capital per other empire you have met"
+    "raw": "+2 culture in your capital per other empire you have met",
+    "text": "+2 culture in your capital per other empire you have met"
    }
   ],
   "lettersOfIntroduction": [
@@ -6142,8 +6134,8 @@
   ],
   "theMineralTrade": [
    {
-    "raw": "-1 production, +2 gold on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]]",
-    "text": "-1 production, +2 gold on every hex with a Mine or Quarry"
+    "raw": "+1 gold on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]]",
+    "text": "+1 gold on every hex with a Mine or Quarry"
    }
   ],
   "coastalEstates": [
@@ -6154,8 +6146,8 @@
   ],
   "landSpeculation": [
    {
-    "raw": "buying a hex carrying a resource grants culture equal to 50% of the gold paid",
-    "text": "buying a hex carrying a resource grants culture equal to 50% of the gold paid"
+    "raw": "buying a hex grants culture equal to 50% of the gold paid",
+    "text": "buying a hex grants culture equal to 50% of the gold paid"
    }
   ],
   "foundingCapital": [
@@ -6166,12 +6158,8 @@
   ],
   "privatePatronage": [
    {
-    "raw": "+40% gold in every city",
-    "text": "+40% gold in every city"
-   },
-   {
-    "raw": "-20% production toward ordinary buildings",
-    "text": "-20% production toward ordinary buildings"
+    "raw": "+25% gold in every city",
+    "text": "+25% gold in every city"
    }
   ],
   "civicReceipts": [
@@ -6190,10 +6178,6 @@
    {
     "raw": "+3 gold, +3 science, +3 culture on every trade route that ends in another empire’s city",
     "text": "+3 gold, +3 science, +3 culture on every trade route that ends in another empire’s city"
-   },
-   {
-    "raw": "+3 gold on every trade route that ends in another empire’s city, paid to the city it reaches",
-    "text": "+3 gold on every trade route that ends in another empire’s city, paid to the city it reaches"
    }
   ],
   "theReturnLeg": [
@@ -6330,12 +6314,8 @@
   ],
   "financedIndustry": [
    {
-    "raw": "30% of the gold in every city is gained again as production",
-    "text": "30% of the gold in every city is gained again as production"
-   },
-   {
-    "raw": "-3 food in every city",
-    "text": "-3 food in every city"
+    "raw": "20% of the gold in every city is gained again as production",
+    "text": "20% of the gold in every city is gained again as production"
    }
   ],
   "theHomeMarket": [
@@ -6346,10 +6326,6 @@
    {
     "raw": "+30% production in every city 2 or more trade routes of your own end at",
     "text": "+30% production in every city 2 or more trade routes of your own end at"
-   },
-   {
-    "raw": "+2 happiness in every city 2 or more trade routes of your own end at",
-    "text": "+2 happiness in every city 2 or more trade routes of your own end at"
    }
   ],
   "theCaravanseraiNetwork": [
@@ -6437,10 +6413,6 @@
    {
     "raw": "units you buy need none of the strategic resources they would need to be built",
     "text": "units you buy need none of the strategic resources they would need to be built"
-   },
-   {
-    "raw": "all units cost +20% to buy",
-    "text": "all units cost +20% to buy"
    }
   ],
   "theHarbourChain": [
@@ -6459,16 +6431,8 @@
   ],
   "theLeagueOfCities": [
    {
-    "raw": "+23% production in every city a trade route sets out from",
-    "text": "+23% production in every city a trade route sets out from"
-   },
-   {
-    "raw": "the authority a city a trade route sets out from costs falls by 1",
-    "text": "the authority a city a trade route sets out from costs falls by 1"
-   },
-   {
-    "raw": "-10% gold in every city no trade route sets out from",
-    "text": "-10% gold in every city no trade route sets out from"
+    "raw": "+20% production in every city a trade route sets out from",
+    "text": "+20% production in every city a trade route sets out from"
    }
   ],
   "theCharterFleet": [
@@ -6499,24 +6463,12 @@
    {
     "raw": "+5% culture in every city per other empire you trade with",
     "text": "+5% culture in every city per other empire you trade with"
-   },
-   {
-    "raw": "+2 science, +2 culture on every trade route that ends in another empire’s city",
-    "text": "+2 science, +2 culture on every trade route that ends in another empire’s city"
-   },
-   {
-    "raw": "+2 science, +2 culture on every trade route that ends in another empire’s city, paid to the city it reaches",
-    "text": "+2 science, +2 culture on every trade route that ends in another empire’s city, paid to the city it reaches"
    }
   ],
   "theScholarsRoads": [
    {
-    "raw": "-4 trade routes",
-    "text": "-4 trade routes"
-   },
-   {
-    "raw": "+2 science, +2 culture on every trade route you send",
-    "text": "+2 science, +2 culture on every trade route you send"
+    "raw": "-2 trade routes",
+    "text": "-2 trade routes"
    },
    {
     "raw": "+50% science and culture on every trade route you send",
@@ -6534,10 +6486,6 @@
    }
   ],
   "strategicExports": [
-   {
-    "raw": "+2 science per improved strategic resource in the origin city",
-    "text": "+2 science per improved strategic resource in the origin city"
-   },
    {
     "raw": "your strategic resource deposits supply twice as many copies",
     "text": "your strategic resource deposits supply twice as many copies"
@@ -6622,20 +6570,16 @@
   ],
   "theCharteredMetropolis": [
    {
-    "raw": "+38% food in every city 3 or more trade routes set out from",
-    "text": "+38% food in every city 3 or more trade routes set out from"
+    "raw": "+35% food in every city 3 or more trade routes set out from",
+    "text": "+35% food in every city 3 or more trade routes set out from"
    },
    {
-    "raw": "+38% production in every city 3 or more trade routes set out from",
-    "text": "+38% production in every city 3 or more trade routes set out from"
+    "raw": "+35% production in every city 3 or more trade routes set out from",
+    "text": "+35% production in every city 3 or more trade routes set out from"
    },
    {
-    "raw": "+38% culture in every city 3 or more trade routes set out from",
-    "text": "+38% culture in every city 3 or more trade routes set out from"
-   },
-   {
-    "raw": "the authority a city 3 or more trade routes set out from costs rises by 4",
-    "text": "the authority a city 3 or more trade routes set out from costs rises by 4"
+    "raw": "+35% culture in every city 3 or more trade routes set out from",
+    "text": "+35% culture in every city 3 or more trade routes set out from"
    }
   ],
   "theAdmiraltyOfTrade": [
@@ -6662,12 +6606,8 @@
   ],
   "theMerchantWorks": [
    {
-    "raw": "25% of the gold in every city while it is building a wonder or an empire building is gained again as production",
-    "text": "25% of the gold in every city while it is building a wonder or an empire building is gained again as production"
-   },
-   {
-    "raw": "-20% gold in every city while it is building a wonder or an empire building",
-    "text": "-20% gold in every city while it is building a wonder or an empire building"
+    "raw": "25% of the gold in every city while it is building a wonder is gained again as production",
+    "text": "25% of the gold in every city while it is building a wonder is gained again as production"
    }
   ],
   "theGildedScaffold": [
@@ -6736,8 +6676,20 @@
   ],
   "theNestEgg": [
    {
-    "raw": "+1 culture in your capital per 50 gold in the treasury (at most +4 culture)",
-    "text": "+1 culture in your capital per 50 gold in the treasury (at most +4 culture)"
+    "raw": "+1 culture in your capital per 4 gold your empire makes a turn",
+    "text": "+1 culture in your capital per 4 gold your empire makes a turn"
+   }
+  ],
+  "thePackTrail": [
+   {
+    "raw": "+2 gold on every trade route you send",
+    "text": "+2 gold on every trade route you send"
+   }
+  ],
+  "theFirstCaravan": [
+   {
+    "raw": "when drafted, a [[unit:trader|Trader]] joins you in your capital; seated, this card does nothing",
+    "text": "when drafted, a Trader joins you in your capital; seated, this card does nothing"
    }
   ],
   "theStapleRight": [
@@ -6782,16 +6734,12 @@
   ],
   "theMonopoly": [
    {
-    "raw": "+8 gold in every city per luxury you hold three or more copies of that no other empire holds",
-    "text": "+8 gold in every city per luxury you hold three or more copies of that no other empire holds"
+    "raw": "+5 gold in every city per luxury that only you hold",
+    "text": "+5 gold in every city per luxury that only you hold"
    },
    {
-    "raw": "+5 culture in every city per luxury you hold three or more copies of that no other empire holds",
-    "text": "+5 culture in every city per luxury you hold three or more copies of that no other empire holds"
-   },
-   {
-    "raw": "+1 happiness per luxury you hold three or more copies of that no other empire holds",
-    "text": "+1 happiness per luxury you hold three or more copies of that no other empire holds"
+    "raw": "+3 culture in every city per luxury that only you hold",
+    "text": "+3 culture in every city per luxury that only you hold"
    }
   ],
   "theCustomsService": [
@@ -6834,8 +6782,8 @@
   ],
   "moneyAtWork": [
    {
-    "raw": "+1 science in every city per 500 gold in the treasury",
-    "text": "+1 science in every city per 500 gold in the treasury"
+    "raw": "+1 science in every city per 20 gold your empire makes a turn",
+    "text": "+1 science in every city per 20 gold your empire makes a turn"
    }
   ],
   "boughtAndPaidFor": [
@@ -6959,8 +6907,8 @@
   ],
   "billsOfExchange": [
    {
-    "raw": "+1% production in every city per 100 gold in the treasury (at most +30% production)",
-    "text": "+1% production in every city per 100 gold in the treasury (at most +30% production)"
+    "raw": "+1% production in every city per 10 gold your empire makes a turn (at most +30% production)",
+    "text": "+1% production in every city per 10 gold your empire makes a turn (at most +30% production)"
    }
   ],
   "theGrainBarges": [
@@ -7017,8 +6965,8 @@
   ],
   "theCapitulations": [
    {
-    "raw": "each foreign city holding your trading post lends you one luxury resource it has improved that you lack, worth a share of your own",
-    "text": "each foreign city holding your trading post lends you one luxury resource it has improved that you lack, worth a share of your own"
+    "raw": "each foreign city holding your trading post lends you one luxury resource it has improved that you lack",
+    "text": "each foreign city holding your trading post lends you one luxury resource it has improved that you lack"
    }
   ],
   "theCasaDaIndia": [
@@ -10084,10 +10032,6 @@
    {
     "raw": "25% of the faith in every city with a [[building:temple|Temple]] is gained again as gold",
     "text": "25% of the faith in every city with a Temple is gained again as gold"
-   },
-   {
-    "raw": "+25% gold in every city with a [[building:temple|Temple]]",
-    "text": "+25% gold in every city with a Temple"
    }
   ],
   "merchantScholars": [
@@ -10100,10 +10044,6 @@
    {
     "raw": "+2 science on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] carrying a resource",
     "text": "+2 science on every hex with a Mine or Quarry carrying a resource"
-   },
-   {
-    "raw": "+2 science on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] carrying a resource, in every city with a [[building:market|Market]]",
-    "text": "+2 science on every hex with a Mine or Quarry carrying a resource, in every city with a Market"
    }
   ],
   "travellingPlayers": [
@@ -10231,12 +10171,8 @@
   ],
   "theMerchantNavigators": [
    {
-    "raw": "ships: +1 movement",
-    "text": "ships: +1 movement"
-   },
-   {
-    "raw": "+5 science on every trade route sent from every city with a [[building:harbour|Harbour]] with a [[building:library|Library]]",
-    "text": "+5 science on every trade route sent from every city with a Harbour with a Library"
+    "raw": "+5 science on every trade route sent from every city with a [[building:harbour|Harbour]]",
+    "text": "+5 science on every trade route sent from every city with a Harbour"
    }
   ],
   "gardenProvinces": [
@@ -10516,12 +10452,8 @@
   ],
   "theMerchantShrines": [
    {
-    "raw": "+2 faith in your capital",
-    "text": "+2 faith in your capital"
-   },
-   {
-    "raw": "+1 faith in every city holding an improved luxury resource",
-    "text": "+1 faith in every city holding an improved luxury resource"
+    "raw": "+2 faith in every city holding an improved luxury resource",
+    "text": "+2 faith in every city holding an improved luxury resource"
    }
   ],
   "theWaqf": [
@@ -10536,10 +10468,6 @@
   ],
   "theSilkRoadMonks": [
    {
-    "raw": "caravans carry +3 faith",
-    "text": "caravans carry +3 faith"
-   },
-   {
     "raw": "+3 gold, +3 culture on every trade route that ends in a city that follows the religion",
     "text": "+3 gold, +3 culture on every trade route that ends in a city that follows the religion"
    }
@@ -10548,10 +10476,6 @@
    {
     "raw": "you may pay gold for a fresh hand, at a higher price than faith would ask",
     "text": "you may pay gold for a fresh hand, at a higher price than faith would ask"
-   },
-   {
-    "raw": "all units and buildings cost +10% to buy",
-    "text": "all units and buildings cost +10% to buy"
    }
   ],
   "dominionTheStandingArmy": [

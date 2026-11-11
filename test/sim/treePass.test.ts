@@ -204,9 +204,9 @@ describe('a foreign road brings no luxury home (batch TT1)', () => {
     for (const id of TECH_IDS) {
       expect(JSON.stringify(techDef(id).effects ?? []), id).not.toContain('routesImportLuxuries');
     }
-    // The posts' loan is the one left, and it still lends at a share.
-    expect(RULES.trade.importedLuxuryPercent).toBeGreaterThan(0);
-    expect(RULES.trade.importedLuxuryPercent).toBeLessThan(100);
+    // The posts' loan is the one left. It lent at a share until batch DS4
+    // dropped The Capitulations' "half value" clause, so a loan is a whole copy.
+    expect(RULES.trade.importedLuxuryPercent).toBe(100);
   });
 });
 

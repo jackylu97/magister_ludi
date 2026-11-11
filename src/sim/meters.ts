@@ -320,8 +320,8 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   // seams and in the same two amplifiers, so there is one arithmetic for what a
   // luxury is worth in contentment and one place a step or a share is applied.
   //
-  // Floored per line for the loop above's reason exactly: five loans at half a
-  // point are five roundings, never one rounding of a total.
+  // Floored per line for the loop above's reason exactly: five loans at a share
+  // of a point are five roundings, never one rounding of a total.
   for (const id of importedLuxuries(state, playerId)) {
     const each = Math.max(0, rules.perUniqueLuxury + luxuryStep);
     const value = Math.floor((each * (100 + luxuryBoost) * RULES.trade.importedLuxuryPercent) / 10000);

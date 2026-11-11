@@ -346,8 +346,34 @@ import {
  * seated pays different yields and fights with different strengths. The branch
  * migrates nothing, for the reason given under v119 in
  * `docs/history/schema-changelog.md`.
+ *
+ * v234 (branch `decks`; batch DS4, `docs/flags.md` (hhhhhhh), the user's ruling of
+ * 2026-11-10): **simpler Commerce Orders.** No field joins or leaves the state.
+ * The rules that change:
+ *
+ *   · 31 Commerce Orders and 7 shared Orders that Commerce holds with Devotion,
+ *     Scientific or Magisterial have new text
+ *     (`docs/plans/deck-simplification-2026-11-10.md`). Letters of Credit and The
+ *     Strongbox keep their old rows, because their new texts need rules the game
+ *     does not have;
+ *   · two new Tier 0 Orders are dealt: The Pack Trail (+2 gold on each trade
+ *     route) and The First Caravan (a caravan when drafted). They change what a
+ *     Commerce seat's first hands can draw;
+ *   · 26 rows have a new or shorter effect. Among them: The Nest Egg, Bills of
+ *     Exchange and Money at Work read the gold the empire makes each turn instead
+ *     of the treasury, The Monopoly counts a luxury held by you alone with no
+ *     number of copies, and The Capitulations' loan pays as a whole copy
+ *     (`rules.trade.importedLuxuryPercent` is 100);
+ *   · two readings that no row uses now are removed: a route row's `payee: 'host'`
+ *     (the route fold's host grant), and the `empireBuilding` narrowing on the
+ *     `queueHolds` town scope.
+ *
+ * **A v233 save is refused and does not replay.** A logged game with one of these cards
+ * seated pays different yields, and a Commerce seat's draws move. The branch
+ * migrates nothing, for the reason given under v119 in
+ * `docs/history/schema-changelog.md`.
  */
-export const SCHEMA_VERSION = 233;
+export const SCHEMA_VERSION = 234;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

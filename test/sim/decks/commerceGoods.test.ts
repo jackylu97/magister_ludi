@@ -11,11 +11,12 @@
  *     rounded down in the counts and Corner the Market's figure, at half value
  *     for a kind held only through lent copies, and never in the deal gate;
  *   · The Capitulations: a foreign town holding the empire's paying post lends
- *     it a luxury, after the routes' loans;
+ *     it a luxury, after the routes' loans. Since batch DS4 the loan pays as a
+ *     whole copy (`rules.trade.importedLuxuryPercent` is 100);
  *   · The Casa da Índia: every copy pays a luxury's flat yields, and nothing
  *     else counts twice;
- *   · Land Speculation: the `tilePurchase` moment carries the price and the
- *     hex, and a rider asks a tile test of the hex.
+ *   · Land Speculation: the `tilePurchase` moment carries the price. Since
+ *     batch DS4 the card pays for any hex, with no test of what is on it.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -43,6 +44,7 @@ import {
   resourceHappiness,
 } from '../../../src/sim/resourceEffects';
 import { postTermTurns } from '../../../src/sim/routes';
+import { RULES } from '../../../src/sim/rulesData';
 import { type City, type GameState, bumpRevision, playerById } from '../../../src/sim/state';
 import { cardAmplifier, cardYieldsOnlyAmplifier, countOf } from '../../../src/sim/statecraft/evaluator';
 import { type CardPaysEffect, type OrderId, orderDef } from '../../../src/sim/statecraftData';
@@ -341,10 +343,13 @@ describe('The Capitulations', () => {
     seat(state, 0, CAPITULATIONS);
     expect(importedLuxuries(state, 0)).toEqual(['wine']);
     expect(luxuryLoans(state, 0)).toEqual([{ id: 'wine' }]);
-    // The loan's share on the meter, with the loan's own word.
+    // The loan's share on the meter, with the loan's own word. Since batch DS4
+    // the share is the whole of a copy, so a loan gives the contentment a luxury
+    // of your own gives.
+    expect(RULES.trade.importedLuxuryPercent).toBe(100);
     const line = explainHappiness(state, 0).find((entry) => entry.source === `${resourceDef('wine').name} · on loan`);
-    expect(line?.value).toBe(2);
-    // Wine's own happiness line, at half.
+    expect(line?.value).toBe(RULES.meters.happiness.perUniqueLuxury);
+    // Wine's own happiness line, at the loan's share.
     const vintage = resourceHappiness(state, 0).filter((entry) => entry.resource === 'wine');
     expect(vintage.length).toBeGreaterThan(0);
     for (const entry of vintage) expect(entry.source).toContain('on loan');
@@ -476,12 +481,13 @@ describe('Land Speculation', () => {
   }
 
   it('is one rider on the hex bought, with culture of half the price', () => {
+    // Batch DS4: "Buying a hex grants culture equal to half the gold paid." The
+    // test of a resource on the hex went with the old text.
     const effects = orderDef(LAND_SPECULATION).effects;
     expect(effects).toEqual([
       {
         kind: 'windfallRider',
         occasion: 'tilePurchase',
-        on: { test: 'hasResource' },
         grant: { yield: 'culture', amount: 0.5, fromOccasion: 'gold', whole: true },
       },
     ]);
@@ -497,17 +503,20 @@ describe('Land Speculation', () => {
     expect(culture).toBeGreaterThan(0);
   });
 
-  it('pays nothing for a bare hex, or for a resource the empire cannot see', () => {
+  it('pays for a bare hex too, and for a resource the empire cannot see (batch DS4)', () => {
     const { state, home } = ready();
     seat(state, 0, LAND_SPECULATION);
-    expect(buy(state, home, 7, 5).culture).toBe(0);
+    const bare = buy(state, home, 7, 5);
+    expect(bare.culture).toBe(Math.floor(bare.price / 2));
+    expect(bare.culture).toBeGreaterThan(0);
     const hidden = RESOURCE_IDS.find((id) => resourceDef(id).requiresTech !== undefined)!;
     const gate = resourceDef(hidden).requiresTech!;
     const player = state.players[0]!;
     player.techsResearched = player.techsResearched.filter((tech) => tech !== gate);
     at(state, 3, 5).resource = hidden;
     bumpRevision(state);
-    expect(buy(state, home, 3, 5).culture).toBe(0);
+    const unseen = buy(state, home, 3, 5);
+    expect(unseen.culture).toBe(Math.floor(unseen.price / 2));
   });
 
   it('pays nothing without the card', () => {

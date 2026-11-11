@@ -16,6 +16,13 @@
  *     has no range limit, by land or by sea;
  *   · The Champagne Fairs: `population` narrowed by a town scope, passed in by
  *     a periodic boon.
+ *
+ * Batch DS4 (`docs/plans/deck-simplification-2026-11-10.md`) added two route
+ * cards at Tier 0, and they are checked here too:
+ *
+ *   · The Pack Trail: +2 gold on every trade route, at home and abroad;
+ *   · The First Caravan: a Boon that hands over an idle caravan in the
+ *     capital, which a Send uses before it hires one.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -25,6 +32,7 @@ import { type Command, applyCommand } from '../../../src/sim/commands';
 import {
   cityReturnLegYields,
   cityRouteYields,
+  explainRouteSenderYieldBetween,
   explainRouteYield,
   foldRouteYield,
 } from '../../../src/sim/routeYields';
@@ -41,8 +49,16 @@ import {
 } from '../../../src/sim/state';
 import { countOf, runPeriodicBoons } from '../../../src/sim/statecraft/evaluator';
 import { periodicProbe } from '../../../src/sim/statecraft/describers';
-import { type OrderId, orderDef } from '../../../src/sim/statecraftData';
-import { routeStartable, runPostEstablishments } from '../../../src/sim/trade';
+import { type OrderId, orderDef, orderIsDealt, ordersForDecks } from '../../../src/sim/statecraftData';
+import {
+  hasSendablePair,
+  idleTraders,
+  routeStartable,
+  runPostEstablishments,
+  usedRouteSlots,
+} from '../../../src/sim/trade';
+import { unitDef } from '../../../src/sim/unitData';
+import { unitAwaitsOrders } from '../../../src/sim/units';
 import { END_OF_TURN_PHASES, emptyTurnReport } from '../../../src/sim/turn';
 import { openWar } from '../../../src/sim/wars';
 import { explainEmpireCardYields } from '../../../src/sim/yields/empire';
@@ -57,6 +73,8 @@ const FOREIGN_FACTOR = 'theForeignFactor' as OrderId;
 const LINGUA_FRANCA = 'theLinguaFranca' as OrderId;
 const ADMIRALTY = 'theAdmiraltyOfTrade' as OrderId;
 const CHAMPAGNE = 'theChampagneFairs' as OrderId;
+const PACK_TRAIL = 'thePackTrail' as OrderId;
+const FIRST_CARAVAN = 'theFirstCaravan' as OrderId;
 
 /** Seats an Order in a chair, which is what makes it live. */
 function seat(state: GameState, playerId: number, id: OrderId): void {
@@ -445,5 +463,115 @@ describe('The Champagne Fairs', () => {
     bumpRevision(state);
     runPeriodicBoons(state);
     expect(player.culturePool - culture).toBe(10 * 7);
+  });
+});
+
+// --- batch DS4: the two Tier 0 route cards -------------------------------------
+
+describe('The Pack Trail', () => {
+  /** What one card puts on a list of route lines, folded. */
+  const named = (lines: ReturnType<typeof cityRouteYields>) =>
+    foldRouteYield(lines.filter((line) => line.source.includes('The Pack Trail')));
+
+  it('is a common Economic card at Tier 0, dealt to a Commerce seat', () => {
+    const def = orderDef(PACK_TRAIL);
+    expect([def.band, def.rarity, def.type]).toEqual([0, 'common', 'economic']);
+    expect(def.text).toBe('Your trade routes give +2 gold.');
+    expect(def.effects).toEqual([{ kind: 'pays', where: 'route', gold: 2 }]);
+    expect(orderIsDealt(PACK_TRAIL)).toBe(true);
+    expect(ordersForDecks(['commerce'])).toContain(PACK_TRAIL);
+  });
+
+  it('pays +2 gold on a route between your own towns, in the town it reaches', () => {
+    const { state, home, inland, trader } = homePair();
+    expect(applyCommand(state, send(0, trader.id, home, inland)).ok).toBe(true);
+    expect(named(cityRouteYields(state, inland)).gold).toBe(0);
+    seat(state, 0, PACK_TRAIL);
+    expect(named(cityRouteYields(state, inland)).gold).toBe(2);
+    // Gold alone, and nothing in the town the cart left.
+    expect(named(cityRouteYields(state, inland)).science).toBe(0);
+    expect(named(cityRouteYields(state, home)).gold).toBe(0);
+  });
+
+  it('pays +2 gold on a route abroad, to the empire that sent it, and nothing to the host', () => {
+    const { state, home, partner, trader } = foreignPair();
+    seat(state, 0, PACK_TRAIL);
+    expect(applyCommand(state, send(0, trader.id, home, partner)).ok).toBe(true);
+    expect(named(explainRouteSenderYieldBetween(state, home, partner)).gold).toBe(2);
+    expect(named(cityRouteYields(state, partner)).gold).toBe(0);
+  });
+});
+
+describe('The First Caravan', () => {
+  /** One town of seat 0 and a full treasury, with the card dealt to it. */
+  function dealt(): { state: GameState; capital: City; player: Player } {
+    const state = bareState(16, 9);
+    state.wars = [];
+    const capital = foundCityAt(state, 0, at(state, 3, 4));
+    const player = playerById(state, 0)!;
+    player.gold = 1000;
+    player.statecraft.pendingOrder = { options: [FIRST_CARAVAN] };
+    bumpRevision(state);
+    return { state, capital, player };
+  }
+
+  it('is a common Economic Boon at Tier 0, whose whole card is its grant', () => {
+    const def = orderDef(FIRST_CARAVAN);
+    expect([def.band, def.rarity, def.type]).toEqual([0, 'common', 'economic']);
+    expect(def.text).toBe('Boon. On draft: gain a caravan.');
+    expect(def.onDraft).toEqual([{ grant: 'unit', unit: 'trader' }]);
+    expect(def.effects).toEqual([]);
+    expect(unitDef('trader').routeOnly).toBe(true);
+    expect(orderIsDealt(FIRST_CARAVAN)).toBe(true);
+    expect(ordersForDecks(['commerce'])).toContain(FIRST_CARAVAN);
+  });
+
+  it('hands over an idle caravan in the capital when drafted, free of upkeep', () => {
+    const { state, capital, player } = dealt();
+    expect(idleTraders(state, 0)).toEqual([]);
+    const gold = player.gold;
+    expect(applyCommand(state, { type: 'chooseOrder', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+    const carts = idleTraders(state, 0);
+    expect(carts).toHaveLength(1);
+    const cart = carts[0]!;
+    expect(cart.type).toBe('trader');
+    expect([cart.col, cart.row]).toEqual([capital.col, capital.row]);
+    expect(cart.trade).toBeUndefined();
+    expect(cart.freeUpkeep).toBe(true);
+    // Nothing was paid for it, and it runs no route, so it fills no slot.
+    expect(player.gold).toBe(gold);
+    expect(usedRouteSlots(state, 0)).toBe(0);
+    // A caravan is never asked for orders on the map; the Trade screen sends it.
+    expect(unitAwaitsOrders(cart)).toBe(false);
+    expect(player.statecraft.orders).toContain(FIRST_CARAVAN);
+  });
+
+  it('asks End Turn about the cart only once there is somewhere to send it', () => {
+    const { state, capital } = dealt();
+    expect(applyCommand(state, { type: 'chooseOrder', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+    // At Tier 0 a seat usually has no Market, so no route slot: the cart waits
+    // and blocks nothing (the R4 ruling's "an idle cart with nothing to send").
+    foundCityAt(state, 0, at(state, 10, 4));
+    bumpRevision(state);
+    expect(hasSendablePair(state, 0)).toBe(false);
+    // A Market gives a route slot, and the second town is a partner.
+    capital.buildings.push('market');
+    bumpRevision(state);
+    expect(hasSendablePair(state, 0)).toBe(true);
+  });
+
+  it('is the cart a Send uses, so the first route costs no hire', () => {
+    const { state, capital, player } = dealt();
+    expect(applyCommand(state, { type: 'chooseOrder', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+    const partner = foundCityAt(state, 0, at(state, 10, 4));
+    capital.buildings.push('market');
+    bumpRevision(state);
+    const cart = idleTraders(state, 0)[0]!;
+    const gold = player.gold;
+    expect(applyCommand(state, send(0, cart.id, capital, partner)).ok).toBe(true);
+    expect(cart.trade).toBeDefined();
+    expect(idleTraders(state, 0)).toEqual([]);
+    expect(usedRouteSlots(state, 0)).toBe(1);
+    expect(player.gold).toBe(gold);
   });
 });

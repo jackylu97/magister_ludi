@@ -236,11 +236,21 @@ describe('the card-type amplifier (the tier-26 governments)', () => {
 
   it('raises a percentage at its own stage, and leaves a cost as it is', () => {
     const { state, city } = board();
-    // Private Patronage: +40% gold, and 20% less production toward ordinary
-    // buildings, which is a cost and is not raised.
-    council(state, 'theEstates', [[PATRONAGE, 'economic']]);
+    // Private Patronage: +25% gold since batch DS4. 30% of 25 is 7.5, which
+    // rounds to 8. The card lost its cost on ordinary buildings in that batch,
+    // so The Gilded Scaffold's 15% less production in every town stands in for
+    // the cost: it is not raised.
+    council(state, 'theEstates', [
+      [PATRONAGE, 'economic'],
+      ['theGildedScaffold' as OrderId, 'economic'],
+    ]);
     const rises = explainCardPercentYields(state, city).filter((line) => line.card === 'theEstates');
-    expect(rises.map((line) => [line.yield, line.percent, line.stage])).toEqual([['gold', 12, 'city']]);
+    expect(rises.map((line) => [line.yield, line.percent, line.stage])).toEqual([['gold', 8, 'city']]);
+    expect(
+      explainCardPercentYields(state, city).some(
+        (line) => line.card === 'theGildedScaffold' && line.yield === 'production' && line.percent < 0,
+      ),
+    ).toBe(true);
     expect(
       cardProduction(state, city, 'building', undefined, 'monument').filter((line) => line.card === 'theEstates'),
     ).toEqual([]);
@@ -294,11 +304,18 @@ describe('the card-type amplifier (the tier-26 governments)', () => {
     const { state, city } = board();
     const far = foundCityAt(state, 0, at(state, 12, 5));
     bumpRevision(state);
-    // The Scholars' Roads: +2 science and +2 culture on every route, and half
-    // again of the science and culture a route carries.
+    // The Scholars' Roads: half again of the science and culture a route
+    // carries. Its +2 science and +2 culture on every route went in batch DS4,
+    // so The Pack Trail's +2 gold on every route is the flat line here. 30% of 2
+    // is 0.6, which rounds to 1.
     council(state, 'theCuria', [[SCHOLARS_ROADS, 'civic']]);
-    const lines = cardRouteYieldLines(state, city, far).filter((line) => line.card === 'theCuria');
-    expect(lines.map((line) => [line.science, line.culture])).toEqual([[1, 1]]);
+    expect(cardRouteYieldLines(state, city, far).filter((line) => line.card === 'theCuria')).toEqual([]);
+    council(state, 'theEstates', [
+      ['thePackTrail' as OrderId, 'economic'],
+    ]);
+    const lines = cardRouteYieldLines(state, city, far).filter((line) => line.card === 'theEstates');
+    expect(lines.map((line) => line.gold)).toEqual([1]);
+    council(state, 'theCuria', [[SCHOLARS_ROADS, 'civic']]);
     const shares = cardRouteShareLines(state, city, far).filter((line) => line.card === 'theCuria');
     expect(shares.map((line) => [line.yield, line.percent])).toEqual([
       ['science', 15],

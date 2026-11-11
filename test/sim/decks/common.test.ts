@@ -372,34 +372,30 @@ describe('C2 — the two shared rows', () => {
     ]);
   });
 
-  it('lights The Exchange of Discoveries as two hex lines, the second scoped', () => {
+  it('lights The Exchange of Discoveries as one hex line, with no Market clause since batch DS4', () => {
     const def = orderDef('theExchangeOfDiscoveries' as OrderId);
     expect(def.decks).toEqual(['commerce', 'scientific']);
     expect(def.deferred).toBeUndefined();
     expect(orderIsDealt('theExchangeOfDiscoveries' as OrderId)).toBe(true);
     // The user's sheet rewrote this card: the old text counted the courts a
-    // town's caravans reach, and the new one pays the seams themselves.
-    expect(def.text).toBe(
-      '+2 science on mines and quarries on a resource. Additional +2 if the city has a market.',
-    );
+    // town's caravans reach, and the new one pays the seams themselves. Batch
+    // DS4 (`docs/plans/deck-simplification-2026-11-10.md`) dropped the extra
+    // +2 in a town with a Market, so two lines became one.
+    expect(def.text).toBe('Mines and quarries on a resource gain +2 science.');
     const lines = def.effects.filter(
       (effect): effect is Extract<CardEffect, { kind: 'pays' }> => effect.kind === 'pays',
     );
-    expect(lines.length).toBe(2);
-    for (const line of lines) {
-      expect(line.where).toBe('hex');
-      expect(line.science).toBe(2);
-      expect(line.on).toEqual({
-        test: 'all',
-        of: [
-          { test: 'anyImprovement', improvements: ['mine', 'quarry'] },
-          { test: 'hasResource' },
-        ],
-      });
-    }
-    // Only the second names the town that owns the ground — "additional +2 if
-    // the city has a market" is one clause about where, not about which hex.
+    expect(def.effects).toHaveLength(1);
+    expect(lines.length).toBe(1);
+    expect(lines[0]!.where).toBe('hex');
+    expect(lines[0]!.science).toBe(2);
+    expect(lines[0]!.on).toEqual({
+      test: 'all',
+      of: [
+        { test: 'anyImprovement', improvements: ['mine', 'quarry'] },
+        { test: 'hasResource' },
+      ],
+    });
     expect(lines[0]!.scope).toBeUndefined();
-    expect(lines[1]!.scope).toEqual({ test: 'hasBuilding', building: 'market' });
   });
 });

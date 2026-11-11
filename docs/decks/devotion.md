@@ -195,7 +195,7 @@ These rows live in `data/decks/common.json`. A seat holding Devotion or the deck
 |---|---|---|---|---|---|---|
 | **Rites of Passage** | common | Dominion | 0 | implemented | Gaining a military unit grants 12 faith. | Civic |
 | **Sacred Groves** | uncommon | Expansionist | 0 | implemented | Worked, unimproved forests gain +1 food and +1 faith. | Civic |
-| **The Merchant Shrines** | common | Commerce | 0 | implemented | Your capital gains +2 faith. Cities working an improved luxury gain +1 faith, once per city. | Civic |
+| **The Merchant Shrines** | common | Commerce | 0 | implemented | Towns working an improved luxury gain +2 faith. | Civic |
 | **The Ambarvalia** | common | Expansionist | 0 | implemented | Each town gains +1 faith for every two improved tiles. | Civic |
 | **The Holy Spring** | common | Expansionist | 0 | implemented | Towns beside a mountain or a lake gain +2 faith and +1 culture. | Civic |
 | **The Shrine Guards** | common | Dominion | I | implemented | Towns with a Shrine may buy melee units with faith. | Military |
@@ -205,9 +205,9 @@ These rows live in `data/decks/common.json`. A seat holding Devotion or the deck
 | **The Schoolmen's Charter** | uncommon | Scientific | I | implemented | Drafting this opens Scholasticism for research. Knowing it lets you build the Cathedral School: +2 science for each building in the town that supplies faith, doubled while the town keeps a rite. No chair required. | Civic |
 | **The Painted Chapels** | uncommon | Magisterial | I | implemented | Religious buildings give +3 culture each. | Civic |
 | **The Priest-Astronomers** | common | Scientific | I | implemented | Your capital gains +2 science and +2 faith for every city of yours keeping a rite, at most +16 of each. | Civic |
-| **Pilgrim Markets** | uncommon | Commerce | II | implemented | Routes gain +3 gold and +3 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify. | Civic |
-| **The Tithe** | rare | Commerce | II | implemented | Cities with a Temple gain gold equal to 25% of their base faith, and +25% gold. | Economic |
-| **The Silk Road Monks** | uncommon | Commerce | II | modify: as built | Your trade routes carry 100% more religious pressure. Trade routes you send to a city that follows your religion gain +3 gold and +3 culture. | Civic |
+| **Pilgrim Markets** | uncommon | Commerce | II | implemented | Trade routes to or from a town with a Holy Site gain +3 gold and +3 faith. | Civic |
+| **The Tithe** | rare | Commerce | II | implemented | Towns with a Temple gain gold equal to 25% of their faith. | Economic |
+| **The Silk Road Monks** | uncommon | Commerce | II | modify: as built | Trade routes to a town that follows your religion gain +3 gold and +3 culture. | Civic |
 | **The Cloister** | rare | Scientific | II | implemented | Cities with a Temple gain science equal to 30% of their base faith. Their Libraries and Universities each gain +3 food. | Civic |
 | **The Blessed Forges** | uncommon | Scientific | II | implemented | Improved strategic resources gain +1 faith and +1 production. Cities with a Temple gain +2 faith and +2 production more. | Civic |
 | **The Crusader Orders** | uncommon | Dominion | II | implemented | Military units gain +3 strength in land that does not follow your religion. | Military |

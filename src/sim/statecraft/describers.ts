@@ -1709,13 +1709,7 @@ function describePays(
     }
     if (!words) return;
     const whose = routeWhose(effect);
-    // **Who the coin goes to**, said only when it is not the obvious answer.
-    // A caravan's line has always been paid to whoever the trade route's own fold pays,
-    // and the one row shape that breaks that says so out loud — "to the city it
-    // reaches" — because the whole point of the card is that somebody else gets
-    // it. See `CardPaysEffect.payee`.
-    const toWhom = effect.payee === 'host' ? ', paid to the city it reaches' : '';
-    out.push({ text: `${words} on ${whose}${toWhom}` });
+    out.push({ text: `${words} on ${whose}` });
     return;
   }
 
@@ -4616,7 +4610,7 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       into.qualifiers.push(`settled on ${indefinite(scope.kind)} ${scope.kind} resource`);
       return;
     case 'queueHolds':
-      // "while it is building an empire building". `queueHoldsWords` names the
+      // "while it is building a wonder". `queueHoldsWords` names the
       // thing, and one named row (Devotion batch DV3, The Rising Nave's
       // Cathedral and Magnum Opus) is said by its name, as a keyword.
       into.qualifiers.push(`while it is building ${queueHoldsWords(scope)}`);
@@ -5035,16 +5029,12 @@ function anyPhrase(scopes: readonly CityScope[]): string {
 }
 
 /**
- * What a `queueHolds` scope names, with its article: "a wonder", "an empire
- * building", or one named row as a keyword ("a Cathedral", "The Magnum Opus").
- * The "empire building" reading gets its own words rather than an adjective on
- * the category, because "an empire building" is the class's own name in the
- * printed table and not a kind of queue row.
+ * What a `queueHolds` scope names, with its article: "a wonder", or one named
+ * row as a keyword ("a Cathedral", "The Magnum Opus").
  */
 function queueHoldsWords(scope: CityScope): string {
   if (scope.test !== 'queueHolds') return '';
   if (scope.building !== undefined) return buildingWords(scope.building);
-  if (scope.empireBuilding === true) return 'an empire building';
   return `${indefinite(scope.category)} ${scope.category}`;
 }
 
@@ -6606,10 +6596,10 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   // "Met", the register's own word, and "other empire" because the count never
   // includes your own seat.
   empiresMet: { one: 'other empire you have met', many: 'other empires you have met' },
-  // The rule in the words: three or more copies, and nobody else holds any.
+  // The rule in the words: you hold it, and nobody else holds any.
   monopolyLuxuries: {
-    one: 'luxury you hold three or more copies of that no other empire holds',
-    many: 'luxuries you hold three or more copies of that no other empire holds',
+    one: 'luxury that only you hold',
+    many: 'luxuries that only you hold',
   },
   citiesKeepingRite: { one: 'city of yours keeping a rite', many: 'cities of yours keeping a rite' },
   // Devotion batch DV3: the empire's own gods count too, before and after it
@@ -7378,12 +7368,14 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   cityRestoresMovement: 'a unit that stops in one of your cities gets its movement back',
   freeLanding: 'your units come ashore from the water without spending movement',
   // The Capitulations (Commerce batch T5). No figure in it (hard rule 7): the
-  // *share* a borrowed luxury pays is a number and lives in the data, and what a
-  // player needs told here is that the goods come home at all and are worth less
-  // than a seam of their own.
+  // *share* a borrowed luxury pays is a number and lives in the data. Since
+  // batch DS4 the share is the whole of a copy, so the words say nothing about
+  // it. If the data sets a smaller share again, the words say the loan is
+  // worth less than a copy of your own.
   postsLendLuxuries:
     'each foreign city holding your trading post lends you one luxury resource it has ' +
-    'improved that you lack, worth a share of your own',
+    'improved that you lack' +
+    (RULES.trade.importedLuxuryPercent < 100 ? ', worth a share of your own' : ''),
   // The zone of control, both rules of it. `ZocRuleId`. The second is written
   // for the whole army, and `FLAG_RULE_CLASS_WORDS` says it of a line.
   borders: 'every hex you own exerts zone of control on enemy units, as a unit of yours would',

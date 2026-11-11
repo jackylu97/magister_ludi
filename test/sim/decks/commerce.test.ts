@@ -195,8 +195,9 @@ describe('the Commerce deck is one deck', () => {
     // The Casa da Índia, so 105 rows become 108. Batch T6 adds Letters of
     // Credit, The Strongbox and The Merchant Guilds, so 108 rows become 111.
     // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retires nine
-    // live rows, which stay in the file for saves.
-    expect(COMMERCE.length).toBe(111);
+    // live rows, which stay in the file for saves. Batch DS4 adds two Tier 0
+    // rows, The Pack Trail and The First Caravan, so 111 rows become 113.
+    expect(COMMERCE.length).toBe(113);
     expect(retired().length).toBe(43);
     for (const id of COMMERCE) {
       expect(orderDef(id).decks, id).toEqual(['commerce']);
@@ -258,10 +259,12 @@ describe('the Commerce deck is one deck', () => {
     // Batch DS1 moves Provisioning Contracts from Tier II to Tier I and
     // retires two rows at Tier 0, three at Tier II, three at Tier III and one
     // at Tier IV: 8 / 13 / 20 / 16 / 11.
-    expect([count(0), count(1), count(2), count(3), count(4)]).toEqual([15, 22, 36, 23, 15]);
+    // Batch DS4 adds two rows at Tier 0 (The Pack Trail, The First Caravan):
+    // 10 / 13 / 20 / 16 / 11.
+    expect([count(0), count(1), count(2), count(3), count(4)]).toEqual([17, 22, 36, 23, 15]);
     const kept = COMMERCE.filter((id) => orderDef(id).retired !== true).map((id) => orderDef(id).band);
     expect([0, 1, 2, 3, 4].map((band) => kept.filter((b) => b === band).length)).toEqual([
-      8, 13, 20, 16, 11,
+      10, 13, 20, 16, 11,
     ]);
     expect(orderDef('civicReceipts' as OrderId).band).toBe(1);
   });
@@ -384,7 +387,8 @@ describe('a live Commerce row is a card', () => {
     // **Batch T6**: seventy-seven. Three new rows (Letters of Credit, The
     // Strongbox, The Merchant Guilds).
     // **Batch DS1**: sixty-eight. Nine live rows are retired.
-    expect(live().length).toBe(68);
+    // **Batch DS4**: seventy. The Pack Trail and The First Caravan are new.
+    expect(live().length).toBe(70);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -461,6 +465,8 @@ describe('a live Commerce row is a card', () => {
       if (orderDef(id).commission !== undefined) continue;
       // A charter's grant is the whole of the card.
       if (orderDef(id).charter !== undefined) continue;
+      // So is a boon's on-draft grant (batch DS4, The First Caravan).
+      if (orderDef(id).onDraft !== undefined && effects.length === 0) continue;
       expect(effects.length, id).toBeGreaterThan(0);
       for (const effect of effects) {
         kinds.add(effect.kind);
@@ -491,18 +497,21 @@ describe('a live Commerce row is a card', () => {
     //
     // Batch T3 adds a boon on a cadence: The Champagne Fairs' fair every ten
     // turns.
+    //
+    // Batch DS4 took three kinds off this deck's live Orders, and each stays
+    // in the game on other rows: a contentment line (The Home Market's), a
+    // repricing of what a town costs to hold (The League of Cities' and The
+    // Chartered Metropolis') and a price rider at the counter (Foreign
+    // Procurement's).
     expect([...kinds].sort()).toEqual([
       'buildingYieldPercent',
       'cityRenownPercent',
       'effectAmplifier',
-      'happiness',
-      'meterRule',
       'offerRider',
       'pays',
       'percentYields',
       'periodic',
       'productionBonus',
-      'purchaseRider',
       'renown',
       'routeRider',
       'rule',
@@ -643,7 +652,7 @@ describe('the age-2 gate', () => {
   const ROUTE_WORDS = /\b(routes?|traders?|caravans?|trading posts?|posts?)\b/i;
   const ROUTE_DATA = /routeEndsHere|holdsPost|postCities|tradeRoutes|foreignTradeRoutes|tradePartnerEmpires/;
 
-  it('keeps routes, traders and posts off Tiers 0 and I, with Provisioning Contracts the exception', () => {
+  it('keeps routes, traders and posts off Tiers 0 and I, with three stated exceptions', () => {
     // The themes pass's section 12, which you approved on 2026-10-23: no card
     // that needs a trade route to pay is dealt before Tier II. A card that
     // reads trading posts needs a route too, because only a route leaves a
@@ -657,11 +666,18 @@ describe('the age-2 gate', () => {
     //
     // Batch DS1 moved Provisioning Contracts from Tier II to Tier I, by the
     // spec of 2026-11-10 (`docs/plans/deck-simplification-2026-11-10.md`,
-    // whose note says "Tier I had no route card"). It is the one stated
-    // exception.
+    // whose note says "Tier I had no route card").
+    //
+    // Batch DS4 added two route cards at Tier 0 by the same spec, whose note
+    // says "Commerce's identity is routes, and Tier 0 has no route card": The
+    // Pack Trail (your trade routes give +2 gold) and The First Caravan (a
+    // caravan when drafted). With Provisioning Contracts they are the three
+    // stated exceptions.
     expect(orderDef('merchantScholars' as OrderId).band).toBe(3);
     expect(orderDef('provisioningContracts' as OrderId).band).toBe(1);
-    const excepted: readonly string[] = ['provisioningContracts'];
+    expect(orderDef('thePackTrail' as OrderId).band).toBe(0);
+    expect(orderDef('theFirstCaravan' as OrderId).band).toBe(0);
+    const excepted: readonly string[] = ['provisioningContracts', 'thePackTrail', 'theFirstCaravan'];
     const early = gated().filter((id) => orderDef(id).band < 2);
     expect(early.length).toBeGreaterThan(0);
     for (const id of early) {
@@ -1014,15 +1030,16 @@ describe('the Commerce deck: the sheet of record', () => {
     // Batch T2 changes statuses only, so the totals stay. Batch T7 adds The
     // Standing Army to the shared table (23), and builds The Art Dealers.
     // Batch DS1 retires nine of the sheet's cards and six shared cards.
-    expect(sheet).toHaveLength(68);
+    // Batch DS4 adds The Pack Trail and The First Caravan.
+    expect(sheet).toHaveLength(70);
     expect(shared).toHaveLength(17);
   });
 
-  it('types every listed row, 68 of this file and 17 shared, and nothing else of this file', () => {
+  it('types every listed row, 70 of this file and 17 shared, and nothing else of this file', () => {
     // 59 after batch T1, the eight new rows of batch T2, the three of batch
     // T3, the one of batch T4, the three of batch T5 and the three of batch T6.
-    // Batch DS1 retires nine.
-    expect(LISTED).toHaveLength(68);
+    // Batch DS1 retires nine. Batch DS4 adds two.
+    expect(LISTED).toHaveLength(70);
     for (const id of COMMERCE) {
       const def = orderDef(id);
       if (def.retired === true) expect(def.type, id).toBeUndefined();
@@ -1111,7 +1128,10 @@ describe('a seeded draft for a Commerce figure', () => {
     expect(dealt.size).toBeGreaterThan(1);
   });
 
-  it('opens the seat with band 0 alone, and nothing there names a caravan', () => {
+  it('opens the seat with band 0 alone', () => {
+    // Its title also said "and nothing there names a caravan" until batch DS4
+    // put The Pack Trail and The First Caravan at Tier 0 (the age gate's stated
+    // exceptions, above).
     const g = createGame({
       seed: 23,
       sizeName: 'duel',
@@ -1866,7 +1886,10 @@ describe('C3 — the five cards that lift a rule', () => {
       expect(musa.statecraft.rerollsTaken).toBe(1);
     });
 
-    it('puts its surcharge on everything else this empire buys', () => {
+    it('leaves the price of everything else this empire buys alone (batch DS4)', () => {
+      // Batch DS4 removed the 10% surcharge on other purchases: the card's new
+      // text is "You may reroll an Order hand with gold" and nothing else.
+      expect(orderDef('theBrokersRedraw' as OrderId).effects.map((effect) => effect.kind)).toEqual(['rule']);
       const g = bench([]);
       const city = town(g);
       empty(g, city);
@@ -1877,8 +1900,8 @@ describe('C3 — the five cards that lift a rule', () => {
       const sword = priced({ kind: 'unit', id: 'warrior' });
       const roof = priced({ kind: 'building', id: 'monument' });
       slot(g, 'theBrokersRedraw');
-      expect(priced({ kind: 'unit', id: 'warrior' })).toBeGreaterThan(sword);
-      expect(priced({ kind: 'building', id: 'monument' })).toBeGreaterThan(roof);
+      expect(priced({ kind: 'unit', id: 'warrior' })).toBe(sword);
+      expect(priced({ kind: 'building', id: 'monument' })).toBe(roof);
     });
   });
 
@@ -2022,7 +2045,8 @@ describe('C3 — the five cards that lift a rule', () => {
  *   · `CityScope`'s `queueHolds.empireBuilding` — the row a town is building
  *     right now is one of the realm's single great houses (The Merchant Works).
  *     The same marker `CardProductionBonusEffect` and `CardWindfallRiderEffect`
- *     already read, asked of the front of the queue;
+ *     already read, asked of the front of the queue. Batch DS4 removed it with
+ *     its one writer, when The Merchant Works came to name a wonder only;
  *   · `CardPurchaseRiderEffect.empireBuilding` — which side of that line the
  *     building being priced is on, and `CardProductionBonusEffect.empireBuilding`
  *     widened from `true` to a boolean so the *ordinary* half can be named at
@@ -2093,7 +2117,7 @@ describe('C4 — the great-house marker, read from both sides', () => {
 
   // --- Private Patronage -----------------------------------------------------
 
-  describe('Private Patronage — more gold, slower in the queue', () => {
+  describe('Private Patronage — more gold, and since batch DS4 nothing else', () => {
     it('leaves every price at the till alone since ruling (qqqqqq) 1', () => {
       const bare = bench([]);
       const held = bench(['privatePatronage']);
@@ -2115,7 +2139,9 @@ describe('C4 — the great-house marker, read from both sides', () => {
       expect(price(held, heldTown, great)).toBe(price(bare, bareTown, great));
     });
 
-    it('slows an ordinary roof in the queue and leaves a great house alone', () => {
+    it('slows no roof in the queue since batch DS4', () => {
+      // Batch DS4 (`docs/plans/deck-simplification-2026-11-10.md`): "Towns gain
+      // +25% gold." The drawback on ordinary buildings went with the old text.
       const g = bench(['privatePatronage']);
       const city = town(g);
       learned(g);
@@ -2124,24 +2150,22 @@ describe('C4 — the great-house marker, read from both sides', () => {
         productionModifiers(g.state, city, { kind: 'building', id }).filter((line) =>
           line.source.includes('Private Patronage'),
         );
-      expect(named(plain).map((line) => line.percent)).toEqual([-20]);
+      expect(named(plain)).toEqual([]);
       expect(named(great)).toEqual([]);
     });
 
-    it('says "ordinary buildings" on the production half, so the card cannot lie by omission', () => {
+    it('says one thing: +25% gold in every town', () => {
       const words = describeCard('privatePatronage' as OrderId).map((clause) =>
         stripRefs(clause.text),
       );
-      expect(words.filter((clause) => clause.includes('ordinary buildings'))).toHaveLength(1);
-      // +40% since batch T1 (the user's comment of 2026-10-21).
-      expect(words.some((clause) => clause.includes('+40% gold'))).toBe(true);
+      expect(words).toEqual(['+25% gold in every city']);
     });
   });
 
   // --- The Merchant Works ----------------------------------------------------
 
-  describe('The Merchant Works — coin into stone, while the scaffolding is up', () => {
-    /** The card's two lines in this town, as the city's own ledger prints them. */
+  describe('The Merchant Works — coin into stone, while a wonder is going up', () => {
+    /** The card's line in this town, as the city's own ledger prints it. */
     function lines(g: ReturnType<typeof bench>, city: City): CityYieldLine[] {
       refreshCityDerived(g.state, city);
       bumpRevision(g.state);
@@ -2171,37 +2195,36 @@ describe('C4 — the great-house marker, read from both sides', () => {
       expect(lines(g, city)).toEqual([]);
     });
 
-    it('converts and charges while the town is raising one of the realm’s great houses', () => {
+    it('pays nothing while the town is raising one of the realm’s great houses (batch DS4)', () => {
+      // The new text names a wonder only, so an empire building and the Magnum
+      // Opus no longer count.
       const { g, city } = site();
       const great = BUILDING_IDS.find(
         (id) => buildingDef(id).oncePerEmpire === true && buildingDef(id).wonder !== true,
       )!;
       city.queue = [{ kind: 'building', id: great }] as never;
-      const paid = lines(g, city);
-      expect(paid.length).toBeGreaterThan(0);
-      // The conversion pays hammers, so the town's production is higher than the
-      // same town with nothing in its queue.
-      expect(paid.some((line) => line.production > 0)).toBe(true);
+      expect(lines(g, city)).toEqual([]);
     });
 
-    it('does the same for a wonder, which is the other class the card names', () => {
+    it('converts gold into production while the town is raising a wonder, and charges no gold', () => {
       const { g, city } = site();
       const marvel = BUILDING_IDS.find((id) => buildingDef(id).wonder === true)!;
       city.queue = [{ kind: 'building', id: marvel }] as never;
-      expect(lines(g, city).length).toBeGreaterThan(0);
+      const paid = lines(g, city);
+      expect(paid.length).toBe(1);
+      expect(paid[0]!.production).toBeGreaterThan(0);
+      expect(paid[0]!.gold).toBe(0);
     });
 
-    it('reads the front of the queue only — a great house standing second is a plan', () => {
+    it('reads the front of the queue only — a wonder standing second is a plan', () => {
       const { g, city } = site();
       const plain = BUILDING_IDS.find(
         (id) => buildingDef(id).oncePerEmpire !== true && buildingDef(id).wonder !== true,
       )!;
-      const great = BUILDING_IDS.find(
-        (id) => buildingDef(id).oncePerEmpire === true && buildingDef(id).wonder !== true,
-      )!;
+      const marvel = BUILDING_IDS.find((id) => buildingDef(id).wonder === true)!;
       city.queue = [
         { kind: 'building', id: plain },
-        { kind: 'building', id: great },
+        { kind: 'building', id: marvel },
       ] as never;
       expect(lines(g, city)).toEqual([]);
     });
@@ -2319,14 +2342,16 @@ describe('C4 — the great-house marker, read from both sides', () => {
     const writers = (match: (effect: CardEffect) => boolean): string[] =>
       COMMERCE.filter((id) => orderDef(id).effects.some(match));
 
+    // **Nobody, since batch DS4**: The Merchant Works pays a town building a
+    // wonder and nothing else, so the narrowing of a `queueHolds` scope to an
+    // empire building was removed with its one writer. The card's scope is the
+    // plain one now.
     expect(
       writers(
         (effect) =>
           effect.kind === 'pays' &&
-          effect.scope?.test === 'any' &&
-          effect.scope.of.some(
-            (inner) => inner.test === 'queueHolds' && inner.empireBuilding === true,
-          ),
+          effect.scope?.test === 'queueHolds' &&
+          effect.scope.category === 'wonder',
       ),
     ).toEqual(['theMerchantWorks']);
 
@@ -2347,10 +2372,12 @@ describe('C4 — the great-house marker, read from both sides', () => {
     ).toEqual(['purchasedProsperity']);
 
     // And the widening: `productionBonus.empireBuilding` was a `true` and is a
-    // boolean, so both readings are now written down somewhere in the table.
+    // boolean. Private Patronage wrote its `false` until batch DS4 dropped the
+    // card's drawback, so that reading has no writer in this file today, as
+    // the purchase rider's has none.
     expect(
       writers((effect) => effect.kind === 'productionBonus' && effect.empireBuilding === false),
-    ).toEqual(['privatePatronage']);
+    ).toEqual([]);
   });
 
   // --- C7: the route gate, the caravan's price, and the two building marks ---

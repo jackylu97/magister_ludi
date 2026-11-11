@@ -4615,7 +4615,7 @@ function foldReadEngine(effect: CardEffect): boolean {
     case 'rule':
       // **The Capitulations' loans** (Commerce batch T5; read here since batch
       // T9). Each foreign town holding the seat's paying post lends it a
-      // luxury at half value, and the happiness meter and the luxury yields
+      // luxury at the loan's share, and the happiness meter and the luxury yields
       // carry the loan, so the books see exactly what the rule adds. It is the luxury fold, read with the card and without.
       return effect.rule === 'postsLendLuxuries';
     default:

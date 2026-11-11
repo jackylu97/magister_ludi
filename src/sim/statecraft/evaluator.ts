@@ -2556,14 +2556,6 @@ export function cityScopeAdmits(
       // it is, exactly as `EmpireCondition`'s arm does it one scale out.
       const front = city.queue[0];
       if (front === undefined || queueCategory(front) !== scope.category) return false;
-      // And the narrowing to a single great house, read off the marker the rows
-      // already carry rather than off `oneOfAKind`: a wonder is a class of its
-      // own and `category: 'wonder'` is how a card names it. A row that is not a
-      // building has no marker to read, so the narrowing refuses it.
-      if (scope.empireBuilding === true) {
-        if (front.kind !== 'building' || !isBuildingId(front.id)) return false;
-        if (!isEmpireBuilding(front.id)) return false;
-      }
       // And the narrowing to one row (Devotion batch DV3, The Rising Nave's
       // Cathedral and Magnum Opus), as the empire condition reads it.
       if (scope.building !== undefined && front.id !== scope.building) return false;
@@ -2977,9 +2969,7 @@ function scopeNote(scope?: CityScope): string | null {
         if (/^The /.test(name)) return `building ${name.replace(/^The /, 'the ')}`;
         return `building ${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`;
       }
-      return scope.empireBuilding === true
-        ? 'building an empire building'
-        : `building a ${scope.category}`;
+      return `building a ${scope.category}`;
     }
     case 'queueDepth':
       return `${scope.atLeast} things queued`;
@@ -4013,16 +4003,16 @@ export function countOf(
       return countTilesInBorders(state, playerId, rule);
     }
     case 'monopolyLuxuries': {
-      // Three or more copies held here, and not one copy held by any other real
-      // empire — The Monopoly. `resourceCopies` is the net figure, so a copy
-      // lent away leaves the lender and counts for whoever received it. This
-      // empire's own figure adds The Commenda's share of the copies it lends
-      // (`countedLuxuryCopies`, Commerce batch T5); the other empires' figures
-      // are theirs, so a copy lent to one of them still breaks the monopoly.
+      // A kind this empire holds, and not one copy held by any other real
+      // empire — The Monopoly. `countedLuxuries` is the kinds this empire holds
+      // (deals included, and The Commenda's share of the copies it lends,
+      // Commerce batch T5). `resourceCopies` is the net figure, so a copy lent
+      // away leaves the lender and counts for whoever received it: a copy lent
+      // to another empire breaks the monopoly. Batch DS4 dropped the old
+      // condition of three or more copies, because the card's new text has none.
       let total = 0;
       const others = realPlayers(state).filter((seat) => seat.id !== playerId);
       for (const id of countedLuxuries(state, playerId)) {
-        if (countedLuxuryCopies(state, playerId, id) < 3) continue;
         if (others.some((seat) => resourceCopies(state, seat.id, id) > 0)) continue;
         total += 1;
       }
@@ -13837,7 +13827,6 @@ export function cardRouteYieldLines(
   from: City,
   to?: City,
   age?: number,
-  payee: 'self' | 'host' = 'self',
   /**
    * Which way the road runs — `CardPaysEffect.mode`, batch C7. Optional and
    * treated as land where a caller names none, which is the same conservative
@@ -13848,13 +13837,11 @@ export function cardRouteYieldLines(
 ): CardRouteLine[] {
   const list: CardRouteLine[] = [];
   for (const { source, card, effect } of routeRows(state, from, to)) {
-    // **Which books this line is bound for** (batch D2e). Two folds ask this
-    // function about the same trade route: the one that pays the empire that sent
-    // cart, and the one that pays the town it walks to. A row says which it
-    // means with `payee`, absent being the sender — every row written before
-    // this batch — so the two askings partition the rows and nothing is paid
-    // twice. See `CardPaysEffect.payee`.
-    if ((effect.payee === 'host' ? 'host' : 'self') !== payee) continue;
+    // **A route line pays the empire that sent the cart.** Until batch DS4 a
+    // row could name `payee: 'host'` and pay the town the cart walks to (The
+    // Common Road's coin). No row does now, so that reading is gone, and a row
+    // that names a payee is not a route line (`CardPaysEffect.payee`).
+    if (effect.payee !== undefined) continue;
     if (!routeScopesAdmit(state, effect, from, to, age, mode)) continue;
     // **A road counted by a fact about the town that sent it** — Ore Caravans'
     // mines and Luxury Caravans' seams (batch C2). Resolved here rather than

@@ -660,8 +660,10 @@ describe('the schema, as landed', () => {
     // **And batch DS1** (`docs/plans/deck-simplification-2026-11-10.md`): 146
     // fewer. 129 rows of the six decks' own files and 17 shared rows were live
     // and are retired.
-    expect(live).toBe(471);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(471);
+    // **And batch DS4** (the same spec): two more. The Pack Trail and The First
+    // Caravan are new Commerce rows at Tier 0.
+    expect(live).toBe(473);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(473);
   });
 
   /**
@@ -1148,7 +1150,7 @@ describe('the schema, as landed', () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(233);
+    expect(SCHEMA_VERSION).toBe(234);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

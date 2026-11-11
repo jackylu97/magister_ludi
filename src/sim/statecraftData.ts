@@ -889,23 +889,9 @@ export type CityScope =
   | {
       test: 'queueHolds';
       category: ProductionCategory;
-      /**
-       * And the row at the front is one of the realm's **single great houses** —
-       * The Merchant Works' (batch C4).
-       *
-       * `CardProductionBonusEffect.empireBuilding` and
-       * `CardWindfallRiderEffect.empireBuilding` asked about the row being built
-       * and the row just finished; this asks about the row being built *right
-       * now*, off the same marker (`BuildingDef.oncePerEmpire`) and with the
-       * same reading. A wonder is not one of these — `category: 'wonder'` is how
-       * a card names that class — so a row meaning both says `any` of two scopes,
-       * which is what The Merchant Works does.
-       *
-       * Meaningful only with `category: 'building'`: a unit and a project carry
-       * no such marker, so a scope naming both admits nothing rather than
-       * quietly widening.
-       */
-      empireBuilding?: true;
+      // Batch DS4 removed `empireBuilding`, the narrowing to one of the realm's
+      // single great houses. Its one row, The Merchant Works, now pays a town
+      // building a wonder and nothing else.
       /**
        * And the row at the front is this one building (Devotion batch DV3, the
        * shared The Rising Nave's Cathedral and Magnum Opus). The empire
@@ -3404,10 +3390,10 @@ export type CountKind =
   | 'empiresMet'
   /**
    * **Luxuries this empire holds a monopoly on** — The Monopoly (Commerce,
-   * Tier III): a luxury it holds at least three copies of (deals included, the
-   * net `resourceCopies` figure) that no other real empire holds a single copy
-   * of. The one count that reads other empires' holdings, and it reads only
-   * whether each holds the good at all.
+   * Tier III): a luxury it holds (deals included) that no other real empire
+   * holds a single copy of (the net `resourceCopies` figure). The one count that
+   * reads other empires' holdings, and it reads only whether each holds the good
+   * at all. Until batch DS4 the empire also needed three or more copies.
    */
   | 'monopolyLuxuries'
   /** This empire's towns **keeping a rite** right now — The Priest-Astronomers. */
@@ -7145,42 +7131,29 @@ export interface CardPaysEffect extends CardYieldBag {
   mode?: RouteMode;
   /**
    * **Who this line pays, when it is not the empire holding the card** — The
-   * Common Road's coin to the town its caravan reaches, The Foreign Factor's to
-   * the town its house stands in (batch D2e, the bilateral grant).
+   * Foreign Factor's coin to the town its house stands in (batch D2e, the
+   * bilateral grant).
    *
-   * Absent on every row written before this one and on almost every row since,
-   * and absent means what it has always meant: a card pays the empire that holds
-   * it. This is the exception, not a widening of the rule — a reader that does
-   * not mention `payee` is reading the common case and is still correct.
+   * Absent on almost every row, and absent means what it has always meant: a
+   * card pays the empire that holds it. This is the exception, not a widening of
+   * the rule — a reader that does not mention `payee` is reading the common case
+   * and is still correct.
    *
-   * `'host'` means a different empire's books, and which town those are is
-   * decided by `where`:
-   *
-   *   · `where: 'route'` — the **town the caravan is walking to**, whoever owns
-   *     it. The destination fold (`explainRouteYieldBetween`) already lands in
-   *     that town's own sheet and its owner's bank, so the line arrives inside
-   *     the payee's own explanation rather than beside it, which is rule 5. On a
-   *     domestic trade route the host is one of your own towns and the row pays it
-   *     there; a card that means "abroad" says `crossing: 'international'`.
-   *   · `where: 'city'` — **every foreign town holding this empire's paying
-   *     commercial post** (`cityPostPays`, `routes.ts`). Foreign only, which is
-   *     what makes the field mean one thing: a row that wants to pay your own
-   *     provinces for holding your house is an ordinary `where: 'city'` row
-   *     scoped `holdsPost` and needs no payee at all. The town's own
-   *     `City.posts` is the index of who might pay it, so a town no foreign
-   *     house stands in costs nothing to ask.
-   *
-   * No other `where` reads it, and a row that names one is refused by the
-   * register test rather than quietly paying its own empire. A row carrying it
+   * `'host'` means a different empire's books, and only `where: 'city'` reads
+   * it: **every foreign town holding this empire's paying commercial post**
+   * (`cityPostPays`, `routes.ts`). Foreign only, which is what makes the field
+   * mean one thing: a row that wants to pay your own provinces for holding your
+   * house is an ordinary `where: 'city'` row scoped `holdsPost` and needs no
+   * payee at all. The town's own `City.posts` is the index of who might pay it,
+   * so a town no foreign house stands in costs nothing to ask. A row carrying it
    * is read **only** by the payee's fold — the ordinary passes skip it — so
    * there is no arrangement under which one row pays twice.
    *
-   * **The premium and the amplifier stay home.** A host grant is not raised by
-   * the sea premium, by a share, or by a law that multiplies "your trade route
-   * yields" — those are the sender's dials on the sender's goods, and the
-   * design says so outright (*"ordinary sea premiums apply to route yields, but
-   * not a second time to an explicit host grant"*). A blockade at either end
-   * still takes it back, because a shut harbour trades with nobody.
+   * **`where: 'route'` read it too until batch DS4**: the town a caravan walks
+   * to, paid inside that town's own fold (The Common Road's coin to its host,
+   * and The Exchange's science and culture). Both rows dropped that clause, so
+   * the route reading is gone and the route fold skips a row that names a
+   * payee (`cardRouteYieldLines`).
    */
   payee?: 'host';
 }

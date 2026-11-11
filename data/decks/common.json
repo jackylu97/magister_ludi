@@ -468,7 +468,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Every shrine grows a street of stalls.",
-      "text": "Routes gain +3 gold and +3 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify.",
+      "text": "Trade routes to or from a town with a Holy Site gain +3 gold and +3 faith.",
       "effects": [
         {
           "kind": "pays",
@@ -478,7 +478,7 @@
           "faith": 3
         }
       ],
-      "note": "The first card to pay a trade route in faith; nothing carried it before this one asked. The test is a disjunction, so one shrine is enough and two are not more — a road with a holy site at each end is paid once, which is the card's second sentence. The site is the prophet's work on the ground, anywhere inside either town's borders, and nobody has to be working the hex."
+      "note": "One Holy Site at either end is enough, and a route with a Holy Site at each end is paid once. The Holy Site may stand anywhere inside either town's borders, and nobody has to work its hex."
     },
     "commonTheTithe": {
       "name": "The Tithe",
@@ -491,7 +491,7 @@
       "rarity": "rare",
       "type": "economic",
       "flavor": "A tenth of everything, counted twice.",
-      "text": "Cities with a Temple gain gold equal to 25% of their base faith, and +25% gold.",
+      "text": "Towns with a Temple gain gold equal to 25% of their faith.",
       "effects": [
         {
           "kind": "pays",
@@ -499,15 +499,6 @@
           "basis": "share",
           "from": "faith",
           "to": "gold",
-          "percent": 25,
-          "scope": {
-            "test": "hasBuilding",
-            "building": "temple"
-          }
-        },
-        {
-          "kind": "percentYields",
-          "yield": "gold",
           "percent": 25,
           "scope": {
             "test": "hasBuilding",
@@ -546,7 +537,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Two ports, two answers, and neither one wrong.",
-      "text": "+2 science on mines and quarries on a resource. Additional +2 if the city has a market.",
+      "text": "Mines and quarries on a resource gain +2 science.",
       "effects": [
         {
           "kind": "pays",
@@ -559,22 +550,8 @@
             ]
           },
           "science": 2
-        },
-        {
-          "kind": "pays",
-          "where": "hex",
-          "on": {
-            "test": "all",
-            "of": [
-              { "test": "anyImprovement", "improvements": ["mine", "quarry"] },
-              { "test": "hasResource" }
-            ]
-          },
-          "scope": { "test": "hasBuilding", "building": "market" },
-          "science": 2
         }
-      ],
-      "note": "Both lines land on the same hexes; the second is asked of the town that owns the ground, so a seam whose city has raised its stalls is worth two beakers rather than one."
+      ]
     },
     "travellingPlayers": {
       "name": "Travelling Players",
@@ -949,25 +926,13 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "The chart was drawn to find a market, and found a world.",
-      "text": "Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +5 science.",
+      "text": "Trade routes from a town with a Harbour gain +5 science.",
       "effects": [
-        {
-          "kind": "unitStat",
-          "stat": "movement",
-          "amount": 1,
-          "class": { "category": "naval" }
-        },
         {
           "kind": "pays",
           "where": "route",
           "science": 5,
-          "origin": {
-            "test": "all",
-            "of": [
-              { "test": "hasBuilding", "building": "harbour" },
-              { "test": "hasBuilding", "building": "library" }
-            ]
-          }
+          "origin": { "test": "hasBuilding", "building": "harbour" }
         }
       ]
     },
@@ -1753,10 +1718,9 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "Every scale has a god leaning on it.",
-      "text": "Your capital gains +2 faith. Cities working an improved luxury gain +1 faith, once per city.",
+      "text": "Towns working an improved luxury gain +2 faith.",
       "effects": [
-        { "kind": "pays", "where": "city", "scope": { "test": "capital" }, "faith": 2 },
-        { "kind": "pays", "where": "city", "scope": { "test": "holdingCategory", "category": "luxury" }, "faith": 1 }
+        { "kind": "pays", "where": "city", "scope": { "test": "holdingCategory", "category": "luxury" }, "faith": 2 }
       ]
     },
     "theWaqf": {
@@ -1801,12 +1765,10 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "They travelled with the silk, and left more than they sold.",
-      "text": "Your trade routes carry 100% more religious pressure. Trade routes you send to a city that follows your religion gain +3 gold and +3 culture.",
+      "text": "Trade routes to a town that follows your religion gain +3 gold and +3 culture.",
       "effects": [
-        { "kind": "pressureRule", "rule": "routeStrength", "delta": 3 },
         { "kind": "pays", "where": "route", "gold": 3, "culture": 3, "destination": { "test": "follows" } }
-      ],
-      "note": "The religious pressure a trade route carries is doubled by adding the same amount again."
+      ]
     },
     "theBrokersRedraw": {
       "name": "The Brokers' Redraw",
@@ -1816,12 +1778,11 @@
       "rarity": "rare",
       "type": "wildcard",
       "flavor": "Anything can be bought, including another look at the table.",
-      "text": "You may reroll a draft with gold instead of faith. All other purchasing is 10% more expensive.",
+      "text": "You may reroll an Order hand with gold.",
       "effects": [
-        { "kind": "rule", "rule": "goldBuysRedraw" },
-        { "kind": "purchaseRider", "class": {}, "on": "all", "percent": 10 }
+        { "kind": "rule", "rule": "goldBuysRedraw" }
       ],
-      "note": "Gold opens the door and pays a premium for it: the price is the faith ladder's own figure, multiplied, so faith stays the cheaper way to ask for a fresh hand and the card is a convenience rather than a replacement. The ladder itself is untouched — a redraw in either bank climbs the same rungs and raises the same count — and a hand whose first asking is free stays free in both. The surcharge on the second line reaches every unit and every building this empire buys, in either bank."
+      "note": "The gold price is a multiple of the faith price, so faith stays the cheaper way to reroll. A reroll in either bank raises the same count, and a hand whose first reroll is free stays free in both. Gold may reroll any hand that faith may, not only an Order hand."
     },
     "dominionTheStandingArmy": {
       "name": "The Standing Army",

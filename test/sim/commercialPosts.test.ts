@@ -34,7 +34,10 @@ import { game } from './statecraftHelpers';
  * is organised around them: the coin lands in the *payee's own explanation*
  * (rule 5 across a border, not a transfer written beside the ledger), and two
  * empires paying each other cannot race, because every town is priced before
- * any bank is credited.
+ * any bank is credited. Since batch DS4 only a town line names a payee (The
+ * Foreign Factor, a retired row that saves still play): The Common Road's coin
+ * to the town its caravan reached went with its new text, and so did the
+ * route reading of the field.
  *
  * What is deliberately not re-tested here: everything a route already paid.
  * `trade.test.ts` owns the caravan and `routeTally.test.ts` owns the counts.
@@ -178,41 +181,30 @@ describe('a trading post belongs to one empire', () => {
 });
 
 describe('a card may pay another empire', () => {
-  it('puts The Common Road’s coin in the host’s own explanation, not beside it', () => {
+  it('pays The Common Road to the empire that sent the caravan, and nothing to its host (batch DS4)', () => {
     const { state, home, partner, trader } = pair();
     holds(state, 0, 'theCommonRoad');
     expect(orderDef('theCommonRoad' as OrderId).deferred).toBeUndefined();
+    // One row, and no payee on it: the host's +3 gold went with the old text.
+    expect(orderDef('theCommonRoad' as OrderId).effects).toHaveLength(1);
+    expect((orderDef('theCommonRoad' as OrderId).effects[0] as { payee?: string }).payee).toBeUndefined();
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
 
-    // **The host's list.** `cityRouteYields` is what `explainCity` step 6
-    // folds, so the line is on the foreign town's own sheet and its total is
-    // still the fold of its own list — rule 5 across a border.
+    // **The host's list** carries nothing from the card.
     const hostLines = cityRouteYields(state, partner);
-    const named = hostLines.filter((line) => line.source.includes('The Common Road'));
-    expect(named).toHaveLength(1);
-    expect(named[0]!.gold).toBe(3);
-    // And it really reaches the town's fold rather than sitting in a list
-    // nobody adds up.
+    expect(hostLines.filter((line) => line.source.includes('The Common Road'))).toEqual([]);
     const sheet = explainCity(state, partner);
-    expect(sheet.lines.some((line) => line.source.includes('The Common Road'))).toBe(true);
+    expect(sheet.lines.some((line) => line.source.includes('The Common Road'))).toBe(false);
 
-    // **The sender's half is the sender's**, in a different fold entirely, and
-    // the host's coin is not in it.
+    // **The sender's half is the sender's**, in a different fold entirely.
     const mine = explainRouteSenderYield(state, trader);
-    const totals = foldRouteYield(mine);
-    expect(totals.gold).toBeGreaterThanOrEqual(3);
-    expect(totals.science).toBeGreaterThanOrEqual(3);
-    expect(totals.culture).toBeGreaterThanOrEqual(3);
-
-    // The host gets exactly the flat grant and no share of the crossing: a
-    // premium on the sender's goods is not a premium on a gift.
-    expect(foldRouteYield(named).gold).toBe(3);
+    const named = foldRouteYield(mine.filter((line) => line.source.includes('The Common Road')));
+    expect([named.gold, named.science, named.culture]).toEqual([3, 3, 3]);
   });
 
   it('pays nobody else’s town on a road that never leaves home', () => {
     // The row says `crossing: 'international'`, so a domestic road carries
-    // neither half. Written because the host grant is paid on both branches of
-    // the destination fold and only the crossing keeps it honest.
+    // nothing from it.
     const state = bareState(16, 9);
     const home = foundCityAt(state, 0, at(state, 3, 4));
     const inland = foundCityAt(state, 0, at(state, 10, 4));
@@ -265,40 +257,33 @@ describe('a card may pay another empire', () => {
 
   it('lets two empires pay each other, in an order neither of them sets', () => {
     // The determinism claim, stated as the thing that could go wrong: A's card
-    // pays B's town and B's card pays A's town in the same turn. Each town's
-    // fold reads only the other empire's *cards*, never the other town's
-    // totals, so there is nothing for an order to change.
-    const { state, home, partner, trader } = pair();
-    const theirs = createUnit(state, 1, 'trader', 10, 4);
-    partner.buildings.push('market');
+    // pays B's town and B's card pays A's town. Each town's fold reads only the
+    // other empire's *cards*, never the other town's totals, so the order of
+    // asking changes nothing. The Foreign Factor since batch DS4, because no
+    // route row pays a host any more.
+    const { state, home, partner } = pair();
+    const ripe = state.turn - TERM;
+    partner.posts = [{ by: 0, since: ripe }];
+    home.posts = [{ by: 1, since: ripe }];
     bumpRevision(state);
-    holds(state, 0, 'theCommonRoad');
-    holds(state, 1, 'theCommonRoad');
-    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
-    expect(applyCommand(state, send(1, theirs.id, partner.id, home.id)).ok).toBe(true);
+    holds(state, 0, 'theForeignFactor');
+    holds(state, 1, 'theForeignFactor');
 
-    const toThem = cityRouteYields(state, partner).filter((line) =>
-      line.source.includes('The Common Road'),
-    );
-    const toUs = cityRouteYields(state, home).filter((line) =>
-      line.source.includes('The Common Road'),
-    );
+    const named = (city: City) =>
+      explainCardCityYields(state, city).filter((line) => line.source.includes('The Foreign Factor'));
+    const toThem = named(partner);
+    const toUs = named(home);
     expect(toThem).toHaveLength(1);
     expect(toUs).toHaveLength(1);
-    expect(toThem[0]!.gold).toBe(3);
-    expect(toUs[0]!.gold).toBe(3);
+    expect(toThem[0]!.gold).toBe(2);
+    expect(toUs[0]!.gold).toBe(2);
 
-    // Read twice with the units walked to the other order: the same two lines.
+    // Asked the other way round, after the board is told it moved: the same two lines.
     const first = JSON.stringify([toThem, toUs]);
-    state.units.reverse();
     bumpRevision(state);
-    const second = JSON.stringify([
-      cityRouteYields(state, partner).filter((line) =>
-        line.source.includes('The Common Road'),
-      ),
-      cityRouteYields(state, home).filter((line) => line.source.includes('The Common Road')),
-    ]);
-    expect(second).toBe(first);
+    const us = named(home);
+    const them = named(partner);
+    expect(JSON.stringify([them, us])).toBe(first);
   });
 });
 

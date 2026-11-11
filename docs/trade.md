@@ -433,8 +433,8 @@ gold/economy'"*); the tab rule is ink alone, with no gilt hairline under it.
   the *pair* and therefore not a `CityScope` — asked through
   `routeIsInternational`, the one reading of "foreign", and refused where no far
   end is in hand exactly as a `destination` clause is. The live rows are cards
-  and leaders' buildings: The Common Road and The Exchange abroad, Provisioning
-  Contracts and Market Gardens at home, the Funduq abroad and the Tambo at home.
+  and leaders' buildings: The Common Road abroad, Provisioning Contracts at
+  home, the Funduq abroad and the Tambo at home.
   The Silk Road's +3💰 abroad and Daughter Cities' +1🌾 +1⚙ at home were cut in
   batch TT1 (`docs/flags.md` (iiiiiii)).
 - **A road abroad lends no luxury** (batch TT1). The Silk Road's loan
@@ -446,10 +446,18 @@ gold/economy'"*); the tab rule is ink alone, with no gilt hairline under it.
   kind it holds improved — never a kind the empire already controls, never the
   same kind twice. Derived every time it is asked (`luxuryLoans`,
   `importedLuxuries`, `resourceEffects.ts`), remembered on the revision clock,
-  nothing stored. Every figure it pays is `trade.importedLuxuryPercent` (50) of a
+  nothing stored. Every figure it pays is `trade.importedLuxuryPercent` of a
   dug seam's, because the share is read as the **copy count** (`copiesFor`) and
-  not applied fold by fold; the flat contentment every unique luxury pays is
-  halved beside it in `explainHappiness`. Every line says `· on loan`.
+  not applied fold by fold; the flat contentment every unique luxury pays takes
+  the same share beside it in `explainHappiness`. Every line says `· on loan`.
+  The share is 100 since batch DS4, which dropped the card's "half value"
+  clause, so a loan pays as one copy does.
+- **No card pays the host of a route** since batch DS4. The Common Road's coin
+  to the town its caravan reached, and The Exchange's science and culture to
+  it, were the two rows that named `payee: 'host'` on a route. Both clauses
+  went, and so did the route fold's host grant (`hostGrants`). A card still pays
+  a foreign town through `where: 'city'` with that payee (The Foreign Factor, a
+  retired row).
 
 ## City connections
 

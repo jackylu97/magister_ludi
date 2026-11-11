@@ -2307,7 +2307,7 @@ describe("determinism", () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(233);
+    expect(SCHEMA_VERSION).toBe(234);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -9073,11 +9073,9 @@ describe("the engine shapes", () => {
     // (`CardYieldAmplifierEffect.on`).
     "theAgeOfImprovement · cardYieldAmplifier",
     "provisioningContracts · routeYield",
-    // C6: The Common Road is two rows of the same shape and not one read twice
-    // — one paid to the empire that sent the caravan, one paid to the town it
-    // reaches (`CardPaysEffect.payee`). Army Contracts' case exactly: a card
-    // that says two things about one road says them in two rows.
-    "theCommonRoad · routeYield",
+    // C6: The Common Road was two rows of the same shape — one paid to the
+    // empire that sent the caravan, one paid to the town it reaches
+    // (`CardPaysEffect.payee`). Batch DS4 dropped the host's row, so it is one.
     "theCommonRoad · routeYield",
     // C3: Venture Routes doubles the coin on a long haul. A route `pays` share
     // like Established Routes', gated on a new narrowing of the same kind — the
@@ -9099,16 +9097,21 @@ describe("the engine shapes", () => {
     // which is why it registers twice.
     "theCaravanseraiNetwork · routeYield",
     // The Commerce implementation batch: The Exchange, built as an
-    // approximation, pays your foreign trade routes and their host city in two
-    // rows of one shape (The Common Road's case).
-    "theExchange · routeYield",
-    "theExchange · routeYield",
-    "theScholarsRoads · routeYield",
+    // approximation, paid your foreign trade routes and their host city in two
+    // rows of one shape. Batch DS4 cut both: it pays a percentage on a count
+    // now, which is no route row. The Scholars' Roads lost its flat row in the
+    // same batch and keeps its share.
     "theScholarsRoads · routeYield",
     // C3: A Court of Merchants' half again, taken of the whole recurring
     // trickle rather than of one town's buildings — `where: 'empire'`, the
     // second row in the game to say it.
     "aCourtOfMerchants · cityRenownPercent",
+    // Batch DS4: The Nest Egg reads the gold the empire makes each turn (the
+    // `empireYield` count, `voice: 'gold'`), the first Order to put that count
+    // on a town line; Money at Work and Bills of Exchange follow below. The
+    // Pack Trail is a new route flat at Tier 0.
+    "theNestEgg · empireYield",
+    "thePackTrail · routeYield",
     // The Commerce implementation batch's new rows: three trade route lines
     // (one narrowed by the religion the far end keeps, one by a customs house
     // at the origin, one by the far end's owner being at war) and The Bourse,
@@ -9116,7 +9119,9 @@ describe("the engine shapes", () => {
     // The Silk Road Monks, to common.json, so it is listed with the commons.
     "theCustomsService · routeYield",
     "theBourse · buildingYieldPercent",
+    "moneyAtWork · empireYield",
     "theNeutralFlag · routeYield",
+    "billsOfExchange · empireYield",
     // Commerce batch T3: The Champagne Fairs' fair every ten turns, counted
     // off the citizens of the towns a home route arrives at.
     "theChampagneFairs · periodic",

@@ -645,6 +645,21 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
   effects, so a save that holds one still plays it, and every shape it uses
   still runs. So some cards this briefing names as the user of a shape are
   retired; each deck sheet's "Retired rows" lists them.
+- **Batch DS4** (Commerce's rows of the same spec) changed four readings:
+  - three cards read the empire's **gold income** through the `empireYield`
+    count (`voice: 'gold'`, the `goldPerTurn` line of `foldEmpireRates`): The
+    Nest Egg at the capital, Money at Work in every town, and Bills of
+    Exchange as a city percentage. The count is the gold the towns and the
+    empire's standing lines make after upkeep, without the cards' empire
+    lines, and it answers nothing while the books are being folded
+    (`rateDepth`);
+  - `monopolyLuxuries` counts a luxury the empire holds that no other empire
+    holds, with no number of copies (The Monopoly);
+  - a route row no longer pays its host: the route reading of
+    `CardPaysEffect.payee` and the route fold's `hostGrants` are gone, and a
+    town scope `queueHolds` no longer takes `empireBuilding`;
+  - `rules.trade.importedLuxuryPercent` is 100, so The Capitulations' loan pays
+    as one copy does.
 - **Doctrines** (`docs/orders-and-doctrines.md` "Doctrines"): cards held for the
   whole game. A Doctrine takes no chair and is `liveEffects`' second source. 98 are
   live and all are dealt: Dominion 13, Expansionist 24, Commerce 14, Scientific 15,
@@ -1094,7 +1109,8 @@ Reference: **`docs/trade.md`** and **`docs/luxuries.md`**.
   Capitulations' (`postsLendLuxuries`): each foreign town holding the seat's
   paying post lends one kind it holds improved, at
   `rules.trade.importedLuxuryPercent` of a dug seam's pay (`luxuryLoans`,
-  `resourceEffects.ts`).
+  `resourceEffects.ts`). The figure is 100 since batch DS4, so a loan pays as
+  one copy does.
 - **The meters after batch TT1.** Every founded town costs 3 authority, on the
   coast or inland (`rules.meters.authority.coastalCity` is gone). The Civil
   Service, the Assize Court, The Examination Court and The Post Station give no

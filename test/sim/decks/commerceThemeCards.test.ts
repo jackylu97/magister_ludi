@@ -5,7 +5,7 @@
  * rows T1 retired, moved and retyped:
  *
  *   · Private Patronage: +40% gold, and it keeps its slower ordinary buildings
- *     (reading 4);
+ *     (reading 4). Since batch DS4 it is +25% gold and nothing else;
  *   · The Market Writ, The Factors' Houses and Caravanserai Cities: no gold
  *     percentage left (the trims);
  *   · The Carters' Guild: +25% production toward buildings in a town a
@@ -16,7 +16,8 @@
  *   · Bought and Paid For: +4% production and culture in a town for each
  *     building bought there with gold, at most +24% (reading 32);
  *   · Money at Work: +1 science in every town for every 500 gold, with no cap
- *     (reading 31);
+ *     (reading 31). Since batch DS4 it reads the gold the empire makes each
+ *     turn, +1 science for every 20, and The Nest Egg reads the same figure;
  *   · the six moves of tier, the three deferred rows' new text, tier and
  *     rarity (reading 41), the eleven retirements (reading 39), the four rows
  *     moved to `common.json` (reading 37), and the five shared rows that change
@@ -36,7 +37,8 @@
  *   · The Hanse: +3% production and culture for each of your towns holding
  *     your trading post, at most +30% (readings 13 and 30);
  *   · Bills of Exchange: +1% production for every 100 gold in the treasury,
- *     at most +30% (reading 30);
+ *     at most +30% (reading 30). Since batch DS4 it is +1% for every 10 gold
+ *     the empire makes each turn;
  *   · The Grain Barges: a domestic trade route pays its destination +1 food
  *     and +1 production for every four citizens of its origin (reading 40);
  *   · Merchant Scholars, shared with Scientific: Tier III, and a foreign trade
@@ -71,6 +73,7 @@ import {
   ordersForDecks,
 } from '../../../src/sim/statecraftData';
 import type { UnitTypeId } from '../../../src/sim/unitData';
+import { foldEmpireRates } from '../../../src/sim/yields/empire';
 import { explainTileYield, yieldContextFor } from '../../../src/sim/yields/hex';
 import { productionModifiers } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
@@ -143,21 +146,46 @@ function withGoals(id: string, goals: CommissionGoal[], run: () => void): void {
   }
 }
 
+/**
+ * The gold seat 0 makes each turn, as the `empireYield` count reads it: the
+ * `goldPerTurn` line of the empire's books, floored, and never below nothing.
+ * The Nest Egg, Bills of Exchange and Money at Work read this since batch DS4.
+ */
+function goldMade(state: GameState): number {
+  return Math.max(0, Math.floor(foldEmpireRates(state, 0).goldPerTurn));
+}
+
+/**
+ * Two towns of seat 0 with a gold income worth counting: Market Day pays the
+ * capital (the first town) +1 gold for every citizen, and the capital has
+ * forty-five of them.
+ */
+function earning(card: string): { state: GameState; one: City; two: City } {
+  const state = bareState(16, 10);
+  const one = town(state, 3, 5, 3);
+  const two = town(state, 11, 5, 3);
+  slot(state, 0, card);
+  slot(state, 0, 'marketDay');
+  one.population = 45;
+  bumpRevision(state);
+  return { state, one, two };
+}
+
 /** True while the card sits in one of seat 0's chairs. */
 function seated(state: GameState, card: string): boolean {
   return playerById(state, 0)!.statecraft.slots.some((held) => held?.card === card);
 }
 
 describe('Commerce batch T1: the gold percentages', () => {
-  it('Private Patronage pays +40% gold and still slows ordinary buildings', () => {
+  it('Private Patronage pays +25% gold and slows no building (batch DS4)', () => {
     const state = bareState();
     const city = town(state, 5, 5, 3);
     slot(state, 0, 'privatePatronage');
-    expect(townPercent(state, city, 'privatePatronage', 'gold')).toBe(40);
+    expect(townPercent(state, city, 'privatePatronage', 'gold')).toBe(25);
     const slower = productionModifiers(state, city, { kind: 'building', id: 'granary' }).filter((line) =>
       line.source.includes('Private Patronage'),
     );
-    expect(slower.map((line) => line.percent)).toEqual([-20]);
+    expect(slower).toEqual([]);
   });
 
   it('The Market Writ, The Factors’ Houses and Caravanserai Cities keep no gold percentage', () => {
@@ -230,24 +258,49 @@ describe('Commerce batch T1: the cards that pay something new', () => {
     }
   });
 
-  it('Money at Work pays every town +1 science for every 500 gold, with no cap', () => {
-    const state = bareState(16, 10);
-    const one = town(state, 3, 5, 3);
-    const two = town(state, 11, 5, 3);
-    slot(state, 0, 'moneyAtWork');
-    const player = playerById(state, 0)!;
-    player.gold = 1499;
-    bumpRevision(state);
-    expect(townPays(state, one, 'moneyAtWork', 'science')).toBe(2);
-    expect(townPays(state, two, 'moneyAtWork', 'science')).toBe(2);
+  it('Money at Work pays every town +1 science for every 20 gold you make each turn (batch DS4)', () => {
+    const { state, one, two } = earning('moneyAtWork');
+    const made = goldMade(state);
+    expect(made, 'an income of two helpings or more').toBeGreaterThanOrEqual(40);
+    const helpings = Math.floor(made / 20);
+    expect(townPays(state, one, 'moneyAtWork', 'science')).toBe(helpings);
+    expect(townPays(state, two, 'moneyAtWork', 'science')).toBe(helpings);
     expect(townPays(state, one, 'moneyAtWork', 'production')).toBe(0);
-    player.gold = 20000;
+    // **The treasury plays no part now**: a full one and an empty one pay the same.
+    const player = playerById(state, 0)!;
+    player.gold = 99999;
     bumpRevision(state);
-    expect(townPays(state, one, 'moneyAtWork', 'science')).toBe(40);
-    // A treasury below zero counts as nothing.
-    player.gold = -300;
+    expect(townPays(state, one, 'moneyAtWork', 'science')).toBe(helpings);
+    player.gold = 0;
     bumpRevision(state);
-    expect(townPays(state, two, 'moneyAtWork', 'science')).toBe(0);
+    expect(townPays(state, one, 'moneyAtWork', 'science')).toBe(helpings);
+    // **The empire's own card lines do not count** (the row's note): The Art
+    // Dealers pays the empire as a whole, and the income the card reads stays.
+    slot(state, 0, 'theArtDealers');
+    expect(goldMade(state)).toBe(made);
+    expect(townPays(state, one, 'moneyAtWork', 'science')).toBe(helpings);
+    // A town that makes more gold raises every town's science.
+    one.population = 85;
+    bumpRevision(state);
+    expect(goldMade(state)).toBeGreaterThan(made);
+    expect(townPays(state, two, 'moneyAtWork', 'science')).toBe(Math.floor(goldMade(state) / 20));
+  });
+
+  it('The Nest Egg pays the capital +1 culture for every 4 gold you make each turn, and no other town (batch DS4)', () => {
+    const { state, one, two } = earning('theNestEgg');
+    const made = goldMade(state);
+    expect(made).toBeGreaterThanOrEqual(40);
+    expect(townPays(state, one, 'theNestEgg', 'culture')).toBe(Math.floor(made / 4));
+    expect(townPays(state, two, 'theNestEgg', 'culture')).toBe(0);
+    // No cap, and no treasury in the reading.
+    const player = playerById(state, 0)!;
+    player.gold = 0;
+    bumpRevision(state);
+    expect(townPays(state, one, 'theNestEgg', 'culture')).toBe(Math.floor(made / 4));
+    expect(orderDef('theNestEgg' as OrderId).effects).toEqual([
+      expect.objectContaining({ where: 'capital', basis: 'count', count: 'empireYield', voice: 'gold', per: 4 }),
+    ]);
+    expect((orderDef('theNestEgg' as OrderId).effects[0] as { max?: number }).max).toBeUndefined();
   });
 
   it('The Customs Houses pays no hex gold, no renown and no gold percentage any more', () => {
@@ -560,24 +613,23 @@ describe('Commerce batch T2: the percentages on a count', () => {
     }
   });
 
-  it('Bills of Exchange pays +1% production for every 100 gold in the treasury, at most +30%', () => {
-    const state = bareState(16, 10);
-    const one = town(state, 3, 5, 3);
-    const two = town(state, 11, 5, 3);
-    slot(state, 0, 'billsOfExchange');
-    const player = playerById(state, 0)!;
-    player.gold = 250;
-    bumpRevision(state);
-    expect(townPercent(state, one, 'billsOfExchange', 'production')).toBe(2);
-    expect(townPercent(state, two, 'billsOfExchange', 'production')).toBe(2);
+  it('Bills of Exchange pays +1% production for every 10 gold you make each turn, at most +30% (batch DS4)', () => {
+    const { state, one, two } = earning('billsOfExchange');
+    const made = goldMade(state);
+    expect(made).toBeGreaterThanOrEqual(40);
+    const percent = Math.min(30, Math.floor(made / 10));
+    expect(townPercent(state, one, 'billsOfExchange', 'production')).toBe(percent);
+    expect(townPercent(state, two, 'billsOfExchange', 'production')).toBe(percent);
     expect(townPercent(state, one, 'billsOfExchange', 'gold')).toBe(0);
-    player.gold = 9000;
+    // The treasury plays no part now.
+    playerById(state, 0)!.gold = 99999;
     bumpRevision(state);
+    expect(townPercent(state, one, 'billsOfExchange', 'production')).toBe(percent);
+    // An income of three hundred gold and more reaches the cap.
+    one.population = 400;
+    bumpRevision(state);
+    expect(goldMade(state)).toBeGreaterThanOrEqual(300);
     expect(townPercent(state, one, 'billsOfExchange', 'production')).toBe(30);
-    // A treasury below zero counts as nothing.
-    player.gold = -400;
-    bumpRevision(state);
-    expect(townPercent(state, one, 'billsOfExchange', 'production')).toBe(0);
     for (const line of explainCardPercentYields(state, two).filter((l) => l.card === 'billsOfExchange')) {
       expect(line.stage).toBe('city');
     }

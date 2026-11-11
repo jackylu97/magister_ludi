@@ -474,70 +474,72 @@ across the seven files. Ids are internal; the names in these tables are the card
 
 | Order | Band | Rarity | Role | Effect |
 |---|---|---|---|---|
-| Salt Tithes | 0 | ● | P | Gain +3 gold per distinct accessible improved luxury you produce. Worked luxury tiles gain +1 food. |
-| Travellers' Letters | 0 | ● | P | Your capital gains +2 science and +2 culture, plus +1 of each per foreign empire met, no cap. |
+| Salt Tithes | 0 | ● | P | +3 gold for each different luxury you have improved. |
+| Travellers' Letters | 0 | ● | P | Your capital gains +2 science and +2 culture for each empire you have met. |
 | The Pathfinders' Company | 0 | ◆ | S | Scouts gain +1 sight and +1 movement. |
-| The Mineral Trade | 0 | ● | S | Worked mines and quarries gain +2 gold but lose 1 production. |
-| Land Speculation | 0 | ◆ | S | Buying a hex with a resource on it grants culture equal to half the gold paid. |
-| Private Patronage | 1 | ○ | P | Your cities gain +40% gold. Producing ordinary buildings normally takes 20% more production. Empire buildings and wonders are unaffected. |
-| Civic Receipts | 1 | ◆ | S | Buying any building grants culture equal to 15% of the gold paid, with no cap. |
+| The Mineral Trade | 0 | ● | S | Mines and quarries gain +1 gold. |
+| Land Speculation | 0 | ◆ | S | Buying a hex grants culture equal to half the gold paid. |
+| Private Patronage | 1 | ○ | P | Towns gain +25% gold. |
+| Civic Receipts | 1 | ◆ | S | Buying a building grants culture equal to 15% of the gold paid. |
 | Provisioning Contracts | 1 | ● | S | Domestic routes grant their destination +3 food and +3 production. |
-| The Common Road | 2 | ● | S | Your foreign routes grant you +3 gold, +3 science and +3 culture. Each also grants its host city +3 gold. |
+| The Common Road | 2 | ● | S | Your foreign routes give +3 gold, +3 science and +3 culture. |
 | The Factors' Houses | 2 | ● | P | Your cities holding your trading post gain +2 gold and +4 culture. |
-| The Planters' Charter | 1 | ◆ | S | Once drafted, unlock the Plantation House for construction. No chair required. The building is purchased with gold; its payload is specified below. |
+| The Planters' Charter | 1 | ◆ | S | Charter. Unlocks the Plantation House, a building you buy with gold. |
 | The Market Writ | 1 | ◆ | P | +1 authority for every two Markets in your empire. |
 | Commercial Education | 1 | ● | P | Gold buildings provide +3 science. |
-| Financed Industry | 1 | ○ | P | Cities gain production equal to 30% of their gold yield. Every city loses 3 food. |
-| The Home Market | 2 | ● | P | Cities receiving at least two of your domestic routes gain +30% food, +30% production and +2 happiness, once per city. |
+| Financed Industry | 1 | ○ | P | Towns gain production equal to 20% of their gold. |
+| The Home Market | 2 | ● | P | Towns that receive two domestic routes gain +30% food and production. |
 | The Money Lenders | 3 | ○ | P | Earn interest equal to 4% of your treasury each turn, with no cap. |
-| Mining Districts | 2 | ◆ | S | Worked mines gain +2 gold and +2 science for every two adjacent mines. |
-| Foreign Procurement | 2 | ◆ | S | Ignore strategic resource requirements when purchasing units. All units cost 20% more. |
-| The League of Cities | 2 | ○ | P | Cities with one of your paying outgoing routes gain +23% production and cost one less authority, minimum one. Cities without one lose 10% gold. |
-| The Exchange | 2 | ◆ | P | Each different foreign empire your routes currently serve grants +5% science and culture empire-wide. Foreign routes to your cities grant +2 science and +2 culture to both you and the sender. |
-| The Scholars' Roads | 3 | ○ | P | Lose 4 route capacity. Your routes gain +2 science and +2 culture, and gain +50% science and culture. |
+| Mining Districts | 2 | ◆ | S | Mines gain +2 gold and +2 science for every two mines beside them. |
+| Foreign Procurement | 2 | ◆ | S | You may buy units without their strategic resource. |
+| The League of Cities | 2 | ○ | P | Towns that send a trade route gain +20% production. |
+| The Exchange | 2 | ◆ | P | +5% science and culture for each foreign empire your routes reach. |
+| The Scholars' Roads | 3 | ○ | P | Your routes give +50% science and culture. You run 2 fewer routes. |
 | The Customs Houses | 2 | ◆ | P | Each customs house in your borders gives its town +4 science and +4 culture, whether or not it is worked. |
-| Strategic Exports | 2 | ◆ | P | Trade routes gain +2 science per improved strategic resource deposit in their origin city. Your strategic resource deposits provide twice their normal quantity. |
+| Strategic Exports | 2 | ◆ | P | Your strategic resources supply twice as many copies. |
 | Caravanserai Cities | 3 | ◆ | S | Caravanserais can be built in every city. |
 | The Endowment | 3 | ◆ | P | Purchased buildings provide +2 science each, at most +6 per town. |
-| Merchant Princes | 4 | ○ | S | Gold may purchase great-person drafts at the existing escalating offer price, with normal availability and purchase limits. |
+| Merchant Princes | 4 | ○ | S | You may buy great-person drafts with gold. |
 | The World's Exchange | 4 | ○ | S | +10% production toward the Opus for each foreign empire your trade routes reach, at most +40%. |
-| The Chartered Metropolis | 3 | ○ | P | Cities with at least three of your paying outgoing routes gain +38% food, production and culture, but each costs +4 authority while qualified. |
+| The Chartered Metropolis | 3 | ○ | P | Towns that send three trade routes gain +35% food, production and culture. |
 | The Admiralty of Trade | 3 | ◆ | S | Your trade routes to a town holding your trading post have no range limit. |
-| The Merchant Works | 4 | ○ | P | Cities building a world wonder, an empire building or the Opus gain production equal to 25% of their gold, and lose 20% of their gold. |
+| The Merchant Works | 4 | ○ | P | Towns building a wonder gain production equal to 25% of their gold. |
 | The Gilded Scaffold | 3 | ○ | P | You may purchase world wonders. All your cities lose 15% production. |
 | A Court of Merchants | 3 | ○ | S | Gain +50% renown, but great-person offers contain only Great Merchants. |
-| Corner the Market | 2 | ◆ | S | Commission. Hold four copies of one luxury, counting copies you receive in deals. Then, for the rest of the game, gain +2 happiness for each luxury you hold two or more copies of. The card leaves its chair. |
-| The Strongroom | 3 | ◆ | S | Commission. Goal: end a turn with at least 1,500 gold in your treasury. Reward: culture equal to a fifth of your treasury at that moment, and a great merchant. The card then leaves its chair. |
+| Corner the Market | 2 | ◆ | S | Goal: hold four copies of one luxury. Reward: +2 happiness for each luxury you hold two or more copies of. |
+| The Strongroom | 3 | ◆ | S | Goal: hold 1,500 gold. Reward: a great merchant, and culture equal to a fifth of your treasury. |
 | The Carters' Guild | 2 | ● | S | Towns that receive a domestic trade route build buildings 25% faster. |
-| The Nest Egg | 0 | ● | P | Your capital gains +1 culture for every 50 gold in your treasury, at most +4. |
+| The Nest Egg | 0 | ● | P | Your capital gains +1 culture for every 4 gold you make each turn. |
+| The Pack Trail | 0 | ● | S | Your trade routes give +2 gold. |
+| The First Caravan | 0 | ● | S | Boon. On draft: gain a caravan. |
 | The Staple Right | 1 | ● | P | Gain +3 gold and +2 culture for each luxury you hold two or more copies of. |
-| Numidian Cavalry | 2 | ◆ | S | Once drafted, unlock Numidian Cavalry, a Horseman replacement. No chair required. Gains +1 combat strength per distinct luxury you control; luxuries obtained only through the Silk Road contribute +0.5 instead. Normal technology requirements apply. |
+| Numidian Cavalry | 2 | ◆ | S | Charter. Unlocks Numidian Cavalry: a Horseman with +1 strength for each luxury you hold. |
 | Houses of Account | 2 | ● | P | Gold buildings provide +2 happiness and +1 renown. |
-| A Guild Commission | 3 | ◆ | S | Commission. Goal: buy five buildings with gold while seated. Reward: a free great-person draft, the same offer Merchant Princes sells for gold. The card then leaves its chair. |
-| The Monopoly | 3 | ○ | P | For each luxury you hold three or more copies of and no other empire holds, gain +8 gold, +5 culture and +1 happiness in every city. |
+| A Guild Commission | 3 | ◆ | S | Goal: buy five buildings with gold. Reward: a free great-person draft. |
+| The Monopoly | 3 | ○ | P | For each luxury that only you hold, every town gains +5 gold and +3 culture. |
 | The Customs Service | 3 | ◆ | S | Trade routes leaving a city whose borders hold a customs house gain +3 gold and +3 culture. |
 | The Bourse | 3 | ○ | E | Gold buildings produce 75% more of their own yields. |
 | The Spice Exchange | 2 | ○ | P | Every city gains +5% science and +5% culture for each luxury you hold two or more copies of, at most +30%. |
-| Money at Work | 4 | ○ | P | Every town gains +1 science for every 500 gold in your treasury. |
+| Money at Work | 4 | ○ | P | Every town gains +1 science for every 20 gold you make each turn. |
 | Bought and Paid For | 4 | ○ | P | Each town gains +4% production and culture for each building you bought there with gold, at most +24%. |
 | The Neutral Flag | 4 | ◆ | P | Your trade routes to an empire that is at war with another empire gain +100% gold and +50% science. |
-| The World's Fair | 4 | ○ | S | Commission. Have trade routes to four other empires at the same time. Then your trading post is established in the capital of each of them. The card leaves its chair. |
-| The Great Loan | 4 | ○ | S | When you seat this card, gain gold equal to twenty turns of your gold income. For the next forty turns your cities lose 25% gold. The card then leaves its chair. |
+| The World's Fair | 4 | ○ | S | Goal: have trade routes to four empires. Reward: your trading post in each of their capitals. |
+| The Great Loan | 4 | ○ | S | Boon. On draft: gain twenty turns of gold income. Your towns make 25% less gold for forty turns. |
 | The Trade Winds | 4 | ○ | S | Gain +3 trade route capacity. Your trade routes reach 50% farther. |
 | Market Day | 0 | ● | P | Your capital gains +1 gold for every citizen. |
 | The Emporia | 0 | ● | S | Improved luxury hexes gain +1 food and +1 production. |
 | The Grain Banks | 1 | ◆ | P | Cities with a Granary gain +3 gold. |
 | The Market Halls | 1 | ● | P | Towns with a Market gain +1 food and +1 production for every three citizens. |
 | Names in Stone | 2 | ◆ | P | +1% science and culture for every 200 gold you have spent buying this game, at most +30%. |
-| Bills of Exchange | 2 | ◆ | P | Every town gains +1% production for every 100 gold in your treasury, at most +30%. |
+| Bills of Exchange | 2 | ◆ | P | Every town gains +1% production for every 10 gold you make each turn, at most +30%. |
 | The Grain Barges | 4 | ◆ | P | Your domestic trade routes pay their destination +1 food and +1 production for every four citizens of their origin. |
 | The Return Leg | 3 | ○ | S | Your trade routes between your own towns also pay their origin everything they pay their destination. |
 | The Fondaci | 2 | ◆ | S | Each time one of your trading posts is established, gain science and culture, each equal to twenty times the population of its town. |
 | The Champagne Fairs | 3 | ◆ | S | Every ten turns, each town that receives a domestic trade route grants culture equal to ten times its population. |
-| Commission: The Great Fair | 2 | ◆ | S | Commission. Have domestic trade routes arrive in four of your towns at the same time. Then, for the rest of the game, you may run two more trade routes. The card leaves its chair. |
+| Commission: The Great Fair | 2 | ◆ | S | Goal: have domestic routes arrive in four of your towns. Reward: two more trade routes. |
 | Export Guilds | 1 | ◆ | P | Each luxury you lend to another empire in a deal gives your capital +4 culture and +2 production. |
 | The Treaty Ports | 2 | ◆ | P | +5% production for each empire you hold a deal with, at most +25%. |
-| The Capitulations | 3 | ◆ | S | Each foreign town holding your trading post lends you one of its luxuries that you lack, at half value. |
+| The Capitulations | 3 | ◆ | S | Each foreign town with your trading post lends you a luxury you lack. |
 | The Casa da Índia | 4 | ○ | P | Every copy of a luxury you hold pays its yields, not only the first. |
 | Letters of Credit | 1 | ○ | S | You may buy with gold until your treasury reaches −150. Debt disbands none of your units until your treasury falls below −150. |
 | The Strongbox | 1 | ◆ | P | While seated, this card gains +1 science and +1 culture each turn you end with at least 300 gold in your treasury, up to +15 of each. |
@@ -762,18 +764,18 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Assay | Expansionist · Scientific | 1 | ● | S | Hexes with a strategic resource gain +2 science. |
 | The Mountain Observatories | Expansionist · Scientific | 0 | ● | P | Cities with a mountain in their borders gain +3 science. |
 | The Sculpted Landscape | Expansionist · Magisterial | 3 | ◆ | S | Farms beside a great-person work gain +2 food and +2 culture. |
-| The Tithe | Commerce · Devotion | 2 | ○ | P | Cities with a Temple gain gold equal to 25% of their base faith, and +25% gold. |
+| The Tithe | Commerce · Devotion | 2 | ○ | P | Towns with a Temple gain gold equal to 25% of their faith. |
 | Merchant Scholars | Commerce · Scientific | 3 | ◆ | P | Foreign routes gain +2 science for each Academy in the origin city. |
 | The Cloister | Devotion · Scientific | 2 | ○ | P | Cities with a Temple gain science equal to 30% of their base faith. Their Libraries and Universities each gain +3 food. |
 | Sacred Commissions | Devotion · Magisterial | 2 | ◆ | S | Cities with a Holy Site gain +38% production toward wonders. Completing a wonder grants 60 faith. |
 | Illuminated Treatises | Scientific · Magisterial | 0 | ● | P | Cities with both a Library and a Monument gain +1 science and +1 culture. |
 | The House of Wisdom | Scientific · Magisterial | 3 | ◆ | S | Worked Academies gain +3 culture. Cities working an Academy gain +1 renown and +30% production toward wonders. Each city receives the city bonus once. |
-| The Merchant Navigators | Commerce · Scientific | 2 | ● | S | Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +5 science. |
+| The Merchant Navigators | Commerce · Scientific | 2 | ● | S | Trade routes from a town with a Harbour gain +5 science. |
 | Letters of Marque | Dominion · Commerce | 3 | ○ | S | Naval kills grant 60 gold. |
-| The Exchange of Discoveries | Commerce · Scientific | 1 | ◆ | S | +2 science on mines and quarries on a resource. Additional +2 if the city has a market. |
+| The Exchange of Discoveries | Commerce · Scientific | 1 | ◆ | S | Mines and quarries on a resource gain +2 science. |
 | Garden Provinces | Expansionist · Magisterial | 2 | ● | P | Connected cities with a Monument gain +3 food and +3 culture. |
 | Garden Cities | Expansionist · Magisterial | 1 | ◆ | P | Towns with a Monument gain +1 culture for every three wild tiles they work. |
-| Pilgrim Markets | Commerce · Devotion | 2 | ◆ | S | Routes gain +3 gold and +3 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify. |
+| Pilgrim Markets | Commerce · Devotion | 2 | ◆ | S | Trade routes to or from a town with a Holy Site gain +3 gold and +3 faith. |
 | Rites of Passage | Dominion · Devotion | 0 | ● | S | Gaining a military unit grants 12 faith. |
 | The Sacred Host | Dominion · Devotion | 1 | ○ | S | Kills grant 15 faith. |
 | The Crusader Orders | Dominion · Devotion | 2 | ◆ | S | Military units gain +3 strength in land that does not follow your religion. |
@@ -788,9 +790,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The New Code | Dominion · Magisterial | 3 | ○ | S | Capturing a city deals you a free Order hand, at most once every ten turns. |
 | Looted Art | Dominion · Magisterial | 2 | ◆ | S | Capturing a city grants 20 renown for each great-person work and wonder inside its borders. |
 | The Farming Garrisons | Dominion · Expansionist | 1 | ● | S | Hexes with a fortified unit gain +1 food and +1 production. |
-| The Merchant Shrines | Commerce · Devotion | 0 | ● | P | Your capital gains +2 faith. Cities working an improved luxury gain +1 faith, once per city. |
-| The Silk Road Monks | Commerce · Devotion | 2 | ◆ | S | Your trade routes carry 100% more religious pressure. Trade routes you send to a city that follows your religion gain +3 gold and +3 culture. |
-| The Brokers' Redraw | Commerce · Magisterial | 2 | ○ | S | You may reroll a draft with gold instead of faith. All other purchasing is 10% more expensive. |
+| The Merchant Shrines | Commerce · Devotion | 0 | ● | P | Towns working an improved luxury gain +2 faith. |
+| The Silk Road Monks | Commerce · Devotion | 2 | ◆ | S | Trade routes to a town that follows your religion gain +3 gold and +3 culture. |
+| The Brokers' Redraw | Commerce · Magisterial | 2 | ○ | S | You may reroll an Order hand with gold. |
 | The Standing Army | Dominion · Commerce | 1 | ◆ | S | Garrisoned units cost no upkeep. |
 | The Art Dealers | Commerce · Magisterial | 1 | ● | E | +3 gold for each card seated in your government. |
 | Mercenary Contracts | Dominion · Commerce | 3 | ◆ | S | Military units you buy cost no upkeep for twenty turns. |
@@ -830,44 +832,46 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Old Songs** — Open water your people work counts as unbuilt ground here: the game tells works from wild, and not land from sea.
 - **The Waterworks** — The saving on the aqueduct is paid as extra production toward it, which comes to the same price.
 - **Travellers' Letters** — An empire you have met stays met, so the letters never stop arriving — a rival you have since destroyed is still a rival you once wrote to.
-- **Private Patronage** — An ordinary building is one the realm may raise in every city. A wonder is its own kind of queue row, so the slower building does not reach it, and neither does it reach a building the realm may hold only once.
 - **Civic Receipts** — Every building a town buys pays, however many it has bought before and whichever shelf it came off. What the card still does not pay for is a unit bought at the same counter, which is the whole of what the word building narrows. The share is taken of what actually left the treasury, so a discount at the till is a smaller rebate.
-- **The Common Road** — The host's two gold are paid to the foreign city the caravan reaches, and appear on that city's own sheet under this card's name. They are a flat grant: the sea premium and any percentage of yours raise what the trade route pays you, never what it pays your host. A blockade at either end stops both halves, as it stops everything a caravan carries.
 - **The Return Leg** — The town a trade route between your own cities leaves is paid what the town it reaches is paid, line for line: the route's own pay, every card's addition to it, and a blockade that stops it. The copy stays in the town it was paid to, and no card that raises what trade routes pay raises it a second time. A trade route to another empire is not copied.
 - **The Planters' Charter** — The Plantation House is bought with gold and never built. Every plantation its city works gains a little food and a little gold.
 - **The Treaty Ports** — An empire counts once, however many deals you hold with it. A deal that only hands over gold at once leaves nothing running, so it does not count, and a war ends every deal between the two empires.
 - **Financed Industry** — The share is taken of the town's own flat coin as it stood before any conversion spoke, so a card that turns coin into hammers cannot feed a card that turns hammers into coin.
-- **The Home Market** — A city has to be the end of two trade routes between your own cities at once, and the contentment is paid once per city however many arrive.
+- **The Home Market** — A town counts while two or more trade routes from your other towns end there at once.
 - **The Money Lenders** — The interest is counted on the treasury after your cities add their gold for the turn and before upkeep is paid. It is paid in whole steps, so the last few coins earn nothing, and a treasury in debt earns nothing.
 - **Mining Districts** — The neighbours need not be worked and need not be yours; the mine being paid does have to be worked, which is true of every line that lands on a hex. Odd numbers round down, so a mine with three beside it is paid once.
 - **Foreign Procurement** — The waiver is for the counter alone — a town still cannot put a knight in its queue without horses. A piece bought this way is an ordinary piece afterwards and still takes a copy, so an empire that buys past its iron finds the iron spoken for.
-- **The League of Cities** — A paying trade route is simply an active one — a route that has lapsed, been cancelled or been plundered is not counted. The discount never takes a city below one authority and never charges a city that was already free.
+- **The League of Cities** — A town counts while one of your trade routes sets out from it. A route that has been cancelled or plundered does not count.
 - **Export Guilds** — Each copy counts, so two copies of one luxury lent in two deals count twice. A copy counts while its deal runs, and a war ends every deal between the two empires.
-- **The Exchange** — The exchange runs along the trade routes you send: each pays you, and the city it reaches, the same science and culture. A trade route another empire sends to you pays you nothing from this card.
+- **The Exchange** — Each empire counts once, however many of your trade routes reach it.
 - **The Customs Houses** — A customs house counts for the town whose borders hold it, whether or not anyone works it.
-- **Strategic Exports** — The beaker on the trade route is an ordinary counted line, asked of the town the caravan left. The doubling touches no ground at all, which is the user's ruling: the seams on the map are what they always were, and what changes is the total your realm holds. It is taken of the copies your own opened seams supply and of nothing else, so a copy another empire lent you is not doubled and a copy you lent away comes off the doubled figure rather than being doubled with it. It is applied outside the walk that is remembered from turn to turn, because that walk is remembered on a clock that does not move when a card is taken up — a law read inside it would leave every count stale for the rest of the turn, and a stale count is a unit a seat can or cannot build, which is how a played game starts disagreeing with a replay of its own log.
+- **Strategic Exports** — The map does not change: the card doubles the copies that your own improved deposits supply. A copy another empire lends you is not doubled, and a copy you lend away comes off the doubled figure.
 - **Caravanserai Cities** — Being one to a realm and being one of the realm's great houses were a single mark doing two jobs, and this card is what needed them apart. They are two marks now, and every building that carried the old one carries both, so nothing about any existing row moved. The card lifts the limit and leaves the class exactly where it was: a realm may raise a yard in every town, and every one of them is still a great house — still priced against how many towns it will serve, still admitted wherever a card asks for an empire building, still counted as one of them, and still passed over by a discount written for the ordinary shelves. The card buys many of an expensive thing rather than turning it into a cheap one. One thing had to be made safe alongside it: the walk that gathers what a realm's great houses do used to read each town's shelf in turn, which was harmless while a realm could hold only one of each, so it now reads each row once however many copies stand.
 - **The Endowment** — A town now writes down which bank paid for each of its roofs, beside the turn they went up. Either bank counts: a library bought with faith is as bought as one bought with gold. A roof completed in the yard, granted by a card or laid as a relic counts for nothing. A captured town brings its record with it, so a conqueror is paid for the roofs its last owner bought.
 - **The World's Exchange** — An empire counts once, however many of your trade routes reach it, and only while one of those routes is running. The bonus goes to the Opus and to nothing else a city builds.
-- **The Chartered Metropolis** — A paying trade route is simply an active one — a route that has lapsed, been cancelled or been plundered is not counted. A city stops paying the extra authority the moment it drops below three.
+- **The Chartered Metropolis** — A town counts while three or more of your trade routes set out from it. A route that has been cancelled or plundered does not count.
 - **The Admiralty of Trade** — Only the town the route goes to needs your trading post, and the post must be paying: a war or a blockade suspends the waiver as it suspends a post's income. Routes by land and by sea are treated alike. Nothing else about sending a route changes: a lane no caravan could use, a partner you have not met, a war, a full set of trade routes and a route already running that way are all still refused.
-- **The Merchant Works** — The last work of all is one of the realm's single great houses by the data's own declaration, so it is covered by the same clause the Forum is. The conversion reads the town's flat coin as it stood before any conversion spoke, which is why the share it pays and the share it costs do not chase each other, and why gold carried home by a foreign road — an empire figure, not a town one — is outside the basis. Only the row at the front of the queue counts: a marvel standing second is a plan.
+- **The Merchant Works** — Only the item at the front of the town's queue counts. The share is taken of the town's own gold before any other card converts it.
 - **The Gilded Scaffold** — The treasury pays the wonder's full cost in hammers at the ordinary rate, and every other refusal at the counter still stands: a wonder another empire has already claimed, one whose technology is not in, and one whose site the ground does not hold are all refused as before. A wonder is still never bought by the faith bank, except in the one town whose own shelf opens it.
 - **A Court of Merchants** — The share is taken of everything the realm earns in renown each turn, and never of a lump a triumph pays. The narrowing is a strong nudge and not a lock: when every great merchant in the world has been called, the draft goes back to showing the whole roster, so a court that has run out of merchants still deals a hand. A draft somebody bought narrowed to another family is dealt as what it was bought as.
-- **Numidian Cavalry** — The rider can be built beside the Horseman rather than in place of it, once you reach the age of the Horseman's technology. Every kind of luxury you control counts in full, however you came by it.
-- **The Monopoly** — The happiness is paid once to your empire for each such luxury, not once in every city.
+- **Numidian Cavalry** — The rider can be built beside the Horseman rather than in place of it, once you reach the age of the Horseman's technology. Each kind of luxury you hold counts once, and a luxury you receive in a deal counts. A luxury that a trading post lends you does not count.
+- **The Monopoly** — A luxury counts while you hold at least one copy of it, deals included, and no other empire holds any.
 - **The World's Fair** — Each empire counts once, however many of your trade routes reach it. A capital that already holds your established trading post gains nothing more. The new posts pay as any other post does: not during a war, and not while the town is blockaded.
 - **The Great Loan** — The loan is paid at the end of the turn you seat the card, as long as your gold income is above nothing.
 - **Names in Stone** — Gold counts when you spend it on units, buildings, hexes, caravans and great people, and when you pour it into the Opus. Upgrades, gold given in a deal and gold spent to reroll a draft do not count.
 - **The Fondaci** — A trading post is established after a full route term of unbroken trading with a town. A trade route leaves your trading post at both of its ends, so one route to a new town can establish two posts, and each pays by the size of its own town. A town that already holds your trading post does not establish it again. The moment comes whether or not the post is paying that turn.
 - **The Champagne Fairs** — A fair counts each of your cities that one of your own trade routes reaches on the turn the fair is held, and pays for every citizen living there. The culture goes to your empire. The fairs are counted from the turn you seat the card.
 - **Commission: The Great Fair** — A town counts while at least one of your trade routes from another of your towns ends there. The goal is checked at the end of each turn.
-- **Land Speculation** — The culture is rounded down. The resource must be one your people can see: a resource they have no word for yet does not count.
-- **The Capitulations** — Only a trading post that is established and paying lends: not during a war with the town's owner, and not while the town is blockaded. Each town lends the first luxury it has improved that you do not hold and that no trade route or other post already brings you, and the towns are taken in the order they were founded. A borrowed luxury pays half of its happiness and half of its yields.
+- **Land Speculation** — The culture is rounded down.
+- **The Capitulations** — Only a trading post that is established and paying lends, so a post lends nothing during a war with the town's owner or while the town is blockaded. Each town lends the first luxury it has improved that you do not hold and that no other post already brings you. The towns are taken in the order they were founded. A borrowed luxury gives the same happiness and yields as one copy you hold.
 - **The Casa da Índia** — Only the luxury's own food, production, gold, science, culture and faith are paid for each copy. Its happiness and every other effect still count once for each kind. Silver and gold already pay some lines for each copy, and those lines are not paid twice.
 - **Letters of Credit** — Buildings, units, trade caravans, hexes and great-person drafts may all be bought on credit. Gold poured into a wonder or the Magnum Opus, and gold paid to redraw a hand of cards, must still come from gold you hold. While your treasury is below zero you still lose a share of your science and culture.
 - **The Strongbox** — Your treasury is checked at the end of each turn, after your income, interest and upkeep are paid. The card counts only while it is seated, and it keeps what it has counted when it leaves its chair.
 - **The Merchant Guilds** — Merchants in the trades are counted in all of your cities together.
+- **The Nest Egg** — Your gold income is read after upkeep. Gold that a card pays to your empire as a whole, and not to a town, does not count.
+- **Bills of Exchange** — Your gold income is read after upkeep. Gold that a card pays to your empire as a whole, and not to a town, does not count.
+- **Money at Work** — Your gold income is read after upkeep. Gold that a card pays to your empire as a whole, and not to a town, does not count.
+- **The First Caravan** — The caravan waits in your capital until you send it on a trade route. You can send it once you have room for a route, which a Market gives.
 - **The Golden Age** — A wonder completed while the bonus runs starts it again, and does not add a second bonus. The Magnum Opus is not a wonder.
 - **The Last Commission** — A great person counts whether they act or lay a work. A city is building the Magnum Opus while it stands at the front of its queue. While none of your cities is building it, the card pays nothing, and nothing is kept for later.
 - **The Prytaneion** — Only the Orders sitting in a chair count, this one included. A charter takes no chair, so it does not count, and neither does a Doctrine.
@@ -918,14 +922,12 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Processional Way** — A line runs straight along the hexes, in any direction, with each work beside the next and no gap. Every work of the line must be in your borders, and a prophet's Holy Site counts. A work on more than one line gains the bonus once. Like every bonus on a hex, a work pays it only while one of your cities works it.
 - **The Pull of the Masters** — This happens at the end of each turn, after borders grow, and peace or war does not matter. Every great-person work in your borders pulls, whoever laid it, and a prophet's Holy Site counts. Each work tries the hexes beside it in turn and takes the first one it may. A hex that a citizen of its town is working stays, and so does a hex with a great-person work on it; anything else on the hex, such as a farm or a road, comes with it. The hex joins your nearest town, but only if it is close enough for that town's own borders to reach; otherwise the work tries its next hex. A hex taken this turn cannot be taken again in the same turn, so when works of two empires reach for the same hex, the empire listed first among the players takes it.
 - **Letters of Marque** — The coin is for a kill made by one of your ships, wherever it happens.
-- **Pilgrim Markets** — The first card to pay a trade route in faith; nothing carried it before this one asked. The test is a disjunction, so one shrine is enough and two are not more — a road with a holy site at each end is paid once, which is the card's second sentence. The site is the prophet's work on the ground, anywhere inside either town's borders, and nobody has to be working the hex.
-- **The Exchange of Discoveries** — Both lines land on the same hexes; the second is asked of the town that owns the ground, so a seam whose city has raised its stalls is worth two beakers rather than one.
+- **Pilgrim Markets** — One Holy Site at either end is enough, and a route with a Holy Site at each end is paid once. The Holy Site may stand anywhere inside either town's borders, and nobody has to work its hex.
 - **Sacred Patronage** — A great person bought with faith costs the same faith each time. What rises is the renown each later great person needs. A great person counts whether they act or lay a work.
 - **Professional Soldiers** — The strength is given when the unit is bought while this card is held, and the unit keeps it for life.
 - **The Chartered Company** — Once the charter is drafted, the Company Guard can be hired from late in the last age of the technology tree.
 - **Mercenary Contracts** — A military unit bought with gold or with faith while this card is seated is covered from the turn it is bought. It keeps the waiver for the whole term, even if the card leaves its chair. Ships are not covered.
-- **The Silk Road Monks** — The religious pressure a trade route carries is doubled by adding the same amount again.
-- **The Brokers' Redraw** — Gold opens the door and pays a premium for it: the price is the faith ladder's own figure, multiplied, so faith stays the cheaper way to ask for a fresh hand and the card is a convenience rather than a replacement. The ladder itself is untouched — a redraw in either bank climbs the same rungs and raises the same count — and a hand whose first asking is free stays free in both. The surcharge on the second line reaches every unit and every building this empire buys, in either bank.
+- **The Brokers' Redraw** — The gold price is a multiple of the faith price, so faith stays the cheaper way to reroll. A reroll in either bank raises the same count, and a hand whose first reroll is free stays free in both. Gold may reroll any hand that faith may, not only an Order hand.
 - **The Art Dealers** — Only the Orders sitting in a chair count, this one included. A charter takes no chair, so it does not count, and neither does a Doctrine.
 - **The Consecration Feast** — A Cathedral bought with faith or gold is finished too, so it pays as one that was built.
 - **The Creed** — Your gods count before you found a religion. Each religion you are paid by adds its follower and enhancer beliefs. A holy city you capture does not add the gods of the empire that founded it.

@@ -207,7 +207,12 @@ describe('the shared cards of the four approved decks', () => {
       const kinds = orderDef(id as OrderId).effects.map((effect) => effect.kind);
       expect(kinds, id).not.toContain('purchaseRider');
     }
-    expect(orderDef('commonTheTithe' as OrderId).effects.map((effect) => effect.kind)).toContain('percentYields');
+    // Batch DS4 (`docs/plans/deck-simplification-2026-11-10.md`) cut The
+    // Tithe's +25% gold, so it keeps one effect: gold equal to a quarter of a
+    // Temple town's faith.
+    expect(orderDef('commonTheTithe' as OrderId).effects).toEqual([
+      expect.objectContaining({ kind: 'pays', where: 'city', basis: 'share', from: 'faith', to: 'gold', percent: 25 }),
+    ]);
     // Batch DS2 cut Letters of Marque's harbour gold with its other harbour
     // clause, so only the kill reward is left.
     expect(orderDef('lettersOfMarque' as OrderId).effects.map((effect) => effect.kind)).toEqual(['windfallRider']);

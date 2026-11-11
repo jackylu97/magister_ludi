@@ -87,14 +87,15 @@ describe('ruling (qqqqqq) 1 — a discount becomes +25% gold', () => {
   // Commerce batch T5 reworked Land Speculation: it pays culture for a hex
   // with a resource on it (the triage's reading 24), so it leaves this list.
   // `commerceGoods.test.ts` checks what it does now.
+  //
+  // Batch DS4 (`docs/plans/deck-simplification-2026-11-10.md`) made Private
+  // Patronage "Towns gain +25% gold": the number is smaller and the downside
+  // went.
   const RULED: Record<
     string,
     { percent: number; scope?: string; downside?: (effect: CardEffect) => boolean }
   > = {
-    privatePatronage: {
-      percent: 40,
-      downside: (e) => e.kind === 'productionBonus' && e.percent === -20,
-    },
+    privatePatronage: { percent: 25 },
     boughtSwords: {
       percent: 38,
       downside: (e) => e.kind === 'productionBonus' && e.percent === -10,
@@ -133,10 +134,11 @@ describe('ruling (qqqqqq) 1 — a discount becomes +25% gold', () => {
 
   it('puts the share on the city stage of a town that holds the card', () => {
     // Private Patronage since Commerce batch T5 reworked Land Speculation.
+    // +25% since batch DS4.
     const g = bench(['privatePatronage']);
     const city = town(g);
     const lines = percentLines(g, city, 'Private Patronage');
-    expect(lines.map((line) => [line.yield, line.percent])).toEqual([['gold', 40]]);
+    expect(lines.map((line) => [line.yield, line.percent])).toEqual([['gold', 25]]);
   });
 });
 
@@ -239,14 +241,46 @@ describe('the new readings', () => {
     const hexes = ownedTiles(g.state, city).filter(
       (tile) => tile.col !== city.col || tile.row !== city.row,
     );
-    for (const tile of hexes.slice(0, 3)) {
-      tile.resource = luxury;
-      raiseImprovement(tile, improvementForResource(luxury)!, g.state.turn);
-    }
+    // **One copy is enough since batch DS4** ("For each luxury that only you
+    // hold"): the old condition of three or more copies went with the old text.
+    const first = hexes[0]!;
+    first.resource = luxury;
+    raiseImprovement(first, improvementForResource(luxury)!, g.state.turn);
     bumpRevision(g.state);
-    expect(resourceCopies(g.state, 0, luxury)).toBeGreaterThanOrEqual(3);
+    expect(resourceCopies(g.state, 0, luxury)).toBe(1);
     const probe = { kind: 'pays', where: 'city', basis: 'count', count: 'monopolyLuxuries', to: 'gold', amount: 5 } as never;
     expect(countOf(g.state, 0, 'theMonopoly' as OrderId, probe, city)).toBe(1);
+    // Two lines: gold and culture in every town. The empire's happiness went.
+    expect(orderDef('theMonopoly' as OrderId).effects).toHaveLength(2);
+  });
+
+  it('breaks the monopoly when another empire holds a copy of the luxury', () => {
+    const g = bench([]);
+    const city = town(g);
+    const musa = playerById(g.state, 0)!;
+    const bors = playerById(g.state, 1)!;
+    const luxury = RESOURCE_IDS.find(
+      (id) => resourceDef(id).kind === 'luxury' && improvementForResource(id) !== null,
+    )!;
+    const reveal = resourceDef(luxury).requiresTech;
+    for (const seat of [musa, bors]) {
+      if (reveal && !seat.techsResearched.includes(reveal)) seat.techsResearched.push(reveal);
+    }
+    const mine = ownedTiles(g.state, city).find((tile) => tile.col !== city.col || tile.row !== city.row)!;
+    mine.resource = luxury;
+    raiseImprovement(mine, improvementForResource(luxury)!, g.state.turn);
+    bumpRevision(g.state);
+    const probe = { kind: 'pays', where: 'city', basis: 'count', count: 'monopolyLuxuries', to: 'gold', amount: 5 } as never;
+    expect(countOf(g.state, 0, 'theMonopoly' as OrderId, probe, city)).toBe(1);
+    // The rival's town, on its own opening hex, with the same luxury in its borders.
+    const theirUnit = g.state.units.find((u) => u.ownerId === 1)!;
+    const theirs = foundCityAt(g.state, 1, getTileAt(g.state.map, theirUnit.col, theirUnit.row)!)!;
+    const their = ownedTiles(g.state, theirs).find((tile) => tile.col !== theirs.col || tile.row !== theirs.row)!;
+    their.resource = luxury;
+    raiseImprovement(their, improvementForResource(luxury)!, g.state.turn);
+    bumpRevision(g.state);
+    expect(resourceCopies(g.state, 1, luxury)).toBeGreaterThan(0);
+    expect(countOf(g.state, 0, 'theMonopoly' as OrderId, probe, city)).toBe(0);
   });
 
   it('lets a trade route reach further by land as well as by sea under The Trade Winds', () => {

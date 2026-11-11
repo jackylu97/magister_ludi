@@ -34,7 +34,7 @@ import {
   wonderClaim,
 } from '../../../src/sim/state';
 import { describeCard, nextDraftCost, stripRefs } from '../../../src/sim/statecraft';
-import { type OrderId, orderDef, orderIsDealt, ordersForDecks } from '../../../src/sim/statecraftData';
+import { type CardEffect, type OrderId, orderDef, orderIsDealt, ordersForDecks } from '../../../src/sim/statecraftData';
 import { at, bareState } from '../improvementHelpers';
 
 const MAGNIFICENCE = 'magnificence' as OrderId;
@@ -199,13 +199,24 @@ describe('the culture price (reading 36)', () => {
   });
 
   it('lets a purchase rider ride on it, as in the other banks', () => {
-    // The Brokers' Redraw: "All other purchasing is 10% more expensive."
-    const { state, city } = builder({ culture: 5000 });
-    const plain = explainPurchaseCost(state, 0, city.id, BUY_WONDER, 'culture')!.total;
-    seat(state, BROKERS);
-    const dearer = explainPurchaseCost(state, 0, city.id, BUY_WONDER, 'culture')!;
-    expect(dearer.total).toBe(Math.floor((plain * 110) / 100));
-    expect(dearer.lines.reduce((sum, line) => sum + line.amount, 0)).toBe(dearer.total);
+    // The Brokers' Redraw carried the one Order rider with no bank named on it
+    // ("All other purchasing is 10% more expensive") until batch DS4 cut that
+    // clause. No dealt Order carries such a rider now, so the rider is put on
+    // the row for the length of this test: what is pinned is that the culture
+    // price takes a rider as the other banks do, not what the card says.
+    const def = orderDef(BROKERS);
+    const before = def.effects;
+    def.effects = [...before, { kind: 'purchaseRider', class: {}, on: 'all', percent: 10 } as CardEffect];
+    try {
+      const { state, city } = builder({ culture: 5000 });
+      const plain = explainPurchaseCost(state, 0, city.id, BUY_WONDER, 'culture')!.total;
+      seat(state, BROKERS);
+      const dearer = explainPurchaseCost(state, 0, city.id, BUY_WONDER, 'culture')!;
+      expect(dearer.total).toBe(Math.floor((plain * 110) / 100));
+      expect(dearer.lines.reduce((sum, line) => sum + line.amount, 0)).toBe(dearer.total);
+    } finally {
+      def.effects = before;
+    }
   });
 
   it('is short of culture by the gap, and only of culture', () => {

@@ -206,11 +206,11 @@ These rows live in `data/decks/common.json`. A seat holding Scientific or the de
 | **Field Academies** | uncommon | Dominion | I | implemented | Your first kill each turn grants 25 science. | Civic |
 | **The Assay** | common | Expansionist | I | implemented | Hexes with a strategic resource gain +2 science. | Civic |
 | **The Monastery Libraries** | common | Devotion | I | implemented | Libraries give +2 faith. Temples give +2 science. | Civic |
-| **The Exchange of Discoveries** | uncommon | Commerce | I | implemented | +2 science on mines and quarries on a resource. Additional +2 if the city has a market. | Civic |
+| **The Exchange of Discoveries** | uncommon | Commerce | I | implemented | Mines and quarries on a resource gain +2 science. | Civic |
 | **The Schoolmen's Charter** | uncommon | Devotion | I | implemented | Drafting this opens Scholasticism for research. Knowing it lets you build the Cathedral School: +2 science for each building in the town that supplies faith, doubled while the town keeps a rite. No chair required. | Civic |
 | **The Priest-Astronomers** | common | Devotion | I | implemented | Your capital gains +2 science and +2 faith for every city of yours keeping a rite, at most +16 of each. | Civic |
 | **The Cloister** | rare | Devotion | II | implemented | Cities with a Temple gain science equal to 30% of their base faith. Their Libraries and Universities each gain +3 food. | Civic |
-| **The Merchant Navigators** | common | Commerce | II | implemented | Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +5 science. | Civic |
+| **The Merchant Navigators** | common | Commerce | II | implemented | Trade routes from a town with a Harbour gain +5 science. | Civic |
 | **The Blessed Forges** | uncommon | Devotion | II | implemented | Improved strategic resources gain +1 faith and +1 production. Cities with a Temple gain +2 faith and +2 production more. | Civic |
 | **Carried-Off Scholars** | common | Dominion | II | implemented | Capturing a city grants science equal to ten times its population. | Civic |
 | **The Soldier-Scholars** | uncommon | Dominion | II | implemented | Each military unit in your towns gives +2 science. | Military |

@@ -22,7 +22,20 @@
  * The deck registers stay in `test/sim/decks/commerce.test.ts`. What is pinned
  * here is behaviour: the tally itself, the scope over it, and each card's own
  * arithmetic.
+ *
+ * Batch DS4 (`docs/plans/deck-simplification-2026-11-10.md`) gave the three
+ * Commerce cards one effect each: The Home Market lost its contentment, and The
+ * League of Cities and The Chartered Metropolis lost what they did to a town's
+ * cost in authority, and the League its gold charge on a town that sends no
+ * route.
  */
+
+/** The percentage one card puts on this town, in one voice. */
+function townPercent(state: GameState, city: City, card: string, voice: string): number {
+  return explainCardPercentYields(state, city)
+    .filter((line) => line.card === card && line.yield === voice)
+    .reduce((sum, line) => sum + line.percent, 0);
+}
 
 import { describe, expect, it } from 'vitest';
 import { createGame } from './newGameHelpers';
@@ -44,6 +57,7 @@ import {
   cardRenownLines,
   cityScopeAdmits,
   describeCard,
+  explainCardPercentYields,
   stripRefs,
 } from '../../src/sim/statecraft';
 import { type CardEffect, type OrderId, ORDER_IDS, orderDef } from '../../src/sim/statecraftData';
@@ -156,25 +170,32 @@ describe('the route tally', () => {
 });
 
 describe('the four cards the tally opened', () => {
-  it('The Home Market — two of your own carts, and the contentment paid once', () => {
+  it('The Home Market — two of your own carts, +30% food and production, and no contentment', () => {
     const g = bench();
     const home = plant(g.state, 0, 0);
     const second = plant(g.state, 0, 3);
     send(g.state, home, second);
     slot(g.state, 0, 'theHomeMarket');
+    bumpRevision(g.state);
 
     // One cart is not two, so nothing is paid yet.
+    expect(townPercent(g.state, second, 'theHomeMarket', 'food')).toBe(0);
     const alone = happinessOf(g.state, 0);
     send(g.state, home, second);
     bumpRevision(g.state);
-    expect(happinessOf(g.state, 0) - alone).toBe(2);
-    // A third cart to the same town pays nothing more: "once per city".
+    expect(townPercent(g.state, second, 'theHomeMarket', 'food')).toBe(30);
+    expect(townPercent(g.state, second, 'theHomeMarket', 'production')).toBe(30);
+    // The town that sends the carts receives none, so it is paid nothing.
+    expect(townPercent(g.state, home, 'theHomeMarket', 'food')).toBe(0);
+    // A third cart to the same town pays nothing more: one share a town.
     send(g.state, home, second);
     bumpRevision(g.state);
-    expect(happinessOf(g.state, 0) - alone).toBe(2);
+    expect(townPercent(g.state, second, 'theHomeMarket', 'food')).toBe(30);
+    // The contentment went in batch DS4.
+    expect(happinessOf(g.state, 0)).toBe(alone);
   });
 
-  it('The League of Cities and The Chartered Metropolis — what a town costs to hold', () => {
+  it('The League of Cities and The Chartered Metropolis — a town that sends routes', () => {
     const g = bench();
     const home = plant(g.state, 0, 0);
     const second = plant(g.state, 0, 3);
@@ -182,25 +203,31 @@ describe('the four cards the tally opened', () => {
     send(g.state, home, second);
     slot(g.state, 0, 'theLeagueOfCities');
 
-    // A town that sends a cart out is easier to hold; a town that sends none is
-    // untouched by the discount and is the one the card's second sentence taxes.
-    expect(cardCityCostRows(g.state, home).delta).toBe(-1);
-    expect(cardCityCostRows(g.state, quiet).delta).toBe(0);
+    // A town that sends a cart out gains +20% production. A town that sends
+    // none gains nothing, and loses no gold since batch DS4.
+    expect(townPercent(g.state, home, 'theLeagueOfCities', 'production')).toBe(20);
+    expect(townPercent(g.state, quiet, 'theLeagueOfCities', 'production')).toBe(0);
+    expect(townPercent(g.state, quiet, 'theLeagueOfCities', 'gold')).toBe(0);
 
     slot(g.state, 0, 'theCharteredMetropolis');
-    expect(cardCityCostRows(g.state, home).delta).toBe(-1);
+    expect(townPercent(g.state, home, 'theCharteredMetropolis', 'food')).toBe(0);
     send(g.state, home, second);
     send(g.state, home, quiet);
     bumpRevision(g.state);
-    // Two cards reaching one town stack, which is what two deltas on one figure
-    // have always done here: four charged and one taken off.
-    expect(cardCityCostRows(g.state, home).delta).toBe(3);
-    // And the surcharge stops the turn the town drops below three. There is no
+    // Three routes out of one town: +35% food, production and culture.
+    for (const voice of ['food', 'production', 'culture']) {
+      expect(townPercent(g.state, home, 'theCharteredMetropolis', voice), voice).toBe(35);
+    }
+    // Neither card changes what a town costs in authority any more.
+    expect(cardCityCostRows(g.state, home).delta).toBe(0);
+    expect(cardCityCostRows(g.state, quiet).delta).toBe(0);
+    // And the share stops the turn the town drops below three. There is no
     // stored "qualified" flag — only the tally, asked again.
     const doomed = g.state.units.find((u) => u.trade?.from === home.id)!;
     delete doomed.trade;
     bumpRevision(g.state);
-    expect(cardCityCostRows(g.state, home).delta).toBe(-1);
+    expect(townPercent(g.state, home, 'theCharteredMetropolis', 'food')).toBe(0);
+    expect(townPercent(g.state, home, 'theLeagueOfCities', 'production')).toBe(20);
   });
 
   it('The Cosmopolitan Court — renown counted per town, and capped per town', () => {
@@ -245,18 +272,14 @@ describe('the four cards the tally opened', () => {
     expect(said('theHomeMarket')).toEqual([
       '+30% food in every city 2 or more trade routes of your own end at',
       '+30% production in every city 2 or more trade routes of your own end at',
-      '+2 happiness in every city 2 or more trade routes of your own end at',
     ]);
     expect(said('theLeagueOfCities')).toEqual([
-      '+23% production in every city a trade route sets out from',
-      'the authority a city a trade route sets out from costs falls by 1',
-      '-10% gold in every city no trade route sets out from',
+      '+20% production in every city a trade route sets out from',
     ]);
     expect(said('theCharteredMetropolis')).toEqual([
-      '+38% food in every city 3 or more trade routes set out from',
-      '+38% production in every city 3 or more trade routes set out from',
-      '+38% culture in every city 3 or more trade routes set out from',
-      'the authority a city 3 or more trade routes set out from costs rises by 4',
+      '+35% food in every city 3 or more trade routes set out from',
+      '+35% production in every city 3 or more trade routes set out from',
+      '+35% culture in every city 3 or more trade routes set out from',
     ]);
     expect(said('theCosmopolitanCourt')).toEqual([
       '+1 renown per turn in every city with a culture building, ' +
@@ -290,12 +313,15 @@ describe('the four cards the tally opened', () => {
         return scope?.test === 'routeEndsHere' && scope.atLeast !== undefined;
       }),
     ).toEqual(['theCharteredMetropolis', 'theHomeMarket']);
+    // **No Order since batch DS4**: The League of Cities' charge on a town that
+    // sends no route went with its old text. The mirror stays in the game,
+    // because the Doctrine The Year and a Day still writes it.
     expect(
       writers((effect) => {
         const scope = scopeOf(effect);
         return scope?.test === 'routeEndsHere' && scope.atMost !== undefined;
       }),
-    ).toEqual(['theLeagueOfCities']);
+    ).toEqual([]);
 
     // The renown trickle counted town by town, and the one count that takes the
     // town narrowing. Scientific batch S7's The Royal Tutors also counts town
