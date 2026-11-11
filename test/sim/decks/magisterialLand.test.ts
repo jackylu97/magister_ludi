@@ -206,9 +206,11 @@ describe('Magisterial batch MG9: the rows', () => {
     expect(words(ENVIOUS)).toEqual([
       'when a rival completes a wonder one of your cities was building, the production that city put into it moves to the next item in its queue',
     ]);
-    expect(words(IDEAL)[0]).toBe(
-      'Commission. Goal: have one of your cities hold 2 wonders and work 3 great-person works, while this card is seated',
-    );
+    expect(words(IDEAL)).toEqual([
+      'Commission',
+      'Goal: have one of your cities hold 2 wonders and work 3 great-person works. ' +
+        'Reward: that city gains +25% culture, +25% science and +25% production',
+    ]);
   });
 });
 

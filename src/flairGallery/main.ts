@@ -40,6 +40,7 @@ import '../style.css';
 import './style.css';
 
 import { installFlourishMarks } from '../ui/deviceMarks';
+import { mountKeywordCards } from '../ui/keywordCards';
 import { CityStrip, PART_CAPTIONS, PART_IDS, PartsShelf } from './cityStage';
 import { drawMarginaliaSwatches } from './chart';
 import { VIEW3D } from '../render3d/lookData';
@@ -67,6 +68,10 @@ const sheet = requireElement<HTMLElement>('sheet');
 // root exactly as `main.ts` hands it to the game. Without this call every
 // `.hud-card` on the page would wear an empty box.
 installFlourishMarks(document.documentElement);
+
+// The keyword hover cards (batch T2), so the card faces below show a card
+// keyword's rule on hover and on keyboard focus, as the game does (batch DS8).
+mountKeywordCards();
 
 // --- the index --------------------------------------------------------------
 

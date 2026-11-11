@@ -149,9 +149,10 @@ describe('the register', () => {
       expect(def.effects, charter).toEqual([]);
       expect(def.charter!.unlocks.tech, charter).toBe(tech);
       expect(def.charter!.unlocks.building, charter).toBeUndefined();
-      // Batch DS6 gave each the keyword form: "Charter. Opens <technology>,
-      // which unlocks the <building>: …" or "Charter. Opens <technology>: …".
-      expect(def.text, charter).toMatch(new RegExp(`^Charter\\. Opens ${techDef(tech).name}[,:] `));
+      // Batch DS6 gave each the form "Charter. Opens <technology>, which
+      // unlocks the <building>: …" or "Charter. Opens <technology>: …". Batch
+      // DS8 took the keyword off the text: the card face prints it.
+      expect(def.text, charter).toMatch(new RegExp(`^Opens ${techDef(tech).name}[,:] `));
     }
   });
 
@@ -448,9 +449,9 @@ describe('the words', () => {
       expect(clauses.some((clause) => clause.deferred === true), charter).toBe(false);
       const words = said(charter);
       const name = techDef(tech).name;
-      expect(words[0], charter).toBe(
-        `once drafted, opens ${name} for you to research; only an empire holding this charter may research it; this card takes no chair`,
-      );
+      // Batch DS8: the Charter keyword first, then what it opens.
+      expect(words[0], charter).toBe('Charter');
+      expect(words[1], charter).toBe(`opens ${name} for you to research`);
       if (building !== undefined) {
         expect(
           words.some((text) => text.startsWith(`once you know ${name}, you may build the ${buildingDef(building).name}: `)),
@@ -462,7 +463,8 @@ describe('the words', () => {
 
   it('says the Physic Garden’s ground and pay, and Herbals’ happiness', () => {
     expect(said('theHerbalistsCharter')).toEqual([
-      'once drafted, opens Herbals for you to research; only an empire holding this charter may research it; this card takes no chair',
+      'Charter',
+      'opens Herbals for you to research',
       'once you know Herbals, your workers may build the Physic Garden: +2 science; on flat land with fresh water, one in each city',
       'once you know Herbals, +2 happiness per hex with a Physic Garden in your borders',
     ]);

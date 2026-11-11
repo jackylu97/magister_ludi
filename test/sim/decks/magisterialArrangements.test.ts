@@ -173,9 +173,8 @@ describe('Magisterial batch MG15: the rows', () => {
 
   it('prints each card in plain words', () => {
     expect(words(GARDEN)).toEqual([
-      'Commission. Goal: have a great-person work in your borders with 3 other great-person works or tended hexes beside it, while this card is seated',
-      'Reward: every unowned hex within 3 hexes of that work joins your nearest city',
-      'then this card leaves its chair and is never seated again',
+      'Commission',
+      'Goal: have a great-person work in your borders with 3 other great-person works or tended hexes beside it. Reward: every unowned hex within 3 hexes of that work joins your nearest city',
     ]);
     expect(words(PROCESSION)).toEqual([
       "+3 science, +3 culture on every hex carrying a great person's work in a straight line of 3 or more such works in your borders",

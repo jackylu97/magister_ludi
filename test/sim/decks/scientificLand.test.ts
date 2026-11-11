@@ -167,8 +167,9 @@ describe('the register', () => {
       expect(def.deferred, charter).toBeUndefined();
       expect(def.effects, charter).toEqual([]);
       expect(def.charter!.unlocks.tech, charter).toBe(tech);
-      // Batch DS6 gave both the keyword form of the text.
-      expect(def.text, charter).toMatch(new RegExp(`^Charter\\. Opens ${techDef(tech).name}: `));
+      // Batch DS6 gave both the keyword form of the text, and batch DS8 took
+      // the keyword off it: the card face prints it.
+      expect(def.text, charter).toMatch(new RegExp(`^Opens ${techDef(tech).name}: `));
     }
     expect(techDef('surveying').effects).toEqual([{ kind: 'unlocksBuilding', building: 'aqueduct' }]);
     expect(improvementDef('qanat').requiresTech).toBe('surveying');
@@ -593,7 +594,8 @@ describe('the other cards on a board', () => {
 describe('the words', () => {
   it('says each charter’s gifts, led by “once you know”', () => {
     expect(said('theSurveyorsCharter')).toEqual([
-      'once drafted, opens Surveying for you to research; only an empire holding this charter may research it; this card takes no chair',
+      'Charter',
+      'opens Surveying for you to research',
       expect.stringMatching(/^once you know Surveying, you may build the Aqueduct before Engineering: /),
       'once you know Surveying, your workers may build the Qanat: on flat land; your farms beside it count as having fresh water',
     ]);

@@ -1468,7 +1468,7 @@
       "type": "civic",
       "line": "none",
       "flavor": "They meet where the government sits, and nowhere else will do.",
-      "text": "Charter. Unlocks the Assembly Hall in your capital: +3 happiness and +30% production toward buildings.",
+      "text": "Unlocks the Assembly Hall in your capital: +3 happiness and +30% production toward buildings.",
       "effects": [
         { "kind": "unlocksBuilding", "building": "assemblyHall" },
         {
@@ -2807,7 +2807,7 @@
       "type": "civic",
       "line": "none",
       "flavor": "The muse stays at a court for one evening, and someone there is never the same again.",
-      "text": "Boon. On draft: gain a free great-person draft.",
+      "text": "On draft: gain a free great-person draft.",
       "onDraft": [{ "grant": "greatPerson" }],
       "effects": [],
       "note": "If a great person is already waiting for your choice, or you cannot call great people yet, you gain the renown still needed for your next great person instead. A card picked from a free hand counts."
@@ -3121,7 +3121,7 @@
       "type": "wildcard",
       "line": "none",
       "flavor": "Ole Worm showed his visitors a narwhal's tusk and told them plainly that no unicorn had ever worn it.",
-      "text": "Boon. On draft: gain a random card of your tier from a deck you do not hold.",
+      "text": "On draft: gain a random card of your tier from a deck you do not hold.",
       "onDraft": [{ "grant": "foreignCard" }],
       "effects": [],
       "note": "The card comes from the cards of your current tier in the decks you do not hold. A card two decks share can come only if you hold neither deck. A card you already hold, or a card that belongs to no deck, never comes. Common cards come more often than rare ones, as in an ordinary hand, and passing on hands does not change the odds. The card counts as drafted: a charter opens what it opens, a card that gives something when drafted gives it, and cards that pay when you draft a card pay for it. It came from no hand, so a card that pays a share of a hand's price pays nothing for it. If no such card is left, you gain nothing."
@@ -3134,7 +3134,7 @@
       "type": "civic",
       "line": "none",
       "flavor": "The exhibition hung the work of a whole reign in one long gallery, and the visitors walked through it in an afternoon.",
-      "text": "Boon. On draft: gain 20 culture, science and production for each wonder, great-person work and Order you hold.",
+      "text": "On draft: gain 20 culture, science and production for each wonder, great-person work and Order you hold.",
       "onDraft": [
         { "grant": "windfall", "yield": "culture", "amount": 20, "perCount": { "count": "wonders" } },
         { "grant": "windfall", "yield": "science", "amount": 20, "perCount": { "count": "wonders" } },

@@ -17,8 +17,9 @@
  *      tier as its numeral.
  *   4. **Every surface draws an Order from `orderSuitFace`**: the draft, the
  *      council, the collection, the Compendium and the commission chips.
- *   5. **The charter keeps its chip**; the rarity chip leaves the hand, because
- *      the rank shows the rarity now.
+ *   5. **No chip on the face**: the rarity chip left the hand, because the
+ *      rank shows the rarity now, and since batch DS8 the charter's chip is
+ *      gone too, because the card's keyword is its first clause.
  *   6. **The flair gallery shows the suits and the faces**, in the pass that
  *      ships them (CLAUDE.md).
  *
@@ -49,7 +50,6 @@ import {
 } from '../../src/sim/statecraftData';
 import {
   BAND_NUMERAL,
-  CHARTER_CHIP,
   DECK_SUIT,
   RARITY_MARK,
   RARITY_WORD,
@@ -59,7 +59,6 @@ import {
   doctrineFaceOf,
   orderBadges,
   orderPayoff,
-  orderSuitBadges,
   orderSuitFace,
 } from '../../src/ui/deckBadges';
 import {
@@ -72,6 +71,7 @@ import {
   suitMarkDataUri,
   suitsWord,
 } from '../../src/ui/suitFace';
+import { describeCard, keywordMark } from '../../src/sim/statecraft';
 import { compendiumSections } from '../../src/ui/compendium';
 import { between, braceBody, uiSource } from './sourceHelpers';
 
@@ -254,7 +254,9 @@ describe('every surface draws an Order from orderSuitFace', () => {
   it('deals the draft’s hand as the A3 hand card', () => {
     const draft = braceBody(uiSource('main.ts'), 'function showStatecraftOffer()');
     expect(draft).toContain('suit: orderSuitFace(id)');
-    expect(draft).toContain('badges: orderSuitBadges(id)');
+    // No chip (batch DS8): the keyword is the first clause of the note.
+    expect(draft).not.toContain('badges:');
+    expect(draft).toContain("note: describeCard(id).map((clause) => clause.text).join(' · ')");
     // The U1 deck face is gone from the draft. A deck's Doctrine wears its
     // deck (batch C3), and a pre-rework Doctrine still reads its thread.
     expect(draft).not.toContain('orderFace(');
@@ -346,17 +348,12 @@ describe('the deck is named once per card face', () => {
 });
 
 describe('the chips', () => {
-  it('drops the rarity chip from an A3 card, and keeps the charter’s', () => {
-    for (const id of ORDER_IDS) {
-      const chips = orderSuitBadges(id);
-      expect(chips.every((badge) => badge.tone === 'charter'), id).toBe(true);
-      expect(chips.length, id).toBe(orderDef(id).charter === undefined ? 0 : 1);
-    }
-    expect(orderSuitBadges(CHARTER)).toEqual([{ label: CHARTER_CHIP, tone: 'charter' }]);
-    // The collection prints the charter's chip through the one printer.
-    expect(braceBody(uiSource('statecraftScreen.ts'), 'function drawOrderFace(')).toContain(
-      'orderChipsNode(id, charter)',
-    );
+  it('draws no chip on an A3 card: a charter says so with its keyword (batch DS8)', () => {
+    // The chip "Charter — takes no chair" went: the keyword is the card's
+    // first clause, and its tooltip says that a charter takes no chair.
+    expect(braceBody(uiSource('statecraftScreen.ts'), 'function drawOrderFace(')).not.toContain('Chips');
+    expect(uiSource('deckBadges.ts')).not.toContain("'Charter — takes no chair'");
+    expect(describeCard(CHARTER)[0]).toEqual({ text: keywordMark('charter'), keyword: 'charter' });
   });
 
   it('keeps the rarity chip and its marks for the book', () => {

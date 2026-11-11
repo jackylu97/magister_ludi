@@ -204,10 +204,14 @@ describe('Magisterial batch MG4: the rows', () => {
       }
     }
     const said = (id: OrderId): string[] => describeCard(id).map((clause) => stripRefs(clause.text));
-    expect(said(ROLL_OF_THE_SENATE)[0]).toBe('Commission. Goal: hold 10 Orders, seated or not, while this card is seated');
-    expect(said(EIGHTH_WONDER)[0]).toBe('Commission. Goal: complete 1 wonder, while this card is seated');
-    expect(said(WONDER_OF_THE_AGE)[0]).toBe(
-      'Commission. Goal: put 1500 production into wonders or the Magnum Opus, while this card is seated',
+    // Batch DS8: the Commission keyword first, then "Goal: … Reward: …".
+    expect(said(ROLL_OF_THE_SENATE)).toEqual([
+      'Commission',
+      'Goal: hold 10 Orders, seated or not. Reward: one more Wildcard chair',
+    ]);
+    expect(said(EIGHTH_WONDER)[1]).toMatch(/^Goal: complete 1 wonder\. Reward: /);
+    expect(said(WONDER_OF_THE_AGE)[1]).toBe(
+      'Goal: put 1500 production into wonders or the Magnum Opus. Reward: +250 culture, and one more Wildcard chair',
     );
     expect(said(TRAVELLING_PLAYERS)).toEqual([
       '+2 culture per different deck among the cards you have seated, on trade routes sent from a city with a Monument and that end in another empire’s city',

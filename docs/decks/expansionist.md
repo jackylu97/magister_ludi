@@ -74,7 +74,7 @@ The 74 cards are 72 that take a chair and two charters (The Fish Traps and The W
 | **Tinkers' Guild** | common | implemented | Workers gain +1 charge. | Economic |
 | **The Old Songs** | common | implemented | Worked unimproved land gains +2 culture. | Civic |
 | **The Local Census** | common | implemented | A town working four improved tiles costs 1 less authority. | Civic |
-| **The Wild Orchards** | common | implemented | Charter. Workers may tend a forest or jungle tile into an orchard: +1 food and +1 gold. | Economic |
+| **The Wild Orchards** | common | implemented | Workers may tend a forest or jungle tile into an orchard: +1 food and +1 gold. | Economic |
 | **Dark Earth** | uncommon | implemented | Farms that have stood 20 turns gain +2 food. | Economic |
 | **The Three Sisters** | common | implemented | Farms beside a plantation or pasture gain +2 food and +2 production. | Economic |
 | **The Hard Country** | common | implemented | Worked desert and tundra tiles gain +1 food and +1 production. | Economic |
@@ -86,7 +86,7 @@ The 74 cards are 72 that take a chair and two charters (The Fish Traps and The W
 | **The Road Towns** | common | implemented | Towns joined to your capital by road gain +2 production. | Economic |
 | **The Aediles** | uncommon | implemented | Gains +1 production and +1 culture each time you finish a public work. | Civic |
 | **The Land Hunger** | uncommon | implemented | Towns build settlers 25% faster. | Economic |
-| **The Fish Traps** | common | implemented | Charter. Workers may build fish traps on lake and coast tiles: +1 food and +1 production. | Economic |
+| **The Fish Traps** | common | implemented | Workers may build fish traps on lake and coast tiles: +1 food and +1 production. | Economic |
 
 ## Tier II
 
@@ -215,6 +215,7 @@ These rows live in `data/decks/common.json`. A seat holding Expansionist or the 
 
 These rows stay in the data so that old saves load. They are dealt to nobody, they carry no type, and no table above lists them. A save that holds one keeps it, with its effects. Batch DS1 added this section. The earlier retirements are under "Open for your pass", with the pass that cut each one.
 
+- **Batch DS8** (2026-11-11, the same spec) put the four keywords on the card face: Commission, Charter, Scaler and Boon. The game reads each from the card's data (`orderKeyword`), prints it as the card's first clause, and shows its rule in a tooltip. So no text below starts with "Charter." or "Boon." any more.
 - **Retired in batch DS1** (2026-11-10, `docs/plans/deck-simplification-2026-11-10.md`). The reason after each card is the Note column of that file's table. Each data row keeps its text and effects:
   - The Naturalists (Tier 0): The Mountain Observatories (shared) does this job.
   - The Work Gangs (Tier 0): a levy before Levy of the Land teaches the levy.

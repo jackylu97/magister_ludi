@@ -20,6 +20,7 @@ import { capitalCityOf, playerById, bumpRevision, type GameState } from '../../s
 import {
   adoptGovernmentAt,
   describeCard,
+  keywordMark,
   refitSlots,
   slotOrderAt,
   slotOrderError,
@@ -155,22 +156,30 @@ describe('the commission rows', () => {
     }
   });
 
-  it('print the goal, the reward and the leaving, with no raw keyword left', () => {
+  it('print the keyword, then the goal and the reward, with no raw keyword left', () => {
+    // Batch DS8: the Commission keyword is the first clause, and its tooltip
+    // carries the standing rules ("while this card is seated", "then this card
+    // leaves its chair"), so the clause after it says the goal and the reward.
     for (const id of rows) {
-      const text = describeCard(id).map((clause) => stripRefs(clause.text));
-      expect(text.some((line) => line.startsWith('Commission. Goal: ')), id).toBe(true);
-      expect(text.some((line) => line.startsWith('Reward: ')), id).toBe(true);
-      for (const line of text) expect(line, id).not.toMatch(/\[\[/);
+      const clauses = describeCard(id);
+      expect(clauses[0], id).toEqual({ text: keywordMark('commission'), keyword: 'commission' });
+      const text = clauses.map((clause) => stripRefs(clause.text));
+      expect(text.some((line) => /^Goal: .+\. Reward: /.test(line)), id).toBe(true);
+      for (const line of text) {
+        expect(line, id).not.toMatch(/\[\[/);
+        expect(line, id).not.toContain('while this card is seated');
+        expect(line, id).not.toContain('leaves its chair');
+        expect(line, id).not.toContain('for the rest of the game');
+      }
     }
     // Since Dominion batch D9 the reward is Battle Honours' old one: a great
     // general from a draft (the two commissions traded rewards).
     expect(describeCard(FRONTIER).map((clause) => clause.text)).toEqual([
-      'Commission. Goal: clear 2 barbarian camps, while this card is seated',
-      'Reward: a great general to call',
-      'then this card leaves its chair and is never seated again',
+      keywordMark('commission'),
+      'Goal: clear 2 barbarian camps. Reward: a great general to call',
     ]);
     expect(describeCard(STRONGROOM)[1]!.text).toBe(
-      'Reward: culture equal to 20% of the gold in your treasury at that moment, and a great merchant to call',
+      'Goal: end a turn with at least 1500 gold in your treasury. Reward: culture equal to 20% of the gold in your treasury at that moment, and a great merchant to call',
     );
   });
 });
@@ -301,7 +310,7 @@ describe('a timed reward', () => {
       const g = solo();
       found(g.state, 0);
       seat(g.state, STRONGROOM);
-      expect(describeCard(STRONGROOM)[1]!.text).toMatch(/^Reward: for 10 turns, /);
+      expect(describeCard(STRONGROOM)[1]!.text).toMatch(/\. Reward: for 10 turns, /);
       const reports = runCommissions(g.state);
       expect(reports).toHaveLength(1);
       const timed = playerById(g.state, 0)!.timed ?? [];

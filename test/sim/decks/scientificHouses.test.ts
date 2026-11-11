@@ -281,9 +281,8 @@ describe('the rows', () => {
     ]);
     expect(said('theWallsOfLearning')).toEqual(['every city with a University: +6 city defence']);
     expect(said('theLynxEyedAcademy')).toEqual([
-      'Commission. Goal: hold 4 Academies inside your borders, while this card is seated',
-      'Reward: a great scholar to call, and +300 production in every city with an Academy',
-      'then this card leaves its chair and is never seated again',
+      'Commission',
+      'Goal: hold 4 Academies inside your borders. Reward: a great scholar to call, and +300 production in every city with an Academy',
     ]);
   });
 });

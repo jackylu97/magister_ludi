@@ -49,7 +49,7 @@ import {
 } from '../../../src/sim/state';
 import { countOf, runPeriodicBoons } from '../../../src/sim/statecraft/evaluator';
 import { periodicProbe } from '../../../src/sim/statecraft/describers';
-import { type OrderId, orderDef, orderIsDealt, ordersForDecks } from '../../../src/sim/statecraftData';
+import { type OrderId, orderDef, orderIsDealt, orderKeyword, ordersForDecks } from '../../../src/sim/statecraftData';
 import {
   hasSendablePair,
   idleTraders,
@@ -518,7 +518,9 @@ describe('The First Caravan', () => {
   it('is a common Economic Boon at Tier 0, whose whole card is its grant', () => {
     const def = orderDef(FIRST_CARAVAN);
     expect([def.band, def.rarity, def.type]).toEqual([0, 'common', 'economic']);
-    expect(def.text).toBe('Boon. On draft: gain a caravan.');
+    // Batch DS8 took the keyword off the text: the card face prints it.
+    expect(def.text).toBe('On draft: gain a caravan.');
+    expect(orderKeyword(FIRST_CARAVAN)).toBe('boon');
     expect(def.onDraft).toEqual([{ grant: 'unit', unit: 'trader' }]);
     expect(def.effects).toEqual([]);
     expect(unitDef('trader').routeOnly).toBe(true);

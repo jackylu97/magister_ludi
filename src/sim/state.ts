@@ -446,8 +446,19 @@ import {
  * **A v236 save is refused and does not replay.** A logged game with one of these
  * cards seated pays different yields. The branch migrates nothing, for the reason
  * given under v119 in `docs/history/schema-changelog.md`.
+ *
+ * v238 (branch `decks`; batch DS8, `docs/flags.md` (hhhhhhh), the user's ruling of
+ * 2026-11-10): **the card keywords.** No field joins or leaves the state. One rule
+ * changes: a Boon (an Order whose whole effect is a grant paid when it is drafted,
+ * `isBoon`) can no longer be seated. `slotOrderError` refuses it, as it refuses a
+ * charter, so the game agrees with the keyword's rule that a Boon needs no chair.
+ * Seated, a Boon did nothing, so no yield changes; but a bot or a player could
+ * seat one before, and a log that did so is now refused at that command.
+ *
+ * **A v237 save is refused and does not replay.** The branch migrates nothing, for
+ * the reason given under v119 in `docs/history/schema-changelog.md`.
  */
-export const SCHEMA_VERSION = 237;
+export const SCHEMA_VERSION = 238;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

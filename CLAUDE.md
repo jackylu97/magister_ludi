@@ -197,8 +197,8 @@ mean those things.
 - **Roads**: `Tile.road = builderId`, written only by `layRoad` (`roads.ts`, a
   leaf — `cities.ts` never imports `trade.ts`; pinned). A road step (both hexes
   paved) costs `MoveProfile.roadStep` inside `stepCost` — fifteenths
-  (`MOVEMENT_DENOMINATOR` 15): a third by default, a fifth under Machinery's
-  `roadStepCost` rule; read in exactly two places (`stepCost`,
+  (`MOVEMENT_DENOMINATOR` 15): a third by default, less under a `roadStepCost` rule
+  (the Horses resource and the Order Interior Lines); read in exactly two places (`stepCost`,
   `cheapestStepCostFor`). `roadFree` = a decreed hex (free
   for maintenance count). A trader is its own stacking-free `UnitCategory`;
   `Unit.trade` presence IS the route (no route register). `startRoute` may

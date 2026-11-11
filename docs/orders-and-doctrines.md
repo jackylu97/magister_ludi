@@ -58,6 +58,14 @@ structure paragraphs are sync-tested where they state a number):
 - **Charters.** A row with `charter` grants on the pick — a technology made researchable, a
   building made buildable, rites made learnable — and never sits in a chair. It grants no
   free technology and no free building.
+- **Keywords** (batch DS8). Four kinds of Order print a keyword on the card face, read from
+  the row's data by `orderKeyword`: **Commission** (a `commission` goal and reward),
+  **Charter** (a `charter` grant), **Scaler** (a `pays` line with `count: 'tally'`) and
+  **Boon** (an `onDraft` grant and no effects). The keyword is the card's first clause, and
+  its tooltip is the first paragraph of its Concepts page in the Compendium
+  (`concept:commission` and so on). So the Ability column below does not start with the
+  keyword. A Scaler's face shows its current value. A Boon, like a charter, never sits in a
+  chair. Doctrines and governments carry no keyword.
 - **Nothing deleted.** Every pre-rework Order and Doctrine row is `retired: true`: in the data
   and the Compendium, in no pool. The live Doctrines are the decks' own, written in batch C3
   (see Doctrines below). A row whose text needs a shape the vocabulary lacks is `deferred` in
@@ -398,7 +406,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Smallholdings | 0 | ● | S | Worked farms and pastures gain +1 food and +1 gold. |
 | Granary Levies | 0 | ● | S | When a city grows in population, gain 15 production |
 | The Patient Harvest | 0 | ○ | S | Towns keep 30% of their food when they grow. |
-| The Fish Traps | 1 | ● | S | Charter. Workers may build fish traps on lake and coast tiles: +1 food and +1 production. |
+| The Fish Traps | 1 | ● | S | Workers may build fish traps on lake and coast tiles: +1 food and +1 production. |
 | Sweet Water | 0 | ● | S | Tiles beside a river or lake gain +1 food. |
 | The Seed Grain | 0 | ◆ | S | Towns you found start with one extra citizen. |
 | The Rope Stretchers | 0 | ● | P | Each town gains +1 science for every three improved tiles in its borders. |
@@ -410,7 +418,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Tinkers' Guild | 1 | ● | S | Workers gain +1 charge. |
 | The Old Songs | 1 | ● | S | Worked unimproved land gains +2 culture. |
 | The Local Census | 1 | ● | S | A town working four improved tiles costs 1 less authority. |
-| The Wild Orchards | 1 | ● | S | Charter. Workers may tend a forest or jungle tile into an orchard: +1 food and +1 gold. |
+| The Wild Orchards | 1 | ● | S | Workers may tend a forest or jungle tile into an orchard: +1 food and +1 gold. |
 | Dark Earth | 1 | ◆ | S | Farms that have stood 20 turns gain +2 food. |
 | The Three Sisters | 1 | ● | S | Farms beside a plantation or pasture gain +2 food and +2 production. |
 | The Hard Country | 1 | ● | S | Worked desert and tundra tiles gain +1 food and +1 production. |
@@ -484,7 +492,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Provisioning Contracts | 1 | ● | S | Domestic routes grant their destination +3 food and +3 production. |
 | The Common Road | 2 | ● | S | Your foreign routes give +3 gold, +3 science and +3 culture. |
 | The Factors' Houses | 2 | ● | P | Your cities holding your trading post gain +2 gold and +4 culture. |
-| The Planters' Charter | 1 | ◆ | S | Charter. Unlocks the Plantation House, a building you buy with gold. |
+| The Planters' Charter | 1 | ◆ | S | Unlocks the Plantation House, a building you buy with gold. |
 | The Market Writ | 1 | ◆ | P | +1 authority for every two Markets in your empire. |
 | Commercial Education | 1 | ● | P | Gold buildings provide +3 science. |
 | Financed Industry | 1 | ○ | P | Towns gain production equal to 20% of their gold. |
@@ -511,9 +519,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Carters' Guild | 2 | ● | S | Towns that receive a domestic trade route build buildings 25% faster. |
 | The Nest Egg | 0 | ● | P | Your capital gains +1 culture for every 4 gold you make each turn. |
 | The Pack Trail | 0 | ● | S | Your trade routes give +2 gold. |
-| The First Caravan | 0 | ● | S | Boon. On draft: gain a caravan. |
+| The First Caravan | 0 | ● | S | On draft: gain a caravan. |
 | The Staple Right | 1 | ● | P | Gain +3 gold and +2 culture for each luxury you hold two or more copies of. |
-| Numidian Cavalry | 2 | ◆ | S | Charter. Unlocks Numidian Cavalry: a Horseman with +1 strength for each luxury you hold. |
+| Numidian Cavalry | 2 | ◆ | S | Unlocks Numidian Cavalry: a Horseman with +1 strength for each luxury you hold. |
 | Houses of Account | 2 | ● | P | Gold buildings provide +2 happiness and +1 renown. |
 | A Guild Commission | 3 | ◆ | S | Goal: buy five buildings with gold. Reward: a free great-person draft. |
 | The Monopoly | 3 | ○ | P | For each luxury that only you hold, every town gains +5 gold and +3 culture. |
@@ -524,7 +532,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Bought and Paid For | 4 | ○ | P | Each town gains +4% production and culture for each building you bought there with gold, at most +24%. |
 | The Neutral Flag | 4 | ◆ | P | Your trade routes to an empire that is at war with another empire gain +100% gold and +50% science. |
 | The World's Fair | 4 | ○ | S | Goal: have trade routes to four empires. Reward: your trading post in each of their capitals. |
-| The Great Loan | 4 | ○ | S | Boon. On draft: gain twenty turns of gold income. Your towns make 25% less gold for forty turns. |
+| The Great Loan | 4 | ○ | S | On draft: gain twenty turns of gold income. Your towns make 25% less gold for forty turns. |
 | The Trade Winds | 4 | ○ | S | Gain +3 trade route capacity. Your trade routes reach 50% farther. |
 | Market Day | 0 | ● | P | Your capital gains +1 gold for every citizen. |
 | The Emporia | 0 | ● | S | Improved luxury hexes gain +1 food and +1 production. |
@@ -556,7 +564,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Wayside Shrines | 1 | ● | P | Cities with a Shrine gain +2 food and +1 happiness. |
 | Consecrated Labor | 1 | ● | S | Cities with a Shrine may buy workers with faith. |
 | The Octave | 1 | ◆ | P | Your rites last 50% longer. |
-| The Fast | 1 | ◆ | S | Charter. Unlocks the Rite of Fasting: for ten turns a town does not grow, and gains science and culture equal to its population. |
+| The Fast | 1 | ◆ | S | Unlocks the Rite of Fasting: for ten turns a town does not grow, and gains science and culture equal to its population. |
 | The Living Hymnal | 2 | ◆ | P | Your capital gains +3 science and +3 culture for every city following your religion, with no cap. |
 | The Mission | 2 | ◆ | S | Goal: convert two foreign cities. Reward: an Apostle and 300 culture. |
 | The Second Prophet | 2 | ◆ | S | Prophets and apostles you buy start with one extra charge. |
@@ -593,7 +601,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Book of Life | 2 | ◆ | P | +1% science and culture for every 150 faith you have spent this game, at most +30%. |
 | The Offering Chests | 3 | ● | S | Military units bought with faith cost 30% less. |
 | The Rogations | 1 | ◆ | P | Gains +1 faith and +1 culture each time a town starts a rite. |
-| The Sabbath Laws | 2 | ◆ | S | Charter. Unlocks the Rite of the Sabbath: for ten turns a town builds nothing, and gains culture equal to its production. |
+| The Sabbath Laws | 2 | ◆ | S | Unlocks the Rite of the Sabbath: for ten turns a town builds nothing, and gains culture equal to its production. |
 | The Psalter | 3 | ◆ | S | Each rite started in a devout town grants science and culture equal to five times the town's population. |
 | The Parishes | 2 | ◆ | S | Each town you found starts out devout. |
 | Commission: The State Church | 2 | ◆ | S | Goal: hold six towns, all devout. Reward: devout towns cost 1 less authority. |
@@ -610,15 +618,15 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Royal Cult | 0 | ◆ | P | Your capital gains +1 faith for each citizen. |
 | The Temple Storehouses | 1 | ● | P | Temples give +2 food and +2 happiness. |
 | The Household Gods | 0 | ● | S | +2 faith in every town. |
-| The First Offering | 0 | ● | S | Boon. On draft: gain 25 faith. |
+| The First Offering | 0 | ● | S | On draft: gain 25 faith. |
 
 ### Scientific
 
 | Order | Band | Rarity | Role | Effect |
 |---|---|---|---|---|
 | The Almanac | 1 | ● | P | Libraries give +2 production. |
-| The Bronze-Founders' Charter | 1 | ◆ | S | Charter. Opens Casting: your spear and chariot lines gain +2 strength for good. |
-| The Herbalists' Charter | 0 | ● | S | Charter. Opens Herbals, which unlocks the Physic Garden: +2 science and +2 happiness. |
+| The Bronze-Founders' Charter | 1 | ◆ | S | Opens Casting: your spear and chariot lines gain +2 strength for good. |
+| The Herbalists' Charter | 0 | ● | S | Opens Herbals, which unlocks the Physic Garden: +2 science and +2 happiness. |
 | The Prospectors' Notes | 0 | ◆ | S | Building a mine or a quarry grants its town 25 production. |
 | The Royal Workshops | 0 | ● | S | Completing a technology grants 15 production in your capital. |
 | The Royal Tutors | 0 | ● | S | +2 scholar renown each turn for each science building. |
@@ -628,10 +636,10 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Old Academy | 1 | ◆ | S | Academies gain +3 food and +3 production. |
 | The Secret Arts | 1 | ◆ | P | Each town gains +1 production for each technology you know that no empire you have met knows, charter technologies included, at most +5. |
 | The Edge of the Sword | 1 | ◆ | S | Your units gain +3 strength against the units of an empire that knows fewer technologies than you. |
-| The Glassmakers' Charter | 1 | ◆ | S | Charter. Opens Optics, which unlocks the Specularium: +3 food, and +1 science for every two citizens. |
-| The Surveyors' Charter | 1 | ◆ | S | Charter. Opens Surveying: you may build the Aqueduct early, and workers may build the Qanat, which waters the farms beside it. |
+| The Glassmakers' Charter | 1 | ◆ | S | Opens Optics, which unlocks the Specularium: +3 food, and +1 science for every two citizens. |
+| The Surveyors' Charter | 1 | ◆ | S | Opens Surveying: you may build the Aqueduct early, and workers may build the Qanat, which waters the farms beside it. |
 | The Founding Gift | 1 | ◆ | S | A great scholar who founds an Academy also grants its town 150 production. |
-| The Librarians' Charter | 1 | ○ | S | Charter. Opens Cataloguing, which unlocks the Mouseion: +4 scholar renown, and +2 culture for each empire building you hold. |
+| The Librarians' Charter | 1 | ○ | S | Opens Cataloguing, which unlocks the Mouseion: +4 scholar renown, and +2 culture for each empire building you hold. |
 | The Astronomical Diaries | 1 | ◆ | P | Gains +1 culture and +1 production each time you complete a technology. |
 | The Scholars' Fame | 1 | ● | S | Completing a technology grants scholar renown equal to a twentieth of its cost. |
 | The Royal Estates | 1 | ● | P | Each empire building gives its town +2 food and +2 production. |
@@ -643,11 +651,11 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Sky Watchers | 1 | ● | P | Shrines give +1 faith and +1 science. |
 | The Quiet Faculties | 2 | ○ | P | Towns working an Academy gain +25% food and +20% production. |
 | Enduring Institutions | 2 | ◆ | P | Towns with an empire building gain +20% production. |
-| The Mechanists' Charter | 2 | ○ | S | Charter. Opens Mechanics: catapults gain +1 range, and your archer line may move after it shoots. |
+| The Mechanists' Charter | 2 | ○ | S | Opens Mechanics: catapults gain +1 range, and your archer line may move after it shoots. |
 | The Translation Movement | 2 | ◆ | S | Technologies that an empire you have met already knows cost you 20% less research. |
-| The Paper-Makers' Charter | 2 | ◆ | S | Charter. Opens Papermaking, which unlocks the Scriptorium: +2 science, and +10% science beside an Academy. |
-| The Physicians' Charter | 2 | ◆ | S | Charter. Opens Medicine, which unlocks the Bimaristan: +25% food in its town. |
-| The Printers' Charter | 2 | ◆ | S | Charter. Opens Printing, which unlocks the Aldine Press: +2 culture and +1 trade route. |
+| The Paper-Makers' Charter | 2 | ◆ | S | Opens Papermaking, which unlocks the Scriptorium: +2 science, and +10% science beside an Academy. |
+| The Physicians' Charter | 2 | ◆ | S | Opens Medicine, which unlocks the Bimaristan: +25% food in its town. |
+| The Printers' Charter | 2 | ◆ | S | Opens Printing, which unlocks the Aldine Press: +2 culture and +1 trade route. |
 | The Latin Quarter | 2 | ● | S | Great-person works beside an Academy gain +2 culture and +1 production. |
 | The Charter Rolls | 2 | ◆ | P | Your capital gains +3 production and +3 culture for each charter you have drafted. |
 | The Royal Charter Commission | 2 | ◆ | S | Goal: complete a charter technology. Reward: a great scholar and 100 culture. |
@@ -659,8 +667,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Strategikon | 2 | ◆ | S | Your units gain +4 strength within two hexes of an Academy. |
 | The Armoury Patterns | 2 | ● | S | Towns build units of the newest age you know 25% faster. |
 | The Proving Ground | 3 | ◆ | S | Your units gain +1 strength for each technology you know that no empire you have met knows, at most +8. |
-| The Gunfounders' Charter | 3 | ◆ | S | Charter. Opens Gunfounding, which unlocks the Tophane: its town builds military units 25% faster, with +4 strength. |
-| The Alchemists' Charter | 3 | ◆ | S | Charter. Opens Chemistry: your warrior line gains +1 strength for each charter technology you know. |
+| The Gunfounders' Charter | 3 | ◆ | S | Opens Gunfounding, which unlocks the Tophane: its town builds military units 25% faster, with +4 strength. |
+| The Alchemists' Charter | 3 | ◆ | S | Opens Chemistry: your warrior line gains +1 strength for each charter technology you know. |
 | The Nizamiyya | 3 | ◆ | S | Academies yield 50% more. |
 | The Age of Reason | 3 | ○ | S | Your Orders count each technology you complete twice. |
 | The Journeymen | 3 | ● | S | Completing a technology grants each town production equal to three times its population. |
@@ -670,8 +678,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Queen of Cities | 3 | ○ | P | Towns of at least 15 citizens produce twice their food and production. |
 | The Humanists | 3 | ◆ | P | Cities with a University gain culture equal to half their base science. |
 | The Model Army | 3 | ○ | S | Research upgrades your units even when you lack the strategic resource the new unit needs. |
-| The Naval Gunners' Charter | 4 | ◆ | S | Charter. Opens Naval Gunnery: your Gun Galleys gain +3 strength and may blockade a rival's port. |
-| The Military Engineers' Charter | 4 | ◆ | S | Charter. Opens Military Architecture, which unlocks the Bastion: +5 defence and +30 hit points. |
+| The Naval Gunners' Charter | 4 | ◆ | S | Opens Naval Gunnery: your Gun Galleys gain +3 strength and may blockade a rival's port. |
+| The Military Engineers' Charter | 4 | ◆ | S | Opens Military Architecture, which unlocks the Bastion: +5 defence and +30 hit points. |
 | The Republic of Letters | 4 | ◆ | P | Your capital gains +4 production and +4 culture for each Academy you hold. |
 | The Sum of Knowledge | 4 | ○ | P | Your capital gains +1 production and +1 culture for each technology you know. |
 | The Great Catalogue | 4 | ○ | S | +10% production toward the Magnum Opus for each charter technology you know, at most +40%. |
@@ -710,10 +718,10 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Encyclopedia | 1 | ● | E | +1 science and +1 culture in your capital for each Order you hold unseated, at most +15 of each. |
 | Commission: The Roll of the Senate | 1 | ◆ | S | Goal: hold ten Orders. Reward: one more Wildcard chair. |
 | The Open Door | 1 | ◆ | S | Order hands cost 15% less culture. |
-| The Wandering Muse | 1 | ◆ | S | Boon. On draft: gain a free great-person draft. |
+| The Wandering Muse | 1 | ◆ | S | On draft: gain a free great-person draft. |
 | The Landmark Bounds | 1 | ◆ | S | Laying a great-person work claims every unowned hex beside it. |
 | The Learned Patron | 2 | ◆ | P | Towns with two culture buildings gain science equal to 15% of their culture. |
-| The Senate Charter | 2 | ◆ | S | Charter. Unlocks the Assembly Hall in your capital: +3 happiness and +30% production toward buildings. |
+| The Senate Charter | 2 | ◆ | S | Unlocks the Assembly Hall in your capital: +3 happiness and +30% production toward buildings. |
 | The Honoured Dead | 2 | ◆ | P | Gains +2 science and +4 production in your capital each time you spend a great person. |
 | The Prefects | 2 | ◆ | E | +5% production for each Economic card you have seated. |
 | The Symposium | 2 | ◆ | S | Each time you gain a great person, you are dealt a free Order hand. |
@@ -741,7 +749,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Magnificence | 3 | ○ | S | You may buy a wonder you are building with culture, one culture for each hammer it still needs. |
 | The Mixed Constitution | 3 | ○ | S | Your cards fit any chair. |
 | The Universal Genius | 3 | ○ | S | Your great people may act, and then still lay their work. Each leaves one legacy. |
-| The Cabinet of Curiosities | 3 | ○ | S | Boon. On draft: gain a random card of your tier from a deck you do not hold. |
+| The Cabinet of Curiosities | 3 | ○ | S | On draft: gain a random card of your tier from a deck you do not hold. |
 | Commission: The Paradise Garden | 3 | ○ | S | Goal: have a great-person work with three works or tended hexes beside it. Reward: every unowned hex within three hexes joins your borders. |
 | The Privy Council | 4 | ○ | E | Each of your cards that pays production pays +1 more production wherever it pays it. |
 | The Universal Library | 4 | ○ | S | The city building the Magnum Opus gains +2% production toward it for each Order you hold, seated or not, at most +40%. |
@@ -750,7 +758,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Last Commission | 4 | ○ | S | Spending a great person adds 150 production to your Magnum Opus. |
 | The Immortals | 4 | ○ | S | The legacies of your great people count twice. |
 | Commission: The Ideal City | 4 | ○ | S | Goal: have one town hold two wonders and work three great-person works. Reward: that town gains +25% culture, science and production. |
-| The Grand Retrospective | 4 | ○ | S | Boon. On draft: gain 20 culture, science and production for each wonder, great-person work and Order you hold. |
+| The Grand Retrospective | 4 | ○ | S | On draft: gain 20 culture, science and production for each wonder, great-person work and Order you hold. |
 | The Processional Way | 4 | ○ | S | Great-person works in a straight line of three or more give +3 culture and +3 science each. |
 | The Pull of the Masters | 4 | ○ | S | Each turn, each great-person work takes one unworked hex beside it from a rival town. |
 
@@ -786,11 +794,11 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Barbarian Frontier | Dominion · Expansionist | 1 | ◆ | S | Clearing a barbarian camp claims its hex and the unowned hexes around it. |
 | The Oriflamme | Dominion · Devotion | 1 | ◆ | S | Military units beside one of your religious units gain +4 strength. |
 | Professional Soldiers | Dominion · Commerce | 3 | ◆ | S | Units you purchase gain +3 combat strength. |
-| The Chartered Company | Dominion · Commerce | 3 | ◆ | S | Charter. Unlocks the Company Guard, a melee unit you buy with gold. |
+| The Chartered Company | Dominion · Commerce | 3 | ◆ | S | Unlocks the Company Guard, a melee unit you buy with gold. |
 | The Muster of the Fields | Dominion · Expansionist | 1 | ◆ | S | Towns of 5 or more citizens may spend a citizen to raise a melee unit. |
 | Carried-Off Scholars | Dominion · Scientific | 2 | ● | S | Capturing a city grants science equal to ten times its population. |
 | The Soldier-Scholars | Dominion · Scientific | 2 | ◆ | P | Each military unit in your towns gives +2 science. |
-| The Sword of State | Dominion · Magisterial | 1 | ● | S | Boon. On draft: gain the best melee unit you can build. It costs no upkeep. |
+| The Sword of State | Dominion · Magisterial | 1 | ● | S | On draft: gain the best melee unit you can build. It costs no upkeep. |
 | The New Code | Dominion · Magisterial | 3 | ○ | S | Capturing a city deals you a free Order hand, at most once every ten turns. |
 | Looted Art | Dominion · Magisterial | 2 | ◆ | S | Capturing a city grants 20 renown for each great-person work and wonder inside its borders. |
 | The Farming Garrisons | Dominion · Expansionist | 1 | ● | S | Hexes with a fortified unit gain +1 food and +1 production. |
@@ -809,7 +817,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Monastery Libraries | Devotion · Scientific | 1 | ● | P | Libraries give +2 faith. Temples give +2 science. |
 | The Shrine Guards | Dominion · Devotion | 1 | ● | S | Towns with a Shrine may buy melee units with faith. |
 | The Blessed Forges | Devotion · Scientific | 2 | ◆ | S | Improved strategic resources gain +1 faith and +1 production. |
-| The Schoolmen's Charter | Devotion · Scientific | 1 | ◆ | S | Charter. Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town. |
+| The Schoolmen's Charter | Devotion · Scientific | 1 | ◆ | S | Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town. |
 | Sacred Patronage | Devotion · Magisterial | 3 | ○ | S | You may buy a great-person draft for 750 faith. |
 
 ### Generic

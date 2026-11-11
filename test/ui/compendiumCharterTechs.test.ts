@@ -223,17 +223,18 @@ describe('the pages that name a charter technology link to it', () => {
     expect(linked).toBe(10);
   });
 
-  it('on its charter card, in the describer’s words and in the book’s charter note', () => {
+  it('on its charter card, in the describer’s words, after the Charter keyword', () => {
     for (const tech of CHARTER_TECH_IDS) {
       const charter = charterOf(tech);
       const mark = `[[tech:${tech}|${techDef(tech).name}]]`;
       // The describer marks it, so every surface that prints the card links it.
-      expect(describeCard(charter)[0]!.text, charter).toBe(
-        `once drafted, opens ${mark} for you to research; only an empire holding this charter may research it; this card takes no chair`,
-      );
+      // Batch DS8: the Charter keyword comes first, and its page says the card
+      // takes no chair, so the book's old charter note is gone.
+      expect(describeCard(charter)[0]!.text, charter).toBe('[[concept:charter|Charter]]');
+      expect(describeCard(charter)[1]!.text, charter).toBe(`opens ${mark} for you to research`);
       const entry = entryOf(compendiumId('order', charter));
-      const note = entry.clauses.find((clause) => clause.note === true && clause.text.startsWith('A charter:'));
-      expect(note?.text, charter).toContain(`It opens ${mark}`);
+      expect(entry.clauses.some((clause) => clause.text === `opens ${mark} for you to research`), charter).toBe(true);
+      expect(entry.clauses.some((clause) => clause.text.startsWith('A charter:')), charter).toBe(false);
     }
   });
 

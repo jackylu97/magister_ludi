@@ -490,7 +490,7 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "Break the ground first. The argument can follow.",
-      "text": "Charter. Unlocks the Plantation House, a building you buy with gold.",
+      "text": "Unlocks the Plantation House, a building you buy with gold.",
       "charter": {
         "unlocks": {
           "building": "plantationHouse"
@@ -2046,7 +2046,7 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "Every great road began as one cart and a reason to leave.",
-      "text": "Boon. On draft: gain a caravan.",
+      "text": "On draft: gain a caravan.",
       "onDraft": [
         {
           "grant": "unit",
@@ -2096,7 +2096,7 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "They rode without bridles, and were paid in whatever the caravans carried.",
-      "text": "Charter. Unlocks Numidian Cavalry: a Horseman with +1 strength for each luxury you hold.",
+      "text": "Unlocks Numidian Cavalry: a Horseman with +1 strength for each luxury you hold.",
       "effects": [],
       "charter": {
         "unlocks": {
@@ -2502,7 +2502,7 @@
       "rarity": "rare",
       "type": "wildcard",
       "flavor": "Borrow against a future you may never have to pay for.",
-      "text": "Boon. On draft: gain twenty turns of gold income. Your towns make 25% less gold for forty turns.",
+      "text": "On draft: gain twenty turns of gold income. Your towns make 25% less gold for forty turns.",
       "effects": [],
       "commission": {
         "goals": [

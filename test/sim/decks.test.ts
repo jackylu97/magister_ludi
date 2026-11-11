@@ -1154,7 +1154,7 @@ describe('the schema, as landed', () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(237);
+    expect(SCHEMA_VERSION).toBe(238);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -2128,25 +2128,33 @@ describe('a charter’s face (tidy batch Z3)', () => {
   it('prints at least one live clause on every dealt Order', () => {
     const dealt = ORDER_IDS.filter(orderIsDealt);
     expect(dealt.length).toBeGreaterThan(0);
+    // The keyword (batch DS8) is not a rule of its own, so it does not count.
     const silent = dealt.filter(
-      (id) => !describeCard(id).some((clause) => clause.deferred !== true && clause.text.trim() !== ''),
+      (id) =>
+        !describeCard(id).some(
+          (clause) => clause.deferred !== true && clause.keyword === undefined && clause.text.trim() !== '',
+        ),
     );
     expect(silent).toEqual([]);
   });
 
   it('prints what The Planters’ Charter, Numidian Cavalry and The Chartered Company open', () => {
+    // Batch DS8: the Charter keyword comes first and carries "this card takes
+    // no chair", so the clause after it says only what the card opens.
     expect(said('thePlantersCharter')).toEqual([
-      'once drafted, you may buy the Plantation House with gold: +1 gold; ' +
-        '+1 food, +1 gold on every hex with a Plantation; this card takes no chair',
+      'Charter',
+      'you may buy the Plantation House with gold: +1 gold; ' +
+        '+1 food, +1 gold on every hex with a Plantation',
     ]);
     expect(said('numidianCavalryCharter')).toEqual([
-      'once drafted, you may train the Numidian Cavalry when you know The Saddle ' +
-        'or any technology as far along the tree; this card takes no chair',
+      'Charter',
+      'you may train the Numidian Cavalry when you know The Saddle ' +
+        'or any technology as far along the tree',
     ]);
     expect(said('theCharteredCompany')).toEqual([
-      'once drafted, you may hire the Company Guard with gold in a city that has a Barracks, ' +
-        'when you know The Counting Houses or any technology as far along the tree; ' +
-        'this card takes no chair',
+      'Charter',
+      'you may hire the Company Guard with gold in a city that has a Barracks, ' +
+        'when you know The Counting Houses or any technology as far along the tree',
     ]);
   });
 

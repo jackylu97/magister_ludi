@@ -703,6 +703,40 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     culture building, with no `first` ledger, so a culture building built,
     bought or granted pays its town. The `buildingInCity` ledger stays: the
     retired Master Workshops still asks it.
+- **Batch DS8** (the four card keywords of the same spec):
+  - **Which keyword:** `orderKeyword` (`statecraftData.ts`) reads it off the
+    row's data, never its name or text: **Commission** (a `commission` field),
+    **Charter** (a `charter` field), **Boon** (`onDraft` grants and no effects)
+    and **Scaler** (a `pays` line with `count: 'tally'`, the old "growing
+    card"). Doctrines and governments carry none.
+  - **On the card:** `describeCard` prints the keyword as the first clause,
+    the mark `[[concept:<keyword>|Name]]` (`keywordMark`,
+    `ORDER_KEYWORD_WORDS`), with `CardClause.keyword` set. The clauses after it
+    drop the standing rule: a commission reads "Goal: … Reward: …", a charter
+    says what it opens, a Boon reads "On draft: …", and a Scaler reads "Gains …
+    each time …" (`scalerWords`, `SCALER_MOMENT_WORDS`). A lasting reward says
+    no "for the rest of the game". Every surface prints `describeCard`, so the
+    offer hand, the collection, the commission rail's popover and the
+    Compendium all show it. The charter's chip ("Charter — takes no chair") is
+    gone.
+  - **The tooltip:** the keyword's Concepts page (`compendiumText.ts`, anchors
+    `concept:commission`, `concept:charter`, `concept:scaler`, `concept:boon`);
+    its first paragraph is the rule the hover card shows, on hover every time.
+    Keyboard focus on a control that holds a card keyword (a card face is a
+    button, so the keyword has no tab stop) shows the keyword's card too
+    (`cardKeywordOf` in `keywordCards.ts`, `CARD_KEYWORD_ENTRIES` in
+    `keywords.ts`), as does a control's `aria-describedby` target (the rail).
+  - **A Scaler's value:** `scalerShape` reads the counted lines and the flat
+    lines that are only their starting values; `scalerFigures` (the evaluator)
+    is the start plus one gain a helping of the card's tally. The face prints
+    it in tabular mono (`scalerFigure.ts`, read by `scalerValue.ts`): the offer
+    hand, the collection, and the Compendium's "Value" row (the start).
+  - **A Boon takes no chair** (schema 238): `slotOrderError` refuses it as it
+    refuses a charter (`isBoon`), so the council screen, the bots and the End
+    Turn pause never offer one a chair.
+  - **A strength line says its side:** `combatSideWords` adds "when
+    defending" or "when attacking" (The Siege Train's +5 is on defence). The
+    luxuries' describer uses it too.
 - **Doctrines** (`docs/orders-and-doctrines.md` "Doctrines"): cards held for the
   whole game. A Doctrine takes no chair and is `liveEffects`' second source. 98 are
   live and all are dealt: Dominion 13, Expansionist 24, Commerce 14, Scientific 15,

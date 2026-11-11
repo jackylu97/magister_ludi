@@ -170,7 +170,7 @@ import {
   cityScopeAdmits,
   cityScopeWords,
   combatLineAmount,
-  combatWhenWords,
+  combatSideWords,
   filterWords,
 } from './statecraft';
 // Expansionist batch E12: what a town holds, a card's grants included.
@@ -1540,7 +1540,7 @@ function describeOne(effect: ResourceEffect): string | null {
     // thing read the same way. Both are ref-free; see the note in `statecraft.ts`.
     const who = effect.class === undefined ? '' : ` for ${filterWords(effect.class)}`;
     const against = effect.vsClass === undefined ? '' : ` against ${filterWords(effect.vsClass)}`;
-    const when = combatWhenWords(effect.when);
+    const when = combatSideWords(effect.side, effect.when);
     return `${signed(effect.amount)} combat strength${who}${against} ${when}${each}`.trim();
   }
   if (effect.kind === 'unitHealth') {

@@ -358,6 +358,7 @@ import {
   doctrineDef,
   governmentDef,
   governmentsAtTier,
+  isBoon,
   isCharter,
   isDoctrineId,
   isOrderId,
@@ -11132,7 +11133,7 @@ function seatableWorth(id: OrderId, ctx: ValueContext): number | null {
  */
 function isSeatable(id: OrderId, ctx: ValueContext): boolean {
   const sc = statecraftOf(ctx.state, ctx.playerId);
-  if (sc === undefined || isCharter(id)) return false;
+  if (sc === undefined || isCharter(id) || isBoon(id)) return false;
   if (commissionFulfilledTurn(sc, id) !== undefined) return false;
   return !orderDef(id).effects.some((effect) => effect.kind === 'rule' && effect.rule === 'cardsFitAnyChair');
 }

@@ -235,9 +235,8 @@ describe('Commission: The Great Fair', () => {
   it('prints its goal in the scope’s own words', () => {
     const text = describeCard(GREAT_FAIR).map((clause) => stripRefs(clause.text));
     expect(text).toEqual([
-      'Commission. Goal: have 4 cities one of your own trade routes ends at, at the same time, while this card is seated',
-      'Reward: for the rest of the game, +2 trade routes',
-      'then this card leaves its chair and is never seated again',
+      'Commission',
+      'Goal: have 4 cities one of your own trade routes ends at, at the same time. Reward: +2 trade routes',
     ]);
     const goal = orderDef(GREAT_FAIR).commission!.goals[0]!;
     expect(commissionCounterWords(goal)).toBe('cities one of your own trade routes ends at');
@@ -304,9 +303,8 @@ describe("The World's Fair", () => {
   it('prints its goal and its reward', () => {
     const text = describeCard(WORLDS_FAIR).map((clause) => stripRefs(clause.text));
     expect(text).toEqual([
-      'Commission. Goal: have trade routes to 4 other empires at the same time, while this card is seated',
-      'Reward: your trading post, established at once, in the capital of each empire your trade routes reach',
-      'then this card leaves its chair and is never seated again',
+      'Commission',
+      'Goal: have trade routes to 4 other empires at the same time. Reward: your trading post, established at once, in the capital of each empire your trade routes reach',
     ]);
     const goal = orderDef(WORLDS_FAIR).commission!.goals[0]!;
     expect(commissionCounterWords(goal)).toBe('empires your trade routes reach');

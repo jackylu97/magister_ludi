@@ -203,10 +203,11 @@ describe('the register', () => {
       'completing a technology (before any other empire) grants +15 production to your capital',
     ]);
     expect(said('theSkyWatchers')).toEqual(['+1 science, +1 faith in every city with a Shrine']);
+    // Batch DS8: a Scaler. Its starting value (+2 production, +2 culture in
+    // the capital) is the figure on its face.
     expect(said('theAstronomicalDiaries')).toEqual([
-      '+2 production, +2 culture in your capital',
-      '+1 culture in your capital per technology you have completed, counted while this Order is seated',
-      '+1 production in your capital per technology you have completed, counted while this Order is seated',
+      'Scaler',
+      'Gains +1 culture and +1 production in your capital each time you complete a technology',
     ]);
     expect(said('theScholarsFame')).toEqual([
       'completing a technology grants renown equal to 5% of the science it cost you, favouring a great scholar',
@@ -216,9 +217,8 @@ describe('the register', () => {
       '+3 culture in your capital per charter you have drafted',
     ]);
     expect(said('theRoyalCharterCommission')).toEqual([
-      'Commission. Goal: complete 1 charter technology, while this card is seated',
-      'Reward: a great scholar to call, and +100 culture',
-      'then this card leaves its chair and is never seated again',
+      'Commission',
+      'Goal: complete 1 charter technology. Reward: a great scholar to call, and +100 culture',
     ]);
     expect(said('theAgeOfReason')).toEqual(['your Orders count each technology you complete twice']);
     expect(said('theJourneymen')).toEqual([

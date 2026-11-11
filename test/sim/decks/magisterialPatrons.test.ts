@@ -227,9 +227,8 @@ describe('Magisterial batch MG8: the rows', () => {
     expect(words(PATRONAGE)).toEqual(['a great person waiting to be called may be bought with faith']);
     expect(words(IMMORTALS)).toEqual(['the legacy of each great person you have spent counts twice']);
     expect(words(GALLERY)).toEqual([
-      'Commission. Goal: have great-person works of 3 different families in your borders, while this card is seated',
-      'Reward: a great person to call, and +200 culture',
-      'then this card leaves its chair and is never seated again',
+      'Commission',
+      'Goal: have great-person works of 3 different families in your borders. Reward: a great person to call, and +200 culture',
     ]);
   });
 });

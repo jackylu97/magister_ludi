@@ -36,9 +36,10 @@
  *     has never carried though it is the field the draw is weighted by and the
  *     one thing that tells a player whether a card they passed on will come
  *     round again.
- *   · the **charter keeps its own chip**. A charter is a kind, not a deck, and
- *     that it takes no chair is the one fact a player cannot work out from the
- *     clauses.
+ *   · the **charter's chip is gone since batch DS8**. A charter is one of the
+ *     four card keywords now (`orderKeyword`), and the keyword is printed as the
+ *     card's first clause by `describeCard`, with a tooltip that says it takes
+ *     no chair. A chip would say the same thing twice.
  *
  * **Since batch C1 an Order's face is the A3 face** (`suitFace.ts`): the suit
  * shows the deck, the ink shows the card's type, and the frame and the ornament
@@ -46,7 +47,7 @@
  * row becomes that face, and every surface that draws an Order asks it: the
  * draft, the council, the collection, the Compendium and the commission chips.
  * The U1 pieces above stayed for the reward sheet until batch C3 removed it,
- * and stay for the eyebrow and the charter chip, which the A3 face keeps.
+ * and stay for the eyebrow, which the A3 face keeps.
  * `deckFaceOf` stays too: since batch C3 a deck's Doctrine is offered on the
  * emblem face, inked by the deck (`doctrineFaceOf`).
  */
@@ -75,25 +76,12 @@ export const GENERIC_WORD = 'Generic';
 const CHARTER_WORD = 'Charter';
 
 /**
- * **What a charter is, said where the choice is made.**
- *
- * The one fact about a charter a player cannot work out from its clauses, and
- * the one that changes what the card is worth: an ordinary Order is a chair
- * spent for as long as you keep it, and a charter is not — it is taken for the
- * door it opens and then sits in the collection for good. A hand that marked
- * the row "Charter" and left it there would be naming a word the player has
- * never met. Said on the chip rather than in a footnote, because the chip is
- * the thing under the name and the footnote is the thing nobody reads.
- */
-export const CHARTER_CHIP = 'Charter — takes no chair';
-
-/**
  * One chip under a card's name: the word on it, and the key the stylesheet
  * inks it by. See the module docblock for why a tone is a string.
  */
 interface OrderBadge {
   label: string;
-  /** A rarity, or `'charter'`. Absent draws the plain chip. */
+  /** A rarity. Absent draws the plain chip. */
   tone?: string;
   /**
    * A single character set *before* the label, hidden from the reading.
@@ -247,15 +235,6 @@ export function orderSuitFace(id: OrderId): SuitFace {
 }
 
 /**
- * **The chips an A3 hand card keeps**: the charter's sentence and nothing else.
- * The rarity chip is gone from the hand because the card's frame and ornament
- * now show the rarity.
- */
-export function orderSuitBadges(id: OrderId): OrderBadge[] {
-  return orderBadges(id).filter((badge) => badge.tone === 'charter');
-}
-
-/**
  * **A deck Doctrine's face** (batch C3), for the Doctrine offer. A Doctrine
  * takes no chair, so it has no chair ink and does not wear the A3 Order face;
  * it keeps the emblem face Doctrines have always worn, with its deck where the
@@ -302,67 +281,16 @@ export function orderPayoff(id: OrderId): string {
 }
 
 /**
- * **The chips under the eyebrow**: the rarity, always, and the charter's own
- * sentence after it where the row is one.
+ * **The chips under the eyebrow**: the rarity, one chip.
  *
  * The deck chips that stood here until U1 are gone — the eyebrow above says the
  * deck in words and the emblem shows it as a mark, and a third statement of the
- * same fact was the complaint. Every card carries exactly one chip now, and a
- * charter two; there is no card with none, which is the change a player feels
- * first, because a generic card used to arrive with the space under its name
- * empty.
+ * same fact was the complaint. A charter's own chip went in batch DS8, when the
+ * keyword took its place (see the module docblock). Since batch C1 no surface
+ * draws this row: the A3 face shows the rarity in its frame. It stays as the one
+ * table that pairs a rarity with its word and its mark.
  */
 export function orderBadges(id: OrderId): OrderBadge[] {
   const def = orderDef(id);
-  const badges: OrderBadge[] = [
-    { label: RARITY_WORD[def.rarity], tone: def.rarity, mark: RARITY_MARK[def.rarity] },
-  ];
-  if (def.charter !== undefined) badges.push({ label: CHARTER_CHIP, tone: 'charter' });
-  return badges;
-}
-
-/**
- * **The chips, drawn** — for the two surfaces that may be handed a node.
- *
- * The collection builds a card face out of elements and wants this row of
- * chips; the reward sheet did too until batch C3 removed it, which is why the
- * row is printed here once rather than in each. `offerCard.ts` keeps its own
- * copy and keeps it deliberately: that
- * component's whole contract is that no simulation type crosses its boundary,
- * so it is handed labels and opaque tones and builds the row itself. Two
- * renderers, not three, and the second one is a stated boundary rather than an
- * oversight.
- *
- * The mark is `aria-hidden` for `OrderBadge.mark`'s reason, and the label is a
- * text node beside it rather than the chip's own text, so the two can be sized
- * apart by the stylesheet.
- *
- * `badges` defaults to the full row. The A3 collection card passes
- * `orderSuitBadges(id)`, the charter's chip alone, because its row already
- * shows the rarity.
- */
-export function orderChipsNode(
-  id: OrderId,
-  badges: readonly OrderBadge[] = orderBadges(id),
-): HTMLElement {
-  const chips = document.createElement('p');
-  chips.className = 'offer-badges';
-  for (const badge of badges) {
-    const chip = document.createElement('span');
-    chip.className = 'offer-badge';
-    if (badge.tone !== undefined) chip.dataset.tone = badge.tone;
-    if (badge.mark !== undefined) {
-      const mark = document.createElement('span');
-      mark.className = 'offer-badge-mark';
-      mark.setAttribute('aria-hidden', 'true');
-      mark.textContent = badge.mark;
-      chip.append(mark);
-    }
-    const label = document.createElement('span');
-    label.className = 'offer-badge-label';
-    label.textContent = badge.label;
-    chip.append(label);
-    chips.append(chip);
-  }
-  return chips;
+  return [{ label: RARITY_WORD[def.rarity], tone: def.rarity, mark: RARITY_MARK[def.rarity] }];
 }

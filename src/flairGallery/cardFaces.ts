@@ -27,13 +27,16 @@ import {
   DECK_WORDS,
   GOVERNMENT_IDS,
   ORDER_IDS,
+  ORDER_KEYWORDS,
   type OrderId,
   governmentDef,
   orderDef,
   orderFitsSlot,
   orderIsDealt,
+  orderKeyword,
   orderType,
 } from '../sim/statecraftData';
+import { scalerStartFace } from '../ui/scalerValue';
 import { chairNode, chairWord, emptyChairNode, offerChairsOf } from '../ui/chairs';
 import { DECK_SUIT, orderSuitFace } from '../ui/deckBadges';
 import { type OfferOption, offerChairsNode, suitHandCard } from '../ui/offerCard';
@@ -111,8 +114,12 @@ function specimenOption(): OfferOption {
   };
 }
 
-/** A real card as the draft deals it: the same words `main.ts` hands the offer. */
+/**
+ * A real card as the draft deals it: the same words `main.ts` hands the offer,
+ * and a Scaler's starting value as its figure (batch DS8).
+ */
 function realOption(id: OrderId): OfferOption {
+  const scaler = scalerStartFace(id);
   return {
     title: orderDef(id).name,
     payoff: '',
@@ -120,7 +127,20 @@ function realOption(id: OrderId): OfferOption {
       .map((clause) => clause.text)
       .join(' · '),
     flavor: orderDef(id).flavor,
+    ...(scaler === null ? {} : { scaler }),
   };
+}
+
+/**
+ * One live card of each keyword (batch DS8), in the keywords' own order, read
+ * off the data by `orderKeyword` and never by id.
+ */
+function keywordCardIds(): OrderId[] {
+  const dealt = ORDER_IDS.filter((id) => orderIsDealt(id) && orderDef(id).retired !== true);
+  return ORDER_KEYWORDS.flatMap((keyword) => {
+    const pick = dealt.find((id) => orderKeyword(id) === keyword);
+    return pick === undefined ? [] : [pick];
+  });
 }
 
 /** A seated card, as the council draws one. */
@@ -269,6 +289,17 @@ export function drawCardFaces(into: HTMLElement): void {
   const list = element('div', 'face-list');
   for (const id of picks) list.append(suitRowNode(orderSuitFace(id), orderDef(id).name));
   real.append(list);
+
+  // --- the four keywords (batch DS8) ------------------------------------------
+  const keywords = block(
+    into,
+    'The four keywords — describeCard, keywordCards.ts and scalerFigure.ts',
+    'One live card of each keyword: Commission, Charter, Scaler and Boon. The keyword is the first clause, in bold; point at it, or focus the card with the keyboard, to read its rule. A Scaler shows its value under its rules, here the value before its first gain.',
+  );
+  const keywordHands = handHost(keywords);
+  keywordCardIds().forEach((id, index) =>
+    keywordHands.append(suitHandCard(realOption(id), orderSuitFace(id), index)),
+  );
 
   drawCouncil(into, picks);
 }

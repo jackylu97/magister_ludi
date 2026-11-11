@@ -267,7 +267,7 @@ describe('the rows', () => {
     ]);
     expect(said('theGreatInstrument')).toContain('not dealt to an empire that knows Alchemy');
     expect(said('theGreatInstrument')).toContain(
-      'Reward: production toward the Magnum Opus equal to 10% of its cost at that moment',
+      'Goal: complete Alchemy. Reward: production toward the Magnum Opus equal to 10% of its cost at that moment',
     );
     expect(said('theClosedBook')).toEqual([
       'if you complete Alchemy before any other empire, empires that do not know Alchemy may not begin the Magnum Opus for 10 turns',

@@ -580,15 +580,19 @@ describe('the Expansionist batch E9: The Mountain Schools', () => {
 
 describe('the Expansionist batch E9: the words', () => {
   it('prints all five cards in plain words', () => {
+    // Batch DS8: the Charter keyword comes first and says it takes no chair.
     expect(said('theBurningSeason')).toEqual([
-      'once drafted, opens the Burned Country for your workers to build; this card takes no chair',
+      'Charter',
+      'opens the Burned Country for your workers to build',
       'on an improved hex, the work stays, and the hex gains +1 food for the rest of the game while it stays improved; a hex takes this only once',
     ]);
     expect(said('theMarlPits')).toEqual([
       'building a Mine gives every hex with a Farm or Pasture beside it, inside your borders, +1 food for the rest of the game, at most +2 food on one hex',
       'building a Quarry gives every hex with a Farm or Pasture beside it, inside your borders, +1 food for the rest of the game, at most +2 food on one hex',
     ]);
-    expect(said('commissionBreakTheSod')).toContain('Reward: for the rest of the game, +1 food on every hex with a Farm');
+    expect(said('commissionBreakTheSod')).toContain(
+      'Goal: work 12 improved tiles at the same time, not counting tended tiles. Reward: +1 food on every hex with a Farm',
+    );
     expect(said('theTwoHarvests')).toEqual([
       'a Farm, Mine or Lumbermill of yours also counts as tended land for your cards, but not as wild land',
     ]);

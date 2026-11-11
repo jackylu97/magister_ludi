@@ -19,6 +19,30 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(jjjjjjj) Rulings of 2026-11-11 on the held cards, the tier-26 rule, two technologies, rites and beliefs: RULED; batches DS9, R1, TT2, RT1 and B1 are queued.**
+The user answered a numbered list of open items. Each ruling below quotes the answer.
+- **Batch R1, cards and the moments they need:**
+  - The Terraces of Moray: *"add the rule"*. A levy becomes a moment that cards can read, carrying the production it paid. The card reads "A levy also grants science equal to half its production." A levy that pays no production (one that raises a unit or a settler) grants no science.
+  - Letters of Credit: *"card also lifts the 25% loss"*. With the card seated, a treasury between 0 and −150 costs no science or culture, as well as disbanding no units. Its text is "Your treasury may fall to −150 with no penalty."
+  - The Strongbox: *"add the new moment"*. One moment fires for each purchase made with gold, of any kind. The card reads "Gains +1 science and +1 culture each time you buy something with gold, up to +15."
+  - The Votive Lamp: *"drop it"*. It is not added.
+  - The Pilgrim Staff: *"add that moment"*. One moment fires each time faith is spent, carrying the amount. The card (Devotion, Tier I, Civic) reads "Spending faith grants culture equal to a fourth of it."
+  - The Apprentices: *"wonders should not count"*. Finishing a wonder or the Magnum Opus grants nothing.
+  - The Scholars' Roads: *"don't lose trade routes, just plain 'your routes gain +50% science and culture'"*.
+  - Market Gardens: *"move it (roads aren't available that early in the game). new shared card: +1 gold on luxury resources"*. Market Gardens moves to Tier II. A new shared card for Expansionist and Commerce at Tier 0, Economic, common, reads "Luxury resources gain +1 gold." Its name is a placeholder: The Country Fair.
+  - The tier-26 governments: *"add all three"*. The 30% rise also covers happiness, authority and renown that a seated card of the type gives.
+  - A banned route that ends when its far town changes hands: *"accepted"*.
+- **Batch TT2, technologies:**
+  - Divine Right: *"remove it and link castellany"*. The technology leaves the tree, its bonus goes with it, and Castellany takes Divine Right's parent (Guildhalls) as its parent.
+  - The Civil Service: *"yup, go with the suggestion"*. The Courthouse moves from Iron Working to The Civil Service. The holding bonus (great-person works +1 food and +1 production) is then cut, as item (iiiiiii) first ruled.
+  - The second worker charge: *"move it to the wheel"*. It moves from Bronze Panoply to The Wheel.
+- **Batch RT1, rites:** *"lets instead have a blocking 'renew rites' message in the 'end turn' button that opens the rites menu when clicked; happens when a rite expires. disappears after closing the faith menu (player doesn't have to renew)."* No rite renews by itself.
+- **Batch B1, beliefs:** *"belief page is ready"*. The spec of record is `docs/plans/belief-update-2026-11-10.md`. The Dar-e Mehr takes the proposed +25% faith (*"your change"*).
+- **Batch DS9** is unchanged from item (hhhhhhh): the Chiefdom's three chairs become Wildcard chairs (a reading the user saw and did not change), a charter technology costs the ordinary price, and The Second Reading is dealt in Tier 0 and Tier I.
+- **CLAUDE.md:** *"update claude.md, no need to keep a log of the change, just update it."* Done for the road step sentence.
+- **The play server:** *"please move changes as they come in ot the playtest server"*. After each committed batch, the play clone (`~/code/webciv-play`, port 5199) moves to the new head.
+- **Still open:** early game pacing (item iiiiiii).
+
 **(iiiiiii) Less authority and happiness from the tech tree, and fewer passive bonuses on technologies: RULED 2026-11-10; batch TT1 is queued. Early pacing is OPEN.**
 The user: *"there's too much authority and happiness in the game as it stands. I also think there are too many 'random' bonuses that aren't impactful in the tech tree ... unlocking something feels obvious, but the passive bonuses are so easy to miss ... i think we can cut most of them (make sure to keep irrigation, thats a big one)."* After the review page (https://claude.ai/artifact/RsNxBxQTx3kgdQfZNECNDd) and nine comments: *"no determinations yet on the early game pacing, but everything else is approved"*.
 - **Authority, ruled:**

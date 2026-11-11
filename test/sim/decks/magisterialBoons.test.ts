@@ -169,14 +169,14 @@ describe('Magisterial batch MG14: the rows', () => {
   });
 
   it('carries the shapes the triage names', () => {
-    // Batch DS7 gave both a shorter text that starts with the keyword
-    // "Boon.", with the same effect.
+    // Batch DS7 gave both a shorter text, with the same effect. Batch DS8
+    // took the keyword "Boon." off the text: the card face prints it.
     expect(orderDef(CABINET).text).toBe(
-      'Boon. On draft: gain a random card of your tier from a deck you do not hold.',
+      'On draft: gain a random card of your tier from a deck you do not hold.',
     );
     expect(orderDef(CABINET).onDraft).toEqual([{ grant: 'foreignCard' }]);
     expect(orderDef(RETROSPECTIVE).text).toBe(
-      'Boon. On draft: gain 20 culture, science and production for each wonder, great-person work and Order you hold.',
+      'On draft: gain 20 culture, science and production for each wonder, great-person work and Order you hold.',
     );
     // Nine grants: three yields for each of three counts. Production goes to
     // the capital; culture and science are banked.
@@ -199,11 +199,14 @@ describe('Magisterial batch MG14: the rows', () => {
 
   it('prints each card in plain words', () => {
     const words = (id: OrderId): string[] => describeCard(id).map((clause) => stripRefs(clause.text));
+    // Batch DS8: the Boon keyword first; it says the card takes no chair.
     expect(words(CABINET)).toEqual([
-      'when drafted, a random Order of your tier from a deck you do not hold joins your collection; seated, this card does nothing',
+      'Boon',
+      'On draft: a random Order of your tier from a deck you do not hold joins your collection',
     ]);
     expect(words(RETROSPECTIVE)).toEqual([
-      "when drafted, +20 culture, +20 science and +20 production in your capital for each wonder you hold, each hex carrying a great person's work in your borders and each Order you hold, seated or not; seated, this card does nothing",
+      'Boon',
+      "On draft: +20 culture, +20 science and +20 production in your capital for each wonder you hold, each hex carrying a great person's work in your borders and each Order you hold, seated or not",
     ]);
   });
 });

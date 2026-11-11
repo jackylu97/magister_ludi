@@ -499,12 +499,20 @@ function countsTable(header: string): Map<string, number[]> {
 const dataNameOf = (card: { name: string; was?: string }): string => card.was ?? card.name;
 
 /**
- * A charter's text, as the sheet and the data write it: it begins with the
- * keyword "Charter.". Devotion batch DS5 gave the shared The Schoolmen's
- * Charter that form, and batch DS6 gave it to this deck's thirteen charters.
- * Until then they began "Drafting this opens".
+ * **A charter, read off the data** (batch DS8). Batches DS5 and DS6 began a
+ * charter's text with the keyword "Charter."; since DS8 the card face prints
+ * the keyword (`orderKeyword`), so no text starts with it, and a sheet row is a
+ * charter when its data row is one. An `add` row has no data row, and none of
+ * them is a charter.
  */
-const isCharterText = (text: string): boolean => text.startsWith('Charter. ');
+const CHARTER_NAMES = new Set(
+  ORDER_IDS.filter((id) => orderDef(id).charter !== undefined).map((id) => orderDef(id).name),
+);
+const isCharterRow = (card: { name: string; was?: string; status: string }): boolean =>
+  card.status !== 'add' && CHARTER_NAMES.has(dataNameOf(card));
+
+/** No text starts with a keyword: the card face prints it (batch DS8). */
+const startsWithKeyword = (text: string): boolean => /^(Commission|Charter|Scaler|Boon)\. /.test(text);
 
 /**
  * The checks every sheet row with a data row shares, in either table: the
@@ -513,7 +521,7 @@ const isCharterText = (text: string): boolean => text.startsWith('Charter. ');
 function checkAgainstRow(card: SheetCard, id: OrderId): void {
   const def = orderDef(id);
   expect(def.type, `${card.name}: the sheet's type`).toBe(card.type);
-  expect(isCharter(id), `${card.name}: a charter on one side only`).toBe(isCharterText(card.text));
+  expect(startsWithKeyword(card.text), `${card.name}: the keyword is the card face's, not the text's`).toBe(false);
   const dealt = orderIsDealt(id);
   if (card.status === 'implemented') {
     expect(card.was, `${card.name} is implemented and renamed`).toBeUndefined();
@@ -665,7 +673,7 @@ describe('the Scientific deck: the sheet', () => {
     const byStatus = (cards: readonly SheetCard[]): number[] => [
       ...SHEET_STATUSES.map((s) => cards.filter((card) => card.status === s).length),
       cards.length,
-      cards.filter((card) => isCharterText(card.text)).length,
+      cards.filter(isCharterRow).length,
     ];
     const byType = (cards: readonly SheetCard[]): number[] =>
       (['military', 'economic', 'civic', 'wildcard'] as const).map(
@@ -681,7 +689,7 @@ describe('the Scientific deck: the sheet', () => {
     expect(status.get('Shared'), 'the shared status counts').toEqual(byStatus(shared));
     expect(types.get('Shared'), 'the shared type counts').toEqual(byType(shared));
     // The thirteen charters are all on the tier tables.
-    expect(sheet.filter((card) => isCharterText(card.text))).toHaveLength(13);
+    expect(sheet.filter(isCharterRow)).toHaveLength(13);
   });
 });
 

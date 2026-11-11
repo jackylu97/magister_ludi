@@ -215,7 +215,8 @@ import {
   governmentDef,
   orderDef,
 } from './sim/statecraftData';
-import { doctrineFaceOf, orderPayoff, orderSuitBadges, orderSuitFace } from './ui/deckBadges';
+import { doctrineFaceOf, orderPayoff, orderSuitFace } from './ui/deckBadges';
+import { scalerFace } from './ui/scalerValue';
 import { createTurnSplash, techSplashReading } from './ui/turnSplash';
 import { charterOfferParts } from './ui/charterTech';
 // A type only: the Compendium's code is imported on first open (see below).
@@ -3249,15 +3250,18 @@ async function boot(initial: Game | null): Promise<void> {
         title: orderDef(id).name,
         // **The A3 face** (batch C1, `ui/suitFace.ts`): the suit shows the
         // deck, the ink shows the card's type and the rank shows its rarity, so
-        // the rarity chip is gone and only a charter keeps its chip. The
-        // eyebrow is not drawn on this face; the foot names the deck.
+        // the face carries no chip. The card's keyword (batch DS8) is the first
+        // clause of its note. The eyebrow is not drawn on this face; the foot
+        // names the deck.
         payoff: orderPayoff(id),
-        badges: orderSuitBadges(id),
         suit: orderSuitFace(id),
         note: describeCard(id).map((clause) => clause.text).join(' · '),
         flavor: orderDef(id).flavor,
         // A commission's counter, so the hand shows where its goal starts.
         progress: commissionCounters(game.state, seat, id),
+        // A Scaler's value (batch DS8): its starting value, or what this seat's
+        // copy has grown to.
+        ...(scalerFace(game.state, seat, id) === null ? {} : { scaler: scalerFace(game.state, seat, id)! }),
         ...cardStamp(seat, { kind: 'order', id }),
         // A technology charter's slip of the star chart and its "Opened" stamp
         // (Scientific batch S10). After the impact stamp, so it wins over it.

@@ -1441,7 +1441,7 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "A company with a charter, a flag and its own soldiers.",
-      "text": "Charter. Unlocks the Company Guard, a melee unit you buy with gold.",
+      "text": "Unlocks the Company Guard, a melee unit you buy with gold.",
       "effects": [],
       "charter": {
         "unlocks": {
@@ -1516,7 +1516,7 @@
       "rarity": "common",
       "type": "military",
       "flavor": "The sword is carried before the ruler, and a soldier walks behind it.",
-      "text": "Boon. On draft: gain the best melee unit you can build. It costs no upkeep.",
+      "text": "On draft: gain the best melee unit you can build. It costs no upkeep.",
       "onDraft": [{ "grant": "unit", "unit": "bestMelee" }],
       "effects": []
     },
@@ -2052,7 +2052,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Every question is argued both ways before the master gives an answer.",
-      "text": "Charter. Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town.",
+      "text": "Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town.",
       "charter": {
         "unlocks": {
           "tech": "scholasticism"

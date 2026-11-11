@@ -7,10 +7,11 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 - **Batch DS1** (2026-11-10, `docs/plans/deck-simplification-2026-11-10.md`, `docs/flags.md` item (hhhhhhh)) retired 7 rows of this deck and 4 shared rows. It moved Civic Granaries and Commission: The Eighth Wonder from Tier 0 to Tier I. A moved row keeps its text until a later batch changes it. "Retired rows" below gives the reason for each cut.
 - **Batch DS7** (2026-11-11, the same spec) gave 23 rows of this deck their new, shorter text. No row is held back, and the deck has no new card. A commission's text now reads "Goal: … Reward: …", and a boon's text starts with the keyword "Boon.":
   - **Reworded, same effect:** the seven commissions, the three boons, The Working Court, The Envious Eye, The Senate Charter, The Last Commission and The Pull of the Masters. Each keeps every rule it had. The Wonder of the Age still counts production put into the Magnum Opus. The Grand Retrospective still sends its production to your capital. The Last Commission still pays at most once a turn, and only while a town builds the Opus. The Pull of the Masters still never takes a town centre or a rival's own work.
-  - **The Senate Charter** has a text that starts with the keyword "Charter.", but the card still takes a chair. You can build the Assembly Hall, and the hall gives its bonuses, only while the card is seated. Batch DS8 decides how the card face shows the keyword.
+  - **The Senate Charter** had a text that started with the keyword "Charter.", but the card still takes a chair. You can build the Assembly Hall, and the hall gives its bonuses, only while the card is seated. Batch DS8 settled it: the card is not a Charter, it carries no keyword, and its text lost the word.
   - **Simplified:** Master Masons lost its +25% toward Monuments and its "first time in a town" condition. Now each culture building finished in a town grants that town 30 production (it was 20), whether the building was built, bought or granted, and a culture wonder or empire building counts. The Cornerstone lost its condition: +20% toward wonders in every town (it was +30% in a town with no wonder). The Guild of Masons lost its loss of gold, and gives +30% (it was +38%). The Laureate lost its +1 renown. The Honoured Dead lost its cap of fifteen spends (the spec marks it reworded, and its Note says the cap goes). The Learned Patron lost its cap of +18 science a town. The Wonder Commonwealth lost its +15% culture in towns with no wonder, and gives +35% production and food (it was +38%).
   - **Changed:** The Workshop at Olympia gives +3 renown a turn for each wonder, not +2 (your comment of 2026-11-10).
   - **The Second Reading** keeps its text and its tier. Batch DS9 deals it in Tier 0 and in Tier I.
+- **Batch DS8** (2026-11-11, the same spec) put the four keywords on the card face: Commission, Charter, Scaler and Boon. The game reads each from the card's data (`orderKeyword`), prints it as the card's first clause, and shows its rule in a tooltip. So no text below starts with "Charter." or "Boon." any more.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -24,7 +25,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
   - `add`: not in the data yet.
   - **(was …)** names the data row that a renamed card takes over.
 - **Type:** the last column says which chair the card fits: **Military**, **Economic**, **Civic** or **Wildcard** (`docs/plans/doctrines-governments-chairs.md`, section 4). Since batch MG1 the types are in the data. A Magisterial card fits only a chair of its own type or a Wildcard chair, except while The Mixed Constitution is seated: then every card you hold fits every chair (batch MG12). A card in a Wildcard chair still counts as its own type, so the Assembly Hall of The Senate Charter counts only Wildcard cards (the triage's reading 42). The sync test checks this column for every row in the data, the shared table's included.
-- **Charters:** none. Every card takes a chair, The Senate Charter included: its text starts with the keyword "Charter." since batch DS7, but its Assembly Hall works only while the card is seated. The three boons (The Wandering Muse, The Cabinet of Curiosities and The Grand Retrospective) pay when you draft them and do nothing seated. Since batch DS7 their texts start with the keyword "Boon.".
+- **Charters:** none. The Senate Charter takes a chair, and its Assembly Hall works only while the card is seated, so it carries no keyword. The three boons (The Wandering Muse, The Cabinet of Curiosities and The Grand Retrospective) pay when you draft them. They carry the Boon keyword, and since batch DS8 a Boon cannot be seated.
 - **Doctrines:** 16 (4 on each of Tiers I to IV), all dealt, after your comments of 2026-11-05 (`docs/plans/doctrine-review-2026-11-05.md`). A Doctrine is held for the whole game and takes no chair. Each tier's Doctrine table sits above its Orders, and the Build column names the theme that each is written for. `docs/plans/doctrines-build-triage.md` gives the batch that built each one. The reasons and pairs are in `docs/plans/magisterial-doctrines.md`.
 - **The old sheet** (61 cards, in the old format, last reviewed 2026-10-07) is in git history: `git show 7d4064dc:docs/decks/magisterial.md`.
 
@@ -81,7 +82,7 @@ The deck holds 64 cards, and every one takes a chair: 7, 16, 15, 16 and 10 acros
 |---|---|---|---|---|
 | **The Nomarchs** | uncommon | implemented | +1 authority for every two cards you have seated. | Civic |
 | **Commission: The Roll of the Senate** | uncommon | implemented | Goal: hold ten Orders. Reward: one more Wildcard chair. | Wildcard |
-| **The Wandering Muse** | uncommon | implemented | Boon. On draft: gain a free great-person draft. | Civic |
+| **The Wandering Muse** | uncommon | implemented | On draft: gain a free great-person draft. | Civic |
 | **The Workshop at Olympia** | common | implemented | +3 renown a turn for each wonder you hold. | Civic |
 | **The Overseers of Works** | uncommon | implemented | Each time you gain a great person, your capital gains 100 production for each age you have reached. | Economic |
 | **The Laureate** | uncommon | implemented | Towns working a great-person work gain +5 culture and +3 science. | Civic |
@@ -112,7 +113,7 @@ The deck holds 64 cards, and every one takes a chair: 7, 16, 15, 16 and 10 acros
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
 | **The Grand Vizier** | rare | implemented | The card in your first Economic chair pays its yields twice. | Wildcard |
-| **The Senate Charter** | uncommon | implemented | Charter. Unlocks the Assembly Hall in your capital: +3 happiness and +30% production toward buildings. | Civic |
+| **The Senate Charter** | uncommon | implemented | Unlocks the Assembly Hall in your capital: +3 happiness and +30% production toward buildings. | Civic |
 | **The Prefects** | uncommon | implemented | +5% production for each Economic card you have seated. | Economic |
 | **The Sed Festival** | rare | implemented | Each time you adopt a government, gain a free great-person draft. | Civic |
 | **The Symposium** | uncommon | implemented | Each time you gain a great person, you are dealt a free Order hand. | Wildcard |
@@ -157,7 +158,7 @@ The deck holds 64 cards, and every one takes a chair: 7, 16, 15, 16 and 10 acros
 | **Commission: The Wonder of the Age** | uncommon | implemented | Goal: put 1,500 production into wonders. Reward: 250 culture and one more Wildcard chair. | Wildcard |
 | **Officials by Merit** | rare | implemented | Order hands deal two extra cards. You cannot reroll Order hands. | Wildcard |
 | **The Second Sitting** | rare | implemented | Each time you pass on an Order hand you paid culture for, you are dealt a free Order hand at once. | Wildcard |
-| **The Cabinet of Curiosities** | rare | implemented | Boon. On draft: gain a random card of your tier from a deck you do not hold. | Wildcard |
+| **The Cabinet of Curiosities** | rare | implemented | On draft: gain a random card of your tier from a deck you do not hold. | Wildcard |
 
 Tier III has no Military card (section 8 of the themes pass). Since batch DS1, Tiers II and IV have none either. The Military cards of Tiers 0 and I and the partner deck's fill the Military chairs of the later governments.
 
@@ -185,7 +186,7 @@ Tier III has no Military card (section 8 of the themes pass). Since batch DS1, T
 | **The Hall of Wonders** | rare | implemented | Order hands deal one more card for every two wonders you hold, at most two more. | Wildcard |
 | **The Universal Library** | rare | implemented | The city building the Magnum Opus gains +2% production toward it for each Order you hold, seated or not, at most +40%. | Economic |
 | **The Polymath's Study** | rare | implemented | Your towns gain +8% science and production for each different deck among the cards you hold, at most +40%. | Civic |
-| **The Grand Retrospective** | rare | implemented | Boon. On draft: gain 20 culture, science and production for each wonder, great-person work and Order you hold. | Civic |
+| **The Grand Retrospective** | rare | implemented | On draft: gain 20 culture, science and production for each wonder, great-person work and Order you hold. | Civic |
 
 ## Shared with another deck
 
@@ -201,7 +202,7 @@ These rows live in `data/decks/common.json`. A seat holding Magisterial or the d
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
 | **Illuminated Treatises** | common | Scientific | 0 | implemented | Libraries give +1 culture. Monuments give +1 science. | Civic |
-| **The Sword of State** | common | Dominion | I | implemented | Boon. On draft: gain the best melee unit you can build. It costs no upkeep. | Military |
+| **The Sword of State** | common | Dominion | I | implemented | On draft: gain the best melee unit you can build. It costs no upkeep. | Military |
 | **Garden Cities** | uncommon | Expansionist | I | implemented | Towns with a Monument gain +1 culture for every three wild tiles they work. | Civic |
 | **The Art Dealers** | common | Commerce | I | implemented | +3 gold for each card seated in your government. | Economic |
 | **The Painted Chapels** | uncommon | Devotion | I | implemented | Religious buildings give +3 culture each. | Civic |

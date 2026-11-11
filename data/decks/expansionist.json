@@ -87,7 +87,7 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "Stone walls in the shallows, and the tide does the rest.",
-      "text": "Charter. Workers may build fish traps on lake and coast tiles: +1 food and +1 production.",
+      "text": "Workers may build fish traps on lake and coast tiles: +1 food and +1 production.",
       "charter": { "unlocks": { "improvement": "fishTraps" } },
       "effects": []
     },
@@ -340,7 +340,7 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "Nobody planted these trees, and everybody picks from them.",
-      "text": "Charter. Workers may tend a forest or jungle tile into an orchard: +1 food and +1 gold.",
+      "text": "Workers may tend a forest or jungle tile into an orchard: +1 food and +1 gold.",
       "charter": {
         "unlocks": { "improvement": "wildOrchard" }
       },

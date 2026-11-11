@@ -12068,6 +12068,131 @@ export function isCharter(id: OrderId): boolean {
   return orderDef(id).charter !== undefined;
 }
 
+// --- the card keywords ----------------------------------------------------------
+
+/**
+ * **The four keywords an Order can carry** (batch DS8,
+ * `docs/plans/deck-simplification-2026-11-10.md`, "Keywords"). The card face
+ * prints the keyword, and the keyword's tooltip states the rule that the card's
+ * own sentence used to repeat.
+ */
+export type OrderKeyword = 'commission' | 'charter' | 'scaler' | 'boon';
+
+/** The keywords in the order the Compendium lists them. */
+export const ORDER_KEYWORDS: readonly OrderKeyword[] = ['commission', 'charter', 'scaler', 'boon'];
+
+/** A Scaler's line: a `pays` row that counts what the card has watched happen. */
+function isTallyLine(effect: CardEffect): effect is CardPaysEffect {
+  return effect.kind === 'pays' && effect.basis === 'count' && effect.count === 'tally';
+}
+
+/**
+ * **Which keyword this row carries**, or `null` for a plain card.
+ *
+ * Read from the row's own data, never from its name or its `text`:
+ *
+ *   - `commission`: the row has a goal and a reward (`OrderDef.commission`);
+ *   - `charter`: the row takes no chair and opens a thing (`OrderDef.charter`);
+ *   - `boon`: the row's whole effect is a grant paid when it is drafted
+ *     (`OrderDef.onDraft`, with no effects and no grant on seating);
+ *   - `scaler`: the row gains a stored amount each time a moment happens while
+ *     it is seated (a `pays` line with `count: 'tally'`).
+ *
+ * No live row matches two of these. If one did, the first in the list wins.
+ * Doctrines and governments carry no keyword: none of them has any of these
+ * four shapes.
+ */
+export function orderKeyword(id: OrderId): OrderKeyword | null {
+  const def = orderDef(id);
+  if (def.commission !== undefined) return 'commission';
+  if (def.charter !== undefined) return 'charter';
+  if ((def.onDraft?.length ?? 0) > 0 && def.effects.length === 0 && (def.onSlot?.length ?? 0) === 0) {
+    return 'boon';
+  }
+  if (def.effects.some(isTallyLine)) return 'scaler';
+  return null;
+}
+
+/**
+ * Is this row a Boon: paid once when it is drafted, and never seated? Since
+ * batch DS8 the chair refuses it (`slotOrderError`), so the game agrees with
+ * the keyword's rule that a Boon needs no chair.
+ */
+export function isBoon(id: OrderId): boolean {
+  return orderKeyword(id) === 'boon';
+}
+
+/** One voice a Scaler gains: the counted line, and what the card gives before its first gain. */
+export interface ScalerPart {
+  /** The `pays` line with `count: 'tally'`. Its `to`, `amount`, `per` and `max` are the gain. */
+  readonly line: CardPaysEffect;
+  /**
+   * The value before the first gain: the figure a flat line of the same card pays
+   * in the same voice and the same place. Nought when the card has no such line.
+   */
+  readonly start: number;
+}
+
+/** A Scaler's rows, read once for the describer and for the figure on the face. */
+export interface ScalerShape {
+  readonly parts: readonly ScalerPart[];
+  /**
+   * The indices in `effects` that the parts cover: the counted lines and the flat
+   * lines that are only their starting values. The describer prints these as one
+   * sentence, and every other row of the card in its own words.
+   */
+  readonly rows: readonly number[];
+}
+
+/** Are two optional row fields the same, compared as plain data? */
+function sameField(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * **The parts of a Scaler**, read off its effects (batch DS8). Empty for a row
+ * with no counted line.
+ *
+ * A flat `pays` line is a starting value when it pays only voices that a counted
+ * line of the same card gains, in the same place (`where` and `scope`), and
+ * carries nothing else. The Gathering Host's "+2 science, +2 culture" is the
+ * value its figure shows before the first military unit is gained. A flat line
+ * that does anything more stays a sentence of its own.
+ */
+export function scalerShape(effects: readonly CardEffect[]): ScalerShape {
+  const tallies: { line: CardPaysEffect; at: number }[] = [];
+  effects.forEach((effect, at) => {
+    if (isTallyLine(effect)) tallies.push({ line: effect, at });
+  });
+  if (tallies.length === 0) return { parts: [], rows: [] };
+  const starts = new Map<CardPaysEffect, number>();
+  const rows = tallies.map((tally) => tally.at);
+  const VOICE_KEYS: readonly CityYieldKey[] = ['food', 'production', 'gold', 'science', 'culture', 'faith'];
+  const ALLOWED = new Set<string>(['kind', 'where', 'basis', 'scope', ...VOICE_KEYS]);
+  effects.forEach((effect, at) => {
+    if (effect.kind !== 'pays' || (effect.basis ?? 'flat') !== 'flat') return;
+    if (Object.keys(effect).some((key) => !ALLOWED.has(key))) return;
+    const paid = VOICE_KEYS.filter((voice) => (effect[voice] ?? 0) !== 0);
+    if (paid.length === 0) return;
+    const matched = paid.map((voice) =>
+      tallies.find(
+        (tally) =>
+          tally.line.to === voice &&
+          tally.line.where === effect.where &&
+          sameField(tally.line.scope, effect.scope) &&
+          !starts.has(tally.line),
+      ),
+    );
+    if (matched.some((tally) => tally === undefined)) return;
+    paid.forEach((voice, index) => starts.set(matched[index]!.line, effect[voice] ?? 0));
+    rows.push(at);
+  });
+  return {
+    parts: tallies.map((tally) => ({ line: tally.line, start: starts.get(tally.line) ?? 0 })),
+    rows: rows.sort((a, b) => a - b),
+  };
+}
+
 /**
  * The charter that opens this improvement row, or `null` when no card does.
  * Retired rows are skipped. The Compendium reads it to say which card opens a

@@ -196,7 +196,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Sand, fire, and a second look at everything.",
-      "text": "Charter. Opens Optics, which unlocks the Specularium: +3 food, and +1 science for every two citizens.",
+      "text": "Opens Optics, which unlocks the Specularium: +3 food, and +1 science for every two citizens.",
       "charter": { "unlocks": { "tech": "optics" } },
       "effects": []
     },
@@ -577,7 +577,7 @@
       "rarity": "rare",
       "type": "military",
       "flavor": "Every lever is an argument.",
-      "text": "Charter. Opens Mechanics: catapults gain +1 range, and your archer line may move after it shoots.",
+      "text": "Opens Mechanics: catapults gain +1 range, and your archer line may move after it shoots.",
       "charter": { "unlocks": { "tech": "mechanics" } },
       "effects": []
     },
@@ -589,7 +589,7 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "Turn one thing into another and call it a trade.",
-      "text": "Charter. Opens Chemistry: your warrior line gains +1 strength for each charter technology you know.",
+      "text": "Opens Chemistry: your warrior line gains +1 strength for each charter technology you know.",
       "charter": { "unlocks": { "tech": "chemistry" } },
       "effects": []
     },
@@ -749,7 +749,7 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "A walled garden, and a book for every bed in it.",
-      "text": "Charter. Opens Herbals, which unlocks the Physic Garden: +2 science and +2 happiness.",
+      "text": "Opens Herbals, which unlocks the Physic Garden: +2 science and +2 happiness.",
       "charter": { "unlocks": { "tech": "herbals" } },
       "effects": []
     },
@@ -761,7 +761,7 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "The guild keeps the mould, and the city keeps the guild.",
-      "text": "Charter. Opens Casting: your spear and chariot lines gain +2 strength for good.",
+      "text": "Opens Casting: your spear and chariot lines gain +2 strength for good.",
       "charter": { "unlocks": { "tech": "casting" } },
       "effects": []
     },
@@ -773,7 +773,7 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "Chain, rod and level, and the land agrees to be measured.",
-      "text": "Charter. Opens Surveying: you may build the Aqueduct early, and workers may build the Qanat, which waters the farms beside it.",
+      "text": "Opens Surveying: you may build the Aqueduct early, and workers may build the Qanat, which waters the farms beside it.",
       "charter": { "unlocks": { "tech": "surveying" } },
       "effects": []
     },
@@ -785,7 +785,7 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "A shelf in order is a city in order.",
-      "text": "Charter. Opens Cataloguing, which unlocks the Mouseion: +4 scholar renown, and +2 culture for each empire building you hold.",
+      "text": "Opens Cataloguing, which unlocks the Mouseion: +4 scholar renown, and +2 culture for each empire building you hold.",
       "charter": { "unlocks": { "tech": "cataloguing" } },
       "effects": []
     },
@@ -809,7 +809,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "The mill by the river turns rags into records.",
-      "text": "Charter. Opens Papermaking, which unlocks the Scriptorium: +2 science, and +10% science beside an Academy.",
+      "text": "Opens Papermaking, which unlocks the Scriptorium: +2 science, and +10% science beside an Academy.",
       "charter": { "unlocks": { "tech": "papermaking" } },
       "effects": []
     },
@@ -821,7 +821,7 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "A house of healing, open to every traveller.",
-      "text": "Charter. Opens Medicine, which unlocks the Bimaristan: +25% food in its town.",
+      "text": "Opens Medicine, which unlocks the Bimaristan: +25% food in its town.",
       "charter": { "unlocks": { "tech": "medicine" } },
       "effects": []
     },
@@ -833,7 +833,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Small books, carried in a merchant's pocket.",
-      "text": "Charter. Opens Printing, which unlocks the Aldine Press: +2 culture and +1 trade route.",
+      "text": "Opens Printing, which unlocks the Aldine Press: +2 culture and +1 trade route.",
       "charter": { "unlocks": { "tech": "printing" } },
       "effects": []
     },
@@ -845,7 +845,7 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "The foundry by the arsenal never lets its fires go out.",
-      "text": "Charter. Opens Gunfounding, which unlocks the Tophane: its town builds military units 25% faster, with +4 strength.",
+      "text": "Opens Gunfounding, which unlocks the Tophane: its town builds military units 25% faster, with +4 strength.",
       "charter": { "unlocks": { "tech": "gunfounding" } },
       "effects": []
     },
@@ -857,7 +857,7 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "The engineers draw the walls before the masons lay them.",
-      "text": "Charter. Opens Military Architecture, which unlocks the Bastion: +5 defence and +30 hit points.",
+      "text": "Opens Military Architecture, which unlocks the Bastion: +5 defence and +30 hit points.",
       "charter": { "unlocks": { "tech": "militaryArchitecture" } },
       "effects": []
     },
@@ -869,7 +869,7 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "Oars for the calm, and guns for the battle.",
-      "text": "Charter. Opens Naval Gunnery: your Gun Galleys gain +3 strength and may blockade a rival's port.",
+      "text": "Opens Naval Gunnery: your Gun Galleys gain +3 strength and may blockade a rival's port.",
       "charter": { "unlocks": { "tech": "navalGunnery" } },
       "effects": []
     },

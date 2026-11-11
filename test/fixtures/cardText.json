@@ -768,8 +768,8 @@
     "text": "pillaging grants production equal to 50% of the pillaging unit's strength to every city"
    },
    {
-    "raw": "-4 combat strength against cities",
-    "text": "-4 combat strength against cities"
+    "raw": "-4 combat strength when attacking cities",
+    "text": "-4 combat strength when attacking cities"
    }
   ],
   "theStrategoi": [
@@ -788,8 +788,8 @@
   ],
   "weightOfNumbers": [
    {
-    "raw": "+3 combat strength per attack your units have already made on the same target this turn (at most +12)",
-    "text": "+3 combat strength per attack your units have already made on the same target this turn (at most +12)"
+    "raw": "+3 combat strength per attack your units have already made on the same target this turn (at most +12) when attacking",
+    "text": "+3 combat strength per attack your units have already made on the same target this turn (at most +12) when attacking"
    },
    {
     "raw": "your units cannot fortify",
@@ -1822,8 +1822,8 @@
   ],
   "siegeDoctrine": [
    {
-    "raw": "+8 combat strength against cities",
-    "text": "+8 combat strength against cities"
+    "raw": "+8 combat strength when attacking cities",
+    "text": "+8 combat strength when attacking cities"
    }
   ],
   "scorchedEarth": [
@@ -1960,8 +1960,8 @@
   ],
   "theFinishersArt": [
    {
-    "raw": "+4 combat strength against units below half strength",
-    "text": "+4 combat strength against units below half strength"
+    "raw": "+4 combat strength when attacking units below half strength",
+    "text": "+4 combat strength when attacking units below half strength"
    }
   ],
   "frontierForts": [
@@ -2134,8 +2134,8 @@
   ],
   "hillForts": [
    {
-    "raw": "+4 combat strength on hills",
-    "text": "+4 combat strength on hills"
+    "raw": "+4 combat strength when defending on hills",
+    "text": "+4 combat strength when defending on hills"
    },
    {
     "raw": "the authority a city on hills costs falls by 1",
@@ -2456,36 +2456,52 @@
   ],
   "theBalladWeavers": [
    {
-    "raw": "+2 culture per barbarian you have killed, counted while this Order is seated",
-    "text": "+2 culture per barbarian you have killed, counted while this Order is seated"
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
+   },
+   {
+    "raw": "Gains +2 culture each time you kill a barbarian unit",
+    "text": "Gains +2 culture each time you kill a barbarian unit"
    }
   ],
   "theBellFounders": [
    {
-    "raw": "+1 culture per wonder finished anywhere in the world, counted while this Order is seated",
-    "text": "+1 culture per wonder finished anywhere in the world, counted while this Order is seated"
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
+   },
+   {
+    "raw": "Gains +1 culture each time a wonder is finished anywhere in the world",
+    "text": "Gains +1 culture each time a wonder is finished anywhere in the world"
    }
   ],
   "theReliquaryRolls": [
    {
-    "raw": "+3 faith per great person you have spent, counted while this Order is seated",
-    "text": "+3 faith per great person you have spent, counted while this Order is seated"
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
    },
    {
-    "raw": "+3 culture per great person you have spent, counted while this Order is seated",
-    "text": "+3 culture per great person you have spent, counted while this Order is seated"
+    "raw": "Gains +3 faith and +3 culture each time you spend a great person",
+    "text": "Gains +3 faith and +3 culture each time you spend a great person"
    }
   ],
   "theChroniclersOfTheFallen": [
    {
-    "raw": "+1 gold per unit you have lost in battle, counted while this Order is seated",
-    "text": "+1 gold per unit you have lost in battle, counted while this Order is seated"
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
+   },
+   {
+    "raw": "Gains +1 gold each time one of your units dies in battle",
+    "text": "Gains +1 gold each time one of your units dies in battle"
    }
   ],
   "theAlmonersBook": [
    {
-    "raw": "+1 science per 400 gold you have spent buying, counted while this Order is seated",
-    "text": "+1 science per 400 gold you have spent buying, counted while this Order is seated"
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
+   },
+   {
+    "raw": "Gains +1 science for every 400 gold you have spent buying",
+    "text": "Gains +1 science for every 400 gold you have spent buying"
    }
   ],
   "theCasusBelli": [
@@ -2641,8 +2657,8 @@
   ],
   "decisiveBlows": [
    {
-    "raw": "+10 combat strength against units below half strength",
-    "text": "+10 combat strength against units below half strength"
+    "raw": "+10 combat strength when attacking units below half strength",
+    "text": "+10 combat strength when attacking units below half strength"
    }
   ],
   "theMarshalsPurse": [
@@ -2667,8 +2683,8 @@
     "text": "siege units: +1 movement"
    },
    {
-    "raw": "+12 combat strength against cities and while standing beside siege units",
-    "text": "+12 combat strength against cities and while standing beside siege units"
+    "raw": "+12 combat strength when attacking cities and while standing beside siege units",
+    "text": "+12 combat strength when attacking cities and while standing beside siege units"
    }
   ],
   "patrons": [
@@ -3188,16 +3204,12 @@
   ],
   "theWarChronicle": [
    {
-    "raw": "+3 science, +3 culture to the empire",
-    "text": "+3 science, +3 culture to the empire"
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
    },
    {
-    "raw": "+3 science per enemy unit you have killed, counted while this Order is seated",
-    "text": "+3 science per enemy unit you have killed, counted while this Order is seated"
-   },
-   {
-    "raw": "+3 culture per enemy unit you have killed, counted while this Order is seated",
-    "text": "+3 culture per enemy unit you have killed, counted while this Order is seated"
+    "raw": "Gains +3 science and +3 culture each time you kill an enemy unit",
+    "text": "Gains +3 science and +3 culture each time you kill an enemy unit"
    }
   ],
   "dominionConscription": [
@@ -3238,16 +3250,12 @@
   ],
   "dominionClearTheFrontier": [
    {
-    "raw": "Commission. Goal: clear 2 barbarian camps, while this card is seated",
-    "text": "Commission. Goal: clear 2 barbarian camps, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: a great general to call",
-    "text": "Reward: a great general to call"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: clear 2 barbarian camps. Reward: a great general to call",
+    "text": "Goal: clear 2 barbarian camps. Reward: a great general to call"
    }
   ],
   "dominionTheHorseHerds": [
@@ -3258,16 +3266,12 @@
   ],
   "dominionBattleHonours": [
    {
-    "raw": "Commission. Goal: kill 6 enemy units, while this card is seated",
-    "text": "Commission. Goal: kill 6 enemy units, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: +2 citizens in your capital, and the best melee unit you can build, trained in your capital free of upkeep",
-    "text": "Reward: +2 citizens in your capital, and the best melee unit you can build, trained in your capital free of upkeep"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: kill 6 enemy units. Reward: +2 citizens in your capital, and the best melee unit you can build, trained in your capital free of upkeep",
+    "text": "Goal: kill 6 enemy units. Reward: +2 citizens in your capital, and the best melee unit you can build, trained in your capital free of upkeep"
    }
   ],
   "dominionSwordAndPlough": [
@@ -3294,8 +3298,8 @@
   ],
   "theScalingLadders": [
    {
-    "raw": "+4 combat strength for melee units against cities",
-    "text": "+4 combat strength for melee units against cities"
+    "raw": "+4 combat strength for melee units when attacking cities",
+    "text": "+4 combat strength for melee units when attacking cities"
    }
   ],
   "theFuneralGames": [
@@ -3334,12 +3338,12 @@
   ],
   "theCampaignAnnals": [
    {
-    "raw": "+3 science to the empire",
-    "text": "+3 science to the empire"
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
    },
    {
-    "raw": "+3 science per rank your units have earned, counted while this Order is seated",
-    "text": "+3 science per rank your units have earned, counted while this Order is seated"
+    "raw": "Gains +3 science each time one of your units earns a rank",
+    "text": "Gains +3 science each time one of your units earns a rank"
    }
   ],
   "theOutriders": [
@@ -3362,16 +3366,12 @@
   ],
   "theGatheringHost": [
    {
-    "raw": "+2 science, +2 culture to the empire",
-    "text": "+2 science, +2 culture to the empire"
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
    },
    {
-    "raw": "+1 science per military unit you have gained, counted while this Order is seated",
-    "text": "+1 science per military unit you have gained, counted while this Order is seated"
-   },
-   {
-    "raw": "+1 culture per military unit you have gained, counted while this Order is seated",
-    "text": "+1 culture per military unit you have gained, counted while this Order is seated"
+    "raw": "Gains +1 science and +1 culture each time you gain a military unit",
+    "text": "Gains +1 science and +1 culture each time you gain a military unit"
    }
   ],
   "theArmourersSecret": [
@@ -3506,12 +3506,12 @@
   ],
   "dominionTheMusterRolls": [
    {
-    "raw": "+1 science per unit you have trained, counted while this Order is seated",
-    "text": "+1 science per unit you have trained, counted while this Order is seated"
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
    },
    {
-    "raw": "+1 culture per unit you have trained, counted while this Order is seated",
-    "text": "+1 culture per unit you have trained, counted while this Order is seated"
+    "raw": "Gains +1 science and +1 culture each time you train a unit",
+    "text": "Gains +1 science and +1 culture each time you train a unit"
    }
   ],
   "thePacifiedMarches": [
@@ -3646,12 +3646,12 @@
   ],
   "theCaptiveCraftsmen": [
    {
-    "raw": "+1 science per hex you have pillaged, counted while this Order is seated",
-    "text": "+1 science per hex you have pillaged, counted while this Order is seated"
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
    },
    {
-    "raw": "+1 production in your capital per hex you have pillaged, counted while this Order is seated",
-    "text": "+1 production in your capital per hex you have pillaged, counted while this Order is seated"
+    "raw": "Gains +1 production in your capital and +1 science each time you pillage a hex",
+    "text": "Gains +1 production in your capital and +1 science each time you pillage a hex"
    }
   ],
   "theSatraps": [
@@ -3692,14 +3692,18 @@
   ],
   "theCleruchy": [
    {
-    "raw": "when drafted, a [[unit:settler|Settler]] joins you in your capital; seated, this card does nothing",
-    "text": "when drafted, a Settler joins you in your capital; seated, this card does nothing"
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: a [[unit:settler|Settler]] joins you in your capital",
+    "text": "On draft: a Settler joins you in your capital"
    }
   ],
   "siegeWorks": [
    {
-    "raw": "+4 combat strength for siege units against cities",
-    "text": "+4 combat strength for siege units against cities"
+    "raw": "+4 combat strength for siege units when attacking cities",
+    "text": "+4 combat strength for siege units when attacking cities"
    }
   ],
   "dominionTheWarChest": [
@@ -4008,16 +4012,12 @@
   ],
   "dominionTakeTheCity": [
    {
-    "raw": "Commission. Goal: capture 1 city of 8 or more citizens, while this card is seated",
-    "text": "Commission. Goal: capture 1 city of 8 or more citizens, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: for the rest of the game, capturing a city grants +250 science for each age you have reached and capturing a city grants +250 culture for each age you have reached",
-    "text": "Reward: for the rest of the game, capturing a city grants +250 science for each age you have reached and capturing a city grants +250 culture for each age you have reached"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: capture 1 city of 8 or more citizens. Reward: capturing a city grants +250 science for each age you have reached and capturing a city grants +250 culture for each age you have reached",
+    "text": "Goal: capture 1 city of 8 or more citizens. Reward: capturing a city grants +250 science for each age you have reached and capturing a city grants +250 culture for each age you have reached"
    }
   ],
   "theValetudinaria": [
@@ -4034,8 +4034,8 @@
   ],
   "theSerriedRanks": [
    {
-    "raw": "+10 combat strength for melee units while standing beside melee units",
-    "text": "+10 combat strength for melee units while standing beside melee units"
+    "raw": "+10 combat strength for melee units when defending while standing beside melee units",
+    "text": "+10 combat strength for melee units when defending while standing beside melee units"
    }
   ],
   "theConscriptionRolls": [
@@ -4170,8 +4170,8 @@
     "text": "siege units: +1 movement"
    },
    {
-    "raw": "+5 combat strength for siege units",
-    "text": "+5 combat strength for siege units"
+    "raw": "+5 combat strength for siege units when defending",
+    "text": "+5 combat strength for siege units when defending"
    }
   ],
   "reserveOfficers": [
@@ -4284,16 +4284,12 @@
   ],
   "dominionAVictorsPeace": [
    {
-    "raw": "Commission. Goal: end 1 war by making peace or by destroying the other empire, after taking 2 or more of its cities in that war, while this card is seated",
-    "text": "Commission. Goal: end 1 war by making peace or by destroying the other empire, after taking 2 or more of its cities in that war, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: one more Wildcard chair for the rest of the game",
-    "text": "Reward: one more Wildcard chair for the rest of the game"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: end 1 war by making peace or by destroying the other empire, after taking 2 or more of its cities in that war. Reward: one more Wildcard chair",
+    "text": "Goal: end 1 war by making peace or by destroying the other empire, after taking 2 or more of its cities in that war. Reward: one more Wildcard chair"
    }
   ],
   "theArriereBan": [
@@ -4428,16 +4424,12 @@
   ],
   "dominionHoldTheCapitals": [
    {
-    "raw": "Commission. Goal: hold 2 original capitals other than your own at the same time, while this card is seated",
-    "text": "Commission. Goal: hold 2 original capitals other than your own at the same time, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: for 20 turns, +25% production in every city, and a great general to call",
-    "text": "Reward: for 20 turns, +25% production in every city, and a great general to call"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: hold 2 original capitals other than your own at the same time. Reward: for 20 turns, +25% production in every city, and a great general to call",
+    "text": "Goal: hold 2 original capitals other than your own at the same time. Reward: for 20 turns, +25% production in every city, and a great general to call"
    }
   ],
   "dominionSpolia": [
@@ -4528,30 +4520,22 @@
   ],
   "dominionTheGrandCampaign": [
    {
-    "raw": "Commission. Goal: capture 3 cities, while this card is seated",
-    "text": "Commission. Goal: capture 3 cities, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: a great general to call, and science equal to 10 times those cities' total population, and culture equal to 10 times those cities' total population",
-    "text": "Reward: a great general to call, and science equal to 10 times those cities' total population, and culture equal to 10 times those cities' total population"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: capture 3 cities. Reward: a great general to call, and science equal to 10 times those cities' total population, and culture equal to 10 times those cities' total population",
+    "text": "Goal: capture 3 cities. Reward: a great general to call, and science equal to 10 times those cities' total population, and culture equal to 10 times those cities' total population"
    }
   ],
   "dominionTheCapturedMarvel": [
    {
-    "raw": "Commission. Goal: capture 1 city that holds a world wonder or was another empire's original capital, while this card is seated",
-    "text": "Commission. Goal: capture 1 city that holds a world wonder or was another empire's original capital, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: for the rest of the game, +30% science in every captured city containing a wonder or founded as another empire's capital and +30% culture in every captured city containing a wonder or founded as another empire's capital",
-    "text": "Reward: for the rest of the game, +30% science in every captured city containing a wonder or founded as another empire's capital and +30% culture in every captured city containing a wonder or founded as another empire's capital"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: capture 1 city that holds a world wonder or was another empire's original capital. Reward: +30% science in every captured city containing a wonder or founded as another empire's capital and +30% culture in every captured city containing a wonder or founded as another empire's capital",
+    "text": "Goal: capture 1 city that holds a world wonder or was another empire's original capital. Reward: +30% science in every captured city containing a wonder or founded as another empire's capital and +30% culture in every captured city containing a wonder or founded as another empire's capital"
    }
   ],
   "theVarangianGuard": [
@@ -4668,30 +4652,22 @@
   ],
   "dominionTheRanksOfMerit": [
    {
-    "raw": "Commission. Goal: earn 3 ranks with your units, while this card is seated",
-    "text": "Commission. Goal: earn 3 ranks with your units, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: for the rest of the game, one of your units earning a rank grants science equal to its strength and one of your units earning a rank grants production equal to its strength to your capital",
-    "text": "Reward: for the rest of the game, one of your units earning a rank grants science equal to its strength and one of your units earning a rank grants production equal to its strength to your capital"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: earn 3 ranks with your units. Reward: one of your units earning a rank grants science equal to its strength and one of your units earning a rank grants production equal to its strength to your capital",
+    "text": "Goal: earn 3 ranks with your units. Reward: one of your units earning a rank grants science equal to its strength and one of your units earning a rank grants production equal to its strength to your capital"
    }
   ],
   "dominionTheFirstProvince": [
    {
-    "raw": "Commission. Goal: capture 1 city, while this card is seated",
-    "text": "Commission. Goal: capture 1 city, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: for the rest of the game, +5 food, +5 gold in every captured city",
-    "text": "Reward: for the rest of the game, +5 food, +5 gold in every captured city"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: capture 1 city. Reward: +5 food, +5 gold in every captured city",
+    "text": "Goal: capture 1 city. Reward: +5 food, +5 gold in every captured city"
    }
   ],
   "theNaadam": [
@@ -4702,8 +4678,8 @@
   ],
   "theTakerOfCities": [
    {
-    "raw": "+5 combat strength for military units against cities and beside a great general",
-    "text": "+5 combat strength for military units against cities and beside a great general"
+    "raw": "+5 combat strength for military units when attacking cities and beside a great general",
+    "text": "+5 combat strength for military units when attacking cities and beside a great general"
    }
   ],
   "theRollOfTriumphs": [
@@ -4734,16 +4710,12 @@
   ],
   "dominionManTheWalls": [
    {
-    "raw": "Commission. Goal: have a unit standing in each of 3 of your cities at the same time, while this card is seated",
-    "text": "Commission. Goal: have a unit standing in each of 3 of your cities at the same time, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: +30 production in every city with a unit standing in it",
-    "text": "Reward: +30 production in every city with a unit standing in it"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: have a unit standing in each of 3 of your cities at the same time. Reward: +30 production in every city with a unit standing in it",
+    "text": "Goal: have a unit standing in each of 3 of your cities at the same time. Reward: +30 production in every city with a unit standing in it"
    }
   ],
   "theOvation": [
@@ -4764,44 +4736,32 @@
   ],
   "dominionTheBorderFortress": [
    {
-    "raw": "Commission. Goal: spend 1 great person on a [[improvement:citadel|Citadel]], while this card is seated",
-    "text": "Commission. Goal: spend 1 great person on a Citadel, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: for the rest of the game, +2 food, +2 production on every hex with a [[improvement:citadel|Citadel]]",
-    "text": "Reward: for the rest of the game, +2 food, +2 production on every hex with a Citadel"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: spend 1 great person on a [[improvement:citadel|Citadel]]. Reward: +2 food, +2 production on every hex with a [[improvement:citadel|Citadel]]",
+    "text": "Goal: spend 1 great person on a Citadel. Reward: +2 food, +2 production on every hex with a Citadel"
    }
   ],
   "dominionTheChosenMen": [
    {
-    "raw": "Commission. Goal: have 3 of your units become Elite, while this card is seated",
-    "text": "Commission. Goal: have 3 of your units become Elite, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: for the rest of the game, Elite units ignore enemy zone of control",
-    "text": "Reward: for the rest of the game, Elite units ignore enemy zone of control"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: have 3 of your units become Elite. Reward: Elite units ignore enemy zone of control",
+    "text": "Goal: have 3 of your units become Elite. Reward: Elite units ignore enemy zone of control"
    }
   ],
   "dominionHarryTheBorder": [
    {
-    "raw": "Commission. Goal: pillage 4 hexes, while this card is seated",
-    "text": "Commission. Goal: pillage 4 hexes, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: for the rest of the game, your mounted units gain +50% yields from pillaging",
-    "text": "Reward: for the rest of the game, your mounted units gain +50% yields from pillaging"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: pillage 4 hexes. Reward: your mounted units gain +50% yields from pillaging",
+    "text": "Goal: pillage 4 hexes. Reward: your mounted units gain +50% yields from pillaging"
    }
   ],
   "rallyToTheStandard": [
@@ -4848,8 +4808,12 @@
   ],
   "theFishTraps": [
    {
-    "raw": "once drafted, opens the [[improvement:fishTraps|Fish Traps]] for your workers to build; this card takes no chair",
-    "text": "once drafted, opens the Fish Traps for your workers to build; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens the [[improvement:fishTraps|Fish Traps]] for your workers to build",
+    "text": "opens the Fish Traps for your workers to build"
    }
   ],
   "sweetWater": [
@@ -4938,14 +4902,22 @@
   ],
   "theWildOrchards": [
    {
-    "raw": "once drafted, opens the [[improvement:wildOrchard|Wild Orchard]] for your workers to build; this card takes no chair",
-    "text": "once drafted, opens the Wild Orchard for your workers to build; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens the [[improvement:wildOrchard|Wild Orchard]] for your workers to build",
+    "text": "opens the Wild Orchard for your workers to build"
    }
   ],
   "theBurningSeason": [
    {
-    "raw": "once drafted, opens the [[improvement:burnedCountry|Burned Country]] for your workers to build; this card takes no chair",
-    "text": "once drafted, opens the Burned Country for your workers to build; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens the [[improvement:burnedCountry|Burned Country]] for your workers to build",
+    "text": "opens the Burned Country for your workers to build"
    },
    {
     "raw": "on an improved hex, the work stays, and the hex gains +1 food for the rest of the game while it stays improved; a hex takes this only once",
@@ -5000,16 +4972,12 @@
   ],
   "sixGardens": [
    {
-    "raw": "Commission. Goal: have 6 tended tiles inside your borders, while this card is seated",
-    "text": "Commission. Goal: have 6 tended tiles inside your borders, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: for the rest of the game, +1 culture on every tended hex",
-    "text": "Reward: for the rest of the game, +1 culture on every tended hex"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: have 6 tended tiles inside your borders. Reward: +1 culture on every tended hex",
+    "text": "Goal: have 6 tended tiles inside your borders. Reward: +1 culture on every tended hex"
    }
   ],
   "theForestKeepers": [
@@ -5074,20 +5042,12 @@
   ],
   "theGrainCensus": [
    {
-    "raw": "+2 gold to the empire",
-    "text": "+2 gold to the empire"
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
    },
    {
-    "raw": "+2 production in your capital",
-    "text": "+2 production in your capital"
-   },
-   {
-    "raw": "+1 gold per citizen your cities have grown past their largest size, counted while this Order is seated",
-    "text": "+1 gold per citizen your cities have grown past their largest size, counted while this Order is seated"
-   },
-   {
-    "raw": "+1 production in your capital per citizen your cities have grown past their largest size, counted while this Order is seated",
-    "text": "+1 production in your capital per citizen your cities have grown past their largest size, counted while this Order is seated"
+    "raw": "Gains +1 production in your capital and +1 gold each time one of your cities grows past its largest size",
+    "text": "Gains +1 production in your capital and +1 gold each time one of your cities grows past its largest size"
    }
   ],
   "theGardenFrontier": [
@@ -5104,16 +5064,12 @@
   ],
   "commissionBreakTheSod": [
    {
-    "raw": "Commission. Goal: work 12 improved tiles at the same time, not counting tended tiles, while this card is seated",
-    "text": "Commission. Goal: work 12 improved tiles at the same time, not counting tended tiles, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: for the rest of the game, +1 food on every hex with a [[improvement:farm|Farm]]",
-    "text": "Reward: for the rest of the game, +1 food on every hex with a Farm"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: work 12 improved tiles at the same time, not counting tended tiles. Reward: +1 food on every hex with a [[improvement:farm|Farm]]",
+    "text": "Goal: work 12 improved tiles at the same time, not counting tended tiles. Reward: +1 food on every hex with a Farm"
    }
   ],
   "theLandHunger": [
@@ -5134,20 +5090,12 @@
   ],
   "theAediles": [
    {
-    "raw": "+2 culture to the empire",
-    "text": "+2 culture to the empire"
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
    },
    {
-    "raw": "+2 production in your capital",
-    "text": "+2 production in your capital"
-   },
-   {
-    "raw": "+1 culture per public work you have finished, counted while this Order is seated",
-    "text": "+1 culture per public work you have finished, counted while this Order is seated"
-   },
-   {
-    "raw": "+1 production in your capital per public work you have finished, counted while this Order is seated",
-    "text": "+1 production in your capital per public work you have finished, counted while this Order is seated"
+    "raw": "Gains +1 production in your capital and +1 culture each time you finish a public work",
+    "text": "Gains +1 production in your capital and +1 culture each time you finish a public work"
    }
   ],
   "theWatercourses": [
@@ -5379,16 +5327,12 @@
   ],
   "theWideCountry": [
    {
-    "raw": "Commission. Goal: claim 12 hexes by outposts, cleared camps or buying, while this card is seated",
-    "text": "Commission. Goal: claim 12 hexes by outposts, cleared camps or buying, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: for the rest of the game, +25% border expansion",
-    "text": "Reward: for the rest of the game, +25% border expansion"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: claim 12 hexes by outposts, cleared camps or buying. Reward: +25% border expansion",
+    "text": "Goal: claim 12 hexes by outposts, cleared camps or buying. Reward: +25% border expansion"
    }
   ],
   "oldWorkings": [
@@ -5451,8 +5395,8 @@
   ],
   "theStationes": [
    {
-    "raw": "+3 combat strength for military units while standing in a city joined to your capital by road",
-    "text": "+3 combat strength for military units while standing in a city joined to your capital by road"
+    "raw": "+3 combat strength for military units when defending while standing in a city joined to your capital by road",
+    "text": "+3 combat strength for military units when defending while standing in a city joined to your capital by road"
    }
   ],
   "theManagedWild": [
@@ -5587,16 +5531,12 @@
   ],
   "theHeartland": [
    {
-    "raw": "Commission. Goal: have one of your cities work 12 improved or tended tiles that each yield 5 or more in total, while this card is seated",
-    "text": "Commission. Goal: have one of your cities work 12 improved or tended tiles that each yield 5 or more in total, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: for the rest of the game, the authority that city costs is 0, and that city gains +3 happiness and +20% food",
-    "text": "Reward: for the rest of the game, the authority that city costs is 0, and that city gains +3 happiness and +20% food"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: have one of your cities work 12 improved or tended tiles that each yield 5 or more in total. Reward: the authority that city costs is 0, and that city gains +3 happiness and +20% food",
+    "text": "Goal: have one of your cities work 12 improved or tended tiles that each yield 5 or more in total. Reward: the authority that city costs is 0, and that city gains +3 happiness and +20% food"
    }
   ],
   "theCorvee": [
@@ -5663,16 +5603,12 @@
   ],
   "theDomesdaySurvey": [
    {
-    "raw": "Commission. Goal: own 120 hexes and work 40 improved tiles at the same time, while this card is seated",
-    "text": "Commission. Goal: own 120 hexes and work 40 improved tiles at the same time, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: for the rest of the game, +1 science on every improved or tended hex",
-    "text": "Reward: for the rest of the game, +1 science on every improved or tended hex"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: own 120 hexes and work 40 improved tiles at the same time. Reward: +1 science on every improved or tended hex",
+    "text": "Goal: own 120 hexes and work 40 improved tiles at the same time. Reward: +1 science on every improved or tended hex"
    }
   ],
   "theTwoHarvests": [
@@ -5761,8 +5697,12 @@
   ],
   "theForestGardens": [
    {
-    "raw": "once drafted, opens the [[improvement:forestGarden|Forest Garden]] for your workers to build; this card takes no chair",
-    "text": "once drafted, opens the Forest Garden for your workers to build; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens the [[improvement:forestGarden|Forest Garden]] for your workers to build",
+    "text": "opens the Forest Garden for your workers to build"
    }
   ],
   "plantedForests": [
@@ -6217,8 +6157,12 @@
   ],
   "thePlantersCharter": [
    {
-    "raw": "once drafted, you may buy the [[building:plantationHouse|Plantation House]] with gold: +1 gold; +1 food, +1 gold on every hex with a [[improvement:plantation|Plantation]]; this card takes no chair",
-    "text": "once drafted, you may buy the Plantation House with gold: +1 gold; +1 food, +1 gold on every hex with a Plantation; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "you may buy the [[building:plantationHouse|Plantation House]] with gold: +1 gold; +1 food, +1 gold on every hex with a [[improvement:plantation|Plantation]]",
+    "text": "you may buy the Plantation House with gold: +1 gold; +1 food, +1 gold on every hex with a Plantation"
    }
   ],
   "boughtSwords": [
@@ -6368,6 +6312,10 @@
   ],
   "thePurpleWorks": [
    {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
     "raw": "drafting this opens the purple works for building — not built yet",
     "text": "drafting this opens the purple works for building — not built yet",
     "deferred": true
@@ -6513,8 +6461,8 @@
     "text": "+3 authority capacity"
    },
    {
-    "raw": "+5 combat strength for ships against cities",
-    "text": "+5 combat strength for ships against cities"
+    "raw": "+5 combat strength for ships when attacking cities",
+    "text": "+5 combat strength for ships when attacking cities"
    }
   ],
   "professionalRetainers": [
@@ -6534,6 +6482,10 @@
    }
   ],
   "theDyeVats": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
    {
     "raw": "drafting this opens the dye vats for building — not built yet",
     "text": "drafting this opens the dye vats for building — not built yet",
@@ -6632,30 +6584,22 @@
   ],
   "cornerTheMarket": [
    {
-    "raw": "Commission. Goal: hold 4 copies of one luxury, counting copies you receive in deals, while this card is seated",
-    "text": "Commission. Goal: hold 4 copies of one luxury, counting copies you receive in deals, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: for the rest of the game, +2 happiness per luxury you hold two or more copies of",
-    "text": "Reward: for the rest of the game, +2 happiness per luxury you hold two or more copies of"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: hold 4 copies of one luxury, counting copies you receive in deals. Reward: +2 happiness per luxury you hold two or more copies of",
+    "text": "Goal: hold 4 copies of one luxury, counting copies you receive in deals. Reward: +2 happiness per luxury you hold two or more copies of"
    }
   ],
   "theStrongroom": [
    {
-    "raw": "Commission. Goal: end a turn with at least 1500 gold in your treasury, while this card is seated",
-    "text": "Commission. Goal: end a turn with at least 1500 gold in your treasury, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: culture equal to 20% of the gold in your treasury at that moment, and a great merchant to call",
-    "text": "Reward: culture equal to 20% of the gold in your treasury at that moment, and a great merchant to call"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: end a turn with at least 1500 gold in your treasury. Reward: culture equal to 20% of the gold in your treasury at that moment, and a great merchant to call",
+    "text": "Goal: end a turn with at least 1500 gold in your treasury. Reward: culture equal to 20% of the gold in your treasury at that moment, and a great merchant to call"
    }
   ],
   "theMapSellers": [
@@ -6688,8 +6632,12 @@
   ],
   "theFirstCaravan": [
    {
-    "raw": "when drafted, a [[unit:trader|Trader]] joins you in your capital; seated, this card does nothing",
-    "text": "when drafted, a Trader joins you in your capital; seated, this card does nothing"
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: a [[unit:trader|Trader]] joins you in your capital",
+    "text": "On draft: a Trader joins you in your capital"
    }
   ],
   "theStapleRight": [
@@ -6704,8 +6652,12 @@
   ],
   "numidianCavalryCharter": [
    {
-    "raw": "once drafted, you may train the [[unit:numidianCavalry|Numidian Cavalry]] when you know [[tech:theCataphract|The Saddle]] or any technology as far along the tree; this card takes no chair",
-    "text": "once drafted, you may train the Numidian Cavalry when you know The Saddle or any technology as far along the tree; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "you may train the [[unit:numidianCavalry|Numidian Cavalry]] when you know [[tech:theCataphract|The Saddle]] or any technology as far along the tree",
+    "text": "you may train the Numidian Cavalry when you know The Saddle or any technology as far along the tree"
    }
   ],
   "housesOfAccount": [
@@ -6720,16 +6672,12 @@
   ],
   "aGuildCommission": [
    {
-    "raw": "Commission. Goal: buy 5 buildings with gold, while this card is seated",
-    "text": "Commission. Goal: buy 5 buildings with gold, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: a great person to call",
-    "text": "Reward: a great person to call"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: buy 5 buildings with gold. Reward: a great person to call",
+    "text": "Goal: buy 5 buildings with gold. Reward: a great person to call"
    }
   ],
   "theMonopoly": [
@@ -6821,30 +6769,22 @@
   ],
   "theWorldsFair": [
    {
-    "raw": "Commission. Goal: have trade routes to 4 other empires at the same time, while this card is seated",
-    "text": "Commission. Goal: have trade routes to 4 other empires at the same time, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: your trading post, established at once, in the capital of each empire your trade routes reach",
-    "text": "Reward: your trading post, established at once, in the capital of each empire your trade routes reach"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: have trade routes to 4 other empires at the same time. Reward: your trading post, established at once, in the capital of each empire your trade routes reach",
+    "text": "Goal: have trade routes to 4 other empires at the same time. Reward: your trading post, established at once, in the capital of each empire your trade routes reach"
    }
   ],
   "theGreatLoan": [
    {
-    "raw": "Commission. Goal: earn at least 1 gold per turn, while this card is seated",
-    "text": "Commission. Goal: earn at least 1 gold per turn, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: gold equal to 20 times your gold per turn at that moment, and for 40 turns, -25% gold in every city",
-    "text": "Reward: gold equal to 20 times your gold per turn at that moment, and for 40 turns, -25% gold in every city"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: earn at least 1 gold per turn. Reward: gold equal to 20 times your gold per turn at that moment, and for 40 turns, -25% gold in every city",
+    "text": "Goal: earn at least 1 gold per turn. Reward: gold equal to 20 times your gold per turn at that moment, and for 40 turns, -25% gold in every city"
    }
   ],
   "theTradeWinds": [
@@ -6945,16 +6885,12 @@
   ],
   "commissionTheGreatFair": [
    {
-    "raw": "Commission. Goal: have 4 cities one of your own trade routes ends at, at the same time, while this card is seated",
-    "text": "Commission. Goal: have 4 cities one of your own trade routes ends at, at the same time, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: for the rest of the game, +2 trade routes",
-    "text": "Reward: for the rest of the game, +2 trade routes"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: have 4 cities one of your own trade routes ends at, at the same time. Reward: +2 trade routes",
+    "text": "Goal: have 4 cities one of your own trade routes ends at, at the same time. Reward: +2 trade routes"
    }
   ],
   "theCommenda": [
@@ -6983,12 +6919,12 @@
   ],
   "theStrongbox": [
    {
-    "raw": "+1 science per turn you have ended with at least 300 gold in your treasury (at most +15 science), counted while this Order is seated",
-    "text": "+1 science per turn you have ended with at least 300 gold in your treasury (at most +15 science), counted while this Order is seated"
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
    },
    {
-    "raw": "+1 culture per turn you have ended with at least 300 gold in your treasury (at most +15 culture), counted while this Order is seated",
-    "text": "+1 culture per turn you have ended with at least 300 gold in your treasury (at most +15 culture), counted while this Order is seated"
+    "raw": "Gains +1 science and +1 culture each time you end a turn with at least 300 gold in your treasury, up to +15 each",
+    "text": "Gains +1 science and +1 culture each time you end a turn with at least 300 gold in your treasury, up to +15 each"
    }
   ],
   "theMerchantGuilds": [
@@ -7027,16 +6963,12 @@
   ],
   "theFoundingVows": [
    {
-    "raw": "Commission. Goal: start 2 rites in your cities, while this card is seated",
-    "text": "Commission. Goal: start 2 rites in your cities, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: +100 faith, and +40 food in your capital",
-    "text": "Reward: +100 faith, and +40 food in your capital"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: start 2 rites in your cities. Reward: +100 faith, and +40 food in your capital",
+    "text": "Goal: start 2 rites in your cities. Reward: +100 faith, and +40 food in your capital"
    }
   ],
   "theCalling": [
@@ -7075,8 +7007,12 @@
   ],
   "theFast": [
    {
-    "raw": "once drafted, your cities may keep [[rite:riteOfFasting|Rite of Fasting]]: this city does not grow and gains science and culture for every citizen, while the rite runs",
-    "text": "once drafted, your cities may keep Rite of Fasting: this city does not grow and gains science and culture for every citizen, while the rite runs"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "your cities may keep [[rite:riteOfFasting|Rite of Fasting]]: this city does not grow and gains science and culture for every citizen, while the rite runs",
+    "text": "your cities may keep Rite of Fasting: this city does not grow and gains science and culture for every citizen, while the rite runs"
    }
   ],
   "theLivingHymnal": [
@@ -7097,16 +7033,12 @@
   ],
   "theMission": [
    {
-    "raw": "Commission. Goal: convert 2 foreign cities to your religion, while this card is seated",
-    "text": "Commission. Goal: convert 2 foreign cities to your religion, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: an [[unit:apostle|Apostle]], trained in your capital free of upkeep, and +300 culture",
-    "text": "Reward: an Apostle, trained in your capital free of upkeep, and +300 culture"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: convert 2 foreign cities to your religion. Reward: an [[unit:apostle|Apostle]], trained in your capital free of upkeep, and +300 culture",
+    "text": "Goal: convert 2 foreign cities to your religion. Reward: an Apostle, trained in your capital free of upkeep, and +300 culture"
    }
   ],
   "consecratedGround": [
@@ -7252,16 +7184,12 @@
   ],
   "theGreatCommission": [
    {
-    "raw": "Commission. Goal: have at least 51% of the world's cities follow your religion, while this card is seated",
-    "text": "Commission. Goal: have at least 51% of the world's cities follow your religion, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: for the rest of the game, +3 culture, +3 faith in every devout city",
-    "text": "Reward: for the rest of the game, +3 culture, +3 faith in every devout city"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: have at least 51% of the world's cities follow your religion. Reward: +3 culture, +3 faith in every devout city",
+    "text": "Goal: have at least 51% of the world's cities follow your religion. Reward: +3 culture, +3 faith in every devout city"
    }
   ],
   "theTitheOfNations": [
@@ -7334,16 +7262,12 @@
   ],
   "theConversionOfKings": [
    {
-    "raw": "Commission. Goal: have a rival's capital follow your religion, while this card is seated",
-    "text": "Commission. Goal: have a rival's capital follow your religion, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: a [[unit:prophet|Prophet]], trained in your capital free of upkeep, and +500 culture",
-    "text": "Reward: a Prophet, trained in your capital free of upkeep, and +500 culture"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: have a rival's capital follow your religion. Reward: a [[unit:prophet|Prophet]], trained in your capital free of upkeep, and +500 culture",
+    "text": "Goal: have a rival's capital follow your religion. Reward: a Prophet, trained in your capital free of upkeep, and +500 culture"
    }
   ],
   "thePiousMasons": [
@@ -7376,12 +7300,12 @@
   ],
   "theMartyrology": [
    {
-    "raw": "+2 faith per unit you have lost in battle, counted while this Order is seated",
-    "text": "+2 faith per unit you have lost in battle, counted while this Order is seated"
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
    },
    {
-    "raw": "+2 culture per unit you have lost in battle, counted while this Order is seated",
-    "text": "+2 culture per unit you have lost in battle, counted while this Order is seated"
+    "raw": "Gains +2 faith and +2 culture each time one of your units dies in battle",
+    "text": "Gains +2 faith and +2 culture each time one of your units dies in battle"
    }
   ],
   "theConsecrationFeast": [
@@ -7442,22 +7366,22 @@
   ],
   "theRogations": [
    {
-    "raw": "+2 culture, +2 faith to the empire",
-    "text": "+2 culture, +2 faith to the empire"
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
    },
    {
-    "raw": "+1 faith per rite you have started, counted while this Order is seated",
-    "text": "+1 faith per rite you have started, counted while this Order is seated"
-   },
-   {
-    "raw": "+1 culture per rite you have started, counted while this Order is seated",
-    "text": "+1 culture per rite you have started, counted while this Order is seated"
+    "raw": "Gains +1 faith and +1 culture each time one of your cities starts a rite",
+    "text": "Gains +1 faith and +1 culture each time one of your cities starts a rite"
    }
   ],
   "theSabbathLaws": [
    {
-    "raw": "once drafted, your cities may keep [[rite:riteOfTheSabbath|Rite of the Sabbath]]: this city builds nothing and gains its production as culture, while the rite runs",
-    "text": "once drafted, your cities may keep Rite of the Sabbath: this city builds nothing and gains its production as culture, while the rite runs"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "your cities may keep [[rite:riteOfTheSabbath|Rite of the Sabbath]]: this city builds nothing and gains its production as culture, while the rite runs",
+    "text": "your cities may keep Rite of the Sabbath: this city builds nothing and gains its production as culture, while the rite runs"
    }
   ],
   "thePsalter": [
@@ -7478,16 +7402,12 @@
   ],
   "commissionTheStateChurch": [
    {
-    "raw": "Commission. Goal: hold at least 6 cities, all of them devout, at the same time, while this card is seated",
-    "text": "Commission. Goal: hold at least 6 cities, all of them devout, at the same time, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: for the rest of the game, the authority a devout city costs falls by 1",
-    "text": "Reward: for the rest of the game, the authority a devout city costs falls by 1"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: hold at least 6 cities, all of them devout, at the same time. Reward: the authority a devout city costs falls by 1",
+    "text": "Goal: hold at least 6 cities, all of them devout, at the same time. Reward: the authority a devout city costs falls by 1"
    }
   ],
   "theConfessors": [
@@ -7572,8 +7492,12 @@
   ],
   "theFirstOffering": [
    {
-    "raw": "when drafted, +25 faith; seated, this card does nothing",
-    "text": "when drafted, +25 faith; seated, this card does nothing"
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: +25 faith",
+    "text": "On draft: +25 faith"
    }
   ],
   "theMonasticTable": [
@@ -7881,8 +7805,12 @@
   ],
   "theGlassmakersCharter": [
    {
-    "raw": "once drafted, opens [[tech:optics|Optics]] for you to research; only an empire holding this charter may research it; this card takes no chair",
-    "text": "once drafted, opens Optics for you to research; only an empire holding this charter may research it; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:optics|Optics]] for you to research",
+    "text": "opens Optics for you to research"
    },
    {
     "raw": "once you know [[tech:optics|Optics]], you may build the [[building:specularium|Specularium]]: +3 food; +1 science per 2 citizens in this city",
@@ -7942,12 +7870,20 @@
   ],
   "theMetallurgistsCharter": [
    {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
     "raw": "drafting this opens the study of alloys for research — not built yet",
     "text": "drafting this opens the study of alloys for research — not built yet",
     "deferred": true
    }
   ],
   "theNaturalistsCharter": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
    {
     "raw": "drafting this opens the study of living things for research — not built yet",
     "text": "drafting this opens the study of living things for research — not built yet",
@@ -8040,8 +7976,12 @@
   ],
   "theMechanistsCharter": [
    {
-    "raw": "once drafted, opens [[tech:mechanics|Mechanics]] for you to research; only an empire holding this charter may research it; this card takes no chair",
-    "text": "once drafted, opens Mechanics for you to research; only an empire holding this charter may research it; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:mechanics|Mechanics]] for you to research",
+    "text": "opens Mechanics for you to research"
    },
    {
     "raw": "once you know [[tech:mechanics|Mechanics]], the Catapult line (Catapult and Trebuchet) gains the Onager trait and keeps it through every upgrade",
@@ -8062,8 +8002,12 @@
   ],
   "theAlchemistsCharter": [
    {
-    "raw": "once drafted, opens [[tech:chemistry|Chemistry]] for you to research; only an empire holding this charter may research it; this card takes no chair",
-    "text": "once drafted, opens Chemistry for you to research; only an empire holding this charter may research it; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:chemistry|Chemistry]] for you to research",
+    "text": "opens Chemistry for you to research"
    },
    {
     "raw": "once you know [[tech:chemistry|Chemistry]], the Warrior line (Warrior to Longswordsman) gains the Grenadier trait and keeps it through every upgrade",
@@ -8125,8 +8069,12 @@
   ],
   "theHerbalistsCharter": [
    {
-    "raw": "once drafted, opens [[tech:herbals|Herbals]] for you to research; only an empire holding this charter may research it; this card takes no chair",
-    "text": "once drafted, opens Herbals for you to research; only an empire holding this charter may research it; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:herbals|Herbals]] for you to research",
+    "text": "opens Herbals for you to research"
    },
    {
     "raw": "once you know [[tech:herbals|Herbals]], your workers may build the [[improvement:physicGarden|Physic Garden]]: +2 science; on flat land with fresh water, one in each city",
@@ -8139,8 +8087,12 @@
   ],
   "theBronzeFoundersCharter": [
    {
-    "raw": "once drafted, opens [[tech:casting|Casting]] for you to research; only an empire holding this charter may research it; this card takes no chair",
-    "text": "once drafted, opens Casting for you to research; only an empire holding this charter may research it; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:casting|Casting]] for you to research",
+    "text": "opens Casting for you to research"
    },
    {
     "raw": "once you know [[tech:casting|Casting]], the Spearman line (Spearman to Pikeman) gains the Hoplite trait and keeps it through every upgrade",
@@ -8161,8 +8113,12 @@
   ],
   "theSurveyorsCharter": [
    {
-    "raw": "once drafted, opens [[tech:surveying|Surveying]] for you to research; only an empire holding this charter may research it; this card takes no chair",
-    "text": "once drafted, opens Surveying for you to research; only an empire holding this charter may research it; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:surveying|Surveying]] for you to research",
+    "text": "opens Surveying for you to research"
    },
    {
     "raw": "once you know [[tech:surveying|Surveying]], you may build the [[building:aqueduct|Aqueduct]] before [[tech:engineering|Engineering]]: +15% food surplus stored toward growth; the city counts as standing beside fresh water",
@@ -8175,8 +8131,12 @@
   ],
   "theLibrariansCharter": [
    {
-    "raw": "once drafted, opens [[tech:cataloguing|Cataloguing]] for you to research; only an empire holding this charter may research it; this card takes no chair",
-    "text": "once drafted, opens Cataloguing for you to research; only an empire holding this charter may research it; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:cataloguing|Cataloguing]] for you to research",
+    "text": "opens Cataloguing for you to research"
    },
    {
     "raw": "once you know [[tech:cataloguing|Cataloguing]], you may build the [[building:mouseion|Mouseion]]: +4 renown per turn, favouring scholars; +2 culture per empire building you hold",
@@ -8191,8 +8151,12 @@
   ],
   "thePaperMakersCharter": [
    {
-    "raw": "once drafted, opens [[tech:papermaking|Papermaking]] for you to research; only an empire holding this charter may research it; this card takes no chair",
-    "text": "once drafted, opens Papermaking for you to research; only an empire holding this charter may research it; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:papermaking|Papermaking]] for you to research",
+    "text": "opens Papermaking for you to research"
    },
    {
     "raw": "once you know [[tech:papermaking|Papermaking]], you may build the [[building:scriptorium|Scriptorium]]: +2 science; +10% science in every city with a [[building:scriptorium|Scriptorium]] with an [[improvement:academy|Academy]]; +2 renown per turn, favouring scholars",
@@ -8201,8 +8165,12 @@
   ],
   "thePhysiciansCharter": [
    {
-    "raw": "once drafted, opens [[tech:medicine|Medicine]] for you to research; only an empire holding this charter may research it; this card takes no chair",
-    "text": "once drafted, opens Medicine for you to research; only an empire holding this charter may research it; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:medicine|Medicine]] for you to research",
+    "text": "opens Medicine for you to research"
    },
    {
     "raw": "once you know [[tech:medicine|Medicine]], you may build the [[building:bimaristan|Bimaristan]]: +25% food in every city with a [[building:bimaristan|Bimaristan]]",
@@ -8211,8 +8179,12 @@
   ],
   "thePrintersCharter": [
    {
-    "raw": "once drafted, opens [[tech:printing|Printing]] for you to research; only an empire holding this charter may research it; this card takes no chair",
-    "text": "once drafted, opens Printing for you to research; only an empire holding this charter may research it; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:printing|Printing]] for you to research",
+    "text": "opens Printing for you to research"
    },
    {
     "raw": "once you know [[tech:printing|Printing]], you may build the [[building:aldinePress|Aldine Press]]: +2 culture",
@@ -8225,8 +8197,12 @@
   ],
   "theGunfoundersCharter": [
    {
-    "raw": "once drafted, opens [[tech:gunfounding|Gunfounding]] for you to research; only an empire holding this charter may research it; this card takes no chair",
-    "text": "once drafted, opens Gunfounding for you to research; only an empire holding this charter may research it; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:gunfounding|Gunfounding]] for you to research",
+    "text": "opens Gunfounding for you to research"
    },
    {
     "raw": "once you know [[tech:gunfounding|Gunfounding]], you may build the [[building:tophane|Tophane]]: newly created military units in every city with a [[building:tophane|Tophane]] gain +4 combat strength; +25% production toward military units, in every city with a [[building:tophane|Tophane]]",
@@ -8235,8 +8211,12 @@
   ],
   "theMilitaryEngineersCharter": [
    {
-    "raw": "once drafted, opens [[tech:militaryArchitecture|Military Architecture]] for you to research; only an empire holding this charter may research it; this card takes no chair",
-    "text": "once drafted, opens Military Architecture for you to research; only an empire holding this charter may research it; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:militaryArchitecture|Military Architecture]] for you to research",
+    "text": "opens Military Architecture for you to research"
    },
    {
     "raw": "once you know [[tech:militaryArchitecture|Military Architecture]], you may build the [[building:bastion|Bastion]]: +5 to the city’s defence strength; +30 to how much punishment the city can take; +1 renown per turn, favouring engineers",
@@ -8245,8 +8225,12 @@
   ],
   "theNavalGunnersCharter": [
    {
-    "raw": "once drafted, opens [[tech:navalGunnery|Naval Gunnery]] for you to research; only an empire holding this charter may research it; this card takes no chair",
-    "text": "once drafted, opens Naval Gunnery for you to research; only an empire holding this charter may research it; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:navalGunnery|Naval Gunnery]] for you to research",
+    "text": "opens Naval Gunnery for you to research"
    },
    {
     "raw": "once you know [[tech:navalGunnery|Naval Gunnery]], the Gun Galley line (Gun Galley and Frigate) gains the Galleass trait and keeps it through every upgrade",
@@ -8385,16 +8369,12 @@
   ],
   "theAstronomicalDiaries": [
    {
-    "raw": "+2 production, +2 culture in your capital",
-    "text": "+2 production, +2 culture in your capital"
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
    },
    {
-    "raw": "+1 culture in your capital per technology you have completed, counted while this Order is seated",
-    "text": "+1 culture in your capital per technology you have completed, counted while this Order is seated"
-   },
-   {
-    "raw": "+1 production in your capital per technology you have completed, counted while this Order is seated",
-    "text": "+1 production in your capital per technology you have completed, counted while this Order is seated"
+    "raw": "Gains +1 culture and +1 production in your capital each time you complete a technology",
+    "text": "Gains +1 culture and +1 production in your capital each time you complete a technology"
    }
   ],
   "theScholarsFame": [
@@ -8415,16 +8395,12 @@
   ],
   "theRoyalCharterCommission": [
    {
-    "raw": "Commission. Goal: complete 1 charter technology, while this card is seated",
-    "text": "Commission. Goal: complete 1 charter technology, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: a great scholar to call, and +100 culture",
-    "text": "Reward: a great scholar to call, and +100 culture"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: complete 1 charter technology. Reward: a great scholar to call, and +100 culture",
+    "text": "Goal: complete 1 charter technology. Reward: a great scholar to call, and +100 culture"
    }
   ],
   "theAgeOfReason": [
@@ -8585,16 +8561,12 @@
   ],
   "theLynxEyedAcademy": [
    {
-    "raw": "Commission. Goal: hold 4 [[improvement:academy|Academies]] inside your borders, while this card is seated",
-    "text": "Commission. Goal: hold 4 Academies inside your borders, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: a great scholar to call, and +300 production in every city with an [[improvement:academy|Academy]]",
-    "text": "Reward: a great scholar to call, and +300 production in every city with an Academy"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: hold 4 [[improvement:academy|Academies]] inside your borders. Reward: a great scholar to call, and +300 production in every city with an [[improvement:academy|Academy]]",
+    "text": "Goal: hold 4 Academies inside your borders. Reward: a great scholar to call, and +300 production in every city with an Academy"
    }
   ],
   "theFieldRefits": [
@@ -8623,16 +8595,12 @@
   ],
   "theGreatInstrument": [
    {
-    "raw": "Commission. Goal: complete [[tech:alchemy|Alchemy]], while this card is seated",
-    "text": "Commission. Goal: complete Alchemy, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: production toward the Magnum Opus equal to 10% of its cost at that moment",
-    "text": "Reward: production toward the Magnum Opus equal to 10% of its cost at that moment"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: complete [[tech:alchemy|Alchemy]]. Reward: production toward the Magnum Opus equal to 10% of its cost at that moment",
+    "text": "Goal: complete Alchemy. Reward: production toward the Magnum Opus equal to 10% of its cost at that moment"
    },
    {
     "raw": "not dealt to an empire that knows [[tech:alchemy|Alchemy]]",
@@ -9354,12 +9322,12 @@
   ],
   "theHonouredDead": [
    {
-    "raw": "+2 science in your capital per great person you have spent, counted while this Order is seated",
-    "text": "+2 science in your capital per great person you have spent, counted while this Order is seated"
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
    },
    {
-    "raw": "+4 production in your capital per great person you have spent, counted while this Order is seated",
-    "text": "+4 production in your capital per great person you have spent, counted while this Order is seated"
+    "raw": "Gains +2 science and +4 production in your capital each time you spend a great person",
+    "text": "Gains +2 science and +4 production in your capital each time you spend a great person"
    }
   ],
   "thePageantsOfPeace": [
@@ -9580,44 +9548,32 @@
   ],
   "magisterialTheEighthWonder": [
    {
-    "raw": "Commission. Goal: complete 1 wonder, while this card is seated",
-    "text": "Commission. Goal: complete 1 wonder, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: for the rest of the game, +3 culture per wonder you hold and +5 renown per turn per wonder you hold",
-    "text": "Reward: for the rest of the game, +3 culture per wonder you hold and +5 renown per turn per wonder you hold"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: complete 1 wonder. Reward: +3 culture per wonder you hold and +5 renown per turn per wonder you hold",
+    "text": "Goal: complete 1 wonder. Reward: +3 culture per wonder you hold and +5 renown per turn per wonder you hold"
    }
   ],
   "magisterialTheRollOfTheSenate": [
    {
-    "raw": "Commission. Goal: hold 10 Orders, seated or not, while this card is seated",
-    "text": "Commission. Goal: hold 10 Orders, seated or not, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: one more Wildcard chair for the rest of the game",
-    "text": "Reward: one more Wildcard chair for the rest of the game"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: hold 10 Orders, seated or not. Reward: one more Wildcard chair",
+    "text": "Goal: hold 10 Orders, seated or not. Reward: one more Wildcard chair"
    }
   ],
   "magisterialTheWonderOfTheAge": [
    {
-    "raw": "Commission. Goal: put 1500 production into wonders or the Magnum Opus, while this card is seated",
-    "text": "Commission. Goal: put 1500 production into wonders or the Magnum Opus, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: +250 culture, and one more Wildcard chair for the rest of the game",
-    "text": "Reward: +250 culture, and one more Wildcard chair for the rest of the game"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: put 1500 production into wonders or the Magnum Opus. Reward: +250 culture, and one more Wildcard chair",
+    "text": "Goal: put 1500 production into wonders or the Magnum Opus. Reward: +250 culture, and one more Wildcard chair"
    }
   ],
   "theUniversalLibrary": [
@@ -9656,8 +9612,12 @@
   ],
   "theWanderingMuse": [
    {
-    "raw": "when drafted, you gain a great person to call; seated, this card does nothing",
-    "text": "when drafted, you gain a great person to call; seated, this card does nothing"
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: you gain a great person to call",
+    "text": "On draft: you gain a great person to call"
    }
   ],
   "officialsByMerit": [
@@ -9694,16 +9654,12 @@
   ],
   "magisterialTheGoldenBull": [
    {
-    "raw": "Commission. Goal: have every Military, Economic and Civic chair hold a card of its own type, while this card is seated",
-    "text": "Commission. Goal: have every Military, Economic and Civic chair hold a card of its own type, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: a Doctrine draft of your government's tier",
-    "text": "Reward: a Doctrine draft of your government's tier"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: have every Military, Economic and Civic chair hold a card of its own type. Reward: a Doctrine draft of your government's tier",
+    "text": "Goal: have every Military, Economic and Civic chair hold a card of its own type. Reward: a Doctrine draft of your government's tier"
    }
   ],
   "theImmortals": [
@@ -9714,16 +9670,12 @@
   ],
   "magisterialThePatronsGallery": [
    {
-    "raw": "Commission. Goal: have great-person works of 3 different families in your borders, while this card is seated",
-    "text": "Commission. Goal: have great-person works of 3 different families in your borders, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: a great person to call, and +200 culture",
-    "text": "Reward: a great person to call, and +200 culture"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: have great-person works of 3 different families in your borders. Reward: a great person to call, and +200 culture",
+    "text": "Goal: have great-person works of 3 different families in your borders. Reward: a great person to call, and +200 culture"
    }
   ],
   "theLandmarkBounds": [
@@ -9746,16 +9698,12 @@
   ],
   "magisterialTheIdealCity": [
    {
-    "raw": "Commission. Goal: have one of your cities hold 2 wonders and work 3 great-person works, while this card is seated",
-    "text": "Commission. Goal: have one of your cities hold 2 wonders and work 3 great-person works, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: for the rest of the game, that city gains +25% culture, +25% science and +25% production",
-    "text": "Reward: for the rest of the game, that city gains +25% culture, +25% science and +25% production"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: have one of your cities hold 2 wonders and work 3 great-person works. Reward: that city gains +25% culture, +25% science and +25% production",
+    "text": "Goal: have one of your cities hold 2 wonders and work 3 great-person works. Reward: that city gains +25% culture, +25% science and +25% production"
    }
   ],
   "theGrandVizier": [
@@ -9796,28 +9744,32 @@
   ],
   "theCabinetOfCuriosities": [
    {
-    "raw": "when drafted, a random Order of your tier from a deck you do not hold joins your collection; seated, this card does nothing",
-    "text": "when drafted, a random Order of your tier from a deck you do not hold joins your collection; seated, this card does nothing"
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: a random Order of your tier from a deck you do not hold joins your collection",
+    "text": "On draft: a random Order of your tier from a deck you do not hold joins your collection"
    }
   ],
   "theGrandRetrospective": [
    {
-    "raw": "when drafted, +20 culture, +20 science and +20 production in your capital for each wonder you hold, each hex carrying a great person's work in your borders and each Order you hold, seated or not; seated, this card does nothing",
-    "text": "when drafted, +20 culture, +20 science and +20 production in your capital for each wonder you hold, each hex carrying a great person's work in your borders and each Order you hold, seated or not; seated, this card does nothing"
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: +20 culture, +20 science and +20 production in your capital for each wonder you hold, each hex carrying a great person's work in your borders and each Order you hold, seated or not",
+    "text": "On draft: +20 culture, +20 science and +20 production in your capital for each wonder you hold, each hex carrying a great person's work in your borders and each Order you hold, seated or not"
    }
   ],
   "magisterialTheParadiseGarden": [
    {
-    "raw": "Commission. Goal: have a great-person work in your borders with 3 other great-person works or tended hexes beside it, while this card is seated",
-    "text": "Commission. Goal: have a great-person work in your borders with 3 other great-person works or tended hexes beside it, while this card is seated"
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
    },
    {
-    "raw": "Reward: every unowned hex within 3 hexes of that work joins your nearest city",
-    "text": "Reward: every unowned hex within 3 hexes of that work joins your nearest city"
-   },
-   {
-    "raw": "then this card leaves its chair and is never seated again",
-    "text": "then this card leaves its chair and is never seated again"
+    "raw": "Goal: have a great-person work in your borders with 3 other great-person works or tended hexes beside it. Reward: every unowned hex within 3 hexes of that work joins your nearest city",
+    "text": "Goal: have a great-person work in your borders with 3 other great-person works or tended hexes beside it. Reward: every unowned hex within 3 hexes of that work joins your nearest city"
    }
   ],
   "theProcessionalWay": [
@@ -10116,8 +10068,8 @@
   ],
   "watchmen": [
    {
-    "raw": "+2 combat strength inside your territory",
-    "text": "+2 combat strength inside your territory"
+    "raw": "+2 combat strength when defending inside your territory",
+    "text": "+2 combat strength when defending inside your territory"
    }
   ],
   "restingCamps": [
@@ -10290,8 +10242,12 @@
   ],
   "theCharteredCompany": [
    {
-    "raw": "once drafted, you may hire the [[unit:companyGuard|Company Guard]] with gold in a city that has a [[building:barracks|Barracks]], when you know [[tech:banking|The Counting Houses]] or any technology as far along the tree; this card takes no chair",
-    "text": "once drafted, you may hire the Company Guard with gold in a city that has a Barracks, when you know The Counting Houses or any technology as far along the tree; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "you may hire the [[unit:companyGuard|Company Guard]] with gold in a city that has a [[building:barracks|Barracks]], when you know [[tech:banking|The Counting Houses]] or any technology as far along the tree",
+    "text": "you may hire the Company Guard with gold in a city that has a Barracks, when you know The Counting Houses or any technology as far along the tree"
    }
   ],
   "mercenaryContracts": [
@@ -10318,8 +10274,12 @@
   ],
   "theSwordOfState": [
    {
-    "raw": "when drafted, the best melee unit you can build joins you in your capital; seated, this card does nothing",
-    "text": "when drafted, the best melee unit you can build joins you in your capital; seated, this card does nothing"
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: the best melee unit you can build joins you in your capital",
+    "text": "On draft: the best melee unit you can build joins you in your capital"
    }
   ],
   "copyingTheEnemy": [
@@ -10486,8 +10446,12 @@
   ],
   "theSchoolmensCharter": [
    {
-    "raw": "once drafted, opens [[tech:scholasticism|Scholasticism]] for you to research; only an empire holding this charter may research it; this card takes no chair",
-    "text": "once drafted, opens Scholasticism for you to research; only an empire holding this charter may research it; this card takes no chair"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:scholasticism|Scholasticism]] for you to research",
+    "text": "opens Scholasticism for you to research"
    },
    {
     "raw": "once you know [[tech:scholasticism|Scholasticism]], you may build the [[building:cathedralSchool|Cathedral School]]: +2 science per building in this city that [[concept:supplies|supplies]] faith; +2 science per building in this city that [[concept:supplies|supplies]] faith, while it is keeping a rite",
@@ -10728,8 +10692,8 @@
   ],
   "warriorMonks": [
    {
-    "raw": "+10 combat strength while standing in one of your cities",
-    "text": "+10 combat strength while standing in one of your cities"
+    "raw": "+10 combat strength when defending while standing in one of your cities",
+    "text": "+10 combat strength when defending while standing in one of your cities"
    }
   ],
   "harvestBlessing": [
@@ -11224,8 +11188,8 @@
   ],
   "terracottaArmy": [
    {
-    "raw": "+6 combat strength while standing in one of your cities",
-    "text": "+6 combat strength while standing in one of your cities"
+    "raw": "+6 combat strength when defending while standing in one of your cities",
+    "text": "+6 combat strength when defending while standing in one of your cities"
    },
    {
     "raw": "newly created units in every city with [[wonder:terracottaArmy|The Terracotta Army]] gain +2 combat strength",
@@ -12135,12 +12099,12 @@
   ],
   "hannibal": [
    {
-    "raw": "+5 combat strength outside your territory",
-    "text": "+5 combat strength outside your territory"
+    "raw": "+5 combat strength when attacking outside your territory",
+    "text": "+5 combat strength when attacking outside your territory"
    },
    {
-    "raw": "-4 combat strength inside your territory",
-    "text": "-4 combat strength inside your territory"
+    "raw": "-4 combat strength when defending inside your territory",
+    "text": "-4 combat strength when defending inside your territory"
    }
   ],
   "hanXin": [
@@ -12161,8 +12125,8 @@
   ],
   "boudica": [
    {
-    "raw": "+4 combat strength inside your territory",
-    "text": "+4 combat strength inside your territory"
+    "raw": "+4 combat strength when defending inside your territory",
+    "text": "+4 combat strength when defending inside your territory"
    },
    {
     "raw": "lost when the age it was earned in closes",
@@ -12171,8 +12135,8 @@
   ],
   "spartacus": [
    {
-    "raw": "+3 combat strength against an empire with more cities than you",
-    "text": "+3 combat strength against an empire with more cities than you"
+    "raw": "+3 combat strength when attacking an empire with more cities than you",
+    "text": "+3 combat strength when attacking an empire with more cities than you"
    }
   ],
   "ibnSina": [
@@ -12311,8 +12275,8 @@
   ],
   "janZizka": [
    {
-    "raw": "+5 combat strength while fortified",
-    "text": "+5 combat strength while fortified"
+    "raw": "+5 combat strength when defending while fortified",
+    "text": "+5 combat strength when defending while fortified"
    }
   ],
   "elCid": [
@@ -12487,12 +12451,12 @@
   ],
   "nzingaOfNdongo": [
    {
-    "raw": "+5 combat strength in forest",
-    "text": "+5 combat strength in forest"
+    "raw": "+5 combat strength when defending in forest",
+    "text": "+5 combat strength when defending in forest"
    },
    {
-    "raw": "+5 combat strength in jungle",
-    "text": "+5 combat strength in jungle"
+    "raw": "+5 combat strength when defending in jungle",
+    "text": "+5 combat strength when defending in jungle"
    }
   ],
   "yiSunSin": [

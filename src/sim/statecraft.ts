@@ -265,9 +265,12 @@ export {
   unitMatches,
   windfallPayout,
   windfallPayoutIsEmpty,
+  // Batch DS8: a Scaler's current value, for the figure on its face.
+  scalerFigures,
 } from './statecraft/evaluator';
 export type {
   BuildingPackageLine,
+  ScalerFigure,
   CardBuildingHappinessLine,
   CardBuildingPercentLine,
   CardCityRenownShare,
@@ -309,6 +312,8 @@ export {
   // melee units" in exactly the words a card would use. Both are ref-free, so a
   // surface that prints a resource's signature without `stripRefs` stays honest.
   combatWhenWords,
+  // Batch DS8: the side of the fight, said with the condition.
+  combatSideWords,
   filterWords,
   describeBuildingRow,
   commissionCounterWords,
@@ -320,6 +325,9 @@ export {
   describeFamilyVerb,
   grantWords,
   indefinite,
+  // Batch DS8: the four card keywords, in words and as marks.
+  keywordMark,
+  ORDER_KEYWORD_WORDS,
   occasionWords,
   periodicProbe,
   ref,

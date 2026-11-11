@@ -10,6 +10,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
   - **Held:** The Votive Lamp and The Pilgrim Staff are not in the data yet, so the tables mark them `add`. The Votive Lamp ("Gains +1 faith each time you finish a building") needs a count the game does not keep: the buildings your towns finish while the card is seated. The game counts finished public works, finished wonders and buildings bought with gold, but not every building. The Pilgrim Staff ("Spending faith grants culture equal to a fourth of it") needs a moment the game does not have: faith spent. The game keeps a total of the faith spent this game (The Book of Life reads it), but no card can pay at the moment the faith is spent.
   - **Readings taken:** The Calling now pays +3 faith in your capital, with no condition. The Tithe of Nations pays for every two citizens of the towns that follow your religion, at home or abroad, with no Magnum Opus condition. The Rogations keeps its starting +2 faith and +2 culture: the new text leaves it to the card face, as The Gathering Host, The Aediles and The Grain Census did in batches DS2 and DS3. The Votive Gifts and The Host Restored keep their rites as they are: the Votive Offering may be said once a turn, and the Restoring of the Host once every five turns. Those rules are on the rites' own pages. The Schoolmen's Charter's new text leaves out the Cathedral School's double science while its town keeps a rite. The building keeps it, and the card's printed sentence still says it.
   - **Shapes removed:** the condition "until you have founded a religion" (The Calling was its only row) and the condition "while one of your towns is building a thing" (The Tithe of Nations was its last row). A town's own queue is still a town scope.
+- **Batch DS8** (2026-11-11, the same spec) put the four keywords on the card face: Commission, Charter, Scaler and Boon. The game reads each from the card's data (`orderKeyword`), prints it as the card's first clause, and shows its rule in a tooltip. So no text below starts with "Charter." or "Boon." any more.
 - **Devout towns:** a devout town is one of your towns that follows a religion you are paid by. The game asks this with the town scope `ownersFaith` (`keeps: true`). A foreign town is never devout. "Devout" is the card word of the triage's feature E (reading 2). Since batch DV2 the describers print the scope as "devout", and the Compendium's faith page says what a devout town is. The cards about every town that follows your religion, foreign towns included, keep the words "follows your religion".
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
@@ -61,7 +62,7 @@ The deck's data holds 62 live rows. Without the two charters, 60 of them take a 
 | **The Tithe Barns** | common | implemented | Cities with a Granary gain +1 faith and +1 production. | Economic |
 | **The Royal Cult** | uncommon | implemented | Your capital gains +1 faith for each citizen. | Civic |
 | **The Household Gods** | common | implemented | +2 faith in every town. | Civic |
-| **The First Offering** | common | implemented | Boon. On draft: gain 25 faith. | Civic |
+| **The First Offering** | common | implemented | On draft: gain 25 faith. | Civic |
 | **The Votive Lamp** | common | add | Gains +1 faith each time you finish a building. | Economic |
 
 ## Tier I
@@ -81,7 +82,7 @@ The deck's data holds 62 live rows. Without the two charters, 60 of them take a 
 |---|---|---|---|---|
 | **The Rites Commonwealth** | rare | implemented | Cities keeping a rite demand 25% less population happiness. | Civic |
 | **The Octave** | uncommon | implemented | Your rites last 50% longer. | Civic |
-| **The Fast** | uncommon | implemented | Charter. Unlocks the Rite of Fasting: for ten turns a town does not grow, and gains science and culture equal to its population. | Civic |
+| **The Fast** | uncommon | implemented | Unlocks the Rite of Fasting: for ten turns a town does not grow, and gains science and culture equal to its population. | Civic |
 | **The Creed** | uncommon | implemented | Your capital gains +3 faith and +3 culture for every god and belief you hold. | Civic |
 | **Consecrated Labor** | common | implemented | Cities with a Shrine may buy workers with faith. | Economic |
 | **The Founding Vows** | uncommon | implemented | Goal: start two rites. Reward: 100 faith, and 40 food in your capital. | Wildcard |
@@ -113,7 +114,7 @@ The deck's data holds 62 live rows. Without the two charters, 60 of them take a 
 | **The Parishes** | uncommon | implemented | Each town you found starts out devout. | Civic |
 | **Commission: The State Church** | uncommon | implemented | Goal: hold six towns, all devout. Reward: devout towns cost 1 less authority. | Wildcard |
 | **The Settled Faith** | rare | implemented | Devout towns gain +15% science and culture. | Civic |
-| **The Sabbath Laws** | uncommon | implemented | Charter. Unlocks the Rite of the Sabbath: for ten turns a town builds nothing, and gains culture equal to its production. | Civic |
+| **The Sabbath Laws** | uncommon | implemented | Unlocks the Rite of the Sabbath: for ten turns a town builds nothing, and gains culture equal to its production. | Civic |
 | **The Anchorites** | uncommon | implemented | Your prophets raise a further holy site for one charge instead of two. | Civic |
 | **Temple Estates** | common | implemented | Hexes beside a Holy Site gain +2 food and +2 faith. | Civic |
 | **The Saints' Fields** | common | implemented | Holy Sites gain +5 food and +8 gold. | Economic |
@@ -210,7 +211,7 @@ These rows live in `data/decks/common.json`. A seat holding Devotion or the deck
 | **The Sacred Host** | rare | Dominion | I | implemented | Kills grant 15 faith. | Military |
 | **The Oriflamme** | uncommon | Dominion | I | implemented | Military units beside one of your religious units gain +4 strength. | Military |
 | **The Monastery Libraries** | common | Scientific | I | implemented | Libraries give +2 faith. Temples give +2 science. | Civic |
-| **The Schoolmen's Charter** | uncommon | Scientific | I | implemented | Charter. Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town. | Civic |
+| **The Schoolmen's Charter** | uncommon | Scientific | I | implemented | Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town. | Civic |
 | **The Painted Chapels** | uncommon | Magisterial | I | implemented | Religious buildings give +3 culture each. | Civic |
 | **The Priest-Astronomers** | common | Scientific | I | implemented | Your capital gains +2 science and +2 faith for each town keeping a rite. | Civic |
 | **Pilgrim Markets** | uncommon | Commerce | II | implemented | Trade routes to or from a town with a Holy Site gain +3 gold and +3 faith. | Civic |

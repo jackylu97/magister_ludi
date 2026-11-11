@@ -469,7 +469,8 @@ describe('the charters', () => {
   it('prints the research it opens, then each trait in the technology’s own words', () => {
     const said = (id: OrderId): string[] => describeCard(id).map((clause) => stripRefs(clause.text));
     expect(said('theMechanistsCharter')).toEqual([
-      'once drafted, opens Mechanics for you to research; only an empire holding this charter may research it; this card takes no chair',
+      'Charter',
+      'opens Mechanics for you to research',
       'once you know Mechanics, the Catapult line (Catapult and Trebuchet) gains the Onager trait and keeps it through every upgrade',
       'units of the Catapult line: +1 range',
       'once you know Mechanics, the Archer line (Archer to Crossbowman) gains the Repeating Crossbow trait and keeps it through every upgrade',

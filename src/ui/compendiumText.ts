@@ -184,7 +184,59 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
     [
       'Statecraft is the game\'s policy system. Your culture yield earns you cards called Orders, which give your empire bonuses — more production toward units, cheaper land, extra happiness, and so on. You choose which Orders to use by placing them in your government\'s chairs.',
       'Every so often, when enough culture has accumulated, you draft: the game offers a few Orders and you pick one, or pass on the whole hand. Passing makes rarer cards more likely in your next draft. Faith can also ask for a fresh hand, at a price that rises each time you ask. Open the Statecraft screen to place Orders in chairs. Each chair has a type, Military, Economic, Civic or Wildcard, and an Order fits a chair of its own type or a Wildcard chair; an Order only works while it is placed. As you draft more, you can adopt a new form of government, which gives you more chairs, and at a few points along the way you are dealt a free hand of the rarest Orders your decks hold back.',
+      'Some Orders carry a keyword, printed first on the card: [[concept:commission|Commission]], [[concept:charter|Charter]], [[concept:scaler|Scaler]] or [[concept:boon|Boon]]. Point at the keyword to read its rule. A Charter and a Boon never take a chair.',
       'Details: a newly placed Order is locked for a few turns before it can be removed. Adopting a government keeps each placed Order in its chair where that chair still fits it, moves the rest to free chairs that fit them, clears every lock, and makes asking for a fresh hand cheap again — the price starts over under every new government. Governments are offered in fixed sets of three at set draft counts. The Orders shelf in this Compendium shows every card\'s exact effect.',
+    ],
+  ),
+  // Batch DS8: the four card keywords. Each Order of one of these kinds prints
+  // its keyword as its first clause (`describeCard`), and the keyword links
+  // here. The first paragraph of each page is the rule the keyword's tooltip
+  // shows, so it must stay true and short.
+  written(
+    'concept',
+    'commission',
+    'Commission',
+    'a card keyword: a goal and a reward',
+    '◎',
+    [
+      'A Commission sits in a chair until you meet its goal. Then it pays its reward once and leaves the chair for good. A lasting reward lasts for the rest of the game.',
+      'The card says its goal and its reward: "Goal: … Reward: …". The goal counts only while the card is seated. If you take the card out of its chair, it keeps its progress, and the count goes on when you seat it again. The card face shows how far you have come.',
+      'Details: the reward is paid at the end of the turn in which you meet the goal. A reward that cannot be paid yet waits, and the card stays in its chair until it can. A reward that lasts for a number of turns says so. After it pays, the card stays in your collection, and you can never seat it again.',
+    ],
+  ),
+  written(
+    'concept',
+    'charter',
+    'Charter',
+    'a card keyword: it opens a new thing',
+    '◇',
+    [
+      'A Charter takes no chair. When you draft it, it opens something new for your empire, and that thing has its own page with its own rules.',
+      'What a Charter opens can be a technology to research, a building, a unit, a work for your workers or a rite. The card names it, and you can point at the name to read its page. The Charter stays in your collection, and you can never seat it, so it never takes the place of another card.',
+      'Details: a technology that a Charter opens is a charter technology. Only an empire that holds the Charter may research it.',
+    ],
+  ),
+  written(
+    'concept',
+    'scaler',
+    'Scaler',
+    'a card keyword: it grows while it is seated',
+    '△',
+    [
+      'A Scaler gains a little each time a thing happens while it is seated. The figure on the card shows what it gives now.',
+      'The card says what it gains and when: "Gains … each time …". Before the first gain, the figure shows what the card gives at the start. If you take a Scaler out of its chair, it keeps what it has gained, and it gains again when you seat it again.',
+      'Details: a Scaler counts only the things that happen while it is seated. Some Scalers stop at a cap, and the card says the cap. A card that counts something over the whole game, seated or not, is not a Scaler.',
+    ],
+  ),
+  written(
+    'concept',
+    'boon',
+    'Boon',
+    'a card keyword: it pays once, when you draft it',
+    '✧',
+    [
+      'A Boon pays once, when you draft it. It takes no chair.',
+      'The card says what it gives: "On draft: …". It pays at once, and then it stays in your collection. You can never seat a Boon, so it never takes the place of another card.',
     ],
   ),
   written(

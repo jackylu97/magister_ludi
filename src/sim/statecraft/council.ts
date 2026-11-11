@@ -29,6 +29,7 @@ import {
   type SlotType,
   doctrineDef,
   governmentDef,
+  isBoon,
   isCharter,
   isOrderId,
   orderDef,
@@ -295,6 +296,12 @@ export function slotOrderError(
   // **A charter is never seated** (D1a, `CharterSpec`): its grant was written
   // on the pick, and a chair spent on it would be a chair spent on nothing.
   if (isCharter(cardId)) return `${orderDef(cardId).name} is a charter and never sits in a chair`;
+  // **A Boon is never seated either** (batch DS8): it pays once, when it is
+  // drafted, and a chair spent on it would be a chair spent on nothing. The
+  // refusal keeps the game true to the keyword's rule, and it keeps a held
+  // Boon out of every chair the council screen, the bots and the End Turn
+  // pause offer, since all three ask this gate.
+  if (isBoon(cardId)) return `${orderDef(cardId).name} is a Boon and never sits in a chair`;
   // A fulfilled commission has paid its reward and has nothing left to do.
   if (commissionFulfilledTurn(sc, cardId) !== undefined) {
     return `${orderDef(cardId).name} is fulfilled and never sits in a chair again`;

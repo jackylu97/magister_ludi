@@ -163,8 +163,9 @@ describe('Magisterial batch MG6: the rows', () => {
   });
 
   it('carries the shapes the triage names', () => {
-    // Batch DS7 gave it a shorter text with the keyword "Boon.", and the same effect.
-    expect(orderDef(MUSE).text).toBe('Boon. On draft: gain a free great-person draft.');
+    // Batch DS7 gave it a shorter text, and the same effect. Batch DS8 took
+    // the keyword "Boon." off the text: the card face prints it.
+    expect(orderDef(MUSE).text).toBe('On draft: gain a free great-person draft.');
     expect(orderDef(MUSE).onDraft).toEqual([{ grant: 'greatPerson' }]);
     expect(orderDef(MUSE).effects).toEqual([]);
     expect(orderDef(OFFICIALS).text).toBe('Order hands deal two extra cards. You cannot reroll Order hands.');
@@ -182,7 +183,7 @@ describe('Magisterial batch MG6: the rows', () => {
 
   it('prints each card in plain words', () => {
     const words = (id: OrderId): string[] => describeCard(id).map((clause) => stripRefs(clause.text));
-    expect(words(MUSE)).toEqual(['when drafted, you gain a great person to call; seated, this card does nothing']);
+    expect(words(MUSE)).toEqual(['Boon', 'On draft: you gain a great person to call']);
     expect(words(OFFICIALS)).toEqual(['+2 cards in every Order hand', 'you cannot reroll Order hands']);
     expect(words(HALL)).toEqual(['+1 card in every Order hand per 2 wonders you hold (at most +2)']);
   });

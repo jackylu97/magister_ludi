@@ -222,9 +222,8 @@ describe('Magisterial batch MG7: the rows', () => {
       '+5% production in every city per Doctrine you hold',
     ]);
     expect(words(BULL)).toEqual([
-      'Commission. Goal: have every Military, Economic and Civic chair hold a card of its own type, while this card is seated',
-      "Reward: a Doctrine draft of your government's tier",
-      'then this card leaves its chair and is never seated again',
+      'Commission',
+      "Goal: have every Military, Economic and Civic chair hold a card of its own type. Reward: a Doctrine draft of your government's tier",
     ]);
   });
 });

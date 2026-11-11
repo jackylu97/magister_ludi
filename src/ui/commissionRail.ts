@@ -48,12 +48,13 @@
 
 import type { Game } from '../sim/game';
 import type { GameState } from '../sim/state';
-import { describeCard, stripRefs } from '../sim/statecraft';
+import { describeCard } from '../sim/statecraft';
 import { type OrderId, orderDef } from '../sim/statecraftData';
 import { seatedCommissions } from '../sim/commissions';
 import { commissionCounters } from './commissionGoal';
 import { orderSuitFace } from './deckBadges';
 import { element } from './dom';
+import { setDescriptorText } from './keywords';
 import { type InkId, type SuitId, suitGlyphNode } from './suitFace';
 import { type GoalCounter, counterFigure, counterShare, goalCounterNode } from './goalCounter';
 
@@ -224,8 +225,13 @@ export function createCommissionRail(options: CommissionRailOptions): Commission
     pop.setAttribute('role', 'tooltip');
     pop.dataset.ink = chip.ink;
     pop.append(element('p', 'commission-pop-name', orderDef(chip.card).name));
+    // A descriptor, so the card's keyword (batch DS8) and the things it names
+    // come out bold and show their hover cards. Never links: the popover is a
+    // tooltip that closes when the pointer leaves the chip.
     for (const clause of describeCard(chip.card)) {
-      pop.append(element('p', 'commission-pop-clause', stripRefs(clause.text)));
+      const line = element('p', 'commission-pop-clause');
+      setDescriptorText(line, clause.text, { linked: false });
+      pop.append(line);
     }
     if (chip.fulfilled) pop.append(element('p', 'goal-note', FULFILLED_WORDS));
     else pop.append(goalCounterNode(chip.counters));

@@ -233,6 +233,7 @@ import {
   isGovernmentId,
   isOrderId,
   orderDef,
+  scalerShape,
   type RenownShareRows,
 } from '../statecraftData';
 import { type TerrainId, isWaterTerrain } from '../terrainData';
@@ -4541,6 +4542,31 @@ export function helpings(total: number, per: number | undefined, max: number | u
   let count = Math.floor(total / step);
   if (max !== undefined) count = Math.min(count, max);
   return Math.max(0, count);
+}
+
+/** One voice of a Scaler's current value: what the card gives in it now. */
+export interface ScalerFigure {
+  /** The voice or meter the part gains (`CardPaysEffect.to`). */
+  voice: string;
+  value: number;
+}
+
+/**
+ * **A Scaler's current value**, one figure for each voice it gains (batch DS8).
+ * The card face prints it, so a player sees what the card has grown to.
+ *
+ * Each part is its starting value plus one gain for each helping its count buys,
+ * by the same `helpings` the `tally` count is folded by. `count` is the card's
+ * own tally (`tallyOf`). Nought gives the starting value, which is what an
+ * offered card or a Compendium page shows. The figure is the card's own value:
+ * it leaves out a chair that counts twice and a government that raises it,
+ * which the stamp and the ledger read.
+ */
+export function scalerFigures(id: OrderId, count: number): ScalerFigure[] {
+  return scalerShape(orderDef(id).effects).parts.map((part) => ({
+    voice: part.line.to ?? '',
+    value: part.start + (part.line.amount ?? 0) * helpings(count, part.line.per, part.line.max),
+  }));
 }
 
 // --- flat yields ------------------------------------------------------------

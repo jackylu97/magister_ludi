@@ -93,6 +93,7 @@
 import { STAMP_TIMING, type StampReading, cardStampNode, playCardStamp, stampIsEmpty } from './cardStamp';
 import { DEAL_MS, DEAL_STAGGER_MS, cardBack } from './cardDeal';
 import { type GoalCounter, goalCounterNode } from './goalCounter';
+import { type ScalerFigure, scalerFigureNode } from './scalerFigure';
 import { setDescriptorText } from './keywords';
 import { type SuitFace, dressSuitFace } from './suitFace';
 import { yieldElement as element } from './yieldMark';
@@ -168,8 +169,9 @@ export interface OfferOption {
   payoff: string;
   /**
    * **Small chips under the name** — the standing of the card, in the caller's
-   * own terms: "Rare", "Charter — takes no chair". One chip each, in the
-   * caller's order; absent or empty draws none.
+   * own terms: "Rare". One chip each, in the caller's order; absent or empty
+   * draws none. Since batch DS8 no Order hand passes one: the A3 face shows the
+   * rarity, and the card's keyword is its first clause.
    *
    * A **label, an opaque tone and an optional mark**, and the tone is exactly
    * what `line` is and for exactly that reason: a chip wants the ink of
@@ -211,6 +213,12 @@ export interface OfferOption {
    * imports nothing from the simulation; absent on every other card.
    */
   progress?: readonly GoalCounter[];
+  /**
+   * A Scaler's current value (batch DS8): what the card gives now, as a figure
+   * composed in `YIELD_GLYPH`. Drawn by `scalerFigure.ts`, which imports
+   * nothing from the simulation; absent on every other card.
+   */
+  scaler?: ScalerFigure;
   /**
    * Why this payoff would be wasted, or absent. An empire with no cities has
    * nowhere to put a lump of food, and a card that quietly paid it nowhere
@@ -674,13 +682,13 @@ interface OfferCardOptions {
 
 /**
  * **Everything a face prints under its name**, in reading order: the chips,
- * the rules, a commission's counter, a warning, the stamp's seat, the flavour
- * and the footnote. The emblem face and the A3 face both print it, so a
+ * the rules, a commission's counter, a Scaler's value, a warning, the stamp's
+ * seat, the flavour and the footnote. The emblem face and the A3 face both print it, so a
  * card's body reads the same whichever face it wears.
  */
 function faceBody(option: OfferOption): HTMLElement[] {
   const nodes: HTMLElement[] = [];
-  // The rarity and the charter mark (U1), one chip each, under the name.
+  // The chips the caller handed over (U1), one each, under the name.
   // Drawn only when the caller handed some over; the tone is set as a data
   // attribute and inked by one block of `style.css`, the way the accent on
   // the frame already is.
@@ -738,6 +746,7 @@ function faceBody(option: OfferOption): HTMLElement[] {
   if (option.progress !== undefined && option.progress.length > 0) {
     nodes.push(goalCounterNode(option.progress));
   }
+  if (option.scaler !== undefined) nodes.push(scalerFigureNode(option.scaler));
   // A charter's "Opened" stamp lands **on the slip** (the prototype's step 2):
   // the slip is the piece of the chart the pick opens, so the stamp marks it.
   const stampOnSlip = option.slip !== undefined && option.stamp?.opened !== undefined;

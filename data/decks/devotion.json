@@ -267,7 +267,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "The table is set and left bare, and the faithful count what they did not eat.",
-      "text": "Charter. Unlocks the Rite of Fasting: for ten turns a town does not grow, and gains science and culture equal to its population.",
+      "text": "Unlocks the Rite of Fasting: for ten turns a town does not grow, and gains science and culture equal to its population.",
       "effects": [],
       "charter": {
         "unlocks": {
@@ -1592,7 +1592,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "On the day of rest the forges are cold and the square is full of singing.",
-      "text": "Charter. Unlocks the Rite of the Sabbath: for ten turns a town builds nothing, and gains culture equal to its production.",
+      "text": "Unlocks the Rite of the Sabbath: for ten turns a town builds nothing, and gains culture equal to its production.",
       "effects": [],
       "charter": {
         "unlocks": {
@@ -2001,7 +2001,7 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "The first loaf of the harvest goes to the altar before anyone eats.",
-      "text": "Boon. On draft: gain 25 faith.",
+      "text": "On draft: gain 25 faith.",
       "onDraft": [
         {
           "grant": "windfall",

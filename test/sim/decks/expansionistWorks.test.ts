@@ -583,7 +583,7 @@ describe('the Expansionist batch E4: the words', () => {
     expect(said('theFishTraps').join(' ')).toContain('Fish Traps');
     expect(said('theStakedClaims').join(' ')).toContain('every unowned hex within 2 hexes');
     expect(said('theWideCountry').join(' ')).toContain('claim 12 hexes by outposts, cleared camps or buying');
-    expect(said('theWideCountry').join(' ')).toContain('for the rest of the game, +25% border expansion');
+    expect(said('theWideCountry').join(' ')).toContain('Reward: +25% border expansion');
     expect(said('theEncroachingFields').join(' ')).toContain('every 10 turns, each of your cities of at least 12 citizens');
     expect(said('migration').join(' ')).toContain('your largest city sends one citizen');
     expect(said('theGreatMigration').join(' ')).toContain('within 3 hexes of your borders');

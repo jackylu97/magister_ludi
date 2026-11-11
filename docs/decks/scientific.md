@@ -20,6 +20,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
   - **Simplified:** The Almanac no longer makes Libraries cheaper. The Old Academy, Enduring Institutions and The Forward Plans no longer ask how long a thing has stood, and Enduring Institutions gives +20%, not +25%. The Scribes' Hall lost its culture. The Quiet Faculties lost its slower military units. The Strategikon counts only an Academy, not a great general or great scholar. The Breaching Batteries lost its +5 strength against cities. The Walls of Learning lost its +12 for the town raising the Opus.
   - **Simplified charters**, each changed on the row it opens: the Hoplite and the Maryannu (Casting) are each a plain +2 strength; the Bimaristan (Medicine) no longer heals units; the Aldine Press (Printing) no longer pays its trade routes, and Printing still gives +1 trade route; the Grenadier (Chemistry) is +1 strength for each charter technology you know, with no flat +1, and Niter Beds are removed, so Chemistry opens no work.
   - **Changed:** The Royal Tutors gives +2 scholar renown for each science building, not +1.
+- **Batch DS8** (2026-11-11, the same spec) put the four keywords on the card face: Commission, Charter, Scaler and Boon. The game reads each from the card's data (`orderKeyword`), prints it as the card's first clause, and shows its rule in a tooltip. So no text below starts with "Charter." or "Boon." any more.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -32,7 +33,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
   - `add`: not in the data yet.
   - **(was …)** names the data row that a renamed card takes over.
 - **Type:** the last column says which chair the card fits: **Military**, **Economic**, **Civic** or **Wildcard** (`docs/plans/doctrines-governments-chairs.md`, section 4). Since batch S1b the types are in the data. A Scientific card fits only a chair of its own type or a Wildcard chair. The sync test checks this column for every row in the data, the shared table's included.
-- **Charters:** thirteen, counted in the Charters column below. A charter never takes a chair. Drafting it opens its charter technology for research, and knowing that technology gives what the text says. Its type is only for the card's face. Since batch DS6 a charter's text starts with the keyword "Charter.", as the data writes it. The text is short, and the building, improvement or trait that the technology opens keeps its full rules on its own page. A charter stayed deferred until its whole gift was built (the triage's reading 21). All thirteen are dealt since batch S5.
+- **Charters:** thirteen, counted in the Charters column below. A charter never takes a chair. Drafting it opens its charter technology for research, and knowing that technology gives what the text says. Its type is only for the card's face. The card face prints the Charter keyword (batch DS8), and the text says what the charter opens. The text is short, and the building, improvement or trait that the technology opens keeps its full rules on its own page. A charter stayed deferred until its whole gift was built (the triage's reading 21). All thirteen are dealt since batch S5.
 - **Doctrines:** 15 (4, 3, 4 and 4 across Tiers I to IV), all dealt, after your comments of 2026-11-05 (`docs/plans/doctrine-review-2026-11-05.md`). A Doctrine is held for the whole game and takes no chair. Each tier's Doctrine table sits above its Orders, and the Build column names the theme that each is written for. `docs/plans/doctrines-build-triage.md` gives the batch that built each one. The reasons and pairs are in `docs/plans/scientific-doctrines.md`.
 - **The sheet of 2026-10-12** (61 cards, 11 charters) is in git history: `git show 4aa4be29:docs/decks/scientific.md`.
 
@@ -64,7 +65,7 @@ Without the charters, the deck holds 55 cards that take a chair: 7, 15, 13, 10 a
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Herbalists' Charter** | common | implemented | Charter. Opens Herbals, which unlocks the Physic Garden: +2 science and +2 happiness. | Civic |
+| **The Herbalists' Charter** | common | implemented | Opens Herbals, which unlocks the Physic Garden: +2 science and +2 happiness. | Civic |
 | **The Prospectors' Notes** | uncommon | implemented | Building a mine or a quarry grants its town 25 production. | Economic |
 | **The Royal Workshops** | common | implemented | Completing a technology grants 15 production in your capital. | Economic |
 | **The Royal Tutors** | common | implemented | +2 scholar renown each turn for each science building. | Civic |
@@ -88,9 +89,9 @@ Without the charters, the deck holds 55 cards that take a chair: 7, 15, 13, 10 a
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Glassmakers' Charter** | uncommon | implemented | Charter. Opens Optics, which unlocks the Specularium: +3 food, and +1 science for every two citizens. | Civic |
-| **The Surveyors' Charter** | uncommon | implemented | Charter. Opens Surveying: you may build the Aqueduct early, and workers may build the Qanat, which waters the farms beside it. | Economic |
-| **The Librarians' Charter** | rare | implemented | Charter. Opens Cataloguing, which unlocks the Mouseion: +4 scholar renown, and +2 culture for each empire building you hold. | Civic |
+| **The Glassmakers' Charter** | uncommon | implemented | Opens Optics, which unlocks the Specularium: +3 food, and +1 science for every two citizens. | Civic |
+| **The Surveyors' Charter** | uncommon | implemented | Opens Surveying: you may build the Aqueduct early, and workers may build the Qanat, which waters the farms beside it. | Economic |
+| **The Librarians' Charter** | rare | implemented | Opens Cataloguing, which unlocks the Mouseion: +4 scholar renown, and +2 culture for each empire building you hold. | Civic |
 | **The Old Academy** | uncommon | implemented | Academies gain +3 food and +3 production. | Economic |
 | **Learned Foundations** | common | implemented | Cities with a Library build empire buildings 25% faster. | Economic |
 | **The Forward Plans** | rare | implemented | You may build Universities before you know Scholarship. | Civic |
@@ -105,7 +106,7 @@ Without the charters, the deck holds 55 cards that take a chair: 7, 15, 13, 10 a
 | **The Edge of the Sword** | uncommon | implemented | Your units gain +3 strength against the units of an empire that knows fewer technologies than you. | Military |
 | **The Scribes' Hall** | common | implemented | Towns with a Library gain +1 science for every four citizens. | Civic |
 | **The Sky Watchers** | common | implemented | Shrines give +1 faith and +1 science. | Civic |
-| **The Bronze-Founders' Charter** | uncommon | implemented | Charter. Opens Casting: your spear and chariot lines gain +2 strength for good. | Military |
+| **The Bronze-Founders' Charter** | uncommon | implemented | Opens Casting: your spear and chariot lines gain +2 strength for good. | Military |
 | **The Almanac** | common | implemented | Libraries give +2 production. | Economic |
 
 ## Tier II
@@ -122,10 +123,10 @@ Without the charters, the deck holds 55 cards that take a chair: 7, 15, 13, 10 a
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Mechanists' Charter** | rare | implemented | Charter. Opens Mechanics: catapults gain +1 range, and your archer line may move after it shoots. | Military |
-| **The Printers' Charter** | uncommon | implemented | Charter. Opens Printing, which unlocks the Aldine Press: +2 culture and +1 trade route. | Civic |
-| **The Paper-Makers' Charter** | uncommon | implemented | Charter. Opens Papermaking, which unlocks the Scriptorium: +2 science, and +10% science beside an Academy. | Civic |
-| **The Physicians' Charter** | uncommon | implemented | Charter. Opens Medicine, which unlocks the Bimaristan: +25% food in its town. | Economic |
+| **The Mechanists' Charter** | rare | implemented | Opens Mechanics: catapults gain +1 range, and your archer line may move after it shoots. | Military |
+| **The Printers' Charter** | uncommon | implemented | Opens Printing, which unlocks the Aldine Press: +2 culture and +1 trade route. | Civic |
+| **The Paper-Makers' Charter** | uncommon | implemented | Opens Papermaking, which unlocks the Scriptorium: +2 science, and +10% science beside an Academy. | Civic |
+| **The Physicians' Charter** | uncommon | implemented | Opens Medicine, which unlocks the Bimaristan: +25% food in its town. | Economic |
 | **Enduring Institutions** | uncommon | implemented | Towns with an empire building gain +20% production. | Economic |
 | **The Quiet Faculties** | rare | implemented | Towns working an Academy gain +25% food and +20% production. | Economic |
 | **The Charter Rolls** | uncommon | implemented | Your capital gains +3 production and +3 culture for each charter you have drafted. | Civic |
@@ -155,8 +156,8 @@ Without the charters, the deck holds 55 cards that take a chair: 7, 15, 13, 10 a
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Alchemists' Charter** | uncommon | implemented | Charter. Opens Chemistry: your warrior line gains +1 strength for each charter technology you know. | Military |
-| **The Gunfounders' Charter** | uncommon | implemented | Charter. Opens Gunfounding, which unlocks the Tophane: its town builds military units 25% faster, with +4 strength. | Military |
+| **The Alchemists' Charter** | uncommon | implemented | Opens Chemistry: your warrior line gains +1 strength for each charter technology you know. | Military |
+| **The Gunfounders' Charter** | uncommon | implemented | Opens Gunfounding, which unlocks the Tophane: its town builds military units 25% faster, with +4 strength. | Military |
 | **The Second Seat** | rare | implemented | You may build one second copy of an empire building, in a city with a University. | Civic |
 | **The Proving Ground** | uncommon | implemented | Your units gain +1 strength for each technology you know that no empire you have met knows, at most +8. | Military |
 | **The Age of Reason** | rare | implemented | Your Orders count each technology you complete twice. | Wildcard |
@@ -183,8 +184,8 @@ Without the charters, the deck holds 55 cards that take a chair: 7, 15, 13, 10 a
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Military Engineers' Charter** | uncommon | implemented | Charter. Opens Military Architecture, which unlocks the Bastion: +5 defence and +30 hit points. | Military |
-| **The Naval Gunners' Charter** | uncommon | implemented | Charter. Opens Naval Gunnery: your Gun Galleys gain +3 strength and may blockade a rival's port. | Military |
+| **The Military Engineers' Charter** | uncommon | implemented | Opens Military Architecture, which unlocks the Bastion: +5 defence and +30 hit points. | Military |
+| **The Naval Gunners' Charter** | uncommon | implemented | Opens Naval Gunnery: your Gun Galleys gain +3 strength and may blockade a rival's port. | Military |
 | **The Great Instrument** | rare | implemented | Goal: complete Alchemy. Reward: a tenth of the Magnum Opus. | Wildcard |
 | **The Great Catalogue** | rare | implemented | +10% production toward the Magnum Opus for each charter technology you know, at most +40%. | Economic |
 | **The Foundation Stone** | rare | implemented | You may begin the Magnum Opus once Alchemy is half researched. | Economic |
@@ -216,7 +217,7 @@ These rows live in `data/decks/common.json`. A seat holding Scientific or the de
 | **The Assay** | common | Expansionist | I | implemented | Hexes with a strategic resource gain +2 science. | Civic |
 | **The Monastery Libraries** | common | Devotion | I | implemented | Libraries give +2 faith. Temples give +2 science. | Civic |
 | **The Exchange of Discoveries** | uncommon | Commerce | I | implemented | Mines and quarries on a resource gain +2 science. | Civic |
-| **The Schoolmen's Charter** | uncommon | Devotion | I | implemented | Charter. Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town. | Civic |
+| **The Schoolmen's Charter** | uncommon | Devotion | I | implemented | Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town. | Civic |
 | **The Priest-Astronomers** | common | Devotion | I | implemented | Your capital gains +2 science and +2 faith for each town keeping a rite. | Civic |
 | **The Cloister** | rare | Devotion | II | implemented | Towns with a Temple gain science equal to 30% of their faith. | Civic |
 | **The Merchant Navigators** | common | Commerce | II | implemented | Trade routes from a town with a Harbour gain +5 science. | Civic |

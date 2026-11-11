@@ -50,6 +50,12 @@
  * focus into it; the card is a non-modal dialog named by its title. Tab stays
  * inside the top card, Escape closes it and puts focus back on the keyword that
  * opened it, and the back button does the same one level down.
+ *
+ * A card's keyword (Commission, Charter, Scaler or Boon, batch DS8) must show
+ * its card on keyboard focus too, every time, and on most surfaces it sits
+ * inside a control with no tab stop of its own. So keyboard focus on a control
+ * that holds a card keyword shows that keyword's card, with no Enter hint,
+ * since Enter presses the control (`cardKeywordOf`).
  */
 
 import './keywordCards.css';
@@ -57,10 +63,12 @@ import './keywordCards.css';
 import type { AnchorBox } from './infoCard';
 import { element } from './dom';
 import {
+  CARD_KEYWORD_ENTRIES,
   type KeywordActivation,
   type KeywordCardLayer,
   keywordCardLayer,
   keywordNode,
+  keywordsAllowedIn,
   openKeyword,
   setDescriptorText,
   setKeywordCardLayer,
@@ -165,9 +173,13 @@ function keyboardFocus(node: Element | null): boolean {
   }
 }
 
-/** The line under a preview that says how to keep it, or null for none. */
+/**
+ * The line under a preview that says how to keep it, or null for none. A card
+ * keyword's tooltip shown for a focused control says nothing: Enter there
+ * presses the control.
+ */
 function previewHint(card: PreviewCard<HTMLElement>, holdable: boolean): string | null {
-  if (card.source === 'focus') return 'Press Enter to keep it open';
+  if (card.source === 'focus') return card.linked ? 'Press Enter to keep it open' : null;
   if (card.linked) return holdable ? 'Click or hold to keep it open' : 'Click to keep it open';
   return holdable ? 'Hold to keep it open' : null;
 }
@@ -742,14 +754,44 @@ export function mountKeywordCards(options: KeywordCardsOptions = {}): KeywordCar
     if (event.relatedTarget === null) pointerAt(null);
   };
 
+  /**
+   * **The card keyword a focused control holds** (batch DS8), or null.
+   *
+   * A keyword inside a `<button>` has no tab stop, so the keyboard cannot
+   * reach it. A card's keyword (Commission, Charter, Scaler or Boon) must still
+   * show its tooltip on keyboard focus, every time: so when the keyboard puts
+   * focus on a control, the first card keyword inside it, or inside the
+   * element its `aria-describedby` names (the commission rail's popover), is
+   * treated as focused. Its tooltip is a preview that offers no Enter, because
+   * Enter belongs to the control.
+   */
+  function cardKeywordOf(node: Element | null): KeywordAt<HTMLElement> | null {
+    if (node === null || keywordsAllowedIn(node as HTMLElement)) return null;
+    const hosts: Element[] = [node];
+    for (const id of (node.getAttribute('aria-describedby') ?? '').split(' ')) {
+      const described = id === '' || typeof document.getElementById !== 'function' ? null : document.getElementById(id);
+      if (described !== null) hosts.push(described);
+    }
+    for (const host of hosts) {
+      for (const word of Array.from(host.querySelectorAll<HTMLElement>('.kw[data-keyword]'))) {
+        const ref = word.dataset.keyword;
+        if (ref === undefined || !CARD_KEYWORD_ENTRIES.has(ref)) continue;
+        return { anchor: word, ref, origin: cardIdOf(word), linked: false };
+      }
+    }
+    return null;
+  }
+
   const onFocusIn = (event: FocusEvent): void => {
     const node = elementOf(event.target);
     // Only a linked keyword takes focus, and only the keyboard's focus shows a
     // card: a click focuses the keyword too, and the click has its own answer.
     // While focus is being handed back to a keyword whose card just closed, it
     // is not treated as arriving either, or the card the player closed would
-    // open again.
-    const keyword = quietFocus || !keyboardFocus(node) ? null : keywordOf(node, '.kw[data-ref]');
+    // open again. A control that holds a card keyword shows that keyword's
+    // card (`cardKeywordOf`).
+    const keyword =
+      quietFocus || !keyboardFocus(node) ? null : (keywordOf(node, '.kw[data-ref]') ?? cardKeywordOf(node));
     if (keyword !== null) ensureDefinitions();
     send({ type: 'focus', card: lockedCardOf(node), keyword });
   };

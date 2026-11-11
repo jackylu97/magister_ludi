@@ -671,7 +671,7 @@ describe('batch DS5: the simpler Devotion cards', () => {
   it('The First Offering pays 25 faith once, when it is drafted, and nothing from a chair', () => {
     const def = orderDef('theFirstOffering' as OrderId);
     expect([def.band, def.rarity, def.type]).toEqual([0, 'common', 'civic']);
-    expect(def.text).toBe('Boon. On draft: gain 25 faith.');
+    expect(def.text).toBe('On draft: gain 25 faith.');
     expect(def.onDraft).toEqual([{ grant: 'windfall', yield: 'faith', amount: 25 }]);
     expect(def.effects).toEqual([]);
     expect(orderIsDealt('theFirstOffering' as OrderId)).toBe(true);
@@ -683,9 +683,14 @@ describe('batch DS5: the simpler Devotion cards', () => {
     expect(applyCommand(g.state, { type: 'chooseOrder', playerId: 0, optionIndex: 0 }).ok).toBe(true);
     expect(player.statecraft.orders).toContain('theFirstOffering');
     expect(player.faithPool).toBe(35);
+    // Batch DS8: a Boon. The keyword comes first, and the chair refuses it.
     expect(describeCard('theFirstOffering' as OrderId).map((clause) => stripRefs(clause.text))).toEqual([
-      'when drafted, +25 faith; seated, this card does nothing',
+      'Boon',
+      'On draft: +25 faith',
     ]);
+    expect(
+      applyCommand(g.state, { type: 'slotOrder', playerId: 0, cardId: 'theFirstOffering', slotIndex: 0 }).ok,
+    ).toBe(false);
   });
 
   it('The Tithe of Nations pays 1 faith for every two following citizens, with no Opus in the queue', () => {
@@ -951,12 +956,20 @@ function countsTable(header: string): Map<string, number[]> {
 const dataNameOf = (card: { name: string; was?: string }): string => card.was ?? card.name;
 
 /**
- * A charter, read off the sheet's own words: since batch DS5 every charter's
- * text begins with the keyword "Charter." (it ended with "No chair required."
- * before). A row with data must agree with its `charter` field, which
- * `checkAgainstRow` asks. An `add` row has only its words.
+ * **A charter, read off the data** (batch DS8). Batches DS5 and DS6 began a
+ * charter's text with the keyword "Charter."; since DS8 the card face prints
+ * the keyword (`orderKeyword`), so no text starts with it, and a sheet row is a
+ * charter when its data row is one. An `add` row has no data row, and none of
+ * them is a charter.
  */
-const isCharterText = (text: string): boolean => text.startsWith('Charter. ');
+const CHARTER_NAMES = new Set(
+  ORDER_IDS.filter((id) => orderDef(id).charter !== undefined).map((id) => orderDef(id).name),
+);
+const isCharterRow = (card: { name: string; was?: string; status: string }): boolean =>
+  card.status !== 'add' && CHARTER_NAMES.has(dataNameOf(card));
+
+/** No text starts with a keyword: the card face prints it (batch DS8). */
+const startsWithKeyword = (text: string): boolean => /^(Commission|Charter|Scaler|Boon)\. /.test(text);
 
 /** The rows the sheet's tier tables must list: every row of this file that is not retired. */
 const LISTED: readonly OrderId[] = STANDING;
@@ -974,7 +987,7 @@ function checkAgainstRow(card: SheetCard, id: OrderId): void {
   expect(def.type, `${card.name}: the sheet's type`).toBe(card.type);
   // The sheet has no `rarity` reason: every row keeps its rarity.
   expect(def.rarity, `${card.name}: the sheet's rarity`).toBe(card.rarity);
-  expect(def.charter !== undefined, `${card.name}: a charter on one side only`).toBe(isCharterText(card.text));
+  expect(startsWithKeyword(card.text), `${card.name}: the keyword is the card face's, not the text's`).toBe(false);
   const dealt = orderIsDealt(id);
   const sameText = def.text === card.text;
   if (card.status === 'implemented') {
@@ -1098,7 +1111,7 @@ describe('the Devotion deck: the sheet of record', () => {
     const byStatus = (cards: readonly SheetCard[]): number[] => [
       ...SHEET_STATUSES.map((s) => cards.filter((card) => card.status === s).length),
       cards.length,
-      cards.filter((card) => isCharterText(card.text)).length,
+      cards.filter(isCharterRow).length,
     ];
     const byType = (cards: readonly SheetCard[]): number[] =>
       (['military', 'economic', 'civic', 'wildcard'] as const).map(
@@ -1123,7 +1136,7 @@ describe('the Devotion deck: the sheet of record', () => {
       'The Votive Lamp',
       'The Pilgrim Staff',
     ]);
-    expect(sheet.filter((card) => isCharterText(card.text))).toHaveLength(2);
+    expect(sheet.filter(isCharterRow)).toHaveLength(2);
     expect(shared).toHaveLength(22);
   });
 

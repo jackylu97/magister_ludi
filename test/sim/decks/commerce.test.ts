@@ -133,6 +133,7 @@ import {
   bandTierAt,
   isCardType,
   orderDef,
+  orderKeyword,
   orderIsDealt,
   ordersForDecks,
 } from '../../../src/sim/statecraftData';
@@ -527,8 +528,13 @@ describe('a live Commerce row is a card', () => {
       if (orderDef(id).charter !== undefined) continue;
       const said = describeCard(id);
       expect(said.length, id).toBeGreaterThan(0);
-      const printed = describeEffects(orderDef(id).effects);
-      expect(said.slice(0, printed.length), id).toEqual(printed);
+      // Batch DS8: a keyword card prints its keyword first, and a Scaler's
+      // counted lines are one sentence (`statecraft.test.ts` pins both), so
+      // only a plain card prints its effects word for word from the start.
+      if (orderKeyword(id) === null) {
+        const printed = describeEffects(orderDef(id).effects);
+        expect(said.slice(0, printed.length), id).toEqual(printed);
+      }
       for (const clause of said) {
         expect(clause.text.length, `${id}: "${clause.text}"`).toBeGreaterThan(0);
         // Every printed clause goes through `stripRefs` on its way to a

@@ -200,10 +200,10 @@ import {
   GENERIC_WORD,
   deckWord,
   doctrineFaceOf,
-  orderChipsNode,
-  orderSuitBadges,
   orderSuitFace,
 } from './deckBadges';
+import { scalerFigureNode } from './scalerFigure';
+import { scalerFace } from './scalerValue';
 import { dressSuitFace, suitGlyphNode, suitRowNode } from './suitFace';
 import { keywordsAllowedIn, setDescriptorText } from './keywords';
 import { createModalShell } from './modalShell';
@@ -386,6 +386,8 @@ function clauseList(clauses: readonly CardClause[], linked = true): HTMLElement 
   const list = element('ul', 'sc-clauses');
   for (const clause of clauses) {
     const item = element('li', clause.deferred ? 'sc-clause sc-clause-deferred' : 'sc-clause');
+    // The card's keyword (batch DS8) is a clause of its own, set as a label.
+    if (clause.keyword !== undefined) item.classList.add('is-keyword');
     setDescriptorText(item, clause.text, { linked });
     if (clause.deferred) item.title = 'Declared, and not built yet — see docs/deprecated/statecraft-cards.md';
     list.append(item);
@@ -490,15 +492,15 @@ function drawDeckDoctrineFace(
 
 /**
  * **An Order in the collection** (batch C1): the A3 row at its head, then the
- * charter's chip where the row is one, then the rules at reading size.
+ * rules at reading size, the card's keyword first.
  *
  * The row is the board's: the type's ink as a stripe (and on the card's frame),
  * the deck's suit, the rarity's small mark, the name, and the deck and tier in
  * mono. A collection card is narrower than the board's list, so the marks and
  * the deck and tier share the first line and the name takes the second. The
  * rarity chip the collection used to print is gone, because the small mark says
- * the rarity; the charter keeps its chip, because "takes no chair" is the one
- * fact a player cannot read off the rules.
+ * the rarity. The charter's chip went in batch DS8: the keyword clause and its
+ * tooltip say that a charter takes no chair.
  */
 function drawOrderFace(into: HTMLElement, id: OrderId, clauses: readonly CardClause[]): void {
   const def = orderDef(id);
@@ -507,8 +509,6 @@ function drawOrderFace(into: HTMLElement, id: OrderId, clauses: readonly CardCla
   into.dataset.ink = face.ink;
   into.title = `${def.name} · ${face.caption}`;
   into.append(suitRowNode(face, def.name, true));
-  const charter = orderSuitBadges(id);
-  if (charter.length > 0) into.append(orderChipsNode(id, charter));
   into.append(clauseList(clauses, keywordsAllowedIn(into)));
 }
 
@@ -1290,6 +1290,10 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
         // unseated one says its progress is kept.
         const goal = commissionGoalNode(state, seat, id);
         if (goal) button.append(goal);
+        // A Scaler carries its current value (batch DS8): what it has grown to
+        // for this seat, kept while it is out of its chair.
+        const scaler = scalerFace(state, seat, id);
+        if (scaler !== null) button.append(scalerFigureNode(scaler));
         // The stamp's seat, always built and mostly wearing the flourish — see
         // `stampFor`. The element is the same one whichever face it shows, so a
         // card slotted and unslotted does not change height.

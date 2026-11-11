@@ -350,11 +350,11 @@ describe('the Expansionist batch E2: founding and the counts', () => {
 
 describe('the Expansionist batch E2: the words', () => {
   it('prints all ten cards in plain words', () => {
+    // Batch DS8: a Scaler. Its starting value (+2 gold, +2 production in the
+    // capital) is the figure on its face.
     expect(said('theGrainCensus')).toEqual([
-      '+2 gold to the empire',
-      '+2 production in your capital',
-      '+1 gold per citizen your cities have grown past their largest size, counted while this Order is seated',
-      '+1 production in your capital per citizen your cities have grown past their largest size, counted while this Order is seated',
+      'Scaler',
+      'Gains +1 production in your capital and +1 gold each time one of your cities grows past its largest size',
     ]);
     expect(said('theBookOfSettlements')).toEqual([
       '+3% production per city you have founded this game (at most +30% production)',

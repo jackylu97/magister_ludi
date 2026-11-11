@@ -356,7 +356,8 @@ describe('Commerce batch T1: the commissions', () => {
     expect(player.greatPersonOffer).toBeUndefined();
     const words = describeCard('cornerTheMarket' as OrderId).map((clause) => stripRefs(clause.text));
     expect(words[1]).toBe(
-      'Reward: for the rest of the game, +2 happiness per luxury you hold two or more copies of',
+      'Goal: hold 4 copies of one luxury, counting copies you receive in deals. ' +
+        'Reward: +2 happiness per luxury you hold two or more copies of',
     );
   });
 

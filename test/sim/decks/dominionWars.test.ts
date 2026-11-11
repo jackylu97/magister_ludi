@@ -468,7 +468,7 @@ describe('Dominion D6 — citizens as a reward', () => {
       runCommissions(state);
       expect([a.population, b.population, c.population]).toEqual([before[0], before[1]! + 2, before[2]! + 2]);
       expect(describeCard('dominionClearTheFrontier' as OrderId)[1]!.text).toBe(
-        'Reward: +2 citizens in each of your 2 smallest cities',
+        'Goal: clear 2 barbarian camps. Reward: +2 citizens in each of your 2 smallest cities',
       );
     } finally {
       spec.reward = before;
@@ -592,21 +592,23 @@ describe('Dominion D6 — words and the bot', () => {
     expect(words('danegeld')).toContain(
       "making peace grants +40 gold for each of that empire's hexes you pillaged in that war",
     );
+    // Batch DS8: the Commission keyword carries the standing rules, and a
+    // lasting reward says no "for the rest of the game".
     expect(words('dominionAVictorsPeace')).toBe(
-      'Commission. Goal: end 1 war by making peace or by destroying the other empire, after taking 2 or more of its cities in that war, while this card is seated | ' +
-        'Reward: one more Wildcard chair for the rest of the game | then this card leaves its chair and is never seated again',
+      'Commission | Goal: end 1 war by making peace or by destroying the other empire, after taking 2 or more of its cities in that war. ' +
+        'Reward: one more Wildcard chair',
     );
     // Since Dominion batch D10: eight citizens, and an institution for the
     // captures after it. The D6 words are pinned by the borrowed row above.
     expect(words('dominionTakeTheCity')).toContain('capture 1 city of 8 or more citizens');
     expect(words('dominionTakeTheCity')).toContain(
-      'for the rest of the game, capturing a city grants +250 science for each age you have reached',
+      'Reward: capturing a city grants +250 science for each age you have reached',
     );
     expect(words('dominionTheGrandCampaign')).toContain("science equal to 10 times those cities' total population");
     // Since Dominion batch D11 an institution. The D6 words are pinned by the
     // borrowed reward above.
     expect(words('dominionTheCapturedMarvel')).toContain(
-      "for the rest of the game, +30% science in every captured city containing a wonder or founded as another empire's capital",
+      "Reward: +30% science in every captured city containing a wonder or founded as another empire's capital",
     );
     expect(words('vaeVictis')).toBe('what your Orders pay for capturing a city is paid twice');
     expect(words('lootedArt')).toBe(

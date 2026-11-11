@@ -297,9 +297,10 @@ describe('The Strongbox: turns ended with gold in the treasury', () => {
   });
 
   it('says the floor and the cap on the card', () => {
+    // Batch DS8: a Scaler. The keyword says that it counts only while seated.
     expect(describeCard(STRONGBOX).map((clause) => stripRefs(clause.text))).toEqual([
-      '+1 science per turn you have ended with at least 300 gold in your treasury (at most +15 science), counted while this Order is seated',
-      '+1 culture per turn you have ended with at least 300 gold in your treasury (at most +15 culture), counted while this Order is seated',
+      'Scaler',
+      'Gains +1 science and +1 culture each time you end a turn with at least 300 gold in your treasury, up to +15 each',
     ]);
   });
 });

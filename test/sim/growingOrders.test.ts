@@ -189,26 +189,32 @@ describe('the growing-card vocabulary', () => {
     expect([...folds].sort()).toEqual(['city', 'empire']);
   });
 
-  it('says in words that the counting stops at the bench', () => {
+  it('says in words what the card gains and when, and the Scaler keyword says the rest', () => {
+    // Batch DS8: a growing card is a Scaler. The keyword is its first clause,
+    // and its tooltip carries "counted while this Order is seated", so the
+    // sentence after it is "Gains … each time …".
     const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
-    expect(said('theBalladWeavers')).toEqual([
-      '+2 culture per barbarian you have killed, counted while this Order is seated',
-    ]);
+    expect(said('theBalladWeavers')).toEqual(['Scaler', 'Gains +2 culture each time you kill a barbarian unit']);
     expect(said('theBellFounders')).toEqual([
-      '+1 culture per wonder finished anywhere in the world, counted while this Order is seated',
+      'Scaler',
+      'Gains +1 culture each time a wonder is finished anywhere in the world',
     ]);
-    // One counter, two voices — two clauses off one tally, which is what makes
-    // "counted once per card" a rule worth testing below.
+    // One counter, two voices: one sentence, because the two lines watch one
+    // moment. "Counted once per card" stays a rule worth testing below.
     expect(said('theReliquaryRolls')).toEqual([
-      '+3 faith per great person you have spent, counted while this Order is seated',
-      '+3 culture per great person you have spent, counted while this Order is seated',
+      'Scaler',
+      'Gains +3 faith and +3 culture each time you spend a great person',
     ]);
     expect(said('theChroniclersOfTheFallen')).toEqual([
-      '+1 gold per unit you have lost in battle, counted while this Order is seated',
+      'Scaler',
+      'Gains +1 gold each time one of your units dies in battle',
     ]);
-    expect(said('theAlmonersBook')).toEqual([
-      '+1 science per 400 gold you have spent buying, counted while this Order is seated',
-    ]);
+    // A moment that is an amount reads "for every".
+    expect(said('theAlmonersBook')).toEqual(['Scaler', 'Gains +1 science for every 400 gold you have spent buying']);
+    for (const id of ORDER_IDS) {
+      if (!orderDef(id).effects.some((effect) => effect.kind === 'pays' && effect.count === 'tally')) continue;
+      for (const line of said(id)) expect(line, id).not.toContain('counted while this Order is seated');
+    }
   });
 });
 

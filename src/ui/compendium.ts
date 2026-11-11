@@ -165,7 +165,6 @@ import {
   TECH_IDS,
   type TechId,
   isAbilityId,
-  isTechId,
   techDef,
 } from '../sim/techData';
 import {
@@ -226,6 +225,8 @@ import { AXIS_MARK } from './religionScreen';
 import { riteTeachingCard } from '../sim/religion';
 import { resourceMarkNode } from './resourceMark';
 import { setYieldText } from './yieldMark';
+import { SCALER_LABEL } from './scalerFigure';
+import { scalerStartFace } from './scalerValue';
 import { element, withArticle } from './dom';
 import { createModalShell } from './modalShell';
 
@@ -2132,58 +2133,6 @@ function rarityFigure(rarity: OrderRarity): string {
 const BAND_WORDS: readonly string[] = ['early', 'middle', 'late', 'advanced', 'final'];
 
 /**
- * **What a charter hands over, in one sentence with the thing named.**
- *
- * The whole of what a charter *is* — drafted for its grant, never seated — and
- * D1a shipped only the opening half of it: the eyebrow said "charter" and
- * nothing said what that meant. The clause is the rest, and it is composed
- * from `CharterSpec` rather than written per row, so the eight charter rows and
- * the ninth somebody adds read alike.
- *
- * The thing it opens is a **keyword ref**, because the standing rule is that a
- * named thing in a clause is one; a reader who has just been told that a
- * charter opens a study is one press from the node that study is on. What it
- * does *not* say is that the technology is free: it is not, and the sentence
- * says so, because that is exactly the misreading the design doc warns about
- * (*"it grants neither a free technology nor a free building"*).
- *
- * **It names only what the book has a page for.** A mark to a page the book
- * does not have is a dead link, which the keyword sweep refuses. So a target
- * with no table row (a retired charter's technology that the tree never held)
- * is not named here. Every technology row has a page since Scientific batch
- * S12, the charter technologies included, so a live charter's technology is
- * always named.
- */
-function charterClause(def: ReturnType<typeof orderDef>): CompendiumClause[] {
-  const spec = def.charter;
-  if (spec === undefined) return [];
-  const opened: string[] = [];
-  const tech = spec.unlocks.tech;
-  if (tech !== undefined && isTechId(tech)) opened.push(techRef(tech));
-  const building = spec.unlocks.building;
-  if (building !== undefined && BUILDING_IDS.includes(building)) {
-    opened.push(ref('building', building, buildingDef(building).name));
-  }
-  for (const rite of spec.unlocks.rites ?? []) {
-    if (RITE_IDS.includes(rite)) opened.push(ref('rite', rite, riteDef(rite).name));
-  }
-  const work = spec.unlocks.improvement;
-  if (work !== undefined) opened.push(ref('improvement', work, improvementDef(work).name));
-  const unit = spec.unlocks.unit;
-  if (unit !== undefined && UNIT_TYPE_IDS.includes(unit)) {
-    opened.push(ref('unit', unit, unitDef(unit).name));
-  }
-  const named =
-    opened.length === 0 ? '' : ` It opens ${opened.join(', ')}, which still costs what it costs.`;
-  return [
-    {
-      text: `A charter: taking it is the whole of it. It never sits in a chair, and it can never be turned out of one.${named}`,
-      note: true,
-    },
-  ];
-}
-
-/**
  * **Why a card a reader can read is a card they cannot draw**, or nothing.
  *
  * Two different silences, and a shelf that ran them together would be telling
@@ -2324,11 +2273,16 @@ function orderEntry(id: OrderId): CompendiumEntry {
       // are. The mark and the word the dealt card wears, off one table.
       ...row('Rarity', rarityFigure(def.rarity)),
       ...lineRow(def),
+      // **A Scaler's value before its first gain** (batch DS8): the figure its
+      // face shows on the draft, in place of a sentence about where it starts.
+      ...row(SCALER_LABEL, scalerStartFace(id)?.figure ?? ''),
     ],
-    // Why it is not dealt first, then what it does, then what a charter is: the
-    // standing of the card before its rules, because a reader who does not know
-    // the card is out of the deck reads every clause under it as a promise.
-    clauses: [...orderStanding(def), ...cardClauses(id, def.note), ...charterClause(def)],
+    // Why it is not dealt first, then what it does: the standing of the card
+    // before its rules, because a reader who does not know the card is out of
+    // the deck reads every clause under it as a promise. A charter's rule, that
+    // it takes no chair, is its keyword's since batch DS8: the keyword is the
+    // card's first clause, and the keyword's own page says the rule.
+    clauses: [...orderStanding(def), ...cardClauses(id, def.note)],
     flavor: def.flavor.length === 0 ? null : def.flavor,
   };
 }

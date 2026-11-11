@@ -319,8 +319,10 @@ describe('Devotion batch DV1: the commissions', () => {
     convert(state, quiet, religion);
     expect(townPays(state, quiet, 'theGreatCommission', 'culture')).toBe(3);
     // Batch DV2 gave the scope its word, "devout" (feature E).
+    // Batch DS8: the Commission keyword says that a lasting reward lasts.
     expect(words('theGreatCommission')[1]).toBe(
-      'Reward: for the rest of the game, +3 culture, +3 faith in every devout city',
+      "Goal: have at least 51% of the world's cities follow your religion. " +
+        'Reward: +3 culture, +3 faith in every devout city',
     );
   });
 });
@@ -751,16 +753,16 @@ describe('Devotion batch DV2: the shared cards', () => {
   });
 
   it('prints The Schoolmen’s Charter’s gift: the Cathedral School and what it pays', () => {
+    // Batch DS8: the Charter keyword first, then what the charter opens.
     const said = words('theSchoolmensCharter');
-    expect(said[0]).toBe(
-      'once drafted, opens Scholasticism for you to research; only an empire holding this charter may research it; this card takes no chair',
-    );
-    expect(said[1]).toBe(
+    expect(said[0]).toBe('Charter');
+    expect(said[1]).toBe('opens Scholasticism for you to research');
+    expect(said[2]).toBe(
       'once you know Scholasticism, you may build the Cathedral School: ' +
         '+2 science per building in this city that supplies faith; ' +
         '+2 science per building in this city that supplies faith, while it is keeping a rite',
     );
-    expect(said).toHaveLength(2);
+    expect(said).toHaveLength(3);
   });
 });
 

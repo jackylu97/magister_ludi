@@ -218,14 +218,15 @@ describe('the moments a growing card may now count', () => {
 
   it('says what each of them counts, in a first-time player’s words', () => {
     const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
+    // Batch DS8: both are Scalers. The starting value (+3 science, +3 culture
+    // on The War Chronicle) is the figure on the face, not a sentence.
     expect(said('theWarChronicle')).toEqual([
-      '+3 science, +3 culture to the empire',
-      '+3 science per enemy unit you have killed, counted while this Order is seated',
-      '+3 culture per enemy unit you have killed, counted while this Order is seated',
+      'Scaler',
+      'Gains +3 science and +3 culture each time you kill an enemy unit',
     ]);
     expect(said('dominionTheMusterRolls')).toEqual([
-      '+1 science per unit you have trained, counted while this Order is seated',
-      '+1 culture per unit you have trained, counted while this Order is seated',
+      'Scaler',
+      'Gains +1 science and +1 culture each time you train a unit',
     ]);
   });
 });

@@ -83,7 +83,9 @@ import {
   type OnDraftWindfall,
   type OrderBeadOccasion,
   type OrderId,
+  type OrderKeyword,
   type RateSource,
+  type ScalerPart,
   type ChairType,
   type TallyOccasion,
   type TileCondition,
@@ -93,7 +95,10 @@ import {
   STATECRAFT,
   isOrderId,
   orderDef,
+  orderKeyword,
+  scalerShape,
   type RenownShareRows,
+  type CardCombatLineEffect,
 } from '../statecraftData';
 // Type-only: the route's medium, from the leaf that owns the word, so the card
 // face and the gate cannot end up spelling it differently.
@@ -133,6 +138,12 @@ export interface CardClause {
   text: string;
   /** True for a clause this build does not implement. Printed struck through. */
   deferred?: boolean;
+  /**
+   * Set on the one clause that is a card's keyword (batch DS8): its text is the
+   * keyword's mark, `[[concept:scaler|Scaler]]`. `describeCard` puts it first.
+   * A surface may style it apart; it still prints through the one renderer.
+   */
+  keyword?: OrderKeyword;
 }
 
 /**
@@ -747,10 +758,22 @@ function collapseClauses(clauses: readonly CardClause[]): CardClause[] {
  */
 export function describeCard(id: CardId): CardClause[] {
   const def: CardDefBase = anyCardDef(id);
+  // **The keyword** (batch DS8), read off the row's data. It is printed as the
+  // card's first clause, and its tooltip carries the standing rule, so the
+  // sentences below no longer repeat it.
+  const keyword = isOrderId(id) ? orderKeyword(id) : null;
+  // **A Scaler's counted lines and their starting values are one sentence**:
+  // "Gains +1 science and +1 culture each time you gain a military unit". The
+  // starting value is not said; the figure on the card face shows it. Every
+  // other row of the card keeps its own words.
+  const scaler = keyword === 'scaler' ? scalerShape(def.effects) : null;
+  const effects =
+    scaler === null ? def.effects : def.effects.filter((_, at) => !scaler.rows.includes(at));
   // **The class becomes a word here, and only here** (batch L1): every clause
   // below is worded against the subject the card's own class reads it against.
   // See `ClauseSubject`.
-  const clauses: CardClause[] = describeEffects(def.effects, subjectOfCard(id));
+  const clauses: CardClause[] = describeEffects(effects, subjectOfCard(id));
+  if (scaler !== null && scaler.parts.length > 0) clauses.unshift({ text: scalerWords(scaler.parts) });
   // **A technology's line traits** (Scientific batch S1) are not in `effects`,
   // and they are the whole of what Casting or Mechanics gives, so they are
   // printed here: one clause naming the trait and its line, then the trait's
@@ -795,16 +818,12 @@ export function describeCard(id: CardId): CardClause[] {
     // **What drafting hands over** (Dominion batch D5): The Sword of State's
     // unit and The Cleruchy's settler, in a building grant's own words. The
     // unit grant's sentence ends "joins you", so the place is added after it.
-    // A card with no effects says so, because it still takes a chair.
+    // A Boon (batch DS8) leads with "On draft:", and its keyword says that it
+    // pays once and takes no chair. A card that also has effects keeps the
+    // older lead, "when drafted".
     const drafted = orderDef(id).onDraft ?? [];
-    const said = onDraftClauses(drafted);
-    said.forEach((text, index) => {
-      const idle =
-        index === said.length - 1 && orderDef(id).effects.length === 0
-          ? '; seated, this card does nothing'
-          : '';
-      clauses.push({ text: `${text}${idle}` });
-    });
+    const lead = keyword === 'boon' ? 'On draft: ' : 'when drafted, ';
+    for (const text of onDraftClauses(drafted, lead)) clauses.push({ text });
     for (const grant of orderDef(id).onSlot ?? []) {
       if (grant.grant === 'greatPerson') {
         clauses.push({
@@ -825,12 +844,14 @@ export function describeCard(id: CardId): CardClause[] {
       clauses.push({ text: `not dealt to an empire that knows ${ref('tech', known, techDef(known).name)}` });
     }
     // **A charter that opens an improvement** (the Expansionist tended works):
-    // the grant is the whole card, so it is printed as its clause.
+    // the grant is the whole card, so it is printed as its clause. The keyword
+    // says that drafting it is what opens the work and that it takes no chair
+    // (batch DS8), so the clause says only what it opens.
     const work = orderDef(id).charter?.unlocks.improvement;
     if (work !== undefined) {
       const name = improvementDef(work).name;
       clauses.push({
-        text: `once drafted, opens the ${ref('improvement', work, name)} for your workers to build; this card takes no chair`,
+        text: `opens the ${ref('improvement', work, name)} for your workers to build`,
       });
       // **A row that marks an improved hex** (Expansionist batch E9, The
       // Burning Season): what the build does where a work already stands,
@@ -861,7 +882,7 @@ export function describeCard(id: CardId): CardClause[] {
     for (const rite of orderDef(id).charter?.unlocks.rites ?? []) {
       const row = riteDef(rite);
       clauses.push({
-        text: `once drafted, your cities may keep ${ref('rite', rite, row.name)}${row.text ? `: ${row.text.charAt(0).toLowerCase()}${row.text.slice(1).replace(/\.$/, '')}` : ''}`,
+        text: `your cities may keep ${ref('rite', rite, row.name)}${row.text ? `: ${row.text.charAt(0).toLowerCase()}${row.text.slice(1).replace(/\.$/, '')}` : ''}`,
       });
     }
     // **A charter that opens a building or a unit** (batch Z3): the grant is
@@ -900,17 +921,143 @@ export function describeCard(id: CardId): CardClause[] {
   for (const missing of def.deferred ?? []) {
     clauses.push({ text: `${missing} — not built yet`, deferred: true });
   }
+  if (keyword !== null) clauses.unshift({ text: keywordMark(keyword), keyword });
   return clauses;
 }
+
+/**
+ * **The four keywords in words** (batch DS8): the name the card face prints.
+ * Each is a mark on the Compendium's Concepts page of the same id, whose first
+ * paragraph is the rule the keyword's tooltip shows.
+ */
+export const ORDER_KEYWORD_WORDS: Readonly<Record<OrderKeyword, string>> = {
+  commission: 'Commission',
+  charter: 'Charter',
+  scaler: 'Scaler',
+  boon: 'Boon',
+};
+
+/** A keyword as the mark a card prints: `[[concept:scaler|Scaler]]`. */
+export function keywordMark(keyword: OrderKeyword): string {
+  return ref('concept', keyword, ORDER_KEYWORD_WORDS[keyword]);
+}
+
+/**
+ * **What a Scaler gains, and when** (batch DS8): "Gains +1 science and +1
+ * culture each time you gain a military unit". One sentence for every counted
+ * line of the card. A real cap stays in the sentence ("up to +15 each"). The
+ * starting value is not said, because the card face shows it as the figure.
+ *
+ * The parts share one moment on every live row. A card whose parts watched two
+ * moments would print one sentence for each.
+ */
+function scalerWords(parts: readonly ScalerPart[]): string {
+  const groups: ScalerPart[][] = [];
+  for (const part of parts) {
+    const group = groups.find((one) => sameScalerMoment(one[0]!.line, part.line));
+    if (group === undefined) groups.push([part]);
+    else group.push(part);
+  }
+  return groups.map(scalerGroupWords).join('; ');
+}
+
+/** Do two counted lines watch the same moment, by the same step? */
+function sameScalerMoment(a: CardPaysEffect, b: CardPaysEffect): boolean {
+  return a.tally === b.tally && a.per === b.per && a.minTreasury === b.minTreasury;
+}
+
+function scalerGroupWords(parts: readonly ScalerPart[]): string {
+  const head = parts[0]!.line;
+  // The gains in one place share the place's words: "+1 culture and +1
+  // production in your capital". A gain with a place comes before a gain with
+  // none, so "in your capital" cannot be read as true of both.
+  const places: { where: string; payouts: string[] }[] = [];
+  for (const part of parts) {
+    const where = countPlace(part.line, 'empire').paidIn;
+    const place = places.find((one) => one.where === where);
+    if (place === undefined) places.push({ where, payouts: [payoutWords(part.line)] });
+    else place.payouts.push(payoutWords(part.line));
+  }
+  places.sort((a, b) => Number(a.where === '') - Number(b.where === ''));
+  const gains = places.map((place) => `${listWords(place.payouts)}${place.where}`);
+  // The cap is on the count (`helpings`), so it is said as the gain it works
+  // out to: "up to +15 science", or "up to +15 each" when every part stops at
+  // the same figure.
+  const capped = parts.filter((part) => part.line.max !== undefined);
+  const figures = capped.map((part) => (part.line.amount ?? 0) * (part.line.max ?? 0));
+  let cap = '';
+  if (capped.length > 1 && capped.length === parts.length && figures.every((one) => one === figures[0])) {
+    cap = `, up to ${signed(figures[0]!)} each`;
+  } else if (capped.length > 0) {
+    cap = `, up to ${listWords(capped.map((part) => payoutWords(part.line, part.line.max ?? 0)))}`;
+  }
+  return `Gains ${listWords(gains)} ${scalerMomentWords(head)}${cap}`;
+}
+
+/**
+ * The moment a Scaler gains on, after "Gains +1 science": "each time you gain a
+ * military unit". A moment that is an amount rather than an event (gold spent,
+ * production put into wonders), or a step of more than one, reads "for every":
+ * "for every 400 gold you have spent buying".
+ */
+function scalerMomentWords(line: CardPaysEffect): string {
+  const tally = line.tally;
+  if (tally === undefined) return '';
+  const per = line.per ?? 1;
+  const moment = SCALER_MOMENT_WORDS[tally];
+  if (moment === null || per > 1) return `for every ${countWords(per, TALLY_WORDS[tally])}`;
+  if (tally === 'treasuryHeld' && line.minTreasury !== undefined) {
+    return `each time ${moment} with at least ${line.minTreasury} gold in your treasury`;
+  }
+  return `each time ${moment}`;
+}
+
+/**
+ * **Each moment a Scaler can watch, as the clause after "each time"** (batch
+ * DS8). In the present tense, because the card gains at the moment. Null for a
+ * moment that is an amount and not an event, which reads "for every" instead
+ * (`scalerMomentWords`). The table is total over `TallyOccasion`, so a new
+ * moment cannot reach a card face without words.
+ */
+const SCALER_MOMENT_WORDS: Readonly<Record<TallyOccasion, string | null>> = {
+  barbarianKill: 'you kill a barbarian unit',
+  wonderAnywhere: 'a wonder is finished anywhere in the world',
+  greatPersonSpent: 'you spend a great person',
+  unitLost: 'one of your units dies in battle',
+  goldSpent: null,
+  unitKilled: 'you kill an enemy unit',
+  unitTrained: 'you train a unit',
+  campCleared: 'you clear a barbarian camp',
+  cityCaptured: 'you capture a city',
+  wonderOrCapitalCaptured: 'you capture a city that holds a wonder or was a capital',
+  hexClaimed: 'you claim a hex by an outpost, a cleared camp or buying',
+  buildingBoughtWithGold: 'you buy a building with gold',
+  riteStarted: 'one of your cities starts a rite',
+  foreignCityConverted: 'you convert a foreign city to your religion',
+  rankEarned: 'one of your units earns a rank',
+  hexPillaged: 'you pillage a hex',
+  unitGained: 'you gain a unit',
+  militaryGained: 'you gain a military unit',
+  warEnded: 'you end a war',
+  sizeRecord: 'one of your cities grows past its largest size',
+  publicWorkCompleted: 'you finish a public work',
+  techCompleted: 'you complete a technology',
+  charterTechCompleted: 'you complete a charter technology',
+  treasuryHeld: 'you end a turn',
+  wonderCompleted: 'you complete a wonder',
+  wonderProduction: null,
+};
 
 /**
  * **What a technology charter's card says** (Scientific batches S1 and S4):
  * the research it opens, then everything knowing the technology gives.
  *
- * Reading 20 lets two seats draft the same charter, so the clause says "only
- * an empire holding this charter", not "only you". Each gift is led by "once
- * you know", because a charter takes no chair and gives nothing until the
- * research is done. The gifts come in this order:
+ * The first clause says only what the charter opens. Since batch DS8 the
+ * Charter keyword carries the rule that drafting it is the whole of it, and
+ * the technology's own Compendium page says that only an empire holding the
+ * charter may research it. Each gift is led by "once you know", because a
+ * charter gives nothing until the research is done. The gifts come in this
+ * order:
  *
  *   - the line traits (`describeTrait`, batch S1);
  *   - each building the technology names in its `unlocks`, in the building's
@@ -932,7 +1079,7 @@ function charterTechClauses(tech: TechId): CardClause[] {
   const known = `once you know ${name}, `;
   const clauses: CardClause[] = [
     {
-      text: `once drafted, opens ${name} for you to research; only an empire holding this charter may research it; this card takes no chair`,
+      text: `opens ${name} for you to research`,
     },
   ];
   for (const trait of def.traits ?? []) {
@@ -1343,7 +1490,7 @@ function charterBuildingClause(building: BuildingId): CardClause {
   const skip = bought ? boughtNotBuiltWords(building) : null;
   const does = liveWords(describeBuildingRow(building).filter((clause) => clause.text !== skip));
   return {
-    text: `once drafted, ${lead}${does === '' ? '' : `: ${does}`}; this card takes no chair`,
+    text: `${lead}${does === '' ? '' : `: ${does}`}`,
   };
 }
 
@@ -1382,7 +1529,7 @@ function charterUnitClause(unit: UnitTypeId): CardClause {
       ? ''
       : `${where === '' ? '' : ','} when you know ${ref('tech', gate, techDef(gate).name)} or any technology as far along the tree`;
   return {
-    text: `once drafted, you may ${verb} the ${ref('unit', unit, row.name)}${bank}${where}${when}; this card takes no chair`,
+    text: `you may ${verb} the ${ref('unit', unit, row.name)}${bank}${where}${when}`,
   };
 }
 
@@ -1994,8 +2141,9 @@ function describeEffect(
       // flat "+3 combat strength" until the horses were printed.
       const against = effect.vsClass === undefined ? '' : ` against ${filterWords(effect.vsClass)}`;
       // A condition that takes an argument prints its own argument — see
-      // `combatWhenWords`, the one place a condition is put into words.
-      const when = combatWhenWords(effect.when);
+      // `combatWhenWords`, the one place a condition is put into words. The
+      // side of the fight is said with it (batch DS8): "when defending".
+      const when = combatSideWords(effect.side, effect.when);
       out.push({
         text: `${each} combat strength${who}${against}${scale} ${when}`.trim(),
       });
@@ -3998,17 +4146,20 @@ export function grantWords(grant: CompletionGrant, when = 'on completion'): stri
     const name = buildingDef(grant.building).name;
     return `${when}, ${indefinite(name)} ${ref('building', grant.building, name)} is raised here as well`;
   }
-  const what =
-    grant.unit === 'bestMelee'
-      ? 'the best melee unit you can build'
-      : `${indefinite(unitDef(grant.unit).name)} ${ref('unit', grant.unit, unitDef(grant.unit).name)}`;
-  return `${when}, ${what} joins you`;
+  return `${when}, ${grantedUnitWords(grant.unit)} joins you`;
+}
+
+/** The unit a grant raises, as a noun: "a Trader", "the best melee unit you can build". */
+function grantedUnitWords(unit: Extract<CompletionGrant, { grant: 'unit' }>['unit']): string {
+  return unit === 'bestMelee'
+    ? 'the best melee unit you can build'
+    : `${indefinite(unitDef(unit).name)} ${ref('unit', unit, unitDef(unit).name)}`;
 }
 
 /**
  * **What drafting an Order hands over, in words** (`OrderDef.onDraft`), one
- * clause each, in the row's order and without the closing "seated, this card
- * does nothing", which the caller adds to the last clause.
+ * clause each, in the row's order. Each clause starts with `lead`: "On draft: "
+ * on a Boon (batch DS8), "when drafted, " on any other card.
  *
  *   · a unit, in a building grant's own words, in the capital (Dominion batch
  *     D5);
@@ -4027,7 +4178,7 @@ export function grantWords(grant: CompletionGrant, when = 'on completion'): stri
  *     hold, each hex carrying a great person's work in your borders and each
  *     Order you hold".
  */
-function onDraftClauses(grants: readonly OnDraftGrant[]): string[] {
+function onDraftClauses(grants: readonly OnDraftGrant[], lead: string): string[] {
   const out: string[] = [];
   let run: OnDraftWindfall[] = [];
   // The run waiting to be said: its yields, and the counts that pay them.
@@ -4039,7 +4190,7 @@ function onDraftClauses(grants: readonly OnDraftGrant[]): string[] {
       counts.length === 0
         ? ''
         : ` for each ${counts.length === 1 ? counts[0]! : `${counts.slice(0, -1).join(', each ')} and each ${counts[counts.length - 1]!}`}`;
-    out.push(`when drafted, ${held.list}${each}`);
+    out.push(`${lead}${held.list}${each}`);
     held = null;
   };
   const flush = (): void => {
@@ -4070,14 +4221,14 @@ function onDraftClauses(grants: readonly OnDraftGrant[]): string[] {
     switch (grant.grant) {
       case 'greatPerson': {
         const who = grant.family === undefined ? 'a great person' : `a great ${grant.family}`;
-        out.push(`when drafted, you gain ${who} to call`);
+        out.push(`${lead}you gain ${who} to call`);
         break;
       }
       case 'foreignCard':
-        out.push('when drafted, a random Order of your tier from a deck you do not hold joins your collection');
+        out.push(`${lead}a random Order of your tier from a deck you do not hold joins your collection`);
         break;
       case 'unit':
-        out.push(`${grantWords(grant, 'when drafted')} in your capital`);
+        out.push(`${lead}${grantedUnitWords(grant.unit)} joins you in your capital`);
         break;
       default: {
         const unhandled: never = grant;
@@ -6061,6 +6212,29 @@ export function combatWhenWords(when: CombatCondition): string {
     default:
       return COMBAT_WORDS[when.test];
   }
+}
+
+/**
+ * **A strength line's condition with the side of the fight it pays** (batch
+ * DS8). A line for one side said nothing about it, so The Siege Train read
+ * "+5 combat strength for siege units" when it pays only on defence.
+ *
+ *   - `both`: the condition alone;
+ *   - `defend`: "when defending", then the condition: "when defending on hills";
+ *   - `attack`: "when attacking". A condition that names the target
+ *     ("against cities") becomes the attack's object ("when attacking cities").
+ *     A condition that already says "when attacking" is left alone.
+ *
+ * Exported for the luxuries' own describer (`resourceEffects.ts`), so a
+ * resource and a card say a side the same way.
+ */
+export function combatSideWords(side: CardCombatLineEffect['side'], when: CombatCondition): string {
+  const words = combatWhenWords(when);
+  if (side === 'both') return words;
+  if (side === 'defend') return words === '' ? 'when defending' : `when defending ${words}`;
+  if (words.startsWith('when attacking')) return words;
+  if (words.startsWith('against ')) return `when attacking ${words.slice('against '.length)}`;
+  return words === '' ? 'when attacking' : `when attacking ${words}`;
 }
 
 const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
@@ -8130,11 +8304,14 @@ export function commissionRewardWords(reward: CommissionReward, towns = 1, markS
       `a free ${ref('building', reward.building, name)} in ${one ? 'that city' : 'the last of those cities'}`,
     );
   }
+  // A lasting reward is said without "for the rest of the game" since batch
+  // DS8: the Commission keyword says that a lasting reward lasts. A timed
+  // reward keeps its turns (above).
   if (reward.wildcardChairs !== undefined && reward.wildcardChairs > 0) {
     out.push(
       reward.wildcardChairs === 1
-        ? 'one more Wildcard chair for the rest of the game'
-        : `${reward.wildcardChairs} more Wildcard chairs for the rest of the game`,
+        ? 'one more Wildcard chair'
+        : `${reward.wildcardChairs} more Wildcard chairs`,
     );
   }
   // Expansionist batch E5, The Heartland: the town is marked, and what the
@@ -8145,12 +8322,12 @@ export function commissionRewardWords(reward: CommissionReward, towns = 1, markS
     const said = describeEffects(reward.lasting, 'empire').map((clause) => clause.text);
     const card = lastingMarkOf(reward.lasting);
     if (card === undefined) {
-      out.push(`for the rest of the game, ${said.join(' and ')}`);
+      out.push(said.join(' and '));
     } else {
       // Every line pays only in the marked town, so the town is named once:
-      // "for the rest of the game, that city gains +25% culture, +25% science
-      // and +25% production" (Commission: The Ideal City). A line that is not
-      // a yield in the town keeps its own sentence, with the town named in it.
+      // "that city gains +25% culture, +25% science and +25% production"
+      // (Commission: The Ideal City). A line that is not a yield in the town
+      // keeps its own sentence, with the town named in it.
       const mark = ref('order', card, orderDef(card).name);
       const tail = ` in every city marked by ${mark}`;
       const gains: string[] = [];
@@ -8160,7 +8337,7 @@ export function commissionRewardWords(reward: CommissionReward, towns = 1, markS
         else rest.push(text.split(`a city marked by ${mark}`).join(marked).split(`every city marked by ${mark}`).join(marked));
       }
       if (gains.length > 0) rest.push(`${marked} gains ${listWords(gains)}`);
-      out.push(`for the rest of the game, ${rest.join(', and ')}`);
+      out.push(rest.join(', and '));
     }
   }
   // Commerce batch T4, The World's Fair.
@@ -8180,9 +8357,13 @@ export function commissionRewardWords(reward: CommissionReward, towns = 1, markS
 }
 
 /**
- * A commission's three clauses: the goal, the reward, and what happens to the
- * card. Printed by `describeCard`, so the collection, the draft and the
- * Compendium all say the same words.
+ * A commission's clause: "Goal: … Reward: …". Printed by `describeCard`, so
+ * the collection, the draft and the Compendium all say the same words.
+ *
+ * Since batch DS8 the Commission keyword carries the standing rules: the goal
+ * counts only while the card is seated, the reward is paid once, and then the
+ * card leaves its chair for good. So the clause says the goal and the reward
+ * and nothing else.
  */
 export function describeCommission(spec: CommissionSpec): CardClause[] {
   const goal = spec.goals.map(commissionGoalWords).join(' and ');
@@ -8192,9 +8373,5 @@ export function describeCommission(spec: CommissionSpec): CardClause[] {
   // A lasting line paid only in the marked town names that town itself.
   const markSaid = spec.reward.some((line) => lastingMarkOf(line.lasting) !== undefined);
   const reward = spec.reward.flatMap((line) => commissionRewardWords(line, towns, markSaid)).join(', and ');
-  return [
-    { text: `Commission. Goal: ${goal}, while this card is seated` },
-    { text: `Reward: ${reward}` },
-    { text: 'then this card leaves its chair and is never seated again' },
-  ];
+  return [{ text: `Goal: ${goal}. Reward: ${reward}` }];
 }

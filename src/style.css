@@ -4014,6 +4014,32 @@ kbd {
   opacity: 0.6;
 }
 
+/* --- a Scaler's current value on a card face -------------------------------
+   `src/ui/scalerFigure.ts` (batch DS8). What the card gives now, in tabular
+   mono, ruled off like a commission's counter. Shared by the collection, the
+   draft hand and the Compendium's figures. */
+.scaler-figure {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin: 6px 0 0;
+  padding-top: 6px;
+  border-top: 1px dashed var(--rule);
+  color: var(--ink);
+  font-size: 11.5px;
+}
+
+.scaler-label {
+  font-weight: 600;
+}
+
+.scaler-value {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+}
+
 /* The card the commission chip opened the sheet at, marked for the moment. */
 .sc-card-focus {
   outline: 3px solid var(--line-ink, var(--vermilion));
@@ -11045,7 +11071,8 @@ p.city-trade-link {
 }
 
 .suit-hand .card-stamp,
-.suit-hand .goal-counter {
+.suit-hand .goal-counter,
+.suit-hand .scaler-figure {
   margin-top: 0.4em;
 }
 
@@ -15236,13 +15263,13 @@ button.faith-rite-chip:hover:not(.is-on) {
   margin: 3px 0 1px;
 }
 
-/* The charter's chip carries a sentence rather than a word, because the word on
-   its own means nothing to a first-time player — so it is allowed to wrap and
-   sets in the same sepia the grant is written in. */
-.offer-badge[data-tone='charter'] {
-  --badge-ink: var(--deck-charter);
-  letter-spacing: 0.06em;
-  white-space: normal;
+/* The charter's chip went in batch DS8: the card's keyword (Commission,
+   Charter, Scaler or Boon) is its first clause now, with a tooltip. In a
+   clause list it is set in small capitals so it reads as a label for the rules
+   under it. */
+.sc-clause.is-keyword {
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
 }
 
 /* --- an offer card's clause list and its footnote ------------------------

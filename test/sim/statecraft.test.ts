@@ -108,6 +108,7 @@ import {
   describeBuildingRow,
   describeCard,
   describeEffects,
+  keywordMark,
   draftCost,
   drawDoctrineOffer,
   drawOrderOffer,
@@ -158,9 +159,11 @@ import {
   governmentDef,
   governmentsAtTier,
   orderDef,
+  orderKeyword,
   poolDoctrines,
   poolOfGovernment,
   poolOrders,
+  scalerShape,
   slotLayout,
 } from "../../src/sim/statecraftData";
 // The decks rework's readings (D1a), beside the table they read.
@@ -2307,7 +2310,7 @@ describe("determinism", () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(237);
+    expect(SCHEMA_VERSION).toBe(238);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -3002,8 +3005,19 @@ describe("a card is what it prints", () => {
     expect(describeCard.length).toBe(1);
     for (const id of ORDER_IDS) {
       const said = describeCard(id);
-      const printed = describeEffects(orderDef(id).effects);
-      expect(said.slice(0, printed.length), id).toEqual(printed);
+      // Batch DS8: a card with a keyword prints the keyword first, and a
+      // Scaler's counted lines are one sentence after it (`scalerShape`).
+      // Every other row reads in the vocabulary's own words, as before.
+      const keyword = orderKeyword(id);
+      if (keyword !== null) expect(said[0], id).toEqual({ text: keywordMark(keyword), keyword });
+      const shape = keyword === "scaler" ? scalerShape(orderDef(id).effects) : null;
+      const effects =
+        shape === null
+          ? orderDef(id).effects
+          : orderDef(id).effects.filter((_, at) => !shape.rows.includes(at));
+      const body = said.slice((keyword === null ? 0 : 1) + (shape === null ? 0 : 1));
+      const printed = describeEffects(effects);
+      expect(body.slice(0, printed.length), id).toEqual(printed);
     }
   });
 
@@ -4818,8 +4832,9 @@ describe("the Orders pass of 2026-08-29", () => {
     expect(said("theMusterRoll")).toEqual([
       "newly created units gain +10 maximum health",
     ]);
+    // Batch DS8 says the side of the fight: the line pays on defence.
     expect(said("hillForts")).toEqual([
-      "+4 combat strength on hills",
+      "+4 combat strength when defending on hills",
       "the authority a city on hills costs falls by 1",
     ]);
     expect(said("thePilgrimsPurse")).toEqual([

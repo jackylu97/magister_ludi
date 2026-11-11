@@ -9,6 +9,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
   - **Held:** Letters of Credit and The Strongbox keep their old text and effect until you rule. Letters of Credit's new text ("Your treasury may fall to −150 with no penalty") is not what the card does: a treasury below zero still costs a quarter of your science and culture, and the game has no rule that lifts that cost above a floor. The Strongbox's new text ("Gains +1 science and +1 culture each time you buy something with gold, up to +15") needs a moment the game does not count: one purchase with gold, of any kind. The game counts the gold spent, and the buildings bought, but not each purchase.
   - **Readings taken:** "the gold you make each turn" (The Nest Egg, Bills of Exchange, Money at Work) is the gold income after upkeep, without the gold that cards pay to the empire as a whole. The Monopoly counts a luxury you hold, deals included, that no other empire holds. The Capitulations' loan now pays as one copy does. The Merchant Works pays a town building a wonder, and no longer a town building an empire building or the Magnum Opus. The Scholars' Roads was marked reword, but its new text has a different number and drops a clause, so it now costs 2 routes (was 4) and lost its +2 science and +2 culture on each route. Salt Tithes keeps its count of each different luxury you hold, deals included.
   - **Shapes removed:** a route row that paid the town its caravan reached (The Common Road and The Exchange were the only two), and the "building an empire building" narrowing on a town that is building something (The Merchant Works).
+- **Batch DS8** (2026-11-11, the same spec) put the four keywords on the card face: Commission, Charter, Scaler and Boon. The game reads each from the card's data (`orderKeyword`), prints it as the card's first clause, and shows its rule in a tooltip. So no text below starts with "Charter." or "Boon." any more.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -63,7 +64,7 @@ Without the charters, the deck holds 68 cards that take a chair: 10, 12, 19, 16 
 | **The Pathfinders' Company** | uncommon | implemented | Scouts gain +1 sight and +1 movement. | Military |
 | **The Nest Egg** | common | implemented | Your capital gains +1 culture for every 4 gold you make each turn. | Civic |
 | **The Pack Trail** | common | implemented | Your trade routes give +2 gold. | Economic |
-| **The First Caravan** | common | implemented | Boon. On draft: gain a caravan. | Economic |
+| **The First Caravan** | common | implemented | On draft: gain a caravan. | Economic |
 
 ## Tier I
 
@@ -79,7 +80,7 @@ Without the charters, the deck holds 68 cards that take a chair: 10, 12, 19, 16 
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Planters' Charter** | uncommon | implemented | Charter. Unlocks the Plantation House, a building you buy with gold. | Economic |
+| **The Planters' Charter** | uncommon | implemented | Unlocks the Plantation House, a building you buy with gold. | Economic |
 | **Civic Receipts** | uncommon | implemented | Buying a building grants culture equal to 15% of the gold paid. | Civic |
 | **Private Patronage** | rare | implemented | Towns gain +25% gold. | Economic |
 | **Financed Industry** | rare | implemented | Towns gain production equal to 20% of their gold. | Economic |
@@ -108,7 +109,7 @@ Without the charters, the deck holds 68 cards that take a chair: 10, 12, 19, 16 
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **Numidian Cavalry** | uncommon | implemented | Charter. Unlocks Numidian Cavalry: a Horseman with +1 strength for each luxury you hold. | Military |
+| **Numidian Cavalry** | uncommon | implemented | Unlocks Numidian Cavalry: a Horseman with +1 strength for each luxury you hold. | Military |
 | **Names in Stone** | uncommon | implemented | +1% science and culture for every 200 gold you have spent buying this game, at most +30%. | Civic |
 | **Foreign Procurement** | uncommon | implemented | You may buy units without their strategic resource. | Military |
 | **The Carters' Guild** | common | implemented | Towns that receive a domestic trade route build buildings 25% faster. | Economic |
@@ -177,7 +178,7 @@ Without the charters, the deck holds 68 cards that take a chair: 10, 12, 19, 16 
 |---|---|---|---|---|
 | **Bought and Paid For** | rare | implemented | Each town gains +4% production and culture for each building you bought there with gold, at most +24%. | Civic |
 | **The Merchant Works** | rare | implemented | Towns building a wonder gain production equal to 25% of their gold. | Economic |
-| **The Great Loan** | rare | modify: as built | Boon. On draft: gain twenty turns of gold income. Your towns make 25% less gold for forty turns. | Wildcard |
+| **The Great Loan** | rare | modify: as built | On draft: gain twenty turns of gold income. Your towns make 25% less gold for forty turns. | Wildcard |
 | **The Grain Barges** | uncommon | implemented | Your domestic trade routes pay their destination +1 food and +1 production for every four citizens of their origin. | Economic |
 | **The Trade Winds** | rare | implemented | Gain +3 trade route capacity. Your trade routes reach 50% farther. | Economic |
 | **The World's Exchange** | rare | implemented | +10% production toward the Opus for each foreign empire your trade routes reach, at most +40%. | Economic |
@@ -217,7 +218,7 @@ These rows live in `data/decks/common.json`. A seat holding Commerce or the deck
 | **Letters of Marque** | rare | Dominion | III | implemented | Naval kills grant 60 gold. | Economic |
 | **Mercenary Contracts** | uncommon | Dominion | III | implemented | Military units you buy cost no upkeep for twenty turns. | Military |
 | **Professional Soldiers** | uncommon | Dominion | III | implemented | Units you purchase gain +3 combat strength. | Military |
-| **The Chartered Company** | uncommon | Dominion | III | implemented | Charter. Unlocks the Company Guard, a melee unit you buy with gold. | Military |
+| **The Chartered Company** | uncommon | Dominion | III | implemented | Unlocks the Company Guard, a melee unit you buy with gold. | Military |
 
 ## Retired rows
 
@@ -257,6 +258,6 @@ These rows stay in the data so that old saves load. They are dealt to nobody, th
   - **The triage's questions 1 to 7** (*"approved, lets begin implementation. for 1-7, go with the recommendations."*): the build uses readings 1 to 42, shares Dominion's The Standing Army with Commerce, and builds The Art Dealers (both in batch T7).
 - **Still open:**
   - **Commerce's Doctrines:** your review of 2026-11-05 closed the questions on them. All 14 are built (`docs/plans/doctrines-build-triage.md`).
-  - **Three rows play as built:** The Great Loan (built as a commission, so it pays at the end of the turn it is seated), The Silk Road Monks ("follows your religion" means a religion whose holy city you hold) and The Brokers' Redraw (no button offers the gold reroll yet, and the rule lets gold reroll any hand that faith may, not only an Order hand). Batch DS4 gave The Planters' Charter, Numidian Cavalry, The Exchange and The Monopoly texts that say what the game does.
+  - **Three rows play as built:** The Great Loan (built as a commission, so it pays at the end of the turn it is seated, and since batch DS8 its card carries the Commission keyword, which is what its data is; a real Boon needs an on-draft grant of turns of income and a timed loss on the player, which the game does not have), The Silk Road Monks ("follows your religion" means a religion whose holy city you hold) and The Brokers' Redraw (no button offers the gold reroll yet, and the rule lets gold reroll any hand that faith may, not only an Order hand). Batch DS4 gave The Planters' Charter, Numidian Cavalry, The Exchange and The Monopoly texts that say what the game does.
   - **The Merchant Works** names a wonder only since batch DS4, by its new text.
   - **The cards shared with Devotion and Magisterial** keep their built text and this sheet's types until those decks' passes. Travelling Players took the Magisterial pass's text in Magisterial batch MG4.

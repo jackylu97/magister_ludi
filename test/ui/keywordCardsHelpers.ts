@@ -395,6 +395,8 @@ export interface FakeDocument extends FakeTarget {
   readonly documentElement: FakeNode;
   readonly body: FakeNode;
   activeElement: FakeNode | null;
+  /** The connected element with this id, or null (batch DS8: a control's `aria-describedby`). */
+  getElementById(id: string): FakeNode | null;
   createElement(tag: string): FakeNode;
   createTextNode(text: string): FakeNode;
   createDocumentFragment(): FakeNode;
@@ -427,6 +429,8 @@ export class FakeDom {
       documentElement: html,
       body,
       activeElement: body,
+      getElementById: (id: string): FakeNode | null =>
+        id === '' ? null : (html.querySelectorAll(`[id="${id}"]`)[0] ?? null),
       createElement: (tag: string) => new FakeNode(this, 'element', tag),
       createTextNode: (text: string) => {
         const node = new FakeNode(this, 'text', '#text');

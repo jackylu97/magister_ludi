@@ -1226,15 +1226,16 @@ describe('the legacies this pass built', () => {
     // The generals' strength lines were halved by the user's hand edits to
     // `docs/great-people.md` (2026-09-14) — the words are unchanged, the
     // figures are the doc's.
+    // Batch DS8 says the side of the fight: Nzinga's lines pay on defence.
     expect(printed('nzingaOfNdongo')).toEqual([
-      '+5 combat strength in forest',
-      '+5 combat strength in jungle',
+      '+5 combat strength when defending in forest',
+      '+5 combat strength when defending in jungle',
     ]);
     expect(printed('hanXin')).toEqual([
       '+2 combat strength beside fresh water',
       '+2 combat strength on the coast',
     ]);
-    expect(printed('janZizka')).toEqual(['+5 combat strength while fortified']);
+    expect(printed('janZizka')).toEqual(['+5 combat strength when defending while fortified']);
     expect(printed('elCid')).toEqual(['+3 combat strength in a city you captured']);
     expect(printed('assurIdi')).toEqual(['+1 gold in every city but your capital']);
     expect(printed('amenhotepSonOfHapu')).toEqual([
@@ -1258,7 +1259,7 @@ describe('the legacies this pass built', () => {
       'lost the first turn your happiness goes negative',
     ]);
     expect(printed('boudica')).toEqual([
-      '+4 combat strength inside your territory',
+      '+4 combat strength when defending inside your territory',
       'lost when the age it was earned in closes',
     ]);
     expect(printed('tychoBrahe')).toEqual([

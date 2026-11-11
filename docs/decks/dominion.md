@@ -199,7 +199,7 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 | **The Barbarian Frontier** | uncommon | Expansionist | I | implemented | Clearing a barbarian camp claims its hex and the unowned hexes around it. | Economic |
 | **The Oriflamme** | uncommon | Devotion | I | implemented | Military units beside one of your religious units gain +4 strength. | Military |
 | **The Sacred Host** | rare | Devotion | I | implemented | Kills grant 15 faith. | Military |
-| **The Sword of State** | common | Magisterial | I | implemented | Boon. On draft: gain the best melee unit you can build. It costs no upkeep. | Military |
+| **The Sword of State** | common | Magisterial | I | implemented | On draft: gain the best melee unit you can build. It costs no upkeep. | Military |
 | **The Muster of the Fields** | uncommon | Expansionist | I | implemented | Towns of 5 or more citizens may spend a citizen to raise a melee unit. | Military |
 | **The Frontier Militia** | common | Expansionist | 0 | implemented | Each town you found starts with a melee unit. | Military |
 | **The Farming Garrisons** | common | Expansionist | I | implemented | Hexes with a fortified unit gain +1 food and +1 production. | Economic |
@@ -209,7 +209,7 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 | **Looted Art** | uncommon | Magisterial | II | implemented | Capturing a city grants 20 renown for each great-person work and wonder inside its borders. | Civic |
 | **The Soldier-Scholars** | uncommon | Scientific | II | implemented | Each military unit in your towns gives +2 science. | Military |
 | **Professional Soldiers** | uncommon | Commerce | III | implemented | Units you purchase gain +3 combat strength. | Military |
-| **The Chartered Company** | uncommon | Commerce | III | implemented | Charter. Unlocks the Company Guard, a melee unit you buy with gold. | Military |
+| **The Chartered Company** | uncommon | Commerce | III | implemented | Unlocks the Company Guard, a melee unit you buy with gold. | Military |
 | **Letters of Marque** | rare | Commerce | III | implemented | Naval kills grant 60 gold. | Economic |
 | **Mercenary Contracts** | uncommon | Commerce | III | implemented | Military units you buy cost no upkeep for twenty turns. | Military |
 | **The New Code** | rare | Magisterial | III | implemented | Capturing a city deals you a free Order hand, at most once every ten turns. | Wildcard |
@@ -218,6 +218,7 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 
 These rows stay in the data so that old saves load. They are dealt to nobody, they carry no type, and no table above lists them. A save that holds one keeps it, with its effects. Batch DS1 added this section. The earlier retirements are under "Open for your pass", with the pass that cut each one.
 
+- **Batch DS8** (2026-11-11, the same spec) put the four keywords on the card face: Commission, Charter, Scaler and Boon. The game reads each from the card's data (`orderKeyword`), prints it as the card's first clause, and shows its rule in a tooltip. So no text below starts with "Charter." or "Boon." any more.
 - **Retired in batch DS1** (2026-11-10, `docs/plans/deck-simplification-2026-11-10.md`). The reason after each card is the Note column of that file's table. Each data row keeps its text and effects:
   - Battle Honours (Tier 0): a commission with two rewards. Tier 0 keeps plain cards.
   - Commission: Man the Walls (Tier 0): Tier 0 keeps plain cards. Sword and Plough already rewards garrisons.
