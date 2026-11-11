@@ -1342,8 +1342,8 @@ export interface AiConfig {
       workGift: number;
       /**
        * **The share of a unit's fights that it fights from or in its own
-       * town**: The Soldier-Scholars' `standingInOwnTown` line, and the
-       * Hoplite's line that counts the citizens of the town the unit stands in.
+       * town**: the Hoplite's line that counts the citizens of the town the
+       * unit stands in.
        */
       inOwnTown: number;
       /**

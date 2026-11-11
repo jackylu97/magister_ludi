@@ -10,7 +10,7 @@
       "rarity": "common",
       "type": "military",
       "flavor": "First blood is the cheapest lesson the wild ever sells.",
-      "text": "Military units gain +2 strength, doubled against barbarians.",
+      "text": "Military units gain +2 strength.",
       "effects": [
         {
           "kind": "combatLine",
@@ -18,17 +18,6 @@
           "side": "both",
           "when": {
             "test": "always"
-          },
-          "class": {
-            "category": "military"
-          }
-        },
-        {
-          "kind": "combatLine",
-          "amount": 2,
-          "side": "both",
-          "when": {
-            "test": "vsBarbarians"
           },
           "class": {
             "category": "military"
@@ -247,7 +236,7 @@
       "rarity": "common",
       "type": "wildcard",
       "flavor": "A young state wins its first war against the camps at its edge.",
-      "text": "Commission. Clear two barbarian camps while this card is seated. Then choose a great general from a draft. The card leaves its chair.",
+      "text": "Goal: clear 2 barbarian camps. Reward: choose a great general.",
       "effects": [],
       "commission": {
         "goals": [
@@ -454,7 +443,7 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "Every fight becomes a song, and every song finds a crowd.",
-      "text": "Killing a unit grants culture equal to its strength. Clearing a barbarian camp grants 30 culture.",
+      "text": "Killing a unit grants culture equal to its strength.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -463,14 +452,6 @@
             "yield": "culture",
             "amount": 1,
             "fromOccasion": "strength"
-          }
-        },
-        {
-          "kind": "windfallRider",
-          "occasion": "camp",
-          "grant": {
-            "yield": "culture",
-            "amount": 30
           }
         }
       ]
@@ -586,23 +567,14 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "The scouts ride ahead, and every town hears what they found.",
-      "text": "Claiming a discovery or clearing a barbarian camp grants 8 production to every town.",
+      "text": "Clearing a barbarian camp grants 10 production to every town.",
       "effects": [
-        {
-          "kind": "windfallRider",
-          "occasion": "discovery",
-          "grant": {
-            "yield": "production",
-            "amount": 8,
-            "toEveryTown": true
-          }
-        },
         {
           "kind": "windfallRider",
           "occasion": "camp",
           "grant": {
             "yield": "production",
-            "amount": 8,
+            "amount": 10,
             "toEveryTown": true
           }
         }
@@ -662,7 +634,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Every new name on the muster roll is a line in the chronicle.",
-      "text": "While seated, this card gains +1 science and +1 culture each time you gain a military unit. It starts at +2 science and +2 culture.",
+      "text": "Gains +1 science and +1 culture each time you gain a military unit.",
       "effects": [
         {
           "kind": "pays",
@@ -1164,7 +1136,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "A burnt camp is a quiet border.",
-      "text": "Gains +1 authority capacity and +5 culture for every barbarian camp cleared this game, at most +8 authority and +40 culture.",
+      "text": "+1 authority and +5 culture for each barbarian camp you have cleared, at most +8 and +40.",
       "effects": [
         {
           "kind": "pays",
@@ -1272,7 +1244,7 @@
       "rarity": "rare",
       "type": "economic",
       "flavor": "The forges run whether the war does or not.",
-      "text": "Cities with a Barracks gain gold equal to 30% of their base production and +38% production toward military units.",
+      "text": "Towns with a Barracks gain gold equal to 30% of their production.",
       "effects": [
         {
           "kind": "pays",
@@ -1281,18 +1253,6 @@
           "to": "gold",
           "percent": 30,
           "from": "production",
-          "scope": {
-            "test": "hasBuilding",
-            "building": "barracks"
-          }
-        },
-        {
-          "kind": "productionBonus",
-          "category": "unit",
-          "percent": 38,
-          "class": {
-            "category": "military"
-          },
           "scope": {
             "test": "hasBuilding",
             "building": "barracks"
@@ -1410,12 +1370,12 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "The maps are kept here, and so are the men who read them.",
-      "text": "Cities with a Barracks give +3 production and +2 renown a turn, favouring great generals.",
+      "text": "Each Barracks gives +5 production and +2 general renown.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "production": 3,
+          "production": 5,
           "scope": {
             "test": "hasBuilding",
             "building": "barracks"
@@ -1718,14 +1678,8 @@
       "rarity": "common",
       "type": "military",
       "flavor": "Walls are patient. The engines are not.",
-      "text": "+38% production toward siege units. Siege units gain +4 strength against cities.",
+      "text": "Siege units gain +4 strength against towns.",
       "effects": [
-        {
-          "kind": "productionBonus",
-          "category": "unit",
-          "percent": 38,
-          "modelClass": "siege"
-        },
         {
           "kind": "combatLine",
           "amount": 4,
@@ -2072,16 +2026,9 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "They burn the farm without slowing to a walk.",
-      "text": "Mounted units ignore enemy zone of control. Pillaging costs them one less movement point, minimum zero.",
+      "text": "Pillaging costs your mounted units one less movement point.",
       "note": "A raid costs a single point of movement, so a rider who is forgiven one is forgiven the raid.",
       "effects": [
-        {
-          "kind": "rule",
-          "rule": "ignored",
-          "class": {
-            "modelClass": "mounted"
-          }
-        },
         {
           "kind": "rule",
           "rule": "freePillage",
@@ -2264,23 +2211,22 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "The wagons come home heavier than they went.",
-      "text": "Pillaging grants 15 production to your city nearest the pillaged hex. The first pillage each turn also grants 30 culture.",
+      "text": "Pillaging a hex grants 50 gold and 15 culture.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "pillage",
           "grant": {
-            "yield": "production",
-            "amount": 15
+            "yield": "gold",
+            "amount": 50
           }
         },
         {
           "kind": "windfallRider",
           "occasion": "pillage",
-          "oncePerTurn": true,
           "grant": {
             "yield": "culture",
-            "amount": 30
+            "amount": 15
           }
         }
       ]
@@ -2378,28 +2324,12 @@
       "rarity": "rare",
       "type": "economic",
       "flavor": "They keep their walls. We keep the keys.",
-      "text": "Captured cities you hold cost one less authority. Capturing a city grants +30% production in every city for ten turns.",
+      "text": "Towns you captured cost 1 less authority.",
       "effects": [
         {
           "kind": "meterRule",
           "rule": "capturedCityCost",
           "delta": -1
-        },
-        {
-          "kind": "windfallRider",
-          "occasion": "capture",
-          "grant": {
-            "timed": {
-              "turns": 10,
-              "effects": [
-                {
-                  "kind": "percentYields",
-                  "yield": "production",
-                  "percent": 30
-                }
-              ]
-            }
-          }
         }
       ]
     },
@@ -2512,7 +2442,7 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "Each fortress keeps a library of its own sieges.",
-      "text": "Citadels gain +5 science. Each citadel inside your borders gives +1 renown a turn, favouring great generals.",
+      "text": "Citadels gain +5 science and +3 general renown.",
       "effects": [
         {
           "kind": "pays",
@@ -2525,7 +2455,7 @@
         },
         {
           "kind": "renown",
-          "amount": 1,
+          "amount": 3,
           "count": "tilesInBorders",
           "tile": {
             "test": "improvement",
@@ -2600,7 +2530,7 @@
       "rarity": "uncommon",
       "type": "wildcard",
       "flavor": "One city taken is a lesson for the rest.",
-      "text": "Commission. Capture a city with at least eight citizens. Then, for the rest of the game, each city you capture grants 250 science and 250 culture per age. The card leaves its chair.",
+      "text": "Goal: capture a city of 8 or more citizens. Reward: each city you capture grants 250 science and 250 culture per age.",
       "effects": [],
       "commission": {
         "goals": [
@@ -2775,20 +2705,12 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "The manual says where every officer should stand, and why.",
-      "text": "At the end of your turn, great generals give 1 experience to every unit beside them. Each time one of your units earns a rank, gain 15 science.",
+      "text": "Great generals give 1 experience each turn to units beside them.",
       "effects": [
         {
           "kind": "drill",
           "experience": 1,
           "where": "general"
-        },
-        {
-          "kind": "windfallRider",
-          "occasion": "rankEarned",
-          "grant": {
-            "yield": "science",
-            "amount": 15
-          }
         }
       ]
     },
@@ -2920,7 +2842,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Land taken by the spear is held by the spear.",
-      "text": "+3% production and science for every town you have captured this game, at most +30%.",
+      "text": "+3% production and science for each town you have captured.",
       "effects": [
         {
           "kind": "pays",
@@ -2929,8 +2851,7 @@
           "to": "production",
           "percent": 3,
           "stage": "empire",
-          "count": "citiesCaptured",
-          "max": 10
+          "count": "citiesCaptured"
         },
         {
           "kind": "pays",
@@ -2939,8 +2860,7 @@
           "to": "science",
           "percent": 3,
           "stage": "empire",
-          "count": "citiesCaptured",
-          "max": 10
+          "count": "citiesCaptured"
         }
       ]
     },
@@ -2954,11 +2874,11 @@
       "rarity": "common",
       "type": "military",
       "flavor": "The arrows fall before the enemy is near enough to see the bows.",
-      "text": "Ranged units gain +4 strength and +4 ranged strength. +5 culture each time they attack from range.",
+      "text": "Ranged units gain +2 strength and +1 range.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 4,
+          "amount": 2,
           "side": "both",
           "when": {
             "test": "always"
@@ -2968,11 +2888,11 @@
           }
         },
         {
-          "kind": "windfallRider",
-          "occasion": "rangedAttack",
-          "grant": {
-            "yield": "culture",
-            "amount": 5
+          "kind": "unitStat",
+          "stat": "range",
+          "amount": 1,
+          "class": {
+            "ranged": true
           }
         }
       ]
@@ -3132,7 +3052,7 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "The engines go ahead, and the infantry follow the ruts.",
-      "text": "Siege units gain +1 movement. Adjacent friendly land melee units gain +6 strength against cities.",
+      "text": "Siege units gain +1 movement, and +5 strength when defending.",
       "effects": [
         {
           "kind": "unitStat",
@@ -3144,24 +3064,13 @@
         },
         {
           "kind": "combatLine",
-          "amount": 6,
-          "side": "attack",
+          "amount": 5,
+          "side": "defend",
           "class": {
-            "modelClass": "melee"
+            "modelClass": "siege"
           },
           "when": {
-            "test": "all",
-            "of": [
-              {
-                "test": "vsCity"
-              },
-              {
-                "test": "beside",
-                "class": {
-                  "modelClass": "siege"
-                }
-              }
-            ]
+            "test": "always"
           }
         }
       ]
@@ -3511,7 +3420,7 @@
       "rarity": "rare",
       "type": "wildcard",
       "flavor": "A war is won at the table, after it is won in the field.",
-      "text": "Commission. Make peace with an empire, or destroy it, after taking at least two of its cities in that war. Then gain one extra Wildcard chair for the rest of the game.",
+      "text": "Goal: take two cities from an empire, then make peace with it or destroy it. Reward: one more Wildcard chair.",
       "effects": [],
       "commission": {
         "goals": [
@@ -3707,19 +3616,14 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "Between campaigns, the regiment teaches its soldiers to read.",
-      "text": "At the end of your turn, each garrisoned unit gains 1 experience and gives its town +2 science.",
+      "text": "Each garrisoned unit gives its town +3 science.",
       "effects": [
-        {
-          "kind": "drill",
-          "experience": 1,
-          "where": "garrison"
-        },
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "science",
-          "amount": 2,
+          "amount": 3,
           "count": "garrison"
         }
       ]
@@ -3780,20 +3684,12 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "The army that holds the centre can reach any part of the front first.",
-      "text": "A step along a road costs 40% less movement. A unit that has not moved this turn gains +4 strength when attacking.",
+      "text": "Roads cost your units 40% less movement.",
       "effects": [
         {
           "kind": "rulePercent",
           "rule": "roadStepCost",
           "percent": -40
-        },
-        {
-          "kind": "combatLine",
-          "amount": 4,
-          "side": "attack",
-          "when": {
-            "test": "unmoved"
-          }
         }
       ]
     },
@@ -3887,7 +3783,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "The government of the tent: where the general camps, the realm is ruled.",
-      "text": "A great general standing in a town gives it +25% science and +25% culture, and pacifies it at once.",
+      "text": "A great general standing in a town gives it +25% science and culture.",
       "effects": [
         {
           "kind": "percentYields",
@@ -3904,13 +3800,6 @@
           "scope": {
             "test": "generalPresent"
           }
-        },
-        {
-          "kind": "rule",
-          "rule": "pacified",
-          "scope": {
-            "test": "generalPresent"
-          }
         }
       ]
     },
@@ -3924,16 +3813,11 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "They make a desert and call it peace, but the roads are safe.",
-      "text": "Towns you capture are pacified at once, and each costs 1 less authority to hold.",
+      "text": "Towns you capture are pacified at once.",
       "effects": [
         {
           "kind": "rule",
           "rule": "pacifyOnCapture"
-        },
-        {
-          "kind": "meterRule",
-          "rule": "capturedCityCost",
-          "delta": -1
         }
       ]
     },
@@ -3947,19 +3831,14 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "A crown of gold walls for the first soldier over the enemy's wall.",
-      "text": "+10 renown each turn, favouring great generals. Each time you gain a great person, gain 100 science and 100 culture for each great general you have gained this game.",
+      "text": "Gaining a great person grants 200 science and culture for each great general you have gained.",
       "effects": [
-        {
-          "kind": "renown",
-          "amount": 10,
-          "family": "general"
-        },
         {
           "kind": "windfallRider",
           "occasion": "greatPersonGained",
           "grant": {
             "yield": "science",
-            "amount": 100,
+            "amount": 200,
             "perCount": {
               "count": "greatPeopleGained",
               "family": "general"
@@ -3971,7 +3850,7 @@
           "occasion": "greatPersonGained",
           "grant": {
             "yield": "culture",
-            "amount": 100,
+            "amount": 200,
             "perCount": {
               "count": "greatPeopleGained",
               "family": "general"
@@ -4070,7 +3949,7 @@
       "rarity": "rare",
       "type": "wildcard",
       "flavor": "Two thrones, and neither of them yours by birth.",
-      "text": "Commission. Hold two original capitals other than your own at the same time. Then every city gains +25% production for twenty turns, and you gain a great general. The card leaves its chair.",
+      "text": "Goal: hold two rival capitals. Reward: a great general, and +25% production in every town for twenty turns.",
       "effects": [],
       "commission": {
         "goals": [
@@ -4209,31 +4088,29 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "Every regiment sends its reports to the capital.",
-      "text": "Your capital gains +1 science and +1 culture for every military unit you have, at most +30 of each.",
+      "text": "Your capital gains +3 science and +3 culture for each military unit you have.",
       "effects": [
         {
           "kind": "pays",
           "where": "capital",
           "basis": "count",
           "to": "science",
-          "amount": 1,
+          "amount": 3,
           "count": "unitsInField",
           "class": {
             "category": "military"
-          },
-          "max": 30
+          }
         },
         {
           "kind": "pays",
           "where": "capital",
           "basis": "count",
           "to": "culture",
-          "amount": 1,
+          "amount": 3,
           "count": "unitsInField",
           "class": {
             "category": "military"
-          },
-          "max": 30
+          }
         }
       ]
     },
@@ -4424,28 +4301,12 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "A governor with a legion behind him needs no other argument.",
-      "text": "Captured cities with a garrison cost no authority and gain +10 defence.",
+      "text": "Captured towns with a garrison cost no authority.",
       "effects": [
         {
           "kind": "meterRule",
           "rule": "cityCost",
           "value": 0,
-          "scope": {
-            "test": "all",
-            "of": [
-              {
-                "test": "captured"
-              },
-              {
-                "test": "garrisoned"
-              }
-            ]
-          }
-        },
-        {
-          "kind": "cityStat",
-          "stat": "defense",
-          "amount": 10,
           "scope": {
             "test": "all",
             "of": [
@@ -4470,7 +4331,7 @@
       "rarity": "uncommon",
       "type": "wildcard",
       "flavor": "Three cities, one season, one name on every banner.",
-      "text": "Commission. Capture three cities while this card is seated. Then gain a great general, and science and culture each equal to ten times those cities' total population. The card leaves its chair.",
+      "text": "Goal: capture three cities. Reward: a great general, and science and culture equal to ten times their population.",
       "effects": [],
       "commission": {
         "goals": [
@@ -4684,15 +4545,14 @@
       "rarity": "common",
       "type": "military",
       "flavor": "Every village smith knows the shape of a spearhead.",
-      "text": "+30% production toward first- and second-age military units.",
+      "text": "+25% production toward military units.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "unit",
-          "percent": 30,
+          "percent": 25,
           "class": {
-            "category": "military",
-            "ageAtMost": 2
+            "category": "military"
           }
         }
       ]
@@ -5002,7 +4862,7 @@
       "rarity": "uncommon",
       "type": "wildcard",
       "flavor": "The first province is where an empire learns to govern.",
-      "text": "Commission. Capture a town while this card is seated. Then, for the rest of the game, towns you captured gain +5 food and +5 gold. The card leaves its chair.",
+      "text": "Goal: capture a town. Reward: towns you captured gain +5 food and +5 gold.",
       "effects": [],
       "commission": {
         "goals": [
@@ -5039,39 +4899,19 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "Each summer the clans meet to race horses, shoot and wrestle.",
-      "text": "Towns gain +2 culture and +1 happiness for each pasture and camp in their borders.",
+      "text": "Pastures and camps gain +2 culture.",
       "effects": [
         {
           "kind": "pays",
-          "where": "city",
-          "basis": "count",
-          "count": "tilesInBorders",
-          "within": "city",
-          "tile": {
+          "where": "hex",
+          "culture": 2,
+          "on": {
             "test": "anyImprovement",
             "improvements": [
               "pasture",
               "camp"
             ]
-          },
-          "to": "culture",
-          "amount": 2
-        },
-        {
-          "kind": "pays",
-          "where": "city",
-          "basis": "count",
-          "count": "tilesInBorders",
-          "within": "city",
-          "tile": {
-            "test": "anyImprovement",
-            "improvements": [
-              "pasture",
-              "camp"
-            ]
-          },
-          "to": "happiness",
-          "amount": 1
+          }
         }
       ]
     },
@@ -5321,7 +5161,7 @@
       "rarity": "uncommon",
       "type": "wildcard",
       "flavor": "A general's last work is a wall that outlives him.",
-      "text": "Commission. Plant a citadel while this card is seated. Then, for the rest of the game, your citadels gain +2 food and +2 production. The card leaves its chair.",
+      "text": "Goal: plant a citadel. Reward: citadels gain +2 food and +2 production.",
       "effects": [],
       "commission": {
         "goals": [
@@ -5360,7 +5200,7 @@
       "rarity": "uncommon",
       "type": "wildcard",
       "flavor": "The best of the line, picked by name.",
-      "text": "Commission. Have three of your units become Elite while this card is seated. Then, for the rest of the game, your Elite units ignore enemy zone of control. The card leaves its chair.",
+      "text": "Goal: have three units become Elite. Reward: your Elite units ignore enemy zone of control.",
       "effects": [],
       "commission": {
         "goals": [
@@ -5452,12 +5292,12 @@
       "rarity": "rare",
       "type": "economic",
       "flavor": "The frontier soldiers farm the fields beside their forts.",
-      "text": "Each military unit in one of your towns lets that town work one more hex, at most two more.",
+      "text": "A garrisoned town works one more hex.",
       "effects": [
         {
           "kind": "rule",
           "rule": "garrisonWorks",
-          "max": 2
+          "max": 1
         }
       ]
     },

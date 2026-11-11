@@ -8298,14 +8298,6 @@ export interface CombatSituation {
    */
   vsStrength?: number;
   /**
-   * True when this side's piece still has its **full movement allowance** —
-   * Interior Lines' "a unit that has not moved this turn" (Dominion batch D2,
-   * `CombatCondition`'s `unmoved`). Filled by `planCombat`, which can ask
-   * `fullMovement`; a comparison from another hex imagines the turn still
-   * ahead, so it is true there.
-   */
-  unmoved?: boolean;
-  /**
    * **Whose** the other side is — the seat `vsWiderEmpire` compares realms with.
    *
    * `vsType`'s sibling one question wider, and filled by the same rule from the
@@ -8404,10 +8396,6 @@ function combatConditionHolds(
     case 'hasRank':
       // The Tagmata (Dominion batch D2): the piece's own experience.
       return holdsRank(situation.unit, when.rank);
-    case 'unmoved':
-      // Interior Lines (Dominion batch D2): `planCombat` decides it, because
-      // the full allowance is `units.ts`' figure. Absent is no.
-      return situation.unmoved === true;
     case 'withinOfCity': {
       // A distance rather than a border: Deborah judges within sight of her own
       // people, which reaches ground nobody has claimed and stops short of a
@@ -8511,21 +8499,14 @@ function combatConditionHolds(
       if (them === undefined) return false;
       return knowsMoreTechs(state, situation.unit.ownerId, them);
     }
-    case 'standingInOwnTown': {
-      // The Soldier-Scholars (Scientific batch S9, the triage's reading 9). The
-      // piece's own hex in both postures, as the Hoplite's count reads it: a
-      // defender stands on the contested hex, an attacker strikes from its own
-      // (a comparison's imagined copy stands where it is imagined).
-      const here = cityAt(state, situation.unit.col, situation.unit.row);
-      return here !== undefined && here.ownerId === situation.unit.ownerId;
-    }
     case 'nearLearning':
       // The Strategikon (Scientific batch S9, the triage's readings 11 and 44).
       return nearLearning(state, situation.unit, when);
     case 'standingOnWork': {
       // The Custodians (Magisterial batch MG9, the triage's reading 30). The
-      // piece's own hex in both postures, as `standingInOwnTown` reads it, and
-      // any great-person work there, whoever owns the hex.
+      // piece's own hex in both postures: a defender stands on the contested
+      // hex, and an attacker strikes from its own. Any great-person work there
+      // counts, whoever owns the hex.
       const here = getTileAt(state.map, situation.unit.col, situation.unit.row);
       return here?.improvement !== undefined && isGreatPersonWork(here.improvement);
     }
@@ -9030,7 +9011,7 @@ export function cardCombatPercent(
 
 /**
  * **A unit's age** (Dominion batch D7): the age of the technology that
- * unlocks it, or the first age when no technology does. `UnitFilter.ageAtMost`
+ * unlocks it, or the first age when no technology does. `UnitFilter.newestAge`
  * reads it.
  */
 export function unitAge(type: UnitTypeId): number {
@@ -9086,10 +9067,6 @@ export function unitMatches(type: UnitTypeId, filter?: UnitFilter, ownerAge?: nu
       def.prophesies === true || def.proclaims === true || def.purges === true || def.consecrates === true;
     if (religious !== filter.religious) return false;
   }
-  // The unit's age (Dominion batch D7, The Spear Makers): the age of the
-  // technology that unlocks it, and the first age when none does (the
-  // triage's reading 12).
-  if (filter.ageAtMost !== undefined && unitAge(type) > filter.ageAtMost) return false;
   // The named row, asked last because it is the narrowest thing the filter can
   // say — see `UnitFilter.type`. The *data* names a type here; no rule in
   // `src/sim/` does, which is the claim that has never moved.

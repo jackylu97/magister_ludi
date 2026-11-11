@@ -250,8 +250,10 @@ describe('the card-type amplifier (the tier-26 governments)', () => {
     const { state, city } = board();
     council(state, 'theSultanate', [[SPEAR_MAKERS, 'military']]);
     const lines = cardProduction(state, city, 'unit', 'warrior');
-    expect(lines.find((line) => line.card === SPEAR_MAKERS)!.percent).toBe(30);
-    expect(lines.find((line) => line.card === 'theSultanate')!.percent).toBe(9);
+    // The Spear Makers pay +25% since batch DS2. 30% of 25 is 7.5, which
+    // rounds to 8.
+    expect(lines.find((line) => line.card === SPEAR_MAKERS)!.percent).toBe(25);
+    expect(lines.find((line) => line.card === 'theSultanate')!.percent).toBe(8);
   });
 
   it('raises strength in a fight, line by line', () => {
@@ -267,8 +269,8 @@ describe('the card-type amplifier (the tier-26 governments)', () => {
       targetHp: 100,
       targetMaxHp: 100,
     });
-    // The Blooded Spears' +2 against anyone, and its rise of 1. The line
-    // against barbarians does not fire here, so it has no rise either.
+    // The Blooded Spears' +2 against anyone, and its rise of 1. The card has
+    // had one line since batch DS2.
     expect(lines.filter((line) => line.card === BLOODED_SPEARS).map((line) => line.amount)).toEqual([2]);
     expect(lines.filter((line) => line.card === 'theSultanate').map((line) => line.amount)).toEqual([1]);
   });

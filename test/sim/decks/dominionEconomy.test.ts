@@ -4,7 +4,8 @@
  * against the sheet. This file checks that the shapes the batch added do what
  * the cards say:
  *
- *   · a unit's age as a filter (The Spear Makers);
+ *   · a unit's age (The Spear Makers read it as a filter until batch DS2 cut
+ *     the clause; the age itself is still read by `newestAge`);
  *   · "an empire you have met holds more towns" (The Defiant Kingdom);
  *   · camps near a holder's towns raising their units faster, and a strength
  *     line in your own territory (The Hunting Grounds);
@@ -150,23 +151,27 @@ function cardPercent(state: GameState, city: City, item: City['queue'][number], 
     .reduce((sum, line) => sum + line.percent, 0);
 }
 
-describe('The Spear Makers: a unit filter by age', () => {
+describe('The Spear Makers', () => {
   it('reads a unit’s age off the technology that unlocks it, and the first age when none does', () => {
+    // `unitAge` is still the age a unit filter's `newestAge` reads, so it is
+    // pinned here though The Spear Makers no longer ask it.
     expect(unitAge('warrior')).toBe(1);
     expect(unitAge(militaryOfAge(2))).toBe(2);
   });
 
-  it('puts +30% behind first- and second-age military units and nothing behind a later one', () => {
+  it('puts +25% behind every military unit, of any age, and nothing behind a civilian', () => {
+    // Batch DS2 cut the age clause: the card was "first- and second-age
+    // military units" and the unit filter that said so is gone.
     const state = flat(false);
     const city = foundCityAt(state, 0, at(state, 4, 4))!;
     slot(state, 0, 'theSpearMakers');
     const unit = (id: UnitTypeId): City['queue'][number] => ({ kind: 'unit', id });
-    expect(cardPercent(state, city, unit(militaryOfAge(1)), 'theSpearMakers')).toBe(30);
-    expect(cardPercent(state, city, unit(militaryOfAge(2)), 'theSpearMakers')).toBe(30);
-    expect(cardPercent(state, city, unit(militaryOfAge(3)), 'theSpearMakers')).toBe(0);
+    expect(cardPercent(state, city, unit(militaryOfAge(1)), 'theSpearMakers')).toBe(25);
+    expect(cardPercent(state, city, unit(militaryOfAge(2)), 'theSpearMakers')).toBe(25);
+    expect(cardPercent(state, city, unit(militaryOfAge(3)), 'theSpearMakers')).toBe(25);
     expect(cardPercent(state, city, unit('worker'), 'theSpearMakers')).toBe(0);
     expect(stripRefs(describeCard('theSpearMakers' as OrderId)[0]!.text)).toBe(
-      '+30% production toward first- and second-age military units',
+      '+25% production toward military units',
     );
   });
 });
@@ -284,7 +289,9 @@ describe('the fortified-unit hex test: The Farming Garrisons and The Castra', ()
     expect(hexPaid(state, empty, 'theFarmingGarrisons')).toEqual({ food: 0, production: 0, science: 0 });
   });
 
-  it('gives a fortified unit +2 strength under The Farming Garrisons', () => {
+  it('gives a fortified unit no strength under The Farming Garrisons since batch DS2', () => {
+    // The +2 for a fortified unit was the card's second clause, and batch DS2
+    // cut it. The `fortified` condition stays: The Fortress Empire reads it.
     const state = flat();
     const city = foundCityAt(state, 0, at(state, 4, 4))!;
     slot(state, 0, 'theFarmingGarrisons');
@@ -297,7 +304,7 @@ describe('the fortified-unit hex test: The Farming Garrisons and The Castra', ()
     const line = view.defenderLines
       .filter((row) => row.source.includes('Farming Garrisons'))
       .reduce((sum, row) => sum + row.amount, 0);
-    expect(line).toBe(2);
+    expect(line).toBe(0);
   });
 
   it('pays The Castra on a hex with a fortified military unit, and on a citadel', () => {

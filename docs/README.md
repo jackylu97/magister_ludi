@@ -760,10 +760,11 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     (`cities.ts`): what drafting it hands over, the law dropped for a
     charter, and the `cardDrafted` moment last. The pick of an Order hand
     and The Cabinet of Curiosities' card are its two callers.
-  - Four moments with no figure of their own are paid by `payOccasionRiders`
+  - Three moments with no figure of their own are paid by `payOccasionRiders`
     (`cities.ts`): an Order draft passed (`settleOrderSkip`), a town taken by
-    force and razed (`razeCityAt`), an attack from range (`applyCombat`) and a
-    great person gained (`settleGreatPersonChoice`).
+    force and razed (`razeCityAt`), and a great person gained
+    (`settleGreatPersonChoice`). An attack from range was a fourth until
+    batch DS2 removed it with the one card that paid on it.
   - A grant can be paid once for each item a count finds (`perCount`), bank
     science toward the technology of a unit killed (`towardFallenTech`,
     `bankTowardTech`), or open a free Order draft (`freeDraft`,

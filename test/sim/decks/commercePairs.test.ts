@@ -366,9 +366,9 @@ describe('The Standing Army', () => {
     expect(def.band).toBe(1);
     expect(def.rarity).toBe('uncommon');
     expect(orderType(STANDING_ARMY)).toBe('military');
-    expect(def.text).toBe(
-      'Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units.',
-    );
+    // Batch DS2 cut the Barracks half: one effect, one line.
+    expect(def.text).toBe('Garrisoned units cost no upkeep.');
+    expect(def.effects).toEqual([{ kind: 'upkeepRebate', free: true, where: 'garrison' }]);
     expect(orderIsDealt(STANDING_ARMY)).toBe(true);
   });
 

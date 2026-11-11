@@ -1553,10 +1553,14 @@ describe('The Ribats (batch DT14)', () => {
     expect([devout, towns]).toEqual([1, 2]);
     expect(scoreEffects(stamp, ctx)).toBeCloseTo((3 * ctx.ai.weights.military * (1 + ctx.threat) * devout) / towns);
     const rider = doctrineDef(CARD as DoctrineId).effects.slice(1);
-    const crusade = orderDef('theCrusaderOrders' as OrderId).effects.filter(
-      (effect) => effect.kind === 'windfallRider',
+    // The Crusader Orders' capture lump, as the row carried it until batch DS2
+    // cut that clause. The bot must still price both lumps the same way.
+    expect(orderDef('theCrusaderOrders' as OrderId).effects.some((effect) => effect.kind === 'windfallRider')).toBe(
+      false,
     );
-    expect(crusade).toHaveLength(1);
+    const crusade = [
+      { kind: 'windfallRider', occasion: 'capture', grant: { pressure: { amount: 30, range: 0 } } } as CardEffect,
+    ];
     expect(scoreEffects(rider, ctx)).toBe(scoreEffects(crusade, ctx));
   });
 });

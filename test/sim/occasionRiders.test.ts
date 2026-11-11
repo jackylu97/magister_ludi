@@ -411,7 +411,7 @@ describe('a once-a-turn rider', () => {
     const player = playerById(g.state, 0)!;
     const before = player.sciencePool;
     expect(killARaider(g)).toBe(true);
-    expect(player.sciencePool - before).toBe(23);
+    expect(player.sciencePool - before).toBe(25);
 
     // The second kill of the same turn pays nothing at all.
     const after = player.sciencePool;
@@ -423,7 +423,7 @@ describe('a once-a-turn rider', () => {
     expect(sc.riderTurns).toEqual([{ card: 'fieldAcademies', turn: g.state.turn }]);
     g.state.turn += 1;
     const third = player.sciencePool;
-    if (killARaider(g)) expect(player.sciencePool - third).toBe(23);
+    if (killARaider(g)) expect(player.sciencePool - third).toBe(25);
   });
 
   it('charges nothing for the asking — composing a payout is not spending one', () => {

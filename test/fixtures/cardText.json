@@ -3164,10 +3164,6 @@
    {
     "raw": "+2 combat strength for military units",
     "text": "+2 combat strength for military units"
-   },
-   {
-    "raw": "+2 combat strength for military units against barbarians",
-    "text": "+2 combat strength for military units against barbarians"
    }
   ],
   "paymasters": [
@@ -3312,10 +3308,6 @@
    {
     "raw": "killing a unit grants culture equal to its strength",
     "text": "killing a unit grants culture equal to its strength"
-   },
-   {
-    "raw": "clearing a barbarian camp grants +30 culture",
-    "text": "clearing a barbarian camp grants +30 culture"
    }
   ],
   "theCattleRaid": [
@@ -3352,12 +3344,8 @@
   ],
   "theOutriders": [
    {
-    "raw": "claiming a ruin grants +8 production to every city",
-    "text": "claiming a ruin grants +8 production to every city"
-   },
-   {
-    "raw": "clearing a barbarian camp grants +8 production to every city",
-    "text": "clearing a barbarian camp grants +8 production to every city"
+    "raw": "clearing a barbarian camp grants +10 production to every city",
+    "text": "clearing a barbarian camp grants +10 production to every city"
    }
   ],
   "theGarrisonCaptains": [
@@ -3576,10 +3564,6 @@
    {
     "raw": "30% of the production in every city with a [[building:barracks|Barracks]] is gained again as gold",
     "text": "30% of the production in every city with a Barracks is gained again as gold"
-   },
-   {
-    "raw": "+38% production toward military units, in every city with a [[building:barracks|Barracks]]",
-    "text": "+38% production toward military units, in every city with a Barracks"
    }
   ],
   "songsOfTheFallen": [
@@ -3624,8 +3608,8 @@
   ],
   "dominionTheGeneralStaff": [
    {
-    "raw": "+3 production in every city with a [[building:barracks|Barracks]]",
-    "text": "+3 production in every city with a Barracks"
+    "raw": "+5 production in every city with a [[building:barracks|Barracks]]",
+    "text": "+5 production in every city with a Barracks"
    },
    {
     "raw": "+2 renown per turn in every city with a [[building:barracks|Barracks]], favouring generals",
@@ -3713,10 +3697,6 @@
    }
   ],
   "siegeWorks": [
-   {
-    "raw": "+38% production toward siege units",
-    "text": "+38% production toward siege units"
-   },
    {
     "raw": "+4 combat strength for siege units against cities",
     "text": "+4 combat strength for siege units against cities"
@@ -3823,10 +3803,6 @@
   ],
   "dominionRidersOfTheSteppe": [
    {
-    "raw": "mounted units ignore enemy zone of control",
-    "text": "mounted units ignore enemy zone of control"
-   },
-   {
     "raw": "mounted units pillage without spending movement",
     "text": "mounted units pillage without spending movement"
    }
@@ -3906,12 +3882,12 @@
   ],
   "spoilsOfWar": [
    {
-    "raw": "pillaging grants +15 production",
-    "text": "pillaging grants +15 production"
+    "raw": "pillaging grants +50 gold",
+    "text": "pillaging grants +50 gold"
    },
    {
-    "raw": "pillaging (at most once a turn) grants +30 culture",
-    "text": "pillaging (at most once a turn) grants +30 culture"
+    "raw": "pillaging grants +15 culture",
+    "text": "pillaging grants +15 culture"
    }
   ],
   "warlords": [
@@ -3964,10 +3940,6 @@
    {
     "raw": "the authority a captured city costs falls by 1",
     "text": "the authority a captured city costs falls by 1"
-   },
-   {
-    "raw": "capturing a city grants +30% production in every city for 10 turns",
-    "text": "capturing a city grants +30% production in every city for 10 turns"
    }
   ],
   "triumphalReturn": [
@@ -4014,8 +3986,8 @@
     "text": "+5 science on every hex with a Citadel"
    },
    {
-    "raw": "+1 renown per turn per hex with a [[improvement:citadel|Citadel]] in your borders, favouring generals",
-    "text": "+1 renown per turn per hex with a Citadel in your borders, favouring generals"
+    "raw": "+3 renown per turn per hex with a [[improvement:citadel|Citadel]] in your borders, favouring generals",
+    "text": "+3 renown per turn per hex with a Citadel in your borders, favouring generals"
    }
   ],
   "dominionTheRelayStations": [
@@ -4086,10 +4058,6 @@
    {
     "raw": "your combat units on or beside the hex of one of your great generals gain 1 experience at the end of every turn",
     "text": "your combat units on or beside the hex of one of your great generals gain 1 experience at the end of every turn"
-   },
-   {
-    "raw": "one of your units earning a rank grants +15 science",
-    "text": "one of your units earning a rank grants +15 science"
    }
   ],
   "theFabricae": [
@@ -4126,22 +4094,22 @@
   ],
   "spearWonLand": [
    {
-    "raw": "+3% production per city you have captured this game (at most +30% production)",
-    "text": "+3% production per city you have captured this game (at most +30% production)"
+    "raw": "+3% production per city you have captured this game",
+    "text": "+3% production per city you have captured this game"
    },
    {
-    "raw": "+3% science per city you have captured this game (at most +30% science)",
-    "text": "+3% science per city you have captured this game (at most +30% science)"
+    "raw": "+3% science per city you have captured this game",
+    "text": "+3% science per city you have captured this game"
    }
   ],
   "theLongbowmen": [
    {
-    "raw": "+4 combat strength for ranged units",
-    "text": "+4 combat strength for ranged units"
+    "raw": "+2 combat strength for ranged units",
+    "text": "+2 combat strength for ranged units"
    },
    {
-    "raw": "attacking from range grants +5 culture",
-    "text": "attacking from range grants +5 culture"
+    "raw": "ranged units: +1 range",
+    "text": "ranged units: +1 range"
    }
   ],
   "theStateForges": [
@@ -4202,8 +4170,8 @@
     "text": "siege units: +1 movement"
    },
    {
-    "raw": "+6 combat strength for melee units against cities and while standing beside siege units",
-    "text": "+6 combat strength for melee units against cities and while standing beside siege units"
+    "raw": "+5 combat strength for siege units",
+    "text": "+5 combat strength for siege units"
    }
   ],
   "reserveOfficers": [
@@ -4366,12 +4334,8 @@
   ],
   "theRegimentalSchools": [
    {
-    "raw": "your combat units standing in one of your cities gain 1 experience at the end of every turn",
-    "text": "your combat units standing in one of your cities gain 1 experience at the end of every turn"
-   },
-   {
-    "raw": "+2 science in every city per combat unit standing there",
-    "text": "+2 science in every city per combat unit standing there"
+    "raw": "+3 science in every city per combat unit standing there",
+    "text": "+3 science in every city per combat unit standing there"
    }
   ],
   "theTagmata": [
@@ -4390,10 +4354,6 @@
    {
     "raw": "a step along a road costs 40% less movement",
     "text": "a step along a road costs 40% less movement"
-   },
-   {
-    "raw": "+4 combat strength when it has not moved this turn",
-    "text": "+4 combat strength when it has not moved this turn"
    }
   ],
   "thePlunderTrains": [
@@ -4426,34 +4386,22 @@
    {
     "raw": "+25% culture in every city with a great general standing in it",
     "text": "+25% culture in every city with a great general standing in it"
-   },
-   {
-    "raw": "unrest ends at once in every city with a great general standing in it",
-    "text": "unrest ends at once in every city with a great general standing in it"
    }
   ],
   "paxRomana": [
    {
     "raw": "a city you capture is pacified at once",
     "text": "a city you capture is pacified at once"
-   },
-   {
-    "raw": "the authority a captured city costs falls by 1",
-    "text": "the authority a captured city costs falls by 1"
    }
   ],
   "theMuralCrown": [
    {
-    "raw": "+10 renown per turn, favouring generals",
-    "text": "+10 renown per turn, favouring generals"
+    "raw": "gaining a great person grants +200 science for each great general you have gained this game",
+    "text": "gaining a great person grants +200 science for each great general you have gained this game"
    },
    {
-    "raw": "gaining a great person grants +100 science for each great general you have gained this game",
-    "text": "gaining a great person grants +100 science for each great general you have gained this game"
-   },
-   {
-    "raw": "gaining a great person grants +100 culture for each great general you have gained this game",
-    "text": "gaining a great person grants +100 culture for each great general you have gained this game"
+    "raw": "gaining a great person grants +200 culture for each great general you have gained this game",
+    "text": "gaining a great person grants +200 culture for each great general you have gained this game"
    }
   ],
   "valhalla": [
@@ -4516,12 +4464,12 @@
   ],
   "dominionTheGrandArmy": [
    {
-    "raw": "+1 science in your capital per military unit in the field (at most +30 science)",
-    "text": "+1 science in your capital per military unit in the field (at most +30 science)"
+    "raw": "+3 science in your capital per military unit in the field",
+    "text": "+3 science in your capital per military unit in the field"
    },
    {
-    "raw": "+1 culture in your capital per military unit in the field (at most +30 culture)",
-    "text": "+1 culture in your capital per military unit in the field (at most +30 culture)"
+    "raw": "+3 culture in your capital per military unit in the field",
+    "text": "+3 culture in your capital per military unit in the field"
    }
   ],
   "dominionTheAnnexedProvinces": [
@@ -4576,10 +4524,6 @@
    {
     "raw": "the authority a captured city with a unit standing in it costs is 0",
     "text": "the authority a captured city with a unit standing in it costs is 0"
-   },
-   {
-    "raw": "every captured city with a unit standing in it: +10 city defence",
-    "text": "every captured city with a unit standing in it: +10 city defence"
    }
   ],
   "dominionTheGrandCampaign": [
@@ -4642,8 +4586,8 @@
   ],
   "theSpearMakers": [
    {
-    "raw": "+30% production toward first- and second-age military units",
-    "text": "+30% production toward first- and second-age military units"
+    "raw": "+25% production toward military units",
+    "text": "+25% production toward military units"
    }
   ],
   "theDefiantKingdom": [
@@ -4752,12 +4696,8 @@
   ],
   "theNaadam": [
    {
-    "raw": "+2 culture in every city per hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]] there",
-    "text": "+2 culture in every city per hex with a Pasture or Camp there"
-   },
-   {
-    "raw": "+1 happiness in every city per hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]] there",
-    "text": "+1 happiness in every city per hex with a Pasture or Camp there"
+    "raw": "+2 culture on every hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]]",
+    "text": "+2 culture on every hex with a Pasture or Camp"
    }
   ],
   "theTakerOfCities": [
@@ -4872,8 +4812,8 @@
   ],
   "theLimitanei": [
    {
-    "raw": "each military unit in one of your cities lets that city work one more hex, at most 2 more",
-    "text": "each military unit in one of your cities lets that city work one more hex, at most 2 more"
+    "raw": "a city with a unit stationed there works one more hex",
+    "text": "a city with a unit stationed there works one more hex"
    }
   ],
   "theUpstarts": [
@@ -10080,24 +10020,12 @@
    {
     "raw": "+5 gold on every trade route sent from every city with a unit standing in it",
     "text": "+5 gold on every trade route sent from every city with a unit standing in it"
-   },
-   {
-    "raw": "+2 combat strength for ships while standing beside trader units",
-    "text": "+2 combat strength for ships while standing beside trader units"
    }
   ],
   "lettersOfMarque": [
    {
     "raw": "for ships alone, killing a unit grants +60 gold",
     "text": "for ships alone, killing a unit grants +60 gold"
-   },
-   {
-    "raw": "+38% gold in every city with a [[building:harbour|Harbour]]",
-    "text": "+38% gold in every city with a Harbour"
-   },
-   {
-    "raw": "-20% production toward ships, in every city with a [[building:harbour|Harbour]]",
-    "text": "-20% production toward ships, in every city with a Harbour"
    }
   ],
   "commonRitesOfPassage": [
@@ -10108,22 +10036,14 @@
   ],
   "theSacredHost": [
    {
-    "raw": "military units may be bought with faith in every city with a [[building:temple|Temple]]",
-    "text": "military units may be bought with faith in every city with a Temple"
-   },
-   {
     "raw": "killing a unit grants +15 faith",
     "text": "killing a unit grants +15 faith"
    }
   ],
   "fieldAcademies": [
    {
-    "raw": "killing a unit (at most once a turn) grants +23 science",
-    "text": "killing a unit (at most once a turn) grants +23 science"
-   },
-   {
-    "raw": "+38% production toward siege units, in every city with a [[building:library|Library]]",
-    "text": "+38% production toward siege units, in every city with a Library"
+    "raw": "killing a unit (at most once a turn) grants +25 science",
+    "text": "killing a unit (at most once a turn) grants +25 science"
    }
   ],
   "theEngineerCorps": [
@@ -10152,12 +10072,12 @@
   ],
   "examinationsOfState": [
    {
-    "raw": "+2 science in every city with a [[building:monument|Monument]] with a unit standing in it per 3 citizens there",
-    "text": "+2 science in every city with a Monument with a unit standing in it per 3 citizens there"
+    "raw": "+1 science in every city with a unit standing in it per 3 citizens there",
+    "text": "+1 science in every city with a unit standing in it per 3 citizens there"
    },
    {
-    "raw": "+2 culture in every city with a [[building:monument|Monument]] with a unit standing in it per 3 citizens there",
-    "text": "+2 culture in every city with a Monument with a unit standing in it per 3 citizens there"
+    "raw": "+1 culture in every city with a unit standing in it per 3 citizens there",
+    "text": "+1 culture in every city with a unit standing in it per 3 citizens there"
    }
   ],
   "marketGardens": [
@@ -10359,10 +10279,6 @@
    {
     "raw": "+3 combat strength for military units inside cities that do not follow your religion",
     "text": "+3 combat strength for military units inside cities that do not follow your religion"
-   },
-   {
-    "raw": "capturing a city spreads your religion to the city where it happens",
-    "text": "capturing a city spreads your religion to the city where it happens"
    }
   ],
   "theGrainExchange": [
@@ -10644,10 +10560,6 @@
    {
     "raw": "+1 food, +1 production on every hex with a fortified military unit of yours",
     "text": "+1 food, +1 production on every hex with a fortified military unit of yours"
-   },
-   {
-    "raw": "+2 combat strength while fortified",
-    "text": "+2 combat strength while fortified"
    }
   ],
   "booksFromTheShips": [
@@ -10669,10 +10581,6 @@
    }
   ],
   "scientificTheSoldierScholars": [
-   {
-    "raw": "+5 combat strength for military units while standing in one of your cities",
-    "text": "+5 combat strength for military units while standing in one of your cities"
-   },
    {
     "raw": "+2 science in every city per combat unit standing there",
     "text": "+2 science in every city per combat unit standing there"
@@ -10722,10 +10630,6 @@
    {
     "raw": "all units cost no gold in maintenance while standing in one of your cities",
     "text": "all units cost no gold in maintenance while standing in one of your cities"
-   },
-   {
-    "raw": "+30% production toward military units, in every city with a [[building:barracks|Barracks]]",
-    "text": "+30% production toward military units, in every city with a Barracks"
    }
   ],
   "theArtDealers": [

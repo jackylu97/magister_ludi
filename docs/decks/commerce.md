@@ -197,10 +197,10 @@ These rows live in `data/decks/common.json`. A seat holding Commerce or the deck
 |---|---|---|---|---|---|---|
 | **Market Gardens** | common | Expansionist | 0 | implemented | Farms beside a road gain +1 gold. Domestic routes grant an additional +1 food to their destination. | Economic |
 | **The Merchant Shrines** | common | Devotion | 0 | implemented | Your capital gains +2 faith. Cities working an improved luxury gain +1 faith, once per city. | Civic |
-| **The Standing Army** | uncommon | Dominion | I | implemented | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. | Military |
+| **The Standing Army** | uncommon | Dominion | I | implemented | Garrisoned units cost no upkeep. | Military |
 | **The Exchange of Discoveries** | uncommon | Scientific | I | implemented | +2 science on mines and quarries on a resource. Additional +2 if the city has a market. | Civic |
 | **The Art Dealers** | common | Magisterial | I | implemented | +3 gold for each card seated in your government. | Economic |
-| **The Escorted Roads** | uncommon | Dominion | II | implemented | Routes whose origin has a garrison gain +5 gold. Naval units gain +2 strength while adjacent to one of your traders. | Economic |
+| **The Escorted Roads** | uncommon | Dominion | II | implemented | Trade routes from a garrisoned town gain +5 gold. | Economic |
 | **Pilgrim Markets** | uncommon | Devotion | II | implemented | Routes gain +3 gold and +3 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify. | Civic |
 | **The Provincial Fair** | uncommon | Expansionist | II | implemented | Connected noncapital cities with a Market gain +3 food. Their worked plantations, camps and pastures gain +2 gold. | Economic |
 | **The Tithe** | rare | Devotion | II | implemented | Cities with a Temple gain gold equal to 25% of their base faith, and +25% gold. | Economic |
@@ -208,10 +208,10 @@ These rows live in `data/decks/common.json`. A seat holding Commerce or the deck
 | **The Silk Road Monks** | uncommon | Devotion | II | modify: as built | Your trade routes carry 100% more religious pressure. Trade routes you send to a city that follows your religion gain +3 gold and +3 culture. | Civic |
 | **The Brokers' Redraw** | rare | Magisterial | II | modify: as built | You may reroll a draft with gold instead of faith. All other purchasing is 10% more expensive. | Wildcard |
 | **Merchant Scholars** | uncommon | Scientific | III | implemented | Foreign routes gain +2 science for each Academy in the origin city. | Civic |
-| **Letters of Marque** | rare | Dominion | III | implemented | Naval combat kills grant 60 gold. Cities with a Harbour gain +38% gold, but produce naval combat units 20% more slowly. | Economic |
+| **Letters of Marque** | rare | Dominion | III | implemented | Naval kills grant 60 gold. | Economic |
 | **Mercenary Contracts** | uncommon | Dominion | III | implemented | Military units you buy cost no upkeep for twenty turns. | Military |
 | **Professional Soldiers** | uncommon | Dominion | III | implemented | Units you purchase gain +3 combat strength. | Military |
-| **The Chartered Company** | uncommon | Dominion | III | implemented | Once drafted, unlock the Company Guard, a unique gunpowder-age melee unit that can only be bought with gold, in cities with a Barracks. No chair required. | Military |
+| **The Chartered Company** | uncommon | Dominion | III | implemented | Charter. Unlocks the Company Guard, a melee unit you buy with gold. | Military |
 
 ## Retired rows
 

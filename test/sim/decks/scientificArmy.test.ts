@@ -14,7 +14,8 @@
  *         that keeps a piece upgraded past the gate off the copies ledger;
  *       - `UnitFilter.newestAge`, which `unitMatches` answers only with the
  *         owner's age in hand;
- *       - the combat conditions `nearLearning` and `standingInOwnTown`;
+ *       - the combat condition `nearLearning` (`standingInOwnTown` was
+ *         The Soldier-Scholars' and left with that clause in batch DS2);
  *       - the `opusBreach` rule and the blow that takes hammers off an Opus;
  *       - the `opusEarly` door and the Opus's completion hold;
  *       - the `closedBook` record on the state and the refusal it brings;
@@ -277,7 +278,6 @@ describe('the rows', () => {
       'each blow your siege units land on a city building the Magnum Opus removes 5% of the production banked toward it',
     ]);
     expect(said('scientificTheSoldierScholars')).toEqual([
-      '+5 combat strength for military units while standing in one of your cities',
       '+2 science in every city per combat unit standing there',
     ]);
   });
@@ -410,21 +410,17 @@ describe('The Strategikon (readings 11 and 44)', () => {
 });
 
 describe('The Soldier-Scholars (reading 9)', () => {
-  it('adds +5 to a military unit fighting from its own town, in attack and in defence', () => {
+  it('adds no strength since batch DS2, in its town or out of it', () => {
+    // The +5 for a unit fighting from its own town was cut in batch DS2.
     const state = bench();
     slot(state, 0, 'scientificTheSoldierScholars');
     const home = town(state, 0, 4, 4);
     const inTown = createUnit(state, 0, 'warrior', 4, 4);
     createUnit(state, 1, 'warrior', 5, 4);
-    expect(lines(state, inTown, 5, 4, 'attacker', 'The Soldier-Scholars')).toBe(5);
-    // Out of town it is nothing.
-    const afield = createUnit(state, 0, 'warrior', 4, 8);
-    createUnit(state, 1, 'warrior', 5, 8);
-    expect(lines(state, afield, 5, 8, 'attacker', 'The Soldier-Scholars')).toBe(0);
-    // Defending its town once the walls are down.
+    expect(lines(state, inTown, 5, 4, 'attacker', 'The Soldier-Scholars')).toBe(0);
     home.hp = 1;
     const rival = createUnit(state, 1, 'warrior', 4, 5);
-    expect(lines(state, rival, 4, 4, 'defender', 'The Soldier-Scholars')).toBe(5);
+    expect(lines(state, rival, 4, 4, 'defender', 'The Soldier-Scholars')).toBe(0);
   });
 
   it('pays +2 science in a town for each unit standing in it', () => {

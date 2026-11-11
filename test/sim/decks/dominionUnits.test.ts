@@ -9,9 +9,10 @@
  *     unlocks, in the capital or in each town a scope admits (The State Forges,
  *     The Armourers' Secret, The Open Muster, The Landsturm);
  *   · a unit raised when a card is drafted (The Sword of State, The Cleruchy);
- *   · four new moments: a draft passed, a captured town razed, an attack from
- *     range and a great person gained (The Open Muster, The Sack, The
- *     Longbowmen, The Mural Crown);
+ *   · three new moments: a draft passed, a captured town razed and a great
+ *     person gained (The Open Muster, The Sack, The Mural Crown). The fourth,
+ *     an attack from range, was The Longbowmen's until batch DS2 cut that
+ *     clause, and the moment went with it;
  *   · a grant counted by a count (Valhalla, The Mural Crown);
  *   · science toward the technology of a unit killed (Copying the Enemy);
  *   · a free Order draft, at most once every ten turns (The New Code);
@@ -48,6 +49,7 @@ import {
 } from '../../../src/sim/state';
 import {
   cardRulePercent,
+  cardUnitStat,
   describeCard,
   eligibleFor,
   explainCardEmpireYields,
@@ -335,7 +337,9 @@ describe('Dominion D5 — new moments', () => {
     expect(player.gold).toBe(gold);
   });
 
-  it('The Longbowmen add +4 to ranged units, and each attack from range pays +5 culture', () => {
+  it('The Longbowmen add +2 strength and +1 range to ranged units, and pay no culture for a shot', () => {
+    // Batch DS2: +2 strength, not +4, and +1 range in place of the +5 culture
+    // for each attack from range.
     const state = flat();
     foundCityAt(state, 0, at(state, 1, 1));
     slot(state, 0, 'theLongbowmen');
@@ -348,17 +352,16 @@ describe('Dominion D5 — new moments', () => {
     const line = view.attackerLines
       .filter((row) => row.source.includes('Longbowmen'))
       .reduce((sum, row) => sum + row.amount, 0);
-    expect(line).toBe(4);
+    expect(line).toBe(2);
+    // The range is read by `cardUnitStat`, the one place combat asks it; a
+    // unit that closes gains none.
+    expect(cardUnitStat(state, archer, 'range')).toBe(1);
+    const warrior = createUnit(state, 0, 'warrior', 9, 7);
+    expect(cardUnitStat(state, warrior, 'range')).toBe(0);
     const player = seat(state, 0);
     const before = player.culturePool;
     expect(applyCombat(state, archer.id, { col: 6, row: 4 }).ok).toBe(true);
-    expect(player.culturePool - before).toBe(5);
-    // A melee attack is not an attack from range.
-    const warrior = createUnit(state, 0, 'warrior', 9, 7);
-    createUnit(state, 1, 'warrior', 10, 7);
-    const after = player.culturePool;
-    expect(applyCombat(state, warrior.id, { col: 10, row: 7 }).ok).toBe(true);
-    expect(player.culturePool).toBe(after);
+    expect(player.culturePool).toBe(before);
   });
 
   it('The Mural Crown pays for each great general gained this game, the new one included', () => {
@@ -376,10 +379,12 @@ describe('Dominion D5 — new moments', () => {
       expect(settleGreatPersonChoice(state, player, 0)).not.toBeNull();
       return { science: player.sciencePool - science, culture: player.culturePool - culture };
     };
-    expect(gain('ahmoseSonOfEbana')).toEqual({ science: 100, culture: 100 });
-    expect(gain('piyamaradu')).toEqual({ science: 200, culture: 200 });
+    // 200 of each for each general gained since batch DS2 (it was 100), and
+    // the renown trickle is cut.
+    expect(gain('ahmoseSonOfEbana')).toEqual({ science: 200, culture: 200 });
+    expect(gain('piyamaradu')).toEqual({ science: 400, culture: 400 });
     // Any great person pays, counted by the generals.
-    expect(gain('imhotep')).toEqual({ science: 200, culture: 200 });
+    expect(gain('imhotep')).toEqual({ science: 400, culture: 400 });
     expect(player.greatPeopleByFamily).toEqual({ general: 2, scholar: 1 });
   });
 
@@ -512,7 +517,7 @@ describe('Dominion D5 — words and the bot', () => {
     expect(words('theOpenMuster')).toContain('passing on an Order hand grants the best melee unit you can build in your capital');
     expect(words('theSack')).toContain('razing a city you captured');
     expect(words('theCleruchy')).toBe('when drafted, a Settler joins you in your capital; seated, this card does nothing');
-    expect(words('theLongbowmen')).toContain('attacking from range grants +5 culture');
+    expect(words('theLongbowmen')).toBe('+2 combat strength for ranged units | ranged units: +1 range');
     expect(words('theStateForges')).toContain('the best melee unit you can build in your capital');
     expect(words('theMuralCrown')).toContain('for each great general you have gained this game');
     expect(words('valhalla')).toContain('+25 culture for each Monument');
@@ -548,12 +553,17 @@ describe('Dominion D5 — words and the bot', () => {
       'theCleruchy',
       'theLongbowmen',
       'theStateForges',
-      'theMuralCrown',
       'theSwordOfState',
       'copyingTheEnemy',
     ]) {
       expect(worth(id), id).toBeGreaterThan(0);
     }
+    // The Mural Crown pays for each general gained, and since batch DS2 cut
+    // its renown trickle it pays nothing to a seat that has gained none.
+    expect(worth('theMuralCrown')).toBe(0);
+    player.greatPeopleByFamily = { ...player.greatPeopleByFamily, general: 1 };
+    touch(state);
+    expect(worth('theMuralCrown')).toBeGreaterThan(0);
     // Valhalla counts Monuments, so it is worth something once there is one.
     expect(worth('valhalla')).toBe(0);
     addBuilding(state, capital, 'monument');

@@ -4,8 +4,9 @@
  * row against the sheet, and `test/fixtures/cardText.json` pins its words.
  * This file checks that the `garrisonWorks` rule does what the card says:
  *
- *   · each combat unit of the owner on a town's hex lets the town work one
- *     more hex, ships included, up to the row's `max` of two;
+ *   · a town with a combat unit of the owner on its hex works one more hex,
+ *     and a ship counts. The row's `max` is one since batch DS2, so a second
+ *     unit adds nothing (it was "one more hex for each unit, at most two");
  *   · a civilian or a great general adds nothing, and nothing changes without
  *     the card;
  *   · the extra hexes are filled after the citizens' hexes, eat no food, and
@@ -91,19 +92,20 @@ function worked(city: City): string[] {
 }
 
 describe('Dominion D13 — The Limitanei', () => {
-  it('is a rare Economic Order of Tier III with one rule, capped at two', () => {
+  it('is a rare Economic Order of Tier III with one rule, capped at one', () => {
     const def = orderDef(LIMITANEI);
     expect(def.band).toBe(3);
     expect(def.rarity).toBe('rare');
     expect(def.type).toBe('economic');
-    expect(def.effects).toEqual([{ kind: 'rule', rule: 'garrisonWorks', max: 2 }]);
+    expect(def.text).toBe('A garrisoned town works one more hex.');
+    expect(def.effects).toEqual([{ kind: 'rule', rule: 'garrisonWorks', max: 1 }]);
   });
 
-  it('says the rule and its cap in its words', () => {
+  it('says the rule in its words, as a town with a garrison', () => {
     const words = describeCard(LIMITANEI)
       .map((clause) => stripRefs(clause.text))
       .join(' | ');
-    expect(words).toBe('each military unit in one of your cities lets that city work one more hex, at most 2 more');
+    expect(words).toBe('a city with a unit stationed there works one more hex');
   });
 
   it('gives a soldier no hex without the card', () => {
@@ -114,7 +116,7 @@ describe('Dominion D13 — The Limitanei', () => {
     expect(city.workedTiles).toHaveLength(2);
   });
 
-  it('lets a land soldier work one more hex, and a ship in a coastal town a second', () => {
+  it('lets a garrisoned town work one more hex, and a ship beside the soldier adds no second', () => {
     const { state, city } = town(2);
     slot(state, LIMITANEI);
     stand(state, city, 'warrior');
@@ -124,11 +126,20 @@ describe('Dominion D13 — The Limitanei', () => {
 
     stand(state, city, 'trireme');
     refreshCityDerived(state, city);
-    expect(cardGarrisonSeats(state, city)).toBe(2);
-    expect(city.workedTiles).toHaveLength(4);
+    expect(cardGarrisonSeats(state, city)).toBe(1);
+    expect(city.workedTiles).toHaveLength(3);
   });
 
-  it('stops at two more, even with a third combat unit on the hex', () => {
+  it('counts a ship alone in a coastal town as its garrison', () => {
+    const { state, city } = town(2);
+    slot(state, LIMITANEI);
+    stand(state, city, 'trireme');
+    refreshCityDerived(state, city);
+    expect(cardGarrisonSeats(state, city)).toBe(1);
+    expect(city.workedTiles).toHaveLength(3);
+  });
+
+  it('stops at one more, even with three combat units on the hex', () => {
     // Stacking holds one land soldier and one ship, so a third piece is put
     // there directly. The cap still holds.
     const { state, city } = town(2);
@@ -137,8 +148,8 @@ describe('Dominion D13 — The Limitanei', () => {
     stand(state, city, 'trireme');
     stand(state, city, 'spearman');
     refreshCityDerived(state, city);
-    expect(cardGarrisonSeats(state, city)).toBe(2);
-    expect(city.workedTiles).toHaveLength(4);
+    expect(cardGarrisonSeats(state, city)).toBe(1);
+    expect(city.workedTiles).toHaveLength(3);
   });
 
   it('counts no civilian and no great general', () => {
@@ -216,7 +227,7 @@ describe('Dominion D13 — The Limitanei', () => {
     stand(state, city, 'warrior');
     stand(state, city, 'trireme');
     refreshCityDerived(state, city);
-    expect(countOf(state, 0, LIMITANEI, worked, city)).toBe(4);
+    expect(countOf(state, 0, LIMITANEI, worked, city)).toBe(3);
   });
 
   it('seats a soldier at the next assignment, not when it walks in, and drops the hex at the next one after it leaves', () => {

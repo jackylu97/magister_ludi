@@ -7,8 +7,8 @@
  *   · a card reads a unit's rank: The Tagmata's strength, The Keshik's movement,
  *     The Soldiers' Purse's upkeep (once per rank), and The Fabricae's town
  *     scope (a garrison holding a rank);
- *   · Interior Lines: a road step 40% cheaper, adding with Machinery's, and +4
- *     strength for an attacker that has not moved;
+ *   · Interior Lines: a road step 40% cheaper. Its +4 for an attacker that has
+ *     not moved was cut in batch DS2, with the condition it read;
  *   · The Marching Camps: an attack keeps the attacker's fortification;
  *   · The Swift Riders: a mounted attacker pays one point and keeps the rest;
  *   · The Varangian Guard: an Elite attacks exactly twice a turn, beside Blitz's
@@ -193,14 +193,11 @@ describe('Dominion D2 — Interior Lines', () => {
     expect(moveProfile(state, unit).roadStep).toBeCloseTo(base * 0.6, 10);
   });
 
-  it('gives +4 to an attacker that has not moved this turn, and nothing after it moves', () => {
+  it('gives no strength line since batch DS2, which cut the "has not moved" clause', () => {
     const state = flat();
     slot(state, 0, 'interiorLines');
     const unit = createUnit(state, 0, 'warrior', 4, 4);
     createUnit(state, 1, 'warrior', 5, 4);
-    expect(attackLine(state, unit, 5, 4, 'Interior Lines')).toBe(4);
-    unit.movesLeft = fullMovement(unit, state) - 1;
-    bumpRevision(state);
     expect(attackLine(state, unit, 5, 4, 'Interior Lines')).toBe(0);
   });
 });
@@ -373,10 +370,7 @@ describe('Dominion D2 — the words', () => {
     expect(said('theKeshik')).toEqual(['mounted units that are a Veteran or better: +1 movement']);
     // The road clause is said as the price of a step since D3 (the
     // coordinator's fix to the `roadStepCost` words).
-    expect(said('interiorLines')).toEqual([
-      'a step along a road costs 40% less movement',
-      '+4 combat strength when it has not moved this turn',
-    ]);
+    expect(said('interiorLines')).toEqual(['a step along a road costs 40% less movement']);
     expect(said('theVarangianGuard')).toEqual(['Elite units may attack twice a turn']);
     expect(said('theGreatBombards')).toEqual(['siege units break a town’s walls in one blow']);
   });

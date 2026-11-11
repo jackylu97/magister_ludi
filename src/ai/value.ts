@@ -2979,9 +2979,8 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // capture's own reading, the threat over the horizon.
       return war;
     case 'raze':
-    case 'rangedAttack':
-      // Dominion batch D5. Razing a captured town and shooting from range are
-      // both war's business, so they are read at the capture's rate.
+      // Dominion batch D5. Razing a captured town is war's business, so it is
+      // read at the capture's rate.
       return war;
     case 'draftPassed': {
       // Dominion batch D5. A pass is one of the two answers to a draft, so the
@@ -6644,16 +6643,15 @@ function scientificLinePoints(
 
 /**
  * **The share of fights a Scientific condition holds in**: The Edge of the
- * Sword's `vsFewerTechs` (`vsFewerTechsShare`), The Strategikon's
- * `nearLearning` and The Soldier-Scholars' `standingInOwnTown`, each at its
- * knob in `score.scientific`. Any other condition answers one.
+ * Sword's `vsFewerTechs` (`vsFewerTechsShare`) and The Strategikon's
+ * `nearLearning`, each at its knob in `score.scientific`. Any other condition
+ * answers one.
  */
 function scientificLineShare(when: CombatCondition, ctx: ValueContext): number {
   const knobs = ctx.ai.score.scientific;
   let share = 1;
   if (namesCondition(when, 'vsFewerTechs')) share *= vsFewerTechsShare(ctx);
   if (namesCondition(when, 'nearLearning')) share *= knobs.nearLearning;
-  if (namesCondition(when, 'standingInOwnTown')) share *= knobs.inOwnTown;
   return share;
 }
 
@@ -9643,8 +9641,9 @@ function turnShare(converts: number, population: number): number {
  *   · a founding's (The Parishes): `parishWorth`;
  *   · a death's (The Martyr's Crown): `fallenLumpWorth`;
  *   · a conversion's (Pentecost): `conversionLumpWorth`;
- *   · any other (The Crusader Orders' capture): the stand-in it had, for the
- *     reason the arm states.
+ *   · any other (a capture's, The Ribats since batch DS2 cut The Crusader
+ *     Orders' capture lump): the stand-in it had, for the reason the arm
+ *     states.
  */
 function pressureGrantWorth(
   grant: NonNullable<Extract<CardEffect, { kind: 'windfallRider' }>['grant']>,

@@ -250,8 +250,37 @@ describe('Dominion D3 — where a grant lands', () => {
     slot(state, 0, 'theOutriders');
     const before = [a.hammerBasket, b.hammerBasket];
     payWindfallGrants(state, playerById(state, 0)!, windfallPayout(state, 0, 'camp'), { col: 2, row: 3 });
-    expect(a.hammerBasket - before[0]!).toBe(8);
-    expect(b.hammerBasket - before[1]!).toBe(8);
+    // +10 since batch DS2, which also cut the discovery half.
+    expect(a.hammerBasket - before[0]!).toBe(10);
+    expect(b.hammerBasket - before[1]!).toBe(10);
+    expect(windfallPayoutIsEmpty(windfallPayout(state, 0, 'discovery'))).toBe(true);
+  });
+
+  it('Spoils of War pay 50 gold beside the salvage and 15 culture, on every pillage', () => {
+    // Batch DS2's new effect. The old card paid production to the nearest
+    // town and culture on the first pillage of a turn only. The grant is a
+    // rider of its own, so it lands in the treasury beside the salvage the
+    // pillage report prints.
+    const { state, raider, farm, home } = raid();
+    slot(state, 0, 'spoilsOfWar');
+    const player = playerById(state, 0)!;
+    const grants = (): [string, number][] =>
+      windfallPayout(state, 0, 'pillage').grants.map((line) => [line.yield, line.amount]);
+    expect(grants()).toEqual([
+      ['gold', 50],
+      ['culture', 15],
+    ]);
+    const gold = player.gold;
+    const hammers = home.hammerBasket;
+    const salvage = pillageAt(state, raider, farm).gold;
+    expect(player.gold - gold).toBe(salvage + 50);
+    expect(home.hammerBasket).toBe(hammers);
+    // The culture has no once-a-turn limit now, so the next raid in the same
+    // turn is paid it again.
+    expect(grants()).toEqual([
+      ['gold', 50],
+      ['culture', 15],
+    ]);
   });
 
   it('Armoury Guilds pay the nearest town with an Armoury, at the fallen unit’s strength', () => {
@@ -410,10 +439,8 @@ describe('Dominion D3 — the raider named on the occasion', () => {
 describe('Dominion D3 — the words', () => {
   it('describes each card in a first-time player’s words', () => {
     const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
-    expect(said('theOutriders')).toEqual([
-      'claiming a ruin grants +8 production to every city',
-      'clearing a barbarian camp grants +8 production to every city',
-    ]);
+    expect(said('theOutriders')).toEqual(['clearing a barbarian camp grants +10 production to every city']);
+    expect(said('spoilsOfWar')).toEqual(['pillaging grants +50 gold', 'pillaging grants +15 culture']);
     expect(said('armouryGuilds')).toEqual([
       'losing a unit grants production equal to its strength to your nearest city with an Armoury',
     ]);

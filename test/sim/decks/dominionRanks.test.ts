@@ -6,11 +6,12 @@
  *   · earning a rank is a moment: `settleRanksEarned` keeps the lifetime record
  *     (`Player.ranksEarned`), counts the tally and pays the riders on the
  *     `rankEarned` occasion, once for each rank, in a fight as well as anywhere
- *     else (Honours of the Legion, The Tactica, Up Through the Ranks, The
- *     Campaign Annals, The Veterans' Roll);
- *   · the drill phase: units in towns every four turns (The Drill Grounds),
- *     garrisoned units every turn (The Regimental Schools), units beside a
- *     great general (The Tactica), added up and written once;
+ *     else (Honours of the Legion, Up Through the Ranks, The Campaign Annals,
+ *     The Veterans' Roll);
+ *   · the drill phase: units in towns every third turn (The Drill Grounds),
+ *     units beside a great general (The Tactica), added up and written once.
+ *     The Regimental Schools drilled garrisoned units every turn until batch
+ *     DS2, and The Tactica paid science for a rank; both clauses are cut;
  *   · a unit gained with experience or a rank (The Training Cadre, The Drill
  *     Masters), which counts as earning the rank, and only for units gained;
  *   · a levy row with a town scope and a starting rank (The Devshirme), and the
@@ -129,9 +130,10 @@ describe('Dominion D1 — earning a rank is a moment', () => {
     const sc = player.statecraft;
     expect(tallyOf(sc, 'theCampaignAnnals' as OrderId)).toBe(2);
     // Honours of the Legion: science and culture equal to its strength, for
-    // each rank. The Tactica: 15 science for each rank.
+    // each rank. The Tactica paid 15 science for each rank until batch DS2
+    // cut that clause, so it is seated here and pays nothing.
     const strength = strengthOf(warrior);
-    expect(player.sciencePool - science).toBe(2 * strength + 2 * 15);
+    expect(player.sciencePool - science).toBe(2 * strength);
     expect(player.culturePool - culture).toBe(2 * strength);
     // Up Through the Ranks: 250 renown for the Elite alone, favouring generals.
     expect(player.renownEarned - renown).toBe(250);
@@ -240,7 +242,8 @@ describe('Dominion D1 — the drill', () => {
     expect(worker.experience).toBeUndefined();
   });
 
-  it('The Regimental Schools drill every garrisoned unit every turn and pay its town science', () => {
+  it('The Regimental Schools pay a town +3 science for each garrisoned unit, and drill nobody', () => {
+    // Batch DS2: +3 science, not +2, and the drill clause is cut.
     const state = flat();
     const city = foundCityAt(state, 0, at(state, 4, 4))!;
     slot(state, 0, 'theRegimentalSchools');
@@ -249,19 +252,23 @@ describe('Dominion D1 — the drill', () => {
     expect(science()).toBe(0);
     const soldier = createUnit(state, 0, 'warrior', city.col, city.row);
     bumpRevision(state);
-    expect(science()).toBe(2);
+    expect(science()).toBe(3);
     state.turn = 7;
     drillUnits(state);
     state.turn = 8;
     drillUnits(state);
-    expect(soldier.experience).toBe(2);
+    expect(soldier.experience).toBeUndefined();
   });
 
   it('adds two drills on one turn and announces the rank once', () => {
+    // The Drill Grounds drill the soldier in its town, and The Tactica drill
+    // it again because a great general stands on the same hex. (The Regimental
+    // Schools were the second drill until batch DS2.)
     const state = flat();
     const city = foundCityAt(state, 0, at(state, 4, 4))!;
     slot(state, 0, 'theDrillGrounds');
-    slot(state, 0, 'theRegimentalSchools');
+    slot(state, 0, 'theTactica');
+    createUnit(state, 0, 'greatPerson', city.col, city.row, GENERAL);
     const soldier = createUnit(state, 0, 'warrior', city.col, city.row);
     soldier.experience = VETERAN - 2;
     state.turn = 9;

@@ -11,7 +11,8 @@
  *     upkeep (readings 1 and 9);
  *   · The Camp Chaplains: faith equal to the strength of a unit killed or lost.
  *     The loss is The Funeral Games' old line;
- *   · The Bards' Praise: 30 culture for a camp;
+ *   · The Bards' Praise: culture for a kill. Its 30 culture for a camp was cut
+ *     in batch DS2;
  *   · The Champion's Portion: renown equal to the strength of a unit killed,
  *     the wild's units included, favouring great generals (reading 26).
  *
@@ -27,8 +28,9 @@
  *   · The Castle Demesne: food and production on a citadel hex;
  *   · The Spartan Discipline: faster military units, slower buildings, the
  *     Magnum Opus included and wonders spared (reading 32);
- *   · The Naadam: culture and happiness for each pasture and camp in a town's
- *     borders, worked or not (reading 28);
+ *   · The Naadam: culture on each pasture and camp hex. Until batch DS2 it
+ *     paid the town culture and happiness for each one in its borders, worked
+ *     or not (reading 28);
  *   · The Tributary Kings: the capital paid for each citizen of your puppets
  *     (reading 30);
  *   · The Roll of Triumphs: a percentage for each great general gained
@@ -301,21 +303,22 @@ describe('Dominion D9 — the moments', () => {
     expect(seat(state, 0).faithPool).toBe(before + strengthOf('spearman'));
   });
 
-  it('The Bards’ Praise grants 30 culture for a camp, and culture equal to the strength of a unit killed', () => {
+  it('The Bards’ Praise grants culture equal to the strength of a unit killed, and nothing for a camp', () => {
+    // Batch DS2 cut the camp clause, so a cleared camp pays the card nothing.
     const state = flat(false);
     slot(state, BARDS);
-    expect(granted(state, 'camp')).toEqual([{ yield: 'culture', amount: 30 }]);
+    expect(granted(state, 'camp')).toEqual([]);
     expect(granted(state, 'kill', 8)).toEqual([{ yield: 'culture', amount: 8 }]);
     expect(granted(state, 'death', 8)).toEqual([]);
     foundCityAt(state, 0, at(state, 2, 2));
     createUnit(state, 0, 'warrior', 3, 3);
     const player = seat(state, 0);
     player.culturePool = 0;
-    // A draft offer is waiting, so the culture stays banked where the test can
-    // read it instead of buying the next draft.
+    // A draft offer is waiting, so any culture would stay banked where the
+    // test can read it instead of buying the next draft.
     player.statecraft.pendingOrder = { options: [] };
     settleCampBounty(state, 0, { col: 3, row: 3 });
-    expect(player.culturePool).toBe(30);
+    expect(player.culturePool).toBe(0);
   });
 
   it('The Champion’s Portion grants renown equal to the strength of a unit killed, the wild’s included, favouring great generals', () => {
@@ -512,7 +515,9 @@ describe('Dominion D10: towns', () => {
     expect(buildPercent(state, city, item('building', WONDER_IDS[0]!), SPARTAN)).toBe(0);
   });
 
-  it('The Naadam: +2 culture and +1 happiness for each pasture and camp in a town’s borders, worked or not', () => {
+  it('The Naadam: +2 culture on each pasture and camp hex, and no happiness', () => {
+    // Batch DS2: the culture is the hex's own line now, so a town is paid it
+    // for the hexes it works, and the happiness clause is cut.
     const state = flat(false);
     const herders = foundCityAt(state, 0, at(state, 4, 4))!;
     const farmers = foundCityAt(state, 0, at(state, 12, 6))!;
@@ -522,15 +527,15 @@ describe('Dominion D10: towns', () => {
     raiseImprovement(second!, 'pasture', state.turn);
     raiseImprovement(third!, 'camp', state.turn);
     raiseImprovement(fourth!, 'farm', state.turn);
-    raiseImprovement(ringOf(state, farmers)[0]!, 'farm', state.turn);
+    const field = ringOf(state, farmers)[0]!;
+    raiseImprovement(field, 'farm', state.turn);
     bumpRevision(state);
-    expect(cityPaid(state, herders, NAADAM, 'culture')).toBe(6);
-    expect(cityPaid(state, farmers, NAADAM, 'culture')).toBe(0);
-    expect(meterPaid(cardHappiness(state, 0), NAADAM)).toBe(3);
-    // A barbarian camp is not the improvement: nothing stands on the hex.
-    state.camps.push({ col: 15, row: 9 } as GameState['camps'][number]);
-    bumpRevision(state);
-    expect(meterPaid(cardHappiness(state, 0), NAADAM)).toBe(3);
+    for (const herd of [first!, second!, third!]) expect(hexPaid(state, herd, NAADAM).culture).toBe(2);
+    expect(hexPaid(state, fourth!, NAADAM).culture).toBe(0);
+    expect(hexPaid(state, field, NAADAM).culture).toBe(0);
+    // No town-level line and no happiness line any more.
+    expect(cityPaid(state, herders, NAADAM, 'culture')).toBe(0);
+    expect(meterPaid(cardHappiness(state, 0), NAADAM)).toBe(0);
   });
 
   it('The Tributary Kings: the capital gains +1 production and +1 gold for each citizen in your puppets', () => {

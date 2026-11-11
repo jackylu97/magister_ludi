@@ -310,7 +310,6 @@ import { townShelf } from './statecraft/evaluator';
 import {
   assignCitizens,
   cityAt,
-  payOccasionRiders,
   settleProductionWindfall,
   settleRanksEarned,
 } from './cities';
@@ -2045,13 +2044,6 @@ function planCombat(
     // Weight of Numbers (Dominion batch D8): what the attacker is striking, by
     // its entity id (`strikeTargetId`). The defender's side names no target.
     ...(side === 'attacker' ? { targetId: strikeTargetId(target) } : {}),
-    // Interior Lines (Dominion batch D2): the piece still has its whole
-    // allowance. A comparison from another hex (`stance`) imagines the
-    // attacker's turn still ahead of it, so it has not moved there.
-    unmoved:
-      side === 'attacker' && stance !== undefined
-        ? true
-        : unit.movesLeft >= fullMovement(unit, state),
   });
   for (const line of cardCombatLines(state, situationFor(attacker, 'attacker'))) {
     bonuses.push({ source: line.source, side: 'attacker', amount: line.amount });
@@ -3264,14 +3256,6 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       );
       settleRanksEarned(state, target.unit, ranks);
     }
-  }
-
-  // **An attack from range is a moment the cards pay on** (Dominion batch D5,
-  // The Longbowmen's culture), whatever it hit, with the attacker as the
-  // actor. The wild is paid nothing.
-  if (forecast.kind === 'ranged') {
-    const shooter = playerById(state, attacker.ownerId);
-    if (shooter) payOccasionRiders(state, shooter, 'rangedAttack', tile, { actor: attacker.type });
   }
 
   updateElimination(state);

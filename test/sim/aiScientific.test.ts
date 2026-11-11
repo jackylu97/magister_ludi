@@ -813,9 +813,10 @@ describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
   it('prices the Scientific combat conditions at their shares', () => {
     const { state, player } = board(1, 20);
     const ctx = valueContext(state, player);
-    const scholars = orderDef('scientificTheSoldierScholars' as OrderId).effects[0]!;
+    // The Soldier-Scholars' strength line, the third condition priced here, was
+    // cut in batch DS2 with its condition. The Hoplite's line below still reads
+    // the `inOwnTown` share.
     const strategikon = orderDef('theStrategikon' as OrderId).effects[0]!;
-    expect(scoreEffects([scholars], ctx)).toBe(strength(ctx, 5) * 1 * SCIENTIFIC.inOwnTown);
     expect(scoreEffects([strategikon], ctx)).toBe(strength(ctx, 4) * 1 * SCIENTIFIC.nearLearning);
     // The Edge of the Sword: nothing with nobody met, then the share of the
     // met empires that know fewer technologies.

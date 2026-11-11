@@ -2214,8 +2214,13 @@ function describeEffect(
         return;
       }
       // The Limitanei (Dominion batch D13): the cap on the extra hexes is said
-      // after the towns the row names.
+      // after the towns the row names. A cap of one is the same as "a town with
+      // a garrison works one more hex" (batch DS2), so it is said that way.
       if (effect.rule === 'garrisonWorks' && effect.class === undefined && effect.rank === undefined) {
+        if (effect.max === 1) {
+          out.push({ text: `a city with a unit stationed there works one more hex${inTowns}` });
+          return;
+        }
         const cap = effect.max === undefined ? '' : `, at most ${effect.max} more`;
         out.push({ text: `${FLAG_RULE_WORDS[effect.rule]}${inTowns}${cap}` });
         return;
@@ -5441,22 +5446,11 @@ function scopeCondition(scope: CityScope): string {
 
 export function filterWords(filter: UnitFilter): string {
   const noun = unitNounWords(filter);
-  // The unit's age (Dominion batch D7, The Spear Makers) goes in front of the
-  // noun as an adjective: "first- and second-age military units".
-  const aged = filter.ageAtMost === undefined ? noun : `${ageWords(filter.ageAtMost)} ${noun}`;
   // The owner's newest age (Scientific batch S9, The Armoury Patterns) goes
-  // after it: "units of the newest age you know". A filter that says nothing
-  // else is "units", not "all units", because the age narrows it.
-  if (filter.newestAge !== true) return aged;
-  return `${aged === 'all units' ? 'units' : aged} of the newest age you know`;
-}
-
-/** The ages up to `last`, as one adjective: "first-age", "first- and second-age". */
-function ageWords(last: number): string {
-  const ordinals = ['first', 'second', 'third', 'fourth'].slice(0, Math.max(1, last));
-  if (ordinals.length === 1) return `${ordinals[0]}-age`;
-  const head = ordinals.slice(0, -1).map((word) => `${word}-`);
-  return `${head.join(', ')} and ${ordinals[ordinals.length - 1]}-age`;
+  // after the noun: "units of the newest age you know". A filter that says
+  // nothing else is "units", not "all units", because the age narrows it.
+  if (filter.newestAge !== true) return noun;
+  return `${noun === 'all units' ? 'units' : noun} of the newest age you know`;
 }
 
 /** `filterWords` without the age: the noun phrase for the kind of unit. */
@@ -6058,9 +6052,8 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   vsOpusBuilder: 'against an empire raising the Magnum Opus',
   notFollowingTerritory: 'inside cities that do not follow your religion',
   // Dominion batch D2. The rank is printed by `combatWhenWords`, `onFeature`'s
-  // bargain; the movement condition is a whole phrase.
+  // bargain.
   hasRank: 'as',
-  unmoved: 'when it has not moved this turn',
   // Dominion batch D5, The Landsturm.
   besideGreatGeneral: 'beside a great general',
   // Dominion batch D15, The Upstarts: `vsFewerTechs` the other way round.
@@ -6074,9 +6067,6 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   // Scientific batch S9, The Strategikon. The distance, the people and the
   // work are printed by `combatWhenWords`, `withinOfCity`'s bargain.
   nearLearning: 'while within',
-  // Scientific batch S9, The Soldier-Scholars. The words `inCity` uses, because
-  // to a player the two read as the same hex; this one pays in attack too.
-  standingInOwnTown: 'while standing in one of your cities',
   // Magisterial batch MG9, The Custodians. Whose work it is does not matter,
   // so the words name no owner.
   standingOnWork: 'while standing on a great-person work',
@@ -6307,7 +6297,6 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   // Dominion batch D5.
   draftPassed: 'passing on an Order hand',
   raze: 'razing a city you captured',
-  rangedAttack: 'attacking from range',
   greatPersonGained: 'gaining a great person',
   // Dominion batch D6, War Reparations and Danegeld.
   peace: 'making peace',

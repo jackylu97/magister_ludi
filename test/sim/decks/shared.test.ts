@@ -206,8 +206,11 @@ describe('the shared cards of the four approved decks', () => {
     for (const id of ['lettersOfMarque', 'commonTheTithe']) {
       const kinds = orderDef(id as OrderId).effects.map((effect) => effect.kind);
       expect(kinds, id).not.toContain('purchaseRider');
-      expect(kinds, id).toContain('percentYields');
     }
+    expect(orderDef('commonTheTithe' as OrderId).effects.map((effect) => effect.kind)).toContain('percentYields');
+    // Batch DS2 cut Letters of Marque's harbour gold with its other harbour
+    // clause, so only the kill reward is left.
+    expect(orderDef('lettersOfMarque' as OrderId).effects.map((effect) => effect.kind)).toEqual(['windfallRider']);
   });
 });
 
@@ -248,7 +251,11 @@ describe('The Oriflamme: strength beside a religious unit', () => {
     expect(strength(g.state, here, 'theOriflamme')).toBe(4);
   });
 
-  it('also lights The Escorted Roads’ ship line, which counted only fighters before', () => {
+  it('gives a ship beside a trader nothing under The Escorted Roads since batch DS2', () => {
+    // The Escorted Roads' ship line was the other row whose `beside` counted a
+    // piece that does not fight. Batch DS2 cut that clause. The apostle in the
+    // test above is a piece that does not fight too, so the reading is still
+    // covered.
     const g = duel();
     capital(g);
     seat(g.state, ['commonTheEscortedRoads']);
@@ -259,7 +266,7 @@ describe('The Oriflamme: strength beside a religious unit', () => {
     const ship = createUnit(g.state, 0, 'trireme' as never, sea.col, sea.row);
     createUnit(g.state, 0, 'trader' as never, shore.col, shore.row);
     bumpRevision(g.state);
-    expect(strength(g.state, fight(ship, sea), 'commonTheEscortedRoads')).toBe(2);
+    expect(strength(g.state, fight(ship, sea), 'commonTheEscortedRoads')).toBe(0);
   });
 });
 
@@ -280,12 +287,14 @@ describe('The Crusader Orders', () => {
     expect(strength(g.state, fight(soldier, ground), 'theCrusaderOrders')).toBe(0);
   });
 
-  it('presses your religion on a city you capture, and only on that city', () => {
+  it('presses nothing on a city you capture since batch DS2', () => {
+    // The capture clause was cut. The shape it used, a pressure lump on a
+    // capture, is still carried by a Devotion row.
     const g = duel();
     capital(g);
     seat(g.state, ['theCrusaderOrders']);
     const payout = windfallPayout(g.state, 0, 'capture');
-    expect(payout.pressure.map((lump) => [lump.amount, lump.range])).toEqual([[30, 0]]);
+    expect(payout.pressure).toEqual([]);
   });
 });
 
@@ -386,19 +395,18 @@ describe('Rites of Passage and The Sacred Host', () => {
     expect(player.faithPool - before).toBe(12);
   });
 
-  it('opens faith purchases of soldiers in Temple towns, and pays faith for a kill', () => {
+  it('pays faith for a kill, and opens no faith purchases since batch DS2', () => {
+    // The Sacred Host sold soldiers for faith in Temple towns until batch DS2
+    // cut that clause. The Shrine Guards still sell melee units for faith.
     const g = duel();
     const city = capital(g);
     seat(g.state, ['theSacredHost']);
     const player = playerById(g.state, 0)!;
     player.faithPool = 10_000;
     clearTown(g.state, city);
-    const ask = (): string | null =>
-      purchaseError(g.state, 0, city.id, { kind: 'unit', id: 'warrior' }, 'faith');
-    expect(ask()).not.toBeNull();
     city.buildings.push('temple' as never);
     bumpRevision(g.state);
-    expect(ask()).toBeNull();
+    expect(purchaseError(g.state, 0, city.id, { kind: 'unit', id: 'warrior' }, 'faith')).not.toBeNull();
     expect(windfallPayout(g.state, 0, 'kill').grants).toEqual([
       expect.objectContaining({ yield: 'faith', amount: 15 }),
     ]);

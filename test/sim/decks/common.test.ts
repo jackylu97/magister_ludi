@@ -354,28 +354,22 @@ describe('the third position, dealt to a two-deck seat', () => {
  * knows where the change came from.
  */
 describe('C2 — the two shared rows', () => {
-  it('lights Letters of Marque for both its decks, with all three halves written', () => {
+  it('lights Letters of Marque for both its decks, with its one effect written', () => {
     const def = orderDef('lettersOfMarque' as OrderId);
     expect(def.decks).toEqual(['dominion', 'commerce']);
     expect(def.deferred).toBeUndefined();
     expect(orderIsDealt('lettersOfMarque' as OrderId)).toBe(true);
-    // A kill by one of this empire's ships, more gold in a harbour town (the
-    // purchase discount until ruling (qqqqqq) 1, batch S), and a penalty on
-    // that same town's yards.
-    expect(def.effects.map((effect) => effect.kind)).toEqual([
-      'windfallRider',
-      'percentYields',
-      'productionBonus',
+    // A kill by one of this empire's ships. Batch DS2 cut the harbour town's
+    // gold and the penalty on its yards, so three effects became one.
+    expect(def.text).toBe('Naval kills grant 60 gold.');
+    expect(def.effects).toEqual([
+      {
+        kind: 'windfallRider',
+        occasion: 'kill',
+        class: { category: 'naval' },
+        grant: { yield: 'gold', amount: 60 },
+      },
     ]);
-    for (const effect of def.effects) {
-      if (effect.kind === 'windfallRider') {
-        expect(effect.occasion).toBe('kill');
-        expect(effect.class).toEqual({ category: 'naval' });
-      }
-      if (effect.kind === 'percentYields' || effect.kind === 'productionBonus') {
-        expect(effect.scope).toEqual({ test: 'hasBuilding', building: 'harbour' });
-      }
-    }
   });
 
   it('lights The Exchange of Discoveries as two hex lines, the second scoped', () => {

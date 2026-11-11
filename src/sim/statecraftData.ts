@@ -1647,19 +1647,6 @@ export type CombatCondition =
    */
   | { test: 'hasRank'; rank: RankId }
   /**
-   * **This piece has not moved this turn** — Interior Lines' "a unit that has
-   * not moved this turn gains +4 strength when attacking" (Dominion batch D2).
-   *
-   * Read as the piece still having its full movement allowance, which is the
-   * triage's reading 22 (`docs/plans/dominion-build-triage.md`): nothing new is
-   * recorded, because a piece that walked has spent movement and a piece that
-   * has not walked has not. `planCombat` fills it in on the situation
-   * (`CombatSituation.unmoved`), since the allowance is `units.ts`' figure. A
-   * comparison from a hex the piece is not on imagines its turn still ahead of
-   * it (`CombatStance`), so there it holds.
-   */
-  | { test: 'unmoved' }
-  /**
    * The contested hex is within `hexes` of one of this player's **cities** —
    * Deborah under the palm, judging Israel within sight of her own people.
    *
@@ -1824,20 +1811,10 @@ export type CombatCondition =
    */
   | { test: 'nearLearning'; hexes: number; families: Family[]; improvement: ImprovementId }
   /**
-   * **This side's piece stands in a town of its own empire** (Scientific batch
-   * S9, the shared The Soldier-Scholars; the triage's reading 9).
-   *
-   * `inCity` asks about the contested hex, which is the defender's own, so a
-   * row written `inCity` is a defence line. This reads the hex the piece
-   * stands on, as `standingIn` does, so with `side: 'both'` it pays a fight
-   * the piece takes from its town, in attack and in defence.
-   */
-  | { test: 'standingInOwnTown' }
-  /**
    * **This side's piece stands on a hex carrying a great-person work**
    * (Magisterial batch MG9, The Custodians; the triage's reading 30).
    *
-   * It reads the hex the piece stands on, as `standingInOwnTown` does: the
+   * It reads the hex the piece stands on, as `standingIn` does: the
    * contested hex for a defender, and its own hex for an attacker. Any of the
    * six works counts (`isGreatPersonWork`, the `greatWork` tile test's
    * reading), whoever owns the hex and whoever laid the work.
@@ -2063,13 +2040,6 @@ export interface UnitFilter {
    * row carries one of them.
    */
   religious?: boolean;
-  /**
-   * Only units of **this age or earlier** (Dominion batch D7, The Spear Makers'
-   * "first- and second-age military units"). A unit's age is the age of the
-   * technology that unlocks it, and a unit no technology unlocks is first-age
-   * (the triage's reading 12).
-   */
-  ageAtMost?: number;
   /**
    * One **named** roster row, and nothing else — State Workforce's cheaper
    * worker (tree revision 4, 2026-09-02).
@@ -5871,12 +5841,6 @@ export type WindfallOccasion =
    * Razing a town the empire founded pays nothing.
    */
   | 'raze'
-  /**
-   * One of this empire's units **attacked from range** (Dominion batch D5): The
-   * Longbowmen's culture. Paid by `applyCombat` (`combat.ts`) for every ranged
-   * attack, whatever it hit, with the attacker as `actor`.
-   */
-  | 'rangedAttack'
   /**
    * This empire **gained a great person** (Dominion batch D5): The Mural Crown.
    * Paid by `settleGreatPersonChoice` (`greatPeople.ts`), the one place a great

@@ -248,14 +248,16 @@ describe('Dominion D4: the counts over this game', () => {
     expect(percentOf(state, home, 'production')).toBe(30);
   });
 
-  it('Spear-won Land pays +3% for every town captured, at most +30%', () => {
+  it('Spear-won Land pays +3% for every town captured, with no cap', () => {
+    // Batch DS2 cut the +30% cap: conquest limits itself.
     const { state, home } = captured({ orders: ['spearWonLand'] });
     expect(playerById(state, 0)!.citiesCaptured).toBe(1);
     expect(percentOf(state, home, 'production')).toBe(3);
     expect(percentOf(state, home, 'science')).toBe(3);
     playerById(state, 0)!.citiesCaptured = 20;
     touch(state);
-    expect(percentOf(state, home, 'science')).toBe(30);
+    expect(percentOf(state, home, 'science')).toBe(60);
+    expect(percentOf(state, home, 'production')).toBe(60);
   });
 });
 
@@ -295,7 +297,8 @@ describe('Dominion D4: pacification', () => {
     expect(player.sciencePool - before).toBe(20 * city.population);
   });
 
-  it('The Bakufu: a great general on the town’s own hex pays +25% and pacifies it at once; one beside it does not', () => {
+  it('The Bakufu: a great general on the town’s own hex pays +25%, one beside it does not, and neither pacifies it', () => {
+    // Batch DS2 cut the card's "pacifies it at once" clause.
     const beside = captured({ orders: ['theBakufu'] });
     createUnit(beside.state, 0, 'greatPerson', 7, 4, 'hannibal');
     touch(beside.state);
@@ -311,8 +314,8 @@ describe('Dominion D4: pacification', () => {
     expect(inside.city.unrest!.progress).toBe(0);
     const reports: UnrestReport[] = [];
     runUnrest(inside.state, reports, () => null);
-    expect(inside.city.unrest).toBeUndefined();
-    expect(reports.map((report) => report.kind)).toEqual(['pacified']);
+    expect(inside.city.unrest).toBeDefined();
+    expect(reports.map((report) => report.kind)).not.toContain('pacified');
   });
 
   it('Pax Romana ends the unrest at the moment of capture, and the census pays at once', () => {
@@ -326,14 +329,15 @@ describe('Dominion D4: pacification', () => {
     expect(plain.science).toBe(0);
   });
 
-  it('Pax Romana makes a captured town cost one less writ', () => {
+  it('Pax Romana leaves what a captured town costs alone', () => {
     // A town taken here is a puppet, so it costs the captured price less the
-    // puppet's relief; Pax Romana takes one more off the captured price.
+    // puppet's relief. Pax Romana took one more off the captured price until
+    // batch DS2 cut that clause; Hegemony keeps it.
     const plain = captured();
     const roman = captured({ orders: ['paxRomana'] });
     expect(plain.city.puppet).toBe(true);
     expect(townWrit(plain.state, plain.city)).toBeGreaterThanOrEqual(2);
-    expect(townWrit(roman.state, roman.city)).toBe(townWrit(plain.state, plain.city) - 1);
+    expect(townWrit(roman.state, roman.city)).toBe(townWrit(plain.state, plain.city));
   });
 
   it('The Consular Roads: a town joined to the capital by road and garrisoned pays +5 and is pacified at once', () => {
@@ -410,21 +414,16 @@ describe('Dominion D4: the words', () => {
       'pacifying a city grants science equal to 20 times its population',
     ]);
     expect(said('spearWonLand')).toEqual([
-      '+3% production per city you have captured this game (at most +30% production)',
-      '+3% science per city you have captured this game (at most +30% science)',
+      '+3% production per city you have captured this game',
+      '+3% science per city you have captured this game',
     ]);
     expect(said('theBakufu')).toEqual([
       '+25% science in every city with a great general standing in it',
       '+25% culture in every city with a great general standing in it',
-      'unrest ends at once in every city with a great general standing in it',
     ]);
-    expect(said('paxRomana')).toEqual([
-      'a city you capture is pacified at once',
-      'the authority a captured city costs falls by 1',
-    ]);
+    expect(said('paxRomana')).toEqual(['a city you capture is pacified at once']);
     expect(said('dominionTheProconsuls')).toEqual([
       'the authority a captured city with a unit standing in it costs is 0',
-      'every captured city with a unit standing in it: +10 city defence',
     ]);
     expect(said('theConsularRoads')).toEqual([
       '+5 science, +5 culture in every city joined to your capital by road with a unit standing in it',

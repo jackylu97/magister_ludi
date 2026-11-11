@@ -63,20 +63,13 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "Where the guard walks, the merchant does not hurry.",
-      "text": "Routes whose origin has a garrison gain +5 gold. Naval units gain +2 strength while adjacent to one of your traders.",
+      "text": "Trade routes from a garrisoned town gain +5 gold.",
       "effects": [
         {
           "kind": "pays",
           "where": "route",
           "gold": 5,
           "origin": { "test": "garrisoned" }
-        },
-        {
-          "kind": "combatLine",
-          "amount": 2,
-          "side": "both",
-          "when": { "test": "beside", "class": { "category": "trader" } },
-          "class": { "category": "naval" }
         }
       ]
     },
@@ -91,7 +84,7 @@
       "rarity": "rare",
       "type": "economic",
       "flavor": "A signature turns a pirate into a patriot.",
-      "text": "Naval combat kills grant 60 gold. Cities with a Harbour gain +38% gold, but produce naval combat units 20% more slowly.",
+      "text": "Naval kills grant 60 gold.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -103,30 +96,9 @@
             "yield": "gold",
             "amount": 60
           }
-        },
-        {
-          "kind": "percentYields",
-          "yield": "gold",
-          "percent": 38,
-          "scope": {
-            "test": "hasBuilding",
-            "building": "harbour"
-          }
-        },
-        {
-          "kind": "productionBonus",
-          "category": "unit",
-          "class": {
-            "category": "naval"
-          },
-          "percent": -20,
-          "scope": {
-            "test": "hasBuilding",
-            "building": "harbour"
-          }
         }
       ],
-      "note": "The coin is for a kill made by one of your ships, wherever it happens. The extra gold and the slower shipyards both belong to the cities that have a Harbour."
+      "note": "The coin is for a kill made by one of your ships, wherever it happens."
     },
     "commonRitesOfPassage": {
       "name": "Rites of Passage",
@@ -165,19 +137,8 @@
       "rarity": "rare",
       "type": "military",
       "flavor": "An army that prays is an army twice fed.",
-      "text": "Military units may be purchased with faith in cities with a Temple at the escalating conversion price. Combat kills grant 15 faith.",
+      "text": "Kills grant 15 faith.",
       "effects": [
-        {
-          "kind": "rule",
-          "rule": "faithBuysUnits",
-          "class": {
-            "category": "military"
-          },
-          "scope": {
-            "test": "hasBuilding",
-            "building": "temple"
-          }
-        },
         {
           "kind": "windfallRider",
           "occasion": "kill",
@@ -186,8 +147,7 @@
             "amount": 15
           }
         }
-      ],
-      "note": "A soldier bought with faith costs what it would cost to build, converted at the faith rate."
+      ]
     },
     "fieldAcademies": {
       "name": "Field Academies",
@@ -197,20 +157,13 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Every campaign is a lecture somebody survived.",
-      "text": "Your first combat kill each turn grants 23 science. Cities with a Library produce siege units 38% faster.",
+      "text": "Your first kill each turn grants 25 science.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "kill",
           "oncePerTurn": true,
-          "grant": { "yield": "science", "amount": 23 }
-        },
-        {
-          "kind": "productionBonus",
-          "category": "unit",
-          "percent": 38,
-          "class": { "modelClass": "siege" },
-          "scope": { "test": "hasBuilding", "building": "library" }
+          "grant": { "yield": "science", "amount": 25 }
         }
       ]
     },
@@ -306,7 +259,7 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "The realm asks its questions in writing, and keeps the answers.",
-      "text": "Cities with a Monument and a garrison gain +2 science and +2 culture per three citizens. Ungarrisoned cities receive no bonus.",
+      "text": "Garrisoned towns gain +1 science and +1 culture for every three citizens.",
       "effects": [
         {
           "kind": "pays",
@@ -316,14 +269,8 @@
           "within": "city",
           "per": 3,
           "to": "science",
-          "amount": 2,
-          "scope": {
-            "test": "all",
-            "of": [
-              { "test": "hasBuilding", "building": "monument" },
-              { "test": "garrisoned" }
-            ]
-          }
+          "amount": 1,
+          "scope": { "test": "garrisoned" }
         },
         {
           "kind": "pays",
@@ -333,14 +280,8 @@
           "within": "city",
           "per": 3,
           "to": "culture",
-          "amount": 2,
-          "scope": {
-            "test": "all",
-            "of": [
-              { "test": "hasBuilding", "building": "monument" },
-              { "test": "garrisoned" }
-            ]
-          }
+          "amount": 1,
+          "scope": { "test": "garrisoned" }
         }
       ]
     },
@@ -972,7 +913,7 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "They took vows, and then they took the coast.",
-      "text": "Military units gain +3 strength in territory not following your religion. Capturing a city presses your religion into it.",
+      "text": "Military units gain +3 strength in land that does not follow your religion.",
       "effects": [
         {
           "kind": "combatLine",
@@ -984,19 +925,8 @@
           "class": {
             "category": "military"
           }
-        },
-        {
-          "kind": "windfallRider",
-          "occasion": "capture",
-          "grant": {
-            "pressure": {
-              "amount": 30,
-              "range": 0
-            }
-          }
         }
-      ],
-      "note": "Taking a city presses your religion on it once, as a prophet would; whether it converts depends on the faith already there. An empire with no religion presses nothing."
+      ]
     },
     "theGrainExchange": {
       "name": "The Grain Exchange",
@@ -1220,7 +1150,7 @@
       "rarity": "common",
       "type": "military",
       "flavor": "Every new wall needs a spear behind it.",
-      "text": "Each town you found starts with the best melee unit you can build standing in it.",
+      "text": "Each town you found starts with a melee unit.",
       "effects": [
         { "kind": "foundingRider", "unit": "bestMelee" }
       ]
@@ -1416,7 +1346,7 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "Where the raiders camped, the farmers follow.",
-      "text": "Clearing a barbarian camp claims the camp's hex and every unowned hex around it for your nearest town within five hexes.",
+      "text": "Clearing a barbarian camp claims its hex and the unowned hexes around it.",
       "effects": [
         {
           "kind": "rule",
@@ -1643,7 +1573,7 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "A company with a charter, a flag and its own soldiers.",
-      "text": "Once drafted, unlock the Company Guard, a unique gunpowder-age melee unit that can only be bought with gold, in cities with a Barracks. No chair required.",
+      "text": "Charter. Unlocks the Company Guard, a melee unit you buy with gold.",
       "effects": [],
       "charter": {
         "unlocks": {
@@ -1688,7 +1618,7 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "Put down the sickle and pick up the other thing.",
-      "text": "Cities of at least five citizens may spend one citizen to muster their best legally available melee unit. This shares the city's five-turn levy limit. The unit counts as trained.",
+      "text": "Towns of 5 or more citizens may spend a citizen to raise a melee unit.",
       "effects": [
         { "kind": "levy", "use": "muster", "minPopulation": 5 }
       ]
@@ -1718,7 +1648,7 @@
       "rarity": "common",
       "type": "military",
       "flavor": "The sword is carried before the ruler, and a soldier walks behind it.",
-      "text": "On draft: the best melee unit you can build is trained in your capital. It costs no upkeep. Seated, this card does nothing.",
+      "text": "Boon. On draft: gain the best melee unit you can build. It costs no upkeep.",
       "onDraft": [{ "grant": "unit", "unit": "bestMelee" }],
       "effects": []
     },
@@ -1750,7 +1680,7 @@
       "rarity": "rare",
       "type": "wildcard",
       "flavor": "A conquered city is a chance to write the law again.",
-      "text": "Capturing a city opens a draft at once, at no culture cost. This can happen at most once every ten turns.",
+      "text": "Capturing a city deals you a free Order hand, at most once every ten turns.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -1785,10 +1715,9 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "The soldier who tills the field defends it best.",
-      "text": "Hexes with a fortified military unit gain +1 food and +1 production. Fortified units gain +2 strength.",
+      "text": "Hexes with a fortified unit gain +1 food and +1 production.",
       "effects": [
-        { "kind": "pays", "where": "hex", "food": 1, "production": 1, "on": { "test": "fortifiedUnit" } },
-        { "kind": "combatLine", "amount": 2, "side": "both", "when": { "test": "fortified" } }
+        { "kind": "pays", "where": "hex", "food": 1, "production": 1, "on": { "test": "fortifiedUnit" } }
       ]
     },
     "booksFromTheShips": {
@@ -1851,15 +1780,8 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "The garrison keeps the library, and reads it on the long watches.",
-      "text": "Your military units in your towns gain +5 strength, and each supplies +2 science.",
+      "text": "Each military unit in your towns gives +2 science.",
       "effects": [
-        {
-          "kind": "combatLine",
-          "amount": 5,
-          "side": "both",
-          "class": { "category": "military" },
-          "when": { "test": "standingInOwnTown" }
-        },
         { "kind": "pays", "where": "city", "basis": "count", "to": "science", "amount": 2, "count": "garrison" }
       ]
     },
@@ -1949,16 +1871,9 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "Not raised for a war. Simply raised.",
-      "text": "Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units.",
+      "text": "Garrisoned units cost no upkeep.",
       "effects": [
-        { "kind": "upkeepRebate", "free": true, "where": "garrison" },
-        {
-          "kind": "productionBonus",
-          "category": "unit",
-          "percent": 30,
-          "class": { "category": "military" },
-          "scope": { "test": "hasBuilding", "building": "barracks" }
-        }
+        { "kind": "upkeepRebate", "free": true, "where": "garrison" }
       ]
     },
     "theArtDealers": {

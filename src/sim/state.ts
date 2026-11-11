@@ -307,8 +307,26 @@ import {
  * **A v230 save is refused and does not replay.** A logged adoption seats a different
  * council and pays different yields. The branch migrates nothing, for the reason given
  * under v119 in `docs/history/schema-changelog.md`.
+ *
+ * v232 (branch `decks`; batch DS2, `docs/flags.md` (hhhhhhh), the user's ruling of
+ * 2026-11-10): **simpler Dominion Orders.** No field joins or leaves the state. The
+ * rules that change:
+ *
+ *   · 34 Dominion Orders and 15 shared Orders that Dominion holds with another deck
+ *     have new text. Most of the simplified ones lose a clause, and some numbers
+ *     change (`docs/plans/deck-simplification-2026-11-10.md`);
+ *   · ten cards have a new effect, among them The General Staff, The Longbowmen,
+ *     The Siege Train, The Mural Crown and The Grand Army;
+ *   · four effect shapes that no row uses now are removed: the `rangedAttack`
+ *     occasion, the `unmoved` and `standingInOwnTown` combat conditions, and the
+ *     `ageAtMost` unit filter.
+ *
+ * **A v231 save is refused and does not replay.** A logged game with one of these cards
+ * seated pays different yields and fights with different strengths. The branch
+ * migrates nothing, for the reason given under v119 in
+ * `docs/history/schema-changelog.md`.
  */
-export const SCHEMA_VERSION = 231;
+export const SCHEMA_VERSION = 232;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

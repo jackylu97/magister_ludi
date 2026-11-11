@@ -203,7 +203,7 @@ These rows live in `data/decks/common.json`. A seat holding Scientific or the de
 |---|---|---|---|---|---|---|
 | **Illuminated Treatises** | common | Magisterial | 0 | implemented | Cities with both a Library and a Monument gain +1 science and +1 culture. | Civic |
 | **The Mountain Observatories** | common | Expansionist | 0 | implemented | Cities with a mountain in their borders gain +3 science. | Civic |
-| **Field Academies** | uncommon | Dominion | I | implemented | Your first combat kill each turn grants 23 science. Cities with a Library produce siege units 38% faster. | Civic |
+| **Field Academies** | uncommon | Dominion | I | implemented | Your first kill each turn grants 25 science. | Civic |
 | **The Assay** | common | Expansionist | I | implemented | Hexes with a strategic resource gain +2 science. | Civic |
 | **The Monastery Libraries** | common | Devotion | I | implemented | Libraries give +2 faith. Temples give +2 science. | Civic |
 | **The Exchange of Discoveries** | uncommon | Commerce | I | implemented | +2 science on mines and quarries on a resource. Additional +2 if the city has a market. | Civic |
@@ -213,7 +213,7 @@ These rows live in `data/decks/common.json`. A seat holding Scientific or the de
 | **The Merchant Navigators** | common | Commerce | II | implemented | Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +5 science. | Civic |
 | **The Blessed Forges** | uncommon | Devotion | II | implemented | Improved strategic resources gain +1 faith and +1 production. Cities with a Temple gain +2 faith and +2 production more. | Civic |
 | **Carried-Off Scholars** | common | Dominion | II | implemented | Capturing a city grants science equal to ten times its population. | Civic |
-| **The Soldier-Scholars** | uncommon | Dominion | II | implemented | Your military units in your towns gain +5 strength, and each supplies +2 science. | Military |
+| **The Soldier-Scholars** | uncommon | Dominion | II | implemented | Each military unit in your towns gives +2 science. | Military |
 | **Merchant Scholars** | uncommon | Commerce | III | implemented | Foreign routes gain +2 science for each Academy in the origin city. | Civic |
 | **The House of Wisdom** | uncommon | Magisterial | III | implemented | Worked Academies gain +3 culture. Cities working an Academy gain +1 renown and +30% production toward wonders. Each city receives the city bonus once. | Civic |
 | **The Monastic University** | rare | Devotion | III | implemented | A Holy Site and an academy standing beside each other each gain +5 science and +3 faith. | Civic |

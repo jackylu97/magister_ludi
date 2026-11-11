@@ -197,13 +197,13 @@ These rows live in `data/decks/common.json`. A seat holding Expansionist or the 
 |---|---|---|---|---|---|---|
 | **Market Gardens** | common | Commerce | 0 | implemented | Farms beside a road gain +1 gold. Domestic routes grant an additional +1 food to their destination. | Economic |
 | **Sacred Groves** | uncommon | Devotion | 0 | implemented | Worked, unimproved forests gain +1 food and +1 faith. | Civic |
-| **The Frontier Militia** | common | Dominion | 0 | implemented | Each town you found starts with the best melee unit you can build standing in it. | Military |
+| **The Frontier Militia** | common | Dominion | 0 | implemented | Each town you found starts with a melee unit. | Military |
 | **The Ambarvalia** | common | Devotion | 0 | implemented | Your capital gains +1 faith. Each town gains +1 faith for every two improved tiles in its borders. | Civic |
 | **The Holy Spring** | common | Devotion | 0 | implemented | Cities whose centre stands beside a mountain or a lake gain +2 faith and +1 culture. | Civic |
 | **The Mountain Observatories** | common | Scientific | 0 | implemented | Cities with a mountain in their borders gain +3 science. | Civic |
-| **The Muster of the Fields** | uncommon | Dominion | I | implemented | Cities of at least five citizens may spend one citizen to muster their best legally available melee unit. This shares the city's five-turn levy limit. The unit counts as trained. | Military |
-| **The Barbarian Frontier** | uncommon | Dominion | I | implemented | Clearing a barbarian camp claims the camp's hex and every unowned hex around it for your nearest town within five hexes. | Economic |
-| **The Farming Garrisons** | common | Dominion | I | implemented | Hexes with a fortified military unit gain +1 food and +1 production. Fortified units gain +2 strength. | Economic |
+| **The Muster of the Fields** | uncommon | Dominion | I | implemented | Towns of 5 or more citizens may spend a citizen to raise a melee unit. | Military |
+| **The Barbarian Frontier** | uncommon | Dominion | I | implemented | Clearing a barbarian camp claims its hex and the unowned hexes around it. | Economic |
+| **The Farming Garrisons** | common | Dominion | I | implemented | Hexes with a fortified unit gain +1 food and +1 production. | Economic |
 | **The Assay** | common | Scientific | I | implemented | Hexes with a strategic resource gain +2 science. | Civic |
 | **Garden Cities** | uncommon | Magisterial | I | implemented | Cities with a Monument gain +1 culture per three worked wild tiles, at most +3. Cities of at least eight population with an Aqueduct gain +1 happiness. | Civic |
 | **The Provincial Fair** | uncommon | Commerce | II | implemented | Connected noncapital cities with a Market gain +3 food. Their worked plantations, camps and pastures gain +2 gold. | Economic |
