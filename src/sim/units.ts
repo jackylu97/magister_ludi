@@ -291,7 +291,7 @@ export function isRested(unit: Unit, state?: GameState): boolean {
  * caravan bug, 2026-08-28). A laden caravan rests on its destination hex with
  * full movement and no `path` between legs — `marchTraders` aims the next leg
  * during resolution, not the moment it arrives — so the first four clauses
- * alone would flag it idle every single turn of a twenty-turn route. But a
+ * alone would flag it idle on every turn the route runs. But a
  * caravan carrying a route is not a piece the player positions; `Unit.trade`
  * present *is* its standing order, the same way `fortifiedTurns` and
  * `sleeping` are standing orders for a soldier and a civilian. Presence is
@@ -301,7 +301,7 @@ export function isRested(unit: Unit, state?: GameState): boolean {
  * **A cart is the sixth, and it is a fact about the piece rather than about its
  * orders** (the R4 ruling, 2026-09-09: *"never ask for orders on a trader
  * unit"*). The fifth clause silenced a caravan while it was *carrying* a route
- * and left the lapsed one talking: the wagon comes home, the route key is gone,
+ * and left an idle one talking: the route ends, the route key is gone,
  * and the first four clauses called it idle every turn for the rest of the game
  * — a piece the player cannot usefully do anything to from a unit sheet, since
  * every route verb lives on the Trade sheet now. So the whole class goes quiet:

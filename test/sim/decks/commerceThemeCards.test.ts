@@ -106,10 +106,8 @@ function send(state: GameState, from: City, to: City): void {
   cart.trade = {
     from: from.id,
     to: to.id,
-    expiresTurn: state.turn + 20,
     startedTurn: state.turn,
     outbound: true,
-    autoResend: false,
   };
   bumpRevision(state);
 }

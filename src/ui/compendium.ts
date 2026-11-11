@@ -983,7 +983,7 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
       text: 'It walks between the two cities of the route it carries, and builds road on every hex it walks over. A route sent by sea lays no road, and pays more for the crossing.',
     });
     out.push({
-      text: 'One already on the board with no route left to run walks home and waits; hiring the next route on the Trade screen brings a fresh caravan, and the old one keeps no slot once it is home.',
+      text: 'When its route ends, it stands idle where it stopped and keeps no slot. The next route you send uses an idle caravan before you pay for a new one.',
     });
   }
   if (def.ignoresTerrainCost === true) {
@@ -2997,7 +2997,11 @@ function tradeEntries(): CompendiumEntry[] {
       eyebrow: 'what a trader sets up',
       mark: { kind: 'badge', badge: 'trader' },
       rows: [
-        { label: 'A route lasts', figures: `${figure(trade.routeTurns)} turns` },
+        { label: 'Hiring a route costs', figures: `${figure(trade.routePriceBase)} gold` },
+        {
+          label: 'Each route you have running adds',
+          figures: `${signedFigure(trade.routePricePerRunningRoute)} gold`,
+        },
         {
           label: 'Furthest a destination may be',
           figures: `${figure(trade.rangeTurns)} turns of travel`,
@@ -3024,10 +3028,13 @@ function tradeEntries(): CompendiumEntry[] {
           text: `Each food, culture or science building in the origin city is worth a point of ${YIELD_GLYPH.food}. Each production, military or gold building there is worth a point of ${YIELD_GLYPH.production}. The gold is counted differently: a point of ${YIELD_GLYPH.gold} for every ${figure(trade.goldPerCombinedPop)} citizens across the two cities together.`,
         },
         {
-          text: 'Distance is measured in turns of a trader’s own travel between the two cities, so a road puts more cities in reach and a mountain range puts fewer — it is a fact about the pair, not about where your trader happens to be standing. Both ends of a finished route become trading posts, permanently.',
+          text: 'Distance is measured in turns of a trader’s own travel between the two cities, so a road puts more cities in reach and a mountain range puts fewer — it is a fact about the pair, not about where your trader happens to be standing. Both ends of a route become trading posts, permanently.',
         },
         {
           text: 'Only one route may run between any pair of your cities, in either direction. The route belongs to the trader carrying it, so an enemy that kills a loaded trader takes its cargo and ends the route.',
+        },
+        {
+          text: 'A route has no end date. It runs until you cancel it, or until a war between the two cities, a plundered caravan or a lost city ends it. You can cancel a route only after its caravan has reached the destination once. A cancelled route leaves its caravan idle, and the next route you send uses it.',
         },
       ],
       flavor: null,

@@ -1016,6 +1016,19 @@ Reference: **`docs/trade.md`** and **`docs/luxuries.md`**.
   caravan is hired with the route (`buyRoute`), and `Unit.trade` presence IS the
   route — there is no route register. A cart survives its route and is re-sent
   before a new one is hired. A cart is never asked for orders.
+- **The hire price** is `rules.trade.routePriceBase` (75 gold) plus
+  `rules.trade.routePricePerRunningRoute` (15 gold) for each route the seat has
+  running, then a card's rider (The Turnpike Trusts) as its own line
+  (`explainRoutePrice`, batch TR2). An idle cart is not a running route. The
+  price no longer follows the Trader row's production cost.
+- **A route has no term** (batch TR2). It runs until its owner cancels it, or
+  a war, a plunder, a lost town or a ban ends it. There is no renewal and no
+  auto-resend. **A cancel waits for the first arrival**: `cancelRouteError`
+  refuses it until the caravan has reached its destination once
+  (`TradeRoute.reached`, written by `marchOneTrader`; `routeReached` reads it).
+  A cancelled route leaves its cart idle. Adopting The Sea Ban or The Inward
+  Roads ends the seat's routes abroad at once (`endRoutesBannedAbroad`).
+  Commercial posts keep their twenty turns under `rules.trade.postEstablishTurns`.
 - A route is **entirely land or entirely sea**, never mixed; the mode narrows the
   survey. A sea route pays a premium and lays no road.
 - What a route pays is read off the **origin's** buildings and paid to the
@@ -1168,15 +1181,11 @@ knobs `score.citizenLevy`). A seat holding Veteran Colonies retires a soldier
 in one of its towns for the citizen, but only while its army stands over what
 it wants by a whole soldier and it is at peace (`retireCommand`).
 
-**Route renewal** (Commerce batch T8, 2026-10-23). A bot sets every caravan it
-sends to renew its route when the term ends (`setAutoResend`,
-`routeRenewalDecision` in `bot.ts`), so a route can grow old enough for
-Established Routes. On the turn a term ends, the bot lets the route lapse only
-when every route slot is in use, a different pair would open in the freed slot,
-no other caravan of the seat is lapsing, and that pair pays more than the
-renewed route by the knob `score.routeLapseMultiple` (1.5). The renewed pay
-counts what cards pay an old route, at the route's age halfway through the new
-term.
+**Routes** (batch TR2, 2026-11-10). A route has no term, so the bot's renewal
+arm (Commerce batch T8) and its knob `score.routeLapseMultiple` are gone. The
+bot hires a route at the simulation's price (`routePrice`, through `reachOf`),
+re-sends an idle cart through the `idleTrader` blocker, and never cancels a
+route.
 
 **The apostle's holy sites** (Devotion batch DV9). Under The Abbeys
 (`apostlesPlantHolySites`), a bot apostle that cannot leave its relic plants a

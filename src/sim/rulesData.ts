@@ -521,17 +521,21 @@ interface InternationalRouteRules {
  * row — because those describe *a thing* rather than the system. What is here is
  * every number a designer would reach for to answer "are caravans worth it".
  *
- * Nothing here is a probability either. A route is a fixed number of turns and a
- * fixed reach, and what varies is the board: a trading post at each end buys
- * three more turns of march, and roads buy the rest by making the march cheaper.
+ * Nothing here is a probability either. A route has a fixed reach, and what
+ * varies is the board: a trading post at each end buys three more turns of
+ * march, and roads buy the rest by making the march cheaper. A route has no term
+ * (batch TR2, `docs/flags.md` (ggggggg)): it runs until its owner cancels it or
+ * something else ends it.
  */
 interface TradeRules {
   /**
-   * How many turns a route pays before it lapses, counted from the turn the
-   * caravan was sent (`Unit.trade.expiresTurn`, an **absolute** turn — the
-   * timed-effect rule; nothing counts down).
+   * How many turns of unbroken trading presence in a town establish an
+   * empire's commercial post there (`postTermTurns`, `routes.ts`).
+   *
+   * It was the route's own term until batch TR2 removed the term. The post
+   * rule did not change, so it keeps the same twenty turns under its own name.
    */
-  routeTurns: number;
+  postEstablishTurns: number;
   /**
    * How far a partner may be, in **turns of the trader's own march**
    * (`pathTurns`) rather than in hexes.
@@ -622,22 +626,22 @@ interface TradeRules {
    */
   postRange: number;
   /**
-   * What a **route** costs to hire, as a share of the caravan it puts on the
-   * road (the user's ruling of 2026-09-09, `docs/flags.md` item (iii)).
+   * The gold a **route** costs to hire before any other route is running (the
+   * user's ruling of 2026-11-10, `docs/flags.md` (ggggggg): *"Let's have the
+   * hire price start lower (75 gold) but increase the more active trade routes
+   * you have (15 gold per)."*).
    *
-   * A route is bought with gold now (`buyRoute`) and the Trader row has left
-   * both the build queue and the purchase book, so the price is the caravan's
-   * own converted cost — `goldPerHammer × the Trader row's production cost`,
-   * the cost standard, which is what makes a route dearer age by age with no
-   * second table to retune — and this is the one knob over it.
-   *
-   * 1 means "exactly what a caravan would have cost to buy", which is the
-   * ruling's recommendation and the honest starting point: nothing about the
-   * price changed, only what a player is buying with it. Read in one place,
-   * `explainRoutePrice` (`purchase.ts`), as a line of the list the price is the
-   * fold of.
+   * The price no longer follows the Trader row's production cost or the age.
+   * Read in one place, `explainRoutePrice` (`purchase.ts`), as the first line of
+   * the list the price is the fold of.
    */
-  routePriceMultiplier: number;
+  routePriceBase: number;
+  /**
+   * The gold each **running** route adds to the hire price: a caravan of this
+   * seat that carries a route (`usedRouteSlots`). An idle cart is not a running
+   * route. A line of `explainRoutePrice` beside `routePriceBase`.
+   */
+  routePricePerRunningRoute: number;
   /**
    * What a route run **by sea** pays over one run by land, as a percentage
    * (the user's ruling of 2026-09-09: *"sea routes should pay +50%"*).

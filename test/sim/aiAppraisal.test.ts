@@ -3350,9 +3350,7 @@ describe('the scope, evaluated (batch X2)', () => {
     trader.trade = {
       from: cities[0]!.id,
       to: cities[2]!.id,
-      expiresTurn: state.turn + 30,
       outbound: true,
-      autoResend: false,
     };
     bumpRevision(state);
     expect(townsAdmitting(valueContext(state, player), scope)).toBe(1);

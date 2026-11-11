@@ -9,7 +9,7 @@
  *   - the shadow check rebuilds a remembered plan and throws if the two differ;
  *   - `siteGround`'s copy of the board is built again when the real clock moves, so a
  *     government adopted in a sitting reaches the hypothetical;
- *   - `marchOneTrader` announces a renewed term.
+ *   - `marchOneTrader` announces a route it ends under a ban.
  *
  * The digests in `test/sim/aiDigest.slow.test.ts` hold that none of this moves a
  * decision. These tests hold what a digest cannot see: when each answer is thrown away.
@@ -179,8 +179,11 @@ describe('the board a site is read against', () => {
   });
 });
 
-describe('a route that renews', () => {
-  it('announces, because the loans read its term', () => {
+describe('a route the march ends under a ban', () => {
+  it('announces, because the loans read the routes that run', () => {
+    // Batch TR2: a route has no term, so the one ending the march writes on a
+    // route of its own seat's choosing is the ban. The Silk Road's loans read
+    // which routes run abroad, so the march announces the ending.
     const { state, towns } = bench([5, 11]);
     towns[0]!.buildings.push('market');
     bumpRevision(state);
@@ -194,16 +197,19 @@ describe('a route that renews', () => {
       mode: 'land',
     });
     expect(sent.ok, sent.ok ? '' : sent.error).toBe(true);
-    cart.trade!.expiresTurn = state.turn;
-    cart.trade!.autoResend = true;
-    // With nothing left to walk on, the renewal is the only write that can announce.
+    // The far town passes to the other seat at peace, so the route now runs
+    // abroad, and seat 0 holds The Sea Ban.
+    towns[1]!.ownerId = 1;
+    playerById(state, 0)!.statecraft.doctrines.push('theSeaBan' as never);
     cart.movesLeft = 0;
     bumpRevision(state);
 
     const march = END_OF_TURN_PHASES.find((phase) => phase.name === 'marchTraders')!;
     const clock = economyStamp(state);
-    march.run(state, emptyTurnReport());
-    expect(cart.trade!.expiresTurn).toBeGreaterThan(state.turn);
+    const report = emptyTurnReport();
+    march.run(state, report);
+    expect(cart.trade).toBeUndefined();
+    expect(report.routesEnded.map((row) => row.ended)).toEqual(['ban']);
     expect(economyStamp(state)).toBeGreaterThan(clock);
   });
 });

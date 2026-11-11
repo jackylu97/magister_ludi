@@ -1323,35 +1323,51 @@ describe('a building that names its own bank', () => {
  * treasury sells, beside a unit and a building, and the only one that is not a
  * row on a shelf.
  *
- * Three claims: the price is the caravan's own converted cost with the ruling's
- * knob over it, the fold of printed lines *is* the price (rule 5), and the
- * refusal a purse cannot reach carries the same sentence every other purchase
- * is refused with — which is the sentence the bot's want book reads back to
- * decide a row is merely unaffordable.
+ * Three claims: the price is the ruling's base plus a step for each route
+ * running (batch TR2), the fold of printed lines *is* the price (rule 5), and
+ * the refusal a purse cannot reach carries the same sentence every other
+ * purchase is refused with — which is the sentence the bot's want book reads
+ * back to decide a row is merely unaffordable.
  */
 describe('a route, priced by the purchase book', () => {
   const ROUTE = { kind: 'route' } as const;
 
-  it('is the Trader row’s cost, converted and multiplied, and the fold of its lines', () => {
+  it('is the base price with nothing running, and the fold of its lines', () => {
     const g = game();
     const city = found(g.state, 0);
     const lines = explainRoutePrice(g.state, 0)!;
     expect(lines).not.toBeNull();
-    const hammers = unitProductionCost(g.state, 0, 'trader');
-    const converted = Math.floor(hammers * RULES.production.goldPerHammer);
-    expect(routePrice(g.state, 0)).toBe(
-      Math.floor(converted * RULES.trade.routePriceMultiplier),
-    );
+    // The user's 75 gold, and no line for routes running while none runs.
+    expect(lines).toEqual([{ source: 'Hire a trade route', amount: RULES.trade.routePriceBase }]);
+    expect(routePrice(g.state, 0)).toBe(RULES.trade.routePriceBase);
     // The fold of the printed list, and never a total taken beside it.
     expect(lines.reduce((sum, line) => sum + line.amount, 0)).toBe(routePrice(g.state, 0));
-    // The wagon's own hammers are the lines it is built out of, so a re-costed
-    // roster and a new age move the price with no figure typed anywhere.
-    expect(lines[0]!.amount).toBeGreaterThan(0);
-    expect(lines.some((line) => line.source.includes('in gold'))).toBe(true);
+    // It no longer follows the Trader row's production cost.
+    expect(lines.some((line) => line.source.includes('in gold'))).toBe(false);
+    expect(unitProductionCost(g.state, 0, 'trader')).toBeGreaterThan(0);
 
     const price = explainPurchaseCost(g.state, 0, city.id, ROUTE, 'gold');
     expect(price?.currency).toBe('gold');
     expect(price?.total).toBe(routePrice(g.state, 0));
+  });
+
+  it('adds its step for each route running, and nothing for an idle cart', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const base = RULES.trade.routePriceBase;
+    const step = RULES.trade.routePricePerRunningRoute;
+    // An idle cart is not a running route (the reading of 2026-11-10).
+    const idle = createUnit(g.state, 0, 'trader', city.col, city.row);
+    expect(routePrice(g.state, 0)).toBe(base);
+    // Two carts carrying routes: two steps, in one labelled line.
+    idle.trade = { from: city.id, to: city.id + 1, outbound: true };
+    const second = createUnit(g.state, 0, 'trader', city.col, city.row);
+    second.trade = { from: city.id, to: city.id + 2, outbound: true };
+    const lines = explainRoutePrice(g.state, 0)!;
+    expect(lines[1]).toEqual({ source: '2 trade routes running', amount: 2 * step });
+    expect(routePrice(g.state, 0)).toBe(base + 2 * step);
+    // Another seat's routes are not this seat's.
+    expect(routePrice(g.state, 1)).toBe(base);
   });
 
   it('is sold out of the treasury and out of no other bank', () => {
@@ -1728,6 +1744,6 @@ describe('the schema witness', () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(228);
+    expect(SCHEMA_VERSION).toBe(229);
   });
 });

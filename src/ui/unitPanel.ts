@@ -321,7 +321,6 @@ interface UnitPanelOptions {
   routeReading: () => RouteReading | null;
   /** "2 of 3 routes" for this seat — `controls.routeSlotsLine()`. */
   routeSlotsLine: () => string;
-  onSetAutoResend: (on: boolean) => void;
   onCancelRoute: () => void;
   /**
    * Opens the Trade screen — the third door to it, and the one a player reaches
@@ -604,10 +603,10 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     greatPerson,
     onGreatPersonAct,
     onGreatPersonWork,
-    // `startRouteBlocker`, `onStartRoute`, `onSetAutoResend` and `onCancelRoute`
-    // stay on `UnitPanelOptions` unread by this file since batch R2: the three
-    // route verbs moved to the Trade sheet, and dropping the fields would be a
-    // change to `main.ts`'s wiring for nothing. See `actionsFor`.
+    // `startRouteBlocker`, `onStartRoute` and `onCancelRoute` stay on
+    // `UnitPanelOptions` unread by this file since batch R2: the route verbs
+    // moved to the Trade sheet, and dropping the fields would be a change to
+    // `main.ts`'s wiring for nothing. See `actionsFor`.
     routeReading,
     routeSlotsLine,
     onOpenTrade,
@@ -789,8 +788,8 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // screen"*). This sheet used to carry three of them — two on a laden cart
     // and one on an idle one — and each was a decision about the *empire's*
     // caravans taken from a sheet about one piece. They live on the Trade sheet
-    // now: renewing, cancelling and auto-renewing are the Running tab's, and
-    // hiring is the Recommended tab's Send. What is left here is the door.
+    // now: cancelling is the Running tab's, and hiring is the Recommended tab's
+    // Send. What is left here is the door.
     //
     // The row is offered to a caravan whether or not it is carrying a route and
     // whether or not a slot is free — it is a link to a screen, not a thing done
@@ -809,7 +808,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     }
     // **A caravan's sheet is its route and the door beside it — routed or not**
     // (R4, 2026-09-09: *"never ask for orders on a trader unit"*). The early
-    // return used to be about the *route*, so a cart whose route had lapsed fell
+    // return used to be about the *route*, so a cart whose route had ended fell
     // through to the ordinary sheet and was offered the three civilian verbs
     // below — all of them about positioning a piece that is not positioned by
     // hand, on the one row of the roster whose every real verb is on another
@@ -1307,9 +1306,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       );
       card.append(clause);
     }
-    card.append(
-      element('p', 'unit-card-clause', `${route.turnsLeft} turns left · ${routeSlotsLine()}`),
-    );
+    card.append(element('p', 'unit-card-clause', routeSlotsLine()));
     return card;
   }
 
@@ -1595,8 +1592,8 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       container.append(line);
       // The one sentence left to say about a routed caravan (ruling,
       // 2026-08-28): there is nothing to do here, and this is why — the piece
-      // is spoken for until the route lapses or is cancelled from the Trade
-      // screen's own row.
+      // is spoken for until the route is cancelled from the Trade screen's own
+      // row, or a war or a lost town ends it.
       container.append(element('p', 'unit-note', 'Busy until the route ends.'));
     }
 

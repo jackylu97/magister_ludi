@@ -16263,14 +16263,6 @@ button.faith-rite-chip:hover:not(.is-on) {
   color: var(--y-faith);
 }
 
-/* A lapsed route is faint everywhere but here: its figures would otherwise be
-   the one thing on a greyed row still shouting in six colours. The row's own
-   ink wins, restated at the same specificity plus one so the cascade is not a
-   question of source order. */
-.trade-table tr.is-lapsed td .trade-yield.trade-yield {
-  color: inherit;
-}
-
 .trade-chip {
   padding: 4px 7px 3px;
   border: 1px solid var(--rule);
@@ -16457,18 +16449,12 @@ button.trade-chip {
   cursor: default;
 }
 
-/* The quiet twin — Cancel, and the auto-renew toggle when it is off. A verb
-   that undoes something is never the loudest thing in its row. */
+/* The quiet twin — Cancel. A verb that undoes something is never the loudest
+   thing in its row. */
 .trade-send.is-quiet {
   border-color: var(--rule);
   background: none;
   color: var(--ink-soft);
-}
-
-.trade-send.is-on {
-  border-color: var(--gilt);
-  background: var(--gilt);
-  color: var(--parchment);
 }
 
 /* --- the two tables (Running, All routes) -------------------------------- */
@@ -16514,13 +16500,6 @@ button.trade-chip {
 
 .trade-table td .trade-send + .trade-send {
   margin-left: 4px;
-}
-
-/* A lapsed route is still a row — the cart is walking home and the slot is
-   still spoken for — and it is faint, because the only decision left on it is
-   the Renew beside it. */
-.trade-table tr.is-lapsed td {
-  color: var(--ink-faint);
 }
 
 /* A cell that is a door: the route's name pans the camera to its cart. */
@@ -16718,9 +16697,8 @@ button.trade-chip {
   border-left: 4px solid var(--war-red);
 }
 
-/* A truce is a war that is over and a peace that is not yet free: dashed, the
-   way a lapsed trade route is, because there is nothing to decide about it
-   until the count runs out. */
+/* A truce is a war that is over and a peace that is not yet free: dashed,
+   because there is nothing to decide about it until the count runs out. */
 .diplo-seat.is-truce {
   border-style: dashed;
 }

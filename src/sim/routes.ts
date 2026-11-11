@@ -185,28 +185,26 @@ export function routeHexes(state: GameState, from: City, to: City): number {
  *
  * `routeIsLive` and `routeCities` asked as one question, because every caller
  * that cares whether a route is still running also wants to know which pair it
- * joins — and two calls resolve the same two cities twice. The expiry is the
- * `TimedEffect` reading exactly (`state.turn < expiresTurn`): an absolute turn,
- * compared and never counted down.
+ * joins — and two calls resolve the same two cities twice.
+ *
+ * Since batch TR2 a route has no term, so an active route is one whose pair
+ * still describes the board, and this is `routeCities` under the name its
+ * callers know. It stays a function of its own so the readers that ask "is it
+ * active" keep one name for the question.
  */
 export function liveRouteCities(
   state: GameState,
   unit: Unit,
 ): { from: City; to: City } | null {
-  const route = unit.trade;
-  if (!route) return null;
-  if (state.turn >= route.expiresTurn) return null;
   return routeCities(state, unit);
 }
 
 /**
  * Is this caravan's route still active?
  *
- * The one test, and there is no second one. A lapsed route is **inert rather
- * than gone** — the piece keeps walking home carrying a dead route, and the
- * shuttle phase is what tidies it up when it gets there, which is the same
- * broom-not-a-clock bargain `pruneTimedEffects` makes — so "active" is the
- * whole of the question. Two Commerce cards say "paying" in their text; the
+ * The one test, and there is no second one. A route stops being active only
+ * when its pair stops describing the board (`routeCities`): an end lost, or a
+ * war between the two ends. Two Commerce cards say "paying" in their text; the
  * user ruled on 2026-09-19 that the word is decorative and means active, so
  * nothing here tests anything else.
  */
@@ -298,9 +296,8 @@ export function countRoutesAt(
  * **How many turns this road has been running**, or `undefined` for a route with
  * no start date (batch D2d, the age stamp).
  *
- * `routeIsLive`'s reading of the other absolute stamp on the same shape:
  * `TradeRoute.startedTurn` is written once when the route opens and never
- * rewritten by a renewal, so this is one subtraction and **nothing ticks**.
+ * rewritten, so this is one subtraction and **nothing ticks**.
  * `undefined` rather than zero for a route with no stamp — a hand-built fixture,
  * a scenario — so a card that names a term reads "cannot be shown to have run
  * long enough" rather than "new".
@@ -317,16 +314,15 @@ export function routeAge(state: GameState, route: TradeRoute): number | undefine
 
 /**
  * How long an empire must trade with a town before its post is established —
- * one full route term (`rules.trade.routeTurns`, twenty).
+ * `rules.trade.postEstablishTurns`, twenty.
  *
- * The design's own words are *"completes a normal twenty-turn term"*, so this
- * reads the term itself rather than a knob of its own. Deliberately the **base**
- * term and not `routeTermFor`, which is the empire's term with its cards on it:
- * a card that lets your trade routes run longer would otherwise make your houses take
- * longer to establish, which is the opposite of what it says.
+ * The design's own words are *"completes a normal twenty-turn term"*. Until
+ * batch TR2 this read the route's term, which was also twenty. A route has no
+ * term now, so the post keeps its twenty turns under a knob of its own and the
+ * rule does not change.
  */
 export function postTermTurns(): number {
-  return Math.max(1, Math.floor(RULES.trade.routeTurns));
+  return Math.max(1, Math.floor(RULES.trade.postEstablishTurns));
 }
 
 /**

@@ -4146,7 +4146,6 @@ export function explainPressure(
     for (const unit of state.units) {
       const route = unit.trade;
       if (route === undefined) continue;
-      if (state.turn >= route.expiresTurn) continue;
       const partner =
         route.to === city.id ? route.from : bothWays && route.from === city.id ? route.to : null;
       if (partner === null) continue;

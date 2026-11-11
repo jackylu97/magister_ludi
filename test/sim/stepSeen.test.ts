@@ -447,7 +447,7 @@ describe('a piece at a town’s gate, continued', () => {
       },
     ] as unknown as CardEffect[]);
     const cart = createUnit(state, 0, 'trader', 12, 8);
-    cart.trade = { from: origin.id, to: far.id, expiresTurn: 9999, outbound: true, autoResend: false };
+    cart.trade = { from: origin.id, to: far.id, outbound: true };
     const ground = groundOf(state, origin);
     const soldier = createUnit(state, 0, 'warrior', ground.col, ground.row);
     chartEverything(state);
@@ -578,7 +578,7 @@ describe('a ship', () => {
     port.population = 6;
     inland.population = 6;
     const cart = createUnit(state, 0, 'trader', 12, 4);
-    cart.trade = { from: port.id, to: inland.id, expiresTurn: 9999, outbound: true, autoResend: false };
+    cart.trade = { from: port.id, to: inland.id, outbound: true };
     chartEverything(state);
     bumpRevision(state);
     return { port, inland };
@@ -677,7 +677,7 @@ describe('a laden caravan paving a road', () => {
       { kind: 'pays', where: 'empire', basis: 'count', to: 'gold', amount: 5, count: 'roadHexes' },
     ] as unknown as CardEffect[]);
     const cart = createUnit(state, 0, 'trader', 18, 8);
-    cart.trade = { from: port.id, to: far.id, expiresTurn: 9999, outbound: true, autoResend: false };
+    cart.trade = { from: port.id, to: far.id, outbound: true };
     chartEverything(state);
     bumpRevision(state);
     const before = readEmpire(state, 0).totals.gold;
@@ -695,7 +695,7 @@ describe('a laden caravan paving a road', () => {
     const port = foundCityAt(state, 0, at(state, 12, 4));
     const far = foundCityAt(state, 0, at(state, 24, 4));
     const cart = createUnit(state, 0, 'trader', 18, 8);
-    cart.trade = { from: port.id, to: far.id, expiresTurn: 9999, outbound: true, autoResend: false };
+    cart.trade = { from: port.id, to: far.id, outbound: true };
     chartEverything(state);
     bumpRevision(state);
     const economy = economyStamp(state);

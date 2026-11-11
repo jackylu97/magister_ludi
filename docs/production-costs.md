@@ -281,10 +281,10 @@ reading for a once-per-empire row.
 
 The `trader` row is priced here and **built nowhere** (ruled 2026-09-09,
 schema 100, `UnitDef.routeOnly`): a caravan is hired with the route it
-carries, and this figure is what the hire converts — `routePrice` is
-`goldPerHammer × these hammers × rules.trade.routePriceMultiplier`. So the
-price of a route climbs the columns with the age like everything else on this
-table, with no second figure anywhere. See `docs/trade.md`.
+carries. Since batch TR2 the hire price does not follow this figure: it is
+`rules.trade.routePriceBase` plus `rules.trade.routePricePerRunningRoute` for
+each route running (`explainRoutePrice`). The row keeps its size, so the table
+stays whole. See `docs/trade.md`.
 
 | Row | Name | Size | Column | Hammers |
 |---|---|---|---|---|

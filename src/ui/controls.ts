@@ -2433,22 +2433,20 @@ export interface GameControls {
   startRouteBlocker(): string | null | undefined;
   /** The selected caravan's live route, or `null` for a piece carrying none. */
   routeReading(): RouteReading | null;
-  /** Flips the selected caravan's auto-resend, or flashes the refusal. */
-  setAutoResend(on: boolean): void;
   /** Ends the selected caravan's route now, or flashes the refusal. */
   cancelRoute(): void;
 
   /**
-   * The three route verbs, naming the caravan by **id**.
+   * The route verbs, naming the caravan by **id**.
    *
    * The Trade screen acts on a row, and the caravan on that row is very often
    * not the piece in hand — under the 2026-08-28 ruling it is never *necessarily*
    * the piece in hand, because the screen may be opened from the bar with no
-   * selection at all. `setAutoResendOf` and `cancelRouteOf` are each the same
-   * inner function their selection-shaped twins above call, so a route ended
-   * from the screen and one ended from the sheet are one command with one
-   * announcement and one refusal. A caravan that is not this seat's is ignored,
-   * which is the same answer the reducer would give.
+   * selection at all. `cancelRouteOf` is the same inner function its
+   * selection-shaped twin above calls, so a route ended from the screen and one
+   * ended from the sheet are one command with one announcement and one refusal.
+   * A caravan that is not this seat's is ignored, which is the same answer the
+   * reducer would give.
    */
   startRouteFrom(
     unitId: number,
@@ -2466,7 +2464,6 @@ export interface GameControls {
    * already standing.
    */
   buyRouteOf(fromCityId: number, toCityId: number, mode?: RouteMode): void;
-  setAutoResendOf(unitId: number, on: boolean): void;
   cancelRouteOf(unitId: number): void;
 
   /**
@@ -3335,32 +3332,28 @@ export function createGameControls(options: GameControlsOptions): GameControls {
 
   /**
    * **A route ended.** One line per caravan of this seat's whose route stopped
-   * — its term run out at home, the road closed by a war, a town at one end
-   * pulled down or lost, or the cart stranded where it could not path.
+   * with no cancel of the player's behind it: the road closed by a war, a town
+   * at one end pulled down or lost, or a ban the player adopted.
    *
    * Seat-filtered, read off the reducer's own report
    * (`CommandResult.routesEnded`). Nothing here diffs the board, and it could
-   * not: a route that ended left no trace on the piece except an absence, and a
-   * renewed one looks exactly like a route that was always running.
+   * not: a route that ended left no trace on the piece except an absence.
    *
    * It is in the **shared register** rather than in `commit`'s list, and that
-   * is the whole of the ruling of 2026-09-17: three of those four endings are
-   * decided inside *somebody else's* command — a declaration sweeps every route
-   * between two empires, a razing takes both its ends — so a reporter that only
-   * ever ran for this client's own orders was a reporter that could not see the
+   * is the whole of the ruling of 2026-09-17: most of these endings are decided
+   * inside *somebody else's* command — a declaration sweeps every route between
+   * two empires, a razing takes both its ends — so a reporter that only ever ran
+   * for this client's own orders was a reporter that could not see the
    * commonest way a player loses a route. See `reportSharedNews`.
    *
-   * The sentence is `tradeLines.ts`', and so is the **silence**: an uneventful
-   * renewal answers `null` and says nothing, because fifteen routes renewing on
-   * twenty-turn terms is a notice a turn and a log that holds a hundred entries
-   * was losing real news to it.
+   * The sentence is `tradeLines.ts`'. A route has no term since batch TR2, so
+   * there is no quiet renewal to leave out: every report is news.
    */
   function reportRoutes(result: CommandResult): void {
     if (!result.ok || !result.routesEnded) return;
     for (const report of result.routesEnded) {
       if (report.ownerId !== localPlayerId) continue;
-      const line = routeEndSentence(getGame().state, report);
-      if (line !== null) announce(line);
+      announce(routeEndSentence(getGame().state, report));
     }
   }
 
@@ -4259,8 +4252,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * caravan is no longer built, chosen and spent — the route is *bought*, and
    * the reducer mints the cart in the origin's gates with the route already on
    * it. So there is no unit id in this command and none to find: `startRouteFrom`
-   * beside it stays for the caravan already standing (an old save, a route that
-   * lapsed and left its wagon walking home, and the bot's re-send).
+   * beside it stays for the caravan already standing (a route cancelled or ended
+   * by a war, a lost town or a ban, which leaves its wagon idle, and the bot's
+   * re-send).
    *
    * The announcement is read *after* the command, off the route the reducer just
    * wrote and off the piece it just minted — the sheet's own line, so the toast
@@ -4308,41 +4302,6 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const unit = selectedUnit();
     if (!unit) return null;
     return routeReadingOf(getGame().state, unit);
-  }
-
-  /**
-   * Flips the selected caravan's auto-resend.
-   *
-   * The reducer refuses a value that would change nothing, and that refusal is
-   * *shown*: a toggle that silently did nothing would be a switch a player
-   * cannot trust. Everything else is the ordinary funnel.
-   */
-  function setAutoResend(on: boolean): void {
-    const unit = selectedUnit();
-    if (!unit) return;
-    setAutoResendWith(unit, on);
-  }
-
-  /** `setAutoResend` by id. See `startRouteFrom`. */
-  function setAutoResendOf(unitId: number, on: boolean): void {
-    const unit = unitById(getGame().state, unitId);
-    if (!unit || unit.ownerId !== localPlayerId) return;
-    setAutoResendWith(unit, on);
-  }
-
-  function setAutoResendWith(unit: Unit, on: boolean): void {
-    const result = commit({
-      type: 'setAutoResend',
-      playerId: localPlayerId,
-      unitId: unit.id,
-      on,
-    });
-    if (!result.ok) {
-      reject(result.error);
-      return;
-    }
-    announce(on ? 'The caravan will renew its route' : 'The caravan will come home');
-    onUpdate(selectedUnit(), renderer.getHover());
   }
 
   /**
@@ -4584,7 +4543,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reject(result.error);
       return;
     }
-    announce(`The route is ended — ${routeSlotsLineOf(getGame().state, localPlayerId)}`);
+    announce(`The route is ended and the cart is idle — ${routeSlotsLineOf(getGame().state, localPlayerId)}`);
     renderer.invalidate();
     onUpdate(selectedUnit(), renderer.getHover());
   }
@@ -5664,7 +5623,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * Unlike `sleepUnit` the selection is kept: the sheet's toggle reads "Stop
    * exploring" while the flag stands, and a sheet that vanished under the
    * click would hide the way back. The reducer refuses a value that would
-   * change nothing, and that refusal is shown — `setAutoResend`'s reading.
+   * change nothing, and that refusal is shown.
    * The board is invalidated because setting the order may have aimed a path
    * this very click, and the wash on the piece has changed either way.
    */
@@ -8617,7 +8576,6 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     purchaseTileAt: purchaseTile,
     startRouteBlocker,
     routeReading,
-    setAutoResend,
     cancelRoute,
     startRouteFrom,
     buyRouteOf,
@@ -8629,7 +8587,6 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     answerDealOf,
     withdrawDealOf,
     declinePeaceFrom,
-    setAutoResendOf,
     cancelRouteOf,
     routeSlotsLine: () => routeSlotsLineOf(getGame().state, localPlayerId),
     reportCommand,

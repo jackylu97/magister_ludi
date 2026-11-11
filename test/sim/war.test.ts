@@ -322,9 +322,7 @@ describe('plunder follows the blow', () => {
     caravan.trade = {
       from: theirs.id,
       to: other.id,
-      expiresTurn: state.turn + 10,
       outbound: true,
-      autoResend: false,
     };
     const mine = createUnit(state, 0, 'warrior', 5, 4);
     expect(home.ownerId).toBe(0);
@@ -655,9 +653,7 @@ describe('a declaration drops the trade between the two', () => {
     caravan.trade = {
       from: mine.id,
       to: theirs.id,
-      expiresTurn: state.turn + 10,
       outbound: true,
-      autoResend: false,
     };
     const result = applyCommand(state, { type: 'declareWar', playerId: 0, targetId: 1 });
     expect(result.ok).toBe(true);
@@ -670,7 +666,6 @@ describe('a declaration drops the trade between the two', () => {
         ownerId: 0,
         from: mine.id,
         to: theirs.id,
-        renewed: false,
         ended: 'war',
       },
     ]);
@@ -685,9 +680,7 @@ describe('a declaration drops the trade between the two', () => {
     caravan.trade = {
       from: one.id,
       to: two.id,
-      expiresTurn: state.turn + 10,
       outbound: true,
-      autoResend: false,
     };
     const result = applyCommand(state, { type: 'declareWar', playerId: 0, targetId: 1 });
     expect(result.ok && result.routesEnded).toBeUndefined();
@@ -837,9 +830,7 @@ describe('razing', () => {
     caravan.trade = {
       from: mine.id,
       to: city.id,
-      expiresTurn: state.turn + 10,
       outbound: true,
-      autoResend: false,
     };
     const result = applyCommand(state, { type: 'razeCity', playerId: 0, cityId: city.id });
     expect(result.ok && result.routesEnded).toHaveLength(1);
@@ -1244,6 +1235,6 @@ describe('the schema witness', () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(228);
+    expect(SCHEMA_VERSION).toBe(229);
   });
 });

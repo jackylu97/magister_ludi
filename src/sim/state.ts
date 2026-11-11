@@ -237,8 +237,33 @@ import {
  * **A v227 save is refused and does not replay.** A seat's pool of Orders changes at every
  * tier, so the hands a logged game drew are dealt differently. The branch migrates
  * nothing, for the reason given under v119 in `docs/history/schema-changelog.md`.
+ *
+ * v229 (branch `decks`; batch TR2, `docs/flags.md` (ggggggg), the user's ruling of
+ * 2026-11-10): **a trade route has no term.** The changes:
+ *
+ *   · `TradeRoute.expiresTurn` and `TradeRoute.autoResend` leave the state, and
+ *     `TradeRoute.reached` joins it. A route runs until its owner cancels it, or until a
+ *     war, a plunder or a lost town ends it;
+ *   · the `setAutoResend` command is gone from the union, so a v228 log that carries one
+ *     names a verb this build does not know;
+ *   · `cancelRoute` is refused until the caravan has reached its destination once
+ *     (`cancelRouteError`, `trade.ts`);
+ *   · the hire price is `rules.trade.routePriceBase` (75 gold) plus
+ *     `rules.trade.routePricePerRunningRoute` (15 gold) for each route the seat has
+ *     running, and a card's rider after that. It no longer follows the Trader row's
+ *     production cost. `rules.trade.routeTurns` and `routePriceMultiplier` are gone;
+ *   · a commercial post still takes twenty turns, now under
+ *     `rules.trade.postEstablishTurns`;
+ *   · adopting The Sea Ban or The Inward Roads ends the seat's routes abroad at once,
+ *     and the march ends any route abroad of a seat under either one;
+ *   · the `routeTerm` card rule is gone. Its one row, Venture Routes (retired), holds
+ *     that clause as deferred.
+ *
+ * **A v228 save is refused and does not replay.** A logged route is priced, cancelled
+ * and ended differently. The branch migrates nothing, for the reason given under v119
+ * in `docs/history/schema-changelog.md`.
  */
-export const SCHEMA_VERSION = 228;
+export const SCHEMA_VERSION = 229;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2024,12 +2049,18 @@ export interface Unit {
 /**
  * A live trade route, as it sits on the caravan carrying it (`Unit.trade`).
  *
- * Four facts and no more: the two ends, when it lapses, and which way the piece
- * is walking. What the route *pays* is nowhere here — it is derived every turn
+ * A few facts and no more: the two ends, when it opened, which way the piece is
+ * walking, whether it has reached the far town yet, and the mode. What the route
+ * *pays* is nowhere here — it is derived every turn
  * from the two cities as they stand (`explainRouteYield` in `routeYields.ts`), so a
  * destination that finishes a library raises the route the next turn and a
  * destination that is captured stops paying its old owner. A snapshot of the
  * buildings at send time would be a second ledger.
+ *
+ * **A route has no term** (batch TR2, the user's ruling of 2026-11-10,
+ * `docs/flags.md` (ggggggg)). It runs until its owner cancels it, or until a
+ * war between the two ends, a plunder or a lost town ends it. The expiry turn
+ * and the auto-resend flag that this shape carried until schema 228 are gone.
  */
 export interface TradeRoute {
   /** The city the caravan set out from. **The city the route pays.** */
@@ -2037,45 +2068,29 @@ export interface TradeRoute {
   /** The partner. Its buildings and people are what the route is worth. */
   to: number;
   /**
-   * The turn this route stops paying — an **absolute** turn, read as
-   * `state.turn < expiresTurn`, exactly as `TimedEffect.expiresTurn` is.
-   * Nothing decrements it; the shuttle phase compares it, and only when the
-   * caravan is standing at home.
-   */
-  expiresTurn: number;
-  /**
    * **The turn this route opened**, and the whole of "how long has this road
    * been running" (batch D2d, the age stamp).
    *
-   * `expiresTurn`'s companion and the same kind of number — an **absolute** turn,
-   * read as `state.turn - startedTurn`, never decremented and never swept. That
-   * one says when the road stops paying and this says when it started, so
-   * between them a caravan carries its whole term without anything ticking.
+   * An **absolute** turn, read as `state.turn - startedTurn`, never decremented
+   * and never swept.
    *
-   * **A renewal is not a new route.** Auto-resend rewrites `expiresTurn` on this
-   * very object (`marchTraders`, the one place it happens), so a road a player
-   * keeps up across ten renewals has one start date. Everything that really ends
-   * a route — a cancellation, a plunder, a partner lost to war or to a border, a
-   * term allowed to run out at home — destroys `Unit.trade` itself, and the next
-   * caravan sent down the same road is a new route with a new date. So the four
-   * continuity resets the design doc names (`docs/six-decks-first-cut.md`,
-   * "Maturity is a relationship") fall out of the shape rather than being
-   * enforced anywhere.
+   * Everything that ends a route (a cancellation, a plunder, a partner lost to
+   * war or to a border) destroys `Unit.trade` itself, and the next caravan sent
+   * down the same road is a new route with a new date. So the continuity resets
+   * the design doc names (`docs/six-decks-first-cut.md`, "Maturity is a
+   * relationship") come from the shape and need no rule of their own.
    *
-   * **Two things the doc asks for that this does not do**, stated rather than
-   * hidden: a manual re-hire within two turns does not inherit the old road's
-   * progress (the doc's grace window), and a blockade does not pause the count
-   * (there is no blockade rule in the game yet). Both are refinements on a
-   * relationship tracker; the number here is the caravan's own unbroken term,
-   * which is what a card that pays "a road kept up" prints.
+   * **Two things the doc asks for that this does not do**: a manual re-hire
+   * within two turns does not inherit the old road's progress (the doc's grace
+   * window), and a blockade does not pause the count. The number here is the
+   * caravan's own unbroken run, which is what a card that pays "a road kept up"
+   * prints.
    *
-   * **Optional**, and that is `sea`'s convention on this very shape rather than
-   * `autoResend`'s: there is exactly one place a route comes into existence
-   * (`startRouteAt`) and it always writes this, so every route on a board has a
-   * date — what the key being optional buys is that a route *assembled by hand*
-   * (a test fixture, a scenario) is still a legal route. Absent is read as
-   * "cannot be shown to have run long enough", never as zero, which is the
-   * silence every other absent stamp in the vocabulary keeps.
+   * **Optional**, `sea`'s convention on this shape: there is exactly one place
+   * a route comes into existence (`startRouteAt`) and it always writes this, so
+   * every route on a board has a date. The key is optional so that a route
+   * *assembled by hand* (a test fixture, a scenario) is still a legal route.
+   * Absent is read as "cannot be shown to have run long enough", never as zero.
    */
   startedTurn?: number;
   /**
@@ -2086,16 +2101,20 @@ export interface TradeRoute {
    */
   outbound: boolean;
   /**
-   * True when the caravan should start a fresh leg instead of idling the turn
-   * its route lapses (the user's ruling: "add a button for auto-resend").
+   * True once the caravan has **reached the destination town**, or the key is
+   * **absent** before that (batch TR2: *"routes can only be cancelled after
+   * they've completed one trip to the destination city"*).
    *
-   * Always present rather than optional, unlike the flags on `Unit` — it is
-   * `hasAttacked`'s case one level in: every route either renews or does not,
-   * which is a real state and not an absent one, and there is exactly one place
-   * a route comes into existence (`startRouteAt`) so no creation path can leave
-   * it out.
+   * Written once, by `marchOneTrader` (`turn.ts`), on the resolution that turns
+   * the caravan round at `to`, and never cleared. `outbound` cannot answer the
+   * question alone, because it is true again on every later trip out.
+   * `routeReached` (`trade.ts`) is the one reading, and `cancelRouteError` asks
+   * it. Presence is the state, `sea`'s convention.
+   *
+   * Not drawn: the piece fingerprint (`signUnits`) hashes only whether a route
+   * is present, and this changes nothing on the board.
    */
-  autoResend: boolean;
+  reached?: true;
   /**
    * True when this route is run **by sea**, or the key is **absent** when it is
    * run by land (the user's ruling, 2026-09-03: *"trade routes should stay
@@ -2211,8 +2230,8 @@ export type PurchaseCurrency = 'faith' | 'gold' | 'culture';
  * a route write the same flag.
  *
  * **A date, not a flag**, and that is the whole of the record. An empire's post
- * ripens after a full route term of unbroken trading presence here
- * (`rules.trade.routeTurns`, the "normal twenty-turn term" the design calls
+ * ripens after twenty turns of unbroken trading presence here
+ * (`rules.trade.postEstablishTurns`, the "normal twenty-turn term" the design calls
  * for), so what has to be stored is when the presence started; whether it has
  * ripened yet is a subtraction anybody can do. `TimedEffect.expiresTurn`'s
  * discipline exactly — an absolute turn, compared and never counted down — and
@@ -2233,7 +2252,7 @@ export interface CommercialPost {
    * began — the turn its first still-running route here opened.
    *
    * A post written established by a reward (`writeEstablishedPost`, Commerce
-   * batch T4) is dated a full route term before the turn it was written, so
+   * batch T4) is dated a full post term before the turn it was written, so
    * it is established from that turn on. The date can be below zero.
    */
   since: number;
@@ -2545,7 +2564,7 @@ export interface City {
    *
    * **History, and it is never cleared** — the same kind of fact `captured` is,
    * and stored for the same reason: a post is a thing that *happened* to a
-   * place, and by the turn after the route lapses there is nothing on the board
+   * place, and by the turn after the route ends there is nothing on the board
    * left to derive it from. A captured town keeps its post, exactly as it keeps
    * its granary.
    *

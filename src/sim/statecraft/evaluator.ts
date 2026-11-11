@@ -3219,7 +3219,6 @@ export function tradePartnerSeats(state: GameState, playerId: number): number[] 
     if (unit.ownerId !== playerId) continue;
     const route = unit.trade;
     if (route === undefined) continue;
-    if (state.turn >= route.expiresTurn) continue;
     const partner = state.cities.find((entry) => entry.id === route.to);
     if (partner === undefined || partner.ownerId === playerId) continue;
     if (!seats.includes(partner.ownerId)) seats.push(partner.ownerId);
@@ -3760,15 +3759,14 @@ export function countOf(
       return total;
     }
     case 'tradeRoutes': {
-      // Live routes this seat is running, counted off the board rather than
-      // asked of `trade.ts` — which reads *this* module for its slot fold, so
-      // the arrow only points one way. Expiry is the one comparison it is
-      // everywhere else (`state.turn < expiresTurn`).
+      // Routes this seat is running, counted off the board rather than asked of
+      // `trade.ts` — which reads *this* module for its slot fold, so the arrow
+      // only points one way. A route has no term (batch TR2), so every caravan
+      // carrying one counts.
       let total = 0;
       for (const unit of state.units) {
         if (unit.ownerId !== playerId) continue;
         if (unit.trade === undefined) continue;
-        if (state.turn >= unit.trade.expiresTurn) continue;
         total += 1;
       }
       return total;
@@ -3800,7 +3798,7 @@ export function countOf(
     case 'worldTradeRoutes': {
       // Commerce batch T3, The Lingua Franca: every live route in the world,
       // whoever sent it, through the one test of an active route
-      // (`routeIsLive`). A renewed route is the same caravan, so it counts
+      // (`routeIsLive`). A route is the caravan that carries it, so each counts
       // once (the triage's reading 15).
       let total = 0;
       for (const unit of state.units) {
@@ -3829,7 +3827,6 @@ export function countOf(
         if (unit.ownerId !== playerId) continue;
         const route = unit.trade;
         if (route === undefined) continue;
-        if (state.turn >= route.expiresTurn) continue;
         const partner = state.cities.find((city) => city.id === route.to);
         if (partner === undefined || partner.ownerId === playerId) continue;
         total += 1;
@@ -3881,7 +3878,6 @@ export function countOf(
         if (unit.ownerId !== playerId) continue;
         const route = unit.trade;
         if (route === undefined) continue;
-        if (state.turn >= route.expiresTurn) continue;
         const partner = state.cities.find((entry) => entry.id === route.to);
         if (partner === undefined || partner.ownerId !== playerId) continue;
         total += 1;

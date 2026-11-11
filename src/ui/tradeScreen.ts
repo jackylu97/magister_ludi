@@ -83,7 +83,7 @@ import {
   routeCities,
   routeIsInternational,
   routeIsLive,
-  routeRenewalBan,
+  cancelRouteError,
   usedRouteSlots,
 } from '../sim/trade';
 import {
@@ -177,22 +177,25 @@ interface RunningRoute {
    * without it a road brings nothing.
    */
   importId: ResourceId | null;
-  /** `expiresTurn − state.turn`, floored at zero. Never a stored countdown. */
-  turnsLeft: number;
-  autoResend: boolean;
+  /**
+   * **Why this route may not be cancelled yet**, or `null` when it may —
+   * `cancelRouteError`'s own sentence (batch TR2). A route may be cancelled only
+   * after its caravan has reached the destination once, and the Cancel button
+   * greys with this and says it on hover.
+   */
+  cancelBlock: string | null;
   /** Gold this route alone pays, for the summary ledger's fold. */
   gold: number;
-  /** "Uruk ⇄ Nippur · +3🌾 +2⚙ +1💰 · 14 turns · ↻ auto". */
+  /** "Uruk ⇄ Nippur · +3🌾 +2⚙ +1💰". */
   text: string;
 }
 
 /**
  * Every caravan of this seat that is carrying a route, in `state.units` order.
  *
- * A **lapsed** route is still a row, and deliberately: the caravan is walking
- * home, the slot is still spoken for, and a player wondering where their fourth
- * route went needs to see exactly that. `turnsLeft` reads zero and the row
- * stands — and it is the row the Renew button sits on.
+ * A route has no term since batch TR2, so there is no turn count on the row and
+ * no renewal: a route runs until it is cancelled here, or a war, a plunder or a
+ * lost town ends it.
  */
 export function runningRoutes(state: GameState, playerId: number): RunningRoute[] {
   const rows: RunningRoute[] = [];
@@ -221,11 +224,6 @@ export function runningRoutes(state: GameState, playerId: number): RunningRoute[
       : explainRouteYield(state, unit);
     const fold = foldRouteYield(lines);
     const figures = routeFigures(fold);
-    const turnsLeft = Math.max(0, route.expiresTurn - state.turn);
-    // A flag left on from before a ban renews nothing (batch DT7), so the sheet does
-    // not print the route as renewing, and a press on the button prints the refusal.
-    const renews = route.autoResend && routeRenewalBan(state, unit) === null;
-    const auto = renews ? ' · ↻ auto' : '';
     rows.push({
       unitId: unit.id,
       col: unit.col,
@@ -239,10 +237,9 @@ export function runningRoutes(state: GameState, playerId: number): RunningRoute[
       figures,
       lines,
       importId: loans.get(unit.id) ?? null,
-      turnsLeft,
-      autoResend: renews,
+      cancelBlock: cancelRouteError(state, playerId, unit.id),
       gold: fold.gold,
-      text: `${fromName} ⇄ ${toName} · ${figures} · ${figure(turnsLeft)} turns${auto}`,
+      text: `${fromName} ⇄ ${toName} · ${figures}`,
     });
   }
   return rows;
@@ -385,9 +382,10 @@ export interface TradeContext {
    * **The carts already bought and standing with no route on them**, by id, in
    * `state.units` order — lowest id first (R4, 2026-09-09).
    *
-   * The purchased-and-waiting state the sheet had no word for: a route lapses,
-   * its wagon walks home, and until this batch the only thing the sheet would do
-   * with it was hire a second one beside it. It rides in the context for the
+   * The purchased-and-waiting state the sheet had no word for: a route ends
+   * (a cancel, a war, a lost town, a ban), its wagon stands idle, and until this
+   * batch the only thing the sheet would do with it was hire a second one beside
+   * it. It rides in the context for the
    * reason everything else here does — one reading of the state per paint, handed
    * down — and it is an array of ids rather than the pieces because the only two
    * things asked of it are "is there one" and "which one does a Send name".
@@ -1206,9 +1204,9 @@ export function buyCommandFor(
  *
  * The R4 ruling (2026-09-09, the user: *"sending a trade route should first aim
  * to re-use a route that's already been purchased"*), as one pure answer. A
- * bought cart is kept, not spent: when its route lapses it walks home and stands
- * there, and a sheet whose only verb was `buyRoute` charged for a second wagon
- * while the first waited in the gates.
+ * bought cart is kept, not spent: when its route ends it stands idle where it
+ * stopped, and a sheet whose only verb was `buyRoute` charged for a second wagon
+ * while the first waited.
  *
  * `startRoute` and `buyRoute` are held to **one pair gate** — `routeStartable`,
  * *"the gate minus the piece"* — so a card the sheet drew as available is a card
@@ -1356,9 +1354,7 @@ interface TradeScreenOptions {
    * `sendCommandFor`'s answer and nothing this file decides twice.
    */
   startRoute: (unitId: number, fromCityId: number, toCityId: number, mode: RouteMode) => void;
-  /** Flips a route's auto-renew flag. */
-  setAutoResend: (unitId: number, on: boolean) => void;
-  /** Ends a route now and frees the slot. */
+  /** Ends a route now and frees the slot. The cart stands idle. */
   cancelRoute: (unitId: number) => void;
   /** Brings a cell into view. `controls.panTo`, which is `MapView`'s to drive. */
   panTo: (cell: { col: number; row: number }) => void;
@@ -1486,6 +1482,24 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
       purse.append(document.createTextNode(' carts idle'));
     }
     head.append(purse);
+    // **What the next hire costs, and why** (batch TR2): the price rises with
+    // each route running, so the figure on a Hire button is not a fixed fact of
+    // the game, and the line says what moves it. The hover is the price's own
+    // ledger (`explainRoutePrice`'s lines, through the reading), so the figure
+    // and its sum cannot disagree.
+    const per = RULES.trade.routePricePerRunningRoute;
+    const hire = element('p', 'trade-idle-carts');
+    hire.append(document.createTextNode('Next hire: '));
+    hire.append(element('b', '', figure(ctx.reading.price)));
+    hire.append(
+      document.createTextNode(
+        per > 0 ? ` gold — each route running adds ${figure(per)} gold` : ' gold',
+      ),
+    );
+    hire.title = ctx.reading.priceLines
+      .map((line) => `${line.source} ${signedFigure(line.amount)}`)
+      .join(' · ');
+    head.append(hire);
     // Said once more, plainly, under the masthead: the count alone is a number,
     // and what a player needs to know is what the Send button will do with it.
     if (ctx.idleCarts.length > 0) {
@@ -1748,15 +1762,15 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
     const wrap = element('div', 'trade-wrap');
     const table = element('table', 'trade-table');
     const head = element('tr');
-    for (const label of ['Route', 'Mode', 'Road', 'Pays a turn', 'Turns left', '']) {
-      head.append(element('th', label === 'Pays a turn' || label === 'Turns left' ? 'is-num' : undefined, label));
+    for (const label of ['Route', 'Mode', 'Road', 'Pays a turn', '']) {
+      head.append(element('th', label === 'Pays a turn' ? 'is-num' : undefined, label));
     }
     const thead = element('thead');
     thead.append(head);
     table.append(thead);
     const bodyRows = element('tbody');
     for (const route of rows) {
-      const tr = element('tr', route.turnsLeft === 0 ? 'is-lapsed' : '');
+      const tr = element('tr', '');
       tr.title = routeLedgerTitle(route.lines);
       const name = element('td', '');
       const open = button('trade-linkish', '');
@@ -1793,50 +1807,22 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
       const pays = element('td', 'is-num');
       setTradeFigures(pays, route.figures);
       tr.append(pays);
-      tr.append(element('td', 'is-num', figure(route.turnsLeft)));
 
+      // **Cancel is the one verb** (batch TR2): a route has no term, so there is
+      // nothing to renew. The button greys until the caravan has reached its
+      // destination once, and says why in `cancelRouteError`'s own sentence.
       const verbs = element('td', '');
-      const auto = button(route.autoResend ? 'trade-send is-on' : 'trade-send is-quiet', '↻');
-      auto.title = route.autoResend
-        ? 'The caravan starts a fresh route when this one lapses'
-        : 'Start a fresh route automatically when this one lapses';
-      auto.setAttribute('aria-pressed', String(route.autoResend));
-      auto.addEventListener('click', () => {
-        options.setAutoResend(route.unitId, !route.autoResend);
-        draw();
-      });
-      verbs.append(auto);
-      // Renew is a fresh **hire** of the same pair, which is only a thing when
-      // the ledger has a slot for it — the running one's slot comes free on the
-      // Cancel beside it, or when the route lapses and the cart gets home.
-      const again = ctx.rows.find(
-        (row) => row.from.id === route.fromCityId && row.to.id === route.toCityId,
-      );
-      const mode2 = again === undefined ? null : chosenMode(again);
-      // Through the same choice the cards make (R4): a second cart on this pair
-      // is a cart standing idle before it is a coin out of the treasury.
-      const command2 =
-        again === undefined || mode2 === null ? null : sendCommandFor(ctx, again, mode2);
-      const renew = button('trade-send', 'Renew');
-      renew.disabled = command2 === null;
-      renew.title =
-        command2 === null
-          ? 'There is no free slot for a second caravan on this pair'
-          : command2.kind === 'send'
-            ? 'Send the cart standing idle on this pair — no coin'
-            : `Hire a second caravan on this pair for ${figure(ctx.reading.price)} gold`;
-      if (command2 !== null && again !== undefined) {
-        renew.addEventListener('click', () => {
-          dispatchSend(command2, again.from);
+      const cancel = button('trade-send is-quiet', 'Cancel');
+      if (route.cancelBlock !== null) {
+        cancel.disabled = true;
+        cancel.title = route.cancelBlock;
+      } else {
+        cancel.title = 'End the route now. The cart stands idle and the slot is free';
+        cancel.addEventListener('click', () => {
+          options.cancelRoute(route.unitId);
+          draw();
         });
       }
-      verbs.append(renew);
-      const cancel = button('trade-send is-quiet', 'Cancel');
-      cancel.title = 'End the route now and free the slot';
-      cancel.addEventListener('click', () => {
-        options.cancelRoute(route.unitId);
-        draw();
-      });
       verbs.append(cancel);
       tr.append(verbs);
       bodyRows.append(tr);

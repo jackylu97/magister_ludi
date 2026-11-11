@@ -78,9 +78,11 @@ import {
 } from '../../../src/sim/statecraftData';
 import { resourceDef } from '../../../src/sim/resourceData';
 import {
+  endRoutesBannedAbroad,
   hasSendablePair,
+  idleTraders,
+  routeBannedAbroad,
   routeModesAvailable,
-  routeRenewalBan,
   routeStartable,
   startRouteAt,
 } from '../../../src/sim/trade';
@@ -111,7 +113,7 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theMonteDiPieta', 4],
 ];
 
-const TERM = Math.floor(RULES.trade.routeTurns);
+const TERM = Math.floor(RULES.trade.postEstablishTurns);
 
 /** Lent rows, put back after each test, so a failed test cannot leak one into the next. */
 const lent: (() => void)[] = [];
@@ -499,6 +501,24 @@ describe('The Turnpike Trusts', () => {
     const lines = explainRoutePrice(state, 0, home.id)!;
     expect(lines[lines.length - 1]!.source).toContain('The Turnpike Trusts');
     expect(foldUnitCost(lines)).toBe(Math.floor(plain / 2));
+  });
+
+  it('halves the whole price, the step for each running route included (batch TR2)', () => {
+    // The card applies after the base and the running routes, as its own line.
+    const { state, home, other } = homePair();
+    const cart = createUnit(state, 0, 'trader', home.col, home.row);
+    startRouteAt(state, cart, home, other, 'land');
+    bumpRevision(state);
+    const stepped = RULES.trade.routePriceBase + RULES.trade.routePricePerRunningRoute;
+    expect(routePrice(state, 0, home.id)).toBe(stepped);
+    hold(state, 'theTurnpikeTrusts');
+    const lines = explainRoutePrice(state, 0, home.id)!;
+    expect(lines.map((line) => line.source)).toEqual([
+      'Hire a trade route',
+      '1 trade route running',
+      expect.stringContaining('The Turnpike Trusts'),
+    ]);
+    expect(foldUnitCost(lines)).toBe(Math.floor(stepped / 2));
   });
 
   it('charges the halved price when a caravan is bought, and the purse check asks the same figure', () => {
@@ -1243,6 +1263,37 @@ describe('The Sea Ban (batch DT7)', () => {
     expect(routeStartable(state, 1, abroad.id, home.id)).toBeNull();
   });
 
+  it('ends the routes abroad the moment it is adopted, and leaves the carts idle', () => {
+    // Batch TR2's reading: a route has no term, so a route already abroad when
+    // the ban came would run for ever. Adopting the Doctrine ends it at once.
+    const { state, home, other, abroad } = board();
+    const domestic = sent(state, home, other);
+    const foreign = sent(state, home, abroad);
+    seat(state).statecraft.pendingDoctrine = { options: ['theSeaBan' as DoctrineId] };
+    const result = applyCommand(state, { type: 'chooseDoctrine', playerId: 0, optionIndex: 0 });
+    expect(result.ok, result.ok ? '' : result.error).toBe(true);
+    if (!result.ok) return;
+    expect(result.routesEnded).toEqual([
+      { unitId: foreign.id, ownerId: 0, from: home.id, to: abroad.id, ended: 'ban' },
+    ]);
+    expect(foreign.trade).toBeUndefined();
+    expect(idleTraders(state, 0).map((unit) => unit.id)).toEqual([foreign.id]);
+    // The cart stays where it stood, and the home route runs on.
+    expect([foreign.col, foreign.row]).toEqual([home.col, home.row]);
+    expect(domestic.trade).toMatchObject({ from: home.id, to: other.id });
+  });
+
+  it('ends nothing for a seat under no ban, and nothing at home under one', () => {
+    const { state, home, other, abroad } = board();
+    const domestic = sent(state, home, other);
+    const foreign = sent(state, home, abroad);
+    expect(endRoutesBannedAbroad(state, 0)).toEqual([]);
+    expect(foreign.trade).toBeDefined();
+    hold(state, 'theSeaBan');
+    expect(routeBannedAbroad(state, domestic)).toBe(false);
+    expect(routeBannedAbroad(state, foreign)).toBe(true);
+  });
+
   /** One resolution, and the clock moves on, as `endTurn` moves it. */
   function resolve(state: GameState): void {
     runEndOfTurn(state);
@@ -1250,82 +1301,37 @@ describe('The Sea Ban (batch DT7)', () => {
     bumpRevision(state);
   }
 
-  /** Ends turns until the caravan's route has ended, and says how many that took. */
-  function turnsUntilRouteEnds(state: GameState, cart: Unit, limit: number): number {
-    for (let turn = 1; turn <= limit; turn++) {
-      resolve(state);
-      if (cart.trade === undefined) return turn;
-    }
-    return Infinity;
-  }
-
-  it('lets a route abroad that was running before the ban run out its term', () => {
-    const { state, home, abroad } = board();
-    const cart = sent(state, home, abroad);
-    hold(state, 'theSeaBan');
-    const until = cart.trade!.expiresTurn;
-    // Inside its term the route still runs and still pays.
-    resolve(state);
-    expect(cart.trade).toBeDefined();
-    expect(cart.trade!.expiresTurn).toBe(until);
-    expect(foldRouteYield(explainRouteSenderYield(state, cart)).gold).toBeGreaterThan(0);
-    cart.trade!.expiresTurn = state.turn + 1;
-    expect(turnsUntilRouteEnds(state, cart, 60)).toBeLessThan(60);
-  });
-
-  it('does not renew a route abroad whose flag was on before the ban', () => {
-    const { state, home, abroad } = board();
-    const cart = sent(state, home, abroad);
-    cart.trade!.autoResend = true;
-    cart.trade!.expiresTurn = state.turn + 1;
-    bumpRevision(state);
-    hold(state, 'theSeaBan');
-    expect(routeRenewalBan(state, cart)).toContain('The Sea Ban');
-    expect(turnsUntilRouteEnds(state, cart, 60)).toBeLessThan(60);
-  });
-
-  it('renews the same route with no ban, so the ban is what ended it', () => {
-    const { state, home, abroad } = board();
-    const cart = sent(state, home, abroad);
-    cart.trade!.autoResend = true;
-    cart.trade!.expiresTurn = state.turn + 1;
-    bumpRevision(state);
-    expect(routeRenewalBan(state, cart)).toBeNull();
-    expect(turnsUntilRouteEnds(state, cart, 60)).toBe(Infinity);
-  });
-
-  it('refuses to turn renewal on for a route abroad, byte-identical, and lets it be turned off', () => {
-    const { state, home, abroad } = board();
-    const cart = sent(state, home, abroad);
-    hold(state, 'theSeaBan');
-    const before = JSON.stringify(state);
-    const on = applyCommand(state, { type: 'setAutoResend', playerId: 0, unitId: cart.id, on: true });
-    expect(on.ok ? '' : on.error).toBe(routeRenewalBan(state, cart));
-    expect(JSON.stringify(state)).toBe(before);
-
-    // A flag left on from before the ban says the same, and may be turned off.
-    cart.trade!.autoResend = true;
-    const again = applyCommand(state, { type: 'setAutoResend', playerId: 0, unitId: cart.id, on: true });
-    expect(again.ok ? '' : again.error).toBe(routeRenewalBan(state, cart));
-    expect(applyCommand(state, { type: 'setAutoResend', playerId: 0, unitId: cart.id, on: false }).ok).toBe(true);
-  });
-
-  it('lets a home route renew as before', () => {
+  it('ends a route the march finds abroad under the ban, once its far town has changed hands', () => {
+    // A route that was at home when the ban came, and runs abroad later: the
+    // far town passes to an empire at peace. The march ends it that turn.
     const { state, home, other } = board();
-    const cart = sent(state, home, other);
     hold(state, 'theSeaBan');
-    expect(routeRenewalBan(state, cart)).toBeNull();
-    expect(applyCommand(state, { type: 'setAutoResend', playerId: 0, unitId: cart.id, on: true }).ok).toBe(true);
+    const cart = sent(state, home, other);
+    other.ownerId = 1;
+    bumpRevision(state);
+    const report = runEndOfTurn(state);
+    expect(report.routesEnded.map((row) => row.ended)).toEqual(['ban']);
+    expect(cart.trade).toBeUndefined();
   });
 
-  it('lets a route renew once its far end has come into the seat’s own hands', () => {
+  it('lets the same route run on with no ban, so the ban is what ended it', () => {
+    const { state, home, abroad } = board();
+    const cart = sent(state, home, abroad);
+    for (let turn = 0; turn < 30; turn++) resolve(state);
+    expect(cart.trade).toBeDefined();
+    expect(routeBannedAbroad(state, cart)).toBe(false);
+  });
+
+  it('lets a route run on once its far end has come into the seat’s own hands', () => {
     const { state, home, abroad } = board();
     const cart = sent(state, home, abroad);
     hold(state, 'theSeaBan');
-    expect(routeRenewalBan(state, cart)).not.toBeNull();
+    expect(routeBannedAbroad(state, cart)).toBe(true);
     abroad.ownerId = 0;
     bumpRevision(state);
-    expect(routeRenewalBan(state, cart)).toBeNull();
+    expect(routeBannedAbroad(state, cart)).toBe(false);
+    resolve(state);
+    expect(cart.trade).toBeDefined();
   });
 
   it('prices the rule at what the routes abroad pay, and at nothing when none runs and none is open', () => {
@@ -1676,12 +1682,16 @@ describe('The Grand Canal (batch DT18)', () => {
     expect(growthSurplus(state, home)).toBeCloseTo(grown / 2, 10);
   });
 
-  it('carries nothing along a route that has lapsed', () => {
+  it('carries nothing along a route that has ended', () => {
     const { state, farm, market } = canalBoard();
     const cart = running(state, farm, market);
     hold(state, 'theGrandCanal');
     expect(explainFoodCarried(state, farm, (city) => foldCity(state, city)).length).toBe(1);
-    state.turn = cart.trade!.expiresTurn;
+    // A route has no term (batch TR2): this one is cancelled once it has
+    // reached its far town.
+    cart.trade!.reached = true;
+    const cancelled = applyCommand(state, { type: 'cancelRoute', playerId: 0, unitId: cart.id });
+    expect(cancelled.ok, cancelled.ok ? '' : cancelled.error).toBe(true);
     bumpRevision(state);
     expect(explainFoodCarried(state, farm, (city) => foldCity(state, city))).toEqual([]);
     expect(explainFoodCarried(state, market, (city) => foldCity(state, city))).toEqual([]);

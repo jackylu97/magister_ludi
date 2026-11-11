@@ -115,7 +115,9 @@ describe('a caravan, from the treasury to the ledger', () => {
     expect(running).toHaveLength(1);
     expect(running[0]!.fromName).toBe(cityDisplayName(state, home));
     expect(running[0]!.mode).toBe(best.mode);
-    expect(running[0]!.turnsLeft).toBeGreaterThan(0);
+    // A route just hired has not reached its far town, so its Cancel is greyed
+    // with the reducer's own sentence (batch TR2).
+    expect(running[0]!.cancelBlock).toMatch(/has not reached/);
     const sent = routeReading(state, trader)!;
     expect(sent.toName).toBe(best.row.to.name);
     expect(sent.figures).not.toBe('nothing yet');
@@ -144,14 +146,13 @@ describe('a caravan, from the treasury to the ledger', () => {
     expect(cityRouteRows(state, partner)[0]!.outbound).toBe(false);
     expect(cityRouteRows(state, partner)[0]!.text).toMatch(/🌾/);
 
-    // 7. A few turns of walking. The clock counts down by subtraction, the road
-    //    goes under the caravan, and the towns eventually join up.
-    const before = routeReading(state, trader)!.turnsLeft;
+    // 7. A few turns of walking. The road goes under the caravan, the towns
+    //    eventually join up, and the route is still running: it has no term
+    //    (batch TR2). By now the cart has reached its far town, so the Running
+    //    tab offers the cancel.
     for (let turn = 0; turn < 14; turn++) resolve(state);
-    const walking = routeReading(state, trader);
-    // Either it is still running (the usual case) or it lapsed and came home —
-    // both are correct, and the panel must not throw on either.
-    if (walking) expect(walking.turnsLeft).toBeLessThan(before);
+    expect(routeReading(state, trader)).not.toBeNull();
+    expect(runningRoutes(state, 0)[0]!.cancelBlock).toBeNull();
     expect(unitById(state, trader.id)).toBeDefined();
     expect(state.map.tiles.some((tile) => tile.road === 0)).toBe(true);
 

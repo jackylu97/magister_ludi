@@ -231,9 +231,10 @@ import type { TechId } from './techData';
 import {
   type RouteEndReport,
   type RouteMode,
+  cancelRouteError,
   endRoute,
+  endRoutesBannedAbroad,
   routeModeFor,
-  routeRenewalBan,
   routeStartable,
   startRouteAt,
   startRouteError,
@@ -660,7 +661,7 @@ interface SleepUnitCommand extends PlayerCommand {
  * Tells a soldier or a scout to seek out unexplored land on its own, or calls
  * it back.
  *
- * A toggle like `setAutoResend`, and an order like `moveUnit`: setting it
+ * A toggle, and an order like `moveUnit`: setting it
  * drops whatever the piece was doing — the path it held, the sleep it was
  * given — and aims it at the nearest hex whose own sight would still show its
  * empire something new (`exploreTarget` in `explore.ts` is the whole rule).
@@ -1472,7 +1473,7 @@ interface GreatPersonWorkCommand extends PlayerCommand {
  * The trader is **not** consumed: it walks the route for as long as the route
  * runs, laying road under its feet on every hex it rests on (a **land** route;
  * a sea route lays none — see `mode`), and shuttles back
- * and forth between the two towns until the route lapses. That is the design
+ * and forth between the two towns until the route ends. That is the design
  * decision the doc left open (Civ V consumes the caravan on arrival) and it is
  * made this way because it is what makes the piece worth defending — a caravan
  * on the road is a thing an enemy can ride down, which is the user's ruling.
@@ -1526,9 +1527,9 @@ interface StartRouteCommand extends PlayerCommand {
  * route are born in one act and a slot can never be spent on an empty wagon.
  *
  * **`startRoute` stays**, and is not deprecated by this. A caravan already
- * standing is a real thing: it is what a save from before this schema replays
- * into, it is what a route that has lapsed leaves walking home, and it is what
- * the bot re-sends through the teleport rather than paying twice for. The two
+ * standing is a real thing: it is what a cancelled route, a war or a lost town
+ * leaves idle, and it is what the bot re-sends through the teleport rather than
+ * paying twice for. The two
  * verbs answer two different questions — *hire one* and *send this one* — and
  * they share every rule that is about the pair of towns.
  *
@@ -1554,25 +1555,25 @@ interface BuyRouteCommand extends PlayerCommand {
   mode?: RouteMode;
 }
 
-interface SetAutoResendCommand extends PlayerCommand {
-  type: 'setAutoResend';
-  unitId: number;
-  on: boolean;
-}
-
 /**
  * Ends a caravan's route now.
  *
  * `cancelOrder` for a route rather than for a march, and deliberately a separate
  * verb: cancelling the *order* stops the walk and leaves the route running,
  * while this ends the route and leaves the piece exactly where it is — still
- * holding whatever waypoints it had, so it walks home and then idles like any
- * other unit that has finished its order. Two different things a player might
- * mean, and one verb for each.
+ * holding whatever waypoints it had, so it walks them and then stands idle. Two
+ * different things a player might mean, and one verb for each.
  *
  * The slot is freed the instant this returns, which is the reason a player
  * reaches for it: a caravan tied to a partner that has stopped being worth it is
- * a market's worth of capacity standing idle.
+ * a market's worth of capacity standing idle. The idle cart is what the next
+ * Send uses before it hires.
+ *
+ * **Refused until the caravan has reached its destination once** (batch TR2,
+ * the user's ruling of 2026-11-10: *"routes can only be cancelled after they've
+ * completed one trip to the destination city"*). `cancelRouteError`
+ * (`trade.ts`) is the whole rule, and the Trade screen greys its Cancel with the
+ * same sentence.
  */
 interface CancelRouteCommand extends PlayerCommand {
   type: 'cancelRoute';
@@ -1810,7 +1811,6 @@ export type Command =
   | GreatPersonWorkCommand
   | StartRouteCommand
   | BuyRouteCommand
-  | SetAutoResendCommand
   | CancelRouteCommand
   | DisbandUnitCommand
   | DeclareWarCommand
@@ -2020,11 +2020,11 @@ export type CommandResult =
  * returns the piece is on the board, the node is in the list and the offer is on
  * the seat, so nothing downstream could re-derive which building did it.
  *
- * `routesEnded` is the sixth, from `endTurn` alone: every route `marchTraders`
- * dropped or renewed during the resolution (`TurnReport.routesEnded`), news for
- * the same reason a wonder is — by the time this returns the caravan's
- * `Unit.trade` has already been rewritten or deleted, and no diff of two boards
- * can say which caravans came home this turn.
+ * `routesEnded` is the sixth: every route `marchTraders` ended during the
+ * resolution (`TurnReport.routesEnded`), and the routes a declaration, a razing
+ * or an adopted ban ended inside a command. News for the same reason a wonder
+ * is — by the time this returns the caravan's `Unit.trade` has already been
+ * deleted, and no diff of two boards can say which routes ended or why.
  *
  * `sieges` is the seventh, also from `endTurn` alone: every town the heal phase
  * found cut off, and what the siege cost it (`SiegeReport`). A siege is derived
@@ -3124,7 +3124,7 @@ function applySleepUnit(state: GameState, command: SleepUnitCommand): CommandRes
 /**
  * Sets or clears a unit's auto-explore. See `SetAutoExploreCommand`.
  *
- * `applySetAutoResend`'s shape: the seat's questions here, the *eligibility*
+ * The seat's questions here, the *eligibility*
  * delegated whole to `autoExploreError` — the same function the unit sheet
  * greys its button with, so a live button and an accepted command are one rule
  * — and a value that would change nothing refused, which keeps the log free of
@@ -3745,12 +3745,18 @@ function applyChooseDoctrine(
   // The Arthashastra). After the law is forgotten, because the count reads it. A
   // resize and not a re-seating, so no card moves. `refitSlots` announces itself.
   refitSlots(state, actor);
+  // **A Doctrine that bans routes abroad ends them now** (batch TR2, the reading
+  // taken on The Sea Ban and The Inward Roads, `docs/flags.md` (ggggggg)). A
+  // route has no term to run out, so a route already abroad would otherwise run
+  // for ever. After the law is forgotten, because the ban is read from it. The
+  // carts stay where they stand, idle, and the owner hears why on `routesEnded`.
+  const banned = endRoutesBannedAbroad(state, actor.id);
   // The Muses' Call's own line — see `DoctrineDef.onAdopt`, and `payMomentGrants`
   // for why the settlement is the reducer's. A Doctrine is adopted once and
   // never unadopted, so the moment needs no once-flag: `applySlotOrder`'s half
   // keeps one because a slot may be emptied and filled again.
   if (taken !== null) payMomentGrants(state, actor, doctrineDef(taken.id).onAdopt ?? []);
-  return ok();
+  return ok(undefined, undefined, undefined, undefined, undefined, banned);
 }
 
 /**
@@ -4416,47 +4422,13 @@ function applyBuyRoute(state: GameState, command: BuyRouteCommand): CommandResul
 }
 
 /**
- * Flips a caravan's auto-resend. See `SetAutoResendCommand`.
- *
- * Refuses a value that would change nothing, which is what keeps the log free of
- * commands that say nothing — see the type's docblock.
- */
-function applySetAutoResend(state: GameState, command: SetAutoResendCommand): CommandResult {
-  const actor = resolveActor(state, command.playerId);
-  if (typeof actor === 'string') return fail(actor);
-  if (hasEndedTurn(state, actor.id)) {
-    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot change orders`);
-  }
-  if (typeof command.on !== 'boolean') return fail('setAutoResend needs a boolean "on"');
-
-  const unit = unitById(state, command.unitId);
-  if (!unit) return fail(`No unit with id ${String(command.unitId)}`);
-  if (unit.ownerId !== actor.id) {
-    return fail(`Unit ${unit.id} does not belong to player ${actor.id}`);
-  }
-  const route = unit.trade;
-  if (!route) return fail(`Unit ${unit.id} is not carrying a trade route`);
-  // Asked before the idempotence clause (batch DT7). A flag left on from before the
-  // ban renews nothing, so "already renews" would be false, and the screen shows
-  // that flag as off.
-  if (command.on) {
-    const banned = routeRenewalBan(state, unit);
-    if (banned !== null) return fail(banned);
-  }
-  if (route.autoResend === command.on) {
-    return fail(`That caravan already ${command.on ? 'renews' : 'ends'} its route`);
-  }
-
-  route.autoResend = command.on;
-  return ok();
-}
-
-/**
  * Ends a caravan's route. See `CancelRouteCommand`.
  *
- * Fully validated before the single mutation, like every other handler. The
- * piece keeps its waypoints on purpose — see the type's docblock; this is a verb
- * about the *route*, and `cancelOrder` is the verb about the march.
+ * Fully validated before the single mutation, like every other handler:
+ * `cancelRouteError` is the whole rule, including the batch TR2 clause that the
+ * caravan must have reached its destination once. The piece keeps its waypoints
+ * on purpose — see the type's docblock; this is a verb about the *route*, and
+ * `cancelOrder` is the verb about the march.
  */
 function applyCancelRoute(state: GameState, command: CancelRouteCommand): CommandResult {
   const actor = resolveActor(state, command.playerId);
@@ -4465,14 +4437,10 @@ function applyCancelRoute(state: GameState, command: CancelRouteCommand): Comman
     return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot cancel orders`);
   }
 
-  const unit = unitById(state, command.unitId);
-  if (!unit) return fail(`No unit with id ${String(command.unitId)}`);
-  if (unit.ownerId !== actor.id) {
-    return fail(`Unit ${unit.id} does not belong to player ${actor.id}`);
-  }
-  if (unit.trade === undefined) return fail(`Unit ${unit.id} is not carrying a trade route`);
+  const problem = cancelRouteError(state, actor.id, command.unitId);
+  if (problem) return fail(problem);
 
-  endRoute(state, unit);
+  endRoute(state, unitById(state, command.unitId)!);
   return ok();
 }
 
@@ -4482,10 +4450,9 @@ function applyCancelRoute(state: GameState, command: CancelRouteCommand): Comman
  * `declareWarError` is the whole rule, so the greyed button on the Diplomacy
  * screen and this refusal are one sentence. What lands beyond the row is the
  * trade between the two: `declareWarAt` drops every route spanning the pair and
- * reports them through `routesEnded`, the same field a route that lapses of its
- * own accord comes home on — a route ended by a phase and a route ended by a
- * declaration are the same kind of news, and neither has a verb of the owner's
- * behind it.
+ * reports them through `routesEnded`, the same field a route the march ends
+ * comes home on — a route ended by a phase and a route ended by a declaration
+ * are the same kind of news, and neither has a verb of the owner's behind it.
  *
  * **Nobody is expelled**, which is the ruling: a declaration opens the borders
  * (see `declareWarAt`). The peace closes them again and sends the columns home.
@@ -4864,10 +4831,9 @@ function orderedUnitId(command: Command): number | undefined {
     // wakes like anybody else — even though both verbs spend it.
     case 'greatPersonAct':
     case 'greatPersonWork':
-    // A caravan told to set out, to renew or to stop is a piece given an order,
-    // so it wakes like anybody else.
+    // A caravan told to set out or to stop is a piece given an order, so it
+    // wakes like anybody else.
     case 'startRoute':
-    case 'setAutoResend':
     case 'cancelRoute':
     // Telling a piece to range ahead — or calling it back — is an order to it,
     // so it wakes like anybody else. It is deliberately *not* in the excused
@@ -5063,7 +5029,6 @@ export const COMMAND_CLOCKS: Record<CommandType, CommandClock> = {
   greatPersonWork: 'economy',
   startRoute: 'economy',
   buyRoute: 'economy',
-  setAutoResend: 'economy',
   cancelRoute: 'economy',
   disbandUnit: 'economy',
   declareWar: 'economy',
@@ -5313,8 +5278,6 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyStartRoute(state, command);
     case 'buyRoute':
       return applyBuyRoute(state, command);
-    case 'setAutoResend':
-      return applySetAutoResend(state, command);
     case 'cancelRoute':
       return applyCancelRoute(state, command);
     case 'disbandUnit':

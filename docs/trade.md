@@ -26,8 +26,9 @@ History and the original proposal: `docs/history/design-history.md`.
   the trade sheet". A caravan exists only because a route was hired.
 - **`Unit.trade` presence IS the route** — no route register. One route per
   city pair *per direction* (ruled 2026-09-03: A→B does not preclude B→A;
-  at most two caravans join a pair, one each way); expiry is an absolute
-  turn. A cart whose route lapsed keeps standing: see R4 below.
+  at most two caravans join a pair, one each way). A route has no term (see
+  "A route runs until something ends it" below). A cart whose route ended
+  keeps standing: see R4 below.
 - **Never asked for orders.** `unitAwaitsOrders`/`unitOfferedForOrders` answer
   false for any `routeOnly` piece, routed or idle (R4).
 - The trader walks the road it lays; **a melee blow on a trading unit
@@ -52,10 +53,17 @@ History and the original proposal: `docs/history/design-history.md`.
   batch DT7). `foreignRouteBan` (`trade.ts`) holds the one sentence, and `gateRoute`
   asks it first in the foreign half, before war and meeting. So `startRoute`,
   `buyRoute` and the Trade screen's row all print it.
-  - A route already abroad runs out its term. A renewal counts as a new act, so
-    `routeRenewalBan` stops `marchOneTrader` from renewing it and makes
-    `setAutoResend` refuse to turn renewal on. It may still be turned off.
-  - A route whose far end comes into the seat's own hands is domestic, and may renew.
+  - **Adopting either one ends the seat's routes abroad at once** (batch TR2, a
+    reading taken without a ruling, `docs/flags.md` (ggggggg)). A route has no
+    term, so a route already abroad would otherwise run for ever.
+    `applyChooseDoctrine` calls `endRoutesBannedAbroad` after the law is
+    forgotten. Each cart stays where it stands, idle, and the owner hears it on
+    `CommandResult.routesEnded` with `ended: 'ban'`.
+  - The march ends a route that comes to run abroad later under the ban, for
+    example when its far town passes to another empire at peace
+    (`routeBannedAbroad`, asked first in `marchOneTrader`).
+  - A route whose far end comes into the seat's own hands is domestic, and the
+    ban does not touch it.
   - `hasSendablePair` asks the ban too, so End Turn does not prompt for a partner
     the seat may never send to.
 
@@ -71,18 +79,64 @@ History and the original proposal: `docs/history/design-history.md`.
   (`PurchasableRoute`, `purchase.ts`), which is the sentence every other
   refused purchase carries.
 - **The price** is one figure for every pair — `routePrice(state, playerId)`,
-  the fold of `explainRoutePrice`: every line of the Trader row's production
-  cost (the cost standard, so it climbs the columns with the age), then
-  `×goldPerHammer in gold`, then `rules.trade.routePriceMultiplier` (1). The
-  UI, the bot and the reducer share the one reading.
+  the fold of `explainRoutePrice` (batch TR2, the user's ruling of 2026-11-10:
+  *"Let's have the hire price start lower (75 gold) but increase the more
+  active trade routes you have (15 gold per)."*). Its lines:
+  1. `rules.trade.routePriceBase`, 75 gold;
+  2. `rules.trade.routePricePerRunningRoute`, 15 gold, for each route the seat
+     has running (`usedRouteSlots`: a caravan carrying a route). An idle cart is
+     not a running route. The line is left out while no route runs;
+  3. the riders, as one line: a card that changes the hire price (The Turnpike
+     Trusts, `purchaseRider` with `on: 'route'`, half off) and the origin
+     town's own purchase discount.
+
+  The price no longer follows the Trader row's production cost, the age or
+  `goldPerHammer`. The UI, the bot and the reducer share the one reading, and
+  the Trade screen's masthead prints the next hire with the ledger on hover.
 - `startRoute { unitId, fromCityId, toCityId, mode? }` **stays**, and since R4
-  it is the verb a Send reaches for first: a caravan already standing — an old
-  save, a route that lapsed and left its wagon at home, the bot's re-send.
+  it is the verb a Send reaches for first: a caravan already standing — a
+  route cancelled or ended by a war, a lost town or a ban, which leaves its
+  wagon idle, and the bot's re-send.
   Where the trader stands is not asked — it teleports to the origin.
   `routeStartable` greys a row before any wagon is chosen; `startRouteError`
   adds the piece-only clauses (yours, a trader, idle) and nothing about the
   pair, so **a re-send is legal exactly where a hire is**, foreign partner
   included. Both take the optional mode and answer for that mode alone.
+
+## A route runs until something ends it (ruled 2026-11-10, batch TR2)
+
+The user: *"let's remove the 20 turn term; routes can only be cancelled after
+they've completed one trip to the destination city"*. `docs/flags.md`
+(ggggggg) is the ruling of record.
+
+- **No term.** `TradeRoute` carries no expiry and no auto-resend flag, and
+  `rules.trade.routeTurns` is gone. There is nothing to renew. A route ends in
+  these ways and no others:
+  - its owner cancels it (`cancelRoute`);
+  - a war between the two ends closes it (`cancelRoutesBetween`);
+  - its caravan is plundered;
+  - a town at one end is razed (`cancelRoutesAt`) or stops being this
+    route's (`marchOneTrader`, `ended: 'partnerLost'`);
+  - its owner holds The Sea Ban or The Inward Roads and it runs abroad
+    (`ended: 'ban'`, see "The trader" above).
+- **A cancel waits for the first arrival.** `cancelRouteError` (`trade.ts`) is
+  the whole rule of `cancelRoute`: the piece is yours and carries a route, and
+  the route has reached its destination once. Before that the refusal reads
+  "This caravan has not reached ⟨town⟩ yet. You can cancel the route after it
+  arrives there once." The Running tab greys its Cancel with the same sentence.
+- **How "reached once" is known.** `TradeRoute.reached?: true`, presence is the
+  state. `marchOneTrader` writes it on the resolution that turns the caravan
+  round at the destination, and nothing clears it. `routeReached` is the one
+  reading: the flag, or the caravan walking home (`outbound` false), or the
+  caravan standing at the destination now (`routeArrived`), which covers the
+  turn between the arrival in the walk and the turn round in the next march.
+  The piece fingerprint (`signUnits`) hashes only whether a route is present, so
+  the flag rebuilds nothing.
+- **What reads the age.** `TradeRoute.startedTurn` stays, and `routeAge` reads
+  it. Established Routes (retired) pays a route kept twenty turns; with no term
+  every route that keeps running reaches that age.
+- **Commercial posts keep their twenty turns**, now under their own knob,
+  `rules.trade.postEstablishTurns` (`postTermTurns`, `routes.ts`).
 
 ## A bought cart is kept, not spent (ruled 2026-09-09, R4)
 
@@ -91,15 +145,16 @@ sending a trade route should first aim to re-use a route that's already been
 purchased … never ask for orders on a trader unit"*. No schema change —
 nothing new is stored.
 
-- **The cart survives its route.** A lapsed route deletes `Unit.trade` and
-  leaves the wagon where it stopped; the slot comes back, the piece does not go
-  with it. `idleTraders(state, playerId)` (`trade.ts`) is the reading — this
-  seat's pieces whose row carries `UnitDef.routeOnly` and which carry no route,
-  in `state.units` order, which is id order.
+- **The cart survives its route.** A route that ends (a cancel, a war, a lost
+  town, a ban) deletes `Unit.trade` and leaves the wagon where it stopped; the
+  slot comes back, the piece does not go with it. `idleTraders(state, playerId)`
+  (`trade.ts`) is the reading — this seat's pieces whose row carries
+  `UnitDef.routeOnly` and which carry no route, in `state.units` order, which is
+  id order.
 - **Send re-uses before it buys.** `sendCommandFor` (`tradeScreen.ts`, beside
   `buyCommandFor`) is the pure choice every Send on the sheet goes through —
-  the cards, the All-routes rows and the Running tab's Renew alike: the first
-  idle cart if there is one (`startRoute`, free), else `buyRoute` at the price.
+  the cards and the All-routes rows alike: the first idle cart if there is one
+  (`startRoute`, free), else `buyRoute` at the price.
   The **gold gate is the hire's alone**, so an empty purse still sends a cart.
   The button reads the difference — "Send · idle cart" against "Hire · N gold"
   — and the price stands beside it only where it would be paid.
@@ -115,7 +170,8 @@ nothing new is stored.
   `hasSendablePair(state, playerId)` — says **"Send an idle trader"** and opens
   the Trade sheet. It is **passable**: the press writes the cart into
   `controls.ts`'s skip set, so the next press ends the turn. An idle cart with
-  nothing to send blocks nothing.
+  nothing to send blocks nothing. The prompt stays after batch TR2, because a
+  cart still becomes idle through a cancel, a war, a lost town or a ban.
 - **`hasSendablePair` is the cheap half of the gate on purpose** — the slot
   clause and the partner clause of `routeStartable`, no path and no range. The
   blocker fold is asked once a press by the interface and once an *ask* by the
@@ -130,6 +186,9 @@ nothing new is stored.
   `idleTrader` arm is `unitCommand`, which is `traderCommand`, unchanged. It
   never hired beside an idle cart in the first place — `RouteOutlook.free` is
   `slots − used − idle`, so `explainCaravan` refuses the hire while one waits.
+  It reads the hire price through `reachOf` like every other purchase, so the
+  stepped price is the simulation's figure on its route row. It never renews
+  (there is nothing to renew) and never cancels a route.
 - **`readRoutes(state, playerId)`** (`readings.ts`, the third verb) is the
   Trade screen's whole subject, memoised on the revision: every ordered pair
   with its available modes, the fold per mode, the price, the hexes a land
@@ -224,9 +283,10 @@ gold/economy'"*); the tab rule is ink alone, with no gilt hairline under it.
   column. Pressing a side writes the choice down and repaints; `routeCard` is the
   one place that decides what a card says.
 - **Running**: route · mode (a chip — a running route's mode is settled) · road ·
-  pays a turn · turns left · the three verbs (↻ auto-renew, Renew, Cancel). The
-  unit sheet's route buttons became one link, so this row is `setAutoResend`'s
-  only surface now.
+  pays a turn · Cancel. There is no turn count and no renewal (batch TR2). Cancel
+  is greyed with `cancelRouteError`'s sentence until the caravan has reached its
+  destination once (`RunningRoute.cancelBlock`). The unit sheet's route buttons
+  became one link, so this row is the only cancel a player has.
 - **All routes**: the old screen's content behind a tab — collapsible `<details>`
   by origin in founding order, filter chips (own · abroad · land · sea) and sort
   chips (pay · food · gold · science · road). The slot tally on a summary is the
@@ -249,7 +309,10 @@ gold/economy'"*); the tab rule is ink alone, with no gilt hairline under it.
   construction rather than by two rules agreeing. The six are the specimen's
   parchment tokens — `--y-food` · `--y-prod` · `--y-gold` · `--y-sci` ·
   `--y-cul` · `--y-faith` — the same a tile's yields and a city panel's chips
-  are set in; a lapsed route's row keeps its own faint ink over them.
+  are set in.
+- **The masthead prints the next hire** (batch TR2): "Next hire: N gold — each
+  route running adds 15 gold", with the price's own lines on hover
+  (`RoutesReading.priceLines`, from `explainRoutePrice`).
 - **Every send and cancel lives here.** Send dispatches whichever command
   `sendCommandFor` names — `startRoute` through `controls.startRouteFrom` for a
   cart already owned, else `buyRoute` through `controls.buyRouteOf` (see
@@ -374,7 +437,7 @@ gold/economy'"*); the tab rule is ink alone, with no gilt hairline under it.
 - **The Silk Road lends a luxury** (`routesImportLuxuries`, the same pass): each
   live route of this empire that ends abroad hands the sender **one** kind the
   destination holds improved — never a kind the empire already controls, never
-  the same kind twice, one per route, lapsing with the route. Derived every time
+  the same kind twice, one per route, ending with the route. Derived every time
   it is asked (`importedLuxuries`, `resourceEffects.ts`), remembered on the
   revision clock, nothing stored. Every figure it pays is
   `trade.importedLuxuryPercent` (50) of a dug seam's, because the share is read

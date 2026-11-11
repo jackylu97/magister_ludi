@@ -282,7 +282,7 @@ describe('what counts as a loss', () => {
     const from = foundCityAt(state, 1, at(state, 9, 1));
     const to = foundCityAt(state, 1, at(state, 9, 7));
     const cart = createUnit(state, 1, 'trader', 6, 4);
-    cart.trade = { from: from.id, to: to.id, expiresTurn: state.turn + 10, outbound: true, autoResend: false };
+    cart.trade = { from: from.id, to: to.id, outbound: true };
     return cart;
   }
 

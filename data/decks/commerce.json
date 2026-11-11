@@ -459,11 +459,6 @@
       "text": "Your trade routes gain two turns of range. Trade routes between cities at least fifteen hexes apart gain +100% gold.",
       "effects": [
         {
-          "kind": "rulePercent",
-          "rule": "routeTerm",
-          "percent": 10
-        },
-        {
           "kind": "pays",
           "where": "route",
           "minHexes": 15,
@@ -475,7 +470,10 @@
           ]
         }
       ],
-      "note": "The two extra turns are written as a share of the term rather than as a flat figure, because a rule of the simulation takes a percentage and nothing else; at the term the rules table holds today the share comes to exactly the turns the card prints. A renewal rewrites a route's end date, so a road already running gets the longer term from its next renewal on, and the date it started is untouched. The distance is between the two towns and not along the road a cart walks, measured across the map's wrap, so a road that only just qualifies goes on qualifying whoever paves what.",
+      "deferred": [
+        "your trade routes gain two turns of range"
+      ],
+      "note": "The two extra turns were written on how long a trade route ran. A trade route now runs until it is cancelled, so that clause has nothing to change and is held. The distance is between the two towns and not along the road a cart walks, measured across the map's wrap, so a road that only just qualifies goes on qualifying whoever paves what.",
       "retired": true
     },
     "theMerchantLedger": {
@@ -671,7 +669,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The second season is worth more than the first.",
-      "text": "A trade route you have kept up for at least twenty turns pays 50% more. A route that lapses, is cancelled or is plundered begins its term again.",
+      "text": "A trade route you have kept up for at least twenty turns pays 50% more. A route that is cancelled or plundered starts its count again.",
       "effects": [
         {
           "kind": "pays",

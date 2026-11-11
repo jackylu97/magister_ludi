@@ -255,7 +255,7 @@ describe('experience from a fight', () => {
     const from = foundCityAt(state, 1, at(state, 9, 1));
     const to = foundCityAt(state, 1, at(state, 9, 8));
     const cart = createUnit(state, 1, 'trader', 6, 7);
-    cart.trade = { from: from.id, to: to.id, expiresTurn: state.turn + 10, outbound: true, autoResend: false };
+    cart.trade = { from: from.id, to: to.id, outbound: true };
     const raider = createUnit(state, 0, 'warrior', 5, 7);
     const plunder = strike(state, raider, 6, 7);
     expect(plunder.plundered).not.toBeNull();

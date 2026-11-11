@@ -189,8 +189,8 @@ function buildingsInCategories(
  *
  * Every figure is read off the cities *as they stand*, so an origin that
  * finishes a library raises the route the next turn — see the module docblock.
- * A lapsed route pays nothing and answers an empty list, which is what makes
- * `state.turn < expiresTurn` the whole of expiry.
+ * A route whose pair no longer describes the board pays nothing and answers an
+ * empty list. A route has no term (batch TR2), so nothing else stops it paying.
  *
  * **A route ending abroad reads none of this** (2026-09-03): its destination
  * fold is one coin and its sender fold is a flat table, both one function down.
@@ -843,8 +843,8 @@ interface ReturnLegLine extends RouteYieldLine {
  *     arriving are.
  *
  * A route to another empire is not copied: its sender's half is already the
- * sender's (`explainRouteSenderYieldBetween`). A lapsed or broken route pays
- * its destination nothing, so it copies nothing. `state.units` order.
+ * sender's (`explainRouteSenderYieldBetween`). A broken route pays its
+ * destination nothing, so it copies nothing. `state.units` order.
  */
 export function cityReturnLegYields(state: GameState, city: City): ReturnLegLine[] {
   const lines: ReturnLegLine[] = [];

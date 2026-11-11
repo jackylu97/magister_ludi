@@ -48,6 +48,7 @@ import {
 } from '../../src/sim/statecraft';
 import { type CardEffect, type OrderId, ORDER_IDS, orderDef } from '../../src/sim/statecraftData';
 import type { UnitTypeId } from '../../src/sim/unitData';
+import { openWar } from '../../src/sim/wars';
 
 const bench = () =>
   createGame({
@@ -68,15 +69,13 @@ function plant(state: GameState, owner: number, dx: number): City {
 }
 
 /** A cart carrying a live route from `from` to `to`, sent by the origin's owner. */
-function send(state: GameState, from: City, to: City, turns = 30): void {
+function send(state: GameState, from: City, to: City): void {
   const cart = createUnit(state, from.ownerId, 'trader' as UnitTypeId, from.col, from.row);
   cart.trade = {
     from: from.id,
     to: to.id,
-    expiresTurn: state.turn + turns,
     startedTurn: state.turn,
     outbound: true,
-    autoResend: false,
   };
 }
 
@@ -89,7 +88,7 @@ function slot(state: GameState, playerId: number, card: string): void {
 }
 
 describe('the route tally', () => {
-  it('counts by direction, by crossing, and never counts a lapsed route', () => {
+  it('counts by direction, by crossing, and never counts a route closed by a war', () => {
     const g = bench();
     const home = plant(g.state, 0, 0);
     const second = plant(g.state, 0, 3);
@@ -115,14 +114,16 @@ describe('the route tally', () => {
     expect(countRoutesAt(g.state, abroad, 'arriving')).toBe(1);
     expect(countRoutesAt(g.state, abroad, 'departing')).toBe(0);
 
-    // **A lapsed route is not a route.** The cart keeps its dead route until the
-    // shuttle drops it, and nothing counts it in the meantime.
-    for (const unit of g.state.units) {
-      if (unit.trade !== undefined) unit.trade.expiresTurn = g.state.turn;
-    }
+    // **A route closed by a war is not a route.** A route has no term (batch
+    // TR2), so this is the way one stops counting before the shuttle drops it:
+    // the cart keeps its dead route until the march, and nothing counts it in
+    // the meantime. The routes between the seat's own towns still count.
+    openWar(g.state, 0, 1);
     bumpRevision(g.state);
-    expect(countRoutesAt(g.state, home, 'departing')).toBe(0);
-    expect(countRoutesAt(g.state, second, 'arriving', 'domestic')).toBe(0);
+    expect(countRoutesAt(g.state, home, 'departing', 'international')).toBe(0);
+    expect(countRoutesAt(g.state, abroad, 'arriving')).toBe(0);
+    expect(countRoutesAt(g.state, home, 'departing')).toBe(2);
+    expect(countRoutesAt(g.state, second, 'arriving', 'domestic')).toBe(2);
   });
 
   it('reads the scope as a threshold, with "none" as its mirror', () => {

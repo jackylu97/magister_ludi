@@ -37,7 +37,6 @@ import {
   foldRouteYield,
   routeCities,
   routeIsInternational,
-  routeRenewalBan,
   routeSlots,
   usedRouteSlots,
 } from '../sim/trade';
@@ -193,9 +192,6 @@ export interface RouteReading {
   figures: string;
   /** The lines `figures` is the fold of — the hover ledger. */
   lines: RouteYieldLine[];
-  /** `expiresTurn - state.turn`, floored at zero. Never counted down anywhere. */
-  turnsLeft: number;
-  autoResend: boolean;
   /**
    * True when this route runs **by sea** (the ruling of 2026-09-03) — the
    * caravan sails and lays no road.
@@ -216,19 +212,15 @@ export interface RouteReading {
    * the sheet it is printed on is the sender's.
    */
   foreign: boolean;
-  /** "Caravan · Uruk ⇄ Nippur · +3🌾 +2⚙ +1💰 · 14 turns left". */
+  /** "Caravan · Uruk ⇄ Nippur · +3🌾 +2⚙ +1💰". */
   line: string;
 }
 
 /**
  * What this caravan is carrying, or `null` for a piece with no route.
  *
- * `turnsLeft` is a **subtraction, never a stored countdown** — `TradeRoute`
- * carries an absolute `expiresTurn` and nothing in the game decrements it, so
- * the only honest way to print "14 turns left" is to ask what turn it is. A
- * lapsed route reads `0` and still prints: the caravan is walking home and the
- * slot is still spoken for, which is precisely what a player wondering where
- * their fourth route went needs to see.
+ * No turn count: a route has no term since batch TR2, and runs until it is
+ * cancelled or something else ends it.
  */
 export function routeReading(state: GameState, unit: Unit): RouteReading | null {
   const route = unit.trade;
@@ -244,7 +236,6 @@ export function routeReading(state: GameState, unit: Unit): RouteReading | null 
   const foreign = pair !== null && routeIsInternational(pair.from, pair.to);
   const lines = foreign ? explainRouteSenderYield(state, unit) : explainRouteYield(state, unit);
   const figures = routeFigures(foldRouteYield(lines));
-  const turnsLeft = Math.max(0, route.expiresTurn - state.turn);
   const sea = route.sea === true;
   const way = sea ? ' · by sea' : '';
   return {
@@ -252,12 +243,9 @@ export function routeReading(state: GameState, unit: Unit): RouteReading | null 
     toName,
     figures,
     lines,
-    turnsLeft,
-    // A flag left on from before a ban renews nothing (batch DT7).
-    autoResend: route.autoResend && routeRenewalBan(state, unit) === null,
     sea,
     foreign,
-    line: `Caravan · ${fromName} ⇄ ${toName}${way} · ${figures} · ${turnsLeft} turns left`,
+    line: `Caravan · ${fromName} ⇄ ${toName}${way} · ${figures}`,
   };
 }
 
@@ -348,38 +336,21 @@ export function plunderSpoils(plunder: TraderPlunder): string {
 }
 
 /**
- * "Your route to Nippur has ended" — a route that stopped, in one line, or
- * `null` for one that did not stop at all.
- *
- * A route ends on the resolution that walks the caravan past its `expiresTurn`
- * (`marchTraders`), and until this the only sign was a slot quietly coming free:
- * a player who had set three routes running twenty turns ago had no way to learn
- * that one of them had stopped paying except by opening a sheet and counting.
+ * "Your route to Nippur has ended" — a route that stopped, in one line.
  *
  * Every sentence below **names the destination and says the route ended**, and
- * that is the ruling of 2026-09-17 (`docs/flags.md` (jjjjjj)). This used to
- * print "The caravan from Uruk has come home" for every ending there is, which
- * fails twice over: it reads as good news about an *arrival*, so a player never
- * connected it to the route disappearing — the user had been notified all
- * along and could not tell — and for the endings that were not homecomings it
- * was simply untrue, since the cart was standing abroad. A route is named by
- * where it was **bound**, like the plunder sentence beside it, because that is
- * the thing the player chose and the thing they have lost. **Only a caravan
- * that actually came home** — on a route its owner chose not to renew — is
- * told it came home.
+ * that is the ruling of 2026-09-17 (`docs/flags.md` (jjjjjj)). An earlier
+ * sentence read "The caravan from Uruk has come home" for every ending, which
+ * read as good news about an *arrival*, so a player never connected it to the
+ * route disappearing. A route is named by where it was **bound**, like the
+ * plunder sentence beside it, because that is the thing the player chose and
+ * the thing they have lost. Each sentence also says that the cart is idle,
+ * because the next Send uses it before it hires another.
  *
- * `null` for an **uneventful renewal**, and that is the other half of the same
- * ruling. An auto-resending route that simply carries on is not news; an empire
- * running fifteen of them on twenty-turn terms produced about a notice a turn,
- * and a chronicle that holds a hundred entries was pushing real losses out of
- * the log with the player's own caravans reporting in. `RouteEndReport.renewed`
- * is kept — the resolution still says what it did, and the Trade sheet may yet
- * want it — but nothing announces it. Deciding that here rather than in the
- * announcer is deliberate: a second surface reading this list should inherit
- * the silence rather than have to remember it.
+ * Since batch TR2 a route has no term, so no route ends by coming home and
+ * every report names its reason (`RouteEndReport.ended`).
  */
-export function routeEndSentence(state: GameState, report: RouteEndReport): string | null {
-  if (report.renewed) return null;
+export function routeEndSentence(state: GameState, report: RouteEndReport): string {
   const named = (id: number): string => {
     const city = state.cities.find((row) => row.id === id);
     return city ? cityDisplayName(state, city) : 'a lost city';
@@ -387,13 +358,18 @@ export function routeEndSentence(state: GameState, report: RouteEndReport): stri
   const to = named(report.to);
   switch (report.ended) {
     case 'war':
-      return `✶ Your route to ${to} has ended — the war has closed the road`;
+      return `✶ Your route to ${to} has ended — the war has closed the road. The cart is idle.`;
     case 'razed':
-      return `✶ Your route to ${to} has ended — the town is pulled down`;
+      return `✶ Your route to ${to} has ended — the town is pulled down. The cart is idle.`;
     case 'partnerLost':
-      return `✶ Your route to ${to} has ended — its towns are no longer both yours`;
-    default:
-      return `✶ Your route to ${to} has ended — the caravan is home and free to be sent again`;
+      return `✶ Your route to ${to} has ended — its towns are no longer both yours. The cart is idle.`;
+    case 'ban':
+      return `✶ Your route to ${to} has ended — your law forbids trade with other empires. The cart is idle.`;
+    default: {
+      const unhandled: never = report.ended;
+      void unhandled;
+      return `✶ Your route to ${to} has ended. The cart is idle.`;
+    }
   }
 }
 

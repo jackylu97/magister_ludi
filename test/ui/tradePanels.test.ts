@@ -122,24 +122,22 @@ describe('a routed caravan’s sheet', () => {
     return world;
   }
 
-  it('reads as the route, both ends and the clock', () => {
+  it('reads as the route and both ends, with no clock', () => {
     const { state, trader, home, partner } = routed();
     const reading = routeReading(state, trader)!;
     expect(reading.fromName).toContain(home.name);
     expect(reading.toName).toBe(partner.name);
-    expect(reading.line).toMatch(/^Caravan · .+ ⇄ .+ · .+ · \d+ turns left$/);
+    // A route has no term (batch TR2), so the line carries no turn count.
+    expect(reading.line).toMatch(/^Caravan · .+ ⇄ .+ · .+$/);
+    expect(reading.line).not.toMatch(/turns? left/);
     expect(reading.line).toContain(reading.figures);
   });
 
-  it('subtracts the clock rather than reading a countdown off the route', () => {
+  it('reads the same a hundred turns on, because nothing runs out', () => {
     const { state, trader } = routed();
-    const first = routeReading(state, trader)!.turnsLeft;
-    state.turn += 3;
-    expect(routeReading(state, trader)!.turnsLeft).toBe(first - 3);
-    // A lapsed route reads zero and still prints: the piece is walking home and
-    // the slot is still spoken for.
+    const first = routeReading(state, trader)!.line;
     state.turn += 100;
-    expect(routeReading(state, trader)!.turnsLeft).toBe(0);
+    expect(routeReading(state, trader)!.line).toBe(first);
   });
 
   it('folds to the same figures the city panel banks', () => {
@@ -187,7 +185,7 @@ describe('a routed caravan’s sheet', () => {
     // All routes onto the sheet too, so what is left on this piece is one door.
     // **R4 turned the guard from the route to the piece** (2026-09-09, *"never
     // ask for orders on a trader unit"*): the same subtraction now covers a cart
-    // whose route has lapsed, which used to fall through to the ordinary
+    // whose route has ended, which used to fall through to the ordinary
     // civilian verbs. Disband is the one row that survives, and only there.
     const block = panel.slice(panel.indexOf('const route = trades(unitDef(unit.type))'));
     const actions = block.slice(0, block.indexOf('if (unitDef(unit.type).foundsCity)'));
@@ -201,13 +199,14 @@ describe('a routed caravan’s sheet', () => {
     expect(actions).not.toContain('Skip Turn');
   });
 
-  it('flips auto-renew from the sheet’s Running row, through the command and never the field', () => {
-    // The verb did not go away with the button — it moved. The Running row's ↻
-    // toggle is its surface now, and it is the same command it always was.
-    expect(source('tradeScreen.ts')).toContain(
-      'options.setAutoResend(route.unitId, !route.autoResend);',
-    );
-    expect(controlsSource()).toMatch(/type: 'setAutoResend',/);
+  it('offers no renewal anywhere, because a route has no term (batch TR2)', () => {
+    // The ↻ toggle, the Renew button and the command behind them are gone. The
+    // Running row's one verb is Cancel, greyed by the reducer's own gate.
+    const screen = source('tradeScreen.ts');
+    expect(screen).not.toContain('setAutoResend');
+    expect(screen).not.toContain("'Renew'");
+    expect(screen).toContain('cancelBlock: cancelRouteError(state, playerId, unit.id)');
+    expect(controlsSource()).not.toContain('setAutoResend');
   });
 
   it('says there is nothing to do, under the route line, once it is offered nowhere else', () => {
@@ -750,49 +749,38 @@ describe('a route that ended is news, and says so', () => {
     return { unitId: 1, ownerId: 0, from: state.cities[0]!.id, to: state.cities[1]!.id };
   }
 
+  const ENDINGS = ['war', 'razed', 'partnerLost', 'ban'] as const;
+
   it('names the destination and says the route is over, whichever way it ended', () => {
     const { state } = tradeWorld();
     const to = cityDisplayName(state, state.cities[1]!);
     const base = report(state);
-    for (const line of [
-      routeEndSentence(state, { ...base, renewed: false }),
-      routeEndSentence(state, { ...base, renewed: false, ended: 'war' }),
-      routeEndSentence(state, { ...base, renewed: false, ended: 'razed' }),
-      routeEndSentence(state, { ...base, renewed: false, ended: 'partnerLost' }),
-    ]) {
-      expect(line).toContain(`Your route to ${to} has ended`);
+    for (const ended of ENDINGS) {
+      expect(routeEndSentence(state, { ...base, ended })).toContain(`Your route to ${to} has ended`);
     }
   });
 
   /**
-   * Only the ending that *is* a homecoming says so. A route the player left
-   * unrenewed ends with the cart in its own gates; the other two end with it
-   * standing wherever the news found it.
+   * No ending is a homecoming since batch TR2: a route has no term, so it never
+   * ends by coming home. Each sentence says which hand ended it and that the
+   * cart stands idle, which is what the next Send uses.
    */
-  it('says which hand ended it, and claims a homecoming for none of the others', () => {
+  it('says which hand ended it, claims a homecoming for none, and says the cart is idle', () => {
     const { state } = tradeWorld();
-    const base = { ...report(state), renewed: false };
-    expect(routeEndSentence(state, base)).toContain('the caravan is home');
-    for (const ended of ['war', 'razed', 'partnerLost'] as const) {
-      const line = routeEndSentence(state, { ...base, ended })!;
+    const base = report(state);
+    for (const ended of ENDINGS) {
+      const line = routeEndSentence(state, { ...base, ended });
       expect(line).not.toContain('home');
+      expect(line).toContain('The cart is idle.');
     }
     expect(routeEndSentence(state, { ...base, ended: 'war' })).toContain('the war has closed');
     expect(routeEndSentence(state, { ...base, ended: 'razed' })).toContain('pulled down');
     expect(routeEndSentence(state, { ...base, ended: 'partnerLost' })).toContain(
       'no longer both yours',
     );
-  });
-
-  /**
-   * Fifteen routes on twenty-turn terms is about a notice a turn, and a log
-   * that holds a hundred entries was losing real losses to them. A route that
-   * simply carries on is not news — and the silence is decided in the sentence
-   * rather than in the announcer, so a second surface inherits it.
-   */
-  it('says nothing at all about an uneventful renewal', () => {
-    const { state } = tradeWorld();
-    expect(routeEndSentence(state, { ...report(state), renewed: true })).toBeNull();
+    expect(routeEndSentence(state, { ...base, ended: 'ban' })).toContain(
+      'your law forbids trade with other empires',
+    );
   });
 
   it('copes with an end it cannot name rather than throwing', () => {
@@ -802,16 +790,15 @@ describe('a route that ended is news, and says so', () => {
       ownerId: 0,
       from: 9999,
       to: 9998,
-      renewed: false,
+      ended: 'partnerLost',
     });
     expect(line).toContain('a lost city');
   });
 
-  it('is reported for this seat alone, and skips the sentence that is not news', () => {
+  it('is reported for this seat alone, every one of them', () => {
     const routes = controls.slice(controls.indexOf('function reportRoutes'));
     const body = routes.slice(0, routes.indexOf('\n  }\n'));
     expect(body).toContain('if (report.ownerId !== localPlayerId) continue;');
-    expect(body).toContain('routeEndSentence(getGame().state, report)');
-    expect(body).toContain('if (line !== null) announce(line);');
+    expect(body).toContain('announce(routeEndSentence(getGame().state, report));');
   });
 });

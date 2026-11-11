@@ -139,7 +139,7 @@ describe('the disbandUnit command', () => {
   it('refuses a caravan carrying a route, and names the screen that ends it', () => {
     const state = flatState();
     const trader = createUnit(state, 0, 'trader', 5, 5);
-    trader.trade = { from: 1, to: 2, expiresTurn: 40, outbound: true, autoResend: false };
+    trader.trade = { from: 1, to: 2, outbound: true };
     const before = clone(state);
     const result = applyCommand(state, disband(trader.id));
     expect(result.ok).toBe(false);
@@ -172,7 +172,7 @@ describe('disbandError is the whole rule', () => {
     expect(disbandError(state, 0, warrior.id)).toBeNull();
     // And the reducer's refusal is this sentence, never a second one.
     const trader = createUnit(state, 0, 'trader', 6, 5);
-    trader.trade = { from: 1, to: 2, expiresTurn: 40, outbound: true, autoResend: false };
+    trader.trade = { from: 1, to: 2, outbound: true };
     const said = disbandError(state, 0, trader.id);
     expect(said).not.toBeNull();
     const result = applyCommand(state, disband(trader.id));

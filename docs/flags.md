@@ -19,6 +19,48 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(iiiiiii) Less authority and happiness from the tech tree, and fewer passive bonuses on technologies: RULED 2026-11-10; batch TT1 is queued. Early pacing is OPEN.**
+The user: *"there's too much authority and happiness in the game as it stands. I also think there are too many 'random' bonuses that aren't impactful in the tech tree ... unlocking something feels obvious, but the passive bonuses are so easy to miss ... i think we can cut most of them (make sure to keep irrigation, thats a big one)."* After the review page (https://claude.ai/artifact/RsNxBxQTx3kgdQfZNECNDd) and nine comments: *"no determinations yet on the early game pacing, but everything else is approved"*.
+- **Authority, ruled:**
+  - A coastal town costs 3, the same as any founded town. The user: *"this is confusing and not visible to the player"*. The coastal rule leaves the data and the code, with any card rule that only changed it.
+  - The Civil Service no longer gives +5 authority.
+  - The Assize Court, The Examination Court and The Post Station no longer give +1 authority. Each keeps its other effects.
+  - Gracia Mendes Nasi gives +5 authority, not +8.
+  - **Kept, by the user's comments:** the Monument's +1 (*"the only early game source of authority"*), the Courthouse's +2 in a captured town, and every wonder's authority (*"i'm not worried about wonders"*). Also kept: the Palace, the +2 for each age, the Imperial Throne, the Assembly Hall, Code of Laws' +3, Tyranny's +5 and the Mosque's +1.
+- **Happiness, ruled:**
+  - Satrapies no longer gives +1 happiness in each joined town.
+  - The Civil Service no longer makes the rewards arrive 5 points sooner.
+  - The Silk Road no longer lends a luxury for each foreign route.
+  - The Public Bath gives +1 in each joined town, not +2.
+  - **Kept:** the rewards for spare happiness, both steps. The user: *"rewarding excess happiness is important"*.
+  - **Kept:** each different luxury gives 4 happiness. The user: *"keep luxuries at 4, that's important for early pacing"*.
+- **Orders:** no Order is cut or changed by this item. The user: *"lets not cut from the orders for now. i'm concerned with only the tech tree"*. This also keeps the generic card Local Clerks.
+- **Passive bonuses on technologies, ruled.** Cut:
+  - Siegecraft: +1 town defence for every 4 citizens.
+  - Epic Poetry: culture when a unit falls.
+  - Chronology: the renown every 15 turns; seeing the next age a turn early; +1 culture on plantations.
+  - State Workforce: the 25% discount on buying workers.
+  - The Saddle: science and culture for pillaging.
+  - Daughter Cities: the settler discount; +1 food and +1 production on domestic routes.
+  - Satrapies: +1 gold for each joined town (and the happiness above).
+  - The Civil Service: +1 food and +1 production on great-person works (and the two lines above).
+  - Guildhalls: wonders 10% faster; +2 culture for each wonder.
+  - Horology: the science every 10 turns.
+  - The Silk Road: +3 gold on foreign routes (and the luxury loan above).
+  - Geomancy: the extra +1 production and +1 faith on a mine with a resource.
+  - The Golden Roads: +1 gold for each luxury at a route's ends.
+  - Machinery: the cheaper road step.
+  - Castellany: +10 strength when defending against ranged units.
+  - Steel: +1 movement for melee units.
+- **Kept:** Irrigation (farms beside fresh water +1 food), Currency (plantations +1 gold), The Saddle (pastures +1 production), Geomancy (mines +1 production), Code of Laws (+3 authority), State Workforce (workers +1 charge), The Golden Roads (+1 trade route), Daughter Cities (a founded town starts with a Town Charter), Iron Working (warriors become swordsmen when the seat gains iron).
+- **Moved:** Movable Type's +10% science and production leaves the technology and goes onto the Printing House, for the town that holds it.
+- **New:** a second "workers gain +1 charge" in Age 2. The user: *"let's add an additional 'workers gain +1 charge' somewhere in age 2"*. Reading: it goes on Bronze Panoply, which unlocks the Smithy and has no passive bonus today.
+- **Kept bonuses are printed as the technology's headline**, in the place an unlock is printed.
+- **Readings taken without a ruling (the user may change them):**
+  - Divine Right keeps its one bonus (a captured town costs 1 less authority) for now. The technology unlocks nothing else, so it needs a new unlock or leaves the tree, and the user has not said which.
+  - The Quiet Hours belief is not touched here. The belief pass is a separate proposal.
+- **Open:** early game pacing (section 4 of the page). The user has ideas of their own and has made no determination.
+
 **(hhhhhhh) Simpler Orders and twelve reworked governments: RULED 2026-11-10; batches DS1 to DS9 and G1 in flight.**
 The user: *"the cards require too much reading at the moment, and some of the tier 0 cards feel a bit too fancy for me currently."* After the review page, 24 comments and the governments table: *"Please ensure that an opus agent is runnign to implement work that's been finalized (the deck simplification and governments rework)"*.
 - **The spec of record** is `docs/plans/deck-simplification-2026-11-10.md`: the rules of the pass, the four keywords (Commission, Charter, Scaler, Boon), the governments table, and one table per deck of every cut, move, reword, simplify, change and new row.

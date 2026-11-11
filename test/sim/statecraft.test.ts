@@ -2285,7 +2285,7 @@ describe("determinism", () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(228);
+    expect(SCHEMA_VERSION).toBe(229);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -3297,13 +3297,12 @@ describe("the master-list cut of 2026-08-28", () => {
     trader.trade = {
       from: from.id,
       to: to.id,
-      expiresTurn: g.state.turn + 10,
       outbound: true,
-      autoResend: false,
     };
     expect(foldCardYields(explainCardEmpireYields(g.state, 0)).gold).toBe(1);
-    // A lapsed route is not a route: expiry is one comparison, here as everywhere.
-    trader.trade.expiresTurn = g.state.turn;
+    // A route that has ended is not a route: the caravan carries none. A route
+    // has no term (batch TR2), so an ending is the only way the count drops.
+    delete trader.trade;
     expect(
       explainCardEmpireYields(g.state, 0).some(
         (l) => l.card === "theWayhouses",
@@ -5424,9 +5423,7 @@ describe("the ratified cards of the Themes Build", () => {
     const route = {
       from: mine.id,
       to: theirs.id,
-      expiresTurn: g.state.turn + 10,
       outbound: true,
-      autoResend: false,
     };
     caravan.trade = { ...route };
     // A road to somebody else's town is `foreignTradeRoutes`, which is the
@@ -10803,17 +10800,16 @@ describe("the deferred rows of batch E4b", () => {
     caravan.trade = {
       from: other.id,
       to: city.id,
-      expiresTurn: g.state.turn + 20,
       outbound: true,
-      autoResend: false,
     };
     expect(cityScopeAdmits(g.state, city, scope)).toBe(true);
     // The origin is not a destination.
     expect(cityScopeAdmits(g.state, other, scope)).toBe(false);
-    // A lapsed road is inert: the scope reads `routeIsLive`, so it stops
-    // admitting on the turn the caravan's own expiry passes.
-    caravan.trade!.expiresTurn = g.state.turn;
+    // A dead road is inert: the scope reads `routeIsLive`, so it stops
+    // admitting the moment the route's origin passes to another empire.
+    other.ownerId = 1;
     expect(cityScopeAdmits(g.state, city, scope)).toBe(false);
+    other.ownerId = 0;
 
     // And the row that reads it.
     expect(buildingDef("bank").effects).toEqual([
@@ -11087,9 +11083,7 @@ describe("the orders and doctrines pass of 2026-09-10", () => {
     cart.trade = {
       from: theirs.id,
       to: mine.id,
-      expiresTurn: g.state.turn + 20,
       outbound: true,
-      autoResend: false,
     };
     bumpRevision(g.state);
     expect(paid()).toBe(2);
@@ -11167,9 +11161,7 @@ describe("the orders and doctrines pass of 2026-09-10", () => {
     cart.trade = {
       from: mine.id,
       to: theirs.id,
-      expiresTurn: g.state.turn + 20,
       outbound: true,
-      autoResend: false,
     };
     bumpRevision(g.state);
     expect(share("science")).toBe(2);

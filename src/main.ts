@@ -4623,10 +4623,6 @@ async function boot(initial: Game | null): Promise<void> {
       controls.startRouteFrom(unitId, fromCityId, toCityId, mode);
       updatePanel(null, renderer.getHover());
     },
-    setAutoResend: (unitId, on) => {
-      controls.setAutoResendOf(unitId, on);
-      updatePanel(null, renderer.getHover());
-    },
     cancelRoute: (unitId) => {
       controls.cancelRouteOf(unitId);
       updatePanel(null, renderer.getHover());
@@ -5525,10 +5521,6 @@ async function boot(initial: Game | null): Promise<void> {
     onStartRoute: () => trade?.open(controls.selectedUnit()?.id ?? null),
     routeReading: () => controls.routeReading(),
     routeSlotsLine: () => controls.routeSlotsLine(),
-    onSetAutoResend: (on) => {
-      controls.setAutoResend(on);
-      updatePanel(null, renderer.getHover());
-    },
     onCancelRoute: () => {
       controls.cancelRoute();
       updatePanel(null, renderer.getHover());

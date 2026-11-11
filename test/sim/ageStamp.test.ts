@@ -194,7 +194,7 @@ describe('a hex remembers the turn its work was raised', () => {
 });
 
 describe('a route remembers the turn it opened', () => {
-  it('is stamped where a route comes into existence, and a renewal is not a new route', () => {
+  it('is stamped where a route comes into existence, and turning round is not a new route', () => {
     const g = game();
     const city = found(g.state, 0);
     const far = secondCity(g.state, city, 3);
@@ -205,18 +205,18 @@ describe('a route remembers the turn it opened', () => {
     expect(route.startedTurn).toBe(4);
     expect(routeAge(g.state, route)).toBe(0);
 
-    // **An auto-resend rewrites the expiry on this very object**, which is what
-    // makes a road kept up across renewals one road with one start date.
+    // **A route has no term** (batch TR2), so a road kept up for thirty turns is
+    // one road with one start date, however often its caravan turns round.
     g.state.turn = 34;
-    route.autoResend = true;
-    route.expiresTurn = g.state.turn + 20;
+    route.outbound = false;
+    route.reached = true;
     expect(route.startedTurn).toBe(4);
     expect(routeAge(g.state, route)).toBe(30);
   });
 
   it('answers undefined for a route with no start date, never zero', () => {
     const g = game();
-    expect(routeAge(g.state, { from: 0, to: 1, expiresTurn: 9, outbound: true, autoResend: false }))
+    expect(routeAge(g.state, { from: 0, to: 1, outbound: true }))
       .toBeUndefined();
   });
 });

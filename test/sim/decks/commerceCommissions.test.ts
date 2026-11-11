@@ -51,7 +51,7 @@ import { END_OF_TURN_PHASES, emptyTurnReport } from '../../../src/sim/turn';
 import { resetVisibility } from '../../../src/sim/visibility';
 import { newGame } from '../newGameHelpers';
 
-const TERM = Math.floor(RULES.trade.routeTurns);
+const TERM = Math.floor(RULES.trade.postEstablishTurns);
 
 const GREAT_FAIR = 'commissionTheGreatFair' as OrderId;
 const WORLDS_FAIR = 'theWorldsFair' as OrderId;

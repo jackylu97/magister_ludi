@@ -109,7 +109,7 @@ describe('opaque fallback unit bodies', () => {
       hp: unitDef(type).maxHp, movesLeft: 2, hasAttacked: false,
     }));
     state.map.tiles[tileIndex(state.map, 4, 2)]!.terrain = 'coast';
-    state.units[2]!.trade = { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false } as NonNullable<Unit['trade']>;
+    state.units[2]!.trade = { from: 1, to: 2, outbound: true } as NonNullable<Unit['trade']>;
     state.units[0]!.trade = { ...state.units[2]!.trade! };
     resetVisibility(state);
     layer.build(state, board, library, new Quaternion(), false, null, null, null, null, null, 0, null);

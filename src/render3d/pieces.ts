@@ -1779,10 +1779,10 @@ export class UnitLayer {
  * `trade` is the newest member, and it is the one that was added for something
  * that *is* drawn. Presence, not contents: a caravan carrying a route stands in
  * a laden body with a gilt bale on its pack (`MiniSculpt.laden`, `unitSculpt`),
- * and an idle one does not — so a route assigned or run out changes the picture
+ * and an idle one does not — so a route assigned or ended changes the picture
  * on a piece that has not moved, which is `chargesLeft`'s case exactly. The
- * *route itself* is deliberately not hashed: `from`, `to`, `expiresTurn`,
- * `outbound` and `autoResend` all change without changing a pixel, and hashing
+ * *route itself* is deliberately not hashed: `from`, `to`, `startedTurn`,
+ * `outbound` and `reached` all change without changing a pixel, and hashing
  * the leg would rebuild every piece on the board on the turn a caravan turned
  * round. Adding it was a decision rather than a drift — CLAUDE.md's piece
  * fingerprint trap — and `test/render/pieces3d.test.ts` reads this function's

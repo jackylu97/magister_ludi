@@ -1092,8 +1092,8 @@
     "text": "+20% culture in every city joined to your capital by road"
    },
    {
-    "raw": "your caravans may not travel to other empires",
-    "text": "your caravans may not travel to other empires"
+    "raw": "your caravans may not travel to other empires, and any route you run to one ends",
+    "text": "your caravans may not travel to other empires, and any route you run to one ends"
    }
   ],
   "arcadia": [
@@ -1200,8 +1200,8 @@
     "text": "+100% everything on every trade route between two of your own cities"
    },
    {
-    "raw": "your caravans may not travel to other empires",
-    "text": "your caravans may not travel to other empires"
+    "raw": "your caravans may not travel to other empires, and any route you run to one ends",
+    "text": "your caravans may not travel to other empires, and any route you run to one ends"
    }
   ],
   "thePeaceOfLodi": [
@@ -6362,12 +6362,13 @@
   ],
   "ventureRoutes": [
    {
-    "raw": "your trade routes run 10% longer before they lapse",
-    "text": "your trade routes run 10% longer before they lapse"
-   },
-   {
     "raw": "+100% gold on every trade route whose two cities are at least 15 hexes apart",
     "text": "+100% gold on every trade route whose two cities are at least 15 hexes apart"
+   },
+   {
+    "raw": "your trade routes gain two turns of range — not built yet",
+    "text": "your trade routes gain two turns of range — not built yet",
+    "deferred": true
    }
   ],
   "theMerchantLedger": [

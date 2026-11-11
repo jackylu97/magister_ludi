@@ -472,7 +472,7 @@ describe('the model-class roster', () => {
     expect(sculptFor('canoness')).toBe('apostle');
     expect(sculptFor('rihlaCaravan')).toBe('trader');
     expect(sculptFor('worker')).toBe('worker');
-    const caravan = { type: 'rihlaCaravan', trade: { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false } } as never;
+    const caravan = { type: 'rihlaCaravan', trade: { from: 1, to: 2, outbound: true } } as never;
     expect(unitSculpt(caravan)).toBe('traderLaden');
     expect(unitSculpt(caravan, 'coast')).toBe('boat');
   });
@@ -490,7 +490,7 @@ describe('the model-class roster', () => {
     expect(unitSculpt(idle)).toBe('trader');
     const routed = {
       type: 'trader' as UnitTypeId,
-      trade: { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false },
+      trade: { from: 1, to: 2, outbound: true },
     } as never;
     expect(unitSculpt(routed)).toBe('traderLaden');
     // Presence is the state, so a laden twin is reached only through the
@@ -549,7 +549,7 @@ describe('the model-class roster', () => {
     // sentence, and there is no pack on a hull to rope a bale to.
     const routed = {
       type: 'trader' as UnitTypeId,
-      trade: { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false },
+      trade: { from: 1, to: 2, outbound: true },
     } as never;
     expect(unitSculpt(routed)).toBe('traderLaden');
     expect(unitSculpt(routed, 'coast')).toBe('boat');
@@ -1355,7 +1355,7 @@ describe('the routed wash', () => {
       movesLeft: 2,
       hasAttacked: false,
       ...(trade
-        ? { trade: { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false } }
+        ? { trade: { from: 1, to: 2, outbound: true } }
         : {}),
     }));
     return game;
@@ -1912,15 +1912,15 @@ describe('the worker charge badge', () => {
   it('moves the units fingerprint when a caravan takes a route', () => {
     const idle = state([{ type: 'trader' }]);
     const routed = state([{ type: 'trader' }]);
-    routed.units[0]!.trade = { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false };
+    routed.units[0]!.trade = { from: 1, to: 2, outbound: true };
     expect(signUnits(routed)).not.toBe(signUnits(idle));
   });
 
   it('leaves the fingerprint alone for two caravans both under way', () => {
     const a = state([{ type: 'trader' }]);
     const b = state([{ type: 'trader' }]);
-    a.units[0]!.trade = { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false };
-    b.units[0]!.trade = { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false };
+    a.units[0]!.trade = { from: 1, to: 2, outbound: true };
+    b.units[0]!.trade = { from: 1, to: 2, outbound: true };
     expect(signUnits(a)).toBe(signUnits(b));
   });
 
@@ -1930,9 +1930,17 @@ describe('the worker charge badge', () => {
     // would rebuild the whole board every time one of them touched a city.
     const out = state([{ type: 'trader' }]);
     const home = state([{ type: 'trader' }]);
-    out.units[0]!.trade = { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false };
-    home.units[0]!.trade = { from: 1, to: 2, expiresTurn: 14, outbound: false, autoResend: false };
+    out.units[0]!.trade = { from: 1, to: 2, outbound: true };
+    home.units[0]!.trade = { from: 1, to: 2, outbound: false };
     expect(signUnits(out)).toBe(signUnits(home));
+    // Batch TR2's flag is a fact about the route and not about the picture: a
+    // caravan that has reached its far town once looks the same as one that has
+    // not, so `reached` does not move the hash either.
+    const first = state([{ type: 'trader' }]);
+    const again = state([{ type: 'trader' }]);
+    first.units[0]!.trade = { from: 1, to: 2, outbound: true };
+    again.units[0]!.trade = { from: 1, to: 2, outbound: true, reached: true };
+    expect(signUnits(first)).toBe(signUnits(again));
   });
 
   it('moves when a piece is set to range ahead, and not for the aim it holds', () => {
@@ -3292,7 +3300,7 @@ describe("the caravan's own body", () => {
         row: 2,
         hp: unitDef(type).maxHp,
         movesLeft: 2,
-        trade: { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false },
+        trade: { from: 1, to: 2, outbound: true },
       },
     ] as never;
     const materialsLib = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
@@ -3339,7 +3347,7 @@ describe("the caravan's own body", () => {
         row: 2,
         hp: 10,
         movesLeft: 2,
-        trade: { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false },
+        trade: { from: 1, to: 2, outbound: true },
       },
     ] as never;
     const [idle, routed] = game.units;

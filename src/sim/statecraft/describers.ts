@@ -5902,12 +5902,6 @@ const RULE_WORDS: Record<CardRule, (percent: number, effect: RulePercentEffect) 
     percent < 0
       ? `a step along a road costs ${-percent}% less movement`
       : `a step along a road costs ${percent}% more movement`,
-  // Said as the **term**, which is the length it is: a longer road-life is a
-  // gain, so the figure keeps its sign in front the way every other gain does.
-  routeTerm: (percent) =>
-    percent < 0
-      ? `your trade routes run ${-percent}% fewer turns before they lapse`
-      : `your trade routes run ${percent}% longer before they lapse`,
   // Said as the **reach**, which is what a longer range is, and with the medium
   // in front because the rule is about sea routes and nothing else. A player
   // reading "your routes reach further" would plan a land road on it.
@@ -7355,8 +7349,10 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // Everything else the gate asks is still asked.
   postsWaiveRouteRange:
     'your trade routes to a city holding your trading post have no range limit',
-  // The Sea Ban and The Inward Roads (batch DT7).
-  noForeignRoutes: 'your caravans may not travel to other empires',
+  // The Sea Ban and The Inward Roads (batch DT7). Since batch TR2 a route has no
+  // term, so a route already abroad ends when the rule arrives, and the words
+  // say so.
+  noForeignRoutes: 'your caravans may not travel to other empires, and any route you run to one ends',
   // The Return Leg (Commerce batch T3).
   homeRoutesPayOrigin:
     'your trade routes between your own cities also pay the city they leave everything they pay the city they reach',

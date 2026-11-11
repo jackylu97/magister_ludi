@@ -1027,9 +1027,10 @@ export type CityScope =
    * Read off the pieces through `countRoutesAt` (`routes.ts`) — `Unit.trade`
    * **is** the route, there is no register, and the tally and the predicate
    * have to be one walk or they will eventually disagree. Only **active**
-   * routes are counted (`routeIsLive`), which is the one test there is: a
-   * lapsed route sits inert on its cart until the shuttle tidies it, and a town
-   * a dead route once ended at is not a town caravans come to. Two of the cards
+   * routes are counted (`routeIsLive`), which is the one test there is: a route
+   * whose pair no longer describes the board sits inert on its cart until the
+   * shuttle tidies it, and a town a dead route once ended at is not a town
+   * caravans come to. Two of the cards
    * say "paying routes"; the user ruled that decorative (2026-09-19), so there
    * is nothing here for that word to select on.
    *
@@ -1121,8 +1122,8 @@ export type CityScope =
    *
    * `routeEndsHere`'s neighbour and a different question: that one asks whether
    * carts are coming *now*, and this asks whether they came long enough to leave
-   * a house behind. A post is established by a route term of unbroken trading
-   * presence and is then permanent, so a card written on it is paying for a
+   * a house behind. A post is established by twenty turns of unbroken trading
+   * presence (`postTermTurns`) and is then permanent, so a card written on it is paying for a
    * relationship that was built rather than for traffic on the day.
    *
    * Asked through `cityPostPays` (`routes.ts`), so the design's two suspensions
@@ -2707,10 +2708,10 @@ export type CountKind =
   /**
    * Trade routes this empire is **running right now** — Silk Roads'.
    *
-   * The caravans of this seat carrying a live route, counted off the board
-   * (`Unit.trade`, live while `state.turn < expiresTurn`) rather than off
-   * `trade.ts`, which reads *this* module for its slot fold and may not be read
-   * back. One comparison, exactly as expiry is one comparison everywhere else.
+   * The caravans of this seat carrying a route, counted off the board
+   * (`Unit.trade`) rather than off `trade.ts`, which reads *this* module for its
+   * slot fold and may not be read back. A route has no term (batch TR2), so
+   * every caravan carrying one counts.
    */
   | 'tradeRoutes'
   /**
@@ -2768,8 +2769,8 @@ export type CountKind =
    * triage's reading 15).
    *
    * A route is counted while `routeIsLive` (`routes.ts`) says it runs, which is
-   * the one test of an active route. A renewed route is one route, because a
-   * route is the caravan that carries it. A walk of `state.units` in id order.
+   * the one test of an active route. A route is the caravan that carries it. A
+   * walk of `state.units` in id order.
    */
   | 'worldTradeRoutes'
   /**
@@ -4036,37 +4037,12 @@ export type CardRule =
    */
   | 'roadStepCost'
   /**
-   * **How many turns a trade route runs before it lapses** (`rules.trade.
-   * routeTurns`) — Venture Routes' two extra turns (batch C3).
-   *
-   * The tenth rule, and it is here for the reason the three above it are: the
-   * term is one constant the game reads in one place, so a percentage on it is
-   * the same shape as a settler's price or a road step's cost rather than a new
-   * kind of effect. The sign is theirs too — a **positive** percentage is a
-   * longer term, because the figure is a length and not a price.
-   *
-   * Read through `routeTermFor` (`trade.ts`), which both writers of
-   * `TradeRoute.expiresTurn` call: the route being opened (`startRouteAt`) and
-   * the auto-resend that renews one (`marchTraders`, `turn.ts`). A renewal
-   * **rewrites** the expiry rather than extending it, so an empire that picks
-   * the card up gets longer terms from its next renewal on, and one that drops
-   * it goes back to the short term on the renewal after that. `startedTurn` is
-   * never touched by either, so Established Routes' thirty-turn count is
-   * unaffected by anything this rule does.
-   *
-   * A card's own words are in **turns** because that is what a player plans
-   * around; the row is a percentage because that is what the shape takes, and
-   * the two agree at the term the rules table currently holds.
-   */
-  | 'routeTerm'
-  /**
    * **How far a caravan may be sent by sea** (`rules.trade.rangeTurns`) — The
    * Harbour Chain's three extra turns of reach (batch C7).
    *
-   * The eleventh rule, and `routeTerm`'s neighbour in every respect: the range
-   * is one constant the gate reads in one place (`routeRange`, `trade.ts`), so a
-   * percentage on it is the same shape as a settler's price rather than a new
-   * kind of effect. A **positive** percentage is further, because the figure is
+   * The range is one constant the gate reads in one place (`routeRange`,
+   * `trade.ts`), so a percentage on it is the same shape as a settler's price
+   * rather than a new kind of effect. A **positive** percentage is further, because the figure is
    * a length and not a price.
    *
    * The medium is in the rule's name rather than in a narrowing on the shape,
@@ -4520,9 +4496,10 @@ export type ActionRuleId =
    * The Inward Roads (batch DT7, reading 16).
    *
    * One clause in `gateRoute` (`trade.ts`), through `foreignRouteBan`, so a hire,
-   * a send and a greyed row on the Trade screen share one sentence. A route
-   * already abroad runs out its term. A renewal is a new act, so the same rule
-   * stops an auto-resending route from renewing (`routeRenewalBan`).
+   * a send and a greyed row on the Trade screen share one sentence. A route has
+   * no term since batch TR2, so a route already abroad ends when the Doctrine is
+   * adopted (`endRoutesBannedAbroad`), and the march ends one that comes to run
+   * abroad later (`routeBannedAbroad`). The cart stays idle.
    */
   | 'noForeignRoutes'
   /**
@@ -6012,7 +5989,7 @@ export type WindfallOccasion =
   | 'cardDrafted'
   /**
    * **One of this empire's trading posts became established** (Commerce batch
-   * T3): The Fondaci. A post is established when a full route term has passed
+   * T3): The Fondaci. A post is established when a full post term has passed
    * since its record opened (`cityHoldsPost`, `routes.ts`). It fires once for
    * each post, at home or abroad. A route writes a post at both of its ends,
    * so one route to a new town can establish two.
@@ -7184,15 +7161,16 @@ export interface CardPaysEffect extends CardYieldBag {
   crossing?: 'domestic' | 'international';
   /**
    * **The road has been running at least this many turns** — Established Routes'
-   * *"renewed routes pay 50% more"* (batch D2d, the age stamp). `where: 'route'`.
+   * *"kept routes pay 50% more"* (batch D2d, the age stamp). `where: 'route'`.
    *
    * `crossing`'s sibling and a filter on the *caravan* for its reason exactly: a
    * road and a road kept up for a season are one question asked two ways. Read
    * off `TradeRoute.startedTurn` — an absolute stamp written once when the route
-   * opens and never rewritten by a renewal — so the figure is
-   * `state.turn - startedTurn` and **nothing ticks**. Everything that really ends
-   * a route destroys `Unit.trade` itself, so a road that lapsed, was plundered or
-   * lost its partner starts its term over, which is what "kept up" means.
+   * opens and never rewritten — so the figure is `state.turn - startedTurn` and
+   * **nothing ticks**. Everything that ends a route destroys `Unit.trade` itself,
+   * so a road that was cancelled, plundered or lost its partner starts its count
+   * over, which is what "kept up" means. A route has no term since batch TR2, so
+   * every route that keeps running reaches the count.
    *
    * Absent reaches every road this empire sends, which is what every row written
    * before it meant. A row that names a term and is asked about an origin with

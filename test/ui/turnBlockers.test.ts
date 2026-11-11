@@ -163,7 +163,7 @@ describe('unitAwaitsOrders', () => {
     // order, exactly as `fortifiedTurns` and `sleeping` are.
     const state = flatState();
     const unit = createUnit(state, 0, 'trader', 3, 3);
-    unit.trade = { from: 1, to: 2, expiresTurn: 20, outbound: false, autoResend: true };
+    unit.trade = { from: 1, to: 2, outbound: false };
     expect(unit.movesLeft).toBeGreaterThan(0);
     expect(unit.path).toBeUndefined();
     expect(unitAwaitsOrders(unit)).toBe(false);
@@ -177,7 +177,7 @@ describe('unitAwaitsOrders', () => {
     // clause is the whole class, and it is asked of the row's own marker.
     const state = flatState();
     const unit = createUnit(state, 0, 'trader', 3, 3);
-    unit.trade = { from: 1, to: 2, expiresTurn: 20, outbound: false, autoResend: true };
+    unit.trade = { from: 1, to: 2, outbound: false };
     delete unit.trade;
     expect(unitDef(unit.type).routeOnly).toBe(true);
     expect(unitAwaitsOrders(unit)).toBe(false);
@@ -251,7 +251,7 @@ describe('unitOfferedForOrders', () => {
     expect(unitOfferedForOrders(ranging)).toBe(false);
 
     const caravan = createUnit(state, 0, 'trader', 6, 6);
-    caravan.trade = { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: true };
+    caravan.trade = { from: 1, to: 2, outbound: true };
     caravan.path = [{ col: 7, row: 6 }];
     expect(unitOfferedForOrders(caravan)).toBe(false);
   });
@@ -377,7 +377,7 @@ describe('firstBlocker · idle units', () => {
     // route.
     const state = settled();
     const trader = createUnit(state, 0, 'trader', 3, 3);
-    trader.trade = { from: 1, to: 2, expiresTurn: 20, outbound: false, autoResend: true };
+    trader.trade = { from: 1, to: 2, outbound: false };
     expect(trader.movesLeft).toBeGreaterThan(0);
     expect(firstBlocker(state, 0)).toBeNull();
   });
@@ -388,7 +388,7 @@ describe('firstBlocker · idle units', () => {
     // somewhere to send it — see the suite below.
     const state = settled();
     const trader = createUnit(state, 0, 'trader', 3, 3);
-    trader.trade = { from: 1, to: 2, expiresTurn: 20, outbound: false, autoResend: true };
+    trader.trade = { from: 1, to: 2, outbound: false };
     delete trader.trade;
     expect(firstBlocker(state, 0)).toBeNull();
   });
@@ -436,7 +436,7 @@ describe('firstBlocker · the idle cart', () => {
   it('is silent while the cart is carrying a route', () => {
     const { state, home, far } = trading();
     const cart = createUnit(state, 0, 'trader', 4, 4);
-    cart.trade = { from: home.id, to: far.id, expiresTurn: 20, outbound: true, autoResend: false };
+    cart.trade = { from: home.id, to: far.id, outbound: true };
     expect(firstBlocker(state, 0)).toBeNull();
   });
 
@@ -462,9 +462,9 @@ describe('firstBlocker · the idle cart', () => {
     // there is nothing left for a third cart to open.
     home.buildings = [...home.buildings, 'market'];
     const out = createUnit(state, 0, 'trader', 4, 4);
-    out.trade = { from: home.id, to: far.id, expiresTurn: 20, outbound: true, autoResend: false };
+    out.trade = { from: home.id, to: far.id, outbound: true };
     const back = createUnit(state, 0, 'trader', 8, 4);
-    back.trade = { from: far.id, to: home.id, expiresTurn: 20, outbound: true, autoResend: false };
+    back.trade = { from: far.id, to: home.id, outbound: true };
     createUnit(state, 0, 'trader', 4, 4);
     expect(firstBlocker(state, 0)).toBeNull();
   });

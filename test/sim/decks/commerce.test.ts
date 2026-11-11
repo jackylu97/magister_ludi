@@ -92,7 +92,7 @@ import { readCity } from '../../../src/sim/readings';
 import { buildError, gatingTech } from '../../../src/sim/tech';
 import { RULES } from '../../../src/sim/rulesData';
 import { explainRouteYieldBetween, foldRouteYield } from '../../../src/sim/routeYields';
-import { routeTermFor, startRouteAt } from '../../../src/sim/trade';
+import { startRouteAt } from '../../../src/sim/trade';
 import { drawGreatPersonOffer } from '../../../src/sim/greatPeople';
 import { GREAT_PERSON_IDS, greatPersonDef } from '../../../src/sim/greatPeopleData';
 import {
@@ -1575,8 +1575,9 @@ describe('C2 — the counts, the ring and the two counter rules', () => {
  *   · two `ActionRuleId`s — `goldBuysWonders` (The Gilded Scaffold) and
  *     `goldBuysRedraw` (The Brokers' Redraw), each read at a refusal that
  *     already had a lift beside it rather than as a second path to the thing;
- *   · `CardRule`'s `routeTerm` — how long a trade route runs before it lapses,
- *     the tenth rule and the same shape as a settler's price (Venture Routes);
+ *   · `CardRule`'s `routeTerm` — how long a trade route ran before it lapsed
+ *     (Venture Routes). Gone since batch TR2, which took the term out of the
+ *     game; the row holds that clause as deferred;
  *   · `CardPaysEffect.minHexes` — a route narrowing on the distance between the
  *     two towns, carried rather than resolved (Venture Routes);
  *   · `CardOfferRiderEffect.family` — a draft dealt from one family, falling
@@ -1654,9 +1655,8 @@ describe('C3 — the five cards that lift a rule', () => {
       ),
     ).toEqual(['theBrokersRedraw']);
     expect(writers((effect) => effect.kind === 'rule' && effect.rule === 'goldBuysRedraw')).toEqual([]);
-    expect(
-      writers((effect) => effect.kind === 'rulePercent' && effect.rule === 'routeTerm'),
-    ).toEqual(['ventureRoutes']);
+    // Venture Routes' term clause is held since batch TR2: a route has no term.
+    expect(writers((effect) => effect.kind === 'rulePercent')).not.toContain('ventureRoutes');
     expect(writers((effect) => effect.kind === 'pays' && effect.minHexes !== undefined)).toEqual([
       'ventureRoutes',
     ]);
@@ -1949,19 +1949,14 @@ describe('C3 — the five cards that lift a rule', () => {
   // --- Venture Routes --------------------------------------------------------
 
   describe('Venture Routes — a longer term and a longer haul', () => {
-    it('lengthens the term a route is opened with, and every renewal after', () => {
-      const g = bench([]);
-      const plain = routeTermFor(g.state, 0);
-      expect(plain).toBe(Math.max(1, Math.floor(RULES.trade.routeTurns)));
-      slot(g, 'ventureRoutes');
-      const longer = routeTermFor(g.state, 0);
-      // The card's own words are two turns, and at the term the rules table
-      // holds today the share the row carries comes to exactly that.
-      expect(longer - plain).toBe(2);
-      // And it is this empire's law alone. The renewal reads the same function
-      // and asks the caravan's owner, so a road already running picks the longer
-      // term up at its next renewal and keeps the date it started.
-      expect(routeTermFor(g.state, 1)).toBe(plain);
+    it('holds its two extra turns, because a route has no term to lengthen', () => {
+      // Batch TR2 took the term out of the game, and with it the `routeTerm`
+      // rule this row wrote. The clause is deferred on the retired row, so its
+      // printed words say it is not built, and the road's own rider stays.
+      const row = orderDef('ventureRoutes' as OrderId);
+      expect(row.retired).toBe(true);
+      expect(row.deferred).toEqual(['your trade routes gain two turns of range']);
+      expect(row.effects.map((effect) => effect.kind)).toEqual(['pays']);
     });
 
     it('doubles the coin on a long road and leaves a short one alone', () => {

@@ -73,8 +73,10 @@ import {
   hasSendablePair,
   idleTraders,
   roadsBuiltBy,
+  cancelRouteError,
   routeArrived,
   routeIsInternational,
+  routeReached,
   routeIsLive,
   routeLegPath,
   routeModeFor,
@@ -112,8 +114,8 @@ import { createGame } from './newGameHelpers';
  *      from — `startRouteError` for a chosen caravan, `routeStartable` for the
  *      pair of towns on its own, and the two are one implementation.
  *   2. **The shuttle is a phase.** A caravan walks, turns around, lays road, and
- *      drops a route that has run out — all of it out of `state`, none of it out
- *      of a clock.
+ *      drops a route whose pair stopped describing the board — all of it out of
+ *      `state`. A route has no term (batch TR2), so nothing is out of a clock.
  *   3. **A road is a price, and four readers agree on it.** `stepCost` is the
  *      one evaluator, so `findPath`, `reachableTiles`, `advanceAlongPath` and
  *      `pathTurns` cannot disagree about a highway any more than they can about
@@ -321,9 +323,7 @@ describe('startRoute', () => {
       // the road stops paying and one says when it opened, so a caravan carries
       // its whole term without any phase counting anything down.
       startedTurn: state.turn,
-      expiresTurn: state.turn + TRADE.routeTurns,
       outbound: true,
-      autoResend: false,
     });
     // Permanent history at both ends — the range every later caravan is sent on.
     expect(home.tradingPost).toBe(true);
@@ -644,18 +644,19 @@ describe('buyRoute', () => {
     };
   }
 
-  it('prices a route off the Trader row, converted and multiplied', () => {
+  it('prices a route at the base, plus a step for each route running', () => {
     const { state } = hireWorld();
     const lines = explainRoutePrice(state, 0)!;
     expect(lines).not.toBeNull();
     // Rule 5: the fold of the printed lines *is* the price, and `routePrice`
     // is that fold and nothing beside it.
     expect(lines.reduce((sum, line) => sum + line.amount, 0)).toBe(routePrice(state, 0));
-    // The wagon's own hammers, converted at the treasury's rate. Read off the
-    // simulation rather than typed, so a re-costed roster moves both halves.
-    const hammers = unitProductionCost(state, 0, 'trader');
-    const converted = Math.floor(hammers * RULES.production.goldPerHammer);
-    expect(routePrice(state, 0)).toBe(Math.floor(converted * TRADE.routePriceMultiplier));
+    // The user's 75 gold with nothing running (batch TR2). It no longer follows
+    // the Trader row's production cost, whatever that row costs to raise.
+    expect(routePrice(state, 0)).toBe(TRADE.routePriceBase);
+    expect(routePrice(state, 0)).not.toBe(
+      Math.floor(unitProductionCost(state, 0, 'trader') * RULES.production.goldPerHammer),
+    );
     // And the same figure the purchase book quotes for the route subject, which
     // is the one gate the screen, the bot and the reducer share.
     const price = explainPurchaseCost(state, 0, 1, { kind: 'route' }, 'gold');
@@ -663,6 +664,27 @@ describe('buyRoute', () => {
     expect(price?.total).toBe(routePrice(state, 0));
     // It is not for sale in the other bank at any price.
     expect(explainPurchaseCost(state, 0, 1, { kind: 'route' }, 'faith')).toBeNull();
+  });
+
+  it('charges the next hire one step more for each route already running', () => {
+    const { state, home, partner } = hireWorld();
+    // A second market, so the seat has two slots and a second hire is legal.
+    partner.buildings.push('market');
+    bumpRevision(state);
+    const purse = (): number => playerById(state, 0)!.gold;
+    const start = purse();
+    expect(applyCommand(state, hire(0, home.id, partner.id))).toEqual({ ok: true });
+    expect(purse()).toBe(start - TRADE.routePriceBase);
+    // One route running now, so the price is the base plus one step, and the
+    // ledger says so in a line of its own.
+    const next = TRADE.routePriceBase + TRADE.routePricePerRunningRoute;
+    expect(routePrice(state, 0)).toBe(next);
+    expect(explainRoutePrice(state, 0)![1]).toEqual({
+      source: '1 trade route running',
+      amount: TRADE.routePricePerRunningRoute,
+    });
+    expect(applyCommand(state, hire(0, partner.id, home.id))).toEqual({ ok: true });
+    expect(purse()).toBe(start - TRADE.routePriceBase - next);
   });
 
   it('charges the treasury and mints the caravan carrying the route', () => {
@@ -686,9 +708,7 @@ describe('buyRoute', () => {
       // The bought caravan's route is `startRouteAt`'s like any other — the
       // start date included (batch D2d).
       startedTurn: state.turn,
-      expiresTurn: state.turn + TRADE.routeTurns,
       outbound: true,
-      autoResend: false,
     });
     expect(caravan.path?.[caravan.path.length - 1]).toEqual({ col: partner.col, row: partner.row });
     // Both ends carry a post for ever, exactly as `startRoute` leaves them.
@@ -804,10 +824,11 @@ describe('buyRoute', () => {
  *      path exists, else sea.
  */
 /**
- * **The cart that came home** — R4 (the user, 2026-09-09: *"this is a major bug:
+ * **The cart whose route ended** — R4 (the user, 2026-09-09: *"this is a major bug:
  * once a trade route completes, there's no way to re-send it"*).
  *
- * A bought cart is kept, not spent: the route lapses, the wagon stands where it
+ * A bought cart is kept, not spent: the route ends (since batch TR2 by a cancel,
+ * a war, a lost town or a ban, never by a term), the wagon stands where it
  * stopped, and `startRoute` is the verb that puts it back on the road. That verb
  * never went away — what it lacked was a surface — so what is pinned here is
  * that the *rules* take a re-send, and take it on the same terms a hire is
@@ -815,12 +836,14 @@ describe('buyRoute', () => {
  * whichever origin the command names, and a foreign partner is a clause of the
  * shared gate rather than of the purse.
  */
-describe('a cart whose route has lapsed', () => {
+describe('a cart whose route has ended', () => {
   /** A hired route, ended — one wagon of this seat's standing with no route on it. */
   function lapsed(): ReturnType<typeof tradeWorld> & { cart: Unit } {
     const world = tradeWorld();
     expect(applyCommand(world.state, send(0, world.trader.id, world.home.id, world.partner.id)).ok)
       .toBe(true);
+    // The cancel opens once the caravan has reached its far town (batch TR2).
+    world.trader.trade!.reached = true;
     expect(
       applyCommand(world.state, { type: 'cancelRoute', playerId: 0, unitId: world.trader.id }).ok,
     ).toBe(true);
@@ -1143,39 +1166,43 @@ describe('the shuttle', () => {
     expect(roadsBuiltBy(state, 0)).toBe(8);
   });
 
-  it('ends the route when it lapses at home, and the caravan idles', () => {
+  it('runs on with no term: out, home and out again, still carrying the route', () => {
+    // Batch TR2, the user's ruling of 2026-11-10: *"let's remove the 20 turn
+    // term"*. The caravan comes home and sets out again, and the route never
+    // runs out.
     const { state, home, partner, trader } = tradeWorld();
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
-    // A route that runs out mid-road is inert but not gone: the caravan finishes
-    // its leg, comes home, and *then* the shuttle drops it.
-    trader.trade!.expiresTurn = state.turn;
-    runUntil(state, () => trader.trade === undefined);
-
-    expect([trader.col, trader.row]).toEqual([home.col, home.row]);
-    expect(usedRouteSlots(state, 0)).toBe(0);
-    // Both towns are still trading posts: a post is history and is never cleared.
+    runUntil(state, () => trader.trade?.outbound === false);
+    runUntil(state, () => trader.trade?.outbound === true);
+    expect(trader.trade).toMatchObject({ from: home.id, to: partner.id, reached: true });
+    for (let turn = 0; turn < 30; turn++) resolve(state);
+    expect(trader.trade).toBeDefined();
+    expect(usedRouteSlots(state, 0)).toBe(1);
+    expect(runEndOfTurn(state).routesEnded).toEqual([]);
+    // Both towns are trading posts: a post is history and is never cleared.
     expect(home.tradingPost).toBe(true);
     expect(partner.tradingPost).toBe(true);
   });
 
-  it('starts a fresh leg instead, when auto-resend is on', () => {
-    const { state, home, trader, partner } = tradeWorld();
+  it('writes `reached` the turn it turns round at the far town, and not before', () => {
+    const { state, home, partner, trader } = tradeWorld();
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
-    expect(
-      applyCommand(state, { type: 'setAutoResend', playerId: 0, unitId: trader.id, on: true }),
-    ).toEqual({ ok: true });
-    // The same value twice is a command that says nothing.
-    expect(
-      applyCommand(state, { type: 'setAutoResend', playerId: 0, unitId: trader.id, on: true }),
-    ).toEqual({ ok: false, error: expect.stringMatching(/already renews/) });
-
-    const lapse = state.turn;
-    trader.trade!.expiresTurn = lapse;
-    runUntil(state, () => (trader.trade?.expiresTurn ?? lapse) > lapse);
-    // Rewritten from the turn it renewed rather than extended, so a caravan that
-    // idled carries no credit for having idled.
-    expect(trader.trade!.expiresTurn).toBeGreaterThanOrEqual(lapse + TRADE.routeTurns);
-    expect(usedRouteSlots(state, 0)).toBe(1);
+    // A new route carries no key: presence is the state.
+    expect('reached' in trader.trade!).toBe(false);
+    expect(routeReached(state, trader)).toBe(false);
+    runUntil(state, () => standsIn(trader, partner));
+    // Standing at the far town, not yet turned round: the march turns it on
+    // the next resolution, and the reading already counts the arrival.
+    expect(trader.trade!.outbound).toBe(true);
+    expect(trader.trade!.reached).toBeUndefined();
+    expect(routeReached(state, trader)).toBe(true);
+    resolve(state);
+    expect(trader.trade!.reached).toBe(true);
+    expect(trader.trade!.outbound).toBe(false);
+    // Out again later, and still reached: the flag is never cleared.
+    runUntil(state, () => trader.trade?.outbound === true);
+    expect(trader.trade!.reached).toBe(true);
+    expect(routeReached(state, trader)).toBe(true);
   });
 
   it('ends when the destination stops being one of yours', () => {
@@ -1186,9 +1213,31 @@ describe('the shuttle', () => {
     expect(trader.trade).toBeUndefined();
   });
 
-  it('is cancelled by a verb of its own, which leaves the march alone', () => {
+  it('refuses a cancel before the caravan has reached its far town, byte-identical', () => {
+    // Batch TR2: *"routes can only be cancelled after they've completed one trip
+    // to the destination city"*. The sentence is the one the Trade screen greys
+    // its Cancel with.
     const { state, home, partner, trader } = tradeWorld();
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
+    const refusal = cancelRouteError(state, 0, trader.id);
+    expect(refusal).toBe(
+      `This caravan has not reached ${partner.name} yet. You can cancel the route after it arrives there once.`,
+    );
+    const before = snapshotState(state);
+    const result = applyCommand(state, { type: 'cancelRoute', playerId: 0, unitId: trader.id });
+    expect(result).toEqual({ ok: false, error: refusal });
+    expect(snapshotState(state)).toBe(before);
+    // On its way home it has been there, so the cancel opens.
+    trader.trade!.outbound = false;
+    expect(cancelRouteError(state, 0, trader.id)).toBeNull();
+    // Another seat's caravan is refused for being another seat's.
+    expect(cancelRouteError(state, 1, trader.id)).toMatch(/does not belong to player 1/);
+  });
+
+  it('is cancelled by a verb of its own once it has arrived, which leaves the march alone', () => {
+    const { state, home, partner, trader } = tradeWorld();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
+    trader.trade!.reached = true;
     const path = trader.path;
     expect(path).toBeDefined();
 
@@ -1209,60 +1258,38 @@ describe('the shuttle', () => {
 // --- route news ---------------------------------------------------------------
 
 describe('route news', () => {
-  /** Lands a caravan at home, its own leg already spent, ready to lapse. */
-  function readyToLapseAtHome(state: GameState, home: City, trader: Unit): void {
+  it('reports nothing for a caravan that simply turns round at home', () => {
+    // No route ends by coming home any more (batch TR2), so a homecoming is not
+    // news.
+    const { state, home, partner, trader } = tradeWorld();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     trader.col = home.col;
     trader.row = home.row;
     trader.trade!.outbound = false;
-    trader.trade!.expiresTurn = state.turn;
     delete trader.path;
-  }
-
-  it('reports a lapsed route once, the turn it comes home', () => {
-    const { state, home, partner, trader } = tradeWorld();
-    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
-    readyToLapseAtHome(state, home, trader);
-
     const report = runEndOfTurn(state);
-    expect(report.routesEnded).toEqual([
-      { unitId: trader.id, ownerId: 0, from: home.id, to: partner.id, renewed: false },
-    ]);
-    expect(trader.trade).toBeUndefined();
-  });
-
-  it('reports a renewal too, when auto-resend is on', () => {
-    const { state, home, partner, trader } = tradeWorld();
-    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
-    expect(
-      applyCommand(state, { type: 'setAutoResend', playerId: 0, unitId: trader.id, on: true }),
-    ).toEqual({ ok: true });
-    readyToLapseAtHome(state, home, trader);
-
-    const report = runEndOfTurn(state);
-    expect(report.routesEnded).toEqual([
-      { unitId: trader.id, ownerId: 0, from: home.id, to: partner.id, renewed: true },
-    ]);
-    // The same route, still running — a renewal is news, not an ending.
-    expect(trader.trade).toBeDefined();
+    expect(report.routesEnded).toEqual([]);
+    expect(trader.trade).toMatchObject({ outbound: true });
   });
 
   it('travels out through the resolving endTurn command, the way a grant does', () => {
     const { state, home, partner, trader } = tradeWorld();
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
-    readyToLapseAtHome(state, home, trader);
+    partner.ownerId = 1;
 
     expect(applyCommand(state, { type: 'endTurn', playerId: 1 })).toEqual({ ok: true });
     const result = applyCommand(state, { type: 'endTurn', playerId: 0 });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.routesEnded).toEqual([
-      { unitId: trader.id, ownerId: 0, from: home.id, to: partner.id, renewed: false },
+      { unitId: trader.id, ownerId: 0, from: home.id, to: partner.id, ended: 'partnerLost' },
     ]);
   });
 
   it('never reports a route the player cancelled themselves', () => {
     const { state, home, partner, trader } = tradeWorld();
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
+    trader.trade!.reached = true;
     expect(applyCommand(state, { type: 'cancelRoute', playerId: 0, unitId: trader.id })).toEqual({
       ok: true,
     });
@@ -1273,31 +1300,22 @@ describe('route news', () => {
 
   /**
    * An ending the owner's client cannot re-derive says which one it was
-   * (`RouteEndReport.ended`, the ruling of 2026-09-17). The marker is absent
-   * only for the homecoming, which is the one ending that really is one.
+   * (`RouteEndReport.ended`, the ruling of 2026-09-17). Since batch TR2 every
+   * report carries one, because no route ends by running out.
    */
-  it('marks the ending when a hand other than the clock ended it', () => {
+  it('marks the ending with the reason for it', () => {
     const { state, home, partner, trader } = tradeWorld();
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
-    readyToLapseAtHome(state, home, trader);
-    expect(runEndOfTurn(state).routesEnded[0]!.ended).toBeUndefined();
-
-    const second = tradeWorld();
-    expect(
-      applyCommand(second.state, send(0, second.trader.id, second.home.id, second.partner.id)).ok,
-    ).toBe(true);
-    second.partner.ownerId = 1;
-    expect(runEndOfTurn(second.state).routesEnded).toEqual([
+    partner.ownerId = 1;
+    expect(runEndOfTurn(state).routesEnded).toEqual([
       {
-        unitId: second.trader.id,
+        unitId: trader.id,
         ownerId: 0,
-        from: second.home.id,
-        to: second.partner.id,
-        renewed: false,
+        from: home.id,
+        to: partner.id,
         ended: 'partnerLost',
       },
     ]);
-    expect(partner.id).toBe(second.partner.id);
   });
 });
 
@@ -1313,8 +1331,8 @@ describe('route news', () => {
  * find a path on the turn its term ran out was dropped where it stood. A cart
  * cannot be jammed by another cart — traders stack freely, and needing no slot
  * is the whole of that category — but a neighbour's column across the road, a
- * settler in the gateway or ground that changed hands will all do it, and the
- * term running out is a window rather than a moment.
+ * settler in the gateway or ground that changed hands will all do it. A route
+ * has no term since batch TR2, so the jam has no window to be fatal in.
  */
 describe('a jam never ends a route', () => {
   /**
@@ -1329,7 +1347,7 @@ describe('a jam never ends a route', () => {
    * under test is the shuttle's behaviour on a board that changed under a route
    * already running.
    */
-  function jammed(autoResend: boolean): ReturnType<typeof tradeWorld> {
+  function jammed(): ReturnType<typeof tradeWorld> {
     const state = bareState(16, 9);
     const home = foundCityAt(state, 0, at(state, 3, 4));
     const partner = foundCityAt(state, 0, at(state, 10, 4));
@@ -1343,36 +1361,27 @@ describe('a jam never ends a route', () => {
     trader.trade = {
       from: home.id,
       to: partner.id,
-      expiresTurn: state.turn + TRADE.routeTurns,
       outbound: true,
-      autoResend,
     };
     return { state, home, partner, trader };
   }
 
   it('leaves a jammed caravan carrying its route, twenty turns on', () => {
-    const { state, trader } = jammed(false);
-    // The term runs out while it is stuck in the field — which used to be the
-    // exact moment the jam turned fatal.
-    trader.trade!.expiresTurn = state.turn;
+    const { state, trader } = jammed();
     for (let turn = 0; turn < 20; turn++) resolve(state);
     expect(trader.trade).toBeDefined();
+    expect([trader.col, trader.row]).toEqual([5, 4]);
     expect(usedRouteSlots(state, 0)).toBe(1);
     expect(runEndOfTurn(state).routesEnded).toEqual([]);
   });
 
-  it('renews an auto-resending route where it stands, so it can never lapse', () => {
-    const { state, trader } = jammed(true);
-    const lapse = state.turn;
-    trader.trade!.expiresTurn = lapse;
+  it('keeps the cancel shut while the jammed caravan has not reached its far town', () => {
+    // The rule of batch TR2 read on a jam: the cart has not been there, so its
+    // owner may not cancel. The route still pays where it stands, and the
+    // ending below still closes it if the partner is lost.
+    const { state, trader } = jammed();
     resolve(state);
-    // Renewed on the road, nowhere near home — the whole of "auto-renew means
-    // auto-renew".
-    expect(trader.trade!.expiresTurn).toBeGreaterThan(lapse);
-    expect([trader.col, trader.row]).toEqual([5, 4]);
-    for (let turn = 0; turn < 20; turn++) resolve(state);
-    expect(trader.trade).toBeDefined();
-    expect(usedRouteSlots(state, 0)).toBe(1);
+    expect(cancelRouteError(state, 0, trader.id)).toMatch(/has not reached/);
   });
 
   /**
@@ -1382,7 +1391,7 @@ describe('a jam never ends a route', () => {
    * whether the caravan is jammed or not.
    */
   it('still ends a jammed route the moment its partner stops being yours', () => {
-    const { state, partner, trader } = jammed(true);
+    const { state, partner, trader } = jammed();
     resolve(state);
     expect(trader.trade).toBeDefined();
     partner.ownerId = 1;
@@ -1688,14 +1697,16 @@ describe('a route’s yields', () => {
     expect(after.production).toBeGreaterThan(before.production);
   });
 
-  it('stops paying the turn it lapses, wherever the caravan is standing', () => {
+  it('stops paying the moment its far town is lost, wherever the caravan is standing', () => {
     const { state, home, trader, partner } = tradeWorld();
     // Two food-side buildings, so the route pays a line under the halved rate.
     home.buildings.push('library', 'granary');
     bumpRevision(state);
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     expect(explainRouteYield(state, trader)).not.toEqual([]);
-    trader.trade!.expiresTurn = state.turn;
+    // A route has no term (batch TR2). The far town passing to an empire at war
+    // with this one stops it paying before any broom reaches it.
+    partner.ownerId = 1;
     expect(explainRouteYield(state, trader)).toEqual([]);
   });
 
@@ -2951,7 +2962,7 @@ describe('a route’s reach', () => {
   it('opens it once the destination holds a paying post of this empire’s', () => {
     const { state, home, partner } = farSeaWorld();
     slot(state, 0, 'theAdmiraltyOfTrade');
-    const ripe = state.turn - RULES.trade.routeTurns;
+    const ripe = state.turn - RULES.trade.postEstablishTurns;
     partner.posts = [{ by: 0, since: ripe }];
     bumpRevision(state);
     // The origin needs no post (Commerce batch T3).
@@ -2968,7 +2979,7 @@ describe('a route’s reach', () => {
   it('waives the distance and nothing else', () => {
     const { state, home, partner } = farSeaWorld();
     slot(state, 0, 'theAdmiraltyOfTrade');
-    const ripe = state.turn - RULES.trade.routeTurns;
+    const ripe = state.turn - RULES.trade.postEstablishTurns;
     home.posts = [{ by: 0, since: ripe }];
     partner.posts = [{ by: 0, since: ripe }];
     bumpRevision(state);

@@ -152,9 +152,7 @@ export function faithWorld(): { state: GameState; ours: Religion; theirs: Religi
     caravan.trade = {
       from,
       to: state.cities[2]!.id,
-      expiresTurn: state.turn + 20,
       outbound: true,
-      autoResend: false,
     };
   }
 

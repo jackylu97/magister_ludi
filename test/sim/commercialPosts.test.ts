@@ -40,7 +40,7 @@ import { game } from './statecraftHelpers';
  * `trade.test.ts` owns the caravan and `routeTally.test.ts` owns the counts.
  */
 
-const TERM = Math.floor(RULES.trade.routeTurns);
+const TERM = Math.floor(RULES.trade.postEstablishTurns);
 
 /**
  * Two empires at peace, one town each, a trader standing in A's town — and no
@@ -115,7 +115,9 @@ describe('a trading post belongs to one empire', () => {
     state.turn += TERM - 2;
 
     // Cancelled a turn short: the record goes with the route, which is the
-    // design's "starting/cancelling does not qualify".
+    // design's "starting/cancelling does not qualify". The cart has been to the
+    // far town, which is what lets the cancel through (batch TR2).
+    trader.trade!.reached = true;
     expect(
       applyCommand(state, { type: 'cancelRoute', playerId: 0, unitId: trader.id }).ok,
     ).toBe(true);
@@ -129,6 +131,7 @@ describe('a trading post belongs to one empire', () => {
     expect(cityHoldsPost(state, partner, 0)).toBe(true);
 
     // Now cancel it. An established post is history and stays.
+    again.trade!.reached = true;
     expect(
       applyCommand(state, { type: 'cancelRoute', playerId: 0, unitId: again.id }).ok,
     ).toBe(true);
@@ -146,6 +149,7 @@ describe('a trading post belongs to one empire', () => {
     // through `endRoute`, which is where a post would be dropped if war could
     // drop one). Entrenched Interests' second sentence is that it cannot.
     openWar(state, 0, 1);
+    trader.trade!.reached = true;
     expect(
       applyCommand(state, { type: 'cancelRoute', playerId: 0, unitId: trader.id }).ok,
     ).toBe(true);
@@ -356,10 +360,8 @@ describe('the two cards that read a post without reading its income', () => {
       false,
     );
     state.turn += TERM;
-    // A post ripens at exactly the moment the first term runs out, so a card
-    // that wants both the house and a live road wants the road renewed — which
-    // is what auto-resend does for a player and what this does for the test.
-    trader.trade!.expiresTurn = state.turn + TERM;
+    // A post ripens after its own term, and a route has no term (batch TR2), so
+    // the road is still running on the turn the house is established.
     const paid = cardHappiness(state, 0).filter((line) => line.source.includes('Commonwealth'));
     expect(paid).toHaveLength(1);
     // One town, not two: the origin holds a post but no route ends there.

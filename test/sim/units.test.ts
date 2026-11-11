@@ -1083,7 +1083,7 @@ describe('a caravan and the two order predicates', () => {
 
     // Routed, which the fifth clause already covered: still false, by two
     // clauses now rather than one.
-    cart.trade = { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false };
+    cart.trade = { from: 1, to: 2, outbound: true };
     expect(unitAwaitsOrders(cart)).toBe(false);
     expect(unitOfferedForOrders(cart)).toBe(false);
   });

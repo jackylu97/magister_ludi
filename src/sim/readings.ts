@@ -162,10 +162,12 @@
 import type { City, GameState } from './state';
 import {
   emptyCityYields,
+  foldUnitCost,
   type CityYields,
+  type UnitCostLine,
 } from './cities';
 import { getTileAt } from './map';
-import { routePrice } from './purchase';
+import { explainRoutePrice } from './purchase';
 import { RULES } from './rulesData';
 import { rankSites, type SiteCandidate } from './sites';
 import {
@@ -436,10 +438,16 @@ export interface RoutesReading {
   playerId: number;
   /** `routeSlots` — the fold of markets and card riders. */
   slots: number;
-  /** `usedRouteSlots` — caravans carrying a route, lapsed ones included. */
+  /** `usedRouteSlots` — caravans carrying a route. An idle cart is not counted. */
   used: number;
   /** What one route costs to hire today — `routePrice`, one figure for them all. */
   price: number;
+  /**
+   * The lines `price` is the fold of (`explainRoutePrice`): the base, the
+   * routes running, and any card's rider (batch TR2). Empty on a world with no
+   * caravan, where `price` is nought.
+   */
+  priceLines: readonly UnitCostLine[];
   /**
    * Every ordered pair of a town of this empire's and a town anywhere, in
    * `state.cities` order twice over — founding order, a fact about the state
@@ -653,11 +661,15 @@ function routesReading(state: GameState, playerId: number): RoutesReading {
     row.postReach = reached;
   }
 
+  // The price and its lines from one ask, so the figure the sheet prints is the
+  // fold of the ledger it hovers. `routePrice` is this fold.
+  const priceLines = explainRoutePrice(state, playerId) ?? [];
   return {
     playerId,
     slots: routeSlots(state, playerId),
     used: usedRouteSlots(state, playerId),
-    price: routePrice(state, playerId),
+    price: foldUnitCost(priceLines),
+    priceLines,
     rows,
   };
 }

@@ -2,9 +2,9 @@
  * Trade: caravans, and the lifecycle of the route one carries (`docs/trade.md`).
  *
  * The **verbs and the plumbing** — sending a caravan, refusing a send, the
- * slots an empire may fill, ending or renewing a route, and what plundering one
- * pays. The verbs proper are in `commands.ts` and the shuttle is a phase in
- * `turn.ts`, exactly as every other subsystem splits.
+ * slots an empire may fill, ending a route, and what plundering one pays. The
+ * verbs proper are in `commands.ts` and the shuttle is a phase in `turn.ts`,
+ * exactly as every other subsystem splits.
  *
  * What left, and why
  * ------------------
@@ -56,9 +56,9 @@
  * units."*
  *
  * So `startRoute` names **both** cities and the trader's own position is
- * irrelevant — it may be standing in a field, in the wrong town, or halfway home
- * from a route that lapsed. The command teleports it into the origin's gates and
- * the route begins there. That is a deliberate trade of simulation for
+ * irrelevant — it may be standing in a field, in the wrong town, or wherever it
+ * stopped when its last route ended. The command teleports it into the origin's
+ * gates and the route begins there. That is a deliberate trade of simulation for
  * ergonomics, and it is the right trade for exactly the reason the ruling gives:
  * walking a caravan to the town it should set out from is a chore with no
  * decision in it, and the decision — *which pair of towns is worth a route* —
@@ -242,9 +242,9 @@ function tradersOf(state: GameState, playerId: number): Unit[] {
  *
  * `tradersOf`'s mirror, and the pair is the point: that one is the laden wagons
  * (the slots actually spent), this one is the bought-and-waiting. A route that
- * lapses leaves its cart on the board — the piece is kept, not spent — so an
- * empire that has ever hired a route very likely has one of these standing in a
- * town, and hiring a second while it waits is a coin paid for nothing.
+ * ends (a cancel, a war, a lost town, a ban) leaves its cart on the board — the
+ * piece is kept, not spent — so hiring a second while it waits is a coin paid
+ * for nothing.
  *
  * Asked of **`UnitDef.routeOnly`** rather than of `trades`, which is the ruling's
  * own word and the honest marker for the question: `trades` answers "may this
@@ -336,7 +336,7 @@ export function standsIn(unit: Unit, city: City): boolean {
  * Ends a route now, leaving the piece where it is.
  *
  * The key is *deleted* rather than flagged, because presence is the state (see
- * `Unit.trade`): a trader that has never been sent and one whose route lapsed
+ * `Unit.trade`): a trader that has never been sent and one whose route ended
  * must serialise identically. The destination is re-seated through the
  * register's own helper, because that town has just stopped receiving a
  * caravan's food and the panel it would otherwise lie to is that one
@@ -397,7 +397,7 @@ function refreshReturnLegOrigin(
  *
  * Written as a **date opened and a date kept** rather than as a sweep that looks
  * for ripe routes each turn. An empire's first caravan to a town opens the
- * record; the record ripens on its own after a route term
+ * record; the record ripens on its own after the post term
  * (`postTermTurns`, `routes.ts`), because a date compared against `state.turn`
  * needs nobody to visit it; and a route that ends *before* it ripened takes it
  * away again, which is exactly what "starting and cancelling does not qualify"
@@ -406,7 +406,7 @@ function refreshReturnLegOrigin(
  * batch T3) only reads them, to pay the moment a post is established.
  *
  * What continuity means here: **at least one route touching the town**. An
- * empire that keeps a trade route to Uruk running, renews it, replaces the caravan or
+ * empire that keeps a trade route to Uruk running, replaces the caravan or
  * runs a second one beside it has never left, so the record stands and its date
  * is the one it opened with. The moment that empire's last route to the town
  * ends, an unripe record goes — and a ripe one stays for good.
@@ -457,16 +457,15 @@ function closePost(state: GameState, city: City | undefined, playerId: number): 
  * are `openPost`, `closePost` and this function, all in this file (see
  * `openPost`).
  *
- * The record is dated a full route term back (`postTermTurns`), so
+ * The record is dated a full post term back (`postTermTurns`), so
  * `cityHoldsPost` is true from this turn on. `closePost` never drops a
  * record that old, so no route ending later can remove it.
  *
  *   · **A town that already holds this empire's established post** gains
  *     nothing, and nothing is paid.
  *   · **A record that has not yet ripened** (a route opened it less than a
- *     term ago) is dated back in place. The empire keeps one record a town,
- *     and the post is established now rather than when the route's term
- *     ends.
+ *     post term ago) is dated back in place. The empire keeps one record a town,
+ *     and the post is established now rather than when its term is up.
  *   · **No record**: one is added.
  *
  * Each post written pays the moment a post is established once, through
@@ -579,8 +578,8 @@ export function runPostEstablishments(state: GameState): void {
  * The trade half of a declaration (`docs/war-diplomacy.md`, section 5: "trade
  * routes between the two empires cancel on declaration"). It goes through
  * `endRoute` rather than deleting keys itself, so the destination is re-seated
- * exactly as it is when a route lapses of its own accord and there is one
- * implementation of "this route is over".
+ * exactly as it is when any other route ends and there is one implementation
+ * of "this route is over".
  *
  * A route is *between* the two empires when its two ends are held one by each,
  * **read as the board stands now** rather than as it stood when the caravan set
@@ -620,7 +619,6 @@ export function cancelRoutesBetween(
       ownerId: unit.ownerId,
       from: route.from,
       to: route.to,
-      renewed: false,
       ended: 'war',
     });
     endRoute(state, unit);
@@ -648,7 +646,6 @@ export function cancelRoutesAt(state: GameState, cityId: number): RouteEndReport
       ownerId: unit.ownerId,
       from: route.from,
       to: route.to,
-      renewed: false,
       ended: 'razed',
     });
     endRoute(state, unit);
@@ -657,20 +654,20 @@ export function cancelRoutesAt(state: GameState, cityId: number): RouteEndReport
 }
 
 /**
- * One caravan's route coming home — dropped, or renewed for another leg.
+ * One caravan's route that ended with no cancel of its owner's behind it.
  *
- * `marchTraders`' own news (`turn.ts`): a route that lapses is otherwise
- * silent — the piece is still on the board, nothing died, nothing was taken —
- * so without this the interface has no way to say "your caravan to Nippur is
- * home" or "…and it set out again." `renewed` is the whole of auto-resend read
- * as an event: the same route continuing is news exactly as the same route
- * ending is, which is why one shape covers both rather than a flag bolted on
- * after.
+ * The news the owner's client cannot work out for itself. Every ending here is
+ * decided somewhere that client does not see: inside *somebody else's* command
+ * (a declaration, a razing), inside the owner's own law (a ban adopted), or
+ * inside a resolution (`marchTraders`, `turn.ts`). Afterwards the key is simply
+ * gone from the piece, and no diff of two boards can say why.
  *
  * Deliberately **not** raised for `cancelRoute` (`commands.ts`): that ending is
  * a command the player just issued, and a command already knows what it did.
- * This is only for the three ways `marchTraders` ends or renews a route with no
- * verb behind it.
+ *
+ * Until batch TR2 a route could also end at home when its term ran out, and the
+ * report carried a `renewed` flag for a route that started again. A route has
+ * no term now, so every report names what ended it.
  */
 export interface RouteEndReport {
   /** The caravan carrying (or that carried) the route. */
@@ -679,33 +676,23 @@ export interface RouteEndReport {
   /** The two ends, exactly as `TradeRoute.from`/`to` name them. */
   from: number;
   to: number;
-  /** True when the caravan set out on a fresh leg instead of idling. */
-  renewed: boolean;
   /**
-   * **What ended it, when something other than the errand did.** Absent on the
-   * one ending that is an ending — the term ran out with the cart at home, on a
-   * route its owner chose not to renew — and on a renewal; presence is the
-   * state, and a route that did what it was sent to do needs no word for why it
-   * stopped.
-   *
-   * Carried because all three are decided somewhere the owner's client cannot
-   * see and cannot re-derive: two happen inside *somebody else's* command (a
-   * declaration, a razing), the third inside a resolution, and afterwards the
-   * key is simply gone from the piece — no diff of two boards can say whether a
-   * caravan came home or lost its partner a continent away. Without it the
-   * interface printed "your caravan has come home" over every one of them,
-   * which is the lie the ruling of 2026-09-17 was filed against
-   * (`docs/flags.md` (jjjjjj)).
+   * **What ended it** (the ruling of 2026-09-17, `docs/flags.md` (jjjjjj),
+   * filed against a sentence that told a player their caravan had come home
+   * when its partner had been lost):
    *
    *   · **war** — a declaration swept every route between the two empires;
    *   · **razed** — a town at one end was pulled down;
-   *   · **partnerLost** — a town at one end stopped being this empire's.
+   *   · **partnerLost** — a town at one end stopped being this empire's;
+   *   · **ban** — the owner holds The Sea Ban or The Inward Roads
+   *     (`noForeignRoutes`) and the route runs to another empire's town
+   *     (batch TR2).
    *
    * There is deliberately no marker for a caravan that could not find a path:
    * a jam never ends a route (`marchOneTrader`), and a plundered caravan ends
    * its route by dying, which is `TraderPlunder`'s news and not this list's.
    */
-  ended?: 'war' | 'razed' | 'partnerLost';
+  ended: 'war' | 'razed' | 'partnerLost' | 'ban';
 }
 
 // --- how many routes an empire may run --------------------------------------
@@ -759,13 +746,15 @@ export function routeSlots(state: GameState, playerId: number): number {
 }
 
 /**
- * How many of this empire's route slots are spoken for.
+ * How many of this empire's route slots are spoken for — and how many routes it
+ * has **running**, which is the same count.
  *
- * A **count of caravans carrying a route**, lapsed ones included, and that is
- * deliberate: a trader walking home on a dead route is still on the road, and
- * freeing its slot the instant the route lapsed would let an empire keep one more
- * caravan out than it has markets for. The slot comes back when the piece gets
- * home and the shuttle drops the route — or when somebody kills it.
+ * A **count of caravans carrying a route**. An idle cart carries none and is
+ * not counted. The slot comes back when the route ends: a cancel, a war, a lost
+ * town, a ban, or a plunder.
+ *
+ * The hire price reads this count too (`explainRoutePrice`, `purchase.ts`,
+ * batch TR2): each running route adds `rules.trade.routePricePerRunningRoute`.
  */
 export function usedRouteSlots(state: GameState, playerId: number): number {
   return tradersOf(state, playerId).length;
@@ -795,8 +784,7 @@ export function usedRouteSlots(state: GameState, playerId: number): number {
  *     name says. A land route reads the table's figure and nothing else, which
  *     is what every game without the card reads.
  *
- * Floored once and never below a single turn, exactly as `routeTermFor` handles
- * the other constant a card may bend.
+ * Floored once and never below a single turn.
  */
 export function routeRange(
   state: GameState,
@@ -855,22 +843,59 @@ export function foreignRouteBan(state: GameState, playerId: number): string | nu
 }
 
 /**
- * **Why this caravan's route may not renew**, or `null` when it may (batch DT7,
- * reading 16: a route already abroad runs out its term).
+ * **Is this caravan's route abroad under its owner's ban?** (batch TR2, the
+ * reading taken on The Sea Ban and The Inward Roads, `docs/flags.md`
+ * (ggggggg)).
  *
- * An auto-resending route never expires (`marchOneTrader`, the ruling of
- * 2026-09-17), so without this a route that was abroad when the ban came would run
- * for ever. A renewal counts as a new act, and a new act abroad is what the ban
- * refuses. Read in three places: the march, which does not renew; `setAutoResend`,
- * which refuses to turn renewal on; and the bots' renewal arm.
+ * Until batch TR2 a route already abroad when the ban came ran out its term and
+ * could not renew. A route has no term now, so it would run for ever, and the
+ * reading is that the ban ends it. Two places end such a route:
  *
- * A fact about the two towns as they stand, like `routeIsInternational`. If the
- * partner town comes to this empire, the route is domestic and may renew.
+ *   · `endRoutesBannedAbroad` below, from `applyChooseDoctrine`, on the command
+ *     that adopts the Doctrine, so the routes end at once;
+ *   · `marchOneTrader` (`turn.ts`), every turn, for a route that comes to run
+ *     abroad later, for example when its far town passes to another empire at
+ *     peace.
+ *
+ * A fact about the two towns as they stand, like `routeIsInternational`. A route
+ * whose far town comes into this empire's own hands is domestic, and the ban
+ * does not touch it.
  */
-export function routeRenewalBan(state: GameState, unit: Unit): string | null {
+export function routeBannedAbroad(state: GameState, unit: Unit): boolean {
   const pair = routeCities(state, unit);
-  if (pair === null || !routeIsInternational(pair.from, pair.to)) return null;
-  return foreignRouteBan(state, unit.ownerId);
+  if (pair === null || !routeIsInternational(pair.from, pair.to)) return false;
+  return foreignRouteBan(state, unit.ownerId) !== null;
+}
+
+/**
+ * **Ends every route of this seat that runs abroad, when the seat is under a
+ * ban**, and says which ones it ended (batch TR2). Each cart stays where it
+ * stands, idle, as after any other ending.
+ *
+ * Called by `applyChooseDoctrine` (`commands.ts`) after the law is forgotten,
+ * so the ban it asks about is the one just adopted. A seat under no ban ends
+ * nothing and pays only the one law lookup. `state.units` order, like every
+ * sweep, through `endRoute`, the one implementation of "this route is over".
+ */
+export function endRoutesBannedAbroad(state: GameState, playerId: number): RouteEndReport[] {
+  const dropped: RouteEndReport[] = [];
+  if (foreignRouteBan(state, playerId) === null) return dropped;
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId) continue;
+    const route = unit.trade;
+    if (route === undefined) continue;
+    const pair = routeCities(state, unit);
+    if (pair === null || !routeIsInternational(pair.from, pair.to)) continue;
+    dropped.push({
+      unitId: unit.id,
+      ownerId: unit.ownerId,
+      from: route.from,
+      to: route.to,
+      ended: 'ban',
+    });
+    endRoute(state, unit);
+  }
+  return dropped;
 }
 
 /**
@@ -1440,14 +1465,64 @@ export function startRouteError(
   return routeStartable(state, playerId, fromCityId, toCityId, mode);
 }
 
+// --- reaching the far town, and cancelling ----------------------------------
+
+/**
+ * **Has this caravan reached its route's destination at least once?** (batch
+ * TR2, the user's ruling of 2026-11-10: *"routes can only be cancelled after
+ * they've completed one trip to the destination city"*).
+ *
+ * Three clauses, and any one is enough:
+ *
+ *   · `TradeRoute.reached` is set. `marchOneTrader` writes it on the
+ *     resolution that turns the caravan round at the destination;
+ *   · the caravan is walking home (`outbound` false). It can only have turned
+ *     round at the destination, so this holds for a route built by hand too;
+ *   · the caravan is standing at the destination now (`routeArrived`, the
+ *     march's own test). A cart arrives during the resolution's walk and is
+ *     turned round on the next resolution, so for the turn between the two the
+ *     cart is at the far town and the flag is not yet written.
+ *
+ * Read by `cancelRouteError` alone.
+ */
+export function routeReached(state: GameState, unit: Unit): boolean {
+  const route = unit.trade;
+  if (route === undefined) return false;
+  if (route.reached === true || !route.outbound) return true;
+  const pair = routeCities(state, unit);
+  return pair !== null && routeArrived(state, unit, pair.to);
+}
+
+/**
+ * **Why this caravan's route may not be cancelled now**, or `null` when it may
+ * — the whole rule of `cancelRoute`, and the one gate every surface that offers
+ * a cancel asks (the Trade screen's Running tab, through `runningRoutes`).
+ *
+ * The piece exists, it is yours, it carries a route, and that route has
+ * reached its destination once (`routeReached`). Before that, the refusal is a
+ * sentence a player can act on: it names the town and says when the cancel
+ * opens.
+ */
+export function cancelRouteError(state: GameState, playerId: number, unitId: number): string | null {
+  const unit = unitById(state, unitId);
+  if (!unit) return `No unit with id ${String(unitId)}`;
+  if (unit.ownerId !== playerId) return `Unit ${unit.id} does not belong to player ${playerId}`;
+  const route = unit.trade;
+  if (route === undefined) return `Unit ${unit.id} is not carrying a trade route`;
+  if (routeReached(state, unit)) return null;
+  const to = cityById(state, route.to);
+  const where = to === undefined ? 'its destination' : to.name;
+  return `This caravan has not reached ${where} yet. You can cancel the route after it arrives there once.`;
+}
+
 /**
  * Writes the route and sets the caravan walking. Validates nothing — the
  * mechanism.
  *
  * Three writes and each is a rule:
  *
- *   · **`Unit.trade`**, which *is* the route (module docblock). `expiresTurn` is
- *     absolute, so nothing ever has to tick it;
+ *   · **`Unit.trade`**, which *is* the route (module docblock). It carries no
+ *     end date: a route runs until something ends it;
  *   · **a trading post at both ends**, permanently. History, never cleared —
  *     the range every later caravan is sent on;
  *   · **the path**, toward the destination. The send is an *order*, not a march:
@@ -1472,32 +1547,9 @@ export function startRouteError(
  * settled answer rather than this function's guess: `applyStartRoute` resolves
  * it through `routeModeFor` off the very survey the gate passed, so the route
  * the piece carries and the ground it is aimed across are one decision. A land
- * route writes no `sea` key at all — presence is the state.
+ * route writes no `sea` key at all — presence is the state. A new route has not
+ * reached its destination yet, so it writes no `reached` key either.
  */
-/**
- * **How many turns a route this empire opens today runs for** — the one reading
- * of the term, and the only thing that decides a `TradeRoute.expiresTurn`.
- *
- * `rules.trade.routeTurns` with this empire's `routeTerm` law on it (Venture
- * Routes, batch C3): the percentages sum and apply once, which is Entry XVII's
- * discipline at the scale of a constant, and the result is floored once and
- * never drops below a single turn.
- *
- * Both writers of an expiry call it — `startRouteAt` below and the auto-resend
- * in `marchTraders` (`turn.ts`) — so a renewal gets exactly the term a fresh
- * route would. A renewal **rewrites** the expiry rather than extending it, so
- * picking the card up lengthens every renewal from then on and dropping it
- * shortens the next one; neither touches `TradeRoute.startedTurn`, which is
- * what Established Routes counts, so nothing here moves a road's age.
- */
-export function routeTermFor(state: GameState, playerId: number): number {
-  const base = Math.max(1, Math.floor(RULES.trade.routeTurns));
-  let percent = 0;
-  for (const line of cardRulePercent(state, playerId, 'routeTerm')) percent += line.percent;
-  if (percent === 0) return base;
-  return Math.max(1, Math.floor((base * (100 + percent)) / 100));
-}
-
 export function startRouteAt(
   state: GameState,
   unit: Unit,
@@ -1509,15 +1561,10 @@ export function startRouteAt(
     from: from.id,
     to: to.id,
     // **The turn this road opened** — written here and nowhere else, and never
-    // rewritten. An auto-resend rewrites `expiresTurn` on this very object
-    // (`marchTraders`), so a road kept up across renewals keeps the date it
-    // started and `state.turn - startedTurn` is how long it has run unbroken.
+    // rewritten, so `state.turn - startedTurn` is how long it has run unbroken.
     // See the field.
     startedTurn: state.turn,
-    // The term is the empire's, not the table's — see `routeTermFor`.
-    expiresTurn: state.turn + routeTermFor(state, unit.ownerId),
     outbound: true,
-    autoResend: false,
     ...(mode === 'sea' ? { sea: true as const } : {}),
   };
   from.tradingPost = true;

@@ -151,6 +151,9 @@ import { buildError, gatingTech, hasTech, isUnlocked, settleResearchWindfall } f
 import { techDef } from './techData';
 import { type UnitTypeId, isCivilian, isUnitTypeId, unitDef } from './unitData';
 import { caravanTypeFor } from './routes';
+// The count of routes running, for the hire price (batch TR2). `trade.ts` does
+// not import this module, so the edge makes no cycle.
+import { usedRouteSlots } from './trade';
 
 /**
  * The banks a thing may be priced in: gold, faith and, since Magisterial batch
@@ -212,10 +215,10 @@ export type PurchasableItem =
  *
  * It carries no id and names no pair, and both are deliberate: *which* two
  * towns a caravan joins changes what the route **pays** and never what it
- * **costs**. The price is the wagon's — `goldPerHammer × the Trader row's
- * production cost × rules.trade.routePriceMultiplier` — so it is a fact about
- * the empire's age, which is exactly `routePrice(state, playerId)`'s signature
- * and the reason the Trade screen can print one figure over a hundred rows.
+ * **costs**. The price is a fact about the empire — `rules.trade.routePriceBase`
+ * plus `rules.trade.routePricePerRunningRoute` for each route it has running
+ * (batch TR2) — which is exactly `routePrice(state, playerId)`'s signature and
+ * the reason the Trade screen can print one figure over a hundred rows.
  *
  * `readPurchasableItem` deliberately does **not** read it: a route is bought by
  * `buyRoute`, which names the two towns and is held to the whole of
@@ -495,21 +498,24 @@ export function explainPurchaseCost(
  * **What a trade route costs to hire**, as the ordered list the price is the
  * fold of — or `null` on a world whose roster holds no caravan at all.
  *
- * The ruling of 2026-09-09 (`docs/flags.md` item (iii)) and the whole of it:
- * *"the price is the caravan's own purchase price — `goldPerHammer × the Trader
- * row's production cost` (the cost standard, so it climbs the columns with the
- * age) — one knob `rules.trade.routePriceMultiplier` over it."*
+ * The user's ruling of 2026-11-10 (`docs/flags.md` (ggggggg)): *"Let's have the
+ * hire price start lower (75 gold) but increase the more active trade routes
+ * you have (15 gold per)."* So three lines, each carrying the difference it
+ * makes to the running figure:
  *
- * So it is **the caravan's own purchase price, said as lines**: every line of
- * `explainUnitCost` for the row that `trades`, then the treasury's conversion,
- * then the ruling's knob — each carrying the *difference* it makes to the
- * running figure, exactly as the conversion beside it does, so the fold is the
- * price however the rounding falls. A player who wonders why a route costs what
- * it costs is shown the wagon it puts on the road, in the money of its own age.
+ *   1. the base, `rules.trade.routePriceBase`;
+ *   2. `rules.trade.routePricePerRunningRoute` for each route this empire has
+ *      running (`usedRouteSlots`: a caravan carrying a route). An idle cart is
+ *      not a running route. The line is left out at nought, so an empire with
+ *      no route running sees the base alone;
+ *   3. the riders (`applyRiders`): a card that changes the hire price (The
+ *      Turnpike Trusts, `purchaseRider` with `on: 'route'`) and the town's own
+ *      purchase discount, applied after the first two, as one line.
  *
- * **The row is found by its marker, never by name** (`trades`, through
- * `caravanTypeId`): a world whose caravan is a cargo ship prices its routes off
- * that row with nothing here changed.
+ * Until batch TR2 the price was the Trader row's production cost converted at
+ * `goldPerHammer`, so it climbed with the age. It no longer follows the row, the
+ * age or the conversion. The row still needs a caravan type to exist, because a
+ * world with no caravan has no route to price.
  *
  * It takes **no pair of towns**, and that is the design rather than a
  * simplification: which two towns a route joins decides what it *pays*
@@ -526,37 +532,28 @@ export function explainPurchaseCost(
  * **Known gap**: no live row has a scoped rider on a route. A row that did would
  * be quoted the plain figure and charged less. Pricing the sheet per row is a UI
  * job.
- *
- * The knob's line is omitted when it changes nothing, so a world at the ruled
- * 1 prints exactly the caravan's converted cost and no line that says "× 1".
  */
 export function explainRoutePrice(
   state: GameState,
   playerId: number,
   cityId?: number,
 ): UnitCostLine[] | null {
-  const type = caravanTypeFor(state, playerId);
-  if (type === null) return null;
-  const hammers = explainUnitCost(state, playerId, type);
-  const cost = foldUnitCost(hammers);
-  const lines = [...hammers];
-  const rate = RULES.production.goldPerHammer;
-  // The conversion carries the difference, `explainPurchaseCost`'s own rule one
-  // function up — floored once, at the end, for Entry XVII's reason.
-  const converted = Math.floor(cost * rate);
-  lines.push({ source: `×${rate} in gold`, amount: converted - cost });
-  const multiplier = RULES.trade.routePriceMultiplier;
-  if (multiplier !== 1) {
+  if (caravanTypeFor(state, playerId) === null) return null;
+  const trade = RULES.trade;
+  const lines: UnitCostLine[] = [{ source: 'Hire a trade route', amount: trade.routePriceBase }];
+  const running = usedRouteSlots(state, playerId);
+  const added = running * trade.routePricePerRunningRoute;
+  if (added !== 0) {
     lines.push({
-      source: `×${multiplier} to hire the route`,
-      amount: Math.floor(converted * multiplier) - converted,
+      source: `${running} trade route${running === 1 ? '' : 's'} running`,
+      amount: added,
     });
   }
-  // **Last, so the discount is off the price and not off the hammers** — the
-  // ordering `explainPurchaseCost` already keeps for a unit and a building, and
-  // the reason it is here rather than one function up: this is the fold a
-  // route's price is, and a rider applied outside it would be a second
-  // multiplication the fold could not see.
+  // **Last, so a discount is off the whole price** — the ordering
+  // `explainPurchaseCost` keeps for a unit and a building, and the reason it is
+  // here rather than one function up: this is the fold a route's price is, and a
+  // rider applied outside it would be a second multiplication the fold could not
+  // see.
   applyRiders(state, playerId, cityId, { kind: 'route' }, 'gold', lines);
   return lines;
 }
@@ -775,7 +772,7 @@ function cultureBankOpen(
  * already banked toward it, taken off, then the conversion at
  * `culturePerHammer`. Each line carries the difference it makes, so the list
  * sums to the price. The banked line and the conversion are left out when they
- * change nothing, as the route's knob line is.
+ * change nothing, as the route's running-routes line is.
  *
  * **The purchase riders ride on it**, as they do in the other two banks, and
  * after the conversion: a card that makes "all other purchasing" dearer (The

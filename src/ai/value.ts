@@ -3602,19 +3602,11 @@ function ruleRewriteValue(
       // Both buy ground, and ground is priced by the settle table rather than by
       // this currency — the two weight tables batch 4 wrote down as a known gap.
       return ctx.ai.score.unknownEffect;
-    case 'routeTerm':
-      // **Not priced yet, deliberately** (batch C3, which added the rule). A
-      // longer term is worth the caravans it saves re-hiring, and the bot does
-      // not hire caravans off a term at all — it hires them off route capacity —
-      // so a figure here would be invented rather than measured. Named so the
-      // exhaustiveness check below goes on catching the next member.
-      return ctx.ai.score.unknownEffect;
     case 'seaRouteRange':
-      // **Not priced yet either** (batch C7, which added the rule), and for
-      // `routeTerm`'s reason one line up: extra reach is worth the partners it
-      // brings inside the gate, and the bot picks partners off what a pair pays
-      // rather than off how far it may be sent. Named so the exhaustiveness
-      // check below goes on catching the next member.
+      // **Not priced yet** (batch C7, which added the rule): extra reach is
+      // worth the partners it brings inside the gate, and the bot picks partners
+      // off what a pair pays rather than off how far it may be sent. Named so
+      // the exhaustiveness check below goes on catching the next member.
       return ctx.ai.score.unknownEffect;
     case 'routeRange':
       // Not priced, for `seaRouteRange`'s reason: the bot picks partners off
@@ -7828,7 +7820,8 @@ export function holdsHexPurchaseRider(ctx: ValueContext): boolean {
 
 /**
  * **The Sea Ban and The Inward Roads**: what this seat's routes abroad pay it, read
- * through each route's own sender fold, because those routes run out. If the best
+ * through each route's own sender fold, because adopting either ends those routes
+ * at once (batch TR2, `endRoutesBannedAbroad`). If the best
  * route the seat could send next also ends abroad, `score.commerce.foreignRouteOption`
  * of its pay is lost too. It is a share, because a home route would take the slot
  * and pay something.
@@ -7923,7 +7916,7 @@ function foodMovedWorth(from: City, to: City, food: number, ctx: ValueContext): 
  * less what it sends without that route. This is the route's own effect on the town.
  * A town already sending its whole surplus gains nothing from one more route: its
  * routes share what they carried before. The pair itself is left out of the others, so
- * a route up for renewal reads what it carries now.
+ * a route already running reads what it carries now.
  */
 function foodOneRouteAdds(from: City, to: City, percent: number, ctx: ValueContext): number {
   const state = ctx.state;

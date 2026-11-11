@@ -898,7 +898,7 @@ describe('civilians', () => {
     foundCityAt(state, 0, at(state.map, 2, 3));
     const a = createUnit(state, 0, 'warrior', 3, 3);
     const cart = createUnit(state, 1, 'trader', 4, 3);
-    cart.trade = { from: 1, to: 2, expiresTurn: 40, outbound: true, autoResend: false };
+    cart.trade = { from: 1, to: 2, outbound: true };
 
     const result = applyCombat(state, a.id, { col: 4, row: 3 });
     expect(result.ok).toBe(true);
@@ -1047,7 +1047,7 @@ describe('civilians', () => {
     foundCityAt(state, 0, at(state.map, 2, 3));
     const a = createUnit(state, 0, 'archer', 3, 3);
     const cart = createUnit(state, 1, 'trader', 5, 3);
-    cart.trade = { from: 1, to: 2, expiresTurn: 40, outbound: true, autoResend: false };
+    cart.trade = { from: 1, to: 2, outbound: true };
 
     const result = applyCommand(state, attack(a.id, 5, 3));
     expect(result.ok).toBe(false);

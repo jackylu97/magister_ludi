@@ -49,7 +49,7 @@ import { explainEmpireCardYields } from '../../../src/sim/yields/empire';
 import { cityYieldPercents, explainCity } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
 
-const TERM = Math.floor(RULES.trade.routeTurns);
+const TERM = Math.floor(RULES.trade.postEstablishTurns);
 
 const RETURN_LEG = 'theReturnLeg' as OrderId;
 const FONDACI = 'theFondaci' as OrderId;
@@ -165,12 +165,14 @@ describe('The Return Leg', () => {
     expect(cityReturnLegYields(abroad.state, abroad.home)).toEqual([]);
   });
 
-  it('stops copying when the route lapses', () => {
+  it('stops copying when the route is cancelled', () => {
     const { state, home, inland, trader } = homePair();
     seat(state, 0, RETURN_LEG);
     expect(applyCommand(state, send(0, trader.id, home, inland)).ok).toBe(true);
-    state.turn = trader.trade!.expiresTurn;
-    bumpRevision(state);
+    // A route may be cancelled once its caravan has reached the far town (batch TR2).
+    trader.trade!.reached = true;
+    const cancelled = applyCommand(state, { type: 'cancelRoute', playerId: 0, unitId: trader.id });
+    expect(cancelled.ok, cancelled.ok ? '' : cancelled.error).toBe(true);
     expect(cityReturnLegYields(state, home)).toEqual([]);
   });
 });
@@ -333,8 +335,9 @@ describe('The Lingua Franca', () => {
     expect(countOf(state, 0, LINGUA_FRANCA, effect)).toBe(2);
     expect(countOf(state, 1, LINGUA_FRANCA, effect)).toBe(2);
 
-    // A lapsed route runs no more.
-    state.turn = trader.trade!.expiresTurn;
+    // A route closed by a war runs no more. A route has no term (batch TR2), so
+    // this is the ending that stops both at once.
+    openWar(state, 0, 1);
     bumpRevision(state);
     expect(countOf(state, 0, LINGUA_FRANCA, effect)).toBe(0);
   });

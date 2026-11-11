@@ -529,7 +529,7 @@ const IMPORTED_SHARE = Math.max(0, RULES.trade.importedLuxuryPercent) / 100;
  * controls and never the same kind twice, read off the **destination's** own
  * improved holdings (`cityResources`, the one-per-town rule every other reading
  * of "what does this town hold" asks). Derived every time it is asked, so it
- * lapses the instant a route does — there is nothing written down anywhere and
+ * ends the instant a route does — there is nothing written down anywhere and
  * therefore nothing to keep in step.
  *
  * The routes are walked in `state.units` order and each takes the first kind the

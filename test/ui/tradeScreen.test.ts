@@ -53,6 +53,7 @@ import {
   createUnit,
 } from '../../src/sim/state';
 import {
+  cancelRouteError,
   explainEmpireGold,
   explainRouteSenderYieldBetween,
   explainRouteYieldBetween,
@@ -71,7 +72,7 @@ import { RULES } from '../../src/sim/rulesData';
 import { layRoad } from '../../src/sim/roads';
 import { openWar } from '../../src/sim/wars';
 import { applyCommand } from '../../src/sim/commands';
-import { NO_ROUTE_CAPACITY, routeFigures, routeReading, tradeFigureRuns } from '../../src/ui/tradeLines';
+import { NO_ROUTE_CAPACITY, routeFigures, tradeFigureRuns } from '../../src/ui/tradeLines';
 import { YIELD_GLYPH, type YieldKey, figure } from '../../src/ui/figures';
 import {
   type TradeContext,
@@ -988,7 +989,7 @@ describe('the running half and the treasury’s ledger', () => {
     expect(ledger.total).toBe(routeGold + empireGold(state, 0));
   });
 
-  it('keeps a lapsed route as a row, because the slot is still spoken for', () => {
+  it('keeps a route as a row a hundred turns on, because a route has no term', () => {
     const { state, home, near } = tradeWorld();
     applyCommand(state, {
       type: 'buyRoute',
@@ -998,13 +999,33 @@ describe('the running half and the treasury’s ledger', () => {
       mode: 'land',
     });
     const cart = state.units.find((unit: Unit) => unit.trade !== undefined)!;
-    // The clock is a subtraction, never a stored countdown.
-    state.turn = cart.trade!.expiresTurn + 5;
+    state.turn += 100;
     const [route] = runningRoutes(state, 0);
     expect(route).toBeDefined();
-    expect(route!.turnsLeft).toBe(0);
+    expect(route!.unitId).toBe(cart.id);
     expect(route!.mode).toBe('land');
+    expect(route!.text).not.toMatch(/turns?/);
     expect(usedRouteSlots(state, 0)).toBe(1);
+  });
+
+  it('greys Cancel with the reducer’s sentence until the caravan has reached its far town', () => {
+    // Batch TR2: a route may be cancelled only after its caravan has reached the
+    // destination once. The row carries `cancelRouteError`'s own words.
+    const { state, home, near } = tradeWorld();
+    applyCommand(state, {
+      type: 'buyRoute',
+      playerId: 0,
+      fromCityId: home.id,
+      toCityId: near.id,
+      mode: 'land',
+    });
+    const cart = state.units.find((unit: Unit) => unit.trade !== undefined)!;
+    const [fresh] = runningRoutes(state, 0);
+    expect(fresh!.cancelBlock).toBe(cancelRouteError(state, 0, cart.id));
+    expect(fresh!.cancelBlock).toMatch(/has not reached/);
+    cart.trade!.reached = true;
+    bumpRevision(state);
+    expect(runningRoutes(state, 0)[0]!.cancelBlock).toBeNull();
   });
 
   it('quotes the hover ledger in the fold’s own sentences', () => {
@@ -1265,18 +1286,18 @@ describe('a seat under The Sea Ban', () => {
     expect(refusalReason(ctx, rowFor(ctx, home, theirs))).toBe('ban');
   });
 
-  it('prints a route abroad as not renewing, whatever its flag says, and a home route as it is', () => {
+  it('loses the row of a route abroad the moment the ban is adopted, and keeps the cart', () => {
+    // Batch TR2: adopting The Sea Ban ends the seat's routes abroad at once, so
+    // the Running tab has nothing to show for them and the cart stands idle.
     const { state, home, theirs } = foreignTradeWorld();
     const cart = createUnit(state, 0, 'trader', home.col, home.row);
     startRouteAt(state, cart, home, theirs, 'land');
-    cart.trade!.autoResend = true;
     bumpRevision(state);
-    expect(runningRoutes(state, 0)[0]!.autoResend).toBe(true);
-    expect(routeReading(state, cart)!.autoResend).toBe(true);
-    state.players[0]!.statecraft.doctrines.push('theSeaBan' as never);
-    bumpRevision(state);
-    expect(runningRoutes(state, 0)[0]!.autoResend).toBe(false);
-    expect(runningRoutes(state, 0)[0]!.text).not.toContain('auto');
-    expect(routeReading(state, cart)!.autoResend).toBe(false);
+    expect(runningRoutes(state, 0)).toHaveLength(1);
+    state.players[0]!.statecraft.pendingDoctrine = { options: ['theSeaBan' as never] };
+    const result = applyCommand(state, { type: 'chooseDoctrine', playerId: 0, optionIndex: 0 });
+    expect(result.ok, result.ok ? '' : result.error).toBe(true);
+    expect(runningRoutes(state, 0)).toEqual([]);
+    expect(tradeContext(state, 0).idleCarts).toEqual([cart.id]);
   });
 });
