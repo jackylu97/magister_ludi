@@ -1520,8 +1520,9 @@ export interface AiConfig {
      *     cost, on the share of them its tile test admits;
      *   · Letters of Credit is the saving the credit cuts from the best want
      *     the purse cannot reach yet;
-     *   · The Strongbox's tally reads `score.tallyForecast.treasuryHeld`,
-     *     scaled by how near the treasury is to the row's floor;
+     *   · The Strongbox's tally (since batch R1, a purchase with gold) is read
+     *     off the purse, as the purchase moment is: the gold a turn brings in
+     *     against the cheapest thing the seat wants, over the horizon;
      *   · The Merchant Guilds' route rider counts the merchants through the
      *     simulation's own count, with its `per` and `max`.
      */

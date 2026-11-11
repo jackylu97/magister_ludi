@@ -224,9 +224,12 @@ describe('the treasury under water', () => {
     withCredit(state);
     const floor = disbandFloor(state, 0);
     expect(floor).toBe(-150);
-    // Below −10 but above −150: in debt, and no unit goes.
+    // Below −10 but above −150: in debt, and no unit goes. Since batch R1 the
+    // card also lifts the loss of science and culture, and the warning says so.
     const mild = debtWarning(state, playerById(state, 0))!;
-    expect(mild).toContain('science and culture');
+    expect(mild).not.toContain('science and culture');
+    expect(mild).toContain('no penalty');
+    expect(mild).toContain(String(Math.abs(floor)));
     expect(mild).not.toContain('disbanded');
     // Below −150: the warning names −150, not −10.
     playerById(state, 0)!.gold = floor - 1;

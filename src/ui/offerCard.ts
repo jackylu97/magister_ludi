@@ -143,7 +143,7 @@ interface OfferSlip {
   /** Its age, as the chart labels it. "ÆRA III". */
   age: string;
   /** The price list, one line each; the first figure plain, the rest signed. */
-  lines: readonly { label: string; figure: string; premium?: boolean }[];
+  lines: readonly { label: string; figure: string }[];
   /** The total, with its glyph. Printed through the yield printer. */
   total: string;
   /** "~14 turns" at the current rate. */
@@ -784,8 +784,8 @@ function faceBody(option: OfferOption): HTMLElement[] {
 /**
  * **The slip of the star chart on a charter's card** (Scientific batch S10).
  *
- * Head: the glyph, the name and the age. Then the price list, one line each,
- * the premium inked in the charter sepia. Then the foot: the turns, the words
+ * Head: the glyph, the name and the age. Then the price list, one line each.
+ * Then the foot: the turns, the words
  * "yours alone", and the total. Every figure is tabular mono.
  *
  * `stamp` is the "Opened" stamp's element when the card carries one. It sits
@@ -802,7 +802,7 @@ function offerSlipNode(slip: OfferSlip, stamp: HTMLElement | null): HTMLElement 
   box.append(head);
   const lines = element('span', 'offer-slip-lines');
   for (const line of slip.lines) {
-    const row = element('span', line.premium === true ? 'offer-slip-line is-premium' : 'offer-slip-line');
+    const row = element('span', 'offer-slip-line');
     row.append(element('span', 'offer-slip-label', line.label), element('b', 'offer-slip-figure', line.figure));
     lines.append(row);
   }

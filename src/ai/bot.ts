@@ -201,7 +201,6 @@ import {
   explainYields,
   newResourceTerms,
   realmResources,
-  voiceWeight,
   spareResourceCopies,
   sciencePrice,
   townProduction,
@@ -1032,80 +1031,12 @@ function goldReserveFor(state: GameState, player: Player): number {
   });
 }
 
-/** The books' half of a debt charge: the gold income, and what a turn of debt loses. */
-interface DebtReading {
-  /** Gold a turn (`netGoldPerTurn`). */
-  net: number;
-  /** The share of science and culture a turn of debt takes (`rules.upkeep.debtPercent`). */
-  share: number;
-  /** What that share of this turn's science and culture is worth, in points. */
-  lost: number;
-}
-
-/**
- * The books' half of `withDebtCharge`, read once for every want the purse
- * weighs: two empire folds, which are the dear part.
- */
-function debtReading(state: GameState, player: Player, ctx: ValueContext): DebtReading {
-  const rates = readEmpireRates(state, player.id);
-  const share = Math.max(0, -RULES.upkeep.debtPercent) / 100;
-  const lost =
-    share *
-    (Math.max(0, rates.sciencePerTurn ?? 0) * voiceWeight(ctx, 'science') +
-      Math.max(0, rates.culturePerTurn ?? 0) * voiceWeight(ctx, 'culture'));
-  return { net: netGoldPerTurn(state, player.id), share, lost };
-}
-
-/**
- * **A gold want, charged for the debt it would run up**, or `null` when the
- * charge leaves it worth nothing (Commerce batch T9).
- *
- * Only Letters of Credit lets a purchase take the treasury below zero, and a
- * treasury below zero costs a share of the empire's science and culture every
- * turn (`rules.upkeep.debtPercent`, `treasuryInDebt`). So a purchase that
- * leaves the treasury below zero is charged:
- *
- *   · the turns the treasury takes to climb back to zero at the seat's gold
- *     income (`netGoldPerTurn`), never more than the horizon, and the whole
- *     horizon while the income is not positive;
- *   · times the share of this turn's science and culture the debt takes, at
- *     their weights;
- *   · as a one-time cost, converted to a per-turn figure by
- *     `score.lumpTurns`, the bot's one rate between a stock and a flow.
- *
- * The charge is one more printed term on the want, so the want's worth stays
- * the fold of its terms. A purchase that keeps the treasury at zero or above
- * is returned unchanged, so a seat without the card is priced as before.
- */
-export function withDebtCharge(
-  state: GameState,
-  player: Player,
-  ctx: ValueContext,
-  want: Want,
-  /** The books' half of the charge, when the caller has read it already. */
-  reading?: DebtReading,
-): Want | null {
-  const below = want.price - Math.max(0, player.gold);
-  if (below <= 0) return want;
-  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
-  const { net, lost, share } = reading ?? debtReading(state, player, ctx);
-  const turns = net > 0 ? Math.min(horizon, below / net) : horizon;
-  const charge = (lost * turns) / Math.max(1, ctx.ai.score.lumpTurns);
-  if (charge <= 0) return want;
-  const terms: ValueTerm[] = [
-    ...want.terms,
-    {
-      label:
-        `− the debt: about ${round1(turns)} turns below zero, each losing ` +
-        `${round1(share * 100)}% of science and culture, once`,
-      value: charge,
-      op: 'sub',
-    },
-  ];
-  const worth = foldTerms(terms);
-  if (worth <= 0) return null;
-  return { ...want, worth, terms };
-}
+// There was a debt charge here (`withDebtCharge`, Commerce batch T9): a
+// purchase that ran the treasury below zero was charged the science and culture
+// the debt would cost. Only Letters of Credit lets a purchase go below zero, and
+// since batch R1 the card also lifts that loss down to its own floor, the lowest
+// a purchase may leave (`arrearsFloor`, `upkeep.ts`). No purchase can pay it, so
+// the charge and its reading went.
 
 /**
  * How many enemy combat pieces are standing within `threat.radius` of one of
@@ -3402,7 +3333,6 @@ function bankSpend(
   // asking it once per candidate would be one empire sweep per row for sale.
   const reserve = currency === 'gold' ? goldReserveFor(state, player) : 0;
   const candidates: BotCandidate[] = [];
-  let debt: DebtReading | undefined;
 
   let bar: Want | null = null;
   // The buyable rows the treasury still covers, each beside the candidate row it
@@ -3441,21 +3371,9 @@ function bankSpend(
       );
       continue;
     }
-    // **A purchase that runs the treasury into debt pays for the debt**
-    // (Commerce batch T9). See `withDebtCharge`. The books are read once, and
-    // only when some purchase would leave the treasury below zero.
-    const owes = currency === 'gold' && want.price > Math.max(0, player.gold);
-    if (owes) debt ??= debtReading(state, player, ctx);
-    const priced = owes ? withDebtCharge(state, player, ctx, want, debt) : want;
-    if (priced === null) {
-      candidates.push(
-        refused(want.label, 'the debt it would run up costs more than it brings'),
-      );
-      continue;
-    }
-    const candidate = wantCandidate(priced, currency, false);
+    const candidate = wantCandidate(want, currency, false);
     candidates.push(candidate);
-    offers.push({ want: priced, candidate });
+    offers.push({ want, candidate });
   }
 
   // **The rules are asked again at the moment of firing** — the other half of the

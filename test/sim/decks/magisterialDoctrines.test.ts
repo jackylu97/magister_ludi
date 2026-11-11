@@ -12,6 +12,7 @@
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
+import { typedChiefdomInThisBlock } from '../chiefdomHelpers';
 
 import { nextBotDecision, valueContext } from '../../../src/ai/bot';
 import { scoreCard } from '../../../src/ai/council';
@@ -2220,6 +2221,9 @@ describe('Scutage (batch DT11)', () => {
   });
 
   describe('the chair', () => {
+    // Built on the chiefdom's typed chairs before batch DS9 (`chiefdomHelpers.ts`).
+    typedChiefdomInThisBlock();
+
     it('closes the last Wildcard chair at once, and its card returns to the collection', () => {
       const { state, player, city } = council();
       lendOrder(CARD, [{ kind: 'pays', where: 'city', gold: 4 } as CardEffect]);

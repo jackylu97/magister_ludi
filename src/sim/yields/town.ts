@@ -62,7 +62,7 @@ import { type MeterId, meterEffects } from '../meters';
 import { cityResourceYields, resourcePercentYields, resourceProduction } from '../resourceEffects';
 import { citySpecialistYields } from '../specialists';
 import { cityReturnLegYields, cityRouteYields } from '../routeYields';
-import { treasuryInDebt } from '../upkeep';
+import { treasuryInArrears } from '../upkeep';
 import { type CityYields, channelSurplus, cityTile, emptyCityYields } from '../cities';
 // Dominion batch D7: which card moves a town's food surplus into production.
 // Straight from the evaluator rather than through the `statecraft.ts` index,
@@ -953,9 +953,13 @@ export function empirePercents(state: GameState, playerId: number): EmpirePercen
   // hammers, because starving a bankrupt empire's cities is a spiral rather than
   // a penalty. What it taxes is the two things an empire in trouble was
   // *saving* for.
+  //
+  // Since batch R1 the line starts below the arrears floor (`treasuryInArrears`):
+  // zero, or −150 with Letters of Credit seated, which lifts the loss down to
+  // its floor (the user's ruling of 2026-11-11).
   const arrears: CityYieldPercent[] = [];
   const owner = playerById(state, playerId);
-  if (owner && treasuryInDebt(owner) && RULES.upkeep.debtPercent !== 0) {
+  if (owner && treasuryInArrears(state, owner) && RULES.upkeep.debtPercent !== 0) {
     for (const key of ['science', 'culture'] as const) {
       arrears.push({
         source: 'Treasury in debt',

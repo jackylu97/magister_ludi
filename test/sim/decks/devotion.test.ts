@@ -211,7 +211,7 @@ function linesOf(state: GameState, city: City, card: string) {
 // --- the shelf ---------------------------------------------------------------
 
 describe('the Devotion deck folds', () => {
-  it('carries 100 rows: 62 live, none deferred and 38 retired', () => {
+  it('carries 101 rows: 63 live, none deferred and 38 retired', () => {
     // Batch DV1: 77 rows before, less the six that moved to common.json. Four
     // rows retired, three live and one deferred. Batch DV2 added seven live
     // rows, batch DV3 four more, batch DV4 three more, batch DV5 three more,
@@ -219,14 +219,15 @@ describe('the Devotion deck folds', () => {
     // Interdict, the last deferred row. Batch DV8 added two more. Batch R2c
     // retired three live rows and added three new ones. Batch DS1
     // (`docs/plans/deck-simplification-2026-11-10.md`) retired six live rows.
-    // Batch DS5 added The Household Gods and The First Offering.
-    expect(DEVOTION).toHaveLength(100);
-    expect(LIVE).toHaveLength(62);
+    // Batch DS5 added The Household Gods and The First Offering. Batch R1
+    // added The Pilgrim Staff.
+    expect(DEVOTION).toHaveLength(101);
+    expect(LIVE).toHaveLength(63);
     expect(DEFERRED).toHaveLength(0);
     expect(RETIRED).toHaveLength(38);
   });
 
-  it('spreads its 62 standing rows across Tiers 0 to IV as 6, 13, 17, 16 and 10', () => {
+  it('spreads its 63 standing rows across Tiers 0 to IV as 6, 14, 17, 16 and 10', () => {
     // Batch DV1 moved The Second Prophet, The Living Hymnal and The Mission
     // from Tier I to Tier II, and The Conversion of Kings and The Pious Masons
     // from Tier IV to Tier III. Batch DV2 added three rows at Tier II, three
@@ -246,10 +247,11 @@ describe('the Devotion deck folds', () => {
     // First Rites and The Wayside Shrines from Tier 0 to Tier I, The
     // Martyrology and The Votive Gifts from Tier II to Tier I, and The
     // Cathedral Works from Tier II to Tier III. Batch DS5 added The Household
-    // Gods and The First Offering at Tier 0.
-    expect(STANDING).toHaveLength(62);
+    // Gods and The First Offering at Tier 0. Batch R1 added The Pilgrim Staff
+    // at Tier I.
+    expect(STANDING).toHaveLength(63);
     const perBand = BANDS.map((band) => STANDING.filter((id) => orderDef(id).band === band).length);
-    expect(perBand).toEqual([6, 13, 17, 16, 10]);
+    expect(perBand).toEqual([6, 14, 17, 16, 10]);
   });
 
   it('names its own deck on every row, with a band and a rarity', () => {
@@ -408,8 +410,9 @@ describe('the age gate', () => {
     // Precincts (Tier I), and batch DV4 The Rogations (Tier 0). Batch R2c
     // retired three rows here and added three. Batch DS1 moved The
     // Martyrology and The Votive Gifts down from Tier II. Batch DS5 added The
-    // Household Gods and The First Offering at Tier 0.
-    expect(early).toHaveLength(19);
+    // Household Gods and The First Offering at Tier 0. Batch R1 added The
+    // Pilgrim Staff at Tier I: it reads faith spent, and no clergy or temple.
+    expect(early).toHaveLength(20);
     // **One stated exception** (batch R2c): The Temple Storehouses is a Tier I
     // card about Temples. The user added it there on 2026-10-28 ("add: +2
     // happiness and +2 food on every temple"), after the rule above was
@@ -1130,18 +1133,17 @@ describe('the Devotion deck: the sheet of record', () => {
     // and 29 shared cards with one charter. Batch DS1 retired six of the
     // sheet's cards and seven shared cards. Batch DS5 added four cards: two
     // with data rows (The Household Gods, The First Offering) and two marked
-    // `add` (The Votive Lamp, The Pilgrim Staff).
-    expect(sheet).toHaveLength(64);
-    expect(sheet.filter((card) => card.status === 'add').map((card) => card.name)).toEqual([
-      'The Votive Lamp',
-      'The Pilgrim Staff',
-    ]);
+    // `add` (The Votive Lamp, The Pilgrim Staff). Batch R1 dropped The Votive
+    // Lamp and built The Pilgrim Staff, so no row is `add`.
+    expect(sheet).toHaveLength(63);
+    expect(sheet.filter((card) => card.status === 'add').map((card) => card.name)).toEqual([]);
+    expect(sheet.some((card) => card.name === 'The Votive Lamp')).toBe(false);
     expect(sheet.filter(isCharterRow)).toHaveLength(2);
     expect(shared).toHaveLength(22);
   });
 
-  it('types every listed row, 62 of this file and 22 shared, and nothing else of this file', () => {
-    expect(LISTED).toHaveLength(62);
+  it('types every listed row, 63 of this file and 22 shared, and nothing else of this file', () => {
+    expect(LISTED).toHaveLength(63);
     for (const id of DEVOTION) {
       const def = orderDef(id);
       if (def.retired === true) expect(def.type, id).toBeUndefined();

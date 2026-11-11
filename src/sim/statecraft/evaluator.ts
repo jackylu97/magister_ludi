@@ -4891,10 +4891,15 @@ export interface CardTypeRaise {
  *   · `percentYields` and `productionBonus`: the town's percentages;
  *   · `combatLine`: strength in a fight;
  *   · `cityStat`: a town's defence, and not its sight;
- *   · `windfallRider`: the yield a one-time reward grants and the percentage it
- *     adds to the occasion's own figure. A grant paid once for each citizen of a
- *     town is not raised, for the hex line's reason;
- *   · `periodic`: the boon's own figure, as a grant of its own.
+ *   · `windfallRider`: the yield and the renown a one-time reward grants, and
+ *     the percentage it adds to the occasion's own figure. A grant paid once
+ *     for each citizen of a town is not raised, for the hex line's reason;
+ *   · `periodic`: the boon's own figure, as a grant of its own;
+ *   · since batch R1 (the user's ruling of 2026-11-11), `happiness`,
+ *     `authority` and `renown`: the meter lines and the renown trickle, and a
+ *     `pays` count paid to happiness or authority (`cardHappiness`,
+ *     `cardBuildingHappiness`, `cardAuthority`, `cardRenownLines`);
+ *     `cityRenownPercent`: a share of renown, in a town or over the empire.
  */
 export const CARD_TYPE_RAISED_KINDS: readonly CardEffect['kind'][] = [
   'pays',
@@ -4904,6 +4909,10 @@ export const CARD_TYPE_RAISED_KINDS: readonly CardEffect['kind'][] = [
   'cityStat',
   'windfallRider',
   'periodic',
+  'happiness',
+  'authority',
+  'renown',
+  'cityRenownPercent',
 ];
 
 const NO_RAISES: ReadonlyMap<CardId, CardTypeRaise> = new Map();
@@ -5034,6 +5043,48 @@ function cardTypeRaiseTileLines(
     if (VOICES.some((voice) => line[voice] !== 0)) out.push(line);
   }
   return out;
+}
+
+/**
+ * **The rises on a list of happiness, authority or renown lines** (batch R1;
+ * the user's ruling of 2026-11-11, `docs/flags.md` item (jjjjjjj): the 30%
+ * also covers the happiness, authority and renown a seated card of the type
+ * gives). For each line a raised card printed, one line of its own holding the
+ * rise, in the order of the list, so the meter's total is still the fold of
+ * its list. `make` builds the rise line from the line it raises.
+ *
+ * The rise is `cardTypeRaise`'s, so a negative line gains nothing. The figure
+ * read is `figure(line)`: the amount for a meter or renown line, and the
+ * percentage for a renown share.
+ */
+function cardTypeRaiseOn<T extends { card: CardId }>(
+  state: GameState,
+  playerId: number,
+  base: readonly T[],
+  figure: (line: T) => number,
+  make: (line: T, raise: CardTypeRaise, extra: number) => T,
+): T[] {
+  const raises = cardTypeRaises(state, playerId);
+  if (raises.size === 0) return [];
+  const out: T[] = [];
+  for (const line of base) {
+    const raise = raises.get(line.card);
+    if (raise === undefined) continue;
+    const extra = cardTypeRaise(figure(line), raise.percent);
+    if (extra !== 0) out.push(make(line, raise, extra));
+  }
+  return out;
+}
+
+/** The rise of a meter line: its own line, named for the amplifier and the card. */
+function cardTypeRaiseMeterLines(state: GameState, playerId: number, base: readonly CardMeterLine[]): CardMeterLine[] {
+  return cardTypeRaiseOn(
+    state,
+    playerId,
+    base,
+    (line) => line.amount,
+    (line, raise, extra) => ({ card: raise.card, source: raiseLabel(raise, line.card), amount: extra }),
+  );
 }
 
 /**
@@ -7761,6 +7812,9 @@ export function cardHappiness(state: GameState, playerId: number): CardMeterLine
   }
 
   list.push(...cityLocalHappiness(state, playerId));
+  // **The rises of a tier-26 government** (batch R1): each raised card's line
+  // gains a line of its own, so the meter is still the fold of its list.
+  list.push(...cardTypeRaiseMeterLines(state, playerId, list));
   return list;
 }
 
@@ -7882,6 +7936,17 @@ export function cardBuildingHappiness(
       list.push({ card, source, cityId: city.id, building, amount: effect.amount });
     }
   }
+  // **The rises of a tier-26 government** (batch R1): a raised card's line on
+  // a building gains a line of its own on the same building.
+  list.push(
+    ...cardTypeRaiseOn(
+      state,
+      playerId,
+      list,
+      (line) => line.amount,
+      (line, raise, extra) => ({ ...line, card: raise.card, source: raiseLabel(raise, line.card), amount: extra }),
+    ),
+  );
   return list;
 }
 
@@ -7952,6 +8017,8 @@ export function cardAuthority(state: GameState, playerId: number): CardMeterLine
     list.push({ card, source: label(source, `×${times}`), amount: each * times });
   }
 
+  // **The rises of a tier-26 government** (batch R1), as on happiness.
+  list.push(...cardTypeRaiseMeterLines(state, playerId, list));
   return list;
 }
 
@@ -9809,6 +9876,20 @@ export interface WindfallOccasionFacts {
    * MG10 by a rider's `paidHand` filter (The Second Sitting).
    */
   handPrice?: number;
+  /**
+   * The production a levy paid, on the `levy` occasion (batch R1, The
+   * Terraces of Moray): the hammers of a levy for production here, for the
+   * Magnum Opus or for a world wonder. Filled by `levyAt` (`levies.ts`).
+   * Absent for a levy that pays no production. Read by the `production`
+   * measure.
+   */
+  production?: number;
+  /**
+   * The faith that left the bank, on the `faithSpent` occasion (batch R1,
+   * The Pilgrim Staff). Filled by `spendFaith` (`state.ts`). Read by the
+   * `faith` measure.
+   */
+  faith?: number;
 }
 
 
@@ -9963,6 +10044,13 @@ export function windfallPayout(
     // And the fourth: Dinocrates pays for a wonder raised, not for a granary.
     // An occasion that carries no such fact never satisfies it.
     if (effect.wonder === true && facts.wonder !== true) return false;
+    // And its opposite (batch R1, The Apprentices): a building that is neither
+    // a world wonder nor the Magnum Opus. Asked of the row that was finished,
+    // so a moment that names no building never satisfies it.
+    if (effect.exceptWonders === true) {
+      if (facts.building === undefined) return false;
+      if (isWonder(facts.building) || buildingDef(facts.building).endsTheGame === true) return false;
+    }
     // And the fifth: The Great Poets pay for an artist's afternoon, not for a
     // general's. An occasion that carries no family never satisfies it.
     if (effect.family !== undefined && facts.family !== effect.family) return false;
@@ -10354,6 +10442,19 @@ export function windfallPayout(
           ...(grant.renownFamily !== undefined ? { family: grant.renownFamily } : {}),
         });
         payout.lines.push({ card, source, note: `${signed(amount)} renown` });
+        // **A tier-26 government's rise** (batch R1): its own renown grant,
+        // beside the card's, for the same family.
+        const rise = riseOn(card, amount);
+        if (rise !== null) {
+          const named = raiseLabel(rise.raise, card);
+          payout.renown.push({
+            card: rise.raise.card,
+            source: named,
+            amount: rise.extra,
+            ...(grant.renownFamily !== undefined ? { family: grant.renownFamily } : {}),
+          });
+          payout.lines.push({ card: rise.raise.card, source: named, note: `${signed(rise.extra)} renown` });
+        }
       }
     }
     // Since Devotion batch DV5 a lump may be a share of the moment too, as
@@ -10706,6 +10807,11 @@ function occasionMeasure(
     // Magisterial batch MG5: the culture the Order hand cost.
     case 'handPrice':
       return facts.handPrice;
+    // Batch R1: the production a levy paid, and the faith spent.
+    case 'production':
+      return facts.production;
+    case 'faith':
+      return facts.faith;
     default: {
       const unhandled: never = measure;
       void unhandled;
@@ -13611,6 +13717,17 @@ export function cardRenownLines(state: GameState, playerId: number): CardRenownL
       amount,
     });
   }
+  // **The rises of a tier-26 government** (batch R1): a raised card's trickle
+  // gains a line of its own, favouring the same family.
+  list.push(
+    ...cardTypeRaiseOn(
+      state,
+      playerId,
+      list,
+      (line) => line.amount,
+      (line, raise, extra) => ({ card: raise.card, source: raiseLabel(raise, line.card), family: line.family, amount: extra }),
+    ),
+  );
   return list;
 }
 
@@ -13649,6 +13766,7 @@ export function cardCityRenownShares(state: GameState, city: City): CardCityReno
       ...(effect.of !== undefined ? { of: effect.of } : {}),
     });
   }
+  list.push(...renownShareRises(state, city.ownerId, list));
   return list;
 }
 
@@ -13675,7 +13793,32 @@ export function cardEmpireRenownShares(
     if (effect.percent === 0 || effect.where !== 'empire') continue;
     list.push({ card, source, percent: effect.percent });
   }
+  list.push(...renownShareRises(state, playerId, list));
   return list;
+}
+
+/**
+ * **The rises on renown shares** (batch R1): a raised card's share of renown
+ * gains a share of its own, taken over the same rows, so a tier-26 government
+ * raises a share as it raises a yield percentage.
+ */
+function renownShareRises(
+  state: GameState,
+  playerId: number,
+  base: readonly CardCityRenownShare[],
+): CardCityRenownShare[] {
+  return cardTypeRaiseOn(
+    state,
+    playerId,
+    base,
+    (share) => share.percent,
+    (share, raise, extra) => ({
+      card: raise.card,
+      source: raiseLabel(raise, share.card),
+      percent: extra,
+      ...(share.of !== undefined ? { of: share.of } : {}),
+    }),
+  );
 }
 
 // --- routes -----------------------------------------------------------------

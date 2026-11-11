@@ -32,7 +32,6 @@ import { buildingDef, isWonder } from '../../src/sim/buildingData';
 import { improvementDef } from '../../src/sim/improvementData';
 import { projectDef } from '../../src/sim/projectData';
 import { type CardId, ORDER_IDS, orderDef } from '../../src/sim/statecraftData';
-import { RULES } from '../../src/sim/rulesData';
 import { describeCard, stripRefs } from '../../src/sim/statecraft';
 import {
   ABILITY_IDS,
@@ -259,19 +258,19 @@ function ageSection(age: TechAge): string {
  * They are not in the age tables above, because they are not on the sky: only
  * a seat that drafted the charter may research one, and none moves an
  * empire's age (reading 1). Each row says which charter opens it, the parent
- * it sits one column right of, the column's price and the price with the
- * premium (`rules.research.charterPremiumPercent`), then its gifts in the age
- * tables' own three columns, so a later batch that fills a gift shows here.
+ * it sits one column right of and the column's price, which since batch DS9 is
+ * its whole price (`docs/flags.md` item (hhhhhhh): no charter premium), then
+ * its gifts in the age tables' own three columns, so a later batch that fills a
+ * gift shows here.
  */
 function charterSection(): string {
-  const premium = RULES.research.charterPremiumPercent;
   const lines: string[] = [
     '### The charter technologies',
     '',
-    `Only a seat that drafted the charter may research these. Each sits one column right of its one parent, inside its own age, and costs its column's price plus ${premium}% (\`rules.research.charterPremiumPercent\`). None moves an empire's age or counts as a world first.`,
+    `Only a seat that drafted the charter may research these. Each sits one column right of its one parent, inside its own age, and costs its column's price, as an ordinary technology there does. None moves an empire's age or counts as a world first.`,
     '',
-    '| node | æra | column | 🔬 column | 🔬 charter | prereq | opened by | units | buildings | abilities & gifts |',
-    '|---|---|---|---|---|---|---|---|---|---|',
+    '| node | æra | column | 🔬 | prereq | opened by | units | buildings | abilities & gifts |',
+    '|---|---|---|---|---|---|---|---|---|',
   ];
   for (const id of CHARTER_TECH_IDS) {
     const def = techDef(id);
@@ -285,9 +284,8 @@ function charterSection(): string {
       else if (gift.kind === 'building') buildings.push(buildingCell(gift));
       else if (gift.kind === 'project') buildings.push(`*${projectDef(gift.id).name}* (project)`);
     }
-    const charterPrice = Math.floor((def.cost * (100 + premium)) / 100);
     lines.push(
-      `| ${def.name} | ${eraNumeral(def.age)} | ${techColumn(id)} | ${def.cost} | ${charterPrice} | ${cell(def.prereqs.map((prereq) => techDef(prereq).name))} | ${charter === undefined ? '—' : orderDef(charter).name} | ${cell(units)} | ${cell(buildings)} | ${giftsCell(id)} |`,
+      `| ${def.name} | ${eraNumeral(def.age)} | ${techColumn(id)} | ${def.cost} | ${cell(def.prereqs.map((prereq) => techDef(prereq).name))} | ${charter === undefined ? '—' : orderDef(charter).name} | ${cell(units)} | ${cell(buildings)} | ${giftsCell(id)} |`,
     );
   }
   const bullets = CHARTER_TECH_IDS.flatMap((id) => nodeBullets(id));

@@ -1320,12 +1320,8 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "Fewer carts, better cargo.",
-      "text": "Your routes give +50% science and culture. You run 2 fewer routes.",
+      "text": "Your routes gain +50% science and culture.",
       "effects": [
-        {
-          "kind": "routeRider",
-          "extra": -2
-        },
         {
           "kind": "pays",
           "where": "route",
@@ -3009,7 +3005,7 @@
       "rarity": "rare",
       "type": "economic",
       "flavor": "A letter from a good house is as good as the gold it names.",
-      "text": "You may buy with gold until your treasury reaches −150. Debt disbands none of your units until your treasury falls below −150.",
+      "text": "Your treasury may fall to −150 with no penalty.",
       "effects": [
         {
           "kind": "rule",
@@ -3017,7 +3013,7 @@
           "credit": 150
         }
       ],
-      "note": "Buildings, units, trade caravans, hexes and great-person drafts may all be bought on credit. Gold poured into a wonder or the Magnum Opus, and gold paid to redraw a hand of cards, must still come from gold you hold. While your treasury is below zero you still lose a share of your science and culture."
+      "note": "Buildings, units, trade caravans, hexes and great-person drafts may all be bought on credit. Gold poured into a wonder or the Magnum Opus, and gold paid to redraw a hand of cards, must still come from gold you hold. Until your treasury falls below the card's floor, you lose no science or culture and no unit is disbanded."
     },
     "theStrongbox": {
       "name": "The Strongbox",
@@ -3029,7 +3025,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Three locks, three keys, and three clerks who never meet.",
-      "text": "While seated, this card gains +1 science and +1 culture each turn you end with at least 300 gold in your treasury, up to +15 of each.",
+      "text": "Gains +1 science and +1 culture each time you buy something with gold, up to +15.",
       "effects": [
         {
           "kind": "pays",
@@ -3038,8 +3034,7 @@
           "to": "science",
           "amount": 1,
           "count": "tally",
-          "tally": "treasuryHeld",
-          "minTreasury": 300,
+          "tally": "goldPurchase",
           "max": 15
         },
         {
@@ -3049,12 +3044,11 @@
           "to": "culture",
           "amount": 1,
           "count": "tally",
-          "tally": "treasuryHeld",
-          "minTreasury": 300,
+          "tally": "goldPurchase",
           "max": 15
         }
       ],
-      "note": "Your treasury is checked at the end of each turn, after your income, interest and upkeep are paid. The card counts only while it is seated, and it keeps what it has counted when it leaves its chair."
+      "note": "A unit, a building, a hex, a trade route and a great-person draft bought with gold each count once. Gold given toward a build does not count. The card counts only while it is seated, and it keeps what it has counted when it leaves its chair."
     },
     "theMerchantGuilds": {
       "name": "The Merchant Guilds",

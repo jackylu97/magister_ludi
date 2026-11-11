@@ -182,8 +182,9 @@ describe('the keyword on the card', () => {
       'Scaler',
       'Gains +1 science and +1 culture each time you gain a military unit',
     ]);
+    // Batch R1: The Strongbox counts each purchase with gold.
     expect(said('theStrongbox' as OrderId)[1]).toBe(
-      'Gains +1 science and +1 culture each time you end a turn with at least 300 gold in your treasury, up to +15 each',
+      'Gains +1 science and +1 culture each time you buy something with gold, up to +15 each',
     );
     // Two places: the gain in the capital is said first, so "in your capital"
     // cannot be read as true of the gain to the empire.

@@ -27,7 +27,6 @@ import { describe, expect, it } from 'vitest';
 import { BUILDING_IDS, buildingDef, isWonder } from '../../src/sim/buildingData';
 import { buildingProductionCost, explainBuildingCost } from '../../src/sim/cities';
 import { IMPROVEMENT_IDS, improvementDef } from '../../src/sim/improvementData';
-import { RULES } from '../../src/sim/rulesData';
 import { playerById } from '../../src/sim/state';
 import { describeCard } from '../../src/sim/statecraft';
 import { ORDER_IDS, type OrderId, orderDef } from '../../src/sim/statecraftData';
@@ -110,9 +109,9 @@ describe('a charter technology’s page', () => {
     }
   });
 
-  it('prints the column price and the premium that a seat with no card is charged', () => {
-    // The book takes no game, so it works the two lines out from the row; this
-    // holds them to the game's own fold for a seat that holds no card.
+  it('prints the column price that a seat with no card is charged, with no premium (batch DS9)', () => {
+    // The book takes no game, so it reads the price off the row; this holds it
+    // to the game's own fold for a seat that holds no card.
     const state = newGame({
       seed: 7,
       sizeName: 'duel',
@@ -125,19 +124,16 @@ describe('a charter technology’s page', () => {
     const science = YIELD_GLYPH.science;
     for (const tech of CHARTER_TECH_IDS) {
       const lines = explainTechCost(state, player, tech);
-      expect(lines, tech).toHaveLength(2);
+      expect(lines, tech).toHaveLength(1);
       const price = charterTechPrice(tech);
-      expect(price.column, tech).toBe(lines[0]!.amount);
-      expect(price.premium, tech).toBe(lines[1]!.amount);
-      expect(price.total, tech).toBe(foldTechCost(lines));
-      expect(price.premium, tech).toBeGreaterThan(0);
+      expect(price, tech).toBe(lines[0]!.amount);
+      expect(price, tech).toBe(foldTechCost(lines));
+      expect(price, tech).toBe(techDef(tech).cost);
 
       const entry = entryOf(compendiumId('tech', tech));
-      expect(rowOf(entry, 'Research cost'), tech).toBe(`${figure(price.total)}${science}`);
-      expect(rowOf(entry, 'Column price'), tech).toBe(`${figure(price.column)}${science}`);
-      expect(rowOf(entry, 'Charter premium'), tech).toBe(
-        `${signedFigure(price.premium)}${science} (${percentFigure(RULES.research.charterPremiumPercent)})`,
-      );
+      expect(rowOf(entry, 'Research cost'), tech).toBe(`${figure(price)}${science}`);
+      expect(rowOf(entry, 'Column price'), tech).toBeUndefined();
+      expect(rowOf(entry, 'Charter premium'), tech).toBeUndefined();
       expect(rowOf(entry, 'Requires first'), tech).toBe(
         techDef(tech).prereqs.map((prereq) => techDef(prereq).name).join(', '),
       );

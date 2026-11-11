@@ -54,19 +54,16 @@ describe('a technology’s price, as every screen quotes it', () => {
     }
   });
 
-  it('flags the charter premium, and only on a charter technology', () => {
+  it('prints a charter technology at its column price, as an ordinary one (batch DS9)', () => {
     const g = researchingGame();
     const player = playerById(g.state, 0)!;
     const mechanics = techPriceList(g.state, player, 'mechanics');
-    expect(mechanics.lines.map((line) => [line.label, line.amount, line.premium])).toEqual([
-      ['Column 8', 1150, false],
-      ['Charter +50%', 575, true],
-    ]);
-    expect(mechanics.total).toBe(1725);
-    // An ordinary node is one line, its column, and no premium.
+    expect(mechanics.lines.map((line) => [line.label, line.amount])).toEqual([['Column 8', 1150]]);
+    expect(mechanics.total).toBe(1150);
+    // An ordinary node is one line, its column, too.
     const mathematics = techPriceList(g.state, player, 'mathematics');
     expect(mathematics.lines).toHaveLength(1);
-    expect(mathematics.lines[0]!.premium).toBe(false);
+    expect(mathematics.lines[0]!).not.toHaveProperty('premium');
   });
 
   it('prints The Court of Rudolf II’s line on an ordinary node, and research charges the total', () => {
@@ -79,9 +76,9 @@ describe('a technology’s price, as every screen quotes it', () => {
     bumpRevision(g.state);
     const list = techPriceList(g.state, player, 'banking');
     const cut = Math.floor((plain.total * 80) / 100);
-    expect(list.lines.map((line) => [line.label, line.premium])).toEqual([
-      [plain.lines[0]!.label, false],
-      ['Doctrine · The Court of Rudolf II -20%', false],
+    expect(list.lines.map((line) => line.label)).toEqual([
+      plain.lines[0]!.label,
+      'Doctrine · The Court of Rudolf II -20%',
     ]);
     expect(priceLineFigure(list.lines[1]!, 1)).toBe(`−${plain.total - cut}`);
     expect(list.total).toBe(cut);
@@ -92,18 +89,18 @@ describe('a technology’s price, as every screen quotes it', () => {
   });
 
   it('prints the first line plain and every later line signed, with a real minus', () => {
-    expect(priceLineFigure({ label: 'Column 8', amount: 1150, premium: false }, 0)).toBe('1150');
-    expect(priceLineFigure({ label: 'Charter +50%', amount: 575, premium: true }, 1)).toBe('+575');
-    expect(priceLineFigure({ label: 'The Commonplace Book -15%', amount: -259, premium: false }, 2)).toBe('−259');
+    expect(priceLineFigure({ label: 'Column 8', amount: 1150 }, 0)).toBe('1150');
+    expect(priceLineFigure({ label: 'A card +10%', amount: 115 }, 1)).toBe('+115');
+    expect(priceLineFigure({ label: 'The Commonplace Book -15%', amount: -173 }, 1)).toBe('−173');
   });
 
-  it('takes The Commonplace Book’s line when the card is seated (the mockup’s 1466)', () => {
+  it('takes The Commonplace Book’s line when the card is seated (1150 less 15%, floored)', () => {
     const g = researchingGame();
     seat(g.state, 0, 'theCommonplaceBook');
     const list = techPriceList(g.state, playerById(g.state, 0)!, 'mechanics');
-    expect(list.lines).toHaveLength(3);
-    expect(list.lines[2]!.label).toContain('The Commonplace Book');
-    expect(list.total).toBe(1466);
+    expect(list.lines).toHaveLength(2);
+    expect(list.lines[1]!.label).toContain('The Commonplace Book');
+    expect(list.total).toBe(977);
   });
 
   it('is read through the fold by every surface that quotes a price', () => {
@@ -138,13 +135,9 @@ describe('the slip on a technology charter’s card', () => {
     const slip = parts.slip!;
     expect(slip.name).toBe('Mechanics');
     expect(slip.age).toBe('ÆRA III');
-    expect(slip.lines.map((line) => [line.figure, line.premium])).toEqual([
-      ['1150', false],
-      ['+575', true],
-      ['−259', false],
-    ]);
+    expect(slip.lines.map((line) => line.figure)).toEqual(['1150', '−173']);
     // The total carries the science glyph; the figure is the fold.
-    expect(slip.total.startsWith('1466')).toBe(true);
+    expect(slip.total.startsWith('977')).toBe(true);
     expect(slip.turns === 'no science yet' || /^~\d+ turns$/.test(slip.turns)).toBe(true);
     expect(slip.note).toBe(SLIP_NOTE);
   });
@@ -152,7 +145,7 @@ describe('the slip on a technology charter’s card', () => {
   it('is priced for the seat that holds the offer, not for a rival', () => {
     const g = researchingGame();
     seat(g.state, 0, 'theCommonplaceBook');
-    expect(charterOfferParts(g.state, 1, 'theMechanistsCharter').slip!.total.startsWith('1725')).toBe(true);
+    expect(charterOfferParts(g.state, 1, 'theMechanistsCharter').slip!.total.startsWith('1150')).toBe(true);
   });
 
   it('takes the "Opened" stamp, which thunks and is never empty', () => {

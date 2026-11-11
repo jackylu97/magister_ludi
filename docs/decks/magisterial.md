@@ -12,6 +12,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
   - **Changed:** The Workshop at Olympia gives +3 renown a turn for each wonder, not +2 (your comment of 2026-11-10).
   - **The Second Reading** keeps its text and its tier. Batch DS9 deals it in Tier 0 and in Tier I.
 - **Batch DS8** (2026-11-11, the same spec) put the four keywords on the card face: Commission, Charter, Scaler and Boon. The game reads each from the card's data (`orderKeyword`), prints it as the card's first clause, and shows its rule in a tooltip. So no text below starts with "Charter." or "Boon." any more.
+- **Batch DS9** (2026-11-11, `docs/flags.md` items (hhhhhhh) and (jjjjjjj)): **The Second Reading** is dealt in Tier 0 and in Tier I. A held card is never dealt again. Two rules outside the cards changed in the same batch: the Chiefdom's three chairs are all Wildcard chairs, and a charter technology costs the ordinary price.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -64,6 +65,8 @@ The deck holds 64 cards, and every one takes a chair: 7, 16, 15, 16 and 10 acros
 | **Master Masons** | common | implemented | Finishing a culture building grants 30 production in its town. | Economic |
 | **The Temple of the Muses** | common | implemented | Culture buildings give +2 faith each. | Civic |
 | **The Second Reading** | uncommon | implemented | The first reroll of each hand is free. | Wildcard |
+
+**The Second Reading** is also dealt in Tier I (batch DS9, your comment of 2026-11-10). Its row carries Tier 0 and a last tier (`lastBand`), and it is counted once, in Tier 0.
 
 ## Tier I
 

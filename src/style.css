@@ -8853,10 +8853,6 @@ p.city-trade-link {
   font-variant-numeric: tabular-nums;
 }
 
-.info-card-ledger li.is-premium .info-card-ledger-figure {
-  color: var(--deck-charter-lit);
-}
-
 .info-card-ledger li.is-total {
   border-top-color: rgba(247, 242, 225, 0.28);
   font-weight: 600;
@@ -18620,10 +18616,6 @@ body.compendium-page {
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   color: var(--parchment);
-}
-
-.offer-slip-line.is-premium .offer-slip-figure {
-  color: var(--deck-charter-lit);
 }
 
 .offer-slip-line.is-total {

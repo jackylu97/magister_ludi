@@ -17,7 +17,8 @@
  * down.
  *
  * Expansionist batch E1 added four uses (a worker, a settler, science, and
- * hammers for a world wonder in another town), a lifetime record of citizens
+ * hammers for a world wonder in another town; batch R1 removed the science use
+ * again), a lifetime record of citizens
  * levied (`Player.citizensLevied`, written by `recordLevy`), the mark a levy
  * leaves on the piece it raises (`Unit.levied`), and citizens who come home
  * twenty turns later (The Mit'a: `CityLevyRecord.returns`, given back by the
@@ -27,6 +28,10 @@
  * `every`) and the use `rite`: a citizen spent to say a rite the empire knows
  * over every town it holds, with no faith and no prophet. It is the only use
  * whose command names something more (`LevyCitizenCommand.rite`).
+ *
+ * Batch R1 made every levy a moment the cards can pay on (the `levy` windfall
+ * occasion), carrying the production it paid: The Terraces of Moray grants
+ * science equal to half of it.
  *
  * Three functions, in the shape `guilds.ts` uses for its own verb:
  *
@@ -50,6 +55,7 @@ import {
   type WonderCompletion,
   growthThreshold,
   loseCitizen,
+  payOccasionRiders,
   realiseItem,
   refreshCityDerived,
   settlePopulationWindfall,
@@ -76,7 +82,6 @@ import {
 } from './statecraft/evaluator';
 import { type CardId, type LevyUse, LEVY_USES } from './statecraftData';
 import { type Tile, getTileAt, tileHex, wrappedDistance } from './map';
-import { settleResearchWindfall } from './tech';
 import { type UnitTypeId, unitDef } from './unitData';
 import { rankThreshold } from './ranks';
 
@@ -92,8 +97,6 @@ export interface LevyOption {
   label: string;
   /** Hammers paid, for the uses that pay hammers; otherwise `null`. */
   hammers: number | null;
-  /** Beakers paid, for the use that pays science; otherwise `null`. */
-  science: number | null;
   /** The piece raised, for the uses that raise one; otherwise `null`. */
   unit: UnitTypeId | null;
   /**
@@ -124,8 +127,6 @@ interface LevyReport {
   /** The town's population after the levy. */
   population: number;
   hammers?: number;
-  /** The beakers banked, for the use that pays science. */
-  science?: number;
   /** The town the hammers went to, when it was not the levying town. */
   targetCityId?: number;
   unitId?: number;
@@ -290,14 +291,13 @@ function levyUnitFor(state: GameState, playerId: number, use: LevyUse): UnitType
 /** What one use pays from this town, and where — before the citizen leaves. */
 interface LevyPlan {
   hammers: number | null;
-  science: number | null;
   unit: UnitTypeId | null;
   tile: Tile | null;
   target: City | null;
 }
 
 function planLevy(state: GameState, city: City, use: LevyUse): LevyPlan {
-  const none: LevyPlan = { hammers: null, science: null, unit: null, tile: null, target: null };
+  const none: LevyPlan = { hammers: null, unit: null, tile: null, target: null };
   switch (use) {
     case 'production':
       return { ...none, hammers: levyHammers(city), target: city };
@@ -305,8 +305,6 @@ function planLevy(state: GameState, city: City, use: LevyUse): LevyPlan {
       return { ...none, hammers: levyHammers(city), target: opusWorkshop(state, city.ownerId, city) };
     case 'wonder':
       return { ...none, hammers: levyHammers(city), target: wonderWorkshop(state, city.ownerId, city) };
-    case 'science':
-      return { ...none, science: levyHammers(city) };
     // What the rite pays lands in every town and the command names which rite,
     // so there is no figure to read off this town.
     case 'rite':
@@ -331,7 +329,6 @@ function planLevy(state: GameState, city: City, use: LevyUse): LevyPlan {
 function labelFor(use: LevyUse, plan: LevyPlan): string {
   if (use === 'production') return 'Production here';
   if (use === 'opus') return 'Send to the Magnum Opus';
-  if (use === 'science') return 'Science';
   if (use === 'rite') return 'Perform a rite across your empire';
   if (use === 'wonder') {
     const front = plan.target?.queue[0];
@@ -466,7 +463,6 @@ export function levyOptions(state: GameState, playerId: number, city: City): Lev
       cardName: anyCardDef(grant.card).name,
       label: labelFor(use, plan),
       hammers: plan.hammers,
-      science: plan.science,
       unit: plan.unit,
       targetCityId: use === 'opus' || use === 'wonder' ? (plan.target?.id ?? null) : null,
       every: waitFor(state, playerId, grant),
@@ -490,15 +486,19 @@ export function levyOptions(state: GameState, playerId: number, city: City): Lev
  *      and the empire's record of citizens levied goes up (`recordLevy`);
  *   4. the payment lands: hammers through `settleProductionWindfall` (into this
  *      town, into the town building the Magnum Opus, or into the nearest town
- *      building a world wonder), beakers through `settleResearchWindfall`, a
- *      piece through `realiseItem`, a rite through `sayRiteOverRealm`. The piece
+ *      building a world wonder), a piece through `realiseItem`, a rite through
+ *      `sayRiteOverRealm`. The piece
  *      counts as trained for The Muster of the Fields only, at the rank the
  *      governing row names (The Devshirme's Veteran), and marked with the use
  *      that raised it (`Unit.levied`). The rite takes no faith and no prophet's
  *      charge: the citizen is its whole price (the user's answer, 2026-11-05);
- *   5. any card that reacts to a levy hangs its effects on the town, and a card
+ *   5. the levy moment is paid (`levy`, batch R1): every card rider on it, with
+ *      the town and the production the levy paid, through `payOccasionRiders`,
+ *      which settles what the riders paid (The Terraces of Moray's science goes
+ *      through `settleResearchWindfall` there);
+ *   6. any card that reacts to a levy hangs its effects on the town, and a card
  *      that sends the citizen home later writes the turn it returns (The Mit'a);
- *   6. the town is re-seated (`refreshCityDerived`, register entry 23).
+ *   7. the town is re-seated (`refreshCityDerived`, register entry 23).
  *
  * The governing row is read before the citizen leaves, like the payment in
  * step 1, so The Devshirme's floor of six is checked against the town as it
@@ -518,16 +518,7 @@ export function levyAt(state: GameState, city: City, use: LevyUse, rite?: RiteId
     report.hammers = plan.hammers;
     if (plan.target.id !== city.id) report.targetCityId = plan.target.id;
   }
-  // The Terraces of Moray (Expansionist batch E1): beakers for the empire,
-  // banked at once and settled the way every one-time grant of science is.
   const player = playerById(state, city.ownerId);
-  if (plan.science !== null && player !== undefined) {
-    player.sciencePool += plan.science;
-    // A bank is a line of the meters' fold (`slate.ts`), so the write announces.
-    bumpEconomy(state);
-    settleResearchWindfall(state, player);
-    report.science = plan.science;
-  }
   if (plan.unit !== null && plan.tile !== null) {
     // Only The Muster of the Fields' unit counts as trained: its text says so.
     // A conscript, a worker and a settler a levy raised are gained, not trained.
@@ -547,6 +538,16 @@ export function levyAt(state: GameState, city: City, use: LevyUse, rite?: RiteId
   if (use === 'rite' && rite !== undefined && player !== undefined) {
     report.rite = rite;
     report.wonders = sayRiteOverRealm(state, player, rite).wonders;
+  }
+  // **The levy moment** (batch R1): announced here and nowhere else, for every
+  // use, after the levy has paid. It carries the production the levy paid, so
+  // a levy that raised a piece or said a rite carries none.
+  if (player !== undefined) {
+    const production = report.hammers;
+    payOccasionRiders(state, player, 'levy', { col: city.col, row: city.row }, {
+      townId: city.id,
+      ...(production !== undefined && production > 0 ? { production } : {}),
+    });
   }
   hangAftermaths(state, city);
   scheduleReturn(state, city);

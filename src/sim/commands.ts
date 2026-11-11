@@ -179,7 +179,7 @@ import {
   playerById,
   reaimProduction,
   removeUnit,
-  spendGold,
+  buyWithGold,
   unitById,
   wakeUnit,
 } from './state';
@@ -4406,8 +4406,9 @@ function applyBuyRoute(state: GameState, command: BuyRouteCommand): CommandResul
   // legacy reads from outside any chair) and announces the banks to the meters
   // (batch M3, `slate.ts`); the tally is the same moment written into whichever
   // slotted Order is watching for it. A piece appearing on the board is
-  // `createUnit`'s own announcement.
-  spendGold(state, actor, price);
+  // `createUnit`'s own announcement. A hire is a purchase with gold, so it goes
+  // through `buyWithGold`, which writes that moment too (batch R1).
+  buyWithGold(state, actor, price);
   recordScalingOccasion(state, actor.id, 'goldSpent', price);
 
   const gates = getTileAt(state.map, from.col, from.row)!;

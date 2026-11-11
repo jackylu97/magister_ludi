@@ -5230,8 +5230,8 @@
   ],
   "theTerracesOfMoray": [
    {
-    "raw": "a city beside a mountain may spend one citizen for science equal to the food it took to grow that citizen (once every 5 turns)",
-    "text": "a city beside a mountain may spend one citizen for science equal to the food it took to grow that citizen (once every 5 turns)"
+    "raw": "a levy grants science equal to 50% of the production it paid",
+    "text": "a levy grants science equal to 50% of the production it paid"
    }
   ],
   "theColonists": [
@@ -6415,10 +6415,6 @@
   ],
   "theScholarsRoads": [
    {
-    "raw": "-2 trade routes",
-    "text": "-2 trade routes"
-   },
-   {
     "raw": "+50% science and culture on every trade route you send",
     "text": "+50% science and culture on every trade route you send"
    }
@@ -6913,8 +6909,8 @@
   ],
   "lettersOfCredit": [
    {
-    "raw": "you may buy with gold until your treasury reaches −150; debt disbands none of your units until your treasury falls below −150",
-    "text": "you may buy with gold until your treasury reaches −150; debt disbands none of your units until your treasury falls below −150"
+    "raw": "your treasury may fall to −150 with no penalty",
+    "text": "your treasury may fall to −150 with no penalty"
    }
   ],
   "theStrongbox": [
@@ -6923,8 +6919,8 @@
     "text": "Scaler"
    },
    {
-    "raw": "Gains +1 science and +1 culture each time you end a turn with at least 300 gold in your treasury, up to +15 each",
-    "text": "Gains +1 science and +1 culture each time you end a turn with at least 300 gold in your treasury, up to +15 each"
+    "raw": "Gains +1 science and +1 culture each time you buy something with gold, up to +15 each",
+    "text": "Gains +1 science and +1 culture each time you buy something with gold, up to +15 each"
    }
   ],
   "theMerchantGuilds": [
@@ -7112,6 +7108,12 @@
    {
     "raw": "a city may give faith to whatever it is building: the faith the rite costs becomes production",
     "text": "a city may give faith to whatever it is building: the faith the rite costs becomes production"
+   }
+  ],
+  "thePilgrimStaff": [
+   {
+    "raw": "spending faith grants culture equal to 25% of the faith spent",
+    "text": "spending faith grants culture equal to 25% of the faith spent"
    }
   ],
   "theSpiritualHost": [
@@ -9864,6 +9866,12 @@
    {
     "raw": "+1 gold on every hex with a road",
     "text": "+1 gold on every hex with a road"
+   }
+  ],
+  "theCountryFair": [
+   {
+    "raw": "+1 gold on every hex carrying a luxury resource",
+    "text": "+1 gold on every hex carrying a luxury resource"
    }
   ],
   "theProvincialFair": [

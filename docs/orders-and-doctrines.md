@@ -32,7 +32,8 @@ structure paragraphs are sync-tested where they state a number):
   an earlier band instead (`draftExhausted`). A row may name a **last band**
   (`OrderDef.lastBand`, Dominion batch D7): it is dealt in every band from its own to that
   one. Double Time was the one such row, dealt in bands 2 and 3 (the user, 2026-10-16), until
-  batch DS1 retired it. No dealt row has a last band now.
+  batch DS1 retired it. Since batch DS9 The Second Reading is the one dealt row with a last
+  band: it is dealt in bands 0 and 1, and its Band column below is its first band.
 - **Universal chairs.** A government supplies a chair count: 3 / 5 / 6 / 8 / 11 by its tier's
   rung (the user's ruling, `docs/decks/deck-design.md` "More chairs", and batch G1's six chairs
   at tier 10), written on each row as `chairs`. A leader's extra chair and a card's are
@@ -123,7 +124,7 @@ governments, so Tier IV opened at 29.
 
 | Tier | Government | Military | Economic | Civic | Wildcard | Chairs | Signature |
 |---|---|---|---|---|---|---|---|
-| 0 | Chiefdom | 1 | 1 | 0 | 1 | 3 | Grants nothing of its own. |
+| 0 | Chiefdom | 0 | 0 | 0 | 3 | 3 | Grants nothing of its own. |
 | 4 | Council of Elders | 1 | 2 | 1 | 1 | 5 | Every town gains +2 food and +1 renown. |
 |  | Priest-King | 1 | 1 | 2 | 1 | 5 | Every town gains +1 science and +1 faith. |
 |  | War Chief | 2 | 1 | 1 | 1 | 5 | Units gain +4 strength. Kills grant 10 science and 10 culture. |
@@ -444,7 +445,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Hedgerows | 2 | ● | S | Needs tended land. Worked farms beside a tended tile gain +2 food, once per farm. |
 | The Great Households | 2 | ◆ | P | Each town gains +2% production for each citizen, at most +30%. |
 | The Harbour Cities | 2 | ● | P | Coastal towns gain +1 culture for every two citizens. |
-| The Terraces of Moray | 2 | ◆ | S | Towns beside a mountain may spend a citizen to gain science equal to the food it took to grow that citizen. |
+| The Terraces of Moray | 2 | ◆ | S | A levy also grants science equal to half its production. |
 | The Colonists | 2 | ◆ | S | Towns of at least six citizens may spend a citizen to raise a settler. |
 | The Book of Settlements | 2 | ◆ | P | +3% production and gold for every town you have founded this game, at most +30%. |
 | The Staked Claims | 2 | ◆ | S | Each town you found claims every unowned hex within two hexes of it. |
@@ -502,7 +503,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Foreign Procurement | 2 | ◆ | S | You may buy units without their strategic resource. |
 | The League of Cities | 2 | ○ | P | Towns that send a trade route gain +20% production. |
 | The Exchange | 2 | ◆ | P | +5% science and culture for each foreign empire your routes reach. |
-| The Scholars' Roads | 3 | ○ | P | Your routes give +50% science and culture. You run 2 fewer routes. |
+| The Scholars' Roads | 3 | ○ | P | Your routes gain +50% science and culture. |
 | The Customs Houses | 2 | ◆ | P | Each customs house in your borders gives its town +4 science and +4 culture, whether or not it is worked. |
 | Strategic Exports | 2 | ◆ | P | Your strategic resources supply twice as many copies. |
 | Caravanserai Cities | 3 | ◆ | S | Caravanserais can be built in every city. |
@@ -549,8 +550,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Treaty Ports | 2 | ◆ | P | +5% production for each empire you hold a deal with, at most +25%. |
 | The Capitulations | 3 | ◆ | S | Each foreign town with your trading post lends you a luxury you lack. |
 | The Casa da Índia | 4 | ○ | P | Every copy of a luxury you hold pays its yields, not only the first. |
-| Letters of Credit | 1 | ○ | S | You may buy with gold until your treasury reaches −150. Debt disbands none of your units until your treasury falls below −150. |
-| The Strongbox | 1 | ◆ | P | While seated, this card gains +1 science and +1 culture each turn you end with at least 300 gold in your treasury, up to +15 of each. |
+| Letters of Credit | 1 | ○ | S | Your treasury may fall to −150 with no penalty. |
+| The Strongbox | 1 | ◆ | P | Gains +1 science and +1 culture each time you buy something with gold, up to +15. |
 | The Merchant Guilds | 2 | ◆ | S | You may run one more trade route for every two merchants in the trades. |
 
 ### Devotion
@@ -575,6 +576,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Old Holy Places | 2 | ● | S | Holy Sites gain +3 faith and +3 culture. |
 | Temple Estates | 2 | ● | S | Hexes beside a Holy Site gain +2 food and +2 faith. |
 | The Votive Gifts | 1 | ● | S | Towns may spend faith to add production to what they are building. Not wonders. |
+| The Pilgrim Staff | 1 | ● | S | Spending faith grants culture equal to a fourth of it. |
 | The Spiritual Host | 2 | ◆ | S | Military units gain +4 strength in land that follows your religion. |
 | Mission Houses | 2 | ◆ | S | Your proclamations press 30% harder. |
 | The Lay Brothers | 2 | ○ | S | Cities with a Temple may buy ordinary buildings with faith, at the faith rate. |
@@ -770,7 +772,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Escorted Roads | Dominion · Commerce | 2 | ◆ | S | Trade routes from a garrisoned town gain +5 gold. |
 | Field Academies | Dominion · Scientific | 1 | ◆ | S | Your first kill each turn grants 25 science. |
 | Examinations of State | Dominion · Magisterial | 2 | ○ | P | Garrisoned towns gain +1 science and +1 culture for every three citizens. |
-| Market Gardens | Expansionist · Commerce | 0 | ● | S | Hexes with a road gain +1 gold. |
+| Market Gardens | Expansionist · Commerce | 2 | ● | S | Hexes with a road gain +1 gold. |
+| The Country Fair | Expansionist · Commerce | 0 | ● | S | Luxury resources gain +1 gold. |
 | The Provincial Fair | Expansionist · Commerce | 2 | ◆ | S | Towns with a Market gain +2 gold on plantations, camps and pastures. |
 | Sacred Groves | Expansionist · Devotion | 0 | ◆ | S | Worked, unimproved forests gain +1 food and +1 faith. |
 | The Assay | Expansionist · Scientific | 1 | ● | S | Hexes with a strategic resource gain +2 science. |
@@ -877,8 +880,11 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **Land Speculation** — The culture is rounded down.
 - **The Capitulations** — Only a trading post that is established and paying lends, so a post lends nothing during a war with the town's owner or while the town is blockaded. Each town lends the first luxury it has improved that you do not hold and that no other post already brings you. The towns are taken in the order they were founded. A borrowed luxury gives the same happiness and yields as one copy you hold.
 - **The Casa da Índia** — Only the luxury's own food, production, gold, science, culture and faith are paid for each copy. Its happiness and every other effect still count once for each kind. Silver and gold already pay some lines for each copy, and those lines are not paid twice.
-- **Letters of Credit** — Buildings, units, trade caravans, hexes and great-person drafts may all be bought on credit. Gold poured into a wonder or the Magnum Opus, and gold paid to redraw a hand of cards, must still come from gold you hold. While your treasury is below zero you still lose a share of your science and culture.
-- **The Strongbox** — Your treasury is checked at the end of each turn, after your income, interest and upkeep are paid. The card counts only while it is seated, and it keeps what it has counted when it leaves its chair.
+- **Letters of Credit** — Buildings, units, trade caravans, hexes and great-person drafts may all be bought on credit. Gold poured into a wonder or the Magnum Opus, and gold paid to redraw a hand of cards, must still come from gold you hold. Until your treasury falls below the card's floor, you lose no science or culture and no unit is disbanded.
+- **The Strongbox** — A unit, a building, a hex, a trade route and a great-person draft bought with gold each count once. Gold given toward a build does not count. The card counts only while it is seated, and it keeps what it has counted when it leaves its chair.
+- **The Country Fair** — A hex with a luxury resource pays while one of your towns works it, whether it is improved or not.
+- **The Terraces of Moray** — A levy that raises a unit, a worker or a settler, or performs a rite, pays no production, so it grants no science.
+- **The Apprentices** — A world wonder and the Magnum Opus do not count.
 - **The Merchant Guilds** — Merchants in the trades are counted in all of your cities together.
 - **The Nest Egg** — Your gold income is read after upkeep. Gold that a card pays to your empire as a whole, and not to a town, does not count.
 - **Bills of Exchange** — Your gold income is read after upkeep. Gold that a card pays to your empire as a whole, and not to a town, does not count.

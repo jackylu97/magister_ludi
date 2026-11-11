@@ -69,7 +69,8 @@ describe('a government’s chairs in words', () => {
     // is the government row that leaves a type out.
     expect(chairMixWords(chairMixOf('tyranny'))).toBe('3 Military · 1 Economic · 1 Civic · 1 Wildcard');
     expect(chairMixWords(chairMixOf('theocracy'))).toBe('1 Military · 3 Civic · 1 Wildcard');
-    expect(chairMixWords(chairMixOf('chiefdom'))).toBe('1 Military · 1 Economic · 1 Wildcard');
+    // Batch DS9: the chiefdom's three chairs are all Wildcard chairs.
+    expect(chairMixWords(chairMixOf('chiefdom'))).toBe('3 Wildcard');
     expect(chairWord('civic')).toBe('Civic');
   });
 
@@ -114,8 +115,9 @@ describe('a government’s chairs in words', () => {
   });
 
   it('counts a laid-out council, the Wildcard chairs a leader or a card adds included', () => {
-    expect(chairMixWords(chairMixOfLayout([...slotLayout('chiefdom'), 'wildcard']))).toBe(
-      '1 Military · 1 Economic · 2 Wildcard',
+    expect(chairMixWords(chairMixOfLayout([...slotLayout('chiefdom'), 'wildcard']))).toBe('4 Wildcard');
+    expect(chairMixWords(chairMixOfLayout([...slotLayout('councilOfElders'), 'wildcard']))).toBe(
+      '1 Military · 2 Economic · 1 Civic · 2 Wildcard',
     );
   });
 

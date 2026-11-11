@@ -28,6 +28,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { typedChiefdomInThisBlock } from '../chiefdomHelpers';
 
 import type { Command } from '../../../src/sim/commands';
 import { councilInOrder, runCommissions } from '../../../src/sim/commissions';
@@ -145,6 +146,9 @@ describe('The Mixed Constitution: the row', () => {
 // --- the fit ------------------------------------------------------------------
 
 describe('the fit a council grants', () => {
+  // Built on the chiefdom's typed chairs before batch DS9 (`chiefdomHelpers.ts`).
+  typedChiefdomInThisBlock();
+
   it('is the plain rule without the card, and every chair while it sits', () => {
     const g = game();
     const [priest] = cardsOf('civic', 1);
@@ -212,6 +216,9 @@ describe('the fit a council grants', () => {
 // --- the card's own type (reading 18) ------------------------------------------
 
 describe('a card still counts as its own type', () => {
+  // Built on the chiefdom's typed chairs before batch DS9 (`chiefdomHelpers.ts`).
+  typedChiefdomInThisBlock();
+
   it('in the signatures and in The Golden Bull’s council in order', () => {
     const g = game();
     const [priest] = cardsOf('civic', 1);
@@ -299,6 +306,9 @@ describe('an adoption under The Mixed Constitution', () => {
 // --- leaving the chair --------------------------------------------------------------
 
 describe('when the card leaves its chair, the council is re-seated at once', () => {
+  // Built on the chiefdom's typed chairs before batch DS9 (`chiefdomHelpers.ts`).
+  typedChiefdomInThisBlock();
+
   it('by the unslot command: a misfit moves to a chair that fits it, and a card that stays keeps its seal', () => {
     const g = game();
     const [priest] = cardsOf('civic', 1);
@@ -434,6 +444,9 @@ describe('when the card leaves its chair, the council is re-seated at once', () 
 // --- the pure answer -------------------------------------------------------------
 
 describe('councilRefit', () => {
+  // Built on the chiefdom's typed chairs before batch DS9 (`chiefdomHelpers.ts`).
+  typedChiefdomInThisBlock();
+
   it('answers nothing while every seated card fits, and changes nothing it is asked about', () => {
     const g = game();
     const [priest] = cardsOf('civic', 1);

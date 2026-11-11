@@ -13,6 +13,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { typedChiefdomInThisBlock } from './chiefdomHelpers';
 
 import {
   type CardImpactLine,
@@ -454,6 +455,9 @@ describe('a card that pays on an occasion', () => {
 });
 
 describe('a card already in force', () => {
+  // Built on the chiefdom's typed chairs before batch DS9 (`chiefdomHelpers.ts`).
+  typedChiefdomInThisBlock();
+
   /**
    * The bench's other half. A card in a slot is *paying* the empire, and a
    * ghost-diff run forward against it would be all noughts — so the reading is

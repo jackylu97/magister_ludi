@@ -616,6 +616,25 @@
         }
       ]
     },
+    "thePilgrimStaff": {
+      "name": "The Pilgrim Staff",
+      "decks": [
+        "devotion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "The road to the shrine is long, and every coin left on it is a song sung on the way home.",
+      "text": "Spending faith grants culture equal to a fourth of it.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "faithSpent",
+          "grant": { "yield": "culture", "amount": 0.25, "fromOccasion": "faith" }
+        }
+      ]
+    },
     "theSpiritualHost": {
       "name": "The Spiritual Host",
       "decks": [

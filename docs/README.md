@@ -238,9 +238,10 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   citizen took to grow), `muster` (best melee unit, trained), `opus` (the same
   hammers sent to the town with the Magnum Opus at the front of its queue),
   `conscript` (best melee unit, not trained), and since Expansionist batch E1
-  `worker` and `settler` (not trained), `science` (beakers equal to that food)
-  and `wonder` (that food as hammers, sent to the nearest other town with a
-  world wonder at the front of its queue). Since batch DT19 there is also `rite`
+  `worker` and `settler` (not trained) and `wonder` (that food as hammers, sent
+  to the nearest other town with a world wonder at the front of its queue). A
+  `science` use (beakers equal to that food) went in batch R1, when The Terraces
+  of Moray became a rider on the `levy` moment. Since batch DT19 there is also `rite`
   (Human Sacrifice, in the capital): the command names a rite (`rite`), and
   `sayRiteOverRealm` starts it in every town the seat holds, as a prophet's rite
   does, for the citizen alone, with no faith and no prophet. A rite that acts at
@@ -667,8 +668,9 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     lost its Magnum Opus gate. The town scope of the same name stays;
   - dealt two new Tier 0 cards: The Household Gods, and The First Offering,
     the first on-draft grant of faith (`onDraft` `windfall`, `yield: 'faith'`);
-  - held The Votive Lamp and The Pilgrim Staff: the game keeps no count of
-    every building a town finishes, and has no moment at which faith is spent.
+  - held The Votive Lamp and The Pilgrim Staff: the game kept no count of
+    every building a town finishes, and had no moment at which faith is spent.
+    Batch R1 dropped the first and built the second.
 - **Batch DS6** (Scientific's rows of the same spec):
   - removed the `buildingCost` card rule and its line in `explainBuildingCost`,
     because The Almanac no longer makes Libraries cheaper;
@@ -688,8 +690,8 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
   - dealt two new Tier 0 cards: The Scribes (+1 science in every town) and The
     Apprentices, a `buildingCompletion` rider of 5 science. That occasion fires
     in `realiseItem` for every building a town gains through it: built,
-    bought, granted by a completion or a commission, wonders and the Magnum
-    Opus included. The science banks at once and settles at the next research
+    bought, granted by a completion or a commission. Since batch R1 the card's
+    rider leaves out wonders and the Magnum Opus (`exceptWonders`). The science banks at once and settles at the next research
     step, as The Consecration Feast's does.
 - **Batch DS7** (Magisterial's rows of the same spec):
   - removed the town scope `notHasWonder`, because The Cornerstone and The
@@ -737,6 +739,48 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
   - **A strength line says its side:** `combatSideWords` adds "when
     defending" or "when attacking" (The Siege Train's +5 is on defence). The
     luxuries' describer uses it too.
+- **Batch R1** (2026-11-11, `docs/flags.md` (jjjjjjj); schema 239) built the
+  held cards and three new moments. Each moment is announced in one place and
+  read by the one evaluator:
+  - **A levy** is the `levy` windfall occasion, paid by `levyAt` through
+    `payOccasionRiders` for every use, after the levy has paid. It carries the
+    town (`townId`) and the production the levy paid (`production`, a new fact
+    and measure): a levy for production here, for the Magnum Opus or for a
+    world wonder pays it; a unit, worker, settler or rite pays none. The
+    Terraces of Moray grants science equal to half of it (marked "Needs a
+    levy"). The `science` levy use lost its last row and is gone.
+  - **A purchase with gold** is the `goldPurchase` tally, written once for
+    each purchase by `buyWithGold` (`state.ts`): a unit or building at the
+    counter, a hex, a trade route hire and a great-person draft. Gold given
+    toward a build (`contributeAt`) still calls `spendGold` alone and is not a
+    purchase. The Strongbox counts it; the `treasuryHeld` tally, its writer
+    `recordTreasuryHeld`, the `minTreasury` field and the bots' forecast row
+    are gone.
+  - **Faith spent** is the `faithSpent` windfall occasion, paid by
+    `spendFaith` (the one subtraction from the faith bank, at all seven places
+    faith is spent) with what left the bank (`faith`, a new fact and measure).
+    The Pilgrim Staff (Devotion, Tier I) grants culture equal to a fourth of it.
+  - **Letters of Credit** also lifts the loss of science and culture down to
+    its floor: the arrears line starts below `arrearsFloor` (`upkeep.ts`, the
+    card's `cardSpendFloor`), read by `treasuryInArrears`. The bots' debt
+    charge on a purchase on credit had nothing left to charge and is gone.
+  - **The Apprentices'** rider carries `exceptWonders`: a world wonder and the
+    Magnum Opus pay it nothing. **The Scholars' Roads** costs no route
+    capacity. **Market Gardens** is Tier II, and **The Country Fair** (shared
+    by Expansionist and Commerce, Tier 0: +1 gold on every luxury hex a town
+    works) is the pair's early card.
+  - **The tier-26 rises** reach happiness (`cardHappiness`,
+    `cardBuildingHappiness`), authority (`cardAuthority`), the renown trickle
+    (`cardRenownLines`), the renown shares (`cardCityRenownShares`,
+    `cardEmpireRenownShares`) and the renown a one-time reward grants
+    (`windfallPayout`). Each rise is its own labelled line, and a negative
+    figure is not raised. `CARD_TYPE_RAISED_KINDS` adds `happiness`,
+    `authority`, `renown` and `cityRenownPercent`.
+- **Batch DS9** (the same schema): the Chiefdom's three chairs are all Wildcard
+  chairs; a charter technology costs its column's price, as an ordinary one
+  does (`rules.research.charterPremiumPercent` and the premium line are gone,
+  so the retired The Patent Office's `charterPremium` rule reads nothing); and
+  The Second Reading is dealt in Tiers 0 and I (`lastBand`).
 - **Doctrines** (`docs/orders-and-doctrines.md` "Doctrines"): cards held for the
   whole game. A Doctrine takes no chair and is `liveEffects`' second source. 98 are
   live and all are dealt: Dominion 13, Expansionist 24, Commerce 14, Scientific 15,
@@ -858,7 +902,9 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     (`cities.ts`): an Order draft passed (`settleOrderSkip`), a town taken by
     force and razed (`razeCityAt`), and a great person gained
     (`settleGreatPersonChoice`). An attack from range was a fourth until
-    batch DS2 removed it with the one card that paid on it.
+    batch DS2 removed it with the one card that paid on it. Batch R1 added a
+    levy (`levyAt`) and faith spent (`spendFaith`), each with a fact the
+    riders can scale by.
   - A grant can be paid once for each item a count finds (`perCount`), bank
     science toward the technology of a unit killed (`towardFallenTech`,
     `bankTowardTech`), or open a free Order draft (`freeDraft`,
@@ -896,7 +942,8 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
   - **Double Time** (`turnEffectRepeats`): an Order's periodic boons, musters,
     drills and harvests happen twice; a Doctrine's do not (the user's ruling of
     2026-10-16). It was dealt in bands 2 and 3 (`OrderDef.lastBand`) until
-    batch DS1 retired it. No dealt card has a last band now, and the deal
+    batch DS1 retired it. Since batch DS9 The Second Reading is the one dealt
+    card with a last band (bands 0 and 1), and the deal
     still reads the field.
 - **Shapes that came with Dominion's Doctrines.** `healWithin`, `rankWithin` and
   `noFounding` still work, but no dealt row uses them now.

@@ -216,7 +216,8 @@ describe('the levy cards are priced on the levy rate', () => {
     expect(levyOutlook(ctx).soldierRate).toBeGreaterThan(0);
     const needs = ORDER_IDS.filter((id) => orderDef(id).needsLevy === true && orderDef(id).retired !== true);
     // The register: the cards the deal gate holds back until a levy is held.
-    expect([...needs].sort()).toEqual(['seasonalLevies', 'theGleaners', 'theMita'].sort());
+    // Batch R1 added The Terraces of Moray, which pays on a levy's production.
+    expect([...needs].sort()).toEqual(['seasonalLevies', 'theGleaners', 'theMita', 'theTerracesOfMoray'].sort());
     // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired five
     // of them. A save can still hold one, so the bot still prices them.
     const retired = ['theLabourFeasts', 'theLabourRolls', 'theSlackSeason', 'theTrainedBands', 'watchAndWard'];
@@ -224,9 +225,18 @@ describe('the levy cards are priced on the levy rate', () => {
       expect(orderDef(id as OrderId).needsLevy, id).toBe(true);
       expect(orderDef(id as OrderId).retired, id).toBe(true);
     }
+    // The Terraces of Moray pays only on a levy that pays production, and this
+    // seat's levy raises a soldier, so it is priced at nought here and above
+    // nought once a levy for production is seated.
+    const terraces = 'theTerracesOfMoray' as OrderId;
     for (const id of [...needs, ...retired, 'veteranColonies']) {
+      if (id === terraces) continue;
       expect(scoreEffects(orderDef(id as OrderId).effects, ctx, id as OrderId), id).toBeGreaterThan(0);
     }
+    expect(scoreEffects(orderDef(terraces).effects, ctx, terraces)).toBe(0);
+    const withLand = board([...LEVYING, 'levyOfTheLand'], 2);
+    const landCtx = valueContext(withLand.state, withLand.player);
+    expect(scoreEffects(orderDef(terraces).effects, landCtx, terraces)).toBeGreaterThan(0);
   });
 
   it('prices the cards that grant a levy above nought where a levy is worth taking', () => {

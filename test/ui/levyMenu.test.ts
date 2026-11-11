@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { foundCityAt, growthThreshold, refreshCityDerived } from '../../src/sim/cities';
 import { type Command } from '../../src/sim/commands';
 import { dispatch, type Game } from '../../src/sim/game';
-import { getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
+import { getTileAt } from '../../src/sim/map';
 import { availableRites, cityRite } from '../../src/sim/religion';
 import { RELIGION, type RiteId } from '../../src/sim/religionData';
 import { RULES } from '../../src/sim/rulesData';
@@ -77,21 +77,15 @@ describe('the levy menu', () => {
   it('prints the newer uses with their own figure and words (Expansionist batch E1)', () => {
     const { g, city } = bench(6);
     seat(g, 'theWorkGangs');
+    // Batch R1: The Terraces of Moray grants no levy of its own now. It pays on
+    // every levy's production, so it adds no line to the menu.
     seat(g, 'theTerracesOfMoray');
-    // The Terraces of Moray grants its levy only to a town beside a mountain.
-    const centre = getTileAt(g.state.map, city.col, city.row)!;
-    neighborTiles(g.state.map, tileHex(centre))[0]!.terrain = 'mountain';
     bumpRevision(g.state);
     const model = levyMenuModel(g.state, 0, city)!;
-    expect(model.lines.map((line) => line.use)).toEqual(['worker', 'science']);
-    const [worker, science] = model.lines;
+    expect(model.lines.map((line) => line.use)).toEqual(['worker']);
+    const [worker] = model.lines;
     expect(worker!.label).toBe('Raise Worker');
     expect(worker!.source).toBe('The Work Gangs: a worker, not counted as trained');
-    expect(science!.label).toBe('Science');
-    expect(science!.figure).toBe(`+${growthThreshold(5)}🔬`);
-    expect(science!.source).toBe(
-      'The Terraces of Moray: the food it took to grow this citizen, as science',
-    );
   });
 
   it('greys the button while the town waits, with the turns left on its hover', () => {

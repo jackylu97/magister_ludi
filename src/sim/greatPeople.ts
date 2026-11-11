@@ -107,7 +107,7 @@ import {
   playerById,
   removeUnit,
   spendFaith,
-  spendGold,
+  buyWithGold,
   unitById,
 } from './state';
 import { happinessOf } from './meters';
@@ -648,8 +648,9 @@ function chargeBank(
   if (currency === 'gold') {
     // Through the one seam, so a rung bought with coin joins the almoner's
     // ledger (`spendGold`, `state.ts`) — it is a purchase, and the most
-    // deliberate one an empire makes.
-    spendGold(state, player, price);
+    // deliberate one an empire makes. So `buyWithGold` writes the moment of a
+    // purchase with gold too (batch R1).
+    buyWithGold(state, player, price);
     return;
   }
   // The faith arm goes through its own seam (Devotion batch DV3), so a draft

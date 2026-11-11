@@ -246,7 +246,7 @@ import {
   reaimProduction,
   realPlayers,
   shrinkFollowers,
-  spendGold,
+  buyWithGold,
   tileOwnerField,
   unitById,
   wonderClaim,
@@ -5925,7 +5925,7 @@ export function settleRanksEarned(
  * Lyceum's culture exactly as a turn's beakers would.
  *
  * The price is the fold `settleResearch` charges (`foldTechCost`, Scientific
- * batch S0), so a charter technology's premium is covered too and the grant
+ * batch S0), so every card line on the price is covered too and the grant
  * still completes the node.
  */
 function pendingResearchCost(state: GameState, player: Player): { missing: number } | null {
@@ -7560,7 +7560,9 @@ export function purchaseTileAt(state: GameState, city: City, tile: Tile): void {
   claimTile(state, city, tile);
   // Through the one seam, so the coin and the almoner's ledger move together —
   // `spendGold` (`state.ts`) also announces the banks to the meters (batch M3).
-  spendGold(state, player, price);
+  // A hex bought is a purchase with gold, so `buyWithGold` writes that moment
+  // too (batch R1).
+  buyWithGold(state, player, price);
   player.tilesPurchased += 1;
   // The Wide Country's goal counts each hex bought while it is seated, with the
   // hexes outposts and cleared camps claim (Expansionist batch E4).

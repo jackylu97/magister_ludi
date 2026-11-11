@@ -6,10 +6,15 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 - **The build plan:** `docs/plans/commerce-themes-triage.md` (batches T1 to T9). Batch T1 wrote this sheet, put the types into the data, retired the eleven cut rows, moved four rows to the shared file, and changed fifteen cards in place. Batch T2 built the eight new cards that need no new shape (Market Day, The Emporia, The Grain Banks, The Market Halls, Names in Stone, The Hanse, Bills of Exchange and The Grain Barges), and moved Merchant Scholars to Tier III with its new text. Batch T7 built the shared The Art Dealers and the moment a card is drafted, and moved Dominion's The Standing Army to the shared file. Batch T3 built the route and post cards: The Foreign Factor, The Fondaci, The Return Leg, The Champagne Fairs, The Admiralty of Trade and The Lingua Franca. Batch T4 built the two trade commissions: Commission: The Great Fair, and The World's Fair with its new goal and reward. Batch T5 built the goods and deals cards: Export Guilds and The Treaty Ports (two new counts, the luxuries you lend and the empires you hold a deal with), The Commenda, The Capitulations, The Casa da Índia, and Land Speculation's new text. Batch T6 built the purse and the hoard: Letters of Credit (purchases with gold may take the treasury down to a floor, and the creditors wait for the same floor), The Strongbox (a count of the turns you end holding gold), The Merchant Guilds (route slots counted from merchants in the trades) and the shared Mercenary Contracts (a waiver of upkeep hung on a unit you buy). After batch T6 every card on this sheet plays as written, except the rows marked `as built`.
 - **Batch DS1** (2026-11-10, `docs/plans/deck-simplification-2026-11-10.md`, `docs/flags.md` item (hhhhhhh)) retired 9 rows of this deck and 6 shared rows. It moved Provisioning Contracts from Tier II to Tier I. A moved row keeps its text until a later batch changes it. "Retired rows" below gives the reason for each cut. The spec also moves the shared Market Gardens from Tier 0 to Tier II. That move waits for a ruling, because Commerce and Expansionist would then share no card at Tier I or earlier (ruling (qqqqqq) 14).
 - **Batch DS4** (2026-11-10, the same spec) gave 31 rows of this deck and 7 shared rows their new, shorter text, and changed their effects to match. A simplified card lost the clause the spec drops, and a changed card has the new effect. Each card's Note is in the spec. It added two Tier 0 cards: The Pack Trail (your trade routes give +2 gold) and The First Caravan (a Boon: a caravan when drafted). These two are route cards at Tier 0 by your ruling, so the deck's rule that route cards start at Tier II now has three stated exceptions: these two and Provisioning Contracts (Tier I).
-  - **Held:** Letters of Credit and The Strongbox keep their old text and effect until you rule. Letters of Credit's new text ("Your treasury may fall to −150 with no penalty") is not what the card does: a treasury below zero still costs a quarter of your science and culture, and the game has no rule that lifts that cost above a floor. The Strongbox's new text ("Gains +1 science and +1 culture each time you buy something with gold, up to +15") needs a moment the game does not count: one purchase with gold, of any kind. The game counts the gold spent, and the buildings bought, but not each purchase.
+  - **Held** (batch R1 built both, below): Letters of Credit and The Strongbox kept their old text and effect until you ruled. Letters of Credit's new text ("Your treasury may fall to −150 with no penalty") is not what the card does: a treasury below zero still costs a quarter of your science and culture, and the game has no rule that lifts that cost above a floor. The Strongbox's new text ("Gains +1 science and +1 culture each time you buy something with gold, up to +15") needs a moment the game does not count: one purchase with gold, of any kind. The game counts the gold spent, and the buildings bought, but not each purchase.
   - **Readings taken:** "the gold you make each turn" (The Nest Egg, Bills of Exchange, Money at Work) is the gold income after upkeep, without the gold that cards pay to the empire as a whole. The Monopoly counts a luxury you hold, deals included, that no other empire holds. The Capitulations' loan now pays as one copy does. The Merchant Works pays a town building a wonder, and no longer a town building an empire building or the Magnum Opus. The Scholars' Roads was marked reword, but its new text has a different number and drops a clause, so it now costs 2 routes (was 4) and lost its +2 science and +2 culture on each route. Salt Tithes keeps its count of each different luxury you hold, deals included.
   - **Shapes removed:** a route row that paid the town its caravan reached (The Common Road and The Exchange were the only two), and the "building an empire building" narrowing on a town that is building something (The Merchant Works).
 - **Batch DS8** (2026-11-11, the same spec) put the four keywords on the card face: Commission, Charter, Scaler and Boon. The game reads each from the card's data (`orderKeyword`), prints it as the card's first clause, and shows its rule in a tooltip. So no text below starts with "Charter." or "Boon." any more.
+- **Batch R1** (2026-11-11, `docs/flags.md` item (jjjjjjj)) built the two held cards and three changes:
+  - **Letters of Credit** ("Your treasury may fall to −150 with no penalty"): with the card seated, a treasury between 0 and −150 costs no science or culture, as well as disbanding no units. The loss starts below the card's floor (`arrearsFloor`), the same floor a purchase may reach and the creditors wait for.
+  - **The Strongbox** ("Gains +1 science and +1 culture each time you buy something with gold, up to +15"): one moment fires for each purchase made with gold. A unit or a building at a town's purchase counter, a hex, a trade route hire and a great-person draft each count once. Gold given toward a build buys nothing outright, so it does not count. The old count of turns ended with 300 gold is gone.
+  - **The Scholars' Roads** ("Your routes gain +50% science and culture") no longer costs you any trade routes.
+  - **Market Gardens** moves to Tier II. A new shared card, **The Country Fair** (Tier 0, Economic, common: "Luxury resources gain +1 gold"), is the early card this deck shares with Expansionist. A hex with a luxury resource pays while a town works it, improved or not. The Emporia reads only improved luxury hexes, so the plainer words of this card took the wider reading.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -35,7 +40,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 16 | 0 | 0 | 16 | 0 |
 | Tier IV | 10 | 1 | 0 | 11 | 0 |
 | **All** | **69** | **1** | **0** | **70** | **2** |
-| Shared | 15 | 2 | 0 | 17 | 1 |
+| Shared | 16 | 2 | 0 | 18 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
 
@@ -47,7 +52,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 0 | 9 | 5 | 2 |
 | Tier IV | 0 | 6 | 3 | 2 |
 | **All** | **3** | **36** | **25** | **6** |
-| Shared | 4 | 6 | 6 | 1 |
+| Shared | 4 | 7 | 6 | 1 |
 
 Without the charters, the deck holds 68 cards that take a chair: 10, 12, 19, 16 and 11 across Tiers 0 to IV. By type they are 2 Military, 35 Economic, 25 Civic and 6 Wildcard.
 
@@ -84,14 +89,14 @@ Without the charters, the deck holds 68 cards that take a chair: 10, 12, 19, 16 
 | **Civic Receipts** | uncommon | implemented | Buying a building grants culture equal to 15% of the gold paid. | Civic |
 | **Private Patronage** | rare | implemented | Towns gain +25% gold. | Economic |
 | **Financed Industry** | rare | implemented | Towns gain production equal to 20% of their gold. | Economic |
-| **Letters of Credit** | rare | implemented | You may buy with gold until your treasury reaches −150. Debt disbands none of your units until your treasury falls below −150. | Economic |
+| **Letters of Credit** | rare | implemented | Your treasury may fall to −150 with no penalty. | Economic |
 | **The Grain Banks** | uncommon | implemented | Cities with a Granary gain +3 gold. | Economic |
 | **The Market Halls** | common | implemented | Towns with a Market gain +1 food and +1 production for every three citizens. | Economic |
 | **The Staple Right** | common | implemented | Gain +3 gold and +2 culture for each luxury you hold two or more copies of. | Economic |
 | **Export Guilds** | uncommon | implemented | Each luxury you lend to another empire in a deal gives your capital +4 culture and +2 production. | Civic |
 | **Commercial Education** | common | implemented | Gold buildings provide +3 science. | Civic |
 | **The Market Writ** | uncommon | implemented | +1 authority for every two Markets in your empire. | Civic |
-| **The Strongbox** | uncommon | implemented | While seated, this card gains +1 science and +1 culture each turn you end with at least 300 gold in your treasury, up to +15 of each. | Civic |
+| **The Strongbox** | uncommon | implemented | Gains +1 science and +1 culture each time you buy something with gold, up to +15. | Civic |
 | **Provisioning Contracts** | common | implemented | Domestic routes grant their destination +3 food and +3 production. | Economic |
 
 ## Tier II
@@ -151,7 +156,7 @@ Without the charters, the deck holds 68 cards that take a chair: 10, 12, 19, 16 
 | **The Chartered Metropolis** | rare | implemented | Towns that send three trade routes gain +35% food, production and culture. | Economic |
 | **The Return Leg** | rare | implemented | Your trade routes between your own towns also pay their origin everything they pay their destination. | Economic |
 | **The Champagne Fairs** | uncommon | implemented | Every ten turns, each town that receives a domestic trade route grants culture equal to ten times its population. | Civic |
-| **The Scholars' Roads** | rare | implemented | Your routes give +50% science and culture. You run 2 fewer routes. | Civic |
+| **The Scholars' Roads** | rare | implemented | Your routes gain +50% science and culture. | Civic |
 | **The Admiralty of Trade** | uncommon | implemented | Your trade routes to a town holding your trading post have no range limit. | Economic |
 | **The Monopoly** | rare | implemented | For each luxury that only you hold, every town gains +5 gold and +3 culture. | Economic |
 | **The Capitulations** | uncommon | implemented | Each foreign town with your trading post lends you a luxury you lack. | Economic |
@@ -197,18 +202,19 @@ These rows live in `data/decks/common.json`. A seat holding Commerce or the deck
 - **Moved in batch T7:** The Standing Army came here from the Dominion file, with its id, text, tier, rarity and type.
 - **Changed in batch R1 (2026-10-25):** The Standing Army moved to Tier I in both decks (the user, on the Dominion list: *"move to tier 1 (barracks appear later)"*). The Art Dealers now pays +3 gold for each card seated in your government (*"revise: +3 gold for each card slotted in your government"*). The Pathfinders' Company is now Commerce's only Military card at Tier 0.
 - **Changed in Magisterial batch MG4** (`docs/plans/magisterial-themes-triage.md`, reading 46): Travelling Players now pays +2 culture on each foreign route from a town with a Monument for each different deck among your seated cards. The Magisterial pass revised the text this sheet proposed, and both sheets list the same text.
-- **Each pair's early shared card:** Expansionist, Market Gardens (Tier 0); Devotion, The Merchant Shrines (Tier 0); Scientific, The Exchange of Discoveries (Tier I); Magisterial, The Art Dealers (Tier I, built in batch T7); Dominion, The Standing Army (Tier I since batch R1, shared in batch T7).
-- **Market Gardens** was the one route card shared before Tier II. Batch DS3 (`docs/plans/deck-simplification-2026-11-10.md`, your comment of 2026-11-10) gave it one effect: every hex with a road gains +1 gold. It has no route half now, and the Doctrine The Turnpike Trusts gives the same +1 gold, so the two add up. Its move to Tier II still waits for a ruling.
+- **Each pair's early shared card:** Expansionist, The Country Fair (Tier 0, since batch R1); Devotion, The Merchant Shrines (Tier 0); Scientific, The Exchange of Discoveries (Tier I); Magisterial, The Art Dealers (Tier I, built in batch T7); Dominion, The Standing Army (Tier I since batch R1, shared in batch T7).
+- **Market Gardens** was the one route card shared before Tier II. Batch DS3 (`docs/plans/deck-simplification-2026-11-10.md`, your comment of 2026-11-10) gave it one effect: every hex with a road gains +1 gold. It has no route half now, and the Doctrine The Turnpike Trusts gives the same +1 gold, so the two add up. Batch R1 moved it to Tier II (your answer of 2026-11-11: *"roads aren't available that early in the game"*).
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
-| **Market Gardens** | common | Expansionist | 0 | implemented | Hexes with a road gain +1 gold. | Economic |
+| **The Country Fair** | common | Expansionist | 0 | implemented | Luxury resources gain +1 gold. | Economic |
 | **The Merchant Shrines** | common | Devotion | 0 | implemented | Towns working an improved luxury gain +2 faith. | Civic |
 | **The Standing Army** | uncommon | Dominion | I | implemented | Garrisoned units cost no upkeep. | Military |
 | **The Exchange of Discoveries** | uncommon | Scientific | I | implemented | Mines and quarries on a resource gain +2 science. | Civic |
 | **The Art Dealers** | common | Magisterial | I | implemented | +3 gold for each card seated in your government. | Economic |
 | **The Escorted Roads** | uncommon | Dominion | II | implemented | Trade routes from a garrisoned town gain +5 gold. | Economic |
 | **Pilgrim Markets** | uncommon | Devotion | II | implemented | Trade routes to or from a town with a Holy Site gain +3 gold and +3 faith. | Civic |
+| **Market Gardens** | common | Expansionist | II | implemented | Hexes with a road gain +1 gold. | Economic |
 | **The Provincial Fair** | uncommon | Expansionist | II | implemented | Towns with a Market gain +2 gold on plantations, camps and pastures. | Economic |
 | **The Tithe** | rare | Devotion | II | implemented | Towns with a Temple gain gold equal to 25% of their faith. | Economic |
 | **The Merchant Navigators** | common | Scientific | II | implemented | Trade routes from a town with a Harbour gain +5 science. | Civic |

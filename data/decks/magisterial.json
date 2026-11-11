@@ -2187,6 +2187,7 @@
       "name": "The Second Reading",
       "decks": ["magisterial"],
       "band": 0,
+      "lastBand": 1,
       "rarity": "uncommon",
       "type": "wildcard",
       "line": "none",

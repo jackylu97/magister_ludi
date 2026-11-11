@@ -66,25 +66,27 @@ const COLUMN_COSTS = [5, 11, 24, 50, 100, 190, 360, 650, 1150, 1960, 3250, 5150,
 
 /**
  * The placeholder placement table of the triage, row for row: the technology,
- * its age, its one parent, its column and its price with the premium.
+ * its age, its one parent and its column. Since batch DS9 a charter technology
+ * costs its column's price, so the price the triage added the premium to is
+ * gone from the table.
  */
-const PLACEMENT: readonly [TechId, number, TechId, number, number][] = [
-  ['herbals', 1, 'earthenware', 2, 36],
-  ['casting', 1, 'bronzeWorking', 3, 75],
-  ['surveying', 2, 'theWheel', 4, 150],
-  ['cataloguing', 2, 'letters', 4, 150],
-  ['optics', 2, 'theLongCount', 5, 285],
-  ['medicine', 3, 'theHighTemple', 6, 540],
+const PLACEMENT: readonly [TechId, number, TechId, number][] = [
+  ['herbals', 1, 'earthenware', 2],
+  ['casting', 1, 'bronzeWorking', 3],
+  ['surveying', 2, 'theWheel', 4],
+  ['cataloguing', 2, 'letters', 4],
+  ['optics', 2, 'theLongCount', 5],
+  ['medicine', 3, 'theHighTemple', 6],
   // Devotion batch DV2: the shared The Schoolmen's Charter's technology, on
   // the lane under Medicine (the triage's reading 24).
-  ['scholasticism', 3, 'theHighTemple', 6, 540],
-  ['papermaking', 3, 'philosophy', 7, 975],
-  ['printing', 3, 'philosophy', 7, 975],
-  ['mechanics', 3, 'mathematics', 8, 1725],
-  ['gunfounding', 4, 'machinery', 10, 4875],
-  ['chemistry', 4, 'prospecting', 10, 4875],
-  ['militaryArchitecture', 4, 'feudalism', 11, 7725],
-  ['navalGunnery', 4, 'theAstrolabe', 12, 12000],
+  ['scholasticism', 3, 'theHighTemple', 6],
+  ['papermaking', 3, 'philosophy', 7],
+  ['printing', 3, 'philosophy', 7],
+  ['mechanics', 3, 'mathematics', 8],
+  ['gunfounding', 4, 'machinery', 10],
+  ['chemistry', 4, 'prospecting', 10],
+  ['militaryArchitecture', 4, 'feudalism', 11],
+  ['navalGunnery', 4, 'theAstrolabe', 12],
 ];
 
 /** The charter card that names each technology, by the triage's names. */
@@ -289,38 +291,41 @@ describe('the price (readings 13 and 14)', () => {
     }
   });
 
-  it('adds the premium to a charter technology, at the triage table’s figures', () => {
+  it('costs a charter technology its column price alone, as an ordinary one there (batch DS9)', () => {
+    // Batch DS9 (`docs/flags.md` items (hhhhhhh) and (jjjjjjj)): a charter
+    // technology costs the ordinary price. The premium and its rule field are
+    // gone.
     const g = researchingGame();
-    expect(RULES.research.charterPremiumPercent).toBe(50);
-    for (const [id, , , column, priced] of PLACEMENT) {
+    expect(RULES.research).not.toHaveProperty('charterPremiumPercent');
+    for (const [id, , , column] of PLACEMENT) {
       const lines = explainTechCost(g.state, playerById(g.state, 0)!, id);
-      expect(lines, id).toEqual([
-        { source: `Column ${column}`, amount: COLUMN_COSTS[column] },
-        { source: 'Charter +50%', amount: priced - COLUMN_COSTS[column]! },
-      ]);
-      expect(foldTechCost(lines), id).toBe(priced);
+      expect(lines, id).toEqual([{ source: `Column ${column}`, amount: COLUMN_COSTS[column] }]);
+      expect(foldTechCost(lines), id).toBe(COLUMN_COSTS[column]);
+      expect(price(g.state, id), id).toBe(techDef(id).cost);
     }
   });
 
-  it('takes The Commonplace Book’s 15% off the whole charter price, floored once', () => {
+  it('takes The Commonplace Book’s 15% off the charter price, floored once', () => {
     const g = researchingGame();
     seat(g.state, 0, 'theCommonplaceBook');
     const lines = explainTechCost(g.state, playerById(g.state, 0)!, 'mechanics');
-    expect(lines.map((line) => line.amount)).toEqual([1150, 575, 1466 - 1725]);
-    expect(lines[2]!.source).toContain('The Commonplace Book');
-    expect(lines[2]!.source).toContain('-15%');
-    // The mockup's own figure: 1150 × 1.5 × 0.85 = 1466.25, floored once.
-    expect(foldTechCost(lines)).toBe(1466);
-    for (const [id, , , , priced] of PLACEMENT) {
-      expect(price(g.state, id), id).toBe(Math.floor((priced * 85) / 100));
+    // 1150 × 0.85 = 977.5, floored once.
+    expect(lines.map((line) => line.amount)).toEqual([1150, 977 - 1150]);
+    expect(lines[1]!.source).toContain('The Commonplace Book');
+    expect(lines[1]!.source).toContain('-15%');
+    expect(foldTechCost(lines)).toBe(977);
+    for (const [id, , , column] of PLACEMENT) {
+      expect(price(g.state, id), id).toBe(Math.floor((COLUMN_COSTS[column]! * 85) / 100));
     }
     // An ordinary technology is not a charter technology.
     expect(price(g.state, 'mathematics')).toBe(techDef('mathematics').cost);
     // And the other seat holds no card.
-    expect(foldTechCost(explainTechCost(g.state, playerById(g.state, 1)!, 'mechanics'))).toBe(1725);
+    expect(foldTechCost(explainTechCost(g.state, playerById(g.state, 1)!, 'mechanics'))).toBe(1150);
   });
 
-  it('drops the premium line under The Patent Office, and costs 85% of the column under both', () => {
+  it('changes nothing under The Patent Office since batch DS9, and costs 85% of the column under both', () => {
+    // The Patent Office's `charterPremium` rule took the premium away. With no
+    // premium left, nothing reads the rule, so the price is the column's.
     const g = researchingGame();
     seat(g.state, 0, 'thePatentOffice');
     for (const [id, , , column] of PLACEMENT) {
@@ -341,9 +346,9 @@ describe('the price (readings 13 and 14)', () => {
     const player = playerById(g.state, 0)!;
     player.techsResearched.push('earthenware');
     player.charteredTechs.push('herbals');
-    expect(turnsToTech(g.state, 0, 'herbals', 6)).toBe(Math.ceil(36 / 6));
+    expect(turnsToTech(g.state, 0, 'herbals', 6)).toBe(Math.ceil(24 / 6));
     expect(dispatch(g, choose(0, 'herbals')).ok).toBe(true);
-    expect(queueTurns(g.state, 0, 6)).toEqual([{ techId: 'herbals', turns: Math.ceil(36 / 6) }]);
+    expect(queueTurns(g.state, 0, 6)).toEqual([{ techId: 'herbals', turns: Math.ceil(24 / 6) }]);
   });
 });
 
@@ -395,14 +400,15 @@ describe('what completing one does not do', () => {
     player.techsResearched.push('earthenware');
     player.charteredTechs.push('herbals');
     expect(dispatch(g, choose(0, 'herbals')).ok).toBe(true);
-    player.sciencePool = 24;
-    // The column price alone does not cover it: the premium is charged.
+    player.sciencePool = 23;
+    // One beaker short of the column price: not yet.
     expect(settleResearch(g.state, player)).toBeNull();
     player.sciencePool = 40;
     const done = settleResearch(g.state, player)!;
     expect(done.techId).toBe('herbals');
-    expect(done.cost).toBe(36);
-    expect(player.sciencePool).toBe(4);
+    // Since batch DS9 the column price is the whole price.
+    expect(done.cost).toBe(24);
+    expect(player.sciencePool).toBe(16);
     expect(player.techsResearched).toContain('herbals');
     expect(g.state.firsts.some((record) => record.key === 'herbals')).toBe(false);
   });

@@ -666,8 +666,11 @@ describe('the schema, as landed', () => {
     // First Offering are new Devotion rows at Tier 0.
     // **And batch DS6** (the same spec): two more. The Scribes and The
     // Apprentices are new Scientific rows at Tier 0.
-    expect(live).toBe(477);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(477);
+    // **And batch R1** (`docs/flags.md` (jjjjjjj)): two more. The Pilgrim Staff
+    // is a new Devotion row at Tier I, and The Country Fair a new shared row
+    // at Tier 0.
+    expect(live).toBe(479);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(479);
   });
 
   /**
@@ -827,23 +830,24 @@ describe('the schema, as landed', () => {
     expect(many.common + many.uncommon + many.rare).toBeCloseTo(100, 6);
   });
 
-  it('opens every council with the chiefdom’s three typed chairs, and the Guest’s with a fourth', () => {
+  it('opens every council with the chiefdom’s three Wildcard chairs, and the Guest’s with a fourth', () => {
     const fresh = newPlayerStatecraft();
     expect(fresh.slots).toHaveLength(3);
     // No reward hands since batch C3: the two fields are gone from the seat.
     expect(fresh).not.toHaveProperty('rewardHands');
     expect(fresh).not.toHaveProperty('pendingReward');
     // **Typed again since batch C2** (the user, 2026-10-16: *"lets revert
-    // chiefdom yeah"*): one Military, one Economic and one Wildcard chair,
-    // where the decks rework had made all three universal.
-    expect(slotTypesOf(fresh)).toEqual(['military', 'economic', 'wildcard']);
+    // chiefdom yeah"*): one Military, one Economic and one Wildcard chair.
+    // **All three Wildcard since batch DS9** (`docs/flags.md` (hhhhhhh) and
+    // (jjjjjjj)), so any first card fits any first chair.
+    expect(slotTypesOf(fresh)).toEqual(['wildcard', 'wildcard', 'wildcard']);
     const g = seated();
     expect(playerById(g.state, 0)!.statecraft.slots).toHaveLength(3);
     // A Guest at Every Court: one more chair, additive on top of the count, and
     // a Wildcard chair like every chair beyond a government's mix.
     const guest = playerById(g.state, 1)!.statecraft;
     expect(guest.slots).toHaveLength(4);
-    expect(slotTypesOf(guest)).toEqual(['military', 'economic', 'wildcard', 'wildcard']);
+    expect(slotTypesOf(guest)).toEqual(['wildcard', 'wildcard', 'wildcard', 'wildcard']);
   });
 
   it('bumps the schema: a pre-rework save is refused, and the seat carries the four new fields', () => {
@@ -1154,7 +1158,7 @@ describe('the schema, as landed', () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(238);
+    expect(SCHEMA_VERSION).toBe(239);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

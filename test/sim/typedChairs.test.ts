@@ -84,6 +84,19 @@ function sitting(card: OrderId, sealedUntil = 0): SlottedOrder {
   return { card, sealedUntil };
 }
 
+/**
+ * Lays out the Council of Elders' five chairs for seat 0, all empty: Military,
+ * Economic, Economic, Civic and Wildcard. Since batch DS9 the chiefdom's three
+ * chairs are all Wildcard chairs (`docs/flags.md` (hhhhhhh) and (jjjjjjj)), so
+ * a test of the fit rule asks a typed government.
+ */
+function typedCouncil(state: Parameters<typeof bumpRevision>[0]): void {
+  const sc = playerById(state, 0)!.statecraft;
+  sc.government = 'councilOfElders';
+  sc.slots = slotLayout('councilOfElders').map(() => null);
+  bumpRevision(state);
+}
+
 /** The cards in a council, by chair. */
 function cards(slots: readonly (SlottedOrder | null)[]): (OrderId | null)[] {
   return slots.map((slot) => slot?.card ?? null);
@@ -125,8 +138,11 @@ describe('the fit rule', () => {
   it('refuses a misfit in the reducer, in plain words, and changes nothing', () => {
     const g = game();
     const sc = playerById(g.state, 0)!.statecraft;
-    // The chiefdom's three: Military, Economic, Wildcard.
-    expect(slotTypesOf(sc)).toEqual(['military', 'economic', 'wildcard']);
+    // The chiefdom's three are all Wildcard since batch DS9; the Council of
+    // Elders' five are Military, Economic, Economic, Civic, Wildcard.
+    expect(slotTypesOf(sc)).toEqual(['wildcard', 'wildcard', 'wildcard']);
+    typedCouncil(g.state);
+    expect(slotTypesOf(sc)).toEqual(['military', 'economic', 'economic', 'civic', 'wildcard']);
     const [wild] = cardsOf('wildcard', 1);
     const [soldier] = cardsOf('military', 1);
     const [trader] = cardsOf('economic', 1);
@@ -154,7 +170,7 @@ describe('the fit rule', () => {
       0,
       `${name(trader!)} is an economic card: it fits an economic chair or a wildcard chair, and chair 1 is a military chair`,
     );
-    // The chiefdom has no Civic chair, so a civic card waits for the Wildcard one.
+    // A civic card does not fit an Economic chair either.
     refused(
       priest!,
       1,
@@ -169,11 +185,12 @@ describe('the fit rule', () => {
     for (const [cardId, slotIndex] of [
       [soldier!, 0],
       [trader!, 1],
-      [wild!, 2],
+      [priest!, 3],
+      [wild!, 4],
     ] as const) {
       expect(dispatch(g, { type: 'slotOrder', playerId: 0, cardId, slotIndex } as Command).ok).toBe(true);
     }
-    expect(cards(sc.slots)).toEqual([soldier, trader, wild]);
+    expect(cards(sc.slots)).toEqual([soldier, trader, null, priest, wild]);
   });
 
   it('seats an unsorted card in any chair', () => {
@@ -617,24 +634,30 @@ describe('a council in order (Magisterial batch MG7, Commission: The Golden Bull
     const player = playerById(g.state, 0)!;
     const sc = player.statecraft;
     const [soldier] = cardsOf('military', 1);
-    const [trader] = cardsOf('economic', 1);
-    const [unsorted, other] = cardsOf('unsorted', 2);
-    expect(slotTypesOf(sc)).toEqual(['military', 'economic', 'wildcard']);
-    sc.orders.push(soldier!, trader!, unsorted!, other!);
-    sc.slots = [sitting(soldier!), sitting(trader!), null];
+    const [trader, merchant] = cardsOf('economic', 2);
+    const [priest] = cardsOf('civic', 1);
+    const unsorted = cardsOf('unsorted', 4);
+    // The chiefdom has no typed chair since batch DS9, so its council is in
+    // order with nothing seated.
+    expect(slotTypesOf(sc)).toEqual(['wildcard', 'wildcard', 'wildcard']);
+    expect(councilInOrder(player)).toBe(true);
+    typedCouncil(g.state);
+    expect(slotTypesOf(sc)).toEqual(['military', 'economic', 'economic', 'civic', 'wildcard']);
+    sc.orders.push(soldier!, trader!, merchant!, priest!, ...unsorted);
+    sc.slots = [sitting(soldier!), sitting(trader!), sitting(merchant!), sitting(priest!), null];
     bumpRevision(g.state);
     expect(councilInOrder(player)).toBe(true);
     // An empty typed chair is not in order.
-    sc.slots = [sitting(soldier!), null, null];
+    sc.slots = [sitting(soldier!), null, sitting(merchant!), sitting(priest!), null];
     bumpRevision(g.state);
     expect(councilInOrder(player)).toBe(false);
     // An unsorted card counts as the type of its chair.
-    sc.slots = [sitting(unsorted!), sitting(other!), null];
+    sc.slots = [...unsorted.map((id) => sitting(id)), null];
     bumpRevision(g.state);
     expect(councilInOrder(player)).toBe(true);
     // A typed card in a chair of another type is not in order. The fit rule
     // refuses it, so the chairs are written by hand.
-    sc.slots = [sitting(trader!), sitting(soldier!), null];
+    sc.slots = [sitting(trader!), sitting(soldier!), sitting(merchant!), sitting(priest!), null];
     bumpRevision(g.state);
     expect(councilInOrder(player)).toBe(false);
   });
@@ -643,15 +666,17 @@ describe('a council in order (Magisterial batch MG7, Commission: The Golden Bull
     const g = game();
     const player = playerById(g.state, 0)!;
     const sc = player.statecraft;
-    const [trader] = cardsOf('economic', 1);
-    sc.orders.push(trader!);
-    // The Thin Ranks (a military malice) holds the chiefdom's military chair.
+    const [trader, merchant] = cardsOf('economic', 2);
+    const [priest] = cardsOf('civic', 1);
+    sc.orders.push(trader!, merchant!, priest!);
+    typedCouncil(g.state);
+    // The Thin Ranks (a military malice) holds the council's military chair.
     player.malices.push({ id: 'thinRanks', untilAge: 3, chair: 0 });
-    sc.slots = [null, sitting(trader!), null];
+    sc.slots = [null, sitting(trader!), sitting(merchant!), sitting(priest!), null];
     bumpRevision(g.state);
     expect(maliceAt(player, 0)).toBe('thinRanks');
     expect(councilInOrder(player)).toBe(true);
-    sc.slots = [null, null, null];
+    sc.slots = [null, null, null, null, null];
     bumpRevision(g.state);
     expect(councilInOrder(player)).toBe(false);
   });

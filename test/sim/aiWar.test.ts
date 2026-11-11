@@ -39,6 +39,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { typedChiefdomInThisBlock } from './chiefdomHelpers';
 
 import {
   chooseProduction,
@@ -972,6 +973,9 @@ describe('a puppet builds, and what it will not build', () => {
 // --- 7. the drafting hand ---------------------------------------------------
 
 describe('slotting is scored rather than first-fit', () => {
+  // Built on the chiefdom's typed chairs before batch DS9 (`chiefdomHelpers.ts`).
+  typedChiefdomInThisBlock();
+
   /**
    * **The two cards typed by their old offices** (batch C2): the rows are
    * unsorted in the game and would fit every chair, and the claim below is

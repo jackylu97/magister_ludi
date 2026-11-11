@@ -1213,14 +1213,13 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     box.append(figures);
 
     // **The price as a list** (Scientific batch S10), whenever it is more than
-    // one line: the column, the charter premium, and each card that changes
-    // it, then the total. A list of one line would only repeat the figure
+    // one line: the column and each card that changes it, then the total. A list of one line would only repeat the figure
     // above. The lines are the simulation's own, so they add up to the total.
     if (price !== null && price.lines.length > 1) {
       box.append(element('p', 'info-card-heading', 'The price'));
       const ledger = element('ul', 'info-card-ledger');
       price.lines.forEach((line, index) => {
-        const row = element('li', line.premium ? 'is-premium' : undefined);
+        const row = element('li');
         row.append(element('span', 'info-card-ledger-label', line.label));
         row.append(element('span', 'info-card-ledger-figure', priceLineFigure(line, index)));
         ledger.append(row);

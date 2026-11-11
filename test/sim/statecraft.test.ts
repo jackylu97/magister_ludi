@@ -473,11 +473,12 @@ describe("the card table", () => {
     // government that could never play a card its own shelf deals is a draft
     // that hands a seat a dead card.
     // **Re-cut for typed chairs** (batch C2; the user, 2026-10-16: *"lets
-    // revert chiefdom yeah"*): the chiefdom is one Military, one Economic and
-    // one Wildcard chair again, and the Wildcard chair takes any card — so no
-    // card the shelf deals is ever without a chair at the start.
+    // revert chiefdom yeah"*): the chiefdom was one Military, one Economic and
+    // one Wildcard chair. **Batch DS9** (`docs/flags.md` (hhhhhhh) and
+    // (jjjjjjj)) made all three Wildcard chairs, and a Wildcard chair takes any
+    // card, so no card the shelf deals is ever without a chair at the start.
     const layout = slotLayout(STARTING_GOVERNMENT);
-    expect(layout).toEqual(["military", "economic", "wildcard"]);
+    expect(layout).toEqual(["wildcard", "wildcard", "wildcard"]);
     for (const id of ordersForDecks(DECK_IDS)) {
       expect(layout.some((type) => orderFitsSlot(id, type)), id).toBe(true);
     }
@@ -975,14 +976,17 @@ describe("the command matrix", () => {
   });
 
   it("seats a card by the fit rule, and refuses a misfit in plain words (C2)", () => {
-    // **Re-cut for typed chairs** (batch C2). The decks rework had made every
-    // chair universal; the chiefdom's three are typed again — Military,
-    // Economic, Wildcard — and the fit rule is back: a typed chair takes its
-    // own type, the Wildcard chair takes anything. Blooded Spears is a
-    // military card in this file (`typeRowsByOldOffice`).
+    // **Re-cut for typed chairs** (batch C2): a typed chair takes its own
+    // type, the Wildcard chair takes anything. Blooded Spears is a military
+    // card in this file (`typeRowsByOldOffice`). Since batch DS9 the
+    // chiefdom's three chairs are all Wildcard chairs, so the fit rule is
+    // asked of the Council of Elders' typed chairs.
     const g = game();
     const sc = g.state.players[0]!.statecraft;
-    expect(slotLayout(sc.government)).toEqual(["military", "economic", "wildcard"]);
+    sc.government = "councilOfElders";
+    sc.slots = slotLayout("councilOfElders").map(() => null);
+    bumpRevision(g.state);
+    expect(slotLayout(sc.government)).toEqual(["military", "economic", "economic", "civic", "wildcard"]);
     grant(sc, "bloodedSpears");
     refuses(
       g,
@@ -2310,7 +2314,7 @@ describe("determinism", () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(238);
+    expect(SCHEMA_VERSION).toBe(239);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -8521,13 +8525,18 @@ describe("the engine shapes", () => {
     const player = playerById(g.state, 0)!;
     const sc = player.statecraft;
     expect(slotTypesOf(sc)).toHaveLength(sc.slots.length);
-    // **Typed chairs again** (batch C2): the chiefdom's three are Military,
-    // Economic and Wildcard, index for index, so a position counted within a
-    // type counts that type's chairs only, and a position with no type named
-    // counts every chair.
-    expect(slotTypesOf(sc)).toEqual(["military", "economic", "wildcard"]);
-    seat(g.state, 0, 2, "waysideShrines");
-    expect(orderAtSlotPosition(player, 3)).toBe("waysideShrines");
+    // Since batch DS9 the chiefdom's three chairs are all Wildcard chairs.
+    expect(slotTypesOf(sc)).toEqual(["wildcard", "wildcard", "wildcard"]);
+    // **Typed chairs again** (batch C2): the Council of Elders' chairs are
+    // Military, Economic, Economic, Civic and Wildcard, index for index, so a
+    // position counted within a type counts that type's chairs only, and a
+    // position with no type named counts every chair.
+    sc.government = "councilOfElders";
+    sc.slots = slotLayout("councilOfElders").map(() => null);
+    bumpRevision(g.state);
+    expect(slotTypesOf(sc)).toEqual(["military", "economic", "economic", "civic", "wildcard"]);
+    seat(g.state, 0, 4, "waysideShrines");
+    expect(orderAtSlotPosition(player, 5)).toBe("waysideShrines");
     expect(orderAtSlotPosition(player, 1, "wildcard")).toBe("waysideShrines");
     expect(orderAtSlotPosition(player, 2, "wildcard")).toBeNull();
     expect(orderAtSlotPosition(player, 1, "economic")).toBeNull();
@@ -8537,7 +8546,7 @@ describe("the engine shapes", () => {
     // A chair past the government's mix (a leader's, a card's) is a Wildcard
     // chair, appended after the government's own.
     sc.slots.push(null);
-    expect(slotTypesOf(sc)).toEqual(["military", "economic", "wildcard", "wildcard"]);
+    expect(slotTypesOf(sc)).toEqual(["military", "economic", "economic", "civic", "wildcard", "wildcard"]);
     expect(orderAtSlotPosition(player, 1, "wildcard")).toBe("waysideShrines");
   });
 
@@ -9694,7 +9703,8 @@ describe("the cadence and the chairs, as ruled on the third pass", () => {
       const spread = slotSpread(id);
       return [spread.military, spread.economic, spread.civic, spread.wildcard];
     };
-    expect(mix(STARTING_GOVERNMENT)).toEqual([1, 1, 0, 1]);
+    // Batch DS9: the chiefdom's three chairs are all Wildcard chairs.
+    expect(mix(STARTING_GOVERNMENT)).toEqual([0, 0, 0, 3]);
     expect(mix("warChief")).toEqual([2, 1, 1, 1]);
     expect(mix("councilOfElders")).toEqual([1, 2, 1, 1]);
     expect(mix("priestKing")).toEqual([1, 1, 2, 1]);

@@ -67,6 +67,7 @@ import {
   cardYieldConversions,
   cityScopeAdmits,
   foldCardYields,
+  slotTypesOf,
 } from '../../src/sim/statecraft';
 import {
   DOCTRINE_IDS,
@@ -75,6 +76,7 @@ import {
   doctrineDef,
   orderDef,
   orderIsDealt,
+  slotLayout,
 } from '../../src/sim/statecraftData';
 import { FOLLOWER_BELIEF_IDS, beliefDef } from '../../src/sim/religionData';
 import { type City, type GameState, playerById, bumpRevision } from '../../src/sim/state';
@@ -566,16 +568,25 @@ describe('what each charter building does', () => {
     const two = foldCardYields(explainCardCityYields(state, city));
     expect(two.science).toBe(2);
     expect(two.culture).toBe(2);
-    // An Order in a Military chair is not a Wildcard one. These three rows
-    // belong to no sorted deck, so each counts as the type of the chair it sits
-    // in (batch C2's interim rule, `countedTypeOf`): the two above sit in
-    // Wildcard chairs past the chiefdom's three, and The Vigil Charter goes in
-    // the chiefdom's own Military chair.
+    // These three rows belong to no sorted deck, so each counts as the type
+    // of the chair it sits in (batch C2's interim rule, `countedTypeOf`): the
+    // two above sit in Wildcard chairs past the chiefdom's three. Since batch
+    // DS9 the chiefdom's own three chairs are Wildcard chairs too, so The
+    // Vigil Charter in its first chair is a third helping.
     const sc = playerById(state, 0)!.statecraft;
     sc.orders.push('vigilCharter');
     expect(sc.slots[0]).toBeNull();
     sc.slots[0] = { card: 'vigilCharter', sealedUntil: state.turn };
     bumpRevision(state);
+    expect(foldCardYields(explainCardCityYields(state, city)).science).toBe(3);
+    // An Order in a Military chair is not a Wildcard one: in the Council of
+    // Elders' Military chair it is no helping.
+    sc.government = 'councilOfElders';
+    const held = sc.slots.slice(3);
+    sc.slots = [...slotLayout('councilOfElders').map(() => null), ...held];
+    sc.slots[0] = { card: 'vigilCharter', sealedUntil: state.turn };
+    bumpRevision(state);
+    expect(slotTypesOf(sc)[0]).toBe('military');
     expect(foldCardYields(explainCardCityYields(state, city)).science).toBe(2);
   });
 

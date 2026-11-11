@@ -696,7 +696,11 @@ describe('the age-2 gate', () => {
         expect(JSON.stringify(effect), id).not.toMatch(ROUTE_DATA);
       }
     }
-    expect(orderDef('marketGardens' as OrderId).band).toBe(0);
+    // Batch R1 moved Market Gardens to Tier II (your answer of 2026-11-11), and
+    // The Country Fair (luxury resources gain +1 gold) is the pair's early
+    // card. Neither reads a route.
+    expect(orderDef('marketGardens' as OrderId).band).toBe(2);
+    expect(orderDef('theCountryFair' as OrderId).band).toBe(0);
   });
 
   it('keeps Markets off Tier 0, and allows them from Tier I', () => {
@@ -1036,12 +1040,13 @@ describe('the Commerce deck: the sheet of record', () => {
     // Batch T2 changes statuses only, so the totals stay. Batch T7 adds The
     // Standing Army to the shared table (23), and builds The Art Dealers.
     // Batch DS1 retires nine of the sheet's cards and six shared cards.
-    // Batch DS4 adds The Pack Trail and The First Caravan.
+    // Batch DS4 adds The Pack Trail and The First Caravan. Batch R1 adds the
+    // shared The Country Fair.
     expect(sheet).toHaveLength(70);
-    expect(shared).toHaveLength(17);
+    expect(shared).toHaveLength(18);
   });
 
-  it('types every listed row, 70 of this file and 17 shared, and nothing else of this file', () => {
+  it('types every listed row, 70 of this file and 18 shared, and nothing else of this file', () => {
     // 59 after batch T1, the eight new rows of batch T2, the three of batch
     // T3, the one of batch T4, the three of batch T5 and the three of batch T6.
     // Batch DS1 retires nine. Batch DS4 adds two.
@@ -1057,7 +1062,8 @@ describe('the Commerce deck: the sheet of record', () => {
     });
     // 21 after batch T1. Batch T7 adds two: The Art Dealers (a new row) and
     // The Standing Army (moved from the Dominion file). Batch DS1 retires six.
-    expect(sharedRows).toHaveLength(17);
+    // Batch R1 adds The Country Fair.
+    expect(sharedRows).toHaveLength(18);
     for (const id of sharedRows) expect(isCardType(orderDef(id).type ?? ''), id).toBe(true);
   });
 });

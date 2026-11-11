@@ -390,7 +390,6 @@ export {
   rarityFirstOdds,
   rarityOdds,
   recordScalingOccasion,
-  recordTreasuryHeld,
   recordWorldScalingOccasion,
   researchAgeOf,
   runStatecraft,

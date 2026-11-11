@@ -493,14 +493,39 @@ function upkeepRebateRowWords(): string {
  * **The treasury may go negative** (the ruling), which is the whole of why this
  * predicate exists rather than a clamp at zero: an empire that overbuilds its
  * army is *allowed* to, and what happens to it is a penalty it can read on its
- * own screen and dig out of. Two things read this — the −25% on science and
- * culture (`cityYieldPercents`, an empire-stage line so it stacks with the meter
- * tiers exactly as Entry XVII says) and the disband sweep below — and neither
- * has its own copy of the comparison.
+ * own screen and dig out of. The warning on the turn bar reads it. Since batch
+ * R1 the −25% on science and culture reads `treasuryInArrears` below, because
+ * Letters of Credit lifts the loss down to its floor, and the disband sweep
+ * reads `disbandFloor`.
  */
 export function treasuryInDebt(player: { gold: number; barbarian?: boolean }): boolean {
   if (player.barbarian === true) return false;
   return player.gold < 0;
+}
+
+/**
+ * **The lowest treasury this empire may hold with no penalty on science and
+ * culture**: zero, or the floor Letters of Credit sets (batch R1; the user's
+ * ruling of 2026-11-11, "card also lifts the 25% loss"). It is the card's one
+ * floor (`cardSpendFloor`), so the line a purchase may reach, the line the
+ * arrears start at and the line the creditors wait for are one line with the
+ * card seated.
+ */
+export function arrearsFloor(state: GameState, playerId: number): number {
+  return cardSpendFloor(state, playerId);
+}
+
+/**
+ * True while this empire's treasury is below its arrears floor, so the −25% on
+ * science and culture applies (`rules.upkeep.debtPercent`, read in
+ * `cityYieldPercents`). Without Letters of Credit it is `treasuryInDebt`.
+ */
+export function treasuryInArrears(
+  state: GameState,
+  player: { id: number; gold: number; barbarian?: boolean },
+): boolean {
+  if (player.barbarian === true) return false;
+  return player.gold < arrearsFloor(state, player.id);
 }
 
 /** What disbanding one unit for arrears did, for the toast that has to say so. */

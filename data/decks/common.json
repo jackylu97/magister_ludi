@@ -288,7 +288,7 @@
     "marketGardens": {
       "name": "Market Gardens",
       "decks": ["expansionist", "commerce"],
-      "band": 0,
+      "band": 2,
       "line": "none",
       "rarity": "common",
       "type": "economic",
@@ -302,6 +302,25 @@
           "on": { "test": "road" }
         }
       ]
+    },
+    "theCountryFair": {
+      "name": "The Country Fair",
+      "decks": ["expansionist", "commerce"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "Once a season the hill folk bring down their dyes and their furs, and the town turns out to haggle.",
+      "text": "Luxury resources gain +1 gold.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "gold": 1,
+          "on": { "test": "resourceKind", "kind": "luxury" }
+        }
+      ],
+      "note": "A hex with a luxury resource pays while one of your towns works it, whether it is improved or not."
     },
     "theProvincialFair": {
       "name": "The Provincial Fair",

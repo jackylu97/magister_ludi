@@ -92,8 +92,6 @@ function sourceWords(state: GameState, playerId: number, option: LevyOption): st
       return `${card}: a worker, not counted as trained`;
     case 'settler':
       return `${card}: a settler, not counted as trained`;
-    case 'science':
-      return `${card}: the food it took to grow this citizen, as science`;
     case 'wonder': {
       const target = option.targetCityId === null ? undefined : cityById(state, option.targetCityId);
       const front = target?.queue[0];
@@ -120,7 +118,6 @@ function sourceWords(state: GameState, playerId: number, option: LevyOption): st
 /** The figure on the right of a line. */
 function figureWords(state: GameState, playerId: number, option: LevyOption): string {
   if (option.hammers !== null) return `+${figure(option.hammers)}${YIELD_GLYPH.production}`;
-  if (option.science !== null) return `+${figure(option.science)}${YIELD_GLYPH.science}`;
   if (option.unit !== null) return unitDef(option.unit).name;
   if (option.use === 'rite') {
     const towns = citiesOf(state, playerId).length;

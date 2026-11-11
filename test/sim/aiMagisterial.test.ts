@@ -22,6 +22,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { typedChiefdomInThisBlock } from './chiefdomHelpers';
 
 import { nextBotDecision, valueContext } from '../../src/ai/bot';
 import { scoreCard } from '../../src/ai/council';
@@ -594,6 +595,9 @@ describe('the hand', () => {
 // --- the rules ---------------------------------------------------------------------------
 
 describe('the rules', () => {
+  // Built on the chiefdom's typed chairs before batch DS9 (`chiefdomHelpers.ts`).
+  typedChiefdomInThisBlock();
+
   it('reads each live legacy again for The Immortals, and a lost one not at all', () => {
     const { state, player } = board([6]);
     const named = LIVE_GREAT_PERSON_IDS.find((id) =>
@@ -865,6 +869,9 @@ describe('combat on a work, and the wall of the Opus town', () => {
 // --- the commissions --------------------------------------------------------------------------
 
 describe('the commissions', () => {
+  // Built on the chiefdom's typed chairs before batch DS9 (`chiefdomHelpers.ts`).
+  typedChiefdomInThisBlock();
+
   it('forecasts The Roll of the Senate at the drafting pace', () => {
     const { state, player } = board([6]);
     player.statecraft.orders.push(SECOND_READING);

@@ -17,9 +17,10 @@
  *   · **the commissions**: Corner the Market's and The Great Fair's
  *     institutions price as their effects, and The World's Fair prices the
  *     posts it writes;
- *   · **the purse**: a seat holding Letters of Credit sees its credit, and a
- *     purchase that runs it into debt is charged for the debt; a unit whose
- *     upkeep is waived is not the one let go;
+ *   · **the purse**: a seat holding Letters of Credit sees its credit, and
+ *     since batch R1 a purchase on that credit is not charged for debt,
+ *     because the card lifts the loss down to its floor; a unit whose upkeep
+ *     is waived is not the one let go;
  *   · **the deal appraisal**: a copy lent is cheaper to a seat holding Export
  *     Guilds or The Commenda, and a new partner is worth something to a seat
  *     holding The Treaty Ports.
@@ -31,7 +32,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { botSitting, nextBotDecision, valueContext, withDebtCharge } from '../../src/ai/bot';
+import { botSitting, nextBotDecision, valueContext } from '../../src/ai/bot';
 import { type ValueTerm, appraise, foldTerms } from '../../src/ai/decision';
 import { counterTerms } from '../../src/ai/diplomacy';
 import {
@@ -49,6 +50,7 @@ import {
   costOfUpkeep,
   explainLump,
   meterWeight,
+  ratesOf,
   routeSlotTerm,
   valueOfYields,
   voiceWeight,
@@ -76,7 +78,8 @@ import {
 } from '../../src/sim/state';
 import { draftCost } from '../../src/sim/statecraft/draft';
 import { type CardEffect, type CardPaysEffect, type OrderId, orderDef } from '../../src/sim/statecraftData';
-import { spendableGold } from '../../src/sim/statecraft/evaluator';
+import { cardSpendFloor, spendableGold } from '../../src/sim/statecraft/evaluator';
+import { arrearsFloor } from '../../src/sim/upkeep';
 import { foldEmpireRates } from '../../src/sim/yields/empire';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 import { newGame } from './newGameHelpers';
@@ -247,7 +250,10 @@ describe('the sheet', () => {
     expect(Object.keys(COMMERCE.countForecast).sort()).toEqual(
       ['copiesLent', 'dealPartners', 'postCitizens', 'worldTradeRoutes'].sort(),
     );
-    expect(aiJson.score.tallyForecast.treasuryHeld).toBeGreaterThan(0);
+    // Batch R1: The Strongbox counts purchases with gold, read off the purse,
+    // so the treasury moment and its forecast are gone.
+    expect(aiJson.score.tallyForecast).not.toHaveProperty('treasuryHeld');
+    expect(aiJson.score.tallyForecast).not.toHaveProperty('goldPurchase');
   });
 });
 
@@ -446,22 +452,29 @@ describe('Land Speculation', () => {
 });
 
 describe('The Strongbox', () => {
-  it('forecasts the turns ending at the floor, scaled by the treasury against the floor', () => {
+  it('forecasts the purchases with gold off the purse: the gold a turn brings in, against the cheapest want', () => {
     const { state, player } = board([6]);
-    const forecast = aiJson.score.tallyForecast.treasuryHeld;
     const science = effectsOf(STRONGBOX)[0] as CardPaysEffect;
-    const floor = science.minTreasury!;
-    player.gold = floor / 2;
-    bumpRevision(state);
-    const half = explainCounted(science, valueContext(state, player), STRONGBOX);
-    expect(half.terms[1]!.value).toBe(forecast / 2);
-    // At the floor the whole forecast, cut at the row's cap.
-    player.gold = floor;
-    bumpRevision(state);
-    const whole = explainCounted(science, valueContext(state, player), STRONGBOX);
-    expect(whole.terms[1]!.value).toBe(forecast);
-    const counted = foldTerms(whole.terms.slice(0, 3).filter((term) => term.op !== 'mul'));
-    expect(counted).toBe(Math.min(forecast, science.max!));
+    expect(science.tally).toBe('goldPurchase');
+    const base = valueContext(state, player);
+    const want = (price: number): Want => ({
+      label: 'a thing',
+      currency: 'gold',
+      price,
+      worth: 100,
+      delay: 0,
+      terms: [{ label: 'what it is worth', value: 100 }],
+      outOfReach: false,
+    });
+    // Nothing the seat wants to buy: no purchase is forecast.
+    const none: ValueContext = { ...base, wants: { ...base.wants, gold: [] } };
+    expect(explainCounted(science, none, STRONGBOX).terms[1]!.value).toBe(0);
+    // One want: the gold a turn over its price, over the horizon.
+    const ctx: ValueContext = { ...base, wants: { ...base.wants, gold: [want(80), want(200)] } };
+    const income = Math.max(0, ratesOf(ctx).goldPerTurn ?? 0);
+    expect(income).toBeGreaterThan(0);
+    const more = explainCounted(science, ctx, STRONGBOX).terms[1]!.value;
+    expect(more).toBeCloseTo((income / 80) * HORIZON, 10);
   });
 });
 
@@ -644,40 +657,25 @@ describe('the purse', () => {
     expect(purseOf(state, player, 'faith')).toBe(player.faithPool);
   });
 
-  it('charges a purchase that runs the treasury into debt, and nothing else', () => {
-    const { state, player, towns } = board([6]);
-    towns[0]!.buildings.push('monument');
-    refreshCityDerived(state, towns[0]!);
+  it('charges no debt for a purchase on credit, since batch R1', () => {
+    // Letters of Credit lets a purchase reach −150, and since batch R1 a
+    // treasury above −150 costs no science or culture with the card seated
+    // (`arrearsFloor`). So the bot's debt charge has nothing to charge, and it
+    // is gone from the purse's arm.
+    const { state, player } = board([6]);
     hold(state, 0, LETTERS);
     player.gold = 20;
     bumpRevision(state);
-    const ctx = valueContext(state, player);
-    const want = (price: number): Want => ({
-      label: 'a thing',
-      currency: 'gold',
-      price,
-      worth: 500,
-      delay: 0,
-      terms: [{ label: 'what it is worth', value: 500 }],
-      outOfReach: false,
-    });
-    // Within the treasury: unchanged.
-    const cheap = want(20);
-    expect(withDebtCharge(state, player, ctx, cheap)).toBe(cheap);
-    // Eighty coins below zero: the debt's share of science and culture for the
-    // turns the treasury takes to climb back, as a one-time cost.
-    const rates = foldEmpireRates(state, 0);
-    const net = rates.goldPerTurn ?? 0;
-    const turns = net > 0 ? Math.min(HORIZON, 80 / net) : HORIZON;
-    const lost =
-      (-RULES.upkeep.debtPercent / 100) *
-      ((rates.sciencePerTurn ?? 0) * voiceWeight(ctx, 'science') +
-        (rates.culturePerTurn ?? 0) * voiceWeight(ctx, 'culture'));
-    const charge = (lost * turns) / aiJson.score.lumpTurns;
-    expect(charge).toBeGreaterThan(0);
-    const dear = withDebtCharge(state, player, ctx, want(100))!;
-    expect(dear.worth).toBeCloseTo(500 - charge, 10);
-    expect(dear.worth).toBe(foldTerms(dear.terms));
+    expect(spendableGold(state, 0)).toBe(170);
+    expect(arrearsFloor(state, 0)).toBe(cardSpendFloor(state, 0));
+    const bot = (
+      import.meta.glob('../../src/ai/bot.ts', { query: '?raw', import: 'default', eager: true }) as Record<
+        string,
+        string
+      >
+    )['../../src/ai/bot.ts']!;
+    expect(bot).not.toContain('function withDebtCharge');
+    expect(bot).not.toContain('debtReading(');
   });
 
   it('lets go a unit still on the payroll, never one whose upkeep a card has waived', () => {

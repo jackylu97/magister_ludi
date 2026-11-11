@@ -1417,14 +1417,16 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Each ring of the terrace keeps a different season, and the farmers learn them all.",
-      "text": "Towns beside a mountain may spend a citizen to gain science equal to the food it took to grow that citizen.",
+      "text": "A levy also grants science equal to half its production.",
+      "needsLevy": true,
       "effects": [
         {
-          "kind": "levy",
-          "use": "science",
-          "scope": { "test": "mountainAdjacent" }
+          "kind": "windfallRider",
+          "occasion": "levy",
+          "grant": { "yield": "science", "amount": 0.5, "fromOccasion": "production" }
         }
-      ]
+      ],
+      "note": "A levy that raises a unit, a worker or a settler, or performs a rite, pays no production, so it grants no science."
     },
     "theColonists": {
       "name": "The Colonists",

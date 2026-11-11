@@ -1986,9 +1986,11 @@
         {
           "kind": "windfallRider",
           "occasion": "buildingCompletion",
+          "exceptWonders": true,
           "grant": { "yield": "science", "amount": 5 }
         }
-      ]
+      ],
+      "note": "A world wonder and the Magnum Opus do not count."
     }
   },
   "doctrines": {

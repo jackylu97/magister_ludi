@@ -97,8 +97,13 @@ import {
   cardExtraCharges,
   cardUnitStamp,
   newPlayerStatecraft,
+  recordScalingOccasion,
   refitSlots,
 } from "./statecraft";
+// The faith-spent moment's riders (batch R1). A function-level cycle, as the
+// `resourceEffects.ts` import below already is: `cities.ts` imports this
+// module, and nothing here reads it while modules load.
+import { payOccasionRiders } from "./cities";
 // A value import as well as the types: `statecraftData.ts` is a runtime leaf
 // (the JSON and its vocabulary) and imports this module not at all.
 import {
@@ -457,8 +462,34 @@ import {
  *
  * **A v237 save is refused and does not replay.** The branch migrates nothing, for
  * the reason given under v119 in `docs/history/schema-changelog.md`.
+ *
+ * v239 (branch `decks`; batches R1 and DS9, `docs/flags.md` (jjjjjjj) and
+ * (hhhhhhh), the user's rulings of 2026-11-10 and 2026-11-11): **three new
+ * moments, the held cards, and the rules outside the cards.** No field joins the
+ * state. What changes:
+ *
+ *   · three moments: a levy (the `levy` windfall occasion, with the production
+ *     it paid), a purchase with gold (the `goldPurchase` tally, written by
+ *     `buyWithGold`) and faith spent (the `faithSpent` windfall occasion, from
+ *     `spendFaith`). The `treasuryHeld` tally and its once-a-turn writer are
+ *     gone, and so is the `science` levy use, so a log that levied for science
+ *     is refused at that command;
+ *   · cards: The Terraces of Moray, The Strongbox, Letters of Credit (no loss of
+ *     science or culture above its floor), The Apprentices (no wonders), The
+ *     Scholars' Roads (no lost routes), Market Gardens (Tier II), and two new
+ *     rows, The Country Fair and The Pilgrim Staff;
+ *   · a tier-26 government also raises the happiness, authority and renown a
+ *     seated card of its type gives;
+ *   · the Chiefdom's three chairs are Wildcard chairs, a charter technology
+ *     costs its column's price (`rules.research.charterPremiumPercent` is
+ *     gone), and The Second Reading is dealt in Tier 0 and in Tier I.
+ *
+ * Every one of these moves what a logged game deals, seats, pays or charges.
+ *
+ * **A v238 save is refused and does not replay.** The branch migrates nothing, for
+ * the reason given under v119 in `docs/history/schema-changelog.md`.
  */
-export const SCHEMA_VERSION = 238;
+export const SCHEMA_VERSION = 239;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -875,7 +906,9 @@ export interface Player {
    * and `contributeAt` (`purchase.ts`), `purchaseTileAt` (`cities.ts`),
    * `applyBuyRoute` (`commands.ts`) and the gold arm of `chargeBank`
    * (`greatPeople.ts`) — all of them through `spendGold`, which is the one
-   * subtraction that raises it. Two `gold -=` are deliberately **not** among
+   * subtraction that raises it. Since batch R1 every one of them but
+   * `contributeAt` goes through `buyWithGold`, which also writes the
+   * `goldPurchase` moment. Two `gold -=` are deliberately **not** among
    * them: an army's retooling (`upgradeUnits`, `tech.ts`) is upkeep and nobody
    * pressed a button for it, and a lump across the diplomacy table
    * (`payLump`, `diplomacy.ts`) is a transfer between treasuries rather than a
@@ -4638,6 +4671,10 @@ export function wakeUnit(unit: Unit): boolean {
  * `Player.goldSpent` — the two `gold -=` that stay outside this function are
  * named there, with the reason each is not spending. A caller with a figure it
  * does not want written down subtracts for itself and says why.
+ *
+ * Since batch R1 four of the five seams call `buyWithGold` below, which calls
+ * this and also writes the moment of a purchase with gold. Gold given toward a
+ * build (`contributeAt`) still calls this alone.
  */
 export function spendGold(
   state: GameState,
@@ -4649,6 +4686,27 @@ export function spendGold(
   // price is not a purchase, so nothing here can lower the record.
   if (amount > 0) player.goldSpent += amount;
   bumpEconomy(state);
+}
+
+/**
+ * **A purchase made with gold** (batch R1; the user's ruling of 2026-11-11,
+ * `docs/flags.md` item (jjjjjjj): "one moment fires for each purchase made
+ * with gold, of any kind"). The coin leaves through `spendGold`, and the
+ * `goldPurchase` moment is written once, for whichever seated Order watches
+ * it (The Strongbox). This is the one place the moment is announced.
+ *
+ * Four callers, one for each thing gold can buy outright: a unit or a
+ * building at a town's purchase counter (`purchaseItemAt`), a hex
+ * (`purchaseTileAt`), a trade route hire (`applyBuyRoute`) and a great-person
+ * draft (`chargeBank`). Gold given toward a build (`contributeAt`) buys
+ * nothing outright, so it calls `spendGold` alone.
+ *
+ * A purchase whose price is nought spends nothing and is still a purchase, so
+ * the moment is written whatever the price.
+ */
+export function buyWithGold(state: GameState, player: Player, amount: number): void {
+  spendGold(state, player, amount);
+  recordScalingOccasion(state, player.id, 'goldPurchase');
 }
 
 /**
@@ -4666,6 +4724,10 @@ export function spendGold(
  *
  * `bumpEconomy` rides with it, as it does with `spendGold`: the banks are a
  * line of the meters (batch M3).
+ *
+ * Since batch R1 it also announces the `faithSpent` windfall occasion, with
+ * the faith paid, so a card can pay at the moment faith is spent (The Pilgrim
+ * Staff). The riders pay after the bank has moved.
  */
 export function spendFaith(
   state: GameState,
@@ -4680,6 +4742,11 @@ export function spendFaith(
   // the record.
   if (paid > 0) player.faithSpent += paid;
   bumpEconomy(state);
+  // **The faith-spent moment** (batch R1, The Pilgrim Staff), announced here
+  // and nowhere else, with what actually left the bank. Its riders pay at the
+  // capital and settle at once, as every moment with no figure of its own does
+  // (`payOccasionRiders`). A spend of nothing is no moment.
+  if (paid > 0) payOccasionRiders(state, player, 'faithSpent', undefined, { faith: paid });
 }
 
 /**

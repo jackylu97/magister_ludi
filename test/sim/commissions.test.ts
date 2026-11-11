@@ -38,6 +38,7 @@ import {
   orderDef,
   orderFitsSlot,
   orderIsDealt,
+  slotLayout,
 } from '../../src/sim/statecraftData';
 import {
   commissionFigure,
@@ -355,8 +356,14 @@ describe('the figures', () => {
     expect(commissionFigure(g.state, 0, 'ordersHeld')).toBe(0);
     hold(g.state, MARKET);
     expect(commissionFigure(g.state, 0, 'ordersHeld')).toBe(1);
-    // Magisterial batch MG7: a council in order is 1 or 0. The chiefdom's
-    // Military and Economic chairs are empty here, so it is 0.
+    // Magisterial batch MG7: a council in order is 1 or 0. Since batch DS9 the
+    // chiefdom has no typed chair, so its council is in order with nothing
+    // seated. The Council of Elders' typed chairs are empty, so it is 0.
+    expect(commissionFigure(g.state, 0, 'councilInOrder')).toBe(1);
+    const sc = playerById(g.state, 0)!.statecraft;
+    sc.government = 'councilOfElders';
+    sc.slots = slotLayout('councilOfElders').map(() => null);
+    bumpRevision(g.state);
     expect(commissionFigure(g.state, 0, 'councilInOrder')).toBe(0);
   });
 });

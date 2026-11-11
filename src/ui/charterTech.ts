@@ -352,7 +352,6 @@ export function charterOfferParts(
       lines: price.lines.map((line, index) => ({
         label: line.label,
         figure: priceLineFigure(line, index),
-        premium: line.premium,
       })),
       total: `${price.total}${BEAKER}`,
       turns: turns === null ? 'no science yet' : `~${turns} turns`,

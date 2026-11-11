@@ -3743,19 +3743,27 @@ export type TallyOccasion =
    */
   | 'charterTechCompleted'
   /**
-   * This empire **ended a turn**, with its treasury as the moment's fact
-   * (`TallyFacts.treasury`): The Strongbox (Commerce batch T6, the triage's
-   * reading 26).
+   * This empire **bought something with gold** (batch R1, The Strongbox: the
+   * user's ruling of 2026-11-11, "one moment fires for each purchase made
+   * with gold, of any kind"). Written once for each purchase by `buyWithGold`
+   * (`state.ts`), the one subtraction a purchase with gold goes through. It
+   * counts:
    *
-   * It is the one occasion raised on a condition rather than by an event.
-   * `recordTreasuryHeld` (`statecraft/draft.ts`) raises it once a turn for
-   * every real empire, in the `collectYields` phase after the yields bank,
-   * so the treasury it carries includes the turn's income, interest and
-   * upkeep. A row counts the moment only when the treasury meets its floor
-   * (`CardPaysEffect.minTreasury`), so the floor is a figure on the card's
-   * row and not in the code.
+   *   · a unit or a building bought at a town's purchase counter
+   *     (`purchaseItemAt`);
+   *   · a hex bought (`purchaseTileAt`);
+   *   · a trade route hired (`applyBuyRoute`);
+   *   · a great-person draft bought (`chargeBank`).
+   *
+   * Gold given toward a build (`contributeAt`) buys nothing outright, so it
+   * is not a purchase and is not counted. Neither is a unit upgrade, which
+   * nobody orders, nor gold handed over at the diplomacy table. A purchase
+   * with faith or culture is not counted.
+   *
+   * It replaces the `treasuryHeld` moment (a turn ended with at least 300
+   * gold), which The Strongbox read until batch R1.
    */
-  | 'treasuryHeld'
+  | 'goldPurchase'
   /**
    * This empire **completed a world wonder** in one of its towns (Magisterial
    * batch MG4, Commission: The Eighth Wonder; the triage's readings 3 and 4).
@@ -3806,7 +3814,7 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'publicWorkCompleted',
   'techCompleted',
   'charterTechCompleted',
-  'treasuryHeld',
+  'goldPurchase',
   'wonderCompleted',
   'wonderProduction',
 ];
@@ -4030,18 +4038,19 @@ export type CardRule =
   // removed that half of the card, so the rule went with it.
   /**
    * **What a charter technology costs this empire in research** (Scientific
-   * batch S0, The Commonplace Book: 15% less). A negative percentage is
-   * cheaper. It is a line of `explainTechCost` (`tech.ts`), read only for a
-   * charter technology, and taken of the column price with the premium
-   * together, so it takes 15% off the whole charter price (reading 14).
+   * batch S0, the retired The Commonplace Book: 15% less). A negative
+   * percentage is cheaper. It is a line of `explainTechCost` (`tech.ts`), read
+   * only for a charter technology, and taken of the column price. Since batch
+   * DS9 the column price is the whole charter price, so it takes 15% off that.
    */
   | 'charterTechCost'
   /**
-   * **The premium a charter technology costs above its column's price**
-   * (Scientific batch S0, The Patent Office: −100 removes it). A percentage of
-   * `rules.research.charterPremiumPercent`, so −100 is no premium at all and
-   * −50 would halve it. Read in `explainTechCost`; when nothing is left of the
-   * premium, its line goes from the price list (reading 14).
+   * **The premium a charter technology cost above its column's price**
+   * (Scientific batch S0, the retired The Patent Office: −100 removed it).
+   * Batch DS9 removed the premium itself (`docs/flags.md` item (hhhhhhh): "a
+   * charter technology costs the ordinary price"), so nothing reads this rule
+   * now and it changes nothing. It stays in the vocabulary because The Patent
+   * Office's row still names it, and a save may hold that card.
    */
   | 'charterPremium'
   /**
@@ -5910,7 +5919,36 @@ export type WindfallOccasion =
    * moment for the cards that grow; this is the moment a card rider is paid
    * at, as `sizeRecord` is both.
    */
-  | 'greatPersonSpent';
+  | 'greatPersonSpent'
+  /**
+   * **One of this empire's towns levied a citizen** (batch R1, The Terraces
+   * of Moray: "a levy also grants science equal to half its production").
+   * Paid by `levyAt` (`levies.ts`) through `payOccasionRiders`, once for each
+   * levy of any use, after the levy has paid and before a card hangs its
+   * aftermath on the town. Food and production a rider pays land in the town
+   * that levied.
+   *
+   * It carries the town (`WindfallOccasionFacts.townId`) and the production
+   * the levy paid (`production`): the hammers of a levy for production here,
+   * for the Magnum Opus or for a world wonder. A levy that pays no
+   * production (a unit, a worker, a settler or a rite) carries none, so a
+   * grant scaled by it pays nothing for that levy.
+   */
+  | 'levy'
+  /**
+   * **This empire spent faith** (batch R1, The Pilgrim Staff: "spending faith
+   * grants culture equal to a fourth of it"). Paid by `spendFaith`
+   * (`state.ts`), the one subtraction from the faith bank, through
+   * `payOccasionRiders`, at the capital. So it fires at all seven places
+   * faith is spent (the list is on `Player.faithSpent`): the gods the ladder
+   * buys, a reroll, a town's rite and a prophet's rite, a great-person draft
+   * bought with faith, and a purchase or a contribution to a build.
+   *
+   * It carries the faith that actually left the bank
+   * (`WindfallOccasionFacts.faith`), the figure `Player.faithSpent` takes. A
+   * spend of nothing fires nothing.
+   */
+  | 'faithSpent';
 
 /**
  * **What a grant is a share of, where it is a share of the occasion itself.**
@@ -6022,7 +6060,20 @@ export type OccasionMeasure =
    * (`WindfallOccasionFacts.handPrice`). A free hand has no price, so a grant
    * scaled by it pays nothing for a free hand.
    */
-  | 'handPrice';
+  | 'handPrice'
+  /**
+   * **The production the moment paid** (batch R1, The Terraces of Moray):
+   * the hammers a levy paid, on the `levy` occasion
+   * (`WindfallOccasionFacts.production`). A levy that pays no production
+   * carries none, so a grant scaled by it pays nothing.
+   */
+  | 'production'
+  /**
+   * **The faith the moment spent** (batch R1, The Pilgrim Staff): what left
+   * the faith bank, on the `faithSpent` occasion
+   * (`WindfallOccasionFacts.faith`).
+   */
+  | 'faith';
 
 /** What a rider adds on top of the occasion's own payout. */
 export interface WindfallGrantSpec {
@@ -6842,14 +6893,9 @@ export interface CardPaysEffect extends CardYieldBag {
    * watching, rather than a guard that would quietly count everything.
    */
   tally?: TallyOccasion;
-  /**
-   * **The least treasury a moment must carry to be counted** by this `tally`
-   * row (Commerce batch T6, The Strongbox's 300 gold). Read in
-   * `recordScalingOccasion` against `TallyFacts.treasury`. A moment that
-   * carries no treasury is never counted by a row with a floor. Absent counts
-   * every moment, as every row written before it does.
-   */
-  minTreasury?: number;
+  // There was a `minTreasury` field here: the least treasury a moment had to
+  // carry to be counted. The Strongbox's 300 gold was its only row, and batch
+  // R1 made the card count purchases with gold instead, so the field went.
   /**
    * Which family `greatPeopleGained` counts (Dominion batch D5), and which
    * trade `guildsmen` counts (Scientific batch S2). Absent counts every great
@@ -7973,6 +8019,14 @@ export interface CardWindfallRiderEffect {
    * wrong occasion honest.
    */
   wonder?: boolean;
+  /**
+   * The rider fires only when the building finished is **neither a world
+   * wonder nor the Magnum Opus** (batch R1, The Apprentices: the user's ruling
+   * of 2026-11-11, "wonders should not count"). Read off
+   * `WindfallOccasionFacts.building`, so a moment that names no building (a
+   * unit finished, or any other occasion) never satisfies it.
+   */
+  exceptWonders?: true;
   /**
    * The rider fires only when the great person who acted was of this **family**
    * — The Great Poets' quickened years, which follow an artist and nobody else.
@@ -9122,8 +9176,6 @@ interface CardDrillEffect {
  *     as trained (The Work Gangs, The Colonists; Expansionist batch E1). The
  *     row is the first the empire can build of that model class, so a leader's
  *     own worker would be the one raised;
- *   · `science`: beakers for the empire, one for each point of food it took to
- *     grow the citizen (The Terraces of Moray);
  *   · `wonder`: the same hammers as `production`, sent to the nearest other
  *     town of the empire with a world wonder at the front of its queue (The
  *     Builders' Levy). The Magnum Opus is not a world wonder: The Corvée sends
@@ -9131,6 +9183,10 @@ interface CardDrillEffect {
  *   · `rite`: a rite the empire knows, performed in every town it holds, for the
  *     citizen alone: no faith and no prophet (Human Sacrifice). The command names
  *     the rite (`LevyCitizenCommand.rite`).
+ *
+ * There was a `science` use (beakers equal to that food, The Terraces of
+ * Moray). Batch R1 made the card a rider on the production of every levy (the
+ * `levy` windfall occasion), so the use lost its only row and went.
  */
 export type LevyUse =
   | 'production'
@@ -9139,7 +9195,6 @@ export type LevyUse =
   | 'conscript'
   | 'worker'
   | 'settler'
-  | 'science'
   | 'wonder'
   | 'rite';
 
@@ -9151,7 +9206,6 @@ export const LEVY_USES: readonly LevyUse[] = [
   'conscript',
   'worker',
   'settler',
-  'science',
   'wonder',
   'rite',
 ];
@@ -10188,9 +10242,14 @@ interface CardSlotPositionEffect {
  * count. The readers are the town and empire yield folds, the hex lines, the
  * trade route lines and shares, the town percentages on yields and on
  * production, the combat strength lines, a town's defence, the yield grants and
- * percentages of one-time rewards, and a periodic boon's figure.
- * `CARD_TYPE_RAISED_KINDS` names the effect kinds those readers cover. Every
- * other kind is left as it is printed.
+ * percentages of one-time rewards, and a periodic boon's figure. Since batch R1
+ * (the user's ruling of 2026-11-11) they are also the happiness and authority
+ * lines, the renown trickle and the renown shares, and the renown a one-time
+ * reward grants. `CARD_TYPE_RAISED_KINDS` names the effect kinds those readers
+ * cover. Every other kind is left as it is printed: the points a card adds to
+ * the happiness rewards (`happinessTierBoost`) and a card's change to what a
+ * town costs in authority (`meterRule`) are not happiness or authority a card
+ * gives, so they are not raised.
  *
  * Which cards. A card counts while it sits in a chair, as its own type, or as
  * the type of its chair if it is unsorted (`countedTypeOf`, the reading the
@@ -11149,11 +11208,6 @@ export interface TallyFacts {
   improvement?: ImprovementId;
   /** The technology just completed (Scientific batch S6). Read by a goal's `tech` floor. */
   tech?: TechId;
-  /**
-   * The empire's treasury when the turn ended (Commerce batch T6, the
-   * `treasuryHeld` moment). Read by a `tally` row's `minTreasury` floor.
-   */
-  treasury?: number;
 }
 
 /**

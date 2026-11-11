@@ -3045,6 +3045,16 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // the people it gains, and the people standing now. See
       // `greatPersonSpentRate`.
       return greatPersonSpentRate(ctx);
+    case 'levy':
+      // **A levy** (batch R1, The Terraces of Moray) at the levy rate this
+      // seat expects (`levyOutlook`), the rate its levy cards are priced at.
+      return levyOutlook(ctx).rate;
+    case 'faithSpent':
+      // **Faith spent** (batch R1, The Pilgrim Staff). Faith is spent in many
+      // small lumps, so the moment is read as one a turn, and its measure as
+      // the faith a turn brings in (`occasionMeasureForecast`): over a long
+      // game a seat spends about what it makes.
+      return 1;
     default:
       return unreadOccasion(occasion);
   }
@@ -3646,12 +3656,15 @@ function ruleRewriteValue(
       return voiceWeight(ctx, 'production') * bonus * nominalRate(ctx) * ctx.cities;
     }
     case 'charterTechCost':
-    case 'charterPremium':
       // **The beakers it saves on the charter technologies this seat will
-      // research** (Scientific batch S0, The Commonplace Book and The Patent
-      // Office; priced in batch S13). See `charterSavingWorth`. A seat that
-      // has drafted no charter and expects to draft none saves nothing.
-      return charterSavingWorth(rule, share, ctx);
+      // research** (Scientific batch S0, The Commonplace Book; priced in batch
+      // S13). See `charterSavingWorth`. A seat that has drafted no charter and
+      // expects to draft none saves nothing.
+      return charterSavingWorth(share, ctx);
+    case 'charterPremium':
+      // **The Patent Office** (retired). It took away the charter premium, and
+      // since batch DS9 there is no premium, so it saves nothing.
+      return 0;
     case 'gapTechCost':
       // **The beakers it saves on the gap** (Scientific batch S3, The
       // Translation Movement; priced in batch S13): the technologies a met
@@ -5058,26 +5071,26 @@ function realizedCount(
 function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] {
   if (effect.count === 'tally') {
     const occasion = effect.tally;
+    if (occasion === 'goldPurchase') {
+      // **The Strongbox** (batch R1): a purchase with gold of any kind. The
+      // table keeps no forecast, so the pace is the purchase moment's own
+      // reading over the horizon: what the purse turns over against the
+      // cheapest thing it is saving for (`occasionRate`).
+      const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+      const more = occasionRate('purchase', ctx) * horizon;
+      return [
+        {
+          label: `+ ${round(more)} more purchases with gold over the horizon (the gold a turn brings in, against the cheapest thing wanted)`,
+          value: more,
+        },
+      ];
+    }
     const forecast = occasion === undefined ? undefined : ctx.ai.score.tallyForecast[occasion];
     if (forecast === undefined) {
       return [
         {
           label: `no forecast for ${occasion ?? 'an unnamed occasion'} — the promise is unpriced`,
           value: 0,
-        },
-      ];
-    }
-    if (occasion === 'treasuryHeld') {
-      // **The Strongbox** (Commerce batch T6; priced in batch T9): a turn
-      // counts only when the treasury ends it at the row's floor or above. A
-      // treasury at the floor today is read at the whole forecast, and one
-      // below it at the share of the floor it holds. See
-      // `treasuryHeldShare`.
-      const share = treasuryHeldShare(effect, ctx);
-      return [
-        {
-          label: `+ ${round(forecast * share)} more turns ending at the treasury’s floor, over the horizon (${round(share)} of ${forecast}: the treasury against the floor)`,
-          value: forecast * share,
         },
       ];
     }
@@ -5641,13 +5654,10 @@ function occasionRecord(occasion: TallyOccasion, ctx: ValueContext): number | nu
     case 'foreignCityConverted':
     case 'warEnded':
       return null;
-    case 'treasuryHeld':
-      // Commerce batch T6, The Strongbox (batch T9). No record of its own: the
-      // board keeps no count of the turns a treasury held a floor. The tally
-      // of a card watching the moment is a partial record, as `hexClaimed`'s
-      // is, because it counts only while the card is seated. With no such
-      // card, there is no record and the forecast reads the default.
-      return treasuryHeldRecord(ctx);
+    case 'goldPurchase':
+      // Batch R1, The Strongbox. The board keeps no count of purchases with
+      // gold, so there is no record and the forecast reads the default.
+      return null;
     case 'wonderCompleted':
       // Magisterial batch MG4, Commission: The Eighth Wonder (batch MG17). The
       // claim register names the empire that finished each wonder, so it is
@@ -6878,20 +6888,14 @@ function techCountsTwiceWorth(value: number, ctx: ValueContext): number {
  * and does not know, and, where the `charterTechCompleted` forecast expects
  * more over the horizon, that many more at the mean price of the charter
  * technologies of its age and the next that it has not opened. Returned as
- * their folded price and their base premium
- * (`rules.research.charterPremiumPercent` of the column price), in beakers.
+ * their folded price, in beakers.
  */
-function charterBeakersAhead(ctx: ValueContext): { folded: number; premium: number } {
+function charterBeakersAhead(ctx: ValueContext): number {
   const player = playerById(ctx.state, ctx.playerId);
-  if (player === undefined) return { folded: 0, premium: 0 };
-  const premiumShare = RULES.research.charterPremiumPercent / 100;
+  if (player === undefined) return 0;
   const opened = openedCharterTechs(ctx);
   let folded = 0;
-  let premium = 0;
-  for (const tech of opened) {
-    folded += techCostFor(ctx, tech);
-    premium += techDef(tech).cost * premiumShare;
-  }
+  for (const tech of opened) folded += techCostFor(ctx, tech);
   const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
   const future = occasionForecastRate('charterTechCompleted', ctx) * horizon - opened.length;
   if (future > 0) {
@@ -6906,32 +6910,22 @@ function charterBeakersAhead(ctx: ValueContext): { folded: number; premium: numb
     });
     if (open.length > 0) {
       let meanFolded = 0;
-      let meanColumn = 0;
-      for (const tech of open) {
-        meanFolded += techCostFor(ctx, tech) / open.length;
-        meanColumn += techDef(tech).cost / open.length;
-      }
+      for (const tech of open) meanFolded += techCostFor(ctx, tech) / open.length;
       folded += future * meanFolded;
-      premium += future * meanColumn * premiumShare;
     }
   }
-  return { folded, premium };
+  return folded;
 }
 
 /**
- * **The Commonplace Book and The Patent Office**: the beakers the cut saves on
- * the charter technologies this seat will research (`charterBeakersAhead`),
- * as a lump. The Commonplace Book's cut is taken of the whole folded price;
- * The Patent Office's of the premium only. A cut never saves more than the
- * whole of what it cuts.
+ * **The Commonplace Book**: the beakers the cut saves on the charter
+ * technologies this seat will research (`charterBeakersAhead`), as a lump,
+ * taken of their whole folded price. A cut never saves more than the whole of
+ * what it cuts. The Patent Office cut the charter premium, which batch DS9
+ * removed, so it is priced at nothing.
  */
-function charterSavingWorth(
-  rule: 'charterTechCost' | 'charterPremium',
-  share: number,
-  ctx: ValueContext,
-): number {
-  const ahead = charterBeakersAhead(ctx);
-  const base = rule === 'charterTechCost' ? ahead.folded : ahead.premium;
+function charterSavingWorth(share: number, ctx: ValueContext): number {
+  const base = charterBeakersAhead(ctx);
   if (base <= 0) return 0;
   const saved = -Math.max(-1, share) * base;
   return explainLump({ science: saved }, ctx).total;
@@ -7593,8 +7587,37 @@ function occasionMeasureForecast(
   if ((occasion === 'cardDrafted' || occasion === 'draftPassed') && measure === 'handPrice') {
     return handPriceForecast(ctx);
   }
+  // **Batch R1**: the production of a levy (The Terraces of Moray), at the
+  // seat's mean levy for production, and the faith spent a turn (The Pilgrim
+  // Staff), at the faith a turn brings in. See `occasionRate`.
+  if (occasion === 'levy' && measure === 'production') return levyProductionForecast(ctx);
+  if (occasion === 'faithSpent' && measure === 'faith') return Math.max(0, ratesOf(ctx).faithPerTurn ?? 0);
   return null;
 }
+
+/**
+ * **The production one levy pays this seat**, for a grant scaled by it (batch
+ * R1, The Terraces of Moray): the food the newest citizen took to grow
+ * (`levyHammers`), in the towns that may levy, averaged. Read only for the uses
+ * that pay production, and as nothing while no seated card grants one, because
+ * a levy that raises a unit or says a rite carries no production.
+ */
+function levyProductionForecast(ctx: ValueContext): number {
+  const pays = levyOutlook(ctx).uses.some((use) => LEVY_PAYS_PRODUCTION.includes(use));
+  if (!pays) return 0;
+  const least = RULES.cities.levy.minPopulation;
+  let hammers = 0;
+  let towns = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    if (city.puppet === true || city.population < least) continue;
+    hammers += levyHammers(city);
+    towns += 1;
+  }
+  return towns === 0 ? 0 : hammers / towns;
+}
+
+/** The levy uses that pay production, the ones the `levy` moment carries a figure for. */
+const LEVY_PAYS_PRODUCTION: readonly LevyUse[] = ['production', 'opus', 'wonder'];
 
 /** Does this hex pass a rider's tile test, asked as the simulation asks it? */
 function hexPasses(tile: Tile, on: TileCondition, ctx: ValueContext): boolean {
@@ -8081,39 +8104,6 @@ function lentOnlyKinds(ctx: ValueContext): number {
     kinds += 1;
   }
   return kinds;
-}
-
-/**
- * **How near the treasury is to a tally's floor** (The Strongbox's
- * `minTreasury`), from nought to one: one at the floor or above, and the share
- * of the floor the treasury holds below it. A row with no floor counts every
- * turn the treasury is not in debt.
- */
-function treasuryHeldShare(effect: CardPaysEffect, ctx: ValueContext): number {
-  const gold = playerById(ctx.state, ctx.playerId)?.gold ?? 0;
-  const floor = effect.minTreasury ?? 0;
-  if (floor <= 0) return gold >= floor ? 1 : 0;
-  return Math.min(1, Math.max(0, gold) / floor);
-}
-
-/**
- * **The turns this seat's treasury held a card's floor**, from the tally of
- * each card watching `treasuryHeld` (the largest), or `null` when no card
- * watches it. A partial record: a tally counts only while its card is seated.
- */
-function treasuryHeldRecord(ctx: ValueContext): number | null {
-  const sc = statecraftOf(ctx.state, ctx.playerId);
-  if (sc === undefined) return null;
-  let record: number | null = null;
-  for (const row of sc.tallies) {
-    if (!isOrderId(row.card)) continue;
-    const watches = orderDef(row.card).effects.some(
-      (effect) => effect.kind === 'pays' && effect.count === 'tally' && effect.tally === 'treasuryHeld',
-    );
-    if (!watches) continue;
-    record = Math.max(record ?? 0, row.count);
-  }
-  return record;
 }
 
 /**
@@ -8745,8 +8735,6 @@ function explainLevyGain(
         nest(`${hammers} hammers toward ${what} in ${target.name}`, explainLump({ production: hammers }, ctx)),
       ]);
     }
-    case 'science':
-      return appraise([nest(`${hammers} beakers`, explainLump({ science: hammers }, ctx))]);
     case 'rite': {
       const plan = bestLevyRite(ctx);
       if (plan === null) return appraise([{ label: 'this empire knows no rite that can reach every town', value: 0 }]);
@@ -8973,6 +8961,31 @@ function explainLevyCards(
         ]),
       ),
     );
+  }
+  // **The levy moment's riders** (batch R1, The Terraces of Moray): a yield
+  // grant on every levy, scaled by the production the levy pays where the row
+  // says so, in `windfallPayout`'s order (the share, the ceiling, the rounding,
+  // then the era and the council). A use that pays no production carries no
+  // figure, so a grant scaled by it pays nothing on that levy.
+  const production = LEVY_PAYS_PRODUCTION.includes(use) ? hammers : undefined;
+  for (const { source, effect } of effectsOfKind(state, ctx.playerId, 'windfallRider')) {
+    if (effect.occasion !== 'levy') continue;
+    const grant = effect.grant;
+    if (grant === undefined || grant.yield === undefined || grant.amount === undefined) continue;
+    const measure = grant.fromOccasion;
+    if (measure !== undefined && (measure !== 'production' || production === undefined)) {
+      terms.push({ label: `${source}: pays nothing on a levy for this use`, value: 0 });
+      continue;
+    }
+    let figure = measure === undefined ? grant.amount : grant.amount * production!;
+    if (measure !== undefined && grant.max !== undefined) figure = Math.min(figure, grant.max);
+    if (measure !== undefined && grant.whole === true) figure = Math.floor(figure);
+    if (effect.perAge === true) figure *= Math.max(1, ctx.age);
+    if (effect.perSlottedOrder === true) figure *= slottedOrderCount(ctx);
+    if (figure === 0) continue;
+    const bag: YieldBag = {};
+    bag[grant.yield as Voice] = figure;
+    terms.push(nest(`${source}: ${round(figure)} ${grant.yield} on this levy`, explainLump(bag, ctx)));
   }
   // The Labour Rolls: one more citizen on a count of citizens levied, which
   // pays for the rest of the game, up to the row's cap.

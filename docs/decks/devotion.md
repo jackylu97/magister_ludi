@@ -7,10 +7,11 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 - **Batch R2c** (`docs/plans/devotion-review-2026-10-28.md`, your comments of 2026-10-28 on the review page) changed eleven cards. It retired The Old Gods Remain, The Sacred Precincts and The Monastic Builders. It moved The Founding Vows, The Rogations, The Gifts of the Faithful and the shared The Shrine Guards from Tier 0 to Tier I. It added The Tithe Barns and The Royal Cult at Tier 0 and The Temple Storehouses at Tier I. It revised the shared The Schoolmen's Charter: its technology, Scholasticism, now opens a new religious building, the Cathedral School, and no longer opens the Cathedral and the Apostle before Theology.
 - **Batch DS1** (2026-11-10, `docs/plans/deck-simplification-2026-11-10.md`, `docs/flags.md` item (hhhhhhh)) retired 6 rows of this deck and 7 shared rows. It moved five rows: First Rites and The Wayside Shrines from Tier 0 to Tier I, The Martyrology and The Votive Gifts from Tier II to Tier I, and The Cathedral Works from Tier II to Tier III. A moved row keeps its text until a later batch changes it. "Retired rows" below gives the reason for each cut.
 - **Batch DS5** (2026-11-10, the same spec) gave 25 rows of this deck and 6 shared rows their new, shorter text, and changed their effects to match. A simplified card lost the clause the spec drops, and a changed card has the new effect. Each card's Note is in the spec. It added two Tier 0 cards: The Household Gods (+2 faith in every town) and The First Offering (a Boon: 25 faith when drafted).
-  - **Held:** The Votive Lamp and The Pilgrim Staff are not in the data yet, so the tables mark them `add`. The Votive Lamp ("Gains +1 faith each time you finish a building") needs a count the game does not keep: the buildings your towns finish while the card is seated. The game counts finished public works, finished wonders and buildings bought with gold, but not every building. The Pilgrim Staff ("Spending faith grants culture equal to a fourth of it") needs a moment the game does not have: faith spent. The game keeps a total of the faith spent this game (The Book of Life reads it), but no card can pay at the moment the faith is spent.
+  - **Held** (batch R1 settled both, below): The Votive Lamp and The Pilgrim Staff were not in the data, so the tables marked them `add`. The Votive Lamp ("Gains +1 faith each time you finish a building") needs a count the game does not keep: the buildings your towns finish while the card is seated. The game counts finished public works, finished wonders and buildings bought with gold, but not every building. The Pilgrim Staff ("Spending faith grants culture equal to a fourth of it") needs a moment the game does not have: faith spent. The game keeps a total of the faith spent this game (The Book of Life reads it), but no card can pay at the moment the faith is spent.
   - **Readings taken:** The Calling now pays +3 faith in your capital, with no condition. The Tithe of Nations pays for every two citizens of the towns that follow your religion, at home or abroad, with no Magnum Opus condition. The Rogations keeps its starting +2 faith and +2 culture: the new text leaves it to the card face, as The Gathering Host, The Aediles and The Grain Census did in batches DS2 and DS3. The Votive Gifts and The Host Restored keep their rites as they are: the Votive Offering may be said once a turn, and the Restoring of the Host once every five turns. Those rules are on the rites' own pages. The Schoolmen's Charter's new text leaves out the Cathedral School's double science while its town keeps a rite. The building keeps it, and the card's printed sentence still says it.
   - **Shapes removed:** the condition "until you have founded a religion" (The Calling was its only row) and the condition "while one of your towns is building a thing" (The Tithe of Nations was its last row). A town's own queue is still a town scope.
 - **Batch DS8** (2026-11-11, the same spec) put the four keywords on the card face: Commission, Charter, Scaler and Boon. The game reads each from the card's data (`orderKeyword`), prints it as the card's first clause, and shows its rule in a tooltip. So no text below starts with "Charter." or "Boon." any more.
+- **Batch R1** (2026-11-11, `docs/flags.md` item (jjjjjjj)) settled the two held cards. **The Votive Lamp** is dropped (your answer: *"drop it"*), so it is not on this sheet. **The Pilgrim Staff** is built: spending faith is now a moment that cards can pay on, and it carries the faith spent. It fires at every place faith is spent: the gods, a reroll, a town's rite or a prophet's rite, a great-person draft, a purchase, and faith given toward a build. The card grants culture equal to a fourth of it, at once.
 - **Devout towns:** a devout town is one of your towns that follows a religion you are paid by. The game asks this with the town scope `ownersFaith` (`keeps: true`). A foreign town is never devout. "Devout" is the card word of the triage's feature E (reading 2). Since batch DV2 the describers print the scope as "devout", and the Compendium's faith page says what a devout town is. The cards about every town that follows your religion, foreign towns included, keep the words "follows your religion".
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
@@ -31,27 +32,27 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 
 | Tier | Implemented | Modify | Add | All | Charters |
 |---|---|---|---|---|---|
-| Tier 0 | 6 | 0 | 1 | 7 | 0 |
-| Tier I | 13 | 0 | 1 | 14 | 1 |
+| Tier 0 | 6 | 0 | 0 | 6 | 0 |
+| Tier I | 14 | 0 | 0 | 14 | 1 |
 | Tier II | 16 | 1 | 0 | 17 | 1 |
 | Tier III | 14 | 2 | 0 | 16 | 0 |
 | Tier IV | 10 | 0 | 0 | 10 | 0 |
-| **All** | **59** | **3** | **2** | **64** | **2** |
+| **All** | **60** | **3** | **0** | **63** | **2** |
 | Shared | 21 | 1 | 0 | 22 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
 
 | Tier | Military | Economic | Civic | Wildcard |
 |---|---|---|---|---|
-| Tier 0 | 0 | 2 | 5 | 0 |
+| Tier 0 | 0 | 1 | 5 | 0 |
 | Tier I | 0 | 5 | 8 | 1 |
 | Tier II | 2 | 2 | 11 | 2 |
 | Tier III | 2 | 2 | 11 | 1 |
 | Tier IV | 1 | 1 | 7 | 1 |
-| **All** | **5** | **12** | **42** | **5** |
+| **All** | **5** | **11** | **42** | **5** |
 | Shared | 4 | 2 | 16 | 0 |
 
-The deck's data holds 62 live rows. Without the two charters, 60 of them take a chair: 6, 12, 16, 16 and 10 across Tiers 0 to IV. By type they are 5 Military, 11 Economic, 39 Civic and 5 Wildcard. The two `add` rows, The Votive Lamp and The Pilgrim Staff, are not in the data yet.
+The deck's data holds 63 live rows. Without the two charters, 61 of them take a chair: 6, 13, 16, 16 and 10 across Tiers 0 to IV. By type they are 5 Military, 11 Economic, 40 Civic and 5 Wildcard.
 
 ## Tier 0
 
@@ -63,7 +64,6 @@ The deck's data holds 62 live rows. Without the two charters, 60 of them take a 
 | **The Royal Cult** | uncommon | implemented | Your capital gains +1 faith for each citizen. | Civic |
 | **The Household Gods** | common | implemented | +2 faith in every town. | Civic |
 | **The First Offering** | common | implemented | On draft: gain 25 faith. | Civic |
-| **The Votive Lamp** | common | add | Gains +1 faith each time you finish a building. | Economic |
 
 ## Tier I
 
@@ -93,7 +93,7 @@ The deck's data holds 62 live rows. Without the two charters, 60 of them take a 
 | **The Wayside Shrines** | common | implemented | Cities with a Shrine gain +2 food and +1 happiness. | Economic |
 | **The Martyrology** | uncommon | implemented | Gains +2 faith and +2 culture each time one of your units dies in battle. | Civic |
 | **The Votive Gifts** | common | implemented | Towns may spend faith to add production to what they are building. Not wonders. | Economic |
-| **The Pilgrim Staff** | common | add | Spending faith grants culture equal to a fourth of it. | Civic |
+| **The Pilgrim Staff** | common | implemented | Spending faith grants culture equal to a fourth of it. | Civic |
 
 ## Tier II
 

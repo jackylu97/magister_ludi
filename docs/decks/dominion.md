@@ -352,7 +352,7 @@ New names are placeholders; rename freely.
   - The tier-38 governments were meant for a fifth age and are left unimplemented (*"just leave the last tier as unimplemented"*). Since 2026-10-17 Tier IV's cards open at draft 26, with the tier-26 governments (`docs/flags.md` (ccccccc) and (ddddddd)).
   - Interior Lines takes Machinery's road rule at Machinery's size: a step along a road costs 40% less movement. Machinery's discount is 40%, not 50%. The two add, so with both a road step costs a fifteenth of a move instead of a fifth.
   - The merged levy keeps The Call to the Spear's floor of five citizens.
-  - Divine Mandate counts Civic Orders, and the Chiefdom keeps its old chairs (`docs/plans/doctrines-governments-chairs.md`).
+  - Divine Mandate counts Civic Orders, and the Chiefdom keeps its old chairs (`docs/plans/doctrines-governments-chairs.md`). Batch DS9 (2026-11-11) later made all three of the Chiefdom's chairs Wildcard chairs.
   - The Fyrd is removed for now (*"let's remove the fyrd for now"*): beside The Muster of the Fields and its five-citizen floor, it added nothing.
   - The five cards that wait on a UX decision stay deferred, for you to rework later (*"Defer all 5 UX cards, i'll probably rework them later"*): The Longships, The Relay Stations, Rally to the Standard, Circumvallation and Mercenary Contracts.
   - Doctrine tiers pair one to one with the four government tiers left: Tier I with tier 4, Tier II with tier 10, Tier III with tier 18 and Tier IV with tier 26 (29 until 2026-10-17), as Doctrine pools were paired before the decks rework (*"2 yes"*). Each Doctrine arrives one card tier earlier than the table it sits in.

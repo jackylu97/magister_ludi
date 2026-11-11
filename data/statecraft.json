@@ -24,10 +24,10 @@
       "chairs": 3,
       "flavor": "Whoever speaks last at the fire, speaks for all.",
       "chairMix": {
-        "military": 1,
-        "economic": 1,
+        "military": 0,
+        "economic": 0,
         "civic": 0,
-        "wildcard": 1
+        "wildcard": 3
       },
       "effects": [],
       "text": "Grants nothing of its own.",

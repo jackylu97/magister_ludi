@@ -5,9 +5,10 @@
  *
  *   · "Needs a levy": the gated cards are dealt only to a seat that holds a card
  *     granting a levy, seated or not (the triage's reading 5);
- *   · the four new uses: a worker (The Work Gangs), a settler (The Colonists),
- *     science (The Terraces of Moray) and hammers for the nearest other town
- *     building a world wonder (The Builders' Levy, reading 9);
+ *   · the new uses: a worker (The Work Gangs), a settler (The Colonists) and
+ *     hammers for the nearest other town building a world wonder (The
+ *     Builders' Levy, reading 9). The fourth, science (The Terraces of Moray),
+ *     went in batch R1, when the card became a rider on a levy's production;
  *   · the record of citizens levied, and The Labour Rolls' count of it;
  *   · what a levy leaves behind: The Labour Feasts' culture and The Gleaners'
  *     food, for ten turns, at most once every ten turns;
@@ -26,7 +27,6 @@ import { foundCityAt, growthThreshold, refreshCityDerived } from '../../../src/s
 import { createGame } from '../newGameHelpers';
 import { type Game } from '../../../src/sim/game';
 import { levyError, levyOptions, returnLeviedCitizens } from '../../../src/sim/levies';
-import { getTileAt, neighborTiles, tileHex } from '../../../src/sim/map';
 import { rankOf } from '../../../src/sim/ranks';
 import {
   type City,
@@ -173,24 +173,33 @@ describe('the Expansionist batch E1: the new levy uses', () => {
     expect(levyError(state, 0, city, 'settler')).toMatch(/at least 6 citizens/);
   });
 
-  it('The Terraces of Moray pays science, only in a town beside a mountain', () => {
+  it('The Terraces of Moray pays science equal to half a levy\'s production, and nothing for a levy with none (batch R1)', () => {
+    // The user's ruling of 2026-11-11 (`docs/flags.md` item (jjjjjjj)): "a levy
+    // also grants science equal to half its production". The card rides the
+    // `levy` moment and grants no levy of its own, so it needs a levy card.
     const state = bareState();
     const city = town(state, 5, 5, 6);
     slot(state, 0, 'theTerracesOfMoray');
-    // No mountain beside the town: the card grants it no levy at all.
+    expect(orderDef('theTerracesOfMoray' as OrderId).needsLevy).toBe(true);
     expect(levyOptions(state, 0, city)).toEqual([]);
-    const centre = getTileAt(state.map, city.col, city.row)!;
-    neighborTiles(state.map, tileHex(centre))[0]!.terrain = 'mountain';
-    bumpRevision(state);
+    slot(state, 0, 'levyOfTheLand');
     const [line] = levyOptions(state, 0, city);
-    expect(line!.use).toBe('science');
-    expect(line!.science).toBe(growthThreshold(5));
+    expect(line!.use).toBe('production');
+    const hammers = growthThreshold(5);
+    expect(line!.hammers).toBe(hammers);
     const player = playerById(state, 0)!;
     player.researching = null;
     player.researchQueue = [];
     const pool = player.sciencePool;
-    expect(levy(state, city, 'science').ok).toBe(true);
-    expect(player.sciencePool).toBe(pool + growthThreshold(5));
+    expect(levy(state, city, 'production').ok).toBe(true);
+    expect(player.sciencePool).toBe(pool + hammers / 2);
+    // A levy that raises a unit pays no production, so no science.
+    const other = town(state, 10, 5, 6);
+    slot(state, 0, 'theMusterOfTheFields');
+    const before = player.sciencePool;
+    const muster = levy(state, other, 'muster');
+    expect(muster.ok, muster.ok ? '' : muster.error).toBe(true);
+    expect(player.sciencePool).toBe(before);
   });
 
   it('The Builders\' Levy sends hammers to the nearest other town building a world wonder', () => {

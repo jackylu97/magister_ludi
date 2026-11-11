@@ -6,9 +6,10 @@
  *   - Letters of Credit: a spend floor on the card. The three gold gates and
  *     the Trade screen ask one helper (`spendableGold`), the creditors wait
  *     for the same floor (`disbandFloor`), and gold poured into a wonder keeps
- *     its own check;
- *   - The Strongbox: the `treasuryHeld` moment, raised once a turn after the
- *     yields bank, counted only when the treasury meets the row's floor;
+ *     its own check. Since batch R1 the card also lifts the loss of science
+ *     and culture down to its floor (`arrearsFloor`);
+ *   - The Strongbox: since batch R1, the `goldPurchase` moment, written once
+ *     for each purchase with gold of any kind (`buyWithGold`);
  *   - The Merchant Guilds: `family` on a route rider, so the slots are counted
  *     from merchants alone;
  *   - Mercenary Contracts: a unit stamp with `timed`, which hangs an upkeep
@@ -29,6 +30,7 @@ import {
   type GameState,
   type Unit,
   bumpRevision,
+  buyWithGold,
   createUnit,
   playerById,
 } from '../../../src/sim/state';
@@ -38,17 +40,19 @@ import {
   spendableGold,
 } from '../../../src/sim/statecraft/evaluator';
 import { describeCard, stripRefs } from '../../../src/sim/statecraft/describers';
-import { recordTreasuryHeld, tallyOf } from '../../../src/sim/statecraft/draft';
+import { tallyOf } from '../../../src/sim/statecraft/draft';
 import { type OrderId, orderDef } from '../../../src/sim/statecraftData';
 import { explainRouteSlots, routeSlots } from '../../../src/sim/trade';
-import { runEndOfTurn } from '../../../src/sim/turn';
 import {
+  arrearsFloor,
   disbandCandidate,
   disbandFloor,
   explainUnitUpkeep,
   explainUnitUpkeepRebate,
+  treasuryInArrears,
   unitUpkeepOf,
 } from '../../../src/sim/upkeep';
+import { cityYieldPercents } from '../../../src/sim/yields/town';
 import { buyCommandFor, tradeContext } from '../../../src/ui/tradeScreen';
 import { at, bareState } from '../improvementHelpers';
 
@@ -234,15 +238,46 @@ describe('Letters of Credit: buying below zero', () => {
   });
 
   it('says the floor on the card', () => {
+    // Batch R1: the card lifts the loss of science and culture too.
+    expect(orderDef(LETTERS).text).toBe('Your treasury may fall to −150 with no penalty.');
     expect(describeCard(LETTERS).map((clause) => stripRefs(clause.text))).toEqual([
-      'you may buy with gold until your treasury reaches −150; debt disbands none of your units until your treasury falls below −150',
+      'your treasury may fall to −150 with no penalty',
     ]);
+  });
+
+  it('costs no science or culture between 0 and −150, and the usual share below (batch R1)', () => {
+    // The user's ruling of 2026-11-11 (`docs/flags.md` item (jjjjjjj)): "card
+    // also lifts the 25% loss". The arrears line starts at the card's floor.
+    const { state, city } = town();
+    const arrears = (): number =>
+      cityYieldPercents(state, city).filter((line) => line.source === 'Treasury in debt').length;
+    const player = playerById(state, 0)!;
+    setGold(state, -1);
+    expect(treasuryInArrears(state, player)).toBe(true);
+    expect(arrears()).toBe(2);
+    seat(state, 0, LETTERS);
+    expect(arrearsFloor(state, 0)).toBe(-150);
+    for (const gold of [-1, -100, -150]) {
+      setGold(state, gold);
+      expect(treasuryInArrears(state, player), String(gold)).toBe(false);
+      expect(arrears(), String(gold)).toBe(0);
+    }
+    setGold(state, -151);
+    expect(treasuryInArrears(state, player)).toBe(true);
+    expect(cityYieldPercents(state, city).filter((line) => line.source === 'Treasury in debt')).toEqual([
+      { source: 'Treasury in debt', yield: 'science', percent: RULES.upkeep.debtPercent, stage: 'empire' },
+      { source: 'Treasury in debt', yield: 'culture', percent: RULES.upkeep.debtPercent, stage: 'empire' },
+    ]);
+    // Off its chair the card lifts nothing.
+    unseat(state, 0, LETTERS);
+    setGold(state, -100);
+    expect(arrears()).toBe(2);
   });
 });
 
 // --- The Strongbox -----------------------------------------------------------
 
-describe('The Strongbox: turns ended with gold in the treasury', () => {
+describe('The Strongbox: each purchase with gold (batch R1)', () => {
   /** What the card pays the empire in one voice this turn. */
   function paid(state: GameState, voice: 'science' | 'culture'): number {
     return explainCardEmpireYields(state, 0)
@@ -250,57 +285,87 @@ describe('The Strongbox: turns ended with gold in the treasury', () => {
       .reduce((sum, line) => sum + line[voice], 0);
   }
 
-  it('counts a turn only at the floor or above, and only while seated', () => {
-    const { state } = town();
+  it('counts a building and a unit bought with gold, and only while seated', () => {
+    const { state, city } = town();
     setGold(state, 1000);
-    recordTreasuryHeld(state);
     const sc = playerById(state, 0)!.statecraft;
+    expect(applyCommand(state, buy(city, GRANARY)).ok).toBe(true);
     expect(tallyOf(sc, STRONGBOX)).toBe(0);
     seat(state, 0, STRONGBOX);
-    setGold(state, 299);
-    recordTreasuryHeld(state);
-    expect(tallyOf(sc, STRONGBOX)).toBe(0);
-    setGold(state, 300);
-    recordTreasuryHeld(state);
+    expect(applyCommand(state, buy(city, { kind: 'building', id: 'monument' })).ok).toBe(true);
     expect(tallyOf(sc, STRONGBOX)).toBe(1);
-    expect(paid(state, 'science')).toBe(1);
-    expect(paid(state, 'culture')).toBe(1);
+    expect(applyCommand(state, buy(city, { kind: 'unit', id: 'warrior' })).ok).toBe(true);
+    expect(tallyOf(sc, STRONGBOX)).toBe(2);
+    expect(paid(state, 'science')).toBe(2);
+    expect(paid(state, 'culture')).toBe(2);
     // Off the chair it counts nothing and keeps what it counted.
     unseat(state, 0, STRONGBOX);
-    recordTreasuryHeld(state);
+    expect(applyCommand(state, buy(city, { kind: 'building', id: 'shrine' })).ok).toBe(true);
+    expect(tallyOf(sc, STRONGBOX)).toBe(2);
+  });
+
+  it('counts a hex, a trade route and a great-person draft bought with gold', () => {
+    const state = bareState(24, 9);
+    const home = foundCityAt(state, 0, at(state, 3, 4));
+    foundCityAt(state, 0, at(state, 9, 4));
+    home.buildings.push('market', 'market');
+    playerById(state, 0)!.gold = 5000;
+    bumpRevision(state);
+    seat(state, 0, STRONGBOX);
+    seat(state, 0, MERCHANT_PRINCES);
+    const sc = playerById(state, 0)!.statecraft;
+    const hex = applyCommand(state, { type: 'purchaseTile', playerId: 0, cityId: home.id, col: 4, row: 2 } as Command);
+    expect(hex.ok, hex.ok ? '' : hex.error).toBe(true);
     expect(tallyOf(sc, STRONGBOX)).toBe(1);
+    const ctx = tradeContext(state, 0);
+    const row = ctx.rows.find((one) => one.from.id === home.id)!;
+    const command = buyCommandFor(ctx, row, row.modes[0]!)!;
+    const route = applyCommand(state, { type: 'buyRoute', playerId: 0, ...command } as Command);
+    expect(route.ok, route.ok ? '' : route.error).toBe(true);
+    expect(tallyOf(sc, STRONGBOX)).toBe(2);
+    expect(greatPersonPurchaseError(state, 0, 'gold')).toBeNull();
+    const draft = applyCommand(state, { type: 'purchaseGreatPersonOffer', playerId: 0, buys: 'gold' } as Command);
+    expect(draft.ok, draft.ok ? '' : draft.error).toBe(true);
+    expect(tallyOf(sc, STRONGBOX)).toBe(3);
+  });
+
+  it('does not count gold or faith given toward a build', () => {
+    // A contribution buys nothing outright: it pours a bank into what the town
+    // is already building (`contributeAt`, which calls `spendGold` alone).
+    const { state, city } = town();
+    seat(state, 0, STRONGBOX);
+    setGold(state, 1000);
+    playerById(state, 0)!.faithPool = 1000;
+    city.queue = [{ kind: 'building', id: 'cathedral' }];
+    bumpRevision(state);
+    const sc = playerById(state, 0)!.statecraft;
+    for (const currency of ['gold', 'faith'] as const) {
+      expect(contributeError(state, 0, city.id, currency), currency).toBeNull();
+      const pour = applyCommand(state, { type: 'contribute', playerId: 0, cityId: city.id, currency } as Command);
+      expect(pour.ok, pour.ok ? '' : pour.error).toBe(true);
+    }
+    expect(playerById(state, 0)!.gold).toBeLessThan(1000);
+    expect(tallyOf(sc, STRONGBOX)).toBe(0);
   });
 
   it('stops paying at fifteen of each', () => {
     const { state } = town();
     seat(state, 0, STRONGBOX);
-    setGold(state, 5000);
-    for (let i = 0; i < 20; i++) recordTreasuryHeld(state);
+    setGold(state, 1000);
+    // Twenty purchases, through the one seam every purchase with gold uses.
+    for (let i = 0; i < 20; i++) buyWithGold(state, playerById(state, 0)!, 10);
     expect(tallyOf(playerById(state, 0)!.statecraft, STRONGBOX)).toBe(20);
+    expect(playerById(state, 0)!.gold).toBe(800);
     bumpRevision(state);
     expect(paid(state, 'science')).toBe(15);
     expect(paid(state, 'culture')).toBe(15);
   });
 
-  it('is raised once by the end of a turn, after the yields bank', () => {
-    const { state } = town();
-    seat(state, 0, STRONGBOX);
-    setGold(state, 1000);
-    runEndOfTurn(state);
-    expect(tallyOf(playerById(state, 0)!.statecraft, STRONGBOX)).toBe(1);
-    // A treasury the turn's upkeep takes below the floor is not counted.
-    setGold(state, 300);
-    for (let i = 0; i < 6; i++) createUnit(state, 0, 'knight', 6, 6);
-    runEndOfTurn(state);
-    expect(playerById(state, 0)!.gold).toBeLessThan(300);
-    expect(tallyOf(playerById(state, 0)!.statecraft, STRONGBOX)).toBe(1);
-  });
-
-  it('says the floor and the cap on the card', () => {
+  it('says the moment and the cap on the card', () => {
     // Batch DS8: a Scaler. The keyword says that it counts only while seated.
     expect(describeCard(STRONGBOX).map((clause) => stripRefs(clause.text))).toEqual([
       'Scaler',
-      'Gains +1 science and +1 culture each time you end a turn with at least 300 gold in your treasury, up to +15 each',
+      'Gains +1 science and +1 culture each time you buy something with gold, up to +15 each',
     ]);
   });
 });

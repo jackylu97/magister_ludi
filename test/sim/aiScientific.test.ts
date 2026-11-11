@@ -205,11 +205,9 @@ describe('a technology charter is priced as what knowing its technology gives (S
     const id = 'theBronzeFoundersCharter' as OrderId;
     const tech = 'casting' as TechId;
     const priced = explainCharter(id, ctx)!;
-    // The premium is in the price the wait is read off: Casting alone costs its
-    // column and half again.
-    const premium = RULES.research.charterPremiumPercent;
-    expect(techCostFor(ctx, tech)).toBe(Math.floor((techDef(tech).cost * (100 + premium)) / 100));
-    expect(techCostFor(ctx, tech)).toBeGreaterThan(techDef(tech).cost);
+    // The wait is read off the folded price, which since batch DS9 is
+    // Casting's column price: a charter technology pays no premium.
+    expect(techCostFor(ctx, tech)).toBe(techDef(tech).cost);
     const beakers = foldedRoad(state, player, tech);
     expect(priced.terms[0]!.value).toBe(explainCharterKnowledge(tech, ctx).total);
     expect(priced.terms[1]!.op).toBe('mul');
@@ -325,7 +323,9 @@ describe('research reads the folded price (S13)', () => {
     let column = 0;
     for (const step of road.road) column += techDef(step).cost;
     expect(road.beakers).toBe(foldedRoad(state, player, tech));
-    expect(road.beakers).toBeGreaterThan(column);
+    // Since batch DS9 a charter technology pays no premium, so with no card
+    // seated the folded road is the column prices added up.
+    expect(road.beakers).toBe(column);
     // The plan's landing reads the same price.
     const landing = reachableTechs(ctx).get(tech)!;
     expect(landing).toBe(Math.max(0, road.beakers - player.sciencePool) / Math.max(1, ctx.scienceRate));
@@ -398,19 +398,20 @@ describe('a Scientific commission is forecast from the research itself (S13)', (
 // --- the Scientific stand-ins ------------------------------------------------------
 
 describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
-  it('prices The Commonplace Book and The Patent Office by the beakers they save', () => {
+  it('prices The Commonplace Book by the beakers it saves, and The Patent Office at nothing (DS9)', () => {
     const { state, player } = board(1, 20);
     player.charteredTechs.push('casting' as TechId);
     bumpRevision(state);
     const ctx = valueContext(state, player);
     // One charter opened, and the forecast expects no more than that.
     const folded = techCostFor(ctx, 'casting' as TechId);
-    const premium = techDef('casting' as TechId).cost * (RULES.research.charterPremiumPercent / 100);
     const book = orderDef('theCommonplaceBook' as OrderId).effects;
     const office = orderDef('thePatentOffice' as OrderId).effects;
     expect(scoreEffects(book, ctx)).toBe(explainLump({ science: 0.15 * folded }, ctx).total);
-    expect(scoreEffects(office, ctx)).toBe(explainLump({ science: 1 * premium }, ctx).total);
     expect(scoreEffects(book, ctx)).toBeGreaterThan(0);
+    // Batch DS9 removed the charter premium, so the rule that took it away
+    // saves nothing.
+    expect(scoreEffects(office, ctx)).toBe(0);
   });
 
   it('prices The Almanac as its Library line alone, with no cost rule left (DS6)', () => {

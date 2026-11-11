@@ -19,6 +19,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { typedChiefdomInThisBlock } from '../sim/chiefdomHelpers';
 
 import type { Command } from '../../src/sim/commands';
 import { dispatch } from '../../src/sim/game';
@@ -205,6 +206,9 @@ describe('the diff', () => {
 });
 
 describe('the refusals are the reducer’s own', () => {
+  // Built on the chiefdom's typed chairs before batch DS9 (`chiefdomHelpers.ts`).
+  typedChiefdomInThisBlock();
+
   it('refuses to empty a sealed office, with the sentence and the count', () => {
     const g = game();
     seatFixture(g.state, 0);
@@ -339,6 +343,9 @@ describe('an arrangement belongs to the chairs it was laid out against', () => {
  * seats first; and `validate` meets the council the reducer re-seated.
  */
 describe('The Mixed Constitution in staging', () => {
+  // Built on the chiefdom's typed chairs before batch DS9 (`chiefdomHelpers.ts`).
+  typedChiefdomInThisBlock();
+
   const MIXED = 'theMixedConstitution' as OrderId;
   /** The first dealt civic cards, in table order. */
   const civic = (count: number): OrderId[] =>

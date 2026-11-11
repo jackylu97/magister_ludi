@@ -2,8 +2,9 @@
  * What a technology costs this empire, as every screen quotes it.
  *
  * Since Scientific batch S0 a technology's price is a list: the column price,
- * the charter premium for a charter technology, and one line for each card
- * that changes the price (`explainTechCost` in `src/sim/tech.ts`). The total is
+ * and one line for each card that changes the price (`explainTechCost` in
+ * `src/sim/tech.ts`). Since batch DS9 a charter technology pays no premium
+ * above its column, so it has no line of its own. The total is
  * the fold of that list (`foldTechCost`). Before S0 every surface read
  * `techDef(id).cost`, which is now only the first line.
  *
@@ -20,13 +21,13 @@
 
 import type { GameState, Player } from '../sim/state';
 import { type TechCostLine, explainTechCost, foldTechCost } from '../sim/tech';
-import { type TechId, isCharterTech } from '../sim/techData';
+import type { TechId } from '../sim/techData';
 
 /**
  * What this technology costs this empire: the fold of its price list.
  *
- * The one reader of the fold in the interface. An ordinary technology with no
- * card on it costs exactly its column, so the figure is the old one there.
+ * The one reader of the fold in the interface. A technology with no card on it
+ * costs exactly its column.
  */
 export function techCostFor(state: GameState, player: Player, tech: TechId): number {
   return foldTechCost(explainTechCost(state, player, tech));
@@ -34,15 +35,10 @@ export function techCostFor(state: GameState, player: Player, tech: TechId): num
 
 /** One printed line of a price list. */
 interface PriceLine {
-  /** What the line is, as the simulation labels it: "Column 7", "Charter +50%". */
+  /** What the line is, as the simulation labels it: "Column 7", "The Commonplace Book -15%". */
   label: string;
   /** Beakers this line adds. The first line is the column price itself. */
   amount: number;
-  /**
-   * True on the charter premium, which the hover card and the slip ink in the
-   * charter sepia, so the one line that says "only you" stands out.
-   */
-  premium: boolean;
 }
 
 /** A technology's whole price, ready to print. */
@@ -50,17 +46,6 @@ interface TechPriceList {
   lines: PriceLine[];
   /** The fold of `lines`, which is the figure on the node's face. */
   total: number;
-}
-
-/**
- * Is this line the charter premium?
- *
- * `explainTechCost` writes the premium second, and only for a charter row, so
- * the position and the row's marker together decide it. The label is not
- * parsed, because a label is words and words change.
- */
-function isPremiumLine(tech: TechId, index: number): boolean {
-  return index === 1 && isCharterTech(tech);
 }
 
 /**
@@ -74,11 +59,7 @@ function isPremiumLine(tech: TechId, index: number): boolean {
 export function techPriceList(state: GameState, player: Player, tech: TechId): TechPriceList {
   const lines: readonly TechCostLine[] = explainTechCost(state, player, tech);
   return {
-    lines: lines.map((line, index) => ({
-      label: line.source,
-      amount: line.amount,
-      premium: isPremiumLine(tech, index),
-    })),
+    lines: lines.map((line) => ({ label: line.source, amount: line.amount })),
     total: foldTechCost(lines),
   };
 }

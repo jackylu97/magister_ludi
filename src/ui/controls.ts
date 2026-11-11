@@ -334,7 +334,13 @@ import { autoExploreError } from '../sim/explore';
 import { type UnitDef, isExplorer, trades, unitDef, unitHp, unitMaxHp } from '../sim/unitData';
 // The empire's live share of a piece's maximum health — iron's ten points (R2).
 import { unitHealthBonus } from '../sim/resourceEffects';
-import { type DisbandReport, disbandFloor, treasuryInDebt } from '../sim/upkeep';
+import {
+  type DisbandReport,
+  arrearsFloor,
+  disbandFloor,
+  treasuryInArrears,
+  treasuryInDebt,
+} from '../sim/upkeep';
 import {
   sleepError,
   sleepingSnapshot,
@@ -1377,7 +1383,9 @@ export function unrestSentence(report: UnrestReport, cityName: string): string {
  * The penalty is read off `RULES.upkeep.debtPercent`, and the floor is the
  * simulation's `disbandFloor` (Commerce batch T9), for `disbandSentence`'s
  * reason: a seat holding Letters of Credit is told −150, the line its
- * creditors actually wait for.
+ * creditors actually wait for. Since batch R1 the card also lifts the penalty
+ * above that line (`treasuryInArrears`), so a seat on credit is told it pays
+ * nothing yet.
  */
 export function debtWarning(state: GameState, player: Player | undefined): string | null {
   if (!player || !treasuryInDebt(player)) return null;
@@ -1386,6 +1394,12 @@ export function debtWarning(state: GameState, player: Player | undefined): strin
   if (player.gold < below) {
     const floor = `${signedFigure(below)}${YIELD_GLYPH.gold}`;
     return `⚠ Treasury below ${floor}: ${penalty}, and a unit is disbanded every turn.`;
+  }
+  // Batch R1: with Letters of Credit seated, a treasury above the card's floor
+  // costs no science and no culture, so the warning says so instead.
+  if (!treasuryInArrears(state, player)) {
+    const floor = `${signedFigure(arrearsFloor(state, player.id))}${YIELD_GLYPH.gold}`;
+    return `⚠ Treasury below zero on credit: no penalty until it falls below ${floor}.`;
   }
   return `⚠ Treasury in debt: ${penalty}.`;
 }

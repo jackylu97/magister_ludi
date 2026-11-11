@@ -1927,33 +1927,20 @@ function techEntry(id: TechId): CompendiumEntry {
  */
 export const CHARTER_TECH_GROUP = 'Charter technologies';
 
-/** A charter technology's price with no empire's cards in it. See `charterTechPrice`. */
-interface CharterTechPrice {
-  /** The row's own `cost`: what an ordinary technology in its column costs. */
-  column: number;
-  /** What the charter premium adds to the column price. */
-  premium: number;
-  /** The two together: what the technology costs an empire with no card on it. */
-  total: number;
-}
-
 /**
- * **A charter technology's price, before any card changes it**: the first two
- * lines of `explainTechCost` (`tech.ts`), the column price and the charter
- * premium, and their sum.
+ * **A charter technology's price, before any card changes it**: the first line
+ * of `explainTechCost` (`tech.ts`), the column price. Since batch DS9 a charter
+ * technology costs the ordinary price (`docs/flags.md` item (hhhhhhh)), so the
+ * premium line the page printed is gone.
  *
  * The book takes no game, and `explainTechCost` needs one to read the cards an
- * empire holds, so these two lines are worked out here from the row and from
- * `rules.research.charterPremiumPercent`, by the fold's own arithmetic: the
- * premium is the share of the column price, floored once.
- * `test/ui/compendiumCharterTechs.test.ts` checks them against
- * `explainTechCost` for a seat that holds no card, so the book and the price
- * the game charges cannot drift apart.
+ * empire holds, so the line is read here from the row.
+ * `test/ui/compendiumCharterTechs.test.ts` checks it against `explainTechCost`
+ * for a seat that holds no card, so the book and the price the game charges
+ * cannot drift apart.
  */
-export function charterTechPrice(id: TechId): CharterTechPrice {
-  const column = techDef(id).cost;
-  const total = Math.floor((column * (100 + RULES.research.charterPremiumPercent)) / 100);
-  return { column, premium: total - column, total };
+export function charterTechPrice(id: TechId): number {
+  return techDef(id).cost;
 }
 
 /**
@@ -1965,9 +1952,9 @@ export function charterTechPrice(id: TechId): CharterTechPrice {
  *   - **The first clause names the charter** that opens it, as a mark to the
  *     card's page. `charterOpening` (`charterTech.ts`) is the star chart's
  *     reading of the same question.
- *   - **The price is printed as its lines**: the column price, the charter
- *     premium and their sum, before any card (`charterTechPrice`). The star
- *     chart prints the same lines for an empire with its cards in them.
+ *   - **The price is printed** before any card (`charterTechPrice`): the
+ *     column price, which since batch DS9 is the whole price. The star chart
+ *     prints the lines for an empire with its cards in them.
  *   - **What knowing it gives is said in full** through `describeCard`, its
  *     rules and its line traits both, never as a named rule. The book has room
  *     for every clause, and the star chart's hover card prints a charter
@@ -1981,14 +1968,7 @@ function charterTechEntry(id: TechId): CompendiumEntry {
   const price = charterTechPrice(id);
   const science = YIELD_GLYPH.science;
   const rows: CompendiumRow[] = [
-    ...row('Research cost', `${figure(price.total)}${science}`),
-    ...row('Column price', `${figure(price.column)}${science}`),
-    ...row(
-      'Charter premium',
-      price.premium === 0
-        ? ''
-        : `${signedFigure(price.premium)}${science} (${percentFigure(RULES.research.charterPremiumPercent)})`,
-    ),
+    ...row('Research cost', `${figure(price)}${science}`),
     ...row('Requires first', words(def.prereqs.map((prereq) => techDef(prereq).name))),
   ];
   const charter = charterRef(id);

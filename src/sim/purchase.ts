@@ -87,6 +87,7 @@ import {
   reaimProduction,
   spendCulture,
   spendFaith,
+  buyWithGold,
   spendGold,
 } from './state';
 import type { FirstKind } from './statecraftData';
@@ -1573,8 +1574,9 @@ export function purchaseItemAt(
     // own record, which a legacy can read from outside any chair, and the tally
     // below is the same moment written into whichever slotted Order is watching
     // for it. Two counters of one act, side by side, because a card in a chair
-    // and a name in the Reliquary cannot read each other's.
-    spendGold(state, player, price.total);
+    // and a name in the Reliquary cannot read each other's. `buyWithGold`
+    // writes the moment of a purchase with gold beside them (batch R1).
+    buyWithGold(state, player, price.total);
     recordScalingOccasion(state, player.id, 'goldSpent', price.total);
     // A Guild Commission's count: a building, bought with gold.
     if (item.kind === 'building') recordScalingOccasion(state, player.id, 'buildingBoughtWithGold');

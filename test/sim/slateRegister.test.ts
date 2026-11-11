@@ -390,10 +390,10 @@ const ANNOUNCING = new Set([
   // `citiesCaptured`.
   'combat.ts#tallyFall',
   'combat.ts#captureCity',
-  // Expansionist batch E1: the levy verb banks The Terraces of Moray's science,
-  // and `recordLevy` is the one writer of `Player.citizensLevied`, which The
-  // Labour Rolls' count reads.
-  'levies.ts#levyAt',
+  // Expansionist batch E1: `recordLevy` is the one writer of
+  // `Player.citizensLevied`, which The Labour Rolls' count reads. The levy verb
+  // banked The Terraces of Moray's science itself until batch R1, when the card
+  // became a rider on the levy moment, banked by `payOccasionRiders`.
   'levies.ts#recordLevy',
   // Dominion batch D5: the one writer of the great-people records the
   // `greatPeopleGained` count reads, and the one routine that banks science

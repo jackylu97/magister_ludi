@@ -564,14 +564,18 @@ describe('the member register', () => {
     // disbanded unit costs to build (The Legions' Labour). Scientific batch S6
     // added `techCost`, what a technology cost the seat (The Scholars' Fame).
     // Magisterial batch MG5 added `handPrice`, the culture an Order hand cost
-    // (The Accessions Register and The Unwritten Chapter).
+    // (The Accessions Register and The Unwritten Chapter). Batch R1 added
+    // `production`, what a levy paid (The Terraces of Moray), and `faith`, the
+    // faith spent (The Pilgrim Staff).
     expect([...measures].sort()).toEqual([
+      'faith',
       'gold',
       'handPrice',
       'hexesPillaged',
       'opusProgress',
       'payout',
       'population',
+      'production',
       'strength',
       'takenPopulation',
       'techCost',

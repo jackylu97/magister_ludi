@@ -963,7 +963,7 @@ function scalerWords(parts: readonly ScalerPart[]): string {
 
 /** Do two counted lines watch the same moment, by the same step? */
 function sameScalerMoment(a: CardPaysEffect, b: CardPaysEffect): boolean {
-  return a.tally === b.tally && a.per === b.per && a.minTreasury === b.minTreasury;
+  return a.tally === b.tally && a.per === b.per;
 }
 
 function scalerGroupWords(parts: readonly ScalerPart[]): string {
@@ -1006,9 +1006,6 @@ function scalerMomentWords(line: CardPaysEffect): string {
   const per = line.per ?? 1;
   const moment = SCALER_MOMENT_WORDS[tally];
   if (moment === null || per > 1) return `for every ${countWords(per, TALLY_WORDS[tally])}`;
-  if (tally === 'treasuryHeld' && line.minTreasury !== undefined) {
-    return `each time ${moment} with at least ${line.minTreasury} gold in your treasury`;
-  }
   return `each time ${moment}`;
 }
 
@@ -1043,7 +1040,8 @@ const SCALER_MOMENT_WORDS: Readonly<Record<TallyOccasion, string | null>> = {
   publicWorkCompleted: 'you finish a public work',
   techCompleted: 'you complete a technology',
   charterTechCompleted: 'you complete a charter technology',
-  treasuryHeld: 'you end a turn',
+  // Batch R1, The Strongbox: a purchase of any kind with gold.
+  goldPurchase: 'you buy something with gold',
   wonderCompleted: 'you complete a wonder',
   wonderProduction: null,
 };
@@ -2409,6 +2407,13 @@ function describeEffect(
       }
       if (effect.empireBuilding === true) narrowings.push('an empire building');
       if (effect.empireBuilding === false) narrowings.push('not an empire building');
+      // The Apprentices (batch R1): no wonder and no Magnum Opus. On a building
+      // completed the occasion's own phrase already says it, because a wonder
+      // is not a building in the card's words, so the aside is for any other
+      // occasion a row might name.
+      if (effect.exceptWonders === true && effect.occasion !== 'buildingCompletion') {
+        narrowings.push('not a wonder or the Magnum Opus');
+      }
       // The Dedications (Scientific batch S8): the any-of filter, one phrase
       // with "or" between the tests.
       if (effect.anyOf !== undefined && effect.anyOf.length > 0) {
@@ -3911,16 +3916,13 @@ function describeLevy(effect: CardLevyEffect, out: CardClause[]): void {
       case 'conscript':
         what = `${melee}, which does not count as trained`;
         break;
-      // Expansionist batch E1: the empire's own worker or settler, science, and
+      // Expansionist batch E1: the empire's own worker or settler, and
       // hammers for a world wonder in another town.
       case 'worker':
         what = 'a worker';
         break;
       case 'settler':
         what = 'a settler';
-        break;
-      case 'science':
-        what = 'science equal to the food it took to grow that citizen';
         break;
       case 'wonder':
         what = `${food}, paid to your nearest other town building a world wonder`;
@@ -4472,13 +4474,6 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
   // barbarian you have killed". `buildingsOfKind`'s bargain a sixth time: the
   // argument is printed here, so five cards are one table entry.
   if (effect.count === 'tally' && effect.tally !== undefined) {
-    // **A floor on the moment** (Commerce batch T6, The Strongbox): a turn
-    // counts only when it ends with the treasury at the row's floor or above,
-    // so the floor is part of the noun.
-    if (effect.tally === 'treasuryHeld' && effect.minTreasury !== undefined) {
-      const words = `with at least ${effect.minTreasury} gold in your treasury`;
-      return { one: `turn you have ended ${words}`, many: `turns you have ended ${words}` };
-    }
     return TALLY_WORDS[effect.tally];
   }
   // **The ground, said in the hex conditions' own words** (batch C2) — "per hex
@@ -6404,6 +6399,9 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   // Magisterial batch MG8: The Last Commission and Sacred Patronage. An act
   // and a work both spend the person, so the phrase names neither.
   greatPersonSpent: 'spending a great person',
+  // Batch R1: The Terraces of Moray and The Pilgrim Staff.
+  levy: 'a levy',
+  faithSpent: 'spending faith',
 };
 
 /**
@@ -7035,9 +7033,8 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
     one: 'charter technology you have completed',
     many: 'charter technologies you have completed',
   },
-  // Commerce batch T6, The Strongbox. A row with a treasury floor says the
-  // floor in `countNoun`; this is the sentence for a row that names none.
-  treasuryHeld: { one: 'turn you have ended', many: 'turns you have ended' },
+  // Batch R1, The Strongbox: a purchase of any kind with gold.
+  goldPurchase: { one: 'purchase you have made with gold', many: 'purchases you have made with gold' },
   // Magisterial batch MG4. No growing card counts these; the two commissions
   // do, and the table is total.
   wonderCompleted: { one: 'wonder you have completed', many: 'wonders you have completed' },
@@ -7076,6 +7073,9 @@ const MEASURE_WORDS: Record<OccasionMeasure, string | { each: string }> = {
   // as "paid", as the gold of a purchase is, so a delivery that follows ("to
   // your capital") cannot be read as part of the price.
   handPrice: 'the culture paid for its hand',
+  // Batch R1: what a levy paid, and the faith spent.
+  production: 'the production it paid',
+  faith: 'the faith spent',
 };
 
 /**
@@ -7641,13 +7641,11 @@ function figureRuleWords(effect: Extract<CardEffect, { kind: 'rule' }>): string 
       );
     case 'buysOnCredit': {
       // Letters of Credit (Commerce batch T6): the floor a purchase may reach,
-      // and the same floor for the creditors. A minus sign, as the card's
-      // face prints it.
+      // the same floor for the creditors, and since batch R1 the same floor
+      // for the loss of science and culture. One floor, so one clause. A minus
+      // sign, as the card's face prints it.
       if (effect.credit === undefined || effect.credit <= 0) return null;
-      return (
-        `you may buy with gold until your treasury reaches −${effect.credit}; ` +
-        `debt disbands none of your units until your treasury falls below −${effect.credit}`
-      );
+      return `your treasury may fall to −${effect.credit} with no penalty`;
     }
     case 'chargePrice': {
       // The Anchorites (Devotion batch DV7): the act and its price. A price on
@@ -7916,8 +7914,8 @@ const COMMISSION_COUNTED_WORDS: Record<
     many: 'charter technologies',
     counter: 'charter technologies completed',
   },
-  // Commerce batch T6. No commission counts this yet; the table is total.
-  treasuryHeld: { verb: 'end', one: 'turn', many: 'turns', counter: 'turns ended' },
+  // Batch R1. No commission counts this yet; the table is total.
+  goldPurchase: { verb: 'make', one: 'purchase with gold', many: 'purchases with gold', counter: 'purchases with gold' },
   // Magisterial batch MG4: Commission: The Eighth Wonder and Commission: The
   // Wonder of the Age.
   wonderCompleted: { verb: 'complete', one: 'wonder', many: 'wonders', counter: 'wonders completed' },

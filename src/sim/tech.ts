@@ -78,10 +78,11 @@
  * `COLUMN_COSTS`, which is the witness that the data still agrees with it.
  *
  * Since Scientific batch S0 the row's `cost` is the first line of a price list
- * rather than the whole price. `explainTechCost` adds the charter premium for a
- * charter technology and the cards' percentages, and `foldTechCost` is the
- * figure every reader charges and quotes. An ordinary technology with no card
- * on it still costs exactly its column.
+ * rather than the whole price. `explainTechCost` adds the cards' percentages,
+ * and `foldTechCost` is the figure every reader charges and quotes. A
+ * technology with no card on it costs exactly its column. Since batch DS9 a
+ * charter technology does too: the charter premium it paid above its column is
+ * gone (`docs/flags.md` item (hhhhhhh)).
  *
  * One fitted curve, 5 to 8000 (the user, 2026-09-09)
  * --------------------------------------------------
@@ -2167,26 +2168,27 @@ export interface TechCostLine {
  * **What a technology costs this empire**, as the ordered list the price is the
  * fold of (hard rule 5, said about a price; Scientific batch S0).
  *
- * Three kinds of line, in this order (readings 13 and 14):
+ * Two kinds of line, in this order (readings 13 and 14):
  *
  *   1. **the column price**, which is the row's own `cost`. Every row, a
  *      charter row too, stores its column's price, so "a column is a price"
  *      holds across the whole table (`test/sim/tech.test.ts` pins it);
- *   2. **the charter premium**, for a charter row only:
- *      `rules.research.charterPremiumPercent` of the column price, scaled by
- *      the empire's `charterPremium` cards. The Patent Office's −100 leaves
- *      nothing, and then the line is not printed at all;
- *   3. **one line for each card percentage** that reaches this technology:
- *      The Commonplace Book's `charterTechCost` for a charter row, and The
- *      Translation Movement's `gapTechCost` for an ordinary row in the gap,
- *      one an empire this seat has met already knows (`techGap`, `rivals.ts`;
- *      Scientific batch S3). The gap holds no charter technology, so the two
- *      rules never reach the same row (the triage's readings 2 and 15). An
- *      ordinary row also takes The Court of Rudolf II's `techPrice` lines
- *      (`cardTechPriceLines`, batch DT8), which a charter row never does. The
- *      percentages are added together and applied once, to the column price
- *      and the premium together. They never compound, so under both charter
- *      cards a charter technology costs 85% of its column.
+ *   2. **one line for each card percentage** that reaches this technology:
+ *      the retired The Commonplace Book's `charterTechCost` for a charter row,
+ *      and The Translation Movement's `gapTechCost` for an ordinary row in the
+ *      gap, one an empire this seat has met already knows (`techGap`,
+ *      `rivals.ts`; Scientific batch S3). The gap holds no charter technology,
+ *      so the two rules never reach the same row (the triage's readings 2 and
+ *      15). An ordinary row also takes The Court of Rudolf II's `techPrice`
+ *      lines (`cardTechPriceLines`, batch DT8), which a charter row never does.
+ *      The percentages are added together and applied once, to the column
+ *      price. They never compound.
+ *
+ * **There is no charter premium** since batch DS9 (`docs/flags.md` item
+ * (hhhhhhh): "a charter technology costs the ordinary price"). A charter row
+ * used to pay `rules.research.charterPremiumPercent` (50%) above its column,
+ * and the retired The Patent Office's `charterPremium` rule took that away. The
+ * field and its line are gone, so that rule now changes nothing.
  *
  * **Floored once.** The total is one floor of the exact product, computed in
  * whole numbers. Each line carries the difference it makes to the running
@@ -2195,35 +2197,16 @@ export interface TechCostLine {
  * prints must add up). A card line is the change its percentage makes when it
  * joins the sum of the ones before it.
  *
- * An ordinary technology with no card on it is one line, its column price, so
- * every reader that moved here from `techDef(id).cost` reads the same figure
- * as before for it. The price never falls below one beaker: a free node would
- * complete the turn it was chosen, every turn.
+ * A technology with no card on it is one line, its column price. The price
+ * never falls below one beaker: a free node would complete the turn it was
+ * chosen, every turn.
  */
 export function explainTechCost(state: GameState, player: Player, tech: TechId): TechCostLine[] {
   const def = techDef(tech);
   const column = def.cost;
   const lines: TechCostLine[] = [{ source: `Column ${techColumn(tech)}`, amount: column }];
   const charter = def.charter === true;
-
-  // The premium, in hundredths of a percent so a card that halves it stays a
-  // whole number: `charterPremiumPercent × (100 + Σ cards)`. An ordinary row
-  // has none.
-  let premium = 0;
-  if (charter) {
-    let premiumCut = 0;
-    for (const card of cardRulePercent(state, player.id, 'charterPremium')) premiumCut += card.percent;
-    premium = RESEARCH.charterPremiumPercent * Math.max(0, 100 + premiumCut);
-  }
-  // The column and the premium together, as a multiplier in the same units:
-  // 10000 is the column price alone.
-  const priced = 10000 + premium;
   let running = column;
-  if (premium > 0) {
-    const withPremium = Math.floor((column * priced) / 10000);
-    lines.push({ source: `Charter +${premium / 100}%`, amount: withPremium - running });
-    running = withPremium;
-  }
 
   // The cards that reach this row: the charter rule for a charter row. For an
   // ordinary row, the gap rule if an empire this seat has met already knows it,
@@ -2237,12 +2220,12 @@ export function explainTechCost(state: GameState, player: Player, tech: TechId):
     if (priced.length > 0) cards = [...cards, ...priced];
   }
 
-  // The cards, added together and applied once to that sum.
+  // The cards, added together and applied once to the column price.
   let percent = 0;
   for (const card of cards) {
     percent += card.percent;
     const factor = Math.max(0, 100 + percent);
-    const total = Math.max(1, Math.floor((column * priced * factor) / 1_000_000));
+    const total = Math.max(1, Math.floor((column * factor) / 100));
     const sign = card.percent > 0 ? '+' : '';
     lines.push({ source: `${card.source} ${sign}${card.percent}%`, amount: total - running });
     running = total;

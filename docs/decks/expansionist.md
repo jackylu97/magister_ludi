@@ -13,7 +13,8 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 - **Doctrines:** 24 (4, 6, 7 and 7 across Tiers I to IV), all dealt, after your comments of 2026-10-23 and 2026-11-03 (`docs/plans/doctrine-review-2026-11-05.md`). A Doctrine is held for the whole game and takes no chair. Each tier's Doctrine table sits above its Orders, and the Build column names the build or flavour of 2026-10-16 that each is written for. `docs/plans/doctrines-build-triage.md` gives the batch that built each one. The reasons and pairs are in `docs/plans/expansionist-builds.md`, "Doctrines, proposed 2026-10-17".
 - **The long form** (the D3 "built as" details, the tended works as built, the synergy section, the proposed cuts and the proposed revision of 2026-10-13): `docs/decks/reference/expansionist-2026-10-16.md`.
 - **Batch DS1** (2026-11-10, `docs/plans/deck-simplification-2026-11-10.md`, `docs/flags.md` item (hhhhhhh)) retired 39 rows of this deck and 6 shared rows. It moved The Fish Traps from Tier 0 to Tier I. A moved row keeps its text until a later batch changes it. "Retired rows" below gives the reason for each cut. The spec also moves the shared Market Gardens from Tier 0 to Tier II. That move waits for a ruling, because Expansionist and Commerce would then share no card at Tier I or earlier (ruling (qqqqqq) 14).
-- **Batch DS3** (2026-11-10, the same spec) gave 37 rows of this deck and 6 shared rows their new, shorter text, and changed their effects to match. A simplified card lost the clause the spec drops, and a changed card has the new effect. Each card's Note is in the spec. Market Gardens has its new effect ("Hexes with a road gain +1 gold") and stays at Tier 0 while its move waits. **The Terraces of Moray is held:** its new text ("A levy also grants science equal to half its production") needs a moment the game does not have, a levy that pays a share of its own production as another yield. The row keeps its old text and effect until that is ruled. Readings taken: "irrigated farms" (The Watercourses) are farms on fresh water, which is the Hanging Gardens' reading; Seasonal Levies keeps its food from stacking while it runs, as The Gleaners does; The Keep loses its +5 strength on the improvement row itself. Five effect shapes that no row used after this batch are removed: the "standing in forest or jungle" combat condition (The Woodland Bands), the river farms' water relay (The Watercourses), the production bonus toward defensive buildings (The Burhs), the turns a commission added to a work's age (Commission: Break the Sod), and the upkeep rebate for levied units (The General Levy).
+- **Batch DS3** (2026-11-10, the same spec) gave 37 rows of this deck and 6 shared rows their new, shorter text, and changed their effects to match. A simplified card lost the clause the spec drops, and a changed card has the new effect. Each card's Note is in the spec. Market Gardens has its new effect ("Hexes with a road gain +1 gold") and stays at Tier 0 while its move waits. **The Terraces of Moray was held** (batch R1 built it, below): its new text ("A levy also grants science equal to half its production") needs a moment the game does not have, a levy that pays a share of its own production as another yield. The row keeps its old text and effect until that is ruled. Readings taken: "irrigated farms" (The Watercourses) are farms on fresh water, which is the Hanging Gardens' reading; Seasonal Levies keeps its food from stacking while it runs, as The Gleaners does; The Keep loses its +5 strength on the improvement row itself. Five effect shapes that no row used after this batch are removed: the "standing in forest or jungle" combat condition (The Woodland Bands), the river farms' water relay (The Watercourses), the production bonus toward defensive buildings (The Burhs), the turns a commission added to a work's age (Commission: Break the Sod), and the upkeep rebate for levied units (The General Levy).
+- **Batch R1** (2026-11-11, `docs/flags.md` item (jjjjjjj)) built the two held changes. **The Terraces of Moray** has its new text: every levy is now a moment that cards can pay on, and it carries the production the levy paid. The card grants science equal to half of it. A levy for production here, for the Magnum Opus or for a world wonder pays production. A levy that raises a unit, a worker or a settler, or performs a rite, pays none, so the card grants nothing for it. The card grants no levy of its own now, so it is marked "Needs a levy", and the old levy for science in a town beside a mountain is gone. **Market Gardens** moves to Tier II. A new shared card, **The Country Fair** (Tier 0, Economic, common: "Luxury resources gain +1 gold"), keeps a card that Expansionist and Commerce share at Tier I or earlier. A hex with a luxury resource pays while a town works it, improved or not.
 
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
@@ -23,7 +24,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 18 | 0 | 0 | 18 | 7 (all built) |
 | Tier IV | 11 | 0 | 0 | 11 | 7 (all built) |
 | **All** | **74** | **0** | **0** | **74** | **24 (23 built)** |
-| Shared | 14 | 0 | 0 | 14 |  |
+| Shared | 15 | 0 | 0 | 15 |  |
 
 **By type** (the chair a card fits):
 
@@ -35,7 +36,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 0 | 10 | 6 | 2 |
 | Tier IV | 2 | 5 | 3 | 1 |
 | **All** | **4** | **43** | **23** | **4** |
-| Shared | 2 | 4 | 8 | 0 |
+| Shared | 2 | 5 | 8 | 0 |
 
 The 74 cards are 72 that take a chair and two charters (The Fish Traps and The Wild Orchards).
 
@@ -118,7 +119,7 @@ The 74 cards are 72 that take a chair and two charters (The Fish Traps and The W
 | **The Hedgerows** | common | implemented | Needs tended land. Worked farms beside a tended tile gain +2 food, once per farm. | Economic |
 | **The Great Households** | uncommon | implemented | Each town gains +2% production for each citizen, at most +30%. | Economic |
 | **The Harbour Cities** | common | implemented | Coastal towns gain +1 culture for every two citizens. | Civic |
-| **The Terraces of Moray** | uncommon | implemented | Towns beside a mountain may spend a citizen to gain science equal to the food it took to grow that citizen. | Civic |
+| **The Terraces of Moray** | uncommon | implemented | A levy also grants science equal to half its production. | Civic |
 | **The Book of Settlements** | uncommon | implemented | +3% production and gold for every town you have founded this game, at most +30%. | Economic |
 | **The Colonists** | uncommon | implemented | Towns of at least six citizens may spend a citizen to raise a settler. | Economic |
 | **The Staked Claims** | uncommon | implemented | Each town you found claims every unowned hex within two hexes of it. | Economic |
@@ -196,7 +197,7 @@ These rows live in `data/decks/common.json`. A seat holding Expansionist or the 
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
-| **Market Gardens** | common | Commerce | 0 | implemented | Hexes with a road gain +1 gold. | Economic |
+| **The Country Fair** | common | Commerce | 0 | implemented | Luxury resources gain +1 gold. | Economic |
 | **Sacred Groves** | uncommon | Devotion | 0 | implemented | Worked, unimproved forests gain +1 food and +1 faith. | Civic |
 | **The Frontier Militia** | common | Dominion | 0 | implemented | Each town you found starts with a melee unit. | Military |
 | **The Ambarvalia** | common | Devotion | 0 | implemented | Each town gains +1 faith for every two improved tiles. | Civic |
@@ -207,6 +208,7 @@ These rows live in `data/decks/common.json`. A seat holding Expansionist or the 
 | **The Farming Garrisons** | common | Dominion | I | implemented | Hexes with a fortified unit gain +1 food and +1 production. | Economic |
 | **The Assay** | common | Scientific | I | implemented | Hexes with a strategic resource gain +2 science. | Civic |
 | **Garden Cities** | uncommon | Magisterial | I | implemented | Towns with a Monument gain +1 culture for every three wild tiles they work. | Civic |
+| **Market Gardens** | common | Commerce | II | implemented | Hexes with a road gain +1 gold. | Economic |
 | **The Provincial Fair** | uncommon | Commerce | II | implemented | Towns with a Market gain +2 gold on plantations, camps and pastures. | Economic |
 | **Garden Provinces** | common | Magisterial | II | implemented | Connected cities with a Monument gain +3 food and +3 culture. | Civic |
 | **The Sculpted Landscape** | uncommon | Magisterial | III | implemented | Farms beside a great-person work gain +2 food and +2 culture. | Civic |

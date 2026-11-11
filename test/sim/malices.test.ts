@@ -239,12 +239,14 @@ describe('the seating', () => {
   it('gives a second malice a chair of its own, never the first one’s', () => {
     const state = newGame(config());
     const player = seat(state);
-    govern(state, player, 'chiefdom');
+    // Since batch DS9 the chiefdom's chairs are all Wildcard, so the Council
+    // of Elders stands in for a council with one military chair.
+    govern(state, player, 'councilOfElders');
     seatNamed(state, player, 'thinRanks');
     seatNamed(state, player, 'deserters');
     const chairs = player.malices.map((held) => held.chair);
     expect(new Set(chairs).size).toBe(2);
-    // One military chair in the chiefdom, so the second falls to the wildcard.
+    // One military chair in the council, so the second falls to the wildcard.
     const layout = slotTypesOf(player.statecraft);
     expect(chairs).toEqual([layout.indexOf('military'), layout.lastIndexOf('wildcard')]);
   });
@@ -279,12 +281,14 @@ describe('the chair a malice holds', () => {
   it('refuses to be emptied, in the reducer’s own sentence, changing nothing', () => {
     const state = newGame(config());
     const player = seat(state);
+    // The Council of Elders' one military chair is its first (batch C2: typed
+    // chairs again, so a military malice takes the military chair). Since
+    // batch DS9 the chiefdom has no military chair.
+    govern(state, player, 'councilOfElders');
     seatNamed(state, player, 'thinRanks');
     const chair = player.malices[0]!.chair!;
 
     const refusal = unslotOrderError(state, player.id, chair);
-    // The chiefdom's one military chair, which is its first (batch C2: typed
-    // chairs again, so a military malice takes the military chair).
     expect(chair).toBe(0);
     expect(refusal).toBe('The Thin Ranks holds slot 1 and cannot be moved');
 
@@ -423,7 +427,8 @@ describe('an adoption', () => {
     // `typedChairs.test.ts`); the malice's half is unchanged.
     const state = newGame(config());
     const player = seat(state);
-    govern(state, player, 'chiefdom');
+    // A typed council, since the chiefdom's chairs are all Wildcard (DS9).
+    govern(state, player, 'councilOfElders');
     seatNamed(state, player, 'thinRanks');
     expect(player.malices[0]!.chair).toBe(slotTypesOf(player.statecraft).indexOf('military'));
 
