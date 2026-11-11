@@ -179,12 +179,9 @@ import {
 } from '../sim/tech';
 import {
   TECH_IDS,
-  type AbilityBearer,
   type TechAge,
   type TechAgeBand,
   type TechId,
-  abilityDef,
-  isAbilityId,
   isCharterTech,
   liveUnlocks,
   techAgeBands,
@@ -325,17 +322,20 @@ function nameKeyword(entryId: string, name: string): HTMLElement {
  * granary does. So the tech card stops saying it and the book says it instead;
  * the gift kind itself stays, because the book reads the same list.
  *
- * An `ability` heading is `null` here for a different reason — it is not fixed.
- * See `giftHeading`, which is the one reader of this table.
+ * `giftHeading` is the one reader of this table.
  */
 const GIFT_HEADING: Record<TechGift['kind'], string | null> = {
   unit: 'Units',
   building: 'Buildings',
   project: 'Repeating projects',
   improvement: 'Workers may build',
-  // Written by `giftHeading` off the ability's *bearer*, because a verb's
-  // heading is a fact about who gains it and not about the kind of gift it is.
-  ability: null,
+  // Batch W1 (`docs/flags.md` item (lllllll)): one heading for every ability.
+  // Until then the heading named who gains the verb ("Workers and settlers
+  // may", "Soldiers may", "Your cities may"), and since batch TT3 each ability
+  // line names its own subject ("Soldiers cross coast and lakes"), so the
+  // heading said it twice. The heading stays as a kind, like "Units", so an
+  // ability line does not sit under "Workers may build".
+  ability: 'Abilities',
   reveal: 'Reveals on the map',
   renewal: 'Improvements renewed',
   // Told by the building's own entry in the Compendium instead. See above.
@@ -347,48 +347,15 @@ const GIFT_HEADING: Record<TechGift['kind'], string | null> = {
 };
 
 /**
- * The words that introduce **one ability**, by who gains it.
- *
- * The heading follows the *bearer* (`AbilityDef.bearer`) rather than the gift's
- * kind, and the whole of why is a mislabelling a playtest turned up
- * (2026-09-03): every rite an augur may spend was being introduced by "Workers
- * may also", which is the one thing an augur is not. A chop and a consecration
- * are the same *kind* of news — a verb somebody gained — and they are not the
- * same news.
- *
- * Named the way the game names the bearer out loud, and in the grammar the
- * sentence needs: one augur against a shelf of soldiers, which is why the first
- * takes the definite article and the second the bare plural.
- */
-const BEARER_HEADING: Record<AbilityBearer, string> = {
-  worker: 'Workers may also',
-  civilian: 'Workers and settlers may',
-  military: 'Soldiers may',
-  augur: 'The augur may',
-  // The rites' heading since they became city verbs: the thing that gains the
-  // verb is a town, and every town of the realm gains it at once.
-  city: 'Your cities may',
-  // A verb nobody carries: the deep ocean opening, the next age's beads shown
-  // early. "The empire may" would be a piece that does not exist, so the heading
-  // says what actually changed.
-  empire: 'Your empire may',
-};
-
-/**
- * How this gift is introduced, or `null` when the card does not print it.
+ * How this gift is introduced on the hover card, or `null` when the card does
+ * not print it.
  *
  * One function so the *grouping* and the heading are one decision: the card
- * opens a new shelf whenever this sentence changes (see `techCard`), which is
- * what lets a node handing over a clearing and a rite print two headings
- * without the loop knowing why.
+ * opens a new shelf whenever this sentence changes (see `techCard`). Exported
+ * so the UI suite can read the headings without a DOM.
  */
-function giftHeading(gift: TechGift): string | null {
-  if (gift.kind !== 'ability') return GIFT_HEADING[gift.kind];
-  // Two tables, one kind. A clearing's id is a `FeatureId` and has no row in
-  // the abilities block at all, so it is the spade's by default — which is
-  // exactly what a chop is.
-  const bearer = isAbilityId(gift.id) ? (abilityDef(gift.id).bearer ?? 'worker') : 'worker';
-  return BEARER_HEADING[bearer];
+export function giftHeading(gift: TechGift): string | null {
+  return GIFT_HEADING[gift.kind];
 }
 
 // --- the figures a gift is quoted at ----------------------------------------
@@ -1273,11 +1240,8 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     let heading: string | null = null;
     let list: HTMLElement | null = null;
     for (const gift of gifts) {
-      // The heading is compared as a *sentence* and not as a kind, which is what
-      // lets one kind open two shelves: the augur's rites and the worker's
-      // clearings are both `ability` gifts and are introduced by different
-      // words (see `giftHeading`), so a node handing over both prints two
-      // headings rather than filing the rites under the spade.
+      // A new shelf opens whenever the heading changes. `techGifts` lists the
+      // gifts of one kind together, so each kind gets one shelf.
       const said = giftHeading(gift)!;
       if (said !== heading) {
         heading = said;

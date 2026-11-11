@@ -19,6 +19,12 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(lllllll) The worker's menu and the improvement preview: RULED 2026-11-11; batch W1 built.**
+The user: *"workers action menu should not show improvements that haven't been unlocked (i.e. charter improvements). also, please have the tooltip show the proper yields, i think the preview yields for an improvement dont factor religious beliefs or orders"*. And on the tech hover card's "may" headings above abilities (for example "Workers and settlers may"), to the recommendation to remove them: *"yeah i agree"*.
+- **The worker's menu** lists an improvement only if the empire has unlocked it. An improvement whose technology the empire does not know is not listed at all, whether that technology is a charter technology (Qanat, Physic Garden) or an ordinary one. Reading taken: this covers every locked improvement, not only charter ones. An improvement that is unlocked but cannot be built on this hex prints as it does today.
+- **The improvement preview** (the tooltip on a menu row) shows the yields the hex will really have for this empire once the improvement stands: beliefs, Orders, technologies' renewals and every other source the hex's own breakdown counts. The figure comes from the sim's own fold (`explainTileYield` with the owner's context, rule 5), never from a second sum in the UI.
+- **The tech hover card** drops the "… may" headings above abilities. The ability lines name their own subject since batch TT3.
+
 **(kkkkkkk) Shorter lines on the tech tree: RULED 2026-11-11; batch TT3 built.**
 The user: *"lets do a readability pass on the tech tree. i.e. 'workers +1 charge' instead of 'newly created workers gain 1 charge'. the rite unlock should also be shorter and more readable. the change to improvement upgrades is great, lets have the whole tech tree read the same way"*.
 - **The model** is the improvement line that batch TT1 made: the thing first, then the figure ("Farm +1 food on fresh water"). Every line a technology prints for a rule, an ability or a line trait reads that way: subject first, figure second, no "gain", "may", "now" or "newly created", no full stop.

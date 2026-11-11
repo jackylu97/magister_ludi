@@ -37,6 +37,7 @@
 
 import type { MeterId } from '../sim/meters';
 import type { ProjectPayout } from '../sim/projectData';
+import { TILE_YIELD_KEYS, type TileYield } from '../sim/terrainData';
 import { roundYield } from '../sim/yieldFormat';
 
 /** The six yields, in the order the city panel's chip row lists them. */
@@ -205,6 +206,31 @@ export function signedFigure(value: number): string {
   if (rounded > 0) return `+${body}`;
   if (rounded < 0) return `−${body}`;
   return '0';
+}
+
+/**
+ * The voices of a change to a hex's yield that a player can see, in the
+ * table's order (`TILE_YIELD_KEYS`): every voice that does not round to
+ * nought, all six included.
+ *
+ * Batch W1 (`docs/flags.md` item (lllllll)): the worker sheet and a great
+ * person's work preview printed food, production and gold only, so a Physic
+ * Garden's science and a belief's faith or culture never showed.
+ */
+export function shownDeltaKeys(delta: Readonly<TileYield>): YieldKey[] {
+  return TILE_YIELD_KEYS.filter((key) => roundYield(delta[key]) !== 0);
+}
+
+/**
+ * "+1🌾 +1🕯" as text: the voices `shownDeltaKeys` keeps, each a signed
+ * figure and its glyph. Empty when nothing shows. For a `title` or another
+ * string; a surface that draws the marks prints the same keys through
+ * `yieldFigureNodes`.
+ */
+export function yieldDeltaFigures(delta: Readonly<TileYield>): string {
+  return shownDeltaKeys(delta)
+    .map((key) => `${signedFigure(delta[key])}${YIELD_GLYPH[key]}`)
+    .join(' ');
 }
 
 /**

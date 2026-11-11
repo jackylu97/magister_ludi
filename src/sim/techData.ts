@@ -494,14 +494,13 @@ export type AbilityId =
   | 'restoringOfTheHost';
 
 /**
- * **Who gains the verb** — the half of an ability that decides how the tech
- * card introduces it.
+ * **Who gains the verb.** `docs/tech-tree.md` prints it in its table of
+ * abilities. The tech card used it for its "… may" headings until batch W1
+ * (`docs/flags.md` item (lllllll)); each ability line names its own subject now.
  *
  * A closed union rather than a free string, so a typo in the JSON is a load
- * error and not a heading that quietly falls back. The words are the *bearer*
- * as a player would name them, never a `UnitCategory` or a type id: an augur is
- * one silhouette and a soldier is a whole shelf, and the card wants the noun it
- * would say out loud ("The augur may", "Soldiers may").
+ * error. The words are the *bearer* as a player would name them, never a
+ * `UnitCategory` or a type id.
  *
  * `empire` is the honest answer for a verb nobody carries — Chronology's faith
  * redraw of an Order draft, the deep ocean opening — and it is what stops those being
@@ -537,9 +536,7 @@ interface AbilityDef {
   /** The mark the star chart centres it on, like a tech's own `glyph`. */
   glyph: string;
   /**
-   * Who gains it. The tech card's heading follows this rather than the gift's
-   * *kind* (the playtest notes, 2026-09-03: the rites were being introduced by
-   * "Workers may also", which is the one thing an augur is not).
+   * Who gains it (`AbilityBearer`).
    *
    * Absent means `worker`, which is what the chop table's entries are — they
    * are abilities with no row in this block at all, so the default has to be

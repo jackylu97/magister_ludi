@@ -224,7 +224,7 @@ import {
 } from '../sim/cities';
 import type { UnrestReport } from '../sim/unrest';
 import {
-  yieldContextFor,
+  type TileYieldContribution,
 } from '../sim/yields/hex';
 import {
   IMPROVEMENT_IDS,
@@ -241,12 +241,10 @@ import {
   chopCity,
   chopError,
   chopTechError,
-  improvementCardError,
+  explainImprovementPreview,
   improvementError,
   improvementGroundError,
-  improvementLeaderError,
-  improvementTechError,
-  improvementYieldDelta,
+  improvementOpenTo,
   workChargeCost,
   pillageError,
   prospectError,
@@ -353,7 +351,7 @@ import { nextUnitInStack, resolveUnitPointerTarget } from './unitPointer';
 import { walkedPrefix } from '../render/animation';
 import { cityDisplayName } from './cityDisplay';
 import { steppedTownId } from './cityPanel';
-import { HAMMER, YIELD_GLYPH, figure, percentFigure, signedFigure } from './figures';
+import { HAMMER, YIELD_GLYPH, figure, percentFigure, signedFigure, yieldDeltaFigures } from './figures';
 import { riteOfferText } from './riteOffer';
 // The bargain vocabulary: the terms a Deal panel writes and what signing one
 // moved. Type-only — this module sends commands and reads reports, and every
@@ -589,46 +587,96 @@ interface DamageEvent {
 /**
  * One improvement the selected worker could build here, and what it would buy.
  *
- * The delta comes from `improvementYieldDelta`, which asks the *same* evaluator
- * the turn pipeline banks with (see `improvements.ts`), so "Farm +1🌾" on the
- * button is the food the city will actually collect. Carrying the delta rather
- * than the improvement's flat `yields` is the difference between a preview and a
- * guess: the day an improvement replaces a feature, or a renewal changes the sum,
- * the button follows without anybody remembering to make it.
+ * The figures come from `explainImprovementPreview` (`improvements.ts`), which
+ * asks the hex's own fold twice: as the hex stands, and on a ghost board with
+ * the work in place. Both readings use the context of the town that owns the
+ * hex, so a follower belief, a scoped Order, a rite and a building's tile yield
+ * are counted. "Farm +2🌾" on the button is the food the town will collect.
  */
 export interface ImprovementOption {
   id: ImprovementId;
   name: string;
-  /** What building it would add to this tile's yield, right now. */
+  /** What the build would add to this hex's yield, all six voices. */
   delta: TileYield;
+  /**
+   * The hex's breakdown with the work in place, line by line: what the hover
+   * card on the board prints after the build. The sheet's hover card prints it.
+   */
+  lines: TileYieldContribution[];
   /**
    * The reducer's own sentence about why this row is greyed rather than
    * pressable, or `null` when it is pressable.
    *
-   * `improvementError`'s whole answer since 2026-09-04 — the ground, the
-   * borders, a seam that wants another improvement, the worker's own charges,
-   * or the technology — never a sentence written here. See
-   * `improvementOptions`: every row the table names is printed, so this field
-   * is what makes a greyed one worth printing.
+   * `improvementError`'s whole answer, never a sentence written here. A listed
+   * row is one the ground takes and the empire has unlocked, so what is left
+   * to refuse it is the worker itself: no charges or no movement left.
    */
   blocked: string | null;
-  /**
-   * The display name of the technology `blocked` is naming, or `null` whenever
-   * something other than the tree is what refused (a pressable row included).
-   *
-   * Read straight off `improvementDef(id).requiresTech` — the same field
-   * `improvementTechError` reads to write `blocked`'s sentence — rather than
-   * parsed back out of that sentence, so the sheet's "Requires Mining" hover
-   * headline (see `unitPanel.ts`) cannot name a different technology than the
-   * one actually gating the row.
-   */
-  requiredTechName: string | null;
   /**
    * What this build would cost the selected worker, in charges: the sim's own
    * `workChargeCost`, so the hint and the spending cannot disagree. Nought for a
    * tended work under The Wildwood Compact (batch DT12).
    */
   charges: number;
+}
+
+/**
+ * The improvement rows a builder's sheet lists for the hex it stands on. Pure,
+ * and exported so the UI suite can test it without a DOM.
+ *
+ * A row is listed when two of the simulation's own readings say yes:
+ *
+ *   - **the ground takes it** (`improvementGroundError`: the borders, a town on
+ *     the hex, the terrain, the features, the hills, a resource that wants
+ *     another improvement). Playthrough note 1: *"just the ones that are valid
+ *     on the tile (show none on city tile, show only plantation on silk)"*;
+ *   - **the empire has unlocked it** (`improvementOpenTo`: the technology, the
+ *     card that opens a tended work or a card-gated row, and the leader who
+ *     alone may build a unique row). The user, 2026-11-11 (`docs/flags.md`
+ *     item (lllllll)): *"workers action menu should not show improvements that
+ *     haven't been unlocked (i.e. charter improvements)"*. Until then a row
+ *     whose technology the empire did not know was listed greyed with
+ *     "Requires X". It is now hidden like the others, charter technologies
+ *     (the Qanat's Surveying, the Physic Garden's Herbals) and ordinary ones
+ *     alike.
+ *
+ * A great person's work (`ImprovementDef.greatPerson`) is never listed: a
+ * worker cannot lay one.
+ *
+ * Each listed row's `blocked` is `improvementError` whole, the reducer's own
+ * gate. So a pressable row is a command the reducer takes, and a greyed row
+ * carries the sentence the command would refuse with. After the two filters,
+ * only the worker itself can refuse: no charges or no movement left.
+ *
+ * The figures are `explainImprovementPreview`'s, the hex's own fold read in the
+ * owning town's context with the work in place. They are quoted on a greyed row
+ * too, because every listed row is one the ground takes, so the figure is one
+ * the empire can collect.
+ *
+ * Walked in `IMPROVEMENT_IDS` order, the table's own, so the buttons do not
+ * reshuffle between renders.
+ */
+export function improvementOptionsFor(state: GameState, unit: Unit): ImprovementOption[] {
+  if (!buildsImprovements(unit)) return [];
+  const tile = getTileAt(state.map, unit.col, unit.row);
+  if (!tile) return [];
+  const options: ImprovementOption[] = [];
+  for (const id of IMPROVEMENT_IDS) {
+    const def = improvementDef(id);
+    if (def.greatPerson !== undefined) continue;
+    if (improvementGroundError(state, unit.ownerId, tile, id) !== null) continue;
+    if (!improvementOpenTo(state, unit.ownerId, id)) continue;
+    const preview = explainImprovementPreview(state, unit.ownerId, tile, id);
+    options.push({
+      id,
+      name: def.name,
+      delta: preview.delta,
+      lines: preview.lines,
+      blocked: improvementError(state, unit.id, id),
+      charges: workChargeCost(state, unit, id),
+    });
+  }
+  return options;
 }
 
 /**
@@ -2163,48 +2211,14 @@ export interface GameControls {
   isUnitSkipped(): boolean;
 
   /**
-   * Every improvement this hex could take, with what each would add to it and —
-   * when it cannot be laid *yet* — why not, in the simulation's own words. The
-   * rows the unit sheet turns into buttons.
-   *
-   * **The ground decides who is listed; the empire decides who is greyed.**
-   * Two rulings met here and the second is the one that settled it:
-   *
-   *   · 2026-09-04, "add a greyed out button of the possible improvements that
-   *     can be built and explain why it can't be built in the worker panel" —
-   *     the list had been the shape of the ground, so a row the hex refused was
-   *     simply absent, which reads well to somebody who already knows the table
-   *     and tells a first-time player nothing: the mine they are looking for is
-   *     missing and nothing says whether that is the hill or Mining.
-   *   · playthrough note 1, "worker menu should not show every improvement
-   *     grayed out — just the ones that are valid on the tile (show none on
-   *     city tile, show only plantation on silk)" — because the first ruling,
-   *     read as *every* row, put eight dead buttons under a worker standing in
-   *     a town and made the sheet a table of contents for the improvement file.
-   *
-   * So a row is listed when the **ground** would take it
-   * (`improvementGroundError` — the borders, the town standing here, the
-   * terrain, the features, the hills, a seam that has already claimed the hex),
-   * and a listed row is pressable exactly when `improvementError` says `null`
-   * and greyed with that function's own sentence otherwise ("A mine needs
-   * Mining", "This worker has no charges left"). Every greyed row is therefore
-   * an argument for something a player can go and do. One rule, one sentence,
-   * no UI copy restating a rule the reducer already states.
-   *
-   * The other row kept off the list is a **great person's work**, and that is
-   * the `greatPerson` marker rather than a name: a worker cannot lay an academy
-   * in any circumstance whatsoever, so its refusal is about the *piece* rather
-   * than about the hex. `ImprovementOption.requiredTechName` stays the narrower
-   * thing it always was — set only when the *tree* is the refusal — and now
-   * cannot be anything else, since a ground refusal never reaches the list.
-   *
-   * **Empty is a real answer**: a town hex takes no improvement at all, so the
-   * sheet shows the worker's other verbs and no spade rows, which is the honest
-   * picture rather than eight refusals of the same sentence.
+   * Every improvement this worker could lay on this hex, with what each would
+   * add to it and, when the worker cannot lay it this turn, why not, in the
+   * simulation's own words. The rows the unit sheet turns into buttons. The
+   * rule is `improvementOptionsFor`'s, and its docblock gives the rulings.
    *
    * Empty when there is no selection, when the selection is not a builder, or
-   * when the seat has ended its turn — the panel then shows the charges line and
-   * no verbs, which is the honest picture of a worker with nothing to do here.
+   * when the seat has ended its turn. The panel then shows the charges line and
+   * no verbs.
    */
   improvementOptions(): ImprovementOption[];
   /** Spends a charge. The unit sheet's per-improvement buttons. */
@@ -5817,79 +5831,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   // --- improvements --------------------------------------------------------
 
   /**
-   * Every improvement this hex could ever take — see
-   * `GameControls.improvementOptions` for the ruling and the two exclusions.
-   *
-   * The filter is the *ground's* reading (`improvementGroundError`) and the
-   * greying is the whole one, which is the two questions a worker's sheet asks
-   * kept apart: a row the ground will never accept is not printed, and a row
-   * the ground accepts is printed with whatever the empire, the tree or the
-   * worker's own purse has to say about it.
-   *
-   * Each row's `blocked` is `improvementError` whole, the reducer's own gate, so
-   * a row that appears *pressable* is a command that will be accepted and a row
-   * that is greyed carries the exact sentence the command would have refused
-   * with. The delta beside it comes from the same evaluator the yields are
-   * banked with, and it is quoted on a greyed row too, for the reason a greyed
-   * Mine always quoted its 2⚙: the number is the argument for going and getting
-   * whatever is missing.
-   *
-   * Walked in `IMPROVEMENT_IDS` order — the table's own — so the buttons neither
-   * reshuffle between renders nor move under the player's hand as a hex becomes
-   * legal.
-   *
-   * `requiredTechName` is asked of `improvementTechError` separately rather than
-   * derived from `blocked`, and the comparison is what keeps the hover headline
-   * honest: `improvementErrorAt` asks the tree *last* (see its docblock), so a
-   * tech sentence means every question about the ground already said yes. A mine
-   * on grassland greys with the grassland; a mine on a hill this empire has not
-   * learnt to dig greys with Mining and says so.
+   * The selected worker's rows, or none while the seat may not give orders.
+   * The rule is `improvementOptionsFor`'s.
    */
   function improvementOptions(): ImprovementOption[] {
     const unit = selectedUnit();
     if (!unit || !canOrder()) return [];
-    const { state } = getGame();
-    if (!buildsImprovements(unit)) return [];
-    const tile = getTileAt(state.map, unit.col, unit.row);
-    if (!tile) return [];
-    const ctx = yieldContextFor(state, unit.ownerId);
-    const options: ImprovementOption[] = [];
-    for (const id of IMPROVEMENT_IDS) {
-      const def = improvementDef(id);
-      // The works are a great person's and no spade's — the `greatPerson`
-      // marker, never a name. Their refusal is about the piece rather than the
-      // hex, so they are the one thing this list still hides.
-      if (def.greatPerson !== undefined) continue;
-      // **The ground decides who is on the sheet at all** (user, playthrough
-      // note 1). A row this hex could never take under any empire — a town
-      // standing here, somebody else's border, the silk asking for its
-      // plantation — is not an argument for anything, so it is not printed.
-      // Asked of the sim's own ground reading rather than by re-deriving the
-      // clauses here, so the menu and the reducer cannot disagree about what
-      // this hex is.
-      if (improvementGroundError(state, unit.ownerId, tile, id) !== null) continue;
-      // **A row this empire's figure will never open is not on the sheet
-      // either** (batch L8). The greyed rows are arguments — go and learn
-      // Mining — and "only one realm may build this" is not an argument, it is
-      // a fact about somebody else's seat that no amount of play will change.
-      // Asked of the sim's own gate (`improvementLeaderError`) rather than by
-      // reading the marker here, so the menu and the reducer cannot disagree.
-      if (improvementLeaderError(state, unit.ownerId, id) !== null) continue;
-      // A tended work stays off the sheet until its card is drafted, for the
-      // same reason: the seat cannot learn it by playing on.
-      if (improvementCardError(state, unit.ownerId, id) !== null) continue;
-      const tech = improvementTechError(state, unit.ownerId, id);
-      const gate = def.requiresTech;
-      options.push({
-        id,
-        name: def.name,
-        delta: improvementYieldDelta(tile, id, ctx),
-        blocked: improvementError(state, unit.id, id),
-        requiredTechName: tech !== null && gate !== undefined ? techDef(gate).name : null,
-        charges: workChargeCost(state, unit, id),
-      });
-    }
-    return options;
+    return improvementOptionsFor(getGame().state, unit);
   }
 
   /**
@@ -6344,9 +6292,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   /**
    * What the selected great person's **work** would leave on this hex.
    *
-   * The improvement's own name and the delta from `improvementYieldDelta` — the
-   * *same* evaluator a worker's farm row quotes, asked with the owner's context
-   * — so an academy's `+3🔬` on the sheet is the number the tile will pay.
+   * The improvement's own name and the change `explainImprovementPreview`
+   * reads, the same reading a worker's farm row quotes. So an academy's `+3🔬`
+   * on the sheet is the number the hex will pay. Until batch W1 this printed
+   * food, production and gold only, so an academy's science never showed.
+   * The preview gives unowned ground to the nearest town, as a worker's build
+   * does. The ground gate refuses a great person's work outside the borders,
+   * so that never decides a figure the piece can collect.
    */
   function greatPersonWorkPreview(unit: Unit): string {
     const { state } = getGame();
@@ -6355,11 +6307,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const name = improvementDef(work).name;
     const tile = getTileAt(state.map, unit.col, unit.row);
     if (!tile) return name;
-    const delta = improvementYieldDelta(tile, work, yieldContextFor(state, unit.ownerId));
-    const figures = (['food', 'production', 'gold'] as const)
-      .filter((key) => delta[key] !== 0)
-      .map((key) => `${signedFigure(delta[key])}${YIELD_GLYPH[key]}`)
-      .join(' ');
+    const figures = yieldDeltaFigures(explainImprovementPreview(state, unit.ownerId, tile, work).delta);
     return figures ? `${name} here · ${figures}` : `${name} here`;
   }
 

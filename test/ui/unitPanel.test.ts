@@ -265,21 +265,18 @@ describe('an idle trader’s sheet', () => {
  *
  * The occasion is the lumbermill (user, 2026-08-27: "add ability to build
  * lumbermills at construction"), and the point of the test is that the
- * interface needed no pass at all for it: `improvementOptions` walks
- * `IMPROVEMENT_IDS` and gates every row on the reducer's own `improvementError`
- * / `improvementTechError`, so a new row appears the moment it is in the JSON,
- * greyed until it is legal, and pressable exactly when the command would be
- * accepted. What this pins is the *genericity* — a hand-written list of ids at
- * the surface, or one id skipped, is a verb the player can never reach.
- *
- * Since the 2026-09-04 onboarding ruling the list is the whole spade half of
- * the table on every hex, so "every improvement the table names" is now literal
- * rather than a claim about a particular tile.
+ * interface needed no pass at all for it: `improvementOptionsFor` walks
+ * `IMPROVEMENT_IDS` and gates every row on the sim's own readings, so a new row
+ * appears the moment it is in the JSON and the empire has unlocked it, and is
+ * pressable exactly when the command would be accepted. What this pins is the
+ * *genericity* — a hand-written list of ids at the surface, or one id skipped,
+ * is a verb the player can never reach. `test/ui/workerMenu.test.ts` asks the
+ * same function about real boards.
  */
 describe('the worker offers every improvement the table names', () => {
   const controls = source('controls.ts');
-  const options = controls.slice(controls.indexOf('function improvementOptions('));
-  const body = options.slice(0, options.indexOf('\n  }\n'));
+  const options = controls.slice(controls.indexOf('export function improvementOptionsFor('));
+  const body = options.slice(0, options.indexOf('\n}\n'));
 
   it('asks the sim what a build spends, so the hint cannot promise a charge it will not take', () => {
     // The Wildwood Compact (batch DT12): a tended work spends nothing.
@@ -300,72 +297,53 @@ describe('the worker offers every improvement the table names', () => {
   });
 
   /**
-   * The two onboarding rulings, and the second is what the shape is now.
-   *
-   * 2026-09-04, "add a greyed out button of the possible improvements that can
-   * be built and explain why it can't be built in the worker panel" — a row
-   * refused for a reason the player can *act on* is printed and greyed with
-   * `improvementError`'s own sentence, so the panel answers "why can I not
-   * build a mine here" instead of answering it by omission.
+   * The rulings, and the last is what the shape is now.
    *
    * Playthrough note 1, "worker menu should not show every improvement grayed
-   * out — just the ones that are valid on the tile" — a row the *ground* will
-   * never take is not an argument for anything, so it is filtered out on the
-   * sim's own ground reading. Two clauses, and they are different questions:
-   * what could this hex ever hold, against what is stopping me today.
+   * out — just the ones that are valid on the tile": a row the *ground* will
+   * never take is filtered out on the sim's own ground reading.
    *
-   * The failure this guards is a quiet one in both directions — a filter
-   * written on `improvementError` instead would hide the tech-blocked rows the
-   * first ruling asked for, and a sentence written in the UI would drift from
-   * the rule the reducer enforces.
+   * The user, 2026-11-11 (`docs/flags.md` item (lllllll)): "workers action menu
+   * should not show improvements that haven't been unlocked (i.e. charter
+   * improvements)". A row the empire has not unlocked (its technology, its
+   * card, its leader) is filtered out on the sim's own reading of that
+   * (`improvementOpenTo`). Until then a row whose technology was not known was
+   * listed greyed with "Requires X".
+   *
+   * The failure this guards is a quiet one: a rule written in the UI would
+   * drift from the rule the reducer enforces.
    */
-  it("lists what the ground takes and greys it with the reducer's own sentence", () => {
-    expect(body).toContain("blocked: improvementError(state, unit.id, id),");
-    // The filter is the ground's reading — never the full gate, which would
-    // take the tech-blocked rows with it.
+  it("lists what the ground takes and the empire has unlocked, greyed with the reducer's own sentence", () => {
+    expect(body).toContain('blocked: improvementError(state, unit.id, id),');
     expect(body).toContain(
       'if (improvementGroundError(state, unit.ownerId, tile, id) !== null) continue;',
     );
-    // The second exclusion, and it is a marker rather than a name: a great
-    // person's work is not a spade's row at all.
+    // A great person's work is not a spade's row at all: a marker, not a name.
     expect(body).toContain('if (def.greatPerson !== undefined) continue;');
-    // The third (batch L8): a row only one realm may ever build. It is hidden
-    // rather than greyed because a greyed row is an *argument* — go and learn
-    // Mining — and "that belongs to another leader" is not one. Asked of the
-    // sim's own gate, so the menu cannot disagree with the reducer.
-    expect(body).toContain(
-      'if (improvementLeaderError(state, unit.ownerId, id) !== null) continue;',
-    );
-    // The fourth (batch D3): a tended work whose card this seat has not
-    // drafted, hidden for the figure's reason and asked of the sim's own gate.
-    expect(body).toContain(
-      'if (improvementCardError(state, unit.ownerId, id) !== null) continue;',
-    );
-    // Exactly four `continue`s — the works, the figure, the card and the
-    // ground. A fifth is a rule the sheet invented for itself.
-    expect((body.match(/continue;/g) ?? []).length).toBe(4);
+    // The technology, the card and the leader, in one reading of the sim's.
+    expect(body).toContain('if (!improvementOpenTo(state, unit.ownerId, id)) continue;');
+    // Exactly three `continue`s: the works, the ground and the empire. A fourth
+    // is a rule the sheet invented for itself.
+    expect((body.match(/continue;/g) ?? []).length).toBe(3);
+    // No row names the technology it waits for any more: such a row is hidden.
+    expect(body).not.toContain('requiredTechName');
+    expect(body).not.toContain('improvementTechError');
   });
 
-  it('names a technology only when the tree is what refused', () => {
-    // `improvementErrorAt` asks the tree last, so a tech sentence means the
-    // ground already said yes — which is what lets the sheet crown the row
-    // "Requires Mining" without ever crowning a ground refusal that way.
-    expect(body).toContain('const tech = improvementTechError(state, unit.ownerId, id);');
-    expect(body).toContain(
-      'requiredTechName: tech !== null && gate !== undefined ? techDef(gate).name : null,',
-    );
-  });
-
-  it('quotes the yield only where the player could collect it', () => {
-    // A hypothetical delta is real arithmetic about a tile that does not exist:
-    // "Mine +2⚙" beside "a mine needs hills" would advertise a payout this hex
-    // can never hand over. Pressable rows and tech-blocked rows keep the
-    // number, because there the number is the argument.
+  it('quotes the figures of the sim’s own preview on every listed row', () => {
+    // Every listed row is one the ground takes and the empire has unlocked, so
+    // the figure is one the empire can collect, greyed row or not.
+    expect(body).toContain('const preview = explainImprovementPreview(state, unit.ownerId, tile, id);');
+    expect(body).toContain('delta: preview.delta,');
+    expect(body).toContain('lines: preview.lines,');
     const panel = source('unitPanel.ts');
-    expect(panel).toContain(
-      'const quotesDelta = option.blocked === null || option.requiredTechName !== null;',
-    );
-    expect(panel).toContain('const delta = quotesDelta ? yieldDeltaNodes(option.delta) : null;');
+    expect(panel).toContain('const delta = yieldDeltaNodes(option.delta);');
+    expect(panel).not.toContain('quotesDelta');
+    // The hover card prints the hex once the work stands, with the board's own
+    // hover printers, and the refusal under it.
+    expect(panel).toContain('card: () => improvementCard(unit, option),');
+    expect(panel).toContain('tileYieldLineNodes(state, unit.ownerId, tile, option.lines)');
+    expect(panel).toContain('tileYieldNodes(state, unit.ownerId, tile, option.lines)');
   });
 
   it('leaves a great person’s work off the spade’s sheet', () => {
@@ -414,8 +392,13 @@ describe('a greyed row’s refusal', () => {
       'info.bind(button, action.card ?? (() => refusalCard(action.blocked!)));',
     );
     expect(body).not.toContain('unit-action-blocked');
-    // The one `title` assignment left lives in the *live* branch only.
+    // The one `title` assignment left lives in the *live* branch only, and
+    // since batch W1 only for a live row with no card: one hover, never two.
     expect(body).toContain('button.title = action.title ?? action.hint;');
+    expect(body).toContain('} else if (action.card) {');
+    expect(body.indexOf('} else if (action.card) {')).toBeLessThan(
+      body.indexOf('button.title = action.title ?? action.hint;'),
+    );
   });
 
   it('is gated on the same field that disables the button', () => {

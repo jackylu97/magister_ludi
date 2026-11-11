@@ -456,9 +456,9 @@ describe('techGifts', () => {
  *
  * The user's report was that every rite an augur may spend was introduced on the
  * tech card by "Workers may also", which is the one thing an augur is not. The
- * fix is a field on the row, and the register test is here rather than in a UI
- * suite for the reason this whole file exists: the star chart's heading is one
- * lookup off this data, so the data is what can be wrong.
+ * fix was a field on the row. Since batch W1 the tech card prints one
+ * "Abilities" heading and each line names its own subject, so the field is
+ * read by `docs/tech-tree.md`'s table of abilities (`techDocSync.test.ts`).
  */
 describe('an ability names its bearer', () => {
   it('gives every verb in the table a bearer the union knows', () => {
@@ -473,10 +473,9 @@ describe('an ability names its bearer', () => {
     // The rows the mislabelling was actually about. Named here rather than
     // derived, because "which of these is a rite" is a design fact about the
     // religion pass and not something the table can be asked.
-    // **The bearer is the city** since the rites became city verbs (2026-09-06):
-    // the tech card says "Your cities may", which is the one thing that changed
-    // about every rite in the table at once. The two withdrawn rites are no
-    // longer abilities at all, which is why they are not in this list.
+    // **The bearer is the city** since the rites became city verbs (2026-09-06).
+    // The two withdrawn rites are no longer abilities at all, which is why they
+    // are not in this list.
     for (const rite of [
       'riteOfTheHarvest',
       'omenReading',

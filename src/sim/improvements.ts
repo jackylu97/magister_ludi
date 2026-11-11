@@ -74,14 +74,18 @@ import {
   refreshTileDerived,
   settleGrowthWindfall,
   settleProductionWindfall,
+  tileContextAt,
   tileOwnerCityId,
   tileOwnerPlayerId,
   townHoldsWork,
   withinReachOfBorders,
 } from './cities';
 import {
+  explainTileYield,
   foldTile,
+  foldTileLines,
   type TileYieldContext,
+  type TileYieldContribution,
 } from './yields/hex';
 import {
   type ImprovementId,
@@ -108,6 +112,7 @@ import {
   raiseImprovement,
   razeImprovement,
   tileHex,
+  tileIndex,
   tileNeighbors,
   wrappedDistance,
 } from './map';
@@ -1116,7 +1121,7 @@ function claimGroundForWork(
 ): City | null {
   const radius = improvementDef(improvementId).claimsUnowned;
   if (radius === undefined && !unowned) return null;
-  const seat = nearestOwnedCity(state, playerId, { col: tile.col, row: tile.row });
+  const seat = workClaimant(state, playerId, tile);
   if (!seat) return null;
   let claimed = 0;
   if (radius !== undefined) {
@@ -1133,6 +1138,16 @@ function claimGroundForWork(
   refreshCityDerived(state, seat);
   recomputeVisibility(state, playerId);
   return seat;
+}
+
+/**
+ * The town that takes the ground when this empire lays a work on this hex: its
+ * nearest town (`nearestOwnedCity`). If the hex is unowned, both branches of
+ * `claimGroundForWork` give the work's own hex to this town. The preview's
+ * ghost board asks the same function (`explainImprovementPreview`).
+ */
+function workClaimant(state: GameState, playerId: number, tile: Tile): City | null {
+  return nearestOwnedCity(state, playerId, { col: tile.col, row: tile.row });
 }
 
 /**
@@ -1153,18 +1168,122 @@ export function improvementYieldDelta(
   ctx?: TileYieldContext,
 ): TileYield {
   const now = foldTile(tile, ctx);
-  // A row that marks an improved hex (Expansionist batch E9, The Burning
-  // Season) leaves the work and adds its mark, so the candidate is the hex
-  // with the mark, not with the row.
-  const mark = markInsteadOf(tile, improvementId);
-  const candidate: Tile =
-    mark === undefined
-      ? { ...tile, improvement: improvementId }
-      : { ...tile, marks: [...(tile.marks ?? []), mark] };
-  const after = foldTile(candidate, ctx);
+  const after = foldTile(tileWithWork(tile, improvementId), ctx);
+  return yieldDifference(after, now);
+}
+
+/** `after` minus `now`, voice by voice. */
+function yieldDifference(after: TileYield, now: TileYield): TileYield {
   const delta = emptyTileYield();
   for (const key of TILE_YIELD_KEYS) delta[key] = after[key] - now[key];
   return delta;
+}
+
+/**
+ * A copy of this hex as it would stand once the build is done. The real hex is
+ * not changed.
+ *
+ * A row that marks an improved hex (Expansionist batch E9, The Burning Season)
+ * leaves the work and adds its mark, so the copy has the mark and keeps the
+ * work. Any other row stands on the copy in place of what was there.
+ *
+ * `turn` is the turn the work goes up. `raiseImprovement` writes it as the
+ * hex's age stamp, so the preview passes it and a card that reads the age of
+ * a work sees a new one. `improvementYieldDelta` passes none and keeps the
+ * stamp the hex has, so the bot's figures do not change.
+ */
+function tileWithWork(tile: Tile, improvementId: ImprovementId, turn?: number): Tile {
+  const mark = markInsteadOf(tile, improvementId);
+  if (mark !== undefined) return { ...tile, marks: [...(tile.marks ?? []), mark] };
+  const work: Tile = { ...tile, improvement: improvementId };
+  if (turn !== undefined) work.improvedOn = turn;
+  return work;
+}
+
+/**
+ * The worker sheet's preview of one build: the hex's breakdown with the work in
+ * place, the breakdown as it stands, and the difference.
+ */
+export interface ImprovementPreview {
+  /**
+   * The hex's breakdown once the work stands, which is what the hover card on
+   * the board prints after the build.
+   */
+  lines: TileYieldContribution[];
+  /** The hex's breakdown as it stands now. */
+  before: TileYieldContribution[];
+  /** The fold of `lines` minus the fold of `before`. */
+  delta: TileYield;
+}
+
+/**
+ * **What this hex would pay this empire once the improvement stands on it**
+ * (`docs/flags.md` item (lllllll), batch W1). The worker sheet's label and
+ * hover card read this.
+ *
+ * Both breakdowns come from the hex's own fold, `explainTileYield`, with the
+ * context that the hover card and the yields lens use (`tileContextAt`): the
+ * context of the town that owns the hex. That context holds the lines that
+ * only a town can answer for: a follower belief (Harvest Blessing), an Order
+ * with a scope (The Provincial Fair), a rite, a building's tile yield, a
+ * consecration, and a Cistern's water. Before batch W1 the sheet read the
+ * empire's context (`yieldContextFor`) and missed all of them.
+ *
+ * The reading after the build is taken on a **ghost board**: a shallow copy of
+ * the state whose map holds a copy of this hex with the work on it
+ * (`tileWithWork`). The ghost is needed because some facts in the context come
+ * from the rest of the board, and the build changes them:
+ *
+ *   - a luxury that the work opens can pay on this hex. Whales and tyrian dye
+ *     pay on every fishing boat, and the boat on the seam is one of them;
+ *   - a farm is watered by a chain of farms (The Water Courts) or by a Qanat
+ *     beside it, and the field that says so is read off the farms on the board;
+ *   - a card condition can count the works or the luxuries an empire holds.
+ *
+ * A hex outside the borders joins the builder's nearest town when the work
+ * goes up (`claimGroundForWork`), so the ghost gives the hex to that town
+ * (`workClaimant`) and reads it in that town's context.
+ *
+ * **Pure.** Nothing in `state` is written. The ghost replaces the arrays it
+ * changes (the tiles, the owners) with new ones and shares every other field.
+ * The memos are keyed on the state object (`slate.ts`, the law's memo), so a
+ * reading taken on the ghost is never seen by the real state.
+ *
+ * Not counted: what the build changes on other hexes, such as a farm further
+ * down a watered chain, or the mines beside a new mine under Mining Districts.
+ */
+export function explainImprovementPreview(
+  state: GameState,
+  playerId: number,
+  tile: Tile,
+  improvementId: ImprovementId,
+): ImprovementPreview {
+  const before = explainTileYield(tile, tileContextAt(state, playerId, tile));
+  const work = tileWithWork(tile, improvementId, state.turn);
+  const ghost = boardWithWork(state, playerId, work, markInsteadOf(tile, improvementId) === undefined);
+  const lines = explainTileYield(work, tileContextAt(ghost, playerId, work));
+  return { lines, before, delta: yieldDifference(foldTileLines(lines), foldTileLines(before)) };
+}
+
+/**
+ * A shallow copy of the state whose map holds `work` in place of the real hex
+ * at its coordinates. If `claims` is set and the hex is unowned, the copy also
+ * gives the hex to the town the build would give it to (`workClaimant`). A
+ * burn that only marks a hex claims nothing (`buildImprovementAt`).
+ */
+function boardWithWork(state: GameState, playerId: number, work: Tile, claims: boolean): GameState {
+  const index = tileIndex(state.map, work.col, work.row);
+  const tiles = state.map.tiles.slice();
+  tiles[index] = work;
+  let tileOwner = state.tileOwner;
+  if (claims && tileOwner[index] === null) {
+    const seat = workClaimant(state, playerId, work);
+    if (seat) {
+      tileOwner = tileOwner.slice();
+      tileOwner[index] = seat.id;
+    }
+  }
+  return { ...state, map: { ...state.map, tiles }, tileOwner };
 }
 
 // --- taking an improvement out again ----------------------------------------

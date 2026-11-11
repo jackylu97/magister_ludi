@@ -27,7 +27,7 @@
  * From the **preview**, taken before the command and composed by the simulation's
  * own seams (`greatPersonActPreview` / `greatPersonWorkPreview` in
  * `controls.ts`, which read `actGainOf`, `agedActFactor`, `RULES.greatPeople`
- * and `improvementYieldDelta`). That is not a second arithmetic: `greatPeople.ts`
+ * and `explainImprovementPreview`). That is not a second arithmetic: `greatPeople.ts`
  * composes an act's figure once, before anything is banked (Entry XVIII.5 —
  * "the preview and the payout are one number"), and the piece is *gone* by the
  * time the command returns, so asking the board afterwards what it was about to

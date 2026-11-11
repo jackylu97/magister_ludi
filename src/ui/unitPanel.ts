@@ -55,8 +55,8 @@ import { unitHealthBonus } from '../sim/resourceEffects';
 import { unitUpkeep, unitUpkeepOf } from '../sim/upkeep';
 import type { ImprovementOption } from './controls';
 import { cityDisplayName } from './cityDisplay';
-import { describeTile, knowsCity } from './tileReadout';
-import { YIELD_GLYPH, signedFigure } from './figures';
+import { describeTile, knowsCity, tileYieldLineNodes, tileYieldNodes } from './tileReadout';
+import { YIELD_GLYPH, shownDeltaKeys, signedFigure, yieldDeltaFigures } from './figures';
 import { createInfoCard } from './infoCard';
 import { setDescriptorText } from './keywords';
 import type { RouteReading } from './tradeLines';
@@ -72,7 +72,7 @@ import { rankMarkDataUri } from '../art/rankMarks';
 import { type UnitLedgerLine, type UnitTraitLedger, foldUnitLedger, unitTraitLedger } from './unitTraits';
 import { cardUnitStat } from '../sim/statecraft';
 
-/** The three voices an improvement can move, in the order the panel reads them. */
+/** The three voices a route's hover card prints, in the order the panel reads them. */
 const DELTA_KEYS = ['food', 'production', 'gold'] as const;
 
 /** "Chop +20⚙" with the cogwheel drawn — the axe's one-row payout. */
@@ -84,8 +84,8 @@ function chopLabel(production: number): DocumentFragment {
 }
 
 /**
- * "+1🌾 +1💰" — a yield delta in the three voices, zeroes left out, with each
- * mark **drawn**.
+ * "+1🌾 +1🕯" — a yield delta in every voice that shows (`shownDeltaKeys`),
+ * with each mark **drawn**.
  *
  * The marks come from `src/ui/yieldMark.ts`, the one printer every yield glyph
  * on this interface goes through (the context card, the city panel, the top
@@ -95,7 +95,7 @@ function chopLabel(production: number): DocumentFragment {
  * worth no yield is still worth building for the resource it opens.
  */
 function yieldDeltaNodes(delta: TileYield): DocumentFragment | null {
-  const keys = DELTA_KEYS.filter((key) => delta[key] !== 0);
+  const keys = shownDeltaKeys(delta);
   if (keys.length === 0) return null;
   const fragment = document.createDocumentFragment();
   keys.forEach((key, index) => {
@@ -103,21 +103,6 @@ function yieldDeltaNodes(delta: TileYield): DocumentFragment | null {
     fragment.append(yieldFigureNodes(signedFigure(delta[key]), key));
   });
   return fragment;
-}
-
-/**
- * The same delta as plain text, for the `title` attribute beside it.
- *
- * The deliberate half of the emoji retirement: a hover card built by the
- * platform out of an attribute string cannot hold an element, so the row that
- * *shows* a drawn cogwheel still *says* `⚙` when a pointer rests on it. Every
- * such surface in this interface keeps `YIELD_GLYPH` for that reason and no
- * other — see the register in `figures.ts`.
- */
-function formatYieldDelta(delta: TileYield): string {
-  return DELTA_KEYS.filter((key) => delta[key] !== 0)
-    .map((key) => `${signedFigure(delta[key])}${YIELD_GLYPH[key]}`)
-    .join(' ');
 }
 
 /**
@@ -185,13 +170,12 @@ interface UnitPanelOptions {
   /** Whether the selected unit has already been skipped this turn. */
   isUnitSkipped: () => boolean;
   /**
-   * The improvements the selected unit could build where it stands, already
-   * filtered to the legal ones and carrying their yield deltas —
-   * `controls.improvementOptions()`.
+   * The improvements the selected unit could build where it stands, filtered
+   * to the ones the ground takes and the empire has unlocked, with their
+   * figures: `controls.improvementOptions()`.
    *
    * A list rather than a blocker, because this verb is six verbs. See
-   * `GameControls.improvementOptions` for why the illegal ones are absent
-   * instead of greyed out.
+   * `improvementOptionsFor` in `controls.ts` for which rows are listed.
    */
   improvementOptions: () => ImprovementOption[];
   onBuildImprovement: (id: ImprovementId) => void;
@@ -223,9 +207,8 @@ interface UnitPanelOptions {
   } | null;
   /**
    * The technology a greyed Chop row is waiting on, or `null` —
-   * `controls.chopTechName()`. See `ImprovementOption.requiredTechName` for
-   * why this is a name read off the same data the reducer's refusal reads,
-   * never parsed out of `chopBlocker`'s sentence.
+   * `controls.chopTechName()`. It is a name read off the same data the
+   * reducer's refusal reads, never parsed out of `chopBlocker`'s sentence.
    */
   chopTechName: () => string | null;
   onChop: () => void;
@@ -538,6 +521,28 @@ export function disbandPrompt(unit: Unit): { title: string; body: string } {
 export function workChargeWords(charges: number): string {
   if (charges === 0) return 'No charge spent';
   return charges === 1 ? 'Spend a charge' : `Spend ${charges} charges`;
+}
+
+/**
+ * A build row's plain-text form (`UnitAction.hint`): what the build spends and
+ * the change to the hex's yield, "Spend a charge: farm on this tile · +2🌾
+ * +1🕯". Every figure is the option's, so every voice that shows is in it
+ * (`yieldDeltaFigures`). On hover the sheet raises `improvementCard` instead,
+ * which prints the same change through `improvementChangeWords`.
+ */
+export function improvementHint(option: Pick<ImprovementOption, 'name' | 'charges' | 'delta'>): string {
+  const figures = yieldDeltaFigures(option.delta);
+  const spends = `${workChargeWords(option.charges)}: ${option.name.toLowerCase()} on this tile`;
+  return figures === '' ? spends : `${spends} · ${figures}`;
+}
+
+/**
+ * The first line of a build row's hover card: the change to the hex's yield,
+ * "+2🌾 +1🕯 on this hex", or a plain sentence when nothing changes.
+ */
+export function improvementChangeWords(delta: TileYield): string {
+  const figures = yieldDeltaFigures(delta);
+  return figures === '' ? 'No change to this hex’s yield' : `${figures} on this hex`;
 }
 
 export function marchDestination(
@@ -914,26 +919,21 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
         run: onSkip,
       });
     }
-    // The builder's verbs, one per improvement a spade can lay anywhere.
+    // The builder's verbs, one per improvement a spade can lay here.
     //
-    // Which rows are here and which are greyed is `improvementOptions`'s rule,
-    // not this panel's: the rows are what the *ground* would take, printed
-    // pressable where the reducer would take the command and greyed with the
-    // reducer's own refusal where the empire, the tree or the worker's purse is
-    // what stands in the way. So the question "why can I not build a mine here"
-    // is answered on the row wherever a hex could ever hold one, and a hex that
-    // could not simply does not offer it — a worker in a town gets no spade
-    // rows at all, and this loop writing nothing is that answer. The refusal
-    // itself rides the hover card (`refusalCard`, one fallback for every greyed
-    // verb on this sheet), so nine rows cost nine words, not nine sentences.
+    // Which rows are here and which are greyed is `improvementOptionsFor`'s
+    // rule (`controls.ts`), not this panel's. A row is listed when the ground
+    // takes it and the empire has unlocked it, and it is greyed with the
+    // reducer's own refusal when the worker has no charges or no movement left.
+    // A worker in a town gets no spade rows at all, and this loop writing
+    // nothing is that answer.
     //
-    // The label carries the delta, from the same evaluator the city banks with,
-    // so a charge is spent against a number rather than against a hope — and a
-    // *tech-blocked* row carries it too, because "the mine here would be worth
-    // 2⚙" is precisely the argument for going and researching Mining. A row the
-    // ground refuses carries no number at all (`quotesDelta` below): the yield
-    // is real arithmetic about a hypothetical tile, and printing it beside "a
-    // mine needs hills" would advertise a payout this hex can never hand over.
+    // The label carries the change to the hex's yield, all six voices, from the
+    // hex's own fold with the work in place (`explainImprovementPreview`). So a
+    // charge is spent against a number rather than against a hope. A greyed row
+    // carries it too: every listed row is one the ground takes, so the figure
+    // is one the empire can collect. The hover card (`improvementCard`) prints
+    // the hex's whole breakdown once the work stands, and the refusal under it.
     // The rows are shown only to a piece whose charges are for building
     // (`buildsImprovements`, tidy batch Z1). A great person, a prophet, an
     // apostle, an inquisitor and an augur all carry charges, but each spends
@@ -949,13 +949,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     const canSurvey = buildsImprovements(unit) || isExplorer(unitDef(unit.type));
     if (buildsImprovements(unit)) {
       for (const option of improvementOptions()) {
-        // Pressable, or refused by the tree alone — the two cases where the
-        // number is one the player can actually reach. `requiredTechName` is
-        // set exactly when the technology is what refused (see
-        // `ImprovementOption`), which is what makes this a reading of the
-        // rules rather than a second guess at them.
-        const quotesDelta = option.blocked === null || option.requiredTechName !== null;
-        const delta = quotesDelta ? yieldDeltaNodes(option.delta) : null;
+        const delta = yieldDeltaNodes(option.delta);
         let label: string | DocumentFragment = option.name;
         if (delta) {
           const row = document.createDocumentFragment();
@@ -965,13 +959,8 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
         actions.push({
           label,
           blocked: option.blocked,
-          hint:
-            `${workChargeWords(option.charges)}: ${option.name.toLowerCase()} on this tile` +
-            // The hover card is a `title` attribute and therefore text, so the
-            // delta it quotes wears the plain glyph. Deliberate, and the reason
-            // `formatYieldDelta` survived the drawn marks.
-            (delta ? ` · ${formatYieldDelta(option.delta)}` : ''),
-          title: techHoverTitle(option.requiredTechName, option.blocked),
+          hint: improvementHint(option),
+          card: () => improvementCard(unit, option),
           run: () => onBuildImprovement(option.id),
         });
       }
@@ -1261,6 +1250,53 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
   }
 
   /**
+   * What a build would make of this hex, on the card that rises beside its row
+   * (batch W1, `docs/flags.md` item (lllllll)). The user, 2026-11-11:
+   * *"please have the tooltip show the proper yields"*.
+   *
+   * Every figure is the simulation's:
+   *
+   *   - **the change**, `ImprovementOption.delta`, which is the label's figure;
+   *   - **the hex once the work stands**, the fold of `ImprovementOption.lines`,
+   *     and those lines under it. Both are printed by the board's own hover card
+   *     printers (`tileYieldNodes`, `tileYieldLineNodes`), so this card says
+   *     what that hover card will say after the build. A belief or an Order
+   *     that pays on the hex has a line of its own, under its own name;
+   *   - **what it spends**, `workChargeWords`.
+   *
+   * A greyed row's refusal is the last line, as on a prophet's card, so the
+   * row raises this card rather than `refusalCard`.
+   */
+  function improvementCard(unit: Unit, option: ImprovementOption): Node {
+    const state = getGame().state;
+    const card = element('div', 'unit-card');
+    card.append(element('h4', 'unit-card-title', option.name));
+    const payoff = element('p', 'unit-card-payoff');
+    setYieldText(payoff, improvementChangeWords(option.delta));
+    card.append(payoff);
+    const tile = getTileAt(state.map, unit.col, unit.row);
+    if (tile) {
+      const figures = tileYieldNodes(state, unit.ownerId, tile, option.lines);
+      const total = element(
+        'p',
+        'unit-card-clause',
+        figures.length === 0 ? 'Then this hex yields nothing' : 'Then this hex yields ',
+      );
+      total.append(...figures);
+      card.append(total);
+      const rows = tileYieldLineNodes(state, unit.ownerId, tile, option.lines);
+      if (rows.length > 0) {
+        const lines = element('ul', 'yield-lines');
+        lines.append(...rows);
+        card.append(lines);
+      }
+    }
+    card.append(element('p', 'unit-card-clause', workChargeWords(option.charges)));
+    if (option.blocked !== null) card.append(element('p', 'unit-card-blocked wanting', option.blocked));
+    return card;
+  }
+
+  /**
    * What a route pays, line by line, on the card that rises beside it.
    *
    * The rite card's shape one subject over, and the same rule: every word comes
@@ -1353,12 +1389,15 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       // cannot rule a clause list, and not the paragraph this sheet used to
       // print under a greyed row). A blocked row always raises a card — its
       // own, if it has one, `refusalCard` otherwise — and carries no `title`
-      // to double it. A live row is untouched: whatever `title` or `card` it
-      // already had, it keeps.
+      // to double it. A live row raises its card if it has one, and otherwise
+      // wears its `title` or its hint. Since batch W1 a live row with a card
+      // carries no `title` either: the improvement rows and a prophet's
+      // Proclaim and Purge each showed a native tooltip on top of the card.
       if (action.blocked !== null) {
         info.bind(button, action.card ?? (() => refusalCard(action.blocked!)));
+      } else if (action.card) {
+        info.bind(button, action.card);
       } else {
-        if (action.card) info.bind(button, action.card);
         button.title = action.title ?? action.hint;
       }
       button.addEventListener('click', action.run);

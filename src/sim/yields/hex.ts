@@ -297,12 +297,13 @@ export interface TileYieldContext {
  *     the seat cannot name would give away what the reveal gate hides.
  *   · the yield glyphs (`lens3d.ts`) pass `LensView.playerId`, the seat the lens
  *     is drawn for, so the board and the hover card agree.
- *   · the improvement preview (`improvementYieldDelta`) takes an optional one
- *     and the unit sheet (`controls.ts`) passes the **builder's owner**, so the
- *     "+1⚙" on a Mine row is what that empire would actually get. It is the
- *     same evaluator twice with and without the candidate, so the gate cancels
- *     out of the *delta* — which is the honest answer either way, and the reason
- *     the argument is still optional.
+ *   · the improvement preview (`improvementYieldDelta`) takes an optional one,
+ *     and the bot's improvement plan passes `tileContextAt` (the owning
+ *     town's). The worker sheet and a great person's work preview read
+ *     `explainImprovementPreview` (`improvements.ts`) instead, which asks
+ *     `tileContextAt` itself, once on the real board and once on a ghost board
+ *     with the work in place (batch W1), so a follower belief, a scoped Order
+ *     and a rite are in the figure.
  *   · the citizen *score* used by the border chooser and the assigner is the
  *     fold of the same contextual list, so "grow toward land you would work"
  *     survives a renewal and does not chase a seam nobody has heard of.
