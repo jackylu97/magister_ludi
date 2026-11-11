@@ -14,9 +14,9 @@
  *   · The Mit'a's citizen coming home twenty turns later, with no growth
  *     riders, and not to a town that changed hands (reading 12);
  *   · The Slack Season's turns with no wait (reading 11);
- *   · The Trained Bands' Veteran start for a levied military unit, and The
- *     General Levy's free upkeep inside your borders for its own conscripts
- *     (reading 13).
+ *   · The Trained Bands' Veteran start for a levied military unit (reading 13),
+ *     and The General Levy's conscripts, which pay their own upkeep since
+ *     batch DS3 removed the rebate.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -345,11 +345,13 @@ describe('the Expansionist batch E1: units a levy raises', () => {
     expect(rankOf(unitById(state, plain.id)!)).toBeNull();
   });
 
-  it('The General Levy frees its own conscripts\' upkeep inside your borders, and no other piece', () => {
+  it('The General Levy\'s conscripts pay their own upkeep (batch DS3 removed the rebate)', () => {
+    expect(orderDef('theGeneralLevy' as OrderId).effects).toEqual([
+      { kind: 'levy', use: 'conscript', everyAtWar: 1 },
+    ]);
     const state = bareState();
     const city = town(state, 5, 5, 8);
     slot(state, 0, 'theGeneralLevy');
-    slot(state, 0, 'theMusterOfTheFields');
     const rebate = (): number =>
       cardUpkeepRebateLines(state, 0, () => 1)
         .filter((line) => line.card === 'theGeneralLevy')
@@ -357,16 +359,6 @@ describe('the Expansionist batch E1: units a levy raises', () => {
     expect(levy(state, city, 'conscript').ok).toBe(true);
     const conscript = state.units[state.units.length - 1]!;
     expect(conscript.levied).toBe('conscript');
-    expect(rebate()).toBe(1);
-    // A mustered piece is a levy too, but not this card's.
-    state.turn += 5;
-    bumpRevision(state);
-    expect(levy(state, city, 'muster').ok).toBe(true);
-    expect(rebate()).toBe(1);
-    // Outside your borders the conscript pays its way.
-    conscript.col = 11;
-    conscript.row = 0;
-    bumpRevision(state);
     expect(rebate()).toBe(0);
   });
 });

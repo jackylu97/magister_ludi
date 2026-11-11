@@ -182,7 +182,11 @@ describe('the Expansionist batch E4: The Keeps', () => {
     expect(bare.food + bare.production + bare.gold).toBe(0);
   });
 
-  it('gives +5 to whoever defends the hex, as the citadel does', () => {
+  it('gives no strength to whoever defends the hex (batch DS3 cut the clause)', () => {
+    // The spec of 2026-11-10 removed "units on its tile gain +5 strength", so
+    // the Keep's row carries no `defense` and the fight reads no Keep line.
+    // A citadel still carries one.
+    expect(improvementDef('townKeep').defense).toBeUndefined();
     const state = bareState();
     town(state, 0, 3, 5, 6);
     raiseImprovement(at(state, 4, 5), 'townKeep', state.turn);
@@ -192,7 +196,7 @@ describe('the Expansionist batch E4: The Keeps', () => {
     const plan = previewCombat(state, attacker.id, { col: 4, row: 5 });
     expect(plan.ok === false ? plan.error : 'ok').toBe('ok');
     if (plan.ok) {
-      expect(plan.defenderLines.find((line) => line.source === 'Keep')?.amount).toBe(5);
+      expect(plan.defenderLines.find((line) => line.source === 'Keep')).toBeUndefined();
     }
   });
 });
@@ -572,6 +576,7 @@ describe('the Expansionist batch E4: the words', () => {
   it('says what each of the ten cards does', () => {
     expect(said('theKeeps').join(' ')).toContain('while this card is seated, your workers may build a Keep');
     expect(said('theKeeps').join(' ')).toContain('one in each city');
+    expect(said('theKeeps').join(' ')).not.toContain('strength');
     expect(said('thePolders').join(' ')).toContain('it yields as a farm on grassland');
     expect(said('outposts').join(' ')).toContain('up to 3 hexes beyond your borders');
     expect(said('theGardenFrontier').join(' ')).toContain('up to 2 hexes beyond your borders');

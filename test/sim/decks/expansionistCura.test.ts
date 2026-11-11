@@ -9,7 +9,7 @@
  *   · `townBuildings` and `townHoldsBuilding`, the one reading of what a town
  *     holds. The town gains what an Aqueduct does (its water, its growth) and
  *     counts as having one for every card that asks (The Waterworks, The Great
- *     Aqueducts, Hydraulic Schools, Garden Cities, The Public Good);
+ *     Aqueducts, Hydraulic Schools, The Public Good);
  *   · what was built does not move: the town's own list, upkeep, the build
  *     list, buying, and the completion moment (The Coming of the Water);
  *   · the register: every reader of `City.buildings` in `src/sim`, and every
@@ -214,7 +214,10 @@ describe('the Expansionist batch E12: the cards that ask about an Aqueduct', () 
     expect(cityScopeAdmits(state, joined, { ...scope, standingTurns: 1 })).toBe(false);
   });
 
-  it('pays The Waterworks and Garden Cities in a joined town', () => {
+  it('pays The Waterworks in a joined town', () => {
+    // Batch DS3 gave The Waterworks a flat +3 happiness for each town with an
+    // Aqueduct, and took Garden Cities' Aqueduct happiness away, so only The
+    // Waterworks asks about an Aqueduct here now.
     const { state } = board();
     slot(state, 0, 'expansionistTheWaterworks');
     slot(state, 0, 'gardenCities');
@@ -225,9 +228,9 @@ describe('the Expansionist batch E12: the cards that ask about an Aqueduct', () 
     expect(paid('expansionistTheWaterworks')).toBe(0);
     expect(paid('gardenCities')).toBe(0);
     slot(state, 0, CURA);
-    // Eight citizens are two helpings of four, in the one joined town.
-    expect(paid('expansionistTheWaterworks')).toBe(2);
-    expect(paid('gardenCities')).toBe(1);
+    // The one joined town counts as holding an Aqueduct.
+    expect(paid('expansionistTheWaterworks')).toBe(3);
+    expect(paid('gardenCities')).toBe(0);
   });
 
   it('counts the town for The Great Aqueducts and Hydraulic Schools', () => {

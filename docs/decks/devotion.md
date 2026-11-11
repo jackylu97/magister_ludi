@@ -196,8 +196,8 @@ These rows live in `data/decks/common.json`. A seat holding Devotion or the deck
 | **Rites of Passage** | common | Dominion | 0 | implemented | Gaining a military unit grants 12 faith. | Civic |
 | **Sacred Groves** | uncommon | Expansionist | 0 | implemented | Worked, unimproved forests gain +1 food and +1 faith. | Civic |
 | **The Merchant Shrines** | common | Commerce | 0 | implemented | Your capital gains +2 faith. Cities working an improved luxury gain +1 faith, once per city. | Civic |
-| **The Ambarvalia** | common | Expansionist | 0 | implemented | Your capital gains +1 faith. Each town gains +1 faith for every two improved tiles in its borders. | Civic |
-| **The Holy Spring** | common | Expansionist | 0 | implemented | Cities whose centre stands beside a mountain or a lake gain +2 faith and +1 culture. | Civic |
+| **The Ambarvalia** | common | Expansionist | 0 | implemented | Each town gains +1 faith for every two improved tiles. | Civic |
+| **The Holy Spring** | common | Expansionist | 0 | implemented | Towns beside a mountain or a lake gain +2 faith and +1 culture. | Civic |
 | **The Shrine Guards** | common | Dominion | I | implemented | Towns with a Shrine may buy melee units with faith. | Military |
 | **The Sacred Host** | rare | Dominion | I | implemented | Kills grant 15 faith. | Military |
 | **The Oriflamme** | uncommon | Dominion | I | implemented | Military units beside one of your religious units gain +4 strength. | Military |

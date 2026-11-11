@@ -196,7 +196,7 @@ These rows live in `data/decks/common.json`. A seat holding Magisterial or the d
 |---|---|---|---|---|---|---|
 | **Illuminated Treatises** | common | Scientific | 0 | implemented | Cities with both a Library and a Monument gain +1 science and +1 culture. | Civic |
 | **The Sword of State** | common | Dominion | I | implemented | Boon. On draft: gain the best melee unit you can build. It costs no upkeep. | Military |
-| **Garden Cities** | uncommon | Expansionist | I | implemented | Cities with a Monument gain +1 culture per three worked wild tiles, at most +3. Cities of at least eight population with an Aqueduct gain +1 happiness. | Civic |
+| **Garden Cities** | uncommon | Expansionist | I | implemented | Towns with a Monument gain +1 culture for every three wild tiles they work. | Civic |
 | **The Art Dealers** | common | Commerce | I | implemented | +3 gold for each card seated in your government. | Economic |
 | **The Painted Chapels** | uncommon | Devotion | I | implemented | Religious buildings give +3 culture each. | Civic |
 | **Examinations of State** | rare | Dominion | II | implemented | Garrisoned towns gain +1 science and +1 culture for every three citizens. | Civic |
@@ -205,7 +205,7 @@ These rows live in `data/decks/common.json`. A seat holding Magisterial or the d
 | **The Brokers' Redraw** | rare | Commerce | II | modify: as built | You may reroll a draft with gold instead of faith. All other purchasing is 10% more expensive. | Wildcard |
 | **The Festival Calendar** | uncommon | Devotion | II | implemented | Cities keeping a rite gain +30% food and +30% culture. | Civic |
 | **Sacred Commissions** | uncommon | Devotion | II | implemented | Cities with a Holy Site gain +38% production toward wonders. Completing a wonder grants 60 faith. | Economic |
-| **The Sculpted Landscape** | uncommon | Expansionist | III | implemented | Farms beside a great-person improvement gain +2 food and +2 culture. Each farm receives this once regardless of the number of adjacent works. | Civic |
+| **The Sculpted Landscape** | uncommon | Expansionist | III | implemented | Farms beside a great-person work gain +2 food and +2 culture. | Civic |
 | **Sacred Patronage** | rare | Devotion | III | implemented | Faith may buy great-person drafts for 750 faith each. Spending a great person grants 30 faith, at most once per turn. | Civic |
 | **The House of Wisdom** | uncommon | Scientific | III | implemented | Worked Academies gain +3 culture. Cities working an Academy gain +1 renown and +30% production toward wonders. Each city receives the city bonus once. | Civic |
 | **The New Code** | rare | Dominion | III | implemented | Capturing a city deals you a free Order hand, at most once every ten turns. | Wildcard |

@@ -1474,10 +1474,10 @@ export interface AiConfig {
        */
       markBesideRing: number;
       /**
-       * **Commission: Break the Sod** (`workAge`): points a turn for each work
-       * inside this seat's borders, for each turn the offset adds. This is
-       * the price of the cards that read a work's age that the seat may hold
-       * later. The age lines the seat holds now are read off the board.
+       * **The Georgics** (`workAge`): points a turn for each turn the factor
+       * adds to a work inside this seat's borders. This is the price of the
+       * cards that read a work's age that the seat may hold later. The age
+       * lines the seat holds now are read off the board.
        */
       workAge: number;
       /**

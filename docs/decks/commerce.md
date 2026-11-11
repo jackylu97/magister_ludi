@@ -191,18 +191,18 @@ These rows live in `data/decks/common.json`. A seat holding Commerce or the deck
 - **Changed in batch R1 (2026-10-25):** The Standing Army moved to Tier I in both decks (the user, on the Dominion list: *"move to tier 1 (barracks appear later)"*). The Art Dealers now pays +3 gold for each card seated in your government (*"revise: +3 gold for each card slotted in your government"*). The Pathfinders' Company is now Commerce's only Military card at Tier 0.
 - **Changed in Magisterial batch MG4** (`docs/plans/magisterial-themes-triage.md`, reading 46): Travelling Players now pays +2 culture on each foreign route from a town with a Monument for each different deck among your seated cards. The Magisterial pass revised the text this sheet proposed, and both sheets list the same text.
 - **Each pair's early shared card:** Expansionist, Market Gardens (Tier 0); Devotion, The Merchant Shrines (Tier 0); Scientific, The Exchange of Discoveries (Tier I); Magisterial, The Art Dealers (Tier I, built in batch T7); Dominion, The Standing Army (Tier I since batch R1, shared in batch T7).
-- **Market Gardens** is the one route card shared before Tier II. Its farms pay beside a road from Tier 0, and its route half waits for the caravans (section 12 of the themes pass, answered).
+- **Market Gardens** was the one route card shared before Tier II. Batch DS3 (`docs/plans/deck-simplification-2026-11-10.md`, your comment of 2026-11-10) gave it one effect: every hex with a road gains +1 gold. It has no route half now, and the Doctrine The Turnpike Trusts gives the same +1 gold, so the two add up. Its move to Tier II still waits for a ruling.
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
-| **Market Gardens** | common | Expansionist | 0 | implemented | Farms beside a road gain +1 gold. Domestic routes grant an additional +1 food to their destination. | Economic |
+| **Market Gardens** | common | Expansionist | 0 | implemented | Hexes with a road gain +1 gold. | Economic |
 | **The Merchant Shrines** | common | Devotion | 0 | implemented | Your capital gains +2 faith. Cities working an improved luxury gain +1 faith, once per city. | Civic |
 | **The Standing Army** | uncommon | Dominion | I | implemented | Garrisoned units cost no upkeep. | Military |
 | **The Exchange of Discoveries** | uncommon | Scientific | I | implemented | +2 science on mines and quarries on a resource. Additional +2 if the city has a market. | Civic |
 | **The Art Dealers** | common | Magisterial | I | implemented | +3 gold for each card seated in your government. | Economic |
 | **The Escorted Roads** | uncommon | Dominion | II | implemented | Trade routes from a garrisoned town gain +5 gold. | Economic |
 | **Pilgrim Markets** | uncommon | Devotion | II | implemented | Routes gain +3 gold and +3 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify. | Civic |
-| **The Provincial Fair** | uncommon | Expansionist | II | implemented | Connected noncapital cities with a Market gain +3 food. Their worked plantations, camps and pastures gain +2 gold. | Economic |
+| **The Provincial Fair** | uncommon | Expansionist | II | implemented | Towns with a Market gain +2 gold on plantations, camps and pastures. | Economic |
 | **The Tithe** | rare | Devotion | II | implemented | Cities with a Temple gain gold equal to 25% of their base faith, and +25% gold. | Economic |
 | **The Merchant Navigators** | common | Scientific | II | implemented | Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +5 science. | Civic |
 | **The Silk Road Monks** | uncommon | Devotion | II | modify: as built | Your trade routes carry 100% more religious pressure. Trade routes you send to a city that follows your religion gain +3 gold and +3 culture. | Civic |

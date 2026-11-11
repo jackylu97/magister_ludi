@@ -2307,7 +2307,7 @@ describe("determinism", () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(232);
+    expect(SCHEMA_VERSION).toBe(233);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -9146,9 +9146,8 @@ describe("the engine shapes", () => {
     // The four crosses, `common.json`'s own: roads out of a garrison, out of a
     // library, out of a monument, and the navigators' sea lanes.
     "commonTheEscortedRoads · routeYield",
-    // D2a: Market Gardens' second helping of grain on a road that never leaves,
-    // un-deferred with the ring of six its first half wanted.
-    "marketGardens · routeYield",
+    // Batch DS3 took Market Gardens off this list: its route grain went, and
+    // it now pays every hex with a road.
     // C8: the two shared rows the sheet freed. Pilgrim Markets is the first row
     // in the game to pay a caravan in faith, and The Grain Exchange's grain is
     // an ordinary route line whose other half is the happiness clause that
@@ -11304,13 +11303,14 @@ describe("D2a — the predicates", () => {
     );
   });
 
-  it("pays Market Gardens' coin on the farm a road reaches, through the chain's own context", () => {
+  it("pays Market Gardens' coin on a hex with a road, and not on the farm beside one (batch DS3)", () => {
     const g = game(7313);
     const city = found(g.state, 0);
     slot(g.state, 0, "marketGardens" as never);
     const centre = getTileAt(g.state.map, city.col, city.row)!;
     const field = neighborTiles(g.state.map, tileHex(centre)).find((tile) => isPassable(tile))!;
     field.improvement = "farm" as never;
+    delete field.road;
     for (const near of neighborTiles(g.state.map, tileHex(field))) delete near.road;
     bumpRevision(g.state);
     const coin = (): number =>
@@ -11318,9 +11318,12 @@ describe("D2a — the predicates", () => {
         .filter((line) => line.card === "marketGardens")
         .reduce((sum, line) => sum + line.gold, 0);
     expect(coin()).toBe(0);
-    // A road on one of the six, and the hex's own breakdown grows a line for it —
-    // rule 5, with the ring read through `TileYieldContext.neighbours`.
+    // A road on one of the six pays nothing now: the card asks the hex itself.
     neighborTiles(g.state.map, tileHex(field))[0]!.road = 0;
+    bumpRevision(g.state);
+    expect(coin()).toBe(0);
+    // A road on the hex, and the hex's own breakdown grows a line for it (rule 5).
+    field.road = 0;
     bumpRevision(g.state);
     expect(coin()).toBe(1);
   });

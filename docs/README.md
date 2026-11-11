@@ -123,10 +123,12 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
     `rules.improvements.hexMarks`; the hex fold adds it after the works. The
     Raising of the Land and The Coming of the Water write marks through a
     windfall rider's `mark` grant and `markTownLand` (`cities.ts`).
-  - A farm can **count as having fresh water** by its empire's law
-    (`farmWaterOf`: The Watercourses, one step from a river farm; The Water
-    Courts, along a chain of farms). The Irrigation renewal, the farm's
-    placement on dry ground and the cards' `freshwater` test read it.
+  - A farm can **count as having fresh water** by its empire's law or a work
+    beside it (`farmWaterOf`: The Water Courts, along a chain of farms; a
+    Qanat, on the hexes beside it). The Irrigation renewal, the farm's
+    placement on dry ground and the cards' `freshwater` test read it. The
+    Watercourses' one-step relay from a river farm went in batch DS3; the
+    card now pays a farm on fresh water.
   - A hex question can ask what the tile alone cannot (`GroundFacts`: the
     empire asking, its farm water, which town centres hold a wonder, and since
     Dominion batch D7 where its fortified military units stand), so three
@@ -253,8 +255,8 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   `levyStandingWait`) or for its own use at war, and the shorter applies. The citizen
   leaves through `loseCitizen` (the famine's routine), and `recordLevy` counts
   it (`Player.citizensLevied`, The Labour Rolls). A piece a levy raises carries
-  the use as `Unit.levied`, which a stamp or an upkeep rebate can narrow to (The
-  Trained Bands, The General Levy). Cards marked "Needs a levy"
+  the use as `Unit.levied`, which a stamp or a combat line can narrow to (The
+  Trained Bands, Watch and Ward). Cards marked "Needs a levy"
   (`OrderDef.needsLevy`) are dealt only to a seat holding a card that grants a
   levy, Order or Doctrine. Refusals are `levyError`, and `levyLineError` is its
   half with no rite named; the city panel's "Levy a citizen" menu is
@@ -324,10 +326,10 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
     batch E5).
 - **Other Expansionist batch E5 shapes.** The meter rule `writUncapped` (The
   Sovereign Writ) pays the writ's first bonus rung once for every step of its
-  size, with no ceiling (`uncappedTierPercent`, `meters.ts`). A production
-  bonus marked `defensive` reaches fortifications only (`isFortification`,
-  `buildingData.ts`; The Burhs), the same reading the `defensiveBuildings`
-  count takes. A windfall rider's `inTown` (the town filter of Dominion batch
+  size, with no ceiling (`uncappedTierPercent`, `meters.ts`). The
+  `defensiveBuildings` count reads fortifications through `isFortification`
+  (`buildingData.ts`; The Burhs). A production bonus marked `defensive` went in
+  batch DS3 with The Burhs' second clause. A windfall rider's `inTown` (the town filter of Dominion batch
   D7's disband moment) also reads a great person's act, and a grant's
   `fromTowns` reads the production per turn of the empire's other towns a
   scope admits (The Master of Works); a great person's act carries its town

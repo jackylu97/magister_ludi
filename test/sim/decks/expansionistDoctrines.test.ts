@@ -1370,22 +1370,20 @@ describe('The Georgics (batch DT12)', () => {
     ).toBe(true);
   });
 
-  it('doubles real age before a bonus is added, so it does not double Break the Sod', () => {
+  it('compares twice the real age and adds nothing to it', () => {
+    // Break the Sod's reward once added ten turns here. Batch DS3 changed that
+    // reward to a farm yield, so the factor is the only age law left.
     const state = bareState();
     state.turn = 40;
     town(state, 5, 5, 4);
-    const three = workAged(state, 5, 4, 'farm', 3);
-    const five = workAged(state, 6, 5, 'farm', 5);
+    const nine = workAged(state, 5, 4, 'farm', 9);
+    const ten = workAged(state, 6, 5, 'farm', 10);
     hold(state, 'theGeorgics');
-    // Break the Sod's institution is ten turns, lent to a Doctrine the seat holds.
-    lend('boundToTheSoil', [{ kind: 'workAge', turns: 10 }]);
-    hold(state, 'boundToTheSoil');
     const ground = groundFactsFor(state, 0);
     expect(ground.workAgeFactor).toBe(2);
-    expect(ground.workAgeBonus).toBe(10);
-    // 3 * 2 + 10 is 16, where (3 + 10) * 2 would be 26. 5 * 2 + 10 is 20.
-    expect(tileConditionHolds(three, TWENTY_TURNS, undefined, undefined, state.turn, ground)).toBe(false);
-    expect(tileConditionHolds(five, TWENTY_TURNS, undefined, undefined, state.turn, ground)).toBe(true);
+    // 9 * 2 is 18, short of twenty. 10 * 2 is 20.
+    expect(tileConditionHolds(nine, TWENTY_TURNS, undefined, undefined, state.turn, ground)).toBe(false);
+    expect(tileConditionHolds(ten, TWENTY_TURNS, undefined, undefined, state.turn, ground)).toBe(true);
   });
 
   it('reaches a town scope that asks a work’s age, and leaves a building’s age and the hex’s stamp alone', () => {

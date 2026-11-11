@@ -530,7 +530,6 @@
       ],
       "onePerTown": true,
       "copiesNeighbours": true,
-      "defense": 5,
       "clearsClutter": true
     },
     "polder": {

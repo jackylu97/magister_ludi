@@ -204,25 +204,24 @@ describe('a price for each Expansionist shape of E9 to E12 (E13)', () => {
     );
   });
 
-  it('prices Break the Sod’s offset by the age lines it brings forward', () => {
+  it('prices Break the Sod’s reward as the farm line it leaves', () => {
+    // Batch DS3 (`docs/plans/deck-simplification-2026-11-10.md`) changed the
+    // reward from older works to +1 food on farms.
     const { state, player, cities } = board(1, 40);
     const hexes = ring(state, cities[0]!);
-    work(state, cities[0]!, hexes.slice(0, 2), 'farm', 12);
-    work(state, cities[0]!, hexes.slice(2, 3), 'farm', 5);
-    const offset: CardEffect[] = [{ kind: 'workAge', turns: 10 }];
-    // No card reads a work's age: the knob, for each work and each turn.
-    const knob = EXPANSIONIST.workAge * 10 * 3;
-    expect(scoreEffects(offset, valueContext(state, player))).toBe(knob);
-    // Dark Earth: +2 food on a farm of twenty turns. Ten turns older, the two
-    // farms of twelve pay; the farm of five does not.
-    slot(state, player, 'darkEarth');
-    const ctx = valueContext(state, player);
-    expect(scoreEffects(offset, ctx)).toBe(2 * valueOfYields({ food: 2 }, ctx) + knob);
-    // The commission's institution is priced as its effect.
+    work(state, cities[0]!, hexes.slice(0, 3), 'farm', 12);
     const id = 'commissionBreakTheSod' as OrderId;
+    const farms: CardEffect[] = orderDef(id).commission!.reward[0]!.lasting!;
+    expect(farms).toEqual([
+      { kind: 'pays', where: 'hex', food: 1, on: { test: 'improvement', improvement: 'farm' } },
+    ]);
+    // The commission's institution is priced as its effect: the food on the
+    // three worked farms.
+    const ctx = valueContext(state, player);
+    expect(scoreEffects(farms, ctx)).toBeGreaterThan(0);
     const reward = explainCommission(id, ctx)!.terms[0]!.parts!;
-    const lasting = reward.find((term) => term.label === 'for the rest of the game: workAge')!;
-    expect(lasting.value).toBe(scoreEffects(offset, ctx));
+    const lasting = reward.find((term) => term.label === 'for the rest of the game: pays')!;
+    expect(lasting.value).toBe(scoreEffects(farms, ctx));
   });
 
   it('prices The Cura Aquarum as the Aqueduct in each town joined by road', () => {

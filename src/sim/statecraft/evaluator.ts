@@ -3741,8 +3741,8 @@ export function countOf(
       // strength a besieger has to beat (`cityStat.defense`) or the bar it has
       // to empty (`cityHp`) — so a watchtower added to the table joins The Long
       // Watch for free and no list of names is kept anywhere. One reading,
-      // `isFortification`, which The Burhs' production bonus asks too. Over
-      // what the town holds (`townBuildings`, Expansionist batch E12).
+      // `isFortification`. Over what the town holds (`townBuildings`,
+      // Expansionist batch E12).
       let total = 0;
       for (const id of townBuildings(state, city)) {
         if (isFortification(id)) total += 1;
@@ -5879,8 +5879,8 @@ export function tileConditionHolds(
     case 'water':
       return isWaterTerrain(tile.terrain);
     case 'river':
-      // A river along any of the six edges (Expansionist batch E3, The
-      // Watercourses). The map's own mask, set on both hexes of an edge.
+      // A river along any of the six edges (Expansionist batch E3; The Gift of
+      // the River asks it). The map's own mask, set on both hexes of an edge.
       return tile.riverEdges !== 0;
     case 'wonderTown':
       // The Landscape Garden (Expansionist batch E3): the board's answer, or no.
@@ -5939,9 +5939,9 @@ export function tileConditionHolds(
         resourceSeen(tile.resource, ground)
       );
     case 'freshwater':
-      // The map's water, or a farm the empire's law waters (The Watercourses,
-      // The Water Courts, Expansionist batch E3): "counts as having fresh
-      // water" is read here, in the one tile test every card asks.
+      // The map's water, or a farm `farmWaterOf` waters (a Qanat beside it, or
+      // The Water Courts' chain, Expansionist batch E3): "counts as having
+      // fresh water" is read here, in the one tile test every card asks.
       return tile.freshwater || ground?.watered?.(tile) === true;
     case 'adjacentMountain':
       // Off the ground's own baked answer (`Tile.mountainsBeside`), never off a
@@ -5967,16 +5967,11 @@ export function tileConditionHolds(
       // ticks and bare ground answers no rather than nought.
       if (turn === undefined) return false;
       const age = improvementAge(tile, turn);
-      // Commission: Break the Sod's institution (Expansionist batch E9, the
-      // triage's reading 13): the asking empire's works count as older. A
-      // caller with no ground facts reads the stamp alone; the callers that
-      // hand none in are listed on `GroundFacts.workAgeBonus`. The Georgics'
-      // factor (batch DT12) multiplies the real age before that bonus is added
-      // (the triage's reading 42).
-      return (
-        age !== undefined &&
-        age * (ground?.workAgeFactor ?? 1) + (ground?.workAgeBonus ?? 0) >= on.turns
-      );
+      // The Georgics (batch DT12, the triage's reading 42): the asking
+      // empire's works count as older, by a factor on their real age. A caller
+      // with no ground facts reads the stamp alone; the callers that hand none
+      // in are listed on `GroundFacts.workAgeFactor`.
+      return age !== undefined && age * (ground?.workAgeFactor ?? 1) >= on.turns;
     }
     case 'beside':
       // **The ring the caller handed in**, or no ring and therefore no. Neither
@@ -6039,9 +6034,9 @@ function resourceSeen(id: ResourceId, ground: GroundFacts | undefined): boolean 
  * `tileConditionHolds`:
  *
  *   · `player`, the empire asking, for `surfaced` (The Prospectors);
- *   · `watered`, this empire's farm water (`farmWaterOf`): a farm its law says
- *     counts as having fresh water (The Watercourses, The Water Courts). Absent
- *     when its law passes no water, which is almost every empire;
+ *   · `watered`, this empire's farm water (`farmWaterOf`): a farm that counts
+ *     as having fresh water by a Qanat beside it or by its law (The Water
+ *     Courts). Absent when nothing passes water, which is almost every empire;
  *   · `wonderCentre`, true on the centre hex of a town holding a world wonder,
  *     for `wonderTown` (The Landscape Garden);
  *   · `townCentre`, true on the centre hex of any town, for `townCentre` (batch
@@ -6056,8 +6051,6 @@ function resourceSeen(id: ResourceId, ground: GroundFacts | undefined): boolean 
  *   · `standsIn`, which works count as another row by the empire's law, for
  *     the tile tests `improvement` and `anyImprovement` (Scientific batch S5,
  *     The Studium Generale);
- *   · `workAgeBonus`, the turns the empire's law adds to a work's age, for
- *     `standingSince` (Expansionist batch E9, Commission: Break the Sod);
  *   · `workAgeFactor`, what the empire's law multiplies a work's age by, for
  *     `standingSince` (batch DT12, The Georgics);
  *   · `tendedImproved`, whether the empire's tended works count as improved,
@@ -6108,10 +6101,11 @@ export interface GroundFacts {
    */
   standsIn?: WorkStandIn;
   /**
-   * **The turns the asking empire's law adds to a work's age** (Expansionist
-   * batch E9, Commission: Break the Sod's institution; the triage's reading
-   * 13). Built by `cardWorkAgeBonus`, and absent when the law adds nothing.
-   * Added in `standingSince`, the one place a work's age is compared.
+   * **What the asking empire's law multiplies a work's real age by** (batch DT12,
+   * The Georgics; the triage's reading 42). Built by `cardWorkAgeFactor`, and
+   * absent when the law multiplies nothing. Read in `standingSince`, the one
+   * place a work's age is compared, as `age * factor`. A work with no stamp
+   * stays not shown to be old, and the stamp itself does not change.
    *
    * **The callers that hand in no ground facts**, and so read a work's age
    * off its stamp alone. None of them asks `standingSince`, and
@@ -6127,15 +6121,11 @@ export interface GroundFacts {
    *
    * The bot's price of a hex line (`src/ai/value.ts`) hands in the ground
    * facts and no clock, so `standingSince` answers no there whatever the
-   * bonus. That is the bot's own reading, older than this field.
-   */
-  workAgeBonus?: number;
-  /**
-   * **What the asking empire's law multiplies a work's real age by** (batch DT12,
-   * The Georgics; the triage's reading 42). Built by `cardWorkAgeFactor`, and
-   * absent when the law multiplies nothing. Read in `standingSince`, which
-   * compares `age * factor + bonus`. A work with no stamp stays not shown to be
-   * old, and the stamp itself does not change.
+   * factor. That is the bot's own reading.
+   *
+   * Commission: Break the Sod once added turns to a work's age here
+   * (`workAgeBonus`). Batch DS3 gave the card a farm yield, and the field went
+   * with the old reward.
    */
   workAgeFactor?: number;
   /**
@@ -6286,12 +6276,9 @@ export function groundFactsFor(state: GameState, playerId: number): GroundFacts 
   // makes no work count as another row.
   const standsIn = worksStandInFor(state, playerId);
   if (standsIn !== undefined) facts.standsIn = standsIn;
-  // Expansionist batch E9: Break the Sod's older works and The Two Harvests'
-  // tended fields, each absent for an empire whose law says nothing.
-  const older = cardWorkAgeBonus(state, playerId);
-  if (older !== 0) facts.workAgeBonus = older;
-  // Batch DT12: The Georgics' multiplied age and Arcadia's tended land, each
-  // absent for an empire whose law says nothing.
+  // Batch DT12: The Georgics' multiplied age and Arcadia's tended land, and
+  // Expansionist batch E9: The Two Harvests' tended fields. Each is absent
+  // for an empire whose law says nothing.
   const factor = cardWorkAgeFactor(state, playerId);
   if (factor !== 1) facts.workAgeFactor = factor;
   if (cardBehaviorRule(state, playerId, 'tendedCountsImproved')) facts.tendedImproved = true;
@@ -6403,17 +6390,6 @@ export function workLinesOf(state: GameState, playerId: number): WorkLines {
 }
 
 /**
- * **The turns this empire's law adds to a work's age** (Expansionist batch
- * E9, Commission: Break the Sod's institution): the sum of its live
- * `workAge` effects, or nought. See `GroundFacts.workAgeBonus`.
- */
-function cardWorkAgeBonus(state: GameState, playerId: number): number {
-  let turns = 0;
-  for (const { effect } of effectsOfKind(state, playerId, 'workAge')) turns += Math.floor(effect.turns ?? 0);
-  return turns;
-}
-
-/**
  * **What this empire's law multiplies a work's real age by** (batch DT12, The
  * Georgics), or one. The largest live `factor`, so a row read twice does not
  * square it. See `GroundFacts.workAgeFactor`.
@@ -6458,15 +6434,12 @@ export interface FarmWater {
 }
 
 /**
- * **This empire's farm water**, or `null` when its law passes no water
- * (Expansionist batch E3; the triage's reading 22). Two behaviour rules, either
- * or both:
- *
- *   · `riverFarmsWater` (The Watercourses): the water starts at this empire's
- *     farms on a hex with a river edge and reaches the farms beside them. One
- *     step, and no further;
- *   · `farmChainsWater` (The Water Courts): the water starts at this empire's
- *     farms on fresh water and passes along every unbroken chain of its farms.
+ * **This empire's farm water**, or `null` when nothing passes it water
+ * (Expansionist batch E3; the triage's reading 22). One behaviour rule,
+ * `farmChainsWater` (The Water Courts): the water starts at this empire's
+ * farms on fresh water and passes along every unbroken chain of its farms.
+ * The Watercourses had a second rule here, a one-step relay from a river farm
+ * (`riverFarmsWater`), until batch DS3 removed it with that card's relay.
  *
  * "This empire's farm" is a hex inside its borders that holds a farm
  * (`improvementCountsAs`, so a row that counts as a farm counts). Every
@@ -6476,7 +6449,7 @@ export interface FarmWater {
  * (`CombatCondition` `freshwater`) still read the map, because neither is a
  * question about a farm.
  *
- * **A work that waters the hexes beside it** is a third source, and it needs
+ * **A work that waters the hexes beside it** is a second source, and it needs
  * no card (Scientific batch S5, the Qanat; the triage's reading 30): each such
  * work inside this empire's borders (`ImprovementDef.watersBeside`) waters
  * this empire's farms on the six hexes around it, and a farm built there would
@@ -6489,12 +6462,11 @@ export interface FarmWater {
  * of tile indices, so nothing depends on the order a `Map` iterates.
  */
 export function farmWaterOf(state: GameState, playerId: number): FarmWater | null {
-  const river = cardBehaviorRule(state, playerId, 'riverFarmsWater');
   const chain = cardBehaviorRule(state, playerId, 'farmChainsWater');
   const wells = wateringWorksOf(state, playerId);
-  if (!river && !chain && wells.length === 0) return null;
+  if (!chain && wells.length === 0) return null;
   const field = slateMemo(state, 'economy', 'farmWater', String(playerId), () =>
-    farmWaterField(state, playerId, river, chain, wells),
+    farmWaterField(state, playerId, chain, wells),
   );
   const { map } = state;
   return {
@@ -6541,7 +6513,6 @@ function wateringWorksOf(state: GameState, playerId: number): readonly number[] 
 function farmWaterField(
   state: GameState,
   playerId: number,
-  river: boolean,
   chain: boolean,
   wells: readonly number[],
 ): FarmWaterField {
@@ -6572,16 +6543,6 @@ function farmWaterField(
       if (!isFarm(next)) continue;
       watered[next] = 1;
       welled[next] = 1;
-    }
-  }
-  // The Watercourses: one step from a farm with a river edge.
-  if (river) {
-    for (let index = 0; index < tiles.length; index++) {
-      if (tiles[index]!.riverEdges === 0 || !isFarm(index)) continue;
-      for (const next of neighbourIndices(index)) {
-        near[next] = 1;
-        if (isFarm(next)) watered[next] = 1;
-      }
     }
   }
   // The Water Courts: every farm joined to a farm on fresh water by a chain of
@@ -7220,11 +7181,6 @@ export function cardProduction(
     if (effect.publicWork === true) {
       if (building === undefined || !isPublicWork(building)) continue;
     }
-    // The Burhs (Expansionist batch E5): fortifications only, by the one
-    // reading the `defensiveBuildings` count takes.
-    if (effect.defensive === true) {
-      if (building === undefined || !isFortification(building)) continue;
-    }
     // The Great Designs (Scientific batch S3): only while no empire this one
     // has met knows the technology that names the row in its unlocks. A row no
     // technology opens never matches (the triage's reading 46).
@@ -7375,9 +7331,6 @@ function rebateReaches(
 ): number {
   if (unit.ownerId !== playerId) return 0;
   if (!unitMatches(unit.type, effect.class)) return 0;
-  // The General Levy (Expansionist batch E1): only the pieces its levy
-  // raised, read off the piece's own mark.
-  if (effect.levied !== undefined && !leviedMatches(effect.levied, unit.levied)) return 0;
   // The Soldiers' Purse (Dominion batch D2): the coin comes off once for
   // each rank the piece holds, and a piece with no rank is skipped.
   const helpings = effect.perRank === true ? ranksHeld(unit) : 1;
@@ -8372,16 +8325,6 @@ function combatConditionHolds(
     }
     case 'onFeature':
       return situation.tile.feature === when.feature;
-    case 'standingIn': {
-      // The hex this side's piece stands on (The Woodland Bands, Expansionist
-      // batch E3): the contested hex for a defender, its own hex for an
-      // attacker. See the condition for why the two are told apart.
-      const stands =
-        situation.side === 'defend'
-          ? situation.tile
-          : getTileAt(state.map, situation.unit.col, situation.unit.row);
-      return stands !== undefined && when.features.includes(stands.feature);
-    }
     case 'freshwater':
       return situation.tile.freshwater;
     case 'coastal':

@@ -287,15 +287,22 @@ describe('The Corvée — hammers sent to the Magnum Opus', () => {
     expect(levyError(g.state, 0, opus, 'opus')).toMatch(/building the Magnum Opus/);
   });
 
-  it('needs a town of at least ten citizens', () => {
-    const { g, city } = bench(9);
+  it('asks only the levy’s own town size, since batch DS3 removed the floor of ten', () => {
+    const { g, city } = bench(2);
     seat(g, 'theCorvee');
-    expect(levyError(g.state, 0, city, 'opus')).toMatch(/at least 10 citizens/);
+    const far = getTileAt(g.state.map, city.col + 5, city.row)!;
+    const opus = foundCityAt(g.state, 0, far)!;
+    opus.queue = [{ kind: 'building', id: 'theMagnumOpus' }];
+    bumpRevision(g.state);
+    expect(levyError(g.state, 0, city, 'opus')).toBeNull();
+    city.population = 1;
+    bumpRevision(g.state);
+    expect(levyError(g.state, 0, city, 'opus')).toMatch(/at least 2 citizens/);
   });
 });
 
 describe('Seasonal Levies — what a levy leaves behind', () => {
-  it('hangs +60% food for ten turns, at most once every twenty turns', () => {
+  it('hangs +60% food for ten turns, and not again while it runs', () => {
     const { g, city } = bench(12);
     seat(g, 'levyOfTheLand');
     seat(g, 'seasonalLevies');
@@ -307,13 +314,14 @@ describe('Seasonal Levies — what a levy leaves behind', () => {
     expect(hung[0]!.effect).toEqual({ kind: 'percentYields', yield: 'food', percent: 60 });
     expect(city.levy?.after?.seasonalLevies).toBe(start);
 
-    // A second levy inside twenty turns hangs nothing new.
+    // A second levy while the first still runs hangs nothing new.
     g.state.turn = start + EVERY;
     expect(levy(g, city, 'production').ok).toBe(true);
     expect((city.timed ?? []).filter((entry) => entry.card === 'seasonalLevies')).toHaveLength(1);
 
-    // Twenty turns on, it hangs again.
-    g.state.turn = start + 20;
+    // Ten turns on, when the first has run out, it hangs again. Batch DS3
+    // removed the old wait of twenty turns.
+    g.state.turn = start + 10;
     expect(levy(g, city, 'production').ok).toBe(true);
     expect((city.timed ?? []).filter((entry) => entry.card === 'seasonalLevies')).toHaveLength(2);
   });

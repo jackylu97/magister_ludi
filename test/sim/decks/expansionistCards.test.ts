@@ -164,8 +164,8 @@ describe('the Expansionist batch E0: counted land', () => {
     const faith = explainCardCityYields(state, city)
       .filter((line) => line.card === 'theSpiritsOfPlace')
       .reduce((sum, line) => sum + line.faith, 0);
-    // The capital's +1, and +1 for every two of the four farms.
-    expect(faith).toBe(1 + 2);
+    // +1 for every two of the four farms. Batch DS3 removed the capital's +1.
+    expect(faith).toBe(2);
     const culture = explainCardEmpireYields(state, 0)
       .filter((line) => line.card === 'theWildMarches')
       .reduce((sum, line) => sum + line.culture, 0);

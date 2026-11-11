@@ -86,7 +86,6 @@ import {
   buildingDef,
   buildingRowSupplies,
   isEmpireBuilding,
-  isFortification,
   isPublicWork,
   isWonder,
 } from '../sim/buildingData';
@@ -1959,10 +1958,6 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // rate the bill is charged at — so a card that pays the army's wages
       // becomes the best card in the hand exactly when the treasury is bleeding.
       //
-      // A rebate on the pieces a levy raised (The General Levy, Expansionist
-      // batch E1) reaches the share of the army that levies raise, as the
-      // levied combat line does (the bot levy batch). See `leviedArmyShare`.
-      //
       // Centurions (batch DT1): a rebate narrowed to a rank counts the seat's
       // pieces holding it, as the `upkeepSurcharge` arm below does.
       if (effect.rank !== undefined) {
@@ -1972,10 +1967,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
         ).length;
         return costOfUpkeep((effect.amount ?? 1) * ranked, ctx);
       }
-      return (
-        costOfUpkeep((effect.amount ?? 1) * ctx.ai.score.nominalCount, ctx) *
-        (effect.levied === undefined ? 1 : leviedArmyShare(effect.levied, ctx))
-      );
+      return costOfUpkeep((effect.amount ?? 1) * ctx.ai.score.nominalCount, ctx);
     // --- the engine shapes (batch A of `docs/fewer-things-plan.md`) ----------
     // Every one of them is priced off **what this empire actually holds**, which
     // is `explainCounted`'s own rule read one shape over: an engine is worth what
@@ -2431,8 +2423,8 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // The stand-in over the cadence, as `periodicOffer` takes it.
       return ctx.ai.score.unknownEffect / Math.max(1, Math.floor(effect.every));
     case 'workAge':
-      // **The age lines it brings forward** (Expansionist batch E9, Break the
-      // Sod's institution; priced in batch E13). See `workAgeWorth`.
+      // **The age lines it brings forward** (The Georgics, batch DT12; priced
+      // first in batch E13). See `workAgeWorth`.
       return workAgeWorth(effect, ctx);
     case 'drill': {
       // **Experience is strength paid in instalments** (Dominion batch D1). A
@@ -2752,7 +2744,6 @@ function ruleWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueCont
     case 'secondAttack':
     case 'breachInOneBlow':
     case 'woodsWalk':
-    case 'riverFarmsWater':
     case 'farmChainsWater':
     case 'siegeScreened':
     // Fresh water: what it is worth is what the rows it opens are worth. That is
@@ -6547,8 +6538,7 @@ function buildingBonusReach(
     effect.building !== undefined ||
     effect.buildingCategory !== undefined ||
     effect.empireBuilding !== undefined ||
-    effect.publicWork === true ||
-    effect.defensive === true;
+    effect.publicWork === true;
   if (!narrowed) return 1;
   let reached = 0;
   let every = 0;
@@ -6558,7 +6548,6 @@ function buildingBonusReach(
     if (effect.buildingCategory !== undefined && buildingDef(id).category !== effect.buildingCategory) continue;
     if (effect.empireBuilding !== undefined && isEmpireBuilding(id) !== effect.empireBuilding) continue;
     if (effect.publicWork === true && !isPublicWork(id)) continue;
-    if (effect.defensive === true && !isFortification(id)) continue;
     reached += hammers;
   }
   return every === 0 ? 0 : reached / every;
@@ -7208,12 +7197,11 @@ function tileTestAsks(on: TileCondition, test: TileCondition['test']): boolean {
  * **What this seat's live lines gain when its ground facts change**, in points
  * a turn: the part of an Expansionist rule the board can say.
  *
- * Four rows change what the tile test answers for the seat's own cards:
- * Commission: Break the Sod adds turns to a work's age (`workAgeBonus`), The
- * Georgics multiplies it (`workAgeFactor`), The Two Harvests counts more works
- * as tended (`tendedFields`), and Arcadia counts tended works as improved
- * (`tendedImproved`). So the price of each is what the seat's live lines pay on
- * the changed ground, less what they pay now. The lines read are:
+ * Three rows change what the tile test answers for the seat's own cards: The
+ * Georgics multiplies a work's age (`workAgeFactor`), The Two Harvests counts
+ * more works as tended (`tendedFields`), and Arcadia counts tended works as
+ * improved (`tendedImproved`). So the price of each is what the seat's live
+ * lines pay on the changed ground, less what they pay now. The lines read are:
  *
  *   · each live hex line (`where: 'hex'`, flat) whose tile test asks `test`,
  *     over the hexes the seat's citizens work, at what the line pays on one
@@ -7226,8 +7214,8 @@ function tileTestAsks(on: TileCondition, test: TileCondition['test']): boolean {
  * clock, the ring of six for a hex line, and the two sets of ground facts, so
  * the bot and the rules agree about which hexes are old enough or tended. Two
  * readings are left out, and each makes the price lower, not higher: a town
- * scope (The Garden of the World's happiness in a town that works six tended
- * hexes is the one live case) and a count narrowed to one town.
+ * scope asked of the changed ground (no live row has one since batch DS3 cut
+ * The Garden of the World's happiness) and a count narrowed to one town.
  *
  * The live list (`effectsOfKind`) holds the seated Orders, the Doctrines, the
  * institutions of commissions met and the technologies, so a card already
@@ -7290,46 +7278,35 @@ function liveLinesGain(
   return gain;
 }
 
-/** Every work: an improvement of any kind, a tended work or a great person's work. */
-const ANY_WORK: TileCondition = { test: 'any', of: [{ test: 'improved' }, { test: 'tended' }] };
-
 /**
- * **Commission: Break the Sod and The Georgics** (`workAge`): the seat's works
- * count `turns` older for its cards, or `factor` times as old (batch DT12). Two
- * parts:
+ * **The Georgics** (`workAge`, batch DT12): the seat's works count `factor`
+ * times as old for its cards. Two parts:
  *
  *   · what the seat's live age lines gain now, read off the board
- *     (`liveLinesGain` with the row added to the ground facts). A line that
+ *     (`liveLinesGain` with the factor added to the ground facts). A line that
  *     asks a work twenty turns old pays on the works that are ten turns old;
- *   · `score.expansionist.workAge` for each turn the row adds to each work
+ *   · `score.expansionist.workAge` for each turn the factor adds to each work
  *     inside the borders. This stands in for the age cards the seat may hold
  *     later, and for the works laid later, which reach each age sooner. A
- *     `factor` adds more turns to an older work, so it is read off each work's
+ *     factor adds more turns to an older work, so it is read off each work's
  *     own age.
  *
- * The offset is added to what the seat's law already adds. That is right for
- * the one carrier, the institution of a commission not yet met: once it is
- * met, the commission is worth nothing more (`explainCommission`). A factor
- * replaces a smaller one, as `cardWorkAgeFactor` reads two rows.
+ * A factor replaces a smaller one, as `cardWorkAgeFactor` reads two rows.
+ * Commission: Break the Sod's reward once added a number of turns here
+ * (`turns`), until batch DS3 gave the card a farm yield.
  *
  * The Georgics' own hex line is not in this price. The hex arm prices it, at the
  * works' ages today (`groundOfHexLine`, with its clock since batch DT19b).
  */
 function workAgeWorth(effect: Extract<CardEffect, { kind: 'workAge' }>, ctx: ValueContext): number {
-  const offset = Math.max(0, Math.floor(effect.turns ?? 0));
   const ground = groundFactsFor(ctx.state, ctx.playerId);
   const factorNow = ground.workAgeFactor ?? 1;
   const factor = Math.max(factorNow, effect.factor ?? 1);
-  if (offset === 0 && factor === factorNow) return 0;
-  const altered: GroundFacts = {
-    ...ground,
-    workAgeBonus: (ground.workAgeBonus ?? 0) + offset,
-    workAgeFactor: factor,
-  };
+  if (factor === factorNow) return 0;
+  const altered: GroundFacts = { ...ground, workAgeFactor: factor };
   const now = liveLinesGain(ground, altered, 'standingSince', ctx);
   const knob = ctx.ai.score.expansionist.workAge;
-  const works = tilesInBordersWhere(ctx, ANY_WORK);
-  return now + knob * offset * works + knob * (factor - factorNow) * ageOfWorks(ctx);
+  return now + knob * (factor - factorNow) * ageOfWorks(ctx);
 }
 
 /** The real ages of the works inside this seat's borders, summed. A work with no stamp adds nothing. */
@@ -8501,8 +8478,8 @@ function leviedSoldierRate(levied: true | LevyUse, outlook: LevyOutlook): number
 }
 
 /**
- * **The share of the army that levies raise**: what a line or a rebate
- * narrowed to levied pieces reaches (Watch and Ward, The General Levy).
+ * **The share of the army that levies raise**: what a combat line narrowed to
+ * levied pieces reaches (Watch and Ward).
  *
  * The levied soldiers standing now, plus those the levy rate brings over the
  * horizon, against the army this seat keeps (`levyReading`'s wanted army, or
@@ -8764,8 +8741,7 @@ export function bestLevyRite(ctx: ValueContext): LevyRitePlan | null {
  *     each is taken for that share of `score.lumpTurns`, at most all of it;
  *   · **what the seated cards add**: what a card hangs on the town after a
  *     levy, the citizen The Mit'a sends home, one more citizen on The Labour
- *     Rolls, and the lines, stamps and rebates a card gives a soldier a levy
- *     raised.
+ *     Rolls, and the lines and stamps a card gives a soldier a levy raised.
  *
  * `piece` is the unit the levy menu says it would raise, when the caller has
  * it (`LevyOption.unit`); otherwise it is read here.
@@ -9070,12 +9046,6 @@ function explainLevyCards(
       void _levied;
       const rank = effect.rank === undefined ? 0 : rankStrength(effect.rank) * military;
       terms.push({ label: `${source}: what it stamps on the soldier at its birth`, value: scoreEffect(stamp, ctx) + rank });
-    }
-    for (const { source, effect } of effectsOfKind(state, ctx.playerId, 'upkeepRebate')) {
-      if (!leviedReaches(effect.levied, use)) continue;
-      const wage = unitUpkeep(soldier);
-      const off = effect.free === true ? wage : Math.min(wage, effect.amount ?? 1);
-      terms.push({ label: `${source}: the wage the soldier does not draw`, value: costOfUpkeep(off, ctx) });
     }
   }
   return appraise(terms);

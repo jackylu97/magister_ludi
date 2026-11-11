@@ -643,23 +643,25 @@ describe('the age-2 gate', () => {
   const ROUTE_WORDS = /\b(routes?|traders?|caravans?|trading posts?|posts?)\b/i;
   const ROUTE_DATA = /routeEndsHere|holdsPost|postCities|tradeRoutes|foreignTradeRoutes|tradePartnerEmpires/;
 
-  it('keeps routes, traders and posts off Tiers 0 and I, with Market Gardens and Provisioning Contracts the exceptions', () => {
+  it('keeps routes, traders and posts off Tiers 0 and I, with Provisioning Contracts the exception', () => {
     // The themes pass's section 12, which you approved on 2026-10-23: no card
     // that needs a trade route to pay is dealt before Tier II. A card that
     // reads trading posts needs a route too, because only a route leaves a
     // post. Market Gardens stays at Tier 0 by your answer, as the Expansionist
-    // pair's early card (the triage's reading 38).
+    // pair's early card (the triage's reading 38). It was an exception until
+    // batch DS3 removed its route food; it now pays hexes with a road, so the
+    // rule below holds for it too.
     //
     // Batch T2 moved Merchant Scholars to Tier III, so it is no longer an
     // exception (the triage's reading 43).
     //
     // Batch DS1 moved Provisioning Contracts from Tier II to Tier I, by the
     // spec of 2026-11-10 (`docs/plans/deck-simplification-2026-11-10.md`,
-    // whose note says "Tier I had no route card"). It is the second stated
+    // whose note says "Tier I had no route card"). It is the one stated
     // exception.
     expect(orderDef('merchantScholars' as OrderId).band).toBe(3);
     expect(orderDef('provisioningContracts' as OrderId).band).toBe(1);
-    const excepted: readonly string[] = ['marketGardens', 'provisioningContracts'];
+    const excepted: readonly string[] = ['provisioningContracts'];
     const early = gated().filter((id) => orderDef(id).band < 2);
     expect(early.length).toBeGreaterThan(0);
     for (const id of early) {

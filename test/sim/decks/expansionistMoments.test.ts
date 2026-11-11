@@ -6,7 +6,8 @@
  *   · a town's largest size: written at the founding, raised by any gain, never
  *     lowered (the triage's reading 6). The Grain Census counts each citizen
  *     past the record, and The Freedom of the City pays the first time a town
- *     reaches fifteen and twenty citizens (reading 7);
+ *     reaches fifteen citizens (reading 7; batch DS3 removed the second
+ *     threshold at twenty);
  *   · The Topping Out's production for a finished empire building, paid to
  *     each town from its own size (reading 16; reworked in batch E11 of
  *     `docs/plans/expansionist-themes-triage.md`, reading 32);
@@ -149,7 +150,7 @@ describe('the Expansionist batch E2: a town\'s largest size', () => {
     expect(tallyOf(sc, 'theGrainCensus' as OrderId)).toBe(1);
   });
 
-  it('The Freedom of the City pays the first time a town reaches fifteen, and again at twenty', () => {
+  it('The Freedom of the City pays the first time a town reaches fifteen, and not again at twenty', () => {
     const state = bareState();
     slot(state, 0, 'theFreedomOfTheCity');
     const city = town(state, 3, 3, 14);
@@ -161,10 +162,10 @@ describe('the Expansionist batch E2: a town\'s largest size', () => {
     loseCitizen(state, city);
     grow(state, city);
     expect(city.hammerBasket).toBe(40 * 15);
-    // Sixteen to nineteen pay nothing; twenty pays forty times twenty.
+    // Batch DS3 removed the second threshold, so twenty pays nothing.
     settlePopulationWindfall(state, city, 5);
     expect(city.population).toBe(20);
-    expect(city.hammerBasket).toBe(40 * 15 + 40 * 20);
+    expect(city.hammerBasket).toBe(40 * 15);
   });
 
   it('The Freedom of the City pays at fifteen when a grant takes a town from fourteen to sixteen', () => {
@@ -361,7 +362,6 @@ describe('the Expansionist batch E2: the words', () => {
     ]);
     expect(said('theFreedomOfTheCity')).toEqual([
       'a city reaching 15 citizens for the first time grants production equal to 40 times its population',
-      'a city reaching 20 citizens for the first time grants production equal to 40 times its population',
     ]);
     expect(said('theToppingOut')).toEqual([
       'completing a building (an empire building) grants each of your cities production equal to 5 times its population',

@@ -1831,10 +1831,7 @@ function describeEffect(
       // The plural is composed off the **plain** name and then marked, exactly
       // as `countNoun` does it: pluralising a marked string would put the `s`
       // after the closing brackets.
-      const what = effect.defensive === true
-        ? // The Burhs (Expansionist batch E5): the fortifications.
-          'defensive buildings'
-        : effect.publicWork === true
+      const what = effect.publicWork === true
         ? // The Curator of Waters (batch DT6): the class the cards read.
           'public works'
         : effect.empireBuilding === true
@@ -3454,18 +3451,14 @@ function describeEffect(
       return;
     }
     case 'upkeepRebate': {
-      // Only the pieces a levy raised, where the row says so (The General
-      // Levy, Expansionist batch E1).
       // A rank narrows the pieces (Centurions' Elite units, batch DT1), said as
       // `rankedWords` says it for the surcharge below.
       const who =
         effect.rank !== undefined
           ? rankedWords(effect.rank, effect.class ? filterWords(effect.class) : 'units')
-          : effect.levied === undefined
-            ? effect.class
-              ? filterWords(effect.class)
-              : 'all units'
-            : `${effect.class ? filterWords(effect.class) : 'units'} ${leviedWords(effect.levied)}`;
+          : effect.class
+            ? filterWords(effect.class)
+            : 'all units';
       const where = WHERE_WORDS[effect.where ?? 'anywhere'];
       if (effect.free === true) {
         out.push({ text: `${who} cost no gold in maintenance${where}` });
@@ -3649,17 +3642,9 @@ function describeEffect(
       return;
     }
     case 'workAge': {
-      // Expansionist batch E9, Commission: Break the Sod's institution (the
-      // triage's reading 13). The three kinds of work are named, because a
+      // Batch DT12, The Georgics. The three kinds of work are named, because a
       // card that says "improved" leaves tended works out.
       const works = "your improvements, tended works and great people's works";
-      if (effect.turns !== undefined) {
-        const turns = Math.floor(effect.turns);
-        out.push({
-          text: `${works} count as having stood ${turns} ${turns === 1 ? 'turn' : 'turns'} longer for your cards`,
-        });
-      }
-      // Batch DT12, The Georgics.
       if (effect.factor !== undefined) {
         const times = effect.factor === 2 ? 'twice' : `${effect.factor} times`;
         out.push({ text: `${works} count as having stood ${times} as long for your cards` });
@@ -5746,7 +5731,7 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
         // Revenues): "hex with a Pasture or Camp or carrying a strategic
         // resource", not "hex that is with a Pasture". "That is" stays where
         // something stands before the choice, so the reader can see where the
-        // choice starts (The Watercourses, The Landscape Garden).
+        // choice starts (The Landscape Garden).
         into.qualifiers.push(words.join(' or '));
       } else {
         into.qualifiers.push(`that is ${words.join(' or ')}`);
@@ -6058,9 +6043,6 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   besideGreatGeneral: 'beside a great general',
   // Dominion batch D15, The Upstarts: `vsFewerTechs` the other way round.
   vsMoreTechs: 'against an empire that knows more technologies than you',
-  // Expansionist batch E3, The Woodland Bands. The features are printed by
-  // `combatWhenWords`, `onFeature`'s bargain.
-  standingIn: 'while standing in',
   // Scientific batch S3, The Edge of the Sword. `vsWiderEmpire`'s sibling:
   // the two realms' technologies rather than their cities.
   vsFewerTechs: 'against an empire that knows fewer technologies than you',
@@ -6111,15 +6093,6 @@ export function combatWhenWords(when: CombatCondition): string {
       return `${COMBAT_WORDS.beside} ${filterWords(when.class)}`;
     case 'hasRank':
       return `${COMBAT_WORDS.hasRank} ${rankOrBetter(when.rank)}`;
-    case 'standingIn': {
-      // The features are alternatives, so the last is joined with "or".
-      const names = when.features;
-      const words =
-        names.length <= 1
-          ? (names[0] ?? '')
-          : `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`;
-      return `${COMBAT_WORDS.standingIn} ${words}`;
-    }
     case 'nearLearning': {
       // The Strategikon (Scientific batch S9): "while within 2 hexes of your
       // great general, your great scholar or your Academy". The people and
@@ -7421,11 +7394,10 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   moveAfterAttack: 'your units may move after attacking',
   secondAttack: 'your units may attack twice a turn',
   breachInOneBlow: 'your units break a town’s walls in one blow',
-  // Expansionist batch E3: The Woodland Bands, The Watercourses, The Water
-  // Courts (`BehaviorRuleId`), then The Mountain Terraces and The Common
-  // Domain (`CityRuleId`, the second with its scope appended).
+  // Expansionist batch E3: The Woodland Bands and The Water Courts
+  // (`BehaviorRuleId`), then The Mountain Terraces and The Common Domain
+  // (`CityRuleId`, the second with its scope appended).
   woodsWalk: 'your units pay only the open-ground cost to enter forest or jungle',
-  riverFarmsWater: 'your farms beside one of your farms on a river count as having fresh water',
   farmChainsWater:
     'your farms joined to a farm on fresh water by a chain of your farms count as having fresh water',
   // Expansionist batch E9, The Two Harvests. The row names the works, and the

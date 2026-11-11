@@ -397,78 +397,78 @@ across the seven files. Ids are internal; the names in these tables are the card
 |---|---|---|---|---|
 | Smallholdings | 0 | ● | S | Worked farms and pastures gain +1 food and +1 gold. |
 | Granary Levies | 0 | ● | S | When a city grows in population, gain 15 production |
-| The Patient Harvest | 0 | ○ | S | Cities retain 30% of the food spent on growth, but produce military units 15% more slowly. |
-| The Fish Traps | 1 | ● | S | Once drafted, workers may tend a lake or coastal tile into fish traps for one charge: +1 food and +1 production. No chair required. |
-| Sweet Water | 0 | ● | S | Towns beside a river or lake gain +1 happiness. Worked freshwater tiles gain +1 food. |
+| The Patient Harvest | 0 | ○ | S | Towns keep 30% of their food when they grow. |
+| The Fish Traps | 1 | ● | S | Charter. Workers may build fish traps on lake and coast tiles: +1 food and +1 production. |
+| Sweet Water | 0 | ● | S | Tiles beside a river or lake gain +1 food. |
 | The Seed Grain | 0 | ◆ | S | Towns you found start with one extra citizen. |
 | The Rope Stretchers | 0 | ● | P | Each town gains +1 science for every three improved tiles in its borders. |
 | The Road Home | 0 | ● | S | Each town you found is joined to your nearest town by road. |
-| The Woodland Bands | 0 | ● | S | Your units ignore the extra movement cost of forest and jungle, and gain +2 strength while they stand in forest or jungle. |
+| The Woodland Bands | 0 | ● | S | Your units ignore the movement cost of forest and jungle. |
 | The Founding Furrow | 0 | ● | S | Founding a town grants culture equal to five times the number of towns you hold. |
 | The Horrea | 0 | ◆ | P | Each Granary you hold gives +1 authority. |
-| Levy of the Land | 1 | ◆ | S | Cities may spend one citizen to gain production equal to the food it took to grow that citizen. A city may levy once every five turns. |
-| Tinkers' Guild | 1 | ● | S | Workers you produce or purchase gain +1 charge. |
+| Levy of the Land | 1 | ◆ | S | A town may spend a citizen for production equal to the food it took to grow. Once every five turns. |
+| Tinkers' Guild | 1 | ● | S | Workers gain +1 charge. |
 | The Old Songs | 1 | ● | S | Worked unimproved land gains +2 culture. |
-| The Local Census | 1 | ● | S | A town working at least four improved or tended tiles costs one less authority, minimum one. |
-| The Wild Orchards | 1 | ● | S | Once drafted, workers may tend a forest or jungle tile into a wild orchard for one charge: +1 food and +1 gold. No chair required. |
-| Dark Earth | 1 | ◆ | S | Worked farms gain +2 food once they have stood for 20 turns, and another +2 food once they have stood for 50 turns. |
-| The Three Sisters | 1 | ● | S | Worked farms beside a plantation or a pasture gain +2 food and +2 production, once per farm. |
+| The Local Census | 1 | ● | S | A town working four improved tiles costs 1 less authority. |
+| The Wild Orchards | 1 | ● | S | Charter. Workers may tend a forest or jungle tile into an orchard: +1 food and +1 gold. |
+| Dark Earth | 1 | ◆ | S | Farms that have stood 20 turns gain +2 food. |
+| The Three Sisters | 1 | ● | S | Farms beside a plantation or pasture gain +2 food and +2 production. |
 | The Hard Country | 1 | ● | S | Worked desert and tundra tiles gain +1 food and +1 production. |
-| Outposts | 1 | ◆ | S | Workers may plant an outpost on a wild tile within three hexes of your border, for one charge. It claims its hex and the ring around it for your nearest town, and costs no authority. A town founded on an outpost keeps that land. |
+| Outposts | 1 | ◆ | S | Workers may plant an outpost on a wild tile near your border. It claims its hex and the ring around it. |
 | The Wild Marches | 1 | ● | P | +1 culture for every four wild hexes you own. |
 | The Road Towns | 1 | ● | P | Towns joined to your capital by road gain +2 production. |
-| The Gleaners | 1 | ● | S | Needs a levy. After a town spends a citizen on a levy, it gains +3 food for ten turns. At most once every ten turns. |
-| The Grain Census | 1 | ◆ | P | While seated, this card gains +1 production and +1 gold each time one of your towns grows past its largest size. It starts at +2 of each. |
-| The Burhs | 1 | ● | S | Towns gain +3 defence for every defensive building in them, and +100% production toward defensive buildings. |
-| Commission: Break the Sod | 1 | ● | S | Commission. Work twelve improved tiles at the same time. Then, for the rest of the game, your improvements count as having stood ten turns longer. The card leaves its chair. |
-| The Land Hunger | 1 | ◆ | S | While another empire holds more towns than you, your towns build settlers 25% faster, and your settlers gain +1 movement. |
-| The Aediles | 1 | ◆ | P | While seated, this card gains +1 production and +1 culture each time you finish a public work. It starts at +2 of each. |
-| The Watercourses | 2 | ◆ | S | Farms directly beside a river irrigate adjacent farms. Irrigated worked farms gain +2 production. Water does not relay beyond that first step. |
+| The Gleaners | 1 | ● | S | After a town levies a citizen, it gains +3 food for ten turns. |
+| The Grain Census | 1 | ◆ | P | Gains +1 production and +1 gold each time a town grows past its largest size. |
+| The Burhs | 1 | ● | S | Towns gain +3 defence for each defensive building. |
+| Commission: Break the Sod | 1 | ● | S | Goal: work 12 improved tiles. Reward: farms gain +1 food. |
+| The Land Hunger | 1 | ◆ | S | Towns build settlers 25% faster. |
+| The Aediles | 1 | ◆ | P | Gains +1 production and +1 culture each time you finish a public work. |
+| The Watercourses | 2 | ◆ | S | Irrigated farms gain +2 production. |
 | The Highlands | 2 | ● | S | Mines and quarries on hills gain +2 science and +1 production. |
 | The Coast | 2 | ● | S | Worked fishing boats gain +3 food and +3 culture. |
-| Provincial Councils | 2 | ◆ | S | Connected towns other than the capital cost one less authority, minimum one, and gain +1 happiness. |
-| The Grain Dole | 2 | ● | S | Cities of at least ten population gain +4 happiness and retain an additional 20% of food spent on growth. |
-| The Waterworks | 2 | ◆ | P | Aqueducts cost 33% less production. Towns with an Aqueduct gain +1 happiness for every four citizens, at most +3. |
+| Provincial Councils | 2 | ◆ | S | Towns joined to your capital by road cost 1 less authority. |
+| The Grain Dole | 2 | ● | S | Towns of 10 or more citizens gain +4 happiness. |
+| The Waterworks | 2 | ◆ | S | Aqueducts give +3 happiness. |
 | The Breadbasket | 2 | ◆ | S | A town told to stop growing adds its food surplus to its production. |
-| Veteran Colonies | 2 | ◆ | S | A military unit standing in one of your towns may retire there: the unit is removed and the town gains one citizen. |
-| The Engineers' Yards | 2 | ● | S | Manufactories gain +3 production. Worked farms, mines, quarries and lumber mills beside a manufactory gain +2 production. |
+| Veteran Colonies | 2 | ◆ | S | A military unit in one of your towns may retire. The town gains a citizen. |
+| The Engineers' Yards | 2 | ● | S | Improvements beside a manufactory gain +2 production. |
 | The Tended Country | 2 | ◆ | S | Needs tended land. Tended tiles gain +2 production. |
 | The Hedgerows | 2 | ● | S | Needs tended land. Worked farms beside a tended tile gain +2 food, once per farm. |
-| The Great Households | 2 | ◆ | P | Each town gains +2% production for every citizen it has, at most +30%. |
+| The Great Households | 2 | ◆ | P | Each town gains +2% production for each citizen, at most +30%. |
 | The Harbour Cities | 2 | ● | P | Coastal towns gain +1 culture for every two citizens. |
 | The Terraces of Moray | 2 | ◆ | S | Towns beside a mountain may spend a citizen to gain science equal to the food it took to grow that citizen. |
 | The Colonists | 2 | ◆ | S | Towns of at least six citizens may spend a citizen to raise a settler. |
 | The Book of Settlements | 2 | ◆ | P | +3% production and gold for every town you have founded this game, at most +30%. |
 | The Staked Claims | 2 | ◆ | S | Each town you found claims every unowned hex within two hexes of it. |
-| Seasonal Levies | 3 | ◆ | S | Needs a levy. After a city spends a citizen on a levy, it gains +60% food for ten turns. A city can gain this at most once every twenty turns. |
-| The Long Tending | 3 | ○ | S | Needs tended land. Tended tiles gain +2 food for every 25 turns since they were tended, at most +6. |
-| The Polders | 3 | ○ | S | Workers may raise a polder on a coast tile that touches at least three of your land tiles, for two charges. A polder yields as a farm on grassland. |
+| Seasonal Levies | 3 | ◆ | S | After a town levies a citizen, it gains +60% food for ten turns. |
+| The Long Tending | 3 | ○ | S | Tended tiles gain +3 food. |
+| The Polders | 3 | ○ | S | Workers may build a polder on a coast tile beside three of your land tiles. It yields as a farm. |
 | A Court of Engineers | 3 | ○ | S | Gain +50% renown, but great-person offers contain only great engineers. |
-| The Wide Country | 3 | ◆ | S | Commission. Claim twelve hexes by outposts, cleared camps or buying while this card is seated. Then, for the rest of the game, your borders grow 25% faster. The card leaves its chair. |
-| Old Workings | 3 | ● | S | Worked mines, quarries and lumber mills that have stood for twenty turns gain +3 production. |
+| The Wide Country | 3 | ◆ | S | Goal: claim 12 hexes by outposts, cleared camps or buying. Reward: your borders grow 25% faster. |
+| Old Workings | 3 | ● | S | Mines, quarries and lumber mills gain +3 production. |
 | The Megalopolis | 3 | ○ | P | Towns of ten or more citizens gain +1 science and +1 production for each citizen. |
 | Plenty | 3 | ● | S | When a town grows, it gains production equal to five times its new population. |
 | The Mill Wheels | 3 | ● | P | Towns with a Watermill gain +15% production. |
 | The Quitrents | 3 | ● | P | +1 gold for every two hexes you own. |
 | The Mit'a | 3 | ○ | S | Needs a levy. A citizen spent on a levy returns to its town twenty turns later. |
-| The Freedom of the City | 3 | ◆ | S | The first time each of your towns reaches fifteen citizens, and again at twenty, it gains production equal to forty times its population. |
+| The Freedom of the City | 3 | ◆ | S | The first time a town reaches 15 citizens, it gains production equal to forty times its population. |
 | The Great Colonies | 3 | ○ | S | Towns you found start with a third of the citizens of your largest town. |
 | The Age of Improvement | 3 | ○ | E | The bonuses your Orders give to improved tiles are doubled. |
 | The Mountain Terraces | 3 | ○ | S | Your towns may work the mountains in their borders. A worked mountain yields 2 science and 1 production. |
-| The Sovereign Writ | 3 | ○ | S | Spare authority's bonus to production and border growth has no ceiling: +10% for every five points. |
+| The Sovereign Writ | 3 | ○ | S | Spare authority's bonus has no ceiling. |
 | The Imperial Roads | 3 | ○ | S | Towns joined to your capital by road cost no authority. |
 | The Capitolia | 3 | ◆ | P | Each empire building you hold gives each of your towns +1 culture. |
-| The Garden of the World | 4 | ○ | S | Needs tended land. Tended tiles gain +2 food, +1 production and +1 culture. Towns working at least six tended tiles gain +3 happiness. |
-| The Corvée | 4 | ○ | S | While one of your cities builds the Magnum Opus, each of your other towns of at least ten citizens may spend one citizen for it, once every five turns. The Opus city gains production equal to the food that citizen took to grow. This shares the town's levy limit. |
+| The Garden of the World | 4 | ○ | S | Tended tiles gain +2 food, +1 production and +1 culture. |
+| The Corvée | 4 | ○ | S | Your towns may levy a citizen toward the Magnum Opus. |
 | The Philosophers' Peaks | 4 | ◆ | P | Each town gains +2 science for every mountain in its borders, at most +6. |
 | The Measure of the Land | 4 | ○ | P | Every town gains +1 science for every 25 hexes your empire owns, at most +10. |
 | The Mother City | 4 | ○ | P | Your capital gains +5% production and +5% culture for each town you have founded this game. |
-| The General Levy | 4 | ○ | S | Your towns may spend one citizen to raise their best melee unit. At peace a town may do this once every five turns, sharing the levy limit; while you are at war, once every turn. Units raised this way cost no upkeep inside your borders. |
-| The Great Migration | 4 | ○ | S | Every ten turns, each foreign town within three hexes of your border loses one citizen to your nearest town, if your town is happier and has room to grow. |
-| The Domesday Survey | 4 | ○ | S | Commission. Own at least 120 hexes and work at least 40 improved or tended tiles at the same time. Then, for the rest of the game, each town gains +1 science for each improved or tended tile it works. The card leaves its chair. |
+| The General Levy | 4 | ○ | S | Your towns may spend a citizen to raise a melee unit. At war, they may do it every turn. |
+| The Great Migration | 4 | ○ | S | Every ten turns, each foreign town near your border loses a citizen to your nearest happier town. |
+| The Domesday Survey | 4 | ○ | S | Goal: own 120 hexes and work 40 improved or tended tiles. Reward: each town gains +1 science for each improved or tended tile it works. |
 | The Theodosian Walls | 4 | ◆ | S | Your towns gain +1 defence for every two citizens. |
 | The Imperial Highways | 4 | ○ | S | The town raising the Magnum Opus gains +3% production toward it for every town joined to your capital by road, at most +45%. |
-| The Keeps | 4 | ○ | S | Workers may build a Keep, one in each town. A Keep gains the yields of every tile around it, and units on its tile gain +5 strength. |
+| The Keeps | 4 | ○ | S | Workers may build one Keep in each town. A Keep gains the yields of every tile around it. |
 
 ### Commerce
 
@@ -756,12 +756,12 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Escorted Roads | Dominion · Commerce | 2 | ◆ | S | Trade routes from a garrisoned town gain +5 gold. |
 | Field Academies | Dominion · Scientific | 1 | ◆ | S | Your first kill each turn grants 25 science. |
 | Examinations of State | Dominion · Magisterial | 2 | ○ | P | Garrisoned towns gain +1 science and +1 culture for every three citizens. |
-| Market Gardens | Expansionist · Commerce | 0 | ● | S | Farms beside a road gain +1 gold. Domestic routes grant an additional +1 food to their destination. |
-| The Provincial Fair | Expansionist · Commerce | 2 | ◆ | P | Connected noncapital cities with a Market gain +3 food. Their worked plantations, camps and pastures gain +2 gold. |
+| Market Gardens | Expansionist · Commerce | 0 | ● | S | Hexes with a road gain +1 gold. |
+| The Provincial Fair | Expansionist · Commerce | 2 | ◆ | S | Towns with a Market gain +2 gold on plantations, camps and pastures. |
 | Sacred Groves | Expansionist · Devotion | 0 | ◆ | S | Worked, unimproved forests gain +1 food and +1 faith. |
 | The Assay | Expansionist · Scientific | 1 | ● | S | Hexes with a strategic resource gain +2 science. |
 | The Mountain Observatories | Expansionist · Scientific | 0 | ● | P | Cities with a mountain in their borders gain +3 science. |
-| The Sculpted Landscape | Expansionist · Magisterial | 3 | ◆ | S | Farms beside a great-person improvement gain +2 food and +2 culture. Each farm receives this once regardless of the number of adjacent works. |
+| The Sculpted Landscape | Expansionist · Magisterial | 3 | ◆ | S | Farms beside a great-person work gain +2 food and +2 culture. |
 | The Tithe | Commerce · Devotion | 2 | ○ | P | Cities with a Temple gain gold equal to 25% of their base faith, and +25% gold. |
 | Merchant Scholars | Commerce · Scientific | 3 | ◆ | P | Foreign routes gain +2 science for each Academy in the origin city. |
 | The Cloister | Devotion · Scientific | 2 | ○ | P | Cities with a Temple gain science equal to 30% of their base faith. Their Libraries and Universities each gain +3 food. |
@@ -772,7 +772,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Letters of Marque | Dominion · Commerce | 3 | ○ | S | Naval kills grant 60 gold. |
 | The Exchange of Discoveries | Commerce · Scientific | 1 | ◆ | S | +2 science on mines and quarries on a resource. Additional +2 if the city has a market. |
 | Garden Provinces | Expansionist · Magisterial | 2 | ● | P | Connected cities with a Monument gain +3 food and +3 culture. |
-| Garden Cities | Expansionist · Magisterial | 1 | ◆ | P | Cities with a Monument gain +1 culture per three worked wild tiles, at most +3. Cities of at least eight population with an Aqueduct gain +1 happiness. |
+| Garden Cities | Expansionist · Magisterial | 1 | ◆ | P | Towns with a Monument gain +1 culture for every three wild tiles they work. |
 | Pilgrim Markets | Commerce · Devotion | 2 | ◆ | S | Routes gain +3 gold and +3 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify. |
 | Rites of Passage | Dominion · Devotion | 0 | ● | S | Gaining a military unit grants 12 faith. |
 | The Sacred Host | Dominion · Devotion | 1 | ○ | S | Kills grant 15 faith. |
@@ -794,12 +794,12 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Standing Army | Dominion · Commerce | 1 | ◆ | S | Garrisoned units cost no upkeep. |
 | The Art Dealers | Commerce · Magisterial | 1 | ● | E | +3 gold for each card seated in your government. |
 | Mercenary Contracts | Dominion · Commerce | 3 | ◆ | S | Military units you buy cost no upkeep for twenty turns. |
-| The Holy Spring | Expansionist · Devotion | 0 | ● | P | Cities whose centre stands beside a mountain or a lake gain +2 faith and +1 culture. |
+| The Holy Spring | Expansionist · Devotion | 0 | ● | P | Towns beside a mountain or a lake gain +2 faith and +1 culture. |
 | The Priest-Astronomers | Devotion · Scientific | 1 | ● | P | Your capital gains +2 science and +2 faith for every city of yours keeping a rite, at most +16 of each. |
 | The Monastic University | Devotion · Scientific | 3 | ○ | S | A Holy Site and an academy standing beside each other each gain +5 science and +3 faith. |
 | The Painted Chapels | Devotion · Magisterial | 1 | ◆ | P | Religious buildings give +3 culture each. |
 | The Festival Calendar | Devotion · Magisterial | 2 | ◆ | P | Cities keeping a rite gain +30% food and +30% culture. |
-| The Ambarvalia | Expansionist · Devotion | 0 | ● | P | Your capital gains +1 faith. Each town gains +1 faith for every two improved tiles in its borders. |
+| The Ambarvalia | Expansionist · Devotion | 0 | ● | P | Each town gains +1 faith for every two improved tiles. |
 | The Monastery Libraries | Devotion · Scientific | 1 | ● | P | Libraries give +2 faith. Temples give +2 science. |
 | The Shrine Guards | Dominion · Devotion | 1 | ● | S | Towns with a Shrine may buy melee units with faith. |
 | The Blessed Forges | Devotion · Scientific | 2 | ◆ | P | Improved strategic resources gain +1 faith and +1 production. Cities with a Temple gain +2 faith and +2 production more. |

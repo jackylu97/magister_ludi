@@ -293,21 +293,14 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "The cabbage that reaches the road is worth two in the field.",
-      "text": "Farms beside a road gain +1 gold. Domestic routes grant an additional +1 food to their destination.",
+      "text": "Hexes with a road gain +1 gold.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
           "gold": 1,
-          "on": {
-                  "test": "all",
-                  "of": [
-                          { "test": "improvement", "improvement": "farm" },
-                          { "test": "beside", "of": { "test": "road" } }
-                        ]
-                }
-        },
-        { "kind": "pays", "where": "route", "food": 1, "crossing": "domestic" }
+          "on": { "test": "road" }
+        }
       ]
     },
     "theProvincialFair": {
@@ -318,21 +311,8 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "Once a year the province remembers it is one.",
-      "text": "Connected noncapital cities with a Market gain +3 food. Their worked plantations, camps and pastures gain +2 gold.",
+      "text": "Towns with a Market gain +2 gold on plantations, camps and pastures.",
       "effects": [
-        {
-          "kind": "pays",
-          "where": "city",
-          "food": 3,
-          "scope": {
-            "test": "all",
-            "of": [
-              { "test": "connected" },
-              { "test": "notCapital" },
-              { "test": "hasBuilding", "building": "market" }
-            ]
-          }
-        },
         {
           "kind": "pays",
           "where": "hex",
@@ -341,14 +321,7 @@
             "test": "anyImprovement",
             "improvements": ["plantation", "camp", "pasture"]
           },
-          "scope": {
-            "test": "all",
-            "of": [
-              { "test": "connected" },
-              { "test": "notCapital" },
-              { "test": "hasBuilding", "building": "market" }
-            ]
-          }
+          "scope": { "test": "hasBuilding", "building": "market" }
         }
       ]
     },
@@ -448,7 +421,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Plant the square, and the square will plant the town.",
-      "text": "Cities with a Monument gain +1 culture per three worked wild tiles, at most +3. Cities of at least eight population with an Aqueduct gain +1 happiness.",
+      "text": "Towns with a Monument gain +1 culture for every three wild tiles they work.",
       "effects": [
         {
           "kind": "pays",
@@ -458,20 +431,7 @@
           "to": "culture",
           "amount": 1,
           "per": 3,
-          "max": 3,
           "scope": { "test": "hasBuilding", "building": "monument" }
-        },
-        {
-          "kind": "happiness",
-          "amount": 1,
-          "per": "city",
-          "scope": {
-            "test": "all",
-            "of": [
-              { "test": "populationAtLeast", "value": 8 },
-              { "test": "hasBuilding", "building": "aqueduct" }
-            ]
-          }
         }
       ]
     },
@@ -483,7 +443,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "The master left, and the valley kept the habit.",
-      "text": "Farms beside a great-person improvement gain +2 food and +2 culture. Each farm receives this once regardless of the number of adjacent works.",
+      "text": "Farms beside a great-person work gain +2 food and +2 culture.",
       "effects": [
         {
           "kind": "pays",
@@ -1901,7 +1861,7 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "They settled where the water was clearest and the mountain was closest to the sky.",
-      "text": "Cities whose centre stands beside a mountain or a lake gain +2 faith and +1 culture.",
+      "text": "Towns beside a mountain or a lake gain +2 faith and +1 culture.",
       "effects": [
         {
           "kind": "pays",
@@ -2125,16 +2085,8 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "The procession walks three times around the fields before the sowing.",
-      "text": "Your capital gains +1 faith. Each town gains +1 faith for every two improved tiles in its borders.",
+      "text": "Each town gains +1 faith for every two improved tiles.",
       "effects": [
-        {
-          "kind": "pays",
-          "where": "city",
-          "scope": {
-            "test": "capital"
-          },
-          "faith": 1
-        },
         {
           "kind": "pays",
           "where": "city",

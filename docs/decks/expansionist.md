@@ -13,6 +13,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 - **Doctrines:** 24 (4, 6, 7 and 7 across Tiers I to IV), all dealt, after your comments of 2026-10-23 and 2026-11-03 (`docs/plans/doctrine-review-2026-11-05.md`). A Doctrine is held for the whole game and takes no chair. Each tier's Doctrine table sits above its Orders, and the Build column names the build or flavour of 2026-10-16 that each is written for. `docs/plans/doctrines-build-triage.md` gives the batch that built each one. The reasons and pairs are in `docs/plans/expansionist-builds.md`, "Doctrines, proposed 2026-10-17".
 - **The long form** (the D3 "built as" details, the tended works as built, the synergy section, the proposed cuts and the proposed revision of 2026-10-13): `docs/decks/reference/expansionist-2026-10-16.md`.
 - **Batch DS1** (2026-11-10, `docs/plans/deck-simplification-2026-11-10.md`, `docs/flags.md` item (hhhhhhh)) retired 39 rows of this deck and 6 shared rows. It moved The Fish Traps from Tier 0 to Tier I. A moved row keeps its text until a later batch changes it. "Retired rows" below gives the reason for each cut. The spec also moves the shared Market Gardens from Tier 0 to Tier II. That move waits for a ruling, because Expansionist and Commerce would then share no card at Tier I or earlier (ruling (qqqqqq) 14).
+- **Batch DS3** (2026-11-10, the same spec) gave 37 rows of this deck and 6 shared rows their new, shorter text, and changed their effects to match. A simplified card lost the clause the spec drops, and a changed card has the new effect. Each card's Note is in the spec. Market Gardens has its new effect ("Hexes with a road gain +1 gold") and stays at Tier 0 while its move waits. **The Terraces of Moray is held:** its new text ("A levy also grants science equal to half its production") needs a moment the game does not have, a levy that pays a share of its own production as another yield. The row keeps its old text and effect until that is ruled. Readings taken: "irrigated farms" (The Watercourses) are farms on fresh water, which is the Hanging Gardens' reading; Seasonal Levies keeps its food from stacking while it runs, as The Gleaners does; The Keep loses its +5 strength on the improvement row itself. Five effect shapes that no row used after this batch are removed: the "standing in forest or jungle" combat condition (The Woodland Bands), the river farms' water relay (The Watercourses), the production bonus toward defensive buildings (The Burhs), the turns a commission added to a work's age (Commission: Break the Sod), and the upkeep rebate for levied units (The General Levy).
 
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
@@ -44,12 +45,12 @@ The 74 cards are 72 that take a chair and two charters (The Fish Traps and The W
 |---|---|---|---|---|
 | **Smallholdings** | common | implemented | Worked farms and pastures gain +1 food and +1 gold. | Economic |
 | **Granary Levies** | common | implemented | When a city grows in population, gain 15 production | Economic |
-| **The Patient Harvest** | rare | implemented | Cities retain 30% of the food spent on growth, but produce military units 15% more slowly. | Economic |
-| **Sweet Water** | common | implemented | Towns beside a river or lake gain +1 happiness. Worked freshwater tiles gain +1 food. | Economic |
+| **The Patient Harvest** | rare | implemented | Towns keep 30% of their food when they grow. | Economic |
+| **Sweet Water** | common | implemented | Tiles beside a river or lake gain +1 food. | Economic |
 | **The Seed Grain** | uncommon | implemented | Towns you found start with one extra citizen. | Economic |
 | **The Rope Stretchers** | common | implemented | Each town gains +1 science for every three improved tiles in its borders. | Civic |
 | **The Road Home** | common | implemented | Each town you found is joined to your nearest town by road. | Economic |
-| **The Woodland Bands** | common | implemented | Your units ignore the extra movement cost of forest and jungle, and gain +2 strength while they stand in forest or jungle. | Military |
+| **The Woodland Bands** | common | implemented | Your units ignore the movement cost of forest and jungle. | Military |
 | **The Founding Furrow** | common | implemented | Founding a town grants culture equal to five times the number of towns you hold. | Civic |
 | **The Horrea** | uncommon | implemented | Each Granary you hold gives +1 authority. | Civic |
 
@@ -68,24 +69,24 @@ The 74 cards are 72 that take a chair and two charters (The Fish Traps and The W
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Burhs** | common | implemented | Towns gain +3 defence for every defensive building in them, and +100% production toward defensive buildings. | Military |
-| **Levy of the Land** | uncommon | implemented | Cities may spend one citizen to gain production equal to the food it took to grow that citizen. A city may levy once every five turns. | Economic |
-| **Tinkers' Guild** | common | implemented | Workers you produce or purchase gain +1 charge. | Economic |
+| **The Burhs** | common | implemented | Towns gain +3 defence for each defensive building. | Military |
+| **Levy of the Land** | uncommon | implemented | A town may spend a citizen for production equal to the food it took to grow. Once every five turns. | Economic |
+| **Tinkers' Guild** | common | implemented | Workers gain +1 charge. | Economic |
 | **The Old Songs** | common | implemented | Worked unimproved land gains +2 culture. | Civic |
-| **The Local Census** | common | implemented | A town working at least four improved or tended tiles costs one less authority, minimum one. | Civic |
-| **The Wild Orchards** | common | implemented | Once drafted, workers may tend a forest or jungle tile into a wild orchard for one charge: +1 food and +1 gold. No chair required. | Economic |
-| **Dark Earth** | uncommon | implemented | Worked farms gain +2 food once they have stood for 20 turns, and another +2 food once they have stood for 50 turns. | Economic |
-| **The Three Sisters** | common | implemented | Worked farms beside a plantation or a pasture gain +2 food and +2 production, once per farm. | Economic |
+| **The Local Census** | common | implemented | A town working four improved tiles costs 1 less authority. | Civic |
+| **The Wild Orchards** | common | implemented | Charter. Workers may tend a forest or jungle tile into an orchard: +1 food and +1 gold. | Economic |
+| **Dark Earth** | uncommon | implemented | Farms that have stood 20 turns gain +2 food. | Economic |
+| **The Three Sisters** | common | implemented | Farms beside a plantation or pasture gain +2 food and +2 production. | Economic |
 | **The Hard Country** | common | implemented | Worked desert and tundra tiles gain +1 food and +1 production. | Economic |
-| **Outposts** | uncommon | implemented | Workers may plant an outpost on a wild tile within three hexes of your border, for one charge. It claims its hex and the ring around it for your nearest town, and costs no authority. A town founded on an outpost keeps that land. | Economic |
-| **Commission: Break the Sod** | common | implemented | Commission. Work twelve improved tiles at the same time. Then, for the rest of the game, your improvements count as having stood ten turns longer. The card leaves its chair. | Wildcard |
-| **The Grain Census** | uncommon | implemented | While seated, this card gains +1 production and +1 gold each time one of your towns grows past its largest size. It starts at +2 of each. | Economic |
-| **The Gleaners** | common | implemented | Needs a levy. After a town spends a citizen on a levy, it gains +3 food for ten turns. At most once every ten turns. | Economic |
+| **Outposts** | uncommon | implemented | Workers may plant an outpost on a wild tile near your border. It claims its hex and the ring around it. | Economic |
+| **Commission: Break the Sod** | common | implemented | Goal: work 12 improved tiles. Reward: farms gain +1 food. | Wildcard |
+| **The Grain Census** | uncommon | implemented | Gains +1 production and +1 gold each time a town grows past its largest size. | Economic |
+| **The Gleaners** | common | implemented | After a town levies a citizen, it gains +3 food for ten turns. | Economic |
 | **The Wild Marches** | common | implemented | +1 culture for every four wild hexes you own. | Civic |
 | **The Road Towns** | common | implemented | Towns joined to your capital by road gain +2 production. | Economic |
-| **The Aediles** | uncommon | implemented | While seated, this card gains +1 production and +1 culture each time you finish a public work. It starts at +2 of each. | Civic |
-| **The Land Hunger** | uncommon | implemented | While another empire holds more towns than you, your towns build settlers 25% faster, and your settlers gain +1 movement. | Economic |
-| **The Fish Traps** | common | implemented | Once drafted, workers may tend a lake or coastal tile into fish traps for one charge: +1 food and +1 production. No chair required. | Economic |
+| **The Aediles** | uncommon | implemented | Gains +1 production and +1 culture each time you finish a public work. | Civic |
+| **The Land Hunger** | uncommon | implemented | Towns build settlers 25% faster. | Economic |
+| **The Fish Traps** | common | implemented | Charter. Workers may build fish traps on lake and coast tiles: +1 food and +1 production. | Economic |
 
 ## Tier II
 
@@ -104,18 +105,18 @@ The 74 cards are 72 that take a chair and two charters (The Fish Traps and The W
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Watercourses** | uncommon | implemented | Farms directly beside a river irrigate adjacent farms. Irrigated worked farms gain +2 production. Water does not relay beyond that first step. | Economic |
+| **The Watercourses** | uncommon | implemented | Irrigated farms gain +2 production. | Economic |
 | **The Highlands** | common | implemented | Mines and quarries on hills gain +2 science and +1 production. | Civic |
 | **The Coast** | common | implemented | Worked fishing boats gain +3 food and +3 culture. | Civic |
-| **Provincial Councils** | uncommon | implemented | Connected towns other than the capital cost one less authority, minimum one, and gain +1 happiness. | Civic |
-| **The Grain Dole** | common | implemented | Cities of at least ten population gain +4 happiness and retain an additional 20% of food spent on growth. | Civic |
-| **The Waterworks** | uncommon | implemented | Aqueducts cost 33% less production. Towns with an Aqueduct gain +1 happiness for every four citizens, at most +3. | Civic |
+| **Provincial Councils** | uncommon | implemented | Towns joined to your capital by road cost 1 less authority. | Civic |
+| **The Grain Dole** | common | implemented | Towns of 10 or more citizens gain +4 happiness. | Civic |
+| **The Waterworks** | uncommon | implemented | Aqueducts give +3 happiness. | Civic |
 | **The Breadbasket** | uncommon | implemented | A town told to stop growing adds its food surplus to its production. | Economic |
-| **Veteran Colonies** | uncommon | implemented | A military unit standing in one of your towns may retire there: the unit is removed and the town gains one citizen. | Economic |
-| **The Engineers' Yards** | common | implemented | Manufactories gain +3 production. Worked farms, mines, quarries and lumber mills beside a manufactory gain +2 production. | Economic |
+| **Veteran Colonies** | uncommon | implemented | A military unit in one of your towns may retire. The town gains a citizen. | Economic |
+| **The Engineers' Yards** | common | implemented | Improvements beside a manufactory gain +2 production. | Economic |
 | **The Tended Country** | uncommon | implemented | Needs tended land. Tended tiles gain +2 production. | Economic |
 | **The Hedgerows** | common | implemented | Needs tended land. Worked farms beside a tended tile gain +2 food, once per farm. | Economic |
-| **The Great Households** | uncommon | implemented | Each town gains +2% production for every citizen it has, at most +30%. | Economic |
+| **The Great Households** | uncommon | implemented | Each town gains +2% production for each citizen, at most +30%. | Economic |
 | **The Harbour Cities** | common | implemented | Coastal towns gain +1 culture for every two citizens. | Civic |
 | **The Terraces of Moray** | uncommon | implemented | Towns beside a mountain may spend a citizen to gain science equal to the food it took to grow that citizen. | Civic |
 | **The Book of Settlements** | uncommon | implemented | +3% production and gold for every town you have founded this game, at most +30%. | Economic |
@@ -140,21 +141,21 @@ The 74 cards are 72 that take a chair and two charters (The Fish Traps and The W
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **Seasonal Levies** | uncommon | implemented | Needs a levy. After a city spends a citizen on a levy, it gains +60% food for ten turns. A city can gain this at most once every twenty turns. | Economic |
-| **The Long Tending** | rare | implemented | Needs tended land. Tended tiles gain +2 food for every 25 turns since they were tended, at most +6. | Economic |
-| **The Polders** | rare | implemented | Workers may raise a polder on a coast tile that touches at least three of your land tiles, for two charges. A polder yields as a farm on grassland. | Economic |
+| **Seasonal Levies** | uncommon | implemented | After a town levies a citizen, it gains +60% food for ten turns. | Economic |
+| **The Long Tending** | rare | implemented | Tended tiles gain +3 food. | Economic |
+| **The Polders** | rare | implemented | Workers may build a polder on a coast tile beside three of your land tiles. It yields as a farm. | Economic |
 | **A Court of Engineers** | rare | implemented | Gain +50% renown, but great-person offers contain only great engineers. | Civic |
-| **The Wide Country** | uncommon | implemented | Commission. Claim twelve hexes by outposts, cleared camps or buying while this card is seated. Then, for the rest of the game, your borders grow 25% faster. The card leaves its chair. | Wildcard |
+| **The Wide Country** | uncommon | implemented | Goal: claim 12 hexes by outposts, cleared camps or buying. Reward: your borders grow 25% faster. | Wildcard |
 | **The Age of Improvement** | rare | implemented | The bonuses your Orders give to improved tiles are doubled. | Wildcard |
-| **Old Workings** | common | implemented | Worked mines, quarries and lumber mills that have stood for twenty turns gain +3 production. | Economic |
+| **Old Workings** | common | implemented | Mines, quarries and lumber mills gain +3 production. | Economic |
 | **The Megalopolis** | rare | implemented | Towns of ten or more citizens gain +1 science and +1 production for each citizen. | Civic |
-| **The Freedom of the City** | uncommon | implemented | The first time each of your towns reaches fifteen citizens, and again at twenty, it gains production equal to forty times its population. | Economic |
+| **The Freedom of the City** | uncommon | implemented | The first time a town reaches 15 citizens, it gains production equal to forty times its population. | Economic |
 | **Plenty** | common | implemented | When a town grows, it gains production equal to five times its new population. | Economic |
 | **The Mill Wheels** | common | implemented | Towns with a Watermill gain +15% production. | Economic |
 | **The Mit'a** | rare | implemented | Needs a levy. A citizen spent on a levy returns to its town twenty turns later. | Economic |
 | **The Quitrents** | common | implemented | +1 gold for every two hexes you own. | Economic |
 | **The Mountain Terraces** | rare | implemented | Your towns may work the mountains in their borders. A worked mountain yields 2 science and 1 production. | Civic |
-| **The Sovereign Writ** | rare | implemented | Spare authority's bonus to production and border growth has no ceiling: +10% for every five points. | Civic |
+| **The Sovereign Writ** | rare | implemented | Spare authority's bonus has no ceiling. | Civic |
 | **The Imperial Roads** | rare | implemented | Towns joined to your capital by road cost no authority. | Civic |
 | **The Great Colonies** | rare | implemented | Towns you found start with a third of the citizens of your largest town. | Economic |
 | **The Capitolia** | uncommon | implemented | Each empire building you hold gives each of your towns +1 culture. | Civic |
@@ -177,15 +178,15 @@ The 74 cards are 72 that take a chair and two charters (The Fish Traps and The W
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Keeps** | rare | implemented | Workers may build a Keep, one in each town. A Keep gains the yields of every tile around it, and units on its tile gain +5 strength. | Economic |
-| **The Garden of the World** | rare | implemented | Needs tended land. Tended tiles gain +2 food, +1 production and +1 culture. Towns working at least six tended tiles gain +3 happiness. | Economic |
-| **The Corvée** | rare | implemented | While one of your cities builds the Magnum Opus, each of your other towns of at least ten citizens may spend one citizen for it, once every five turns. The Opus city gains production equal to the food that citizen took to grow. This shares the town's levy limit. | Economic |
+| **The Keeps** | rare | implemented | Workers may build one Keep in each town. A Keep gains the yields of every tile around it. | Economic |
+| **The Garden of the World** | rare | implemented | Tended tiles gain +2 food, +1 production and +1 culture. | Economic |
+| **The Corvée** | rare | implemented | Your towns may levy a citizen toward the Magnum Opus. | Economic |
 | **The Philosophers' Peaks** | uncommon | implemented | Each town gains +2 science for every mountain in its borders, at most +6. | Civic |
 | **The Measure of the Land** | rare | implemented | Every town gains +1 science for every 25 hexes your empire owns, at most +10. | Civic |
 | **The Mother City** | rare | implemented | Your capital gains +5% production and +5% culture for each town you have founded this game. | Civic |
-| **The General Levy** | rare | implemented | Your towns may spend one citizen to raise their best melee unit. At peace a town may do this once every five turns, sharing the levy limit; while you are at war, once every turn. Units raised this way cost no upkeep inside your borders. | Military |
-| **The Great Migration** | rare | implemented | Every ten turns, each foreign town within three hexes of your border loses one citizen to your nearest town, if your town is happier and has room to grow. | Economic |
-| **The Domesday Survey** | rare | implemented | Commission. Own at least 120 hexes and work at least 40 improved or tended tiles at the same time. Then, for the rest of the game, each town gains +1 science for each improved or tended tile it works. The card leaves its chair. | Wildcard |
+| **The General Levy** | rare | implemented | Your towns may spend a citizen to raise a melee unit. At war, they may do it every turn. | Military |
+| **The Great Migration** | rare | implemented | Every ten turns, each foreign town near your border loses a citizen to your nearest happier town. | Economic |
+| **The Domesday Survey** | rare | implemented | Goal: own 120 hexes and work 40 improved or tended tiles. Reward: each town gains +1 science for each improved or tended tile it works. | Wildcard |
 | **The Imperial Highways** | rare | implemented | The town raising the Magnum Opus gains +3% production toward it for every town joined to your capital by road, at most +45%. | Economic |
 | **The Theodosian Walls** | uncommon | implemented | Your towns gain +1 defence for every two citizens. | Military |
 
@@ -195,20 +196,20 @@ These rows live in `data/decks/common.json`. A seat holding Expansionist or the 
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
-| **Market Gardens** | common | Commerce | 0 | implemented | Farms beside a road gain +1 gold. Domestic routes grant an additional +1 food to their destination. | Economic |
+| **Market Gardens** | common | Commerce | 0 | implemented | Hexes with a road gain +1 gold. | Economic |
 | **Sacred Groves** | uncommon | Devotion | 0 | implemented | Worked, unimproved forests gain +1 food and +1 faith. | Civic |
 | **The Frontier Militia** | common | Dominion | 0 | implemented | Each town you found starts with a melee unit. | Military |
-| **The Ambarvalia** | common | Devotion | 0 | implemented | Your capital gains +1 faith. Each town gains +1 faith for every two improved tiles in its borders. | Civic |
-| **The Holy Spring** | common | Devotion | 0 | implemented | Cities whose centre stands beside a mountain or a lake gain +2 faith and +1 culture. | Civic |
+| **The Ambarvalia** | common | Devotion | 0 | implemented | Each town gains +1 faith for every two improved tiles. | Civic |
+| **The Holy Spring** | common | Devotion | 0 | implemented | Towns beside a mountain or a lake gain +2 faith and +1 culture. | Civic |
 | **The Mountain Observatories** | common | Scientific | 0 | implemented | Cities with a mountain in their borders gain +3 science. | Civic |
 | **The Muster of the Fields** | uncommon | Dominion | I | implemented | Towns of 5 or more citizens may spend a citizen to raise a melee unit. | Military |
 | **The Barbarian Frontier** | uncommon | Dominion | I | implemented | Clearing a barbarian camp claims its hex and the unowned hexes around it. | Economic |
 | **The Farming Garrisons** | common | Dominion | I | implemented | Hexes with a fortified unit gain +1 food and +1 production. | Economic |
 | **The Assay** | common | Scientific | I | implemented | Hexes with a strategic resource gain +2 science. | Civic |
-| **Garden Cities** | uncommon | Magisterial | I | implemented | Cities with a Monument gain +1 culture per three worked wild tiles, at most +3. Cities of at least eight population with an Aqueduct gain +1 happiness. | Civic |
-| **The Provincial Fair** | uncommon | Commerce | II | implemented | Connected noncapital cities with a Market gain +3 food. Their worked plantations, camps and pastures gain +2 gold. | Economic |
+| **Garden Cities** | uncommon | Magisterial | I | implemented | Towns with a Monument gain +1 culture for every three wild tiles they work. | Civic |
+| **The Provincial Fair** | uncommon | Commerce | II | implemented | Towns with a Market gain +2 gold on plantations, camps and pastures. | Economic |
 | **Garden Provinces** | common | Magisterial | II | implemented | Connected cities with a Monument gain +3 food and +3 culture. | Civic |
-| **The Sculpted Landscape** | uncommon | Magisterial | III | implemented | Farms beside a great-person improvement gain +2 food and +2 culture. Each farm receives this once regardless of the number of adjacent works. | Civic |
+| **The Sculpted Landscape** | uncommon | Magisterial | III | implemented | Farms beside a great-person work gain +2 food and +2 culture. | Civic |
 
 ## Retired rows
 
@@ -272,7 +273,7 @@ These rows stay in the data so that old saves load. They are dealt to nobody, th
   - **Retired in batch E7:** the fifteen cut cards that had a data row: The Pyramid Builders, The Beating of the Bounds, The Prospectors, The Garden Frontier, The Builders' Levy, The Plough Teams, The Polis, The Landscape Garden, The Common Domain, The Woodwrights, Public Works, The Manors, The Assay Office, The Managed Wild and The Land's Great Work. The Deep Workings had no row and left the sheet. The last section of `docs/plans/expansionist-list-proposed.md`, "Cut by this pass", gives each card's old text and the reason for the cut, so you can restore one.
 - **Still open:**
   - **Migration** played as built, and the first triage's reading 36 waited for you. Batch DS1 retired the card.
-  - **The one-effect trims and splits of 2026-10-13** that the builds did not need. The themes pass did not apply them. Recommended: apply them; the long form has each one.
+  - **The one-effect trims and splits of 2026-10-13** that the builds did not need. The themes pass did not apply them. Batch DS3 trimmed Sweet Water, Provincial Councils, The Grain Dole, The Waterworks, The Engineers' Yards and The Garden of the World to one effect each, as the simplification spec says, and DS1 retired The Mountain Schools, Marcher Lords and The Road Garrisons. The list below is kept as it was written.
     - Sweet Water: split, The Wellsprings takes the happiness.
     - Granary Levies: renamed The Granary Dues.
     - Provincial Councils, The Grain Dole, The Waterworks, The Engineers' Yards, The Mountain Schools and The Garden of the World: each trimmed to one effect.

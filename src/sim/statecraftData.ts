@@ -1775,17 +1775,6 @@ export type CombatCondition =
    */
   | { test: 'vsMoreTechs' }
   /**
-   * **This side's piece stands on a hex carrying one of these features**
-   * (Expansionist batch E3, The Woodland Bands' forest and jungle).
-   *
-   * It reads **the hex the piece stands on**, not the contested hex: for a
-   * defender the two are the same hex, and for an attacker it is the hex it
-   * strikes from. So a row written with `side: 'defend'` is a defence line
-   * today (the triage's reading 28), and the same row with `side: 'both'`
-   * would pay an attack from the woods too, with no other change.
-   */
-  | { test: 'standingIn'; features: string[] }
-  /**
    * **The other side's empire knows fewer technologies than this one**
    * (Scientific batch S3, The Edge of the Sword). Asked of
    * `CombatSituation.vsOwnerId` through `knowsFewerTechs` (`rivals.ts`), so it
@@ -1801,8 +1790,8 @@ export type CombatCondition =
    * general, your great scholar or your Academy"; the triage's readings 11 and
    * 44).
    *
-   * It reads the hex the piece stands on, as `standingIn` does: the contested
-   * hex for a defender, and its own hex for an attacker. Only this empire's
+   * It reads the hex the piece stands on: the contested hex for a defender,
+   * and its own hex for an attacker. Only this empire's
    * own count (reading 11). A great person counts while it stands unspent on
    * the board. A work counts on a hex inside this empire's borders, through
    * `workIsRow`, so a great person's work that The Studium Generale lets stand
@@ -1814,8 +1803,8 @@ export type CombatCondition =
    * **This side's piece stands on a hex carrying a great-person work**
    * (Magisterial batch MG9, The Custodians; the triage's reading 30).
    *
-   * It reads the hex the piece stands on, as `standingIn` does: the
-   * contested hex for a defender, and its own hex for an attacker. Any of the
+   * It reads the hex the piece stands on: the contested hex for a defender,
+   * and its own hex for an attacker. Any of the
    * six works counts (`isGreatPersonWork`, the `greatWork` tile test's
    * reading), whoever owns the hex and whoever laid the work.
    */
@@ -2333,8 +2322,8 @@ export type TileCondition =
    */
   | { test: 'surveyed' }
   /**
-   * **A river runs along one of this hex's edges** (Expansionist batch E3, The
-   * Watercourses' "farms directly beside a river").
+   * **A river runs along one of this hex's edges** (Expansionist batch E3). The
+   * Doctrine The Gift of the River asks it: "worked tiles beside a river".
    *
    * Read off `Tile.riverEdges`, the map's own river mask, and narrower than
    * `freshwater`: a lake or an oasis gives a hex fresh water but no river.
@@ -5022,16 +5011,11 @@ export type BehaviorRuleId =
    */
   | 'woodsWalk'
   /**
-   * **A farm of this empire beside one of its farms on a river counts as
-   * having fresh water** (Expansionist batch E3, The Watercourses). One step
-   * only: the water does not pass on from the farm it reached. Read by
-   * `farmWaterOf`, which every fresh-water question about a farm asks.
-   */
-  | 'riverFarmsWater'
-  /**
    * **A farm of this empire joined to a farm on fresh water by an unbroken
    * chain of its farms counts as having fresh water** (Expansionist batch E3,
-   * The Water Courts). Read by `farmWaterOf`.
+   * The Water Courts). Read by `farmWaterOf`, which every fresh-water question
+   * about a farm asks. The Watercourses had a one-step rule beside it
+   * (`riverFarmsWater`) until batch DS3 removed it with that card's relay.
    */
   | 'farmChainsWater'
   /**
@@ -7359,14 +7343,6 @@ interface CardProductionBonusEffect {
    */
   publicWork?: true;
   /**
-   * Narrows the bonus to **fortifications** (Expansionist batch E5, The Burhs):
-   * the buildings the `defensiveBuildings` count reads, which raise a town's
-   * defence or its hit points (`isFortification`, `buildingData.ts`). Asked
-   * only of a building being built, so `category: 'building'` with this never
-   * reaches a wonder (the triage's reading 30).
-   */
-  defensive?: true;
-  /**
    * **Only while no empire this one has met knows the technology that opens
    * the row** (Scientific batch S3, The Great Designs; the triage's readings
    * 6 and 46). The technology is the one that names the row in its unlocks.
@@ -7589,9 +7565,9 @@ export interface CardCombatLineEffect {
    * triage's reading 27). `true` reaches a unit raised by any levy; a use
    * reaches only units raised by a levy of that use. Read in
    * `combatLineAmount` off the piece's own mark (`Unit.levied`), which a levy
-   * writes when it creates the piece, the same field `unitStamp` and
-   * `upkeepRebate` read. It is asked of this side's piece, whichever side the
-   * line pays. Absent reaches every unit.
+   * writes when it creates the piece, the same field `unitStamp` reads. It is
+   * asked of this side's piece, whichever side the line pays. Absent reaches
+   * every unit.
    */
   levied?: true | LevyUse;
 }
@@ -9451,29 +9427,25 @@ interface CardWorksBeyondEffect {
 }
 
 /**
- * **This empire's works count as older than they are, for its cards**
- * (Expansionist batch E9, Commission: Break the Sod's institution; the
- * triage's reading 13). `turns` is added to the age of every work the
- * empire's cards read: improvements, tended works and great people's works,
- * in hex lines, counts of hexes and town scopes.
+ * **This empire's works count as older than they are, for its cards** (batch
+ * DT12, The Georgics; the triage's reading 42). `factor` multiplies the real
+ * age of every work the empire's cards read: improvements, tended works and
+ * great people's works, in hex lines, counts of hexes and town scopes.
  *
- * Read by `cardWorkAgeBonus` into the ground facts (`GroundFacts.
- * workAgeBonus`), and added in the one place a work's age is compared, the
+ * Read by `cardWorkAgeFactor` into the ground facts (`GroundFacts.
+ * workAgeFactor`), and used in the one place a work's age is compared, the
  * tile test `standingSince`. A building's age does not change, and neither
  * does the age stamp on the hex (`Tile.improvedOn`): the stamp is a fact
- * about the hex, and the bonus is the empire's law. A work with no stamp is
- * still not shown to be old.
+ * about the hex, and the factor is the empire's law. A work with no stamp is
+ * still not shown to be old. Two rows with a factor read the larger, so a row
+ * read twice cannot square it.
  *
- * **`factor` multiplies a work's real age** (batch DT12, The Georgics; the
- * triage's reading 42). It is read by `cardWorkAgeFactor` into
- * `GroundFacts.workAgeFactor`, and the same test compares `age * factor + turns`.
- * The factor comes first, so it does not double Break the Sod's ten turns. Two
- * rows with a factor read the larger, so a row read twice cannot square it. A
- * row may carry `turns`, `factor` or both.
+ * Commission: Break the Sod's reward once added a number of turns to a work's
+ * age (`turns`, Expansionist batch E9). Batch DS3 gave that card a farm yield
+ * instead, and the field was removed with it.
  */
 interface CardWorkAgeEffect {
   kind: 'workAge';
-  turns?: number;
   factor?: number;
 }
 
@@ -10030,14 +10002,6 @@ export interface CardUpkeepRebateEffect {
   free?: boolean;
   /** Which pieces. Absent reaches every one this empire pays for. */
   class?: UnitFilter;
-  /**
-   * **Only pieces a levy raised**, for The General Levy's "units raised this
-   * way cost no upkeep" (Expansionist batch E1). `true` reaches a piece raised by
-   * any levy; a use reaches only pieces raised by a levy of that use. Read off
-   * the piece's own mark (`Unit.levied`), which a levy writes when it creates
-   * the piece. Absent reaches every piece, as every row written before it does.
-   */
-  levied?: true | LevyUse;
   /**
    * Where the piece must be standing. Absent means anywhere.
    *

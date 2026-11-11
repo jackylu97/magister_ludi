@@ -10,9 +10,9 @@
  *     as before; a hex already burned is refused (readings 1 and 9 to 11);
  *   · The Marl Pits: a mine or quarry marks the farms and pastures beside it,
  *     inside the builder's borders, at most twice (reading 12);
- *   · Commission: Break the Sod: its institution counts every work ten turns
- *     older for the seat's cards, and a building's age does not move (reading
- *     13). The callers that hand no ground facts to the tile test are pinned;
+ *   · Commission: Break the Sod: since batch DS3 its institution gives every
+ *     farm +1 food, and no work counts as older. The callers that hand no
+ *     ground facts to the tile test are pinned;
  *   · The Two Harvests: farms, mines and lumber mills count as tended for the
  *     seat's cards and for the Six Gardens goal, never as wild (reading 14);
  *   · The Mountain Schools: two mountains in a town's borders (reading 15);
@@ -33,7 +33,7 @@ import {
 } from '../../../src/sim/improvements';
 import { type Tile, raiseImprovement, razeImprovement, tileIndex, tileNeighbors } from '../../../src/sim/map';
 import { HEX_MARK_IDS, type HexMarkId, RULES } from '../../../src/sim/rulesData';
-import { type City, type GameState, addBuilding, bumpRevision, createUnit, playerById } from '../../../src/sim/state';
+import { type City, type GameState, bumpRevision, createUnit, playerById } from '../../../src/sim/state';
 import {
   cityScopeAdmits,
   describeCard,
@@ -378,9 +378,7 @@ describe('the Expansionist batch E9: The Marl Pits', () => {
   });
 });
 
-describe('the Expansionist batch E9: Commission: Break the Sod', () => {
-  const OLD: TileCondition = { test: 'standingSince', turns: 20 };
-
+describe('Commission: Break the Sod (batch E9; the reward changed in batch DS3)', () => {
   function board(): { state: GameState; city: City; farm: Tile; young: Tile; garden: Tile; academy: Tile } {
     const state = bareState();
     state.turn = 40;
@@ -402,54 +400,30 @@ describe('the Expansionist batch E9: Commission: Break the Sod', () => {
     bumpRevision(state);
   }
 
-  it('leaves your works ten turns older for your cards, and nothing else', () => {
+  it('leaves +1 food on every farm for the rest of the game, and nothing else', () => {
     const { state, farm, young, garden, academy } = board();
     expect(orderDef('commissionBreakTheSod' as OrderId).commission!.reward).toEqual([
-      { lasting: [{ kind: 'workAge', turns: 10 }] },
+      { lasting: [{ kind: 'pays', where: 'hex', food: 1, on: { test: 'improvement', improvement: 'farm' } }] },
     ]);
-    const before = groundFactsFor(state, 0);
-    expect(before.workAgeBonus).toBeUndefined();
-    for (const tile of [farm, garden, academy]) {
-      expect(tileConditionHolds(tile, OLD, undefined, undefined, state.turn, before)).toBe(false);
-    }
+    for (const tile of [farm, young]) expect(hexPays(state, tile, 'Break the Sod', 'food')).toBe(0);
     meet(state);
-    const after = groundFactsFor(state, 0);
-    expect(after.workAgeBonus).toBe(10);
-    // Improvements, tended works and great people's works alike (reading 13).
-    for (const tile of [farm, garden, academy]) {
-      expect(tileConditionHolds(tile, OLD, undefined, undefined, state.turn, after)).toBe(true);
-    }
-    expect(tileConditionHolds(young, OLD, undefined, undefined, state.turn, after)).toBe(false);
-    // The stamp on the hex does not move, and another seat's law is its own.
-    expect(farm.improvedOn).toBe(state.turn - 12);
-    expect(groundFactsFor(state, 1).workAgeBonus).toBeUndefined();
+    // Every farm, whatever its age. A tended work and a great person's work
+    // are not farms.
+    for (const tile of [farm, young]) expect(hexPays(state, tile, 'Break the Sod', 'food')).toBe(1);
+    for (const tile of [garden, academy]) expect(hexPays(state, tile, 'Break the Sod', 'food')).toBe(0);
+    // The old reward made works count as older. The new one adds no age.
+    expect(groundFactsFor(state, 0).workAgeFactor).toBeUndefined();
+    const old: TileCondition = { test: 'standingSince', turns: 20 };
+    expect(tileConditionHolds(farm, old, undefined, undefined, state.turn, groundFactsFor(state, 0))).toBe(false);
     // No timed food and no worker any more.
     expect(playerById(state, 0)!.timed ?? []).toHaveLength(0);
     expect(state.units.filter((unit) => unit.ownerId === 0)).toHaveLength(0);
   });
+});
 
-  it('reaches a hex line: Dark Earth pays a farm of twelve turns', () => {
-    const { state, farm, young } = board();
-    slot(state, 0, 'darkEarth');
-    expect(hexPays(state, farm, 'Dark Earth', 'food')).toBe(0);
-    meet(state);
-    expect(hexPays(state, farm, 'Dark Earth', 'food')).toBe(2);
-    expect(hexPays(state, young, 'Dark Earth', 'food')).toBe(0);
-  });
-
-  it('leaves a building’s age alone', () => {
-    const { state, city } = board();
-    state.turn = 28;
-    addBuilding(state, city, 'library');
-    state.turn = 40;
-    bumpRevision(state);
-    meet(state);
-    const scope = { test: 'hasBuilding', building: 'library', standingTurns: 20 } as const;
-    expect(cityScopeAdmits(state, city, scope)).toBe(false);
-  });
-
+describe('the tile test asked with no ground facts', () => {
   it('pins the callers that hand the tile test no ground facts', () => {
-    // `GroundFacts.workAgeBonus` lists them: each asks a hex mark's own
+    // `GroundFacts.workAgeFactor` lists them: each asks a hex mark's own
     // condition or one fixed test, and none asks a work's age (the mark
     // conditions are checked above). A new caller with no ground facts joins
     // this list on purpose, or hands the facts in.
@@ -614,9 +588,7 @@ describe('the Expansionist batch E9: the words', () => {
       'building a Mine gives every hex with a Farm or Pasture beside it, inside your borders, +1 food for the rest of the game, at most +2 food on one hex',
       'building a Quarry gives every hex with a Farm or Pasture beside it, inside your borders, +1 food for the rest of the game, at most +2 food on one hex',
     ]);
-    expect(said('commissionBreakTheSod')).toContain(
-      "Reward: for the rest of the game, your improvements, tended works and great people's works count as having stood 10 turns longer for your cards",
-    );
+    expect(said('commissionBreakTheSod')).toContain('Reward: for the rest of the game, +1 food on every hex with a Farm');
     expect(said('theTwoHarvests')).toEqual([
       'a Farm, Mine or Lumbermill of yours also counts as tended land for your cards, but not as wild land',
     ]);

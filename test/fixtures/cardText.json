@@ -4844,10 +4844,6 @@
    {
     "raw": "+30% of the stored food kept when a city grows",
     "text": "+30% of the stored food kept when a city grows"
-   },
-   {
-    "raw": "-15% production toward military units",
-    "text": "-15% production toward military units"
    }
   ],
   "theFishTraps": [
@@ -4857,10 +4853,6 @@
    }
   ],
   "sweetWater": [
-   {
-    "raw": "+1 happiness in every city on fresh water",
-    "text": "+1 happiness in every city on fresh water"
-   },
    {
     "raw": "+1 food on every hex beside fresh water",
     "text": "+1 food on every hex beside fresh water"
@@ -4906,10 +4898,6 @@
    {
     "raw": "your units pay only the open-ground cost to enter forest or jungle",
     "text": "your units pay only the open-ground cost to enter forest or jungle"
-   },
-   {
-    "raw": "+2 combat strength while standing in forest or jungle",
-    "text": "+2 combat strength while standing in forest or jungle"
    }
   ],
   "theFoundingFurrow": [
@@ -4968,10 +4956,6 @@
    {
     "raw": "+2 food on every hex with a [[improvement:farm|Farm]] that has stood at least 20 turns",
     "text": "+2 food on every hex with a Farm that has stood at least 20 turns"
-   },
-   {
-    "raw": "+2 food on every hex with a [[improvement:farm|Farm]] that has stood at least 50 turns",
-    "text": "+2 food on every hex with a Farm that has stood at least 50 turns"
    }
   ],
   "theThreeSisters": [
@@ -5116,10 +5100,6 @@
    {
     "raw": "every city: +3 city defence per fortification in this city",
     "text": "every city: +3 city defence per fortification in this city"
-   },
-   {
-    "raw": "+100% production toward defensive buildings",
-    "text": "+100% production toward defensive buildings"
    }
   ],
   "commissionBreakTheSod": [
@@ -5128,8 +5108,8 @@
     "text": "Commission. Goal: work 12 improved tiles at the same time, not counting tended tiles, while this card is seated"
    },
    {
-    "raw": "Reward: for the rest of the game, your improvements, tended works and great people's works count as having stood 10 turns longer for your cards",
-    "text": "Reward: for the rest of the game, your improvements, tended works and great people's works count as having stood 10 turns longer for your cards"
+    "raw": "Reward: for the rest of the game, +1 food on every hex with a [[improvement:farm|Farm]]",
+    "text": "Reward: for the rest of the game, +1 food on every hex with a Farm"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -5138,8 +5118,8 @@
   ],
   "theLandHunger": [
    {
-    "raw": "while an empire you have met holds more towns than you: +25% production toward settlers; settlers: +1 movement",
-    "text": "while an empire you have met holds more towns than you: +25% production toward settlers; settlers: +1 movement"
+    "raw": "+25% production toward settlers",
+    "text": "+25% production toward settlers"
    }
   ],
   "theMarlPits": [
@@ -5172,12 +5152,8 @@
   ],
   "theWatercourses": [
    {
-    "raw": "+2 production on every hex with a [[improvement:farm|Farm]] that is beside a river or beside a [[improvement:farm|Farm]] and beside a river",
-    "text": "+2 production on every hex with a Farm that is beside a river or beside a Farm and beside a river"
-   },
-   {
-    "raw": "your farms beside one of your farms on a river count as having fresh water",
-    "text": "your farms beside one of your farms on a river count as having fresh water"
+    "raw": "+2 production on every hex with a [[improvement:farm|Farm]] beside fresh water",
+    "text": "+2 production on every hex with a Farm beside fresh water"
    }
   ],
   "theHighlands": [
@@ -5196,30 +5172,18 @@
    {
     "raw": "the authority a city joined to your capital by road costs falls by 1",
     "text": "the authority a city joined to your capital by road costs falls by 1"
-   },
-   {
-    "raw": "+1 happiness in every city joined to your capital by road",
-    "text": "+1 happiness in every city joined to your capital by road"
    }
   ],
   "expansionistTheGrainDole": [
    {
     "raw": "+4 happiness in every city of 10 or more citizens",
     "text": "+4 happiness in every city of 10 or more citizens"
-   },
-   {
-    "raw": "+20% of the stored food kept when a city grows, in every city of 10 or more citizens",
-    "text": "+20% of the stored food kept when a city grows, in every city of 10 or more citizens"
    }
   ],
   "expansionistTheWaterworks": [
    {
-    "raw": "+50% production toward [[building:aqueduct|Aqueducts]]",
-    "text": "+50% production toward Aqueducts"
-   },
-   {
-    "raw": "+1 happiness in every city with an [[building:aqueduct|Aqueduct]] per 4 citizens there (at most +3 happiness)",
-    "text": "+1 happiness in every city with an Aqueduct per 4 citizens there (at most +3 happiness)"
+    "raw": "+3 happiness in every city with an [[building:aqueduct|Aqueduct]]",
+    "text": "+3 happiness in every city with an Aqueduct"
    }
   ],
   "expansionistTheBreadbasket": [
@@ -5248,12 +5212,8 @@
   ],
   "theEngineersYards": [
    {
-    "raw": "+3 production on every hex with a [[improvement:manufactory|Manufactory]]",
-    "text": "+3 production on every hex with a Manufactory"
-   },
-   {
-    "raw": "+2 production on every hex with a [[improvement:farm|Farm]], [[improvement:mine|Mine]], [[improvement:quarry|Quarry]] or [[improvement:lumbermill|Lumbermill]] beside a [[improvement:manufactory|Manufactory]]",
-    "text": "+2 production on every hex with a Farm, Mine, Quarry or Lumbermill beside a Manufactory"
+    "raw": "+2 production on every improved hex beside a [[improvement:manufactory|Manufactory]]",
+    "text": "+2 production on every improved hex beside a Manufactory"
    }
   ],
   "theTendedCountry": [
@@ -5374,22 +5334,14 @@
   ],
   "seasonalLevies": [
    {
-    "raw": "after a town spends a citizen on a levy, it gains +60% food in this city for 10 turns, at most once every 20 turns",
-    "text": "after a town spends a citizen on a levy, it gains +60% food in this city for 10 turns, at most once every 20 turns"
+    "raw": "after a town spends a citizen on a levy, it gains +60% food in this city for 10 turns, at most once every 10 turns",
+    "text": "after a town spends a citizen on a levy, it gains +60% food in this city for 10 turns, at most once every 10 turns"
    }
   ],
   "theLongTending": [
    {
-    "raw": "+2 food on every tended hex that has stood at least 25 turns",
-    "text": "+2 food on every tended hex that has stood at least 25 turns"
-   },
-   {
-    "raw": "+2 food on every tended hex that has stood at least 50 turns",
-    "text": "+2 food on every tended hex that has stood at least 50 turns"
-   },
-   {
-    "raw": "+2 food on every tended hex that has stood at least 75 turns",
-    "text": "+2 food on every tended hex that has stood at least 75 turns"
+    "raw": "+3 food on every tended hex",
+    "text": "+3 food on every tended hex"
    }
   ],
   "theMountainSchools": [
@@ -5441,8 +5393,8 @@
   ],
   "oldWorkings": [
    {
-    "raw": "+3 production on every hex with a [[improvement:mine|Mine]], [[improvement:quarry|Quarry]] or [[improvement:lumbermill|Lumbermill]] that has stood at least 20 turns",
-    "text": "+3 production on every hex with a Mine, Quarry or Lumbermill that has stood at least 20 turns"
+    "raw": "+3 production on every hex with a [[improvement:mine|Mine]], [[improvement:quarry|Quarry]] or [[improvement:lumbermill|Lumbermill]]",
+    "text": "+3 production on every hex with a Mine, Quarry or Lumbermill"
    }
   ],
   "theManors": [
@@ -5531,10 +5483,6 @@
    {
     "raw": "a city reaching 15 citizens for the first time grants production equal to 40 times its population",
     "text": "a city reaching 15 citizens for the first time grants production equal to 40 times its population"
-   },
-   {
-    "raw": "a city reaching 20 citizens for the first time grants production equal to 40 times its population",
-    "text": "a city reaching 20 citizens for the first time grants production equal to 40 times its population"
    }
   ],
   "theToppingOut": [
@@ -5635,10 +5583,6 @@
    {
     "raw": "+2 food, +1 production, +1 culture on every tended hex",
     "text": "+2 food, +1 production, +1 culture on every tended hex"
-   },
-   {
-    "raw": "+3 happiness in every city working 6 or more tended hexes",
-    "text": "+3 happiness in every city working 6 or more tended hexes"
    }
   ],
   "theHeartland": [
@@ -5657,8 +5601,8 @@
   ],
   "theCorvee": [
    {
-    "raw": "a town of at least 10 citizens may spend one citizen for production equal to the food it took to grow that citizen, paid to your other town building [[building:theMagnumOpus|The Magnum Opus]] (once every 5 turns)",
-    "text": "a town of at least 10 citizens may spend one citizen for production equal to the food it took to grow that citizen, paid to your other town building The Magnum Opus (once every 5 turns)"
+    "raw": "a town may spend one citizen for production equal to the food it took to grow that citizen, paid to your other town building [[building:theMagnumOpus|The Magnum Opus]] (once every 5 turns)",
+    "text": "a town may spend one citizen for production equal to the food it took to grow that citizen, paid to your other town building The Magnum Opus (once every 5 turns)"
    }
   ],
   "theMasterOfWorks": [
@@ -5703,10 +5647,6 @@
    {
     "raw": "a town may spend one citizen for the best melee unit you can build, which does not count as trained (once every 5 turns, or every turn while you are at war)",
     "text": "a town may spend one citizen for the best melee unit you can build, which does not count as trained (once every 5 turns, or every turn while you are at war)"
-   },
-   {
-    "raw": "units raised by a conscription levy cost no gold in maintenance inside your territory",
-    "text": "units raised by a conscription levy cost no gold in maintenance inside your territory"
    }
   ],
   "theGreatMigration": [
@@ -5761,8 +5701,8 @@
   ],
   "theKeeps": [
    {
-    "raw": "while this card is seated, your workers may build a [[improvement:townKeep|Keep]]: one in each city; it yields what each of your hexes around it yields, except a city or another of its kind; units on its hex gain +5 strength when defending",
-    "text": "while this card is seated, your workers may build a Keep: one in each city; it yields what each of your hexes around it yields, except a city or another of its kind; units on its hex gain +5 strength when defending"
+    "raw": "while this card is seated, your workers may build a [[improvement:townKeep|Keep]]: one in each city; it yields what each of your hexes around it yields, except a city or another of its kind",
+    "text": "while this card is seated, your workers may build a Keep: one in each city; it yields what each of your hexes around it yields, except a city or another of its kind"
    }
   ],
   "thePublicGood": [
@@ -10082,22 +10022,14 @@
   ],
   "marketGardens": [
    {
-    "raw": "+1 gold on every hex with a [[improvement:farm|Farm]] beside a road",
-    "text": "+1 gold on every hex with a Farm beside a road"
-   },
-   {
-    "raw": "+1 food on every trade route between two of your own cities",
-    "text": "+1 food on every trade route between two of your own cities"
+    "raw": "+1 gold on every hex with a road",
+    "text": "+1 gold on every hex with a road"
    }
   ],
   "theProvincialFair": [
    {
-    "raw": "+3 food in every city joined to your capital by road but your capital with a [[building:market|Market]]",
-    "text": "+3 food in every city joined to your capital by road but your capital with a Market"
-   },
-   {
-    "raw": "+2 gold on every hex with a [[improvement:plantation|Plantation]], [[improvement:camp|Camp]] or [[improvement:pasture|Pasture]], in every city joined to your capital by road but your capital with a [[building:market|Market]]",
-    "text": "+2 gold on every hex with a Plantation, Camp or Pasture, in every city joined to your capital by road but your capital with a Market"
+    "raw": "+2 gold on every hex with a [[improvement:plantation|Plantation]], [[improvement:camp|Camp]] or [[improvement:pasture|Pasture]], in every city with a [[building:market|Market]]",
+    "text": "+2 gold on every hex with a Plantation, Camp or Pasture, in every city with a Market"
    }
   ],
   "sacredGroves": [
@@ -10132,12 +10064,8 @@
   ],
   "gardenCities": [
    {
-    "raw": "+1 culture in every city with a [[building:monument|Monument]] per 3 unimproved hexes worked there (at most +3 culture)",
-    "text": "+1 culture in every city with a Monument per 3 unimproved hexes worked there (at most +3 culture)"
-   },
-   {
-    "raw": "+1 happiness in every city of 8 or more citizens with an [[building:aqueduct|Aqueduct]]",
-    "text": "+1 happiness in every city of 8 or more citizens with an Aqueduct"
+    "raw": "+1 culture in every city with a [[building:monument|Monument]] per 3 unimproved hexes worked there",
+    "text": "+1 culture in every city with a Monument per 3 unimproved hexes worked there"
    }
   ],
   "theSculptedLandscape": [
@@ -10695,10 +10623,6 @@
    }
   ],
   "theSpiritsOfPlace": [
-   {
-    "raw": "+1 faith in your capital",
-    "text": "+1 faith in your capital"
-   },
    {
     "raw": "+1 faith in every city per 2 improved hexes there",
     "text": "+1 faith in every city per 2 improved hexes there"

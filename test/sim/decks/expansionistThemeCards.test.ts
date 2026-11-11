@@ -459,38 +459,28 @@ describe('the Expansionist batch E8: five new cards in shapes that already exist
     expect(cardAuthority(state, 'theHorrea')).toBe(2);
   });
 
-  it('The Land Hunger speeds and moves settlers only while a met empire holds more towns', () => {
+  it('The Land Hunger speeds settlers in every town, with no condition and no movement', () => {
+    // Batch DS3 (`docs/plans/deck-simplification-2026-11-10.md`) removed the
+    // rival condition and the settlers' movement. The condition still lives
+    // for The Defiant Kingdom (`dominionEconomy.test.ts`).
+    expect(orderDef('theLandHunger' as OrderId).effects).toEqual([
+      { kind: 'productionBonus', category: 'unit', percent: 25, class: { type: 'settler' } },
+    ]);
     const state = bareState(20, 10);
     const home = town(state, 2, 5, 3);
-    foundCityAt(state, 1, at(state, 12, 3));
     slot(state, 0, 'theLandHunger');
     const settler = createUnit(state, 0, 'settler', 4, 5);
     const person = createUnit(state, 0, 'greatPerson', 4, 6);
-    const worker = createUnit(state, 0, 'worker', 4, 7);
-    const toward = (id: 'settler' | 'worker'): number => buildPercent(state, home, { kind: 'unit', id }, 'theLandHunger');
     const settlerBase = fullMovement(settler);
     const personBase = fullMovement(person);
-    const workerBase = fullMovement(worker);
-    // One town each: nobody holds more.
-    playerById(state, 0)!.metSeats = [1];
-    bumpRevision(state);
-    expect(toward('settler')).toBe(0);
-    expect(fullMovement(settler, state)).toBe(settlerBase);
-    // The rival founds a second town, but this empire has not met it.
-    foundCityAt(state, 1, at(state, 12, 7));
-    playerById(state, 0)!.metSeats = [];
-    bumpRevision(state);
-    expect(toward('settler')).toBe(0);
-    expect(fullMovement(settler, state)).toBe(settlerBase);
-    // Met, it counts (reading 18).
-    playerById(state, 0)!.metSeats = [1];
+    const toward = (id: 'settler' | 'worker'): number => buildPercent(state, home, { kind: 'unit', id }, 'theLandHunger');
+    // Nobody else holds a town at all, and the bonus still applies.
     bumpRevision(state);
     expect(toward('settler')).toBe(25);
-    expect(fullMovement(settler, state)).toBe(settlerBase + 1);
+    expect(fullMovement(settler, state)).toBe(settlerBase);
     // Settlers only: not workers, and not the great person, who shares the
     // settler's model (reading 39).
     expect(toward('worker')).toBe(0);
-    expect(fullMovement(worker, state)).toBe(workerBase);
     expect(fullMovement(person, state)).toBe(personBase);
   });
 

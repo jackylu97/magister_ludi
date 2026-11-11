@@ -3,11 +3,13 @@
  * `docs/plans/expansionist-build-triage.md`). `expansionist.test.ts` checks the
  * rows against the sheet; this file checks what the cards do:
  *
- *   · The Woodland Bands: the open-ground price in the woods, and a defence line
- *     read off the hex the piece stands on (the triage's reading 28);
+ *   · The Woodland Bands: the open-ground price in the woods. Its defence line
+ *     went in batch DS3;
  *   · The Prospectors: the record of who struck a seam (reading 26);
- *   · The Watercourses and The Water Courts: water passed along farms, which
- *     the Irrigation renewal and a farm's placement both read (reading 22);
+ *   · The Watercourses and The Water Courts: since batch DS3 The Watercourses
+ *     pays an irrigated farm and passes no water. The Water Courts still pass
+ *     water along farms, which the Irrigation renewal and a farm's placement
+ *     both read (reading 22);
  *   · The Landscape Garden: a tended hex beside a town that holds a wonder
  *     (reading 25);
  *   · The Common Domain: a town's own reach (reading 21);
@@ -114,7 +116,7 @@ describe('the Expansionist batch E3: The Woodland Bands', () => {
     expect(tileMoveCost(tile, moveProfile(state, worker))).toBe(tileMoveCost(plain));
   });
 
-  it('pays +2 to a defender standing in the woods, and nothing to an attacker there', () => {
+  it('pays no strength in the woods (batch DS3 removed the line)', () => {
     const state = bareState();
     slot(state, 0, 'theWoodlandBands');
     const wood = at(state, 5, 5);
@@ -131,12 +133,8 @@ describe('the Expansionist batch E3: The Woodland Bands', () => {
         targetHp: 100,
         targetMaxHp: 100,
       }).reduce((sum, line) => sum + line.amount, 0);
-    expect(strength('defend', wood)).toBe(2);
-    // Attacking out of the woods: the row is a defence line (reading 28).
+    expect(strength('defend', wood)).toBe(0);
     expect(strength('attack', at(state, 6, 5))).toBe(0);
-    // Defending on open ground pays nothing.
-    soldier.col = 7;
-    expect(strength('defend', at(state, 7, 5))).toBe(0);
   });
 });
 
@@ -183,19 +181,25 @@ function riverFarms(): { state: GameState; city: City; river: Tile; near: Tile; 
 }
 
 describe('the Expansionist batch E3: water along the farms', () => {
-  it('The Watercourses: the river farm and the farm beside it gain +2, and the second is watered', () => {
+  it('The Watercourses: an irrigated farm gains +2, and no water is passed on (batch DS3)', () => {
     const { state, river, near, far } = riverFarms();
     expect(river.freshwater).toBe(true);
     expect(near.freshwater).toBe(false);
     expect(paid(state, near, 'Irrigation', 'food')).toBe(0);
     slot(state, 0, 'theWatercourses');
     const source = 'Order · The Watercourses';
+    // Only the farm on fresh water is irrigated. The relay rule is gone, so
+    // the farm beside it gains nothing and stays dry.
     expect(paid(state, river, source, 'production')).toBe(2);
-    expect(paid(state, near, source, 'production')).toBe(2);
+    expect(paid(state, near, source, 'production')).toBe(0);
     expect(paid(state, far, source, 'production')).toBe(0);
-    // Watered one step and no further: the Irrigation renewal follows.
+    expect(paid(state, near, 'Irrigation', 'food')).toBe(0);
+    // A farm The Water Courts waters counts as irrigated too, because the
+    // card asks the same fresh-water test the Irrigation renewal reads.
+    slot(state, 0, 'theWaterCourts');
     expect(paid(state, near, 'Irrigation', 'food')).toBe(1);
-    expect(paid(state, far, 'Irrigation', 'food')).toBe(0);
+    expect(paid(state, near, source, 'production')).toBe(2);
+    expect(paid(state, far, source, 'production')).toBe(2);
   });
 
   it('The Water Courts: water passes along the whole chain of farms', () => {
@@ -399,15 +403,11 @@ describe('the Expansionist batch E3: the words', () => {
   it('prints all ten cards in plain words', () => {
     expect(said('theWoodlandBands')).toEqual([
       'your units pay only the open-ground cost to enter forest or jungle',
-      '+2 combat strength while standing in forest or jungle',
     ]);
     expect(said('theProspectors')).toEqual([
       '+3 production on every hex with a Mine over a seam you surfaced',
     ]);
-    expect(said('theWatercourses')).toEqual([
-      '+2 production on every hex with a Farm that is beside a river or beside a Farm and beside a river',
-      'your farms beside one of your farms on a river count as having fresh water',
-    ]);
+    expect(said('theWatercourses')).toEqual(['+2 production on every hex with a Farm beside fresh water']);
     expect(said('theLandscapeGarden')).toEqual([
       "+3 culture on every tended hex that is beside a great person's work or beside a city that holds a wonder",
     ]);

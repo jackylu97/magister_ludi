@@ -302,7 +302,7 @@ describe('the Expansionist batch E5: The Master of Works', () => {
 });
 
 describe('the Expansionist batch E5: The Burhs', () => {
-  it('adds defence for each fortification and speeds fortifications only', () => {
+  it('adds defence for each fortification, and speeds no building (batch DS3)', () => {
     const state = bareState();
     const city = town(state, 0, 3, 5, 3);
     city.buildings.push('palisade', 'library');
@@ -312,14 +312,11 @@ describe('the Expansionist batch E5: The Burhs', () => {
     city.buildings.push('stoneWalls');
     bumpRevision(state);
     expect(foldCityStat(cardCityStat(state, city, 'defense'))).toBe(6);
+    // The spec of 2026-11-10 removed the +100% toward defensive buildings.
     const toward = (id: string): number =>
       cardProduction(state, city, 'building', undefined, id as never).reduce((sum, line) => sum + line.percent, 0);
-    expect(toward('castle')).toBe(100);
+    expect(toward('castle')).toBe(0);
     expect(toward('library')).toBe(0);
-    // A wonder is its own category, so the walls of a wonder are not reached.
-    expect(cardProduction(state, city, 'wonder', undefined, 'greatWall').reduce((sum, line) => sum + line.percent, 0)).toBe(
-      0,
-    );
   });
 });
 
@@ -348,7 +345,8 @@ describe('the Expansionist batch E5: the words', () => {
     expect(said('commissionBreakTheSod')).toContain('not counting tended tiles');
     expect(said('theDomesdaySurvey')).toContain('for the rest of the game, +1 science on every improved or tended hex');
     expect(said('theMasterOfWorks')).toContain('the production per turn of your other cities with a Manufactory');
-    expect(said('theBurhs')).toContain('toward defensive buildings');
+    expect(said('theBurhs')).toContain('+3 city defence per fortification in this city');
+    expect(said('theBurhs')).not.toContain('toward defensive buildings');
     expect(said('theFrontierMilitia')).toContain('new cities start with the best melee unit you can build');
   });
 });

@@ -559,9 +559,9 @@ export function explainTileYield(
       // saying it will carry the water out to the fields. A hex evaluated with
       // no context at all is the omniscient reading and has no town to ask.
       //
-      // **Or this empire's law waters the farm** (The Watercourses and The
-      // Water Courts, Expansionist batch E3): `GroundFacts.watered`, the same
-      // answer the cards' own `freshwater` test reads.
+      // **Or the farm counts as watered** (a Qanat beside it, or The Water
+      // Courts, Expansionist batch E3): `GroundFacts.watered`, the same answer
+      // the cards' own `freshwater` test reads.
       if (
         upgrade.requiresFreshwater &&
         !tile.freshwater &&

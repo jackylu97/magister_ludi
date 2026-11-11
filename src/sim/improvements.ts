@@ -685,11 +685,11 @@ function hasAdjacentImprovement(
  */
 /**
  * **Would this row have fresh water on this hex?** The map's water, or for a
- * farm the builder's farm water (Expansionist batch E3: The Watercourses and
- * The Water Courts water a farm beside a farm they already water, so a farm may
- * be placed there as if on fresh water; the triage's reading 22). A Qanat
- * waters the hexes beside it in the same way (Scientific batch S5). Every
- * other row asks the map alone, because only farms carry the water.
+ * farm the builder's farm water (Expansionist batch E3: The Water Courts
+ * water a farm beside a farm they already water, so a farm may be placed there
+ * as if on fresh water; the triage's reading 22). A Qanat waters the hexes
+ * beside it in the same way (Scientific batch S5). Every other row asks the
+ * map alone, because only farms carry the water.
  */
 function drinks(state: GameState, ownerId: number, tile: Tile, improvementId: ImprovementId): boolean {
   if (hasFreshWater(tile)) return true;

@@ -325,8 +325,29 @@ import {
  * seated pays different yields and fights with different strengths. The branch
  * migrates nothing, for the reason given under v119 in
  * `docs/history/schema-changelog.md`.
+ *
+ * v233 (branch `decks`; batch DS3, `docs/flags.md` (hhhhhhh), the user's ruling of
+ * 2026-11-10): **simpler Expansionist Orders.** No field joins or leaves the state.
+ * The rules that change:
+ *
+ *   · 37 Expansionist Orders and 6 shared Orders that Expansionist holds with
+ *     Commerce, Devotion or Magisterial have new text
+ *     (`docs/plans/deck-simplification-2026-11-10.md`). The Terraces of Moray keeps
+ *     its old row, because its new text needs a shape the game does not have;
+ *   · 24 of them have a new or shorter effect. Among them: Commission: Break the
+ *     Sod's reward is +1 food on farms, The Watercourses pays irrigated farms with
+ *     no relay, Market Gardens pays every hex with a road, and the Keep gives no
+ *     strength to the units on it;
+ *   · five effect shapes that no row uses now are removed: the `standingIn` combat
+ *     condition, the `riverFarmsWater` rule, the `defensive` production bonus, the
+ *     `turns` of a `workAge` effect, and the `levied` narrowing on an upkeep rebate.
+ *
+ * **A v232 save is refused and does not replay.** A logged game with one of these cards
+ * seated pays different yields and fights with different strengths. The branch
+ * migrates nothing, for the reason given under v119 in
+ * `docs/history/schema-changelog.md`.
  */
-export const SCHEMA_VERSION = 232;
+export const SCHEMA_VERSION = 233;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
