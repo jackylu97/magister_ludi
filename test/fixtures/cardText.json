@@ -6999,10 +6999,6 @@
   ],
   "devotionFirstRites": [
    {
-    "raw": "+25% production toward [[building:shrine|Shrines]]",
-    "text": "+25% production toward Shrines"
-   },
-   {
     "raw": "+2 faith in every city with a [[building:shrine|Shrine]]",
     "text": "+2 faith in every city with a Shrine"
    }
@@ -7045,8 +7041,8 @@
   ],
   "theCalling": [
    {
-    "raw": "until you have founded a religion: +25% faith in every city",
-    "text": "until you have founded a religion: +25% faith in every city"
+    "raw": "+3 faith in your capital",
+    "text": "+3 faith in your capital"
    }
   ],
   "theWaysideShrines": [
@@ -7156,17 +7152,9 @@
    {
     "raw": "+5 food, +8 gold on every hex with a [[improvement:holySite|Holy Site]]",
     "text": "+5 food, +8 gold on every hex with a Holy Site"
-   },
-   {
-    "raw": "+2 happiness in every city working a [[improvement:holySite|Holy Site]]",
-    "text": "+2 happiness in every city working a Holy Site"
    }
   ],
   "theCathedralWorks": [
-   {
-    "raw": "+45% production toward [[building:cathedral|Cathedrals]]",
-    "text": "+45% production toward Cathedrals"
-   },
    {
     "raw": "+8 science in every city with a [[building:cathedral|Cathedral]]",
     "text": "+8 science in every city with a Cathedral"
@@ -7178,12 +7166,8 @@
   ],
   "theOldHolyPlaces": [
    {
-    "raw": "+3 faith on every hex with a [[improvement:holySite|Holy Site]] that has stood at least 20 turns",
-    "text": "+3 faith on every hex with a Holy Site that has stood at least 20 turns"
-   },
-   {
-    "raw": "+3 culture, +3 faith on every hex with a [[improvement:holySite|Holy Site]] that has stood at least 40 turns",
-    "text": "+3 culture, +3 faith on every hex with a Holy Site that has stood at least 40 turns"
+    "raw": "+3 culture, +3 faith on every hex with a [[improvement:holySite|Holy Site]]",
+    "text": "+3 culture, +3 faith on every hex with a Holy Site"
    }
   ],
   "templeEstates": [
@@ -7202,20 +7186,12 @@
    {
     "raw": "+4 combat strength for military units inside cities that follow your religion",
     "text": "+4 combat strength for military units inside cities that follow your religion"
-   },
-   {
-    "raw": "while you are at war: +2 happiness in every city with a [[building:temple|Temple]]",
-    "text": "while you are at war: +2 happiness in every city with a Temple"
    }
   ],
   "missionHouses": [
    {
     "raw": "a proclamation presses +18 faith harder",
     "text": "a proclamation presses +18 faith harder"
-   },
-   {
-    "raw": "apostles: +1 movement",
-    "text": "apostles: +1 movement"
    }
   ],
   "theLayBrothers": [
@@ -7232,20 +7208,12 @@
    {
     "raw": "+15% culture in every devout city",
     "text": "+15% culture in every devout city"
-   },
-   {
-    "raw": "a proclamation presses 15 faith less",
-    "text": "a proclamation presses 15 faith less"
    }
   ],
   "theHolyInquisition": [
    {
-    "raw": "rival religions press your cities 40% less",
-    "text": "rival religions press your cities 40% less"
-   },
-   {
-    "raw": "+38% faith in every city",
-    "text": "+38% faith in every city"
+    "raw": "+35% faith in every city",
+    "text": "+35% faith in every city"
    }
   ],
   "theLearnedClergy": [
@@ -7260,12 +7228,8 @@
   ],
   "theOfferedStones": [
    {
-    "raw": "+2 culture in every city per building bought with faith there (at most +6 culture)",
-    "text": "+2 culture in every city per building bought with faith there (at most +6 culture)"
-   },
-   {
-    "raw": "buildings other than wonders may be bought with faith",
-    "text": "buildings other than wonders may be bought with faith"
+    "raw": "+2 culture in every city per building bought with faith there",
+    "text": "+2 culture in every city per building bought with faith there"
    }
   ],
   "theDoctorsOfTheChurch": [
@@ -7302,8 +7266,8 @@
   ],
   "theTitheOfNations": [
    {
-    "raw": "while one of your cities is building [[building:theMagnumOpus|The Magnum Opus]]: +1 faith per citizen in the cities that follow you",
-    "text": "while one of your cities is building The Magnum Opus: +1 faith per citizen in the cities that follow you"
+    "raw": "+1 faith per 2 citizens in the cities that follow you",
+    "text": "+1 faith per 2 citizens in the cities that follow you"
    }
   ],
   "theTreasuryOfMerit": [
@@ -7598,6 +7562,18 @@
    {
     "raw": "+2 happiness in every city with a [[building:temple|Temple]]",
     "text": "+2 happiness in every city with a Temple"
+   }
+  ],
+  "theHouseholdGods": [
+   {
+    "raw": "+2 faith in every city",
+    "text": "+2 faith in every city"
+   }
+  ],
+  "theFirstOffering": [
+   {
+    "raw": "when drafted, +25 faith; seated, this card does nothing",
+    "text": "when drafted, +25 faith; seated, this card does nothing"
    }
   ],
   "theMonasticTable": [
@@ -10072,34 +10048,18 @@
    {
     "raw": "30% of the faith in every city with a [[building:temple|Temple]] is gained again as science",
     "text": "30% of the faith in every city with a Temple is gained again as science"
-   },
-   {
-    "raw": "+3 food in every city with a [[building:temple|Temple]] with a [[building:library|Library]]",
-    "text": "+3 food in every city with a Temple with a Library"
-   },
-   {
-    "raw": "+3 food in every city with a [[building:temple|Temple]] with a [[building:university|University]]",
-    "text": "+3 food in every city with a Temple with a University"
    }
   ],
   "sacredCommissions": [
    {
-    "raw": "+38% production toward wonders, in every city with a [[improvement:holySite|Holy Site]]",
-    "text": "+38% production toward wonders, in every city with a Holy Site"
-   },
-   {
-    "raw": "completing a wonder grants +60 faith",
-    "text": "completing a wonder grants +60 faith"
+    "raw": "+30% production toward wonders, in every city with a [[improvement:holySite|Holy Site]]",
+    "text": "+30% production toward wonders, in every city with a Holy Site"
    }
   ],
   "sacredPatronage": [
    {
     "raw": "a great person waiting to be called may be bought with faith",
     "text": "a great person waiting to be called may be bought with faith"
-   },
-   {
-    "raw": "spending a great person (at most once a turn) grants +30 faith",
-    "text": "spending a great person (at most once a turn) grants +30 faith"
    }
   ],
   "illuminatedTreatises": [
@@ -10498,12 +10458,12 @@
   ],
   "thePriestAstronomers": [
    {
-    "raw": "+2 science in your capital per city of yours keeping a rite (at most +16 science)",
-    "text": "+2 science in your capital per city of yours keeping a rite (at most +16 science)"
+    "raw": "+2 science in your capital per city of yours keeping a rite",
+    "text": "+2 science in your capital per city of yours keeping a rite"
    },
    {
-    "raw": "+2 faith in your capital per city of yours keeping a rite (at most +16 faith)",
-    "text": "+2 faith in your capital per city of yours keeping a rite (at most +16 faith)"
+    "raw": "+2 faith in your capital per city of yours keeping a rite",
+    "text": "+2 faith in your capital per city of yours keeping a rite"
    }
   ],
   "theMonasticUniversity": [
@@ -10562,10 +10522,6 @@
    {
     "raw": "+1 production, +1 faith on every improved hex carrying a strategic resource",
     "text": "+1 production, +1 faith on every improved hex carrying a strategic resource"
-   },
-   {
-    "raw": "+2 production, +2 faith in every city with a [[building:temple|Temple]]",
-    "text": "+2 production, +2 faith in every city with a Temple"
    }
   ],
   "theSchoolmensCharter": [

@@ -660,6 +660,15 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     town scope `queueHolds` no longer takes `empireBuilding`;
   - `rules.trade.importedLuxuryPercent` is 100, so The Capitulations' loan pays
     as one copy does.
+- **Batch DS5** (Devotion's rows of the same spec):
+  - removed the empire condition `noReligionFounded`, because The Calling now
+    pays +3 faith in the capital with no condition;
+  - removed `queueHolds` as an empire condition, because The Tithe of Nations
+    lost its Magnum Opus gate. The town scope of the same name stays;
+  - dealt two new Tier 0 cards: The Household Gods, and The First Offering,
+    the first on-draft grant of faith (`onDraft` `windfall`, `yield: 'faith'`);
+  - held The Votive Lamp and The Pilgrim Staff: the game keeps no count of
+    every building a town finishes, and has no moment at which faith is spent.
 - **Doctrines** (`docs/orders-and-doctrines.md` "Doctrines"): cards held for the
   whole game. A Doctrine takes no chair and is `liveEffects`' second source. 98 are
   live and all are dealt: Dominion 13, Expansionist 24, Commerce 14, Scientific 15,

@@ -490,8 +490,13 @@ function countsTable(header: string): Map<string, number[]> {
 /** The name of the data row a sheet row stands for: the "(was …)" name if given. */
 const dataNameOf = (card: { name: string; was?: string }): string => card.was ?? card.name;
 
-/** A charter's text, as the sheet and the data write it. */
-const isCharterText = (text: string): boolean => text.startsWith('Drafting this opens ');
+/**
+ * A charter's text, as the sheet and the data write it. Devotion batch DS5
+ * gave the shared The Schoolmen's Charter the new form, which begins with the
+ * keyword "Charter."; this deck's own charters take it in their own batch.
+ */
+const isCharterText = (text: string): boolean =>
+  text.startsWith('Drafting this opens ') || text.startsWith('Charter. ');
 
 /**
  * The checks every sheet row with a data row shares, in either table: the

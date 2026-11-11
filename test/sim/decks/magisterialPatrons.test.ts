@@ -13,7 +13,9 @@
  *     empire's towns has the Magnum Opus at the front of its queue. Card: The
  *     Last Commission, 150 production into that town, at most once a turn;
  *   · the shared Sacred Patronage: faith buys a great-person draft (the rule
- *     that existed) and spending a person pays 30 faith, at most once a turn;
+ *     that existed) and spending a person paid 30 faith, at most once a turn.
+ *     Devotion batch DS5 removed that second clause, so the tests of the
+ *     moment below lend the old rider back to the row for their length;
  *   · a meta rule, `legaciesCountTwice`, read at the legacy source of
  *     `liveEffects`: each legacy that is not revoked is read twice (reading
  *     22). Card: The Immortals;
@@ -56,7 +58,7 @@ import {
   liveEffects,
   stripRefs,
 } from '../../../src/sim/statecraft';
-import { type OrderId, orderDef, orderIsDealt, ordersForDecks } from '../../../src/sim/statecraftData';
+import { type CardEffect, type OrderId, orderDef, orderIsDealt, ordersForDecks } from '../../../src/sim/statecraftData';
 import { ABILITY_TECH, type TechId } from '../../../src/sim/techData';
 import { at, bareState } from '../improvementHelpers';
 
@@ -141,6 +143,31 @@ function spendMerchant(state: GameState, player: Player, city: City): void {
   greatPersonActAt(state, player, person(state, city, 'merchant'));
 }
 
+/**
+ * **Sacred Patronage's second clause until Devotion batch DS5**: 30 faith for a
+ * great person spent, at most once a turn. The moment and its once-a-turn stamp
+ * stay in the game (The Last Commission and The Kitabkhana ride the moment), so
+ * the tests of the moment lend this rider back to the row while they run.
+ */
+const OLD_PATRONAGE_RIDER: CardEffect = {
+  kind: 'windfallRider',
+  occasion: 'greatPersonSpent',
+  oncePerTurn: true,
+  grant: { yield: 'faith', amount: 30 },
+};
+
+/** Runs a test with Sacred Patronage's old rider on its row, and takes it off again. */
+function withOldPatronage(run: () => void): void {
+  const def = orderDef(PATRONAGE);
+  const before = def.effects;
+  def.effects = [...before, OLD_PATRONAGE_RIDER];
+  try {
+    run();
+  } finally {
+    def.effects = before;
+  }
+}
+
 /** Ends the turn as far as the riders' stamps are concerned. */
 function nextTurn(state: GameState): void {
   state.turn += 1;
@@ -176,13 +203,9 @@ describe('Magisterial batch MG8: the rows', () => {
         grant: { yield: 'production', amount: 150, toOpus: true },
       },
     ]);
-    expect(orderDef(PATRONAGE).text).toBe(
-      'Faith may buy great-person drafts for 750 faith each. Spending a great person grants 30 faith, at most once per turn.',
-    );
-    expect(orderDef(PATRONAGE).effects).toEqual([
-      { kind: 'rule', rule: 'buyGreatPersonWithFaith' },
-      { kind: 'windfallRider', occasion: 'greatPersonSpent', oncePerTurn: true, grant: { yield: 'faith', amount: 30 } },
-    ]);
+    // Devotion batch DS5 removed Sacred Patronage's second clause.
+    expect(orderDef(PATRONAGE).text).toBe('You may buy a great-person draft for 750 faith.');
+    expect(orderDef(PATRONAGE).effects).toEqual([{ kind: 'rule', rule: 'buyGreatPersonWithFaith' }]);
     expect(orderDef(IMMORTALS).text).toBe('The legacies of your great people count twice.');
     expect(orderDef(IMMORTALS).effects).toEqual([{ kind: 'metaRule', rule: 'legaciesCountTwice', value: 2 }]);
     expect(orderDef(GALLERY).text).toBe(
@@ -200,10 +223,7 @@ describe('Magisterial batch MG8: the rows', () => {
     expect(words(LAST)).toEqual([
       'spending a great person (at most once a turn, only while you are building the Magnum Opus) grants +150 production to your city raising the Magnum Opus',
     ]);
-    expect(words(PATRONAGE)).toEqual([
-      'a great person waiting to be called may be bought with faith',
-      'spending a great person (at most once a turn) grants +30 faith',
-    ]);
+    expect(words(PATRONAGE)).toEqual(['a great person waiting to be called may be bought with faith']);
     expect(words(IMMORTALS)).toEqual(['the legacy of each great person you have spent counts twice']);
     expect(words(GALLERY)).toEqual([
       'Commission. Goal: have great-person works of 3 different families in your borders, while this card is seated',
@@ -217,21 +237,23 @@ describe('Magisterial batch MG8: the rows', () => {
 
 describe('a great person spent is a moment (reading 21)', () => {
   it('pays once for an act and once for a work', () => {
-    const { state, player, capital } = board();
-    seat(state, PATRONAGE);
-    const before = player.faithPool;
-    spendMerchant(state, player, capital);
-    expect(player.faithPool - before).toBe(30);
-    // A work spends the person too. The card pays once a turn, so the work is
-    // laid on the next turn.
-    nextTurn(state);
-    const tile = ring(state, capital)[0]!;
-    const scholar = createUnit(state, 0, 'greatPerson', tile.col, tile.row, personOf('scholar'));
-    bumpRevision(state);
-    const middle = player.faithPool;
-    greatPersonWorkAt(state, player, scholar, tile);
-    expect(tile.improvement).toBe('academy');
-    expect(player.faithPool - middle).toBe(30);
+    withOldPatronage(() => {
+      const { state, player, capital } = board();
+      seat(state, PATRONAGE);
+      const before = player.faithPool;
+      spendMerchant(state, player, capital);
+      expect(player.faithPool - before).toBe(30);
+      // A work spends the person too. The rider pays once a turn, so the work
+      // is laid on the next turn.
+      nextTurn(state);
+      const tile = ring(state, capital)[0]!;
+      const scholar = createUnit(state, 0, 'greatPerson', tile.col, tile.row, personOf('scholar'));
+      bumpRevision(state);
+      const middle = player.faithPool;
+      greatPersonWorkAt(state, player, scholar, tile);
+      expect(tile.improvement).toBe('academy');
+      expect(player.faithPool - middle).toBe(30);
+    });
   });
 
   it('carries the work a person laid, and no work for an act', () => {
@@ -280,28 +302,42 @@ describe('a great person spent is a moment (reading 21)', () => {
   });
 
   it('pays nothing from the collection', () => {
-    const { state, player, capital } = board();
-    player.statecraft.orders.push(PATRONAGE);
-    bumpRevision(state);
-    const before = player.faithPool;
-    spendMerchant(state, player, capital);
-    expect(player.faithPool).toBe(before);
+    withOldPatronage(() => {
+      const { state, player, capital } = board();
+      player.statecraft.orders.push(PATRONAGE);
+      bumpRevision(state);
+      const before = player.faithPool;
+      spendMerchant(state, player, capital);
+      expect(player.faithPool).toBe(before);
+    });
   });
 });
 
 // --- Sacred Patronage ----------------------------------------------------------
 
 describe('Sacred Patronage', () => {
-  it('pays 30 faith at most once a turn, and again the next turn', () => {
+  it('pays nothing for a great person spent since batch DS5', () => {
     const { state, player, capital } = board();
     seat(state, PATRONAGE);
     const start = player.faithPool;
     spendMerchant(state, player, capital);
-    spendMerchant(state, player, capital);
-    expect(player.faithPool - start).toBe(30);
-    nextTurn(state);
-    spendMerchant(state, player, capital);
-    expect(player.faithPool - start).toBe(60);
+    expect(player.faithPool).toBe(start);
+  });
+
+  it('pays a rider on the spent moment at most once a turn, and again the next turn', () => {
+    // The once-a-turn stamp on the moment, which The Last Commission still
+    // uses, on the rider Sacred Patronage carried until batch DS5.
+    withOldPatronage(() => {
+      const { state, player, capital } = board();
+      seat(state, PATRONAGE);
+      const start = player.faithPool;
+      spendMerchant(state, player, capital);
+      spendMerchant(state, player, capital);
+      expect(player.faithPool - start).toBe(30);
+      nextTurn(state);
+      spendMerchant(state, player, capital);
+      expect(player.faithPool - start).toBe(60);
+    });
   });
 
   it('lets faith buy a great person waiting to be called, at the rule’s flat price', () => {

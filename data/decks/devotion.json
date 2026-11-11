@@ -10,14 +10,8 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "Before the temple a stone, and before the stone a promise.",
-      "text": "+25% production toward Shrines. Shrines give +2 faith.",
+      "text": "Shrines give +2 faith.",
       "effects": [
-        {
-          "kind": "productionBonus",
-          "category": "building",
-          "building": "shrine",
-          "percent": 25
-        },
         {
           "kind": "pays",
           "where": "city",
@@ -121,7 +115,7 @@
       "rarity": "uncommon",
       "type": "wildcard",
       "flavor": "Two fires lit in two towns, and a promise to keep them both.",
-      "text": "Commission. Start two rites in your cities while this is seated. Reward: 100 faith and 40 food in your capital. Then this card leaves its chair.",
+      "text": "Goal: start two rites. Reward: 100 faith, and 40 food in your capital.",
       "effects": [],
       "commission": {
         "goals": [
@@ -153,20 +147,15 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "Somebody has to say it first, and say it loudly.",
-      "text": "+25% faith until you have founded a religion.",
+      "text": "Your capital gains +3 faith.",
       "effects": [
         {
-          "kind": "conditionRule",
-          "when": {
-            "test": "noReligionFounded"
+          "kind": "pays",
+          "where": "city",
+          "scope": {
+            "test": "capital"
           },
-          "then": [
-            {
-              "kind": "percentYields",
-              "yield": "faith",
-              "percent": 25
-            }
-          ]
+          "faith": 3
         }
       ]
     },
@@ -259,7 +248,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Say it slower. There is more of the evening than you think.",
-      "text": "Rites you start while this is seated last 50% longer.",
+      "text": "Your rites last 50% longer.",
       "effects": [
         {
           "kind": "effectAmplifier",
@@ -278,7 +267,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "The table is set and left bare, and the faithful count what they did not eat.",
-      "text": "Once drafted, unlock the Rite of Fasting. A city keeping it stores no food toward growth for ten turns and gains science and culture equal to its population each turn. No chair required.",
+      "text": "Charter. Unlocks the Rite of Fasting: for ten turns a town does not grow, and gains science and culture equal to its population.",
       "effects": [],
       "charter": {
         "unlocks": {
@@ -357,7 +346,7 @@
       "rarity": "uncommon",
       "type": "wildcard",
       "flavor": "Two towns, two letters home, and a road between them.",
-      "text": "Commission. Convert two foreign cities to your religion while this is seated. Reward: a free Apostle in your capital and 300 culture. Then this card leaves its chair.",
+      "text": "Goal: convert two foreign cities. Reward: an Apostle and 300 culture.",
       "effects": [],
       "commission": {
         "goals": [
@@ -512,7 +501,7 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "They buried him at the edge of the barley and the barley never forgot.",
-      "text": "Worked Holy Sites give +5 food and +8 gold. A city working one gains +2 happiness, once per city.",
+      "text": "Holy Sites gain +5 food and +8 gold.",
       "effects": [
         {
           "kind": "pays",
@@ -522,17 +511,6 @@
           "on": {
             "test": "improvement",
             "improvement": "holySite"
-          }
-        },
-        {
-          "kind": "happiness",
-          "amount": 2,
-          "per": "city",
-          "scope": {
-            "test": "workingImprovement",
-            "improvements": [
-              "holySite"
-            ]
           }
         }
       ]
@@ -547,14 +525,8 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "Three generations of masons and one drawing.",
-      "text": "Gain +45% production toward Cathedrals. Cities with one gain +8 science and +2 happiness.",
+      "text": "Cathedrals give +8 science and +2 happiness.",
       "effects": [
-        {
-          "kind": "productionBonus",
-          "category": "building",
-          "building": "cathedral",
-          "percent": 45
-        },
         {
           "kind": "pays",
           "where": "city",
@@ -585,43 +557,16 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "Nobody remembers who first prayed here, which is the point.",
-      "text": "Holy Sites that have stood for 20 turns gain +3 faith. Those that have stood for 40 turns gain +3 faith and +3 culture more.",
+      "text": "Holy Sites gain +3 faith and +3 culture.",
       "effects": [
-        {
-          "kind": "pays",
-          "where": "hex",
-          "faith": 3,
-          "on": {
-            "test": "all",
-            "of": [
-              {
-                "test": "improvement",
-                "improvement": "holySite"
-              },
-              {
-                "test": "standingSince",
-                "turns": 20
-              }
-            ]
-          }
-        },
         {
           "kind": "pays",
           "where": "hex",
           "faith": 3,
           "culture": 3,
           "on": {
-            "test": "all",
-            "of": [
-              {
-                "test": "improvement",
-                "improvement": "holySite"
-              },
-              {
-                "test": "standingSince",
-                "turns": 40
-              }
-            ]
+            "test": "improvement",
+            "improvement": "holySite"
           }
         }
       ]
@@ -663,7 +608,7 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "A candle, a coin and a name, left at the foot of the scaffold.",
-      "text": "While this is seated, your cities know the Votive Offering: a city spends the rite's faith to add that much production, at the faith rate, to whatever it is building. Not toward wonders. Once per city per turn.",
+      "text": "Towns may spend faith to add production to what they are building. Not wonders.",
       "effects": [
         {
           "kind": "grantsAbility",
@@ -681,7 +626,7 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "An army that knows what it is for marches shorter days and farther.",
-      "text": "Your military units gain +4 strength in territory following your religion. Temple cities gain +2 happiness while you are at war.",
+      "text": "Military units gain +4 strength in land that follows your religion.",
       "effects": [
         {
           "kind": "combatLine",
@@ -693,23 +638,6 @@
           "class": {
             "category": "military"
           }
-        },
-        {
-          "kind": "conditionRule",
-          "when": {
-            "test": "atWar"
-          },
-          "then": [
-            {
-              "kind": "happiness",
-              "amount": 2,
-              "per": "city",
-              "scope": {
-                "test": "hasBuilding",
-                "building": "temple"
-              }
-            }
-          ]
         }
       ]
     },
@@ -723,20 +651,12 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "A bed, a map and a door that opens the right way.",
-      "text": "Your proclamations apply 30% more pressure. Apostles gain +1 movement.",
+      "text": "Your proclamations press 30% harder.",
       "effects": [
         {
           "kind": "pressureRule",
           "rule": "bombLump",
           "delta": 18
-        },
-        {
-          "kind": "unitStat",
-          "stat": "movement",
-          "amount": 1,
-          "class": {
-            "type": "apostle"
-          }
         }
       ]
     },
@@ -772,7 +692,7 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "A faith that has stopped travelling has time to read.",
-      "text": "Devout towns gain +15% science and culture. Your proclamations press 25% less.",
+      "text": "Devout towns gain +15% science and culture.",
       "effects": [
         {
           "kind": "percentYields",
@@ -791,11 +711,6 @@
             "test": "ownersFaith",
             "keeps": true
           }
-        },
-        {
-          "kind": "pressureRule",
-          "rule": "bombLump",
-          "delta": -15
         }
       ]
     },
@@ -809,17 +724,12 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "A quiet office, a long memory, and a very short list.",
-      "text": "Rival religions press your cities 40% less. +38% faith.",
+      "text": "+35% faith.",
       "effects": [
-        {
-          "kind": "pressureRule",
-          "rule": "rivalPressurePercent",
-          "delta": -40
-        },
         {
           "kind": "percentYields",
           "yield": "faith",
-          "percent": 38
+          "percent": 35
         }
       ]
     },
@@ -865,7 +775,7 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "Every stone in it was paid for by somebody's prayer.",
-      "text": "Buildings you bought with faith give +2 culture each, at most +6 per town. You can purchase buildings with faith.",
+      "text": "Buildings you bought with faith give +2 culture each.",
       "effects": [
         {
           "kind": "pays",
@@ -875,12 +785,7 @@
           "amount": 2,
           "count": "purchasedBuildings",
           "within": "city",
-          "bank": "faith",
-          "max": 3
-        },
-        {
-          "kind": "rule",
-          "rule": "faithBuysBuildings"
+          "bank": "faith"
         }
       ]
     },
@@ -894,7 +799,7 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "They wrote down what everyone already believed, and then it was true twice.",
-      "text": "Follower beliefs pay 150% more in your own cities.",
+      "text": "Follower beliefs pay 150% more in your towns.",
       "effects": [
         {
           "kind": "cardYieldAmplifier",
@@ -964,7 +869,7 @@
       "rarity": "rare",
       "type": "wildcard",
       "flavor": "Go to every town, and leave a roof where you prayed.",
-      "text": "Commission. Have more than half of the world's cities follow your religion. Then, for the rest of the game, devout towns gain +3 faith and +3 culture. The card leaves its chair.",
+      "text": "Goal: more than half the world's cities follow your religion. Reward: devout towns gain +3 faith and +3 culture.",
       "effects": [],
       "commission": {
         "goals": [
@@ -1002,25 +907,16 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "Every hearth that keeps the faith sends a coal to the great fire.",
-      "text": "While one of your cities is building the Magnum Opus, gain 1 faith each turn for every citizen in the world who follows your religion, at home or abroad.",
+      "text": "Gain 1 faith each turn for every two citizens in the world who follow your religion.",
       "effects": [
         {
-          "kind": "conditionRule",
-          "when": {
-            "test": "queueHolds",
-            "category": "building",
-            "building": "theMagnumOpus"
-          },
-          "then": [
-            {
-              "kind": "pays",
-              "where": "empire",
-              "basis": "count",
-              "to": "faith",
-              "amount": 1,
-              "count": "followingPop"
-            }
-          ]
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "faith",
+          "amount": 1,
+          "count": "followingPop",
+          "per": 2
         }
       ]
     },
@@ -1280,7 +1176,7 @@
       "rarity": "rare",
       "type": "wildcard",
       "flavor": "When the king knelt, the kingdom followed him into the river.",
-      "text": "Commission. Have a rival's capital follow your religion while this is seated. Reward: a free Prophet in your capital and 500 culture. Then this card leaves its chair.",
+      "text": "Goal: convert a rival's capital. Reward: a Prophet and 500 culture.",
       "effects": [],
       "commission": {
         "goals": [
@@ -1311,7 +1207,7 @@
       "rarity": "rare",
       "type": "economic",
       "flavor": "The masons were paid in bread and in the promise of a good place to be buried.",
-      "text": "In cities with a Cathedral, a world wonder that is at least half built may be bought with faith. Not the Magnum Opus.",
+      "text": "Towns with a Cathedral may buy a half-built wonder with faith.",
       "effects": [
         {
           "kind": "rule",
@@ -1333,7 +1229,7 @@
       "rarity": "rare",
       "type": "military",
       "flavor": "They came in carried and went out marching.",
-      "text": "While this is seated, your cities know the Restoring of the Host: a city spends the rite's faith to heal every unit of yours standing in territory that follows your religion to full health. A city may say it once every five turns.",
+      "text": "Towns may spend faith to heal every unit of yours in land that follows your religion.",
       "effects": [
         {
           "kind": "grantsAbility",
@@ -1414,7 +1310,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Each name is read aloud on its day, and the list grows longer every year.",
-      "text": "While seated, this card gains +2 faith and +2 culture each time one of your units dies in battle.",
+      "text": "Gains +2 faith and +2 culture each time one of your units dies in battle.",
       "effects": [
         {
           "kind": "pays",
@@ -1657,7 +1553,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "In spring the parish walks its fields behind a cross and asks for rain.",
-      "text": "While seated, this card gains +1 faith and +1 culture each time one of your towns starts a rite. It starts at +2 of each.",
+      "text": "Gains +1 faith and +1 culture each time a town starts a rite.",
       "effects": [
         {
           "kind": "pays",
@@ -1696,7 +1592,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "On the day of rest the forges are cold and the square is full of singing.",
-      "text": "Once drafted, unlock the Rite of the Sabbath. A town keeping it builds nothing for ten turns, and gains culture equal to its production each turn. No chair required.",
+      "text": "Charter. Unlocks the Rite of the Sabbath: for ten turns a town builds nothing, and gains culture equal to its production.",
       "effects": [],
       "charter": {
         "unlocks": {
@@ -1784,7 +1680,7 @@
       "rarity": "uncommon",
       "type": "wildcard",
       "flavor": "One emperor, one creed, and a bishop in every town to say so.",
-      "text": "Commission. Hold at least six towns, all of them devout, at the same time. Then, for the rest of the game, devout towns cost one less authority, minimum one. The card leaves its chair.",
+      "text": "Goal: hold six towns, all devout. Reward: devout towns cost 1 less authority.",
       "effects": [],
       "commission": {
         "goals": [
@@ -2075,6 +1971,45 @@
           }
         }
       ]
+    },
+    "theHouseholdGods": {
+      "name": "The Household Gods",
+      "decks": [
+        "devotion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "Every hearth keeps a small god, and every god keeps a hearth.",
+      "text": "+2 faith in every town.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "faith": 2
+        }
+      ]
+    },
+    "theFirstOffering": {
+      "name": "The First Offering",
+      "decks": [
+        "devotion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "The first loaf of the harvest goes to the altar before anyone eats.",
+      "text": "Boon. On draft: gain 25 faith.",
+      "onDraft": [
+        {
+          "grant": "windfall",
+          "yield": "faith",
+          "amount": 25
+        }
+      ],
+      "effects": []
     },
     "theMonasticTable": {
       "name": "The Monastic Table",

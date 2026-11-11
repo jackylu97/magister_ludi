@@ -51,8 +51,6 @@ import { type OrderId, orderDef, orderIsDealt, ordersForDecks } from '../../../s
 import { at, bareState } from '../improvementHelpers';
 
 const GENIUS = 'theUniversalGenius' as OrderId;
-/** Sacred Patronage: 30 faith when a great person is spent, at most once a turn. */
-const PATRONAGE = 'sacredPatronage' as OrderId;
 /** The Honoured Dead: a growing card that counts the `greatPersonSpent` tally. */
 const HONOURED = 'theHonouredDead' as OrderId;
 
@@ -175,16 +173,21 @@ describe('acting while the card is seated (reading 23)', () => {
   it('pays the act’s riders at the act, and the spent moment and tally only at the work', () => {
     const { state, player, capital } = board();
     seat(state, GENIUS);
-    seat(state, PATRONAGE);
     seat(state, HONOURED);
     // A rider on the act, hung on the realm for the length of the test. A
     // timed effect is one of the walk's sources, so it reads as a card's
     // rider does. A general's own act pays no yield, so the gold is the
-    // rider's alone.
+    // rider's alone. A second rider, on the spent moment, pays 30 faith: the
+    // rider Sacred Patronage carried until Devotion batch DS5 removed it.
     player.timed = [
       {
         card: GENIUS,
         effect: { kind: 'windfallRider', occasion: 'greatPersonAct', grant: { yield: 'gold', amount: 7 } },
+        expiresTurn: state.turn + 10,
+      },
+      {
+        card: GENIUS,
+        effect: { kind: 'windfallRider', occasion: 'greatPersonSpent', grant: { yield: 'faith', amount: 30 } },
         expiresTurn: state.turn + 10,
       },
     ];

@@ -372,8 +372,33 @@ import {
  * seated pays different yields, and a Commerce seat's draws move. The branch
  * migrates nothing, for the reason given under v119 in
  * `docs/history/schema-changelog.md`.
+ *
+ * v235 (branch `decks`; batch DS5, `docs/flags.md` (hhhhhhh), the user's ruling of
+ * 2026-11-10): **simpler Devotion Orders.** No field joins or leaves the state.
+ * The rules that change:
+ *
+ *   · 25 Devotion Orders and 6 shared Orders that Devotion holds with Scientific
+ *     or Magisterial have new text
+ *     (`docs/plans/deck-simplification-2026-11-10.md`). The Votive Lamp and The
+ *     Pilgrim Staff are not added, because their texts need a count and a moment
+ *     the game does not have;
+ *   · two new Tier 0 Orders are dealt: The Household Gods (+2 faith in every
+ *     town) and The First Offering (25 faith when drafted). They change what a
+ *     Devotion seat's first hands can draw;
+ *   · 16 rows have a new or shorter effect. Among them: The Calling pays +3 faith
+ *     in the capital with no condition, The Tithe of Nations pays for every two
+ *     following citizens with no Magnum Opus condition, The Holy Inquisition no
+ *     longer turns back rival pressure, and Sacred Patronage no longer pays faith
+ *     for a great person spent;
+ *   · two empire conditions that no row uses now are removed: `noReligionFounded`
+ *     and `queueHolds`. The `queueHolds` town scope stays.
+ *
+ * **A v234 save is refused and does not replay.** A logged game with one of these cards
+ * seated pays different yields, and a Devotion seat's draws move. The branch
+ * migrates nothing, for the reason given under v119 in
+ * `docs/history/schema-changelog.md`.
  */
-export const SCHEMA_VERSION = 234;
+export const SCHEMA_VERSION = 235;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

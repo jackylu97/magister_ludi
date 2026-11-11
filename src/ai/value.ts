@@ -147,10 +147,7 @@ import { improvementGroundError, improvementYieldDelta } from '../sim/improvemen
 // itself keeps, and priced against the strength that same simulation says the
 // town fights with — `cityMaxHp` and `cityBaseStrength`, never a hand-read row.
 import { cityBaseStrength, cityMaxHp } from '../sim/combat';
-import {
-  foldCity,
-  queueCategory,
-} from '../sim/yields/town';
+import { foldCity } from '../sim/yields/town';
 // Batch X2: the one condition that asks what a hex already *pays* has to be
 // handed the hex's own fold, and the fold is the town's — see
 // `workedHexesAdmitting`.
@@ -4129,8 +4126,9 @@ function scoreFoundingRider(
  * which is what these five arms are: every one reads the fold the evaluator
  * reads, and the two cannot disagree about a board they are both looking at.
  *
- * `queueHolds` is the one that walks the towns; the rest are three folds and a
- * register lookup, all of them already hoisted onto the context or memoised.
+ * `keepingRite` and `atWarWithOpusBuilder` walk the towns or the wars; the
+ * rest are folds and register lookups, already hoisted onto the context or
+ * memoised.
  */
 function conditionIsLive(
   when: Extract<CardEffect, { kind: 'conditionRule' }>['when'],
@@ -4147,23 +4145,6 @@ function conditionIsLive(
       return authorityOf(ctx.state, ctx.playerId) > 0;
     case 'happinessNegative':
       return happinessOf(ctx.state, ctx.playerId) < 0;
-    case 'queueHolds': {
-      const capital =
-        when.where === 'capital' ? (capitalCityOf(ctx.state, ctx.playerId) ?? null) : null;
-      if (when.where === 'capital' && capital === null) return false;
-      for (const city of ctx.state.cities) {
-        if (city.ownerId !== ctx.playerId) continue;
-        if (capital !== null && city.id !== capital.id) continue;
-        for (const row of city.queue) {
-          // `queueCategory` is the one place a row is sorted into a category, so
-          // this reads a wonder exactly as production does.
-          if (queueCategory(row) !== when.category) continue;
-          if (when.building !== undefined && row.id !== when.building) continue;
-          return true;
-        }
-      }
-      return false;
-    }
     case 'atWar': {
       // The register itself, which is the whole of why this reading is honest:
       // the wild is never in it, so raiders cannot open a war clause.
@@ -4200,8 +4181,6 @@ function conditionIsLive(
       }
       return false;
     }
-    case 'noReligionFounded':
-      return foundedReligion(ctx.state, ctx.playerId) === undefined;
     case 'rivalHoldsMoreTowns': {
       // The simulation's own reading: the empires this seat has met, against
       // the towns it holds now.

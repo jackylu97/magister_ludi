@@ -80,7 +80,6 @@ const TALLY = aiJson.score.tallyForecast;
 
 const BOOK_OF_LIFE = 'theBookOfLife' as OrderId;
 const GIFTS = 'theGiftsOfTheFaithful' as OrderId;
-const OFFERED_STONES = 'theOfferedStones' as OrderId;
 const OFFERING_CHESTS = 'theOfferingChests' as OrderId;
 const SHRINE_GUARDS = 'theShrineGuards' as OrderId;
 const PRECINCTS = 'theSacredPrecincts' as OrderId;
@@ -341,9 +340,11 @@ describe('faith that buys buildings', () => {
     const gifts = scoreEffects(effectsOf(GIFTS), ctx);
     expect(gifts).toBeGreaterThan(0);
     // The rule that opens every building reaches a wider shelf, so its best
-    // row is at least as good.
-    const [, everything] = effectsOf(OFFERED_STONES);
-    expect(scoreEffects([everything!], ctx)).toBeGreaterThanOrEqual(gifts);
+    // row is at least as good. The Offered Stones said this rule with no
+    // narrowing until batch DS5 cut that half of the card; the shape stays,
+    // since The Lay Brothers and The Gifts of the Faithful say it narrowed.
+    const everything: CardEffect = { kind: 'rule', rule: 'faithBuysBuildings' };
+    expect(scoreEffects([everything], ctx)).toBeGreaterThanOrEqual(gifts);
     // A faith book already buying something far better leaves the shelf worth
     // nothing more.
     const rich: ValueContext = {

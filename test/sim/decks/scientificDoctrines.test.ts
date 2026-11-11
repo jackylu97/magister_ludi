@@ -1852,23 +1852,8 @@ describe('The Two Capitals (batch DT17)', () => {
       expect(dist(capital)).toBeLessThan(dist(second));
     });
 
-    it('asks `queueHolds` of the true capital', () => {
-      const { state, capital, second } = board();
-      rows(state, [
-        {
-          kind: 'conditionRule',
-          when: { test: 'queueHolds', category: 'building', where: 'capital' },
-          then: [{ kind: 'pays', where: 'empire', gold: 1 }],
-        } as CardEffect,
-      ]);
-      const holds = (): boolean => liveEffects(state, 0).some((row) => row.effect.kind === 'pays' && row.card === ID);
-      second.queue = [{ kind: 'building', id: 'library' }];
-      bumpRevision(state);
-      expect(holds()).toBe(false);
-      capital.queue = [{ kind: 'building', id: 'library' }];
-      bumpRevision(state);
-      expect(holds()).toBe(true);
-    });
+    // The `queueHolds` condition, with its `where: 'capital'`, was asked here
+    // until batch DS5 removed it: The Tithe of Nations was its last row.
 
     it('keeps a building’s site at the true capital (the Assembly Hall)', () => {
       const { state, capital, second } = board();

@@ -4103,17 +4103,6 @@ function conditionValue(when: EmpireCondition): string {
   if (when.test === 'cityCountAtMost' || when.test === 'cityCountAtLeast') {
     return ` ${when.value} cities`;
   }
-  // "while any city is building a wonder" · "while your capital is building a
-  // wonder". The whole clause, because `CONDITION_WORDS` holds only the "while"
-  // — one entry for both readings, `onFeature`'s bargain a third time.
-  if (when.test === 'queueHolds') {
-    const where = when.where === 'capital' ? 'your capital is' : 'any city is';
-    if (when.building !== undefined) {
-      const which = when.where === 'capital' ? where : 'one of your cities is';
-      return ` ${which} building ${buildingWords(when.building)}`;
-    }
-    return ` ${where} building ${when.category === 'unit' ? 'a unit' : `a ${when.category}`}`;
-  }
   return '';
 }
 
@@ -7691,9 +7680,6 @@ const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
   authorityNegative: 'while your authority is negative',
   authorityPositive: 'while your authority is positive',
   happinessNegative: 'while your happiness is negative',
-  // The category and the town are printed by `conditionValue`, so that a wonder
-  // in any city and a building in the capital are one entry and two rows.
-  queueHolds: 'while',
   atWar: 'while you are at war',
   // The complement said the way a player would say it, not as a negation of the
   // line above: "while you are at peace" is a state of the realm a player plans
@@ -7701,7 +7687,6 @@ const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
   atPeace: 'while you are at peace',
   keepingRite: 'while a rite is being kept anywhere in your empire',
   atWarWithOpusBuilder: 'while you are at war with an empire raising the Magnum Opus',
-  noReligionFounded: 'until you have founded a religion',
   rivalHoldsMoreTowns: 'while an empire you have met holds more towns than you',
   noMetEmpireAhead: 'while no empire you have met knows more technologies than you',
   // Batch R3, The Kept Secret. Every other empire counts, met or not, and the

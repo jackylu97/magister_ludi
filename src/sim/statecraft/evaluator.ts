@@ -167,7 +167,6 @@ import {
   countFirsts,
   firstKeyTail,
   followerCount,
-  foundedReligion,
   playerById,
   realPlayers,
   slottedOrderCount,
@@ -1913,24 +1912,6 @@ function empireConditionHolds(
       return authorityReading(state, playerId) > 0;
     case 'happinessNegative':
       return happinessReading(state, playerId) < 0;
-    case 'queueHolds': {
-      // Read through `queueCategory` — the one place a queue row is sorted into
-      // a category — so a wonder, a building and a project are told apart here
-      // by exactly the rule production tells them apart by. `where: 'capital'`
-      // narrows the sweep to one town; the default asks the realm.
-      const only = when.where === 'capital' ? capitalCityOf(state, playerId)?.id : undefined;
-      if (when.where === 'capital' && only === undefined) return false;
-      for (const city of state.cities) {
-        if (city.ownerId !== playerId) continue;
-        if (only !== undefined && city.id !== only) continue;
-        for (const row of city.queue) {
-          if (queueCategory(row) !== when.category) continue;
-          if (when.building !== undefined && row.id !== when.building) continue;
-          return true;
-        }
-      }
-      return false;
-    }
     case 'atWar':
       // **The register itself**, and nothing derived from it. `atWar` answers
       // *true* against the wild without looking (it has nothing to sign), so a
@@ -1963,10 +1944,6 @@ function empireConditionHolds(
         if (opusCityOf(state, rival) !== null) return true;
       }
       return false;
-    case 'noReligionFounded':
-      // The history, not the holy city: a founder who lost the seat has still
-      // founded one, and The Calling's job was done the day it was.
-      return foundedReligion(state, playerId) === undefined;
     case 'rivalHoldsMoreTowns': {
       // Only the empires this one has met (the triage's reading 11), read from
       // the register `recordMeetings` writes, so the card says nothing about an
@@ -2493,7 +2470,7 @@ export function secondCapitalCity(state: GameState, playerId: number): City | un
  *   - the `capitalTerritory` combat condition and the `capitalGreatWorks` scale, which
  *     no Order or Doctrine reads today (the same test pins this);
  *   - a one-time `toCapital` grant, because one grant has one place to land;
- *   - a `periodicMuster` and the `queueHolds` condition's `where: 'capital'`;
+ *   - a `periodicMuster`;
  *   - the `notConnected` scope, because the roads still run to the true capital;
  *   - the palace, `explainAuthority`'s ladder and every reader outside the cards.
  */
@@ -13387,8 +13364,10 @@ export function cardPressureRule(
 
 /**
  * The percentage this town's owner's cards put on **rival** pressure entering
- * it — The Holy Inquisition's −40, The Peace of God's −100 in the city building
- * the Magnum Opus. Summed, floored at −100 by the caller. Read in `templeShare`.
+ * it: The Peace of God's −100 in the city building the Magnum Opus. Summed,
+ * floored at −100 by the caller. Read in `templeShare`. The Holy Inquisition
+ * gave −40 everywhere until batch DS5 cut that half, and The Peace of God is
+ * retired, so only a save that holds it reads this today.
  */
 export function cardRivalPressurePercent(state: GameState, city: City): number {
   let total = 0;

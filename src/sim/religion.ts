@@ -4545,7 +4545,7 @@ export function templeShare(
 
 /**
  * What the town's **owner's** cards let through of a rival religion's pressure
- * (`rivalPressurePercent`: The Holy Inquisition, The Peace of God). A religion
+ * (`rivalPressurePercent`: the retired The Peace of God). A religion
  * the owner is paid by is not a rival and passes untouched; so does everything
  * when no card speaks. Applied before the temple, so the two multiply.
  */

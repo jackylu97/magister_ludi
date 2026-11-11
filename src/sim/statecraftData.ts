@@ -1402,33 +1402,10 @@ export type EmpireCondition =
    */
   | { test: 'authorityPositive' }
   | { test: 'happinessNegative' }
-  /**
-   * A city of this empire has a row of this **category** in its queue —
-   * Hemiunu's "while any city is building a wonder".
-   *
-   * A gate and not a scope, which is the distinction this union keeps: the
-   * question is about *the empire* ("is anybody building one"), and the clause
-   * it opens lands wherever the clause says it lands. `where: 'capital'`
-   * narrows the sweep to the one town, because "the capital is building a
-   * wonder" is a different sentence about the same board and a card that meant
-   * it would otherwise have to say it with a scope on the wrong half.
-   *
-   * Read off `City.queue` through `queueCategory` — the one place a row is
-   * sorted into a category — so a project, a wonder and a building are told
-   * apart here by exactly the rule production tells them apart by.
-   */
-  | {
-      test: 'queueHolds';
-      category: ProductionCategory;
-      where?: 'any' | 'capital';
-      /**
-       * And the row is this one building — The Tithe of Nations' "while one of
-       * your cities is building the Magnum Opus". Absent admits any row
-       * of the category. A single town raising the Opus is `CityScope`'s
-       * `raisingOpus`.
-       */
-      building?: BuildingId;
-    }
+  // There was a `queueHolds` gate here (a town of this empire has a row of one
+  // category in its queue). The Tithe of Nations was its last row, and batch
+  // DS5 removed its Magnum Opus condition, so the gate went with it. A town's
+  // own queue is still `CityScope`'s `queueHolds`.
   /**
    * **There is a war on** — The Arsenal Law's forges, which only run while
    * somebody is being shot at.
@@ -1487,12 +1464,9 @@ export type EmpireCondition =
    * `raisingOpus`.
    */
   | { test: 'atWarWithOpusBuilder' }
-  /**
-   * This empire **has not founded a religion yet** — The Calling. Asked of
-   * `foundedReligion`, the history, so a founder who lost the holy city has
-   * still founded one.
-   */
-  | { test: 'noReligionFounded' }
+  // There was a `noReligionFounded` gate here (this empire has not founded a
+  // religion yet). The Calling was its only row, and batch DS5 changed it to a
+  // flat +3 faith in the capital, so the gate went with it.
   /**
    * **Another empire this one has met holds more towns** (Dominion batch D7,
    * The Defiant Kingdom). Only empires in `Player.metSeats` are compared, so the
@@ -9839,8 +9813,9 @@ export type PressureRuleId =
   | 'routeBothWays'
   /**
    * A percentage on **rival** pressure entering this empire's own towns, read
-   * for the town's owner in `templeShare` (tide and proclamation alike). −40 is
-   * The Holy Inquisition; −100 shuts it out (The Peace of God). Not a key of
+   * for the town's owner in `templeShare` (tide and proclamation alike). −100
+   * shuts it out (The Peace of God, retired in batch DS1 and kept for saves).
+   * The Holy Inquisition's −40 went in batch DS5. Not a key of
    * `rules.religion`: its base is nought.
    */
   | 'rivalPressurePercent';

@@ -234,14 +234,10 @@ describe('Devotion batch DV1: the hex and town cards', () => {
     // No Temple and no rite are needed, and the happiness line is gone.
     expect(townPays(state, devout, 'theSettledFaith', 'happiness')).toBe(0);
     const kinds = orderDef('theSettledFaith' as OrderId).effects.map((effect) => effect.kind);
-    expect(kinds).toEqual(['percentYields', 'percentYields', 'pressureRule']);
-    // The proclamation half stays a flat 15 less, 25% of the base lump (reading 38).
-    expect(orderDef('theSettledFaith' as OrderId).effects[2]).toEqual({
-      kind: 'pressureRule',
-      rule: 'bombLump',
-      delta: -15,
-    });
-    expect(words('theSettledFaith')[2]).toBe('a proclamation presses 15 faith less');
+    // Batch DS5 (`docs/plans/deck-simplification-2026-11-10.md`) removed the
+    // drawback: proclamations no longer press 15 faith less.
+    expect(kinds).toEqual(['percentYields', 'percentYields']);
+    expect(words('theSettledFaith')).toHaveLength(2);
   });
 
   it('The Settled Faith pays nothing in a town whose religion its owner is not paid by', () => {
@@ -405,14 +401,16 @@ describe('Devotion batch DV1: tiers, retirements and moves', () => {
     expect(orderDef('theSpiritsOfPlace' as OrderId).name).toBe('The Ambarvalia');
   });
 
-  it('types the two shared Magisterial rows, and Sacred Patronage keeps its second clause', () => {
+  it('types the two shared Magisterial rows, and Sacred Patronage keeps one clause since batch DS5', () => {
     expect(orderDef('sacredCommissions' as OrderId).type).toBe('economic');
     const patronage = orderDef('sacredPatronage' as OrderId);
     expect(patronage.type).toBe('civic');
     // Dealt since Magisterial batch MG8, which built the moment a great
-    // person is spent (`test/sim/decks/magisterialPatrons.test.ts`).
+    // person is spent (`test/sim/decks/magisterialPatrons.test.ts`). Batch
+    // DS5 removed the second clause, the 30 faith for a great person spent.
     expect(orderIsDealt('sacredPatronage' as OrderId)).toBe(true);
-    expect(patronage.text).toContain('Spending a great person grants 30 faith, at most once per turn.');
+    expect(patronage.text).toBe('You may buy a great-person draft for 750 faith.');
+    expect(patronage.effects).toEqual([{ kind: 'rule', rule: 'buyGreatPersonWithFaith' }]);
   });
 });
 
@@ -667,7 +665,7 @@ describe('Devotion batch DV2: the shared cards', () => {
     expect(def.note).toBeUndefined();
   });
 
-  it('The Blessed Forges pays improved strategic resources and Temple towns faith and production', () => {
+  it('The Blessed Forges pays improved strategic resources faith and production, and Temple towns nothing more', () => {
     const state = bareState(20, 10);
     const city = town(state, 0, 5, 5, 4);
     const strategic = RESOURCE_IDS.find(
@@ -689,9 +687,12 @@ describe('Devotion batch DV2: the shared cards', () => {
     expect(hexFaithAndProduction(state, wild!, 'theBlessedForges')).toEqual({ faith: 0, production: 0 });
     expect(hexFaithAndProduction(state, mine!, 'theBlessedForges')).toEqual({ faith: 0, production: 0 });
     expect(townPays(state, city, 'theBlessedForges', 'faith')).toBe(0);
+    // Batch DS5 (`docs/plans/deck-simplification-2026-11-10.md`) removed the
+    // +2 faith and +2 production in a town with a Temple.
     raise(state, city, 'temple');
-    expect(townPays(state, city, 'theBlessedForges', 'faith')).toBe(2);
-    expect(townPays(state, city, 'theBlessedForges', 'production')).toBe(2);
+    expect(townPays(state, city, 'theBlessedForges', 'faith')).toBe(0);
+    expect(townPays(state, city, 'theBlessedForges', 'production')).toBe(0);
+    expect(orderDef('theBlessedForges' as OrderId).effects).toHaveLength(1);
   });
 
   it('The Schoolmen’s Charter opens Scholasticism, which opens the Cathedral School and nothing early', () => {

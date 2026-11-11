@@ -198,6 +198,7 @@ These rows live in `data/decks/common.json`. A seat holding Scientific or the de
 - **Built in Devotion batch DV2:** The Monastery Libraries left `deferred` with its new text, and The Blessed Forges and The Schoolmen's Charter are new rows. The charter opens a fourteenth charter technology, Scholasticism, at a placeholder place on the lane under Medicine until your chart places it. In DV2, knowing it opened the Cathedral and the Apostle before Theology.
 - **New in batch R3** (`docs/plans/scientific-review-2026-10-28.md`): The Mountain Observatories, shared with Expansionist at your request of 2026-10-28.
 - **Changed in Devotion batch R2c** (`docs/plans/devotion-review-2026-10-28.md`): The Schoolmen's Charter took your revision of 2026-10-28. Scholasticism now opens a new religious building, the Cathedral School: +2 science for each building in its town that supplies faith, and +2 more for each while the town keeps a rite. It no longer opens the Cathedral or the Apostle early, so the Devotion build plan's question 1 (the Apostle opened early) is closed.
+- **Changed in Devotion batch DS5** (2026-11-10, `docs/plans/deck-simplification-2026-11-10.md`): four shared rows took their new, shorter text. The Priest-Astronomers lost its cap, The Cloister lost its food on Libraries and Universities, and The Blessed Forges lost its line for towns with a Temple. The Schoolmen's Charter was only reworded: the Cathedral School still doubles its science while its town keeps a rite, as the building's own page says.
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
@@ -207,11 +208,11 @@ These rows live in `data/decks/common.json`. A seat holding Scientific or the de
 | **The Assay** | common | Expansionist | I | implemented | Hexes with a strategic resource gain +2 science. | Civic |
 | **The Monastery Libraries** | common | Devotion | I | implemented | Libraries give +2 faith. Temples give +2 science. | Civic |
 | **The Exchange of Discoveries** | uncommon | Commerce | I | implemented | Mines and quarries on a resource gain +2 science. | Civic |
-| **The Schoolmen's Charter** | uncommon | Devotion | I | implemented | Drafting this opens Scholasticism for research. Knowing it lets you build the Cathedral School: +2 science for each building in the town that supplies faith, doubled while the town keeps a rite. No chair required. | Civic |
-| **The Priest-Astronomers** | common | Devotion | I | implemented | Your capital gains +2 science and +2 faith for every city of yours keeping a rite, at most +16 of each. | Civic |
-| **The Cloister** | rare | Devotion | II | implemented | Cities with a Temple gain science equal to 30% of their base faith. Their Libraries and Universities each gain +3 food. | Civic |
+| **The Schoolmen's Charter** | uncommon | Devotion | I | implemented | Charter. Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town. | Civic |
+| **The Priest-Astronomers** | common | Devotion | I | implemented | Your capital gains +2 science and +2 faith for each town keeping a rite. | Civic |
+| **The Cloister** | rare | Devotion | II | implemented | Towns with a Temple gain science equal to 30% of their faith. | Civic |
 | **The Merchant Navigators** | common | Commerce | II | implemented | Trade routes from a town with a Harbour gain +5 science. | Civic |
-| **The Blessed Forges** | uncommon | Devotion | II | implemented | Improved strategic resources gain +1 faith and +1 production. Cities with a Temple gain +2 faith and +2 production more. | Civic |
+| **The Blessed Forges** | uncommon | Devotion | II | implemented | Improved strategic resources gain +1 faith and +1 production. | Civic |
 | **Carried-Off Scholars** | common | Dominion | II | implemented | Capturing a city grants science equal to ten times its population. | Civic |
 | **The Soldier-Scholars** | uncommon | Dominion | II | implemented | Each military unit in your towns gives +2 science. | Military |
 | **Merchant Scholars** | uncommon | Commerce | III | implemented | Foreign routes gain +2 science for each Academy in the origin city. | Civic |

@@ -637,7 +637,7 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "The walls keep the world out and the argument in.",
-      "text": "Cities with a Temple gain science equal to 30% of their base faith. Their Libraries and Universities each gain +3 food.",
+      "text": "Towns with a Temple gain science equal to 30% of their faith.",
       "effects": [
         {
           "kind": "pays",
@@ -647,30 +647,6 @@
           "to": "science",
           "percent": 30,
           "scope": { "test": "hasBuilding", "building": "temple" }
-        },
-        {
-          "kind": "pays",
-          "where": "city",
-          "food": 3,
-          "scope": {
-            "test": "all",
-            "of": [
-              { "test": "hasBuilding", "building": "temple" },
-              { "test": "hasBuilding", "building": "library" }
-            ]
-          }
-        },
-        {
-          "kind": "pays",
-          "where": "city",
-          "food": 3,
-          "scope": {
-            "test": "all",
-            "of": [
-              { "test": "hasBuilding", "building": "temple" },
-              { "test": "hasBuilding", "building": "university" }
-            ]
-          }
         }
       ]
     },
@@ -682,19 +658,13 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "The masons were paid in indulgence and stone.",
-      "text": "Cities with a Holy Site gain +38% production toward wonders. Completing a wonder grants 60 faith.",
+      "text": "Towns with a Holy Site build wonders 30% faster.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "wonder",
-          "percent": 38,
+          "percent": 30,
           "scope": { "test": "hasImprovement", "improvement": "holySite" }
-        },
-        {
-          "kind": "windfallRider",
-          "occasion": "completion",
-          "wonder": true,
-          "grant": { "yield": "faith", "amount": 60 }
         }
       ]
     },
@@ -706,17 +676,11 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "Genius is cheap where the faithful are many.",
-      "text": "Faith may buy great-person drafts for 750 faith each. Spending a great person grants 30 faith, at most once per turn.",
+      "text": "You may buy a great-person draft for 750 faith.",
       "effects": [
-        { "kind": "rule", "rule": "buyGreatPersonWithFaith" },
-        {
-          "kind": "windfallRider",
-          "occasion": "greatPersonSpent",
-          "oncePerTurn": true,
-          "grant": { "yield": "faith", "amount": 30 }
-        }
+        { "kind": "rule", "rule": "buyGreatPersonWithFaith" }
       ],
-      "note": "A great person bought with faith costs the same faith each time. What rises is the renown each later great person needs. A great person counts whether they act or lay a work."
+      "note": "A great person bought with faith costs the same faith each time. What rises is the renown each later great person needs."
     },
     "illuminatedTreatises": {
       "name": "Illuminated Treatises",
@@ -1856,7 +1820,7 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "The calendar is a promise that the feast will come again.",
-      "text": "Your capital gains +2 science and +2 faith for every city of yours keeping a rite, at most +16 of each.",
+      "text": "Your capital gains +2 science and +2 faith for each town keeping a rite.",
       "effects": [
         {
           "kind": "pays",
@@ -1865,7 +1829,6 @@
           "to": "science",
           "amount": 2,
           "count": "citiesKeepingRite",
-          "max": 8,
           "scope": {
             "test": "capital"
           }
@@ -1877,7 +1840,6 @@
           "to": "faith",
           "amount": 2,
           "count": "citiesKeepingRite",
-          "max": 8,
           "scope": {
             "test": "capital"
           }
@@ -2089,7 +2051,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "The smith says a prayer over the ore, and the priest learns how the ore is smelted.",
-      "text": "Improved strategic resources gain +1 faith and +1 production. Cities with a Temple gain +2 faith and +2 production more.",
+      "text": "Improved strategic resources gain +1 faith and +1 production.",
       "effects": [
         {
           "kind": "pays",
@@ -2100,13 +2062,6 @@
           },
           "faith": 1,
           "production": 1
-        },
-        {
-          "kind": "pays",
-          "where": "city",
-          "scope": { "test": "hasBuilding", "building": "temple" },
-          "faith": 2,
-          "production": 2
         }
       ]
     },
@@ -2118,7 +2073,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Every question is argued both ways before the master gives an answer.",
-      "text": "Drafting this opens Scholasticism for research. Knowing it lets you build the Cathedral School: +2 science for each building in the town that supplies faith, doubled while the town keeps a rite. No chair required.",
+      "text": "Charter. Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town.",
       "charter": {
         "unlocks": {
           "tech": "scholasticism"

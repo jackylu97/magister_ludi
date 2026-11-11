@@ -204,15 +204,16 @@ These rows live in `data/decks/common.json`. A seat holding Magisterial or the d
 | **Looted Art** | uncommon | Dominion | II | implemented | Capturing a city grants 20 renown for each great-person work and wonder inside its borders. | Civic |
 | **The Brokers' Redraw** | rare | Commerce | II | modify: as built | You may reroll an Order hand with gold. | Wildcard |
 | **The Festival Calendar** | uncommon | Devotion | II | implemented | Cities keeping a rite gain +30% food and +30% culture. | Civic |
-| **Sacred Commissions** | uncommon | Devotion | II | implemented | Cities with a Holy Site gain +38% production toward wonders. Completing a wonder grants 60 faith. | Economic |
+| **Sacred Commissions** | uncommon | Devotion | II | implemented | Towns with a Holy Site build wonders 30% faster. | Economic |
 | **The Sculpted Landscape** | uncommon | Expansionist | III | implemented | Farms beside a great-person work gain +2 food and +2 culture. | Civic |
-| **Sacred Patronage** | rare | Devotion | III | implemented | Faith may buy great-person drafts for 750 faith each. Spending a great person grants 30 faith, at most once per turn. | Civic |
+| **Sacred Patronage** | rare | Devotion | III | implemented | You may buy a great-person draft for 750 faith. | Civic |
 | **The House of Wisdom** | uncommon | Scientific | III | implemented | Worked Academies gain +3 culture. Cities working an Academy gain +1 renown and +30% production toward wonders. Each city receives the city bonus once. | Civic |
 | **The New Code** | rare | Dominion | III | implemented | Capturing a city deals you a free Order hand, at most once every ten turns. | Wildcard |
 
 - **Travelling Players** took its new text in batch MG4 (the triage's reading 46). It counts the decks among the cards in your chairs: a card that two decks share counts for both, and the cards that belong to no deck count together as one more (reading 8). Batch DS1 retired it, so neither sheet's table lists it now.
 - **The Brokers' Redraw** plays as built: the rule is live, but no button offers the gold redraw yet. The rule also lets gold reroll any hand that faith may, not only an Order hand. Commerce batch DS4 removed its surcharge on other purchases.
-- **Sacred Patronage** (batch MG8) uses the rule The Magisterium used: a great-person draft bought with faith costs a flat 750 faith each time, and the faith price does not rise. What rises is the renown each later great person needs. Batch Z2 changed its text to say the flat price. Its second clause pays 30 faith once a turn when you spend a great person by an act or a work. The Devotion sheet lists the same row.
+- **Sacred Patronage** (batch MG8) uses the rule The Magisterium used: a great-person draft bought with faith costs a flat 750 faith each time, and the faith price does not rise. What rises is the renown each later great person needs. Batch Z2 changed its text to say the flat price. Its second clause paid 30 faith once a turn when you spent a great person by an act or a work, until Devotion batch DS5 removed it. The Devotion sheet lists the same row.
+- **Sacred Commissions** took its new text in Devotion batch DS5: +30% production toward wonders in a town with a Holy Site (it was +38%). Its 60 faith for each wonder you complete is gone.
 
 ## Retired rows
 
