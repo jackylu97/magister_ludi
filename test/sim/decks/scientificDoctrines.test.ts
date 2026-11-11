@@ -65,7 +65,7 @@ import {
   createUnit,
   playerById,
 } from '../../../src/sim/state';
-import { cityScopeWords, describeCard, doctrineBagFor, stripRefs } from '../../../src/sim/statecraft';
+import { cityScopeWords, describeCard, describeEffects, doctrineBagFor, stripRefs } from '../../../src/sim/statecraft';
 import {
   type CombatSituation,
   cardBehaviorRuleFor,
@@ -1955,15 +1955,8 @@ describe('The Two Capitals (batch DT17)', () => {
       expect(combatLineAmount(state, fightAt(state, unit, second), strength)).toBeNull();
     });
 
-    it('keeps Divine Mandate’s yields at the true capital', () => {
-      const { state, capital, second } = board();
-      seat(state).statecraft.government = 'divineMandate';
-      slot(state, 'theRoundCity');
-      expect(culture(state, capital, 'divineMandate')).toBe(1);
-      expect(pays(state, capital, 'divineMandate', 'faith' as never)).toBe(1);
-      expect(culture(state, second, 'divineMandate')).toBe(0);
-      expect(pays(state, second, 'divineMandate', 'faith' as never)).toBe(0);
-    });
+    // Divine Mandate's capital rows left with batch G1: the new Divine Mandate
+    // pays a share in every town with a wonder, and names no capital.
 
     it('keeps Keeper of the Hearth’s happiness at the true capital', () => {
       const { state } = board();
@@ -2036,7 +2029,11 @@ describe('The Two Capitals (batch DT17)', () => {
       expect(cityScopeWords({ test: 'all', of: [{ test: 'trueCapital' }, { test: 'mountainAdjacent' }] })).toBe(
         cityScopeWords({ test: 'all', of: [{ test: 'capital' }, { test: 'mountainAdjacent' }] }),
       );
-      for (const clause of describeCard('divineMandate' as never).slice(0, 2)) {
+      // A row with the true capital prints "in your capital", as a plain
+      // capital row does. Divine Mandate was the government row that showed it
+      // until batch G1, so the row is written here.
+      const row = { kind: 'pays', where: 'capital', basis: 'count', to: 'faith', amount: 1, count: 'population', scope: { test: 'trueCapital' } };
+      for (const clause of describeEffects([row as never])) {
         expect(stripRefs(clause.text)).toContain('in your capital');
       }
     });
@@ -2142,7 +2139,6 @@ describe('The Two Capitals (batch DT17)', () => {
             'resources.json/resources/olives/effects',
             'resources.json/resources/tyrian/effects',
             'resources.json/resources/whales/effects',
-            'statecraft.json/governments/divineMandate/effects',
           ].sort(),
         );
       });

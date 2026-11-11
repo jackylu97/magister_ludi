@@ -762,9 +762,10 @@ describe('the schema, as landed', () => {
     // from 29 to 26 the same day (docs/flags.md (ddddddd)). The tier-38
     // governments were retired in batch C2 and their rows still carry the top
     // rung's count; which type each chair is, is `statecraft.test.ts`' and
-    // `typedChairs.test.ts`'.
+    // `typedChairs.test.ts`'. Since batch G1 (the user's ruling of 2026-11-10)
+    // the tier-10 rung has six chairs, one more than the rung below it.
     expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 10, 18, 26]);
-    expect(TIER_LADDER.map((rung) => rung.chairs)).toEqual([3, 5, 5, 8, 11]);
+    expect(TIER_LADDER.map((rung) => rung.chairs)).toEqual([3, 5, 6, 8, 11]);
     expect(TIER_LADDER).toHaveLength(BANDS.length);
     // The later rungs banked a reward hand until batch C3 removed the reward
     // hands. What pairs with a government tier now is a Doctrine tier, one to
@@ -773,12 +774,19 @@ describe('the schema, as landed', () => {
     expect(governmentTierForDoctrineBand(5)).toBe(0);
     for (const id of GOVERNMENT_IDS) {
       const def = governmentDef(id);
-      expect(def.chairs, id).toBe(chairsAtTier(def.tier));
       expect(slotCount(id), id).toBe(def.chairs);
+      // The retired Theocracy (batch G1) keeps the five chairs it was written
+      // with: a retired row's body is kept as it was.
+      if (id === 'theocracy') {
+        expect(def.retired).toBe(true);
+        expect(def.chairs).toBe(5);
+        continue;
+      }
+      expect(def.chairs, id).toBe(chairsAtTier(def.tier));
     }
     // The tier-10 rung has its own row, and the retired tier 38 keeps the top
     // rung's count.
-    expect(chairsAtTier(10)).toBe(5);
+    expect(chairsAtTier(10)).toBe(6);
     expect(chairsAtTier(38)).toBe(11);
     expect(bandTierAt(0)).toBe(0);
     expect(bandTierAt(3)).toBe(0);
@@ -1140,7 +1148,7 @@ describe('the schema, as landed', () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(230);
+    expect(SCHEMA_VERSION).toBe(231);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

@@ -895,7 +895,10 @@ describe('the source register', () => {
     expect(sc.split('): CardPercentLine[] {')).toHaveLength(2);
     const body = region(sc, 'export function explainCardPercentYields', 'export interface CardProductionLine');
     const pushes = [...body.matchAll(/list\.push\(\{[\s\S]*?\}\);/g)];
-    expect(pushes).toHaveLength(2);
+    // Three since batch G1: the card's own percentage, a count's, and the rise
+    // a tier-26 government gives a seated card's line, which names the
+    // government's card.
+    expect(pushes).toHaveLength(3);
     for (const [push] of pushes) expect(push).toContain('card');
     // The hammers behind a build travel the same seam, in one emitter of their
     // own — and `CardProductionLine.card` is required, so a push that dropped
@@ -903,14 +906,22 @@ describe('the source register', () => {
     expect(sc.split('): CardProductionLine[] {')).toHaveLength(2);
   });
 
-  it('builds every tile line with its card, in the two places one is built', () => {
+  it('builds every tile line with its card, in the three places one is built', () => {
     // A card's line on the ground is the other half of the ruling: seven
-    // producers, but only two literals — `tileLinesFrom`, which every producer
-    // but one funnels through, and the amplifier's own helping.
+    // producers, but only three literals — `tileLinesFrom`, which every
+    // producer but two funnels through, the amplifier's own helping, and the
+    // rise a tier-26 government gives a seated card's line (batch G1). Each
+    // literal is read to the brace that closes it, at its own indent. A copy
+    // made on one line (`{ ...line }`) is not a literal of its own.
     const sc = source('statecraft/evaluator.ts');
-    const built = [...sc.matchAll(/const line: CardTileLine = \{[\s\S]*?\n {6}\};/g)];
-    expect(built).toHaveLength(1);
-    for (const [literal] of built) expect(literal).toContain('card');
+    const built: string[] = [];
+    for (const match of sc.matchAll(/\n( *)const \w+: CardTileLine = \{\n/g)) {
+      const close = sc.indexOf(`\n${match[1]}};`, match.index! + 1);
+      expect(close, match[0]).toBeGreaterThan(match.index!);
+      built.push(sc.slice(match.index!, close));
+    }
+    expect(built).toHaveLength(3);
+    for (const literal of built) expect(literal).toContain('card');
     const funnel = region(sc, 'function tileLinesFrom', 'export interface CardPercentLine');
     expect(funnel).toContain('const { source, card, effect } of found');
     expect(funnel).toMatch(/const line: CardTileLine = \{\n\s*source,\n\s*card,/);

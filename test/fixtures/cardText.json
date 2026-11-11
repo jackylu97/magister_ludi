@@ -3,8 +3,8 @@
   "chiefdom": [],
   "councilOfElders": [
    {
-    "raw": "+3 happiness",
-    "text": "+3 happiness"
+    "raw": "+2 food in every city",
+    "text": "+2 food in every city"
    },
    {
     "raw": "+1 renown per turn in every city",
@@ -13,54 +13,38 @@
   ],
   "warChief": [
    {
-    "raw": "+3 authority capacity",
-    "text": "+3 authority capacity"
-   },
-   {
     "raw": "+4 combat strength",
     "text": "+4 combat strength"
    },
    {
-    "raw": "killing a unit grants +5 science for each Order you have seated",
-    "text": "killing a unit grants +5 science for each Order you have seated"
+    "raw": "killing a unit grants +10 science",
+    "text": "killing a unit grants +10 science"
    },
    {
-    "raw": "killing a unit grants +5 culture for each Order you have seated",
-    "text": "killing a unit grants +5 culture for each Order you have seated"
+    "raw": "killing a unit grants +10 culture",
+    "text": "killing a unit grants +10 culture"
    }
   ],
   "priestKing": [
    {
-    "raw": "+2 faith in every city",
-    "text": "+2 faith in every city"
+    "raw": "+1 science, +1 faith in every city",
+    "text": "+1 science, +1 faith in every city"
    }
   ],
   "republic": [
    {
-    "raw": "+1 culture in every city per 5 citizens there",
-    "text": "+1 culture in every city per 5 citizens there"
+    "raw": "+1 trade route",
+    "text": "+1 trade route"
    },
    {
-    "raw": "-5% happiness demanded per citizen",
-    "text": "-5% happiness demanded per citizen"
+    "raw": "+1 culture in every city per 5 citizens there",
+    "text": "+1 culture in every city per 5 citizens there"
    }
   ],
   "tyranny": [
    {
     "raw": "+5 authority capacity",
     "text": "+5 authority capacity"
-   },
-   {
-    "raw": "+4 combat strength",
-    "text": "+4 combat strength"
-   },
-   {
-    "raw": "pillaging pays +50%",
-    "text": "pillaging pays +50%"
-   },
-   {
-    "raw": "pillaging costs your units no movement",
-    "text": "pillaging costs your units no movement"
    },
    {
     "raw": "your units cost 30% less gold in maintenance",
@@ -81,70 +65,30 @@
     "text": "+1 culture per 5 faith your capital gains per turn"
    }
   ],
+  "aristocracy": [
+   {
+    "raw": "+2 science in every city",
+    "text": "+2 science in every city"
+   },
+   {
+    "raw": "great people cost 15% less renown",
+    "text": "great people cost 15% less renown"
+   }
+  ],
   "merchantLeague": [
    {
-    "raw": "+2 gold per economic Order you have seated",
-    "text": "+2 gold per economic Order you have seated"
+    "raw": "+1 trade route",
+    "text": "+1 trade route"
    },
    {
     "raw": "trade routes pay +50%",
     "text": "trade routes pay +50%"
-   },
-   {
-    "raw": "+1 trade route",
-    "text": "+1 trade route"
    }
   ],
   "imperium": [
    {
-    "raw": "+1 production in every city per military Order you have seated",
-    "text": "+1 production in every city per military Order you have seated"
-   },
-   {
     "raw": "all units: +1 movement",
     "text": "all units: +1 movement"
-   },
-   {
-    "raw": "capturing a city grants +50 gold",
-    "text": "capturing a city grants +50 gold"
-   },
-   {
-    "raw": "capturing a city heals every one of your units",
-    "text": "capturing a city heals every one of your units"
-   }
-  ],
-  "divineMandate": [
-   {
-    "raw": "+1 faith in your capital per civic Order you have seated",
-    "text": "+1 faith in your capital per civic Order you have seated"
-   },
-   {
-    "raw": "+1 culture in your capital per civic Order you have seated",
-    "text": "+1 culture in your capital per civic Order you have seated"
-   },
-   {
-    "raw": "+10% faith in every city of 6 or more citizens",
-    "text": "+10% faith in every city of 6 or more citizens"
-   }
-  ],
-  "theEstates": [
-   {
-    "raw": "+1 happiness in every city",
-    "text": "+1 happiness in every city"
-   },
-   {
-    "raw": "+2 culture in every city of 8 or more citizens",
-    "text": "+2 culture in every city of 8 or more citizens"
-   }
-  ],
-  "theSultanate": [
-   {
-    "raw": "all units: +1 movement",
-    "text": "all units: +1 movement"
-   },
-   {
-    "raw": "+25% production toward units",
-    "text": "+25% production toward units"
    },
    {
     "raw": "+10% science in every captured city",
@@ -155,14 +99,32 @@
     "text": "+10% culture in every captured city"
    }
   ],
-  "theCuria": [
+  "divineMandate": [
    {
-    "raw": "+6 faith per [[building:cathedral|Cathedral]]",
-    "text": "+6 faith per Cathedral"
+    "raw": "+20% culture in every city containing a wonder",
+    "text": "+20% culture in every city containing a wonder"
    },
    {
-    "raw": "faith buildings supply science equal to their faith, in every city",
-    "text": "faith buildings supply science equal to their faith, in every city"
+    "raw": "+20% faith in every city containing a wonder",
+    "text": "+20% faith in every city containing a wonder"
+   }
+  ],
+  "theEstates": [
+   {
+    "raw": "your seated Economic cards pay 30% more",
+    "text": "your seated Economic cards pay 30% more"
+   }
+  ],
+  "theSultanate": [
+   {
+    "raw": "your seated Military cards are 30% stronger",
+    "text": "your seated Military cards are 30% stronger"
+   }
+  ],
+  "theCuria": [
+   {
+    "raw": "your seated Civic cards pay 30% more",
+    "text": "your seated Civic cards pay 30% more"
    }
   ],
   "theCommonwealth": [

@@ -46,8 +46,9 @@
       },
       "effects": [
         {
-          "kind": "happiness",
-          "amount": 3
+          "kind": "pays",
+          "where": "city",
+          "food": 2
         },
         {
           "kind": "renown",
@@ -55,7 +56,7 @@
           "per": "city"
         }
       ],
-      "text": "+3 happiness. +1 renown per turn for each city you hold."
+      "text": "Every town gains +2 food and +1 renown."
     },
     "warChief": {
       "name": "War Chief",
@@ -70,10 +71,6 @@
       },
       "effects": [
         {
-          "kind": "authority",
-          "amount": 3
-        },
-        {
           "kind": "combatLine",
           "amount": 4,
           "side": "both",
@@ -86,21 +83,19 @@
           "occasion": "kill",
           "grant": {
             "yield": "science",
-            "amount": 5
-          },
-          "perSlottedOrder": true
+            "amount": 10
+          }
         },
         {
           "kind": "windfallRider",
           "occasion": "kill",
           "grant": {
             "yield": "culture",
-            "amount": 5
-          },
-          "perSlottedOrder": true
+            "amount": 10
+          }
         }
       ],
-      "text": "+3 authority capacity. +4 combat strength. Killing a unit grants +5 science and +5 culture for each Order you have in a slot."
+      "text": "Units gain +4 strength. Kills grant 10 science and 10 culture."
     },
     "priestKing": {
       "name": "Priest-King",
@@ -117,23 +112,28 @@
         {
           "kind": "pays",
           "where": "city",
-          "faith": 2
+          "science": 1,
+          "faith": 1
         }
       ],
-      "text": "+2 faith in every city."
+      "text": "Every town gains +1 science and +1 faith."
     },
     "republic": {
       "name": "Republic",
       "tier": 10,
-      "chairs": 5,
+      "chairs": 6,
       "flavor": "A crowd that learned to sign its name.",
       "chairMix": {
-        "military": 0,
+        "military": 1,
         "economic": 3,
         "civic": 1,
         "wildcard": 1
       },
       "effects": [
+        {
+          "kind": "routeRider",
+          "extra": 1
+        },
         {
           "kind": "pays",
           "where": "city",
@@ -143,24 +143,19 @@
           "count": "population",
           "per": 5,
           "within": "city"
-        },
-        {
-          "kind": "rulePercent",
-          "rule": "happinessDemand",
-          "percent": -5
         }
       ],
-      "text": "+1 culture for each 5 population in a city. −5% happiness demanded per citizen."
+      "text": "+1 trade route. Towns gain +1 culture for every 5 citizens."
     },
     "tyranny": {
       "name": "Tyranny",
       "tier": 10,
-      "chairs": 5,
+      "chairs": 6,
       "flavor": "One will, and the roads run straight.",
       "chairMix": {
         "military": 3,
         "economic": 1,
-        "civic": 0,
+        "civic": 1,
         "wildcard": 1
       },
       "effects": [
@@ -169,29 +164,12 @@
           "amount": 5
         },
         {
-          "kind": "combatLine",
-          "amount": 4,
-          "side": "both",
-          "when": {
-            "test": "always"
-          }
-        },
-        {
-          "kind": "windfallRider",
-          "occasion": "pillage",
-          "percent": 50
-        },
-        {
-          "kind": "rule",
-          "rule": "freePillage"
-        },
-        {
           "kind": "rulePercent",
           "rule": "unitUpkeep",
           "percent": -30
         }
       ],
-      "text": "+5 authority capacity. +4 combat strength. Pillaging pays +50% and costs no movement."
+      "text": "+5 authority. Units cost 30% less upkeep."
     },
     "theocracy": {
       "name": "Theocracy",
@@ -229,7 +207,33 @@
           "per": 5
         }
       ],
-      "text": "+2 faith in every city. Your capital's faith is gained again as science and as culture, at a fifth of the rate."
+      "text": "+2 faith in every city. Your capital's faith is gained again as science and as culture, at a fifth of the rate.",
+      "retired": true
+    },
+    "aristocracy": {
+      "name": "Aristocracy",
+      "tier": 10,
+      "chairs": 6,
+      "flavor": "The best families govern, and they agree among themselves which families are best.",
+      "chairMix": {
+        "military": 1,
+        "economic": 1,
+        "civic": 3,
+        "wildcard": 1
+      },
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 2
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "greatPersonCost",
+          "percent": -15
+        }
+      ],
+      "text": "Every town gains +2 science. Great people cost 15% less renown."
     },
     "merchantLeague": {
       "name": "Merchant League",
@@ -244,25 +248,16 @@
       },
       "effects": [
         {
-          "kind": "pays",
-          "where": "empire",
-          "basis": "count",
-          "to": "gold",
-          "amount": 2,
-          "count": "slottedOrdersOfSlot",
-          "slot": "economic"
+          "kind": "routeRider",
+          "extra": 1
         },
         {
           "kind": "effectAmplifier",
           "target": "routeYields",
           "percent": 50
-        },
-        {
-          "kind": "routeRider",
-          "extra": 1
         }
       ],
-      "text": "+2 gold for each economic Order you have in a slot · trade routes pay 50% more · +1 trade route."
+      "text": "+1 trade route. Your trade routes pay 50% more."
     },
     "imperium": {
       "name": "Imperium",
@@ -277,131 +272,9 @@
       },
       "effects": [
         {
-          "kind": "pays",
-          "where": "city",
-          "basis": "count",
-          "to": "production",
-          "amount": 1,
-          "count": "slottedOrdersOfSlot",
-          "slot": "military"
-        },
-        {
           "kind": "unitStat",
           "stat": "movement",
           "amount": 1
-        },
-        {
-          "kind": "windfallRider",
-          "occasion": "capture",
-          "grant": {
-            "yield": "gold",
-            "amount": 50,
-            "healAll": true
-          }
-        }
-      ],
-      "text": "+1 production in every city for each military Order you have in a slot · all units +1 movement · capturing a city pays +50 gold and heals every one of your units."
-    },
-    "divineMandate": {
-      "name": "Divine Mandate",
-      "tier": 18,
-      "chairs": 8,
-      "flavor": "Heaven approves. It was asked.",
-      "chairMix": {
-        "military": 2,
-        "economic": 1,
-        "civic": 3,
-        "wildcard": 2
-      },
-      "effects": [
-        {
-          "kind": "pays",
-          "where": "capital",
-          "basis": "count",
-          "to": "faith",
-          "amount": 1,
-          "count": "slottedOrdersOfSlot",
-          "slot": "civic",
-          "scope": {
-            "test": "trueCapital"
-          }
-        },
-        {
-          "kind": "pays",
-          "where": "capital",
-          "basis": "count",
-          "to": "culture",
-          "amount": 1,
-          "count": "slottedOrdersOfSlot",
-          "slot": "civic",
-          "scope": {
-            "test": "trueCapital"
-          }
-        },
-        {
-          "kind": "percentYields",
-          "yield": "faith",
-          "percent": 10,
-          "scope": {
-            "test": "populationAtLeast",
-            "value": 6
-          }
-        }
-      ],
-      "text": "+1 faith and +1 culture in your capital for each civic Order you have in a slot · +10% faith in every city of 6 or more population.",
-      "note": "The tithe rises in your larger cities: nothing yet can ask whether a city is content."
-    },
-    "theEstates": {
-      "name": "The Estates",
-      "tier": 26,
-      "chairs": 11,
-      "flavor": "Three orders, one hall, and the hall keeps the minutes.",
-      "chairMix": {
-        "military": 2,
-        "economic": 4,
-        "civic": 2,
-        "wildcard": 3
-      },
-      "text": "+1 happiness in every city. +2 culture in every city of 8 or more population.",
-      "effects": [
-        {
-          "kind": "happiness",
-          "amount": 1,
-          "per": "city"
-        },
-        {
-          "kind": "pays",
-          "where": "city",
-          "culture": 2,
-          "scope": {
-            "test": "populationAtLeast",
-            "value": 8
-          }
-        }
-      ]
-    },
-    "theSultanate": {
-      "name": "The Sultanate",
-      "tier": 26,
-      "chairs": 11,
-      "flavor": "The road is short for those the Sultan sends.",
-      "chairMix": {
-        "military": 4,
-        "economic": 2,
-        "civic": 2,
-        "wildcard": 3
-      },
-      "text": "All units +1 movement, and cities put 25% more production behind units — a fifth off their price. Captured cities +10% science and +10% culture.",
-      "effects": [
-        {
-          "kind": "unitStat",
-          "stat": "movement",
-          "amount": 1
-        },
-        {
-          "kind": "productionBonus",
-          "category": "unit",
-          "percent": 25
         },
         {
           "kind": "percentYields",
@@ -419,6 +292,78 @@
             "test": "captured"
           }
         }
+      ],
+      "text": "Units gain +1 movement. Towns you captured gain +10% science and culture."
+    },
+    "divineMandate": {
+      "name": "Divine Mandate",
+      "tier": 18,
+      "chairs": 8,
+      "flavor": "Heaven approves. It was asked.",
+      "chairMix": {
+        "military": 2,
+        "economic": 1,
+        "civic": 3,
+        "wildcard": 2
+      },
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": 20,
+          "scope": {
+            "test": "hasWonder"
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "faith",
+          "percent": 20,
+          "scope": {
+            "test": "hasWonder"
+          }
+        }
+      ],
+      "text": "Every town with a wonder gains +20% culture and +20% faith."
+    },
+    "theEstates": {
+      "name": "The Estates",
+      "tier": 26,
+      "chairs": 11,
+      "flavor": "Three orders, one hall, and the hall keeps the minutes.",
+      "chairMix": {
+        "military": 2,
+        "economic": 4,
+        "civic": 2,
+        "wildcard": 3
+      },
+      "text": "Your Economic cards pay 30% more.",
+      "effects": [
+        {
+          "kind": "cardTypeAmplifier",
+          "type": "economic",
+          "percent": 30
+        }
+      ]
+    },
+    "theSultanate": {
+      "name": "The Sultanate",
+      "tier": 26,
+      "chairs": 11,
+      "flavor": "The road is short for those the Sultan sends.",
+      "chairMix": {
+        "military": 4,
+        "economic": 2,
+        "civic": 2,
+        "wildcard": 3
+      },
+      "text": "Your Military cards are 30% stronger.",
+      "effects": [
+        {
+          "kind": "cardTypeAmplifier",
+          "type": "military",
+          "percent": 30
+        }
       ]
     },
     "theCuria": {
@@ -432,24 +377,12 @@
         "civic": 4,
         "wildcard": 3
       },
-      "text": "+6 faith for each Cathedral. Faith buildings supply science equal to their faith.",
+      "text": "Your Civic cards pay 30% more.",
       "effects": [
         {
-          "kind": "pays",
-          "where": "empire",
-          "basis": "count",
-          "to": "faith",
-          "amount": 6,
-          "count": "buildingsOfKind",
-          "building": "cathedral"
-        },
-        {
-          "kind": "pays",
-          "where": "city",
-          "basis": "mirror",
-          "to": "science",
-          "from": "faith",
-          "category": "faith"
+          "kind": "cardTypeAmplifier",
+          "type": "civic",
+          "percent": 30
         }
       ]
     },
@@ -7451,7 +7384,7 @@
     },
     {
       "drafts": 10,
-      "chairs": 5
+      "chairs": 6
     },
     {
       "drafts": 18,

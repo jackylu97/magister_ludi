@@ -33,9 +33,10 @@ structure paragraphs are sync-tested where they state a number):
   (`OrderDef.lastBand`, Dominion batch D7): it is dealt in every band from its own to that
   one. Double Time was the one such row, dealt in bands 2 and 3 (the user, 2026-10-16), until
   batch DS1 retired it. No dealt row has a last band now.
-- **Universal chairs.** A government supplies a chair count and no layout: 3 / 5 / 8 / 11 by
-  its tier's rung (the user's ruling, `docs/decks/deck-design.md` "More chairs"), written on each row as `chairs`; the sixteen governments keep their
-  signatures. A leader's extra chair and a card's are additive.
+- **Universal chairs.** A government supplies a chair count: 3 / 5 / 6 / 8 / 11 by its tier's
+  rung (the user's ruling, `docs/decks/deck-design.md` "More chairs", and batch G1's six chairs
+  at tier 10), written on each row as `chairs`. A leader's extra chair and a card's are
+  additive.
 - **The draw is rarity-first.** A hand is three positions — one card from each of the
   seat's two decks, and a third by the regular-draft cadence *generic → cross → generic →
   single* (the single alternating between the two decks; a rainbow seat samples two distinct
@@ -90,7 +91,7 @@ dagger are what the row does *not* do.
 |---|---|---|---|
 | Chiefdom | 0 | 0 | 3 |
 | Government I | 1 | 4 | 5 |
-| Government II | 2 | 10 | 5 |
+| Government II | 2 | 10 | 6 |
 | Government III | 3 | 18 | 8 |
 | Government IV | 4 | 26 | 11 |
 
@@ -107,27 +108,32 @@ rung keeps the five chairs of the rung below it, and the rung at 38 is gone with
 governments, so Tier IV opened at 29.
 2026-10-17: Tier IV and its governments moved from 29 to 26 drafts (`docs/flags.md`
 (ddddddd): *"lets move tier IV to tier 26"*).
+2026-11-10: the tier-10 rung has six chairs, one more than the rung below it (batch G1,
+`docs/flags.md` (hhhhhhh)).
 
 ## Governments
 
 | Tier | Government | Military | Economic | Civic | Wildcard | Chairs | Signature |
 |---|---|---|---|---|---|---|---|
 | 0 | Chiefdom | 1 | 1 | 0 | 1 | 3 | Grants nothing of its own. |
-| 4 | Council of Elders | 1 | 2 | 1 | 1 | 5 | +3 happiness. +1 renown per turn for each city you hold. |
-|  | Priest-King | 1 | 1 | 2 | 1 | 5 | +2 faith in every city. |
-|  | War Chief | 2 | 1 | 1 | 1 | 5 | +3 authority capacity. +4 combat strength. Killing a unit grants +5 science and +5 culture for each Order you have in a slot. |
-| 10 | Republic | 0 | 3 | 1 | 1 | 5 | +1 culture for each 5 population in a city. −5% happiness demanded per citizen. |
-|  | Theocracy | 1 | 0 | 3 | 1 | 5 | +2 faith in every city. Your capital's faith is gained again as science and as culture, at a fifth of the rate. |
-|  | Tyranny | 3 | 1 | 0 | 1 | 5 | +5 authority capacity. +4 combat strength. Pillaging pays +50% and costs no movement. |
-| 18 | Divine Mandate | 2 | 1 | 3 | 2 | 8 | +1 faith and +1 culture in your capital for each civic Order you have in a slot · +10% faith in every city of 6 or more population. |
-|  | Imperium | 3 | 2 | 1 | 2 | 8 | +1 production in every city for each military Order you have in a slot · all units +1 movement · capturing a city pays +50 gold and heals every one of your units. |
-|  | Merchant League | 1 | 3 | 2 | 2 | 8 | +2 gold for each economic Order you have in a slot · trade routes pay 50% more · +1 trade route. |
-| 26 | The Curia | 2 | 2 | 4 | 3 | 11 | +6 faith for each Cathedral. Faith buildings supply science equal to their faith. |
-|  | The Estates | 2 | 4 | 2 | 3 | 11 | +1 happiness in every city. +2 culture in every city of 8 or more population. |
-|  | The Sultanate | 4 | 2 | 2 | 3 | 11 | All units +1 movement, and cities put 25% more production behind units — a fifth off their price. Captured cities +10% science and +10% culture. |
+| 4 | Council of Elders | 1 | 2 | 1 | 1 | 5 | Every town gains +2 food and +1 renown. |
+|  | Priest-King | 1 | 1 | 2 | 1 | 5 | Every town gains +1 science and +1 faith. |
+|  | War Chief | 2 | 1 | 1 | 1 | 5 | Units gain +4 strength. Kills grant 10 science and 10 culture. |
+| 10 | Aristocracy | 1 | 1 | 3 | 1 | 6 | Every town gains +2 science. Great people cost 15% less renown. |
+|  | Republic | 1 | 3 | 1 | 1 | 6 | +1 trade route. Towns gain +1 culture for every 5 citizens. |
+|  | Tyranny | 3 | 1 | 1 | 1 | 6 | +5 authority. Units cost 30% less upkeep. |
+| 18 | Divine Mandate | 2 | 1 | 3 | 2 | 8 | Every town with a wonder gains +20% culture and +20% faith. |
+|  | Imperium | 3 | 2 | 1 | 2 | 8 | Units gain +1 movement. Towns you captured gain +10% science and culture. |
+|  | Merchant League | 1 | 3 | 2 | 2 | 8 | +1 trade route. Your trade routes pay 50% more. |
+| 26 | The Curia | 2 | 2 | 4 | 3 | 11 | Your Civic cards pay 30% more. |
+|  | The Estates | 2 | 4 | 2 | 3 | 11 | Your Economic cards pay 30% more. |
+|  | The Sultanate | 4 | 2 | 2 | 3 | 11 | Your Military cards are 30% stronger. |
 
+- **The twelve signatures are batch G1's** (the user's ruling of 2026-11-10, `docs/flags.md`
+  (hhhhhhh); the spec is `docs/plans/deck-simplification-2026-11-10.md`, "Governments").
 - **Chairs have types** (batch C2; the mixes are `docs/plans/doctrines-governments-chairs.md`
-  section 4). The four type columns add up to Chairs, which is the rung's count.
+  section 4, and batch G1 set the tier-10 mixes). The four type columns add up to Chairs,
+  which is the rung's count.
 - **Which chair a card fits:** a Military, Economic or Civic chair takes a card of its own
   type or an unsorted card; a Wildcard chair takes any card; a Wildcard card fits only a
   Wildcard chair. A card from a deck not sorted yet is unsorted.
@@ -137,8 +143,19 @@ governments, so Tier IV opened at 29.
   to the free chairs: Wildcard cards first, then typed cards in chairs of their own type,
   then typed cards in the Wildcard chairs left, then unsorted cards, typed chairs before
   Wildcard ones. A card that fits no chair left goes back to the collection.
-- **The three tier-18 signatures count seated Orders by type.** An unsorted card counts as
-  the type of the chair it sits in, a Wildcard chair included.
+- **The tier-26 signatures raise the seated cards of one type** (`cardTypeAmplifier`). Every
+  number a seated card of that type gives is 30% larger, rounded to the nearest whole number,
+  and never less than 1 larger where the number is 1 or more. The rise is taken of each line
+  the card prints, in a town, on a hex, on a trade route or for the empire, and is printed as
+  a line of its own. It reaches yields, percentages on yields and production, strength in a
+  fight, a town's defence, and the yields and percentages of one-time rewards and boons. It
+  does not reach happiness, authority, renown, unit stats other than strength, rules, costs,
+  a commission's reward, or a card off its chair. An unsorted card counts as the type of the
+  chair it sits in.
+- **Great people cost 15% less renown** under the Aristocracy (`greatPersonCost`, a card
+  rule). The cut comes off the price once, beside The Peregrini's discount.
+- **Theocracy is retired** (batch G1): the Aristocracy takes its place at tier 10, and its row
+  is kept as it was, with its five chairs.
 - **The tier-38 governments are retired** (The Commonwealth, The Empire and The
   Magisterium): their rows are kept for saves and nobody is offered them. Since 2026-10-17
   the ladder has no rung at 38 either: Tier IV opens at 26.

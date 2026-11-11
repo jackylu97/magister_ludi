@@ -17,6 +17,7 @@ import {
   cardRenownLines,
   countOf,
   describeCard,
+  describeEffects,
   explainBuildingPackage,
   explainCardCityYields,
   foldBuildingPackage,
@@ -302,7 +303,17 @@ describe('the word', () => {
   });
 
   it('leaves the mirror’s ratified "supply" unmarked, since a mirror puts nothing on a building', () => {
-    const raw = describeCard('theCuria' as never).map((clause) => clause.text);
+    // The old Curia's mirror, written here: no live row carries the clause
+    // since batch G1, and its describer stays with its arm.
+    const row = {
+      kind: 'pays',
+      where: 'city',
+      basis: 'mirror',
+      to: 'science',
+      from: 'faith',
+      category: 'faith',
+    } as CardEffect;
+    const raw = describeEffects([row]).map((clause) => clause.text);
     const mirror = raw.find((text) => stripRefs(text).includes('equal to their faith'))!;
     expect(mirror).toContain('faith buildings supply science equal to their faith');
     expect(mirror).not.toContain('[[concept:');

@@ -230,29 +230,32 @@ describe('a card still counts as its own type', () => {
 
 describe('an adoption under The Mixed Constitution', () => {
   it('re-seats every card while chairs remain, by the fit the old council granted', () => {
-    const priests = cardsOf('civic', 3);
+    const priests = cardsOf('civic', 4);
     const [trader] = cardsOf('economic', 1);
     const [wild] = cardsOf('wildcard', 1);
-    // Tyranny (M, M, M, E, W) becomes the Theocracy (M, C, C, C, W).
-    expect(slotLayout('tyranny')).toEqual(['military', 'military', 'military', 'economic', 'wildcard']);
-    expect(slotLayout('theocracy')).toEqual(['military', 'civic', 'civic', 'civic', 'wildcard']);
+    // Since batch G1, Tyranny (M, M, M, E, C, W) becomes the Aristocracy
+    // (M, E, C, C, C, W).
+    expect(slotLayout('tyranny')).toEqual(['military', 'military', 'military', 'economic', 'civic', 'wildcard']);
+    expect(slotLayout('aristocracy')).toEqual(['military', 'economic', 'civic', 'civic', 'civic', 'wildcard']);
     const adopt = (last: OrderId): { slots: (OrderId | null)[]; returned: OrderId[] } => {
       const g = game();
-      const player = council(g.state, 'tyranny', [...priests, trader!, last]);
-      player.statecraft.pendingGovernment = { tier: 10, options: ['theocracy'] };
+      const player = council(g.state, 'tyranny', [priests[0]!, priests[1]!, priests[2]!, trader!, priests[3]!, last]);
+      player.statecraft.pendingGovernment = { tier: 10, options: ['aristocracy'] };
       const adoption = adoptGovernmentAt(g.state, player, 0)!;
       expect(adoption).not.toBeNull();
       return { slots: cards(player.statecraft.slots), returned: adoption.returned };
     };
     // With the card in the Wildcard chair, every card keeps its chair.
     const wide = adopt(MIXED);
-    expect(wide.slots).toEqual([...priests, trader, MIXED]);
+    expect(wide.slots).toEqual([priests[0], priests[1], priests[2], trader, priests[3], MIXED]);
     expect(wide.returned).toEqual([]);
-    // With another Wildcard card there, the plain rule moves the first civic
-    // card to the free Civic chair and returns the economic card.
+    // With another Wildcard card there, the plain rule keeps the civic cards in
+    // the Civic chairs, moves the first civic card to the free Civic chair and
+    // the economic card to the free Economic chair, and returns the second
+    // civic card, which has no chair left.
     const plain = adopt(wild!);
-    expect(plain.slots).toEqual([null, priests[1], priests[2], priests[0], wild]);
-    expect(plain.returned).toEqual([trader]);
+    expect(plain.slots).toEqual([null, trader, priests[2], priests[0], priests[3], wild]);
+    expect(plain.returned).toEqual([priests[1]]);
   });
 
   it('re-seats by the plain rule at once when the card finds no chair in the new council', () => {

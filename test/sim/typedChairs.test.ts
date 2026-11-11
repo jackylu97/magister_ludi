@@ -7,9 +7,8 @@ import { bumpRevision, playerById } from '../../src/sim/state';
 import {
   type SlottedOrder,
   adoptGovernmentAt,
+  cardTypeRaises,
   chairMisfitRefusal,
-  explainCardEmpireYields,
-  foldCardYields,
   maliceAt,
   newPlayerStatecraft,
   planDraft,
@@ -56,8 +55,9 @@ import { found, game } from './statecraftHelpers';
  *      malices first, then every card whose chair still exists and still fits
  *      it stays, the rest are placed in the spec's four passes, and what fits
  *      nowhere is returned; the government card's stamp asks the same function;
- *   3. the tier-18 signatures count by type (`countedTypeOf`), an unsorted card
- *      counting as the type of its chair, a Wildcard chair included;
+ *   3. a seated card counts by type (`countedTypeOf`), an unsorted card
+ *      counting as the type of its chair, a Wildcard chair included. The
+ *      tier-26 rise reads it since batch G1, as the tier-18 signatures did;
  *   4. the tier-38 governments are retired and the rung at draft 38 still opens.
  *
  * The mixes themselves, and that each adds up to its rung's chairs, are pinned
@@ -236,24 +236,27 @@ describe('re-seating on adoption', () => {
   });
 
   it('keeps the same chairs when the council grows, and moves only what no longer fits', () => {
-    // Tyranny (M, M, M, E, W) becomes Imperium (M, M, M, E, E, C, W, W).
+    // Tyranny (M, M, M, E, C, W since batch G1) becomes Imperium
+    // (M, M, M, E, E, C, W, W).
     const to = slotLayout('imperium');
-    expect(slotLayout('tyranny')).toEqual(['military', 'military', 'military', 'economic', 'wildcard']);
+    expect(slotLayout('tyranny')).toEqual(['military', 'military', 'military', 'economic', 'civic', 'wildcard']);
     expect(to).toEqual(['military', 'military', 'military', 'economic', 'economic', 'civic', 'wildcard', 'wildcard']);
     const [first, second] = cardsOf('military', 2);
     const [unsorted] = cardsOf('unsorted', 1);
     const [trader] = cardsOf('economic', 1);
+    const [priest] = cardsOf('civic', 1);
     const [wild] = cardsOf('wildcard', 1);
     const out = reseatOrders(
-      [first, second, unsorted, trader, wild].map((id) => sitting(id!)),
+      [first, second, unsorted, trader, priest, wild].map((id) => sitting(id!)),
       to,
       to.map(() => false),
       10,
     );
-    // The first four chairs keep their cards. Chair 5 is an Economic chair now
-    // and the Wildcard card cannot sit in it, so it takes the first Wildcard
-    // chair, chair 7.
-    expect(cards(out.slots)).toEqual([first, second, unsorted, trader, null, null, wild, null]);
+    // The first four chairs keep their cards. Chair 5 is an Economic chair now,
+    // so the civic card moves to the Civic chair, chair 6. Chair 6 held the
+    // Wildcard card, which cannot sit in a Civic chair, so it takes the first
+    // Wildcard chair, chair 7.
+    expect(cards(out.slots)).toEqual([first, second, unsorted, trader, null, priest, wild, null]);
     expect(out.returned).toEqual([]);
   });
 
@@ -465,17 +468,19 @@ describe('re-seating on adoption', () => {
     sc.tallies.push({ card: priests[0]!, count: 3 });
     bumpRevision(g.state);
 
-    // Tyranny has no Civic chair and one Wildcard chair, which is chair 5:
-    // under Divine Mandate that chair held the second civic card, and a civic
-    // card fits a Wildcard chair, so it stays there. Nothing else fits.
+    // Tyranny (batch G1) has one Civic chair, chair 5, and one Wildcard chair,
+    // chair 6. Under Divine Mandate those two chairs held the second and the
+    // third civic cards, and a civic card fits both, so both stay. The first
+    // civic card's chair is an Economic chair now, and no chair is left for it
+    // or for the two Wildcard cards, whose chairs are gone.
     sc.pendingGovernment = { tier: 10, options: ['tyranny'] };
     const adoption = adoptGovernmentAt(g.state, player, 0)!;
     expect(adoption).not.toBeNull();
-    expect(slotTypesOf(sc)).toEqual(['military', 'military', 'military', 'economic', 'wildcard']);
+    expect(slotTypesOf(sc)).toEqual(['military', 'military', 'military', 'economic', 'civic', 'wildcard']);
     expect(civicChairs).toEqual([3, 4, 5]);
-    expect(cards(sc.slots)).toEqual([null, null, null, null, priests[1]]);
-    expect(adoption.reseated).toEqual([priests[1]]);
-    expect([...adoption.returned].sort()).toEqual([priests[0]!, priests[2]!, ...wilds].sort());
+    expect(cards(sc.slots)).toEqual([null, null, null, null, priests[1], priests[2]]);
+    expect(adoption.reseated).toEqual([priests[1], priests[2]]);
+    expect([...adoption.returned].sort()).toEqual([priests[0]!, ...wilds].sort());
     // Returned to the collection, unseated, the tally kept.
     for (const id of [...priests, ...wilds]) expect(sc.orders, id).toContain(id);
     expect(tallyOf(sc, priests[0]!)).toBe(3);
@@ -544,9 +549,9 @@ describe('one re-seating', () => {
   });
 });
 
-// --- 3. the tier-18 signatures count by type ------------------------------------
+// --- 3. a seated card counts by type -----------------------------------------------
 
-describe('the tier-18 signatures count by type', () => {
+describe('a seated card counts by type', () => {
   it('counts a typed card as its own type, and an unsorted card as its chair’s', () => {
     const [soldier] = cardsOf('military', 1);
     const [wild] = cardsOf('wildcard', 1);
@@ -562,20 +567,19 @@ describe('the tier-18 signatures count by type', () => {
     expect(countedTypeOf(unsorted!, 'wildcard')).toBe('wildcard');
   });
 
-  it('pays the Merchant League for an unsorted card in an Economic chair, and not in a Wildcard one', () => {
+  it('raises an unsorted card in an Economic chair under The Estates, and not in a Wildcard one', () => {
     // The orchestrator's interim rule (`docs/plans/chairs-build.md`): until a
-    // deck is sorted, a Commerce card in an Economic chair still counts for
-    // the Merchant League.
+    // deck is sorted, a card from it counts as the type of its chair. The
+    // tier-18 signatures counted by it until batch G1; the tier-26 rise reads
+    // it now (`cardTypeRaises`), and so do the buildings that count a type.
     const g = game();
     found(g.state, 0);
     const sc = playerById(g.state, 0)!.statecraft;
-    const government: GovernmentId = 'merchantLeague';
+    const government: GovernmentId = 'theEstates';
     sc.government = government;
     const layout = slotLayout(government);
     sc.slots = layout.map(() => null);
     bumpRevision(g.state);
-    const coin = (): number =>
-      foldCardYields(explainCardEmpireYields(g.state, 0).filter((line) => line.card === government)).gold;
     const put = (chair: ChairType, id: OrderId): void => {
       const index = layout.findIndex((type, at) => type === chair && sc.slots[at] === null);
       expect(index, `a free ${chair} chair`).toBeGreaterThanOrEqual(0);
@@ -585,20 +589,20 @@ describe('the tier-18 signatures count by type', () => {
     };
     const [inEconomic, inWildcard] = cardsOf('unsorted', 2);
     const [trader] = cardsOf('economic', 1);
-    expect(coin()).toBe(0);
+    const [soldier] = cardsOf('military', 1);
     put('economic', inEconomic!);
     expect(slottedOrdersOfFlavour(g.state, 0, 'economic')).toBe(1);
-    expect(coin()).toBe(2);
-    // In a Wildcard chair it counts as a Wildcard Order, so the Merchant
-    // League does not pay for it.
+    expect(cardTypeRaises(g.state, 0).get(inEconomic!)?.percent).toBe(30);
+    // In a Wildcard chair it counts as a Wildcard Order, so it is not raised.
     put('wildcard', inWildcard!);
-    expect(slottedOrdersOfFlavour(g.state, 0, 'economic')).toBe(1);
     expect(slottedOrdersOfFlavour(g.state, 0, 'wildcard')).toBe(1);
-    expect(coin()).toBe(2);
+    expect(cardTypeRaises(g.state, 0).has(inWildcard!)).toBe(false);
     // An economic card counts by its own type, in any chair.
     put('wildcard', trader!);
-    expect(slottedOrdersOfFlavour(g.state, 0, 'economic')).toBe(2);
-    expect(coin()).toBe(4);
+    expect(cardTypeRaises(g.state, 0).has(trader!)).toBe(true);
+    // A card of another type is not raised.
+    put('military', soldier!);
+    expect(cardTypeRaises(g.state, 0).has(soldier!)).toBe(false);
   });
 });
 

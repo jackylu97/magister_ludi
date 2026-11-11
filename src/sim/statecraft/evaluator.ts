@@ -4721,6 +4721,12 @@ export function explainCardCityYields(state: GameState, city: City): CardYieldLi
     if (paysSomething(line)) list.push(line);
   }
 
+  // **The rises a tier-26 government gives the seated cards** (batch G1), taken
+  // here, before a foreign empire's grant joins the list: a foreign card is not
+  // seated in this town's owner's council, even when the owner holds a card of
+  // the same name. Pushed last, after the engines, so no engine reads them.
+  const raised = cardTypeRaiseLines(state, owner, list);
+
   // **What another empire's law pays this town** — the bilateral grant, batch
   // D2e. Before the deck reading below it on purpose: those engines are *this*
   // empire's laws raising *this* empire's card lines, and a grant from abroad is
@@ -4732,6 +4738,7 @@ export function explainCardCityYields(state: GameState, city: City): CardYieldLi
   // before any engine spoke*, so two of them cannot amplify each other and their
   // order cannot change what either pays.
   for (const line of deckModifierLines(state, owner, list, city)) list.push(line);
+  for (const line of raised) list.push(line);
 
   return list;
 }
@@ -4897,6 +4904,179 @@ function deckModifierLines(
   return out;
 }
 
+// --- the card-type amplifier (batch G1) -------------------------------------
+
+/**
+ * **The rise a `cardTypeAmplifier` row gives one seated card**: the row's card
+ * and label, for the line the rise prints, and the percentage of every row that
+ * names the card's type, added together.
+ */
+export interface CardTypeRaise {
+  card: CardId;
+  source: string;
+  percent: number;
+}
+
+/**
+ * **The effect kinds whose numbers the card-type amplifier raises** (batch G1).
+ * The readers named on `CardTypeAmplifierEffect` cover these kinds and no
+ * others, and the bots price the rise over the same list
+ * (`cardTypeAmplifierWorth`, `src/ai/value.ts`).
+ *
+ *   · `pays`: the town lines (flat, counted, the capital's, a mirror and a share
+ *     of the town's own yield), the empire lines, the hex lines, the trade route
+ *     lines and a route's shares. A hex line paid once for each neighbour or
+ *     peak, a hex's share of its own yield, and a route line counted by the
+ *     road's length are not raised: the hex fold and the route fold resolve
+ *     those figures, and this reading does not see them;
+ *   · `percentYields` and `productionBonus`: the town's percentages;
+ *   · `combatLine`: strength in a fight;
+ *   · `cityStat`: a town's defence, and not its sight;
+ *   · `windfallRider`: the yield a one-time reward grants and the percentage it
+ *     adds to the occasion's own figure. A grant paid once for each citizen of a
+ *     town is not raised, for the hex line's reason;
+ *   · `periodic`: the boon's own figure, as a grant of its own.
+ */
+export const CARD_TYPE_RAISED_KINDS: readonly CardEffect['kind'][] = [
+  'pays',
+  'percentYields',
+  'productionBonus',
+  'combatLine',
+  'cityStat',
+  'windfallRider',
+  'periodic',
+];
+
+const NO_RAISES: ReadonlyMap<CardId, CardTypeRaise> = new Map();
+
+/**
+ * **Which of this seat's seated cards a `cardTypeAmplifier` row raises, and by
+ * how much.** Keyed by the card. Empty when the seat's law holds no such row,
+ * which is the common case and costs one lookup.
+ *
+ * A card counts while it sits in a chair, as `countedTypeOf` reads it: its own
+ * type, or its chair's type if it is unsorted. So a card off its chair (Scutage)
+ * and a fulfilled commission are never in the map. Every reader looks a line's
+ * own `card` up here. The map is only looked up and never walked, so its order
+ * decides nothing.
+ */
+export function cardTypeRaises(state: GameState, playerId: number): ReadonlyMap<CardId, CardTypeRaise> {
+  const rows = effectsOfKind(state, playerId, 'cardTypeAmplifier');
+  if (rows.length === 0) return NO_RAISES;
+  const sc = statecraftOf(state, playerId);
+  if (!sc) return NO_RAISES;
+  const byType = new Map<ChairType, CardTypeRaise>();
+  for (const { source, card, effect } of rows) {
+    if (!(effect.percent > 0)) continue;
+    const held = byType.get(effect.type);
+    if (held === undefined) byType.set(effect.type, { card, source, percent: effect.percent });
+    else held.percent += effect.percent;
+  }
+  if (byType.size === 0) return NO_RAISES;
+  const layout = slotTypesOf(sc);
+  const out = new Map<CardId, CardTypeRaise>();
+  sc.slots.forEach((slot, index) => {
+    if (slot === null || !isOrderId(slot.card)) return;
+    const raise = byType.get(countedTypeOf(slot.card, layout[index] ?? 'wildcard'));
+    if (raise !== undefined) out.set(slot.card, raise);
+  });
+  return out;
+}
+
+/**
+ * **How much one number grows under a card-type amplifier**: `percent` of it,
+ * rounded to the nearest whole number, and at least one where the number is one
+ * or more (the spec's rule, batch G1). A number below one gains only what
+ * rounding gives it, and a cost (below nought) gains nothing.
+ *
+ * Worked example at 30%: 4 gains 1 (1.2 rounds to 1), 5 gains 2 (1.5 rounds up),
+ * 10 gains 3, and 1 gains 1 (0.3 rounds to nought, so the floor of one applies).
+ */
+export function cardTypeRaise(base: number, percent: number): number {
+  if (!(base > 0) || !(percent > 0)) return 0;
+  const raised = Math.round((base * percent) / 100);
+  return base >= 1 ? Math.max(1, raised) : raised;
+}
+
+/** The label of a rise: the amplifier's own label, then the card it raised. */
+function raiseLabel(raise: CardTypeRaise, card: CardId): string {
+  return label(raise.source, anyCardDef(card).name);
+}
+
+/**
+ * **The rises on a fold of card yield lines** (batch G1): one line for each
+ * raised card, in the order its lines first appear, holding the rise of each of
+ * its lines added together. The rise is taken line by line and voice by voice,
+ * so a card that prints two lines in one town gains on each of them.
+ *
+ * `base` is the fold before the deck's engines spoke (`deckModifierLines`), so
+ * an engine's line is never raised and this reading never raises itself. Each
+ * caller pushes the answer after the engines' lines.
+ */
+function cardTypeRaiseLines(
+  state: GameState,
+  playerId: number,
+  base: readonly CardYieldLine[],
+): CardYieldLine[] {
+  const raises = cardTypeRaises(state, playerId);
+  if (raises.size === 0) return [];
+  const out: CardYieldLine[] = [];
+  const byCard = new Map<CardId, CardYieldLine>();
+  for (const paid of base) {
+    const raise = raises.get(paid.card);
+    if (raise === undefined) continue;
+    let line = byCard.get(paid.card);
+    for (const voice of VOICES) {
+      const extra = cardTypeRaise(paid[voice], raise.percent);
+      if (extra === 0) continue;
+      if (line === undefined) {
+        line = emptyLine(raise.card, raiseLabel(raise, paid.card));
+        byCard.set(paid.card, line);
+        out.push(line);
+      }
+      line[voice] += extra;
+    }
+  }
+  return out;
+}
+
+/**
+ * **The rises on a list of hex lines** (batch G1): one line for each raised
+ * card's hex line, on the same condition, holding the rise of each flat voice
+ * it pays. A line paid once for each neighbour or peak beside the hex is
+ * skipped, and so is the share a line takes of the hex's own yield. The hex
+ * fold resolves those figures, and a rise taken of one helping would not be the
+ * rise of what the line pays (see `CARD_TYPE_RAISED_KINDS`).
+ */
+function cardTypeRaiseTileLines(
+  state: GameState,
+  playerId: number,
+  found: readonly { card?: CardId; effect: CardPaysEffect & { on: TileCondition } }[],
+): CardTileLine[] {
+  const raises = cardTypeRaises(state, playerId);
+  if (raises.size === 0) return [];
+  const out: CardTileLine[] = [];
+  for (const { card, effect } of found) {
+    if (card === undefined) continue;
+    const raise = raises.get(card);
+    if (raise === undefined) continue;
+    if (effect.perAdjacentMountain === true || effect.perNeighbour !== undefined) continue;
+    const line: CardTileLine = {
+      source: raiseLabel(raise, card),
+      card: raise.card,
+      on: effect.on,
+      food: cardTypeRaise(effect.food ?? 0, raise.percent),
+      production: cardTypeRaise(effect.production ?? 0, raise.percent),
+      gold: cardTypeRaise(effect.gold ?? 0, raise.percent),
+      science: cardTypeRaise(effect.science ?? 0, raise.percent),
+      culture: cardTypeRaise(effect.culture ?? 0, raise.percent),
+      faith: cardTypeRaise(effect.faith ?? 0, raise.percent),
+    };
+    if (VOICES.some((voice) => line[voice] !== 0)) out.push(line);
+  }
+  return out;
+}
+
 /**
  * Every flat yield this empire's cards pay **the empire**, once: empire `pays`,
  * the empire-scoped `pays` count payouts, and every `pays` rate.
@@ -4969,8 +5149,11 @@ export function explainCardEmpireYields(
 
   // The deck's engines over the empire's own lines, off a snapshot of everything
   // above. See `deckModifierLines`; a scoped amplifier pays nothing here, an
-  // empire line having no town to be scoped to.
+  // empire line having no town to be scoped to. The rises of a tier-26
+  // government (batch G1) read the same snapshot and land after the engines.
+  const raised = cardTypeRaiseLines(state, playerId, list);
   for (const line of deckModifierLines(state, playerId, list)) list.push(line);
+  for (const line of raised) list.push(line);
 
   // **The Apostolic Camera** (batch DT15). After the engines, because they read the
   // Orders' lines and this is a Doctrine's. The line is filed under the row that
@@ -5095,6 +5278,9 @@ export function cardYieldConversions(
     line[effect.to as CityYieldKey] = paid;
     if (paysSomething(line)) list.push(line);
   }
+  // **The rises of a tier-26 government** (batch G1), taken of what each share
+  // pays this town, as the town fold takes them of its other card lines.
+  for (const line of cardTypeRaiseLines(state, city.ownerId, list)) list.push(line);
   return list;
 }
 
@@ -6463,6 +6649,8 @@ export function cardTileLines(state: GameState, playerId: number): CardTileLine[
   // additive being the default ("so it stacks with '+1 food on each resource
   // hex' hex by hex"). See `tileAmplifierLines`.
   for (const line of tileAmplifierLines(state, playerId, found)) lines.push(line);
+  // The rises of a tier-26 government on the seated cards' hex lines (batch G1).
+  for (const line of cardTypeRaiseTileLines(state, playerId, found)) lines.push(line);
   return lines;
 }
 
@@ -6577,7 +6765,7 @@ export function scopedCardTileLines(
   hypothetical: readonly BuildingId[] = [],
 ): CardTileLine[] {
   const rows = pickKind(liveEffects(state, city.ownerId), 'pays');
-  return tileLinesFrom([
+  const found = [
     ...hexRows(rows)
       .filter(
         ({ effect }) =>
@@ -6586,7 +6774,10 @@ export function scopedCardTileLines(
       // Labelled with where it landed, exactly as a scoped town `pays` line is.
       .map((entry) => ({ ...entry, source: label(entry.source, scopeNote(entry.effect.scope)) })),
     ...countedHexRows(state, city, rows, hypothetical),
-  ]);
+  ];
+  // The rises of a tier-26 government (batch G1). A counted row reaches them as
+  // the flat row this town pays, so the rise is taken of what the town counts.
+  return [...tileLinesFrom(found), ...cardTypeRaiseTileLines(state, city.ownerId, found)];
 }
 
 /**
@@ -6867,6 +7058,22 @@ export function explainCardPercentYields(state: GameState, city: City): CardPerc
     });
   }
 
+  // **The rises of a tier-26 government** (batch G1): one more line beside each
+  // percentage a seated card of the type puts on this town, in the same voice
+  // and at the same stage, so the stage still sums its lines once.
+  const raises = cardTypeRaises(state, owner);
+  if (raises.size > 0) {
+    const walked = list.length;
+    for (let at = 0; at < walked; at++) {
+      const line = list[at]!;
+      const raise = raises.get(line.card);
+      if (raise === undefined) continue;
+      const extra = cardTypeRaise(line.percent, raise.percent);
+      if (extra === 0) continue;
+      list.push({ card: raise.card, source: raiseLabel(raise, line.card), yield: line.yield, percent: extra, stage: line.stage });
+    }
+  }
+
   return list;
 }
 
@@ -7084,6 +7291,20 @@ export function cardProduction(
       continue;
     }
     list.push({ card, source, percent, stage: effect.stage ?? 'city' });
+  }
+  // **The rises of a tier-26 government** (batch G1): one more line beside each
+  // bonus a seated card of the type puts behind this build, at the same stage.
+  const raises = cardTypeRaises(state, city.ownerId);
+  if (raises.size > 0) {
+    const walked = list.length;
+    for (let at = 0; at < walked; at++) {
+      const line = list[at]!;
+      const raise = raises.get(line.card);
+      if (raise === undefined) continue;
+      const extra = cardTypeRaise(line.percent, raise.percent);
+      if (extra === 0) continue;
+      list.push({ card: raise.card, source: raiseLabel(raise, line.card), percent: extra, stage: line.stage });
+    }
   }
   return list;
 }
@@ -8514,6 +8735,21 @@ export function cardCombatLines(state: GameState, situation: CombatSituation): C
     if (amount === null) continue;
     list.push({ card, source, amount });
   }
+  // **The rises of a tier-26 government** (batch G1): one more strength line
+  // beside each line a seated card of the type gives this fight. The rise is
+  // taken of what the line gives here, after its own scaling.
+  const raises = cardTypeRaises(state, situation.unit.ownerId);
+  if (raises.size > 0) {
+    const walked = list.length;
+    for (let at = 0; at < walked; at++) {
+      const line = list[at]!;
+      const raise = raises.get(line.card);
+      if (raise === undefined) continue;
+      const extra = cardTypeRaise(line.amount, raise.percent);
+      if (extra === 0) continue;
+      list.push({ card: raise.card, source: raiseLabel(raise, line.card), amount: extra });
+    }
+  }
   return list;
 }
 
@@ -9270,6 +9506,20 @@ export function cardCityStat(
     }
     list.push({ card, source: label(source, note), amount: amount * times });
   }
+  // **The rises of a tier-26 government** (batch G1) on a town's defence, which
+  // is strength. Sight is not, so it is not raised.
+  const raises = stat === 'defense' ? cardTypeRaises(state, city.ownerId) : NO_RAISES;
+  if (raises.size > 0) {
+    const walked = list.length;
+    for (let at = 0; at < walked; at++) {
+      const line = list[at]!;
+      const raise = raises.get(line.card);
+      if (raise === undefined) continue;
+      const extra = cardTypeRaise(line.amount, raise.percent);
+      if (extra === 0) continue;
+      list.push({ card: raise.card, source: raiseLabel(raise, line.card), amount: extra });
+    }
+  }
   return list;
 }
 
@@ -9996,9 +10246,33 @@ export function windfallPayout(
   // `'payout'` reads — so The Woodwrights' doubled chop pays Charcoal Burners a
   // doubled tithe, which is the design doc's own ruling on the pair. Nothing is
   // banked here; this is still the one composition Entry XVIII.5 asks for.
+  //
+  // **The rises of a tier-26 government** (batch G1) join here too: a seated card
+  // of the type adds its own percentage and the rise of it, so the summed share
+  // is still applied once. `riseOn` is the one reading the walk below asks again.
+  const raises = cardTypeRaises(state, playerId);
+  const riseOn = (card: CardId, figure: number): { raise: CardTypeRaise; extra: number } | null => {
+    if (raises.size === 0) return null;
+    const raise = raises.get(card);
+    if (raise === undefined) return null;
+    const extra = cardTypeRaise(figure, raise.percent);
+    return extra === 0 ? null : { raise, extra };
+  };
+  // A yield grant's rise is its own grant, beside the card's, on the same
+  // delivery. A grant paid once for each citizen of a town is not raised: the
+  // delivery resolves that figure (see `CARD_TYPE_RAISED_KINDS`).
+  const pushGrantRise = (card: CardId, grant: WindfallGrantSpec, voice: CityYieldKey, amount: number): void => {
+    const rise = riseOn(card, amount);
+    if (rise === null) return;
+    const named = raiseLabel(rise.raise, card);
+    payout.grants.push({ card: rise.raise.card, source: named, yield: voice, amount: rise.extra, ...deliveryOf(grant) });
+    payout.lines.push({ card: rise.raise.card, source: named, note: `${signed(rise.extra)} ${voice}` });
+  };
   let percentTotal = 0;
   for (const { card, effect } of effectsOfKind(state, playerId, 'windfallRider')) {
-    if (rides(effect, card)) percentTotal += effect.percent ?? 0;
+    if (!rides(effect, card)) continue;
+    percentTotal += effect.percent ?? 0;
+    percentTotal += riseOn(card, effect.percent ?? 0)?.extra ?? 0;
   }
   const paid = percentTotal !== 0 && base !== 0 ? (base * (100 + percentTotal)) / 100 : base;
   // **Vae Victis** (Dominion batch D6): on a capture, an Order's riders pay
@@ -10075,6 +10349,11 @@ export function windfallPayout(
       if (share !== 0) {
         percent += share;
         payout.lines.push({ card, source, note: `${share > 0 ? '+' : ''}${share}%` });
+        const rise = riseOn(card, share);
+        if (rise !== null) {
+          percent += rise.extra;
+          payout.lines.push({ card: rise.raise.card, source: raiseLabel(rise.raise, card), note: `+${rise.extra}%` });
+        }
       }
     }
     const grant = effect.grant;
@@ -10346,6 +10625,7 @@ export function windfallPayout(
         if (amount !== 0) {
           payout.grants.push({ card, source, yield: grant.yield, amount, ...deliveryOf(grant) });
           payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
+          pushGrantRise(card, grant, grant.yield, amount);
         }
         continue;
       }
@@ -10360,6 +10640,7 @@ export function windfallPayout(
         if (amount !== 0) {
           payout.grants.push({ card, source, yield: grant.yield, amount, ...deliveryOf(grant) });
           payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
+          pushGrantRise(card, grant, grant.yield, amount);
         }
         continue;
       }
@@ -10399,6 +10680,7 @@ export function windfallPayout(
         if (amount !== 0) {
           payout.grants.push({ card, source, yield: grant.yield, amount, ...deliveryOf(grant) });
           payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
+          pushGrantRise(card, grant, grant.yield, amount);
         }
         continue;
       }
@@ -10439,6 +10721,7 @@ export function windfallPayout(
       if (amount !== 0) {
         payout.grants.push({ card, source, yield: grant.yield, amount, ...deliveryOf(grant) });
         payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
+        pushGrantRise(card, grant, grant.yield, amount);
       }
     }
   }
@@ -10707,8 +10990,8 @@ export function filledOrderSlots(state: GameState, playerId: number): number {
  * answered by it.
  *
  * The one place "what kind of council is this" is decided, because two readers
- * ask it — `countOf`'s `slottedOrdersOfSlot` (the tier-18 signatures, the
- * buildings that read the council) and `combatScaleCount`'s (The War Council's
+ * ask it — `countOf`'s `slottedOrdersOfSlot` (the buildings that read the
+ * council, and the tier-18 signatures until batch G1) and `combatScaleCount`'s (The War Council's
  * spears) — and two implementations of it would be two answers to the question
  * a player is looking at on one screen.
  *
@@ -11312,6 +11595,13 @@ function payPeriodicBoon(
   const payout = windfallPayout(state, player.id, 'periodic', figure);
   if (payout.amount !== 0) {
     payout.grants.push({ card, source, yield: effect.pays, amount: payout.amount });
+  }
+  // **The rise of a tier-26 government** (batch G1): a seated card of the type
+  // pays its boon and the rise of the boon's own figure, as a grant of its own.
+  const raise = cardTypeRaises(state, player.id).get(card);
+  const extra = raise === undefined ? 0 : cardTypeRaise(figure, raise.percent);
+  if (raise !== undefined && extra !== 0) {
+    payout.grants.push({ card: raise.card, source: raiseLabel(raise, card), yield: effect.pays, amount: extra });
   }
   const touched = payWindfallGrants(state, player, payout);
   // The settlement register's own rule: a grant that filled a basket settles it
@@ -13689,6 +13979,31 @@ export function cardRouteYieldLines(
     }
     list.push(line);
   }
+  // **The rises of a tier-26 government** (batch G1): one more line beside each
+  // line a seated card of the type puts on this caravan. A line counted by the
+  // road's own length is left out, because the fold that holds both ends
+  // resolves its figure and the rise of one helping is not the rise of the line.
+  const raises = cardTypeRaises(state, from.ownerId);
+  if (raises.size > 0) {
+    const walked = list.length;
+    for (let at = 0; at < walked; at++) {
+      const paid = list[at]!;
+      if (paid.perHexes !== undefined) continue;
+      const raise = raises.get(paid.card);
+      if (raise === undefined) continue;
+      const line: CardRouteLine = {
+        card: raise.card,
+        source: raiseLabel(raise, paid.card),
+        food: cardTypeRaise(paid.food, raise.percent),
+        production: cardTypeRaise(paid.production, raise.percent),
+        gold: cardTypeRaise(paid.gold, raise.percent),
+        science: cardTypeRaise(paid.science, raise.percent),
+        culture: cardTypeRaise(paid.culture, raise.percent),
+        faith: cardTypeRaise(paid.faith, raise.percent),
+      };
+      if (VOICES.some((voice) => line[voice] !== 0)) list.push(line);
+    }
+  }
   return list;
 }
 
@@ -13730,6 +14045,20 @@ export function cardRouteShareLines(
         // measure — see the field.
         ...(effect.minHexes === undefined ? {} : { minHexes: effect.minHexes }),
       });
+    }
+  }
+  // **The rises of a tier-26 government** (batch G1): one more share beside each
+  // share a seated card of the type takes of this road, on the same terms.
+  const raises = cardTypeRaises(state, from.ownerId);
+  if (raises.size > 0) {
+    const walked = list.length;
+    for (let at = 0; at < walked; at++) {
+      const share = list[at]!;
+      const raise = raises.get(share.card);
+      if (raise === undefined) continue;
+      const extra = cardTypeRaise(share.percent, raise.percent);
+      if (extra === 0) continue;
+      list.push({ ...share, card: raise.card, source: raiseLabel(raise, share.card), percent: extra });
     }
   }
   return list;

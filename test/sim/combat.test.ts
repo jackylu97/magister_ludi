@@ -323,15 +323,14 @@ describe('melee', () => {
     // obey is `tech.ts`': every windfall that pays beakers goes through
     // `settleResearchWindfall`, so a kill that covers the last of a technology
     // finishes it on the spot instead of a turn later.
+    // Since batch G1 War Chief's kill pays a flat 10 science, whatever sits in
+    // the chairs.
     const state = flatState();
     const player = state.players[0]!;
     player.statecraft.government = 'warChief';
     bumpRevision(state);
-    player.statecraft.orders.push('bloodedSpears');
-    player.statecraft.slots = [{ card: 'bloodedSpears', sealedUntil: 0 }];
-    bumpRevision(state);
     player.researching = 'husbandry';
-    player.sciencePool = techDef('husbandry').cost - 5;
+    player.sciencePool = techDef('husbandry').cost - 10;
 
     const a = createUnit(state, 0, 'swordsman', 3, 3);
     const d = createUnit(state, 1, 'warrior', 4, 3);

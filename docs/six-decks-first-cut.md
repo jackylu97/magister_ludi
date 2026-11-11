@@ -11,7 +11,7 @@ Sources: [live Orders, doctrines and governments](orders-and-doctrines.md), [ear
 - **Leader:** two fixed decks, plus shared commons and eligible cross-type cards. Ibn Battuta has access to all six decks plus the same shared commons.
 - **Cards:** C common, U uncommon, R rare. All enter one owned collection. Ordinary Orders occupy **one normal chair** when active and follow the same entry seals and replacement rules. Five Scientific research Charters and three Commerce building Charters instead unlock their named content once drafted and never occupy a chair. Rarity alone creates no passive effect.
 - **Doctrines:** a **rare-only reward draft**, not a permanent card class. Take one rare into the collection: an ordinary Order must be seated for ongoing effects; a rare Charter grants its named research or building access immediately; the technology or building still needs investment. The same rare can appear in normal drafts and cannot be owned twice.
-- **Government:** supplies **3 / 5 / 8 / 11** baseline chairs (was 3 / 4 / 6 / 9; see "Five content bands") and a small proposed administrative tradeoff. Extra-chair leader abilities remain additive.
+- **Government:** supplies **3 / 5 / 6 / 8 / 11** baseline chairs by tier (was 3 / 4 / 6 / 9; tier 10 has six chairs since batch G1, 2026-11-10; see "Five content bands") and a small proposed administrative tradeoff. Extra-chair leader abilities remain additive.
 - **Cross-type:** one card definition with two deck memberships. Either membership grants access; matching both does not double chance or effect.
 - **Generic:** common rarity, no deck membership, accessible to everyone. A safety net of modest fundamentals rather than the best route to every yield.
 
@@ -60,7 +60,7 @@ Shared pairs are intentional. Modu and Joan should use the same pool differently
 |---|---|---|---|---|
 | Early (Tier 0) | Chiefdom / tier 0 | Start | 3 | Establish a direction; accessible foundations, including early rares where available. |
 | Middle (Tier I) | Government I | Regular draft count 4 | 5 | Add infrastructure, cross-type connections and tactical alternatives. |
-| Late (Tier II) | Government II | Regular draft count 10 | 5 | Add conversion engines, developed-city rewards and specialization. |
+| Late (Tier II) | Government II | Regular draft count 10 | 6 | Add conversion engines, developed-city rewards and specialization. |
 | Advanced (Tier III) | Government III | Regular draft count 18 | 8 | Complete larger combinations; new uses for established assets. |
 | Final (Tier IV) | Government IV | Regular draft count 26 | 11 | Endgame cards: finishers, late engines and the decks' signatures at full size. |
 
@@ -68,7 +68,7 @@ Shared pairs are intentional. Modu and Joan should use the same pool differently
 
 2026-10-15: the fifth rung moved from 45 to 38 drafts (`docs/flags.md` (uuuuuu)).
 
-2026-10-17: the bands open at the live game's government tiers, 4 · 10 · 18 · 29 (the user: *"the government change at draft 10 should upgrade the pool from tier 1 to tier 2"*, `docs/flags.md` (ccccccc)). The table above is updated to match: Tier II opens at 10 with the five chairs of the tier-10 governments. The same day Tier IV and its governments moved from 29 to 26 drafts (*"lets move tier IV to tier 26"*, `docs/flags.md` (ddddddd)). The rest of this section is the proposal as it was written.
+2026-10-17: the bands open at the live game's government tiers, 4 · 10 · 18 · 29 (the user: *"the government change at draft 10 should upgrade the pool from tier 1 to tier 2"*, `docs/flags.md` (ccccccc)). The table above is updated to match: Tier II opens at 10 with the chairs of the tier-10 governments (five until batch G1, six since 2026-11-10). The same day Tier IV and its governments moved from 29 to 26 drafts (*"lets move tier IV to tier 26"*, `docs/flags.md` (ddddddd)). The rest of this section is the proposal as it was written.
 
 2026-10-17, later the same day: the research-age gate is removed (*"lets remove the research age altogether"*, `docs/flags.md` (eeeeeee)). A band now opens at its draft rung alone. The age check below, the band-4 age in the paragraph above and the age floors in each deck's section no longer gate which cards are dealt. They are kept as the proposal was written.
 

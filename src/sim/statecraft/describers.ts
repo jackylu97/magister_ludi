@@ -3708,6 +3708,19 @@ function describeEffect(
           'in the territory of an empire you are at war with yields you the yields of its hex',
       });
       return;
+    case 'cardTypeAmplifier': {
+      // Batch G1, the tier-26 governments. A Military card is said to be
+      // stronger, because its numbers are mostly strength; the other types pay.
+      const type = SLOT_WORDS[effect.type];
+      const named = `${type.charAt(0).toUpperCase()}${type.slice(1)}`;
+      out.push({
+        text:
+          effect.type === 'military'
+            ? `your seated ${named} cards are ${effect.percent}% stronger`
+            : `your seated ${named} cards pay ${effect.percent}% more`,
+      });
+      return;
+    }
     default: {
       const unhandled: never = kind;
       void unhandled;
@@ -5990,6 +6003,11 @@ const RULE_WORDS: Record<CardRule, (percent: number, effect: RulePercentEffect) 
         : percent < 0
           ? `great scholars raise the price of your next great person ${-percent}% less`
           : `great scholars raise the price of your next great person ${percent}% more`,
+  // The Aristocracy (batch G1). A price, said as the saving.
+  greatPersonCost: (percent) =>
+    percent < 0
+      ? `great people cost ${-percent}% less renown`
+      : `great people cost ${percent}% more renown`,
   // The Open Door (Magisterial batch MG5). A price, said as the saving.
   draftCost: (percent) =>
     percent < 0

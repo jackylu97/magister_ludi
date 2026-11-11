@@ -226,13 +226,14 @@ describe('the seating', () => {
   it('falls back on the last wildcard where the realm has no chair of that flavour', () => {
     const state = newGame(config());
     const player = seat(state);
-    // The Republic keeps no military chair at all (batch C2's mixes; it was
-    // the Council of Elders under the old spreads).
-    govern(state, player, 'republic');
+    // Since batch G1 every live government has a Military and an Economic
+    // chair. The retired Theocracy keeps its old mix, with no Economic chair,
+    // so it is the bench for an economic malice.
+    govern(state, player, 'theocracy');
     const layout = slotTypesOf(player.statecraft);
-    expect(layout).not.toContain('military');
-    seatNamed(state, player, 'thinRanks');
-    expect(maliceAt(player, layout.lastIndexOf('wildcard'))).toBe('thinRanks');
+    expect(layout).not.toContain('economic');
+    seatNamed(state, player, 'leanYears');
+    expect(maliceAt(player, layout.lastIndexOf('wildcard'))).toBe('leanYears');
   });
 
   it('gives a second malice a chair of its own, never the first one’s', () => {
@@ -453,18 +454,19 @@ describe('an adoption', () => {
   });
 
   it('leaves a malice with no chair when the new council has none of its flavour free', () => {
-    // The Republic has no military chair and one wildcard chair, so of two
-    // military malices the second has nowhere to sit. It is still carried and
-    // still paid, in the chair nobody has, as the seating test above pins.
+    // The retired Theocracy has no economic chair and one wildcard chair, so
+    // of two economic malices the second has nowhere to sit. It is still
+    // carried and still paid, in the chair nobody has, as the seating test
+    // above pins. (No live government lacks an Economic chair since batch G1.)
     const state = newGame(config());
     const player = seat(state);
     govern(state, player, 'chiefdom');
-    seatNamed(state, player, 'thinRanks');
-    seatNamed(state, player, 'deserters');
-    govern(state, player, 'republic');
+    seatNamed(state, player, 'leanYears');
+    seatNamed(state, player, 'idleHands');
+    govern(state, player, 'theocracy');
     reseatMalices(player);
     const layout = slotTypesOf(player.statecraft);
-    expect(layout).not.toContain('military');
+    expect(layout).not.toContain('economic');
     expect(player.malices.map((held) => held.chair)).toEqual([layout.lastIndexOf('wildcard'), undefined]);
     expect(player.malices).toHaveLength(2);
   });

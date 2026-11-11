@@ -341,13 +341,20 @@ export function renownPerTurn(state: GameState, playerId: number): number {
  * `Player.personDiscount`), and the whole is floored once, so a fraction is not
  * thrown away before the percentage is taken. With no discount this is the old
  * expression exactly, so the ladder of a seat without the Doctrine does not move.
+ *
+ * **The `greatPersonCost` rule comes off at the same point** (batch G1, the
+ * Aristocracy's "great people cost 15% less renown"). Its percentage is added to
+ * the Doctrine's discount, so the two cut the price once together. A seat with
+ * neither still reads the old expression exactly.
  */
 export function renownThreshold(state: GameState, player: Player): number {
   const taken = ladderSteps(state, player);
   const price = RENOWN.base + RENOWN.linear * taken + taken ** RENOWN.exponent;
+  let rule = 0;
+  for (const line of cardRulePercent(state, player.id, 'greatPersonCost')) rule += line.percent;
   const discount = player.personDiscount;
-  if (discount === undefined) return Math.floor(price);
-  return Math.floor((price * Math.max(0, 100 - discount)) / 100);
+  if (discount === undefined && rule === 0) return Math.floor(price);
+  return Math.floor((price * Math.max(0, 100 - (discount ?? 0) + rule)) / 100);
 }
 
 /**

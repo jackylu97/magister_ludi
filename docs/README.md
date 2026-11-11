@@ -617,7 +617,27 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
   same draft count as its government, and the old rung at 38 is gone. The
   draft count alone opens a tier; the research age plays no part since
   2026-10-17 (`docs/flags.md` (eeeeeee), `currentBandOf`). Chairs by tier are the
-  doc's Governments table, sync-tested.
+  doc's Governments table, sync-tested: 3, 5, 6, 8 and 11 since batch G1.
+- **The twelve governments** (batch G1, 2026-11-10, `docs/flags.md` (hhhhhhh)):
+  three at each of tiers 4, 10, 18 and 26, each with a one- or two-clause
+  signature (the master list's Governments table). The Aristocracy replaced
+  Theocracy, which is retired and kept as it was. Two shapes are new:
+  - **`cardTypeAmplifier`** (the tier-26 governments): every number a seated
+    card of the named type gives is 30% larger, rounded to the nearest whole
+    number and at least one larger where the number is one or more
+    (`cardTypeRaise`). `cardTypeRaises` says which seated cards it raises, by
+    `countedTypeOf`. Each reader takes the rise of each line it prints and adds
+    a labelled line of its own: the town and empire yield folds (off the
+    snapshot the engines read, so no engine line is raised), the hex lines (not
+    the ones paid per neighbour or peak, nor a hex's share), the route lines and
+    shares (not one counted by the road's length), the town's percentages on
+    yields and production, the combat strength lines, a town's defence, and the
+    yield grants and percentages of `windfallPayout` and a periodic boon.
+    `CARD_TYPE_RAISED_KINDS` names these kinds; the bots price the rise over
+    the same list.
+  - **`greatPersonCost`** (the Aristocracy): a card rule on the renown price of
+    the next great person, read by `renownThreshold` beside The Peregrini's
+    discount.
 - **Batch DS1** (2026-11-10, `docs/plans/deck-simplification-2026-11-10.md`)
   retired 146 Order rows and moved 14 to another tier. A retired row keeps its
   effects, so a save that holds one still plays it, and every shape it uses

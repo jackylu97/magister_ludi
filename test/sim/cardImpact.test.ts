@@ -554,20 +554,21 @@ describe('a card already in force', () => {
       (id) => orderIsDealt(id) && orderType(id) === 'civic' && orderDef(id).commission === undefined,
     )
       .filter((id) => id !== 'theNestEgg')
-      .slice(0, 3);
-    // Tyranny (M, M, M, E, W): The Nest Egg in the first military chair, three
-    // civic cards beside it, and The Mixed Constitution in the Wildcard chair.
+      .slice(0, 4);
+    // Tyranny (M, M, M, E, C, W since batch G1): The Nest Egg in the first
+    // military chair, four civic cards beside it, and The Mixed Constitution
+    // in the Wildcard chair.
     sc.government = 'tyranny';
     const held: OrderId[] = ['theNestEgg' as OrderId, ...priests, 'theMixedConstitution' as OrderId];
     sc.orders.push(...held);
     sc.slots = held.map((card) => ({ card, sealedUntil: 0 }));
     player.gold = 200;
     bumpRevision(state);
-    const stamp = foldCardImpact(explainCardImpact(state, 0, { kind: 'government', id: 'theocracy' }));
+    const stamp = foldCardImpact(explainCardImpact(state, 0, { kind: 'government', id: 'aristocracy' }));
     const before = ledger(state, 0);
-    sc.pendingGovernment = { tier: 10, options: ['theocracy'] };
+    sc.pendingGovernment = { tier: 10, options: ['aristocracy'] };
     expect(applyCommand(state, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 }).ok).toBe(true);
-    // The Theocracy (M, C, C, C, W): every card kept its chair.
+    // The Aristocracy (M, E, C, C, C, W): every card kept its chair.
     expect(sc.slots.map((slot) => slot?.card ?? null)).toEqual(held);
     const after = ledger(state, 0);
     for (const key of CITY_YIELD_KEYS) expect(stamp[key], key).toBeCloseTo(after[key] - before[key], 9);

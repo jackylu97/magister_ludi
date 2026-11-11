@@ -65,7 +65,10 @@ function sitting(card: OrderId): SlottedOrder {
 describe('a government’s chairs in words', () => {
   it('says the mix the way the plan’s table does, leaving out a type it opens none of', () => {
     expect(chairMixWords(chairMixOf('warChief'))).toBe('2 Military · 1 Economic · 1 Civic · 1 Wildcard');
-    expect(chairMixWords(chairMixOf('tyranny'))).toBe('3 Military · 1 Economic · 1 Wildcard');
+    // Since batch G1 Tyranny opens a Civic chair too, so the retired Theocracy
+    // is the government row that leaves a type out.
+    expect(chairMixWords(chairMixOf('tyranny'))).toBe('3 Military · 1 Economic · 1 Civic · 1 Wildcard');
+    expect(chairMixWords(chairMixOf('theocracy'))).toBe('1 Military · 3 Civic · 1 Wildcard');
     expect(chairMixWords(chairMixOf('chiefdom'))).toBe('1 Military · 1 Economic · 1 Wildcard');
     expect(chairWord('civic')).toBe('Civic');
   });

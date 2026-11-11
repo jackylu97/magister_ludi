@@ -294,15 +294,17 @@ describe('The Sed Festival (feature G, reading 17)', () => {
   });
 
   it('pays nothing when the re-seating returns it to the collection', () => {
-    // The Chiefdom's chairs, and one more Wildcard chair past them: The Sed
-    // Festival and a Wildcard card. Tyranny has no Civic chair and one
-    // Wildcard chair, and the re-seating places the Wildcard card first, so
-    // The Sed Festival fits no chair left.
+    // The Chiefdom's chairs, and four more Wildcard chairs past them, written
+    // by hand. Since batch G1 Tyranny has one Civic chair (the fifth) and one
+    // Wildcard chair (the sixth). A civic card sits in the fifth chair and a
+    // Wildcard card in the sixth, so both keep their chairs, and The Sed
+    // Festival in the seventh chair fits no chair left.
     const [wild] = cardsOf('wildcard', 1);
-    const plain = renownOfAdoption([null, null, null, wild!], 10, 'tyranny');
+    const [priest] = cardsOf('civic', 2).filter((id) => id !== SED);
+    const plain = renownOfAdoption([null, null, null, null, priest!, wild!], 10, 'tyranny');
     const { state, player } = board();
     know(state, RITES, true);
-    council(state, 'chiefdom', [null, null, SED, wild!]);
+    council(state, 'chiefdom', [null, null, null, null, priest!, wild!, SED]);
     bank(state, 10);
     adopt(state, 'tyranny');
     expect(player.statecraft.slots.some((slot) => slot?.card === SED)).toBe(false);
@@ -320,9 +322,10 @@ describe('The Sed Festival (feature G, reading 17)', () => {
     expect(applyCommand(state, { type: 'chooseGreatPerson', playerId: 0, optionIndex: 0 }).ok).toBe(true);
     expect(applyCommand(state, { type: 'skipDoctrineOffer', playerId: 0 }).ok).toBe(true);
     expect(player.greatPersonOffer).toBeUndefined();
-    // The next tier's government pays a second great person.
+    // The next tier's government pays a second great person. The Aristocracy
+    // replaced the retired Theocracy in batch G1.
     bank(state, 10);
-    adopt(state, 'theocracy');
+    adopt(state, 'aristocracy');
     expect(player.statecraft.slots.some((slot) => slot?.card === SED)).toBe(true);
     expect(player.greatPersonOffer).toBeDefined();
   });

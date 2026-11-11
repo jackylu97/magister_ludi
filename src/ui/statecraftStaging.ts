@@ -102,10 +102,10 @@ export function stage(live: readonly (SlottedOrder | null)[]): StagedSlots {
  *
  * An arrangement is indexed by chair, so it is only an arrangement *of these
  * chairs*. The count alone is not enough since chairs have types: War Chief and
- * Tyranny both seat five, and a card staged into War Chief's second Military
- * chair would be sitting in Tyranny's second Military chair by luck, or in an
- * Economic chair it does not fit by the next government. `null` is "no chairs
- * recorded", which is never the same as any council.
+ * the Council of Elders both seat five, and a card staged into War Chief's
+ * second Military chair would be sitting in an Economic chair it does not fit
+ * under the Council of Elders. `null` is "no chairs recorded", which is never
+ * the same as any council.
  */
 export function sameChairs(
   before: readonly ChairType[] | null,

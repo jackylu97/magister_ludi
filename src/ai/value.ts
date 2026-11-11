@@ -290,6 +290,8 @@ import {
 import { chairFitFor, chairFitWithout, ghostSeatUnderDoctrine, maliceAt } from '../sim/statecraft/council';
 import {
   type GroundFacts,
+  // Batch G1: the kinds a tier-26 government raises, so its price reads them.
+  CARD_TYPE_RAISED_KINDS,
   cardActionRule,
   cardCollectionShare,
   cardRareWeight,
@@ -2486,6 +2488,10 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       }
       return worth;
     }
+    case 'cardTypeAmplifier':
+      // **A share of what the seated cards of one type give** (batch G1, the
+      // tier-26 governments). See `cardTypeAmplifierWorth`.
+      return cardTypeAmplifierWorth(effect, ctx);
     case 'productionToCulture':
       // **A town's production turned into culture** (Devotion batch DV4, the
       // Rite of the Sabbath; priced in batch DV9): the culture gained less the
@@ -2722,10 +2728,11 @@ function ruleWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueCont
     // free. Neither is a rate and neither has a fold. Named.
     case 'barbarianKillsConvert':
     case 'freeCityRoads':
-    // A movement point given back on a raid this bot decides to make (Tyranny,
-    // 2026-09-08). Its worth is the difference between two marches, which is the
-    // plan's arithmetic and not a card's, and it is worth nothing to a seat that
-    // never raids. Named, and not guessed at from a card's face.
+    // A movement point given back on a raid this bot decides to make (Riders of
+    // the Steppe; Tyranny's until batch G1). Its worth is the difference
+    // between two marches, which is the plan's arithmetic and not a card's, and
+    // it is worth nothing to a seat that never raids. Named, and not guessed at
+    // from a card's face.
     case 'freePillage':
     // Insurance on a cart nobody has attacked yet (Pytheas, GP2). What it is worth
     // is the chance a caravan is plundered times what a caravan carries, and this
@@ -3686,6 +3693,14 @@ function ruleRewriteValue(
       // **The renown it saves on each great person** (Scientific batch S8,
       // The Royal Readers; priced in batch S13). See `scholarStepWorth`.
       return scholarStepWorth(share, ctx);
+    case 'greatPersonCost': {
+      // **Great people come sooner** (batch G1, the Aristocracy). Cutting the
+      // price by a share is worth the renown a turn that would buy the same
+      // speed: the cut divided by what is left of the price. A surcharge reads
+      // below nought, and the cut is held under the whole price.
+      const cut = Math.min(0.9, -share);
+      return (cut / (1 - cut)) * renownPerTurn(ctx.state, ctx.playerId) * ctx.ai.weights.renown;
+    }
     case 'draftCost':
       // **The culture each hand no longer costs** (Magisterial batch MG5, The
       // Open Door; priced in batch MG17). See `draftDiscountWorth`.
@@ -10930,6 +10945,36 @@ export function orderReadAgain(id: OrderId, ctx: ValueContext): number {
       effect.kind !== 'cardYieldAmplifier',
   );
   return lines.length === 0 ? 0 : scoreEffects(lines, ctx, id);
+}
+
+/**
+ * **What a card-type amplifier is worth** (batch G1, the tier-26 governments):
+ * its share of what this seat's seated cards of the type are worth, over the
+ * kinds the rise reaches (`CARD_TYPE_RAISED_KINDS`, the evaluator's own list).
+ * A card counts as the simulation counts it (`countedTypeOf`, in its chair).
+ *
+ * Three stated readings. The rise of a small figure is at least one, and this
+ * reads the plain share, so a small card is under-read. A clause inside a
+ * condition is not read. A government not yet adopted is priced over the
+ * council the seat has now, which an adoption re-seats with as many cards as
+ * possible kept in place.
+ */
+function cardTypeAmplifierWorth(
+  effect: Extract<CardEffect, { kind: 'cardTypeAmplifier' }>,
+  ctx: ValueContext,
+): number {
+  if (!(effect.percent > 0)) return 0;
+  const sc = statecraftOf(ctx.state, ctx.playerId);
+  if (sc === undefined) return 0;
+  const layout = slotTypesOf(sc);
+  let worth = 0;
+  sc.slots.forEach((slot, index) => {
+    if (slot === null || !isOrderId(slot.card)) return;
+    if (countedTypeOf(slot.card, layout[index] ?? 'wildcard') !== effect.type) return;
+    const lines = orderDef(slot.card).effects.filter((held) => CARD_TYPE_RAISED_KINDS.includes(held.kind));
+    if (lines.length > 0) worth += scoreEffects(lines, ctx, slot.card);
+  });
+  return (effect.percent / 100) * worth;
 }
 
 /**

@@ -76,7 +76,6 @@ import {
   type DoctrineId,
   type OrderId,
   doctrineDef,
-  governmentDef,
   orderDef,
 } from '../../src/sim/statecraftData';
 import { explainTechCost, foldTechCost, researchExpansion } from '../../src/sim/tech';
@@ -526,8 +525,23 @@ describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
       const civic = ORDER_IDS.find((id) => orderDef(id).type === 'civic' && !orderDef(id).retired)!;
       seatOrders(state, player, [civic]);
       const ctx = valueContext(state, player);
+      // The two capital rows Divine Mandate carried until batch G1, written
+      // here: the new Divine Mandate pays a share in towns with a wonder, and no
+      // other row counts the seated Civic cards in the capital.
+      const oldMandate = (to: 'faith' | 'culture'): CardEffect =>
+        ({
+          kind: 'pays',
+          where: 'capital',
+          basis: 'count',
+          to,
+          amount: 1,
+          count: 'slottedOrdersOfSlot',
+          slot: 'civic',
+          scope: { test: 'trueCapital' },
+        }) as CardEffect;
       const rows = [
-        ...governmentDef('divineMandate').effects.slice(0, 2),
+        oldMandate('faith'),
+        oldMandate('culture'),
         ...leaderAbilityDef('flowerAndSong').effects,
         ...greatPersonDef('sappho').legacy!.slice(0, 1),
       ] as CardPaysEffect[];

@@ -372,6 +372,9 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
     // pairs are their own register below.
     'pays',
     'cardYieldAmplifier',
+    // Batch G1, the tier-26 governments: a rise beside each line a seated card
+    // of one type prints, at that line's own step.
+    'cardTypeAmplifier',
     'buildingYieldPercent',
     'percentYields',
     'productionBonus',

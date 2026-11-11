@@ -201,7 +201,11 @@ describe('Magisterial batch MG10: the rows', () => {
 // --- The Grand Vizier ------------------------------------------------------------
 
 describe('The Grand Vizier: the card in the first Economic chair pays twice', () => {
-  /** A capital with a Monument, under the Republic: three Economic chairs, one Civic and one Wildcard. */
+  /**
+   * A capital with a Monument, under the Republic: since batch G1 one Military
+   * chair, three Economic, one Civic and one Wildcard. The first chair of each
+   * council below is the Military one, left empty.
+   */
   function republic(cards: readonly (OrderId | null)[]): { state: GameState; city: City } {
     const state = bareState(20, 10);
     const city = town(state, 5, 5);
@@ -212,7 +216,7 @@ describe('The Grand Vizier: the card in the first Economic chair pays twice', ()
   }
 
   it('doubles the town lines of the card in the first Economic chair, and not the second', () => {
-    const { state, city } = republic([GRANARIES, PRYTANEION, null, null, VIZIER]);
+    const { state, city } = republic([null, GRANARIES, PRYTANEION, null, null, VIZIER]);
     // Civic Granaries: +1 food and +1 production for the Monument.
     expect(townPays(state, city, GRANARIES, 'food')).toBe(1);
     expect(townPays(state, city, GRANARIES, 'production')).toBe(1);
@@ -228,21 +232,21 @@ describe('The Grand Vizier: the card in the first Economic chair pays twice', ()
   });
 
   it('follows whichever card sits first', () => {
-    const { state, city } = republic([PRYTANEION, GRANARIES, null, null, VIZIER]);
+    const { state, city } = republic([null, PRYTANEION, GRANARIES, null, null, VIZIER]);
     expect(townPays(state, city, PRYTANEION, 'food')).toBe(3);
     expect(townPays(state, city, VIZIER, 'food')).toBe(3);
     expect(townPays(state, city, VIZIER, 'production')).toBe(0);
   });
 
   it('pays nothing for an empty first chair, even when the second is full', () => {
-    const { state, city } = republic([null, GRANARIES, null, null, VIZIER]);
+    const { state, city } = republic([null, null, GRANARIES, null, null, VIZIER]);
     expect(townPays(state, city, GRANARIES, 'food')).toBe(1);
     expect(explainCardCityYields(state, city).filter((line) => line.card === VIZIER)).toEqual([]);
   });
 
   it('pays nothing while a malice holds the first Economic chair', () => {
-    const { state, city } = republic([null, GRANARIES, null, null, VIZIER]);
-    playerById(state, 0)!.malices.push({ id: 'leanYears', untilAge: 3, chair: 0 });
+    const { state, city } = republic([null, null, GRANARIES, null, null, VIZIER]);
+    playerById(state, 0)!.malices.push({ id: 'leanYears', untilAge: 3, chair: 1 });
     bumpRevision(state);
     expect(explainCardCityYields(state, city).filter((line) => line.card === VIZIER)).toEqual([]);
   });
@@ -252,9 +256,11 @@ describe('The Grand Vizier: the card in the first Economic chair pays twice', ()
     const city = town(state, 5, 5);
     addBuilding(state, city, 'monument');
     refreshCityDerived(state, city);
-    // The Theocracy: one Military chair, three Civic and one Wildcard. An
-    // Economic card may still sit in the Wildcard chair, but that chair is
-    // not an Economic chair.
+    // The retired Theocracy (batch G1), whose row keeps its old mix: one
+    // Military chair, three Civic and one Wildcard. No live government lacks an
+    // Economic chair since batch G1, so the retired row is the bench. An
+    // Economic card may still sit in the Wildcard chair, but that chair is not
+    // an Economic chair.
     council(state, 'theocracy', [null, null, null, null, VIZIER]);
     expect(townPays(state, city, VIZIER, 'food')).toBe(0);
     council(state, 'theocracy', [null, null, null, null, GRANARIES]);
@@ -267,7 +273,7 @@ describe('The Grand Vizier: the card in the first Economic chair pays twice', ()
     const state = bareState(20, 10);
     town(state, 5, 5);
     // The Art Dealers: +3 gold for each card seated, three here.
-    council(state, 'republic', [ART_DEALERS, PRYTANEION, null, null, VIZIER]);
+    council(state, 'republic', [null, ART_DEALERS, PRYTANEION, null, null, VIZIER]);
     expect(empirePays(state, ART_DEALERS, 'gold')).toBe(9);
     expect(empirePays(state, VIZIER, 'gold')).toBe(9);
   });
@@ -277,7 +283,7 @@ describe('The Grand Vizier: the card in the first Economic chair pays twice', ()
     const city = town(state, 5, 5);
     city.queue = [{ kind: 'building', id: 'pyramids' as never }];
     refreshCityDerived(state, city);
-    council(state, 'republic', [GUILD, null, null, null, VIZIER]);
+    council(state, 'republic', [null, GUILD, null, null, null, VIZIER]);
     expect(townPays(state, city, GUILD, 'gold')).toBe(-2);
     expect(townPays(state, city, VIZIER, 'gold')).toBe(-2);
   });
@@ -290,17 +296,17 @@ describe('The Grand Vizier: the card in the first Economic chair pays twice', ()
     raiseImprovement(work, 'academy' as never, state.turn);
     refreshCityDerived(state, city);
     // The Masters' Domain pays on the hex, so the Vizier finds no town line to double.
-    council(state, 'republic', [DOMAIN, null, null, null, VIZIER]);
+    council(state, 'republic', [null, DOMAIN, null, null, null, VIZIER]);
     expect(hexPays(state, city, work, DOMAIN).food).toBe(3);
     expect(hexPays(state, city, work, VIZIER)).toEqual({ food: 0, production: 0, gold: 0, science: 0, culture: 0 });
     expect(explainCardCityYields(state, city).filter((line) => line.card === VIZIER)).toEqual([]);
     // The Prefects pay a percentage: the Vizier adds no line and no percentage.
-    council(state, 'republic', [PREFECTS, null, null, null, VIZIER]);
+    council(state, 'republic', [null, PREFECTS, null, null, null, VIZIER]);
     expect(explainCardPercentYields(state, city).some((line) => line.card === PREFECTS)).toBe(true);
     expect(explainCardPercentYields(state, city).some((line) => line.card === VIZIER)).toBe(false);
     expect(explainCardCityYields(state, city).filter((line) => line.card === VIZIER)).toEqual([]);
     // The Working Court pays a share of the town's culture, folded apart.
-    council(state, 'republic', [WORKING_COURT, null, null, null, VIZIER]);
+    council(state, 'republic', [null, WORKING_COURT, null, null, null, VIZIER]);
     expect(explainCardCityYields(state, city).filter((line) => line.card === VIZIER)).toEqual([]);
   });
 });

@@ -1480,11 +1480,11 @@ describe('where a bot seats the chair that counts twice (batch DT9)', () => {
 });
 
 describe('The Union of Lublin (batch DT9)', () => {
-  /** A seat on The Estates, tier 26, holding the Doctrine. */
-  function union(): { state: GameState; player: Player; city: City; others: GovernmentId[] } {
+  /** A seat on a tier-26 government (The Estates unless named), holding the Doctrine. */
+  function union(held = 'theEstates' as GovernmentId): { state: GameState; player: Player; city: City; others: GovernmentId[] } {
     const made = capital();
     const sc = made.player.statecraft;
-    sc.government = 'theEstates' as GovernmentId;
+    sc.government = held;
     sc.slots = new Array(slotCount(sc.government)).fill(null);
     bumpRevision(made.state);
     take(made.state, 'theUnionOfLublin');
@@ -1508,18 +1508,25 @@ describe('The Union of Lublin (batch DT9)', () => {
   });
 
   it('pays another government’s line in a real fold, and nothing without the Doctrine', () => {
-    const { state, player, city } = union();
-    // The Sultanate's +25% toward units, which The Estates does not have.
-    const unitLines = () =>
-      productionModifiers(state, city, { kind: 'unit', id: 'warrior' as never }).filter((line) =>
-        line.source.includes('The Union of Lublin'),
-      );
-    expect(unitLines()).toHaveLength(1);
-    expect(unitLines()[0]!.source).toContain('The Sultanate');
-    expect(unitLines()[0]!.percent).toBe(25);
+    // Since batch G1 the tier-26 governments raise the seated cards of one
+    // type. Under The Sultanate, the Doctrine reads The Estates too, so a seated
+    // Economic card is raised. The Grain Tribute pays +1 food and +1 production
+    // in every town, and each rises by one.
+    const { state, player, city } = union('theSultanate' as GovernmentId);
+    const sc = player.statecraft;
+    const tribute = 'theGrainTribute' as OrderId;
+    expect(orderDef(tribute).type).toBe('economic');
+    sc.orders.push(tribute);
+    sc.slots[slotLayout(sc.government).indexOf('economic')] = { card: tribute, sealedUntil: 0 };
+    bumpRevision(state);
+    const raised = () =>
+      explainCardCityYields(state, city).filter((line) => line.source.includes('The Union of Lublin'));
+    expect(raised()).toHaveLength(1);
+    expect(raised()[0]!.source).toBe('Government · The Estates · The Union of Lublin · The Grain Tribute');
+    expect([raised()[0]!.food, raised()[0]!.production]).toEqual([1, 1]);
     player.statecraft.doctrines = [];
     bumpRevision(state);
-    expect(unitLines()).toEqual([]);
+    expect(raised()).toEqual([]);
   });
 
   it('adds no chairs, and leaves the chairs to the held government', () => {
@@ -1551,6 +1558,22 @@ describe('The Union of Lublin (batch DT9)', () => {
 
   it('is priced at what the other two governments pay', () => {
     const { state, player, others } = union();
+    // The other two raise the seated Military and Civic cards, so a council
+    // with one of each makes them worth something.
+    const sc = player.statecraft;
+    const layout = slotLayout(sc.government);
+    for (const type of ['military', 'civic'] as const) {
+      const card = ORDER_IDS.find(
+        (id) =>
+          orderIsDealt(id) &&
+          !isCharter(id) &&
+          orderDef(id).type === type &&
+          orderDef(id).effects.some((effect) => effect.kind === 'combatLine' || effect.kind === 'pays'),
+      )!;
+      sc.orders.push(card);
+      sc.slots[layout.indexOf(type)] = { card, sealedUntil: 0 };
+    }
+    bumpRevision(state);
     const ctx = valueContext(state, player);
     const each = others.reduce((sum, id) => sum + scoreEffects(governmentDef(id).effects, ctx), 0);
     const row = doctrineDef('theUnionOfLublin' as DoctrineId).effects;

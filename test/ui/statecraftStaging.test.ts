@@ -314,16 +314,16 @@ describe('confirming', () => {
 describe('an arrangement belongs to the chairs it was laid out against', () => {
   /**
    * Batch C2b: the screen re-takes a staged arrangement when the chairs change,
-   * and the count alone is not the question. War Chief and Tyranny both seat
-   * five, in different types, so an arrangement carried from one to the other
-   * would put cards in chairs they may not fit.
+   * and the count alone is not the question. War Chief and the Council of
+   * Elders both seat five, in different types, so an arrangement carried from
+   * one to the other would put cards in chairs they may not fit.
    */
   it('is the same council only with the same types, chair by chair', () => {
     const warChief = slotLayout('warChief');
-    const tyranny = slotLayout('tyranny');
-    expect(warChief).toHaveLength(tyranny.length);
+    const elders = slotLayout('councilOfElders');
+    expect(warChief).toHaveLength(elders.length);
     expect(sameChairs(warChief, [...warChief])).toBe(true);
-    expect(sameChairs(warChief, tyranny)).toBe(false);
+    expect(sameChairs(warChief, elders)).toBe(false);
     // A chair a leader or a card opens is a chair more, and that is a change.
     expect(sameChairs(warChief, [...warChief, 'wildcard'])).toBe(false);
     // Nothing recorded is never the same as a council.

@@ -371,8 +371,9 @@ export const SLOT_TYPES: readonly SlotType[] = ['military', 'economic', 'wildcar
  * (`src/ui/suitFace.ts`, batch C1), and since batch C2 it decides which chair
  * the card fits (`orderFitsSlot`): a Military, Economic or Civic card fits a
  * chair of its own type or a Wildcard chair, and a Wildcard card fits only a
- * Wildcard chair. The tier-18 signatures count seated cards by type
- * (`countedTypeOf`).
+ * Wildcard chair. The buildings that read the council count seated cards by
+ * type, and the tier-26 governments raise them by type (`countedTypeOf`; the
+ * tier-18 signatures counted them until batch G1).
  *
  * Its own union rather than a fourth member of `SlotType`, because that union
  * is the retired rows' and the malices' vocabulary and several tables outside
@@ -2826,9 +2827,9 @@ export type CountKind =
   | 'unslottedOrders'
   /**
    * Seated Orders of the **type** named in `CardPaysEffect.slot` — the
-   * deck-readers: the tier-18 signatures (Imperium's Military Orders, the
-   * Merchant League's Economic Orders, Divine Mandate's Civic Orders) and the
-   * buildings that read the council.
+   * deck-readers: the buildings that read the council. The tier-18
+   * signatures (Imperium's Military Orders, the Merchant League's Economic
+   * Orders, Divine Mandate's Civic Orders) read it until batch G1.
    *
    * `slottedOrders` counts how *full* the council is and this counts what kind
    * of council it is, which is the whole of what a deck-reader asks: a
@@ -4174,6 +4175,15 @@ export type CardRule =
    * was seated too.
    */
   | 'scholarLadderStep'
+  /**
+   * **What this empire's next great person costs in renown** (batch G1, the
+   * Aristocracy: 15% less). A negative percentage is cheaper. Read in one place,
+   * `renownThreshold` (`renown.ts`), after the price ladder's arithmetic and
+   * beside The Peregrini's discount. The percentages add together, and the
+   * price is rounded down once. The ladder itself does not move, so each great
+   * person still raises the price of the next one by a full step.
+   */
+  | 'greatPersonCost'
   /**
    * **What an Order hand costs this empire in culture** (Magisterial batch
    * MG5, The Open Door: 15% less; the triage's reading 12). A negative
@@ -10312,6 +10322,56 @@ interface CardSlotPositionEffect {
 }
 
 /**
+ * **Every seated card of one type gives more** (batch G1, the three tier-26
+ * governments: "Your Military cards are 30% stronger", "Your Economic cards pay
+ * 30% more", "Your Civic cards pay 30% more").
+ *
+ * The rule is the spec's (`docs/plans/deck-simplification-2026-11-10.md`,
+ * "Governments"): every number that a seated card of the type gives is larger by
+ * `percent`, rounded to the nearest whole number, and never less than one larger
+ * where the number is one or more. `cardTypeRaise` (`statecraft/evaluator.ts`)
+ * is the one statement of that arithmetic.
+ *
+ * Why it is a new shape and not one of the three that do a similar job:
+ *
+ *   · `cardYieldAmplifier` picks the lines it raises by **voice**. This one picks
+ *     them by the **card's type**, in every voice, and it also reaches
+ *     percentages and strength;
+ *   · `slotPosition` picks **one chair**. This one reaches every chair whose card
+ *     is of the type;
+ *   · `effectAmplifier` raises a figure that **another system** prints (a trade
+ *     route, a founder's share). This one raises figures that cards print.
+ *
+ * How it is read. The rise is taken of each **line** a card prints, in the
+ * reader that prints the line, and it is printed as its own labelled line
+ * beside it (CLAUDE.md rule 5). So a card that pays +4 food in a town of eight
+ * citizens gets one more food there, not one more for each helping of its
+ * count. The readers are the town and empire yield folds, the hex lines, the
+ * trade route lines and shares, the town percentages on yields and on
+ * production, the combat strength lines, a town's defence, the yield grants and
+ * percentages of one-time rewards, and a periodic boon's figure.
+ * `CARD_TYPE_RAISED_KINDS` names the effect kinds those readers cover. Every
+ * other kind is left as it is printed.
+ *
+ * Which cards. A card counts while it sits in a chair, as its own type, or as
+ * the type of its chair if it is unsorted (`countedTypeOf`, the reading the
+ * tier-18 counts take). A card off its chair (Scutage) and a fulfilled
+ * commission's lasting reward are not seated, so they are not raised.
+ *
+ * Two rows that name the same type add their percentages before the rise is
+ * taken once. A cost (a figure below nought) is not raised, because a larger
+ * cost is not a stronger card. A row with a percentage of nought or less raises
+ * nothing.
+ */
+interface CardTypeAmplifierEffect {
+  kind: 'cardTypeAmplifier';
+  /** Which type of seated card is raised. */
+  type: ChairType;
+  /** How much larger each number is, in whole percent. */
+  percent: number;
+}
+
+/**
  * **Every so many turns, a boon** — the periodic occasion of
  * `docs/history/fewer-things.md` §4, ruled worthwhile because *frequency × size* is a
  * second axis of scaling beside the flats.
@@ -10668,6 +10728,9 @@ export type CardEffect =
   | CardYieldAmplifierEffect
   | CardBuildingYieldPercentEffect
   | CardSlotPositionEffect
+  // Batch G1's one new shape: the tier-26 governments raise every seated card of
+  // one type.
+  | CardTypeAmplifierEffect
   | CardPeriodicEffect
   | CardPeriodShortenEffect
   | CardCityRenownPercentEffect
@@ -10702,9 +10765,11 @@ interface GovernmentDef extends CardDefBase {
   tier: number;
   /**
    * **How many chairs this government supplies.** The number is its tier's
-   * rung on `tierLadder` (3 / 5 / 5 / 8 / 11 at draft counts 0 / 4 / 10 / 18 /
+   * rung on `tierLadder` (3 / 5 / 6 / 8 / 11 at draft counts 0 / 4 / 10 / 18 /
    * 26; the retired tier-38 rows take the top rung's), written on the row so
-   * that the count is a field somebody can retune.
+   * that the count is a field somebody can retune. Since batch G1 the tier-10
+   * rung has six chairs. The retired Theocracy keeps the five it was written
+   * with, because a retired row's body is kept as it was.
    *
    * A leader's extra chair and a card's (`CardSlotRiderEffect`) are added on
    * top by `chairCount`, and every one of them is a Wildcard chair.
@@ -10712,7 +10777,8 @@ interface GovernmentDef extends CardDefBase {
   chairs: number;
   /**
    * **Which type each of those chairs is** (batch C2; the table in
-   * `docs/plans/doctrines-governments-chairs.md` section 4). The four counts
+   * `docs/plans/doctrines-governments-chairs.md` section 4, and batch G1's
+   * tier-10 mixes in `docs/orders-and-doctrines.md`). The four counts
    * add up to `chairs`, and `test/sim/statecraft.test.ts` pins that against
    * the ladder. `slotLayout` lays the chairs out from it, Military first and
    * Wildcard last.
@@ -10729,6 +10795,10 @@ interface GovernmentDef extends CardDefBase {
    * for a fifth age the game does not have, and the user left them
    * unimplemented (2026-10-16). Their rows stay so the Compendium can print
    * them; `GOVERNMENT_TIERS` and `governmentsAtTier` skip them.
+   *
+   * Theocracy is the fourth retired row (batch G1, the user's ruling of
+   * 2026-11-10): the Aristocracy takes its place at tier 10. Its row keeps its
+   * tier, chairs, mix, effects and text, so the Compendium prints it as it was.
    */
   retired?: boolean;
 }
@@ -11710,6 +11780,11 @@ interface StatecraftConfig {
    * live governments (The Estates, The Sultanate, The Curia) moved from 29 to
    * 26 together, and the Tier IV Doctrines follow them, so that Tier IV comes
    * closer to research age 4 (`docs/plans/draft-pacing-2026-10-17.md`).
+   *
+   * **Six chairs at tier 10** (batch G1, the user's ruling of 2026-11-10,
+   * `docs/flags.md` (hhhhhhh)). The tier-10 rung had kept the five chairs of the
+   * rung below it. It has one more now, so the counts by rung are 3, 5, 6, 8 and
+   * 11.
    *
    * It banked a reward hand at every rung but the first until batch C3 removed
    * the reward hands (the user, 2026-10-16: a new government brings only its

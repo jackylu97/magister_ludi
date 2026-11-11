@@ -80,6 +80,7 @@ import {
 import {
   type PlayerStatecraft,
   cardActionRule,
+  cardAmplifier,
   explainCardEmpireYields,
   explainCardPercentYields,
   cardRulePercent,
@@ -174,12 +175,10 @@ import {
   ordersForDecks,
   slotCount,
 } from "../../src/sim/statecraftData";
-// Typed chairs (batch C2): the four-type mixes, and the card's own type, which
-// the fit rule and the tier-18 counts both read. The rules themselves are
+// Typed chairs (batch C2): the four-type mixes. The rules themselves are
 // pinned in `typedChairs.test.ts`.
 import {
   CHAIR_TYPES,
-  orderType,
   slotSpread,
 } from "../../src/sim/statecraftData";
 import { type Tile, getTileAt, neighborTiles, tileHex } from "../../src/sim/map";
@@ -370,12 +369,15 @@ describe("the card table", () => {
     // nothing new: Tier IV, the last band, has been open since tier 29.
     expect(bandTierAt(38)).toBe(LAST_BAND);
     expect(bandTierAt(GOVERNMENT_TIERS[GOVERNMENT_TIERS.length - 1]!)).toBe(LAST_BAND);
-    // And no chair count moved: every government's chairs are its tier's rung,
-    // the tier-10 rung carrying the five chairs of the rung below it.
-    expect(TIER_LADDER.map((rung) => rung.chairs)).toEqual([3, 5, 5, 8, 11]);
+    // Every live government's chairs are its tier's rung. Since batch G1 the
+    // tier-10 rung has six chairs, one more than the rung below it. The retired
+    // Theocracy keeps the five chairs it was written with.
+    expect(TIER_LADDER.map((rung) => rung.chairs)).toEqual([3, 5, 6, 8, 11]);
     for (const id of GOVERNMENT_IDS) {
+      if (id === "theocracy") continue;
       expect(slotCount(id), id).toBe(chairsAtTier(governmentDef(id).tier));
     }
+    expect(slotCount("theocracy")).toBe(5);
   });
 
   it("never shrinks the chairs up the ladder", () => {
@@ -492,24 +494,35 @@ describe("the card table", () => {
     ]);
   });
 
-  it("states the two tier-3 rivals in the words they were ratified in", () => {
-    // Playtest ruling, 8/27: both tier-3 alternatives to the Priest-King were
-    // thin enough that nobody took them. Pinned as *sentences* rather than as
-    // effect rows, because what the ruling settled was the printed card — the
-    // rows are one of several ways to say it and the words are not.
-    expect(
-      describeCard("councilOfElders").map((clause) => clause.text),
-    ).toEqual(["+3 happiness", "+1 renown per turn in every city"]);
-    // The strength half was re-ratified by the user's Governments marks of
-    // 2026-09-08 (batch B1b): a scaled line that paid nothing until the third
-    // city became writ and a flat two, and the two kill riders are the ones the
-    // playtest ruling settled.
-    expect(describeCard("warChief").map((clause) => clause.text)).toEqual([
-      "+3 authority capacity",
+  it("states the twelve governments of batch G1 in the words their rows print", () => {
+    // The user's ruling of 2026-11-10 (`docs/flags.md` (hhhhhhh), the spec in
+    // `docs/plans/deck-simplification-2026-11-10.md`, "Governments"). Pinned as
+    // the describers' sentences, so a row that drifts from its signature fails
+    // here as well as in the doc-sync test.
+    const said = (id: GovernmentId): string[] => describeCard(id).map((clause) => clause.text);
+    expect(said("warChief")).toEqual([
       "+4 combat strength",
-      "killing a unit grants +5 science for each Order you have seated",
-      "killing a unit grants +5 culture for each Order you have seated",
+      "killing a unit grants +10 science",
+      "killing a unit grants +10 culture",
     ]);
+    expect(said("councilOfElders")).toEqual(["+2 food in every city", "+1 renown per turn in every city"]);
+    expect(said("priestKing")).toEqual(["+1 science, +1 faith in every city"]);
+    expect(said("tyranny")).toEqual(["+5 authority capacity", "your units cost 30% less gold in maintenance"]);
+    expect(said("republic")).toEqual(["+1 trade route", "+1 culture in every city per 5 citizens there"]);
+    expect(said("aristocracy")).toEqual(["+2 science in every city", "great people cost 15% less renown"]);
+    expect(said("imperium")).toEqual([
+      "all units: +1 movement",
+      "+10% science in every captured city",
+      "+10% culture in every captured city",
+    ]);
+    expect(said("merchantLeague")).toEqual(["+1 trade route", "trade routes pay +50%"]);
+    expect(said("divineMandate")).toEqual([
+      "+20% culture in every city containing a wonder",
+      "+20% faith in every city containing a wonder",
+    ]);
+    expect(said("theSultanate")).toEqual(["your seated Military cards are 30% stronger"]);
+    expect(said("theEstates")).toEqual(["your seated Economic cards pay 30% more"]);
+    expect(said("theCuria")).toEqual(["your seated Civic cards pay 30% more"]);
   });
 
   it("gives every card a name, a flavour line and at least one effect or a stated deferral", () => {
@@ -652,6 +665,9 @@ describe("the card table", () => {
       // Dominion batch D1: units gain experience at the end of a turn (The
       // Drill Grounds, The Regimental Schools, The Tactica).
       "drill",
+      // Batch G1's one new shape: the tier-26 governments raise the seated cards
+      // of one type (The Sultanate, The Estates, The Curia).
+      "cardTypeAmplifier",
     ];
     for (const kind of expected) expect(used.has(kind), kind).toBe(true);
   });
@@ -700,7 +716,6 @@ describe("the card table", () => {
       // The town — step 3, and the count's percentage at step 11.
       "city/flat",
       "city/count",
-      "city/mirror",
       // The town's share of its own fold — step 10.
       "city/share",
       // One town, once, because an empire line has no basket for a hammer.
@@ -720,6 +735,12 @@ describe("the card table", () => {
       "route/count",
     ];
     for (const pair of expected) expect(pairs.has(pair), pair).toBe(true);
+    // **A pair whose arm has no live row** (batch G1). The Curia's science out
+    // of its faith buildings was the one `city/mirror` row, and the user's new
+    // Curia does not carry it. The arm is kept until the orchestrator rules on
+    // removing it. A row that writes the pair again moves it back above.
+    const unwritten = ["city/mirror"];
+    for (const pair of unwritten) expect(pairs.has(pair), pair).toBe(false);
     // And nothing else: a pair no arm reads would pay nothing at all.
     for (const pair of pairs) expect(expected.includes(pair), pair).toBe(true);
   });
@@ -1807,13 +1828,14 @@ describe("every hook family, end to end", () => {
     bumpRevision(g.state);
     expect(cardBehaviorRule(g.state, 0, "barbarianKillsConvert")).toBe(true);
 
-    // B1b's one new rule, and the second behaviour rule a live row names: a
-    // government rather than a Doctrine, which is the same walk read from the
-    // other class of card.
-    expect(cardBehaviorRule(g.state, 0, "freePillage")).toBe(false);
-    g.state.players[0]!.statecraft.government = "tyranny";
-    bumpRevision(g.state);
-    expect(cardBehaviorRule(g.state, 0, "freePillage")).toBe(true);
+    // B1b's one new rule, and the second behaviour rule a live row names. It
+    // was Tyranny's until batch G1; Riders of the Steppe is the live row now, a
+    // seated Order rather than a government, read by the same walk.
+    // The row names mounted units, so the rule is asked of a horseman.
+    expect(cardBehaviorRule(g.state, 0, "freePillage", "horseman")).toBe(false);
+    slot(g.state, 0, "dominionRidersOfTheSteppe");
+    expect(cardBehaviorRule(g.state, 0, "freePillage", "horseman")).toBe(true);
+    expect(cardBehaviorRule(g.state, 0, "freePillage", "warrior")).toBe(false);
 
     expect(cardOfferRule(g.state, 0, "discoveryClaimAll")).toBe(false);
     g.state.players[0]!.statecraft.doctrines.push("athenaeumOfTheRoad");
@@ -2285,7 +2307,7 @@ describe("determinism", () => {
     // gated row leaves a seat's bag, so a v209 log's draws move.
     // 211 since batch DT6 (small narrowings): eleven rows join the Doctrine bags,
     // so a v210 log's draws move.
-    expect(SCHEMA_VERSION).toBe(230);
+    expect(SCHEMA_VERSION).toBe(231);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -2476,6 +2498,26 @@ describe("rule 5 holds with cards active", () => {
     ).toEqual(["food"]);
   });
 
+  /**
+   * **No live row carries `perSlottedOrder` since batch G1.** War Chief was its
+   * one row, and the user's new War Chief pays a flat 10 science and 10 culture
+   * a kill. The field and its arm stay until the orchestrator rules on them, so
+   * these tests lend the flag to War Chief's two kill riders for their length
+   * and hand it straight back, as the composition test always did for `perAge`.
+   */
+  const lendPerSlottedOrder = (run: () => void): void => {
+    const riders = governmentDef("warChief").effects.filter(
+      (effect) => effect.kind === "windfallRider" && effect.occasion === "kill",
+    ) as CardWindfallRiderEffect[];
+    expect(riders).toHaveLength(2);
+    for (const rider of riders) rider.perSlottedOrder = true;
+    try {
+      run();
+    } finally {
+      for (const rider of riders) delete rider.perSlottedOrder;
+    }
+  };
+
   it("perSlottedOrder — War Chief’s kill pays by the council he keeps", () => {
     const kill = (orders: OrderId[]) => {
       const g = game(29);
@@ -2491,16 +2533,31 @@ describe("rule 5 holds with cards active", () => {
       const payout = windfallPayout(g.state, 0, "kill");
       return payout.grants.map((grant) => [grant.yield, grant.amount] as const);
     };
-    // An empty council pays **nothing**, and pays it silently — the zero grants
-    // are dropped rather than printed as noughts a player cannot act on.
-    expect(kill([])).toEqual([]);
-    expect(kill(["bloodedSpears"])).toEqual([
-      ["science", 5],
-      ["culture", 5],
-    ]);
-    expect(kill(["bloodedSpears", "campFollowers", "farRunners"])).toEqual([
-      ["science", 15],
-      ["culture", 15],
+    lendPerSlottedOrder(() => {
+      // An empty council pays **nothing**, and pays it silently — the zero
+      // grants are dropped rather than printed as noughts a player cannot act on.
+      expect(kill([])).toEqual([]);
+      expect(kill(["bloodedSpears"])).toEqual([
+        ["science", 10],
+        ["culture", 10],
+      ]);
+      expect(kill(["bloodedSpears", "campFollowers", "farRunners"])).toEqual([
+        ["science", 30],
+        ["culture", 30],
+      ]);
+    });
+  });
+
+  it("War Chief's own kill pays a flat 10 science and 10 culture (batch G1)", () => {
+    const g = game(29);
+    const sc = playerById(g.state, 0)!.statecraft;
+    sc.government = "warChief";
+    bumpRevision(g.state);
+    // An empty council pays the same as a full one: the figure no longer reads
+    // the chairs.
+    expect(windfallPayout(g.state, 0, "kill").grants.map((grant) => [grant.yield, grant.amount])).toEqual([
+      ["science", 10],
+      ["culture", 10],
     ]);
   });
 
@@ -2530,24 +2587,26 @@ describe("rule 5 holds with cards active", () => {
     ) as CardWindfallRiderEffect;
     rider.perAge = true;
     try {
-      const payout = windfallPayout(g.state, 0, "kill");
-      // 5 × 2 slots × 2 æra = 20. The culture rider, which asked for neither
-      // era nor anything else, is untouched at 5 × 2 — a multiplier is a fact
-      // about *its own rider* and never about the payout.
-      expect(payout.grants.map((grant) => [grant.yield, grant.amount])).toEqual(
-        [
-          ["science", 20],
-          ["culture", 10],
-        ],
-      );
-      // Both multipliers are annotated, so the announcement can say why.
-      expect(payout.lines.map((line) => line.note)).toEqual([
-        "×2 (Æra II)",
-        "×2 (slotted Orders)",
-        "+20 science",
-        "×2 (slotted Orders)",
-        "+10 culture",
-      ]);
+      lendPerSlottedOrder(() => {
+        const payout = windfallPayout(g.state, 0, "kill");
+        // 10 × 2 slots × 2 æra = 40. The culture rider, which asked for no era,
+        // is 10 × 2 — a multiplier is a fact about *its own rider* and never
+        // about the payout.
+        expect(payout.grants.map((grant) => [grant.yield, grant.amount])).toEqual(
+          [
+            ["science", 40],
+            ["culture", 20],
+          ],
+        );
+        // Both multipliers are annotated, so the announcement can say why.
+        expect(payout.lines.map((line) => line.note)).toEqual([
+          "×2 (Æra II)",
+          "×2 (slotted Orders)",
+          "+40 science",
+          "×2 (slotted Orders)",
+          "+20 culture",
+        ]);
+      });
     } finally {
       delete rider.perAge;
     }
@@ -2564,17 +2623,19 @@ describe("rule 5 holds with cards active", () => {
     bumpRevision(g.state);
     const science = player.sciencePool;
     const culture = player.culturePool;
-    // Asking twice is asking once: the multiplier is a *reading* of the slots,
-    // with no counter to tick and no draw to spend, which is what keeps a
-    // preview free and a replay byte-identical.
-    const before = snapshotState(g.state);
-    expect(windfallPayout(g.state, 0, "kill")).toEqual(
-      windfallPayout(g.state, 0, "kill"),
-    );
-    expect(snapshotState(g.state)).toEqual(before);
-    payWindfallGrants(g.state, player, windfallPayout(g.state, 0, "kill"));
-    expect(player.sciencePool - science).toBe(5);
-    expect(player.culturePool - culture).toBe(5);
+    lendPerSlottedOrder(() => {
+      // Asking twice is asking once: the multiplier is a *reading* of the slots,
+      // with no counter to tick and no draw to spend, which is what keeps a
+      // preview free and a replay byte-identical.
+      const before = snapshotState(g.state);
+      expect(windfallPayout(g.state, 0, "kill")).toEqual(
+        windfallPayout(g.state, 0, "kill"),
+      );
+      expect(snapshotState(g.state)).toEqual(before);
+      payWindfallGrants(g.state, player, windfallPayout(g.state, 0, "kill"));
+    });
+    expect(player.sciencePool - science).toBe(10);
+    expect(player.culturePool - culture).toBe(10);
   });
 });
 
@@ -2675,35 +2736,34 @@ describe("the behavioural hooks, in the verbs they change", () => {
     expect(second.heal).toBe(5);
   });
 
-  it("behaviorRule freePillage — Tyranny’s column rides on after the fire", () => {
-    // The user's Governments mark of 2026-09-08 ("Pillaging pays +50% and costs
-    // no movement"), run the way every other hook here is: the same raid twice,
-    // and the difference is the law.
-    const raid = (government?: "tyranny") => {
+  it("behaviorRule freePillage — the steppe riders ride on after the fire", () => {
+    // The rule was Tyranny's until batch G1. Riders of the Steppe is the live
+    // row now, for mounted units. Run the way every other hook here is: the
+    // same raid twice, and the difference is the law.
+    const raid = (riders: boolean) => {
       const g = game(41);
       const raider = createUnit(
         g.state,
         0,
-        "warrior",
+        "horseman",
         g.state.units[0]!.col,
         g.state.units[0]!.row,
       );
       const tile = getTileAt(g.state.map, raider.col, raider.row)!;
       tile.improvement = "farm";
-      if (government)
-        playerById(g.state, 0)!.statecraft.government = government;
+      if (riders) slot(g.state, 0, "dominionRidersOfTheSteppe");
       bumpRevision(g.state);
       const before = raider.movesLeft;
       pillageAt(g.state, raider, tile);
       return { before, after: raider.movesLeft };
     };
-    const ordinary = raid();
+    const ordinary = raid(false);
     expect(ordinary.after).toBe(ordinary.before - 1);
-    const tyrant = raid("tyranny");
-    expect(tyrant.after).toBe(tyrant.before);
+    const steppe = raid(true);
+    expect(steppe.after).toBe(steppe.before);
     // And the farm still burns — what the law withholds is the point, not the
-    // verb, so a raid under Tyranny is the same raid.
-    expect(tyrant.before).toBe(ordinary.before);
+    // verb, so the riders' raid is the same raid.
+    expect(steppe.before).toBe(ordinary.before);
   });
 
   it("pays the base heal with no card slotted at all", () => {
@@ -3105,6 +3165,8 @@ describe("the master-list cut of 2026-08-28", () => {
   });
 
   it("capitalFaithPerTurn — Theocracy tithes the capital and nowhere else", () => {
+    // Theocracy is retired since batch G1 and its row is the one user of this
+    // rate. The row is kept as it was, so it is still the bench.
     const g = game();
     found(g.state, 0);
     playerById(g.state, 0)!.statecraft.government = "theocracy";
@@ -3671,83 +3733,14 @@ describe("the master-list cut of 2026-08-28", () => {
     const said = (id: string): string[] =>
       describeCard(id as never).map((c) => stripRefs(c.text));
 
-    // Re-aimed by batch L1 (`docs/audit/legibility.md` §1b): a government pays
-    // in **every** city, and the count is that town's own citizens — the words
-    // the ratified text always used ("+1 culture for each 5 population in a
-    // city"), which the generated clause said as "in this city" until the
-    // describer took its subject from the card's class.
-    expect(said("republic")).toEqual([
-      "+1 culture in every city per 5 citizens there",
-      "-5% happiness demanded per citizen",
-    ]);
-    // Re-ratified by the user's Governments marks of 2026-09-08 (batch B1b):
-    // five points of writ where there were three, a flat +2, and a raid that
-    // costs the column nothing.
-    expect(said("tyranny")).toEqual([
-      "+5 authority capacity",
-      "+4 combat strength",
-      "pillaging pays +50%",
-      "pillaging costs your units no movement",
-      // Built by the 2026-08-28 pass: unit maintenance exists now (`upkeep.ts`),
-      // so the clause is a `rulePercent` on the eighth `CardRule` rather than a
-      // sentence struck through. Re-said by batch L1 (§1c): a saving stated as a
-      // negative percentage on a cost is two inversions in one phrase.
-      "your units cost 30% less gold in maintenance",
-    ]);
-    // The same marks: a fifth of the capital's faith where it was a tenth.
+    // The twelve live governments were rewritten by batch G1, and the test
+    // "states the twelve governments of batch G1 in the words their rows print"
+    // pins their words. The retired rows below print what they always printed.
+    // Theocracy was retired by batch G1, and its row is kept as it was.
     expect(said("theocracy")).toEqual([
       "+2 faith in every city",
       "+1 science per 5 faith your capital gains per turn",
       "+1 culture per 5 faith your capital gains per turn",
-    ]);
-    // The Æra III fork of 2026-09-05: each tier-18 government reads its own
-    // dominant chair, so the signature moves when a card of its flavour is
-    // slotted beside it.
-    expect(said("merchantLeague")).toEqual([
-      "+2 gold per economic Order you have seated",
-      // Batch L1 (§1c): a signed percent never takes "more" — the sign and the
-      // word both say increase, and "pays +50% more" read as one increase too
-      // many.
-      "trade routes pay +50%",
-      "+1 trade route",
-    ]);
-    expect(said("imperium")).toEqual([
-      // Batch L1 (§1b): the line is paid town by town (`where: 'city'`), so it
-      // says how many towns.
-      "+1 production in every city per military Order you have seated",
-      "all units: +1 movement",
-      "capturing a city grants +50 gold",
-      "capturing a city heals every one of your units",
-    ]);
-    // Batch C2 (the user, 2026-10-16: *"lets have it count civic orders"*):
-    // Divine Mandate counts the civic bench now, where it counted wildcards.
-    expect(said("divineMandate")).toEqual([
-      "+1 faith in your capital per civic Order you have seated",
-      "+1 culture in your capital per civic Order you have seated",
-      "+10% faith in every city of 6 or more citizens",
-    ]);
-
-    expect(said("theEstates")).toEqual([
-      "+1 happiness in every city",
-      "+2 culture in every city of 8 or more citizens",
-    ]);
-    expect(said("theSultanate")).toEqual([
-      "all units: +1 movement",
-      // +25%, not −20%: a negative production bonus toward units made The
-      // Sultanate's units *slower* — the sign was the bug (2026-08-29). A fifth
-      // off the price is a quarter more hammers behind it.
-      "+25% production toward units",
-      "+10% science in every captured city",
-      "+10% culture in every captured city",
-    ]);
-    expect(said("theCuria")).toEqual([
-      // Built by the 2026-08-28 pass: `mirrorYield` reads one voice off the
-      // buildings of one category and pays it as another. The Cathedral half
-      // was struck from the doc's own deferred list on 2026-09-07 (batch E4a) —
-      // there has been a Cathedral in the table since the buildings pass, so the
-      // clause is an ordinary count and the row prints both halves.
-      "+6 faith per Cathedral",
-      "faith buildings supply science equal to their faith, in every city",
     ]);
     // Both halves built by the 2026-08-28 pass. A great person is still
     // *called* rather than bought — what the gold buys is the **recruitment**
@@ -3927,7 +3920,29 @@ describe("the governments’ deferred halves, built", () => {
     expect(rebate.reduce((sum, line) => sum + line.gold, 0)).toBe(gross);
   });
 
-  it("The Curia pays science equal to what its faith buildings supply", () => {
+  it("a city mirror pays science equal to what the faith buildings supply", () => {
+    // **No live row writes `city/mirror` since batch G1.** The old Curia was its
+    // one row, and the user's new Curia raises the seated Civic cards instead.
+    // The arm stays until the orchestrator rules on it, so this test lends the
+    // old clause to The Curia for its length and hands it straight back.
+    const mirror: CardEffect = {
+      kind: "pays",
+      where: "city",
+      basis: "mirror",
+      to: "science",
+      from: "faith",
+      category: "faith",
+    };
+    const curia = governmentDef("theCuria").effects as CardEffect[];
+    curia.push(mirror);
+    try {
+      mirrorCase();
+    } finally {
+      curia.splice(curia.indexOf(mirror), 1);
+    }
+  });
+
+  const mirrorCase = (): void => {
     const g = game(307);
     const city = found(g.state, 0);
     govern(g.state, 0, "theCuria");
@@ -3951,7 +3966,7 @@ describe("the governments’ deferred halves, built", () => {
     const shrineFaith = buildingDef("shrine").faith ?? 0;
     expect(shrineFaith).toBeGreaterThan(0);
     expect(under("theCuria")).toBe(under("chiefdom") + shrineFaith);
-  });
+  };
 
   it("The Commonwealth raises a great person’s works and nothing else on the hex", () => {
     const g = game(311);
@@ -7260,51 +7275,12 @@ describe("the Æra III fork of 2026-09-05", () => {
     bumpRevision(state);
   }
 
-  it("Divine Mandate — the capital reads the civic bench, and the tithe rises", () => {
+  // **Rewritten by batch G1** (the user's ruling of 2026-11-10). The tier-18
+  // governments counted the seated cards of their leading type until then. The
+  // three below pin the new signatures; `cardTypeAmplifier` has its own block.
+  it("Divine Mandate — every town with a wonder gains culture and faith (G1)", () => {
     const g = game(901);
     const capital = found(g.state, 0);
-    rule(g.state, 0, "divineMandate");
-    // **The civic bench since batch C2** (the user, 2026-10-16: *"lets have it
-    // count civic orders"*); it read the wildcard bench before. The council is
-    // laid out as Divine Mandate's own eight chairs so each card below sits in
-    // a chair of a known type.
-    const sc = playerById(g.state, 0)!.statecraft;
-    const layout = slotLayout("divineMandate");
-    sc.slots = new Array(layout.length).fill(null);
-    const put = (chair: "military" | "economic" | "civic" | "wildcard", id: OrderId): void => {
-      const index = layout.findIndex((type, at) => type === chair && sc.slots[at] === null);
-      expect(index, `${chair} chair for ${id}`).toBeGreaterThanOrEqual(0);
-      grant(sc, id);
-      sc.slots[index] = { card: id, sealedUntil: g.state.turn };
-      bumpRevision(g.state);
-    };
-    const civic = ORDER_IDS.filter((id) => orderType(id) === "civic");
-    const unsorted = ORDER_IDS.find((id) => orderType(id) === "unsorted")!;
-    expect(civic.length).toBeGreaterThanOrEqual(2);
-    expect(unsorted).toBeDefined();
-    const paid = (city: City, key: CityYieldKey): number =>
-      explainCardCityYields(g.state, city)
-        .filter((line) => line.card === "divineMandate")
-        .reduce((sum, line) => sum + line[key], 0);
-    // An empty council pays nothing at all, and says so by having no line.
-    expect(paid(capital, "faith")).toBe(0);
-    // A civic card in a chair is one helping of each voice, and it counts by
-    // its own type, so it counts in a Wildcard chair too.
-    put("civic", civic[0]!);
-    expect(paid(capital, "faith")).toBe(1);
-    expect(paid(capital, "culture")).toBe(1);
-    put("wildcard", civic[1]!);
-    expect(paid(capital, "faith")).toBe(2);
-    // A military card and a wildcard card are none of the civic bench.
-    put("military", "bloodedSpears");
-    put("wildcard", "festivalDays");
-    expect(paid(capital, "faith")).toBe(2);
-    // **An unsorted card counts as its chair's type** (the interim rule until
-    // its deck is sorted), so in a Civic chair it is one more helping.
-    put("civic", unsorted);
-    expect(paid(capital, "faith")).toBe(3);
-    // One town only: `where: 'capital'` is the payout that lands in a single
-    // named city.
     const second = foundCityAt(
       g.state,
       0,
@@ -7314,25 +7290,28 @@ describe("the Æra III fork of 2026-09-05", () => {
         capital.row,
       )!,
     )!;
-    expect(paid(second, "faith")).toBe(0);
-    // And the second clause, which is the doc's own fallback: nothing in the
-    // vocabulary can ask whether a town is content, so the tithe reads its size.
-    const share = (city: City): number =>
+    rule(g.state, 0, "divineMandate");
+    const share = (city: City, key: CityYieldKey): number =>
       explainCardPercentYields(g.state, city)
-        .filter((line) => line.card === "divineMandate")
+        .filter((line) => line.card === "divineMandate" && line.yield === key)
         .reduce((sum, line) => sum + line.percent, 0);
-    capital.population = 5;
-    expect(share(capital)).toBe(0);
-    capital.population = 6;
-    expect(share(capital)).toBe(10);
+    // A town with no wonder gains nothing.
+    expect(share(capital, "culture")).toBe(0);
+    expect(share(capital, "faith")).toBe(0);
+    capital.buildings.push("stonehenge");
+    bumpRevision(g.state);
+    expect(share(capital, "culture")).toBe(20);
+    expect(share(capital, "faith")).toBe(20);
+    // Town by town: the second town holds no wonder.
+    expect(share(second, "culture")).toBe(0);
     for (const line of explainCardPercentYields(g.state, capital)) {
-      if (line.card !== "divineMandate") continue;
-      expect(line.yield).toBe("faith");
-      expect(line.stage).toBe("city");
+      if (line.card === "divineMandate") expect(line.stage).toBe("city");
     }
+    // Nothing is paid as a flat any more.
+    expect(explainCardCityYields(g.state, capital).some((line) => line.card === "divineMandate")).toBe(false);
   });
 
-  it("Imperium — every city reads the military bench", () => {
+  it("Imperium — the legs, and the towns you captured (G1)", () => {
     const g = game(902);
     const capital = found(g.state, 0);
     const second = foundCityAt(
@@ -7345,22 +7324,20 @@ describe("the Æra III fork of 2026-09-05", () => {
       )!,
     )!;
     rule(g.state, 0, "imperium");
-    const hammers = (city: City): number =>
-      explainCardCityYields(g.state, city)
-        .filter((line) => line.card === "imperium")
-        .reduce((sum, line) => sum + line.production, 0);
-    expect(hammers(capital)).toBe(0);
+    const share = (city: City, key: CityYieldKey): number =>
+      explainCardPercentYields(g.state, city)
+        .filter((line) => line.card === "imperium" && line.yield === key)
+        .reduce((sum, line) => sum + line.percent, 0);
+    expect(share(second, "science")).toBe(0);
+    second.captured = true;
+    bumpRevision(g.state);
+    expect(share(second, "science")).toBe(10);
+    expect(share(second, "culture")).toBe(10);
+    expect(share(capital, "science")).toBe(0);
+    // The seated cards no longer pay hammers, and a capture pays no gold.
     slot(g.state, 0, "bloodedSpears");
-    // **Every** city, which is what makes the war economy a war economy: the
-    // payout is `where: 'city'`, not the capital's.
-    expect(hammers(capital)).toBe(1);
-    expect(hammers(second)).toBe(1);
-    slot(g.state, 0, "festivalDays");
-    expect(hammers(capital)).toBe(1);
-    slot(g.state, 0, "siegeDoctrine");
-    expect(hammers(capital)).toBe(2);
-    // The legs are unchanged, and they are the reason the government still
-    // reads as Imperium.
+    expect(explainCardCityYields(g.state, capital).some((line) => line.card === "imperium")).toBe(false);
+    expect(windfallPayout(g.state, 0, "capture").grants).toEqual([]);
     expect(
       cardUnitStat(
         g.state,
@@ -7370,52 +7347,14 @@ describe("the Æra III fork of 2026-09-05", () => {
     ).toBe(1);
   });
 
-  it("Imperium — a captured city pays the treasury and makes the army whole", () => {
-    const g = game(903);
-    found(g.state, 0);
-    rule(g.state, 0, "imperium");
-    const player = playerById(g.state, 0)!;
-    const hurt = createUnit(g.state, 0, "warrior", 3, 3);
-    hurt.hp = 1;
-    const before = player.gold;
-    // The conquest payoff the war path lacked, on the occasion The Triumphal Way
-    // already rides. Both halves are one grant, composed before anything is
-    // banked (Entry XVIII.5).
-    const payout = windfallPayout(g.state, 0, "capture");
-    expect(payout.healAll).toBe(true);
-    expect(payout.grants).toEqual([
-      {
-        card: "imperium",
-        source: "Government · Imperium",
-        yield: "gold",
-        amount: 50,
-      },
-    ]);
-    payWindfallGrants(g.state, player, payout, { col: 3, row: 3 });
-    expect(player.gold - before).toBe(50);
-    expect(hurt.hp).toBe(unitMaxHp(hurt));
-    // A town founded is not a town taken: the occasion is the capture and no
-    // other.
-    expect(windfallPayout(g.state, 0, "found").grants).toEqual([]);
-  });
-
-  it("Merchant League — the economic bench, the routes, and one more of them", () => {
+  it("Merchant League — one more route, and the routes pay half again (G1)", () => {
     const g = game(904);
     found(g.state, 0);
     rule(g.state, 0, "merchantLeague");
-    const coin = (): number =>
-      foldCardYields(
-        explainCardEmpireYields(g.state, 0).filter(
-          (line) => line.card === "merchantLeague",
-        ),
-      ).gold;
-    expect(coin()).toBe(0);
+    // The seated Economic cards pay no gold any more.
     slot(g.state, 0, "weightsAndMeasures");
-    expect(coin()).toBe(2);
-    slot(g.state, 0, "festivalDays");
-    expect(coin()).toBe(2);
-    slot(g.state, 0, "silkRoads");
-    expect(coin()).toBe(4);
+    expect(explainCardEmpireYields(g.state, 0).some((line) => line.card === "merchantLeague")).toBe(false);
+    expect(cardAmplifier(g.state, 0, "routeYields")).toBe(50);
     // The route the government *runs*, which no other tier-18 law hands over.
     const slots = explainRouteSlots(g.state, 0);
     expect(slots.some((line) => line.source.includes("Merchant League"))).toBe(
@@ -9741,8 +9680,11 @@ describe("the cadence and the chairs, as ruled on the third pass", () => {
     expect(mix("warChief")).toEqual([2, 1, 1, 1]);
     expect(mix("councilOfElders")).toEqual([1, 2, 1, 1]);
     expect(mix("priestKing")).toEqual([1, 1, 2, 1]);
-    expect(mix("tyranny")).toEqual([3, 1, 0, 1]);
-    expect(mix("republic")).toEqual([0, 3, 1, 1]);
+    // Batch G1 (the user's ruling of 2026-11-10): tier 10 has six chairs, and
+    // the Aristocracy replaces the retired Theocracy, whose row keeps its mix.
+    expect(mix("tyranny")).toEqual([3, 1, 1, 1]);
+    expect(mix("republic")).toEqual([1, 3, 1, 1]);
+    expect(mix("aristocracy")).toEqual([1, 1, 3, 1]);
     expect(mix("theocracy")).toEqual([1, 0, 3, 1]);
     expect(mix("imperium")).toEqual([3, 2, 1, 2]);
     expect(mix("merchantLeague")).toEqual([1, 3, 2, 2]);
@@ -9751,13 +9693,13 @@ describe("the cadence and the chairs, as ruled on the third pass", () => {
     expect(mix("theEstates")).toEqual([2, 4, 2, 3]);
     expect(mix("theCuria")).toEqual([2, 2, 4, 3]);
 
-    // **Each mix adds up to its rung's chairs**: 3, 5, 5, 8 and 11 at tiers 0,
+    // **Each mix adds up to its rung's chairs**: 3, 5, 6, 8 and 11 at tiers 0,
     // 4, 10, 18 and 26. The row's `chairs` and the ladder must agree with the
     // mix, or a council would lay out more chairs than it has types for.
     const RUNG_CHAIRS = new Map<number, number>([
       [0, 3],
       [4, 5],
-      [10, 5],
+      [10, 6],
       [18, 8],
       [26, 11],
     ]);
@@ -9947,20 +9889,16 @@ describe("a building’s share counts what the law put on it", () => {
  * above already answers.
  */
 describe("the deferred rows of batch E4a", () => {
-  it("The Curia pays for every Cathedral the realm has raised", () => {
+  it("The Curia no longer pays for each Cathedral (batch G1)", () => {
+    // The tithe per Cathedral was The Curia's row until the user's ruling of
+    // 2026-11-10. The new Curia raises the seated Civic cards instead, so a
+    // Cathedral alone pays the government nothing.
     const g = game(4101);
     const city = found(g.state, 0);
     playerById(g.state, 0)!.statecraft.government = "theCuria";
-    bumpRevision(g.state);
-    const faith = (): number =>
-      explainCardEmpireYields(g.state, 0)
-        .filter((line) => line.card === "theCuria")
-        .reduce((sum, line) => sum + line.faith, 0);
-    // No cathedral, no tithe — a count of nothing pays no line at all.
-    expect(faith()).toBe(0);
     city.buildings.push("cathedral");
     bumpRevision(g.state);
-    expect(faith()).toBe(6);
+    expect(explainCardEmpireYields(g.state, 0).some((line) => line.card === "theCuria")).toBe(false);
   });
 
   // The Siege Train's own strength line is pinned in `combat.test.ts`, beside
@@ -10490,44 +10428,40 @@ describe("the Governments marks of 2026-09-08", () => {
     expect(combatLines(5, "warChief")).toBe(4);
   });
 
-  it("War Chief — three points of writ, and the kill riders still stand", () => {
+  it("War Chief — no writ since batch G1, and a flat reward a kill", () => {
+    // The user's ruling of 2026-11-10: "Units gain +4 strength. Kills grant 10
+    // science and 10 culture." The authority and the count of seated cards
+    // are gone from the row.
     const g = game();
     found(g.state, 0);
     const before = foldMeter(explainAuthority(g.state, 0));
     const sc = playerById(g.state, 0)!.statecraft;
     sc.government = "warChief";
     bumpRevision(g.state);
-    expect(foldMeter(explainAuthority(g.state, 0))).toBe(before + 3);
-    // The two riders were not part of the mark and are untouched: a chief with
-    // an empty council still pays nothing, and one Order pays five and five.
-    expect(windfallPayout(g.state, 0, "kill").grants).toEqual([]);
-    sc.orders.push("bloodedSpears");
-    sc.slots = [{ card: "bloodedSpears", sealedUntil: 0 }];
-    bumpRevision(g.state);
+    expect(foldMeter(explainAuthority(g.state, 0))).toBe(before);
     expect(
       windfallPayout(g.state, 0, "kill").grants.map((grant) => [
         grant.yield,
         grant.amount,
       ]),
     ).toEqual([
-      ["science", 5],
-      ["culture", 5],
+      ["science", 10],
+      ["culture", 10],
     ]);
   });
 
-  it("Tyranny — five points of writ and two of strength", () => {
+  it("Tyranny — five points of writ and a cheaper army, and no strength (G1)", () => {
     const g = game();
     found(g.state, 0);
     const before = foldMeter(explainAuthority(g.state, 0));
     playerById(g.state, 0)!.statecraft.government = "tyranny";
     bumpRevision(g.state);
     expect(foldMeter(explainAuthority(g.state, 0))).toBe(before + 5);
-    expect(combatLines(5, "tyranny")).toBe(4);
-    // The upkeep rebate was not part of the mark and rides along untouched.
+    expect(combatLines(5, "tyranny")).toBe(0);
     expect(
       governmentDef("tyranny").effects.some(
         (effect) =>
-          effect.kind === "rulePercent" && effect.rule === "unitUpkeep",
+          effect.kind === "rulePercent" && effect.rule === "unitUpkeep" && effect.percent === -30,
       ),
     ).toBe(true);
   });

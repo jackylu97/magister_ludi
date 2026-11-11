@@ -548,7 +548,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    *
    * An arrangement is indexed by chair, so it means something only against the
    * chairs it was made for. An adoption can keep the count and change the types
-   * (War Chief's five to Tyranny's five), and an arrangement carried across that
+   * (War Chief's five to the Council of Elders' five), and an arrangement carried across that
    * would put a card in a chair it does not fit. See `ensureStaging`.
    */
   let stagedChairs: readonly ChairType[] | null = null;

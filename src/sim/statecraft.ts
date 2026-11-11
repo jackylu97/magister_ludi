@@ -97,6 +97,10 @@ export {
   cardExtraChairs,
   chairReadingsAt,
   offTheChairRows,
+  // Batch G1: the tier-26 governments' rise on the seated cards of one type.
+  CARD_TYPE_RAISED_KINDS,
+  cardTypeRaise,
+  cardTypeRaises,
   // Batch K2: what a second reading leaves out, for the bots' prices.
   CHAIR_READS_ONCE,
   GOD_READS_ONCE,
@@ -280,6 +284,7 @@ export type {
   CardRuleLine,
   SurplusMover,
   CardTileLine,
+  CardTypeRaise,
   CardUpkeepLine,
   CardYieldLine,
   CombatSituation,

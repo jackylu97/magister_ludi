@@ -290,8 +290,25 @@ import {
  * and moves come out differently from the first technology that changed. The branch
  * migrates nothing, for the reason given under v119 in
  * `docs/history/schema-changelog.md`.
+ *
+ * v231 (branch `decks`; batch G1, `docs/flags.md` (hhhhhhh), the user's ruling of
+ * 2026-11-10): **twelve reworked governments.** No field joins or leaves the state.
+ * The rules that change:
+ *
+ *   · each government at tiers 4, 10, 18 and 26 has a new signature of one or two
+ *     clauses, and the tier-10 governments have new chair mixes;
+ *   · tier 10 has six chairs, so the chair counts by tier are 3, 5, 6, 8 and 11;
+ *   · the Aristocracy replaces Theocracy at tier 10. The Theocracy row is retired and
+ *     kept as it was;
+ *   · the tier-26 governments raise the seated cards of one type by 30%
+ *     (`cardTypeAmplifier`, a new effect shape), and the Aristocracy cuts the renown
+ *     price of a great person (`greatPersonCost`, a new card rule).
+ *
+ * **A v230 save is refused and does not replay.** A logged adoption seats a different
+ * council and pays different yields. The branch migrates nothing, for the reason given
+ * under v119 in `docs/history/schema-changelog.md`.
  */
-export const SCHEMA_VERSION = 230;
+export const SCHEMA_VERSION = 231;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
